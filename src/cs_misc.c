@@ -216,7 +216,7 @@ char *format_value_4print(double value, int oform, char *formatstr)
    static char sans[256]={""}, *strptr=NULL, ch='\0';
 
    if(abs(value-0.0)<TINY_NUMBER) value = 0.0;
-   
+
    switch (oform) {
       case CCALC_DOUBLE: /* double */
          sprintf(sans,"%f",value) ;

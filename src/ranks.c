@@ -17,7 +17,7 @@
 /*
   Structure to store list of values, sorted in increasing order.
 */
-  
+
 typedef struct node
 {
   float fval;             /* floating point value */
@@ -28,7 +28,7 @@ typedef struct node
 
 /*---------------------------------------------------------------------------*/
 /*
-  Print contents of list, starting at smallest value. 
+  Print contents of list, starting at smallest value.
 */
 
 void list_print (node * n, int * count)
@@ -102,7 +102,7 @@ void node_addvalue (node ** head, float r)
 	  lastptr = &(ptr->next);
 	  ptr = ptr->next;
 	}
-      
+
       if (ptr->fval > r)
 	node_insert (lastptr, r);
       else
@@ -197,7 +197,7 @@ float node_get_median (node * head, int n)
   if (n % 2)
     median = node_get_value(head, n/2 + 1);
   else
-    median = 0.5 * (node_get_value(head, n/2) + 
+    median = 0.5 * (node_get_value(head, n/2) +
 		    node_get_value(head, n/2 + 1));
 
   return (median);
@@ -206,8 +206,8 @@ float node_get_median (node * head, int n)
 
 /*---------------------------------------------------------------------------*/
 /*
-  Sort the input data array of floats, and return a new array containing 
-  the ranks of the input data. 
+  Sort the input data array of floats, and return a new array containing
+  the ranks of the input data.
 */
 
 float * rank_array
@@ -223,12 +223,12 @@ float * rank_array
 
 
   /*----- Allocate memory for array of ranks -----*/
-  rarray = (float *) malloc (sizeof(float) * n);    MTEST (rarray); 
+  rarray = (float *) malloc (sizeof(float) * n);    MTEST (rarray);
 
 
   /*----- Enter and sort original data  -----*/
   for (i = 0;  i < n;  i++)
-    node_addvalue (&xhead, xarray[i]); 
+    node_addvalue (&xhead, xarray[i]);
 
 
   /*----- Get ranks of data -----*/
@@ -247,8 +247,8 @@ float * rank_array
 
 /*---------------------------------------------------------------------------*/
 /*
-  Sort the input data array of doubles, and return a new array containing 
-  the ranks of the input data. 
+  Sort the input data array of doubles, and return a new array containing
+  the ranks of the input data.
 */
 
 float * rank_darray
@@ -264,12 +264,12 @@ float * rank_darray
 
 
   /*----- Allocate memory for array of ranks -----*/
-  rarray = (float *) malloc (sizeof(float) * n);    MTEST (rarray); 
+  rarray = (float *) malloc (sizeof(float) * n);    MTEST (rarray);
 
 
   /*----- Enter and sort original data  -----*/
   for (i = 0;  i < n;  i++)
-    node_addvalue (&xhead, (float) darray[i]); 
+    node_addvalue (&xhead, (float) darray[i]);
 
 
   /*----- Get ranks of data -----*/

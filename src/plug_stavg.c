@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -48,7 +48,7 @@ static char * method_strings[] = { "Mean" , "Sigma" } ;
 
 char * STAVG_main( PLUGIN_interface * ) ;  /* the entry point */
 
-float ** avg_epochs( THD_3dim_dataset * dset, float * ref, 
+float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
                     int user_maxlength, int no1, int meth,
 		    PLUGIN_interface *plint );
 
@@ -134,11 +134,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_hint( plint , "Stimulus Timing (0 = no task, 1 = task)" ) ;
 
    PLUTO_add_number( plint ,
-                     "delta" ,   
-                     -1000 ,    
-                     1000 ,  
-                     0 ,    
-                     0 ,   
+                     "delta" ,
+                     -1000 ,
+                     1000 ,
+                     0 ,
+                     0 ,
                      TRUE
                    ) ;
    PLUTO_add_hint( plint , "Shift data timecourse by delta before splitting and averaging" ) ;
@@ -224,7 +224,7 @@ char * STAVG_main( PLUGIN_interface * plint )
    int   te, ne, tinc, kim, nia;
    int   numepochs, minlength, maxlength, lastindex, navgpts;
    int   nvox , perc , new_units, old_units ;
-   int   ii, ibot,itop , kk, jj; 
+   int   ii, ibot,itop , kk, jj;
    int   no1, user_maxlength, delta;
    int   *pEpochLength, *pTimeIndex;
    int   nx, ny, nz, npix;
@@ -232,7 +232,7 @@ char * STAVG_main( PLUGIN_interface * plint )
    float old_dtime;
 
    MRI_IMAGE * stimim;
-   
+
    MRI_IMARR *avgimar;
 
    byte   ** bptr  = NULL ;  /* one of these will be the array of */
@@ -272,12 +272,12 @@ char * STAVG_main( PLUGIN_interface * plint )
       return "************************************\n"
              "Dataset has > 1 value per time point\n"
              "************************************"  ;
-   
+
    old_datum = DSET_BRICK_TYPE( old_dset , 0 ) ; /* get old dataset datum type */
    new_datum = old_datum;
    old_dtime = DSET_TIMESTEP(old_dset);
    old_units = DSET_TIMEUNITS(old_dset);
-   
+
    nvox = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
    npix = old_dset->daxes->nxx * old_dset->daxes->nyy;
    nx = old_dset->daxes->nxx;
@@ -312,7 +312,7 @@ char * STAVG_main( PLUGIN_interface * plint )
              "Delta shift is too large\n"
              "************************";
    }
-  
+
    /*initialize variables if not user specified */
    user_maxlength = ntime;
    no1 = 0;
@@ -336,7 +336,7 @@ char * STAVG_main( PLUGIN_interface * plint )
                                  2 ,
                                  yes_no_strings) ;
    }
-   
+
 
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
@@ -344,24 +344,24 @@ char * STAVG_main( PLUGIN_interface * plint )
    PLUTO_popup_meter( plint ) ;  /* popup a progress meter */
 
    /*________________[ Main Code ]_________________________*/
-  
+
    fout = avg_epochs( old_dset, stimar, user_maxlength, 1, meth, plint );
    if( fout == NULL ) return " \nError in avg_epochs() function!\n " ;
-   
+
    if( RMB_DEBUG ) fprintf(stderr, "Done with avg_epochs\n");
    maxlength = M_maxlength;
-   
-   
+
+
    /*______________________________________________________*/
 
-   
+
    new_dset = EDIT_empty_copy( old_dset ) ; /* start with copy of old one */
 
    { char * his = PLUTO_commandstring(plint) ;
      tross_Copy_History( old_dset , new_dset ) ;
      tross_Append_History( new_dset , his ) ; free( his ) ;
    }
-   
+
    /*-- edit some of its internal parameters --*/
    ii = EDIT_dset_items(
            new_dset ,
@@ -406,7 +406,7 @@ char * STAVG_main( PLUGIN_interface * plint )
 
       case MRI_short:{
          short * bout ;
-         float fac ; 
+         float fac ;
 
          for( kk=0 ; kk < maxlength ; kk++ ){  /* loop over sub-bricks */
 
@@ -478,7 +478,7 @@ char * STAVG_main( PLUGIN_interface * plint )
 }
 
 /*---------------------------------------------------------------*/
-float ** avg_epochs( THD_3dim_dataset * dset, float * ref, 
+float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
                     int user_maxlength, int no1, int meth,
 		    PLUGIN_interface * plint )
 /*---------------------------------------------------------------*/
@@ -500,19 +500,19 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    int   * pEpochLength; /* array of epoch lengths */
    float ** tempar;
    MRI_IMARR *inimar;
-   
-   
+
+
    nx = dset->daxes->nxx;
    ny = dset->daxes->nyy;
    nz = dset->daxes->nzz;
    nvox = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
    numims = DSET_NUM_TIMES(dset);
    datum = DSET_BRICK_TYPE( dset , 0 ) ; /* get old dataset datum type */
-   
+
    PLUTO_popup_meter(plint) ;
-   
+
    DSET_load(dset);
-   
+
    inimar =  dset_to_mri(dset);
    if( inimar == NULL ) return NULL ;
 
@@ -529,9 +529,9 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    }
 
    nia = 0;    /* number of images (timepoints) averaged  where num epochs > 1*/
-   
+
    if( RMB_DEBUG ) fprintf(stderr, "Start stavg\n");
-   
+
    /* determine number of epochs to average */
    if( RMB_DEBUG ) fprintf(stderr, "Determining number of epochs...");
    numepochs = 1;
@@ -583,7 +583,7 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
 
    if( RMB_DEBUG ) fprintf(stderr, "Start averaging...");
    for( te=0; te < maxlength; te++){
-      pNumAvg[te] = 0.0;   
+      pNumAvg[te] = 0.0;
 
      switch(meth) {
      default: case _STAVG_METH_MEAN:
@@ -653,17 +653,17 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    if ( no1 ){     /* ignore images with only one average */
       if( nia < maxlength) maxlength = nia;
    }
-   
+
    M_maxlength = maxlength;
-   
-   
+
+
    if( RMB_DEBUG ) fprintf(stderr, "malloc output...");
    tempar = (float **) malloc(sizeof(float *) * maxlength);
    for( te=0 ; te < maxlength ; te++ ){
       tempar[te] = (float *) malloc( sizeof(float) * nvox);
    }
    if( RMB_DEBUG ) fprintf(stderr, "done\n");
-   
+
    if( RMB_DEBUG ) fprintf(stderr, "convert to output...");
    for( te=0; te < maxlength; te++){
       for( ii=0; ii<nvox; ii++){
@@ -682,7 +682,7 @@ float ** avg_epochs( THD_3dim_dataset * dset, float * ref,
    free( pEpochLength );
    if( RMB_DEBUG ) fprintf(stderr, "done\n");
    DSET_unload(dset);
-   
+
    return(tempar);
 }
 
@@ -695,19 +695,19 @@ MRI_IMARR * dset_to_mri(THD_3dim_dataset * dset)
    int ii, kk, ntime, datum;
    int nvox, nx, ny, nz;
    int use_fac;
-   
+
    MRI_IMARR * ims_in;
    MRI_IMAGE * im, *temp_im;
-   
+
 
    byte   ** bptr  = NULL ;  /* one of these will be the array of */
    short  ** sptr  = NULL ;  /* pointers to input dataset sub-bricks */
    float  ** fptr  = NULL ;  /* (depending on input datum type) */
-   
+
    float * fac  = NULL ;  /* array of brick scaling factors */
-   
+
    float * fout;
-   
+
 
    ntime = DSET_NUM_TIMES(dset) ;
    nx = dset->daxes->nxx;
@@ -757,16 +757,16 @@ MRI_IMARR * dset_to_mri(THD_3dim_dataset * dset)
       break ;
 
    } /* end of switch on input type */
-   
+
    INIT_IMARR(ims_in) ;
    for( kk=0 ; kk < ntime ; kk++ ){
       im = mri_new_vol_empty( nx , ny , nz , datum ) ;
       ADDTO_IMARR(ims_in,im) ;
    }
-   
+
    for( kk=0 ; kk < ntime ; kk++ ){
       im = IMARR_SUBIMAGE(ims_in,kk) ;
-      
+
       switch( datum ){
          case MRI_byte:  mri_fix_data_pointer( bptr[kk], im ) ; break ;
          case MRI_short: mri_fix_data_pointer( sptr[kk], im ) ; break ;
@@ -775,7 +775,7 @@ MRI_IMARR * dset_to_mri(THD_3dim_dataset * dset)
    }
 
 
-   
+
    return(ims_in);
 }
 

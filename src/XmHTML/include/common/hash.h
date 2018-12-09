@@ -10,7 +10,7 @@
 *
 * Author:				XmHTML Developers Account
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,13 +34,13 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
 *
 *
-*****/ 
+*****/
 
 #ifndef _hash_h_
 #define _hash_h_

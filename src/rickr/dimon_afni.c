@@ -656,7 +656,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
      im->nx = nx;  im->ny = ny;
      im->nxy = nx * ny;
      im->nz = im->nt = im->nu = im->nv = im->nw = 1;
-     im->nxyz = im->nxyzt = im->nvox = im->nxy; 
+     im->nxyz = im->nxyzt = im->nvox = im->nxy;
      im->kind = datum;
      im->dx = im->dy = im->dz = im->dt = im->du = im->dv = 1.0;
      im->dw = -666.0;
@@ -672,7 +672,7 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
            fprintf(stderr,"** MRD: image data alloc failure\n");
            free(ppp);
            RETURN(NULL);
-        } 
+        }
      }
    }
 
@@ -680,12 +680,12 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
      im->dx = dx; im->dy = dy; im->dz = dz; im->dw = 1.0;
    }
    if( dt > 0.0 ) im->dt = dt ;
-   
-   if( !data ) fclose(fp) ; 
+
+   if( !data ) fclose(fp) ;
    else{
       iar = *data;
       fread( iar , bpp , nx*ny , fp ) ;    /* read data directly into it */
-   
+
       if( swap ){                          /* swap bytes? */
         switch( im->pixel_size ){
           default: break ;
@@ -695,13 +695,13 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
         }
         im->was_swapped = 1 ;
       }
-   
+
       /* store auxiliary data in image struct */
-   
+
       fclose(fp) ;     /* 10 Sep 2002: oopsie - forgot to close file */
-   
+
       /*-- 23 Dec 2002: implement Rescale, if ordered --*/
-   
+
       if( rescale_slope > 0.0 ){
         for( ii=0 ; ii < 1 ; ii++ ){
           switch( im->kind ){
@@ -711,14 +711,14 @@ MRI_IMAGE * r_mri_read_dicom( char *fname, int debug, void ** data )
                 ar[jj] = rescale_slope*ar[jj] + rescale_inter ;
             }
             break ;
-   
+
             case MRI_short:{
               short *ar = (short *)*data;
               for( jj=0 ; jj < im->nvox ; jj++ )
                 ar[jj] = rescale_slope*ar[jj] + rescale_inter ;
             }
             break ;
-   
+
             case MRI_int:{
               int *ar = (int *)*data;
               for( jj=0 ; jj < im->nvox ; jj++ )
@@ -1009,7 +1009,7 @@ fprintf(stderr,"  nzoff=1 kor=%d qoff=%f\n",kor,qoff) ;
               nwarn1++;
               zz = -zz;
            }
-  
+
            if( fabs(zz - im->zo) > gD_epsilon ){ /* 20 Nov 2006 [rickr] */
               if( nwarn2 == 0 )
                   fprintf(stderr,

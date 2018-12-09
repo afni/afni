@@ -3,21 +3,21 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /* This file is #included by the filtering program 3dFourier and the plugin plug_fourier */
 /* By T. Ross and K. Heimerl 8-99 */
 
 
 static void *My_Malloc( size_t size) {
 	void *ptr=NULL;
-	
+
 	ptr = (void *)malloc(size);
 	if (ptr == NULL) {
 #ifdef IN_FOURIER_PLUGIN
 		fprintf(stderr, "Fatal error in Fourier Filter Driver, malloc returned NULL");
 		exit(1);
 #else
-		Error_Exit("Fatal: malloc returned NULL"); 
+		Error_Exit("Fatal: malloc returned NULL");
 #endif
 	}
 	return ptr;
@@ -27,7 +27,7 @@ static void *My_Malloc( size_t size) {
 
 
 /**************************************************************************************
-This function zero pads a signal to a power of 2 * factor of 3 or 5 then FFT's the data. 
+This function zero pads a signal to a power of 2 * factor of 3 or 5 then FFT's the data.
 The zero-padded data are FFT'd, and the resultant spectrum is multiplied by an ideal
 low or high pass window.  The signal is then inverse FFt'd and the zero padded portion
 of the signal is eliminated.
@@ -49,7 +49,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 
 
 	/*************************************************************************************
-		DETREND ORIGINAL DATA 
+		DETREND ORIGINAL DATA
 	**************************************************************************************/
 
 	if (ignore>=N) {
@@ -83,16 +83,16 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	win_low=(complex *)My_Malloc(padded_N*sizeof(complex));
 	win_high=(complex *)My_Malloc(padded_N*sizeof(complex));
 	restored_sig=(complex *)My_Malloc(padded_N*sizeof(complex));
-	final_sig=(complex *)My_Malloc(N*sizeof(complex));		
+	final_sig=(complex *)My_Malloc(N*sizeof(complex));
 
 
 	Fs= 1.0/period;							/* sampling frequency*/
 
 	M=padded_N;
-	
+
 
 	/*************************************************************************************
-			PERFORM FFT ON NEW DATA	
+			PERFORM FFT ON NEW DATA
 	**************************************************************************************/
 
 	for(i=0;i<N;++i)
@@ -100,7 +100,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	 	newfft[i].r=ORIG_SIG[i];
 		newfft[i].i=0;
 	}
-	
+
 	for(i=N;i<M;++i)			/*Zero pad to length padded_N*/
 	{
 	 	newfft[i].r=0;
@@ -125,7 +125,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 			win_low[i].r= 1;
 			win_low[i].i= 0;
 		}
-	} 
+	}
 	else if ( (low_fc > 0) && (low_fc < (Fs/(float)M) ) )
 	{
 		if (!transform) {
@@ -136,14 +136,14 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 
 		for(i=0;i<M;++i)
 		{
-		   	win_low[i].r=0;  
+		   	win_low[i].r=0;
 			win_low[i].i=0;
 		}
-	} 
+	}
 	else
-	{ 
+	{
 
-	
+
 		Ncutlo1=(int)((low_fc*M)/Fs); 	/*index number of lower cutoff frequency*/
 		Ncutlo2=(M-Ncutlo1);		/*index number of upper cutoff frequency*/
 
@@ -155,10 +155,10 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 		    	win_low[i].r=1;
 			win_low[i].i=0;
 		}
-		
+
 		for(i=Ncutlo1+1;i<Ncutlo2;++i)
 		{
-		    	win_low[i].r=0;  
+		    	win_low[i].r=0;
 			win_low[i].i=0;
 		}
 
@@ -173,8 +173,8 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	/*************************************************************************************
 			GENERATE HIGH PASS WINDOW
 	**************************************************************************************/
-	
-	if (high_fc < Fs/(float)M) 
+
+	if (high_fc < Fs/(float)M)
 	{
 		if ((!transform) && (high_fc!=0)){
          sprintf(msg,"Highpass filter is all-pass since cutoff=%f < Fsample=%f / Mfft=%d\n",
@@ -185,9 +185,9 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 		{
 			win_high[i].r= 1;
 			win_high[i].i= 0;
-		}	
+		}
 	}
-	else if (high_fc >= Fs) 
+	else if (high_fc >= Fs)
 	{
 		if (!transform) {
          sprintf(msg,"Highpass filter is all-stop since cutoff=%f > Fsample=%f (Mfft=%d)\n",
@@ -197,23 +197,23 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 
 		for(i=0;i<M;++i)
 		{
-		   	win_low[i].r=0;  
+		   	win_low[i].r=0;
 			win_low[i].i=0;
 		}
-	} 
+	}
 	else
-	{ 
-		 
+	{
+
 		Ncuthi1=(int)((high_fc*M)/Fs); 		/*index number of lower cutoff frequency*/
 		Ncuthi2=(M-Ncuthi1);			/*index number of upper cutoff frequency*/
 
-		
+
 		for(i=0;i<Ncuthi1;++i)
 		{
 			win_high[i].r=0;
 			win_high[i].i=0;
 		}
-		
+
 		for(i=Ncuthi1;i<(int)(M/2);++i)
 		{
 			win_high[i].r=1;
@@ -221,7 +221,7 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 		}
 
 
-			win_high[M/2].r=1;		
+			win_high[M/2].r=1;
 			win_high[M/2].i=0;
 
 
@@ -265,19 +265,19 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 
 
 	/**************************************************************************************
-			INVERSE FFT WINDOWED NEW SIGNAL	
+			INVERSE FFT WINDOWED NEW SIGNAL
 	**************************************************************************************/
 
 	csfft_cox(1, M, restored_sig);		/* Doesn't scale for inverse FFT  */
 
-	
+
 	for(i=0;i<M;++i)
 	{
 		restored_sig[i].r=restored_sig[i].r/(float)M;
 		restored_sig[i].i=restored_sig[i].i/(float)M;
 	}
 
-		
+
 
 	/**************************************************************************************
 			ORIG_SIGNAL IS RETURNED TO AFNI, FREE ALLOCATED MEMORY
@@ -293,10 +293,10 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 
 
 	/* Retrend the data */
-	if (retrend) 
+	if (retrend)
 		for (i=0; i<N ;++i)
 			ORIG_SIG[i] += (inter + slope*(float)i);
-	
+
 	if (ignore) {
 		for (i=(N+ignore-1); i>=ignore; i--)
 			ORIG_SIG[i]=ORIG_SIG[i-ignore];
@@ -305,13 +305,13 @@ static char *filter(float *ORIG_SIG, float low_fc, float high_fc, int N, float p
 	}
 
 
-	free(NEW_SIG);		
-	free(newfft);  	
+	free(NEW_SIG);
+	free(newfft);
 	free(win_fft);
 	free(win_low);
 	free(win_high);
 	free(restored_sig);
-	free(final_sig);		
+	free(final_sig);
 
 
 
@@ -338,19 +338,19 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	THD_3dim_dataset *output=NULL;
 	char *err;
 
-	/* should be a valid 3d+time input */	
+	/* should be a valid 3d+time input */
 	DSET_load(input);
-	
+
 	ntimes = DSET_NUM_TIMES(input);
 	nvox = DSET_NVOX(input);
-	
+
 	/* Create a float array for the output */
 	out_data = (float **)My_Malloc(ntimes * sizeof(float *));
 	for (i=0; i<ntimes; out_data[i++] = (float *)My_Malloc(nvox * sizeof(float)));
-	
+
 	/* Create the tempory float array */
 	out_temp = (float *)My_Malloc(ntimes*sizeof(float));
-	
+
 	/* Get the scale factors for later */
 	scale = (float *)My_Malloc(ntimes*sizeof(float));
 	for (i=0; i<ntimes; i++) {
@@ -359,7 +359,7 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 		else
 			scale[i] = DSET_BRICK_FACTOR(input,i);
 	}
-	
+
 	/* get the sampling period */
 	period = DSET_TIMESTEP(input);
 	switch (DSET_TIMEUNITS(input)) {
@@ -370,9 +370,9 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	}
 
 #ifdef IN_FOURIER_PLUGIN
-	PLUTO_popup_meter(plint);		
-#endif			
-			
+	PLUTO_popup_meter(plint);
+#endif
+
 	/* Loop over voxels, pull out the time series and filter */
 	for (i=0; i< nvox; i++) {
 		for (j=0; j<ntimes; j++) {
@@ -394,25 +394,25 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 					out_temp[j] = scale[j] * input_data_f[i];
 					break;
 				}
-				
+
 				default : {
 					return("FIlter_Driver Error:\nInvalid data type for one of the sub-bricks");
 				}
 			}
 		}
-					
+
 		err = filter(out_temp, low_fc, high_fc, ntimes, period, ignore, retrend, FALSE);
 		if (err != NULL)
 			return err;
-		
+
 		for(j=0; j<ntimes; j++)
 			out_data[j][i] = out_temp[j];
-#ifdef IN_FOURIER_PLUGIN		
+#ifdef IN_FOURIER_PLUGIN
 		PLUTO_set_meter(plint, (int)(100.0*((float)i/(float)nvox)));
 #endif
-			
+
 	}
-	
+
 	/* create new dataset and convert, etc. */
 	output = EDIT_empty_copy(input);
 
@@ -420,40 +420,40 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 #if defined(ARGC) && defined(ARGV)
         tross_Make_History( "3dFourier" , ARGC,ARGV , output ) ;
 #endif
-	
+
 	j=EDIT_dset_items(output,
 		ADN_prefix, output_prefix,
 		ADN_none);
-	
+
 	for (j=0; j<ntimes; j++) {
 		switch(DSET_BRICK_TYPE(input,j)) {
 			case MRI_byte: {
 				input_data_b = (byte *)My_Malloc(nvox*sizeof(byte));
-				for (i=0; i<nvox; i++) 
+				for (i=0; i<nvox; i++)
 					input_data_b[i] = (byte)(out_data[j][i] / scale[j]);
-				EDIT_substitute_brick(output, j, MRI_byte, (byte *)input_data_b); 
+				EDIT_substitute_brick(output, j, MRI_byte, (byte *)input_data_b);
 				break;
-			} 	
+			}
 			case MRI_short: {
 				input_data_s = (short *)My_Malloc(nvox*sizeof(short));
-				for (i=0; i<nvox; i++) 
+				for (i=0; i<nvox; i++)
 					input_data_s[i] = (short)(out_data[j][i] / scale[j]);
-				EDIT_substitute_brick(output, j, MRI_short, (short *)input_data_s); 
+				EDIT_substitute_brick(output, j, MRI_short, (short *)input_data_s);
 				break;
-			} 	
+			}
 			case MRI_float: {
 				input_data_f = (float *)My_Malloc(nvox*sizeof(float));
-				for (i=0; i<nvox; i++) 
+				for (i=0; i<nvox; i++)
 					input_data_f[i] = (float)(out_data[j][i] / scale[j]);
-				EDIT_substitute_brick(output, j, MRI_float, (float *)input_data_f); 
+				EDIT_substitute_brick(output, j, MRI_float, (float *)input_data_f);
 				break;
-			} 	
+			}
 		}
-#ifdef IN_FOURIER_PLUGIN		
+#ifdef IN_FOURIER_PLUGIN
 		PLUTO_set_meter(plint, (int)(100.0*((float)j/(float)ntimes)));
 #endif
 }
-	
+
 	/* Write out the new brick at let the memory be free */
 #ifdef IN_FOURIER_PLUGIN
 	PLUTO_add_dset(plint, output, DSET_ACTION_MAKE_CURRENT);
@@ -467,8 +467,8 @@ static char *Fourier_Filter_Driver(THD_3dim_dataset *input, float low_fc, float 
 	free (scale);
 	free (out_temp);
 #ifdef IN_FOURIER_PLUGIN
-	PLUTO_popdown_meter(plint);		
-#endif			
+	PLUTO_popdown_meter(plint);
+#endif
 
 	return NULL;
 }

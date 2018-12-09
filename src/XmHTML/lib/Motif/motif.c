@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -45,7 +45,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:24  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -89,7 +89,7 @@ static char rcsId[]="$Header$";
 * Return Type: 	int
 * Description: 	full I18N version for computing pixel-width of the
 *				given string.
-* In: 
+* In:
 *	font:		font to be used when computing pixel width;
 *	string:		string for which to compute pixel width;
 *	count:		no of characters in string.
@@ -134,7 +134,7 @@ I18NTextWidth(XmHTMLfont *font, const char* string, int count)
 * Name:			I18NDrawString
 * Return Type: 	int
 * Description: 	Full I18N XDrawString.
-* In: 
+* In:
 *	display:	display to be used;
 *	drawable:	area on which to render text;
 *	font:		font to be used;
@@ -192,7 +192,7 @@ I18NDrawString(Display *display, Drawable drawable, XmHTMLfont *font,
 * Name:			I18NTextWidth
 * Return Type: 	int
 * Description: 	XTextWidth without I18N support.
-* In: 
+* In:
 *	font:		font to be used when computing pixel width;
 *	string:		string for which to compute pixel width;
 *	count:		no of characters in string.
@@ -209,7 +209,7 @@ I18NTextWidth(XmHTMLfont *font, const char* string, int count)
 * Name:			I18NDrawString
 * Return Type: 	int
 * Description: 	XDrawString without I18N support.
-* In: 
+* In:
 *	display:	display to be used;
 *	drawable:	area on which to render text;
 *	font:		font to be used;
@@ -247,7 +247,7 @@ I18NDrawString(Display *display, Drawable drawable, XmHTMLfont *font,
 * Name:			XSetFont_wrapper
 * Return Type: 	nothing
 * Description: 	sets a font into the given GC.
-* In: 
+* In:
 *	display:	display being used;
 *	gc:			gc to be modified;
 *	font:		font to be set.
@@ -269,7 +269,7 @@ XSetFont_wrapper(Display *display, GC gc, XmHTMLfont *font)
 * Description: 	XDestroyImage is only defined as a macro, which we
 *				obviously can't call directly as a function. Instead
 *				we define a function that calls the real macro.
-* In: 
+* In:
 *	image:		ptr to XImage to be destroyed;
 * Returns:
 *	nothing.
@@ -315,7 +315,7 @@ _XmHTMLDrawShadows(Display *display, Drawable drawable, GC top_shadow_GC,
 			XFillRectangle(display, drawable, top_shadow_GC, x + 1,
 				 y + height - 1, width - 1, 1);
 			XFillRectangle(display, drawable, top_shadow_GC, x - 1, y + 1, 1,
-				height - 2); 
+				height - 2);
 			break;
 		case XmSHADOW_OUT:
 			/* top & left border */
@@ -326,7 +326,7 @@ _XmHTMLDrawShadows(Display *display, Drawable drawable, GC top_shadow_GC,
 			XFillRectangle(display, drawable, bottom_shadow_GC, x + 1,
 				y + height - 1, width - 1, 1);
 			XFillRectangle(display, drawable, bottom_shadow_GC, x - 1,
-				y + 1, 1, height - 2); 
+				y + 1, 1, height - 2);
 			break;
 		default:
 			break;
@@ -489,10 +489,10 @@ XmHTMLTkaCreate(void)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -510,8 +510,8 @@ XmHTMLTkaDestroy(ToolkitAbstraction *tka)
 /*****
 * Name:			XmHTMLTkaCopy
 * Return Type: 	ToolkitAbstraction*
-* Description: 
-* In: 
+* Description:
+* In:
 *
 * Returns:
 *
@@ -529,10 +529,10 @@ XmHTMLTkaCopy(ToolkitAbstraction *tka)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -544,10 +544,10 @@ XmHTMLTkaSetDrawable(ToolkitAbstraction *tka, Drawable drawable)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -572,7 +572,7 @@ XmHTMLTkaSetDisplay(ToolkitAbstraction *tka, Widget w)
 * Return Type: 	void
 * Description: 	computes new values for top and bottom shadows and the
 *				highlight color based on the current background color.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	bg_pix:		background color to be used (set as background for the
 *				display area).
@@ -580,9 +580,9 @@ XmHTMLTkaSetDisplay(ToolkitAbstraction *tka, Widget w)
 *	nothing.
 *****/
 void
-XmHTMLTkaRecomputeColors(XmHTMLWidget html, Pixel bg_pixel) 
+XmHTMLTkaRecomputeColors(XmHTMLWidget html, Pixel bg_pixel)
 {
-	/* 
+	/*
 	* We can only compute the colors when we have a GC. If we don't
 	* have a GC, the widget is not yet realized. Use managers defaults
 	* then.
@@ -592,7 +592,7 @@ XmHTMLTkaRecomputeColors(XmHTMLWidget html, Pixel bg_pixel)
 		Pixel top = None, bottom = None, highlight = None;
 		Arg args[3];
 
-		XtVaSetValues(HTML_ATTR(work_area), 
+		XtVaSetValues(HTML_ATTR(work_area),
 			XmNbackground, bg_pixel,
 			NULL);
 
@@ -609,15 +609,15 @@ XmHTMLTkaRecomputeColors(XmHTMLWidget html, Pixel bg_pixel)
 * Name: 		XmHTMLTkaRecomputeHighlightColor
 * Return Type: 	void
 * Description: 	computes the select color based upon the given color.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing.
 *****/
 void
-XmHTMLTkaRecomputeHighlightColor(XmHTMLWidget html, Pixel bg_pixel) 
+XmHTMLTkaRecomputeHighlightColor(XmHTMLWidget html, Pixel bg_pixel)
 {
-	/* 
+	/*
 	* We can only compute the colors when we have a GC. If we don't
 	* have a GC, the widget is not yet realized. Use managers defaults
 	* then.
@@ -639,16 +639,16 @@ XmHTMLTkaRecomputeHighlightColor(XmHTMLWidget html, Pixel bg_pixel)
 * Return Type: 	void
 * Description: 	recomputes the top and bottom shadow colors based on the
 *				given *foreground* color
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	base:		base color to base computation on.
 * Returns:
 *	Nothing, but the GC's from Manager are updated to reflect the change.
 *****/
 void
-XmHTMLTkaRecomputeShadowColors(XmHTMLWidget html, Pixel base) 
+XmHTMLTkaRecomputeShadowColors(XmHTMLWidget html, Pixel base)
 {
-	/* 
+	/*
 	* We can only compute the colors when we have a GC. If we don't
 	* have a GC, the widget is not yet realized. Use managers defaults
 	* then.

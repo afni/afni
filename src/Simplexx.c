@@ -6,11 +6,11 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This file contains routines for implementing the Simplex algorithm for 
+  This file contains routines for implementing the Simplex algorithm for
   non-linear optimization to estimate the unknown parameters.
 
   The Simplex algorithm is adapted from: A Jump Start Course in C++ Programming
-  
+
   File:    Simplex.c
   Author:  B. Douglas Ward
   Date:    28 January 2000
@@ -37,7 +37,7 @@ int number_restarts = 0;     /* count of simplex algorithm restarts */
 /*---------------------------------------------------------------------------*/
 
 void allocate_arrays (float *** simplex, float ** centroid,
-		      float ** response, float ** step_size, 
+		      float ** response, float ** step_size,
 		      float ** test1, float ** test2)
 {
   int i;
@@ -47,19 +47,19 @@ void allocate_arrays (float *** simplex, float ** centroid,
   *step_size = (float *) malloc (sizeof(float) * DIMENSION);
   *test1 = (float *) malloc (sizeof(float) * DIMENSION);
   *test2 = (float *) malloc (sizeof(float) * DIMENSION);
-   
+
   *simplex = (float **) malloc (sizeof(float *) * (DIMENSION+1));
 
   for (i = 0;  i < DIMENSION+1;  i++)
     (*simplex)[i] = (float *) malloc (sizeof(float) * DIMENSION);
-       
+
 }
 
 
 /*---------------------------------------------------------------------------*/
 
 void deallocate_arrays (float *** simplex, float ** centroid,
-			float ** response, float ** step_size, 
+			float ** response, float ** step_size,
 			float ** test1, float ** test2)
 {
   int i;
@@ -77,7 +77,7 @@ void deallocate_arrays (float *** simplex, float ** centroid,
     }
 
   free (*simplex);     *simplex = NULL;
-       
+
 }
 
 
@@ -105,7 +105,7 @@ void eval_vertices (float * response, int * worst, int * next, int * best)
     *next = 1;
   else
     *next = 0;
-  
+
   for (i = 0;  i < DIMENSION+1;  i++)
     if ((i != *worst) && (response[i] > response[*next]))
       *next = i;
@@ -114,7 +114,7 @@ void eval_vertices (float * response, int * worst, int * next, int * best)
 
 /*---------------------------------------------------------------------------*/
 
-void restart (float ** simplex, float * response, 
+void restart (float ** simplex, float * response,
 	      float * step_size)
 {
   const float STEP_FACTOR = 0.9;
@@ -124,7 +124,7 @@ void restart (float ** simplex, float * response,
 
 
   /* find the current best vertex */
-  eval_vertices (response, &worst, &next, &best); 
+  eval_vertices (response, &worst, &next, &best);
 
   /* set the first vertex to the current best */
   for (i = 0; i < DIMENSION;  i++)
@@ -179,7 +179,7 @@ void calc_centroid (float ** simplex, int worst, float * centroid)
   Calculate the reflection of the worst vertex about the centroid.
 */
 
-void calc_reflection (float ** simplex, float * centroid, 
+void calc_reflection (float ** simplex, float * centroid,
 		      int worst, float coef, float * vertex)
 {
   int i;
@@ -194,7 +194,7 @@ void calc_reflection (float ** simplex, float * centroid,
   Replace a vertex of the simplex.
 */
 
-void replace (float ** simplex, float * response, 
+void replace (float ** simplex, float * response,
 	      int index, float * vertex, float resp)
 {
   int i;
@@ -241,7 +241,7 @@ float calc_good_fit (float * response)
   Perform initialization for the Simplex algorithm.
 */
 
-void simplex_initialize (float * parameters, float ** simplex, 
+void simplex_initialize (float * parameters, float ** simplex,
 			 float * response, float * step_size)
 {
   int i, j;
@@ -314,23 +314,23 @@ void simplex_optimization (float * parameters, float * sse)
 
 
   allocate_arrays (&simplex, &centroid, &response, &step_size, &test1, &test2);
-  
+
   simplex_initialize (parameters, simplex, response, step_size);
 
   /* start loop to do simplex optimization */
   num_iter = 0;
   num_restarts = 0;
   done = 0;
-  
+
   while (!done)
     {
-      /* find the worst vertex and compute centroid of remaining simplex, 
+      /* find the worst vertex and compute centroid of remaining simplex,
 	 discarding the worst vertex */
       eval_vertices (response, &worst, &next, &best);
       calc_centroid (simplex, worst, centroid);
-      
+
       /* reflect the worst point through the centroid */
-      calc_reflection (simplex, centroid, worst, 
+      calc_reflection (simplex, centroid, worst,
 		       REFLECTION_COEF, test1);
       resp1 = calc_error (test1);
 
@@ -341,28 +341,28 @@ void simplex_optimization (float * parameters, float * sse)
 	  /* try expanding */
 	  calc_reflection (simplex, centroid, worst, EXPANSION_COEF, test2);
 	  resp2 = calc_error (test2);
-	  if (resp2 <= resp1)    /* keep expansion */     
+	  if (resp2 <= resp1)    /* keep expansion */
 	    replace (simplex, response, worst, test2, resp2);
 	  else                   /* keep reflection */
 	    replace (simplex, response, worst, test1, resp1);
 	}
       else if (resp1 < response[next])
 	{
-	  /* new response is between the best and next worst 
+	  /* new response is between the best and next worst
 	     so keep reflection */
-	  replace (simplex, response, worst, test1, resp1); 
+	  replace (simplex, response, worst, test1, resp1);
 	}
           else
 	{
 	  /* try contraction */
 	  if (resp1 >= response[worst])
-	    calc_reflection (simplex, centroid, worst, 
+	    calc_reflection (simplex, centroid, worst,
 			     -CONTRACTION_COEF, test2);
 	  else
-	    calc_reflection (simplex, centroid, worst, 
+	    calc_reflection (simplex, centroid, worst,
 			     CONTRACTION_COEF, test2);
 	  resp2 =  calc_error (test2);
-	  
+
 	  /* test the contracted response against the worst response */
 	  if (resp2 > response[worst])
 	    {
@@ -376,7 +376,7 @@ void simplex_optimization (float * parameters, float * sse)
 	    replace (simplex, response, worst, test2, resp2);
 	}
 
-      /* test to determine when to stop.  
+      /* test to determine when to stop.
 	 first, check the number of iterations */
       num_iter += 1;    /* increment iteration counter */
       if (num_iter >= MAX_ITERATIONS)
@@ -390,13 +390,13 @@ void simplex_optimization (float * parameters, float * sse)
       /* limit the number of restarts */
       if (num_restarts == MAX_RESTARTS)  done = 1;
 
-      /* compare relative standard deviation of vertex responses 
+      /* compare relative standard deviation of vertex responses
 	 against a defined tolerance limit */
       fit = calc_good_fit (response);
       if (fit <= TOLERANCE)  done = 1;
 
       /* if done, copy the best solution to the output array */
-      if (done) 
+      if (done)
 	{
 	  eval_vertices (response, &worst, &next, &best);
 	  for (i = 0;  i < DIMENSION;  i++)
@@ -405,7 +405,7 @@ void simplex_optimization (float * parameters, float * sse)
 	}
 
     }  /* while (!done) */
- 
+
   number_restarts = num_restarts;
   deallocate_arrays (&simplex, &centroid, &response, &step_size,
 		     &test1, &test2);

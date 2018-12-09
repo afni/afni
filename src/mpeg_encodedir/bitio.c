@@ -101,7 +101,7 @@
 /*===============================*
  * INTERNAL PROCEDURE prototypes *
  *===============================*/
- 
+
 static void Dump _ANSI_ARGS_((BitBucket *bbPtr));
 
 

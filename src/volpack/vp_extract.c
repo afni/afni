@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -33,7 +33,7 @@
 static int ExtractRawVolume ANSI_ARGS((vpContext *vpc, int x0, int y0, int z0,
     int x1, int y1, int z1, int field, void *dst, int dst_xstride,
     int dst_ystride, int dst_zstride));
-static int ClassifyRawVolume ANSI_ARGS((vpContext *vpc, int correct, 
+static int ClassifyRawVolume ANSI_ARGS((vpContext *vpc, int correct,
     int x0, int y0, int z0, int x1, int y1, int z1, unsigned char *dst,
     int dst_xstride, int dst_ystride, int dst_zstride));
 static int ShadeRawVolume ANSI_ARGS((vpContext *vpc, int x0, int y0, int z0,

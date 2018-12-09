@@ -14,7 +14,7 @@ static char rcsId[]="$Header$";
 * Author:				newt
 * memory manager:		Dick Porter
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -35,7 +35,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -77,7 +77,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:02:52  newt
 * Initial Revision
 *
-*****/ 
+*****/
 /*****
 * This entire file is wrapped between a #ifdef HAVE_LIBJPEG/#endif pair.
 *****/
@@ -160,10 +160,10 @@ jpeg_buffer_fill_input_buffer(j_decompress_ptr cinfo)
 
 /*
 * Skip over uninteresting data in the JPEG stream. If we have to seek past
-* the end of our buffer, then we have a bogus image. The call to 
+* the end of our buffer, then we have a bogus image. The call to
 * jpeg_buffer_fill_input_buffer handles this case for us.
 */
-static void 
+static void
 jpeg_buffer_skip_input_data(j_decompress_ptr cinfo, long num_bytes)
 {
 	buffer_src_ptr src=(buffer_src_ptr)cinfo->src;
@@ -193,7 +193,7 @@ jpeg_buffer_term_source(j_decompress_ptr cinfo)
 /*
 * Set up input from a memory buffer
 */
-static void 
+static void
 jpeg_buffer_src(j_decompress_ptr cinfo, Byte *data, unsigned int len)
 {
 	buffer_src_ptr src;
@@ -220,7 +220,7 @@ jpeg_buffer_src(j_decompress_ptr cinfo, Byte *data, unsigned int len)
 * Name: 		readJPEG
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	reads a JPEG buffer and returns image data.
-* In: 
+* In:
 *
 * Returns:
 *	loaded image data on success, NULL on failure.
@@ -244,9 +244,9 @@ _XmHTMLReadJPEG(Widget html, ImageBuffer *ib)
 	jerr.pub.error_exit = my_error_exit;
 
 	/* Establish the setjmp return context for my_error_exit to use. */
-	if(setjmp(jerr.setjmp_buffer)) 
+	if(setjmp(jerr.setjmp_buffer))
 	{
-		/* 
+		/*
 		* JPEG signalled an error. Destroy image data, free any allocated
 		* buffers and return NULL.
 		*/
@@ -264,7 +264,7 @@ _XmHTMLReadJPEG(Widget html, ImageBuffer *ib)
 
 	jpeg_read_header(&cinfo, TRUE);
 
-	cinfo.quantize_colors = TRUE; 
+	cinfo.quantize_colors = TRUE;
 	cinfo.two_pass_quantize = TRUE;
 
 	/*
@@ -288,7 +288,7 @@ _XmHTMLReadJPEG(Widget html, ImageBuffer *ib)
 		*****/
 		if(htmlw->html.map_to_palette != XmDISABLED)
 		{
-			cinfo.out_color_components = 3; 
+			cinfo.out_color_components = 3;
 			cinfo.actual_number_of_colors = htmlw->html.xcc->num_palette;
 
 			/* allocate the palette */
@@ -348,7 +348,7 @@ _XmHTMLReadJPEG(Widget html, ImageBuffer *ib)
 
 	r = img_data->data;
 
-	while (cinfo.output_scanline < cinfo.output_height) 
+	while (cinfo.output_scanline < cinfo.output_height)
 	{
 		buffer[0] = r;
 		jpeg_read_scanlines(&cinfo, buffer, 1);
@@ -364,28 +364,28 @@ _XmHTMLReadJPEG(Widget html, ImageBuffer *ib)
 	AllocRawImageCmap(img_data, cinfo.actual_number_of_colors);
 
 	/* set up X colormap. Upscale RGB to 16bits precision */
-	if(cinfo.out_color_components == 3) 
+	if(cinfo.out_color_components == 3)
 	{
 		int cshift = 16 - cinfo.data_precision;
 		img_data->color_class = XmIMAGE_COLORSPACE_RGB;
-		for (i=0; i < img_data->cmapsize; i++) 
+		for (i=0; i < img_data->cmapsize; i++)
 		{
 			img_data->cmap[i].red   = cinfo.colormap[0][i] << cshift;
 			img_data->cmap[i].green = cinfo.colormap[1][i] << cshift;
 			img_data->cmap[i].blue  = cinfo.colormap[2][i] << cshift;
 		}
 	}
-	else 
+	else
 	{
 		int cshift = 16 - cinfo.data_precision;
 		img_data->color_class = XmIMAGE_COLORSPACE_GRAYSCALE;
-		for(i = 0; i < img_data->cmapsize; i++) 
+		for(i = 0; i < img_data->cmapsize; i++)
 		{
-			img_data->cmap[i].red = img_data->cmap[i].green = 
+			img_data->cmap[i].red = img_data->cmap[i].green =
 				img_data->cmap[i].blue = cinfo.colormap[0][i] << cshift;
 		}
 	}
-	
+
 	jpeg_finish_decompress(&cinfo);
 	jpeg_destroy_decompress(&cinfo);
 

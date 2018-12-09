@@ -18,7 +18,7 @@ static NI_group * gifti_surf_to_afni_surf(gifti_image * gim);
 static gifti_image * afni_surf_to_gifti_surf(NI_group * aSO);
 static byte is_gifti_surface(char * fname);
 static byte gifti_surf_meta_to_afni_surf_meta(
-               gifti_image * gim, 
+               gifti_image * gim,
                NI_group *aSO);
 static byte afni_surf_meta_to_gifti_surf_meta(
                NI_group *aSO,
@@ -49,11 +49,11 @@ NI_group * afni_open_gifti_surf(char * fname, int read_data)
    gifti_set_verb(GP->gverb);
 
    if (!is_gifti_surface(fname)) {
-      if( GP->verb > 0 ) 
+      if( GP->verb > 0 )
          fprintf( stderr,
                   "** afni_open_gifti_surf: %s is not a surface\n", fname);
       RETURN(NULL);
-   }  
+   }
    gim = gifti_read_image(fname, read_data);
    if( !gim ) {
      if( GP->verb > 1 )
@@ -65,24 +65,24 @@ NI_group * afni_open_gifti_surf(char * fname, int read_data)
    aSO = gifti_surf_to_afni_surf (gim);
 
    /* free gim */
-   gifti_free_image(gim); gim = NULL; 
+   gifti_free_image(gim); gim = NULL;
 
    RETURN(aSO);
 }
 
-int afni_write_gifti_surf( NI_group *aSO, char * fname, 
+int afni_write_gifti_surf( NI_group *aSO, char * fname,
                            int write_data, int encoding)
 {
    gifti_image * gim=NULL;
    giiDataArray  * dac=NULL; /* coords */
    giiDataArray  * dat=NULL; /* triangles */
-   
+
    ENTRY("afni_write_gifti_surf");
-   
+
    if (!(gim = afni_surf_to_gifti_surf(aSO))) {
-      fprintf( stderr, 
+      fprintf( stderr,
                "** Failed to gimate\n");
-      RETURN(0);   
+      RETURN(0);
    }
    if (encoding > GIFTI_ENCODING_UNDEF && encoding < GIFTI_ENCODING_MAX) {
       /* enforce this encoding */
@@ -91,17 +91,17 @@ int afni_write_gifti_surf( NI_group *aSO, char * fname,
          RETURN(0);
       }
       dac->encoding = encoding;
-      dat->encoding = encoding;     
+      dat->encoding = encoding;
    }
    if (gifti_write_image(gim, fname, write_data)) {
-      fprintf( stderr, 
+      fprintf( stderr,
                "** Failed to write_image\n");
       gifti_free_image(gim); gim = NULL;
-      RETURN(0);   
+      RETURN(0);
    }
-   
+
    gifti_free_image(gim); gim = NULL;
-   
+
    RETURN(1);
 }
 
@@ -110,26 +110,26 @@ static byte is_gifti_surface(char * fname)
    gifti_image * gim=NULL;
    giiDataArray  * dac=NULL; /* coords */
    giiDataArray  * dat=NULL; /* triangles */
-   
+
    ENTRY("is_gifti_surface");
-   
+
    if( !fname ) RETURN(0);
-   
+
    gim = gifti_read_image(fname, 0);
-   
-   if( !gim ) { 
-      gifti_free_image(gim); gim = NULL; 
+
+   if( !gim ) {
+      gifti_free_image(gim); gim = NULL;
       RETURN(0);
    }
-   
+
    if( !(dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0)) ||
        !(dat = gifti_find_DA(gim, NIFTI_INTENT_TRIANGLE, 0))    ) {
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(0);
    }
-                  
+
    gifti_free_image(gim); gim = NULL;
-   
+
    RETURN(1);
 }
 
@@ -154,22 +154,22 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
        (dat = gifti_find_DA(gim, NIFTI_INTENT_TRIANGLE, 0))    ) {
       if( GP->verb > 1 )
          fprintf( stderr,
-                  "++ gifti_surf_to_afni_surf: found pointset and triangles\n"); 
+                  "++ gifti_surf_to_afni_surf: found pointset and triangles\n");
    } else {
         fprintf(stderr,"** failed to find coordinate/triangle structs\n");
         RETURN(aSO);
    }
-   if (dac->datatype != NIFTI_TYPE_FLOAT32) { 
+   if (dac->datatype != NIFTI_TYPE_FLOAT32) {
       fprintf(stderr,"** NIFTI_INTENT_POINTSET not FLOAT32\n");
       RETURN(aSO);
    }
-   if (dat->datatype != NIFTI_TYPE_INT32) { 
+   if (dat->datatype != NIFTI_TYPE_INT32) {
       fprintf(stderr,"** NIFTI_INTENT_TRIANGLE not INT32\n");
       RETURN(aSO);
    }
-   
+
    dan = gifti_find_DA(gim, NIFTI_INTENT_VECTOR, 0);
-   if (dan && dan->datatype != NIFTI_TYPE_FLOAT32) { 
+   if (dan && dan->datatype != NIFTI_TYPE_FLOAT32) {
       fprintf(stderr,"** NIFTI_INTENT_VECTOR not FLOAT32\n");
       RETURN(aSO);
    }
@@ -178,16 +178,16 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
                      "   from that of NIFTI_INTENT_POINTSET\n");
       RETURN(aSO);
    }
-    
-   aSO = SUMA_NewAfniSurfaceObject();  
-   gifti_DA_rows_cols(  dac, 
+
+   aSO = SUMA_NewAfniSurfaceObject();
+   gifti_DA_rows_cols(  dac,
                         &(rows),
                         &(cols) );
    nelxyz = SUMA_FindNgrNamedElement(aSO, "Node_XYZ");
    NI_SETA_INT(nelxyz,"N_Node",(int)rows);
    NI_SETA_INT(nelxyz,"NodeDim",(int)cols);
    NI_alter_veclen(nelxyz, (int)(rows*cols));
-   NI_add_column(nelxyz, NI_FLOAT, (void *)dac->data); 
+   NI_add_column(nelxyz, NI_FLOAT, (void *)dac->data);
    NI_SETA_INT(nelxyz,"EmbedDim",3);
 
    /* maybe convert LPI to RAI   31 Jul 2013 [rickr/zaid] */
@@ -197,8 +197,8 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
          rai_convert = 0;
       } else flip_float_triples((float *)nelxyz->vec[0], rows);
    }
-   
-   gifti_DA_rows_cols(  dat, 
+
+   gifti_DA_rows_cols(  dat,
                         &(rows),
                         &(cols) );
    nelijk = SUMA_FindNgrNamedElement(aSO, "Mesh_IJK");
@@ -209,20 +209,20 @@ static NI_group *gifti_surf_to_afni_surf(gifti_image * gim)
 
    if (dan) {
       nelnormals = SUMA_FindNgrNamedElement(aSO, "Node_Normals");
-      gifti_DA_rows_cols(  dan, 
+      gifti_DA_rows_cols(  dan,
                         &(rows),
                         &(cols) );
       NI_alter_veclen(nelnormals, (int)(rows*cols));
       NI_add_column(nelnormals, NI_FLOAT, dan->data);
       /* maybe convert LPI to RAI   31 Jul 2013 [rickr/zaid] */
       if( rai_convert ) flip_float_triples((float *)nelnormals->vec[0], rows);
-   } 
-   
+   }
+
    if (!gifti_surf_meta_to_afni_surf_meta(gim, aSO)) {
       fprintf(stderr,"** failed to include metadata!\n");
       RETURN(aSO);
    }
-   
+
    RETURN(aSO);
 }
 
@@ -244,29 +244,29 @@ static int flip_float_triples(float * fdata, int ntrip)
 static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
 {
    gifti_image * gim=NULL;
-   giiDataArray  * da=NULL; 
+   giiDataArray  * da=NULL;
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
    int           rai_convert=0;
-   
+
    ENTRY("afni_surf_to_gifti_surf");
 
    /* maybe convert RAI back to LPI   1 Aug 2013 [rickr/zaid] */
    rai_convert = !AFNI_yesenv("AFNI_GIFTI_IN_RAI");
 
    gifti_globs_from_env();     /* for thd_gifti */
-   
+
    if (!aSO) {
       fprintf( stderr,
                "++ afni_surf_to_gifti_surf: NULL input\n");
-      RETURN(gim);         
+      RETURN(gim);
    }
-   
+
    /* form image */
-   if( G.verb > 1 ) {  
+   if( G.verb > 1 ) {
       fprintf(stderr,"++ creating gifti_image \n" );
    }
-   
-   /* basic step - create empty image (with a version string) 
+
+   /* basic step - create empty image (with a version string)
       from gifti_create_image */
    gim = (gifti_image *)calloc(1, sizeof(gifti_image));
    if(!gim){ fprintf(stderr,"** failed to alloc gifti_image\n"); RETURN(NULL); }
@@ -278,7 +278,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    if( gifti_add_empty_darray(gim, 1) ) {
       fprintf( stderr,
                "++ afni_surf_to_gifti_surf: Failed to add DA\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    da = gim->darray[gim->numDA-1];
@@ -295,22 +295,22 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    if (!(da->data = malloc(sizeof(float)*da->dims[0]*da->dims[1]))) {
       fprintf( stderr,
             "++ afni_surf_to_gifti_surf: Failed to malloc\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    memcpy( da->data, (void *)nelxyz->vec[0],
-            sizeof(float)*da->dims[0]*da->dims[1]); 
+            sizeof(float)*da->dims[0]*da->dims[1]);
 
    /* convert AFNI's RAI back to GIFTI's LPI */
    if( rai_convert ) flip_float_triples((float *)da->data, da->dims[0]);
 
    /* coordsys is added in the afni_surf_meta_to_gifti_surf_meta function */
-      
+
    /* and the triangles */
    if( gifti_add_empty_darray(gim, 1) ) {
       fprintf( stderr,
                "++ afni_surf_to_gifti_surf: Failed to add DA\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    da = gim->darray[gim->numDA-1];
@@ -328,11 +328,11 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    if (!(da->data = malloc(sizeof(int)*da->dims[0]*da->dims[1]))) {
       fprintf( stderr,
             "++ afni_surf_to_gifti_surf: Failed to malloc\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    memcpy( da->data, (void *)nelijk->vec[0],
-            sizeof(int)*da->dims[0]*da->dims[1]); 
+            sizeof(int)*da->dims[0]*da->dims[1]);
 
 #if 0   /* GIFTI standard now says no normals with nodes  5 Feb 2010 */
 
@@ -340,7 +340,7 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    if( gifti_add_empty_darray(gim, 1) ) {
       fprintf( stderr,
                "++ afni_surf_to_gifti_surf: Failed to add DA\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    da = gim->darray[gim->numDA-1];
@@ -358,32 +358,32 @@ static  gifti_image *afni_surf_to_gifti_surf(NI_group *aSO)
    if (!(da->data = malloc(sizeof(float)*da->dims[0]*da->dims[1]))) {
       fprintf( stderr,
             "++ afni_surf_to_gifti_surf: Failed to malloc\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
    memcpy( da->data, nelnormals->vec[0],
-            sizeof(float)*da->dims[0]*da->dims[1]); 
+            sizeof(float)*da->dims[0]*da->dims[1]);
    /* convert AFNI's RAI back to GIFTI's LPI */
    if( rai_convert ) flip_float_triples((float *)da->data, da->dims[0]);
 
 #endif  /* end normals */
-   
+
    /* and now for the grits */
    if (!afni_surf_meta_to_gifti_surf_meta(aSO, gim)) {
       fprintf(stderr,"** failed to include metadata!\n");
-      gifti_free_image(gim); gim = NULL; 
+      gifti_free_image(gim); gim = NULL;
       RETURN(gim);
    }
 
-   if( G.verb > 1 ) {  
-      gifti_disp_gifti_image("afni_surf_to_gifti_surf :",gim, G.verb > 3);  
+   if( G.verb > 1 ) {
+      gifti_disp_gifti_image("afni_surf_to_gifti_surf :",gim, G.verb > 3);
    }
-   
+
    RETURN(gim);
 }
- 
+
 static byte gifti_surf_meta_to_afni_surf_meta(
-               gifti_image * gim, 
+               gifti_image * gim,
                NI_group *aSO)
 {
    char *cp=NULL;
@@ -393,7 +393,7 @@ static byte gifti_surf_meta_to_afni_surf_meta(
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
    double M[4][4];
    double *dv = NULL;
-   
+
    ENTRY("gifti_surf_meta_to_afni_surf_meta");
 
    rai_convert = !AFNI_yesenv("AFNI_GIFTI_IN_RAI");
@@ -401,47 +401,47 @@ static byte gifti_surf_meta_to_afni_surf_meta(
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
    nelxyz = SUMA_FindNgrNamedElement(aSO, "Node_XYZ");
-   if (!(cp = gifti_get_meta_value( &dac->meta, 
+   if (!(cp = gifti_get_meta_value( &dac->meta,
                                     "AnatomicalStructurePrimary"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelxyz,
                      "AnatomicalStructurePrimary",
                      cp);
-     
-   if (!(cp = gifti_get_meta_value( &dac->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dac->meta,
                                     "AnatomicalStructureSecondary"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelxyz,
                      "AnatomicalStructureSecondary",
                      cp);
-   
-   if (!(cp = gifti_get_meta_value( &dac->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dac->meta,
                                     "GeometricType"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelxyz,
                      "GeometricType",
                      cp);
-   
-   if (!(cp = gifti_get_meta_value( &dac->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dac->meta,
                                     "UniqueID"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelxyz,
                      "idcode_str",
                      cp);
-   
-   if (!(cp = gifti_get_meta_value( &dac->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dac->meta,
                                     "date"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelxyz,
                      "date",
-                     cp); 
+                     cp);
    NI_set_attribute(nelxyz,"inxformspace","no");
-      
+
    nelxform = SUMA_FindNgrNamedElement(aSO, "Coord_System");
    dv = (double *)nelxform->vec[0];
    if (dac->numCS > 0 && dac->coordsys && dac->coordsys[0]) {
@@ -450,75 +450,75 @@ static byte gifti_surf_meta_to_afni_surf_meta(
       }
       NI_set_attribute( nelxform,
                         "dataspace",
-                        cp); 
+                        cp);
 
       if (!(cp = dac->coordsys[0]->xformspace)) {
          cp = GIFTI_NO_META;
       }
       NI_set_attribute( nelxform,
                         "xformspace",
-                        cp); 
+                        cp);
 
-      /* XR = F XL F-1, (F-1 = F) 31 Jul 2013 [rickr/zaid] */ 
+      /* XR = F XL F-1, (F-1 = F) 31 Jul 2013 [rickr/zaid] */
       if (rai_convert) {
          AFF44_LPI_RAI_FLIP ( M , dac->coordsys[0]->xform );
       } else {
          AFF44_COPY( M , dac->coordsys[0]->xform );
       }
-      
+
       k = 0;
       for (i=0; i<4;++i) {
          for (j=0; j<4; ++j) {
             dv[k] = M[i][j];
             ++k;
-         }   
+         }
       }
    } else {
       NI_set_attribute( nelxform,"dataspace","NIFTI_XFORM_UNKNOWN");
       NI_set_attribute( nelxform,"xformspace","NIFTI_XFORM_UNKNOWN");
       k=0;
-      for (i=0; i<4; ++i) 
+      for (i=0; i<4; ++i)
          for (j=0; j< 4; ++j) {
-            if (i==j)   dv[k] = 1.0; 
+            if (i==j)   dv[k] = 1.0;
             else        dv[k] = 0.0;
             ++k;
          }
    }
    dac = NULL; /* make sure it is not used below */
-   
+
    /* Now do the FaceSetList */
    dat = gifti_find_DA(gim, NIFTI_INTENT_TRIANGLE, 0);
    nelijk = SUMA_FindNgrNamedElement(aSO,"Mesh_IJK");
-   if (!(cp = gifti_get_meta_value( &dat->meta, 
+   if (!(cp = gifti_get_meta_value( &dat->meta,
                                     "TopologicalType"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelijk,
                      "TopologicalType",
                      cp);
-      
-   if (!(cp = gifti_get_meta_value( &dat->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dat->meta,
                                     "UniqueID"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelijk,
                      "idcode_str",
                      cp);
-   
-   if (!(cp = gifti_get_meta_value( &dat->meta, 
+
+   if (!(cp = gifti_get_meta_value( &dat->meta,
                                     "date"))) {
       cp = GIFTI_NO_META;
    }
    NI_set_attribute( nelijk,
                      "date",
                      cp);
-   
-   
+
+
    RETURN(1);
 }
 
 static byte afni_surf_meta_to_gifti_surf_meta(
-               NI_group *aSO, 
+               NI_group *aSO,
                gifti_image * gim )
 {
    int i=0, j=0;
@@ -527,11 +527,11 @@ static byte afni_surf_meta_to_gifti_surf_meta(
    NI_element *nelxyz=NULL, *nelijk=NULL, *nelnormals=NULL, *nelxform=NULL;
    double *dv=NULL, M[4][4];
    int k=0, rai_convert=0;
-   
+
    ENTRY("afni_surf_meta_to_gifti_surf_meta");
-   
+
    rai_convert = !AFNI_yesenv("AFNI_GIFTI_IN_RAI");
-      
+
    /* Begin with nodelist */
    dac = gifti_find_DA(gim, NIFTI_INTENT_POINTSET, 0);
    nelxyz = SUMA_FindNgrNamedElement(aSO,"Node_XYZ");
@@ -539,36 +539,36 @@ static byte afni_surf_meta_to_gifti_surf_meta(
                          "AnatomicalStructurePrimary",
                          NI_get_attribute(nelxyz,"AnatomicalStructurePrimary"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta AnatomicalStructurePrimary.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta AnatomicalStructurePrimary.\n");
+      RETURN(1);
    }
    if( gifti_add_to_meta(&dac->meta,
                       "AnatomicalStructureSecondary",
                       NI_get_attribute(nelxyz,"AnatomicalStructureSecondary"),
                       1) ) {
-      fprintf(stderr,"** failed to add meta AnatomicalStructureSecondary.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta AnatomicalStructureSecondary.\n");
+      RETURN(1);
    }
    if( gifti_add_to_meta(&dac->meta,
                          "GeometricType",
                          NI_get_attribute(nelxyz,"GeometricType"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta GeometricType.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta GeometricType.\n");
+      RETURN(1);
    }
    if( gifti_add_to_meta(&dac->meta,
                          "UniqueID",
                          NI_get_attribute(nelxyz,"idcode_str"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta UniqueID.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta UniqueID.\n");
+      RETURN(1);
    }
    if( gifti_add_to_meta(&dac->meta,
                          "date",
                          NI_get_attribute(nelxyz,"date"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta date.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta date.\n");
+      RETURN(1);
    }
 
    /* free any old CoordSystems and add a single new one      */
@@ -578,28 +578,28 @@ static byte afni_surf_meta_to_gifti_surf_meta(
       fprintf(stderr,"** failed to add empty CoordSystem\n");
       RETURN(1);
    }
-   
+
    nelxform = SUMA_FindNgrNamedElement(aSO,"Coord_System");
-   dac->coordsys[0]->dataspace = 
+   dac->coordsys[0]->dataspace =
          gifti_strdup(NI_get_attribute(nelxform,"dataspace"));
-   dac->coordsys[0]->xformspace = 
+   dac->coordsys[0]->xformspace =
          gifti_strdup(NI_get_attribute(nelxform,"xformspace"));
    dv = (double *)nelxform->vec[0];
    k = 0;
-   for (i=0; i<4; ++i) 
-         for (j=0; j< 4; ++j) { 
+   for (i=0; i<4; ++i)
+         for (j=0; j< 4; ++j) {
             dac->coordsys[0]->xform[i][j] = dv[k];
             ++k;
          }
-   
-   /* XR = F XL F-1, (F-1 = F) 31 Jul 2013 [rickr/zaid] */ 
+
+   /* XR = F XL F-1, (F-1 = F) 31 Jul 2013 [rickr/zaid] */
    if (rai_convert) {
       AFF44_COPY( M , dac->coordsys[0]->xform );
       AFF44_LPI_RAI_FLIP ( dac->coordsys[0]->xform , M );
    }
-   
+
    dac = NULL; /* make sure it is not used below */
-   
+
    /* Now do the FaceSetList */
    dat = gifti_find_DA(gim, NIFTI_INTENT_TRIANGLE, 0);
    nelijk = SUMA_FindNgrNamedElement(aSO,"Mesh_IJK");
@@ -607,25 +607,25 @@ static byte afni_surf_meta_to_gifti_surf_meta(
                          "TopologicalType",
                          NI_get_attribute(nelijk,"TopologicalType"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta TopologicalType.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta TopologicalType.\n");
+      RETURN(1);
    }
 
    if( gifti_add_to_meta(&dat->meta,
                          "UniqueID",
                          NI_get_attribute(nelijk,"idcode_str"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta UniqueID.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta UniqueID.\n");
+      RETURN(1);
    }
 
    if( gifti_add_to_meta(&dat->meta,
                          "date",
                          NI_get_attribute(nelijk,"date"),
                          1) ) {
-      fprintf(stderr,"** failed to add meta date.\n"); 
-      RETURN(1); 
+      fprintf(stderr,"** failed to add meta date.\n");
+      RETURN(1);
    }
-   
+
    RETURN(1);
 }

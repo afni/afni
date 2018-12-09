@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -151,9 +151,9 @@ void (*composite_func)(); /* function to do the compositing */
 #endif
 #endif
 #ifdef DEBUG
-    GrayIntPixel *trace_gray_ptr = &vpc->int_image.gray_intim[vpc->trace_u + 
+    GrayIntPixel *trace_gray_ptr = &vpc->int_image.gray_intim[vpc->trace_u +
 				    vpc->trace_v*vpc->intermediate_width];
-    RGBIntPixel *trace_rgb_ptr = &vpc->int_image.rgb_intim[vpc->trace_u + 
+    RGBIntPixel *trace_rgb_ptr = &vpc->int_image.rgb_intim[vpc->trace_u +
 				    vpc->trace_v*vpc->intermediate_width];
     float vox_depth;
 #endif
@@ -258,7 +258,7 @@ void (*composite_func)(); /* function to do the compositing */
 	  kcount, "shadow_dump");
 #endif
 #ifdef DUMP_GRAY_VOLUME
-    Alloc(vpc, gray_dump, char *, vpc->intermediate_width * 
+    Alloc(vpc, gray_dump, char *, vpc->intermediate_width *
 	  vpc->intermediate_height * kcount, "gray_dump");
 #endif
 
@@ -379,7 +379,7 @@ void (*composite_func)(); /* function to do the compositing */
 	    /* compute coordinates of slice in shadow buffer;
 	       shadow bias determines which slice (usually
 	       a few slices old in order to eliminate self-shadowing) */
-	    shadow_slice_u = vpc->shadow_shear_i * shadow_k + 
+	    shadow_slice_u = vpc->shadow_shear_i * shadow_k +
 		vpc->shadow_trans_i;
 	    shadow_slice_v = vpc->shadow_shear_j * shadow_k +
 		vpc->shadow_trans_j;
@@ -401,7 +401,7 @@ void (*composite_func)(); /* function to do the compositing */
 	    if (algorithm == USE_RLEVOLUME) {
 		scan_offset_index = shadow_k *
 		    rle_voxels->scan_offsets_per_slice;
-		run_lengths = rle_voxels->run_lengths + 
+		run_lengths = rle_voxels->run_lengths +
 		    rle_voxels->scan_offsets[scan_offset_index].first_len;
 		voxel_data = (void *)((char *)rle_voxels->data +
 		    rle_voxels->scan_offsets[scan_offset_index].first_data);
@@ -409,7 +409,7 @@ void (*composite_func)(); /* function to do the compositing */
 			    shadow_image, WgtTL, WgtBL, WgtTR, WgtBR,
 			    run_lengths, voxel_data);
 	    } else {
-		voxel_data = (void *)((char *)vpc->raw_voxels + 
+		voxel_data = (void *)((char *)vpc->raw_voxels +
 				      shadow_k*kstride);
 		VPCompAR00G(vpc, icount, jcount, shadow_k, slice_depth_cueing,
 			    shadow_image, WgtTL, WgtBL, WgtTR, WgtBR,
@@ -452,7 +452,7 @@ void (*composite_func)(); /* function to do the compositing */
 	/* find voxel data for this slice and composite */
 	if (algorithm == USE_RLEVOLUME) {
 	    scan_offset_index = k * rle_voxels->scan_offsets_per_slice;
-	    run_lengths = rle_voxels->run_lengths + 
+	    run_lengths = rle_voxels->run_lengths +
 	    	      rle_voxels->scan_offsets[scan_offset_index].first_len;
 	    voxel_data = (void *)((char *)rle_voxels->data +
 		     rle_voxels->scan_offsets[scan_offset_index].first_data);
@@ -826,10 +826,10 @@ vpContext *vpc;
 	return(VP_OK);
 
     /* compute coordinates of shadow buffer pixel to trace */
-    shadow_trace_u = vpc->trace_u + 
+    shadow_trace_u = vpc->trace_u +
 	(int)ceil(vpc->shadow_shear_i*vpc->trace_shadow_k+vpc->shadow_trans_i)-
 	(int)ceil(vpc->shear_i * vpc->trace_shadow_k + vpc->trans_i);
-    shadow_trace_v = vpc->trace_v + 
+    shadow_trace_v = vpc->trace_v +
 	(int)ceil(vpc->shadow_shear_j*vpc->trace_shadow_k+vpc->shadow_trans_j)-
 	(int)ceil(vpc->shear_j * vpc->trace_shadow_k + vpc->trans_j);
 

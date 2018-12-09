@@ -39,7 +39,7 @@ int Finalize_Uncert_Array( float **UU,
          }
       }
    }
-   
+
    return 0;
 }
 
@@ -148,10 +148,10 @@ int Calc_DTI_lin_tensor( gsl_vector *x,
                          int *POSDEF)
 {
    int i,ii,j;
-   
+
    gsl_vector_set_zero(dd);
    gsl_blas_dgemv(CblasNoTrans, 1.0, C, x, 1.0, dd);
-   
+
    //INFO_message("C:");
    //Show_2DMatrix_Floats_gsl(C,7,7);
    //INFO_message("x:");
@@ -168,11 +168,11 @@ int Calc_DTI_lin_tensor( gsl_vector *x,
    gsl_matrix_set(testD,2,0,gsl_vector_get(dd,4));
    gsl_matrix_set(testD,1,2,gsl_vector_get(dd,5));
    gsl_matrix_set(testD,2,1,gsl_vector_get(dd,5));
-   
+
    j = gsl_eigen_symm(testD, Eval, EigenV);
 
-   if( (gsl_vector_get(Eval,0) <= MINEIG) 
-       || (gsl_vector_get(Eval,1) <= MINEIG) 
+   if( (gsl_vector_get(Eval,0) <= MINEIG)
+       || (gsl_vector_get(Eval,1) <= MINEIG)
        || (gsl_vector_get(Eval,2) <= MINEIG) ) {
       //INFO_message("BAD EIGENVALS!:  %f, %f, %f",
       //           gsl_vector_get(Eval,0),
@@ -221,8 +221,8 @@ int Make_Uncert_Matrs_init( int v,
 
       // B
       for(j=0 ; j<7 ; j++) {
-         gsl_matrix_set(B, 
-                        ii, j, 
+         gsl_matrix_set(B,
+                        ii, j,
                         bseven[SRInd[ii]][j]);
       // BTW
          gsl_matrix_set(BTW,
@@ -292,7 +292,7 @@ int copy_gsl_singular (const gsl_matrix * LU)
       double u = gsl_matrix_get (LU, i, i);
       if (u == 0) return 1;
     }
- 
+
  return 0;
 }
 
@@ -301,7 +301,7 @@ int copy_gsl_singular (const gsl_matrix * LU)
   There are M total indices, of which we select Mj randomly.  We do
   this Nj times. A (Nj x Mj) will store the subset of indices.
  */
-int Make_Jackknife_Inds_keep0th( int **A, 
+int Make_Jackknife_Inds_keep0th( int **A,
                                  int M,
                                  int Mj,
                                  int Nj,
@@ -319,20 +319,20 @@ int Make_Jackknife_Inds_keep0th( int **A,
       seed1 = time(NULL);
       seed2 = time(NULL);
    }
-   
+
 	srand(seed1);
 	gsl_rng_env_setup();
 	T = gsl_rng_default;
 	r = gsl_rng_alloc( T );
 	gsl_rng_set( r, seed2 );
-   
+
    // set up indices for M-1, because we will always include 0th DWI
    gsl_permutation *p = gsl_permutation_alloc(M-1); // alloc space
- 
+
    for( i=0 ; i<Nj ; i++ ) {
       gsl_permutation_init (p);
       gsl_ran_shuffle (r, p->data, M-1, sizeof(size_t));
-      for( j=0 ; j<(Mj-1) ; j++ ) 
+      for( j=0 ; j<(Mj-1) ; j++ )
          A[i][j+1] = gsl_permutation_get( p, j ) + 1;
    }
 
@@ -354,14 +354,14 @@ int Basic_Grads_to_B7( float **bseven,
    fptr = MRI_FLOAT_PTR( flim );
 
    for( i=0 ; i<Ng ; i++ ) {
-      for( j=0 ; j<3 ; j++ ) 
+      for( j=0 ; j<3 ; j++ )
          grad[j] = *(fptr + 3*i + j);
       k = GradConv_BmatA_from_Bsign( bseven[i+1], grad );
       for( j=0 ; j<3 ; j++ )  // see Kingsley III, Eq.3
          bseven[i+1][j]*= -1;
-      for( j=3 ; j<6 ; j++ ) 
+      for( j=3 ; j<6 ; j++ )
          bseven[i+1][j]*= -2;
-      bseven[i+1][6] = 1; 
+      bseven[i+1][6] = 1;
    }
 
    for( j=0 ; j<6 ; j++ ) // check, prob unnecessary if not recycling.
@@ -381,14 +381,14 @@ int Basic_Bmats_to_B7( float **bseven,
    fptr = MRI_FLOAT_PTR( flim );
 
    for( i=0 ; i<Nb ; i++ ) {
-      for( j=0 ; j<6 ; j++ ) 
+      for( j=0 ; j<6 ; j++ )
          bseven[i][j] = *(fptr + 6*i + j);
 
       for( j=0 ; j<3 ; j++ )  // see Kingsley III, Eq.3
          bseven[i][j]*= -1;
-      for( j=3 ; j<6 ; j++ ) 
+      for( j=3 ; j<6 ; j++ )
          bseven[i][j]*= -2;
-      bseven[i][6] = 1; 
+      bseven[i][6] = 1;
    }
 
    return 0;
@@ -454,7 +454,7 @@ int GradConv_BmatA_from_Bsign( float *matr, float *grad )
 
    if(gscale>0.0000001) {
       gscale = sqrt(gscale);
-      for( i=0 ; i<6 ; i++) 
+      for( i=0 ; i<6 ; i++)
          matr[i]/= gscale;
    } // else, assume it is a b=0 ref
 
@@ -464,22 +464,22 @@ int GradConv_BmatA_from_Bsign( float *matr, float *grad )
 
 
 /*
-  ORDER: 
+  ORDER:
   [0] Dxx, [1] Dxy, [2] Dyy, [3] Dxz, [4] Dyz, [5] Dzz
 */
-int Dyadize(float **DT, 
-            int N, 
-            THD_3dim_dataset **EVALS, 
+int Dyadize(float **DT,
+            int N,
+            THD_3dim_dataset **EVALS,
             float Lscale,
-            THD_3dim_dataset **EVECS, 
-            int INV[3], 
+            THD_3dim_dataset **EVECS,
+            int INV[3],
             byte *M)
 {
 
    int i,j,k;
    float Lval;
 
-   for( k=0 ; k<N ; k++ ) 
+   for( k=0 ; k<N ; k++ )
       if(M[k]) {
          for( i=0 ; i<3 ; i++ ) {
             Lval = THD_get_voxel(EVALS[i],k,0)/Lscale;
@@ -505,15 +505,15 @@ int Dyadize(float **DT,
                THD_get_voxel(EVECS[i],k,2)*
                THD_get_voxel(EVECS[i],k,2);
          }
-      }         
+      }
 
    RETURN(0);
-   
+
 };
 
 
 /*
-  ORDER: 
+  ORDER:
   [0] Dxx, [1] Dxy, [2] Dyy, [3] Dxz, [4] Dyz, [5] Dzz
 
   apr,2016: updating to allow for bvalue weighted grads
@@ -522,7 +522,7 @@ int RicianNoiseDWIs( float **dwi,
                      int N,
                      int Ngrad,
                      THD_3dim_dataset *D,
-                     float NOISE_DWI,    
+                     float NOISE_DWI,
                      float NOISE_B0,
                      MRI_IMAGE *g,
                      byte *M,
@@ -539,7 +539,7 @@ int RicianNoiseDWIs( float **dwi,
 
    grad = MRI_FLOAT_PTR(g);
 
-   for( k=0 ; k<N ; k++) 
+   for( k=0 ; k<N ; k++)
       if(M[k]) {
          sval = 1 + gsl_ran_gaussian_ziggurat(r,1.0) * NOISE_B0;
          riced = gsl_ran_gaussian_ziggurat(r,1.0) * NOISE_B0;
@@ -570,14 +570,14 @@ int RicianNoiseDWIs( float **dwi,
 }
 
 /*
-  ORDER: 
+  ORDER:
   TORT:  [0] Dxx, [1] Dyy, [2] Dzz, [3] Dxy, [4] Dxz, [5] Dyz
   AFNI:  [0] Dxx, [1] Dxy, [2] Dyy, [3] Dxz, [4] Dyz, [5] Dzz
 */
-int DT_TORTOISEtoAFNI(float **D, 
-                      int N, 
-                      THD_3dim_dataset *DTS, 
-                      int INV[3], 
+int DT_TORTOISEtoAFNI(float **D,
+                      int N,
+                      THD_3dim_dataset *DTS,
+                      int INV[3],
                       float Lscale)
 {
    int i,j,k;
@@ -590,6 +590,6 @@ int DT_TORTOISEtoAFNI(float **D,
       D[4][k] = INV[1]*INV[2]*THD_get_voxel(DTS,k,5)/Lscale;
       D[5][k] = THD_get_voxel(DTS,k,2)/Lscale;
    }
-    
+
    RETURN (0);
 }

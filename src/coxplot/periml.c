@@ -35,7 +35,7 @@ static integer c__1 = 1;
 
 
 
-/* Subroutine */ int periml_(integer *mbx, integer *mlx, integer *mby, 
+/* Subroutine */ int periml_(integer *mbx, integer *mlx, integer *mby,
 	integer *mly)
 {
     extern /* Subroutine */ int zzperi_(integer *);
@@ -63,7 +63,7 @@ static integer c__1 = 1;
 
 
 
-/* Subroutine */ int perimm_(integer *mbx, integer *mlx, integer *mby, 
+/* Subroutine */ int perimm_(integer *mbx, integer *mlx, integer *mby,
 	integer *mly, integer *ilab)
 {
     extern /* Subroutine */ int zzperi_(integer *);

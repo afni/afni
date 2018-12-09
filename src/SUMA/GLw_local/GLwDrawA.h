@@ -1,13 +1,13 @@
 /*
  * (c) Copyright 1993, Silicon Graphics, Inc.
- * ALL RIGHTS RESERVED 
- * Permission to use, copy, modify, and distribute this software for 
+ * ALL RIGHTS RESERVED
+ * Permission to use, copy, modify, and distribute this software for
  * any purpose and without fee is hereby granted, provided that the above
  * copyright notice appear in all copies and that both the copyright notice
- * and this permission notice appear in supporting documentation, and that 
+ * and this permission notice appear in supporting documentation, and that
  * the name of Silicon Graphics, Inc. not be used in advertising
  * or publicity pertaining to distribution of the software without specific,
- * written prior permission. 
+ * written prior permission.
  *
  * THE MATERIAL EMBODIED ON THIS SOFTWARE IS PROVIDED TO YOU "AS-IS"
  * AND WITHOUT WARRANTY OF ANY KIND, EXPRESS, IMPLIED OR OTHERWISE,
@@ -21,9 +21,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH LOSS, HOWEVER CAUSED AND ON
  * ANY THEORY OF LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE
  * POSSESSION, USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
- * 
- * US Government Users Restricted Rights 
+ *
+ *
+ * US Government Users Restricted Rights
  * Use, duplication, or disclosure by the Government is subject to
  * restrictions set forth in FAR 52.227.19(c)(2) or subparagraph
  * (c)(1)(ii) of the Rights in Technical Data and Computer Software
@@ -139,7 +139,7 @@ typedef struct _GLwMDrawingAreaRec	*GLwMDrawingAreaWidget;
 extern WidgetClass glwMDrawingAreaWidgetClass;
 
 
-#else 
+#else
 
 typedef struct _GLwDrawingAreaClassRec	*GLwDrawingAreaWidgetClass;
 typedef struct _GLwDrawingAreaRec	*GLwDrawingAreaWidget;
@@ -155,7 +155,7 @@ extern WidgetClass glwDrawingAreaWidgetClass;
 #define GLwCR_EXPOSE	XmCR_EXPOSE
 #define GLwCR_RESIZE	XmCR_RESIZE
 #define GLwCR_INPUT	XmCR_INPUT
-#else 
+#else
 /* The same values as Motif, but don't use Motif constants */
 #define GLwCR_EXPOSE	38
 #define GLwCR_RESIZE	39
@@ -164,12 +164,12 @@ extern WidgetClass glwDrawingAreaWidgetClass;
 
 #define GLwCR_GINIT	32135	/* Arbitrary number that should neverr clash */
 
-typedef struct 
+typedef struct
   {
   int       reason;
   XEvent   *event;
   Dimension width,height;
-  } 
+  }
   GLwDrawingAreaCallbackStruct;
 
 #if defined(__cplusplus) || defined(c_plusplus)
@@ -184,11 +184,11 @@ extern void GLwDrawingAreaSwapBuffers(Widget w);
 #ifdef _NO_PROTO
 GLAPI extern Widget GLwCreateMDrawingArea();
 #else
-/* ZSS Aug 08 Duplicate extern error 
+/* ZSS Aug 08 Duplicate extern error
 GLAPI extern Widget GLwCreateMDrawingArea(Widget parent,char *name,ArgList arglist,Cardinal argcount);
 */
 #endif
-#endif 
+#endif
 
 #if defined(__cplusplus) || defined(c_plusplus)
 }

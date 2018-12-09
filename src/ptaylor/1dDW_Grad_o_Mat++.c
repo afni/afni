@@ -4,7 +4,7 @@
   ------------------ start: *new* 1dDW_Grad_o_Mat --------------------
 
   Jan 2017:
-  + change default behavior to be more in line with 
+  + change default behavior to be more in line with
   expected use (default) use.  Main one: don't average b=0s
   by default!
 
@@ -26,7 +26,7 @@
 /* G_{ij} = diffusion weighting matrix (dyadic form)
    GxGx GxGy GxGz
    GxGy GyGy GyGz
-   GxGz GyGz GzGz 
+   GxGz GyGz GzGz
 */
 
 #include <stdio.h>
@@ -34,23 +34,23 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
+#include <mrilib.h>
+#include <3ddata.h>
 #include "matrix.h"
 
 // max number of bvecs total is 1111 from this lazy method
-#define MAXGRADS (12006) 
+#define MAXGRADS (12006)
 #define MINBVAL ( 0.000001 )   // prevent dividing by zero
 
 // assumes I/O has unit or zero mag!
-int GradConv_Gsign_from_GmatA( float *grad, float *matr ); 
+int GradConv_Gsign_from_GmatA( float *grad, float *matr );
 int GradConv_GmatA_from_Gsign( float *matr, float *grad );
 
 float GradCloseness(float **X, int N, int DCF);
 float CalcInnerProdAngle( float *A, float *B, int N );
 float SimpleDP( float *A, float *B, int N);
 
-void usage_1dDW_Grad_o_Mat(int detail) 
+void usage_1dDW_Grad_o_Mat(int detail)
 {
 	printf(
 "  \n"
@@ -78,10 +78,10 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "As of right now, one can input:\n"
 "  + 3 rows of gradients (as output from dcm2nii, for example);\n"
 "  + 3 columns of gradients;\n"
-"  + 6 columns of g- or b-matrices, in `diagonal-first' (-> matA) order:\n" 
+"  + 6 columns of g- or b-matrices, in `diagonal-first' (-> matA) order:\n"
 "         Bxx, Byy, Bzz, Bxy, Bxz, Byz,\n"
 "    which is used in 3dDWItoDT, for example;\n"
-"  + 6 columns of g- or b-matrices, in `row-first' (-> matT) order:\n" 
+"  + 6 columns of g- or b-matrices, in `row-first' (-> matT) order:\n"
 "         Bxx, 2*Bxy, 2*Bxz, Byy, 2*Byz, Bzz, \n"
 "    which is output by TORTOISE, for example;\n\n"
 "  + when specifying input file, one can use the brackets '{ }'\n"
@@ -97,9 +97,9 @@ void usage_1dDW_Grad_o_Mat(int detail)
 "  \n"
 "One can then output:\n"
 "  + 3 columns of gradients;\n"
-"  + 6 columns of g- or b-matrices, in 'diagonal-first' order;\n" 
-"  + 6 columns of g- or b-matrices, in 'row-first' order;\n" 
-"  + as well as including a column of b-values (such as used in, e.g.,\n" 
+"  + 6 columns of g- or b-matrices, in 'diagonal-first' order;\n"
+"  + 6 columns of g- or b-matrices, in 'row-first' order;\n"
+"  + as well as including a column of b-values (such as used in, e.g.,\n"
 "    DSI-Studio);\n"
 "  + as well as explicitly include a row of zeros at the top;\n"
 "\n"
@@ -254,8 +254,8 @@ void usage_1dDW_Grad_o_Mat(int detail)
 	return;
 }
 
-int main(int argc, char *argv[]) 
-{  
+int main(int argc, char *argv[])
+{
    int CHECK = 0, CHECK_OK = 0;
    float check_min = 0.;   // Sep 20, 2017: now all for non-neg stuff
    int CHECK_REP = 1;      // Sep 20, 2017: by def, replace tiny negs with 0
@@ -277,13 +277,13 @@ int main(int argc, char *argv[])
 
    int Nvm = -1;                          // number of vec/mats
    int UNIT_MAGN_OUT = 0;
-   float **INP_VEC=NULL;    
+   float **INP_VEC=NULL;
    float **INP_MAT=NULL;
    int *FLAG=NULL;
-   
+
    float magn = 1.;
    int INV[3] = {1,1,1}; // if needing to switch
-   
+
    int USE_BWT = 1;       // DO mult by magn: on by default!
    float MAX_BVAL = 0.;   // calc max. bval for possible use scaling
    int EXTRA_ZEROS=0;
@@ -292,15 +292,15 @@ int main(int argc, char *argv[])
    int PUT_MEAN_BREF_TOP=0;
    int HAVE_BVAL = 0;
    int HAVE_BVAL_EFF = 0; // can calc bval from input, not sep file
-   int BVAL_OUT = 0; 
-   int BVAL_OUT_SEP = 0; 
+   int BVAL_OUT = 0;
+   int BVAL_OUT_SEP = 0;
    float BMAX_REF = MINBVAL; // i.e., essentially zero
    int IN_FORM = 0;       // 0 for row, 1 for col
-   int OUT_FORM = 1;      // 1 for col, 2 for bmatr 
+   int OUT_FORM = 1;      // 1 for col, 2 for bmatr
    int HAVE_BMAX_REF=0 ;  // referring to user input value
    int count_in=0, count_out=0;
 
-	THD_3dim_dataset *dwset=NULL, *dwout=NULL; 
+	THD_3dim_dataset *dwset=NULL, *dwout=NULL;
    int Nbrik = 0;
 	char *prefix=NULL ;
    float **temp_arr=NULL, **temp_grad=NULL;
@@ -319,17 +319,17 @@ int main(int argc, char *argv[])
 
 
 	mainENTRY("1dDW_Grad_o_Mat++"); machdep();
-    
+
    if (argc == 1) { usage_1dDW_Grad_o_Mat(1); exit(0); }
 
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
          usage_1dDW_Grad_o_Mat(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-      
+
       if( strcmp(argv[iarg],"-flip_x") == 0) {
 			INV[0] = -1;
 			iarg++ ; continue ;
@@ -353,7 +353,7 @@ int main(int argc, char *argv[])
       // -------------- inp format opts -----------------------------
 
       if( strcmp(argv[iarg],"-in_row_vec") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-in_row_vec'\n") ;
          IN_FORM = 0;  //, which is just default, because of dcm2nii
          Fname_input = argv[iarg];
@@ -362,7 +362,7 @@ int main(int argc, char *argv[])
 		}
 
       if( strcmp(argv[iarg],"-in_col_vec") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-in_col_vec'\n") ;
          IN_FORM = 1;
          Fname_input = argv[iarg];
@@ -371,28 +371,28 @@ int main(int argc, char *argv[])
 		}
 
       if( strcmp(argv[iarg],"-in_col_matA") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-in_col_matA'\n") ;
          Fname_input = argv[iarg];
          count_in++;
          IN_FORM = 2;
          iarg++ ; continue ;
-		} 
+		}
 
       if( strcmp(argv[iarg],"-in_col_matT") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-in_col_matT'\n") ;
          Fname_input = argv[iarg];
          count_in++;
          IN_FORM = 3;
          iarg++ ; continue ;
 		}
-      
+
       // -------------- other inp ---------------------------------
 
       // !!!!!!!!!!!!!!!!!! and have a column opt!!!!
       if( strcmp(argv[iarg],"-in_bvals") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-in_bvals'\n") ;
          Fname_bval = argv[iarg];
          HAVE_BVAL = 1;
@@ -400,8 +400,8 @@ int main(int argc, char *argv[])
 		}
 
       // now, though, this shouldn't be so important
-      if( strcmp(argv[iarg],"-bmax_ref") == 0) { 
-         iarg++ ; if( iarg >= argc ) 
+      if( strcmp(argv[iarg],"-bmax_ref") == 0) {
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-bmax_ref'\n");
          BMAX_REF = atof(argv[iarg]);
          HAVE_BMAX_REF = 1;
@@ -411,16 +411,16 @@ int main(int argc, char *argv[])
       // -------------- outp format opts --------------------------
 
       if( strcmp(argv[iarg],"-out_row_vec") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_row_vec'\n") ;
          OUT_FORM = 0;  //, which is just default, because of dcm2nii
          Fname_output = argv[iarg];
          count_out++;
          iarg++ ; continue ;
 		}
-      
+
       if( strcmp(argv[iarg],"-out_col_vec") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_col_vec'\n") ;
          OUT_FORM = 1;
          Fname_output = argv[iarg];
@@ -429,16 +429,16 @@ int main(int argc, char *argv[])
 		}
 
       if( strcmp(argv[iarg],"-out_col_matA") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_col_matA'\n") ;
          Fname_output = argv[iarg];
          count_out++;
          OUT_FORM = 2;
          iarg++ ; continue ;
-		} 
+		}
 
       if( strcmp(argv[iarg],"-out_col_matT") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_col_matT'\n") ;
          Fname_output = argv[iarg];
          count_out++;
@@ -448,7 +448,7 @@ int main(int argc, char *argv[])
 
       // -------------- other outp opts ----------------------------
 
-      if( strcmp(argv[iarg],"-unit_mag_out") == 0) { 
+      if( strcmp(argv[iarg],"-unit_mag_out") == 0) {
 			USE_BWT = 0;
 			iarg++ ; continue ;
 		}
@@ -459,7 +459,7 @@ int main(int argc, char *argv[])
 		}
 
       if( strcmp(argv[iarg],"-out_row_bval_sep") == 0) {
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_row_bval_sep'\n") ;
          Fname_outputBV = argv[iarg];
          BVAL_OUT_SEP = 1;
@@ -467,16 +467,16 @@ int main(int argc, char *argv[])
 		}
 
       if( strcmp(argv[iarg],"-out_col_bval_sep") == 0) {
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-out_col_bval_sep'\n") ;
          Fname_outputBV = argv[iarg];
          BVAL_OUT_SEP = 2;
          iarg++ ; continue ;
 		}
-      
+
       // [PT: Sep 20, 2017] Allow tiny negatives in diags
       if( strcmp(argv[iarg],"-check_abs_min") == 0) {
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-check_abs_min'\n") ;
          check_min = atof(argv[iarg]);
          iarg++ ; continue ;
@@ -484,7 +484,7 @@ int main(int argc, char *argv[])
 
       // FOR NOW: leave out, because this causes problems with grad calcs!
       // [PT: Sep 20, 2017] Def: replace tiny negs; can propagate, too
-      //if( strcmp(argv[iarg],"-check_leave_neg") == 0) { 
+      //if( strcmp(argv[iarg],"-check_leave_neg") == 0) {
       //		CHECK_REP = 0;
 		//	iarg++ ; continue ;
 		//}
@@ -500,34 +500,34 @@ int main(int argc, char *argv[])
 			PUT_MEAN_BREF_TOP = 1;
 			iarg++ ; continue ;
 		}
-		
+
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
 		suggest_best_prog_option(argv[0], argv[iarg]);
 		exit(1);
    }
-   
-   //  * * * * * * * * * * * * * * * * * * * * * * * * * * * 
-   
-   if( (Fname_input == NULL) ) 
+
+   //  * * * * * * * * * * * * * * * * * * * * * * * * * * *
+
+   if( (Fname_input == NULL) )
       ERROR_exit("Bad command lining!  Option '-in_*' requires argument.");
-   
-   if( (Fname_output == NULL) ) 
+
+   if( (Fname_output == NULL) )
       ERROR_exit("Bad command lining!  Option '-out_*' requires arg.");
 
-   if( count_in > 1 ) 
+   if( count_in > 1 )
       ERROR_exit("Bad command lining!  Can't have >1 vec file input.");
-   
-   if( count_out > 1 ) 
+
+   if( count_out > 1 )
       ERROR_exit("Bad command lining!  Can't have >1 output file opt.");
-   
-   if(PUT_MEAN_BREF_TOP && EXTRA_ZEROS ) 
+
+   if(PUT_MEAN_BREF_TOP && EXTRA_ZEROS )
       ERROR_exit("Incompatible combo of options: can't have "
                  "-bref_mean_top with -put_zeros_top");
-   
-   if( !prefix && dwset) 
+
+   if( !prefix && dwset)
       ERROR_exit("Bad command lining! "
                  "Need an output '-pref_dset' when using '-proc_dset'");
-   
+
    // ********************************************************************
    // ************************* start reading ****************************
    // ********************************************************************
@@ -542,7 +542,7 @@ int main(int argc, char *argv[])
       preREADIN = mri_copy(flim);
    mri_free(flim);
    Nvm = preREADIN->ny;  // number of vec/mats
-   
+
    if( HAVE_BVAL ) {
       flim = mri_read_1D (Fname_bval);
       if (flim == NULL) {
@@ -551,7 +551,7 @@ int main(int argc, char *argv[])
       if( flim->ny == 1)
          preREADBVAL = mri_transpose(flim); // eff *undoes* autotransp
       else
-         preREADBVAL = mri_copy(flim); 
+         preREADBVAL = mri_copy(flim);
       mri_free(flim);
       if( preREADBVAL->ny != Nvm ) {
          ERROR_message("ERROR! Number of vec/mats (%d) doesn't match number "
@@ -563,54 +563,54 @@ int main(int argc, char *argv[])
    }
 
    // ------------- lots of checks for various things.  Ugh. -------------
-   
+
    if(Nvm >= MAXGRADS ) {
       ERROR_message("ERROR, too many input grads.");
       mri_free (preREADIN);
       if( HAVE_BVAL ) mri_free (preREADBVAL);
       exit(4);
    }
-   
+
    if( (preREADIN->nx != 3 ) && (preREADIN->nx != 6 ) )
       ERROR_exit("Input file doesn't have 3 or 6 columns!\n");
-   
+
    if(dwset) {
       Nbrik = DSET_NVALS(dwset);
-      
+
       if( Nvm != Nbrik ) {
          ERROR_message("ERROR: the number of bvecs (%d) does not match the "
                        "number of briks in '-proc_dset' (%d).\n", Nvm, Nbrik);
          mri_free (preREADIN);
-         DSET_delete(dwset); 
-         free(dwset); 
+         DSET_delete(dwset);
+         free(dwset);
          exit(4);
       }
    }
-   
-   INP_VEC = calloc(Nvm, sizeof(INP_VEC)); 
-   for(i=0 ; i<Nvm ; i++) 
-      INP_VEC[i] = calloc(4, sizeof(float)); 
-   INP_MAT = calloc(Nvm, sizeof(INP_MAT)); 
-   for(i=0 ; i<Nvm ; i++) 
-      INP_MAT[i] = calloc(7, sizeof(float)); 
-   FLAG = (int *)calloc(Nvm, sizeof(int)); 
-                                                
+
+   INP_VEC = calloc(Nvm, sizeof(INP_VEC));
+   for(i=0 ; i<Nvm ; i++)
+      INP_VEC[i] = calloc(4, sizeof(float));
+   INP_MAT = calloc(Nvm, sizeof(INP_MAT));
+   for(i=0 ; i<Nvm ; i++)
+      INP_MAT[i] = calloc(7, sizeof(float));
+   FLAG = (int *)calloc(Nvm, sizeof(int));
+
    if( (INP_MAT == NULL) || (INP_VEC == NULL) || (FLAG == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(14);
    }
-   
+
    // initialize to have unit magn in magn col
    for( i=0; i<Nvm ; i++ ) {
       INP_VEC[i][0] = 1.;
       INP_MAT[i][0] = 1.;
    }
-   
+
    // ---------- Start reading float pointer ----------------------
 
    // Put bval info here, if it was input separately.  Later, these
    // will also get multiplied by the magnitude of the vecs/mats
-   if( HAVE_BVAL ) { 
+   if( HAVE_BVAL ) {
       READBVAL = MRI_FLOAT_PTR( preREADBVAL );
       for( i=0; i<Nvm ; i++ ) {
          INP_VEC[i][0]*= *(READBVAL + i);
@@ -620,7 +620,7 @@ int main(int argc, char *argv[])
 
    READIN = MRI_FLOAT_PTR( preREADIN );
 
-   // 0 or 1 is vec (have been transposed);  
+   // 0 or 1 is vec (have been transposed);
    // 2 is mat A;
    // 3 is mat T;
    if ( (IN_FORM == 0) || (IN_FORM == 1) )  // vec (now each) cols
@@ -633,7 +633,7 @@ int main(int argc, char *argv[])
             INP_MAT[i][j+1]   = *(READIN+6*i+j);
             INP_MAT[i][3+j+1] = *(READIN+6*i+j+3);
          }
-         for( j=1; j<4 ; j++ ) 
+         for( j=1; j<4 ; j++ )
             if( INP_MAT[i][j] < 0. ) {
                CHECK++;
                // [PT: Sep 20, 2017] New patchability
@@ -675,8 +675,8 @@ int main(int argc, char *argv[])
          INP_MAT[i][4] = *(READIN +6*i+1)/2.;
          INP_MAT[i][5] = *(READIN +6*i+2)/2.;
          INP_MAT[i][6] = *(READIN +6*i+4)/2.;
-         
-         for( j=1; j<4 ; j++ ) 
+
+         for( j=1; j<4 ; j++ )
             if( INP_MAT[i][j] < 0. ) {
                CHECK++;
                // [PT: Sep 20, 2017] New patchability
@@ -713,11 +713,11 @@ int main(int argc, char *argv[])
    else
       ERROR_exit("Coding error with format number (%d), not allowed.",
                  IN_FORM);
-   
+
    INFO_message("Have read in data.");
-   
+
    // ---------- getting magnitudes, where appropriate ---------------------
-   
+
    // at this point, we only have two cases: vecs or matAs.  Now, we
    // need to 1) calc vecs from mats and vice versa, and 2) separate
    // magn and vec/mat parts.
@@ -735,8 +735,8 @@ int main(int argc, char *argv[])
    }  // -> now have magn col0 and unit norm (or zero) mat. Hopefully.
    else if ( ( IN_FORM==0 ) || ( IN_FORM==1 )) { // vec
       for( i=0; i<Nvm ; i++ ) {
-         magn = sqrt( INP_VEC[i][1]*INP_VEC[i][1] + 
-                      INP_VEC[i][2]*INP_VEC[i][2] + 
+         magn = sqrt( INP_VEC[i][1]*INP_VEC[i][1] +
+                      INP_VEC[i][2]*INP_VEC[i][2] +
                       INP_VEC[i][3]*INP_VEC[i][3] );
          if( magn > MINBVAL)
             for( j=1 ; j<4 ; j++ )
@@ -754,7 +754,7 @@ int main(int argc, char *argv[])
    //    + mat[i][0]  has bval
    //    + vec[i][>0] normalized
    //    + mat[i][>0] normalized and in diagonal form
-   // ... this should be true even if the inputs were just grads or 
+   // ... this should be true even if the inputs were just grads or
    // gmats without real separate bvalue info other than just binary
    // 0/1.  Simpler to deal with in this way.
    // * * *  ** * * * * * * * * ** ** * * ** * * ** * ** * ** * * *
@@ -762,17 +762,17 @@ int main(int argc, char *argv[])
    // ------------------------ check report max bval -----------------
    // in case we want max bval: should be able to get from either
    // OUT_* array.
-   for( i=0 ; i<Nvm ; i++) 
+   for( i=0 ; i<Nvm ; i++)
       if( MAX_BVAL < INP_VEC[i][0] )
          MAX_BVAL = INP_VEC[i][0];
 
    INFO_message("Maximum bvalue appears to be: %.5f\n", MAX_BVAL);
-      
+
    // --------------------- equivalence ---------------------------------
 
    // make sure everything is equivalent between grad and matr
    // info. can just deal with one now, whatever was input.
-   for( i=0; i<Nvm ; i++ ) 
+   for( i=0; i<Nvm ; i++ )
       if( (IN_FORM ==2 ) || (IN_FORM ==3 ) )
          j = GradConv_Gsign_from_GmatA( INP_VEC[i]+1, INP_MAT[i]+1);
       else
@@ -788,12 +788,12 @@ int main(int argc, char *argv[])
 
    // ----------------------- flip, if requested --------------------------
 
-   for( i=0 ; i<Nvm ; i++) 
+   for( i=0 ; i<Nvm ; i++)
       for( j=0 ; j<3 ; j++)
          INP_VEC[i][j+1]*= INV[j];
-   
+
    INFO_message("My view of grads at the moment (postflip, if asked for):");
-   fprintf(stderr,"\n%15s\t%15s\t%15s\t%15s", 
+   fprintf(stderr,"\n%15s\t%15s\t%15s\t%15s",
            "bval scale", "bvecs: x", "y", "z");
    for( i=0 ; i<Nvm ; i++) {
       fprintf(stderr,"\n");
@@ -823,15 +823,15 @@ int main(int argc, char *argv[])
    }
    if(BZER)
       bref_vec[0]/= (float) BZER; // have all props; can use later.
-   else 
+   else
       WARNING_message("NO reference gradients/values found.");
 
    // this opt was exclusive with keeping mean properties which would
    // go at top; makes output easier below
-   if( EXTRA_ZEROS ) 
-      for( i=0 ; i<4 ; i++) 
+   if( EXTRA_ZEROS )
+      for( i=0 ; i<4 ; i++)
          bref_vec[i] = 0;
- 
+
    // -------------------- summarize outputs -----------------------
 
    INFO_message("Number of ref vec/mats (b<%f): %d\n   "
@@ -843,16 +843,16 @@ int main(int argc, char *argv[])
       BZER=0;
       Ndwi_flagged = Nvm;
       // flag everything to be copied over.
-      for( i=0 ; i<Nvm ; i++) 
-         FLAG[i] = 1; 
+      for( i=0 ; i<Nvm ; i++)
+         FLAG[i] = 1;
 
-      if( EXTRA_ZEROS ) 
+      if( EXTRA_ZEROS )
          INFO_message("... and placing an extra row of zeros at the top.");
 
    }
    else {
       Ndwi_flagged = Ndwi = Nvm - BZER;
-      INFO_message("Averaging %d brefs, leaving 1 bref and %d weighted ones.", 
+      INFO_message("Averaging %d brefs, leaving 1 bref and %d weighted ones.",
                    BZER, Ndwi);
 
       INFO_message("... and placing mean properties at top:\n"
@@ -871,22 +871,22 @@ int main(int argc, char *argv[])
    // ---------------- prep to output array info ----------------------
 
    // output dimensions for array (treat 'row' as col dimensions at
-   // the moment) 
+   // the moment)
    Nrow = Nvm; //Ndwi_flagged;
    if ( EXTRA_ZEROS || PUT_MEAN_BREF_TOP )
       EXTRA_row = 1;
 
    if( (OUT_FORM == 0) || (OUT_FORM == 1) )
       Ncol = 3;
-   else if( (OUT_FORM == 2) || (OUT_FORM == 3) ) 
+   else if( (OUT_FORM == 2) || (OUT_FORM == 3) )
       Ncol = 6;
 
    if( BVAL_OUT ) // extra row for outputting bval
       EXTRA_col = 1;
 
    OUT = calloc( Nvm+EXTRA_row, sizeof(OUT));
-   for( i=0 ; i<(Nvm+EXTRA_row) ; i++) 
-      OUT[i] = calloc( Ncol+EXTRA_col, sizeof(float)); 
+   for( i=0 ; i<(Nvm+EXTRA_row) ; i++)
+      OUT[i] = calloc( Ncol+EXTRA_col, sizeof(float));
    BOUT = (float *) calloc(Nvm+EXTRA_row, sizeof(float));
 
    if( ( OUT == NULL ) || ( BOUT == NULL )) {
@@ -897,10 +897,10 @@ int main(int argc, char *argv[])
    // -------------- fill in arrays to write out ----------------------
 
    // First thing: check about:
-   if ( EXTRA_row ) {  
+   if ( EXTRA_row ) {
       // grad/matr part
       if( Ncol == 3 )
-         for( k=0 ; k<3 ; k++) 
+         for( k=0 ; k<3 ; k++)
             tmp[k] = bref_vec[k+1];
       else
          k = GradConv_GmatA_from_Gsign( tmp, bref_vec+1);
@@ -908,7 +908,7 @@ int main(int argc, char *argv[])
       if( USE_BWT )                 // weight if nec: on by default
          for ( k=0 ; k<Ncol ; k++)
             tmp[k]*= bref_vec[0];
-      
+
       if( EXTRA_col )
          OUT[0][0] = bref_vec[0];
 
@@ -922,20 +922,20 @@ int main(int argc, char *argv[])
          OUT[0][EXTRA_col+5] = tmp[2];
       }
       else{
-         for ( k=0 ; k<Ncol ; k++) 
+         for ( k=0 ; k<Ncol ; k++)
             OUT[0][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
       }
 
-      BOUT[0] = bref_vec[0];  // and bval entry 
+      BOUT[0] = bref_vec[0];  // and bval entry
    }
 
    // now go through all flagged rows
    ctr = EXTRA_row; // start at 0 or 1
-   for( i=0 ; i<Nvm ; i++) 
+   for( i=0 ; i<Nvm ; i++)
       if( FLAG[i] ) {
 
          if( Ncol == 3 )
-            for( k=0 ; k<3 ; k++) 
+            for( k=0 ; k<3 ; k++)
                tmp[k] = INP_VEC[i][k+1];
          else
             k = GradConv_GmatA_from_Gsign( tmp, INP_VEC[i]+1);
@@ -956,29 +956,29 @@ int main(int argc, char *argv[])
             OUT[ctr][EXTRA_col+5] = tmp[2];
          }
          else{
-            for ( k=0 ; k<Ncol ; k++) 
+            for ( k=0 ; k<Ncol ; k++)
                OUT[ctr][EXTRA_col+k] = tmp[k]; // start at either 0 or 1
          }
 
-         BOUT[ctr] = INP_VEC[i][0];  // and bval entry 
+         BOUT[ctr] = INP_VEC[i][0];  // and bval entry
 
          ctr++;
       }
 
    Nrow_final = ctr;
 
-   INFO_message("Output dims to be: %d x %d", 
+   INFO_message("Output dims to be: %d x %d",
                 Nrow_final,
                 Ncol+EXTRA_col);
-   
+
    // -----------------------------------------------------------
-   
+
    if( (fout = fopen(Fname_output, "w")) == NULL) {
    fprintf(stderr, "\n\nError opening file %s.\n",Fname_output);
    exit(1);
    }
-   
-   // 0 is vec row;  
+
+   // 0 is vec row;
    // 1 is vec col;
    // 2 is matA;
    // 3 is matT
@@ -986,7 +986,7 @@ int main(int argc, char *argv[])
       for( i=0 ; i<Nrow_final ; i++) {
          if( EXTRA_col)
             fprintf(fout,"%10.3f  ", OUT[i][0]);
-         for( k=0 ; k<Ncol ; k++) 
+         for( k=0 ; k<Ncol ; k++)
             fprintf(fout,"%15.6f  ", OUT[i][EXTRA_col+k]);
          fprintf(fout,"\n");
       }
@@ -995,9 +995,9 @@ int main(int argc, char *argv[])
       if(BVAL_OUT)
          WARNING_message("Ignoring '-out_col_bval' option, since "
                          " you are outputting in rows.");
-      
+
       for( k=0 ; k<Ncol ; k++) {
-         for( i=0 ; i<Nrow_final ; i++) 
+         for( i=0 ; i<Nrow_final ; i++)
             fprintf(fout,"%15.6f  ", OUT[i][k]);
          fprintf(fout,"\n");
       }
@@ -1014,40 +1014,40 @@ int main(int argc, char *argv[])
          fprintf(stderr, "\n\nError opening file %s.\n", Fname_outputBV);
          exit(1);
       }
-      
+
       for( i=0 ; i<Nrow_final ; i++) {
          fprintf(foutBV,"%10.3f ", BOUT[i]);
          if( BVAL_OUT_SEP==2 )
             fprintf(foutBV,"\n");
       }
-      if( BVAL_OUT_SEP==1 ) 
+      if( BVAL_OUT_SEP==1 )
          fprintf(foutBV,"\n");
-      
+
       fclose(foutBV);
       INFO_message("DONE with b-value file '%s'\n\n",
                    Fname_outputBV);
    }
-   
+
    // ------------------------ FREE STUFF ---------------------------
-   
+
    mri_free(preREADIN);
    if( HAVE_BVAL )
       mri_free(preREADBVAL);
    if(prefix)
       free(prefix);
-   
+
    if( INP_VEC ) {
-      for(i=0 ; i<Nvm ; i++) 
+      for(i=0 ; i<Nvm ; i++)
          free(INP_VEC[i]);
       free(INP_VEC);
    }
    if( INP_MAT ) {
-      for(i=0 ; i<Nvm ; i++) 
+      for(i=0 ; i<Nvm ; i++)
          free(INP_MAT[i]);
       free(INP_MAT);
    }
    free(FLAG);
-   
+
    if(BOUT)
       free(BOUT);
    if(OUT){
@@ -1061,7 +1061,7 @@ int main(int argc, char *argv[])
       INFO_message("\t-> DONE with data_set. Check '%s'\n\n",
                    DSET_FILECODE(dwout));
    }
-   exit(0);   
+   exit(0);
 }
 
 
@@ -1129,7 +1129,7 @@ float GradCloseness(float **X, int N, int DCF)
    int i,k;
 
    float maxang = 0, ang=0;
-   
+
 
    rep = N/DCF; // from usage before, must be an exact int
 
@@ -1153,7 +1153,7 @@ float GradCloseness(float **X, int N, int DCF)
 }
 
 // little dot product
-float CalcInnerProdAngle( float *A, float *B, int N ) 
+float CalcInnerProdAngle( float *A, float *B, int N )
 {
    float out = 0., d1 = 0., d2 = 0;
    int i;
@@ -1161,7 +1161,7 @@ float CalcInnerProdAngle( float *A, float *B, int N )
 
    out = SimpleDP(A,B,N);
    d1 = SimpleDP(A,A,N);
-   d2 = SimpleDP(B,B,N); 
+   d2 = SimpleDP(B,B,N);
 
    if( (d1<=0.0001) || (d2<=0.0001) ) {
       WARNING_message("It looks like there might be a b=0 gradient which got"
@@ -1180,11 +1180,11 @@ float CalcInnerProdAngle( float *A, float *B, int N )
    if( out>1.01 ) {
       WARNING_message("It looks like there might be a problem in the grads?\n"
                       "\tOne has large magnitude (%f>1): setting to unity.");
-   } 
+   }
 
    if( out>1)
       out = 1;
-   
+
    out = (float) acos(out);
    out*= 180./PI;
 
@@ -1198,7 +1198,7 @@ float CalcInnerProdAngle( float *A, float *B, int N )
 }
 
 // little dot product
-float SimpleDP( float *A, float *B, int N ) 
+float SimpleDP( float *A, float *B, int N )
 {
    float out = 0.;
    int i;

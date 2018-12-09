@@ -46,9 +46,9 @@ static integer c__1 = 1;
 
 /*  The entries are the minimum and maximum "physical" x and y values */
 /*  allowed.  In NCAR they would always be 0,1,0,1.  Here they can be */
-/*  anything to allow for various output device aspect ratios.  However, 
+/*  anything to allow for various output device aspect ratios.  However,
 */
-/*  for plots to look reasonable, 1 unit in the x-direction should be the 
+/*  for plots to look reasonable, 1 unit in the x-direction should be the
 */
 /*  same physical size as 1 unit in the y-direction. */
 /* .......................................................................

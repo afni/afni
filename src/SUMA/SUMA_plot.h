@@ -9,7 +9,7 @@
    extern void pm_input_CB( Widget w , XtPointer cd , XtPointer cb );
    /* end functions defined in plot_motif.c */
 
-   
+
 SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
                SUMA_ALL_DO *ado,
                int inode);
@@ -22,7 +22,7 @@ typedef struct {
    int tsa_dims[2];
    int tsnode;
    char write_name[100];
-}SUMA_MEMPLOT_USERDATA; /* Modify REFILL_MPUD and SUMA_clear_mpud_contents 
+}SUMA_MEMPLOT_USERDATA; /* Modify REFILL_MPUD and SUMA_clear_mpud_contents
                            when adding new fields here */
 SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud);
 #endif

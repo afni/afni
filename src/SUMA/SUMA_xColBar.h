@@ -5,7 +5,7 @@
 #define SUMA_CMAP_HEIGHT   300
 #define SUMA_SCALE_SLIDER_WIDTH 18
 #define SUMA_SCALE_WIDTH 70
-#define SUMA_SCALE_HEIGHT  SUMA_CMAP_HEIGHT   
+#define SUMA_SCALE_HEIGHT  SUMA_CMAP_HEIGHT
 #define SUMA_CMAP_ORIGIN   0.0,  0.0,     0.0
 #define SUMA_CMAP_TOPLEFT  SUMA_CMAP_WIDTH, SUMA_CMAP_HEIGHT,   0.0
 #define SUMA_CMAP_VIEW_FROM (2 * SUMA_CMAP_HEIGHT)
@@ -152,7 +152,7 @@ FIX_SCALE_SIZE*/
       SUMA_UpdateNodeValField(ado);  \
       /* now find that node in the colored list */ \
       SUMA_UpdateNodeLblField(ado);  \
-}    
+}
 
 /* Don't attempt to break up this string over multiple lines */
 #define SUMA_SHPINX_BREAK  ".. container:: clearer\n\n   .. image:: media/blank.jpg\n\n   .. Preceding block is a trick to keep upcoming text from wrapping around the figures.\n\n"
@@ -176,22 +176,22 @@ SUMA_Boolean SUMA_isTopColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_isCurColPlane(SUMA_OVERLAYS *cp, SUMA_ALL_DO *ado);
 float *SUMA_ADO_DatumXYZ(SUMA_ALL_DO *ado, int isel, char *variant);
 float *SUMA_GDSET_EdgeXYZ(SUMA_DSET *dset, int isel, char *variant, float *here);
-SUMA_Boolean SUMA_GDSET_EdgeXYZ_eng(SUMA_DSET *dset, int isel, 
+SUMA_Boolean SUMA_GDSET_EdgeXYZ_eng(SUMA_DSET *dset, int isel,
                                     char *variant, float *here);
 SUMA_SurfaceObject *SUMA_GDSET_FrameSO(SUMA_DSET *dset);
 SUMA_Boolean SUMA_GDSET_GMATRIX_Aff(SUMA_DSET *dset, double Aff[4][4], int I2X);
 float *SUMA_GDSET_XYZ_Range(SUMA_DSET *dset,  char *variant, float *here);
 float *SUMA_GDSET_XYZ_Center(SUMA_DSET *dset,  char *variant, float *here);
 float *SUMA_GDSET_NodeXYZ(SUMA_DSET *dset, int node, char *variant, float *here);
-SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node, 
+SUMA_Boolean SUMA_GDSET_NodeXYZ_eng(SUMA_DSET *dset, int node,
                                     char *variant, float *here);
-SUMA_Boolean SUMA_TDO_PointXYZ_eng(SUMA_TractDO *tdo, int point, 
+SUMA_Boolean SUMA_TDO_PointXYZ_eng(SUMA_TractDO *tdo, int point,
                                    int *BTP, float *here);
 float *SUMA_TDO_PointXYZ(SUMA_TractDO *tdo, int point, int *BTP, float *here);
-SUMA_Boolean SUMA_VO_PointXYZ_eng(SUMA_VolumeObject *vo, int point, 
+SUMA_Boolean SUMA_VO_PointXYZ_eng(SUMA_VolumeObject *vo, int point,
                                    int *IJK, float *here);
 float *SUMA_VO_PointXYZ(SUMA_VolumeObject *vo, int point, int *IJK, float *here);
-SUMA_Boolean SUMA_MDO_PointXYZ_eng(SUMA_MaskDO *mo, int point, 
+SUMA_Boolean SUMA_MDO_PointXYZ_eng(SUMA_MaskDO *mo, int point,
                                    int *IJK, float *here);
 float *SUMA_MDO_PointXYZ(SUMA_MaskDO *mdo, int point, int *BTP, float *here);
 char *SUMA_ADO_LDP(SUMA_ALL_DO *ado);
@@ -224,7 +224,7 @@ int SUMA_ADO_SelectedDatum(SUMA_ALL_DO *ado, void *extra, void *extra2);
 int SUMA_ADO_SelectedSecondary(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_is_ADO_Datum_Primitive(SUMA_ALL_DO *ado,
                                           SUMA_COLID_OFFSET_DATUM *codf);
-SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel, 
+SUMA_Boolean SUMA_ADO_Set_SelectedDatum(SUMA_ALL_DO *ado, int sel,
                                         void *extra, void *extra2);
 int SUMA_ADO_N_Overlays(SUMA_ALL_DO *ado);
 SUMA_OVERLAYS * SUMA_ADO_Overlay0(SUMA_ALL_DO *ado);
@@ -257,30 +257,30 @@ int SUMA_SelectSwitchCmap_one( SUMA_ALL_DO *ado, SUMA_LIST_WIDGET *LW,
 int SUMA_SelectSwitchCmap( SUMA_ALL_DO *ado, SUMA_LIST_WIDGET *LW,
                            int ichoice, SUMA_Boolean CloseShop, int setmen);
 int SUMA_SwitchColPlaneBrightness_one(
-         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          int ind, int setmen);
 int SUMA_SwitchColPlaneBrightness(
-         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          int ind, int setmen);
 void SUMA_cb_SwitchBrightness(Widget w, XtPointer clientData, XtPointer call);
 int SUMA_SwitchColPlaneThreshold(
-         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          int ind, int setmen);
 int SUMA_SwitchColPlaneThreshold_one(
-         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
          int ind, int setmen);
 void SUMA_cb_SwitchThreshold(Widget w, XtPointer clientData, XtPointer call);
-int SUMA_SwitchColPlaneIntensity(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp, 
+int SUMA_SwitchColPlaneIntensity(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                                  int ind, int setmen);
 int SUMA_SwitchColPlaneIntensity_one (
-         SUMA_ALL_DO *ado, 
-         SUMA_OVERLAYS *colp, 
+         SUMA_ALL_DO *ado,
+         SUMA_OVERLAYS *colp,
          int ind, int setmen);
 void SUMA_cb_SwitchIntensity(Widget w, XtPointer clientData, XtPointer call);
 SUMA_MenuItem *SUMA_FreeMenuVector(SUMA_MenuItem *menu, int Nels);
-SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado, 
+SUMA_MenuItem *SUMA_FormSwitchColMenuVector(SUMA_ALL_DO *ado,
                                             int what, int *N_items);
-void SUMA_set_cmap_options(SUMA_ALL_DO *ado, 
+void SUMA_set_cmap_options(SUMA_ALL_DO *ado,
                            SUMA_Boolean NewDset, SUMA_Boolean NewMap);
 void SUMA_set_cmap_options_SO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                            SUMA_Boolean NewMap);
@@ -292,25 +292,25 @@ void SUMA_cb_CloseSwitchCmap (Widget w, XtPointer client_data, XtPointer call);
 SUMA_Boolean SUMA_CmapSelectList(SUMA_ALL_DO *ado, int type, int bringup);
 SUMA_Boolean SUMA_SwitchColPlaneCmap(SUMA_ALL_DO *ado, SUMA_COLOR_MAP *CM);
 SUMA_Boolean SUMA_SetCmapMenuChoice(SUMA_ALL_DO *ado, char *str);
-int SUMA_GetListIchoice(XmListCallbackStruct *cbs, 
+int SUMA_GetListIchoice(XmListCallbackStruct *cbs,
                         SUMA_LIST_WIDGET *LW,
                         SUMA_Boolean *CloseShop);
 void SUMA_cb_SelectSwitchInt (
-         Widget w, XtPointer client_data, 
+         Widget w, XtPointer client_data,
          XtPointer call_data);
 void SUMA_cb_SelectSwitchThr (
-         Widget w, XtPointer client_data, 
+         Widget w, XtPointer client_data,
          XtPointer call_data);
 void SUMA_cb_SelectSwitchBrt (
-         Widget w, XtPointer client_data, 
+         Widget w, XtPointer client_data,
          XtPointer call_data);
 int SUMA_SelectSwitchDsetCol(
-         SUMA_ALL_DO *ado, 
-         SUMA_LIST_WIDGET *LW, 
+         SUMA_ALL_DO *ado,
+         SUMA_LIST_WIDGET *LW,
          int block,
          int ichoice);
 void SUMA_cb_CloseSwitchLst (Widget w, XtPointer client_data, XtPointer call);
-void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2]);  
+void SUMA_SetScaleRange(SUMA_ALL_DO *ado, double range[2]);
 int SUMA_set_threshold_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                            float *val);
 int SUMA_set_threshold(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
@@ -319,78 +319,78 @@ void SUMA_cb_set_threshold(Widget w, XtPointer clientData, XtPointer call);
 int SUMA_set_threshold_label(SUMA_ALL_DO *ado, float val, float val2);
 void SUMA_optmenu_EV( Widget w , XtPointer cd ,
                       XEvent *ev , Boolean *continue_to_dispatch );
-void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data, 
+void SUMA_cb_SetCoordBias(Widget widget, XtPointer client_data,
                           XtPointer call_data);
-SUMA_Boolean SUMA_RedisplayAllShowing(char *SO_idcode_str, 
+SUMA_Boolean SUMA_RedisplayAllShowing(char *SO_idcode_str,
                                       SUMA_SurfaceViewer *SVv, int N_SVv);
 void SUMA_CreateSliceFields(  Widget parent,
-                        char *tit, char *hint, char *help, 
+                        char *tit, char *hint, char *help,
                         int Nslc, char *var, SUMA_ALL_DO *ado,
                         void (*NewValueCallback)(void * data), void *cb_data,
                         SUMA_SLICE_FIELD *SF);
 void SUMA_CreateTable(  Widget parent,
-            int Ni, int Nj, 
+            int Ni, int Nj,
             char *wname,
-            char **row_tit, char **col_tit, 
+            char **row_tit, char **col_tit,
             char **row_hint, char **col_hint,
-            char **row_help, char **col_help, 
-            int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type, 
+            char **row_help, char **col_help,
+            int *cwidth, SUMA_Boolean editable, SUMA_VARTYPE type,
             void (*NewValueCallback)(void * data), void *cb_data,
-            void (*TitLabelEVHandler)(Widget w , XtPointer cd , 
-                                      XEvent *ev , Boolean *ctd), 
+            void (*TitLabelEVHandler)(Widget w , XtPointer cd ,
+                                      XEvent *ev , Boolean *ctd),
             void *TitLabelEVHandlerData,
-            void (*CellEVHandler)(Widget w , XtPointer cd , 
-                                  XEvent *ev , Boolean *ctd), 
+            void (*CellEVHandler)(Widget w , XtPointer cd ,
+                                  XEvent *ev , Boolean *ctd),
             void *CellEVHandlerData,
                         SUMA_TABLE_FIELD *TF);
-void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data, 
+void SUMA_TableF_cb_label_Modify (Widget w, XtPointer client_data,
                                   XtPointer call_data);
 void SUMA_TableF_SetString (SUMA_TABLE_FIELD * AF);
-void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data, 
+void SUMA_TableF_cb_label_change (Widget w, XtPointer client_data,
                                   XtPointer call_data);
 void SUMA_leave_TableField( Widget w , XtPointer client_data ,
                            XEvent * ev , Boolean * continue_to_dispatch );
-void SUMA_SliceF_cb_mont_change (  Widget w, XtPointer client_data, 
+void SUMA_SliceF_cb_mont_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data);
 void SUMA_leave_SliceField( Widget w , XtPointer client_data ,
                            XEvent * ev , Boolean * continue_to_dispatch );
 void SUMA_leave_MontField( Widget w , XtPointer client_data ,
                             XEvent * ev , Boolean * continue_to_dispatch );
-int SUMA_SetRangeValueNew(SUMA_ALL_DO *ado, 
+int SUMA_SetRangeValueNew(SUMA_ALL_DO *ado,
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
-                          int setmen, 
+                          int setmen,
                           int redisplay, float *reset,
                           SUMA_NUMERICAL_UNITS num_units);
-int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado, 
+int SUMA_SetRangeValueNew_one(SUMA_ALL_DO *ado,
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
-                          int setmen, 
+                          int setmen,
                           int redisplay, float *reset,
                           SUMA_NUMERICAL_UNITS num_units);
 void SUMA_cb_SetRangeValue (void *data);
-int SUMA_SetClustValue(SUMA_ALL_DO *ado, 
+int SUMA_SetClustValue(SUMA_ALL_DO *ado,
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
-                          int setmen, 
+                          int setmen,
                           int redisplay, float *reset);
-int SUMA_SetClustValue_one(SUMA_ALL_DO *ado, 
+int SUMA_SetClustValue_one(SUMA_ALL_DO *ado,
                           SUMA_OVERLAYS *colp,
                           int row, int col,
                           float v1, float v2,
-                          int setmen, 
+                          int setmen,
                           int redisplay, float *reset);
 void SUMA_cb_SetClustValue (void *data);
-SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_ALL_DO *ado, 
-                        SUMA_OVERLAYS *colp, int i, int j, int Button); 
-SUMA_Boolean SUMA_SetClustTableTit (SUMA_ALL_DO *ado, 
+SUMA_Boolean SUMA_SetClustTableTit_one (SUMA_ALL_DO *ado,
+                        SUMA_OVERLAYS *colp, int i, int j, int Button);
+SUMA_Boolean SUMA_SetClustTableTit (SUMA_ALL_DO *ado,
                         SUMA_OVERLAYS *colp, int i, int j, int Button);
 void SUMA_SetClustTableTit_EV ( Widget w , XtPointer cd ,
-                      XEvent *ev , Boolean *continue_to_dispatch ); 
-SUMA_Boolean SUMA_SetTableTitleButton1(SUMA_TABLE_FIELD *TF, int i, int j, 
+                      XEvent *ev , Boolean *continue_to_dispatch );
+SUMA_Boolean SUMA_SetTableTitleButton1(SUMA_TABLE_FIELD *TF, int i, int j,
                                        byte flag);
 SUMA_TABLE_FIELD * SUMA_AllocTableField(char *wname);
 SUMA_TABLE_FIELD * SUMA_FreeTableField(SUMA_TABLE_FIELD *TF);
@@ -404,11 +404,11 @@ void SUMA_cb_set_Ax_slice_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Sa_slice_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_cb_set_Co_slice_label(Widget w, XtPointer clientData, XtPointer call);
 void SUMA_SliceF_SetString (SUMA_SLICE_FIELD * SF);
-void SUMA_SliceF_cb_label_change (  Widget w, XtPointer client_data, 
+void SUMA_SliceF_cb_label_change (  Widget w, XtPointer client_data,
                                     XtPointer call_data);
-int SUMA_set_slice(SUMA_ALL_DO *ado, char *variant, float *valp, 
+int SUMA_set_slice(SUMA_ALL_DO *ado, char *variant, float *valp,
                    char *caller, int redisp);
-int SUMA_set_mont(SUMA_ALL_DO *ado, char *variant, 
+int SUMA_set_mont(SUMA_ALL_DO *ado, char *variant,
                   float *val1p, float *val2p,
                   char *caller, int redisp);
 void SUMA_cb_set_Co_slice(Widget w, XtPointer clientData, XtPointer call);
@@ -439,27 +439,27 @@ void SUMA_IJKInput(void*data);
 SUMA_Boolean SUMA_UpdateTriField(SUMA_SurfaceObject *SO);
 SUMA_Boolean SUMA_UpdateNodeLblField(SUMA_ALL_DO *ADO);
 SUMA_Boolean SUMA_UpdateNodeLblField_ADO(SUMA_ALL_DO *ADO);
-char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado, 
+char **SUMA_FormNodeValFieldStrings(SUMA_ALL_DO *ado,
                                  SUMA_DSET *dset, int Node,
                                  int find, int tind, int bind, int dec,
                                  double *I, double *T, double *B);
-SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado, 
+SUMA_Boolean SUMA_GetNodeValsAtSelection(SUMA_ALL_DO *ado,
                SUMA_DSET *dset, int Node,
                int find, int tind, int bind,
                double *I, double *T, double *B) ;
 SUMA_Boolean SUMA_UpdateNodeValField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_UpdateNodeNodeField(SUMA_ALL_DO *ado);
 SUMA_Boolean SUMA_Init_SurfCont_CrossHair(SUMA_ALL_DO *ado);
-void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data, 
+void SUMA_cb_AbsThresh_tb_toggled (Widget w, XtPointer data,
                                     XtPointer client_data);
-void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data, 
+void SUMA_cb_SymIrange_tb_toggled (Widget w, XtPointer data,
                                     XtPointer client_data);
-void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data, 
+void SUMA_cb_ShowZero_tb_toggled (Widget w, XtPointer data,
                                     XtPointer client_data);
-void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data, 
+void SUMA_cb_SetCmapMode(Widget widget, XtPointer client_data,
                                     XtPointer call_data);
 SUMA_Boolean SUMA_SetCmapMode(SUMA_ALL_DO *ado, int imenu);
-void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data, 
+void SUMA_cb_SetLinkMode(Widget widget, XtPointer client_data,
                                     XtPointer call_data);
 void SUMA_set_cmap_options_GLDO(SUMA_ALL_DO *ado, SUMA_Boolean NewDset,
                                 SUMA_Boolean NewMap);
@@ -480,9 +480,9 @@ int SUMA_SetScaleThr_one(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
 int SUMA_SetScaleThr(SUMA_ALL_DO *ado, SUMA_OVERLAYS *colp,
                           float *val, int setmen, int redisplay);
 SUMA_Boolean SUMA_DsetColSelectList(
-         SUMA_ALL_DO *ado, int type, 
+         SUMA_ALL_DO *ado, int type,
          int refresh, int bringup);
-SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset); 
+SUMA_ASSEMBLE_LIST_STRUCT * SUMA_AssembleDsetColList(SUMA_DSET *dset);
 void SUMA_UpdatePvalueField (SUMA_ALL_DO *ado, float thresh);
 double SUMA_Pval2ThreshVal (SUMA_ALL_DO *ado, double pval);
 SUMA_Boolean SUMA_UpdatePointField(SUMA_ALL_DO*ado);
@@ -492,9 +492,9 @@ char *SUMA_GetLabelsAtSelection_ADO(SUMA_ALL_DO *ado, int node, int sec);
 SUMA_Boolean SUMA_GetValuesAtSelection(SUMA_ALL_DO *ado, int fromtable,
                                        float *I, float *T, float *B);
 SUMA_Boolean SUMA_SetCmodeMenuChoice(SUMA_ALL_DO *ado, char *str);
-SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado, 
+SUMA_NIDO *SUMA_NodeLabelToTextNIDO (char *lbls, SUMA_ALL_DO *ado,
                                      SUMA_SurfaceViewer *sv);
-XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w, 
+XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
                                  char *fontname, char *tag);
 
 /* the help strings */
@@ -511,7 +511,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 ":         :be changed with the :ref:`'p'<LC_p>` option.:LR:\n"  \
 "   Fill:   Shaded rendering mode.:LR:\n"  \
 "   Line:   Mesh rendering mode.:LR:\n"    \
-"   Points: Points rendering mode.:LR:\n"   
+"   Points: Points rendering mode.:LR:\n"
 
    #define  SUMA_SurfContHelp_VTransMode  \
 "Set the transparency level for this set of slices to one of the " \
@@ -525,7 +525,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "         accurate.:LR:\n"  \
 "   0 :   No transparency, opaque.:LR:\n"  \
 "   ...:LR:\n"    \
-"   16:   Maximum transparency, invisibile:LR:\n"   
+"   16:   Maximum transparency, invisibile:LR:\n"
 
    #define  SUMA_SurfContHelp_TransMode  \
 "Set the transparency for this surface to one of the following "   \
@@ -535,7 +535,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "           be changed with the :ref:`o<LC_o>`, :ref:`O<UC_O>`  options.:LR:\n" \
 "   0 :   No transparency, opaque.:LR:\n"  \
 "   ...:LR:\n"    \
-"   16:   Maximum transparency, invisibile:LR:\n"   
+"   16:   Maximum transparency, invisibile:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetViewMode  \
    "Choose the viewing mode for this dataset.:LR:\n" \
@@ -547,7 +547,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    " in the colormap. You'd want to use colormaps with "  \
    " few colors to get a contour of use. " \
    " Contours are not created if colormap has panes "   \
-   " of unequal sizes.\n"   
+   " of unequal sizes.\n"
 
 #define  SUMA_SurfContHelp_DsetFont  \
    "Choose the font size for labels of nodes.:LR:\n" \
@@ -558,14 +558,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   HE12: Helvetica 12.:LR:\n"    \
    "   HE18: Helvetica 18.:LR:\n"    \
    "   TR24: Times New Roman 24.:LR:\n"    \
-   "   XXX: Show no text.:LR:\n"  
+   "   XXX: Show no text.:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetNodeRad  \
    "Choose the radius sizing for nodes of this graph dataset.:LR:\n" \
    "   Const: All nodes have a radius of 1 x Gain.:LR:\n"  \
    "   Val: Nodes size equals its dset value x Gain. A node's dset"\
    "value is that of the edge connecting the node to itself:LR:\n"  \
-   "   XXX: Show no balls.:LR:\n"  
+   "   XXX: Show no balls.:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetThrough  \
    "When a node, rather than an edge is :ref:`selected<Selecting_Objects>`, "\
@@ -581,12 +581,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
   "mode also.:LR:\n"\
    "   CaR: Both Col and Rad:LR:\n"\
    "   XXX: Do nothing special, keep showing whole graph, even when "\
-   "selecting a graph node.:LR:\n"  
+   "selecting a graph node.:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetEdgeThick  \
    "Choose the thickness for edges of this graph dataset.:LR:\n" \
    "   Const: All nodes have a radius of 1 x Gain.:LR:\n"  \
-   "   Val: Edge size equals its dset value x Gain:LR:\n"  
+   "   Val: Edge size equals its dset value x Gain:LR:\n"
 
 #define  SUMA_SurfContHelp_TractStyle  \
    "Choose the line drawing style.:LR:\n" \
@@ -595,7 +595,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   ...:LR:\n"    \
    "   15:   15/16 pixels off, almost invisible:LR:\n"   \
    "   HDE: Hide all the tracts:LR:\n"  \
-   "   SLD: No stippling, solid line.:LR:\n"  
+   "   SLD: No stippling, solid line.:LR:\n"
 
 #define  SUMA_SurfContHelp_DsetEdgeStip  \
    "Choose the stippling for edges of this graph dataset.:LR:\n" \
@@ -603,7 +603,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "   ...:LR:\n"    \
    "   15:   15/16 pixels off, almost invisible:LR:\n"   \
    "   Val: Set stippling based on the dset value:LR:\n"  \
-   "   XXX: No stippling, solid line.:LR:\n"  
+   "   XXX: No stippling, solid line.:LR:\n"
 
    #define  SUMA_SurfContHelp_DsetAlphaVal  \
 "Choose the method for assigning an alpha value (A) to a voxel's color.:LR:\n" \
@@ -613,7 +613,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "   I :  A is based on I selection. I range parameters apply :LR:\n"   \
 "   T :  A is based on T selection. Full range is used.:LR:\n"  \
 "   B :  A is based on B selection. B range parameters apply:LR:\n" \
-"   XXX: A is set to 0, nothing will show.:LR:\n"  
+"   XXX: A is set to 0, nothing will show.:LR:\n"
 
    #define  SUMA_SurfContHelp_TractMask  \
 "That's not the name of the button, but its default value. "\
@@ -627,11 +627,11 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 " whole network.:LR:\n"\
 "   Ign:   Ignore 'em good for nothing masks, show tracts in all their"\
 " unabashed glory:LR:\n"
-      
+
 #define  SUMA_SurfContHelp_TractMaskGray  \
    "Set the gray level for masked tracts. 0 for black, 100 for white\n" \
    "   This arrow field only has an effect when 'Msk' menu is set to 'Gry'\n"   \
-      
+
 #define  SUMA_SurfContHelp_DsetNodeCol  \
    "Choose the colorization method for nodes of this dataset.:LR:\n" \
    "   White: Alle weiss.:LR:\n"  \
@@ -671,7 +671,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "makes the crosshair jump\n"   \
    "to that location (like :ref:`'ctrl+j' <LC_Ctrl+j>`).\n"   \
    "Use :ref:`'alt+l'<LC_Alt+l>` to center the\n"   \
-   "cross hair in your viewer."    
+   "cross hair in your viewer."
 
 #define SUMA_SurfContHelp_Node   \
    "Index of node in focus (1) and :term:`RAI` coordinates "   \
@@ -693,22 +693,22 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "representation.:LR:\n"\
    "*NOTE* that a node is also an edge that starts and ends at the same"\
    "node. Think diagonal elements of a connectivity matrix."
-        
+
 #define SUMA_TractContHelp_I   \
    "Set/Get the :term:`1D index` of the selected elementary tract datum: "\
-   "the infinitesimal point.\n" 
+   "the infinitesimal point.\n"
 
 #define SUMA_SurfContHelp_I   \
    "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
-   "the node.\n" 
+   "the node.\n"
 
 #define SUMA_GraphContHelp_I   \
    "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
-   "the edge.\n" 
+   "the edge.\n"
 
 #define SUMA_VolContHelp_I   \
    "Set/Get the :term:`1D index` of the selected elementary surface datum: "\
-   "the voxel.\n" 
+   "the voxel.\n"
 
    #define SUMA_SurfContHelp_BTP   \
 "Set/Get the triplet of indices for the selection on the displayed tracts.\n"\
@@ -719,7 +719,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 #define SUMA_SurfContHelp_IJK   \
    "Triplet of indices (I) of selected voxel.\n"   \
    "The mm RAI coordinate X = M I with M being the matrix transforming\n"  \
-   "voxel indices to voxel coordinates.\n" 
+   "voxel indices to voxel coordinates.\n"
 
 
 #define SUMA_SurfContHelp_Tri   \
@@ -744,8 +744,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "matrix diagonal.:LR:\n"\
 "2- Nodes Forming Directed Edge/Cell: For a cell, this would its pair of "\
 "row and column indices into the matrix. For a graph, this would be the "\
-"indices of the :term:`nodes` forming the directed edge."  
-   
+"indices of the :term:`nodes` forming the directed edge."
+
 #define SUMA_SurfContHelp_NodeValTblr0 \
    "Data values at node in focus"
 #define SUMA_SurfContHelp_GEdgeValTblr0 \
@@ -753,14 +753,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 ":term:`Threshold`, and :term:`Brightness` show the triplets of values "\
 " at the selected edge that correspond to the graph/matrix  choices." \
 "in :ref:`I<VolCont->Dset_Mapping->I>`, :ref:`T<VolCont->Dset_Mapping->T>`, and :ref:`B<VolCont->Dset_Mapping->B>` selectors."
-   
+
    #define SUMA_SurfContHelp_NodeValTblc0 \
 "Data values at node in focus. :term:`Intensity`, "\
 ":term:`Threshold`, and :term:`Brightness` show the triplets of values "\
 " at the selected node that correspond to the dataset column choices " \
 "in :ref:`I<SurfCont->Dset_Mapping->I>`, :ref:`T<SurfCont->Dset_Mapping->T>`, and :ref:`B<SurfCont->Dset_Mapping->B>` selectors."
-   
-   
+
+
    #define SUMA_TractContHelp_NodeValTblc0 \
 "Data values at point in focus. At the moment, :term:`Intensity`, "\
 ":term:`Threshold`, and :term:`Brightness` show the RGB values for the point "\
@@ -776,11 +776,11 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_GEdgeValTblc0 \
    SUMA_SurfContHelp_GEdgeValTblr0
-   
+
 #define SUMA_SurfContHelp_NodeValTblc1 \
    "Intensity (I) value"
 #define    SUMA_SurfContHelp_GEdgeValTblc1\
-   "Intensity (I) value" 
+   "Intensity (I) value"
 
 #define SUMA_SurfContHelp_NodeValTblc2 \
    "Threshold (T) value"
@@ -806,13 +806,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "at the edge in focus.\n"   \
    "If no labels are available, edge color\n"   \
    "is displayed."
-   
+
 #define SUMA_SurfContHelp_DsetLblTblr0 \
   "Label of dataset currently selected. Note that for some objects, "\
   "like surfaces, what you're viewing "\
   "at any moment maybe a blend of multiple datasets. See "\
-  ":ref:`color mixing<ColorMixing>` for details." 
-  
+  ":ref:`color mixing<ColorMixing>` for details."
+
 #define SUMA_SurfContHelp_DsetLblTblr1 \
    "Parent surface of Dset."
 
@@ -831,7 +831,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "on top of the stack.\n"   \
    ":SPX:See :ref:`color plane grouping <Color_Plane_Grouping>` for details "\
    "on how colors are merged.:SPX:"
- 
+
 #define SUMA_SurfContHelp_DsetAlphaThresh \
    "Alpha threshold of Dset's rendered slices.\n"  \
    "When datasets' voxels get colored, they get an Alpha (A) value\n"\
@@ -847,12 +847,12 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "voxels to 0.0 regardless of the setting for 'Avl'.\n"   \
    "Thresholding with Ath is faster than using the slider bar because \n" \
    "it does not require recreating the whole texture."
-  
+
 #define SUMA_SurfContHelp_ArrowFieldMenu \
    "For datasets with sub-bricks exceeding what you have\n" \
    "set in environment variable SUMA_ArrowFieldSelectorTrigger\n"\
    "the menu selection switches to this format."
-   
+
 #define SUMA_SurfContHelp_DsetOpa \
    "Opacity of Dset's colorplane.\n"  \
    "Opaque planes have an opacity\n"   \
@@ -871,7 +871,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Color mixing can be done in two \n"  \
    "ways, use :ref:`F7<F7>` to toggle between \n" \
    "mixing modes.\n"
-   
+
 #define SUMA_TractContHelp_DsetOpa \
    "Opacity of Dset's colorplane.\n"  \
    "Opaque planes have an opacity\n"   \
@@ -888,7 +888,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Color mixing can be done in two \n"  \
    "ways, use :ref:`F7<F7>` to toggle between \n" \
    "mixing modes.\n"
-   
+
 #define SUMA_SurfContHelp_DsetDim  \
    "Dimming factor to apply to colormap\n" \
    "before mapping the intensity (I) data.\n" \
@@ -905,14 +905,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Gain to apply to node radius.\n" \
    "This multiplier is always applied to whatever\n" \
    "radius value the node gets, whether is it constant\n"   \
-   "or data derived.\n"   
-   
+   "or data derived.\n"
+
 #define SUMA_SurfContHelp_DsetEdgeThickGain  \
    "Gain to apply to edge thickness.\n" \
    "This multiplier is always applied to whatever\n" \
    "thickness value the edge gets, whether is it constant\n"   \
-   "or data derived.\n"   
-   
+   "or data derived.\n"
+
 #define SUMA_SurfContHelp_DsetView  \
    "View (ON)/Hide Dset node colors"
 
@@ -977,8 +977,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "expression.:LR:\nReloading a mask file will replace current masks."
 
 #define SUMA_SurfContHelp_MasksSave  \
-   "Save current set of masks for future loading by my neighborly button.\n"   
-   
+   "Save current set of masks for future loading by my neighborly button.\n"
+
 #define SUMA_SurfContHelp_DsetLoad  \
    "Load a new dataset (Dset).\n"   \
    "Datasets can be of 3 formats::LR:\n"   \
@@ -1042,7 +1042,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    ":     :number of nodes for which data are\n"   \
    ":     :specified in Dset.\n"   \
    ":     :Ni = 2, Nj = 3 in the example."
-   
+
 #define SUMA_SurfContHelp_DsetLoadCol  \
    "Load a new color plane.\n"   \
    "A color plane is a :term:`1D` text file with \n" \
@@ -1147,7 +1147,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define SUMA_SurfContHelp_SelThrTgl \
    "Apply (ON)/Ignore thresholding"
-   
+
 #define SUMA_SurfContHelp_SelBrtTgl \
    "View (ON)/Ignore brightness modulation"
 
@@ -1197,7 +1197,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "and a locked range is applied to the current Dset only. A locked "\
 "range is indicated with the reverse video mode.\n" \
 "\n"   \
-"A right-click resets values to the default range (usually 2% to 98%) for the dataset."   
+"A right-click resets values to the default range (usually 2% to 98%) for the dataset."
 
 #define SUMA_SurfContHelp_SetRngTbl_r3 \
    "Brightness modulation factor range.\n"   \
@@ -1205,7 +1205,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "clipping per the values in the row above,\n"   \
    "are scaled to fit the range specified\n"   \
    "here."
-   
+
 #define SUMA_SurfContHelp_SetRngTbl_r4 \
    "Coordinate bias range.\n"   \
    "Coordinates of nodes that are mapped\n"   \
@@ -1241,13 +1241,13 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 
 #define SUMA_SurfContHelp_SetClustTbl_r0 \
-   "Used for setting the clustering parameters."  
+   "Used for setting the clustering parameters."
 
 #define SUMA_SurfContHelp_SetClustTbl_r1 \
    "Clusterizing.\n" \
    "\n"   \
-   "Left click toggles clusterizing ON/OFF"   
-   
+   "Left click toggles clusterizing ON/OFF"
+
 #define SUMA_SurfContHelp_SetClustTbl_c1 \
    "Minimum distance between nodes.\n" \
    "Nodes closer than the minimum distance are in\n"\
@@ -1264,7 +1264,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "the Minimum cluster area to -K\n"  \
    "This parameter covers options -amm2 and -n in\n"\
    "the program SurfClust"
-   
+
 #define SUMA_SurfContHelp_Col \
    "Switch between modes for mapping values to the color map.:LR:\n"   \
    "The bottom color of the map C0 maps to the minimum value in the "\
@@ -1321,8 +1321,8 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "\n"   \
    "More help is available via\n"   \
    "ctrl+h while mouse is over the\n"   \
-   "colormap."   
-   
+   "colormap."
+
 #define SUMA_SurfContHelp_CmpNew \
    "Load new colormap.\n"   \
    "Loaded map will replace a\n"   \
@@ -1345,7 +1345,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "See also envs :ref:`SUMA_CmapsDir<SUMA_CmapsDir>`, "\
    ":ref:`SUMA_RetinoAngle_DsetColorMap<SUMA_RetinoAngle_DsetColorMap>` "\
    "and :ref:`SUMA_VFR_DsetColorMap<SUMA_VFR_DsetColorMap>`"
-   
+
 
    #define  SUMA_SurfContHelp_AbsThr   \
 "Toggle Absolute thresholding.:LR:\n"   \
@@ -1359,7 +1359,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "     Tscale is the value set by the threshold scale.:LR:\n"   \
 "     T(n) is the :term:`datum` value in the selected threshold column (T).\n"  \
 ":         :This value is seen in the second cell of the 'Value'\n"   \
-":         :table on the left side."  
+":         :table on the left side."
 
 #define  SUMA_SurfContHelp_Isym   \
    "Toggle Intensity range symmetry "   \
@@ -1383,7 +1383,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define  SUMA_SurfContHelp_RangeTbl_c0 \
    "Full range of values in Dset"
-           
+
 #define SUMA_SurfContHelp_RangeTbl_c1 \
    "Minimum value in Dset column"
 
@@ -1394,7 +1394,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "node's index.\n"   \
    "Same as 'ctrl+j' or\n"   \
    "an entry in the 'Node' cell\n"   \
-   "under Xhair Info block."  
+   "under Xhair Info block."
 
 #define SUMA_GraphContHelp_RangeTbl_c2 \
    "Edge index at minimum.\n"   \
@@ -1403,7 +1403,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "edge's index.\n"   \
    "Same as 'ctrl+j' or\n"   \
    "an entry in the 'Edge' cell\n"   \
-   "under Xhair Info block."  
+   "under Xhair Info block."
 
 #define SUMA_SurfContHelp_RangeTbl_c3 \
    "Maximum value in Dset column"
@@ -1425,7 +1425,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
    "Same as 'ctrl+j' or\n"   \
    "an entry in the 'Edge' cell\n"   \
    "under Xhair Info block."
-  
+
 #define SUMA_SurfContHelp_RangeTbl_r1  \
    "Range of values in intensity (I) column"
 
@@ -1437,7 +1437,7 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 
 #define  SUMA_SurfContHelp_MaskTypeTbl_c0 \
    "Add one more row for a mask ROI"
-           
+
 #define SUMA_SurfContHelp_MaskTypeTbl_c1 \
    "String label of ROI"
 
@@ -1453,14 +1453,14 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "You can also reposition the mask interactively in the SUMA viewer "\
 "by :ref:`selecting <Button_3-Press>` something, if you are in "\
 ":ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`."
-   
+
 #define SUMA_SurfContHelp_MaskTypeTbl_c4 \
 "Set/Get size along three dimensions of mask. You can enter a single value "\
 "if the all three dimensions are equal. :LR:\n" \
 "Right click in cell to get back to the original size.:LR:\n" \
 "Resizing in SUMA viewer can be done with :ref:`Ctrl+scroll<Ctrl+Scroll>` "\
 "if you are in :ref:`Mask Manipulation Mode<Mask_Manipulation_Mode>`.:LR:\n"\
-"You can also change values by scrolling with mouse pointer over the cell.\n" 
+"You can also change values by scrolling with mouse pointer over the cell.\n"
 
    #define SUMA_Switch_Cont_BHelp   \
 "Switch to controllers of other objects. You can use the arrows, or set the "\
@@ -1487,17 +1487,17 @@ XmFontList SUMA_AppendToFontList(XmFontList fontlisti, Widget w,
 "color to the tracts that pass through it. This tinting process is only "\
 "used when 'Mask Eval' is in use, and when A is > 0. See the help for "\
 "'Mask Eval' for information on how tinting works.:LR:\n"\
-"You can also change values by scrolling with mouse pointer over the cell.\n" 
+"You can also change values by scrolling with mouse pointer over the cell.\n"
 
    #define SUMA_SurfContHelp_MaskTypeTbl_c7  \
 "Transparency of mask. A value of 0 renders a mask opaque. Consider using "\
 "lower D values to avoid color saturation of rendered masks.:LR:\n"\
-"You can also change values by scrolling with mouse pointer over the cell.\n" 
- 
+"You can also change values by scrolling with mouse pointer over the cell.\n"
+
 
 #define SUMA_SurfContHelp_MaskTypeTbl_c8  \
    "Dimming factor for color. Saturated colors may not look nice when rendered, so consider using the D parameter to dim a color's brightness without having to so directly in the color column. Setting D to 6 for example will scale a color by a factor of 6/9, so a saturated red of [1 0 0] becomes [0.67 0 0 ]. This makes masks render better when not in transparent mode T = 0.:LR:\n"\
-"You can also change values by scrolling with mouse pointer over the cell.\n" 
+"You can also change values by scrolling with mouse pointer over the cell.\n"
 
    #define SUMA_SurfContHelp_MaskTypeTbl_r1  \
 "Delete row of mask ROI. You have to click twice to get rid of a row, so there "\
@@ -1572,7 +1572,7 @@ SUMA_SHPINX_BREAK \
 "Set Min Max length for tract masking. Use can scroll (mouse wheel) in Min "\
 "and Max cells to change the value. The 'v' button must be selected for "\
 "masking to take effect."
-   
+
 #define SUMA_SurfContHelp_GDSET_ViewBundles \
    "Show bundles instead of edges between nodes if \n"\
    "the graph dataset contains such information. For\n"\
@@ -1595,7 +1595,7 @@ SUMA_SHPINX_BREAK \
 ":SPX:\n\n"\
 "Bundle colors reflect the value of the edge connecting the two nodes\n\n"\
 "Selection is identical to when edges are represented by straight lines.\n\n"
- 
+
 #define SUMA_SurfContHelp_GDSET_ViewUncon \
    "Show graph nodes even if unconnected to other nodes.\n"
 
@@ -1624,8 +1624,8 @@ SUMA_SHPINX_BREAK \
    "   * p-value here is significance PER NODE/VOXEL/etc.:LR:\n" \
    "* If FDR curves are pre-computed in the dataset's header, then the False "\
    "Discovery Rate q-value will also be shown.:LR:\n"     \
-   "* You can add FDR curves to a dataset with '3drefit -addFDR'.\n"   
-   
+   "* You can add FDR curves to a dataset with '3drefit -addFDR'.\n"
+
    #define SUMA_SurfContHelp_ColorBar  \
 "Colorbar used for colorizing values in 'I' sub-brick.\n"   \
 "Colorization depends on the settings under the "\
@@ -1635,11 +1635,11 @@ SUMA_SHPINX_BREAK \
 "displayed at all.:LR:\n"  \
 "Use :SPX: *ctrl+h over the colorbar* :DEF: ctrl+h over the colorbar :SPX:"\
 "for help on :ref:`manipulating the displayed "\
-"map<Colormap_Keyboard_Controls>`.\n"    
-   
+"map<Colormap_Keyboard_Controls>`.\n"
+
 #define SUMA_SurfContHelp_ThrScale  \
    "Set threshold value to determine which nodes/voxels/edges will get colored"\
    "Voxels for which the value in the 'T' sub-brick is below that of the "\
    "threshold will not get colored."
-   
+
 #endif

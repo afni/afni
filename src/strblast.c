@@ -11,7 +11,7 @@
   ----------------------------------------------------------------------
 */
 
-   
+
 void help_n_exit( void );
 int  suck_file( char *fname , char **fbuf ) ;
 
@@ -44,21 +44,21 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"** -new_char option requires an argument\n");
             exit(1);
          }
-         
+
          newchar = argv[ac][0];
       }
-      
+
       if ( strcmp(argv[ac], "-quiet") == 0) {
          quiet++;
       }
-      
+
       if( strcmp(argv[ac], "-new_string") == 0 ){
          ac++;
          if( ac >= argc ){
             fprintf(stderr,"** -new_string option requires an argument\n");
             exit(1);
          }
-         
+
          jstr = strdup(argv[ac]);
          njstr = strlen(jstr);
          use_newstr = 1;
@@ -148,7 +148,7 @@ int main( int argc , char * argv[] )
 
       if( nfind > 0 ){
          FILE *fp ;
-         if (quiet < 2) 
+         if (quiet < 2)
             fprintf(stderr,"++ Found %d copies of target %s in file %s\n",
                  nfind,targ,fname[ff] ) ;
          fp = fopen( fname[ff] , "wb" ) ;
@@ -158,7 +158,7 @@ int main( int argc , char * argv[] )
          }
          fwrite( fbuf , 1 , nbuf , fp ) ; fclose(fp) ;
       } else {
-         if (!quiet) 
+         if (!quiet)
             fprintf(stderr,"++ Found no copies of target %s in file %s\n",
                  targ , fname[ff] ) ;
       }

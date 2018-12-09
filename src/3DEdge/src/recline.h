@@ -6,14 +6,14 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  * Recursive filtering of a line (a 1D array)
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  *
@@ -54,9 +54,9 @@ extern "C" {
  *   derivatives from order 0 (smoothing) to 2, or extract edges.
  *
  * - Extracting edges with ALPHA_DERICHE's filters is faster but
- *   the modulus of the gradient (the estimated height of the step 
+ *   the modulus of the gradient (the estimated height of the step
  *   edge) depens on the gradient orientation because the filter
- *   is not isotropic. Heights are better estimated with 
+ *   is not isotropic. Heights are better estimated with
  *   GAUSSIAN_DERICHE's filters but they seem not be perfectly
  *   symmetrical.
  *
@@ -92,8 +92,8 @@ typedef enum {
  *   signal i=x will be 1.
  *
  * - DERIVATIVE_1_CONTOURS first derivative but adapted
- *   to edge detections. The normalization of the filter 
- *   is made so that the response to a step edge is 
+ *   to edge detections. The normalization of the filter
+ *   is made so that the response to a step edge is
  *   the step edge height.
  *
  * - DERIVATIVE_2 second derivative. The normalization
@@ -112,10 +112,10 @@ typedef enum {
   DERIVATIVE_2  = 2 /* derivative of order 2 */,
   DERIVATIVE_3  = 3 /* derivative of order 3 */,
   DERIVATIVE_1_CONTOURS = 11 /* derivative of order 1, normalization adapted to
-				contours. The response to a step-edge is the 
+				contours. The response to a step-edge is the
 				height of the step. */,
   DERIVATIVE_1_EDGES = 11 /* derivative of order 1, normalization adapted to
-				contours. The response to a step-edge is the 
+				contours. The response to a step-edge is the
 				height of the step. */
 } derivativeOrder;
 
@@ -187,10 +187,10 @@ extern RFcoefficientType * InitRecursiveCoefficients( double x, /* coefficient's
  * - 1 if successful
  */
 extern int RecursiveFilter1D( RFcoefficientType *RFC,
-			      double *in, /* input line */ 
+			      double *in, /* input line */
 			      double *out, /* output line */
 			      double *work1, /* first work array */
-			      double *work2, /* second work array, 
+			      double *work2, /* second work array,
 						could be out if out is different from in */
 			      int dim /* lines' length */ );
 

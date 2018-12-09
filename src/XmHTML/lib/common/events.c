@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -45,7 +45,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:19  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -164,10 +164,10 @@ checkEvent(XmHTMLWidget html, int type, String attributes)
 * Description: 	checks for the presence of the so-called core events:
 *				onClick, onMouse and onKey event classes which are possible
 *				for a wide range of HTML objects.
-* In: 
+* In:
 *	html:		XmHTML widget id;
 *	attributes:	string to be checked for event definitions.
-*	*mask_...:	define which events have been found. Updated upon return.	
+*	*mask_...:	define which events have been found. Updated upon return.
 * Returns:
 *	An event array.
 *****/
@@ -266,10 +266,10 @@ _XmHTMLCheckCoreEvents(XmHTMLWidget html, String attributes,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -362,10 +362,10 @@ _XmHTMLCheckFormEvents(XmHTMLWidget html, String attributes,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *

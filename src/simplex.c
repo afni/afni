@@ -640,7 +640,7 @@ void simplex_optimization
 			    min_nconstr, max_nconstr,
 			    min_sconstr, max_sconstr, par_rdcd, test2,
 			    ts_length, x_array, ts_array);
-	
+
 	  /*---- test the contracted response against the worst response ----*/
 	  if (resp2 > response[worst])
 	    {

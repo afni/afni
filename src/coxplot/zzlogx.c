@@ -8,7 +8,7 @@
 
 
 
-/* Subroutine */ int zzlogx_(real *x1, real *x2, real *y, integer *ndec, real 
+/* Subroutine */ int zzlogx_(real *x1, real *x2, real *y, integer *ndec, real
 	*tmaj, real *tmin)
 {
     /* Initialized data */

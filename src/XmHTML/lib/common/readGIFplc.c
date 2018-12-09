@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -57,7 +57,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/08/01 12:51:55  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -97,8 +97,8 @@ static Boolean DoImage(PLCImage *gif, Byte *input);
 * Name: 		_PLC_GIF_Init
 * Return Type: 	void
 * Description: 	image initializer for GIF images
-* In: 
-*	plc:		current PLC 
+* In:
+*	plc:		current PLC
 * Returns:
 *	Nothing but PLC is updated.
 * Note:
@@ -339,7 +339,7 @@ _PLC_GIF_Init(PLC *plc)
 		{
 			/* initialize local data buffer */
 			gif->ib.file   = plc->url;
-			gif->ib.buffer = gif->buffer;	
+			gif->ib.buffer = gif->buffer;
 			gif->ib.size   = 0;
 			gif->ib.next   = 0;
 			gif->ib.type   = IMAGE_GIF;
@@ -386,7 +386,7 @@ _PLC_GIF_Init(PLC *plc)
 * Name: 		_PLC_GIF_ScanlineProc
 * Return Type: 	void
 * Description: 	GZF scanline processor (decompresses data and orders it)
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -421,7 +421,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 		Boolean have_all = False;
 		bytes_avail = plc->left;
 
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 		do
 		{
 #endif	/* !PLC_WORKPROCS */
@@ -469,7 +469,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 				gif->ib.buffer[gif->ib.size++] = (Byte)';';
 
 			}
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 		}
 		/* This test will be false if we made a new data request */
 		while(bytes_avail == plc->left && have_all == False);
@@ -529,7 +529,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 
 		bytes_avail = plc->left;
 
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 		do
 		{
 #endif	/* !PLC_WORKPROCS */
@@ -588,7 +588,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 			/* and break if inflate has finished uncompressing our data. */
 			if(err == GIF_STREAM_END || done == True)
 				plc->obj_funcs_complete = True;
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 		}
 		/* This test will be false if we made a new data request */
 		while(bytes_avail == plc->left);
@@ -600,7 +600,7 @@ _PLC_GIF_ScanlineProc(PLC *plc)
 * Name: 		_PLC_GIF_Destructor
 * Return Type: 	void
 * Description: 	GIF PLC virtual destructor method.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -641,7 +641,7 @@ _PLC_GIF_Destructor(PLC *plc)
 * Name: 		_PLC_GZF_Init
 * Return Type: 	void
 * Description: 	image initializer for GZF images
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -693,7 +693,7 @@ _PLC_GZF_Init(PLC *plc)
 * Name: 		_PLC_GZF_ScanlineProc
 * Return Type: 	void
 * Description: 	GZF scanline processor (decompresses data and orders it)
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -712,7 +712,7 @@ _PLC_GZF_ScanlineProc(PLC *plc)
 	/* bytes left in current input buffer */
 	bytes_avail = plc->left;
 
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 	do
 	{
 #endif	/* !PLC_WORKPROCS */
@@ -742,7 +742,7 @@ _PLC_GZF_ScanlineProc(PLC *plc)
 		gzf->zstream.avail_out = gzf->buf_size - gzf->zstream.total_out;
 
 		/* uncompress it */
-		err = inflate(&gzf->zstream, Z_PARTIAL_FLUSH);	
+		err = inflate(&gzf->zstream, Z_PARTIAL_FLUSH);
 
 		/* check return value */
 		if(err != Z_OK && err != Z_STREAM_END)
@@ -762,7 +762,7 @@ _PLC_GZF_ScanlineProc(PLC *plc)
 		/* and break if inflate has finished uncompressing our data. */
 		if(err == Z_STREAM_END || done == True)
 			plc->obj_funcs_complete = True;
-#ifndef PLC_WORKPROCS 
+#ifndef PLC_WORKPROCS
 	}
 	/* This test will be false if we made a new data request */
 	while(bytes_avail == plc->left);
@@ -773,7 +773,7 @@ _PLC_GZF_ScanlineProc(PLC *plc)
 * Name: 		_PLC_GZF_Destructor
 * Return Type: 	void
 * Description: 	GZF PLC virtual destructor method.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -833,7 +833,7 @@ _PLC_GZF_Destructor(PLC *plc)
 * Name: 		DoExtension
 * Return Type: 	int
 * Description: 	process a gif extension block
-* In: 
+* In:
 *	plc:		current PLC
 *	label:		extension block identifier;
 * Returns:
@@ -891,7 +891,7 @@ DoExtension(PLC *plc, int label)
 * Name: 		ReadColormap
 * Return Type: 	Boolean
 * Description: 	reads the colormap of a GIF/GZF image.
-* In: 
+* In:
 *	plc:		current PLC
 *	gif:		plc image object.
 * Returns:
@@ -922,7 +922,7 @@ ReadColormap(PLC *plc, PLCImageGIF *gif)
 * Name: 		DoImage
 * Return Type: 	Boolean
 * Description:	transforms raw gif raster data to final gif image data.
-* In: 
+* In:
 *	gif:		PLC image object data;
 *	input:		raw raster data.
 * Returns:
@@ -985,7 +985,7 @@ DoImage(PLCImage *gif, Byte *input)
 			gif->data_pos = ypos * gif->width;
 
 		/*****
-		* This piece of code will copy the current line to a number of 
+		* This piece of code will copy the current line to a number of
 		* following, unfilled lines.
 		* For pass 0, it will copy a line 7 times (stride = 8), for pass
 		* 1 it will copy a line 3 times (stride = 4), and for pass 2 it
@@ -999,7 +999,7 @@ DoImage(PLCImage *gif, Byte *input)
 				i + nfill < gif->height; nfill++)
 			{
 				dest = &data[skip * (i + nfill)];
-				memmove(dest, src, skip);					
+				memmove(dest, src, skip);
 			}
 		}
 		/* Break out if we have performed all passes and processed all data */

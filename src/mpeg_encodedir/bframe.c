@@ -35,7 +35,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:39  rwcox
@@ -186,7 +186,7 @@ static void	ComputeBMotionBlock _ANSI_ARGS_((MpegFrame *prev, MpegFrame *next,
 			       int by, int bx, int mode, int fmy, int fmx,
 			       int bmy, int bmx, Block motionBlock, int type));
 static void	ComputeBDiffDCTs _ANSI_ARGS_((MpegFrame *current, MpegFrame *prev, MpegFrame *next,
-			 int by, int bx, int mode, int fmy, int fmx, 
+			 int by, int bx, int mode, int fmy, int fmx,
 			 int bmy, int bmx, int *pattern));
 static boolean	DoBIntraCode _ANSI_ARGS_((MpegFrame *current, MpegFrame *prev, MpegFrame *next,
 		     int by, int bx, int mode, int fmy, int fmx, int bmy,
@@ -272,7 +272,7 @@ GenBFrame(bb, curr, prev, next)
     if (bitstreamMode == FIXED_RATE) {
       targetRateControl(curr);
     }
- 
+
     QScale = GetBQScale();
     Mhead_GenPictureHeader(bb, B_FRAME, curr->id, fCodeB);
     /* Check for Qscale change */
@@ -332,7 +332,7 @@ GenBFrame(bb, curr, prev, next)
 	    currentBlock[iy][ix] = (int16)curr->orig_y[fy+iy][fx+ix];
 	  }
 	}
-	    
+
 	if (slicePos == 0) {
 	  oldFMotionX = 0;	oldFMotionY = 0;
 	  oldBMotionX = 0;	oldBMotionY = 0;
@@ -399,8 +399,8 @@ GenBFrame(bb, curr, prev, next)
 	gosearch:		/* do bsearch */
 	  mode = BMotionSearch(currentBlock, prev, next, y, x, &fMotionY,
 			       &fMotionX, &bMotionY, &bMotionX, mode);
-	skipsearch:	      
-	      
+	skipsearch:
+
 	  /* STEP 2:  INTRA OR NON-INTRA CODING */
 	  if ( IntraPBAllowed && DoBIntraCode(curr, prev, next, y, x, mode, fMotionY,
 			    fMotionX, bMotionY, bMotionX) ) {
@@ -450,10 +450,10 @@ GenBFrame(bb, curr, prev, next)
 	      fprintf(stderr, "PROGRAMMER ERROR:  Illegal mode: %d\n", mode);
 	      exit(1);
 	    }
-	    
+
 	    ComputeBDiffDCTs(curr, prev, next, y, x, mode, fMotionY,
 			     fMotionX, bMotionY, bMotionX, &pattern);
-	    
+
 	    dct_data[y][x].pattern = pattern;
 	    dct_data[y][x].useMotion = MOTION;
 	    if ( computeMVHist ) {
@@ -518,7 +518,7 @@ GenBFrame(bb, curr, prev, next)
 	    QScale = newQScale;
 	  }
 	}
- 
+
 	if (specificsOn) {
 	  newQScale = SpecLookup(curr->id, 2, mbAddress, &info, QScale);
 	  if (newQScale != -1) {
@@ -531,13 +531,13 @@ GenBFrame(bb, curr, prev, next)
 	  mbAddrInc = 1;
 	  numIBits += (bb->cumulativeBits-totalBits);
 	  totalBits = bb->cumulativeBits;
-	      
+
 	  /* reset because intra-coded */
 	  oldFMotionX = 0;		oldFMotionY = 0;
 	  oldBMotionX = 0;		oldBMotionY = 0;
 	  oldMode = MOTION_FORWARD;
 	  lastIntra = TRUE;
-	      
+
 	  if ( printSNR ) {
 	    /* need to decode block we just encoded */
 	    /* and reverse the DCT transform */
@@ -558,15 +558,15 @@ GenBFrame(bb, curr, prev, next)
 	skip_block:
 	  numSkipped++;
 	  mbAddrInc++;
-	      
+
 	  /* decode skipped block */
 	  if ( printSNR ) {
 	    int	fmy, fmx, bmy, bmx;
-		
+
 	    for ( idx = 0; idx < 6; idx++ ) {
-	      memset((char *)dec[idx], 0, sizeof(Block)); 
+	      memset((char *)dec[idx], 0, sizeof(Block));
 	    }
-	    
+
 	    if ( pixelFullSearch ) {
 	      fmy = 2*oldFMotionY;
 	      fmx = 2*oldFMotionX;
@@ -578,7 +578,7 @@ GenBFrame(bb, curr, prev, next)
 	      bmy = oldBMotionY;
 	      bmx = oldBMotionX;
 	    }
-	    
+
 	    /* now add the motion block */
 	    AddBMotionBlock(dec[0], prev->decoded_y,
 			    next->decoded_y, y, x, mode,
@@ -600,7 +600,7 @@ GenBFrame(bb, curr, prev, next)
 			    next->decoded_cr, y>>1, x>>1, mode,
 			    fmy/2, fmx/2,
 			    bmy/2, bmx/2);
-	    
+
 	    /* now, unblockify */
 	    BlockToData(curr->decoded_y, dec[0], y, x);
 	    BlockToData(curr->decoded_y, dec[1], y, x+1);
@@ -610,7 +610,7 @@ GenBFrame(bb, curr, prev, next)
 	    BlockToData(curr->decoded_cr, dec[5], y>>1, x>>1);
 	  }
 	} else   /* B block */ {
-	  int fCode = fCodeB;	
+	  int fCode = fCodeB;
 
 	  pattern = dct_data[y][x].pattern;
 	  fMotionX = dct_data[y][x].fmotionX;
@@ -622,7 +622,7 @@ GenBFrame(bb, curr, prev, next)
 	    fMotionX /= 2;	    fMotionY /= 2;
 	    bMotionX /= 2;	    bMotionY /= 2;
 	  }
-	      
+
 	  /* create flat blocks and update pattern if necessary */
 	calc_blocks:
 	/* Note DoQuant references QScale, overflowChange, overflowValue,
@@ -650,15 +650,15 @@ GenBFrame(bb, curr, prev, next)
 	      (slicePos+1 != blocksPerSlice) &&
 	      (slicePos != 0) &&
 	      (!lastIntra) &&
-	      ( (!motionForward) || 
-	       (motionForward && 
+	      ( (!motionForward) ||
+	       (motionForward &&
 		fMotionX == oldFMotionX && fMotionY == oldFMotionY)) &&
-	      ( (!motionBackward) || 
-	       (motionBackward && 
+	      ( (!motionBackward) ||
+	       (motionBackward &&
 		bMotionX == oldBMotionX && bMotionY == oldBMotionY))
 	      ) {
 	    /* Now *thats* an if statement! */
-	    goto skip_block; 
+	    goto skip_block;
 	  }
 #endif
 	  /* Encode Vectors */
@@ -672,7 +672,7 @@ GenBFrame(bb, curr, prev, next)
 				 FORW_F);
 	    oldFMotionX = fMotionX;		oldFMotionY = fMotionY;
 	  }
-	      
+
 	  if ( motionBackward ) {
 	    /* transform the bMotion vector into the appropriate values */
 	    offsetX = bMotionX - oldBMotionX;
@@ -682,9 +682,9 @@ GenBFrame(bb, curr, prev, next)
 				 BACK_F);
 	    oldBMotionX = bMotionX;		oldBMotionY = bMotionY;
 	  }
-	      
+
 	  oldMode = dct_data[y][x].mode;
-	      
+
 	  if ( printSNR ) { /* Need to decode */
 	    if ( pixelFullSearch ) {
 	      fMotionX *= 2;	fMotionY *= 2;
@@ -746,15 +746,15 @@ GenBFrame(bb, curr, prev, next)
 	    bMotionXquot /* m_horiz_back */, bMotionYquot /* m_vert_back */,
 	    pattern /* mb_pattern */, FALSE /* mb_intra */);
 	  mbAddrInc = 1;
-	      
+
 	  /* now output the difference */
 	  for ( tempX = 0; tempX < 6; tempX++ ) {
 	    if ( GET_ITH_BIT(pattern, 5-tempX) ) {
 	      Mpost_RLEHuffPBlock(fba[tempX], bb);
 	    }
 	  }
-	      
-	  
+
+
 	  switch (mode) {
 	  case MOTION_FORWARD:
 	    numBFOBits += (bb->cumulativeBits-totalBits);
@@ -770,10 +770,10 @@ GenBFrame(bb, curr, prev, next)
 		    mode);
 	    exit(1);
 	  }
-	  
+
 	  numBBits += (bb->cumulativeBits-totalBits);
 	  totalBits = bb->cumulativeBits;
-	
+
 	  if (overflowChange) {
 	    /* undo an overflow-caused Qscale change */
 	    overflowChange = FALSE;
@@ -789,7 +789,7 @@ GenBFrame(bb, curr, prev, next)
 	  rc_blockStart = bb->cumulativeBits;
 	  MB_RateOut(TYPE_BFRAME);
 	}
-	
+
       }
     }
 
@@ -798,22 +798,22 @@ GenBFrame(bb, curr, prev, next)
       totalSNR += snr[0];
       totalPSNR += psnr[0];
     }
-    
+
     Mhead_GenSliceEnder(bb);
     /*   Rate Control  */
     if (bitstreamMode == FIXED_RATE) {
       updateRateControl(TYPE_BFRAME);
     }
-    
+
     endTime = time_elapsed();
     totalTime += (endTime-startTime);
-    
+
     if ( ( ! childProcess) && showBitRatePerFrame ) {
       /* ASSUMES 30 FRAMES PER SECOND */
       fprintf(bitRateFile, "%5d\t%8d\n", curr->id,
 	      30*(bb->cumulativeBits-totalFrameBits));
     }
-    
+
     if ( (! childProcess) && frameSummary && !realQuiet) {
       fprintf(stdout, "FRAME %d (B):  I BLOCKS:  %d;  B BLOCKS:  %d   SKIPPED:  %d (%ld seconds)\n",
 	      curr->id, numIBlocks, numBBlocks, numSkipped, (long)((endTime-startTime)/TIME_RATE));
@@ -822,7 +822,7 @@ GenBFrame(bb, curr, prev, next)
 		curr->id, snr[0], snr[1], snr[2],
 		psnr[0], psnr[1], psnr[2]);
     }
-    
+
     numFrameBits += (bb->cumulativeBits-totalFrameBits);
     numBIBlocks += numIBlocks;
     numBBBlocks += numBBlocks;
@@ -941,7 +941,7 @@ ShowBFrameSummary(inputFrameBits, totalBits, fpointer)
 
     fprintf(fpointer, "  Frames:    %5d     (%6d bits)     (%5d bpf)     (%2.1f%% of total)\n",
 	    numFrames, numFrameBits, numFrameBits/numFrames,
-	    100.0*(float)numFrameBits/(float)totalBits);	    
+	    100.0*(float)numFrameBits/(float)totalBits);
     fprintf(fpointer, "  Compression:  %3d:1     (%9.4f bpp)\n",
 	    numFrames*inputFrameBits/numFrameBits,
 	    24.0*(float)numFrameBits/(float)(numFrames*inputFrameBits));
@@ -1001,7 +1001,7 @@ ComputeBMotionLumBlock(prev, next, by, bx, mode, fmy, fmx, bmy, bmx, motionBlock
     case MOTION_INTERPOLATE:
       ComputeMotionLumBlock(prev, by, bx, fmy, fmx, prevBlock);
       ComputeMotionLumBlock(next, by, bx, bmy, bmx, nextBlock);
-      
+
       for ( y = 0; y < 16; y++ ) {
 	for ( x = 0; x < 16; x++ ) {
 	  motionBlock[y][x] = (prevBlock[y][x]+nextBlock[y][x]+1)/2;
@@ -1011,7 +1011,7 @@ ComputeBMotionLumBlock(prev, next, by, bx, mode, fmy, fmx, bmy, bmx, motionBlock
     default:
       fprintf(stderr, "Bad mode!\nProgrammer error!\n");
       break;
-      
+
     }
 }
 
@@ -1261,7 +1261,7 @@ ComputeBlockColorDiff(current, motionBlock)
     Block current, motionBlock;
 {
   register int x, y, diff_total = 0, diff_tmp;
-  
+
   for ( y = 0; y < 8; y++ ) {
     for ( x = 0; x < 8; x++ ) {
       diff_tmp = current[y][x] - motionBlock[y][x];
@@ -1329,13 +1329,13 @@ MotionSufficient(curr, currBlock, prev, next, by, bx, mode, fmy, fmx, bmy, bmx)
     }
 
     /* check color */
-    ComputeBMotionBlock(prev, next, by>>1, bx>>1, mode, fmy/2, fmx/2, 
+    ComputeBMotionBlock(prev, next, by>>1, bx>>1, mode, fmy/2, fmx/2,
 			bmy/2, bmx/2, mColorBlock, CR_BLOCK);
     colorErr = ComputeBlockColorDiff(curr->cr_blocks[by >> 1][bx >> 1], mColorBlock);
-    ComputeBMotionBlock(prev, next, by>>1, bx>>1, mode, fmy/2, fmx/2, 
+    ComputeBMotionBlock(prev, next, by>>1, bx>>1, mode, fmy/2, fmx/2,
 			bmy/2, bmx/2, mColorBlock, CB_BLOCK);
     colorErr += ComputeBlockColorDiff(curr->cr_blocks[by >> 1][bx >> 1], mColorBlock);
-    
+
     return (colorErr < 256); /* lumErr checked above */
 }
 

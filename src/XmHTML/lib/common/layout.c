@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.3  2012/03/01 17:56:31  ziad
 * Cput
@@ -51,7 +51,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:23  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -157,7 +157,7 @@ static void FinalizeTextLayout(XmHTMLWord **words, int nwords, Boolean in_pre);
 
 static void CreateLineTable(XmHTMLWidget html);
 
-/* 
+/*
 * characters that must be flushed against a word. Can't use ispunct since
 * that are all printable chars that are not a number or a letter.
 */
@@ -254,7 +254,7 @@ static int total_iterations;
 * Return Type:	void
 * Description:	displays every formatted object on to the screen.
 * In:
-*	w:			Widget to display 
+*	w:			Widget to display
 * Returns:
 *	nothing.
 *****/
@@ -278,7 +278,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 	curr_anchor = 0, named_anchor = 0;
 
 	/*****
-	* work_width is core width minus one horizontal margin. 
+	* work_width is core width minus one horizontal margin.
 	* Maximum useable width is core width minus two times the horizontal
 	* margin.
 	*****/
@@ -431,11 +431,11 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 				}
 				break;
 			default:
-				_XmHTMLWarning(__WFUNC__(html, "_XmHTMLComputeLayout"), 
+				_XmHTMLWarning(__WFUNC__(html, "_XmHTMLComputeLayout"),
 					XMHTML_MSG_78);
 		}
 		/* end command for painting the first page */
-		if((box.y - temp->height > HTML_ATTR(work_height)) || 
+		if((box.y - temp->height > HTML_ATTR(work_height)) ||
 			(box.y > HTML_ATTR(work_height)))
 			HTML_ATTR(paint_end) = temp;
 		if(box.x > max_width)
@@ -444,10 +444,10 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 		/* restore original box width */
 		box.width  = box.rmargin - box.lmargin;
 	}
-	/***** 
+	/*****
 	* Now adjust width of the anchors.
 	* If the current anchor word and the next are on the same line, and these
-	* words belong to the same anchor, the width of the current anchor word 
+	* words belong to the same anchor, the width of the current anchor word
 	* is adjusted so it will seem to be continue across the whole line when
 	* the mouse pointer is moved over an anchor.
 	* We can adjust the width field directly because the html.anchors field is
@@ -460,7 +460,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 		if((HTML_ATTR(anchors[i].owner) == HTML_ATTR(anchors[i+1].owner)) &&
 			(HTML_ATTR(anchors[i].line) == HTML_ATTR(anchors[i+1].line)))
 		{
-			HTML_ATTR(anchors[i].width) = 
+			HTML_ATTR(anchors[i].width) =
 				HTML_ATTR(anchors[i+1].x) - HTML_ATTR(anchors[i].x) + 2;
 		}
 		my_assert(HTML_ATTR(anchors[i].base) != NULL);
@@ -470,7 +470,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 	* font descent to get the text nicely centered.
 	*****/
 	HTML_ATTR(formatted_height) = box.y + HTML_ATTR(margin_height) +
-		HTML_ATTR(default_font)->descent; 
+		HTML_ATTR(default_font)->descent;
 
 	/* Preferred width for this document, includes horizontal margin once. */
 	HTML_ATTR(formatted_width) = max_width;
@@ -480,7 +480,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 
 	/*****
 	* Never adjust top_line, scroll_x or scroll_y. This will make the
-	* widget jump to the line in question and start drawing at the scroll_x 
+	* widget jump to the line in question and start drawing at the scroll_x
 	* and scroll_y positions.
 	*****/
 
@@ -503,7 +503,7 @@ _XmHTMLComputeLayout(XmHTMLWidget html)
 		_XmHTMLDebug(5, ("outlining stats\n"));
 		_XmHTMLDebug(5, ("\tlines done: %i\n", lines_done));
 		_XmHTMLDebug(5, ("\ttotal iterations: %i\n", total_iterations));
-		_XmHTMLDebug(5, ("\taverage iterations per line: %f\n", 
+		_XmHTMLDebug(5, ("\taverage iterations per line: %f\n",
 			(float)(total_iterations/(float)lines_done)));
 	}
 #endif
@@ -605,7 +605,7 @@ CreateLineTable(XmHTMLWidget html)
 							table[wl].y     = temp->words[k].y;
 							table[wl].start = temp;
 							table[wl].end   = temp;
-	
+
 							while(k < temp->n_words &&
 								temp->words[k].line != wl)
 								k++;
@@ -628,7 +628,7 @@ CreateLineTable(XmHTMLWidget html)
 * Return Type: 	void
 * Description: 	adjusts interword spacing to produce fully justified text.
 *				justification is done on basis of the longest words.
-* In: 
+* In:
 *	start:		starting text element
 *	end:		ending text element
 *	w_start:	index in starting text element
@@ -637,16 +637,16 @@ CreateLineTable(XmHTMLWidget html)
 *	len:		current line length for this text
 *	line_len:	maximum length of a line.
 * Returns:
-*	nothing, but *items contains updated delta fields to reflect the 
+*	nothing, but *items contains updated delta fields to reflect the
 *	required interword spacing.
 * Note:
 *	Words that start with a punctuation character are never adjusted,
 *	they only get shoved to the right.
-*	This routine could be much more efficient if the text to be justified 
+*	This routine could be much more efficient if the text to be justified
 *	would be sorted.
 *****/
 static void
-JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start, 
+JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 	int word_end, Dimension sw, int len, int line_len, int skip_id)
 {
 	int word_len, longest_word = 0, nspace = 0, i, j, num_iter = 0;
@@ -654,12 +654,12 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 	/* See how many spaces we have to add */
 	nspace = (int)((line_len - len)/(sw == 0 ? (sw = 3) : sw));
 
-	/* 
+	/*
 	* last line of a block or no spaces to add. Don't adjust it.
 	* nspace can be negative if there are words that are longer than
 	* the available linewidth
 	*/
-	if(nspace < 1) 
+	if(nspace < 1)
 		return;
 
 	/* we need at least two words if we want this to work */
@@ -694,7 +694,7 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 			if(i == skip_id || words[i]->len == 0)
 				continue;
 			/* Found! */
-			if(words[i]->len == word_len && 
+			if(words[i]->len == word_len &&
 					!IS_PUNCT(*(words[i]->word)) &&
 					!(words[i]->posbits & TEXT_SPACE_NONE))
 			{
@@ -704,7 +704,7 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 					continue;
 
 				/*****
-				* Add a leading space if we may, but always shift all 
+				* Add a leading space if we may, but always shift all
 				* following words to the right.
 				*
 				* fix 07/03/97-01, kdh
@@ -741,7 +741,7 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 	if(num_iter == XmHTML_MAX_JUSTIFY_ITERATIONS)
 	{
 		_XmHTMLWarning(__WFUNC__(NULL, "JustifyText"),
-			XMHTML_MSG_79, "Text justification", XmHTML_MAX_JUSTIFY_ITERATIONS, 
+			XMHTML_MSG_79, "Text justification", XmHTML_MAX_JUSTIFY_ITERATIONS,
 			words[word_start]->owner->object->line);
 	}
 #ifdef DEBUG
@@ -755,7 +755,7 @@ JustifyText(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 * Return Type: 	void
 * Description: 	adjusts x-position of every word to reflect requested
 *				alignment.
-* In: 
+* In:
 *	w:			XmHTML widget
 *	start:		starting text element
 *	end:		ending text element
@@ -779,12 +779,12 @@ CheckAlignment(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 		return;
 
 	/* total line width occupied by these words */
-	width = words[word_end-1]->x + words[word_end-1]->width - 
+	width = words[word_end-1]->x + words[word_end-1]->width -
 			words[word_start]->x;
 
 	_XmHTMLFullDebug(5, ("layout.c: CheckAlignment, start word: %s, index %i, "
-		"end word: %s, index %i, width = %i, line length = %i\n", 
-		words[word_start]->word, word_start, 
+		"end word: %s, index %i, width = %i, line length = %i\n",
+		words[word_start]->word, word_start,
 		words[word_end-1]->word, word_end-1, width, line_len));
 
 	switch(words[word_start]->owner->halign)
@@ -843,7 +843,7 @@ CheckAlignment(XmHTMLWidget html, XmHTMLWord *words[], int word_start,
 * Return Type: 	XmHTMLWord**
 * Description: 	creates an array containing all OBJ_TEXT elements between
 *				start and end.
-* In: 
+* In:
 *	start:		element at which to start collecting words;
 *	end:		element at which to end collecting words;
 *	nwords:		no of words collected. Updated upon return;
@@ -893,7 +893,7 @@ getWords(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 * Description: 	creates an array containing all OBJ_TEXT elements between
 *				start and end but reverses the object to properly accomodate
 *				right-to-left layout.
-* In: 
+* In:
 *	start:		element at which to start collecting words;
 *	end:		element at which to end collecting words;
 *	nwords:		no of words collected. Updated upon return;
@@ -942,7 +942,7 @@ getWordsRtoL(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 * Name:			AdjustBaseline
 * Return Type: 	void
 * Description: 	adjusts the baseline for each word between start and end.
-* In: 
+* In:
 *	base_obj:	object which controls the baseline offset;
 *	**words:	array of all words being laid out;
 *	start:		starting word index;
@@ -959,7 +959,7 @@ getWordsRtoL(XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 *	nothing, but all words between start and end have their baseline adjusted.
 *****/
 static void
-AdjustBaseline(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end, 
+AdjustBaseline(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end,
 	int *lineheight, Boolean last_line, Boolean only_img)
 {
 	int i, k, y_offset = 0;
@@ -1096,7 +1096,7 @@ AdjustBaseline(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end,
 * Return Type: 	void
 * Description: 	stores the final dimensions on the parents of the given
 *				words.
-* In: 
+* In:
 *	words:		array of words for which to update the parents
 *	nwords:		size of array.
 *	in_pre:		True if this is a chunk of <PRE> data.
@@ -1152,7 +1152,7 @@ FinalizeTextLayout(XmHTMLWord **words, int nwords, Boolean in_pre)
 			}
 			else if(in_pre && words[i]->base->spacing)
 			{
-				/* vertical line spacing in preformatted text */ 
+				/* vertical line spacing in preformatted text */
 				current->height = ((int)words[i]->base->spacing) *
 						words[i]->base->font->height;
 			}
@@ -1172,7 +1172,7 @@ FinalizeTextLayout(XmHTMLWord **words, int nwords, Boolean in_pre)
 ***** for text inside table cells.
 *****
 ***** For the latter, a special precompute mode is available.
-***** In this mode, an estimate of the horizontal size of the cell is to be 
+***** In this mode, an estimate of the horizontal size of the cell is to be
 ***** made. To achieve this, the initial size of the textbox is set
 ***** to an unlimited value (linewidth will never be exceeded) and only
 ***** explicit linebreaks will be honored. After the layout routine
@@ -1197,7 +1197,7 @@ FinalizeTextLayout(XmHTMLWord **words, int nwords, Boolean in_pre)
 * Name: 		SetText
 * Return Type: 	void
 * Description: 	main text layout driver;
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	*x:			initial x position, updated to new x position upon return;
 *	*y:			initial y position, updated to new y position upon return;
@@ -1216,7 +1216,7 @@ SetText(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement start,
 	int nwords;
 	PositionBox my_box;
 
-	/***** 
+	/*****
 	* to make it ourselves _much_ easier, put all the words starting from
 	* start and up to end in a single block of words.
 	*****/
@@ -1307,7 +1307,7 @@ SetText(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement start,
 * Return Type: 	void
 * Description: 	orders the given textdata into single lines, breaking and
 *				moving up to the next line if necessary.
-* In: 
+* In:
 *	w:			widget for which to do this;
 *	box:		bounding box to be used for computing text layout;
 *	words:		array of words to be laid out;
@@ -1390,7 +1390,7 @@ ComputeTextLayout(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 	* every word for a line. We then move to the next line (updating the
 	* vertical offset as we do) and the whole process repeats itself.
 	*****/
-	for(i = nstart; i < *nwords; i++)	
+	for(i = nstart; i < *nwords; i++)
 	{
 		/* skip everything if this is a newline */
 		if(words[i]->type == OBJ_BLOCK)
@@ -1452,7 +1452,7 @@ ComputeTextLayout(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 		* of this word to check against available line width.
 		*****/
 		if(words[i]->type == OBJ_TEXT &&
-			!(words[i]->posbits & TEXT_SPACE_TRAIL) && 
+			!(words[i]->posbits & TEXT_SPACE_TRAIL) &&
 			i+1 < *nwords && !(words[i+1]->posbits & TEXT_SPACE_LEAD))
 		{
 			int j = i+1;
@@ -1470,7 +1470,7 @@ ComputeTextLayout(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 					word_width += words[j]->width;
 
 				/* see if this word has a trail space and the next a leading */
-				if(!(words[j]->posbits & TEXT_SPACE_TRAIL) && 
+				if(!(words[j]->posbits & TEXT_SPACE_TRAIL) &&
 					j+1 < *nwords && !(words[j+1]->posbits & TEXT_SPACE_LEAD))
 					j++;
 				else
@@ -1742,7 +1742,7 @@ newline:
 		* save linenumber, x and y positions for this word or for
 		* multiple words needing to be ``glued'' together.
 		*****/
-		if(!(words[i]->posbits & TEXT_SPACE_TRAIL) && 
+		if(!(words[i]->posbits & TEXT_SPACE_TRAIL) &&
 			i+1 < *nwords && !(words[i+1]->posbits & TEXT_SPACE_LEAD) &&
 			words[i+1]->type == OBJ_TEXT)
 #if 0
@@ -1768,7 +1768,7 @@ newline:
 				* Presence of spacing and explicit linebreaks break the glue
 				* process.
 				*****/
-				if(!(words[i]->posbits & TEXT_SPACE_TRAIL) && 
+				if(!(words[i]->posbits & TEXT_SPACE_TRAIL) &&
 					i+1 < *nwords && !(words[i+1]->posbits & TEXT_SPACE_LEAD)
 					&& words[i+1]->type != OBJ_BLOCK)
 					i++;
@@ -1907,13 +1907,13 @@ newline:
 * Name:			AdjustBaselinePre
 * Return Type: 	void
 * Description: 	see AdjustBaseline
-* In: 
+* In:
 *
 * Returns:
 *	nothing.
 *****/
 static void
-AdjustBaselinePre(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end, 
+AdjustBaselinePre(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end,
 	int *lineheight, Boolean last_line)
 {
 	int i, y_offset = 0;
@@ -1987,7 +1987,7 @@ AdjustBaselinePre(XmHTMLWord *base_obj, XmHTMLWord **words, int start, int end,
 * Name:			ComputeTextLayoutPre
 * Return Type: 	void
 * Description: 	main text layout engine for preformatted text.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		bounding box to be used for computing text layout;
 *	words:		array of words to be laid out;
@@ -2036,7 +2036,7 @@ ComputeTextLayoutPre(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 	* every word for a line. We then move to the next line (updating the
 	* vertical offset as we do) and the whole process repeats itself.
 	*****/
-	for(i = nstart; i < *nwords && !done; i++)	
+	for(i = nstart; i < *nwords && !done; i++)
 	{
 		/* compute new line spacing if font changes */
 		if(font != words[i]->font)
@@ -2226,8 +2226,8 @@ ComputeTextLayoutPre(XmHTMLWidget html, PositionBox *box, XmHTMLWord **words,
 /*****
 * Name: 		SetApplet
 * Return Type: 	inserts a dummy applet marker.
-* Description: 
-* In: 
+* Description:
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2260,7 +2260,7 @@ SetApplet(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 * Name: 		SetBlock
 * Return Type: 	void
 * Description: 	inserts a block marker (which does have a height)
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2290,7 +2290,7 @@ SetBlock(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 * Name: 		SetNone
 * Return Type: 	void
 * Description: 	inserts a dummy marker (which doesn't have a height)
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2319,8 +2319,8 @@ SetNone(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 /*****
 * Name: 		SetRule
 * Return Type: 	computes the offsets & position of a horizontal rule.
-* Description: 
-* In: 
+* Description:
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2370,7 +2370,7 @@ SetRule(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	box->x = left;
 
 	/*****
-	* Rules are always centered between lines 
+	* Rules are always centered between lines
 	*
 	* ---> |--
 	* ---> | 	} line 1   ---| rule upper side  ---|
@@ -2389,7 +2389,7 @@ SetRule(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	if(data->linefeed)
 		y_offset = data->linefeed/2;
 	else
-		y_offset = data->font->height/2; 
+		y_offset = data->font->height/2;
 
 	data->y = box->y + y_offset;
 
@@ -2400,7 +2400,7 @@ SetRule(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	box->height = 2*y_offset;
 
 	box->y += box->height;
-	
+
 	/* a line above and one below */
 	line += 2;
 
@@ -2415,7 +2415,7 @@ SetRule(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 * Return Type: 	void
 * Description: 	computes the position & offsets for a list leader (can be a
 *				bullet or number).
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2444,7 +2444,7 @@ SetBullet(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	/* linefeed if not at left margin */
 	if(box->x != box->lmargin)
 		line++;
-	box->y += data->linefeed; 
+	box->y += data->linefeed;
 	box->x = box->lmargin + data->ident;
 
 	/* we have a left offset */
@@ -2463,7 +2463,7 @@ SetBullet(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 * Name:			SetBreak
 * Return Type: 	void
 * Description:  inserts a linebreak and increments the vertical offset
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	box:		current minipage;
 *	data:		element data.
@@ -2511,7 +2511,7 @@ SetBreak(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	data->line = line;
 
 	/* height of this linefeed */
-	if((dh = box->y - data->y) < 0)	/* happens if we don't have a linefeed */ 
+	if((dh = box->y - data->y) < 0)	/* happens if we don't have a linefeed */
 		data->height = 0;
 	else
 		data->height = dh;
@@ -2523,10 +2523,10 @@ SetBreak(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -2583,7 +2583,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 		box->x, box->y));
 	_XmHTMLDebug(17, ("layout.c: initial box dimensions: %i, %i\n",
 		box->width, box->height));
-	_XmHTMLDebug(17, ("layout.c: table has %i rows and %i columns.\n", 
+	_XmHTMLDebug(17, ("layout.c: table has %i rows and %i columns.\n",
 		table->nrows, table->ncols));
 	_XmHTMLDebug(17, ("layout.c: table depth: %i\n", depth + 1));
 	depth++;
@@ -2669,7 +2669,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	/*****
 	* Step One: check if we have cells spanning multiple rows or columns.
 	* We always assume the table is rectangular: each row has the same
-	* amount of columns. If a cell is really being used, it will have a 
+	* amount of columns. If a cell is really being used, it will have a
 	* positive box index. A box with a negative index value means that
 	* this is a bogus cell spanned by it's neighbouring cells (which can be
 	* in another row).
@@ -2924,7 +2924,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 	*
 	* Spacing: external cell spacing for left, right, top and bottom (border to
 	*         border). This represents the cellspacing table attribute.
-	* 
+	*
 	* Vertical Spacing Rules
 	*  ---------------------
 	*	First row:
@@ -3503,7 +3503,7 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 				hleft = 0.5*hspace + hpad + (hspace ? 0 : bwidth);
 
 				/* borderwidth already accounted for (x_pos) */
-				hright = hspace + hpad; 
+				hright = hspace + hpad;
 			}
 			else
 			{
@@ -3848,10 +3848,10 @@ SetTable(XmHTMLWidget html, PositionBox *box, XmHTMLObjectTableElement data)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -3885,7 +3885,7 @@ PreComputeTableLayout(XmHTMLWidget html, PositionBox *parent,
 		{
 			case OBJ_TEXT:
 				/* collect all words */
-				for(end = tmp; end->next->object_type == OBJ_TEXT; 
+				for(end = tmp; end->next->object_type == OBJ_TEXT;
 					end = end->next);
 
 				/* go and do text layout */
@@ -3933,7 +3933,7 @@ PreComputeTableLayout(XmHTMLWidget html, PositionBox *parent,
 				SetBlock(html, &box, tmp);
 				break;
 			default:
-				_XmHTMLWarning(__WFUNC__(html, "PreComputeLayout"), 
+				_XmHTMLWarning(__WFUNC__(html, "PreComputeLayout"),
 					XMHTML_MSG_78);
 		}
 		/* store maximum box width */
@@ -3991,10 +3991,10 @@ PreComputeTableLayout(XmHTMLWidget html, PositionBox *parent,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -4031,7 +4031,7 @@ ComputeTableLayout(XmHTMLWidget html, PositionBox *box,
 		{
 			/* collect all words */
 			case OBJ_TEXT:
-				for(end = tmp; end->next->object_type == OBJ_TEXT; 
+				for(end = tmp; end->next->object_type == OBJ_TEXT;
 					end = end->next);
 
 				/* go and do text layout */
@@ -4088,7 +4088,7 @@ ComputeTableLayout(XmHTMLWidget html, PositionBox *box,
 				SetBlock(html, box, tmp);
 				break;
 			default:
-				_XmHTMLWarning(__WFUNC__(html, "PreComputeLayout"), 
+				_XmHTMLWarning(__WFUNC__(html, "PreComputeLayout"),
 					XMHTML_MSG_78);
 		}
 	}
@@ -4104,10 +4104,10 @@ ComputeTableLayout(XmHTMLWidget html, PositionBox *box,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -4129,7 +4129,7 @@ CheckVerticalAlignment(XmHTMLWidget html, PositionBox *box,
 * debugger.
 */
 /* all possible object types */
-static String obj_names[] = {"none", "text", "ptext", "bullet", 
+static String obj_names[] = {"none", "text", "ptext", "bullet",
 	"hrule", "table", "tframe", "img", "form", "applet",
 	"block"};
 
@@ -4139,7 +4139,7 @@ static String obj_names[] = {"none", "text", "ptext", "bullet",
 * Description: 	dumps a list of all XmHTMLObjectTable elements, displaying
 *				it's type, coordinates, line number on display and in input
 *				file and it's pointer value.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	file:		name of file to dump to. If "" stdout is used.
 * Returns:
@@ -4213,7 +4213,7 @@ dumpLines(XmHTMLWidget html, String file)
 * Return Type: 	void
 * Description: 	checks the entire XmHTMLObjectTable element list for elements
 *				with zero coordinates and/or display line number.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing.
@@ -4232,13 +4232,13 @@ checkObjects(XmHTMLWidget html)
 	{
 		if(tmp->x == 0 && tmp->y == 0)
 		{
-			printf("Object %s %p has zero coordinates\n", 
+			printf("Object %s %p has zero coordinates\n",
 				obj_names[tmp->object_type], tmp);
 			err++;
 		}
 		if(tmp->line == 0 && tmp->y == 0)
 		{
-			printf("Object %s %p has zero line number\n", 
+			printf("Object %s %p has zero line number\n",
 				obj_names[tmp->object_type], tmp);
 			err++;
 		}
@@ -4259,7 +4259,7 @@ checkObjects(XmHTMLWidget html)
 * Description: 	dumps a list of all XmHTMLObjectTable elements, displaying
 *				it's type, coordinates, line number on display and in input
 *				file and it's pointer value.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	file:		name of file to dump to. If "" stdout is used.
 * Returns:
@@ -4293,12 +4293,12 @@ dumpObjects(XmHTMLWidget html, String file)
 	for(tmp = HTML_ATTR(formatted); tmp != NULL; tmp = tmp->next)
 	{
 		if(tmp->object)
-			fprintf(out, "%s\t\t%i\t%i\t%i\t%i\t%i\t%i\t\t%p\n", 
+			fprintf(out, "%s\t\t%i\t%i\t%i\t%i\t%i\t%i\t\t%p\n",
 				obj_names[tmp->object_type],
 				tmp->x, tmp->y, tmp->width, tmp->height, tmp->line,
 				tmp->object->line, tmp);
 		else
-			fprintf(out, "%s\t\t%i\t%i\t%i\t%i\t%i\t(?)\t\t%p\n", 
+			fprintf(out, "%s\t\t%i\t%i\t%i\t%i\t%i\t(?)\t\t%p\n",
 				obj_names[tmp->object_type], tmp->x, tmp->y, tmp->width,
 				tmp->height, tmp->line, tmp);
 		cnt++;

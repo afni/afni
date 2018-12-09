@@ -145,7 +145,7 @@ int THD_datablock_from_atr( THD_datablock *dblk, char *dirname, char *headname )
    ATR_int           *atr_rank , *atr_dimen , *atr_scene , *atr_btype ;
    ATR_float         *atr_flt ;
    ATR_string        *atr_labs ;
-   int   ii , view_type , func_type , dset_type , 
+   int   ii , view_type , func_type , dset_type ,
          nx,ny,nz,nvox , nvals , ibr,typ ;
    Boolean ok ;
    char prefix[THD_MAX_NAME]="Unknown" ;
@@ -228,12 +228,12 @@ ENTRY("THD_datablock_from_atr") ;
    STATUS("checking if .BRIK file exists") ;
 
    brick_ccode = COMPRESS_filecode(dkptr->brick_name) ;
-   if (dkptr->storage_mode == STORAGE_UNDEFINED) { /* ZSS: Oct. 2011 
+   if (dkptr->storage_mode == STORAGE_UNDEFINED) { /* ZSS: Oct. 2011
                the next line was being called all the time before */
       if( brick_ccode != COMPRESS_NOFILE )
         dkptr->storage_mode = STORAGE_BY_BRICK ;  /* a .BRIK file */
    }
-   
+
    /*-- if VOLUME_FILENAMES attribute exists, make it so [20 Jun 2002] --*/
 
    if( headname != NULL && dkptr->storage_mode == STORAGE_UNDEFINED ){
@@ -348,7 +348,7 @@ ENTRY("THD_datablock_from_atr") ;
        if( ngood > 0 ){
          RwcFree(dblk->brick_lab[ibr]) ;
          /* 27 Oct 2011 - increase to 64 */
-         if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL;  
+         if( ngood > THD_MAX_SBLABEL ) ngood = THD_MAX_SBLABEL;
          dblk->brick_lab[ibr] = (char *) RwcMalloc(sizeof(char)*(ngood+2)) ;
          memcpy( dblk->brick_lab[ibr] , atr_labs->ch+(ipold+1) , ngood ) ;
          dblk->brick_lab[ibr][ngood] = '\0' ;
@@ -473,7 +473,7 @@ int THD_daxes_from_atr( THD_datablock *dblk, THD_dataxes *daxes)
    ATR_int           *atr_rank , *atr_dimen , *atr_scene , *atr_btype ;
    ATR_float         *atr_flt ;
    ATR_string        *atr_labs ;
-   int   ii , view_type , func_type , dset_type , 
+   int   ii , view_type , func_type , dset_type ,
          nx,ny,nz,nvox , nvals , ibr,typ ;
    Boolean ok ;
    char prefix[THD_MAX_NAME]="Unknown" ;
@@ -519,7 +519,7 @@ ENTRY("THD_daxes_from_atr") ;
 WARPDRIVE_MATVEC_INV_000000, turn it into a WARP_DATA type array of 30
 parameters. See matlab function MATVEC_to_WARP.m for more inspiration.
 
-ZSS: June 06 
+ZSS: June 06
 ---------------------------------------------------------------------*/
 
 int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
@@ -528,7 +528,7 @@ int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
    mat44 Mfor, Mbac;
    int k;
    int dbg = 0;
-    
+
    ENTRY("Matvec_2_WarpData") ;
    if (!atr_flo) {
       fprintf(stderr,"NULL atr_flo!\n");
@@ -538,12 +538,12 @@ int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
       fprintf(stderr,"atr_flo->nfl != 12\n");
       RETURN(ans);
    }
-   
+
    if (!ww) {
       fprintf(stderr,"NULL ww\n");
       RETURN(ans);
-   }     
-   
+   }
+
    ww->type       = WARP_AFFINE_TYPE;
    ww->resam_type = 0 ;   /* not used */
    ww->warp.type  = MAPPING_LINEAR_TYPE ;
@@ -565,14 +565,14 @@ int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
    Mfor.m[3][1] = 0.0;
    Mfor.m[3][2] = 0.0;
    Mfor.m[3][3] = 0.0;
-   if (dbg) { 
+   if (dbg) {
       DUMP_MAT44("Mfor:\n",Mfor);
    }
-   
+
    /* calculate the backward transform */
    Mbac = nifti_mat44_inverse(Mfor);
    if (dbg) {
-      DUMP_MAT44("Mbac:\n",Mbac);                              
+      DUMP_MAT44("Mbac:\n",Mbac);
    }
 
    if (wdv) {
@@ -607,63 +607,63 @@ int Matvec_2_WarpData(ATR_float  *atr_flo, THD_affine_warp *ww, float *wdv)
       wdv[k] = -Mbac.m[1][3]; ++k;
       wdv[k] = -Mbac.m[2][3]; ++k;
 
-      /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from: 
+      /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from:
          [-80 ; -80 ; -65] to [80 ; 110 ; 85] */
       wdv[k] = -80 * 2; ++k; /* x 2 ? be generous, it is free! */
-      wdv[k] = -80 * 2; ++k; 
-      wdv[k] = -65 * 2; ++k; 
+      wdv[k] = -80 * 2; ++k;
+      wdv[k] = -65 * 2; ++k;
 
-      wdv[k] =  80 * 2; ++k; 
-      wdv[k] = 110 * 2; ++k; 
-      wdv[k] =  85 * 2; ++k; 
+      wdv[k] =  80 * 2; ++k;
+      wdv[k] = 110 * 2; ++k;
+      wdv[k] =  85 * 2; ++k;
    }
-   
+
    /* Now load the 30 values into warp */
-   ww->warp.mfor.mat[0][0] = Mfor.m[0][0]; 
-   ww->warp.mfor.mat[0][1] = Mfor.m[0][1]; 
-   ww->warp.mfor.mat[0][2] = Mfor.m[0][2]; 
-   ww->warp.mfor.mat[1][0] = Mfor.m[1][0]; 
-   ww->warp.mfor.mat[1][1] = Mfor.m[1][1]; 
-   ww->warp.mfor.mat[1][2] = Mfor.m[1][2]; 
-   ww->warp.mfor.mat[2][0] = Mfor.m[2][0]; 
-   ww->warp.mfor.mat[2][1] = Mfor.m[2][1]; 
-   ww->warp.mfor.mat[2][2] = Mfor.m[2][2]; 
-   
-   ww->warp.mbac.mat[0][0] = Mbac.m[0][0]; 
-   ww->warp.mbac.mat[0][1] = Mbac.m[0][1]; 
-   ww->warp.mbac.mat[0][2] = Mbac.m[0][2]; 
-   ww->warp.mbac.mat[1][0] = Mbac.m[1][0]; 
-   ww->warp.mbac.mat[1][1] = Mbac.m[1][1]; 
-   ww->warp.mbac.mat[1][2] = Mbac.m[1][2]; 
-   ww->warp.mbac.mat[2][0] = Mbac.m[2][0]; 
-   ww->warp.mbac.mat[2][1] = Mbac.m[2][1]; 
-   ww->warp.mbac.mat[2][2] = Mbac.m[2][2]; 
-   
-   ww->warp.bvec.xyz[0] = -Mfor.m[0][3]; 
-   ww->warp.bvec.xyz[1] = -Mfor.m[1][3]; 
-   ww->warp.bvec.xyz[2] = -Mfor.m[2][3]; 
-   
-   ww->warp.svec.xyz[0] = -Mbac.m[0][3]; 
-   ww->warp.svec.xyz[1] = -Mbac.m[1][3]; 
-   ww->warp.svec.xyz[2] = -Mbac.m[2][3]; 
-   
-   /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from: 
+   ww->warp.mfor.mat[0][0] = Mfor.m[0][0];
+   ww->warp.mfor.mat[0][1] = Mfor.m[0][1];
+   ww->warp.mfor.mat[0][2] = Mfor.m[0][2];
+   ww->warp.mfor.mat[1][0] = Mfor.m[1][0];
+   ww->warp.mfor.mat[1][1] = Mfor.m[1][1];
+   ww->warp.mfor.mat[1][2] = Mfor.m[1][2];
+   ww->warp.mfor.mat[2][0] = Mfor.m[2][0];
+   ww->warp.mfor.mat[2][1] = Mfor.m[2][1];
+   ww->warp.mfor.mat[2][2] = Mfor.m[2][2];
+
+   ww->warp.mbac.mat[0][0] = Mbac.m[0][0];
+   ww->warp.mbac.mat[0][1] = Mbac.m[0][1];
+   ww->warp.mbac.mat[0][2] = Mbac.m[0][2];
+   ww->warp.mbac.mat[1][0] = Mbac.m[1][0];
+   ww->warp.mbac.mat[1][1] = Mbac.m[1][1];
+   ww->warp.mbac.mat[1][2] = Mbac.m[1][2];
+   ww->warp.mbac.mat[2][0] = Mbac.m[2][0];
+   ww->warp.mbac.mat[2][1] = Mbac.m[2][1];
+   ww->warp.mbac.mat[2][2] = Mbac.m[2][2];
+
+   ww->warp.bvec.xyz[0] = -Mfor.m[0][3];
+   ww->warp.bvec.xyz[1] = -Mfor.m[1][3];
+   ww->warp.bvec.xyz[2] = -Mfor.m[2][3];
+
+   ww->warp.svec.xyz[0] = -Mbac.m[0][3];
+   ww->warp.svec.xyz[1] = -Mbac.m[1][3];
+   ww->warp.svec.xyz[2] = -Mbac.m[2][3];
+
+   /* bot and top are filled as to not cause trouble for Talairach bounding box at a minimum from:
       [-80 ; -80 ; -65] to [80 ; 110 ; 85] */
    ww->warp.bot.xyz[0] = -80 * 2;  /* x 2 ? be generous, it is free! */
-   ww->warp.bot.xyz[1] = -80 * 2;  
-   ww->warp.bot.xyz[2] = -65 * 2;  
-   
-   ww->warp.top.xyz[0] =  80 * 2;  
-   ww->warp.top.xyz[1] = 110 * 2;  
-   ww->warp.top.xyz[2] =  85 * 2;  
+   ww->warp.bot.xyz[1] = -80 * 2;
+   ww->warp.bot.xyz[2] = -65 * 2;
+
+   ww->warp.top.xyz[0] =  80 * 2;
+   ww->warp.top.xyz[1] = 110 * 2;
+   ww->warp.top.xyz[2] =  85 * 2;
 
    RETURN(1);
-} 
+}
 
 int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
 {
    int dbg = 0;
-   
+
    ENTRY("THD_WarpData_From_3dWarpDrive");
 
    if (!dset) {
@@ -671,7 +671,7 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
       RETURN(0);
    }
    if (dset->warp) {
-      /* fprintf(stderr,"Warp already there!"); 
+      /* fprintf(stderr,"Warp already there!");
                               Used to return(0) DRG,ZSS:01/03/13*/
       SINGLE_KILL( dset->kl , dset->warp ) ;
       dset->warp = NULL;
@@ -684,21 +684,21 @@ int THD_WarpData_From_3dWarpDrive(THD_3dim_dataset *dset, ATR_float *atr_flt)
       fprintf( stderr,
                "Number of parameters in TLRC transform is not 12.\n"
                "I won't float your boat.\n");
-      RETURN(0); 
+      RETURN(0);
    }
    dset->warp = myRwcNew( THD_warp ) ;
    ADDTO_KILL( dset->kl , dset->warp ) ;
-   {   
+   {
       THD_affine_warp *ww = (THD_affine_warp *) dset->warp ;
       if (!Matvec_2_WarpData(atr_flt, ww, NULL)) {
          fprintf(stderr,"Failed to create warp!");
          RETURN(0);
-      } 
+      }
    }
-   /* If you have a warp, you must have a warp_parent 
+   /* If you have a warp, you must have a warp_parent
    However, previous versions of @auto_tlrc did not set
    that, so use some defaults */
-   if( strlen(dset->warp_parent_name) <= 0 
+   if( strlen(dset->warp_parent_name) <= 0
          && ISZERO_IDCODE(dset->warp_parent_idcode)) {
       if (dbg) fprintf(stderr,"Assigning a dummy warp parent name\n");
       sprintf(dset->warp_parent_name,"Not_Set");
@@ -1004,17 +1004,17 @@ ENTRY("THD_datablock_apply_atr") ;
        break ;  /* end talairach_12 warp */
 
      } /* end of switch on warp type */
-   } /* end of if on warp existing */   else { /* But perhaps there is a little 
+   } /* end of if on warp existing */   else { /* But perhaps there is a little
                                                 something from auto talairaching                                                 ZSS, June 06 */
       if (dset->view_type == VIEW_TALAIRACH_TYPE) { /* something to do */
          int dbg = 0;
-         atr_flt = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ; 
+         atr_flt = THD_find_float_atr( blk , ATRNAME_WARP_DATA_3DWD_AF ) ;
          if ( atr_flt == NULL ){
             /* A tlrc set with no transform. No problem */
             /* fprintf(stderr,"Dude, where's my transform?\n");  */
          } else {
             STATUS("AutoTlrc Warp") ;
-            if (dbg) 
+            if (dbg)
                fprintf(stderr,
                         "++ Will be using %s attribute for talairach warp in"
                         " dset %s\n",
@@ -1167,7 +1167,7 @@ ENTRY("THD_datablock_apply_atr") ;
    /* otherwise guess from view and environment */
    else
       THD_get_space(dset);
-      
+
    /* flag for whether dataset should be displayed with integer colormap */
    if(ATR_IS_INT("INT_CMAP"))
       dset->int_cmap = atr_int->in[0];

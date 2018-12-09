@@ -391,7 +391,7 @@ void main( int argc , char *argv[] )
                for( lx=0 ; lx < nimage ; lx++ )
                   fprintf( savefile , "%d %12.4e\n" , lx,org[lx] ) ;
             }
-                  
+
          } /* end sum >= cthresh */
 
       }  /* end ii */

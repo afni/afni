@@ -50,7 +50,7 @@ extern struct {
     zzzplt_1.xphold = xx;
     zzzplt_1.yphold = yy;
 
-    if (xx >= zzzplt_1.xclbot && xx <= zzzplt_1.xcltop && yy >= 
+    if (xx >= zzzplt_1.xclbot && xx <= zzzplt_1.xcltop && yy >=
 	    zzzplt_1.yclbot && yy <= zzzplt_1.ycltop) {
 	phdot_(&xx, &yy);
     }

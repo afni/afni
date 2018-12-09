@@ -4,13 +4,13 @@ Change RetinoMap to the program name of your choosing.
 #include "SUMA_suma.h"
 
 float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
-                                   int node, 
+                                   int node,
                                    SUMA_DSET *decc,
-                                   SUMA_DSET *dpol, 
-                                   float *pNodeList, 
+                                   SUMA_DSET *dpol,
+                                   float *pNodeList,
                                    float Gre[2],
                                    float Grp[2],
-                                   int NodeDBG) 
+                                   int NodeDBG)
 {
    static char FuncName[]={"SUMA_LocalRetinoGrad"};
    matrix X, XtXiXt;
@@ -19,9 +19,9 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
    int in=0, in3=0, k;
    float vfr = 0.0;
    char *tp="not set";
-   
+
    SUMA_ENTRY;
-   
+
    /* phi(x,y) = b0 x + b1 y + const for each of the dsets */
    /* PHI = X B + e */
    matrix_initialize(&X);
@@ -29,16 +29,16 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
    matrix_initialize(&XtXiXt);
    matrix_create(SO->FN->N_Neighb[node]+1, 3, &XtXiXt);
    vector_initialize(&Y);
-   vector_create(SO->FN->N_Neighb[node]+1, &Y);  
+   vector_create(SO->FN->N_Neighb[node]+1, &Y);
    vector_initialize(&B);
-   vector_create(3, &B);  
+   vector_create(3, &B);
    for (in=0; in<=SO->FN->N_Neighb[node]; ++in) {
      in3=3*in;
-     X.elts[in][0] = pNodeList[in3  ]; 
-     X.elts[in][1] = pNodeList[in3+1]; 
+     X.elts[in][0] = pNodeList[in3  ];
+     X.elts[in][1] = pNodeList[in3+1];
      X.elts[in][2] = 1.0;
    }
-   
+
    for (k=0; k<2; ++k) {
       if (k==0) {
          dset = decc;
@@ -47,21 +47,21 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
          dset = dpol;
          tp = "polar";
       }
-      for (in=0; in<SO->FN->N_Neighb[node]; ++in) {  
-         Y.elts[in] = SUMA_GetDsetNodeValInCol2(dset, 0, 
+      for (in=0; in<SO->FN->N_Neighb[node]; ++in) {
+         Y.elts[in] = SUMA_GetDsetNodeValInCol2(dset, 0,
                                  SO->FN->FirstNeighb[node][in], -1);
       }
-         Y.elts[SO->FN->N_Neighb[node]] 
+         Y.elts[SO->FN->N_Neighb[node]]
                      = SUMA_GetDsetNodeValInCol2(dset, 0, node, -1);
 
       matrix_psinv(X, NULL, &XtXiXt);
-      vector_multiply(XtXiXt, Y, &B); 
+      vector_multiply(XtXiXt, Y, &B);
 
       if (node == NodeDBG) {
-         SUMA_S_Notev("Gradient computations for node %d, dset %d/2 (%s)\n", 
+         SUMA_S_Notev("Gradient computations for node %d, dset %d/2 (%s)\n",
                      NodeDBG, k+1, k ? "pol":"ecc");
          SUMA_S_Note("Nodes");
-         for (in=0; in<SO->FN->N_Neighb[node]; ++in) 
+         for (in=0; in<SO->FN->N_Neighb[node]; ++in)
             fprintf(stderr,"%d\n", SO->FN->FirstNeighb[node][in]);
          fprintf(stderr,"%d\n",node);
          SUMA_S_Note("X");
@@ -73,7 +73,7 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
          SUMA_S_Notev("B, %s (degrees/mm)\n", tp);
          vector_print(B);
       }
-   
+
       if (k==0) {
          Gre[0] = B.elts[0];
          Gre[1] = B.elts[1];
@@ -82,40 +82,40 @@ float SUMA_LocalRetinoGrad (SUMA_SurfaceObject *SO,
          Grp[1] = B.elts[1];
       }
    }
-   
-   matrix_destroy(&X); 
-   matrix_destroy(&XtXiXt); 
+
+   matrix_destroy(&X);
+   matrix_destroy(&XtXiXt);
    vector_destroy(&Y);
    vector_destroy(&B);
-   
+
    /* the VFR */
-   
+
    vfr = Grp[0]*Gre[1]-Grp[1]*Gre[0];
-   
+
    /* block ridiculously large values */
    if (vfr < -100) vfr = -100.0;
    else if (vfr > 100) vfr = 100.0;
-   
+
    SUMA_RETURN(vfr);
 }
 
-SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO, 
-                            SUMA_DSET * decc, SUMA_DSET *dpol, 
-                            byte *nmask, int NodeDBG, char *pref) 
+SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
+                            SUMA_DSET * decc, SUMA_DSET *dpol,
+                            byte *nmask, int NodeDBG, char *pref)
 {
    static char FuncName[]={"SUMA_RetinoMap"};
    SUMA_DSET *dout=NULL;
    int i=0, i3=0, in=0, neigh3, in3, j;
    float *pNodeList=NULL, fv[3], **fm=NULL, *vfr=NULL, *mxxc=NULL, xc1, xc2;
    float Gp[2]={0.0, 0.0}, Ge[2]={0.0, 0.0};
-   double Eq[4], proj[3], U[3], d, 
+   double Eq[4], proj[3], U[3], d,
           P2[2][3]={ {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0} } ;
    char *prefix=NULL;
    FILE *ffgp=NULL, *ffge=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!SO || !SO->NodeNormList || !SO->FN) {
       SUMA_S_Err("Surface null or not ready for prime time");
       goto CLEANOUT;
@@ -124,32 +124,32 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       SUMA_S_Err("NULL input");
       goto CLEANOUT;
    }
-   
+
    if (SDSET_VECNUM(dpol) == 3 && SDSET_VECNUM(decc) == 3) {
       /* have correlations in these datasets at sb # 3 */
       if (!(mxxc = (float *)SUMA_calloc(SO->N_Node, sizeof(float)))) {
-         SUMA_S_Err("Failed to allocate"); 
+         SUMA_S_Err("Failed to allocate");
          goto CLEANOUT;
       }
    }
-   
+
    if (!(pNodeList =  (float *)
             SUMA_calloc((SO->FN->N_Neighb_max+1)*SO->NodeDim, sizeof(float))) ||
        !(fm = (float **)SUMA_allocate2D(4,4,sizeof(float))) ||
        !(vfr = (float *)SUMA_calloc(SO->N_Node, sizeof(float)))  ){
-      SUMA_S_Err("Failed to allocate"); 
+      SUMA_S_Err("Failed to allocate");
       goto CLEANOUT;
    }
-   
+
    if (pref) {
       prefix = SUMA_RemoveDsetExtension_s(pref,SUMA_NO_DSET_FORMAT);
       prefix = SUMA_append_replace_string(prefix, "",".",1);
    } else {
       prefix = SUMA_copy_string("");
    }
-   
+
    for (i=0; i<SO->N_Node; ++i) {   if (!nmask || nmask[i]) {
-      if (!(i % 10000)) fprintf(SUMA_STDERR,"."); 
+      if (!(i % 10000)) fprintf(SUMA_STDERR,".");
       i3 = SO->NodeDim *i;
       /* tangent plane at node */
       SUMA_PLANE_NORMAL_POINT((SO->NodeNormList+i3),
@@ -178,7 +178,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       pNodeList[3*SO->FN->N_Neighb[i]  ] = SO->NodeList[i3  ];
       pNodeList[3*SO->FN->N_Neighb[i]+1] = SO->NodeList[i3+1];
       pNodeList[3*SO->FN->N_Neighb[i]+2] = SO->NodeList[i3+2];
-      
+
       if (i == NodeDBG) {
          FILE *ff=NULL;
          char stmp[256];
@@ -190,17 +190,17 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
                      i, SO->EL->AvgLe*SO->NodeNormList[i3],
                         SO->EL->AvgLe*SO->NodeNormList[i3+1],
                         SO->EL->AvgLe*SO->NodeNormList[i3+2]);
-         fclose (ff); 
+         fclose (ff);
          sprintf(stmp,"%sinit.%d.1D.do", prefix,i);
          ff = fopen(stmp,"w");
          fprintf(SUMA_STDOUT,"Story for node %d \n", i);
          fprintf(ff,"#spheres\n");
          for (in=0; in<SO->FN->N_Neighb[i]; ++in) {
             neigh3 = SO->NodeDim *SO->FN->FirstNeighb[i][in];
-            fprintf(ff,"#%d/%d Neighb[%d]=%d, projected to:\n", 
+            fprintf(ff,"#%d/%d Neighb[%d]=%d, projected to:\n",
                         in,SO->FN->N_Neighb[i], i,
                         SO->FN->FirstNeighb[i][in]);
-             fprintf(ff,"%f %f %f 1 0 0 1\n", 
+             fprintf(ff,"%f %f %f 1 0 0 1\n",
                     SO->NodeList[neigh3  ],
                     SO->NodeList[neigh3+1],
                     SO->NodeList[neigh3+2]);
@@ -211,10 +211,10 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
          fprintf(ff,"#spheres\n");
          for (in=0; in<SO->FN->N_Neighb[i]; ++in) {
             in3=3*in;
-            fprintf(ff,"#%d/%d Neighb[%d]=%d, projected to:\n", 
+            fprintf(ff,"#%d/%d Neighb[%d]=%d, projected to:\n",
                         in,SO->FN->N_Neighb[i], i,
                         SO->FN->FirstNeighb[i][in]);
-            fprintf(ff,"%f %f %f 0 1 0 1\n", 
+            fprintf(ff,"%f %f %f 0 1 0 1\n",
                     pNodeList[in3],pNodeList[in3+1],pNodeList[in3+2]);
          }
          fclose (ff);
@@ -229,13 +229,13 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       /* Apply rotation to all elements, including the dear node */
       for (in=0; in<=SO->FN->N_Neighb[i]; ++in) {
          in3=3*in;
-         proj[0] = pNodeList[in3  ]*fm[0][0] + 
+         proj[0] = pNodeList[in3  ]*fm[0][0] +
                    pNodeList[in3+1]*fm[0][1] +
                    pNodeList[in3+2]*fm[0][2] ;
-         proj[1] = pNodeList[in3  ]*fm[1][0] + 
+         proj[1] = pNodeList[in3  ]*fm[1][0] +
                    pNodeList[in3+1]*fm[1][1] +
                    pNodeList[in3+2]*fm[1][2] ;
-         proj[2] = pNodeList[in3  ]*fm[2][0] + 
+         proj[2] = pNodeList[in3  ]*fm[2][0] +
                    pNodeList[in3+1]*fm[2][1] +
                    pNodeList[in3+2]*fm[2][2] ;
          pNodeList[in3  ] = proj[0];
@@ -247,7 +247,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
          char stmp[256];
          sprintf(stmp,"%srotmat.%d.1D", prefix,  i);
          ff = fopen(stmp,"w");
-         for (in=0; in<3; ++in) 
+         for (in=0; in<3; ++in)
             fprintf(ff,"%f %f %f\n",fm[in][0], fm[in][1], fm[in][2]);
          fclose (ff);
          sprintf(stmp,"%srotproj.%d.1D.do", prefix, i);
@@ -255,30 +255,30 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
          fprintf(ff,"#spheres\n");
          for (in=0; in<=SO->FN->N_Neighb[i]; ++in) {
             in3=3*in;
-            fprintf(ff,"#%d/%d Neighb[%d]=%d, rotation of projection:\n", 
+            fprintf(ff,"#%d/%d Neighb[%d]=%d, rotation of projection:\n",
                         in,SO->FN->N_Neighb[i], i,
                         SO->FN->FirstNeighb[i][in]);
-            fprintf(ff,"%f %f %f 0 0 1 1\n", 
+            fprintf(ff,"%f %f %f 0 0 1 1\n",
                     pNodeList[in3],pNodeList[in3+1],pNodeList[in3+2]);
          }
          fclose (ff);
       }
       /* Now you want to get the local gradients */
-      vfr[i] = SUMA_LocalRetinoGrad(SO, i, decc, dpol, pNodeList, 
+      vfr[i] = SUMA_LocalRetinoGrad(SO, i, decc, dpol, pNodeList,
                                  Ge, Gp, NodeDBG);
-      
+
       /* get a max correlation from two dsets */
       if (mxxc) {
          xc1 = SUMA_GetDsetNodeValInCol2(decc, 2, i, -1);
          xc2 = SUMA_GetDsetNodeValInCol2(dpol, 2, i, -1);
          if (xc2 > xc1) mxxc[i] = xc2; else mxxc[i] =xc1;
       }
-      
-      if (i==NodeDBG) { 
+
+      if (i==NodeDBG) {
          SUMA_S_Notev("Node %d: Ge = [%f %f], Gp = [%f %f], VFR=%f\n",
                         i, Ge[0], Ge[1], Gp[0], Gp[1], vfr[i]);
       }
-      
+
       #if 0 /* extreme debugging, output gradient estimates into dset */
          if (i==0) {
             char stmp[256];
@@ -287,26 +287,26 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
             ffgp = fopen(stmp, "w");
             sprintf(stmp,"%sgradecc.1D.dset", prefix);
             ffge = fopen(stmp, "w");
-         } 
-         fprintf(ffgp, "%f %f %f\n", 
-               Gp[0], Gp[1], 
+         }
+         fprintf(ffgp, "%f %f %f\n",
+               Gp[0], Gp[1],
                sqrtf(Gp[0]*Gp[0]+Gp[1]*Gp[1]));
-         fprintf(ffge, "%f %f %f\n", 
-               Ge[0], Ge[1], 
+         fprintf(ffge, "%f %f %f\n",
+               Ge[0], Ge[1],
                sqrtf(Ge[0]*Ge[0]+Ge[1]*Ge[1]));
          if (i==SO->N_Node) {
             fclose(ffgp); ffgp=NULL;
             fclose(ffge); ffge=NULL;
          }
       #endif
-   
+
    } }
-   
+
    fprintf(SUMA_STDERR,"\n");
-   
+
    SUMA_LH("Hard work over");
-   if (!(dout = SUMA_CreateDsetPointer( 
-                  "dodo", SUMA_NODE_BUCKET, NULL, 
+   if (!(dout = SUMA_CreateDsetPointer(
+                  "dodo", SUMA_NODE_BUCKET, NULL,
                   SDSET_IDMDOM(decc),
                   SO->N_Node  ) ) ){
       SUMA_S_Err("Failed to create dout");
@@ -315,7 +315,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
       SUMA_S_Err("Failed populating node indices");
       goto CLEANOUT;
    }
-   
+
    if (!SUMA_AddDsetNelCol(dout, "VFR", SUMA_NODE_VFR, vfr, NULL, 1)) {
       SUMA_S_Err("Failed to add column");
       SUMA_FreeDset(dout); dout=NULL;
@@ -324,14 +324,14 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
    if (mxxc) {
       /* Not sure if we're getting power ratios or correlation coefficients
          Just use generic term 'Thresh.'*/
-      if (!SUMA_AddDsetNelCol(dout, "Max.Thresh.", 
+      if (!SUMA_AddDsetNelCol(dout, "Max.Thresh.",
             SUMA_NODE_XCORR, mxxc, NULL, 1)) {
          SUMA_S_Err("Failed to add column");
          SUMA_FreeDset(dout); dout=NULL;
          goto CLEANOUT;
       }
    }
-   
+
    CLEANOUT:
    SUMA_LH("CLEANUP");
    if (prefix) SUMA_free(prefix); prefix=NULL;
@@ -340,7 +340,7 @@ SUMA_DSET * SUMA_RetinoMap (SUMA_SurfaceObject *SO,
    if (vfr) SUMA_free(vfr); vfr = NULL;
    if (mxxc) SUMA_free(mxxc); mxxc = NULL;
 
-   SUMA_LH("ADIOS"); 
+   SUMA_LH("ADIOS");
    SUMA_RETURN(dout);
 }
 
@@ -385,15 +385,15 @@ void usage_RetinoMap (SUMA_GENERIC_ARGV_PARSE *ps)
 "  The signficance value is not provided on purpose.\n"
 "     I don't know of a good way to compute it, but \n"
 "     it serves its function or wedding out low SNR nodes.\n"
-"\n"                      
+"\n"
 "%s"
 "%s"
-               "\n", 
-               ps->hverb > 1 ? sio:"Use -help for more detail.\n", 
+               "\n",
+               ps->hverb > 1 ? sio:"Use -help for more detail.\n",
                ps->hverb > 1 ? s:"");
-      if (s) SUMA_free(s); s = NULL; 
-      if (st) SUMA_free(st); st = NULL; 
-      if (sio) SUMA_free(sio); sio = NULL;       
+      if (s) SUMA_free(s); s = NULL;
+      if (st) SUMA_free(st); st = NULL;
+      if (sio) SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       return;
@@ -403,15 +403,15 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
       SUMA_RetinoMap_ParseInput(
                      char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_RetinoMap_ParseInput"}; 
+   static char FuncName[]={"SUMA_RetinoMap_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   Opt = SUMA_Alloc_Generic_Prog_Options_Struct(); 
+
+   Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->ps = ps;  /* just hold it there for convenience */
    Opt->NodeDbg = -1;
    Opt->out_prefix = NULL;
@@ -424,9 +424,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
           usage_RetinoMap(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -434,11 +434,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -446,12 +446,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
             fprintf (SUMA_STDERR, "need a dset prefix after -prefix \n");
             exit (1);
          }
-         
+
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
          brk = YUP;
       }
-            
-      if (!brk && (  (strcmp(argv[kar], "-node_dbg") == 0) || 
+
+      if (!brk && (  (strcmp(argv[kar], "-node_dbg") == 0) ||
                      (strcmp(argv[kar], "-node_debug") == 0)) ) {
          kar ++;
 			if (kar >= argc)  {
@@ -465,25 +465,25 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          }
          brk = YUP;
 		}
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			SUMA_S_Errv("Option %s not understood.\n"
-                     "Try -help for usage\n", 
+                     "Try -help for usage\n",
                      argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfRetinoMap"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"SurfRetinoMap"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
    SUMA_DSET *dpol=NULL, *decc=NULL, *dout=NULL;
@@ -493,25 +493,25 @@ int main (int argc,char *argv[])
    SUMA_SurfaceObject *SO=NULL;
    char *s=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-s;-o;-talk;-mask;-dset;");
-   
+
    if (argc < 2) {
       usage_RetinoMap(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_RetinoMap_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
    if (Opt->ps->N_dsetname != 2) {
       SUMA_S_Errv("Need two and only two dsets please.\n"
-                  "Have %d on command line.\n", 
+                  "Have %d on command line.\n",
                   Opt->ps->N_dsetname);
       exit(1);
    }
@@ -531,7 +531,7 @@ int main (int argc,char *argv[])
       SUMA_S_Err("Failed populating node indices");
       exit(1);
    }
-   
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -546,48 +546,48 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
+
    }
    if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|PolyArea|",
                                  NULL, Opt->debug, SUMAg_CF->DsetList)) {
       SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
       exit(1);
    }
-   
+
    if (!(Opt->nmask = SUMA_load_all_command_masks(
                         Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask,
-                        SO->N_Node, &N_inmask)) 
+                        SO->N_Node, &N_inmask))
          && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
    if (Opt->nmask) {
-      SUMA_LHv("%d nodes in mask for SO of %d nodes (%.2f perc. of surface)\n", 
+      SUMA_LHv("%d nodes in mask for SO of %d nodes (%.2f perc. of surface)\n",
                N_inmask, SO->N_Node, 100.0*N_inmask/SO->N_Node);
    } else {
       SUMA_LH("no mask");
    }
-   if (!(dout = SUMA_RetinoMap (SO, decc, dpol, Opt->nmask, 
+   if (!(dout = SUMA_RetinoMap (SO, decc, dpol, Opt->nmask,
                                  Opt->NodeDbg, Opt->out_prefix))) {
       SUMA_S_Err("Failed in RetinoMap");
       exit(1);
    }
-   
+
    if (Opt->out_prefix) {
       s = SUMA_WriteDset_s (Opt->out_prefix, dout, oform, THD_ok_overwrite(), 0);
    } else {
       s = SUMA_WriteDset_s ("RetinoMap", dout, SUMA_ASCII_NIML, 1, 1);
    }
    SUMA_free(s);
-   
+
    if (!SUMA_FreeSpecFields(Spec)) {
       SUMA_S_Err("Failed to free Spec fields");
    } SUMA_free(Spec); Spec = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-   
+
    exit(0);
-   
-} 
+
+}

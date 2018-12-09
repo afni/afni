@@ -1,17 +1,17 @@
-  
+
 /*
  * whirlgif.c
  *
  * Copyright (C) 1995,1996 by Kevin Kadow (kadokev@msg.net)
- * 
+ *
  * Based on txtmerge.c
- * Copyright (C) 1990,1991,1992,1993 by Mark Podlipec. 
+ * Copyright (C) 1990,1991,1992,1993 by Mark Podlipec.
  * All rights reserved.
  *
  * This software may be freely copied, modified and redistributed
- * without fee provided that this copyright notice is preserved 
+ * without fee provided that this copyright notice is preserved
  * intact on all copies and modified copies.
- * 
+ *
  * There is no warranty or other guarantee of fitness of this software.
  * It is provided solely "as is". The author(s) disclaim(s) all
  * responsibility and liability with respect to this software's usage
@@ -45,7 +45,7 @@
   * Rev 1.01	08Jan92	Mark Podlipec
   *     use all colormaps, not just 1st.
   *
-  * 
+  *
   */
 #define DA_REV 1.00
 
@@ -138,9 +138,9 @@ char *argv[];
 
  fprintf(stderr,"whirlgif Rev %2.2f (C) 1996 by Kevin Kadow\n",DA_REV);
  fprintf(stderr,"                  (C) 1991,1992 by Mark Podlipec\n");
- 
+
  if (argc < 2) Usage();
- 
+
  /* set global values */
  screen_was_last = FALSE;
  global.trans.type=TRANS_NONE;
@@ -158,7 +158,7 @@ char *argv[];
   p = argv[i];
   /*fprintf(stderr,"Option: %s\n",p);*/
   if ( (p[0] == '-') || (p[0] == '+') )
-  { 
+  {
    ++p; /* strip off the - */
    switch(p[0])
    {
@@ -236,7 +236,7 @@ char *argv[];
                 exit(0) ;
                 break ;
 
-    default: 
+    default:
 		Usage();
 		exit(0);
 		break;
@@ -278,8 +278,8 @@ int first_image;
  int ret,i,exit_flag;
 
  if ( (fp=fopen(fname,"r"))==0)
- { 
-  fprintf(stderr,"Can't open %s for reading.\n",fname); 
+ {
+  fprintf(stderr,"Can't open %s for reading.\n",fname);
   TheEnd();
  }
 
@@ -333,13 +333,13 @@ FILE *fp,*fout;
 
  code=GIF_Get_Code(fp,fout);
 
- if (code==CLEAR) 
+ if (code==CLEAR)
  {
-  GIF_Clear_Table(); 
+  GIF_Clear_Table();
   code=GIF_Get_Code(fp,fout);
  }
  /* write code(or what it currently stands for) to file */
- GIF_Send_Data(code);   
+ GIF_Send_Data(code);
  old=code;
  code=GIF_Get_Code(fp,fout);
  do
@@ -360,7 +360,7 @@ FILE *fp,*fout;
   }
   code=GIF_Get_Code(fp,fout);
   if (code==CLEAR)
-  { 
+  {
    GIF_Clear_Table();
    code=GIF_Get_Code(fp,fout);
    GIF_Send_Data(code);
@@ -377,11 +377,11 @@ FILE *fp;
  while(  (table[nextab].valid==1)
        &&(nextab<MAXVAL)
       ) nextab++;
- /* 
-  * Ran out of space??!?  Something's roached 
+ /*
+  * Ran out of space??!?  Something's roached
   */
- if (nextab>=MAXVAL)    
- { 
+ if (nextab>=MAXVAL)
+ {
   fprintf(stderr,"Error: GetNext nextab=%ld\n",(long)nextab);
   fclose(fp);
   TheEnd();
@@ -398,13 +398,13 @@ FILE *fp;
 /*  body is associated string
     next is code to add to that string to form associated string for
     index
-*/     
+*/
 
 void GIF_Add_To_Table(body,next,index)
 register ULONG body,next,index;
 {
  if (index>MAXVAL)
- { 
+ {
   fprintf(stderr,"Error index=%ld\n",(long)index);
  }
  else
@@ -422,12 +422,12 @@ register int index;
  register int i,j;
  i=0;
  do         /* table walk to retrieve string associated with index */
- { 
-  gif_buff[i]=table[index].data; 
+ {
+  gif_buff[i]=table[index].data;
   i++;
   index=table[index].last;
   if (i>MAXVAL)
-  { 
+  {
    fprintf(stderr,"Error: Sending i=%ld index=%ld\n",(long)i,(long)index);
    TheEnd();
   }
@@ -443,10 +443,10 @@ register int index;
 }
 
 
-/* 
- * initialize string table 
+/*
+ * initialize string table
  */
-void GIF_Init_Table()       
+void GIF_Init_Table()
 {
  register int maxi,i;
 
@@ -454,23 +454,23 @@ if (debug_flag) fprintf(stderr,"Initing Table...");
  maxi=gif_ptwo[root_code_size];
  for(i=0; i<maxi; i++)
  {
-  table[i].data=i;   
+  table[i].data=i;
   table[i].first=i;
-  table[i].valid=1;  
+  table[i].valid=1;
   table[i].last = -1;
  }
- CLEAR=maxi; 
- EOI=maxi+1; 
+ CLEAR=maxi;
+ EOI=maxi+1;
  nextab=maxi+2;
  INCSIZE = (2*maxi)-1;
  code_size=root_code_size+1;
 }
 
 
-/* 
- * clear table 
+/*
+ * clear table
  */
-void GIF_Clear_Table()   
+void GIF_Clear_Table()
 {
  register int i;
 if (debug_flag) fprintf(stderr,"Clearing Table...\n");
@@ -488,7 +488,7 @@ FILE *fp,*fout;
  while(num_bits < code_size)
  {
   /**** if at end of a block, start new block */
-  if (gif_block_size==0) 
+  if (gif_block_size==0)
   {
    tmp = fgetc(fp);
    if (tmp >= 0 )
@@ -508,17 +508,17 @@ FILE *fp,*fout;
   }
   else TheEnd1("EOF in data stream\n");
  }
-  
+
  code = bits & gif_mask[code_size];
  bits >>= code_size;
- num_bits -= code_size; 
+ num_bits -= code_size;
 
 
  if (code>MAXVAL)
- { 
-  fprintf(stderr,"\nError! in stream=%lx \n",(unsigned long)code); 
+ {
+  fprintf(stderr,"\nError! in stream=%lx \n",(unsigned long)code);
   fprintf(stderr,"CLEAR=%lx INCSIZE=%lx EOI=%lx code_size=%lx \n",
-          (unsigned long)CLEAR,(unsigned long)INCSIZE,(unsigned long)EOI,(unsigned long)code_size); 
+          (unsigned long)CLEAR,(unsigned long)INCSIZE,(unsigned long)EOI,(unsigned long)code_size);
   code=EOI;
  }
 
@@ -528,15 +528,15 @@ FILE *fp,*fout;
   {
    code_size++; INCSIZE=(INCSIZE*2)+1;
   }
-  else if (debug_flag) fprintf(stderr,"<13?>"); 
+  else if (debug_flag) fprintf(stderr,"<13?>");
  }
 
  return(code);
 }
 
 
-/* 
- * read GIF header 
+/*
+ * read GIF header
  */
 void GIF_Screen_Header(fp,fout,first_time)
 FILE *fp,*fout;
@@ -559,7 +559,7 @@ int first_time;
  gifscrn.pixbits =  temp & 0x07;
 
  gifscrn.bc  = fgetc(fp);
- if (first_time==TRUE) 
+ if (first_time==TRUE)
 	{
 	/* we really should set the background color to the transparent color */
 	fputc(gifscrn.bc,fout);
@@ -578,11 +578,11 @@ int first_time;
  {
   for(i=0;i<imagec;i++)
   {
-   gif_cmap[i].cmap.red   = temp = fgetc(fp); 
+   gif_cmap[i].cmap.red   = temp = fgetc(fp);
            if (first_time==TRUE) fputc(temp,fout);
-   gif_cmap[i].cmap.green = temp = fgetc(fp); 
+   gif_cmap[i].cmap.green = temp = fgetc(fp);
            if (first_time==TRUE) fputc(temp,fout);
-   gif_cmap[i].cmap.blue  = temp = fgetc(fp); 
+   gif_cmap[i].cmap.blue  = temp = fgetc(fp);
            if (first_time==TRUE) fputc(temp,fout);
 
    if(global.trans.type==TRANS_RGB && !global.trans.valid)
@@ -612,10 +612,10 @@ int first_time;
 
  gifimage.width  = GIF_Get_Short(fp,fout,1);
  gifimage.height = GIF_Get_Short(fp,fout,1);
- temp=fgetc(fp); 
+ temp=fgetc(fp);
 
 
-	
+
  gifimage.i        = temp & 0x40;
  gifimage.pixbits  = temp & 0x07;
  gifimage.m        = temp & 0x80;
@@ -660,7 +660,7 @@ int first_time;
    fputc(gif_cmap[i].cmap.blue ,fout);
   }
  }
- screen_was_last = FALSE; 
+ screen_was_last = FALSE;
 }
 
 

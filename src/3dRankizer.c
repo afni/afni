@@ -55,7 +55,7 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
      CHECK_HELP(arg,Help_3dRankizer);
-     
+
      if( strncmp(argv[iarg],"-brank",5) == 0 ){
        if( iarg+1 >= argc )
          ERROR_exit("-brank option requires a following argument!") ;
@@ -90,7 +90,7 @@ int main( int argc , char * argv[] )
          percentize = 2;
          iarg++ ; continue ;
       }
-      
+
       ERROR_message("Unknown option: %s\n",argv[iarg]) ;
                 suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
@@ -100,7 +100,7 @@ int main( int argc , char * argv[] )
      Help_3dRankizer(TXT, 0);
      PRINT_COMPILE_DATE ; exit(0) ;
    }
-   
+
    /* should have 1 more arg */
 
    ndset = argc - iarg ;
@@ -150,7 +150,7 @@ int main( int argc , char * argv[] )
       else if (percentize == 2) fac = 100.0/mcount;
       for( ii=0 ; ii < nvox ; ii++ ) far[ii] *= fac;
    }
-   
+
    outset = EDIT_empty_copy( inset ) ;
    EDIT_dset_items( outset ,
                       ADN_prefix    , prefix ,

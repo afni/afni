@@ -9,7 +9,7 @@
 
 static doublereal c_b10 = 1.;
 
-/* Subroutine */ int tql1_(integer *n, doublereal *d__, doublereal *e, 
+/* Subroutine */ int tql1_(integer *n, doublereal *d__, doublereal *e,
 	integer *ierr)
 {
     /* System generated locals */
@@ -67,12 +67,12 @@ static doublereal c_b10 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

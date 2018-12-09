@@ -55,7 +55,7 @@ static        PLUGIN_interface * plint = NULL ; /* AFNI plugin structure, global
 
 /* function prototypes */
 void          svm_rt_callback( void * );
-int           init_3dsvm_rt( char **, int , ASLoptions *, enum modes, char * ); 
+int           init_3dsvm_rt( char **, int , ASLoptions *, enum modes, char * );
 void          free_rt_svm_vars( RT_SVM_VARS * );
 int           test_rt( DatasetType **, long, double *, char * );
 static int    drive_3dsvm_plugin ( char * );
@@ -76,7 +76,7 @@ PLUGIN_interface* PLUGIN_init( int ncall )
   if (!ncall) {/* ZSS Nov 2011: Call just once at first or get yelled at */
     AFNI_driver_register( "3DSVM", drive_3dsvm_plugin ) ;
   }
-  
+
   /* --- help and contribution string --- */
   if( (help_contribution_string = (char *) malloc(str_length*sizeof(char))) == NULL ) {
     fprintf(stderr, "**: ERROR: plug_3dsvm_rt: Can not allocate "
@@ -206,7 +206,7 @@ PLUGIN_interface* PLUGIN_init( int ncall )
 }
 
 
-static char* ASL_main( PLUGIN_interface* plint ) 
+static char* ASL_main( PLUGIN_interface* plint )
 {
   /*----- declarations -----*/
   enum modes mode = NOTHING;
@@ -273,7 +273,7 @@ static char* ASL_main( PLUGIN_interface* plint )
   int trnFlag  = 0;
   int tstFlag  = 0;
   int maskFlag = 0;
-  
+
   PLUGIN_option* opt;
   int iopt = 0;
   char *ept = NULL;
@@ -291,7 +291,7 @@ static char* ASL_main( PLUGIN_interface* plint )
   argvAppend(myargv,&myargc, PROGRAM_NAME,"");
   if (DBG_flag) printArgv(myargv,&myargc);
 
-  /* --- determine if training and testing is selected  
+  /* --- determine if training and testing is selected
          combined training and testing is not allowed in real-time mode --- */
   if( ALLOW_realtime ) {
     for( iopt=0; iopt < plint->option_count; iopt++ ) {
@@ -324,11 +324,11 @@ static char* ASL_main( PLUGIN_interface* plint )
       }
     }
     if( (trnFlag) && (tstFlag) ) {
-      
+
       free(err);
       free(errorString);
       freeArgv( myargv, myargc );
-      
+
       return
          "**********************************************\n"
          " 3dsvm plugin in real-time mode:              \n"
@@ -347,11 +347,11 @@ static char* ASL_main( PLUGIN_interface* plint )
     if( option_tag == NULL ) {
       if( DBG_flag ) printArgv(myargv,&myargc);
       if( myargc == 1 ) {
-        snprintf(err, LONG_STRING, 
+        snprintf(err, LONG_STRING,
             "****************************************************************\n"
             "Don't you want to do something?! Press 'Help' for more details! \n"
             "****************************************************************");
-       
+
         freeArgv( myargv, myargc );
         free(errorString);
         return (err);
@@ -397,7 +397,7 @@ static char* ASL_main( PLUGIN_interface* plint )
 
    /* --- Train Data --- */
    if( (strcmp(option_tag,"Train Data") == 0 ) ) {
-     
+
      /* get training data */
      if ( !ALLOW_realtime ) {
        idcode = PLUTO_get_idcode( plint );
@@ -417,7 +417,7 @@ static char* ASL_main( PLUGIN_interface* plint )
              "*******************************************";
        }
      }
-     
+
      /* get training labels */
      tsim_train = PLUTO_get_timeseries( plint );
      if( tsim_train != NULL ) {
@@ -513,10 +513,10 @@ static char* ASL_main( PLUGIN_interface* plint )
          getEnvArgv(myargv, &myargc, "AFNI_3DSVM_NOMASK");
        }
        if( !argvCheck(myargv, &myargc, "-c", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_C"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_C");
        }
        if( !argvCheck(myargv, &myargc, "-e", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_EPSILON"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_EPSILON");
        }
 
        maskFlag  = argvCheck(myargv, &myargc, "-mask", "");
@@ -555,19 +555,19 @@ static char* ASL_main( PLUGIN_interface* plint )
      }
      else {
        if( !argvCheck(myargv, &myargc, "-kernel", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_TYPE"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_TYPE");
        }
        if( !argvCheck(myargv, &myargc, "-d", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_D"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_D");
        }
        if( !argvCheck(myargv, &myargc, "-g", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_G"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_G");
        }
        if( !argvCheck(myargv, &myargc, "-s", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_S"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_S");
        }
        if( !argvCheck(myargv, &myargc, "-r", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_R"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_KERNEL_PARM_R");
        }
      }
    }
@@ -588,7 +588,7 @@ static char* ASL_main( PLUGIN_interface* plint )
            free(err);
            free(errorString);
            freeArgv( myargv, myargc );
-          
+
            return
              "*******************************************\n"
              "'Model Output' selected:                   \n"
@@ -619,7 +619,7 @@ static char* ASL_main( PLUGIN_interface* plint )
          free(err);
          free(errorString);
          freeArgv( myargv, myargc );
-         
+
          return
             "**********************************************\n"
             " 'Model Inspection' selected:                 \n"
@@ -638,7 +638,7 @@ static char* ASL_main( PLUGIN_interface* plint )
          free(err);
          free(errorString);
          freeArgv( myargv, myargc );
-         
+
          return
            "**********************************************\n"
            " 'Model Inspection' selected:                 \n"
@@ -649,7 +649,7 @@ static char* ASL_main( PLUGIN_interface* plint )
      }
      else {
        if( !argvCheck(myargv, &myargc, "-bucket", "" ) ) {
-        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_BUCKET_DSET"); 
+        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_BUCKET_DSET");
        }
        if( !argvCheck(myargv, &myargc, "-alpha", "" ) ) {
         getEnvArgv(myargv, &myargc, "AFNI_3DSVM_ALPHA_FILE");
@@ -662,7 +662,7 @@ static char* ASL_main( PLUGIN_interface* plint )
    if( strcmp(option_tag,"Testing") == 0 ) {
      tstFlag = 1;
    }
-   else { 
+   else {
      if( !argvCheck(myargv, &myargc, "-testvol", "") ) {
        getEnvArgv(myargv, &myargc, "AFNI_3DSVM_TEST_DSET");
      }
@@ -716,7 +716,7 @@ static char* ASL_main( PLUGIN_interface* plint )
           free(err);
           free(errorString);
           freeArgv( myargv, myargc );
-          
+
           return
             "**********************************************\n"
             " 'Stimulus' selected, but no IP entered!        \n"
@@ -734,7 +734,7 @@ static char* ASL_main( PLUGIN_interface* plint )
           free(err);
           free(errorString);
           freeArgv( myargv, myargc );
-          
+
           return
             "**********************************************\n"
             " 'Stimulus' selected, but no PORT entered!      \n"
@@ -767,7 +767,7 @@ static char* ASL_main( PLUGIN_interface* plint )
           free(err);
           free(errorString);
           freeArgv( myargv, myargc );
-          
+
           return
             "**********************************************\n"
   	    " 'Predictions' selected                       \n"
@@ -819,12 +819,12 @@ static char* ASL_main( PLUGIN_interface* plint )
           " You must specify a mask file under           \n"
           " 'Train Params'                               \n"
           "**********************************************\n";
-#if 0     
+#if 0
           "                                              \n"
           " You can also set environment variable:       \n"
           " AFNI_3DSVM_NOMASK=YES                        \n"
           " and restart AFNI                             \n"
-          "**********************************************"; 
+          "**********************************************";
 #endif
 
     }
@@ -857,7 +857,7 @@ static char* ASL_main( PLUGIN_interface* plint )
             errorString);
 
         /* reset global afni callback function */
-        GLOBAL_library.realtime_callback = NULL; 
+        GLOBAL_library.realtime_callback = NULL;
 
         freeArgv( myargv, myargc );
         free(errorString);
@@ -878,16 +878,16 @@ static char* ASL_main( PLUGIN_interface* plint )
   /* --- OFFLINE TRAIN FUNCTIONS ------------- */
   if( mode == TRAIN || mode == TRAIN_AND_TEST ) {
     if( svm_type == CLASSIFICATION ) {
-      
+
       if( train_classification(&model, &learn_parm, &kernel_parm, &kernel_cache_size,
              &options, dsetTrain, dsetMask, dsetMaskArray, myargc, myargv, errorString) ) {
-        
+
         snprintf(err, LONG_STRING,
             "****************************************************************\n"
             "%s\n"
             "****************************************************************",
             errorString);
-        
+
         freeArgv( myargv, myargc );
         return (err);
       }
@@ -895,13 +895,13 @@ static char* ASL_main( PLUGIN_interface* plint )
     else if( svm_type == REGRESSION ) {
       if( train_regression(&model, &learn_parm, &kernel_parm, &kernel_cache_size,
               &options, dsetTrain, dsetMask, dsetMaskArray, myargc, myargv, errorString) ) {
-        
+
         snprintf(err, LONG_STRING,
             "****************************************************************\n"
             "%s\n"
             "****************************************************************",
             errorString);
-        
+
         freeArgv( myargv, myargc );
         return(err);
       }
@@ -916,7 +916,7 @@ static char* ASL_main( PLUGIN_interface* plint )
          "**********************************************";
     }
     if( mode != TRAIN_AND_TEST ) {
-    
+
       /*---- print svm light copyright ----*/
       copyright_notice();
 
@@ -927,7 +927,7 @@ static char* ASL_main( PLUGIN_interface* plint )
 
       free(err);
       freeArgv( myargv, myargc );
-    
+
       printf("  ---3dsvm plugin run done---\n");
     }
   }
@@ -940,17 +940,17 @@ static char* ASL_main( PLUGIN_interface* plint )
 
     if( readAllocateAfniModelAndArrays(&options, &afniModel, dsetModel, &dsetModelArray,
        &dsetMaskArray, &nt_model, &nvox_model, mode, &svm_type, errorString) ) {
-        
+
         snprintf(err, LONG_STRING,
             "****************************************************************\n"
             "%s\n"
             "****************************************************************",
             errorString);
-        
+
         freeArgv( myargv, myargc );
         return(err);
     }
-        
+
     if( svm_type == CLASSIFICATION ) {
       if( test_classification(&options, &model, &afniModel, dsetTest, dsetModelArray,
           dsetMaskArray, nt_model, nvox_model, myargc, myargv, errorString) ) {
@@ -960,7 +960,7 @@ static char* ASL_main( PLUGIN_interface* plint )
             "%s\n"
             "****************************************************************",
             errorString);
-        
+
         freeAfniModelAndArrays( &afniModel, dsetModelArray, dsetMaskArray, nt_model );
         freeArgv( myargv, myargc );
         return(err);
@@ -969,13 +969,13 @@ static char* ASL_main( PLUGIN_interface* plint )
     else if( svm_type == REGRESSION ) {
       if( test_regression(&options, &model, &afniModel, dsetTest, dsetModelArray,
           dsetMaskArray, nt_model, nvox_model, myargc, myargv, errorString) ) {
-        
+
         snprintf(err, LONG_STRING,
             "****************************************************************\n"
             "%s\n"
             "****************************************************************",
             errorString);
-        
+
         freeAfniModelAndArrays( &afniModel, dsetModelArray, dsetMaskArray, nt_model );
         freeArgv( myargv, myargc );
         return(err);
@@ -985,16 +985,16 @@ static char* ASL_main( PLUGIN_interface* plint )
       freeAfniModelAndArrays( &afniModel, dsetModelArray, dsetMaskArray, nt_model );
       freeArgv( myargv, myargc );
       free(err);
-      
+
       return
         "**********************************************\n"
         " svm learn type not supported!                \n"
         "**********************************************";
     }
-    
+
     /*  --- free model variables  --- */
     freeAfniModelAndArrays( &afniModel, dsetModelArray, dsetMaskArray, nt_model );
-    
+
     /*---- print svm light copyright ----*/
     copyright_notice();
 
@@ -1005,9 +1005,9 @@ static char* ASL_main( PLUGIN_interface* plint )
 
     free(err);
     freeArgv( myargv, myargc );
-    
+
     printf("  ---3dsvm plugin run done---\n");
-  
+
   }
 
   return NULL;
@@ -1042,11 +1042,11 @@ void svm_rt_callback(void *junk)
 
   /* -- allocate rt_errorString --- */
   if( (rt_errorString = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
-    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for rt_errorString failed!\n"); 
+    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for rt_errorString failed!\n");
     return;
   }
   if( (err = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
-    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for err failed!\n"); 
+    fprintf(stderr, "CB: 3dsvm: ERROR: Memory allocation for err failed!\n");
     return;
   }
 
@@ -1069,11 +1069,11 @@ void svm_rt_callback(void *junk)
       fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
       snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
       PLUTO_popup_transient( plint , err);
-    
+
       /* free and return */
       free(rt_errorString);
       free(err);
-      
+
       return;
     }
   }
@@ -1095,11 +1095,11 @@ void svm_rt_callback(void *junk)
         fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
-        
+
         /* free and return */
         free(rt_errorString);
         free(err);
-        
+
         return;
       }
 
@@ -1118,12 +1118,12 @@ void svm_rt_callback(void *junk)
         fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
-        
+
         /* free and return */
         free2DT(rt_testArray, 1);
         free(rt_errorString);
         free(err);
-        
+
         return;
       }
 
@@ -1132,12 +1132,12 @@ void svm_rt_callback(void *junk)
         fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
-        
+
         /* free and return */
         free2DT(rt_testArray, 1);
         free(rt_errorString);
         free(err);
-        
+
         return;
       }
 
@@ -1146,7 +1146,7 @@ void svm_rt_callback(void *junk)
       if( GLOBAL_svm_vars.options->predFile[0] ) {
         fprintf(GLOBAL_svm_vars.fp_pred, "%.8g\n", rt_dist);
       }
-      
+
       /* -- send distance to SVM host -- */
       if( GLOBAL_svm_vars.SVM_HOST_OK ) {
         snprintf(SVM_buf, LONG_STRING, "%6.4lf", rt_dist );
@@ -1167,23 +1167,23 @@ void svm_rt_callback(void *junk)
   else if( rts->status == RT_FINISHED ) {
 
     /* reset global afni callback function */
-    GLOBAL_library.realtime_callback = NULL; 
+    GLOBAL_library.realtime_callback = NULL;
 
     /* --- training after data acquisition is finished --- */
     if( GLOBAL_svm_vars.mode == RT_TRAIN ) {
       fprintf(stderr, "CB: 3dsvm: Calling training function...\n");
       if( GLOBAL_svm_vars.svm_type == CLASSIFICATION ) {
-        if( train_classification(&rt_model, 
-               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
+        if( train_classification(&rt_model,
+               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm,
               &GLOBAL_svm_vars.kernel_cache_size,
                GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
                GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
                GLOBAL_svm_vars.myargv, rt_errorString) ) {
-        
+
           fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
           snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
           PLUTO_popup_transient( plint , err);
-        
+
           /* free and return */
           free_rt_svm_vars(&GLOBAL_svm_vars);
           free(rt_errorString);
@@ -1193,13 +1193,13 @@ void svm_rt_callback(void *junk)
         }
       }
       else if( GLOBAL_svm_vars.svm_type == REGRESSION ) {
-        if( train_regression(&rt_model, 
-               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm, 
+        if( train_regression(&rt_model,
+               GLOBAL_svm_vars.learn_parm, GLOBAL_svm_vars.kernel_parm,
                &GLOBAL_svm_vars.kernel_cache_size,
                GLOBAL_svm_vars.options, rts->dset[rts->numdset-1], rt_dsetMask,
                GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.myargc,
                GLOBAL_svm_vars.myargv, rt_errorString) ) {
-        
+
           fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
           snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
           PLUTO_popup_transient( plint , err);
@@ -1210,21 +1210,21 @@ void svm_rt_callback(void *junk)
         free(rt_errorString);
         free(err);
 
-        return; 
+        return;
       }
       else {
-        snprintf(rt_errorString, LONG_STRING, 
+        snprintf(rt_errorString, LONG_STRING,
             "What happend?! Real-time train type is unknown!");
         fprintf(stderr, "CB: 3dsvm: ERROR: %s\n", rt_errorString);
         snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", rt_errorString);
         PLUTO_popup_transient( plint , err);
-        
+
         /* free and return */
         free_rt_svm_vars(&GLOBAL_svm_vars);
         free(rt_errorString);
         free(err);
 
-        return; 
+        return;
       }
     }
     else if( GLOBAL_svm_vars.mode == RT_TEST ) {
@@ -1249,12 +1249,12 @@ void svm_rt_callback(void *junk)
      /* free and return */
      free(rt_errorString);
      free(err);
-        
-     return; 
+
+     return;
   }
 }
 
-int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mode, char *errorString ) 
+int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mode, char *errorString )
 {
 
   THD_3dim_dataset *dsetModel     = NULL;
@@ -1263,7 +1263,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
 
   /* -- some error checking --*/
   if( !ALLOW_realtime ) {
-    snprintf(errorString, LONG_STRING, 
+    snprintf(errorString, LONG_STRING,
         "Initializing 3dsvm real-time plugin failed!\n "
         "    AFNI is not in real-time mode\n\n"
         "    Lunch afni with option: -rt (afni -rt)!");
@@ -1272,8 +1272,8 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
   }
 
   if( (mode != RT_TRAIN) && (mode != RT_TEST) ) {
-    snprintf(errorString, LONG_STRING, 
-        "Initializing 3dsvm real-time plugin failed!\n" 
+    snprintf(errorString, LONG_STRING,
+        "Initializing 3dsvm real-time plugin failed!\n"
         "    3dsvm is not in real-time mode!\n"
         "    Drive the plugin with:\n"
         "      option: -rt_train *OR*\n"
@@ -1282,7 +1282,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
         "    Alternatively you can set environment variable:\n"
         "      AFNI_3DSVM_RT_TRAIN=YES *OR*\n"
         "      AFNI_3DSVM_RT_TEST=YES!");
-#endif 
+#endif
 
     return 1;
   }
@@ -1307,16 +1307,16 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
     return 1;
   }
   for( i=0; i<myargc; ++i ) strncpy(GLOBAL_svm_vars.myargv[i], myargv[i], LONG_STRING);
-  
-  /* --- allocate and initialize svm-light parameters in GLOBAL_svm_vars */ 
+
+  /* --- allocate and initialize svm-light parameters in GLOBAL_svm_vars */
   GLOBAL_svm_vars.learn_parm  = (LEARN_PARM  *)malloc(sizeof(LEARN_PARM));
   GLOBAL_svm_vars.kernel_parm = (KERNEL_PARM *)malloc(sizeof(KERNEL_PARM));
 
-  if( input_parse(GLOBAL_svm_vars.myargc,  GLOBAL_svm_vars.myargv, &verbosity, 
-       &GLOBAL_svm_vars.kernel_cache_size, GLOBAL_svm_vars.learn_parm, 
-        GLOBAL_svm_vars.kernel_parm,       GLOBAL_svm_vars.options, 
+  if( input_parse(GLOBAL_svm_vars.myargc,  GLOBAL_svm_vars.myargv, &verbosity,
+       &GLOBAL_svm_vars.kernel_cache_size, GLOBAL_svm_vars.learn_parm,
+        GLOBAL_svm_vars.kernel_parm,       GLOBAL_svm_vars.options,
        &GLOBAL_svm_vars.mode,             &GLOBAL_svm_vars.svm_type, errorString) ) {
-    
+
     /* we should never get here, input_parse is used to initialize and has
        been already called without any conflicts */
     free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
@@ -1335,14 +1335,14 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
 
   /* --- real-time testing --- */
   if( mode == RT_TEST ) {
-    
+
     /* -- read afni model -- */
     fprintf(stderr, "++  3dsvm: Reading model: %s...\n", options->modelFile);
     if( THD_open_one_dataset(options->modelFile) == NULL ) {
 
       /* TODO: Need some sort of search for a model here!
        *       Don't want to use system calls though...
-       *       Maybe a default name will suffice 
+       *       Maybe a default name will suffice
        */
       snprintf(errorString, LONG_STRING, "Could not locate model dataset: %s!",
           options->modelFile);
@@ -1357,7 +1357,7 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
          &GLOBAL_svm_vars.dsetModelArray, &GLOBAL_svm_vars.dsetMaskArray,
          &GLOBAL_svm_vars.nt_model, &GLOBAL_svm_vars.nvox_model, GLOBAL_svm_vars.mode,
          &GLOBAL_svm_vars.svm_type, errorString) ) {
-      
+
       free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
       return 1;
     }
@@ -1365,9 +1365,9 @@ int init_3dsvm_rt( char **myargv, int myargc, ASLoptions *options, enum modes mo
     /* -- open prediction file */
     if( options->predFile[0] ) {
       snprintf(predictionsFile, LONG_STRING, "%s.1D", options->predFile);
-      
+
       if( (GLOBAL_svm_vars.fp_pred = fopen(predictionsFile, "w")) == NULL ) {
-        snprintf(errorString, LONG_STRING, "Could not open prediction file: %s!", 
+        snprintf(errorString, LONG_STRING, "Could not open prediction file: %s!",
             predictionsFile);
 
           free2c(GLOBAL_svm_vars.myargv, GLOBAL_svm_vars.myargc);
@@ -1428,7 +1428,7 @@ void free_rt_svm_vars( RT_SVM_VARS *svm_vars ) {
     freeArgv(svm_vars->myargv, svm_vars->myargc);
   }
   else if( svm_vars->mode == RT_TEST ) {
-    freeAfniModelAndArrays( svm_vars->afniModel, svm_vars->dsetModelArray, 
+    freeAfniModelAndArrays( svm_vars->afniModel, svm_vars->dsetModelArray,
         svm_vars->dsetMaskArray,svm_vars->nt_model );
     freeArgv(svm_vars->myargv, svm_vars->myargc);
   }
@@ -1451,7 +1451,7 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
       (GLOBAL_svm_vars.dsetModelArray == NULL) ||
       (GLOBAL_svm_vars.dsetMaskArray == NULL) ||
       (GLOBAL_svm_vars.options == NULL) ) {
-    
+
     snprintf(errorString, LONG_STRING, "What happened? Memory gone bad?!");
 
      *dist = 0.0;
@@ -1468,9 +1468,9 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
           (GLOBAL_svm_vars.afniModel)->combName[0] );
     }
   }
-  if( (GLOBAL_svm_vars.svm_type == CLASSIFICATION) || 
+  if( (GLOBAL_svm_vars.svm_type == CLASSIFICATION) ||
       (GLOBAL_svm_vars.svm_type == REGRESSION) )   {
-  
+
     /* ----- FILL SVM-LIGHT STRUCTURES ----- */
     /* --- allocate --- */
     currTestDoc = allocateDOCs(1, nvox_masked);
@@ -1479,11 +1479,11 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
       freeDOCs(currTestDoc, 1);
       return 1;
     }
-  
+
     /* --- fill SVM-LIGHT DOC structure --- */
     afni_dset_to_svm_doc( currTestDoc, currTestArray,GLOBAL_svm_vars.dsetMaskArray,
         1, GLOBAL_svm_vars.nvox_model, nvox_masked );
-  
+
     /* --- fill SVM-LIGHT MODEL structure --- */
     if( get_svm_model(svmlModel, GLOBAL_svm_vars.dsetModelArray,
         GLOBAL_svm_vars.dsetMaskArray, GLOBAL_svm_vars.afniModel,
@@ -1494,9 +1494,9 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
       freeModel(svmlModel, GLOBAL_svm_vars.afniModel, TEST);
       return 1;
     }
-  
+
     updateModel( svmlModel, GLOBAL_svm_vars.afniModel, 0 );
-  
+
     /* ---- CLASSIFY ----- */
     /* --- linear kernel --- */
     if( kernel_type == LINEAR ) {
@@ -1508,11 +1508,11 @@ int test_rt( DatasetType **currTestArray, long nvox_dset, double *dist, char *er
     }
 
     /* --- convert output predictions --- */
-    if( (!GLOBAL_svm_vars.options->noPredScale) && 
-         (GLOBAL_svm_vars.svm_type == CLASSIFICATION) ) { 
+    if( (!GLOBAL_svm_vars.options->noPredScale) &&
+         (GLOBAL_svm_vars.svm_type == CLASSIFICATION) ) {
       *dist = 0.5*( *dist + 1 );
     }
-  
+
     /* ----- FREE MEMORY ----- */
     freeDOCs(currTestDoc, 1);
     freeModel(svmlModel, GLOBAL_svm_vars.afniModel, TEST);
@@ -1531,13 +1531,13 @@ static int drive_3dsvm_plugin ( char *cmdl )
   KERNEL_PARM   kernel_parm;                      /* svm-light kernel parameters */
   LEARN_PARM    learn_parm;                       /* svm-light learn parameters */
   long          kernel_cache_size;                /* svm-light kernel parameter */
-  
-  
+
+
   ASLoptions    options;
   enum modes    mode                   = NOTHING;
   int           svm_type               = CLASSIFICATION;
-  
-  int           myargc                 = 0;   
+
+  int           myargc                 = 0;
   char *        myargv[LONG_STRING];
   int           cmdlArgc               = 0;
   char **       cmdlArgv               = NULL;
@@ -1547,27 +1547,27 @@ static int drive_3dsvm_plugin ( char *cmdl )
   int i = 0;
 
 
-  fprintf(stderr, "++  3dsvm: Driving plugin...\n") ; 
+  fprintf(stderr, "++  3dsvm: Driving plugin...\n") ;
 
   /* -- allocate errorString --- */
   if( (errorString = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
     fprintf(stderr, "**  3dsvm: ERROR: drive_3dsvm_plugin: Allocating errorString "
-        "failed!\n"); 
-    
+        "failed!\n");
+
     return 1;
   }
 
   if( (err = (char *) malloc(LONG_STRING*sizeof(char))) == NULL ) {
     fprintf(stderr, "**  3dsvm: ERROR: drive_3dsvm_plugin: Allocating err "
-        "failed!\n"); 
-    
+        "failed!\n");
+
     return 1;
   }
 
   /* -- get environment or command-line options */
-  /* TODO: It would be great to use the 3dsvm environment variables and 
+  /* TODO: It would be great to use the 3dsvm environment variables and
      update them with the command-line options given as an argument (cmdl) */
-  
+
   if( strlen(cmdl) == 0 ) {
     fprintf(stderr, "++  3dsvm: No command-line given! Reading environment "
       "variables...\n");
@@ -1577,11 +1577,11 @@ static int drive_3dsvm_plugin ( char *cmdl )
     getEnvArgv( myargv, &myargc, "3DSVM_ALL_OPTIONS" );
   }
   else {
-    
+
     /* -- read command line -- */
     fprintf(stderr, "++  3dsvm: Parsing command-line. Ignoring 3dsvm environment variables!\n");
     getAllocateCmdlArgv( cmdl, PROGRAM_NAME, &cmdlArgc, &cmdlArgv );
-    
+
     for( i=0; i<cmdlArgc; i++ )  argvAppend( myargv, &myargc, cmdlArgv[i], "" );
     freeArgv( cmdlArgv, cmdlArgc );
   }
@@ -1592,7 +1592,7 @@ static int drive_3dsvm_plugin ( char *cmdl )
     if( input_parse(myargc, myargv, &verbosity, &kernel_cache_size,
           &learn_parm, &kernel_parm, &options, &mode, &svm_type,
           errorString) ) {
-    
+
       fprintf(stderr, "**  3dsvm: ERROR: %s\n", errorString);
       snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", errorString);
       PLUTO_popup_transient( plint , err);
@@ -1602,13 +1602,13 @@ static int drive_3dsvm_plugin ( char *cmdl )
       return 1;
     }
   }
-  
+
   /* -- initialize 3dsvm for real-time action -- */
   if( init_3dsvm_rt(myargv, myargc, &options, mode, errorString) ) {
-    fprintf(stderr, "**  3dsvm: ERROR: %s\n", errorString); 
-    
+    fprintf(stderr, "**  3dsvm: ERROR: %s\n", errorString);
+
     /* reset global afni callback function */
-    GLOBAL_library.realtime_callback = NULL; 
+    GLOBAL_library.realtime_callback = NULL;
 
     snprintf(err, LONG_STRING, "3dsvm plugin:\n ERROR: %s\n", errorString);
     PLUTO_popup_transient( plint , err);

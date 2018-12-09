@@ -31,7 +31,7 @@ extern struct {
 
 
 
-/* Subroutine */ int pwrit_(real *x, real *y, char *ch, integer *nch, integer 
+/* Subroutine */ int pwrit_(real *x, real *y, char *ch, integer *nch, integer
 	*isiz, integer *ior, integer *icent, ftnlen ch_len)
 {
     /* System generated locals */
@@ -100,7 +100,7 @@ extern struct {
 	zzphys_(&xx, &yy);
     }
 
-/*  Get no. of characters in string.  Special option 999 must be checked. 
+/*  Get no. of characters in string.  Special option 999 must be checked.
 */
 
     nchar = abs(*nch);
@@ -120,7 +120,7 @@ L20:
 /*  location of lower left corner. */
 
     if (*icent != -2) {
-/*  Move from center of character down to bottom (aspect ratio = 7/6) 
+/*  Move from center of character down to bottom (aspect ratio = 7/6)
 */
 	xx += dy * .5833333f;
 	yy -= dx * .5833333f;

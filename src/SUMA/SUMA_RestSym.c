@@ -48,7 +48,7 @@ static void vstep_print(void)
 }
 
 /*----------------------------------------------------------------------------*/
-void RestSymHelp(void) 
+void RestSymHelp(void)
 {
      printf(
       "Usage: RestSym [options]\n"
@@ -841,7 +841,7 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
                               DList *DsetList,
                               SUMA_DSET *sdsetv[],
                               SUMA_DSET *mxsets[],
-                              NI_element *nel) 
+                              NI_element *nel)
 {
    static char FuncName[]={"SUMA_RestSym_Dsets"};
    static char mxset_ID[2][50]={"\0", "\0"};
@@ -853,16 +853,16 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
                             "BBB_Delta" , "BBB_Zscore"  } ;
    NI_str_array *labar=NULL ;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
-   if (target_name && 
+
+   if (target_name &&
        giset->sdset_ID[0][0] != '\0' && giset->sdset_ID[1][0] != '\0') {
        SUMA_S_Warn("Hello anew from 3dGroupInCorr, \n"
                    "Attempting to reuse previous setup...");
        goto CHECK_DSET_AND_OVERLAYS;
    }
-   
+
    if (target_name) { /* Brand new init, search/create by name */
       SUMA_S_Notev("Brand new init, target_name=%s\n"
                    "SOv = [%p %p]\n"
@@ -870,7 +870,7 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
       if (!nel) {
          SUMA_S_Err("Need GICOR setup nel for creating new dsets");
          SUMA_RETURN(NOPE);
-      }  
+      }
       /* Form the names of the dsets to be created */
       if (SOv[1]) { /* have two surfaces */
          targetv[0] = SUMA_append_string(target_name,".Left");
@@ -888,13 +888,13 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
             SUMA_LHv("Working %s\n", targetv[i]);
             /* dset names */
             dset_namev[i] = SUMA_append_string(targetv[i], SOv[i]->idcode_str);
-            sdsetv[i] = SUMA_CreateDsetPointer (dset_namev[i], 
+            sdsetv[i] = SUMA_CreateDsetPointer (dset_namev[i],
                                         SUMA_NODE_BUCKET,
                                         NULL,
                                         SOv[i]->idcode_str,
                                         SOv[i]->N_Node);
             sprintf(giset->sdset_ID[i],"%s", SDSET_ID(sdsetv[i]));
-            
+
             /* insert that element into DaList */
             if (!SUMA_InsertDsetPointer(&sdsetv[i], DsetList, 0)) {
                SUMA_SL_Err("Failed to insert dset into list");
@@ -904,18 +904,18 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
             /* add the columns */
             Ti = (int *) SUMA_calloc(SDSET_VECLEN(sdsetv[i]), sizeof(int));
             for (ii=0; ii <SDSET_VECLEN(sdsetv[i]); ++ii) Ti[ii]=ii;
-            SUMA_AddDsetNelCol (sdsetv[i], "node index", 
+            SUMA_AddDsetNelCol (sdsetv[i], "node index",
                                 SUMA_NODE_INDEX, Ti, NULL, 1);
             SUMA_free(Ti); Ti=NULL;
-            
-            atr = NI_get_attribute( nel , "target_nvals" ) ;  
+
+            atr = NI_get_attribute( nel , "target_nvals" ) ;
                if( atr == NULL )        SUMA_GIQUIT;
-            nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);     
-         
+            nvals = (int)strtod(atr,NULL) ;  nvals = MAX(1,nvals);
+
             atr = NI_get_attribute( nel , "target_labels" ) ;
             if( atr != NULL )
                labar = NI_decode_string_list( atr , ";" ) ;
-            
+
             for( vv=0 ; vv < nvals ; vv++ ){
                if (labar != NULL && vv < labar->num) atr = labar->str[vv];
                else if (vv < 6) {
@@ -928,23 +928,23 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
                                 SUMA_NODE_FLOAT, NULL, NULL, 1);
                } else { /* zscore */
                   SUMA_AddDsetNelCol (sdsetv[i], atr,
-                                SUMA_NODE_ZSCORE, NULL, NULL, 1);  
+                                SUMA_NODE_ZSCORE, NULL, NULL, 1);
                }
             }
             if (labar) SUMA_free_NI_str_array(labar); labar=NULL;
             SUMA_free(dset_namev[i]); dset_namev[i]=NULL;
             SUMA_free(targetv[i]); targetv[i]=NULL;
-         
+
             /* now create the maxsym output */
             SUMA_LH("Output time");
             dset_namev[i] = SUMA_append_string(targetmv[i], SOv[i]->idcode_str);
-            mxsets[i] = SUMA_CreateDsetPointer (dset_namev[i], 
+            mxsets[i] = SUMA_CreateDsetPointer (dset_namev[i],
                                         SUMA_NODE_BUCKET,
                                         NULL,
                                         SOv[i]->idcode_str,
                                         SOv[i]->N_Node);
             sprintf(mxset_ID[i],"%s", SDSET_ID(mxsets[i]));
-            
+
             /* insert that element into DaList */
             if (!SUMA_InsertDsetPointer(&mxsets[i], DsetList, 0)) {
                SUMA_SL_Err("Failed to insert dset into list");
@@ -954,7 +954,7 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
             /* add the columns */
             Ti = (int *) SUMA_calloc(SDSET_VECLEN(mxsets[i]), sizeof(int));
             for (ii=0; ii <SDSET_VECLEN(mxsets[i]); ++ii) Ti[ii]=ii;
-            SUMA_AddDsetNelCol (mxsets[i], "node index", 
+            SUMA_AddDsetNelCol (mxsets[i], "node index",
                                 SUMA_NODE_INDEX, Ti, NULL, 1);
             SUMA_free(Ti); Ti=NULL;
             SUMA_AddDsetNelCol (mxsets[i], "LabelOfMax",
@@ -965,11 +965,11 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
             SUMA_free(targetmv[i]); targetmv[i]=NULL;
          }
       }
-      
+
       /* Done with brand new init */
       SUMA_RETURN(YUP);
-   } 
-   
+   }
+
    CHECK_DSET_AND_OVERLAYS:
    SUMA_LH("Checking Dset and Overlays.\n");
 
@@ -999,32 +999,32 @@ SUMA_Boolean SUMA_RestSym_Dsets(SUMA_SurfaceObject *SOv[],
          }
       }
    }
-   
-   /* at this point, we have the relevant dsets in sdsetv, 
+
+   /* at this point, we have the relevant dsets in sdsetv,
       and mxsets */
    SUMA_RETURN(YUP);
 }
 /*! find surfaces appropriate for giset */
-SUMA_Boolean SUMA_RestSym_Surfaces(GICOR_setup *giset, SUMA_SurfaceObject *SOv[]) 
+SUMA_Boolean SUMA_RestSym_Surfaces(GICOR_setup *giset, SUMA_SurfaceObject *SOv[])
 {
-   static char FuncName[]={"SUMA_RestSym_Surfaces"};  
-   
+   static char FuncName[]={"SUMA_RestSym_Surfaces"};
+
    SUMA_ENTRY;
-   
+
    if (!(SOv[0] = SUMA_FindSOp_inDOv_from_N_Node(
-                        giset->nnode_domain[0], 
-                        giset->nnode_domain[1] ? SUMA_LEFT:SUMA_NO_SIDE, 
-                        1, 1, 
+                        giset->nnode_domain[0],
+                        giset->nnode_domain[1] ? SUMA_LEFT:SUMA_NO_SIDE,
+                        1, 1,
                         SUMAg_DOv, SUMAg_N_DOv))) {
       SUMA_S_Errv("Could not find domain parent for a domain of %d nodes\n",
                giset->nnode_domain[0]);
       SUMA_RETURN(NOPE);
    }
-   
+
    if (giset->nnode_domain[1]) {
       if (!(SOv[1]=SUMA_FindSOp_inDOv_from_N_Node(
-                           giset->nnode_domain[1], SUMA_RIGHT, 
-                           1, 1, 
+                           giset->nnode_domain[1], SUMA_RIGHT,
+                           1, 1,
                            SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv("Could not find domain parent for a "
                      "RH domain of %d nodes\n",
@@ -1032,8 +1032,8 @@ SUMA_Boolean SUMA_RestSym_Surfaces(GICOR_setup *giset, SUMA_SurfaceObject *SOv[]
          SUMA_RETURN(NOPE);
       }
    }
-   
-   SUMA_RETURN(YUP); 
+
+   SUMA_RETURN(YUP);
 }
 SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
 {
@@ -1046,11 +1046,11 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
    int nnode_mask[2]={0,0};
    SUMA_SurfaceObject *SOv[2]={NULL, NULL};
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    /* fetch the giset struct */
-   giset = SUMAg_CF->giset; 
+   giset = SUMAg_CF->giset;
    if( giset != NULL && giset->ready ) SUMA_RETURN(YUP) ;
 
    if( giset == NULL ){
@@ -1059,24 +1059,24 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
    } else {
      memset(giset, 0, sizeof(GICOR_setup)) ;
    }
-   
+
    giset->ns    = nsg ;  /* save socket for I/O back to 3dGroupInCorr */
    giset->ready = 0 ;    /* not ready yet */
 
    /* set various parameters from the NIML header */
 
-   atr = NI_get_attribute( nel , "ndset_A" ) ; 
+   atr = NI_get_attribute( nel , "ndset_A" ) ;
       if( atr == NULL )        SUMA_GIQUIT;
-   giset->ndset_A = (int)strtod(atr,NULL) ;    
+   giset->ndset_A = (int)strtod(atr,NULL) ;
       if( giset->ndset_A < 2 ) SUMA_GIQUIT;
 
-   atr = NI_get_attribute( nel , "ndset_B" ) ; 
+   atr = NI_get_attribute( nel , "ndset_B" ) ;
       if( atr == NULL )        SUMA_GIQUIT;
    giset->ndset_B = (int)strtod(atr,NULL) ;
 
-   atr = NI_get_attribute( nel , "nvec" ) ;  
+   atr = NI_get_attribute( nel , "nvec" ) ;
       if( atr == NULL )        SUMA_GIQUIT;
-   giset->nvec = (int)strtod(atr,NULL) ;       
+   giset->nvec = (int)strtod(atr,NULL) ;
       if( giset->nvec < 2 )    SUMA_GIQUIT;
 
    atr = NI_get_attribute( nel , "seedrad" ) ;
@@ -1086,17 +1086,17 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
    if( atr != NULL ) giset->ttest_opcode = (int)strtod(atr,NULL) ;
 
    /* create output dataset(s), to be filled in from 3dGroupInCorr data later */
-               
-   atr = NI_get_attribute( nel , "geometry_string" ); 
+
+   atr = NI_get_attribute( nel , "geometry_string" );
       if( atr == NULL ) {
          SUMA_S_Err("No geometry string");
          SUMA_RETURN(NOPE);
       }
    pre = NI_get_attribute( nel , "target_name" ) ;
    if( pre == NULL || *pre == '\0' ) pre = "GICorrelletto" ;
-   
+
    /* How many dsets? */
-   SUMA_LHv("attr=%s\nval0=%s,val1=%s\n", 
+   SUMA_LHv("attr=%s\nval0=%s,val1=%s\n",
             NI_get_attribute(nel,"LRpair_nnode"),
             SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",0),
             SUMA_NI_get_ith_string(NI_get_attribute(nel,"LRpair_nnode"),",",1));
@@ -1110,10 +1110,10 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
          SUMA_free(s); s = NULL;
       }
    } else {
-      giset->nnode_domain[0] = giset->nvec; 
-      giset->nnode_domain[1] = 0; 
+      giset->nnode_domain[0] = giset->nvec;
+      giset->nnode_domain[1] = 0;
    }
-               
+
    if ((s=SUMA_NI_get_ith_string(
                NI_get_attribute(nel,"LRpair_ninmask"),",",0))) {
       giset->nnode_mask[0] = (int)strtol(s, NULL, 10);
@@ -1124,20 +1124,20 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
          SUMA_free(s); s = NULL;
       }
    } else {
-      giset->nnode_mask[0] = giset->nnode_domain[0]; 
+      giset->nnode_mask[0] = giset->nnode_domain[0];
       giset->nnode_mask[1] = giset->nnode_domain[1];
    }
-   
+
    SUMA_LH("Look for surfaces");
    /* Now find surfaces that can be the domain */
    if (!SUMA_RestSym_Surfaces(giset, SOv)) {
       SUMA_S_Err("Failed to find surfaces for giset");
       SUMA_RETURN(NOPE);
    }
-   
+
    /* Now create appropriate dsets */
    SUMA_LH("Look for dsets");
-   if (!SUMA_RestSym_Dsets(SOv, giset, pre, SUMAg_CF->DsetList, 
+   if (!SUMA_RestSym_Dsets(SOv, giset, pre, SUMAg_CF->DsetList,
                          sdsetv, mxsets, nel)) {
       SUMA_S_Err("Failed to find/create dsets for giset");
       SUMA_RETURN(NOPE);
@@ -1149,21 +1149,21 @@ SUMA_Boolean SUMA_RestSym_setup_func( NI_stream nsg , NI_element *nel )
    /* list of voxels to expect from each 3dGroupInCorr data */
    if( nel->vec_len == 0 || nel->vec_num == 0 || nel->vec == NULL ){  /* all */
      giset->ivec = NULL ; giset->nivec = 0 ;
-      INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ; 
+      INFO_message("DEBUG: GICOR_setup_func has ivec=NULL") ;
    } else {                                     /* make index list of voxels */
      int ii , nn , *iv=(int *)nel->vec[0] ;
      giset->ivec = (int *)calloc(sizeof(int),giset->nvec) ;
      nn = MIN(giset->nvec,nel->vec_len) ; giset->nivec = nn ;
      for( ii=0 ; ii < nn ; ii++ ) giset->ivec[ii] = iv[ii] ;
-     INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ; 
+     INFO_message("DEBUG: GICOR_setup_func has ivec=int[%d]",nn) ;
    }
 
    giset->ready = 1 ;
-   
+
    if (LocalHead) {
       SUMA_Show_GISET(giset, NULL, 0);
    }
-     
+
    SUMA_RETURN(YUP) ;
 }
 
@@ -1197,9 +1197,9 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
    SUMA_DSET *mxsets[2]={NULL, NULL};
    MAXINFO mxinf[2];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    SUMA_LHv("In at node %d\n", inode);
 
    if( nel == NULL || nel->vec_num < 2 ){  /* should never happen */
@@ -1211,7 +1211,7 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
       SUMA_SLP_Err("Number of sub-bricks not multiple of two!");
       SUMA_RETURN(NOPE) ;
    }
-   
+
    if( giset == NULL ||
        !giset->ready   ){   /* should not happen */
 
@@ -1228,12 +1228,12 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
       SUMA_S_Err("Failed to find surfaces for giset");
       SUMA_RETURN(NOPE);
    }
-   if (!SUMA_RestSym_Dsets(SOv, giset, NULL, SUMAg_CF->DsetList, 
+   if (!SUMA_RestSym_Dsets(SOv, giset, NULL, SUMAg_CF->DsetList,
                          sdsetv, mxsets, NULL)) {
       SUMA_S_Errv("Failed to find/create dsets for giset, inode = %d\n", inode);
       SUMA_RETURN(NOPE);
    }
-   
+
    /* copy NIML data into dataset */
 
    SUMA_LH("Populating the dset in question");
@@ -1253,7 +1253,7 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
             if (LocalHead) {
                sbuf=SUMA_ShowMeSome(dsdar,
                            SUMA_float, SDSET_VECLEN(sdsetv[id]),10,"dsdar:\n");
-               SUMA_LHv("pre copy surf%d %s\n",id, sbuf); 
+               SUMA_LHv("pre copy surf%d %s\n",id, sbuf);
                SUMA_free(sbuf); sbuf=NULL;
             }
 
@@ -1266,23 +1266,23 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
                }
                if (id == 0) {
                   nn = MAX(0, nvec-giset->nnode_domain[1]);
-                  SUMA_LHv("Copying %d values from neldar, surf%d\n", 
+                  SUMA_LHv("Copying %d values from neldar, surf%d\n",
                            nn, id);
-                  if (LocalHead) {   
+                  if (LocalHead) {
                      sbuf=SUMA_ShowMeSome(neldar,SUMA_float, nn,10,"neldar:\n");
-                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf);
                      SUMA_free(sbuf); sbuf=NULL;
                   }
                   memcpy(dsdar,neldar,sizeof(float)*nn) ;
                   memcpy(dszar,nelzar,sizeof(float)*nn) ;
                } else {
                   nn = MAX(0, nvec-giset->nnode_domain[0]);
-                  SUMA_LHv("Copying %d values from neldar+%d, surf%d\n", 
+                  SUMA_LHv("Copying %d values from neldar+%d, surf%d\n",
                            nn, giset->nnode_domain[0], id);
                   if (LocalHead) {
                      sbuf=SUMA_ShowMeSome((neldar+giset->nnode_domain[0]),
                                           SUMA_float, nn, 10,"neldar:\n");
-                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf); 
+                     SUMA_LHv("from the tube surf%d: %s\n", id, sbuf);
                      SUMA_free(sbuf); sbuf=NULL;
                   }
                   memcpy(dsdar,(neldar+giset->nnode_domain[0]),
@@ -1299,7 +1299,7 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
                }
                if (LocalHead) {
                   sbuf=SUMA_ShowMeSome(dsdar,SUMA_float, nn, 10,"dsdar:\n");
-                  SUMA_LHv("post copy surf%d %s\n", id, sbuf); 
+                  SUMA_LHv("post copy surf%d %s\n", id, sbuf);
                   SUMA_free(sbuf); sbuf=NULL;
                }
             } else { /* Have index vector */
@@ -1307,7 +1307,7 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
                nn = MIN( giset->nnode_mask[id] , nvec ) ;
                if (id == 0) {
                   for( kk=0 ; kk < nn ; kk++ ){
-                     dsdar[ivec[kk]] = neldar[kk] ; 
+                     dsdar[ivec[kk]] = neldar[kk] ;
                      dszar[ivec[kk]] = nelzar[kk] ;
                      if (dsdar[ivec[kk]] > farmx[ivec[kk]]) {
                         farmx[ivec[kk]] = dsdar[ivec[kk]];
@@ -1317,9 +1317,9 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
                } else {
                   for( kk=0 ; kk < nn ; kk++ ){
                      kko = ivec[kk]-giset->nnode_domain[0];
-                     dsdar[kko] = neldar[kk] ; 
+                     dsdar[kko] = neldar[kk] ;
                      dszar[kko] = nelzar[kk] ;
-                     if (dsdar[kko] > 
+                     if (dsdar[kko] >
                                    farmx[kko]) {
                         farmx[kko] = dsdar[kko];
                         farlb[kko] = flg;
@@ -1341,14 +1341,14 @@ SUMA_Boolean RestSym_Proc (NI_element *nel, int inode, int flg, int inode_dbg)
                                            write function might change it */
       SUMA_WriteDset_s(sout,   sdsetv[0], SUMA_ASCII_NIML, 1, 1);
       NI_set_attribute (sdsetv[0]->ngr, "self_idcode", sid);
-      
+
       sprintf(sout,"CorrFrom.leftseed%d.rh", inode_dbg);
       strcpy(sid, SDSET_ID(sdsetv[1]));
       SUMA_WriteDset_s(sout, sdsetv[1], SUMA_ASCII_NIML, 1, 1);
       NI_set_attribute (sdsetv[1]->ngr, "self_idcode", sid);
    }
-   
-   
+
+
    SUMA_RETURN(YUP);
 }
 /*--------------------------------------------------------------------------*/
@@ -1406,10 +1406,10 @@ int main( int argc , char *argv[] )
    SUMA_DSET *mxsets[2]={NULL, NULL};
    byte *nmask=NULL;
    int N_nmask=0;
-   char *nmaskname = NULL; 
+   char *nmaskname = NULL;
    char *prefix=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
 #ifdef COVTEST
    float *ctarA=NULL , *ctarB=NULL ; char *ctnam ;
 #endif
@@ -1419,17 +1419,17 @@ int main( int argc , char *argv[] )
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ) {
    RestSymHelp();
    }
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-   
-   
+
+
    /*-- process command line options --*/
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-s;-o;-talk;-mask;-dset;");
-      
-   
+
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -1437,7 +1437,7 @@ int main( int argc , char *argv[] )
    }
 
    SUMA_LHv("Loading surface %d specs...", N_Spec);
-   if (!SUMA_LoadSpec_eng (&Spec[0], SUMAg_DOv, &SUMAg_N_DOv, 
+   if (!SUMA_LoadSpec_eng (&Spec[0], SUMAg_DOv, &SUMAg_N_DOv,
                                           NULL, 0, SUMAg_CF->DsetList)) {
 			            fprintf( SUMA_STDERR,
                               "Error %s: Failed in SUMA_LoadSpec.\n", FuncName);
@@ -1445,9 +1445,9 @@ int main( int argc , char *argv[] )
 		            }
    if (SUMAg_N_DOv<2) {
       ERROR_exit("DOH!");
-   }  
+   }
    if (LocalHead) SUMA_Show_DOv (SUMAg_DOv, SUMAg_N_DOv, NULL);
-   
+
    SUMA_LH("Parsing other opts...");
    nopt = 1 ;
    while( nopt < argc ){
@@ -1476,17 +1476,17 @@ int main( int argc , char *argv[] )
      }
 
      if( strcmp(argv[nopt],"-prefix") == 0 ){
-       if( ++nopt >= argc ) 
+       if( ++nopt >= argc )
             ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
        prefix =  argv[nopt] ;
        nopt++ ; continue ;
      }
 
      if( strcmp(argv[nopt],"-nmask") == 0 ){
-         if( ++nopt >= argc ) 
+         if( ++nopt >= argc )
             ERROR_exit("need 1 argument after option '%s'",argv[nopt-1]) ;
          nmaskname = argv[nopt] ;
-       nopt++ ; continue ;       
+       nopt++ ; continue ;
      }
 
 #if 0
@@ -2027,9 +2027,9 @@ int main( int argc , char *argv[] )
       exit(1);
    }
    if (nmaskname) {
-      if (!(nmask = SUMA_load_1D_n_mask(nmaskname, shd_AAA->nnode[0], NULL, 
+      if (!(nmask = SUMA_load_1D_n_mask(nmaskname, shd_AAA->nnode[0], NULL,
                                  "", &N_nmask))) {
-         SUMA_S_Errv("Bad node mask %s\n", nmaskname);                          
+         SUMA_S_Errv("Bad node mask %s\n", nmaskname);
          exit(1);
       }
       SUMA_S_Notev("Have %d nodes in mask file %s\n", N_nmask, nmaskname);
@@ -2038,12 +2038,12 @@ int main( int argc , char *argv[] )
       SUMA_S_Notev("Processing all %d nodes of left hemisphere\n",
                   N_nmask);
    }
-#endif   
+#endif
    if( nn < 0 ){
      ERROR_exit("Can't send setup data to %s!?",pname) ;
    }
    NI_free_element(nelcmd) ;
-   
+
    /** make neighborhood struct for seedrad usage **/
 
    if( seedrad >= dmin ){
@@ -2094,7 +2094,7 @@ int main( int argc , char *argv[] )
 #endif
 
    /** now wait for commands from AFNI */
-   
+
    inode = 0;
    btim_all = NI_clock_time() ;
    while(inode < shd_AAA->nnode[0]){  /* loop forever? */
@@ -2102,7 +2102,7 @@ int main( int argc , char *argv[] )
          ++inode; /* skip */
          continue;
       }
-#ifdef NOZ     
+#ifdef NOZ
      /*  nelcmd = NI_read_element( GI_stream , 333 ) ; */ /* get command? */
      /* DELETED */
 #endif
@@ -2121,7 +2121,7 @@ int main( int argc , char *argv[] )
 #else
    voxijk = inode;
    voxind = IJK_TO_INDEX(shd_AAA,inode) ;
-   
+
 #endif
      /***** compute the result *****/
 
@@ -2172,8 +2172,8 @@ int main( int argc , char *argv[] )
        GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
                                   ndset_BBB , dotprod_BBB , neldar,nelzar ) ;
 
-       
-       /* 1-sample results for the 2-sample case? */       
+
+       /* 1-sample results for the 2-sample case? */
        if( dosix ){
          if( verb > 3 ) ININFO_message(" start 1-sample t-test-izing for %s",label_AAA) ;
          GRINCOR_many_ttest( nvec , ndset_AAA , dotprod_AAA ,
@@ -2223,14 +2223,14 @@ int main( int argc , char *argv[] )
        ININFO_message(" Done with RestSym_Proc ") ;
 
      nsend++ ;  /* number of results sent back so far */
-   
+
    if (! (nsend % 100) ) {
       float ffr;
       ctim = NI_clock_time() ;
       ffr = (ctim-btim_all)/3600000.0/(float)nsend;
       ININFO_message(" %d/%d (%f%%) in %f minutes, this inode = %d\n"
                      "Total expected completion time %f hours.\n"
-                     "Remaining completion time: %f hours (%f minutes)\n", 
+                     "Remaining completion time: %f hours (%f minutes)\n",
             nsend, N_nmask, (float)nsend/N_nmask*100.0,
                      (ctim-btim_all)/60000.0, inode,
                      ffr*(float)N_nmask,
@@ -2244,7 +2244,7 @@ int main( int argc , char *argv[] )
 
 GetOutOfDodge :
    SUMA_S_Note("All done, will write results");
-   if (!SUMA_RestSym_Dsets(SOv, SUMAg_CF->giset, NULL, SUMAg_CF->DsetList, 
+   if (!SUMA_RestSym_Dsets(SOv, SUMAg_CF->giset, NULL, SUMAg_CF->DsetList,
                          sdsetv, mxsets, NULL)) {
       SUMA_S_Err("Failed to find/create dsets for giset");
       SUMA_RETURN(NOPE);
@@ -2252,7 +2252,7 @@ GetOutOfDodge :
    /* update header attributes */
    SUMA_UpdateDsetColRange(mxsets[0],-1);
    SUMA_UpdateDsetColRange(mxsets[1],-1);
-   
+
    /* write out results */
    if (!prefix) prefix = "Max";
    sprintf(buf,"%s.lh", prefix);

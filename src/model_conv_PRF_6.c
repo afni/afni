@@ -31,15 +31,15 @@
                        cos^2(theta) + R^2*sin^2(theta)
                   A =  -------------------------------
                              2 * R^2 * sigma^2
-                        
+
                            (1-R^2) * sin(2theta)
                   B =      ---------------------
                              4 * R^2 * sigma^2
-                        
+
                        sin^2(theta) + R^2*cos^2(theta)
                   C =  -------------------------------
                              2 * R^2 * sigma^2
-                        
+
 
         2. integrate (dot product) over binary stimulus image per time point
            -> pRF response r(t)
@@ -63,7 +63,7 @@
 
    R. Reynolds      June, 2014
 ******************************************************************************/
-   
+
 #include "NLfit_model.h"
 
 static int     refnum    = 0;      /* # pts in refts */
@@ -145,11 +145,11 @@ static int set_env_vars(void)
 {
    genv_conv_ref = my_getenv("AFNI_CONVMODEL_REF");       /* reference file */
    if( genv_conv_ref ) fprintf(stderr,"-- PRF: have REF %s\n", genv_conv_ref);
-   else fprintf(stderr,"** model PRF: AFNI_CONVMODEL_REF is not set\n"); 
+   else fprintf(stderr,"** model PRF: AFNI_CONVMODEL_REF is not set\n");
 
    genv_prf_stim = my_getenv("AFNI_MODEL_PRF_STIM_DSET"); /* visual stim */
    if( genv_prf_stim ) fprintf(stderr,"-- PRF: have stim %s\n", genv_prf_stim);
-   else fprintf(stderr,"** model PRF: AFNI_MODEL_PRF_STIM_DSET is not set\n"); 
+   else fprintf(stderr,"** model PRF: AFNI_MODEL_PRF_STIM_DSET is not set\n");
 
    genv_diter = (int)AFNI_numenv_def("AFNI_MODEL_DITER", -1);
    genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 0);
@@ -169,7 +169,7 @@ static int set_env_vars(void)
                                  genv_theta_nsteps);
    if( genv_on_grid )
       fprintf(stderr, "-- PRF: sigma_max = %f, nsteps = %d,"
-                      " ratio_steps = %d, theta_steps = %d\n", 
+                      " ratio_steps = %d, theta_steps = %d\n",
               genv_sigma_max, genv_sigma_nsteps,
               genv_sigma_ratio_nsteps, genv_theta_nsteps);
 
@@ -183,7 +183,7 @@ static int set_env_vars(void)
    return 0;
 }
 /* ---------------------------------------------------------------------- */
-   
+
 
 /*----------------------------------------------------------------------
    Function to set the reference time series, with which the
@@ -387,7 +387,7 @@ static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
    float            * fdata, * foffset, sigma;
    int                nx, ny, nt;
    int                vind, sind;
- 
+
    /* test required inputs */
    if( !dset ) return NULL;
    if( genv_sigma_max <= 0.0 || genv_sigma_max > 1.0 || genv_sigma_nsteps<=1 ){
@@ -400,7 +400,7 @@ static THD_3dim_dataset * convert_to_blurred_masks(THD_3dim_dataset * dset)
       fprintf(stderr,"** invalid stim NZ = %d\n", DSET_NZ(dset));
       return NULL;
    }
-                              
+
    /* create initial copy */
    dnew = EDIT_empty_copy(dset);
    if( !dnew ) return NULL;
@@ -837,7 +837,7 @@ MODEL_interface * initialize_model ()
 
          g(x,y) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
 
-  The resulting returned time series will be convolved in the 
+  The resulting returned time series will be convolved in the
   parent function.
 */
 static int signal_model
@@ -874,7 +874,7 @@ static int signal_model
   if( maxind > tmpmax ) maxind = tmpmax;
   if( maxind == 0 ) return 0;
 
-  if( debug ) 
+  if( debug )
       fprintf( stderr,"-d NT orig=%d, applied=%d\n", ts_length, maxind);
 
   /* time array must be ordered according to stim dset */

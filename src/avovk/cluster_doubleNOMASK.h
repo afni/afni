@@ -6,7 +6,7 @@
  * Human Genome Center, Institute of Medical Science, University of Tokyo,
  * 4-6-1 Shirokanedai, Minato-ku, Tokyo 108-8639, Japan.
  * Contact: mdehoon 'AT' gsc.riken.jp
- * 
+ *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation with or without modifications and for any purpose and
  * without fee is hereby granted, provided that any copyright notices
@@ -15,7 +15,7 @@
  * names of the contributors or copyright holders not be used in
  * advertising or publicity pertaining to distribution of the software
  * without specific prior permission.
- * 
+ *
  * THE CONTRIBUTORS AND COPYRIGHT HOLDERS OF THIS SOFTWARE DISCLAIM ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL THE
@@ -24,10 +24,10 @@
  * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE
  * OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  */
 
-#ifndef CALL 
+#ifndef CALL
 # define CALL
 #endif
 
@@ -44,7 +44,7 @@
 
 
 /* Chapter 2 */
-double CALL clusterdistance (int nrows, int ncolumns, double** data, 
+double CALL clusterdistance (int nrows, int ncolumns, double** data,
   double weight[], int n1, int n2, int index1[], int index2[], char dist,
   char method, int transpose);
 double** CALL distancematrix (int ngenes, int ndata, double** data,
@@ -52,7 +52,7 @@ double** CALL distancematrix (int ngenes, int ndata, double** data,
 
 /* Chapter 3 */
 int getclustercentroids(int nclusters, int nrows, int ncolumns,
-  double** data, int clusterid[], double** cdata, 
+  double** data, int clusterid[], double** cdata,
   int transpose, char method);
 void getclustermedoids(int nclusters, int nelements, double** distance,
   int clusterid[], int centroids[], double errors[]);
@@ -74,12 +74,12 @@ typedef struct {int left; int right; double distance;} Node;
  * between the two subnodes that were joined.
  */
 
-Node* CALL treecluster (int nrows, int ncolumns, double** data, 
+Node* CALL treecluster (int nrows, int ncolumns, double** data,
   double weight[], int transpose, char dist, char method, double** distmatrix);
 void cuttree (int nelements, Node* tree, int nclusters, int clusterid[]);
 
-/* Chapter 5 
-void CALL somcluster (int nrows, int ncolumns, double** data, 
+/* Chapter 5
+void CALL somcluster (int nrows, int ncolumns, double** data,
   const double weight[], int transpose, int nxnodes, int nynodes,
   double inittau, int niter, char dist, double*** celldata,
   int clusterid[][2]);
@@ -92,5 +92,5 @@ void CALL sort(int n, const double data[], int index[]);
 double CALL mean(int n, double x[]);
 double CALL median (int n, double x[]);
 
-double* calculate_weights(int nrows, int ncolumns, double** data, 
+double* calculate_weights(int nrows, int ncolumns, double** data,
   double weights[], int transpose, char dist, double cutoff, double exponent);

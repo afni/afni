@@ -327,7 +327,7 @@ processEvents(void)
             /* Stray mouse events.  Ignore. */
           }
         } else {
-          /* Window might have been destroyed and all the 
+          /* Window might have been destroyed and all the
              events for the window may not yet be received. */
         }
       }
@@ -735,7 +735,7 @@ processWindowWorkList(GLUTwindow * window)
 
   /* Optimization: most of the time, the work to do is a
      redisplay and not these other types of work.  Check for
-     the following cases as a group to before checking each one 
+     the following cases as a group to before checking each one
      individually one by one. This saves about 25 MIPS
      instructions in the common redisplay only case. */
   if (workMask & (GLUT_EVENT_MASK_WORK | GLUT_DEVICE_MASK_WORK |
@@ -776,7 +776,7 @@ processWindowWorkList(GLUTwindow * window)
     if (workMask & GLUT_DEVICE_MASK_WORK) {
       __glutUpdateInputDeviceMaskFunc(window);
     }
-    /* Be sure to configure window *BEFORE* map window is done. 
+    /* Be sure to configure window *BEFORE* map window is done.
      */
     if (workMask & GLUT_CONFIGURE_WORK) {
       XWindowChanges changes;
@@ -858,8 +858,8 @@ processWindowWorkList(GLUTwindow * window)
        being removed or destroyed in the course of the callbacks.
        Notice how the global __glutWindowDamaged is used to
        record the layers' damage status.  See the code in
-       glutLayerGet for how __glutWindowDamaged is used. The 
-       point is to not have to update the "damaged" field after 
+       glutLayerGet for how __glutWindowDamaged is used. The
+       point is to not have to update the "damaged" field after
        the callback since the window (or overlay) may be
        destroyed (or removed) when the callback returns. */
 

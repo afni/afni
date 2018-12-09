@@ -8,7 +8,7 @@
 
 
 
-/* Subroutine */ int zzlinx_(real *x1, real *x2, real *y, integer *majrx, 
+/* Subroutine */ int zzlinx_(real *x1, real *x2, real *y, integer *majrx,
 	real *tmaj, integer *minrx, real *tmin)
 {
     /* System generated locals */

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /***********************************************************************
  *
  * plug_maskcalc.c		- plugin to do mask-based computations
@@ -54,7 +54,7 @@ char * MASKCALC_main( PLUGIN_interface * );
 
 static char   grMessage[ R_MESSAGE_L ];
 
-static char * gr_help_message = 
+static char * gr_help_message =
        "maskcalc plugin - rickr";
 
 
@@ -128,7 +128,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
     return plint;
 }
 
-char * 
+char *
 MASKCALC_main ( PLUGIN_interface * plint )
 {
     r_afni_s     A;
@@ -303,7 +303,7 @@ process_args(
 	    return grMessage;
 	}
     }
-    else 
+    else
 	M->outfp = stdout;
 
     return NULL;
@@ -363,7 +363,7 @@ process( r_afni_s * A, mask_opt_s * M )
 ************************************************************************
 */
 static long
-get_mask_size( 
+get_mask_size(
 	r_afni_s * A,
 	int        index,	/* index into simage array */
 	int        subbrick
@@ -456,7 +456,7 @@ calc_hist( r_afni_s * A, mask_opt_s * M )
 	}
     }
 
-    junk = ( fabsf( M->max ) > fabsf( M->min ) ) ? 
+    junk = ( fabsf( M->max ) > fabsf( M->min ) ) ?
 		fabsf( M->max ) : fabsf( M->min );
 
     if ( junk == 0 )
@@ -502,9 +502,9 @@ calc_hist( r_afni_s * A, mask_opt_s * M )
     {
 	cum += 100.0 * bins[ count ] / new_size;
 
-	fprintf( M->outfp, "[%8.*f,%8.*f) \t%8d\t%6.3f\t%7.3f\n", 
-		places, M->min + count * bin_size, 
-		places, M->min + (count+1) * bin_size, 
+	fprintf( M->outfp, "[%8.*f,%8.*f) \t%8d\t%6.3f\t%7.3f\n",
+		places, M->min + count * bin_size,
+		places, M->min + (count+1) * bin_size,
 		bins[ count ],
 		100.0 * bins[ count ] / new_size,
 		cum );
@@ -589,14 +589,14 @@ calc_stats( r_afni_s * A, mask_opt_s * M )
 	{
 	    min = savemin;		/* use actual min/max for data */
 	    max = savemax;
-	    
+
 	    do_stats( A, data, size, min, max, sub, M->outfp, NULL, NULL, NULL);
 	}
 	else if ( ! M->use_max )	/* so use_min is set */
 	{
 	    min = M->min;		/* use user input cutoff */
 	    max = savemax;
-	    
+
 	    if ( min <= max )
 		do_stats( A, data, size, min, max, sub, M->outfp,
 							NULL, NULL, NULL);
@@ -690,7 +690,7 @@ do_stats(
 
     float   mean, SEM, STD;
     float * ptr = data;
-    float   tmp; 
+    float   tmp;
     float   local_min = max, local_max = min;
 
     long    count;
@@ -740,17 +740,17 @@ do_stats(
 	SEM = STD / sqrt( new_size );
     }
 
-    fprintf( fp, 
+    fprintf( fp,
     "%5d\t%7ld\t %5.*f\t%6.*f\t%6.*f\t%6.*f\t%6.*f\t%6.*f\t(%-5.*f, %5.*f)"
-		"\t %8ld \t  %6.*f\n", 
-	sub, size, 
-	num_places( 100.0*size/A->nvox, 5 ), 100.0*size/A->nvox,  
-	num_places( local_min, 6 ), local_min, 
+		"\t %8ld \t  %6.*f\n",
+	sub, size,
+	num_places( 100.0*size/A->nvox, 5 ), 100.0*size/A->nvox,
+	num_places( local_min, 6 ), local_min,
 	num_places( local_max, 6 ), local_max,
-	num_places( mean, 6 ), mean, 
-	num_places( SEM, 6 ), SEM, 
-	num_places( STD, 6 ), STD, 
-	num_places( mean-1.96*SEM, 5 ), mean-1.96*SEM, 
+	num_places( mean, 6 ), mean,
+	num_places( SEM, 6 ), SEM,
+	num_places( STD, 6 ), STD,
+	num_places( mean-1.96*SEM, 5 ), mean-1.96*SEM,
 	num_places( mean+1.96*SEM, 5 ), mean+1.96*SEM,
 	new_size,
 	num_places( 100.0*new_size/size, 6 ), 100.0*new_size/size );
@@ -773,7 +773,7 @@ do_stats(
 **
 ************************************************************************
 */
-static int 
+static int
 num_places(
 	float num,
 	int   size
@@ -787,7 +787,7 @@ num_places(
     junk = ( junk == 0 ) ? 1.0 : junk;
 
     /*
-    ** Allow for at least one place to the left of the decimal, 
+    ** Allow for at least one place to the left of the decimal,
     ** and the decimal itself.
     */
 
@@ -800,7 +800,7 @@ num_places(
 
     return places;
 }
-	
+
 
 /***********************************************************************
 **
@@ -1058,7 +1058,7 @@ fill_afni_struct( r_afni_s * A )
 	    return grMessage;
 	}
 
-	if ( ( A->simage[brick] = 
+	if ( ( A->simage[brick] =
 		(short **)malloc( A->subs[brick]*sizeof(short *)) ) == NULL )
 	{
 	    return "-------------------------\n"
@@ -1066,7 +1066,7 @@ fill_afni_struct( r_afni_s * A )
 		   "memory allocation failure\n"
 		   "-------------------------";
 	}
-	if ( ( A->factor[brick] = 
+	if ( ( A->factor[brick] =
 		(float *)malloc( A->subs[brick]*sizeof(float)) ) == NULL)
 	{
 	    return "-------------------------\n"
@@ -1128,7 +1128,7 @@ fill_afni_struct( r_afni_s * A )
 
 /***********************************************************************
 **
-**  Create a float brick corresponding to the first subbrick of 
+**  Create a float brick corresponding to the first subbrick of
 **  every non-mask brick.
 **
 ************************************************************************
@@ -1140,7 +1140,7 @@ assign_afni_floats( r_afni_s * A )
     float * fptr;
     float   factor = A->factor[1][0];
     int     count;
- 
+
     /* at this point, only brick 1 is a non-mask brick */
     if ( ( A->fimage[1] = (float *)malloc( A->nvox * sizeof(float))) == NULL )
 	return 0;

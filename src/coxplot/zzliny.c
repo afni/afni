@@ -8,7 +8,7 @@
 
 
 
-/* Subroutine */ int zzliny_(real *x, real *y1, real *y2, integer *majry, 
+/* Subroutine */ int zzliny_(real *x, real *y1, real *y2, integer *majry,
 	real *tmaj, integer *minry, real *tmin)
 {
     /* System generated locals */

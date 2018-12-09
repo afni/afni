@@ -382,7 +382,7 @@ ENTRY("map_v2s_results");
 	    for ( ival = 0; ival < npanes && fval < othr[ival]; ival++ )
 		;
 	    if ( ovc[ival] == 0 ) continue;  /* no color in this pane */
-	    r = ovc_r[ival];  g = ovc_g[ival];  b = ovc_b[ival]; 
+	    r = ovc_r[ival];  g = ovc_g[ival];  b = ovc_b[ival];
 
             /* we are set, fill the SUMA_irgba struct  */
             mptr->id = res->nodes[nindex];

@@ -67,7 +67,7 @@ typedef struct
     SUMA_SurfaceObject ** slist;	/* list of SO pointers           */
     float               * narea[2];     /* list of computed node areas   */
     float               * nvol;         /* list of computed node volumes */
-    float               * nvolg;        /* list of computed node volumes 
+    float               * nvolg;        /* list of computed node volumes
                                            with Gauss Theorem          */
     float               * fvol;         /* list of computed face volumes */
     int                   nsurf;	/* number in list                */

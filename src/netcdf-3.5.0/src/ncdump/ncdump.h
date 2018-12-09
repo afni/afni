@@ -47,7 +47,7 @@ struct ncatt {			/* attribute */
 };
 
 typedef
-enum {LANG_C, LANG_F} Nclang; 
+enum {LANG_C, LANG_F} Nclang;
 
 struct fspec {			/* specification for how to format dump */
 

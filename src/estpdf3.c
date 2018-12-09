@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  These routines estimate the probability density function (PDF) 
+  These routines estimate the probability density function (PDF)
   corresponding to the distribution of gray-matter and white-matter
   voxel intensities.  The estimate is formed as the sum of three normal
   distributions, using the Simplex algorithm for non-linear optimization
@@ -60,12 +60,12 @@ pdf p;                   /* empirical pdf */
 
 /*---------------------------------------------------------------------------*/
 /*
-  Perform initialization for estimation of PDF from short array. 
+  Perform initialization for estimation of PDF from short array.
 */
 
-void estpdf_short_initialize 
+void estpdf_short_initialize
 (
-  int nxyz, 
+  int nxyz,
   short * sfim,
   float * gpeak,             /* estimated peak of gray-matter distribution */
   float * wpeak              /* estimated peak of white-matter distribution */
@@ -116,7 +116,7 @@ void estpdf_short_initialize
 
   if( !quiet ){
    printf ("\nInitial PDF estimates: \n");
-   printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
+   printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n",
 	   p.lower_bnd, p.upper_bnd);
    printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
   }
@@ -129,12 +129,12 @@ void estpdf_short_initialize
 
 /*---------------------------------------------------------------------------*/
 /*
-  Perform initialization for estimation of PDF from float array. 
+  Perform initialization for estimation of PDF from float array.
 */
 
-void estpdf_float_initialize 
+void estpdf_float_initialize
 (
-  int nxyz, 
+  int nxyz,
   float * ffim,
   int nbin,
   float * gpeak,             /* estimated peak of gray-matter distribution */
@@ -186,7 +186,7 @@ void estpdf_float_initialize
 
   if( !quiet ){
     printf ("\nInitial PDF estimates: \n");
-    printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n", 
+    printf ("Lower Bnd = %8.3f   Upper Bnd  = %8.3f \n",
 	    p.lower_bnd, p.upper_bnd);
     printf ("Gray Peak = %8.3f   White Peak = %8.3f \n", *gpeak, *wpeak);
   }
@@ -205,7 +205,7 @@ void estpdf_float_initialize
 void generate_initial_guess (float gpeak, float wpeak, float * parameters)
 {
   float b;                   /* coefficient for background distribution */
-  float bmean;               /* mean for background distribution */ 
+  float bmean;               /* mean for background distribution */
   float bsigma;              /* std. dev. for background distribution */
   float g;                   /* coefficient for gray-matter distribution */
   float gmean;               /* mean for gray-matter distribution */
@@ -224,7 +224,7 @@ void generate_initial_guess (float gpeak, float wpeak, float * parameters)
   /*----- Initialize distribution means -----*/
   bmean = p.lower_bnd;
 
-  if ((gpeak > p.lower_bnd) && (gpeak < p.upper_bnd) && (gpeak < wpeak)) 
+  if ((gpeak > p.lower_bnd) && (gpeak < p.upper_bnd) && (gpeak < wpeak))
     gmean = gpeak;
   else
     gmean = p.lower_bnd;
@@ -313,14 +313,14 @@ float estimate (float * parameters, float x)
   wsigma = parameters[8];
 
 
-  /*----- Calculate the sum of three normal PDF's -----*/ 
+  /*----- Calculate the sum of three normal PDF's -----*/
   fval  = b * normal (x, bmean, bsigma);
   fval += g * normal (x, gmean, gsigma);
   fval += w * normal (x, wmean, wsigma);
 
 
   return (fval);
-  
+
 }
 
 
@@ -388,7 +388,7 @@ float calc_error (float * vertex)
       sse += diff * diff;
     }
 
-  
+
   return (sse);
 }
 
@@ -447,13 +447,13 @@ void estpdf_short (int nxyz, short * sfim, float * parameters)
   if( !quiet )
    printf ("\nEstimating PDF of voxel intensities \n");
 
-  
+
   /*----- Initialization for PDF estimation -----*/
   estpdf_short_initialize (nxyz, sfim, &gpeak, &wpeak);
 
 
   generate_initial_guess (gpeak, wpeak, parameters);
- 
+
 
   /*----- Get least squares estimate for PDF parameters -----*/
   simplex_optimization (parameters, &sse);
@@ -488,14 +488,14 @@ void estpdf_float (int nxyz, float * ffim, int nbin, float * parameters)
   if( !quiet )
    printf ("\nEstimating PDF of voxel intensities \n");
 
-  
+
   /*----- Initialization for PDF estimation -----*/
   estpdf_float_initialize (nxyz, ffim, nbin, &gpeak, &wpeak);
 
 
   /*----- Make initial estimate of the parameters from previous results -----*/
   generate_initial_guess (gpeak, wpeak, parameters);
- 
+
 
   /*----- Get least squares estimate for PDF parameters -----*/
   simplex_optimization (parameters, &sse);
@@ -509,7 +509,7 @@ void estpdf_float (int nxyz, float * ffim, int nbin, float * parameters)
   /*
   PDF_destroy (&p);
   */
- 
+
   return ;
 }
 

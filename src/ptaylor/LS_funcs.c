@@ -33,7 +33,7 @@ void MakeWindowVec( float *V, int N)
       allwt+= V[i]*V[i];
    allwt/= N;
    allwt = sqrt(allwt);
-   
+
    for( i=0 ; i<N ; i++ )
       V[i]/= allwt;
 
@@ -46,7 +46,7 @@ void MakeWindowVec( float *V, int N)
 // delta f); conceivably, we could make another function to have
 // nonconstant winwids, which is why we do this this way-> for
 // generalizability later.
-void WelchWindowInfo( float *xpts, int Nx, int Nseg, 
+void WelchWindowInfo( float *xpts, int Nx, int Nseg,
                       int **WInfo, float *WDt, int Nwin )
 {
    int i,ii;
@@ -59,11 +59,11 @@ void WelchWindowInfo( float *xpts, int Nx, int Nseg,
                                     // share one point
    if( winwid < MIN_WID_PTS )
       ERROR_exit("Hey! Make fewer/larger windows! "
-                 "Too few points in the Welch win (only %d pts)", 
+                 "Too few points in the Welch win (only %d pts)",
                  winwid);
 
    hwin0 = winwid / 2;              // again, int div
-   INFO_message("Window width = %d; half-offset = %d", 
+   INFO_message("Window width = %d; half-offset = %d",
                 winwid, hwin0);
    //Nx_eff = winwid * Nseg;
 
@@ -80,16 +80,16 @@ void WelchWindowInfo( float *xpts, int Nx, int Nseg,
       WDt[i] = xpts[WInfo[i][0]+WInfo[i][1]-1] - xpts[WInfo[i][0]];
       INFO_message("[%d, %d] \t-> [%.2f, %.2f] \t-> delta t = %.2f",
                    WInfo[i][0],
-                   WInfo[i][0]+WInfo[i][1]-1, 
+                   WInfo[i][0]+WInfo[i][1]-1,
                    xpts[WInfo[i][0]],
                    xpts[WInfo[i][0]+WInfo[i][1]-1],
                    i,
                    WDt[i]);
    }
-   //INFO_message("CHECK!\n\n Nwin = %d,  Nseg = %d", 
+   //INFO_message("CHECK!\n\n Nwin = %d,  Nseg = %d",
    //             Nwin, Nseg);
    INFO_message("Total number of points = %d"
-                "\n\t -> goes to %d when assigning windows", 
+                "\n\t -> goes to %d when assigning windows",
                 Nx, WInfo[Nwin-1][0]+WInfo[Nwin-1][1]);
 }
 
@@ -121,33 +121,33 @@ float PR89_AMOD(float a, float b)
 
    rat = (int) (a/b);
    out = a - ((float) rat)*b;
-   
+
    return out;
 }
 
 // calculate supplementary sizes of arrays and numbers of freqs for
 // use in fasper(); pre-calc the N* things, and then input them into
 // fasper.
-// To avoid some differences in floating point division, am using 
-// the fact that hifac = NT/N directly here. -> 
+// To avoid some differences in floating point division, am using
+// the fact that hifac = NT/N directly here. ->
 //      hifac * N = NT
 void PR89_suppl_calc_Ns( int N, int NT,
-                         double ofac, double hifac, 
+                         double ofac, double hifac,
                          int *Nout, int *Ndim)
 {
    int Nfreq, Nfreqt;
 
    if( NT > 0 ) { // newer
       *Nout = (int) (0.5 * ofac * NT);
-      Nfreqt = (int) (ofac * NT * MACC); 
+      Nfreqt = (int) (ofac * NT * MACC);
    }
    else { // older
-      *Nout = (int) (0.5 * ofac * hifac * N);  
-      Nfreqt = (int) (ofac * hifac * N * MACC);     
+      *Nout = (int) (0.5 * ofac * hifac * N);
+      Nfreqt = (int) (ofac * hifac * N * MACC);
    }
 
    Nfreq = 64;
-   while (Nfreq < Nfreqt ) 
+   while (Nfreq < Nfreqt )
       Nfreq *= 2;
 
    *Ndim = 2 * Nfreq;
@@ -163,11 +163,11 @@ void PR89_suppl_calc_Ns( int N, int NT,
 // functions being used, are noted below.  Some extra features are
 // added to control output format (normalizing and/or amplitudizing).
 // if winvec==NULL, then don't window; else, window
-void PR89_fasper( float *x, 
+void PR89_fasper( float *x,
                   float *y, int N,
                   float *ywin, float *winvec,
-                  double ofac, 
-                  double *wk1, double *wk2, int Nwk, 
+                  double ofac,
+                  double *wk1, double *wk2, int Nwk,
                   int Nout, int *jmax, float *prob,
                   int DO_NORM, int DO_AMP)
 {
@@ -179,42 +179,42 @@ void PR89_fasper( float *x,
    int K = 2;  // different than in PR89, b/c using GSL RFFT, not
                // realft() for transform
    int KK;
-   float PMAX = -1.; 
+   float PMAX = -1.;
    float hypo=0., hc2wt=0., hs2wt=0.;
    float cwt=0., swt=0., den=0.;
    float cterm=0., sterm=0.;
    float expy=0.; float effm=0.;
    int Ndim;
 
-   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+   // - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
 
    Ndim = Nwk;
 
    /*
    PR89_suppl_avevar(y, N, &AVE, &VAR);
-   for( j=1 ; j<=N ; j++ ) 
+   for( j=1 ; j<=N ; j++ )
       ywin[j] = y[j] - AVE; // demean
    // ! windowing
    if(winvec)
-      for( j=1 ; j<=N ; j++ ) 
+      for( j=1 ; j<=N ; j++ )
          ywin[j]*=winvec[j];
    if (DO_NORM)
       PR89_suppl_avevar(ywin, N, &AVE, &VAR);
    */
 
    if(winvec) {
-      for( j=1 ; j<=N ; j++ ) 
+      for( j=1 ; j<=N ; j++ )
          ywin[j]= y[j]*winvec[j];
       PR89_suppl_avevar(ywin, N, &AVE, &VAR);
-      for( j=1 ; j<=N ; j++ ) 
+      for( j=1 ; j<=N ; j++ )
          ywin[j]-= AVE; // demean
    }
    else{
       PR89_suppl_avevar(y, N, &AVE, &VAR);
-      for( j=1 ; j<=N ; j++ ) 
+      for( j=1 ; j<=N ; j++ )
          ywin[j] = y[j] - AVE; // demean
    }
-   
+
    xmin = x[1];
    xmax = xmin;
 
@@ -227,7 +227,7 @@ void PR89_fasper( float *x,
    xdif = xmax - xmin;
 
    // empty the workspaces
-   for( j=1 ; j<=Ndim ; j++ ) 
+   for( j=1 ; j<=Ndim ; j++ )
       wk1[j] = wk2[j] = 0.;
 
    FAC = Ndim/(xdif*ofac);
@@ -235,7 +235,7 @@ void PR89_fasper( float *x,
    for( j=1 ; j<=N ; j++ ) {
       Ck = 1. + PR89_AMOD((x[j]-xmin)*FAC, FNDIM);
       Ckk = 1. + PR89_AMOD(2.*(Ck-1.), FNDIM);
-      PR89_spread(ywin[j], wk1, Ndim, Ck, MACC); 
+      PR89_spread(ywin[j], wk1, Ndim, Ck, MACC);
       PR89_spread(1., wk2, Ndim, Ckk, MACC);
    }
 
@@ -244,7 +244,7 @@ void PR89_fasper( float *x,
    mm = gsl_fft_real_radix2_transform(wk1+1, 1, Ndim);
    mm = gsl_fft_real_radix2_transform(wk2+1, 1, Ndim);
 
-   //for( j=0 ; j<Ndim ; j++ ) 
+   //for( j=0 ; j<Ndim ; j++ )
    //   INFO_message("%d\t %f  ",j,wk2[j]);
 
    DF = 1./(xdif*ofac);
@@ -257,7 +257,7 @@ void PR89_fasper( float *x,
    for( j=1 ; j<=Nout ; j++ ) {
       // for imag parts-- different criterion than in PR89, because
       // GSL's RFFT orders freqs differently.
-      KK = Ndim - K + 2; 
+      KK = Ndim - K + 2;
 
       // NB, for below: compared to PR89, here wk?[KK] -> -wk?[KK],
       // because, as stated in GSL help manual:
@@ -272,7 +272,7 @@ void PR89_fasper( float *x,
       // and PR89 use the NR convention (understandably...).
 
       // badness if == 0.  fixed, July2016
-      hypo = sqrt(wk2[K]*wk2[K]+wk2[KK]*wk2[KK])+0.000001; 
+      hypo = sqrt(wk2[K]*wk2[K]+wk2[KK]*wk2[KK])+0.000001;
 
       hc2wt = 0.5*wk2[K]/hypo;
       hs2wt = -0.5*wk2[KK]/hypo;
@@ -294,7 +294,7 @@ void PR89_fasper( float *x,
          PMAX = wk2[j];
          *jmax = j;
          }*/
-      
+
       //if( DO_AMP )   ---> do this later, for greater consistency of power/amp
       //   wk2[j] = sqrt(wk2[j]);
 
@@ -330,12 +330,12 @@ int PR89_max_int(int A, int B)
 }
 
 
-// supplementary function for calculating mean and variance of a 
-void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR) 
+// supplementary function for calculating mean and variance of a
+void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR)
 {
    int i;
    double mean = 0., vari = 0.;
-  
+
    if( N < 2 ) {
       ERROR_exit("Too few points in the time series! Need at *least* 2!");
       exit(211);
@@ -345,7 +345,7 @@ void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR)
       mean+= x[i];
       vari+= x[i]*x[i];
    }
-  
+
    mean/= N;
    vari-= N*mean*mean;
    vari/= N-1;
@@ -360,10 +360,10 @@ void PR89_spread(float y, double *YY, int N, float x, int M)
 {
    // when selecting element of Nfac, use 'M-1' b/c we are in C now,
    // not Fortran --> NOT HERE, NOPE
-   int Nfac[11] = {0,1,1,2,6,24,120,720,5040,40320,362880}; 
+   int Nfac[11] = {0,1,1,2,6,24,120,720,5040,40320,362880};
    int ilo, ihi, nden;
    float fac;
-   int j, ix; 
+   int j, ix;
 
    if(M>10) {
       ERROR_exit("factorial table is too small in PR89_spread.");

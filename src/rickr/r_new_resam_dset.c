@@ -52,7 +52,7 @@ static int valid_resam_inputs( THD_3dim_dataset * , THD_3dim_dataset *,
 static char * this_file = "r_new_resam_dset.c";
 
 /*----------------------------------------------------------------------
- * moved here from 3dresample.c by ZSS 
+ * moved here from 3dresample.c by ZSS
  *----------------------------------------------------------------------
 */
 int resam_str2mode ( char * modestr )
@@ -216,7 +216,7 @@ THD_3dim_dataset * r_new_resam_dset_eng
             /* possibly start with master (must have master's orient) */
             if ( min ) *dout->daxes = *min->daxes;
 
-            if ( r_dxyz_mod_dataxes(dx,dy,dz, dout->daxes, &new_daxes, 
+            if ( r_dxyz_mod_dataxes(dx,dy,dz, dout->daxes, &new_daxes,
                                     bound_type) != 0 )
             {
                 THD_delete_3dim_dataset( dout, FALSE );

@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 /*
-  This program performs the nonparametric Wilcoxon-Mann-Whitney two-sample 
+  This program performs the nonparametric Wilcoxon-Mann-Whitney two-sample
   test for determining whether the observations come from the same population.
   The output consists of an AFNI 'fizt' dataset; the first sub-brick contains
   an estimate of the treatment effect, the second sub-brick contains the
@@ -25,7 +25,7 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
-  Mod:     Modified routine write_afni_fizt of NPstats.c so that all output 
+  Mod:     Modified routine write_afni_fizt of NPstats.c so that all output
            subbricks will now have the scaled short integer format.
   Date:    14 March 2002
 
@@ -50,17 +50,17 @@
 #include "mrilib.h"
 
 #define MAX_OBSERVATIONS 666     /* max. number of observations per cell */
-#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
+#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */
 #define MEGA  1048576            /* one megabyte */
 
 /*---------------------------------------------------------------------------*/
 
 typedef struct NP_options
-{ 
+{
   int   datum;                  /* data type for "intensity" data subbrick */
   char  session[MAX_NAME_LENGTH];     /* name of output directory */
 
-  
+
   int   nvoxel;                 /* number of voxel for special output */
 
   int   m;                      /* number of X observations */
@@ -68,7 +68,7 @@ typedef struct NP_options
 
   char  *** xname;              /* names of the input data files */
   char  * first_dataset;        /* name of the first data set */
-   
+
   int   nx, ny, nz;             /* data set dimensions */
   int   nxyz;                   /* number of voxels per image */
 
@@ -96,7 +96,7 @@ typedef struct NP_options
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program performs nonparametric Mann-Whitney two-sample test. \n\n"
      "Usage: \n"
@@ -115,7 +115,7 @@ void display_help_menu()
      "                                 Wilcoxon-Mann-Whitney statistics   \n"
      "                                 written to file prefixname         \n"
      "\n");
-  
+
   printf
     (
      "\n"
@@ -126,7 +126,7 @@ void display_help_menu()
      );
 
   printf("\n" MASTER_SHORTHELP_STRING ) ;
- 
+
   PRINT_COMPILE_DATE ; exit(0);
 }
 
@@ -139,18 +139,18 @@ void display_help_menu()
 void initialize_options (NP_options * option_data)
 {
   int i;          /* index */
-  
+
   option_data->datum = ILLEGAL_TYPE;
   strcpy (option_data->session, "./");
- 
+
 
   option_data->nvoxel = -1;
-  
+
   option_data->m = 0;
   option_data->n = 0;
 
   option_data->workmem = 266;
- 
+
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * 2);
   for (i = 0;  i < 2;  i++)
@@ -158,7 +158,7 @@ void initialize_options (NP_options * option_data)
       = (char **) malloc (sizeof(char *) * MAX_OBSERVATIONS);
 
   option_data->first_dataset = NULL;
-  
+
   option_data->nx = 0;
   option_data->ny = 0;
   option_data->nz = 0;
@@ -168,7 +168,7 @@ void initialize_options (NP_options * option_data)
 
 }
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
    Routine to get user specified Mann-Whitney options.
@@ -178,7 +178,7 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 {
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
-  int nijk;                      /* count of data files */     
+  int nijk;                      /* count of data files */
   float fval;                    /* float input */
   THD_3dim_dataset * dset=NULL;             /* test whether data set exists */
   char message[MAX_NAME_LENGTH];            /* error message */
@@ -187,24 +187,24 @@ void get_options (int argc, char ** argv, NP_options * option_data)
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
-  
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- initialize the input options -----*/
   initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc)
     {
-      
-      
+
+
       /*-----   -datum type   -----*/
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
 	if( ++nopt >= argc ) NP_error("need an argument after -datum!") ;
-	
+
 	if( strcmp(argv[nopt],"short") == 0 ){
 	  option_data->datum = MRI_short ;
 	} else if( strcmp(argv[nopt],"float") == 0 ){
@@ -217,8 +217,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	}
 	nopt++ ; continue ;  /* go to next arg */
       }
-      
-      
+
+
       /*-----   -session dirname    -----*/
       if( strncmp(argv[nopt],"-session",6) == 0 ){
 	nopt++ ;
@@ -226,8 +226,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	strcpy(option_data->session , argv[nopt++]) ;
 	continue ;
       }
-      
-      
+
+
       /*-----   -voxel num  -----*/
       if (strncmp(argv[nopt], "-voxel", 6) == 0)
 	{
@@ -240,8 +240,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -workmem megabytes  -----*/
 
       if( strncmp(argv[nopt],"-workmem",6) == 0 ){
@@ -262,7 +262,7 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > 2))
 	    NP_error ("illegal argument after -dset ");
-	  
+
 	  if (ival == 1)
 	    {
 	      option_data->m += 1;
@@ -275,7 +275,7 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	    }
 	  if (nijk > MAX_OBSERVATIONS)
 	    NP_error ("too many data files");
-	  
+
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
@@ -290,15 +290,15 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	    }
 
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-	  
-	  option_data->xname[ival-1][nijk-1] 
+
+	  option_data->xname[ival-1][nijk-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xname[ival-1][nijk-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -out filename   -----*/
       if (strncmp(argv[nopt], "-out", 4) == 0)
 	{
@@ -309,8 +309,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  nopt++;
 	  continue;
 	}
-            
-      
+
+
       /*----- unknown command -----*/
       NP_error ("unrecognized command line option ");
     }
@@ -327,16 +327,16 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 
 void check_for_valid_inputs (NP_options * option_data)
 {
-  
+
   if (option_data->m < 1)
     NP_error ("too few data sets for X-observations ");
-  
-  if (option_data->n < 1) 
+
+  if (option_data->n < 1)
     NP_error ("too few data sets for Y-observations ");
 
   if (option_data->nvoxel > option_data->nxyz)
     NP_error ("argument of -voxel is too large");
- 
+
 }
 
 
@@ -345,37 +345,37 @@ void check_for_valid_inputs (NP_options * option_data)
   Routine to perform all Mann-Whitney initialization.
 */
 
-void initialize 
+void initialize
 (
   int argc,                    /* number of input arguments */
-  char ** argv,                /* array of input arguments */ 
+  char ** argv,                /* array of input arguments */
   NP_options ** option_data,   /* user input options */
   float ** delta,              /* estimated shift parameter */
   float **zvar                 /* normalized Mann-Whitney statistic */
 )
 
 {
-  
-  
-  /*----- allocate memory space for input data -----*/   
+
+
+  /*----- allocate memory space for input data -----*/
   *option_data = (NP_options *) malloc(sizeof(NP_options));
   if (*option_data == NULL)
     NP_error ("memory allocation error");
-  
+
   /*----- get command line inputs -----*/
   get_options(argc, argv, *option_data);
-  
+
   /*----- use first data set to get data set dimensions -----*/
   (*option_data)->first_dataset = (*option_data)->xname[0][0];
   get_dimensions (*option_data);
   printf ("Data set dimensions:  nx = %d  ny = %d  nz = %d  nxyz = %d \n",
 	  (*option_data)->nx, (*option_data)->ny,
 	  (*option_data)->nz, (*option_data)->nxyz);
- 
+
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*option_data);
- 
+
   /*----- check whether output files already exist -----*/
   if( THD_deathcon() ) check_one_output_file (*option_data, (*option_data)->outfile);
 
@@ -386,8 +386,8 @@ void initialize
   *zvar = (float *) malloc(sizeof(float) * (*option_data)->nxyz);
   if (*zvar == NULL)
     NP_error ("memory allocation error");
- 
-  
+
+
 }
 
 
@@ -396,7 +396,7 @@ void initialize
   Calculate the normalized Wilcoxon-Mann-Whitney statistic.
 */
 
-void calc_stat 
+void calc_stat
 (
   int nvox,                          /* flag for voxel output */
   int m,                             /* number of control subjects */
@@ -409,13 +409,13 @@ void calc_stat
 {
   const float EPSILON = 1.0e-10;      /* minimum variance limit */
   int i, j;                   /* array indices */
-  node * head = NULL;         /* points to head of list */        
+  node * head = NULL;         /* points to head of list */
   node * ptr = NULL;          /* points to current position in list */
   int NN;                     /* total number of sample points */
   float wy;                   /* rank sum statistic */
   float ewy;                  /* expected value of wy */
   float varwy;                /* variance of wy */
-  int d;                      /* count of number of ties */ 
+  int d;                      /* count of number of ties */
   float corr;                 /* correction to variance to account for ties */
   float rank;                 /* rank of data point */
 
@@ -437,7 +437,7 @@ void calc_stat
   for (i = 0;  i < m;  i++) node_addvalue (&head, xarray[i]);
 
   /*----- enter and sort y-array -----*/
-  for (j = 0;  j < n;  j++) node_addvalue (&head, yarray[j]); 
+  for (j = 0;  j < n;  j++) node_addvalue (&head, yarray[j]);
 #endif
 
 
@@ -516,7 +516,7 @@ void calc_stat
   differences.
 */
 
-void calc_shift 
+void calc_shift
 (
   int nvox,                          /* flag for voxel output */
   int m,                             /* number of control subjects */
@@ -545,7 +545,7 @@ void calc_shift
 #else
   for (i = 0;  i < m;  i++)
     for (j = 0;  j < n;  j++)
-      node_addvalue (&head, yarray[j] - xarray[i]); 
+      node_addvalue (&head, yarray[j] - xarray[i]);
 #endif
 
 
@@ -558,7 +558,7 @@ void calc_shift
       list_print (head, &count);
       printf ("\n");
     }
-  
+
 
   /*----- find median of differences -----*/
   mn = m * n;
@@ -633,11 +633,11 @@ void process_voxel
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the Wilcoxon-Mann-Whitney rank-sum statistics for all voxels  
+  Calculate the Wilcoxon-Mann-Whitney rank-sum statistics for all voxels
   (by breaking the datasets into sub-volumes, if necessary).
 */
 
-void calculate_results 
+void calculate_results
 (
   NP_options * option_data,    /* user input options */
   float * delta,               /* estimated shift parameter */
@@ -646,7 +646,7 @@ void calculate_results
 
 {
   int i;                       /* dataset index */
-  int m;                       /* control sample size */  
+  int m;                       /* control sample size */
   int n;                       /* treatment sample size */
   int nxyz;                    /* number of voxels per dataset */
   int num_datasets;            /* total number of datasets */
@@ -676,8 +676,8 @@ void calculate_results
   piece_size = option_data->workmem * MEGA / (num_datasets * sizeof(float));
   if (piece_size > nxyz)  piece_size = nxyz;
   num_pieces = (nxyz + piece_size - 1) / piece_size;
-  printf ("num_pieces = %d    piece_size = %d \n", num_pieces, piece_size);    
-  
+  printf ("num_pieces = %d    piece_size = %d \n", num_pieces, piece_size);
+
   /*----- allocate memory space -----*/
   xarray = (float *) malloc (sizeof(float) * m);     MTEST(xarray);
   yarray = (float *) malloc (sizeof(float) * n);     MTEST(yarray);
@@ -685,14 +685,14 @@ void calculate_results
   yfimar = (float **) malloc (sizeof(float *) * n);  MTEST(yfimar);
   for (i = 0;  i < m;  i++)
     {
-      xfimar[i] = (float *) malloc(sizeof(float) * piece_size);  
+      xfimar[i] = (float *) malloc(sizeof(float) * piece_size);
       MTEST(xfimar[i]);
     }
   for (i = 0;  i < n;  i++)
     {
-      yfimar[i] = (float *) malloc(sizeof(float) * piece_size);  
+      yfimar[i] = (float *) malloc(sizeof(float) * piece_size);
       MTEST(yfimar[i]);
-    }  
+    }
 
 
   /*----- loop over the pieces of the input datasets -----*/
@@ -733,14 +733,14 @@ void calculate_results
 	    process_voxel (nvox, m, n, xarray, yarray, &delta_hat, &z);
 	  else
 	    process_voxel (-1, m, n, xarray, yarray, &delta_hat, &z);
-    
+
 
 	  /*----- save results for this voxel -----*/
 	  delta[ivox+fim_offset] = delta_hat;
 	  zvar[ivox+fim_offset] = z;
-  
-	} 
-	  
+
+	}
+
     } /* loop over pieces */
 
 
@@ -768,10 +768,10 @@ void calculate_results
   Generate the requested output.
 */
 
-void output_results 
+void output_results
 (
   int argc,                    /* number of input arguments */
-  char ** argv,                /* array of input arguments */ 
+  char ** argv,                /* array of input arguments */
   NP_options * option_data,    /* user input options */
   float * delta,               /* estimated shift parameter */
   float * zvar                 /* normalized Mann-Whitney rank-sum statistic */
@@ -780,7 +780,7 @@ void output_results
 {
 
   /*----- write out afni fizt data file -----*/
-  write_afni_fizt (argc, argv, option_data, option_data->outfile, 
+  write_afni_fizt (argc, argv, option_data, option_data->outfile,
 		   delta, zvar);
 
 }
@@ -792,7 +792,7 @@ void output_results
    Routine to release memory and remove any remaining temporary data files.
 */
 
-void terminate 
+void terminate
 (
   NP_options ** option_data,   /* user input options */
   float ** delta,              /* estimated shift parameter */
@@ -840,19 +840,19 @@ void terminate
 /*
    Perform nonparametric Wilcoxon-Mann-Whitney rank-sum two sample test.
 */
- 
+
 int main (int argc, char ** argv)
 {
   NP_options * option_data = NULL;   /* user input options */
   float * delta;                     /* estimated shift parameter */
   float * zvar;                      /* normalized Mann-Whitney statistic */
- 
+
 
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -870,10 +870,10 @@ int main (int argc, char ** argv)
 
   /*----- program initialization -----*/
   initialize (argc, argv, &option_data, &delta, &zvar);
-  
+
   /*----- calculate nonparameteric Mann-Whitney statistics -----*/
   calculate_results (option_data, delta, zvar);
-  
+
   /*----- generate requested output -----*/
   output_results (argc, argv, option_data, delta, zvar);
 

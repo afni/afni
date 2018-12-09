@@ -285,7 +285,7 @@ void set_tcp_listen_mute(int v) {
 
 int get_tcp_listen_mute(void) {
    return(tcp_listen_mute);
-}  
+}
 
 
 /*--------------------------------------------------------------------------
@@ -309,10 +309,10 @@ int tcp_listen( int port )
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ 
-      sprintf(serr,"Can't create? (socket): (Name %s, Port %d)", 
+   if( sd == -1 ){
+      sprintf(serr,"Can't create? (socket): (Name %s, Port %d)",
                   get_port_numbered(port), port);
-      PERROR(serr); return -1; 
+      PERROR(serr); return -1;
    }
 
    /** set socket options (no delays, large buffers) **/
@@ -719,7 +719,7 @@ fprintf(stderr,"iochan_init: name=%s  mode=%s\n",name,mode) ;
       for( ii=4 ; name[ii] != ':' ; ii++ ) key[ii-4] = name[ii] ;
       key[ii-4] = '\0' ;
 
-      
+
       /** get size **/
 
       size = strtol( name+ii+1 , &kend , 10 ) ;

@@ -5,14 +5,14 @@
 ******************************************************************************/
 
 /*
-   Plugin to calculate a nonlinear regression for an input time series, 
+   Plugin to calculate a nonlinear regression for an input time series,
    using a specified nonlinear model.
 
    File:     plug_nlfit.c
    Author:   B. Douglas Ward
    Date:     17 June 1997
 
-   Mod:      Added external time reference capability and added option for 
+   Mod:      Added external time reference capability and added option for
              absolute noise parameter constraints.
    Date:     22 August 1997
 
@@ -20,7 +20,7 @@
              calculation of area under the signal above baseline.
    Date:     26 November 1997
 
-   Mod:      Print error message if unable to locate any signal models or 
+   Mod:      Print error message if unable to locate any signal models or
              any noise models.
    Date:     26 December 1997
 
@@ -102,7 +102,7 @@ static char helpstring[] =
    "             Max Constr   = Maximum value for signal model parameter. \n"
    " \n"
    " Time Scale: Reference    = Internal or External time reference. \n"
-   "             File         = External time reference file name. \n" 
+   "             File         = External time reference file name. \n"
    "Author -- BD Ward"
 ;
 
@@ -139,9 +139,9 @@ char * noise_labels[MAX_MODELS];     /* names of noise models */
 vfp plug_nmodel[MAX_MODELS];     /* pointer to noise model */
 int plug_r[MAX_MODELS];          /* number of parameters in the noise model */
 char * noise_plabels[MAX_MODELS][MAX_PARAMETERS];
-float plug_min_nconstr[MAX_MODELS][MAX_PARAMETERS]; 
+float plug_min_nconstr[MAX_MODELS][MAX_PARAMETERS];
                            /* minimum parameter constraints for noise model */
-float plug_max_nconstr[MAX_MODELS][MAX_PARAMETERS]; 
+float plug_max_nconstr[MAX_MODELS][MAX_PARAMETERS];
                            /* maximum parameter constraints for noise model */
 
 /*----- declare full (signal+noise) model variables -----*/
@@ -151,9 +151,9 @@ char * signal_labels[MAX_MODELS];    /* names of signal models */
 vfp plug_smodel[MAX_MODELS];     /* pointer to signal model */
 int plug_p[MAX_MODELS];          /* number of parameters in the signal model */
 char * signal_plabels[MAX_MODELS][MAX_PARAMETERS];
-float plug_min_sconstr[MAX_MODELS][MAX_PARAMETERS];  
+float plug_min_sconstr[MAX_MODELS][MAX_PARAMETERS];
                            /* minimum parameter constraints for signal model */
-float plug_max_sconstr[MAX_MODELS][MAX_PARAMETERS];  
+float plug_max_sconstr[MAX_MODELS][MAX_PARAMETERS];
                            /* maximum parameter constraints for signal model */
 
 
@@ -161,14 +161,14 @@ float plug_max_sconstr[MAX_MODELS][MAX_PARAMETERS];
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   int * im1,               /* index of 1st image in time series for analysis */
   char ** nname,           /* noise model name */
   char ** sname,           /* signal model name */
   vfp * nmodel,            /* pointer to noise model */
-  vfp * smodel,            /* pointer to signal model */  
+  vfp * smodel,            /* pointer to signal model */
   int * r,                 /* number of parameters in the noise model */
   int * p,                 /* number of parameters in the signal model */
   char *** npname,         /* noise parameter names */
@@ -181,9 +181,9 @@ void initialize_options
   int * nrand,             /* number of random vectors to generate */
   int * nbest,             /* number of random vectors to keep */
   float * rms_min,         /* minimum rms error to reject reduced model */
-  char ** tfilename        /* file name for time point series */  
+  char ** tfilename        /* file name for time point series */
 )
- 
+
 {
   int ip;                           /* parameter index */
   int ok;                           /* boolean for specified model exists */
@@ -192,7 +192,7 @@ void initialize_options
 
   *im1 = 1;
   *nrand = plug_nrand;
-  *nbest = plug_nbest; 
+  *nbest = plug_nbest;
   *nabs = plug_nabs;
   *rms_min = 0.0;
   *tfilename = plug_tfilename;
@@ -211,31 +211,31 @@ void initialize_options
 
   /*----- allocate memory for parameter constraints -----*/
   *min_nconstr = (float *) malloc (sizeof(float) * (*r));
-  if (*min_nconstr == NULL)  
+  if (*min_nconstr == NULL)
     NLfit_error ("Unable to allocate memory for min_nconstr");
   *max_nconstr = (float *) malloc (sizeof(float) * (*r));
   if (*max_nconstr == NULL)
     NLfit_error ("Unable to allocate memory for max_nconstr");
   *min_sconstr = (float *) malloc (sizeof(float) * (*p));
-  if (*min_sconstr == NULL)  
+  if (*min_sconstr == NULL)
     NLfit_error ("Unable to allocate memory for min_sconstr");
   *max_sconstr = (float *) malloc (sizeof(float) * (*p));
   if (*max_sconstr == NULL)
     NLfit_error ("Unable to allocate memory for max_sconstr");
-  
+
   /*----- initialize constraints -----*/
   for (ip = 0;  ip < (*r);  ip++)
     {
       (*min_nconstr)[ip] = plug_min_nconstr[plug_noise_index][ip];
-      (*max_nconstr)[ip] = plug_max_nconstr[plug_noise_index][ip];      
+      (*max_nconstr)[ip] = plug_max_nconstr[plug_noise_index][ip];
     }
-  
+
   for (ip = 0;  ip < (*p);  ip++)
     {
       (*min_sconstr)[ip] = plug_min_sconstr[plug_signal_index][ip];
-      (*max_sconstr)[ip] = plug_max_sconstr[plug_signal_index][ip];      
+      (*max_sconstr)[ip] = plug_max_sconstr[plug_signal_index][ip];
     }
- 
+
 }
 
 
@@ -243,7 +243,7 @@ void initialize_options
 /*
   Routine to check for valid inputs.
 */
-  
+
 void check_for_valid_inputs ()
 {
 }
@@ -251,13 +251,13 @@ void check_for_valid_inputs ()
 
 /*---------------------------------------------------------------------------*/
 
-void initialize_program 
+void initialize_program
 (
   int * im1,               /* index of 1st image in time series for analysis */
   char ** nname,           /* noise model name */
   char ** sname,           /* signal model name */
   vfp * nmodel,            /* pointer to noise model */
-  vfp * smodel,            /* pointer to signal model */  
+  vfp * smodel,            /* pointer to signal model */
   int * r,                 /* number of parameters in the noise model */
   int * p,                 /* number of parameters in the signal model */
   char *** npname,         /* noise parameter names */
@@ -275,8 +275,8 @@ void initialize_program
   float ** par_full,       /* estimated parameters for the full model */
   float ** tpar_full,      /* t-statistic of parameters in the full model */
 
-  int ts_length,           /* length of time series data */  
-  char ** tfilename,       /* file name for time point series */  
+  int ts_length,           /* length of time series data */
+  char ** tfilename,       /* file name for time point series */
   float *** x_array,       /* independent variable matrix */
 
   float ** fit
@@ -286,15 +286,15 @@ void initialize_program
   int dimension;           /* dimension of full model */
   int ip;                  /* parameter index */
   int it;                  /* time index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
                               -- used to read 1D ASCII */
   int nt;                  /* number of points in 1D x data file */
   float * tar;
 
 
   /*----- intialize options -----*/
-  initialize_options (im1, nname, sname, nmodel, smodel, r, p, npname, spname, 
-		      min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
+  initialize_options (im1, nname, sname, nmodel, smodel, r, p, npname, spname,
+		      min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 		      nabs, nrand, nbest, rms_min, tfilename);
 
   /*----- check for valid inputs -----*/
@@ -311,7 +311,7 @@ void initialize_program
       if ((*x_array)[it] == NULL)
 	NLfit_error ("Unable to allocate memory for x_array[it]");
     }
-    
+
   /*----- initialize independent variable matrix -----*/
   if (!plug_timeref)
     {
@@ -322,23 +322,23 @@ void initialize_program
          printf("NLfit: switch to TR = %g\n",DELT) ;
       }
 
-      for (it = 0;  it < ts_length;  it++)  
+      for (it = 0;  it < ts_length;  it++)
 	{
 	  (*x_array)[it][0] = 1.0;
 	  (*x_array)[it][1] = it * DELT;
 	  (*x_array)[it][2] = (it * DELT) * (it * DELT);
 	}
     }
-  else 
+  else
     {
-        flim = mri_read_1D (*tfilename); 
+        flim = mri_read_1D (*tfilename);
 	if (flim == NULL)
 	  NLfit_error ("Unable to read time reference file \n");
         nt = flim -> nx;
 	if (nt < ts_length)
-	    NLfit_error ("Time reference array is too short");  
+	    NLfit_error ("Time reference array is too short");
         tar = MRI_FLOAT_PTR(flim) ;
-        for (it = 0;  it < ts_length;  it++)  
+        for (it = 0;  it < ts_length;  it++)
          {
 	   (*x_array)[it][0] = 1.0;
            (*x_array)[it][1] = tar[it] ;
@@ -355,7 +355,7 @@ void initialize_program
         ERROR_message("Linear+Ort model: 'AFNI_ORTMODEL_REF' not set") ;
         goto PLO_done ;
       }
-    
+
       fim = mri_read_1D(fname) ;
       if( fim == NULL || fim->nx < 2 ){
         ERROR_message(
@@ -382,7 +382,7 @@ void initialize_program
      PLO_done: ; /* nada */
    }
 
-  
+
   dimension = (*r) + (*p);
 
   /*----- allocate memory space -----*/
@@ -407,7 +407,7 @@ void initialize_program
   Release all allocated memory space.
 */
 
-void terminate_program 
+void terminate_program
 (
   int r,                       /* number of parameters in the noise model */
   int p,                       /* number of parameters in the signal model */
@@ -421,7 +421,7 @@ void terminate_program
   float ** min_sconstr,   /* min parameter constraints for signal model */
   float ** max_sconstr    /* max parameter constraints for signal model */
 )
- 
+
 {
   int ip;                        /* parameter index */
   int it;                        /* time index */
@@ -503,36 +503,36 @@ float *  nlfit
 
   int novar;               /* flag for insufficient variation in the data */
 
-   
+
   /*----- program initialization -----*/
-  initialize_program (&im1, &nname, &sname, &nmodel, &smodel, 
+  initialize_program (&im1, &nname, &sname, &nmodel, &smodel,
 		      &r, &p, &npname, &spname,
 		      &min_nconstr, &max_nconstr, &min_sconstr, &max_sconstr,
-		      &nabs, &nrand, &nbest, &rms_min, 
-		      &par_rdcd, &par_full, &tpar_full, 
+		      &nabs, &nrand, &nbest, &rms_min,
+		      &par_rdcd, &par_full, &tpar_full,
 		      ts_length, &tfilename, &x_array, &fit);
-  
 
-  /*----- calculate the reduced (noise) model -----*/  
-  calc_reduced_model (ts_length, r, x_array, ts_array, 
+
+  /*----- calculate the reduced (noise) model -----*/
+  calc_reduced_model (ts_length, r, x_array, ts_array,
 		      par_rdcd, &sse_rdcd);
-      
+
 
   /*----- calculate the full (signal+noise) model -----*/
-  calc_full_model (nmodel, smodel, r, p, 
+  calc_full_model (nmodel, smodel, r, p,
 		   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
-		   ts_length, x_array, ts_array, par_rdcd, sse_rdcd, 
+		   ts_length, x_array, ts_array, par_rdcd, sse_rdcd,
 		   nabs, nrand, nbest, rms_min, par_full, &sse_full, &novar);
 
 
   /*----- create estimated time series using the full model parameters -----*/
-  full_model (nmodel, smodel, par_full, par_full + r, 
+  full_model (nmodel, smodel, par_full, par_full + r,
 	      ts_length, x_array, fit);
-      
+
 
   /*----- calculate statistics for the full model -----*/
   analyze_results (nmodel, smodel, r, p, novar,
-		   min_nconstr, max_nconstr, min_sconstr, max_sconstr, 
+		   min_nconstr, max_nconstr, min_sconstr, max_sconstr,
 		   ts_length, x_array,
 		   par_rdcd, sse_rdcd, par_full, sse_full,
 		   &rmsreg, &freg, &rsqr, &smax, &tmax, &pmax, &area, &parea,
@@ -545,16 +545,16 @@ float *  nlfit
 		  rmsreg, freg, rsqr, smax, tmax, pmax, area, parea, label);
   printf ("\nVoxel Results: \n");
   printf ("%s \n", *label);
-  
+
 
   /*----- end of program -----*/
   terminate_program (r, p, ts_length, &x_array,
-		     &par_rdcd, &min_nconstr, &max_nconstr, 
-		     &par_full, &tpar_full, 
-		     &min_sconstr, &max_sconstr); 
+		     &par_rdcd, &min_nconstr, &max_nconstr,
+		     &par_full, &tpar_full,
+		     &min_sconstr, &max_sconstr);
 
   return (fit);
-  
+
 }
 
 
@@ -661,31 +661,31 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	   plug_nmodel[ii] = model_array->modar[im]->interface->call_func;
 	   if (plug_nmodel[ii] == NULL)
 	    {
-	      sprintf (message, "Noise model %s improperly defined. \n", 
+	      sprintf (message, "Noise model %s improperly defined. \n",
 		       noise_labels[ii]);
 	      NLfit_error (message);
 	    }
-		  
+
 	   plug_r[ii] = model_array->modar[im]->interface->params;
 	   if ((plug_r[ii] < 0) || (plug_r[ii] > MAX_PARAMETERS))
 	    {
-	      sprintf (message, 
-		       "Illegal number of parameters for noise model %s", 
+	      sprintf (message,
+		       "Illegal number of parameters for noise model %s",
 		       noise_labels[ii]);
 	      NLfit_error (message);
 	    }
-     	  
+
 	   for (ip = 0;  ip < plug_r[ii];  ip++)
 	     {
-	       noise_plabels[ii][ip] = 
+	       noise_plabels[ii][ip] =
 		 (char *) malloc (sizeof(char)*MAX_NAME_LENGTH);
-	       strncpy (noise_plabels[ii][ip], 
+	       strncpy (noise_plabels[ii][ip],
 		       model_array->modar[im]->interface->plabel[ip],
 			MAX_NAME_LENGTH);
 	       plug_min_nconstr[ii][ip] =
-		 model_array->modar[im]->interface->min_constr[ip]; 
-	       plug_max_nconstr[ii][ip] = 
-		 model_array->modar[im]->interface->max_constr[ip]; 
+		 model_array->modar[im]->interface->min_constr[ip];
+	       plug_max_nconstr[ii][ip] =
+		 model_array->modar[im]->interface->max_constr[ip];
 	       if (plug_min_nconstr[ii][ip] > plug_max_nconstr[ii][ip])
 		 NLfit_error
 		   ("Must have noise parameter min cnstrnts <= max cnstrnts");
@@ -694,7 +694,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	 }
      }
    num_noise_models = ii;
-   if (num_noise_models <= 0)  
+   if (num_noise_models <= 0)
      NLfit_error ("Unable to locate any noise models");
    plug_noise_index = 1;
 
@@ -713,32 +713,32 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	   plug_smodel[ii] = model_array->modar[im]->interface->call_func;
 	   if (plug_smodel[ii] == NULL)
 	    {
-	      sprintf (message, "Signal model %s improperly defined. \n", 
+	      sprintf (message, "Signal model %s improperly defined. \n",
 		       signal_labels[ii]);
 	      NLfit_error (message);
 	    }
-		  
+
 	   plug_p[ii] = model_array->modar[im]->interface->params;
 	   if ((plug_p[ii] < 0) || (plug_p[ii] > MAX_PARAMETERS))
 	    {
-	      sprintf (message, 
-		       "Illegal number of parameters for signal model %s", 
+	      sprintf (message,
+		       "Illegal number of parameters for signal model %s",
 		       signal_labels[ii]);
 	      NLfit_error (message);
 	    }
-     	  
+
 
 	   for (ip = 0;  ip < plug_p[ii];  ip++)
 	     {
-	       signal_plabels[ii][ip] = 
+	       signal_plabels[ii][ip] =
 		 (char *) malloc (sizeof(char)*MAX_NAME_LENGTH);
-	       strncpy (signal_plabels[ii][ip], 
+	       strncpy (signal_plabels[ii][ip],
 			model_array->modar[im]->interface->plabel[ip],
 			MAX_NAME_LENGTH);
 	       plug_min_sconstr[ii][ip] =
-		 model_array->modar[im]->interface->min_constr[ip]; 
-	       plug_max_sconstr[ii][ip] = 
-		 model_array->modar[im]->interface->max_constr[ip]; 
+		 model_array->modar[im]->interface->min_constr[ip];
+	       plug_max_sconstr[ii][ip] =
+		 model_array->modar[im]->interface->max_constr[ip];
 	       if (plug_min_sconstr[ii][ip] > plug_max_sconstr[ii][ip])
 		 NLfit_error
 		   ("Must have signal parameter min cnstrnts <= max cnstrnts");
@@ -747,7 +747,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 	 }
      }
    num_signal_models = ii;
-   if (num_signal_models <= 0)  
+   if (num_signal_models <= 0)
      NLfit_error ("Unable to locate any signal models");
    plug_signal_index = 0;
 
@@ -764,7 +764,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    /*----- Models -----*/
    PLUTO_add_option (plint , "Models" , "Models" , TRUE);
-   PLUTO_add_string (plint, "Noise Model", num_noise_models, noise_labels, 
+   PLUTO_add_string (plint, "Noise Model", num_noise_models, noise_labels,
 		     plug_noise_index);
    PLUTO_add_string (plint, "Signal Model", num_signal_models, signal_labels,
 		     plug_signal_index);
@@ -831,9 +831,9 @@ char * NL_main( PLUGIN_interface * plint )
 
    /*------ loop over remaining options, check their tags, process them -----*/
 
-   do 
+   do
      {
-       str = PLUTO_get_optiontag(plint) ; 
+       str = PLUTO_get_optiontag(plint) ;
        if( str == NULL ) break ;
 
        if( strcmp(str,"Models") == 0 )
@@ -842,7 +842,7 @@ char * NL_main( PLUGIN_interface * plint )
 	   for (ii = 0;  ii < num_noise_models;  ii++)
 	     if (strcmp (str, noise_labels[ii]) == 0)
 	       plug_noise_index = ii;
-	 
+
 	   str = PLUTO_get_string(plint) ;
 	   for (ii = 0;  ii < num_signal_models;  ii++)
 	     if (strcmp (str, signal_labels[ii]) == 0)
@@ -853,7 +853,7 @@ char * NL_main( PLUGIN_interface * plint )
 	     plug_nabs = 1;
 	   else
 	     plug_nabs = 0;
-	 } 
+	 }
 
        else if( strcmp(str,"Noise") == 0 )
 	 {
@@ -866,7 +866,7 @@ char * NL_main( PLUGIN_interface * plint )
 	            "**********************************"  ;
 	   plug_min_nconstr[plug_noise_index][ival] = min_constr;
 	   plug_max_nconstr[plug_noise_index][ival] = max_constr;
-	 } 
+	 }
 
        else if( strcmp(str,"Signal") == 0 )
 	 {
@@ -879,7 +879,7 @@ char * NL_main( PLUGIN_interface * plint )
 	            "**********************************"  ;
 	   plug_min_sconstr[plug_signal_index][ival] = min_constr;
 	   plug_max_sconstr[plug_signal_index][ival] = max_constr;
-	 } 
+	 }
 
        else if( strcmp(str,"Time Scale") == 0 )
 	 {
@@ -887,7 +887,7 @@ char * NL_main( PLUGIN_interface * plint )
 	   if (strcmp (str, "External") == 0){
 	       plug_timeref = 1;
 	       str = PLUTO_get_string(plint);
-	       im = mri_read_1D (str); 
+	       im = mri_read_1D (str);
 	       if (im == NULL)
 		 return "************************************\n"
 		        " Unable to read time reference file \n"
@@ -904,9 +904,9 @@ char * NL_main( PLUGIN_interface * plint )
              inTR = 0 ;                       /* 22 July 1998 */
            }
 
-	 } 
+	 }
 
-       else 
+       else
 	 {
 	   return "************************\n"
 	          "Illegal optiontag found!\n"
@@ -915,15 +915,15 @@ char * NL_main( PLUGIN_interface * plint )
      } while(1) ;
 
 
-  
+
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Date:    %s \n", PROGRAM_DATE);
   printf ("\n");
 
-   
+
    /*----- show current input options -----*/
    printf ("\nControls: \n");
    printf ("Ignore       = %5d \n", plug_ignore);
@@ -933,16 +933,16 @@ char * NL_main( PLUGIN_interface * plint )
    printf ("\nNoise  Model = %s \n", noise_labels[plug_noise_index]);
    for (ip = 0;  ip < plug_r[plug_noise_index];  ip++)
      {
-       printf ("gn[%d]:   min =%10.3f   max =%10.3f   %s \n", 
-	       ip, plug_min_nconstr[plug_noise_index][ip], 
+       printf ("gn[%d]:   min =%10.3f   max =%10.3f   %s \n",
+	       ip, plug_min_nconstr[plug_noise_index][ip],
 	       plug_max_nconstr[plug_noise_index][ip],
 	       noise_plabels[plug_noise_index][ip]);
      }
    printf ("\nSignal Model = %s \n", signal_labels[plug_signal_index]);
    for (ip = 0;  ip < plug_p[plug_signal_index];  ip++)
      {
-       printf ("gs[%d]:   min =%10.3f   max =%10.3f   %s \n", 
-	       ip, plug_min_sconstr[plug_signal_index][ip], 
+       printf ("gs[%d]:   min =%10.3f   max =%10.3f   %s \n",
+	       ip, plug_min_sconstr[plug_signal_index][ip],
 	       plug_max_sconstr[plug_signal_index][ip],
 	       signal_plabels[plug_signal_index][ip]);
      }
@@ -953,13 +953,13 @@ char * NL_main( PLUGIN_interface * plint )
      printf ("\n-inTR Time Reference\n") ;
    else
      printf ("\nInternal Time Reference \n");
-   
-   
+
+
    /*--- nothing left to do until data arrives ---*/
-   
+
    initialize = 1 ;  /* force re-initialization */
-   
-   
+
+
    return NULL ;
 }
 
@@ -980,7 +980,7 @@ void NL_error( int nt , double to , double dt , float * vec, char ** label )
    NL_worker( nt , dt , vec , FALSE, label ) ;
    return ;
 }
- 
+
 
 /*---------------------------------------------------------------------------*/
 

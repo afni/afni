@@ -20,9 +20,9 @@ static int                RT_mega = 1 ;
 #if 0 /*  ZSS June 2011. Delete useless code after dust has settled.  */
    #define AFNI_CONTROL_PORT  7954      /* always send control data to AFNI    */
    #define AFNI_TCP_PORT      7953      /* maybe send image data to AFNI       */
-   /* 
-   replace these two with: 
-      get_port_named("AFNI_CONTROL_PORT") 
+   /*
+   replace these two with:
+      get_port_named("AFNI_CONTROL_PORT")
       and
       get_port_named("AFNI_TCP_PORT")
    */
@@ -122,7 +122,7 @@ void AFNI_start_io( void )
 
    if( AFNI_mode == AFNI_OPEN_CONTROL_MODE ){
 
-      sprintf( AFNI_iochan , "tcp:%s:%d" , 
+      sprintf( AFNI_iochan , "tcp:%s:%d" ,
                AFNI_host , get_port_named("AFNI_CONTROL_PORT") ) ;
 
       if( AFNI_verbose )

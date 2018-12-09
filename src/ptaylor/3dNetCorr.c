@@ -1,13 +1,13 @@
-/* 
+/*
    Calculate correlation coefficients of mean time series of a set of
    ROIs labelled by ints.  Written by PA Taylor (March, 2013).
 
    Jan. 2014
-   + changed output format of *.netcc files to match that of 
+   + changed output format of *.netcc files to match that of
    .grid files from Tracking
-       
+
    Apr. 2014
-   + changed output format of *.netts files to match that of 
+   + changed output format of *.netts files to match that of
    .grid files from Tracking (oops, should have done earlier)
    + new options:  insert ROI integer label into file, and have
    time series as individual files
@@ -18,8 +18,8 @@
 
    June 2014
    + Partial correlation option
-   
-   Sept 2014: 
+
+   Sept 2014:
    + use label table of netrois, if exists
 
    Dec 2014:
@@ -44,10 +44,10 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
+#include <mrilib.h>
+#include <rsfc.h>
 #include <gsl/gsl_rng.h>
-#include <3ddata.h>    
+#include <3ddata.h>
 #include "DoTrackit.h"
 #include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>
@@ -62,7 +62,7 @@
 #define MAX_PARAMS (4) // CC, FZ, PC, PCB right now
 
 
-void usage_NetCorr(int detail) 
+void usage_NetCorr(int detail)
 {
    printf(
 "\n"
@@ -267,7 +267,7 @@ int main(int argc, char *argv[]) {
    char OUT_indiv0[300];
    //  int *SELROI=NULL; // if selecting subset of ROIs
    //  int HAVE_SELROI=0;
-   
+
    int NIFTI_OUT = 0;
 
    byte ***mskd=NULL; // define mask of where time series are nonzero
@@ -284,9 +284,9 @@ int main(int argc, char *argv[]) {
    int *NROI_REF=NULL,*INVROI_REF=NULL;
    int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL,**ROI_COUNT=NULL;
    int ***ROI_LISTS=NULL;
-   double ***ROI_AVE_TS=NULL; // double because of GSL 
-   float ***Corr_Matr=NULL; 
-   float ***PCorr_Matr=NULL, ***PBCorr_Matr=NULL; 
+   double ***ROI_AVE_TS=NULL; // double because of GSL
+   float ***Corr_Matr=NULL;
+   float ***PCorr_Matr=NULL, ***PBCorr_Matr=NULL;
 
    int Nvox=-1;   // tot number vox
    int *Dim=NULL;
@@ -328,8 +328,8 @@ int main(int argc, char *argv[]) {
    FILE *fout1,*fin,*fout2;
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
-   mainENTRY("3dNetCorr"); machdep(); 
-  
+   mainENTRY("3dNetCorr"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -340,28 +340,28 @@ int main(int argc, char *argv[]) {
 
    /** scan args **/
    if (argc == 1) { usage_NetCorr(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_NetCorr(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-inset") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-input'");
 
-         sprintf(in_name,"%s", argv[iarg]); 
+         sprintf(in_name,"%s", argv[iarg]);
          insetTIME = THD_open_dataset(in_name) ;
          if( (insetTIME == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
@@ -370,42 +370,42 @@ int main(int argc, char *argv[]) {
          Dim = (int *)calloc(4,sizeof(int));
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
          Nvox = DSET_NVOX(insetTIME) ;
-         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
-         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
+         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME);
+         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME);
 
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          HAVE_MASK= 1;
 
-         sprintf(in_mask,"%s", argv[iarg]); 
+         sprintf(in_mask,"%s", argv[iarg]);
          MASK = THD_open_dataset(in_mask) ;
          if( (MASK == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-in_rois") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-in_rois'");
-      
-         sprintf(in_rois,"%s", argv[iarg]); 
+
+         sprintf(in_rois,"%s", argv[iarg]);
          ROIS = THD_open_dataset(in_rois) ;
          if( (ROIS == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_rois);
-      
+
          DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
          HAVE_ROIS=DSET_NVALS(ROIS); //number of subbricks
-		
+
          iarg++ ; continue ;
       }
-    
+
       if( strcmp(argv[iarg],"-fish_z") == 0) {
          FISH_OUT=1;
          iarg++ ; continue ;
@@ -442,7 +442,7 @@ int main(int argc, char *argv[]) {
          TS_OUT=1;
          iarg++ ; continue ;
       }
-    
+
       if( strcmp(argv[iarg],"-ts_label") == 0) {
          TS_LABEL=1;
          iarg++ ; continue ;
@@ -475,11 +475,11 @@ int main(int argc, char *argv[]) {
 
 
       /*  if( strcmp(argv[iarg],"-sel_roi") == 0 ){
-          iarg++ ; if( iarg >= argc ) 
+          iarg++ ; if( iarg >= argc )
           ERROR_exit("Need argument after '-in_rois'");
-      
+
           SELROI = (int *)calloc(MAX_SELROI,sizeof(int));
-      
+
           if( (fin = fopen(argv[iarg], "r")) == NULL)  {
           fprintf(stderr, "Error opening file %s.",argv[iarg]);
           exit(1);
@@ -506,7 +506,7 @@ int main(int argc, char *argv[]) {
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-  
+
    INFO_message("Reading in.");
 
    if( !TS_OUT && TS_LABEL) {
@@ -518,7 +518,7 @@ int main(int argc, char *argv[]) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
-	
+
    if(!HAVE_ROIS) {
       ERROR_message("Need to load ROIs with >=1 subbrick...\n");
       exit(1);
@@ -529,54 +529,54 @@ int main(int argc, char *argv[]) {
                     "different numbers of voxels per brik!\n");
       exit(1);
    }
-	
+
    if( (HAVE_MASK>0) && (Nvox != DSET_NVOX(MASK)) ) {
       ERROR_message("Data sets of `-inset' and `mask' have "
                     "different numbers of voxels per brik!\n");
       exit(1);
    }
 
-	
+
    // ****************************************************************
    // ****************************************************************
    //                    make storage
    // ****************************************************************
    // ****************************************************************
-	
-   Nlist = (int *)calloc(1,sizeof(int)); 
-   mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
+
+   Nlist = (int *)calloc(1,sizeof(int));
+   mskd2 = (byte *)calloc(Nvox,sizeof(byte));
 
    mskd = (byte ***) calloc( Dim[0], sizeof(byte **) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
       mskd[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
-      for ( j = 0 ; j < Dim[1] ; j++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
+      for ( j = 0 ; j < Dim[1] ; j++ )
          mskd[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
-   mskd2nz = (byte *)calloc(Nvox,sizeof(byte)); 
+   mskd2nz = (byte *)calloc(Nvox,sizeof(byte));
 
    mskdnz = (byte ***) calloc( Dim[0], sizeof(byte **) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
       mskdnz[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
-      for ( j = 0 ; j < Dim[1] ; j++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
+      for ( j = 0 ; j < Dim[1] ; j++ )
          mskdnz[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
    if( (mskd == NULL) || (Nlist == NULL) || (mskd2 == NULL) ||
-       (mskdnz == NULL) || (mskd2nz == NULL) ) { 
+       (mskdnz == NULL) || (mskd2nz == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
-	
+
    // *************************************************************
    // *************************************************************
    //                    Beginning of main loops
    // *************************************************************
    // *************************************************************
-	
+
    INFO_message("Allocating...");
 
-   if( HAVE_MASK ) 
+   if( HAVE_MASK )
       INFO_message("Applying user's mask");
    else
       INFO_message("User didn't enter mask: will make my own, "
@@ -584,14 +584,14 @@ int main(int argc, char *argv[]) {
 
    idx = 0;
    // go through once: define data vox, and calc rank for each
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             // first, we make a mask of nonzero time series
             checksum = 0.;
-            for( m=0 ; m<Dim[3] ; m++ ) 
+            for( m=0 ; m<Dim[3] ; m++ )
                // [PT: May 27, 2017] fixed index 0 -> m
-               checksum+= fabs(THD_get_voxel(insetTIME,idx,m)); 
+               checksum+= fabs(THD_get_voxel(insetTIME,idx,m));
             if( checksum > EPS_V ) {
                mskdnz[i][j][k] = 1;
                mskd2nz[idx] = 1;
@@ -613,7 +613,7 @@ int main(int argc, char *argv[]) {
                }
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
-   
+
    // [PT: Apr, 2017] output nonnull mask that we've calc'ed.  It is
    // the applied one *if* the user had not input a mask; otherwise,
    // they can compare it with their own and/or with the ROI map they
@@ -623,7 +623,7 @@ int main(int argc, char *argv[]) {
 
       MASK_nonnull = EDIT_empty_copy( insetTIME );
 
-      if( NIFTI_OUT ) 
+      if( NIFTI_OUT )
          sprintf(prefix_nonnull,"%s_%s.nii.gz", prefix, "mask_nnull");
       else
          sprintf(prefix_nonnull,"%s_%s", prefix, "mask_nnull");
@@ -642,7 +642,7 @@ int main(int argc, char *argv[]) {
       THD_load_statistics(MASK_nonnull);
       tross_Copy_History( insetTIME , MASK_nonnull ) ;
       tross_Make_History( "3dNetCorr", argc, argv, MASK_nonnull );
-      if( !THD_ok_overwrite() && 
+      if( !THD_ok_overwrite() &&
           THD_is_ondisk(DSET_HEADNAME(MASK_nonnull)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(MASK_nonnull));
@@ -659,27 +659,27 @@ int main(int argc, char *argv[]) {
 
    // obviously, this should always be TRUE at this point...
    if(HAVE_ROIS>0) {
-     
-      FLAG_nulls = (int *)calloc(HAVE_ROIS, sizeof(int)); 
-      NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
-      INVROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
+
+      FLAG_nulls = (int *)calloc(HAVE_ROIS, sizeof(int));
+      NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int));
+      INVROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int));
       if( (NROI_REF == NULL) || (INVROI_REF == NULL) ||
           (FLAG_nulls == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(122);
       }
-     
-      for( i=0 ; i<HAVE_ROIS ; i++) 
+
+      for( i=0 ; i<HAVE_ROIS ; i++)
          INVROI_REF[i] = (int) THD_subbrick_max(ROIS, i, 1);
-     
-      ROI_LABELS_REF = calloc( HAVE_ROIS,sizeof(ROI_LABELS_REF));  
-      for(i=0 ; i<HAVE_ROIS ; i++) 
-         ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
-      INV_LABELS_REF = calloc( HAVE_ROIS,sizeof(INV_LABELS_REF));  
-      for(i=0 ; i<HAVE_ROIS ; i++) 
-         INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
-     
-      if( (ROI_LABELS_REF == NULL) || (INV_LABELS_REF == NULL) 
+
+      ROI_LABELS_REF = calloc( HAVE_ROIS,sizeof(ROI_LABELS_REF));
+      for(i=0 ; i<HAVE_ROIS ; i++)
+         ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
+      INV_LABELS_REF = calloc( HAVE_ROIS,sizeof(INV_LABELS_REF));
+      for(i=0 ; i<HAVE_ROIS ; i++)
+         INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
+
+      if( (ROI_LABELS_REF == NULL) || (INV_LABELS_REF == NULL)
           ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
@@ -697,8 +697,8 @@ int main(int argc, char *argv[]) {
 
       // Step 3A-2: find out the labels in the ref, organize them
       //            both backwards and forwards.
-      i = ViveLeRoi(ROIS, 
-                    ROI_LABELS_REF, // ordered list of ROILABEL ints, [1..M]; 
+      i = ViveLeRoi(ROIS,
+                    ROI_LABELS_REF, // ordered list of ROILABEL ints, [1..M];
                     //    maxval is N.
                     INV_LABELS_REF, // ith values at the actual input locs;
                     //    maxval is M.
@@ -706,12 +706,12 @@ int main(int argc, char *argv[]) {
                     INVROI_REF);    // N: max ROI label per brik
       if( i != 1)
          ERROR_exit("Problem loading/assigning ROI labels");
-     
+
       ROI_STR_LABELS = (char ***) calloc( HAVE_ROIS, sizeof(char **) );
-      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for ( i=0 ; i<HAVE_ROIS ; i++ )
          ROI_STR_LABELS[i] = (char **) calloc( NROI_REF[i]+1, sizeof(char *) );
-      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
-         for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
+      for ( i=0 ; i<HAVE_ROIS ; i++ )
+         for ( j=0 ; j<NROI_REF[i]+1 ; j++ )
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
       if(  (ROI_STR_LABELS == NULL)) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
@@ -730,7 +730,7 @@ int main(int argc, char *argv[]) {
                if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
                   ERROR_exit("Could not parse labeltable.");
                }
-            } 
+            }
             else {
                INFO_message("No label table from '-in_rois'.");
             }
@@ -738,60 +738,60 @@ int main(int argc, char *argv[]) {
       }
 
       i = Make_ROI_Output_Labels( ROI_STR_LABELS,
-                                  ROI_LABELS_REF, 
+                                  ROI_LABELS_REF,
                                   HAVE_ROIS,
                                   NROI_REF,
-                                  roi_dtable, 
+                                  roi_dtable,
                                   1 );//!!!opts.DUMP_with_LABELS
 
 
-      ROI_COUNT = calloc( HAVE_ROIS,sizeof(ROI_COUNT));  
-      for(i=0 ; i<HAVE_ROIS ; i++) 
-         ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int)); 
+      ROI_COUNT = calloc( HAVE_ROIS,sizeof(ROI_COUNT));
+      for(i=0 ; i<HAVE_ROIS ; i++)
+         ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int));
 
-      ROI_COUNTnz = calloc( HAVE_ROIS,sizeof(ROI_COUNTnz));  
-      for(i=0 ; i<HAVE_ROIS ; i++) 
-         ROI_COUNTnz[i] = calloc(NROI_REF[i],sizeof(int)); 
+      ROI_COUNTnz = calloc( HAVE_ROIS,sizeof(ROI_COUNTnz));
+      for(i=0 ; i<HAVE_ROIS ; i++)
+         ROI_COUNTnz[i] = calloc(NROI_REF[i],sizeof(int));
 
       if( (ROI_COUNT == NULL) || (ROI_COUNTnz == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
-	
+
       // find num of vox per ROI
       for( m=0 ; m<HAVE_ROIS ; m++ ) {
          idx=0;
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
+         for( k=0 ; k<Dim[2] ; k++ )
+            for( j=0 ; j<Dim[1] ; j++ )
                for( i=0 ; i<Dim[0] ; i++ ) {
                   // count total num of vox per ROI
                   if( (THD_get_voxel(ROIS,idx,m) > 0 ) && mskd[i][j][k] ) {
-                     ROI_COUNT[m][INV_LABELS_REF[m][(int) 
+                     ROI_COUNT[m][INV_LABELS_REF[m][(int)
                                                     THD_get_voxel(ROIS,idx,m)]-1]++;
                   }
                   // count num of nonzero vox per ROI (above is just within mask)
                   if( (THD_get_voxel(ROIS,idx,m) > 0 ) && mskdnz[i][j][k] ) {
-                     ROI_COUNTnz[m][INV_LABELS_REF[m][(int) 
+                     ROI_COUNTnz[m][INV_LABELS_REF[m][(int)
                                                     THD_get_voxel(ROIS,idx,m)]-1]++;
                   }
                   idx++;
                }
       }
-      
+
       /*
       // describe the nums of nonzeros still left in
       {
          fprintf(stderr,"\n\n ROI counts \n\n");
          for(i=0 ; i<HAVE_ROIS ; i++) {
-            fprintf(stderr,"%10s %10s  %8s  #  %6s  %s\n", 
+            fprintf(stderr,"%10s %10s  %8s  #  %6s  %s\n",
                     "ROI_vol", "ROI_nnull", "frac", "ROI", "ROI_label");
             for(j=0 ; j<NROI_REF[i] ; j++) {
                checksum = (ROI_COUNTnz[i][j]) / ((double) ROI_COUNT[i][j]);
                // badness count!
-               if (checksum < 0.9 ) 
+               if (checksum < 0.9 )
                   FLAG_nulls[i]+= 1;
                fprintf(stderr,"%10d %10d  %8.5f  #  %6d  %s\n",
-                       ROI_COUNT[i][j], ROI_COUNTnz[i][j], (float) checksum, 
+                       ROI_COUNT[i][j], ROI_COUNTnz[i][j], (float) checksum,
                        ROI_LABELS_REF[i][j+1], ROI_STR_LABELS[i][j+1]);
             }
          }
@@ -801,27 +801,27 @@ int main(int argc, char *argv[]) {
       // describe the nums of nonzeros still left in
       if( 1 ) {
          for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
-            
+
             sprintf(OUT_grid,"%s_%03d.roidat", prefix, k);
             if( (fout1 = fopen(OUT_grid, "w")) == NULL) {
                fprintf(stderr, "Error opening file %s.", OUT_grid);
                exit(19);
             }
-            fprintf(fout1, "# %8s %10s  %8s  #  %6s  %s\n", 
+            fprintf(fout1, "# %8s %10s  %8s  #  %6s  %s\n",
                     "N_vox", "N_nonnull", "frac", "ROI", "ROI_label");
             for(j=0 ; j<NROI_REF[k] ; j++) {
                checksum = (ROI_COUNTnz[k][j]) / ((double) ROI_COUNT[k][j]);
                // badness count!
-               
+
                if (checksum <= EPS_V )
                   FLAG_nulls[k] = -1; // ultimate badness
                else if ( (checksum < 0.9) && (FLAG_nulls[k]>=0 ) )
                   FLAG_nulls[k]+= 1; //can be badness
                fprintf(fout1,"%10d %10d  %8.5f  #  %6d  %s\n",
-                       ROI_COUNT[k][j], ROI_COUNTnz[k][j], (float) checksum, 
+                       ROI_COUNT[k][j], ROI_COUNTnz[k][j], (float) checksum,
                        ROI_LABELS_REF[k][j+1], ROI_STR_LABELS[k][j+1]);
             }
-            fclose(fout1);  
+            fclose(fout1);
          }
       }
 
@@ -833,7 +833,7 @@ int main(int argc, char *argv[]) {
                           "time series! If you want, you *can* "
                           "\n\t use the '-push_thru_many_zeros' option "
                           "(see the help), but it ain't recommended.",
-                          k, FLAG_nulls[k]); 
+                          k, FLAG_nulls[k]);
             exit(1);
          }
          else if( FLAG_nulls[k] > 0 ) {
@@ -848,7 +848,7 @@ int main(int argc, char *argv[]) {
                              "null time series! If you want, you *can*"
                              "\n\t use the '-push_thru_many_zeros' option "
                              "(see the help), but it ain't recommended.",
-                             k, FLAG_nulls[k]); 
+                             k, FLAG_nulls[k]);
                exit(1);
             }
          }
@@ -865,49 +865,49 @@ int main(int argc, char *argv[]) {
 
       // make list of vox per ROI
       ROI_LISTS = (int ***) calloc( HAVE_ROIS, sizeof(int **) );
-      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for ( i=0 ; i<HAVE_ROIS ; i++ )
          ROI_LISTS[i] = (int **) calloc( NROI_REF[i], sizeof(int *) );
-      for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-         for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+      for ( i=0 ; i <HAVE_ROIS ; i++ )
+         for ( j=0 ; j<NROI_REF[i] ; j++ )
             ROI_LISTS[i][j] = (int *) calloc( ROI_COUNT[i][j], sizeof(int) );
 
       // make average time series per voxel
       ROI_AVE_TS = (double ***) calloc( HAVE_ROIS, sizeof(double **) );
-      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for ( i=0 ; i<HAVE_ROIS ; i++ )
          ROI_AVE_TS[i] = (double **) calloc( NROI_REF[i], sizeof(double *) );
-      for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-         for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+      for ( i=0 ; i <HAVE_ROIS ; i++ )
+         for ( j=0 ; j<NROI_REF[i] ; j++ )
             ROI_AVE_TS[i][j] = (double *) calloc( Dim[3], sizeof(double) );
 
       // store corr coefs
       Corr_Matr = (float ***) calloc( HAVE_ROIS, sizeof(float **) );
-      for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for ( i=0 ; i<HAVE_ROIS ; i++ )
          Corr_Matr[i] = (float **) calloc( NROI_REF[i], sizeof(float *) );
-      for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-         for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+      for ( i=0 ; i <HAVE_ROIS ; i++ )
+         for ( j=0 ; j<NROI_REF[i] ; j++ )
             Corr_Matr[i][j] = (float *) calloc( NROI_REF[i], sizeof(float) );
 
-      if( (ROI_LISTS == NULL) || (ROI_AVE_TS == NULL) 
+      if( (ROI_LISTS == NULL) || (ROI_AVE_TS == NULL)
           || (Corr_Matr == NULL)) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
-	  
+
       if(PART_CORR) {
          PCorr_Matr = (float ***) calloc( HAVE_ROIS, sizeof(float **) );
-         for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+         for ( i=0 ; i<HAVE_ROIS ; i++ )
             PCorr_Matr[i] = (float **) calloc( NROI_REF[i], sizeof(float *) );
-         for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-            for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+         for ( i=0 ; i <HAVE_ROIS ; i++ )
+            for ( j=0 ; j<NROI_REF[i] ; j++ )
                PCorr_Matr[i][j] = (float *) calloc( NROI_REF[i], sizeof(float));
 
          PBCorr_Matr = (float ***) calloc( HAVE_ROIS, sizeof(float **) );
-         for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+         for ( i=0 ; i<HAVE_ROIS ; i++ )
             PBCorr_Matr[i] = (float **) calloc( NROI_REF[i], sizeof(float *) );
-         for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-            for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+         for ( i=0 ; i <HAVE_ROIS ; i++ )
+            for ( j=0 ; j<NROI_REF[i] ; j++ )
                PBCorr_Matr[i][j] = (float *) calloc( NROI_REF[i], sizeof(float));
-         
+
          if( (PCorr_Matr == NULL) || (PBCorr_Matr == NULL) ) {
             fprintf(stderr, "\n\n MemAlloc failure.\n\n");
             exit(123);
@@ -915,7 +915,7 @@ int main(int argc, char *argv[]) {
       }
 
       // reuse this to help place list indices
-      for( i=0 ; i<HAVE_ROIS ; i++ ) 
+      for( i=0 ; i<HAVE_ROIS ; i++ )
          for( j=0 ; j<NROI_REF[i] ; j++ )
             ROI_COUNT[i][j] = 0;
 
@@ -923,8 +923,8 @@ int main(int argc, char *argv[]) {
 
       for( m=0 ; m<HAVE_ROIS ; m++ ) {
          idx=0;
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
+         for( k=0 ; k<Dim[2] ; k++ )
+            for( j=0 ; j<Dim[1] ; j++ )
                for( i=0 ; i<Dim[0] ; i++ ) {
                   if( (THD_get_voxel(ROIS,idx,m) > 0) && mskd[i][j][k] ) {
                      mm = INV_LABELS_REF[m][(int) THD_get_voxel(ROIS,idx,m)]-1;
@@ -934,10 +934,10 @@ int main(int argc, char *argv[]) {
                   idx++;
                }
       }
-   }	
+   }
 
    // bit of freeing
-   for( i=0 ; i<Dim[0] ; i++) 
+   for( i=0 ; i<Dim[0] ; i++)
       for( j=0 ; j<Dim[1] ; j++) {
          free(mskd[i][j]);
          free(mskdnz[i][j]);
@@ -952,22 +952,22 @@ int main(int argc, char *argv[]) {
    INFO_message("Calculating average time series.");
 
    // ROI values
-   for(i=0 ; i<HAVE_ROIS ; i++) 
+   for(i=0 ; i<HAVE_ROIS ; i++)
       for( j=0 ; j<NROI_REF[i] ; j++ ) {
          Nlist[0]=ROI_COUNT[i][j];
          if ( Nlist[0] )    // otherwise, the ROI's ts is just 0s
-            k = CalcAveRTS(ROI_LISTS[i][j], ROI_AVE_TS[i][j], 
+            k = CalcAveRTS(ROI_LISTS[i][j], ROI_AVE_TS[i][j],
                            insetTIME, Dim, Nlist);
       }
-  
+
    INFO_message("Calculating correlation matrix.");
    if(PART_CORR)
       INFO_message("... and calculating partial correlation matrix.");
 
    for(i=0 ; i<HAVE_ROIS ; i++) {
-      for( j=0 ; j<NROI_REF[i] ; j++ ) 
+      for( j=0 ; j<NROI_REF[i] ; j++ )
          for( k=j ; k<NROI_REF[i] ; k++ ) {
-            Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float) 
+            Corr_Matr[i][j][k] = Corr_Matr[i][k][j] = (float)
                CORR_FUN(ROI_AVE_TS[i][j], ROI_AVE_TS[i][k], Dim[3]);
          }
 
@@ -975,7 +975,7 @@ int main(int argc, char *argv[]) {
          mm = CalcPartCorrMatr(PCorr_Matr[i], PBCorr_Matr[i],
                                Corr_Matr[i], NROI_REF[i]);
    }
-  
+
    // **************************************************************
    // **************************************************************
    //                 Store and output
@@ -985,27 +985,27 @@ int main(int argc, char *argv[]) {
    INFO_message("Writing output: %s ...", prefix);
 
 
-   // - - - - - - - - NIML prep - - - - - - - - - - - - - - 
+   // - - - - - - - - NIML prep - - - - - - - - - - - - - -
    if(FISH_OUT)
       Noutmat++;
    if(PART_CORR)
       Noutmat+=2;
 
-   ParLab = (char **)calloc(Noutmat, sizeof(char *)); 
-   for (j=0; j<Noutmat; ++j) 
+   ParLab = (char **)calloc(Noutmat, sizeof(char *));
+   for (j=0; j<Noutmat; ++j)
       ParLab[j] = (char *)calloc(32, sizeof(char));
    if( (ParLab == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(121);
    }
-   
-   // NIML output 
+
+   // NIML output
    flat_matr = (float ***) calloc( HAVE_ROIS, sizeof(float **) );
-   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+   for ( i = 0 ; i < HAVE_ROIS ; i++ )
       flat_matr[i] = (float **) calloc( Noutmat, sizeof(float *) );
-   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
-      for ( j = 0 ; j < Noutmat ; j++ ) 
-         flat_matr[i][j] = (float *) calloc( NROI_REF[i]*NROI_REF[i], 
+   for ( i = 0 ; i < HAVE_ROIS ; i++ )
+      for ( j = 0 ; j < Noutmat ; j++ )
+         flat_matr[i][j] = (float *) calloc( NROI_REF[i]*NROI_REF[i],
                                              sizeof(float));
 
    gdset_roi_names = (char ***)calloc(HAVE_ROIS, sizeof(char **));
@@ -1014,7 +1014,7 @@ int main(int argc, char *argv[]) {
       for (j=0; j<NROI_REF[i]; ++j) {
          gdset_roi_names[i][j] = (char *)calloc(32, sizeof(char));
          if( OLD_LABEL )
-            snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i, 
+            snprintf(gdset_roi_names[i][j],31,"N%03d:R%d", i,
                      ROI_LABELS_REF[i][j]);
          else{
             snprintf(gdset_roi_names[i][j],31,"%s",
@@ -1029,7 +1029,7 @@ int main(int argc, char *argv[]) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(14);
       }
-   
+
 
    for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
@@ -1038,7 +1038,7 @@ int main(int argc, char *argv[]) {
          fprintf(stderr, "Error opening file %s.",OUT_grid);
          exit(19);
       }
-    
+
       // same format as .grid files now
       fprintf(fout1,"# %d  # Number of network ROIs\n",NROI_REF[k]); // NROIs
       fprintf(fout1,"# %d  # Number of netcc matrices\n",
@@ -1047,14 +1047,14 @@ int main(int argc, char *argv[]) {
       // Sept 2014:  label_table stuff
       // don't need labeltable to make them, can do anyways
       fprintf(fout1, "# WITH_ROI_LABELS\n");
-      for( i=1 ; i<NROI_REF[k] ; i++ ) 
-         fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]); 
+      for( i=1 ; i<NROI_REF[k] ; i++ )
+         fprintf(fout1," %10s \t",ROI_STR_LABELS[k][i]);
       fprintf(fout1,"  %10s\n",ROI_STR_LABELS[k][i]);
-   
+
       // THIS IS FOR KNOWING WHICH MATR WE'RE AT
       // it's always zero for CC; they match one-to-one with later vars
-      FM_ctr = 0; 
-      ParLab[FM_ctr] = strdup("CC"); 
+      FM_ctr = 0;
+      ParLab[FM_ctr] = strdup("CC");
 
       for( i=1 ; i<NROI_REF[k] ; i++ ) // labels of ROIs
          fprintf(fout1," %10d \t",ROI_LABELS_REF[k][i]);// at =NROI, have '\n'
@@ -1067,33 +1067,33 @@ int main(int argc, char *argv[]) {
          fprintf(fout1,"%12.4f\n",Corr_Matr[k][i][j]);
          flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = Corr_Matr[k][i][j];
       }
-    
+
       if(FISH_OUT) {
-         FM_ctr++; 
-         ParLab[FM_ctr] = strdup("FZ"); 
+         FM_ctr++;
+         ParLab[FM_ctr] = strdup("FZ");
 
          fprintf(fout1,"# %s\n", "FZ");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
             for( j=0 ; j<NROI_REF[k]-1 ; j++ ) {// b/c we put '\n' after last
                fprintf(fout1,"%12.4f\t",BOBatanhf(Corr_Matr[k][i][j]));
-               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
-                  BOBatanhf(Corr_Matr[k][i][j]);            
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] =
+                  BOBatanhf(Corr_Matr[k][i][j]);
                /* fprintf(fout1,"%12.4f\t",FisherZ(Corr_Matr[k][i][j]));
-               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+               flat_matr[k][FM_ctr][i*NROI_REF[k]+j] =
                FisherZ(Corr_Matr[k][i][j]);*/
             }
             fprintf(fout1,"%12.4f\n",BOBatanhf(Corr_Matr[k][i][j]));
-            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] =
                BOBatanhf(Corr_Matr[k][i][j]);
             /*fprintf(fout1,"%12.4f\n",FisherZ(Corr_Matr[k][i][j]));
-            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = 
+            flat_matr[k][FM_ctr][i*NROI_REF[k]+j] =
                FisherZ(Corr_Matr[k][i][j]);*/
          }
       }
-    
+
       if(PART_CORR) {
-         FM_ctr++; 
-         ParLab[FM_ctr] = strdup("PC"); 
+         FM_ctr++;
+         ParLab[FM_ctr] = strdup("PC");
 
          fprintf(fout1,"# %s\n", "PC");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
@@ -1105,8 +1105,8 @@ int main(int argc, char *argv[]) {
             flat_matr[k][FM_ctr][i*NROI_REF[k]+j] = PCorr_Matr[k][i][j];
          }
 
-         FM_ctr++; 
-         ParLab[FM_ctr] = strdup("PCB"); 
+         FM_ctr++;
+         ParLab[FM_ctr] = strdup("PCB");
 
          fprintf(fout1,"# %s\n", "PCB");
          for( i=0 ; i<NROI_REF[k] ; i++ ) {
@@ -1119,42 +1119,42 @@ int main(int argc, char *argv[]) {
          }
       }
 
-      fclose(fout1);    
-   
+      fclose(fout1);
+
       // more nimling
-      gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat, 
-                                    NROI_REF[k]*NROI_REF[k], 
-                                    "full", ParLab, 
+      gset = SUMA_FloatVec_to_GDSET(flat_matr[k], Noutmat,
+                                    NROI_REF[k]*NROI_REF[k],
+                                    "full", ParLab,
                                     NULL, NULL, NULL);
       if( xyz = THD_roi_cmass(ROIS, k, ROI_LABELS_REF[k]+1, NROI_REF[k], 0)) {
          if (!(SUMA_AddGDsetNodeListElement(gset, NULL,
-                                            xyz, NULL, NULL, 
+                                            xyz, NULL, NULL,
                                             gdset_roi_names[k],
                                             NULL, NULL,
-                                            NROI_REF[k]))) { 
+                                            NROI_REF[k]))) {
             ERROR_message("Failed to add node list");
-            exit(1);  
+            exit(1);
          }
          free(xyz);
-      } 
+      }
       else {
          ERROR_message("Failed in THD_roi_cmass"); exit(1);
       }
       sprintf(OUT_gdset,"%s_%03d",prefix,k);
-      GDSET_netngrlink = 
+      GDSET_netngrlink =
          Network_link(SUMA_FnameGet( OUT_gdset, "f",NULL));
       NI_add_to_group(gset->ngr, GDSET_netngrlink);
       NAME_gdset = SUMA_WriteDset_ns( OUT_gdset,
                                       gset, SUMA_ASCII_NIML, 1, 0);
-      if (!NAME_gdset && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) { 
-         ERROR_message("Failed to write dataset."); exit(1); 
+      if (!NAME_gdset && !SUMA_IS_DSET_STDXXX_FORMAT(SUMA_ASCII_NIML)) {
+         ERROR_message("Failed to write dataset."); exit(1);
       } else {
-         if (NAME_gdset) SUMA_free(NAME_gdset); NAME_gdset = NULL;      
+         if (NAME_gdset) SUMA_free(NAME_gdset); NAME_gdset = NULL;
       }
       SUMA_FreeDset(gset);
       gset=NULL;
-   }   
-   
+   }
+
    if(TS_OUT) {
       for( k=0 ; k<HAVE_ROIS ; k++) { // each netw gets own file
 
@@ -1170,7 +1170,7 @@ int main(int argc, char *argv[]) {
                fprintf(fout1,"%.3e\t",ROI_AVE_TS[k][i][j]);
             fprintf(fout1,"%.3e\n",ROI_AVE_TS[k][i][j]);
          }
-         fclose(fout1);  
+         fclose(fout1);
 
       }
    }
@@ -1190,19 +1190,19 @@ int main(int argc, char *argv[]) {
             for( j=0 ; j<Dim[3]-1 ; j++ ) // b/c we put '\n' after last one.
                fprintf(fout2,"%.3e\t",ROI_AVE_TS[k][i][j]);
             fprintf(fout2,"%.3e\n",ROI_AVE_TS[k][i][j]);
-          
-            fclose(fout2);  
+
+            fclose(fout2);
          }
       }
    }
-  
+
    if( TS_WBCORR_r || TS_WBCORR_Z ) {
-      
+
       INFO_message("Starting whole brain correlations.");
-      
-      i = WB_netw_corr( TS_WBCORR_r, 
-                        TS_WBCORR_Z,                 
-                        HAVE_ROIS, 
+
+      i = WB_netw_corr( TS_WBCORR_r,
+                        TS_WBCORR_Z,
+                        HAVE_ROIS,
                         prefix,
                         NIFTI_OUT,
                         NROI_REF,
@@ -1217,31 +1217,31 @@ int main(int argc, char *argv[]) {
                         argc,
                         argv);
    }
-   
+
    // ************************************************************
    // ************************************************************
    //                    Freeing
    // ************************************************************
    // ************************************************************
-   
+
    DSET_delete(ROIS);
    free(ROIS);
 
    for ( i = 0 ; i < HAVE_ROIS ; i++ ) {
-      for (j = 0; j < NROI_REF[i]; ++j) 
+      for (j = 0; j < NROI_REF[i]; ++j)
          free(gdset_roi_names[i][j]);
       free(gdset_roi_names[i]);
    }
    free(gdset_roi_names);
-   
-   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
-      for ( j = 0 ; j < Noutmat ; j++ ) 
+
+   for ( i = 0 ; i < HAVE_ROIS ; i++ )
+      for ( j = 0 ; j < Noutmat ; j++ )
          free(flat_matr[i][j]);
-   for ( i = 0 ; i < HAVE_ROIS ; i++ ) 
+   for ( i = 0 ; i < HAVE_ROIS ; i++ )
       free(flat_matr[i]);
    free(flat_matr);
 
-   for( i=0 ; i<Noutmat ; i++)  
+   for( i=0 ; i<Noutmat ; i++)
       free(ParLab[i]);
    free(ParLab);
 
@@ -1249,14 +1249,14 @@ int main(int argc, char *argv[]) {
 
 
    if(LabTabStr)
-      free(LabTabStr); 
+      free(LabTabStr);
    if(roi_dtable)
       free(roi_dtable);
 
-   for ( i=0 ; i<HAVE_ROIS ; i++ ) 
-      for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
+   for ( i=0 ; i<HAVE_ROIS ; i++ )
+      for ( j=0 ; j<NROI_REF[i]+1 ; j++ )
          free(ROI_STR_LABELS[i][j]);
-   for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+   for ( i=0 ; i<HAVE_ROIS ; i++ )
       free(ROI_STR_LABELS[i]);
    free(ROI_STR_LABELS);
 
@@ -1274,7 +1274,7 @@ int main(int argc, char *argv[]) {
    //  free(SELROI);
 
    if(HAVE_ROIS >0) {
-		
+
       free(FLAG_nulls);
 
       for( i=0 ; i<HAVE_ROIS ; i++) {
@@ -1311,6 +1311,6 @@ int main(int argc, char *argv[]) {
       free(NROI_REF);
       free(INVROI_REF);
    }
-	
+
    return 0;
 }

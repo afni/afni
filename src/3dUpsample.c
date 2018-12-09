@@ -12,7 +12,7 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *inset=NULL , *outset ;
    char *prefix="Upsam", *dsetname=NULL ;
    int verb=0 , iarg=1, datum = MRI_float;
-   float *ivec , *ovec , trin , trout, *fac=NULL, *ofac=NULL, 
+   float *ivec , *ovec , trin , trout, *fac=NULL, *ofac=NULL,
          top=0.0, maxtop=0.0;
 
    /*------- help the pitifully ignorant user? -------*/
@@ -105,11 +105,11 @@ int main( int argc , char *argv[] )
       dsetname = argv[iarg];
       iarg++ ; continue ;
      }
-     
+
      if( strcasecmp(argv[iarg],"-datum") == 0 ){
       if( ++iarg >= argc )
          ERROR_exit("Need argument after '%s'",argv[iarg-1]);
-      
+
          if( strcmp(argv[iarg],"short") == 0 ){
             datum = MRI_short ;
          } else if( strcmp(argv[iarg],"float") == 0 ){
@@ -121,17 +121,17 @@ int main( int argc , char *argv[] )
                     argv[iarg] ) ;
             exit(1) ;
          }
-         
+
       iarg++ ; continue ;
      }
-     
+
      ERROR_message("Unknown argument on command line: '%s'",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit (1);
    }
 
    /*------- check options for completeness and consistency -----*/
-   
+
    if (nup == -1) {
       if( iarg+1 >= argc )
         ERROR_exit("need 'n' and 'dataset' on command line!") ;
@@ -139,13 +139,13 @@ int main( int argc , char *argv[] )
       nup = (int)strtod(argv[iarg++],NULL) ;
       if( nup < 2 || nup > 320 )
         ERROR_exit("3dUpsample rate '%d' is outside range 2..320",nup) ;
-   } 
+   }
    if (!dsetname) {
       if( iarg >= argc )
         ERROR_exit("need 'dataset' on command line!") ;
       dsetname = argv[iarg];
    }
-   
+
    inset = THD_open_dataset(dsetname) ;
    if( !ISVALID_DSET(inset) )
      ERROR_exit("3dUpsample can't open dataset '%s'", dsetname) ;
@@ -170,21 +170,21 @@ int main( int argc , char *argv[] )
       fac = (float *)calloc(DSET_NVALS(inset), sizeof(float));
       ofac = (float *)calloc(ntout, sizeof(float));
       for (ii=0; ii<DSET_NVALS(inset); ++ii) {
-         top = MCW_vol_amax( DSET_NVOX(inset),1,1 , 
-                             DSET_BRICK_TYPE(inset,ii), 
+         top = MCW_vol_amax( DSET_NVOX(inset),1,1 ,
+                             DSET_BRICK_TYPE(inset,ii),
                              DSET_BRICK_ARRAY(inset,ii) ) ;
-         if (DSET_BRICK_FACTOR(inset, ii)) 
+         if (DSET_BRICK_FACTOR(inset, ii))
             top = top * DSET_BRICK_FACTOR(inset,ii);
-         fac[ii] = (top > MRI_TYPE_maxval[datum]) ? 
+         fac[ii] = (top > MRI_TYPE_maxval[datum]) ?
                         top/MRI_TYPE_maxval[datum] : 0.0 ;
          if (top > maxtop) maxtop = top;
       }
       if (storage_mode_from_filename(prefix) != STORAGE_BY_BRICK) {
-         fac[0] = (maxtop > MRI_TYPE_maxval[datum]) ? 
+         fac[0] = (maxtop > MRI_TYPE_maxval[datum]) ?
                         maxtop/MRI_TYPE_maxval[datum] : 0.0 ;
-         for (ii=0; ii<ntout; ++ii) 
+         for (ii=0; ii<ntout; ++ii)
             ofac[ii] = fac[0];
-         if (verb) INFO_message("Forcing global scaling, Max = %f, fac = %f\n", 
+         if (verb) INFO_message("Forcing global scaling, Max = %f, fac = %f\n",
                         maxtop, fac[0]);
       } else {
          if (verb) INFO_message("Reusing scaling factors of input dset\n");
@@ -203,7 +203,7 @@ int main( int argc , char *argv[] )
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dUpsample" , argc,argv , outset ) ;
    free(ofac); ofac = NULL;
-   
+
    if( outset->taxis != NULL ){
      outset->taxis->ttdel /= nup ;
      outset->taxis->ttdur /= nup ;
@@ -238,7 +238,7 @@ int main( int argc , char *argv[] )
      if( do_one ) upsample_1( nup , ntin , ivec , ovec ) ;
      else         upsample_7( nup , ntin , ivec , ovec ) ;
 
-     THD_insert_series( ii , outset , ntout , MRI_float , ovec , 
+     THD_insert_series( ii , outset , ntout , MRI_float , ovec ,
                         datum==MRI_float ? 1:0 ) ;
    } /* end of loop over voxels */
 

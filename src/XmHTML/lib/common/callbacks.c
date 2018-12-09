@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -81,7 +81,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:06  newt
 * Initial Revision
 *
-*****/ 
+*****/
 /*****
 * Note:
 * 	The XmNarmCallback resource is served in XmHTML.c, routine ExtendEnd.
@@ -106,7 +106,7 @@ static char rcsId[]="$Header$";
 /*** Private Datatype Declarations ****/
 
 /*** Private Function Prototype Declarations ****/
-static XmHTMLLinkDataPtr ParseLinks(XmHTMLObject *list, int *num_link); 
+static XmHTMLLinkDataPtr ParseLinks(XmHTMLObject *list, int *num_link);
 static XmHTMLMetaDataPtr ParseMeta(XmHTMLObject *list, int *num_meta);
 
 #define HEAD_FREE_DOCTYPE { \
@@ -290,7 +290,7 @@ _XmHTMLLinkCallback(XmHTMLWidget html)
 {
 	XmHTMLObject *temp = HTML_ATTR(elements), *start = NULL;
 	XmHTMLLinkCallbackStruct cbs;
-	int i, num_link = 0;	
+	int i, num_link = 0;
 
 	/* initialize callback fields */
 	cbs.reason = XmCR_HTML_LINK;
@@ -341,7 +341,7 @@ _XmHTMLLinkCallback(XmHTMLWidget html)
 * Return Type: 	void
 * Description: 	routine associated with the XmNanchorTrackCallback resource.
 *				fills in the appropriate fields in the XmHTMLCallbackStruct.
-* In: 
+* In:
 *	html:		widget for which callback is to be activated
 *	event:		event that triggered this callback to happen.
 *	anchor:		anchor data (if any)
@@ -387,7 +387,7 @@ _XmHTMLTrackCallback(XmHTMLWidget html, XEvent *event, XmHTMLAnchor *anchor)
 * Return Type: 	Boolean
 * Description: 	routine associated with the XmNactivateCallback resource.
 *				fills in the appropriate fields in the XmHTMLCallbackStruct.
-* In: 
+* In:
 *	html:		widget for which callback is to be activated
 *	event:		event that triggered this callback to happen.
 *	anchor:		data of activated anchor (if any).
@@ -432,7 +432,7 @@ _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event, XmHTMLAnchor *anchor)
 	if(cbs.doc_modified)
 		return(True);
 
-	/* 
+	/*
 	* If we have a local anchor, see if we should mark it as visited
 	* and if we should jump to it. The jumping itself is postponed to the
 	* end of this routine.
@@ -456,7 +456,7 @@ _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event, XmHTMLAnchor *anchor)
 					{
 						int j;
 						/* a match, set the foreground of the master block */
-						HTML_ATTR(anchors)[i].owner->fg = 
+						HTML_ATTR(anchors)[i].owner->fg =
 							HTML_ATTR(anchor_visited_fg);
 
 						/* change underline style as well! */
@@ -473,8 +473,8 @@ _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event, XmHTMLAnchor *anchor)
 						}
 					}
 					/* skip remaining anchor words of the master block */
-					while(i < HTML_ATTR(anchor_words) - 1 && 
-						HTML_ATTR(anchors)[i].owner == 
+					while(i < HTML_ATTR(anchor_words) - 1 &&
+						HTML_ATTR(anchors)[i].owner ==
 							HTML_ATTR(anchors)[i+1].owner)
 						i++;
 				}
@@ -525,7 +525,7 @@ _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event, XmHTMLAnchor *anchor)
 * Name: 		_XmHTMLDocumentCallback
 * Return Type: 	Boolean
 * Description: 	XtNdocumentCallback driver
-* In: 
+* In:
 *	PARSER:		current parser.
 *	verified:	true when the flushed stack is balanced, False when not.
 * Returns:
@@ -560,7 +560,7 @@ _XmHTMLDocumentCallback(XmHTMLWidget html, Boolean html32, Boolean verified,
 * Name: 		freeHeadMembers
 * Return Type: 	void
 * Description: 	frees the requested members of the given HeadAttributes
-* In: 
+* In:
 *	*head:		structure of which to free members
 *	mask_bits:	fields to free
 * Returns:
@@ -604,7 +604,7 @@ freeHeadAttributes(XmHTMLHeadAttributes *head, Byte mask_bits)
 * Return Type: 	Boolean
 * Description: 	fills the given HeadAttributes with the requested document
 *				head elements.
-* In: 
+* In:
 *	w:			XmHTMLWidget id
 *	*head:		structure to fill
 *	mask_bits:	indicates what members to fill
@@ -657,7 +657,7 @@ XmHTMLGetHeadAttributes(Widget w, XmHTMLHeadAttributes *head, Byte mask_bits)
 		&& tmp->id != HT_BODY; tmp = tmp->next)
 	{
 		/* pick up doctype if we happen to see it */
-		if(tmp->id == HT_DOCTYPE && tmp->attributes && 
+		if(tmp->id == HT_DOCTYPE && tmp->attributes &&
 			(mask_bits & HeadDocType || mask_bits == HeadAll))
 			head->doctype = strdup(tmp->attributes);
 	}
@@ -792,10 +792,10 @@ XmHTMLGetHeadAttributes(Widget w, XmHTMLHeadAttributes *head, Byte mask_bits)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -811,10 +811,10 @@ _XmHTMLFocusOutCallback(XmHTMLWidget html, XEvent *event)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -830,10 +830,10 @@ _XmHTMLFocusInCallback(XmHTMLWidget html, XEvent *event)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -849,10 +849,10 @@ _XmHTMLMotionCallback(XmHTMLWidget html, XEvent *event)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -868,10 +868,10 @@ _XmHTMLInputCallback(XmHTMLWidget html, XEvent *event)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -888,10 +888,10 @@ _XmHTMLArmCallback(XmHTMLWidget html, XEvent *event)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -924,16 +924,16 @@ _XmHTMLImagemapCallback(XmHTMLWidget html, XmHTMLImage *image,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
 *****/
 void
-_XmHTMLObjectCreateCallback(XmHTMLWidget html, XmHTMLExtObj *object) 
+_XmHTMLObjectCreateCallback(XmHTMLWidget html, XmHTMLExtObj *object)
 {
 	XmHTMLObjectCallbackStruct cbs;
 
@@ -991,7 +991,7 @@ _XmHTMLObjectCreateCallback(XmHTMLWidget html, XmHTMLExtObj *object)
 * Name: 		_XmHTMLFrameDoneCallback
 * Return Type: 	void
 * Description: 	frame child creation finished notifier
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	frame:		XmHTMLFrameWidget data that is created.
 *	widget:		frame child widget id
@@ -999,7 +999,7 @@ _XmHTMLObjectCreateCallback(XmHTMLWidget html, XmHTMLExtObj *object)
 *	nothing
 *****/
 void
-_XmHTMLFrameDoneCallback(XmHTMLWidget html, XmHTMLFrameWidget *frame, 
+_XmHTMLFrameDoneCallback(XmHTMLWidget html, XmHTMLFrameWidget *frame,
 	Widget widget)
 {
 	XmHTMLFrameCallbackStruct cbs;
@@ -1023,7 +1023,7 @@ _XmHTMLFrameDoneCallback(XmHTMLWidget html, XmHTMLFrameWidget *frame,
 * Name: 		_XmHTMLFrameDestroyCallback
 * Return Type: 	int
 * Description: 	frame destruction notifier
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	frame:		frame data;
 * Returns:
@@ -1057,7 +1057,7 @@ _XmHTMLFrameDestroyCallback(XmHTMLWidget html, XmHTMLFrameWidget *frame)
 * Name: 		_XmHTMLFrameCreateCallback
 * Return Type: 	void
 * Description:  frame creation notifier
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	frame:		frame data
 * Returns:
@@ -1091,7 +1091,7 @@ _XmHTMLFrameCreateCallback(XmHTMLWidget html, XmHTMLFrameWidget *frame)
 * Return Type: 	Boolean
 * Description: 	calls the XmNeventCallback callback resource for the
 *				given event.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	event:		actual event data;
 *	ht_event:	private event data;
@@ -1133,7 +1133,7 @@ _XmHTMLEventProcess(XmHTMLWidget html, XEVENT *event, HTEvent *ht_event)
 * Return Type: 	void
 * Description: 	destroys all registered events. This routine is called
 *				when the current document is being unloaded.
-* In: 
+* In:
 *	old:		current XmHTMLWidget id;
 *	html:		new XmHTMLWidget id;
 * Returns:

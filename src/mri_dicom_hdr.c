@@ -68,7 +68,7 @@
 
 #include "mri_dicom_hdr.h"
 
-/* pass private(!) Siemens slice times back, if found 
+/* pass private(!) Siemens slice times back, if found
  * nused : number of slice times read                    8 Apr 2011 [rickr] */
 typedef struct {
    int     nalloc;              /* number of times allocated for  */
@@ -6526,7 +6526,7 @@ ENTRY("readVRLength") ;
       if ( !buf[0] ) {           /* 22 Mar 2011 [rickr] */
         explicitVR = FALSE;
         fprintf(stderr,
-                "** DICOM WARNING, missing VR code in element (%04x,%04x)\n", 
+                "** DICOM WARNING, missing VR code in element (%04x,%04x)\n",
                 DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) );
       }
 

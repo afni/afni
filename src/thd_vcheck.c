@@ -90,7 +90,7 @@ void THD_check_AFNI_version( char *pname )
          int dtime     = ((int)time(NULL)) - last_time ;
          done = ( dtime >= 0 && dtime < VDELAY ) ;  /* too soon */
        }
-       rhs = NI_get_attribute(nel,"motd") ;      /* 29 Nov 2005 */ 
+       rhs = NI_get_attribute(nel,"motd") ;      /* 29 Nov 2005 */
        if( rhs != NULL ) motd = strdup(rhs) ;
        NI_free_element(nel) ;
        if( done ) return ;

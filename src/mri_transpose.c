@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /** Only for 2D images **/
@@ -204,7 +204,7 @@ MRI_IMAGE * mri_interleave_columns( MRI_IMAGE * oldim, int nint )
    MRI_IMAGE *newim=NULL;
    char      *dold, *dnew;
    int       ifirst, iint, nfirst, colsize;
-    
+
 ENTRY("mri_interleave_columns") ;
 
    /* check that the inputs seem good */

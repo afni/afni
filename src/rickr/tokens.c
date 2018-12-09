@@ -23,7 +23,7 @@ typedef struct
 } control_s;
 
 control_s gcs;
- 
+
 
 int read_args  ( int argc, char * argv[], control_s * C );
 int print_list ( control_s * C );
@@ -85,7 +85,7 @@ int print_list( control_s * C )
 	    c = fgetc( C->fpin );
 	}
         putchar('\n');
-	
+
 	wcount++;
     }
 

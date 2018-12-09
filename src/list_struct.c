@@ -7,7 +7,7 @@
 /*----------------------------------------------------------------------
  *
  * list_struct.c            - for creating and destroying list structures
- * 
+ *
  * each list structure contains:
  *
  *   num   - the number of elements used       (the user may alter this number)
@@ -27,47 +27,47 @@
  *
  *   I will use float for examples, noting that float may be replaced
  *   with any of int, short and void, also.
- *  
+ *
  *   typedef struct { int num,nall;  float *  list; } float_list;
  *
  *   int init_float_list ( float_list  * d_list, int nel );
  *   int init_floatp_list( floatp_list * d_list, int nel );
  *   int free_float_list ( float_list  * d_list );
  *   int free_floatp_list( floatp_list * d_list );
- *  
+ *
  * brief sample function descriptions:
- *  
+ *
  *   Note that all of these functions set d_list->num to 0.  That
  *   variable is for the user to apply, if they wish.
- *  
+ *
  *   int init_float_list( float_list * d_list, int nel );
  *
  *       The user should pass a (useless) float_list structure.
  *       This function will set num to 0, nall to the input nel
  *       and allocate an array of length nel.
- *  
+ *
  *       This will return nel (>= 0) on success, and < 0 on failure.
- *  
+ *
  *   int init_floatp_list( floatp_list * d_list, int nel, int len );
- *  
+ *
  *       Like above, but now d_list->list will be an array of
  *       (float *).
- *  
+ *
  *   int free_float_list( float_list * d_list );
- *  
+ *
  *       This function will free d_list->list, and set num and nall to 0.
- *  
+ *
  *----------------------------------------------------------------------*/
 
 
 /*----------------------------------------------------------------------
  * init_XXXX_list:
- *  
+ *
  *   input: structure pointer and number of elements
- *  
+ *
  *   if nel <= 0, set all fields to zero (or NULL)
  *   if nel >  0, attempt to malloc the requested number of elements
- *  
+ *
  *   return:
  *       success: nel (>= 0)
  *       failure: < 0
@@ -245,9 +245,9 @@ int init_voidp_list( voidp_list * d_list, int nel )
 
 /*----------------------------------------------------------------------
  * add_to_XXXX_list:                                 4 Nov, 2011 [rickr]
- *  
+ *
  *   input: structure pointer, value, list increment size
- *  
+ *
  *   return:
  *       success: nel (>= 1)
  *----------------------------------------------------------------------*/

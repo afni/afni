@@ -14,7 +14,7 @@
   Fisher Z transform of correlation value R
 */
 //float FisherZ( double Rcorr);  outdated-- use other DEF
-  
+
 
 /*
   need to change time series values to ranks, per voxel, and also
@@ -49,17 +49,17 @@ int FindVoxHood(int *LIST, int **HS,
 					 int *iam,int *DIM,
 					 int ***MASK,int VN, int *realHOOD );
 
-/* 
-	name says it all: take in LIST of vox and their RANKS&TIEDs, and 
+/*
+	name says it all: take in LIST of vox and their RANKS&TIEDs, and
 	calc reho.
 */
-float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM, 
+float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
 				 int *realHOOD);
 
-int WB_netw_corr(int Do_r, 
+int WB_netw_corr(int Do_r,
                  int Do_Z,
-                 int HAVE_ROIS, 
-                 char *prefix, 
+                 int HAVE_ROIS,
+                 char *prefix,
                  int NIFTI_OUT,
                  int *NROI_REF,
                  int *Dim,
@@ -73,7 +73,7 @@ int WB_netw_corr(int Do_r,
                  int argc,
                  char *argv[]);
 
-/* 
+/*
    Take a MxM matrix of Pearson correlation values, invert it, and
    calculate the partial correlation matrix (both r-like and beta-like).
 */

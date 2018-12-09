@@ -440,25 +440,25 @@ GenIFrame(bb, current)
 	lastIFrame = current->id;
       } else {
 	/* ASSUMES 30 FRAMES PER SECOND */
-	
+
 	if (! realQuiet) {
 	  fprintf(stdout, "I-to-I (frames %5d to %5d) bitrate:  %8d\n",
 		  lastIFrame, current->id-1,
 		  ((bb->cumulativeBits-lastNumBits)*30)/
 		  (current->id-lastIFrame));
 	}
-	
+
 	fprintf(bitRateFile, "I-to-I (frames %5d to %5d) bitrate:  %8d\n",
 		lastIFrame, current->id-1,
 		((bb->cumulativeBits-lastNumBits)*30)/
 		(current->id-lastIFrame));
-	lastNumBits = bb->cumulativeBits;	    
+	lastNumBits = bb->cumulativeBits;
 	lastIFrame = current->id;
       }
     }
-    
+
     startTime = time_elapsed();
-    
+
     Frame_AllocBlocks(current);
     BlockifyFrame(current);
 
@@ -484,13 +484,13 @@ GenIFrame(bb, current)
       }
     }
     Mhead_GenSliceHeader(bb, 1, QScale, NULL, 0);
-    
+
     if ( referenceFrame == DECODED_FRAME ) {
       Frame_AllocDecoded(current, TRUE);
     } else if ( printSNR ) {
       Frame_AllocDecoded(current, FALSE);
     }
-    
+
     y_dc_pred = cr_dc_pred = cb_dc_pred = 128;
     totalBits = bb->cumulativeBits;
     mbAddress = 0;
@@ -510,7 +510,7 @@ GenIFrame(bb, current)
 	if (DoLaplace) {LaplaceCnum = 2;}
 	mp_fwd_dct_block2(current->cr_blocks[y>>1][x>>1], dctr[y>>1][x>>1]);
       }}
-	
+
     if (DoLaplace) {
       extern void CalcLambdas();
       CalcLambdas();
@@ -525,7 +525,7 @@ GenIFrame(bb, current)
 	    QScale = newQScale;
 	  }
 	}
-	
+
 	/*  Determine if new Qscale needed for Rate Control purposes  */
 	if (bitstreamMode == FIXED_RATE) {
 	  rc_blockStart = bb->cumulativeBits;
@@ -538,7 +538,7 @@ GenIFrame(bb, current)
 	    QScale = newQScale;
 	  }
 	}
-	
+
 	if ( (mbAddress % blocksPerSlice == 0) && (mbAddress != 0) ) {
 	  /* create a new slice */
 	  if (specificsOn) {
@@ -549,7 +549,7 @@ GenIFrame(bb, current)
 	  Mhead_GenSliceEnder(bb);
 	  Mhead_GenSliceHeader(bb, 1+(y>>1), QScale, NULL, 0);
 	  y_dc_pred = cr_dc_pred = cb_dc_pred = 128;
-	  
+
 	  GEN_I_BLOCK(I_FRAME, current, bb, 1+(x>>1), QScale);
 	} else {
 	  GEN_I_BLOCK(I_FRAME, current, bb, 1, QScale);
@@ -558,7 +558,7 @@ GenIFrame(bb, current)
 	if (WriteDistortionNumbers) {
 	  CalcDistortion(current, y, x);
 	}
-	
+
 	if ( decodeRefFrames ) {
 	  /* now, reverse the DCT transform */
 	  LaplaceCnum = 0;
@@ -570,9 +570,9 @@ GenIFrame(bb, current)
 	      if (index == 5) {LaplaceCnum = 2;}
 	      Mpost_UnQuantZigBlockLaplace(fb[index], dec[index], QScale, TRUE);
 	    }
-	    mpeg_jrevdct((int16 *)dec[index]);		
+	    mpeg_jrevdct((int16 *)dec[index]);
 	    }
-	  
+
 	  /* now, unblockify */
 	  BlockToData(current->decoded_y, dec[0], y, x);
 	  BlockToData(current->decoded_y, dec[1], y, x+1);
@@ -581,7 +581,7 @@ GenIFrame(bb, current)
 	  BlockToData(current->decoded_cb, dec[4], y>>1, x>>1);
 	  BlockToData(current->decoded_cr, dec[5], y>>1, x>>1);
 	}
-	
+
 	numBlocks++;
 	mbAddress++;
 	/*   Rate Control */
@@ -592,49 +592,49 @@ GenIFrame(bb, current)
 	}
       }
     }
-    
+
     if ( printSNR ) {
       BlockComputeSNR(current,snr,psnr);
       totalSNR += snr[0];
       totalPSNR += psnr[0];
     }
-    
+
     if ( (referenceFrame == DECODED_FRAME) && NonLocalRefFrame(current->id) ) {
       if ( remoteIO ) {
 	SendDecodedFrame(current);
       } else {
 	WriteDecodedFrame(current);
       }
-      
+
       /* now, tell decode server it is ready */
       NotifyDecodeServerReady(current->id);
     }
-    
+
     numBits += (bb->cumulativeBits-totalBits);
-    
+
     DBG_PRINT(("End of frame\n"));
-    
+
     Mhead_GenSliceEnder(bb);
     /*   Rate Control  */
     if (bitstreamMode == FIXED_RATE) {
       updateRateControl(TYPE_IFRAME);
     }
-    
+
     endTime = time_elapsed();
     totalTime += (endTime-startTime);
-    
+
     numFrameBits += (bb->cumulativeBits-totalFrameBits);
-    
+
     if ( ( ! childProcess) && showBitRatePerFrame ) {
       /* ASSUMES 30 FRAMES PER SECOND */
       fprintf(bitRateFile, "%5d\t%8d\n", current->id,
 	      30*(bb->cumulativeBits-totalFrameBits));
     }
-    
+
     if ( (! childProcess) && frameSummary && (! realQuiet) ) {
-      
+
       /* ASSUMES 30 FRAMES PER SECOND */
-      fprintf(stdout, "FRAME %d (I):  %ld seconds  (%d bits/s output)\n", 
+      fprintf(stdout, "FRAME %d (I):  %ld seconds  (%d bits/s output)\n",
 	      current->id, (long)((endTime-startTime)/TIME_RATE),
 	      30*(bb->cumulativeBits-totalFrameBits));
       if ( printSNR ) {
@@ -765,12 +765,12 @@ EncodeYDC(dc_term, pred_term, bb)
 
     ydiff = (dc_term - (*pred_term));
     if (ydiff > 255) {
-#ifdef BLEAH 
+#ifdef BLEAH
       fprintf(stdout, "TRUNCATED\n");
 #endif
 	ydiff = 255;
     } else if (ydiff < -255) {
-#ifdef BLEAH 
+#ifdef BLEAH
       fprintf(stdout, "TRUNCATED\n");
 #endif
 	ydiff = -255;
@@ -821,12 +821,12 @@ EncodeCDC(dc_term, pred_term, bb)
     cdiff = (dc_term - (*pred_term));
     if (cdiff > 255) {
 #ifdef BLEAH
-fprintf(stdout, "TRUNCATED\n");	
+fprintf(stdout, "TRUNCATED\n");
 #endif
 	cdiff = 255;
     } else if (cdiff < -255) {
 #ifdef BLEAH
-fprintf(stdout, "TRUNCATED\n");	
+fprintf(stdout, "TRUNCATED\n");
 #endif
 	cdiff = -255;
     }
@@ -857,21 +857,21 @@ BlockComputeSNR(current, snr, psnr)
   int32	varDiff[3]={0, 0, 0};
   double	ratio[3]={1.0, 1.0, 1.0};
   double	total[3];
-  register uint8 **origY=current->orig_y, **origCr=current->orig_cr, 
+  register uint8 **origY=current->orig_y, **origCr=current->orig_cr,
   **origCb=current->orig_cb;
-  register uint8 **newY=current->decoded_y, **newCr=current->decoded_cr, 
+  register uint8 **newY=current->decoded_y, **newCr=current->decoded_cr,
   **newCb=current->decoded_cb;
   static int32       **SignalY,  **NoiseY;
   static int32       **SignalCb, **NoiseCb;
   static int32       **SignalCr, **NoiseCr;
   static short   ySize[3], xSize[3];
   static boolean needs_init=TRUE;
-  
+
   /* Init */
   if (needs_init) {
     int ysz = (Fsize_y>>3) * sizeof(int32 *);
     int xsz = (Fsize_x>>3);
-    
+
     needs_init = FALSE;
     for (y=0; y<3; y++) {
       varDiff[y] = ratio[y] = total[y] = 0.0;
@@ -885,7 +885,7 @@ BlockComputeSNR(current, snr, psnr)
     NoiseCb  = (int32 **) malloc(ysz);
     SignalCr = (int32 **) malloc(ysz);
     NoiseCr  = (int32 **) malloc(ysz);
-    if (SignalY == NULL || NoiseY == NULL || SignalCr == NULL || 
+    if (SignalY == NULL || NoiseY == NULL || SignalCr == NULL ||
 	NoiseCb == NULL || SignalCb == NULL || NoiseCr == NULL) {
       fprintf(stderr, "Out of memory in BlockComputeSNR\n");
       exit(-1);
@@ -908,7 +908,7 @@ BlockComputeSNR(current, snr, psnr)
       memset((char *) &SignalCr[y][0], 0, (xSize[0]>>3) * 4);
     }
   }
-  
+
   /* find all the signal and noise */
   for (y = 0; y < ySize[0]; y++) {
     for (x = 0; x < xSize[0]; x++) {
@@ -931,7 +931,7 @@ BlockComputeSNR(current, snr, psnr)
       tempInt = origCr[y][x];
       SignalCr[y>>3][x>>3] += tempInt*tempInt;
     }}
-  
+
   /* Now sum up that noise */
   for(y=0; y<Fsize_y>>4; y++){
     for(x=0; x<Fsize_x>>4; x++){
@@ -942,7 +942,7 @@ BlockComputeSNR(current, snr, psnr)
     }
     if (printMSE) puts("");
   }
-  
+
   /* Now look at those ratios! */
   for(y=0; y<Fsize_y>>4; y++){
     for(x=0; x<Fsize_x>>4; x++){
@@ -950,7 +950,7 @@ BlockComputeSNR(current, snr, psnr)
       ratio[1] += (double)SignalCb[y][x]/(double)varDiff[1];
       ratio[2] += (double)SignalCr[y][x]/(double)varDiff[2];
     }}
-  
+
   for (x=0; x<3; x++) {
     snr[x] = 10.0*log10(ratio[x]);
     psnr[x] = 20.0*log10(255.0/sqrt((double)varDiff[x]/(double)(ySize[x]*xSize[x])));
@@ -1106,7 +1106,7 @@ int y,x;
   Block decblk;
   FlatBlock fblk;
   int datarate = 0;
-  
+
   for (qscale = 1; qscale < 32; qscale ++) {
     distort = 0;
     datarate = 0;

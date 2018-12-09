@@ -103,7 +103,7 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
       RETURN(1);
    }
 
-   if( opts->verb > 0 ) 
+   if( opts->verb > 0 )
       fprintf(stderr,"++ creating %d brick(s) of %d (slices) %dx%d matrices\n",
               nvals,nza,nya,nxb);
 
@@ -153,7 +153,7 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
    for( sub = 0; sub < nvals; sub++ ) {         /* for each sub-brick */
 
       asub = onesub ? 0 : sub;  /* first dset might have just one volume */
-   
+
       if( opts->verb > 0 && nvals > 1 ) fprintf(stderr,".");
 
       for( sind=0; sind < nzc; sind++ ) {       /* for each slice */
@@ -168,7 +168,7 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
                sum = 0.0;
                for(ind = 0; ind < nxa; ind++ )
                    sum += sliceA[nxa*row+ind] * sliceB[nxb*ind+col];
-   
+
                sliceC[nxc*row+col] = sum;
             }
          }
@@ -187,7 +187,7 @@ int multiply_dsets(options_t * opts, THD_3dim_dataset ** oset)
 
    /* free processing memory */
    free(sliceA);  free(sliceB);  free(volout);
-   
+
    RETURN(0);
 }
 
@@ -448,7 +448,7 @@ int process_opts(options_t * opts, int argc, char * argv[] )
 
       fprintf(stderr, "** unknown option '%s'\n",argv[ac]);
       RETURN(-1);
-       
+
    }
 
    if( !opts->dsetA  ) ERROR_exit("missing -inputA dataset");

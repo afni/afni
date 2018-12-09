@@ -37,15 +37,15 @@
 
 void gts_set_debug_suma(int val);
 int  gts_get_debug_suma(void);
-void gts_surface_suma (GtsSurface * s, 
-                        float **NodeListp, int *N_Nodep, int *NodeDimp, 
-                        int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp); 
+void gts_surface_suma (GtsSurface * s,
+                        float **NodeListp, int *N_Nodep, int *NodeDimp,
+                        int **FaceSetListp, int *N_FaceSetp, int *FaceSetDimp);
 
 GtsSurface* SumaToGts( SUMA_SurfaceObject *SO); /*!< copies suma surface into a gts surface */
 void coarsen( GtsSurface* s, int stop); /*!< coarsens with set parameters*/
 void refine( GtsSurface* s, int stop); /*!< coarsens with set parameters*/
-SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, 
+SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO,
                                         float edge_factor);
-SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO, 
+SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO,
                                              float new_N_Nodes);
 #endif /* __SUMAGTS_H__ */

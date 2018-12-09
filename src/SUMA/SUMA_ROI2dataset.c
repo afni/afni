@@ -1,11 +1,11 @@
 #include "SUMA_suma.h"
 
 void usage_ROI2dataset_Main (int detail)
-   
+
   {/*Usage*/
       static char FuncName[]={"usage_ROI2dataset_Main"};
       char * s = NULL;
-      fprintf(SUMA_STDOUT, 
+      fprintf(SUMA_STDOUT,
 "\n"
 "Usage: \n"
 "   ROI2dataset <-prefix dsetname> [...] <-input ROI1 ROI2 ...>\n"
@@ -25,7 +25,7 @@ void usage_ROI2dataset_Main (int detail)
 "                          datasets.\n"
 "                          See also -label_dset alternate below.\n"
 "    -keep_separate: Output one column (sub-brick) for each ROI value\n"
-"\n"      
+"\n"
 " and/or\n"
 "    -nodelist        NL: Prefix for a set of .1D files\n"
 "    -nodelist.nodups NL: that contain a list of node indices\n"
@@ -89,22 +89,22 @@ void usage_ROI2dataset_Main (int detail)
 "                            label nodes that do not belong\n"
 "                            to any ROI. Default is 0.\n"
 "                         This padding value is also used in the multi-column\n"
-"                            format of option -keep_separate.\n" 
+"                            format of option -keep_separate.\n"
 "\n");
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-         fprintf(SUMA_STDOUT, 
+         fprintf(SUMA_STDOUT,
             "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
      exit (0);
   }/*Usage*/
-   
+
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"ROI2dataset"}; 
-   char  *prefix_name, **input_name_v=NULL, *out_name=NULL, 
-         *Parent_idcode_str = NULL, *dummy_idcode_str = NULL, 
+   static char FuncName[]={"ROI2dataset"};
+   char  *prefix_name, **input_name_v=NULL, *out_name=NULL,
+         *Parent_idcode_str = NULL, *dummy_idcode_str = NULL,
          *stmp=NULL, *sss=NULL, *nodelist=NULL, *outlist_name=NULL,
          cbuf[50];
-   int   kar, brk, N_input_name, cnt = 0, N_ROIv, 
+   int   kar, brk, N_input_name, cnt = 0, N_ROIv,
          N_tROI, ii, i, nn, pad_to, pad_val;
    SUMA_DSET *dset=NULL;
    NI_stream ns;
@@ -117,17 +117,17 @@ int main (int argc,char *argv[])
    int nodups=0, olabel = 0, withflag = 0, keepsep=0;
    SUMA_COLOR_MAP *cmap=NULL;
    SUMA_Boolean LocalHead = NOPE;
-	
+
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-	
+
    /* parse the command line */
    kar = 1;
 	brk = NOPE;
    prefix_name = NULL;
    input_name_v = NULL;
    N_input_name = 0;
-   Out_Format = SUMA_NO_DSET_FORMAT; 
+   Out_Format = SUMA_NO_DSET_FORMAT;
    Parent_idcode_str = NULL;
    pad_to = -1;
    pad_val = 0;
@@ -138,14 +138,14 @@ int main (int argc,char *argv[])
    nodups = 0;
    while (kar < argc) { /* loop accross command ine options */
 		/* SUMA_LH("Parsing command line..."); */
-      
+
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_ROI2dataset_Main(strlen(argv[kar]) > 3 ? 2:1);
           exit (1);
 		}
-      
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -155,7 +155,7 @@ int main (int argc,char *argv[])
 			prefix_name = argv[kar];
          brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-label_dset") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -168,23 +168,23 @@ int main (int argc,char *argv[])
              Out_Format != SUMA_BINARY_NIML) {
             SUMA_S_Warn("Overriding output format to accommodate -label_dset.\n"
                      "Format will be ni_as or ni_bi, depending on environment\n"
-                        "variable AFNI_NIML_TEXT_DATA");    
+                        "variable AFNI_NIML_TEXT_DATA");
          }
          if (AFNI_yesenv("AFNI_NIML_TEXT_DATA")) Out_Format = SUMA_ASCII_NIML;
          else Out_Format = SUMA_BINARY_NIML;
          olabel = 1;
          brk = YUP;
 		}
-      
-      if (  !brk && 
+
+      if (  !brk &&
             (strcmp(argv[kar], "-keep_separate") == 0) ) {
          keepsep = 1;
-         brk = YUP;     
+         brk = YUP;
       }
-      
-      
-      if (  !brk && 
-            (strcmp(argv[kar], "-nodelist") == 0 || 
+
+
+      if (  !brk &&
+            (strcmp(argv[kar], "-nodelist") == 0 ||
              strcmp(argv[kar], "-nodelist.nodups") == 0) ) {
          if (strlen(argv[kar])> 10) nodups = 1;
          else nodups = 0;
@@ -194,41 +194,41 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
 			nodelist = argv[kar];
-         
+
          brk = YUP;
 		}
-      
-      if (  !brk && 
+
+      if (  !brk &&
             (strcmp(argv[kar], "-nodelist_with_ROIval") == 0) ) {
          withflag = 1;
-         brk = YUP;     
+         brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-of") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -of ");
 				exit (1);
 			}
-         
+
          Out_Format = SUMA_NO_DSET_FORMAT;
                      /* Can't use isOutputFormatFromArg because -of is not part
                      of the passed argument */
          if (!SUMA_isFormatFromArg(argv[kar], &Out_Format)) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      "%s not a valid option with -of.\n", argv[kar]);
 				exit (1);
          }
-         if (olabel && 
+         if (olabel &&
              Out_Format != SUMA_ASCII_NIML &&
              Out_Format != SUMA_BINARY_NIML) {
             SUMA_S_Err("Cannot specify non-niml format with -label_dset");
             exit(1);
-         } 
-         
+         }
+
          brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-dom_par_id") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -238,7 +238,7 @@ int main (int argc,char *argv[])
 			Parent_idcode_str = SUMA_copy_string(argv[kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -246,7 +246,7 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          input_name_v = (char **)SUMA_malloc((argc-kar+1)*sizeof(char *));
-         
+
          cnt = 0;
          while (kar < argc) {
             input_name_v[cnt] = argv[kar];
@@ -255,8 +255,8 @@ int main (int argc,char *argv[])
          N_input_name = cnt;
          brk = YUP;
       }
-      
-      if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) || 
+
+      if (!brk && ( (strcmp(argv[kar], "-pad_label") == 0) ||
                      (strcmp(argv[kar], "-pad_val") == 0) )) {
          kar ++;
 			if (kar >= argc)  {
@@ -266,24 +266,24 @@ int main (int argc,char *argv[])
 			pad_val = atoi(argv[kar]);
          brk = YUP;
       }
-      
+
       if (!brk) {
 			fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
-		}   
-   }   
-   
+		}
+   }
+
    if (argc < 4) {
       SUMA_S_Err("Too few options");
       usage_ROI2dataset_Main (1);
    }
-   
+
    if (MRILIB_DomainMaxNodeIndex >= 0) pad_to = MRILIB_DomainMaxNodeIndex;
 
    if (!prefix_name && !nodelist) {
@@ -292,7 +292,7 @@ int main (int argc,char *argv[])
                , FuncName);
       exit(1);
    }
-   
+
    if (prefix_name) {
       if (Out_Format == SUMA_NO_DSET_FORMAT) {
          Out_Format = SUMA_GuessFormatFromExtension(prefix_name,
@@ -300,17 +300,17 @@ int main (int argc,char *argv[])
       }
       /* form the output name and check for existence */
       #if 1
-      out_name = SUMA_Extension( prefix_name, 
+      out_name = SUMA_Extension( prefix_name,
                                  (char *)SUMA_ExtensionOfDsetFormat(Out_Format),
                                  NOPE);
       #else
       switch (Out_Format) {
          case SUMA_ASCII_NIML:
          case SUMA_BINARY_NIML:
-            out_name = SUMA_Extension(prefix_name, ".niml.dset", NOPE); 
+            out_name = SUMA_Extension(prefix_name, ".niml.dset", NOPE);
             break;
          case SUMA_1D:
-            out_name = SUMA_Extension(prefix_name, ".1D.dset", NOPE); 
+            out_name = SUMA_Extension(prefix_name, ".1D.dset", NOPE);
             break;
          default:
             SUMA_S_Err("Output format not supported");
@@ -322,20 +322,20 @@ int main (int argc,char *argv[])
 
       /* check for existence of out_name */
       if (SUMA_filexists(out_name) && !THD_ok_overwrite()) {
-         fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n", 
+         fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n",
                               FuncName, out_name);
-         exit(1); 
+         exit(1);
       }
    } else out_name = NULL;
-   
-   
+
+
    /* check for input files */
    if (N_input_name <= 0) {
       fprintf(SUMA_STDERR,"Error %s:\n No ROI files specified.\n",
                            FuncName);
-      exit(1); 
+      exit(1);
    }
-    
+
    /* read in the data sets */
    /* create a dummy idcode_str for potential 1D data sets */
    N_ROIv = 0;
@@ -344,14 +344,14 @@ int main (int argc,char *argv[])
    for (i=0; i < N_input_name; ++i) {
       if (SUMA_isExtension(input_name_v[i], ".niml.roi")) {
          /* load niml ROI */
-         if (!( tROIv = SUMA_OpenDrawnROI_NIML (input_name_v[i], 
+         if (!( tROIv = SUMA_OpenDrawnROI_NIML (input_name_v[i],
                                                       &N_tROI, NOPE, NULL))) {
             SUMA_S_Err("Failed to read NIML ROI.");
             exit(1);
          }
       }else if (SUMA_isExtension(input_name_v[i], ".1D.roi")) {
          /* load 1D ROI */
-         if (!( tROIv = SUMA_OpenDrawnROI_1D (input_name_v[i], 
+         if (!( tROIv = SUMA_OpenDrawnROI_1D (input_name_v[i],
                                           dummy_idcode_str, &N_tROI, NOPE))) {
             SUMA_S_Err("Failed to read NIML ROI.");
             exit(1);
@@ -360,8 +360,8 @@ int main (int argc,char *argv[])
          SUMA_S_Errv(  "Failed to recognize\n"
                       "ROI type from filename '%s'\n", input_name_v[i]);
          exit(1);
-      } 
-      
+      }
+
       SUMA_LH("Copying temporary ROIv into the main ROIv ");
       /* copy temporary ROIv into the main ROIv */
       ROIv = (SUMA_DRAWN_ROI **)
@@ -376,55 +376,55 @@ int main (int argc,char *argv[])
       for (ii=0; ii < N_tROI; ++ii) {
          if (!Parent_idcode_str) {
             /* try to find out what the Parent_idcode_str is */
-            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&
                strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
                fprintf (SUMA_STDERR,
                         "%s: Adopting Parent_idcode_str (%s) in ROI %s\n",
-                        FuncName, tROIv[ii]->Parent_idcode_str, 
+                        FuncName, tROIv[ii]->Parent_idcode_str,
                         tROIv[ii]->Label);
                /* good, use it as the Parent_idcode_str for all upcoming ROIs */
-               Parent_idcode_str = 
+               Parent_idcode_str =
                   SUMA_copy_string(tROIv[ii]->Parent_idcode_str);
             }
-         } 
-         
+         }
+
          AddThis = NOPE;
-         if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+         if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&
             !strcmp(tROIv[ii]->Parent_idcode_str, dummy_idcode_str)) {
             AddThis = YUP;
          } else {
-            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&  
+            if (tROIv[ii]->Parent_idcode_str && dummy_idcode_str &&
                strcmp(tROIv[ii]->Parent_idcode_str, Parent_idcode_str)) {
                fprintf (SUMA_STDERR,"Warning %s:\n Ignoring ROI labeled %s\n"
-                                    "because of Parent_idcode_str mismatch.\n", 
-                                    FuncName, tROIv[ii]->Label); 
+                                    "because of Parent_idcode_str mismatch.\n",
+                                    FuncName, tROIv[ii]->Label);
                AddThis = NOPE;
                /* free structure of tROIv[ii] */
                SUMA_freeDrawnROI (tROIv[ii]); tROIv[ii] = NULL;
             }
             else AddThis = YUP;
-            
+
          }
          if (AddThis) {
             if (LocalHead) fprintf (SUMA_STDERR,
                                     "%s: Adding %dth ROI to ROIv...\n",
                                     FuncName, N_ROIv);
             ROIv[N_ROIv] = tROIv[ii];
-            
+
             ++N_ROIv;
          }
-          
+
       }
       /* now free tROIv vector */
-      if (tROIv) SUMA_free(tROIv); tROIv = NULL;  
+      if (tROIv) SUMA_free(tROIv); tROIv = NULL;
    }
-   
+
    if (LocalHead) {
       fprintf (SUMA_STDERR,"%s: Kept a total of %d ROIs with parent %s\n",
                         FuncName, N_ROIv, Parent_idcode_str);
-        
+
    }
-   
+
    if (nodelist) { /* output node list wanted */
       ddl = SUMA_ROIv2NodeLists (ROIv, N_ROIv, nodups);
       if (!ddl) {
@@ -437,36 +437,36 @@ int main (int argc,char *argv[])
          outlist_name = SUMA_append_string(nodelist, cbuf);
          /* check for existence of outlist_name */
          if (SUMA_filexists(outlist_name) && !THD_ok_overwrite()) {
-            fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n", 
+            fprintf(SUMA_STDERR,"Error %s:\n Output file %s exists.\n",
                                  FuncName, outlist_name);
-            exit(1); 
+            exit(1);
          }
-         
+
          if (withflag) {
-            SUMA_WRITE_INT_ARRAY_AND_FLAG_1D(dd->vals, dd->N_vals, 1, 
+            SUMA_WRITE_INT_ARRAY_AND_FLAG_1D(dd->vals, dd->N_vals, 1,
                                              outlist_name, dd->label);
          } else {
             SUMA_WRITE_INT_ARRAY_1D(dd->vals, dd->N_vals, 1, outlist_name);
          }
          SUMA_free(outlist_name); outlist_name = NULL;
          el = dlist_next(el);
-      } 
+      }
 
    }
-   
+
    if (out_name) { /* output dset required */
       if (!keepsep) {
-         if (!(dset = SUMA_ROIv2Grpdataset ( ROIv, N_ROIv, 
-                                             Parent_idcode_str, 
-                                             pad_to, pad_val, 
+         if (!(dset = SUMA_ROIv2Grpdataset ( ROIv, N_ROIv,
+                                             Parent_idcode_str,
+                                             pad_to, pad_val,
                                              &cmap))) {
             SUMA_SL_Err("Failed in SUMA_ROIv2Grpdataset");
             exit(1);
          }
       } else {
-         if (!(dset = SUMA_ROIv2MultiDset ( ROIv, N_ROIv, 
-                                             Parent_idcode_str, 
-                                             pad_to, pad_val, 
+         if (!(dset = SUMA_ROIv2MultiDset ( ROIv, N_ROIv,
+                                             Parent_idcode_str,
+                                             pad_to, pad_val,
                                              &cmap))) {
             SUMA_SL_Err("Failed in SUMA_ROIv2MultiDset");
             exit(1);
@@ -497,7 +497,7 @@ int main (int argc,char *argv[])
             exit(1);
          }
       }
-            
+
       /* write nel */
       switch (Out_Format) {
          case SUMA_ASCII_NIML:
@@ -507,13 +507,13 @@ int main (int argc,char *argv[])
             ns = NI_stream_open( stmp , "w" ) ;
             if( ns == NULL ){
                fprintf (stderr,"Error  %s:\nCan't open %s!"
-                           , FuncName, stmp); 
+                           , FuncName, stmp);
                exit(1);
             }
             if (Out_Format == SUMA_ASCII_NIML) {
-               nn = NI_write_element(  ns , dset->ngr , NI_TEXT_MODE ); 
+               nn = NI_write_element(  ns , dset->ngr , NI_TEXT_MODE );
             } else {
-               nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE ); 
+               nn = NI_write_element(  ns , dset->ngr , NI_BINARY_MODE );
             }
             if (nn < 0) {
                SUMA_S_Err ("Failed in NI_write_element");
@@ -521,34 +521,34 @@ int main (int argc,char *argv[])
             }
 
             /* close the stream */
-            NI_stream_close( ns ) ; 
+            NI_stream_close( ns ) ;
             break;
          case SUMA_1D:
             stmp = SUMA_append_string ("file:", out_name);
             ns = NI_stream_open( stmp , "w" ) ;
             if( ns == NULL ){
                fprintf (stderr,"Error  %s:\nCan't open %s!"
-                           , FuncName, stmp); 
+                           , FuncName, stmp);
                exit(1);
             }
             if (LocalHead) SUMA_ShowNel(dset->dnel);
-            NI_insert_column(dset->dnel, dset->inel->vec_typ[0], 
-                              dset->inel->vec[0], 0); 
+            NI_insert_column(dset->dnel, dset->inel->vec_typ[0],
+                              dset->inel->vec[0], 0);
             if (LocalHead) SUMA_ShowNel(dset->dnel);
-            nn = NI_write_element(  ns , dset->dnel , 
-                                    NI_TEXT_MODE | NI_HEADERSHARP_FLAG);  
-            NI_remove_column(dset->dnel, 0); 
+            nn = NI_write_element(  ns , dset->dnel ,
+                                    NI_TEXT_MODE | NI_HEADERSHARP_FLAG);
+            NI_remove_column(dset->dnel, 0);
             if (nn < 0) {
                SUMA_S_Err ("Failed in NI_write_element");
                exit(1);
             }
 
             /* close the stream */
-            NI_stream_close( ns ) ; 
+            NI_stream_close( ns ) ;
             break;
          default:
             nn = 1;
-            sss = SUMA_WriteDset_s( out_name, dset, 
+            sss = SUMA_WriteDset_s( out_name, dset,
                                     Out_Format, THD_ok_overwrite(),0);
             if (sss) SUMA_free(sss); sss=NULL;
             break;
@@ -558,7 +558,7 @@ int main (int argc,char *argv[])
       /* free nel */
       SUMA_FreeDset(dset); dset = NULL;
    }
-      
+
    /* free others */
    if (stmp) SUMA_free(stmp);
    if (ROIv) SUMA_free (ROIv);
@@ -566,7 +566,7 @@ int main (int argc,char *argv[])
    if (ddl) SUMA_free(ddl);
    if (out_name) SUMA_free(out_name);
    if (Parent_idcode_str) SUMA_free(Parent_idcode_str);
-   if (dummy_idcode_str) free(dummy_idcode_str); /* this one's allocated 
+   if (dummy_idcode_str) free(dummy_idcode_str); /* this one's allocated
                                                    by Bob's functions */
    return(0);
 }/* Main */

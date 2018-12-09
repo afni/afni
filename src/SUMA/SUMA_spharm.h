@@ -62,11 +62,11 @@ typedef struct {
       if (Opt->debug > 2) SUMA_WriteMxVec(xe, stmp, "#estimate at last l\n"); \
    }  \
 }
-            
+
 double SUMA_pLegendre(int l, int m, double t);
 SUMA_MX_VEC *SUMA_Y_l(int *lp, SUMA_MX_VEC *theta, SUMA_MX_VEC *phi, int debug);
 int SUMA_SphericalCoordsUnitSphere(SUMA_SurfaceObject *SO, SUMA_MX_VEC **phip, SUMA_MX_VEC **thetap, double **sph_coordp);
 SUMA_MX_VEC *SUMA_Spherical_Bases(int *lp, SUMA_OPT_SPHERICAL_BASES  *opt);
-SUMA_MX_VEC *SUMA_YLcomp_to_YLdoub( SUMA_MX_VEC **y_lp, int debug); 
+SUMA_MX_VEC *SUMA_YLcomp_to_YLdoub( SUMA_MX_VEC **y_lp, int debug);
 
 #endif

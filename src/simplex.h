@@ -63,7 +63,7 @@ float get_random_value(float a, float b);
   Allocate memory for simplex algorithm.
 */
 
-void allocate_arrays 
+void allocate_arrays
 (
   int dimension,              /* dimension of parameter space */
   float *** simplex,          /* the simplex itself */
@@ -80,7 +80,7 @@ void allocate_arrays
   Set up initial values for the simplex vertices.
 */
 
-void initialize_simplex 
+void initialize_simplex
 (
   int dimension,          /* dimension of the full model */
   vfp nmodel,             /* pointer to noise model */
@@ -105,11 +105,11 @@ void initialize_simplex
 
 /*---------------------------------------------------------------------------*/
 /*
-  Evaluate the vertices of the simplex.  Find indices of the best, worst, and 
+  Evaluate the vertices of the simplex.  Find indices of the best, worst, and
   next-to-worst vertices.
 */
 
-void eval_vertices 
+void eval_vertices
 (
  int dimension,            /* dimension of parameter space */
  float * response,         /* error sum of squares at each vertex */
@@ -125,7 +125,7 @@ void eval_vertices
   the simplex (and keeping the best previous vertex).
 */
 
-void restart 
+void restart
 (
   int dimension,          /* dimension of the full model */
   vfp nmodel,             /* pointer to noise model */
@@ -152,7 +152,7 @@ void restart
   Calculate the centroid of the simplex, ignoring the worst vertex.
 */
 
-void calc_centroid 
+void calc_centroid
 (
   int dimension,         /* dimension of parameter space */
   float ** simplex,      /* the simplex itself */
@@ -166,7 +166,7 @@ void calc_centroid
   Calculate the reflection of the worst vertex about the centroid.
 */
 
-void calc_reflection 
+void calc_reflection
 (
   int dimension,               /* dimension of parameter space */
   float ** simplex,            /* the simplex itself */
@@ -182,7 +182,7 @@ void calc_reflection
   Replace a vertex of the simplex.
 */
 
-void replace 
+void replace
 (
   int dimension,              /* dimension of parameter space */
   float ** simplex,           /* the simplex itself */
@@ -195,11 +195,11 @@ void replace
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the goodness of fit.  This is measured by the variation in 
+  Calculate the goodness of fit.  This is measured by the variation in
   responses at the different vertices relative to the average response.
 */
 
-float calc_good_fit 
+float calc_good_fit
 (
   int dimension,                   /* dimension of parameter space */
   float * response                 /* error sum of squares at each vertex */
@@ -211,7 +211,7 @@ float calc_good_fit
   Release memory required for simplex optimization.
 */
 
-void deallocate_arrays 
+void deallocate_arrays
 (
   int dimension,              /* dimension of parameter space */
   float *** simplex,          /* the simplex itself */
@@ -229,7 +229,7 @@ void deallocate_arrays
 */
 
 void simplex_optimization
-( 
+(
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
   int r,                  /* number of parameters in the noise model */

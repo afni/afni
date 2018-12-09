@@ -4,7 +4,7 @@
 * Name:			XmHTMLTextGetFormatted
 * Return Type: 	String
 * Description: 	returns a formatted copy of the current document.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	papertype:	type of paper to use (any of the XmHTMLTEXT_PAPERSIZE enums);
 *	papersize:	size of paper for custom stuff, or default overrides;
@@ -105,7 +105,7 @@ XmHTMLTextGetFormatted(Widget w, unsigned char papertype,
 * Name:			_XmHTMLTextGetPS
 * Return Type: 	String
 * Description: 	converts text between start & end into a postscript document
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	pdef:		papersize definition. unittype must be XmHTML_POINT;
 *	start:		start object;
@@ -115,7 +115,7 @@ XmHTMLTextGetFormatted(Widget w, unsigned char papertype,
 *	a String with postscript commands. Must be freed by caller.
 *****/
 String
-_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options)
 {
@@ -140,7 +140,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	}
 
 	/*****
-	* dirty trick: create a single pixmap in which we will draw each 
+	* dirty trick: create a single pixmap in which we will draw each
 	* page. Set it as the drawable in the current tka, adjust the document
 	* dimensions to reflect the selected paper properties, recalculate
 	* the layout and paint each page. When a page has been rendered,

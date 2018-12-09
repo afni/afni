@@ -4,11 +4,11 @@ void SUMA_MakeColorMap_usage ()
    {
       static char FuncName[]={"SUMA_MakeColorMap_usage"};
       char * s = NULL;
-      
+
       SUMA_ENTRY;
-    
+
       s = SUMA_help_basics();
-      fprintf (SUMA_STDOUT, 
+      fprintf (SUMA_STDOUT,
 "\n"
  "Usage1: \n"
  "MakeColorMap <-fn Fiducials_Ncol> [-pos] [-ah prefix] [-h/-help]\n"
@@ -58,7 +58,7 @@ void SUMA_MakeColorMap_usage ()
  "                 default is RGB values in decimal form)\n"
  "       use this option if you want a color map formatted to fit \n"
  "       in AFNI's .afnirc file. The colormap is written out as \n"
- "      prefix_01 = #xxxxxxx \n      prefix_02 = #xxxxxxx\n       etc...\n" 
+ "      prefix_01 = #xxxxxxx \n      prefix_02 = #xxxxxxx\n       etc...\n"
  "    -ahc prefix: optional, Afni Hex format, ready to go into.\n"
  "                 pbardefs.h \n"
  "    -h or -help: displays this help message.\n"
@@ -140,16 +140,16 @@ void SUMA_MakeColorMap_usage ()
       SUMA_free(s); s = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       fprintf (SUMA_STDOUT, "    Ziad S. Saad & Rick R. Reynolds SSCC/NIMH/NIH saadz@mail.nih.gov    Tue Apr 23 14:14:48 EDT 2002\n\n");
-      
+
       SUMA_RETURNe;
    }
- 
+
 int main (int argc,char *argv[])
 {/* Main */
    static char  FuncName[]={"MakeColorMap"};
-   char  *fscolutname = NULL, *FidName = NULL, 
-         *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL; 
-   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL, 
+   char  *fscolutname = NULL, *FidName = NULL,
+         *Prfx = NULL, h[9], *StdType=NULL, *dbfile=NULL, *MapName=NULL;
+   int Ncols = 0, N_Fid = 0, kar, i, ifact, *Nind = NULL,
        imap = -1, MapSpecified = 0;
    int fsbl0, fsbl1, showfscolut, exists=0;
    float **Fid=NULL, **M=NULL;
@@ -159,25 +159,25 @@ int main (int argc,char *argv[])
    int suc, idISi=0;
    char stmp[256], *s=NULL, *ooo=NULL, *sdset_prefix;
    SUMA_PARSED_NAME *sname=NULL;
-   NI_group *ngr=NULL;   
-   SUMA_Boolean   brk, SkipLast, PosMap, 
+   NI_group *ngr=NULL;
+   SUMA_Boolean   brk, SkipLast, PosMap,
                Usage1, Usage2, Usage3, Usage4, flipud, fscolut,
                LocalHead = NOPE;
    SUMA_COLOR_MAP *SM=NULL;
    SUMA_DSET_FORMAT iform;
    SUMA_DSET *sdset=NULL;
-      
+
    SUMA_STANDALONE_INIT;
 
    SUMA_mainENTRY;
-   
 
-   
+
+
    if (argc < 2) {
       SUMA_MakeColorMap_usage();
       exit (0);
    }
-   
+
    kar = 1;
    freesm = 1;
    fscolutname = NULL;
@@ -203,9 +203,9 @@ int main (int argc,char *argv[])
          SUMA_MakeColorMap_usage();
          exit (0);
       }
-      
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-     
+
       if (!brk && (strcmp(argv[kar], "-v") == 0))
       {
          LocalHead = NOPE;
@@ -226,8 +226,8 @@ int main (int argc,char *argv[])
          FidName = argv[kar];
          Usage1 = YUP;
          brk = YUP;
-      }      
-      
+      }
+
       if (!brk && (strcmp(argv[kar], "-fscolutfile") == 0))
       {
          Usage4=YUP;
@@ -255,7 +255,7 @@ int main (int argc,char *argv[])
          if (fsbl0 < 0) {
             fsbl0 = 0;
             fsbl1 = -1;
-         }  
+         }
          idISi=1;
          brk = YUP;
       }
@@ -293,8 +293,8 @@ int main (int argc,char *argv[])
          FidName = argv[kar];
          Usage2 = YUP;
          brk = YUP;
-      }      
-      
+      }
+
       if (!brk && (strcmp(argv[kar], "-nc") == 0))
       {
          kar ++;
@@ -305,8 +305,8 @@ int main (int argc,char *argv[])
          Ncols = atoi(argv[kar]);
          Usage1 = YUP;
          brk = YUP;
-      }      
-   
+      }
+
       if (!brk && (strcmp(argv[kar], "-ah") == 0))
       {
          kar ++;
@@ -315,10 +315,10 @@ int main (int argc,char *argv[])
             exit (1);
          }
          Prfx = argv[kar];
-         AfniHex = 1; 
+         AfniHex = 1;
          brk = YUP;
-      }      
-      
+      }
+
       if (!brk && (strcmp(argv[kar], "-ahc") == 0))
       {
          kar ++;
@@ -327,7 +327,7 @@ int main (int argc,char *argv[])
             exit (1);
          }
          Prfx = argv[kar];
-         AfniHex = 2; 
+         AfniHex = 2;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-suma_cmap") == 0))
@@ -338,10 +338,10 @@ int main (int argc,char *argv[])
             exit (1);
          }
          Prfx = argv[kar];
-         AfniHex = 3; 
+         AfniHex = 3;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-std") == 0))
       {
          kar ++;
@@ -356,10 +356,10 @@ int main (int argc,char *argv[])
          }
          MapSpecified = YUP;
          StdType = argv[kar];
-         Usage3 = YUP; 
+         Usage3 = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-cmapdb") == 0))
       {
          kar ++;
@@ -367,12 +367,12 @@ int main (int argc,char *argv[])
               fprintf (SUMA_STDERR, "need argument after -cmapdb ");
             exit (1);
          }
-         SUMAg_CF->isGraphical = YUP; 
+         SUMAg_CF->isGraphical = YUP;
                         /* WILL NEED X DISPLAY TO RESOLVE COLOR NAMES */
          dbfile = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-cmap") ==0)) {
          if (MapSpecified) {
             SUMA_S_Err( "Color map already specified.\n"
@@ -385,25 +385,25 @@ int main (int argc,char *argv[])
             fprintf (SUMA_STDERR, "need 1 arguments after -cmap ");
             exit (1);
          }
-         Usage3 = YUP; 
+         Usage3 = YUP;
          MapName = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-sl") == 0))
       {
-         SkipLast = YUP;         
+         SkipLast = YUP;
          brk = YUP;
-      }      
-      
+      }
+
       if (!brk && (strcmp(argv[kar], "-pos") == 0))
       {
          /* obsolete */
          PosMap = YUP;
-         
+
          brk = YUP;
-      }      
-   
+      }
+
       if (!brk && (strcmp(argv[kar], "-sdset") == 0)) {
          kar ++;
          if (kar >= argc)  {
@@ -427,36 +427,36 @@ int main (int argc,char *argv[])
          brk = YUP;
       }
       if (!brk) {
-         SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+         SUMA_S_Errv("Option %s not understood. Try -help for usage\n",
                      argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-      } else {   
+      } else {
          brk = NOPE;
          kar ++;
       }
-      
+
    }/* loop accross command ine options */
-   
+
    /* check input */
-   if (  (Usage1 && (Usage2 || Usage3 || Usage4)) || 
-         (Usage2 && (Usage1 || Usage3 || Usage4)) || 
-         (Usage3 && (Usage1 || Usage2 || Usage4)) || 
+   if (  (Usage1 && (Usage2 || Usage3 || Usage4)) ||
+         (Usage2 && (Usage1 || Usage3 || Usage4)) ||
+         (Usage3 && (Usage1 || Usage2 || Usage4)) ||
          (Usage4 && (Usage1 || Usage2 || Usage3)) ) {
       SUMA_S_Err("Mixing options from multiple usage modes.\n");
       exit(1);
    }
-   
+
    if (!Usage1 && !Usage2 && !Usage3 && !Usage4) {
       SUMA_S_Err("One of these options must be used:\n"
                            "-f, -fn,  -std, or -fscolut.\n");
       exit(1);
    }
-   
+
    /* are there database files to read */
    if (dbfile) {
       SUMA_LH("Now trying to read db file");
-      if (!SUMAg_CF->scm) {   
+      if (!SUMAg_CF->scm) {
          SUMAg_CF->scm = SUMA_Build_Color_maps();
          if (!SUMAg_CF->scm) {
             SUMA_SL_Err("Failed to build color maps.\n");
@@ -468,13 +468,13 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-   
+
    if (Usage1 || Usage2) {
       if (!SUMA_filexists (FidName)) {
          SUMA_S_Errv("File %s could not be found.\n", FidName);
          exit(1);
       }
-      
+
       /* read the fiducials file */
       im = mri_read_1D (FidName);
       if (!im) {
@@ -489,13 +489,13 @@ int main (int argc,char *argv[])
    if (PosMap) {
       fprintf (SUMA_STDERR,"\nWarning %s: -pos option is obsolete.\n", FuncName);
    }
-   
-   
+
+
    /* allocate for fiducials */
    if (Usage1) {
       if (N_Fid % 3) {
          fprintf (SUMA_STDERR,
-                  "Error %s: Not all rows in %s appear to have RGB triplets.\n", 
+                  "Error %s: Not all rows in %s appear to have RGB triplets.\n",
                   FuncName, FidName);
          exit (1);
       }
@@ -512,8 +512,8 @@ int main (int argc,char *argv[])
          Fid[i][1] = far[i+im->nx];
          Fid[i][2] = far[i+2*im->nx];
       }
-      
-      mri_free(im); im = NULL; 
+
+      mri_free(im); im = NULL;
       /* now create the color map */
       SM = SUMA_MakeColorMap (Fid, N_Fid/3, 0, Ncols, SkipLast, FuncName);
       if (SM == NULL) {
@@ -521,7 +521,7 @@ int main (int argc,char *argv[])
                   "Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
          exit(1);
       }
-   } 
+   }
    if (Usage2) { /* second usage */
       if (N_Fid % 4) {
          fprintf (SUMA_STDERR,
@@ -537,18 +537,18 @@ int main (int argc,char *argv[])
                   "Error %s: Could not allocate for Fid or Nind.\n", FuncName);
          exit(1);
       }
-      
+
       for (i=0; i < im->nx; ++i) {
          Fid[i][0] = far[i];
          Fid[i][1] = far[i+im->nx];
          Fid[i][2] = far[i+2*im->nx];
          Nind[i] = (int)far[i+3*im->nx];
       }
-      
-      mri_free(im); im = NULL; 
-      
+
+      mri_free(im); im = NULL;
+
       /* now create the color map */
-      SM = SUMA_MakeColorMap_v2 (Fid, N_Fid/4, 0, Nind, SkipLast, FuncName); 
+      SM = SUMA_MakeColorMap_v2 (Fid, N_Fid/4, 0, Nind, SkipLast, FuncName);
       if (SM == NULL) {
          fprintf (SUMA_STDERR,
                   "Error %s: Error in SUMA_MakeColorMap.\n", FuncName);
@@ -556,7 +556,7 @@ int main (int argc,char *argv[])
       }
       Ncols = SM->N_M[0];
    }
-   
+
    if (Usage3) { /* third usage */
       if (!MapName) {
          SM = SUMA_FindNamedColMap (StdType);
@@ -568,42 +568,42 @@ int main (int argc,char *argv[])
          }
          Ncols = SM->N_M[0];
       } else {
-         imap = SUMA_Find_ColorMap ( MapName, SUMAg_CF->scm->CMv, 
+         imap = SUMA_Find_ColorMap ( MapName, SUMAg_CF->scm->CMv,
                                      SUMAg_CF->scm->N_maps, -2);
          if (imap < 0) {
             fprintf (SUMA_STDERR,
-                     "Error %s: Could not find colormap %s.\n", 
+                     "Error %s: Could not find colormap %s.\n",
                      FuncName, MapName);
-            exit (1); 
+            exit (1);
          }
-         SM = SUMAg_CF->scm->CMv[imap]; 
+         SM = SUMAg_CF->scm->CMv[imap];
          Ncols = SM->N_M[0];
       }
    }
-   
+
    if (Usage4) { /* 4th usage */
-      if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0, 
+      if (!(SM = SUMA_FScolutToColorMap(fscolutname, fsbl0,
                                          fsbl1, showfscolut, idISi))) {
          SUMA_S_Err("Failed to get FreeSurfer colormap.");
          exit(1);
       }
       Ncols = SM->N_M[0];
    }
-   
+
    if (flipud) {
       SUMA_Flip_Color_Map (SM);
    }
-   
+
    M = SM->M;
 
    if (AfniHex && Ncols > 20) {
       if (!Usage4) {
          SUMA_S_Note("Writing colormap in colorscale format.\n");
-      }  
+      }
    }
-   
-   
-   
+
+
+
    if (!AfniHex) {
          SUMA_disp_mat (M, Ncols, 3, 1);
          /*SUMA_Show_ColorMapVec (&SM, 1, NULL, 2);*/
@@ -612,26 +612,26 @@ int main (int argc,char *argv[])
             if (AfniHex == 1) {
                fprintf (stdout, "%s \n", Prfx);
                for (i=0; i < Ncols; ++i) {
-                  
-                  /* Now create the hex form */
-                  r_sprintf_long_to_hex (h, 
-                        (unsigned long)rint((M[i][0]*255)), 1, 0);
-                  fprintf (stdout, "#%s", h); 
 
-                  r_sprintf_long_to_hex (h, 
+                  /* Now create the hex form */
+                  r_sprintf_long_to_hex (h,
+                        (unsigned long)rint((M[i][0]*255)), 1, 0);
+                  fprintf (stdout, "#%s", h);
+
+                  r_sprintf_long_to_hex (h,
                         (unsigned long)rint((M[i][1]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
 
-                  r_sprintf_long_to_hex (h, 
+                  r_sprintf_long_to_hex (h,
                         (unsigned long)rint((M[i][2]*255)), 1, 0);
                   fprintf (stdout, "%s \n", h);
                }
                 fprintf (stdout, "\n") ;
-            } else if (AfniHex == 2){  /* to go in the C code 
+            } else if (AfniHex == 2){  /* to go in the C code
                               (see pbardef.h and pbar.c)*/
-               char *p2 = SUMA_copy_string(Prfx); 
+               char *p2 = SUMA_copy_string(Prfx);
                SUMA_TO_UPPER(p2);
-               fprintf (stdout, "static char %s[] = {\n   \"%s \"\n   \"", 
+               fprintf (stdout, "static char %s[] = {\n   \"%s \"\n   \"",
                   p2, Prfx); SUMA_free(p2); p2 = NULL;
                for (i=0; i < Ncols; ++i) {
                   if (i) {
@@ -639,25 +639,25 @@ int main (int argc,char *argv[])
                      else { fprintf (stdout, " "); }
                   }
                   /* Now create the hex form */
-                  r_sprintf_long_to_hex (h, 
+                  r_sprintf_long_to_hex (h,
                         (unsigned long)rint((M[i][0]*255)), 1, 0);
-                  fprintf (stdout, "#%s", h); 
+                  fprintf (stdout, "#%s", h);
 
-                  r_sprintf_long_to_hex (h, 
+                  r_sprintf_long_to_hex (h,
                         (unsigned long)rint((M[i][1]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
 
-                  r_sprintf_long_to_hex (h, 
+                  r_sprintf_long_to_hex (h,
                         (unsigned long)rint((M[i][2]*255)), 1, 0);
                   fprintf (stdout, "%s", h);
                }
                 fprintf (stdout, " \"\n};\n") ;
-            } else if (AfniHex == 3){ 
+            } else if (AfniHex == 3){
                SUMA_LHv("Now turn %s to niml\n", SM->Name);
                sname = SUMA_ParseFname(Prfx, NULL);
-               snprintf(stmp, 128*sizeof(char), 
-                        "file:%s.niml.cmap", sname->FileName_NoExt); 
-               if (SM->Name) SUMA_free(SM->Name); 
+               snprintf(stmp, 128*sizeof(char),
+                        "file:%s.niml.cmap", sname->FileName_NoExt);
+               if (SM->Name) SUMA_free(SM->Name);
                SM->Name = SUMA_copy_string(sname->FileName_NoExt);
                ngr = SUMA_CmapToNICmap(SM);
                NEL_WRITE_TX(ngr, stmp, suc);
@@ -673,41 +673,41 @@ int main (int argc,char *argv[])
             fprintf (stdout, "\n***COLORS\n");
             for (i=0; i < Ncols; ++i) {
                /* Now create the hex form */
-               r_sprintf_long_to_hex (h, 
+               r_sprintf_long_to_hex (h,
                      (unsigned long)rint((M[i][0]*255)), 1, 0);
                if (i<10) fprintf (stdout, "%s_0%d = #%s", Prfx, i, h);
-                  else fprintf (stdout, "%s_%d = #%s", Prfx, i, h); 
+                  else fprintf (stdout, "%s_%d = #%s", Prfx, i, h);
 
-               r_sprintf_long_to_hex (h, 
+               r_sprintf_long_to_hex (h,
                      (unsigned long)rint((M[i][1]*255)), 1, 0);
                fprintf (stdout, "%s", h);
 
-               r_sprintf_long_to_hex (h, 
+               r_sprintf_long_to_hex (h,
                      (unsigned long)rint((M[i][2]*255)), 1, 0);
                fprintf (stdout, "%s\n", h);
             }
 
             /* color map */
 
-            fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n", 
+            fprintf (stdout, "\n***PALETTES %s [%d]\n//1 to -1 range\n",
                      Prfx, Ncols);
             ifact = 2;
             for (i=0; i < Ncols; ++i) {
                fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
                if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
-                  else fprintf (stdout, "%s_%d\n", Prfx, i); 
+                  else fprintf (stdout, "%s_%d\n", Prfx, i);
             }
-            fprintf (stdout, 
+            fprintf (stdout,
                      "\n***PALETTES %s [%d+]\n//1 to 0 range\n", Prfx, Ncols);
             ifact = 1;
             for (i=0; i < Ncols; ++i) {
                fprintf (stdout, "%f -> ", 1.0 - (float)(ifact*i)/Ncols);
                if (i<10) fprintf (stdout, "%s_0%d\n", Prfx, i);
-                  else fprintf (stdout, "%s_%d\n", Prfx, i); 
+                  else fprintf (stdout, "%s_%d\n", Prfx, i);
             }
          }
    }
-   
+
    /* free allocated space */
    if (Usage1)  {
       if (Fid) SUMA_free2D((char **)Fid, N_Fid / 3);
@@ -715,11 +715,11 @@ int main (int argc,char *argv[])
       if (Fid) SUMA_free2D((char **)Fid, N_Fid / 4);
       if (Nind) SUMA_free(Nind);
    }
-   
+
    /* add colormap to a surface dset ? */
    if (sdset) {
       SUMA_DSET *idset;
-      if (!SUMA_is_AllConsistentCastType_dset(sdset, SUMA_int)) { 
+      if (!SUMA_is_AllConsistentCastType_dset(sdset, SUMA_int)) {
          idset = SUMA_CoercedCopyofDset(sdset, SUMA_int, NULL);
       } else {
          idset = sdset;
@@ -730,20 +730,20 @@ int main (int argc,char *argv[])
       }
       s = SUMA_OutputDsetFileStatus(
          sdset_prefix?sdset_prefix:SDSET_FILENAME(sdset),
-                                 NULL, &iform, 
-                                 NULL, ".lbl", &exists); 
+                                 NULL, &iform,
+                                 NULL, ".lbl", &exists);
       SUMA_AddNgrHist(sdset->ngr, FuncName, argc, argv);
-      ooo = SUMA_WriteDset_s(s, idset, iform, 
+      ooo = SUMA_WriteDset_s(s, idset, iform,
                         THD_ok_overwrite(), 0);
       SUMA_free(ooo); ooo=NULL; SUMA_free(s); s = NULL;
 
-      if (idset != sdset) SUMA_FreeDset(idset); 
+      if (idset != sdset) SUMA_FreeDset(idset);
       SUMA_FreeDset(sdset); sdset=NULL;
    }
    if (SM && !MapName && freesm) SUMA_Free_ColorMap(SM);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) { 
-      SUMA_SL_Err("Failed to free commonfields."); 
+   if (!SUMA_Free_CommonFields(SUMAg_CF)) {
+      SUMA_SL_Err("Failed to free commonfields.");
    }
-   
+
    SUMA_RETURN (0);
-}   
+}

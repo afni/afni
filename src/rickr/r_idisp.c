@@ -387,7 +387,7 @@ int r_idisp_thd_datablock( char * info, THD_datablock * dp )
     {
         int c;
 
-        printf( 
+        printf(
           "   ----------------------------------------\n"
           "   sub   fac        brick_bytes   brick_lab\n"
           "   ---   ---        -----------   ---------\n" );

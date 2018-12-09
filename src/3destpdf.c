@@ -65,7 +65,7 @@ void estPDF_error (char * message)
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( estPDF_error ("Cannot allocate memory") )
-     
+
 /*---------------------------------------------------------------------------*/
 /*
   Include source code.
@@ -81,14 +81,14 @@ if((ptr)==NULL) \
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program estimates the PDF for a dataset.\n\n"
      "Usage: \n"
      "3destpdf \n"
      "-anat filename    Filename of anat dataset to be segmented            \n"
       );
-  
+
   PRINT_COMPILE_DATE ; exit(0);
 }
 
@@ -101,7 +101,7 @@ void display_help_menu()
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv                     /* array of input arguments */ 
+  char ** argv                     /* array of input arguments */
 )
 
 {
@@ -112,8 +112,8 @@ void get_options
 
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
-   
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
+
 
   /*----- main loop over input options -----*/
   while (nopt < argc )
@@ -131,23 +131,23 @@ void get_options
 	  anat = THD_open_one_dataset (anat_filename);
 	  if (!ISVALID_3DIM_DATASET (anat))
 	    {
-	      sprintf (message, "Can't open dataset: %s\n", anat_filename); 
-	      estPDF_error (message); 
-	    } 
+	      sprintf (message, "Can't open dataset: %s\n", anat_filename);
+	      estPDF_error (message);
+	    }
 	  DSET_load(anat); CHECK_LOAD_ERROR(anat);
 
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       estPDF_error (message);
-      
+
     }
 
-  
+
 }
 
 
@@ -156,10 +156,10 @@ void get_options
   Program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                        /* number of input arguments */
-  char ** argv                     /* array of input arguments */ 
+  char ** argv                     /* array of input arguments */
 )
 
 {
@@ -169,7 +169,7 @@ void initialize_program
   int nx, ny, nz, nxy, nxyz, ixyz;       /* voxel counters */
   int n;                                 /* histogram bin index */
   short * sfim = NULL;                   /* pointer to anat data */
-  short * rfim = NULL;                   /* truncated data */ 
+  short * rfim = NULL;                   /* truncated data */
   int icount;
   int lower_cutoff = 25;
 
@@ -201,8 +201,8 @@ void initialize_program
   estpdf_short (icount, rfim, parameters);
   min_val_float = parameters[4] - 2.0*parameters[5];
   max_val_float = parameters[7] + 2.0*parameters[8];
-  
-   
+
+
   if (! quiet)
     {
       printf ("\n");
@@ -224,7 +224,7 @@ void initialize_program
 int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -239,11 +239,11 @@ int main
 #endif
 
    PRINT_VERSION("3destpdf") ; AUTHOR(PROGRAM_AUTHOR) ;mainENTRY("3destpdf main") ; machdep() ;
-  
+
   /*----- Program initialization -----*/
   initialize_program (argc, argv);
 
-  
+
 
 }
 

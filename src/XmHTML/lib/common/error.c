@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -67,7 +67,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/02/11 01:59:21  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -113,7 +113,7 @@ static String err_fmt = "\n    Name: %s\n    Class: %s\n    ";
 * Name: 		__XmHTMLWarning
 * Return Type: 	void
 * Description: 	displays a warning message to stderr
-* In: 
+* In:
 *	w:			widget;
 *	module:		source file name;
 *	line:		line number information;
@@ -132,10 +132,10 @@ void
 __XmHTMLWarning(Widget w,
 
 # ifdef DEBUG
-	String module, int line, String routine, 
+	String module, int line, String routine,
 # endif
 
-	String fmt, ...) 
+	String fmt, ...)
 {
 	va_list arg_list;
 	va_start(arg_list, fmt);
@@ -200,7 +200,7 @@ __XmHTMLWarning(w, fmt, va_alist)
 * Name: 		__XmHTMLError
 * Return Type: 	void
 * Description: 	displays an error message on stderr and exits.
-* In: 
+* In:
 *	w:			widget;
 *	module:		source file name;
 *	line:		line information;
@@ -222,7 +222,7 @@ __XmHTMLError(Widget w,
 	String module, int line, String routine,
 #endif
 
-	String fmt, ...) 
+	String fmt, ...)
 {
 	va_list arg_list;
 	va_start(arg_list, fmt);
@@ -239,7 +239,7 @@ __XmHTMLError(w, module, line, routine, fmt, va_alist)
 
 # else	/* !DEBUG */
 
-__XmHTMLError(w, fmt, va_alist) 
+__XmHTMLError(w, fmt, va_alist)
 	Widget w;
 
 # endif	/* DEBUG */
@@ -292,7 +292,7 @@ __XmHTMLError(w, fmt, va_alist)
 * Name: 		_XmHTMLAllocError
 * Return Type: 	void
 * Description: 	displays an error message on stderr and exits.
-* In: 
+* In:
 *	w:			widget
 *	module:		source file name
 *	routine:	routine name
@@ -307,9 +307,9 @@ _XmHTMLAllocError(Widget w, char *module, char *routine, char *func, int size)
 	if(w)
 	{
 		sprintf(buf, "\n    Name: %s\n    Class: %s\n    "
-			"cannot continue: %s failed for %i bytes.\n    (%s, %s)\n", 
+			"cannot continue: %s failed for %i bytes.\n    (%s, %s)\n",
 			TkaWidgetName(w), TkaWidgetClassName(w), func,
-			size, module, routine); 
+			size, module, routine);
 	    XtAppError(XtWidgetToApplicationContext(w), buf);
 	}
 	else
@@ -327,7 +327,7 @@ _XmHTMLAllocError(Widget w, char *module, char *routine, char *func, int size)
 * Return Type: 	void
 * Description: 	default warning message for a call to a public routine and
 *				the widget argument is either NULL or not of class XmHTML.
-* In: 
+* In:
 *	w:			offending Widget id;
 *	src_file:	source file where function is found;
 *	func:		function in which error occured.

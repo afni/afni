@@ -609,9 +609,9 @@ static int RT_merge( RT_input *, int, int ) ;  /* 28 Oct 2016 [rickr] */
 # define RT_DETREND_GM      0x02  /* remove global mean */
 # define RT_DETREND_MASK    0x04  /* remove mask averages */
 # define RT_DETREND_FRISTON 0x08  /* remove Friston 24 regressors */
-# define RT_DETREND_POLORT  0x10  /* remove polynomial regressor 
+# define RT_DETREND_POLORT  0x10  /* remove polynomial regressor
                                      determined by rtin->detrend_polort */
-# define RT_DETREND_SMOOTH  0x20  /* spatially smooth data after detrend */ 
+# define RT_DETREND_SMOOTH  0x20  /* spatially smooth data after detrend */
 
    static unsigned char rt_detrend_mode = 0;    /* initialize to no detrending */
    static int rt_detrend_polort = -1; /* no polort */
@@ -625,7 +625,7 @@ static int RT_merge( RT_input *, int, int ) ;  /* 28 Oct 2016 [rickr] */
 # define N_RT_MOTION_DETREND_MODES 3
    static char *RT_detrend_motion_strings[N_RT_MOTION_DETREND_MODES] =
                 { "None", "6 parameter" , "Friston 24 parameter" } ;
-/* CC end modifications */ 
+/* CC end modifications */
 
 typedef struct {
    int     len;
@@ -699,7 +699,7 @@ static int  RT_mp_comm_init_vars( RT_input * rtin );
 static int  RT_mp_comm_send_data( RT_input * rtin, float *mp[6],int nt,int sub);
 static int  RT_mp_comm_send_data_wrapper(RT_input * rtin, int tfirst, int ntt);
 
-/* Cameron Craddock, init masking without setting up 
+/* Cameron Craddock, init masking without setting up
    communication */
 static int RT_mp_init_mask( RT_input * rtin );
 
@@ -827,7 +827,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       if( ii >= 0 && ii < NVERB ) verbose = ii ;
    }
 
-   /* Cameron Craddock added to allow show times to be set by 
+   /* Cameron Craddock added to allow show times to be set by
       GUI interface */
    ept = getenv("AFNI_REALTIME_SHOW_TIMES");
    if( ept != NULL ){
@@ -971,7 +971,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    /*---------------------------------------------------------*/
    /*-- a line to put misc options: RT writing and T2* dset --*/
 
-   /* initialize g_t2star_ref_dset - 
+   /* initialize g_t2star_ref_dset -
     * it can be overwritten in the plugin  23 Jan 2017 */
    /* rcr - but if coming throught the plugin, do not do this */
    /* rcr - fix (if we allow this, free an old dataset of this sort)*/
@@ -1004,12 +1004,12 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
 
    /* Cameron Craddock added to support real time detrend */
-   ept = getenv("AFNI_REALTIME_DETREND_MODE") ;   
+   ept = getenv("AFNI_REALTIME_DETREND_MODE") ;
    if( ept != NULL ){
       int ii = (int) rint(strtod(ept,NULL)) ;
       if( ii >= 0 && ii <= 32 ) rt_detrend_mode = ii ;
    }
-  
+
    /* convert the detrend node to the appropriate string
       array indices */
    rt_detrend_addort=0;
@@ -1019,34 +1019,34 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    rt_detrend_motion=0;
    if ( rt_detrend_mode & RT_DETREND_MOTION ) rt_detrend_motion+=1;
    if ( rt_detrend_mode & RT_DETREND_FRISTON ) rt_detrend_motion+=1;
- 
-   ept = getenv("AFNI_REALTIME_DETREND_POLORT") ;  
+
+   ept = getenv("AFNI_REALTIME_DETREND_POLORT") ;
    if( ept != NULL ){
       int ii = (int) rint(strtod(ept,NULL)) ;
       if( ii >= -1 && ii <= 99 ) rt_detrend_polort = ii ;
    }
 
-   ept = getenv("AFNI_REALTIME_DETREND_FWHM") ;   
+   ept = getenv("AFNI_REALTIME_DETREND_FWHM") ;
    if( ept != NULL ){
       float ff = (float)(strtod(ept,NULL)) ;
       if( ff >= 0.0 ) rt_detrend_polort = ff ;
    }
 
    PLUTO_add_option( plint , "" , "Detrend" , FALSE ) ;
-   PLUTO_add_string( plint , "Detrend", N_RT_DETREND_MODES, RT_detrend_strings, 
+   PLUTO_add_string( plint , "Detrend", N_RT_DETREND_MODES, RT_detrend_strings,
        rt_detrend_addort ) ;
-   PLUTO_add_hint( plint , 
+   PLUTO_add_hint( plint ,
        "select orts you would like to including in the RT detrending model" ) ;
-   PLUTO_add_string( plint , "Motion Orts", N_RT_MOTION_DETREND_MODES , 
+   PLUTO_add_string( plint , "Motion Orts", N_RT_MOTION_DETREND_MODES ,
        RT_detrend_motion_strings , rt_detrend_motion ) ;
-   PLUTO_add_hint( plint , 
+   PLUTO_add_hint( plint ,
        "select motion parameters you would like to include" ) ;
    PLUTO_add_number( plint , "Polort" , -1,99,0 , rt_detrend_polort , TRUE ) ;
-   PLUTO_add_hint( plint , 
+   PLUTO_add_hint( plint ,
        "select the degree of polynomial you would like to include"
        " -1 = none, 0 = mean, 1 = linear, etc... " ) ;
    PLUTO_add_number(plint, "FWHM (mm)", 0.0,99.0,0.0, rt_detrend_fwhm, TRUE) ;
-   PLUTO_add_hint( plint , 
+   PLUTO_add_hint( plint ,
        "Set the FWHM for spatial smoothing, 0.0 = no smoothing" ) ;
    /* CC end */
 
@@ -1287,16 +1287,16 @@ char * RT_main( PLUGIN_interface * plint )
             RT_detrend_strings);
 
         /* convert the string index to a mode */
-        if( rt_detrend_addort == 1 ) 
-           rt_detrend_mode = rt_detrend_mode | RT_DETREND_GM; 
-        if( rt_detrend_addort == 2 ) 
-           rt_detrend_mode = rt_detrend_mode | RT_DETREND_MASK; 
-        if( rt_detrend_addort == 3 ) 
+        if( rt_detrend_addort == 1 )
+           rt_detrend_mode = rt_detrend_mode | RT_DETREND_GM;
+        if( rt_detrend_addort == 2 )
+           rt_detrend_mode = rt_detrend_mode | RT_DETREND_MASK;
+        if( rt_detrend_addort == 3 )
            rt_detrend_mode = rt_detrend_mode | RT_DETREND_MASK | RT_DETREND_GM;
 
          /* CC get the index of the string for the motion regressors */
          str = PLUTO_get_string(plint);
-         rt_detrend_motion = PLUTO_string_index(str, N_RT_MOTION_DETREND_MODES, 
+         rt_detrend_motion = PLUTO_string_index(str, N_RT_MOTION_DETREND_MODES,
                  RT_detrend_motion_strings);
 
          /* convert the string index to a mode */
@@ -1308,7 +1308,7 @@ char * RT_main( PLUGIN_interface * plint )
          rt_detrend_polort = (int)rint(PLUTO_get_number(plint)) ;
          rt_detrend_fwhm   = PLUTO_get_number(plint) ;
 
-         /* CC if the user specifies detrend to MASK ROIs, make 
+         /* CC if the user specifies detrend to MASK ROIs, make
             sure that they also specified a MASK under masking,
             this assumes that masking is interpreted before detrend */
          if (( rt_detrend_mode & RT_DETREND_MASK ) && !g_mask_dset )
@@ -1319,10 +1319,10 @@ char * RT_main( PLUGIN_interface * plint )
                     "*******************************************************" ;
          }
 
-         /* CC if the user specifies detrend to motion, make 
+         /* CC if the user specifies detrend to motion, make
             sure that they also specified RT motion correction,
             this assumes that motion correction is interpreted before detrend */
-         if (( rt_detrend_mode & RT_DETREND_MOTION ) && 
+         if (( rt_detrend_mode & RT_DETREND_MOTION ) &&
              ( regmode != 1 ) && ( regmode != 3 ))
          {
              return "*******************************************************\n"
@@ -1339,7 +1339,7 @@ char * RT_main( PLUGIN_interface * plint )
          AFNI_setenv( buf );
          snprintf( buf, 255, "AFNI_REALTIME_DETREND_FWHM %g", rt_detrend_fwhm );
          AFNI_setenv( buf );
-         
+
          continue ;
       }
       /* CC end */
@@ -1357,7 +1357,7 @@ char * RT_main( PLUGIN_interface * plint )
       sprintf(buf, "******************************************\n"
                    "RT_opts: have RT mask method '%s',\n"
                    "         but no 3D realtime registration\n"
-                   "         ==> will not process RT mask data\n" 
+                   "         ==> will not process RT mask data\n"
                    "******************************************",
                    RT_mask_strings[g_mask_val_type]);
       PLUTO_popup_transient(plint, buf);
@@ -1656,11 +1656,11 @@ Boolean RT_worker( XtPointer elvis )
          if( ! rtinp->no_data && ! rtinp->info_ok ){
             fprintf(stderr,"RT: child info was incomplete or erroneous!\a\n") ;
             RT_check_info( rtinp , 1 ) ;
-            if (doPopups){  /* 12 Aug 2008 [jwhite] */ 
-              PLUTO_beep(); 
-              PLUTO_popup_transient(plint, " \n" 
-                    "      Heads down!\n" 
-                    "Realtime header was bad!\n"); 
+            if (doPopups){  /* 12 Aug 2008 [jwhite] */
+              PLUTO_beep();
+              PLUTO_popup_transient(plint, " \n"
+                    "      Heads down!\n"
+                    "Realtime header was bad!\n");
             }
             CLEANUP(0) ; return FALSE ;
          }
@@ -1707,9 +1707,9 @@ Boolean RT_worker( XtPointer elvis )
 
          fprintf(stderr,"RT: no image data for %g seconds --> saving to disk.\n",delt) ;
 
-         if (doPopups) { /* 12 Aug 2008 [jwhite] */ 
-           PLUTO_popup_transient( plint , " \n" 
-               " Pause in input data stream:\n" 
+         if (doPopups) { /* 12 Aug 2008 [jwhite] */
+           PLUTO_popup_transient( plint , " \n"
+               " Pause in input data stream:\n"
                " Saving current dataset(s) to disk.\n" ) ;
          }
 
@@ -1786,13 +1786,13 @@ Boolean RT_worker( XtPointer elvis )
 
       fprintf(stderr,"=%d bytes\n",rtinp->nbuf) ;
 
-      if (doPopups){  /* 12 Aug 2008 [jwhite] */ 
-        PLUTO_beep() ; 
-        PLUTO_popup_transient( plint , " \n" 
-            "***************************\n" 
-            "*       Heads Up!         *\n" 
-            "* Incoming realtime data! *\n" 
-            "***************************\n" ) ; 
+      if (doPopups){  /* 12 Aug 2008 [jwhite] */
+        PLUTO_beep() ;
+        PLUTO_popup_transient( plint , " \n"
+            "***************************\n"
+            "*       Heads Up!         *\n"
+            "* Incoming realtime data! *\n"
+            "***************************\n" ) ;
       }
 
       g_show_times = AFNI_yesenv("AFNI_REALTIME_SHOW_TIMES") ;
@@ -1832,11 +1832,11 @@ Boolean RT_worker( XtPointer elvis )
          fprintf(stderr,"RT: image header info was incomplete!\a\n") ;
          fprintf(stderr,"==> check image source program and README.realtime\n");
          RT_check_info( rtinp , 1 ) ;
-         if (doPopups){ /* 12 Aug 2008 [jwhite] */ 
-           PLUTO_beep() ; 
-           PLUTO_popup_transient( plint , " \n" 
-               "      Heads down!\n" 
-               "Realtime header was bad!\n" ) ; 
+         if (doPopups){ /* 12 Aug 2008 [jwhite] */
+           PLUTO_beep() ;
+           PLUTO_popup_transient( plint , " \n"
+               "      Heads down!\n"
+               "Realtime header was bad!\n" ) ;
          }
          CLEANUP(0) ; return FALSE ;
       }
@@ -2179,7 +2179,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
    rtin->cur_chan = 0 ;   /* current channel index */
 
    strcpy( rtin->root_prefix , root ) ;
-   /* nuke any .nii, say, and note for later          30 May, 2014 [rickr] 
+   /* nuke any .nii, say, and note for later          30 May, 2014 [rickr]
     *   This will be set after any ADN_prefix adjustment, because the
     *   root_prefix is appended to in many and compounding ways.
     *   Unfortunately, this method cannot distinguish between .nii
@@ -2221,7 +2221,7 @@ RT_input * new_RT_input( IOCHAN *ioc_data )
        }
        if( bset == NULL ){
          bset = THD_open_dataset(dname) ;
-        
+
        }
        if( bset != NULL ){
          INFO_message("env.var. sets registration base: %s=%s",RBENV,dname) ;
@@ -3316,7 +3316,7 @@ static int RT_mp_init_mask( RT_input * rtin )
 int RT_mp_check_env_for_mask( void )
 {
     char * ept = getenv("AFNI_REALTIME_Mask_Dset");
-    
+
     /* if no env mask, nuke any that is set and return */
     if( !ept || !strcmp(ept, "None") || !strcmp(ept, "NONE") || !strlen(ept) ){
         RT_mp_rm_env_mask(); /* then clear if set */
@@ -3866,7 +3866,7 @@ int RT_process_info( int ninfo , char * info , RT_input * rtin )
 
    /* check numte against num_chan (can equal, or numte == 1) */
    /* rcr - fix (fail if mismatch?  allow many 'real' channels and 1 te)*/
-      
+
    if( numte > 0 ) {
       if( rtin->num_chan > 1 && numte == 1 ) /* then dupe */
          for( jj=1; jj < rtin->num_chan; jj++ ) rtin->TE[jj] = rtin->TE[0] ;
@@ -4310,7 +4310,7 @@ void RT_start_dataset( RT_input * rtin )
    /*---- 02 Jun 2009: make a dataset for merger, if need be ----*/
 
    /* if not appropriate for merging, disable */
-   if( RT_chmrg_mode && 
+   if( RT_chmrg_mode &&
         (rtin->num_chan == 1 || !MRI_IS_FLOAT_TYPE(rtin->datum) ) ) {
      /* fail only if not in OPT_COMB mode */
      if( ! (RT_chmrg_mode==RT_CHMER_OPT_COMB && rtin->datum == MRI_short) ) {
@@ -4414,12 +4414,12 @@ void RT_start_dataset( RT_input * rtin )
       char qbuf[THD_MAX_PREFIX];
 
       /* CC create a dataset using reg_dset as a template */
-      if(( rtin->reg_mode == REGMODE_2D_RTIME ) || 
+      if(( rtin->reg_mode == REGMODE_2D_RTIME ) ||
          ( rtin->reg_mode == REGMODE_3D_RTIME ))
       {
           if( verbose > 1 )
              fprintf(stderr,"RTCM: using reg dset for detrending grid\n");
-    
+
           rtin->detrend_dset = EDIT_empty_copy( rtin->reg_dset ) ;
           /* CC add _detrend to the end of the filename */
           strcat(ccpr,"_detrend");
@@ -4428,7 +4428,7 @@ void RT_start_dataset( RT_input * rtin )
       {
           if( verbose > 1 )
               fprintf(stderr,"RTCM: using base dset for detrending grid\n");
-    
+
           rtin->detrend_dset = EDIT_empty_copy( rtin->dset[0] ) ;
           /* CC add _detrend to the end of the filename */
           strcpy( ccpr , npr ); strcat(ccpr,"_detrend");
@@ -4436,17 +4436,17 @@ void RT_start_dataset( RT_input * rtin )
 
       /* CC add parameters to this string as they come in */
       snprintf( qbuf, THD_MAX_PREFIX,
-          "plug_realtime: detrending mode=0x%x, polort=%d", 
+          "plug_realtime: detrending mode=0x%x, polort=%d",
           rtin->detrend_mode, rtin->detrend_polort );
       tross_Append_History( rtin->detrend_dset , qbuf ) ;
 
       /* set the prefix and make sure that it is float */
-      EDIT_dset_items( rtin->detrend_dset , ADN_prefix , ccpr , 
+      EDIT_dset_items( rtin->detrend_dset , ADN_prefix , ccpr ,
                        ADN_datum_all, MRI_float, ADN_none ) ;
       DSET_lock(rtin->detrend_dset) ;
 
       /* CC just copied this from reg_dset, copies some notes from dataset,
-         (i think) */ 
+         (i think) */
       if( rtin->num_note > 0 && rtin->note != NULL ){
         for( ii=0 ; ii < rtin->num_note ; ii++ )
           tross_Add_Note( rtin->detrend_dset , rtin->note[ii] ) ;
@@ -4929,7 +4929,7 @@ void RT_process_image( RT_input * rtin )
                        if have completed a full set of channels, that is **/
 
       /* rcr OC - check for pre-reg merge */
-      if( cc+1 == rtin->num_chan && 
+      if( cc+1 == rtin->num_chan &&
           RT_when_to_merge() == RT_CM_MERGE_BEFORE_REG ) {
         RT_merge( rtin, cc, -1);
       }
@@ -4952,7 +4952,7 @@ void RT_process_image( RT_input * rtin )
       }
 
       /* rcr OC - check for post-reg merge              1 Nov 2016 [rickr] */
-      if( cc+1 == rtin->num_chan && 
+      if( cc+1 == rtin->num_chan &&
           RT_when_to_merge() == RT_CM_MERGE_AFTER_REG ) {
 
          int tt, ntt=DSET_NUM_TIMES( rtin->dset[g_reg_src_chan] ) ;
@@ -4984,7 +4984,7 @@ void RT_process_image( RT_input * rtin )
           else              rtin->mask_init = -1;
       }
 
-      /* MP communication is turned off, but the mask is initialized 
+      /* MP communication is turned off, but the mask is initialized
          caluculate mask averages */
       if(( rtin->mp_tcp_use != 1 ) && ( rtin->mask_init == 1 ))
       {
@@ -4998,12 +4998,12 @@ void RT_process_image( RT_input * rtin )
           }
       }
 
-               
+
       /* Cameron Craddock - detrend data */
       if ( rtin->detrend_mode > RT_DETREND_NONE )
       {
           RT_detrend( rtin, TELL_NORMAL );
-          if( g_show_times && verbose > 1 ) 
+          if( g_show_times && verbose > 1 )
           {
               char vmesg[64];
               sprintf(vmesg,"volume %d through detrend",rtin->nvol[0]-1);
@@ -5127,7 +5127,7 @@ void RT_process_image( RT_input * rtin )
       }
 
       /* Cameron Craddock added this to ease profiling */
-      if( g_show_times && verbose > 1 ) 
+      if( g_show_times && verbose > 1 )
       {
           char vmesg[64];
           sprintf(vmesg,"volume %d through real time writing",rtin->nvol[0]-1);
@@ -5162,7 +5162,7 @@ void RT_process_image( RT_input * rtin )
                                  RT_input *,rtin , int,rtin->nvol[cc]-1 ) ;
 #endif
          /* Cameron Craddock added this to ease profiling */
-         if( g_show_times && verbose > 1 ) 
+         if( g_show_times && verbose > 1 )
          {
             char vmesg[64];
             sprintf(vmesg,"volume %d through compute function",rtin->nvol[0]-1);
@@ -5241,7 +5241,7 @@ void RT_process_image( RT_input * rtin )
      rtin->cur_chan = (cc+1) % rtin->num_chan ;
 
    /* Cameron Craddock added this to ease profiling */
-   if( g_show_times && verbose > 1 ) 
+   if( g_show_times && verbose > 1 )
    {
        char vmesg[64];
        sprintf(vmesg,"volume %d processing complete",rtin->nvol[0]-1);
@@ -5280,7 +5280,7 @@ static int RT_merge( RT_input * rtin, int chan, int tt )
         fprintf(stderr,"RTM: using list of %d chans for merge from %s\n",
                 rtin->chan_list[0], rtin->chan_list_str);
    }
-  
+
    mrgim = RT_mergerize(rtin, iv) ;
    if( mrgim == NULL ){
      ERROR_message("RT can't merge channels at time index #%d",iv) ;
@@ -5299,7 +5299,7 @@ static int RT_merge( RT_input * rtin, int chan, int tt )
      rtin->mrg_nvol = iv+1 ;
    }
    VMCHECK ;
-  
+
    /* Cameron Craddock added this to ease profiling */
    if( g_show_times && verbose > 1 ) {
      char vmesg[64];
@@ -5367,7 +5367,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
        strcat( qbuf , zbuf ) ; qq++ ;
      }
      /* CC end */
-     if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN && 
+     if( rtin->reg_chan_mode >= RT_CM_RMODE_REG_CHAN &&
          ISVALID_DSET(rtin->reg_chan_dset[0])) {
        int nvals = DSET_NVALS(rtin->reg_chan_dset[0]);
        for( cc=1 ; cc < rtin->num_chan ; cc++ ){
@@ -5384,8 +5384,8 @@ void RT_tell_afni( RT_input *rtin , int mode )
      }
      if( qq ) strcat(qbuf,"\n") ;
 
-     if (doPopups) { /* 12 Aug 2008 [jwhite] */ 
-       PLUTO_beep(); 
+     if (doPopups) { /* 12 Aug 2008 [jwhite] */
+       PLUTO_beep();
        PLUTO_popup_transient(plint,qbuf);
      }
 
@@ -5405,7 +5405,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
      RT_status *rts = GLOBAL_library.realtime_status ;
      if( mode == TELL_FINAL ) rts->status = RT_FINISHED ;
      /* Cameron Craddock added this to ease profiling */
-     if( g_show_times && verbose > 1 ) 
+     if( g_show_times && verbose > 1 )
      {
          char vmesg[64];
          sprintf(vmesg,"volume %d starting callback",rtin->nvol[0]-1);
@@ -5415,7 +5415,7 @@ void RT_tell_afni( RT_input *rtin , int mode )
      if( mode != TELL_FINAL ) rts->status = RT_CONTINUE ;
 
      /* Cameron Craddock added this to ease profiling */
-     if( g_show_times && verbose > 1 ) 
+     if( g_show_times && verbose > 1 )
      {
          char vmesg[64];
          sprintf(vmesg,"volume %d through callback",rtin->nvol[0]-1);
@@ -5775,7 +5775,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
                               rtin->reg_nvol > 0     &&
                               EQUIV_DSETS(rtin->reg_dset,qq3d->anat_now) ) ;
 
-         /* Cameron Craddock modified to support realtime detrend, just 
+         /* Cameron Craddock modified to support realtime detrend, just
             copied and modified the code above */
 
          review = review || ( rtin->detrend_dset != NULL && /* or same detr? */
@@ -5859,7 +5859,7 @@ void RT_tell_afni_one( RT_input *rtin , int mode , int cc )
       }
 
       /* Cameron Craddock to support real-time detrending, just
-         copying everything that you do for reg_dset, i hope 
+         copying everything that you do for reg_dset, i hope
          that this will write out the dataset at the end of
          the acquisition */
       if( rtin->detrend_dset != NULL && rtin->detrend_nvol > 0 && cc == 0 ){
@@ -6643,9 +6643,9 @@ int RT_registration_set_vr_base(RT_input * rtin)
       Note that we still do not need to set rtin->reg_base_dset. */
    if( rtin->reg_base_mode == RT_RBASE_MODE_CUR_KEEP && ! g_reg_base_dset ) {
       g_reg_base_dset = THD_copy_one_sub(dset, rtin->reg_base_index);
-      if( ! g_reg_base_dset ) { 
-         if (doPopups){/* 12 Aug 2008 [jwhite] */ 
-           PLUTO_beep() ; 
+      if( ! g_reg_base_dset ) {
+         if (doPopups){/* 12 Aug 2008 [jwhite] */
+           PLUTO_beep() ;
            PLUTO_popup_transient( plint , "Failed to set volreg base dset!" );
          }
          /* 21 Sep 2011 [jlisinski] */
@@ -6657,8 +6657,8 @@ int RT_registration_set_vr_base(RT_input * rtin)
 
    /* CHOOSE dset, so verify grid, etc. */
    code = THD_dataset_mismatch(rtin->reg_base_dset, dset);
-   if( code ) { 
-      if (doPopups){/* 12 Aug 2008 [jwhite] */ 
+   if( code ) {
+      if (doPopups){/* 12 Aug 2008 [jwhite] */
         PLUTO_beep() ;
         PLUTO_popup_transient(plint, "Dataset mismatch with volreg base dset!");
       }
@@ -7855,7 +7855,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
                /* def make_optcom(data,t2s,tes):
 
                    """
-                   Generates the optimally combined time series. 
+                   Generates the optimally combined time series.
 
                    Parameters:
                    -----------
@@ -7865,7 +7865,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 
                    Returns:
                    --------
-                   octs: optimally combined time series in a (Nv,Nt) array.    
+                   octs: optimally combined time series in a (Nv,Nt) array.
                    """
 
                    Nv,Ne,Nt = data.shape
@@ -7884,7 +7884,7 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
                sumTEsByExpTEs = 0.0;
                for (cc=0 ; cc < ndsets ; cc++)
                {
-                  sumTEsByExpTEs += ( rtin->TE[cc] 
+                  sumTEsByExpTEs += ( rtin->TE[cc]
                                  * exp (-1.0*rtin->TE[cc] / t2star_ref[ii]) );
                }
 
@@ -7892,12 +7892,12 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
                {
                   if (idatum == MRI_short) {
                      star   = (sar[cc]);
-                     fmar[ii] += (star[ii] * rtin->TE[cc] 
+                     fmar[ii] += (star[ii] * rtin->TE[cc]
                               * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
                   }
                   else { /* idatum == MRI_float */
                      ftar   = (far[cc]);
-                     fmar[ii] += (ftar[ii] * rtin->TE[cc] 
+                     fmar[ii] += (ftar[ii] * rtin->TE[cc]
                               * exp (-1.0 * rtin->TE[cc] / t2star_ref[ii]));
                   }
                }
@@ -7950,8 +7950,8 @@ MRI_IMAGE * RT_mergerize(RT_input * rtin, int iv)
 
 /* Cameron Craddock Functions to implement realtime detrending */
 
-/* RT_detrend_getenv access the AFNI_REALTIME_DETREND_MODE and 
-   AFNI_REALTIME_DETREND_POLORT environment variables and 
+/* RT_detrend_getenv access the AFNI_REALTIME_DETREND_MODE and
+   AFNI_REALTIME_DETREND_POLORT environment variables and
    copies the results to rtin */
 void RT_detrend_getenv( RT_input * rtin )
 {
@@ -7960,7 +7960,7 @@ void RT_detrend_getenv( RT_input * rtin )
 
     /* temporary integers and loop counters */
     int ii = 0;
-             
+
     /* string for error reporting */
     char rt_errorString [RT_LONG_STR_LEN];
 
@@ -7980,7 +7980,7 @@ void RT_detrend_getenv( RT_input * rtin )
         }
         else
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
               "RT Detrend: Invalid detrend_mode %d Turning off detrend.",ii);
             fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
             PLUTO_popup_transient( plint, rt_errorString );
@@ -7988,7 +7988,7 @@ void RT_detrend_getenv( RT_input * rtin )
             rtin->detrend_polort = -1;
         }
     }
-    
+
     ept = getenv("AFNI_REALTIME_DETREND_POLORT");
     if( ept != NULL )
     {
@@ -7999,7 +7999,7 @@ void RT_detrend_getenv( RT_input * rtin )
         }
         else
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
               "RT Detrend: Invalid detrend_polort %d Turning off detrend.",ii);
             fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
             PLUTO_popup_transient( plint, rt_errorString );
@@ -8023,7 +8023,7 @@ void RT_detrend_getenv( RT_input * rtin )
         }
         else
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
               "RT Detrend: Invalid detrend_fwhm %g Turning off detrend.",ff);
             fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
             PLUTO_popup_transient( plint, rt_errorString );
@@ -8045,9 +8045,9 @@ void RT_detrend_getenv( RT_input * rtin )
 
 /* RT_detrend makes use of Bob's recursive regression method
    to orthogonalize the received data to a user specified set
-   of regressors. Everything that we need is either in the 
+   of regressors. Everything that we need is either in the
    AFNI_REALTIME_DETREND_MODE or AFNI_REALTIME_DETREND_POLORT
-   environment variables or in the RT_input data structure. 
+   environment variables or in the RT_input data structure.
    This code relies heavily on the code found in the RT_fim_recurse
    function. */
 void RT_detrend( RT_input * rtin, int mode )
@@ -8060,7 +8060,7 @@ void RT_detrend( RT_input * rtin, int mode )
 
     /* pointer to access the imaging data */
     static THD_3dim_dataset * dset_time = NULL;
- 
+
     /* data structures for recursive regression */
     static PCOR_references * pc_ref=NULL ;
     static PCOR_voxel_corr * pc_vc=NULL ;
@@ -8072,15 +8072,15 @@ void RT_detrend( RT_input * rtin, int mode )
 
     /* arrays to hold mask, datatype, and temp image data */
 
-    int nvol = 0; /* counts the number of volumes received, 
-                     this will be set to either rtin->nvol[0] 
-                     or rtin->reg_nvol depending on whether 
+    int nvol = 0; /* counts the number of volumes received,
+                     this will be set to either rtin->nvol[0]
+                     or rtin->reg_nvol depending on whether
                      registration is on or off */
     static int dtype;
     static int nxyz = 0;
     static int nvox = 0;
     static float * vval = NULL; /* hold masked voxel data */
-    static float ** fit = NULL; /* hold lsq fit */ 
+    static float ** fit = NULL; /* hold lsq fit */
     static byte * mask = NULL;  /* for holding the mask */
     static int * indx = NULL;
     static float fthr = 0.0;    /* threshold for automasking */
@@ -8088,7 +8088,7 @@ void RT_detrend( RT_input * rtin, int mode )
     /* constants for detrending */
     static float fx=-1.0f;
     static float fy=-1.0f;
-    static float fz=-1.0f; 
+    static float fz=-1.0f;
     static int nrep=-1;
 
     /* file pointer to write out ORTs */
@@ -8105,7 +8105,7 @@ void RT_detrend( RT_input * rtin, int mode )
     float global_mean;
     float * dval = NULL;      /* hold detrended data */
     MRI_IMAGE *detim = NULL ; /* temporary output */
-   
+
     /* string for error reporting */
     char rt_errorString [RT_LONG_STR_LEN];
 
@@ -8113,36 +8113,36 @@ void RT_detrend( RT_input * rtin, int mode )
     char prefix[THD_MAX_PREFIX];
 
     /* for AFNI error checking */
-    ENTRY( "RT_detrend" ); 
+    ENTRY( "RT_detrend" );
 
     /* sanity check */
-    if (( rtin == NULL ) || 
-        ( mode == TELL_FINAL ) || 
-        ( rtin->detrend_mode == RT_DETREND_NONE )) 
+    if (( rtin == NULL ) ||
+        ( mode == TELL_FINAL ) ||
+        ( rtin->detrend_mode == RT_DETREND_NONE ))
     {
         if( rtin == NULL )
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
                 "RT Detrend: ERROR: rtin == NULL! Turning off detrend.");
         }
         else if ( mode == TELL_FINAL )
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
                 "RT Detrend: Acquisition completed. Turning off detrend.");
         }
         else
         {
-            snprintf( rt_errorString, RT_LONG_STR_LEN, 
+            snprintf( rt_errorString, RT_LONG_STR_LEN,
                 "RT Detrend: Detrend is off? Turning it off again.");
         }
 
         fprintf(stderr, "RT_DETREND: %s\n", rt_errorString);
         if (doPopups)
-        {  
+        {
              PLUTO_popup_transient( plint, rt_errorString );
         }
 
-        /* free allocated memory */ 
+        /* free allocated memory */
         IFree( detrend_orts );
         IFree( vval );
         IFree( mask );
@@ -8184,22 +8184,22 @@ void RT_detrend( RT_input * rtin, int mode )
         EXRETURN;
     }
 
-    /* there is some difference between when data becomes 
+    /* there is some difference between when data becomes
        available. If registration is off, we just care that
-       at least one image is received. If online motion 
+       at least one image is received. If online motion
        correction is selected, then we want to make sure
-       that at least one image has passed through motion 
+       that at least one image has passed through motion
        correction. There is some descrepencies between these
        two values depending on whether motion correction
-       is performed to the first image of the series 
+       is performed to the first image of the series
        being received, or if registering to an external dataset.
        Failure to account for this will result in the automask
        function returning NULL and detrending being turned off.
        This was a segmentation fault, but I modified mri_automask
        to just return NULL instead of giving us the finger */
-       
+
     nvol=rtin->nvol[0];
-    if( (rtin->reg_mode == REGMODE_2D_RTIME) || 
+    if( (rtin->reg_mode == REGMODE_2D_RTIME) ||
         (rtin->reg_mode == REGMODE_3D_RTIME))
     {
         nvol=rtin->reg_nvol;
@@ -8218,7 +8218,7 @@ void RT_detrend( RT_input * rtin, int mode )
             dset_time = rtin->dset[0]; /* if no registration */
 
             /* now check for use of registered dataset */
-            if( (rtin->reg_mode == REGMODE_2D_RTIME) || 
+            if( (rtin->reg_mode == REGMODE_2D_RTIME) ||
                 (rtin->reg_mode == REGMODE_3D_RTIME))
             {
                 if( verbose )
@@ -8231,7 +8231,7 @@ void RT_detrend( RT_input * rtin, int mode )
             {
                 /* motion ort regression specified, but registration
                    not being performed, turn it off */
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Motion ort specified, but no RT Motion."
                   " Turning of motion ort.");
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
@@ -8246,7 +8246,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 {
                     rtin->detrend_mode -= RT_DETREND_MOTION;
                 }
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8258,14 +8258,14 @@ void RT_detrend( RT_input * rtin, int mode )
             if( dset_time == NULL )
             {
                 /* datset is NULL? it shouldn't be */
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: dset_time == NULL! Turning off detrend.");
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
                 /* turn off future detrending */
                 rtin->detrend_mode = RT_DETREND_NONE;
                 rtin->detrend_polort = -1;
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8274,14 +8274,14 @@ void RT_detrend( RT_input * rtin, int mode )
             if( DSET_BRICK(dset_time,it) == NULL )
             {
                 /* datset is NULL? it shouldn't be */
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: dset_time[%d] == NULL! Turning off detrend.",it);
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
                 /* turn off future detrending */
                 rtin->detrend_mode = RT_DETREND_NONE;
                 rtin->detrend_polort = -1;
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8297,14 +8297,14 @@ void RT_detrend( RT_input * rtin, int mode )
             if( !AFNI_GOOD_FUNC_DTYPE(dtype) )
             {
                 /* bad dtype?it shouldn't be */
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Bad dtype %d! Turning off detrend.",dtype);
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
                 /* turn off future detrending */
                 rtin->detrend_mode = RT_DETREND_NONE;
                 rtin->detrend_polort = -1;
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8312,7 +8312,7 @@ void RT_detrend( RT_input * rtin, int mode )
             /* perform masking using mri_automask_image  */
             if(( mask = mri_automask_image(DSET_BRICK(dset_time,it))) == NULL )
             {
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Automask failed! Turning off detrend.");
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
@@ -8328,7 +8328,7 @@ void RT_detrend( RT_input * rtin, int mode )
             {
                 if( mask[iv] != 0 ) nvox++;
             }
- 
+
             indx = (int *) malloc( sizeof(int) * nvox ) ;
             if( indx == NULL )
             {
@@ -8336,7 +8336,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 /* turn off future detrending */
                 rtin->detrend_mode = RT_DETREND_NONE;
                 rtin->detrend_polort = -1;
-  
+
                 /* return */
                 EXRETURN;
             }
@@ -8365,7 +8365,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 /* free allocated memory */
                 IFree( mask );
                 IFree( indx );
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8382,7 +8382,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 /* free allocated memory */
                 IFree( mask );
                 IFree( indx );
-    
+
                 /* return */
                 EXRETURN;
             }
@@ -8391,17 +8391,17 @@ void RT_detrend( RT_input * rtin, int mode )
             if ( rtin->detrend_mode & ~RT_DETREND_SMOOTH )
             {
 
-                /* setup for ORT removal */ 
+                /* setup for ORT removal */
 
-                /* open ort file, go ahead and do it here, so that we can 
+                /* open ort file, go ahead and do it here, so that we can
                    create a header for the ort file */
                 FILENAME_TO_PREFIX( DSET_BRIKNAME( rtin->detrend_dset ), prefix );
                 if (prefix[0] == '\0')
                    strncpy(prefix, DSET_BRIKNAME( rtin->detrend_dset ),
                                    THD_MAX_PREFIX );
                 snprintf( ort_filename, RT_LONG_STR_LEN, "%s_orts.1D", prefix );
-          
-                if((ort_fp = fopen(ort_filename, "w")) == NULL) 
+
+                if((ort_fp = fopen(ort_filename, "w")) == NULL)
                 {
                    fprintf(stderr,
                            "RT_DETREND: ERROR Could not open ORT file %s\n",
@@ -8412,20 +8412,20 @@ void RT_detrend( RT_input * rtin, int mode )
                 {
                     fprintf(stderr, "RT_DETREND: Opened %s for writing orts\n",
                             ort_filename );
-    
+
                     /* print comment to the ort file */
                     fprintf( ort_fp, "# rt_detrend mode 0x%x, polort %d\n",
-                             rtin->detrend_mode, 
+                             rtin->detrend_mode,
                         rtin->detrend_polort );
                 }
-    
+
                 /* calculate the number of orts */
                 detrend_num_ort = 0;
                 if( rtin->detrend_polort > -1 )
                 {
                     /* add an extra for the constant */
                     detrend_num_ort += rtin->detrend_polort + 1;
-    
+
                     /* write the polort info to the ort file */
                     if ( ort_fp != NULL )
                     {
@@ -8436,7 +8436,7 @@ void RT_detrend( RT_input * rtin, int mode )
                         }
                     }
                 }
-    
+
                 /* motion, could be 2D or 3D */
                 num_motion_ort = 0;
                 if( REG_IS_2D( rtin->reg_mode ))
@@ -8462,7 +8462,7 @@ void RT_detrend( RT_input * rtin, int mode )
                     }
                 }
                 detrend_num_ort += num_motion_ort;
-    
+
                 /* write the motion ort info to the ort file */
                 if ( num_motion_ort > 0 )
                 {
@@ -8485,12 +8485,12 @@ void RT_detrend( RT_input * rtin, int mode )
                         }
                     }
                 }
-    
+
                 /* global mean */
                 if( rtin->detrend_mode & RT_DETREND_GM )
                 {
                     detrend_num_ort++;
-    
+
                     /* write the global mask info to the ort file */
                     if ( ort_fp != NULL )
                     {
@@ -8504,11 +8504,11 @@ void RT_detrend( RT_input * rtin, int mode )
                         }
                     }
                 }
-    
+
                 /* MASK ROI time courses */
                 if( rtin->detrend_mode & RT_DETREND_MASK )
                 {
-                    /* check to see if any masks ROIs exist */ 
+                    /* check to see if any masks ROIs exist */
                     if( rtin->mask_nvals > 0 )
                     {
                         detrend_num_ort+=rtin->mask_nvals;
@@ -8518,7 +8518,7 @@ void RT_detrend( RT_input * rtin, int mode )
                         /* if not turn off this option */
                         rtin->detrend_mode -= RT_DETREND_MASK;
                     }
-    
+
                     /* write the mask orts to the ort file */
                     if ( ort_fp != NULL )
                     {
@@ -8539,38 +8539,38 @@ void RT_detrend( RT_input * rtin, int mode )
                         }
                     }
                 }
-    
+
                 /* finish writing the header to the ort file */
                 if ( ort_fp != NULL )
                 {
                     fprintf( ort_fp, "\n" );
                 }
-   
-                /* make sure we calculated some (>0) orts */ 
+
+                /* make sure we calculated some (>0) orts */
                 if( detrend_num_ort == 0 )
                 {
                     /* print an error and turn off future detrending */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: ORT detrending flags specified, but"
                       " no orts calculated.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-    
-                    /* free allocated memory */ 
+
+                    /* free allocated memory */
                     IFree( indx );
                     IFree( mask );
                     IFree( vval );
-    
+
                     /* close file */
                     if( ort_fp != NULL )
                     {
                         fclose( ort_fp );
                     }
-    
+
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
@@ -8583,190 +8583,190 @@ void RT_detrend( RT_input * rtin, int mode )
                 {
                     /* couldn't get memory, so print an error and turn off
                        future detrending */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Could not allocate ort array!"
                       " Turning off detrend.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-    
-                    /* free allocated memory */ 
+
+                    /* free allocated memory */
                     IFree( indx );
                     IFree( mask );
                     IFree( vval );
-    
+
                     /* close file */
                     if( ort_fp != NULL )
                     {
                         fclose( ort_fp );
                     }
-    
+
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
-    
+
                 /* allocate PCOR_references structure */
                 /* make sure we aren't double allocating for some reason */
                 if(( pc_ref = new_PCOR_references( detrend_num_ort )) == NULL )
                 {
                     /* no memory, print an error and turn off detrending */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Could not allocate PCOR references!"
                       " Turning off detrend.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-    
-                    /* free allocated memory */ 
+
+                    /* free allocated memory */
                     IFree(detrend_orts);
                     IFree( mask );
                     IFree( indx );
                     IFree( vval );
-    
+
                     /* close file */
                     if( ort_fp != NULL )
                     {
                         fclose( ort_fp );
                     }
-    
+
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
-    
+
                 /* allocate PCOR_voxel_cor structure */
                 pc_vc = new_PCOR_voxel_corr( nvox, detrend_num_ort );
                 if( pc_vc == NULL )
                 {
                     /* no memory, print an error and turn off detrending */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Could not allocate PCOR voxel corr!"
                       " Turning off detrend.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-    
+
                     IFree( detrend_orts );
                     IFree( mask );
                     IFree( indx );
                     IFree( vval );
-    
+
                     if( pc_ref != NULL )
                     {
                         free_PCOR_references(pc_ref);
                         pc_ref = NULL;
                     }
-    
+
                     /* close file */
                     if( ort_fp != NULL )
                     {
                         fclose( ort_fp );
                     }
-    
+
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
-    
+
                 /* allocate PCOR_voxel_cor structure */
                 if(( fit = malloc( detrend_num_ort * sizeof(float*))) == NULL )
                 {
                     /* no memory, print an error and turn off detrending */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Could not allocate PCOR voxel corr!"
                       " Turning off detrend.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-    
+
                     IFree( detrend_orts );
                     IFree( mask );
                     IFree( indx );
                     IFree( vval );
-    
+
                     if( pc_ref != NULL )
                     {
                         free_PCOR_references(pc_ref);
                         pc_ref = NULL;
                     }
-    
+
                     if( pc_vc != NULL )
                     {
                         free_PCOR_voxel_corr(pc_vc);
                         pc_ref = NULL;
                     }
-    
+
                     /* close file */
                     if( ort_fp != NULL )
                     {
                         fclose( ort_fp );
                     }
-    
+
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
-               
+
                 for( iv = 0; iv < detrend_num_ort; iv ++ )
                 {
                     fit[iv] = NULL;
                 }
-     
+
                 for( iv = 0; iv < detrend_num_ort; iv ++ )
                 {
                     /* allocate PCOR_voxel_cor structure */
                     if(( fit[iv] = malloc( nvox * sizeof(float))) == NULL )
                     {
                         /* no memory, print an error and turn off detrending */
-                        snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                        snprintf( rt_errorString, RT_LONG_STR_LEN,
                           "RT Detrend: Could not allocate fit voxel buf!"
                           " Turning off detrend.");
                         fprintf(stderr, "RT_DETREND: ERROR: %s\n",
                                 rt_errorString);
                         PLUTO_popup_transient( plint, rt_errorString );
-        
+
                         IFree( detrend_orts );
                         IFree( mask );
                         IFree( indx );
                         IFree( vval );
-    
+
                         if( pc_ref != NULL )
                         {
                             free_PCOR_references(pc_ref);
                             pc_ref = NULL;
                         }
-    
+
                         if( pc_vc != NULL )
                         {
                             free_PCOR_voxel_corr(pc_vc);
                             pc_ref = NULL;
                         }
-    
+
                         for( iv = 0; iv < detrend_num_ort; iv++ )
                         {
                             IFree( fit[iv] );
                         }
                         IFree( fit );
-    
+
                         /* close file */
                         if( ort_fp != NULL )
                         {
                             fclose( ort_fp );
                         }
-    
+
                         /* turn off future detrending */
                         rtin->detrend_mode = RT_DETREND_NONE;
                         rtin->detrend_polort = -1;
-        
+
                         /* return */
                         EXRETURN;
                     }
@@ -8781,12 +8781,12 @@ void RT_detrend( RT_input * rtin, int mode )
             else
             {
                 /* print an error and turn off future detrending */
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Unknown detrend mode 0x%x.", rtin->detrend_mode);
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
 
-                /* free allocated memory */ 
+                /* free allocated memory */
                 IFree( indx );
                 IFree( mask );
                 IFree( vval );
@@ -8804,8 +8804,8 @@ void RT_detrend( RT_input * rtin, int mode )
                 /* return */
                 EXRETURN;
             }
-            
-    
+
+
             if ( rtin->detrend_mode & RT_DETREND_SMOOTH )
             {
                 /* copied code from mri_blur3D_addfwhm_speedy, would
@@ -8825,30 +8825,30 @@ void RT_detrend( RT_input * rtin, int mode )
                 if( nrep < 0 || fx < 0.0f || fy < 0.0f || fz < 0.0f )
                 {
                     /* Error calculating smoothing factors, return error */
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Error calculating smoothing factors!"
                       " Turning off detrend.");
                     fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                     PLUTO_popup_transient( plint, rt_errorString );
-       
+
                     IFree( detrend_orts );
                     IFree( mask );
                     IFree( indx );
                     IFree( vval );
-   
+
                     if( pc_ref != NULL )
                     {
                         free_PCOR_references(pc_ref);
                         pc_ref = NULL;
                     }
-  
+
                     if( pc_vc != NULL )
                     {
                         /* was ivoxel, noted by Y Halchenko */
                         free_PCOR_voxel_corr(pc_vc);
                         pc_ref = NULL;
                     }
- 
+
                     for( iv = 0; iv < detrend_num_ort; iv++ )
                     {
                         IFree( fit[iv] );
@@ -8864,7 +8864,7 @@ void RT_detrend( RT_input * rtin, int mode )
                     /* turn off future detrending */
                     rtin->detrend_mode = RT_DETREND_NONE;
                     rtin->detrend_polort = -1;
-    
+
                     /* return */
                     EXRETURN;
                 }
@@ -8933,7 +8933,7 @@ void RT_detrend( RT_input * rtin, int mode )
         if( detim == NULL )
         {
             fprintf(stderr,"RT detrend: ERROR! Could not allocate detim!\a\n");
-            /* free allocated memory */ 
+            /* free allocated memory */
             IFree( detrend_orts );
             IFree( vval );
             IFree( mask );
@@ -8977,10 +8977,10 @@ void RT_detrend( RT_input * rtin, int mode )
 
         if( verbose > 1)
             fprintf( stderr, "RT_DETREND: Allocated detim for dset %d\n", it );
-    
+
         /* get a pointer to img buffer */
         dval = MRI_FLOAT_PTR(detim);
-    
+
         if( dval == NULL )
         {
             fprintf(stderr, "RT_DETREND: ERROR dval is NULL!\n" );
@@ -8995,7 +8995,7 @@ void RT_detrend( RT_input * rtin, int mode )
         {
             /* now build the regressors */
             count = 0;
-    
+
             /* polynomial detrend_orts */
             if( rtin->detrend_polort + 1 <= detrend_num_ort )
             {
@@ -9008,16 +9008,16 @@ void RT_detrend( RT_input * rtin, int mode )
             }
             else
             {
-                snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Not enough room on ort array for polorts. (%d>%d)"
                   "skipping", rtin->detrend_polort+1, detrend_num_ort);
                 fprintf(stderr, "RT_DETREND: ERROR: %s\n", rt_errorString);
                 PLUTO_popup_transient( plint, rt_errorString );
             }
-    
+
             /* motion detrend_orts */
             if( num_motion_ort > 0 )
-            { 
+            {
                 if( count + num_motion_ort <= detrend_num_ort )
                 {
                     if( num_motion_ort == 3 )
@@ -9048,15 +9048,15 @@ void RT_detrend( RT_input * rtin, int mode )
                                 it > 0 ? rtin->reg_phi[it - 1] : 0.0  ;
                         detrend_orts[ count +  6 ] = detrend_orts[count + 0] *
                             detrend_orts[ count + 0 ];
-                        detrend_orts[ count +  7 ] = detrend_orts[count + 1] * 
+                        detrend_orts[ count +  7 ] = detrend_orts[count + 1] *
                             detrend_orts[ count + 1 ];
-                        detrend_orts[ count +  8 ] = detrend_orts[count + 2] * 
+                        detrend_orts[ count +  8 ] = detrend_orts[count + 2] *
                             detrend_orts[ count + 2 ];
-                        detrend_orts[ count +  9 ] = detrend_orts[count + 3] * 
+                        detrend_orts[ count +  9 ] = detrend_orts[count + 3] *
                             detrend_orts[ count + 3 ];
-                        detrend_orts[ count + 10 ] = detrend_orts[count + 4] * 
+                        detrend_orts[ count + 10 ] = detrend_orts[count + 4] *
                             detrend_orts[ count + 4 ];
-                        detrend_orts[ count + 11 ] = detrend_orts[count + 5] * 
+                        detrend_orts[ count + 11 ] = detrend_orts[count + 5] *
                             detrend_orts[ count + 5 ];
                     }
                     else if( num_motion_ort == 24 )
@@ -9080,36 +9080,36 @@ void RT_detrend( RT_input * rtin, int mode )
                                         it > 0 ? rtin->reg_psi[it - 1] : 0.0;
                         detrend_orts[ count + 11 ] =
                                         it > 0 ? rtin->reg_theta[it - 1] : 0.0;
-                        detrend_orts[ count + 12 ] = detrend_orts[count + 0] * 
+                        detrend_orts[ count + 12 ] = detrend_orts[count + 0] *
                             detrend_orts[ count + 0 ];
-                        detrend_orts[ count + 13 ] = detrend_orts[count + 1] * 
+                        detrend_orts[ count + 13 ] = detrend_orts[count + 1] *
                             detrend_orts[ count + 1 ];
-                        detrend_orts[ count + 14 ] = detrend_orts[count + 2] * 
+                        detrend_orts[ count + 14 ] = detrend_orts[count + 2] *
                             detrend_orts[ count + 2 ];
-                        detrend_orts[ count + 15 ] = detrend_orts[count + 3] * 
+                        detrend_orts[ count + 15 ] = detrend_orts[count + 3] *
                             detrend_orts[ count + 3 ];
-                        detrend_orts[ count + 16 ] = detrend_orts[count + 4] * 
+                        detrend_orts[ count + 16 ] = detrend_orts[count + 4] *
                             detrend_orts[ count + 4 ];
-                        detrend_orts[ count + 17 ] = detrend_orts[count + 5] * 
+                        detrend_orts[ count + 17 ] = detrend_orts[count + 5] *
                             detrend_orts[ count + 5 ];
-                        detrend_orts[ count + 18 ] = detrend_orts[count + 6] * 
+                        detrend_orts[ count + 18 ] = detrend_orts[count + 6] *
                             detrend_orts[ count + 6 ];
-                        detrend_orts[ count + 19 ] = detrend_orts[count + 7] * 
+                        detrend_orts[ count + 19 ] = detrend_orts[count + 7] *
                             detrend_orts[ count + 7 ];
-                        detrend_orts[ count + 20 ] = detrend_orts[count + 8] * 
+                        detrend_orts[ count + 20 ] = detrend_orts[count + 8] *
                             detrend_orts[ count + 8 ];
-                        detrend_orts[ count + 21 ] = detrend_orts[count + 9] * 
+                        detrend_orts[ count + 21 ] = detrend_orts[count + 9] *
                             detrend_orts[ count + 9 ];
-                        detrend_orts[ count + 22 ] = detrend_orts[count + 10] * 
+                        detrend_orts[ count + 22 ] = detrend_orts[count + 10] *
                             detrend_orts[ count + 10 ];
-                        detrend_orts[ count + 23 ] = detrend_orts[count + 11] * 
+                        detrend_orts[ count + 23 ] = detrend_orts[count + 11] *
                             detrend_orts[ count + 11 ];
                     }
                     count += num_motion_ort;
                 }
                 else
                 {
-                    snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                    snprintf( rt_errorString, RT_LONG_STR_LEN,
                       "RT Detrend: Not enough room on ort array for motion\n"
                       "           (%d + %d > %d), skipping",
                       count, num_motion_ort, detrend_num_ort);
@@ -9117,7 +9117,7 @@ void RT_detrend( RT_input * rtin, int mode )
                     PLUTO_popup_transient( plint, rt_errorString );
                 }
             }
-    
+
             /* global mean ort */
             if( rtin->detrend_mode & RT_DETREND_GM )
             {
@@ -9128,7 +9128,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 }
                 else
                 {
-                  snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                  snprintf( rt_errorString, RT_LONG_STR_LEN,
                    "RT Detrend: Not enough room on ort array for global_mean.\n"
                    "            (%d + %d > %d), skipping",
                    count, 1, detrend_num_ort);
@@ -9136,7 +9136,7 @@ void RT_detrend( RT_input * rtin, int mode )
                   PLUTO_popup_transient( plint, rt_errorString );
                 }
             }
-    
+
             /* mask averages ort */
             if( rtin->detrend_mode & RT_DETREND_MASK )
             {
@@ -9150,7 +9150,7 @@ void RT_detrend( RT_input * rtin, int mode )
                 }
                 else
                 {
-                  snprintf( rt_errorString, RT_LONG_STR_LEN, 
+                  snprintf( rt_errorString, RT_LONG_STR_LEN,
                   "RT Detrend: Not enough room on ort array for global_mean.\n"
                   "            (%d + %d > %d), skipping",
                   count, rtin->mask_nvals, detrend_num_ort);
@@ -9158,11 +9158,11 @@ void RT_detrend( RT_input * rtin, int mode )
                   PLUTO_popup_transient( plint, rt_errorString );
                 }
             }
-   
-            if ( verbose > 1 ) 
+
+            if ( verbose > 1 )
               fprintf( stderr, "RT_DETREND: added %d detrend_orts out of %d\n",
                        count, detrend_num_ort );
-    
+
             /* output the orts to file */
             if( ort_fp != NULL )
             {
@@ -9176,26 +9176,26 @@ void RT_detrend( RT_input * rtin, int mode )
                     fprintf( ort_fp, "\n" );
                 }
             }
-    
+
             /* update the regressors */
             update_PCOR_references( detrend_orts, pc_ref );
             if ( verbose > 1 )
               fprintf(stderr,"RT_DETREND: Updated references for dset %d\n",it);
-    
+
             /* update the voxel corrs */
             PCOR_update_float( vval, pc_ref, pc_vc );
             if ( verbose > 1 )
               fprintf(stderr,"RT_DETREND: Updated voxel corr for dset %d\n",it);
-    
-    
-            /* if it > num_ort perform detrend, otherwise dont */ 
+
+
+            /* if it > num_ort perform detrend, otherwise dont */
             if( rtin->nvol[0] > detrend_num_ort )
             {
                 /* get the fit */
                 PCOR_get_lsqfit( pc_ref, pc_vc, fit );
                 if ( verbose > 1 )
                   fprintf(stderr,"RT_DETREND: Calculated fit for dset %d\n",it);
-    
+
                 /* perform the detrend */
                 for ( iv = 0; iv < nvox; iv++ )
                 {

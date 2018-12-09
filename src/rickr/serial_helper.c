@@ -156,7 +156,7 @@ static int  g_magic_len   = 4;
 int main(int argc, char *argv[])
 {
     optiondata  opt;
-    motparm     mp;  
+    motparm     mp;
     port_list * plist = &g_ports;
     int         rv;
 
@@ -165,14 +165,14 @@ int main(int argc, char *argv[])
         if( rv > 0 ) return 0;
         else         return 1;
     }
-    
+
     /* register interrupt trap */
     signal( SIGHUP,  clean_n_exit );
     signal( SIGINT,  clean_n_exit );
     signal( SIGQUIT, clean_n_exit );
     signal( SIGKILL, clean_n_exit );
     signal( SIGTERM, clean_n_exit );
-    
+
     if ( (rv = open_incoming_socket(&opt, plist)) < 0 )
         return rv;
 
@@ -196,7 +196,7 @@ int main(int argc, char *argv[])
                 send_serial(&opt, plist, &mp);
 
         close_data_ports(plist);
-    } 
+    }
 
     return 0;   /* should not be reached, of course */
 }
@@ -250,7 +250,7 @@ int close_data_ports( port_list * plist )
 /* ----------------------------------------------------------------------
  * block until data comes return the open socket
  *
- * we expect to read g_magic_hi 
+ * we expect to read g_magic_hi
  * ----------------------------------------------------------------------
  */
 int wait_for_socket(optiondata *opt, port_list * plist, motparm * mp)
@@ -476,7 +476,7 @@ void clean_n_exit(int sig_num)
 
     exit(sig_num);
 }
-        
+
 #define CHECK_ARG_COUNT(ac,str)         \
         do {                            \
             if ((ac+1) >= argc) {       \
@@ -1083,11 +1083,11 @@ void send_serial(optiondata * opt, port_list * plist, motparm *mot)
 {
     static char outdata[7];
     int i, len;
-    
+
     outdata[0] = (char)(-128 + mot->nex);  /* encode nex in handshake byte */
     for(i = 0; i < 6; i++)
     {
-        if (mot->data[i] > opt->mp_max) 
+        if (mot->data[i] > opt->mp_max)
             mot->data[i] = opt->mp_max;
         if (mot->data[i] < opt->mp_min)
             mot->data[i] = opt->mp_min;
@@ -1105,24 +1105,24 @@ void send_serial(optiondata * opt, port_list * plist, motparm *mot)
             fprintf(stderr,"** warning: wrote %d of %d Ebytes to serial port\n",
                     i, len);
     }
-} 
+}
 
 
 int open_serial(optiondata *opt, port_list * plist)
 {
         int sport;
         struct termios options;
-        
-        sport = open(opt->serial_port, O_RDWR | O_NOCTTY | O_NDELAY); 
+
+        sport = open(opt->serial_port, O_RDWR | O_NOCTTY | O_NDELAY);
         if (sport == -1) {
                 perror("pe: Failed to open the serial port ");
                 return -1;
         }
-        
+
         /*******************
-         set up the port 
+         set up the port
          *******************/
-         
+
         fcntl(sport, F_SETFL, FNDELAY);  /* nonblocking reads */
 
     /* Get the current options for the port...*/
@@ -1134,7 +1134,7 @@ int open_serial(optiondata *opt, port_list * plist)
 
     /* Enable the receiver and set local mode */
         options.c_cflag |= (CLOCAL | CREAD );
-        
+
         /* set 8 bit N parity */
         options.c_cflag &= ~PARENB;
         options.c_cflag &= ~CSTOPB;
@@ -1151,7 +1151,7 @@ int open_serial(optiondata *opt, port_list * plist)
                 close(sport);
                 return -1;
         }
-        
+
     plist->sport = sport;
     return 0;
 }
@@ -1181,7 +1181,7 @@ int disp_optiondata( char * info, optiondata * D )
 {
     if ( info )
         fputs(info, stderr);
-    
+
     if ( ! D )
     {
         fprintf(stderr,"** disp_optiondata: D == NULL\n");

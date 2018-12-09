@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /* Functional image is made by correlating refernce function from an ASCII
    file with the series of images.  All orthogonal ~ to a + b*x.
    All is scaled accodingly to number of time points an independent
@@ -73,7 +73,7 @@ int             n_ess = 0;
 /* --------------- */
 {
    int i, j, m;
-	
+
    ProgName = argv[0];
    if (argc <  2)  Syntax();
 
@@ -93,7 +93,7 @@ int             n_ess = 0;
 
    m_points = 0;                         /* considered time cours points */
    idot = 0;                             /* set integral of ref to zero */
-   for (j=0; j < N_im; j++) {       
+   for (j=0; j < N_im; j++) {
       if (SQ_arr[j] < 33333 ) {
          idot += SQ_arr[j];
          m_points++;
@@ -144,11 +144,11 @@ int             n_ess = 0;
          exit(-3);
       }
       alpha = fdot / fsq;
-      for (j=0; j < N_im; j++) 
+      for (j=0; j < N_im; j++)
          if (SQ_arr[j] < 33333 ) fSQ[j] -= alpha * fORT[m][j];
    }
 
-        
+
                                     /* normalize ref vector */
    fSQ_vl = 0.;
    for (j=0; j < N_im; j++)  fSQ_vl += fSQ[j] * fSQ[j];
@@ -157,7 +157,7 @@ int             n_ess = 0;
       exit(-1);
    }
    fl_1ref = 1./sqrt((double) fSQ_vl);
-   for (j=0; j < N_im; j++) fSQ1[j] = fSQ[j] * fl_1ref; 
+   for (j=0; j < N_im; j++) fSQ1[j] = fSQ[j] * fl_1ref;
 
    amin =  1.e37;
    amax = -1.e37;
@@ -173,7 +173,7 @@ int             n_ess = 0;
 
    /* go over all pixels */
    for (i=0; i < ar_size; i++) {
-      
+
    /* othogonalize (to const) data vector */
       ftmp = 0;                                 /* for average brightness */
       for (j=0; j < N_im; j++) {
@@ -289,11 +289,11 @@ int             n_ess = 0;
    tmp_ar[0+offs] = 0;
    tmp_ar[1+offs] = -SCALE;
    tmp_ar[2+offs] =  SCALE;   /* so color image will show zero as green */
-	
+
                                         /* Write functional image to file */
    if (i = write_iqm(file_out, &fsize, tmp_ar) )
      fprintf (stderr, "\n\n Error writing output_file: %s (will not overwrite) %d\n\n", file_out, i);
-   
+
    if (correl_im) {
      strcpy(file_CORR, file_out);
      strcat(file_CORR, CORR);
@@ -301,7 +301,7 @@ int             n_ess = 0;
        fprintf (stderr, "\n\n Error writing output_file: %s (will not overwrite) %d\n\n", file_CORR, i);
    }
    exit(0) ;
-}	
+}
 
 /* ------------------------- */
    get_line_args(argc, argv)
@@ -494,7 +494,7 @@ int             n_ess = 0;
    }
    if ( SQ_Nr < N_im ) {
      fprintf(stderr, "\n\n !!! Reference file to short. Add %d lines !!!\n\n",
-              N_im - SQ_Nr); 
+              N_im - SQ_Nr);
      exit(-1);
    }
 }

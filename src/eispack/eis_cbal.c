@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int cbal_(integer *nm, integer *n, doublereal *ar, 
+/* Subroutine */ int cbal_(integer *nm, integer *n, doublereal *ar,
 	doublereal *ai, integer *low, integer *igh, doublereal *scale)
 {
     /* System generated locals */
@@ -73,12 +73,12 @@
 /*     ARITHMETIC IS REAL THROUGHOUT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -212,9 +212,9 @@ L190:
 	    if (j == i__) {
 		goto L200;
 	    }
-	    c__ = c__ + (d__1 = ar[j + i__ * ar_dim1], abs(d__1)) + (d__2 = 
+	    c__ = c__ + (d__1 = ar[j + i__ * ar_dim1], abs(d__1)) + (d__2 =
 		    ai[j + i__ * ai_dim1], abs(d__2));
-	    r__ = r__ + (d__1 = ar[i__ + j * ar_dim1], abs(d__1)) + (d__2 = 
+	    r__ = r__ + (d__1 = ar[i__ + j * ar_dim1], abs(d__1)) + (d__2 =
 		    ai[i__ + j * ai_dim1], abs(d__2));
 L200:
 	    ;

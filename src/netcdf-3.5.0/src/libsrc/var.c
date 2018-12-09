@@ -27,8 +27,8 @@ free_NC_var(NC_var *varp)
 }
 
 
-/* 
- * Common code for new_NC_var() 
+/*
+ * Common code for new_NC_var()
  * and ncx_get_NC_var()
  */
 NC_var *
@@ -91,7 +91,7 @@ new_NC_var(const char *name, nc_type type,
 		free_NC_string(strp);
 		return NULL;
 	}
-	
+
 	varp->type = type;
 
 	if( ndims != 0 && dimids != NULL)
@@ -109,7 +109,7 @@ dup_NC_var(const NC_var *rvarp)
 	if(varp == NULL)
 		return NULL;
 
-	
+
 	if(dup_NC_attrarrayV(&varp->attrs, &rvarp->attrs) != NC_NOERR)
 	{
 		free_NC_var(varp);
@@ -167,7 +167,7 @@ void
 free_NC_vararrayV(NC_vararray *ncap)
 {
 	assert(ncap != NULL);
-	
+
 	if(ncap->nalloc == 0)
 		return;
 
@@ -320,7 +320,7 @@ NC_findvar(const NC_vararray *ncap, const char *name, NC_var **varpp)
 	return(-1); /* not found */
 }
 
-/* 
+/*
  * For a netcdf type
  *  return the size of one element in the external representation.
  * Note that arrays get rounded up to X_ALIGN boundaries.
@@ -341,7 +341,7 @@ ncx_szof(nc_type type)
 		return X_SIZEOF_INT;
 	case NC_FLOAT:
 		return X_SIZEOF_FLOAT;
-	case NC_DOUBLE : 
+	case NC_DOUBLE :
 		return X_SIZEOF_DOUBLE;
 	}
 	/* default */
@@ -362,7 +362,7 @@ NC_var_shape(NC_var *varp, const NC_dimarray *dims)
 	int *ip;
 	const NC_dim *dimp;
 	size_t product = 1;
-	
+
 	varp->xsz = ncx_szof(varp->type);
 
 	if(varp->ndims == 0)
@@ -379,14 +379,14 @@ NC_var_shape(NC_var *varp, const NC_dimarray *dims)
 	{
 		if(*ip < 0 || (size_t) (*ip) >= ((dims != NULL) ? dims->nelems : 1) )
 			return NC_EBADDIM;
-		
+
 		dimp = elem_NC_dimarray(dims, (size_t)*ip);
 		*op = dimp->size;
 		if(*op == NC_UNLIMITED && ip != varp->dimids)
 			return NC_EUNLIMPOS;
 	}
 
-	/* 
+	/*
 	 * Compute the dsizes
 	 */
 				/* ndims is > 0 here */
@@ -465,7 +465,7 @@ nc_def_var( int ncid, const char *name, nc_type type,
 	int varid;
 	NC_var *varp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -486,7 +486,7 @@ nc_def_var( int ncid, const char *name, nc_type type,
 	if((unsigned long) ndims > X_INT_MAX) /* Backward compat */
 	{
 		return NC_EINVAL;
-	} 
+	}
 
 	if(ncp->vars.nelems >= NC_MAX_VARS)
 	{
@@ -498,7 +498,7 @@ nc_def_var( int ncid, const char *name, nc_type type,
 	{
 		return NC_ENAMEINUSE;
 	}
-	
+
 	varp = new_NC_var(name, type, ndims, dimids);
 	if(varp == NULL)
 		return NC_ENOMEM;
@@ -531,7 +531,7 @@ nc_inq_varid(int ncid, const char *name, int *varid_ptr)
 	NC_var *varp;
 	int varid;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -560,7 +560,7 @@ nc_inq_var(int ncid,
 	NC_var *varp;
 	size_t ii;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -596,14 +596,14 @@ nc_inq_var(int ncid,
 }
 
 
-int 
+int
 nc_inq_varname(int ncid, int varid, char *name)
 {
 	int status;
 	NC *ncp;
 	NC_var *varp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -620,14 +620,14 @@ nc_inq_varname(int ncid, int varid, char *name)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_vartype(int ncid, int varid, nc_type *typep)
 {
 	int status;
 	NC *ncp;
 	NC_var *varp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -641,14 +641,14 @@ nc_inq_vartype(int ncid, int varid, nc_type *typep)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_varndims(int ncid, int varid, int *ndimsp)
 {
 	int status;
 	NC *ncp;
 	NC_var *varp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -665,7 +665,7 @@ nc_inq_varndims(int ncid, int varid, int *ndimsp)
 }
 
 
-int 
+int
 nc_inq_vardimid(int ncid, int varid, int *dimids)
 {
 	int status;
@@ -673,7 +673,7 @@ nc_inq_vardimid(int ncid, int varid, int *dimids)
 	NC_var *varp;
 	size_t ii;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -693,7 +693,7 @@ nc_inq_vardimid(int ncid, int varid, int *dimids)
 }
 
 
-int 
+int
 nc_inq_varnatts(int ncid, int varid, int *nattsp)
 {
 	int status;
@@ -703,7 +703,7 @@ nc_inq_varnatts(int ncid, int varid, int *nattsp)
 	if(varid == NC_GLOBAL)
 		return  nc_inq_natts(ncid, nattsp);
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -728,7 +728,7 @@ nc_rename_var(int ncid, int varid, const char *newname)
 	NC_string *old, *newStr;
 	int other;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -747,7 +747,7 @@ nc_rename_var(int ncid, int varid, const char *newname)
 	{
 		return NC_ENAMEINUSE;
 	}
-	
+
 	varp = NC_lookupvar(ncp, varid);
 	if(varp == NULL)
 	{

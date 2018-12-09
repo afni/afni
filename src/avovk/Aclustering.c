@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 #include <math.h>
 #include "mrilib.h"
@@ -132,7 +132,7 @@ double** example_distance_gene(int nrows, int ncols, double** data)
   for (ii=0;ii<nrows;++ii) {
     mask[ii] = (int *)calloc(sizeof(int),ncols);
   }
-  
+
   for (nl=0; nl<nrows; ++nl) {
     for (nc=0; nc<ncols; ++nc) {
       mask[nl][nc] = 1;
@@ -158,8 +158,8 @@ double** example_distance_gene(int nrows, int ncols, double** data)
   }
   printf("\n");
     */
-  
-  
+
+
   for (ii=0;ii<nrows;++ii) {
     if (mask[ii]) free(mask[ii]);
   }
@@ -187,7 +187,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
   for (ii=0;ii<nrows;++ii) {
     mask[ii] = (int *)calloc(sizeof(int),ncols);
   }
-  
+
   for (nl=0; nl<nrows; ++nl) {
     for (nc=0; nc<ncols; ++nc) {
       mask[nl][nc] = 1;
@@ -207,16 +207,16 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
     { int dummy = k;
       do n++; while (dummy/=10);
     }
-    
+
 
   filename = malloc(n*sizeof(char));
-  
+
   sprintf (filename, "%s_C%d.hie", jobname, k);
   out1 = fopen( filename, "w" );
 
   /*FILE *out2;
   filename2 = malloc(n*sizeof(char));
-  
+
   sprintf (filename2, "%s_C%d.hi1", jobname, k);
   out2 = fopen( filename2, "w" );*/
 
@@ -239,12 +239,12 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
     return;
   }
 
-  #if 0 
+  #if 0
   /* Andrej: This block looked like it was commented out
-    I took out some of the * / because they 
-    were generating warning and blocked out the 
+    I took out some of the * / because they
+    were generating warning and blocked out the
     entire section with #if 0 .  */
-  
+
   /*fprintf(out2,"Node     Item 1   Item 2    Distance\n");
   for(i=0; i<nnodes; i++)
     fprintf(out2,"%3d:%9d%9d      %g\n",
@@ -277,7 +277,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
 
 
   printf("================ Pairwise average linkage clustering ============\n");
-  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'a', 0); 
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'a', 0);
   if (!tree)
   { /* Indication that the treecluster routine failed */
     printf ("treecluster routine failed due to insufficient memory\n");
@@ -294,7 +294,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
 
 
   printf("================ Pairwise centroid linkage clustering ===========\n");
-  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'c', 0); 
+  tree = treecluster(nrows, ncols, data, mask, weight, 0, 'e', 'c', 0);
   if (!tree)
   { /* Indication that the treecluster routine failed */
     printf ("treecluster routine failed due to insufficient memory\n");
@@ -307,7 +307,7 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
            -i-1, tree[i].left, tree[i].right, tree[i].distance);
   printf("\n");
 
-  
+
   #endif
 
 
@@ -325,14 +325,14 @@ void example_hierarchical(int nrows, int ncols, double** data, char* jobname, in
     if (mask[ii]) free(mask[ii]);
   }
   free(mask);
-  free(tree); 
+  free(tree);
   free(clusterid);
   free(weight);
   return;
 }
 
-void getvoxlclusterdist(int* count, double** cdata, 
-			int* clusterid, double** data, char* jobname, 
+void getvoxlclusterdist(int* count, double** cdata,
+			int* clusterid, double** data, char* jobname,
 			int nclusters, int nrows, int ncols)
 {
   int i, j, n;
@@ -342,11 +342,11 @@ void getvoxlclusterdist(int* count, double** cdata,
   double difference, difference1;
 
   n = 1 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
-  
+
   int dummy = nclusters;
   do n++; while (dummy/=10);
-    
-    
+
+
   filename4 = malloc(n*sizeof(char));
   sprintf (filename4, "%s_K_G%d.vcd", jobname, nclusters);
   out4 = fopen( filename4, "w" );
@@ -360,14 +360,14 @@ void getvoxlclusterdist(int* count, double** cdata,
     }
     vcdata[i] = sqrt(difference);
   }
-  
+
   printf ("------- writing Cluster assignments + distances from centroids to file:\t\t"
           " %s_K_G%d.vcd\n",jobname, nclusters);
   for (i = 0; i < nrows; i++)
     fprintf (out4, "%09d\t%d\t%7.3f\n", i, clusterid[i], vcdata[i]);
   fclose(out4); out4=NULL;
 
-  /*for (i = 0; i < nrows; i++){ 
+  /*for (i = 0; i < nrows; i++){
     free(vcdata[i]);
     }*/
   free(vcdata);
@@ -380,13 +380,13 @@ void getvoxlclusterdist(int* count, double** cdata,
 /* ========================================================================= */
 
 
-void example_kmeans( int nrows, int ncols, 
-                     double** data, 
-                     int nclusters, int npass, 
+void example_kmeans( int nrows, int ncols,
+                     double** data,
+                     int nclusters, int npass,
                      char dist, char* jobname)
 
 /* Perform k-means clustering on genes */
-{ 
+{
    int i, j, ii, nl, nc;
    //const int nclusters = 3;
    const int transpose = 0;
@@ -417,7 +417,7 @@ void example_kmeans( int nrows, int ncols,
    FILE *out1=NULL;
    FILE *out2=NULL;
    FILE *out3=NULL;
-   
+
    for (i = 0; i < nclusters; i++)
    { cdata[i] = malloc(ncols*sizeof(double));
     cmask[i] = malloc(ncols*sizeof(int));
@@ -442,8 +442,8 @@ void example_kmeans( int nrows, int ncols,
    { int dummy = nclusters;
     do n++; while (dummy/=10);
    }
-    
-   //avovk 
+
+   //avovk
    printf("a je u omari :) \n");
    filename = malloc(n*sizeof(char));
    filename2 = malloc(n*sizeof(char));
@@ -461,7 +461,7 @@ void example_kmeans( int nrows, int ncols,
    printf ("\n");
    printf ("----- doing %d passes... go stretch your legs...\n",npass);
    //npass = 3;
-   kcluster(nclusters,nrows,ncols,data,mask,weight,transpose,npass,method,dist, 
+   kcluster(nclusters,nrows,ncols,data,mask,weight,transpose,npass,method,dist,
     clusterid, &error, &ifound);
    printf ("Solution found %d times; ", ifound);
    printf ("within-cluster sum of distances is %f\n", error);
@@ -470,7 +470,7 @@ void example_kmeans( int nrows, int ncols,
    for (i = 0; i < nrows; i++)
      fprintf (out1, "%09d\t %d\n", i, clusterid[i]);
    fclose(out1); out1=NULL;
-  
+
   printf ("------- writing Distance between clusters to file:\t %s_K_G%d.dis \n", jobname, nclusters);
   fprintf (out2,"------- Distance between clusters:\n");
   index = malloc(nclusters*sizeof(int*));
@@ -483,18 +483,18 @@ void example_kmeans( int nrows, int ncols,
   { int id = clusterid[i];
     index[id][count[id]] = i;
     count[id]++;
-  }  
+  }
 
   for (i = 0; i < nclusters-1; i++)
     {
       for (j = 1+i; j < nclusters; j++)
 	{
-	  distance = clusterdistance(nrows, ncols, data, mask, weight, count[i], count[j], index[i], index[j], 'e', 'a', 0); 
+	  distance = clusterdistance(nrows, ncols, data, mask, weight, count[i], count[j], index[i], index[j], 'e', 'a', 0);
 	  fprintf(out2,"Distance between %d and %d: %7.3f\n", i, j, distance);
 	  // fprintf(stderr,"Distance between %d and %d: %7.3f\n", i, j, distance);
 	}
     }
-   
+
   fclose(out2); out2=NULL;
 
 
@@ -505,7 +505,7 @@ void example_kmeans( int nrows, int ncols,
 	   fprintf(out3,"   coefficients:");
 		       for(i=0; i<ncols; i++) fprintf(out3,"\t%7d", i);
 		       fprintf(out3,"\n");
-   for (i = 0; i < nclusters; i++){ 
+   for (i = 0; i < nclusters; i++){
       fprintf(out3,"Cluster %2d:", i);
       for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
       fprintf(out3,"\n");
@@ -514,14 +514,14 @@ void example_kmeans( int nrows, int ncols,
    printf("Done...\n");
 
    /* call function to calculate distance between each voxel and centroid */
-   /* we will need: 
+   /* we will need:
       count - number of elements in cluster as we allready have it
       cdata - cluster centroids
       clusterid
       data */
 
 
-      getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
+      getvoxlclusterdist(count, cdata, clusterid, data, jobname,
 nclusters, nrows, ncols);
 
 
@@ -529,14 +529,14 @@ nclusters, nrows, ncols);
    free(index);
    free(count);
 
-   for (i = 0; i < nclusters; i++){ 
+   for (i = 0; i < nclusters; i++){
       free(cdata[i]);
       free(cmask[i]);
    }
    for (ii=0;ii<nrows;++ii) {
       if (mask[ii]) free(mask[ii]);
    }
-   
+
    free(cdata);
    free(cmask);
    free(clusterid);
@@ -549,7 +549,7 @@ nclusters, nrows, ncols);
 /* ========================================================================= */
 
 int main(int argc, char **argv)
-{ 
+{
   int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
   //int nclust=atoi(argv[2]);
   MRI_IMAGE *im = NULL;
@@ -580,7 +580,7 @@ int main(int argc, char **argv)
   while (i < argc)
   { const char* const argument = argv[i];
 
-  
+
     i++;
     if (strlen(argument)<2)
     { printf("ERROR: missing argument\n");
@@ -738,9 +738,9 @@ int main(int argc, char **argv)
    fprintf(stderr,"Patience, reading %s...\n ", filename);
    im = mri_read_double_1D (filename);
    /* ZIAD I get this warning
-   Aclustering.c:408: warning: passing argument 1 of mri_read_double_1D 
-                           discards qualifiers from pointer target type 
-   Andrej: filename was declared as (const char *), 
+   Aclustering.c:408: warning: passing argument 1 of mri_read_double_1D
+                           discards qualifiers from pointer target type
+   Andrej: filename was declared as (const char *),
           but the function expects (char *)              */
    if (!im) {
     fprintf(stderr,"Error: Failed to read matrix data from %s\n",
@@ -761,7 +761,7 @@ int main(int argc, char **argv)
 
    /* for double loop*/
    D = (double **)calloc(sizeof(double*), nrow-1);
-   
+
    for (ii=0;ii<(nrow-1);++ii) {
     D[ii] = (double *)calloc(sizeof(double), ncol-1);
    }
@@ -772,25 +772,25 @@ int main(int argc, char **argv)
     }
     //fprintf(stdout,"\n");
   }
-  
+
   //show_data(nrows, ncols, data, mask);
   //example_mean_median(nrows, ncols, data, mask);
   //distmatrix = example_distance_gene(nrows, ncols, data, mask);
   //if (distmatrix) example_hierarchical(nrows, ncols, data, mask, distmatrix);
   //example_distance_array(nrows, ncols, data, mask);
   if(k>0) example_kmeans(nrow-1, ncol-1, D, k, r, distmetric, jobname);
-  
+
   else
     {
       distmatrix = example_distance_gene(nrow-1, ncol-1, D); // ZIAD: goes2 SIGKILL error
-        if (distmatrix) 
+        if (distmatrix)
 	  example_hierarchical(nrow-1, ncol-1, D, jobname, kh, distmatrix);
         }
-      
 
-  
+
+
    free(dar); dar = NULL; /* done with input array */
-   // To free D 
+   // To free D
    for (ii=0;ii<(nrow-1);++ii) {
 
     if (D[ii]) free(D[ii]);
@@ -810,8 +810,8 @@ int main(int argc, char **argv)
 
    The output are 3 files
    - cluster_out.kgg -- as before, index number and cluster number
-   - cluster_out.dis -- 
-   - cluster_out.cen -- 
+   - cluster_out.dis --
+   - cluster_out.cen --
 
 
    actually

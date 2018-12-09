@@ -15,12 +15,12 @@ typedef struct {
    /* spec related input */
    char *spec_names[SUMA_MAX_SURF_ON_COMMAND];
    int N_spec_names;
-   
+
    char *s_surfnames[SUMA_MAX_SURF_ON_COMMAND];
    char *s_surfprefix[SUMA_MAX_SURF_ON_COMMAND];
    char *s_surfpath[SUMA_MAX_SURF_ON_COMMAND];
    int s_N_surfnames;
-   
+
    /* -i_ related input */
    char *i_surfnames[SUMA_MAX_SURF_ON_COMMAND];
    char *i_surftopo[SUMA_MAX_SURF_ON_COMMAND];
@@ -33,7 +33,7 @@ typedef struct {
    int i_DO_type[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Format i_FF[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Type i_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
+
    /* -ipar_ related input */
    char *ipar_surfnames[SUMA_MAX_SURF_ON_COMMAND];
    char *ipar_surftopo[SUMA_MAX_SURF_ON_COMMAND];
@@ -45,7 +45,7 @@ typedef struct {
    int ipar_N_surfnames;
    SUMA_SO_File_Format ipar_FF[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Type ipar_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
+
    /* -o_related input */
    char *o_surfnames[SUMA_MAX_SURF_ON_COMMAND];
    char *o_surftopo[SUMA_MAX_SURF_ON_COMMAND];
@@ -57,7 +57,7 @@ typedef struct {
    int o_N_surfnames;
    SUMA_SO_File_Format o_FF[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Type o_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
+
    /* -t_related input */
    char *t_surfnames[SUMA_MAX_SURF_ON_COMMAND];
    char *t_surftopo[SUMA_MAX_SURF_ON_COMMAND];
@@ -69,14 +69,14 @@ typedef struct {
    int t_N_surfnames;
    SUMA_SO_File_Format t_FF[SUMA_MAX_SURF_ON_COMMAND];
    SUMA_SO_File_Type t_FT[SUMA_MAX_SURF_ON_COMMAND];
-   
+
    byte arg_checked[SUMA_N_ARGS_MAX];
    int N_args;
    char *sv[SUMA_MAX_SURF_ON_COMMAND];
    int N_sv;
    char *vp[SUMA_MAX_SURF_ON_COMMAND];
    int N_vp;
-   
+
    /* -talk_suma options */
    SUMA_COMM_STRUCT *cs;
 
@@ -93,7 +93,7 @@ typedef struct {
    char *DO_name[SUMA_MAX_DO_ON_COMMAND];
    int N_DO;
    int DO_type[SUMA_MAX_DO_ON_COMMAND];
-   
+
    /* flags for what to read */
    byte accept_t;
    byte accept_s;
@@ -110,7 +110,7 @@ typedef struct {
    byte accept_dset;
    byte accept_do;
    byte accept_cmap;
-   
+
    /* flags for help */
    byte hverb; /* help verbosity */
 
@@ -118,7 +118,7 @@ typedef struct {
    char *cmap;
    char *cmapfile;
    char *cmapdb;
-   
+
 } SUMA_GENERIC_ARGV_PARSE;
 
 typedef struct {
@@ -131,19 +131,19 @@ typedef struct {
    char *in_namev[SUMA_GENERIC_PROG_MAX_IN_NAME];/*whole bunch of input files*/
    int n_in_namev;
    char *surftype; /* do not free, argv[.] copy */
-   char *out_prefix;   /* this one's dynamically allocated so 
+   char *out_prefix;   /* this one's dynamically allocated so
                           you'll have to free it yourself */
    SUMA_DSET_FORMAT oform;
-   
-   char *out_vol_prefix; /* this one's dynamically allocated so 
+
+   char *out_vol_prefix; /* this one's dynamically allocated so
                            you'll have to free it yourself */
    char out_vol_view[SUMA_VIEW_LENGTH];
    int out_vol_exists;
-   char *out_grid_prefix; /* this one's dynamically allocated so 
+   char *out_grid_prefix; /* this one's dynamically allocated so
                              you'll have to free it yourself */
    char out_grid_view[SUMA_VIEW_LENGTH];
    int out_grid_exists;
-   char *in_vol_prefix; /* this one's dynamically allocated 
+   char *in_vol_prefix; /* this one's dynamically allocated
                            so you'll have to free it yourself */
    char in_vol_view[SUMA_VIEW_LENGTH];
    int in_vol_exists;
@@ -152,7 +152,7 @@ typedef struct {
    char *dmask;
    THD_3dim_dataset *in_vol;
    float VolCM[3];   /* input volume's center of mass */
-   float *mcfv;      /* the dataset that is passed to the 
+   float *mcfv;      /* the dataset that is passed to the
                         marching cube algorithm */
    int debug;
    int ninmask;
@@ -171,13 +171,13 @@ typedef struct {
    SUMA_SO_File_Type SurfFileType;
    /* following fields are intended for use in ConvexHull only */
    char *in_1D;  /* name of 1D file containing XYZ coords */
-   float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates. 
+   float *XYZ; /* a 3*N_XYZ vector of XYZ coordinates.
                   This vector should be freed at the end*/
    int N_XYZ;  /* number of points in XYZ */
    /* following fields are intended for use in BrainWarp only */
-   float ExpFrac; /* a fraction (0.01) used to control the rate of expansion of 
+   float ExpFrac; /* a fraction (0.01) used to control the rate of expansion of
                  the surface (see su3 variable in SUMA_StretchToFitLeCerveau ) */
-   float Zt; /* a fraction controlling the separation between brain and non 
+   float Zt; /* a fraction controlling the separation between brain and non
                brain, see variable tb in SUMA_StretchToFitLeCerveau ) */
    int N_it; /* number of iterations */
    int Icold; /* number of Ico subdivisions */
@@ -219,7 +219,7 @@ typedef struct {
    THD_3dim_dataset *iset;
    FILE *dbg_eyenodes;
    float SpatShift[3];
-   THD_3dim_dataset *OrigSpatNormedSet;   
+   THD_3dim_dataset *OrigSpatNormedSet;
    THD_3dim_dataset *in_edvol;
    float blur_fwhm;
    int iset_hand;
@@ -231,61 +231,61 @@ typedef struct {
    int NearestNodeCoords;
    int ProjectionOnMesh;
    int Data;
-   
+
    char *in_nodeindices;
-   
+
    float *emask;
    float efrac;
    float *fatemask;
    int Use_emask;
    byte *nmask;
-   
-   int PushToEdge; 
-   int DoSkulls;  
+
+   int PushToEdge;
+   int DoSkulls;
    byte b1;
    byte b2;
-   
+
    void *popt;    /*< NULL pointer to hide program specific structure */
-   
+
    float *Brain_Contour;
    float *Brain_Hull;
    float *Skull_Outer;
    float *Skull_Inner;
-   
+
    char *UseThisBrain;/* do not free, argv[.] copy */
    char *UseThisBrainHull; /* do not free, argv[.] copy */
    char *UseThisSkullOuter; /* do not free, argv[.] copy */
    byte SurfaceCoil; /* data acquired with SurfaceCoil */
-      
+
    int iopt;
-   
+
    char **com;
    int N_com;
-   
+
    char *unit_sphere_name;
    char *bases_prefix;
-   
+
    int dmed;
    int unif;
    int geom;
    int corder;
    int poly;
-   
-   int match_area; 
-   
+
+   int match_area;
+
    float xyz_scale;
    SUMA_GENERIC_ARGV_PARSE *ps; /* a holder for convenience, never free it*/
-   
+
    char *s; /* freed in the end */
-   
+
    int *ivec;
    int n_ivec;
-   
+
    float permask;
    float flt1, flt2, flt3;
    float PlEq[4];
-} SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in 
-                                 SUMA_Alloc_Generic_Prog_Options_Struct and in 
+} SUMA_GENERIC_PROG_OPTIONS_STRUCT; /* also edit defaults in
+                                 SUMA_Alloc_Generic_Prog_Options_Struct and in
                                  SUMA_Free_Generic_Prog_Options_Struct */
 
 double SUMA_ParseTime(char *tm);
@@ -306,9 +306,9 @@ void SUMA_EngineSourceString (char *Scom, int ses_code);
 const char *SUMA_DomainKinships_String (SUMA_DOMAIN_KINSHIPS code);
 DList *SUMA_CreateList (void);
 SUMA_EngineData *SUMA_InitializeEngineListData (SUMA_ENGINE_CODE CommandCode);
-DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * EngineData,  
-                                             SUMA_ENGINE_FIELD_CODE Fld, void *FldValp, 
-                                             SUMA_ENGINE_SOURCE Src, void *Srcp, SUMA_Boolean PassByPointer, 
+DListElmt * SUMA_RegisterEngineListCommand (DList *list, SUMA_EngineData * EngineData,
+                                             SUMA_ENGINE_FIELD_CODE Fld, void *FldValp,
+                                             SUMA_ENGINE_SOURCE Src, void *Srcp, SUMA_Boolean PassByPointer,
                                              SUMA_ENGINE_INSERT_LOCATION InsertAt, DListElmt *Element);
 SUMA_Boolean SUMA_ReleaseEngineListElement (DList *list, DListElmt *element);
 DList * SUMA_DestroyList (DList *list);
@@ -347,14 +347,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT * SUMA_Free_Generic_Prog_Options_Struct(SUMA_GE
 SUMA_Boolean SUMA_isOutputFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
 SUMA_Boolean SUMA_isInputFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
 SUMA_Boolean SUMA_isFormatFromArg(char *arg, SUMA_DSET_FORMAT *o_formp);
-SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp, 
+SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                                     int *io);
 
 /*!
    \brief Macro that adds a command to the head of command list.
    SUMA_REGISTER_HEAD_COMMAND_NO_DATA(list, Command, Src, Srcp)
 
-   \param list (DList *) pointer to list 
+   \param list (DList *) pointer to list
    \param Command (SUMA_ENGINE_CODE) command code
    \param Src (SUMA_ENGINE_SOURCE) source of command
    \param Srcp (void *) pointer to source pointer. (No need to type cast it yourself, macro will)
@@ -376,7 +376,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 
 /*!
    \brief Macro that adds a command to the tail of command list.
-   
+
    \sa SUMA_REGISTER_HEAD_COMMAND_NO_DATA
 */
 #define SUMA_REGISTER_TAIL_COMMAND_NO_DATA(list, Command, Src, Srcp) {\
@@ -391,7 +391,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports an error to the log 
+   \brief Macro that reports an error to the log
 
 */
 #define SUMA_L_Err(...) {\
@@ -401,7 +401,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                          FuncName, SMT_Error, SMA_Log); \
 }
 /*!
-   \brief Macro that reports an error to stderr 
+   \brief Macro that reports an error to stderr
 
 */
 #define SUMA_S_Errv( ... ) {\
@@ -415,7 +415,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports an error to stderr and log 
+   \brief Macro that reports an error to stderr and log
 
 */
 #define SUMA_SL_Err(...) {\
@@ -436,7 +436,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a notice to the log 
+   \brief Macro that reports a notice to the log
 
 */
 #define SUMA_L_Note(...) {\
@@ -446,7 +446,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                          FuncName, SMT_Notice, SMA_Log); \
 }
 /*!
-   \brief Macro that reports a notice to stderr 
+   \brief Macro that reports a notice to stderr
 
 */
 #define SUMA_S_Notev( ... ) {\
@@ -460,7 +460,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a notice to stderr and log 
+   \brief Macro that reports a notice to stderr and log
 
 */
 #define SUMA_SL_Note(...) {\
@@ -481,7 +481,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a text message to the log 
+   \brief Macro that reports a text message to the log
 
 */
 #define SUMA_L_Text(...) {\
@@ -491,14 +491,14 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                          FuncName, SMT_Text, SMA_Log); \
 }
 /*!
-   \brief Macro that reports a text message to stderr 
+   \brief Macro that reports a text message to stderr
 
 */
 #define SUMA_S_Text(...) {\
    fprintf (SUMA_STDERR, __VA_ARGS__);  \
 }
 /*!
-   \brief Macro that reports a text message to stderr and log 
+   \brief Macro that reports a text message to stderr and log
 
 */
 #define SUMA_SL_Text(...) {\
@@ -521,7 +521,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a warning to the log 
+   \brief Macro that reports a warning to the log
 
 */
 #define SUMA_L_Warn(...) {\
@@ -531,7 +531,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                          FuncName, SMT_Warning, SMA_Log); \
 }
 /*!
-   \brief Macro that reports a warning to stderr 
+   \brief Macro that reports a warning to stderr
 
 */
 #define SUMA_S_Warnv( ... ) {\
@@ -544,7 +544,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
    fprintf (SUMA_STDERR,"\n");   \
 }
 /*!
-   \brief Macro that reports a warning to stderr and log 
+   \brief Macro that reports a warning to stderr and log
 
 */
 #define SUMA_SL_Warn(...) {\
@@ -566,7 +566,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a critical error to the log 
+   \brief Macro that reports a critical error to the log
 
 */
 #define SUMA_L_Crit(...) {\
@@ -576,13 +576,13 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
                          SMT_Critical, SMA_Log); \
 }
 /*!
-   \brief Macro that reports a critical error to stderr 
+   \brief Macro that reports a critical error to stderr
 
 */
 #define SUMA_S_Crit( ... ) {\
    SUMA_S_Critv( __VA_ARGS__ );  \
    fprintf (SUMA_STDERR,"\n");   \
-}  
+}
 #define SUMA_S_Critv( ... ) {\
    fprintf (SUMA_STDERR, "**     Critical %s (%s:%d):\n", \
                          FuncName, __FILE__, __LINE__);  \
@@ -590,7 +590,7 @@ SUMA_Boolean SUMA_isIOFormatFromArg(char *argi, SUMA_DSET_FORMAT *oformp,
 }
 
 /*!
-   \brief Macro that reports a critical error to stderr and log 
+   \brief Macro that reports a critical error to stderr and log
 
 */
 #define SUMA_SL_Crit(...) {\

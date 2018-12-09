@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -61,7 +61,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/08/01 12:51:48  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -163,7 +163,7 @@ _PLCDataRequest(PLC *plc)
 
 	/*****
 	* next_in is the current position in the destination buffer,
-	* so we need to make sure that next and max_in do not exceed input 
+	* so we need to make sure that next and max_in do not exceed input
 	* buffer size
 	*****/
 	if(plc->left + plc->max_in > plc->buf_size)
@@ -294,7 +294,7 @@ _PLCDataRequest(PLC *plc)
 * Return Type: 	void
 * Description:	calls the end_data() function to signal this PLC is
 *				terminating.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *
@@ -328,7 +328,7 @@ _PLCEndData(PLC *plc)
 		return;
 	}
 	image = any_image->info;
-	plc->sf.end_data(&plc_context, (XtPointer)image, XmPLC_IMAGE, 
+	plc->sf.end_data(&plc_context, (XtPointer)image, XmPLC_IMAGE,
 		(plc->plc_status == PLC_COMPLETE));
 }
 
@@ -336,7 +336,7 @@ _PLCEndData(PLC *plc)
 * Name: 		_PLCReadOK
 * Return Type: 	size_t
 * Description: 	copy len bytes to buf from an ImageBuffer
-* In: 
+* In:
 *	*plc:		current PLC
 *	buf:		data destination
 *	len:		no of bytes to copy
@@ -345,7 +345,7 @@ _PLCEndData(PLC *plc)
 *	This function will make a data request if the current buffer runs out
 *	of data.
 *****/
-size_t 
+size_t
 _PLCReadOK(PLC *plc, Byte *buf, int len)
 {
 	/* plc->left is the number of bytes left in the input buffer. */
@@ -373,7 +373,7 @@ _PLCReadOK(PLC *plc, Byte *buf, int len)
 * Name: 		_PLCGetDataBlock
 * Return Type: 	int
 * Description: 	gets the next amount of data from the input buffer
-* In: 
+* In:
 *	plc:		current PLC
 *	buf:		storage buffer, filled upon return.
 * Returns:
@@ -401,10 +401,10 @@ _PLCGetDataBlock(PLC *plc, Byte *buf)
 * Name: 		_XmHTMLPLCCreate
 * Return Type: 	PLC*
 * Description: 	creates a PLC for the given widget
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	url:		object for which this PLC is created;
-*	priv..:		private data to be registered for this PLC. 
+*	priv..:		private data to be registered for this PLC.
 *	type:		type of PLC to be created
 * Returns:
 *	a newly created PLC.
@@ -450,7 +450,7 @@ _XmHTMLPLCCreate(XmHTMLWidget html, XtPointer priv_data, String url, Byte type)
 
 		html->html.plc_gc = XCreateGC(XtDisplay((Widget)html),
 			(XtIsRealized((Widget)html) ? XtWindow(html->html.work_area) :
-				DefaultRootWindow(XtDisplay((Widget)html))), 
+				DefaultRootWindow(XtDisplay((Widget)html))),
 				GCFunction | GCPlaneMask , &xgc);
 	}
 
@@ -522,7 +522,7 @@ _XmHTMLPLCCreate(XmHTMLWidget html, XtPointer priv_data, String url, Byte type)
 * Name: 		_PLCInsert
 * Return Type:	void
 * Description:	insert a PLC in the PLC ringbuffer
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -562,9 +562,9 @@ _PLCInsert(PLC *plc)
 /*****
 * Name: 		_PLCRemove
 * Return Type:	void
-* Description:	removes a PLC from the PLC ringbuffer and calls the object 
+* Description:	removes a PLC from the PLC ringbuffer and calls the object
 *				destructor method.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -618,7 +618,7 @@ _PLCRemove(PLC *plc)
 	if(html->html.plc_buffer == NULL || html->html.num_plcs == 1)
 	{
 		if(plc->sf.end_data != NULL)
-			plc->sf.end_data(NULL, NULL, XmPLC_FINISHED, True); 
+			plc->sf.end_data(NULL, NULL, XmPLC_FINISHED, True);
 	}
 
 	/* and destroy the PLC itself */
@@ -642,7 +642,7 @@ _PLCRemove(PLC *plc)
 * Name: 		_PLCRecomputeDelays
 * Return Type: 	void
 * Description: 	computes a new PLC polling interval.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing, but the PLC polling interval is updated upon return.
@@ -672,7 +672,7 @@ _PLCRecomputeDelays(XmHTMLWidget html)
 	min_delay = html->html.plc_min_delay;
 	max_delay = html->html.plc_max_delay;
 	plc       = html->html.plc_buffer;
-	
+
 	/* make a guess at the effectiveness of the user's connection */
 	for(i = 0, nactive = 0; i < nplcs; i++, plc = plc->next_plc)
 		if(plc->plc_status == PLC_ACTIVE)
@@ -698,7 +698,7 @@ _PLCRecomputeDelays(XmHTMLWidget html)
 * Name: 		_PLCRun
 * Return Type:	void
 * Description:	activate a PLC
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -762,7 +762,7 @@ _PLCRun(PLC *plc)
 * Name: 		_PLCSubCycler
 * Return Type: 	Boolean
 * Description: 	PLC cycling engine when work procedures are to be used.
-* In: 
+* In:
 *	call_data:	data registered for this function.
 * Returns:
 *	False when this function should be called again by X (as long as
@@ -800,7 +800,7 @@ _PLCSubCycler(XtPointer call_data)
 			/* move to next plc */
 			html->html.plc_buffer = plc->next_plc;
 			break;
-			
+
 		case PLC_ACTIVE:
 			_PLCRun(plc->self);
 			/* move to next plc */
@@ -835,7 +835,7 @@ _PLCSubCycler(XtPointer call_data)
 * Name: 		_XmHTMLPLCCyler
 * Return Type: 	void
 * Description: 	main PLC cycling engine.
-* In: 
+* In:
 *	call_data:	data registed for this function.
 *	proc_id:	unused;
 * Returns:
@@ -913,7 +913,7 @@ _XmHTMLPLCCycler(XtPointer call_data, XtIntervalId *proc_id)
 				break;
 
 			/* we have found an active plc, fall through */
-			
+
 		case PLC_ACTIVE:
 			_PLCRun(plc->self);
 
@@ -962,7 +962,7 @@ _XmHTMLPLCCycler(XtPointer call_data, XtIntervalId *proc_id)
 * Name: 		_XmHTMLKillPLCCycler
 * Return Type: 	void
 * Description: 	kills all outstanding PLC procedures.
-* In: 
+* In:
 *	html:		XmHTMLWidget id for which to kill all PLC's
 * Returns:
 *	nothing, but the list of PLC's of the given XmHTMLWidget has been cleared
@@ -1052,8 +1052,8 @@ _XmHTMLKillPLCCycler(XmHTMLWidget html)
 /*****
 * Name: 		_PLC_IMG_Init
 * Return Type: 	void
-* Description: 
-* In: 
+* Description:
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing. Upon return, the object field of the current PLC is updated to
@@ -1083,7 +1083,7 @@ _PLC_IMG_Init(PLC *plc)
 	memcpy(magic, plc->buffer, 10);
 
 	/* check image types we known of. Do most (?) logical order */
-	if(!(strncmp((char*)magic, "GIF87a", 6)) || 
+	if(!(strncmp((char*)magic, "GIF87a", 6)) ||
 		!(strncmp((char*)magic, "GIF89a", 6)))
 	{
 		obj_type = plcGIF;
@@ -1094,7 +1094,7 @@ _PLC_IMG_Init(PLC *plc)
 		plc->object->plc_gif_image.info = (XmImageInfo*)plc->priv_data;
 	}
 	/* compatible gif */
-	else if(!(strncmp((char*)magic, "GZF87a", 6)) || 
+	else if(!(strncmp((char*)magic, "GZF87a", 6)) ||
 		!(strncmp((char*)magic, "GZF89a", 6)))
 	{
 #if defined (HAVE_LIBPNG) || defined (HAVE_LIBZ)
@@ -1171,7 +1171,7 @@ _PLC_IMG_Init(PLC *plc)
 * Name: 		_PLC_IMG_Transfer
 * Return Type: 	void
 * Description: 	intermediate image transfer function
-* In: 
+* In:
 *	plc:		current PLC.
 * Returns:
 *	nothing.
@@ -1402,7 +1402,7 @@ _PLC_IMG_Transfer(PLC *plc)
 			/* raw clipmask data */
 			any_image->clip_data = (Byte*)calloc(clipsize, sizeof(Byte));
 			/* fully transparent clipmask */
-			any_image->clipmask = XCreatePixmapFromBitmapData(dpy, win, 
+			any_image->clipmask = XCreatePixmapFromBitmapData(dpy, win,
 				(char*)any_image->clip_data, image->width, image->height,
 				1, 0, 1);
 		}
@@ -1450,7 +1450,7 @@ _PLC_IMG_Transfer(PLC *plc)
 	}
 
 	/*****
-	* Always get used image dimensions. 
+	* Always get used image dimensions.
 	*****/
 	width  = image->width;
 	height = image->height;
@@ -1465,9 +1465,9 @@ _PLC_IMG_Transfer(PLC *plc)
 	col_cnt = any_image->nused;
 
 	/* store pixel indices */
-	for(i = any_image->prev_pos; i < any_image->data_pos; i++, ptr++) 
+	for(i = any_image->prev_pos; i < any_image->data_pos; i++, ptr++)
 	{
-		if(any_image->used[(int)*ptr] == 0) 
+		if(any_image->used[(int)*ptr] == 0)
 		{
 			any_image->used[(int)*ptr] = col_cnt;
 			col_cnt++;
@@ -1482,11 +1482,11 @@ _PLC_IMG_Transfer(PLC *plc)
 	if(any_image->nused != col_cnt+1)
 	{
 		memset(pixels, 0, XmHTML_MAX_IMAGE_COLORS*sizeof(Boolean));
-		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++) 
+		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++)
 		{
 			int indx;
 
-			if(any_image->used[i] != 0) 
+			if(any_image->used[i] != 0)
 			{
 				indx = any_image->used[i] - 1;
 				pixels[indx] = True;
@@ -1583,7 +1583,7 @@ _PLC_IMG_Transfer(PLC *plc)
 		{
 			for(j = 0, bcnt = 0; j < width; j ++)
 			{
-				if(*ptr != any_image->bg_pixel) 
+				if(*ptr != any_image->bg_pixel)
 					*cptr += bitmap_bits[(bcnt % 8)];
 				if((bcnt % 8) == 7 || j == (width-1))
 					cptr++;
@@ -1602,7 +1602,7 @@ _PLC_IMG_Transfer(PLC *plc)
 			win = DefaultRootWindow(dpy);
 
 		/* create new one */
-		any_image->clipmask = XCreatePixmapFromBitmapData(dpy, win, 
+		any_image->clipmask = XCreatePixmapFromBitmapData(dpy, win,
 				(char*)any_image->clip_data, width, height, 1, 0, 1);
 		/* save it */
 		image->clip = any_image->clipmask;
@@ -1622,7 +1622,7 @@ _PLC_IMG_Transfer(PLC *plc)
 
 	/* last known processed data */
 	ptr = any_image->data + any_image->prev_pos;
-	for(i = any_image->prev_pos; i < any_image->data_pos; i++) 
+	for(i = any_image->prev_pos; i < any_image->data_pos; i++)
 	{
 		*ptr = (Byte)(any_image->used[(int)*ptr] - 1);
 		ptr++;
@@ -1720,7 +1720,7 @@ _PLC_IMG_Transfer(PLC *plc)
 * Name: 		_PLC_IMG_Finalize
 * Return Type:	void
 * Description:	Image PLC final transfer function
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -1852,7 +1852,7 @@ _PLC_IMG_Finalize(PLC *plc)
 * Name: 		_PLC_IMG_UpdateScreen
 * Return Type: 	void
 * Description: 	Image PLC image->screen transfer function
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	image:		image data;
 *	elePtr:		image owner;
@@ -1879,7 +1879,7 @@ _PLC_IMG_UpdateScreen(XmHTMLWidget html, XmHTMLImage *image,
 * Name:			_PLC_IMG_UpdateScreenCopies
 * Return Type: 	void
 * Description: 	updates the screen for each copy of the given image.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	image:		parent image;
 *	src_y:		starting scanline index;
@@ -2051,7 +2051,7 @@ XmHTMLImageProgressiveKill(Widget w)
 * Name: 		_XmHTMLPLCCheckIntervals
 * Return Type: 	void
 * Description: 	validates the delays for the PLC Cycler.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	nothing, but the PLC delay values can have changed when this function

@@ -9,7 +9,7 @@
 #include "suma_suma.h"
 
 
-         
+
 
 int is_archive(char *name)
 {
@@ -29,9 +29,9 @@ int is_archive_pn(SUMA_PARSED_NAME *FN)
    int a = 0;
    if (!FN) return(0);
    if (!strcmp(FN->Ext,".tar")) {
-      a = 1; 
-   } else if (!strcmp(FN->Ext,".tgz")){ 
-      a = 1|2; /* With compression flag? 
+      a = 1;
+   } else if (!strcmp(FN->Ext,".tgz")){
+      a = 1|2; /* With compression flag?
                   Not sure if we should handle this here
                   Could have an is_compressed query separately...*/
    }
@@ -56,7 +56,7 @@ int is_pdf_pn(SUMA_PARSED_NAME *FN)
    int a = 0;
    if (!FN) return(0);
    if (!strcmp(FN->Ext,".pdf")) {
-      a = 1; 
+      a = 1;
    }
    return(a);
 }
@@ -79,12 +79,12 @@ int is_image_pn(SUMA_PARSED_NAME *FN)
    int a = 0;
    if (!FN) return(0);
    if (!strcmp(FN->Ext,".jpg")) {
-      a = 1; 
+      a = 1;
    }
    return(a);
 }
 
-int is_url(char *name) 
+int is_url(char *name)
 {
    int a;
    SUMA_PARSED_NAME *pn;
@@ -97,7 +97,7 @@ int is_url(char *name)
    return(a);
 }
 
-int is_url_pn(SUMA_PARSED_NAME *FN) 
+int is_url_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
@@ -108,7 +108,7 @@ int is_url_pn(SUMA_PARSED_NAME *FN)
    return(0);
 }
 
-int is_local_html(SUMA_PARSED_NAME *FN) 
+int is_local_html(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
@@ -117,7 +117,7 @@ int is_local_html(SUMA_PARSED_NAME *FN)
    return(0);
 }
 
-int is_xmat(char *name) 
+int is_xmat(char *name)
 {
    int a;
    SUMA_PARSED_NAME *pn;
@@ -130,13 +130,13 @@ int is_xmat(char *name)
    return(a);
 }
 
-int is_xmat_pn(SUMA_PARSED_NAME *FN) 
+int is_xmat_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
    if (!FN->OnDisk) return(0); /* should be on disk */
    if (!strcmp(FN->Ext,".xmat")) {
-      a = 1; 
+      a = 1;
    }
    return(a);
 }
@@ -151,7 +151,7 @@ int ao_with_editor(char *fname)
       return(-1);
    }
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"%s %s &", viewer, fname);
    s = system(cmd);
    return(s);
@@ -160,7 +160,7 @@ int ao_with_editor(char *fname)
 int ao_with_browser(char *fname)
 {
    if (!fname) return(-2);
-   
+
    return(whereami_browser(fname));
 }
 
@@ -174,8 +174,8 @@ int ao_with_downloader(char *fname, byte back)
       return(-1);
    }
    if (!fname) return(-2);
-   
-   snprintf(cmd,1023*sizeof(char),"%s %s %c", 
+
+   snprintf(cmd,1023*sizeof(char),"%s %s %c",
             downloader, fname, back ? '&' : ' ');
    s = system(cmd);
    return(s);
@@ -187,7 +187,7 @@ int ao_with_afniweb(char *fname)
    int s=-3;
    if (!fname) return(-2);
    if (is_url(fname) ) return(ao_with_downloader(fname, 0));
-   
+
    /* Try different locations */
    if (is_pdf(fname)) {
       snprintf(ww,1023*sizeof(char),
@@ -198,7 +198,7 @@ int ao_with_afniweb(char *fname)
          fprintf(stderr,"Status %d on %s\n", s, ww);
       }
       /* repeat for other locations, maybe papers? (Nothing for now...) */
-      return(s);   
+      return(s);
    }
    if (is_archive(fname)) {
       snprintf(ww,1023*sizeof(char),
@@ -226,7 +226,7 @@ int ao_with_afniweb(char *fname)
                }
             }
          }
-      }   
+      }
    }
    return(s);
 }
@@ -235,9 +235,9 @@ int ao_with_readme(char *fname)
 {
    char *rout=NULL;
    int s=-3;
-   
+
    if (!fname) return(-2);
-   
+
    if ((rout = find_readme_file(fname))) {
       view_text_file(rout); free(rout);
       return(0);
@@ -250,42 +250,42 @@ int ao_with_pdf_viewer(char *fname)
    char cmd[1024];
    static char *pdfviewer=NULL;
    int s;
-   
+
    if (!pdfviewer && !(pdfviewer=GetAfniPDFViewer())) {
       ERROR_message("No pdf viewer");
       return(-1);
    }
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"%s %s &", pdfviewer, fname);
    s = system(cmd);
    return(s);
 }
-                           
+
 int ao_with_image_viewer(char *fname)
 {
    char cmd[1024];
    static char *imageviewer=NULL;
    int s;
-   
+
    if (!imageviewer && !(imageviewer=GetAfniImageViewer())) {
       ERROR_message("No image viewer");
       return(-1);
    }
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"%s %s &", imageviewer, fname);
    s = system(cmd);
    return(1);
 }
-                           
+
 int ao_with_afni(char *fname)
 {
    char cmd[1024];
    int s;
-   
+
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"afni %s &", fname);
    s = system(cmd);
    return(s);
@@ -295,9 +295,9 @@ int ao_with_1dplot(char *fname)
 {
    char cmd[1024];
    int s;
-   
+
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"1dplot %s &", fname);
    s = system(cmd);
    return(s);
@@ -308,7 +308,7 @@ int ao_with_ExamineXmat(char *fname)
    char cmd[1024];
    int s;
    if (!fname) return(-2);
-   
+
    snprintf(cmd,1023*sizeof(char),"ExamineXmat -input %s &", fname);
    s = system(cmd);
    return(s);
@@ -319,26 +319,26 @@ int ao_with_suma(char *name)
    char cmd[1024];
    int a;
    SUMA_PARSED_NAME *pn;
-   
+
    if (!name) return(-2);
    if (!(pn = SUMA_ParseFname (name,NULL))) {
       return(-3);
    }
-   
+
    a = ao_with_suma_pn(pn);
    SUMA_Free_Parsed_Name (pn);
-   
+
    return(a);
 }
 
 
-int ao_with_suma_pn(SUMA_PARSED_NAME *FN) 
+int ao_with_suma_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0, s;
    char cmd[1024];
    if (!FN) return(-2);
    if (!FN->OnDisk) return(-3); /* should be on disk */
-   
+
    s = -4;
    if (FN->StorageMode == STORAGE_BY_NI_TRACT || !strcmp(FN->Ext, ".tract")) {
       snprintf(cmd,1023*sizeof(char),
@@ -354,22 +354,22 @@ int ao_with_suma_pn(SUMA_PARSED_NAME *FN)
       /* You still need to check if gii is a dset, rather than a surface... */
       snprintf(cmd,1023*sizeof(char),
                "suma -noniml -i %s &", FN->NameAsParsed);
-      s = system(cmd);    
+      s = system(cmd);
    } else {
       /* Hail Mary ... */
       snprintf(cmd,1023*sizeof(char),
                "suma -noniml -i %s &", FN->NameAsParsed);
-      s = system(cmd);  
+      s = system(cmd);
    }
-   
-   return(s); 
+
+   return(s);
 }
 
 /*----------------------------------------------------------------------------*/
-void afni_open_usage(int detail) 
+void afni_open_usage(int detail)
 {
    int i = 0;
-   
+
    ENTRY("afni_open_usage");
    /* print help message in three sections */
    fprintf(stdout,
@@ -384,7 +384,7 @@ void afni_open_usage(int detail)
    "  afni_open -r driv\n"
    "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      printf (
 "Options:\n"
 "===========\n"
 "  -w METHOD: Use METHOD to open FILES.\n"
@@ -419,9 +419,9 @@ void afni_open_usage(int detail)
 "\n"
 "Global Options:\n"
 "===============\n"
-"%s\n%s", 
+"%s\n%s",
    detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):"",
-   detail > 1 ? get_gopt_help():""); 
+   detail > 1 ? get_gopt_help():"");
    PRINT_COMPILE_DATE ;
    }
    return;
@@ -433,72 +433,72 @@ int main(int argc, char **argv)
    char *fname=NULL, *uprog=NULL;
    THD_string_array *fnamev = NULL;
    SUMA_PARSED_NAME *FN;
-   
 
-   mainENTRY("afni_open main"); machdep() ; 
-      
+
+   mainENTRY("afni_open main"); machdep() ;
+
    if (argc <= 1) {
       afni_open_usage(0);
-      return(1); 
+      return(1);
    }
-   
-   iarg = 1 ; 
+
+   iarg = 1 ;
    while( iarg < argc ){
       if (strcmp(argv[iarg],"-global_help") == 0 ||
-          strcmp(argv[iarg],"-gopts_help") == 0) { 
+          strcmp(argv[iarg],"-gopts_help") == 0) {
          printf(
       "--------------------------------------------------------------------\n"
       "Global Options: options available to most AFNI programs, but usually\n"
       "                not found in the -help output.\n"
       "--------------------------------------------------------------------\n"
              "%s\n%s", SUMA_Offset_SLines(get_help_help(),3), get_gopt_help());
-         return(0); 
-      }      
-      
-      if (strcmp(argv[iarg],"-help") == 0 ||
-          strcmp(argv[iarg],"-h") == 0) { 
-         afni_open_usage(strlen(argv[iarg]) > 3 ? 2:1);
-         return(0); 
+         return(0);
       }
-      
-      if (strcmp(argv[iarg],"-e") == 0) { 
+
+      if (strcmp(argv[iarg],"-help") == 0 ||
+          strcmp(argv[iarg],"-h") == 0) {
+         afni_open_usage(strlen(argv[iarg]) > 3 ? 2:1);
+         return(0);
+      }
+
+      if (strcmp(argv[iarg],"-e") == 0) {
          uprog = "editor";
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-b") == 0) { 
+
+      if (strcmp(argv[iarg],"-b") == 0) {
          uprog = "browser";
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-d") == 0) { 
-         uprog = "downloader"; 
+
+      if (strcmp(argv[iarg],"-d") == 0) {
+         uprog = "downloader";
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-x") == 0) { 
-         uprog = "ExamineXmat"; 
+
+      if (strcmp(argv[iarg],"-x") == 0) {
+         uprog = "ExamineXmat";
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-r") == 0) { 
-         uprog = "readme"; 
+
+      if (strcmp(argv[iarg],"-r") == 0) {
+         uprog = "readme";
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-aw") == 0) { 
-         uprog = "afniweb"; 
+
+      if (strcmp(argv[iarg],"-aw") == 0) {
+         uprog = "afniweb";
          ++iarg;
-         continue; 
+         continue;
       }
 
       if (strcmp(argv[iarg],"-w") == 0 ||
-          strcmp(argv[iarg],"-with") == 0) { 
+          strcmp(argv[iarg],"-with") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -519,11 +519,11 @@ int main(int argc, char **argv)
             exit(1);
          }
          ++iarg;
-         continue;  
+         continue;
       }
-      
+
       if (strcmp(argv[iarg],"-i") == 0 ||
-          strcmp(argv[iarg],"-input") == 0) { 
+          strcmp(argv[iarg],"-input") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -531,12 +531,12 @@ int main(int argc, char **argv)
          }
          while (iarg < argc && argv[iarg][0] != '-') {
             if ( ! fnamev ) INIT_SARR(fnamev);
-            ADDUTO_SARR(fnamev, argv[iarg]); 
+            ADDUTO_SARR(fnamev, argv[iarg]);
             ++iarg;
          }
-         continue; 
+         continue;
       }
-      
+
       if (iarg < argc && argv[iarg][0] == '-'){ /* bad news in tennis shoes */
          fprintf(stderr,"** Error %s: bad option %s\n", argv[0], argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);
@@ -545,14 +545,14 @@ int main(int argc, char **argv)
          break;
       }
    }
-   
+
    /* All the rest are files? */
    while (iarg < argc && argv[iarg][0] != '-') {
       if ( ! fnamev ) INIT_SARR(fnamev);
-      ADDUTO_SARR(fnamev, argv[iarg]); 
+      ADDUTO_SARR(fnamev, argv[iarg]);
       ++iarg;
    }
-   
+
    if (!fnamev) {
       ERROR_message("Nothing to do");
       return 1;
@@ -588,20 +588,20 @@ int main(int argc, char **argv)
          } else {
             ERROR_message("Not ready for prog. %s", uprog);
             exit(1);
-         } 
+         }
          continue;
       }
-      /* Now comes the decision stream 
+      /* Now comes the decision stream
          There is no one function fits all here, we will need to think about
-         how we go about deciding what is what. Two field types are of 
+         how we go about deciding what is what. Two field types are of
          most import:
          FN->StorageMode (or FN->StorageModeNm)
          FN->TypeExt
          Also, what should be done might be dictated by the size of the file at
          hand, and wheter or not it is in binary versus ascii mode. Those fields
          are not a part of SUMA_PARSED_NAME, but we can easily add them.
-         We still need things like: 
-         is_url, is_pdf, is_script, is_..., is_surface_dset, 
+         We still need things like:
+         is_url, is_pdf, is_script, is_..., is_surface_dset,
          is_surface, is_xmat, is_prog, is_archive, is_web_archive
       */
       if (is_url_pn(FN)) {
@@ -635,10 +635,10 @@ int main(int argc, char **argv)
       } else {
          ERROR_message("Not sure what %s is", FN->NameAsParsed);
       }
-                 
+
       if (FN) SUMA_Free_Parsed_Name (FN);
    }
-   
+
    if (fnamev) DESTROY_SARR(fnamev); fnamev=NULL;
-   return 0;  
+   return 0;
 }

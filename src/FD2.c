@@ -569,7 +569,7 @@ struct _undo_buf *undo_buf = NULL;
 struct _undo_buf *undo_ref = NULL; /* for reference line */
 int           act_undo = -1, ref_undo = -1;
 char          FT_name[100];
-int           im_f, phase = 0; 
+int           im_f, phase = 0;
 #define FFT_MAG .2
 float         fft_mag = FFT_MAG; /* fft amplitude magnify factor AJJ */
 float         *T_ref; /* tmp pointer of LSQ_ref[0]->ts when FFT done AJJ */
@@ -1751,7 +1751,7 @@ int C_count = -1;
                fprintf(stderr,"\n*** cannot realloc undo_ref\a\n") ;
                XBell(theDisp, 100);
             }
- 
+
             discard(KeyPressMask, event);
             break;
          }
@@ -1770,7 +1770,7 @@ int C_count = -1;
                   if ( f3 > 32767. ) f3 = 32767.;
                   RWC_ideal->ts[k] = f3;
                   ref_undo -= 1;
-                  undo_ref = 
+                  undo_ref =
                      realloc(undo_ref,(ref_undo+1)*sizeof(struct _undo_buf));
                   if ( undo_ref == NULL ) {
                      ref_undo = -1;
@@ -1800,7 +1800,7 @@ int C_count = -1;
                if ( undo_buf != NULL ) {
                   redraw_graph() ;
                   DrawSubWindow();
- 
+
                }
                else {
                   act_undo = -1;
@@ -1808,7 +1808,7 @@ int C_count = -1;
                           "\n*** cannot realloc undo_buf or undo_ref\a\n") ;
                   XBell(theDisp, 100);
                }
-            } 
+            }
 
             discard(KeyPressMask, event);
             break;
@@ -1960,7 +1960,7 @@ int C_count = -1;
       else {
          switch (buf[0]) {
             /* make time course array of the sum of several pixels */
-            case 'a': {   
+            case 'a': {
                int i, index;
                if ( FT_graph_on ) {
                   if ( avr_A == NULL ) {
@@ -1975,7 +1975,7 @@ int C_count = -1;
                      avr_nr = 0;
                   }
                   index = ypoint*im_size+xpoint;
-                  for (i=0; i < t_points; i++) 
+                  for (i=0; i < t_points; i++)
                      avr_A[i] += (float) T_SAR(i)[index];
                   avr_nr++;
                }
@@ -2174,12 +2174,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                int aaa = avr_grp, ddd = diff_im;
 
 #ifdef USE_MCW
-               if( Im_Nr == 0 ){ 
-                  Put_image(-1) ; 
+               if( Im_Nr == 0 ){
+                  Put_image(-1) ;
                   sleep(1) ;
                   Put_image(0) ;
                   discard(KeyPressMask, event);
-                  break ; 
+                  break ;
                }
 #endif
 
@@ -2225,7 +2225,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             case 'x': {
                AJ_base = ! AJ_base;
                redraw_graph();
-               DrawSubWindow(); 
+               DrawSubWindow();
                break;
             } /* p used to write plot to file */
             case 'w': case 'p': {
@@ -3165,7 +3165,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    unsigned char  *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned int   *a32, *i32;
- 
+
    Width = x;      /* Image width  */
    Hight = y;      /* Image higth  */
    last  = x * y;
@@ -3190,7 +3190,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a32++ =  i32[im_arr[k++]];
          }
       break ;
- 
+
       case 24:
          a8 = (unsigned char *) image->data;
          i8 = (unsigned char *) AJ_RGB;
@@ -3209,7 +3209,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a16++ =  i16[im_arr[k++]];
          }
       break ;
- 
+
       case 8:
          a8 = (unsigned char *) image->data;
          i8 = (unsigned char *) AJ_RGB;
@@ -3544,7 +3544,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    if ( (n == old_im) && AJ_PseudoColor ) {
       for (i = 0; i < IM_ARR; i++) imx[i] = tmp_imx[i];
    }
-#ifdef USE_MCW 
+#ifdef USE_MCW
    else if ( n < 0 ){
       mcw_load() ;
       for( i=0 ; i < IM_ARR ; i++ ) tmp_ar[i] = mcw_im[i] ;
@@ -3553,7 +3553,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
       strcpy(T_name,"Medical College of Wisconsin") ;
       strcpy(G_name,"Medical College of Wisconsin") ;
       strcpy(I_name,"MCW") ;
-      Allow_new_name(Argc, Argv); 
+      Allow_new_name(Argc, Argv);
       old_im = -9999 ;
    }
 #endif
@@ -3736,12 +3736,12 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    byte      *a8, *i8, *m8;
    unsigned short *a16, *i16;
    unsigned int   *a32, *i32;
- 
+
    last  = x * y;
- 
+
    for (i=0; i < last; i++)
       if ( im_arr[i] < 0 ) im_arr[i] = STD_indx[-im_arr[i]-1];
- 
+
    k = 0;
    switch( bperpix ) {
       case 32:
@@ -3751,7 +3751,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a32++ =  i32[im_arr[k++]];
          }
       break ;
- 
+
       case 24:
          a8 = (byte *) Image->data;
          i8 = (byte *) AJ_RGB;
@@ -3770,7 +3770,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             *a16++ =  i16[im_arr[k++]];
          }
       break ;
- 
+
       case 8:
          a8 = (byte *) Image->data;
          i8 = (byte *) AJ_RGB;
@@ -4090,11 +4090,11 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
    xo = xorigin[xc][yc] ; yo = yorigin[xc][yc] ;
    g  = 5 ;
    for( j=1 ; j <= g ; j++ ){
-      plotx( xo+j    , yo+j    , 0 ) ; 
-      plotx( xo+j    , yo+gy-j , 1 ) ; 
+      plotx( xo+j    , yo+j    , 0 ) ;
+      plotx( xo+j    , yo+gy-j , 1 ) ;
       plotx( xo+gx-j , yo+gy-j , 1 ) ;
-      plotx( xo+gx-j , yo+j    , 1 ) ; 
-      plotx( xo+j    , yo+j    , 1 ) ; 
+      plotx( xo+gx-j , yo+j    , 1 ) ;
+      plotx( xo+j    , yo+j    , 1 ) ;
    }
 #endif
 
@@ -5309,7 +5309,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
 
             z_imL = Im_Nr + 1;
             /* swap order if last < first */
-            if ( z_imL - z_im1 < 0) { 
+            if ( z_imL - z_im1 < 0) {
                i = z_im1;
                z_im1 = z_imL;
                z_imL = i;
@@ -5318,7 +5318,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
             act_undo += (z_imL - z_im1) * ar_size;
             undo_buf = realloc(undo_buf, (act_undo+1)*sizeof(struct _undo_buf));
             if ( undo_buf != NULL ) {
-               for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) { 
+               for ( k=z_im1, nn=mm; k < z_imL; k++, nn+=ar_size) {
                   for ( i=0, j=nn; i < ar_size; j++, i++) {
                      undo_buf[j].im  = k;
                      undo_buf[j].pix = i;
@@ -5340,7 +5340,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
                undo_ref =
                       realloc(undo_ref, (ref_undo+1)*sizeof(struct _undo_buf));
                if ( undo_ref != NULL ) {
-                  for ( k=z_im1, j=mm; k < z_imL; k++, j++) { 
+                  for ( k=z_im1, j=mm; k < z_imL; k++, j++) {
                      undo_ref[j].im  = k;
                      undo_ref[j].r   = r_arr[k+1].r;
                      undo_ref[j].i   = r_arr[k+1].i;
@@ -5592,7 +5592,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
          DrawSubWindow();
          DrawTopWindow();
          old_im = -1;
-         Put_image(0);       
+         Put_image(0);
    }
 #endif
 
@@ -5802,7 +5802,7 @@ printf(" t_points = %d, avr_nr = %d\n", t_points, avr_nr);
      plotx(mdx1       , yyy, 0);
      plotx(mdx1+matx*gx, yyy, 1);
    }
-   for (i=0;i<=matx;i++) {	
+   for (i=0;i<=matx;i++) {
      plotx(mdx1+i*gx,mdy1       , 0);
      plotx(mdx1+i*gx,mdy1+maty*gy, 1);
    }
@@ -7136,7 +7136,7 @@ int FIM_selection(ikey)
                int ii , ival ;
                FILE * fp ;
 
-               if( !RWC_do_overfim || RWC_ideal == NULL ){ 
+               if( !RWC_do_overfim || RWC_ideal == NULL ){
                   XBell(theDisp,100) ;
                   return 0;
                }
@@ -7807,7 +7807,7 @@ int check_color( cname )
    char *cH;
    unsigned char *a8;
    short *a16;
- 
+
    switch( bperpix ) {
       case 32:
       default:
@@ -7826,7 +7826,7 @@ int check_color( cname )
          cH = (char *) &a8[NCOLORS];
       break;
    }
-  
+
    for (i=0; i < nc; i++) {
       AJ_rgb[i].r = mc[i].red >> 8;
       AJ_rgb[i].g = mc[i].green >> 8;

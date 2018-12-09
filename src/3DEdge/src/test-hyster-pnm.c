@@ -6,15 +6,15 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  * Input must be of PBM/PGM/PPM raw format, output will be the same.
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * Thu Oct  7 22:56:37 MET DST 1999
  *
  * ADDITIONS, CHANGES
@@ -87,22 +87,22 @@ int main( int argc, char* argv[] )
   for ( i=1; i<argc; i++ ) {
     if ( argv[i][0] == '-' ) {
 
-      if ( (strcmp ( argv[i], "-help" ) == 0) || 
+      if ( (strcmp ( argv[i], "-help" ) == 0) ||
 	   (strcmp ( argv[i], "-h" ) == 0) ) {
 	ErrorMessage( "help message\n", 1 );
       }
-      
-      else if ( (strcmp ( argv[i], "-verbose" ) == 0) || 
+
+      else if ( (strcmp ( argv[i], "-verbose" ) == 0) ||
 		(strcmp ( argv[i], "-v" ) == 0) ) {
 	Connexe_verbose();
       }
 
-      else if ( (strcmp ( argv[i], "-no-verbose" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-no-verbose" ) == 0) ||
 		(strcmp ( argv[i], "-nv" ) == 0) ) {
 	Connexe_noverbose();
       }
 
-      else if ( (strcmp ( argv[i], "-low-threshold" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-low-threshold" ) == 0) ||
 		(strcmp ( argv[i], "-lt" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -low-threshold...\n", 0 );
@@ -110,7 +110,7 @@ int main( int argc, char* argv[] )
 	if ( status <= 0 ) ErrorMessage( "parsing -low-threshold...\n", 0 );
       }
 
-      else if ( (strcmp ( argv[i], "-high-threshold" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-high-threshold" ) == 0) ||
 		(strcmp ( argv[i], "-ht" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -high-threshold...\n", 0 );
@@ -118,7 +118,7 @@ int main( int argc, char* argv[] )
 	if ( status <= 0 ) ErrorMessage( "parsing -high-threshold...\n", 0 );
       }
 
-      else if ( (strcmp ( argv[i], "-minimal-size" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-minimal-size" ) == 0) ||
 		(strcmp ( argv[i], "-ms" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -minimal-size...\n", 0 );
@@ -135,10 +135,10 @@ int main( int argc, char* argv[] )
     else if ( argv[i][0] != 0 ) {
       if ( nbNames == 0 ) {
 	strcpy( nameImageIn, argv[i] );
-      } 
+      }
       else if ( nbNames == 1 ) {
 	strcpy( nameImageOut, argv[i] );
-      } 
+      }
       else {
 	sprintf( nameImageIn, "too many image name (%s)\n", argv[i] );
 	ErrorMessage( nameImageIn, 0);
@@ -147,7 +147,7 @@ int main( int argc, char* argv[] )
     }
   }
 
-  
+
   bufferIn = _readPnmImage( nameImageIn, &bufferDims[0], &bufferDims[1], &bufferDims[2], &nbytes );
   if ( nbytes == 2 ) TYPE = USHORT;
 
@@ -178,5 +178,5 @@ int main( int argc, char* argv[] )
 
 
   _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], 1, bufferOut );
-  
+
 }

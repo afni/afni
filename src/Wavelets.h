@@ -43,7 +43,7 @@ void WA_error (char * message);
 if((ptr)==NULL) \
 ( WA_error ("Cannot allocate memory") )
 
-     
+
 /*---------------------------------------------------------------------------*/
 /*
   Print time series data to screen.
@@ -81,11 +81,11 @@ int my_log2 (int n);
   Apply filter to wavelet coefficients.
 */
 
-void FWT_1d_filter 
+void FWT_1d_filter
 (
   float * filter,         /* array of filter coefficients */
   int N,                  /* log2(NPTS) */
-  float * s               /* array of wavelet coefficients */ 
+  float * s               /* array of wavelet coefficients */
 );
 
 
@@ -94,10 +94,10 @@ void FWT_1d_filter
   Set up array indicating which wavelet coefficients to set to zero.
 */
 
-float * FWT_1d_stop_filter 
+float * FWT_1d_stop_filter
 (
   int num_stop_filters,   /* number of wavelet stop filters */
-  int * stop_band,        /* wavelet filter stop band */ 
+  int * stop_band,        /* wavelet filter stop band */
   int * stop_mintr,       /* min. time for stop band */
   int * stop_maxtr,       /* max. time for stop band */
   int NFirst,             /* first image from input 3d+time dataset to use */
@@ -113,7 +113,7 @@ float * FWT_1d_stop_filter
 float * FWT_1d_pass_filter
 (
   int num_pass_filters,   /* number of wavelet pass filters */
-  int * pass_band,        /* wavelet filter pass band */ 
+  int * pass_band,        /* wavelet filter pass band */
   int * pass_mintr,       /* min. time for pass band */
   int * pass_maxtr,       /* max. time for pass band */
   int NFirst,             /* first image from input 3d+time dataset to use */
@@ -126,7 +126,7 @@ float * FWT_1d_pass_filter
   Calculate the error sum of squares.
 */
 
-float calc_sse 
+float calc_sse
 (
   int NPTS,         /* number of usable data points from input data */
   float * trueData,     /* actual time series data */
@@ -154,7 +154,7 @@ float calc_freg
   Calculate the coefficient of multiple determination R^2.
 */
 
-float calc_rsqr 
+float calc_rsqr
 (
   float ssef,                 /* error sum of squares from full model */
   float sser                  /* error sum of squares from reduced model */
@@ -166,9 +166,9 @@ float calc_rsqr
   Perform wavelet analysis on a single input time series.
 */
 
-void wavelet_analysis 
+void wavelet_analysis
 (
-  int wavelet_type,         /* indicates type of wavelet */   
+  int wavelet_type,         /* indicates type of wavelet */
   int f,                    /* number of parameters removed by the filter */
   float * stop_filter,      /* select wavelet coefs. to stop */
   int q,                    /* number of parameters in the baseline model */
@@ -196,7 +196,7 @@ void wavelet_analysis
   Report the results of wavelet analysis for a single time series.
 */
 
-void report_results 
+void report_results
 (
   int N,                /* number of usable data points from input data */
   int NFirst,           /* first image from input 3d+time dataset to use */

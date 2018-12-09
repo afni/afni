@@ -1,4 +1,4 @@
-/* 
+/*
    [PT: April, 2018] Calc slicewise Dice coefficients for dsets.
    Output 3 1D text files, one for each FOV.
 */
@@ -9,14 +9,14 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-//#include <rsfc.h>    
+#include <mrilib.h>
+#include <3ddata.h>
+//#include <rsfc.h>
 //#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 #include "basic_boring.h"
 
-void usage_SliceNDice(int detail) 
+void usage_SliceNDice(int detail)
 {
    printf(
 " # ----------------------------------------------------------------------\n"
@@ -180,8 +180,8 @@ int main(int argc, char *argv[]) {
    int FOV_TYPE = 0;    // 0: output full FOV; 1: *only* where A or B
                         // is nonzero;
 
-   mainENTRY("3dSliceNDice"); machdep(); 
-  
+   mainENTRY("3dSliceNDice"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -189,17 +189,17 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    // INFO_message("version: NU");
-	
+
    /** scan args **/
    if (argc == 1) { usage_SliceNDice(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ) {
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_SliceNDice(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       /*
       // NO ARG:
       if( strcmp(argv[iarg],"-TESTING") == 0) {
@@ -207,18 +207,18 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
       */
-      
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-insetA") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-insetA'");
 
          insetA = THD_open_dataset(argv[iarg]);
@@ -230,23 +230,23 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-insetB") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-insetB'");
-         
+
          insetB = THD_open_dataset(argv[iarg]);
          if( (insetB == NULL ))
             ERROR_exit("Can't open dataset '%s'.",
                        argv[iarg]);
-         
+
          iarg++ ; continue ;
       }
-      
+
       // what is length of output?
       if( strcmp(argv[iarg],"-out_domain") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                   ERROR_exit("Need argument after '-out_domain'");
-      
-      if( strcmp(argv[iarg],"all") == 0 ) 
+
+      if( strcmp(argv[iarg],"all") == 0 )
          FOV_TYPE = 0; // def: full FOV
       else if( strcmp(argv[iarg],"AorB") == 0 )
          FOV_TYPE = 1; // only where A or B is nonzero
@@ -256,32 +256,32 @@ int main(int argc, char *argv[]) {
          FOV_TYPE = 3; // only where A has >0 voxel
       else if( strcmp(argv[iarg],"Bmask") == 0 )
          FOV_TYPE = 4; // only where B has >0 voxel
-      else 
+      else
          ERROR_exit("Illegal after '-out_domain': need 'all' or 'AorB'");
 
       iarg++ ; continue ;
    }
-      
+
       // don't echo command into text file
       if( strcmp(argv[iarg],"-no_cmd_echo") == 0 ){
          ARGV_IN = 0;
          iarg++ ; continue ;
       }
 
-      
+
       // ----------------- finish up -----------------
-      
+
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
 }
-	
+
    // TEST BASIC INPUT PROPERTIES
    if (iarg < 2) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
-	
+
 if( !TEST_OK ) {
    ERROR_message("HEY! Just testing/building mode right now!\n");
    exit(5);
@@ -308,20 +308,20 @@ if ( Dim[3] > 1 ) {
 // ****************************************************************
 
 mskdA = (byte ***) calloc( Dim[0], sizeof(byte **) );
-for ( i = 0 ; i < Dim[0] ; i++ ) 
+for ( i = 0 ; i < Dim[0] ; i++ )
    mskdA[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
-for ( i = 0 ; i < Dim[0] ; i++ ) 
-   for ( j = 0 ; j < Dim[1] ; j++ ) 
+for ( i = 0 ; i < Dim[0] ; i++ )
+   for ( j = 0 ; j < Dim[1] ; j++ )
       mskdA[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
 mskdB = (byte ***) calloc( Dim[0], sizeof(byte **) );
-for ( i = 0 ; i < Dim[0] ; i++ ) 
+for ( i = 0 ; i < Dim[0] ; i++ )
    mskdB[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
-for ( i = 0 ; i < Dim[0] ; i++ ) 
-   for ( j = 0 ; j < Dim[1] ; j++ ) 
+for ( i = 0 ; i < Dim[0] ; i++ )
+   for ( j = 0 ; j < Dim[1] ; j++ )
       mskdB[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
-if( (mskdA == NULL) || (mskdB == NULL) ) { 
+if( (mskdA == NULL) || (mskdB == NULL) ) {
    fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
    exit(13);
  }
@@ -331,10 +331,10 @@ if( (mskdA == NULL) || (mskdB == NULL) ) {
 //                    Beginning of main loops
 // *************************************************************
 // *************************************************************
-	 
+
 // go through once: define data masks
-for( k=0 ; k<Dim[2] ; k++ ) 
-   for( j=0 ; j<Dim[1] ; j++ ) 
+for( k=0 ; k<Dim[2] ; k++ )
+   for( j=0 ; j<Dim[1] ; j++ )
       for( i=0 ; i<Dim[0] ; i++ ) {
          idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
          if( THD_get_voxel(insetA, idx, 0) )
@@ -346,10 +346,10 @@ for( k=0 ; k<Dim[2] ; k++ )
 SLIDICE = Create_slidice( Dim, insetA, insetB);
 
 // where the magic happens
-i = Dice_em_up_calcs( SLIDICE, 
+i = Dice_em_up_calcs( SLIDICE,
                       mskdA,
                       mskdB);
-      
+
 // **************************************************************
 // **************************************************************
 //                 Store and output
@@ -358,23 +358,23 @@ i = Dice_em_up_calcs( SLIDICE,
 
 mm = SLIDICE->maxd;
 orange = calloc( 3, sizeof(orange) );
-for(i=0 ; i<3 ; i++) 
+for(i=0 ; i<3 ; i++)
    orange[i] = calloc( mm, sizeof(byte) );
 
-if( (orange == NULL) ) { 
+if( (orange == NULL) ) {
    fprintf(stderr, "\n\n MemAlloc failure (arrs).\n\n");
    exit(12);
  }
 
-i = Find_slidice_orange( SLIDICE, 
+i = Find_slidice_orange( SLIDICE,
                          FOV_TYPE,
                          orange);
 
 for( nn=0 ; nn<3 ; nn++ ) {
-      
+
    // attach the orientation to the file name
    for( i=0 ; i<2 ; i++ ) {
-      if( !nn ) 
+      if( !nn )
          ori[i] = ORIENT_tinystr[insetA->daxes->xxorient][i];
       else if( nn==1 )
          ori[i] = ORIENT_tinystr[insetA->daxes->yyorient][i];
@@ -388,33 +388,33 @@ for( nn=0 ; nn<3 ; nn++ ) {
       fprintf(stderr, "Error opening file %s.", tprefixx);
       exit(19);
    }
-   
+
    if( ARGV_IN == 1 ) {
       fprintf(fout0, "#");
-      for( j=0 ; j<argc ; j++ ) 
+      for( j=0 ; j<argc ; j++ )
          fprintf(fout0, " %s", argv[j]);
       fprintf(fout0, "\n");
    }
 
    for( i=0 ; i<Dim[nn] ; i++ ) {
       if( orange[nn][i] )
-         fprintf( fout0, "%5d %12.5f %12d %12d %12.5f \n", 
+         fprintf( fout0, "%5d %12.5f %12d %12d %12.5f \n",
                   i,
-                  SLIDICE->coors[nn][i], 
-                  SLIDICE->sizeA[nn][i], 
-                  SLIDICE->sizeB[nn][i], 
+                  SLIDICE->coors[nn][i],
+                  SLIDICE->sizeA[nn][i],
+                  SLIDICE->sizeB[nn][i],
                   SLIDICE->dice[nn][i]);
    }
 
    fclose(fout0);
  }
-   
+
 // ************************************************************
 // ************************************************************
 //                    Freeing
 // ************************************************************
 // ************************************************************
-	
+
 if(insetA){
    DSET_delete(insetA);
    free(insetA);
@@ -426,7 +426,7 @@ if(insetB){
  }
 
 if(mskdA) {
-   for( i=0 ; i<Dim[0] ; i++) 
+   for( i=0 ; i<Dim[0] ; i++)
       for( j=0 ; j<Dim[1] ; j++) {
          free(mskdA[i][j]);
       }
@@ -437,7 +437,7 @@ if(mskdA) {
  }
 
 if(mskdB) {
-   for( i=0 ; i<Dim[0] ; i++) 
+   for( i=0 ; i<Dim[0] ; i++)
       for( j=0 ; j<Dim[1] ; j++) {
          free(mskdB[i][j]);
       }
@@ -448,7 +448,7 @@ if(mskdB) {
  }
 
 if(orange) {
-   for( j=0 ; j<3 ; j++) 
+   for( j=0 ; j<3 ; j++)
       free(orange[j]);
    free(orange);
  }
@@ -461,7 +461,7 @@ if(prefix)
 
 if(Dim)
    free(Dim);
-	
+
 return 0;
 }
 

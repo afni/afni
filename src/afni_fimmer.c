@@ -1824,7 +1824,7 @@ ENTRY("AFNI_fimmer_menu_CB") ;
       for( ii=0 ; ii < im3d->ss_now->num_dsset ; ii++ ){
 
          if( DSET_GRAPHABLE(GET_SESSION_DSET(im3d->ss_now, ii, vv)) { /* template session list - 2010 */
-            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);           
+            temp_dset = GET_SESSION_DSET(im3d->ss_now, ii, vv);
             /* im3d->ss_now->dsset_xform_table[ii][vv]) ){ */ /** have one! **/
             MCW_strncpy( strlist[num_str] ,
                          temp_dset->dblk->diskptr->prefix ,

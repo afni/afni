@@ -98,7 +98,7 @@ int process_options(int argc, char *argv[], char ** iname, char ** oname)
       return 1;  /* error */
    }
 
-   *iname = argv[2]; 
+   *iname = argv[2];
    *oname = argv[4];
 
    return 0;

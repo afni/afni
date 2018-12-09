@@ -73,7 +73,7 @@ apply_image(int is_second, Gif_Stream *gfs, Gif_Image *gfi)
   u_int16_t *data = (is_second ? data2 : data1);
   u_int16_t *last = (is_second ? last2 : last1);
   Gif_Colormap *gfcm = gfi->local ? gfi->local : gfs->global;
-  
+
   /* set up colormap */
   for (i = 0; i < 256; i++)
     map[i] = 1;
@@ -82,7 +82,7 @@ apply_image(int is_second, Gif_Stream *gfs, Gif_Image *gfi)
       map[i] = gfcm->col[i].pixel;
   if (gfi->transparent >= 0 && gfi->transparent < 256)
     map[gfi->transparent] = TRANSP;
-  
+
   /* copy image over */
   Gif_UncompressImage(gfi);
   Gif_ClipImage(gfi, 0, 0, screen_width, screen_height);
@@ -107,7 +107,7 @@ apply_image_disposal(int is_second, Gif_Stream *gfs, Gif_Image *gfi,
   int x, y, width = gfi->width;
   u_int16_t *data = (is_second ? data2 : data1);
   u_int16_t *last = (is_second ? last2 : last1);
-  
+
   if (gfi->disposal == GIF_DISPOSAL_PREVIOUS)
     for (y = gfi->top; y < gfi->top + gfi->height; y++)
       memcpy(data + screen_width * y + gfi->left,
@@ -178,14 +178,14 @@ compare(Gif_Stream *s1, Gif_Stream *s2)
   Gif_Colormap *newcm;
   int imageno, background1, background2;
   char buf1[256], buf2[256];
-  
+
   was_different = 0;
 
   /* Compare image counts and screen sizes. If either of these differs, quit
      early. */
   Gif_CalculateScreenSize(s1, 0);
   Gif_CalculateScreenSize(s2, 0);
-  
+
   if (s1->nimages != s2->nimages)
     different("frame counts differ: <%d >%d", s1->nimages, s2->nimages);
   if (s1->screen_width != s2->screen_width
@@ -201,7 +201,7 @@ compare(Gif_Stream *s1, Gif_Stream *s2)
   /* Create arrays for the image data */
   screen_width = s1->screen_width;
   screen_height = s1->screen_height;
-  
+
   data1 = Gif_NewArray(u_int16_t, screen_width * screen_height);
   data2 = Gif_NewArray(u_int16_t, screen_width * screen_height);
   last1 = Gif_NewArray(u_int16_t, screen_width * screen_height);
@@ -217,34 +217,34 @@ compare(Gif_Stream *s1, Gif_Stream *s2)
     combine_colormaps(s1->images[imageno]->local, newcm);
     combine_colormaps(s2->images[imageno]->local, newcm);
   }
-  
+
   /* Choose the background values and clear the image data arrays */
   if (s1->images[0]->transparent >= 0 || !s1->global)
     background1 = TRANSP;
   else
     background1 = s1->global->col[ s1->background ].pixel;
-  
+
   if (s2->images[0]->transparent >= 0 || !s2->global)
     background2 = TRANSP;
   else
     background2 = s2->global->col[ s2->background ].pixel;
-  
+
   fill_area(data1, 0, 0, screen_width, screen_height, background1);
   fill_area(data2, 0, 0, screen_width, screen_height, background2);
-  
+
   /* Loopcounts differ? */
   if (s1->loopcount != s2->loopcount) {
     name_loopcount(s1->loopcount, buf1);
     name_loopcount(s2->loopcount, buf2);
     different("loop counts differ: <%s >%s", buf1, buf2);
   }
-  
+
   /* Loop over frames, comparing image data and delays */
   for (imageno = 0; imageno < s1->nimages; imageno++) {
     Gif_Image *gfi1 = s1->images[imageno], *gfi2 = s2->images[imageno];
     apply_image(0, s1, gfi1);
     apply_image(1, s2, gfi2);
-    
+
     if (memcmp(data1, data2, screen_width * screen_height * sizeof(u_int16_t))
 	!= 0) {
       int d, c = screen_width * screen_height;
@@ -258,13 +258,13 @@ compare(Gif_Stream *s1, Gif_Stream *s2)
 	  break;
 	}
     }
-    
+
     if (gfi1->delay != gfi2->delay) {
       name_delay(gfi1->delay, buf1);
       name_delay(gfi2->delay, buf2);
       different("frame #%d delays differ: <%s >%s", imageno, buf1, buf2);
     }
-    
+
     apply_image_disposal(0, s1, gfi1, background1);
     apply_image_disposal(1, s2, gfi2, background2);
   }
@@ -275,7 +275,7 @@ compare(Gif_Stream *s1, Gif_Stream *s2)
   Gif_DeleteArray(data2);
   Gif_DeleteArray(last1);
   Gif_DeleteArray(last2);
-  
+
   return was_different ? DIFFERENT : SAME;
 }
 
@@ -349,12 +349,12 @@ gifread_error(const char *message, int which_image, void *thunk)
   static int different_error_count = 0;
   static int same_error_count = 0;
   const char *filename = (const char *)thunk;
-  
+
   if (gifread_error_count == 0) {
     last_which_image = -1;
     different_error_count = 0;
   }
-  
+
   gifread_error_count++;
   if (last_message && different_error_count <= 10
       && (message != last_message || last_which_image != which_image)) {
@@ -367,7 +367,7 @@ gifread_error(const char *message, int which_image, void *thunk)
 
   if (message != last_message)
     different_error_count++;
-  
+
   same_error_count++;
   last_message = message;
   if (last_which_image != which_image && different_error_count <= 10
@@ -375,7 +375,7 @@ gifread_error(const char *message, int which_image, void *thunk)
     error("Error while reading `%s' frame #%d:", filename, which_image);
     last_which_image = which_image;
   }
-  
+
   if (different_error_count == 11 && message)
     error("(more errors while reading `%s')", filename);
 }
@@ -389,22 +389,22 @@ main(int argc, char **argv)
   const char **inputp;
   FILE *f1, *f2;
   Gif_Stream *gfs1, *gfs2;
-  
+
   Clp_Parser *clp =
     Clp_NewParser(argc, argv, sizeof(options) / sizeof(options[0]), options);
-  
+
   program_name = Clp_ProgramName(clp);
   brief = 0;
-  
+
   while (1) {
     int opt = Clp_Next(clp);
     switch (opt) {
-      
+
      case HELP_OPT:
       usage();
       exit(0);
       break;
-      
+
      case VERSION_OPT:
       printf("gifdiff (LCDF Gifsicle) %s\n", VERSION);
       printf("Copyright (C) 1998-2001 Eddie Kohler\n\
@@ -413,11 +413,11 @@ There is NO warranty, not even for merchantability or fitness for a\n\
 particular purpose.\n");
       exit(0);
       break;
-      
+
      case QUIET_OPT:
       brief = !clp->negated;
       break;
-      
+
      case Clp_NotOption:
       if (how_many_inputs == 2) {
 	error("too many file arguments");
@@ -436,20 +436,20 @@ particular purpose.\n");
       short_usage();
       exit(1);
       break;
-      
+
      case Clp_Done:
       goto done;
-      
+
     }
   }
-  
+
  done:
-  
+
   if (how_many_inputs < 2)
     fatal_error("need exactly 2 file arguments");
   if (filename1 == 0 && filename2 == 0)
     fatal_error("can't read both files from stdin");
-  
+
   if (filename1 == 0) {
     f1 = stdin;
     filename1 = "<stdin>";
@@ -463,7 +463,7 @@ particular purpose.\n");
   gifread_error(0, -1, (void *)filename1); /* print out last error message */
   if (!gfs1)
     fatal_error("`%s' doesn't seem to contain a GIF", filename1);
-  
+
   if (filename2 == 0) {
     f2 = stdin;
     filename2 = "<stdin>";
@@ -476,7 +476,7 @@ particular purpose.\n");
   gfs2 = Gif_FullReadFile(f2, GIF_READ_COMPRESSED, gifread_error, (void *)filename2);
   gifread_error(0, -1, (void *)filename2); /* print out last error message */
   if (!gfs2) fatal_error("`%s' doesn't seem to contain a GIF", filename2);
-  
+
   status = (compare(gfs1, gfs2) == DIFFERENT);
   if (status == 1 && brief)
     printf("GIF files %s and %s differ\n", filename1, filename2);

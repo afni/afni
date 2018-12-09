@@ -185,7 +185,7 @@ void ppm_freecolorhash ARGS(( colorhash_table cht ));
 /* Other function declarations */
 void pnm_promoteformat ARGS(( xel** xels, int cols, int rows, xelval maxval,
 int format, xelval newmaxval, int newformat ));
-void pnm_promoteformatrow ARGS(( xel* xelrow, int cols, xelval maxval, 
+void pnm_promoteformatrow ARGS(( xel* xelrow, int cols, xelval maxval,
 int format, xelval newmaxval, int newformat ));
 
 xel pnm_backgroundxel ARGS(( xel** xels, int cols, int rows, xelval maxval, int format ));

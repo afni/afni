@@ -423,16 +423,16 @@ static int tcp_listen( int port )
    int sd , l , q,qq ;
    struct sockaddr_in sin ;
    char serr[128]={""};
-   
+
    if( port < 1 ) return -1 ; /* bad input */
 
    /** open a socket **/
 
    sd = socket( AF_INET , SOCK_STREAM , 0 ) ;
-   if( sd == -1 ){ 
-      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)", 
+   if( sd == -1 ){
+      sprintf(serr,"tcp_listen(socket): (Name %s, Port %d)",
                get_port_numbered(port), port);
-      PERROR(serr); return -1; 
+      PERROR(serr); return -1;
    }
 
    /** set socket options (no delays, large buffers) **/
@@ -472,13 +472,13 @@ static int tcp_listen( int port )
    sin.sin_addr.s_addr = INADDR_ANY ;  /* reader reads from anybody */
 
    if( bind(sd , (struct sockaddr *)&sin , sizeof(sin)) == -1 ){
-     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)", 
+     sprintf(serr,"tcp_listen(bind) (Name %s, Port %d, sd %d)",
                get_port_numbered(port), port, sd);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
 
    if( listen(sd,1) == -1 ){
-     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)", 
+     sprintf(serr,"tcp_listen(listen) (Name %s, Port %d)",
                get_port_numbered(port), port);
      PERROR(serr); CLOSEDOWN(sd); return -1;
    }
@@ -831,11 +831,11 @@ static int SHM_nattach( int shmid )
    static struct shmid_ds buf ;
    char *eee = getenv( "NIML_DNAME" ) ;
    static int nid=0;
-   
+
    if( shmid < 0 ) return -1 ;
    ii = shmctl( shmid , IPC_STAT , &buf ) ;
    if( ii < 0 ){
-     if( eee != NULL ) 
+     if( eee != NULL )
       fprintf(stderr,
   "SHM_nattach (%s): (shmid=%d, buf.shm_nattach %d, errno %d), trying again!\n"
   "                     EACCES %d, EFAULT %d, EINVAL %d, EPERM %d\n",
@@ -861,12 +861,12 @@ static int SHM_nattach( int shmid )
      nid = 0;
      free((void *)ppp); return -1;
    } else if( eee != NULL ){
-     if (!nid) 
+     if (!nid)
       fprintf(stderr,"SHM_nattach (%s): called shmctl(%x,%x,%p), got %d\n"
                      "  Similar messages muted until SHM_nattach fails again.\n",
              eee,
              (unsigned int)shmid, (unsigned int)IPC_STAT, (void *)&buf,
-             (int)buf.shm_nattch ) ; 
+             (int)buf.shm_nattch ) ;
       ++nid;
    }
    return (int)buf.shm_nattch ;

@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines to initialize and implement the 
+  This file contains routines to initialize and implement the
   null signal model.
 
   File:     model_null.c
@@ -19,12 +19,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -46,7 +46,7 @@ MODEL_interface * initialize_model ()
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the null signal model -----*/   
+  /*----- define interface for the null signal model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "Null");
@@ -59,7 +59,7 @@ MODEL_interface * initialize_model ()
 
   /*----- minimum and maximum parameter constraints -----*/
   /*----- there are none -----*/
-  
+
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
 
@@ -75,21 +75,21 @@ MODEL_interface * initialize_model ()
   null signal model.
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
 
 
   for (it = 0;  it < ts_length;  it++)
     ts_array[it] = 0.0;
-  
+
 }
 
 

@@ -57,12 +57,12 @@
 /*          ONLY ELEMENTS LOW THROUGH IGH ARE USED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -83,7 +83,7 @@
 	h__ = 0.;
 	ort[m] = 0.;
 	scale = 0.;
-/*     .......... SCALE COLUMN (ALGOL TOL THEN NOT NEEDED) .......... 
+/*     .......... SCALE COLUMN (ALGOL TOL THEN NOT NEEDED) ..........
 */
 	i__2 = *igh;
 	for (i__ = m; i__ <= i__2; ++i__) {

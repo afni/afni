@@ -87,7 +87,7 @@ int main( int argc , char *argv[] )
      }
 
      while(1){
-       bb = afni_fgets( buf , NBUF , fp ) ; 
+       bb = afni_fgets( buf , NBUF , fp ) ;
        if( bb == NULL ) break ;
        fwrite(buf,1,strlen(buf),stdout) ;
      }

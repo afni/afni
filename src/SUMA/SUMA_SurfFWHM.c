@@ -1,7 +1,7 @@
 #include "SUMA_suma.h"
 
 static char uSFWHM_Example1[]={
-   "1- Estimating the FWHM of smoothed noise:\n"   
+   "1- Estimating the FWHM of smoothed noise:\n"
    "     echo Create a simple surface, a sphere and feed it to SUMA.\n"
    "\n"
    "     suma -niml &\n"
@@ -29,7 +29,7 @@ static char uSFWHM_Example1[]={
    "     SurfSmooth -spec sphere_iso_$Niso.spec -surf_A sphere_iso_$Niso \\\n"
    "                -met HEAT_07  \\\n"
    "                -input ${Niso}_rand.1D.dset -fwhm 10 \\\n"
-   "                -output ${opref_rand}.1D.dset\n" 
+   "                -output ${opref_rand}.1D.dset\n"
    "     DriveSuma  -com surf_cont -label sphere_iso_$Niso \\\n"
    "                -load_dset ${opref_rand}.1D.dset \\\n"
    "                -switch_dset ${opref_rand}.1D.dset -T_sb -1\n"
@@ -64,8 +64,8 @@ static char uSFWHM_Example1[]={
    "     echo change the example to add a preset number of smoothing   \n"
    "     echo iterations with a kernel width of your choosing.\n"
    "\n"
-   
-}; 
+
+};
 
 void examples_SurfFWHM ()
 {
@@ -75,7 +75,7 @@ void examples_SurfFWHM ()
             "%s\n"
             "\n", uSFWHM_Example1);
    return;
-}   
+}
 void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 {
       static char FuncName[]={"usage_SurfFWHM"};
@@ -83,7 +83,7 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
 "\n"
 "Usage: A program for calculating local and global FWHM.\n"
 "------\n"
@@ -103,7 +103,7 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 "  with the output redirection '>'. The output can be \n"
 "  further simplified for ease of parsing with -clean.\n"
 "  -clean: Strip text from output to simplify parsing.\n"
-"\n" 
+"\n"
 " For Datasets With Multiple Sub-Bricks (a time axis):\n"
 " ----------------------------------------------------\n"
 "  For FWHM estimates, one is typically not interested\n"
@@ -165,7 +165,7 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 "               The more FWHM/R exceeds 0.5, the more you will under-\n"
 "               estimate FWHM. Going for an excessive R however is not\n"
 "               very advantagious either. Large R is computationaly \n"
-"               expensive and if it is much larger than FWHM estimates,\n" 
+"               expensive and if it is much larger than FWHM estimates,\n"
 "               it will lead to a blurring of the local FWHM estimates.\n"
 "               Set R to -1 to allow the program\n"
 "               to set it automatically.\n"
@@ -187,13 +187,13 @@ void usage_SurfFWHM (SUMA_GENERIC_ARGV_PARSE *ps)
 " it faster when estimating the FWHM over multiple sub-bricks. If you find \n"
 " yourself doing this often, let me know. I hestitate to implement the faster \n"
 " method now because it is more complicated to program.\n"
-"\n"  
+"\n"
 " Examples:\n"
 "%s"
 "%s"
 "%s"
                "\n", uSFWHM_Example1, sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -202,15 +202,15 @@ static int ncode=-1 , code[MAX_NCODE];
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_SurfFWHM_ParseInput"}; 
+   static char FuncName[]={"SUMA_SurfFWHM_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-      
+
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->ps = ps; /* for convenience */
    Opt->NodeDbg = -1;
@@ -234,9 +234,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
 			 usage_SurfFWHM(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -244,11 +244,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-node_debug") == 0))
       {
          if (kar+1 >= argc)
@@ -256,29 +256,29 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a node index after -node_debug \n");
             exit (1);
          }
-         
+
          Opt->NodeDbg = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-slice") == 0))
       {
          Opt->Use_emask = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-clean") == 0))
       {
          Opt->iopt = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-fix_NN") == 0))
       {
          Opt->b2 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -286,12 +286,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a dset prefix after -prefix \n");
             exit (1);
          }
-         
+
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
          brk = YUP;
       }
-      
-      if (!brk && (strcmp(argv[kar], "-hood") == 0 || 
+
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 ||
                    strcmp(argv[kar], "-nbhd_rad") == 0))
       {
          if (kar+1 >= argc)
@@ -299,18 +299,18 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a value after -nbhd_rad \n");
             exit (1);
          }
-         
+
          Opt->r = atof(argv[++kar]);
          if (Opt->r <= 0.0 && Opt->r != -1.0f) {
             fprintf (SUMA_STDERR,
                      "Error %s:\n"
-                     "neighborhood radius is not valid (have %f from %s).\n", 
+                     "neighborhood radius is not valid (have %f from %s).\n",
                      FuncName, Opt->r, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-vox_size") == 0))
       {
          if (kar+1 >= argc)
@@ -318,44 +318,44 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a value after -vox_size \n");
             exit (1);
          }
-         
+
          Opt->d1 = atof(argv[++kar]);
          if (Opt->d1 <= 0.0) {
             fprintf (SUMA_STDERR,
                      "Error %s:\n"
-                     "voxel dimension is not valid (have %f from %s).\n", 
+                     "voxel dimension is not valid (have %f from %s).\n",
                      FuncName, Opt->d1, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-ok_warn") == 0))
       {
          Opt->b1 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-examples") == 0))
       {
          examples_SurfFWHM();
          exit(0);
       }
-      
-      if (!brk && (strcmp(argv[kar],"-detrend") == 0 )){         
+
+      if (!brk && (strcmp(argv[kar],"-detrend") == 0 )){
          Opt->corder = -1 ;
          if( kar < argc-1 && isdigit(argv[kar+1][0]) ){
             Opt->corder = (int)strtod(argv[++kar],NULL) ;
             if( Opt->corder == 0 ){ /* Use poly of order 0 (mean) */
-              Opt->poly = 0 ; 
+              Opt->poly = 0 ;
               fprintf(SUMA_STDOUT,"-detrend 0 replaced by -detpoly 0") ;
               Opt->corder = -2;
             }
          }
          brk = YUP;
       }
-      
-      if (!brk && (strcmp(argv[kar],"-detpoly") == 0 )){         
+
+      if (!brk && (strcmp(argv[kar],"-detpoly") == 0 )){
          if (kar+1 >= argc)
          {
             fprintf (SUMA_STDERR, "need a value after -detpoly \n");
@@ -364,20 +364,20 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
          Opt->poly = (int)strtod(argv[++kar],NULL) ;
          brk = YUP;
       }
-      
-      if( strncmp(argv[kar],"-geom",4) == 0 ){          
+
+      if( strncmp(argv[kar],"-geom",4) == 0 ){
          Opt->geom = 1 ; brk = YUP;
       }
-      if( strncmp(argv[kar],"-arith",5) == 0 ){        
+      if( strncmp(argv[kar],"-arith",5) == 0 ){
          Opt->geom = 0 ; brk = YUP;
       }
-      if( strncmp(argv[kar],"-dmed",5) == 0 ){         
+      if( strncmp(argv[kar],"-dmed",5) == 0 ){
          SUMA_S_Errv("Option %s not supported.\n"
                      "Use -detrend instead.\n", argv[kar]);
          exit(1);
          Opt->dmed = 1 ; brk = YUP ;
       }
-      if( strncmp(argv[kar],"-unif",5) == 0 ){          
+      if( strncmp(argv[kar],"-unif",5) == 0 ){
          SUMA_S_Errv("Option %s not supported.\n"
                      "Use -detrend instead.\n", argv[kar]);
          exit(1);
@@ -394,10 +394,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
      }
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
-                  "Error %s:\nOption %s not understood. Try -help for usage\n", 
+                  "Error %s:\nOption %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -408,8 +408,8 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
    }
 
    if (Opt->r > 0.0 && Opt->d1 > 0.0) {
-      if (Opt->r / Opt->d1 < 2.99) {   /* no magic reason for 3 other than it 
-                                       results in approx. pi*(3*d)2 mm2 area, 
+      if (Opt->r / Opt->d1 < 2.99) {   /* no magic reason for 3 other than it
+                                       results in approx. pi*(3*d)2 mm2 area,
                                        which would be approx. pi*3*3 voxels. */
          SUMA_S_Warnv(  "\n"
                         "**********************************************\n"
@@ -421,20 +421,20 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfFWHM_ParseInput(char *argv[], int arg
                         " warning.\n"
                         " ZSS. DC CC.\n"
                         "***********************************************\n"
-                        "\n", 
-                        Opt->r, Opt->d1, Opt->d1*3.0 ); 
+                        "\n",
+                        Opt->r, Opt->d1, Opt->d1*3.0 );
          if (!Opt->b1) exit(1);
       }
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 /* See labbook NIH-4, pp 104 ...> */
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfFWHM"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"SurfFWHM"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfaceObject *SO=NULL, *SOf=NULL;
    int *icols=NULL, N_icols = -1;
@@ -447,19 +447,19 @@ int main (int argc,char *argv[])
    double MinArea = -1.0;
    char *ooo=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-m;-dset;-talk;");
-   
+
    if (argc < 2) {
       usage_SurfFWHM(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_SurfFWHM_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
@@ -472,7 +472,7 @@ int main (int argc,char *argv[])
       SUMA_S_Errv("Failed to load dset named %s\n", Opt->ps->dsetname[0]);
       exit(1);
    }
-   
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -485,7 +485,7 @@ int main (int argc,char *argv[])
 
    if (Opt->Use_emask) SUMA_Set_UseSliceFWHM(1);
    else SUMA_Set_UseSliceFWHM(0);
-   
+
    SUMA_LH("Loading surface...");
    SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], Opt->debug);
    if (!SO) {
@@ -494,24 +494,24 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
-   if (Spec->N_Surfs == 2) { 
-      SOf = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[0], Opt->debug); 
+
+   }
+   if (Spec->N_Surfs == 2) {
+      SOf = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[0], Opt->debug);
       if (!SOf) {
          fprintf (SUMA_STDERR,"Error %s:\n"
                               "Failed to find surface\n"
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      }   
+      }
    } else { SOf = NULL; }
-   
+
    if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, &N_inmask)) && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
-   
+
    if( (Opt->dmed || Opt->unif || Opt->corder > -2) && SDSET_VECNUM(din) < 4 ){
      SUMA_S_Warnv(
        "-dmed and/or -corder and/or -unif ignored: only %d input sub-bricks\n",
@@ -528,7 +528,7 @@ int main (int argc,char *argv[])
       SUMA_S_Errv("-corder %d is too big for this dataset",Opt->corder) ;
    }
    if (Opt->corder > 0 && Opt->poly >= 0) {
-      SUMA_S_Errv("Cannot specify both -detrend and -detpoly\n Have %d and %d, respectively.\n", 
+      SUMA_S_Errv("Cannot specify both -detrend and -detpoly\n Have %d and %d, respectively.\n",
                   Opt->corder, Opt->poly);
       exit(1);
    }
@@ -554,10 +554,10 @@ int main (int argc,char *argv[])
 
       if (Opt->corder > 0) {
          nref = 2*Opt->corder+3;
-         if (Opt->debug) { 
+         if (Opt->debug) {
             SUMA_S_Notev(  "trig. detrending start: "
                            "%d baseline funcs, %d time points\n"
-                           ,nref, DSET_NVALS(inset)) ; 
+                           ,nref, DSET_NVALS(inset)) ;
          }
          ref = THD_build_trigref( Opt->corder , DSET_NVALS(inset) ) ;
          if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
@@ -572,29 +572,29 @@ int main (int argc,char *argv[])
          if( ref == NULL ) ERROR_exit("THD_build_trigref failed!") ;
 
       }
-      
+
       if (!(volmask = SUMA_Meshbmask_2_IndexListbmask(
                                  Opt->nmask , SO->N_Node,
                                  inset->dblk->node_list, inset->dblk->nnodes,
                                  &N_volmask))) {
                      ERROR_exit("Failed to build input's volmask");
-      }      
-      if (!(newset = THD_detrend_dataset( inset , nref , 
-                                          ref , 2 , 1 , volmask , NULL ))) { 
+      }
+      if (!(newset = THD_detrend_dataset( inset , nref ,
+                                          ref , 2 , 1 , volmask , NULL ))) {
          SUMA_S_Err("detrending failed!") ;
          exit(1);
       }
-      
+
       SUMA_LH("detrending done") ;
 
       for(jj=0;jj<nref;jj++) free(ref[jj]) ;
       free(ref); DSET_delete(inset); inset=newset; newset = NULL;
       Opt->dmed = Opt->unif = 0 ;
-      
+
       SUMA_LH("detrending cleanup done") ;
 
       /* Now back to SUMA_DSET,  don't need afni volume anymore*/
-      din = SUMA_afnidset2sumadset(&inset, 1, 1, -1); 
+      din = SUMA_afnidset2sumadset(&inset, 1, 1, -1);
       if (volmask) SUMA_free(volmask); volmask=NULL;
 
    }
@@ -627,24 +627,24 @@ int main (int argc,char *argv[])
    }
    /* what columns can we process ?*/
    icols = SUMA_FindNumericDataDsetCols(din, &N_icols);
-         
+
    if (N_icols <= 0) {
       SUMA_SL_Err("No approriate data columns in dset");
-      exit(1);   
+      exit(1);
    }
-   
+
    /* SUMA_SetDbgFWHM(1); */
    if (LocalHead && Opt->nmask) {
       SUMA_S_Note("Have mask, will travel");
       SUMA_WRITE_ARRAY_1D(Opt->nmask,SO->N_Node,1,"mask.1D");
    }
-   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, din, 
-                                          icols, N_icols, Opt->nmask, 
+   if (!(fwhmv = SUMA_estimate_dset_FWHM_1dif(  SO, din,
+                                          icols, N_icols, Opt->nmask,
                                           1, NULL))) {
       SUMA_S_Err("Rien ne va plus");
-      exit(1);                                         
+      exit(1);
    }
-  
+
    fprintf(stderr,"Global FWHM estimates for each column:\n");
    fwhmg_max = fwhmv[0];
    for (i=0; i<N_icols; ++i) {
@@ -657,14 +657,14 @@ int main (int argc,char *argv[])
       float fwhmg;
       if (Opt->geom < 0 || Opt->geom == 0) {
          SUMA_FWHM_MEAN(fwhmv, N_icols, fwhmg, "arit", N);
-         if (!Opt->iopt) 
-            fprintf(stdout,"Arithmetic Mean (non-zero fwhm only)= %.4f\n", 
+         if (!Opt->iopt)
+            fprintf(stdout,"Arithmetic Mean (non-zero fwhm only)= %.4f\n",
                      fwhmg);
          else fprintf(stdout,"#Arit_mean   %.4f\n", fwhmg);
       }
       if (Opt->geom < 0 || Opt->geom == 1) {
          SUMA_FWHM_MEAN(fwhmv, N_icols, fwhmg, "geom", N);
-         if (!Opt->iopt) 
+         if (!Opt->iopt)
             fprintf(stdout,
                   "Geometric  Mean (non-zero fwhm only)= %.4f\n", fwhmg);
          else fprintf(stdout,"#Geo_mean   %.4f\n", fwhmg);
@@ -672,20 +672,20 @@ int main (int argc,char *argv[])
    }
    if (Opt->r == -1.0f) {
       /* let's come up with a decent number */
-      /* first go with about 2.5 times the largest FWHM, 
+      /* first go with about 2.5 times the largest FWHM,
       and not smaller than 5.5*edge length and
       not smaller than about 3 voxels */
       Opt->r = SUMA_MAX_PAIR(2.5 * fwhmg_max, 5.5*SO->EL->AvgLe);
       /* Now make sure this covers more than about three voxels */
       if (Opt->d1 > 0.0) {
          SUMA_LHv("Have Opt->r %f and Opt->d1 %f. \n"
-                  "Making sure hood >= 3*voxels (%f)\n", 
+                  "Making sure hood >= 3*voxels (%f)\n",
                   Opt->r, Opt->d1, Opt->d1*3.0);
          if (Opt->r < Opt->d1*3.0) Opt->r = Opt->d1*3.0;
       }
       SUMA_S_Notev("Neighborhood radius set to %f\n", Opt->r);
    }
-   
+
    if (Opt->r > 0.0) { /* wants to do localized FWHM */
       if (Opt->debug) {
          SUMA_S_Note("Doing local FWHM...");
@@ -696,7 +696,7 @@ int main (int argc,char *argv[])
                         "non-spherical surface on input.\n");
             exit(1);
          } else {
-            /* Keep SOf NULL, that is acceptable, 'cause SO is spherical */ 
+            /* Keep SOf NULL, that is acceptable, 'cause SO is spherical */
          }
       } else {
          if (!SOf->isSphere) {
@@ -708,42 +708,42 @@ int main (int argc,char *argv[])
       code[0] = NSTAT_FWHMx;
       ncode = 1;
       if (Opt->d1 > 0.0) {
-         /* have a way of suggesting minimum number of nodes to 
-            enter in FWHM calculations 
+         /* have a way of suggesting minimum number of nodes to
+            enter in FWHM calculations
             need at least area covering a radius of 3 voxels */
-         MinArea = SUMA_PI * SUMA_POW2((3.0 * Opt->d1)); 
+         MinArea = SUMA_PI * SUMA_POW2((3.0 * Opt->d1));
          SUMA_SetFWHM_MinArea(MinArea);
       }
       if (Opt->Use_emask) SUMA_Set_UseSliceFWHM(1);
       else SUMA_Set_UseSliceFWHM(0);
-      if (!(dout = SUMA_CalculateLocalStats(SO, din, 
+      if (!(dout = SUMA_CalculateLocalStats(SO, din,
                                        Opt->nmask, 1,
                                        Opt->r, NULL,
-                                       ncode, code, 
+                                       ncode, code,
                                        NULL, Opt->NodeDbg,
                                        SOf))) {
          SUMA_S_Err("Failed in SUMA_CalculateLocalStats");
          exit(1);
       }
-   
+
       /* write it out */
       if (Opt->debug) {
          SUMA_S_Notev("Writing output to %s\n", Opt->out_prefix);
       }
-      ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 
+      ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform,
                               THD_ok_overwrite(), 0);
       if (dout) SUMA_FreeDset(dout); dout = NULL; SUMA_free(ooo); ooo=NULL;
    }
-   
-   
+
+
    if (din) SUMA_FreeDset(din); din = NULL;
    if (dout) SUMA_FreeDset(dout); dout = NULL;
    if (fwhmv) SUMA_free(fwhmv); fwhmv=NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-   
+
    exit(0);
-   
-} 
+
+}

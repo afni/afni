@@ -68,7 +68,7 @@
  */
 /*  The following digitization stuff is stolen from the NCAR metacode */
 /*  interpreter MCVAX.  Various minor changes have been made.  Most */
-/*  notable of these is the interchange of the '0' and 'O' characters -- 
+/*  notable of these is the interchange of the '0' and 'O' characters --
 */
 /*  I just couldn't stand the slash going through the 'O' as the CDC */
 /*  custom has it. */
@@ -145,7 +145,7 @@ L100:
     if (nu == 7) {
 
 /*  Op-codes are: NV = 7             ==> end of character */
-/*                     anything else ==> pen up move to next location 
+/*                     anything else ==> pen up move to next location
 */
 
 	if (nv == 7) {

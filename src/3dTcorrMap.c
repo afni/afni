@@ -598,7 +598,7 @@ int main( int argc , char *argv[] )
         DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
         nxmask = DSET_NX(mset); nymask = DSET_NY(mset); nzmask = DSET_NZ(mset);
         mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-        if( mask == NULL ) 
+        if( mask == NULL )
             ERROR_exit("Can't make mask from dataset '%s'",argv[nopt]) ;
         nmask = THD_countmask( nxmask*nymask*nzmask , mask ) ;
         INFO_message("Number of voxels in mask = %d",nmask) ;

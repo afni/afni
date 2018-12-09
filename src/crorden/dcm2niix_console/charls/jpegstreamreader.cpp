@@ -36,7 +36,7 @@ int32_t clamp(int32_t i, int32_t j, int32_t maximumSampleValue) noexcept
     return i;
 }
 
- 
+
 ApiResult CheckParameterCoherent(const JlsParameters& params) noexcept
 {
     if (params.bitsPerSample < 2 || params.bitsPerSample > 16)

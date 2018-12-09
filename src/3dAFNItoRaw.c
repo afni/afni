@@ -86,7 +86,7 @@ WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably
      fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
      exit(1);
    }
- 
+
    old_dset = THD_open_dataset(argv[nopt]); CHECK_OPEN_ERROR(old_dset,argv[nopt]);
 
    /* expect at least 2 values per voxel - otherwise what's the point? */
@@ -102,7 +102,7 @@ WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably
       fprintf (stderr, "*** Error - can not create %s for some reason!\n", outfname);
       exit (1);
    }
- 
+
    if(force_float==0) {
      for(j=0;j<DSET_NVALS(old_dset);j++) {
          fac = DSET_BRICK_FACTOR(old_dset, j); /* get scale factor for each sub-brik*/
@@ -113,7 +113,7 @@ WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably
          }
      }
    }
- 
+
 
    DSET_mallocize (old_dset);
    DSET_load (old_dset);	                /* load dataset */
@@ -178,7 +178,7 @@ WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably
          out_kind = MRI_float;
        else
          out_kind = data_im->kind;
-       
+
        switch(out_kind) {
           case MRI_short:{
              sval  = voxval;
@@ -208,14 +208,14 @@ WARNING_message("This program (3dAFNItoRaw) is old, not maintained, and probably
              voxptr = &ival;
           }
           break ;
- 
+
           default:                          /* unknown type */
               fprintf(stderr,"Can't handle type, %s, in sub-brik %d\n",\
                 MRI_TYPE_name[data_im->kind], j);
               fclose(fout);
               exit(1);
 	  break;
-       }             
+       }
 
        statcode = fwrite(voxptr, sizeof(out_kind), 1,fout);  /* write one voxel value at a time */
        if(statcode!=1) {

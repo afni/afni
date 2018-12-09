@@ -8,8 +8,8 @@
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * July, 8 1999
  *
  * ADDITIONS, CHANGES
@@ -46,7 +46,7 @@ extern "C" {
 
  _connectivity_ : the connectivity used to extract the connected components
                   it may be 4, 8 (those are 2D), 6, 10, 18, or 26 (those
-		  are 3D). 
+		  are 3D).
                   see Connexe_SetConnectivity()
 
  _minimum_size_of_components_ : the minimum size (number of points) that a
@@ -55,7 +55,7 @@ extern "C" {
 
  _maximum_number_of_components_ : the maximal number of connected components
                   If this number is in the range 0...65535, the connected
-                  components are sorted with respect to their size, and 
+                  components are sorted with respect to their size, and
                   only the _maximum_number_of_components_ ones are kept.
                   see Connexe_SetMaximumNumberOfComponents().
 
@@ -69,27 +69,27 @@ extern "C" {
 /* Counts and labels connected components.
  *
  * DESCRIPTION:
- * Extracts connected components from the input buffer. 
+ * Extracts connected components from the input buffer.
  * Only points with values >= 0 are considered.
  * At this point, intermediary computation is performed
- * in an buffer of type (unsigned short int). Some 
+ * in an buffer of type (unsigned short int). Some
  * limitation about the number of intermediary labels
  * may appear (I never see it).
  *
- * Complete description of the method may be found in the 
+ * Complete description of the method may be found in the
  * code.
  *
  * There are three main parameters:
  * - the connectivity (see Connexe_SetConnectivity)
  *   4, 8, 6, 10, 18 or 26.
- * - the minimal size of connected components to be 
+ * - the minimal size of connected components to be
  *   kept (see Connexe_SetMinimumSizeOfComponents).
- * - the maximal number of connected components to be 
+ * - the maximal number of connected components to be
  *   kept (see Connexe_SetMaximumNumberOfComponents),
  *   the largest ones are kept.
- * 
+ *
  * It just makes the following function call
- * CountConnectedComponentsWithAllParams( bufferIn, 
+ * CountConnectedComponentsWithAllParams( bufferIn,
  *                                        typeIn,
  *                                        bufferOut,
  *                                        typeOut,
@@ -149,7 +149,7 @@ extern int CountConnectedComponents( void *bufferIn, /* input buffer */
 				     void *bufferOut, /* output buffer */
 				     bufferType typeOut, /* type of the output buffer */
 				     int *bufferDims /* buffers' dimensions */
-				     ); 
+				     );
 
 /* Counts and labels connected components (without global parameters)
  *
@@ -161,7 +161,7 @@ extern int CountConnectedComponents( void *bufferIn, /* input buffer */
  * Main differences with CountConnectedComponents()
  *
  * - the input image is binarized with the parameter 'threshold'
- *   points with value greater or equal to the threshold are the 
+ *   points with value greater or equal to the threshold are the
  *   foreground (whom components will be extracted), while the others
  *   are the foreground
  *
@@ -169,7 +169,7 @@ extern int CountConnectedComponents( void *bufferIn, /* input buffer */
  *   one eliminates in a binary image the 'small' components. The binary value
  *   is the maximal value with respect to the output type (e.g. 255 for unsigned char).
  */
- 
+
 extern int CountConnectedComponentsWithAllParams( void *bufferIn, /* input buffer */
 				     bufferType typeIn,  /* type of the input buffer */
 				     void *bufferOut, /* output buffer */
@@ -184,7 +184,7 @@ extern int CountConnectedComponentsWithAllParams( void *bufferIn, /* input buffe
 									   ones (among the valid ones)
 									   are kept */
 				     int outputIsBinary /* the result is a two-valued image:
-							   background and foreground */ ); 
+							   background and foreground */ );
 
 
 
@@ -193,8 +193,8 @@ extern int CountConnectedComponentsWithAllParams( void *bufferIn, /* input buffe
 /* Performs hysteresis thresholding.
  *
  * DESCRIPTION:
- * Extracts connected components from the input buffer. 
- * These connected components is made of points of 
+ * Extracts connected components from the input buffer.
+ * These connected components is made of points of
  * value >= lowThreshold and contain at least one
  * point of value >= highThreshold.
  *
@@ -203,29 +203,29 @@ extern int CountConnectedComponentsWithAllParams( void *bufferIn, /* input buffe
  *
  * Only points with values >= 0 are considered.
  * At this point, intermediary computation is performed
- * in an buffer of type (unsigned short int). Some 
+ * in an buffer of type (unsigned short int). Some
  * limitation about the number of intermediary labels
  * may appear (I never see it).
  *
- * Complete description of the method may be found in the 
+ * Complete description of the method may be found in the
  * code.
  *
  * There are three main parameters:
  * - the connectivity (see Connexe_SetConnectivity)
  *   4, 8, 6, 10, 18 or 26.
- * - the minimal size of connected components to be 
+ * - the minimal size of connected components to be
  *   kept (see Connexe_SetMinimumSizeOfComponents).
- * - the maximal number of connected components to be 
+ * - the maximal number of connected components to be
  *   kept (see Connexe_SetMaximumNumberOfComponents),
  *   the largest ones are kept.
  *
  * It just makes the following function call
- * HysteresisThresholdingWithAllParams( bufferIn, 
+ * HysteresisThresholdingWithAllParams( bufferIn,
  *                                      typeIn,
  *                                      bufferOut,
  *                                      typeOut,
  *                                      bufferDims,
- *                                      lowThreshold, 
+ *                                      lowThreshold,
  *                                      highThreshold,
  *                                      _connectivity_,
  *                                      _minimum_size_of_components_,
@@ -287,15 +287,15 @@ extern int HysteresisThresholding( void *bufferIn, /* input buffer */
  *
  * - a connected component is valid when its size is greater or equal
  *   to 'minNumberOfPtsAboveLow' (there are more than 'minNumberOfPtsAboveLow'
- *   points which have a value greater or equal to 'lowThreshold') 
- *   AND when it contains at least 'minNumberOfPtsAboveHigh' 
+ *   points which have a value greater or equal to 'lowThreshold')
+ *   AND when it contains at least 'minNumberOfPtsAboveHigh'
  *   points which have a value greater or equal to 'highThreshold'.
  *   Here, one can tune 'minNumberOfPtsAboveHigh'.
  *
  * - by specifying a non-binary output (with a null value of 'outputIsBinary')
  *   One obtains the labeled connected components.
  */
- 
+
 extern int HysteresisThresholdingWithAllParams( void *bufferIn, /* input buffer */
 				     bufferType typeIn,  /* type of the input buffer */
 				     void *bufferOut, /* output buffer */
@@ -316,7 +316,7 @@ extern int HysteresisThresholdingWithAllParams( void *bufferIn, /* input buffer 
 									   component, only the largest
 									   ones (among the valid ones)
 									   are kept */
-				     int outputIsBinary /* the result is a two-valued image */ ); 
+				     int outputIsBinary /* the result is a two-valued image */ );
 
 
 
@@ -349,13 +349,13 @@ extern int RelabelConnectedComponentsByDecreasingSize( void *inputBuf,
  * The 2 first are 2D connectivities.
  * The 4 last are 3D connectivities.
  * The 10-connectivity is an anisotropic connectivity,
- * a mixed-up of the 2D 8-connectivity and the 3D 
+ * a mixed-up of the 2D 8-connectivity and the 3D
  * 6-connectivity.
  *
  */
 extern void Connexe_SetConnectivity( int c );
 
-  
+
 /* Set the minimal size of the connected components to be kept.
  *
  * DESCRIPTION:
@@ -371,11 +371,11 @@ extern void Connexe_SetMinimumSizeOfComponents( int c );
  * If this number is <= 0, all the valid connected components
  * are kept.
  * If this number is > 0, the connected components are sorted
- * with respect to their size (number of points), and only 
- * the c largest components are kept. 
+ * with respect to their size (number of points), and only
+ * the c largest components are kept.
  *
- * A side effect is (for CountConnectedComponents()): 
- * if c is larger than the number of valid connected 
+ * A side effect is (for CountConnectedComponents()):
+ * if c is larger than the number of valid connected
  * connected, all the components are kept, but the labels are sorted,
  * i.e. the largest connected component has label 1,
  * the second largest connected component has label 2, etc.

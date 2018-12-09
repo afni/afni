@@ -590,7 +590,7 @@ char * VOLREG_main( PLUGIN_interface * plint )
 
       strcpy(fn,VL_1Dfile) ;
       if( strstr(VL_1Dfile,"1D") == NULL ) strcat(fn,".1D") ;
-      
+
       if( THD_is_file(fn) )
          PLUTO_popup_transient( plint , "** Warning:\n"
                                         "** Overwriting 1Dfile" ) ;

@@ -157,7 +157,7 @@ ENTRY("THD_dblkatr_from_niml") ;
             *rhs != '\0'                              ){ /* a nonempty name?  */
 
            STATUS(rhs) ;
-           
+
            switch( nel->vec_typ[0] ){ /* 3 different data types of attributes */
 
              /* float attribute: copy 1st column of numbers into AFNI */
@@ -181,7 +181,7 @@ ENTRY("THD_dblkatr_from_niml") ;
                if (nel->vec) { /* to be expected */
                   char **sar = (char **)nel->vec[0] , *str ;
                   int nch , nstr=nel->vec_len , istr , lll=0 ;
-                  for( istr=0 ; istr < nstr ; istr++) 
+                  for( istr=0 ; istr < nstr ; istr++)
                      if (sar[istr]) lll += strlen(sar[istr]); /* ZSS Nov 2012 */
                   str = malloc(lll+4) ; *str = '\0' ;
 
@@ -189,7 +189,7 @@ ENTRY("THD_dblkatr_from_niml") ;
 
                   /* The loop of strcat() is very slow in the case of a long
                      history element, O(n^2), so replace with something linear.
-                     Javier complained that afni took forever to start.  One 
+                     Javier complained that afni took forever to start.  One
                      NIfTI dset with 8 MB history took ~8 seconds in loop.
                                                         31 Jul 2012 [rickr] */
                   {  char * cp, * sp = str; int slen;
@@ -347,7 +347,7 @@ ENTRY("THD_niml_to_dataset") ;
        would be added from '<VOLUME_DATA ...>'   ZSS, Jan 2011
 *//*-------------------------------------------------------------------------*/
 
-int THD_add_bricks( THD_3dim_dataset *dset , void *nini, 
+int THD_add_bricks( THD_3dim_dataset *dset , void *nini,
                     THD_3dim_dataset *hdset )
 {
    int nbr=0 , tt=NI_element_type(nini) ;

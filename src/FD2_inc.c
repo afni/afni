@@ -327,7 +327,7 @@ extern MRI_IMARR * mri_read_3D( char * ) ;
 extern MRI_IMARR * mri_read_file( char * ) ;
 extern int mri_imcount( char * ) ;
 extern MRI_IMARR * mri_read_many_files( int nf , char * fn[] ) ;
-extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] , 
+extern MRI_IMARR * mri_read_resamp_many_files( int nf, char * fn[] ,
                                                int nxnew, int nynew, byte pval);
 
 /** returns array of byte images: red, green, blue **/
@@ -2782,7 +2782,7 @@ static int rcrswap_2_multi( void * ptr, int num_shorts );
 /*!  Validate and read header data from a GEMS 4.x formatted file.
 
   \param filename is the name of the file to try to read
- 
+
   \param H is the address of a ge4_header struct to be initialized and filled
 
   \param get_image specifies whether to allocate for and read in the image
@@ -3571,7 +3571,7 @@ void swap_eightbytes( int n , void * ar )
 
 #ifdef isfinite  /* for older systems  9 Feb 2016 [rickr] */
 #   define IS_GOOD_FLOAT(x) isfinite(x)
-#else 
+#else
 #   define IS_GOOD_FLOAT(x) finite(x)
 #endif
 

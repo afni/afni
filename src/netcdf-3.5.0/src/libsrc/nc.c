@@ -107,7 +107,7 @@ new_NC(const size_t *chunkp)
 
 	ncp->xsz = MIN_NC_XSZ;
 	assert(ncp->xsz == ncx_len_NC(ncp));
-	
+
 	ncp->chunk = chunkp != NULL ? *chunkp : NC_SIZEHINT_DEFAULT;
 
 	return ncp;
@@ -216,13 +216,13 @@ NC_begins(NC *ncp,
 
 	ncp->xsz = ncx_len_NC(ncp);
 
-	if(ncp->vars.nelems == 0) 
+	if(ncp->vars.nelems == 0)
 		return;
 
 	/* only (re)calculate begin_var if there is not sufficient space in header
 	   or start of non-record variables is not aligned as requested by valign */
 	if (ncp->begin_var < ncp->xsz + h_minfree ||
-	    ncp->begin_var != D_RNDUP(ncp->begin_var, v_align) ) 
+	    ncp->begin_var != D_RNDUP(ncp->begin_var, v_align) )
 	{
 	  index = (off_t) ncp->xsz;
 	  ncp->begin_var = D_RNDUP(index, v_align);
@@ -521,7 +521,7 @@ fill_added(NC *gnu, NC *old)
 
 
 /*
- * Move the records "out". 
+ * Move the records "out".
  * Fill as needed.
  */
 static int
@@ -537,7 +537,7 @@ move_recs_r(NC *gnu, NC *old)
 	off_t gnu_off;
 	off_t old_off;
 	const size_t old_nrecs = NC_get_numrecs(old);
-	
+
 	/* Don't parallelize this loop */
 	for(recno = (int)old_nrecs -1; recno >= 0; recno--)
 	{
@@ -561,13 +561,13 @@ move_recs_r(NC *gnu, NC *old)
 			continue; 	/* nothing to do */
 
 		assert(gnu_off > old_off);
-	
+
 		status = gnu->nciop->move(gnu->nciop, gnu_off, old_off,
 			 old_varp->len, 0);
 
 		if(status != NC_NOERR)
 			return status;
-		
+
 	}
 	}
 
@@ -578,7 +578,7 @@ move_recs_r(NC *gnu, NC *old)
 
 
 /*
- * Move the "non record" variables "out". 
+ * Move the "non record" variables "out".
  * Fill as needed.
  */
 static int
@@ -592,7 +592,7 @@ move_vars_r(NC *gnu, NC *old)
 	NC_var *old_varp;
 	off_t gnu_off;
 	off_t old_off;
-	
+
 	/* Don't parallelize this loop */
 	for(varid = (int)old->vars.nelems -1;
 		 varid >= 0; varid--)
@@ -608,7 +608,7 @@ move_vars_r(NC *gnu, NC *old)
 		old_varp = *(old_varpp + varid);
 		gnu_off = gnu_varp->begin;
 		old_off = old_varp->begin;
-	
+
 		if(gnu_off == old_off)
 			continue; 	/* nothing to do */
 
@@ -619,7 +619,7 @@ move_vars_r(NC *gnu, NC *old)
 
 		if(status != NC_NOERR)
 			return status;
-		
+
 	}
 
 	return NC_NOERR;
@@ -663,7 +663,7 @@ NC_endef(NC *ncp,
 				status = move_vars_r(ncp, ncp->old);
 				if(status != NC_NOERR)
 					return status;
-			} 
+			}
 			/* else if (ncp->begin_var == ncp->old->begin_var) { NOOP } */
 		}
 		else
@@ -691,7 +691,7 @@ NC_endef(NC *ncp,
 			status = fillerup(ncp);
 			if(status != NC_NOERR)
 				return status;
-			
+
 		}
 		else if(ncp->vars.nelems > ncp->old->vars.nelems)
 		{
@@ -768,7 +768,7 @@ nc__create_mp(const char * path, int ioflags, size_t initialsz, int basepe,
 		return NC_EINVAL;
 #endif
 	assert(ncp->xsz == ncx_len_NC(ncp));
-	
+
 	status = ncio_create(path, ioflags,
 		initialsz,
 		0, ncp->xsz, &ncp->chunk,
@@ -912,7 +912,7 @@ nc__enddef(int ncid,
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -928,7 +928,7 @@ nc_enddef(int ncid)
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -944,9 +944,9 @@ int
 nc_close(int ncid)
 {
 	int status = NC_NOERR;
-	NC *ncp; 
+	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -991,7 +991,7 @@ nc_delete_mp(const char * path, int basepe)
 	ncp = new_NC(&chunk);
 	if(ncp == NULL)
 		return NC_ENOMEM;
-	
+
 #if defined(LOCKNUMREC) /* && _CRAYMPP */
 	if (status = NC_init_pe(ncp, basepe)) {
 		return status;
@@ -1043,7 +1043,7 @@ nc_abort(int ncid)
 	NC *ncp;
 	int doUnlink = 0;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1083,7 +1083,7 @@ nc_redef(int ncid)
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1093,7 +1093,7 @@ nc_redef(int ncid)
 	if(NC_indef(ncp))
 		return NC_EINDEFINE;
 
-	
+
 	if(fIsSet(ncp->nciop->ioflags, NC_SHARE))
 	{
 		/* read in from disk */
@@ -1122,7 +1122,7 @@ nc_inq(int ncid,
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1138,13 +1138,13 @@ nc_inq(int ncid,
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_ndims(int ncid, int *ndimsp)
 {
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1154,13 +1154,13 @@ nc_inq_ndims(int ncid, int *ndimsp)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_nvars(int ncid, int *nvarsp)
 {
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1170,13 +1170,13 @@ nc_inq_nvars(int ncid, int *nvarsp)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_natts(int ncid, int *nattsp)
 {
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1186,13 +1186,13 @@ nc_inq_natts(int ncid, int *nattsp)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_unlimdim(int ncid, int *xtendimp)
 {
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1209,7 +1209,7 @@ nc_sync(int ncid)
 	int status;
 	NC *ncp;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 
@@ -1238,7 +1238,7 @@ nc_set_fill(int ncid,
 	NC *ncp;
 	int oldmode;
 
-	status = NC_check_id(ncid, &ncp); 
+	status = NC_check_id(ncid, &ncp);
 	if(status != NC_NOERR)
 		return status;
 

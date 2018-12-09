@@ -83,18 +83,18 @@ void SetSearchAboutMaskedVoxel(int v)
 /*---------------------------------------------------------------------------*/
 /*!
    This function loads the 1D indices of voxels that are in the nbhd
-   Indices are loaded into array nind. The function returns the number 
-   of neighboring voxels in the mask. -1 in case of error */ 
+   Indices are loaded into array nind. The function returns the number
+   of neighboring voxels in the mask. -1 in case of error */
 int mri_load_nbhd_indices ( int nx, int ny, int nz , byte *mask ,
-                          int xx, int yy, int zz, MCW_cluster *nbhd, 
-                          int *nind) 
+                          int xx, int yy, int zz, MCW_cluster *nbhd,
+                          int *nind)
 {
    int nxy, nxyz , npt , nout , aa,bb,cc,kk,ii ;
 
    ENTRY("mri_load_nbhd_indices") ;
 
-   if( nbhd == NULL || nind == NULL ) RETURN(-1) ;   
-   
+   if( nbhd == NULL || nind == NULL ) RETURN(-1) ;
+
    nxy  = nx*ny  ;
    nxyz = nxy*nz ; npt = nbhd->num_pt ; nout = 0 ;
 
@@ -112,7 +112,7 @@ int mri_load_nbhd_indices ( int nx, int ny, int nz , byte *mask ,
       kk = aa + bb*nx + cc*nxy ;
       if( INMASK(kk) ) nind[nout++] = kk ;
    }
-   
+
    RETURN(nout);
 }
 

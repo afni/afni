@@ -129,7 +129,7 @@ MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
    if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 28 Oct 1996 */
    else               imww = mri_to_float( imwt ) ;
 
-   tar = MRI_FLOAT_PTR(imww) ;       
+   tar = MRI_FLOAT_PTR(imww) ;
    for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;  /* 16 Nov 1998 */
 
    chol_fitim = mri_startup_lsqfit( fitim , imww ) ;
@@ -160,7 +160,7 @@ MRI_2dalign_basis * mri_2dalign_setup( MRI_IMAGE * imbase , MRI_IMAGE * imwt )
      if( imwt == NULL ) imww = mri_to_float( bim ) ;  /* 03 Oct 1997 */
      else               imww = mri_to_float( imwt ) ;
 
-     tar = MRI_FLOAT_PTR(imww) ;       
+     tar = MRI_FLOAT_PTR(imww) ;
      for( ii=0 ; ii < nx*ny ; ii++ ) tar[ii] = fabs(tar[ii]) ;
 
      chol_fine_fitim = mri_startup_lsqfit( fine_fitim , imww ) ;

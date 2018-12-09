@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int trbak3_(integer *nm, integer *n, integer *nv, doublereal 
+/* Subroutine */ int trbak3_(integer *nm, integer *n, integer *nv, doublereal
 	*a, integer *m, doublereal *z__)
 {
     /* System generated locals */
@@ -55,12 +55,12 @@
 /*     NOTE THAT TRBAK3 PRESERVES VECTOR EUCLIDEAN NORMS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

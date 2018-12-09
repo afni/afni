@@ -7,8 +7,8 @@ use.
 
 */
 
-/**** 
-   DO NOT INCLUDE SUMA SPECIFIC definitions here 
+/****
+   DO NOT INCLUDE SUMA SPECIFIC definitions here
 *****/
 
 #ifndef SUMA_ALGORITHMS_INCLUDED

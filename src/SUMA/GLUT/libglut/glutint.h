@@ -3,8 +3,8 @@
 
 /* Copyright (c) Mark J. Kilgard, 1994. */
 
-/* This program is freely distributable without licensing fees 
-   and is provided without guarantee or warrantee expressed or 
+/* This program is freely distributable without licensing fees
+   and is provided without guarantee or warrantee expressed or
    implied. This program is -not- in the public domain. */
 
 #ifdef __sgi
@@ -206,7 +206,7 @@ struct _GLUTwindow {
   GLUTwindow *prevWorkWin;  /* link list of windows to work on */
   Bool desiredMapState; /* how to mapped window if on map work
                            list */
-  int desiredConfMask;  /* mask of desired window configuration 
+  int desiredConfMask;  /* mask of desired window configuration
                          */
   int desiredX;         /* desired X location */
   int desiredY;         /* desired Y location */
@@ -250,10 +250,10 @@ struct _GLUTwindow {
                                        callback */
   GLUTspaceButtonFCB fspaceButton;  /* Spaceball button
                                        callback */
-  GLUTtabletMotionFCB ftabletMotion;  /* tablet motion callback 
+  GLUTtabletMotionFCB ftabletMotion;  /* tablet motion callback
 
                                        */
-  GLUTtabletButtonFCB ftabletButton;  /* tablet button callback 
+  GLUTtabletButtonFCB ftabletButton;  /* tablet button callback
 
                                        */
 #endif

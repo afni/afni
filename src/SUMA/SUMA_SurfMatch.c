@@ -15,7 +15,7 @@ void usage_SurfMatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
    "\n"
    "Usage: SurfMatch <-i_TYPE BASE> <-i_TYPE INSURF> <-prefix PREFIX> \n"
    "                 [-sv SURF_VOL] [-warp WARP]\n"
@@ -46,29 +46,29 @@ void usage_SurfMatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    "Example:\n"
    "         SurfMatch -i std.6rh.pial.asc -i std.6lh.pial.asc -warp sro\n"
    "         suma -onestate -i std.6rh.pial.asc -i std.6lh.pial.asc \\\n"
-   "                        -i SurfMatch.gii   \n"              
+   "                        -i SurfMatch.gii   \n"
    "\n");
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
-      SUMA_free(sio); sio = NULL;       
-      
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL;
+      SUMA_free(sio); sio = NULL;
+
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *
-   SUMA_SurfMatch_ParseInput( char *argv[], int argc, 
+   SUMA_SurfMatch_ParseInput( char *argv[], int argc,
                               SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_SurfMatch_ParseInput"}; 
+   static char FuncName[]={"SUMA_SurfMatch_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
-   Opt->s=NULL; 
+   Opt->s=NULL;
    Opt->flt1 = 1.0;
    Opt->b1 = 0;
    Opt->efrac = 0.0;
@@ -83,7 +83,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
 
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
-      
+
       if (!brk && (strcmp(argv[kar], "-warp") == 0))
       {
          if (kar+1 >= argc)
@@ -91,34 +91,34 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
             fprintf (SUMA_STDERR, "need a string after -warp \n");
             exit (1);
          }
-         ++kar; 
+         ++kar;
                 if (!strcmp(argv[kar],"shift_only") ||
-                    !strcmp(argv[kar],"sho")) { 
+                    !strcmp(argv[kar],"sho")) {
             Opt->s = SUMA_copy_string("shft");
          } else if (!strcmp(argv[kar],"shift_rotate") ||
-                    !strcmp(argv[kar],"sro")) { 
+                    !strcmp(argv[kar],"sro")) {
             Opt->s = SUMA_copy_string("shft+rot");
          } else if (!strcmp(argv[kar],"shift_rotate_scale") ||
-                    !strcmp(argv[kar],"srs")) { 
+                    !strcmp(argv[kar],"srs")) {
             Opt->s = SUMA_copy_string("shft+rot+scl");
          } else if (!strcmp(argv[kar],"affine_general") ||
-                    !strcmp(argv[kar],"aff")) { 
+                    !strcmp(argv[kar],"aff")) {
             Opt->s = SUMA_copy_string("shft+rot+scl+shr");
          } else {
             SUMA_S_Errv("Bad -warp parameter of %s\n"
                         "Choose from sho, sro, srs, or aff\n",
                         argv[kar]);
             exit(1);
-         }  
+         }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-city") == 0))
       {
          Opt->b1 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -127,10 +127,10 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
             exit (1);
          }
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-depthlimit") == 0))
       {
          if (kar+1 >= argc)
@@ -141,7 +141,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          Opt->flt1 = atof(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-reduce_ref") == 0))
       {
          if (kar+1 >= argc)
@@ -152,7 +152,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
          Opt->efrac = atof(argv[++kar]);
          brk = YUP;
       }
-            
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -160,27 +160,27 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
                   "Error SurfMatch: Option %s not understood\n", argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    if (!Opt->out_prefix) {
       Opt->out_prefix = SUMA_copy_string("SurfMatch.gii");
       THD_force_ok_overwrite(1) ;
    }
-   
+
    if (!Opt->s) {
       Opt->s = SUMA_copy_string("shft");
    }
@@ -188,9 +188,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfMatch"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"SurfMatch"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int N_Spec=0, N_inmask;
@@ -204,16 +204,16 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
+
    if (argc < 2) {
       usage_SurfMatch(ps, 0);
       exit (1);
    }
-   
+
    Opt = SUMA_SurfMatch_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-   
+
    /* check on inputs */
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 2) {
       SUMA_S_Err("Must have two surfaces");
@@ -237,9 +237,9 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
-   
+
+   }
+
    if (Opt->efrac>0.0) {
       SUMA_SurfaceObject *SOrr=NULL;
       if (!(SOrr = SUMA_Mesh_Resample_nodes(SOr, Opt->efrac))) {
@@ -247,33 +247,33 @@ int main (int argc,char *argv[])
          exit(1);
       }
       SUMA_Free_Surface_Object(SOr); SOr=SOrr; SOrr=NULL;
-      SUMA_SurfaceMetrics_eng(SOr, "EdgeList|MemberFace", NULL, 0, 
+      SUMA_SurfaceMetrics_eng(SOr, "EdgeList|MemberFace", NULL, 0,
                                           SUMAg_CF->DsetList);
       if (!SOr->Label && !(SUMA_SurfaceFileName(SOr, NOPE))) {
          SOr->Label = SUMA_copy_string("Le_Remaille");
       }
    }
-   
+
    SO = SUMA_Load_Spec_Surf_with_Metrics(Spec, 1, ps->sv[0], 1);
 
    if (Opt->flt1 != 1.0) {
       SUMA_LHv("Masking out nodes deeper than %f mm", Opt->flt1);
-      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, prjdir,  NULL, 
+      N_inmask = SUMA_NodeDepth(SO->NodeList, SO->N_Node, prjdir,  NULL,
                                 Opt->flt1, &cmask, NULL);
    } else {
       N_inmask = SO->N_Node;
    }
-   
+
    SUMA_S_Notev("Have Reference %s %d nodes, input %s, %d nodes (%d in mask)\n",
                   SOr->Label, SOr->N_Node, SO->Label, SO->N_Node, N_inmask);
    if (Opt->b1) {
       Opt->s = SUMA_append_replace_string(Opt->s,"City", " ; ", 1);
    }
    SUMA_AlignCoords(SO->NodeList, SO->N_Node, cmask, 1, SOr, Opt->s);
-   
+
    /* write surface */
-   if (!SUMA_Save_Surface_Object_Wrap (Opt->out_prefix, NULL, SO, 
-                                  SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED, 
+   if (!SUMA_Save_Surface_Object_Wrap (Opt->out_prefix, NULL, SO,
+                                  SUMA_FT_NOT_SPECIFIED, SUMA_FF_NOT_SPECIFIED,
                                   NULL)) {
       SUMA_S_Err("Failed to write surface of whole head");
       exit (1);
@@ -281,21 +281,21 @@ int main (int argc,char *argv[])
 
    if (SOr) SUMA_Free_Surface_Object(SOr); SOr = NULL;
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
-   
-   if (cmask) SUMA_free(cmask); cmask=NULL;                 
+
+   if (cmask) SUMA_free(cmask); cmask=NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
-            SUMA_S_Err("Failed to free spec fields"); 
-         } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) {
+            SUMA_S_Err("Failed to free spec fields");
+         }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
-   
-} 
+
+}

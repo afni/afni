@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int ratqr_(integer *n, doublereal *eps1, doublereal *d__, 
+/* Subroutine */ int ratqr_(integer *n, doublereal *eps1, doublereal *d__,
 	doublereal *e, doublereal *e2, integer *m, doublereal *w, integer *
 	ind, doublereal *bd, logical *type__, integer *idef, integer *ierr)
 {
@@ -76,7 +76,7 @@
 /*          MATRIX TO SPLIT INTO A DIRECT SUM OF SUBMATRICES. */
 /*          E2(1) IS SET TO 0.0D0 IF THE SMALLEST EIGENVALUES HAVE BEEN */
 /*          FOUND, AND TO 2.0D0 IF THE LARGEST EIGENVALUES HAVE BEEN */
-/*          FOUND.  E2 IS OTHERWISE UNALTERED (UNLESS OVERWRITTEN BY BD). 
+/*          FOUND.  E2 IS OTHERWISE UNALTERED (UNLESS OVERWRITTEN BY BD).
 */
 
 /*        W CONTAINS THE M ALGEBRAICALLY SMALLEST EIGENVALUES IN */
@@ -90,7 +90,7 @@
 /*        IND CONTAINS IN ITS FIRST M POSITIONS THE SUBMATRIX INDICES */
 /*          ASSOCIATED WITH THE CORRESPONDING EIGENVALUES IN W -- */
 /*          1 FOR EIGENVALUES BELONGING TO THE FIRST SUBMATRIX FROM */
-/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC.. 
+/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC..
 */
 
 /*        BD CONTAINS REFINED BOUNDS FOR THE THEORETICAL ERRORS OF THE */
@@ -112,12 +112,12 @@
 /*     ACCURATE THAN RATQR IF THE EIGENVALUES ARE CLUSTERED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

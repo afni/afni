@@ -88,14 +88,14 @@ STATUS("copy surface node_list") ;
       }
    }
 
-   #if 0               /* Overkill, you don't want 3dcalc preserving. 
+   #if 0               /* Overkill, you don't want 3dcalc preserving.
                           such things for example ...              */
    /* preserve label tables                        ZSS: Jan 2012 */
    STATUS("copying labeltables and Atlas PointLists, if any");
    if (!THD_copy_labeltable_atr( new_dblk,  old_dblk)) {
       WARNING_message("Failed trying to preserve labeltables");
-   } 
-   #endif                                                    
+   }
+   #endif
 
    EXRETURN ;
 }

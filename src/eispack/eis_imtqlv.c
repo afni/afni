@@ -9,8 +9,8 @@
 
 static doublereal c_b11 = 1.;
 
-/* Subroutine */ int imtqlv_(integer *n, doublereal *d__, doublereal *e, 
-	doublereal *e2, doublereal *w, integer *ind, integer *ierr, 
+/* Subroutine */ int imtqlv_(integer *n, doublereal *d__, doublereal *e,
+	doublereal *e2, doublereal *w, integer *ind, integer *ierr,
 	doublereal *rv1)
 {
     /* System generated locals */
@@ -31,9 +31,9 @@ static doublereal c_b11 = 1.;
 
 
 
-/*     THIS SUBROUTINE IS A VARIANT OF  IMTQL1  WHICH IS A TRANSLATION OF 
+/*     THIS SUBROUTINE IS A VARIANT OF  IMTQL1  WHICH IS A TRANSLATION OF
 */
-/*     ALGOL PROCEDURE IMTQL1, NUM. MATH. 12, 377-383(1968) BY MARTIN AND 
+/*     ALGOL PROCEDURE IMTQL1, NUM. MATH. 12, 377-383(1968) BY MARTIN AND
 */
 /*     WILKINSON, AS MODIFIED IN NUM. MATH. 15, 450(1970) BY DUBRULLE. */
 /*     HANDBOOK FOR AUTO. COMP., VOL.II-LINEAR ALGEBRA, 241-248(1971). */
@@ -83,12 +83,12 @@ static doublereal c_b11 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

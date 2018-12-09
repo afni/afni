@@ -18,7 +18,7 @@
   calculate the fALFF denominator.
 
   Sept. 2012:  improving some memory stuff
-  Aug.  2016:  change >f_N initialization to avoid division errors when 
+  Aug.  2016:  change >f_N initialization to avoid division errors when
                there are *a lot* of time points.
 
 */
@@ -51,7 +51,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *inset=NULL , *outset=NULL;
    char *prefix="RSFC" ;
    byte *mask=NULL ;
-   int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 , 
+   int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 ,
 		nx,ny,nz,nvox , nfft=0 , kk ;
    float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
    MRI_vectim *mrv ;
@@ -61,14 +61,14 @@ int main( int argc , char * argv[] )
 	// @@ non-BP variables
 	float fbotALL=0.0f, ftopALL=999999.9f; // do full range version
 	int NumDen = 0; // switch for doing numerator or denom
-	THD_3dim_dataset *outsetALL=NULL ; 	
+	THD_3dim_dataset *outsetALL=NULL ;
 	int m, mm;
 	float delf; // harmonics
 	int ind_low,ind_high,N_ny, ctr;
 	float sqnt,nt_fac;
 	gsl_fft_real_wavetable *real1, *real2; // GSL stuff
 	gsl_fft_real_workspace *work;
-	double *series1, *series2;	
+	double *series1, *series2;
 	double *xx1,*xx2;
 	float numer,denom,val;
 	float *alff=NULL,*malff=NULL,*falff=NULL,
@@ -89,7 +89,7 @@ int main( int argc , char * argv[] )
 	char out_frsfa[300];
 	char out_unBP[300];
 	int SERIES_OUT = 1;
-	int UNBP_OUT = 0; 
+	int UNBP_OUT = 0;
 	int DO_RSFA = 1;
 	int BP_LAST = 0; // option for only doing filter to LFFs at very end of proc
 	float de_rsfa=0.0f,nu_rsfa=0.0f;
@@ -273,16 +273,16 @@ int main( int argc , char * argv[] )
 									) ;
 		PRINT_COMPILE_DATE ; exit(0) ;
    }
-	
+
    /*-- startup --*/
-	
+
    mainENTRY("3dRSFC"); machdep();
    AFNI_logger("3dRSFC",argc,argv);
-   PRINT_VERSION("3dRSFC (from 3dBandpass by RW Cox): version THETA"); 
+   PRINT_VERSION("3dRSFC (from 3dBandpass by RW Cox): version THETA");
 	AUTHOR("PA Taylor");
-	
+
    nosat =  AFNI_yesenv("AFNI_SKIP_SATCHECK") ;
-	
+
    nopt = 1 ;
    while( nopt < argc && argv[nopt][0] == '-' ){
 
@@ -410,7 +410,7 @@ int main( int argc , char * argv[] )
 			if( inset != NULL ) ERROR_exit("Can't have 2 -input options!") ;
 			if( ++nopt >= argc ) ERROR_exit("need an argument after -input!") ;
 			inset = THD_open_dataset(argv[nopt]) ;
-			CHECK_OPEN_ERROR(inset,argv[nopt]) ; 
+			CHECK_OPEN_ERROR(inset,argv[nopt]) ;
 
 			nopt++ ; continue ;
 		}
@@ -439,7 +439,7 @@ int main( int argc , char * argv[] )
 		if( nopt >= argc )
 			ERROR_exit("Need input dataset name on command line after options!") ;
 		inset = THD_open_dataset(argv[nopt]) ;
-		CHECK_OPEN_ERROR(inset,argv[nopt]) ;	 
+		CHECK_OPEN_ERROR(inset,argv[nopt]) ;
 
 		nopt++ ;
    }
@@ -534,7 +534,7 @@ int main( int argc , char * argv[] )
    /* convert input dataset to a vectim, which is more fun */
 
 	// @@ convert BP'ing ftop/bot into indices for the DFT (below)
-	delf = 1.0/(ntime*dt); 
+	delf = 1.0/(ntime*dt);
 	ind_low = (int) rint(fbot/delf);
 	ind_high = (int) rint(ftop/delf);
 	if( ntime % 2 ) // nyquist number
@@ -554,14 +554,14 @@ int main( int argc , char * argv[] )
 		//	fbot = fbotALL;
 		//	ftop = ftopALL;
 		//}
-		
+
 		// essentially, just doesn't BP here, and the perfect filtering at end
 		// is used for both still; this makes the final output spectrum
 		// contain only frequencies in range of 0.01-0.08
 		if( BP_LAST==1 )
 			INFO_message("Only doing filtering to LFFs at end!");
-		
-		
+
+
 		mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
 		if( mrv == NULL ) ERROR_exit("Can't load time series data!?") ;
 		if( NumDen==1 )
@@ -652,14 +652,14 @@ int main( int argc , char * argv[] )
 			if( verb ) INFO_message("Creating output dataset in memory, then writing it") ;
 			outset = EDIT_empty_copy(inset) ;
 			if(SERIES_OUT){
-				sprintf(out_lff,"%s_LFF",prefix); 
+				sprintf(out_lff,"%s_LFF",prefix);
 				EDIT_dset_items( outset , ADN_prefix,out_lff , ADN_none ) ;
 				tross_Copy_History( inset , outset ) ;
 				tross_Make_History( "3dBandpass" , argc,argv , outset ) ;
 			}
 			for( vv=0 ; vv < ntime ; vv++ )
 				EDIT_substitute_brick( outset , vv , MRI_float , NULL ) ;
-		
+
 #if 1
 			THD_vectim_to_dset( mrv , outset ) ;
 #else
@@ -687,15 +687,15 @@ int main( int argc , char * argv[] )
 				(void)THD_bandpass_vectim(mrv,dt,fbotALL,ftopALL,qdet,0,NULL);
 
 			outsetALL = EDIT_empty_copy(inset) ;
-			if(UNBP_OUT){ 
-				sprintf(out_unBP,"%s_unBP",prefix); 
+			if(UNBP_OUT){
+				sprintf(out_unBP,"%s_unBP",prefix);
 				EDIT_dset_items( outsetALL, ADN_prefix, out_unBP, ADN_none );
 				tross_Copy_History( inset , outsetALL ) ;
 				tross_Make_History( "3dRSFC" , argc,argv , outsetALL ) ;
 			}
 			for( vv=0 ; vv < ntime ; vv++ )
 				EDIT_substitute_brick( outsetALL , vv , MRI_float , NULL ) ;
-		
+
 #if 1
 			THD_vectim_to_dset( mrv , outsetALL ) ;
 #else
@@ -711,7 +711,7 @@ int main( int argc , char * argv[] )
 			AFNI_OMP_END ;
 #endif
 			VECTIM_destroy(mrv) ;
-			if(UNBP_OUT){ 
+			if(UNBP_OUT){
 				DSET_write(outsetALL) ; if( verb ) WROTE_DSET(outsetALL) ;
 			}
 		}
@@ -722,31 +722,31 @@ int main( int argc , char * argv[] )
 	INFO_message("Starting the (f)ALaFFel calcs") ;
 
 	// allocations
-	series1 = (double *)calloc(ntime,sizeof(double)); 
-	series2 = (double *)calloc(ntime,sizeof(double)); 
-	xx1 = (double *)calloc(2*ntime,sizeof(double)); 
-	xx2 = (double *)calloc(2*ntime,sizeof(double)); 
-	alff = (float *)calloc(nvox,sizeof(float)); 
-	malff = (float *)calloc(nvox,sizeof(float)); 
-	falff = (float *)calloc(nvox,sizeof(float)); 
+	series1 = (double *)calloc(ntime,sizeof(double));
+	series2 = (double *)calloc(ntime,sizeof(double));
+	xx1 = (double *)calloc(2*ntime,sizeof(double));
+	xx2 = (double *)calloc(2*ntime,sizeof(double));
+	alff = (float *)calloc(nvox,sizeof(float));
+	malff = (float *)calloc(nvox,sizeof(float));
+	falff = (float *)calloc(nvox,sizeof(float));
 
-	if( (series1 == NULL) || (series2 == NULL) 
-		 || (xx1 == NULL) || (xx2 == NULL) 
-		 || (alff == NULL) || (malff == NULL) || (falff == NULL)) { 
+	if( (series1 == NULL) || (series2 == NULL)
+		 || (xx1 == NULL) || (xx2 == NULL)
+		 || (alff == NULL) || (malff == NULL) || (falff == NULL)) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(122);
 	}
 	if(DO_RSFA) {
-		rsfa = (float *)calloc(nvox,sizeof(float)); 
-		mrsfa = (float *)calloc(nvox,sizeof(float)); 
-		frsfa = (float *)calloc(nvox,sizeof(float)); 
-		if( (rsfa == NULL) || (mrsfa == NULL) || (frsfa == NULL)) { 
+		rsfa = (float *)calloc(nvox,sizeof(float));
+		mrsfa = (float *)calloc(nvox,sizeof(float));
+		frsfa = (float *)calloc(nvox,sizeof(float));
+		if( (rsfa == NULL) || (mrsfa == NULL) || (frsfa == NULL)) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
-		}	
+		}
 	}
-	
-	
+
+
 	work = gsl_fft_real_workspace_alloc (ntime);
 	real1 = gsl_fft_real_wavetable_alloc (ntime);
 	real2 = gsl_fft_real_wavetable_alloc (ntime);
@@ -769,20 +769,20 @@ int main( int argc , char * argv[] )
 	ctr = 0;
 	for( kk=0; kk<nvox ; kk++) {
 		if(mask[kk]) {
-			
+
 			// BP one, and unBP one, either for BP_LAST or !BP_LAST
 			for( m=0 ; m<ntime ; m++ ) {
 				series1[m] = THD_get_voxel(outset,kk,m);
 				series2[m] = THD_get_voxel(outsetALL,kk,m);
 			}
-			
-			
+
+
 			mm = gsl_fft_real_transform(series1, 1, ntime, real1, work);
 			mm = gsl_fft_halfcomplex_unpack(series1, compl_freqs1, 1, ntime);
 			mm = gsl_fft_real_transform(series2, 1, ntime, real2, work);
 			mm = gsl_fft_halfcomplex_unpack(series2, compl_freqs2, 1, ntime);
 
-			numer = 0.0f; 
+			numer = 0.0f;
 			denom = 0.0f;
 			de_rsfa = 0.0f;
 			nu_rsfa = 0.0f;
@@ -791,9 +791,9 @@ int main( int argc , char * argv[] )
 				pow2 = compl_freqs2[mm]*compl_freqs2[mm] +
 					compl_freqs2[mm+1]*compl_freqs2[mm+1]; // power
 				//pow2*=2;// factor of 2 since ampls are even funcs
-				denom+= (float) sqrt(pow2); // amplitude 
+				denom+= (float) sqrt(pow2); // amplitude
 				de_rsfa+= (float) pow2;
-				
+
 				if( ( m>=ind_low ) && ( m<=ind_high ) ){
 					pow1 = compl_freqs1[mm]*compl_freqs1[mm]+
 						compl_freqs1[mm+1]*compl_freqs1[mm+1];
@@ -811,7 +811,7 @@ int main( int argc , char * argv[] )
 			meanALFF+= alff[kk];
 
 			if(DO_RSFA){
-			  nu_rsfa = sqrt(2*nu_rsfa); // factor of 2 since ampls 
+			  nu_rsfa = sqrt(2*nu_rsfa); // factor of 2 since ampls
 			  de_rsfa = sqrt(2*de_rsfa); // are even funcs
 			  if( de_rsfa>0.000001 )
 			    frsfa[kk] = nu_rsfa/de_rsfa;
@@ -820,7 +820,7 @@ int main( int argc , char * argv[] )
 			  rsfa[kk] = nu_rsfa/nt_fac;
 			  meanRSFA+= rsfa[kk];
 			}
-			
+
 			ctr+=1;
 		}
 	}
@@ -832,7 +832,7 @@ int main( int argc , char * argv[] )
 	gsl_fft_real_workspace_free(work);
 
 	// ALFFs divided by mean of brain value
-	for( kk=0 ; kk<nvox ; kk++ ) 
+	for( kk=0 ; kk<nvox ; kk++ )
 		if(mask[kk]){
 			malff[kk] = alff[kk]/meanALFF;
 			if(DO_RSFA)
@@ -843,34 +843,34 @@ int main( int argc , char * argv[] )
 	//                 Store and output
 	// **************************************************************
 	// **************************************************************
-	
-	outsetALFF = EDIT_empty_copy( inset ) ; 
-	sprintf(out_alff,"%s_ALFF",prefix); 
+
+	outsetALFF = EDIT_empty_copy( inset ) ;
+	sprintf(out_alff,"%s_ALFF",prefix);
 	EDIT_dset_items( outsetALFF,
                     ADN_nvals, 1,
-						  ADN_datum_all , MRI_float , 
+						  ADN_datum_all , MRI_float ,
 						  ADN_prefix    , out_alff,
 						  ADN_none ) ;
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetALFF)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetALFF));
-	EDIT_substitute_brick(outsetALFF, 0, MRI_float, alff); 
+	EDIT_substitute_brick(outsetALFF, 0, MRI_float, alff);
 	alff=NULL;
 	THD_load_statistics(outsetALFF);
 	tross_Make_History("3dRSFC", argc, argv, outsetALFF);
 	THD_write_3dim_dataset(NULL, NULL, outsetALFF, True);
 
 	outsetfALFF = EDIT_empty_copy( inset ) ;
-	sprintf(out_falff,"%s_fALFF",prefix); 
+	sprintf(out_falff,"%s_fALFF",prefix);
 	EDIT_dset_items( outsetfALFF,
                     ADN_nvals, 1,
-						  ADN_datum_all , MRI_float , 
+						  ADN_datum_all , MRI_float ,
 						  ADN_prefix    , out_falff,
 						  ADN_none ) ;
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetfALFF)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetfALFF));
-	EDIT_substitute_brick(outsetfALFF, 0, MRI_float, falff); 
+	EDIT_substitute_brick(outsetfALFF, 0, MRI_float, falff);
 	falff=NULL;
 	THD_load_statistics(outsetfALFF);
 	tross_Make_History("3dRSFC", argc, argv, outsetfALFF);
@@ -879,16 +879,16 @@ int main( int argc , char * argv[] )
 
 
 	outsetmALFF = EDIT_empty_copy( inset ) ;
-	sprintf(out_malff,"%s_mALFF",prefix); 
+	sprintf(out_malff,"%s_mALFF",prefix);
 	EDIT_dset_items( outsetmALFF,
                     ADN_nvals, 1,
-                    ADN_datum_all , MRI_float , 
+                    ADN_datum_all , MRI_float ,
 						  ADN_prefix    , out_malff,
 						  ADN_none ) ;
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetmALFF)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetmALFF));
-	EDIT_substitute_brick(outsetmALFF, 0, MRI_float, malff); 
+	EDIT_substitute_brick(outsetmALFF, 0, MRI_float, malff);
 	malff=NULL;
 	THD_load_statistics(outsetmALFF);
 	tross_Make_History("3dRSFC", argc, argv, outsetmALFF);
@@ -896,48 +896,48 @@ int main( int argc , char * argv[] )
 
 	if(DO_RSFA){
      outsetRSFA = EDIT_empty_copy( inset ) ;
-		sprintf(out_rsfa,"%s_RSFA",prefix); 
+		sprintf(out_rsfa,"%s_RSFA",prefix);
 		EDIT_dset_items( outsetRSFA,
                        ADN_nvals, 1,
-                       ADN_datum_all , MRI_float , 
+                       ADN_datum_all , MRI_float ,
 							  ADN_prefix    , out_rsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetRSFA)) )
 			ERROR_exit("Can't overwrite existing dataset '%s'",
 						  DSET_HEADNAME(outsetRSFA));
-		EDIT_substitute_brick(outsetRSFA, 0, MRI_float, rsfa); 
+		EDIT_substitute_brick(outsetRSFA, 0, MRI_float, rsfa);
 		rsfa=NULL;
 		THD_load_statistics(outsetRSFA);
 		tross_Make_History("3dRSFC", argc, argv, outsetRSFA);
 		THD_write_3dim_dataset(NULL, NULL, outsetRSFA, True);
-		
+
       outsetfRSFA = EDIT_empty_copy( inset ) ;
-		sprintf(out_frsfa,"%s_fRSFA",prefix); 
+		sprintf(out_frsfa,"%s_fRSFA",prefix);
 		EDIT_dset_items( outsetfRSFA,
                        ADN_nvals, 1,
-                       ADN_datum_all , MRI_float , 
+                       ADN_datum_all , MRI_float ,
 							  ADN_prefix    , out_frsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetfRSFA)) )
 			ERROR_exit("Can't overwrite existing dataset '%s'",
 						  DSET_HEADNAME(outsetfRSFA));
-		EDIT_substitute_brick(outsetfRSFA, 0, MRI_float, frsfa); 
+		EDIT_substitute_brick(outsetfRSFA, 0, MRI_float, frsfa);
 		frsfa=NULL;
 		THD_load_statistics(outsetfRSFA);
 		tross_Make_History("3dRSFC", argc, argv, outsetfRSFA);
 		THD_write_3dim_dataset(NULL, NULL, outsetfRSFA, True);
-		
-		outsetmRSFA = EDIT_empty_copy( inset ) ; 
-		sprintf(out_mrsfa,"%s_mRSFA",prefix); 
+
+		outsetmRSFA = EDIT_empty_copy( inset ) ;
+		sprintf(out_mrsfa,"%s_mRSFA",prefix);
 		EDIT_dset_items( outsetmRSFA,
                        ADN_nvals, 1,
-                       ADN_datum_all , MRI_float , 
+                       ADN_datum_all , MRI_float ,
 							  ADN_prefix    , out_mrsfa,
 							  ADN_none ) ;
 		if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetmRSFA)) )
 			ERROR_exit("Can't overwrite existing dataset '%s'",
 						  DSET_HEADNAME(outsetmRSFA));
-		EDIT_substitute_brick(outsetmRSFA, 0, MRI_float, mrsfa); 
+		EDIT_substitute_brick(outsetmRSFA, 0, MRI_float, mrsfa);
 		mrsfa=NULL;
 		THD_load_statistics(outsetmRSFA);
 		tross_Make_History("3dRSFC", argc, argv, outsetmRSFA);

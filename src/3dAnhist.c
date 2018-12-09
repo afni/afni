@@ -197,7 +197,7 @@ int main( int argc , char * argv[] )
       mask = (byte *)malloc(sizeof(byte)*DSET_NVOX(dset));
       for (ii=0 ; ii < DSET_NVOX(dset); ii++ ) mask[ii] = 1;
    }
-   
+
    nmask = THD_countmask( DSET_NVOX(dset) , mask ) ;
    if( nmask == 0 ){
      fprintf(stderr,"** No voxels in the automask?!\n");

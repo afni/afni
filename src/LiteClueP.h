@@ -1,4 +1,4 @@
-/* 
+/*
 LiteClueP.h - Private definitions for LiteClue widget
 	See LiteClue documentation
 
@@ -19,7 +19,7 @@ both that copyright notice and this permission notice appear in
 supporting documentation.
 
 Author:
-Gary Aviv 
+Gary Aviv
 Computer Generation, Inc.,
 gary@compgen.com
 
@@ -51,14 +51,14 @@ $log
 #else
 # include "LiteClue.h"
 #endif
-    
+
 /* Doubly Linked List Processing */
 struct list_thread_str
 {
 	struct list_thread_str * forw;	/* next pointer */
 	struct list_thread_str * back;	/* prev pointer */
 };
-typedef struct list_thread_str  ListThread; 
+typedef struct list_thread_str  ListThread;
 
 
 typedef struct {

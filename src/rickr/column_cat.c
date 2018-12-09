@@ -71,7 +71,7 @@ int cat_files( info_s * I )
     int    done = 0, close_stage = 0;
     int    c, filec;
     int    linec = 0, show;
-    
+
     while( !done )
     {
 	done = 1;
@@ -216,7 +216,7 @@ int read_args( int argc, char * argv [], info_s * I )
 		return( P_FAILURE );
             }
         }
-	else 
+	else
         {
             if ( I->num_files >= MAX_FILES ) {
                 fprintf(stderr,"** limit of %d files, sorry!", MAX_FILES);

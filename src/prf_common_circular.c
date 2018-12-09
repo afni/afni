@@ -45,7 +45,7 @@
 
    R. Reynolds      June, 2014
 ******************************************************************************/
-   
+
 static int     refnum    = 0;      /* # pts in refts */
 static int     refnz     = 0;      /* # of nonzero pts */
 static float * refts     = NULL;   /* reference time series */
@@ -123,7 +123,7 @@ static int    genv_get_help = 0;      /* AFNI_MODEL_HELP_ALL or HELP_CONV_PRF */
 #define AC_PRF_STAT_NONE        0
 #define AC_PRF_STAT_MALLOC      1
 #define AC_PRF_STAT_PS          2
-#define AC_PRF_STAT_ALL         (AC_PRF_STAT_MALLOC|AC_PRF_STAT_PS) 
+#define AC_PRF_STAT_ALL         (AC_PRF_STAT_MALLOC|AC_PRF_STAT_PS)
 #define AC_PRF_STAT_WAIT        4
 
 /* return one of the AC_PRF_STAT values */
@@ -137,7 +137,7 @@ static int set_env_ram_stats(void){
    else if( ! strcmp(estr, "MALLOC") )                rval = AC_PRF_STAT_MALLOC;
    else if( ! strcmp(estr, "PS") )                    rval = AC_PRF_STAT_PS;
    else if( ! strcmp(estr, "ALL") )                   rval = AC_PRF_STAT_ALL;
-   else if( ! strcmp(estr, "WAIT") ) 
+   else if( ! strcmp(estr, "WAIT") )
         rval = AC_PRF_STAT_WAIT | AC_PRF_STAT_ALL;
    else rval = (int)AFNI_numenv_def("AFNI_MODEL_PRF_RAM_STATS", 0);
 
@@ -153,11 +153,11 @@ static int set_env_vars(void)
 {
    genv_conv_ref = my_getenv("AFNI_CONVMODEL_REF");       /* reference file */
    if( genv_conv_ref ) fprintf(stderr,"-- PRF: have REF %s\n", genv_conv_ref);
-   else fprintf(stderr,"** model PRF: AFNI_CONVMODEL_REF is not set\n"); 
+   else fprintf(stderr,"** model PRF: AFNI_CONVMODEL_REF is not set\n");
 
    genv_prf_stim = my_getenv("AFNI_MODEL_PRF_STIM_DSET"); /* visual stim */
    if( genv_prf_stim ) fprintf(stderr,"-- PRF: have stim %s\n", genv_prf_stim);
-   else fprintf(stderr,"** model PRF: AFNI_MODEL_PRF_STIM_DSET is not set\n"); 
+   else fprintf(stderr,"** model PRF: AFNI_MODEL_PRF_STIM_DSET is not set\n");
 
    genv_diter = (int)AFNI_numenv_def("AFNI_MODEL_DITER", -1);
    genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 1);
@@ -191,7 +191,7 @@ static int set_env_vars(void)
    return 0;
 }
 /* ---------------------------------------------------------------------- */
-   
+
 
 /*----------------------------------------------------------------------
    Function to set the reference time series, with which the
@@ -478,7 +478,7 @@ static int convert_to_blurred_masks(THD_3dim_dataset * dset,
    float     * fslice, sigma;
    int         nx, ny, nt;
    int         vind, sind;
- 
+
    /* test required inputs */
    if( !dset ) return 1;
    if( genv_sigma_max <= 0.0 || genv_sigma_max > 1.0 || genv_sigma_nsteps<=1 ){
@@ -491,7 +491,7 @@ static int convert_to_blurred_masks(THD_3dim_dataset * dset,
       fprintf(stderr,"** invalid stim NZ = %d\n", DSET_NZ(dset));
       return 1;
    }
-                              
+
    nx = DSET_NX(dset);  ny = DSET_NY(dset);  nt = DSET_NVALS(dset);
 
    /* report RAM and time info */
@@ -618,7 +618,7 @@ static THD_3dim_dataset * THD_reorg_dset(THD_3dim_dataset * din,
    if(genv_debug > 1)fprintf(stderr, "\n== reorg starting at %6.1f\n",
                              0.001*NI_clock_time());
 
-   if( out_nx != DSET_NX(dout) || out_ny != DSET_NY(dout) || 
+   if( out_nx != DSET_NX(dout) || out_ny != DSET_NY(dout) ||
        out_nz != DSET_NZ(dout) || out_nt != DSET_NVALS(dout) ) {
       fprintf(stderr,"** reorg mis-match, crash and burn\n");
    }

@@ -4,7 +4,7 @@
 /* >>>>>>>>>>>>>>>>>>>>>>> Begin string parsing macros <<<<<<<<<<<<<<<<<<<<<<< */
 /* See also SUMA_IS_DIGIT_CHAR, SUMA_IS_NUM_CHAR */
 #define SUMA_IS_DIGIT(c) ( ((c) < '0' || (c) > '9') ? 0 : 1 )
- 
+
 #define SUMA_IS_PURE_BLANK(c) ( ((c) == ' ' || (c) == '\t' ) )
 
 /*! a macro version of C's isspace
@@ -20,7 +20,7 @@
 #define SUMA_IS_NICE_PREFIX_CHAR(c) ( (SUMA_IS_BLANK(c) \
                                        || (c) == ':' || (c) == ';' || (c) == '[' || (c) == ']' || (c) == '{' || (c) == '}'  \
                                        || (c) == '<' || (c) == '>' || (c) == '#' || (c) == '*' || (c) == '?' )   \
-                                       ? 1 : 0 )    
+                                       ? 1 : 0 )
 
 /* Is this a sphinx underline character? */
 #define SUMA_IS_UNDERLINE_CHAR(cc) ((\
@@ -124,7 +124,7 @@
 
 
 /*!
-   \brief Find the addresses limiting a section between two blanks, 
+   \brief Find the addresses limiting a section between two blanks,
    Hello   'djjdk sskjd'    Jon
    if op is pointing the blank space somewhere after Hello then
    op will then point to '
@@ -146,7 +146,7 @@
    } else { op2 = op; } /* Stay right where you are */ \
 }
 
-/*! \brief Count number of blank delimited words. 
+/*! \brief Count number of blank delimited words.
       Does not alter op or eop
       Returns number of words in N_word;
    */
@@ -158,14 +158,14 @@
       if (m_opn > m_ops) ++N_word;  \
    } while (*m_opn != '\0' && m_opn != eop && m_ops != m_opn);   \
 }
-   
+
 /*!
    \brief advance pointer past a string
    \param op (char *) pointer to char array
    \param eop (char *) DO not search op past eop or '\0' in op
                DO NOT CALL THE MACRO WITH eop SET TO (op+Nchars), i.e. do not do this:
                SUMA_ADVANCE_PAST(op,(op+5),attr,Found,Word); to check only 5 chars ahead
-               if you do so, a part of the if condition (op < eop) will always evaluate to 
+               if you do so, a part of the if condition (op < eop) will always evaluate to
                true because it is expanded to op < (op+5) !
    \param attr (char *) character string searched (NULL terminated)
    \Found (int)   0 --> Not found, op is not changed
@@ -204,8 +204,8 @@
    Like SUMA_ADVANCE_PAST, but uses a NULL-terminated list of words rather than just one word
    char *key_list[] = { "static", "char", "FuncName", "=", "{" , "}", ";", NULL};
    int  *gap_list[] = {    -1   ,  5    ,  5        ,  5 , 2   , -1 ,  20, -1 };
-   Find a sequence of keys where key_list[i] is present and follows key_list[i-1] by 
-   less than gap_list[i] (if gap_list[i] is >= 0) 
+   Find a sequence of keys where key_list[i] is present and follows key_list[i-1] by
+   less than gap_list[i] (if gap_list[i] is >= 0)
    If the sequence is not found then:
    nFound = 0 and op is unchanged and op_beg is NULL
    else op is set past the sequence of strings, and op_beg is set to the beginning
@@ -271,9 +271,9 @@
 }
 
 /*!
-   \brief advance pointer past the next integer. 
-            Unlike SUMA_ADVANCE_PAST_NUM, 
-            integer does not have to start at op 
+   \brief advance pointer past the next integer.
+            Unlike SUMA_ADVANCE_PAST_NUM,
+            integer does not have to start at op
    \param op (char *) pointer to char array (NULL terminated)
    \param num (int) output of (int) strtod function
    \Found (int)   0 --> Not found, op is not changed

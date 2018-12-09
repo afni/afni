@@ -122,7 +122,7 @@ ENTRY("mri_triple_to_fvect") ;
 }
 
 /*-------------------------------------------------------------------*/
-/* 
+/*
    Turn an array of vectors into an MRI_IMAGE.
    Each vector k (vecs[k]) is a pointer to vec_len floats.
    k ranges from 0 to vec_num -1
@@ -133,11 +133,11 @@ MRI_IMAGE * mri_float_arrays_to_image(float **vecs, int vec_len, int vec_num)
    MRI_IMAGE *outim = NULL;
    int ii, jj, kk;
    float *tsar=NULL;
-   
+
    ENTRY("mri_float_array_to_image");
-   
-   if (!vecs || vec_len <=0 || vec_num <= 0) RETURN(NULL); 
-   
+
+   if (!vecs || vec_len <=0 || vec_num <= 0) RETURN(NULL);
+
    if (!(tsar = (float *)calloc(vec_len*vec_num, sizeof(float)))) {
       ERROR_message("Failed to allocate for %d floats", vec_len*vec_num);
       RETURN(outim);
@@ -151,7 +151,7 @@ MRI_IMAGE * mri_float_arrays_to_image(float **vecs, int vec_len, int vec_num)
    }
    mri_fix_data_pointer( tsar , outim ) ;
    mri_add_name( "IM_with_no_name" , outim ) ;
-   
+
    RETURN(outim);
 }
 

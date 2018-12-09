@@ -10,13 +10,13 @@
  * Unlike t_ncx.c, it only checks self consistancy,
  * not consistancy with the xdr library.
  *
- * Link like this: 
+ * Link like this:
  * cc t_ncxx.c ncx.o -o t_nxc
  * (The xdr library is not needed.)
  *
  * If an assertion fails, there is a problem.
  * Otherwise, the program is silent and has exit code 0.
- */ 
+ */
 
 #undef NDEBUG   /* always active assert() in this file */
 
@@ -206,10 +206,10 @@ static uchar uchars[] = {
 
 
 
-static void 
+static void
 t_putn_schar_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_schar_schar((void **)&xp, nelems, tp);
@@ -233,10 +233,10 @@ t_putn_schar_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_schar_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_schar_uchar((void **)&xp, nelems, tp);
@@ -244,10 +244,10 @@ t_putn_schar_uchar(char *const buf)
 	assert(status == 0);
 }
 
-static void 
+static void
 t_putn_schar_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	int status = ncx_putn_schar_short((void **)&xp, nelems, tp);
@@ -271,10 +271,10 @@ t_putn_schar_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_schar_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	int status = ncx_putn_schar_int((void **)&xp, nelems, tp);
@@ -298,10 +298,10 @@ t_putn_schar_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_schar_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	int status = ncx_putn_schar_long((void **)&xp, nelems, tp);
@@ -325,10 +325,10 @@ t_putn_schar_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_schar_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	int status = ncx_putn_schar_float((void **)&xp, nelems, tp);
@@ -352,10 +352,10 @@ t_putn_schar_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_schar_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	int status = ncx_putn_schar_double((void **)&xp, nelems, tp);
@@ -380,10 +380,10 @@ t_putn_schar_double(char *const buf)
 }
 
 
-static void 
+static void
 t_pad_putn_schar_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -410,10 +410,10 @@ t_pad_putn_schar_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_schar_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -424,10 +424,10 @@ t_pad_putn_schar_uchar(char *const buf)
 	assert(status == 0);
 }
 
-static void 
+static void
 t_pad_putn_schar_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -454,10 +454,10 @@ t_pad_putn_schar_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_schar_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -484,10 +484,10 @@ t_pad_putn_schar_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_schar_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -514,10 +514,10 @@ t_pad_putn_schar_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_schar_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -544,10 +544,10 @@ t_pad_putn_schar_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_schar_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	const char *end = buf + nelems * X_SIZEOF_SCHAR;
@@ -575,10 +575,10 @@ t_pad_putn_schar_double(char *const buf)
 }
 
 
-static void 
+static void
 t_putn_short_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_short_schar((void **)&xp, nelems, tp);
@@ -602,10 +602,10 @@ t_putn_short_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	int status = ncx_putn_short_uchar((void **)&xp, nelems, tp);
@@ -624,10 +624,10 @@ t_putn_short_uchar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	int status = ncx_putn_short_short((void **)&xp, nelems, tp);
@@ -651,10 +651,10 @@ t_putn_short_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	int status = ncx_putn_short_int((void **)&xp, nelems, tp);
@@ -678,10 +678,10 @@ t_putn_short_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	int status = ncx_putn_short_long((void **)&xp, nelems, tp);
@@ -705,10 +705,10 @@ t_putn_short_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	int status = ncx_putn_short_float((void **)&xp, nelems, tp);
@@ -732,10 +732,10 @@ t_putn_short_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_short_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	int status = ncx_putn_short_double((void **)&xp, nelems, tp);
@@ -760,10 +760,10 @@ t_putn_short_double(char *const buf)
 }
 
 
-static void 
+static void
 t_pad_putn_short_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -790,10 +790,10 @@ t_pad_putn_short_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -815,10 +815,10 @@ t_pad_putn_short_uchar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -845,10 +845,10 @@ t_pad_putn_short_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -875,10 +875,10 @@ t_pad_putn_short_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -905,10 +905,10 @@ t_pad_putn_short_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -935,10 +935,10 @@ t_pad_putn_short_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_putn_short_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	const char *end = buf + nelems * X_SIZEOF_SHORT;
@@ -966,10 +966,10 @@ t_pad_putn_short_double(char *const buf)
 }
 
 
-static void 
+static void
 t_putn_int_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_int_schar((void **)&xp, nelems, tp);
@@ -993,10 +993,10 @@ t_putn_int_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	int status = ncx_putn_int_uchar((void **)&xp, nelems, tp);
@@ -1015,10 +1015,10 @@ t_putn_int_uchar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	int status = ncx_putn_int_short((void **)&xp, nelems, tp);
@@ -1042,10 +1042,10 @@ t_putn_int_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	int status = ncx_putn_int_int((void **)&xp, nelems, tp);
@@ -1069,10 +1069,10 @@ t_putn_int_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	int status = ncx_putn_int_long((void **)&xp, nelems, tp);
@@ -1096,10 +1096,10 @@ t_putn_int_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	int status = ncx_putn_int_float((void **)&xp, nelems, tp);
@@ -1123,10 +1123,10 @@ t_putn_int_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_int_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	int status = ncx_putn_int_double((void **)&xp, nelems, tp);
@@ -1151,10 +1151,10 @@ t_putn_int_double(char *const buf)
 }
 
 
-static void 
+static void
 t_putn_float_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_float_schar((void **)&xp, nelems, tp);
@@ -1178,10 +1178,10 @@ t_putn_float_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	int status = ncx_putn_float_uchar((void **)&xp, nelems, tp);
@@ -1200,10 +1200,10 @@ t_putn_float_uchar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	int status = ncx_putn_float_short((void **)&xp, nelems, tp);
@@ -1227,10 +1227,10 @@ t_putn_float_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	int status = ncx_putn_float_int((void **)&xp, nelems, tp);
@@ -1254,10 +1254,10 @@ t_putn_float_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	int status = ncx_putn_float_long((void **)&xp, nelems, tp);
@@ -1281,10 +1281,10 @@ t_putn_float_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	int status = ncx_putn_float_float((void **)&xp, nelems, tp);
@@ -1308,10 +1308,10 @@ t_putn_float_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_float_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	int status = ncx_putn_float_double((void **)&xp, nelems, tp);
@@ -1336,10 +1336,10 @@ t_putn_float_double(char *const buf)
 }
 
 
-static void 
+static void
 t_putn_double_schar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const schar *tp = schars;
 	size_t nelems = ArraySize(schars);
 	int status = ncx_putn_double_schar((void **)&xp, nelems, tp);
@@ -1363,10 +1363,10 @@ t_putn_double_schar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_uchar(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const uchar *tp = uchars;
 	size_t nelems = ArraySize(uchars);
 	int status = ncx_putn_double_uchar((void **)&xp, nelems, tp);
@@ -1385,10 +1385,10 @@ t_putn_double_uchar(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_short(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const short *tp = shorts;
 	size_t nelems = ArraySize(shorts);
 	int status = ncx_putn_double_short((void **)&xp, nelems, tp);
@@ -1412,10 +1412,10 @@ t_putn_double_short(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_int(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const int *tp = ints;
 	size_t nelems = ArraySize(ints);
 	int status = ncx_putn_double_int((void **)&xp, nelems, tp);
@@ -1439,10 +1439,10 @@ t_putn_double_int(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_long(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const long *tp = longs;
 	size_t nelems = ArraySize(longs);
 	int status = ncx_putn_double_long((void **)&xp, nelems, tp);
@@ -1466,10 +1466,10 @@ t_putn_double_long(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_float(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const float *tp = floats;
 	size_t nelems = ArraySize(floats);
 	int status = ncx_putn_double_float((void **)&xp, nelems, tp);
@@ -1493,10 +1493,10 @@ t_putn_double_float(char *const buf)
 	}
 }
 
-static void 
+static void
 t_putn_double_double(char *const buf)
 {
-	char *xp = buf; 
+	char *xp = buf;
 	const double *tp = doubles;
 	size_t nelems = ArraySize(doubles);
 	int status = ncx_putn_double_double((void **)&xp, nelems, tp);
@@ -1523,10 +1523,10 @@ t_putn_double_double(char *const buf)
 
 
 
-static void 
+static void
 t_getn_schar_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -1547,10 +1547,10 @@ t_getn_schar_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -1567,10 +1567,10 @@ t_getn_schar_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -1591,10 +1591,10 @@ t_getn_schar_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -1615,10 +1615,10 @@ t_getn_schar_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -1639,10 +1639,10 @@ t_getn_schar_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -1663,10 +1663,10 @@ t_getn_schar_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_schar_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -1688,10 +1688,10 @@ t_getn_schar_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_pad_getn_schar_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -1715,10 +1715,10 @@ t_pad_getn_schar_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -1738,10 +1738,10 @@ t_pad_getn_schar_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -1765,10 +1765,10 @@ t_pad_getn_schar_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -1792,10 +1792,10 @@ t_pad_getn_schar_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -1819,10 +1819,10 @@ t_pad_getn_schar_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -1846,10 +1846,10 @@ t_pad_getn_schar_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_schar_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -1874,10 +1874,10 @@ t_pad_getn_schar_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_getn_short_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -1898,10 +1898,10 @@ t_getn_short_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(uchars);
@@ -1921,10 +1921,10 @@ t_getn_short_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -1945,10 +1945,10 @@ t_getn_short_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -1969,10 +1969,10 @@ t_getn_short_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -1993,10 +1993,10 @@ t_getn_short_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -2017,10 +2017,10 @@ t_getn_short_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_short_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -2042,10 +2042,10 @@ t_getn_short_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_pad_getn_short_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -2069,10 +2069,10 @@ t_pad_getn_short_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(uchars);
@@ -2095,10 +2095,10 @@ t_pad_getn_short_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -2122,10 +2122,10 @@ t_pad_getn_short_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -2149,10 +2149,10 @@ t_pad_getn_short_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -2176,10 +2176,10 @@ t_pad_getn_short_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -2203,10 +2203,10 @@ t_pad_getn_short_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_pad_getn_short_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -2231,10 +2231,10 @@ t_pad_getn_short_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_getn_int_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -2255,10 +2255,10 @@ t_getn_int_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(uchars);
@@ -2278,10 +2278,10 @@ t_getn_int_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -2302,10 +2302,10 @@ t_getn_int_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -2326,10 +2326,10 @@ t_getn_int_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -2350,10 +2350,10 @@ t_getn_int_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -2374,10 +2374,10 @@ t_getn_int_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_int_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -2399,10 +2399,10 @@ t_getn_int_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_getn_float_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -2423,10 +2423,10 @@ t_getn_float_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_float_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(uchars);
@@ -2446,10 +2446,10 @@ t_getn_float_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_float_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -2470,10 +2470,10 @@ t_getn_float_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_float_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -2496,10 +2496,10 @@ t_getn_float_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_float_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -2525,10 +2525,10 @@ t_getn_float_long(const char *const buf)
 		}
 	}
 }
-static void 
+static void
 t_getn_float_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -2549,10 +2549,10 @@ t_getn_float_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_float_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);
@@ -2584,7 +2584,7 @@ t_getn_float_double(const char *const buf)
 		(void) fprintf(stderr,
 				"%.9e != %.9e float_double (diff %.9e)\n",
 				tp[ii], lp[ii], tp[ii] - lp[ii]);
-					
+
 	}
 				}
 			}
@@ -2593,10 +2593,10 @@ t_getn_float_double(const char *const buf)
 }
 
 
-static void 
+static void
 t_getn_double_schar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const schar *tp = schars;
 	schar *lp = (schar *)lbuf;
 	size_t nelems = ArraySize(schars);
@@ -2617,10 +2617,10 @@ t_getn_double_schar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_uchar(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const uchar *tp = uchars;
 	uchar *lp = (uchar *)lbuf;
 	size_t nelems = ArraySize(uchars);
@@ -2640,10 +2640,10 @@ t_getn_double_uchar(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_short(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const short *tp = shorts;
 	short *lp = (short *)lbuf;
 	size_t nelems = ArraySize(shorts);
@@ -2664,10 +2664,10 @@ t_getn_double_short(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_int(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const int *tp = ints;
 	int *lp = (int *)lbuf;
 	size_t nelems = ArraySize(ints);
@@ -2688,10 +2688,10 @@ t_getn_double_int(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_long(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const long *tp = longs;
 	long *lp = (long *)lbuf;
 	size_t nelems = ArraySize(longs);
@@ -2712,10 +2712,10 @@ t_getn_double_long(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_float(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const float *tp = floats;
 	float *lp = (float *)lbuf;
 	size_t nelems = ArraySize(floats);
@@ -2736,10 +2736,10 @@ t_getn_double_float(const char *const buf)
 	}
 }
 
-static void 
+static void
 t_getn_double_double(const char *const buf)
 {
-	const char *xp = buf; 
+	const char *xp = buf;
 	const double *tp = doubles;
 	double *lp = (double *)lbuf;
 	size_t nelems = ArraySize(doubles);

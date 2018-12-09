@@ -16,11 +16,11 @@ static void vstep_print(void)
    vn++ ;
 }
 
-/* If a label ends with '*', return 
-the length of the string -1. That would be the 
-number of characters to match. 
+/* If a label ends with '*', return
+the length of the string -1. That would be the
+number of characters to match.
 Otherwise, return -1 */
-int SUMA_is_wild_hspec_label(char *lab) 
+int SUMA_is_wild_hspec_label(char *lab)
 {
    static char FuncName[]={"SUMA_is_wild_hspec_label"};
    int nlab = 0;
@@ -35,34 +35,34 @@ int SUMA_is_wild_hspec_label(char *lab)
 }
 
 static HELP_OPT GenFeatureDistOptList[] = {
-   {  
-"-classes", 
+   {
+"-classes",
 "-classes 'CLASS_STRING': CLASS_STRING is a semicolon delimited\n"
 "                         string of class labels. For example\n"
-"                         -classes 'CSF; WM; GM'\n", 
+"                         -classes 'CSF; WM; GM'\n",
 NULL
       },
-   {  
-"-OTHER", 
-"-OTHER: Add histograms for an 'OTHER' class that has a uniform pdf.\n", 
-NULL
-      },
-
-   {  
-"-no_OTHER", 
-"-no_OTHER: Opposite of -OTHER.\n", 
+   {
+"-OTHER",
+"-OTHER: Add histograms for an 'OTHER' class that has a uniform pdf.\n",
 NULL
       },
 
-   {  
-"-features", 
+   {
+"-no_OTHER",
+"-no_OTHER: Opposite of -OTHER.\n",
+NULL
+      },
+
+   {
+"-features",
 "-features 'FEATURES_STRING': FEATURES_STRING is a semicolon delimited\n"
 "                         string of features. For example\n"
-"                         -features 'MEAN.00_mm; median.19_mm; ...'\n", 
+"                         -features 'MEAN.00_mm; median.19_mm; ...'\n",
 NULL
       },
-   {  
-"-sig", 
+   {
+"-sig",
 "-sig 'FEATURE_VOL1 FEATURE_VOL2 ...': Specify volumes that define\n"
 "                         the features. Each sub-brick is a feature\n"
 "                         and the sub-brick's name is used to name the \n"
@@ -78,8 +78,8 @@ NULL
 "                         the kth -samp datasets.\n",
 NULL
       },
-   {  
-"-samp", 
+   {
+"-samp",
 "-samp 'SAMPLE_VOX1 SAMPLE_VOX2 ...': Specify which voxels belong to\n"
 "                         each class of interest. Each of the volumes\n"
 "                         should contain voxel values (keys) that are\n"
@@ -98,7 +98,7 @@ NULL
 NULL
       },
 
-   {  
+   {
 "-hspec",
 "-hspec FEATURE MIN MAX NBINS: Set histogram parameters for feature FEATURE\n"
 "                              FEATURE: String label of feature\n"
@@ -108,39 +108,39 @@ NULL
 "        the automatic parameter selection was lousy. You can specify \n"
 "        for multiple features by using multiple -hspec instances. The only\n"
 "        condition is that all feature labels (FEATURE) must be part of the \n"
-"        set named in -features.\n" , 
-NULL 
+"        set named in -features.\n" ,
+NULL
       },
 
-   
-   {  
+
+   {
 "-prefix",
 "-prefix PREF: PREF is the prefix for all output volume that are not \n"
-"              debugging related.\n", 
-"GenFeatDist" 
+"              debugging related.\n",
+"GenFeatDist"
       },
-   
-   {  
+
+   {
 "-ShowTheseHists",
 "-ShowTheseHists HISTNAMES: Show histograms specified by HISTNAMES and quit.\n"
 "              HISTNAMES can specify just one .niml.hist file or a bunch of \n"
 "              them using a space, or comma separated list. \n"
 "              List multiple names between quotes.\n",
-NULL 
+NULL
       },
-   {  
+   {
 "-overwrite",
 "-overwrite: An option common to almost all AFNI programs. It is \n"
 "            automatically turned on if you provide no PREF.\n",
 NULL
       },
-   {  
+   {
 "-debug",
 "-debug: Debugging level\n",
 "1"
       },
 
-   {  
+   {
 "-labeltable",
 "-labeltable LT: Specify the label table\n",
 "1"
@@ -153,28 +153,28 @@ static char shelp_GenFeatureDist[] = {
    "3dGenFeatureDist produces hives.\n"
 };
 
-void GenFeatureDist_usage(int detail) 
+void GenFeatureDist_usage(int detail)
 {
    char *s=NULL;
-      
+
    ENTRY("GenFeatureDist_usage");
-   
-   
+
+
    printf( "%s", shelp_GenFeatureDist );
    s = SUMA_OptList_string(GenFeatureDistOptList);
    printf( "%s", s );
    SUMA_free(s);
-   
+
    EXRETURN;
 }
 
 
-int GenFeatureDist(SEG_OPTS *Opt) 
+int GenFeatureDist(SEG_OPTS *Opt)
 {
-   
+
    ENTRY("GenFeatureDist");
-   
-   
+
+
    /* get the probability maps */
    if (!Opt->pset && Opt->DO_p) {
       if (!(Opt->pset = p_C_GIV_A(Opt))) {
@@ -182,11 +182,11 @@ int GenFeatureDist(SEG_OPTS *Opt)
          RETURN(0);
       }
    }
-      
+
    /* Get the classes */
    if (!Opt->cset && Opt->crefix && Opt->DO_c) {
-      if (!(SUMA_assign_classes_eng(Opt->pset, 
-                           Opt->clss->str, Opt->clss->num, Opt->keys, 
+      if (!(SUMA_assign_classes_eng(Opt->pset,
+                           Opt->clss->str, Opt->clss->num, Opt->keys,
                            Opt->cmask, &Opt->cset))) {
          ERROR_message("Failed aimlessly");
          RETURN(0);
@@ -196,20 +196,20 @@ int GenFeatureDist(SEG_OPTS *Opt)
       ERROR_exit("Output file %s already exists -- cannot continue!\n",
                   DSET_HEADNAME(Opt->cset) ) ;
       }
-   }  
-   
+   }
+
    /* group classes ? */
    if (Opt->group_classes) {
       THD_3dim_dataset *gcset=NULL;
       THD_3dim_dataset *gpset=NULL;
-      if (!SUMA_Regroup_classes (Opt, 
+      if (!SUMA_Regroup_classes (Opt,
                      Opt->clss->str, Opt->clss->num, Opt->keys,
                      Opt->group_classes->str,
                      Opt->group_classes->num,
                      Opt->group_keys, Opt->cmask,
-                     Opt->pset, 
+                     Opt->pset,
                      Opt->cset,
-                     &gpset, 
+                     &gpset,
                      &gcset) ) {
          ERROR_message("Failed to regroup");
          RETURN(0);
@@ -217,18 +217,18 @@ int GenFeatureDist(SEG_OPTS *Opt)
       DSET_write(gpset);
       DSET_write(gcset);
    }
-          
+
    RETURN(1);
 }
 
-SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc) 
+SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
 {
    SEG_OPTS *Opt=NULL;
-   
+
    ENTRY("GenFeatureDist_Default");
-   
+
    Opt = SegOpt_Struct();
-   
+
    Opt->helpfunc = &GenFeatureDist_usage;
    Opt->ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
    Opt->aset_name = NULL;
@@ -251,14 +251,14 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
    Opt->debug =(int)strtod(SUMA_OptList_get(
                      GenFeatureDistOptList, "-debug", "val"), NULL);
    Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
-   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent 
+   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent
                             binwidth. I picked a large one where discrepancy
-                            between Reference and Approximation was good. 
-                            0.1 is too coarse, 0.001 is overkill*/ 
+                            between Reference and Approximation was good.
+                            0.1 is too coarse, 0.001 is overkill*/
    Opt->feats=Opt->clss=NULL;
    Opt->keys = NULL;
    Opt->mixfrac=NULL;
-   Opt->UseTmp = 1; 
+   Opt->UseTmp = 1;
    Opt->logp = 1;
    Opt->VoxDbg = -1;
    Opt->VoxDbgOut = NULL;
@@ -283,21 +283,21 @@ SEG_OPTS *GenFeatureDist_Default(char *argv[], int argc)
    Opt->cs = NULL;
    Opt->Gcs = NULL;
    Opt->Other = 1;
-   
+
    RETURN(Opt);
 }
 
-int GenFeatureDist_CheckOpts(SEG_OPTS *Opt) 
+int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
 {
    static char FuncName[]={"GenFeatureDist_CheckOpts"};
    int i=0, kk=0, nmatch;
-   
+
    SUMA_ENTRY;
-   
+
    if (!Opt->clss) {
       SUMA_S_Err("Need -classes option");
       SUMA_RETURN(1);
-   } 
+   }
    if (!Opt->sig_names) {
       SUMA_S_Err("Need -sig option");
       SUMA_RETURN(1);
@@ -311,12 +311,12 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
             Opt->samp_names->num, Opt->sig_names->num);
       SUMA_RETURN(1);
    }
-   
+
    /* labeltable? */
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
       char *labeltable_str=NULL;
-      
+
       /* read the table */
       if (!(labeltable_str = AFNI_suck_file( Opt->labeltable_name))) {
          ERROR_exit("Failed to read %s", Opt->labeltable_name);
@@ -327,35 +327,35 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
       /* make sure all classes are in the labeltable */
       for (i=0; i<Opt->clss->num; ++i) {
          if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-               ERROR_exit("Key not found in %s for %s ", 
+               ERROR_exit("Key not found in %s for %s ",
                         Opt->labeltable_name, Opt->clss->str[i]);
          }
          if (Opt->keys) {
             if (Opt->keys[i]!=kk) {
                ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);
             }
-         }   
-      }   
+         }
+      }
       if (!Opt->keys) { /* get them from table */
          Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
          for (i=0; i<Opt->clss->num; ++i) {
             if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-                  ERROR_exit("(should noy happen) Key not found in %s for %s ", 
+                  ERROR_exit("(should noy happen) Key not found in %s for %s ",
                            Opt->labeltable_name, Opt->clss->str[i]);
             }
             Opt->keys[i] = kk;
          }
       }
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
-   } 
-   
-   
+   }
+
+
    /* Make sure any histogram specs are for a class in use */
    for (kk=0; kk<Opt->N_hspec; ++kk) {
       if ( (nmatch = SUMA_is_wild_hspec_label(Opt->hspec[kk]->label)) >= 0) {
          if (!nmatch) break;
          for (i=0; i<Opt->feats->num; ++i) {
-            if (!strncmp(Opt->feats->str[i], 
+            if (!strncmp(Opt->feats->str[i],
                          Opt->hspec[kk]->label, nmatch)) break;
          }
       } else {
@@ -368,7 +368,7 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
                     Opt->hspec[kk]->label);
       }
    }
-   
+
    if (!Opt->keys) {
       /* add default keys */
       if (Opt->debug) SUMA_S_Note("Keys not available, assuming defaults");
@@ -377,34 +377,34 @@ int GenFeatureDist_CheckOpts(SEG_OPTS *Opt)
          Opt->keys[i] = i+1;
       }
    }
-   
+
    /* Show the match between keys and classes */
    if (Opt->debug > 1) {
       SUMA_S_Note("Class-->key map");
       SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
    }
-   
+
    if( ! THD_is_directory(Opt->proot) ){
       if( mkdir( Opt->proot , THD_MKDIR_MODE ) != 0 ){
          SUMA_S_Errv("Failed to create %s\n", Opt->proot);
          SUMA_RETURN(0);
       }
    }
-   
+
 
    SUMA_RETURN(1);
 }
 
 SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 {
-   static char FuncName[]={"GenFeatureDist_ParseInput"}; 
+   static char FuncName[]={"GenFeatureDist_ParseInput"};
    int kar, i, ind, exists;
    char *outname, cview[10], *sbuf=NULL;
    int brk = 0;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
 
    SUMA_ENTRY;
-   
+
    brk = 0;
    kar = 1;
 	while (kar < argc) { /* loop accross command ine options */
@@ -413,20 +413,20 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			 Opt->helpfunc(0);
           exit (0);
 		}
-      
+
  		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-     
+
       #ifdef USE_TRACING
             if( strncmp(argv[kar],"-trace",5) == 0 ){
                DBG_trace = 1 ;
                brk = 1 ;
             }
-            if( strncmp(argv[kar],"-TRACE",5) == 0 ){  
+            if( strncmp(argv[kar],"-TRACE",5) == 0 ){
                DBG_trace = 2 ;
                brk = 1 ;
             }
       #endif
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -435,32 +435,32 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->debug = atoi(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-talk_afni") == 0)) {
          Opt->ps->cs->talk_suma = 1;
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-openmp") == 0)) {
 			Opt->openmp = 1;
          brk = 1;
-		}   
-         
+		}
+
       if (!brk && (strcmp(argv[kar], "-no_openmp") == 0)) {
 			Opt->openmp = 0;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-OTHER") == 0)) {
 			Opt->Other = 1;
          brk = 1;
-		}   
-         
+		}
+
       if (!brk && (strcmp(argv[kar], "-no_OTHER") == 0)) {
 			Opt->Other = 0;
          brk = 1;
-		}      
+		}
 
 
       if (!brk && (strcmp(argv[kar], "-vox_debug") == 0)) {
@@ -473,19 +473,19 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             int iii, jjj, kkk;
             if (argv[kar][0]!='-' && argv[kar][1]!='-' && argv[kar][2]!='-' &&
                 (iii = atoi(argv[kar  ])) >= 0 &&
-                (jjj = atoi(argv[kar+1])) >= 0 && 
+                (jjj = atoi(argv[kar+1])) >= 0 &&
                 (kkk = atoi(argv[kar+2])) >= 0 ) {
                Opt->VoxDbg3[0]=iii;
                Opt->VoxDbg3[1]=jjj;
-               Opt->VoxDbg3[2]=kkk;    
+               Opt->VoxDbg3[2]=kkk;
                ++kar; ++kar;
-            } 
+            }
          }
 			if (Opt->VoxDbg3[0] < 0) {
             Opt->VoxDbg = atoi(argv[kar]);
          }
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-vox_debug_file") == 0)) {
          kar ++;
@@ -501,8 +501,8 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             Opt->VoxDbgOut = fopen(argv[kar],"w");
          }
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-cmask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -512,7 +512,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          if( Opt->cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -521,8 +521,8 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->mset_name = argv[kar];
          brk = 1;
-      }      
-      
+      }
+
       if( !brk && (strncmp(argv[kar],"-mrange",5) == 0) ){
          if( kar+2 >= argc )
            ERROR_exit("-mrange option requires 2 following arguments!\n");
@@ -532,7 +532,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
            ERROR_exit("-mrange inputs are illegal!\n") ;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-anat") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -542,15 +542,15 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->aset_name = argv[kar];
          brk = 1;
 		}
-            
+
       if (!brk && (strcmp(argv[kar], "-sig") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -sig \n");
 				exit (1);
 			}
-			while (kar < argc && argv[kar][0] != '-') { 
-            sbuf = 
+			while (kar < argc && argv[kar][0] != '-') {
+            sbuf =
                SUMA_append_replace_string(sbuf, argv[kar], " ", 1);
             ++kar;
          }
@@ -559,15 +559,15 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          SUMA_free(sbuf); sbuf = NULL;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-samp") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -samp \n");
 				exit (1);
 			}
-			while (kar < argc && argv[kar][0] != '-') { 
-            sbuf = 
+			while (kar < argc && argv[kar][0] != '-') {
+            sbuf =
                SUMA_append_replace_string(sbuf, argv[kar], " ", 1);
             ++kar;
          }
@@ -576,7 +576,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          SUMA_free(sbuf); sbuf = NULL;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-hspec") == 0)) {
          kar ++;
 			if (kar+3 >= argc)  {
@@ -593,9 +593,9 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          ++Opt->N_hspec;
          brk = 1;
 		}
-      
-      
-                  
+
+
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -618,8 +618,8 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->xrefix,"%s.x", argv[kar]);
          brk = 1;
 		}
-      
-      
+
+
       if (!brk && (strcmp(argv[kar], "-classes") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -629,7 +629,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->clss = NI_strict_decode_string_list(argv[kar] ,";, ");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-features") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -639,7 +639,7 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->feats = NI_strict_decode_string_list(argv[kar] ,";, ");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-keys") == 0)) {
          NI_str_array *nstr=NULL; int ii;
          kar ++;
@@ -651,13 +651,13 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             ERROR_exit("Bad option %s after -keys", argv[kar]);
          }
          Opt->keys = (int *)calloc(nstr->num, sizeof(int));
-         for (ii=0;ii<nstr->num; ++ii) 
+         for (ii=0;ii<nstr->num; ++ii)
             Opt->keys[ii] = strtol(nstr->str[ii],NULL,10);
          NI_delete_str_array(nstr);nstr=NULL;
          brk = 1;
 		}
-      
-      
+
+
       if (!brk && (strcmp(argv[kar], "-labeltable") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -677,46 +677,46 @@ SEG_OPTS *GenFeatureDist_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			snprintf(Opt->uid,128,"%s",argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-ShowTheseHists") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -ShowTheseHists \n");
 				exit (1);
 			}
-			{ 
+			{
             NI_str_array *hisnames=NULL;
             SUMA_HIST *hh=NULL;
             int ii=0;
-            
-            hisnames = NI_strict_decode_string_list(argv[kar],";, ");         
+
+            hisnames = NI_strict_decode_string_list(argv[kar],";, ");
             for (ii=0; ii<hisnames->num; ++ii) {
                if ((hh = SUMA_read_hist(hisnames->str[ii]))) {
                   SUMA_Show_hist(hh, 1, NULL);
                   hh = SUMA_Free_hist(hh);
                } else {
                   SUMA_S_Errv("Hist %s not found.\n", hisnames->str[ii]);
-                  exit(1); 
+                  exit(1);
                }
             }
             hisnames = SUMA_free_NI_str_array(hisnames);
          }
          exit(0);
          brk = 1;
-		}  
-          
+		}
+
       if (!brk) {
 			fprintf (stderr,"Option #%d %s not understood. \n"
                          "Try -help for usage\n", kar, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = 0;
 			kar ++;
 		}
 
    }
-   
+
    if (!Opt->prefix) Opt->prefix = strdup("./GenFeatureDistOut.p");
    if (!Opt->frefix) Opt->frefix = strdup("./GenFeatureDistOut.f");
    if (!Opt->xrefix) Opt->xrefix = strdup("./GenFeatureDistOut.x");
@@ -743,39 +743,39 @@ int main(int argc, char **argv)
         ss, /* subjects counter */
         iii, /* dummy counter */
         nbins, /* number of bins */
-        *ifeat=NULL, key, 
-        **N_alloc_FCset=NULL, /* Number of values allocated for each 
+        *ifeat=NULL, key,
+        **N_alloc_FCset=NULL, /* Number of values allocated for each
                                  vector in FCset */
-        **N_FCset=NULL, /* Number of filled values for each vector in FCset */ 
+        **N_FCset=NULL, /* Number of filled values for each vector in FCset */
         N_ffalloc=0, N_ff, isneg=0,
         missfeatwarn=-1 /* Missing feature warning for some subject */;
-   float fsf=0.0, fsb=0.0, 
-         ***FCset=NULL, /* Table holding samples for each feature/class combo */ 
+   float fsf=0.0, fsb=0.0,
+         ***FCset=NULL, /* Table holding samples for each feature/class combo */
          hrange[2]={-3.0, 3.0}, bwidth1=0.05, bwidth=0.0,
          *ff=NULL;
    short *sf=NULL, *sb=NULL;
    byte **masks=NULL;
    SUMA_HIST ***hh=NULL, **hf=NULL;
-   double ff_m, ff_s;   
+   double ff_m, ff_s;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
-   
+
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    Opt = GenFeatureDist_Default(argv,  argc);
    Opt = GenFeatureDist_ParseInput (Opt, argv,  argc);
    Opt->hist = tross_commandline( FuncName , argc , argv ) ;
-   
+
    if (!GenFeatureDist_CheckOpts(Opt)) {
       ERROR_exit("Failed on option check");
    }
-   
+
    /* labeltable? */
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
       char *labeltable_str=NULL;
-      
+
       /* read the table */
       if (!(labeltable_str = AFNI_suck_file( Opt->labeltable_name))) {
          ERROR_exit("Failed to read %s", Opt->labeltable_name);
@@ -786,28 +786,28 @@ int main(int argc, char **argv)
       /* make sure all classes are in the labeltable */
       for (cc=0; cc<Opt->clss->num; ++cc) {
          if ((key = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[cc]))<0){
-            ERROR_exit("Key not found in %s for %s ", 
+            ERROR_exit("Key not found in %s for %s ",
                         Opt->labeltable_name, Opt->clss->str[cc]);
          }
          if (Opt->keys) {
             if (Opt->keys[cc]!=key) {
                ERROR_exit("Key mismatch %d %d", Opt->keys[cc], key);
             }
-         }   
-      }   
+         }
+      }
       if (!Opt->keys) { /* get them from table */
          Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
          for (cc=0; cc<Opt->clss->num; ++cc) {
             if ((key = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[cc]))<0){
-               ERROR_exit("(should noy happen) Key not found in %s for %s ", 
+               ERROR_exit("(should noy happen) Key not found in %s for %s ",
                            Opt->labeltable_name, Opt->clss->str[cc]);
             }
             Opt->keys[cc] = key;
          }
       }
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
-   } 
-   
+   }
+
    if (!Opt->keys) {
       /* add default keys */
       SUMA_S_Note("Keys not available, assuming defaults");
@@ -816,40 +816,40 @@ int main(int argc, char **argv)
          Opt->keys[cc] = cc+1;
       }
    }
-   
+
    /* Show the match between keys and classes */
    SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
    /* For each feature, each class, collect the values */
    SUMA_S_Notev("Collecting data from %d subjects\n", Opt->sig_names->num);
-   
+
    missfeatwarn = -1;
    for (ss=0; ss<Opt->sig_names->num; ++ss) { /* for each subject */
-      /* load the input data */   
-      if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {      
+      /* load the input data */
+      if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {
          exit(1);
       }
       if (Opt->debug > 1) {
          SUMA_S_Notev("Have %d sub-bricks in signatures of dude %d\n",
                    DSET_NVALS(Opt->sig), ss);
       }
-      
+
       if (ss == 0) { /* some setup based on initial grid */
          if (!Opt->feats) { /* create features from signature */
             char *allfeats=NULL;
             for (nn=0; nn<DSET_NVALS(Opt->sig); ++nn) {
-               allfeats = 
+               allfeats =
                   SUMA_append_replace_string(allfeats,
                                           DSET_BRICK_LABEL(Opt->sig,nn),";", 1);
             }
             Opt->feats = NI_strict_decode_string_list(allfeats,";, ");
             SUMA_free(allfeats); allfeats=NULL;
-         } 
+         }
 
          SUMA_S_Notev("Have to work with %d classes, %d features\n",
                       Opt->clss->num, Opt->feats->num);
 
          SUMA_S_Note("Initializing storage");
-         /* Receptacles for all observations for each feature 
+         /* Receptacles for all observations for each feature
             and class combination */
          FCset = (float ***)SUMA_calloc(Opt->feats->num, sizeof(float **));
          N_FCset = (int **)SUMA_calloc(Opt->feats->num, sizeof(int *));
@@ -864,19 +864,19 @@ int main(int argc, char **argv)
 
          /* Fix VoxDbg */
          if (Opt->VoxDbg >= 0) {
-            Vox1D2Vox3D(Opt->VoxDbg, 
+            Vox1D2Vox3D(Opt->VoxDbg,
                         DSET_NX(Opt->sig), DSET_NX(Opt->sig)*DSET_NY(Opt->sig),
                         Opt->VoxDbg3);
          } else if (Opt->VoxDbg3[0]>=0) {
-            Opt->VoxDbg =  Opt->VoxDbg3[0] + 
+            Opt->VoxDbg =  Opt->VoxDbg3[0] +
                            Opt->VoxDbg3[1]*DSET_NX(Opt->sig) +
                            Opt->VoxDbg3[2]*DSET_NX(Opt->sig)*DSET_NY(Opt->sig);
          }
       }
-      
+
       /* allocate for mask which will be non-zero whenever a voxel is in at least         1 mask. It will have the 1st assignment */
       masks[ss] = (byte *)SUMA_calloc(DSET_NVOX(Opt->sig), sizeof(byte));
-      
+
       /* create mapping between feature names and sub-briks */
       for (aa=0; aa<Opt->feats->num; ++aa) {
          ifeat[aa] = 0;
@@ -889,26 +889,26 @@ int main(int argc, char **argv)
                       Opt->feats->str[aa], ifeat[aa]);
          }
       }
-      
+
       SUMA_S_Notev("Loading sample classes for subject #%d\n", ss);
-      if (!(Opt->samp = Seg_load_dset( Opt->samp_names->str[ss] ))) {      
+      if (!(Opt->samp = Seg_load_dset( Opt->samp_names->str[ss] ))) {
          exit(1);
       }
-      
+
       if (THD_dataset_mismatch(Opt->samp, Opt->sig)) {
          SUMA_S_Err(
             "Grid mismatch between -samp [%dx%dx%d] and \n"
-            "                      -sig  [%dx%dx%d] volumes for pair #%d\n", 
+            "                      -sig  [%dx%dx%d] volumes for pair #%d\n",
             DSET_NX(Opt->samp), DSET_NY(Opt->samp), DSET_NZ(Opt->samp),
             DSET_NX(Opt->sig), DSET_NY(Opt->sig), DSET_NZ(Opt->sig), ss);
          exit(1);
       }
-      
+
       if (Opt->debug > 1) {
-         SUMA_S_Notev("Have %d sub-bricks in samples of dude %d\n", 
+         SUMA_S_Notev("Have %d sub-bricks in samples of dude %d\n",
                      DSET_NVALS(Opt->samp), ss);
       }
-      
+
       /* Now collect features for each class */
       SUMA_S_Note("Collecting features for each class");
       for (cc=0; cc<Opt->clss->num; ++cc) {
@@ -934,19 +934,19 @@ int main(int argc, char **argv)
                      if (ifeat[aa]>-1) {
                         if (N_alloc_FCset[aa][cc] <= N_FCset[aa][cc]) {
                            N_alloc_FCset[aa][cc] += 10000;
-                           FCset[aa][cc] = 
+                           FCset[aa][cc] =
                               (float*)SUMA_realloc(FCset[aa][cc],
                                            N_alloc_FCset[aa][cc]*sizeof(float));
                         }
                         sf = (short *)DSET_ARRAY(Opt->sig, ifeat[aa]);
                         fsf = DSET_BRICK_FACTOR(Opt->sig,ifeat[aa]);
                         if (fsf == 0.0) fsf = 1.0;
-                        FCset[aa][cc][N_FCset[aa][cc]] = sf[vv]*fsf; 
+                        FCset[aa][cc][N_FCset[aa][cc]] = sf[vv]*fsf;
                         ++N_FCset[aa][cc];
                         if (!masks[ss][vv]) {
                            masks[ss][vv] = (short)key; /* fcfs */
                                        /* in case we exceed short range */
-                           if (masks[ss][vv]) masks[ss][vv] = 1; 
+                           if (masks[ss][vv]) masks[ss][vv] = 1;
                         }
                      } else {
                         if (missfeatwarn != ss) {
@@ -954,16 +954,16 @@ int main(int argc, char **argv)
                                  Opt->feats->str[aa], ss);
                            missfeatwarn = ss;
                         }
-                     }  
+                     }
                   }
-               }  
+               }
             }
          }
       }
       DSET_delete(Opt->sig); Opt->sig=NULL;
       DSET_delete(Opt->samp); Opt->samp=NULL;
    } /* loop across all subjects */
-   
+
    /* compute histograms of features across all classes and save them */
    hf = (SUMA_HIST **)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST *));
    SUMA_S_Note("Computing histograms of features across all classes");
@@ -971,8 +971,8 @@ int main(int argc, char **argv)
    for (aa=0; aa<Opt->feats->num; ++aa) {
       N_ff=0;
       for (cc=0; cc<Opt->clss->num; ++cc) {
-         N_ff += N_FCset[aa][cc]; /* more than I need because same voxel 
-                                     can belong to multiple classes, but just 
+         N_ff += N_FCset[aa][cc]; /* more than I need because same voxel
+                                     can belong to multiple classes, but just
                                      to be safe */
       }
       if (N_ffalloc < N_ff) {
@@ -982,11 +982,11 @@ int main(int argc, char **argv)
             SUMA_S_Crit("Failed to allocate");
             exit(1);
          }
-      } 
+      }
       N_ff=0; isneg = 0; ff_m=0.0;
       for (ss=0; ss<Opt->sig_names->num; ++ss) { /* Once again, unfortunately  */
-         /* load the input data */   
-         if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {      
+         /* load the input data */
+         if (!(Opt->sig = Seg_load_dset( Opt->sig_names->str[ss] ))) {
             exit(1);
          }
          if (Opt->debug > 1) {
@@ -1014,7 +1014,7 @@ int main(int argc, char **argv)
       }
       ff_s = sqrt(ff_s/N_ff);
       sprintf(sbuf, "h(%s)",Opt->feats->str[aa]);
-      
+
       /* Check if you have user specified binning specs */
       bwidth = -1; nbins = -1;
       for (iii=0; iii<Opt->N_hspec; ++iii) {
@@ -1027,15 +1027,15 @@ int main(int argc, char **argv)
             break;
          }
       }
-      
 
-         
+
+
       if (bwidth < 0) {
          int nmatch = -1;
          /* Check the wildcard option */
          for (iii=0; iii<Opt->N_hspec; ++iii) {
             if ((nmatch = SUMA_is_wild_hspec_label(Opt->hspec[iii]->label))>=0) {
-               if (!nmatch || !strncmp(Opt->feats->str[aa], 
+               if (!nmatch || !strncmp(Opt->feats->str[aa],
                                        Opt->hspec[iii]->label, nmatch)) {
                   SUMA_S_Note("Feature %s matched with hspec %s\n",
                               Opt->feats->str[aa], Opt->hspec[iii]->label);
@@ -1049,7 +1049,7 @@ int main(int argc, char **argv)
             }
          }
       }
-      
+
       if (bwidth < 0) { /* no user specs found */
          nbins = 0;
          methods = "Range|OsciBinWidth";
@@ -1068,10 +1068,10 @@ int main(int argc, char **argv)
          }
       }
       SUMA_S_Notev("Feature %s: mean %f, std %f\n"
-                   "Hist params: [%f %f], binwidth %f\n", 
+                   "Hist params: [%f %f], binwidth %f\n",
                         Opt->feats->str[aa], ff_m, ff_s,
                         hrange[0], hrange[1], bwidth);
-      if (!(hf[aa] = SUMA_hist_opt(ff, N_ff, nbins, bwidth, hrange, sbuf, 1, 
+      if (!(hf[aa] = SUMA_hist_opt(ff, N_ff, nbins, bwidth, hrange, sbuf, 1,
                                     0.1, methods))) {
          SUMA_S_Errv("Failed to generate histogram for %s. \n"
                      "This will cause trouble at classification.\n",
@@ -1081,21 +1081,21 @@ int main(int argc, char **argv)
             SUMA_S_Warnv("For histogram %s, %.2f%% of the samples were\n"
                          "ignored for being outside the range [%f %f]\n",
                    Opt->feats->str[aa],
-                   100*(float)hf[aa]->N_ignored/(float)hf[aa]->n, 
+                   100*(float)hf[aa]->N_ignored/(float)hf[aa]->n,
                    hf[aa]->min, hf[aa]->max);
          }
          if (Opt->debug > 1) SUMA_Show_hist(hf[aa], 1, NULL);
          /* save the histogram */
          if (!SUMA_write_hist(hf[aa],
-                  SUMA_hist_fname(Opt->proot, 
+                  SUMA_hist_fname(Opt->proot,
                                   Opt->feats->str[aa], NULL, 0))) {
             SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
-         } 
+         }
       }
-   }  
+   }
    if (ff) SUMA_free(ff); ff = NULL;
-   
-   
+
+
    /* Compute histograms of features per class && save them*/
    hh = (SUMA_HIST ***)SUMA_calloc(Opt->feats->num, sizeof(SUMA_HIST **));
    for (aa=0; aa<Opt->feats->num; ++aa) {
@@ -1113,12 +1113,12 @@ int main(int argc, char **argv)
       }
       for (aa=0; aa<Opt->feats->num; ++aa) {
          sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], Opt->clss->str[cc]);
-         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
-         /* Do not optimize hist range and binwidth anymore, 
-            but allow smoothing. This is needed when a particular 
+         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max;
+         /* Do not optimize hist range and binwidth anymore,
+            but allow smoothing. This is needed when a particular
             class has very few samples */
-         if (!(hh[aa][cc] = SUMA_hist_opt(FCset[aa][cc], N_FCset[aa][cc], 
-                                    hf[aa]->K, hf[aa]->W, 
+         if (!(hh[aa][cc] = SUMA_hist_opt(FCset[aa][cc], N_FCset[aa][cc],
+                                    hf[aa]->K, hf[aa]->W,
                                     hrange, sbuf, 1,
                                     0.1, "OsciSmooth"))) {
             SUMA_S_Errv("Failed to generate histogram for %s|%s. \n"
@@ -1128,22 +1128,22 @@ int main(int argc, char **argv)
             if (Opt->debug > 1) SUMA_Show_hist(hh[aa][cc], 1, NULL);
             /* save the histogram */
             if (!SUMA_write_hist(hh[aa][cc],
-                     SUMA_hist_fname(Opt->proot, 
+                     SUMA_hist_fname(Opt->proot,
                               Opt->feats->str[aa], Opt->clss->str[cc], 0))) {
                SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
-            } 
+            }
          }
       }
    }
-   
-   if (Opt->Other) {   
+
+   if (Opt->Other) {
       cc = Opt->clss->num;
       SUMA_S_Note("Generating OTHER class with uniform PDF");
       for (aa=0; aa<Opt->feats->num; ++aa) {
          sprintf(sbuf, "h(%s|%s)",Opt->feats->str[aa], "OTHER");
-         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max; 
-         if (!(hh[aa][cc] = SUMA_hist_opt(NULL, 0, 
-                                    hf[aa]->K, hf[aa]->W, 
+         hrange[0] = hf[aa]->min; hrange[1] = hf[aa]->max;
+         if (!(hh[aa][cc] = SUMA_hist_opt(NULL, 0,
+                                    hf[aa]->K, hf[aa]->W,
                                     hrange, sbuf, 1,
                                     0, "handsoff"))) {
             SUMA_S_Errv("Failed to generate histogram for %s|%s. \n"
@@ -1153,14 +1153,14 @@ int main(int argc, char **argv)
             if (Opt->debug > 1) SUMA_Show_hist(hh[aa][cc], 1, NULL);
             /* save the histogram */
             if (!SUMA_write_hist(hh[aa][cc],
-                     SUMA_hist_fname(Opt->proot, 
+                     SUMA_hist_fname(Opt->proot,
                               Opt->feats->str[aa], "OTHER", 0))) {
                SUMA_S_Errv("Failed to write histog to %s\n", sbuf);
-            } 
+            }
          }
       }
    }
-    
+
    SUMA_S_Note("Computing Correlation matrices");
    /* L2 normalize all of FCset */
    for (cc=0; cc<Opt->clss->num; ++cc) {
@@ -1168,16 +1168,16 @@ int main(int argc, char **argv)
          THD_normalize(N_FCset[aa][cc], FCset[aa][cc]);
       }
    }
-   
+
    {
       NI_element **CC=NULL;
       float *fm=NULL, *fn=NULL;
       NI_element *nel = NULL;
       int suc;
-      
+
    /* Compute the correlation matrices for each class */
    CC = (NI_element **) SUMA_calloc(Opt->clss->num, sizeof(NI_element *));
-   
+
    for(cc=0; cc<Opt->clss->num; ++cc) {
       sprintf(sbuf, "CorrMat(%s)", Opt->clss->str[cc]);
       CC[cc] = NI_new_data_element(sbuf, Opt->feats->num);
@@ -1198,8 +1198,8 @@ int main(int argc, char **argv)
                SUMA_S_Errv("Sanity check failed, %d != %d\n",
                               N_FCset[aa][cc], N_FCset[iii][cc]);
             }
-            SUMA_DOTP_VEC(FCset[aa][cc], FCset[iii][cc], 
-                          fm[iii], N_FCset[aa][cc], 
+            SUMA_DOTP_VEC(FCset[aa][cc], FCset[iii][cc],
+                          fm[iii], N_FCset[aa][cc],
                           float, float);
          }
       }
@@ -1211,11 +1211,11 @@ int main(int argc, char **argv)
             fm[iii] = fn[aa];
          }
       }
-      snprintf(sbuf, 510, "file:%s.niml.cormat", 
+      snprintf(sbuf, 510, "file:%s.niml.cormat",
                SUMA_corrmat_fname(Opt->proot, Opt->clss->str[cc], 0));
       NEL_WRITE_TXH(CC[cc], sbuf, suc);
    }
-   
+
    }
    /* free everything */
    if (FCset) {
@@ -1223,7 +1223,7 @@ int main(int argc, char **argv)
          for (cc=0; cc<Opt->clss->num; ++cc) {
             if (FCset[aa][cc]) SUMA_free(FCset[aa][cc]);
          }
-         SUMA_free(FCset[aa]); 
+         SUMA_free(FCset[aa]);
       }
       SUMA_free(FCset); FCset=NULL;
    }
@@ -1240,7 +1240,7 @@ int main(int argc, char **argv)
       SUMA_free(N_alloc_FCset); N_alloc_FCset=NULL;
    }
    if (ifeat) SUMA_free(ifeat); ifeat=NULL;
-   
+
    if (hh) {
       for (aa=0; aa<Opt->feats->num; ++aa) {
          for (cc=0; cc<Opt->clss->num; ++cc) {
@@ -1250,28 +1250,28 @@ int main(int argc, char **argv)
       }
       SUMA_free(hh); hh=NULL;
    }
-   
+
    if (hf) {
       for (aa=0; aa<Opt->feats->num; ++aa) {
          if (hf[aa]) hf[aa] = SUMA_Free_hist(hf[aa]);
       }
       SUMA_free(hf); hf=NULL;
    }
-   
+
    if (masks) {
       for (ss=0; ss<Opt->sig_names->num; ++ss) {
          if (masks[ss]) SUMA_free(masks[ss]);
       }
       masks[ss]=NULL;
    }
-   
+
    SUMA_S_Notev("\n"
                 "Consider running this script to examine the distributions:\n"
                 "   @ExamineGenFeatDists -fdir %s -odir %s\n",
                 Opt->proot, Opt->proot);
-   
+
    /* all done, free */
    Opt = free_SegOpts(Opt);
-   
+
    PRINT_COMPILE_DATE ; exit(0);
 }

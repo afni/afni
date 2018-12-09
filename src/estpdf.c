@@ -6,14 +6,14 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This program estimates the probability density function (PDF) 
+  This program estimates the probability density function (PDF)
   corresponding to the distribution of gray-matter and white-matter
   voxel intensities.  The estimate is formed as the sum of three normal
   distributions, using the Simplex algorithm for non-linear optimization
   to estimate the unknown parameters.
 
   The Simplex algorithm is adapted from: A Jump Start Course in C++ Programming
-  
+
   File:    estpdf.c
   Author:  B. Douglas Ward
   Date:    27 May 1999
@@ -35,7 +35,7 @@
 #define DIMENSION 9      /* number of parameters to be estimated */
 
 int * hist_data;         /* histogram of voxel gray-scale intensities */
-int hist_min;            /* minimum histogram bin value;  this is set to 
+int hist_min;            /* minimum histogram bin value;  this is set to
 			    exclude the large population near zero */
 int hist_max;            /* maximum histogram bin value;  this is set to
 			    exclude voxels with very high intensities */
@@ -49,7 +49,7 @@ int number_restarts = 0;     /* count of simplex algorithm restarts */
 
 /*---------------------------------------------------------------------------*/
 /*
-  Set up the histogram and generate some of the initial parameter estimates. 
+  Set up the histogram and generate some of the initial parameter estimates.
 
   This routine was adapted from:  program 3dstrip.c
 */
@@ -115,7 +115,7 @@ void find_base_value( int nxyz , short * sfim )
       sum += fbin[kk] ; if( sum >= sval ) break ;
    }
 
-   hist_max = kk ; 
+   hist_max = kk ;
 
 
    /*----- Save original histogram data -----*/
@@ -141,7 +141,7 @@ void find_base_value( int nxyz , short * sfim )
          kmax[nmax++] = kk ;
       }
    }
-   
+
 
    /*-- find the largest two maxima --*/
 
@@ -180,7 +180,7 @@ void find_base_value( int nxyz , short * sfim )
       gpeak = npeak;
       wpeak = ntop;
 
-      
+
       fk = fbin[ntop] ; klow = ntop ;
       for( kk=ntop-1 ; kk >= npeak ; kk-- ){
          if( fbin[kk] < fk ){ fk = fbin[kk] ; klow = kk ; }
@@ -213,7 +213,7 @@ void find_base_value( int nxyz , short * sfim )
 
 /*---------------------------------------------------------------------------*/
 /*
-  Perform initialization for estimation of PDF. 
+  Perform initialization for estimation of PDF.
 */
 
 
@@ -259,7 +259,7 @@ Boolean estpdf_initialize ()
 void generate_initial_guess (float * parameters)
 {
   float b;                   /* coefficient for background distribution */
-  float bmean;               /* mean for background distribution */ 
+  float bmean;               /* mean for background distribution */
   float bsigma;              /* std. dev. for background distribution */
   float g;                   /* coefficient for gray-matter distribution */
   float gmean;               /* mean for gray-matter distribution */
@@ -278,7 +278,7 @@ void generate_initial_guess (float * parameters)
   /*----- Initialize distribution means -----*/
   bmean = hist_min;
 
-  if ((gpeak > hist_min) && (gpeak < hist_max) && (gpeak < wpeak)) 
+  if ((gpeak > hist_min) && (gpeak < hist_max) && (gpeak < wpeak))
     gmean = gpeak;
   else
     gmean = hist_min;
@@ -367,14 +367,14 @@ float estimate (float * parameters, float x)
   wsigma = parameters[8];
 
 
-  /*----- Calculate the sum of three normal PDF's -----*/ 
+  /*----- Calculate the sum of three normal PDF's -----*/
   fval  = b * normal (x, bmean, bsigma);
   fval += g * normal (x, gmean, gsigma);
   fval += w * normal (x, wmean, wsigma);
 
 
   return (fval);
-  
+
 }
 
 
@@ -443,7 +443,7 @@ float calc_sse (float * vertex)
       sse += diff * diff;
     }
 
-  
+
   return (sse);
 }
 
@@ -451,7 +451,7 @@ float calc_sse (float * vertex)
 /*---------------------------------------------------------------------------*/
 
 void allocate_arrays (float *** simplex, float ** centroid,
-		      float ** response, float ** step_size, 
+		      float ** response, float ** step_size,
 		      float ** test1, float ** test2)
 {
   int i;
@@ -461,19 +461,19 @@ void allocate_arrays (float *** simplex, float ** centroid,
   *step_size = (float *) malloc (sizeof(float) * DIMENSION);
   *test1 = (float *) malloc (sizeof(float) * DIMENSION);
   *test2 = (float *) malloc (sizeof(float) * DIMENSION);
-   
+
   *simplex = (float **) malloc (sizeof(float *) * (DIMENSION+1));
 
   for (i = 0;  i < DIMENSION+1;  i++)
     (*simplex)[i] = (float *) malloc (sizeof(float) * DIMENSION);
-       
+
 }
 
 
 /*---------------------------------------------------------------------------*/
 
 void deallocate_arrays (float *** simplex, float ** centroid,
-			float ** response, float ** step_size, 
+			float ** response, float ** step_size,
 			float ** test1, float ** test2)
 {
   int i;
@@ -491,7 +491,7 @@ void deallocate_arrays (float *** simplex, float ** centroid,
     }
 
   free (*simplex);     *simplex = NULL;
-       
+
 }
 
 
@@ -519,7 +519,7 @@ void eval_vertices (float * response, int * worst, int * next, int * best)
     *next = 1;
   else
     *next = 0;
-  
+
   for (i = 0;  i < DIMENSION+1;  i++)
     if ((i != *worst) && (response[i] > response[*next]))
       *next = i;
@@ -528,7 +528,7 @@ void eval_vertices (float * response, int * worst, int * next, int * best)
 
 /*---------------------------------------------------------------------------*/
 
-void restart (float ** simplex, float * response, 
+void restart (float ** simplex, float * response,
 	      float * step_size)
 {
   const float STEP_FACTOR = 0.9;
@@ -538,7 +538,7 @@ void restart (float ** simplex, float * response,
 
 
   /* find the current best vertex */
-  eval_vertices (response, &worst, &next, &best); 
+  eval_vertices (response, &worst, &next, &best);
 
   /* set the first vertex to the current best */
   for (i = 0; i < DIMENSION;  i++)
@@ -593,7 +593,7 @@ void calc_centroid (float ** simplex, int worst, float * centroid)
   Calculate the reflection of the worst vertex about the centroid.
 */
 
-void calc_reflection (float ** simplex, float * centroid, 
+void calc_reflection (float ** simplex, float * centroid,
 		      int worst, float coef, float * vertex)
 {
   int i;
@@ -608,7 +608,7 @@ void calc_reflection (float ** simplex, float * centroid,
   Replace a vertex of the simplex.
 */
 
-void replace (float ** simplex, float * response, 
+void replace (float ** simplex, float * response,
 	      int index, float * vertex, float resp)
 {
   int i;
@@ -655,7 +655,7 @@ float calc_good_fit (float * response)
   Perform initialization for the Simplex algorithm.
 */
 
-void simplex_initialize (float * parameters, float ** simplex, 
+void simplex_initialize (float * parameters, float ** simplex,
 			 float * response, float * step_size)
 {
   int i, j;
@@ -728,23 +728,23 @@ void simplex_optimization (float * parameters, float * sse)
 
 
   allocate_arrays (&simplex, &centroid, &response, &step_size, &test1, &test2);
-  
+
   simplex_initialize (parameters, simplex, response, step_size);
 
   /* start loop to do simplex optimization */
   num_iter = 0;
   num_restarts = 0;
   done = 0;
-  
+
   while (!done)
     {
-      /* find the worst vertex and compute centroid of remaining simplex, 
+      /* find the worst vertex and compute centroid of remaining simplex,
 	 discarding the worst vertex */
       eval_vertices (response, &worst, &next, &best);
       calc_centroid (simplex, worst, centroid);
-      
+
       /* reflect the worst point through the centroid */
-      calc_reflection (simplex, centroid, worst, 
+      calc_reflection (simplex, centroid, worst,
 		       REFLECTION_COEF, test1);
       resp1 = calc_sse (test1);
 
@@ -755,28 +755,28 @@ void simplex_optimization (float * parameters, float * sse)
 	  /* try expanding */
 	  calc_reflection (simplex, centroid, worst, EXPANSION_COEF, test2);
 	  resp2 = calc_sse (test2);
-	  if (resp2 <= resp1)    /* keep expansion */     
+	  if (resp2 <= resp1)    /* keep expansion */
 	    replace (simplex, response, worst, test2, resp2);
 	  else                   /* keep reflection */
 	    replace (simplex, response, worst, test1, resp1);
 	}
       else if (resp1 < response[next])
 	{
-	  /* new response is between the best and next worst 
+	  /* new response is between the best and next worst
 	     so keep reflection */
-	  replace (simplex, response, worst, test1, resp1); 
+	  replace (simplex, response, worst, test1, resp1);
 	}
           else
 	{
 	  /* try contraction */
 	  if (resp1 >= response[worst])
-	    calc_reflection (simplex, centroid, worst, 
+	    calc_reflection (simplex, centroid, worst,
 			     -CONTRACTION_COEF, test2);
 	  else
-	    calc_reflection (simplex, centroid, worst, 
+	    calc_reflection (simplex, centroid, worst,
 			     CONTRACTION_COEF, test2);
 	  resp2 =  calc_sse (test2);
-	  
+
 	  /* test the contracted response against the worst response */
 	  if (resp2 > response[worst])
 	    {
@@ -790,7 +790,7 @@ void simplex_optimization (float * parameters, float * sse)
 	    replace (simplex, response, worst, test2, resp2);
 	}
 
-      /* test to determine when to stop.  
+      /* test to determine when to stop.
 	 first, check the number of iterations */
       num_iter += 1;    /* increment iteration counter */
       if (num_iter >= MAX_ITERATIONS)
@@ -804,13 +804,13 @@ void simplex_optimization (float * parameters, float * sse)
       /* limit the number of restarts */
       if (num_restarts == MAX_RESTARTS)  done = 1;
 
-      /* compare relative standard deviation of vertex responses 
+      /* compare relative standard deviation of vertex responses
 	 against a defined tolerance limit */
       fit = calc_good_fit (response);
       if (fit <= TOLERANCE)  done = 1;
 
       /* if done, copy the best solution to the output array */
-      if (done) 
+      if (done)
 	{
 	  eval_vertices (response, &worst, &next, &best);
 	  for (i = 0;  i < DIMENSION;  i++)
@@ -819,7 +819,7 @@ void simplex_optimization (float * parameters, float * sse)
 	}
 
     }  /* while (!done) */
- 
+
   number_restarts = num_restarts;
   deallocate_arrays (&simplex, &centroid, &response, &step_size,
 		     &test1, &test2);
@@ -878,13 +878,13 @@ Boolean estpdf (float * parameters)
   /*----- Progress report -----*/
   if (! quiet)  printf ("\nEstimating PDF of voxel intensities \n");
 
-  
+
   /*----- Initialization for PDF estimation -----*/
   ok = estpdf_initialize ();
   if (! ok)  return (FALSE);
 
   generate_initial_guess (parameters);
- 
+
 
   /*----- Get least squares estimate for PDF parameters -----*/
   simplex_optimization (parameters, &sse);
@@ -896,7 +896,7 @@ Boolean estpdf (float * parameters)
 
   /*----- Free memory -----*/
   free (hist_data);    hist_data  = NULL;
-  
+
 
   return (TRUE);
 }

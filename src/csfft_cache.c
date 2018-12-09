@@ -63,7 +63,7 @@ int main( int argc , char * argv[] )
    }
    fft_ops = (int)(5.0*fft_pow+2.0)*fft_len ;  /* only valid for powers of 2! */
    fac = sqrt(1.0/fft_len) ;
-  
+
    cx = (complex *) malloc( sizeof(complex) * fft_len * max_nvec ) ;
    for( ii=0 ; ii < fft_len ; ii++ ){ cx[ii].r = ii ; cx[ii].i = -0.3*ii ; }
 

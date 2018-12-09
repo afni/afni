@@ -41,7 +41,7 @@ int process_siemens_mosaic(
    int    verb = g_dicom_ctrl.verb;   /* just a convenience */
 
    ENTRY("process_siemens_mosaic") ;
-   
+
    /* check for crashable params */
    if( ! Sinfo || ! Sstr || ! epos ) {
       fprintf(stderr,"** process_siemens_mosaic, bad input (%p, %p, %p)\n",
@@ -116,14 +116,14 @@ int process_siemens_mosaic(
       int s_size;
 
       s_start2 = strstr(s_start+21, "### ASCCONV BEGIN");
- 
+
       /* update start to start2, if it seems appropriate */
       if( s_start2 && (s_start2 < s_end) ) s_start = s_start2;
- 
+
       s_size = s_end - s_start + 19 ;
       s_tmp = (char *)calloc(s_size+1, sizeof(char));
       if( ! s_tmp ) {
-         fprintf(stderr,"** failed to alloc %d bytes for Siemens temp str\n", 
+         fprintf(stderr,"** failed to alloc %d bytes for Siemens temp str\n",
                  s_size);
          RETURN(0);
       }
@@ -138,7 +138,7 @@ int process_siemens_mosaic(
         Sinfo->have_data[ii] = 0; /* 25 Feb 03 Initialize new member KRH */
 
    get_siemens_extra_info( *Sstr , Sinfo, epos );
-   
+
    if( ! Sinfo->good ){
       static int nwarn=0 ;
       if( nwarn < NWMAX ) {
@@ -500,7 +500,7 @@ int get_siemens_extra_info(char *str, Siemens_extra_info *mi, char ** epos)
    int verb = g_dicom_ctrl.verb;  /* typing convenience */
    float val ;
    char name[1024] ;
-  
+
    ENTRY("get_siemens_extra_info");
 
    /*-- check for good input --*/
@@ -634,10 +634,10 @@ static int check_for_3D_acquisition(char ** epos, int * nslices)
    int    nread=0, lslices=0;  /* local slices */
 
    ENTRY("check_for_3D_acquisition");
-   
+
    if( ! nslices ) RETURN(0);
 
-   /* maybe we already know what is here */ 
+   /* maybe we already know what is here */
    if( *nslices > 1 ) RETURN(0);
 
    /* --------------- check that E_MR_ACQ_TYPE shows 3D --------------- */

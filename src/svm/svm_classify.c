@@ -22,7 +22,7 @@ char docfile[200];
 char modelfile[200];
 char predictionsfile[200];
 
-void read_input_parameters(int, char **, char *, char *, char *, long *, 
+void read_input_parameters(int, char **, char *, char *, char *, long *,
 			   long *);
 void print_help(void);
 
@@ -38,9 +38,9 @@ int main (int argc, char* argv[])
   long j;
   double t1,runtime=0;
   double dist,doc_label,costfactor;
-  char *line,*comment; 
+  char *line,*comment;
   FILE *predfl,*docfl;
-  MODEL *model; 
+  MODEL *model;
 
   read_input_parameters(argc,argv,docfile,modelfile,predictionsfile,
 			&verbosity,&pred_format);
@@ -58,7 +58,7 @@ int main (int argc, char* argv[])
     /* compute weight vector */
     add_weight_vector_to_linear_model(model);
   }
-  
+
   if(verbosity>=2) {
     printf("Classifying test examples.."); fflush(stdout);
   }
@@ -108,14 +108,14 @@ int main (int argc, char* argv[])
     if(pred_format==1) { /* output the value of decision function */
       fprintf(predfl,"%.8g\n",dist);
     }
-    if((int)(0.01+(doc_label*doc_label)) != 1) 
+    if((int)(0.01+(doc_label*doc_label)) != 1)
       { no_accuracy=1; } /* test data is not binary labeled */
     if(verbosity>=2) {
       if(totdoc % 100 == 0) {
 	printf("%ld..",totdoc); fflush(stdout);
       }
     }
-  }  
+  }
   free(line);
   free(words);
   free_model(model,1);
@@ -129,7 +129,7 @@ int main (int argc, char* argv[])
 /*        0.01 secs, the timer was underflowing.                       */
     printf("Runtime (without IO) in cpu-seconds: %.2f\n",
 	   (float)(runtime/100.0));
-    
+
   }
   if((!no_accuracy) && (verbosity>=1)) {
     printf("Accuracy on test set: %.2f%% (%ld correct, %ld incorrect, %ld total)\n",(float)(correct)*100.0/totdoc,correct,incorrect,totdoc);
@@ -139,21 +139,21 @@ int main (int argc, char* argv[])
   return(0);
 }
 
-void read_input_parameters(int argc, char **argv, char *docfile, 
-			   char *modelfile, char *predictionsfile, 
+void read_input_parameters(int argc, char **argv, char *docfile,
+			   char *modelfile, char *predictionsfile,
 			   long int *verbosity, long int *pred_format)
 {
   long i;
-  
+
   /* set default */
   strcpy (modelfile, "svm_model");
-  strcpy (predictionsfile, "svm_predictions"); 
+  strcpy (predictionsfile, "svm_predictions");
   (*verbosity)=2;
   (*pred_format)=1;
 
   for(i=1;(i<argc) && ((argv[i])[0] == '-');i++) {
-    switch ((argv[i])[1]) 
-      { 
+    switch ((argv[i])[1])
+      {
       case 'h': print_help(); exit(0);
       case 'v': i++; (*verbosity)=atol(argv[i]); break;
       case 'f': i++; (*pred_format)=atol(argv[i]); break;

@@ -14,9 +14,9 @@ static char rcsId[]="$Header$";
 * Author:				John L. Cwikla
 *
 * Copyright 1994,1995 John L. Cwikla
-* Copyright (C) 1997 by Ripley Software Development 
+* Copyright (C) 1997 by Ripley Software Development
 * All Rights Reserved
-* 
+*
 * This file is part of the XmHTML Widget Library.
 *
 * See below for John L. Cwikla's original copyright notice and distribution
@@ -71,7 +71,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -120,7 +120,7 @@ static char rcsId[]="$Header$";
 * Revision 1.17  1997/03/02 23:44:21  newt
 * Expanded copyright marker
 *
-*****/ 
+*****/
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -214,13 +214,13 @@ XCCGetParentVisual(Widget w)
 	return(visual);
 }
 
-static int 
+static int
 _pixelSort(const void *_arg1, const void *_arg2)
 {
 	return ( ((XColor *)_arg1)->pixel - ((XColor *)_arg2)->pixel);
 }
 
-static void 
+static void
 _queryColors(XCC _xcc)
 {
 	int i;
@@ -229,10 +229,10 @@ _queryColors(XCC _xcc)
 	if (_xcc->CMAP)
 	{
 		for(i = 0; i < _xcc->numColors; i++)
-			_xcc->CMAP[i].pixel = _xcc->CLUT ? 
+			_xcc->CMAP[i].pixel = _xcc->CLUT ?
 				_xcc->CLUT[i] : _xcc->stdCmap.base_pixel + i;
 
-		XQueryColors(_xcc->dpy, _xcc->colormap, _xcc->CMAP, 
+		XQueryColors(_xcc->dpy, _xcc->colormap, _xcc->CMAP,
 			_xcc->numColors);
 		qsort(_xcc->CMAP, _xcc->numColors, sizeof(XColor), _pixelSort);
 	}
@@ -242,7 +242,7 @@ _queryColors(XCC _xcc)
 ** Find a standard colormap from a property, and make sure the visual matches
 ** the one we are using!
 */
-static int 
+static int
 _findGoodCube(XCC _xcc, Atom _atom, XStandardColormap *_matchedCube)
 {
 	XStandardColormap *cubes, *match;
@@ -254,7 +254,7 @@ _findGoodCube(XCC _xcc, Atom _atom, XStandardColormap *_matchedCube)
 		return 0;
 
 	cubes = (XStandardColormap *)NULL;
-	status = XGetRGBColormaps(_xcc->dpy, 
+	status = XGetRGBColormaps(_xcc->dpy,
 		RootWindow(_xcc->dpy, DefaultScreen(_xcc->dpy)), &cubes, &count, _atom);
 
 	match = NULL;
@@ -300,7 +300,7 @@ _lookForStdCmap(XCC _xcc, Atom _atom)
 			case DirectColor:
 
 				for(i = 0; i < NUMBER(ColorAtomList); i++)
-					if((status = _findGoodCube(_xcc, ColorAtomList[i], 
+					if((status = _findGoodCube(_xcc, ColorAtomList[i],
 							&_xcc->stdCmap)) != 0)
 						break;
 
@@ -308,9 +308,9 @@ _lookForStdCmap(XCC _xcc, Atom _atom)
 
 			case StaticGray:
 			case GrayScale:
-		
+
 				for(i = 0; i < NUMBER(GrayAtomList); i++)
-					if((status = _findGoodCube(_xcc, GrayAtomList[i], 
+					if((status = _findGoodCube(_xcc, GrayAtomList[i],
 						&_xcc->stdCmap)) != 0)
 						break;
 				break;
@@ -321,12 +321,12 @@ _lookForStdCmap(XCC _xcc, Atom _atom)
 
 	/*
 	* This is a hack to force standard colormaps that don't set green/blue max
-	* to work correctly.  For instance RGB_DEFAULT_GRAY has these set if 
-	* xstdcmap is used, but not if xscm was. Plus this also makes RGB_RED_MAP 
+	* to work correctly.  For instance RGB_DEFAULT_GRAY has these set if
+	* xstdcmap is used, but not if xscm was. Plus this also makes RGB_RED_MAP
 	* (etc) work.
 	*/
 
-	if((!_xcc->stdCmap.green_max + !_xcc->stdCmap.blue_max + 
+	if((!_xcc->stdCmap.green_max + !_xcc->stdCmap.blue_max +
 		!_xcc->stdCmap.red_max) > 1)
 	{
 		_xcc->mode = MODE_MY_GRAY;
@@ -396,7 +396,7 @@ _initGray(XCC _xcc)
 
 	_xcc->numColors = _xcc->visual->map_entries;
 
-	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) * 
+	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) *
 		_xcc->numColors);
 	cstart = (XColor *)malloc(sizeof(XColor) * _xcc->numColors);
 
@@ -450,7 +450,7 @@ retryGray:
 * Name: 		_initColor
 * Return Type: 	void
 * Description: 	initializes colors for Static and PseudoColor visuals
-* In: 
+* In:
 *	_xcc:		XColorContext
 * Returns:
 *	nothing.
@@ -460,7 +460,7 @@ retryGray:
 *	This routine now initializes the colormap and queries the server for all
 *	available pixel values. Actual color allocation is now postponed until
 *	it needs to be allocated by XCCGetPixel. The previous routine also returned
-*	a very limited number of colors: only the successfully allocated colors 
+*	a very limited number of colors: only the successfully allocated colors
 *	were counted, no interpolation was done.
 *	The CLUT is no longer used for this kind of visual.
 *****/
@@ -489,7 +489,7 @@ _initColor(XCC _xcc)
 
 	/* a clut for storing allocated pixel indices */
 	_xcc->maxColors = _xcc->numColors;
-	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) * 
+	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) *
 		_xcc->maxColors);
 	for(cubeval = 0; cubeval < _xcc->maxColors; cubeval++)
 		_xcc->CLUT[cubeval] = (unsigned long)cubeval;
@@ -551,8 +551,8 @@ _initTrueColor(XCC _xcc)
 		_xcc->bits.blue++;
 	}
 
-	_xcc->numColors = ((_xcc->visualInfo->red_mask) | 
-						(_xcc->visualInfo->green_mask) | 
+	_xcc->numColors = ((_xcc->visualInfo->red_mask) |
+						(_xcc->visualInfo->green_mask) |
 						(_xcc->visualInfo->blue_mask)) + 1;
 	_xcc->whitePixel = WhitePixel(_xcc->dpy, DefaultScreen(_xcc->dpy));
 	_xcc->blackPixel = BlackPixel(_xcc->dpy, DefaultScreen(_xcc->dpy));
@@ -580,14 +580,14 @@ _initDirectColor(XCC _xcc)
 	bval = _xcc->visualInfo->blue_mask >> _xcc->shifts.blue;
 
 	rtable = (unsigned long *)malloc(sizeof(unsigned long) * (rval+1));
-	gtable = (unsigned long *)malloc(sizeof(unsigned long) * (gval+1)); 
+	gtable = (unsigned long *)malloc(sizeof(unsigned long) * (gval+1));
 	btable = (unsigned long *)malloc(sizeof(unsigned long) * (bval+1));
 
 	_xcc->maxEntry = (rval > gval) ? rval : gval;
 	_xcc->maxEntry = (_xcc->maxEntry > bval) ? _xcc->maxEntry : bval;
 
 	cstart = (XColor *)malloc(sizeof(XColor) * (_xcc->maxEntry+1));
-	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) * 
+	_xcc->CLUT = (unsigned long *)malloc(sizeof(unsigned long) *
 		(_xcc->maxEntry+1));
 
 retrydirect:
@@ -624,13 +624,13 @@ retrydirect:
 			gval >>= 1;
 			rval >>= 1;
 
-			_xcc->masks.red = (_xcc->masks.red >> 1) & 
+			_xcc->masks.red = (_xcc->masks.red >> 1) &
 				_xcc->visualInfo->red_mask;
-			_xcc->masks.green = (_xcc->masks.green >> 1) & 
+			_xcc->masks.green = (_xcc->masks.green >> 1) &
 				_xcc->visualInfo->green_mask;
-			_xcc->masks.blue = (_xcc->masks.green >> 1) & 
+			_xcc->masks.blue = (_xcc->masks.green >> 1) &
 				_xcc->visualInfo->blue_mask;
-			
+
 			_xcc->shifts.red++;
 			_xcc->shifts.green++;
 			_xcc->shifts.blue++;
@@ -672,7 +672,7 @@ XCCMonoCreate(Display *_dpy, Visual *_visual, Colormap _colormap)
 	int n;
 
 	xcc = (XCC)malloc(sizeof(struct _XColorContext));
-   
+
 	if (xcc == NULL)
 		return NULL;
 
@@ -692,7 +692,7 @@ XCCMonoCreate(Display *_dpy, Visual *_visual, Colormap _colormap)
 	return xcc;
 }
 
-XCC 
+XCC
 XCCCreate(Widget w, Visual *_visual, Colormap _colormap)
 {
 	XCC xcc;
@@ -731,25 +731,25 @@ XCCCreate(Widget w, Visual *_visual, Colormap _colormap)
 		* -or- if we are instructed to create a private colormap (which
 		* never is the case for XmHTML).
 		*/
-		if(usePrivateColormap || 
+		if(usePrivateColormap ||
 			((xcc->visual != DefaultVisual(_dpy, DefaultScreen(_dpy))) &&
 			_colormap == DefaultColormap(_dpy, DefaultScreen(_dpy))))
 		{
 			_XmHTMLWarning(__WFUNC__(w, "XCCCreate"), XMHTML_MSG_6);
-			xcc->colormap = XCreateColormap(_dpy, 
-					RootWindow(_dpy, DefaultScreen(_dpy)), xcc->visual, 
+			xcc->colormap = XCreateColormap(_dpy,
+					RootWindow(_dpy, DefaultScreen(_dpy)), xcc->visual,
 					AllocNone);
-			xcc->needToFreeColormap = 
-				(xcc->colormap != DefaultColormap(_dpy, 
+			xcc->needToFreeColormap =
+				(xcc->colormap != DefaultColormap(_dpy,
 					DefaultScreen(_dpy)));
-			
+
 		}
 		switch(_visual->MEMBER_CLASS)
 		{
 			case StaticGray:
 			case GrayScale:
 				_XmHTMLDebug(9, ("XCC.c: XCCCreate, visual class is %s\n",
-					(_visual->MEMBER_CLASS == GrayScale ? "GrayScale" : 
+					(_visual->MEMBER_CLASS == GrayScale ? "GrayScale" :
 					"StaticGray")));
 				if (xcc->visual->map_entries == 2)
 					_initBW(xcc);
@@ -759,20 +759,20 @@ XCCCreate(Widget w, Visual *_visual, Colormap _colormap)
 
 			case TrueColor: /* shifts */
 				_XmHTMLDebug(9, ("XCC.c: XCCCreate, visual class is "
-					"TrueColor\n")); 
+					"TrueColor\n"));
 				_initTrueColor(xcc);
 				break;
-			
+
 			case DirectColor: /* shifts & fake CLUT */
 				_XmHTMLDebug(9, ("XCC.c: XCCCreate, visual class is "
-					"DirectColor\n")); 
+					"DirectColor\n"));
 				_initDirectColor(xcc);
 				break;
 
 			case StaticColor:
 			case PseudoColor:
 				_XmHTMLDebug(9, ("XCC.c: XCCCreate, visual class is %s\n",
-					(_visual->MEMBER_CLASS == StaticColor ? "StaticColor" : 
+					(_visual->MEMBER_CLASS == StaticColor ? "StaticColor" :
 					"PseudoColor")));
 				_initColor(xcc);
 				break;
@@ -819,7 +819,7 @@ _initPalette(XCC _xcc)
 		case DirectColor:
 			_xcc->mode = MODE_TRUE;
 			break;
-			
+
 		case StaticColor:
 		case PseudoColor:
 			_xcc->mode = MODE_STDCMAP;
@@ -853,7 +853,7 @@ _initPalette(XCC _xcc)
 * Name: 		XCCInitDither
 * Return Type: 	void
 * Description: 	initialize precomputed error matrices.
-* In: 
+* In:
 *	_xcc:		XColorContext for which we have to add a dither matrix.
 * Returns:
 *	nothing.
@@ -898,7 +898,7 @@ XCCInitDither(XCC _xcc)
 * Name: 		XCCFreeDither
 * Return Type: 	void
 * Description: 	free dither matrices.
-* In: 
+* In:
 *	_xcc:		XColorContext id;
 * Returns:
 *	nothing.
@@ -918,7 +918,7 @@ XCCFreeDither(XCC _xcc)
 * Name: 		XCCAddPalette
 * Return Type: 	void
 * Description: 	adds or erases a palette for the given XCC.
-* In: 
+* In:
 *	_xcc:		current XCC;
 *	palette:	palette to add. Unused if num_palette is 0;
 *	num_pa..:	no of colors in palette. If 0 any current palette is
@@ -1074,7 +1074,7 @@ XCCFree(XCC _xcc)
 * Return Type: 	unsigned long;
 * Description: 	searches the palette for a color that is closest to a
 *				requested color.
-* In: 
+* In:
 *	_xcc:		XColorContext to use;
 *	_red,..:	color component values making up the requested color, inside
 *				the range 0-255;
@@ -1111,7 +1111,7 @@ XCCGetPixelFromPalette(XCC _xcc, unsigned short *_red,
 			err = dr;
 			erg = dg;
 			erb = db;
-						
+
 			if(mindif == 0)
 				break;
 		}
@@ -1135,7 +1135,7 @@ XCCGetPixelFromPalette(XCC _xcc, unsigned short *_red,
 *				index into the palette instead of an actual pixel value.
 *				(which actually happens to be the actual pixel value...)
 *				This routine is intended to be used by dithering routines.
-* In: 
+* In:
 *	_xcc:		XColorContext to use;
 *	_red,..:	color component values inside the range 0-255;
 *	failed:		error indicator. Set to True when requested color could not
@@ -1166,7 +1166,7 @@ XCCGetIndexFromPalette(XCC _xcc, int *_red, int *_green, int *_blue,
 			err = dr;	/* save error fractions */
 			erg = dg;
 			erb = db;
-						
+
 			if(mindif == 0)
 				break;
 		}
@@ -1191,7 +1191,7 @@ XCCGetIndexFromPalette(XCC _xcc, int *_red, int *_green, int *_blue,
 * Name:			XCCGetPixel
 * Return Type: 	unsigned long
 * Description: 	allocates a color, returning it's pixel value.
-* In: 
+* In:
 *	_xcc:		XColorContext id;
 *	_red,..:	color component values in the range 0-2^16
 *	*failed:	error indicator, filled upon return.
@@ -1199,7 +1199,7 @@ XCCGetIndexFromPalette(XCC _xcc, int *_red, int *_green, int *_blue,
 *	a pixel id for the requested color.
 *****/
 unsigned long
-XCCGetPixel(XCC _xcc, unsigned short _red, unsigned short _green, 
+XCCGetPixel(XCC _xcc, unsigned short _red, unsigned short _green,
 	unsigned short _blue, Boolean *failed)
 {
 	*failed = False;
@@ -1213,8 +1213,8 @@ XCCGetPixel(XCC _xcc, unsigned short _red, unsigned short _green,
 		{
 			double value;
 
-			value = (double)_red/65535.0 * 0.3 + 
-					(double)_green/65535.0 * 0.59 + 
+			value = (double)_red/65535.0 * 0.3 +
+					(double)_green/65535.0 * 0.59 +
 					(double)_blue/65535.0 * 0.11;
 			if (value > 0.5)
 				return _xcc->whitePixel;
@@ -1269,9 +1269,9 @@ XCCGetPixel(XCC _xcc, unsigned short _red, unsigned short _green,
 			}
 			ired = _xcc->CLUT[(int)((_red * _xcc->maxEntry)/65535)] &
 				_xcc->masks.red;
-			igreen = _xcc->CLUT[(int)((_green * _xcc->maxEntry)/65535)] & 
+			igreen = _xcc->CLUT[(int)((_green * _xcc->maxEntry)/65535)] &
 				_xcc->masks.green;
-			iblue = _xcc->CLUT[(int)((_blue * _xcc->maxEntry)/65535)] & 
+			iblue = _xcc->CLUT[(int)((_blue * _xcc->maxEntry)/65535)] &
 				_xcc->masks.blue;
 			return(ired | igreen | iblue);
 		}
@@ -1367,10 +1367,10 @@ XCCGetPixel(XCC _xcc, unsigned short _red, unsigned short _green,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *	_xcc:		XColorContext
 *	reds:		array of red values
 *	greens:		array of green values
@@ -1506,8 +1506,8 @@ XCCGetPixels(XCC _xcc, unsigned short *reds, unsigned short *greens,
 		gi = greens[i] >> 8;
 		bi = blues[i] >> 8;
 
-		/***** 
-		* walk all colors in the colormap and see which one is the 
+		/*****
+		* walk all colors in the colormap and see which one is the
 		* closest. Uses plain least squares.
 		*****/
 		for(j = 0; j < cmapsize ; j++)
@@ -1559,7 +1559,7 @@ XCCGetPixels(XCC _xcc, unsigned short *reds, unsigned short *greens,
 
 	/*****
 	* This is the maximum no of allocated colors. Any colors that remain
-	* unallocated will be mapped to either one of these colors or black. 
+	* unallocated will be mapped to either one of these colors or black.
 	*****/
 	if(ncols == ncolors || nopen == 0)
 	{
@@ -1636,7 +1636,7 @@ XCCGetPixels(XCC _xcc, unsigned short *reds, unsigned short *greens,
 * Return Type: 	void
 * Description:  XCCGetPixels using an array of previously allocated pixels
 *				Also see the comments in XCCGetPixels.
-* In: 
+* In:
 *	*used:		array of previously allocated pixels
 * Returns:
 *	nothing.
@@ -2046,7 +2046,7 @@ XCCGetDisplay(XCC _xcc)
 * Return Type: 	void
 * Description: 	frees the table of a given hashtable. Only used when table
 *				is being rebuild.
-* In: 
+* In:
 *	table:		table to be destroyed;
 * Returns:
 *	nothing.
@@ -2073,7 +2073,7 @@ table_idestroy(HashTable *table)
 * Name: 		delete_fromilist
 * Return Type: 	HashEntry
 * Description: 	deletes a given entry from the given hashtable.
-* In: 
+* In:
 *	table:		table from which an entry should be deleted.
 *	entry:		entry to be deleted;
 *	key:		entry identifier
@@ -2110,7 +2110,7 @@ delete_fromilist(HashTable *table, HashEntry *entry, unsigned long key)
 * Description: 	enlarges & rebuilds the given hashtable. Used when the
 *				size of the current hashtable is becoming to small to store
 *				new info efficiently.
-* In: 
+* In:
 *	table:		table to rebuild
 * Returns:
 *	nothing.
@@ -2147,16 +2147,16 @@ rebuild_itable(HashTable *table)
 *****/
 
 /*************
-****** Hashing 
+****** Hashing
 *************/
 
 /*****
 * Name: 		_XCCHashInit
 * Return Type: 	HashTable
 * Description: 	Initializes a hashtable with a initial
-*				size = XmHTML_COLORHASH_SIZE 
+*				size = XmHTML_COLORHASH_SIZE
 *				The table must already be allocated.
-* In: 
+* In:
 *	table:		hashtable to be initialized;
 * Returns:
 *	initialized table.
@@ -2182,7 +2182,7 @@ _XCCHashInit(HashTable *table)
 * Name: 		_XCCHashPut
 * Return Type: 	void
 * Description: 	puts a new entry in the hash table
-* In: 
+* In:
 *	key:		handle to data to be stored;
 *	data:		data to be stored;
 * Returns:
@@ -2193,7 +2193,7 @@ _XCCHashPut(HashTable *table, unsigned long key, unsigned long data)
 {
 	unsigned long hkey;
 	HashEntry *nentry;
-    
+
 #ifdef DEBUG
 	table->puts++;
 #endif
@@ -2225,13 +2225,13 @@ _XCCHashPut(HashTable *table, unsigned long key, unsigned long data)
 		table->table[hkey] = nentry;
     }
 	table->elements++;
-    
+
 	nentry->nptr = NULL;
 	nentry->pptr = table->last;
 	if(table->last)
 		table->last->nptr = nentry;
 	table->last = nentry;
-    
+
 	if(table->elements>(table->size*3)/2)
 	{
 		_XmHTMLDebug(9, ("XCC.c: _XCCHashPut, rebuilding table, "
@@ -2245,7 +2245,7 @@ _XCCHashPut(HashTable *table, unsigned long key, unsigned long data)
 * Name: 		_XCCHashGet
 * Return Type: 	Boolean
 * Description: 	retrieves a hash entry.
-* In: 
+* In:
 *	key:		id of entry to retrieve;
 *	*data:		object in which to store data reference;
 * Returns:
@@ -2283,7 +2283,7 @@ _XCCHashGet(HashTable *table, unsigned long key, unsigned long *data)
 * Name: 		_XCCHashDelete
 * Return Type: 	void
 * Description: 	deletes the hash entry for the given key.
-* In: 
+* In:
 *	table:		hashtable from which to delete an entry;
 *	key:		id of entry to be deleted.
 * Returns:
@@ -2293,7 +2293,7 @@ void
 _XCCHashDelete(HashTable *table, unsigned long key)
 {
     unsigned long hkey;
-    
+
     hkey = key % table->size;
     table->table[hkey] = delete_fromilist(table, table->table[hkey], key);
     table->elements--;
@@ -2304,7 +2304,7 @@ _XCCHashDelete(HashTable *table, unsigned long key)
 * Return Type: 	void
 * Description: 	completely destroys the given hashtable contents. Table
 *				and contents are not destroyed.
-* In: 
+* In:
 *	table:		table to be destroyed;
 * Returns:
 *	nothing.

@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -42,7 +42,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:25  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -148,7 +148,7 @@ StackCreateDouble(void *fallback_data1, void *fallback_data2,
 * Name:			StackDestroy
 * Return Type:	int
 * Description:	Destroy the given stack (and any data remaining)
-* In: 
+* In:
 *	stack:		stack to be destroyed
 * Returns:
 *	no of items that remained on the stack.
@@ -163,7 +163,7 @@ StackDestroy(Stack stack)
 	{
 		/*****
 		* Split into two parts for performance reasons
-		*****/ 
+		*****/
 		if(stack->destroyer != NULL)
 		{
 			/* pop & destroy data */
@@ -200,7 +200,7 @@ StackDestroy(Stack stack)
 * Name:			StackPushData
 * Return Type: 	int
 * Description: 	push the given data on the given stack.
-* In: 
+* In:
 *	stack:		current stack
 *	data:		data to be pushed. Should be cast to void* by the caller.
 * Returns:
@@ -224,7 +224,7 @@ StackPushData(Stack stack, void *data)
 * Name: 		StackPopData
 * Return Type: 	void*
 * Description:	Pop data from the stack
-* In: 
+* In:
 *	stack:		stack to be popped.
 * Returns:
 *	popped data. Should be cast to the appropriate type by the caller
@@ -256,7 +256,7 @@ StackPopData(Stack stack)
 * Name:			StackDoublePushData
 * Return Type: 	int
 * Description: 	push the given data on the given stack.
-* In: 
+* In:
 *	stack:		current stack
 *	data1:		data to be pushed. Should be cast to void* by the caller.
 *	data2:		data to be pushed. Should be cast to void* by the caller.
@@ -283,9 +283,9 @@ StackPushDoubleData(Stack stack, void *data1, void *data2)
 * Name: 		StackPopDoubleData
 * Return Type: 	void*
 * Description:	Pop data from the stack
-* In: 
+* In:
 *	stack:		stack to be popped.
-*	data:		associated data to be popped. 
+*	data:		associated data to be popped.
 * Returns:
 *	popped data. Should be cast to the appropriate type by the caller
 *****/
@@ -318,7 +318,7 @@ StackPopDoubleData(Stack stack, void **data)
 * Name: 		StackSize
 * Return Type: 	int
 * Description: 	return the size of the given stack
-* In: 
+* In:
 *	stack:		current stack
 * Returns:
 *	size of the stack.

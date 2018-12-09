@@ -9,11 +9,11 @@
 
 static doublereal c_b5 = 1.;
 
-/* Subroutine */ int qzit_(integer *nm, integer *n, doublereal *a, doublereal 
+/* Subroutine */ int qzit_(integer *nm, integer *n, doublereal *a, doublereal
 	*b, doublereal *eps1, logical *matz, doublereal *z__, integer *ierr)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2, 
+    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2,
 	    i__3;
     doublereal d__1, d__2, d__3;
 
@@ -27,7 +27,7 @@ static doublereal c_b5 = 1.;
     integer enorn;
     doublereal a1, a2, a3=0.0;
     integer k1, k2, l1;
-    doublereal u1, u2, u3, v1, v2, v3, a11, a12, a21, a22, a33, a34, 
+    doublereal u1, u2, u3, v1, v2, v3, a11, a12, a21, a22, a33, a34,
 	    a43, a44, b11, b12, b22, b33;
     integer na, ld;
     doublereal b34, b44;
@@ -76,7 +76,7 @@ static doublereal c_b5 = 1.;
 /*          POSITIVE VALUE OF EPS1 MAY RESULT IN FASTER EXECUTION, */
 /*          BUT LESS ACCURATE RESULTS. */
 
-/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS 
+/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS
 */
 /*          ARE TO BE ACCUMULATED FOR LATER USE IN COMPUTING */
 /*          EIGENVECTORS, AND TO .FALSE. OTHERWISE. */
@@ -94,7 +94,7 @@ static doublereal c_b5 = 1.;
 
 /*        B IS STILL IN UPPER TRIANGULAR FORM, ALTHOUGH ITS ELEMENTS */
 /*          HAVE BEEN ALTERED.  THE LOCATION B(N,1) IS USED TO STORE */
-/*          EPS1 TIMES THE NORM OF B FOR LATER USE BY  QZVAL  AND  QZVEC. 
+/*          EPS1 TIMES THE NORM OF B FOR LATER USE BY  QZVAL  AND  QZVEC.
 */
 
 /*        Z CONTAINS THE PRODUCT OF THE RIGHT HAND TRANSFORMATIONS */
@@ -106,12 +106,12 @@ static doublereal c_b5 = 1.;
 /*                     WHILE THE J-TH EIGENVALUE IS BEING SOUGHT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -222,7 +222,7 @@ L100:
 	goto L120;
     }
     b[l + l * b_dim1] = 0.;
-    s = (d__1 = a[l + l * a_dim1], abs(d__1)) + (d__2 = a[l1 + l * a_dim1], 
+    s = (d__1 = a[l + l * a_dim1], abs(d__1)) + (d__2 = a[l1 + l * a_dim1],
 	    abs(d__2));
     u1 = a[l + l * a_dim1] / s;
     u2 = a[l1 + l * a_dim1] / s;
@@ -308,7 +308,7 @@ L120:
 	if ((d__1 = b[l + l * b_dim1], abs(d__1)) > epsb) {
 	    t -= sh * b[l + l * b_dim1];
 	}
-	if ((d__1 = a[l + lm1 * a_dim1], abs(d__1)) <= (d__2 = t / a[l1 + l * 
+	if ((d__1 = a[l + lm1 * a_dim1], abs(d__1)) <= (d__2 = t / a[l1 + l *
 		a_dim1], abs(d__2)) * epsa) {
 	    goto L100;
 	}
@@ -327,7 +327,7 @@ L150:
     a12 = a[l + l1 * a_dim1] / b22;
     a22 = a[l1 + l1 * a_dim1] / b22;
     b12 = b[l + l1 * b_dim1] / b22;
-    a1 = ((a33 - a11) * (a44 - a11) - a34 * a43 + a43 * b34 * a11) / a21 + 
+    a1 = ((a33 - a11) * (a44 - a11) - a34 * a43 + a43 * b34 * a11) / a21 +
 	    a12 - a11 * b12;
     a2 = a22 - a11 - a21 * b12 - (a33 - a11) - (a44 - a11) + a43 * b34;
     a3 = a[l1 + 1 + l1 * a_dim1] / b22;
@@ -418,12 +418,12 @@ L200:
 
 	i__2 = enorn;
 	for (j = km1; j <= i__2; ++j) {
-	    t = a[k + j * a_dim1] + u2 * a[k1 + j * a_dim1] + u3 * a[k2 + j * 
+	    t = a[k + j * a_dim1] + u2 * a[k1 + j * a_dim1] + u3 * a[k2 + j *
 		    a_dim1];
 	    a[k + j * a_dim1] += t * v1;
 	    a[k1 + j * a_dim1] += t * v2;
 	    a[k2 + j * a_dim1] += t * v3;
-	    t = b[k + j * b_dim1] + u2 * b[k1 + j * b_dim1] + u3 * b[k2 + j * 
+	    t = b[k + j * b_dim1] + u2 * b[k1 + j * b_dim1] + u3 * b[k2 + j *
 		    b_dim1];
 	    b[k + j * b_dim1] += t * v1;
 	    b[k1 + j * b_dim1] += t * v2;
@@ -438,7 +438,7 @@ L200:
 	a[k2 + km1 * a_dim1] = 0.;
 /*     .......... ZERO B(K+2,K+1) AND B(K+2,K) .......... */
 L220:
-	s = (d__1 = b[k2 + k2 * b_dim1], abs(d__1)) + (d__2 = b[k2 + k1 * 
+	s = (d__1 = b[k2 + k2 * b_dim1], abs(d__1)) + (d__2 = b[k2 + k1 *
 		b_dim1], abs(d__2)) + (d__3 = b[k2 + k * b_dim1], abs(d__3));
 	if (s == 0.) {
 	    goto L240;
@@ -456,12 +456,12 @@ L220:
 
 	i__2 = ll;
 	for (i__ = lor1; i__ <= i__2; ++i__) {
-	    t = a[i__ + k2 * a_dim1] + u2 * a[i__ + k1 * a_dim1] + u3 * a[i__ 
+	    t = a[i__ + k2 * a_dim1] + u2 * a[i__ + k1 * a_dim1] + u3 * a[i__
 		    + k * a_dim1];
 	    a[i__ + k2 * a_dim1] += t * v1;
 	    a[i__ + k1 * a_dim1] += t * v2;
 	    a[i__ + k * a_dim1] += t * v3;
-	    t = b[i__ + k2 * b_dim1] + u2 * b[i__ + k1 * b_dim1] + u3 * b[i__ 
+	    t = b[i__ + k2 * b_dim1] + u2 * b[i__ + k1 * b_dim1] + u3 * b[i__
 		    + k * b_dim1];
 	    b[i__ + k2 * b_dim1] += t * v1;
 	    b[i__ + k1 * b_dim1] += t * v2;
@@ -477,7 +477,7 @@ L220:
 
 	i__2 = *n;
 	for (i__ = 1; i__ <= i__2; ++i__) {
-	    t = z__[i__ + k2 * z_dim1] + u2 * z__[i__ + k1 * z_dim1] + u3 * 
+	    t = z__[i__ + k2 * z_dim1] + u2 * z__[i__ + k1 * z_dim1] + u3 *
 		    z__[i__ + k * z_dim1];
 	    z__[i__ + k2 * z_dim1] += t * v1;
 	    z__[i__ + k1 * z_dim1] += t * v2;
@@ -486,7 +486,7 @@ L220:
 	}
 /*     .......... ZERO B(K+1,K) .......... */
 L240:
-	s = (d__1 = b[k1 + k1 * b_dim1], abs(d__1)) + (d__2 = b[k1 + k * 
+	s = (d__1 = b[k1 + k1 * b_dim1], abs(d__1)) + (d__2 = b[k1 + k *
 		b_dim1], abs(d__2));
 	if (s == 0.) {
 	    goto L260;

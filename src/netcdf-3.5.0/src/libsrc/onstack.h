@@ -11,11 +11,11 @@
  * "allocate" arrays on the stack where possible.
  * (Where not possible, malloc and free are used.)
  *
- * The macro ALLOC_ONSTACK(name, type, nelems) is used to declare 
+ * The macro ALLOC_ONSTACK(name, type, nelems) is used to declare
  * an array of 'type' named 'name' which is 'nelems' long.
  * FREE_ONSTACK(name) is placed at the end of the scope of 'name'
  * to call 'free' if necessary.
- * 
+ *
  * The macro ALLOC_ONSTACK wraps a call to alloca() on most systems.
  */
 
@@ -67,5 +67,5 @@
 	free(name)
 
 #endif
-	
+
 #endif /* _ONSTACK_H_ */

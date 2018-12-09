@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -93,7 +93,7 @@ static char * DOT_main( PLUGIN_interface * plint )
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
 
-   PLUTO_next_option(plint) ;                             /* go to next input line */ 
+   PLUTO_next_option(plint) ;                             /* go to next input line */
    idc  = PLUTO_get_idcode(plint) ; /* get 1st dataset item */
    xset = PLUTO_find_dset(idc) ;                   /* get ptr to dataset */
    if( xset == NULL )
@@ -157,11 +157,11 @@ static double DSET_cor( int demean, THD_3dim_dataset * xset, THD_3dim_dataset * 
    float * fxar , * fyar ;
    int ii , nxyz , ivx,ivy , itypx,itypy , fxar_new,fyar_new ;
 
-   
+
    if (sxy) *sxy = 0.0;
-   
+
    /*-- check datasets for conformity in dimensions --*/
-   
+
    nxyz = xset->daxes->nxx * xset->daxes->nyy * xset->daxes->nzz ;
 
    if(  yset->daxes->nxx * yset->daxes->nyy * yset->daxes->nzz != nxyz )

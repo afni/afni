@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.2  2012/03/01 17:56:31  ziad
 * Cput
@@ -89,7 +89,7 @@ static char rcsId[]="$Header$";
 * and repair.
 *
 * Revision 1.9  1997/03/11 19:58:06  newt
-* added a third argument to _XmHTMLTagGetNumber: default return value. 
+* added a third argument to _XmHTMLTagGetNumber: default return value.
 * Added _XmHTMLGetImageAlignment
 *
 * Revision 1.8  1997/03/04 18:49:04  newt
@@ -99,14 +99,14 @@ static char rcsId[]="$Header$";
 * CheckTermination: changed <p> handling
 *
 * Revision 1.6  1997/03/02 23:22:48  newt
-* Sneaky bugfix in expandEscapes (Dick Porter, dick@cymru.net); Sanity check 
+* Sneaky bugfix in expandEscapes (Dick Porter, dick@cymru.net); Sanity check
 * in storeTextElement changed to check if len <= 0 instead of <= 1
 *
 * Revision 1.5  1997/02/11 02:10:13  newt
 * Added support for SGML shorttags. Re-ordered all switch statements
 *
 * Revision 1.4  1997/02/04 02:53:18  newt
-* state checking now checks for overlapping and missing closing elements. 
+* state checking now checks for overlapping and missing closing elements.
 * Added the basefont element.
 *
 * Revision 1.3  1997/01/09 06:55:50  newt
@@ -118,7 +118,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:13  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -133,7 +133,7 @@ static char rcsId[]="$Header$";
 * is generated (see tools/miniparse.c for an example implementation).
 * The interface for this parser is defined in the include file miniparse.h.
 * Since I'm using this to test & debug new features in the HTML parser,
-* DEBUG is automatically defined in miniparse.h, *unless* NDEBUG was 
+* DEBUG is automatically defined in miniparse.h, *unless* NDEBUG was
 * defined.
 *****/
 #ifdef MINIPARSE
@@ -154,14 +154,14 @@ static char rcsId[]="$Header$";
 
 /*** Public Variable Declarations ***/
 
-/***** 
+/*****
 * HTML Element names.
 * This list is alphabetically sorted to speed up the searching process.
 * DO NOT MODIFY
 *****/
 static String __XmHTML_TOKENS_HTML_32__[] =
-{"!doctype", "a", "address", "applet", "area", "b", "base", "basefont", "big", 
-"blockquote", "body", "br", "caption", "center", "cite", "code", "dd", "dfn", 
+{"!doctype", "a", "address", "applet", "area", "b", "base", "basefont", "big",
+"blockquote", "body", "br", "caption", "center", "cite", "code", "dd", "dfn",
 "dir", "div", "dl", "dt", "em", "font", "form", "frame", "frameset", "h1",
 "h2", "h3", "h4", "h5", "h6", "head", "hr", "html", "i", "img", "input",
 "isindex", "kbd", "li", "link", "map", "menu", "meta", "noframes", "ol",
@@ -270,7 +270,7 @@ static int id_depth;
 * Name: 		_ParserTokenToId
 * Return Type: 	int
 * Description: 	converts the html token passed to an internal id.
-* In: 
+* In:
 *	parser:		current parser context
 *	token:		token for which to fetch an internal id.
 *	warn:		if true, spits out a warning for unknown tokens.
@@ -278,9 +278,9 @@ static int id_depth;
 *	The internal id upon success, -1 upon failure
 *
 * Note: this routine uses a binary search into an array of all possible
-*	HTML 3.2 tokens. It is very important that _BOTH_ the array 
-*	html_tokens _AND_ the enumeration htmlEnum are *NEVER* changed. 
-*	Both arrays are alphabetically sorted. Modifying any of these two 
+*	HTML 3.2 tokens. It is very important that _BOTH_ the array
+*	html_tokens _AND_ the enumeration htmlEnum are *NEVER* changed.
+*	Both arrays are alphabetically sorted. Modifying any of these two
 *	arrays will	have VERY SERIOUS CONSEQUENCES, te return value of this
 *	function matches a corresponding htmlEnum value.
 *	As the table currently contains about 70 elements, a match will always
@@ -324,10 +324,10 @@ _ParserTokenToId(Parser *parser, String token, Boolean warn)
 			return(mid);
 	}
 
-	/* 
-	* Not found, invalid token passed 
-	* We don't want always have warnings. When XmNhandleShortTags is set to 
-	* True, this routine is used to check whether we a / is right behind a 
+	/*
+	* Not found, invalid token passed
+	* We don't want always have warnings. When XmNhandleShortTags is set to
+	* True, this routine is used to check whether we a / is right behind a
 	* token or not.
 	*/
 	if(warn)
@@ -340,10 +340,10 @@ _ParserTokenToId(Parser *parser, String token, Boolean warn)
 * Return Type: 	char
 * Description: 	converts the HTML & icon escapes sequences to the icon
 *				images.
-* In: 
+* In:
 *	**icon:		icon sequence to convert. This argument is updated upon
 *				return.
-*	*index:		index of icon in array of icon entities. 
+*	*index:		index of icon in array of icon entities.
 * Returns:
 *	On success, an index in the array of icon entities representing.
 *	-1 on failure.
@@ -358,7 +358,7 @@ _ParserTokenToIcon(char **icon)
 	while(lo <= hi)
 	{
 		mid = (lo + hi)/2;
-		if((cmp = strncmp(*icon+1, _XmHTMLIconEntities[mid].escape, 
+		if((cmp = strncmp(*icon+1, _XmHTMLIconEntities[mid].escape,
 			_XmHTMLIconEntities[mid].len - skip)) == 0)
 		{
 			/* skip escape sequence and return index in icon array */
@@ -379,7 +379,7 @@ _ParserTokenToIcon(char **icon)
 * Name: 		_ParserPushState
 * Return Type: 	void
 * Description: 	pushes the given id on the state stack
-* In: 
+* In:
 *	parser:		current parser context
 *	id:			element id to push
 * Returns:
@@ -419,7 +419,7 @@ _ParserPushState(Parser *parser, htmlEnum id)
 * Name: 		_ParserPopState
 * Return Type: 	htmlEnum
 * Description: 	pops an element of the state stack
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	id of element popped.
@@ -466,7 +466,7 @@ _ParserPopState(Parser *parser)
 * Name: 		_ParserClearStack
 * Return Type: 	void
 * Description: 	clears and resets the state stack of a parser
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	nothing
@@ -490,7 +490,7 @@ _ParserClearStack(Parser *parser)
 * Return Type: 	Boolean
 * Description: 	checks whether the given id is somewhere on the current
 *				state stack.
-* In: 
+* In:
 *	parser:		current parser context
 *	id:			element id to check.
 * Returns:
@@ -514,7 +514,7 @@ _ParserOnStack(Parser *parser, htmlEnum id)
 * Name: 		_ParserIsElementTerminated
 * Return Type: 	Boolean
 * Description: 	checks if the given element has a terminating counterpart
-* In: 
+* In:
 *	id:			element to check
 * Returns:
 *	True when the given element is terminated, false if not.
@@ -532,7 +532,7 @@ _ParserOnStack(Parser *parser, htmlEnum id)
 * Return Type: 	Boolean
 * Description: 	checks whether the given id is allowed to appear inside the
 *				<BODY> tag.
-* In: 
+* In:
 *	id:			id to check.
 * Returns:
 *	True when allowed, False if not.
@@ -546,9 +546,9 @@ _ParserOnStack(Parser *parser, htmlEnum id)
 /*****
 * Name:			_ParserCheckElementOccurance
 * Return Type:	Boolean
-* Description:	checks whether the appearence of the current token is 
+* Description:	checks whether the appearence of the current token is
 *				allowed in the current parser state.
-* In: 
+* In:
 *	parser:		current parser context
 *	current:	HTML token to check;
 *	state:		parser state;
@@ -697,7 +697,7 @@ _ParserCheckElementOccurance(Parser *parser, htmlEnum current,
 				return((int)HT_MAP); /* obvious */
 			break;
 
-		case HT_P: 
+		case HT_P:
 			if(state == HT_ADDRESS || IS_CONTAINER(state))
 				return((int)HT_ZTEXT);
 			/* guess a proper return value */
@@ -793,7 +793,7 @@ _ParserCheckElementOccurance(Parser *parser, htmlEnum current,
 			return(-1);	/* not reached */
 
 		case HT_LI:
-			if(state == HT_UL || state == HT_OL || state == HT_DIR || 
+			if(state == HT_UL || state == HT_OL || state == HT_DIR ||
 				state == HT_MENU)
 				return((int)HT_ZTEXT);
 			/*
@@ -865,7 +865,7 @@ _ParserCheckElementOccurance(Parser *parser, htmlEnum current,
 * Return Type:	Boolean
 * Description:	checks whether the appearence of the current token is valid in
 *				the current state.
-* In: 
+* In:
 *	parser:		current parser context
 *	current:	token to check
 *	state:		current state of the parser
@@ -896,7 +896,7 @@ _ParserCheckElementContent(Parser *parser, htmlEnum current, htmlEnum state)
 			break;
 
 		case HT_HEAD:
-			if(current == HT_TITLE || current == HT_ISINDEX || 
+			if(current == HT_TITLE || current == HT_ISINDEX ||
 				current == HT_BASE || current == HT_SCRIPT ||
 				current == HT_STYLE || current == HT_META ||
 				current == HT_LINK)
@@ -1321,7 +1321,7 @@ _ParserCheckElementContent(Parser *parser, htmlEnum current, htmlEnum state)
 * Name: 		_ParserNewObject
 * Return Type: 	XmHTMLObject
 * Description: 	allocates a new XmHTMLObject structure
-* In: 
+* In:
 *	parser:		current parser context
 *	id:			id for this element
 *	element:	char description for this element
@@ -1362,7 +1362,7 @@ _ParserNewObject(Parser *parser, htmlEnum id, char *element, char *attributes,
 * Name: 		_ParserInsertElement
 * Return Type: 	void
 * Description: 	creates and inserts a new element in the parser tree
-* In: 
+* In:
 *	parser:		current parser context
 *	element:	element name
 *	new_id:		id of element to insert
@@ -1408,7 +1408,7 @@ _ParserInsertElement(Parser *parser, String element, htmlEnum new_id,
 * Return Type: 	Boolean
 * Description: 	backtracks in the list of elements to terminate the given
 *				element. Used for terminating an unbalanced element.
-* In: 
+* In:
 *	parser:		current parser context
 *	element:	element name
 *	current:	current element;
@@ -1467,7 +1467,7 @@ _ParserTerminateElement(Parser *parser, String element, htmlEnum current,
 * Name:			_ParserCreate
 * Return Type: 	Parser*
 * Description: 	creates a new Parser Context
-* In: 
+* In:
 *	w:			widget owning this parser
 * Returns:
 *	A newly created parser
@@ -1482,7 +1482,7 @@ _ParserCreate(Widget w)
 	parser->state_stack->id = HT_DOCTYPE;
 	parser->state_stack->next = NULL;
 
-	/* 
+	/*
 	* Initialize list data. More efficient than every conditional test
 	* when an element is to be stored in the list.
 	*/
@@ -1517,7 +1517,7 @@ _ParserCreate(Widget w)
 * Name:			_ParserDelete
 * Return Type: 	void
 * Description: 	deletes a Parser context
-* In: 
+* In:
 *	parser:		parser to be deleted
 * Returns:
 *	nothing
@@ -1545,9 +1545,9 @@ _ParserDelete(Parser *parser)
 * Name: 		_ParserInsertTextElement
 * Return Type: 	void
 * Description: 	allocates and stores a plain text element
-* In: 
+* In:
 *	parser:		current parser context
-*	start:		plain text starting point 
+*	start:		plain text starting point
 *	end:		plain text ending point
 * Returns:
 *	nothing
@@ -1558,7 +1558,7 @@ _ParserInsertTextElement(Parser *parser, char *start, char *end)
 	static XmHTMLObject *element = NULL;
 	static char *content = NULL;
 	/* length of this block */
-	int len = end - start;	
+	int len = end - start;
 
 	/* sanity */
 	if(*start == '\0' || len <= 0)
@@ -1586,9 +1586,9 @@ _ParserInsertTextElement(Parser *parser, char *start, char *end)
 * Name: 		_ParserStoreTextElement
 * Return Type: 	void
 * Description: 	allocates and stores a plain text element
-* In: 
+* In:
 *	parser:		current parser context
-*	start:		plain text starting point 
+*	start:		plain text starting point
 *	end:		plain text ending point
 * Returns:
 *	nothing
@@ -1638,7 +1638,7 @@ _ParserStoreTextElement(Parser *parser, char *start, char *end)
 						element->attributes  = NULL;
 						element->attributes = malloc(256);
 						sprintf(element->attributes, "src=\"%s\" "
-							"icon_index=%i", 
+							"icon_index=%i",
 							_XmHTMLIconEntities[idx].escape, idx);
 #else
 						element->attributes =
@@ -1678,9 +1678,9 @@ _ParserStoreTextElement(Parser *parser, char *start, char *end)
 * Return Type: 	void
 * Description: 	allocates and stores a plain text element. Inverts
 *				contents of this text element as well.
-* In: 
+* In:
 *	parser:		current parser context
-*	start:		plain text starting point 
+*	start:		plain text starting point
 *	end:		plain text ending point
 * Returns:
 *	nothing
@@ -1693,7 +1693,7 @@ _ParserStoreTextElementRtoL(Parser *parser, char *start, char *end)
 	register char *inPtr, *outPtr;
 
 	/* length of this block */
-	int len = end - start;	
+	int len = end - start;
 
 	/* sanity */
 	if(*start == '\0' || len <= 0)
@@ -1805,7 +1805,7 @@ _ParserStoreTextElementRtoL(Parser *parser, char *start, char *end)
 * Name: 		_ParserCopyElement
 * Return Type: 	void
 * Description: 	copies and inserts the given object
-* In: 
+* In:
 *	parser:		current parser context
 *	src:		object to copy
 *	is_end:		terminator state
@@ -1863,7 +1863,7 @@ _ParserCopyElement(Parser *parser, XmHTMLObject *src, Boolean is_end)
 * Name: 		parserWarning
 * Return Type: 	int
 * Description: 	gives out warning messages depending on the type of error.
-* In: 
+* In:
 *	parser:		current parser context
 *	id:			offending id
 *	current:	current parser state
@@ -1959,7 +1959,7 @@ parserWarning(Parser *parser, htmlEnum id, htmlEnum current, parserError error)
 * Name: 		_ParserVerify
 * Return Type: 	int
 * Description: 	element verifier, the real funny part.
-* In: 
+* In:
 *	parser:		current parser context
 *	id:			element to verify
 *	is_end:		element terminating state
@@ -1970,7 +1970,7 @@ parserWarning(Parser *parser, htmlEnum id, htmlEnum current, parserError error)
 *	of checks (and is a real mess).
 * Note:
 *	This routine is becoming increasingly complex, especially with possible
-*	iteration over all current parser states to find a proper insertion point 
+*	iteration over all current parser states to find a proper insertion point
 *	when the new element is out of place, the checks on contents of the current
 *	element and appearance of the new element and the difference between
 *	opening and closing elements.
@@ -2086,7 +2086,7 @@ recheck:
 			_ParserPushState(parser, id);
 			return(1);
 		}
-		else 
+		else
 		{
 			/* First check: see if this element has a terminating counterpart */
 			if(!_ParserIsElementTerminated(id))
@@ -2279,7 +2279,7 @@ unbalanced:
 			parserCallback(parser, id, curr, HTML_VIOLATION);
 
 			/* HTML_VIOLATION, default is to insert since new_id is valid */
-			_ParserInsertElement(parser, html_tokens[new_id], (htmlEnum)new_id, 
+			_ParserInsertElement(parser, html_tokens[new_id], (htmlEnum)new_id,
 				new_id == curr);
 			if(new_id == curr)
 				(void)_ParserPopState(parser);
@@ -2296,7 +2296,7 @@ unbalanced:
 * Return Type: 	XmHTMLObject*
 * Description: 	checks whether the document verification/repair routines did
 *				a proper job.
-* In: 
+* In:
 *	objects:	tree of parsed objects
 * Returns:
 *	NULL when all parser states are balanced, offending object otherwise.
@@ -2380,9 +2380,9 @@ _ParserVerifyVerification(XmHTMLObject *objects)
 * Name: 		_ParserStoreElement
 * Return Type: 	String
 * Description: 	allocates and stores a HTML element
-* In: 
+* In:
 *	parser:		current parser context
-*	start:		element starting point 
+*	start:		element starting point
 *	end:		element ending point
 * Returns:
 *	Updated char position if we had to skip <SCRIPT> or <STYLE> data.
@@ -2408,17 +2408,17 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 	parser->cend = parser->cstart + (end - start);
 
 	/*****
-	* If this is true, we have an empty tag or an empty closing tag. 
+	* If this is true, we have an empty tag or an empty closing tag.
 	* action to take depends on what type of empty tag it is.
 	*****/
 	if(start[0] == '>' || (start[0] == '/' && start[1] == '>'))
 	{
-		/***** 
+		/*****
 		* if start[0] == '>', we have an empty tag, otherwise we have an empty
-		* closing tag. In the first case, we walk backwards until we reach the 
-		* very first tag. 
-		* An empty tag simply means: copy the previous tag, nomatter what 
-		* content it may have. In the second case, we need to pick up the 
+		* closing tag. In the first case, we walk backwards until we reach the
+		* very first tag.
+		* An empty tag simply means: copy the previous tag, nomatter what
+		* content it may have. In the second case, we need to pick up the
 		* last recorded opening tag and copy it.
 		*****/
 		if(start[0] == '>')
@@ -2451,7 +2451,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 		}
 		else
 		{
-			for(element = parser->current; element != NULL; 
+			for(element = parser->current; element != NULL;
 				element = element->prev)
 			{
 				if(element->terminated)
@@ -2481,7 +2481,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 		return(end);
 	}
 
-	startPtr = start;		
+	startPtr = start;
 	/* Check if we have any unclosed tags */
 	if((endPtr = strstr(start, "<")) == NULL)
 		endPtr = end;
@@ -2493,7 +2493,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 	{
 		is_end = False;
 
-		/***** 
+		/*****
 		* First skip past spaces and a possible opening /. The endPtr test
 		* is mandatory or else we would walk the entire text over and over
 		* again every time this routine is called.
@@ -2518,7 +2518,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 
 		chPtr = elePtr = content;
 
-		/***** 
+		/*****
 		* Move past the text to get any element attributes. The ! will let
 		* us pick up the !DOCTYPE definition.
 		* Don't put the chPtr++ inside the tolower, chances are that it will
@@ -2533,16 +2533,16 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 			chPtr++;
 		}
 
-		/***** 
-		* attributes are only allowed in opening elements 
+		/*****
+		* attributes are only allowed in opening elements
 		* This is a neat hack: to reduce allocations, we do *not* copy the
 		* element name into it's own buffer. Instead we use the one allocated
 		* above, and place a \0 in the space right after the HTML element.
 		* If this element has attributes, we set the attribute pointer (=chPtr)
-		* to point right after this \0. 
-		* This also has the advantage that no reallocation or string copying 
+		* to point right after this \0.
+		* This also has the advantage that no reallocation or string copying
 		* is required.
-		* Freeing the memory allocated can be done in one call on the element 
+		* Freeing the memory allocated can be done in one call on the element
 		* field of the XmHTMLObject struct.
 		*****/
 		if(!is_end)
@@ -2601,7 +2601,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 							else
 								while('\0' != *ptr && !isspace(*ptr))
 									ptr++;
-							
+
 						}
 						else
 						{
@@ -2693,7 +2693,7 @@ _ParserStoreElement(Parser *parser, char *start, char *end)
 			* The SCRIPT & STYLE elements are a real pain in the ass to deal
 			* with properly: they are text with whatever in it,
 			* and it's terminated by a closing element. It would be
-			* *very* easy if the tags content are enclosed within a 
+			* *very* easy if the tags content are enclosed within a
 			* comment, but since this is *NOT* required by the HTML 3.2 spec,
 			* we need to check it in here...
 			*****/
@@ -2753,7 +2753,7 @@ removeData:
 				else
 					/* restore original end position */
 					end = start-1;
-				
+
 #ifdef DEBUG
 				/* closing tag is also removed */
 				if(terminated == -1)
@@ -2773,7 +2773,7 @@ removeData:
 		if(endPtr - end < 0)
 		{
 			endPtr++;
-			startPtr = endPtr;		
+			startPtr = endPtr;
 			/* Check if we have any unclosed tags */
 			if((endPtr = strstr(startPtr, "<")) == NULL)
 				endPtr = end;
@@ -2793,9 +2793,9 @@ removeData:
 * Name: 		storeElementUnconditional
 * Return Type: 	String
 * Description: 	allocates and stores a HTML element *without* verifying it.
-* In: 
+* In:
 *	parser:		current parser context
-*	start:		element starting point 
+*	start:		element starting point
 *	end:		element ending point
 * Returns:
 *	Updated char position if we had to skip <SCRIPT> or <STYLE> data.
@@ -2819,7 +2819,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 
 	/* no null end tags here */
 
-	startPtr = start;		
+	startPtr = start;
 	/* Check if we have any unclosed tags */
 	if((endPtr = strstr(start, "<")) == NULL)
 		endPtr = end;
@@ -2829,7 +2829,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 
 	is_end = False;
 
-	/***** 
+	/*****
 	* First skip past spaces and a possible opening /. The endPtr test
 	* is mandatory or else we would walk the entire text over and over
 	* again every time this routine is called.
@@ -2857,7 +2857,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 	/* Move past the text to get any element attributes. */
 	if(*chPtr == '!')
 		chPtr++;
-	while(*chPtr && !(isspace(*chPtr)))	
+	while(*chPtr && !(isspace(*chPtr)))
 	{
 		*chPtr = _FastLower(*chPtr);
 		chPtr++;
@@ -2948,7 +2948,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 			else
 				/* restore original end position */
 				end = start-1;
-				
+
 			/* no check for unclosed tags here, just return */
 			return(end);
 		}
@@ -2964,7 +2964,7 @@ storeElementUnconditional(Parser *parser, char *start, char *end)
 * Name:			ParserWriteOutputToFile/writeParsedOutputToFile
 * Return Type: 	void
 * Description: 	writes a parser tree to file
-* In: 
+* In:
 *	objects:	parser tree to be outputted;
 *	prefix:		file prefix
 *	notext:		if True, don't write plain text (ParserWriteOutput only)
@@ -2986,7 +2986,7 @@ writeParsedOutputToFile(XmHTMLObject *objects, String prefix)
 	int i, tablevel = 0;
 	static int count = 0;
 
-	/* 
+	/*
 	* No buffer overrun check here. If this sigsegv's, its your own fault.
 	* Don't use names longer than 1024 bytes then.
 	*/
@@ -3013,13 +3013,13 @@ writeParsedOutputToFile(XmHTMLObject *objects, String prefix)
 				if(tablevel < 0) tablevel++;
 				for(i = 0; i != tablevel; i++)
 					fputs("\t", file);
-				fprintf(file, "</%s", html_tokens[tmp->id]); 
+				fprintf(file, "</%s", html_tokens[tmp->id]);
 			}
 			else
 			{
 				for(i = 0; i != tablevel; i++)
 					fputs("\t", file);
-				fprintf(file, "<%s", html_tokens[tmp->id]); 
+				fprintf(file, "<%s", html_tokens[tmp->id]);
 #ifdef MINIPARSE
 				if(tmp->terminated && !tmp->ignore)
 #else
@@ -3050,7 +3050,7 @@ writeParsedOutputToFile(XmHTMLObject *objects, String prefix)
 #ifdef MINIPARSE
 			if(!notext)
 #endif
-			fprintf(file, "%i: %s\n", tmp->line, tmp->element); 
+			fprintf(file, "%i: %s\n", tmp->line, tmp->element);
 	}
 	fputs("\n", file);
 	fclose(file);
@@ -3062,7 +3062,7 @@ writeParsedOutputToFile(XmHTMLObject *objects, String prefix)
 * Name:			ParserWriteHTMLOutputToFile
 * Return Type: 	void
 * Description: 	creates a HTML file from a parser tree
-* In: 
+* In:
 *	objects:	parser tree to be outputted;
 *	prefix:		file prefix
 *	notext:		if True, don't write plain text (ParserWriteOutput only)
@@ -3079,7 +3079,7 @@ ParserWriteHTMLOutputToFile(XmHTMLObject *objects, String prefix,
 	FILE *file;
 	static int count;
 
-	/* 
+	/*
 	* No buffer overrun check here. If this sigsegv's, its your own fault.
 	* Don't use names longer than 1024 bytes then.
 	*/
@@ -3099,9 +3099,9 @@ ParserWriteHTMLOutputToFile(XmHTMLObject *objects, String prefix,
 			if(!tmp->ignore)
 			{
 				if(tmp->is_end)
-					fprintf(file, "</%s", html_tokens[tmp->id]); 
+					fprintf(file, "</%s", html_tokens[tmp->id]);
 				else
-					fprintf(file, "<%s", html_tokens[tmp->id]); 
+					fprintf(file, "<%s", html_tokens[tmp->id]);
 
 				if(tmp->attributes)
 					fprintf(file, " %s", tmp->attributes);
@@ -3112,7 +3112,7 @@ ParserWriteHTMLOutputToFile(XmHTMLObject *objects, String prefix,
 			}
 		}
 		else if(!notext)
-			fprintf(file, "%s", tmp->element); 
+			fprintf(file, "%s", tmp->element);
 	}
 	fputs("\n", file);
 	fflush(file);
@@ -3124,7 +3124,7 @@ ParserWriteHTMLOutputToFile(XmHTMLObject *objects, String prefix,
 * Name: 		_ParserCutComment
 * Return Type: 	String
 * Description: 	removes HTML comments from the input stream
-* In: 
+* In:
 *	parser:		current parser context
 *	start:		comment opening position;
 * Returns:
@@ -3332,7 +3332,7 @@ _ParserCutComment(Parser *parser, String start)
 * Return Type: 	void
 * Description: 	html parser; creates a doubly linked list of all elements
 *				(both HTML and plain text).
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	nothing.
@@ -3422,10 +3422,10 @@ parseHTML(Parser *parser)
 								/*
 								* now walk to the first non-alpha numeric
 								* char
-								*/ 
+								*/
 								while(*elePtr != '\0' && isalnum(*elePtr))
 									elePtr++;
-								
+
 								if(parser->warn)
 								{
 									int len = elePtr - start;
@@ -3521,7 +3521,7 @@ parseHTML(Parser *parser)
 							break;
 						case '/':
 							/*
-							* only handle shorttags when requested. 
+							* only handle shorttags when requested.
 							* We have a short tag if this / is preceeded by
 							* a valid character.
 							*/
@@ -3600,14 +3600,14 @@ parseHTML(Parser *parser)
 #endif
 #endif
 
-	/* 
+	/*
 	* allow lines to have 80 chars at maximum. It's only used when
 	* the XmNresizeWidth resource is true.
 	*/
 	parser->line_len = (line_len > 80 ? 80 : line_len);
 
 	_XmHTMLDebug(4, ("parse.c: parseHTML, allocated %i HTML elements "
-		"and %i text elements (%i total).\n", parser->num_elements, 
+		"and %i text elements (%i total).\n", parser->num_elements,
 		parser->num_text, parser->num_elements + parser->num_text));
 
 	_XmHTMLDebug(4, ("parse.c: parseHTML, removed %i unbalanced elements\n",
@@ -3662,7 +3662,7 @@ parseHTML(Parser *parser)
 * Return Type: 	void
 * Description: 	html parser; creates a doubly linked list of all elements
 *				(both HTML and plain text).
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	nothing.
@@ -3774,14 +3774,14 @@ parsePerfectHTML(Parser *parser)
 			break;
 		chPtr++;
 	}
-	/* 
+	/*
 	* allow lines to have 80 chars at maximum. It's only used when
 	* the XmNresizeWidth resource is true.
 	*/
 	parser->line_len = (line_len > 80 ? 80 : line_len);
 
 	_XmHTMLDebug(4, ("parse.c: parsePerfectHTML, allocated %i HTML elements "
-		"and %i text elements (%i total).\n", parser->num_elements, 
+		"and %i text elements (%i total).\n", parser->num_elements,
 		parser->num_text, parser->num_elements + parser->num_text));
 
 	_XmHTMLDebug(4, ("_ParserTokenToId statistics\nno of lookups: %i\n"
@@ -3793,7 +3793,7 @@ parsePerfectHTML(Parser *parser)
 * Name: 		parsePLAIN
 * Return Type: 	void
 * Description: 	creates a parser tree for plain text.
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	nothing
@@ -3865,7 +3865,7 @@ static const char *content_image = "<html><body><img src=\"%s\"></body></html>";
 * Return Type: 	void
 * Description: 	creates a parser tree for the given image so XmHTML can
 *				display it.
-* In: 
+* In:
 *	parser:		current parser context
 * Returns:
 *	nothing.
@@ -3903,7 +3903,7 @@ parseIMAGE(Parser *parser)
 * Name: 		parserDriver
 * Return Type: 	XmHTMLObject*
 * Description: 	main HTML parser driver.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	old_list:	objects to be freed;
 *	input:		text to parse.
@@ -3915,7 +3915,7 @@ parserDriver(XmHTMLWidget html, XmHTMLObject *old_list, String input)
 {
 	Parser *parser;
 	XmHTMLObject *list_return;
-	
+
 	/* free any previous list */
 	if(old_list != NULL)
 	{
@@ -3931,7 +3931,7 @@ parserDriver(XmHTMLWidget html, XmHTMLObject *old_list, String input)
 
 	/* reset debug counters */
 #ifdef DEBUG
-	num_lookups = num_searches = p_inserted = p_removed = 0; 
+	num_lookups = num_searches = p_inserted = p_removed = 0;
 #endif
 
 #ifdef MINIPARSE
@@ -4002,7 +4002,7 @@ parserDriver(XmHTMLWidget html, XmHTMLObject *old_list, String input)
 * Name: 		_XmHTMLparseHTML
 * Return Type: 	XmHTMLObject*
 * Description: 	html parser driver
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	old_list:	previous list to be freed.
 *	input:		HTML text to parse
@@ -4058,7 +4058,7 @@ _XmHTMLparseHTML(XmHTMLWidget html, XmHTMLObject *old_list, char *input,
 	do
 	{
 		_XmHTMLDebug(4, ("parse.c, _XmHTMLparseHTML, doing pass %i\n",
-			loop_count)); 
+			loop_count));
 
 		checked = NULL;
 		redo = False;
@@ -4220,7 +4220,7 @@ _XmHTMLparseHTML(XmHTMLWidget html, XmHTMLObject *old_list, char *input,
 * Name: 		_XmHTMLTextGetString
 * Return Type: 	String
 * Description: 	creates a HTML source document from the given parser tree.
-* In: 
+* In:
 *	objects:	parser tree.
 * Returns:
 *	created document in a buffer. This buffer must be freed by the caller.
@@ -4257,7 +4257,7 @@ _XmHTMLTextGetString(XmHTMLObject *objects)
 			if(tmp->attributes)
 				size += 1 + strlen(tmp->attributes);
 		}
-		else 
+		else
 			size += strlen(tmp->element);
 	}
 	size +=1;	/* terminating character */
@@ -4289,7 +4289,7 @@ _XmHTMLTextGetString(XmHTMLObject *objects)
 			}
 			*chPtr++ = '>';
 		}
-		else 
+		else
 		{
 			strcpy(chPtr, tmp->element);
 			chPtr += strlen(tmp->element);
@@ -4304,7 +4304,7 @@ _XmHTMLTextGetString(XmHTMLObject *objects)
 * Name: 		_XmHTMLFreeObjects
 * Return Type: 	void
 * Description: 	releases all memory occupied by the parsed list of objects.
-* In: 
+* In:
 *	objects:	object list to be destroyed
 * Returns:
 *	nothing.
@@ -4337,14 +4337,14 @@ _XmHTMLFreeObjects(XmHTMLObject *objects)
 
 #ifdef MINIPARSE
 
-/***************************************************************************** 
- *                                                                           * 
+/*****************************************************************************
+ *                                                                           *
  *             Helper functions for the Standalone parser                    *
- *                                                                           * 
+ *                                                                           *
  *****************************************************************************/
 
-/*** 
-* Character translation table for converting from upper to lower case 
+/***
+* Character translation table for converting from upper to lower case
 * Since this is a table lookup, it might perform better than the libc
 * tolower routine on a number of systems.
 ***/
@@ -4368,7 +4368,7 @@ void
 my_locase(char *string)
 {
 	register char *outPtr = string;
-	for(outPtr = string; *outPtr != '\0'; 
+	for(outPtr = string; *outPtr != '\0';
 		*(outPtr++) = _FastLower(*(string++)));
 }
 
@@ -4380,7 +4380,7 @@ my_strcasestr(const char *s1, const char *s2)
 
 	for (p2 = s2, i = 0; *s; p2 = s2, i++, s++)
 	{
-		for (p1 = s; *p1 && *p2 && _FastLower(*p1) == _FastLower(*p2); 
+		for (p1 = s; *p1 && *p2 && _FastLower(*p1) == _FastLower(*p2);
 				p1++, p2++)
 			;
 		if (!*p2)
@@ -4423,7 +4423,7 @@ my_strndup(const char *s1, size_t len)
 * Name: 		my_strdup
 * Return Type: 	char*
 * Description: 	debugging version of strdup
-* In: 
+* In:
 *	s1:			string to be duplicated
 * Returns:
 *	duplicated string.
@@ -4454,7 +4454,7 @@ my_strcasecmp (const char *s1, const char *s2)
 			return(c1 - c2);
 		s1++;
 		s2++;
-	}                                                                           
+	}
 	return((int)(*s1 - *s2));
 }
 #define strcasecmp(S1,S2) my_strcasecmp(S1,S2);

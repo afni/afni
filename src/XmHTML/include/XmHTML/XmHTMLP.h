@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -90,7 +90,7 @@
 * XmHTMLImage, XmHTMLImageMap, XmHTMLAnchor structs modified.
 *
 * Revision 1.4  1997/02/11 02:02:11  newt
-* Removed obsolete fields from XmHTMLWord, XmHTMLObjectTable. 
+* Removed obsolete fields from XmHTMLWord, XmHTMLObjectTable.
 * Added stuff for new anchor treatment.
 *
 * Revision 1.3  1997/01/09 06:55:56  newt
@@ -102,7 +102,7 @@
 * Revision 1.1  1996/12/19 02:17:16  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _XmHTMLP_h_
 #define _XmHTMLP_h_
@@ -204,14 +204,14 @@ typedef struct _XmHTMLClassRec
 #define TEXT_FORM				(1<<6)	/* indicates a form member		*/
 #define TEXT_BREAK				(1<<7)	/* indicates a linebreak		*/
 
-/***** 
-* HTML list marker enumeration type 
+/*****
+* HTML list marker enumeration type
 *****/
 typedef enum{
-	XmMARKER_NONE = 0, 
-	XmMARKER_ARABIC = 10, 
-	XmMARKER_ALPHA_LOWER, 
-	XmMARKER_ALPHA_UPPER, 
+	XmMARKER_NONE = 0,
+	XmMARKER_ARABIC = 10,
+	XmMARKER_ALPHA_LOWER,
+	XmMARKER_ALPHA_UPPER,
 	XmMARKER_ROMAN_LOWER,
 	XmMARKER_ROMAN_UPPER,
 	XmMARKER_DISC = 15,
@@ -219,8 +219,8 @@ typedef enum{
 	XmMARKER_CIRCLE
 }Marker;
 
-/***** 
-* Horizontal/Vertical alignment data 
+/*****
+* Horizontal/Vertical alignment data
 *****/
 typedef enum{
 	XmHALIGN_NONE = 0,	/* horizontal alignment */
@@ -235,8 +235,8 @@ typedef enum{
 	XmVALIGN_BASELINE
 }Alignment;
 
-/***** 
-* Possible types of HTML objects. 
+/*****
+* Possible types of HTML objects.
 * All text types are only used when computing the screen layout
 *****/
 typedef enum{
@@ -262,7 +262,7 @@ typedef enum{
 #define CLEAR_ALL			2		/* return + move baseline fully down	*/
 
 /*****
-* Server/client side and map type values 
+* Server/client side and map type values
 *****/
 typedef enum{
 	XmMAP_NONE = 1,
@@ -443,7 +443,7 @@ typedef struct _AllEvents{
 #define EVENT_KEYUP			(1L<<17)
 
 /*****
-* Definition of an anchor 
+* Definition of an anchor
 * URLType is an enumeration type defined in HTML.h
 *****/
 typedef struct _XmHTMLAnchor{
@@ -502,7 +502,7 @@ typedef struct _XmHTMLParserTag{
 }XmHTMLParserTag;
 
 /*****
-* Definition of an embedded object. This object allows programmers to 
+* Definition of an embedded object. This object allows programmers to
 * dynamically extend XmHTML with private HTML tags.
 *****/
 typedef struct _XmHTMLExtObj{
@@ -523,7 +523,7 @@ typedef struct _XmHTMLExtObj{
 	*****/
 	Alignment			halign;		/* horizontal alignment					*/
 	Alignment			valign;		/* vertical alignment					*/
-	Dimension			border;		/* border thickness						*/ 
+	Dimension			border;		/* border thickness						*/
 	AllEvents			*events;	/* events to be served					*/
 
 	XtPointer			user_data;	/* user data, unused by XmHTML			*/
@@ -812,7 +812,7 @@ typedef struct _XmHTMLObjectTable{
 	Alignment		halign;			/* horizontal line alignment		*/
 	int				linefeed;		/* linebreak type					*/
 	Dimension		ident;			/* xoffset for list indentation		*/
-	Marker			marker;			/* marker to use in lists			*/		
+	Marker			marker;			/* marker to use in lists			*/
 	int				list_level;		/* current count of list element.	*/
 	XmHTMLfont		*font;			/* font to be used for this object	*/
 	Pixel			fg;				/* foreground color for this object	*/
@@ -911,7 +911,7 @@ typedef struct _XmHTMLLayer{
 /*****
 * A stripped down array of all words that are searchable. Contains enough
 * information to search for text and provide information about the
-* selection that should be made to display the text found. 
+* selection that should be made to display the text found.
 *****/
 struct _XmHTMLSearchableWord{
 	String 				word;		/* word to display						*/
@@ -1045,7 +1045,7 @@ typedef struct _stateStack{
 * plc.h. It's a rather complex thing for all objects than can be loaded
 * progressively. It maintains the state of each object (data as well as data
 * processing functions) and does a bunch of nifty things.
-*****/ 
+*****/
 typedef struct _PLC *PLCPtr;
 
 /*****
@@ -1060,7 +1060,7 @@ typedef struct _PLC *PLCPtr;
 * exact result of this merger depends on the position of the image. This can
 * be a rather slow process (alpha channels require floating point ops), and
 * by at least storing the current background info we can achieve some
-* performance increase. 
+* performance increase.
 *****/
 typedef struct _AlphaChannelInfo{
 	int fb_maxsample;			/* frame buffer maximum sample value */
@@ -1115,7 +1115,7 @@ typedef struct _Parser{
 }Parser;
 
 /*****
-* XmHTMLPart definition 
+* XmHTMLPart definition
 *****/
 typedef struct _XmHTMLPart {
 	/* Original document Resources */
@@ -1249,7 +1249,7 @@ typedef struct _XmHTMLPart {
 	Byte				rgb_conv_mode;	/* 24 to 8bit conversion method */
 	Byte				alpha_processing;	/* do alpha channel stuff? */
 
-	/* 
+	/*
 	* Fallback colors, required for proper color resetting between documents
 	* with and without a <body> color spec.
 	*/

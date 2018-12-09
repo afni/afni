@@ -4,8 +4,8 @@
 
 /*!
    Swap a column between two dsets.
-   This macro will check for nothing. 
-   You must ensure that the two dsets have the same 
+   This macro will check for nothing.
+   You must ensure that the two dsets have the same
    dimensions, brick types, etc.
 */
 #define SWAP_COL(p1,p2,i) {  \
@@ -20,11 +20,11 @@
 }
 
 /*! Macros to get (and put) value from sub-brick k, vox ijk
-   
-   DSET_ARRAY calls mri_data_pointer, 
+
+   DSET_ARRAY calls mri_data_pointer,
    this can perhaps be sped up with direct access
    to im with:
-   *(dset->dblk->brick->imarr[k]->im+ijk) 
+   *(dset->dblk->brick->imarr[k]->im+ijk)
 */
 #define GVAL(dset,k,ijk,V) {\
    short *cc = (short *)DSET_ARRAY(dset,k);   \
@@ -181,13 +181,13 @@
 #define EPS 0.000001
 #define MINP 0.01   /* I tried 0.05, 0.01, and 0.001: See
                         results of @Run.PROB.12class.1 (at 0.01)
-                        @Run.PROB.12class.1b (at 0.001), and 
+                        @Run.PROB.12class.1b (at 0.001), and
                         @Run.PROB.12class.1c (at 0.05) .
                      0.05 is too blunt a cut off, seems to cause too much
                      loss of information. 0.01 is OK, 0.001 seemed to
                      give slightly more stability for CSF for subject 1,
                      But further testing and changes to p_a_GIV_cvfu don't
-                     show that, so 0.01 it remains*/ 
+                     show that, so 0.01 it remains*/
 #define SQ2PI 2.506628
 
 #define IND_1D_2_NORM_3D_index(ijk, IJK, ni, nij, halfN){  \
@@ -271,7 +271,7 @@
    IJK[1] = ((IJK[1]) / (ni)); \
 }
 
-/*Macros to go from 1D to 4D ubyte indexing. 
+/*Macros to go from 1D to 4D ubyte indexing.
   For SUMA_COLID_N2RGBA, you will need to pass ints for r g b a
   even though ubyte is needed for final storage */
 #define SUMA_COLID_N2RGBA(n,r,g,b,a) { \
@@ -368,7 +368,7 @@
       strcpy(DSET_IDCODE_STR(mdset), oid); \
       SUMA_free(opref); SUMA_free(oid);\
    }  \
-}      
+}
 
 #define GRID_MISMATCH(a,b) (   (DSET_NX(a) != DSET_NX(b)) \
                             || (DSET_NY(a) != DSET_NY(b)) \
@@ -384,7 +384,7 @@
 #define SUMA_knegBOUND  32
 #define SUMA_K_HOLE     48
 
-/* A macro for SUMA_hist_freq(), requires 
+/* A macro for SUMA_hist_freq(), requires
 int m_i0;
 float m_a;
 If you change this macro, be sure to reflect
@@ -399,16 +399,16 @@ the changes in function SUMA_hist_freq()
 }
 
 
-SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu, 
+SUMA_HIST *SUMA_hist(float *v, int n, int Ku, float Wu,
                      float *range, char *label, int ignoreout);
-SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range, 
-                     char *label, int ignoreout, 
+SUMA_HIST *SUMA_hist_opt(float *v, int n, int Ku, float Wu, float *range,
+                     char *label, int ignoreout,
                      float oscfrqthr, char *methods);
-SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia, 
+SUMA_HIST *SUMA_dset_hist(THD_3dim_dataset *dset, int ia,
                           byte *cmask, char *label, SUMA_HIST *href,
                           int ignoreout, float oscifreq, char *methods);
-int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter ); 
-float SUMA_hist_oscillation( SUMA_HIST *hh, 
+int SUMA_hist_smooth( SUMA_HIST *hh, int N_iter );
+float SUMA_hist_oscillation( SUMA_HIST *hh,
                              float minmaxfrac, float oscfracthr, int *N_osci);
 SUMA_HIST *SUMA_Free_hist(SUMA_HIST *hh);
 void SUMA_Show_hist(SUMA_HIST *hh, int norm, FILE *out);
@@ -418,7 +418,7 @@ char *SUMA_dist_info(SUMA_FEAT_DIST *FD, int level);
 char *SUMA_dists_info(SUMA_FEAT_DISTS *FDV, int level);
 float SUMA_hist_freq(SUMA_HIST *hh, float vv);
 double SUMA_hist_value(SUMA_HIST *hh, double vv, char *what);
-float SUMA_hist_perc_freq(SUMA_HIST *nn, float perc, int norm, int *iperc, 
+float SUMA_hist_perc_freq(SUMA_HIST *nn, float perc, int norm, int *iperc,
                           float minfreq);
 double SUMA_val_at_count(SUMA_HIST *hh, double count, int norm, int from_top);
 char *SUMA_hist_variable(SUMA_HIST *hh);
@@ -429,20 +429,20 @@ char *SUMA_label_variable(char *label, char c);
 char *SUMA_label_conditional(char *label, char c);
 NI_str_array * SUMA_dists_featureset(SUMA_FEAT_DISTS *FDV);
 NI_str_array * SUMA_dists_classset(SUMA_FEAT_DISTS *FDV);
-char *SUMA_hist_fname(char *proot, char *variable, char *conditional, 
+char *SUMA_hist_fname(char *proot, char *variable, char *conditional,
                       int withext);
 char *SUMA_corrmat_fname(char *proot, char *conditional, int withext);
-SUMA_FEAT_DIST *SUMA_find_feature_dist(SUMA_FEAT_DISTS *FDV, 
+SUMA_FEAT_DIST *SUMA_find_feature_dist(SUMA_FEAT_DISTS *FDV,
                                        char *label, char *feature, char *class,
                                        int *ifind);
 SUMA_FEAT_DISTS *SUMA_grow_feature_dists(SUMA_FEAT_DISTS *FDV);
 SUMA_FEAT_DIST *SUMA_free_dist(SUMA_FEAT_DIST *FD);
 SUMA_FEAT_DISTS *SUMA_free_dists(SUMA_FEAT_DISTS *FDV);
-SUMA_FEAT_DISTS *SUMA_add_feature_dist(SUMA_FEAT_DISTS *FDV, 
+SUMA_FEAT_DISTS *SUMA_add_feature_dist(SUMA_FEAT_DISTS *FDV,
                                        SUMA_FEAT_DIST **FDp,
                                        int append);
 SUMA_FEAT_DIST *SUMA_hist_To_dist(SUMA_HIST **hhp, char *thislabel);
-SUMA_FEAT_DISTS *SUMA_TRAIN_DISTS_To_dists(SUMA_FEAT_DISTS *FDV, 
+SUMA_FEAT_DISTS *SUMA_TRAIN_DISTS_To_dists(SUMA_FEAT_DISTS *FDV,
                                            NI_element *ndist);
 SUMA_FEAT_DISTS *SUMA_get_all_dists(char *where);
 NI_group *SUMA_hist_To_NIhist(SUMA_HIST *hh);
@@ -450,19 +450,19 @@ SUMA_HIST *SUMA_NIhist_To_hist(NI_group *ngr);
 int SUMA_write_hist(SUMA_HIST *hh, char *name);
 SUMA_HIST *SUMA_read_hist(char *name);
 
-int SUMA_Seg_Write_Dset(char *proot, char *prefi, THD_3dim_dataset *dset, 
+int SUMA_Seg_Write_Dset(char *proot, char *prefi, THD_3dim_dataset *dset,
                         int iter, char *hh);
 int SUMA_KeyofLabel_Dtable(Dtable *vl_dtable, char *label);
 void SUMA_ShowClssKeys(char **label, int N_label, int *keys);
 char *SUMA_LabelsKeys2labeltable_str(char **label, int N_label, int *keys);
 Dtable *SUMA_LabelsKeys2Dtable (char **label, int N_label, int *keys);
 
-int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls, 
+int get_train_pdist(SEG_OPTS *Opt, char *feat, char *cls,
                      double *par, double *scpar) ;
 double pdfgam(double x,double ash, double brt);
-int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls, 
+int p_a_GIV_cvfu(SEG_OPTS *Opt, char *feat, char *cls,
                   THD_3dim_dataset *pout);
-int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat, 
+int p_cv_GIV_afu (SEG_OPTS *Opt, char *feat,
                   char *cls, double *d);
 int p_cv_GIV_A (SEG_OPTS *Opt, char *cls, double *dr);
 int normalize_p(SEG_OPTS *Opt, THD_3dim_dataset *pout);
@@ -472,60 +472,60 @@ SUMA_Boolean SUMA_set_Stat_mix_floor(SUMA_CLASS_STAT *cs, float floor);
 THD_3dim_dataset *p_C_GIV_A (SEG_OPTS *Opt);
 THD_3dim_dataset *p_C_GIV_A_omp (SEG_OPTS *Opt);
 int SUMA_LabelToGroupedIndex(char *cls_str, char **group_clss_lbls, int N_lbls);
-int SUMA_LabelToGroupedKey(char *cls_str, char **group_clss_lbls, int N_lbls, 
+int SUMA_LabelToGroupedKey(char *cls_str, char **group_clss_lbls, int N_lbls,
                            int *group_keys);
-int SUMA_GroupLabelMapping (char **clss , int N_clss, 
-                            char **grpclss, int N_grpclss, 
-                            int *map, int verb); 
-int SUMA_Regroup_classes (SEG_OPTS *Opt, 
+int SUMA_GroupLabelMapping (char **clss , int N_clss,
+                            char **grpclss, int N_grpclss,
+                            int *map, int verb);
+int SUMA_Regroup_classes (SEG_OPTS *Opt,
                      char **clss_lbls,
                      int N_clss_lbls,
-                     int *keys,                      
+                     int *keys,
                      char **group_classes,
                      int N_group_classes,
                      int  * ugroup_keys,
                      byte *cmask,
-                     THD_3dim_dataset *pset, 
+                     THD_3dim_dataset *pset,
                      THD_3dim_dataset *cset,
-                     THD_3dim_dataset **gpset, 
-                     THD_3dim_dataset **gcset); 
-int SUMA_assign_classes (THD_3dim_dataset *pset, 
+                     THD_3dim_dataset **gpset,
+                     THD_3dim_dataset **gcset);
+int SUMA_assign_classes (THD_3dim_dataset *pset,
                          SUMA_CLASS_STAT *cs,
                          byte *cmask,
                          THD_3dim_dataset **csetp);
-int SUMA_assign_classes_eng(THD_3dim_dataset *pset, 
+int SUMA_assign_classes_eng(THD_3dim_dataset *pset,
                          char **label, int N_label, int *keys,
                          byte *cmask,
                          THD_3dim_dataset **csetp);
 int  group_mean (SEG_OPTS *Opt, THD_3dim_dataset *aset,
                  byte *mm, THD_3dim_dataset *pset, int N_cl,
-                 double *M_v, int scl);          
+                 double *M_v, int scl);
 THD_3dim_dataset *SUMA_estimate_bias_field (SEG_OPTS *Opt,
-                                       int polorder, 
+                                       int polorder,
                                        THD_3dim_dataset *aset,
                                        THD_3dim_dataset *cset,
                                        THD_3dim_dataset *pset,
                                        THD_3dim_dataset *pout);
-int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opta, 
+int SUMA_estimate_bias_field_Wells (SEG_OPTS *Opta,
                                        byte *cmask, SUMA_CLASS_STAT *cs,
                                        float fwhm, char *bias_classes,
                                        THD_3dim_dataset *Aset,
                                        THD_3dim_dataset *pstCgALL,
                                        THD_3dim_dataset **Bsetp);
-int SUMA_apply_bias_field (SEG_OPTS *Opt, 
+int SUMA_apply_bias_field (SEG_OPTS *Opt,
                            THD_3dim_dataset *aset,
                            THD_3dim_dataset *fset,
                            THD_3dim_dataset **pout);
-THD_3dim_dataset *SUMA_SegEnhanceInitCset(THD_3dim_dataset *aseti, 
-                                          THD_3dim_dataset *cset, 
-                                 byte *cmask, int cmask_count, 
+THD_3dim_dataset *SUMA_SegEnhanceInitCset(THD_3dim_dataset *aseti,
+                                          THD_3dim_dataset *cset,
+                                 byte *cmask, int cmask_count,
                                  SUMA_CLASS_STAT *cs,
                                  SEG_OPTS *Opt);
-int bias_stats (SEG_OPTS *Opt, 
-                THD_3dim_dataset *aset, THD_3dim_dataset *gset, 
+int bias_stats (SEG_OPTS *Opt,
+                THD_3dim_dataset *aset, THD_3dim_dataset *gset,
                 THD_3dim_dataset *xset, int N_cl);
 double SUMA_CompareBiasDsets(THD_3dim_dataset *gold_bias, THD_3dim_dataset *bias,
-                         byte *cmask, int cmask_count, 
+                         byte *cmask, int cmask_count,
                          float thresh, THD_3dim_dataset *prat );
 int SUMA_show_Class_Stat(SUMA_CLASS_STAT *cs, char *h, char *fname);
 int SUMA_dump_Class_Stat(SUMA_CLASS_STAT *cs, char *head, FILE *Out);
@@ -537,13 +537,13 @@ int SUMA_MixFrac_from_ClassStat(SUMA_CLASS_STAT *cs, float *mf);
 int SUMA_ZeroSamp_from_ClassStat(SUMA_CLASS_STAT *cs);
 int SUMA_Stat_position (SUMA_CLASS_STAT *cs, char *label, char *pname, int pp[]);
 SUMA_CLASS_STAT *SUMA_Free_Class_Stat(SUMA_CLASS_STAT *cs);
-SUMA_CLASS_STAT *SUMA_New_Class_Stat(char **clsl, int N_clsl, int *keys, 
+SUMA_CLASS_STAT *SUMA_New_Class_Stat(char **clsl, int N_clsl, int *keys,
                                     int nP, NI_str_array *pnames);
-int SUMA_Class_stats(THD_3dim_dataset *aset, 
-                     THD_3dim_dataset *cset, 
+int SUMA_Class_stats(THD_3dim_dataset *aset,
+                     THD_3dim_dataset *cset,
                      byte *cmask, int cmask_count,
                      THD_3dim_dataset *wset,
-                     THD_3dim_dataset *pC, 
+                     THD_3dim_dataset *pC,
                      THD_3dim_dataset *gold,
                      SUMA_CLASS_STAT *cs, float mix_frac_floor);
 double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
@@ -551,35 +551,35 @@ double SUMA_mixopt_2_mixfrac(char *mixopt, char *label, int key, int N_clss,
 double pdfnorm(double x, double mean, double stdv);
 THD_3dim_dataset *SUMA_p_Y_GIV_C_B_O(
                            THD_3dim_dataset *aset, THD_3dim_dataset *cset,
-                                 byte *cmask, SUMA_CLASS_STAT *cs, 
-                                 THD_3dim_dataset *pygc); 
-int SUMA_MAP_labels(THD_3dim_dataset *aset, 
-                        byte *cmask, 
-                        SUMA_CLASS_STAT *cs, int neighopt, 
+                                 byte *cmask, SUMA_CLASS_STAT *cs,
+                                 THD_3dim_dataset *pygc);
+int SUMA_MAP_labels(THD_3dim_dataset *aset,
+                        byte *cmask,
+                        SUMA_CLASS_STAT *cs, int neighopt,
                         THD_3dim_dataset *pC,
-                        THD_3dim_dataset **csetp, 
-                        THD_3dim_dataset **pCgN, 
+                        THD_3dim_dataset **csetp,
+                        THD_3dim_dataset **pCgN,
                         SEG_OPTS *Opt);
-int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,  
+int SUMA_pst_C_giv_ALL(THD_3dim_dataset *aset,
                                  byte *cmask, int cmask_count,
-                                 SUMA_CLASS_STAT *cs, 
-                                 THD_3dim_dataset *pC, THD_3dim_dataset *pCgN, 
+                                 SUMA_CLASS_STAT *cs,
+                                 THD_3dim_dataset *pC, THD_3dim_dataset *pCgN,
                                  float mrfB, float Temp, byte mix,
                                  THD_3dim_dataset **pstCgALLp);
 int SUMA_CompareSegDsets(THD_3dim_dataset *base, THD_3dim_dataset *seg,
                          byte *cmask, byte mask_by_base,
                          SUMA_CLASS_STAT *cs );
-int SUMA_ray_k(int n1D, int ni, int nij, int nk, float *av, byte *ba, 
+int SUMA_ray_k(int n1D, int ni, int nij, int nk, float *av, byte *ba,
                float ta[], int da[]);
-int SUMA_ray_j(int n1D, int ni, int nij, int nj, float *av, byte *ba, 
+int SUMA_ray_j(int n1D, int ni, int nij, int nj, float *av, byte *ba,
                float ta[], int da[]);
-int SUMA_ray_i(int n1D, int ni, int nij, float *av, byte *ba, 
+int SUMA_ray_i(int n1D, int ni, int nij, float *av, byte *ba,
                float ta[], int da[]);
-int SUMA_ray_unplug_k(int n1D, int ni, int nij, int nk, 
+int SUMA_ray_unplug_k(int n1D, int ni, int nij, int nk,
                       float *av, byte *ba, int side);
-int SUMA_ray_unplug_j(int n1D, int ni, int nij, int nj, 
+int SUMA_ray_unplug_j(int n1D, int ni, int nij, int nj,
                       float *av, byte *ba, int side);
-int SUMA_ray_unplug_i(int n1D, int ni, int nij, 
+int SUMA_ray_unplug_i(int n1D, int ni, int nij,
                       float *av, byte *ba, int side);
 int SUMA_VolumeInFill(THD_3dim_dataset *aset,
                       THD_3dim_dataset **filledp,
@@ -590,9 +590,9 @@ int SUMA_Volume_RadFill(THD_3dim_dataset *aset, float *ufv, byte *ucmask,
                       float *ucm, THD_3dim_dataset **filledp,
                       int nplug, int nlin, int fitord, float smooth, int N_off);
 int SUMA_mri_volume_infill(MRI_IMAGE *imin);
-int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough, 
+int SUMA_mri_volume_infill_zoom(MRI_IMAGE *imin, byte thorough,
                                  int integ, int mxiter);
-int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits, 
+int SUMA_mri_volume_infill_solid(MRI_IMAGE *imin, int minhits,
                                  int mxiter, int unholize,
                                  byte *mask);
 int SUMA_VolumeBlurInMask(THD_3dim_dataset *aset,
@@ -610,40 +610,40 @@ int SUMA_VolumeLSBlurInMask(THD_3dim_dataset *aset ,
                                      float FWHM, float mxvx);
 double SUMA_EdgeEnergy(short *a, float af, short *b, float bf,
                       int Ni, int Nj, int Nk,
-                      short *c, short c1, short c2, 
+                      short *c, short c1, short c2,
                       byte *mask, SUMA_CLASS_STAT *cs,
-                      int method, short *skel, 
+                      int method, short *skel,
                       int *n_en);
 double SUMA_DsetEdgeEnergy(THD_3dim_dataset *aset,
                       THD_3dim_dataset *cset,
-                      byte *mask, 
+                      byte *mask,
                       THD_3dim_dataset *fset, THD_3dim_dataset *skelset,
                       SUMA_CLASS_STAT *cs, int method,
                       int *UseK, int N_kok);
 double SUMA_MAP_EdgeEnergy(THD_3dim_dataset *aset, byte *cmask, int cmask_count,
-                        THD_3dim_dataset *Bset, SUMA_CLASS_STAT *cs, 
-                        THD_3dim_dataset *cset, int method, 
-                        THD_3dim_dataset *priCgAll, THD_3dim_dataset *pCgN, 
+                        THD_3dim_dataset *Bset, SUMA_CLASS_STAT *cs,
+                        THD_3dim_dataset *cset, int method,
+                        THD_3dim_dataset *priCgAll, THD_3dim_dataset *pCgN,
                         float mrfB, float Temp, float deltamean, float deltastd,
                         SEG_OPTS * Opt);
-int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp, 
-                        SUMA_CLASS_STAT *cs, 
-                        byte *cmask, int cmask_count, 
-                        SEG_OPTS *Opt, 
+int SUMA_ShortizeProbDset(THD_3dim_dataset **csetp,
+                        SUMA_CLASS_STAT *cs,
+                        byte *cmask, int cmask_count,
+                        SEG_OPTS *Opt,
                         THD_3dim_dataset **psetp);
-int SUMA_OtherizeProbDset(THD_3dim_dataset *pC, 
+int SUMA_OtherizeProbDset(THD_3dim_dataset *pC,
                           byte *cmask, int cmask_count);
-int SUMA_FlattenProb(THD_3dim_dataset *pC, 
-                     byte *cmask, int cmask_count, 
+int SUMA_FlattenProb(THD_3dim_dataset *pC,
+                     byte *cmask, int cmask_count,
                      int mode);
-int SUMA_AddOther(  NI_str_array *clss, int **keys, 
+int SUMA_AddOther(  NI_str_array *clss, int **keys,
                     byte *cmask, int cmask_count,
                     THD_3dim_dataset *cset, THD_3dim_dataset *pstCgALL,
                     THD_3dim_dataset *pCgA, THD_3dim_dataset *pCgL,
                     SUMA_CLASS_STAT *cs);
 int SUMA_Class_k_Selector(
    SUMA_CLASS_STAT *cs, char *action, char *value, int *UseK);
-int SUMA_Class_k_Label_Locator(SUMA_CLASS_STAT *cs, char *label); 
+int SUMA_Class_k_Label_Locator(SUMA_CLASS_STAT *cs, char *label);
 int SUMA_Class_k_Key_Locator(SUMA_CLASS_STAT *cs, int key);
 int SUMA_InitDset(THD_3dim_dataset  *aset, float *val, int nval,
                   byte *cmask, byte setsf);
@@ -653,10 +653,10 @@ int SUMA_MergeCpriors(SUMA_CLASS_STAT *cs, byte *cmask,
                                       THD_3dim_dataset  *priCgL, float wL,
                                       THD_3dim_dataset  **priCgALLp,
                                       SEG_OPTS *Opt);
-int SUMA_SegInitCset(THD_3dim_dataset *aseti, 
-                     THD_3dim_dataset **csetp, 
+int SUMA_SegInitCset(THD_3dim_dataset *aseti,
+                     THD_3dim_dataset **csetp,
                      byte *cmask, int cmask_count,
-                     char *mixopt, 
+                     char *mixopt,
                      SUMA_CLASS_STAT *cs,
                      SEG_OPTS *Opt);
 void SUMA_set_SegFunc_debug(int dbg, int vdbg, int *vdbg3, FILE *out);
@@ -665,7 +665,7 @@ int SUMA_Split_Classes(char **Glbls, int N_Glbls, int *Gkeys, int *Split,
                        byte *cmask,
                        THD_3dim_dataset **Scsetp, SUMA_CLASS_STAT **Scs,
                        SEG_OPTS *Opt);
-int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels, 
+int SUMA_SetDsetLabeltable(THD_3dim_dataset *dset, char **labels,
                            int N_labels, int *keys);
 
 SUMA_SurfaceObject *SUMA_Mask_Skin(THD_3dim_dataset *iset, int ld,
@@ -678,33 +678,33 @@ SUMA_SurfaceObject *SUMA_ExtractHead(THD_3dim_dataset *iset,
                                      float hullvolthr, SUMA_COMM_STRUCT *cs);
 SUMA_SurfaceObject *SUMA_ExtractHead_RS(THD_3dim_dataset *iset,
                                THD_3dim_dataset **urset, SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_ShrinkSkullHull2Mask(SUMA_SurfaceObject *SO,
                              THD_3dim_dataset *iset, float thr,
                              int smooth_final, float *under_over_mm,
-                             int zero_attractor, 
+                             int zero_attractor,
                              SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_ShrinkSkullHull(SUMA_SurfaceObject *SO,
                              THD_3dim_dataset *iset, float thr,
-                             int use_rs, SUMA_COMM_STRUCT *cs);                  
-SUMA_Boolean SUMA_ShrinkHeadSurf(SUMA_SurfaceObject *SO, 
-                             THD_3dim_dataset *aset, 
+                             int use_rs, SUMA_COMM_STRUCT *cs);
+SUMA_Boolean SUMA_ShrinkHeadSurf(SUMA_SurfaceObject *SO,
+                             THD_3dim_dataset *aset,
                              THD_3dim_dataset *arset,
                              float *ucm,
                              SUMA_COMM_STRUCT *cs);
-SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO, 
-                             THD_3dim_dataset *aset, 
+SUMA_Boolean SUMA_ShrinkSkullHull_RS(SUMA_SurfaceObject *SO,
+                             THD_3dim_dataset *aset,
                              THD_3dim_dataset *arset, float thr,
                              SUMA_COMM_STRUCT *cs) ;
-SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO, 
-                             THD_3dim_dataset *aset, 
+SUMA_Boolean SUMA_ShrinkHeadSurf_RS(SUMA_SurfaceObject *SO,
+                             THD_3dim_dataset *aset,
                              THD_3dim_dataset *arset,
                              float *ucm,
                              SUMA_COMM_STRUCT *cs);
 THD_3dim_dataset *SUMA_Dset_FindVoxelsInSurface(
-                     SUMA_SurfaceObject *SO, THD_3dim_dataset *iset, 
+                     SUMA_SurfaceObject *SO, THD_3dim_dataset *iset,
                      SUMA_VOLPAR *vp, char *vpname,
-                     char *prefix, int meth, int maskonly);          
-THD_3dim_dataset *SUMA_dset_hist_equalize(THD_3dim_dataset *din, 
+                     char *prefix, int meth, int maskonly);
+THD_3dim_dataset *SUMA_dset_hist_equalize(THD_3dim_dataset *din,
                                           int sb, byte *cmask, SUMA_HIST *hh);
 
 #endif

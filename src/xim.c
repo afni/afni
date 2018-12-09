@@ -911,7 +911,7 @@ ENTRY("ISQ_snapfile") ;
 }
 
 /*------------------------------------------------------*/
-/* A variant on ISQ_snapfile that allows direct control 
+/* A variant on ISQ_snapfile that allows direct control
    of filename                                          */
 /*------------------------------------------------------*/
 
@@ -994,7 +994,7 @@ ENTRY("ISQ_snapfile2") ;
          mri_write_jpg( fname , tim ) ;
       }
    }
-   mri_free(tim) ; 
+   mri_free(tim) ;
    RETURN(0) ;
 }
 

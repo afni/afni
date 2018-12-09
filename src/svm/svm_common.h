@@ -25,7 +25,7 @@
 # include <math.h>
 # include <string.h>
 # include <stdlib.h>
-# include <time.h> 
+# include <time.h>
 # include <float.h>
 
 /* JL: changed VERSION      to VERSION_SVMLIGHT      and
@@ -56,20 +56,20 @@ typedef struct word {
 } WORD;
 
 typedef struct doc {
-  long    docnum;              /* Document ID. This has to be the position of 
+  long    docnum;              /* Document ID. This has to be the position of
                                   the document in the training set array. */
-  long    queryid;             /* for learning rankings, constraints are 
-				  generated for documents with the same 
+  long    queryid;             /* for learning rankings, constraints are
+				  generated for documents with the same
 				  queryID. */
   double  costfactor;          /* Scales the cost of misclassifying this
 				  document by this factor. The effect of this
 				  value is, that the upper bound on the alpha
 				  for this example is scaled by this factor.
-				  The factors are set by the feature 
+				  The factors are set by the feature
 				  'cost:<val>' in the training data. */
   double  twonorm_sq;          /* The squared euclidian length of the document
-                                  vector. */ 
-  WORD    *words;              /* The words/values in the document by  
+                                  vector. */
+  WORD    *words;              /* The words/values in the document by
 				  increasing word-number. */
 } DOC;
 
@@ -82,22 +82,22 @@ typedef struct learn_parm {
   double svm_costratio;        /* factor to multiply C for positive examples */
   double transduction_posratio;/* fraction of unlabeled examples to be */
                                /* classified as positives */
-  long   biased_hyperplane;    /* if nonzero, use hyperplane w*x+b=0 
+  long   biased_hyperplane;    /* if nonzero, use hyperplane w*x+b=0
 				  otherwise w*x=0 */
   long   svm_maxqpsize;        /* size q of working set */
-  long   svm_newvarsinqp;      /* new variables to enter the working set 
+  long   svm_newvarsinqp;      /* new variables to enter the working set
 				  in each iteration */
-  double epsilon_crit;         /* tolerable error for distances used 
+  double epsilon_crit;         /* tolerable error for distances used
 				  in stopping criterion */
-  double epsilon_shrink;       /* how much a multiplier should be above 
+  double epsilon_shrink;       /* how much a multiplier should be above
 				  zero for shrinking */
   long   svm_iter_to_shrink;   /* iterations h after which an example can
 				  be removed by shrinking */
-  long   remove_inconsistent;  /* exclude examples with alpha at C and 
+  long   remove_inconsistent;  /* exclude examples with alpha at C and
 				  retrain */
   long   skip_final_opt_check; /* do not check KT-Conditions at the end of
-				  optimization for examples removed by 
-				  shrinking. WARNING: This might lead to 
+				  optimization for examples removed by
+				  shrinking. WARNING: This might lead to
 				  sub-optimal solutions! */
   long   compute_loo;          /* if nonzero, computes leave-one-out
 				  estimates */
@@ -108,14 +108,14 @@ typedef struct learn_parm {
 				  alpha_t is distributed over */
   char predfile[200];          /* file for predicitions on unlabeled examples
 				  in transduction */
-  char alphafile[200];         /* file to store optimal alphas in. use  
-				  empty string if alphas should not be 
+  char alphafile[200];         /* file to store optimal alphas in. use
+				  empty string if alphas should not be
 				  output */
 
   /* you probably do not want to touch the following */
   double epsilon_const;        /* tolerable error on eq-constraint */
   double epsilon_a;            /* tolerable error on alphas at bounds */
-  double opt_precision;        /* precision of solver, set to e.g. 1e-21 
+  double opt_precision;        /* precision of solver, set to e.g. 1e-21
 				  if you get convergence problems */
 
   /* the following are only for internal use */
@@ -125,7 +125,7 @@ typedef struct learn_parm {
   double svm_unlabbound;
   double *svm_cost;            /* individual upper bounds for each var */
   long   totwords;             /* number of features */
-  
+
   /* JL July 2011: Added maximum number of iterations */
   long max_iterations;
 
@@ -141,7 +141,7 @@ typedef struct kernel_parm {
 } KERNEL_PARM;
 
 typedef struct model {
-  long    sv_num;	
+  long    sv_num;
   long    at_upper_bound;
   double  b;
   DOC     **supvec;
@@ -206,10 +206,10 @@ typedef struct shrink_state {
 
 double classify_example(MODEL *, DOC *);
 double classify_example_linear(MODEL *, DOC *);
-CFLOAT kernel(KERNEL_PARM *, DOC *, DOC *); 
-double custom_kernel(KERNEL_PARM *, DOC *, DOC *); 
+CFLOAT kernel(KERNEL_PARM *, DOC *, DOC *);
+double custom_kernel(KERNEL_PARM *, DOC *, DOC *);
 double sprod_ss(WORD *, WORD *);
-WORD*  sub_ss(WORD *, WORD *); 
+WORD*  sub_ss(WORD *, WORD *);
 double model_length_s(MODEL *, KERNEL_PARM *);
 void   clear_vector_n(double *, long);
 void   add_vector_ns(double *, WORD *, double);
@@ -222,7 +222,7 @@ void   nol_ll(char *, long *, long *, long *);
 long   minl(long, long);
 long   maxl(long, long);
 long   get_runtime(void);
-void   *my_malloc(size_t); 
+void   *my_malloc(size_t);
 void   copyright_notice(void);
 # ifdef MICROSOFT
    int isnan(double);

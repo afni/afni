@@ -45,7 +45,7 @@ int main( int argc , char * argv[] )
    memset(&iv_xyzorient, 0, sizeof(THD_ivec3));
 
 WARNING_message("This program (3daxialize) is old, not maintained, and probably useless!") ;
-   
+
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: 3daxialize [options] dataset\n"
              "Purpose: Read in a dataset and write it out as a new dataset\n"
@@ -135,14 +135,14 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
           ERROR_exit("Need argument after -prefix!") ;
         }
         MCW_strncpy( new_prefix , argv[iarg++] , THD_MAX_PREFIX ) ;
-	 
+
         if( strstr(new_prefix,".nii") != NULL ) {  /* check for NIFTI mod - drg 08 Aug 2006 */
             write_output = True;
 	    NIFTI_mode = True;
             if( strstr(new_prefix,".nii.gz") != NULL ) {
 	       cmode = 0; /* force gzip compression  (actually zlib from nifti library)*/
-	    }   
-	}       
+	    }
+	}
         else if( !THD_filename_ok(new_prefix) ){
             ERROR_exit("Illegal new prefix: %s",new_prefix);
          }
@@ -164,7 +164,7 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
       ERROR_message("Frugality and NIFTI output do not mix.\n");
       ERROR_exit("Try without -frugal or with different output type.\n");
    }
-   
+
    /*- get input dataset -*/
 
    old_dset = THD_open_dataset( argv[iarg] ) ;
@@ -269,7 +269,7 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
    if (AXIAL_frugal)
       data_file   = COMPRESS_fopen_write( new_dblk->diskptr->brick_name, cmode ) ;
    else
-      INIT_IMARR(im_array);  
+      INIT_IMARR(im_array);
 
    npix  = brax->n1 * brax->n2 ;
 
@@ -291,7 +291,7 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
       dsiz = mri_datum_size( DSET_BRICK_TYPE(new_dset,ival) ) ;
 
       if(!AXIAL_frugal) {
-           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and
                then append that to the image array */
            svol_im = mri_new_vol( brax->n1 , brax->n2 , brax->n3, DSET_BRICK_TYPE(new_dset,ival)) ;
            svol = mri_data_pointer(svol_im);
@@ -330,7 +330,7 @@ WARNING_message("This program (3daxialize) is old, not maintained, and probably 
       DSET_unload_one(old_dset,ival) ;
 
       if(!AXIAL_frugal) {
-           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+           /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and
                then append that to the image array */
            ADDTO_IMARR(im_array, svol_im);
       }

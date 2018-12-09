@@ -7,7 +7,7 @@
 /*---------------------------------------------------------------------------*/
 /*
   This program implements the False Discovery Rate (FDR) algorithm for
-  thresholding of voxelwise statistics.  
+  thresholding of voxelwise statistics.
 
   File:    3dFDR.c
   Author:  B. Douglas Ward
@@ -32,7 +32,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Structure declarations 
+  Structure declarations
 */
 
 struct voxel;
@@ -68,7 +68,7 @@ static float * FDR_input1D_data = NULL;    /* input array of p-values */
 static voxel * FDR_head_voxel[FDR_MAX_LL]; /* linked lists of voxels */
 
 static char * commandline = NULL;          /* command line for history notes */
-static THD_3dim_dataset * FDR_dset = NULL; /* input dataset */  
+static THD_3dim_dataset * FDR_dset = NULL; /* input dataset */
 
 /*---------------------------------------------------------------------------*/
 /*** 18 Jan 2008 changes [RWCox]:
@@ -145,7 +145,7 @@ void FDR_error (char * message)
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( FDR_error ("Cannot allocate memory") )
-     
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -337,7 +337,7 @@ void read_options ( int argc , char * argv[] )
 
 
   if( AFNI_yesenv("AFNI_FLOATIZE") ) FDR_float = 1 ;
-  
+
   /*----- main loop over input options -----*/
   while( nopt < argc )
     {
@@ -353,8 +353,8 @@ void read_options ( int argc , char * argv[] )
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -input1D dname   -----*/
       if (strcmp(argv[nopt], "-input1D") == 0)
 	{
@@ -366,8 +366,8 @@ void read_options ( int argc , char * argv[] )
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -mask_file mname   -----*/
       if (strcmp(argv[nopt], "-mask_file") == 0 || strcmp(argv[nopt],"-mask") == 0)
 	{
@@ -379,16 +379,16 @@ void read_options ( int argc , char * argv[] )
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- -mask_thr m -----*/
       if( strcmp(argv[nopt],"-mask_thr") == 0 ){
 	 float fval;
          nopt++ ;
          if( nopt >= argc ){
-            FDR_error (" need 1 argument after -mask_thr"); 
+            FDR_error (" need 1 argument after -mask_thr");
          }
-	 sscanf (argv[nopt], "%f", &fval); 
+	 sscanf (argv[nopt], "%f", &fval);
 	 if (fval < 0.0){
             FDR_error (" Require mask_thr >= 0.0 ");
          }
@@ -431,14 +431,14 @@ void read_options ( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
-      
+
       /*----- -cdep -----*/
       if( strcmp(argv[nopt],"-cdep") == 0 ){
          FDR_cn = -1.0;
          nopt++ ; continue ;
       }
 
-      
+
       /*----- -quiet -----*/
       if( strcmp(argv[nopt],"-quiet") == 0 ){
          FDR_quiet = 1;
@@ -448,14 +448,14 @@ void read_options ( int argc , char * argv[] )
          FDR_quiet = 0 ; nopt++ ; continue ;
       }
 
-      
+
       /*----- -list -----*/
       if( strcmp(argv[nopt],"-list") == 0 ){
          FDR_list = 1;
          nopt++ ; continue ;
       }
 
-      
+
       /*----- -prefix prefix -----*/
       if( strcmp(argv[nopt],"-prefix") == 0 ||
           strcmp(argv[nopt],"-output") == 0   ){
@@ -463,7 +463,7 @@ void read_options ( int argc , char * argv[] )
          if( nopt >= argc ){
             FDR_error (" need argument after -prefix!");
          }
-	 FDR_output_prefix = (char *) malloc (sizeof(char) * THD_MAX_PREFIX); 
+	 FDR_output_prefix = (char *) malloc (sizeof(char) * THD_MAX_PREFIX);
          MCW_strncpy( FDR_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
       }
@@ -472,7 +472,7 @@ void read_options ( int argc , char * argv[] )
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       FDR_error (message);
-      
+
 
    }  /*----- end of loop over command line arguments -----*/
 
@@ -511,7 +511,7 @@ void read_options ( int argc , char * argv[] )
   a column selector attached.
 */
 
-float * read_time_series 
+float * read_time_series
 (
   char * ts_filename,          /* time series file name (plus column index) */
   int * ts_length              /* output value for time series length */
@@ -522,7 +522,7 @@ float * read_time_series
   char * cpt;                    /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -551,16 +551,16 @@ float * read_time_series
   if( ny > 1 ){
     fprintf(stderr,"WARNING: time series %s has more than 1 column\n",ts_filename);
   }
-  
+
 
   /*----- Save the time series data -----*/
   *ts_length = nx;
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   
-  
-  
+    ts_data[ipt] = far[ipt + iy*nx];
+
+
   mri_free (flim);  flim = NULL;
 
   return (ts_data);
@@ -572,7 +572,7 @@ float * read_time_series
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -584,27 +584,27 @@ void check_one_output_file
   int ierror;                         /* number of errors in editing data */
 
 ENTRY("check_one_output_file") ;
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                			           GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       FDR_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -613,11 +613,11 @@ ENTRY("check_one_output_file") ;
 	       new_dset->dblk->diskptr->header_name);
       FDR_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
- 
-  EXRETURN ; 
+
+  EXRETURN ;
 }
 
 
@@ -641,12 +641,12 @@ void initialize_program (int argc, char * argv[])
 
 
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
-  machdep() ; 
+  machdep() ;
   { int new_argc ; char ** new_argv ;
   addto_args( argc , argv , &new_argc , &new_argv ) ;
   if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
+
 
   /*----- Save command line for history notes -----*/
   commandline = tross_commandline( PROGRAM_NAME , argc,argv ) ;
@@ -655,9 +655,9 @@ void initialize_program (int argc, char * argv[])
   /*----- Does user request help menu? -----*/
   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) FDR_Syntax() ;
 
-  
+
   /*----- Add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- Read input options -----*/
@@ -667,13 +667,13 @@ void initialize_program (int argc, char * argv[])
   /*----- Open the mask dataset -----*/
   if (FDR_mask_filename != NULL)
     {
-      if (!FDR_quiet) 
+      if (!FDR_quiet)
         printf ("Reading mask dataset: %s \n", FDR_mask_filename);
       DOPEN (FDR_dset, FDR_mask_filename);
 
       if (FDR_dset == NULL)
       {
-        sprintf (message, "Cannot open mask dataset %s", FDR_mask_filename); 
+        sprintf (message, "Cannot open mask dataset %s", FDR_mask_filename);
         FDR_error (message);
       }
 
@@ -682,8 +682,8 @@ void initialize_program (int argc, char * argv[])
 
 
       /*----- Get dimensions of mask dataset -----*/
-      mx   = DSET_NX(FDR_dset);   
-      my   = DSET_NY(FDR_dset);   
+      mx   = DSET_NX(FDR_dset);
+      my   = DSET_NY(FDR_dset);
       mz   = DSET_NZ(FDR_dset);
       mxyz = mx*my*mz;
 
@@ -698,13 +698,13 @@ void initialize_program (int argc, char * argv[])
       EDIT_coerce_scale_type (mxyz, DSET_BRICK_FACTOR(FDR_dset,iv),
 			      DSET_BRICK_TYPE(FDR_dset,iv), vfim,  /* input  */
 			      MRI_float                   , ffim); /* output */
-  
-      
+
+
       /*----- Allocate memory for mask volume -----*/
       FDR_mask = (byte *) malloc (sizeof(byte) * mxyz);
       MTEST (FDR_mask);
-      
-      
+
+
       /*----- Create mask of voxels above mask threshold -----*/
       nthr = 0;
       for (ixyz = 0;  ixyz < mxyz;  ixyz++){
@@ -712,9 +712,9 @@ void initialize_program (int argc, char * argv[])
         else                                   FDR_mask[ixyz] = 0;
       }
 
-      if (!FDR_quiet)  
+      if (!FDR_quiet)
         printf ("Number of voxels above mask threshold = %d \n", nthr);
-      if (nthr < 1)  
+      if (nthr < 1)
         FDR_error ("No voxels above mask threshold.  Cannot continue.");
 
 
@@ -732,20 +732,20 @@ void initialize_program (int argc, char * argv[])
   if (FDR_input1D_filename != NULL)
     {
       /*----- Read the input .1D file -----*/
-      if (!FDR_quiet)  printf ("Reading input data: %s \n", 
+      if (!FDR_quiet)  printf ("Reading input data: %s \n",
 			       FDR_input1D_filename);
       FDR_input1D_data = read_time_series (FDR_input1D_filename, &nxyz);
 
-      if (FDR_input1D_data == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read input .1D data file: %s", 
+      if (FDR_input1D_data == NULL)
+	{
+	  sprintf (message,  "Unable to read input .1D data file: %s",
 		   FDR_input1D_filename);
 	  FDR_error (message);
 	}
-      
-      if (nxyz < 1)  
-	{ 
-	  sprintf (message,  "No p-values in input .1D data file: %s", 
+
+      if (nxyz < 1)
+	{
+	  sprintf (message,  "No p-values in input .1D data file: %s",
 		   FDR_input1D_filename);
 	  FDR_error (message);
 	}
@@ -753,22 +753,22 @@ void initialize_program (int argc, char * argv[])
       FDR_nxyz = nxyz;
       FDR_nthr = nxyz;
     }
-  
+
   else
     {
       /*----- Open the input 3D dataset -----*/
-      if (!FDR_quiet)  printf ("Reading input dataset: %s \n", 
+      if (!FDR_quiet)  printf ("Reading input dataset: %s \n",
 			       FDR_input_filename);
       FDR_dset = THD_open_dataset(FDR_input_filename);
       CHECK_OPEN_ERROR(FDR_dset,FDR_input_filename);
-      
+
       /*----- Get dimensions of input dataset -----*/
-      nx   = DSET_NX(FDR_dset);   
-      ny   = DSET_NY(FDR_dset);   
+      nx   = DSET_NX(FDR_dset);
+      ny   = DSET_NY(FDR_dset);
       nz   = DSET_NZ(FDR_dset);
       nxyz = nx*ny*nz;
-      
-      
+
+
       /*----- Check for compatible dimensions -----*/
       if (FDR_mask != NULL)
 	{
@@ -800,7 +800,7 @@ void initialize_program (int argc, char * argv[])
       if (!FDR_quiet)
 	printf ("c(N) = %f \n", FDR_cn);
     }
-  
+
   /*----- Initialize voxel pointers -----*/
   for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++)
     FDR_head_voxel[ibin] = NULL;
@@ -813,20 +813,20 @@ void initialize_program (int argc, char * argv[])
 /*
   Create an empty voxel.
 */
-  
+
 voxel * create_voxel ()
 {
   voxel * voxel_ptr = NULL;
 
   voxel_ptr = (voxel *) malloc (sizeof(voxel));
   MTEST (voxel_ptr);
-  
+
   voxel_ptr->ixyz = 0;
   voxel_ptr->pvalue = 0.0;
   voxel_ptr->next_voxel = NULL;
 
   return (voxel_ptr);
-  
+
 }
 
 
@@ -849,10 +849,10 @@ voxel * add_voxel (voxel * new_voxel, voxel * head_voxel)
     {
       voxel_ptr = head_voxel;
 
-      while ((voxel_ptr->next_voxel != NULL) && 
+      while ((voxel_ptr->next_voxel != NULL) &&
 	     (new_voxel->pvalue < voxel_ptr->next_voxel->pvalue))
 	voxel_ptr = voxel_ptr->next_voxel;
-      
+
       new_voxel->next_voxel = voxel_ptr->next_voxel;
       voxel_ptr->next_voxel = new_voxel;
     }
@@ -879,7 +879,7 @@ voxel * new_voxel (int ixyz, float pvalue, voxel * head_voxel)
   head_voxel = add_voxel (voxel_ptr, head_voxel);
 
   return (head_voxel);
-  
+
 }
 
 
@@ -895,7 +895,7 @@ void delete_all_voxels ()
   voxel * next_voxel = NULL;     /* pointer to next voxel */
 
 
-  for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++) 
+  for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++)
     {
       voxel_ptr = FDR_head_voxel[ibin];
       while (voxel_ptr != NULL)
@@ -906,7 +906,7 @@ void delete_all_voxels ()
 	}
       FDR_head_voxel[ibin] = NULL;
     }
-  
+
 }
 
 
@@ -919,17 +919,17 @@ void save_all_voxels (float * far)
 {
   int ixyz, ibin;
   voxel * voxel_ptr  = NULL;     /* pointer to voxel */
-  
+
 
   /*----- Initialize all voxels to zero -----*/
   for (ixyz = 0;  ixyz < FDR_nxyz;  ixyz++)
     far[ixyz] = 0.0;
 
 
-  for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++) 
+  for (ibin = 0;  ibin < FDR_MAX_LL;  ibin++)
     {
       voxel_ptr = FDR_head_voxel[ibin];
-  
+
       while (voxel_ptr != NULL)
 	{
 	  far[voxel_ptr->ixyz] = voxel_ptr->pvalue;
@@ -998,7 +998,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
   }
 
   /*---------------- back to the 'old' method ------------------*/
-  
+
   /*----- Allocate memory for screen output arrays -----*/
   if (FDR_list)
     {
@@ -1007,8 +1007,8 @@ void process_volume (float * ffim, int statcode, float * stataux)
       qarray = (float *) malloc (sizeof(float) * FDR_nthr);   MTEST(qarray);
       zarray = (float *) malloc (sizeof(float) * FDR_nthr);   MTEST(zarray);
     }
-  
-  
+
+
   /*----- Loop over all voxels; sort p-values -----*/
   icount = FDR_nthr;
 
@@ -1026,7 +1026,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
       else
 	pval = THD_stat_to_pval (fval, statcode, stataux);
 
-      if (pval >= 1.0)  
+      if (pval >= 1.0)
 	{
 	  /*----- Count but don't sort voxels with p-value = 1 -----*/
 	  icount--;
@@ -1039,7 +1039,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
 	    }
 	}
       else
-	{ 
+	{
 	  /*----- Place voxel in p-value bin -----*/
 	  ibin = (int)  (pval * (FDR_MAX_LL));
 	  if (ibin < 0)  ibin = 0;
@@ -1053,10 +1053,10 @@ void process_volume (float * ffim, int statcode, float * stataux)
   qval_min = 1.0;
   ibin = FDR_MAX_LL-1;
   numer = (FDR_pmask) ? icount : FDR_nthr ;  /* 18 Jan 2008 */
-  while (ibin >= 0) 
+  while (ibin >= 0)
     {
       voxel_ptr = FDR_head_voxel[ibin];
-  
+
       while (voxel_ptr != NULL)
 	{
           /*----- Convert sorted p-values to FDR q-values -----*/
@@ -1095,7 +1095,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
   /*----- Write out the calculated values -----*/
   if (FDR_list)
     {
-      printf ("%12s %12s %12s %12s \n", 
+      printf ("%12s %12s %12s %12s \n",
 	      "Index", "p-value", "q-value", "z-score");
       for (icount = 0;  icount < FDR_nthr;  icount++)
 	{
@@ -1103,7 +1103,7 @@ void process_volume (float * ffim, int statcode, float * stataux)
 	    ixyz = iarray[icount] + 1;
 	  else
 	    ixyz = iarray[icount];
-	  printf ("%12d %12.6f %12.6f %12.6f \n",  
+	  printf ("%12d %12.6f %12.6f %12.6f \n",
 		  ixyz, parray[icount], qarray[icount], zarray[icount]);
 	}
 
@@ -1132,7 +1132,7 @@ void process_1ddata ()
 {
   float * ffim = NULL;     /* input list of p-values */
 
-  
+
   /*----- Set pointer to input array of p-values -----*/
   ffim = FDR_input1D_data;
 
@@ -1171,7 +1171,7 @@ void process_subbrick (THD_3dim_dataset * dset, int ibrick)
 ENTRY("process_subbrick") ;
   if (!FDR_quiet)  printf ("Processing sub-brick #%d \n", ibrick);
 
-  
+
   /*----- Allocate memory for float data -----*/
   ffim = (float *) malloc (sizeof(float) * FDR_nxyz);   MTEST (ffim);
 
@@ -1192,7 +1192,7 @@ ENTRY("process_subbrick") ;
   if( !FDR_float || DSET_BRICK_TYPE(dset,ibrick)==MRI_float ){
     SUB_POINTER (dset, ibrick, 0, vfim);
     factor = EDIT_coerce_autoscale_new (FDR_nxyz, MRI_float, ffim,
-				      DSET_BRICK_TYPE(dset,ibrick), vfim);  
+				      DSET_BRICK_TYPE(dset,ibrick), vfim);
     if (factor < EPSILON)  factor = 0.0;
     else factor = 1.0 / factor;
     if( DSET_BRICK_TYPE(dset,ibrick) == MRI_short )
@@ -1202,7 +1202,7 @@ ENTRY("process_subbrick") ;
     EDIT_substitute_brick( dset , ibrick , MRI_float , ffim ) ;
     ffim = NULL ; factor = 0.0f ;
   }
-  
+
 
   /*----- edit the sub-brick -----*/
   if( FDR_qval ) strcpy (brick_label, "FDRq:");
@@ -1248,7 +1248,7 @@ ENTRY("process_dataset") ;
     }
 
 
-  /*----- Deallocate memory for input dataset -----*/   
+  /*----- Deallocate memory for input dataset -----*/
   THD_delete_3dim_dataset (FDR_dset , False );  FDR_dset = NULL ;
 
 
@@ -1261,8 +1261,8 @@ ENTRY("process_dataset") ;
       if (FUNC_IS_STAT(statcode) || FDR_force )
 	{
 	  /*----- Process the statistical sub-bricks -----*/
-	  if (!FDR_quiet)  
-	    printf ("ibrick = %3d   statcode = %5s \n", 
+	  if (!FDR_quiet)
+	    printf ("ibrick = %3d   statcode = %5s \n",
 		    ibrick, FUNC_prefixstr[MAX(statcode,0)]);
 	  process_subbrick (new_dset, ibrick);
 	}
@@ -1287,7 +1287,7 @@ void output_results (THD_3dim_dataset * new_dset)
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_func_type , FUNC_BUCK_TYPE,
 			    ADN_none ) ;
-  if (ierror > 0)  
+  if (ierror > 0)
     FDR_error ("Errors in attempting to create output dataset.");
 
 
@@ -1297,11 +1297,11 @@ void output_results (THD_3dim_dataset * new_dset)
 
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   if( !FDR_quiet ) fprintf(stderr,"Wrote output to %s\n", DSET_BRIKNAME(new_dset) );
-  
 
-  /*----- Deallocate memory for output dataset -----*/   
+
+  /*----- Deallocate memory for output dataset -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1311,13 +1311,13 @@ int main( int argc , char * argv[] )
 
 {
   THD_3dim_dataset * new_dset = NULL;      /* output bucket dataset */
-  
+
 
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -1325,7 +1325,7 @@ int main( int argc , char * argv[] )
 
   PRINT_VERSION("3dFDR") ; AUTHOR(PROGRAM_AUTHOR); mainENTRY("3dFDR main") ; machdep() ;
 
-  /*----- Initialize program:  get all operator inputs; 
+  /*----- Initialize program:  get all operator inputs;
     create mask for voxels above mask threshold -----*/
   initialize_program (argc, argv);
 
@@ -1343,6 +1343,6 @@ int main( int argc , char * argv[] )
       /*----- Output the results as a bucket dataset -----*/
       output_results (new_dset);
     }
-  
+
   exit(0) ;
 }

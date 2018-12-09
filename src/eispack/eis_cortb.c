@@ -5,12 +5,12 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int cortb_(integer *nm, integer *low, integer *igh, 
-	doublereal *ar, doublereal *ai, doublereal *ortr, doublereal *orti, 
+/* Subroutine */ int cortb_(integer *nm, integer *low, integer *igh,
+	doublereal *ar, doublereal *ai, doublereal *ortr, doublereal *orti,
 	integer *m, doublereal *zr, doublereal *zi)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
 
     /* Local variables */
@@ -48,7 +48,7 @@
 /*          TRANSFORMATIONS USED IN THE REDUCTION BY  CORTH. */
 /*          ONLY ELEMENTS LOW THROUGH IGH ARE USED. */
 
-/*        M IS THE NUMBER OF COLUMNS OF ZR AND ZI TO BE BACK TRANSFORMED. 
+/*        M IS THE NUMBER OF COLUMNS OF ZR AND ZI TO BE BACK TRANSFORMED.
 */
 
 /*        ZR AND ZI CONTAIN THE REAL AND IMAGINARY PARTS, */
@@ -66,12 +66,12 @@
 /*     NOTE THAT CORTB PRESERVES VECTOR EUCLIDEAN NORMS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -103,13 +103,13 @@
     i__1 = la;
     for (mm = kp1; mm <= i__1; ++mm) {
 	mp = *low + *igh - mm;
-	if (ar[mp + (mp - 1) * ar_dim1] == 0. && ai[mp + (mp - 1) * ai_dim1] 
+	if (ar[mp + (mp - 1) * ar_dim1] == 0. && ai[mp + (mp - 1) * ai_dim1]
 		== 0.) {
 	    goto L140;
 	}
-/*     .......... H BELOW IS NEGATIVE OF H FORMED IN CORTH .......... 
+/*     .......... H BELOW IS NEGATIVE OF H FORMED IN CORTH ..........
 */
-	h__ = ar[mp + (mp - 1) * ar_dim1] * ortr[mp] + ai[mp + (mp - 1) * 
+	h__ = ar[mp + (mp - 1) * ar_dim1] * ortr[mp] + ai[mp + (mp - 1) *
 		ai_dim1] * orti[mp];
 	mp1 = mp + 1;
 

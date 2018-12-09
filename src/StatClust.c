@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This file contains routines for hierarchical clustering of user specified 
+  This file contains routines for hierarchical clustering of user specified
   parametric data.
 
 
@@ -32,7 +32,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Structure declarations 
+  Structure declarations
 */
 
 
@@ -66,7 +66,7 @@ typedef struct voxel
 voxel * new_voxel (int index)
 {
   voxel * voxel_ptr = NULL;
-  
+
   voxel_ptr = (voxel *) malloc (sizeof(voxel));
   MTEST (voxel_ptr);
 
@@ -108,7 +108,7 @@ void print_all_voxels (voxel * voxel_ptr)
 /*
   Create an empty cluster.
 */
-  
+
 cluster * initialize_cluster ()
 {
   cluster * clust_ptr = NULL;
@@ -123,7 +123,7 @@ cluster * initialize_cluster ()
   clust_ptr->nearest_dist = 0.0;
   clust_ptr->nearest_cluster = NULL;
   return (clust_ptr);
-  
+
 }
 
 
@@ -147,7 +147,7 @@ void print_cluster (cluster * clust_ptr, char * str, matrix s)
 
       /*
       printf ("Voxels: ");
-      
+
       print_all_voxels (clust_ptr->voxel_ptr);
       */
     }
@@ -252,7 +252,7 @@ float cluster_distance (cluster * aclust, cluster * bclust)
     }
 
   return (sqrt(sumsqr));
-  
+
 }
 
 
@@ -261,7 +261,7 @@ float cluster_distance (cluster * aclust, cluster * bclust)
   Find the cluster which is nearest to new_cluster.
   Set the nearest_dist and nearest_cluster structure elements accordingly.
 */
-  
+
 void find_nearest_cluster (cluster * new_cluster, cluster * head_cluster)
 {
   const float MAX_DIST = 1.0e+30;
@@ -335,7 +335,7 @@ cluster * new_cluster (int index, float * centroid, cluster * head_clust)
   add_cluster (clust_ptr, head_clust);
 
   return (clust_ptr);
-  
+
 }
 
 
@@ -374,7 +374,7 @@ void destroy_cluster (cluster * clust_ptr)
     {
       if (clust_ptr->voxel_ptr != NULL)
 	free (clust_ptr->voxel_ptr);
-  
+
       delete_cluster (clust_ptr);
     }
 }
@@ -383,18 +383,18 @@ void destroy_cluster (cluster * clust_ptr)
 /*---------------------------------------------------------------------------*/
 /*
   Remove two clusters from linked list of clusters.
-  Reset cluster pointers, and recalculate nearest cluster distances 
+  Reset cluster pointers, and recalculate nearest cluster distances
   where needed.  Finally, delete the two clusters from memory.
 */
 
-cluster * remove_clusters (cluster * aclust, cluster * bclust, 
+cluster * remove_clusters (cluster * aclust, cluster * bclust,
 			   cluster * head_clust)
 {
   cluster * clust_ptr = NULL;
   cluster * next_clust = NULL;
-  
 
-  while ((head_clust != NULL) && 
+
+  while ((head_clust != NULL) &&
 	 ((head_clust == aclust) || (head_clust == bclust)))
     head_clust = head_clust->next_cluster;
 
@@ -410,7 +410,7 @@ cluster * remove_clusters (cluster * aclust, cluster * bclust,
 	    clust_ptr->next_cluster = next_clust->next_cluster;
 	  else
 	    clust_ptr = next_clust;
-	  
+
 	  next_clust = clust_ptr->next_cluster;
 	}
 
@@ -418,7 +418,7 @@ cluster * remove_clusters (cluster * aclust, cluster * bclust,
       clust_ptr = head_clust;
       while (clust_ptr != NULL)
 	{
-	  if ((clust_ptr->nearest_cluster == aclust) 
+	  if ((clust_ptr->nearest_cluster == aclust)
 	      || (clust_ptr->nearest_cluster == bclust))
 	    {
 	      find_nearest_cluster (clust_ptr, head_clust);
@@ -457,7 +457,7 @@ cluster * merge_clusters (cluster * aclust, cluster * bclust)
   MTEST (abclust->centroid);
 
   for (i = 0;  i < SC_dimension;  i++)
-    abclust->centroid[i] 
+    abclust->centroid[i]
       = (na*aclust->centroid[i] + nb*bclust->centroid[i]) / (na+nb);
 
   abclust->voxel_ptr = aclust->voxel_ptr;
@@ -466,7 +466,7 @@ cluster * merge_clusters (cluster * aclust, cluster * bclust)
   while (voxel_ptr->next_voxel != NULL)
     voxel_ptr = voxel_ptr->next_voxel;
   voxel_ptr->next_voxel = bclust->voxel_ptr;
-  
+
   return (abclust);
 }
 
@@ -475,8 +475,8 @@ cluster * merge_clusters (cluster * aclust, cluster * bclust)
 /*
   Consolidate two clusters.
 */
-  
-cluster * consolidate_clusters (cluster * aclust, cluster * bclust, 
+
+cluster * consolidate_clusters (cluster * aclust, cluster * bclust,
 				cluster * head_clust)
 {
   cluster * abclust = NULL;
@@ -492,7 +492,7 @@ cluster * consolidate_clusters (cluster * aclust, cluster * bclust,
 
   /*----- Add the merged cluster to the linked list -----*/
   add_cluster (abclust, head_clust);
-  
+
 
   /*----- Merged cluster is now at the top of the list -----*/
   return (abclust);
@@ -524,7 +524,7 @@ cluster * agglomerate_clusters (cluster * head_clust, int print_flag)
 	  min_dist = clust_ptr->nearest_dist;
 	  aclust = clust_ptr;
 	  bclust = clust_ptr->nearest_cluster;
-	} 
+	}
       clust_ptr = clust_ptr->next_cluster;
     }
 
@@ -543,7 +543,7 @@ cluster * agglomerate_clusters (cluster * head_clust, int print_flag)
 	  if (bclust == clust_ptr)  ibclust = iclust;
 	  clust_ptr = clust_ptr->next_cluster;
 	}
-      
+
       printf ("Merging cluster #%d and cluster #%d \n", iaclust, ibclust);
       printf ("Distance = %f \n", min_dist);
     }
@@ -564,8 +564,8 @@ cluster * agglomerate_clusters (cluster * head_clust, int print_flag)
 
 cluster * sort_clusters (cluster * head_clust)
 {
-  cluster * i  = NULL; 
-  cluster * ip = NULL; 
+  cluster * i  = NULL;
+  cluster * ip = NULL;
   cluster * m  = NULL;
   cluster * mp = NULL;
   cluster * j  = NULL;
@@ -609,10 +609,10 @@ cluster * sort_clusters (cluster * head_clust)
 
       /*----- Move down the list -----*/
       ip = i;
-	
+
     }
 
-  
+
   /*----- Replace head cluster -----*/
   head_clust = guard->next_cluster;
   delete_cluster (guard);
@@ -627,7 +627,7 @@ cluster * sort_clusters (cluster * head_clust)
   Return square root of covariance matrix, and its inverse.
 */
 
-void calc_covariance 
+void calc_covariance
 (
   matrix * s,                /* square root of covariance matrix */
   matrix * sinv              /* inverse of square root of covariance matrix */
@@ -638,7 +638,7 @@ void calc_covariance
   int ip, jp;                /* parameter indices */
   int ok;                    /* Boolean for successful matrix calc. */
 
-  vector mean;               /* mean parameter vector */ 
+  vector mean;               /* mean parameter vector */
   matrix covar;              /* variance-covariance matrix */
   matrix cinv;               /* inverse of covariance matrix */
 
@@ -663,7 +663,7 @@ void calc_covariance
 	mean.elts[ip] += SC_parameters[ip][ivox];
 	for (jp = 0;  jp < SC_dimension;  jp++)
 	  if ((ip == jp) || (SC_statdist == 2))
-	    covar.elts[ip][jp] += 
+	    covar.elts[ip][jp] +=
 	      SC_parameters[ip][ivox] * SC_parameters[jp][ivox];
       }
 
@@ -671,15 +671,15 @@ void calc_covariance
   /*----- Calculate the mean parameter vector -----*/
   for (ip = 0;  ip < SC_dimension;  ip++)
     mean.elts[ip] = mean.elts[ip] / SC_nvox;
-  if (SC_verb)  
+  if (SC_verb)
     vector_sprint ("Mean parameter vector: ", mean);
-      
+
 
   /*----- Calculate the covariance matrix -----*/
   for (ip = 0;  ip < SC_dimension;  ip++)
     for (jp = 0;  jp < SC_dimension;  jp++)
-      if ((ip == jp) || (SC_statdist == 2)) 
-	covar.elts[ip][jp] = (covar.elts[ip][jp] 
+      if ((ip == jp) || (SC_statdist == 2))
+	covar.elts[ip][jp] = (covar.elts[ip][jp]
 			      - SC_nvox * mean.elts[ip] * mean.elts[jp])
 	  / (SC_nvox - 1);
   if (SC_verb)
@@ -688,35 +688,35 @@ void calc_covariance
     else
       matrix_sprint ("Parameter covariance matrix: ", covar);
 
-  /*----- Note:  The following sequence of calculations is necessary 
-    in order to generate an error message in the event of 
+  /*----- Note:  The following sequence of calculations is necessary
+    in order to generate an error message in the event of
     perfectly correlated input parameters -----*/
 
   /*----- Calculate inverse of covariance matrix -----*/
   ok = matrix_inverse (covar, &cinv);
-  if (! ok)  
-    SC_error 
+  if (! ok)
+    SC_error
       ("Unable to calculate inverse of covariance matrix");
-  
+
   /*----- Calculate square root of inverse covariance matrix -----*/
   ok = matrix_sqrt (cinv, sinv);
-  if (! ok)  
-    SC_error 
+  if (! ok)
+    SC_error
       ("Unable to calculate square root of inverse of covariance matrix");
-  
+
   /*----- Calculate square root of covariance matrix -----*/
   ok = matrix_inverse (*sinv, s);
-  if (! ok)  
-    SC_error 
+  if (! ok)
+    SC_error
       ("Unable to calculate square root of covariance matrix");
-  
+
 
   /*----- Deallocate memory -----*/
   vector_destroy (&mean);
   matrix_destroy (&covar);
   matrix_destroy (&cinv);
 
-  
+
 }
 
 

@@ -5,17 +5,17 @@
 /*
  * Copyright (c) 1994 The Board of Trustees of The Leland Stanford
  * Junior University.  All rights reserved.
- * 
+ *
  * Permission to use, copy, modify and distribute this software and its
  * documentation for any purpose is hereby granted without fee, provided
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * Author:
  *    Phil Lacroute
  *    Computer Systems Laboratory
@@ -35,7 +35,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -56,17 +56,17 @@
 
 
 
-    
-    
-    
-    
-    
 
-    
-    
-    
-    
-    
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -123,31 +123,31 @@
 
 
 #define RGB
-    
-    
-    
-    
+
+
+
+
 
 
 
 
 
 #define RAWVOLUME
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
 
 
 #undef INDEX_VOLUME
 
 
 
-    
-    
+
+
 
 
 
@@ -484,24 +484,24 @@ double weightBRdbl;
     trace_pixel_ptr = 0;
     if (vpc->trace_u >= 0 && vpc->trace_v >= 0) {
 #ifdef GRAYSCALE
-	trace_pixel_ptr = &vpc->int_image.gray_intim[vpc->trace_u + 
+	trace_pixel_ptr = &vpc->int_image.gray_intim[vpc->trace_u +
 		      vpc->trace_v*vpc->intermediate_width];
 #endif
 #ifdef RGB
-	trace_pixel_ptr = &vpc->int_image.rgb_intim[vpc->trace_u + 
+	trace_pixel_ptr = &vpc->int_image.rgb_intim[vpc->trace_u +
 		      vpc->trace_v*vpc->intermediate_width];
 #endif
 #ifdef COMPUTE_SHADOW_BUFFER
 	slice_u_int = (int)ceil(vpc->shear_i * vpc->trace_shadow_k +
 				vpc->trans_i) - 1;
-	shadow_slice_u_int = (int)ceil(vpc->shadow_shear_i * 
+	shadow_slice_u_int = (int)ceil(vpc->shadow_shear_i *
 			     vpc->trace_shadow_k + vpc->shadow_trans_i) - 1;
 	slice_v_int = (int)ceil(vpc->shear_j * vpc->trace_shadow_k
 				+ vpc->trans_j) - 1;
 	shadow_slice_v_int = (int)ceil(vpc->shadow_shear_j *
 			     vpc->trace_shadow_k + vpc->shadow_trans_j) - 1;
 	trace_pixel_ptr = &vpc->shadow_buffer[vpc->trace_u +
-		shadow_slice_u_int - slice_u_int + 
+		shadow_slice_u_int - slice_u_int +
 		(vpc->trace_v + shadow_slice_v_int -
 		slice_v_int)*vpc->shadow_width];
 #endif
@@ -959,8 +959,8 @@ double weightBRdbl;
 		/* only the top-left voxel contributes to the first
 		   pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -977,45 +977,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1026,24 +1026,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1052,13 +1052,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1070,10 +1070,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1105,8 +1105,8 @@ double weightBRdbl;
 		/* only the bottom left voxel contributes to the first
 		   pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1123,45 +1123,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1172,24 +1172,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1198,13 +1198,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1216,10 +1216,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1251,8 +1251,8 @@ double weightBRdbl;
 		/* the top and bottom left voxels contribute to the
 		   first pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1269,45 +1269,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1324,45 +1324,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1373,41 +1373,41 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1416,13 +1416,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1434,10 +1434,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1467,8 +1467,8 @@ double weightBRdbl;
 		break;
 	    case ALL_ZERO__TOP_NONZERO:
 		/* first pixel: only the top-right voxel contributes */
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1485,44 +1485,44 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1533,24 +1533,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTR;
-       
+
 	    acc_rclr = top_rclr * wgtTR;
 	    acc_gclr = top_gclr * wgtTR;
 	    acc_bclr = top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1559,13 +1559,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1577,10 +1577,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1615,8 +1615,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1633,45 +1633,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1682,25 +1682,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1717,61 +1717,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1780,13 +1780,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1798,10 +1798,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1838,8 +1838,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1856,45 +1856,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1905,25 +1905,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1940,61 +1940,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2003,13 +2003,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2021,10 +2021,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2058,8 +2058,8 @@ double weightBRdbl;
 		/* first pixel: bottom-left and top-right voxels
 		   contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2076,45 +2076,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2125,25 +2125,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2160,61 +2160,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2223,13 +2223,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2241,10 +2241,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2279,8 +2279,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2297,45 +2297,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2346,25 +2346,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2381,61 +2381,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2444,13 +2444,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2462,10 +2462,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2499,8 +2499,8 @@ double weightBRdbl;
 		/* first pixel: top-left, bottom-left and top-right voxels
 		   contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2517,45 +2517,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2572,45 +2572,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2621,42 +2621,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2673,61 +2673,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2736,13 +2736,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2754,10 +2754,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2792,8 +2792,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2810,45 +2810,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2859,25 +2859,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2894,61 +2894,61 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2957,13 +2957,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2975,10 +2975,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3010,8 +3010,8 @@ double weightBRdbl;
 		break;
 	    case ALL_ZERO__BOT_NONZERO:
 		/* first pixel: only the bottom-right voxel contributes */
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3028,44 +3028,44 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3076,24 +3076,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBR;
-       
+
 	    acc_rclr = bot_rclr * wgtBR;
 	    acc_gclr = bot_gclr * wgtBR;
 	    acc_bclr = bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3102,13 +3102,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3120,10 +3120,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3145,7 +3145,7 @@ double weightBRdbl;
 		    ipixel->lnk = 1;
 	        }
 #           endif
-	};	
+	};
 		ipixel += 1;
 		topRLEdata += 1 * voxel_istride;
 		botRLEdata += 1 * voxel_istride;
@@ -3158,8 +3158,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3176,45 +3176,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3225,25 +3225,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3260,61 +3260,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3323,13 +3323,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3341,10 +3341,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3377,8 +3377,8 @@ double weightBRdbl;
 	    case TOP_NONZERO__BOT_NONZERO:
 		/* first pixel: top-left and bottom-right voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3395,45 +3395,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3444,25 +3444,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3479,61 +3479,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3542,13 +3542,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3560,10 +3560,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3598,8 +3598,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3616,45 +3616,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3665,25 +3665,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3700,61 +3700,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3763,13 +3763,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3781,10 +3781,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3821,8 +3821,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3839,45 +3839,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3888,25 +3888,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3923,61 +3923,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3986,13 +3986,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4004,10 +4004,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4041,8 +4041,8 @@ double weightBRdbl;
 		/* first pixel: top-left, bottom-left and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4059,45 +4059,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4114,45 +4114,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4163,42 +4163,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4215,61 +4215,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4278,13 +4278,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4296,10 +4296,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4334,8 +4334,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4352,45 +4352,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4401,25 +4401,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4436,61 +4436,61 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4499,13 +4499,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4517,10 +4517,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4552,8 +4552,8 @@ double weightBRdbl;
 		break;
 	    case ALL_ZERO__ALL_NONZERO:
 		/* first pixel: top-right and bottom-right voxels contribute */
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4570,45 +4570,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4625,44 +4625,44 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4673,41 +4673,41 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTR;
-       
+
 	    acc_rclr = top_rclr * wgtTR;
 	    acc_gclr = top_gclr * wgtTR;
 	    acc_bclr = top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4716,13 +4716,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4734,10 +4734,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4772,8 +4772,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4790,45 +4790,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4845,45 +4845,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4894,42 +4894,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4946,45 +4946,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5001,78 +5001,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5081,13 +5081,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5099,10 +5099,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5136,8 +5136,8 @@ double weightBRdbl;
 		/* first pixel: top-left, top-right and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5154,45 +5154,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5203,25 +5203,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5238,45 +5238,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5293,78 +5293,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5373,13 +5373,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5391,10 +5391,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5422,15 +5422,15 @@ double weightBRdbl;
 		botRLEdata += 1 * voxel_istride;
 		count--;
 		SET_VOXELS_LOADED;
-		    
+
 		/* do the rest of the pixels in this run;
 		   all four voxels contribute */
 		while (count > 0) {
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5447,45 +5447,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5502,45 +5502,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5551,42 +5551,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5603,45 +5603,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5658,78 +5658,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5738,13 +5738,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5756,10 +5756,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5793,8 +5793,8 @@ double weightBRdbl;
 		/* first pixel: bottom-left, top-right and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5811,45 +5811,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5860,25 +5860,25 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5895,45 +5895,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5950,78 +5950,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -6030,13 +6030,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -6048,10 +6048,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -6079,15 +6079,15 @@ double weightBRdbl;
 		botRLEdata += 1 * voxel_istride;
 		count--;
 		SET_VOXELS_LOADED;
-		    
+
 		/* do the rest of the pixels in this run;
 		   all four voxels contribute */
 		while (count > 0) {
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6104,45 +6104,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6159,45 +6159,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -6208,42 +6208,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6260,45 +6260,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6315,78 +6315,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -6395,13 +6395,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -6413,10 +6413,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -6452,8 +6452,8 @@ double weightBRdbl;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6470,45 +6470,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6525,45 +6525,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -6574,42 +6574,42 @@ double weightBRdbl;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6626,45 +6626,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6681,78 +6681,78 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -6761,13 +6761,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -6779,10 +6779,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -6829,7 +6829,7 @@ double weightBRdbl;
 		}
 		if (ipixel->lnk != 0)
 		    break;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -6840,13 +6840,13 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = 0;
        acc_rclr = acc_gclr = acc_bclr = 0;
 		if (last_run_state & TOP_NONZERO) {
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6863,66 +6863,66 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		    }
-		    
+
        acc_opc += top_opc * wgtTL;
-       
+
 	    acc_rclr += top_rclr * wgtTL;
 	    acc_gclr += top_gclr * wgtTL;
 	    acc_bclr += top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
 		}
 		if (last_run_state & BOT_NONZERO) {
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6939,65 +6939,65 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		    }
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
 		}
 		if (run_state & TOP_NONZERO) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7014,57 +7014,57 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata,norm_offset);
     weight_index = 2 * ByteField(topRLEdata, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += top_rclr * wgtTR;
 	    acc_gclr += top_gclr * wgtTR;
 	    acc_bclr += top_bclr * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
@@ -7075,8 +7075,8 @@ double weightBRdbl;
 		    }
 		}
 		if (run_state & BOT_NONZERO) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7093,57 +7093,57 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata,norm_offset);
     weight_index = 2 * ByteField(botRLEdata, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += bot_rclr * wgtBR;
 	    acc_gclr += bot_gclr * wgtBR;
 	    acc_bclr += bot_bclr * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
@@ -7153,7 +7153,7 @@ double weightBRdbl;
 			botRLEdata += 1 * voxel_istride;
 		    }
 		}
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7162,13 +7162,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7180,10 +7180,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -7253,8 +7253,8 @@ double weightBRdbl;
 	    case TOP_NONZERO:
 		/* only the top-left voxel contributes */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7271,45 +7271,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7320,24 +7320,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7346,13 +7346,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7364,10 +7364,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -7394,8 +7394,8 @@ double weightBRdbl;
 	    case BOT_NONZERO:
 		/* only the bottom left voxel contributes */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7412,45 +7412,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7461,24 +7461,24 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = bot_rclr * wgtBL;
 	    acc_gclr = bot_gclr * wgtBL;
 	    acc_bclr = bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7487,13 +7487,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7505,10 +7505,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -7535,8 +7535,8 @@ double weightBRdbl;
 	    case ALL_NONZERO:
 		/* the top and bottom left voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7553,45 +7553,45 @@ double weightBRdbl;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    top_rclr = 
+
+
+
+    top_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    top_gclr = 
+
+    top_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    top_bclr = 
+
+    top_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    top_rclr += 
+
+
+    top_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    top_gclr += 
+
+    top_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    top_bclr += 
+
+    top_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
     ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7608,45 +7608,45 @@ double weightBRdbl;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=2*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = 2 * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-	
-	
-    bot_rclr = 
+
+
+
+    bot_rclr =
     shade_table[shade_index + 3*0 + 0] * weight_table[weight_index + 0];
-	
-    bot_gclr = 
+
+    bot_gclr =
     shade_table[shade_index + 3*0 + 1] * weight_table[weight_index + 0];
-	
-    bot_bclr = 
+
+    bot_bclr =
     shade_table[shade_index + 3*0 + 2] * weight_table[weight_index + 0];
 	;
 	;
 	;
-	
-	
-    bot_rclr += 
+
+
+    bot_rclr +=
     shade_table[shade_index + 3*1 + 0] * weight_table[weight_index + 1];
-	
-    bot_gclr += 
+
+    bot_gclr +=
     shade_table[shade_index + 3*1 + 1] * weight_table[weight_index + 1];
-	
-    bot_bclr += 
+
+    bot_bclr +=
     shade_table[shade_index + 3*1 + 2] * weight_table[weight_index + 1];
 	;
 	;
 	;
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
     ;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7657,41 +7657,41 @@ double weightBRdbl;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = top_rclr * wgtTL;
 	    acc_gclr = top_gclr * wgtTL;
 	    acc_bclr = top_bclr * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += bot_rclr * wgtBL;
 	    acc_gclr += bot_gclr * wgtBL;
 	    acc_bclr += bot_bclr * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7700,13 +7700,13 @@ double weightBRdbl;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7718,10 +7718,10 @@ double weightBRdbl;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
-        
+
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);

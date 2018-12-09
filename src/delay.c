@@ -20,14 +20,14 @@
 /*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Initialize independent variable X matrix 
+/*
+   Initialize independent variable X matrix
 */
 
-int init_indep_var_matrix 
+int init_indep_var_matrix
 (
   int q,                      /* number of parameters in the baseline model */
-  int p,                      /* number of parameters in the baseline model 
+  int p,                      /* number of parameters in the baseline model
 			         plus number of ideals */
   int NFirst,                 /* index of first image to use in the analysis */
   int N,                      /* total number of images used in the analysis */
@@ -64,9 +64,9 @@ int init_indep_var_matrix
   /*----- Initialize X matrix -----*/
   maxcols = 0;
   for (is = 0;  is < num_ort_files;  is++) {/* add orts */
-      if (ort_list[is] == NULL) maxcols += ort_array[is]->ny; 
+      if (ort_list[is] == NULL) maxcols += ort_array[is]->ny;
       else maxcols += ort_list[is][0]+1;
-  } 
+  }
   for (is = 0;  is < num_ideal_files;  is++) {/* add ideals */
       if (ideal_list[is] == NULL) maxcols += ideal_array[is]->ny;
       else maxcols += ideal_list[is][0]+1;
@@ -133,7 +133,7 @@ int init_indep_var_matrix
 		i = n + NFirst;
 		(*x).elts[n][m] = *(far + iq*nx + i);
 	      }
-	    
+
 	    m++;
 	  }
       else
@@ -178,18 +178,18 @@ int init_indep_var_matrix
 
   /*----- Find min, max, and ave for each column of the X matrix -----*/
   for (is = 0;  is < p;  is++)
-    {      
+    {
       x_bot[is] = x_top[is] = (*x).elts[0][is];
       x_ave[is] = 0.0;
       for (n = 0;  n < Ngood;  n++)
 	{
-	  if ((*x).elts[n][is] < x_bot[is])  x_bot[is] = (*x).elts[n][is];  
+	  if ((*x).elts[n][is] < x_bot[is])  x_bot[is] = (*x).elts[n][is];
 	  if ((*x).elts[n][is] > x_top[is])  x_top[is] = (*x).elts[n][is];
 	  x_ave[is] += (*x).elts[n][is] / Ngood;
 	}
     }
-  
-  
+
+
   matrix_destroy (&xgood);
 
   return (Ngood);
@@ -202,10 +202,10 @@ int init_indep_var_matrix
   Initialization for the delay analysis.
 */
 
-int init_delay 
+int init_delay
 (
   int q,                      /* number of parameters in the baseline model */
-  int p,                      /* number of parameters in the baseline model 
+  int p,                      /* number of parameters in the baseline model
 			         plus number of ideals */
   int N,                      /* total number of images used in the analysis */
   int num_idealts,            /* number of ideal time series */
@@ -220,15 +220,15 @@ int init_delay
 {
   int * plist = NULL;         /* list of model parameters */
   int ip, it;                 /* parameter indices */
-  int is, js;                 /* ideal indices */ 
+  int is, js;                 /* ideal indices */
   int jm;                     /* lag index */
   int ok;                     /* flag for successful matrix calculation */
   matrix xtxinv_temp;         /* intermediate results */
   vector ideal;               /* ideal vector */
   vector coef_temp;           /* intermediate results */
   vector xres;                /* vector of residuals */
-  float sse_base;             /* baseline model error sum of squares */ 
-        
+  float sse_base;             /* baseline model error sum of squares */
+
 
   /*----- Initialize matrix -----*/
   matrix_initialize (&xtxinv_temp);
@@ -258,7 +258,7 @@ int init_delay
 
       plist[q] = q + is;
 
-      ok = calc_matrices (xdata, q+1, plist, 
+      ok = calc_matrices (xdata, q+1, plist,
 			  &(x_ideal[is]), &xtxinv_temp, &(xtxinvxt_ideal[is]));
       if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
     }
@@ -275,7 +275,7 @@ int init_delay
 
       /*----- Calculate the error sum of squares for the baseline model -----*/
       sse_base = calc_resids (*x_base, coef_temp, ideal, &xres);
-    
+
       /*----- Form rank array from residual array -----*/
       rarray[is] = rank_darray (N, xres.elts);
 
@@ -304,7 +304,7 @@ int init_delay
 
 
 /*---------------------------------------------------------------------------*/
-/* 
+/*
    Calculate the sign function.
 */
 
@@ -323,12 +323,12 @@ int Read_part_file_delay(float *x,
 					char *f_name,
 					int a,
 					int b)
-   
-   { 
+
+   {
       float *far=NULL;
       int i=0, cnt=0;
       MRI_IMAGE *im_data=NULL;
-      
+
       im_data = mri_read_1D(f_name);
       if (!im_data) { fprintf(stderr,"Failed to read 1D file."); return(-1);}
       far = MRI_FLOAT_PTR(im_data);
@@ -343,67 +343,67 @@ int Read_part_file_delay(float *x,
          ++cnt;
       }
       mri_free(im_data);  im_data = NULL;
-      
+
       return(cnt);
-   
+
    }
-   
+
 int Read_part_file_delay_OLD (float *x,
 					char *f_name,
 					int a,
 					int b)
-   
-    { 
-     
+
+    {
+
      int cnt=0,ex,line_num;
      float buf;
      FILE*file_in;
-     
+
      file_in = fopen (f_name,"r");
      if (file_in == NULL) {
             printf ("\aCould not open %s \n",f_name);
            printf ("Exiting @ Read_file function\n");
             exit (0);
          }
-     
+
      if (a > b || a==0) {
      				printf ("\a\n** Error in (from , to) line numbers\n");
      				printf ("Exiting @Read_part_file function \n");
      				exit (0);
      		   }
-     
-     line_num = 1;	
+
+     line_num = 1;
      if (a == 1) {
-     			ex = fscanf (file_in,"%f",&x[cnt]);	
+     			ex = fscanf (file_in,"%f",&x[cnt]);
      			++cnt;
-     			}				   	
-      else  ex = fscanf (file_in,"%f",&buf);					   	
+     			}
+      else  ex = fscanf (file_in,"%f",&buf);
      ++line_num;
      while (ex != EOF && line_num <= b)
       {
-        if (line_num >=a && line_num <=b) 
+        if (line_num >=a && line_num <=b)
         {
          ex = fscanf (file_in,"%f",&x[cnt]);
          ++cnt;
          if (ex == EOF) --cnt;
          }
-        else 
+        else
         {
          ex = fscanf (file_in,"%f",&buf);
          }
         ++line_num;
-        
+
       }
-      
-      if (ex == EOF) 
+
+      if (ex == EOF)
       	{
       	    --line_num;
       		printf ("\n\33[1mEOF reached before line \33[0m%d\n",b);
       		printf ("Only %d lines were read, from line %d to %d\n",cnt,a,line_num-1);
       	}
-      
+
       fclose (file_in);
-      return (cnt);  							     
+      return (cnt);
    }
 
 
@@ -412,7 +412,7 @@ int Read_part_file_delay_OLD (float *x,
 /*---------------------------------------------------------------------------*/
 
 /*---------------------------------------------------------------------------*/
-  
+
 
 /*---------------------------------------------------------------------------*/
 /*---------------------------------------------------------------------------*/

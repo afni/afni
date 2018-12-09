@@ -22,7 +22,7 @@
          }
       #endif
    #endif
-   
+
    /* debug tracing section */
    /* Undefine all that's been defined in suma_suma.h and is SUMA_COMPILED-specific */
    #ifdef SUMA_COMPILED
@@ -86,26 +86,26 @@
 /* The include files */
 #if defined SUMA_COMPILED
    /* Undefine all that's been defined in suma_suma.h and is SUMA_COMPILED-specific */
-   
+
    #undef SUMA_STDERR
    #undef SUMA_STDOUT
-   
+
    #undef SUMA_SLP_Err
    #undef SUMA_SL_Err
    #undef SUMA_L_Err
-   
+
    #undef SUMA_SLP_Note
    #undef SUMA_SL_Note
    #undef SUMA_L_Note
-   
+
    #undef SUMA_SLP_Warn
    #undef SUMA_SL_Warn
    #undef SUMA_L_Warn
-   
+
    #undef SUMA_SLP_Crit
    #undef SUMA_SL_Crit
    #undef SUMA_L_Crit
-   
+
    #undef SUMA_LH
    #undef SUMA_LHv
    #undef SUMA_S_Warn
@@ -116,12 +116,12 @@
    #undef SUMA_S_Errv
    #undef SUMA_S_Crit
    #undef SUMA_S_Critv
-    
+
    #ifdef SOLARIS
 	   #include <GLw/GLwDrawA.h>  /* OpenGL drawing area. */
    #else
       #ifdef SUMA_MOTIF_GLXAREA
-         #include <GL/GLwMDrawA.h> 
+         #include <GL/GLwMDrawA.h>
       #else
 	      #include <GL/GLwDrawA.h>  /* OpenGL drawing area. */
       #endif
@@ -130,22 +130,22 @@
    #include <GL/glu.h>
    #include <GL/glx.h>
    #include <GLUT/GL/glut.h>
-   
 
-   
+
+
    /* SUMA specific includes*/
    #include "SUMA_niml_defines.h"
-   #include "SUMA_define.h"   
+   #include "SUMA_define.h"
    #include "SUMA_prototype.h"
-   #include "SUMA_ParseCommands.h"  
+   #include "SUMA_ParseCommands.h"
    #include "SUMA_niml.h"
    #include "SUMA_ExpEval.h"
    #include "SUMA_Engine.h"
    #include "SUMA_display.h"
-   #include "SUMA_input.h"   
+   #include "SUMA_input.h"
    #include "SUMA_SVmanip.h"
-   #include "SUMA_DOmanip.h"  
-   #include "SUMA_MiscFunc.h"   
+   #include "SUMA_DOmanip.h"
+   #include "SUMA_MiscFunc.h"
    #include "SUMA_trackball.h"
    #include "SUMA_Color.h"
    #include "SUMA_GeomComp.h"
@@ -165,26 +165,26 @@
    #include "SUMA_SegFunc.h"
    #include "SUMA_driver.h"
 #else
-   /* define the necessary macros */   
+   /* define the necessary macros */
    #define SUMA_STDERR stderr
    #define SUMA_STDOUT stdout
-   
+
    #define SUMA_SLP_Err SUMA_S_Err
    #define SUMA_SL_Err SUMA_S_Err
    #define SUMA_L_Err SUMA_S_Err
-   
+
    #define SUMA_SLP_Note SUMA_S_Note
    #define SUMA_SL_Note SUMA_S_Note
    #define SUMA_L_Note SUMA_S_Note
-   
+
    #define SUMA_SLP_Warn SUMA_S_Warn
    #define SUMA_SL_Warn SUMA_S_Warn
    #define SUMA_L_Warn SUMA_S_Warn
-   
+
    #define SUMA_SLP_Crit SUMA_S_Crit
    #define SUMA_SL_Crit SUMA_S_Crit
    #define SUMA_L_Crit SUMA_S_Crit
-   
+
    #define SUMA_LHv( ... ) {\
       if (LocalHead) {  \
          fprintf (SUMA_STDERR, "##      %s (%s:%d):\n ", \
@@ -192,45 +192,45 @@
          fprintf (SUMA_STDERR, __VA_ARGS__ );  \
       }  \
    }
-    
+
    #define SUMA_LH( ... ) {\
       if (LocalHead) { SUMA_LHv( __VA_ARGS__ ); \
                        fprintf (SUMA_STDERR,"\n"); } \
    }
-   
+
    #define SUMA_S_Warnv( ... ) {\
       fprintf (SUMA_STDERR, "oo     Warning %s (%s:%d):\n ", \
                             FuncName, __FILE__, __LINE__);  \
       fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }
-   
+
    #define SUMA_S_Warn( ... ) {\
       SUMA_S_Warnv( __VA_ARGS__ );   \
       fprintf (SUMA_STDERR, "\n");  \
-   } 
-   
+   }
+
    #define SUMA_S_Notev( ... ) {\
       fprintf (SUMA_STDERR, "++     Notice %s (%s:%d):\n ",\
                             FuncName, __FILE__, __LINE__);  \
       fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }
-   
+
    #define SUMA_S_Note( ... ) {\
       SUMA_S_Notev( __VA_ARGS__ );   \
       fprintf (SUMA_STDERR, "\n");  \
    }
-   
+
    #define SUMA_S_Errv( ... ) {\
       fprintf (SUMA_STDERR, "--     Error %s (%s:%d):\n ", \
                             FuncName, __FILE__, __LINE__);  \
       fprintf (SUMA_STDERR, __VA_ARGS__);  \
    }
-   
+
    #define SUMA_S_Err( ... ) {\
       SUMA_S_Errv( __VA_ARGS__ );   \
       fprintf (SUMA_STDERR, "\n");  \
    }
-   
+
    #define SUMA_S_Critv(...) {\
       fprintf (SUMA_STDERR, "**     Critical error %s (%s:%d):\n ", \
                               FuncName, __FILE__, __LINE__);  \
@@ -240,7 +240,7 @@
       SUMA_S_Critv( __VA_ARGS__ );   \
       fprintf (SUMA_STDERR, "\n");  \
    }
-    
+
 #endif
 
 extern void SUMA_freep(void *) ; /* 07 Oct 2015 */
@@ -251,7 +251,7 @@ extern void SUMA_freep(void *) ; /* 07 Oct 2015 */
 
    /* The pre-March 3/04 way, SUMA uses its own version of memory allocation
    and tracing. Those tools did not allow for memory corruption checking and
-   used linear pointer storage methods making for inefficient searching 
+   used linear pointer storage methods making for inefficient searching
       Use -DUSE_SUMA_MALLOC in the compile line if you wish to use the old stuff
    */
    #define SUMA_free( p ) \

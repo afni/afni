@@ -101,7 +101,7 @@ int main( int argc, char * argv[] )
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-slist");
             slen = atol(argv[ac]);
-            if( slen <= 0 ){ 
+            if( slen <= 0 ){
                 fprintf(stderr,"** bad -slist length, '%s'\n", argv[ac]);
                 return 1;
             }
@@ -119,12 +119,12 @@ int main( int argc, char * argv[] )
                     return 1;
                 }
                 slist[c] = atol(argv[ac]);
-                if( slist[c] < 0 ){ 
+                if( slist[c] < 0 ){
                     fprintf(stderr,"** bad slist index[%d], '%s'\n",c,argv[ac]);
                     return 1;
                 }
             }
-            
+
         } else if( !strcmp(argv[ac], "-verb") ) {
             ac++;
             CHECK_NEXT_OPT(ac, argc, "-verb");

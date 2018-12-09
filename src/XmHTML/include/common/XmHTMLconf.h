@@ -10,7 +10,7 @@
 *
 * Author:				XmHTML Developers Account
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,13 +34,13 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:56  rwcox
 * Cadd
 *
 *
-*****/ 
+*****/
 
 /*****
 * This file contains a number of default values that can only be set at
@@ -58,11 +58,11 @@
 typedef unsigned char Byte;
 #endif /* BYTE_ALREADY_TYPEDEFED */
 
-/***** 
+/*****
 * Time window in which button press & release trigger an anchor activation.
 * (specified in milliseconds).
 *****/
-#define XmHTML_BUTTON_RELEASE_TIME			500		
+#define XmHTML_BUTTON_RELEASE_TIME			500
 
 /*****
 * Default horizontal & vertical marginwidth.
@@ -110,7 +110,7 @@ typedef unsigned char Byte;
 * Note: this setting is unused by Gtk/XmHTML, it uses hashing routines
 * provided for by gtk.
 *****/
-#define XmHTML_COLORHASH_SIZE				1024 
+#define XmHTML_COLORHASH_SIZE				1024
 
 /*****
 * Default character set and fonts sets for proportional and fixed
@@ -202,7 +202,7 @@ typedef unsigned char Byte;
 * The default timeout value for the Progressive Loader Context. This
 * timeout is the default value for the XmNprogressiveInitialDelay and
 * specifies the polling interval between subsequent PLC calls.
-* 
+*
 * Specified in milliseconds (1 second = 1000 milliseconds)
 * XmHTML dynamically adjusts the timeout value as necessary and recomputes
 * it after each PLC call.
@@ -213,7 +213,7 @@ typedef unsigned char Byte;
 #define PLC_MIN_DELAY						5
 #define PLC_MAX_DELAY						1000
 
-/***************** End of User configurable section *****************/ 
+/***************** End of User configurable section *****************/
 
 /*****
 * magic number for the XmHTMLImage structure. XmHTML uses this field to verify
@@ -239,7 +239,7 @@ typedef unsigned char Byte;
 * When X was written, noboby ever heard of C++, let alone what words
 * would be reserved for this language, and as a result of this, a few
 * structures in X contain words that could cause a problem when compiling
-* XmHTML with a C++ compiler. 
+* XmHTML with a C++ compiler.
 *****/
 #if defined(__cplusplus) || defined(c_plusplus)
 #define MEMBER_CLASS	c_class

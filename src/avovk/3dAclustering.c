@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 
 #include "../mrilib.h"
@@ -70,7 +70,7 @@ static void display_help(void)
 /* ========================================================================= */
 
 int main(int argc, char **argv)
-{ 
+{
    int ii=0, ncol=0, nrow=0, nl=0, nc=0, posi=0, posj=0, posk=0;
    //int nclust=atoi(argv[2]);
 
@@ -96,8 +96,8 @@ int main(int argc, char **argv)
    byte *mask=NULL;
    int nmask=-1, mnx=-1, mny=-1, mnz=-1;
    OPT_KMEANS oc;
-   
-   
+
+
    oc.r = 1;
    oc.k = 0;
    oc.kh = 0;
@@ -119,8 +119,8 @@ int main(int argc, char **argv)
     { clusterlib_display_version();
       return 0;
     }
-    if(     !strcmp(argument,"--help") 
-         || !strcmp(argument,"-h") 
+    if(     !strcmp(argument,"--help")
+         || !strcmp(argument,"-h")
          || !strcmp(argument,"-help") )
     { display_help();
       return 0;
@@ -270,14 +270,14 @@ int main(int argc, char **argv)
         i++;
         break;
       }
-      default: 
+      default:
          printf ("Unknown option %s\n", argv[i-1]);
          return 0;
     }
-    
+
    }
    if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
-   
+
    if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename,1);
 
    /*  else
@@ -291,14 +291,14 @@ int main(int argc, char **argv)
       return 0;
     }
 
-   
+
    /* load dsets and prepare array data for sending to clustering functions */
-   
+
    if (!prefix) {
       prefix = "clusty";
       THD_force_ok_overwrite(1) ;   /* don't worry about overwriting */
    }
-   
+
    /* Read in dset */
    if (oc.verb) fprintf(stderr,"Patience, reading %s... ", filename);
    in_set = THD_open_dataset(filename);
@@ -319,10 +319,10 @@ int main(int argc, char **argv)
       INFO_message("%d voxels in the [%dx%dx%d] mask",nmask, mnx, mny, mnz) ;
       if( nmask < 1 ) ERROR_exit("mask %s is empty?!", maskname) ;
       if (  mask &&
-            (mnx != DSET_NX(in_set) || 
-             mny != DSET_NY(in_set) || 
+            (mnx != DSET_NX(in_set) ||
+             mny != DSET_NY(in_set) ||
              mnz != DSET_NZ(in_set) ) ) {
-         ERROR_exit("Dimension mismatch between mask and input dset");      
+         ERROR_exit("Dimension mismatch between mask and input dset");
       }
    }
 
@@ -332,33 +332,33 @@ int main(int argc, char **argv)
                      &clust_set,
                      &dist_set ,
                      oc)) {
-      ERROR_exit("Failed in thd_Acluster");                 
+      ERROR_exit("Failed in thd_Acluster");
    }
-   
+
 
    /* add history to output data and write them  out */
-   if( oc.verb && 
-       (clust_set || dist_set)) 
+   if( oc.verb &&
+       (clust_set || dist_set))
          ININFO_message("\nWriting datasets: %s",prefix) ;
    if (clust_set) {
       EDIT_dset_items(  clust_set , ADN_prefix  , prefix, ADN_none);
       tross_Copy_History( in_set , clust_set ) ;
       tross_Make_History( "3dAclustering" , argc, argv , clust_set ) ;
-      DSET_write(clust_set); DSET_unload(clust_set); 
+      DSET_write(clust_set); DSET_unload(clust_set);
       DSET_delete(clust_set); clust_set = NULL;
    }
    if (dist_set) {
       tross_Copy_History( in_set , dist_set ) ;
       tross_Make_History( "3dAclustering" , argc, argv , dist_set ) ;
-      DSET_write(dist_set); DSET_unload(dist_set); 
+      DSET_write(dist_set); DSET_unload(dist_set);
       DSET_delete(dist_set); dist_set = NULL;
    }
 
- 
-   
+
+
    if (mask) free(mask); mask = NULL;
    if (oc.jobname) free(oc.jobname); oc.jobname = NULL;
-   
+
 
    fprintf (stderr,"\n");
    return 0;

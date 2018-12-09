@@ -10,9 +10,9 @@ SUMA_Boolean SUMA_write_plotmem_ts(MEM_topshell_data * mpcb)
    static char FuncName[]={"SUMA_write_plotmem_ts"};
    char stmp[100];
    SUMA_MEMPLOT_USERDATA *mpud=NULL;
-   
+
    SUMA_ENTRY;
-   
+
    if (!mpcb || !mpcb->userdata) SUMA_RETURN(NOPE);
    mpud = (SUMA_MEMPLOT_USERDATA *)mpcb->userdata;
    if (mpud->tsa) {
@@ -21,12 +21,12 @@ SUMA_Boolean SUMA_write_plotmem_ts(MEM_topshell_data * mpcb)
                     "Need to modify writing macro for that.\n" );
          SUMA_RETURN(NOPE);
       }
-      SUMA_WRITE_ARRAY_1D( mpud->tsa[0], 
-                           mpud->tsa_dims[1], 
+      SUMA_WRITE_ARRAY_1D( mpud->tsa[0],
+                           mpud->tsa_dims[1],
                            1, mpud->write_name);
       SUMA_S_Notev("Wrote timeseries %s\n",mpud->write_name);
    }
-   
+
    SUMA_RETURN(YUP);
 }
 
@@ -46,16 +46,16 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
    static int pButton, mButton, rButton;
    static SUMA_Boolean DoubleClick = NOPE;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if( mpcb == NULL || ! MTD_VALID(mpcb)         ) return ;  /* bad */
    if( cbs  == NULL || cbs->reason != XmCR_INPUT ) return ;  /* real bad */
-   
+
    Kev = *(XKeyEvent *) &cbs->event->xkey;
    Bev = *(XButtonEvent *) &cbs->event->xbutton;
    Mev = *(XMotionEvent *) &cbs->event->xmotion;
-   
+
    switch( Kev.type ){
 
       default: break ;
@@ -75,10 +75,10 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
             case XK_h:
                if (Kev.state & ControlMask){
                  if (!list) list = SUMA_CreateList();
-                 SUMA_REGISTER_HEAD_COMMAND_NO_DATA(  list, SE_Help_Plot, 
-                                                      SES_Suma, NULL); 
+                 SUMA_REGISTER_HEAD_COMMAND_NO_DATA(  list, SE_Help_Plot,
+                                                      SES_Suma, NULL);
                  if (!SUMA_Engine (&list)) {
-                     fprintf(stderr, 
+                     fprintf(stderr,
                               "Error %s: SUMA_Engine call failed.\n", FuncName);
                  }
                }
@@ -96,9 +96,9 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
       break ;
 
       case ButtonPress:
-         if (LocalHead) fprintf(stdout,"In ButtonPress\n");      
+         if (LocalHead) fprintf(stdout,"In ButtonPress\n");
          pButton = Bev.button;
-         if (  SUMAg_CF->SwapButtons_1_3 || 
+         if (  SUMAg_CF->SwapButtons_1_3 ||
                (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
             if (pButton == Button1) pButton = Button3;
             else if (pButton == Button3) pButton = Button1;
@@ -106,13 +106,13 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 
         /* trap for double click */
          if (Bev.time - B1time < SUMA_DOUBLE_CLICK_MAX_DELAY) {
-            if (LocalHead) fprintf( SUMA_STDERR, 
+            if (LocalHead) fprintf( SUMA_STDERR,
                                     "%s: Double click.\n", FuncName);
             DoubleClick = YUP;
          } else {
             DoubleClick = NOPE;
          }
-         B1time = Bev.time; 
+         B1time = Bev.time;
 
          switch (pButton) { /* switch type of button Press */
             case Button1:
@@ -124,9 +124,9 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
 
       case ButtonRelease:
          if (LocalHead) fprintf( SUMA_STDERR,
-                                 "%s: In ButtonRelease\n", FuncName); 
+                                 "%s: In ButtonRelease\n", FuncName);
          rButton = Bev.button;
-         if (  SUMAg_CF->SwapButtons_1_3 || 
+         if (  SUMAg_CF->SwapButtons_1_3 ||
                (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
             if (rButton == Button1) rButton = Button3;
             else if (rButton == Button3) rButton = Button1;
@@ -140,34 +140,34 @@ void SUMA_pm_input_CB( Widget w , XtPointer cd , XtPointer cb )
          break;
 
       case MotionNotify:
-         if (LocalHead) fprintf(stdout,"In MotionNotify\n"); 
-         if (  SUMAg_CF->SwapButtons_1_3 || 
+         if (LocalHead) fprintf(stdout,"In MotionNotify\n");
+         if (  SUMAg_CF->SwapButtons_1_3 ||
                (SUMAg_CF->ROI_mode && SUMAg_CF->Pen_mode)) {
-           if (   (  (Mev.state & Button3MotionMask) && 
-                     (Mev.state & Button2MotionMask)   ) 
-               || (  (Mev.state & Button2MotionMask) && 
+           if (   (  (Mev.state & Button3MotionMask) &&
+                     (Mev.state & Button2MotionMask)   )
+               || (  (Mev.state & Button2MotionMask) &&
                      (Mev.state & ShiftMask)    )  ) {
                mButton = SUMA_Button_12_Motion;
             } else if(Mev.state & Button3MotionMask) {
                mButton = SUMA_Button_1_Motion;
-            }else if(Mev.state & Button2MotionMask) { 
+            }else if(Mev.state & Button2MotionMask) {
                mButton = SUMA_Button_2_Motion;
-            }else if(Mev.state & Button1MotionMask) { 
+            }else if(Mev.state & Button1MotionMask) {
                mButton = SUMA_Button_3_Motion;
             }else {
                break;
-            } 
+            }
          } else {
-            if (  (  (Mev.state & Button1MotionMask) && 
-                     (Mev.state & Button2MotionMask)  ) 
-               || (  (Mev.state & Button2MotionMask) && 
+            if (  (  (Mev.state & Button1MotionMask) &&
+                     (Mev.state & Button2MotionMask)  )
+               || (  (Mev.state & Button2MotionMask) &&
                      (Mev.state & ShiftMask)    )  ) {
                mButton = SUMA_Button_12_Motion;
             } else if(Mev.state & Button1MotionMask) {
                mButton = SUMA_Button_1_Motion;
-            }else if(Mev.state & Button2MotionMask) { 
+            }else if(Mev.state & Button2MotionMask) {
                mButton = SUMA_Button_2_Motion;
-            } else if(Mev.state & Button3MotionMask) { 
+            } else if(Mev.state & Button3MotionMask) {
                mButton = SUMA_Button_3_Motion;
             }else {
                break;
@@ -196,24 +196,24 @@ static void clonebut_CB( Widget w , XtPointer cd , XtPointer cb )
    MEM_topshell_data * mpcb = (MEM_topshell_data *) cd ;
    static int ibug=0;
    static char FuncName[]={"clonebut_CB"};
-   
+
    if( mpcb == NULL || ! MTD_VALID(mpcb) ) return ;
    if (!mpcb->clonebut_user_cb) {
       if (!ibug) {
          SUMA_S_Warn("Not expecting to be here with a NULL CB\n"
                   "printing trace, just once for debugging.\n");
-         SUMA_DUMP_TRACE("At NULL CB in function:  clonebut_CB");        
+         SUMA_DUMP_TRACE("At NULL CB in function:  clonebut_CB");
       }
       ++ibug;
       return;
    }
    /* release yourself from your creator */
    mpcb->clonebut_user_cb((void *)mpcb);
-   
-   
-   /* preserve mpcb->userdata, it is cleared when close button is used */  
+
+
+   /* preserve mpcb->userdata, it is cleared when close button is used */
    mpcb->clonebut_user_cb=NULL; /* should also remove that button */
-   
+
    return ;
 }
 
@@ -237,7 +237,7 @@ extern void pm_decode_geom( char * geom , int *ww, int *hh , int *xx, int *yy );
 MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                                          MEM_plotdata *mp, void_func *kfun )
 {
-   Widget topshell , drawing , donebut , form , psfilebut , 
+   Widget topshell , drawing , donebut , form , psfilebut ,
          psprintbut ;
    MEM_topshell_data *mpcb ;
    int hmin=400 , wmin , ibut=0 , hh,ww,xx,yy ;
@@ -272,7 +272,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                    XmNminWidth    , wmin , XmNwidth  , ww ,
                    XmNallowShellResize , True ,
                    XmNinitialResourcesPersistent , False ,
-                   XmNdeleteResponse   , 
+                   XmNdeleteResponse   ,
                      XmDO_NOTHING ,   /* deletion handled below */
                  NULL ) ;
 
@@ -323,7 +323,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                     XmNtraversalOn   , False ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-   XtAddCallback( psfilebut , XmNactivateCallback , 
+   XtAddCallback( psfilebut , XmNactivateCallback ,
                   pm_psfile_CB , (XtPointer) mpcb ) ;
 
    ibut++ ;
@@ -347,8 +347,8 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    prc = getenv( "AFNI_PSPRINT" ) ;
    if( prc != NULL ){
       sprintf( print_command , "|%.250s" , prc ) ;
-      XtAddCallback( psprintbut , 
-                     XmNactivateCallback , pm_psprint_CB , 
+      XtAddCallback( psprintbut ,
+                     XmNactivateCallback , pm_psprint_CB ,
                      (XtPointer) mpcb ) ;
    } else {
 #if 0
@@ -385,7 +385,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                     XmNtraversalOn   , True ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-   XtAddCallback( mpcb->clonebut , XmNactivateCallback , 
+   XtAddCallback( mpcb->clonebut , XmNactivateCallback ,
                   clonebut_CB , (XtPointer) mpcb ) ;
 
 #endif
@@ -397,7 +397,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
 #if 1
                     BGCOLOR_ARG(redcolor) ,
 #endif
- 
+
                     XmNtopAttachment  , XmATTACH_FORM ,
 
                     XmNleftAttachment   ,
@@ -412,12 +412,12 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                     XmNtraversalOn   , False ,
                     XmNinitialResourcesPersistent , False ,
                  NULL ) ;
-   XtAddCallback( donebut , XmNactivateCallback , 
+   XtAddCallback( donebut , XmNactivateCallback ,
                   pm_donebut_CB , (XtPointer) mpcb ) ;
 
    /* drawing area to receive the picture */
 
-   drawing = XtVaCreateManagedWidget( "dialog" , 
+   drawing = XtVaCreateManagedWidget( "dialog" ,
                                        xmDrawingAreaWidgetClass , form ,
                                        XmNtopAttachment    , XmATTACH_WIDGET ,
                                        XmNtopWidget        , donebut ,
@@ -427,11 +427,11 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
                                        XmNinitialResourcesPersistent , False ,
                                        NULL ) ;
 
-   XtAddCallback( drawing , XmNexposeCallback , 
+   XtAddCallback( drawing , XmNexposeCallback ,
                   pm_expose_CB , (XtPointer) mpcb ) ;
-   XtAddCallback( drawing , XmNresizeCallback , 
+   XtAddCallback( drawing , XmNresizeCallback ,
                   pm_resize_CB , (XtPointer) mpcb ) ;
-   XtAddCallback( drawing , XmNinputCallback  , 
+   XtAddCallback( drawing , XmNinputCallback  ,
                   SUMA_pm_input_CB  , (XtPointer) mpcb ) ;
 
    /* finish the job */
@@ -448,7 +448,7 @@ MEM_topshell_data * SUMA_memplot_to_topshell( Display *dpy,
    return mpcb ;
 }
 
-/* Detaches a plot window from its bond to SUMA 
+/* Detaches a plot window from its bond to SUMA
    That's a way to preserve a plot.
 */
 void SUMA_memplot_clone(void *mpv)
@@ -460,21 +460,21 @@ void SUMA_memplot_clone(void *mpv)
    SUMA_MEMPLOT_USERDATA *mpud=NULL;
 
    int iso=0;
-   
+
    SUMA_ENTRY;
-   
+
    if (mp && mp->userdata) {
       mpud = (SUMA_MEMPLOT_USERDATA *)mp->userdata;
       if (!(Sover = mpud->Sover) || \
           !Sover->rowgraph_mtd || /* trying to avoid mysterious crash */ \
-          !Sover->rowgraph_mtd->clonebut) SUMA_RETURNe; 
+          !Sover->rowgraph_mtd->clonebut) SUMA_RETURNe;
       /* desentize le bouton, and mark rowgraph struct as cloned */
-      XtUnmanageChild(Sover->rowgraph_mtd->clonebut); 
+      XtUnmanageChild(Sover->rowgraph_mtd->clonebut);
       Sover->rowgraph_mtd->cloned=1;
-      
+
       /* clear content of graph structure in Sover */
       Sover->rowgraph_mtd = NULL;
-      
+
       /* an attempt to recreate a replacement plot.
          No sure fire way to know which SO/DO to use,
          but it seems like a safe bet to just go
@@ -483,9 +483,9 @@ void SUMA_memplot_clone(void *mpv)
          if (SUMA_isSO(SUMAg_DOv[iso])) {
             ado = (SUMA_ALL_DO *)SUMAg_DOv[iso].OP;
             if (SUMA_isOverlayOfDO(ado, Sover)) {
-               SUMA_OverlayGraphAtNode(Sover, ado, 
-                                       SUMA_ADO_SelectedDatum(ado, NULL, NULL)); 
-            } 
+               SUMA_OverlayGraphAtNode(Sover, ado,
+                                       SUMA_ADO_SelectedDatum(ado, NULL, NULL));
+            }
          }
       }
       /* Now if there was a new window, position it below the old one */
@@ -498,7 +498,7 @@ void SUMA_memplot_clone(void *mpv)
    } else {
       SUMA_S_Err("NULL input at clone!");
    }
-   
+
    SUMA_RETURNe;
 }
 
@@ -511,12 +511,12 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
    SUMA_STRING *SS = NULL;
    SUMA_OVERLAYS *Sover=NULL;
    SUMA_MEMPLOT_USERDATA *MPUD=NULL;
-   
+
    SUMA_ENTRY;
-   
+
    SS = SUMA_StringAppend (NULL, NULL);
-   
-   if (!rowgraph_mtd) 
+
+   if (!rowgraph_mtd)
       SS = SUMA_StringAppend(SS,"NULL rowgraph_mtd");
    else {
       SS = SUMA_StringAppend_va(SS,
@@ -530,16 +530,16 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
          SS = SUMA_StringAppend_va(SS,
             "      row %d: [%f .. %f]\n",
                MPUD->tsa ? 0:-1,
-               MPUD->tsa ? MPUD->tsa[0][0]:0.0, 
+               MPUD->tsa ? MPUD->tsa[0][0]:0.0,
                MPUD->tsa ? MPUD->tsa[0][MPUD->tsa_dims[1]-1]:0.0);
          if (MPUD->tsa_dims[0] > 1) {
          SS = SUMA_StringAppend_va(SS,
             "      row %d: [%f .. %f]\n",
                MPUD->tsa ? MPUD->tsa_dims[0]-1:-1,
-               MPUD->tsa ? MPUD->tsa[MPUD->tsa_dims[0]-1][0]:0.0, 
-               MPUD->tsa ? 
+               MPUD->tsa ? MPUD->tsa[MPUD->tsa_dims[0]-1][0]:0.0,
+               MPUD->tsa ?
                   MPUD->tsa[MPUD->tsa_dims[0]-1][MPUD->tsa_dims[1]-1]:0.0);
-         
+
          }
          SS = SUMA_StringAppend_va(SS,
             "   tsnode %d\n"
@@ -548,9 +548,9 @@ void SUMA_Show_Rowgraph_MTD(MEM_topshell_data *rowgraph_mtd)
                Sover ? Sover->Label:"NULL", Sover);
       }
    }
-   
-   
-   
+
+
+
    SUMA_SS2S(SS, s);
    fprintf(stdout, "%s", s); SUMA_free(s); s = NULL;
    SUMA_RETURNe;
@@ -592,56 +592,56 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
    SUMA_MEMPLOT_USERDATA *MPUD=NULL;
    SUMA_SurfaceViewer *sv=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
-   if (  !Sover || 
+
+   if (  !Sover ||
          !ado || !Sover->dset_link) {
       SUMA_SL_Err("Nothing to graph");
-      SUMA_RETURN(0);    
+      SUMA_RETURN(0);
    }
    Dset = Sover->dset_link;
    /* Excerpts right out of ISQ_rowgraph_draw*/
 
-   if (!(res = (float*)SUMA_GetDsetAllNodeValsInCols2(Dset, 
-                              NULL, 0, 
-                              inode, SUMA_ADO_Max_Datum_Index(ado), 
+   if (!(res = (float*)SUMA_GetDsetAllNodeValsInCols2(Dset,
+                              NULL, 0,
+                              inode, SUMA_ADO_Max_Datum_Index(ado),
                               &N_res,
-                              SUMA_float))) { 
+                              SUMA_float))) {
       N_res = SDSET_VECNUM(Dset);
       res = (float *) SUMA_calloc(N_res , sizeof(float));
-      snprintf(title_str, 100*sizeof(char), 
-               "No Data: %s, node %d on %s", 
+      snprintf(title_str, 100*sizeof(char),
+               "No Data: %s, node %d on %s",
                SUMA_CHECK_NULL_STR(Sover->Label),
                inode,
                SUMA_CHECK_NULL_STR(SUMA_ADO_Label(ado)));
       sl1 = SUMA_EscapeChars(title_str, "_","\\");
    } else {
-      snprintf(title_str, 100*sizeof(char), 
-               "%s, node %d on %s", 
+      snprintf(title_str, 100*sizeof(char),
+               "%s, node %d on %s",
                SUMA_CHECK_NULL_STR(Sover->Label),
                inode,
                SUMA_CHECK_NULL_STR(SUMA_ADO_Label(ado)));
       sl1 = SUMA_EscapeChars(title_str, "_","\\");
    }
-   
-   if (!SUMA_is_TimeSeries_dset(Dset, &TR)) { 
-      snprintf(xlabel_str, 100*sizeof(char), 
+
+   if (!SUMA_is_TimeSeries_dset(Dset, &TR)) {
+      snprintf(xlabel_str, 100*sizeof(char),
                "column index");
    } else {
-      snprintf(xlabel_str, 100*sizeof(char), 
+      snprintf(xlabel_str, 100*sizeof(char),
                "TR (%.2fs) step", TR);
    }
-   
+
    if (!res) SUMA_RETURN(0);
-   
-   yar = (float **)SUMA_calloc(nrow, sizeof(float*));        
+
+   yar = (float **)SUMA_calloc(nrow, sizeof(float*));
    for (jj=0; jj<nrow; jj++) yar[jj] = res;
 
    ymask = TSP_SEPARATE_YBOX ;
    plot_ts_xypush(0,0);
-   mp = plot_ts_mem( N_res , NULL , 
-                     nrow, ymask, yar , 
+   mp = plot_ts_mem( N_res , NULL ,
+                     nrow, ymask, yar ,
                      xlabel_str,
                      NULL,sl1,NULL ) ;
    if (sl1) SUMA_free(sl1); sl1=NULL;
@@ -649,8 +649,8 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
       SUMA_S_Err("can't make plot_ts_mem") ;
       SUMA_RETURN(0);
    }
-   
-   /* if there is a plot window open, 
+
+   /* if there is a plot window open,
       plot into it, otherwise open a new window */
 
    if( Sover->rowgraph_mtd != NULL ){
@@ -665,25 +665,25 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
       redraw_topshell( Sover->rowgraph_mtd ) ;
       /* and replace userdata */
       Sover->rowgraph_mtd->userdata = (void *)MPUD;
-      
+
    } else {  /* make a new plot window */
 
-      Sover->rowgraph_mtd = SUMA_memplot_to_topshell( 
-                                       SUMAg_CF->X->DPY_controller1, 
-                                       mp, 
+      Sover->rowgraph_mtd = SUMA_memplot_to_topshell(
+                                       SUMAg_CF->X->DPY_controller1,
+                                       mp,
                                        SUMA_rowgraph_mtdkill ) ;
 
-      if( Sover->rowgraph_mtd == NULL ){ 
-         delete_memplot( mp );  
+      if( Sover->rowgraph_mtd == NULL ){
+         delete_memplot( mp );
          SUMA_RETURN(1);
       }
       /* position plot */
       sv = SUMA_BestViewerForADO(ado);
       if (sv) {
-         SUMA_PositionWindowRelative(  Sover->rowgraph_mtd->top , 
-                                       sv->X->TOPLEVEL, 
+         SUMA_PositionWindowRelative(  Sover->rowgraph_mtd->top ,
+                                       sv->X->TOPLEVEL,
                                        SWP_TOP_RIGHT);
-      }                              
+      }
       Sover->rowgraph_mtd->clonebut_user_cb = SUMA_memplot_clone;
       MPUD = (SUMA_MEMPLOT_USERDATA*)SUMA_calloc(1,
                                                  sizeof(SUMA_MEMPLOT_USERDATA));
@@ -693,9 +693,9 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
    if (LocalHead) SUMA_Show_Rowgraph_MTD(Sover->rowgraph_mtd);
 
    /* res should not be freed here anymore... */
-   if (res) { 
+   if (res) {
       SUMA_S_Note("Should not BE!");
-      SUMA_free(res); 
+      SUMA_free(res);
       res = NULL;
    }
    SUMA_RETURN(1);
@@ -703,30 +703,30 @@ SUMA_Boolean SUMA_OverlayGraphAtNode(SUMA_OVERLAYS *Sover,
 
 /* if the input structure is NULL is passed, a new structure is created and
 returned. Else the contents of mpud are cleared */
-SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud) 
-{ 
+SUMA_MEMPLOT_USERDATA * SUMA_clear_mpud_contents(SUMA_MEMPLOT_USERDATA *mpud)
+{
    static char FuncName[]={"SUMA_clear_mpud_contents"};
-   int m_i=0;  
-   
+   int m_i=0;
+
    SUMA_ENTRY;
-   
+
    if (!mpud) {
       mpud = (SUMA_MEMPLOT_USERDATA *)
                                  SUMA_calloc(1, sizeof(SUMA_MEMPLOT_USERDATA));
-   } 
-   if (mpud->tsa) {  
-      for (m_i=0; m_i<mpud->tsa_dims[0]; ++m_i) {  
-         if (mpud->tsa[m_i]) SUMA_free(mpud->tsa[m_i]);  
-      }  
-      SUMA_free(mpud->tsa); mpud->tsa=NULL;  
-   }  
-   mpud->tsa_dims[0]=0; mpud->tsa_dims[1]=0; 
-   mpud->tsnode = -1;   
-   
+   }
+   if (mpud->tsa) {
+      for (m_i=0; m_i<mpud->tsa_dims[0]; ++m_i) {
+         if (mpud->tsa[m_i]) SUMA_free(mpud->tsa[m_i]);
+      }
+      SUMA_free(mpud->tsa); mpud->tsa=NULL;
+   }
+   mpud->tsa_dims[0]=0; mpud->tsa_dims[1]=0;
+   mpud->tsnode = -1;
+
    SUMA_RETURN(mpud);
 }
 
-      
+
 void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
 {
    static char FuncName[]={"SUMA_rowgraph_mtdkill"};
@@ -736,8 +736,8 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY ;
 
-   if( mp == NULL ) SUMA_RETURNe; 
-   mpud = (SUMA_MEMPLOT_USERDATA *)mp->userdata ; 
+   if( mp == NULL ) SUMA_RETURNe;
+   mpud = (SUMA_MEMPLOT_USERDATA *)mp->userdata ;
    if (!mpud) {
       SUMA_S_Err("I don't like it!");
       SUMA_RETURNe ;
@@ -745,20 +745,20 @@ void SUMA_rowgraph_mtdkill( MEM_topshell_data * mp )
    SUMA_LHv("Freeing tsa's %d arrays and other contents\n", mpud->tsa_dims[0]);
    mpud = SUMA_clear_mpud_contents(mpud);
    if (mp->cloned) SUMA_RETURNe; /* inactive, cloned window, return */
-   
-   Sover = mpud->Sover ; 
+
+   Sover = mpud->Sover ;
    if( ! Sover ) SUMA_RETURNe ;
    Sover->rowgraph_mtd = NULL ;
-   
-   /* here you might do something with some widgets on 
+
+   /* here you might do something with some widgets on
    say surface controller */
-      
+
    Sover->rowgraph_num = 0 ; /* not sure I need that one yet...*/
-   
+
    /* now free userdata structure, this plot is dying*/
-   SUMA_free(mpud); 
+   SUMA_free(mpud);
    mp->userdata = NULL; /* to be sure */
-   
+
    SUMA_RETURNe ;
 }
 
@@ -768,21 +768,21 @@ SUMA_Boolean SUMA_Afni_Graph(SUMA_OVERLAYS *Sover,
 {
    static char FuncName[]={"SUMA_Afni_Graph"};
    SUMA_Boolean LocalHead = NOPE;
-   
-   /* get yourself an im3d structure populated 
-   The im3d structure is initialized in AFNI's 
-      new_AFNI_controller function which is in afni_widg.c. 
+
+   /* get yourself an im3d structure populated
+   The im3d structure is initialized in AFNI's
+      new_AFNI_controller function which is in afni_widg.c.
    new_AFNI_controller calls AFNI_make_widgets, which calls AFNI_make_wid1,
-   which finally sets up the widget that eventually executes callback 
-   AFNI_view_xyz_CB, itself a function to create graphs or slice viewers. 
+   which finally sets up the widget that eventually executes callback
+   AFNI_view_xyz_CB, itself a function to create graphs or slice viewers.
    Function AFNI_view_xyz_CB makes a series of drive_MCW_grapher to do the deed.
-   
+
    Calling new_AFNI_controller directly from SUMA is not that trivial because it uses symbols defined in afni.o, which itself contains a main() function! So the plot thickens... Do I create im3d outside of AFNI's routines, and eventually call drive_MCW_grapher myself? I do not know yet...*/
-   
+
    SUMA_ENTRY;
-   
+
    SUMA_LH("Done");
-   
+
    SUMA_RETURN(YUP);
 }
 #endif

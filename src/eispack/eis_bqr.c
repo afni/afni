@@ -10,7 +10,7 @@
 static doublereal c_b8 = 1.;
 
 /* Subroutine */ int bqr_(integer *nm, integer *n, integer *mb, doublereal *a,
-	 doublereal *t, doublereal *r__, integer *ierr, integer *nv, 
+	 doublereal *t, doublereal *r__, integer *ierr, integer *nv,
 	doublereal *rv)
 {
     /* System generated locals */
@@ -24,7 +24,7 @@ static doublereal c_b8 = 1.;
     doublereal f, g;
     integer i__, j, k, l, m;
     doublereal q, s, scale;
-    integer imult, m1, m2, m3, m4, m21, m31, ii, ik, jk, kj, jm, kk, 
+    integer imult, m1, m2, m3, m4, m21, m31, ii, ik, jk, kj, jm, kk,
 	    km, ll, mk, mn, ni, mz;
     extern doublereal pythag_(doublereal *, doublereal *);
     integer kj1, its;
@@ -59,20 +59,20 @@ static doublereal c_b8 = 1.;
 /*          IS STORED IN THE LAST N+1-MB POSITIONS OF THE FIRST COLUMN, */
 /*          ITS NEXT SUBDIAGONAL IN THE LAST N+2-MB POSITIONS OF THE */
 /*          SECOND COLUMN, FURTHER SUBDIAGONALS SIMILARLY, AND FINALLY */
-/*          ITS PRINCIPAL DIAGONAL IN THE N POSITIONS OF THE LAST COLUMN. 
+/*          ITS PRINCIPAL DIAGONAL IN THE N POSITIONS OF THE LAST COLUMN.
 */
 /*          CONTENTS OF STORAGES NOT PART OF THE MATRIX ARE ARBITRARY. */
 /*          ON A SUBSEQUENT CALL, ITS OUTPUT CONTENTS FROM THE PREVIOUS */
 /*          CALL SHOULD BE PASSED. */
 
-/*        T SPECIFIES THE SHIFT (OF EIGENVALUES) APPLIED TO THE DIAGONAL 
+/*        T SPECIFIES THE SHIFT (OF EIGENVALUES) APPLIED TO THE DIAGONAL
 */
-/*          OF A IN FORMING THE INPUT MATRIX. WHAT IS ACTUALLY DETERMINED 
+/*          OF A IN FORMING THE INPUT MATRIX. WHAT IS ACTUALLY DETERMINED
 */
-/*          IS THE EIGENVALUE OF A+TI (I IS THE IDENTITY MATRIX) NEAREST 
+/*          IS THE EIGENVALUE OF A+TI (I IS THE IDENTITY MATRIX) NEAREST
 */
 /*          TO T.  ON A SUBSEQUENT CALL, THE OUTPUT VALUE OF T FROM THE */
-/*          PREVIOUS CALL SHOULD BE PASSED IF THE NEXT NEAREST EIGENVALUE 
+/*          PREVIOUS CALL SHOULD BE PASSED IF THE NEXT NEAREST EIGENVALUE
 */
 /*          IS SOUGHT. */
 
@@ -103,7 +103,7 @@ static doublereal c_b8 = 1.;
 
 /*        RV IS A TEMPORARY STORAGE ARRAY OF DIMENSION AT LEAST */
 /*          (2*MB**2+4*MB-3).  THE FIRST (3*MB-2) LOCATIONS CORRESPOND */
-/*          TO THE ALGOL ARRAY B, THE NEXT (2*MB-1) LOCATIONS CORRESPOND 
+/*          TO THE ALGOL ARRAY B, THE NEXT (2*MB-1) LOCATIONS CORRESPOND
 */
 /*          TO THE ALGOL ARRAY H, AND THE FINAL (2*MB**2-MB) LOCATIONS */
 /*          CORRESPOND TO THE MB BY (2*MB-1) ALGOL ARRAY U. */
@@ -114,12 +114,12 @@ static doublereal c_b8 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

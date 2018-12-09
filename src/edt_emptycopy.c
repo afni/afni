@@ -59,8 +59,8 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
       new_dset->view_type = old_dset->view_type ;
       /* use template space of parent to mark as TLRC/MNI/... */
       MCW_strncpy( new_dset->atlas_space ,
-         old_dset->atlas_space , THD_MAX_NAME ) ; 
- 
+         old_dset->atlas_space , THD_MAX_NAME ) ;
+
       new_nvals           = old_dset->dblk->nvals ;
    } else {
       new_dset->type      = HEAD_ANAT_TYPE ;
@@ -129,7 +129,7 @@ ENTRY("EDIT_empty_copy") ; /* 29 Aug 2001 */
 
    if( old_good ) {
       /* ZSS: old_dset->dblk->diskptr->directory_name
-      was used instead of "./" before  July 10 2012. 
+      was used instead of "./" before  July 10 2012.
       See afni_history -author ziad | grep -A10 '10 Jul 2012' */
       THD_init_diskptr_names( new_dkptr ,
                               "./", /* ZSS 07/10/2012*/

@@ -50,7 +50,7 @@ usage(void)
 		   "%s [-c|-h] [-v ...] [[-b|-f] [c|f]] [-l len] [-n name] [-p n[,n]] file\n%s",
 		   progname,
 		   USAGE);
-    
+
     (void) fprintf(stderr,
                  "netcdf library version %s\n",
                  nc_inq_libvers());
@@ -58,8 +58,8 @@ usage(void)
 }
 
 
-/* 
- * convert pathname of netcdf file into name for cdl unit, by taking 
+/*
+ * convert pathname of netcdf file into name for cdl unit, by taking
  * last component of path and stripping off any extension.
  */
 static char *
@@ -71,10 +71,10 @@ name_path(const char *path)
 
 #ifdef vms
 #define FILE_DELIMITER ']'
-#endif    
+#endif
 #ifdef MSDOS
 #define FILE_DELIMITER '\\'
-#endif    
+#endif
 #ifndef FILE_DELIMITER /* default to unix */
 #define FILE_DELIMITER '/'
 #endif
@@ -126,7 +126,7 @@ static void
 tztrim(char *ss)
 {
     char *cp, *ep;
-    
+
     cp = ss;
     if (*cp == '-')
       cp++;
@@ -297,7 +297,7 @@ pr_att(
     )
 {
     struct ncatt att;		/* attribute */
-	    
+
     NC_CHECK( nc_inq_attname(ncid, varid, ia, att.name) );
 
     Printf ("\t\t%s:%s = ", varname, att.name);
@@ -423,7 +423,7 @@ do_ncdump(const char *path, struct fspec* specp)
       Printf ("\n// global attributes:\n");
     for (ia = 0; ia < ngatts; ia++)
 	pr_att(ncid, NC_GLOBAL, "", ia); /* print ia-th global attribute */
-    
+
     if (! specp->header_only) {
 	if (nvars > 0) {
 	    Printf ("data:\n");
@@ -511,7 +511,7 @@ do_ncdump(const char *path, struct fspec* specp)
 	    }
 	}
     }
-    
+
     Printf ("}\n");
     NC_CHECK(
 	nc_close(ncid) );
@@ -543,7 +543,7 @@ make_lvars(char *optarg, struct fspec* fspecp)
     for (cp = strtok(optarg, ",");
 	 cp != NULL;
 	 cp = strtok((char *) NULL, ",")) {
-	
+
 	*cpp = (char *) malloc(strlen(cp) + 1);
 	if (!*cpp) {
 	    error("out of memory");
@@ -707,13 +707,13 @@ main(int argc, char *argv[])
       }
 
     set_max_len(max_len);
-    
+
     argc -= optind;
     argv += optind;
 
     i = 0;
 
-    do {		
+    do {
         if (!nameopt) fspec.name = (char *)0;
 	if (argc > 0)
 	  do_ncdump(argv[i], &fspec);

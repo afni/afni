@@ -6,19 +6,19 @@
 #include "f2c.h"
 
 /* Subroutine */ int rsb_(integer *nm, integer *n, integer *mb, doublereal *a,
-	 doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, 
+	 doublereal *w, integer *matz, doublereal *z__, doublereal *fv1,
 	doublereal *fv2, integer *ierr)
 {
     /* System generated locals */
     integer a_dim1, a_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int bandr_(integer *, integer *, integer *, 
+    extern /* Subroutine */ int bandr_(integer *, integer *, integer *,
 	    doublereal *, doublereal *, doublereal *, doublereal *, logical *,
 	     doublereal *);
     logical tf;
     extern /* Subroutine */ int tqlrat_(integer *, doublereal *, doublereal *,
-	     integer *), tql2_(integer *, integer *, doublereal *, doublereal 
+	     integer *), tql2_(integer *, integer *, doublereal *, doublereal
 	    *, doublereal *, integer *);
 
 
@@ -67,12 +67,12 @@
 /*        FV1  AND  FV2  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

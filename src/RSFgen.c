@@ -117,7 +117,7 @@ void RSF_error (char * message)
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( RSF_error ("Cannot allocate memory") )
-     
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -126,12 +126,12 @@ if((ptr)==NULL) \
 
 void identify_software ()
 {
- 
-#if 0 
+
+#if 0
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -192,7 +192,7 @@ void display_help_menu()
     "Warning: This program will overwrite pre-existing .1D files            \n"
     "                                                                       \n"
     );
-  
+
   exit(0);
 }
 
@@ -205,7 +205,7 @@ void display_help_menu()
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv                     /* array of input arguments */ 
+  char ** argv                     /* array of input arguments */
 )
 
 {
@@ -218,17 +218,17 @@ void get_options
 
 
   /*----- Does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
-  
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- Main loop over input options -----*/
   while (nopt < argc )
     {
-     
+
       /*-----  -nt n  -----*/
       if (strncmp(argv[nopt], "-nt", 3) == 0)
 	{
@@ -377,7 +377,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -markov mfile   -----*/
       if (strcmp(argv[nopt], "-markov") == 0)
@@ -391,7 +391,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -pzero z   -----*/
       if (strcmp(argv[nopt], "-pzero") == 0)
@@ -399,13 +399,13 @@ void get_options
 	  nopt++;
 	  if (nopt >= argc)  RSF_error ("need argument after -pzero ");
 	  sscanf (argv[nopt], "%f", &fval);
-	  if ((fval < 0.0) || (fval > 1.0))  
+	  if ((fval < 0.0) || (fval > 1.0))
 	    RSF_error ("Require  0.0 <= pzero <= 1.0");
 	  pzero = fval;
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -table dfile   -----*/
       if (strcmp(argv[nopt], "-table") == 0)
@@ -418,12 +418,12 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- Unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       RSF_error (message);
-      
+
     }
 }
 
@@ -433,7 +433,7 @@ void get_options
   Read input table.
 */
 
-void read_table 
+void read_table
 (
   char * table_file,       /* file containing input table */
   MRI_IMAGE ** flim        /* data structure containing input table */
@@ -445,7 +445,7 @@ void read_table
 
   /*----- Read table -----*/
   *flim = mri_read_1D(table_file);
-  if ((*flim) == NULL)  
+  if ((*flim) == NULL)
     {
       sprintf (message,  "Unable to read table file: %s", table_file);
       RSF_error (message);
@@ -462,19 +462,19 @@ void read_table
   MTEST (num_reps);
   for (i = 0;  i < num_stimts;  i++)
     num_reps[i] = 1;
-  
+
   /*----- Initialize block length array -----*/
   nblock = (int *) malloc (sizeof(int) * num_stimts);
   MTEST (nblock);
   for (i = 0;  i < num_stimts;  i++)
     nblock[i] = 1;
-  
+
 }
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  Print input options. 
+  Print input options.
 */
 
 void print_options ()
@@ -483,7 +483,7 @@ void print_options ()
   int i;
 
   identify_software();
-  
+
   if (table_file != NULL)
     {
       printf ("table file    = %s \n", table_file);
@@ -507,7 +507,7 @@ void print_options ()
 	}
       else
 	for (i = 0;  i < num_stimts;  i++)
-	  printf ("nreps[%d]  = %d    nblock[%d] = %d \n", 
+	  printf ("nreps[%d]  = %d    nblock[%d] = %d \n",
 		  i+1, num_reps[i], i+1, nblock[i]);
     }
 }
@@ -515,19 +515,19 @@ void print_options ()
 
 /*---------------------------------------------------------------------------*/
 /*
-  Perform all program initialization. 
+  Perform all program initialization.
 */
 
-void initialize 
-(  
+void initialize
+(
   int argc,                /* number of input arguments */
-  char ** argv,            /* array of input arguments */ 
+  char ** argv,            /* array of input arguments */
   int ** darray,           /* original design array (block length = 1) */
   int ** earray,           /* expanded design array (arbitrary block length) */
   MRI_IMAGE ** flim        /* data structure containing input table */
 )
 
-{ 
+{
   int i, total;
 
 
@@ -553,7 +553,7 @@ void initialize
     {
       for (i = 0;  i < num_stimts;  i++)
 	{
-	  if (num_reps[i] == 0)  
+	  if (num_reps[i] == 0)
 	    RSF_error ("Must specify nreps > 0 for each stimulus");
 	  total += num_reps[i] * nblock[i];
 	  nt -= num_reps[i] * (nblock[i] - 1);
@@ -590,11 +590,11 @@ void markov_array (int * design)
   /*----- Read the transition probability matrix -----*/
   matrix_file_read (tpm_file, num_stimts, num_stimts, &tpm, 1);
   if (tpm.elts == NULL)
-    { 
-      sprintf (message,  "Unable to read Markov chain matrix from file: %s", 
+    {
+      sprintf (message,  "Unable to read Markov chain matrix from file: %s",
 	       tpm_file);
       RSF_error (message);
-    }  
+    }
   if (!quiet)  matrix_sprint ("\nTPM matrix:", tpm);
 
 
@@ -604,20 +604,20 @@ void markov_array (int * design)
       cumprob = 0.0;
       for (it = 0;  it < num_stimts;  it++)
 	cumprob += tpm.elts[is][it];
-      if (cumprob < 0.9999)  
+      if (cumprob < 0.9999)
 	{
 	  sprintf (message, "Row %d of TPM sums to %f, which is < 1.0",
 		   is, cumprob);
 	  RSF_error (message);
 	}
-      if (cumprob > 1.0001)  
+      if (cumprob > 1.0001)
 	{
 	  sprintf (message, "Row %d of TPM sums to %f, which is > 1.0",
 		   is, cumprob);
 	  RSF_error (message);
 	}
     }
-  
+
 
   /*----- Initialize the experimental design array -----*/
   for (it = 0;  it < NT;  it++)
@@ -637,7 +637,7 @@ void markov_array (int * design)
 	{
 	  design[id] = 0;
 	  id++;  it++;
-	} 
+	}
       else
 	{
 	  prob = rand_uniform(0.0,1.0);
@@ -709,7 +709,7 @@ void permute_array (int * design)
   /*----- Initialize random number seed -----*/
   srand48 (pseed);
 
-  
+
   /*----- Determine total number of blocks -----*/
   nb = 0;
   for (is = 0;  is < num_stimts;  is++)
@@ -729,7 +729,7 @@ void permute_array (int * design)
       design[i] = design[j];
       design[j] = temp;
     }
-      
+
   return;
 }
 
@@ -761,7 +761,7 @@ void shuffle_array (int * design)
       design[i] = design[j];
       design[j] = temp;
     }
-      
+
   return;
 }
 
@@ -793,10 +793,10 @@ void expand_array (int * darray, int * earray)
 	      earray[j] = m;
 	      j++;
 	      if (j >= NT)  break;
-	    }  
+	    }
 	}
     }
-      
+
   return;
 }
 
@@ -891,7 +891,7 @@ void write_many_ts (char * filename, int * design)
 	  if (design[it] == is+1)
 	    fprintf (outfile, "  %d", 1);
 	  else
-	    fprintf (outfile, "  %d", 0);	  
+	    fprintf (outfile, "  %d", 0);
       fprintf (outfile, " \n");
     }
 
@@ -936,8 +936,8 @@ void write_results (char * prefix, int * design, int NT)
 	      else                  array[i] = 0;
 	    }
 	  write_one_ts (filename, array);
-	}  
-      
+	}
+
       /*----- Deallocate memory -----*/
       free (array);   array = NULL;
     }
@@ -950,7 +950,7 @@ void write_results (char * prefix, int * design, int NT)
   Write permutation of input table.
 */
 
-void write_table 
+void write_table
 (
   char * prefix,                  /* prefix for output file */
   int * design,                   /* permutation array */
@@ -962,7 +962,7 @@ void write_table
   char filename[THD_MAX_NAME];    /* output file name */
   int nx, ny;                     /* dimensions of input table */
   int it, is, icol;               /* row and column indices */
-  float * far;                    /* pointer to input table float array */ 
+  float * far;                    /* pointer to input table float array */
 
 
   /*----- Assemble output file name -----*/
@@ -996,10 +996,10 @@ void write_table
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -1007,7 +1007,7 @@ int main
   int * earray = NULL;     /* expanded array (arbitrary block length) */
   MRI_IMAGE * flim = NULL; /* data structure containing input table */
 
- 
+
   machdep() ; mainENTRY("RSFgen") ;
 
   /*----- Perform program initialization -----*/
@@ -1027,9 +1027,9 @@ int main
       /*----- Generate required number of repetitions of stim. fns. -----*/
       fill_array (darray);
       if (!quiet)  sprint_array ("\nOriginal array: ", darray, nt);
-      
+
       /*----- Permute the stimulus functions -----*/
-      if (pseed)  
+      if (pseed)
 	{
 	  permute_array (darray);
 	  if (!quiet)  sprint_array ("\nPermuted array: ", darray, nt);
@@ -1041,14 +1041,14 @@ int main
 
     }
 
-  
+
   /*----- Expand the darray for block type designs -----*/
   expand_array (darray, earray);
   if (expand && (!quiet))  sprint_array ("\nExpanded array: ", earray, NT);
-  
+
 
   /*----- Output results -----*/
-  if (prefix != NULL)  
+  if (prefix != NULL)
     {
       if (flim == NULL)
 	write_results (prefix, earray, NT);
@@ -1061,7 +1061,7 @@ int main
   if (darray != NULL)  { free (darray);   darray = NULL; }
   if (earray != NULL)  { free (earray);   earray = NULL; }
   if (flim   != NULL)  { mri_free(flim);  flim = NULL; }
-  
+
   exit(0);
 }
 

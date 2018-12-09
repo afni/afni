@@ -9,7 +9,7 @@
 
    R. Reynolds                                             30 Aug 2007
 ******************************************************************************/
-   
+
 #include "NLfit_model.h"
 
 static int     refnum  = 0 ;     /* # pts in refts */
@@ -308,7 +308,7 @@ void gamma_model
   gsi = 1.0 / gs[3] ;
   if( do_scale ) fac = gs[0] * exp( gs[2] * ( 1.0 - log(gs[2]*gs[3]) ) ) ;
   else           fac = gs[0];
-  
+
   for( it=0;  it < ts_length;  it++){
      t = x_array[it][1] - gs[1] ;
      ts_array[it] = (t <= 0.0) ? 0.0

@@ -410,7 +410,7 @@ void*   myMalloc ( Int32 );
 --*/
 UChar    *block;    /*-- compress   --*/
 UInt16   *quadrant; /*-- compress   --*/
-Int32    *zptr;     /*-- compress   --*/ 
+Int32    *zptr;     /*-- compress   --*/
 UInt16   *szptr;    /*-- overlays zptr ---*/
 Int32    *ftab;     /*-- compress   --*/
 
@@ -450,7 +450,7 @@ Int32  blockSize100k;
 
 /*--
   Used when sorting.  If too many long comparisons
-  happen, we stop sorting, randomise the block 
+  happen, we stop sorting, randomise the block
   slightly, and try again.
 --*/
 
@@ -823,7 +823,7 @@ void bsPutIntVS ( Int32 numBits, UInt32 c )
 
 
 /*---------------------------------------------*/
-void hbMakeCodeLengths ( UChar *len, 
+void hbMakeCodeLengths ( UChar *len,
                          Int32 *freq,
                          Int32 alphaSize,
                          Int32 maxLen )
@@ -837,7 +837,7 @@ void hbMakeCodeLengths ( UChar *len,
 
    Int32 heap   [ MAX_ALPHA_SIZE + 2 ];
    Int32 weight [ MAX_ALPHA_SIZE * 2 ];
-   Int32 parent [ MAX_ALPHA_SIZE * 2 ]; 
+   Int32 parent [ MAX_ALPHA_SIZE * 2 ];
 
    for (i = 0; i < alphaSize; i++)
       weight[i+1] = (freq[i] == 0 ? 1 : freq[i]) << 8;
@@ -857,9 +857,9 @@ void hbMakeCodeLengths ( UChar *len,
          heap[nHeap] = i;
          UPHEAP(nHeap);
       }
-      if (!(nHeap < (MAX_ALPHA_SIZE+2))) 
+      if (!(nHeap < (MAX_ALPHA_SIZE+2)))
          panic ( "hbMakeCodeLengths(1)" );
-   
+
       while (nHeap > 1) {
          n1 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP(1);
          n2 = heap[1]; heap[1] = heap[nHeap]; nHeap--; DOWNHEAP(1);
@@ -882,7 +882,7 @@ void hbMakeCodeLengths ( UChar *len,
          len[i-1] = j;
          if (j > maxLen) tooLong = True;
       }
-      
+
       if (! tooLong) break;
 
       for (i = 1; i < alphaSize; i++) {
@@ -1017,7 +1017,7 @@ void allocateCompressStructures ( void )
       The back end needs a place to store the MTF values
       whilst it calculates the coding tables.  We could
       put them in the zptr array.  However, these values
-      will fit in a short, so we overlay szptr at the 
+      will fit in a short, so we overlay szptr at the
       start of zptr, in the hope of reducing the number
       of cache misses induced by the multiple traversals
       of the MTF values when calculating coding tables.
@@ -1111,7 +1111,7 @@ void generateMTFValues ( void )
    wr = 0;
    zPend = 0;
    for (i = 0; i < nInUse; i++) yy[i] = (UChar) i;
-   
+
 
    for (i = 0; i <= last; i++) {
       UChar ll_i;
@@ -1197,8 +1197,8 @@ void sendMTFValues ( void )
    Int32  fave[N_GROUPS];
 
    if (verbosity >= 3)
-      fprintf ( stderr, 
-                "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n", 
+      fprintf ( stderr,
+                "      %d in block, %d after MTF & 1-2 coding, %d+2 syms in use\n",
                 last+1, nMTF, nInUse );
 
    alphaSize = nInUse+2;
@@ -1213,7 +1213,7 @@ void sendMTFValues ( void )
                    nGroups = 6;
 
    /*--- Generate an initial set of coding tables ---*/
-   { 
+   {
       Int32 nPart, remF, tFreq, aFreq;
 
       nPart = nGroups;
@@ -1228,31 +1228,31 @@ void sendMTFValues ( void )
             aFreq += mtfFreq[ge];
          }
 
-         if (ge > gs 
-             && nPart != nGroups && nPart != 1 
+         if (ge > gs
+             && nPart != nGroups && nPart != 1
              && ((nGroups-nPart) % 2 == 1)) {
             aFreq -= mtfFreq[ge];
             ge--;
          }
 
          if (verbosity >= 3)
-            fprintf ( stderr, 
+            fprintf ( stderr,
                       "      initial group %d, [%d .. %d], has %d syms (%4.1f%%)\n",
-                              nPart, gs, ge, aFreq, 
+                              nPart, gs, ge, aFreq,
                               (100.0 * (float)aFreq) / (float)nMTF );
- 
+
          for (v = 0; v < alphaSize; v++)
-            if (v >= gs && v <= ge) 
+            if (v >= gs && v <= ge)
                len[nPart-1][v] = LESSER_ICOST; else
                len[nPart-1][v] = GREATER_ICOST;
- 
+
          nPart--;
          gs = ge+1;
          remF -= aFreq;
       }
    }
 
-   /*--- 
+   /*---
       Iterate up to N_ITERS times to improve the tables.
    ---*/
    for (iter = 0; iter < N_ITERS; iter++) {
@@ -1270,10 +1270,10 @@ void sendMTFValues ( void )
 
          /*--- Set group start & end marks. --*/
          if (gs >= nMTF) break;
-         ge = gs + G_SIZE - 1; 
+         ge = gs + G_SIZE - 1;
          if (ge >= nMTF) ge = nMTF-1;
 
-         /*-- 
+         /*--
             Calculate the cost of this group as coded
             by each of the coding tables.
          --*/
@@ -1282,7 +1282,7 @@ void sendMTFValues ( void )
          if (nGroups == 6) {
             register UInt16 cost0, cost1, cost2, cost3, cost4, cost5;
             cost0 = cost1 = cost2 = cost3 = cost4 = cost5 = 0;
-            for (i = gs; i <= ge; i++) { 
+            for (i = gs; i <= ge; i++) {
                UInt16 icv = szptr[i];
                cost0 += len[0][icv];
                cost1 += len[1][icv];
@@ -1294,13 +1294,13 @@ void sendMTFValues ( void )
             cost[0] = cost0; cost[1] = cost1; cost[2] = cost2;
             cost[3] = cost3; cost[4] = cost4; cost[5] = cost5;
          } else {
-            for (i = gs; i <= ge; i++) { 
+            for (i = gs; i <= ge; i++) {
                UInt16 icv = szptr[i];
                for (t = 0; t < nGroups; t++) cost[t] += len[t][icv];
             }
          }
- 
-         /*-- 
+
+         /*--
             Find the coding table which is best for this group,
             and record its identity in the selector table.
          --*/
@@ -1312,7 +1312,7 @@ void sendMTFValues ( void )
          selector[nSelectors] = bt;
          nSelectors++;
 
-         /*-- 
+         /*--
             Increment the symbol frequencies for the selected table.
           --*/
          for (i = gs; i <= ge; i++)
@@ -1321,8 +1321,8 @@ void sendMTFValues ( void )
          gs = ge+1;
       }
       if (verbosity >= 3) {
-         fprintf ( stderr, 
-                   "      pass %d: size is %d, grp uses are ", 
+         fprintf ( stderr,
+                   "      pass %d: size is %d, grp uses are ",
                    iter+1, totc/8 );
          for (t = 0; t < nGroups; t++)
             fprintf ( stderr, "%d ", fave[t] );
@@ -1372,19 +1372,19 @@ void sendMTFValues ( void )
       }
       if (maxLen > 20) panic ( "sendMTFValues(3)" );
       if (minLen < 1)  panic ( "sendMTFValues(4)" );
-      hbAssignCodes ( &code[t][0], &len[t][0], 
+      hbAssignCodes ( &code[t][0], &len[t][0],
                       minLen, maxLen, alphaSize );
    }
 
    /*--- Transmit the mapping table. ---*/
-   { 
+   {
       Bool inUse16[16];
       for (i = 0; i < 16; i++) {
           inUse16[i] = False;
           for (j = 0; j < 16; j++)
              if (inUse[i * 16 + j]) inUse16[i] = True;
       }
-     
+
       nBytes = bytesOut;
       for (i = 0; i < 16; i++)
          if (inUse16[i]) bsW(1,1); else bsW(1,0);
@@ -1394,7 +1394,7 @@ void sendMTFValues ( void )
             for (j = 0; j < 16; j++)
                if (inUse[i * 16 + j]) bsW(1,1); else bsW(1,0);
 
-      if (verbosity >= 3) 
+      if (verbosity >= 3)
          fprintf ( stderr, "      bytes: mapping %d, ", bytesOut-nBytes );
    }
 
@@ -1402,7 +1402,7 @@ void sendMTFValues ( void )
    nBytes = bytesOut;
    bsW ( 3, nGroups );
    bsW ( 15, nSelectors );
-   for (i = 0; i < nSelectors; i++) { 
+   for (i = 0; i < nSelectors; i++) {
       for (j = 0; j < selectorMtf[i]; j++) bsW(1,1);
       bsW(1,0);
    }
@@ -1431,9 +1431,9 @@ void sendMTFValues ( void )
    gs = 0;
    while (True) {
       if (gs >= nMTF) break;
-      ge = gs + G_SIZE - 1; 
+      ge = gs + G_SIZE - 1;
       if (ge >= nMTF) ge = nMTF-1;
-      for (i = gs; i <= ge; i++) { 
+      for (i = gs; i <= ge; i++) {
          #if DEBUG
             assert (selector[selCtr] < nGroups);
          #endif
@@ -1469,8 +1469,8 @@ void recvDecodingTables ( void )
 
    /*--- Receive the mapping table ---*/
    for (i = 0; i < 16; i++)
-      if (bsR(1) == 1) 
-         inUse16[i] = True; else 
+      if (bsR(1) == 1)
+         inUse16[i] = True; else
          inUse16[i] = False;
 
    for (i = 0; i < 256; i++) inUse[i] = False;
@@ -1496,7 +1496,7 @@ void recvDecodingTables ( void )
    {
       UChar pos[N_GROUPS], tmp, v;
       for (v = 0; v < nGroups; v++) pos[v] = v;
-   
+
       for (i = 0; i < nSelectors; i++) {
          v = selectorMtf[i];
          tmp = pos[v];
@@ -1525,7 +1525,7 @@ void recvDecodingTables ( void )
          if (len[t][i] > maxLen) maxLen = len[t][i];
          if (len[t][i] < minLen) minLen = len[t][i];
       }
-      hbCreateDecodeTables ( 
+      hbCreateDecodeTables (
          &limit[t][0], &base[t][0], &perm[t][0], &len[t][0],
          minLen, maxLen, alphaSize
       );
@@ -1605,7 +1605,7 @@ void getAndMoveToFrontDecode ( void )
 
          if (smallMode)
             while (s > 0) {
-               last++; 
+               last++;
                ll16[last] = ch;
                s--;
             }
@@ -1784,7 +1784,7 @@ void simpleSort ( Int32 lo, Int32 hi, Int32 d )
 
    for (; hp >= 0; hp--) {
       h = incs[hp];
-      if (verbosity >= 5) 
+      if (verbosity >= 5)
          fprintf ( stderr, "          shell increment %d\n", h );
 
       i = lo + h;
@@ -2156,58 +2156,58 @@ void sortIt ( void )
 /*---------------------------------------------------*/
 
 /*---------------------------------------------*/
-Int32 rNums[512] = { 
-   619, 720, 127, 481, 931, 816, 813, 233, 566, 247, 
-   985, 724, 205, 454, 863, 491, 741, 242, 949, 214, 
-   733, 859, 335, 708, 621, 574, 73, 654, 730, 472, 
-   419, 436, 278, 496, 867, 210, 399, 680, 480, 51, 
-   878, 465, 811, 169, 869, 675, 611, 697, 867, 561, 
-   862, 687, 507, 283, 482, 129, 807, 591, 733, 623, 
-   150, 238, 59, 379, 684, 877, 625, 169, 643, 105, 
-   170, 607, 520, 932, 727, 476, 693, 425, 174, 647, 
-   73, 122, 335, 530, 442, 853, 695, 249, 445, 515, 
-   909, 545, 703, 919, 874, 474, 882, 500, 594, 612, 
-   641, 801, 220, 162, 819, 984, 589, 513, 495, 799, 
-   161, 604, 958, 533, 221, 400, 386, 867, 600, 782, 
-   382, 596, 414, 171, 516, 375, 682, 485, 911, 276, 
-   98, 553, 163, 354, 666, 933, 424, 341, 533, 870, 
-   227, 730, 475, 186, 263, 647, 537, 686, 600, 224, 
-   469, 68, 770, 919, 190, 373, 294, 822, 808, 206, 
-   184, 943, 795, 384, 383, 461, 404, 758, 839, 887, 
-   715, 67, 618, 276, 204, 918, 873, 777, 604, 560, 
-   951, 160, 578, 722, 79, 804, 96, 409, 713, 940, 
-   652, 934, 970, 447, 318, 353, 859, 672, 112, 785, 
-   645, 863, 803, 350, 139, 93, 354, 99, 820, 908, 
-   609, 772, 154, 274, 580, 184, 79, 626, 630, 742, 
-   653, 282, 762, 623, 680, 81, 927, 626, 789, 125, 
-   411, 521, 938, 300, 821, 78, 343, 175, 128, 250, 
-   170, 774, 972, 275, 999, 639, 495, 78, 352, 126, 
-   857, 956, 358, 619, 580, 124, 737, 594, 701, 612, 
-   669, 112, 134, 694, 363, 992, 809, 743, 168, 974, 
-   944, 375, 748, 52, 600, 747, 642, 182, 862, 81, 
-   344, 805, 988, 739, 511, 655, 814, 334, 249, 515, 
-   897, 955, 664, 981, 649, 113, 974, 459, 893, 228, 
-   433, 837, 553, 268, 926, 240, 102, 654, 459, 51, 
-   686, 754, 806, 760, 493, 403, 415, 394, 687, 700, 
-   946, 670, 656, 610, 738, 392, 760, 799, 887, 653, 
-   978, 321, 576, 617, 626, 502, 894, 679, 243, 440, 
-   680, 879, 194, 572, 640, 724, 926, 56, 204, 700, 
-   707, 151, 457, 449, 797, 195, 791, 558, 945, 679, 
-   297, 59, 87, 824, 713, 663, 412, 693, 342, 606, 
-   134, 108, 571, 364, 631, 212, 174, 643, 304, 329, 
-   343, 97, 430, 751, 497, 314, 983, 374, 822, 928, 
-   140, 206, 73, 263, 980, 736, 876, 478, 430, 305, 
-   170, 514, 364, 692, 829, 82, 855, 953, 676, 246, 
-   369, 970, 294, 750, 807, 827, 150, 790, 288, 923, 
-   804, 378, 215, 828, 592, 281, 565, 555, 710, 82, 
-   896, 831, 547, 261, 524, 462, 293, 465, 502, 56, 
-   661, 821, 976, 991, 658, 869, 905, 758, 745, 193, 
-   768, 550, 608, 933, 378, 286, 215, 979, 792, 961, 
-   61, 688, 793, 644, 986, 403, 106, 366, 905, 644, 
-   372, 567, 466, 434, 645, 210, 389, 550, 919, 135, 
-   780, 773, 635, 389, 707, 100, 626, 958, 165, 504, 
-   920, 176, 193, 713, 857, 265, 203, 50, 668, 108, 
-   645, 990, 626, 197, 510, 357, 358, 850, 858, 364, 
+Int32 rNums[512] = {
+   619, 720, 127, 481, 931, 816, 813, 233, 566, 247,
+   985, 724, 205, 454, 863, 491, 741, 242, 949, 214,
+   733, 859, 335, 708, 621, 574, 73, 654, 730, 472,
+   419, 436, 278, 496, 867, 210, 399, 680, 480, 51,
+   878, 465, 811, 169, 869, 675, 611, 697, 867, 561,
+   862, 687, 507, 283, 482, 129, 807, 591, 733, 623,
+   150, 238, 59, 379, 684, 877, 625, 169, 643, 105,
+   170, 607, 520, 932, 727, 476, 693, 425, 174, 647,
+   73, 122, 335, 530, 442, 853, 695, 249, 445, 515,
+   909, 545, 703, 919, 874, 474, 882, 500, 594, 612,
+   641, 801, 220, 162, 819, 984, 589, 513, 495, 799,
+   161, 604, 958, 533, 221, 400, 386, 867, 600, 782,
+   382, 596, 414, 171, 516, 375, 682, 485, 911, 276,
+   98, 553, 163, 354, 666, 933, 424, 341, 533, 870,
+   227, 730, 475, 186, 263, 647, 537, 686, 600, 224,
+   469, 68, 770, 919, 190, 373, 294, 822, 808, 206,
+   184, 943, 795, 384, 383, 461, 404, 758, 839, 887,
+   715, 67, 618, 276, 204, 918, 873, 777, 604, 560,
+   951, 160, 578, 722, 79, 804, 96, 409, 713, 940,
+   652, 934, 970, 447, 318, 353, 859, 672, 112, 785,
+   645, 863, 803, 350, 139, 93, 354, 99, 820, 908,
+   609, 772, 154, 274, 580, 184, 79, 626, 630, 742,
+   653, 282, 762, 623, 680, 81, 927, 626, 789, 125,
+   411, 521, 938, 300, 821, 78, 343, 175, 128, 250,
+   170, 774, 972, 275, 999, 639, 495, 78, 352, 126,
+   857, 956, 358, 619, 580, 124, 737, 594, 701, 612,
+   669, 112, 134, 694, 363, 992, 809, 743, 168, 974,
+   944, 375, 748, 52, 600, 747, 642, 182, 862, 81,
+   344, 805, 988, 739, 511, 655, 814, 334, 249, 515,
+   897, 955, 664, 981, 649, 113, 974, 459, 893, 228,
+   433, 837, 553, 268, 926, 240, 102, 654, 459, 51,
+   686, 754, 806, 760, 493, 403, 415, 394, 687, 700,
+   946, 670, 656, 610, 738, 392, 760, 799, 887, 653,
+   978, 321, 576, 617, 626, 502, 894, 679, 243, 440,
+   680, 879, 194, 572, 640, 724, 926, 56, 204, 700,
+   707, 151, 457, 449, 797, 195, 791, 558, 945, 679,
+   297, 59, 87, 824, 713, 663, 412, 693, 342, 606,
+   134, 108, 571, 364, 631, 212, 174, 643, 304, 329,
+   343, 97, 430, 751, 497, 314, 983, 374, 822, 928,
+   140, 206, 73, 263, 980, 736, 876, 478, 430, 305,
+   170, 514, 364, 692, 829, 82, 855, 953, 676, 246,
+   369, 970, 294, 750, 807, 827, 150, 790, 288, 923,
+   804, 378, 215, 828, 592, 281, 565, 555, 710, 82,
+   896, 831, 547, 261, 524, 462, 293, 465, 502, 56,
+   661, 821, 976, 991, 658, 869, 905, 758, 745, 193,
+   768, 550, 608, 933, 378, 286, 215, 979, 792, 961,
+   61, 688, 793, 644, 986, 403, 106, 366, 905, 644,
+   372, 567, 466, 434, 645, 210, 389, 550, 919, 135,
+   780, 773, 635, 389, 707, 100, 626, 958, 165, 504,
+   920, 176, 193, 713, 857, 265, 203, 50, 668, 108,
+   645, 990, 626, 197, 510, 357, 358, 850, 858, 364,
    936, 638
 };
 
@@ -2403,12 +2403,12 @@ void undoReversibleTransformation_small ( FILE* dst )
                ch2 ^= (UInt32)RAND_MASK;
             }
             i2++;
-   
+
             if (dst)
                retVal = putc ( ch2, dst );
-   
+
             UPDATE_CRC ( localCrc, (UChar)ch2 );
-   
+
             if (ch2 != chPrev) {
                count = 1;
             } else {
@@ -2506,10 +2506,10 @@ void undoReversibleTransformation_fast ( FILE* dst )
             RAND_UPD_MASK;
             ch2 ^= (UInt32)RAND_MASK;
             i2++;
-   
+
             retVal = putc ( ch2, dst );
             UPDATE_CRC ( localCrc, (UChar)ch2 );
-   
+
             if (ch2 != chPrev) {
                count = 1;
             } else {
@@ -2536,10 +2536,10 @@ void undoReversibleTransformation_fast ( FILE* dst )
             chPrev = ch2;
             GET_FAST(ch2);
             i2++;
-   
+
             retVal = putc ( ch2, dst );
             UPDATE_CRC ( localCrc, (UChar)ch2 );
-   
+
             if (ch2 != chPrev) {
                count = 1;
             } else {
@@ -2756,7 +2756,7 @@ void compressStream ( FILE *stream, FILE *zStream )
    }
 
    if (verbosity >= 2 && nBlocksRandomised > 0)
-      fprintf ( stderr, "    %d block%s needed randomisation\n", 
+      fprintf ( stderr, "    %d block%s needed randomisation\n",
                         nBlocksRandomised,
                         nBlocksRandomised == 1 ? "" : "s" );
 
@@ -3085,10 +3085,10 @@ void cleanUpAndFail ( Int32 ec )
                    progName );
    }
    if (numFileNames > 0 && numFilesProcessed < numFileNames) {
-      fprintf ( stderr, 
+      fprintf ( stderr,
                 "%s: WARNING: some files have not been processed:\n"
                 "\t%d specified on command line, %d not processed yet.\n\n",
-                progName, numFileNames, 
+                progName, numFileNames,
                           numFileNames - numFilesProcessed );
    }
    exit ( ec );

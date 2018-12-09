@@ -1,6 +1,6 @@
-/* Adapted from obj_to_ply.c by Greg Turk. See copyright notice below 
+/* Adapted from obj_to_ply.c by Greg Turk. See copyright notice below
    Most of the direct ply conversion is taken out. */
-   
+
 /*
 
 Convert from Wavefront OBJ format to PLY format.
@@ -369,7 +369,7 @@ void make_face ( char **words, int nwords )
    fprintf(stderr,"Not ready to deal with non-triangular obj faces\n");
    exit(1);
   }
-     
+
   if ( max_faces == 0 )
   {
     max_faces = 200;
@@ -418,7 +418,7 @@ void make_face ( char **words, int nwords )
     }
     else
     {
-      fprintf (stderr, "Zero indices not allowed: (%d) '%s', '%s'\n", 
+      fprintf (stderr, "Zero indices not allowed: (%d) '%s', '%s'\n",
                        vindex, str_orig, words[i]);
       exit (-1);
     }

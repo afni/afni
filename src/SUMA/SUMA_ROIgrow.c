@@ -8,7 +8,7 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
       int i;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
 "\n"
 "Usage: ROIgrow <-i_TYPE SURF> <-roi_nodes ROI.1D> <-lim LIM>\n"
 "               [-prefix PREFIX]\n"
@@ -91,7 +91,7 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 "%s"
 "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -100,14 +100,14 @@ void usage_ROIgrow (SUMA_GENERIC_ARGV_PARSE *ps)
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
                char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_ROIgrow_ParseInput"}; 
+   static char FuncName[]={"SUMA_ROIgrow_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->out_prefix = NULL;
    Opt->in_nodeindices = NULL;
@@ -123,9 +123,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
 			 usage_ROIgrow(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -133,11 +133,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-roi_nodes") == 0))
       {
          if (kar+1 >= argc)
@@ -145,11 +145,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a parameter after -roi_nodes \n");
             exit (1);
          }
-         
+
          Opt->in_nodeindices = argv[++kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-roi_labels") == 0))
       {
          if (kar+1 >= argc)
@@ -157,11 +157,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a parameter after -roi_labels \n");
             exit (1);
          }
-         
+
          Opt->in_name = argv[++kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -169,11 +169,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a name after -prefix \n");
             exit (1);
          }
-         
+
          Opt->out_prefix = SUMA_Extension(argv[++kar],".1D", YUP);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-lim") == 0))
       {
          if (kar+1 >= argc)
@@ -181,12 +181,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a parameter after -lim \n");
             exit (1);
          }
-         
+
          Opt->b2 = 0;
          Opt->cog[0] = atof(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-insphere") == 0))
       {
          if (kar+1 >= argc)
@@ -194,12 +194,12 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need a parameter after -insphere \n");
             exit (1);
          }
-         
+
          Opt->b2 = 1;
          Opt->cog[0] = atof(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-inbox") == 0))
       {
          if (kar+3 >= argc)
@@ -207,14 +207,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
             fprintf (SUMA_STDERR, "need 3 parameters after -inbox \n");
             exit (1);
          }
-         
+
          Opt->b2 = 2;
          Opt->cog[0] = atof(argv[++kar]);
          Opt->cog[1] = atof(argv[++kar]);
          Opt->cog[2] = atof(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grow_from_edge") == 0))
       {
          Opt->PushToEdge = 1;
@@ -231,13 +231,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
                   "Try -help for usage\n", FuncName, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
-   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("ROIgrow"); 
+
+   if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("ROIgrow");
    if (Opt->cog[0] < 0) {
       fprintf (SUMA_STDERR,"-lim option not specified.");
       exit (1);
@@ -254,7 +254,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_ROIgrow_ParseInput(
    SUMA_RETURN(Opt);
 }
 
-byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO, 
+byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
                      int *nodeind, int N_nodeind,
                      float lim, int useedge)
 {
@@ -262,18 +262,18 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    byte *nmask = NULL;
    int N_CE, i, n, nj, *nodeindfast=NULL, *nodeindfastunq=NULL;
    SUMA_CONTOUR_EDGES *CE = NULL;
-   SUMA_GET_OFFSET_STRUCT *OffS = NULL; 
+   SUMA_GET_OFFSET_STRUCT *OffS = NULL;
    struct timeval start_time, start_time_all;
    float etime_GetOffset, etime_GetOffset_all;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!SO || !nodeind || lim <= 0) {
       SUMA_S_Err("Input error");
       SUMA_RETURN(nmask);
    }
-      
+
    SUMA_etime(&start_time_all,0);
 
    OffS = SUMA_Initialize_getoffsets (SO->N_Node);
@@ -281,7 +281,7 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    nmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
    if (useedge) { /* faster, perhaps, for larger ROIs*/
       SUMA_LH ("In edge growing mode!");
-      if ((CE = SUMA_GetContour( SO, nodeind, N_nodeind, &N_CE, 
+      if ((CE = SUMA_GetContour( SO, nodeind, N_nodeind, &N_CE,
                                  0, NULL, NULL, 1))) {
          if (N_CE > 0) {
             /* replace nodeind by nodes forming edges only*/
@@ -295,19 +295,19 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
             /* unique is what we want */
             nodeindfastunq = SUMA_UniqueInt(nodeindfast, 2*N_CE, &nj, 0);
             if (LocalHead) {
-               char *SS=SUMA_ShowMeSome(  nodeind, SUMA_int, 
+               char *SS=SUMA_ShowMeSome(  nodeind, SUMA_int,
                                           N_nodeind, N_nodeind, NULL);
-               SUMA_LHv("Nodes given:\n%s\n",SS); SUMA_free(SS); 
+               SUMA_LHv("Nodes given:\n%s\n",SS); SUMA_free(SS);
                SS=SUMA_ShowMeSome(nodeindfastunq, SUMA_int, nj, nj, NULL);
-               SUMA_LHv("Nodes seletcted:\n%s\n",SS); SUMA_free(SS); 
+               SUMA_LHv("Nodes seletcted:\n%s\n",SS); SUMA_free(SS);
             }
-            SUMA_free(nodeindfast); 
+            SUMA_free(nodeindfast);
             SUMA_free(CE); CE = NULL;
             SUMA_LHv("ROI is now to be grown from \n"
                          "%d rather than %d nodes.\n", nj, N_nodeind);
             /* fill up nmask with initial ROI first */
             for (i=0; i<N_nodeind; ++i) { nmask[nodeind[i]] = 1; }
-            /* now pretend all you have is edges nodes */ 
+            /* now pretend all you have is edges nodes */
             nodeind = nodeindfastunq;
             N_nodeind = nj;
          }
@@ -316,7 +316,7 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
    for (i=0; i<N_nodeind; ++i) {
       n = nodeind[i];
       nmask[n] = 1;
-      if (LocalHead) 
+      if (LocalHead)
          fprintf(SUMA_STDERR,
                   "%s: Calculating offsets from node %d\n",FuncName, n);
       if (i == 0) {
@@ -331,32 +331,32 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
                   FuncName, lim, etime_GetOffset, i+1,
                   etime_GetOffset * N_nodeind / 60.0 / (i+1));
       }
-      
+
       /* go over all nodes in offset */
       for (nj=0; nj < OffS->N_Nodes; nj++) { /* nj is a node index */
          if (OffS->LayerVect[nj] > 0) { /* nj is in the neighborhood of n */
             if (!nmask[nj]) { /* there's potential */
                if (OffS->OffVect[nj] <=lim) { /* within the limit */
                   nmask[nj] = 1;
-               }   
+               }
             }
          }
       }
-      
-      if (LocalHead) 
+
+      if (LocalHead)
          fprintf(SUMA_STDERR,"%s: Recycling OffS\n", FuncName);
       SUMA_Recycle_getoffsets (OffS);
       if (LocalHead)
          fprintf(SUMA_STDERR,"%s: Done.\n", FuncName);
-   
+
    }
    etime_GetOffset_all = SUMA_etime(&start_time_all,1);
-   if (LocalHead) 
-      fprintf(SUMA_STDERR, 
+   if (LocalHead)
+      fprintf(SUMA_STDERR,
          "%s: Done.\nSearch to %f mm took %f minutes for %d nodes.\n" ,
          FuncName, lim, etime_GetOffset_all / 60.0 , SO->N_Node);
    SUMA_Free_getoffsets(OffS);
-   
+
    if (nodeindfastunq) SUMA_free(nodeindfastunq); nodeindfastunq = NULL;
    SUMA_RETURN(nmask);
 }
@@ -391,9 +391,9 @@ byte * SUMA_ROIgrow( SUMA_SurfaceObject *SO,
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"ROIgrow"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"ROIgrow"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    byte *nmask=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
@@ -412,21 +412,21 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-spec;-t;-s;");
-   
+
    if (argc < 2) {
       usage_ROIgrow(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_ROIgrow_ParseInput (argv, argc, ps);
 
-   
+
    outname = SUMA_append_string(Opt->out_prefix,".1D");
    if (!THD_ok_overwrite() && SUMA_filexists(outname)) {
       fprintf(SUMA_STDERR,"Output file %s exists.\n", outname);
       exit(1);
    }
-   
+
    if (Opt->debug > 2) LocalHead = YUP;
    /* Load the surfaces from command line*/
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
@@ -439,7 +439,7 @@ int main (int argc,char *argv[])
       SUMA_S_Err("1 surface expected.");
       exit(1);
    }
-   
+
    SO = SUMA_Load_Spec_Surf(Spec, 0, ps->sv[0], 0);
    if (!SO) {
          fprintf (SUMA_STDERR,"Error %s:\n"
@@ -448,12 +448,12 @@ int main (int argc,char *argv[])
                               FuncName );
          exit(1);
    }
-   if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|MemberFace", 
+   if (!SUMA_SurfaceMetrics_eng(SO, "EdgeList|MemberFace",
                                  NULL, 0, SUMAg_CF->DsetList)) {
-      SUMA_SL_Err("Failed to create edge list for SO"); 
-      exit(1);  
+      SUMA_SL_Err("Failed to create edge list for SO");
+      exit(1);
    }
-   if (LocalHead) { 
+   if (LocalHead) {
       SUMA_LH("Surf");
       SUMA_Print_Surface_Object(SO, NULL);
    }
@@ -470,24 +470,24 @@ int main (int argc,char *argv[])
          SUMA_S_Errv(
             "Node indices dset (%s) has more than one column.\n",
             Opt->in_nodeindices);
-         exit(1);   
+         exit(1);
       }
       if (!(nodeind = SUMA_DsetCol2Int(inds_dset, 0, 1))) {
          SUMA_S_Err("Failed to extract nodeindices");
          exit(1);
       }
-      N_nodeind = SDSET_VECFILLED(inds_dset); 
-      
-      for (i=0;i<N_nodeind;++i) { 
+      N_nodeind = SDSET_VECFILLED(inds_dset);
+
+      for (i=0;i<N_nodeind;++i) {
          if (nodeind[i] < 0 || nodeind[i] >= SO->N_Node) {
             fprintf(
-               SUMA_STDERR, 
+               SUMA_STDERR,
                "Error %s: A node index of %d was found in dset %s row %d.\n"
-               "Acceptable indices are positive and less than %d\n", 
+               "Acceptable indices are positive and less than %d\n",
                FuncName, nodeind[i], Opt->in_nodeindices, i, SO->N_Node);
             exit(1);
          }
-      } 
+      }
    }
 
    nodelabels = NULL; N_nodelabels = 0;
@@ -510,9 +510,9 @@ int main (int argc,char *argv[])
             nodeind = (int *)SUMA_calloc(N_nodeind, sizeof(int));
             for (i=0;i<N_nodeind;++i) {
                nodelabels[i] = nodeind[i] = i;
-            } 
+            }
          }
-      } else {  
+      } else {
          if (!(lbls_dset = SUMA_LoadDset_s(Opt->in_name, &form, 0))) {
             SUMA_S_Errv("Failed to load -roi_labels %s\n", Opt->in_name);
             exit(1);
@@ -521,7 +521,7 @@ int main (int argc,char *argv[])
             SUMA_S_Errv(
                "Node labels dset (%s) has more than one column.\n",
                Opt->in_name);
-            exit(1);   
+            exit(1);
          }
          if (!(nodelabels = SUMA_DsetCol2Int(lbls_dset, 0, 1))) {
             SUMA_S_Err("Failed to extract nodelabels");
@@ -537,13 +537,13 @@ int main (int argc,char *argv[])
          }
       }
    }
-   
-   if (nodelabels) {   
+
+   if (nodelabels) {
       if (N_nodelabels != N_nodeind) {
          SUMA_S_Err("number of labels differs from number of node indices");
          exit(1);
       }
-      
+
       /* grow each label separately */
       if (!(lbls =  SUMA_UniqueInt (  nodelabels, N_nodelabels, &N_lbls, 0))) {
          SUMA_S_Crit("Failed to uniquate");
@@ -554,7 +554,7 @@ int main (int argc,char *argv[])
       for (i=0; i<N_lbls; ++i) {
          if (lbls[i]) {
             /* make a copy of nodeind */
-            if (!(nodeind_tmp = 
+            if (!(nodeind_tmp =
                   (int *)SUMA_calloc(N_nodelabels, sizeof(int)))) {
                SUMA_S_Crit("Failed to allocate");
                exit(1);
@@ -571,7 +571,7 @@ int main (int argc,char *argv[])
                case 0:
                   SUMA_LHv("Processing label %d, %d nodes, growing mode %f.\n",
                            lbls[i], N_nodeind_tmp, Opt->cog[0]);
-                  if (!(nmask = SUMA_ROIgrow(SO, nodeind_tmp, 
+                  if (!(nmask = SUMA_ROIgrow(SO, nodeind_tmp,
                                              N_nodeind_tmp, Opt->cog[0],
                                              Opt->PushToEdge))) {
                      SUMA_S_Err("Failed in SUMA_ROIgrow");
@@ -585,7 +585,7 @@ int main (int argc,char *argv[])
                            lbls[i], N_nodeind_tmp, Opt->cog[0]);
                   for (j=0; j<N_nodeind_tmp; ++j) {
                      cent = SO->NodeList+(SO->NodeDim*nodeind_tmp[j]);
-                     if (!(nmask = 
+                     if (!(nmask =
                               SUMA_nodesinsphere2_bm(SO->NodeList, SO->N_Node,
                                              cent, Opt->cog[0]/2.0, nmask))) {
                         SUMA_S_Err("Failed in SUMA_nodesinsphere2_bm");
@@ -597,11 +597,11 @@ int main (int argc,char *argv[])
                   if (nmask) SUMA_free(nmask); nmask=NULL;
                   SUMA_LHv("Processing label %d, %d nodes, "
                            "isinbox mode edges %f %f %f.\n",
-                           lbls[i], N_nodeind_tmp, 
+                           lbls[i], N_nodeind_tmp,
                            Opt->cog[0], Opt->cog[1],Opt->cog[2]);
                   for (j=0; j<N_nodeind_tmp; ++j) {
                      cent = SO->NodeList+(SO->NodeDim*nodeind_tmp[j]);
-                     if (!(nmask = 
+                     if (!(nmask =
                               SUMA_nodesinbox2_bm(SO->NodeList, SO->N_Node,
                                                   cent, Opt->cog, nmask))) {
                         SUMA_S_Err("Failed in SUMA_nodesinbox2_bm");
@@ -611,11 +611,11 @@ int main (int argc,char *argv[])
                   break;
                default:
                   SUMA_S_Errv("Groing mode of %d not good.\n", Opt->b2);
-                  exit(1);             
+                  exit(1);
             }
             SUMA_WRITE_GROWN_MASK(lbls[i]);
-            SUMA_free(nmask); nmask=NULL; 
-            SUMA_free(nodeind_tmp); nodeind_tmp = NULL;   
+            SUMA_free(nmask); nmask=NULL;
+            SUMA_free(nodeind_tmp); nodeind_tmp = NULL;
          }
       }
       SUMA_free(lbls); lbls = NULL;
@@ -623,7 +623,7 @@ int main (int argc,char *argv[])
       switch (Opt->b2) {
          case 0:
             if (!(nmask = SUMA_ROIgrow(SO, nodeind,
-                                       N_nodeind, Opt->cog[0], 
+                                       N_nodeind, Opt->cog[0],
                                        Opt->PushToEdge))) {
                SUMA_S_Err("Failed in SUMA_ROIgrow");
                exit(1);
@@ -643,7 +643,7 @@ int main (int argc,char *argv[])
          case 2:
             for (j=0; j<N_nodeind; ++j) {
                cent = SO->NodeList+(SO->NodeDim*nodeind[j]);
-               if (!(nmask = 
+               if (!(nmask =
                         SUMA_nodesinbox2_bm(SO->NodeList, SO->N_Node,
                                             cent, Opt->cog, nmask))) {
                   SUMA_S_Err("Failed in SUMA_nodesinbox2_bm");
@@ -653,17 +653,17 @@ int main (int argc,char *argv[])
             break;
          default:
             SUMA_S_Errv("Groing mode of %d not good.\n", Opt->b2);
-            exit(1);         
+            exit(1);
       }
-      SUMA_WRITE_GROWN_MASK(-1);  
+      SUMA_WRITE_GROWN_MASK(-1);
    }
 
-   
+
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
-            SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) {
+            SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
@@ -675,8 +675,8 @@ int main (int argc,char *argv[])
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
    if (lbls_dset) SUMA_FreeDset(lbls_dset); lbls_dset = NULL;
    if (inds_dset) SUMA_FreeDset(inds_dset); inds_dset = NULL;
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
-   
-} 
+
+}

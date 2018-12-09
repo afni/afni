@@ -44,17 +44,17 @@ static int   max_conn_int   = 2;
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( SI_error ("Cannot allocate memory") )
-     
+
 /*---------------------------------------------------------------------------*/
 /*
   Forward declarations
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   char * filename                   /* name of output file */
 );
-     
+
 /*---------------------------------------------------------------------------*/
 
 

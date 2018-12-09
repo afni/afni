@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef FD2_OVER_FIM
 #define FD2_OVER_FIM
 
@@ -20,7 +20,7 @@
 #   define INIT(x) x
 #else
 #   define EXT extern
-#   define INIT(x) 
+#   define INIT(x)
 #endif
 
 EXT int RWC_do_overfim INIT(= 0) ;    /* flag to do fim overlay */

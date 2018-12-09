@@ -144,7 +144,7 @@ sqrmat * sm_identity(int n)
   sqrmat *i_mat;
   double *mat;
   int i;
-  
+
   INIT_SQRMAT(i_mat, n);
   mat = i_mat->mat;
   for(i=0;i<n;i++) {
@@ -158,7 +158,7 @@ sqrmat * sm_identity(int n)
 /* equals the trace of the product */
 double sm_dot(sqrmat *A, sqrmat *B)
 {
-   int n=A->n , i,j; 
+   int n=A->n , i,j;
    double *mat,*nat;
    double sum = 0.0;
    mat = A->mat ; nat = B->mat ;
@@ -174,7 +174,7 @@ double sm_dot(sqrmat *A, sqrmat *B)
 /* trace = sum of diagonal elements */
 double sm_trace(sqrmat *A)
 {
-   int n=A->n , i; 
+   int n=A->n , i;
    double *mat;
    double sum = 0.0;
    mat = A->mat ;
@@ -193,18 +193,18 @@ sqrmat * sm_scale(sqrmat *A, double sc_factor, int newmatrix)
    int n=A->n, i, j;
    double *mat, *nat;
    sqrmat *B = NULL;
-   
+
    mat = A->mat;
    if(newmatrix) {
        INIT_SQRMAT(B,n);
        nat = B->mat;
-   }   
+   }
    else
        nat = mat;
    for(i=0;i<n;i++)
       for(j=0;j<n;j++)
           NAT(i,j) = sc_factor * MAT(i,j);
- 
+
    return(B);
 }
 

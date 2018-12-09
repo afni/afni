@@ -2,7 +2,7 @@
 static char rcsId[]="$Header$";
 #endif
 /*****
-* format.c : XmHTML formatting routines: translates parsed HTML to 	info 
+* format.c : XmHTML formatting routines: translates parsed HTML to 	info
 *			required for displaying a HTML page.
 *
 * This file Version	$Revision$
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -75,8 +75,8 @@ static char rcsId[]="$Header$";
 * Placed a large number of warnings between a #ifdef PEDANTIC/#endif
 *
 * Revision 1.10  1997/03/28 07:12:43  newt
-* Fixed buffer overrun in TexToPre. 
-* Fixed font resolution: x and y resolution are now always equal. 
+* Fixed buffer overrun in TexToPre.
+* Fixed font resolution: x and y resolution are now always equal.
 * XmHTML now ignores the ending body tag.
 *
 * Revision 1.9  1997/03/20 08:10:04  newt
@@ -90,16 +90,16 @@ static char rcsId[]="$Header$";
 * ?
 *
 * Revision 1.6  1997/03/02 23:17:46  newt
-* Way too many changes. Most important: font loading/switching scheme; anchor 
+* Way too many changes. Most important: font loading/switching scheme; anchor
 * treatment; image/imagemap treatment
 *
 * Revision 1.5  1997/02/11 02:08:44  newt
-* Way to many. Anchor treatment has been changed completely. 
+* Way to many. Anchor treatment has been changed completely.
 * Bugfixes in anchor parsing. Potential buffer overruns eliminated.
 *
 * Revision 1.4  1997/02/04 02:56:49  newt
-* Bugfix in LoadQueryFont. 
-* Added code to deal with the basefont element. 
+* Bugfix in LoadQueryFont.
+* Added code to deal with the basefont element.
 * Changed the font element handling.
 *
 * Revision 1.3  1997/01/09 06:55:39  newt
@@ -111,7 +111,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:10  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -148,7 +148,7 @@ typedef struct{
 /*** Private Function Prototype Declarations ****/
 
 /****
-* Formatting routines 
+* Formatting routines
 *****/
 
 /* Release the formatted element table */
@@ -168,12 +168,12 @@ static String CopyText(XmHTMLWidget html, String text, Boolean formatted,
 static void CollapseWhiteSpace(String text);
 
 /* Split raw text into an array of words */
-static XmHTMLWord* TextToWords(String text, int *num_words, Dimension *height, 
+static XmHTMLWord* TextToWords(String text, int *num_words, Dimension *height,
 	XmHTMLfont *font, Byte line_data, Byte text_data,
 	XmHTMLObjectTableElement owner, ToolkitAbstraction *tka);
 
 /* Split an image into an array of words ;-) */
-static XmHTMLWord *ImageToWord(XmHTMLWidget html, String attributes, 
+static XmHTMLWord *ImageToWord(XmHTMLWidget html, String attributes,
 	int *num_words, Dimension *height, XmHTMLObjectTableElement owner,
 	Boolean formatted, ToolkitAbstraction *tka, Boolean is_anchor,
 	Byte text_data);
@@ -182,7 +182,7 @@ static XmHTMLWord *allocFormWord(XmHTMLWidget html, XmHTMLForm *form,
 	Dimension *width, Dimension *height, XmHTMLObjectTableElement owner,
 	Boolean formatted);
 
-static XmHTMLWord *InputToWord(XmHTMLWidget html, String attributes, 
+static XmHTMLWord *InputToWord(XmHTMLWidget html, String attributes,
 	int *num_words, Dimension *width, Dimension *height,
 	XmHTMLObjectTableElement owner, Boolean formatted);
 
@@ -201,13 +201,13 @@ static XmHTMLWord *MakeDummyWord(Dimension *height, XmHTMLfont *font,
 	Byte line_data, XmHTMLObjectTableElement owner);
 
 /* Split raw text into a chunk of preformatted lines */
-static XmHTMLWord *TextToPre(String text, int *num_words, XmHTMLfont *font, 
+static XmHTMLWord *TextToPre(String text, int *num_words, XmHTMLfont *font,
 	Byte line_data, XmHTMLObjectTableElement owner, ToolkitAbstraction *tka,
 	int tabwidth);
- 
+
 /* Insert a horizontal tab */
-static XmHTMLWord* SetTab(int size, Dimension *height, XmHTMLfont *font, 
-	XmHTMLObjectTableElement owner, ToolkitAbstraction *tka);  
+static XmHTMLWord* SetTab(int size, Dimension *height, XmHTMLfont *font,
+	XmHTMLObjectTableElement owner, ToolkitAbstraction *tka);
 
 /* Initialize a bullet (a real bullet or some number) */
 static void FillBullet(XmHTMLWidget html, XmHTMLObjectTableElement owner,
@@ -260,7 +260,7 @@ static void ParseBodyTags(XmHTMLWidget html, XmHTMLObject *data);
 static int CheckLineFeed(int op, Boolean force, Byte *text_data);
 
 /* split the given anchor spec into a href, target and other stuff */
-static void parseHref(String text, XmHTMLAnchor *anchor); 
+static void parseHref(String text, XmHTMLAnchor *anchor);
 
 /*** Private Variable Declarations ***/
 /* Element data bits */
@@ -312,7 +312,7 @@ static int allocated;
 * Return Type: 	MACRO
 * Description: 	creates a XmHTMLObjectTableElement and fills it.
 *				Macro for obvious perfomance reasons.
-* In: 
+* In:
 *	ELEMENT:	element to be allocated
 *	data:		raw data for this element.
 * Returns:
@@ -342,7 +342,7 @@ static int allocated;
 * Return Type: 	MACRO
 * Description: 	inserts a given formatted element in the list of elements.
 *				Macro for obvious perfomance reasons.
-* In: 
+* In:
 *	element:	element to add
 *	is_anchor:	true if this element is an anchor.
 * Returns:
@@ -372,7 +372,7 @@ static int allocated;
 * Name: 		parseHref
 * Return Type: 	void
 * Description: 	returns the url specification found in the given anchor.
-* In: 
+* In:
 *	text:		full anchor spec.
 *	href:		url found in given anchor. Filled upon return.
 *	target:		any target attribute found. Filled upon return.
@@ -381,7 +381,7 @@ static int allocated;
 *	nothing.
 *****/
 static void
-parseHref(String text, XmHTMLAnchor *anchor) 
+parseHref(String text, XmHTMLAnchor *anchor)
 {
 	if(text == NULL ||
 		(anchor->href = _XmHTMLTagGetValue(text, "href")) == NULL)
@@ -411,7 +411,7 @@ parseHref(String text, XmHTMLAnchor *anchor)
 * Name: 		FreeObjectTable
 * Return Type: 	void
 * Description: 	releases all memory occupied by the formatted list of elements.
-* In: 
+* In:
 *	list:		previous list to be released.
 * Returns:
 *	nothing.
@@ -419,7 +419,7 @@ parseHref(String text, XmHTMLAnchor *anchor)
 *	Images are freed in XmHTML.c, which calls XmHTMLFreeAllImages to do the
 *	job.
 *****/
-static void 
+static void
 FreeObjectTable(XmHTMLObjectTable *list)
 {
 	XmHTMLObjectTableElement temp;
@@ -438,7 +438,7 @@ FreeObjectTable(XmHTMLObjectTable *list)
 		/* free list of words. Can't be done above, <pre> doesn't have this! */
 		if(list->n_words)
 		{
-			/* 
+			/*
 			* only the first word contains a valid ptr, all others point to
 			* some char in this buffer, so freeing them *will* cause a
 			* segmentation fault eventually.
@@ -461,7 +461,7 @@ FreeObjectTable(XmHTMLObjectTable *list)
 * Name:			freeTables
 * Return Type: 	void
 * Description: 	frees all data allocated for HTML table support.
-* In: 
+* In:
 *	table:		list of tables to be freed.
 * Returns:
 *	nothing.
@@ -510,7 +510,7 @@ freeTables(XmHTMLTable *table)
 * Name: 		FreeAnchors
 * Return Type: 	void
 * Description: 	frees the memory occupied by the anchor data
-* In: 
+* In:
 *	anchors:	list of anchors to be freed
 * Returns:
 *	nothing.
@@ -543,7 +543,7 @@ FreeAnchors(XmHTMLAnchor *anchors)
 		anchors = tmp;
 		i++;
 	}
-	_XmHTMLDebug(2, ("format.c: FreeAnchors, freed %i XmHTMLAnchor objects\n", 
+	_XmHTMLDebug(2, ("format.c: FreeAnchors, freed %i XmHTMLAnchor objects\n",
 		i));
 }
 
@@ -551,7 +551,7 @@ FreeAnchors(XmHTMLAnchor *anchors)
 * Name: 		InitObjectTable
 * Return Type: 	void
 * Description: 	initializes the list of formatted elements.
-* In: 
+* In:
 *	list:		previous list to be released.
 * Returns:
 *	nothing
@@ -590,7 +590,7 @@ InitObjectTable(XmHTMLObjectTable *list, XmHTMLAnchor *anchors)
 * Name: 		CollapseWhiteSpace
 * Return Type: 	void
 * Description: 	collapses whitespace in the given text
-* In: 
+* In:
 *	text:		text for which multiple whitespace has to be collapsed.
 * Returns:
 *	nothing, but text is updated when this function returns.
@@ -603,7 +603,7 @@ CollapseWhiteSpace(String text)
 	int n = 1;
 #endif	/* I18N */
 
-	/* 
+	/*
 	* We only collapse valid text and text that contains more than whitespace
 	* only. This should never be true since CopyText will filter these
 	* things out. It's just here for sanity.
@@ -636,7 +636,7 @@ CollapseWhiteSpace(String text)
 				/* fall through */
 			case ' ':
 				/* skip past first space */
-				*(outPtr++) = *(text++);	
+				*(outPtr++) = *(text++);
 #ifdef I18N
 				n = mblen((char*)text, (size_t)(strlen(text)));
 				while(n == 1 && *text != '\0' && isspace(*text))
@@ -677,15 +677,15 @@ CollapseWhiteSpace(String text)
 * Name: 		TextToWords
 * Return Type: 	XmHTMLWord*
 * Description: 	splits the given text into an array of words.
-* In: 
+* In:
 *	text:		text to split
 *	num_words:	number of words in the given text. Filled upon return;
 *	font:		font to use for this text.
 * Returns:
 *	an array of words. When allocation fails, this routine exits.
 *****/
-static XmHTMLWord* 
-TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font, 
+static XmHTMLWord*
+TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font,
 	Byte line_data, Byte text_data, XmHTMLObjectTableElement owner,
 	ToolkitAbstraction *tka)
 {
@@ -741,7 +741,7 @@ TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font,
 #ifdef I18N
 
 			/*****
-			* Possible multibyte input, use multibyte functions to 
+			* Possible multibyte input, use multibyte functions to
 			* determine correct size of this word.
 			*****/
 			if(font->type == XmHTML_FONTSET)
@@ -789,7 +789,7 @@ TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font,
 		if(*chPtr == '\0')
 			break;
 	}
-	/* 
+	/*
 	* when there is more than one word in this block, the first word
 	* _always_ has a trailing space.
 	* Likewise, the last word always has a leading space.
@@ -807,14 +807,14 @@ TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font,
 	_XmHTMLFullDebug(2, ("format.c: TextToWords counted %i words\n", n_words));
 
 	*num_words = i; /* n_words */;
-	return(words);	
+	return(words);
 }
 
 /*****
 * Name: 		ImageToWord
 * Return Type: 	XmHTMLWord*
 * Description: 	converts an image to a word
-* In: 
+* In:
 *	w:			XmHTMLWidget id
 *	attributes:	raw <img> specification
 *	height:		object height, updated upon return
@@ -826,7 +826,7 @@ TextToWords(String text, int *num_words, Dimension *height, XmHTMLfont *font,
 *	a word representing the image
 *****/
 static XmHTMLWord*
-ImageToWord(XmHTMLWidget html, String attributes, int *num_words, 
+ImageToWord(XmHTMLWidget html, String attributes, int *num_words,
 	Dimension *height, XmHTMLObjectTableElement owner, Boolean formatted,
 	ToolkitAbstraction *tka, Boolean is_anchor, Byte text_data)
 {
@@ -837,7 +837,7 @@ ImageToWord(XmHTMLWidget html, String attributes, int *num_words,
 	*num_words = 0;
 
 	/* sanity check */
-	if(attributes == NULL || 
+	if(attributes == NULL ||
 		(image = _XmHTMLNewImage(html, attributes, &width, height)) == NULL)
 	{
 		*height = 0;
@@ -904,7 +904,7 @@ ImageToWord(XmHTMLWidget html, String attributes, int *num_words,
 * Name:			allocFormWord
 * Return Type: 	XmHTMLWord*
 * Description: 	allocates a default XmHTMLWord for use within a HTML form.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	form:		form entry for which this word should be allocated;
 *	*width:		object's width, updated upon return;
@@ -942,7 +942,7 @@ allocFormWord(XmHTMLWidget html, XmHTMLForm *form, Dimension *width,
 * Name: 		InputToWord
 * Return Type: 	XmHTMLWord*
 * Description: 	converts a HTML form <input> element to a word
-* In: 
+* In:
 *	w:			XmHTMLWidget id
 *	attributes:	raw form element specification
 *	width:		object width, updated upon return
@@ -953,7 +953,7 @@ allocFormWord(XmHTMLWidget html, XmHTMLForm *form, Dimension *width,
 *	a word representing the image
 *****/
 static XmHTMLWord*
-InputToWord(XmHTMLWidget html, String attributes, int *num_words, 
+InputToWord(XmHTMLWidget html, String attributes, int *num_words,
 	Dimension *width, Dimension *height, XmHTMLObjectTableElement owner,
 	Boolean formatted)
 {
@@ -1006,7 +1006,7 @@ InputToWord(XmHTMLWidget html, String attributes, int *num_words,
 * Return Type: 	XmHTMLWord*
 * Description:	converts a HTML form <select></select> to a HTMLWord.
 *				Also processes any <option></option> items within this select.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	start:		object at which <select> starts;
 *	*num_words:	no of words allocated. Updated upon return;
@@ -1018,7 +1018,7 @@ InputToWord(XmHTMLWidget html, String attributes, int *num_words,
 *	a newly allocated word upon success. NULL on failure.
 *****/
 static XmHTMLWord*
-SelectToWord(XmHTMLWidget html, XmHTMLObject *start, int *num_words, 
+SelectToWord(XmHTMLWidget html, XmHTMLObject *start, int *num_words,
 	Dimension *width, Dimension *height, XmHTMLObjectTableElement owner,
 	Boolean formatted)
 {
@@ -1102,7 +1102,7 @@ SelectToWord(XmHTMLWidget html, XmHTMLObject *start, int *num_words,
 * Name:			TextAreaToWord
 * Return Type: 	XmHTMLWord*
 * Description:	converts a HTML form <textarea> to a HTMLWord.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	start:		object at which <textarea> starts;
 *	*num_words:	no of words allocated. Updated upon return;
@@ -1161,14 +1161,14 @@ TextAreaToWord(XmHTMLWidget html, XmHTMLObject *start, int *num_words,
 * Return Type: 	XmHTMLWord
 * Description: 	creates a prefix for numbered lists with the ISINDEX
 *				attribute set.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	list_stack:	stack of all lists;
 *	current...:	current list id;
 *	owner:		owning element.
 *	formatted:	true when this form component is placed in a <pre></pre> tag.
 * Returns:
-*	a newly allocated word.	
+*	a newly allocated word.
 * Note:
 *	This routine creates the prefix based on the type and depth of the
 *	current list. All types can be intermixed, so this routine is capable
@@ -1176,7 +1176,7 @@ TextAreaToWord(XmHTMLWidget html, XmHTMLObject *start, int *num_words,
 *	the first with type `1', second with type `A', third with type `I',
 *	fourth with type `a' and fifth with type `i'.
 *****/
-static XmHTMLWord* 
+static XmHTMLWord*
 indexToWord(XmHTMLWidget html, listStack list_stack[], int current_list,
 	XmHTMLObjectTableElement owner, Boolean formatted)
 {
@@ -1193,10 +1193,10 @@ indexToWord(XmHTMLWidget html, listStack list_stack[], int current_list,
 		{
 			switch(list_stack[i].marker)
 			{
-				case XmMARKER_ALPHA_LOWER: 
+				case XmMARKER_ALPHA_LOWER:
 					sprintf(number, "%s.", ToAsciiLower(list_stack[i].level));
 					break;
-				case XmMARKER_ALPHA_UPPER: 
+				case XmMARKER_ALPHA_UPPER:
 					sprintf(number, "%s.", ToAsciiUpper(list_stack[i].level));
 					break;
 				case XmMARKER_ROMAN_LOWER:
@@ -1234,7 +1234,7 @@ indexToWord(XmHTMLWidget html, listStack list_stack[], int current_list,
 * Name: 		TextToPre
 * Return Type: 	XmHTMLWord*
 * Description: 	splits the given text into an array of preformatted lines
-* In: 
+* In:
 *	text:		text to split
 *	num_words:	number of words in the given text. Filled upon return;
 *	font:		font to use for this text.
@@ -1246,8 +1246,8 @@ indexToWord(XmHTMLWidget html, listStack list_stack[], int current_list,
 *	text with whatever formatting. It is only reset if an explicit newline
 *	is encountered.
 *****/
-static XmHTMLWord* 
-TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data, 
+static XmHTMLWord*
+TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data,
 	XmHTMLObjectTableElement owner, ToolkitAbstraction *tka, int tabwidth)
 {
 	int nwords, len, i, j, ntabs, max_width, in_word, size, nfeeds;
@@ -1265,16 +1265,16 @@ TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data,
 		*num_words = 0;
 		return(NULL);
 	}
- 
+
 	_XmHTMLFullDebug(2, ("format.c: TextToPre, text in is:\n%s\n", text));
 
 	chPtr = text;
 	raw = NULL;
 
-	/***** 
+	/*****
 	* compute how many words we have. A preformatted word is started
 	* with a printing char and is terminated by either a newline or a
-	* sequence of whitespaces. Multiple newlines are collapsed into a 
+	* sequence of whitespaces. Multiple newlines are collapsed into a
 	* single word where the height of the word indicates the number of
 	* newlines to insert.
 	*****/
@@ -1350,7 +1350,7 @@ TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data,
 	* that doesn't contain a newline, we need to get it's length.
 	* This is required for proper continuation of horizontal tabs.
 	* If we do not do this, tabulation will be incorrect.
-	*****/ 
+	*****/
 	if(owner->prev->object_type == OBJ_PRE_TEXT)
 	{
 		XmHTMLWord lastw = owner->prev->words[owner->prev->n_words-1];
@@ -1384,7 +1384,7 @@ TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data,
 #ifdef DEBUG
 				used++;
 #endif
-				break;	
+				break;
 			case '\t':	/* horizontal tab */
 				/* no of ``floating spaces'' to emulate a tab */
 				len = ((nchars / tabwidth) + 1) * tabwidth;
@@ -1440,7 +1440,7 @@ TextToPre(String text, int *num_words, XmHTMLfont *font, Byte line_data,
 					len++;
 				}
 
-				/***** 
+				/*****
 				* if this word is ended by a newline, remove the newline.
 				* X doesn't know how to interpret them.
 				* We also want to recognize multiple newlines, so we must
@@ -1537,17 +1537,17 @@ MakeDummyWord(Dimension *height, XmHTMLfont *font, Byte line_data,
 	return(word);
 }
 
-  
+
 /*****
 * Name: 		SetTab
 * Return Type: 	XmHTMLWord*
 * Description: 	returns a XmHTMLWord with spaces required for a tab.
-* In: 
+* In:
 * Returns:
 *	the tab.
 *****/
-static XmHTMLWord* 
-SetTab(int size, Dimension *height, XmHTMLfont *font, 
+static XmHTMLWord*
+SetTab(int size, Dimension *height, XmHTMLfont *font,
 	XmHTMLObjectTableElement owner, ToolkitAbstraction *tka)
 {
 	static XmHTMLWord *tab;
@@ -1574,19 +1574,19 @@ SetTab(int size, Dimension *height, XmHTMLfont *font,
 	tab->type      = OBJ_TEXT;
 	tab->line_data = NO_LINE;
 
-	return(tab);	
+	return(tab);
 }
 
 /*****
 * Name: 		CopyText
 * Return Type: 	String
 * Description: 	copies the given text to a newly malloc'd buffer.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	text:		text to clean out.
 *	formatted:	true when this text occurs inside <pre></pre>
 *	text_data:	text option bits, spacing and such
-*	expand_escapes:	
+*	expand_escapes:
 *				True -> expand escape sequences in text. Only viable when
 *				copying pre-formatted text (plain text documents are handled
 *				internally as consisting completely of preformatted text for
@@ -1594,7 +1594,7 @@ SetTab(int size, Dimension *height, XmHTMLfont *font,
 * Returns:
 *	cleaned up text. Terminates if malloc fails.
 *****/
-static String 
+static String
 CopyText(XmHTMLWidget html, String text, Boolean formatted, Byte *text_data,
 	Boolean expand_escapes, Boolean *i18n)
 {
@@ -1717,12 +1717,12 @@ CopyText(XmHTMLWidget html, String text, Boolean formatted, Byte *text_data,
 	/* remove all trailing space */
 	len = strlen(start);
 	while(len > 0 && isspace(start[len-1]))
-		len--; 
+		len--;
 
 #endif /* I18N */
 
 	/*****
-	* Spaces *can* appear between different text formatting elements. 
+	* Spaces *can* appear between different text formatting elements.
 	* We want to retain this spacing since the above whitespace checking
 	* only yields the current element, and does not take the previous text
 	* element into account, *UNLESS* we just had a break.
@@ -1744,8 +1744,8 @@ CopyText(XmHTMLWidget html, String text, Boolean formatted, Byte *text_data,
 	*text_data &= ~TEXT_BREAK;
 
 	/*****
-	* We are a little bit to generous here: consecutive multiple whitespace 
-	* will be collapsed into a single space, so we may over-allocate. 
+	* We are a little bit to generous here: consecutive multiple whitespace
+	* will be collapsed into a single space, so we may over-allocate.
 	* Hey, better to overdo this than to have one byte to short ;-)
 	*****/
 	ret_val = (String)malloc((len+1)*sizeof(char));
@@ -1767,13 +1767,13 @@ CopyText(XmHTMLWidget html, String text, Boolean formatted, Byte *text_data,
 * Name: 		ParseBodyTags
 * Return Type: 	void
 * Description: 	checks the <BODY> element for additional tags
-* In: 
+* In:
 *	w:			HTML widget to check
 *	data:		body element data.
 * Returns:
 *	nothing, but the HTML widget is updated to reflect the body stuff.
 *****/
-static void 
+static void
 ParseBodyTags(XmHTMLWidget html, XmHTMLObject *data)
 {
 	char *chPtr;
@@ -1794,7 +1794,7 @@ ParseBodyTags(XmHTMLWidget html, XmHTMLObject *data)
 				doit = _XmHTMLConfirmColor32(chPtr);
 
 			if(doit)
-				HTML_ATTR(body_fg) = _XmHTMLGetPixelByName(html, chPtr, 
+				HTML_ATTR(body_fg) = _XmHTMLGetPixelByName(html, chPtr,
 					HTML_ATTR(body_fg_save));
 			free(chPtr);
 
@@ -1812,7 +1812,7 @@ ParseBodyTags(XmHTMLWidget html, XmHTMLObject *data)
 			/* only change if we had success */
 			if(doit)
 			{
-				HTML_ATTR(body_bg) = _XmHTMLGetPixelByName(html, chPtr, 
+				HTML_ATTR(body_bg) = _XmHTMLGetPixelByName(html, chPtr,
 					HTML_ATTR(body_bg_save));
 
 				/* also set as background for the entire widget */
@@ -1831,7 +1831,7 @@ ParseBodyTags(XmHTMLWidget html, XmHTMLObject *data)
 				doit = _XmHTMLConfirmColor32(chPtr);
 
 			if(doit)
-				HTML_ATTR(anchor_fg) = _XmHTMLGetPixelByName(html, chPtr, 
+				HTML_ATTR(anchor_fg) = _XmHTMLGetPixelByName(html, chPtr,
 					HTML_ATTR(anchor_fg_save));
 			free(chPtr);
 		}
@@ -1943,11 +1943,11 @@ FillBullet(XmHTMLWidget html, XmHTMLObjectTableElement owner,
 	XmHTMLfont *font = HTML_ATTR(default_font);
 	String prefix;
 
-	/***** 
-	* x-offset for any marker and radius for a bullet or length of a 
+	/*****
+	* x-offset for any marker and radius for a bullet or length of a
 	* side for a square marker.
 	*****/
-	radius = (Dimension)(0.5*(font->m_lbearing + font->m_rbearing)); 
+	radius = (Dimension)(0.5*(font->m_lbearing + font->m_rbearing));
 
 	if(owner->marker == XmMARKER_DISC || owner->marker == XmMARKER_SQUARE ||
 		owner->marker == XmMARKER_CIRCLE)
@@ -1968,11 +1968,11 @@ FillBullet(XmHTMLWidget html, XmHTMLObjectTableElement owner,
 			prefix = "";
 		switch(owner->marker)
 		{
-			case XmMARKER_ALPHA_LOWER: 
+			case XmMARKER_ALPHA_LOWER:
 				sprintf(number, "%s%s.", prefix,
 					ToAsciiLower(owner->list_level));
 				break;
-			case XmMARKER_ALPHA_UPPER: 
+			case XmMARKER_ALPHA_UPPER:
 				sprintf(number, "%s%s.", prefix,
 					ToAsciiUpper(owner->list_level));
 				break;
@@ -2000,7 +2000,7 @@ FillBullet(XmHTMLWidget html, XmHTMLObjectTableElement owner,
 * Name: 		CheckLineFeed
 * Return Type: 	int
 * Description: 	checks wether the requested newline is honored.
-* In: 
+* In:
 *	op:		newline to add.
 *	force:		add the requested newline anyway
 *	text_data:	current trailing/leading spacing
@@ -2073,7 +2073,7 @@ CheckLineFeed(int op, Boolean force, Byte *text_data)
 * Return Type: 	TableProperties
 * Description: 	scans a table element for common properties (border,
 *				alignment, background and border styles).
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	attributes:	attributes to be checked;
 *	parent:		properties of parent table element. Properties not found
@@ -2219,7 +2219,7 @@ tableCheckProperties(XmHTMLWidget html, String attributes,
 * Name:			tableOpen
 * Return Type: 	XmHTMLTable
 * Description: 	opens a new table.
-* In: 
+* In:
 *	html;		XmHTMLWidget id;
 *	parent:		parent table. Storage for nested tables is always allocated
 *				in this table. It is NULL when a truely new table is needed.
@@ -2433,7 +2433,7 @@ tableOpen(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableClose
 * Return Type: 	int
 * Description: 	performs required table wrapup actions
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	end:		last object to be used by this table;
@@ -2459,7 +2459,7 @@ tableClose(XmHTMLWidget html, XmHTMLTable *parent,
 	real_table->start = parent->owner->next;
 	real_table->end   = end;
 #endif
-	
+
 	/* pick up correct ptr */
 	if(table->parent == NULL)
 		table = &(parent->childs[0]);
@@ -2496,7 +2496,7 @@ tableClose(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableOpenCaption
 * Return Type: 	void
 * Description: 	adds a caption to the given table.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	start:		start of objects contained in this caption.
@@ -2580,7 +2580,7 @@ tableOpenCaption(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableCloseCaption
 * Return Type: 	int
 * Description: 	performs required caption wrapup actions
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	end:		last object to be used by this caption;
@@ -2619,7 +2619,7 @@ tableCloseCaption(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableOpenRow
 * Return Type: 	void
 * Description: 	adds a row to the current table.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	start:		start of objects contained in this row.
@@ -2708,7 +2708,7 @@ tableOpenRow(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableCloseRow
 * Return Type: 	int
 * Description: 	performs required row wrapup actions
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	end:		last object to be used by this row;
@@ -2772,7 +2772,7 @@ tableCloseRow(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableOpenCell
 * Return Type: 	void
 * Description: 	adds a cell to the current row in the current table.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	start:		start of objects contained in this cell;
@@ -2867,7 +2867,7 @@ tableOpenCell(XmHTMLWidget html, XmHTMLTable *parent,
 * Name:			tableCloseCell
 * Return Type: 	int
 * Description: 	performs required cell wrapup actions
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	parent:		parent table;
 *	end:		last object to be used by this cell;
@@ -2971,7 +2971,7 @@ tableCloseCell(XmHTMLWidget html, XmHTMLTable *parent,
 * Name: 		_XmHTMLNewAnchor
 * Return Type:	XmHTMLAnchor *
 * Description: 	allocates and fills an anchor object
-* In: 
+* In:
 *	html:		owning widget
 *	object:		raw anchor data
 * Returns:
@@ -2993,7 +2993,7 @@ _XmHTMLNewAnchor(XmHTMLWidget html, XmHTMLObject *object)
 	anchor->name = _XmHTMLTagGetValue(object->attributes, "name");
 
 	/* get the url specs */
-	parseHref(object->attributes, anchor); 
+	parseHref(object->attributes, anchor);
 
 	/* get the url type */
 	anchor->url_type = XmHTMLGetURLType(anchor->href);
@@ -3019,12 +3019,12 @@ _XmHTMLNewAnchor(XmHTMLWidget html, XmHTMLObject *object)
 	}
 #endif /* PEDANTIC */
 
-	/* 
-	* If we have a proc available for anchor testing, call it and 
+	/*
+	* If we have a proc available for anchor testing, call it and
 	* set the visited field.
 	*/
 	if(HTML_ATTR(anchor_visited_proc))
-		anchor->visited = HTML_ATTR(anchor_visited_proc)((Widget)html, 
+		anchor->visited = HTML_ATTR(anchor_visited_proc)((Widget)html,
 				anchor->href, HTML_ATTR(client_data));
 
 	/* insert in the anchor list */
@@ -3082,7 +3082,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 	/* remaining object variables */
 	Pixel fg, bg;
 	Dimension width, height;
-	Alignment halign, valign; 
+	Alignment halign, valign;
 	ObjectType object_type;
 	XmHTMLfont *font;
 #ifdef I18N
@@ -3125,7 +3125,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 	freeTables(ATTR_HTML(old, tables));
 	HTML_ATTR(tables) = (XmHTMLTable*)NULL;
 
-	/* 
+	/*
 	* Nothing to do, just return. Should only happen if we get called
 	* from Destroy().
 	*/
@@ -3139,7 +3139,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 	}
 
 	/* Move to the body element */
-	for(temp = HTML_ATTR(elements); temp != NULL && temp->id != HT_BODY; 
+	for(temp = HTML_ATTR(elements); temp != NULL && temp->id != HT_BODY;
 		temp = temp->next);
 
 	/*
@@ -3293,7 +3293,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 
 		_XmHTMLDebug(2, ("format.c, _XmHTMLformatObjects, object data:\n"
 			"\telement id: %s\n\tattributes: %s\n\tis_end: %s\n",
-			html_tokens[temp->id], 
+			html_tokens[temp->id],
 			temp->attributes ? temp->attributes : "<none>",
 			temp->is_end ? "Yes" : "No"));
 
@@ -3310,7 +3310,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 				if((text = CopyText(html, temp->element, in_pre, &text_data,
 					HTML_ATTR(mime_id) != XmNONE, &i18n)) == NULL)
 				{
-					/***** 
+					/*****
 					* named anchors can be empty, so keep them by inserting
 					* a dummy word, but only do that once (prevents a margin
 					* reset as well).
@@ -3351,7 +3351,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					CHECK_LINE;
 
 					/* convert text to a number of words */
-					words = TextToWords(text, &n_words, &height, font, 
+					words = TextToWords(text, &n_words, &height, font,
 						line_data, text_data, element, tka);
 
 					/* Plain text does a hard reset */
@@ -3405,7 +3405,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					if(!anchor_data_used && (element_data & ELE_ANCHOR_INTERN))
 					{
 						_XmHTMLDebug(2, ("format.c: _XmHTMLformatObjects, "
-							"adding bogus named anchor %s\n", 
+							"adding bogus named anchor %s\n",
 							anchor_data->name));
 
 						/* insert a dummy word to prevent margin reset */
@@ -3418,7 +3418,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						break;
 					}
 					/* unset anchor bitfields */
-					element_data &= ( ~ELE_ANCHOR & ~ELE_ANCHOR_TARGET & 
+					element_data &= ( ~ELE_ANCHOR & ~ELE_ANCHOR_TARGET &
 							~ELE_ANCHOR_VISITED & ~ELE_ANCHOR_INTERN);
 					fg = (Pixel)StackPop(fg_color_stack);
 
@@ -3431,7 +3431,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 				else
 				{
 					/* allocate a new anchor */
-					anchor_data = (temp->attributes ? 
+					anchor_data = (temp->attributes ?
 							_XmHTMLNewAnchor(html, temp) : NULL);
 
 					/* sanity check */
@@ -3453,7 +3453,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						element_data |= ELE_ANCHOR_INTERN;
 
 					/*
-					* maybe it's also a plain anchor. If so, see what 
+					* maybe it's also a plain anchor. If so, see what
 					* foreground color we have to use to render this
 					* anchor.
 					*/
@@ -3530,7 +3530,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 
 			case HT_BASEFONT:
 				{
-					basefont = temp->attributes ? 
+					basefont = temp->attributes ?
 						_XmHTMLTagGetNumber(temp->attributes, "size", 0) : 0;
 					/* take absolute value */
 					basefont = Abs(basefont);
@@ -3572,7 +3572,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						break;
 
 					/* can't use TagGetNumber: fontchange can be relative */
-					chPtr = temp->attributes ? 
+					chPtr = temp->attributes ?
 						_XmHTMLTagGetValue(temp->attributes, "size") : NULL;
 					if(chPtr != NULL)
 					{
@@ -3606,7 +3606,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 #ifndef PEDANTIC
 					if(!in_pre)
 #endif
-						chPtr = temp->attributes ? 
+						chPtr = temp->attributes ?
 							_XmHTMLTagGetValue(temp->attributes, "face") : NULL;
 
 					if(chPtr != NULL)
@@ -3674,9 +3674,9 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					StackPushDouble(font_stack, font, basefont);
 					font = _XmHTMLLoadFont(html, HT_FONT,
 								xmhtml_basefont_sizes[2], font);
-					y_offset = (temp->id == HT_SUB ? 
+					y_offset = (temp->id == HT_SUB ?
 						font->sub_yoffset : font->sup_yoffset);
-					x_offset = (temp->id == HT_SUB ? 
+					x_offset = (temp->id == HT_SUB ?
 						font->sub_xoffset : font->sup_xoffset);
 				}
 				ignore = True; /* only need font data */
@@ -3737,7 +3737,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						PUSH_COLOR(html);
 
 					StackPush(align_stack, halign);
-					halign = (temp->attributes ? 
+					halign = (temp->attributes ?
 						_XmHTMLGetHorizontalAlignment(temp->attributes, halign)
 						: halign);
 
@@ -3800,12 +3800,12 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					{
 						char *chPtr;
 						/* check if user specified a custom marker */
-						chPtr = temp->attributes ? 
+						chPtr = temp->attributes ?
 							_XmHTMLTagGetValue(temp->attributes, "type") : NULL;
 						if(chPtr != NULL)
 						{
 							/*
-							* Walk thru the list of possible markers. If a 
+							* Walk thru the list of possible markers. If a
 							* match is found, store it so we can switch back
 							* to the correct marker once this list terminates.
 							*/
@@ -3813,7 +3813,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 							{
 								if(!(strcasecmp(ul_markers[i].name, chPtr)))
 								{
-									list_stack[ident_level].marker = 
+									list_stack[ident_level].marker =
 										ul_markers[i].type;
 									break;
 								}
@@ -3872,7 +3872,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					if(chPtr != NULL)
 					{
 						/*
-						* Walk thru the list of possible markers. If a 
+						* Walk thru the list of possible markers. If a
 						* match is found, store it so we can switch back
 						* to the correct marker once this list terminates.
 						*/
@@ -3880,7 +3880,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						{
 							if(!(strcmp(ol_markers[i].name, chPtr)))
 							{
-								list_stack[ident_level].marker = 
+								list_stack[ident_level].marker =
 									ol_markers[i].type;
 								break;
 							}
@@ -3893,7 +3893,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						_XmHTMLTagCheck(temp->attributes, "start"))
 					{
 						/* pick up a start spec */
-						list_stack[ident_level].level = 
+						list_stack[ident_level].level =
 							_XmHTMLTagGetNumber(temp->attributes, "start", 0);
 						list_stack[ident_level].level--;
 					}
@@ -3933,7 +3933,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 							{
 								if(!(strcmp(ol_markers[i].name, chPtr)))
 								{
-									list_stack[current_list].marker = 
+									list_stack[current_list].marker =
 										ol_markers[i].type;
 									break;
 								}
@@ -3945,7 +3945,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 							{
 								if(!(strcmp(ul_markers[i].name, chPtr)))
 								{
-									list_stack[current_list].marker = 
+									list_stack[current_list].marker =
 										ul_markers[i].type;
 									break;
 								}
@@ -3956,11 +3956,11 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						free(chPtr);
 					}
 					/* check if user specified a custom number for ol lists */
-					if(list_stack[current_list].type == HT_OL && 
+					if(list_stack[current_list].type == HT_OL &&
 						temp->attributes &&
 						_XmHTMLTagCheck(temp->attributes, "value"))
 					{
-						list_stack[current_list].level = 
+						list_stack[current_list].level =
 							_XmHTMLTagGetNumber(temp->attributes, "value", 0);
 					}
 					/*
@@ -4024,7 +4024,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 #if 0
 				{
 					String chPtr;
-					
+
 					if((chPtr = _XmHTMLTagGetValue(temp->attributes,
 						"clear")) != NULL && locase(chPtr[0]) != 'n')
 					{
@@ -4047,7 +4047,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 				if((linefeed = CheckLineFeed(CLEAR_SOFT, False,
 					&text_data)) != CLEAR_NONE)
 				{
-					words = BreakToWord(&height, font, linefeed, element); 
+					words = BreakToWord(&height, font, linefeed, element);
 					n_words = 1;
 					object_type = OBJ_TEXT;
 					text_data &= ~TEXT_SPACE_LEAD & ~TEXT_SPACE_TRAIL;
@@ -4081,7 +4081,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					words = SetTab(element->len, &height, font, element, tka);
 				}
 				break;
-				
+
 			case HT_PRE:
 				if(temp->is_end)
 				{
@@ -4182,9 +4182,9 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 
 			case HT_HR:
 				{
-					/* 
+					/*
 					* horizontal rules don't have an ending counterpart,
-					* so the alignment is never pushed. If we should do that, 
+					* so the alignment is never pushed. If we should do that,
 					* we would get an unbalanced stack.
 					*/
 					if(temp->attributes)
@@ -4299,7 +4299,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 					text_data |= TEXT_IMAGE;
 
 					/* allocate a new anchor */
-					if((form_anchor_data = temp->attributes ? 
+					if((form_anchor_data = temp->attributes ?
 						_XmHTMLNewAnchor(html, temp): NULL) == NULL)
 						break;
 
@@ -4559,19 +4559,19 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						script.type = _XmHTMLTagGetValue(temp->attributes, "type");
 						script.lang = _XmHTMLTagGetValue(temp->attributes, "language");
 						script.src = _XmHTMLTagGetValue(temp->attributes, "src");
-	
+
 						/* move past element */
 						temp = temp->next;
 
 						data = malloc(sizeof(char));
 						data[0] = '\0';
-					
+
 						/* collect all enclosed text elements */
 						for(; temp != NULL; temp = temp->next)
 						{
 							if(temp->id == end_id && temp->is_end)
 								break;
-	
+
 							if(temp->element != NULL)
 							{
 								data = realloc(data,
@@ -4583,7 +4583,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 						script.script = data;
 
 						/* call user proc for this script */
-						(void)HTML_ATTR(script_proc)((Widget)html, 
+						(void)HTML_ATTR(script_proc)((Widget)html,
 							&script, HTML_ATTR(client_data));
 
 						/* release again */
@@ -4629,7 +4629,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 			if(element_data & ELE_ANCHOR)
 			{
 				text_data |= TEXT_ANCHOR;
-				anchor_words += n_words; 
+				anchor_words += n_words;
 				anchor_data_used = True;
 			}
 			/* mark object as internal anchor */
@@ -4653,15 +4653,15 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 			element->marker = list_stack[current_list].marker;
 			element->list_level = list_stack[current_list].level;
 			element->table = table;
-			/* 
+			/*
 			* <dt> elements have an identation one less than the current.
 			* all identation must use the default font (consistency).
 			*/
 			if(in_dt && ident_level)
-				element->ident = (ident_level-1) * XmHTML_INDENT_SPACES * 
+				element->ident = (ident_level-1) * XmHTML_INDENT_SPACES *
 					HTML_ATTR(default_font)->m_width;
 			else
-				element->ident = ident_level * XmHTML_INDENT_SPACES * 
+				element->ident = ident_level * XmHTML_INDENT_SPACES *
 					HTML_ATTR(default_font)->m_width;
 
 			element->linefeed = (int)((1+linefeed)*fnheight);
@@ -4769,7 +4769,7 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 	(void)StackDestroy(font_stack);
 #endif
 
-	/* 
+	/*
 	* allocate memory for all anchor words in this document, gets filled in
 	* paint.c
 	*/
@@ -4786,8 +4786,8 @@ _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html)
 	/* allocated memory for all named anchors. Gets filled in paint.c */
 	if(named_anchors)
 	{
-		HTML_ATTR(named_anchors) = 
-			(XmHTMLObjectTable*)calloc(named_anchors+1, 
+		HTML_ATTR(named_anchors) =
+			(XmHTMLObjectTable*)calloc(named_anchors+1,
 				sizeof(XmHTMLObjectTable));
 
 		HTML_ATTR(num_named_anchors) = named_anchors;
@@ -4836,7 +4836,7 @@ static String anchor_tokens[] = {"about", "exec", "file", "ftp", "gopher",
 * Name: 		XmHTMLGetURLType
 * Return Type: 	URLType
 * Description: 	tries to figure out what type of url the given href is
-* In: 
+* In:
 *	href:		url specification
 * Returns:
 *	type of url when we know it, ANCHOR_UNKNOWN otherwise.

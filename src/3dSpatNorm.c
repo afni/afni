@@ -39,7 +39,7 @@ int main( int argc , char *argv[] )
    THD_fvec3 dxyz , orgxyz, originRAIfv, fv2;
 
 
-   mainENTRY("3dSpatNorm main") ; machdep() ; 
+   mainENTRY("3dSpatNorm main") ; machdep() ;
    if (argc == 1) { usage_3dSpatNorm(1); exit(0); }
 
    /*--- options ---*/
@@ -47,11 +47,11 @@ int main( int argc , char *argv[] )
    iarg = 1 ;
    OrigSpace = 0;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if (strcmp(argv[iarg],"-h") == 0 || strcmp(argv[iarg],"-help") == 0 ) { 
+      if (strcmp(argv[iarg],"-h") == 0 || strcmp(argv[iarg],"-help") == 0 ) {
          usage_3dSpatNorm(strlen(argv[iarg]) > 3 ? 2:1);
-         exit(0); 
+         exit(0);
       }
-      
+
      /* -prefix */
 
      if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -73,7 +73,7 @@ int main( int argc , char *argv[] )
          exit(1) ;
        }
        SpatNormDxyz = atof(argv[iarg]) ;
-       
+
        iarg++ ; continue ;
      }
      if( strcmp(argv[iarg],"-bottom_cuts") == 0 ){
@@ -82,7 +82,7 @@ int main( int argc , char *argv[] )
          exit(1) ;
        }
        bottom_cuts = argv[iarg] ;
-       
+
        iarg++ ; continue ;
      }
      if( strncmp(argv[iarg],"-verb",5) == 0 ){
@@ -103,7 +103,7 @@ int main( int argc , char *argv[] )
      if( strncmp(argv[iarg],"-orig_space",10) == 0 ){
        OrigSpace = 1 ; iarg++ ; continue ;
      }
-     
+
      fprintf(stderr,"**ERROR: %s is unknown option!\n",argv[iarg]) ;
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1) ;
@@ -139,11 +139,11 @@ int main( int argc , char *argv[] )
    imin->dx = fabs(iset->daxes->xxdel) ;
    imin->dy = fabs(iset->daxes->yydel) ;
    imin->dz = fabs(iset->daxes->zzdel) ;
-   
-   
+
+
    mri_speciebusiness(specie);
    mri_brain_normalize_cuts(bottom_cuts);
-   
+
    if (SpatNormDxyz) {
       if (verb) fprintf(stderr,"Overriding default resampling\n");
       mri_brainormalize_initialize(SpatNormDxyz, SpatNormDxyz, SpatNormDxyz);
@@ -165,17 +165,17 @@ int main( int argc , char *argv[] )
                   "%s:\n"
                   " Original resolution %f, %f, %f\n"
                   " SpatNorm resolution %f, %f, %f\n",
-                  "3dSpatnorm", imin->dx, imin->dy, imin->dz, 
+                  "3dSpatnorm", imin->dx, imin->dy, imin->dz,
                      xxdel, yydel, zzdel);
-      }   
+      }
       mri_brainormalize_initialize(xxdel, yydel, zzdel);
    }
-   
+
       /* To get around the #define for voxel counts and dimensions */
-   mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz); 
-   
+   mri_brainormalize_initialize(imin->dz, imin->dy, imin->dz);
+
    /* me needs the origin of this dset in RAI world */
-   LOAD_FVEC3( originRAIfv , 
+   LOAD_FVEC3( originRAIfv ,
                iset->daxes->xxorg , iset->daxes->yyorg , iset->daxes->zzorg) ;
    originRAIfv = THD_3dmm_to_dicomm( iset , originRAIfv ) ;
 
@@ -184,22 +184,22 @@ int main( int argc , char *argv[] )
                    iset->daxes->zzorg + (iset->daxes->nzz-1)*iset->daxes->zzdel);
    fv2 = THD_3dmm_to_dicomm( iset , fv2 ) ;
 
-   if( originRAIfv.xyz[0] > fv2.xyz[0] ) { 
-      float tf; tf = originRAIfv.xyz[0]; 
-                originRAIfv.xyz[0] = fv2.xyz[0];  fv2.xyz[0] = tf; } 
-   if( originRAIfv.xyz[1] > fv2.xyz[1] ) { 
-      float tf; tf = originRAIfv.xyz[1]; 
+   if( originRAIfv.xyz[0] > fv2.xyz[0] ) {
+      float tf; tf = originRAIfv.xyz[0];
+                originRAIfv.xyz[0] = fv2.xyz[0];  fv2.xyz[0] = tf; }
+   if( originRAIfv.xyz[1] > fv2.xyz[1] ) {
+      float tf; tf = originRAIfv.xyz[1];
                 originRAIfv.xyz[1] = fv2.xyz[1]; fv2.xyz[1] = tf; }
-   if( originRAIfv.xyz[2] > fv2.xyz[2] ) { 
-      float tf; tf = originRAIfv.xyz[2]; 
+   if( originRAIfv.xyz[2] > fv2.xyz[2] ) {
+      float tf; tf = originRAIfv.xyz[2];
                 originRAIfv.xyz[2] = fv2.xyz[2]; fv2.xyz[2] = tf; }
-   
+
    if (verb) {
-      fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n", 
+      fprintf(stderr,"++3dSpatNorm (ZSS): RAI origin info: %f %f %f\n",
                      originRAIfv.xyz[0], originRAIfv.xyz[1], originRAIfv.xyz[2]);
    }
-   
-   
+
+
    DSET_unload( iset ) ;  /* don't need this data no more */
 
    /*-- convert image to shorts, if appropriate --*/
@@ -228,19 +228,19 @@ int main( int argc , char *argv[] )
    if( imout == NULL ){
      fprintf(stderr,"**ERROR: normalization fails!?\n"); exit(1);
    }
-   
+
    if (OrigSpace) {
       if( verb ) fprintf(stderr,"++3dSpatNorm: Output in Orignal space\n") ;
       mri_free( imout ) ;
-      imout = imout_orig; 
-      imout->xo = originRAIfv.xyz[0]; 
-      imout->yo = originRAIfv.xyz[1]; 
-      imout->zo = originRAIfv.xyz[2]; 
+      imout = imout_orig;
+      imout->xo = originRAIfv.xyz[0];
+      imout->yo = originRAIfv.xyz[1];
+      imout->zo = originRAIfv.xyz[2];
       imout_orig = NULL;
    } else {
       if( verb ) fprintf(stderr,"++3dSpatNorm: Output in SpatNorm space\n") ;
    }
-   
+
 #if 0
    if( AFNI_yesenv("WATERSHED") ){
      imin = mri_watershedize( imout , 0.10 ) ;
@@ -296,13 +296,13 @@ int main( int argc , char *argv[] )
       DSET_delete(oset); oset = ooset; ooset = NULL;
    }
 
-   if (iset_scaled != 1.0f) 
+   if (iset_scaled != 1.0f)
       THD_volDXYZscale(oset->daxes,
                       1/iset_scaled, 0);
 
    DSET_write(oset) ;
    if( verb )
      fprintf(stderr,"++3dSpatNorm: wrote dataset %s\n",DSET_BRIKNAME(oset)) ;
-   
+
    exit(0) ;
 }

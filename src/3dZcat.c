@@ -82,14 +82,14 @@ void ZCAT_read_opts( int argc , char * argv[] )
           ERROR_exit("need argument after -prefix!\n") ;
         }
         MCW_strncpy( ZCAT_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
-	
+
         if( strstr(ZCAT_output_prefix,".nii") != NULL ) {
             write_output = True;
 	    NIFTI_mode = True;
             if( strstr(ZCAT_output_prefix,".nii.gz") != NULL ) {
 	       cmode = 0; /* force gzip compression  (actually zlib from nifti library)*/
-	    }   
-	}       
+	    }
+	}
         else if( !THD_filename_ok(ZCAT_output_prefix) )
           ERROR_exit("Illegal character in -prefix '%s'",ZCAT_output_prefix) ;
         continue ;
@@ -330,7 +330,7 @@ int main( int argc , char * argv[] )
    ffac = (float *) malloc(sizeof(float)*DSET_NVALS(new_dset)) ;
 
    if (!ZCAT_frugal)
-       INIT_IMARR(im_array);  
+       INIT_IMARR(im_array);
 
 
    /*** Loop over output sub-bricks ***/
@@ -481,7 +481,7 @@ int main( int argc , char * argv[] )
      }
      /* otherwise, save them up and write all sub-bricks all at once */
      else {
-          /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and 
+          /* copy the sub-brick volume, svol, into an MRI_IMAGE structure  and
               then append that to the image array */
           svol_im = mri_new_vol_empty( nx, ny, kz, ZCAT_datum) ;
           mri_fix_data_pointer( svol , svol_im ) ;

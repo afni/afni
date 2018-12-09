@@ -5,10 +5,10 @@
 ******************************************************************************/
 
 /*
-  This file contains routines to open and initialize models. The interface 
+  This file contains routines to open and initialize models. The interface
   with the signal and noise models is accomplished using dynamic libraries.
   This file was adapted from afni_plugin.c.
-  
+
   File:     NLfit_model.c
   Author:   B. Douglas Ward
   Date:     23 June 1997
@@ -53,8 +53,8 @@ ENTRY("NLFIT_get_all_MODELs") ;
    INIT_MODEL_ARRAY( outar ) ;
 
    if (NL_DEBUG)
-     { 
-       printf ("scanning directory %s \n",dname) ; 
+     {
+       printf ("scanning directory %s \n",dname) ;
      }
 
    /*----- find all filenames -----*/
@@ -79,8 +79,8 @@ STATUS("didn't find any regular files") ;
    }
 
   if (NL_DEBUG)
-    { 
-      printf("%d files to scan \n",rlist->num) ; 
+    {
+      printf("%d files to scan \n",rlist->num) ;
     }
 
 
@@ -103,8 +103,8 @@ STATUS("adding model file to list") ;
    }
 
   if (NL_DEBUG)
-    { 
-      printf ("directory %s has %d MODELs \n",dname,outar->num) ; 
+    {
+      printf ("directory %s has %d MODELs \n",dname,outar->num) ;
     }
 
 
@@ -147,7 +147,7 @@ ENTRY("NLFIT_read_MODEL") ;
    if( ! ISVALID_DYNAMIC_handle( model->libhandle ) ){
       char *er ;
       if( firsterr ){ fprintf(stderr,"\n"); firsterr=0; }
-      fprintf (stderr,"failed to open library %s ",fname); 
+      fprintf (stderr,"failed to open library %s ",fname);
       er = (char *)DYNAMIC_ERROR_STRING ;
       if( er != NULL ) fprintf(stderr," -- %s\n",er) ;
       else             fprintf(stderr,"\n") ;
@@ -156,8 +156,8 @@ ENTRY("NLFIT_read_MODEL") ;
    }
 
    if (NL_DEBUG)
-     { 
-       printf ("opened library %s with handle %p \n" , 
+     {
+       printf ("opened library %s with handle %p \n" ,
 	       fname,model->libhandle ) ;
      }
 
@@ -167,10 +167,10 @@ ENTRY("NLFIT_read_MODEL") ;
    /*..... 30 Oct 2003: remove it for OS X 10.3    .....*/
 
 #ifndef NEED_UNDERSCORE
-   DYNAMIC_SYMBOL(model->libhandle, "initialize_model" , 
+   DYNAMIC_SYMBOL(model->libhandle, "initialize_model" ,
 		  model->libinit_func );
 #else
-   DYNAMIC_SYMBOL(model->libhandle, "_initialize_model" , 
+   DYNAMIC_SYMBOL(model->libhandle, "_initialize_model" ,
 		  model->libinit_func );
 #endif
 
@@ -189,7 +189,7 @@ ENTRY("NLFIT_read_MODEL") ;
    /*----- create interface(s) by calling initialization function -----*/
 
    model->interface = (MODEL_interface *) model->libinit_func() ;
-   if( model->interface == NULL ) 
+   if( model->interface == NULL )
      {
        DYNAMIC_CLOSE( model->libhandle ) ;
        myXtFree(model) ;
@@ -197,9 +197,9 @@ ENTRY("NLFIT_read_MODEL") ;
      }
 
    if (NL_DEBUG)
-     { 
+     {
        printf ("Interface created for %s model\n",
-		model->interface->label) ; 
+		model->interface->label) ;
      }
 
    /*----- done -----*/
@@ -250,10 +250,10 @@ ENTRY("NLFIT_get_many_MODELs") ;
       if( elocal[ii] == ':' ) elocal[ii] = ' ' ;
 
    if (NL_DEBUG)
-     { 
+     {
        printf ("paths to be searched for MODELs follow:") ;
-       printf("%s\n",elocal) ; 
-       fflush(stdout) ; 
+       printf("%s\n",elocal) ;
+       fflush(stdout) ;
      }
 
 
@@ -281,7 +281,7 @@ ENTRY("NLFIT_get_many_MODELs") ;
 
       ii = strlen(ename) ;                           /* make sure name has */
       if( ename[ii-1] != '/' ){                     /* a trailing '/' on it */
-	ename[ii]  = '/' ; ename[ii+1] = '\0' ; 
+	ename[ii]  = '/' ; ename[ii+1] = '\0' ;
       }
 
       tmpar = NLFIT_get_all_MODELs( ename ) ;        /* read this directory */
@@ -296,8 +296,8 @@ ENTRY("NLFIT_get_many_MODELs") ;
    myXtFree(elocal) ;
 
    if (NL_DEBUG)
-     { 
-       printf ("found %d MODELs \n",outar->num) ; 
+     {
+       printf ("found %d MODELs \n",outar->num) ;
      }
 
    if( outar->num == 0 ) DESTROY_MODEL_ARRAY(outar) ;

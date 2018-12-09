@@ -34,7 +34,7 @@ int main( int argc , char * argv[] )
    int          *cgrp_val=NULL ;
    int Ngoodlist, *goodlist=NULL, Nbadlist, *badlist=NULL;
    int *nbblist=NULL , *nbtlist=NULL ;
-   int   *ilist, nadd , nilist , ll , 
+   int   *ilist, nadd , nilist , ll ,
          dry=0 , nelim=0 , nerr, dry_info=0 ;
    float **clist , *tsar , *cfar , tval ;
    NI_int_array *niar ;
@@ -480,8 +480,8 @@ int main( int argc , char * argv[] )
    if( dry ){
      INFO_message("Index list: %d nonzero entries",nilist) ;
      fprintf(stderr,"++ ") ;
-     for( ii=0 ; ii < ncol ; ii++ ) 
-         if( ilist[ii] ) 
+     for( ii=0 ; ii < ncol ; ii++ )
+         if( ilist[ii] )
             fprintf(stderr," %d "
                            ,ii) ;
      fprintf(stderr,"\n") ;
@@ -490,12 +490,12 @@ int main( int argc , char * argv[] )
    }
    if (dry_info) {
      fprintf(stdout,"TR:%.3f\tN_TR:%d\n", dt, nrow);
-     for( ii=0 ; ii < ncol ; ii++ ) 
-         if( ilist[ii] ) 
+     for( ii=0 ; ii < ncol ; ii++ )
+         if( ilist[ii] )
             fprintf(stdout,"%d:%s \t"
                            ,ii, clab_sar->str[ii]) ;
      fprintf(stdout,"\n") ;
-     exit(0); 
+     exit(0);
    }
 
    /*-- create empty output 3D+time dataset --*/

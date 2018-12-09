@@ -170,7 +170,7 @@ Dtable * Dtable_from_nimlstring( char *nstr )
    char **la , **lb ;
 
    if (!nstr) return NULL;
-   
+
    if (!(nel = (NI_element *)NI_read_element_fromstring(nstr))) {
       return NULL;
    }

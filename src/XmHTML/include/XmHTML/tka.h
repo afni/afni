@@ -10,7 +10,7 @@
 *
 * Author:				XmHTML Developers Account
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of no particular project.
@@ -34,13 +34,13 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
 *
 *
-*****/ 
+*****/
 
 #ifndef _tka_h_
 #define _tka_h_
@@ -48,7 +48,7 @@
 /*****
 * Toolkit independent rendering functions. This enables us to use the
 * same engine for rendering to a display, text or postscript.
-* 
+*
 * This abstraction makes it a *lot* easier when porting XmHTML to other
 * toolkits, provided the display functions know how to deal/convert the
 * X-specific types. See also toolkit.h for other toolkit-dependent
@@ -108,7 +108,7 @@ typedef struct _ToolkitAbstraction{
 	/*****
 	* GC functions
 	*****/
-	GC	(*CreateGC)( 
+	GC	(*CreateGC)(
 #ifdef NeedFunctionPrototypes
 		Display*			/* display */,
 		Drawable			/* d */,
@@ -422,7 +422,7 @@ typedef struct _ToolkitAbstraction{
 		XmHTMLObjectTableElement		/* anchor */
 #endif
 	);
-		
+
 
 	XImage* (*GetImage)(
 #ifdef NeedFunctionPrototypes
@@ -444,7 +444,7 @@ typedef struct _ToolkitAbstraction{
 		_XtDimension y		/* y coordinate */
 #endif
 	);
-		
+
 	/*****
 	* string/text functions
 	*****/

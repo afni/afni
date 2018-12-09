@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include <mrilib.h>
 #include <string.h>
 
@@ -58,7 +58,7 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[narg_ave],"-") != 0 ){
       if( to_short ) imin = mri_to_short( 1.0 , imstat[0] ) ;
       else           imin = imstat[0] ;
-      
+
       mri_write( argv[narg_ave] , imin ) ;
       mri_free( imin ) ;
    }
@@ -66,7 +66,7 @@ int main( int argc , char * argv[] )
    if( strcmp(argv[narg_sig],"-") != 0 ){
       if( to_short ) imin = mri_to_short( 1.0 , imstat[1] ) ;
       else           imin = imstat[1] ;
-      
+
       mri_write( argv[narg_sig] , imin ) ;
       mri_free( imin ) ;
    }

@@ -81,12 +81,12 @@ ENTRY("THD_init_diskptr_names") ;
       switch (dkptr->storage_mode) { /* ZSS: Oct 2011 */
          default: /* This makes no sense, but to keep matters
                      as they were. Migrate slowly towards
-                     STORAGE_BY_NIFTI treatment below */ 
-            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
+                     STORAGE_BY_NIFTI treatment below */
+            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode,
                                   dkptr->filecode ) ;
             break;
          case STORAGE_BY_BRICK:
-            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode, 
+            PREFIX_VIEW_TO_FILECODE( dkptr->prefix, dkptr->viewcode,
                                   dkptr->filecode ) ;
             break;
          case STORAGE_BY_1D:

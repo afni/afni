@@ -1,7 +1,7 @@
 
-/* 
+/*
    P. Taylor, April 2014
-	
+
    Convert standard TORTOISE DTs (diagonal-first format) to standard
    AFNI (lower triangular, row-wise) format.  NB: Starting from
    TORTOISE v2.0.1, there is an 'AFNI output' format as well, which
@@ -18,8 +18,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include <mrilib.h>
+#include <3ddata.h>
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
@@ -30,7 +30,7 @@
 
 
 
-void usage_TORTOISEtoHere(int detail) 
+void usage_TORTOISEtoHere(int detail)
 {
 	printf(
 "\n"
@@ -114,39 +114,39 @@ int main(int argc, char *argv[]) {
 
    float **D=NULL;
    THD_3dim_dataset *DT_OUT=NULL;
-   
+
    // ###################################################################
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dTORTOISEtoHere"); machdep(); 
+   mainENTRY("3dTORTOISEtoHere"); machdep();
 	if (argc == 1) { usage_TORTOISEtoHere(1); exit(0); }
-   
+
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_TORTOISEtoHere(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-     
+
       if( strcmp(argv[iarg],"-dt_tort") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-eig_vecs'");
          dtsname = strdup(argv[iarg]) ;
-         
+
          iarg++ ; continue ;
       }
-      
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-flip_x") == 0) {
          INV[0] = -1;
          iarg++ ; continue ;
@@ -161,7 +161,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-scale_fac") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-scale_fac'");
          LAMSCALE = atof(argv[iarg]);
          if(LAMSCALE <= 0 )
@@ -200,25 +200,25 @@ int main(int argc, char *argv[]) {
    }
 
    Nvox = DSET_NVOX(DTS);
-   Dim[0] = DSET_NX(DTS); 
-   Dim[1] = DSET_NY(DTS); 
-   Dim[2] = DSET_NZ(DTS); 
-   
+   Dim[0] = DSET_NX(DTS);
+   Dim[1] = DSET_NY(DTS);
+   Dim[2] = DSET_NZ(DTS);
+
    if(Nvox<0)
       ERROR_exit("Error reading Nvox from eigenvalue file.");
-   
-   D = calloc(6,sizeof(D)); 
-   for(i=0 ; i<6 ; i++) 
-		D[i] = calloc( Nvox,sizeof(float)); 
+
+   D = calloc(6,sizeof(D));
+   for(i=0 ; i<6 ; i++)
+		D[i] = calloc( Nvox,sizeof(float));
 
    INFO_message("Converting.");
    i = DT_TORTOISEtoAFNI( D, Nvox, DTS, INV, LAMSCALE);
 
    INFO_message("Writing the DT.");
-   DT_OUT = EDIT_empty_copy( DTS ); 
+   DT_OUT = EDIT_empty_copy( DTS );
    EDIT_dset_items(DT_OUT,
                    ADN_nvals, 6,
-						 ADN_datum_all, MRI_float , 
+						 ADN_datum_all, MRI_float ,
                    ADN_prefix, prefix,
 						 ADN_none );
 
@@ -233,16 +233,16 @@ int main(int argc, char *argv[]) {
 					  DSET_HEADNAME(DT_OUT));
 	tross_Make_History("3dTORTOISEtoHere", argc, argv, DT_OUT);
 	THD_write_3dim_dataset(NULL, NULL, DT_OUT, True);
-	DSET_delete(DT_OUT); 
-  	free(DT_OUT); 
-   
+	DSET_delete(DT_OUT);
+  	free(DT_OUT);
+
    // #################################################################
    // ##########################  free  ###############################
    // #################################################################
 
    DSET_delete(DTS);
    free(DTS);
-   
+
    for( i=0 ; i<6 ; i++)
       free(D[i]);
    free(D);

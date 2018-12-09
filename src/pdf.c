@@ -93,7 +93,7 @@ void PDF_normalize (pdf * p)
   Create pdf data structure by allocating memory and initializing values.
 */
 
-void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd, 
+void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd,
 		 pdf * p)
 {
   int ibin;
@@ -102,7 +102,7 @@ void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd,
   PDF_destroy (p);
 
   p->nbin = nbin;
-  
+
   p->prob = (float *) malloc (sizeof(float) * nbin);
   PDF_MTEST (p->prob);
   for (ibin = 0;  ibin < nbin;  ibin++)
@@ -114,7 +114,7 @@ void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd,
   p->width = (upper_bnd - lower_bnd) / (nbin-1);
 
   PDF_normalize (p);
-  
+
   return;
 }
 
@@ -146,7 +146,7 @@ float PDF_ibin_to_xvalue (pdf p, int ibin)
   return (xvalue);
 }
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Convert value of independent variable to bin number.
@@ -161,7 +161,7 @@ int PDF_xvalue_to_ibin (pdf p, float xvalue)
   return (ibin);
 }
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Convert value of independent variable to probability.
@@ -182,7 +182,7 @@ float PDF_xvalue_to_pvalue (pdf p, float xvalue)
   return (pvalue);
 }
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Print contents of pdf p to screen.
@@ -198,12 +198,12 @@ void PDF_print (pdf p)
    printf ("Lower bound    = %f \n", p.lower_bnd);
    printf ("Upper bound    = %f \n", p.upper_bnd);
    printf ("Bin width      = %f \n", p.width);
-  
+
    /*
    printf ("%3s   %10.6s   %10.6s \n", "i", "x[i]", "p[i]");
- 
+
    for (ibin = 0;  ibin < p.nbin;  ibin++)
-     printf ("%3d   %10.6f   %10.6f \n", 
+     printf ("%3d   %10.6f   %10.6f \n",
 	     ibin, PDF_ibin_to_xvalue(p, ibin), p.prob[ibin]);
    */
   }
@@ -222,7 +222,7 @@ void PDF_sprint (char * str, pdf p)
   if( quiet ) return ;
   printf ("%s \n", str);
 
-  PDF_print (p);  
+  PDF_print (p);
 
   return;
 }
@@ -251,9 +251,9 @@ void PDF_write_file (char * filename, pdf p)
    return;
   }
   for (ibin = 0;  ibin < p.nbin;  ibin++)
-    fprintf (outfile, "%d  %f  %f \n", 
+    fprintf (outfile, "%d  %f  %f \n",
 	    ibin, PDF_ibin_to_xvalue(p, ibin), p.prob[ibin]);
-  
+
 
   fclose (outfile);
 
@@ -279,7 +279,7 @@ void PDF_smooth (pdf * p)
 
   for (ibin = 1;  ibin < p->nbin-1;  ibin++)
     sprob[ibin] = 0.25 * (p->prob[ibin-1] + 2*p->prob[ibin] + p->prob[ibin+1]);
-  
+
   free (p->prob);
   p->prob = sprob;
 
@@ -330,8 +330,8 @@ void PDF_trim (float lower_per, float upper_per, pdf * p)
 	}
     }
 
-  
-  /*----- Reset lower and upper bounds -----*/	
+
+  /*----- Reset lower and upper bounds -----*/
   lower_bnd = PDF_ibin_to_xvalue (*p, lo_bin);
   upper_bnd = PDF_ibin_to_xvalue (*p, hi_bin);
 
@@ -435,7 +435,7 @@ void PDF_short_to_pdf (int npts, short * sarray, pdf * p)
   fbin = (float *) malloc (sizeof(float) * num_bins);  PDF_MTEST (fbin);
   for (ibin = 0;  ibin < num_bins;  ibin++)
     fbin[ibin] = 0.0;
-    
+
   count = 0;
   for (ipt = 0;  ipt < npts;  ipt++)
     {
@@ -466,8 +466,8 @@ void PDF_short_to_pdf (int npts, short * sarray, pdf * p)
 
   return;
 }
- 
- 
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Estimate the pdf corresponding to the input float array.
@@ -493,10 +493,10 @@ void PDF_float_to_pdf (int npts, float * farray, int num_bins, pdf * p)
   fbin = (float *) malloc (sizeof(float) * num_bins);   PDF_MTEST (fbin);
   for (ibin = 0;  ibin < num_bins;  ibin++)
     fbin[ibin] = 0.0;
-  
+
   PDF_float_range (npts, farray, &min_val, &max_val);
   width = (max_val - min_val) / num_bins;
- 
+
   count = 0;
   for (ipt = 0;  ipt < npts;  ipt++)
     {
@@ -526,14 +526,14 @@ void PDF_float_to_pdf (int npts, float * farray, int num_bins, pdf * p)
 
   return;
 }
- 
- 
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Find extrema of pdf function.
 */
 
-void PDF_find_extrema (pdf p, int * num_min, int * pdf_min, 
+void PDF_find_extrema (pdf p, int * num_min, int * pdf_min,
 		       int * num_max, int * pdf_max)
 {
   int ibin;
@@ -563,16 +563,16 @@ void PDF_find_extrema (pdf p, int * num_min, int * pdf_min,
    printf ("\nNum Local Min = %d \n", *num_min);
    for (i = 0;  i < *num_min;  i++)
      {
-       ibin = pdf_min[i]; 
-       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
+       ibin = pdf_min[i];
+       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n",
 	       ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
      }
 
    printf ("\nNum Local Max = %d \n", *num_max);
    for (i = 0;  i < *num_max;  i++)
      {
-       ibin = pdf_max[i]; 
-       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n", 
+       ibin = pdf_max[i];
+       printf ("x[%3d] = %8.3f   p[%3d] = %12.6f \n",
 	       ibin, PDF_ibin_to_xvalue(p, ibin), ibin, p.prob[ibin]);
      }
   }
@@ -591,11 +591,11 @@ int PDF_find_bimodal (pdf p, int * gmax, int * wmax)
   int * pdf_min = NULL, * pdf_max = NULL;
   int num_min, num_max;
   int imax, temp;
-  
+
 
   pdf_min = (int *) malloc (sizeof(int) * p.nbin);
   pdf_max = (int *) malloc (sizeof(int) * p.nbin);
-  
+
   PDF_find_extrema (p, &num_min, pdf_min, &num_max, pdf_max);
 
 
@@ -611,7 +611,7 @@ int PDF_find_bimodal (pdf p, int * gmax, int * wmax)
 	  *wmax = pdf_max[0];
 	  *gmax = pdf_max[1];
 	}
-      
+
       if (num_max > 2)
 	{
 	  for (imax = 2;  imax < num_max;  imax++)
@@ -640,7 +640,7 @@ int PDF_find_bimodal (pdf p, int * gmax, int * wmax)
 
   free (pdf_min);   pdf_min = NULL;
   free (pdf_max);   pdf_max = NULL;
-  
+
 
   if (num_max < 2)  return (0);
   else              return (1);

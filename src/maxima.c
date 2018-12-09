@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 #include "maxima.h"
 
@@ -220,7 +220,7 @@ clear_around_point( int p, maxima_s * M, point_list_s * newP )
 		{
 		    *(optr + xbase) = 0;
 						/* maybe a switch later */
-		    if ( M->ngbr_style == MAX_WEIGHTED_AVE_STYLE ) 
+		    if ( M->ngbr_style == MAX_WEIGHTED_AVE_STYLE )
                     {
 			if ( ! add_point_to_list( &P, xbase+ybase+zbase ) )
 			    return 0;
@@ -251,7 +251,7 @@ clear_around_point( int p, maxima_s * M, point_list_s * newP )
 	    break;
 
 	default :
-	    sprintf( grMessage, "Error: cap_00\nInvalid ngbr_style %d.", 
+	    sprintf( grMessage, "Error: cap_00\nInvalid ngbr_style %d.",
 		     M->ngbr_style );
 	    rERROR( grMessage );
 	    return 0;
@@ -742,7 +742,7 @@ ENTRY("display_coords");
 
 	optr = M->sdata  + *iptr;
 	mptr = M->result + *iptr;
-    
+
 	if ( M->coords_only )
 	    printf( "%7.2f  %7.2f  %7.2f\n", f3.xyz[0], f3.xyz[1], f3.xyz[2] );
 	else
@@ -1042,10 +1042,10 @@ ENTRY("disp_r_afni_s");
            "     fimage                        = %p\n"
            "     max_u_short, num_dsets        = %d, %d\n",
            A,
-           A->must_be_short, A->want_floats, 
-           A->subs_must_equal, A->max_subs, 
-           (void *)A->dset[0], (void *)A->simage[0], 
-           A->factor[0], A->subs[0], A->sub_brick, 
+           A->must_be_short, A->want_floats,
+           A->subs_must_equal, A->max_subs,
+           (void *)A->dset[0], (void *)A->simage[0],
+           A->factor[0], A->subs[0], A->sub_brick,
            A->nx, A->ny, A->nz, A->nvox, (void *)A->fimage,
            A->max_u_short, A->num_dsets);
 

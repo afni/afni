@@ -19,11 +19,11 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  */
 
-/*  
+/*
  *  THIS FILE IS MACHINE GENERATED!  DO NOT EDIT!
  */
 #include "mtypes.h"

@@ -1,4 +1,4 @@
-/* 
+/*
    REHO/Kendall W code, written by PA Taylor (July, 2012).
 
    ReHo (regional homogeneity) is just a renaming of the Kendall's W
@@ -27,13 +27,13 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
-#include <3ddata.h>    
+#include <mrilib.h>
+#include <rsfc.h>
+#include <3ddata.h>
 #include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 
-void usage_ReHo(int detail) 
+void usage_ReHo(int detail)
 {
   printf(
 "\n"
@@ -112,7 +112,7 @@ void usage_ReHo(int detail)
 "                     according to the following relation:\n"
 "                         (i/A)^2 + (j/B)^2 + (k/C)^2 <=1.\n"
 "                     which will have approx. V=4*PI*A*B*C/3. The impetus for\n"
-"                     this freedom was for use with data having anisotropic \n" 
+"                     this freedom was for use with data having anisotropic \n"
 "                     voxel edge lengths.\n"
 "    -box_RAD   BR   :for additional voxelwise neighborhood control, the\n"
 "                     one can make a cubic box centered on a given voxel;\n"
@@ -215,15 +215,15 @@ int main(int argc, char *argv[]) {
   int Rdim[3] = {0,0,0};
   int Vneigh=0;
   int **HOOD_SHAPE=NULL;
-  
+
   int idx;
   FILE *fout1;
 
   int DO_SPHERE = 1;
   double checksum = 0.;
 
-  mainENTRY("3dReHo"); machdep(); 
-  
+  mainENTRY("3dReHo"); machdep();
+
   // ****************************************************************
   // ****************************************************************
   //                    load AFNI stuff
@@ -231,36 +231,36 @@ int main(int argc, char *argv[]) {
   // ****************************************************************
 
   // INFO_message("version: NU");
-	
+
   /** scan args **/
   if (argc == 1) { usage_ReHo(1); exit(0); }
-  iarg = 1; 
+  iarg = 1;
   while( iarg < argc && argv[iarg][0] == '-' ){
-    if( strcmp(argv[iarg],"-help") == 0 || 
+    if( strcmp(argv[iarg],"-help") == 0 ||
         strcmp(argv[iarg],"-h") == 0 ) {
       usage_ReHo(strlen(argv[iarg])>3 ? 2:1);
       exit(0);
     }
-		
+
     if( strcmp(argv[iarg],"-chi_sq") == 0) {
       CHI_ON=1;
       iarg++ ; continue ;
     }
 
     if( strcmp(argv[iarg],"-prefix") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-prefix'");
       prefix = strdup(argv[iarg]) ;
-      if( !THD_filename_ok(prefix) ) 
+      if( !THD_filename_ok(prefix) )
         ERROR_exit("Illegal name after '-prefix'");
       iarg++ ; continue ;
     }
-	 
+
     if( strcmp(argv[iarg],"-inset") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-input'");
 
-      sprintf(in_name,"%s", argv[iarg]); 
+      sprintf(in_name,"%s", argv[iarg]);
       insetTIME = THD_open_dataset(in_name) ;
       if( (insetTIME == NULL ))
         ERROR_exit("Can't open time series dataset '%s'.",in_name);
@@ -268,66 +268,66 @@ int main(int argc, char *argv[]) {
       Dim = (int *)calloc(4,sizeof(int));
       DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
       Nvox = DSET_NVOX(insetTIME) ;
-      Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
-      Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
+      Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME);
+      Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME);
 
       iarg++ ; continue ;
     }
 
 
     if( strcmp(argv[iarg],"-mask") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-mask'");
       HAVE_MASK=1;
 
-      sprintf(in_mask,"%s", argv[iarg]); 
+      sprintf(in_mask,"%s", argv[iarg]);
       MASK = THD_open_dataset(in_mask) ;
       if( (MASK == NULL ))
         ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
       DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
       iarg++ ; continue ;
     }
 
     if( strcmp(argv[iarg],"-in_rois") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-in_rois'");
-			
 
-      sprintf(in_rois,"%s", argv[iarg]); 
+
+      sprintf(in_rois,"%s", argv[iarg]);
       ROIS = THD_open_dataset(in_rois) ;
       if( (ROIS == NULL ))
         ERROR_exit("Can't open time series dataset '%s'.",in_rois);
 
       DSET_load(ROIS); CHECK_LOAD_ERROR(ROIS);
       HAVE_ROIS=DSET_NVALS(ROIS); //number of subbricks
-			
+
       iarg++ ; continue ;
     }
 
     if( strcmp(argv[iarg],"-nneigh") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-			
+
       if( 27 == atoi(argv[iarg]) )
         NEIGH_R[0] = 1.9;
       else if( 19 == atoi(argv[iarg]) )
         NEIGH_R[0] = 1.7;
       else if( 7 == atoi(argv[iarg]) )
         NEIGH_R[0] = 1.1;
-      else 
+      else
         ERROR_exit("Illegal after '-nneigh': need '27', '19' or '7'");
 
       NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // sphere
 
       iarg++ ; continue ;
     }
-		
+
     if( strcmp(argv[iarg],"-neigh_RAD") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[0] = atof(argv[iarg]);
       NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // sphere
@@ -336,9 +336,9 @@ int main(int argc, char *argv[]) {
     }
 
     if( strcmp(argv[iarg],"-neigh_X") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[0] = atof(argv[iarg]);
 
@@ -346,9 +346,9 @@ int main(int argc, char *argv[]) {
     }
 
     if( strcmp(argv[iarg],"-neigh_Y") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[1] = atof(argv[iarg]);
 
@@ -356,9 +356,9 @@ int main(int argc, char *argv[]) {
     }
 
     if( strcmp(argv[iarg],"-neigh_Z") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[2] = atof(argv[iarg]);
 
@@ -367,9 +367,9 @@ int main(int argc, char *argv[]) {
 
     // [PT: May, 2017]
     if( strcmp(argv[iarg],"-box_RAD") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[0] = (float) atoi(argv[iarg]);
       NEIGH_R[2] = NEIGH_R[1] = NEIGH_R[0]; // box
@@ -378,9 +378,9 @@ int main(int argc, char *argv[]) {
       iarg++ ; continue ;
     }
     if( strcmp(argv[iarg],"-box_X") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[0] = (float) atoi(argv[iarg]);
       DO_SPHERE = 0;
@@ -389,9 +389,9 @@ int main(int argc, char *argv[]) {
     }
 
     if( strcmp(argv[iarg],"-box_Y") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[1] = (float) atoi(argv[iarg]);
       DO_SPHERE = 0;
@@ -400,9 +400,9 @@ int main(int argc, char *argv[]) {
     }
 
     if( strcmp(argv[iarg],"-box_Z") == 0 ){
-      iarg++ ; if( iarg >= argc ) 
+      iarg++ ; if( iarg >= argc )
                  ERROR_exit("Need argument after '-nneigh'");
-      
+
       //INFO_message("Size of neighborhood is: %s",argv[iarg]);
       NEIGH_R[2] = (float) atoi(argv[iarg]);
       DO_SPHERE = 0;
@@ -419,17 +419,17 @@ int main(int argc, char *argv[]) {
     suggest_best_prog_option(argv[0], argv[iarg]);
     exit(1);
   }
-	
+
   if (iarg < 3) {
     ERROR_message("Too few options. Try -help for details.\n");
     exit(1);
   }
-	
+
   if( (HAVE_ROIS>0) && (Nvox != DSET_NVOX(ROIS)) ) {
     ERROR_message("Data sets of `-inset' and `in_rois' have different numbers of voxels per brik!\n");
     exit(1);
   }
-	
+
   if( (HAVE_MASK>0) && (Nvox != DSET_NVOX(MASK)) ) {
     ERROR_message("Data sets of `-inset' and `mask' have different numbers of voxels per brik!\n");
     exit(1);
@@ -449,14 +449,14 @@ int main(int argc, char *argv[]) {
     NEIGH_R[1]=NEIGH_R[2]=NEIGH_R[0];
   }
 
-	
+
   // ****************************************************************
   // ****************************************************************
   //                    make storage
   // ****************************************************************
   // ****************************************************************
 
-  // getting radius    
+  // getting radius
   if( DO_SPHERE ) {
      Vneigh = IntSpherVol(Rdim, NEIGH_R);
      INFO_message("Final vox neighbood: ellipsoid with Nneigh=%d "
@@ -471,50 +471,50 @@ int main(int argc, char *argv[]) {
   }
 
   // indices of sphere/ellipsoid
-  HOOD_SHAPE = calloc( Vneigh,sizeof(HOOD_SHAPE));  
-  for(i=0 ; i<Vneigh ; i++) 
-    HOOD_SHAPE[i] = calloc(3,sizeof(int)); 
+  HOOD_SHAPE = calloc( Vneigh,sizeof(HOOD_SHAPE));
+  for(i=0 ; i<Vneigh ; i++)
+    HOOD_SHAPE[i] = calloc(3,sizeof(int));
 
   LIST_OF_NEIGHS = (int *)calloc(Vneigh,sizeof(int)); // max of per vox
 
-  KW = (float *)calloc(Nvox,sizeof(float)); 
-  chisq = (float *)calloc(Nvox,sizeof(float)); 
-  here = (int *)calloc(3,sizeof(int)); 
-  ndof = (int *)calloc(1,sizeof(int)); 
+  KW = (float *)calloc(Nvox,sizeof(float));
+  chisq = (float *)calloc(Nvox,sizeof(float));
+  here = (int *)calloc(3,sizeof(int));
+  ndof = (int *)calloc(1,sizeof(int));
 
   mskd = (int ***) calloc( Dim[0], sizeof(int **) );
-  for ( i = 0 ; i < Dim[0] ; i++ ) 
+  for ( i = 0 ; i < Dim[0] ; i++ )
     mskd[i] = (int **) calloc( Dim[1], sizeof(int *) );
-  for ( i = 0 ; i < Dim[0] ; i++ ) 
-    for ( j = 0 ; j < Dim[1] ; j++ ) 
+  for ( i = 0 ; i < Dim[0] ; i++ )
+    for ( j = 0 ; j < Dim[1] ; j++ )
       mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
 
-  Nties = (int *)calloc(Nvox,sizeof(int)); 
+  Nties = (int *)calloc(Nvox,sizeof(int));
 
   // this statement will never be executed if allocation fails above
-  if( (HOOD_SHAPE == NULL) || (mskd == NULL) || (KW == NULL) 
+  if( (HOOD_SHAPE == NULL) || (mskd == NULL) || (KW == NULL)
       || (here == NULL) || (Nties == NULL) || (ndof == NULL)
-      || (LIST_OF_NEIGHS == NULL) ) { 
+      || (LIST_OF_NEIGHS == NULL) ) {
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
     exit(122);
   }
-	
+
   // *************************************************************
   // *************************************************************
   //                    Beginning of main loops
   // *************************************************************
   // *************************************************************
-	
+
   // make list of indices in spher shape
-  if( DO_SPHERE ) 
+  if( DO_SPHERE )
      i = IntSpherSha(HOOD_SHAPE, Rdim, NEIGH_R);
   else
      i = IntBoxSha(HOOD_SHAPE, Rdim, NEIGH_R);
 
   // go through once: define data vox
   idx = 0;
-  for( k=0 ; k<Dim[2] ; k++ ) 
-    for( j=0 ; j<Dim[1] ; j++ ) 
+  for( k=0 ; k<Dim[2] ; k++ )
+    for( j=0 ; j<Dim[1] ; j++ )
       for( i=0 ; i<Dim[0] ; i++ ) {
         if( HAVE_MASK ) {
           if( THD_get_voxel(MASK,idx,0)>0 )
@@ -522,10 +522,10 @@ int main(int argc, char *argv[]) {
         }
         else {
            checksum = 0.;
-           for( m=0 ; m<Dim[3] ; m++ ) 
+           for( m=0 ; m<Dim[3] ; m++ )
               // [PT: May 27, 2017] fixed index 0 -> m
               checksum+= fabs(THD_get_voxel(insetTIME,idx,m));
-           if( checksum > EPS_V ) 
+           if( checksum > EPS_V )
               mskd[i][j][k] = 1;
         }
         idx+= 1; // skip, and mskd and KW are both still 0 from calloc
@@ -535,8 +535,8 @@ int main(int argc, char *argv[]) {
   // INDEX holds ranks
   idx = 0;
   INDEX = calloc( Nvox,sizeof(INDEX));
-  for( k=0 ; k<Dim[2] ; k++ ) 
-    for( j=0 ; j<Dim[1] ; j++ ) 
+  for( k=0 ; k<Dim[2] ; k++ )
+    for( j=0 ; j<Dim[1] ; j++ )
       for( i=0 ; i<Dim[0] ; i++ ) {
         if(mskd[i][j][k])
           INDEX[idx] = calloc(Dim[3],sizeof(float));
@@ -545,41 +545,41 @@ int main(int argc, char *argv[]) {
         idx+= 1;
       }
 
-  if( INDEX == NULL ) { 
+  if( INDEX == NULL ) {
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
     exit(122);
   }
 
 
   if(HAVE_ROIS>0) {
-     
-    NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
-    INVROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int)); 
+
+    NROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int));
+    INVROI_REF = (int *)calloc(HAVE_ROIS, sizeof(int));
     if( (NROI_REF == NULL) || (INVROI_REF == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(122);
     }
-     
-    for( i=0 ; i<HAVE_ROIS ; i++) 
+
+    for( i=0 ; i<HAVE_ROIS ; i++)
       INVROI_REF[i] = (int) THD_subbrick_max(ROIS, i, 1);
-     
-    ROI_LABELS_REF = calloc( HAVE_ROIS,sizeof(ROI_LABELS_REF));  
-    for(i=0 ; i<HAVE_ROIS ; i++) 
-      ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
-    INV_LABELS_REF = calloc( HAVE_ROIS,sizeof(INV_LABELS_REF));  
-    for(i=0 ; i<HAVE_ROIS ; i++) 
-      INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
-     
-    if( (ROI_LABELS_REF == NULL) || (ROI_LABELS_REF == NULL) 
+
+    ROI_LABELS_REF = calloc( HAVE_ROIS,sizeof(ROI_LABELS_REF));
+    for(i=0 ; i<HAVE_ROIS ; i++)
+      ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
+    INV_LABELS_REF = calloc( HAVE_ROIS,sizeof(INV_LABELS_REF));
+    for(i=0 ; i<HAVE_ROIS ; i++)
+      INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
+
+    if( (ROI_LABELS_REF == NULL) || (ROI_LABELS_REF == NULL)
         ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
-     
+
     // Step 3A-2: find out the labels in the ref, organize them
     //            both backwards and forwards.
-    i = ViveLeRoi(ROIS, 
-                  ROI_LABELS_REF, // ordered list of ROILABEL ints, [1..M]; 
+    i = ViveLeRoi(ROIS,
+                  ROI_LABELS_REF, // ordered list of ROILABEL ints, [1..M];
                   //    maxval is N.
                   INV_LABELS_REF, // ith values at the actual input locs;
                   //    maxval is M.
@@ -587,27 +587,27 @@ int main(int argc, char *argv[]) {
                   INVROI_REF);    // N: max ROI label per brik
     if( i != 1)
       ERROR_exit("Problem loading/assigning ROI labels");
-     
-    ROI_KW = calloc(HAVE_ROIS,sizeof(ROI_KW)); 
-    for(i=0 ; i<HAVE_ROIS ; i++) 
-      ROI_KW[i] = calloc(NROI_REF[i],sizeof(float)); 
-    ROI_chisq = calloc(HAVE_ROIS,sizeof(ROI_chisq)); 
-    for(i=0 ; i<HAVE_ROIS ; i++) 
-      ROI_chisq[i] = calloc(NROI_REF[i],sizeof(float)); 
-    ROI_COUNT = calloc( HAVE_ROIS,sizeof(ROI_COUNT));  
-    for(i=0 ; i<HAVE_ROIS ; i++) 
-      ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int)); 
+
+    ROI_KW = calloc(HAVE_ROIS,sizeof(ROI_KW));
+    for(i=0 ; i<HAVE_ROIS ; i++)
+      ROI_KW[i] = calloc(NROI_REF[i],sizeof(float));
+    ROI_chisq = calloc(HAVE_ROIS,sizeof(ROI_chisq));
+    for(i=0 ; i<HAVE_ROIS ; i++)
+      ROI_chisq[i] = calloc(NROI_REF[i],sizeof(float));
+    ROI_COUNT = calloc( HAVE_ROIS,sizeof(ROI_COUNT));
+    for(i=0 ; i<HAVE_ROIS ; i++)
+      ROI_COUNT[i] = calloc(NROI_REF[i],sizeof(int));
 
     if( (ROI_KW == NULL) || (ROI_COUNT == NULL) || (ROI_chisq == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
-	
+
     // find num of vox per ROI
     for( m=0 ; m<HAVE_ROIS ; m++ ) {
       idx=0;
-      for( k=0 ; k<Dim[2] ; k++ ) 
-        for( j=0 ; j<Dim[1] ; j++ ) 
+      for( k=0 ; k<Dim[2] ; k++ )
+        for( j=0 ; j<Dim[1] ; j++ )
           for( i=0 ; i<Dim[0] ; i++ ) {
             if( (THD_get_voxel(ROIS,idx,m) > 0 ) && mskd[i][j][k] ) {
               ROI_COUNT[m][INV_LABELS_REF[m][(int) THD_get_voxel(ROIS,idx,m)]-1]++;
@@ -615,28 +615,28 @@ int main(int argc, char *argv[]) {
             idx++;
           }
     }
-		
+
     // make list of vox per ROI
     ROI_LISTS = (int ***) calloc( HAVE_ROIS, sizeof(int **) );
-    for ( i=0 ; i<HAVE_ROIS ; i++ ) 
+    for ( i=0 ; i<HAVE_ROIS ; i++ )
       ROI_LISTS[i] = (int **) calloc( NROI_REF[i], sizeof(int *) );
-    for ( i=0 ; i <HAVE_ROIS ; i++ ) 
-      for ( j=0 ; j<NROI_REF[i] ; j++ ) 
+    for ( i=0 ; i <HAVE_ROIS ; i++ )
+      for ( j=0 ; j<NROI_REF[i] ; j++ )
         ROI_LISTS[i][j] = (int *) calloc( ROI_COUNT[i][j], sizeof(int) );
     if( (ROI_LISTS == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
     }
-	  
+
     // reuse this to help place list indices
-    for( i=0 ; i<HAVE_ROIS ; i++ ) 
+    for( i=0 ; i<HAVE_ROIS ; i++ )
       for( j=0 ; j<NROI_REF[i] ; j++ )
         ROI_COUNT[i][j] = 0;
 
     for( m=0 ; m<HAVE_ROIS ; m++ ) {
       idx=0;
-      for( k=0 ; k<Dim[2] ; k++ ) 
-        for( j=0 ; j<Dim[1] ; j++ ) 
+      for( k=0 ; k<Dim[2] ; k++ )
+        for( j=0 ; j<Dim[1] ; j++ )
           for( i=0 ; i<Dim[0] ; i++ ) {
             if( (THD_get_voxel(ROIS,idx,m) > 0) && mskd[i][j][k] ) {
               mm = INV_LABELS_REF[m][(int) THD_get_voxel(ROIS,idx,m)]-1;
@@ -646,27 +646,27 @@ int main(int argc, char *argv[]) {
             idx++;
           }
     }
-  }	
+  }
 
   // calculate ranks
   idx=0;
-  for( k=0 ; k<Dim[2] ; k++ ) 
-    for( j=0 ; j<Dim[1] ; j++ ) 
+  for( k=0 ; k<Dim[2] ; k++ )
+    for( j=0 ; j<Dim[1] ; j++ )
       for( i=0 ; i<Dim[0] ; i++ ) {
         if( mskd[i][j][k] ) {
           DUM = CalcRanksForReHo(INDEX[idx],idx,insetTIME,Nties,Dim[3]);
         }
         idx++;
       }
-  
-  
+
+
   idx = 0;
   // calculate KendallW for each voxel
-  for( k=0 ; k<Dim[2] ; k++ ) 
-    for( j=0 ; j<Dim[1] ; j++ ) 
+  for( k=0 ; k<Dim[2] ; k++ )
+    for( j=0 ; j<Dim[1] ; j++ )
       for( i=0 ; i<Dim[0] ; i++ ) {
         if(mskd[i][j][k]) {
-          here[0] = i; here[1] = j; here[2] = k; 
+          here[0] = i; here[1] = j; here[2] = k;
           m = FindVoxHood(LIST_OF_NEIGHS,HOOD_SHAPE,here,Dim,mskd,Vneigh,ndof);
           KW[idx] = ReHoIt(LIST_OF_NEIGHS,INDEX,Nties,Dim,
                            ndof);
@@ -677,8 +677,8 @@ int main(int argc, char *argv[]) {
 
   // ROI values
   if(HAVE_ROIS>0) {
-		
-    for(i=0 ; i<HAVE_ROIS ; i++) 
+
+    for(i=0 ; i<HAVE_ROIS ; i++)
       for( j=0 ; j<NROI_REF[i] ; j++ ) {
         ndof[0]=ROI_COUNT[i][j];
         ROI_KW[i][j] = ReHoIt(ROI_LISTS[i][j],INDEX,Nties,Dim,
@@ -686,18 +686,18 @@ int main(int argc, char *argv[]) {
         ROI_chisq[i][j] = ndof[0]*(Dim[3]-1)* ROI_KW[i][j];
       }
   }
-  
+
   // **************************************************************
   // **************************************************************
   //                 Store and output
   // **************************************************************
   // **************************************************************
-	
-  outsetREHO = EDIT_empty_copy( insetTIME ) ; 
+
+  outsetREHO = EDIT_empty_copy( insetTIME ) ;
 
   EDIT_dset_items( outsetREHO,
-                   ADN_datum_all , MRI_float , 
-                   ADN_ntt       , 1+CHI_ON, 
+                   ADN_datum_all , MRI_float ,
+                   ADN_ntt       , 1+CHI_ON,
                    ADN_nvals     , 1+CHI_ON,
                    ADN_prefix    , prefix ,
                    ADN_none ) ;
@@ -705,43 +705,43 @@ int main(int argc, char *argv[]) {
   if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetREHO)) )
     ERROR_exit("Can't overwrite existing dataset '%s'",
                DSET_HEADNAME(outsetREHO));
-  EDIT_substitute_brick(outsetREHO, 0, MRI_float, KW); 
+  EDIT_substitute_brick(outsetREHO, 0, MRI_float, KW);
   KW=NULL;
   if(CHI_ON)
-    EDIT_substitute_brick(outsetREHO, 1, MRI_float, chisq); 
+    EDIT_substitute_brick(outsetREHO, 1, MRI_float, chisq);
   chisq=NULL;
-  EDIT_BRICK_LABEL(outsetREHO,0,"ReHo");      
-  if(CHI_ON) 
-    EDIT_BRICK_LABEL(outsetREHO,1,"frchisq");      
+  EDIT_BRICK_LABEL(outsetREHO,0,"ReHo");
+  if(CHI_ON)
+    EDIT_BRICK_LABEL(outsetREHO,1,"frchisq");
   THD_load_statistics(outsetREHO);
   tross_Make_History("3dReHo", argc, argv, outsetREHO);
   THD_write_3dim_dataset(NULL, NULL, outsetREHO, True);
 
   if(HAVE_ROIS>0) {
-    sprintf(out_rois,"%s_ROI_reho.vals", prefix); 
+    sprintf(out_rois,"%s_ROI_reho.vals", prefix);
     if( (fout1 = fopen(out_rois, "w")) == NULL) {
       fprintf(stderr, "Error opening file %s.",out_rois);
       exit(19);
     }
     for(i=0 ; i<HAVE_ROIS ; i++) {
-      for( j=0 ; j<NROI_REF[i] ; j++ ) 
+      for( j=0 ; j<NROI_REF[i] ; j++ )
         fprintf(fout1,"%.4f\t",ROI_KW[i][j]);
       fprintf(fout1,"\n");
     }
-    fclose(fout1);    
+    fclose(fout1);
 
     if(CHI_ON){
-      sprintf(out_rois,"%s_ROI_reho.chi", prefix); 
+      sprintf(out_rois,"%s_ROI_reho.chi", prefix);
       if( (fout1 = fopen(out_rois, "w")) == NULL) {
         fprintf(stderr, "Error opening file %s.",out_rois);
         exit(19);
       }
       for(i=0 ; i<HAVE_ROIS ; i++) {
-        for( j=0 ; j<NROI_REF[i] ; j++ ) 
+        for( j=0 ; j<NROI_REF[i] ; j++ )
           fprintf(fout1,"%.4f\t",ROI_chisq[i][j]);
         fprintf(fout1,"\n");
       }
-      fclose(fout1);    
+      fclose(fout1);
     }
   }
 
@@ -755,34 +755,34 @@ int main(int argc, char *argv[]) {
   //                    Freeing
   // ************************************************************
   // ************************************************************
-	
-  DSET_delete(insetTIME); 
+
+  DSET_delete(insetTIME);
   free(insetTIME);
 
   DSET_delete(outsetREHO);
   DSET_delete(MASK);
   DSET_delete(ROIS);
-  free(KW); 
+  free(KW);
   free(chisq);
   free(here);
   free(MASK);
   free(ROIS);
-	
-  for(i=0 ; i<Vneigh ; i++) 
+
+  for(i=0 ; i<Vneigh ; i++)
     free(HOOD_SHAPE[i]);
   free(HOOD_SHAPE);
 
 
-  for( i=0 ; i<Dim[0] ; i++) 
+  for( i=0 ; i<Dim[0] ; i++)
     for( j=0 ; j<Dim[1] ; j++) {
       free(mskd[i][j]);
     }
   for( i=0 ; i<Dim[0] ; i++) {
     free(mskd[i]);
   }
-  for( i=0 ; i<Nvox ; i++) 
+  for( i=0 ; i<Nvox ; i++)
     free(INDEX[i]);
-	
+
   free(INDEX);
   free(mskd);
   free(Nties);
@@ -794,9 +794,9 @@ int main(int argc, char *argv[]) {
   free(LIST_OF_NEIGHS);
 
   if(HAVE_ROIS >0) {
-		
+
     for( i=0 ; i<HAVE_ROIS ; i++) {
-      for( j=0 ; j<NROI_REF[i] ; j++) 
+      for( j=0 ; j<NROI_REF[i] ; j++)
         free(ROI_LISTS[i][j]);
       free(ROI_LISTS[i]);
       free(ROI_KW[i]);
@@ -814,6 +814,6 @@ int main(int argc, char *argv[]) {
     free(NROI_REF);
     free(INVROI_REF);
   }
-	
+
   return 0;
 }

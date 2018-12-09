@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 #include "afni_plugin.h"
 
@@ -26,10 +26,10 @@
 
 
 /***********************************************************************
-  Plugin to compute a 3D+time dataset voxelwise delay with respect to 
+  Plugin to compute a 3D+time dataset voxelwise delay with respect to
   a reference waveform
 ************************************************************************/
-typedef struct 
+typedef struct
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -91,7 +91,7 @@ static char helpstring[] =
   "                    The plugin assumes that there is one value per line and that all\n"
   "                    values in the file are part of the reference vector.\n"
   "                    PS: Unlike with 3dfim, and FIM in AFNI, values over 33333 are treated \n"
-  "                        as part of the time series.\n" 
+  "                        as part of the time series.\n"
   "                    The reference vectors must be placed in a directory specified in \n"
   "                    AFNI_TSPATH environment variable. Read AFNI documentation for more info.\n"
   "      Ignore     -> Number of samples to ignore from the beginning of each voxel's time series.\n"
@@ -99,30 +99,30 @@ static char helpstring[] =
   "      Dsamp      -> (Y/N) Correct a voxel's estimated delay by the time at which the slice\n"
   "                    containing that voxel was acquired.\n\n"
   "   3- Sig. :\n"
-  "      fs in Hz   -> Sampling frequency in Hz. of data time series. \n"  
+  "      fs in Hz   -> Sampling frequency in Hz. of data time series. \n"
   "      Tstim sec  -> Stimulus period in seconds. \n"
   "                    If the stimulus is not periodic, you can set Tstim to 0.\n"
   "      C-Off      -> Cross Correlation Coefficient threshold value.\n"
   "                    This is only used to censor the ascii output (see below).\n"
-  "      No-bias    -> (y/n) Correct for the bias in the cross correlation coefficient estimate [1][2].\n\n" 
+  "      No-bias    -> (y/n) Correct for the bias in the cross correlation coefficient estimate [1][2].\n\n"
   "   4- Alg. :\n"
   "      N seg.     -> Number of segments used to estimate the periodogram.\n"
   "                    (you can't modify this parameter in this version)\n"
   "      % ovrlp    -> Percent segment overlap when estimating periodogram.\n"
-  "                    (you can't modify this parameter in this version)\n" 
+  "                    (you can't modify this parameter in this version)\n"
   "      Units      -> (Seconds/Degrees/Radians) Units for delay estimates.\n"
   "                    You can't use Degrees or Radians as units unless you specify\n"
   "                    a value for Tstim > 0.\n"
   "      Phz Wrp    -> (Y/N) Delay (or phase) wrap.\n"
-  "                    This switch maps delays from: \n" 
-  "                    (Seconds) 0->T/2 to 0->T/2 and T/2->T to -T/2->0\n"  
-  "                    (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n"   
-  "                    (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n" 
+  "                    This switch maps delays from: \n"
+  "                    (Seconds) 0->T/2 to 0->T/2 and T/2->T to -T/2->0\n"
+  "                    (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n"
+  "                    (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n"
   "                    You can't use this option unless you specify a value for Tstim > 0.\n\n"
   "   5- Output :\n"
   "      AFNI Prfx  -> Prefix for output brick of the bucket type (fbuc).\n"
   "                    The first subbrick is for Delay.\n"
-  "                    The second subbrick is for Covariance, which is an estimate\n" 
+  "                    The second subbrick is for Covariance, which is an estimate\n"
   "                    of the power in voxel time series at the frequencies present \n"
   "                    in the reference time series.\n"
   "                    The third subbrick is for the Cross Correlation Coefficients between\n"
@@ -163,7 +163,7 @@ static char helpstring[] =
   "                    If the field is left empty, a default name similar \n"
   "                    to the default output prefix is used.\n"
   "      Write ts   -> (Y/N) Write the time series to an ascii file for voxels with \n"
-  "                    Cross Correlation Coefficients larger than C-Off.\n" 
+  "                    Cross Correlation Coefficients larger than C-Off.\n"
   "                    The file name is that used in 'Filename' with a '.ts' extension appended at the end.\n"
   "                    A line (L) in the file 'Filename.ts' contains the time series of the voxel whose\n"
   "                    results are written on line (L) in the file 'Filename'.\n"
@@ -188,7 +188,7 @@ static char helpstring[] =
 /*--------------------- strings for output format --------------------*/
 /* do not change the order in this string*/
 static char * method_strings[] = { "Seconds" , "Degrees" , "Radians"} ;
-static char * yn_strings[] = { "n" , "y" }; 
+static char * yn_strings[] = { "n" , "y" };
 
 #define NUM_METHOD_STRINGS (sizeof(method_strings)/sizeof(char *))
 #define NUM_YN_STRINGS (sizeof(yn_strings)/sizeof(char *))
@@ -285,7 +285,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       DIMEN_4D_MASK |    /* need 3D+time datasets  */
       BRICK_ALLREAL_MASK /* need real-valued datasets */
    ) ;
-						 
+
 	PLUTO_add_number( plint ,
    "Nort" ,  /* label next to chooser */
    1 ,         /* smallest possible value */
@@ -294,17 +294,17 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    2 ,         /* default value */
    FALSE       /* allow user to edit value? */
                   ) ;
-	
+
    /*---------- 2nd line: Input time series ----------*/
-   
+
    PLUTO_add_option( plint ,
     "Ref." ,  /* label at left of input line */
     "Ref." ,  /* tag to return to plugin */
     TRUE       /* is this mandatory? */
                    ) ;
 
-   PLUTO_add_timeseries(plint,"Ref. Vect."); 
-   
+   PLUTO_add_timeseries(plint,"Ref. Vect.");
+
    PLUTO_add_number( plint ,
    "Ignore" ,  /* label next to chooser */
    0 ,         /* smallest possible value */
@@ -313,13 +313,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    0 ,         /* default value */
    FALSE       /* allow user to edit value? */
                   ) ;
-	
+
 	PLUTO_add_string( plint ,
     "Dsamp" ,  /*label next to textfield */
     2,yn_strings,  /*   strings to choose among */
     1          /* Default option */
-                   ) ; 
-                   
+                   ) ;
+
    /*---------- 3rd line: sampling frequency ----------*/
 
    PLUTO_add_option( plint ,
@@ -336,7 +336,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    5 ,         /* default value */
    TRUE       /* allow user to edit value? */
                   ) ;
-	
+
 	PLUTO_add_number( plint ,
    "Tstim sec" ,  /* label next to chooser */
    0.0 ,         /* smallest possible value */
@@ -354,16 +354,16 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    5 ,         /* default value */
    TRUE       /* allow user to edit value? */
                   ) ;
-   
-   
+
+
    PLUTO_add_string( plint ,
     "No-bias" ,  /*label next to textfield */
     2,yn_strings,  /*   strings to choose among */
     1          /* Default option */
-                   ) ; 
-                  
+                   ) ;
 
-	
+
+
    /*---------- 4th line: Delay Units ----------*/
 
    PLUTO_add_option( plint ,
@@ -380,7 +380,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    1 ,         /* default value */
    FALSE       /* allow user to edit value? */
                   ) ;
-	
+
 	PLUTO_add_number( plint ,
    "% ovrlp" ,  /* label next to chooser */
    0 ,         /* smallest possible value */
@@ -390,19 +390,19 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    FALSE       /* allow user to edit value? */
                   ) ;
 
-	
+
    PLUTO_add_string( plint ,
     "Units" ,  /* label next to textfield */
     3,method_strings,    /* strings to choose among */
     0          /* Default option */
                    ) ;
-   
+
    PLUTO_add_string( plint ,
     "Phz Wrp" ,  /* label next to textfield */
     2,yn_strings,    /* strings to choose among */
     0          /* Default option */
                    ) ;
-                  
+
 
    /*---------- 5th line: Output dataset ----------*/
 
@@ -417,19 +417,19 @@ PLUGIN_interface * PLUGIN_init( int ncall )
     0,NULL ,    /* no fixed strings to choose among */
     19          /* 19 spaces for typing in value */
                    ) ;
-	
+
 	PLUTO_add_string( plint ,
     "Write" ,  /* label next to textfield */
-    2,yn_strings ,    
-    1          
+    2,yn_strings ,
+    1
                    ) ;
-                   
+
    PLUTO_add_string( plint , "Filename" , 0 , NULL , 19 ) ;
-   
+
    PLUTO_add_string( plint ,
     "Write ts" ,  /* label next to textfield */
-    2,yn_strings ,    
-    1          
+    2,yn_strings ,
+    1
                    ) ;
 
    /*--------- done with interface setup ---------*/
@@ -451,27 +451,27 @@ static char * DELAY_main( PLUGIN_interface * plint )
    char *tmpstr , * str , *nprfxstr;                 /* strings from user */
    int   ntime, nvec ,nprfx, i;
 	float * vec , fs , T ;
-		
+
 	/* Allocate as much character space as Bob specifies in afni.h + a bit more */
-	
+
 	tmpstr = (char *) calloc (PLUGIN_MAX_STRING_RANGE+10,sizeof(char));
 	nprfxstr = (char *) calloc (PLUGIN_MAX_STRING_RANGE+10,sizeof(char));
-	
-	if (tmpstr == NULL || nprfxstr == NULL) 
+
+	if (tmpstr == NULL || nprfxstr == NULL)
 									  return "********************\n"
 												"Could not Allocate\n"
 												"a teeni weeni bit of\n"
 												"Memory ! \n"
 												"********************\n";
-														
+
 	ud = &uda;		/* ud now points to an allocated space */
 	ud->errcode = 0;	/*reset error flag */
-	
+
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
 
    /*--------- go to first input line ---------*/
-		
+
    PLUTO_next_option(plint) ;
 
    idc      = PLUTO_get_idcode(plint) ;   /* get dataset item */
@@ -480,67 +480,67 @@ static char * DELAY_main( PLUGIN_interface * plint )
       return "*************************\n"
              "Cannot find Input Dataset\n"
              "*************************"  ;
-   
+
    ud->dsetname = DSET_FILECODE (old_dset);
 	ud->nsamp = DSET_NUM_TIMES (old_dset);
 	ud->Navg = 1 ;    /* Navg does not play a role for the p value, averaging increases sensitivity */
 	ud->Nort = PLUTO_get_number(plint) ; /* Should be two by default, for mean and linear trend */
 	ud->Nfit = 2 ;  /* Always 2 for phase and amplitude for this plugin */
 	/*--------- go to 2nd input line, input time series ---------*/
-		
+
 	PLUTO_next_option(plint) ;
-	
+
 	tsim = PLUTO_get_timeseries(plint);
 	if (tsim == NULL) return "No Timeseries Input";
-	
+
 	ud->ln = (int)tsim -> nx;									/* number of points in each vector */
 	nvec 	= tsim -> ny;									/* number of vectors */
 	ud->rvec   = (float *) MRI_FLOAT_PTR(tsim);	/* vec[i+j*nx] = ith point of jth vector */
 																/* for i=0 .. ntime-1 and j=0 .. nvec-1 */
-	
+
 	if (is_vect_null (ud->rvec,ud->ln) == 1) 	/* check if ref vect is all zeroes */
 		{
-			return "Reference vector is all zeros";	
+			return "Reference vector is all zeros";
 		}
-		
+
 	ud->refname = tsim->name;
 	ud->ignore = PLUTO_get_number(plint) ;    /* get number item */
-	
+
 	str = PLUTO_get_string(plint) ;
    ud->Dsamp = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings ) ;
-   
+
    /*--------- go to 3rd input line, sampling frequency, and stimulus period ---------*/
-   	
+
    PLUTO_next_option(plint) ;
-   
+
    ud->fs = PLUTO_get_number(plint) ;    /* get number item */
    ud->T = PLUTO_get_number(plint) ;    /* get number item */
-   
+
    ud->co = PLUTO_get_number(plint) ;    /* get number item */
    str = PLUTO_get_string(plint) ;
    ud->biasrem = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings ) ;
-   
+
    /*--------- go to 4th input line, delay units and wrp option---------*/
-		
+
    PLUTO_next_option(plint) ;
 
    ud->Nseg = (int)PLUTO_get_number(plint) ;    /* get number item */
    ud->Pover = (int)PLUTO_get_number(plint) ;    /* get number item */
-   
+
    str = PLUTO_get_string(plint) ;      						/* get string item (the method) */
    ud->unt = (int)PLUTO_string_index( str ,      				/* find it in list it is from */
              	 NUM_METHOD_STRINGS ,
              	 method_strings ) ;
-	
-	str = PLUTO_get_string(plint) ;  
+
+	str = PLUTO_get_string(plint) ;
 	ud->wrp = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings ) ;
-	
+
    /*--------- go to 5th input line Output prefix ---------*/
-		
+
    PLUTO_next_option(plint) ;
-		
+
    ud->new_prefix = PLUTO_get_string(plint) ;   /* get string item (the output prefix) */
-	
+
 	/* check to see if the field is empty */
 	if (ud->new_prefix == NULL)
 			nprfx = 0;
@@ -549,43 +549,43 @@ static char * DELAY_main( PLUGIN_interface * plint )
 	/* check if the size is larger than 0. I did not want to check for this unless it's allocated */
 	if (nprfx == 1 && (int)strlen (ud->new_prefix) == 0)
 		nprfx = 0;
-		
+
 	if (nprfx == 0)		/* now create the new name and make new_prefix point to it */
 		{
 			sprintf (nprfxstr,"%s.DEL",DSET_PREFIX (old_dset));
 			ud->new_prefix = nprfxstr;
 			/*printf ("New prefix is set to be : %s\n\a",ud->new_prefix);*/
 		}
-	
+
    if( ! PLUTO_prefix_ok(ud->new_prefix) )      /* check if it is OK */
       return "************************\n"
              "Output Prefix is illegal\n"
              "************************"  ;
-	
+
 	str = PLUTO_get_string(plint) ; 				/* write delays to file ? */
 	ud->out = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings );
-	
+
 	ud->strout = PLUTO_get_string(plint) ; 				/* strout is for the outiflename, which will be used after the debugging section */
 	if (ud->strout == NULL)						/* if no output name is given, use the new_prefix */
 		{ud->strout = ud->new_prefix;}
-		else 
-			{	
+		else
+			{
 				if((int)strlen (ud->strout) == 0) ud->strout = ud->new_prefix;
 			}
-			
-	str = PLUTO_get_string(plint) ; 
+
+	str = PLUTO_get_string(plint) ;
 	ud->outts = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings );
-	
+
 	/* ------------------Done with user parameters ---------------------------- */
-	
+
 	ud->nxx = (int)old_dset->daxes->nxx;				/* get data set dimensions */
 	ud->nyy = (int)old_dset->daxes->nyy;
 	ud->nzz = (int)old_dset->daxes->nzz;
-	
+
 	/* No need for users to set these options ...*/
-	
+
 	ud->dtrnd = 0;
-	
+
 	if (ud->ln != (ud->nsamp - ud->ignore))
 		{
 			ud->errcode = ERROR_BADLENGTH;
@@ -595,7 +595,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 " or the ignore parameter   \n"
 					 "***************************\n";
 		}
-	
+
 	if ((ud->unt < 0) || (ud->unt > 2))										/* unt error Check */
 	  	{
          ud->errcode = ERROR_WRONGUNIT;
@@ -604,7 +604,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "unt values out of bound\n"
 					 "***********************\n";			/*unt must be between 0 and 2 */
 	  	}
-	  
+
 	  if ((ud->wrp < 0) || (ud->wrp > 1))										/* wrp error Check */
 	  	{
          ud->errcode = ERROR_WARPVALUES;
@@ -613,7 +613,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "wrp values out of bound\n"
 					 "***********************\n";			/* wrp must be between 0 and 1*/
 	  	}
-	  
+
 	  if (ud->fs < 0.0) {       /* fs error Check */
          ud->errcode = ERROR_FSVALUES;
          return "***********************\n"
@@ -621,7 +621,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "fs value is negative !\n"
 					 "***********************\n";			/* fs must be >= 0*/
         }
-	  
+
 	  if (ud->T < 0.0) {        /* T error Check */
          ud->errcode = ERROR_TVALUES;
          return "***********************\n"
@@ -629,8 +629,8 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "T value is negative !\n"
 					 "***********************\n";					/*T must be >= 0  */
         }
-        
-           	
+
+
      if ((ud->T == 0.0) && (ud->unt > 0))                /* unt error Check */
    	{
          ud->errcode = ERROR_TaUNITVALUES;
@@ -640,7 +640,7 @@ static char * DELAY_main( PLUGIN_interface * plint )
 					 "***********************\n";			/*T must be specified, and > 0 in order to use polar units*/
    	}
 
-    
+
     if ((ud->wrp == 1) && (ud->T == 0.0))                  /* wrp error Check */
         {
          ud->errcode = ERROR_TaWRAPVALUES;
@@ -656,10 +656,10 @@ static char * DELAY_main( PLUGIN_interface * plint )
          		 "error: \n"
 					 "Write flag must be on\n"
 					 "to use Write ts\n"
-					 "***********************\n";	
-	 		
+					 "***********************\n";
+
 	 		}
-	
+
 
 	/* Open the logfile, regardless of the ascii output files */
 	sprintf ( tmpstr , "%s.log" , ud->strout);
@@ -667,34 +667,34 @@ static char * DELAY_main( PLUGIN_interface * plint )
 
 
 	if (ud->out == YUP)									/* open outfile */
-				{					
+				{
 					ud->outwrite = fopen (ud->strout,"w");
-					
+
 					if (ud->outts == YUP)
 						{
 							sprintf ( tmpstr , "%s.ts" , ud->strout);
 							ud->outwritets = fopen (tmpstr,"w");
-							
+
 						}
-					
+
 					if ((ud->outwrite == NULL) || (ud->outlogfile == NULL) ||\
 					    (ud->outwritets == NULL && ud->outts == YUP) )
 						{
-							ud->errcode = ERROR_FILEOPEN; 
-							
+							ud->errcode = ERROR_FILEOPEN;
+
 							return "***********************\n"
 									 "Could Not Write Outfile\n"
 									 "***********************\n";
 						}
-	
+
 				}
-	
+
 	/* Write out user variables to Logfile */
 	write_ud (ud);			/* writes user data to a file */
-	
+
 	/*show_ud (ud,0);	*/			/* For some debugging */
 
-   
+
    /*------------- ready to compute new dataset -----------*/
 
    new_dset = MAKER_4D_to_typed_fbuc ( old_dset ,             /* input dataset */
@@ -705,8 +705,8 @@ static char * DELAY_main( PLUGIN_interface * plint )
           NBUCKETS,					/*Number of values at each voxel*/
 			 DELAY_tsfuncV2 ,         /* timeseries processor (bucket version)*/
 			 (void *)ud,          /* data for tsfunc */
-			 NULL, 0							) ; 
-										 
+			 NULL, 0							) ;
+
    /* Setup the label, keywords and types of subbricks */
 	i = 0;
 	while (i < NBUCKETS)
@@ -742,16 +742,16 @@ static char * DELAY_main( PLUGIN_interface * plint )
 								 "*********************\n";
 						break;
 				}
-				
+
 		}
-	
-   
+
+
    if (!AFNI_noenv("AFNI_AUTOMATIC_FDR")) {
       THD_create_all_fdrcurves( new_dset );
    }
 	PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
-	
-	
+
+
 
    if (ud->out == YUP)									/* close outfile and outlogfile*/
 				{
@@ -763,8 +763,8 @@ static char * DELAY_main( PLUGIN_interface * plint )
 				{
 					if (ud->outlogfile != NULL)	fclose (ud->outlogfile);		/* close outlogfile */
 				}
-	
-	free (tmpstr);		
+
+	free (tmpstr);
 	free (nprfxstr);
    return NULL ;  /* null string returned means all was OK */
 }
@@ -783,10 +783,10 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
 	float xcor=0.0 ,  tmp=0.0 , tmp2 = 0.0 ,  dtx = 0.0 ,\
 			 delu = 0.0 , slp = 0.0 , vts = 0.0 , vrvec = 0.0 ;
 	int i , is_ts_null , status , opt , actv , zpos , ypos , xpos ;
-	
+
 	ud = &uda;
 	ud = (hilbert_data_V2 *) udp;
-	
+
    /** is this a "notification"? **/
 
    if( buckar == NULL ){
@@ -796,7 +796,7 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
          PLUTO_popup_meter( global_plint ) ;  /* progress meter  */
          nvox  = npts ;      /* keep track of   */
          ncall = 0 ;         /* number of calls */
-			
+
       } else {  /* the "end notification" */
 			opt = 0;					/* cleanup in hdelay */
    		#if 0
@@ -812,72 +812,72 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
 
 	/* In the old version, I had to check for a match between the lengths of the reference time series and FMRI time series
 	This is now done before the function is called. */
-   
+
    if (is_vect_null (ts,npts) == 1) /* check for null vectors */
    	{
    		ud->errcode = ERROR_NULLTIMESERIES;
 			error_report (ud , ncall );	/* report the error */
-   		
+
    		del = 0.0;								/* Set all the variables to Null and don't set xcorCoef to an impossible value*/
    		xcorCoef = 0.0;						/*  because the data might still be OK */
    		xcor = 0.0;
    	}
-   
-   if (ud->errcode == 0) 				/* if there are no errors, proceed */	
+
+   if (ud->errcode == 0) 				/* if there are no errors, proceed */
 		{/* ud->errcode == 0 outer loop */
 			opt = 1;					/* activate hdelay */
-   		
+
    		/* transform dtx from seconds to sampling units and correct for the number of points ignored*/
-   		if (ud->Dsamp == YUP) 
+   		if (ud->Dsamp == YUP)
    			dtx = (float) (T0 / TR) - ud->ignore;
    		else
    			dtx = 0.0;
-   			
+
    		ud->errcode = hilbertdelay_V2 (ts,ud->rvec,ud->ln,ud->Nseg,ud->Pover,opt,ud->dtrnd,dtx,ud->biasrem,&delu,&slp,&xcor,&xcorCoef,&vts,&vrvec);					/* cleanup time */
-			
+
 			if (ud->errcode == 0) /* If there are no errors, proceed */
 				{ /*ud->errcode == 0 inner loop */
-					hunwrap (delu, (float)(1/TR), ud->T, slp, ud->wrp, ud->unt, 
+					hunwrap (delu, (float)(1/TR), ud->T, slp, ud->wrp, ud->unt,
                         0, 1.0, &del );
-					
+
 					actv = 1;						/* assume voxel is active */
-	
+
 					if (xcorCoef < ud->co) actv = 0;			/* determine if voxel is activated using xcorCoef  */
-	
+
 					if ((actv == 1) && (ud->out == YUP)) 		/* if voxel is truly activated, write results to file without modifying return value */
 						{
 							indexTOxyz ( ud , ncall, &xpos , &ypos , &zpos);
 							fprintf (ud->outwrite,"%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n", ncall , xpos , ypos , zpos ,  delu , del , xcor , xcorCoef , vts);
 							if (ud->outts == YUP)
 								{
-									writets (ud,ts);	
+									writets (ud,ts);
 								}
 						}
 
 				}/*ud->errcode == 0 inner loop */
-			
+
 			else if (ud->errcode == ERROR_LONGDELAY)
 						{
-							error_report ( ud , ncall);	
-							
+							error_report ( ud , ncall);
+
 							del = 0.0;								/* Set all the variables to Null and don't set xcorCoef to an impossible value*/
    						xcorCoef = 0.0;						/*  because the data might still be OK */
    						xcor = 0.0;
-							
+
 						}
 					else if (ud->errcode != 0)
 								{
-									error_report ( ud , ncall);	
-									
+									error_report ( ud , ncall);
+
 									del = 0.0;								/* Set all the variables to Null and set xcorCoef to an impossible value*/
-   								xcorCoef = NOWAYXCORCOEF;						
+   								xcorCoef = NOWAYXCORCOEF;
    								xcor = 0.0;
 								}
 
    }/* ud->errcode == 0 outer loop */
-   
+
 	/* Now fill up the bucket array */
-	
+
 	buckar[DELINDX] = del;
 	buckar[COVINDX] = xcor;
 	buckar[COFINDX] = xcorCoef;
@@ -886,11 +886,11 @@ static void DELAY_tsfuncV2( double T0 , double TR ,
 
    /** set the progress meter to the % of completion **/
    ncall++ ;
-   
+
    PLUTO_set_meter( global_plint , (100*ncall)/nvox ) ;
-   
+
    ud->errcode = 0;	/* Rest error to nothing */
-   
+
    return ;
 }
 
@@ -970,22 +970,22 @@ static void write_ud (hilbert_data_V2* ud)
 		fprintf (ud->outlogfile,"\nThe format for the output file is the following:\n");
 		fprintf (ud->outlogfile,"VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
 		fprintf (ud->outlogfile,"\nError Log <message> <index> <x> <y> <z>\n\n");
-		
+
 		return;
 	}
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to compute x, y, z coordinates from the index       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
-static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
+static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , int *zpos)
 	{
 		*zpos = (int)ncall / (int)(ud->nxx*ud->nyy);
 		*ypos = (int)(ncall - *zpos * ud->nxx * ud->nyy) / (int)ud->nxx;
 		*xpos = ncall - ( *ypos * ud->nxx ) - ( *zpos * ud->nxx * ud->nyy ) ;
 		return;
 	}
-	
+
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime (while delays are 	 */
@@ -993,10 +993,10 @@ static void indexTOxyz (hilbert_data_V2* ud, int ncall, int *xpos , int *ypos , 
 /* instantaneously, and need not be logged 							 */
 /* ************************************************************ */
 
-static void error_report (hilbert_data_V2* ud, int ncall ) 
+static void error_report (hilbert_data_V2* ud, int ncall )
 	{
 		int xpos,ypos,zpos;
-		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos); 
+		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos);
 
 		switch (ud->errcode)
 			{
@@ -1018,20 +1018,20 @@ static void error_report (hilbert_data_V2* ud, int ncall )
 				default:
 					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",ud->errcode);
 					break;
-			}	
+			}
 		fprintf (ud->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
 		return;
 	}
-	
+
 /* *************************************************************** */
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
 static void writets (hilbert_data_V2 * ud,float * ts)
 
-	{	
+	{
 		int i;
-		
+
 		for (i=0;i<ud->ln;++i)
 			{
 				fprintf (ud->outwritets, "%f\t",ts[i]);

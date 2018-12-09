@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -68,7 +68,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/04/29 14:19:34  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -169,7 +169,7 @@ static String input_tokens[] = {"checkbox", "file", "hidden", "image",
 * Name: 		getInputType
 * Return Type: 	componentType
 * Description: 	retrieves the type of an <input> HTML form member.
-* In: 
+* In:
 *	attrib..:	attributes to check
 * Returns:
 *	componenttype if ``type'' is present in attributes. FORM_TEXT is
@@ -195,9 +195,9 @@ getInputType(String attributes)
 * Name: 		freeForm
 * Return Type: 	void
 * Description: 	releases all memory occupied by the given form component.
-* In: 
+* In:
 *	entry:		form component to be released;
-*	being_de..: True if the parent HTML widget is being destroyed, in 
+*	being_de..: True if the parent HTML widget is being destroyed, in
 *				which case don't destroy the widgets as they've already been
 *				destroyed by the time this is called via the
 *				DestroyCallback -- fix 15/12/97-01, offer
@@ -241,7 +241,7 @@ freeForm(XmHTMLForm *entry, Boolean being_destroyed)
 	}
 }
 
-/********** 
+/**********
 * Various callback routines: text activation & password modification, button
 * activation, etc...
 **********/
@@ -252,7 +252,7 @@ freeForm(XmHTMLForm *entry, Boolean being_destroyed)
 * Description: 	password hiding routine. Modifies the chars entered to only
 *				display '*' and saves the really entered text in the content
 *				field of the current form entry.
-* In: 
+* In:
 *	w:			TextField widget id;
 *	client..:	client data registered with this callback, in this case the
 *				password form component data;
@@ -298,7 +298,7 @@ passwdCB(Widget w, XtPointer client_data, XtPointer call_data)
 	}
 	else
 		passwd[0] = '\0';
-	
+
 	entry->content = passwd;
 	strncat(entry->content, cbs->text->ptr, cbs->text->length);
 	entry->content[cbs->endPos + cbs->text->length] = '\0';
@@ -386,7 +386,7 @@ radioChangedCB(Widget w, XtPointer client_data, XtPointer call_data)
 * Name:			fileOkCB
 * Return Type: 	void
 * Description: 	XmNactivateCallback for the FORM_FILE entry.
-* In: 
+* In:
 *	w:			fileSB Widget id;
 *	client_..:	client data for this callback: widget id of the XmHTMLWidget
 *				owning this callback;
@@ -403,7 +403,7 @@ fileOkCB(Widget w, XtPointer client_data, XtPointer call_data)
 	XmHTMLForm *entry = NULL;
 
 	cbs = (XmFileSelectionBoxCallbackStruct*)call_data;
-	
+
 	XtVaGetValues(w, XmNuserData, &entry, NULL);
 
 	if(entry == NULL)
@@ -442,7 +442,7 @@ fileOkCB(Widget w, XtPointer client_data, XtPointer call_data)
 * Return Type: 	void
 * Description: 	creates & pops up a fileSB for the FORM_FILE form component
 *				type.
-* In: 
+* In:
 *	w:			widget id of pushbutton activating this callback;
 *	client_..:	Form entry of this form component;
 *	call_da..:	unused;
@@ -493,7 +493,7 @@ fileActivateCB(Widget w, XtPointer client_data, XtPointer call_data)
 * Name:			optionMenuCB
 * Return Type: 	void
 * Description:	callback for option menu selection.
-* In: 
+* In:
 *	w:			TextField widget id;
 *	client..:	client data registered with this callback, in this case the
 *				password form component data;
@@ -524,7 +524,7 @@ optionMenuCB(Widget w, XtPointer client_data, XtPointer call_data)
 
 static void
 finalizeEntry(XmHTMLWidget html, XmHTMLForm *entry, Boolean insert,
-	Boolean manage) 
+	Boolean manage)
 {
 	if(entry->w)
 	{
@@ -636,9 +636,9 @@ _XmHTMLStartForm(XmHTMLWidget html, String attributes)
 	/* default method is get */
 	form->method = XmHTML_FORM_GET;
 	{
-		char *method = _XmHTMLTagGetValue(attributes, "method"); 
+		char *method = _XmHTMLTagGetValue(attributes, "method");
 		if(method != NULL)
-		{ 
+		{
 			if(!strncasecmp(method, "get", 3))
 				form->method = (int)XmHTML_FORM_GET;
 			else if(!strncasecmp(method, "post", 4))
@@ -683,7 +683,7 @@ _XmHTMLStartForm(XmHTMLWidget html, String attributes)
 * Name:			_XmHTMLEndForm
 * Return Type: 	void
 * Description: 	invalidates the current parent form.
-* In: 
+* In:
 *	html:		XmHTMLWidget id.
 * Returns:
 *	nothing.
@@ -711,8 +711,8 @@ _XmHTMLEndForm(XmHTMLWidget html)
 /*****
 * Name: 		_XmHTMLFormAddInput
 * Return Type: 	XmHTMLForm
-* Description: 	creates a form input entry 
-* In: 
+* Description: 	creates a form input entry
+* In:
 *	html:		XmHTMLWidget id;
 *	attributes:	input attributes;
 * Returns:
@@ -926,7 +926,7 @@ _XmHTMLFormAddInput(XmHTMLWidget html, String attributes)
 					XtOverrideTranslations(field, travTranslations);
 
 					/* no callbacks */
-					
+
 					/* browse button */
 					argc = 0;
 					label = XmStringCreate(entry->value ? entry->value :
@@ -1009,8 +1009,8 @@ _XmHTMLFormAddInput(XmHTMLWidget html, String attributes)
 /*****
 * Name: 		_XmHTMLFormAddSelect
 * Return Type: 	XmHTMLForm
-* Description: 	creates a form select entry 
-* In: 
+* Description: 	creates a form select entry
+* In:
 *	html:		XmHTMLWidget id;
 *	attributes:	select attributes;
 * Returns:
@@ -1134,7 +1134,7 @@ _XmHTMLFormAddSelect(XmHTMLWidget html, String attributes)
 * Name:			_XmHTMLFormSelectAddOption
 * Return Type: 	void
 * Description: 	adds an option button to a form <select>.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	entry:		parent for this option;
 *	attrib..:	attributes for this option;
@@ -1242,7 +1242,7 @@ _XmHTMLFormSelectAddOption(XmHTMLWidget html, XmHTMLForm *entry,
 * Description: 	closes a form <select> tag. Performs required wrapup
 *				operations such as actual optionmenu creation and translation
 *				stuff.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	entry:		entry to be closed.
 * Returns:
@@ -1348,7 +1348,7 @@ _XmHTMLFormSelectClose(XmHTMLWidget html, XmHTMLForm *entry)
 * Name:			_XmHTMLFormAddTextArea
 * Return Type: 	XmHTMLForm*
 * Description: 	creates a form <textarea> entry.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	attrib..:	attributes for this textarea;
 *	text:		default text for this entry.
@@ -1493,13 +1493,13 @@ _XmHTMLFreeForm(XmHTMLWidget html, XmHTMLFormData *form)
 /*****
 * Name:			formCountComponents
 * Return Type:	int
-* Description:	count the number of client side components in a form 
+* Description:	count the number of client side components in a form
 *				(called from _XmHTMLFormActivate).
 * In:
 *   parent:		parent component of the the component that activated the
 *   			callback.
 *   comp:		component that activated the callback.
-*   			
+*
 * Returns:
 *	the number of client side components.
 * Note:
@@ -1509,17 +1509,17 @@ static int
 formCountComponents(XmHTMLForm *parent, XmHTMLForm *comp)
 {
 	int	count=1;
-	
+
 	current_entry = NULL;
 
 	/* walk all components for this form and see which ones are selected */
-	for(current_entry = parent; current_entry != NULL; 
+	for(current_entry = parent; current_entry != NULL;
 		current_entry = current_entry->next)
 	{
 		switch((componentType)current_entry->type)
-		{ 
+		{
 			case FORM_SELECT:
-				if(current_entry->multiple || current_entry->size > 1) 
+				if(current_entry->multiple || current_entry->size > 1)
 				{
 					/* list. Get count of all selected items */
 					int *pos_list, pos_cnt = 0;
@@ -1547,19 +1547,19 @@ formCountComponents(XmHTMLForm *parent, XmHTMLForm *comp)
 
 			case FORM_CHECK:
 			case FORM_RADIO:
-				if(current_entry->checked) 
+				if(current_entry->checked)
 					count++;
 				break;
 
 			case FORM_IMAGE:
-				if(comp == current_entry) 
+				if(comp == current_entry)
 					count+=2; 	/* name.x=... and name.y=... */
 				break;
 
 			case FORM_RESET:
 			case FORM_SUBMIT:
-				if(comp == current_entry) 
-					count++; 
+				if(comp == current_entry)
+					count++;
 
 			case FORM_PASSWD:
 				if(current_entry->content != NULL)
@@ -1606,7 +1606,7 @@ formCountComponents(XmHTMLForm *parent, XmHTMLForm *comp)
 * Return Type: 	Boolean
 * Description: 	form activator. Will collect all data of the current form
 *				and call the form callback.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	event:		event structure triggering this callback;
 *	entry:		form entry that triggered this routine.
@@ -1634,19 +1634,19 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 	/*****
 	* Check which components of the current form should be returned.
 	*
-	* Seems time consuming stepping through the link list twice, but this way 
-	* we can guarantee that we malloc the right ammount of memory (there isn't 
+	* Seems time consuming stepping through the link list twice, but this way
+	* we can guarantee that we malloc the right ammount of memory (there isn't
 	* a one-to-one mapping for internal and application views of the
-	* components, _and_ we won't frag memory unlike repeated calls to realloc 
-	* -- rmo 
-	*****/	
+	* components, _and_ we won't frag memory unlike repeated calls to realloc
+	* -- rmo
+	*****/
 	nComponents = formCountComponents(entry->parent->components, entry);
 	components = (XmHTMLFormDataPtr)calloc(nComponents,
-					sizeof(XmHTMLFormDataRec)); 
-	
+					sizeof(XmHTMLFormDataRec));
+
 	current_entry = NULL;
 	for(current_entry = entry->parent->components, j=0;
-		current_entry != NULL && j < nComponents; 
+		current_entry != NULL && j < nComponents;
 		current_entry = current_entry->next)
 	{
 		/* default settings for this entry. Overridden when required below */
@@ -1654,7 +1654,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 		components[j].name  = current_entry->name;
 
 		switch((componentType)current_entry->type)
-		{ 
+		{
 			case FORM_SELECT:
 				/*****
 				* Option menu, get value of selected item (size check required
@@ -1662,7 +1662,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 				* entry).
 				*****/
 				if(!current_entry->multiple && current_entry->size == 1)
-				{ 
+				{
 					XmHTMLForm *opt = NULL;
 
 					/*****
@@ -1676,7 +1676,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 					{
 						components[j].name  = current_entry->name;
 						components[j].type  = FORM_OPTION;	/* override */
-						components[j].value = opt->value; 
+						components[j].value = opt->value;
 						j++;
 					}
 				}
@@ -1693,14 +1693,14 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 						int i = 1, k = 0;
 
 						/* don't exceed no of selected items */
-						for(opt = current_entry->options; opt != NULL && 
+						for(opt = current_entry->options; opt != NULL &&
 							k < pos_cnt; opt = opt->next, i++)
 						{
 							if(i == pos_list[k])
 							{
 								components[j].name  = current_entry->name;
 								components[j].type  = FORM_OPTION;
-								components[j].value = opt->value; 
+								components[j].value = opt->value;
 								j++;
 								k++;
 							}
@@ -1730,7 +1730,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 				if((chPtr = XmTextFieldGetString(current_entry->child)) != NULL)
 					components[j++].value = chPtr;
 				break;
-				
+
 			/*****
 			* Textarea contents aren't stored by us and must be taken from
 			* the child (current_entry->w is the id of the scrolled window
@@ -1740,7 +1740,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 				if((chPtr = XmTextGetString(current_entry->child)) != NULL)
 					components[j++].value = chPtr;
 				break;
-				
+
 			/* check/radio boxes are equal in here */
 			case FORM_CHECK:
 			case FORM_RADIO:
@@ -1750,22 +1750,22 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 
 			case FORM_IMAGE:
 				if(entry == current_entry)
-				{ 
+				{
 					char *xname, *yname;
 					char *x, *y;
 					xname = calloc(strlen(current_entry->name)+3, sizeof(char));
 					yname = calloc(strlen(current_entry->name)+3, sizeof(char));
 					x= calloc(16, sizeof(char));
 					y= calloc(16, sizeof(char));
-					
+
 					memcpy(xname, current_entry->name,
-						strlen(current_entry->name)); 
+						strlen(current_entry->name));
 					memcpy(yname, current_entry->name,
-						strlen(current_entry->name)); 
+						strlen(current_entry->name));
 					strcat(xname,".x");
 					strcat(yname,".y");
-					sprintf(x,"%d", event->xbutton.x - entry->data->x); 
-					sprintf(y,"%d", event->xbutton.y - entry->data->y); 
+					sprintf(x,"%d", event->xbutton.x - entry->data->x);
+					sprintf(y,"%d", event->xbutton.y - entry->data->y);
 					components[j].name  = xname;	/* override */
 					components[j].value = x;
 					j++;
@@ -1799,7 +1799,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 				break;
 			/* no default */
 		}
-	}	
+	}
 	(void)memset(&cbs, 0, sizeof(XmHTMLFormCallbackStruct));
 
 	cbs.reason      = XmCR_HTML_FORM;
@@ -1815,18 +1815,18 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 
 	/* free all */
 	for(i = 0; i < j; i++)
-	{ 
+	{
 		/* value of these components is retrieved using XmTextGetValue */
 		if(components[i].type == FORM_TEXT || components[i].type == FORM_FILE ||
 			components[i].type == FORM_TEXTAREA )
-			if(components[i].value) 
+			if(components[i].value)
 				XtFree(components[i].value);
 		/* use free to avoid FMM errors in purify */
 		if(components[i].type == FORM_IMAGE)
 		{
-			if(components[i].value) 
+			if(components[i].value)
 				free(components[i].value);
-			if(components[i].name) 
+			if(components[i].name)
 				free(components[i].name);
 		}
 	}
@@ -1841,7 +1841,7 @@ _XmHTMLFormActivate(XmHTMLWidget html, XEvent *event, XmHTMLForm *entry)
 * Name: 		_XmHTMLFormReset
 * Return Type: 	void
 * Description: 	resets all entries of the given form to their default values.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	entry:		form entry that triggered this routine.
 * Returns:
@@ -1870,7 +1870,7 @@ void _XmHTMLFormReset(XmHTMLWidget html, XmHTMLForm *entry)
 					tmp->content = NULL;
 				}
 				break;
-				
+
 			case FORM_TEXT:
 				_XmHTMLDebug(12, ("\t\tsetting XmNvalue to: %s\n", tmp->value));
 				XtVaSetValues(tmp->w, XmNvalue, tmp->value, NULL);
@@ -1884,7 +1884,7 @@ void _XmHTMLFormReset(XmHTMLWidget html, XmHTMLForm *entry)
 			case FORM_CHECK:
 			case FORM_RADIO:
 				/* checkbuttons, set default state */
-				_XmHTMLDebug(12, ("\t\tsetting state to %s\n", 
+				_XmHTMLDebug(12, ("\t\tsetting state to %s\n",
 					tmp->selected ? "on" : "off"));
 				XtVaSetValues(tmp->w, XmNset, (Boolean)tmp->selected, NULL);
 				/* store default selection state */
@@ -2087,7 +2087,7 @@ getPrevTab(XmHTMLForm *curr_tab, int *y_pos)
 * Return Type: 	void
 * Description: 	XmHTML's version of XmProcessTraversal, required for proper
 *				traversal amongst form widgets.
-* In: 
+* In:
 *	w:			widget requiring traversal;
 *	direction:	which way we should go;
 * Returns:
@@ -2302,7 +2302,7 @@ _XmHTMLProcessTraversal(Widget w, int direction)
 * Description: 	computes a clipping bitmap required for proper scrolling of
 *				all HTML form widgets. One clipmask is created for all
 *				possible form entries.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	True when a clipmask was successfully created, False if not.

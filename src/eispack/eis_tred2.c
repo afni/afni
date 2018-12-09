@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int tred2_(integer *nm, integer *n, doublereal *a, 
+/* Subroutine */ int tred2_(integer *nm, integer *n, doublereal *a,
 	doublereal *d__, doublereal *e, doublereal *z__)
 {
     /* System generated locals */
@@ -55,12 +55,12 @@
 /*        A AND Z MAY COINCIDE.  IF DISTINCT, A IS UNALTERED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -191,7 +191,7 @@ L220:
 	    i__3 = l;
 	    for (k = j; k <= i__3; ++k) {
 /* L260: */
-		z__[k + j * z_dim1] = z__[k + j * z_dim1] - f * e[k] - g * 
+		z__[k + j * z_dim1] = z__[k + j * z_dim1] - f * e[k] - g *
 			d__[k];
 	    }
 

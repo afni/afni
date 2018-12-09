@@ -19,7 +19,7 @@
 #define iSQ_2PI 0.39894228040143270286
 
 
-/*! Return a random number from a gaussian distribution of mean m and std s 
+/*! Return a random number from a gaussian distribution of mean m and std s
     Based on parser.c and parser_int.c functions unif_ and gran_1*/
 #define SUMA_GRAN(m,s)  \
          ( m + \
@@ -75,7 +75,7 @@
    End = (End == LSB_FIRST) ? MSB_FIRST : LSB_FIRST;   \
 }
 
-/* nonzero if not power of 2 (from GLUT-3.7's advanced97/volume.c)*/ 
+/* nonzero if not power of 2 (from GLUT-3.7's advanced97/volume.c)*/
 #define SUMA_NOTPOW2(num) ((num) & (num - 1))
 
 #define SUMA_SWAP_THIS(nip,chnk){   \
@@ -83,22 +83,22 @@
       else if (chnk == 8) SUMA_swap_8( nip ) ;  \
       else if (chnk == 2) SUMA_swap_2( nip ) ;  \
       else { SUMA_SL_Err ("No swapping performed.") } \
-}   
+}
 /*!
    \brief a macro for reading one number at a time from a file
    \param nip (void *) where values go
    \param fp (FILE *)
    \param ex (int) value returned by fread
    \param chnk (int) sizeof(TYPE_YOU_READ)
-   
+
    \sa SUMA_READ_NUM_BS
-*/   
+*/
 #define SUMA_READ_NUM(nip, fp, ex, chnk)  \
 {  \
    ex = fread (nip, chnk, 1, fp); \
 }
 /*!
-   SUMA_READ_NUM with swapping 
+   SUMA_READ_NUM with swapping
 */
 #define SUMA_READ_NUM_BS(nip, fp, ex, chnk)  \
 {  \
@@ -107,10 +107,10 @@
       else if (chnk == 8) SUMA_swap_8( nip ) ;  \
       else if (chnk == 2) SUMA_swap_2( nip ) ;  \
       else { SUMA_SL_Err ("No swapping performed.") } \
-}   
+}
 /*!
    \brief a macro for reading one integer from a file pointer.
-   
+
    \param nip (int *)
    \param bs (int) 0: no swap, 1 swap
    \param fp (FILE *)
@@ -217,7 +217,7 @@
                xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
                xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
                xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );  \
-}  
+}
 
 #define SUMA_INV_V12MATRIX(vxform) \
 {  \
@@ -231,7 +231,7 @@
                V[0], V[1], V[2], V[3],    \
                V[4], V[5], V[6], V[7],    \
                V[8], V[9], V[10], V[11]   );  \
-}  
+}
 
 #define SUMA_POW2(a) ((a)*(a))
 
@@ -249,31 +249,31 @@
 #define SUMA_1D_2_3D_index AFNI_1D_to_3D_index
 
 /*!
-   \brief Returns the two points that are at a distance d from P1 along the direction of U  
+   \brief Returns the two points that are at a distance d from P1 along the direction of U
    SUMA_POINT_AT_DISTANCE(U, P1, d, P2)
-   Input paramters : 
+   Input paramters :
    \param U (float *) 3x1 vector specifying directions  along x, y, z axis
-                      U does not have to be normalized       
+                      U does not have to be normalized
    \param P1 (float *) 3x1 vector containing the XYZ of P1
    \param d (float) distance from P1
-   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1 
-            along U (first row) and -U (second row). 
-            I recommend you initialize P2 to all zeros. 
-            
+   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1
+            along U (first row) and -U (second row).
+            I recommend you initialize P2 to all zeros.
+
    \sa SUMA_POINT_AT_DISTANCE_NORM
-   
+
    {
       float P1[3] = { 54.255009, 85.570129, -4.534704 };
       float Un[3] = { -0.525731, -0.850651, 0.000000 };
-      float U[3] =   { -2.6287  , -4.2533 ,        0 }; 
+      float U[3] =   { -2.6287  , -4.2533 ,        0 };
       float d = 25, P2[2][3];
-      
-      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2); 
+
+      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2);
       fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
       SUMA_POINT_AT_DISTANCE_NORM(Un, P1, d,  P2);  use this macro if you have a normalized direction vector ...
       fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
    }
-   
+
 */
 #define SUMA_POINT_AT_DISTANCE(U, P1, d, P2){   \
    float m_n, m_Un[3];  \
@@ -286,33 +286,33 @@
    }  \
 }
 /*!
-   \brief Returns the two points that are at a distance d from P1 along the direction of U  
+   \brief Returns the two points that are at a distance d from P1 along the direction of U
    SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2)
-   Input paramters : 
+   Input paramters :
    \param U (float *) 3x1 vector specifying directions  along x, y, z axis
-                      U MUST BE A UNIT VECTOR       
+                      U MUST BE A UNIT VECTOR
    \param P1 (float *) 3x1 vector containing the XYZ of P1
    \param d (float) distance from P1
-   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1 
-            along U (first row) and -U (second row). 
-            I recommend you initialize P2 to all zeros. 
-            
+   \param P2 (float 2x3) 2D array to hold the two points equidistant from P1
+            along U (first row) and -U (second row).
+            I recommend you initialize P2 to all zeros.
+
    \sa SUMA_POINT_AT_DISTANCE
 
    {
       float P1[3] = { 54.255009, 85.570129, -4.534704 };
       float Un[3] = { -0.525731, -0.850651, 0.000000 };
-      float U[3] =   { -2.6287  , -4.2533 ,        0 }; 
+      float U[3] =   { -2.6287  , -4.2533 ,        0 };
       float d = 25, P2[2][3];
-      
-      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2); 
-      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", 
+
+      SUMA_POINT_AT_DISTANCE(U, P1, d,  P2);
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n",
                P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
       SUMA_POINT_AT_DISTANCE_NORM(Un, P1, d,  P2);  use this macro if you have a normalized direction vector ...
-      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n", 
+      fprintf(SUMA_STDERR,"P2 [%f %f %f]\n   [%f %f %f]\n",
                P2[0][0], P2[0][1], P2[0][2], P2[1][0], P2[1][1], P2[1][2]);
    }
-   
+
 */
 #define SUMA_POINT_AT_DISTANCE_NORM(U, P1, d, P2){ \
    P2[0][0] = (d) * U[0]; P2[1][0] = -(d) * U[0]; P2[0][0] += P1[0]; P2[1][0] += P1[0]; \
@@ -331,7 +331,7 @@
 }
 
 /*!
-   \brief calculate spherical coordinates from cartesian. 
+   \brief calculate spherical coordinates from cartesian.
    Assuming coords are centered on 0 0 0.
    c XYZ coordinates in cartesian
    s rtp Rho, theta (azimuth), phi (elevation) in spherical
@@ -345,7 +345,7 @@
 }
 
 /*!
-   \brief calculate cartesian coordinates from spherical. 
+   \brief calculate cartesian coordinates from spherical.
    Assuming coords are centered on 0 0 0.
    s rtp Rho, theta (azimuth), phi (elevation) in spherical
    c XYZ coordinates in cartesian
@@ -358,14 +358,14 @@
 }
 /* largest absolute value */
 #define SUMA_LARG_ABS(a, b) ( ( fabs((double)(a)) > fabs((double)(b)) ) ? fabs((double)(a)) : fabs((double)(b)) )
- 
-/*! the 1D index of element 
-   [r][c] in a row major matrix 
-   of nc columns */ 
+
+/*! the 1D index of element
+   [r][c] in a row major matrix
+   of nc columns */
 #define SRM(r,c,nc) ((nc)*(r)+(c))
-/*! the 1D index of element 
-   [r][c] in a column major matrix 
-   of nr rows */ 
+/*! the 1D index of element
+   [r][c] in a column major matrix
+   of nr rows */
 #define SCM(r,c,nr) ((r)+(nr)*(c))
 
 
@@ -446,7 +446,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   determines the bounding box for a triangle 
+   determines the bounding box for a triangle
 */
 #define SUMA_TRIANGLE_BOUNDING_BOX(n1, n2, n3, min_v, max_v){  \
    min_v[0] = SUMA_MIN_PAIR( (n1)[0], (n2)[0]); min_v[0] = SUMA_MIN_PAIR( (n3)[0], min_v[0]);   \
@@ -455,14 +455,14 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    max_v[0] = SUMA_MAX_PAIR( (n1)[0], (n2)[0]); max_v[0] = SUMA_MAX_PAIR( (n3)[0], max_v[0]);   \
    max_v[1] = SUMA_MAX_PAIR( (n1)[1], (n2)[1]); max_v[1] = SUMA_MAX_PAIR( (n3)[1], max_v[1]);   \
    max_v[2] = SUMA_MAX_PAIR( (n1)[2], (n2)[2]); max_v[2] = SUMA_MAX_PAIR( (n3)[2], max_v[2]);   \
-}   
+}
 
 /*!
    \brief find out if a point p on the line formed by points p0 and p1 is between p0 and p1
    ans = SUMA_IS_POINT_IN_SEGMENT(p, p0, p1);
    if ans then p is between p0 and p1
    p, p0, p1 (float *) xyz of points
-   
+
    - NOTE: macro does not check that three points are colinear (as they should be)!
 */
 #define SUMA_IS_POINT_IN_SEGMENT(p, p0, p1)  (  (  \
@@ -487,8 +487,8 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                 SUMA_ABS(p[2] - p1[2]) < 0.00000001 ) \
             )\
                                    ) ? 1 : 0 )
-                                          
-/*! 
+
+/*!
    \brief Project point N onto plane Eq
 */
    #define SUMA_PROJECT_ONTO_PLANE(Eq,N,P) {\
@@ -505,7 +505,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 
 /*!
    \brief Project point C onto line with direction U (unit vector)and passing
-   through the origin, projection is in P. It is like using 
+   through the origin, projection is in P. It is like using
       SUMA_PROJECT_C_ONTO_AB with A being the origin, and B being U
 */
 #define SUMA_PROJECT_ONTO_DIR(U,C,P) {\
@@ -546,7 +546,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    } else {\
       f=0; P[0] = P[1] = P[2] = 0.0;   \
    }\
-} 
+}
 
 
 /*!
@@ -554,8 +554,8 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    and plane Eq
    P is the resultant intersection point and ispar = 1 if
    line is parallel to the plane.
-   
-   MACRO IS UNUSED, NEEDS TESTING 
+
+   MACRO IS UNUSED, NEEDS TESTING
 */
 #define SUMA_LINE_PLANE_INTERSECT(U,N,Eq,P,ispar) {\
    double m_dot, m_fr; \
@@ -568,7 +568,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   \brief Reset quaternion values for default 3D view 
+   \brief Reset quaternion values for default 3D view
 */
 #define SUMA_HOME_QUAT(vw,qq) { \
    float m_a[3];  \
@@ -603,7 +603,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    \param pinter: On exit:  x y z of intersection point (0,0,0) if no intersection
 
    Note: Macro is not efficient to use when intersection if between entire surface
-   and plane. For that use SUMA_Surf_Plane_Intersect 
+   and plane. For that use SUMA_Surf_Plane_Intersect
 */
 #define SUMA_SEGMENT_PLANE_INTERSECT(p1, p2, Eq, Hit, pinter) {   \
    double m_p1, m_p2, m_u;   \
@@ -621,7 +621,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       pinter[0] = pinter[1] = pinter[2] = 0.0;  \
    }  \
 }
-   
+
 #define SUMA_SET_GL_RENDER_MODE(m_PolyMode)  \
    {  \
       switch (m_PolyMode) {   \
@@ -630,9 +630,9 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                   glPolygonOffset(1.0, 1.0); \
                      /* Polygon offset is needed to deal with rendering
                      lines that are coplanar with filled polygons.
-                     Without polygon offset, lines can get stripy under 
+                     Without polygon offset, lines can get stripy under
                      certain angles, quite ugly. The effect is known as
-                     stitching, bleeding, or Z fighting. 
+                     stitching, bleeding, or Z fighting.
              http://www.opengl.org/resources/faq/technical/polygonoffset.htm */ \
                   glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   \
                   break;   \
@@ -668,9 +668,9 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                                  /* glPolygonOffset(1.0, 1.0); */\
                      /* Polygon offset is needed to deal with rendering
                      lines that are coplanar with filled polygons.
-                     Without polygon offset, lines can get stripy under 
+                     Without polygon offset, lines can get stripy under
                      certain angles, quite ugly. The effect is known as
-                     stitching, bleeding, or Z fighting. 
+                     stitching, bleeding, or Z fighting.
              http://www.opengl.org/resources/faq/technical/polygonoffset.htm */ \
                   m_fv[0] = GL_FRONT_AND_BACK; m_fv[1] = GL_FILL; \
                   SUMA_GLStateTrack("set", &m_st, FuncName, \
@@ -704,7 +704,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                   break;   \
             }  \
    }
-         
+
 #define SUMA_SET_GL_TRANS_MODE(m_TransMode, m_ust, btp)  \
    {  DList *m_st=m_ust; \
       if (m_TransMode == STM_0) { \
@@ -727,7 +727,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
                   SUMA_GLStateTrack("set", &m_st,  \
                       FuncName, "GL_DEPTH_TEST", (void *)0); }\
       }   \
-   }         
+   }
 
 #define SUMA_GLX_BUF_SWAP(sv) {\
    if ((sv)->X->DOUBLEBUFFER) {  \
@@ -744,7 +744,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 #define SUMA_NEW_MASKSTATE() (SUMAg_CF->X ? (++SUMAg_CF->X->MaskStateID):0)
 
 /*!
-   \brief Get the pointer for the last visited viewer 
+   \brief Get the pointer for the last visited viewer
 */
 #define SUMA_LAST_VIEWER (SUMAg_CF->PointerLastInViewer >=0 && SUMAg_N_SVv >1 ? \
                              &(SUMAg_SVv[SUMAg_CF->PointerLastInViewer]) : \
@@ -752,14 +752,14 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 
 /*!
    \brief SO->Show is not quite not the end of the story
-*/ 
+*/
 #define SO_SHOWING(SO,sv) ( SO->Show && SO->PolyMode != SRM_Hide && (SO->PolyMode != SRM_ViewerDefault || sv->PolyMode != SRM_Hide) && (SO->TransMode != STM_ViewerDefault || sv->TransMode != STM_16))
 
 #define MDO_SHOWING(MDO,sv) (  (MDO) && (MDO)->SO && (sv) && \
                                (SO_SHOWING((MDO)->SO,sv)) )
 /*!
    \brief set polymode
-*/ 
+*/
 #define SUMA_SET_SO_POLYMODE(SO,i){ \
    if (i < 0 || i >= SRM_N_RenderModes) { SO->PolyMode = SRM_ViewerDefault; }\
    else { SO->PolyMode = i; } \
@@ -806,7 +806,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   A macro to recalculate a surface object's normals 
+   A macro to recalculate a surface object's normals
 */
 #define SUMA_RECOMPUTE_NORMALS(SO){ \
    SUMA_SURF_NORM m_SN;   \
@@ -825,7 +825,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   A macro to recalculate a surface object's normals 
+   A macro to recalculate a surface object's normals
 */
 #define SUMA_RECOMPUTE_POLYGON_AREAS(SO){ \
    if (SO->PolyArea) SUMA_free(SO->PolyArea); SO->PolyArea=NULL; \
@@ -885,7 +885,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   A macro to recalculate a surface's center and its bounding box 
+   A macro to recalculate a surface's center and its bounding box
 */
 #define SUMA_DIM_CENTER(SO){  \
    SUMA_MIN_MAX_SUM_VECMAT_COL (SO->NodeList, SO->N_Node, SO->NodeDim, SO->MinDims, SO->MaxDims, SO->Center);  \
@@ -897,7 +897,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 /*!
-   A macro to scale the surface so that the largest bounding box size is SZ  
+   A macro to scale the surface so that the largest bounding box size is SZ
 */
 #define SUMA_LARGEST_SIZE_SCALE(SO, SZ){  \
    float m_lg , m_lg1 , m_lg2 ;   \
@@ -965,18 +965,18 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 }
 
 
-   
-/*! 
+
+/*!
    A macro version of SUMA_FindEdge
    Use function for robust error checking.
    Here you are on your own.
-   
+
    you should make sure n1 < n2
    you should initialize iseg to -1 before calling the macro
-   
+
 */
-/* NEW VERSION: Bug found in previous one (_OLD), 
-   it is possible that m_eloc is -1 at initialization: m_eloc = m_EL->ELloc[m_n1]; 
+/* NEW VERSION: Bug found in previous one (_OLD),
+   it is possible that m_eloc is -1 at initialization: m_eloc = m_EL->ELloc[m_n1];
    see below for fix
 */
 #define SUMA_FIND_EDGE(m_EL, m_n1, m_n2, m_iseg)  \
@@ -988,7 +988,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
          if (m_EL->EL[m_eloc][1] == m_n2) m_iseg = m_eloc;   \
       }   \
    }  \
-} 
+}
 #define SUMA_FIND_EDGE_OLD(m_EL, m_n1, m_n2, m_iseg)  \
 {  int m_eloc ;   \
    m_eloc = m_EL->ELloc[m_n1];  \
@@ -996,10 +996,10 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
       if (m_EL->EL[m_eloc][1] == m_n2) m_iseg = m_eloc;   \
       ++m_eloc;  \
    } while (m_EL->EL[m_eloc][0] == m_n1 && m_eloc < m_EL->N_EL);  \
-} 
+}
 
 /*!
-   Macro that sets Ntail to be the index of the last node of the last ROIdatum in a 
+   Macro that sets Ntail to be the index of the last node of the last ROIdatum in a
    DrawnROI. Ntail is -1 if the macro fails
 */
 #define SUMA_DRAWN_ROI_TAIL_NODE(D_ROI, Ntail)  \
@@ -1015,7 +1015,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    }
 
 /*!
-   Macro that sets Nhead to be the index of the 1st node of the 1st ROIdatum in a 
+   Macro that sets Nhead to be the index of the 1st node of the 1st ROIdatum in a
    DrawnROI. Nhead is -1 if the macro fails
 */
 #define SUMA_DRAWN_ROI_HEAD_NODE(D_ROI, Nhead)  \
@@ -1036,7 +1036,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
          Xform[0][3] == 0.0 && Xform[1][3] == 0.0 && Xform[2][3] == 0.0 && \
          Xform[0][1] == 0.0 && Xform[0][2] == 0.0 &&  \
          Xform[1][0] == 0.0 && Xform[1][2] == 0.0 &&  \
-         Xform[2][0] == 0.0 && Xform[2][1] == 0.0 )   ? 1:0 
+         Xform[2][0] == 0.0 && Xform[2][1] == 0.0 )   ? 1:0
 
 /* definitions for SUMA_MT_intersect */
 #define SUMA_MT_CROSS(m_MTCR_dest,m_MTCR_v1,m_MTCR_v2) \
@@ -1047,7 +1047,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
 #define SUMA_MT_SUB(m_MTSUB_dest,m_MTSUB_v1,m_MTSUB_v2) \
           m_MTSUB_dest[0]=m_MTSUB_v1[0]-m_MTSUB_v2[0]; \
           m_MTSUB_dest[1]=m_MTSUB_v1[1]-m_MTSUB_v2[1]; \
-          m_MTSUB_dest[2]=m_MTSUB_v1[2]-m_MTSUB_v2[2]; 
+          m_MTSUB_dest[2]=m_MTSUB_v1[2]-m_MTSUB_v2[2];
 #define SUMA_NORM(m_NORM_dest, m_NORM_v1) \
           m_NORM_dest= sqrt(m_NORM_v1[0]*m_NORM_v1[0]+\
                             m_NORM_v1[1]*m_NORM_v1[1]+\
@@ -1084,7 +1084,7 @@ if Dist = 0, point on plane, if Dist > 0 point above plane (along normal), if Di
    xyzr[0] = xyz[0]*m_cop + nrm[0] * m_dop * m_1cop - m_cro[0] * m_sip; \
    xyzr[1] = xyz[1]*m_cop + nrm[1] * m_dop * m_1cop - m_cro[1] * m_sip; \
    xyzr[2] = xyz[2]*m_cop + nrm[2] * m_dop * m_1cop - m_cro[2] * m_sip; \
-}   
+}
 
 /*!
 SUMA_3D_Rotation_Matrix(P1, P2, M, alpha, nrm)
@@ -1096,7 +1096,7 @@ m_alpha: angle between P1 and P2
 m_u: axis of rotation and cross product of P1, P2
 mn_u: magnitude of axis of rotation needed to normalize the axis of rotation
 m_M: 3x3 rotation matrix
-Equations based on matlab script AxisRotate3D.m     
+Equations based on matlab script AxisRotate3D.m
 */
 
 #define SUMA_3D_Rotation_Matrix(P1, P2, M, m_alpha, m_u)  { \
@@ -1148,10 +1148,10 @@ M: 3x3 rotation matrix
    M[2][2] = m_cosa + m_z * m_z * m_vera; \
 }
 
-   
-/*! 
-SUMA_ANGLE_DIST(p2,p1,cent,a,nrm)  
-SUMA_ANGLE_DIST_NC(p2,p1,a, nrm) 
+
+/*!
+SUMA_ANGLE_DIST(p2,p1,cent,a,nrm)
+SUMA_ANGLE_DIST_NC(p2,p1,a, nrm)
 calculate angular distance between two points
 on a sphere.
 For the _NC version, the sphere is centered on
@@ -1160,8 +1160,8 @@ p1 and p2 are the XYZ of the two points
 cent is the center of the sphere
 and 'a' is the angle in radians between them.
 m_cr contains the cross product p1 cross p2
-Tx to tip from JHU's Applied Physics Laboratory web page 
-*/ 
+Tx to tip from JHU's Applied Physics Laboratory web page
+*/
 #define SUMA_ANGLE_DIST_NC(m_p2,m_p1,a, m_cr)   \
    {\
       double m_p2r[3];   \
@@ -1179,7 +1179,7 @@ Tx to tip from JHU's Applied Physics Laboratory web page
       a = atan2(sqrt(m_cr[0]*m_cr[0]+m_cr[1]*m_cr[1]+m_cr[2]*m_cr[2]),SUMA_MT_DOT(m_p2, m_p1)); \
    }
 
-/*! 
+/*!
 SUMA_SINC(alpha)
 calculate the sinc function.
 alpha is an angle in radians
@@ -1190,14 +1190,14 @@ sinc is the value of the function at alpha
       if( alpha < 0.0000001 ) { sinc = 1.0; }   \
       else { sinc = sin(alpha) / alpha ; }   \
    }
- 
+
 /*!
    \brief SUMA_EULER_SO (SO, eu)
    computes the euler number = N  - E + F
    eu = SO->N_Node - SO->EL->N_Distinct_Edges + SO->N_FaceSet
    eu = 2 for closed surfaces
    -1000 --> NULL SO
-   -1001 --> NULL SO->EL 
+   -1001 --> NULL SO->EL
 */
 
 #define SUMA_EULER_SO(SO, eu) { \
@@ -1205,7 +1205,7 @@ sinc is the value of the function at alpha
    else if (!SO->EL) { eu = -1001; }   \
    else eu = SO->N_Node - SO->EL->N_Distinct_Edges + SO->N_FaceSet; \
 }
-   
+
 /*!
 
    \brief   SUMA_IS_IN_VEC(vec, nel, val, loc);
@@ -1269,7 +1269,7 @@ sinc is the value of the function at alpha
       }   \
          ++m_i;   \
    }   \
-}   
+}
 
 
 /*! \def SUMA_ANY_WIDGET2SV(m_w, m_sv, m_svi)
@@ -1277,7 +1277,7 @@ sinc is the value of the function at alpha
 
    m_w the widget in question
    m_sv a pointer to SUMA_SurfaceViewer structure. This pointer is NULL if no matching SurfaceViewer structure is found in SUMAg_SVv
-   m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found 
+   m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found
 */
 
 #define SUMA_ANY_WIDGET2SV(m_w, m_sv, m_svi) {\
@@ -1300,7 +1300,7 @@ sinc is the value of the function at alpha
 
    m_w the widget in question
    m_sv a pointer to SUMA_SurfaceViewer structure. This pointer is NULL if no matching SurfaceViewer structure is found in SUMAg_SVv
-   m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found 
+   m_svi the index of m_sv in SUMAg_SVv vector of Surface Viewer structures. m_sv = &(SUMAg_SVv[m_svi]). -1 if no match was found
 */
 
 #define SUMA_GLXAREA_WIDGET2SV(m_w, m_sv, m_svi) {\
@@ -1360,19 +1360,19 @@ sinc is the value of the function at alpha
 }
 
 /* Some macros are taken from DSP_in_C examples in
-C Language Algorithms for Digital Signal Processing 
+C Language Algorithms for Digital Signal Processing
 by
-Bruce Kimball, Paul Embree and Bruce Kimble 
+Bruce Kimball, Paul Embree and Bruce Kimble
 1991, Prentice Hall
 */
 
 /*! \def SUMA_SEG_LENGTH(a,b, dist)
-\brief SUMA_SEG_LENGTH macro for a segment's length 
+\brief SUMA_SEG_LENGTH macro for a segment's length
    a pointer to xyz coordinates
    b pointer to xyz coordinates
-   dist (float) sqrt( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     
-                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     
-                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) ); 
+   dist (float) sqrt( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])
+                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])
+                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) );
 */
 #define SUMA_SEG_LENGTH(m_a, m_b, m_dist) {         \
    m_dist = sqrt(  (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     \
@@ -1381,12 +1381,12 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 }
 
 /*! \def SUMA_SEG_LENGTH_SQ(a,b, dist)
-\brief SUMA_SEG_LENGTH_SQ macro for a segment's squared length 
+\brief SUMA_SEG_LENGTH_SQ macro for a segment's squared length
    a pointer to xyz coordinates
    b pointer to xyz coordinates
-   dist (float)      ( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     
-                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])     
-                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) ); 
+   dist (float)      ( (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])
+                     +(m_b[1] - m_a[1]) * (m_b[1] - m_a[1])
+                     +(m_b[2] - m_a[2]) * (m_b[2] - m_a[2]) );
 */
 #define SUMA_SEG_LENGTH_SQ(m_a, m_b, m_dist) {         \
    m_dist =   (m_b[0] - m_a[0]) * (m_b[0] - m_a[0])     \
@@ -1398,7 +1398,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 \brief SUMA_NORM_VEC macro for vectors's norm (sqrt of sum of squares)
    a pointer to vector
    nel number of elements in vector
-   norm (float) norm of a 
+   norm (float) norm of a
 */
 #define SUMA_NORM_VEC(a,nel,norm) { \
    int m_I; \
@@ -1410,7 +1410,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 }
 
 /*!
-   Make vector have unit norm 
+   Make vector have unit norm
 */
 #define SUMA_UNITIZE_VEC(a,nel) {\
    double m_norm=0.0;   \
@@ -1473,7 +1473,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
    } \
 }
 
-/* 
+/*
    Replace value in a with forward sum of w values
    if (avg) then divide resultant vector by w
    Only nel - w +1 values are set in the output
@@ -1492,7 +1492,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
       if (avg) { for (m_I=0; m_I<nel-w+1; ++m_I) a[m_I] /= (double)w; } \
       if (seal) for (m_I=nel-w+1; m_I<nel; ++m_I) a[m_I] = 0;   \
    }\
-} 
+}
 
 #define SUMA_MEAN_VEC(a,nel,amean,nozero) { \
    int m_I, m_c=0;  double m_mean=0.0; \
@@ -1530,7 +1530,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 
 
 /*! \def SUMA_MIN_MAX_VEC(a,nel,amin, amax, aminloc, amaxloc)
-\brief SUMA_MIN_MAX_VEC macro for minimum and maximum 
+\brief SUMA_MIN_MAX_VEC macro for minimum and maximum
    a pointer to vector
    nel number of elements in vector
    amin minimum of a (make sure types of a and amin match)
@@ -1611,7 +1611,7 @@ Bruce Kimball, Paul Embree and Bruce Kimble
 /*
 SUMA_ADD_VEC macro:
 
-ADDS TWO VECTORS (a,b) POINT BY POINT (PROMOTING AS REQUIRED) AND 
+ADDS TWO VECTORS (a,b) POINT BY POINT (PROMOTING AS REQUIRED) AND
 PUTS THE RESULT IN THE c VECTOR (DEMOTING IF REQUIRED).
 
 SUMA_ADD_VEC(a,b,c,len,typea,typeb,typec)
@@ -1750,7 +1750,7 @@ SUMA_SCALE_VEC(a,b,s,len,typea,typeb)
                        for(m_IX = 0 ; m_IX < (len) ; m_IX++)  \
                            *(_PTB)++ = (typeb)(s * (*(_PTA)++));  \
                     }
-#endif                   
+#endif
 
 /* SUMA_EXTRACT_VEC macro:
 
@@ -1762,7 +1762,7 @@ SUMA_EXTRACT_VEC (a,b,ind,len)
    b     pointer to output vector
    ind   vector containing the indices of the values in a to copy to b
    len   the length of ind (which is that of b too)
-   
+
    DO NOT SEND TWO POINTERS THAT POINT TO THE SAME LOCATION !
 */
 
@@ -1779,15 +1779,15 @@ SUMA_EXTRACT_VEC (a,b,ind,len)
 /* SUMA_CAT_VEC macro :
 concatenates two vectors and b together such that a = [a b];
 
-SUMA_CAT_VEC(a,b, catata, lenb,typea,typeb) 
-   a       pointer to first vector 
+SUMA_CAT_VEC(a,b, catata, lenb,typea,typeb)
+   a       pointer to first vector
    b       pointer to second vector
    catata  index indicating where b is to be concatenated
            to a at. if catata = 6, then a[6] = b[0]
            and a[7] = b[1] etc ...
            make sure that you allocate enough space for a
    lenb  number of values in b
-   
+
     typea   legal C type describing the type of a data.
     typeb   legal C type describing the type of b data.
 
@@ -1801,7 +1801,7 @@ SUMA_CAT_VEC(a,b, catata, lenb,typea,typeb)
                        for(m_IX = 0 ; m_IX < (lenb) ; m_IX++)  \
                            *(_PTA)++ = (typea)(*(_PTB)++);  \
                     }
-                    
+
 
 /*!
 SUMA_GET_MAT_ROW MACRO FOR GETTING A ROW FROM A MATRIX:
@@ -1824,7 +1824,7 @@ SUMA_GET_MAT_ROW(a,b,row,cols,typea,typeb)
                      _PTA = _AMX[row];  \
                      for(_JX = 0 ; _JX < cols ; _JX++)  \
                          *_PTB++ = (typeb) (*_PTA++);  \
-             }    
+             }
 
 /*!
 SUMA_GET_MAT_COL MACRO FOR GETTING A COLUMN FROM A MATRIX:
@@ -1851,7 +1851,7 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                          _PTA++; \
                      *_PTB++ = (typeb)(*_PTA++);  \
                  }  \
-             }    
+             }
 
 
 /*! \def SUMA_MIN_MAT_COL(a, rows, cols, amin)
@@ -1869,7 +1869,7 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                         if (a[_JX][m_IX] < amin[m_IX]) amin[m_IX] = a[_JX][m_IX];\
                      }\
                   }
-                  
+
 
 /*! \def SUMA_MAX_MAT_COL(a, rows, cols, amax)
 \brief SUMA_MAX_MAT_COL macro for maximum of each column in a matrix
@@ -1886,7 +1886,7 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                         if (a[_JX][m_IX] > amax[m_IX]) amax[m_IX] = a[_JX][m_IX];\
                   }\
                }
-                  
+
 /*! \def SUMA_MIN_MAX_SUM_MAT_COL(a, rows, cols, amin, amax, asum)
 \brief  SUMA_MIN_MAX_SUM_MAT_COL macro for minimum, maximum and sum of each column in a matrix
    a pointer to matrix (**)
@@ -1913,17 +1913,17 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
 
 /*! \def SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum)
 \brief  SUMA_MIN_MAX_SUM_VECMAT_COL macro for minimum, maximum and sum of each column in a matrix stored in vector format
-   matrix    1 2 3 
-            4 5 6 
+   matrix    1 2 3
+            4 5 6
    is stored as 1 2 3 4 5 6 ...
-   
+
    a pointer to vector containing rwos x cols elements
    rows number of rows
    cols number of cols
    amin minimum of each column in a (make sure types of a and amin match)
    amax maximum of each column in a (make sure types of a and amin match)
    asum sum of each column in a (the mean is not computed because the / operation would then depend on the type of a)
-   
+
    \sa SUMA_MIN_MAX_SUM_VECMAT_MASK_COL
 */
 #define SUMA_MIN_MAX_SUM_VECMAT_COL(a, rows, cols, amin, amax, asum) { \
@@ -1942,16 +1942,16 @@ SUMA_GET_MAT_COL(a,b, col, rows,typea,typeb)
                }
 /*! \def SUMA_MIN_MAX_SUM_VECMAT_MASK_COL(a, rows, cols, rowmask, amin, amax, asum)
 \brief  SUMA_MIN_MAX_SUM_VECMAT_MASK_COL macro for minimum, maximum and sum of each column in a matrix stored in vector format
-   ONLY rows n where rowmask[n] is not 0 are used 
-   matrix    1 2 3 
+   ONLY rows n where rowmask[n] is not 0 are used
+   matrix    1 2 3
             4 5 6
-            7 8 9 
+            7 8 9
    is stored as 1 2 3 4 5 6 7 8 9...
-   
+
    a pointer to vector containing rwos x cols elements
    rows number of rows
    cols number of cols
-   rowmask pointer to vector containing rows x 1 mask values 
+   rowmask pointer to vector containing rows x 1 mask values
    amin minimum of each column in a (make sure types of a and amin match)
    amax maximum of each column in a (make sure types of a and amin match)
    asum sum of each column in a (the mean is not computed because the / operation would then depend on the type of a)
@@ -2005,7 +2005,7 @@ SUMA_MAT_TO_VEC(a,b,rows,cols,typea,typeb)
                      for(_JX = 0 ; _JX < cols ; _JX++)  \
                          *_PTB++ = (typeb) (*_PTA++);  \
                  }  \
-             }    
+             }
 
 
 /*
@@ -2056,7 +2056,7 @@ SUMA_COPY_VEC(a,b,len,typea,typeb)
          _PTA[ia] = (typea)val; \
 }
 
- 
+
 /*!
 SUMA_DOTP_VEC macro:
 
@@ -2095,7 +2095,7 @@ WARNING: The input data vectors are not cast to the type of s.
    \param P1/P2 (float *) 3-elements arrays containing XYZ of P1 and P2
    \param U (float *) 3-elements array to contain unit direction vector
    \param Un (float) the norm of |P1--P2|
-*/ 
+*/
 #define SUMA_UNIT_VEC(P1, P2, U, Un){  \
       /* Calculate normalized unit vector of line formed by P1, P2 */   \
       U[0] = P2[0] - P1[0];   \
@@ -2111,7 +2111,7 @@ WARNING: The input data vectors are not cast to the type of s.
 
 /*!
    Pick a color based on the direction of the unit vector
-   between pa and pb. Direction sign ignored 
+   between pa and pb. Direction sign ignored
 */
 #define SUMA_SEG_DELTA_COL(pa,pb,U, Un) {\
    SUMA_UNIT_VEC(pa, pb, U, Un); \
@@ -2119,9 +2119,9 @@ WARNING: The input data vectors are not cast to the type of s.
    U[1] = SUMA_ABS(U[1]);        \
    U[2] = SUMA_ABS(U[2]); U[3]=1.0; \
 }
-   
+
 /*!
-   \brief Macro to calculate normal of a triangle 
+   \brief Macro to calculate normal of a triangle
    \params P1, P2, P3: XYZ coordinates forming triangle
    \param norm: Contains UN-NORMALIZED normal upon return
    use SUMA_TRI_NORM_NORM for normalized normals
@@ -2137,21 +2137,21 @@ WARNING: The input data vectors are not cast to the type of s.
    norm[0] = m_d1[1]*m_d2[2] - m_d1[2]*m_d2[1]; \
    norm[1] = m_d1[2]*m_d2[0] - m_d1[0]*m_d2[2]; \
    norm[2] = m_d1[0]*m_d2[1] - m_d1[1]*m_d2[0]; \
-}  
+}
 #define SUMA_TRI_NORM_NORM(P1, P2, P3, norm){  \
    double m_d; \
    SUMA_TRI_NORM(P1, P2, P3, norm); \
    m_d = sqrt(norm[0]*norm[0]+norm[1]*norm[1]+norm[2]*norm[2]);  \
    if (m_d == 0.0f) { norm[0] = norm[1] = norm[2] = 0.0; } \
    else { norm[0] /= m_d; norm[1] /= m_d; norm[2] /= m_d;}  \
-}  
+}
 
-     
+
 /*!
    \brief Macro to calculate the distance Un from P1-->P2 a
    \param P1/P2 (float *) 3-elements arrays containing XYZ of P1 and P2
    \param Un (float) the norm of |P1--P2|
-*/ 
+*/
 #define SUMA_SEG_NORM(P1, P2, Un){  \
       static double m_dx, m_dy,m_dz;   \
       /* Calculate normalized unit vector of line formed by P1, P2 */   \
@@ -2197,7 +2197,7 @@ WARNING: The input data vectors are not cast to the type of s.
                             _PTC++;  \
                         }  \
                     }  \
-                }    
+                }
 
 
    /*!
@@ -2226,7 +2226,7 @@ WARNING: The input data vectors are not cast to the type of s.
                             _CMX[m_IX][_JX] = _AMX[m_IX][_JX] + _BMX[m_IX][_JX];  \
                         }  \
                     }  \
-                }    
+                }
 
    /*!
    SUMA_SUB_MAT MACRO FOR MATRIX SUBTRACTION:
@@ -2254,7 +2254,7 @@ WARNING: The input data vectors are not cast to the type of s.
                             _CMX[m_IX][_JX] = _AMX[m_IX][_JX] - _BMX[m_IX][_JX];  \
                         }  \
                     }  \
-                }    
+                }
 
 
    /*!
@@ -2280,17 +2280,17 @@ WARNING: The input data vectors are not cast to the type of s.
                             _BMX[_JX][m_IX] = _AMX[m_IX][_JX];  \
                         }  \
                     }  \
-                }    
+                }
 
    /*!
       SUMA_RGBmat_2_GLCOLAR4 copies an N x 3 RGB matrix into a 4N x 1 GL color array format
-      SUMA_RGBmat_2_GLCOLAR4(RGBmat, glcolar, N)   
+      SUMA_RGBmat_2_GLCOLAR4(RGBmat, glcolar, N)
       RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
+      glcolar (GLfloat *) (4 N) x 1 vector
       *** Mar 17 04:
       Added the SUMA_RGBvec versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_RGBmat_2_GLCOLAR4(RGBmat, glcolar, nrgb) {\
       int m_I, m_I4 = 0; \
       for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2309,17 +2309,17 @@ WARNING: The input data vectors are not cast to the type of s.
          ++m_I4;\
       }\
    }
-   
+
    /*!
       SUMA_GLCOLAR4_2_RGBmat copies 4N x 1 GL color array into an N x 3 RGB matrix format
-      
-      SUMA_GLCOLAR4_2_RGBmat (glcolar, RGBmat, N)   
-      glcolar (GLfloat *) (4 N) x 1 vector 
+
+      SUMA_GLCOLAR4_2_RGBmat (glcolar, RGBmat, N)
+      glcolar (GLfloat *) (4 N) x 1 vector
       RGBmat (float **) N x 3 matrix of RGB values
       *** Mar 17 04:
       Added the SUMA_RGBvec versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_GLCOLAR4_2_RGBmat(glcolar, RGBmat, nrgb) {\
       int m_I, m_I4 = 0; \
       for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2338,18 +2338,18 @@ WARNING: The input data vectors are not cast to the type of s.
          ++m_I4;\
       }\
    }
-   
-   
-   /*! 
+
+
+   /*!
       SUMA_FillBlanks_GLCOLAR4
       fills nodes that received no color with the Nocolor Color
       SUMA_FillBlanks_GLCOLAR4(isColored, N_Nodes, R, G, B, glcolar)
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored.
-      N_Nodes (int) total number of nodes 
+      N_Nodes (int) total number of nodes
       R, G, B (float 0..1) RGB values of NoColor color
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
+      glcolar (GLfloat *) (4 N_Nodes) x 1 vector
    */
-   
+
    #define SUMA_FillBlanks_GLCOLAR4(isColored, N_Nodes, R, G, B, glcolar) {\
       int m_I, m_I4; \
       for (m_I=0; m_I < N_Nodes; ++m_I) {\
@@ -2364,21 +2364,21 @@ WARNING: The input data vectors are not cast to the type of s.
 
    /*!
       This macro used to be called: SUMA_RGBmat_FullNoGlobNoLoc2_GLCOLAR4_opacity
-      SUMA_RGB_FnGnL_AR4op_opacity 
+      SUMA_RGB_FnGnL_AR4op_opacity
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
       nG (NoGlob) means no opacity is applied to the color values (fully opaque)
       nL (NoLocal) means no local gain (per node) is applied to the color values
-      
-      SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, N, add)   
+
+      SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, N, add)
       RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
+      glcolar (GLfloat *) (4 N) x 1 vector
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
-      
+
    */
-   
+
    #define SUMA_RGB_FnGnL_AR4op(RGBmat, glcolar, nrgb, isColored) {\
       int m_I, m_I4 = 0; \
          for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2389,7 +2389,7 @@ WARNING: The input data vectors are not cast to the type of s.
             ++m_I4;\
          }\
    }
-   
+
    #define SUMA_RGBv_FnGnL_AR4op(RGBvec, glcolar, nrgb, isColored) {\
       int m_I, m_I4 = 0, m_I3=0; \
          for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2402,26 +2402,26 @@ WARNING: The input data vectors are not cast to the type of s.
    }
    /*!
       This macro used to be called: SUMA_RGBmat_FullGlobNoLoc2_GLCOLAR4_opacity
-      SUMA_RGB_FGnL_AR4op 
+      SUMA_RGB_FGnL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
       G (Glob) means an opacity is applied to the color values
       nL (NoLocal) means no local gain (per node) is applied to the color values
-      
-      SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, N, opacity, add)   
+
+      SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, N, opacity, add)
       RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+      glcolar (GLfloat *) (4 N) x 1 vector
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-      
-      *** Dec 04 03: 
+
+      *** Dec 04 03:
       Variant SUMA_RGB_FGnL_AR4op2
-      removed opacity scaling of RGBmat[m_I] and added clipping to 1.0 
+      removed opacity scaling of RGBmat[m_I] and added clipping to 1.0
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_RGB_FGnL_AR4op(RGBmat, glcolar, nrgb, opacity, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of;\
@@ -2475,7 +2475,7 @@ WARNING: The input data vectors are not cast to the type of s.
             }  \
             ++m_I4;\
          }\
-   }   
+   }
    #define SUMA_RGBv_FGnL_AR4op2(RGBvec, glcolar, nrgb, opacity, isColored) {\
       int m_I, m_I4 = 0, m_I3 = 0; \
       float m_of;\
@@ -2493,32 +2493,32 @@ WARNING: The input data vectors are not cast to the type of s.
             }  \
             ++m_I4;\
          }\
-   }   
+   }
    /*!
     This macro used to be called: SUMA_RGBmat_FullGlobLoc2_GLCOLAR4_opacity
-         but name was too long for some compilers 
-      
-      SUMA_RGB_FGL_AR4op 
+         but name was too long for some compilers
+
+      SUMA_RGB_FGL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
       G (Glob) means an opacity is applied to the color values
       L (Local) means a local gain (per node) is applied to the color values
-      
-      SUMA_RGB_FGL_AR4op(RGBmat, glcolar, N, opacity, locgain, add)   
+
+      SUMA_RGB_FGL_AR4op(RGBmat, glcolar, N, opacity, locgain, add)
       RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+      glcolar (GLfloat *) (4 N) x 1 vector
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
-      locgain (float *) a N x 1 vector of gains applied to their respective nodes 
+      locgain (float *) a N x 1 vector of gains applied to their respective nodes
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
-   
-      *** Dec 04 03: 
+
+      *** Dec 04 03:
       Variant SUMA_RGB_FGL_AR4op2
-      removed opacity from m_of and added clipping to 1.0 
+      removed opacity from m_of and added clipping to 1.0
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_RGB_FGL_AR4op(RGBmat, glcolar, nrgb, opacity, locgain, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
@@ -2575,7 +2575,7 @@ WARNING: The input data vectors are not cast to the type of s.
             }  \
             ++m_I4;\
          }\
-   }   
+   }
    #define SUMA_RGBv_FGL_AR4op2(RGBvec, glcolar, nrgb, opacity, locgain, isColored) {\
       int m_I, m_I4 = 0, m_I3=0; \
       float m_of, m_of2;\
@@ -2594,25 +2594,25 @@ WARNING: The input data vectors are not cast to the type of s.
             }  \
             ++m_I4;\
          }\
-   }   
+   }
    /*!
-      This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity 
+      This macro used to be called: SUMA_RGBmat_FullNoGlobLoc2_GLCOLAR4_opacity
 
-      SUMA_RGB_FnGL_AR4op 
+      SUMA_RGB_FnGL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       F (Full) means that N is equal to all the nodes in the surface
       nG (NoGlob) means no opacity is applied to the color values (fully opaque)
       L (Local) means a local gain (per node) is applied to the color values
-      
-      SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, N, locgain, add)   
+
+      SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, N, locgain, add)
       RGBmat (float **) N x 3 matrix of RGB values
-      glcolar (GLfloat *) (4 N) x 1 vector 
-      locgain (float *) a N x 1 vector of gains applied to their respective nodes 
+      glcolar (GLfloat *) (4 N) x 1 vector
+      locgain (float *) a N x 1 vector of gains applied to their respective nodes
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_RGB_FnGL_AR4op(RGBmat, glcolar, nrgb, locgain, isColored) {\
       int m_I, m_I4 = 0; \
       float m_of;\
@@ -2636,23 +2636,23 @@ WARNING: The input data vectors are not cast to the type of s.
          }\
    }
    /*!
-      This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity 
-      SUMA_RGB_PnGnL_AR4op 
+      This macro used to be called: SUMA_RGBmat_PartNoGlobNoLoc2_GLCOLAR4_opacity
+      SUMA_RGB_PnGnL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
       nG (NoGlob) means no opacity is applied to the color values (fully opaque)
       nL (NoLocal) means no local gain (per node) is applied to the color values
-      
-      SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, N_Nodes)   
+
+      SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, N_Nodes)
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
+      glcolar (GLfloat *) (4 N_Nodes) x 1 vector
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
    */
-   
+
    #define SUMA_RGB_PnGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, N_Node) {\
       int m_I, m_I4 = 0; \
          for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2665,7 +2665,7 @@ WARNING: The input data vectors are not cast to the type of s.
                }\
             }\
    }
-   
+
    #define SUMA_RGBv_PnGnL_AR4op(RGBvec, NodeId, glcolar, nrgb, isColored, N_Node) {\
       int m_I, m_I4 = 0, m_I3=0; \
          for (m_I=0; m_I < nrgb; ++m_I) {\
@@ -2681,30 +2681,30 @@ WARNING: The input data vectors are not cast to the type of s.
    }
    /*!
       This macro used to be called: SUMA_RGBmat_PartGlobNoLoc2_GLCOLAR4_opacity
-      SUMA_RGB_PGnL_AR4op 
+      SUMA_RGB_PGnL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
       G (Glob) means an opacity is applied to the color values
       nL (NoLocal) means no local gain (per node) is applied to the color values
-      
-      SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, N_Nodes)   
+
+      SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, N_Nodes)
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
+      glcolar (GLfloat *) (4 N_Nodes) x 1 vector
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
-      
-      *** Dec. 04 03: 
+
+      *** Dec. 04 03:
       Variant SUMA_RGB_PGnL_AR4op2
          Instead of mixing like this: Col_new = (1 -  opacity)*Col_1 + opacity *Col_2;
          I am using Col_new = (1 -  opacity)*Col_1 +  Col_2; if (Col_new > 1) Col_new = 1
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
-   
+
    */
-   
+
    #define SUMA_RGB_PGnL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, N_Node) {\
       int m_I, m_I4 = 0, m_II; \
       float m_of;\
@@ -2749,7 +2749,7 @@ WARNING: The input data vectors are not cast to the type of s.
             }\
          }\
    }
-   
+
    #define SUMA_RGB_PGnL_AR4op2(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, N_Node) {\
       int m_I, m_I4 = 0, m_II; \
       float m_of;\
@@ -2796,32 +2796,32 @@ WARNING: The input data vectors are not cast to the type of s.
    }
    /*!
       This macro used to be called: SUMA_RGBmat_PartGlobLoc2_GLCOLAR4_opacity
-      
-      SUMA_RGB_PGL_AR4op 
+
+      SUMA_RGB_PGL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
       G (Glob) means an opacity is applied to the color values
       L (Local) means a local gain (per node) is applied to the color values
-      
-      SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, locgain, add, N_Nodes)   
+
+      SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, opacity, locgain, add, N_Nodes)
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
+      glcolar (GLfloat *) (4 N_Nodes) x 1 vector
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it 
+      opacity (float) an opacity factor applied to each color R, G, B values in the entire list before adding it
             to a pre-exising color opacity is not applied to the color of nodes that had not been colored thus far.
-      locgain (float *)  N x 1 vector of gains applied to their respective nodes 
-      
-      *** Dec. 04 03: 
+      locgain (float *)  N x 1 vector of gains applied to their respective nodes
+
+      *** Dec. 04 03:
       Variant SUMA_RGB_PGL_AR4op2
          Instead of mixing like this: Col_new = (1 -  opacity) *Col_1 + opacity * locgain *Col_2;
          I am using Col_new = (1 -  opacity)*Col_1 +  locgain * Col_2; if (Col_new > 1) Col_new = 1
        *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
-  
+
    */
-   
+
    #define SUMA_RGB_PGL_AR4op(RGBmat, NodeId, glcolar, nrgb, isColored, opacity, locgain, N_Node) {\
       int m_I, m_I4 = 0; \
       float m_of, m_of2;\
@@ -2915,23 +2915,23 @@ WARNING: The input data vectors are not cast to the type of s.
             }\
          }\
    }
-   
+
    /*!
       This macro used to be called: SUMA_RGBmat_PartNoGlobLoc2_GLCOLAR4_opacity
-      SUMA_RGB_PnGL_AR4op 
+      SUMA_RGB_PnGL_AR4op
       copies an N x 3 RGB matrix into a 4N x 1 GL color array format
       P (Part) means that colors are specified for some of the nodes only N < N_Nodes
       nG (NoGlob) means no opacity is applied to the color values (fully opaque)
       L (Local) means a local gain (per node) is applied to the color values
-      
-      SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, locgain, add, N_Nodes)   
+
+      SUMA_RGB_PnGL_AR4op(RGBmat, NodeId, glcolar, N, isColored, locgain, add, N_Nodes)
       RGBmat (float **) N x 3 matrix of RGB values
       NodeId (int *) N x 1 vector containing indices of nodes for wich color is specified in RGBmat
-      glcolar (GLfloat *) (4 N_Nodes) x 1 vector 
+      glcolar (GLfloat *) (4 N_Nodes) x 1 vector
       isColored (SUMA_Boolean) N_Nodes x 1 vector indicating that a node was colored. ONLY YUP/1 are placed
       when a node is assigned a color. Values of isColored for nodes that have not been visited remain unchanged
-      locgain (float *)  N x 1 vector of gains applied to their respective nodes 
-      
+      locgain (float *)  N x 1 vector of gains applied to their respective nodes
+
       *** Mar 17 04:
       Added the SUMA_RGBv versions using RGBvec instead of RGBmat.
    */

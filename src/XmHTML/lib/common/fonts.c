@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -48,7 +48,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/10/23 00:23:09  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -162,7 +162,7 @@ static int def_fn_fixed_sizes[2] = {120,80};
 * Name: 		makeFontName
 * Return Type: 	String
 * Description: 	creates a full 14 field font name from the given args.
-* In: 
+* In:
 *	name:		font base name, required
 *	foundry:	font foundry, optional
 *	family:		font family, optional
@@ -183,8 +183,8 @@ static int def_fn_fixed_sizes[2] = {120,80};
 *	this routine will compose the following fontname given the basename:
 *	-foundry-family-weight-slant-width--*-points-res_x-res_y-spacing-*-charset
 *****/
-static String 
-makeFontName(String name, String foundry, String family, String weight, 
+static String
+makeFontName(String name, String foundry, String family, String weight,
 	String slant, int points, String charset,
 	String fam_return, Boolean *i18n)
 {
@@ -269,7 +269,7 @@ makeFontName(String name, String foundry, String family, String weight,
 		/* screen resolutions are stored in the display-bound font cache */
 		namelen += sprintf(fontbuf, "-%s-%s-%s-%s-%s-*-*-%i-%i-%i-%s-*-%s",
 			(foundry != NULL ? foundry : fndry),
-			(family != NULL ? family : fam), 
+			(family != NULL ? family : fam),
 			weight, slant, wd, points, curr_cache->res_x, curr_cache->res_y,
 			sp, setPtr);
 
@@ -323,7 +323,7 @@ makeFontName(String name, String foundry, String family, String weight,
 * Name: 		insertFont
 * Return Type: 	fontCacheEntry
 * Description: 	inserts the given font in the given font cache.
-* In: 
+* In:
 *	entry:		current font cache;
 *	name:		name of font to insert;
 *	font:		font data to be inserted;
@@ -332,7 +332,7 @@ makeFontName(String name, String foundry, String family, String weight,
 *	updated cache entry;
 *****/
 static fontCacheEntry*
-insertFont(fontCacheEntry *entry, String name, XmHTMLfont *font, 
+insertFont(fontCacheEntry *entry, String name, XmHTMLfont *font,
 	XmHTMLfont *map_to)
 {
 	if(entry == NULL)
@@ -365,7 +365,7 @@ insertFont(fontCacheEntry *entry, String name, XmHTMLfont *font,
 * Name:			getFont
 * Return Type: 	XmHTMLfont
 * Description: 	looks for a font in the fontcache;
-* In: 
+* In:
 *	entry:		current font cache;
 *	name:		name of font to locat;
 * Returns:
@@ -408,7 +408,7 @@ getFont(fontCacheEntry *entry, String name, Byte style)
 * Name: 		mapFont
 * Return Type:	XmHTMLfont*
 * Description: 	creates a font mapping;
-* In: 
+* In:
 *	font:		data to which ``name'' is mapped;
 *	name:		name of font
 * Returns:
@@ -434,7 +434,7 @@ mapFont(XmHTMLfont *font, String name)
 * Return Type: 	XmHTMLfont
 * Description: 	allocates a new font entry and retrieves all required
 *				font properties;
-* In: 
+* In:
 *	lfont:		ptr to an X font;
 *	name:		name of this font;
 *	family:		family to which this font belongs;
@@ -449,7 +449,7 @@ allocFont(ToolkitAbstraction *tka, void *lfont, String name,
 	static XmHTMLfont *font;
 	unsigned long value = 0;
 	XFONTSTRUCT *xfont = (XFONTSTRUCT*)lfont;
-	
+
 	font = (XmHTMLfont*)malloc(sizeof(XmHTMLfont));
 
 #ifdef I18N
@@ -560,7 +560,7 @@ allocFont(ToolkitAbstraction *tka, void *lfont, String name,
 	font->st_thickness = font->ul_thickness;
 
 	return(font);
-} 
+}
 
 #ifdef I18N
 /*****
@@ -568,7 +568,7 @@ allocFont(ToolkitAbstraction *tka, void *lfont, String name,
 * Return Type: 	XmHTMLfont
 * Description: 	allocates a new font entry and retrieves all required
 *				font properties;
-* In: 
+* In:
 *	xfont:		ptr to an X fontSet;
 *	name:		name of this font;
 *	family:		family to which this font belongs;
@@ -684,7 +684,7 @@ allocFontSet(ToolkitAbstraction *tka, void *lfontset, String name,
 		if((tka->GetFontProperty(xfont, XA_SUBSCRIPT_X, &value)) == True)
 			if(font->sub_xoffset < (int)value)
 				font->sub_xoffset = (int)value;
-		
+
 
 		/* subscript y-offset */
 		if((tka->GetFontProperty(xfont, XA_SUBSCRIPT_Y, &value)) == True)
@@ -755,7 +755,7 @@ allocFontSet(ToolkitAbstraction *tka, void *lfontset, String name,
 	font->st_thickness = font->ul_thickness;
 
 	return(font);
-} 
+}
 #endif
 
 /*****
@@ -763,7 +763,7 @@ allocFontSet(ToolkitAbstraction *tka, void *lfontset, String name,
 * Return Type: 	XmHTMLfont
 * Description: 	retrieves a font from the cache or loads one when it isn't
 *				already available.
-* In: 
+* In:
 *	tka:		toolkit abstraction to be used;
 *	name:		name of font to be loaded;
 *	family:		family to which this font belongs;
@@ -841,8 +841,8 @@ loadAndCacheFont(ToolkitAbstraction *tka, String name, String family,
 /*****
 * Name:			loadQueryFont
 * Return Type:	XFontStruct*
-* Description:	loads a font from the given family in given size, weight and 
-*				slant. Loaded fonts are cached to minimize the overhead spent 
+* Description:	loads a font from the given family in given size, weight and
+*				slant. Loaded fonts are cached to minimize the overhead spent
 *				in XLoadQueryFont().
 * In:
 *	w:			Widget for which this font is to be loaded.
@@ -852,13 +852,13 @@ loadAndCacheFont(ToolkitAbstraction *tka, String name, String family,
 *				etc...
 *	ptsz:		size of font to load, in tenths of a point
 *	style:		style of this font.
-*	*loaded:	indicates whether the requested font was loaded or the current 
+*	*loaded:	indicates whether the requested font was loaded or the current
 *				font was returned. When loaded is initially True, a warning
 *				message is displayed if the font can't be loaded.
 * Returns:
 *	A XFontStruct* for the font in the requested family/size and loaded
 *	set to True or the current font and loaded set to False.
-* Note: 
+* Note:
 *	This routine was based on the LoadQueryScalableFont() routine found in
 *	O'Reilly's Xlib Programming Manual by Adrian Nye, but that's no longer
 *	recognizable...
@@ -879,10 +879,10 @@ loadQueryFont(XmHTMLWidget html, String name, String family, int ptsz,
 
 	font_mapping[0] = '\0';
 
-	/***** 
-	* Okay, now we are going to try and load a font. 
+	/*****
+	* Okay, now we are going to try and load a font.
 	* Check weight & slant styles. The order in which they are treated
-	* is important: bold overrides any FONT_MEDIUM settings and italic 
+	* is important: bold overrides any FONT_MEDIUM settings and italic
 	* overrides any FONT_REGULAR settings.
 	* First attempts are all made with given charset. If no font is found
 	* we wildcard it and try all over again.
@@ -890,7 +890,7 @@ loadQueryFont(XmHTMLWidget html, String name, String family, int ptsz,
 	if(style & FONT_BOLD)
 	{
 		int num_total = 0;
-		
+
 		while(num_total != 2 && font == NULL)
 		{
 			int num_outer = 0;
@@ -1081,7 +1081,7 @@ loadQueryFont(XmHTMLWidget html, String name, String family, int ptsz,
 *				is called. It's primary use is to reduce loading times when
 *				switching between documents (we already know which font we will
 *				get).
-* In: 
+* In:
 *	font:		actual font.
 * Returns:
 *	nothing.
@@ -1100,7 +1100,7 @@ _XmHTMLaddFontMapping(XmHTMLWidget html, String name, String family,
 	* !!!INCREDIBLE SPEEDUP!!!
 	*****/
 	fontname = makeFontName(name, family ? "*" : NULL, family,
-			style & FONT_BOLD ? "bold" : "medium", 
+			style & FONT_BOLD ? "bold" : "medium",
 			style & FONT_ITALIC ? "i"  : "r", ptsz, HTML_ATTR(charset),
 			fontfamily, &i18n);
 
@@ -1119,7 +1119,7 @@ _XmHTMLaddFontMapping(XmHTMLWidget html, String name, String family,
 * Name:			freeFontEntries
 * Return Type: 	void
 * Description: 	releases all fonts in the given cache;
-* In: 
+* In:
 *	dpy:		display on which the fonts were allocated;
 *	fonts:		cache to be freed;
 * Returns:
@@ -1161,7 +1161,7 @@ freeFontEntries(ToolkitAbstraction *tka, fontCacheEntry *fonts)
 * Name: 		initializeFontSizeLists
 * Return Type: 	void
 * Description: 	fills all arrays of font sizes.
-* In: 
+* In:
 *	w:			widget containing font size specs.
 * Returns:
 *	nothing, but the font lists are updated to reflect the new sizes.
@@ -1195,10 +1195,10 @@ initializeFontSizeLists(XmHTMLWidget html)
 
 	/* copy name, it gets destroyed */
 	(void)memset(&size_list, 0, 64);
-	strncpy(size_list, HTML_ATTR(font_sizes), 63);	
+	strncpy(size_list, HTML_ATTR(font_sizes), 63);
 
 	/* This list has 8 elements */
-	for(chPtr = strtok(size_list, ","), i = 0; i < 8 && chPtr != NULL; 
+	for(chPtr = strtok(size_list, ","), i = 0; i < 8 && chPtr != NULL;
 		chPtr = strtok(NULL, ","), i++)
 	{
 		if((xmhtml_fn_sizes[i] = 10*atoi(chPtr)) == 0)
@@ -1225,7 +1225,7 @@ initializeFontSizeLists(XmHTMLWidget html)
 	strncpy(size_list, HTML_ATTR(font_sizes_fixed), 63);
 
 	/* This list has 2 elements */
-	for(chPtr = strtok(size_list, ","), i = 0; i < 2 && chPtr != NULL; 
+	for(chPtr = strtok(size_list, ","), i = 0; i < 2 && chPtr != NULL;
 		chPtr = strtok(NULL, ","), i++)
 	{
 		if((xmhtml_fn_fixed_sizes[i] = 10*atoi(chPtr)) == 0)
@@ -1267,7 +1267,7 @@ initializeFontSizeLists(XmHTMLWidget html)
 		HTML_ATTR(font_family), NULL, xmhtml_fn_sizes[0],
 		FONT_SCALABLE|FONT_REGULAR|FONT_MEDIUM, &ok);
 
-	/***** 
+	/*****
 	* We can't load the default font, try again with a wildcarded family.
 	* This time die if it fails
 	*****/
@@ -1299,7 +1299,7 @@ initializeFontSizeLists(XmHTMLWidget html)
 * Return Type: 	XmHTMLfont*
 * Description: 	selects a cache according to the display a widget is
 *				being displayed on (or creates one if it isn't present yet)
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	reset:		hard reset flag (used by SetValues when any of the font
 *				resources changes);
@@ -1358,7 +1358,7 @@ _XmHTMLSelectFontCache(XmHTMLWidget html, Boolean reset)
 			else
 				cache->res_x = cache->res_y;
 		}
-		
+
 		cache->nentries = 0;
 		cache->nmaps    = 0;
 		cache->nlookups = 0;
@@ -1386,7 +1386,7 @@ _XmHTMLSelectFontCache(XmHTMLWidget html, Boolean reset)
 			i++);
 
 		if(i == cache->nwidgets)
-		{ 
+		{
 			_XmHTMLDebug(8, ("fonts.c: _XmHTMLSelectFontCache, adding "
 				"reference entry for widget %s.\n", XtName((Widget)html)));
 
@@ -1413,10 +1413,10 @@ _XmHTMLSelectFontCache(XmHTMLWidget html, Boolean reset)
 /*****
 * Name: 		_XmHTMLLoadFont
 * Return Type: 	XmHTMLfont*
-* Description: 	loads a new font, with the style determined by the current 
-*				font: if current font is bold, and new is italic then a 
+* Description: 	loads a new font, with the style determined by the current
+*				font: if current font is bold, and new is italic then a
 *				bold-italic font will be returned.
-* In: 
+* In:
 *	w:			Widget for which to load a font
 *	font_id:	id describing type of font to load.
 *	size:		size of font to load. Only used for HT_FONT.
@@ -1443,7 +1443,7 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 	_XmHTMLDebug(8,("_XmHTMLLoadFont: current font is %s %s %s.\n",
 		(font_style & FONT_FIXED  ? "fixed"  : "scalable"),
 		(font_style & FONT_BOLD   ? "bold"   : "medium"),
-		(font_style & FONT_ITALIC ? "italic" : "regular"))); 
+		(font_style & FONT_ITALIC ? "italic" : "regular")));
 
 	/* See if we need to proceed with bold font */
 	if(font_style & FONT_BOLD)
@@ -1474,7 +1474,7 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 	_XmHTMLDebug(8,("_XmHTMLLoadFont: next font is %s %s %s (inherited).\n",
 		(new_style & FONT_FIXED  ? "fixed"  : "scalable"),
 		(new_style & FONT_BOLD   ? "bold"   : "medium"),
-		(new_style & FONT_ITALIC ? "italic" : "regular"))); 
+		(new_style & FONT_ITALIC ? "italic" : "regular")));
 
 	switch(font_id)
 	{
@@ -1483,13 +1483,13 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 		case HT_EM:
 		case HT_DFN:
 		case HT_ADDRESS:
-			new_font = loadQueryFont(html, family, NULL, 
-				xmhtml_basefont_sizes[size-1], new_style|FONT_ITALIC, &ok);  
+			new_font = loadQueryFont(html, family, NULL,
+				xmhtml_basefont_sizes[size-1], new_style|FONT_ITALIC, &ok);
 			break;
 		case HT_STRONG:
 		case HT_B:
 		case HT_CAPTION:
-			new_font = loadQueryFont(html, family, NULL, 
+			new_font = loadQueryFont(html, family, NULL,
 				xmhtml_basefont_sizes[size-1], new_style|FONT_BOLD, &ok);
 			break;
 
@@ -1557,7 +1557,7 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 #endif /* PEDANTIC */
 			/* this will always succeed */
 			ok = False;
-			new_font = loadQueryFont(html, family, NULL, ptsz, 
+			new_font = loadQueryFont(html, family, NULL, ptsz,
 				FONT_SCALABLE|FONT_REGULAR|FONT_MEDIUM, &ok);
 			break;
 	}
@@ -1567,14 +1567,14 @@ _XmHTMLLoadFont(XmHTMLWidget html, htmlEnum font_id, int size,
 /*****
 * Name: 		_XmHTMLLoadFontWithFace
 * Return Type: 	XmHTMLfont*
-* Description: 	load a new font with given pixelsize and face. 
+* Description: 	load a new font with given pixelsize and face.
 *				Style is determined by the current font: if current font
-*				is bold, and new is italic then a bold-italic font will be 
+*				is bold, and new is italic then a bold-italic font will be
 *				returned.
-* In: 
+* In:
 *	w:			Widget for which to load a font
 *	size:		size of font to load. Only used for HT_FONT.
-*	face:		a comma separated list of font faces to use, contents are 
+*	face:		a comma separated list of font faces to use, contents are
 *				destroyed when this function returns.
 *	curr_font:	current font, required for propagating font style info.
 * Returns:
@@ -1608,7 +1608,7 @@ _XmHTMLLoadFontWithFace(XmHTMLWidget html, int size, String face,
 	else
 		new_style &= ~FONT_ITALIC;
 
-	/***** 
+	/*****
 	* See if we need to proceed with a fixed font, only used to determine
 	* initial font family.
 	*****/
@@ -1649,7 +1649,7 @@ _XmHTMLLoadFontWithFace(XmHTMLWidget html, int size, String face,
 		_XmHTMLDebug(8, ("format.c: _XmHTMLLoadFontWithFace, trying with "
 			"face %s\n", chPtr));
 
-		/***** 
+		/*****
 		* Disable font not found warning message, we are trying to find
 		* a font of which we don't know if it exists.
 		*****/
@@ -1717,7 +1717,7 @@ _XmHTMLLoadFontWithFace(XmHTMLWidget html, int size, String face,
 * Description: 	removes a widget from the widget list of a display-bound
 *				font cache. When the reference count of this cache reaches
 *				zero, the cache is released;
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing.

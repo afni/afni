@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:41  rwcox
@@ -105,7 +105,7 @@
  * TYPE DEFINITIONS *
  *==================*/
 
-/*  
+/*
  *  your basic Block type
  */
 typedef int16 Block[DCTSIZE][DCTSIZE];

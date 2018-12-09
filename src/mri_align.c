@@ -230,7 +230,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
       fit  = mri_lsqfit( bim2 , fitim , imww ) ;
 #endif
       mri_free( bim2 ) ;
-      
+
 
       if( debug ) printf("   fit = %13.6g %13.6g %13.6g\n",
                          fit[1],fit[2],fit[3] ) ;
@@ -244,7 +244,7 @@ MRI_IMARR * mri_align_dfspace( MRI_IMAGE * imbase , MRI_IMAGE * imwt ,
          tim  = MRI_ROTA_COARSE( im2 , fit[1] , fit[2] , fit[3]*DFAC ) ;
          bim2 = mri_filt_fft( tim , dfilt_sigma , 0 , 0 , FILT_FFT_WRAPAROUND ) ;
          /* fprintf(stderr,"nx=%d, ny=%d\n", bim2->nx, bim2->ny); image is returned square */
-         
+
 #ifdef USE_DELAYED_FIT
          dfit = mri_delayed_lsqfit( bim2 , fitim , chol_fitim ) ;
 #else

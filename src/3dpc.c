@@ -20,8 +20,8 @@ static int PC_normalize  = 0 ; /* and not to normalize */
 static int PC_lprin_save = 0 ; /* # of principal components to save */
 static int PC_be_quiet   = 1 ; /* quiet is the default */
 static int PC_do_float   = 0 ; /* shorts are the default */
-static int PC_samp_scale = 0; /* Scale covariance matrix 
-                                 (and consequently the eigen values) by 
+static int PC_samp_scale = 0; /* Scale covariance matrix
+                                 (and consequently the eigen values) by
                                  the number of samples */
 static char **PC_dsname = NULL ; /* dataset names */
 static int    PC_dsnum  = 0    ; /* number of them */
@@ -514,16 +514,16 @@ int main( int argc , char *argv[] )
    /*-- load covariance matrix
         (very short code that takes a long time to run!) --*/
 
-   if( !PC_be_quiet ) 
-      INFO_message("compute covariance matrix, %d vals", 
+   if( !PC_be_quiet )
+      INFO_message("compute covariance matrix, %d vals",
                    PC_mask ? PC_mask_hits:nn) ;
-   
+
    div = 1.0;
    if (PC_samp_scale) {
       if (PC_mask) div = (double)PC_mask_hits;
       else div = (double)nn;
    }
-   
+
    idel = 1 ;                           /* ii goes forward */
    for( jj=0 ; jj < mm ; jj++ ){
 
@@ -567,7 +567,7 @@ int main( int argc , char *argv[] )
          }
       }
    }
-   
+
    /*-- normalize, if desired --*/
 
    if( PC_normalize ){

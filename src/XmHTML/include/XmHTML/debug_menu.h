@@ -10,7 +10,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -45,7 +45,7 @@
 * Revision 1.1  1997/08/31 17:45:27  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _debug_menu_h_
 #define _debug_menu_h_

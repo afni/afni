@@ -10,7 +10,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
@@ -57,7 +57,7 @@
 * Revision 1.1  1997/03/20 08:01:55  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifndef _miniparse_h_
 #define _miniparse_h_
 
@@ -132,7 +132,7 @@ extern const Byte __my_translation_table[];
 * DO NOT MODIFY
 *****/
 typedef enum{
-HT_DOCTYPE, HT_A, HT_ADDRESS, HT_APPLET, HT_AREA, HT_B, HT_BASE, HT_BASEFONT, 
+HT_DOCTYPE, HT_A, HT_ADDRESS, HT_APPLET, HT_AREA, HT_B, HT_BASE, HT_BASEFONT,
 HT_BIG, HT_BLOCKQUOTE, HT_BODY, HT_BR, HT_CAPTION, HT_CENTER, HT_CITE, HT_CODE,
 HT_DD, HT_DFN, HT_DIR, HT_DIV, HT_DL, HT_DT, HT_EM, HT_FONT, HT_FORM, HT_FRAME,
 HT_FRAMESET, HT_H1, HT_H2, HT_H3, HT_H4, HT_H5, HT_H6, HT_HEAD, HT_HR, HT_HTML,
@@ -143,7 +143,7 @@ HT_SUP, HT_TAB, HT_TABLE, HT_TD, HT_TEXTAREA, HT_TH, HT_TITLE,
 HT_TR, HT_TT, HT_U, HT_UL, HT_VAR, HT_ZTEXT
 }htmlEnum;
 
-/***** 
+/*****
 * and corresponding name table, defined in parse.c
 *****/
 extern String *html_tokens;
@@ -203,7 +203,7 @@ enum{
 	XmHTML_NONE = 0,				/* no warnings */
 	XmHTML_UNKNOWN_ELEMENT = 1,
 	XmHTML_BAD = 2,
-	XmHTML_OPEN_BLOCK = 4,			
+	XmHTML_OPEN_BLOCK = 4,
 	XmHTML_CLOSE_BLOCK = 8,
 	XmHTML_OPEN_ELEMENT = 16,
 	XmHTML_NESTED = 32,
@@ -217,7 +217,7 @@ enum{
 typedef struct _XmHTMLObject{
 	htmlEnum 	id;			/* ID for this element */
 	String		element;	/*
-							* Raw text. For HTML elements, freeing this 
+							* Raw text. For HTML elements, freeing this
 							* member also frees attributes.
 							*/
 	String 		attributes;	/* attributes for this element, if any */
@@ -353,7 +353,7 @@ extern int my_strncasecmp (const char *s1, const char *s2, size_t n);
 	 __LINE__, FUNC
 
 extern void __XmHTMLWarning(
-#ifdef __STDC__ 
+#ifdef __STDC__
 	Widget w, String module, int line, String routine,
 	String fmt, ...
 #endif

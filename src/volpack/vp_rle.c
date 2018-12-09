@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -632,7 +632,7 @@ vpContext *vpc;
 
     /* allocate space for z-axis runs (used for the y viewing axis) */
     if (!skip_rle_y) {
-	vpc->rle_y = CreateRLEVoxelsFromRunData(vpc, zlen, xlen, ylen, 
+	vpc->rle_y = CreateRLEVoxelsFromRunData(vpc, zlen, xlen, ylen,
 	    non_zero_count, vpc->cbuf->rundata_z, rle_bytes_per_voxel);
 	y_data = vpc->rle_y->data;
 	y_lengths = vpc->rle_y->run_lengths;

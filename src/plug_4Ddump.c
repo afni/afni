@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 #include "afni_plugin.h"
 
@@ -32,8 +32,8 @@
 /*-------------------------------------------------------------------------*/
 
 
-/*	Definitions of prototypes and declaration of support functions 
-	this is taken from the list of include files that I use in the original code*/ 
+/*	Definitions of prototypes and declaration of support functions
+	this is taken from the list of include files that I use in the original code*/
 
 
 /*-------------------------------------------------------------------*/
@@ -45,10 +45,10 @@ typedef struct {
 
 
 /***********************************************************************
-  Plugin to extract 3D+time time courses whos index or xyz corrdinates 
+  Plugin to extract 3D+time time courses whos index or xyz corrdinates
   match a certain criterion
 ************************************************************************/
-typedef struct 
+typedef struct
 	{
 		  int nxx;			/* number of voxels in the x direction */
 		  int nyy;			/* number of voxels in the y direction */
@@ -101,7 +101,7 @@ static char helpstring[] =
   "                    You can see these coordinates in the upper left side of the AFNI window.\n"
   "                    To do so, you must switch the voxel coordinate units from mm to slice coordinates.\n"
   "                      Define Datamode -> Misc -> Voxel Coords ?\n"
-  "                    Masking files could be the ascii output files of other plugins such as\n" 
+  "                    Masking files could be the ascii output files of other plugins such as\n"
   "                   '3Ddump' and 'Hilber Delay98'.\n"
   "      N Columns  -> Total number of values on each line in the ascii mask file.\n\n"
   "   3- Index Mask : (optional)\n"
@@ -128,7 +128,7 @@ static char helpstring[] =
 
 /*--------------------- strings for output format --------------------*/
 
-static char * yn_strings[] = { "n" , "y" }; 
+static char * yn_strings[] = { "n" , "y" };
 static char * format_strings[] = { "i x y z ts[1] ..." , "ts[1] ts[2] ..." };
 
 #define NUM_YN_STRINGS (sizeof(yn_strings)/sizeof(char *))
@@ -225,7 +225,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                        DIMEN_4D_MASK |    /* need 3D+time datasets  */
                        BRICK_ALLREAL_MASK /* need real-valued datasets */
                     ) ;
-  
+
    PLUTO_add_number( plint ,
                     "Ignore" ,  /* label next to chooser */
                     0 ,         /* smallest possible value */
@@ -239,16 +239,16 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                      2,yn_strings,    /* strings to choose among */
                      1         /* Default option */
                    ) ;
-	
+
 	/*---------- 2nd line: Mask file info  ----------*/
    PLUTO_add_option( plint ,
                      "Mask file" ,  /* label at left of input line */
                      "Mask" ,  /* tag to return to plugin */
                      TRUE       /* is this mandatory? */
                    ) ;
-   
+
    PLUTO_add_string( plint , "Mask File" , 0 , NULL , 19 ) ;
-   
+
    PLUTO_add_number( plint ,
                     "N Columns" ,  /* label next to chooser */
                     1 ,         /* smallest possible value */
@@ -257,16 +257,16 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     3 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-   
+
 
    /*---------- 3rd line: index mask location ----------*/
-   
+
    PLUTO_add_option( plint ,
                      "Index Mask ?" ,  /* label at left of input line */
                      "Index" ,  /* tag to return to plugin */
                      FALSE       /* is this mandatory? */
                    ) ;
-   
+
    PLUTO_add_number( plint ,
                     "i col." ,  /* label next to chooser */
                     1 ,         /* smallest possible value */
@@ -275,8 +275,8 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     1 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-	
-                   
+
+
    /*---------- 4th line: xyz mask location ----------*/
 
    PLUTO_add_option( plint ,
@@ -293,7 +293,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     2 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-	
+
 	PLUTO_add_number( plint ,
                     "y col." ,  /* label next to chooser */
                     1 ,         /* smallest possible value */
@@ -302,7 +302,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     3 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-                  
+
 
 	PLUTO_add_number( plint ,
                     "z col." ,  /* label next to chooser */
@@ -312,7 +312,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     4 ,         /* default value */
                     TRUE       /* allow user to edit value? */
                   ) ;
-                  
+
    /*---------- 5th line: output stuff ----------*/
 
    PLUTO_add_option( plint ,
@@ -321,15 +321,15 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                      TRUE        /* is this mandatory? */
                    ) ;
 
-   
+
    PLUTO_add_string( plint , "Filename" , 0 , NULL , 19 ) ;
-              
+
    PLUTO_add_string( plint ,
                      "Format" ,  /* label next to textfield */
                      2,format_strings,    /* strings to choose among */
                      0          /* Default option */
                    ) ;
-   
+
    return plint ;
 }
 
@@ -345,38 +345,38 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    MRI_IMAGE * tsim;
    MCW_idcode * idc ;                          /* input dataset idcode */
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
-   char *tmpstr , * str ;                 
+   char *tmpstr , * str ;
    int   ntime, nvec , Err=0 , itmp, nprfx;
 	float * vec , fs , T ;
-	char * tag;                     /* plugin option tag */	
-	
+	char * tag;                     /* plugin option tag */
+
 	/* Allocate as much character space as Bob specifies in afni.h + a bit more */
-	
+
 	tmpstr = (char *) calloc (PLUGIN_MAX_STRING_RANGE+10,sizeof(char));
-	
-	if (tmpstr == NULL) 
+
+	if (tmpstr == NULL)
 									  return "********************\n"
 												"Could not Allocate\n"
 												"a teeni weeni bit of\n"
 												"Memory ! \n"
 												"********************\n";
-												
+
 	ud = &uda;		/* ud now points to an allocated space */
 	ud->errcode = 0;	/*reset error flag */
-	
+
    /*--------------------------------------------------------------------*/
    /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
 
    /*--------- go to first input line ---------*/
-		
+
    tag = PLUTO_get_optiontag(plint) ;
-   
+
    if (tag == NULL)
    	{
    		return "************************\n"
              "Bad 1st line option \n"
              "************************"  ;
-   	}	
+   	}
 
    idc      = PLUTO_get_idcode(plint) ;   /* get dataset item */
    old_dset = PLUTO_find_dset(idc) ;      /* get ptr to dataset */
@@ -384,19 +384,19 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
       return "*************************\n"
              "Cannot find Input Dataset\n"
              "*************************"  ;
-   
+
    ud->dsetname = DSET_PREFIX (old_dset);
-	
+
 	ud->ignore = PLUTO_get_number(plint) ;    /* get number item */
-	
-	str = PLUTO_get_string(plint) ; 				
+
+	str = PLUTO_get_string(plint) ;
 	ud->dtrnd = (int)PLUTO_string_index( str , NUM_YN_STRINGS , yn_strings );
-	
-	
-	
+
+
+
 	/*--------- loop over remaining options ---------*/
-	
-		
+
+
 	ud->iloc = -1;
 	ud->xloc = -1;
 	ud->yloc = -1;
@@ -407,17 +407,17 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
 			if (tag == NULL) break;
 			if (strcmp (tag, "Mask") == 0)
 				{
-					ud->strin = PLUTO_get_string(plint) ; 
+					ud->strin = PLUTO_get_string(plint) ;
 					ud->ncols = PLUTO_get_number(plint) ;
 					continue;
 				}
-			
+
 			if (strcmp (tag, "Index") == 0)
 				{
 					ud->iloc = PLUTO_get_number(plint) ;    /* get number item */
 					continue;
 				}
-   		
+
 			if (strcmp (tag, "XYZ") == 0)
    				{
   	 					ud->xloc = PLUTO_get_number(plint) ;    /* get number item */
@@ -427,17 +427,17 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
    				}
 
 			if (strcmp (tag, "Output") == 0)
-					{ 
-   					ud->strout = PLUTO_get_string(plint) ; 
+					{
+   					ud->strout = PLUTO_get_string(plint) ;
 
-   					str = PLUTO_get_string(plint) ; 				
+   					str = PLUTO_get_string(plint) ;
 						ud->format = (int)PLUTO_string_index( str , NUM_FORMAT_STRINGS , format_strings );
 						continue;
 					}
-			
+
  		} while (1);
  	/* ------------------ Check for some errorsor inconsistencies ------------- */
- 	 	
+
  	if (ud->iloc == -1 && ud->xloc == -1)
  		{
  			return "**************************\n"
@@ -446,7 +446,7 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
  					 "**************************\n"
  					 ;
  		}
- 	
+
  	if (ud->iloc != -1 && ud->xloc != -1)
  		{
  			return "***************************\n"
@@ -455,26 +455,26 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
  					 "***************************\n"
  					 ;
  		}
- 	
- 	
+
+
  	/* ------------------Done with user parameters ---------------------------- */
-	
+
 	/* Now loadup that index list or the xyz list */
 	if (ud->iloc != -1)
-		{	
-			itmp = 0;  /* might want to give option of setting it to number of rows if*/ 
-                    /* the users know it, otherwise, it is automatically determined*/    
+		{
+			itmp = 0;  /* might want to give option of setting it to number of rows if*/
+                    /* the users know it, otherwise, it is automatically determined*/
 			ud->indvect = extract_index (ud->strin, ud->iloc, ud->ncols, &itmp, &Err);
 		}
 	else 		/* assuming the only other case is that x y z are specified */
 		{
-			itmp = 0; 
+			itmp = 0;
 			ud->xyzvect = extract_xyz (ud->strin , ud->xloc , ud->yloc , ud->zloc , ud->ncols, &itmp, &Err);
 		}
-	
-		
+
+
 	ud->nrows = itmp;
-	
+
 	switch (Err)
 	{
 		case (0):
@@ -503,59 +503,59 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
 			return "****************************************\n"
                 "Should not have gotten here .....\n"
 			       "****************************************\n";
-		
+
 	}
-	
+
 	/* check to see if the field is empty */
 	if (ud->strout == NULL) nprfx = 0;
 		else nprfx = 1;
-	
+
 	/* check if the size is larger than 0. I did not want to check for this unless it's allocated */
 	if (nprfx == 1 && (int)strlen (ud->strout) == 0) nprfx = 0;
-		
-		
-	if (nprfx == 0)   /* no output file is specified */ 
+
+
+	if (nprfx == 0)   /* no output file is specified */
  		{
  			sprintf ( tmpstr , "%s.4Ddump" , DSET_PREFIX (old_dset));
  			ud->strout = tmpstr;
  		}
- 	
- 	
+
+
  	if (filexists(ud->strout) == 1)
  		{
  			return "*******************************\n"
 					 "Outfile exists, won't overwrite\n"
-					 "*******************************\n";	
+					 "*******************************\n";
  		}
- 	ud->outwritets = fopen (ud->strout ,"w"); 	
- 	
+ 	ud->outwritets = fopen (ud->strout ,"w");
+
  	sprintf ( tmpstr , "%s.log" , ud->strout);
  	if (filexists(tmpstr) == 1)
  		{
  			return "*******************************\n"
 					 "Outfile.log exists, won't overwrite\n"
-					 "*******************************\n";	
+					 "*******************************\n";
  		}
- 	
- 	ud->outlogfile = fopen (tmpstr ,"w"); 
- 	 	
+
+ 	ud->outlogfile = fopen (tmpstr ,"w");
+
  	if ((ud->outwritets == NULL) || (ud->outlogfile == NULL) )
 						{
-							ud->errcode = ERROR_FILEWRITE; 
-							
+							ud->errcode = ERROR_FILEWRITE;
+
 							return "***********************\n"
 									 "Could Not Write Outfile\n"
 									 "***********************\n";
-						}				
- 	
-	
+						}
+
+
 	ud->nxx = (int)old_dset->daxes->nxx;				/* get data set dimensions */
 	ud->nyy = (int)old_dset->daxes->nyy;
 	ud->nzz = (int)old_dset->daxes->nzz;
-	
+
    /* ready to dump the log file */
    write_ud (ud);
-   
+
    /*------------- ready to compute new dataset -----------*/
 
 	PLUTO_4D_to_nothing (old_dset , ud->ignore , ud->dtrnd ,
@@ -563,8 +563,8 @@ static char * EXTRACT_main( PLUGIN_interface * plint )
 
 	fclose (ud->outlogfile);
 	fclose (ud->outwritets);
-	
-	if (tmpstr) free (tmpstr);		
+
+	if (tmpstr) free (tmpstr);
    return NULL ;  /* null string returned means all was OK */
 }
 
@@ -581,21 +581,21 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
 	float xcor=0.0 ,  tmp=0.0 , tmp2 = 0.0 ,  dtx = 0.0 ,\
 			 slp = 0.0 , vts = 0.0 , vrvec = 0.0 , rxcorCoef = 0.0;
 	int i , is_ts_null , status , opt , actv , zpos , ypos , xpos , hit;
-	
+
 	ud = &uda;
 	ud = (extract_data *) udp;
-	
-	
+
+
    /** is this a "notification"? **/
 
-	
+
    if( ncall == -1 || ncall == nvox)
    	{
       if( npts > 0 ){  /* the "start notification" */
          PLUTO_popup_meter( global_plint ) ;  /* progress meter  */
          nvox  = npts ;                       /* keep track of   */
          ncall = 0 ;                          /* number of calls */
-			
+
       } else {  /* the "end notification" */
          PLUTO_set_meter( global_plint , 100 ) ; /* set meter to 100% */
 
@@ -603,18 +603,18 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
       return ;
    }
 
-	
+
 	hit = 0;
 	ud->ln = npts;
-	
+
 	if (ud->iloc != -1)			/* for each ncall, find out if this index is wanted*/
 		{
 			for (i=0;i<ud->nrows;++i)
 				{
-					if (ud->indvect[i] == (float)ncall) 
+					if (ud->indvect[i] == (float)ncall)
 						{
 							hit = 1;
-							writets (ud,ts,ncall); 
+							writets (ud,ts,ncall);
 							i = ud->nrows;
 						}
 				}
@@ -631,27 +631,27 @@ static void EXTRACT_tsfunc( double T0 , double TR ,
 									if (ud->xyzvect[i].z == (float)zpos)
 										{
 											hit = 1;
-											writets (ud,ts,ncall); 
+											writets (ud,ts,ncall);
 											i = ud->nrows;
 										}
 								}
-						}		
+						}
 				}
-			
+
 		}
-	
-	
-   if (ud->errcode == 0) 				/* if there are no errors, proceed */	
+
+
+   if (ud->errcode == 0) 				/* if there are no errors, proceed */
 		{/* 						*/
    	}/* ud->errcode == 0 outer loop */
-   
+
    /** set the progress meter to the % of completion **/
    ncall++ ;
-   
+
    PLUTO_set_meter( global_plint , (100*ncall)/nvox ) ;
-   
+
    ud->errcode = 0;	/* Reset error to nothing */
-   
+
    return ;
 }
 
@@ -713,24 +713,24 @@ static void write_ud (extract_data* ud)
 				case (1):
 					fprintf (ud->outlogfile,"ts[0]\tts[1]\t...\n");
 					break;
-					
+
 			}
-		
+
 		return;
 	}
 
-/* ************************************************************ */ 
+/* ************************************************************ */
 /* function to compute x, y, z coordinates from the index       */
-/* ************************************************************ */ 
+/* ************************************************************ */
 
-static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)  	
+static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int *zpos)
 	{
 		*zpos = (int)ncall / (int)(ud->nxx*ud->nyy);
 		*ypos = (int)(ncall - *zpos * ud->nxx * ud->nyy) / (int)ud->nxx;
 		*xpos = ncall - ( *ypos * ud->nxx ) - ( *zpos * ud->nxx * ud->nyy ) ;
 		return;
 	}
-	
+
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime  are handeled here,   */
@@ -738,36 +738,36 @@ static void indexTOxyz (extract_data* ud, int ncall, int *xpos , int *ypos , int
 /* logged 																		 */
 /* ************************************************************ */
 
-void error_report (extract_data* ud, int ncall ) 
+void error_report (extract_data* ud, int ncall )
 	{
 		int xpos,ypos,zpos;
-		
-		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos); 
-		
+
+		indexTOxyz (ud, ncall, &xpos , &ypos , &zpos);
+
 		switch (ud->errcode)
 			{
-				
+
 				default:
 					fprintf (ud->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",ud->errcode);
 					break;
-			}	
+			}
 		fprintf (ud->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
 		return;
 	}
-	
+
 /* *************************************************************** */
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
 void writets (extract_data * ud,float * ts, int ncall)
 
-	{	
+	{
 		int i,xpos,ypos,zpos;
-		
+
 		switch (ud->format)
 			{
 				case (0):
-					indexTOxyz (ud,ncall,&xpos , &ypos , &zpos); 
+					indexTOxyz (ud,ncall,&xpos , &ypos , &zpos);
 					fprintf (ud->outwritets, "%d\t%d\t%d\t%d\t",ncall,xpos, ypos,zpos);
 					break;
 				case (1):
@@ -775,7 +775,7 @@ void writets (extract_data * ud,float * ts, int ncall)
 				default:
 					break;
 			}
-		
+
 		for (i=0;i<ud->ln;++i)
 			{
 				fprintf (ud->outwritets, "%f\t",ts[i]);
@@ -788,29 +788,29 @@ void writets (extract_data * ud,float * ts, int ncall)
 /* *************************************************************** */
 static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_xyz*/
-	
+
 	float tmp, *tmpX;
 	int sz,i,indx,tst;
 	div_t divstuff,tempx,tempy,tempz;
 	FILE * INFILE;
 	fXYZ * xyzvect=NULL ;
-	
+
 	/* ncols must be > 0 */
 	if (ncols <= 0)
-		
+
 		{
 			*Err = 4;
 			return (xyzvect); /* ncols <= 0 !*/
 		}
-		
-		
+
+
 	/* ind_col_loc must be > 0  (1st column is 1, and it must be less than ncols) */
 	if (x_col_loc <= 0 || x_col_loc > ncols || y_col_loc <= 0 || y_col_loc > ncols || z_col_loc <= 0 || z_col_loc > ncols )
 		{
 			*Err = 1;
 			return (xyzvect); /* ?_col_loc should be >0 and <ncols*/
 		}
-	
+
 	/* if the number of rows is given, compute required size */
 	if (*nrows > 0)
 		{
@@ -830,29 +830,29 @@ static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_
 					*Err = 2;
 					return (xyzvect); /* size of file and number of columns don't match */
 				}
-			else 
+			else
 				{
 					*nrows = divstuff.quot;
 				}
 		}
-	
+
 	tst = (x_col_loc - y_col_loc) * (x_col_loc - z_col_loc) * (y_col_loc - z_col_loc);
 	if (tst == 0)
 		{
 			*Err = 5;
 			return (xyzvect); /* columns specified are the same */
-		} 
-	
+		}
+
 	/* Allocate and check for necessary space */
 	xyzvect = (fXYZ *) calloc (sz+2,sizeof(fXYZ));
-	
+
 	 if (xyzvect == NULL)
 				{
 					printf ("\nFatal Error : Failed to Allocate memory\a\n");
 					printf ("Abandon Lab Immediately !\n\n");
 					return NULL ;
 				};
-				
+
 	INFILE = fopen (fname,"r");
 	if (INFILE == NULL)
 		{
@@ -863,30 +863,30 @@ static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_
 	tempx = div (x_col_loc,ncols);
 	tempy = div (y_col_loc,ncols);
 	tempz = div (z_col_loc,ncols);
-	
+
 	for (i=0;i<sz;++i)
 		{
 			fscanf (INFILE,"%f",&tmp);
 			divstuff = div ((i+1),ncols);
 			if (divstuff.rem != 0)
 				indx = divstuff.quot;
-			else 
+			else
 				indx = divstuff.quot - 1;
-			
+
 			if (divstuff.rem == tempx.rem)
 					xyzvect[indx].x = tmp;
-				
+
 				else if (divstuff.rem == tempy.rem)
 						xyzvect[indx].y = tmp;
-					
+
 					else if (divstuff.rem == tempz.rem)
 							xyzvect[indx].z = tmp;
 		}
 
-	
+
 	*Err = 0;
 	return (xyzvect);
-	
+
 }/*extract_xyz*/
 
 
@@ -897,28 +897,28 @@ static fXYZ * extract_xyz (char *fname, int x_col_loc, int y_col_loc, int z_col_
 
 static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrows, int *Err)
 {/*extract_index*/
-	
+
 	float tmp, *indxvect=NULL;
 	int sz,i;
 	div_t divstuff,temp;
 	FILE * INFILE;
-	
+
 	/* ncols must be > 0 */
 	if (ncols <= 0)
-		
+
 		{
 			*Err = 4;
 			return (indxvect); /* ncols <= 0 !*/
 		}
-		
-	
+
+
 	/* ind_col_loc must be > 0  (1st column is 1, and it must be less than ncols) */
 	if (ind_col_loc <= 0 || ind_col_loc > ncols)
 		{
 			*Err = 1;
 			return (indxvect); /* ind_col_loc should be >0 and <ncols*/
 		}
-	
+
 	/* if the number of rows is given, compute required size */
 	if (*nrows > 0)
 		{
@@ -930,7 +930,7 @@ static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrow
 			if (sz == -1)
             {
                *Err = 3;
-              return (indxvect);      
+              return (indxvect);
             }
 			divstuff = div (sz,ncols);
 			if (divstuff.rem != 0)
@@ -938,22 +938,22 @@ static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrow
 					*Err = 2;
 					return (indxvect); /* size of file and number of columns don't match */
 				}
-			else 
+			else
 				{
 					*nrows = divstuff.quot;
 				}
 		}
-	
+
 	/* Allocate and check for necessary space */
 	indxvect = (float *) calloc (sz+2,sizeof(float));
-	
+
 	 if (indxvect == NULL)
 				{
 					printf ("\nFatal Error : Failed to Allocate memory\a\n");
 					printf ("Abandon Lab Immediately !\n\n");
 					return NULL ;
-				}; 
-	
+				};
+
 	INFILE = fopen (fname,"r");
 	if (INFILE == NULL)
 		{
@@ -962,7 +962,7 @@ static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrow
 		}
 
 	temp = div (ind_col_loc,ncols);
-	
+
 	for (i=0;i<sz;++i)
 		{
 			fscanf (INFILE,"%f",&tmp);
@@ -974,10 +974,10 @@ static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrow
 				}
 		}
 
-	
+
 	*Err = 0;
 	return (indxvect);
-	
+
 }/*extract_index*/
 
 /* *************************************************************** */
@@ -985,31 +985,31 @@ static float * extract_index (char *fname, int ind_col_loc, int ncols, int *nrow
 /* *************************************************************** */
 
 static int f_file_size (char *f_name)
-   
-    { 
-      
+
+    {
+
 
      int cnt=0,ex;
      float buf;
-     
+
      FILE*internal_file;
-     
+
      internal_file = fopen (f_name,"r");
      if (internal_file == NULL) {
      								return (-1);
      						   	}
-     ex = fscanf (internal_file,"%f",&buf);					   	
+     ex = fscanf (internal_file,"%f",&buf);
      while (ex != EOF)
       {
         ++cnt;
         ex = fscanf (internal_file,"%f",&buf);
       }
-      
-      
+
+
       fclose (internal_file);
-      return (cnt);  							     
+      return (cnt);
    }
- 
+
 /* *************************************************************** */
 /* function to test if a file exists 									    */
 /* *************************************************************** */
@@ -1017,14 +1017,14 @@ static int f_file_size (char *f_name)
 static int filexists (char *f_name)
 {/*filexists*/
         FILE *outfile;
-        
+
         outfile = fopen (f_name,"r");
         if (outfile == NULL)
                 return (0);
-        else 
+        else
                 fclose (outfile);
                 return (1);
-                
+
 }/*filexists*/
 
 
@@ -1041,7 +1041,7 @@ static void disp_vect (float *v,int l)
                         {
                                 printf ("V = %f\n",*v);
                         }
-                else 
+                else
                 {
                         for (i=0;i<l;++i)
                         {
@@ -1156,7 +1156,7 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
 
 	nvox = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz ;
 
-   
+
    /*---- allocate space for 1 voxel timeseries ----*/
 
    fxar = (float *) malloc( sizeof(float) * nuse ) ;   /* voxel timeseries */
@@ -1208,9 +1208,9 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
    }
 #endif
 
-   /***** loop over voxels *****/   
+   /***** loop over voxels *****/
    for( ii=0 ; ii < nvox ; ii++  ){  /* 1 time series at a time */
-		
+
       /*** load data from input dataset, depending on type ***/
 
       switch( old_datum ){
@@ -1256,7 +1256,7 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
 
       ts_mean  = x0 ;
       ts_slope = x1 / tdelta ;
- 
+
       /** detrend? **/
 
       if( detrend )
@@ -1285,11 +1285,11 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
      }
 #endif
 
-      
+
 
    } /* end of outer loop over 1 voxels at a time */
 
-   DSET_unload( old_dset ) ;  
+   DSET_unload( old_dset ) ;
 
    /* end notification */
 #if 0
@@ -1301,9 +1301,9 @@ static int * PLUTO_4D_to_nothing (THD_3dim_dataset * old_dset , int ignore , int
    }
 #endif
 
-   
+
    /*-------------- Cleanup and go home ----------------*/
-   
+
    ZFREE_WORKSPACE ;
 	retval = 0;
 	return &retval; /* this value is not used for now .... */

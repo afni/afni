@@ -5,13 +5,13 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int invit_(integer *nm, integer *n, doublereal *a, 
-	doublereal *wr, doublereal *wi, logical *select, integer *mm, integer 
-	*m, doublereal *z__, integer *ierr, doublereal *rm1, doublereal *rv1, 
+/* Subroutine */ int invit_(integer *nm, integer *n, doublereal *a,
+	doublereal *wr, doublereal *wi, logical *select, integer *mm, integer
+	*m, doublereal *z__, integer *ierr, doublereal *rm1, doublereal *rv1,
 	doublereal *rv2)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, z_dim1, z_offset, rm1_dim1, rm1_offset, i__1, 
+    integer a_dim1, a_offset, z_dim1, z_offset, rm1_dim1, rm1_offset, i__1,
 	    i__2, i__3;
     doublereal d__1, d__2;
 
@@ -30,7 +30,7 @@
     doublereal ilambd;
     integer ip, mp, ns=0, uk;
     doublereal rlambd;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer km1, ip1;
     doublereal growto=0.0, ukroot=0.0;
@@ -75,7 +75,7 @@
 
 /*        A AND WI ARE UNALTERED. */
 
-/*        WR MAY HAVE BEEN ALTERED SINCE CLOSE EIGENVALUES ARE PERTURBED 
+/*        WR MAY HAVE BEEN ALTERED SINCE CLOSE EIGENVALUES ARE PERTURBED
 */
 /*          SLIGHTLY IN SEARCHING FOR INDEPENDENT EIGENVECTORS. */
 
@@ -104,7 +104,7 @@
 /*                     VALUE FAILS, */
 /*          -(N+K)     IF BOTH ERROR SITUATIONS OCCUR. */
 
-/*        RM1, RV1, AND RV2 ARE TEMPORARY STORAGE ARRAYS.  NOTE THAT RM1 
+/*        RM1, RV1, AND RV2 ARE TEMPORARY STORAGE ARRAYS.  NOTE THAT RM1
 */
 /*          IS SQUARE OF DIMENSION N BY N AND, AUGMENTED BY TWO COLUMNS */
 /*          OF Z, IS THE TRANSPOSE OF THE CORRESPONDING ALGOL B ARRAY. */
@@ -115,12 +115,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -231,7 +231,7 @@ L240:
 	i__2 = km1;
 	for (ii = 1; ii <= i__2; ++ii) {
 	    i__ = k - ii;
-	    if (select[i__] && (d__1 = wr[i__] - rlambd, abs(d__1)) < eps3 && 
+	    if (select[i__] && (d__1 = wr[i__] - rlambd, abs(d__1)) < eps3 &&
 		    (d__2 = wi[i__] - ilambd, abs(d__2)) < eps3) {
 		goto L220;
 	    }
@@ -398,7 +398,7 @@ L550:
 		z__[mp + l * z_dim1] = 0.;
 		goto L560;
 L555:
-		rm1[i__ + (j + 2) * rm1_dim1] = rm1[mp + (j + 2) * rm1_dim1] 
+		rm1[i__ + (j + 2) * rm1_dim1] = rm1[mp + (j + 2) * rm1_dim1]
 			- y * w;
 		rm1[mp + (j + 2) * rm1_dim1] = 0.;
 L560:
@@ -446,10 +446,10 @@ L600:
 		goto L615;
 L610:
 		t = rm1[mp + (j + 2) * rm1_dim1];
-		rm1[i__ + (j + 2) * rm1_dim1] = -x * t - y * rm1[j + mp * 
+		rm1[i__ + (j + 2) * rm1_dim1] = -x * t - y * rm1[j + mp *
 			rm1_dim1];
 L615:
-		rm1[j + i__ * rm1_dim1] = rm1[j + i__ * rm1_dim1] - x * rm1[j 
+		rm1[j + i__ * rm1_dim1] = rm1[j + i__ * rm1_dim1] - x * rm1[j
 			+ mp * rm1_dim1] + y * t;
 /* L620: */
 	    }
@@ -566,7 +566,7 @@ L760:
 	    z__[i__ + s * z_dim1] = rv1[i__] * x;
 	    goto L820;
 L800:
-	    cdiv_(&rv1[i__], &rv2[i__], &x, &y, &z__[i__ + (s - 1) * z_dim1], 
+	    cdiv_(&rv1[i__], &rv2[i__], &x, &y, &z__[i__ + (s - 1) * z_dim1],
 		    &z__[i__ + s * z_dim1]);
 L820:
 	    ;
@@ -603,7 +603,7 @@ L840:
 L880:
 	j = 1;
 	*ierr = -k;
-/*     .......... SET REMAINING VECTOR COMPONENTS TO ZERO .......... 
+/*     .......... SET REMAINING VECTOR COMPONENTS TO ZERO ..........
 */
 L900:
 	i__2 = *n;

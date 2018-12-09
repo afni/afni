@@ -55,7 +55,7 @@ typedef struct
   float    cube[8]  ;                      // vertex values
   int      N[N_MAX]    ;                      // case counters
   uchar    lut_entry;                      // cube configuration
-  uchar    _case ,config,subconfig ;     // case and config entry   
+  uchar    _case ,config,subconfig ;     // case and config entry
 }MCB;
 //_____________________________________________________________________________
 

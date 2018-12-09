@@ -20,8 +20,8 @@
 # define A_FREE(name)
 
 # define A_INIT(lhs, type, ndims, rhs)
-	
-#else 
+
+#else
 /*
  * We do have to copy the arguments to switch from 'long'
  * to 'size_t' or 'ptrdiff_t'. In my tests on an SGI,
@@ -209,7 +209,7 @@ ncclose(int ncid)
 	{
 		nc_advise("ncclose", status, "ncid %d", ncid);
 		return -1;
-		
+
 	}
 	return 0;
 }
@@ -220,7 +220,7 @@ ncinquire(
     int		ncid,
     int*	ndims,
     int*	nvars,
-    int*	natts, 
+    int*	natts,
     int*	recdim
 )
 {
@@ -255,7 +255,7 @@ ncsync(int ncid)
 	{
 		nc_advise("ncsync", status, "ncid %d", ncid);
 		return -1;
-		
+
 	}
 	return 0;
 }
@@ -323,7 +323,7 @@ ncdiminq(
 		return -1;
 	}
 	/* else */
-	
+
 	if(length != NULL)
 		*length = (int) ll;
 
@@ -352,7 +352,7 @@ int
 ncvardef(
     int		ncid,
     const char*	name,
-    nc_type	datatype, 
+    nc_type	datatype,
     int		ndims,
     const int*	dim
 )
@@ -406,7 +406,7 @@ ncvarinq(
 		return -1;
 	}
 	/* else */
-	
+
 	if(ndims != NULL)
 		*ndims = (int) nd;
 
@@ -470,7 +470,7 @@ ncvarput(
     int		ncid,
     int		varid,
     const long*	start,
-    const long*	count, 
+    const long*	count,
     const void*	value
 )
 {
@@ -498,7 +498,7 @@ ncvarget(
     int		ncid,
     int		varid,
     const long*	start,
-    const long*	count, 
+    const long*	count,
     void*	value
 )
 {
@@ -700,7 +700,7 @@ int
 ncattput(
     int		ncid,
     int		varid,
-    const char*	name, 
+    const char*	name,
     nc_type	datatype,
     int		len,
     const void*	value
@@ -720,7 +720,7 @@ int
 ncattinq(
     int		ncid,
     int		varid,
-    const char*	name, 
+    const char*	name,
     nc_type*	datatype,
     int*	len
 )
@@ -732,7 +732,7 @@ ncattinq(
 		nc_advise("ncattinq", status, "ncid %d", ncid);
 		return -1;
 	}
-	
+
 	if(len != NULL)
 		*len = (int) ll;
 
@@ -745,7 +745,7 @@ int
 ncattget(
     int		ncid,
     int		varid,
-    const char*	name, 
+    const char*	name,
     void*	value
 )
 {
@@ -763,7 +763,7 @@ int
 ncattcopy(
     int		ncid_in,
     int		varid_in,
-    const char*	name, 
+    const char*	name,
     int		ncid_out,
     int		varid_out
 )
@@ -800,7 +800,7 @@ int
 ncattrename(
     int		ncid,
     int		varid,
-    const char*	name, 
+    const char*	name,
     const char*	newname
 )
 {
@@ -839,7 +839,7 @@ ncattdel(
  *   ncvarget(cdfid, varid, cor, edg, vals);
  */
 int
-nctypelen(nc_type type) 
+nctypelen(nc_type type)
 {
 	switch(type){
 	case NC_BYTE :
@@ -851,7 +851,7 @@ nctypelen(nc_type type)
 		return((int)sizeof(int));
 	case NC_FLOAT :
 		return((int)sizeof(float));
-	case NC_DOUBLE : 
+	case NC_DOUBLE :
 		return((int)sizeof(double));
 	}
 

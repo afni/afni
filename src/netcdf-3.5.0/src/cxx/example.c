@@ -89,7 +89,7 @@ main() {			/* create example.cdf */
 
    /* leave define mode */
    ncendef (ncid);
-  
+
    {			/* store lat */
     static long lat_start[] = {0};
     static long lat_edges[] = {4};

@@ -6,19 +6,19 @@
 #include "f2c.h"
 
 /* Subroutine */ int rsg_(integer *nm, integer *n, doublereal *a, doublereal *
-	b, doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, 
+	b, doublereal *w, integer *matz, doublereal *z__, doublereal *fv1,
 	doublereal *fv2, integer *ierr)
 {
     /* System generated locals */
     integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int tred1_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *), tred2_(integer *, 
+    extern /* Subroutine */ int tred1_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *), tred2_(integer *,
 	    integer *, doublereal *, doublereal *, doublereal *, doublereal *)
-	    , rebak_(integer *, integer *, doublereal *, doublereal *, 
-	    integer *, doublereal *), reduc_(integer *, integer *, doublereal 
-	    *, doublereal *, doublereal *, integer *), tqlrat_(integer *, 
+	    , rebak_(integer *, integer *, doublereal *, doublereal *,
+	    integer *, doublereal *), reduc_(integer *, integer *, doublereal
+	    *, doublereal *, doublereal *, integer *), tqlrat_(integer *,
 	    doublereal *, doublereal *, integer *), tql2_(integer *, integer *
 	    , doublereal *, doublereal *, doublereal *, integer *);
 
@@ -27,7 +27,7 @@
 /*     THIS SUBROUTINE CALLS THE RECOMMENDED SEQUENCE OF */
 /*     SUBROUTINES FROM THE EIGENSYSTEM SUBROUTINE PACKAGE (EISPACK) */
 /*     TO FIND THE EIGENVALUES AND EIGENVECTORS (IF DESIRED) */
-/*     FOR THE REAL SYMMETRIC GENERALIZED EIGENPROBLEM  AX = (LAMBDA)BX. 
+/*     FOR THE REAL SYMMETRIC GENERALIZED EIGENPROBLEM  AX = (LAMBDA)BX.
 */
 
 /*     ON INPUT */
@@ -59,12 +59,12 @@
 /*        FV1  AND  FV2  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

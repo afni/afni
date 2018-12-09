@@ -64,7 +64,7 @@ extern struct {
 
 /*  Internal Data for PLOTPAK */
 
-    if (dmax(*x1in,*x2in) < zzzplt_1.xclbot || dmin(*x1in,*x2in) > 
+    if (dmax(*x1in,*x2in) < zzzplt_1.xclbot || dmin(*x1in,*x2in) >
 	    zzzplt_1.xcltop || dmax(*y1in,*y2in) < zzzplt_1.yclbot || dmin(*
 	    y1in,*y2in) > zzzplt_1.ycltop) {
 

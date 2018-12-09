@@ -51,13 +51,13 @@ void usage_cat_matvec(int detail) {
  " 'fred+orig::ROTATE_MATVEC_000000'        = fred+orig from 3drotate\n"
  " For matrices to turn voxel coordinates to dicom:\n"
  " 'fred+orig::IJK_TO_CARD_DICOM'   \n"
- " 'fred+orig::IJK_TO_DICOM_REAL'        \n"                        
+ " 'fred+orig::IJK_TO_DICOM_REAL'        \n"
  "\n"
  "Note that both of VOLREG_MATVEC_ and ROTATE_MATVEC_ are usually\n"
  "accompanied with VOLREG_CENTER_OLD and VOLREG_CENTER_BASE or\n"
  "ROTATE_CENTER_OLD and ROTATE_CENTER_BASE attributes.\n"
  "These center attributes are automatically taken into account in\n"
- "cat_matvec's output.\n" 
+ "cat_matvec's output.\n"
  "\n"
  "=== FORM 3 ===\n"
  "mfile is of the form\n"
@@ -128,7 +128,7 @@ void usage_cat_matvec(int detail) {
  "      then the output matrices are written to stdout, one matrix\n"
  "      per line.\n"
            ) ;
-   
+
    return;
 }
 
@@ -175,9 +175,9 @@ int main( int argc , char * argv[] )
       }
 
       /* check for opcodes that follow the next argument */
- 
+
       nadd = 1; invert = 0; polar = 0; do_sqrt = 0;
-      if( iarg+1 < argc ) {   
+      if( iarg+1 < argc ) {
          if (strcmp(argv[iarg+1],"-I") == 0 ){
             invert = 1 ; nadd = 2 ;
          } else if (strcmp(argv[iarg+1],"-P") == 0 ){
@@ -278,7 +278,7 @@ int main( int argc , char * argv[] )
 
       iarg += nadd ;  /* move on, nothing to see here */
    }
-   
+
    if( argc < 2){
       usage_cat_matvec(1);
       exit(0) ;

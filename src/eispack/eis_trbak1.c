@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int trbak1_(integer *nm, integer *n, doublereal *a, 
+/* Subroutine */ int trbak1_(integer *nm, integer *n, doublereal *a,
 	doublereal *e, integer *m, doublereal *z__)
 {
     /* System generated locals */
@@ -53,12 +53,12 @@
 /*     NOTE THAT TRBAK1 PRESERVES VECTOR EUCLIDEAN NORMS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -94,7 +94,7 @@
 /* L110: */
 		s += a[i__ + k * a_dim1] * z__[k + j * z_dim1];
 	    }
-/*     .......... DIVISOR BELOW IS NEGATIVE OF H FORMED IN TRED1. 
+/*     .......... DIVISOR BELOW IS NEGATIVE OF H FORMED IN TRED1.
 */
 /*                DOUBLE DIVISION AVOIDS POSSIBLE UNDERFLOW ......
 .... */

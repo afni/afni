@@ -6,24 +6,24 @@
 #include "f2c.h"
 
 /* Subroutine */ int cg_(integer *nm, integer *n, doublereal *ar, doublereal *
-	ai, doublereal *wr, doublereal *wi, integer *matz, doublereal *zr, 
-	doublereal *zi, doublereal *fv1, doublereal *fv2, doublereal *fv3, 
+	ai, doublereal *wr, doublereal *wi, integer *matz, doublereal *zr,
+	doublereal *zi, doublereal *fv1, doublereal *fv2, doublereal *fv3,
 	integer *ierr)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int cbal_(integer *, integer *, doublereal *, 
-	    doublereal *, integer *, integer *, doublereal *), corth_(integer 
-	    *, integer *, integer *, integer *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *), comqr_(integer *, integer *, integer 
-	    *, integer *, doublereal *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int cbal_(integer *, integer *, doublereal *,
+	    doublereal *, integer *, integer *, doublereal *), corth_(integer
+	    *, integer *, integer *, integer *, doublereal *, doublereal *,
+	    doublereal *, doublereal *), comqr_(integer *, integer *, integer
+	    *, integer *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, integer *), cbabk2_(integer *, integer *, integer *,
-	     integer *, doublereal *, integer *, doublereal *, doublereal *), 
-	    comqr2_(integer *, integer *, integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
+	     integer *, doublereal *, integer *, doublereal *, doublereal *),
+	    comqr2_(integer *, integer *, integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, integer *);
     integer is1, is2;
 
@@ -64,12 +64,12 @@
 /*        FV1, FV2, AND  FV3  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -106,7 +106,7 @@ L10:
 	goto L20;
     }
 /*     .......... FIND EIGENVALUES ONLY .......... */
-    comqr_(nm, n, &is1, &is2, &ar[ar_offset], &ai[ai_offset], &wr[1], &wi[1], 
+    comqr_(nm, n, &is1, &is2, &ar[ar_offset], &ai[ai_offset], &wr[1], &wi[1],
 	    ierr);
     goto L50;
 /*     .......... FIND BOTH EIGENVALUES AND EIGENVECTORS .......... */

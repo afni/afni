@@ -59,7 +59,7 @@ int main( int argc , char *argv[] )
    int   *time_I , *uv17, lmax=0 , ll , thresh , ibot,itop ;
    float *zoff_I , tr=0.0 , zth1,zth2 , zd ;
    ge_header_info geh ;
-   int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub, 
+   int Ni, CurVolInd, *New_Vol_Loc, *VolSize, N_Vols, *TroubVolume, iTroub,
       MultiSliceVol, *DupSlice, iDup, BadRun, AllGood = 1, GoodRun, kar = -1,
       brk = 0, StrtFiles = 0;
    float *Dzv, fact;
@@ -75,13 +75,13 @@ int main( int argc , char *argv[] )
       if (strcmp (argv[kar],"-h") == 0 || strcmp (argv[kar],"-help") == 0) {
         Ifile_help(); exit(0);        /* 1 -> 0  18 Sep 2018 [rickr] */
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-nt") == 0)) {
          UseUv17 = 1;
 			brk = 1;
          ++kar;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-od") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -89,12 +89,12 @@ int main( int argc , char *argv[] )
 				exit (1);
 			}
          OutDir =  (char *)malloc((strlen(argv[kar])+1)*sizeof(char));
-         
+
          sprintf(OutDir,"%s",argv[kar]);
          brk = 1;
          ++kar;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-sp") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -102,12 +102,12 @@ int main( int argc , char *argv[] )
 				exit (1);
 			}
          PatOpt =  (char *)malloc((strlen(argv[kar])+1)*sizeof(char));
-         
+
          sprintf(PatOpt,"%s",argv[kar]);
          brk = 1;
          ++kar;
       }
-      
+
       /* nothing found, save location and get out */
       if (!brk) {
          /* Done with options */
@@ -116,31 +116,31 @@ int main( int argc , char *argv[] )
          brk = 0;
       }
    }
-   
-   if (UseUv17) { 
-      fprintf(stderr,"++ using User Variable 17.\n"); } 
-   else { 
-      fprintf(stderr,"++ using time stamp.\n");} 
-   
-   if (!PatOpt) { 
+
+   if (UseUv17) {
+      fprintf(stderr,"++ using User Variable 17.\n"); }
+   else {
+      fprintf(stderr,"++ using time stamp.\n");}
+
+   if (!PatOpt) {
       PatOpt = (char *)malloc(sizeof(char)*10);
       sprintf(PatOpt,"alt+z");
    }
-   
+
    if (!OutDir) {
       OutDir = (char *)malloc(sizeof(char)*10);
       sprintf(OutDir,"afni");
    }
-   
+
    fprintf(stderr,"++ using slice pattern %s\n", PatOpt);
    fprintf(stderr,"++ using output directory %s\n", OutDir);
-   
+
    /*
    for (i = 1; i < argc; ++i) {
    fprintf(stdout, "%s\n", argv[i]);}
    */
    fout_panga = fopen("GERT_Reco","w");
-   if (fout_panga == NULL) { 
+   if (fout_panga == NULL) {
       fprintf(stderr,"Could not open AutoPanga for writing. Check write permissions.\n");
       exit(1);
    }
@@ -149,7 +149,7 @@ int main( int argc , char *argv[] )
    fprintf(fout_panga, "#Change the following options to your liking (see @RenamePanga -help for more info):\n\n");
    fprintf(fout_panga, "set OutlierCheck = '-oc' #set to '-oc' to check for outliers, '' to skip checking.\n");
    fprintf(fout_panga, "set OutPrefix = 'OutBrick' #Output brick prefix.\n\n");
-   
+
    /*-- get the list of files */
    fprintf(stderr,"++ Expanding file list ...\n") ;
    MCW_file_expand( argc - StrtFiles, argv + StrtFiles  , &num_I , &nam_I );
@@ -167,10 +167,10 @@ int main( int argc , char *argv[] )
    ngood  = 0 ;
 
    fprintf(stderr,"++ Scanning GE headers") ;
-   #ifdef DBG_FILE   
+   #ifdef DBG_FILE
       fout_dbg = fopen("DBG_IfileOut.txt","w");
    #endif
-   
+
    for( ii=0 ; ii < num_I ; ii++ ){
       ge_header( nam_I[ii] , &geh ) ;    /* read GE header */
 
@@ -181,7 +181,7 @@ int main( int argc , char *argv[] )
          time_I[ngood] = (int) THD_file_mtime( nam_I[ii] ) ;
          gnam_I[ngood] = strdup( nam_I[ii] ) ;
          uv17[ngood] = geh.uv17;
-         
+
          ngood++ ;
 
          ll = strlen(nam_I[ii]) ; if( ll > lmax ) lmax = ll ;
@@ -191,12 +191,12 @@ int main( int argc , char *argv[] )
       else {
       fprintf(stderr,"\tFile %s: !geh.good.\t", nam_I[ii] ) ;
       }
-      #ifdef DBG_FILE   
+      #ifdef DBG_FILE
          fprintf(fout_dbg,"%s %d\n", nam_I[ii], time_I[ii]);
       #endif
    }
-   
-  
+
+
    fprintf(stderr,"\n++ %d files are good images\n",ngood) ;
 
    MCW_free_expand(  num_I, nam_I ) ;/* don't need nam_I any more */
@@ -208,7 +208,7 @@ int main( int argc , char *argv[] )
 
    for( ii=ngood-1 ; ii > 0 ; ii-- ) {
         time_I[ii] -= time_I[ii-1] ;
-      
+
       }
    time_I[0] = 0 ;
 
@@ -221,9 +221,9 @@ int main( int argc , char *argv[] )
       /* Just suppress time threshold output, time calculations are not trimmed since they are performed very quickly*/
       fprintf(stderr,"++ File time threshold = %d s\n",thresh) ;
    }
-   
+
    /*-- find time steps longer than thresh:
-        these are starts of new imaging runs 
+        these are starts of new imaging runs
         or with -nt option, use User Variable 17--*/
    GoodRun = 0;
    nrun = 0 ;
@@ -233,26 +233,26 @@ int main( int argc , char *argv[] )
       /* scan itop until end, or until time step is too big */
 
       if (UseUv17) {
-         for( itop=ibot+1; itop<ngood && uv17[itop]==uv17[ibot]; itop++ ) {/* printf("%d ", uv17[itop]); */}; 
+         for( itop=ibot+1; itop<ngood && uv17[itop]==uv17[ibot]; itop++ ) {/* printf("%d ", uv17[itop]); */};
       } else { /* use time stamp */
          for( itop=ibot+1; itop<ngood && time_I[itop]<thresh; itop++ ) ; /* nada */
       }
-      
-      
+
+
       /* this run is from ibot to itop-1 */
-      
-      
+
+
       if( ibot == itop-1 ){                    /* skip single files */
 
          printf("skip:   %s\n",gnam_I[ibot]) ;
 
       } else {                                 /* more than 1 file */
-               
+
          nrun++ ;
          BadRun = 0; /* Initialize with good faith */
          printf("\nRUN %02d:\t  %s .. %s\t",nrun,gnam_I[ibot],gnam_I[itop-1]) ;
          /* check for skipped slices [assume 1st 2 slices are OK] */
-         
+
          if (0) /* intial method */
             {/* [[ this algorithm could use some thought!  ]] */
             /* [[ maybe compute median delta-zoff?        ]] */
@@ -270,28 +270,28 @@ int main( int argc , char *argv[] )
             }
          else
             {
-                              
+
                Ni = itop - ibot; /*Number of images in run, itop is not included*/
                Dzv = (float *) calloc( sizeof(float)  , Ni) ;
                New_Vol_Loc = (int *) calloc(sizeof(int), Ni); /* could not be bigger than Ni */
-               VolSize = (int *) calloc(sizeof(int), Ni); 
-               TroubVolume = (int *) calloc(sizeof(int), Ni); 
-               DupSlice = (int *) calloc(sizeof(int), Ni); 
-               
+               VolSize = (int *) calloc(sizeof(int), Ni);
+               TroubVolume = (int *) calloc(sizeof(int), Ni);
+               DupSlice = (int *) calloc(sizeof(int), Ni);
+
                Dzv[0] = 0; /* derivative of volume */
-               Dzv[1] = zoff_I[ibot+1] - zoff_I[ibot]; 
-               if (Dzv[1] < 0) 
+               Dzv[1] = zoff_I[ibot+1] - zoff_I[ibot];
+               if (Dzv[1] < 0)
                   {
-                     fact = -1; 
+                     fact = -1;
                      Dzv[1] *= fact;
                   }
                else fact = 1;
-               if (Dzv[1] != 0) 
-                  MultiSliceVol = 1; 
+               if (Dzv[1] != 0)
+                  MultiSliceVol = 1;
                else
                   MultiSliceVol = 0;
-                  
-               
+
+
                /* find total number of volumes */
                iDup = 0;
                iTroub = 0;
@@ -306,11 +306,11 @@ int main( int argc , char *argv[] )
                      DupSlice[iDup] = jj;
                      ++iDup;
                   }
-                  
+
                   if (Dzv[jj-ibot] < 0) { /* New Volume, coming Up */
                      ++CurVolInd;
                      New_Vol_Loc[CurVolInd] = jj;
-                     VolSize[CurVolInd-1] = New_Vol_Loc[CurVolInd] - New_Vol_Loc[CurVolInd-1]; 
+                     VolSize[CurVolInd-1] = New_Vol_Loc[CurVolInd] - New_Vol_Loc[CurVolInd-1];
                      if (CurVolInd > 1) { /* compare to first volume */
                         if (VolSize[CurVolInd-1] != VolSize[0]) { /* trouble volume */
                            TroubVolume[iTroub] = CurVolInd - 1;
@@ -320,7 +320,7 @@ int main( int argc , char *argv[] )
                   }
                } /* jj */
                VolSize[CurVolInd] = itop - New_Vol_Loc[CurVolInd]; /* last volume size */
-               if (VolSize[CurVolInd] != VolSize[0]) { 
+               if (VolSize[CurVolInd] != VolSize[0]) {
                   TroubVolume[iTroub] = CurVolInd;
                   ++iTroub;
                }
@@ -332,10 +332,10 @@ int main( int argc , char *argv[] )
                   for (i=0; i< N_Vols -1; i++) {
                   fprintf(stderr, "Vol %d %d slices Begin %s End %s\n", i, VolSize[i], gnam_I[New_Vol_Loc[i]], gnam_I[New_Vol_Loc[i+1]-1]);
                   }
-                  fprintf(stderr, "Vol %d %d slices Begin %s End %s\n", N_Vols-1, VolSize[N_Vols-1], gnam_I[New_Vol_Loc[N_Vols-1]],gnam_I[itop-1]); 
+                  fprintf(stderr, "Vol %d %d slices Begin %s End %s\n", N_Vols-1, VolSize[N_Vols-1], gnam_I[New_Vol_Loc[N_Vols-1]],gnam_I[itop-1]);
                   */
                }
-               else {                     
+               else {
                   /* fprintf(stderr, "One volume found: %d slices, Begin %s End %s\n", VolSize[0], gnam_I[New_Vol_Loc[0]],gnam_I[itop-1]); */
                }
                if (iTroub > 0) { /* Trouble volumes found */
@@ -356,18 +356,18 @@ int main( int argc , char *argv[] )
                   fprintf(stderr, "\t\33[1m***************** PANGA! Dupilcated slices found. *****************\33[0m\n");
                   for (i=0; i < iDup; i++) {
                      fprintf(stderr, "\tSlice %s appears to be a duplicate of slice %s.\n", gnam_I[DupSlice[i]], gnam_I[DupSlice[i]-1]);
-                  }                  
+                  }
                } /* iDup > 0 */
             }/* New Method */
-            
+
             if (!BadRun) { /* write out results as a command line for @RenamePanga */
                ++ GoodRun;
                fprintf(fout_panga,"@RenamePanga %s ", strtok(gnam_I[ibot],"/"));
                if (MultiSliceVol)
-                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck -od %s\n", 
+                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck -od %s\n",
                      strtok(NULL,"/I."), (int)Ni/N_Vols, N_Vols, PatOpt, OutDir);
                else
-                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck -od %s\n", 
+                  fprintf(fout_panga,"%s %d %d $OutPrefix -sp %s $OutlierCheck -od %s\n",
                      strtok(NULL,"/I."), N_Vols, (int)Ni/N_Vols, PatOpt, OutDir);
             }
             else
@@ -383,10 +383,10 @@ int main( int argc , char *argv[] )
 
       ibot = itop ;  /* start scan here */
    }
-   
+
    free(PatOpt);
    free(OutDir);
-   
+
    #ifdef DBG_FILE
       fclose (fout_dbg);
    #endif
@@ -400,11 +400,11 @@ int main( int argc , char *argv[] )
       printf(fmt,gnam_I[ii],time_I[ii],zoff_I[ii]) ;
 #endif
 
-   if (!GoodRun) 
-      system ("rm -f GERT_Reco"); 
+   if (!GoodRun)
+      system ("rm -f GERT_Reco");
    else
       fprintf(stdout,"\nFound %d complete scans.\nRun\33[1m GERT_Reco \33[0mto create AFNI bricks.\n\n", GoodRun);
-      
+
    if (AllGood)
       exit(0) ;
    else
@@ -415,21 +415,21 @@ int main( int argc , char *argv[] )
 void Ifile_help ()
    {
       fprintf(stdout,"\nUsage: Ifile [Options] <File List> \n");
-      
+
       fprintf(stdout,"\n\t[-nt]: Do not use time stamp to identify complete scans.\n");
       fprintf(stdout,"\t       Complete scans are identified from 'User Variable 17'\n"
                      "\t       in the image header.\n");
-      fprintf(stdout,"\t[-sp Pattern]: Slice acquisition pattern.\n"          
+      fprintf(stdout,"\t[-sp Pattern]: Slice acquisition pattern.\n"
                      "\t               Sets the slice acquisition pattern.\n"
                      "\t               The default option is alt+z.\n"
-                     "\t               See to3d -help for acceptable options.\n"); 
+                     "\t               See to3d -help for acceptable options.\n");
       fprintf(stdout,"\t[-od Output_Directory]: Set the output directory in @RenamePanga.\n"
-                     "\t                        The default is afni .\n"); 
+                     "\t                        The default is afni .\n");
       fprintf(stdout,"\n\t<File List>: Strings of wildcards defining series of\n");
       fprintf(stdout,"\t              GE-Real Time (GERT) images to be assembled\n");
       fprintf(stdout,"\t              as an afni brick. Example:\n");
       fprintf(stdout,"\t              Ifile '*/I.*'\n");
-      fprintf(stdout,"\t          or  Ifile '083/I.*' '103/I.*' '123/I.*' '143/I.*'\n\n"); 
+      fprintf(stdout,"\t          or  Ifile '083/I.*' '103/I.*' '123/I.*' '143/I.*'\n\n");
       fprintf(stdout,"\tThe program attempts to identify complete scans from the list\n");
       fprintf(stdout,"\tof images supplied on command line and generates the commands\n");
       fprintf(stdout,"\tnecessary to turn them into AFNI bricks using the script @RenamePanga.\n");
@@ -456,14 +456,14 @@ void Ifile_help ()
                      "\t   cp -rp \?\?\?/* TARGET/ \n"
                      "\tand when untaring the archive on linux use:\n"
                      "\t   tar --atime-preserve -xf Archive.tar \n");
-      fprintf(stdout,"\tOn Sun and SGI, tar -xf Archive.tar preserves the time info.\n"); 
+      fprintf(stdout,"\tOn Sun and SGI, tar -xf Archive.tar preserves the time info.\n");
       fprintf(stdout,"\nFuture Improvements:\n");
       fprintf(stdout,"\tOut of justifiable laziness, and for other less convincing reasons, I have left \n");
       fprintf(stdout,"\tIfile and @RenamePanga separate. They can be combined into one program but it's usage\n");
       fprintf(stdout,"\twould become more complicated. At any rate, the user should not notice any difference\n");
-      fprintf(stdout,"\tsince all they have to do is run the script GERT_reco that is created by Ifile.\n\n"); 
+      fprintf(stdout,"\tsince all they have to do is run the script GERT_reco that is created by Ifile.\n\n");
       fprintf(stdout,"\t   Dec. 12/01 (Last modified July 24/02) SSCC/NIMH \n\tRobert W. Cox(rwcox@nih.gov) and Ziad S. Saad (saadz@mail.nih.gov)\n\n");
-      
+
    }
 
 /*** from thd_filestuff.c ***/
@@ -1500,7 +1500,7 @@ void ge_header( char *pathname , ge_header_info *hi )
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff , stamp=0 , iarg=1 ;
    float uv17 = -1.0;
-   
+
    if( hi == NULL ) return ;            /* bad */
    hi->good = 0 ;                       /* not good yet */
    if( pathname    == NULL ||
@@ -1647,15 +1647,15 @@ void ge_header( char *pathname , ge_header_info *hi )
        hi->te = 1.0e-6 * itr ;
 
        /* zmodify: get User Variable 17, a likely indicator of a new scan, info by S.Marrett, location from S. Inati's matlab function GE_readHeaderImage.m*/
-         
+
       /* printf ("\nuv17 = \n"); */
       fseek ( imfile , hdroff+272+202, SEEK_SET ) ;
       fread( &uv17 , 4, 1 , imfile ) ;
       if( swap ) swap_4(&uv17) ;
       /* printf ("%d ", (int)uv17);  */
-      hi->uv17 = (int)uv17; 
+      hi->uv17 = (int)uv17;
       /* printf ("\n"); */
-      
+
        hi->good = 1 ;                 /* this is a good file */
 
    } /* end of actually reading image header */

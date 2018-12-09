@@ -16,7 +16,7 @@
 // matrices; gsl now returns (exiting?) errors for such events.
 int copy_gsl_singular (const gsl_matrix * LU);
 
-int Finalize_Uncert_Array( float **UU, 
+int Finalize_Uncert_Array( float **UU,
                            int *minds, //short *mskd,
                            int Ntodo,
                            int Nj );
@@ -61,12 +61,12 @@ int Make_Uncert_Matrs_final( gsl_matrix *B,
                              gsl_matrix *C
                              );
 
-int Dyadize( float **DT, 
-             int N, 
-             THD_3dim_dataset **EVALS,    
+int Dyadize( float **DT,
+             int N,
+             THD_3dim_dataset **EVALS,
              float Lscale,
-             THD_3dim_dataset **EVECS, 
-             int INV[3], 
+             THD_3dim_dataset **EVECS,
+             int INV[3],
              byte *M );
 
 int RicianNoiseDWIs( float **dwi,
@@ -81,16 +81,16 @@ int RicianNoiseDWIs( float **dwi,
                      float bval,
                      gsl_rng *r);
 
-int DT_TORTOISEtoAFNI(float **D, 
-                      int N, 
-                      THD_3dim_dataset *DTS, 
-                      int INV[3], 
+int DT_TORTOISEtoAFNI(float **D,
+                      int N,
+                      THD_3dim_dataset *DTS,
+                      int INV[3],
                       float Lscale);
 
 
 int GradConv_GmatA_from_Gsign( float *matr, float *grad );
 // assumes I/O has unit or zero mag!
-int GradConv_Gsign_from_GmatA( float *grad, float *matr ); 
+int GradConv_Gsign_from_GmatA( float *grad, float *matr );
 
 int Basic_Grads_to_B7( float **bseven,
                         MRI_IMAGE *flim,
@@ -99,7 +99,7 @@ int Basic_Bmats_to_B7( float **bseven,
                        MRI_IMAGE *flim,
                        int Nb);
 
-int Make_Jackknife_Inds_keep0th( int **A, 
+int Make_Jackknife_Inds_keep0th( int **A,
                                  int M,
                                  int Mj,
                                  int Nj,

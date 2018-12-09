@@ -857,11 +857,11 @@ int main( int argc , char * argv[] )
             if ( xx > RLmax )
             	RLmax = xx;
             if ( xx < RLmin )
-            	RLmin = xx;	
+            	RLmin = xx;
             if ( yy > APmax )
             	APmax = yy;
             if ( yy < APmin )
-            	APmin = yy;		
+            	APmin = yy;
             if ( zz > ISmax )
             	ISmax = zz;
             if ( zz < ISmin )

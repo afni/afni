@@ -14,7 +14,7 @@ static char rcsId[]="$Header$";
 * Author:				newt
 *
 * Portions Copyright (C) 1994 by John Bradley. Used by permission.
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -35,7 +35,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -88,14 +88,14 @@ static char rcsId[]="$Header$";
 * Bug fixes: color release, delayed image replacement
 *
 * Revision 1.6  1997/03/11 19:53:42  newt
-* Animated Gif support. Added _XmHTMLGetImageType and _XmHTMLReleaseImage. 
+* Animated Gif support. Added _XmHTMLGetImageType and _XmHTMLReleaseImage.
 * All image readers now use a memory buffer instead of reading from file
 *
 * Revision 1.5  1997/03/04 18:47:30  newt
 * animation stuff added
 *
 * Revision 1.4  1997/03/04 01:00:10  newt
-* Delayed Image Loading: _XmHTMLReplaceImage, _XmHTMLUpdateImage, 
+* Delayed Image Loading: _XmHTMLReplaceImage, _XmHTMLUpdateImage,
 * updateImageCopies
 *
 * Revision 1.3  1997/03/02 23:18:48  newt
@@ -107,7 +107,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/01/09 06:41:32  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -159,7 +159,7 @@ static void initAlphaChannels(XmHTMLWidget html, Boolean for_body_image);
 
 static void doAlphaChannel(XmHTMLWidget html, XmHTMLImage *image);
 
-static unsigned long *makeColormap(XmHTMLWidget html, XmHTMLImage *image, 
+static unsigned long *makeColormap(XmHTMLWidget html, XmHTMLImage *image,
 	XmImageInfo *info);
 
 static void getImageAttributes(XmHTMLImage *image, String attributes);
@@ -168,7 +168,7 @@ static void addImageToList(XmHTMLWidget html, XmHTMLImage *image);
 
 static XmHTMLImage *copyImage(XmHTMLImage *src, String attributes);
 
-static XmHTMLImage *lookForImage(XmHTMLWidget html, String url, 
+static XmHTMLImage *lookForImage(XmHTMLWidget html, String url,
 	String attributes, Dimension *width, Dimension *height);
 
 static XmImageInfo *imageDefaultProc(Widget w, XmHTMLRawImageData *img_data,
@@ -181,7 +181,7 @@ static XmImageInfo *animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 static XmImageInfo *imageDelayedProc(Widget w, XmHTMLRawImageData *img_data,
 	ImageBuffer *ib);
 
-static XmImageInfo *defaultImage(XmHTMLWidget html, String src, 
+static XmImageInfo *defaultImage(XmHTMLWidget html, String src,
 	int default_image_type, Boolean call_for_free);
 
 static int getMaxColors(Widget w, int max_colors);
@@ -201,14 +201,14 @@ static void clipImage(XmImageInfo *image, Dimension new_w, Dimension new_h);
 /*****
 * This macro updates the dimensions of the word represented by an image.
 * The text layout routines in paint.c (SetText) considers text and images to
-* be the same object: each is represented by a XmHTMLWord in which the 
+* be the same object: each is represented by a XmHTMLWord in which the
 * dimensions of an object are given by a bounding rectangle. So when an image
 * is updated, the bounding rectangle of this word also requires updating.
-* 
+*
 * This is a macro rather than a function 'cause it has the potential of being
 * called multiple times.
 *
-* sanity checks to be satisfied: this image *must* have an owner, this owner 
+* sanity checks to be satisfied: this image *must* have an owner, this owner
 * *must* have a word and this word *must* be an image and this image *must* be
 * equal to the current image.
 *****/
@@ -227,7 +227,7 @@ static void clipImage(XmImageInfo *image, Dimension new_w, Dimension new_h);
 * Name: 		readImage
 * Return Type: 	Byte*
 * Description: 	image loading driver routine.
-* In: 
+* In:
 *	html:		widget id
 *	ib:			image memory buffer.
 *	width:		width of loaded image. Filled upon return
@@ -237,15 +237,15 @@ static void clipImage(XmImageInfo *image, Dimension new_w, Dimension new_h);
 * Returns:
 *
 * Note:
-*	X11 bitmaps, pixmaps and gif are supported by default. If the 
-*	system we are running on has the jpeglib, loading of jpeg files is 
+*	X11 bitmaps, pixmaps and gif are supported by default. If the
+*	system we are running on has the jpeglib, loading of jpeg files is
 *	also supported. Same holds for png.
 *****/
 static XmHTMLRawImageData*
 readImage(Widget html, ImageBuffer *ib)
 {
 	XmHTMLRawImageData *img_data = NULL;
-	
+
 	RewindImageBuffer(ib);
 
 	switch(ib->type)
@@ -257,7 +257,7 @@ readImage(Widget html, ImageBuffer *ib)
 			break;
 		case IMAGE_XBM:
 			img_data = _XmHTMLReadBitmap(html, ib);
-			_XmHTMLDebug(6, ("readImage: loaded X11 bitmap image %s\n", 
+			_XmHTMLDebug(6, ("readImage: loaded X11 bitmap image %s\n",
 				ib->file));
 			break;
 		case IMAGE_XPM:
@@ -275,7 +275,7 @@ readImage(Widget html, ImageBuffer *ib)
 		case IMAGE_FLG:		/* treated wholy differently */
 			break;
 		case IMAGE_UNKNOWN:
-			_XmHTMLDebug(6, ("Can't load image %s: unsupported image format?", 
+			_XmHTMLDebug(6, ("Can't load image %s: unsupported image format?",
 				ib->file));
 		default:
 			break;
@@ -290,7 +290,7 @@ readImage(Widget html, ImageBuffer *ib)
 * Name: 		clipImage
 * Return Type: 	void
 * Description: 	clips the given image to the given dimensions
-* In: 
+* In:
 *	image:		image to be clipped
 *	new_w:		new width
 *	new_h:		new height
@@ -306,7 +306,7 @@ clipImage(XmImageInfo *image, Dimension new_w, Dimension new_h)
 	int x, y;
 
 	_XmHTMLDebug(6, ("images.c, clipImage, clipping %s. current "
-		"dimensions: %ix%i, new: %ix%i\n", image->url, image->width, 
+		"dimensions: %ix%i, new: %ix%i\n", image->url, image->width,
 		image->height, new_w, new_h));
 
 	/* allocate memory for clipped image data */
@@ -342,7 +342,7 @@ clipImage(XmImageInfo *image, Dimension new_w, Dimension new_h)
 * Name: 		scaleImage
 * Return Type: 	Byte*
 * Description: 	scales the given image to the given dimensions
-* In: 
+* In:
 *	image:		image to be scaled
 *	new_w:		new width
 *	new_h:		new height
@@ -359,7 +359,7 @@ scaleImage(XmImageInfo *image, Dimension new_w, Dimension new_h)
 	int ix, iy, ex, ey, src_w, src_h;
 
 	_XmHTMLDebug(6, ("images.c, scaleImage, scaling %s. current "
-		"dimensions: %ix%i, new: %ix%i\n", image->url, image->width, 
+		"dimensions: %ix%i, new: %ix%i\n", image->url, image->width,
 		image->height, new_w, new_h));
 
 	/* allocate memory for scaled image data */
@@ -477,11 +477,11 @@ scaleImage(XmImageInfo *image, Dimension new_w, Dimension new_h)
 		elptr = data;
 
 		/* recreate bitmap */
-		for(iy = 0; iy < new_h; iy++) 
+		for(iy = 0; iy < new_h; iy++)
 		{
 			for(ix = 0, bcnt = 0; ix < new_w; ix++)
 			{
-				if(*elptr != (Byte)bg_pixel) 
+				if(*elptr != (Byte)bg_pixel)
 					*ilptr += bitmap_bits[(bcnt % 8)];
 				if((bcnt % 8) == 7 || ix == (new_w - 1))
 					ilptr++;
@@ -505,7 +505,7 @@ scaleImage(XmImageInfo *image, Dimension new_w, Dimension new_h)
 * Name: 		getMaxColors
 * Return Type: 	int
 * Description: 	check maximum number of colors allowed for current display.
-* In: 
+* In:
 *	w:			widget id;
 *	max_colors:	current setting for maximum image colors.
 * Returns:
@@ -522,7 +522,7 @@ getMaxColors(Widget w, int max_colors)
 
 	/* maximum colors supported for this type of visual but no more than 256 */
 	ncolors = TkaVisualGetMapEntries(visual) > XmHTML_MAX_IMAGE_COLORS ?
-			XmHTML_MAX_IMAGE_COLORS : TkaVisualGetMapEntries(visual); 
+			XmHTML_MAX_IMAGE_COLORS : TkaVisualGetMapEntries(visual);
 
 	if(max_colors > ncolors)
 	{
@@ -554,7 +554,7 @@ XImageBizarre(XmHTMLWidget html, int depth, XIMAGE *ximage)
 * Name: 		_XmHTMLCreateXImage
 * Return Type: 	XImage
 * Description: 	Image XImage creation routine.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	xcc:		XColorContext info for this image;
 *	width, height:
@@ -653,14 +653,14 @@ _XmHTMLCreateXImage(XmHTMLWidget html, XCC xcc, Dimension width,
 			{
 				Byte *data;
 				int imWIDE, nullCount;
-  
+
 				/* no of padding bytes per line */
-				nullCount = (4 - (width % 4)) & 0x03;  
+				nullCount = (4 - (width % 4)) & 0x03;
 
 				imWIDE = width + nullCount;
- 
+
 				data = (Byte*)malloc(imWIDE * height);
-    
+
 				ximage = tka->CreateImage(tka->dpy, vis, depth, ZPixmap, 0,
 					(char*)data, width,  height, 32, imWIDE);
 			}
@@ -696,7 +696,7 @@ _XmHTMLCreateXImage(XmHTMLWidget html, XCC xcc, Dimension width,
 		default:
 			{
 				/* too bad, we refuse to run on this display */
-				_XmHTMLWarning(__WFUNC__(html, "_XmHTMLCreateXImage"), 
+				_XmHTMLWarning(__WFUNC__(html, "_XmHTMLCreateXImage"),
 					XMHTML_MSG_63, depth);
 				return(NULL);
 			}
@@ -715,7 +715,7 @@ _XmHTMLCreateXImage(XmHTMLWidget html, XCC xcc, Dimension width,
 * Name: 		_XmHTMLFillXImage
 * Return Type: 	void
 * Description: 	Image data->ximage transfer function
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	ximage:		ximage to be filled;
 *	xcc:		XColorContext for this image;
@@ -757,7 +757,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 
 	_XmHTMLDebug(6, ("images.c: _XmHTMLFillXImage, doing scanline %i to %i "
 		"(bytes %i to %i)\n", lo/wide, hi/wide, lo, hi));
- 
+
 	switch(XCCGetDepth(xcc))
 	{
 		case 8:
@@ -766,7 +766,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 			int imWIDE, nullCount;
 			register int j;
 			register Byte *ip, *pp;
-  
+
 			/*****
 			* XXX: this nullCount calculation should work in Gdk because
 			* GdkImage always uses 32-bit padding of scanlines.
@@ -776,10 +776,10 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 			*****/
 
 			/* # of padding bytes per line */
-			nullCount = (4 - (wide % 4)) & 0x03;  
+			nullCount = (4 - (wide % 4)) & 0x03;
 
 			imWIDE = wide + nullCount;
- 
+
 			lo /= wide;	/* starting scanline index (image data) */
 			hi /= wide;	/* ending scanline index (image data) */
 
@@ -799,7 +799,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 			}
 		}
 		break;
-      
+
 		case 4:
 		{
 			Byte *imagedata, *lip, *ip;
@@ -808,7 +808,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 			register Byte *pp;
 
 			bpl = TkaImageBytesPerLine(ximage);
-    
+
 			pp = data;
 
 			if(TkaImageCheck4bpp(ximage))
@@ -857,7 +857,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 			}
 		}
 		break;
-      
+
 		case 2:
 		{
 			Byte *imagedata, *lip, *ip;
@@ -961,18 +961,18 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 
 					for(i = hi, ip = imagedata; i > lo; i--, pp++, ip++)
 						*ip = (Byte)xcolors[*pp];
-				}  
+				}
 			}
 		}
 		break;
-      
+
 		case 5:
 		case 6:
 		{
 			int bpl;
 			Byte *imagedata;
 			register Byte *ip, *pp;
-    
+
 			bpl = TkaImageBytesPerLine(ximage);
 			imagedata = (Byte*)TkaImageData(ximage) + (lo/wide)*bpl;
 
@@ -1027,7 +1027,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 
 			/* 4 bytes per pixel */
 			imagedata = (Byte*)TkaImageData(ximage) + lo*bpl;
-      
+
 			do32 = TkaImageCheck32bpp(ximage);
 
 			pp = data;
@@ -1070,7 +1070,7 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 		}
 		break;
 
-		default: 
+		default:
 			break;
 	}
 }
@@ -1078,12 +1078,12 @@ _XmHTMLFillXImage(XmHTMLWidget html, XIMAGE *ximage, XCC xcc, Byte *data,
 /*****
 * Name: 		makeColormap
 * Return Type: 	int*
-* Description: 	allocates the colors for the given image and creates an 
+* Description: 	allocates the colors for the given image and creates an
 *				array of indexed pixel values (which is a sort of private
 *				colormap).
-* In: 
+* In:
 *	image:		internal image data
-*	info:		raw image data. Does not have to be the same as 
+*	info:		raw image data. Does not have to be the same as
 *				image->html_image
 * Returns:
 *	the pixel array.
@@ -1103,7 +1103,7 @@ makeColormap(XmHTMLWidget html, XmHTMLImage *image, XmImageInfo *info)
 	/* allocate color_map pixel entries */
 	color_map = (unsigned long*)calloc(info->ncolors, sizeof(unsigned long));
 
-	XCCGetPixels(image->xcc, info->reds, info->greens, info->blues, 
+	XCCGetPixels(image->xcc, info->reds, info->greens, info->blues,
 		info->ncolors, color_map, &image->npixels);
 
 	return(color_map);
@@ -1113,7 +1113,7 @@ makeColormap(XmHTMLWidget html, XmHTMLImage *image, XmImageInfo *info)
 * Name: 		freePixmaps
 * Return Type: 	void
 * Description: 	frees all pixmaps and allocated colors for the given image
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	image:		image for which to release pixmaps and colors
 * Returns:
@@ -1157,7 +1157,7 @@ freePixmaps(XmHTMLWidget html, XmHTMLImage *image)
 * Return Type: 	void
 * Description: 	retrieves all possible attribute specifications for the
 *				IMG element.
-* In: 
+* In:
 *	image:		image data in which to store the parsed attributes
 *	attributes:	raw attribute specifications to the IMG element
 * Returns:
@@ -1177,7 +1177,7 @@ getImageAttributes(XmHTMLImage *image, String attributes)
 		if(strstr(image->url, "/"))
 		{
 			int i;
-			for(i = strlen(image->url) - 1; 
+			for(i = strlen(image->url) - 1;
 				i > 0 && image->url[i] != '/'; i--);
 			image->alt = strdup(&image->url[i+1]);
 		}
@@ -1194,7 +1194,7 @@ getImageAttributes(XmHTMLImage *image, String attributes)
 	image->vspace = _XmHTMLTagGetNumber(attributes, "vspace", 0);
 	image->align  = _XmHTMLGetImageAlignment(attributes);
 
-	/* 
+	/*
 	* Imagemap stuff. First check if we have a usemap spec. If so, it's
 	* automatically a client-side imagemap. If no usemap is given but the
 	* ISMAP attribute is set this is a server-side imagemap.
@@ -1211,13 +1211,13 @@ getImageAttributes(XmHTMLImage *image, String attributes)
 * Name: 		copyImage
 * Return Type: 	XmHTMLImage
 * Description: 	links the most wastefull members of src to a new image
-* In: 
+* In:
 *	src:		source image
 *	attributes:	attributes for this image
 * Returns:
 *	a copy of src
 * Note:
-*	dest has it's is_copy member set to true which tells XmHTML not to free 
+*	dest has it's is_copy member set to true which tells XmHTML not to free
 *	the html_image, xcc and pixmap members of the copy.
 *****/
 static XmHTMLImage*
@@ -1264,7 +1264,7 @@ copyImage(XmHTMLImage *src, String attributes)
 * Return Type: 	XmHTMLImage
 * Description: 	see if the image at the given url is in the current list of
 *				images.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	url:		image location
 *	attributes:	extra image attributes
@@ -1276,11 +1276,11 @@ copyImage(XmHTMLImage *src, String attributes)
 *	If a match is found, the dimensions of that image are checked against
 *	possible specifications. When no specifications are given, we can just
 *	return the image found so a copy can be made. If however specifications
-*	are given, we need an exact match since I don't know a way to resize 
+*	are given, we need an exact match since I don't know a way to resize
 *	pixmaps.
 *****/
 static XmHTMLImage*
-lookForImage(XmHTMLWidget html, String url, String attributes, 
+lookForImage(XmHTMLWidget html, String url, String attributes,
 	Dimension *width, Dimension *height)
 {
 	XmHTMLImage *image;
@@ -1300,7 +1300,7 @@ lookForImage(XmHTMLWidget html, String url, String attributes,
 			* require it to be scaled. We want to have the original data
 			* or we would have a tremendous loss of information.
 			*/
-			if((!*height && !*width) || 
+			if((!*height && !*width) ||
 					(*height == image->sheight && *width == image->swidth) ||
 					(!*height && *width == image->swidth) ||
 					(!*width && *height == image->sheight))
@@ -1326,7 +1326,7 @@ lookForImage(XmHTMLWidget html, String url, String attributes,
 * Name: 		addImageToList
 * Return Type: 	void
 * Description: 	adds the given image to the list of images of a HTML widget
-* In: 
+* In:
 *	html:		XmHTMLWidget owning this image
 *	image:		image to store
 * Returns:
@@ -1345,7 +1345,7 @@ addImageToList(XmHTMLWidget html, XmHTMLImage *image)
 	}
 
 	/* walk to the one but last image in the list and insert the image */
-	for(tmp = html->html.images; tmp != NULL && tmp->next != NULL; 
+	for(tmp = html->html.images; tmp != NULL && tmp->next != NULL;
 		tmp = tmp->next);
 	tmp->next = image;
 }
@@ -1354,7 +1354,7 @@ addImageToList(XmHTMLWidget html, XmHTMLImage *image)
 * Name: 		defaultImage
 * Return Type: 	XmImageInfo
 * Description: 	creates an internal image
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	src:		name of image
 *	default_image_type: type of internal image to create
@@ -1370,7 +1370,7 @@ defaultImage(XmHTMLWidget html, String src, int default_image_type,
 	XmHTMLRawImageData *data;
 
 	_XmHTMLDebug(6, ("images.c: defaultImage, called for %s image\n",
-		default_image_type == DEFAULT_IMG_SUSPENDED ? 
+		default_image_type == DEFAULT_IMG_SUSPENDED ?
 			"suspended" : "unsupported"));
 
 	if(default_image_type == DEFAULT_IMG_SUSPENDED)
@@ -1425,7 +1425,7 @@ defaultImage(XmHTMLWidget html, String src, int default_image_type,
 * Name: 		imageDefaultProc
 * Return Type: 	XmImageInfo*
 * Description: 	XmHTML default image loading procedure
-* In: 
+* In:
 *	w:			Widget ID;
 *	img_data:	raw image data;
 *	url:		full name and location of image to load
@@ -1475,7 +1475,7 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 
 	/*
 	* If we have a background pixel, it means we have a transparent image.
-	* To make it really transparent, pick up the background pixel and 
+	* To make it really transparent, pick up the background pixel and
 	* corresponding RGB values so it can be substituted in the image.
 	*/
 	if(img_data->bg >= 0)
@@ -1584,11 +1584,11 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 	* and create the XYBitmap data to be used as a clip mask.
 	*/
 	clip_valid = False;
-	for(i = 0; i < image->height; i++) 
+	for(i = 0; i < image->height; i++)
 	{
 		for(j = 0, bcnt = 0; j < image->width; j++)
 		{
-			if(used[(int)*ptr] == 0) 
+			if(used[(int)*ptr] == 0)
 			{
 				used[(int)*ptr] = cnt;
 				cnt++;
@@ -1602,7 +1602,7 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 			}
 			if(do_clip)
 			{
-				if(*ptr != image->bg) 
+				if(*ptr != image->bg)
 					*cptr += bitmap_bits[(bcnt % 8)];
 				if((bcnt % 8) == 7 || j == (image->width-1))
 					cptr++;
@@ -1665,11 +1665,11 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 		cnt = 1;
 		ptr = image->data;
 
-		for(i = 0; i < image->height; i++) 
+		for(i = 0; i < image->height; i++)
 		{
 			for(j = 0; j < image->width; j++)
 			{
-				if(used[(int)*ptr] == 0) 
+				if(used[(int)*ptr] == 0)
 				{
 					used[(int)*ptr] = cnt;
 					cnt++;
@@ -1743,11 +1743,11 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 	image->blues  = image->greens + cnt;
 
 	/* now go and fill the RGB arrays */
-	for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++) 
+	for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++)
 	{
 		int indx;
 
-		if(used[i] != 0) 
+		if(used[i] != 0)
 		{
 			indx = used[i] - 1;
 			image->reds[indx]   = GETR(img_data->cmap[i]);
@@ -1757,7 +1757,7 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 			* Replace transparent color with background RGB values if
 			* it has been requested.
 			*/
-			if(do_clip == 2 && image->bg >= 0 && i == image->bg) 
+			if(do_clip == 2 && image->bg >= 0 && i == image->bg)
 			{
 				image->reds[indx]   = bg_red;
 				image->greens[indx] = bg_green;
@@ -1770,7 +1770,7 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 	* Final transition step to ZPixmap format
 	*/
 	ptr = image->data;
-	for(i = 0; i < size ; i++) 
+	for(i = 0; i < size ; i++)
 	{
 		*ptr = (Byte)(used[(int)*ptr] - 1);
 		ptr++;
@@ -1787,7 +1787,7 @@ imageDefaultProc(Widget w, XmHTMLRawImageData *img_data, String url)
 * Name: 		animDefaultProc
 * Return Type: 	XmImageInfo*
 * Description: 	XmHTML default animation loading procedure
-* In: 
+* In:
 *	w:			Widget ID;
 *	img_data:	raw image data;
 *	master:		master animation data with global colormap;
@@ -1887,9 +1887,9 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 		cnt = 1;
 		ptr = image->data;
 		gcolors = 1;
-		for(i = 0; i < size; i++, ptr++) 
+		for(i = 0; i < size; i++, ptr++)
 		{
-			if(used[(int)*ptr] == 0) 
+			if(used[(int)*ptr] == 0)
 			{
 				used[(int)*ptr] = cnt++;
 				gcolors++;
@@ -1907,9 +1907,9 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 		cnt = *global_used_size;
 		ptr = image->data;
 		gcolors = 1;
-		for(i = 0; i < size; i++, ptr++) 
+		for(i = 0; i < size; i++, ptr++)
 		{
-			if(used[(int)*ptr] == 0) 
+			if(used[(int)*ptr] == 0)
 				used[(int)*ptr] = cnt++;		/* update running counter */
 			if(gused[(int)*ptr] == 0)
 				gused[(int)*ptr] = gcolors++;
@@ -1951,11 +1951,11 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 	{
 		cptr = image->clip;
 		ptr = image->data;
-		for(i = 0; i < image->height; i++) 
+		for(i = 0; i < image->height; i++)
 		{
 			for(j = 0, bcnt = 0; j < image->width; j++)
 			{
-				if(*ptr != image->bg) 
+				if(*ptr != image->bg)
 					*cptr += bitmap_bits[(bcnt % 8)];
 				if((bcnt % 8) == 7 || j == (image->width-1))
 					cptr++;
@@ -1998,11 +1998,11 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 		ptr = image->data;
 
 		/* compose it */
-		for(i = 0; i < image->height; i++) 
+		for(i = 0; i < image->height; i++)
 		{
 			for(j = 0; j < image->width; j++)
 			{
-				if(used[(int)*ptr] == 0) 
+				if(used[(int)*ptr] == 0)
 				{
 					used[(int)*ptr] = cnt;
 					cnt++;
@@ -2026,10 +2026,10 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 		image->blues  = image->greens + cnt;
 
 		/* now go and fill the RGB arrays */
-		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++) 
+		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++)
 		{
 			int indx;
-			if(used[i] != 0) 
+			if(used[i] != 0)
 			{
 				indx = used[i] - 1;
 				image->reds[indx]   = GETR(img_data->cmap[i]);
@@ -2063,11 +2063,11 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 		image->blues  = image->greens + cnt;
 
 		/* now go and fill the RGB arrays */
-		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++) 
+		for(i = 0; i < XmHTML_MAX_IMAGE_COLORS; i++)
 		{
 			int indx;
 
-			if(global_used[i] != 0) 
+			if(global_used[i] != 0)
 			{
 				indx = global_used[i] - 1;
 				image->reds[indx]   = GETR(master->cmap[i]);
@@ -2082,7 +2082,7 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 	ptr = image->data;
 	if(use_local_cmap)
 	{
-		for(i = 0; i < size ; i++) 
+		for(i = 0; i < size ; i++)
 		{
 			*ptr = (Byte)(used[(int)*ptr] - 1);
 			ptr++;
@@ -2090,13 +2090,13 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 	}
 	else
 	{
-		for(i = 0; i < size ; i++) 
+		for(i = 0; i < size ; i++)
 		{
 			*ptr = (Byte)(global_used[(int)*ptr] - 1);
 			ptr++;
 		}
 	}
-	
+
 	/* release local colormap */
 	if(img_data->cmapsize && !return_global_used)
 	{
@@ -2113,7 +2113,7 @@ animDefaultProc(Widget w, XmHTMLRawImageData *img_data,
 * Return Type: 	XmImageInfo*
 * Description: 	creates an empty XmImageInfo structure required for delayed
 *				image creation (e.i., images with an alpha channel).
-* In: 
+* In:
 *	w:			Widget ID;
 *	img_data:	raw image data;
 *	ib:			current ImageBuffer, contains unprocessed image data.
@@ -2140,7 +2140,7 @@ imageDelayedProc(Widget w, XmHTMLRawImageData *img_data, ImageBuffer *ib)
 	image->swidth  = img_data->width;
 	image->sheight = img_data->height;
 	image->ncolors = image->scolors = img_data->cmapsize;
-	
+
 	image->bg = -1;
 	image->transparency = XmIMAGE_TRANSPARENCY_ALPHA;
 	image->colorspace   = img_data->color_class;
@@ -2156,7 +2156,7 @@ imageDelayedProc(Widget w, XmHTMLRawImageData *img_data, ImageBuffer *ib)
 * Name: 		_XmHTMLInfoToPixmap
 * Return Type: 	Boolean
 * Description: 	creates a pixmap from the given image data
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	image:		raw image data
 *	width:		requested image width
@@ -2166,8 +2166,8 @@ imageDelayedProc(Widget w, XmHTMLRawImageData *img_data, ImageBuffer *ib)
 *	A pixmap upon success, None otherwise.
 *****/
 PIXMAP
-_XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image, 
-	XmImageInfo *info, Dimension width, Dimension height, 
+_XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
+	XmImageInfo *info, Dimension width, Dimension height,
 	unsigned long *global_cmap, PIXMAP *clip)
 {
 	COLORMAP cmap;
@@ -2229,8 +2229,8 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 	/* get colormap: every widget is derived from core so this is easy */
 	cmap = TkaGetColormap(html);
 
-	/* 
-	* Set XCC for this image. 
+	/*
+	* Set XCC for this image.
 	* When we are creating images that have nothing to do with XmHTML,
 	* the image already has a privatly owned XCC.
 	*/
@@ -2288,7 +2288,7 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 		/* copy the image into the pixmap */
 		gc = tka->CreateGC(tka->dpy, pixmap, 0, 0);
 		tka->SetFunction(tka->dpy, gc, GXcopy);
-		tka->PutImage(tka->dpy, pixmap, gc, ximage, 0, 0, 0, 0, info->width, 
+		tka->PutImage(tka->dpy, pixmap, gc, ximage, 0, 0, 0, 0, info->width,
 			info->height);
 		tka->FreeGC(tka->dpy, gc);
 		tka->DestroyImage(ximage);
@@ -2299,7 +2299,7 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 			_XmHTMLDebug(6, ("images.c, _XmHTMLInfoToPixmap, "
 				"creating clip mask for %s\n", image->url));
 
-			*clip = tka->CreatePixmapFromBitmapData(tka->dpy, win, 
+			*clip = tka->CreatePixmapFromBitmapData(tka->dpy, win,
 				(char*)info->clip, info->width, info->height, 1, 0, 1);
 #ifdef DEBUG
 			/* write out this bitmap */
@@ -2311,7 +2311,7 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 
 				if(strstr(image->url, "/"))
 				{
-					for(i = strlen(image->url) - 1; 
+					for(i = strlen(image->url) - 1;
 						i > 0 && image->url[i] != '/'; i--);
 					sprintf(xbm, "%s.%i.xbm", &image->url[i+1], num);
 				}
@@ -2340,7 +2340,7 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 * Name: 		_XmHTMLMakeAnimation
 * Return Type: 	void
 * Description: 	creates a series of image that form an animation
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	image:		animation data, updated upon return
 *	width:		logical screen width
@@ -2349,7 +2349,7 @@ _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 *	nothing, but image contains a series of pixmaps forming the animation.
 *****/
 void
-_XmHTMLMakeAnimation(XmHTMLWidget html, XmHTMLImage *image, Dimension width, 
+_XmHTMLMakeAnimation(XmHTMLWidget html, XmHTMLImage *image, Dimension width,
 	Dimension height)
 {
 	PIXMAP pixmap, clip;
@@ -2500,7 +2500,7 @@ readGifAnimation(Widget w, ImageBuffer *ib)
 	int global_used[XmHTML_MAX_IMAGE_COLORS], global_size = 0;
 
 	_XmHTMLDebug(6, ("images.c, readGifAnimation, %s is an animated "
-		"gif\n", ib->file)); 
+		"gif\n", ib->file));
 
 	all_frames = frame = NULL;
 
@@ -2525,7 +2525,7 @@ readGifAnimation(Widget w, ImageBuffer *ib)
 #endif
 
 	/* keep reading frames until we run out of them */
-	while(_XmHTMLGifAnimNextFrame(ib, &img_data, &x, &y, 
+	while(_XmHTMLGifAnimNextFrame(ib, &img_data, &x, &y,
 		&timeout, &dispose))
 	{
 		/* Go and create each frame. */
@@ -2588,7 +2588,7 @@ readGifAnimation(Widget w, ImageBuffer *ib)
 			 y == 0 && bg == -1)
 			frame->dispose = XmIMAGE_DISPOSE_NONE;
 		/*
-		* final check before moving to the next frame: if this frame doesn't 
+		* final check before moving to the next frame: if this frame doesn't
 		* fit on the logical screen, clip the parts that lie outside the
 		* logical screen area. Images that fall completely outside the
 		* logical screen are just left the way they are.
@@ -2613,7 +2613,7 @@ readGifAnimation(Widget w, ImageBuffer *ib)
 	if(all_frames)
 	{
 		_XmHTMLDebug(6, ("images.c, readGifAnimation, loaded animation %s, "
-			"no of frames: %i, loop_count: %i\n", ib->file, nframes, 
+			"no of frames: %i, loop_count: %i\n", ib->file, nframes,
 			loop_count));
 		all_frames->loop_count = loop_count;
 		/* nframes is total no of frames in this animation */
@@ -2626,7 +2626,7 @@ readGifAnimation(Widget w, ImageBuffer *ib)
 * Name: 		_XmHTMLImageFileToBuffer
 * Return Type: 	ImageBuffer*
 * Description: 	loads a file into a memory buffer
-* In: 
+* In:
 *	file:		file to load
 * Returns:
 *	filled ImageBuffer.
@@ -2695,7 +2695,7 @@ copyHTMLImage(XmHTMLWidget html, XmHTMLImage *image, String attributes)
 		html->html.delayed_creation = True;
 
 	/*****
-	* If this is an orphaned image, it is currently not being used 
+	* If this is an orphaned image, it is currently not being used
 	* and can thus be used without copying it or inserting it in the
 	* list (images are orphaned when a resource is changed that does not
 	* require a reload of images itself).
@@ -2740,7 +2740,7 @@ copyHTMLImage(XmHTMLWidget html, XmHTMLImage *image, String attributes)
 * Description: 	initializes alpha channel processing: obtains background
 *				color/image information which will be merged with
 *				alpha-channeled images.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	for_body..:	True when we should initialize for body image processing.
 * Returns:
@@ -2753,7 +2753,7 @@ initAlphaChannels(XmHTMLWidget html, Boolean for_body_image)
 	ToolkitAbstraction *tka = html->html.tka;
 
 	/*****
-	* Always (re-)initialize the AlphaChannel buffer. If the body image 
+	* Always (re-)initialize the AlphaChannel buffer. If the body image
 	* is an alpha-channeled image we must use the current background *color*
 	* for it, and for all subsequent images we need to use the colormap of
 	* the background *image*.
@@ -2798,7 +2798,7 @@ initAlphaChannels(XmHTMLWidget html, Boolean for_body_image)
 		* Note:
 		* Due to the nature/smartness of the XCC, no color allocation will be
 		* performed when we make the call below: the body image is already
-		* loaded and the colors it uses have been allocated. 
+		* loaded and the colors it uses have been allocated.
 		* XCCGetPixels either has a color lookup table or a hashtable
 		* of already allocated colors (depending on the current visual, but
 		* XCC takes care of all that), and since the body colors have
@@ -2841,7 +2841,7 @@ initAlphaChannels(XmHTMLWidget html, Boolean for_body_image)
 * Name: 		doAlphaChannel
 * Return Type: 	void
 * Description: 	recreates an image specified by image_word
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	image_word:	image data;
 * Returns:
@@ -3073,7 +3073,7 @@ doAlphaChannel(XmHTMLWidget html, XmHTMLImage *image)
 * Description:  final body image processing: verifies a few things and plugs
 *				in the background color if the body image is transparent.
 *				Stores the background image in the widget.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	body_im..:	actual background image;
 *	width:		background image width;
@@ -3172,7 +3172,7 @@ processBodyImage(XmHTMLWidget html, XmHTMLImage *body_image,
 * Name: 		_XmHTMLGetImageType
 * Return Type: 	int
 * Description: 	determines the type of an image
-* In: 
+* In:
 *	ib:			image for which to determine the type
 * Returns:
 *	image type upon success, IMAGE_UNKNOWN on failure to determine
@@ -3188,11 +3188,11 @@ _XmHTMLGetImageType(ImageBuffer *ib)
 	(void)memcpy(magic, ib->buffer, 30);
 
 	/* check image types we known of. Do most (?) logical order */
-	if(!(strncmp((char*)magic, "GIF87a", 6)) || 
+	if(!(strncmp((char*)magic, "GIF87a", 6)) ||
 		!(strncmp((char*)magic, "GIF89a", 6)))
 		ret_val = (Byte)_XmHTMLIsGifAnimated(ib);
 	/* compatible gif */
-	else if(!(strncmp((char*)magic, "GZF87a", 6)) || 
+	else if(!(strncmp((char*)magic, "GZF87a", 6)) ||
 		!(strncmp((char*)magic, "GZF89a", 6)))
 	{
 		ret_val = (Byte)_XmHTMLIsGifAnimated(ib);
@@ -3222,7 +3222,7 @@ _XmHTMLGetImageType(ImageBuffer *ib)
 * Name: 		_XmHTMLNewImage
 * Return Type: 	XmHTMLImage
 * Description: 	creates and fills an image structure
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	attributes:	image source data
 *	*width:		image width, updated upon return
@@ -3237,7 +3237,7 @@ _XmHTMLGetImageType(ImageBuffer *ib)
 *	if the image isn't part of an animation or is an internal image.
 *****/
 XmHTMLImage*
-_XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width, 
+_XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width,
 	Dimension *height)
 {
 	static XmHTMLImage *image;
@@ -3531,7 +3531,7 @@ _XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width,
 		if(!(ImageDelayedCreation(image)))
 		{
 			/* _XmHTMLInfoToPixmap will scale the image if required */
-			if((pixmap = _XmHTMLInfoToPixmap(html, image, html_image, 
+			if((pixmap = _XmHTMLInfoToPixmap(html, image, html_image,
 				*width, *height, NULL, &clip)) == None)
 			{
 				_XmHTMLFreeImage(html, image);
@@ -3565,7 +3565,7 @@ _XmHTMLNewImage(XmHTMLWidget html, String attributes, Dimension *width,
 * Name: 		_XmHTMLImageUpdateChilds
 * Return Type: 	void
 * Description: 	updates all childs for the given parent image
-* In: 
+* In:
 *	image:		parent image data
 * Returns:
 *	nothing
@@ -3585,7 +3585,7 @@ _XmHTMLImageUpdateChilds(XmHTMLImage *image)
 
 	for(tmp = image->child; tmp != NULL; tmp = tmp->child)
 	{
-		/* 
+		/*
 		* update all necessary fields, *including* width and height
 		* of the word represented by this image!
 		*/
@@ -3615,7 +3615,7 @@ _XmHTMLImageUpdateChilds(XmHTMLImage *image)
 * Name: 		_XmHTMLReplaceOrUpdateImage
 * Return Type: 	XmImageStatus
 * Description: 	updates an image with new image data
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	info:		existing image data to be updated. info must contain new
 *				image data
@@ -3628,7 +3628,7 @@ _XmHTMLImageUpdateChilds(XmHTMLImage *image)
 *	it is, an error code otherwise.
 *****/
 XmImageStatus
-_XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, XmImageInfo *info, 
+_XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, XmImageInfo *info,
 	XmImageInfo *new_info, XmHTMLObjectTableElement *elePtr)
 {
 	XmHTMLImage *image = NULL;
@@ -3721,7 +3721,7 @@ _XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, XmImageInfo *info,
 			if(new_info != NULL)
 			{
 				/* release previous info */
-				if(!ImageIsInternal(image) && 
+				if(!ImageIsInternal(image) &&
 					ImageInfoFreeLater(image->html_image))
 					_XmHTMLFreeImageInfo(html, image->html_image, False);
 				image->html_image = new_info;
@@ -3757,13 +3757,13 @@ _XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, XmImageInfo *info,
 			{
 				if(!(ImageDelayedCreation(image)))
 				{
-					/* 
-					* Create the new pixmap. _XmHTMLInfoToPixmap will scale 
+					/*
+					* Create the new pixmap. _XmHTMLInfoToPixmap will scale
 					* the image if the real image dimensions differ from the
 					* specified ones.
 					* This is a serious error if it fails.
 					*/
-					if((pixmap = _XmHTMLInfoToPixmap(html, image, 
+					if((pixmap = _XmHTMLInfoToPixmap(html, image,
 						image->html_image, image->width, image->height, NULL,
 						&clip)) == None)
 						return(XmIMAGE_ERROR);
@@ -3827,7 +3827,7 @@ _XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, XmImageInfo *info,
 *	structure is set to true (which is automatically the case for images
 *	loaded by the imageDefaultProc).
 *****/
-void 
+void
 _XmHTMLFreeImage(XmHTMLWidget html, XmHTMLImage *image)
 {
 	/* sanity */
@@ -3858,7 +3858,7 @@ _XmHTMLFreeImage(XmHTMLWidget html, XmHTMLImage *image)
 		* XmIMAGE_DEFERRED_FREE and/or XmIMAGE_IMMEDIATE_FREE bit.
 		*/
 		if(!ImageIsInternal(image) && image->html_image &&
-			(ImageInfoFreeNow(image->html_image) || 
+			(ImageInfoFreeNow(image->html_image) ||
 			ImageInfoFreeLater(image->html_image)))
 			_XmHTMLFreeImageInfo(html, image->html_image, False);
 
@@ -3891,13 +3891,13 @@ _XmHTMLFreeImage(XmHTMLWidget html, XmHTMLImage *image)
 * Return Type: 	void
 * Description: 	releases the given image and updates the internal list
 *				of images.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	image:		image to release
 * Returns:
 *	nothing
 *****/
-void 
+void
 _XmHTMLReleaseImage(XmHTMLWidget html, XmHTMLImage *image)
 {
 	/* sanity */
@@ -3940,7 +3940,7 @@ _XmHTMLReleaseImage(XmHTMLWidget html, XmHTMLImage *image)
 * Name:			_XmHTMLLoadBodyImage
 * Return Type:	void
 * Description: 	loads the body image specified by the given url
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	url:		location of body image to load. When this is NULL, the current
 *				background image is removed.
@@ -3978,7 +3978,7 @@ _XmHTMLLoadBodyImage(XmHTMLWidget html, String url)
 * Name: 		_XmHTMLFreeImageInfo
 * Return Type: 	void
 * Description: 	free the given XmImageInfo structure
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	info:		image to free;
 *	external:	True when application code is freeing imageInfo, false if not.
@@ -4058,7 +4058,7 @@ _XmHTMLFreeImageInfo(XmHTMLWidget html, XmImageInfo *info, Boolean external)
 * Return Type: 	void
 * Description: 	walks the list of images and rereads them in order to process
 *				any alpha channel information.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing, but this routine unsets the delayed_creation flag if the
@@ -4084,12 +4084,12 @@ _XmHTMLImageCheckDelayedCreation(XmHTMLWidget html)
 	* First check if the body image is present. If it is and we should
 	* process it now, the alphaChannel info must be initialized for background
 	* image alpha processing.
-	*****/ 
+	*****/
 	if(html->html.body_image && ImageDelayedCreation(html->html.body_image))
 		for_body_image = True;
 
 	/*****
-	* Always (re-)initialize the AlphaChannel buffer. If the body image 
+	* Always (re-)initialize the AlphaChannel buffer. If the body image
 	* is an alpha-channeled image we must use the current background *color*
 	* for it, and for all subsequent images we need to use the colormap of
 	* the background *image*.
@@ -4172,7 +4172,7 @@ _XmHTMLImageCreateInfoFromPixmap(XmHTMLWidget html, Drawable pixmap,
 * Name: 		XmHTMLImageDefaultProc
 * Return Type: 	XmImageInfo*
 * Description: 	XmHTML default image loading procedure
-* In: 
+* In:
 *	w:			Widget ID
 *	file:		full name and location of image to load
 *	*buf:		image data
@@ -4255,7 +4255,7 @@ XmHTMLImageDefaultProc(Widget w, String file, unsigned char *buf, int size)
 					* tRNS chunk is being processed), use the default image
 					* proc to create an XmImageInfo structure for this image
 					*****/
-					if(img_data->delayed_creation == False) 
+					if(img_data->delayed_creation == False)
 						image = imageDefaultProc(w, img_data, file);
 					else
 						image = imageDelayedProc(w, img_data, ib);
@@ -4280,10 +4280,10 @@ XmHTMLImageDefaultProc(Widget w, String file, unsigned char *buf, int size)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -4331,10 +4331,10 @@ loadIcon(XmHTMLWidget html, IconEntity *icon)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *

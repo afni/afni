@@ -1,11 +1,11 @@
-/* thd_selenium.c 
+/* thd_selenium.c
    use Google's selenium webdriver library from Python to open and drive webpages
    Allows opening webpages in the same tab of a browser as opposed to calls
    to open browser applications through system calls which generate new tabs or windows
    for each webpage request
 */
 
-/* to compile, add -lpython2.7  to program compile option with $(LPYTHON) below and include 
+/* to compile, add -lpython2.7  to program compile option with $(LPYTHON) below and include
    IPYTHON   = -I/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7 \
      -I/System/Library/Frameworks/Python.framework/Versions/2.7/include/python2.7
    LPYTHON   = -lpython2.7
@@ -70,12 +70,12 @@ int selenium_open_browser()
 
    if((webb==NULL)||(strcasestr(webb,"Chrome"))||(strcasecmp(webb, "open")==0)){
       if(selenium_started<2) {
-         printf("For Chrome, must install chromedriver binary available from.\n");      
+         printf("For Chrome, must install chromedriver binary available from.\n");
          printf("https://sites.google.com/a/chromium.org/chromedriver\n");
          printf("Put the chromedriver binary in your path or update path to include\n");
          printf("the chromedriver binary\n");
       }
-      PyRun_SimpleString("browser = webdriver.Chrome('chromedriver')"); 
+      PyRun_SimpleString("browser = webdriver.Chrome('chromedriver')");
    }
    else if (strcasestr(webb, "Firefox"))
       PyRun_SimpleString("browser = webdriver.Firefox()");
@@ -85,7 +85,7 @@ int selenium_open_browser()
       PyRun_SimpleString("browser = webdriver.Opera()");
    else if (strcasestr(webb, "Safari")) {
       if(selenium_started<2) {
-         printf("For Safari, must set environment variable first to location of jar file:\n");      
+         printf("For Safari, must set environment variable first to location of jar file:\n");
          printf("setenv SELENIUM_SERVER_JAR /Users/myusername/selenium_dev/selenium-server-standalone-2.44.0.jar\n");
          printf("You may also need to install Selenium extension for Safari.\n");
          printf("See https://github.com/SeleniumHQ/selenium/wiki/SafariDriver for more information\n");

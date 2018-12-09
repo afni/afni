@@ -31,7 +31,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -177,7 +177,7 @@ struct YuvLine {
 #ifdef __OS2__
   #define popen _popen
 #endif
-   
+
 
 /*==================*
  * Global VARIABLES *
@@ -345,7 +345,7 @@ time(&diskStartTime);
 
         /* Encoder YUV */
         if ((strncmp (yuvConversion, "EYUV", 4) == 0) ||
-            (strncmp (yuvConversion, "UCB", 3) == 0) ) 
+            (strncmp (yuvConversion, "UCB", 3) == 0) )
         {
             ReadEYUV(framePtr, ifp, realWidth, realHeight);
         }
@@ -391,7 +391,7 @@ time(&diskStartTime);
         fclose(ifp);
       }
     }
-    
+
     if ( baseFormat == JMOVIE_FILE_TYPE ) {
       remove(fullFileName);
     }
@@ -637,9 +637,9 @@ ReadPPM(mf, fpointer)
 	if ( fgets(inputBuffer, 71, fpointer) == NULL ) {
 	    return FALSE;
 	}
-	
+
         inputLine = inputBuffer;
- 
+
 	if ( inputLine[0] == '#' ) {
 	    continue;
 	}
@@ -928,7 +928,7 @@ SeparateLine(fpointer, lineptr, width)
 	    fprintf(stderr, "       or any even-length string consisting of the letters U, V, and Y.\n");
             exit(1);
         }
-	
+
     }
 
 }
@@ -973,7 +973,7 @@ ReadY(mf, fpointer, width, height)
     for (y = Fsize_y; y < height; y++) {
 	safe_fread(junk, 1, width, fpointer);
     }
-    
+
     for (y = 0 ; y < (Fsize_y >> 1); y++) {
       memset(mf->orig_cb[y], 128, (Fsize_x>>1));
       memset(mf->orig_cr[y], 128, (Fsize_x>>1));
@@ -1103,7 +1103,7 @@ int w,h;
   int i,j;
 
   if (!init_done) {
-    for(i=0; i<256; i++) 
+    for(i=0; i<256; i++)
       GammaVal[i]=(unsigned char) (pow(((double) i)/255.0,GammaValue)*255.0+0.5);
     init_done=TRUE;
   }
@@ -1144,7 +1144,7 @@ int w,h;
                         ^ kill_dim_break
                              ^kill_dim_end
               kill_dim_slope gives the slope (y = kill_dim_slope * x +0)
-              from 0 to kill_dim_break                      
+              from 0 to kill_dim_break
  *
  *===========================================================================*/
 

@@ -1053,7 +1053,7 @@ ININFO_message("cc is freed") ;
 ININFO_message("malloc-ing cc: n=%d",n) ;
 ININFO_message("MCW_MALLOC_status = %s",MCW_MALLOC_status) ;
        cc = (double *)calloc(sizeof(double),n*n) ;
-ININFO_message("copying cc <- v") ; 
+ININFO_message("copying cc <- v") ;
        AAmemcpy( cc , v , sizeof(double)*n*n ) ;
        for( jj=0 ; jj < n ; jj++ ){
          kk = iv[jj] ;

@@ -133,7 +133,7 @@ __glutSetWindow(GLUTwindow * window)
     __glutCurrentWindow->renderCtx);
 
   /* We should be careful to force a finish between each
-     iteration through the GLUT main loop if indirect OpenGL 
+     iteration through the GLUT main loop if indirect OpenGL
      contexts are in use; indirect contexts tend to have  much
      longer latency because lots of OpenGL extension requests
      can queue up in the X protocol stream.  We accomplish this
@@ -397,7 +397,7 @@ __glutSetupColormap(XVisualInfo * vi, GLUTcolormap ** colormap, Colormap * cmap)
     *colormap = NULL;   /* NULL if RGBA */
 #ifndef SOLARIS_2_4_BUG
     /* Solaris 2.4 has a bug in its XmuLookupStandardColormap
-       implementation.  Please compile your Solaris 2.4 version 
+       implementation.  Please compile your Solaris 2.4 version
        of GLUT with -DSOLARIS_2_4_BUG to work around this bug.
        The symptom of the bug is that programs will get a
        BadMatch error from X_CreateWindow when creating a GLUT
@@ -470,7 +470,7 @@ __glutDefaultReshape(int width, int height)
     glXMakeCurrent(__glutDisplay, overlay->win, overlay->ctx);
     glViewport(0, 0, (GLsizei) width, (GLsizei) height);
   }
-  /* Make sure we are current to the current layer (application 
+  /* Make sure we are current to the current layer (application
 
      should be able to count on the current layer not changing
      unless the application explicitly calls glutUseLayer). */

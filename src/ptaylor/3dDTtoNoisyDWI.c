@@ -1,7 +1,7 @@
 
-/* 
+/*
    P. Taylor, April 2014
-	
+
    For some simulation-based work, take DTs and gradients and make
    some noisy DWIs.
 
@@ -16,8 +16,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include <mrilib.h>
+#include <3ddata.h>
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
@@ -28,7 +28,7 @@
 
 
 
-void usage_DTtoNoisyDWI(int detail) 
+void usage_DTtoNoisyDWI(int detail)
 {
 	printf(
 "\n"
@@ -152,75 +152,75 @@ int main(int argc, char *argv[]) {
    T = gsl_rng_default;
    r = gsl_rng_alloc (T);
    gsl_rng_set (r, seed);
-   
+
    // ###################################################################
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dDTtoNoisyDWI"); machdep(); 
+   mainENTRY("3dDTtoNoisyDWI"); machdep();
 	if (argc == 1) { usage_DTtoNoisyDWI(1); exit(0); }
-   
+
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_DTtoNoisyDWI(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-     
+
       if( strcmp(argv[iarg],"-dt_in") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-eig_vecs'");
          dtsname = strdup(argv[iarg]) ;
-         
+
          iarg++ ; continue ;
       }
-      
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-mask") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          maskname = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-grads") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          gradsname = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-noise_DWI") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need numerical argument after '-noise_DWI'");
 
          NOISESCALE_DWI = atof(argv[iarg]);
-         
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-noise_B0") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need numerical argument after '-noise_B0'");
 
          NOISESCALE_B0 = atof(argv[iarg]);
-         
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-S0") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need numerical argument after '-S0'");
 
          S0 = atof(argv[iarg]);
@@ -230,7 +230,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-bval") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need numerical argument after '-bval'");
 
          bval = atof(argv[iarg]);
@@ -292,28 +292,28 @@ int main(int argc, char *argv[]) {
    }
 
    Nvox = DSET_NVOX(DTS);
-   Dim[0] = DSET_NX(DTS); 
-   Dim[1] = DSET_NY(DTS); 
-   Dim[2] = DSET_NZ(DTS); 
-   
+   Dim[0] = DSET_NX(DTS);
+   Dim[1] = DSET_NY(DTS);
+   Dim[2] = DSET_NZ(DTS);
+
    if(Nvox<0)
       ERROR_exit("Error reading Nvox from eigenvalue file.");
 
-   mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd2 == NULL)) { 
+   mskd2 = (byte *)calloc(Nvox,sizeof(byte));
+   if( (mskd2 == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
-   
+
    if(maskname) {
       MASK = THD_open_dataset(maskname);
       DSET_load(MASK);  CHECK_LOAD_ERROR(MASK);
-      
+
       if( 1 != DSET_NVALS(MASK) )
          ERROR_exit("Mask file '%s' is not scalar-- "
                     "it has %d bricks!",
                     maskname, DSET_NVALS(MASK));
-      
+
       for( k=0 ; k<Nvox ; k++ )
          if (THD_get_voxel(MASK, k, 0) > 0 )
             mskd2[k] = 1;
@@ -327,40 +327,40 @@ int main(int argc, char *argv[]) {
          if( fabs(THD_get_voxel(DTS,k,0) > EPS_V) )
             mskd2[k] = 1;
    }
-      
+
 
    GRADS_IN = mri_read_1D (gradsname);
    GRADS = mri_transpose(GRADS_IN); // get rid of autotranspose...
-   if (GRADS == NULL) 
+   if (GRADS == NULL)
          ERROR_exit("Error reading gradient vector file");
    mri_free(GRADS_IN);
 
    Ngrads = GRADS->ny;
 
-   if(Ngrads < 6) 
+   if(Ngrads < 6)
       ERROR_exit("Too few grads (there appear to be only %d).",Ngrads);
-   if(GRADS->nx !=3 ) 
+   if(GRADS->nx !=3 )
       ERROR_exit("Wrong number of columns in the grad file: "
                  " am reading %d instead of 3.",GRADS->nx);
    Nfull = Ngrads+1;
    INFO_message("Have surmised there are %d total grads; "
                 "output file will have %d bricks", Ngrads,Nfull);
-   
-   dwi = calloc(Nfull,sizeof(dwi)); 
-   for(i=0 ; i<Nfull ; i++) 
-		dwi[i] = calloc( Nvox,sizeof(float)); 
+
+   dwi = calloc(Nfull,sizeof(dwi));
+   for(i=0 ; i<Nfull ; i++)
+		dwi[i] = calloc( Nvox,sizeof(float));
 
    INFO_message("Calculating the DWIs.");
-   i = RicianNoiseDWIs( dwi, Nvox, Ngrads, DTS, 
+   i = RicianNoiseDWIs( dwi, Nvox, Ngrads, DTS,
                         NOISESCALE_DWI, NOISESCALE_B0,
                         GRADS, mskd2,
                         S0, bval, r);
 
    INFO_message("Writing the DWIs.");
-   DWI_OUT = EDIT_empty_copy( DTS ); 
+   DWI_OUT = EDIT_empty_copy( DTS );
    EDIT_dset_items(DWI_OUT,
                    ADN_nvals, Nfull,
-						 ADN_datum_all, MRI_float , 
+						 ADN_datum_all, MRI_float ,
                    ADN_prefix, prefix,
 						 ADN_none );
 
@@ -375,16 +375,16 @@ int main(int argc, char *argv[]) {
 					  DSET_HEADNAME(DWI_OUT));
 	tross_Make_History("3dDTtoNoisyDWI", argc, argv, DWI_OUT);
 	THD_write_3dim_dataset(NULL, NULL, DWI_OUT, True);
-	DSET_delete(DWI_OUT); 
-  	free(DWI_OUT); 
-   
+	DSET_delete(DWI_OUT);
+  	free(DWI_OUT);
+
    // #################################################################
    // ##########################  free  ###############################
    // #################################################################
 
    DSET_delete(DTS);
    free(DTS);
-   
+
    for( i=0 ; i<Nfull ; i++)
       free(dwi[i]);
    free(dwi);

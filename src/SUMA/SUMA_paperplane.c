@@ -1,8 +1,8 @@
 
 /* Copyright (c) Mark J. Kilgard, 1996. */
 
-/* This program is freely distributable without licensing fees 
-   and is provided without guarantee or warrantee expressed or 
+/* This program is freely distributable without licensing fees
+   and is provided without guarantee or warrantee expressed or
    implied. This program is -not- in the public domain. */
 
 /*
@@ -295,8 +295,8 @@ input(Widget w, XtPointer data, XtPointer callData)
           draw(w);
         }
         break;
-      case XK_r:  /* ZSS testing widget hiding 
-                   which started causing problems 
+      case XK_r:  /* ZSS testing widget hiding
+                   which started causing problems
                    on OS X 10.5 and 10.6 */
          fprintf(stderr,"unrealizing...\n");
          XtUnrealizeWidget(toplevel);
@@ -305,17 +305,17 @@ input(Widget w, XtPointer data, XtPointer callData)
          fprintf(stderr,"realizing...\n");
          XtRealizeWidget(toplevel);
          break;
-      case XK_w:  /* ZSS testing widget hiding 
-                   which started causing problems 
+      case XK_w:  /* ZSS testing widget hiding
+                   which started causing problems
                    on OS X 10.5 and 10.6 */
          fprintf(stderr,"withdrawing...\n");
-         XWithdrawWindow(XtDisplay(toplevel), 
-                  XtWindow(toplevel), 
+         XWithdrawWindow(XtDisplay(toplevel),
+                  XtWindow(toplevel),
                   XScreenNumberOfScreen(XtScreen(toplevel)));
          fprintf(stderr,"waiting for 3 seconds...\n");
          sleep(3);
          fprintf(stderr,"Remapping...\n");
-         XMapRaised(XtDisplay(toplevel), 
+         XMapRaised(XtDisplay(toplevel),
                         XtWindow(toplevel));
          break;
       case XK_Escape:
@@ -346,7 +346,7 @@ main(int argc, char *argv[])
       fprintf(stdout,"A simple openGL test program using motif widgets.\n"
                      "If it does not run, then SUMA certainly won't.\n"
                      "Copyright (c) Mark J. Kilgard, 1996.\n");
-      return(0); 
+      return(0);
     } else {
       return(1); /* program takes no options */
     }

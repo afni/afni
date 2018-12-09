@@ -6,13 +6,13 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * Tue Nov 28 10:06:22 MET 2000
  *
  * ADDITIONS, CHANGES
@@ -41,7 +41,7 @@ extern void ZeroCrossings_Are_Negative( );
 
 
 extern int Extract_ZeroCrossing_2D ( void *bufferIn, bufferType typeIn,
-				     void *bufferOut, bufferType typeOut, 
+				     void *bufferOut, bufferType typeOut,
 				     int *bufferDims );
 
 
@@ -79,7 +79,7 @@ extern int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn,  bufferType 
 						    recursiveFilterType filterType );
 
 
-extern int Gradient_On_GradientHessianGradient_ZeroCrossings_2D( void *bufferIn,  
+extern int Gradient_On_GradientHessianGradient_ZeroCrossings_2D( void *bufferIn,
 								 bufferType typeIn,
 						    void *bufferOut, bufferType typeOut,
 						    int *bufferDims, int *borderLengths,

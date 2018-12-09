@@ -20,7 +20,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *inset=NULL , *outset ;
    char *prefix="bandpass" ;
    byte *mask=NULL ;
-   int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 , 
+   int mask_nx=0,mask_ny=0,mask_nz=0,nmask , verb=1 ,
        nx,ny,nz,nvox , nfft=0 , kk ;
    float **vec , **ort=NULL ; int nort=0 , vv , nopt , ntime  ;
    MRI_vectim *mrv ;

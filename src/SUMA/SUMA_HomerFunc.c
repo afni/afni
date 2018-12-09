@@ -9,7 +9,7 @@ int is_END_vert (Point3 Vert) {
         SUMA_ABS(Vert.y-22222.22222f)<0.01 &&
         SUMA_ABS(Vert.z-33333.33333f)<0.01) return(1);
    return(0);
-}  
+}
 /*!
    \brief Change the Vert structure to a SUMA NodeList vector
    \param Vert (Point3 *)
@@ -22,15 +22,15 @@ float * SUMA_HomerVertex(Point3 *Vert, int *N)
    float *NodeList=NULL;
    int i, k;
    SUMA_Boolean LocalHead = NOPE;
-     
+
    SUMA_ENTRY;
-   
+
    *N = 0;
    while (!is_END_vert(Vert[*N])) ++*N;
 
-   if (LocalHead) fprintf(SUMA_STDERR,"%d  elements in Vert.\n", 
+   if (LocalHead) fprintf(SUMA_STDERR,"%d  elements in Vert.\n",
       *N);
-   
+
    NodeList = (float *)SUMA_malloc(*N*3*sizeof(float));
    k = 0;
    for (i=0; i<*N; ++i) {
@@ -38,13 +38,13 @@ float * SUMA_HomerVertex(Point3 *Vert, int *N)
       NodeList[k] = 50.0*(float)Vert[i].y; ++k;
       NodeList[k] = 50.0*(float)Vert[i].z; ++k;
    }
-   
+
    SUMA_RETURN(NodeList);
 }
 /*!
    \brief Change the face vector to a SUMA FaceSetList vector
    Polygons are automatically triangulated
-   
+
    \param face (long *) vector of ace indices. Faces are separated
                        by -1 entries
    \param N (int *) to contain the number of faces is FaceSetList
@@ -57,22 +57,22 @@ int * SUMA_HomerFace(long *face, int *N)
    int i, k, N_alloc, iface, iface0, iFS3;
    int *FaceSetList=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    *N = 0;
    while (face[*N] > -2) ++*N;
 
-   if (LocalHead) fprintf(SUMA_STDERR,"%d elements in Vert.\n", 
+   if (LocalHead) fprintf(SUMA_STDERR,"%d elements in Vert.\n",
       *N);
-   
+
    /* Can't guess ahead of time, make sure you check down the line */
    N_alloc = *N*3;
-   FaceSetList = (int *)SUMA_malloc(N_alloc*sizeof(int));   
+   FaceSetList = (int *)SUMA_malloc(N_alloc*sizeof(int));
    if (!FaceSetList) {
       fprintf (SUMA_STDERR,"Error %s: Failed to reallocate.\n", FuncName);
       SUMA_RETURN(NULL);
-   } 
+   }
    iFS3 =0; /* index of triangulated facet */
    iface = 0;
    iface0 = 0;
@@ -80,11 +80,11 @@ int * SUMA_HomerFace(long *face, int *N)
       iface0 = iface ; /* 1s node in polygon */
       if (iface0 < 0) {
          fprintf(SUMA_STDERR, "Error %s: Unexpected end flag", FuncName);
-         SUMA_free(FaceSetList); 
+         SUMA_free(FaceSetList);
          SUMA_RETURN(NULL);
       }
       if (LocalHead) fprintf(SUMA_STDERR,
-            "%s: iface0 = %d, face[%d] = %d: ", 
+            "%s: iface0 = %d, face[%d] = %d: ",
             FuncName, iface0, iface0, (int)face[iface0]) ;
       do {
          if (iFS3+3 > N_alloc) {
@@ -93,7 +93,7 @@ int * SUMA_HomerFace(long *face, int *N)
             if (!FaceSetList) {
                fprintf (SUMA_STDERR,"Error %s: Failed to reallocate.\n", FuncName);
                SUMA_RETURN(NULL);
-            } 
+            }
          }
          FaceSetList[iFS3] = face[iface0]; /* first node in polygon is first node of triangles forming polygon */
          if (FaceSetList[iFS3] < 0) {
@@ -111,20 +111,20 @@ int * SUMA_HomerFace(long *face, int *N)
          }
          if (LocalHead) fprintf(SUMA_STDERR,
             "%d) ", (int)face[iface+1]);
-         ++iFS3; 
+         ++iFS3;
          FaceSetList[iFS3] = face[iface+1]; /* node 3 */
          if (FaceSetList[iFS3] < 0) {
             fprintf (SUMA_STDERR,"Negative index loaded (loc 2)\n");
          }
-         ++iFS3; ++iface; 
+         ++iFS3; ++iface;
       } while (face[iface+1] >= 0);
       if (LocalHead) fprintf(SUMA_STDERR," iFS3/N_alloc = %d/%d\n", iFS3, N_alloc);
       ++iface; /* skip -1 */
       ++iface; /* goto next */
    }
-   
+
    *N = iFS3 / 3;
-   
+
    /* reallocate */
 
       if (LocalHead) {
@@ -140,7 +140,7 @@ int * SUMA_HomerFace(long *face, int *N)
                if (FaceSetList[itmp] < 0) {
                   fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
                }
-            } 
+            }
          }
       }
 
@@ -158,16 +158,16 @@ int * SUMA_HomerFace(long *face, int *N)
                if (FaceSetList[itmp] < 0) {
                   fprintf (SUMA_STDERR,"%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
                }
-            } 
+            }
          }
       }
-   
-   
-   if (LocalHead) 
-      fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n", 
+
+
+   if (LocalHead)
+      fprintf(SUMA_STDERR,"%s: Returning (iFS3 = %d, N = %d...)\n",
                   FuncName, iFS3, *N);
-   
-   SUMA_RETURN(FaceSetList); 
+
+   SUMA_RETURN(FaceSetList);
 }
 
 SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
@@ -178,11 +178,11 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
    float *NodeList=NULL;
    SUMA_NEW_SO_OPT *nsoopt = NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    switch (ipart) {
-      case 0:      
+      case 0:
          NodeList = SUMA_HomerVertex(X1_X5_Sphere_vertex, &N_Node);
          FaceSetList = SUMA_HomerFace(X1_X5_Sphere_face, &N_FaceSet);
          break;
@@ -251,14 +251,14 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
          FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X158_face, &N_FaceSet);
          break;
       case 17:
-         NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex, 
+         NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X164_Sphere_vertex,
                                        &N_Node);
-         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X164_Sphere_face, 
+         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X164_Sphere_face,
                                        &N_FaceSet);
          break;
       case 18:
          NodeList = SUMA_HomerVertex(X1_X5_X120_X127_X177_Torus_vertex, &N_Node);
-         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X177_Torus_face, 
+         FaceSetList = SUMA_HomerFace(X1_X5_X120_X127_X177_Torus_face,
                                        &N_FaceSet);
          break;
       default:
@@ -266,13 +266,13 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
          SUMA_RETURN(NULL);
          break;
    }
-                     
+
    /* SUMA_disp_vect(NodeList, 3*N_Node); */
    /* SUMA_disp_dvect(FaceSetList, 3*N_FaceSet);  */
    if (LocalHead) {
       int tmpmin=-100, n3, itmp;
       n3 = 3 * N_FaceSet;
-      fprintf (SUMA_STDERR,"%s: part %d, N_Node %d, N_FaceSet %d\n", 
+      fprintf (SUMA_STDERR,"%s: part %d, N_Node %d, N_FaceSet %d\n",
                                  FuncName, ipart, N_Node, N_FaceSet);
       SUMA_MIN_VEC (FaceSetList, n3, tmpmin);
       fprintf (SUMA_STDERR,"Minimum index is %d\n", tmpmin);
@@ -285,17 +285,17 @@ SUMA_SurfaceObject *SUMA_HJS_Surface(int ipart)
                fprintf (SUMA_STDERR,
                   "%s: Min of %d, at %d\n", FuncName, FaceSetList[itmp], itmp);
             }
-         } 
+         }
       }
    }
-   
+
    /* create a surface */
    nsoopt = SUMA_NewNewSOOpt();
    SO = SUMA_NewSO(&NodeList, N_Node, &FaceSetList, N_FaceSet, nsoopt);
    SO->normdir = -1;
-   
-   nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
-   
+
+   nsoopt=SUMA_FreeNewSOOpt(nsoopt);
+
    SUMA_RETURN(SO);
 }
 
@@ -307,21 +307,21 @@ SUMA_SurfaceObject *SUMA_head_01_surface(void)
    float *NodeList=NULL;
    SUMA_SurfaceObject *SO=NULL;
    SUMA_NEW_SO_OPT *nsoopt = NULL;
-   
+
    SUMA_ENTRY;
-   
+
    /* create a surface */
    nsoopt = SUMA_NewNewSOOpt();
    NodeList = (float *)SUMA_malloc(d1_head_01_1D_coord*d2_head_01_1D_coord*sizeof(float));
    memcpy(NodeList, head_01_1D_coord, d1_head_01_1D_coord*d2_head_01_1D_coord*sizeof(float));
    FaceSetList = (int *)SUMA_malloc(d1_head_01_1D_topo*d2_head_01_1D_topo*sizeof(int));
    memcpy(FaceSetList, head_01_1D_topo, d1_head_01_1D_topo*d2_head_01_1D_topo*sizeof(int));
-   
+
    SO = SUMA_NewSO(&NodeList, d1_head_01_1D_coord, &FaceSetList, d1_head_01_1D_topo, nsoopt);
    SO->normdir = 1;
-   
-   nsoopt=SUMA_FreeNewSOOpt(nsoopt); 
-   
+
+   nsoopt=SUMA_FreeNewSOOpt(nsoopt);
+
    SUMA_RETURN(SO);
 }
 

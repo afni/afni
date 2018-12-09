@@ -43,8 +43,8 @@ ENTRY("THD_read_dvecmat") ;
 
      if (strstr(cc,"IJK_TO_CARD_DICOM")) {  /* return the matrix that turns i,j,k to mm RAI ZSS May 07*/
         THD_dicom_card_xform(dset, &tmat, &tvec);
-     } if (strstr(cc,"IJK_TO_DICOM_REAL")) {  
-        THD_dicom_real_xform(dset, &tmat, &tvec); 
+     } if (strstr(cc,"IJK_TO_DICOM_REAL")) {
+        THD_dicom_real_xform(dset, &tmat, &tvec);
      } else {
         ss = strstr(cc,"[") ;
         if( ss != NULL ){
@@ -93,7 +93,7 @@ ENTRY("THD_read_dvecmat") ;
       {
          /* ZSS: Dec 27, the year of our Lord when the War on Christmas was raging */
          /* Need to include VOLREG_CENTER_OLD, VOLREG_CENTER_BASE,
-                            ROTATE_CENTER_OLD, ROTATE_CENTER_BASE, 
+                            ROTATE_CENTER_OLD, ROTATE_CENTER_BASE,
                             if applicable. */
          /* Do we have a ROTATE or VOLREG attribute ?*/
          incl = 0;
@@ -114,7 +114,7 @@ ENTRY("THD_read_dvecmat") ;
                LOAD_DFVEC3(tvec_cb,0,0,0) ;
             }
 
-            if (incl == 1) 
+            if (incl == 1)
                INFO_message(
                   "THD_read_dvecmat:\n"
                   "   Including VOLREG_CENTER_BASE and VOLREG_CENTER_OLD\n"

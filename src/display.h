@@ -128,8 +128,8 @@ extern int npane_big ;
 #define AJJ_PUR      300.0
 static char BIGMAP_NAMES[][32] = {
    "Spectrum:red_to_blue", "Spectrum:red_to_blue+gap",
-   "Spectrum:yellow_to_cyan", "Spectrum:yellow_to_cyan+gap", 
-   "Spectrum:yellow_to_red", "Color_circle_AJJ", 
+   "Spectrum:yellow_to_cyan", "Spectrum:yellow_to_cyan+gap",
+   "Spectrum:yellow_to_red", "Color_circle_AJJ",
    "Color_circle_ZSS", "Reds_and_Blues", "Reds_and_Blues_w_Green"
    "\0" };
 int NJ_bigmaps_init(int bigmap_num, char ***bigmap_namep, rgbyte ***bigmapp);

@@ -11,9 +11,9 @@
 * Author:				John L. Cwikla
 *
 * Copyright 1994,1995 John L. Cwikla
-* Copyright (C) 1997 by Ripley Software Development 
+* Copyright (C) 1997 by Ripley Software Development
 * All Rights Reserved
-* 
+*
 * This file is part of the XmHTML Widget Library.
 *
 * See below for John L. Cwikla's original copyright notice and distribution
@@ -71,7 +71,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -91,7 +91,7 @@
 * Revision 1.6  1997/03/02 23:44:30  newt
 * Expanded copyright marker
 *
-*****/ 
+*****/
 #ifndef _xccp_h_
 #define _xccp_h_
 
@@ -158,7 +158,7 @@ struct _XColorContext
 
 	XCCDither	*fast_dither;		/* fast dither matrix */
 
-	struct 
+	struct
 	{
 		int red;
 		int green;
@@ -173,7 +173,7 @@ struct _XColorContext
 	struct
 	{
 		int red;
-		int green;	
+		int green;
 		int blue;
 	} bits;
 	unsigned long maxEntry;

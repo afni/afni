@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines for performing the Daubechies fast wavelet 
+  This file contains routines for performing the Daubechies fast wavelet
   transform analysis of time series data.
 
   File:    Daubechies.c
@@ -31,12 +31,12 @@ void Daubechies_forward_pass_1d (int n, float * s)
   npts = powerof2 (n);
   a = (float *) malloc (sizeof(float) * npts/2);
   c = (float *) malloc (sizeof(float) * npts/2);
-  
+
   for (i = 0;  i < npts/2;  i++)
     {
       a[i] = (h[0]*s[(2*i)%npts] + h[1]*s[(2*i+1)%npts] + h[2]*s[(2*i+2)%npts]
 	      + h[3]*s[(2*i+3)%npts]) / 2.0;
-      c[i] = (h[3]*s[(2*i)%npts] - h[2]*s[(2*i+1)%npts] + h[1]*s[(2*i+2)%npts] 
+      c[i] = (h[3]*s[(2*i)%npts] - h[2]*s[(2*i+1)%npts] + h[1]*s[(2*i+2)%npts]
 	      - h[0]*s[(2*i+3)%npts]) / 2.0;
     }
 
@@ -93,14 +93,14 @@ void Daubechies_inverse_pass_1d (int n, float * s)
   a = s;
   c = s+nptsd2;
   r = (float *) malloc (sizeof(float) * npts);
-  
+
 
   for (i = 0;  i < nptsd2;  i++)
     {
-      r[2*i]   = h[2]*a[(i-1+nptsd2)%nptsd2] + h[1]*c[(i-1+nptsd2)%nptsd2] 
+      r[2*i]   = h[2]*a[(i-1+nptsd2)%nptsd2] + h[1]*c[(i-1+nptsd2)%nptsd2]
 	       + h[0]*a[i] + h[3]*c[i];
-	       
-      r[2*i+1] = h[3]*a[(i-1+nptsd2)%nptsd2] - h[0]*c[(i-1+nptsd2)%nptsd2] 
+
+      r[2*i+1] = h[3]*a[(i-1+nptsd2)%nptsd2] - h[0]*c[(i-1+nptsd2)%nptsd2]
 	       + h[1]*a[i] - h[2]*c[i];
     }
 

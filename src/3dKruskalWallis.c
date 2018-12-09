@@ -22,7 +22,7 @@
   Mod:     Added call to AFNI_logger.
   Date:    15 August 2001
 
-  Mod:     Modified routine write_afni_fict of NPstats.c so that all output 
+  Mod:     Modified routine write_afni_fict of NPstats.c so that all output
            subbricks will now have the scaled short integer format.
   Date:    14 March 2002
 
@@ -46,7 +46,7 @@
 
 #define MAX_TREATMENTS 333     /* max. number of treatments */
 #define MAX_OBSERVATIONS 333   /* max. number of observations per treatment */
-#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
+#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */
 #define MEGA  1048576          /* one megabyte */
 
 #define USE_ARRAY
@@ -58,11 +58,11 @@
 /*---------------------------------------------------------------------------*/
 
 typedef struct NP_options
-{ 
+{
   int   datum;                  /* data type for "intensity" data subbrick */
   char  session[MAX_NAME_LENGTH];     /* name of output directory */
 
-  
+
   int   nvoxel;                 /* number of voxel for special output */
 
   int   s;                      /* number of treatments */
@@ -70,7 +70,7 @@ typedef struct NP_options
 
   char  *** xname;              /* names of the input data files */
   char  * first_dataset;        /* name of the first data set */
-   
+
   int   nx, ny, nz;             /* data set dimensions */
   int   nxyz;                   /* number of voxels per image */
 
@@ -92,7 +92,7 @@ typedef struct NP_options
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program performs nonparametric Kruskal-Wallis test for         \n"
      "comparison of multiple treatments.                                \n\n"
@@ -113,8 +113,8 @@ void display_help_menu()
      "-out prefixnamename            Kruskal-Wallis statistics are written\n"
      "                                 to file prefixname                 \n"
      "\n");
-  
-  
+
+
   printf
     (
      "\n"
@@ -125,7 +125,7 @@ void display_help_menu()
      );
 
   printf("\n" MASTER_SHORTHELP_STRING ) ;
-  
+
   PRINT_COMPILE_DATE ; exit(0);
 }
 
@@ -138,20 +138,20 @@ void display_help_menu()
 void initialize_options (NP_options * option_data)
 {
   int i;          /* index */
-  
+
   option_data->datum = ILLEGAL_TYPE;
   strcpy (option_data->session, "./");
- 
+
 
   option_data->nvoxel = -1;
-  
+
   option_data->s = 0;
-  
+
   for (i = 0;  i < MAX_TREATMENTS;  i++)
     option_data->n[i] = 0;
 
   option_data->workmem = 266;
- 
+
   /*----- allocate memory for storing data file names -----*/
   option_data->xname = (char ***) malloc (sizeof(char **) * MAX_TREATMENTS);
   for (i = 0;  i < MAX_TREATMENTS;  i++)
@@ -159,7 +159,7 @@ void initialize_options (NP_options * option_data)
       = (char **) malloc (sizeof(char *) * MAX_OBSERVATIONS);
 
   option_data->first_dataset = NULL;
-  
+
   option_data->nx = 0;
   option_data->ny = 0;
   option_data->nz = 0;
@@ -169,7 +169,7 @@ void initialize_options (NP_options * option_data)
 
 }
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
    Routine to get user specified Kruskal-Wallis options.
@@ -179,7 +179,7 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 {
   int nopt = 1;                  /* input option argument counter */
   int ival;                      /* integer input */
-  int nijk;                      /* count of data files */     
+  int nijk;                      /* count of data files */
   float fval;                    /* float input */
   THD_3dim_dataset * dset=NULL;             /* test whether data set exists */
   char message[MAX_NAME_LENGTH];            /* error message */
@@ -188,24 +188,24 @@ void get_options (int argc, char ** argv, NP_options * option_data)
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
-  
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- initialize the input options -----*/
   initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc)
     {
-      
-      
+
+
       /*-----   -datum type   -----*/
       if( strncmp(argv[nopt],"-datum",6) == 0 ){
 	if( ++nopt >= argc ) NP_error("need an argument after -datum!") ;
-	
+
 	if( strcmp(argv[nopt],"short") == 0 ){
 	  option_data->datum = MRI_short ;
 	} else if( strcmp(argv[nopt],"float") == 0 ){
@@ -219,8 +219,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	}
 	nopt++ ; continue ;  /* go to next arg */
       }
-      
-      
+
+
       /*-----   -session dirname    -----*/
       if( strncmp(argv[nopt],"-session",6) == 0 ){
 	nopt++ ;
@@ -228,8 +228,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	strcpy(option_data->session , argv[nopt++]) ;
 	continue ;
       }
-      
-      
+
+
       /*-----   -voxel num  -----*/
       if (strncmp(argv[nopt], "-voxel", 6) == 0)
 	{
@@ -242,8 +242,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -workmem megabytes  -----*/
 
       if( strncmp(argv[nopt],"-workmem",6) == 0 ){
@@ -268,8 +268,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -dset level filename   -----*/
       if (strncmp(argv[nopt], "-dset", 5) == 0)
 	{
@@ -278,13 +278,13 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->s))
 	    NP_error ("illegal argument after -dset ");
-	  
+
 	  option_data->n[ival-1] += 1;
 
 	  if (option_data->n[ival-1] > MAX_OBSERVATIONS)
 	    NP_error ("too many data files");
 	  nijk = option_data->n[ival-1];
-	  
+
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
@@ -299,15 +299,15 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	    }
 
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-	  
-	  option_data->xname[ival-1][nijk-1] 
+
+	  option_data->xname[ival-1][nijk-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xname[ival-1][nijk-1], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -out filename   -----*/
       if (strncmp(argv[nopt], "-out", 4) == 0)
 	{
@@ -318,8 +318,8 @@ void get_options (int argc, char ** argv, NP_options * option_data)
 	  nopt++;
 	  continue;
 	}
-            
-      
+
+
       /*----- unknown command -----*/
       NP_error ("unrecognized command line option ");
     }
@@ -341,10 +341,10 @@ void check_for_valid_inputs (NP_options * option_data)
   for (i = 0;  i < option_data->s;  i++)
     if (option_data->n[i] < 1)
       {
-	sprintf(message,"Too few data sets for treatment level %d \n", 
+	sprintf(message,"Too few data sets for treatment level %d \n",
 		i+1);
 	NP_error (message);
-      } 
+      }
 
   if (option_data->nvoxel > option_data->nxyz)
     NP_error ("argument of -voxel is too large");
@@ -357,37 +357,37 @@ void check_for_valid_inputs (NP_options * option_data)
   Routine to perform all Kruskal-Wallis initialization.
 */
 
-void initialize 
+void initialize
 (
   int argc,                    /* number of input arguments */
-  char ** argv,                /* array of input arguments */ 
+  char ** argv,                /* array of input arguments */
   NP_options ** option_data,   /* user input options */
   float ** best,               /* index of best treatment */
   float ** kstat               /* Kruskal-Wallis statistic */
 )
 
 {
-  
-  
-  /*----- allocate memory space for input data -----*/   
+
+
+  /*----- allocate memory space for input data -----*/
   *option_data = (NP_options *) malloc(sizeof(NP_options));
   if (*option_data == NULL)
     NP_error ("memory allocation error");
-  
+
   /*----- get command line inputs -----*/
   get_options(argc, argv, *option_data);
-  
+
   /*----- use first data set to get data set dimensions -----*/
   (*option_data)->first_dataset = (*option_data)->xname[0][0];
   get_dimensions (*option_data);
   printf ("Data set dimensions:  nx = %d  ny = %d  nz = %d  nxyz = %d \n",
 	  (*option_data)->nx, (*option_data)->ny,
 	  (*option_data)->nz, (*option_data)->nxyz);
-  
+
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (*option_data);
- 
+
   /*----- check whether output files already exist -----*/
   if( THD_deathcon() ) check_one_output_file (*option_data, (*option_data)->outfile);
 
@@ -398,8 +398,8 @@ void initialize
   *kstat = (float *) malloc(sizeof(float) * (*option_data)->nxyz);
   if (*kstat == NULL)
     NP_error ("memory allocation error");
- 
-  
+
+
 }
 
 
@@ -408,7 +408,7 @@ void initialize
   Calculate the Kruskal-Wallis statistic.
 */
 
-void calc_stat 
+void calc_stat
 (
   int nvox,                          /* flag for voxel output */
   int s,                             /* number of treatments */
@@ -421,11 +421,11 @@ void calc_stat
 {
   const float EPSILON = 1.0e-10;      /* protection from roundoff error */
   int i, j;                   /* array indices */
-  node * head = NULL;         /* points to head of list */        
+  node * head = NULL;         /* points to head of list */
   node * ptr = NULL;          /* points to current position in list */
   int NN;                     /* total number of sample points */
   float rsum;                 /* sum of squares of ranks */
-  int d;                      /* count of number of ties */ 
+  int d;                      /* count of number of ties */
   float corr;                 /* correction to account for ties */
   float rank;                 /* rank of data point */
   float ranksum;              /* sum of ranks for ith treatment */
@@ -469,7 +469,7 @@ void calc_stat
 	      rank = node_get_rank (head, xarray[i][j]);
 	      printf (" %6.1f", rank);
 	      if (((j+1) % 8 == 0) && (j < n[i]-1))
-		printf ("\n          ");		  
+		printf ("\n          ");
 	    }
 	  printf ("\n");
 	}
@@ -483,7 +483,7 @@ void calc_stat
 	      rank = node_get_rank (head, xarray[i][j]);
 	      ranksum += rank;
 	    }
-	  printf ("   Rank sum = %6.1f    Rank average = %6.1f \n", 
+	  printf ("   Rank sum = %6.1f    Rank average = %6.1f \n",
 		  ranksum, ranksum/n[i]);
 	}
       printf ("\n");
@@ -595,11 +595,11 @@ void process_voxel
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the Kruskal-Wallis statistics for all voxels  (by breaking the 
+  Calculate the Kruskal-Wallis statistics for all voxels  (by breaking the
   datasets into sub-volumes, if necessary).
 */
 
-void calculate_results 
+void calculate_results
 (
   NP_options * option_data,    /* user input options */
   float * best,                /* index of best treatment */
@@ -608,7 +608,7 @@ void calculate_results
 
 {
   int i, j, m;                 /* array indices */
-  int s;                       /* number of treatments */  
+  int s;                       /* number of treatments */
   int * n;                     /* number of observations per treatment */
   int nxyz;                    /* number of voxels per dataset */
   int num_datasets;            /* total number of datasets */
@@ -641,9 +641,9 @@ void calculate_results
   piece_size = option_data->workmem * MEGA / (num_datasets * sizeof(float));
   if (piece_size > nxyz)  piece_size = nxyz;
   num_pieces = (nxyz + piece_size - 1) / piece_size;
-  printf ("num_pieces = %d    piece_size = %d \n", num_pieces, piece_size);    
+  printf ("num_pieces = %d    piece_size = %d \n", num_pieces, piece_size);
 
-  
+
   /*----- allocate memory space -----*/
   xarray = (float **) malloc (sizeof(float *) * s);  MTEST(xarray);
   for (i = 0;  i < s;  i++)
@@ -655,7 +655,7 @@ void calculate_results
   xfimar = (float **) malloc (sizeof(float *) * num_datasets);  MTEST(xfimar);
   for (i = 0;  i < num_datasets;  i++)
     {
-      xfimar[i] = (float *) malloc (sizeof(float) * piece_size);  
+      xfimar[i] = (float *) malloc (sizeof(float) * piece_size);
       MTEST(xfimar[i]);
     }
 
@@ -702,20 +702,20 @@ void calculate_results
 	    process_voxel (nvox, s, n, xarray, &b, &k);
 	  else
 	    process_voxel (-1, s, n, xarray, &b, &k);
-    
+
 
 	  /*----- save results for this voxel -----*/
 	  best[ivox+fim_offset] = b;
 	  kstat[ivox+fim_offset] = k;
-  
-	} 
-	  
+
+	}
+
     }  /* loop over pieces */
 
 
   /*----- deallocate memory -----*/
   free (n);   n = NULL;
-  
+
   for (i = 0;  i < s;  i++)
     {
       free (xarray[i]);   xarray[i] = NULL;
@@ -735,10 +735,10 @@ void calculate_results
   Generate the requested output.
 */
 
-void output_results 
+void output_results
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   NP_options * option_data,         /* user input options */
   float * best,                     /* index of best treatment */
   float * kstat                     /* Kruskal-Wallis statistic */
@@ -747,7 +747,7 @@ void output_results
 {
 
   /*----- write out afni fict data file -----*/
-  write_afni_fict (argc, argv, option_data, option_data->outfile, 
+  write_afni_fict (argc, argv, option_data, option_data->outfile,
 		   best, kstat, option_data->s - 1);
 
 }
@@ -759,7 +759,7 @@ void output_results
    Routine to release memory and remove any remaining temporary data files.
 */
 
-void terminate 
+void terminate
 (
   NP_options ** option_data,   /* user input options */
   float ** best,               /* index of best treatment */
@@ -804,19 +804,19 @@ void terminate
    Perform nonparametric Kruskal-Wallis test for comparison of multiple
    treatments.
 */
- 
+
 int main (int argc, char ** argv)
 {
   NP_options * option_data = NULL;    /* user input options */
   float * best;                       /* index of best treatment */
   float * kstat;                      /* Kruskal-Wallis statistic */
 
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -835,10 +835,10 @@ int main (int argc, char ** argv)
 
   /*----- program initialization -----*/
   initialize (argc, argv, &option_data, &best, &kstat);
-  
+
   /*----- calculate nonparameteric Kruskal-Wallis statistics -----*/
   calculate_results (option_data, best, kstat);
-  
+
   /*----- generate requested output -----*/
   output_results (argc, argv, option_data, best, kstat);
 

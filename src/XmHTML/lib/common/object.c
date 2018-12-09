@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				XmHTML Developers Account
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,12 +34,12 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -65,10 +65,10 @@ XmHTMLParserTag **non_std_html_tokens = NULL;
 int n_non_std_tokens = 0;
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -87,10 +87,10 @@ objectInitializeTags(void)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -241,10 +241,10 @@ _XmHTMLObjectCreate(XmHTMLWidget html, String attributes,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -269,10 +269,10 @@ XmHTMLObjectDefine(String element, Boolean terminated,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -284,10 +284,10 @@ XmHTMLObjectUndefine(XmHTMLElementId element_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -300,10 +300,10 @@ XmHTMLObjectReconfigure(Widget w, XmHTMLObjectId object_id, int x, int y,
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -315,10 +315,10 @@ XmHTMLObjectShow(Widget w, XmHTMLObjectId object_id, Boolean show)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -330,10 +330,10 @@ XmHTMLObjectRaise(Widget w, XmHTMLObjectId object_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -345,10 +345,10 @@ XmHTMLObjectLower(Widget w, XmHTMLObjectId object_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -360,10 +360,10 @@ XmHTMLObjectCreate(XmHTMLElementId element_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -375,10 +375,10 @@ XmHTMLObjectRegister(Widget w, XmHTMLObjectId object_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -390,10 +390,10 @@ XmHTMLObjectUnregister(Widget w, XmHTMLObjectId object_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -405,10 +405,10 @@ XmHTMLObjectGetElementData(Widget w, XmHTMLObjectId object_id)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -426,7 +426,7 @@ XmHTMLObjectDestroy(XmHTMLObjectId object_id)
 
 #if 0
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -449,7 +449,7 @@ XmHTMLObjectDestroy(XmHTMLObjectId object_id)
 * Revision 1.1  1996/12/19 02:17:10  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -499,7 +499,7 @@ _XmHTMLUserDestroy(XmHTMLWidget html)
   if (!entry)
     return ;
 
-  while(entry) 
+  while(entry)
     {
       int do_it ;
 
@@ -511,7 +511,7 @@ _XmHTMLUserDestroy(XmHTMLWidget html)
 					   * too late : the widget has already
 					   * been destroyed.
 					   */
-	  do_it &&   
+	  do_it &&
 	  entry->w)
 	{
 	  XtDestroyWidget(entry->w);
@@ -575,7 +575,7 @@ _XmHTMLUserAdd(XmHTMLWidget html, String attributes, String user_tag, void *tag_
 	      Dimension w = 0, h = 0;
 	      Arg args[64];
 	      int argc ;
-	  
+
 	      /*
 	       * Set values. We place this thing completely off screen so
 	       * no nasty things happen when this widget is mapped to it's correct
@@ -624,7 +624,7 @@ shutdown:
 static Widget createCallback(XmHTMLWidget html, String attributes, String user_tag, void *tag_user_data, void **p_user_data)
 {
         XmHTMLUserCallbackStruct cbs;
-	
+
 	(void)memset(&cbs, 0, sizeof(XmHTMLUserCallbackStruct));
 	cbs.reason = XmCR_HTML_EMBEDCREATE;
 	cbs.event = NULL;
@@ -647,7 +647,7 @@ static Widget createCallback(XmHTMLWidget html, String attributes, String user_t
 static void createdCallback(XmHTMLWidget html, String attributes, String user_tag, void *tag_user_data, Widget w, void **p_user_data)
 {
         XmHTMLUserCallbackStruct cbs;
-	
+
 	(void)memset(&cbs, 0, sizeof(XmHTMLUserCallbackStruct));
 	cbs.reason = XmCR_HTML_EMBED;
 	cbs.event = NULL;
@@ -671,7 +671,7 @@ static void createdCallback(XmHTMLWidget html, String attributes, String user_ta
 static int destroyCallback(XmHTMLWidget html, String attributes, String user_tag, void *tag_user_data, Widget w, void *user_data)
 {
         XmHTMLUserCallbackStruct cbs;
-	
+
 	(void)memset(&cbs, 0, sizeof(XmHTMLUserCallbackStruct));
 	cbs.reason = XmCR_HTML_EMBEDDESTROY;
 	cbs.event = NULL;

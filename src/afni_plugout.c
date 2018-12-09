@@ -69,11 +69,11 @@ ENTRY("AFNI_init_plugouts") ;
       ioc_conname[cc] = AFMALL(char, 32) ;          /* sockets and names  */
       sprintf(ioc_conname[cc],"tcp:*:%d",base_port+cc) ;
    }
-   #else 
+   #else
    /* 14 Dec 2005 by JMS: allow plugout tcp ports to be overrided */
    /*            (put into AFNI distribution 31 Jan 2006 [rickr]) */
    /*            (Switched to get_port_named(), June 2011 [ZSS] ) */
-   for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){ 
+   for( cc=0 ; cc < NUM_TCP_CONTROL ; cc++ ){
       switch (cc) {
          case 0:
             ioc_control[cc] = NULL ;                /* initialize control */
@@ -111,7 +111,7 @@ ENTRY("AFNI_init_plugouts") ;
       }
    }
    #endif
-   
+
    started = 1 ; EXRETURN ;
 }
 
@@ -216,7 +216,7 @@ Boolean AFNI_plugout_workproc( XtPointer elvis )
         pobuf  = (char *) malloc( sizeof(char) * CONTROL_BUFSIZE ) ;
 
         while(1){
-           jj = iochan_recv(  ioc_control[cc] , pobuf+npobuf , 
+           jj = iochan_recv(  ioc_control[cc] , pobuf+npobuf ,
                               CONTROL_BUFSIZE-npobuf ) ;
            if( jj < 1 ) break ;  /* stop if nothing more comes in */
            npobuf += jj ;

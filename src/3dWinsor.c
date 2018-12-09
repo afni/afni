@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /*------------------------------------------------------------------------*/
@@ -163,7 +163,7 @@ int main( int argc , char * argv[] )
 
    tross_Copy_History( inset , outset ) ;
    tross_Make_History( "3dWinsor" , argc,argv , outset ) ;
-   
+
    if (DSET_write(outset) != False) {
       fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(outset)) ;
       exit(0) ;

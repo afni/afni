@@ -5,11 +5,11 @@
  *
  * THD_3dim_dataset * THD_open_gifti (char *fname)
  * THD_3dim_dataset * THD_load_gifti (THD_datablock *dblk)
- * Boolean            THD_write_gifti( THD_3dim_dataset *dset, 
+ * Boolean            THD_write_gifti( THD_3dim_dataset *dset,
                                        int write_data, int forcencode)
  *
  * NI_group         * NI_read_gifti (char *fname, int read_data)
- * int                NI_write_gifti(NI_group *ngr, 
+ * int                NI_write_gifti(NI_group *ngr,
                                      char *fname, int forcencode)
  *----------------------------------------------------------------------
  */
@@ -260,7 +260,7 @@ int NI_write_gifti(NI_group * ngr, char * fname, int forcencode)
 
     rv = gifti_write_image(gim, fname, 1);
     set_gifti_encoding(GIFTI_ENCODING_UNDEF);
-    
+
     if( GP->verb > 2 )
         fprintf(stderr,"-- gifti_write_image complete, freeing gim...\n");
 
@@ -298,7 +298,7 @@ static gifti_image * NSD_to_gifti(NI_group * ngr, char * fname)
     /* get dimensions and such to create basic gifti dataset */
     ind = NI_search_group_shallow(ngr, "SPARSE_DATA", &elist);
     if(ind > 0){ sdel = (NI_element *)elist[0]; NI_free(elist); elist = NULL; }
-    
+
     if( !sdel || sdel->vec_num <= 0 || sdel->vec_len <= 0 ) {
         if( GP->verb ) fprintf(stderr,"** NSD_to_gifti: missing SPARSE_DATA\n");
         RETURN(NULL);
@@ -795,7 +795,7 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
 
     ngr = NI_new_group_element();
     NI_rename_group(ngr, "AFNI_dataset");
-    
+
     /* if there is a labeltable, create a Node_Label dataset */
     haslt = gim->labeltable.length > 0;
     if( haslt ) NI_set_attribute(ngr, "dset_type", "Node_Label");
@@ -905,7 +905,7 @@ static int gnsd_add_gifti_labeltable(NI_group * ngr, gifti_image * gim)
 }
 
 /* add sparse data to NIML labeltable */
-static int gnsd_add_lt_sparse_data(NI_group * ngr, giiLabelTable * lt, 
+static int gnsd_add_lt_sparse_data(NI_group * ngr, giiLabelTable * lt,
                                    float * rgba)
 {
     NI_element * nel;
@@ -1258,7 +1258,7 @@ static int get_meta_stat_codes( nvpairs *nvp, float *p1, float *p2, float *p3)
     *p1 = strtod(value, NULL);  /* got one */
     if( GP->verb > 5 )
         fprintf(stderr,"++ setting intent_p1 to %lf from '%s'\n", *p1, value);
-        
+
 
     if( !p2 ) RETURN(1);
     value = gifti_get_meta_value(nvp, "intent_p2");
@@ -1598,7 +1598,7 @@ static int gifti_has_NSD_form(gifti_image * gim, int whine)
         if( !da ) {
             if( whine ) fprintf(stderr,"** missing darray[%d]\n", c);
             return 0; /* early termination */
-        } 
+        }
 
         /* be sure dims are valid and consistent */
         if( !gifti_valid_dims(da, whine) ) errs++;
@@ -1609,7 +1609,7 @@ static int gifti_has_NSD_form(gifti_image * gim, int whine)
                 fprintf(stderr,"** darray[%d] has nvals = %lld, d[0] = %d\n",
                         c, gifti_darray_nvals(da), da->dims[0]);
             errs++;
-        } 
+        }
 
         /* require ROW_MAJOR order */
         if( da->ind_ord != GIFTI_IND_ORD_ROW_MAJOR ) {

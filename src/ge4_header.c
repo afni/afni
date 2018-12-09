@@ -65,7 +65,7 @@ static char * g_ge4_sl_orient[] = { "supine", "prone", "Lt", "Rt" };
 /*!  Validate and read header data from a GEMS 4.x formatted file.
 
   \param filename is the name of the file to try to read
-  
+
   \param H is the address of a ge4_header struct to be initialized and filled
 
   \param get_image specifies whether to allocate for and read in the image

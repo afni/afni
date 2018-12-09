@@ -8,8 +8,8 @@
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * July, 6 1999
  *
  * ADDITIONS, CHANGES
@@ -50,13 +50,13 @@ static int _convertVectBufferTo3DBuffer( unsigned char *buf,
   if ( s <= 0 ) return( 0 );
   tmp = (unsigned char *)malloc( s * 3 * b * sizeof(unsigned char) );
   if ( tmp == (unsigned char *)NULL ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
     return( 0 );
   }
 
   (void)memcpy( (void*)tmp, (void*)buf, s * b * 3 );
-  
+
   switch ( b ) {
   case 1 :
     {
@@ -83,12 +83,12 @@ static int _convertVectBufferTo3DBuffer( unsigned char *buf,
     }
     break;
   }
-  
+
   free( tmp );
   return( 1 );
 
 }
-					 
+
 
 
 
@@ -102,13 +102,13 @@ static int _convert3DBufferToVectBuffer( unsigned char *buf,
   if ( s <= 0 ) return( 0 );
   tmp = (unsigned char *)malloc( s * 3 * b * sizeof(unsigned char) );
   if ( tmp == (unsigned char *)NULL ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
     return( 0 );
   }
 
   (void)memcpy( (void*)tmp, (void*)buf, s * b * 3 );
-  
+
   switch ( b ) {
   case 1 :
     {
@@ -140,7 +140,7 @@ static int _convert3DBufferToVectBuffer( unsigned char *buf,
   return( 1 );
 
 }
-					 
+
 
 
 static int _convertGreyBufferToVectBuffer( unsigned char *theBuf,
@@ -177,11 +177,10 @@ static int _convertGreyBufferToVectBuffer( unsigned char *theBuf,
     }
     break;
   }
-  
+
   return( 1 );
 
 }
-					 
 
 
 
@@ -201,7 +200,8 @@ static int _convertGreyBufferToVectBuffer( unsigned char *theBuf,
 
 
 
-void *_readPnmImage( char *name, 
+
+void *_readPnmImage( char *name,
 		   int *dimx, int *dimy, int *dimz, int *bytes )
 {
   char *proc="_readPnmImage";
@@ -222,14 +222,14 @@ void *_readPnmImage( char *name,
 
   f = fopen( name, "r" );
   if ( f == (FILE*)NULL ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in opening %s\n", proc, name );
     return( (void*)NULL );
   }
 
 
   if ( fscanf( f, "%s\n", string ) != 1 ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in reading magic string in %s\n", proc, name );
     fclose( f );
     return( (void*)NULL );
@@ -247,7 +247,7 @@ void *_readPnmImage( char *name,
   else if ( strncmp( string, "P6", 2 ) == 0 ) {
     P = Psix;
   } else {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: the magic string (%s) is not recognised in %s\n", proc, string, name );
     fclose( f );
     return( (void*)NULL );
@@ -264,7 +264,7 @@ void *_readPnmImage( char *name,
     }
 
     /* fprintf( stderr, "read='%s'\n",string);  */
-    
+
     /* is it a comment?
      */
     if ( string[0] == '#' ) {
@@ -311,7 +311,7 @@ void *_readPnmImage( char *name,
     /* fprintf( stderr, "(x,y,m)=(%d,%d,%d)\n",x,y,max); */
 
   } while (  maxIsRead == 0 );
-  
+
 
   sizeOfBuffer = x * y;
   switch( P ) {
@@ -334,7 +334,7 @@ void *_readPnmImage( char *name,
 
   buf = (void*)malloc( sizeOfBuffer * sizeof( unsigned char ) );
   if ( buf == (void*)NULL ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in allocating data buffer for %s\n", proc, name );
     fclose( f );
     return( (void*)NULL );
@@ -348,7 +348,7 @@ void *_readPnmImage( char *name,
   case Psix :
 
     if ( fread( buf, sizeof( unsigned char ), sizeOfBuffer, f ) != sizeOfBuffer ) {
-      if ( _VERBOSE_ ) 
+      if ( _VERBOSE_ )
 	fprintf( stderr, "%s: error in reading data in %s\n", proc, name );
       fclose( f );
       free( buf );
@@ -361,14 +361,14 @@ void *_readPnmImage( char *name,
   case Pthree :
 
     n = 0;
-    
+
 
     switch( *bytes ) {
     case 1 :
       {
 	unsigned char *tbuf = (unsigned char *)buf;
 	int val;
-	
+
 	while ( n < x*y ) {
 	  if ( fscanf( f, "%d", &val ) != 1 ) {
 	    fprintf( stderr, "%s: error in reading value #%d/%d in %s\n", proc, n+1, x*y, name );
@@ -384,7 +384,7 @@ void *_readPnmImage( char *name,
       {
 	unsigned short int *tbuf = (unsigned short int *)buf;
 	int val;
-	
+
 	while ( n < x*y ) {
 	  if ( fscanf( f, "%d", &val ) != 1 ) {
 	    fprintf( stderr, "%s: error in reading value #%d/%d in %s\n", proc, n+1, x*y, name );
@@ -401,12 +401,12 @@ void *_readPnmImage( char *name,
   }
 
   fclose( f );
-    
+
   switch( P ) {
   case Pthree :
   case Psix :
     if ( _convertVectBufferTo3DBuffer( buf, x, y, *bytes ) != 1 ) {
-      if ( _VERBOSE_ ) 
+      if ( _VERBOSE_ )
 	fprintf( stderr, "%s: can not convert data in %s\n", proc, name );
       free( buf );
       return( (void*)NULL );
@@ -443,7 +443,7 @@ void *_readPnmImage( char *name,
 
 
 
-void _writePnmImage( char *name, 
+void _writePnmImage( char *name,
 		     int x, int y, int z, int b, void *buf )
 {
   char *proc="_writePnmImage";
@@ -454,7 +454,7 @@ void _writePnmImage( char *name,
   int localz = z;
 
   if ( buf == (void*)NULL || sizeOfBuffer <= 0 ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: null buffer or bad dimensions \n", proc );
     return;
   }
@@ -465,7 +465,7 @@ void _writePnmImage( char *name,
       bufToWrite = (unsigned char *)NULL;
       bufToWrite = (unsigned char *)malloc(  x * y * 3 * b * sizeof(unsigned char) );
       if ( bufToWrite == (unsigned char *)NULL ) {
-	if ( _VERBOSE_ ) 
+	if ( _VERBOSE_ )
 	  fprintf( stderr, "%s: error in allocating auxiliary buffer\n", proc );
 	return;
       }
@@ -475,17 +475,17 @@ void _writePnmImage( char *name,
     break;
   case 3 :
     if ( _convert3DBufferToVectBuffer( buf, x, y, b ) != 1 ) {
-      if ( _VERBOSE_ ) 
+      if ( _VERBOSE_ )
 	fprintf( stderr, "%s: can not convert data\n", proc );
       return;
     }
     break;
   default :
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: can not deal with such z dimension (%d)\n", proc, z );
     return;
   }
-    
+
 
   switch( b ) {
   case 1 :
@@ -505,7 +505,7 @@ void _writePnmImage( char *name,
     }
     break;
   }
-  
+
   if ( _MaxGreyValueIs255_ != 0 ) {
     if ( max < 255 ) {
       if ( b == 1 ) max = 255;
@@ -518,7 +518,7 @@ void _writePnmImage( char *name,
 
   f = fopen( name, "w" );
   if ( f == (FILE*)NULL ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in opening %s\n", proc, name );
     if ( _WriteGreyImagesAsColorOnes_ != 0 ) free( bufToWrite );
     return;
@@ -527,7 +527,7 @@ void _writePnmImage( char *name,
   switch ( localz ) {
   case 1 :
     if ( fprintf( f, "P5\n" ) <= 0 ) {
-      if ( _VERBOSE_ ) 
+      if ( _VERBOSE_ )
 	fprintf( stderr, "%s: error in writing magic string in %s\n", proc, name );
       fclose( f );
       if ( _WriteGreyImagesAsColorOnes_ != 0 ) free( bufToWrite );
@@ -536,7 +536,7 @@ void _writePnmImage( char *name,
     break;
   case 3 :
     if ( fprintf( f, "P6\n" ) <= 0 ) {
-      if ( _VERBOSE_ ) 
+      if ( _VERBOSE_ )
 	fprintf( stderr, "%s: error in writing magic string in %s\n", proc, name );
       fclose( f );
       if ( _WriteGreyImagesAsColorOnes_ != 0 ) free( bufToWrite );
@@ -545,16 +545,16 @@ void _writePnmImage( char *name,
   }
 
   if ( fprintf( f, "%d %d\n%d\n", x, y, max ) <= 0 ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in writing header in %s\n", proc, name );
     fclose( f );
     if ( _WriteGreyImagesAsColorOnes_ != 0 ) free( bufToWrite );
     return;
   }
-  
+
   sizeOfBuffer = x * y * localz;
   if ( fwrite( bufToWrite, sizeof( unsigned char ), sizeOfBuffer, f ) != sizeOfBuffer ) {
-    if ( _VERBOSE_ ) 
+    if ( _VERBOSE_ )
       fprintf( stderr, "%s: error in writing data in %s\n", proc, name );
     fclose( f );
     if ( _WriteGreyImagesAsColorOnes_ != 0 ) free( bufToWrite );
@@ -582,12 +582,12 @@ void IoPnm_noverbose ( )
 
 
 
-void IoPnm_WriteGreyAsColor() 
+void IoPnm_WriteGreyAsColor()
 {
   _WriteGreyImagesAsColorOnes_ = 1;
 }
 
-void IoPnm_DontWriteGreyAsColor() 
+void IoPnm_DontWriteGreyAsColor()
 {
   _WriteGreyImagesAsColorOnes_ = 0;
 }

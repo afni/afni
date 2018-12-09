@@ -5,12 +5,12 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int combak_(integer *nm, integer *low, integer *igh, 
-	doublereal *ar, doublereal *ai, integer *int__, integer *m, 
+/* Subroutine */ int combak_(integer *nm, integer *low, integer *igh,
+	doublereal *ar, doublereal *ai, integer *int__, integer *m,
 	doublereal *zr, doublereal *zi)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
 
     /* Local variables */
@@ -59,12 +59,12 @@
 /*          IN THEIR FIRST M COLUMNS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -107,9 +107,9 @@
 
 	    i__3 = *m;
 	    for (j = 1; j <= i__3; ++j) {
-		zr[i__ + j * zr_dim1] = zr[i__ + j * zr_dim1] + xr * zr[mp + 
+		zr[i__ + j * zr_dim1] = zr[i__ + j * zr_dim1] + xr * zr[mp +
 			j * zr_dim1] - xi * zi[mp + j * zi_dim1];
-		zi[i__ + j * zi_dim1] = zi[i__ + j * zi_dim1] + xr * zi[mp + 
+		zi[i__ + j * zi_dim1] = zi[i__ + j * zi_dim1] + xr * zi[mp +
 			j * zi_dim1] + xi * zr[mp + j * zr_dim1];
 /* L100: */
 	    }

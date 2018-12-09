@@ -189,7 +189,7 @@ fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
       if( dxfil  != NULL ) fprintf( dxfil  , "%6.3f\n" , dx[kim] ) ;
       if( dyfil  != NULL ) fprintf( dyfil  , "%6.3f\n" , dy[kim] ) ;
       if( phifil != NULL ) fprintf( phifil , "%6.3f\n" , (180.0/PI)*phi[kim] ) ;
-      
+
       if (RG_keepsize) {
          int kkk;
          MRI_IMARR * trimarr = mri_uncat2D( RG_baseimage->nx , RG_baseimage->ny , tim );
@@ -198,7 +198,7 @@ fprintf(stderr,"Image %d: xbase=%g ybase=%g xcm=%g ycm=%g di=%d dj=%d\n",
          mri_free(tim); tim = IMARR_SUBIMAGE(trimarr,0) ;
          for (kkk=1; kkk<trimarr->num; ++kkk) mri_free(IMARR_SUBIMAGE(trimarr,kkk));
       }
-      
+
       if( ! RG_skip_output ){
          switch( RG_out_mode ){
 

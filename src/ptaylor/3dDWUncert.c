@@ -1,12 +1,12 @@
-/* 
+/*
    P. Taylor, March 2012
-	
+
 	This program estimates uncertainty of relevant DTI parameters using
-	jackknife resampling 
+	jackknife resampling
 
 	Sept. 2012: fixed some memory stuff.
 
-   Jan. 2014: 
+   Jan. 2014:
        + counter stuff, nicer output for user
        + cap MAXBAD at 8; only affects cases of >67 grads
 
@@ -24,8 +24,8 @@
    Apr, 2016:
        + use AFNI style bmatrix for inputting now...
 
-   Oct, 2016: 
-       + totally redone inner workings 
+   Oct, 2016:
+       + totally redone inner workings
        + OpenMPed it
        + should work when no b=0 is there
        + should be much faster
@@ -38,7 +38,7 @@
        + output name no longer automatically attaches "_UNC" to
          user prefix.
        + fixed listname usage.
-   
+
 */
 
 
@@ -49,9 +49,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-//#include <rsfc.h>    
+#include <mrilib.h>
+#include <3ddata.h>
+//#include <rsfc.h>
 //#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 #include "colorbasic.h"
@@ -70,7 +70,7 @@
 /*
   Do the uncertainty calc-- now with OpenMP
 */
- 
+
 int Calc_DTI_uncert( float **UU,
                      int *minds, //short *mskd,
                      int Nvox,
@@ -87,12 +87,12 @@ int Calc_DTI_uncert( float **UU,
                      );
 
 
-/*int test_func( float **UU, 
+/*int test_func( float **UU,
                short *mskd,
                int Nvox);
 */
 
-void usage_3dDWUncert(int detail) 
+void usage_3dDWUncert(int detail)
 {
    printf(
 "\n"
@@ -127,7 +127,7 @@ void usage_3dDWUncert(int detail)
 "    -inset  FILE     :file with b0 and DWI subbricks \n"
 "                      (e.g., input to 3dDWtoDTI)\n"
 "    -prefix PREFIX   :output file name part.\n"
-"    -input  INPREF   :basename of DTI volumes output by,\n" 
+"    -input  INPREF   :basename of DTI volumes output by,\n"
 "                      e.g., 3dDWItoDT or TORTOISE. Assumes format of name\n"
 "                      is, e.g.:  INPREF_FA+orig.HEAD or INPREF_FA.nii.gz .\n"
 "                      Files needed with same prefix are:\n"
@@ -248,7 +248,7 @@ int main(int argc, char *argv[]) {
    short *mskd=NULL;     // define mask of where time series are nonzero
    int  *minds=NULL;     // the mask as a list of inds, to better
                          // divide amongst procs
-   float **unc_out=NULL; 
+   float **unc_out=NULL;
 
    int Nj=300;
    float CALC_THR_FA=-1.;    // DEFAULT: value for new option of only
@@ -270,8 +270,8 @@ int main(int argc, char *argv[]) {
    int Mj=0, MAXBAD=0;
 	int **StoreRandInd=NULL;
 
-   mainENTRY("3d3dDWUncert"); machdep(); 
-  
+   mainENTRY("3d3dDWUncert"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -279,17 +279,17 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    // INFO_message("version: NU");
-	
+
    /** scan args **/
    if (argc == 1) { usage_3dDWUncert(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_3dDWUncert(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       // NO ARG:
       //if( strcmp(argv[iarg],"-TESTING") == 0) {
       //   TEST_OK=1;
@@ -297,16 +297,16 @@ int main(int argc, char *argv[]) {
       //}
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-inset") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-inset'");
 
          dwiset1 = THD_open_dataset(argv[iarg]);
@@ -316,14 +316,14 @@ int main(int argc, char *argv[]) {
 
          DSET_load(dwiset1); CHECK_LOAD_ERROR(dwiset1);
 
-         Nvox = Basic_Info_Dim_and_Nvox( dwiset1, 
+         Nvox = Basic_Info_Dim_and_Nvox( dwiset1,
                                          Dim, 4);
 
          iarg++ ; continue ;
       }
 
 		if( strcmp(argv[iarg],"-input") == 0 ){ // initial results of 3dDWItoDTI
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
             ERROR_exit("Need argument after '-input'");
 
          infix = strdup(argv[iarg]) ;
@@ -332,52 +332,52 @@ int main(int argc, char *argv[]) {
 
 			iarg++ ; continue ;
 		}
-	 
+
       if( strcmp(argv[iarg],"-input_list") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-input_list'");
          dti_listname = strdup(argv[iarg]) ;
 
 			iarg++ ; continue ;
 		}
 
-		if( strcmp(argv[iarg],"-grads") == 0 ){ 
-			if( ++iarg >= argc ) 
+		if( strcmp(argv[iarg],"-grads") == 0 ){
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-grads'");
-			
+
          BMAT = 0;
          flim0 = mri_read_1D (strdup(argv[iarg]));
-         if (flim0 == NULL) 
+         if (flim0 == NULL)
             ERROR_exit("Error reading gradient vector file");
          flim = mri_transpose(flim0);
          mri_free(flim0);
 
 			iarg++ ; continue ;
 		}
-		else if( strcmp(argv[iarg],"-bmatrix_Z") == 0 ){ 
-			if( ++iarg >= argc ) 
+		else if( strcmp(argv[iarg],"-bmatrix_Z") == 0 ){
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-bmatrix_Z'");
-         
+
 			// if b-matrix is being used as input,
 			// have to find out still which one(s) are b=0.
          BMAT = 1;
          flim0 = mri_read_1D (strdup(argv[iarg]));
-         if (flim0 == NULL) 
+         if (flim0 == NULL)
             ERROR_exit("Error reading matrix file");
          flim = mri_transpose(flim0);
          mri_free(flim0);
 
 			iarg++ ; continue ;
 		}
-		else if( strcmp(argv[iarg],"-bmatrix_FULL") == 0 ){ 
-			if( ++iarg >= argc ) 
+		else if( strcmp(argv[iarg],"-bmatrix_FULL") == 0 ){
+			if( ++iarg >= argc )
 				ERROR_exit("Need argument after '-bmatrix_FULL'");
-         
+
 			// if b-matrix is being used as input,
 			// have to find out still which one(s) are b=0.
          BMAT = 1;
          flim0 = mri_read_1D (strdup(argv[iarg]));
-         if (flim0 == NULL) 
+         if (flim0 == NULL)
             ERROR_exit("Error reading matrix file");
          flim = mri_transpose(flim0);
          mri_free(flim0);
@@ -386,7 +386,7 @@ int main(int argc, char *argv[]) {
 		}
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
 
          MASK = THD_open_dataset(argv[iarg]);
@@ -395,35 +395,35 @@ int main(int argc, char *argv[]) {
                        argv[iarg]);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
 		if( strcmp(argv[iarg],"-iters") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-iters'");
-         
+
 			Nj = atoi(argv[iarg]);
 			if(Nj <= 2)
 				ERROR_exit("(Far) too few iterations.");
 			iarg++ ; continue ;
 		}
-	 
+
 		// optional, can change `magic' value of csf_fa value for
 		// skipping `bad' voxels, which has been set `above' to match
 		// value of 3dDWItoDT.
 		if( strcmp(argv[iarg],"-csf_fa") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-csf_fa'");
 			CSF_FA = atof(argv[iarg]);
 			iarg++ ; continue ;
 		}
-	 
+
       // May, 2015: new option to set minimum value to both
       // calculating uncertainty: default is -1, but in an adult, one
       // could maybe use 0.1 or even 0.15
       if( strcmp(argv[iarg],"-calc_thr_FA") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-calc_thr_FA'");
 			CALC_THR_FA = atof(argv[iarg]);
          INFO_message("Setting FA threshold for calculation to be: "
@@ -433,7 +433,7 @@ int main(int argc, char *argv[]) {
 		}
 
       if( strcmp(argv[iarg],"-pt_choose_seed") == 0) {
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
             ERROR_exit("Need argument after '-pt_choose_seed'");
          CHOOSE_SEED = atoi(argv[iarg]);
          INFO_message("(PT) Internal option: "
@@ -443,7 +443,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-pt_jkval") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-pt_jkval'");
 			jknife_val = atof(argv[iarg]);
          INFO_message("(PT) Internal option: "
@@ -452,26 +452,26 @@ int main(int argc, char *argv[]) {
          if( (jknife_val >= 1 ) || (jknife_val <=0 ) )
 				ERROR_exit("Jackknife fraction must be between 0 and 1, not %f.",
                        jknife_val);
-			
+
 			iarg++ ; continue ;
 		}
 
       if( strcmp(argv[iarg],"-pt_jkout") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-pt_jkout'");
 			Njkout = atoi(argv[iarg]);
          INFO_message("(PT) Internal option: "
                       "writing %d example files of JK iterations.", Njkout);
-         
+
          if( Njkout <=0 )
 				ERROR_exit("Jackknife fraction must be between [1,Nvox], not %d.",
                        Njkout);
-			
+
 			iarg++ ; continue ;
 		}
 
       if( strcmp(argv[iarg],"-pt_conf") == 0 ){
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-pt_conf'");
 			CI_val = atoi(argv[iarg]);
          INFO_message("(PT) Internal option: "
@@ -480,7 +480,7 @@ int main(int argc, char *argv[]) {
          if( (CI_val > 100 ) || (CI_val <=0 ) )
 				ERROR_exit("Confidence interval percent must be (0, 100], not %d.",
                        CI_val);
-			
+
 			iarg++ ; continue ;
 		}
 
@@ -489,7 +489,7 @@ int main(int argc, char *argv[]) {
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-	
+
    // ****************************************************************
    // ****************************************************************
    // ****************************************************************
@@ -524,35 +524,35 @@ int main(int argc, char *argv[]) {
 
    // make sure everything is consistent with input type and with
    // number of input DWIs
-   if(BMAT==0) { 
-      if(Ncol!=3) 
+   if(BMAT==0) {
+      if(Ncol!=3)
          ERROR_exit("There are %d columns, but should be 3 for"
                     "'-grad ...' input!", Ncol);
-      if(Ngrad!=Dim[3]-1) 
+      if(Ngrad!=Dim[3]-1)
          ERROR_exit("There are %d rows, but should be %d-1 (one less"
-                    "than Nvol) for '-grad ...' input!", 
+                    "than Nvol) for '-grad ...' input!",
                     Ngrad, Dim[3]);
    }
    if( BMAT==1) {
-      if(Ncol!=6) 
+      if(Ncol!=6)
          ERROR_exit("There are %d columns, but should be 6 for"
                     "'-bmatrix_Z ...' or '-bmatrix_FULL ...' input!", Ncol);
-      if(Ngrad!=Dim[3]) 
+      if(Ngrad!=Dim[3])
          ERROR_exit("There are %d rows, but should be %d (same as in Nvol) "
-                    "for '-bmatrix_Z ...' or '-bmatrix_FULL ...' input!", 
+                    "for '-bmatrix_Z ...' or '-bmatrix_FULL ...' input!",
                     Ngrad, Dim[3]);
    }
 
    // in long term, need Nx7 array
    bseven = calloc( Dim[3], sizeof(bseven));
-   for( i=0 ; i<Dim[3] ; i++) 
-      bseven[i] = calloc( 7, sizeof(float)); 
+   for( i=0 ; i<Dim[3] ; i++)
+      bseven[i] = calloc( 7, sizeof(float));
    if( (bseven == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(32);
    }
-   
-   if(BMAT==0) 
+
+   if(BMAT==0)
       // preserves magn
       i = Basic_Grads_to_B7( bseven,
                              flim,
@@ -561,38 +561,38 @@ int main(int argc, char *argv[]) {
       i = Basic_Bmats_to_B7( bseven,
                              flim,
                              Dim[3]); // Nbmat = Nvol
-   
+
    // the full Bmatrix should now be set
 
    mri_free(flim);
 
    // set up numbers for jackknife subsampling
    Mj = (int) floor(jknife_val*Dim[3]);
-   if(Mj<7) 
+   if(Mj<7)
       Mj=7;
    INFO_message("Input format: bmatrs. Number of DWI in inset=%d."
                 " Jackknife sample size=%d", Dim[3], Mj);
    MAXBAD = (int) (0.125*Dim[3]);
-   // for some really large numbers of gradients, >100, the number is 
+   // for some really large numbers of gradients, >100, the number is
    // just too big; Jan, 2014
    if( MAXBAD>10)
-      MAXBAD = 10; 
+      MAXBAD = 10;
    if(Mj-MAXBAD<6)
       MAXBAD=Mj-6;
 
    // -------------------- rand. stuff-------------------------------
-   
+
    // will store the indices to select random subset of grads
-   StoreRandInd = calloc(Nj,sizeof(StoreRandInd)); 
-	for(i=0 ; i<Nj ; i++) 
-		StoreRandInd[i] = calloc(Mj,sizeof(int)); 
+   StoreRandInd = calloc(Nj,sizeof(StoreRandInd));
+	for(i=0 ; i<Nj ; i++)
+		StoreRandInd[i] = calloc(Mj,sizeof(int));
    if(  ( StoreRandInd == NULL) ) {
       fprintf(stderr,"\n\nMemAlloc failure: prepping index selection.\n\n");
       exit(12);
    }
 
    // this makes the array of index selections
-   i = Make_Jackknife_Inds_keep0th( StoreRandInd, 
+   i = Make_Jackknife_Inds_keep0th( StoreRandInd,
                                     Dim[3],
                                     Mj,
                                     Nj,
@@ -600,21 +600,21 @@ int main(int argc, char *argv[]) {
 
    //Show_2DMatrix_Ints(StoreRandInd,Nj,Mj);
 
-   // -------------------- glob for data sets ----------------------   
+   // -------------------- glob for data sets ----------------------
 
-   insetPARS = (THD_3dim_dataset **)calloc(N_DTI_SCAL, 
+   insetPARS = (THD_3dim_dataset **)calloc(N_DTI_SCAL,
                                            sizeof(THD_3dim_dataset *));
-   insetVECS = (THD_3dim_dataset **)calloc(N_DTI_VECT, 
-                                           sizeof(THD_3dim_dataset *)); 
+   insetVECS = (THD_3dim_dataset **)calloc(N_DTI_VECT,
+                                           sizeof(THD_3dim_dataset *));
    if(  (insetPARS == NULL) || (insetVECS == NULL) ) {
       fprintf(stderr,"\n\nMemAlloc failure: prepping to store sets.\n\n");
       exit(13);
    }
 
    wild_names = (char **)calloc(N_DTI_MAX_PARS, sizeof(char *)); //AAAA
-   for (j=0; j<N_DTI_MAX_PARS; ++j) 
+   for (j=0; j<N_DTI_MAX_PARS; ++j)
       wild_names[j] = (char *)calloc(32, sizeof(char));
-   
+
    if( (wild_names == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(123);
@@ -639,7 +639,7 @@ int main(int argc, char *argv[]) {
          free(insetPARS[i]);
       }
       free(insetPARS);
-      
+
       for( i=0 ; i<N_DTI_VECT ; i++){
          DSET_delete(insetVECS[i]);
          free(insetVECS[i]);
@@ -649,25 +649,25 @@ int main(int argc, char *argv[]) {
    }
 
    // check to match dimensions-- one comp should be good enough
-   i = Basic_Compare_DSET_dims( dwiset1, 
+   i = Basic_Compare_DSET_dims( dwiset1,
                                 insetPARS[0],
                                 3);
-   i = Basic_Compare_DSET_dims( dwiset1, 
+   i = Basic_Compare_DSET_dims( dwiset1,
                                 insetVECS[0],
                                 3);
 
-   // -------------------- 
+   // --------------------
 
-   mskd = (short *)calloc(Nvox,sizeof(short)); 
-   
+   mskd = (short *)calloc(Nvox,sizeof(short));
+
    unc_out = calloc( 6, sizeof(unc_out));   // major output set
-   for( i=0 ; i<6 ; i++) 
-      unc_out[i] = calloc( Nvox, sizeof(float)); 
+   for( i=0 ; i<6 ; i++)
+      unc_out[i] = calloc( Nvox, sizeof(float));
 
-   if( (mskd == NULL) || (unc_out == NULL) ) { 
+   if( (mskd == NULL) || (unc_out == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(4);
-   } 
+   }
 
 
    // *************************************************************
@@ -675,7 +675,7 @@ int main(int argc, char *argv[]) {
    //                    Beginning of main loops
    // *************************************************************
    // *************************************************************
-	
+
 
    // go through once: define data vox
    INFO_message("First pass masking: user-defined and nonzero values");
@@ -694,9 +694,9 @@ int main(int argc, char *argv[]) {
                mskd[i] = 1;
       }
    }
-   
+
    INFO_message("Second pass masking: default values for 'bad' voxels");
-   for( i=0 ; i<Nvox ; i++ ) 
+   for( i=0 ; i<Nvox ; i++ )
       if( mskd[i] ) {
          if( fabs(THD_get_voxel(insetPARS[0],i,0) - CSF_FA) < 0.0000001) {
             mskd[i] = 0; // unset from further calcs
@@ -706,20 +706,20 @@ int main(int argc, char *argv[]) {
             unc_out[5][i] = 1.;
          }
       }
-   
+
    Ntodo = 0;
-   for( i=0 ; i<Nvox ; i++ ) 
+   for( i=0 ; i<Nvox ; i++ )
       if( mskd[i] ) {
          Ntodo++;
       }
 
-   minds = (int *)calloc(Ntodo, sizeof(int)); 
-   if( (minds == NULL) ) { 
+   minds = (int *)calloc(Ntodo, sizeof(int));
+   if( (minds == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(4);
-   } 
+   }
    j=0;
-   for( i=0 ; i<Nvox ; i++ ) 
+   for( i=0 ; i<Nvox ; i++ )
       if( mskd[i] ) {
          minds[j] = i;
          j++;
@@ -729,14 +729,14 @@ int main(int argc, char *argv[]) {
                 "of which %d are to be resampled.", Nvox, Ntodo);
 
    // --------------------------------------------------------------------
-   
+
    INFO_message("Number of iterations to do: %d",Nj);
 
-   /*i = test_func( unc_out, 
+   /*i = test_func( unc_out,
      mskd,
      Nvox);*/
 
-   i = Calc_DTI_uncert( unc_out, 
+   i = Calc_DTI_uncert( unc_out,
                         minds, //mskd,
                         Nvox,
                         insetPARS,
@@ -760,11 +760,11 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
 
-   outset = EDIT_empty_copy( dwiset1 ) ; 
+   outset = EDIT_empty_copy( dwiset1 ) ;
 
    EDIT_dset_items( outset,
-                    ADN_datum_all , MRI_float, 
-                    ADN_ntt       , 6, 
+                    ADN_datum_all , MRI_float,
+                    ADN_ntt       , 6,
                     ADN_nvals     , 6,
                     ADN_prefix    , prefix ,
                     ADN_none ) ;
@@ -778,17 +778,17 @@ int main(int argc, char *argv[]) {
 		unc_out[n]=NULL;
 	}
 
-	EDIT_BRICK_LABEL(outset, 0, "bias_E1e2");      
-	EDIT_BRICK_LABEL(outset, 1, "std_E1e2");      
-	EDIT_BRICK_LABEL(outset, 2, "bias_E1e3");      
-	EDIT_BRICK_LABEL(outset, 3, "std_E1e3");      
-	EDIT_BRICK_LABEL(outset, 4, "bias_FA");      
-	EDIT_BRICK_LABEL(outset, 5, "std_FA");     
+	EDIT_BRICK_LABEL(outset, 0, "bias_E1e2");
+	EDIT_BRICK_LABEL(outset, 1, "std_E1e2");
+	EDIT_BRICK_LABEL(outset, 2, "bias_E1e3");
+	EDIT_BRICK_LABEL(outset, 3, "std_E1e3");
+	EDIT_BRICK_LABEL(outset, 4, "bias_FA");
+	EDIT_BRICK_LABEL(outset, 5, "std_FA");
 
    THD_load_statistics(outset);
    tross_Make_History("3dDWUncert", argc, argv, outset);
    THD_write_3dim_dataset(NULL, NULL, outset, True);
-   
+
    INFO_message("DONE.");
 
    // ************************************************************
@@ -796,7 +796,7 @@ int main(int argc, char *argv[]) {
    //                    Freeing
    // ************************************************************
    // ************************************************************
-	
+
    if(outset){
       DSET_delete(outset);
       free(outset);
@@ -805,19 +805,19 @@ int main(int argc, char *argv[]) {
    // -------------------------------------------------------
 
    if(unc_out) {
-      for( i=0 ; i<6 ; i++) 
+      for( i=0 ; i<6 ; i++)
          free(unc_out[i]);
       free(unc_out);
    }
-   
+
    if(StoreRandInd){
-      for( i=0 ; i<Nj ; i++) 
+      for( i=0 ; i<Nj ; i++)
          free(StoreRandInd[i]);
       free(StoreRandInd);
    }
 
    if(bseven) {
-      for( i=0 ; i<Dim[3] ; i++) 
+      for( i=0 ; i<Dim[3] ; i++)
          free(bseven[i]);
       free(bseven);
    }
@@ -834,7 +834,7 @@ int main(int argc, char *argv[]) {
    }
    free(insetVECS);
 
-   for( i=0 ; i<N_DTI_MAX_PARS ; i++)  
+   for( i=0 ; i<N_DTI_MAX_PARS ; i++)
       free(wild_names[i]);
    free(wild_names);
 
@@ -848,11 +848,11 @@ int main(int argc, char *argv[]) {
       DSET_delete(MASK);
       free(MASK);
    }
-      
-   if(mskd) 
+
+   if(mskd)
       free(mskd);
 
-   if(minds) 
+   if(minds)
       free(minds);
 
    if(prefix)
@@ -874,7 +874,7 @@ int main(int argc, char *argv[]) {
 // ---------------------------------------------------------------
 // ---------------------------------------------------------------
 
-/*int test_func( float **UU, 
+/*int test_func( float **UU,
                short *mskd,
                int Nvox)
 {
@@ -892,12 +892,12 @@ int main(int argc, char *argv[]) {
    AFNI_OMP_START;
 #pragma omp parallel if(1)
    {
-   
+
       int i;
-      
+
 #pragma omp for
       for( i=0 ; i<Nvox ; i++ ) {
-         if( mskd[i] ) { 
+         if( mskd[i] ) {
             UU[0][i]+= 11.11;
             UU[3][i]+= (float) i;
          }
@@ -905,9 +905,9 @@ int main(int argc, char *argv[]) {
 
    } // end OMP
    AFNI_OMP_END ;
-   
+
    INFO_message("Finished OMPing");
-   
+
    return 0;
    }*/
 
@@ -954,7 +954,7 @@ int Calc_DTI_uncert( float **UU,
                          Ntodo, Nthreads);
       ApproxTenPerc = 1;
    }
-   else if(ApproxTenPerc < 0 ) 
+   else if(ApproxTenPerc < 0 )
       ERROR_exit("ERROR! %d voxels to analyze and %d threads?? "
                     "This leads to ~10 percent value of %d?!??",
                     Ntodo, Nthreads, ApproxTenPerc);
@@ -970,12 +970,12 @@ int Calc_DTI_uncert( float **UU,
 
       int POSDEF=0;
       int ii,kk,jj,ll;
-   
+
       float Wei[Mj];
       short Weibad[Mj];
       float mostpos;
       int worstS;
-      
+
       gsl_vector *x       = gsl_vector_alloc(Mj);    // ln( S_i )
       gsl_matrix *B       = gsl_matrix_alloc(Mj, 7); // bmatrix + 1
       gsl_matrix *BTW     = gsl_matrix_alloc(7, Mj); // (B^T Wei)
@@ -984,11 +984,11 @@ int Calc_DTI_uncert( float **UU,
       gsl_matrix *C       = gsl_matrix_alloc(7, Mj); // (BTWBinv)(BTW)
 
       gsl_vector *dd      = gsl_vector_alloc(7);     // flat D + ln(S0)
-      gsl_vector *Eval    = gsl_vector_alloc(3);     // 
-      gsl_matrix *Evec    = gsl_matrix_alloc(3,3);   // 
-      gsl_matrix *testD   = gsl_matrix_alloc(3,3);   // 
+      gsl_vector *Eval    = gsl_vector_alloc(3);     //
+      gsl_matrix *Evec    = gsl_matrix_alloc(3,3);   //
+      gsl_matrix *testD   = gsl_matrix_alloc(3,3);   //
       gsl_eigen_symm_workspace *EigenV = gsl_eigen_symm_alloc(3);
-      
+
       //int iter = 0;
       //int whichvox=0;
 
@@ -1001,7 +1001,7 @@ int Calc_DTI_uncert( float **UU,
 
 #pragma omp for
       for( aa=0 ; aa<Ntodo ; aa++ ) {
-         //if( mskd[i] ) { 
+         //if( mskd[i] ) {
          i = minds[aa];
          for( ll=0 ; ll<Nj ; ll++ ) {
             /*for( ii=0 ; ii<Nvox ; ii++ ) // ONLY FOR TESTING
@@ -1013,22 +1013,22 @@ int Calc_DTI_uncert( float **UU,
               break;
               }
               }*/
-            
-            for( ii=0 ; ii<Mj ; ii++ ) 
-               Wei[ii] = pow(THD_get_voxel(DWI, i, 
+
+            for( ii=0 ; ii<Mj ; ii++ )
+               Wei[ii] = pow(THD_get_voxel(DWI, i,
                                            StoreRandInd[ll][ii]), 2);
-            
+
             ii = Make_Uncert_Matrs_init( i,
                                          bseven,
                                          DWI,
-                                         StoreRandInd[ll], 
+                                         StoreRandInd[ll],
                                          Wei,
                                          x,
                                          B,
                                          BTW,
                                          Mj
                                          );
-   
+
             ii = Make_Uncert_Matrs_final( B,
                                           BTW,
                                           BTWB,
@@ -1036,7 +1036,7 @@ int Calc_DTI_uncert( float **UU,
                                           C
                                           );
 
-            if( !ii ) 
+            if( !ii )
                ii = Calc_DTI_lin_tensor( x,
                                          dd,
                                          C,
@@ -1050,45 +1050,45 @@ int Calc_DTI_uncert( float **UU,
 
             if( POSDEF != 1 ) {
                //INFO_message("Vox: %10d has neg eigval(s)", i);
-               
-               for( ii=0 ; ii<Mj ; ii++ ) 
+
+               for( ii=0 ; ii<Mj ; ii++ )
                   Weibad[ii] = 0;
-               
+
                for( jj=0 ; jj<MAXBAD ; jj++ ) {
                   //INFO_message("fitting iter: %d",jj);
-                  
-                  mostpos = -1.e10; // ceiling in this nonPOSDEF zone 
+
+                  mostpos = -1.e10; // ceiling in this nonPOSDEF zone
                   worstS = -1;
                   // start getting rid of bad ones, but not the [0]th
                   for( kk=1 ; kk<Mj ; kk++ ) {
                      if( !Weibad[kk] ) {
                         for( ii=0 ; ii<Mj ; ii++ ) {
-                           Wei[ii] = pow(THD_get_voxel(DWI, 
-                                                       i, 
-                                                       StoreRandInd[ll][ii]), 
+                           Wei[ii] = pow(THD_get_voxel(DWI,
+                                                       i,
+                                                       StoreRandInd[ll][ii]),
                                          2);
-                           if ( Weibad[ii] || (ii==kk) ) 
+                           if ( Weibad[ii] || (ii==kk) )
                               Wei[ii]/= 10.e8;
                         }
                         //Show_1DArray_Floats(Wei,Mj);
                         ii = Make_Uncert_Matrs_init( i,
                                                      bseven,
                                                      DWI,
-                                                     StoreRandInd[ll], 
+                                                     StoreRandInd[ll],
                                                      Wei,
                                                      x,
                                                      B,
                                                      BTW,
                                                      Mj
                                                      );
-                        
+
                         ii = Make_Uncert_Matrs_final( B,
                                                       BTW,
                                                       BTWB,
                                                       BTWBinv,
-                                                      C 
+                                                      C
                                                       );
-                        if( !ii ) 
+                        if( !ii )
                            ii = Calc_DTI_lin_tensor( x,
                                                      dd,
                                                      C,
@@ -1099,7 +1099,7 @@ int Calc_DTI_uncert( float **UU,
                                                      );
                         else // badness, e.g., singular matrix
                            POSDEF = -1;
-                           
+
                         if(POSDEF==1) {
                            jj = MAXBAD+10; // break the cycle!
                            break;
@@ -1114,12 +1114,12 @@ int Calc_DTI_uncert( float **UU,
                      }
                   }
                   // another one stored as bad for next go 'round
-                  Weibad[worstS]=1; 
+                  Weibad[worstS]=1;
                }
                //if(POSDEF)
                //INFO_message("Fixed one! %d",i);
             }
-            
+
             // still per voxel thing
             if(POSDEF==1) { // if things were fine in tensor calc
                //INFO_message("OK fit!");
@@ -1151,12 +1151,12 @@ int Calc_DTI_uncert( float **UU,
             nprog++;
             if( (nprog % ApproxTenPerc) == 0 ) {
                fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
-                       "[", nprog *10./ApproxTenPerc,"]", 
+                       "[", nprog *10./ApproxTenPerc,"]",
                        (float) difftime( time(NULL), t_start)/60. );
             }
          }
       }
-      
+
 
       // free stuff, per usual...
       gsl_vector_free(x);
@@ -1170,15 +1170,15 @@ int Calc_DTI_uncert( float **UU,
       gsl_vector_free(Eval);
       gsl_matrix_free(Evec);
       gsl_matrix_free(testD);
-      
+
       gsl_eigen_symm_free(EigenV);
-            
+
    } // end OMP
    AFNI_OMP_END ;
-   
-   
+
+
    INFO_message("Finished OMPing.  Finalizing...");
-   
+
    // after all tensor diffs have been entered, finalize
    j = Finalize_Uncert_Array( UU,
                               minds,

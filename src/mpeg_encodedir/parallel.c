@@ -35,7 +35,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -319,7 +319,7 @@ int portNum;
     } else if ( frameNumber == -2 ) {
       /* decoded frame to be output to disk */
       SafeRead(otherSock, (char *)buffer, 4);
-      frameNumber = ntohl(buffer[0]);	    
+      frameNumber = ntohl(buffer[0]);
 
       if ( debugSockets ) {
 	fprintf(stdout, "INPUT SERVER:  GETTING DECODED FRAME %d\n", frameNumber);
@@ -350,7 +350,7 @@ int portNum;
     } else if ( frameNumber == -3 ) {
       /* request for decoded frame from disk */
       SafeRead(otherSock, (char *)buffer, 4);
-      frameNumber = ntohl(buffer[0]);	    
+      frameNumber = ntohl(buffer[0]);
 
       if ( debugSockets ) {
 	fprintf(stdout, "INPUT SERVER:  READING DECODED FRAME %d from DISK\n", frameNumber);
@@ -704,35 +704,35 @@ int portNum;
 {
   int	    combinePortNum;
   FILE    *ofp;
-  
+
   /* once we get Combine port num, should transmit it to parallel server */
-  
+
   outputServerSocket = CreateListeningSocket(&combinePortNum);
-  
+
   if ( debugSockets ) {
     fprintf(stdout, "====OUTPUT USING PORT %d\n", combinePortNum);
   }
-  
+
   TransmitPortNum(parallelHostName, portNum, combinePortNum);
-  
+
   frameDone = (boolean *) malloc(numInputFiles*sizeof(boolean));
   memset((char *)frameDone, 0, numInputFiles*sizeof(boolean));
-  
+
   if ( (ofp = fopen(outputFileName, "wb")) == NULL ) {
     fprintf(stderr, "ERROR:  Could not open output file!!\n");
     fflush(stderr);
     exit(1);
   }
   FramesToMPEG(numInputFiles, outputFileName, ofp, TRUE);
-  
+
   if ( debugSockets ) {
     fprintf(stdout, "====COMBINE SERVER:  Shutting Down\n");
     fflush(stdout);
   }
-  
+
   /* tell Master server we are done */
   TransmitPortNum(parallelHostName, portNum, combinePortNum);
-  
+
   close(outputServerSocket);
 }
 
@@ -1004,7 +1004,7 @@ char *outputFileName;
     } else {
       endFrame = startFrame+parallelTestFrames-1;
     }
-	    
+
     if ( remote[ind] ) {
       sprintf(command, "%s %s -l %s %s %s -child %s %d %d %d %d %d %d -frames %d %d %s",
 	      rsh,
@@ -1034,7 +1034,7 @@ char *outputFileName;
 	      machineName[ind],
 	      startFrame, endFrame);
     }
-	
+
 
     safe_fork(command);
 
@@ -1179,7 +1179,7 @@ char *outputFileName;
 
   SafeRead(otherSock, (char *)buffer, 4);
   close(otherSock);
-    
+
   close(serverSocket);
 
   time(&timeEnd);
@@ -1219,10 +1219,10 @@ char *outputFileName;
 
     fprintf(filePtr, "--------------\t------\t-------\t-----------------\t---------\n");
 
-    fprintf(filePtr, "%14s\t\t%d\t%f\n", "OPTIMAL", 
+    fprintf(filePtr, "%14s\t\t%d\t%f\n", "OPTIMAL",
 	    (int)((float)numInputFiles/totalFPS),
 	    totalFPS);
-    fprintf(filePtr, "%14s\t\t%d\t%f\n", "ACTUAL", diffTime, 
+    fprintf(filePtr, "%14s\t\t%d\t%f\n", "ACTUAL", diffTime,
 	    (float)numInputFiles/(float)diffTime);
 
     fprintf(filePtr, "\n\n");
@@ -1357,7 +1357,7 @@ int portNum;
 
       if ( debugSockets ) {
 	fprintf(stdout, "====DECODE SERVER:  REQUEST FOR %d\n", frameReady);
-	fflush(stdout);	    
+	fflush(stdout);
       }
 
       /* now respond if it's ready yet */
@@ -1844,7 +1844,7 @@ MpegFrame *frame;
  *
  * RETURNS:	nothing
  *
- * SIDE EFFECTS:   
+ * SIDE EFFECTS:
  *
  *===========================================================================*/
 void
@@ -1882,7 +1882,7 @@ int frameNumber;
   }
 
   close(clientSocket);
-    
+
 }
 
 
@@ -1915,7 +1915,7 @@ void cleanup_fork( dummy )			/* try to kill all child processes */
 #endif
 
     if (kill(ClientPid[i], TERMINATE_PID_SIGNAL)) {
-      fprintf(stderr, "cleanup_fork: killed PID=%d failed (errno %d)\n", 
+      fprintf(stderr, "cleanup_fork: killed PID=%d failed (errno %d)\n",
 	      ClientPid[i], errno);
     }
   }
@@ -1938,24 +1938,24 @@ static int safe_fork(command)		/* fork child process and remember its PID */
   static int init=0;
   char *argis[MAXARGS];
   register int i=1;
-  
+
   if (!(argis[0] = strtok(command, " \t"))) return(0); /* tokenize */
   while ((argis[i] = strtok(NULL, " \t")) && i < MAXARGS) ++i;
   argis[i] = NULL;
-  
+
 #ifdef DEBUG_FORK
-  {register int i=0; 
+  {register int i=0;
    fprintf(stderr, "Command %s becomes:\n", command);
    while(argis[i]) {fprintf(stderr, "--%s--\n", argis[i]); ++i;} }
 #endif
-  
+
   if (!init) {			/* register clean-up routine */
     signal (SIGQUIT, cleanup_fork);
     signal (SIGTERM, cleanup_fork);
     signal (SIGINT , cleanup_fork);
     init=1;
   }
-  
+
   if (-1 == (ClientPid[current_max_forked_pid] = fork()) )  {
     perror("safe_fork: fork failed ");
     return(-1);

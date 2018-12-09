@@ -9,10 +9,10 @@ int LRflip_help(int detail) {
 "  directions incorrectly labeled. \n"
 "* That is, it is to help you patch up a mistake in the dataset.\n"
 "  It has no other purpose.\n"
-"\n" 
+"\n"
 "Optional options:\n"
 "-----------------\n"
-"\n" 
+"\n"
 " -LR | -AP | -IS: Axis about which to flip the data\n"
 "                  Default is -LR.\n"
 "      or\n"
@@ -24,7 +24,7 @@ int LRflip_help(int detail) {
 "              multiple datasets as input, you are better\n"
 "              off letting the program choose a prefix for\n"
 "              each output.\n"
-"\n" 
+"\n"
             ) ;
       if (detail) PRINT_COMPILE_DATE ; return(0) ;
 }
@@ -91,18 +91,18 @@ int main( int argc , char * argv[] )
        sprintf(tx,"Zf");
        iarg++ ; continue ;
      }else {
-      ERROR_message("Bad option %s.\n", argv[iarg]); 
+      ERROR_message("Bad option %s.\n", argv[iarg]);
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
      }
    }
-   
+
    if (iarg < 2) {
       WARNING_message("Too few options. Showing -help output.\n");
       LRflip_help(1) ;
       exit (0);
    }
-   
+
    idsetarg = iarg;
    while (iarg < argc) {
       /*-- read data --*/
@@ -115,10 +115,10 @@ int main( int argc , char * argv[] )
 
       nx=DSET_NX(dset); ny=DSET_NY(dset); nz=DSET_NZ(dset);
 
-      
+
       if (dcodeu > 0) {
          dcode = dcodeu;
-         
+
       } else {
          if( dset->daxes->xxorient == D1 ||
              dset->daxes->xxorient == D2   ) dcode = 1 ;
@@ -140,9 +140,9 @@ int main( int argc , char * argv[] )
          if (argc -idsetarg == 1) { /* one dset only */
             sprintf(oprefix, "%s", prefix);
          } else {
-            if (PREFIX_IS_NIFTI(prefix)) { 
+            if (PREFIX_IS_NIFTI(prefix)) {
                if (STRING_HAS_SUFFIX(prefix,".nii")) {
-                  p2 = strstr(prefix, ".nii"); 
+                  p2 = strstr(prefix, ".nii");
                   prefix[p2-prefix]='\0';
                   sprintf(ext,".nii");
                } else if (STRING_HAS_SUFFIX(prefix,".nii.gz")) {
@@ -152,12 +152,12 @@ int main( int argc , char * argv[] )
                } else {
                   ext[0] = '\0';
                }
-            } 
+            }
             sprintf(oprefix, "%s_%d%s", prefix, iarg - idsetarg, ext);
          }
       } else {
          prefix = DSET_PREFIX(dset);
-         
+
          if (PREFIX_IS_NIFTI(prefix)) {   /* Note, this ruins prefix in dset!
                                              But not me worry here.*/
             if (PREFIX_IS_NIFTI(prefix)) {
@@ -172,8 +172,8 @@ int main( int argc , char * argv[] )
                } else {
                   ext[0] = '\0';
                }
-            } 
-            
+            }
+
          }
          sprintf(oprefix, "%s_%s%s", prefix, tx, ext);
          prefix = NULL;
@@ -217,12 +217,12 @@ int main( int argc , char * argv[] )
         }
       }
 
-      
+
       /* done */
       DSET_write(dset) ; DSET_delete(dset); dset = NULL;
-   
+
       ++iarg;
    }
-   
+
    exit(0) ;
 }

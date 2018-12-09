@@ -4826,7 +4826,7 @@ void REND_func_widgets(void)
    #else
       wfunc_vsep = SEP_VER(top_rowcol) ;
    #endif
-   
+
    wfunc_frame = XtVaCreateWidget(
                    "AFNI" , xmFrameWidgetClass , top_rowcol ,
                       XmNshadowType , XmSHADOW_ETCHED_IN ,
@@ -6413,7 +6413,7 @@ void REND_overlay_ttatlas(void)
    dseTT = TT_retrieve_atlas_dset_nz(ovim->nz) ;
                                  if( dseTT == NULL ) RET("no dataset\n") ;
 #else
-   dseTT = TT_retrieve_atlas_dset("TT_Daemon",0) ; 
+   dseTT = TT_retrieve_atlas_dset("TT_Daemon",0) ;
    if( dseTT == NULL ) RET("no dataset\n") ;
 #endif
 

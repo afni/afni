@@ -173,7 +173,7 @@ void	UnQuantZig(FlatBlock in, Block out, int qscale, boolean iblock)
 
 #ifdef BLEAH
     for ( index = 0; index < 64; index++ )
-	fprintf(stdout, "DCT[%d] = %d\n", index, 
+	fprintf(stdout, "DCT[%d] = %d\n", index,
 		((int16 *)out)[index]);
 #endif
 }

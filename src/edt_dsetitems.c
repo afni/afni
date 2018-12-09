@@ -116,7 +116,7 @@ int EDIT_dset_items( THD_3dim_dataset *dset , ... )
 
    /* 14 July 2006 */
    int cmode = COMPRESS_NOFILE;   /* check compression mode for NIFTI separately */
-    
+
    int new_smode=STORAGE_UNDEFINED; /* ZSS Feb 2012 */
 
 
@@ -139,10 +139,10 @@ ENTRY("EDIT_dset_items") ;
 
    va_start( vararg_ptr , dset ) ;              /** Initialize arg reading **/
    iarg = 1 ;
-   memset(&ijk_to_dicom, 0, sizeof(mat44)); 
-   memset(&xyzorient, 0, sizeof(THD_ivec3)); 
-   memset(&xyzorg, 0, sizeof(THD_fvec3)); 
-   memset(&xyzdel, 0, sizeof(THD_fvec3)); 
+   memset(&ijk_to_dicom, 0, sizeof(mat44));
+   memset(&xyzorient, 0, sizeof(THD_ivec3));
+   memset(&xyzorg, 0, sizeof(THD_fvec3));
+   memset(&xyzdel, 0, sizeof(THD_fvec3));
    memset(&nxyz, 0, sizeof(THD_ivec3));
    do{
       flag_arg = va_arg( vararg_ptr , int ) ;   /** Get next arg  **/
@@ -215,7 +215,7 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
             if( prefix != NULL ) {
                new_prefix = 1 ;
                new_smode = storage_mode_from_prefix(prefix);
-               if (dset->dblk && dset->dblk->diskptr) { 
+               if (dset->dblk && dset->dblk->diskptr) {
                   /* if defined by prefix, apply, else if current is not a
                      surface, clear (i.e. assume AFNI type) */
                   if (new_smode != STORAGE_UNDEFINED)
@@ -573,24 +573,24 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
         STRING_DEVIEW_DEEXT_BRICK(fname);
         if( STRING_HAS_SUFFIX(nprefix,".nii") ) {  /* 22 Jun 2006 mod drg */
 
-          cmode = THD_get_write_compression() ; 
+          cmode = THD_get_write_compression() ;
                            /* check env. variable for compression*/
-          if(cmode==0) { /* have to compress this NIFTI data, 
+          if(cmode==0) { /* have to compress this NIFTI data,
                             add .gz to prefix */
-             sprintf(DSET_PREFIX(dset),"%s.gz",nprefix); 
+             sprintf(DSET_PREFIX(dset),"%s.gz",nprefix);
                            /* add .gz on to prefix initialized in */
                            /* THD_init_diskptr_names just above */
              if(STRING_HAS_SUFFIX(fname,".nii")) {
                                        /* if filename ends with .nii */
                strcat(fname,".gz") ;   /* add the .gz extension */
              } else {
-               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) { 
+               if(!(STRING_HAS_SUFFIX(fname,".nii.gz"))) {
                                        /* compressed NIFTI extension*/
                  strcat(fname,".nii.gz") ;
                }
              }
           } else {
-             if(!(STRING_HAS_SUFFIX(fname,".nii"))) { 
+             if(!(STRING_HAS_SUFFIX(fname,".nii"))) {
                                         /* if filename doesn't end with .nii */
                strcat(fname,".nii") ;   /* add the .nii extension */
              }
@@ -615,17 +615,17 @@ fprintf(stderr,"EDIT_dset_items: iarg=%d flag_arg=%d\n",iarg,flag_arg) ;
         int  ll = strlen(fname) ;
         STRING_DEVIEW_DEEXT_BRICK(fname);
         if( !strcmp(fname+ll-14,".hdr") ) fname[ll-14] = '\0';
-        if (dset->dblk->diskptr->header_name) {/* and adjust header name 
+        if (dset->dblk->diskptr->header_name) {/* and adjust header name
                                                   ZSS April 26 2012 */
             strcpy(dset->dblk->diskptr->header_name, fname);
             strcat(dset->dblk->diskptr->header_name,".hdr") ;
         }
         if( !STRING_HAS_SUFFIX(fname,".img") ) strcat(fname,".img") ;
-         
+
         /* and override the BRICK mode */
         dset->dblk->diskptr->storage_mode = STORAGE_BY_NIFTI;
       }
-      
+
       if( nprefix != NULL ) free(nprefix) ;
    }
 
@@ -968,7 +968,7 @@ fprintf(stderr,"stataux_one:  iv=%d bso[0]=%g bso[1]=%g bso[2]=%g\n",
    Scale dataset's dxyz, same as 3drefit's -xyzscale
 */
 int THD_volDXYZscale( THD_dataxes  * daxes, float xyzscale, int reuse_shift)
-{   
+{
    static char FuncName[]={"THD_volDXYZscale"};
    float dxp, dyp, dzp;
    int   rl, ap , is;
@@ -992,11 +992,11 @@ int THD_volDXYZscale( THD_dataxes  * daxes, float xyzscale, int reuse_shift)
 
      if( !reuse_shift ){  /* to calculate shift */
        float op[3] , oo[3] ;
-       op[0] = xop = daxes->xxorg + 
+       op[0] = xop = daxes->xxorg +
                      (daxes->xxdel-dxp)*0.5f*(daxes->nxx-1) ;
-       op[1] = yop = daxes->yyorg + 
+       op[1] = yop = daxes->yyorg +
                      (daxes->yydel-dyp)*0.5f*(daxes->nyy-1) ;
-       op[2] = zop = daxes->zzorg + 
+       op[2] = zop = daxes->zzorg +
                      (daxes->zzdel-dzp)*0.5f*(daxes->nzz-1) ;
        oo[0] = daxes->xxorg ;
        oo[1] = daxes->yyorg ;
@@ -1043,7 +1043,7 @@ char * THD_deplus_prefix( char *prefix )
    if( prefix == NULL ) return NULL ;
 
    newprefix = strdup(prefix);
-   
+
    N_nn = sizeof(plussers)/sizeof(char *);
    for (nn=0; nn<N_nn; ++nn) {
 #ifdef DPOLD
@@ -1056,6 +1056,6 @@ char * THD_deplus_prefix( char *prefix )
       if( cpt != NULL ) *cpt = '\0' ;
 #endif
    }
-   
+
    return newprefix ;
 }

@@ -1,8 +1,8 @@
 #include "gts.h"
 
-static void triangle_normal (GtsTriangle * t, 
-			     gdouble * nx, 
-			     gdouble * ny, 
+static void triangle_normal (GtsTriangle * t,
+			     gdouble * nx,
+			     gdouble * ny,
 			     gdouble * nz,
 			     gdouble * nt)
 {
@@ -39,8 +39,8 @@ static void triangle_normal (GtsTriangle * t,
   y2 = p3->y - p1->y;
   z2 = p3->z - p1->z;
 
-  *nt = ((p1->y*p2->z - p1->z*p2->y)*p3->x + 
-	 (p1->z*p2->x - p1->x*p2->z)*p3->y + 
+  *nt = ((p1->y*p2->z - p1->z*p2->y)*p3->x +
+	 (p1->z*p2->x - p1->x*p2->z)*p3->y +
 	 (p1->x*p2->y - p1->y*p2->x)*p3->z);
   *nx = y1*z2 - z1*y2;
   *ny = z1*x2 - x1*z2;
@@ -60,8 +60,8 @@ static gdouble edge_volume_cost (GtsEdge * e, GtsVertex * v)
   while (i) {
     if (GTS_IS_FACE (i->data)) {
       triangle_normal (i->data, &n1, &n2, &n3, &nt);
-      a = GTS_POINT (v)->x*n1 + 
-	GTS_POINT (v)->y*n2 + 
+      a = GTS_POINT (v)->x*n1 +
+	GTS_POINT (v)->y*n2 +
 	GTS_POINT (v)->z*n3 - nt;
       cost += a*a;
     }
@@ -102,7 +102,7 @@ int main (int argc, char * argv[])
 					  gts_face_class (),
 					  gts_edge_class (),
 					  gts_vertex_class ());
-		     
+
   GtsVertex * v1 = gts_vertex_new (gts_vertex_class (),
 				   0.48, 1.068, 0.116);
   GtsVertex * v2 = gts_vertex_new (gts_vertex_class (),
@@ -164,7 +164,7 @@ int main (int argc, char * argv[])
 			       e7, e14, e17);
   GtsFace * f10 = gts_face_new (gts_face_class (),
                                 e16, e19, e5);
- 
+
   GtsVertex * v;
 
   gts_surface_add_face (surface, f1);
@@ -185,7 +185,7 @@ int main (int argc, char * argv[])
   v = edge_collapse (surface, e7, gts_volume_optimized_vertex);
 #else
   v = gts_volume_optimized_vertex (e7, gts_vertex_class ());
-  fprintf (stderr, "(%g, %g, %g) edge cost: %g cost: %g\n", 
+  fprintf (stderr, "(%g, %g, %g) edge cost: %g cost: %g\n",
 	   GTS_POINT (v)->x, GTS_POINT (v)->y, GTS_POINT (v)->z,
 	   edge_volume_cost (e7, v),
 	   gts_volume_optimized_cost (e7));

@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -99,7 +99,7 @@ typedef DCTELEM DCTBLOCK[DCTSIZE2];
  * EXTERNAL PROCEDURE prototypes *
  *===============================*/
 
-/*  
+/*
  *  from mbasic.c:
  */
 void mp_reset _ANSI_ARGS_((void));
@@ -109,7 +109,7 @@ void mp_ycc_calc _ANSI_ARGS_((MpegFrame *mf));
 void mp_dct_blocks _ANSI_ARGS_((MpegFrame *mf));
 void	AllocDecoded _ANSI_ARGS_((MpegFrame *frame));
 
-/*  
+/*
  *  from moutput.c:
  */
 boolean mp_quant_zig_block _ANSI_ARGS_((Block in, FlatBlock out, int qscale, int iblock));

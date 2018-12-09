@@ -7,7 +7,7 @@
 // [May, 2017] input option to complement 3dDWItoDT's -scale_out_1000
 // option.  It has the same name, funnily enough!
 
-// [May, 2017] 
+// [May, 2017]
 // + bug fix: had been a mismatch between bmatrix and DT.  Now fixed.
 
 #include "thd_shear3d.h"
@@ -33,10 +33,10 @@ static float *I0_ptr;           /* I0 matrix */
 static int automask = 0;        /* automasking flag - user option */
 
 static void DTtoDWI_tsfunc (double tzero, double tdelta, int npts, float ts[],
-                            double ts_mean, double ts_slope, void *ud, 
+                            double ts_mean, double ts_slope, void *ud,
                             int nbriks, float *val);
 // apr,2016: copying/pasting this function now from 3dDWItoDT
-static void Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1); 
+static void Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1);
 static void InitGlobals (int npts);
 static void FreeGlobals (void);
 
@@ -160,9 +160,9 @@ main (int argc, char *argv[])
             nopt++;
             continue;
          }
-      
-         //  can mult output diff values by 1000 
-         if (strcmp(argv[nopt], "-scale_out_1000") == 0) {   
+
+         //  can mult output diff values by 1000
+         if (strcmp(argv[nopt], "-scale_out_1000") == 0) {
             SCALE_VAL_OUT = 1000.;
             nopt++;
             continue;
@@ -171,24 +171,24 @@ main (int argc, char *argv[])
          fprintf(stderr, "*** Error - unknown option %s\n", argv[nopt]);
          exit(1);
       }
-  
+
    // ==============================================================
    // ====================== begin processing ======================
-  
+
    /*----- read input datasets -----*/
 
    if (nopt >= argc) {
       fprintf (stderr, "*** Error - No input dataset!?\n");
       exit (1);
    }
-   
+
    if( SCALE_VAL_OUT < 0 )
       SCALE_VAL_OUT = 1.;
    else
       INFO_message("Implementing user-selected scaling of diffusion "
                    "values by %.0f",
                    SCALE_VAL_OUT);
-  
+
    /* first input dataset - should be gradient vector file of ascii
       floats Gx,Gy,Gz */
 
@@ -214,13 +214,13 @@ main (int argc, char *argv[])
       exit (1);
    }
 
-   nbriks = grad1Dptr->nx + 1;    /* number of gradients specified here from file */     
+   nbriks = grad1Dptr->nx + 1;    /* number of gradients specified here from file */
    nopt++;
 
    // [PT: May, 2017] copied from 3dDWItoDT to apply the scaling
    int npix;
    register float *flar=mri_data_pointer(grad1Dptr);
-   npix = grad1Dptr->nvox; 
+   npix = grad1Dptr->nvox;
    for( i=0 ; i<npix ; i++ ){
       flar[i]/= SCALE_VAL_OUT;
    }
@@ -228,7 +228,7 @@ main (int argc, char *argv[])
    /* open I0 dataset - idealized no gradient image */
    I0_dset = THD_open_dataset (argv[nopt]);
    CHECK_OPEN_ERROR(I0_dset,argv[nopt]) ;
- 
+
    DSET_mallocize (I0_dset);
    DSET_load (I0_dset);	                /* load dataset */
    data_im = DSET_BRICK (I0_dset, 0);	/* set pointer to the 0th sub-brik of the dataset */
@@ -245,7 +245,7 @@ main (int argc, char *argv[])
    if( I0_ptr == NULL ) {
       ERROR_exit("Null pointer when trying to make I0 set.");
    }
-   
+
 
    nopt++;
 
@@ -355,7 +355,7 @@ main (int argc, char *argv[])
 ***********************************************************************/
 
 /*
-  [PT: May, 2017] 
+  [PT: May, 2017]
   !! NB !! This has been copy/pasted *to* 3dDWItoDT.c, so if changes
            happen there/here, likely make them here/there as well.
            This inglorious route was chosen rather than deal with
@@ -373,7 +373,7 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
    double I0, bq_d;
    double *bptr;
    float *tempptr;
- 
+
    ENTRY ("DTtoDWI_tsfunc");
    /* ts is input vector data of 6 floating point numbers.*/
    /* ts should come from data sub-briks in form of Dxx, Dxy, Dyy, Dxz, Dyz, Dzz */
@@ -390,7 +390,7 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
             ncall2 = 0;		/* number of calls */
          }
          else {			/* the "end notification" */
-            
+
             /* nothing to do here */
          }
          EXRETURN;
@@ -400,7 +400,7 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
 
    if (automask)
       npts = npts - 1;
-   
+
    tempptr = I0_ptr+ncall2-1;
    I0 = *tempptr;
 
@@ -410,35 +410,35 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
 
    /* NB: what the ordering of bmatrix and DT are:
    // bmatr
-   [0] *bptr++ = Gx * Gx / gscale; 
+   [0] *bptr++ = Gx * Gx / gscale;
    [1] *bptr++ = Gx * Gy / gscale;
    [2] *bptr++ = Gx * Gz / gscale;
    [3] *bptr++ = Gy * Gy / gscale;
    [4] *bptr++ = Gy * Gz / gscale;
    [5] *bptr++ = Gz * Gz / gscale;
 
-   [0] Dxx, 
-   [1] Dxy, 
-   [2] Dyy, 
-   [3] Dxz, 
-   [4] Dyz, 
-   [5] Dzz 
+   [0] Dxx,
+   [1] Dxy,
+   [2] Dyy,
+   [3] Dxz,
+   [4] Dyz,
+   [5] Dzz
    */
 
    // Need to match bmatrix and DT orderings, which are different.
    // Yay.
    for(i=1;i<nbriks;i++) {
-      bptr = bmatrix+(6*i);        // start at the first gradient 
-      bq_d = *bptr++ * ts[0];      // GxGxDxx  
-      bq_d += *bptr++ * ts[1] * 2; // 2GxGyDxy 
-      bq_d += *bptr++ * ts[3] * 2; // 2GxGzDxz 
-      bq_d += *bptr++ * ts[2];     // GyGyDyy  
-      bq_d += *bptr++ * ts[4] * 2; // 2GyGzDyz 
-      bq_d += *bptr++ * ts[5];     // GzGzDzz  
+      bptr = bmatrix+(6*i);        // start at the first gradient
+      bq_d = *bptr++ * ts[0];      // GxGxDxx
+      bq_d += *bptr++ * ts[1] * 2; // 2GxGyDxy
+      bq_d += *bptr++ * ts[3] * 2; // 2GxGzDxz
+      bq_d += *bptr++ * ts[2];     // GyGyDyy
+      bq_d += *bptr++ * ts[4] * 2; // 2GyGzDyz
+      bq_d += *bptr++ * ts[5];     // GzGzDzz
 
-      // for each gradient,q, Iq = J e -(bq.D) 
-      val[i] = I0 * exp(-bq_d);   
-      // where bq.D is the large dot product of bq and D 
+      // for each gradient,q, Iq = J e -(bq.D)
+      val[i] = I0 * exp(-bq_d);
+      // where bq.D is the large dot product of bq and D
    }
 
    EXRETURN;
@@ -456,7 +456,7 @@ DTtoDWI_tsfunc (double tzero, double tdelta,
 // ----> apr,2016: now copying the Computebmatrix(...) from 3dDWItoDT,
 // ----> to have the scale stuff
 static void
-Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1) 
+Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
 {
    int i, n;
    register double *bptr;
@@ -503,9 +503,9 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
             if(gscale > MAX_BVAL)
                MAX_BVAL = gscale;
          }
-      
+
       }
-   } 
+   }
    else if( (grad1Dptr->ny == 6)  && NO_ZERO_ROW1 ) { //  very similar to old bmatrix option
       /* just read in b matrix */
       Bxxptr = MRI_FLOAT_PTR (grad1Dptr);	/* use simple floating point pointers to get values */
@@ -516,14 +516,14 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
       Byzptr = Bxzptr + n;
 
       bptr = bmatrix;
-    
+
       // do as grads below
       for (i = 0; i < 6; i++)
          *bptr++ = 0.0;		/* initialize first 6 elements to 0.0 for the I0 gradient */
       B0list[0]= 1;      /* keep a record of which volumes have no gradient */
 
 
-      for (i = 0; i < n; i++){ 
+      for (i = 0; i < n; i++){
          Bxx = *Bxxptr++;
          Byy = *Byyptr++;
          Bzz = *Bzzptr++;
@@ -537,9 +537,9 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
          *bptr++ = Byz;
          *bptr++ = Bzz;
          if(Bxx==0.0 && Byy==0.0 && Bzz==0.0)  /* is this a zero gradient volume also? */
-            B0list[i+1] = 1; 
+            B0list[i+1] = 1;
          else{
-            B0list[i+1] = 0; 
+            B0list[i+1] = 0;
             // apr,2016: need the MAX_BVAL for scaling
             gscale = Bxx + Byy + Bzz;
             if(gscale > MAX_BVAL)
@@ -588,8 +588,8 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
    }
    EXRETURN;
 }
-/* --->apr,2016: This is the **original** function for this program-- now using 
-   the one from 3dDWItoDT, for each of duplicity.  Or something. 
+/* --->apr,2016: This is the **original** function for this program-- now using
+   the one from 3dDWItoDT, for each of duplicity.  Or something.
    {
    int i, j, n;
    register double *bptr;
@@ -597,14 +597,14 @@ Computebmatrix (MRI_IMAGE * grad1Dptr, int NO_ZERO_ROW1)
    double Gx, Gy, Gz;
 
    ENTRY ("Computebmatrix");
-   n = grad1Dptr->nx;		// number of gradients other than I0 
-   Gxptr = MRI_FLOAT_PTR (grad1Dptr);	// use simple floating point pointers to get values 
+   n = grad1Dptr->nx;		// number of gradients other than I0
+   Gxptr = MRI_FLOAT_PTR (grad1Dptr);	// use simple floating point pointers to get values
    Gyptr = Gxptr + n;
    Gzptr = Gyptr + n;
 
    bptr = bmatrix;
    for (i = 0; i < 6; i++)
-   *bptr++ = 0.0;		// initialize first 6 elements to 0.0 for the I0 gradient 
+   *bptr++ = 0.0;		// initialize first 6 elements to 0.0 for the I0 gradient
 
    for (i = 0; i < n; i++)
    {

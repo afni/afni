@@ -25,7 +25,7 @@
  * events with varying (but known) relative magnitudes, akin to ampiltude
  * modulation.
  *----------------------------------------------------------------------*/
-   
+
 #include "NLfit_model.h"
 
 static int     refnum = 0 ;     /* # pts in refts */

@@ -33,7 +33,7 @@ extern struct {
 
 /* Subroutine */ int zzline_(real *x1, real *y1, real *x2, real *y2)
 {
-    extern /* Subroutine */ int phline_(real *, real *, real *, real *), 
+    extern /* Subroutine */ int phline_(real *, real *, real *, real *),
 	    zzclip_(real *, real *, real *, real *);
     static real xx1, xx2, yy1, yy2;
 

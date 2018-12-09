@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct {
   PORT_ID port_id[MAX_PORTS];
-  int n_ports;  
+  int n_ports;
 } PORTS;
 
 static PORTS PL;
@@ -51,7 +51,7 @@ char *get_np_help() {
 "                          stay under 2000.\n"
 "                          Using this function reduces your chances of causing\n"
 "                          port conflicts.\n"
-"\n" 
+"\n"
 "         See also afni and suma options: -list_ports and -port_number for \n"
 "            information about port number assignments.\n"
 "\n"
@@ -96,7 +96,7 @@ char *get_np_help() {
 
 int set_user_pif(char *s) {
    if (user_pif) {
-      free(user_pif); 
+      free(user_pif);
    }
    user_pif = NULL;
    if (s) {
@@ -137,20 +137,20 @@ int get_max_port_bloc(void) {
 int set_user_np(int v) {
    int  npenv=-1;
    user_np = 0;
-   
+
    if ( v == 0 ) return(0);   /* nothing to do. legit call. */
-   
+
    if ( v == -1 ) { /* try initializing from environment variables */
       /* try env */
       if ((npenv = (int)AFNI_numenv_def("AFNI_PORT_BLOC", -1)) >= 0) {
          user_np = set_user_np_bloc(npenv);
-      } else if ((npenv = 
+      } else if ((npenv =
                   (int)AFNI_numenv_def("AFNI_PORT_OFFSET", -1)) >= 1024) {
          user_np = set_user_np(npenv);
       }
       return(user_np);
    }
-   
+
    if ( v >= 1024 && v<=65500) {
       user_np = v;
       reinit = 1;
@@ -160,7 +160,7 @@ int set_user_np(int v) {
                     "Outside of range 1024..65500. Have %d\n", v);
       return(0);
    }
-   
+
    return(0);
 }
 
@@ -182,16 +182,16 @@ int get_num_ports(void) {
 int init_ports_list(void) {
    int ip = 0, cc = 0, ptcpbase=0, np=0;
    static int first_call = 1;
-   
+
    if (user_np < 0) set_user_np(-1); /* initialize */
-   
-     
+
+
    if (!first_call && !reinit) { /* nothing to do */
       return(PL.n_ports);
    }
-   
+
    PL.n_ports = 0;
-   
+
    if ((cc = AFNI_numenv("AFNI_NIML_FIRST_PORT"))) {
       if (cc >= 1025 &&  cc <= 65500) {
          if (user_np) {
@@ -207,13 +207,13 @@ int init_ports_list(void) {
                         "Ingnoring value of %d\n", cc);
       }
    }
-   
-   
+
+
    if (user_np) np = user_np;
    else {
       np = 53211; /* old default */
    }
-   
+
    /* Keep order of ports "AFNI_SUMA_NIML" and "AFNI_DEFAULT_LISTEN_NIML"
       in list below */
    ip = 0;
@@ -227,7 +227,7 @@ int init_ports_list(void) {
                       "to avoid this message");
          }
          cc = np+ip;
-      }  
+      }
    } else {
       cc = np+ip;
    }
@@ -246,7 +246,7 @@ int init_ports_list(void) {
                "to avoid this message");
          }
          cc = np+ip;
-      }  
+      }
    } else {
       cc = np+ip;
    }
@@ -254,19 +254,19 @@ int init_ports_list(void) {
    sprintf(PL.port_id[ip].name,"AFNI_DEFAULT_LISTEN_NIML"); /* generic listen */
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
-   
+
+
    /* add new ports below */
    PL.port_id[ip].port = np+ip; /* Used to be 53212 by default */
    sprintf(PL.port_id[ip].name,"AFNI_GroupInCorr_NIML");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = np+ip; /* Used to be 53220 by default */
    sprintf(PL.port_id[ip].name,"SUMA_DEFAULT_LISTEN_NIML"); /* generic listen */
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-      
+
    PL.port_id[ip].port = np+ip; /* Used to be 53224 by default */
    sprintf(PL.port_id[ip].name,"SUMA_GroupInCorr_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
@@ -282,34 +282,34 @@ int init_ports_list(void) {
                "to avoid this message");
          }
          cc = np+ip;
-      }  
+      }
    } else {
       cc = np+ip;
    }
-     
+
    PL.port_id[ip].port = cc; /* Used to be 53230 by default */
    sprintf(PL.port_id[ip].name,"MATLAB_SUMA_NIML");
    sprintf(PL.port_id[ip].listener,"MATLAB");
       ++ip;
-      
+
    PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"SUMA_GEOMCOMP_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-    
-   PL.port_id[ip].port = np+ip; 
+
+   PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"SUMA_BRAINWRAP_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-      
-   PL.port_id[ip].port = np+ip; 
+
+   PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"SUMA_DRIVESUMA_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-      
+
    cc = AFNI_numenv("AFNI_PLUGOUT_TCP_BASE");
    if( cc ){
-      if( cc < 1024 || cc > 65535 ){     
+      if( cc < 1024 || cc > 65535 ){
          fprintf(stderr,"\nPO: bad AFNI_PLUGOUT_TCP_BASE %d,"
                         " should be in [%d,%d]\n", cc, 1024, 65535);
          if (!user_np) {
@@ -328,91 +328,91 @@ int init_ports_list(void) {
          PL.port_id[ip].port = 7955; /* the old BASE_TCP_CONTROL */
       } else {
          PL.port_id[ip].port = np+ip; /* the newer default with -np */
-      }   
+      }
    }
    ptcpbase = PL.port_id[ip].port;
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_0");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = ptcpbase+1; /* used to be 7956 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_1");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = ptcpbase+2; /* used to be 7957 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_2");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = ptcpbase+3; /* used to be 7958 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_3");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-      
+
    PL.port_id[ip].port = ptcpbase+4; /* used to be 7959 */
    sprintf(PL.port_id[ip].name,"AFNI_PLUGOUT_TCP_4");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = ptcpbase+5;   /* used to be 7953 */
    sprintf(PL.port_id[ip].name,"AFNI_TCP_PORT");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
+
    PL.port_id[ip].port = ptcpbase+6;   /* used to be 7954 */
    sprintf(PL.port_id[ip].name,"AFNI_CONTROL_PORT");
    sprintf(PL.port_id[ip].listener,"AFNI");
       ++ip;
-   
-   if (!user_np) PL.port_id[ip].port = 8099;  
+
+   if (!user_np) PL.port_id[ip].port = 8099;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_DRIVE_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_DRIVE");
       ++ip;
-   
-   if (!user_np) PL.port_id[ip].port = 8077;  
+
+   if (!user_np) PL.port_id[ip].port = 8077;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_GRAPH_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_GRAPH");
       ++ip;
-      
-   if (!user_np) PL.port_id[ip].port = 8009;  
+
+   if (!user_np) PL.port_id[ip].port = 8009;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_IJK_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_IJK");
       ++ip;
-   
-   if (!user_np) PL.port_id[ip].port = 8019;  
+
+   if (!user_np) PL.port_id[ip].port = 8019;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_SURF_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_SURF");
       ++ip;
-         
-   if (!user_np) PL.port_id[ip].port = 8001;  
+
+   if (!user_np) PL.port_id[ip].port = 8001;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_TT_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_TT");
       ++ip;
-   
-   if (!user_np) PL.port_id[ip].port = 8005;  
+
+   if (!user_np) PL.port_id[ip].port = 8005;
    else PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"PLUGOUT_TTA_PORT");
    sprintf(PL.port_id[ip].listener,"PLUGOUT_TTA");
       ++ip;
-    
-   PL.port_id[ip].port = np+ip; 
+
+   PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"SUMA_HALLO_SUMA_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-      
-   PL.port_id[ip].port = np+ip; 
+
+   PL.port_id[ip].port = np+ip;
    sprintf(PL.port_id[ip].name,"SUMA_INSTA_TRACT_NIML");
    sprintf(PL.port_id[ip].listener,"SUMA");
       ++ip;
-      
+
    PL.n_ports=ip;
-   
+
    reinit = 0;
    first_call = 0;
    return(ip);
@@ -421,9 +421,9 @@ int init_ports_list(void) {
 
 int get_port_named(char *name) {
    int ip = 0;
-   
+
    init_ports_list(); /* init, no harm if init done already */
-   
+
    if (PL.n_ports < 1 || PL.n_ports > 100) {
       ERROR_message("Bad init.\n");
       return(0);
@@ -439,7 +439,7 @@ int get_port_named(char *name) {
 char *get_port_numbered(int port) {
    int ip = 0;
    static char cunegonde[64];
-   
+
    init_ports_list(); /* init, no harm if init done already */
 
    if (PL.n_ports < 1 || PL.n_ports > 100) {
@@ -449,7 +449,7 @@ char *get_port_numbered(int port) {
    for (ip=0; ip<PL.n_ports; ++ip) {
       if (PL.port_id[ip].port==port) return(PL.port_id[ip].name);
    }
-   
+
    if (port) sprintf(cunegonde,
          "Port numbered %d not in standard list of %d ports.\n",
          port, PL.n_ports);
@@ -463,31 +463,31 @@ char *get_port_numbered(int port) {
 
 void show_ports_list(void) {
    int ip = 0;
-   
+
    init_ports_list(); /* init, no harm if init done already */
    fprintf(stdout,"\n");
    for (ip=0; ip<PL.n_ports; ++ip) {
-      fprintf(stdout,"%d: %s has port %d\n", 
+      fprintf(stdout,"%d: %s has port %d\n",
                ip, PL.port_id[ip].name, PL.port_id[ip].port);
    }
    return;
 }
 
-/* 
-   Check if all ports in block are listenable 
+/*
+   Check if all ports in block are listenable
 */
-int is_npb_available(int npb) 
+int is_npb_available(int npb)
 {
    int npm=0, sd = 1;
    int np = 0;
-   
+
    np = npb_to_np(npb);
    npm = np+get_num_ports();
    set_tcp_listen_mute(1);
    sd = 1;
    while (np < npm && (sd = tcp_listen(np)) >= 0) {
       shutdown(sd,2); close(sd); /* same as CLOSEDOWN macro in niml_stream*/
-      ++np; 
+      ++np;
    }
    set_tcp_listen_mute(0);
    if (np < npm) return(0);
@@ -495,10 +495,10 @@ int is_npb_available(int npb)
 }
 
 /* find a block of ports that is useable */
-int get_available_npb(void) 
+int get_available_npb(void)
 {
    int k = 0;
-   
+
    while (k<get_max_port_bloc()) {
       if (is_npb_available(k)) return(k);
       ++k;

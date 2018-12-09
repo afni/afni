@@ -54,7 +54,7 @@ static char * ni_surf_dset_attrs[] = {
                 if(data[ii]<min){ min=data[ii]; minp=ii; }              \
                 else if(data[ii]>max){ max=data[ii]; maxp=ii; }         \
         } while (0)
-        
+
 #define NOTYPE_GETC_MIN_MAX_POSN(data,len,min,minp,max,maxp,phase)      \
         do { int ii; double dd;                                         \
              if (phase)  min=max=CARG(data[0]);                         \
@@ -74,7 +74,7 @@ static int get_blk_min_max_posn(THD_datablock * blk, int ind, int len,
 {
     float ffac = DBLK_BRICK_FACTOR(blk,ind);
     static int iwarn = 0;
-    
+
 ENTRY("get_blk_min_max_posn");
 
     if( ffac == 0.0 ) ffac = 1.0;
@@ -208,7 +208,7 @@ ENTRY("THD_open_niml");
     NI_free_element(nel);
 
     if( dset )
-    {   
+    {
         char * pp = THD_trailname(fname, 0);
         EDIT_dset_items(dset, ADN_prefix, pp, ADN_none);
         NI_strncpy(dset->dblk->diskptr->brick_name, fname, THD_MAX_NAME);
@@ -333,7 +333,7 @@ ENTRY("storage_mode_from_niml");
         if( ! strcmp(ng->name, "AFNI_dataset") )
         {
             atr = NI_get_attribute(ng, "dset_type");
-            if( atr && 
+            if( atr &&
                 ( !strcmp(atr, "Node_Bucket") ||
                   !strcmp(atr, "Node_ROI")    ||
                   !strcmp(atr, "Node_Label")  ||
@@ -463,7 +463,7 @@ ENTRY("THD_write_niml");
     smode = storage_mode_from_filename(prefix);
     if( gni.debug )
         fprintf(stderr,"-d THD_write_niml: file %s, smode %d\n", prefix, smode);
-        
+
     switch(smode)
     {
         case STORAGE_BY_3D:
@@ -542,7 +542,7 @@ ENTRY("nsd_string_atr_to_slist");
     {
         *slist = NULL;
         if(gni.debug > 1) fprintf(stderr,"NSATS: no attribute to parse\n");
-        RETURN(0); 
+        RETURN(0);
     }
 
     if(gni.debug > 2)
@@ -614,7 +614,7 @@ ENTRY("THD_ni_surf_dset_to_afni");
     RETURN(dset);
 }
 
-/* 
+/*
    Change AFNI_Labeltable, if any, to VALUE_LABEL_DTABLE
    This is a lossy conversion, colors are not preserved in DTABLE
 */
@@ -712,12 +712,12 @@ ENTRY("process_NSD_labeltable");
     /* make table, insert strings */
     dt = new_Dtable( ii ) ;
     for( ii=0 ; ii < length ; ii++ ) {
-      sprintf(sval,"%d", ((int *)nel->vec[ind])[ii]); 
+      sprintf(sval,"%d", ((int *)nel->vec[ind])[ii]);
       addto_Dtable( sval , ((char **)nel->vec[ind+1])[ii] , dt ) ;
     }
     label_table = Dtable_to_nimlstring(dt, "VALUE_LABEL_DTABLE");
     destroy_Dtable(dt); dt = NULL;
-    THD_set_string_atr( dset->dblk , 
+    THD_set_string_atr( dset->dblk ,
                         "VALUE_LABEL_DTABLE" , label_table ) ;
     free(label_table); label_table = NULL;
 
@@ -836,12 +836,12 @@ ENTRY("process_NSD_sparse_data");
                 BYTE_ORDER_STRING(dkptr->byte_order));
 
     /* verify that we have "data_type=Node_Bucket_data"
-       acceptable should also be Node_ROI_data but on 
+       acceptable should also be Node_ROI_data but on
        output, all will become Node_Bucket_data ZSS: Dec 07  */
     rhs = NI_get_attribute(nel, "data_type");
     /* added Voxel_Bucket_data, though it is not properly handled
        (but headed in the right direction)     5 Aug 2015 [rickr] */
-    if( !rhs || 
+    if( !rhs ||
          (  strcmp(rhs, "Node_Bucket_data")  &&
             strcmp(rhs, "Node_ROI_data")     &&
             strcmp(rhs, "Node_Label_data")   &&
@@ -878,7 +878,7 @@ ENTRY("process_NSD_sparse_data");
     }
     if (ncomp == nel->vec_num) tpafni = MRI_complex;
     else tpafni = MRI_float;
-    
+
     /* node index list is now in INDEX_LIST attribute  29 Aug 2006 [rickr] */
     for( ind = 0; tpafni == MRI_float && ind < nel->vec_num; ind++ )
         if( nel->vec_typ[ind] != NI_FLOAT &&
@@ -1033,7 +1033,7 @@ ENTRY("process_NSD_group_attrs");
     if( !rhs ) rhs = NI_get_attribute(ngr, "ni_idcode");
     if(  rhs ) NI_strncpy(dset->idcode.str, rhs, MCW_IDSIZE);
     /* else, keep the one from EDIT_empty_copy() */
-    
+
     RETURN(0);
 }
 
@@ -1100,7 +1100,7 @@ ENTRY("THD_add_sparse_data");
             nel->vec_typ[mind] != NI_INT   &&
             nel->vec_typ[mind] != NI_COMPLEX)
         {
-            if(gni.debug) 
+            if(gni.debug)
                fprintf(stderr,"** TASD: vec[%d] not float or complex\n",mind);
             RETURN(0);
         }
@@ -1117,12 +1117,12 @@ ENTRY("THD_add_sparse_data");
       fprintf(stderr,"** TASD: brick not float or complex\n");
       RETURN(0);
     }
-    
+
     /* check for necessary swapping */
     swap = (blk->diskptr->byte_order != mri_short_order());
     if(gni.debug>1 && swap) fprintf(stderr,"+d will byte_swap data\n");
     len = nel->vec_len;
-    
+
     /*-- we seem to have all of the data, now copy it --*/
     sub = 0;
     for( ind = 0; ind < nvals; ind++ )
@@ -1141,7 +1141,7 @@ ENTRY("THD_add_sparse_data");
            memcpy(data, nel->vec[mind], len * sizeof(float));
            if( swap ) nifti_swap_4bytes(len, data);
         } else if( nel->vec_typ[mind] == NI_INT ) {/* ZSS: Dec. 07. Note that*/
-           int *idata=NULL, ii=0;                  /* int dsets become floats*/ 
+           int *idata=NULL, ii=0;                  /* int dsets become floats*/
            idata = (int *)RwcMalloc(len * sizeof(int));
            if(!idata){
               fprintf(stderr,"**ASD alloc fail: %d bytes\n",len);
@@ -1179,7 +1179,7 @@ ENTRY("THD_add_sparse_data");
     - create SPARSE_DATA element, if requested
     - create attributes for COLMS_RANGE, COLMS_LABS, COLMS_TYPE, COLMS_STATSYM
     - apply HISTORY_NOTE
-    
+
 */
 NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int copy_data )
 {
@@ -1187,7 +1187,7 @@ NI_group * THD_dset_to_ni_surf_dset( THD_3dim_dataset * dset, int copy_data )
     NI_group      * ngr;
     int             nx, ibr=0;
     char name[100]={""};
-    
+
 ENTRY("THD_dset_to_ni_surf_dset");
 
     if( !ISVALID_DSET(dset) ) RETURN(NULL);
@@ -1237,7 +1237,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
     nsd_add_str_atr_to_group("HISTORY_NOTE", NULL, blk, ngr);
     nsd_add_str_atr_to_group("ATLAS_LABEL_TABLE", NULL, blk, ngr);
     nsd_add_str_atr_to_group("VALUE_LABEL_DTABLE", NULL, blk, ngr);
-     
+
     for (ibr=0; ibr<DSET_NVALS(dset); ++ibr) {
       sprintf(name,"FDRCURVE_%06d",ibr) ;
       nsd_add_atr_to_group(name, NULL, blk, ngr);
@@ -1246,7 +1246,7 @@ ENTRY("THD_dset_to_ni_surf_dset");
       nsd_add_atr_to_group(name, NULL, blk, ngr);
 #endif
     }
-    
+
     nsd_fill_index_list(ngr, dset);                  /* add INDEX_LIST */
     if( copy_data ) nsd_add_sparse_data(ngr, dset);  /* add SPARSE_DATA */
 
@@ -1330,7 +1330,7 @@ static int nsd_add_colms_type(int nvals, int tp, NI_group * ngr)
     char       * str, * slist[1];  /* add_column requires a list of strings */
     int          c, plen;
     char       * tps;
-    
+
 ENTRY("nsd_add_colms_type");
 
     /* check usage */
@@ -1343,7 +1343,7 @@ ENTRY("nsd_add_colms_type");
          tp);
       RETURN(1);
     }
-    
+
     /* rcr - update this with more types (that agree with SUMA) */
 
     plen = (strlen(tps)+1)*nvals + 1;
@@ -1355,7 +1355,7 @@ ENTRY("nsd_add_colms_type");
     /* and then the rest */
     for( c = 1; c < nvals; c++ )
         strcat(str, tps);
-        
+
     /* remove last ; */
     str[strlen(str)-1] = '\0';
 
@@ -1383,7 +1383,7 @@ ENTRY("nsd_add_colms_type");
    ngr    - NI_group to insert new element into
 
    ZSS Feb 08: pilfered from THD_nimlize_dsetatr
-   
+
    return 0 on success
 */
 static int nsd_add_atr_to_group(char * aname, char * niname,
@@ -1433,12 +1433,12 @@ ENTRY("nsd_add_atr_to_group");
          nsd_add_str_atr_to_group(aname, niname, blk, ngr);
        }
        break;
-       
+
        default:
          fprintf(stderr, "*** unexpected type!\n");
          RETURN(1);
    }
-   
+
    RETURN(0);
 }
 
@@ -1497,8 +1497,8 @@ ENTRY("nsd_add_str_atr_to_group");
 }
 
 
-/* add a COLMS_RANGE attribute element to the group 
- * 
+/* add a COLMS_RANGE attribute element to the group
+ *
  * do not assume that the data is of type float, though
  * evaluate ranges as if it is
  */
@@ -1648,7 +1648,7 @@ ENTRY("nsd_add_sparse_data");
         if( DBLK_BRICK_TYPE(blk, ind) != MRI_float &&
             DBLK_BRICK_TYPE(blk, ind) != MRI_complex) /* then allocate floats */
         {
-            if( ! gni.to_float && 
+            if( ! gni.to_float &&
                 DBLK_BRICK_TYPE(blk, ind) != MRI_short &&
                 DBLK_BRICK_TYPE(blk, ind) != MRI_byte  ){
                 fprintf(stderr,
@@ -1658,7 +1658,7 @@ ENTRY("nsd_add_sparse_data");
             }
 
             fdata = malloc(nx * sizeof(float));  /* create our float array */
-            if( !fdata ) { 
+            if( !fdata ) {
                 fprintf(stderr,"** NASD: failed to malloc conversion floats\n");
                 RETURN(1);
             }
@@ -1694,7 +1694,7 @@ ENTRY("nsd_add_sparse_data");
         {
             NI_add_column(nel, NI_BYTE, DBLK_ARRAY(blk, ind)); /* use dblk */
         }
-        else 
+        else
         {
             EDIT_convert_dtype(nx, DBLK_BRICK_TYPE(blk,ind),DBLK_ARRAY(blk,ind),
                                    MRI_float, fdata, 0);
@@ -1707,8 +1707,8 @@ ENTRY("nsd_add_sparse_data");
     }
 
     if( fdata ) free(fdata);  /* fly! (thud) be free! (thud) */
-    
-    /* Next declare output to be Node_Bucket_data always. Someday 
+
+    /* Next declare output to be Node_Bucket_data always. Someday
     we will change that IF we ever feel the need. ZSS Dec 07 */
     {
       char name[256], *att;
@@ -1717,9 +1717,9 @@ ENTRY("nsd_add_sparse_data");
          NI_set_attribute(nel, "data_type", name);
       } else {
          NI_set_attribute(nel, "data_type", "Node_Bucket_data");
-      } 
+      }
     }
-    
+
     set_sparse_data_attribs(nel, dset, 1);
 
     NI_add_to_group(ngr, nel);
@@ -1736,7 +1736,7 @@ int set_sparse_data_attribs(NI_element * nel, THD_3dim_dataset * dset,
 {
     char str[32];
     float TR=0.0;
-    
+
 ENTRY("set_sparse_data_attribs");
 
     if( !nel || !dset ) RETURN(1);
@@ -1935,7 +1935,7 @@ ENTRY("niml_get_major_label_order");
     if( !fname ) {
         fprintf(stderr,"** major_label_order: fname is NULL\n");
         RETURN(0);
-    } 
+    }
     if ( (nel = (NI_element*)read_niml_file(fname, 0)) == NULL ) {
         if( gni.debug )
             fprintf(stderr,"** MLO: failed to read %s as NIML\n", fname);
@@ -1985,7 +1985,7 @@ ENTRY("niml_get_major_label_order");
 
 /* apply any escape characters, and return a new string
  *  * (which will not exceed the orignal string in length)
- *   * 
+ *   *
  *    * \n, \t, \b                   31 Jul 2009 */
 char * unescape_unix_str(const char * ustr)
 {

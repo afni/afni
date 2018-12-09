@@ -36,7 +36,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:41  rwcox
@@ -131,7 +131,7 @@ int psearchAlg;
  * PMotionSearch
  *
  *	compute the best P-frame motion vector we can
- *	
+ *
  *
  * RETURNS:	TRUE	    =	motion vector valid
  *		FALSE	    =	motion vector invalid; should code I-block
@@ -303,10 +303,10 @@ SetSearchRange(pixelsP,pixelsB)
 
     if ( computeMVHist ) {
       int max_search;
-      max_search=(searchRangeP>searchRangeB) ? 
+      max_search=(searchRangeP>searchRangeB) ?
 	((searchRangeP>searchRangeB)?searchRangeP:searchRangeB)
 	  : ((searchRangeB>searchRangeB)?searchRangeB:searchRangeB);
-	
+
 	pmvHistogram = (int **) malloc((2*searchRangeP+3)*sizeof(int *));
 	bbmvHistogram = (int **) malloc((2*searchRangeB+3)*sizeof(int *));
 	bfmvHistogram = (int **) malloc((2*searchRangeB+3)*sizeof(int *));
@@ -673,7 +673,7 @@ PLocalSearch(currentBlock, prev, by, bx, motionY, motionX, bestSoFar, searchRang
 	bestDiff = bestSoFar;
     }
 
-    /* try a spiral pattern */    
+    /* try a spiral pattern */
     for ( distance = stepSize; distance <= searchRange;
 	  distance += stepSize ) {
 	tempRightMY = rightMY;
@@ -809,7 +809,7 @@ PTwoLevelSearch(currentBlock, prev, by, bx, motionY, motionX, bestSoFar, searchR
     rightMY++;
     rightMX++;
 
-    /* try a spiral pattern */    
+    /* try a spiral pattern */
     for ( distance = 2; distance <= searchRange; distance += 2 ) {
 	tempRightMY = rightMY;
 	if ( distance < tempRightMY ) {

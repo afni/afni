@@ -7,54 +7,54 @@
 
 /* Header FILES */
 #include "SUMA_suma.h"
- 
+
 /*!
- 
+
 File : Taken from IV_FaceSetsextract.c
 Author : Ziad Saad
 Date : Tue Nov 17 19:02:16 CST 1998
- 
-Purpose : 
- 
- 	Extracts the FaceSets coordinates of the nodes in an IV file so that we can manipulate the 
+
+Purpose :
+
+ 	Extracts the FaceSets coordinates of the nodes in an IV file so that we can manipulate the
  	data to our liking. The program looks for a sequence of characters that seem to indicate
  	the start of the FaceSets list. Once the sequence is found, the series of triplets is read and
- 	written out either to a file or to the screen. The sequence of triplets must be terminated 
+ 	written out either to a file or to the screen. The sequence of triplets must be terminated
  	by an ending sequence.
  	The starting and ending sequences are hard coded into the program.
- 	
+
  	The program outputs an error message if :
  	If the starting or ending sequences are not found
  	If the number of points read is not a multiple of three
- 	If the first number of the first FaceSets triplet and the last character in the starting sequence 
+ 	If the first number of the first FaceSets triplet and the last character in the starting sequence
  		are not spearated by a space (or tab). You can fix this by manually adding a space.
- 	 
- 	
- 
-Input paramters : 
- 
+
+
+
+Input paramters :
+
  	IV_filename (char *) a string specifying the name of the inventor file
 	N_FaceSetList (int *) will give the number of rows in FaceSetList
- 
-Usage : 
+
+Usage :
 		FaceSetList = SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
- 
- 
-Returns : 
- 
+
+
+Returns :
+
  	FaceSetList (int *) the facesetlist in the inventor file, an  Mx3 integer vector (used to be a matrix before SUMA 1.2)
- 		
- 
-Support : 
- 
- 
- 
-Side effects : 
- 
- 
- 
+
+
+Support :
+
+
+
+Side effects :
+
+
+
 ***/
- 
+
 
 int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 {/* SUMA_IV_FaceSetsextract */
@@ -65,23 +65,23 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 	div_t cnt4;
 	FILE*iv_file;
    static char FuncName[]={"SUMA_IV_FaceSetsextract"};
-   
+
    cnt4.quot = cnt4.rem = 0;
 
 	/* intialize the number of points read to 0 */
 	*N_FaceSetList = 0;
-	
+
 	linv = (int *)SUMA_malloc (MaxAlloc*sizeof(int));
 	if (!linv)
 		{
 				SUMA_alloc_problem ("Allocation error in IV-FaceSetExtract");
 				return (NULL);
 		}
-		
+
 	/*This is the sequence to trigger reading the numbers*/
 	sprintf (seq_strt[0],"IndexedFaceSet");
 	sprintf (seq_strt[1],"{");
-	sprintf (seq_strt[2],"coordIndex");	
+	sprintf (seq_strt[2],"coordIndex");
 	sprintf (seq_strt[3],"[");
 
 	si_exit = 4; /* set equal to the number of strings to be matched */
@@ -112,11 +112,11 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 
 		/*evl = equal_strings (s,seq_strt[si]);*/
 
-		if (strlen (seq_strt[si]) >= strlen (s)) 
+		if (strlen (seq_strt[si]) >= strlen (s))
 			{
 				evl = SUMA_iswordin (seq_strt[si],s);
 				if (evl == 1)
-					nospacing = 0; /* There is a space between character in starting sequence and first number*/ 
+					nospacing = 0; /* There is a space between character in starting sequence and first number*/
 			}
 		else
 			{
@@ -150,21 +150,21 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 
 	/* Now, read the series of numbers until you encounter the first string of the ending sequence*/
 	se = 0;
-	nospacing = 0; 
+	nospacing = 0;
 
 	while (ex != EOF && se < se_exit )
 		{
 			ex = fscanf (iv_file,"%s",s);
 			/*evl = equal_strings (s,seq_end[se]);*/
 
-			if (strlen (seq_end[se]) >= strlen (s)) 
+			if (strlen (seq_end[se]) >= strlen (s))
 				{
 					evl = SUMA_iswordin (seq_end[se],s);
 					if (evl == 1)
-						nospacing = 0; /* There is a space between last number and fisrt character in ending sequence */ 
+						nospacing = 0; /* There is a space between last number and fisrt character in ending sequence */
 				}
 			else
-				{ 
+				{
 					evl = SUMA_iswordin (s,seq_end[se]);
 					if (evl == 1)
 						nospacing = 1;
@@ -176,9 +176,9 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 						f = atoi (s);
 						linv[cnt] = f;
 							#ifdef DEBUG_3
-								printf ("\nNumber (%d): %d is appended to end sequence !\n",cnt,linv[cnt]);	
+								printf ("\nNumber (%d): %d is appended to end sequence !\n",cnt,linv[cnt]);
 							#endif
-		
+
 						++cnt;
 						if (cnt >= MaxAlloc - 1)
 							{
@@ -189,8 +189,8 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 										SUMA_alloc_problem ("Re-Allocation error in IV-FaceSetExtract");
 										return (NULL);
 									}
-								
-							}  
+
+							}
 						se = 0;  /* no match for ending sequence, reset the counter */
 						break;
 					case 1:		/* found the first character in the end sequence */
@@ -198,10 +198,10 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 						{
 							f = atoi (s);
 							linv[cnt] = f;
-							
+
 							++cnt;
 							#ifdef DEBUG_3
-								printf ("\nLast number (%d): %f is appended to end sequence !\n",cnt,f);	
+								printf ("\nLast number (%d): %f is appended to end sequence !\n",cnt,f);
 							#endif
 						}
 						#ifdef DEBUG_3
@@ -221,7 +221,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 					printf ("%s \t",seq_strt[i]);
 		}
 	else
-		{ 
+		{
 			if (se < se_exit)
 				{
 					SUMA_error_message ("IV_FaceSetextract","Could not find specified ending sequence",0);
@@ -239,12 +239,12 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 								printf ("%f FaceSets sets read !!!\n",(float)cnt/4);
 							#endif
 						}
-					
+
 				}
 		}
 
 	*N_FaceSetList = cnt4.quot ;
-	
+
 	/* Now allocate space for SUMA_IV_FaceSetsextract and fill it up */
 	NP = 3;
 	FaceSetList = (int *) SUMA_calloc (*N_FaceSetList * NP, sizeof(int));
@@ -253,7 +253,7 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 			SUMA_alloc_problem("IV_FaceSetextract : Could not allocate");
 			return(NULL);
 		}
-	
+
 	i = 0;
 	ip = 0;
 	while (i < cnt) {
@@ -262,18 +262,18 @@ int *SUMA_IV_FaceSetsextract (char *IV_filename, int *N_FaceSetList)
 		FaceSetList[ip] = linv[i]; ++ip; ++i;
 		++i; /* skip the 4th value */
 	}
-	
+
 	fclose (iv_file);
-	
+
 	SUMA_free(linv);
-	
+
 	return (FaceSetList);
 
 }/* SUMA_IV_FaceSetsextract */
 
-#ifdef TEST 
+#ifdef TEST
 void usage ()
- 
+
   {/*Usage*/
 		printf ("\nUsage:  SUMA_IV_FaceSetsextract <IV_filename> [-o output filename] [-c]\n\n");
 		printf ("\t  	Extracts the FaceSets coordinates of the nodes in an IV file so that we can manipulate the \n");
@@ -301,12 +301,12 @@ void usage ()
 		printf ("\t\t\t Ziad Saad \t Tue Nov 17 19:00:42 CST 1998\n");
 		exit (0);
   }/*Usage*/
- 
+
 main (int argc,char *argv[])
 {/* Main */
 char outfile[300];
 int N_FaceSetList, *FaceSetList ,writeout,CountOnly,paramnum;
- 
+
 if (argc < 2)
     {
       usage ();
@@ -320,7 +320,7 @@ while (paramnum < argc)
 	{
 		if (equal_strings (argv[paramnum],"-o") == 1)
 			{
-				if ((paramnum + 1) >= argc) 
+				if ((paramnum + 1) >= argc)
 					{
 						SUMA_error_message ("SUMA_IV_FaceSetsextract","No Output file name specified with -o option",1);
 						exit (1);
@@ -348,10 +348,10 @@ FaceSetList = SUMA_IV_FaceSetsextract (argv[1], &N_FaceSetList);
 
 if (CountOnly)
 	printf ("%d FaceSets sets read\n",N_FaceSetList);
-	
+
 if (writeout == 1) {
-		FILE *outfid; 
-	
+		FILE *outfid;
+
 	outfid = fopen (outfile, "w");
 	if (outfid == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not open %s for writing.\n", FuncName, outfile);
@@ -382,8 +382,8 @@ if (writeout == 1) {
 		fprintf (SUMA_STDOUT, "\n");
 	}
 }
-	
+
 SUMA_free(FaceSetList);
-	
+
 }/* Main */
 #endif

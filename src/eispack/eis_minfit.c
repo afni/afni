@@ -10,7 +10,7 @@
 static doublereal c_b39 = 1.;
 
 /* Subroutine */ int minfit_(integer *nm, integer *m, integer *n, doublereal *
-	a, doublereal *w, integer *ip, doublereal *b, integer *ierr, 
+	a, doublereal *w, integer *ip, doublereal *b, integer *ierr,
 	doublereal *rv1)
 {
     /* System generated locals */
@@ -39,7 +39,7 @@ static doublereal c_b39 = 1.;
 /*                                                        T */
 /*     SYSTEM AX=B, THE SINGULAR VALUE DECOMPOSITION A=USV  OF A REAL */
 /*                                         T */
-/*     M BY N RECTANGULAR MATRIX, FORMING U B RATHER THAN U.  HOUSEHOLDER 
+/*     M BY N RECTANGULAR MATRIX, FORMING U B RATHER THAN U.  HOUSEHOLDER
 */
 /*     BIDIAGONALIZATION AND A VARIANT OF THE QR ALGORITHM ARE USED. */
 
@@ -89,12 +89,12 @@ static doublereal c_b39 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -295,7 +295,7 @@ L290:
 /*     .......... DOUBLE DIVISION AVOIDS POSSIBLE UNDERFLOW ......
 .... */
 /* L320: */
-	    a[j + i__ * a_dim1] = a[i__ + j * a_dim1] / a[i__ + l * a_dim1] / 
+	    a[j + i__ * a_dim1] = a[i__ + j * a_dim1] / a[i__ + l * a_dim1] /
 		    g;
 	}
 

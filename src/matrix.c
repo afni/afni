@@ -768,7 +768,7 @@ matrix_sprint("matrix_inverse:",a) ;
 	  matrix_destroy (&tmp);
 	  return (0);
 	}
-	
+
 
       fval = 1.0 / tmp.elts[i][i];   /* RWCox: change division by this to */
       for (j = 0;  j < n;  j++)      /*        multiplication by 1.0/this */
@@ -786,7 +786,7 @@ matrix_sprint("matrix_inverse:",a) ;
 		ainv->elts[ii][j] -= fval*ainv->elts[i][j];
 	      }
 	  }
-	
+
     }
 
   matrix_destroy (&tmp);

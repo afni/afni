@@ -32,15 +32,15 @@ int verify_inputs()
 
   /*----- Check for required datasets -----*/
   if (anat == NULL)
-    { 
+    {
       sprintf (message, "No anatomical image");
-      SI_error (message); 
+      SI_error (message);
       return (0);
     }
   if (! ISANAT(anat))
-    { 
+    {
       sprintf (message, "Input dataset must be anatomical image");
-      SI_error (message); 
+      SI_error (message);
       return (0);
     }
   if (DSET_BRICK_TYPE(anat,0) != MRI_short)
@@ -52,7 +52,7 @@ int verify_inputs()
 
 #ifdef PLUG_INTRACRANIAL
   if (dset == NULL)
-    { 
+    {
       sprintf (message, "No output dataset");
       SI_error (message);
       return (0);
@@ -80,13 +80,13 @@ int verify_inputs()
 #ifdef PLUG_INTRACRANIAL
   if (! EQUIV_DATAXES (anat->daxes, dset->daxes))
     {
-      sprintf (message, 
+      sprintf (message,
 	       "Anatomical image and output dataset are incompatible");
       SI_error (message);
       return (0);
     }
 #endif
-    
+
 
   /*----- Check allowed range of intensity values -----*/
   if (min_val_float >= max_val_float)
@@ -196,9 +196,9 @@ void center_of_mass (int * cx, int * cy, int * cz)
   *cy = sumy / sum;
   *cz = sumz / sum;
 
-  if (! quiet)  printf ("Center of mass:   ix = %d   jy = %d   kz = %d  \n", 
+  if (! quiet)  printf ("Center of mass:   ix = %d   jy = %d   kz = %d  \n",
 			*cx, *cy, *cz);
- 
+
 }
 
 
@@ -249,16 +249,16 @@ void segment_x_slices
 
 
   /*----- Loop over x-slices -----*/
-  m = 0; 
+  m = 0;
   while (m <= nx)
     {
       /*----- Start from center slice -----*/
       if (m <= cx)  ix = cx - m;
       else          ix = m-1;
-      
+
 
       /*----- Initialize mask  -----*/
-      if (ix == cx)  
+      if (ix == cx)
 	{
 	  if (axial_slice)
 	    for (iyz = 0;  iyz < nyz;  iyz++)   pslice[iyz] = 0;
@@ -349,7 +349,7 @@ void segment_x_slices
 	  {
 	    iyz = jy + kz*ny;
 	    ixyz = ix + jy*nx + kz*nxy;
-	    if (!cv[ixyz])  
+	    if (!cv[ixyz])
 	      {
 		pslice[iyz]    = 0;
 		pslice[iyz+1]  = 0;
@@ -438,15 +438,15 @@ void segment_y_slices
       /*----- Start from center slice -----*/
       if (m <= cy)  jy = cy - m;
       else          jy = m-1;
-      
+
 
       /*----- Initialize mask  -----*/
-      if (jy == cy) 
-	{ 
+      if (jy == cy)
+	{
 	  if (axial_slice)
 	    for (ixz = 0;  ixz < nxz;  ixz++)   pslice[ixz] = 0;
-	  else 
-	    { 
+	  else
+	    {
 	      for (kz = 0;  kz < nz;  kz++)
 		for (ix = 0;  ix < nx;  ix++)
 		  {
@@ -518,7 +518,7 @@ void segment_y_slices
 	  {
 	    ixz = ix + kz*nx;
 	    ixyz = ix + jy*nx + kz*nxy;
-	    if (pslice[ixz] != 2)  
+	    if (pslice[ixz] != 2)
 	      {
 		cv[ixyz] = 0;
 		count++;
@@ -532,7 +532,7 @@ void segment_y_slices
 	  {
 	    ixz = ix + kz*nx;
 	    ixyz = ix + jy*nx + kz*nxy;
-	    if (!cv[ixyz])  
+	    if (!cv[ixyz])
 	      {
 		pslice[ixz]    = 0;
 		pslice[ixz+1]  = 0;
@@ -550,7 +550,7 @@ void segment_y_slices
 	  if (m <= cy)  m = cy;
 	  else          m = ny;
 	}
-      
+
 
       /*----- Increment slice index -----*/
       m++;
@@ -622,9 +622,9 @@ void segment_z_slices
       if (m <= cz)  kz = cz - m;
       else          kz = m-1;
 
-      
+
       /*----- Initialize mask -----*/
-      if (kz == cz)  
+      if (kz == cz)
 	{
 	  if (axial_slice)
 	    for (ixy = 0;  ixy < nxy;  ixy++)   pslice[ixy] = 0;
@@ -701,7 +701,7 @@ void segment_z_slices
 	  {
 	    ixy = ix + jy*nx;
 	    ixyz = ix + jy*nx + kz*nxy;
-	    if (pslice[ixy] != 2)   
+	    if (pslice[ixy] != 2)
 	      {
 		cv[ixyz] = 0;
 		count++;
@@ -715,7 +715,7 @@ void segment_z_slices
 	  {
 	    ixy = ix + jy*nx;
 	    ixyz = ix + jy*nx + kz*nxy;
-	    if (!cv[ixyz])  
+	    if (!cv[ixyz])
 	      {
 		pslice[ixy]    = 0;
 		pslice[ixy+1]  = 0;
@@ -815,25 +815,25 @@ void segment_envelope
   nxy = nx*ny;   nxz = nx*nz;   nyz = ny*nz;   nxyz = nxy*nz;
   deltalat = PI / MAXLAT;
   deltalng = 2.0 * PI / MAXLNG;
-  nr = nx;  
+  nr = nx;
   if (ny > nr)  nr = ny;
   if (nz > nr)  nr = nz;
 
-    
-  
+
+
   /*----- Calculate the radius vector -----*/
   for (ilat = 0;  ilat < MAXLAT;  ilat++)
     {
       lat = ilat * deltalat - PI/2;
       slat = sin(lat);
       clat = cos(lat);
-      
+
       for (ilng = 0;  ilng < MAXLNG;  ilng++)
 	{
 	  lng = ilng * deltalng;
 	  clng = cos(lng);
 	  slng = sin(lng);
-	  
+
 	  radius[ilat][ilng] = 0.0;
 	  for (ir = 0;  ir < nr;  ir++)
 	    {
@@ -845,26 +845,26 @@ void segment_envelope
 		  && (kz >= 0) && (kz < nz))
 		{
 		  ixyz = ix + jy*nx + kz*nxy;
-		  if (! cv[ixyz])  radius[ilat][ilng] = (float) ir; 
+		  if (! cv[ixyz])  radius[ilat][ilng] = (float) ir;
 		}
 	    }
 	}
     }
-  
+
   /*----- Smooth the radius vectors -----*/
   for (ilat = 0;  ilat < MAXLAT;  ilat++)
     {
       for (ilng = 0;  ilng < MAXLNG;  ilng++)
 	{
 	  smradius[ilat][ilng] = 0.0;
-	  
+
 	  for (i = -1;  i <= 1;  i++)
 	    {
 	      jlat = (ilat + i + MAXLAT) % MAXLAT;
-	      
+
 	      if (ilat == 0)  jlat = 0;
 	      if (ilat == MAXLAT-1)  jlat = MAXLAT-1;
-	      
+
 	      for (j = -2;  j <= 2;  j++)
 		{
 		  jlng = (ilng + j + MAXLNG) % MAXLNG;
@@ -877,9 +877,9 @@ void segment_envelope
   /*----- Find maximum radius to a brain voxel -----*/
   maxr = 0.0;
   for (ilat = 0;  ilat < MAXLAT;  ilat++)
-    for (ilng = 0;  ilng < MAXLNG;  ilng++)    
+    for (ilng = 0;  ilng < MAXLNG;  ilng++)
       if (maxr < smradius[ilat][ilng])  maxr = smradius[ilat][ilng];
-	  
+
   /*----- Smooth the brain mask -----*/
   for (ix = 0;  ix < nx;  ix++){
     for (jy = 0;  jy < ny;  jy++)
@@ -892,16 +892,16 @@ void segment_envelope
 	  {
 	    ixyz = ix + jy*nx + kz*nxy;
 
-	    r = hypot (rxy, (float) (kz-cz));	  
+	    r = hypot (rxy, (float) (kz-cz));
 
 	    if (r < maxr)
 	      {
 		lat = atan2 (kz-cz, rxy);
 		ilat = (int) (((lat+PI/2)/deltalat) + MAXLAT) % MAXLAT;
-		
+
 		if (r < smradius[ilat][ilng])  cv[ixyz] = 0;
 	      }
-	    
+
 	  }
       }
    }
@@ -920,14 +920,14 @@ void segment_envelope
   Segment the intracranial voxels
 */
 
-void segment_volume 
+void segment_volume
 (
   short * cv                    /* volume with 1's at non-brain locations */
 )
 
 {
   THD_dataxes * daxes;                  /* dataset axes */
-  char xxorient, yyorient, zzorient;    /* dataset axes orientations */ 
+  char xxorient, yyorient, zzorient;    /* dataset axes orientations */
   int nxyz;                             /* dataset dimension in voxels */
   int ixyz;                             /* voxel indices */
   int cx, cy, cz;                       /* location of center of mass */
@@ -955,16 +955,16 @@ void segment_volume
   else if ((yyorient == 'S') || (yyorient == 'I'))  segment_y_slices (cv,cy,1);
   else if ((zzorient == 'S') || (zzorient == 'I'))  segment_z_slices (cv,cz,1);
   else SI_error ("Unable to determine dataset orientation");
- 
+
 
   /*----- Segment the sagittal slices -----*/
        if ((xxorient == 'L') || (xxorient == 'R'))  segment_x_slices (cv,cx,0);
   else if ((yyorient == 'L') || (yyorient == 'R'))  segment_y_slices (cv,cy,0);
   else if ((zzorient == 'L') || (zzorient == 'R'))  segment_z_slices (cv,cz,0);
   else SI_error ("Unable to determine dataset orientation");
-  
- 
-  /*----- Segment the coronal slices -----*/       
+
+
+  /*----- Segment the coronal slices -----*/
        if ((xxorient == 'A') || (xxorient == 'P'))  segment_x_slices (cv,cx,0);
   else if ((yyorient == 'A') || (yyorient == 'P'))  segment_y_slices (cv,cy,0);
   else if ((zzorient == 'A') || (zzorient == 'P'))  segment_z_slices (cv,cz,0);
@@ -974,7 +974,7 @@ void segment_volume
   /*----- Create envelope for segmented image -----*/
   if (! nosmooth)
     segment_envelope (cv, cx, cy, cz);
- 
+
 
   return;
 }
@@ -1005,7 +1005,7 @@ int connectivity_tests (short * cv)
   /*----- Initialize voxel classification indicators -----*/
   dv = (byte *) malloc (nxyz * sizeof(byte));
   MTEST (dv);   if (dv == NULL)  return (0);
-  for (ixyz = 0;  ixyz < nxyz;  ixyz++)  
+  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     dv[ixyz] = 0;
 
 
@@ -1046,11 +1046,11 @@ int connectivity_tests (short * cv)
 	      if (ix < nx-1)  dv[THREE_TO_IJK(ix+1,jy,kz,nx,nxy)]++;
 	      if (jy > 1)     dv[THREE_TO_IJK(ix,jy-1,kz,nx,nxy)]++;
 	      if (jy < ny-1)  dv[THREE_TO_IJK(ix,jy+1,kz,nx,nxy)]++;
-	      if (kz > 1)     dv[THREE_TO_IJK(ix,jy,kz-1,nx,nxy)]++;	      
+	      if (kz > 1)     dv[THREE_TO_IJK(ix,jy,kz-1,nx,nxy)]++;
 	      if (kz < nz-1)  dv[THREE_TO_IJK(ix,jy,kz+1,nx,nxy)]++;
 	    }
 	}
-      
+
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	if (dv[ixyz] >=  min_conn_int)  cv[ixyz] = 0;
     }
@@ -1059,7 +1059,7 @@ int connectivity_tests (short * cv)
   /*----- Deallocate memory -----*/
   free (dv);   dv = NULL;
 
-  
+
   return (1);
 }
 

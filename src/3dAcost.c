@@ -85,12 +85,12 @@ int main( int argc , char *argv[] )
          ERROR_exit("badly formed filename: '%s' '%s'",argv[iarg-1],argv[iarg]);
        save_hist = argv[iarg] ; iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-savehist_1D") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
        save_hist_1D= argv[iarg] ; iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-histpow") == 0 ){
        double hist_pow ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s'!",argv[iarg-1]) ;
@@ -268,10 +268,10 @@ int main( int argc , char *argv[] )
        mri_write(save_hist,qim); mri_free(qim);
 #endif
        INFO_message("- Saved %dx%d histogram to %s",nbin,nbin,save_hist) ;
-       
+
      }
    }
-   
+
    if( save_hist_1D != NULL ){  /* Save 2D raw histogram */
      int nbin ; float *xyc ;
      nbin = retrieve_2Dhist( &xyc ) ;
@@ -279,16 +279,16 @@ int main( int argc , char *argv[] )
          FILE *fid=fopen(save_hist_1D,"w");
          for( ii=0 ; ii < nbin; ii++ ) {
             for( jj=0 ; jj < nbin; jj++ ) {
-               fprintf(fid,"%.4f\t", xyc[ii*nbin+jj]); 
+               fprintf(fid,"%.4f\t", xyc[ii*nbin+jj]);
             }
             fprintf(fid,"\n");
          }
          fclose(fid);
       }
       INFO_message("- Saved %dx%d 1D histogram to %s",nbin,nbin,save_hist_1D) ;
-       
+
   }
-  
+
    exit(0) ;
 }
 #endif  /* DISABLE_PROGRAM */

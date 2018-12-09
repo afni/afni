@@ -152,7 +152,7 @@ void usage_3dROIstats(int detail) {
 
 	printf("\n" MASTER_SHORTHELP_STRING);
 
-	PRINT_COMPILE_DATE ;    
+	PRINT_COMPILE_DATE ;
    return;
 }
 
@@ -180,7 +180,7 @@ int main(int argc, char *argv[])
     float *fv = NULL;
     int *iv=NULL, niv=0, *modes=NULL;
     double *pvec=NULL, *eigv=NULL;
-    int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0, 
+    int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0,
         pcxyz=0, nzpcxyz=0, key=0, *keys=NULL;
     int nobriklab=0 ;  /* 14 Mar 2008 */
     int disp1d=1;   /* ZSS May 2008 */
@@ -312,13 +312,13 @@ int main(int argc, char *argv[])
 	    narg++;
 	    continue;
 	}
-   
+
    if (strcmp(argv[narg], "-wpc") == 0) {
 	    wpc[0] = 'w'; wpc[1] = '\0';
 	    narg++;
 	    continue;
 	}
-   
+
    if (strcmp(argv[narg], "-pcxyz") == 0) {
 	    if (nzpcxyz) {
           Error_Exit("mode cannot be used with nzpcxyz");
@@ -774,7 +774,7 @@ int main(int argc, char *argv[])
      WARNING_message("Input dataset %s grid mismatch from mask.\n"
              "Try the following command for grid comparison:\n"
              " 3dinfo -header_line -prefix -same_all_grid %s %s\n"
-             ,argv[narg], 
+             ,argv[narg],
              DSET_HEADNAME(mask_dset), DSET_HEADNAME(input_dset)) ;
 
 	DSET_load(input_dset);
@@ -826,11 +826,11 @@ int main(int argc, char *argv[])
 	    case MRI_float:{
 		    float fac = DSET_BRICK_FACTOR(input_dset, brik);
           input_data = (float *) DSET_ARRAY(input_dset, brik);
-		    
+
           if (fac == 0)
 			fac = 1.0;
 		    else {
-			DSET_unload(input_dset); 
+			DSET_unload(input_dset);
          DSET_mallocize(input_dset); DSET_load(input_dset);
          input_data = (float *) DSET_ARRAY(input_dset, brik);
          for (i = 0; i < nvox; input_data[i++] *= fac);
@@ -859,7 +859,7 @@ int main(int argc, char *argv[])
 
 	    /* do the stats */
 
-	
+
        for (i = 0; i < nvox; i++) {
 		if (mask_data[i]) {
 		    ROI = non_zero[mask_data[i] + 32768];
@@ -889,8 +889,8 @@ int main(int argc, char *argv[])
 			sumsq[ROI] += input_data[i] * input_data[i];
 		}
 	    }
-       
-       /* do the damned median, simple, not fastest implementation 
+
+       /* do the damned median, simple, not fastest implementation
           but good enough*/
        if (perc || nzperc) {
          percentile = (double *)malloc(sizeof(double)*num_ROI);
@@ -916,7 +916,7 @@ int main(int argc, char *argv[])
          } /* ROI */
          free(fv); fv = NULL;
 	    }
-       
+
        /* do the mode */
        if (mode || nzmode) {
          modes = (int *)malloc(sizeof(int)*num_ROI);
@@ -949,7 +949,7 @@ int main(int argc, char *argv[])
          } /* ROI */
          free(iv); iv = NULL;
 	    }
-       
+
        /* do the XYZ PCA */
        if (pcxyz || nzpcxyz) {
          float *xyzp=NULL, fac=1.0;
@@ -968,8 +968,8 @@ int main(int argc, char *argv[])
                   if (pcxyz || input_data[i] != 0.0) ++N_xyz;
                }
             }
-            pvec[9*ROI  ] = pvec[9*ROI+1] =  pvec[9*ROI+2] = 
-            pvec[9*ROI+3] = pvec[9*ROI+4] =  pvec[9*ROI+5] = 
+            pvec[9*ROI  ] = pvec[9*ROI+1] =  pvec[9*ROI+2] =
+            pvec[9*ROI+3] = pvec[9*ROI+4] =  pvec[9*ROI+5] =
             pvec[9*ROI+6] = pvec[9*ROI+7] =  pvec[9*ROI+8] = 0.0;
             eigv[3*ROI  ] = eigv[3*ROI+1] =  eigv[3*ROI+2] = 0.0;
             if (N_xyz) {
@@ -983,27 +983,27 @@ int main(int argc, char *argv[])
                   } else fac = 1.0;
                   if (mask_data[i] && ROI == non_zero[mask_data[i] + 32768]) {
                      if (pcxyz) {
-                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
+                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2],
                                                nvi, nvij);
                         fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
-                        xyzp[k        ] = fv3.xyz[0]*fac; 
-                        xyzp[k+N_xyz  ] = fv3.xyz[1]*fac; 
-                        xyzp[k+N_xyz*2] = fv3.xyz[2]*fac; 
+                        xyzp[k        ] = fv3.xyz[0]*fac;
+                        xyzp[k+N_xyz  ] = fv3.xyz[1]*fac;
+                        xyzp[k+N_xyz*2] = fv3.xyz[2]*fac;
                         ++k;
                      } else { /* non zero only */
-                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2], 
+                        AFNI_1D_to_3D_index(i, vi.ijk[0], vi.ijk[1], vi.ijk[2],
                                                nvi, nvij);
                         fv3 = THD_3dind_to_dicomm_no_wod(input_dset, vi);
                         if (input_data[i] != 0.0) {
-                           xyzp[k        ] = fv3.xyz[0]*fac; 
-                           xyzp[k+N_xyz  ] = fv3.xyz[1]*fac; 
-                           xyzp[k+N_xyz*2] = fv3.xyz[2]*fac; 
+                           xyzp[k        ] = fv3.xyz[0]*fac;
+                           xyzp[k+N_xyz  ] = fv3.xyz[1]*fac;
+                           xyzp[k+N_xyz*2] = fv3.xyz[2]*fac;
                            ++k;
                         }
                      }
                   }
                }/* i */
-               
+
                if ((trace = pca_fast3(xyzp, N_xyz, 1, pc_vec, pc_eig)) < 0) {
                   ERROR_message("Failed calculating PC for %dth ROI, \n"
                                 "setting all 0\n", ROI);
@@ -1023,7 +1023,7 @@ int main(int argc, char *argv[])
             }
          }
        }
-       
+
        if (key) {
          keys = (int*)malloc(sizeof(int)*num_ROI);
          for (ROI=0; ROI < num_ROI; ++ROI){ /* ROI */
@@ -1036,7 +1036,7 @@ int main(int argc, char *argv[])
             }
          }
        }
-       
+
        /* print the next line of results */
 	    if (!quiet && !summary){
          if( nobriklab )
@@ -1111,14 +1111,14 @@ int main(int argc, char *argv[])
                md = (eigv[3*i  ]+eigv[3*i+1]+eigv[3*i+2])/3.0;
                fa = sqrt(3*((eigv[3*i  ]-md)*(eigv[3*i  ]-md) +
                             (eigv[3*i+1]-md)*(eigv[3*i+1]-md) +
-                            (eigv[3*i+2]-md)*(eigv[3*i+2]-md))) / 
+                            (eigv[3*i+2]-md)*(eigv[3*i+2]-md))) /
                     sqrt(2* (eigv[3*i  ]*eigv[3*i  ]+
                              eigv[3*i+1]*eigv[3*i+1]+
                              eigv[3*i+2]*eigv[3*i+2]));
                cl = (eigv[3*i  ]-eigv[3*i+1])/(3.0*md);
                cp = (eigv[3*i+1]-eigv[3*i+2])/(3.0*md)*2.0;
                cs = eigv[3*i+2]/md;
-               
+
                fprintf(stdout, "\t%f\t%f\t%f\t%f\t%f",
                                  fa, md, cl, cp, cs );
             }
@@ -1149,23 +1149,23 @@ int main(int argc, char *argv[])
          if (donzsum)
              fprintf(stdout, "\t%s", zerofill);
 		   if (mode || nzmode)
-			    fprintf(stdout, "\t%s", zerofill); 
+			    fprintf(stdout, "\t%s", zerofill);
          if (pcxyz || nzpcxyz) {
             fprintf(stdout, "\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t\t%s\t%s\t%s",
-                  zerofill, zerofill, zerofill, 
-                  zerofill, zerofill, zerofill, 
-                  zerofill, zerofill, zerofill, 
+                  zerofill, zerofill, zerofill,
+                  zerofill, zerofill, zerofill,
+                  zerofill, zerofill, zerofill,
                   zerofill, zerofill, zerofill);
             if (pcxyz == 2 || nzpcxyz == 2) {
                fprintf(stdout, "\t%s\t%s\t%s\t%s\t%s",
-                     zerofill, zerofill, zerofill, 
+                     zerofill, zerofill, zerofill,
                      zerofill, zerofill);
             }
          }
          if (key) {
             fprintf(stdout, "\t%s", zerofill);
          }
-            }                
+            }
 		}		/* loop over ROI for print */
 
 		fprintf(stdout, "\n");

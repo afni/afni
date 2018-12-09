@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -57,7 +57,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/08/01 12:51:58  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -116,7 +116,7 @@ static void _PLC_JPEG_FinalPass(PLC *plc);
 * Name: 		_PLC_JPEG_ErrorExit
 * Return Type: 	void
 * Description: 	JPEG error override. Called when libjpeg signals an error.
-* In: 
+* In:
 *	cinfo:		current decompressor.
 * Returns:
 *	nothing.
@@ -145,7 +145,7 @@ _PLC_JPEG_ErrorExit(j_common_ptr cerr)
 * Name:			_PLC_JPEG_InitSource
 * Return Type: 	void
 * Description: 	jpeg init_buffer method. Allocates the input buffer.
-* In: 
+* In:
 *	cinfo:		JPEG decompresser info.
 * Returns:
 *	nothing.
@@ -195,7 +195,7 @@ _PLC_JPEG_InitSource(j_decompress_ptr cinfo)
 * Return Type: 	boolean (JPEG boolean is int, XmHTML Boolean is a char)
 * Description: 	jpeg fill_input_buffer method. We use the Suspended I/O
 *				facility of the jpeg library.
-* In: 
+* In:
 *	cinfo:		JPEG decompresser info.
 * Returns:
 *	False when decompression of the current decompressor should be suspended
@@ -239,7 +239,7 @@ _PLC_JPEG_FillInputBuffer(j_decompress_ptr cinfo)
 	{
 		_XmHTMLDebug(15, ("plc.c: _PLC_JPEG_FillInputBuffer, suspending "
 			"input, left = %i, bytes_in_buffer = %i\n", plc->left,
-			src->pub.bytes_in_buffer)); 
+			src->pub.bytes_in_buffer));
 
 		/*****
 		* Save current state by backtracking in the main PLC input buffer.
@@ -400,17 +400,17 @@ _PLC_JPEG_FillInputBuffer(j_decompress_ptr cinfo)
 * Name:			_PLC_JPEG_SkipInputData
 * Return Type: 	void
 * Description: 	jpeg skip_input_data method.
-* In: 
+* In:
 *	cinfo:		jpeg decompressor info;
 *	nskip:		no of bytes to be skipped in the input;
 * Returns:
 *	nothing.
 * Note:
-*	Due to the fact that this routine may *not* be suspended, we must save 
+*	Due to the fact that this routine may *not* be suspended, we must save
 *	the amount of data to skip to a public field in the source manager
 *	which will then skip past the amount requested.
 *****/
-static void 
+static void
 _PLC_JPEG_SkipInputData(j_decompress_ptr cinfo, long nskip)
 {
 	plc_jpeg_source_mgr *src = (plc_jpeg_source_mgr*)cinfo->src;
@@ -445,7 +445,7 @@ _PLC_JPEG_SkipInputData(j_decompress_ptr cinfo, long nskip)
 * Name:			_PLC_JPEG_TermSource
 * Return Type: 	void
 * Description: 	jpeg term_source method.
-* In: 
+* In:
 *	cinfo:		JPEG decompressor info;
 * Returns:
 *	nothing.
@@ -470,13 +470,13 @@ _PLC_JPEG_TermSource(j_decompress_ptr cinfo)
 * Name:			_PLC_JPEG_SetSource
 * Return Type: 	void
 * Description: 	jpeg_stdio_src variant for JPEG PLC.
-* In: 
+* In:
 *	cinfo:		JPEG decompressor info;
 *	plc:		current PLC
 * Returns:
 *	nothing.
 *****/
-static void 
+static void
 _PLC_JPEG_SetSource(j_decompress_ptr cinfo, PLC *plc)
 {
 	plc_jpeg_source_mgr *src;
@@ -508,7 +508,7 @@ _PLC_JPEG_SetSource(j_decompress_ptr cinfo, PLC *plc)
 * Name:			ReadJPEGColormap
 * Return Type: 	void
 * Description: 	reads the colormap allocated for a JPEG image.
-* In: 
+* In:
 *	jpeg:	PLC image object data;
 *	cinfo:		current decompressor data.
 * Returns:
@@ -534,12 +534,12 @@ ReadJPEGColormap(PLCImageJPEG *jpeg, struct jpeg_decompress_struct *cinfo)
 	jpeg->cmap = (XCOLOR*)calloc(jpeg->cmapsize, sizeof(XCOLOR));
 
 	/* fill colormap. Upscale RGB to 16bits precision */
-	if(cinfo->out_color_components == 3) 
+	if(cinfo->out_color_components == 3)
 	{
 		int cshift = 16 - cinfo->data_precision;
 		jpeg->colorclass = XmIMAGE_COLORSPACE_RGB;
 
-		for (i=0; i < jpeg->cmapsize; i++) 
+		for (i=0; i < jpeg->cmapsize; i++)
 		{
 			GETR(jpeg->cmap[i]) = cinfo->colormap[0][i] << cshift;
 			GETG(jpeg->cmap[i]) = cinfo->colormap[1][i] << cshift;
@@ -547,13 +547,13 @@ ReadJPEGColormap(PLCImageJPEG *jpeg, struct jpeg_decompress_struct *cinfo)
 			GETP(jpeg->cmap[i]) = (Pixel)i;
 		}
 	}
-	else 
+	else
 	{
 		int cshift = 16 - cinfo->data_precision;
 		jpeg->colorclass = XmIMAGE_COLORSPACE_GRAYSCALE;
-		for(i = 0; i < jpeg->cmapsize; i++) 
+		for(i = 0; i < jpeg->cmapsize; i++)
 		{
-			GETR(jpeg->cmap[i]) = GETG(jpeg->cmap[i]) = 
+			GETR(jpeg->cmap[i]) = GETG(jpeg->cmap[i]) =
 				GETB(jpeg->cmap[i]) = cinfo->colormap[0][i] << cshift;
 			GETP(jpeg->cmap[i]) = (Pixel)i;
 		}
@@ -624,9 +624,9 @@ _PLC_JPEG_Init(PLC *plc)
 	* set_jmp saves the current environment, which differs each time this
 	* routine is called.
 	*****/
-	if(setjmp(jerr->setjmp_buffer)) 
+	if(setjmp(jerr->setjmp_buffer))
 	{
-		/***** 
+		/*****
 		* JPEG signalled an error, abort this PLC.
 		* Necessary cleanup will be done by _PLC_JPEG_Destructor.
 		*****/
@@ -678,7 +678,7 @@ _PLC_JPEG_Init(PLC *plc)
 	* want to be able to allow this we must make preparations for this (hence
 	* the enable_ settings).
 	*****/
-	cinfo->quantize_colors    = TRUE; 
+	cinfo->quantize_colors    = TRUE;
 	cinfo->enable_1pass_quant = TRUE;
 	cinfo->enable_2pass_quant = TRUE;
 	cinfo->two_pass_quantize  = FALSE;
@@ -720,7 +720,7 @@ _PLC_JPEG_Init(PLC *plc)
 	jpeg->height = cinfo->output_height;
 
 	/*****
-	* Decoded data buffer and counters. 
+	* Decoded data buffer and counters.
 	*****/
 	/* input buffer data stride; output_comp should always be 1 */
 	jpeg->stride = cinfo->output_width * cinfo->output_components;
@@ -740,7 +740,7 @@ _PLC_JPEG_Init(PLC *plc)
 * Name:			_PLC_JPEG_ScanlineProc
 * Return Type: 	void
 * Description: 	JPEG scanline processor
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -768,9 +768,9 @@ _PLC_JPEG_ScanlineProc(PLC *plc)
 	* set_jmp saves the current environment, which differs each time this
 	* routine is called.
 	*****/
-	if(setjmp(jerr->setjmp_buffer)) 
+	if(setjmp(jerr->setjmp_buffer))
 	{
-		/***** 
+		/*****
 		* JPEG signalled an error, abort this PLC.
 		* Necessary cleanup will be done by _PLC_JPEG_Destructor.
 		*****/
@@ -845,7 +845,7 @@ _PLC_JPEG_ScanlineProc(PLC *plc)
 	jpeg->data_pos = cinfo->output_scanline*jpeg->stride;
 
 	/* pass completed */
-	if(cinfo->output_scanline == cinfo->output_height) 
+	if(cinfo->output_scanline == cinfo->output_height)
 	{
 		_XmHTMLDebug(15, ("plc.c: _PLC_JPEG_ScanlineProc, scan %i done.\n",
 			cinfo->output_scan_number));
@@ -896,7 +896,7 @@ _PLC_JPEG_ScanlineProc(PLC *plc)
 * Return Type: 	void
 * Description: 	performs last pass on the decoded image data to do proper
 *				color quantization.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.
@@ -931,9 +931,9 @@ _PLC_JPEG_FinalPass(PLC *plc)
 	* set_jmp saves the current environment, which differs each time this
 	* routine is called.
 	*****/
-	if(setjmp(jerr->setjmp_buffer)) 
+	if(setjmp(jerr->setjmp_buffer))
 	{
-		/***** 
+		/*****
 		* JPEG signalled an error, abort this PLC.
 		* Necessary cleanup will be done by _PLC_JPEG_Destructor.
 		*****/
@@ -951,7 +951,7 @@ _PLC_JPEG_FinalPass(PLC *plc)
 	* in the current decompressor. Set proper color quantization params
 	* and initialize the final pass.
 	*****/
-	cinfo->quantize_colors    = TRUE; 
+	cinfo->quantize_colors    = TRUE;
 	cinfo->two_pass_quantize  = TRUE;
 	cinfo->dither_mode        = JDITHER_FS;
 	cinfo->colormap           = NULL;
@@ -1043,7 +1043,7 @@ _PLC_JPEG_FinalPass(PLC *plc)
 * Name: 		_PLC_JPEG_Destructor
 * Return Type: 	void
 * Description: 	JPEG PLC virtual destructor method.
-* In: 
+* In:
 *	plc:		current PLC
 * Returns:
 *	nothing.

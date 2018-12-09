@@ -24,12 +24,12 @@
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
+extern int SUMAg_N_SVv;
+extern int SUMAg_N_DOv;
 
 #if 0
 /* Normally, functions in SUMA_gts_insert.c would be here */
-#endif 
+#endif
 
 GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 {
@@ -41,17 +41,17 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 	int n = 0;
 	int *MapToGts = NULL; /*used to map EL vector to edge vector*/
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
 	if (!SO->EL) {
       SUMA_SL_Err("Null Edgeist!");
       SUMA_RETURN(s);
    }
-   
+
    SUMA_LH("In with ");
    if (LocalHead) SUMA_Print_Surface_Object(SO, stderr);
-   
+
    s = gts_surface_new( gts_surface_class (),
 									 gts_face_class (),
 									 gts_edge_class (),
@@ -64,11 +64,11 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 			(gdouble)SO->NodeList[i],
 			(gdouble)SO->NodeList[i+1],
 			(gdouble)SO->NodeList[i+2]);
-      if (LocalHead) 
+      if (LocalHead)
          fprintf(SUMA_STDERR, "Added vertex (%d/%d)%f %f %f\n"
                                           "Stored gts (fails for some reason, but surface is OK)  %f %f %f\n"
                                           , n, SO->N_Node-1, SO->NodeList[i], SO->NodeList[i+1], SO->NodeList[i+2]
-                                          , (float)(vertices[n]->p.x), (float)(vertices[n]->p.y), (float)(vertices[n]->p.z));  
+                                          , (float)(vertices[n]->p.x), (float)(vertices[n]->p.y), (float)(vertices[n]->p.z));
 	   ++n;
    }
    edges = (GtsEdge**)g_malloc (SO->EL->N_Distinct_Edges * sizeof (GtsEdge*));
@@ -118,11 +118,11 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 		gts_surface_add_face(s,
 		   gts_face_new ( s->face_class, e1, e2, e3));
       if (LocalHead) fprintf(SUMA_STDERR, "Added face of SUMA edges: %d %d %d\n"
-                                          "              MapToGTS  : %d %d %d\n", 
+                                          "              MapToGTS  : %d %d %d\n",
                                           SUMA_FindEdge( SO->EL, n1, n2), SUMA_FindEdge( SO->EL, n2, n3), SUMA_FindEdge( SO->EL, n3, n1),
                                           MapToGts[SUMA_FindEdge( SO->EL, n1, n2)], MapToGts[SUMA_FindEdge( SO->EL, n2, n3)], MapToGts[SUMA_FindEdge( SO->EL, n3, n1)]);
 	}
-   
+
 	g_free (vertices);
 	g_free (edges);
 	g_free (MapToGts);
@@ -131,19 +131,19 @@ GtsSurface* SumaToGts( SUMA_SurfaceObject *SO)
 
 
 #if 0
-/* These functions fail on OSX, see function gts_surface_suma and comments preceding it */ 
+/* These functions fail on OSX, see function gts_surface_suma and comments preceding it */
 SUMA_SurfaceObject* GtsToSuma( GtsSurface *gs)
 {
 	static char FuncName[]={"GtsToSuma"};
    GHashTable *hash = g_hash_table_new(NULL,NULL);
-	SUMA_SurfaceObject* SO = NULL; 
+	SUMA_SurfaceObject* SO = NULL;
 	int i = 0;
 	gpointer data1[3];
-   
+
    SUMA_ENTRY;
-   
+
    GTS_OUT("fails.surf", gs);
-   
+
    SO = (SUMA_SurfaceObject *)SUMA_malloc(sizeof(SUMA_SurfaceObject));
 	SO->N_Node = gts_surface_vertex_number(gs);
 	SO->NodeList = (float*) SUMA_calloc(SO->N_Node * 3, sizeof(float));
@@ -186,7 +186,7 @@ void MakeNodeList_foreach_vertex ( GtsPoint *p, gpointer* data)
 		fprintf(SUMA_STDERR, "node %i out of range", *i);
 		exit(1);
 	}
-	
+
 	if (g_hash_table_lookup(hash, p) == NULL)
 		g_hash_table_insert(hash, p, GINT_TO_POINTER(*i));
 	else
@@ -225,7 +225,7 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 		exit(1);
 	}
 	SO->FaceSetList[(*i)*3] = iresult;
-	
+
 	if (!g_hash_table_lookup_extended(hash, v2, temp, &presult))
 	{
 		fprintf(SUMA_STDERR, "hash table lookup failed");
@@ -238,7 +238,7 @@ void MakeFaceList_foreach_face ( GtsFace* f, gpointer* data)
 		exit(1);
 	}
 	SO->FaceSetList[(*i)*3+1] = iresult;
-	
+
 	if (!g_hash_table_lookup_extended(hash, v3, temp, &presult))
 	{
 		fprintf(SUMA_STDERR, "hash table lookup failed");
@@ -282,38 +282,38 @@ void refine( GtsSurface* s, int stop)
       (GtsStopFunc)stop_number, &stop);
 }
 
-/* A convenience function for SUMA_Mesh_Resample. 
+/* A convenience function for SUMA_Mesh_Resample.
    if new_N_Nodes is between 0 and 1 then it is taken
    to be the fraction of nodes in the original surface.*/
-SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO, 
+SUMA_SurfaceObject *SUMA_Mesh_Resample_nodes(SUMA_SurfaceObject *SO,
                                              float new_N_Nodes)
 {
    static char FuncName[]={"SUMA_Mesh_Resample_nodes"};
    int new_N_Edges = 0;
    float edge_factor = 0;
-   
+
    if (new_N_Nodes > 0.0 && new_N_Nodes < 1.0) {
       new_N_Nodes = (int)(new_N_Nodes*SO->N_Node);
    } else new_N_Nodes = (int)new_N_Nodes;
-   
+
    /* approximate number of edges */
    new_N_Edges = 3*new_N_Nodes-6;
    edge_factor = (float)new_N_Edges/(float)SO->EL->N_Distinct_Edges;
-   
+
    return(SUMA_Mesh_Resample (SO, edge_factor));
-} 
+}
 
 /*!
    \brief resample a mesh so that the resultant surface has edge_factor as many edges as the original one
 */
-SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO, 
+SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO,
                                         float edge_factor)
 {
    static char FuncName[]={"SUMA_Mesh_Resample"};
    SUMA_SurfaceObject *S2=NULL;
    GtsSurface* s  = NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
 
    if (!SO) {
@@ -353,13 +353,13 @@ SUMA_SurfaceObject *SUMA_Mesh_Resample (SUMA_SurfaceObject *SO,
       SUMA_SL_Err("Failed to refine");
       SUMA_RETURN(S2);
    }
-  
+
    /* change the surface back to SUMA */
    S2 = SUMA_Alloc_SurfObject_Struct(1);
-   gts_surface_suma (s, 
-                     &(S2->NodeList), &(S2->N_Node), &(S2->NodeDim), 
+   gts_surface_suma (s,
+                     &(S2->NodeList), &(S2->N_Node), &(S2->NodeDim),
                      &(S2->FaceSetList), &(S2->N_FaceSet), &(S2->FaceSetDim));
-   
+
    gts_object_destroy((GtsObject*)s); s = NULL;
 
    SUMA_RETURN(S2);

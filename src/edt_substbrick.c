@@ -70,7 +70,7 @@ ENTRY("EDIT_substitute_brick") ;
 /*---------------------------------------------------------------------------*/
 /*! Similar to EDIT_substitute_brick(), but allows the data type to be
     converted/scaled.  The brick_fac field will be set.  [18 Sep 2006]
-    
+
     Free fim after the function returns UNLESS ftype == stype
 -----------------------------------------------------------------------------*/
 
@@ -108,7 +108,7 @@ ENTRY("EDIT_substscale_brick") ;
 
    if( ftype != MRI_float && ftype != MRI_double ){ /* ZSS Dec 2010 */
      ERROR_message("EDIT_substscale_brick: non-float and non-double input! "
-                   "(%d %d %d)", ftype, stype, MRI_short); 
+                   "(%d %d %d)", ftype, stype, MRI_short);
      EXRETURN;
    }
    if( stype != MRI_short && stype != MRI_byte ){
@@ -246,7 +246,7 @@ ENTRY("EDIT_substscale_brick") ;
         EDIT_BRICK_FACTOR( dset,ival,fac ) ;
 
         /* Skip the misfit report. None exists for double
-        input at the moment.  
+        input at the moment.
          EDIT_misfit_report( ) ;*/
 
       } else if( stype == MRI_byte ){

@@ -34,7 +34,7 @@ MRI_IMAGE * mri_cat2D(  int mx , int my , int gap ,
    MRI_IMAGE *imout , *imin=NULL ;
    void *vout ;
    int warn = 0;
-   
+
 ENTRY("mri_cat2D") ;
 
    /*--- sanity checks ---*/
@@ -122,7 +122,7 @@ ENTRY("mri_cat2D") ;
                   else bb = WrapZero;
                   for( jout=0 ; jout < ny ; jout++ , ijoff+=nxout )
                         (void) memset( pout+ijoff , bb , sizeof(byte)*nx ) ;
-                  
+
                } break ;
 
                case MRI_rgb:{                       /* 11 Feb 1999 */

@@ -1,11 +1,11 @@
 #ifndef PROG_OPTS_INCLUDED
 #define PROG_OPTS_INCLUDED
 
-/* 
+/*
    ***********    Manual Edits Can Get CLOBBERED!    ***********
    *************** File created automatically ******************
 
-   This file was initially created by function progopt_C_array(), 
+   This file was initially created by function progopt_C_array(),
    via program apsearch with:
         apsearch -C_all_prog_opt_array > prog_opts.c
 
@@ -13,7 +13,7 @@
         apsearch -C_all_prog_opt_array PROG > prog_opts.c
 
 
-You'll need to also touch thd_getpathprogs.c before rebuilding 
+You'll need to also touch thd_getpathprogs.c before rebuilding
 libmri.a, etc.
 */
 

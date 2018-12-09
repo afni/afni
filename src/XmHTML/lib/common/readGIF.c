@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * Based on code by David Koblas from the pbmplus package, of which the original
@@ -47,7 +47,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -88,7 +88,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:02:49  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -188,14 +188,14 @@ static int current_frame;
 * Name: 		_XmHTMLGifReadOK
 * Return Type: 	size_t
 * Description: 	copy len bytes to buf from an ImageBuffer
-* In: 
+* In:
 *	*bp:		data source
 *	buf:		data destination
 *	len:		no of bytes to copy
 * Returns:
 *	actual no of bytes read or 0 on failure or end of buffer.
 *****/
-size_t 
+size_t
 _XmHTMLGifReadOK(ImageBuffer *ib, Byte *buf, int len)
 {
 	if(ib->size > ib->next)
@@ -213,7 +213,7 @@ _XmHTMLGifReadOK(ImageBuffer *ib, Byte *buf, int len)
 * Name: 		_XmHTMLGifGetDataBlock
 * Return Type: 	int
 * Description: 	gets the next amount of data from the input buffer
-* In: 
+* In:
 *	ib:			current ImageBuffer
 *	buf:		storage buffer, filled upon return.
 * Returns:
@@ -237,7 +237,7 @@ _XmHTMLGifGetDataBlock(ImageBuffer *ib, Byte *buf)
 * Name: 		SkipImage
 * Return Type: 	void
 * Description: 	skips past an image
-* In: 
+* In:
 *	ib:			file descriptor of image to check
 * Returns:
 *	nothing
@@ -245,7 +245,7 @@ _XmHTMLGifGetDataBlock(ImageBuffer *ib, Byte *buf)
 static void
 SkipImage(ImageBuffer *ib)
 {
-	Byte c;	
+	Byte c;
 	static char	buf[256];
 
 	/* Initialize the Compression routines */
@@ -260,7 +260,7 @@ SkipImage(ImageBuffer *ib)
 * Name: 		_XmHTMLIsGifAnimated
 * Return Type: 	unsigned char
 * Description: 	checks whether a file is a GIF or animated GIF image
-* In: 
+* In:
 *	ib:			file descriptor of image to check
 * Returns:
 *	IMAGE_UNKNOWN, IMAGE_GIF, IMAGE_GIFANIM or IMAGE_GIFANIMLOOP
@@ -407,7 +407,7 @@ _XmHTMLGifAnimInit(Widget html, ImageBuffer *ib, XmHTMLRawImageData *img_data)
 	RewindImageBuffer(ib);
 
 	/* reset raw image data */
-	ResetRawImage(img_data); 
+	ResetRawImage(img_data);
 
 	_XmHTMLDebug(15, ("readGIF, _XmHTMLGifAnimInit, initializing animated "
 		"gif %s\n", ib->file));
@@ -488,7 +488,7 @@ _XmHTMLGifAnimInit(Widget html, ImageBuffer *ib, XmHTMLRawImageData *img_data)
 		* NETSCAPE2.0 loop extension or a series of images. The first has a
 		* loop count in it, but the second one doesn't. DoExtension returns
 		* IMAGE_GIFANIM if this is a NETSCAPE2.0 or IMAGE_GIF if it's a
-		* series of images. So we need to see what we get returned: if it's 
+		* series of images. So we need to see what we get returned: if it's
 		* GIFANIM we get the loop_count out of the Gif89 struct. If it's just
 		* GIF we set it to 1.
 		*****/
@@ -508,7 +508,7 @@ _XmHTMLGifAnimInit(Widget html, ImageBuffer *ib, XmHTMLRawImageData *img_data)
 
 	_XmHTMLDebug(15, ("readGIF.c, _XmHTMLGifAnimInit, Logical Screen "
 		"Descriptor:\n\twidth: %i, height: %i, Background pixel: %i\n"
-		"\tloopCount: %i\n", GifAnimScreen.Width, GifAnimScreen.Height, 
+		"\tloopCount: %i\n", GifAnimScreen.Width, GifAnimScreen.Height,
 		GifAnimScreen.Background, Gif89.loopCount));
 
 	return(netscape ? Gif89.loopCount : 1);
@@ -518,7 +518,7 @@ _XmHTMLGifAnimInit(Widget html, ImageBuffer *ib, XmHTMLRawImageData *img_data)
 * Name: 		_XmHTMLGifAnimNextFrame
 * Return Type: 	Boolean
 * Description: 	reads the next frame of a gif animation
-* In: 
+* In:
 *
 * Returns:
 *	True when frame is successfully read. False upon error or no more images.
@@ -591,7 +591,7 @@ _XmHTMLGifAnimNextFrame(ImageBuffer *ib, XmHTMLRawImageData *img_data, int *x,
 
 		if(ReadColorMap(ib, bitPixel, localColorMap, &i))
 		{
-			_XmHTMLWarning(__WFUNC__(html, "_XmHTMLGifAnimNextFrame"), 
+			_XmHTMLWarning(__WFUNC__(html, "_XmHTMLGifAnimNextFrame"),
 				XMHTML_MSG_105, "local", ib->file);
 			return(False);
 		}
@@ -643,7 +643,7 @@ _XmHTMLGifAnimNextFrame(ImageBuffer *ib, XmHTMLRawImageData *img_data, int *x,
 
 	_XmHTMLDebug(15, ("readGIF.c, _XmHTMLGifAnimNextFrame, frame %i read:\n"
 		"\tx_offset: %i, y_offset: %i\n\twidth: %i, height: %i\n"
-		"\tbackground: %i, timeout: %i, dispose: %i\n", current_frame, 
+		"\tbackground: %i, timeout: %i, dispose: %i\n", current_frame,
 		*x, *y, img_data->width, img_data->height, img_data->bg, *timeout,
 		*dispose));
 
@@ -657,7 +657,7 @@ _XmHTMLGifAnimNextFrame(ImageBuffer *ib, XmHTMLRawImageData *img_data, int *x,
 * Name: 		_XmHTMLReadGIF
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	read a gif file
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	ib:			image memory buffer
 * Returns:
@@ -689,7 +689,7 @@ _XmHTMLReadGIF(Widget html, ImageBuffer *ib)
 
 	/*
 	* When we get here we already know this is a gif image, so we can
-	* safely skip the magic check 
+	* safely skip the magic check
 	*/
 	ib->next = 6;
 
@@ -832,7 +832,7 @@ _XmHTMLReadGIF(Widget html, ImageBuffer *ib)
 		{
 			if(imageCount == imageNumber)
 				CopyColormap(img_data->cmap, GifScreen.BitPixel,
-					GifScreen.ColorMap); 
+					GifScreen.ColorMap);
 		}
 
 		/* get image data for this image */
@@ -875,7 +875,7 @@ _XmHTMLReadGIF(Widget html, ImageBuffer *ib)
 * Name: 		ReadColorMap
 * Return Type: 	int
 * Description: 	reads a GIF colormap
-* In: 
+* In:
 *	ib:			current ImageBuffer;
 *	number:		no of colors to read;
 *	buffer:		colormap buffer;
@@ -915,7 +915,7 @@ ReadColorMap(ImageBuffer *ib, int number,
 * Name: 		DoExtension
 * Return Type: 	int
 * Description: 	process a gif extension block
-* In: 
+* In:
 *	ib:			current ImageBuffer;
 *	label:		extension block identifier;
 * Returns:
@@ -971,7 +971,7 @@ DoExtension(ImageBuffer *ib, int label)
 * Name: 		InflateGZFInternal
 * Return Type: 	Byte*
 * Description: 	uncompress deflated raster data
-* In: 
+* In:
 *	ib:			current imageBuffer
 *	dsize:		size of inflated (decompressed) raster data.
 *	*nread:		real size of uncompressed image data.
@@ -1022,7 +1022,7 @@ InflateGZFInternal(ImageBuffer *ib, int dsize, int *nread)
 		stream.avail_out = dsize - stream.total_out;
 
 		/* uncompress it */
-		err = inflate(&stream, Z_PARTIAL_FLUSH);	
+		err = inflate(&stream, Z_PARTIAL_FLUSH);
 
 		/* check return value */
 		if(err != Z_OK && err != Z_STREAM_END)
@@ -1061,7 +1061,7 @@ InflateGZFInternal(ImageBuffer *ib, int dsize, int *nread)
 * Return Type: 	Byte*
 * Description: 	decodes LZW compressed raster data without using an LZW
 *				decoder by using the "compress" utilitity.
-* In: 
+* In:
 *	ib:			current imageBuffer
 *	dsize:		size of inflated (decompressed) raster data.
 *	*nread:		real size of uncompressed image data.
@@ -1158,7 +1158,7 @@ InflateGIFExternal(XmImageGifProc inflate, ImageBuffer *ib,
 		gstream.avail_out = dsize - gstream.total_out;
 
 		/* uncompress it */
-		err = inflate(&gstream);	
+		err = inflate(&gstream);
 
 		/* check return value */
 		if(err != GIF_STREAM_OK && err != GIF_STREAM_END)
@@ -1197,7 +1197,7 @@ InflateGIFExternal(XmImageGifProc inflate, ImageBuffer *ib,
 * Description: 	GIF/GZF raster data decompressor driver. Selects the
 *				appropriate decompressor to use for decompressing the GIF/GZF
 *				LZW/deflate compressed raster data.
-* In: 
+* In:
 *	html:		XmHTMLWidget id, used for selecting appropriate decompressor;
 *	ib:			raw image data;
 *	width:		width of decompressed image;
@@ -1261,7 +1261,7 @@ InflateRaster(XmHTMLWidget html, ImageBuffer *ib, int width, int height)
 * Name: 		CopyColormap
 * Return Type: 	void
 * Description: 	copies the colormap from a gif image to a private colormap
-* In: 
+* In:
 *	colrs:		destination colormap;
 *	cmapSize:	size of gif colormap;
 *	cmap:		gif colormap;
@@ -1353,7 +1353,7 @@ writeImage(Byte *image, FILE *fp, int size, int codeSize)
 	WriteOK(fp, &codeSize, 1);
 
 	/* compress image data in one go */
-	
+
 	/* first allocate destination buffer */
 	csize = size + (int)(0.15*size) + 12;
 	compressed = (Byte*)malloc(csize*sizeof(Byte));
@@ -1551,7 +1551,7 @@ GifToGzf(ImageBuffer *ib, String file)
 * Name: 		XmHTMLGIFtoGZF
 * Return Type: 	Boolean
 * Description: 	converts a CompuServe gif image to a GZF image.
-* In: 
+* In:
 *	infile:		name of giffile;
 *	buf:		giffile data;
 *	size:		size of buffer (if any);

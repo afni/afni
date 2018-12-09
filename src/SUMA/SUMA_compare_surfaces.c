@@ -1,7 +1,7 @@
 /*Program to compute the minimum distance metric between two surfaces */
 
 /* Header FILES */
-   
+
 #include "SUMA_suma.h"
 
 /* function declarations */
@@ -18,7 +18,7 @@ Purpose : Two determine the min distance between nodes on one surface to faces o
 
 int main (int argc,char *argv[])
 {
-  static char FuncName[]={"SUMA_compare_surfaces"}; 
+  static char FuncName[]={"SUMA_compare_surfaces"};
   SUMA_SurfSpecFile Spec;
   char *specfilename = NULL;
   int kar, id;
@@ -30,18 +30,18 @@ int main (int argc,char *argv[])
   char *Surf2_FileName=NULL;
   char *Vol1Parent_FileName=NULL;
   char *Vol2Parent_FileName=NULL;
-  
+
   /* for SureFit surface */
   SUMA_SFname *Surf1_SFName=NULL, *Surf2_SFName=NULL;
-   
+
   /* other variables */
   int trouble;
   int i,j,k;
   int num_nodes1;
   int num_nodes2;
-  int onenode = -1, istart = -1, istop = -1, FailedDistance = -1; 
+  int onenode = -1, istart = -1, istop = -1, FailedDistance = -1;
   float P0[3];
-  float delta_t; 
+  float delta_t;
   float P1[3];
   float P2[3];
   float N0[3];
@@ -53,7 +53,7 @@ int main (int argc,char *argv[])
   SUMA_COLOR_SCALED_VECT * MySV;
   SUMA_MT_INTERSECT_TRIANGLE *triangle = NULL;
   SUMA_SurfaceObject *SO1, *SO2;
-  struct timeval tt; 
+  struct timeval tt;
   FILE *colorfile;
   FILE *distancefile;
   FILE *segfile1, *segfile2, *segfile3,*trianglesfile;
@@ -71,12 +71,12 @@ int main (int argc,char *argv[])
 
   SUMA_STANDALONE_INIT;
   SUMA_mainENTRY;
-  
+
   if (argc < 7) {
     cmp_surf_usage();
     exit (1);
   }
-  
+
   /* read in the surfaces */
   kar = 1;
   brk = NOPE;
@@ -89,12 +89,12 @@ int main (int argc,char *argv[])
       cmp_surf_usage ();
       exit (1);
     }
-   
+
    if (!brk && (strcmp(argv[kar], "-nocons") == 0)) {
       SkipConsistent = YUP;
       brk = YUP;
    }
-           
+
     if (!brk && (strcmp(argv[kar], "-sv1")) == 0) {
       kar ++;
       if (kar >= argc) {
@@ -140,7 +140,7 @@ int main (int argc,char *argv[])
       specfilename = argv[kar];
       brk = YUP;
     }
-    
+
     if (!brk && (strcmp(argv[kar], "-onenode")) == 0) {
       if (Partial) {
          fprintf (SUMA_STDERR, "-onenode is incompatible with -noderange");
@@ -156,7 +156,7 @@ int main (int argc,char *argv[])
       Partial = YUP;
       brk = YUP;
     }
-    
+
     if (!brk && (strcmp(argv[kar], "-noderange")) == 0) {
       if (Partial) {
          fprintf (SUMA_STDERR, "-noderange is incompatible with -onenode");
@@ -172,24 +172,24 @@ int main (int argc,char *argv[])
       Partial = YUP;
       brk = YUP;
     }
-    
-    
+
+
     if (!brk) {
       fprintf (SUMA_STDERR,"Error %s: Option %s not understood. Try -help for usage\n", FuncName, argv[kar]);
       exit (1);
-    } 
-    else {	
+    }
+    else {
       brk = NOPE;
       kar ++;
     }
   }/* loop across command line options */
-  
+
 
   /* allocate for the surface objects */
-  Surf1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));	
-  SO1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));	
+  Surf1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));
+  SO1 = (SUMA_SurfaceObject *) SUMA_malloc(sizeof(SUMA_SurfaceObject));
 
-	
+
   if (specfilename == NULL) {
     fprintf (SUMA_STDERR,"Error %s: No spec filename specified.\n", FuncName);
     exit(1);
@@ -201,7 +201,7 @@ int main (int argc,char *argv[])
   if (!SUMA_Read_SpecFile (specfilename, &Spec)) {
     fprintf(SUMA_STDERR,"Error %s: Error in SUMA_Read_SpecFile\n", FuncName);
     exit(1);
-  }	
+  }
 
   /**** loading the first surface *****/
   if (SUMA_iswordin(Spec.SurfaceType[0], "FreeSurfer") == 1) {
@@ -209,7 +209,7 @@ int main (int argc,char *argv[])
     Surf1 = SUMA_Load_Surface_Object(Surf1_FileName, SUMA_FREE_SURFER, SUMA_ASCII, Vol1Parent_FileName);
     tag1 =  "FS";
   }
-  else 
+  else
     if (SUMA_iswordin(Spec.SurfaceType[0], "SureFit") == 1) {
       Surf1_SFName = SUMA_malloc(sizeof(SUMA_SFname));
       strcpy(Surf1_SFName->name_coord,Spec.CoordFile[0]);
@@ -219,7 +219,7 @@ int main (int argc,char *argv[])
       tag1 =  "SF";
     }
   state1 = Spec.State[0];
-  
+
   /*** loading the second surface ****/
   fprintf(SUMA_STDERR,"loading the next surface \n");
   if (SUMA_iswordin(Spec.SurfaceType[1], "FreeSurfer") == 1) {
@@ -227,7 +227,7 @@ int main (int argc,char *argv[])
     Surf2 = SUMA_Load_Surface_Object(Surf2_FileName, SUMA_FREE_SURFER, SUMA_ASCII, Vol2Parent_FileName);
     tag2 =  "FS";
   }
-  else 
+  else
     if (SUMA_iswordin(Spec.SurfaceType[1], "SureFit") == 1) {
       Surf2_SFName = SUMA_malloc(sizeof(SUMA_SFname));
       strcpy(Surf2_SFName->name_coord, Spec.CoordFile[1]);
@@ -242,22 +242,22 @@ int main (int argc,char *argv[])
   if (fout == NULL) { /* form default name */
     fname = (char *)SUMA_malloc (
             ( strlen(hemi) + strlen(tag1) + strlen(state1) + strlen(tag2) + strlen(state2) + 20 ) *
-            sizeof(char)); 
+            sizeof(char));
     sprintf(fname, "%s_%s_%s_%s_%s",hemi,tag1,state1,tag2,state2);
 
   } else {
-     fname = SUMA_copy_string(fout); 
+     fname = SUMA_copy_string(fout);
   }
-  
+
     sprintf (colorfilename, "%s.col", fname);
     sprintf (distancefilename, "%s.dist", fname);
-   
+
   /* section that will create the files that contain 6 values corresponding to two points to draw segments in SUMA */
 
   sprintf(segmentfilename1, "%s.allsegs.txt",fname);
   sprintf(segmentfilename2, "%s.longsegs.txt",fname);
-  sprintf(segmentfilename3, "%s.badsegs.txt",fname); 
-  sprintf(trianglesfilename, "%s.triangles.txt",fname); 
+  sprintf(segmentfilename3, "%s.badsegs.txt",fname);
+  sprintf(trianglesfilename, "%s.triangles.txt",fname);
 
  if((segfile1 = fopen(segmentfilename1, "w"))==NULL) {
     fprintf(SUMA_STDERR, "Could not open segment file 1.\n");
@@ -283,41 +283,41 @@ int main (int argc,char *argv[])
 	     FuncName, distancefilename, colorfilename);
     exit(1);
   }
-	 
+
   /***********************************************************************************************/
 
   SO1 = Surf1;
   SO2 = Surf2;
-  
+
 
   if (SkipConsistent) {
    fprintf (SUMA_STDERR,"Skipping consistency check.\n");
   } else {
-     if (!SO1->EL) SO1->EL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList, SO1->idcode_str); 
+     if (!SO1->EL) SO1->EL = SUMA_Make_Edge_List (SO1->FaceSetList, SO1->N_FaceSet, SO1->N_Node,SO1->NodeList, SO1->idcode_str);
      if (SUMA_MakeConsistent (SO1->FaceSetList, SO1->N_FaceSet, SO1->EL, 1, &trouble) == YUP)
        fprintf(SUMA_STDERR,"faces are consistent\n");
      else
        fprintf(SUMA_STDERR,"faces are not consistent\n");
   }
- 
-  if (!SO2->EL) SO2->EL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node, SO2->NodeList, SO2->idcode_str); 
+
+  if (!SO2->EL) SO2->EL = SUMA_Make_Edge_List (SO2->FaceSetList, SO2->N_FaceSet, SO2->N_Node, SO2->NodeList, SO2->idcode_str);
   if (SUMA_MakeConsistent (SO2->FaceSetList, SO2->N_FaceSet, SO2->EL, 1, &trouble) == YUP)
     fprintf(SUMA_STDERR,"faces are consistent\n");
   else
     fprintf(SUMA_STDERR,"faces are not consistent\n");
-   
+
 
    num_nodes1 = SO1->N_Node;
    num_nodes2 = SO2->N_Node;
-   
+
    fprintf(SUMA_STDERR, "Number of nodes in surface 1: %d \n", num_nodes1);
    fprintf(SUMA_STDERR, "Number of nodes in surface 2: %d \n", num_nodes2);
    fprintf(SUMA_STDERR, "Number of faces in surface 1: %d \n", SO1->N_FaceSet);
    fprintf(SUMA_STDERR, "Number of faces in surface 2: %d \n", SO2->N_FaceSet);
    if (!SO1->NodeNormList) SUMA_RECOMPUTE_NORMALS(SO1);
    if (!SO2->NodeNormList) SUMA_RECOMPUTE_NORMALS(SO2);
-   
-   
+
+
    /* add some noise to surface 2 */
    /*  for (i = 0; i < SO2->N_Node; i ++)
      {
@@ -326,35 +326,35 @@ int main (int argc,char *argv[])
        SO2->NodeList[id+1] += 0.0003;
        SO2->NodeList[id+2] -= 0.0004;
      }
-     
+
    */
-    
+
   /* Take each node in the SO1-> Nodelist and its corresponding SO1->NodeNormList.  This is the normalized normal vector to the node on the first surface.
-     So each node is P0.  P1 is computed as some point along the normal vector to that node.  Lets say P0 is P1 + 20 mm along the normal. 
+     So each node is P0.  P1 is computed as some point along the normal vector to that node.  Lets say P0 is P1 + 20 mm along the normal.
      Now feed P0 and P1 into the intersect triangle routine and feed the node and face list of surface 2 */
-  
+
   distance = SUMA_malloc(num_nodes1*sizeof(float));
   /* *****YOU SHOULD ALLOCATE FOR triangle that is done in the function****** triangle = SUMA_malloc(sizeof(SUMA_MT_INTERSECT_TRIANGLE)); */
   /* for each node on the first surface do the following */
   SUMA_etime (&tt, 0);
-  
+
    if (!Partial){
       istart = 0;
       istop = SO1->N_Node-1;
    } else {
       if (istart > istop) {
-         fprintf (SUMA_STDERR,"Error %s: starting node %d > stopping node %d\n", 
+         fprintf (SUMA_STDERR,"Error %s: starting node %d > stopping node %d\n",
            FuncName, istart, istop);
          exit(1);
       }
       if (istart < 0 || istop > SO1->N_Node-1) {
-         fprintf (SUMA_STDERR,"Error %s: starting node %d is either < 0 or stopping node > %d (N_Node -1)\n", 
+         fprintf (SUMA_STDERR,"Error %s: starting node %d is either < 0 or stopping node > %d (N_Node -1)\n",
            FuncName, onenode, SO1->N_Node-1);
          exit(1);
       }
    }
-  
-  FailedDistance = 0; 
+
+  FailedDistance = 0;
   for (i = istart; i <= istop; i++) {
     id = SO1->NodeDim * i;
     P0[0] = SO1->NodeList[id];
@@ -375,7 +375,7 @@ int main (int argc,char *argv[])
 
    /* now determine the distance along normal */
    triangle = SUMA_MT_intersect_triangle(P0,P1, SO2->NodeList, SO2->N_Node, SO2->FaceSetList, SO2->N_FaceSet, triangle, 0);
-   /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */ 
+   /* fprintf(SUMA_STDERR,"number of hits for node %d : %d\n", i,triangle->N_hits); */
    if (triangle->N_hits ==0) {
    fprintf(SUMA_STDERR, "Could not find hit for node %d in either direction.\n", i);
    fprintf(segfile3,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
@@ -392,36 +392,36 @@ int main (int argc,char *argv[])
    fprintf(segfile2,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
    }
 
-   if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle); 
-    
+   if (!KeepMTI) triangle = SUMA_Free_MT_intersect_triangle(triangle);
+
 
    fprintf(segfile1,"%f %f %f %f %f %f\n",P0[0],P0[1],P0[2],P1[0],P1[1],P1[2]);
 
     if (!(i%100)) {
       delta_t = SUMA_etime(&tt, 1);
-      fprintf (SUMA_STDERR, 
+      fprintf (SUMA_STDERR,
                " [%d]/[%d] %.2f/100%% completed. "
-               "Dt = %.2f min done of %.2f min total\r" ,  
-               i, num_nodes1, (float)i / num_nodes1 * 100, delta_t/60, 
+               "Dt = %.2f min done of %.2f min total\r" ,
+               i, num_nodes1, (float)i / num_nodes1 * 100, delta_t/60,
                delta_t/i * num_nodes1/60);
     }
-   
+
    if (Partial) {
       /* output distance to screen */
       fprintf(SUMA_STDERR, "\nDistance at node %d is %f\n", i, distance[i]);
-   } 
-        
-  }
-  
+   }
 
- 
-  
+  }
+
+
+
+
      /* write out the distance file */
      if((distancefile = fopen(distancefilename, "w"))==NULL) {
        fprintf(SUMA_STDERR, "Could not open file distance.txt.\n");
        exit(1);
      }
-     else {  
+     else {
        for (i=0; i < num_nodes1; ++i) {
          fprintf (distancefile,"%d\t%f\n", i, distance[i]);
        }
@@ -434,7 +434,7 @@ int main (int argc,char *argv[])
      MySV = SUMA_Create_ColorScaledVect(num_nodes1, 0);
      mindistance = minimum(num_nodes1, distance);
      maxdistance = maximum(num_nodes1, distance);
-     SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance, 
+     SUMA_ScaleToMap(distance,num_nodes1,mindistance, maxdistance,
                      MyColMap,MyOpt,MySV);
 
 
@@ -445,7 +445,7 @@ int main (int argc,char *argv[])
      }
      else {
        for (i=0; i < num_nodes1; ++i) {
-         fprintf (colorfile,"%d\t%f\t%f\t%f\n", 
+         fprintf (colorfile,"%d\t%f\t%f\t%f\n",
                   i, MySV->cV[3*i  ], MySV->cV[3*i+1], MySV->cV[3*i+2]);
        }
        fclose (colorfile);
@@ -455,7 +455,7 @@ int main (int argc,char *argv[])
   if (!SUMA_FreeSpecFields(&Spec)) {
    SUMA_S_Err("Failed to free spec fields");
   }
-  if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);  
+  if (!SUMA_Free_CommonFields(SUMAg_CF)) SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
   SUMA_RETURN (1);
 }
 

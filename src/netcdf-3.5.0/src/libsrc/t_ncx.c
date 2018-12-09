@@ -20,7 +20,7 @@
 /*
  * This program tests the xdr_mem implementation and
  * the ncx_ implementation, and compares the two.
- * Link like this: 
+ * Link like this:
  * cc t_ncx.c ncx.o [-lsome_xdr_lib] -o t_nxc
  * Successful output is:
 	xdr_encode ends at byte 640
@@ -197,7 +197,7 @@ static double doubles[] = {
  * (minimum unit of io is 4 bytes)
  */
 static bool_t
-xdr_NCvbyte(XDR *xdrs, unsigned rem, unsigned count, char *value) 
+xdr_NCvbyte(XDR *xdrs, unsigned rem, unsigned count, char *value)
 {
 	char buf[4] ;
 	u_int origin ;
@@ -229,7 +229,7 @@ xdr_NCvbyte(XDR *xdrs, unsigned rem, unsigned count, char *value)
 			buf[rem] = *value ;
 		else
 			*value = buf[rem] ;
-	
+
 		rem++ ;
 		value++ ;
 	}
@@ -328,7 +328,7 @@ NCxdr_shortsb(XDR *xdrs, short *sp, u_int nshorts)
 
 	if(!xdr_opaque(xdrs, (caddr_t)buf, nbytes))
 		return FALSE ;
-	
+
 	if(xdrs->x_op == XDR_DECODE)
 	{
 		for(cp = buf ; cp < &buf[nbytes] ; sp++, cp += 2 )
@@ -359,7 +359,7 @@ xdr_shorts(XDR *xdrs, short *sp, u_int cnt)
 		return TRUE ;	/* ? */
 
 	odd = cnt % 2 ;
-	if(odd) 
+	if(odd)
 		cnt-- ;
 	/* cnt is even, odd is set if apropos */
 
@@ -540,7 +540,7 @@ cmp_schars(const schar *b1, const schar *b2, size_t nbytes)
 					"0x%02x != 0x%02x byte\n",
 					(unsigned)(*b1),
 					(unsigned)(*b2));
-				
+
 			if(status == 0)
 				status = *b2 < *b1 ? -1 : 1;
 		}
@@ -1025,7 +1025,7 @@ ncx_encode(char *buf)
 	return 0;
 }
 
-/* 
+/*
  * Verify the ncx_getn_xxx() routines.
  * Returns zero on success.
  */

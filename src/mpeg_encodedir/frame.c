@@ -13,7 +13,7 @@
  *	Frame_AllocYCC							     *
  *	Frame_AllocDecoded						     *
  *	Frame_AllocHalf						             *
- *	Frame_Resize						             * 
+ *	Frame_Resize						             *
  *									     *
  *===========================================================================*/
 
@@ -55,7 +55,7 @@
  *===========*/
 
 /* The maximum number of B-Frames allowed between reference frames. */
-#define  B_FRAME_RUN  16    
+#define  B_FRAME_RUN  16
 
 /*==================*
  * GLOBAL VARIABLES *
@@ -93,7 +93,7 @@ static void Resize_Array_Height _ANSI_ARGS_((uint8 **inarray,int in_x,
  *
  * Frame_Resize                  by James Boucher
  *                Boston University Multimedia Communications Lab
- *  
+ *
  *     This function takes the mf input frame, read in READFrame(),
  * and resizes all the input component arrays to the output
  * dimensions specified in the parameter file as OUT_SIZE.
@@ -112,7 +112,7 @@ frameA = (MpegFrame *)malloc(sizeof(MpegFrame));
 if((insize_x != outsize_x)&&(insize_y != outsize_y)){
 Resize_Width(frameA,mf,insize_x,insize_y,outsize_x);
 Resize_Height(omf,frameA,outsize_x,insize_y,outsize_y);
-}else 
+}else
 if((insize_x ==outsize_x)&&(insize_y != outsize_y)){
 Resize_Height(omf,mf,insize_x,insize_y,outsize_y);
 } else
@@ -129,7 +129,7 @@ free(mf);
 /*========================================================
 * Resize_Width
 *======================================================*/
-static void  
+static void
 Resize_Width(omfrw,mfrw,in_x,in_y, out_x)
 MpegFrame *omfrw,*mfrw;
 int in_x,in_y, out_x;
@@ -202,7 +202,7 @@ Resize_Height(omfrh,mfrh,in_x,in_y,out_y)
 MpegFrame *omfrh,*mfrh;
 int in_x,in_y, out_y;
 {
-register int y; 
+register int y;
 int i;
 
 Fsize_y = out_y;
@@ -261,13 +261,13 @@ Resize_Array_Height(mfrh->orig_cb,(in_x/2),(in_y/2),omfrh->orig_cb,(out_y/2));
 }
 /*====================================================
 * Resize_Array_Width
-*    
+*
 *   This function will resize any array width up
 * or down in size.  The algorithm is based on the
 * least common multiple approach more commonly
 * used in audio frequency adjustments.
 *=====================================================*/
-static void 
+static void
 Resize_Array_Width(inarray,in_x,in_y,outarray,out_x)
 uint8 **inarray;
 int in_x;
@@ -275,7 +275,7 @@ int in_y;
 uint8 **outarray;
 int out_x;
 {
-int i,j; 
+int i,j;
 int in_total;
 int out_total;
 uint8 *inptr;
@@ -289,7 +289,7 @@ uint8 pointA,pointB;
   in_total = 0;
   out_total = 0;
   for(j=0;j<out_x;j++){      /* For every output value */
-    if(in_total == out_total){  
+    if(in_total == out_total){
       *outptr = *inptr;
       outptr++;
       out_total=out_total+in_x;
@@ -301,7 +301,7 @@ uint8 pointA,pointB;
 	in_total = in_total - out_x;
 	inptr--;
       }
-    } else {  
+    } else {
       pointA = *inptr;
       inptr++;
       pointB = *inptr;
@@ -315,7 +315,7 @@ uint8 pointA,pointB;
       *outptr = (pointB - (uint8)(slope*(((float)(out_x)) - diff)));
     } */
 /* Non-Interpolative solution */
-    *outptr = *inptr;  
+    *outptr = *inptr;
 
       outptr++;
       out_total=out_total+in_x;
@@ -339,7 +339,7 @@ uint8 pointA,pointB;
 * Same as Resize_array_Width except pointer
 * manipulation must change.
 *===============================*/
-static void 
+static void
 Resize_Array_Height(inarray,in_x,in_y,outarray,out_y)
 uint8 **inarray;
 int in_x;
@@ -347,7 +347,7 @@ int in_y;
 uint8 **outarray;
 int out_y;
 {
-int i,j,k; 
+int i,j,k;
 int in_total;
 int out_total;
 uint8 pointA,pointB;
@@ -358,7 +358,7 @@ double slope,diff;
   out_total = 0;
   k = 0;
   for(j=0;j<out_y;j++){  /* for each output value */
-    if(in_total == out_total){  
+    if(in_total == out_total){
       outarray[j][i] = inarray[k][i];
       out_total=out_total+in_y;
       while(in_total < out_total){
@@ -369,8 +369,8 @@ double slope,diff;
 	in_total = in_total - out_y;
 	k--;
       }
-    } else {  
- 
+    } else {
+
       pointA = inarray[k][i];
       if(k != (in_y -1)){
       pointB = inarray[k+1][i];
@@ -393,7 +393,7 @@ double slope,diff;
 	in_total = in_total - out_y;
 	k--;
       }
-    } 
+    }
   }
  }
 
@@ -690,7 +690,7 @@ Frame_AllocHalf(frame)
  *
  *	allocate memory for decoded frame for the given frame, if required
  *	if makeReference == TRUE, then makes it reference frame
- * 
+ *
  * RETURNS:	nothing
  *
  * SIDE EFFECTS:    none
@@ -800,11 +800,11 @@ GetNumOfFrames(numOfFrames)
       for ( idx = 0, bcount = 0; idx < strlen(framePattern); idx++) {
 
 	/* counts the maximum number of B frames between two reference
-	 * frames. 
+	 * frames.
 	 */
 
 	switch( framePattern[idx] ) {
-	  case 'b': 
+	  case 'b':
 	    bcount++;
 	    break;
 	  case 'i':
@@ -817,7 +817,7 @@ GetNumOfFrames(numOfFrames)
         }
 
 	/* add 2 to hold the forward and past reference frames in addition
-	 * to the maximum number of B's 
+	 * to the maximum number of B's
 	 */
       }
 
@@ -966,7 +966,7 @@ FreeFrame(frame)
 	free(frame->halfBoth);
     }
 
-        
+
     free(frame);
 }
 

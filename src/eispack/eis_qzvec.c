@@ -5,12 +5,12 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int qzvec_(integer *nm, integer *n, doublereal *a, 
-	doublereal *b, doublereal *alfr, doublereal *alfi, doublereal *beta, 
+/* Subroutine */ int qzvec_(integer *nm, integer *n, doublereal *a,
+	doublereal *b, doublereal *alfr, doublereal *alfi, doublereal *beta,
 	doublereal *z__)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2, 
+    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2,
 	    i__3;
     doublereal d__1, d__2;
 
@@ -36,7 +36,7 @@
 /*     THIS SUBROUTINE ACCEPTS A PAIR OF REAL MATRICES, ONE OF THEM IN */
 /*     QUASI-TRIANGULAR FORM (IN WHICH EACH 2-BY-2 BLOCK CORRESPONDS TO */
 /*     A PAIR OF COMPLEX EIGENVALUES) AND THE OTHER IN UPPER TRIANGULAR */
-/*     FORM.  IT COMPUTES THE EIGENVECTORS OF THE TRIANGULAR PROBLEM AND 
+/*     FORM.  IT COMPUTES THE EIGENVECTORS OF THE TRIANGULAR PROBLEM AND
 */
 /*     TRANSFORMS THE RESULTS BACK TO THE ORIGINAL COORDINATE SYSTEM. */
 /*     IT IS USUALLY PRECEDED BY  QZHES,  QZIT, AND  QZVAL. */
@@ -87,12 +87,12 @@
 /*          OF ITS LARGEST COMPONENT IS 1.0 . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -141,7 +141,7 @@
 	    i__3 = en;
 	    for (j = m; j <= i__3; ++j) {
 /* L610: */
-		r__ += (betm * a[i__ + j * a_dim1] - alfm * b[i__ + j * 
+		r__ += (betm * a[i__ + j * a_dim1] - alfm * b[i__ + j *
 			b_dim1]) * b[j + en * b_dim1];
 	    }
 
@@ -168,7 +168,7 @@ L630:
 	    goto L700;
 /*     .......... REAL 2-BY-2 BLOCK .......... */
 L640:
-	    x = betm * a[i__ + (i__ + 1) * a_dim1] - alfm * b[i__ + (i__ + 1) 
+	    x = betm * a[i__ + (i__ + 1) * a_dim1] - alfm * b[i__ + (i__ + 1)
 		    * b_dim1];
 	    y = betm * a[i__ + 1 + i__ * a_dim1];
 	    q = w * zz - x * y;
@@ -272,7 +272,7 @@ L777:
 	    }
 /*     .......... COMPLEX 2-BY-2 BLOCK .......... */
 L780:
-	    x = betm * a[i__ + (i__ + 1) * a_dim1] - almr * b[i__ + (i__ + 1) 
+	    x = betm * a[i__ + (i__ + 1) * a_dim1] - almr * b[i__ + (i__ + 1)
 		    * b_dim1];
 	    x1 = -almi * b[i__ + (i__ + 1) * b_dim1];
 	    y = betm * a[i__ + 1 + i__ * a_dim1];
@@ -291,15 +291,15 @@ L782:
 	    if (abs(y) > abs(w) + abs(w1)) {
 		goto L785;
 	    }
-	    tr = -ra - x * b[i__ + 1 + na * b_dim1] + x1 * b[i__ + 1 + en * 
+	    tr = -ra - x * b[i__ + 1 + na * b_dim1] + x1 * b[i__ + 1 + en *
 		    b_dim1];
-	    ti = -sa - x * b[i__ + 1 + en * b_dim1] - x1 * b[i__ + 1 + na * 
+	    ti = -sa - x * b[i__ + 1 + en * b_dim1] - x1 * b[i__ + 1 + na *
 		    b_dim1];
 	    goto L773;
 L785:
 	    t1 = (-r__ - zz * b[i__ + 1 + na * b_dim1] + z1 * b[i__ + 1 + en *
 		     b_dim1]) / y;
-	    t2 = (-s - zz * b[i__ + 1 + en * b_dim1] - z1 * b[i__ + 1 + na * 
+	    t2 = (-s - zz * b[i__ + 1 + en * b_dim1] - z1 * b[i__ + 1 + na *
 		    b_dim1]) / y;
 L787:
 	    b[i__ + na * b_dim1] = t1;
@@ -366,7 +366,7 @@ L800:
 L920:
 	i__1 = *n;
 	for (i__ = 1; i__ <= i__1; ++i__) {
-	    r__ = (d__1 = z__[i__ + (j - 1) * z_dim1], abs(d__1)) + (d__2 = 
+	    r__ = (d__1 = z__[i__ + (j - 1) * z_dim1], abs(d__1)) + (d__2 =
 		    z__[i__ + j * z_dim1], abs(d__2));
 	    if (r__ != 0.) {
 /* Computing 2nd power */

@@ -7,11 +7,11 @@
 #ifndef _AFNI_PLUGOUT_HEADER_
 #define _AFNI_PLUGOUT_HEADER_
 
-#define PLUGOUT_COM_LENGTH (4*1024)   /* max length of command (to allow for ziad's 
+#define PLUGOUT_COM_LENGTH (4*1024)   /* max length of command (to allow for ziad's
                                                     beautiful and inspired commands) */
-#define PLUGOUT_SHM_SIZE_K 4      /* size of shm used by plugout_drive. 
+#define PLUGOUT_SHM_SIZE_K 4      /* size of shm used by plugout_drive.
                                      modify along with PLUGOUT_COM_LENGTH */
-                                     
+
 extern void AFNI_init_plugouts( void ) ;  /* prototypes */
 extern int AFNI_have_plugouts( void ) ;   /* 07 Nov 2001 */
 extern void AFNI_plugout_verb( int ) ; /* 14 Oct 2008 */
@@ -22,7 +22,7 @@ extern void AFNI_plugout_verb( int ) ; /* 14 Oct 2008 */
 #include <ctype.h>
 #include <unistd.h>
 
-#define NUM_TCP_CONTROL  5     /* 21 Nov 2001: number of TCP/IP control ports 
+#define NUM_TCP_CONTROL  5     /* 21 Nov 2001: number of TCP/IP control ports
                                  If you change this number make sure each
                                  new port has a listing in init_ports_list() */
 

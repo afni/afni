@@ -131,7 +131,7 @@ typedef char * cptr_func() ; /* generic function returning char *  */
 
 /*----- model type codes -----*/
 #define MODEL_NOISE_TYPE   0
-#define MODEL_SIGNAL_TYPE  1 
+#define MODEL_SIGNAL_TYPE  1
 
 
 /** macro to copy string into MODEL label array,

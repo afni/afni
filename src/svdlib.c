@@ -457,7 +457,7 @@ void svd_dswap(long n, double *dx, long incx, double *dy, long incy) {
       dtemp = *dy;
       *dy++ = *dx;
       *dx++ = dtemp;
-    }	
+    }
   }
   else {
     if (incx < 0) dx += (-n+1) * incx;
@@ -1413,7 +1413,7 @@ void   machar(long *ibeta, long *it, long *irnd, long *machep, long *negep);
    vectors  1 indicates both singular values and singular vectors are
 	      wanted and they can be found in output file lav2;
 	      0 indicates only singular values are wanted
-   		
+
   (output)
    ritz	    array of ritz values
    bnd      array of error bounds
@@ -1968,9 +1968,9 @@ static void vstep_print(void)
    ritz      array to hold the ritz values
    bnd       array to hold the error bounds
    wptr      array of pointers that point to work space:
-  	       wptr[0]-wptr[5]  six vectors of length n		
+  	       wptr[0]-wptr[5]  six vectors of length n
   	       wptr[6] array to hold diagonal of the tridiagonal matrix T
-  	       wptr[9] array to hold off-diagonal of T	
+  	       wptr[9] array to hold off-diagonal of T
   	       wptr[7] orthogonality estimate of Lanczos vectors at
 		 step j
  	       wptr[8] orthogonality estimate of Lanczos vectors at
@@ -2106,16 +2106,16 @@ int lanso(SMat A, long iterations, long dimensions, double endl,
 
    (input)
    n        dimension of the eigenproblem for matrix B
-   first    start of index through loop				
-   last     end of index through loop				
-   wptr	    array of pointers pointing to work space		
+   first    start of index through loop
+   last     end of index through loop
+   wptr	    array of pointers pointing to work space
    alf	    array to hold diagonal of the tridiagonal matrix T
    eta      orthogonality estimate of Lanczos vectors at step j
    oldeta   orthogonality estimate of Lanczos vectors at step j-1
    bet      array to hold off-diagonal of T
    ll       number of intitial Lanczos vectors in local orthog.
-              (has value of 0, 1 or 2)			
-   enough   stop flag			
+              (has value of 0, 1 or 2)
+   enough   stop flag
 
    Functions used
    --------------
@@ -2236,9 +2236,9 @@ long lanczos_step(SMat A, long first, long last, double *wptr[],
    eta      orthogonality estimate of Lanczos vectors at step j
    oldeta   orthogonality estimate of Lanczos vectors at step j-1
    bet      array to hold off-diagonal of T
-   n        dimension of the eigenproblem for matrix B		
-   j        dimension of T					
-   rnm	    norm of the next residual vector			
+   n        dimension of the eigenproblem for matrix B
+   j        dimension of T
+   rnm	    norm of the next residual vector
    eps1	    roundoff estimate for dot product of two unit vectors
 
    (output)
@@ -2291,16 +2291,16 @@ void ortbnd(double *alf, double *eta, double *oldeta, double *bet, long step,
    ---------
 
    (input)
-   n        dimension of the eigenproblem for matrix B		
+   n        dimension of the eigenproblem for matrix B
    ll       number of intitial Lanczos vectors in local orthog.
    r        residual vector to become next Lanczos vector
-   q        current Lanczos vector			
+   q        current Lanczos vector
    ra       previous Lanczos vector
    qa       previous Lanczos vector
    wrk      temporary vector to hold the previous Lanczos vector
    eta      state of orthogonality between r and prev. Lanczos vectors
    oldeta   state of orthogonality between q and prev. Lanczos vectors
-   j        current Lanczos step				
+   j        current Lanczos step
 
    (output)
    r	    residual vector orthogonalized against previous Lanczos
@@ -2615,15 +2615,15 @@ long error_bound(long *enough, double endl, double endr,
    n      order of the symmetric tridiagonal matrix
    d      contains the diagonal elements of the input matrix
    e      contains the subdiagonal elements of the input matrix in its
-          last n-1 positions.  e[0] is arbitrary	
+          last n-1 positions.  e[0] is arbitrary
 
    (output)
    d      contains the eigenvalues in ascending order.  if an error
             exit is made, the eigenvalues are correct and ordered for
             indices 0,1,...ierr, but may not be the smallest eigenvalues.
-   e      has been destroyed.					
+   e      has been destroyed.
    ierr   set to zero for normal return, j if the j-th eigenvalue has
-            not been determined after 30 iterations.		
+            not been determined after 30 iterations.
 
    Functions used
    --------------
@@ -2639,7 +2639,7 @@ void imtqlb(long n, double d[], double e[], double bnd[])
    long last, l, m, i, iteration;
 
    /* various flags */
-   long exchange, convergence, underflow;	
+   long exchange, convergence, underflow;
 
    double b, test, g, r, s, c, p, f;
 
@@ -2766,20 +2766,20 @@ void imtqlb(long n, double d[], double e[], double bnd[])
    n      order of the matrix
    d      contains the diagonal elements of the input matrix
    e      contains the subdiagonal elements of the input matrix in its
-            last n-1 positions.  e[0] is arbitrary	
-   z      contains the identity matrix				
+            last n-1 positions.  e[0] is arbitrary
+   z      contains the identity matrix
 
    (output)
    d      contains the eigenvalues in ascending order.  if an error
             exit is made, the eigenvalues are correct but unordered for
-            for indices 0,1,...,ierr.				
-   e      has been destroyed.					
+            for indices 0,1,...,ierr.
+   e      has been destroyed.
    z      contains orthonormal eigenvectors of the symmetric
             tridiagonal (or full) matrix.  if an error exit is made,
             z contains the eigenvectors associated with the stored
-          eigenvalues.					
+          eigenvalues.
    ierr   set to zero for normal return, j if the j-th eigenvalue has
-            not been determined after 30 iterations.		
+            not been determined after 30 iterations.
 
 
    Functions used
@@ -2927,13 +2927,13 @@ void imtql2(long nm, long n, double d[], double e[], double z[])
 
    ibeta     the radix for the floating-point representation
    it        the number of base ibeta digits in the floating-point
-               significand					
-   irnd      0 if floating-point addition chops		
+               significand
+   irnd      0 if floating-point addition chops
              1 if floating-point addition rounds, but not in the
-                 ieee style					
+                 ieee style
              2 if floating-point addition rounds in the ieee style
              3 if floating-point addition chops, and there is
-                 partial underflow				
+                 partial underflow
              4 if floating-point addition rounds, but not in the
                  ieee style, and there is partial underflow
              5 if floating-point addition rounds in the ieee style,
@@ -2943,7 +2943,7 @@ void imtql2(long nm, long n, double d[], double e[], double z[])
                  machep is bounded below by  -(it+3)
    negeps    the largest negative integer such that
                  1.0-float(ibeta)**negeps .ne. 1.0, except that
-                 negeps is bounded below by  -(it+3)	
+                 negeps is bounded below by  -(it+3)
 
  ***********************************************************************/
 
@@ -3063,13 +3063,13 @@ void store(long n, long isw, long j, double *s) {
     }
     svd_dcopy(n, s, 1, LanStore[j + MAXLL], 1);
     break;
-  case RETRQ:	
+  case RETRQ:
     if (!LanStore[j + MAXLL])
       svd_fatalError("svdLAS2: store (RETRQ) called on index %d (not allocated)",
                      j + MAXLL);
     svd_dcopy(n, LanStore[j + MAXLL], 1, s, 1);
     break;
-  case STORP:	
+  case STORP:
     if (j >= MAXLL) {
       svd_error("svdLAS2: store (STORP) called with j >= MAXLL");
       break;
@@ -3080,7 +3080,7 @@ void store(long n, long isw, long j, double *s) {
     }
     svd_dcopy(n, s, 1, LanStore[j], 1);
     break;
-  case RETRP:	
+  case RETRP:
     if (j >= MAXLL) {
       svd_error("svdLAS2: store (RETRP) called with j >= MAXLL");
       break;

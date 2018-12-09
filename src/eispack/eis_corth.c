@@ -69,12 +69,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -100,12 +100,12 @@
 	ortr[m] = 0.;
 	orti[m] = 0.;
 	scale = 0.;
-/*     .......... SCALE COLUMN (ALGOL TOL THEN NOT NEEDED) .......... 
+/*     .......... SCALE COLUMN (ALGOL TOL THEN NOT NEEDED) ..........
 */
 	i__2 = *igh;
 	for (i__ = m; i__ <= i__2; ++i__) {
 /* L90: */
-	    scale = scale + (d__1 = ar[i__ + (m - 1) * ar_dim1], abs(d__1)) + 
+	    scale = scale + (d__1 = ar[i__ + (m - 1) * ar_dim1], abs(d__1)) +
 		    (d__2 = ai[i__ + (m - 1) * ai_dim1], abs(d__2));
 	}
 
@@ -177,9 +177,9 @@ L105:
 	    i__3 = *igh;
 	    for (jj = m; jj <= i__3; ++jj) {
 		j = mp - jj;
-		fr = fr + ortr[j] * ar[i__ + j * ar_dim1] - orti[j] * ai[i__ 
+		fr = fr + ortr[j] * ar[i__ + j * ar_dim1] - orti[j] * ai[i__
 			+ j * ai_dim1];
-		fi = fi + ortr[j] * ai[i__ + j * ai_dim1] + orti[j] * ar[i__ 
+		fi = fi + ortr[j] * ai[i__ + j * ai_dim1] + orti[j] * ar[i__
 			+ j * ar_dim1];
 /* L140: */
 	    }
@@ -189,9 +189,9 @@ L105:
 
 	    i__3 = *igh;
 	    for (j = m; j <= i__3; ++j) {
-		ar[i__ + j * ar_dim1] = ar[i__ + j * ar_dim1] - fr * ortr[j] 
+		ar[i__ + j * ar_dim1] = ar[i__ + j * ar_dim1] - fr * ortr[j]
 			- fi * orti[j];
-		ai[i__ + j * ai_dim1] = ai[i__ + j * ai_dim1] + fr * orti[j] 
+		ai[i__ + j * ai_dim1] = ai[i__ + j * ai_dim1] + fr * orti[j]
 			- fi * ortr[j];
 /* L150: */
 	    }

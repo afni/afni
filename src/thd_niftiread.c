@@ -29,7 +29,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    char *ppp , prefix[THD_MAX_PREFIX] ;
    char form_priority = 'S' ;             /* 23 Mar 2006 */
    static int n_xform_warn=0;
-   
+
 ENTRY("THD_open_nifti") ;
 
    /*-- open input file --*/
@@ -264,7 +264,7 @@ ENTRY("THD_open_nifti") ;
                  -nim->qto_xyz.m[1][3] ,
                   nim->qto_xyz.m[2][0] ,  /* [Which is my own] */
                   nim->qto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
-                  nim->qto_xyz.m[2][2] ,  
+                  nim->qto_xyz.m[2][2] ,
                   nim->qto_xyz.m[2][3] ) ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
@@ -431,7 +431,7 @@ ENTRY("THD_open_nifti") ;
                  -nim->sto_xyz.m[1][3] ,
                   nim->sto_xyz.m[2][0] ,  /* [Which is my own] */
                   nim->sto_xyz.m[2][1] ,  /* [damn fault!!!!!] */
-                  nim->sto_xyz.m[2][2] ,  
+                  nim->sto_xyz.m[2][2] ,
                   nim->sto_xyz.m[2][3] ) ;
 
    } else { /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
@@ -471,7 +471,7 @@ ENTRY("THD_open_nifti") ;
                           0 ,
                           0 ) ;
      /* put scaled identity matrix by default */
-     LOAD_MAT44(ijk_to_dicom44, dxtmp, 0.0, 0.0, 0.0,  
+     LOAD_MAT44(ijk_to_dicom44, dxtmp, 0.0, 0.0, 0.0,
                                 0.0, dytmp, 0.0, 0.0,
                                 0.0, 0.0, dztmp, 0.0 );
    }
@@ -484,7 +484,7 @@ ENTRY("THD_open_nifti") ;
 
    ppp  = THD_trailname(pathname,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
-   
+
    /* You need to set the path too
       before, if you loaded ~/tmp/joe.nii the path appeared
       to be ./joe.nii, troubling in multiple instances.
@@ -493,7 +493,7 @@ ENTRY("THD_open_nifti") ;
                            THD_filepath(pathname) ,
                            NULL , prefix ,
                            dset->view_type , True );
-                           
+
    nxyz.ijk[0] = nim->nx ;                          /* grid dimensions */
    nxyz.ijk[1] = nim->ny ;
    nxyz.ijk[2] = nim->nz ;
@@ -910,7 +910,7 @@ ENTRY("THD_load_nifti") ;
    /*-- scale results? ---*/
 
    /* errors for !isfinite() have been printed */
-   scale_data = isfinite(nim->scl_slope) && isfinite(nim->scl_inter) 
+   scale_data = isfinite(nim->scl_slope) && isfinite(nim->scl_inter)
                      && (nim->scl_slope != 0.0)
                      && (nim->scl_slope != 1.0 || nim->scl_inter != 0.0) ;
 

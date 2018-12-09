@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -57,7 +57,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/05/28 01:27:09  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -93,7 +93,7 @@ static XmImage *infoToImage(Widget w, XmImageInfo *image_info, Dimension width,
 * Name: 		copyInfo
 * Return Type: 	XmImageInfo*
 * Description: 	makes a complete copy of the given XmImageInfo
-* In: 
+* In:
 *	src:		XmImageInfo to copy
 * Returns:
 *	a new XmImageInfo structure copied from the given source info.
@@ -201,7 +201,7 @@ copyInfo(XmImageInfo *info)
 		}
 	}
 	/*
-	* We need to set frame count if we aren't using every frame. 
+	* We need to set frame count if we aren't using every frame.
 	* _XmHTMLMakeAnimation uses the frame count to create the frames in an
 	* animation, so if we wouldn't adjust the frame count we'd get a sigsegv.
 	* or an XProtocolError.
@@ -217,7 +217,7 @@ copyInfo(XmImageInfo *info)
 * Name: 		infoToImage
 * Return Type: 	XmImage
 * Description: 	converts the given XmImageInfo to an XmImage
-* In: 
+* In:
 *	w:			widget parent for this image
 *	image_info:	XmImageInfo to be converted
 *	width:		width to which the new image is to be scaled. 0 = no scaling.
@@ -241,8 +241,8 @@ infoToImage(Widget w, XmImageInfo *image_info, Dimension width,
 	html_image = (XmHTMLImage*)malloc(sizeof(XmHTMLImage));
 	(void)memset(html_image, 0, sizeof(XmHTMLImage));
 
-	/***** 
-	* Create an XCC for this image. 
+	/*****
+	* Create an XCC for this image.
 	* Try to get as much as we can for this widget: colormap and
 	* visual. The only thing we know for sure a widget *will* have is a
 	* colormap, every *Widget* is a subclass of Core.
@@ -359,7 +359,7 @@ infoToImage(Widget w, XmImageInfo *image_info, Dimension width,
 		XGCValues xgc;
 		Pixel fg = None, bg = None;
 
-		XtVaGetValues(w, 
+		XtVaGetValues(w,
 			XmNforeground, &fg,
 			XmNbackground, &bg,
 			NULL);
@@ -390,8 +390,8 @@ infoToImage(Widget w, XmImageInfo *image_info, Dimension width,
 * Name: 		XmImageCreate
 * Return Type: 	XmImage
 * Description: 	creates and fills an image structure without bothering XmHTML.
-*				
-* In: 
+*
+* In:
 *	w:			widget id
 *	file:		image filename
 *	width:		requested image width
@@ -445,7 +445,7 @@ XmImageCreate(Widget w, String file, Dimension width, Dimension height,
 	{
 		Pixel bg = None;
 		XtVaGetValues(w, XmNbackground, &bg, NULL);
-		
+
 		_xmimage_cfg->bg_color = bg;
 	}
 
@@ -487,8 +487,8 @@ XmImageCreate(Widget w, String file, Dimension width, Dimension height,
 * Name: 		XmImageCreateFromInfo
 * Return Type: 	XmImage
 * Description: 	creates and fills an image structure without bothering XmHTML.
-*				
-* In: 
+*
+* In:
 *	w:			widget id
 *	info:		XmImageInfo structure.
 *	width:		requested image width
@@ -619,7 +619,7 @@ XmImageCreateFromInfo(Widget w, XmImageInfo *info, Dimension width,
 * Name: 		XmImageDestroy
 * Return Type: 	void
 * Description: 	completely destroys the given image.
-* In: 
+* In:
 *	image:		image to destroy
 * Returns:
 *	nothing.
@@ -685,7 +685,7 @@ XmImageDestroy(XmImage *image)
 * Return Type: 	int
 * Description: 	sets the given image as the background image in the given
 *				destination drawable.
-* In: 
+* In:
 *	src:		background image;
 *	dest:		destination drawable;
 *	src_x, src_y:
@@ -756,7 +756,7 @@ XmImageSetBackgroundImage(XmImage *src, Drawable dest, int src_x,
 * Name: 		XmImageDrawImage
 * Return Type: 	int
 * Description: 	blits an XmImage to the given destination drawable
-* In: 
+* In:
 *	image:		image to be rendered
 *	dest:		destination drawable
 *	src_x, src_y:

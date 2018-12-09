@@ -5,15 +5,15 @@
  *
  * Add this object to libmri.
  * Do not add thd_gifti.o or anything under the gifti directory.
- */ 
+ */
 
 
 #ifdef HAVE_GIFTI
 
     /* pretend the gifti source is here, along with thd_gifti functions */
-    
+
     #include "mcw_malloc.h"     /* Need this to use same allocation functions */
-    
+
     #include "gifti_io.c"       /* library */
     #include "gifti_xml.c"
 
@@ -38,7 +38,7 @@
     /* presumably we've already whined, via 'open' */
     int THD_load_gifti(THD_datablock * dblk){ return 1; }
 
-    Boolean THD_write_gifti(  THD_3dim_dataset * dset, int write_data, 
+    Boolean THD_write_gifti(  THD_3dim_dataset * dset, int write_data,
                               int forcencode)
     {
         char * prefix;
@@ -69,14 +69,14 @@
     }
 
     /* ------------------------------- SUMA ------------------------------- */
-    
+
     NI_group * afni_open_gifti_surf(char * fname, int read_data)
     {
         fprintf(stderr,"** cannot read '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");
         return NULL;
     }
-    int afni_write_gifti_surf( NI_group *aSO, char * fname, 
+    int afni_write_gifti_surf( NI_group *aSO, char * fname,
                               int write_data, int encoding)
     {
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",

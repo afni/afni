@@ -38,7 +38,7 @@ static integer c__0 = 0;
 
 
 
-/* Subroutine */ int zzaxxx_(real *x1, real *x2, real *y, integer *iside, 
+/* Subroutine */ int zzaxxx_(real *x1, real *x2, real *y, integer *iside,
 	integer *ilab)
 {
     /* Format strings */
@@ -64,8 +64,8 @@ static integer c__0 = 0;
     static integer nl1, nl2;
     extern /* Subroutine */ int zzlabl_(real *, char *, integer *, ftnlen);
     static integer npower;
-    extern /* Subroutine */ int pwritf_(real *, real *, char *, integer *, 
-	    integer *, integer *, integer *, ftnlen), zzlogx_(real *, real *, 
+    extern /* Subroutine */ int pwritf_(real *, real *, char *, integer *,
+	    integer *, integer *, integer *, ftnlen), zzlogx_(real *, real *,
 	    real *, integer *, real *, real *), zzlinx_(real *, real *, real *
 	    , integer *, real *, integer *, real *);
     static real xv1, xv2, xx1, xx2;
@@ -79,7 +79,7 @@ static integer c__0 = 0;
 
 
 
-/*  Draw an axis in the x-direction from (X1,Y) to (X2,Y)  [user coords] 
+/*  Draw an axis in the x-direction from (X1,Y) to (X2,Y)  [user coords]
 */
 /*  with the specified divisions and tics.  If ISIDE is positive, the */
 /*  tic marks appear in the +y direction and the labels in the -y */
@@ -150,7 +150,7 @@ static integer c__0 = 0;
     }
 
     dxlab = (xx2 - xx1) / nlab;
-    ylab = yy - *iside * .0011f * zzzplt_1.isizx * (zzzplt_1.xpgmax - 
+    ylab = yy - *iside * .0011f * zzzplt_1.isizx * (zzzplt_1.xpgmax -
 	    zzzplt_1.xpgmin);
 
     if (zzzplt_1.ixcoor >= 0) {

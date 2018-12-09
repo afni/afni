@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -85,7 +85,7 @@
      ((unsigned char *)(&x))[1])
 #define ntohs(x)    htons(x)
 #else
-    /* let in.h handle it, if possible */		   
+    /* let in.h handle it, if possible */
 #include <sys/types.h>
 #include <netinet/in.h>
 #endif /* FORCE_LITTLE_ENDIAN */

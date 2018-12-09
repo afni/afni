@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -1142,7 +1142,7 @@ int fd;
     swab = 0;
     if (header.magic != VP_VPCFILE_MAGIC)
 	return(VPSetError(vpc, VPERROR_BAD_FILE));
-    if (header.major_version != VP_MAJOR_VERSION || 
+    if (header.major_version != VP_MAJOR_VERSION ||
 	header.minor_version != VP_MINOR_VERSION ||
 	header.max_fields != VP_MAX_FIELDS ||
 	header.max_material != VP_MAX_MATERIAL ||

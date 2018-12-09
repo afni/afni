@@ -1253,7 +1253,7 @@ ENTRY("GICOR_setup_func") ;
                         "   (in an image viewer)\n"
                         "* Or press Ctrl+Shift+\n"
                         "  Mouse-left-click in\n"
-                        "  an image viewer. " 
+                        "  an image viewer. "
  ,
                       MCW_USER_KILL | MCW_TIMER_KILL ) ;
 

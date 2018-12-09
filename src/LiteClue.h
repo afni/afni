@@ -1,4 +1,4 @@
-/* 
+/*
 LiteClue.h - Public definitions for LiteClue widget
 	See LiteClue documentation
 
@@ -19,7 +19,7 @@ both that copyright notice and this permission notice appear in
 supporting documentation.
 
 Author:
-Gary Aviv 
+Gary Aviv
 Computer Generation, Inc.,
 gary@compgen.com
 */
@@ -63,10 +63,10 @@ $log
 #define XgcCWaitPeriod	"WaitPeriod"
 
 #if defined(__cplusplus) || defined(c_plusplus)
-extern "C" { 
+extern "C" {
 #endif
 
-extern WidgetClass xcgLiteClueWidgetClass; 
+extern WidgetClass xcgLiteClueWidgetClass;
 typedef struct _LiteClueClassRec *XcgLiteClueWidgetClass;
 typedef struct _LiteClueRec      *XcgLiteClueWidget;
 void XcgLiteClueAddWidget(Widget w, Widget watch,  char * text, int size, int option );

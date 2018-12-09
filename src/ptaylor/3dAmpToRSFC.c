@@ -1,4 +1,4 @@
-/* 
+/*
    Description
 
    [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
@@ -13,13 +13,13 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-//#include <rsfc.h>    
+#include <mrilib.h>
+#include <3ddata.h>
+//#include <rsfc.h>
 //#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 
-#define NRSFC (6) // ALFF, mALFF, fALFF, 
+#define NRSFC (6) // ALFF, mALFF, fALFF,
                   // RSFA, mRSFA, fRSFA
 
 
@@ -27,14 +27,14 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int DTYPE,
                     int *Dim,
                     int ***mskd,
-                    int MIN_bp, int MAX_bp, 
+                    int MIN_bp, int MAX_bp,
                     int MIN_full, int MAX_full,
                     float **ap,
                     int Npar,
                     int nt_cen, int nt_orig);
 
 
-void usage_AmpToRSFC(int detail) 
+void usage_AmpToRSFC(int detail)
 {
    printf(
 "\n"
@@ -57,7 +57,7 @@ void usage_AmpToRSFC(int detail)
 "\n"
 "  NB: *if* you want to input an unbandpassed time series and do some\n"
 "  filtering/other processing at the same time as estimating RSFC parameters,\n"
-"  then you would want to use 3dRSFC, instead.\n" 
+"  then you would want to use 3dRSFC, instead.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -82,7 +82,7 @@ void usage_AmpToRSFC(int detail)
 "   -band FBOT FTOP :lower and upper boundaries, respectively, of the low\n"
 "                    frequency fluctuations (LFFs), which will be in the\n"
 "                    inclusive interval [FBOT, FTOP], within the provided\n"
-"                    input file's frequency range.\n" 
+"                    input file's frequency range.\n"
 "   -prefix PREFIX  :output file prefix; file names will be: PREFIX_ALFF*,\n"
 "                    PREFIX_FALFF*, etc.\n"
 "\n"
@@ -134,7 +134,7 @@ int main(int argc, char *argv[]) {
    char *prefix="REHO" ;
    char in_name[300];
    char in_mask[300];
-   
+
    THD_3dim_dataset *outset=NULL;
    char outname[300];
 
@@ -143,7 +143,7 @@ int main(int argc, char *argv[]) {
 
    int nt_orig = -1;  // attribute info on Npts before censoring
    int nt_cen  = -1;  // attribute info on Npts after censoring
-   
+
    int HAVE_MASK = 0;
    int ***mskd; // define mask of where time series are nonzero
    double temp_sum;
@@ -151,7 +151,7 @@ int main(int argc, char *argv[]) {
    // FILE *fout0, *fout1;
    int Nvox=-1;   // tot number vox
    int Dim[4]={0,0,0,0};
-   
+
    float fbot = -1., ftop = -1;
    float delF = -1;
    float *allF=NULL;
@@ -164,8 +164,8 @@ int main(int argc, char *argv[]) {
    int MIN_full=0, MAX_full=-1; // indices of full spect
    int MIN_bp=0, MAX_bp = -1; // indices of lff/bp region
 
-   mainENTRY("3dAmpToRSFC"); machdep(); 
-  
+   mainENTRY("3dAmpToRSFC"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -173,17 +173,17 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    // INFO_message("version: NU");
-	
+
    /** scan args **/
    if (argc == 1) { usage_AmpToRSFC(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_AmpToRSFC(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       if( strncmp(argv[iarg],"-band",5) == 0 ){
          if( ++iarg >= argc-1 ) ERROR_exit("need 2 arguments after -band!") ;
 
@@ -193,61 +193,61 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          HAVE_MASK=1;
 
-         sprintf(in_mask,"%s", argv[iarg]); 
+         sprintf(in_mask,"%s", argv[iarg]);
          MASK = THD_open_dataset(in_mask) ;
          if( (MASK == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-in_amp") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-in_amp'");
 
-         sprintf(in_name,"%s", argv[iarg]); 
+         sprintf(in_name,"%s", argv[iarg]);
          DTYPE = 1; // for amps
 
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-in_pow") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-in_pow'");
-         
-         sprintf(in_name,"%s", argv[iarg]); 
+
+         sprintf(in_name,"%s", argv[iarg]);
          DTYPE = 2; // for pow
-         
+
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          HAVE_MASK=1;
 
-         sprintf(in_mask,"%s", argv[iarg]); 
+         sprintf(in_mask,"%s", argv[iarg]);
          MASK = THD_open_dataset(in_mask) ;
          if( (MASK == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
@@ -260,7 +260,7 @@ int main(int argc, char *argv[]) {
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-	
+
    // ---------------------------------------------------------------
 
    // TEST BASIC INPUT PROPERTIES
@@ -278,12 +278,12 @@ int main(int argc, char *argv[]) {
          insetTIME = THD_open_dataset(in_name) ;
          if( (insetTIME == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_name);
-         
+
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
 
          Nvox = DSET_NVOX(insetTIME) ;
-         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
-         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
+         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME);
+         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME);
          delF = DSET_TR(insetTIME);
 
          // [PT: Sep 20, 2017] Get attribute info: follow Bob's lead!
@@ -314,14 +314,14 @@ int main(int argc, char *argv[]) {
    if( fbot > ftop )
       ERROR_exit("Can't have ftop < fbot! Try entering frequency"
                     "band limits again");
-   if( MASK ) 
+   if( MASK )
       if ( Dim[0] != DSET_NX(MASK) || Dim[1] != DSET_NY(MASK) ||
            Dim[2] != DSET_NZ(MASK) ) {
          ERROR_message("Mask and inset don't appear to have the same "
                        "dimensions.\n");
          exit(1);
       }
-	
+
    // ****************************************************************
    // ****************************************************************
    //                    pre-stuff, make storage
@@ -333,16 +333,16 @@ int main(int argc, char *argv[]) {
    allF = (float *)calloc(Dim[3], sizeof(float));
 
    // will be the output
-   allPar = calloc(Npar,sizeof(allPar)); 
-   for(i=0 ; i<Npar ; i++) 
-      allPar[i] = calloc(Nvox,sizeof(float)); 
+   allPar = calloc(Npar,sizeof(allPar));
+   for(i=0 ; i<Npar ; i++)
+      allPar[i] = calloc(Nvox,sizeof(float));
 
    // MASK
    mskd = (int ***) calloc( Dim[0], sizeof(int **) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
       mskd[i] = (int **) calloc( Dim[1], sizeof(int *) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
-      for ( j = 0 ; j < Dim[1] ; j++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
+      for ( j = 0 ; j < Dim[1] ; j++ )
          mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
 
    if( (mskd == NULL) || (allF == NULL) || (allPar == NULL) ) {
@@ -381,16 +381,16 @@ int main(int argc, char *argv[]) {
                  "bandpass limits! bot:%f, top:%f",MIN_bp, MAX_bp);
 
    INFO_message("Actual BP range: indices [%d, %d] -> "
-                "freqs [%.4f, %.4f]", MIN_bp, MAX_bp, 
+                "freqs [%.4f, %.4f]", MIN_bp, MAX_bp,
                 allF[MIN_bp], allF[MAX_bp]);
    INFO_message("Full freq range: indices [%d, %d] -> "
-                "freqs [%.4f, %.4f]", MIN_full, MAX_full, 
+                "freqs [%.4f, %.4f]", MIN_full, MAX_full,
                 allF[MIN_full], allF[MAX_full]);
-   
+
    // go through once: define data vox
    idx = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( HAVE_MASK ) {
                if( THD_get_voxel(MASK,idx,0)>0 )
@@ -411,7 +411,7 @@ int main(int argc, char *argv[]) {
                   DTYPE,
                   Dim,
                   mskd,
-                  MIN_bp, MAX_bp, 
+                  MIN_bp, MAX_bp,
                   MIN_full, MAX_full,
                   allPar,
                   Npar,
@@ -432,23 +432,23 @@ int main(int argc, char *argv[]) {
          sprintf(outname,"%s_%s.nii.gz",prefix, namePar[m]);
       else
          sprintf(outname,"%s_%s",prefix, namePar[m]);
-      
+
       INFO_message(" writing: %s %s", prefix, outname);
-      
+
       EDIT_dset_items( outset,
                        ADN_nvals     , 1 ,
-                       ADN_datum_all , MRI_float , 
+                       ADN_datum_all , MRI_float ,
                        ADN_prefix    , outname ,
                        ADN_none ) ;
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outset)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(outset));
-      EDIT_substitute_brick(outset, 0, MRI_float, allPar[m]); 
+      EDIT_substitute_brick(outset, 0, MRI_float, allPar[m]);
       allPar[m]=NULL;
       THD_load_statistics(outset);
       tross_Make_History("3dAmpToRSFC", argc, argv, outset);
       THD_write_3dim_dataset(NULL, NULL, outset, True);
-      
+
       if(outset) {
          DSET_delete(outset);
          free(outset);
@@ -462,7 +462,7 @@ int main(int argc, char *argv[]) {
    //                    Freeing
    // ************************************************************
    // ************************************************************
-	
+
    if(allF)
       free(allF);
 
@@ -474,12 +474,12 @@ int main(int argc, char *argv[]) {
       DSET_delete(insetTIME);
       free(insetTIME);
    }
-  
+
    if(mskd) {
-      for( i=0 ; i<Dim[0] ; i++) 
-         for( j=0 ; j<Dim[1] ; j++) 
+      for( i=0 ; i<Dim[0] ; i++)
+         for( j=0 ; j<Dim[1] ; j++)
             free(mskd[i][j]);
-      for( i=0 ; i<Dim[0] ; i++) 
+      for( i=0 ; i<Dim[0] ; i++)
          free(mskd[i]);
       free(mskd);
    }
@@ -503,7 +503,7 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                     int DTYPE,
                     int *Dim,
                     int ***mskd,
-                    int MIN_bp, int MAX_bp, 
+                    int MIN_bp, int MAX_bp,
                     int MIN_full, int MAX_full,
                     float **ap,
                     int Npar,
@@ -526,15 +526,15 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
    //fac2oL = sqrt(2./Dim[3]); // essentially sqrt(L)
    facLMmin1 = facL * sqrt(nt_cen-1.); // L*(M-1)
 
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
-               
+
                L1den=0.;
                L2den=0.;
                for( l=MIN_full ; l<=MAX_full ; l++ ) {
-                  tmp1 = THD_get_voxel(A,idx,l); 
+                  tmp1 = THD_get_voxel(A,idx,l);
                   if(DTYPE==2)             // 1pow -> 1amp
                      tmp1 = sqrt(tmp1);
                   L1den+= tmp1;
@@ -542,7 +542,7 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                   if( (MIN_bp <= l) && (l <= MAX_bp) ) {
                      ap[0][idx]+= tmp1;         // alff
                      ap[3][idx]+= tmp1*tmp1;    // rsfa
-                     
+
                   }
                }
 
@@ -560,7 +560,7 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
                ap[3][idx] = sqrt(ap[3][idx]);
                ap[4][idx] = ap[3][idx];         // -> mrsfa
                ap[5][idx] = ap[3][idx] / sqrt(L2den); // frsfa
-               
+
                mean_rsfa+= ap[3][idx];
                mean_alff+= ap[0][idx];
                ctr++;
@@ -572,9 +572,9 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
    mean_rsfa/= ctr;
 
    // loop back again for scaling mALFF and mRSFA
-   idx = 0; 
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   idx = 0;
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
                // fALFF and fRSFA need no further scaling.
@@ -592,6 +592,6 @@ void Spect_to_RSFC( THD_3dim_dataset *A,
             }
             idx++;
          }
-   
-  
+
+
 }

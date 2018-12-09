@@ -350,7 +350,7 @@ void startup_timeout_CB( XtPointer client_data , XtIntervalId * id )
    /* make graph */
 
    ng = (sep) ? (-nts) : (nts) ;
-   
+
    mp = plot_ts_qqq( dc->display , nx , xar , ng , yar ,
                      xlabel , ylabel , title , yname , killfunc ) ;
 

@@ -19,7 +19,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -297,7 +297,7 @@ int SetBrowseGlob (ClientData nulldata, Tcl_Interp *interp,
 	return TCL_OK;
     }
 
-	Tcl_AppendResult (interp, 
+	Tcl_AppendResult (interp,
             "wrong args: should be \"", argv[0]," string\"", (char *) NULL);
 	return TCL_ERROR;
 }

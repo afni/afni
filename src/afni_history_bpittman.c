@@ -8,9 +8,9 @@
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :

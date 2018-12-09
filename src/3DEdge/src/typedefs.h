@@ -1,5 +1,5 @@
 /*************************************************************************
- * typedefs.h - 
+ * typedefs.h -
  *
  * $Id$
  *
@@ -8,8 +8,8 @@
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  *

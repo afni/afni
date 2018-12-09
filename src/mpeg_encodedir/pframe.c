@@ -40,7 +40,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:41  rwcox
@@ -187,7 +187,7 @@ static boolean	DoIntraCode _ANSI_ARGS_((LumBlock currentBlock,
 static boolean	ZeroMotionSufficient _ANSI_ARGS_((LumBlock currentBlock,
 						  MpegFrame *prev,
 						  int by, int bx));
-     
+
 #ifdef BLEAH
 static void	ComputeAndPrintPframeMAD _ANSI_ARGS_((LumBlock currentBlock,
 						      MpegFrame *prev,
@@ -195,8 +195,8 @@ static void	ComputeAndPrintPframeMAD _ANSI_ARGS_((LumBlock currentBlock,
 						      int my, int mx,
 						      int numBlock));
 #endif
-     
-    
+
+
 /*=====================*
  * EXPORTED PROCEDURES *
  *=====================*/
@@ -272,9 +272,9 @@ MpegFrame *prev;
   if (bitstreamMode == FIXED_RATE) {
     targetRateControl(current);
   }
- 
+
   Mhead_GenPictureHeader(bb, P_FRAME, current->id, fCodeP);
-  /* Check for Qscale change */  
+  /* Check for Qscale change */
   if (specificsOn) {
     /* Set a Qscale for this frame? */
     newQScale = SpecLookup(current->id, 0, 0 /* junk */, &info /*junk*/, QScale);
@@ -360,7 +360,7 @@ MpegFrame *prev;
 	    motionX = 0;
 	    motionY = 0;
 	  }
-	  if (IntraPBAllowed) 
+	  if (IntraPBAllowed)
 	    useMotion = (! DoIntraCode(currentBlock, prev, y, x,
 				       motionY, motionX));
 	}
@@ -438,7 +438,7 @@ MpegFrame *prev;
 
 	mbAddrInc = 1+(x>>1);
       }
-	    
+
       /*  Determine if new Qscale needed for Rate Control purposes  */
       if (bitstreamMode == FIXED_RATE) {
 	rc_blockStart =  bb->cumulativeBits;
@@ -451,7 +451,7 @@ MpegFrame *prev;
 	  QScale = newQScale;
 	}
       }
-	    
+
       /* Check for Qscale change */
       if (specificsOn) {
 	newQScale = SpecLookup(current->id, 2, mbAddress, &info, QScale);
@@ -571,7 +571,7 @@ MpegFrame *prev;
 	  BlockToData(current->decoded_y, dec[3], y+1, x+1);
 	  BlockToData(current->decoded_cb, dec[4], y>>1, x>>1);
 	  BlockToData(current->decoded_cr, dec[5], y>>1, x>>1);
-	} 
+	}
 
 	if ( (motionX == 0) && (motionY == 0) ) {
 	  if ( pattern == 0 ) {
@@ -614,7 +614,7 @@ MpegFrame *prev;
 	  }
 	} else {
 	  /*      DBG_PRINT(("MB Header(%d,%d)\n", x, y));  */
-		  
+
 	  Mhead_GenMBHeader(bb, 2 /* pict_code_type */, mbAddrInc /* addr_incr */,
 			    QScale /* q_scale */,
 			    fCode /* forw_f_code */, 1 /* back_f_code */,
@@ -963,7 +963,7 @@ ZeroMotionBetter(currentBlock, prev, by, bx, my, mx)
     int	bestDiff;
     int CompareMode;
 
-    /* Junk needed to adapt for TUNEing */ 
+    /* Junk needed to adapt for TUNEing */
     CompareMode = SearchCompareMode;
     SearchCompareMode = DEFAULT_SEARCH;
     bestDiff = LumMotionError(currentBlock, prev, by, bx, my, mx, 0x7fffffff);
@@ -1082,7 +1082,7 @@ ZeroMotionSufficient(currentBlock, prev, by, bx)
 
     return (zeroDiff <= 256);
 }
-			     
+
 
 #ifdef UNUSED_PROCEDURES
 static void

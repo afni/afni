@@ -83,7 +83,7 @@ int main (int argc, char * argv[])
 
   g_assert (gts_edge_collapse_is_valid (e7));
   v = gts_volume_optimized_vertex (e7, gts_vertex_class (), &params);
-  vs = gts_split_new (gts_split_class (), v, 
+  vs = gts_split_new (gts_split_class (), v,
 		      GTS_OBJECT (GTS_SEGMENT (e7)->v1),
 		      GTS_OBJECT (GTS_SEGMENT (e7)->v2));
   gts_split_collapse (vs, gts_edge_class (), NULL);

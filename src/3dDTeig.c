@@ -115,7 +115,7 @@ int main( int argc , char * argv[] )
    old_dset = THD_open_dataset( argv[nopt] ) ;
    CHECK_OPEN_ERROR(old_dset,argv[nopt]) ;
 
-   /* expect 6 values per voxel - 6 sub-briks as input dataset */ 
+   /* expect 6 values per voxel - 6 sub-briks as input dataset */
    if( DSET_NVALS(old_dset) < 6 ){  /* allows 6 or greater sub-briks */
       ERROR_exit("Can't use dataset that is not at least 6 values per voxel!") ;
    }
@@ -166,7 +166,7 @@ int main( int argc , char * argv[] )
       else {
          DSET_write (new_dset);
          INFO_message("--- Output dataset %s", DSET_BRIKNAME(new_dset));
-      } 
+      }
    } else {
       ERROR_exit("Unable to compute output dataset!") ;
    }
@@ -185,8 +185,8 @@ int output_datum;
 {
 /* takes base prefix and appends to it for eigvalues, eigvectors, FA, MD */
    char nprefix[THD_MAX_PREFIX], tprefix[THD_MAX_PREFIX];
-   char *ext, nullch; 
-   
+   char *ext, nullch;
+
    ENTRY("Save_Sep_eigdata");
 
    sprintf(tprefix,"%s",prefix);
@@ -198,7 +198,7 @@ int output_datum;
       nullch = '\0';
       ext = &nullch;
    }
-  
+
    sprintf(nprefix,"%s_L1%s", tprefix,ext);
    Copy_dset_array(whole_dset,0,1, nprefix, output_datum);
    sprintf(nprefix,"%s_L2%s", tprefix,ext);
@@ -215,7 +215,7 @@ int output_datum;
    Copy_dset_array(whole_dset,12,1, nprefix, output_datum);
    sprintf(nprefix,"%s_MD%s", tprefix,ext);
    Copy_dset_array(whole_dset,13,1, nprefix, output_datum);
-   
+
    EXRETURN;
 }
 
@@ -252,21 +252,21 @@ int output_datum;
                                  : GEN_FUNC_TYPE ,
                         ADN_func_type   , FUNC_BUCK_TYPE ,        /* function type */
                         ADN_none ) ;
-			
-   if(ierror>0) 
+
+   if(ierror>0)
        ERROR_exit("*** Error - Unable to edit dataset!");
 
    THD_init_datablock_keywords( out_dset->dblk ) ;
-   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for 
+   THD_init_datablock_stataux( out_dset->dblk ) ; /* for some reason, need to do this for
                                                      single brick NIFTI files */
- 
+
    /* attach brick, factors and labels to new dataset using existing brick pointers */
    for(i=0;i<nbriks;i++) {
       fim = DSET_BRICK(whole_dset,startbrick+i);
       dataptr = mri_data_pointer(fim);
       fbuf[i] = whole_dset->dblk->brick_fac[startbrick+i];
-      /* copy labels here too.....*/  
-      EDIT_dset_items (out_dset, ADN_brick_label_one + i, 
+      /* copy labels here too.....*/
+      EDIT_dset_items (out_dset, ADN_brick_label_one + i,
                        whole_dset->dblk->brick_lab[startbrick+i], ADN_none);
       /*----- attach mri_image pointer to to be sub-brick #i -----*/
       EDIT_substitute_brick(out_dset, i, output_datum, dataptr);
@@ -302,12 +302,12 @@ static void EIG_tsfunc( double tzero, double tdelta ,
    double ssq, dsq;
    double dv0, dv1, dv2;
 
-  ENTRY("EIG_tsfunc"); 
+  ENTRY("EIG_tsfunc");
   /* ts is input vector data of 6 floating point numbers.
      For each point in volume brik convert vector data to
      symmetric matrix */
   /* ts should come from data sub-briks in form of Dxx,Dxy,Dxz,Dyy,Dyz,Dzz */
-  /* convert to matrix of form 
+  /* convert to matrix of form
      [ Dxx Dxy Dxz]
      [ Dxy Dyy Dyz]
      [ Dxz Dyz Dzz]  */
@@ -329,24 +329,24 @@ static void EIG_tsfunc( double tzero, double tdelta ,
 
    /* load the symmetric matrix vector from the "timeseries" subbrik vector values */
    if(udflag) {               /* read in as upper diagonal elements */
-      a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];  
+      a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[2];
       a[3]=ts[1]; a[4]=ts[3]; a[5]=ts[4];
       a[6]=ts[2]; a[7]=ts[4]; a[8]=ts[5];
    }
-   else {         /* read D tensor in as lower diagonal elements - NIFTI standard */ 
+   else {         /* read D tensor in as lower diagonal elements - NIFTI standard */
       a[0]=ts[0]; a[1]=ts[1]; a[2]=ts[3];
       a[3]=ts[1]; a[4]=ts[2]; a[5]=ts[4];
       a[6]=ts[3]; a[7]=ts[4]; a[8]=ts[5];
    }
   symeig_double(3, a, e);    /* compute eigenvalues in e, eigenvectors in a */
- 
+
   maxindex=2;                      /* find the lowest, middle and highest eigenvalue */
   maxvalue=e[2];
   minindex=0;
   minvalue=e[0];
   midindex = 1;
 
-  for(i=0;i<3;i++) {        
+  for(i=0;i<3;i++) {
     temp = e[i];
     if(temp>maxvalue) {            /* find the maximum */
       maxindex = i;
@@ -363,7 +363,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
       {
 	midindex = i;
         break;
-      }        
+      }
   }
 
   sortvector[0] = maxindex;
@@ -373,10 +373,10 @@ static void EIG_tsfunc( double tzero, double tdelta ,
   /* put the eigenvalues at the beginning of the matrix */
   for(i=0;i<3;i++) {
      val[i] = e[sortvector[i]];    /* copy sorted eigenvalues */
-  
+
                                  /* start filling in eigenvector values */
-     astart=sortvector[i]*3;    /* start index of double eigenvector */    
-     vstart=(i+1)*3;            /* start index of float val vector to 
+     astart=sortvector[i]*3;    /* start index of double eigenvector */
+     vstart=(i+1)*3;            /* start index of float val vector to
                                    copy eigenvector */
 
      for(j=0;j<3;j++){
@@ -395,7 +395,7 @@ static void EIG_tsfunc( double tzero, double tdelta ,
        quantitative-diffusion tensor MRI,J Magn Reson B 1996;
        111:209-19 */
   if((val[0]<=0.0)||(val[1]<0.0)||(val[2]<0.0)) {   /* any negative eigenvalues?*/
-    val[12]=0.0;                                      /* set FA to 0 */  
+    val[12]=0.0;                                      /* set FA to 0 */
     val[13]=0.0;                                      /* set MD to 0 */
     EXRETURN;
   }

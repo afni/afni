@@ -18,7 +18,7 @@ static doublereal c_b47 = 1.;
 	matv, integer *ldv, doublereal *v, integer *ierr, doublereal *rv1)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, u_dim1, u_offset, v_dim1, v_offset, i__1, i__2, 
+    integer a_dim1, a_offset, u_dim1, u_offset, v_dim1, v_offset, i__1, i__2,
 	    i__3;
     doublereal d__1, d__2, d__3, d__4;
 
@@ -99,12 +99,12 @@ static doublereal c_b47 = 1.;
 /*     calls pythag for  dsqrt(a*a + b*b) . */
 
 /*     questions and comments should be directed to burton s. garbow, */
-/*     mathematics and computer science div, argonne national laboratory 
+/*     mathematics and computer science div, argonne national laboratory
 */
 
 /*     this version dated august 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -297,7 +297,7 @@ L290:
 /*     .......... double division avoids possible underflow ......
 .... */
 /* L320: */
-	    v[j + i__ * v_dim1] = u[i__ + j * u_dim1] / u[i__ + l * u_dim1] / 
+	    v[j + i__ * v_dim1] = u[i__ + j * u_dim1] / u[i__ + l * u_dim1] /
 		    g;
 	}
 

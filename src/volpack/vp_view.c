@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -284,7 +284,7 @@ vpMatrix4 vm;
 			 pvm[0][1]*vpc->trans_j;
     vpc->warp_2d[1][0] = pvm[1][0];
     vpc->warp_2d[1][1] = pvm[1][1];
-    vpc->warp_2d[1][2] = pvm[1][3] - pvm[1][0]*vpc->trans_i - 
+    vpc->warp_2d[1][2] = pvm[1][3] - pvm[1][0]*vpc->trans_i -
 			 pvm[1][1]*vpc->trans_j;
     vpc->warp_2d[2][0] = 0.;
     vpc->warp_2d[2][1] = 0.;
@@ -292,7 +292,7 @@ vpMatrix4 vm;
 
     vpc->factored_view_ready = 1;
 
-    Debug((vpc, VPDEBUG_VIEW, "  best_view_axis: %c%c\n", 
+    Debug((vpc, VPDEBUG_VIEW, "  best_view_axis: %c%c\n",
 	   vpc->reverse_slice_order ? '-' : '+',
 	   vpc->best_view_axis == VP_X_AXIS ? 'x' :
 	   (vpc->best_view_axis == VP_Y_AXIS ? 'y' : 'z')));
@@ -651,7 +651,7 @@ int copy;	/* if true, copy old entries */
 /*
  * VPComputeDepthCueTable
  *
- * Compute entries in the depth cueing lookup table.  
+ * Compute entries in the depth cueing lookup table.
  */
 
 void

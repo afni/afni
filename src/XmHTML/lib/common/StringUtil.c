@@ -36,7 +36,7 @@ static char rcsId[]="$Header$";
 * newt
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -76,10 +76,10 @@ static char rcsId[]="$Header$";
 * Updated for source revision 2.0
 *
 * Revision 1.1  1996/06/27 03:53:51  newt
-* Initial Revision. 
+* Initial Revision.
 * Originally comes from ForUtil-0.52, but has been adapted for Newt.
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -98,8 +98,8 @@ static char rcsId[]="$Header$";
 
 /*** Public Variable Declarations ***/
 
-/*** 
-* Character translation table for converting from upper to lower case 
+/***
+* Character translation table for converting from upper to lower case
 * Since this is a table lookup, it might perform better than the libc
 * tolower routine on a number of systems.
 ***/
@@ -134,18 +134,18 @@ static String to_roman(int val);
 static char tokenToEscape(char **escape, Boolean warn);
 
 /*** Private Variable Declarations ***/
-static char *Ones[] = 
+static char *Ones[] =
 		{"i", "ii", "iii", "iv", "v", "vi", "vii", "viii", "ix"};
-static char *Tens[] = 
+static char *Tens[] =
 		{"x", "xx", "xxx", "xl", "l", "lx", "lxx", "lxxx", "xc"};
-static char *Hundreds[] = 
+static char *Hundreds[] =
 		{"c", "cc", "ccc", "cd", "d", "dc", "dcc", "dccc", "cm"};
 
 /*****
 * Name: 		my_upcase
 * Return Type: 	void
 * Description: 	makes a string all uppercase
-* In: 
+* In:
 *	string:		string to translate to uppercase
 * Returns:
 *	nothing, string is changed upon return.
@@ -154,7 +154,7 @@ void
 my_upcase(char *string)
 {
 	register char *outPtr = string;
-	for(outPtr = string; *outPtr != '\0'; 
+	for(outPtr = string; *outPtr != '\0';
 		*(outPtr++) = toupper(*(string++)));
 }
 
@@ -162,7 +162,7 @@ my_upcase(char *string)
 * Name: 		my_locase
 * Return Type: 	void
 * Description: 	make a string all lower case
-* In: 
+* In:
 *	string:		string to translate to lowercase
 * Returns:
 *	nothing, string is changed upon return.
@@ -171,7 +171,7 @@ void
 my_locase(char *string)
 {
 	register char *outPtr = string;
-	for(outPtr = string; *outPtr != '\0'; 
+	for(outPtr = string; *outPtr != '\0';
 		*(outPtr++) = _FastLower(*(string++)));
 }
 
@@ -179,7 +179,7 @@ my_locase(char *string)
 * Name: 		my_strcasestr
 * Return Type: 	char *
 * Description: 	returns the starting address of s2 in s1, ignoring case
-* In: 
+* In:
 *	s1:			string to examine
 *	s2:			string to find
 * Returns:
@@ -201,7 +201,7 @@ my_strcasestr(const char *s1, const char *s2)
 	/* the first char matches, check if the remainder also matches */
 	for(p2 = s2; *s; p2 = s2, i++, s++)
 	{
-		for (p1 = s; *p1 && *p2 && _FastLower(*p1) == _FastLower(*p2); 
+		for (p1 = s; *p1 && *p2 && _FastLower(*p1) == _FastLower(*p2);
 				p1++, p2++);
 		if(!*p2)
 			break;
@@ -216,7 +216,7 @@ my_strcasestr(const char *s1, const char *s2)
 * Name: 		__rsd_strdup
 * Return Type: 	char*
 * Description: 	debugging version of strdup
-* In: 
+* In:
 *	s1:			string to be duplicated
 * Returns:
 *	duplicated string.
@@ -240,7 +240,7 @@ __rsd_strdup(const char *s1, char *file, int line)
 * Return Type: 	char*
 * Description: 	duplicates up to len chars of string s1 and NULL terminates
 *				it.
-* In: 
+* In:
 *	s1:			source string;
 *	len:		max no of chars to copy;
 * Returns:
@@ -266,7 +266,7 @@ my_strndup(const char *s1, size_t len)
 }
 
 /*****
-* UnixWare doesn't have these functions in its standard C library 
+* UnixWare doesn't have these functions in its standard C library
 * contributed by Thanh Ma (tma@encore.com), fix 02/03/97-03, tma
 *****/
 
@@ -276,7 +276,7 @@ my_strndup(const char *s1, size_t len)
 * Return Type: 	int
 * Description: 	case insensitive string compare upto n characters of string
 *				s1.
-* In: 
+* In:
 *	s1:			source string
 *	s2:			string to compare with
 *	n:			no of characters to compare.
@@ -304,8 +304,8 @@ my_strncasecmp (const char *s1, const char *s2, size_t n)
 /*****
 * Name: 		strcasecmp
 * Return Type: 	int
-* Description: 	case insensitive string compare 
-* In: 
+* Description: 	case insensitive string compare
+* In:
 *	s1:			source string
 *	s2:			string to compare with
 * Returns:
@@ -324,7 +324,7 @@ my_strcasecmp (const char *s1, const char *s2)
 			return(c1 - c2);
 		s1++;
 		s2++;
-	}                                                                           
+	}
 	return((int)(*s1 - *s2));
 }
 #endif /* NEED_STRCASECMP */
@@ -337,7 +337,7 @@ my_strcasecmp (const char *s1, const char *s2)
 * Name: 		to_ascii
 * Return Type: 	String
 * Description: 	converts a numerical value to an abc representation.
-* In: 
+* In:
 *	val:		number to convert
 * Returns:
 *	converted number.
@@ -354,7 +354,7 @@ to_ascii(int val)
 		remainder = (value % 26);
 		number[i++] = (remainder ? remainder + 96 : 'z');
 	}
-	while((value = (remainder ? (int)(value/26) : (int)((value-1)/26))) 
+	while((value = (remainder ? (int)(value/26) : (int)((value-1)/26)))
 		&& i < 32); /* no buffer overruns */
 
 	for(j = 0; i > 0 && j < 32; i--, j++)
@@ -369,7 +369,7 @@ to_ascii(int val)
 * Name: 		to_roman
 * Return Type: 	String
 * Description: 	converts the given number to a lowercase roman numeral.
-* In: 
+* In:
 *	val:		number to convert
 * Returns:
 *	converted number
@@ -384,7 +384,7 @@ to_roman(int val)
 
 	value = val;
 	sprintf(buf, "%i", val);
-	
+
 	thousand = value/1000;
 	value = value % 1000;
 	hundred = value/100;
@@ -415,7 +415,7 @@ to_roman(int val)
 		--p;
 	}
 	*p = '\0';
-	
+
 	return(buf);
 }
 
@@ -423,7 +423,7 @@ to_roman(int val)
 * Name: 		ToAsciiLower
 * Return Type: 	String
 * Description: 	returns the abc representation of the given number
-* In: 
+* In:
 *	val:		number to convert
 * Returns:
 *	converted number
@@ -438,7 +438,7 @@ ToAsciiLower(int val)
 * Name: 		ToAsciiUpper
 * Return Type: 	String
 * Description: 	returns the ABC representation of the given number
-* In: 
+* In:
 *	val:		number to convert
 * Returns:
 *	converted number
@@ -456,7 +456,7 @@ ToAsciiUpper(int val)
 * Name: 		ToRomanLower
 * Return Type: 	String
 * Description: 	converts numbers between 1-3999 to roman numerals, lowercase.
-* In: 
+* In:
 *	value:		value to convert
 * Returns:
 *	lowercase roman numeral
@@ -471,7 +471,7 @@ ToRomanLower(int val)
 * Name: 		ToRomanUpper
 * Return Type: 	String
 * Description: 	converts numbers between 1-3999 to roman numerals, uppercase.
-* In: 
+* In:
 *	value:		value to convert
 * Returns:
 *	uppercase roman numeral
@@ -489,7 +489,7 @@ ToRomanUpper(int val)
 * Name: 		stringToToken
 * Return Type: 	Byte
 * Description: 	converts a string to a numeric id.
-* In: 
+* In:
 *	token:		string to be converted;
 *	tokens:		array of valid strings, alphabetically sorted;
 *	max_val:	size of tokens array.
@@ -529,7 +529,7 @@ stringToToken(String token, String *tokens, int max_val)
 * Name: 		tokenToEscape
 * Return Type: 	char
 * Description: 	converts the HTML & escapes sequences to the appropriate char.
-* In: 
+* In:
 *	**escape:	escape sequence to convert. This argument is updated upon
 *				return.
 *	warn:		warning issue flag;
@@ -543,12 +543,12 @@ stringToToken(String token, String *tokens, int max_val)
 *	The number of elements is NUM_ESCAPES (currently 197), so a match is always
 *	found in less than 8 iterations (2^8=256).
 *	If an escape sequence is not matched and it is a hash escape, the value
-*	is assumed to be below 160 and converted to a char using the ASCII 
+*	is assumed to be below 160 and converted to a char using the ASCII
 *	representation of the given number. For other, non-matched characters, 0
 *	is returned and the return pointer is updated to point right after the
 *	ampersand sign.
 *****/
-static char 
+static char
 tokenToEscape(char **escape, Boolean warn)
 {
 	register int mid, lo = 0, hi = NUM_ESCAPES -1;
@@ -584,7 +584,7 @@ tokenToEscape(char **escape, Boolean warn)
 		while(lo <= hi)
 		{
 			mid = (lo + hi)/2;
-			if((cmp = strncmp(*escape+1, escapes[mid].escape, 
+			if((cmp = strncmp(*escape+1, escapes[mid].escape,
 				escapes[mid].len - skip)) == 0)
 			{
 				/* update ptr to point right after the escape sequence */
@@ -646,7 +646,7 @@ tokenToEscape(char **escape, Boolean warn)
 * Name: 		_XmHTMLExpandEscapes
 * Return Type: 	void
 * Description: 	replaces character escapes sequences with the appropriate char.
-* In: 
+* In:
 *	string:		text to scan for escape sequences
 * Returns:
 *	nothing
@@ -680,15 +680,15 @@ _XmHTMLExpandEscapes(char *string, Boolean warn)
 /*****
 * Name: 		_XmHTMLTagCheck
 * Return Type: 	Boolean
-* Description: 	checks whether the given tag exists in the attributes of a 
+* Description: 	checks whether the given tag exists in the attributes of a
 *				HTML element
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 * Returns:
 *	True if tag is found, False otherwise.
 *****/
-Boolean 
+Boolean
 _XmHTMLTagCheck(char *attributes, char *tag)
 {
 	char *chPtr, *start;
@@ -718,11 +718,11 @@ _XmHTMLTagCheck(char *attributes, char *tag)
 * Name: 		_XmHTMLTagGetValue
 * Return Type: 	char *
 * Description: 	looks for the specified tag in the given list of attributes.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 * Returns:
-*	if tag exists, the value of this tag, NULL otherwise. 
+*	if tag exists, the value of this tag, NULL otherwise.
 *	return value is always malloc'd; caller must free it.
 *****/
 String
@@ -739,10 +739,10 @@ _XmHTMLTagGetValue(char *attributes, char *tag)
 
 	if((chPtr = strstr(attributes, tag)) != NULL)
 	{
-		/***** 
-		* check if the ptr obtained is correct, eg, no whitespace before it. 
+		/*****
+		* check if the ptr obtained is correct, eg, no whitespace before it.
 		* If this is not the case, get the next match.
-		* Need to do this since a single strstr on, for example, align 
+		* Need to do this since a single strstr on, for example, align
 		* will match both align _and_ valign.
 		*
 		* fix 02/06/98-02, eb
@@ -758,7 +758,7 @@ _XmHTMLTagGetValue(char *attributes, char *tag)
 		}
 		if(chPtr == NULL)
 			return(NULL);
-		
+
 		start = chPtr+strlen(tag); /* start right after this element */
 		/* remove leading spaces */
 		while(isspace(*start))
@@ -799,7 +799,7 @@ _XmHTMLTagGetValue(char *attributes, char *tag)
 			for(end = start; *end != '\"' && *end != '\0' ; end++);
 		}
 		/* empty string */
-		if(end == start) 
+		if(end == start)
 			return(NULL);
 
 		buf = my_strndup(start, end - start);
@@ -816,7 +816,7 @@ _XmHTMLTagGetValue(char *attributes, char *tag)
 * Name: 		_XmHTMLTagGetNumber
 * Return Type: 	int
 * Description: 	retrieves the numerical value of the given tag.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	def:		default value if tag is not found.
@@ -845,7 +845,7 @@ _XmHTMLTagGetNumber(char *attributes, char *tag, int def)
 * Description: 	retrieves the numerical value of the given tag.
 *				If the returned no is negative, the specified value was
 *				a relative number. Otherwise it's an absolute number.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	def:		default value if tag is not found.
@@ -877,24 +877,24 @@ _XmHTMLTagCheckNumber(char *attributes, char *tag, int def)
 * Return Type: 	Boolean
 * Description: 	checks whether the specified tag in the given list of attributes
 *				has a certain value.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	check:		value to check.
 * Returns:
 *	returns True if tag exists and has the correct value, False otherwise.
 *****/
-Boolean 
+Boolean
 _XmHTMLTagCheckValue(char *attributes, char *tag, char *check)
 {
 	char *buf;
 
-	_XmHTMLDebug(4, ("StringUtil.c: _XmHTMLTagCheckValue: tag %s, check %s\n", 
+	_XmHTMLDebug(4, ("StringUtil.c: _XmHTMLTagCheckValue: tag %s, check %s\n",
 		tag, check));
 
 	/* no sanity check, TagGetValue returns NULL if attributes is empty */
 
-	if((buf = _XmHTMLTagGetValue(attributes, tag)) == NULL || 
+	if((buf = _XmHTMLTagGetValue(attributes, tag)) == NULL ||
 		strcasecmp(buf, check))
 	{
 		if(buf != NULL)
@@ -909,7 +909,7 @@ _XmHTMLTagCheckValue(char *attributes, char *tag, char *check)
 * Name: 		_XmHTMLGetImageAlignment
 * Return Type: 	Alignment
 * Description: 	returns any specified image alignment
-* In: 
+* In:
 *	attributes:	<IMG> attributes
 * Returns:
 *	specified image alignment. If none found, XmVALIGN_BOTTOM
@@ -948,13 +948,13 @@ _XmHTMLGetImageAlignment(char *attributes)
 * Name: 		_XmHTMLGetHorizontalAlignment
 * Return Type: 	Alignment
 * Description:	Retrieve the value of the ALIGN attribute
-* In: 
+* In:
 *	attributes:	attributes to check for the ALIGN tag
 *	def_align:	default alignment.
 * Returns:
 *	selected ALIGN enumeration type or def_align if no match is found.
 *****/
-Alignment 
+Alignment
 _XmHTMLGetHorizontalAlignment(char *attributes, Alignment def_align)
 {
 	char *buf;
@@ -984,13 +984,13 @@ _XmHTMLGetHorizontalAlignment(char *attributes, Alignment def_align)
 * Name: 		_XmHTMLGetVerticalAlignment
 * Return Type: 	Alignment
 * Description:	Retrieve the value of the VALIGN attribute
-* In: 
+* In:
 *	attributes:	attributes to check for the VALIGN tag
 * Returns:
-*	selected VALIGN enumeration type or XmVALIGN_TOP when no valign tag 
+*	selected VALIGN enumeration type or XmVALIGN_TOP when no valign tag
 *	is found among the element's attributes.
 *****/
-Alignment 
+Alignment
 _XmHTMLGetVerticalAlignment(char *attributes, Alignment def_align)
 {
 	char *buf;
@@ -1076,7 +1076,7 @@ _XmHTMLGetRuling(String attributes, TableRuling def)
 * Return Type: 	Dimension
 * Description: 	returns an estimated guess on how wide the formatted document
 *				will be based on the longest line in the document source.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	guess what?
@@ -1131,7 +1131,7 @@ _XmHTMLGetMaxLineLength(XmHTMLWidget html)
 	/* we allow widths up to 75% of the screen width */
 	max = (Dimension)(0.75*tka->width);
 
-	ret_val = (ret_val > max ? max : ret_val); 
+	ret_val = (ret_val > max ? max : ret_val);
 
 	_XmHTMLDebug(4, ("StringUtil.c: _XmHTMLGetMaxLineLength, returning %d\n",
 		ret_val));

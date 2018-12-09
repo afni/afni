@@ -5,9 +5,9 @@
 
 /*----------------------------------------------------------------------
  * 3dresample - create a new dataset by reorienting and resampling
- *              an existing one 
+ *              an existing one
  *
- * This program can be used to 
+ * This program can be used to
  *    - change the orientation of a dataset to one that is specified
  *    - change the dx, dy, dz spacing, to one that is specified
  *    - master a dataset, so that its orientation and spacing matches
@@ -139,7 +139,7 @@ int init_options ( options_t * opts, int argc, char * argv [] )
     /* clear out the options structure, and explicitly set pointers */
     memset( opts, 0, sizeof(options_t) );
     opts->orient = opts->prefix = NULL; /* laziness with proper conversions */
-    opts->dset   = opts->mset   = NULL;  
+    opts->dset   = opts->mset   = NULL;
 
     /* show help if there are no arguments */
     if ( argc < 2 ) { usage( argv[0], USE_LONG ); return 1; }

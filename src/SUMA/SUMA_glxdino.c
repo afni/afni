@@ -1,8 +1,8 @@
 
 /* Copyright (c) Mark J. Kilgard, 1996. */
 
-/* This program is freely distributable without licensing fees 
-   and is provided without guarantee or warrantee expressed or 
+/* This program is freely distributable without licensing fees
+   and is provided without guarantee or warrantee expressed or
    implied. This program is -not- in the public domain. */
 
 /* compile: cc -o glxdino glxdino.c -lGLU -lGL -lXmu -lXext -lX11 -lm */
@@ -103,7 +103,7 @@ void
 makeDinosaur(void)
 {
   GLfloat bodyWidth = 3.0;
-   
+
   extrudeSolidFromPolygon(body, sizeof(body), bodyWidth,
     BODY_SIDE, BODY_EDGE, BODY_WHOLE);
   extrudeSolidFromPolygon(arm, sizeof(arm), bodyWidth / 4,
@@ -257,13 +257,13 @@ main(int argc, char **argv)
   Bool needRedraw = False, recalcModelView = True;
   char *display = NULL, *geometry = NULL;
   int flags, x, y, width, height, lastX = 0, i;
-  
+
   for (i = 1; i < argc; i++) {
     if (!strcmp(argv[i], "-help")) {
       fprintf(stdout,"A simple openGL test program using GLX.\n"
                      "If it does not run, then SUMA certainly won't.\n"
                      "Copyright (c) Mark J. Kilgard, 1996.\n" );
-      return(0); 
+      return(0);
     }
     if (!strcmp(argv[i], "-geometry")) {
       if (++i >= argc)

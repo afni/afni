@@ -1,4 +1,4 @@
-/* A copy of embeddedRCall.h found in R's source directory 
+/* A copy of embeddedRCall.h found in R's source directory
    under tests/Embedding/ */
 #ifndef EMBEDDED_R_CALL_H
 #define EMBEDDED_R_CALL_H

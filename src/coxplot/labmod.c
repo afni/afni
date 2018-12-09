@@ -31,8 +31,8 @@ extern struct {
 
 
 
-/* Subroutine */ int labmod_(integer *ifmtx, integer *ifmty, integer *numx, 
-	integer *numy, integer *jsizx, integer *jsizy, integer *ixdec, 
+/* Subroutine */ int labmod_(integer *ifmtx, integer *ifmty, integer *numx,
+	integer *numy, integer *jsizx, integer *jsizy, integer *ixdec,
 	integer *iydec, integer *ixor)
 {
 

@@ -9,7 +9,7 @@
 
 /* A simple C function that R will call */
 SEXP callback(SEXP x){
-  SEXP y;  
+  SEXP y;
   PROTECT(y = duplicate(x));
   INTEGER(y)[0]=2*INTEGER(y)[0];
   UNPROTECT(1);   /* a little confused here...
@@ -25,9 +25,9 @@ int main (int argc,char *argv[])
    char *pp=NULL;
    FILE *fout=NULL;
    SEXP e, e1, rv, rs;
-   
+
    init_R(argc, argv);
-   
+
 /* Calling R and asking it to call compiled C routines! */
    {
       int deuce=-999;
@@ -38,10 +38,10 @@ int main (int argc,char *argv[])
       };
       info  = R_getEmbeddingDllInfo();
       R_registerRoutines(info, NULL, callMethods, NULL, NULL);
-      /* .Call is the R function used to call compiled 
+      /* .Call is the R function used to call compiled
          code that uses internal R objects */
       PROTECT(e1=lang3( install(".Call"),
-                        mkString("callback"),ScalarInteger(100)));    
+                        mkString("callback"),ScalarInteger(100)));
       /* evaluate the R command in the global environment*/
       PROTECT(e=eval(e1,R_GlobalEnv));
       /* show the value */
@@ -49,41 +49,41 @@ int main (int argc,char *argv[])
       /* store the value in a local variable */
       deuce = INTEGER(e)[0];
       printf("Got %d back from result SEXP\n\n", deuce);
-      
+
       UNPROTECT(2); /* allow for R's garbage collection */
    }
-   
+
 /* Calling R and asking it to do computation on a C array */
    f = (double *)malloc(sizeof(double)*256);
    for (i=0; i<256;++i) f[i]=(double)rand()/(double)RAND_MAX+i/64;
 
-   /*Now copy array into R structs */ 
+   /*Now copy array into R structs */
    PROTECT(rv=allocVector(REALSXP, 256));
-   defineVar(install("f"), rv, R_GlobalEnv); /* put rv in R's environment and 
+   defineVar(install("f"), rv, R_GlobalEnv); /* put rv in R's environment and
                                                 name it "f" */
    for (i=0; i<256;++i) REAL(rv)[i] = f[i];  /* fill rv with values */
-   
-   /* plot that array with R's: plot(f) */   
+
+   /* plot that array with R's: plot(f) */
    PROTECT(e = lang1(install("x11")));
    eval(e, R_GlobalEnv);
    UNPROTECT(1);
    PROTECT(e=lang2(install("plot"),install("f")));
    eval(e, R_GlobalEnv);
    UNPROTECT(1);
-   
+
    /* calculate the log of the values with log(f) */
-   PROTECT(e1=lang2(install("log"),install("f")));    
+   PROTECT(e1=lang2(install("log"),install("f")));
    PROTECT(e=eval(e1,R_GlobalEnv));
-   for (i=0; i<256;++i) { 
+   for (i=0; i<256;++i) {
       if (i<5 || i>250) {
          printf("%d: log(%f)=%f\n", i, f[i], REAL(e)[i]);
       } else if (!(i%20)) {
          printf("...");
       }
    }
-   
-   UNPROTECT(2); 
-    
+
+   UNPROTECT(2);
+
    /* Now run some R script with source(".../ExamineXmat.R") */
    if (!(pp = Add_plausible_path("ExamineXmat.R"))) {
       fprintf(stderr,"Failed to find ExamineXmat.R\n");
@@ -102,8 +102,8 @@ int main (int argc,char *argv[])
    for R and how R can find them on any machine etc. Nuts and bolts...
    A simple exercise here would be to learn how to construct our R library
    and call its functions from here ... */
-   
+
    free(f); f = NULL; free(pp); pp=NULL;
-   
+
    getchar();
 }

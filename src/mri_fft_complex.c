@@ -93,7 +93,7 @@ float *mri_setup_taper( int nx , float taper )
    register int ii ;
    int ntap ;
    float *tap ;
-   float phi ; 
+   float phi ;
 
    tap = (float *)malloc( sizeof(float) * nx ) ;   /* make array */
 

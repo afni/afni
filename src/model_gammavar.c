@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines to initialize and implement the 
+  This file contains routines to initialize and implement the
   gamma variate drug response signal model.
 
   File:     model_gammavar.c
@@ -24,12 +24,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -51,7 +51,7 @@ MODEL_interface * initialize_model ()
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the gamma variate model -----*/   
+  /*----- define interface for the gamma variate model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "GammaVar");
@@ -73,7 +73,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[1] =  -200.0;    mi->max_constr[1] =   200.0;
   mi->min_constr[2] =     0.0;    mi->max_constr[2] =     1.0;
   mi->min_constr[3] =     1.0;    mi->max_constr[3] =   100.0;
-  
+
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
 
@@ -91,25 +91,25 @@ MODEL_interface * initialize_model ()
 
   Definition of model parameters:
 
-	 gs[0] = time delay of response (t0)  
+	 gs[0] = time delay of response (t0)
 	 gs[1] = multiplicative constant (k)
 	 gs[2] = rise rate exponent (r)
 	 gs[3] = decay rate constant (b)
 
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
   float t;                          /* time */
-  float fval;                       /* time series value at time t */  
+  float fval;                       /* time series value at time t */
 
 
   for (it = 0;  it < ts_length;  it++)
@@ -121,7 +121,7 @@ void signal_model
 	fval = gs[1] * exp( log(t-gs[0]) * gs[2] ) * exp(-(t-gs[0])/gs[3]);
       ts_array[it] = fval;
     }
-  
+
 }
 
 

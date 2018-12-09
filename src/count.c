@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -89,7 +89,7 @@ void usage_count(int detail) {
 }
 int main( int argc , char *argv[] )
 {
-   int ii , bot = -1 , top = -1 , step = -1 , 
+   int ii , bot = -1 , top = -1 , step = -1 ,
        rando_count = 0, rando_num=0, col ;
    int narg , ndig = 4 , iout ;
    long int seed = 0;
@@ -101,7 +101,7 @@ int main( int argc , char *argv[] )
    int skipm = 0;
    int skipout;
 
-   mainENTRY("count");machdep() ; 
+   mainENTRY("count");machdep() ;
 
    if (argc == 1) { usage_count(1); exit(0); } /* Bob's help shortcut */
 
@@ -121,13 +121,13 @@ int main( int argc , char *argv[] )
          usage_count(strlen(argv[narg]) > 3 ? 2:1);
          exit(0);
       }
-      
+
       if( strncmp(argv[narg],"-digits",2) == 0 ){
          ndig = strtol( argv[++narg] , NULL , 10 ) ;
          if( ndig < 1 ) ERROR_exit("-digits value must be > 0") ;
          continue ;
       }
-      
+
       if( strncmp(argv[narg],"-quiet",5) == 0 ){
          quiet = 1 ;
          continue ;
@@ -152,12 +152,12 @@ int main( int argc , char *argv[] )
          strcpy(root,argv[++narg]) ;
          continue ;
       }
-      
+
       if( strncmp(argv[narg],"-column",4) == 0 ){
          col = 1 ; comma = 0 ; sep = ' ' ;
          continue ;
       }
-      
+
       if( strncmp(argv[narg],"-sep",4) == 0 ){   /* 02 Mar 2007 [rickr] */
          sep = argv[++narg][0] ;
          if( !isprint(sep) )
@@ -202,7 +202,7 @@ int main( int argc , char *argv[] )
    /*** numbers ***/
 
       if( bot < 0 ){
-         if (  strlen(argv[narg])==1 && 
+         if (  strlen(argv[narg])==1 &&
                ( (argv[narg][0]>='A' && argv[narg][0]<='Z') ||
                  (argv[narg][0]>='a' && argv[narg][0]<='z')    )  ) {
             bot = (int)argv[narg][0];
@@ -218,7 +218,7 @@ int main( int argc , char *argv[] )
       }
 
       if( top < 0 ){
-         if (  strlen(argv[narg])==1 && 
+         if (  strlen(argv[narg])==1 &&
                ( (argv[narg][0]>='A' && argv[narg][0]<='Z') ||
                  (argv[narg][0]>='a' && argv[narg][0]<='z')    )  ) {
             top = (int)argv[narg][0];
@@ -289,7 +289,7 @@ int main( int argc , char *argv[] )
    }
 /*** iterate ***/
    /* fprintf(stderr,"bot=%d, top=%d, step=%d\n", bot, top, step); */
-   
+
    if( rando_count == 0){
       if( bot <= top ){
          for( ii=bot ; ii <= top ; ii += step ) {

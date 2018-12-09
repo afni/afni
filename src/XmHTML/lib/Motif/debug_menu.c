@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -51,7 +51,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/08/31 17:45:23  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifndef NDEBUG
 #include <stdio.h>
 #include <stdlib.h>
@@ -108,7 +108,7 @@ static debugRec debugLevels[MAX_ENTRIES] = {
 * Name: 		debugCB
 * Return Type: 	void
 * Description: 	debug level callback. Sets/Unsets the selected debug level.
-* In: 
+* In:
 *	w:			widget id of toggleButton triggering this callback;
 *	client_..:	selected debug level;
 *	cbs:		toggleButton callback data;
@@ -125,7 +125,7 @@ debugCB(Widget w, XtPointer client_data, XmToggleButtonCallbackStruct *cbs)
 * Name: 		debugResCB
 * Return Type: 	void
 * Description: 	callback for XmHTML debug resources.
-* In: 
+* In:
 *	w:			widget id of toggleButton triggering this callback;
 *	client_..:	id of selected button;
 *	cbs:		toggleButton callback data;
@@ -173,7 +173,7 @@ debugResCB(Widget w, XtPointer client_data, XmToggleButtonCallbackStruct *cbs)
 * Description: 	adds a "Debug" menu to the menubar of an application.
 *				Allows one to select XmHTML debug output when an application
 *				is running.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	menubar:	menubar Widget id to which a debug menu should be added;
 *	label:		the label to use for this menu. When NULL, "Debug" is used;
@@ -224,7 +224,7 @@ _XmHTMLAddDebugMenu(Widget html, Widget menubar, String label)
 			xmToggleButtonGadgetClass, debug_menu,
 			XmNset, __rsd__debug_levels_defined[debugLevels[i].file_id],
 			NULL);
-		XtAddCallback(tb, XmNvalueChangedCallback, 
+		XtAddCallback(tb, XmNvalueChangedCallback,
 			(XtCallbackProc)debugCB, (XtPointer)debugLevels[i].file_id);
 	}
 
@@ -236,7 +236,7 @@ _XmHTMLAddDebugMenu(Widget html, Widget menubar, String label)
 		XmNset, nowarn,
 		XmNuserData, html,		/* need to have this */
 		NULL);
-	XtAddCallback(tb, XmNvalueChangedCallback, 
+	XtAddCallback(tb, XmNvalueChangedCallback,
 		(XtCallbackProc)debugResCB, (XtPointer)(MAX_ENTRIES+1));
 
 	tb = XtVaCreateManagedWidget("Save Clipmasks",
@@ -244,7 +244,7 @@ _XmHTMLAddDebugMenu(Widget html, Widget menubar, String label)
 		XmNset, savemasks,
 		XmNuserData, html,		/* need to have this */
 		NULL);
-	XtAddCallback(tb, XmNvalueChangedCallback, 
+	XtAddCallback(tb, XmNvalueChangedCallback,
 		(XtCallbackProc)debugResCB, (XtPointer)(MAX_ENTRIES+2));
 
 	tb = XtVaCreateManagedWidget("No Animation loopcount",
@@ -252,7 +252,7 @@ _XmHTMLAddDebugMenu(Widget html, Widget menubar, String label)
 		XmNset, noloop,
 		XmNuserData, html,		/* need to have this */
 		NULL);
-	XtAddCallback(tb, XmNvalueChangedCallback, 
+	XtAddCallback(tb, XmNvalueChangedCallback,
 		(XtCallbackProc)debugResCB, (XtPointer)(MAX_ENTRIES+3));
 
 	tb = XtVaCreateManagedWidget("Full Output",
@@ -260,7 +260,7 @@ _XmHTMLAddDebugMenu(Widget html, Widget menubar, String label)
 		XmNset, full,
 		XmNuserData, html,		/* need to have this */
 		NULL);
-	XtAddCallback(tb, XmNvalueChangedCallback, 
+	XtAddCallback(tb, XmNvalueChangedCallback,
 		(XtCallbackProc)debugResCB, (XtPointer)(MAX_ENTRIES+4));
 
 	/* show it */

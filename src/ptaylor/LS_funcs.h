@@ -8,7 +8,7 @@
 
 #define PR89_SIGN(a,b) ((b) > 0.0 ? fabs(a) : -fabs(a)) // umm, sure.
 
-void WelchWindowInfo( float *xpts, int Nx, int Nseg, 
+void WelchWindowInfo( float *xpts, int Nx, int Nseg,
                       int **WInfo, float *WDt, int Nwin );
 
 void MakeWindowVec( float *V, int N);
@@ -17,21 +17,21 @@ void MakeWindowVec( float *V, int N);
 // use in fasper(); pre-calc the N* things, and then input them into
 // fasper
 void PR89_suppl_calc_Ns( int N, int NT,
-                         double ofac, double hifac, 
+                         double ofac, double hifac,
                          int *Nout, int *Ndim);
 
-// supplementary function for calculating mean and variance of a 
+// supplementary function for calculating mean and variance of a
 void PR89_suppl_avevar(float *x, int N, float *AVE, float *VAR);
 
 // here, (Nout, Nwk) are calculated in separate functions, and
 // therefore simply input here; also, here, Ndim=Nwk; Nfreq and Nfreqt
 // are just temporary intermediate quantities used in the other
 // function.
-void PR89_fasper( float *x, 
+void PR89_fasper( float *x,
                     float *y, int N,
                     float *ywin, float *winvec,
-                    double ofac, 
-                    double *wk1, double *wk2, int Nwk, 
+                    double ofac,
+                    double *wk1, double *wk2, int Nwk,
                     int Nout, int *jmax, float *prob,
                     int DO_NORM, int DO_AMP);
 

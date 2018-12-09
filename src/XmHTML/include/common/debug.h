@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
@@ -59,7 +59,7 @@
 * Revision 1.1  1996/12/19 02:17:19  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _debug_h_
 #define _debug_h_
@@ -100,8 +100,8 @@ extern void __rsd_fprintf(char *fmt, ...);
 	abort(); \
 }while(0)
 
-/* 
-* Select possible debug levels 
+/*
+* Select possible debug levels
 * levels _can_ start with a ``-d'', so you can call this routine
 * from a routine that processes the command line options.
 * Calling this routine with a NULL param deselects all debug levels
@@ -121,7 +121,7 @@ extern void __rsd_fprintf(char *fmt, ...);
 /*
 * flush a message to the output file. Mainly intended for XmHTML's warning
 * & error routines.
-* The level MAX_DEBUG_LEVELS (unselectable by itself) will be valid 
+* The level MAX_DEBUG_LEVELS (unselectable by itself) will be valid
 * if debug to file has been selected.
 */
 #define _XmHTMLDebugMirrorToFile(MSG) do {\
@@ -151,7 +151,7 @@ extern void __rsd_fprintf(char *fmt, ...);
 
 /*****
 * Timing defines.
-* Only available when compiled with GCC and when requested. 
+* Only available when compiled with GCC and when requested.
 * Defining _WANT_TIMINGS yourself doesn't have *any* effect, its defined in
 * source files where I want to known how much time a routine requires to
 * perform it's task (crude profiling).

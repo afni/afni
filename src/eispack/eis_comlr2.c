@@ -6,11 +6,11 @@
 #include "f2c.h"
 
 /* Subroutine */ int comlr2_(integer *nm, integer *n, integer *low, integer *
-	igh, integer *int__, doublereal *hr, doublereal *hi, doublereal *wr, 
+	igh, integer *int__, doublereal *hr, doublereal *hi, doublereal *wr,
 	doublereal *wi, doublereal *zr, doublereal *zi, integer *ierr)
 {
     /* System generated locals */
-    integer hr_dim1, hr_offset, hi_dim1, hi_offset, zr_dim1, zr_offset, 
+    integer hr_dim1, hr_offset, hi_dim1, hi_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
     doublereal d__1, d__2, d__3, d__4;
 
@@ -22,7 +22,7 @@
     integer i__, j, k, l=0, m=0, ii, en, jj, ll, mm, nn;
     doublereal si, ti, xi, yi, sr, tr, xr, yr;
     integer im1;
-    extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 
+    extern /* Subroutine */ int csroot_(doublereal *, doublereal *,
 	    doublereal *, doublereal *);
     integer ip1, mp1, itn, its;
     doublereal zzi, zzr;
@@ -55,7 +55,7 @@
 
 /*        INT CONTAINS INFORMATION ON THE ROWS AND COLUMNS INTERCHANGED */
 /*          IN THE REDUCTION BY  COMHES, IF PERFORMED.  ONLY ELEMENTS */
-/*          LOW THROUGH IGH ARE USED.  IF THE EIGENVECTORS OF THE HESSEN- 
+/*          LOW THROUGH IGH ARE USED.  IF THE EIGENVECTORS OF THE HESSEN-
 */
 /*          BERG MATRIX ARE DESIRED, SET INT(J)=J FOR THESE ELEMENTS. */
 
@@ -92,12 +92,12 @@
 /*     CALLS CSROOT FOR COMPLEX SQUARE ROOT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -204,10 +204,10 @@ L240:
 	    goto L300;
 	}
 	tst1 = (d__1 = hr[l - 1 + (l - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[
-		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l * 
+		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l *
 		hr_dim1], abs(d__3)) + (d__4 = hi[l + l * hi_dim1], abs(d__4))
 		;
-	tst2 = tst1 + (d__1 = hr[l + (l - 1) * hr_dim1], abs(d__1)) + (d__2 = 
+	tst2 = tst1 + (d__1 = hr[l + (l - 1) * hr_dim1], abs(d__1)) + (d__2 =
 		hi[l + (l - 1) * hi_dim1], abs(d__2));
 	if (tst2 == tst1) {
 	    goto L300;
@@ -227,9 +227,9 @@ L300:
     }
     sr = hr[en + en * hr_dim1];
     si = hi[en + en * hi_dim1];
-    xr = hr[enm1 + en * hr_dim1] * hr[en + enm1 * hr_dim1] - hi[enm1 + en * 
+    xr = hr[enm1 + en * hr_dim1] * hr[en + enm1 * hr_dim1] - hi[enm1 + en *
 	    hi_dim1] * hi[en + enm1 * hi_dim1];
-    xi = hr[enm1 + en * hr_dim1] * hi[en + enm1 * hi_dim1] + hi[enm1 + en * 
+    xi = hr[enm1 + en * hr_dim1] * hi[en + enm1 * hi_dim1] + hi[enm1 + en *
 	    hi_dim1] * hr[en + enm1 * hr_dim1];
     if (xr == 0. && xi == 0.) {
 	goto L340;
@@ -257,9 +257,9 @@ L310:
     goto L340;
 /*     .......... FORM EXCEPTIONAL SHIFT .......... */
 L320:
-    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en 
+    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en
 	    - 2) * hr_dim1], abs(d__2));
-    si = (d__1 = hi[en + enm1 * hi_dim1], abs(d__1)) + (d__2 = hi[enm1 + (en 
+    si = (d__1 = hi[en + enm1 * hi_dim1], abs(d__1)) + (d__2 = hi[enm1 + (en
 	    - 2) * hi_dim1], abs(d__2));
 
 L340:
@@ -276,11 +276,11 @@ L340:
     --itn;
 /*     .......... LOOK FOR TWO CONSECUTIVE SMALL */
 /*                SUB-DIAGONAL ELEMENTS .......... */
-    xr = (d__1 = hr[enm1 + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[enm1 + 
+    xr = (d__1 = hr[enm1 + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[enm1 +
 	    enm1 * hi_dim1], abs(d__2));
-    yr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[en + enm1 * 
+    yr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[en + enm1 *
 	    hi_dim1], abs(d__2));
-    zzr = (d__1 = hr[en + en * hr_dim1], abs(d__1)) + (d__2 = hi[en + en * 
+    zzr = (d__1 = hr[en + en * hr_dim1], abs(d__1)) + (d__2 = hi[en + en *
 	    hi_dim1], abs(d__2));
 /*     .......... FOR M=EN-1 STEP -1 UNTIL L DO -- .......... */
     i__2 = enm1;
@@ -294,7 +294,7 @@ L340:
 		m - 1) * hi_dim1], abs(d__2));
 	xi = zzr;
 	zzr = xr;
-	xr = (d__1 = hr[m - 1 + (m - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[m 
+	xr = (d__1 = hr[m - 1 + (m - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[m
 		- 1 + (m - 1) * hi_dim1], abs(d__2));
 	tst1 = zzr / yi * (zzr + xr + xi);
 	tst2 = tst1 + yr;
@@ -388,18 +388,18 @@ L480:
 L580:
 	i__1 = j;
 	for (i__ = 1; i__ <= i__1; ++i__) {
-	    hr[i__ + (j - 1) * hr_dim1] = hr[i__ + (j - 1) * hr_dim1] + xr * 
+	    hr[i__ + (j - 1) * hr_dim1] = hr[i__ + (j - 1) * hr_dim1] + xr *
 		    hr[i__ + j * hr_dim1] - xi * hi[i__ + j * hi_dim1];
-	    hi[i__ + (j - 1) * hi_dim1] = hi[i__ + (j - 1) * hi_dim1] + xr * 
+	    hi[i__ + (j - 1) * hi_dim1] = hi[i__ + (j - 1) * hi_dim1] + xr *
 		    hi[i__ + j * hi_dim1] + xi * hr[i__ + j * hr_dim1];
 /* L600: */
 	}
 /*     .......... ACCUMULATE TRANSFORMATIONS .......... */
 	i__1 = *igh;
 	for (i__ = *low; i__ <= i__1; ++i__) {
-	    zr[i__ + (j - 1) * zr_dim1] = zr[i__ + (j - 1) * zr_dim1] + xr * 
+	    zr[i__ + (j - 1) * zr_dim1] = zr[i__ + (j - 1) * zr_dim1] + xr *
 		    zr[i__ + j * zr_dim1] - xi * zi[i__ + j * zi_dim1];
-	    zi[i__ + (j - 1) * zi_dim1] = zi[i__ + (j - 1) * zi_dim1] + xr * 
+	    zi[i__ + (j - 1) * zi_dim1] = zi[i__ + (j - 1) * zi_dim1] + xr *
 		    zi[i__ + j * zi_dim1] + xi * zr[i__ + j * zr_dim1];
 /* L620: */
 	}
@@ -426,7 +426,7 @@ L680:
 
 	i__1 = *n;
 	for (j = i__; j <= i__1; ++j) {
-	    tr = (d__1 = hr[i__ + j * hr_dim1], abs(d__1)) + (d__2 = hi[i__ + 
+	    tr = (d__1 = hr[i__ + j * hr_dim1], abs(d__1)) + (d__2 = hi[i__ +
 		    j * hi_dim1], abs(d__2));
 	    if (tr > norm) {
 		norm = tr;
@@ -479,10 +479,10 @@ L760:
 		goto L760;
 	    }
 L765:
-	    cdiv_(&zzr, &zzi, &yr, &yi, &hr[i__ + en * hr_dim1], &hi[i__ + en 
+	    cdiv_(&zzr, &zzi, &yr, &yi, &hr[i__ + en * hr_dim1], &hi[i__ + en
 		    * hi_dim1]);
 /*     .......... OVERFLOW CONTROL .......... */
-	    tr = (d__1 = hr[i__ + en * hr_dim1], abs(d__1)) + (d__2 = hi[i__ 
+	    tr = (d__1 = hr[i__ + en * hr_dim1], abs(d__1)) + (d__2 = hi[i__
 		    + en * hi_dim1], abs(d__2));
 	    if (tr == 0.) {
 		goto L780;

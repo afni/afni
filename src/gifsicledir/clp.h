@@ -63,25 +63,25 @@ typedef void (*Clp_ErrorHandler)(char *);
 
 
 struct Clp_Option {
-  
+
   char *long_name;
   int short_name;
-  
+
   int option_id;
-  
+
   int arg_type;
   int flags;
-  
+
 };
 
 
 struct Clp_Parser {
-  
+
   int negated;
-  
+
   int have_arg;
   char *arg;
-  
+
   union {
     int i;
     unsigned u;
@@ -89,9 +89,9 @@ struct Clp_Parser {
     char *s;
     void *pv;
   } val;
-  
+
   Clp_Internal *internal;
-  
+
 };
 
 

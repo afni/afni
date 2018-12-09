@@ -1,6 +1,6 @@
 
 
-#include <afni.h> 
+#include <afni.h>
 #include <FuncTrac.h>
 
 
@@ -14,7 +14,7 @@
 TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
 {
    TRACK_RUN_PARAMS defopt;
-   
+
    // SET THEM:
    defopt.NAMEIN_mode = NULL;             //  "-mode"
    defopt.NAMEIN_netrois = NULL;          //  "-netrois"
@@ -26,7 +26,7 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.in_EXTRA = NULL;                //  "-dti_extra"
    defopt.NO_NONDTI_SEARCH = 0; // "-dti_search_NO"; won't keep scal/nonDTI pars
 
-   // HARDI input 
+   // HARDI input
    defopt.hardi_dir = NULL;               //  "-hardi_dirs"
    defopt.hardi_gfa = NULL;               //  "-hardi_gfa"
    defopt.hardi_pars = NULL;              //  "-hardi_pars"
@@ -35,7 +35,7 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.NAMEIN_mask = NULL;             //  "-mask"
    defopt.NAMEIN_thru = NULL;               // "-thru_mask"
 
-   // algorithm options 
+   // algorithm options
    defopt.algopt_file_name = NULL;  //  "-algopt"
    defopt.MinFA=0.2;                //  "-alg_Thresh_FA"     - DET,MINIP,PROB
    defopt.MaxAngDeg=60.;            //  "-alg_Thresh_ANG"    - DET,MINIP,PROB

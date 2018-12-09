@@ -70,7 +70,7 @@ void usage_3ddot(int detail) {
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
 
-      PRINT_COMPILE_DATE ;   
+      PRINT_COMPILE_DATE ;
       return;
 }
 
@@ -84,11 +84,11 @@ int main( int argc , char * argv[] )
    float mask_bot=666.0 , mask_top=-666.0, *xar=NULL, *yar=NULL;
    byte * mmm=NULL ;
    char *catname=NULL, form[256], val[256], *modelabel=NULL;
-   
+
    mainENTRY("3dLocalstat main"); machdep();
-   
+
    /*-- read command line arguments --*/
-   
+
    if( argc == 1){ usage_3ddot(1); exit(0); } /* Bob's help shortcut */
 
    narg = 1 ;
@@ -169,7 +169,7 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; 
+      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ;
       suggest_best_prog_option(argv[0], argv[narg]);
       exit(1) ;
    }
@@ -178,7 +178,7 @@ int main( int argc , char * argv[] )
       ERROR_message("Too few options, try -help for details");
       exit(1);
    }
-   
+
    if( mode >= 2 ) demean = 1 ;
 
    for (jjj=0, iii=narg; iii<argc; ++iii) {
@@ -198,7 +198,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"*** Need at least two sub-bricks in input!\n") ; exit(1) ;
    }
    nvox = DSET_NVOX(cset) ;
-   
+
    /* make a byte mask from mask dataset */
 
    if( mask_dset != NULL ){
@@ -216,18 +216,18 @@ int main( int argc , char * argv[] )
       }
       DSET_delete(mask_dset) ;
    }
-   
+
    /* compute output string lengths */
    switch( mode ){
       default: modelen = 12; modelabel = "correlation"; break;
       case 1: modelen = 12; modelabel = "dot product"; break;
       case 2: modelen = 12*2; modelabel = "a+by"; break;
-      case 3: modelen = 12*6; 
+      case 3: modelen = 12*6;
            modelabel = "<x> <y> <(x-<x>)^2> <(y-<y>)^2> <(x-<x>)(y-<y>)> cor";
               break;
       case 4: modelen = 12; modelabel = "Eta2"; break;
    }
-   
+
    if (ShowLabels) {
       DSET_load(cset); CHECK_LOAD_ERROR(cset);
       if (half) ils = 1;
@@ -237,7 +237,7 @@ int main( int argc , char * argv[] )
       for (iii=ils; iii<nsub; ++iii) {
          if (iii==ils && OneD) jjj = strlen(DSET_BRICK_LABEL(cset, iii))+1;
          else jjj = strlen(DSET_BRICK_LABEL(cset, iii));
-         if (jjj > mxlen) 
+         if (jjj > mxlen)
             mxlen = jjj;
       }
       sprintf(form,"%%%ds%c", mxlen, '\t');
@@ -250,9 +250,9 @@ int main( int argc , char * argv[] )
          printf(form, val);
          printf("\n");
       } else if (OneD == 2) {
-         printf("#<3ddot\n# ni_type = \"%d*double\"\n# ni_dime = \"%d\"\n", 
+         printf("#<3ddot\n# ni_type = \"%d*double\"\n# ni_dime = \"%d\"\n",
                   nsub, nsub);
-         printf("# Measure = \"%s\"\n",modelabel); 
+         printf("# Measure = \"%s\"\n",modelabel);
          printf("# ColumnLabels = \"");
          for (iii=ils; iii<nsub; ++iii) {
             if (iii > ils) printf( " ; ");
@@ -267,10 +267,10 @@ int main( int argc , char * argv[] )
          printf("\"\n# >\n");
       }
    } else {
-      if (nsub == 2) { 
+      if (nsub == 2) {
          sprintf(form,"%%s%c",'\t');
       } else {
-         sprintf(form,"%%%ds%c",modelen, '\t'); 
+         sprintf(form,"%%%ds%c",modelen, '\t');
       }
    }
    if (half) {
@@ -287,11 +287,11 @@ int main( int argc , char * argv[] )
       jjj0 = 0;
    }
    for (jjj=jjj0; jjj<nsub; ++jjj) {
-      yar = get_float_dset_data_pointer(cset, jjj, &yar_new, 0);   
+      yar = get_float_dset_data_pointer(cset, jjj, &yar_new, 0);
       /* mode 4 is special: eta^2                     16 Jun 2011 [rickr] */
       if ( mode == 4 )      dxy = FPTR_eta2( xar , yar , nvox,  mmm , &nnn ) ;
       else if ( mode == 5 ) dxy = FPTR_dice( xar , yar , nvox,  mmm , &nnn ) ;
-      else                  dxy = FPTR_cor ( xar , yar , nvox,  mmm , demean, 
+      else                  dxy = FPTR_cor ( xar , yar , nvox,  mmm , demean,
                                        &xbar,&ybar,&xxbar,&yybar,&xybar, &nnn );
 
       if( nnn == 0 ) ERROR_exit("Can't compute for some reason!") ;
@@ -314,7 +314,7 @@ int main( int argc , char * argv[] )
          from case 4. I will mimic this behavior here too to keep things
          consistent. Help will be updated to match */
           snprintf(val, 255,"%g %g %g %g %g %g",xbar,ybar,xxbar,yybar,xybar,dxy);
-          break ; 
+          break ;
       }
       if (OneD == 0 || OneD == 1) {
          printf(form,val);
@@ -323,7 +323,7 @@ int main( int argc , char * argv[] )
       }
       if (yar_new) free(yar); yar=NULL;
    }/* jjj */
-      
+
       if (ShowLabels) {
          if (OneD == 1) {
             printf("#");
@@ -336,7 +336,7 @@ int main( int argc , char * argv[] )
    }/* iii */
    if (OneD == 2) {
       printf("# </matrix>\n");
-   }  
+   }
    exit(0) ;
 }
 
@@ -360,13 +360,13 @@ double DSET_eta2( THD_3dim_dataset *xset, THD_3dim_dataset *yset,
    fxar = get_float_dset_data_pointer(xset, 0, &fxar_new, 1);
    fyar = get_float_dset_data_pointer(yset, 0, &fyar_new, 1);
    if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
-   
+
 
    e2 = FPTR_eta2(fxar, fyar, nxyz, mmm, npt);
-   
+
    if( fxar_new ) free(fxar) ;
    if( fyar_new ) free(fyar) ;
-   
+
    return(e2) ;
 }
 
@@ -376,7 +376,7 @@ double FPTR_eta2( float *fxar, float *fyar, int nxyz, byte *mmm , int *npt )
    int ii , nnn ;
 
    ASSIF(npt,0) ;
-   
+
    if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
 
    if( npt ) { /* then count applied voxels (masked or all) */
@@ -399,7 +399,7 @@ double FPTR_dice( float *fxar, float *fyar, int nxyz, byte *mmm , int *npt )
    int ii , nnn ;
 
    ASSIF(npt,0) ;
-   
+
    if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
 
    if( npt ) { /* then count applied voxels (masked or all) */
@@ -432,9 +432,9 @@ double DSET_cor( THD_3dim_dataset *xset,
    fyar = get_float_dset_data_pointer(yset, 0, &fyar_new, 1);
    if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
 
-   dxy = FPTR_cor(fxar, fyar, nxyz, mmm, dm, 
+   dxy = FPTR_cor(fxar, fyar, nxyz, mmm, dm,
                    xbar, ybar, xxbar, yybar, xybar, npt);
-   
+
    /* toss trash */
 
    if( fxar_new ) free(fxar) ;
@@ -443,7 +443,7 @@ double DSET_cor( THD_3dim_dataset *xset,
    return(dxy);
 }
 
-double FPTR_cor( float *fxar, 
+double FPTR_cor( float *fxar,
                  float *fyar, int nxyz, byte *mmm , int dm,
                  double *xbar, double *ybar,
                  double *xxbar, double *yybar, double *xybar , int *npt )
@@ -476,7 +476,7 @@ double FPTR_cor( float *fxar,
           Bad permissions for mapped region at address 0x5055B74
             at 0x407642: DSET_cor (3ddot.c:238)
             by 0x4068D9: main (3ddot.c:146)
-      
+
       --> leave the data as is; apply means upon read   16 Sep 2009 [rickr] */
 #if 0
    if( dm ){
@@ -516,7 +516,7 @@ float * get_float_dset_data_pointer( THD_3dim_dataset * dset,
 {
    int     nxyz, dtype ;
    void  * dar;
-   float * fdar; 
+   float * fdar;
 
    nxyz = DSET_NVOX(dset) ;
 
@@ -528,7 +528,7 @@ float * get_float_dset_data_pointer( THD_3dim_dataset * dset,
    } else {
      fdar = (float *) malloc( sizeof(float) * nxyz ) ; ASSIF(dnew, 1) ;
      EDIT_coerce_type( nxyz , dtype,dar , MRI_float,fdar ) ;
-     if (purge) PURGE_DSET( dset ) ; 
+     if (purge) PURGE_DSET( dset ) ;
    }
 
    return fdar;

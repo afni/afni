@@ -14,7 +14,7 @@
   also subtract off the remnants of the WM, so it's just GM in the
   'map': do this, use the inverse skeleton (i.e., no WM)
  */
-int MoveData_to_InpSet( int *Dim, 
+int MoveData_to_InpSet( int *Dim,
                         float ****map,
                         int ****DATA,
                         short int ***iskel)
@@ -22,10 +22,10 @@ int MoveData_to_InpSet( int *Dim,
    int i,j,k,m;
 
    for( m=0 ; m<Dim[3] ; m++ )
-      for( k=0 ; k<Dim[2] ; k++ ) 
-         for( j=0 ; j<Dim[1] ; j++ ) 
+      for( k=0 ; k<Dim[2] ; k++ )
+         for( j=0 ; j<Dim[1] ; j++ )
             for( i=0 ; i<Dim[0] ; i++ ) {
-               if( iskel[i][j][k] && (DATA[i][j][k][m] != 0) ) 
+               if( iskel[i][j][k] && (DATA[i][j][k][m] != 0) )
                   // transfer values over
                   map[i][j][k][m] = 1;// DATA[i][j][k][m];
                else
@@ -33,19 +33,19 @@ int MoveData_to_InpSet( int *Dim,
                // reset DATA
                DATA[i][j][k][m] = 0;
             }
-   
+
    RETURN(1);
 }
 
 
 
-/* 
+/*
    go through and start inflating
-   do 1 layer at a time, in case of squeezed neighborhoods and 
+   do 1 layer at a time, in case of squeezed neighborhoods and
    book counting of WM intersections, etc.
 */
 
-int ROI_make_inflate( int *Dim, 
+int ROI_make_inflate( int *Dim,
                       int INFL_NUM,
                       int SKEL_STOP,
                       int NEIGHBOR_LIMIT,
@@ -62,9 +62,9 @@ int ROI_make_inflate( int *Dim,
    INFO_message("SKEL_STOP = %d", SKEL_STOP);
 	for( n=0 ; n<INFL_NUM ; n++) {
 		for( m=0 ; m<Dim[3] ; m++ ) {
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
-					for( i=0 ; i<Dim[0] ; i++ ) 
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
+					for( i=0 ; i<Dim[0] ; i++ )
 						if(DATA[i][j][k][m]>0) {
 							// now check surroundings: only expand from
 							// non-skel, if desired
@@ -74,10 +74,10 @@ int ROI_make_inflate( int *Dim,
 										for( kk=-DEP ; kk<=DEP ; kk++)
 											// need to share face or edge, not only vertex
 											if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT) //3)
-												
+
 												// keep in bounds
-												if((0 <= i+ii) && (i+ii < Dim[0]) && 
-													(0 <= j+jj) && (j+jj < Dim[1]) && 
+												if((0 <= i+ii) && (i+ii < Dim[0]) &&
+													(0 <= j+jj) && (j+jj < Dim[1]) &&
 													(0 <= k+kk) && (k+kk < Dim[2])) {
 													idx = THREE_TO_IJK(i+ii,
                                                           j+jj,
@@ -88,10 +88,10 @@ int ROI_make_inflate( int *Dim,
                                           aaa = m;
                                        else
                                           aaa = 0;
-													if( (HAVE_MASK==0) || 
-														 (HAVE_MASK && 
+													if( (HAVE_MASK==0) ||
+														 (HAVE_MASK &&
 														  ( THD_get_voxel(MASK,idx,aaa)>0 ))){
-														
+
 														// grow if ngb=0; give temp value
 														// of -[value it will have]
 														if( DATA[i+ii][j+jj][k+kk][m]==0) {
@@ -100,26 +100,26 @@ int ROI_make_inflate( int *Dim,
                                              // desired: don't expand into SKEL,
                                              // even by one voxel
                                              if( !((SKEL_STOP==2) && SKEL[i+ii][j+jj][k+kk]))
-                                                DATA[i+ii][j+jj][k+kk][m] = 
+                                                DATA[i+ii][j+jj][k+kk][m] =
                                                    -DATA[i][j][k][m];
 														}
 													}
 												}
 						}
-			
+
 			// and now convert the layer to being part of the ROI
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
-					for( i=0 ; i<Dim[0] ; i++ ) 
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
+					for( i=0 ; i<Dim[0] ; i++ )
 						if(DATA[i][j][k][m]<0) {
 							DATA[i][j][k][m] = -DATA[i][j][k][m];
 							COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][1]++;
 							if(SKEL[i][j][k])
 								COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][2]++;
 						}
-			
+
 		}
-      
+
 	}
 }
 
@@ -139,7 +139,7 @@ int ROI_make_inflate( int *Dim,
 
 
 
-int compfunc_desc(const void * a, const void * b) 
+int compfunc_desc(const void * a, const void * b)
 {
    return (*(float*)b > *(float*)a) - (*(float*)a > *(float*)b);
 }
@@ -150,7 +150,7 @@ int Make_SepLabels( int *Dim,
                     int ****DATA,
                     int max_nroi,
                     int *N_thr,
-                    int *NROI_IN, 
+                    int *NROI_IN,
                     int **ROI_LABELS_pre,
                     int VOLTHR,
                     int NEIGHBOR_LIMIT,
@@ -173,22 +173,22 @@ int Make_SepLabels( int *Dim,
    int dtemp[3] = {0,0,0};
 
 	list1 = calloc( max_nroi, sizeof(int *) );
-	for ( j = 0 ; j < max_nroi ; j++ ) 
+	for ( j = 0 ; j < max_nroi ; j++ )
 		list1[j] = (int *) calloc( 3, sizeof(int) );
    //VOX = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik,var
- 
-   if( (list1 == NULL) //|| (VOX == NULL)   
-       ) { 
+
+   if( (list1 == NULL) //|| (VOX == NULL)
+       ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(15);
-	}		
-	
+	}
+
    for( m=0 ; m<Dim[3] ; m++ ) {
 		// make it bigger than any final index possibly could be
-		index1 = N_thr[m]; 
-      
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
+		index1 = N_thr[m];
+
+		for( k=0 ; k<Dim[2] ; k++ )
+			for( j=0 ; j<Dim[1] ; j++ )
 				for( i=0 ; i<Dim[0] ; i++ ) {
 					if( DATA[i][j][k][m] == BASE_DVAL ) {
 						// now we go into separate action to fill out other ones
@@ -198,10 +198,10 @@ int Make_SepLabels( int *Dim,
 						DATA[i][j][k][m] = index1;
 						found = 1;
 						list1[0][0]=i; list1[0][1]=j; list1[0][2]=k;
-						
+
 						while(investigated<found) {
 							// shorter notation for use in loops...
-							X=list1[investigated][0]; 
+							X=list1[investigated][0];
 							Y=list1[investigated][1];
 							Z=list1[investigated][2];
 							// investigate its neighbors
@@ -211,13 +211,13 @@ int Make_SepLabels( int *Dim,
 										// need to share face or edge, not only vertex
 										if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT)
 											// keep in bounds
-											if((0 <= X+ii) && (X+ii < Dim[0]) && 
-												(0 <= Y+jj) && (Y+jj < Dim[1]) && 
+											if((0 <= X+ii) && (X+ii < Dim[0]) &&
+												(0 <= Y+jj) && (Y+jj < Dim[1]) &&
 												(0 <= Z+kk) && (Z+kk < Dim[2])) {
 												// if a neighbor has value of -one...
 												if(DATA[X+ii][Y+jj][Z+kk][m]==BASE_DVAL){
                                        // ... then change
-													DATA[X+ii][Y+jj][Z+kk][m] = index1; 
+													DATA[X+ii][Y+jj][Z+kk][m] = index1;
 													list1[found][0] = X+ii; // keep the coors
 													list1[found][1] = Y+jj;
 													list1[found][2] = Z+kk;
@@ -226,8 +226,8 @@ int Make_SepLabels( int *Dim,
 											}
 							investigated+=1;
 						}
-						
-						// if one is thresholding based on volume size, 
+
+						// if one is thresholding based on volume size,
 						// and if this one volume fails:
 						if( (VOLTHR>0) && (found<VOLTHR) ) {
 							// erase these, reset val to zero; careful of mm and m...
@@ -237,26 +237,26 @@ int Make_SepLabels( int *Dim,
 							NROI_IN[m]-=1; // reset index value
 						}
 						else {
-                     // at this point, put in an optional search through all 
+                     // at this point, put in an optional search through all
                      // 'current' ROIs to threshold based on value
                      if( HOT_POINTS && (found > HOT_POINTS) ) {
 
                         count = found;
 
-                        fl_sort = (float *)calloc(found,sizeof(float)); 
+                        fl_sort = (float *)calloc(found,sizeof(float));
                         if( fl_sort == NULL) {
                            fprintf(stderr, "\n MemAlloc failure (fl_sort).\n");
-                           exit(14);	
+                           exit(14);
                         }
-              
-                        for( mm=0 ; mm<found ; mm++ ) 
+
+                        for( mm=0 ; mm<found ; mm++ )
                            fl_sort[mm]=inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m];
-                        
+
                         qsort(fl_sort, count, sizeof(float), compfunc_desc);
                         hot_val = fl_sort[HOT_POINTS];
 
                         for( mm=0 ; mm<count ; mm++ ) {
-                           if( !(inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m] 
+                           if( !(inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m]
                                  > hot_val) ) {
                               DATA[list1[mm][0]][list1[mm][1]][list1[mm][2]][m]=
                                  0;
@@ -271,20 +271,20 @@ int Make_SepLabels( int *Dim,
 
                         count = found;
 
-                        fl_sort = (float *)calloc(found,sizeof(float)); 
-                        ind_sort = (int *)calloc(found,sizeof(int)); 
-                        temp_USED = (int *)calloc(found,sizeof(int)); 
+                        fl_sort = (float *)calloc(found,sizeof(float));
+                        ind_sort = (int *)calloc(found,sizeof(int));
+                        temp_USED = (int *)calloc(found,sizeof(int));
                         // temp storage values
-                        list1_temp = calloc( max_nroi, sizeof(int *) ); 
-                        for ( mm = 0 ; mm<max_nroi ; mm++ ) 
+                        list1_temp = calloc( max_nroi, sizeof(int *) );
+                        for ( mm = 0 ; mm<max_nroi ; mm++ )
                            list1_temp[mm] = (int *) calloc( 3, sizeof(int) );
 
-                        if(( fl_sort == NULL) || ( ind_sort == NULL) || 
+                        if(( fl_sort == NULL) || ( ind_sort == NULL) ||
                            ( list1_temp == NULL) || ( temp_USED == NULL)) {
                            fprintf(stderr, "\n MemAlloc failure (fl_sort).\n");
-                           exit(14);	
+                           exit(14);
                         }
-              
+
                         for( mm=0 ; mm<found ; mm++ ) {
                            fl_sort[mm]=inset[list1[mm][0]][list1[mm][1]][list1[mm][2]][m];
                            ind_sort[mm] = mm;
@@ -312,7 +312,7 @@ int Make_SepLabels( int *Dim,
                                  // to see: 1) if it is within distance of any
                                  for( pp=0 ; pp<temp_found ; pp++) {
                                     // check distances to previous
-                                    for ( nn=0 ; nn<3 ; nn++ ) 
+                                    for ( nn=0 ; nn<3 ; nn++ )
                                        dtemp[nn] = list1[ind_sort[mm]][nn] - list1_temp[pp][nn];
                                     if( Do_Check_Neigh_Diff(dtemp, NEIGHBOR_LIMIT)) {
                                        // if it's close, keep and exit
@@ -320,9 +320,9 @@ int Make_SepLabels( int *Dim,
                                        break;
                                     }
                                  }
-                              
+
                                  if( KEEPIT ) {
-                                    for ( nn=0 ; nn<3 ; nn++ ) 
+                                    for ( nn=0 ; nn<3 ; nn++ )
                                        list1_temp[temp_found][nn] = list1[ind_sort[mm]][nn];
                                     temp_USED[mm] = 1;
                                     temp_found++;
@@ -342,20 +342,20 @@ int Make_SepLabels( int *Dim,
                         free(fl_sort);
                         free(ind_sort);
                         free(temp_USED);
-                        for ( mm=0 ; mm<max_nroi ; mm++ ) 
+                        for ( mm=0 ; mm<max_nroi ; mm++ )
                            free(list1_temp[mm]);
                         free(list1_temp);
-                        
+
                         //found = count;// just reset for resetting list1 next
                      }
-                     
+
                      // !! hold value of Nvox in the ROI; ROI_LABEL
                      // for the ith NROI is
                      // i+N_thr[m].... //index1; // Xth ROI gets value Y
-							ROI_LABELS_pre[m][NROI_IN[m]] = found; 
+							ROI_LABELS_pre[m][NROI_IN[m]] = found;
 							//VOX[m]+=found;
 						}
-      
+
 						// so, we found a 1, grew it out and changed all assoc.
 						// indices-- keep track of how many voxels there were...
 						// numperroi1(index1) = found;
@@ -367,7 +367,7 @@ int Make_SepLabels( int *Dim,
    }
 
    // ********** start freeing ********************************
-	for ( j = 0 ; j < max_nroi ; j++ ) 
+	for ( j = 0 ; j < max_nroi ; j++ )
 		free(list1[j]);
 	free(list1);
 	//free(VOX);
@@ -385,14 +385,14 @@ int Make_SepLabels( int *Dim,
 
 
 /*
-  Now, we go through and grow each region 
-  (labelled with a 4) into ones with index value larger than N_thr[m]. 
+  Now, we go through and grow each region
+  (labelled with a 4) into ones with index value larger than N_thr[m].
 */
 int Relabel_IfNecessary( int *Dim,
                          int ****DATA,
                          int *N_thr,
                          int *relab_vox,
-                         int *NROI_IN, 
+                         int *NROI_IN,
                          int *NROI_REF,
                          int **ROI_LABELS_REF,
                          int NEIGHBOR_LIMIT)
@@ -400,69 +400,69 @@ int Relabel_IfNecessary( int *Dim,
 
    int i,j,k,m,ii,jj,kk,idx;
 	int found_this_iter=0, KEEP_GOING=1;
-  
+
 
    for( m=0 ; m<Dim[3] ; m++ ) {
       KEEP_GOING = 1;
       while( KEEP_GOING==1 ) {
-         
+
          found_this_iter=0;
          idx=0;
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
+         for( k=0 ; k<Dim[2] ; k++ )
+            for( j=0 ; j<Dim[1] ; j++ )
                for( i=0 ; i<Dim[0] ; i++ ) {
                   // find ones whose neighbor's might need to be relabelled
-                  // take data values which are only between (0, N_thr), 
-                  // which at this point should just be ref values-- temp 
+                  // take data values which are only between (0, N_thr),
+                  // which at this point should just be ref values-- temp
                   // inlabel values are >N_thr.
                   if( (DATA[i][j][k][m]>0) &&
-                      (DATA[i][j][k][m]<N_thr[m]) ) { 
+                      (DATA[i][j][k][m]<N_thr[m]) ) {
                      // check neighbors
                      for( ii=-DEP ; ii<=DEP ; ii++)
                         for( jj=-DEP ; jj<=DEP ; jj++)
                            for( kk=-DEP ; kk<=DEP ; kk++)
                               // need to share face or edge, not only vertex
                               if(abs(ii)+abs(jj)+abs(kk)<NEIGHBOR_LIMIT) //3)
-												
+
                                  // keep in bounds
-                                 if((0 <= i+ii) && (i+ii < Dim[0]) && 
-                                    (0 <= j+jj) && (j+jj < Dim[1]) && 
+                                 if((0 <= i+ii) && (i+ii < Dim[0]) &&
+                                    (0 <= j+jj) && (j+jj < Dim[1]) &&
                                     (0 <= k+kk) && (k+kk < Dim[2])) {
                                     // grow if ngb>=N_thr; give temp value
                                     // of -[value it will have]
                                     if( DATA[i+ii][j+jj][k+kk][m]>=N_thr[m]) {
-                                       DATA[i+ii][j+jj][k+kk][m] = 
+                                       DATA[i+ii][j+jj][k+kk][m] =
                                           -DATA[i][j][k][m];
-                                       
+
                                        found_this_iter++;
                                     }
                                  }
                   }
                   idx++;
                }
-         
+
          if( found_this_iter==0 )
             KEEP_GOING=0;
          else {
             relab_vox[m]+= found_this_iter;
-					
-            for( k=0 ; k<Dim[2] ; k++ ) 
-               for( j=0 ; j<Dim[1] ; j++ ) 
-                  for( i=0 ; i<Dim[0] ; i++ ) 
+
+            for( k=0 ; k<Dim[2] ; k++ )
+               for( j=0 ; j<Dim[1] ; j++ )
+                  for( i=0 ; i<Dim[0] ; i++ )
                      if( DATA[i][j][k][m]<0 ){
                         DATA[i][j][k][m]*= -1;
                      }
          }
          if( relab_vox[m]==N_thr[m] )
-            KEEP_GOING=0;				
+            KEEP_GOING=0;
       }
-			
-      // final part, relabel the inROIs which are unmatched with the 
+
+      // final part, relabel the inROIs which are unmatched with the
       // ref ones
       found_this_iter=0;
-      for( k=0 ; k<Dim[2] ; k++ ) 
-         for( j=0 ; j<Dim[1] ; j++ ) 
-            for( i=0 ; i<Dim[0] ; i++ ) 
+      for( k=0 ; k<Dim[2] ; k++ )
+         for( j=0 ; j<Dim[1] ; j++ )
+            for( i=0 ; i<Dim[0] ; i++ )
                if( DATA[i][j][k][m]>N_thr[m] ) {
                   DATA[i][j][k][m]-= NROI_IN[m] + N_thr[m];
                   DATA[i][j][k][m]+= ROI_LABELS_REF[m][NROI_REF[m]];
@@ -492,28 +492,28 @@ int Make_BinaryMask( int *Dim,
                      short int ***CSF_SKEL,
                      int HAVE_CSFSKEL,
                      int ****DATA,
-                     int *N_thr ) 
+                     int *N_thr )
 {
-   
+
    int i,j,k,m,idx,aaa;
-      
+
 	for( m=0 ; m< Dim[3] ; m++ ) {
       // start this here, because of preinfl-- may call twice
-      N_thr[m] = 0;  
+      N_thr[m] = 0;
       if( HAVE_MASK>1 ) // allow multiple mask briks
          aaa = m;
       else
          aaa = 0;
 		// should preserve relative ordering of data
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
+		for( k=0 ; k<Dim[2] ; k++ )
+			for( j=0 ; j<Dim[1] ; j++ )
 				for( i=0 ; i<Dim[0] ; i++ ) {
                idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
-					if( (HAVE_MASK==0) || 
+					if( (HAVE_MASK==0) ||
 						 (HAVE_MASK && ( THD_get_voxel(MASK,idx,aaa)>0 ) ) )
-						if( inset[i][j][k][m] > THR ) 
+						if( inset[i][j][k][m] > THR )
 							if( !TRIM_OFF_WM || (TRIM_OFF_WM && !SKEL[i][j][k]) )
-								if( !HAVE_CSFSKEL 
+								if( !HAVE_CSFSKEL
 									 || (HAVE_CSFSKEL && !CSF_SKEL[i][j][k]) )
 									{
 										// temporary until ROIs are 1st labelled
@@ -532,12 +532,12 @@ int Make_BinaryMask( int *Dim,
 
 
 
-int MakeSkels( int *Dim, 
+int MakeSkels( int *Dim,
                int HAVE_CSFSKEL,
-               short int ***CSF_SKEL, 
+               short int ***CSF_SKEL,
                THD_3dim_dataset *insetCSF_SKEL,
                int HAVESKEL,
-               short int ***SKEL, 
+               short int ***SKEL,
                THD_3dim_dataset *insetSKEL,
                float SKEL_THR ) {
 
@@ -545,15 +545,15 @@ int MakeSkels( int *Dim,
 
 	// make skeleton: either with file input, or just put 1s everywhere.
 	// should preserve relative ordering of data
-	for( k=0 ; k<Dim[2] ; k++ ) 
-		for( j=0 ; j<Dim[1] ; j++ ) 
+	for( k=0 ; k<Dim[2] ; k++ )
+		for( j=0 ; j<Dim[1] ; j++ )
 			for( i=0 ; i<Dim[0] ; i++ ) {
             idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
-				if( ((HAVESKEL==1) && (THD_get_voxel(insetSKEL,idx,0)>SKEL_THR)) 
-					 || (HAVESKEL==0) ) 
+				if( ((HAVESKEL==1) && (THD_get_voxel(insetSKEL,idx,0)>SKEL_THR))
+					 || (HAVESKEL==0) )
 					SKEL[i][j][k] = 1;
-				if( ((HAVE_CSFSKEL==1) && (THD_get_voxel(insetCSF_SKEL,idx,0)>0.5)) 
-					 || (HAVE_CSFSKEL==0) ) 
+				if( ((HAVE_CSFSKEL==1) && (THD_get_voxel(insetCSF_SKEL,idx,0)>0.5))
+					 || (HAVE_CSFSKEL==0) )
 					CSF_SKEL[i][j][k] = 1;
 			}
 
@@ -593,11 +593,11 @@ int Do_Check_Neigh_Diff(int *D, int NL)
 {
    int OUT = 0;
 
-   if ( (abs(D[0]) <= DEP ) && 
-        (abs(D[1]) <= DEP ) && 
-        (abs(D[2]) <= DEP ) && 
+   if ( (abs(D[0]) <= DEP ) &&
+        (abs(D[1]) <= DEP ) &&
+        (abs(D[2]) <= DEP ) &&
         (abs(D[0])+abs(D[1])+abs(D[2]) < NL) )
       OUT = 1;
-       
+
    return OUT;
 }

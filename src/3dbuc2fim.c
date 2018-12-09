@@ -424,7 +424,7 @@ WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably u
 
 	 EDIT_substitute_brick( new_dset , ivout ,
 				DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
-	
+
 	 /*----- If this sub-brick is from a bucket dataset,
 	   preserve the label for this sub-brick -----*/
 	 if (dset->func_type == FUNC_BUCK_TYPE)
@@ -433,12 +433,12 @@ WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably u
 	   sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
 	 EDIT_dset_items( new_dset , ADN_brick_label_one+ivout, buf , ADN_none ) ;
 
-#if 0	
+#if 0
 	 sprintf(buf,"%s[%d]",DSET_FILECODE(dset),jv) ;
 	 EDIT_dset_items(
 			 new_dset, ADN_brick_keywords_replace_one+ivout, buf, ADN_none ) ;
 #endif
-	
+
 	 EDIT_dset_items(
 			 new_dset ,
 			 ADN_brick_fac_one            +ivout, DSET_BRICK_FACTOR(dset,jv),
@@ -446,35 +446,35 @@ WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably u
 			 ADN_brick_keywords_append_one+ivout, DSET_BRICK_KEYWORDS(dset,jv) ,
 #endif
 			 ADN_none ) ;
-	
+
 	 /** possibly write statistical parameters for this sub-brick **/
-	
+
 	 kv = DSET_BRICK_STATCODE(dset,jv) ;
-	
+
 	 if( FUNC_IS_STAT(kv) ){ /* input sub-brick has stat params */
-	
+
 	   int npar = MAX_STAT_AUX , lv ;
 	   float * par = (float *) malloc( sizeof(float) * (npar) ) ;
 	   float * sax = DSET_BRICK_STATAUX(dset,jv) ;
 	   for( lv=0 ; lv < npar ; lv++ )
 	     par[lv] = (sax != NULL && lv < FUNC_need_stat_aux[kv]) ? sax[lv] : 0.0;
-	
+
 	   if (ivout == 1)
 	     {
 	       EDIT_dset_items(new_dset ,
-			       ADN_func_type     , kv,		
+			       ADN_func_type     , kv,
 			       ADN_stat_aux, par ,
 			       ADN_none ) ;
 	     }
-	
+
 	   free(par) ;
-	
+
 	     /* 2: if the input dataset has statistical parameters */
 
 	 } else if( ISFUNC(dset)                        &&   /* dset has stat */
 		    FUNC_IS_STAT(dset->func_type)       &&   /* params        */
 		    jv == FUNC_ival_thr[dset->func_type]  ){ /* thr sub-brick */
-	
+
 	   int npar , lv ;
 	   float * par , * sax ;
 	   kv  = dset->func_type ;
@@ -483,23 +483,23 @@ WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably u
 	   sax  = dset->stat_aux ;
 	   for( lv=0 ; lv < npar ; lv++ )
 	     par[lv] = (sax != NULL) ? sax[lv] : 0.0 ;
-	
+
 
 	   if (ivout == 1)
 	     {
 	       for( lv=0 ; lv < npar+2 ; lv++ )
 		 printf ("par[%d] = %f \n", lv, par[lv]);
 	       EDIT_dset_items(new_dset ,
-			       ADN_func_type     , kv,		
+			       ADN_func_type     , kv,
 			       ADN_stat_aux, par ,
 			       ADN_none ) ;
 	     }
-	
+
 	   free(par) ;
 	 }
-	
+
 	 /** print a message? **/
-	
+
 	 if( B2F_verb ) printf("-verb: copied %s[%d] into %s[%d]\n" ,
 			       DSET_FILECODE(dset) , jv ,
 			       DSET_FILECODE(new_dset) , ivout ) ;
@@ -511,7 +511,7 @@ WARNING_message("This program (3dbuc2fim) is old, not maintained, and probably u
 	(not required, but is done to economize on memory) **/
 
       if( nv < DSET_NVALS(dset) ){
-	
+
 	for( kv=0 ; kv < DSET_NVALS(dset) ; kv++ ){  /* all input sub-bricks */
 	  for( iv=0 ; iv < nv ; iv++ ){             /* all output sub-bricks */
 	    jv = SUBV(ids,iv) ;

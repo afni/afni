@@ -9,8 +9,8 @@
 
 static doublereal c_b26 = 1.;
 
-/* Subroutine */ int tsturm_(integer *nm, integer *n, doublereal *eps1, 
-	doublereal *d__, doublereal *e, doublereal *e2, doublereal *lb, 
+/* Subroutine */ int tsturm_(integer *nm, integer *n, doublereal *eps1,
+	doublereal *d__, doublereal *e, doublereal *e2, doublereal *lb,
 	doublereal *ub, integer *mm, integer *m, doublereal *w, doublereal *
 	z__, integer *ierr, doublereal *rv1, doublereal *rv2, doublereal *rv3,
 	 doublereal *rv4, doublereal *rv5, doublereal *rv6)
@@ -30,7 +30,7 @@ static doublereal c_b26 = 1.;
     doublereal t1, t2, x0=0.0, x1;
     integer ii, jj, ip;
     doublereal uk, xu=0.0;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer isturm, its;
     doublereal eps2, eps3, eps4, tst1, tst2;
@@ -107,7 +107,7 @@ static doublereal c_b26 = 1.;
 /*          4*N+R      IF THE EIGENVECTOR CORRESPONDING TO THE R-TH */
 /*                     EIGENVALUE FAILS TO CONVERGE IN 5 ITERATIONS. */
 
-/*        RV1, RV2, RV3, RV4, RV5, AND RV6 ARE TEMPORARY STORAGE ARRAYS. 
+/*        RV1, RV2, RV3, RV4, RV5, AND RV6 ARE TEMPORARY STORAGE ARRAYS.
 */
 
 /*     THE ALGOL PROCEDURE STURMCNT CONTAINED IN TRISTURM */
@@ -116,12 +116,12 @@ static doublereal c_b26 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -273,7 +273,7 @@ L220:
     }
 /*     .......... LOOP FOR K-TH EIGENVALUE */
 /*                FOR K=M2 STEP -1 UNTIL M1 DO -- */
-/*                (-DO- NOT USED TO LEGALIZE -COMPUTED GO TO-) .......... 
+/*                (-DO- NOT USED TO LEGALIZE -COMPUTED GO TO-) ..........
 */
     k = m2;
 L250:
@@ -373,7 +373,7 @@ L420:
     for (i__ = ip; i__ <= i__1; ++i__) {
 /* L500: */
 /* Computing MAX */
-	d__3 = norm, d__4 = (d__1 = d__[i__], abs(d__1)) + (d__2 = e[i__], 
+	d__3 = norm, d__4 = (d__1 = d__[i__], abs(d__1)) + (d__2 = e[i__],
 		abs(d__2));
 	norm = max(d__3,d__4);
     }

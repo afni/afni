@@ -1,6 +1,6 @@
-/* 
+/*
    Functions to do expression evaluations, light.
-    
+
 */
 
 #include <stdlib.h>
@@ -16,9 +16,9 @@
 #include "../suma_suma.h"
 
 
-/* This function is essentially sambowry's eval() as posted on 
-   http://stackoverflow.com 
-*/  
+/* This function is essentially sambowry's eval() as posted on
+   http://stackoverflow.com
+*/
 char *SUMA_bool_eval( char *expr, byte *res )
 {
   enum { LEFT, OP1, MID, OP2, RIGHT } state = LEFT;
@@ -37,7 +37,7 @@ char *SUMA_bool_eval( char *expr, byte *res )
     else if( *expr == '&'     ){ op   = AND; expr+=1; }
     else if( *expr == 'O'     ){ op   = OR;  expr+=1; }
     else if( *expr == '|'     ){ op   = OR;  expr+=1; }
-    else if( *expr == '('     ){ expr = SUMA_bool_eval( expr+1, &tmp ); 
+    else if( *expr == '('     ){ expr = SUMA_bool_eval( expr+1, &tmp );
                                  if(NEG) tmp=!tmp; }
     else if( *expr == '\0' ||
              *expr == ')'     ){ if(state == OP2) *res |= mid; return expr; }
@@ -52,7 +52,7 @@ char *SUMA_bool_eval( char *expr, byte *res )
 
 #define EVAL_DBG 0
 SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr,
-                                 byte *res, byte *varcol, byte *rescol, 
+                                 byte *res, byte *varcol, byte *rescol,
                                  char **resstr)
 {
    static char FuncName[]={"SUMA_bool_mask_eval"};
@@ -60,9 +60,9 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
    int i=0, k, A, R, G, B, ivar, n;
    float sc, x;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (N_vars != 26) {
       SUMA_S_Err("mask must be an array of 26 byte * pointers");
       SUMA_RETURN(NOPE);
@@ -82,7 +82,7 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
    extmp = SUMA_copy_string(expr);
    for (i=0; i < N_vals; ++i) {
       /* create the expression */
-      k = 0; 
+      k = 0;
       while (expr[k]!='\0') {
          ivar = expr[k] - 'a';
          if (ivar >= 0 && ivar <= 26) {
@@ -98,7 +98,7 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
       #endif
    }
    SUMA_ifree(extmp);
-   
+
    if (rescol) {
       for (i=0; i < N_vals; ++i) {
          if (res[i]) {/* We need that one, blend the colors */
@@ -121,12 +121,12 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
             if (resstr) resstr[i][n]='\0';
             sc = A/(float)n; /* Consider an additional dimming factor from sv->*/
             if ((x=R/sc) > 255) rescol[4*i  ] = 255;
-            else rescol[4*i  ] = (byte)x; 
+            else rescol[4*i  ] = (byte)x;
             if ((x=G/sc) > 255) rescol[4*i+1] = 255;
             else rescol[4*i+1] = (byte)x;
             if ((x=B/sc) > 255) rescol[4*i+2]=255;
             else rescol[4*i+2] = (byte)x;
-            if ( sc > 255) rescol[4*i+3]=255;            
+            if ( sc > 255) rescol[4*i+3]=255;
             else rescol[4*i+3] = (byte)sc;
          } else {
             rescol[4*i  ] = 128;
@@ -136,12 +136,12 @@ SUMA_Boolean SUMA_bool_mask_eval(int N_vals, int N_vars, byte **mask, char *expr
             if (resstr) resstr[i][0]='\0';
          }
          #if EVAL_DBG
-         SUMA_LH("Color at %d: %-3d %-3d %-3d %-3d\n", 
+         SUMA_LH("Color at %d: %-3d %-3d %-3d %-3d\n",
                   i, rescol[4*i  ], rescol[4*i+1], rescol[4*i+2], rescol[4*i+3]);
          #endif
       }
    }
-   
+
    SUMA_RETURN(YUP);
 }
 
@@ -159,29 +159,29 @@ void SUMA_set_bool_var_in_expr(char *expr, char var, byte val)
    return;
 }
 
-SUMA_Boolean SUMA_bool_eval_truth_table(char *dexpr, byte use_orig) 
+SUMA_Boolean SUMA_bool_eval_truth_table(char *dexpr, byte use_orig)
 {
    static char FuncName[]={"SUMA_bool_eval_truth_table"};
    int n, ivar, k, N_used, N_rows, stp, block;
    byte used[26], ee;
-   char these[26], **allexp=NULL, **allvars=NULL, 
+   char these[26], **allexp=NULL, **allvars=NULL,
         allv[26*2+1], expr[1024], tight[1024];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!dexpr || strlen(dexpr)>512) {
       SUMA_S_Err("NULL expression or too long a string");
       SUMA_RETURN(NOPE);
    }
-   
+
    if (!use_orig) {
-      SUMA_DispExpr_To_EvalExpr(dexpr, expr, tight);   
+      SUMA_DispExpr_To_EvalExpr(dexpr, expr, tight);
    } else {
       strcpy(expr, dexpr);
    }
    memset(used,0, sizeof(byte)*26);
-   
+
    N_used = 0;
    k = 0;
    while (expr[k]!='\0') {
@@ -195,25 +195,25 @@ SUMA_Boolean SUMA_bool_eval_truth_table(char *dexpr, byte use_orig)
       }
       ++k;
    }
-   
+
    for (k=0; k<N_used; ++k) {
       allv[2*k] = these[k];
       allv[2*k+1] = ' ';
    }
    allv[2*N_used] = '\0';
-   
+
    /* preallocate for all outcomes */
    N_rows = pow(2,N_used);
    allexp = (char **)SUMA_calloc(N_rows,sizeof(char *));
    for (k=0; k<N_rows; ++k) allexp[k] = SUMA_copy_string(expr);
    allvars = (char **)SUMA_calloc(N_rows,sizeof(char *));
    for (k=0; k<N_rows; ++k) allvars[k] = SUMA_copy_string(allv);
-   
+
    for (k=0; k<N_used; ++k) { /* which var to replace */
       stp = pow(2,k);
       block = 0;
-      if (LocalHead) 
-         fprintf(stderr,"k=%d, N_used = %d, stp=%d\n", 
+      if (LocalHead)
+         fprintf(stderr,"k=%d, N_used = %d, stp=%d\n",
                       k, N_used, stp);
       for (n=0; n<N_rows; ++n) {
          if (!(n%(2*stp))) ++block;
@@ -224,12 +224,12 @@ SUMA_Boolean SUMA_bool_eval_truth_table(char *dexpr, byte use_orig)
             SUMA_set_bool_var_in_expr(allexp[n], these[N_used-k-1], 1);
             SUMA_set_bool_var_in_expr(allvars[n], these[N_used-k-1], 1);
          }
-         if (LocalHead) 
-            fprintf(stderr,"n=%d, block=%d (%d): %s\n", 
+         if (LocalHead)
+            fprintf(stderr,"n=%d, block=%d (%d): %s\n",
                     n, block, (int)(pow(2,stp)*block), allexp[n]);
       }
    }
-   
+
    /* show expressions */
    fprintf(SUMA_STDERR,"Truth Table for %s:\n", dexpr);
    fprintf(SUMA_STDERR,"%s: %s = ?\n", allv, expr);
@@ -238,13 +238,13 @@ SUMA_Boolean SUMA_bool_eval_truth_table(char *dexpr, byte use_orig)
       SUMA_bool_eval(allexp[n], &ee);
       fprintf(SUMA_STDERR,"%s: %s = %d\n", allvars[n], allexp[n], ee);
    }
-   
+
    /* clear */
    for (n=0; n<N_rows; ++n) SUMA_ifree(allexp[n]);
    SUMA_ifree(allexp);
    for (n=0; n<N_rows; ++n) SUMA_ifree(allvars[n]);
    SUMA_ifree(allvars);
-   
+
    SUMA_RETURN(YUP);
 }
 
@@ -252,7 +252,7 @@ void SUMA_bool_eval_test( char *expr, byte exprval )
 {
    int i;
    byte result;
-   
+
    if (expr) {
       SUMA_bool_eval(expr, &result);
       printf("expr: '%s' result: %i  %s\n",
@@ -290,28 +290,28 @@ void SUMA_bool_eval_test( char *expr, byte exprval )
                                255,255,255,255, /* col of c */
                                  0,  0,255,255  /* col of d */ };
          char **resstr=NULL;
-                                
+
          mask = (byte **)SUMA_calloc(26, sizeof(byte *));
          mask[0] = (byte *)SUMA_calloc(8, sizeof(byte)); /* fill a variable */
-            mask[0][4] = mask[0][5] = mask[0][6] = mask[0][7] = 1; 
+            mask[0][4] = mask[0][5] = mask[0][6] = mask[0][7] = 1;
          mask[1] = (byte *)SUMA_calloc(8, sizeof(byte)); /* fill b variable */
             mask[1][2] = mask[1][3] = mask[1][6] = mask[1][7] = 1;
          mask[3] = (byte *)SUMA_calloc(8, sizeof(byte)); /* fill d variable */
             mask[3][1] = mask[3][3] = mask[3][5] = mask[3][7] = 1;
          resstr = (char **)SUMA_calloc(20, sizeof(char *));
          for(i=0; i<20; ++i) resstr[i]=(char *)SUMA_calloc(27, sizeof(char ));
-         
+
          eq = "a | (b & d)"; /* can use ||/&& or |/& or AND/OR */
-         SUMA_bool_mask_eval(8, 26, mask, eq, res, varcol, rescol, resstr);  
-         
+         SUMA_bool_mask_eval(8, 26, mask, eq, res, varcol, rescol, resstr);
+
          printf("Results for eq: %s\n", eq);
          for (i=0; i<8; ++i) {
-            printf("%d, col: %-3d %-3d %-3d %-3d, str: %s\n", 
-                   res[i], 
+            printf("%d, col: %-3d %-3d %-3d %-3d, str: %s\n",
+                   res[i],
                    rescol[4*i], rescol[4*i+1], rescol[4*i+2],rescol[4*i+3],
                    resstr[i]);
          }
-         
+
          for (i=0; i<26; ++i) SUMA_ifree(mask[i]);
          SUMA_ifree(mask);
          for (i=0; i<20; ++i) SUMA_ifree(resstr[i]);

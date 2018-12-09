@@ -14,11 +14,11 @@ static char rcsId[]="$Header$";
 * Authors:				Scott Gregory, gregory@sccoast.net
 *						Koen D'Hondt, ripley@xs4all.nl
 *						Ameet A. Raval, aar@gfdl.gov
-*						Frans van Hoesel, hoesel@chem.rug.nl 
+*						Frans van Hoesel, hoesel@chem.rug.nl
 *
 * Gratefully donated to XmHTML by Scott Gregory.
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * Portions Copyright by Ameet A. Raval & Frans van Hoesel.
@@ -42,7 +42,7 @@ static char rcsId[]="$Header$";
 * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
 *
 * Scott's Note:
-* 
+*
 * A hugely collective effort!
 *
 * The structure and portions of PS code uncerimoniously horked from code
@@ -67,15 +67,15 @@ static char rcsId[]="$Header$";
 * WE MAKE NO REPRESENTATIONS ABOUT THE SUITABILITY OF THIS SOFTWARE FOR
 * ANY PURPOSE.  IT IS PROVIDED "AS IS" WITHOUT EXPRESS OR IMPLIED
 * WARRANTY. WE SHALL NOT BE LIABLE FOR ANY DAMAGES SUFFERED BY THE
-* USERS OF THIS SOFTWARE. 
+* USERS OF THIS SOFTWARE.
 *
 * Pieces of code are taken from xvps by kind permission of John Bradley.
-* 
+*
 * Extensive hacks from xwd2ps by Robert C. Tatar and Craig A. McGowan.
-* 
+*
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.2  2012/03/01 17:56:31  ziad
 * Cput
@@ -83,7 +83,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -116,8 +116,8 @@ static char rcsId[]="$Header$";
 
 /*** Private Datatype Declarations ****/
 /* for regular-font, bold-font, italic-font, fixed-font */
-typedef enum { 
-	RF, BF, IF, FR, FB, FI 
+typedef enum {
+	RF, BF, IF, FR, FB, FI
 }PSFontstyle;
 
 /* structure for holding all footnotes on a page (anchor data) */
@@ -152,7 +152,7 @@ typedef struct _PSDisplay {
 	/* Output buffer */
 	char *string;			/* Output buffer						*/
 	int size;				/* size of output buffer				*/
-	int len;				/* used size of output buffer			*/ 
+	int len;				/* used size of output buffer			*/
 
 	/* Footnotes */
 	PSFootnote footnotes;
@@ -207,7 +207,7 @@ static int PSencode(unsigned char *data, unsigned char *rle, int size);
 static void PSfootnotes(PSDisplay *dpy);
 static int PShex(PSDisplay *dpy, Byte val, int flush);
 static void PSColorImage(PSDisplay *dpy);
-static void PScolormap(PSDisplay *dpy, Boolean color, int nc, 
+static void PScolormap(PSDisplay *dpy, Boolean color, int nc,
 	   Dimension *rmap, Dimension *gmap, Dimension *bmap);
 static void PSrle_cmapimage(PSDisplay *dpy, int color);
 static int PSImageBW(PSDisplay *dpy, Byte *data, int w, int h, Boolean inverse);
@@ -238,7 +238,7 @@ static int pstkFillArc(Display *disp, WINDOW win, XGC gc, int x, int y,
 static void pstkDrawImage(XmHTMLWidget html, XmHTMLImage *image, XGC gc,
 	int src_x, int src_y, unsigned int width, unsigned int height,
 	int dest_x, int dest_y);
-static void pstkDrawShadows(Display *disp, DRAWABLE drawable, 
+static void pstkDrawShadows(Display *disp, DRAWABLE drawable,
 	XGC top_shadow_GC, XGC bottom_shadow_GC,
 #if NeedWidePrototypes
 	int x, int y, int width, int height, int shadow_thickness,
@@ -279,7 +279,7 @@ static void pstkDrawShadows(Display *disp, DRAWABLE drawable,
 * Return Type: 	float
 * Description: 	returns dots-per-inch of the screen. Calculates the pixel
 *				density in dots per inch on the current Widget screen.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	screen density.
@@ -307,7 +307,7 @@ GetDpi(XmHTMLWidget html)
 * Name:			fnDestroy
 * Return Type: 	void
 * Description: 	destroy all footnote data for this page.
-* In: 
+* In:
 *	footnote:	array of footnotes to be destroyed.
 * Returns:
 *	nothing.
@@ -331,7 +331,7 @@ fnDestroy(PSFootnote footnote)
 * Name: 		fnAdd
 * Return Type: 	int
 * Description:	add a footnote to the current page and return its number
-* In: 
+* In:
 *	buf:		footnote value
 * Returns:
 *	footnote number.
@@ -367,7 +367,7 @@ fnAdd(PSFootnote footnote, char *buf)
 	for(fnum = 0; fnum < footnote.count; ++fnum)
 		if(strcmp(footnote.items[fnum], buf) == 0)
 			return(fnum);
-			
+
 	/* this is a new footnote, store it */
 	fnum = footnote.count;
 	footnote.count++;
@@ -382,7 +382,7 @@ fnAdd(PSFootnote footnote, char *buf)
 * Name: 		PSprintf
 * Return Type: 	int
 * Description: 	sprintf but can dynamically extend the destination buffer.
-* In: 
+* In:
 *
 * Returns:
 *
@@ -432,7 +432,7 @@ PSprintf(dpy, format, va_alist)
 * Name: 		PSfootnotes
 * Return Type: 	void
 * Description: Display the footer and all footnotes collected during this page
-* In: 
+* In:
 *	dpy:		current postscript output area
 * Returns:
 *	nothing.
@@ -500,7 +500,7 @@ PSfootnotes(PSDisplay *dpy)
 * Name:			PSfont
 * Return Type: 	void
 * Description: 	change local font.
-* In: 
+* In:
 *	dpy:		current postscript output area;
 *	font:		master font;
 *	flush:		flush font settings at end of page.
@@ -591,19 +591,19 @@ PSfont(PSDisplay *dpy, XmHTMLfont *font, Boolean flush)
 * Name:			PSwidgetsOnPage
 * Return Type: 	void
 * Description: 	render all HTML FORM elements residing on the current page.
-* In: 
+* In:
 *	dpy:		current Postscript output area
 * Returns:
 *	nothing.
 * Note:
 *	Called at end of a page to draw the form widgets.
-*	
+*
 *	Koen,
 *		for this to work correctly, each widget would have had to have
 *	been mapped at one time to get its formatted position. Then in here
 *	we would have to map those that aren't, wait on the expose, then
 *	grab the image and unmap it.
-*	
+*
 *	Kind of academic until we can ensure all form widgets have been mapped.
 *
 *	Scott,
@@ -627,10 +627,10 @@ PSwidgetsOnPage(PSDisplay *dpy)
 	int xs, ys;
 
 	/* XmHTMLExtObj *u; ??Should we print these also?? Not implemented yet */
-	
+
 	if((form = HTML_ATTR(form_data)) == NULL)
 		return;
-		
+
 	/* walk all defined forms */
 	for(; form != NULL; form = form->next)
 	{
@@ -685,8 +685,8 @@ PSwidgetsOnPage(PSDisplay *dpy)
 * Name:			PSshowpage
 * Return Type: 	end of page function. Show current page and restore
 *				any changes to the printer state.
-* Description: 
-* In: 
+* Description:
+* In:
 *	dpy:		current postscript output area.
 * Returns:
 *	nothing.
@@ -695,7 +695,7 @@ static void
 PSshowpage(PSDisplay *dpy)
 {
 	PSwidgetsOnPage(dpy);
-	
+
 	if(dpy->curr_page > 0)
 		PSfootnotes(dpy);
 
@@ -708,8 +708,8 @@ PSshowpage(PSDisplay *dpy)
 * Name: 		PSnewpage
 * Return Type: 	begin a fresh page. Increments page count and handles
 *				structured comment conventions.
-* Description: 
-* In: 
+* Description:
+* In:
 *	dpy:		current postscript output area.
 * Returns:
 *	nothing.
@@ -737,7 +737,7 @@ PSnewpage(PSDisplay *dpy)
 * Name:			PSinit_latin1
 * Return Type: 	void
 * Description: 	handle ISO Latin1 encoding.
-* In: 
+* In:
 *	dpy:		current postscript output area
 * Returns:
 *	nothing.
@@ -745,7 +745,7 @@ PSnewpage(PSDisplay *dpy)
 *	This table contains the names of all characters in the ISO Latin1 font
 *	encoding (191 defined characters in total). The first valid character
 *	is space.
-*	This table comes from the Idraw program (from Stanford's InterViews 
+*	This table comes from the Idraw program (from Stanford's InterViews
 *	package), courtesy of Steinar Kjaernsrd, steinar@ifi.uio.no
 *****/
 static void
@@ -799,7 +799,7 @@ PSinit_latin1(PSDisplay *dpy)
 * Name:			PSinit
 * Return Type: 	void
 * Description: 	initialize postscript output per HTML document.
-* In: 
+* In:
 *	dpy:		current postscript output area
 * Returns:
 *	nothing.
@@ -824,7 +824,7 @@ PSinit(PSDisplay *dpy)
 * Name: 		PSheader
 * Return Type: 	void
 * Description: 	initialize postscript output and prints the postscript prolog.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	title:		document title (if any)
 *	font:		document basefont.
@@ -926,7 +926,7 @@ PSheader(PSDisplay *dpy, char *title, int font)
 * Name:			PStrailer
 * Return Type: 	void
 * Description: 	write document trailer.
-* In: 
+* In:
 *	dpy:		current postscript output area
 * Returns:
 *	nothing.
@@ -944,7 +944,7 @@ PStrailer(PSDisplay *dpy)
 * Return Type: 	void
 * Description: 	output text, renders the given text, protects special
 *				characters and underlines words if required.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	t:			text to be drawn
 *	underline:	if non-zero, text is drawn underlined.
@@ -1033,7 +1033,7 @@ PStext(PSDisplay *dpy, String t, Boolean underline)
 * Name:			PScheckPage
 * Return Type: 	void
 * Description: 	check if a new new page should be started.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	x:			current horizontal pixel position
 *	y:			current vertical pixel position
@@ -1058,7 +1058,7 @@ PScheckPage(PSDisplay *dpy, int x, int y)
 * Description: 	move to output vector to a new x,y location. If the given
 *				y value does not fit within the current page, start a new
 *				page.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	x:			current horizontal pixel position
 *	y:			current vertical pixel position
@@ -1078,7 +1078,7 @@ PSmoveto(PSDisplay *dpy, int x, int y)
 * Return Type: 	void
 * Description: 	set y-offset. Performs a relative vertical move whenever
 *				the offset changes.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	offset:		vertical (pixel) offset.
 * Returns:
@@ -1104,7 +1104,7 @@ PSmove_offset(PSDisplay *dpy, int offset)
 * Description: 	writes a colormap. Produces code for the colormap of
 *				any images following. If this is a grayscale image, a
 *				grayscale colormap is produced.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	color:		indicates color or grayscale.
 *	nc:			number of colors
@@ -1131,7 +1131,7 @@ PScolormap(PSDisplay *dpy, Boolean color, int nc,
 	{
 		if(color)	/* downscale to 0-255 */
 			PSprintf(dpy, "%02x%02x%02x ", rmap[i]>>8, gmap[i]>>8, bmap[i]>>8);
-		else 
+		else
 			PSprintf(dpy, "%02x ", MONO(rmap[i], gmap[i], bmap[i]));
 
 		/* make it look nice */
@@ -1149,7 +1149,7 @@ PScolormap(PSDisplay *dpy, Boolean color, int nc,
 *				RLE is used to reduce file size (and thus reduce the time
 *				required to send it to the printer). The disadvantage is
 *				increased processing time.
-* In: 
+* In:
 *	data:		data to be rle'd
 *	rle:		return buffer.
 *	size:		size of data.
@@ -1162,14 +1162,14 @@ PScolormap(PSDisplay *dpy, Boolean color, int nc,
 *	count can range between 0 and 127
 *****/
 static int
-PSencode(unsigned char *data, unsigned char *rle, int size) 
+PSencode(unsigned char *data, unsigned char *rle, int size)
 {
     int i, j, blocklen, isrun, rlen;
     unsigned char block[256], pix;
 
     blocklen = isrun = rlen = 0;
 
-    for(i = 0; i < size; i++) 
+    for(i = 0; i < size; i++)
     {
 		/*****
 		* 5 possible states:
@@ -1182,23 +1182,23 @@ PSencode(unsigned char *data, unsigned char *rle, int size)
 
 		pix = data[i];
 
-		if(!blocklen) 
+		if(!blocklen)
 		{
 		    /* case 0:  empty */
 		    block[blocklen++] = pix;
 		    isrun = 1;
 		}
-		else if(isrun) 
+		else if(isrun)
 		{
 		    if(pix == block[blocklen-1])
-		    { 
+		    {
 				/*  case 1:  isrun, prev==cur */
 				block[blocklen++] = pix;
 		    }
-		    else 
+		    else
 		    {
 				/*  case 2:  isrun, prev!=cur */
-				if(blocklen>1) 
+				if(blocklen>1)
 				{
 				    /*  we have a run block to flush */
 					rle[rlen++] = blocklen-1;
@@ -1216,12 +1216,12 @@ PSencode(unsigned char *data, unsigned char *rle, int size)
 			}
 		}
 		else
-		{ 
+		{
 			/* not a run */
-			if(pix == block[blocklen-1]) 
+			if(pix == block[blocklen-1])
 			{
 				/* case 3: non-run, prev==cur */
-				if(blocklen>1) 
+				if(blocklen>1)
 				{
 					/*  have a non-run block to flush */
 					rle[rlen++] = (blocklen-1) | 0x80;
@@ -1230,7 +1230,7 @@ PSencode(unsigned char *data, unsigned char *rle, int size)
 					/*  start new run block with pix */
 					block[0] = pix;
 					blocklen = isrun = 1;
-				} 
+				}
 				else
 				{
 					/*  blocklen<=1 turn into a run */
@@ -1238,17 +1238,17 @@ PSencode(unsigned char *data, unsigned char *rle, int size)
 					block[blocklen++] = pix;
 				}
 			}
-			else 
+			else
 			{
 				/* case 4:  non-run, prev!=cur */
 				block[blocklen++] = pix;
 			}
 		}
-	
+
 		/* max block length.  flush */
 		if(blocklen == 128)
 		{
-			if(isrun) 
+			if(isrun)
 			{
 				rle[rlen++] = blocklen-1;
 				rle[rlen++] = block[0];
@@ -1284,21 +1284,21 @@ PSencode(unsigned char *data, unsigned char *rle, int size)
 /*****
 * Name: 		PShex
 * Return Type: 	output a hexadecimal value.
-* Description: 
-* In: 
+* Description:
+* In:
 *	dpy:		current postscript output area
 *	val:		value to be converted
 *	flush:		if True, flush out the current buffer.
 * Returns:
 *	EOF on failure, something else otherwise.
 *****/
-static int 
+static int
 PShex(PSDisplay *dpy, Byte val, int flush)
 {
 	static char digit[] = "0123456789abcdef";
 
 	/* convert to hexadecimal and collect */
-	if(!flush) 
+	if(!flush)
 	{
 		dpy->hexline[dpy->hexi++] = (char) digit[((unsigned) val >>
 			(unsigned) 4) & (unsigned) 0x0f];
@@ -1307,7 +1307,7 @@ PShex(PSDisplay *dpy, Byte val, int flush)
 	}
 
 	/* flush requested or buffer full */
-	if((flush && dpy->hexi) || (dpy->hexi > 77)) 
+	if((flush && dpy->hexi) || (dpy->hexi > 77))
 	{
 		dpy->hexline[dpy->hexi] = '\0';
 		dpy->hexi = 0;
@@ -1319,18 +1319,18 @@ PShex(PSDisplay *dpy, Byte val, int flush)
 /*****
 * Name: 		PSColorImage
 * Return Type:	void
-* Description:	created postscript colorimage operator 
+* Description:	created postscript colorimage operator
 *				Adds code that checks if the PostScript device in question
 *				knows about the 'colorimage' operator.  If it doesn't, it
 *				defines 'colorimage' in terms of image (ie, generates a
 *				greyscale image from RGB data)
-* In: 
+* In:
 *	dpy:		current postscript output area
 * Returns:
 *	nothing.
 *****/
-static void 
-PSColorImage(PSDisplay *dpy) 
+static void
+PSColorImage(PSDisplay *dpy)
 {
     static char *txt[] = {
 	"% define 'colorimage' if it isn't defined",
@@ -1384,14 +1384,14 @@ PSColorImage(PSDisplay *dpy)
 * Name:			PSrle_cmapimage
 * Return Type: 	void
 * Description: 	define rlecmapimage operator
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	color:		indicates color or mono.
 * Returns:
 *	nothing.
 *****/
 static void
-PSrle_cmapimage(PSDisplay *dpy, int color) 
+PSrle_cmapimage(PSDisplay *dpy, int color)
 {
 	/* prolog */
 	static char *txt[] = {
@@ -1447,9 +1447,9 @@ PSrle_cmapimage(PSDisplay *dpy, int color)
 	/* put prolog */
 	PSconst_out(dpy, txt);
 
-	if(color) 
+	if(color)
 		PSconst_out(dpy, txt_color);
-	else 
+	else
 		PSconst_out(dpy, txt_gray);
 }
 
@@ -1457,7 +1457,7 @@ PSrle_cmapimage(PSDisplay *dpy, int color)
 * Name: 		PSImageBW
 * Return Type: 	int
 * Description: 	writes out a Black & White image
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	data:		image data
 *	w:			scanline width
@@ -1476,7 +1476,7 @@ PSImageBW(PSDisplay *dpy, Byte *data, int w, int h, Boolean inverse)
 	int	i, j;
 	int	err = 0;
 	Byte outbyte, bitnum, bit;
-    
+
 	outbyte = bitnum = 0;
 
 	/* from left to right, top to bottom */
@@ -1487,7 +1487,7 @@ PSImageBW(PSDisplay *dpy, Byte *data, int w, int h, Boolean inverse)
 			bit = *(data++);
 			outbyte = (outbyte<<1) | ((bit)&0x01);
 			bitnum++;
-	    
+
 			if(bitnum == 8)
 			{
 				if(inverse)
@@ -1514,13 +1514,13 @@ PSImageBW(PSDisplay *dpy, Byte *data, int w, int h, Boolean inverse)
 * Name:			PSImage
 * Return Type: 	void
 * Description: 	convert image to postscript.
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	image:		image data
 * Returns:
 *
 *****/
-static void 
+static void
 PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 {
 	XmImageInfo *info = image->html_image;
@@ -1553,7 +1553,7 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 
 	dest_y = -(y - dpy->start_y) - image->height;
 
-	if(data == NULL) 
+	if(data == NULL)
 	{
 		/*****
 		*  image was not available, draw an empty square instead
@@ -1570,7 +1570,7 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 		isanchor = True;
 
 	/* draw outline if this is an anchored image */
-	if(isanchor) 
+	if(isanchor)
 	{
 		PSprintf(dpy, "gsave\n%i %i translate\n%d %d scale\n",
 			dest_x-2, dest_y-2, w+4, h+4);
@@ -1578,18 +1578,18 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 		PSprintf(dpy, "grestore\n");
 		extra = 4;
 	}
-	
+
 	/*****
-	* This is a hack to see if the image is Black & White, 
+	* This is a hack to see if the image is Black & White,
 	* Greyscale or 8 bit color
 	* assume it's bw if it has only one or two colors, both some grey's
 	* assume it's greyscale if all the colors (>2) are grey
 	* Images with only one color do occur too.
 	*****/
-    
-	if(((nc == 2) 
+
+	if(((nc == 2)
 			&& ((Isgray(info,0) && Isgray(info,1))
-			|| (Is_bg(info,0) && Is_fg(info,1)) 
+			|| (Is_bg(info,0) && Is_fg(info,1))
 			|| (Is_fg(info,0) && Is_bg(info,1)) ))
 		|| ((nc == 1)
 			&& (Isgray(info,0) || Is_bg(info,0) || Is_fg(info,0))))
@@ -1620,7 +1620,7 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 			}
 		}
 	}
-	
+
 	/*  build a temporary dictionary */
 	PSprintf(dpy, "20 dict begin\n\n");
 
@@ -1629,48 +1629,48 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 
 	/*  position and scaling */
 	PSprintf(dpy, "gsave\n");
-    
-	if(colortype == F_BWDITHER) 
+
+	if(colortype == F_BWDITHER)
 	{
 		/*  1-bit dither code uses 'image' */
 		Boolean inverse = False;
-	
+
 		/*  set if color#0 is 'white' */
 		if((nc == 2 &&
 			MONO(info->reds[0], info->greens[0], info->blues[0]) >
 				MONO(info->reds[1], info->greens[1], info->blues[1])) ||
-			(nc == 1 && 
+			(nc == 1 &&
 				MONO(info->reds[0], info->greens[0],info->blues[0]) >
 				MONO(127, 127, 127)))
 		{
 			inverse = True;
 		}
-	
+
 		/*  dimensions of data */
 		PSprintf(dpy, "%d %d %d\n", w, h, bits);
-	
+
 		/*  mapping matrix */
 		PSprintf(dpy, "[%d 0 0 %d 0 %d]\n\n", w, -h, h);
 
 		/* Position and scaling */
 		PSprintf(dpy, "%i %i translate\n%d %d scale\n", dest_x, dest_y, w, h);
-	
+
 		PSprintf(dpy, "{currentfile pix readhexstring pop}\n");
 		PSprintf(dpy, "image\n");
 
 		/*  write the actual image data */
 		err = PSImageBW(dpy, data, w, h, inverse);
-	} 
+	}
 	else
 	{
 		/*  all other formats */
 		unsigned char *rleline = (unsigned char *) NULL;
 		int rlen;
-	
+
 		/*  if we're using color, make sure 'colorimage' is defined */
 		if(colorps)
 			PSColorImage(dpy);
-	
+
 		PScolormap(dpy, colorps, nc, info->reds, info->greens, info->blues);
 		PSrle_cmapimage(dpy, colorps);
 
@@ -1684,12 +1684,12 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 		PSprintf(dpy, "%i %i translate\n%d %d scale\n", dest_x, dest_y, w, h);
 
 		PSprintf(dpy, "rlecmapimage\n");
-	
+
 		rleline = (unsigned char *) malloc(w * 2);
-		if(!rleline) 
+		if(!rleline)
 			return;
 
-		for(i = 0; i < h && err != EOF; i++) 
+		for(i = 0; i < h && err != EOF; i++)
 		{
 		    rlen = PSencode(data, rleline, w);
 		    data += w;
@@ -1699,11 +1699,11 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 		}
 		free(rleline);
 	}
-	
+
 	/*  stop using temporary dictionary */
 	PSprintf(dpy, "end\n");
 	PSprintf(dpy, "grestore\n\n");
-	
+
 #undef Isgray
 #undef Is_fg
 #undef Is_bg
@@ -1720,7 +1720,7 @@ PSImage(PSDisplay *dpy, XmHTMLImage *image, int x, int y)
 * Name:			pstkSetForeground
 * Return Type: 	int
 * Description: 	sets foreground color
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	gc:			graphics context, unused
 *	foreground:	foreground color to set
@@ -1812,7 +1812,7 @@ pstkSetBackground(Display *disp, XGC gc, unsigned long background)
 * Name:			pstkSetFont
 * Return Type: 	int
 * Description: 	sets the requested font
-* In: 
+* In:
 *	dpy:		current postscript output area
 *	gc:			graphics context, unused
 *	font:		font to set
@@ -1831,7 +1831,7 @@ pstkSetFont(Display *disp, XGC gc, XmHTMLfont *font)
 * Name:			pstkTextWidth
 * Return Type: 	int
 * Description: 	Postscript textwidth function.
-* In: 
+* In:
 *	font:		font to be used when computing pixel width;
 *	string:		string for which to compute pixel width;
 *	count:		no of characters in string.
@@ -1856,7 +1856,7 @@ pstkTextWidth(XmHTMLfont *font, const char* string, int count)
 * Name:			pstkCopyArea
 * Return Type: 	int
 * Description: 	postscript XCopyArea.
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -1881,7 +1881,7 @@ pstkCopyArea(Display *disp, DRAWABLE src, DRAWABLE dest, XGC gc, int src_x,
 * Name:			pstkDrawString
 * Return Type: 	int
 * Description: 	renders text
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -1923,8 +1923,8 @@ pstkDrawString(Display *disp, DRAWABLE win, struct _XmHTMLFont *font,
 /*****
 * Name:			pstkDrawAnchorData
 * Return Type: 	void
-* Description: 
-* In: 
+* Description:
+* In:
 *
 * Returns:
 *	nothing
@@ -1969,7 +1969,7 @@ pstkDrawAnchorData(Display *disp, WINDOW win, XGC gc, int x, int y,
 * Name:			pstkDrawLine
 * Return Type: 	int
 * Description: 	renders a single line
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -1992,7 +1992,7 @@ pstkDrawLine(Display *disp, WINDOW win, XGC gc, int x1, int y1, int x2, int y2)
 * Name:			pstkDrawLines
 * Return Type: 	void
 * Description: 	draws a collection of lines
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -2017,7 +2017,7 @@ pstkDrawLines(Display *disp, DRAWABLE win, XGC gc, XPoint *points,
 * Name:			pstkDrawRectangle
 * Return Type: 	int
 * Description: 	renders a plain rectangle
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -2042,7 +2042,7 @@ pstkDrawRectangle(Display *disp, WINDOW win, XGC gc, int x, int y,
 * Name:			pstkFillRectangle
 * Return Type: 	int
 * Description: 	renders a filled rectangle.
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -2067,7 +2067,7 @@ pstkFillRectangle(Display *disp, WINDOW win, XGC gc, int x, int y,
 * Name:			pstkDrawShadows
 * Return Type: 	void
 * Description: 	draws a shadow rectangle
-* In: 
+* In:
 *	too many
 * Returns:
 *	nothing
@@ -2076,7 +2076,7 @@ pstkFillRectangle(Display *disp, WINDOW win, XGC gc, int x, int y,
 *	that shadows will always be drawn.
 *****/
 static void
-pstkDrawShadows(Display *disp, DRAWABLE drawable, 
+pstkDrawShadows(Display *disp, DRAWABLE drawable,
 	XGC top_shadow_GC, XGC bottom_shadow_GC,
 #if NeedWidePrototypes
 	int x, int y, int width, int height, int shadow_thickness,
@@ -2129,7 +2129,7 @@ pstkDrawShadows(Display *disp, DRAWABLE drawable,
 * Name:			pstkDrawArc
 * Return Type: 	int
 * Description: 	renders an (unfilled) arc.
-* In: 
+* In:
 *	too many
 * Returns:
 *	always 1 (ignored by caller)
@@ -2160,7 +2160,7 @@ pstkDrawArc(Display *disp, WINDOW win, XGC gc, int x, int y,
 * Name:			pstkFillArc
 * Return Type: 	int
 * Description: 	renders a filled arc.
-* In: 
+* In:
 *	too many args
 * Returns:
 *	always 1 (ignored by caller)
@@ -2204,7 +2204,7 @@ pstkDrawImage(XmHTMLWidget html, XmHTMLImage *image, XGC gc,
 * Name:			_CreatePostscriptTka
 * Return Type: 	ToolkitAbstraction
 * Description: 	Creates the tka required for Postscript output
-* In: 
+* In:
 *	html:		current XmHTMLWidget id
 * Returns:
 *	A new tka, based upon the current tka as found in the widget
@@ -2282,7 +2282,7 @@ _CreatePostscriptTka(XmHTMLWidget html)
 * Returns:
 *	A malloc'd buffer containing postscript output. Calling routine must
 *   free the returned buffer.
-*****/	
+*****/
 String
 _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
@@ -2300,7 +2300,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	String psbuf;
 
 	/*****
-	* Sanity check, Postscript output requires a papersize definition 
+	* Sanity check, Postscript output requires a papersize definition
 	* in points.
 	*****/
 	if(pdef->unit_type != XmHTML_POINT)

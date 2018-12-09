@@ -153,8 +153,8 @@ void usage_3dmaskave(int detail) {
 
       printf("\n" MASTER_SHORTHELP_STRING ) ;
 
-      PRINT_COMPILE_DATE ; 
-   
+      PRINT_COMPILE_DATE ;
+
    return;
 }
 
@@ -388,16 +388,16 @@ int main( int argc , char * argv[] )
          narg++ ; continue ;
       }
 
-      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ; 
+      fprintf(stderr,"*** Unknown option: %s\n",argv[narg]) ;
       suggest_best_prog_option(argv[0], argv[narg]);
       exit(1) ;
    }
-   
+
    if (argc < 2) {
       ERROR_message("Too few options, use -help option for details");
       exit(1);
    }
-   
+
    if( medianit ){ sigmait = 0; sname = "Median"; }
    if( maxit    ){ sigmait = 0; sname = "Max"   ; } /* 24 Feb 2005 */
    if( minit    ){ sigmait = 0; sname = "Min"   ; } /* 25 Feb 2005 */
@@ -473,7 +473,7 @@ int main( int argc , char * argv[] )
          WARNING_message("Input dataset %s grid mismatch from mask.\n"
              "Try the following command for grid comparison:\n"
              " 3dinfo -header_line -prefix -same_all_grid %s %s\n"
-             ,argv[narg], 
+             ,argv[narg],
              DSET_HEADNAME(mask_dset), DSET_HEADNAME(input_dset)) ;
 
       if( DSET_NVOX(mask_dset) != nvox ){

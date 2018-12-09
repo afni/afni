@@ -5,7 +5,7 @@ void SUMA_MapIcosahedron_usage ()
 {/*Usage*/
    static char FuncName[]={"SUMA_MapIcosahedron_usage"};
    char * s = NULL;
-   printf ( 
+   printf (
 "\n"
 "Usage: MapIcosahedron <-spec specFile> \n"
 "                      [-rd recDepth] [-ld linDepth] \n"
@@ -49,7 +49,7 @@ void SUMA_MapIcosahedron_usage ()
 "\n"
 "   *Note: You can use repeated instances of either -NN_dset_map or -dset_map\n"
 "          to process multiple datasets at once.\n"
-"\n"    
+"\n"
 "        Old Usage:\n"
 "        ----------\n"
 "        State name of spherical surface to which icosahedron \n"
@@ -214,7 +214,7 @@ void SUMA_MapIcosahedron_usage ()
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);  \
 }
 /*!
-  stand alone program to map one surface to another and write mapping to file. 
+  stand alone program to map one surface to another and write mapping to file.
 
 */
 int main (int argc, char *argv[])
@@ -224,7 +224,7 @@ int main (int argc, char *argv[])
    SUMA_Boolean brk, smooth=NOPE, verb=NOPE, all_surfs_spec=NOPE;
    char fout[SUMA_MAX_FILENAME_LENGTH];
    char * dist_prefix=NULL;
-   char icoFileNm[SUMA_MAX_FILENAME_LENGTH], 
+   char icoFileNm[SUMA_MAX_FILENAME_LENGTH],
         outSpecFileNm[SUMA_MAX_FILENAME_LENGTH];
    char bin[SUMA_MAX_FILENAME_LENGTH], *histnote=NULL;
    int numTriBin=0, numTriLin=0, numIt=0;
@@ -233,7 +233,7 @@ int main (int argc, char *argv[])
    char *brainSpecFile=NULL, *OutName = NULL, *morph_surf = NULL;
    SUMA_SurfSpecFile brainSpec;
    SUMA_SurfSpecFile *stdSpec = NULL;
-  
+
    int new_state=0, N_in_name=0;
    char *in_name[100], *uname=NULL, *oname=NULL;
    int in_mode[100];
@@ -254,33 +254,33 @@ int main (int argc, char *argv[])
    int oform=SUMA_ASCII_NIML, iform=SUMA_NO_DSET_FORMAT;
    int correct_cuts = 0;
    float minimum_sine=0.03;
-   SUMA_DSET *dset=NULL, *dseto=NULL; 
+   SUMA_DSET *dset=NULL, *dseto=NULL;
    SUMA_M2M_STRUCT *M2M=NULL;
    SUMA_Boolean LocalHead = NOPE;
 
    FILE *tmpFile=NULL;
-    
+
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-   
+
    /* allocate space for CommonFields structure */
-   if (LocalHead) 
+   if (LocalHead)
       fprintf (SUMA_STDERR,
                "%s: Calling SUMA_Create_CommonFields ...\n", FuncName);
-   
+
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct(SUMA_MAX_DISPLAYABLE_OBJECTS);
-   if (LocalHead) 
+   if (LocalHead)
       fprintf (SUMA_STDERR,"%s: SUMA_Create_CommonFields Done.\n", FuncName);
-   
+
    cs = SUMA_Create_CommSrtuct();
    if (!cs) exit(1);
 
    /* clueless user ? */
    if (argc < 2) {
       SUMA_MapIcosahedron_usage ();
-      exit (1); 
+      exit (1);
    }
-   
+
    /* read in the options */
    correct_cuts=-1; /* -1 just check , 0 do not check, 1 check and fix*/
    minimum_sine = 0.03; /* minimum acceptable sine of angle,
@@ -308,7 +308,7 @@ int main (int argc, char *argv[])
          SUMA_MapIcosahedron_usage ();
          exit (1);
       }
-      
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
       if (!brk && (strcmp(argv[kar], "-iodbg") == 0)) {
@@ -356,19 +356,19 @@ int main (int argc, char *argv[])
             Uctr[0] = 0.0; Uctr[1] = 0.0; Uctr[2] = 0.0;
             brk = YUP;
          }
-      
+
       if (!brk && (strcmp(argv[kar], "-use_com") == 0)) {
          fprintf(SUMA_STDOUT, "\n"
                               "Warning %s:\n"
                               " Using sphere's center of mass as a\n"
                               " geometric center. This is only for\n"
                               " compulsive backward comaptibility.\n"
-                              " It is better NOT to use this option.\n", 
+                              " It is better NOT to use this option.\n",
                               FuncName);
          UseCOM = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-NN_dset_map") == 0 ))
          {
             kar ++;
@@ -394,7 +394,7 @@ int main (int argc, char *argv[])
             ++N_in_name;
             brk = YUP;
          }
-         
+
       if (!brk && (strcmp(argv[kar], "-sphere_center") == 0 ))
          {
             kar ++;
@@ -405,9 +405,9 @@ int main (int argc, char *argv[])
             UserCenter  = 1;
             Uctr[0] = atof(argv[kar]); kar ++;
             Uctr[1] = atof(argv[kar]); kar ++;
-            Uctr[2] = atof(argv[kar]); 
+            Uctr[2] = atof(argv[kar]);
             brk = YUP;
-         }      
+         }
       if (!brk && (strcmp(argv[kar], "-rd") == 0 ))
          {
             kar ++;
@@ -418,8 +418,8 @@ int main (int argc, char *argv[])
             depth = atoi(argv[kar]);
             sprintf (bin, "y");
             brk = YUP;
-            
-         }      
+
+         }
       if (!brk && (strcmp(argv[kar], "-ld") == 0 ))
          {
             kar ++;
@@ -430,7 +430,7 @@ int main (int argc, char *argv[])
             depth = atoi(argv[kar]);
             sprintf (bin, "n");
             brk = YUP;
-         }      
+         }
       if (!brk && strcmp(argv[kar], "-write_nodemap") == 0)
          {
             WriteMI = YUP;
@@ -449,9 +449,9 @@ int main (int argc, char *argv[])
                exit (1);
             }
             morph_surf = argv[kar];
-            
+
             brk = YUP;
-         }   
+         }
       if (!brk && (strcmp(argv[kar], "-it") == 0 ))
          {
             kar ++;
@@ -462,7 +462,7 @@ int main (int argc, char *argv[])
             smooth = YUP;
             numIt = atoi(argv[kar]);
             brk = YUP;
-         }      
+         }
       if (!brk && (strcmp(argv[kar], "-verb") == 0 ))
          {
             SUMA_S_Note("-verb option no longer produces\n"
@@ -470,53 +470,53 @@ int main (int argc, char *argv[])
                         "meshes. See -all_surfs_spec for that.\n");
             verb = YUP;
             brk = YUP;
-            
+
          }
       if (!brk && (strcmp(argv[kar], "-all_surfs_spec") == 0 ))
          {
             all_surfs_spec = YUP;
             brk = YUP;
-            
+
          }
-      
+
       if (!brk && (strcmp(argv[kar], "-morph_sphere_check") == 0 ))
          {
             CheckSphere = YUP;
             brk = YUP;
          }
-               
+
       if (!brk && (strcmp(argv[kar], "-sphreg_check") == 0 ))
          {
             SUMA_S_Err( "This option is now obsolete, "
                         "please use -morph_sphere_check");
             exit(1);
-         }      
+         }
       if (!brk && (strcmp(argv[kar], "-sph_check") == 0 ))
          {
             SUMA_S_Err( "This option is now obsolete, "
                         "please use -morph_sphere_check");
             brk = YUP;
-            
-         } 
+
+         }
       if (!brk && (strcmp(argv[kar], "-fix_cut_surfaces") == 0 ))
          {
             correct_cuts = 1;
             brk = YUP;
-            
+
          }
       if (!brk && (strcmp(argv[kar], "-check_cut_surfaces") == 0 ))
          {
             correct_cuts = -1;
             brk = YUP;
-            
+
          }
       if (!brk && (strcmp(argv[kar], "-forget_cut_surfaces") == 0 ))
          {
             correct_cuts = 0;
             brk = YUP;
-            
+
          }
-        
+
       if (!brk && strcmp(argv[kar], "-prefix") == 0)
          {
             kar ++;
@@ -526,8 +526,8 @@ int main (int argc, char *argv[])
             }
             sprintf (fout, "%s", argv[kar]);
             brk = YUP;
-         }   
-      
+         }
+
       if (!brk && strcmp(argv[kar], "-write_dist") == 0)
          {
             kar ++;
@@ -537,32 +537,32 @@ int main (int argc, char *argv[])
             }
             dist_prefix = argv[kar];
             brk = YUP;
-         }   
-      
+         }
+
       if (!brk) {
          fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-      } 
-      else {   
+      }
+      else {
          brk = NOPE;
          kar ++;
       }
-      
+
    }/* loop accross command line options */
 
    /* check on output file name */
    if (!THD_ok_overwrite()) {
-      sprintf (outSpecFileNm, "%s%s", 
+      sprintf (outSpecFileNm, "%s%s",
                fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
       if (SUMA_filexists(outSpecFileNm)) {
          SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
                      outSpecFileNm);
          exit(1);
       } else {
-         sprintf (outSpecFileNm, "%s%s.spec", 
+         sprintf (outSpecFileNm, "%s%s.spec",
                   fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
          if (SUMA_filexists(outSpecFileNm)) {
             SUMA_S_Errv("File %s exists, change prefix or use -overwrite.\n",
@@ -572,9 +572,9 @@ int main (int argc, char *argv[])
       }
    }
    /* reset spec prefix */
-   sprintf (outSpecFileNm, "%s%s", 
+   sprintf (outSpecFileNm, "%s%s",
             fout, SUMA_FnameGet(brainSpecFile,"f", SUMAg_CF->cwd));
-   
+
    if (LocalHead && !UseCOM && UserCenter == -1) {/* Enough already. Dec 2011 */
       SUMA_S_Note("\n"
                   "---------------------------------------------------\n"
@@ -588,19 +588,19 @@ int main (int argc, char *argv[])
    }
    /* check for some sanity */
    if (bin[0] == 'y' && depth > 10) {
-      fprintf (SUMA_STDERR, 
+      fprintf (SUMA_STDERR,
                "%s: You cannot use a recursive depth > 10.\n", FuncName);
       exit(1);
    }
-   if (LocalHead) 
-      fprintf (SUMA_STDERR, 
-               "%s: %s contains surfaces, tesselation depth is %d.\n", 
+   if (LocalHead)
+      fprintf (SUMA_STDERR,
+               "%s: %s contains surfaces, tesselation depth is %d.\n",
                FuncName, brainSpecFile, depth);
    if (brainSpecFile == NULL) {
       fprintf (SUMA_STDERR,"Error %s: No spec file specified.\n", FuncName);
       exit(1);
    }
- 
+
    /* read spec file*/
    if (!SUMA_AllocSpecFields(&brainSpec)) {
       SUMA_S_Err("Failed to allocate spec fields");
@@ -608,14 +608,14 @@ int main (int argc, char *argv[])
    }
    if ( !SUMA_Read_SpecFile (brainSpecFile, &brainSpec)) {
       fprintf( SUMA_STDERR,
-               "Error %s: Error in %s SUMA_Read_SpecFile\n", 
+               "Error %s: Error in %s SUMA_Read_SpecFile\n",
                FuncName, brainSpecFile);
       exit(1);
    }
-   /* Remove some states that are certainly of no use here 
+   /* Remove some states that are certainly of no use here
       ZSS. Aug 06 2013                                              */
-   SUMA_RemoveSpecState(&brainSpec, "pial-outer-smoothed", 1, "SAME");     
-   
+   SUMA_RemoveSpecState(&brainSpec, "pial-outer-smoothed", 1, "SAME");
+
    /* scan trough spec file and make sure there is one and only one
       LocalDomainParent. Otherwise issue a warning */
    found = 0;
@@ -636,15 +636,15 @@ int main (int argc, char *argv[])
          "then merge the resultant spec files with\n"
          "   inspec  -LRmerge LH_SPEC.spec RH_SPEC.spec \\\n"
          "           -prefix BOTH_SPEC.spec\n"
-         "\n" 
+         "\n"
          "Program will proceed, assuming you know what you're doing. \n"
          "***********************************************************\n",
          found
       );
    }
-   
+
    /* load spec file (which loads surfaces)*/
-   if ( !SUMA_LoadSpec_eng( &brainSpec, SUMAg_DOv, &SUMAg_N_DOv, 
+   if ( !SUMA_LoadSpec_eng( &brainSpec, SUMAg_DOv, &SUMAg_N_DOv,
                             NULL, 0 , SUMAg_CF->DsetList) ) {
       fprintf(SUMA_STDERR, "Error %s: Error in SUMA_LoadSpec\n", FuncName);
       exit(1);
@@ -652,11 +652,11 @@ int main (int argc, char *argv[])
 
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
 
-   
+
    if (CheckSphere) {
       fprintf(SUMA_STDERR,"%s:\n:Checking morph surface only.\n", FuncName);
    }
-   
+
    /* Allocate for output spec */
    stdSpec = (SUMA_SurfSpecFile *)SUMA_malloc(sizeof(SUMA_SurfSpecFile));
    if (!SUMA_AllocSpecFields(stdSpec)) {
@@ -667,8 +667,8 @@ int main (int argc, char *argv[])
    stdSpec->N_States = 0;
    stdSpec->N_Groups = 1;
    strcpy(stdSpec->SpecFilePath, SUMA_FnameGet(fout,"pa", SUMAg_CF->cwd));
-   strcpy(stdSpec->SpecFileName, SUMA_FnameGet(fout,"f", SUMAg_CF->cwd));  
-   
+   strcpy(stdSpec->SpecFileName, SUMA_FnameGet(fout,"f", SUMAg_CF->cwd));
+
    for (i=0; i<brainSpec.N_Surfs; ++i) {
       if (!brainSpec.IDcode[i]) {
          SUMA_S_Errv( "NULL idcode in brainSpec.IDcode[%d], \n"
@@ -677,88 +677,88 @@ int main (int argc, char *argv[])
          exit(1);
       }
       /* find the surface of this ID */
-      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i], 
+      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i],
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
          exit(1);
       }
-      
+
       /* Now add that surface's standard version into stdSpec */
       ++stdSpec->N_Surfs;
       SUMA_copy_spec_entries( &brainSpec, stdSpec,
                               i,         stdSpec->N_Surfs -1, 0);
-      
+
       /* Change the obvious few entries*/
-      
-      snprintf(stdSpec->State[stdSpec->N_Surfs -1], 
+
+      snprintf(stdSpec->State[stdSpec->N_Surfs -1],
                (SUMA_MAX_LABEL_LENGTH-1)*sizeof(char),
                "std.%s", brainSpec.State[i]);
       /* add state to StateList */
       new_state = 1;
       if (brainSpec.N_States) {
-         sprintf(sbuf,"%s|",stdSpec->State[stdSpec->N_Surfs -1]); 
+         sprintf(sbuf,"%s|",stdSpec->State[stdSpec->N_Surfs -1]);
          if (SUMA_iswordin(stdSpec->StateList, sbuf)) new_state = 0;
       }
       if (new_state) {
-         sprintf( stdSpec->StateList, "%s|", 
+         sprintf( stdSpec->StateList, "%s|",
                   stdSpec->State[stdSpec->N_Surfs -1]);
          ++stdSpec->N_States;
       }
-      
-      if (brainSpec.TopoFile[i] && brainSpec.TopoFile[i][0])    
+
+      if (brainSpec.TopoFile[i] && brainSpec.TopoFile[i][0])
          snprintf(stdSpec->TopoFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
+                  "%s%s%s",
                   SUMA_FnameGet(brainSpec.TopoFile[i], "pa", SUMAg_CF->cwd),
                   fout,
                   SUMA_FnameGet(brainSpec.TopoFile[i], "f", SUMAg_CF->cwd));
-      if (brainSpec.CoordFile[i] && brainSpec.CoordFile[i][0])    
+      if (brainSpec.CoordFile[i] && brainSpec.CoordFile[i][0])
          snprintf(stdSpec->CoordFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
+                  "%s%s%s",
                   SUMA_FnameGet(brainSpec.CoordFile[i], "pa", SUMAg_CF->cwd),
                   fout,
                   SUMA_FnameGet(brainSpec.CoordFile[i], "f", SUMAg_CF->cwd));
-      if (brainSpec.SurfaceFile[i] && brainSpec.SurfaceFile[i][0])    
+      if (brainSpec.SurfaceFile[i] && brainSpec.SurfaceFile[i][0])
          snprintf(stdSpec->SurfaceFile[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
+                  "%s%s%s",
                   SUMA_FnameGet(brainSpec.SurfaceFile[i], "pa", SUMAg_CF->cwd),
                   fout,
                   SUMA_FnameGet(brainSpec.SurfaceFile[i], "f", SUMAg_CF->cwd));
-      if (  brainSpec.LocalDomainParent[i] && 
+      if (  brainSpec.LocalDomainParent[i] &&
             brainSpec.LocalDomainParent[i][0] &&
             !strstr(brainSpec.LocalDomainParent[i], "SAME") ) {
          snprintf(stdSpec->LocalDomainParent[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LocalDomainParent[i], "pa", 
+                  "%s%s%s",
+                  SUMA_FnameGet( brainSpec.LocalDomainParent[i], "pa",
                                  SUMAg_CF->cwd),
                   fout,
-                  SUMA_FnameGet( brainSpec.LocalDomainParent[i], "f", 
+                  SUMA_FnameGet( brainSpec.LocalDomainParent[i], "f",
                                  SUMAg_CF->cwd) );
       }
       #if 0
          /* You should not preserve domain grandparent! */
-         if (  brainSpec.DomainGrandParentID[i] && 
+         if (  brainSpec.DomainGrandParentID[i] &&
                brainSpec.DomainGrandParentID[i][0] &&
                !strstr(brainSpec.DomainGrandParentID[i], "SAME") ) {
             snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
                      (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                     "%s%s%s", 
+                     "%s%s%s",
                      SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "pa",
                                     SUMAg_CF->cwd),
                      fout,
-                     SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "f", 
+                     SUMA_FnameGet( brainSpec.DomainGrandParentID[i], "f",
                                     SUMAg_CF->cwd) );
          }
-      #elif 0 
+      #elif 0
          /* Make the grand parent be the icosahedron.
             Note however that left and right hemisphere node indices
-            do not reflect similar structures. So you can't use node indices 
+            do not reflect similar structures. So you can't use node indices
             across hemispheres to find corresponding locations.
-            So to be safe for now, I am turning this off, because 
+            So to be safe for now, I am turning this off, because
             one often assumes that same domain parent means same node index
             implies same anatomical area...
              */
@@ -770,18 +770,18 @@ int main (int argc, char *argv[])
             snprintf(stdSpec->DomainGrandParentID[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
                   "ico.ld.%d",depth);
-         }  
+         }
       #endif
-      if (  brainSpec.LocalCurvatureParent[i] && 
+      if (  brainSpec.LocalCurvatureParent[i] &&
             brainSpec.LocalCurvatureParent[i][0] &&
             !strstr(brainSpec.LocalCurvatureParent[i], "SAME") ) {
          snprintf(stdSpec->LocalCurvatureParent[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "pa", 
+                  "%s%s%s",
+                  SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "pa",
                                  SUMAg_CF->cwd),
                   fout,
-                  SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "f", 
+                  SUMA_FnameGet( brainSpec.LocalCurvatureParent[i], "f",
                                  SUMAg_CF->cwd) );
       }
       /* deal with label dsets */
@@ -789,18 +789,18 @@ int main (int argc, char *argv[])
             brainSpec.LabelDset[i][0] ) {
          snprintf(stdSpec->LabelDset[stdSpec->N_Surfs -1],
                   (SUMA_MAX_FP_NAME_LENGTH-1)*sizeof(char),
-                  "%s%s%s", 
-                  SUMA_FnameGet( brainSpec.LabelDset[i], "pa", 
+                  "%s%s%s",
+                  SUMA_FnameGet( brainSpec.LabelDset[i], "pa",
                                  SUMAg_CF->cwd),
                   fout,
-                  SUMA_FnameGet( brainSpec.LabelDset[i], "f", 
+                  SUMA_FnameGet( brainSpec.LabelDset[i], "f",
                                  SUMAg_CF->cwd) );
          /* add to list of in_name to produce if not there */
          ifound = -1;
          ii=0;
          while (ii<N_in_name && ifound < 0) {
-            if (!strcmp(SUMA_FnameGet(in_name[ii], "F", SUMAg_CF->cwd), 
-                        SUMA_FnameGet( brainSpec.LabelDset[i], "F", 
+            if (!strcmp(SUMA_FnameGet(in_name[ii], "F", SUMAg_CF->cwd),
+                        SUMA_FnameGet( brainSpec.LabelDset[i], "F",
                                                          SUMAg_CF->cwd)) ) {
                ifound = ii;
             }
@@ -817,9 +817,9 @@ int main (int argc, char *argv[])
       }
       /* NOTICE: leave the IDcode untouched, it is a convenient way
       to refer to the precursor surface below. */
-      
+
    }
-   
+
    if (all_surfs_spec ) {
       /* append a copy of all surfs in original spec */
       for (i=0; i<brainSpec.N_Surfs; ++i) {
@@ -828,39 +828,39 @@ int main (int argc, char *argv[])
                                  i,         stdSpec->N_Surfs -1, 0);
       }
       /* and add all of the states */
-      if (  strlen(stdSpec->StateList) + strlen(brainSpec.StateList) 
+      if (  strlen(stdSpec->StateList) + strlen(brainSpec.StateList)
             > SUMA_MAX_N_SURFACE_SPEC*99) {
          SUMA_S_Errv( "Huge string problem:\n"
                       ">>%s<<+>>%s<<\n",
                       stdSpec->StateList, brainSpec.StateList);
-         exit(1);   
+         exit(1);
       }
       strcat(stdSpec->StateList, brainSpec.StateList);
       stdSpec->N_States += brainSpec.N_States;
-      
+
       /* icosahedron is added below */
    }
-   
+
    /* Some tests the quality of the new spec */
    if (!SUMA_CheckOnSpecFile (stdSpec)) {
       SUMA_S_Err("Problems with spec struct");
       exit(1);
    }
-   
+
    /* find the morph surface */
    SO_morph = NULL;
    if (morph_surf == NULL) {
       i = 0; found = 0;
       while (i < brainSpec.N_Surfs) {
          if (!strcmp("sphere.reg", brainSpec.State[i])) {
-            ++found; 
-            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
+            ++found;
+            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i],
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate suface!");
                exit(1);
             }
          }
-         ++i;   
+         ++i;
       }
       if (found != 1){
          SUMA_S_Errv("%d surface%s had a state called %s\n"
@@ -874,17 +874,17 @@ int main (int argc, char *argv[])
       i = 0; found = 0;
       while (i < brainSpec.N_Surfs) {
          if (!strcmp(morph_surf, brainSpec.State[i])) {
-            ++found; 
+            ++found;
             SUMA_LHv("Matched:\n"
                      "%s\n"
                      "%s\n", morph_surf, brainSpec.State[i]);
-            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
+            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i],
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate suface!");
                exit(1);
             }
          }
-         ++i;   
+         ++i;
       }
       if (found != 1) {
          SUMA_LHv("Lafounda, found = %d\n", found);
@@ -908,7 +908,7 @@ int main (int argc, char *argv[])
             exit(1);
          } else {
             found = 1;
-            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i], 
+            if (!(SO_morph = SUMA_findSOp_inDOv (brainSpec.IDcode[i],
                                                  SUMAg_DOv, SUMAg_N_DOv))) {
                SUMA_S_Err("Could not locate suface!");
                exit(1);
@@ -921,13 +921,13 @@ int main (int argc, char *argv[])
       SUMA_S_Err("NULL SO_morph");
       exit(1);
    }
-   
+
    /* calculate extras for SO_morph */
-   if (SO_morph->EL==NULL) 
+   if (SO_morph->EL==NULL)
       SUMA_SurfaceMetrics_eng(SO_morph, "EdgeList", NULL, 0, SUMAg_CF->DsetList);
-   if (SO_morph->MF==NULL) 
-      SUMA_SurfaceMetrics_eng(SO_morph, "MemberFace", NULL, 
-                              0, SUMAg_CF->DsetList);    
+   if (SO_morph->MF==NULL)
+      SUMA_SurfaceMetrics_eng(SO_morph, "MemberFace", NULL,
+                              0, SUMAg_CF->DsetList);
    if (!SO_morph->Label && !
        (SO_morph->Label =  SUMA_SurfaceFileName(SO_morph, NOPE))){
        SO_morph->Label = SUMA_copy_string("LeMorphometre");
@@ -954,47 +954,47 @@ int main (int argc, char *argv[])
                    "Use program SurfQual to get detailed\n"
                    "information on the sphere's quality.\n");
    }
-   
+
    /* is this the check only ? */
    if ( CheckSphere ) {
-      OutName = SUMA_append_string (SO_morph->Label, 
+      OutName = SUMA_append_string (SO_morph->Label,
                                     "_Conv_detail.1D.dset");
-      Cx = SUMA_Convexity_Engine ( SO_morph->NodeList, 
-                                   SO_morph->N_Node, 
-                                   SO_morph->NodeNormList, 
+      Cx = SUMA_Convexity_Engine ( SO_morph->NodeList,
+                                   SO_morph->N_Node,
+                                   SO_morph->NodeNormList,
                                    SO_morph->FN, OutName, NULL);
       if (Cx) SUMA_free(Cx); Cx = NULL;
       SUMA_SphereQuality (SO_morph, SO_morph->Label, NULL, NULL, NULL);
-      fprintf( SUMA_STDERR, 
+      fprintf( SUMA_STDERR,
                "%s:\nExiting after SUMA_SphereQuality\n", FuncName);
 
-      if (OutName) SUMA_free(OutName); OutName = NULL;   
+      if (OutName) SUMA_free(OutName); OutName = NULL;
       SCRUBIT;
       exit (0);
    }
-   
+
    /*make certain same number of nodes in all (full, not patch) surfaces*/
    for (i=0; i<brainSpec.N_Surfs; ++i) {
-      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i], 
+      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i],
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
          exit(1);
-      } 
+      }
       if (  SO_morph->N_Node < SO->N_Node ) {
                /* This check used to be a strict != for N_Node,
-                  but it was skipped for known freesurfer patches 
-                  (those patches were identified by their state names) 
+                  but it was skipped for known freesurfer patches
+                  (those patches were identified by their state names)
                   Now the program only requires that the number of nodes
-                  in the morph surface be >= than that of the surface to be 
+                  in the morph surface be >= than that of the surface to be
                   similarly morphed             ZSS Dec 31 2008 */
-         fprintf( SUMA_STDERR, 
+         fprintf( SUMA_STDERR,
                   "Error %s:\n"
                   "  Morph Surface %s has less nodes (%d) \n"
-                  "   than surface %s                (%d)\n"         
+                  "   than surface %s                (%d)\n"
                   "Exiting.\n"
                   , FuncName, SO_morph->Label,
-                  SO_morph->N_Node, 
+                  SO_morph->N_Node,
                   SO->Label,
                   SO->N_Node);
          SCRUBIT;
@@ -1002,26 +1002,26 @@ int main (int argc, char *argv[])
       }
    }
 
-   
-   /**determine depth such that numTri best 
-      approximates (but overestimates) SO_morph->N_FaceSet? */ 
+
+   /**determine depth such that numTri best
+      approximates (but overestimates) SO_morph->N_FaceSet? */
    if ( depth<0 ) {
-     
+
       /*closest for recursive*/
       i = 0;  numTriBin = 20;
       while ( numTriBin < SO_morph->N_FaceSet ) {
          ++i;
          numTriBin = 20*( pow(2,2*i) );
       }
-      
+
       /*closest for linear*/
       j = 1;  numTriLin = 20;
       while ( numTriLin < SO_morph->N_FaceSet ) {
          ++j;
          numTriLin = 20*( pow(j,2) );
       }
-      
-      if (  fabs(numTriLin-SO_morph->N_FaceSet) < 
+
+      if (  fabs(numTriLin-SO_morph->N_FaceSet) <
             fabs(numTriBin-SO_morph->N_FaceSet) ) {
          depth = j;
          sprintf (bin, "n");
@@ -1031,8 +1031,8 @@ int main (int argc, char *argv[])
          sprintf (bin, "y");
       }
    }
-   
-   /**determine radius for icosahedron*/  
+
+   /**determine radius for icosahedron*/
    ctrX=0; ctrY=0; ctrZ=0; j=0;
    for (i=0; i<SO_morph->N_Node; ++i) {
       j = 3*i;
@@ -1043,27 +1043,27 @@ int main (int argc, char *argv[])
    ctrX = ctrX/(SO_morph->N_Node);
    ctrY = ctrY/(SO_morph->N_Node);
    ctrZ = ctrZ/(SO_morph->N_Node);
-   
+
    if (UserCenter > -1) {
       SUMA_S_Notev(  "User specified center of surface %s = \n"
                      "  [%.4f   %.4f   %.4f]\n"
                      "Center of mass of surface is = \n"
-                     "  [%.4f   %.4f   %.4f]\n" , 
-                        SO_morph->Label, 
+                     "  [%.4f   %.4f   %.4f]\n" ,
+                        SO_morph->Label,
                         Uctr[0], Uctr[1], Uctr[2],
                         ctrX, ctrY, ctrZ);
       ctrX = Uctr[0];
       ctrY = Uctr[1];
       ctrZ = Uctr[2];
    }else{
-      if (!SUMA_GetCenterOfSphereSurface( SO_morph, 500, 
+      if (!SUMA_GetCenterOfSphereSurface( SO_morph, 500,
                                           cent, centmed)) {
          SUMA_S_Err("Failed to estimate center of spherical surface.");
          exit(1);
       }else{
          if (UseCOM) {
             if (verb) {
-               SUMA_S_Notev(  
+               SUMA_S_Notev(
                   "Using (not recommended) center of mass coordinate of \n"
                   "  [%f   %f   %f]\n"
                   "instead of estimated geometric center of:\n"
@@ -1074,7 +1074,7 @@ int main (int argc, char *argv[])
                                 centmed[0], centmed[1], centmed[2],
                                 SO_morph->Label );
             }
-            sprintf(snote, 
+            sprintf(snote,
                "Notice: Forced to use COM of [%f   %f   %f], "
                "instead of geom. center of [%f   %f   %f] for %s.\n"
                               , ctrX, ctrY, ctrZ,
@@ -1082,21 +1082,21 @@ int main (int argc, char *argv[])
                               SO_morph->Label );
          } else {
             if (verb) {
-               SUMA_S_Notev(  
+               SUMA_S_Notev(
                   "Using (recommended) estimated geometric center of:\n"
                   "  [%f   %f   %f]\n"
                   "rather than center of mass coordinate of \n"
                   "  [%f   %f   %f]\n"
                   "for surface %s in absence of specified \n"
-                  "geometric center.\n", 
-                              centmed[0], centmed[1], centmed[2], 
+                  "geometric center.\n",
+                              centmed[0], centmed[1], centmed[2],
                               ctrX, ctrY, ctrZ,
                               SO_morph->Label );
             }
-            sprintf(snote, 
+            sprintf(snote,
                "Notice: Used geom. center of [%f   %f   %f] for %s. "
                "COM was [%f   %f   %f].\n",
-                              centmed[0], centmed[1], centmed[2], 
+                              centmed[0], centmed[1], centmed[2],
                               SO_morph->Label, ctrX, ctrY, ctrZ);
             ctrX = centmed[0];
             ctrY = centmed[1];
@@ -1105,20 +1105,20 @@ int main (int argc, char *argv[])
       }
 
    }
-     
+
    ctr[0] = 0; ctr[1] = 0; ctr[2] = 0;
-   r = sqrt(   pow( (SO_morph->NodeList[0]-ctrX), 2) + 
-               pow( (SO_morph->NodeList[1]-ctrY), 2) 
+   r = sqrt(   pow( (SO_morph->NodeList[0]-ctrX), 2) +
+               pow( (SO_morph->NodeList[1]-ctrY), 2)
              + pow( (SO_morph->NodeList[2]-ctrZ), 2) );
    if (UserRadius > -1) {
-      if (verb) {   
+      if (verb) {
          SUMA_S_Notev(  "Surface %s\n"
                      "  User specified radius = %.4f\n"
-                     "  Average raidus is     = %.4f\n" , 
-                        SO_morph->Label, 
+                     "  Average raidus is     = %.4f\n" ,
+                        SO_morph->Label,
                         UserRadius,
                         r);
-      } 
+      }
       sprintf( sbuf,
                " User specified radius = %.4f, Average raidus is     = %.4f."
                , UserRadius, r);
@@ -1129,32 +1129,32 @@ int main (int argc, char *argv[])
          SUMA_S_Notev(  "Surface %s\n"
                      "  Using average radius of %.4f\n"
                      , SO_morph->Label, r  );
-      } 
+      }
       sprintf(sbuf," Using average radius of %.4f", r);
       strcat (snote,sbuf);
    }
-   
-   if (verb) 
+
+   if (verb)
       SUMA_S_Notev(  "Creating Icodahedron of radius %f and center [%f %f %f]\n"
                   , r, ctr[0], ctr[1], ctr[2]);
    /**create icosahedron*/
    icoSurf = SUMA_CreateIcosahedron (r, depth, ctr, bin, 0);
    if (!icoSurf) {
-      fprintf (SUMA_STDERR, 
+      fprintf (SUMA_STDERR,
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       SCRUBIT;
       exit (1);
    }
-   
+
    /**write icosahedron to file, if indicated*/
    if ( all_surfs_spec ) {
       sprintf (icoFileNm, "%s_icoSurf", fout);
-      if (verb) 
-         fprintf (SUMA_STDERR, 
+      if (verb)
+         fprintf (SUMA_STDERR,
                   "\n"
                   "%s: Now writing surface %s to disk ...\n"
                   , FuncName, icoFileNm);
-      if (!(vbufp = SUMA_Save_Surface_Object_Wrap(icoFileNm, icoFileNm, icoSurf, 
+      if (!(vbufp = SUMA_Save_Surface_Object_Wrap(icoFileNm, icoFileNm, icoSurf,
                                SO_morph->FileType, SO_morph->FileFormat,
                                NULL))) {
          SUMA_S_Err("Failed to write icosahedron");
@@ -1163,54 +1163,54 @@ int main (int argc, char *argv[])
       /* Now add icosahedron */
       strcat(stdSpec->StateList, "icosahedron|");
       stdSpec->N_States += 1;
-      
+
       ++stdSpec->N_Surfs;
       /*add to spec*/
       strcpy  (stdSpec->State[stdSpec->N_Surfs-1], "icosahedron");
-      strcpy  (stdSpec->SurfaceType[stdSpec->N_Surfs-1],    
+      strcpy  (stdSpec->SurfaceType[stdSpec->N_Surfs-1],
                SUMA_SurfaceTypeString(SO_morph->FileType));
-      strcpy  (stdSpec->SurfaceFormat[stdSpec->N_Surfs-1],  
+      strcpy  (stdSpec->SurfaceFormat[stdSpec->N_Surfs-1],
                SUMA_SurfaceFormatString(SO_morph->FileFormat));
       strcpy  (stdSpec->LocalDomainParent[stdSpec->N_Surfs-1], "./SAME");
       strcpy  (stdSpec->AnatCorrect[stdSpec->N_Surfs-1], "N");
-      if (  SO_morph->FileType == SUMA_SUREFIT || 
+      if (  SO_morph->FileType == SUMA_SUREFIT ||
             SO_morph->FileType == SUMA_VEC ) {
-         strcpy  (stdSpec->TopoFile[stdSpec->N_Surfs-1], 
+         strcpy  (stdSpec->TopoFile[stdSpec->N_Surfs-1],
                   ((SUMA_SFname *)vbufp)->name_topo);
-         strcpy  (stdSpec->CoordFile[stdSpec->N_Surfs-1], 
+         strcpy  (stdSpec->CoordFile[stdSpec->N_Surfs-1],
                   ((SUMA_SFname *)vbufp)->name_coord);
       } else {
          strcpy  (stdSpec->SurfaceFile[stdSpec->N_Surfs-1], (char *)vbufp);
       }
       stdSpec->EmbedDim[stdSpec->N_Surfs-1] = 3;
-      SUMA_free(vbufp); vbufp = NULL; 
+      SUMA_free(vbufp); vbufp = NULL;
    }
-   
-   
+
+
    /** determine morph parameters by mapping icosahedron to spherical brain */
-   
+
    /* start timer */
    SUMA_etime(&start_time,0);
-   
-   
+
+
    if (UseCOM) {/* if old method, reset isSphere flags */
       icoSurf->isSphere = SUMA_GEOM_NOT_SET;
       SO_morph->isSphere = SUMA_GEOM_NOT_SET;
    }
-   
+
    MI = SUMA_MapSurface( icoSurf, SO_morph, verb, dist_prefix ) ;
    if (!MI) {
-      fprintf (SUMA_STDERR, 
+      fprintf (SUMA_STDERR,
                "Error %s: Failed in SUMA_MapIcosahedron.\n", FuncName);
       if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
       SCRUBIT;
       exit (1);
    }
-   
+
    if (WriteMI) {
       FILE *fp=NULL;
       char *fname =  SUMA_copy_string(outSpecFileNm);
-      
+
       fname = SUMA_append_replace_string( SUMA_CropExtension(fname,".spec"),
                         ".MI.1D","",1);
       /* always overwrite, unless you allow a prefix not based on
@@ -1223,7 +1223,7 @@ int main (int argc, char *argv[])
          SUMA_S_Errv("Failed to open %s for writing.\n", fname);
          exit (1);
       }
-      fprintf(fp, 
+      fprintf(fp,
 "# Col. 0: Std-mesh icosahedron's node index.\n"
 "# Col. 1..3: 1st..3rd closest nodes from original mesh (%s)\n"
 "# Col. 4..6: 4th..6th interpolation weight for each of the 3 closest nodes.\n"
@@ -1231,16 +1231,16 @@ int main (int argc, char *argv[])
 "# %s\n"
                   , SO_morph->Label, histnote, snote);
       for (i=0; i<MI->N_Node_std; ++i) {
-         fprintf(fp, "%6d   %6d %6d %6d   %f %f %f\n", 
-                     i, MI->ClsNodes[3*i], MI->ClsNodes[3*i+1], 
-                     MI->ClsNodes[3*i+2], 
-                     MI->Weight[3*i], MI->Weight[3*i+1], 
-                     MI->Weight[3*i+2]  ); 
+         fprintf(fp, "%6d   %6d %6d %6d   %f %f %f\n",
+                     i, MI->ClsNodes[3*i], MI->ClsNodes[3*i+1],
+                     MI->ClsNodes[3*i+2],
+                     MI->Weight[3*i], MI->Weight[3*i+1],
+                     MI->Weight[3*i+2]  );
       }
-      SUMA_free(fname); fname=NULL; 
-      fclose(fp); fp = NULL;   
+      SUMA_free(fname); fname=NULL;
+      fclose(fp); fp = NULL;
    }
-   
+
    etime_MapSurface = SUMA_etime(&start_time,1);
 
    /* Map the datasets from orig to stdandard space */
@@ -1257,7 +1257,7 @@ int main (int argc, char *argv[])
             SUMA_S_Err("Failed to save M2M");
             exit(1);
          }
-         SUMA_free(fname); fname=NULL; 
+         SUMA_free(fname); fname=NULL;
       }
       for (i=0; i<N_in_name; ++i) {
          if (verb) SUMA_S_Notev("Processing dset %s\n", in_name[i]);
@@ -1271,10 +1271,10 @@ int main (int argc, char *argv[])
             exit(1);
          }
          uname = SUMA_append_replace_string(
-               SUMA_FnameGet(in_name[i],"pa", SUMAg_CF->cwd), 
-                             SUMA_FnameGet(in_name[i],"l",SUMAg_CF->cwd), 
+               SUMA_FnameGet(in_name[i],"pa", SUMAg_CF->cwd),
+                             SUMA_FnameGet(in_name[i],"l",SUMAg_CF->cwd),
                              fout, 0);
-         oname = SUMA_WriteDset_s (uname, dseto, SUMA_ASCII_NIML, 1, 1); 
+         oname = SUMA_WriteDset_s (uname, dseto, SUMA_ASCII_NIML, 1, 1);
          if (verb) SUMA_S_Notev("Wrote %s\n", oname);
          if (oname) SUMA_free(oname); oname=NULL;
          if (uname) SUMA_free(uname); oname=NULL;
@@ -1285,33 +1285,33 @@ int main (int argc, char *argv[])
    }
    /**   morph surfaces backwards and write to file
          (using weighting from SUMA_MapSurfaces)      */
-   
+
    for (i=0; i<brainSpec.N_Surfs; ++i) {
-      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i], 
+      if (!(SO = SUMA_findSOp_inDOv( brainSpec.IDcode[i],
                                     SUMAg_DOv, SUMAg_N_DOv))) {
          SUMA_S_Errv( "Failed to find surface with id %s in DOv!",
                       brainSpec.IDcode[i]  );
          exit(1);
-      } 
-      if ( SO->EL==NULL) 
+      }
+      if ( SO->EL==NULL)
             SUMA_SurfaceMetrics(SO, "EdgeList", NULL);
-      if ( SO->EL && SO->N_Node) 
-         SO->FN = 
-            SUMA_Build_FirstNeighb( SO->EL, 
-                                    SO->N_Node, 
+      if ( SO->EL && SO->N_Node)
+         SO->FN =
+            SUMA_Build_FirstNeighb( SO->EL,
+                                    SO->N_Node,
                                     SO->idcode_str, verb );
       if ( SO->FN==NULL || SO->EL==NULL ) {
-         fprintf( SUMA_STDERR, 
-                  "Error %s: Failed in acquired Surface Metrics.\n", 
+         fprintf( SUMA_STDERR,
+                  "Error %s: Failed in acquired Surface Metrics.\n",
                   FuncName);
          exit (1);
       }
-      
+
       /* find relevant entry in output spec file */
       for (k=0; k<stdSpec->N_Surfs; ++k) {
          if (!strcmp(SO->idcode_str, stdSpec->IDcode[k]) &&
               ( strcmp(stdSpec->SurfaceFile[k], brainSpec.SurfaceFile[i]) ||
-                strcmp(stdSpec->TopoFile[k], brainSpec.TopoFile[i]) || 
+                strcmp(stdSpec->TopoFile[k], brainSpec.TopoFile[i]) ||
                 strcmp(stdSpec->CoordFile[k], brainSpec.CoordFile[i]) ) ) {
             kspec = k;
             break;
@@ -1320,21 +1320,21 @@ int main (int argc, char *argv[])
       if (verb) {
          SUMA_S_Notev("Matched stdSpec entry %d (%s %s %s) \n"
                       "to original surface %s\n",
-                      kspec, stdSpec->SurfaceFile[k], 
+                      kspec, stdSpec->SurfaceFile[k],
                       stdSpec->TopoFile[k], stdSpec->CoordFile[k],
-                      SO->Label); 
+                      SO->Label);
       }
       SOw = SUMA_morphToStd( SO, MI, YUP);
       if ( !SOw ) {
-         fprintf( SUMA_STDERR, 
+         fprintf( SUMA_STDERR,
                   "Error %s: Failed in morphing surface object.\n", FuncName);
          if (icoSurf) SUMA_Free_Surface_Object(icoSurf);
          if (SOw) SUMA_free (SOw);
          SCRUBIT;
          exit (1);
-      }            
+      }
       SOw->FileType = SO->FileType;
-      
+
       if (SO->FaceSetDim == 3 && correct_cuts) {
          int n_fixes = 0, eu=0;
          SUMA_EULER_SO(SOw, eu);
@@ -1358,8 +1358,8 @@ int main (int argc, char *argv[])
                i=0;
                while ( i<SOw->N_FaceSet) {
                   if ( boundt[i] > 0) {
-                     n1 = SOw->FaceSetList[3*i]; 
-                     n2 = SOw->FaceSetList[3*i+1]; 
+                     n1 = SOw->FaceSetList[3*i];
+                     n2 = SOw->FaceSetList[3*i+1];
                      n3 = SOw->FaceSetList[3*i+2];
                      p1 = &(SOw->NodeList[3*n1]);
                      p2 = &(SOw->NodeList[3*n2]);
@@ -1370,16 +1370,16 @@ int main (int argc, char *argv[])
                      }
                      if (SUMA_ABS(s[0]) < minimum_sine ||
                          SUMA_ABS(s[1]) < minimum_sine ||
-                         SUMA_ABS(s[2]) < minimum_sine ) { 
+                         SUMA_ABS(s[2]) < minimum_sine ) {
                         if (correct_cuts > 0) {
                            /* mark triangle for removal  */
                            SOw->FaceSetList[3*i] = -1;
                            SOw->FaceSetList[3*i+1] = -2;
-                           SOw->FaceSetList[3*i+2] = -3; 
+                           SOw->FaceSetList[3*i+2] = -3;
                         }
                         ++n_fixes;
-                     } 
-                  } 
+                     }
+                  }
                   ++i;
                }
                if (n_fixes) {
@@ -1401,12 +1401,12 @@ int main (int argc, char *argv[])
                      /* Need to recompute EL, and FN, and try one more time */
                      SUMA_free_Edge_List(SOw->EL); SOw->EL=NULL;
                      SUMA_Free_FirstNeighb(SOw->FN); SOw->FN=NULL;
-                     SUMA_SurfaceMetrics_eng( SOw, "EdgeList", NULL, 
+                     SUMA_SurfaceMetrics_eng( SOw, "EdgeList", NULL,
                                               0, SUMAg_CF->DsetList );
                      SUMA_S_Notev(
                         "%d very obtuse boundary triangles were clipped\n"
                         " from the standard mesh version of %s.\n"
-                        "    Repeating ...\n", 
+                        "    Repeating ...\n",
                         n_fixes, SO->Label);
                   } else {
                      /* just warn and leave */
@@ -1424,12 +1424,12 @@ int main (int argc, char *argv[])
                }
                if (boundt) SUMA_free(boundt); boundt=NULL;
             } while (n_fixes);
-         } 
-      } 
-      
+         }
+      }
+
       /*smooth surface, if indicated*/
       /*(only for smwm, pial or white surfaces)*/
-      if ( smooth && SO->AnatCorrect ) { 
+      if ( smooth && SO->AnatCorrect ) {
          if (verb) {
             SUMA_S_Notev("Smoothing standard mesh version of %s\n",
                           SO->Label);
@@ -1437,23 +1437,23 @@ int main (int argc, char *argv[])
          /* ZSS replaced ( id==0 || id==1 || id==5 ) with AnatCorrect  */
          bpf = 0.1;
          if ( !SUMA_Taubin_Smooth_Coef (bpf, &lambda, &mu) )
-            fprintf( SUMA_STDERR, 
+            fprintf( SUMA_STDERR,
                      "Error %s: "
                      "Failed in acquiring Taubin Coefficients.  \n"
                      "Surface will not be smoothed.\n"
                      "\n", FuncName);
          else {
-            d_order =  SUMA_ROW_MAJOR; 
-            SOw->FN = icoSurf->FN;  /*all smwm pial and white surfaces 
+            d_order =  SUMA_ROW_MAJOR;
+            SOw->FN = icoSurf->FN;  /*all smwm pial and white surfaces
                                           have same connectivity as icoSurf*/
 
-            smNodeList = SUMA_Taubin_Smooth (SOw, NULL, lambda, mu, 
-                                             SOw->NodeList, 
-                                             2*numIt, 3, d_order, NULL, cs, 
+            smNodeList = SUMA_Taubin_Smooth (SOw, NULL, lambda, mu,
+                                             SOw->NodeList,
+                                             2*numIt, 3, d_order, NULL, cs,
                                              NULL, 1);
             SOw->FN = NULL;  /* or else it gets freed below! */
-            if ( !smNodeList ) 
-               fprintf( SUMA_STDERR, 
+            if ( !smNodeList )
+               fprintf( SUMA_STDERR,
                         "Error %s: Failed in Taubin Smoothing.  \n"
                         "   Surface will not be smoothed.\n"
                         "\n"
@@ -1468,30 +1468,30 @@ int main (int argc, char *argv[])
          /* project to sphere only if spheres */
          SUMA_SetSphereParams(SO, 0.2);
          if (SO->isSphere == SUMA_GEOM_SPHERE) {
-            if ( verb ) 
+            if ( verb )
                SUMA_S_Note("Projecting standard mesh surface to sphere");
-            SUMA_ProjectToSphere(SOw, SO->SphereCenter, 
+            SUMA_ProjectToSphere(SOw, SO->SphereCenter,
                                  SO->SphereRadius);
          }
       }
-       
-      if (verb) 
-         fprintf (SUMA_STDERR, 
-                  "%s: Now writing surface %s to disk ...\n", 
+
+      if (verb)
+         fprintf (SUMA_STDERR,
+                  "%s: Now writing surface %s to disk ...\n",
                   FuncName, SO->Label);
       writeFile = NULL;
       if (SO->FileType == SUMA_SUREFIT || SO->FileType == SUMA_VEC) {
-         writeFile = 
+         writeFile =
             SUMA_Save_Surface_Object_Wrap (  stdSpec->CoordFile[kspec],
                                              stdSpec->TopoFile[kspec],
-                                             SOw, 
+                                             SOw,
                                              SO->FileType, SO->FileFormat,
                                              NULL);
       } else {
-         writeFile = 
+         writeFile =
             SUMA_Save_Surface_Object_Wrap (  stdSpec->SurfaceFile[kspec],
                                              stdSpec->SurfaceFile[kspec],
-                                             SOw, 
+                                             SOw,
                                              SO->FileType, SO->FileFormat,
                                              NULL);
       }
@@ -1501,27 +1501,27 @@ int main (int argc, char *argv[])
       } else {
          SUMA_free(writeFile); writeFile = NULL;
       }
-      
+
       if ( SOw ) SUMA_Free_Surface_Object( SOw );
       SOw = NULL;
 
    }
-   
-   
+
+
    /*write spec file*/
-   
+
    if (!SUMA_Write_SpecFile(stdSpec, outSpecFileNm, FuncName, histnote)) {
       SUMA_S_Err("Failed to write spec file!");
       exit(1);
-   }  
-   
-   
-   if (verb) 
-      fprintf (SUMA_STDERR, 
+   }
+
+
+   if (verb)
+      fprintf (SUMA_STDERR,
                "\n"
                "SUMA_MapSurface took %f seconds to execute.\n"
-               , etime_MapSurface); 
-   fprintf (SUMA_STDERR, 
+               , etime_MapSurface);
+   fprintf (SUMA_STDERR,
             "\n"
             "**               **\n"
             "    To view in SUMA, run:\n"
@@ -1529,27 +1529,27 @@ int main (int argc, char *argv[])
             "**               **\n"
             "\n"
             , outSpecFileNm);
-   
-   
+
+
    /* free variables */
    if (!SUMA_FreeSpecFields(&brainSpec)) {
       SUMA_S_Err("Faile to free spec fields");
    }
    if (!SUMA_FreeSpecFields(stdSpec)) {
       SUMA_S_Err("Faile to free spec fields");
-   } 
-   SUMA_free(stdSpec); 
-   
+   }
+   SUMA_free(stdSpec);
+
    if (MI) SUMA_Free_MorphInfo (MI);
    if (histnote) SUMA_free(histnote);
 
    /*free surfaces*/
    if (icoSurf) SUMA_Free_Surface_Object (icoSurf); icoSurf = NULL;
-   
-   SCRUBIT;   
+
+   SCRUBIT;
 
 
    SUMA_RETURN(0);
-   
+
 }/* main SUMA_MapIcosahedron*/
 

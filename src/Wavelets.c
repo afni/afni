@@ -110,7 +110,7 @@ int powerof2 (int n)
 int my_log2 (int n)
 {
   int i;
-   
+
   i = floor (log(n)/log(2.0) + 1.0e-10);
 
   return (i);
@@ -121,11 +121,11 @@ int my_log2 (int n)
   Apply filter to wavelet coefficients.
 */
 
-void FWT_1d_filter 
+void FWT_1d_filter
 (
   float * filter,         /* array of filter coefficients */
   int N,                  /* log2(NPTS) */
-  float * s               /* array of wavelet coefficients */ 
+  float * s               /* array of wavelet coefficients */
 )
 
 {
@@ -146,10 +146,10 @@ void FWT_1d_filter
   Set up array indicating which wavelet coefficients to set to zero.
 */
 
-float * FWT_1d_stop_filter 
+float * FWT_1d_stop_filter
 (
   int num_stop_filters,   /* number of wavelet stop filters */
-  int * stop_band,        /* wavelet filter stop band */ 
+  int * stop_band,        /* wavelet filter stop band */
   int * stop_mintr,       /* min. time for stop band */
   int * stop_maxtr,       /* max. time for stop band */
   int NFirst,             /* first image from input 3d+time dataset to use */
@@ -168,7 +168,7 @@ float * FWT_1d_stop_filter
 
   N = my_log2(NPTS);
   stop_filter = (float *) malloc (sizeof(float) * NPTS);   MTEST (stop_filter);
-  
+
 
   for (ipts = 0;  ipts < NPTS;  ipts++)
     {
@@ -193,7 +193,7 @@ float * FWT_1d_stop_filter
 	{
 	  if (band == stop_band[ifilter])
 	    {
-	      if ((mintr >= stop_mintr[ifilter]) 
+	      if ((mintr >= stop_mintr[ifilter])
 		  && (maxtr <= stop_maxtr[ifilter]))
 		stop_filter[ipts] = 0.0;
 	    }
@@ -201,7 +201,7 @@ float * FWT_1d_stop_filter
 
     }
 
-  
+
   return (stop_filter);
 
 }
@@ -215,7 +215,7 @@ float * FWT_1d_stop_filter
 float * FWT_1d_pass_filter
 (
   int num_pass_filters,   /* number of wavelet pass filters */
-  int * pass_band,        /* wavelet filter pass band */ 
+  int * pass_band,        /* wavelet filter pass band */
   int * pass_mintr,       /* min. time for pass band */
   int * pass_maxtr,       /* max. time for pass band */
   int NFirst,             /* first image from input 3d+time dataset to use */
@@ -234,7 +234,7 @@ float * FWT_1d_pass_filter
 
   N = my_log2 (NPTS);
   pass_filter = (float *) malloc (sizeof(float) * NPTS);   MTEST (pass_filter);
-  
+
 
   for (ipts = 0;  ipts < NPTS;  ipts++)
     {
@@ -259,7 +259,7 @@ float * FWT_1d_pass_filter
 	{
 	  if (band == pass_band[ifilter])
 	    {
-	      if ((mintr >= pass_mintr[ifilter]) 
+	      if ((mintr >= pass_mintr[ifilter])
 		  && (maxtr <= pass_maxtr[ifilter]))
 		pass_filter[ipts] = 1.0;
 	    }
@@ -267,7 +267,7 @@ float * FWT_1d_pass_filter
 
     }
 
-  
+
   return (pass_filter);
 
 }
@@ -278,7 +278,7 @@ float * FWT_1d_pass_filter
   Calculate the error sum of squares.
 */
 
-float calc_sse 
+float calc_sse
 (
   int NPTS,         /* number of usable data points from input data */
   float * trueData,     /* actual time series data */
@@ -296,7 +296,7 @@ float calc_sse
       diff = trueData[ipt] - est[ipt];
       sse += diff * diff;
     }
-  
+
   return (sse);
 }
 
@@ -355,7 +355,7 @@ float calc_freg
   Calculate the coefficient of multiple determination R^2.
 */
 
-float calc_rsqr 
+float calc_rsqr
 (
   float ssef,                 /* error sum of squares from full model */
   float sser                  /* error sum of squares from reduced model */
@@ -388,9 +388,9 @@ float calc_rsqr
   Perform wavelet analysis on a single input time series.
 */
 
-void wavelet_analysis 
+void wavelet_analysis
 (
-  int wavelet_type,         /* indicates type of wavelet */   
+  int wavelet_type,         /* indicates type of wavelet */
   int f,                    /* number of parameters removed by the filter */
   float * stop_filter,      /* select wavelet coefs. to stop */
   int q,                    /* number of parameters in the baseline model */
@@ -422,7 +422,7 @@ void wavelet_analysis
   float * fullfwt = NULL;   /* full model FWT coefficients */
   float * fullts = NULL;    /* full model time series */
 
-    
+
   /*----- Initialize local variables -----*/
   N = my_log2(NPTS);
 
@@ -509,7 +509,7 @@ void wavelet_analysis
 	ip++;
 	if (ip >= p)  break;
       }
-      
+
 
  /*----- Inverse Fast Wavelet Transform of full model FWT -----*/
   for (it = 0;  it < NPTS;  it++)
@@ -578,7 +578,7 @@ void wavelet_analysis
 
 /*---------------------------------------------------------------------------*/
 /*
-  Convert F-value to p-value.  
+  Convert F-value to p-value.
   This routine was copied from: mri_stats.c - linked with libmri.a?
 */
 
@@ -610,7 +610,7 @@ double fstat_t2p( double ff , double dofnum , double dofden )
 static char lbuf[4096];   /* character string containing statistical summary */
 static char sbuf[256];
 
-void report_results 
+void report_results
 (
   int N,                /* number of usable data points from input data */
   int NFirst,           /* first image from input 3d+time dataset to use */
@@ -631,24 +631,24 @@ void report_results
   int it;               /* time index */
   int icoef;            /* coefficient index */
   double pvalue;        /* p-value */
-  
+
 
   /** 22 Apr 1997: create label if desired by AFNI         **/
   /** [This is in static storage, since AFNI will copy it] **/
-  
+
   if( label != NULL ){  /* assemble this 1 line at a time from sbuf */
-    
+
     lbuf[0] = '\0' ;   /* make this a 0 length string to start */
-    
+
     /** for each reference, make a string into sbuf **/
-    
+
 
   /*----- Display wavelet coefficients for full model -----*/
   icoef = 0;
-  for (it = 0;  it < N;  it++)        
-    {                      
+  for (it = 0;  it < N;  it++)
+    {
       if (sgnl_filter[it])
-	{                             
+	{
 	  {
 	    int band, mintr, maxtr;
 
@@ -664,15 +664,15 @@ void report_results
 		mintr = (it - powerof2(band)) * powerof2(my_log2(N)-band);
 		maxtr = mintr + powerof2(my_log2(N)-band) - 1;
 	      }
-	    
+
 	    mintr += NFirst;
 	    maxtr += NFirst;
-	    
+
 	    if (base_filter[it])
-	      sprintf (sbuf, "B(%2d)[%3d,%3d] = %f \n", 
+	      sprintf (sbuf, "B(%2d)[%3d,%3d] = %f \n",
 		       band, mintr, maxtr, coef[icoef]);
 	    else
-	      sprintf (sbuf, "S(%2d)[%3d,%3d] = %f \n", 
+	      sprintf (sbuf, "S(%2d)[%3d,%3d] = %f \n",
 		       band, mintr, maxtr, coef[icoef]);
 	  }
 
@@ -680,11 +680,11 @@ void report_results
 
 	  icoef++;
 	}
-	    
+
     }  /* End loop over Wavelet coefficients */
 
 
-    /*----- Statistical results for baseline fit -----*/ 
+    /*----- Statistical results for baseline fit -----*/
     sprintf (sbuf, "\nBaseline: \n");
     strcat(lbuf,sbuf);
     sprintf (sbuf, "# params  = %4d \n", q);
@@ -693,7 +693,7 @@ void report_results
     strcat (lbuf, sbuf);
     sprintf (sbuf, "MSE       = %10.3f \n", sse_base/(N-f-q));
     strcat (lbuf, sbuf);
- 
+
 
      /*----- Statistical results for full model -----*/
     sprintf (sbuf, "\nFull Model: \n");
@@ -704,7 +704,7 @@ void report_results
     strcat (lbuf, sbuf);
     sprintf (sbuf, "MSE       = %10.3f \n", sse_full/(N-f-p));
     strcat (lbuf, sbuf);
-    
+
 
      /*----- Summary statistics -----*/
     sprintf (sbuf, "\nSummary Statistics: \n");
@@ -712,18 +712,18 @@ void report_results
 
     sprintf (sbuf, "R^2       = %10.3f \n", rfull);
     strcat (lbuf, sbuf);
-    
+
     sprintf (sbuf, "F[%2d,%3d] = %10.3f \n", p-q, N-f-p, ffull);
     strcat (lbuf, sbuf);
 
     pvalue = fstat_t2p ( (double) ffull, (double) p-q, (double) N-f-p);
     sprintf (sbuf, "p-value   = %e  \n", pvalue);
     strcat (lbuf, sbuf);
-    
-    
+
+
     *label = lbuf ;  /* send address of lbuf back in what label points to */
   }
-  
+
 }
 
 

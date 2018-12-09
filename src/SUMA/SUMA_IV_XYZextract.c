@@ -7,65 +7,65 @@
 
 #include "SUMA_suma.h"
 
-extern SUMA_CommonFields *SUMAg_CF; 
- 
+extern SUMA_CommonFields *SUMAg_CF;
+
 /*!
- 
+
 File :Taken from  IV_XYZextract.c
 Author : Ziad Saad
 Date : Tue Nov 17 19:02:16 CST 1998
- 
-Purpose : 
- 
- 	Extracts the XYZ coordinates of the nodes in an IV file so that we can manipulate the 
+
+Purpose :
+
+ 	Extracts the XYZ coordinates of the nodes in an IV file so that we can manipulate the
  	data to our liking. The program looks for a sequence of characters that seem to indicate
  	the start of the XYZ list. Once the sequence is found, the series of triplets is read and
- 	written out either to a file or to the screen. The sequence of triplets must be terminated 
+ 	written out either to a file or to the screen. The sequence of triplets must be terminated
  	by an ending sequence.
  	The starting and ending sequences are hard coded into the program.
- 	
+
  	The program outputs an error message if :
  	If the starting or ending sequences are not found
  	If the number of points read is not a multiple of three
- 	If the first number of the first XYZ triplet and the last character in the starting sequence 
+ 	If the first number of the first XYZ triplet and the last character in the starting sequence
  		are not spearated by a space (or tab). You can fix this by manually adding a space.
- 	 
- 	
- 
-Input paramters : 
- 
+
+
+
+Input paramters :
+
  	IV_filename (char *) a string specifying the name of the inventor file
  	N_NodeList (int *) will give the number of nodes in NodeList / 3 or /4
 	Include_Index (int) (0/1) controls the output of the function, see ahead for info
- 
-Usage : 
+
+Usage :
 		NodeList = SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int Include_Index)
- 
- 
-Returns : 
- NodeList (float *) an Mx3 (or Mx4) vector containing the 
- 	
+
+
+Returns :
+ NodeList (float *) an Mx3 (or Mx4) vector containing the
+
  		X	Y	Z coordinates of each node (with Include_Index = 0)
 		or
 		NodeIndex  X	Y	Z coordinates of each node (with Include_Index = 1)
- 		
+
  	entries on one line are separated by a tab.
- 	
- 
-Support : 
- 
- 
- 
-Side effects : 
- 
- 
- 
+
+
+Support :
+
+
+
+Side effects :
+
+
+
 ***/
- 
+
 /* Header FILES */
 
 #include "SUMA_suma.h"
- 
+
 /* CODE */
 float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex)
 {/* SUMA_IV_XYZextract */
@@ -77,25 +77,25 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 	int nospacing, MaxAlloc = 100;
 	div_t cnt3;
 	FILE*iv_file;
-	
+
 	SUMA_ENTRY;
-   
+
    cnt3.quot = cnt3.rem = 0;
-   
+
 	/* intialize the number of points read to 0 */
 	*N_NodeList = 0;
-	
+
 	linv = (float *)SUMA_malloc (MaxAlloc*sizeof(float));
 	if (!linv)
 		{
 				SUMA_alloc_problem ("Allocation error in SUMA_IV-XYZExtract");
 				SUMA_RETURN (NULL);
 		}
-	
+
 	/*This is the sequence to trigger reading the numbers*/
 	sprintf (seq_strt[0],"Coordinate3");
 	sprintf (seq_strt[1],"{");
-	sprintf (seq_strt[2],"point");	
+	sprintf (seq_strt[2],"point");
 	sprintf (seq_strt[3],"[");
 
 	si_exit = 4; /* set equal to the number of strings to be matched */
@@ -126,11 +126,11 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 
 		/*evl = equal_strings (s,seq_strt[si]);*/
 
-		if (strlen (seq_strt[si]) >= strlen (s)) 
+		if (strlen (seq_strt[si]) >= strlen (s))
 			{
 				evl = SUMA_iswordin (seq_strt[si],s);
 				if (evl == 1)
-					nospacing = 0; /* There is a space between character in starting sequence and first number*/ 
+					nospacing = 0; /* There is a space between character in starting sequence and first number*/
 			}
 		else
 			{
@@ -164,21 +164,21 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 
 	/* Now, read the series of numbers until you encounter the first string of the ending sequence*/
 	se = 0;
-	nospacing = 0; 
+	nospacing = 0;
 
 	while (ex != EOF && se < se_exit )
 		{
 			ex = fscanf (iv_file,"%s",s);
 			/*evl = equal_strings (s,seq_end[se]);*/
 
-			if (strlen (seq_end[se]) >= strlen (s)) 
+			if (strlen (seq_end[se]) >= strlen (s))
 				{
 					evl = SUMA_iswordin (seq_end[se],s);
 					if (evl == 1)
-						nospacing = 0; /* There is a space between last number and fisrt character in ending sequence */ 
+						nospacing = 0; /* There is a space between last number and fisrt character in ending sequence */
 				}
 			else
-				{ 
+				{
 					evl = SUMA_iswordin (s,seq_end[se]);
 					if (evl == 1)
 						nospacing = 1;
@@ -190,12 +190,12 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 						f = atof (s);
 						linv[cnt] = f;
 							#ifdef DEBUG_3
-								printf ("\nNumber (%d): %d is appended to end sequence !\n",cnt,linv[cnt]);	
+								printf ("\nNumber (%d): %d is appended to end sequence !\n",cnt,linv[cnt]);
 							#endif
-						
-						
+
+
 						++cnt;
-						
+
 						if (cnt >= MaxAlloc - 1)
 							{
 								MaxAlloc = MaxAlloc + 100;
@@ -205,8 +205,8 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 										SUMA_alloc_problem ("Re-Allocation error in IV-FaceSetExtract");
 										SUMA_RETURN (NULL);
 									}
-								
-							}  
+
+							}
 						se = 0;  /* no match for ending sequence, reset the counter */
 						break;
 					case 1:		/* found the first character in the end sequence */
@@ -214,10 +214,10 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 						{
 							f = atof (s);
 							linv[cnt] = f;
-							
+
 							++cnt;
 							#ifdef DEBUG_3
-								printf ("\nLast number (%d): %f is appended to end sequence !\n",cnt,f);	
+								printf ("\nLast number (%d): %f is appended to end sequence !\n",cnt,f);
 							#endif
 						}
 						#ifdef DEBUG_3
@@ -237,7 +237,7 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 					printf ("%s \t",seq_strt[i]);
 		}
 	else
-		{ 
+		{
 			if (se < se_exit)
 				{
 					SUMA_error_message ("SUMA_IV_XYZextract","Could not find specified ending sequence",0);
@@ -259,21 +259,21 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 		}
 
 	*N_NodeList = cnt3.quot;
-	
+
 	/* Now allocate space for IV_FaceSetsextract and fill it up */
 	if (!IncludeIndex)
 		NodeList = (float *) SUMA_calloc (*N_NodeList * 3, sizeof(float));
 	else
 		NodeList = (float *) SUMA_calloc (*N_NodeList * 4, sizeof(float));
-	
+
 	if (!NodeList)
 		{
 			SUMA_alloc_problem("SUMA_IV_XYZextract : Could not allocate");
 			SUMA_RETURN (NULL);
 		}
-	
+
 	if (!IncludeIndex)
-		{	
+		{
 			for (i=0; i< cnt; ++i)
 				{
 					NodeList[i] = linv[i];
@@ -284,30 +284,30 @@ float * SUMA_IV_XYZextract (char *IV_filename, int *N_NodeList, int IncludeIndex
 			cntlim = cnt/3;
 			for (i=0; i < cntlim; ++i)
 				{
-					
+
 					i4 = 4*i;
 					i3 = 3*i;
 					NodeList[i4] = i;
-					
+
 					NodeList[i4+1] = linv[i3];
 					NodeList[i4+2] = linv[i3+1];
 					NodeList[i4+3] = linv[i3+2];
-					
+
 				}
-			
+
 		}
-		
+
 	fclose (iv_file);
 	free (linv);
-	
+
 	SUMA_RETURN (NodeList);
-	
-	
+
+
 }/* SUMA_IV_XYZextract */
 
-#if 0 
+#if 0
 void usage ()
- 
+
   {/*Usage*/
 		printf ("\nUsage:  SUMA_IV_XYZextract <IV_filename> [-o output filename] [-c]\n\n");
 		printf ("\t  	Extracts the XYZ coordinates of the nodes in an IV file so that we can manipulate the \n");
@@ -336,13 +336,13 @@ void usage ()
 		printf ("\t\t\t Ziad Saad \tTue Nov 17 20:05:53 CST 1998 \n");
 		exit (0);
   }/*Usage*/
- 
+
 main (int argc,char *argv[])
 {/* Main */
 char outfile[300];
 float * NodeList;
 int N_NodeList, writeout,CountOnly,paramnum, ncol,IncludeIndex;
- 
+
 if (argc < 2)
     {
       usage ();
@@ -357,7 +357,7 @@ while (paramnum < argc)
 	{
 		if (equal_strings (argv[paramnum],"-o") == 1)
 			{
-				if ((paramnum + 1) >= argc) 
+				if ((paramnum + 1) >= argc)
 					{
 						SUMA_error_message ("SUMA_IV_XYZextract","No Output file name specified with -o option",1);
 						exit (1);
@@ -378,12 +378,12 @@ while (paramnum < argc)
 			{
 				CountOnly = 1;
 			}
-		
+
 		if (equal_strings (argv[paramnum],"-ii") == 1)
 			{
 				IncludeIndex = 1;
 			}
-		
+
 	++ paramnum;
 	}
 
@@ -391,15 +391,15 @@ if (IncludeIndex)
 	ncol = 4;
 else
 	ncol = 3;
-	
+
 NodeList = SUMA_IV_XYZextract (argv[1], &N_NodeList, IncludeIndex)	;
 
 if (CountOnly)
 	printf ("%d Nodes XYZ corrdinates read\n",N_NodeList);
 
 if (writeout == 1) {
-	FILE *outfid; 
-	
+	FILE *outfid;
+
 	outfid = fopen (outfile, "w");
 	if (outfid == NULL) {
 		fprintf (SUMA_STDERR, "Error %s: Could not open %s for writing.\n", FuncName, outfile);

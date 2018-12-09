@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /***********************************************************************
  * plug_roiedit.h		- see plug_roiedit.c v1.7
  ***********************************************************************
@@ -231,7 +231,7 @@ static int      r_wtgr_calc_max_frm_val  ( int value );
 static int      r_wtgr_calc_min_frm_val  ( int value );
 static void     r_wtgr_cb_suggest_limits ( Widget, XtPointer, XtPointer );
 static void     r_wtgr_mk_main_shell     ( r_X_s * );
- 
+
 static int      r_wt_bad_ngbr_exists     ( r_alg_s *, int, int );
 static void     r_wt_cb_activate_SA      ( void );
 static void     r_wt_cb_fill             ( Widget, XtPointer, XtPointer );

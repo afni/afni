@@ -8,8 +8,8 @@ SUMA_SurfaceObject *SUMA_ShowSurfComToSO(char *com);
 char ** SUMA_com2argv(char *com, int *argtcp);
 char ** SUMA_free_com_argv(char **argt, int *argtc);
 int SUMA_DriveSuma_ParseCommon(NI_group *ngr, int argtc, char ** argt);
-SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult, 
-                                    float *Key_pause, int *Key_redis, 
+SUMA_Boolean SUMA_ParseKeyModifiers(char *keyopt, int *Key_mult,
+                                    float *Key_pause, int *Key_redis,
                                     char **strgvalp);
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_DriveSuma_ParseInput(
                   char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps);

@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int ortbak_(integer *nm, integer *low, integer *igh, 
+/* Subroutine */ int ortbak_(integer *nm, integer *low, integer *igh,
 	doublereal *a, doublereal *ort, integer *m, doublereal *z__)
 {
     /* System generated locals */
@@ -58,12 +58,12 @@
 /*     NOTE THAT ORTBAK PRESERVES VECTOR EUCLIDEAN NORMS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

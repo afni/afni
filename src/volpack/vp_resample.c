@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -35,7 +35,7 @@
 
 typedef struct {
     int in_ptr_offset;		/* offset in bytes from beginning of scanline
-				   to first input sample for current 
+				   to first input sample for current
 				   output sample */
     float *wptr;		/* filter weights for the filter phase
 				   for current output sample */
@@ -54,7 +54,7 @@ static void ResampleUshort ANSI_ARGS((vpContext *vpc, int num_dimens,
 static void ResampleFloat ANSI_ARGS((vpContext *vpc, int num_dimens,
     int *src_dimens, int *dst_dimens, int *src_strides, int *dst_strides,
     float *in_array, float *out_array, FilterTemplate *template));
-static float *ComputeWeights ANSI_ARGS((vpContext *vpc, int src_xlen, 
+static float *ComputeWeights ANSI_ARGS((vpContext *vpc, int src_xlen,
     int dst_xlen, int filter_type));
 
 /*
@@ -275,7 +275,7 @@ FilterTemplate *template;/* filter template */
     out_x_count = dst_dimens[0];
     in_x_stride = src_strides[0];
     out_x_stride = dst_strides[0];
-    
+
     /* allocate space for current scanline coordinates */
     Alloc(vpc, scan_coord, int *, num_dimens * sizeof(int), "scan_coord");
     for (dim = 0; dim < num_dimens; dim++) {
@@ -374,7 +374,7 @@ FilterTemplate *template;/* filter template */
     out_x_count = dst_dimens[0];
     in_x_stride = src_strides[0];
     out_x_stride = dst_strides[0];
-    
+
     /* allocate space for current scanline coordinates */
     Alloc(vpc, scan_coord, int *, num_dimens * sizeof(int), "scan_coord");
     for (dim = 0; dim < num_dimens; dim++) {
@@ -477,7 +477,7 @@ FilterTemplate *template;/* filter template */
     out_x_count = dst_dimens[0];
     in_x_stride = src_strides[0];
     out_x_stride = dst_strides[0];
-    
+
     /* allocate space for current scanline coordinates */
     Alloc(vpc, scan_coord, int *, num_dimens * sizeof(int), "scan_coord");
     for (dim = 0; dim < num_dimens; dim++) {

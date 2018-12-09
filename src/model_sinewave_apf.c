@@ -114,7 +114,7 @@ void signal_model
     {
       t = x_array[it][1];
       fval = gs[0] * sinf( 2.0f*PI*gs[2]*t + (PI/180.0f)*gs[1] );
-      ts_array[it] = fval;	
+      ts_array[it] = fval;
     }
 #else
   switch( ib ){

@@ -8,7 +8,7 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       char * s = NULL, *sio=NULL;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
 "\nUsage:\n"
 "  SurfPatch <-spec SpecFile> <-surf_A insurf> <-surf_B insurf> ...\n"
 "            <-input nodefile inode ilabel> <-prefix outpref>  \n"
@@ -18,7 +18,7 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "            [-stiched_surface SURF]   \n"
 "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      printf (
 "Usage 1:\n"
 "  The program creates a patch of surface formed by nodes \n"
 "  in nodefile.\n"
@@ -78,7 +78,7 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                  surface. The results are written in a file with prefix\n"
 "                  NODE_DEPTH.pcdepth.1D.dset. You must use -patch2surf \n"
 "                  in order to use this option. \n"
-"                  Option is similar to the one in program ConvertSurface.\n" 
+"                  Option is similar to the one in program ConvertSurface.\n"
 "     -check_bowtie: Check if the patch has a section hanging by one node to\n"
 "                    the rest of the mesh. Think of a patch made of two \n"
 "                    triangles that are connected at one node only. \n"
@@ -91,14 +91,14 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                  min_hits is > 1. The repair is done by relaxing min_hits\n"
 "                  at the node(s) where the bowtie happens.\n"
 "     -ok_bowtie: Do not check for, or fix bowties. \n"
-"                 Default when -vol* are not used.\n" 
+"                 Default when -vol* are not used.\n"
 "     -adjust_contour: Once the patch is created, shrink its contours at nodes\n"
 "                      that were not in nodefile (non-selected).\n"
 "                      Each non-selected node is moved to the center of mass\n"
 "                      of itself and neighboring selected nodes.\n"
 "                      This adjustment might make sense when min_hits < 3\n"
 "                      \n"
-"     -do-not-adjust_contour:  Do not adjust contrours.\n" 
+"     -do-not-adjust_contour:  Do not adjust contrours.\n"
 "                              This is the default.\n"
 "     -stiched_surface STICHED: Write out the stiched surface used to\n"
 "                               calculate the volume. \n"
@@ -107,7 +107,7 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                               nodes on the original surface were adjusted.\n"
 "                               The first column in the node number. The 2nd\n"
 "                               contains the number of selected nodes that \n"
-"                               neighbored non-selected nodes in the patch.\n" 
+"                               neighbored non-selected nodes in the patch.\n"
 "     -coord_gain GAIN: Multiply node coordinates by a GAIN.\n"
 "                       That's useful if you have a tiny patch that needs\n"
 "                       enlargement for easier viewing in SUMA.\n"
@@ -166,11 +166,11 @@ void usage_SUMA_getPatch (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "%s"
 "\n"
 "%s"
-"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." ,
       (detail > 1) ? s : "");
    }
-    if (sio) SUMA_free(sio); s = NULL;        
-    if (s) SUMA_free(s); s = NULL;        
+    if (sio) SUMA_free(sio); s = NULL;
+    if (s) SUMA_free(s); s = NULL;
     if (detail) {
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
@@ -201,18 +201,18 @@ typedef struct {
 
 /*!
    \brief parse the arguments for SurfSmooth program
-   
+
    \param argv (char *)
    \param argc (int)
    \return Opt (SUMA_GETPATCH_OPTIONS *) options structure.
-               To free it, use 
-               SUMA_free(Opt->out_prefix); 
+               To free it, use
+               SUMA_free(Opt->out_prefix);
                SUMA_free(Opt);
 */
 SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
                                                  SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_GetPatch_ParseInput"}; 
+   static char FuncName[]={"SUMA_GetPatch_ParseInput"};
    SUMA_GETPATCH_OPTIONS *Opt=NULL;
    int kar, i, ind;
    char *outprefix;
@@ -220,7 +220,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = (SUMA_GETPATCH_OPTIONS *)SUMA_malloc(sizeof(SUMA_GETPATCH_OPTIONS));
 
    kar = 1;
@@ -243,16 +243,16 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
    Opt->verb = 1;
    Opt->flip = 0;
 	brk = NOPE;
-   
+
 	while (kar < argc) { /* loop accross command ine options */
 		/*fprintf(stdout, "%s verbose: Parsing command line...\n", FuncName);*/
 		if (strcmp(argv[kar], "-h") == 0 || strcmp(argv[kar], "-help") == 0) {
 			 usage_SUMA_getPatch(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
-		
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-hits") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -262,7 +262,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->minhits = atoi(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-coord_gain") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -272,7 +272,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->coordgain = atof(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-masklabel") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -282,7 +282,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->thislabel = atoi(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-node_depth") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -292,12 +292,12 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->nodedepth = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-patch2surf") == 0)) {
          Opt->Do_p2s = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
 			Opt->DoVol = 1;
 			brk = YUP;
@@ -313,22 +313,22 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
          Opt->VolOnly = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-adjust_contour") == 0)) {
 			Opt->adjust_contour = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-do-not-adjust_contour") == 0)) {
 			Opt->adjust_contour = 0;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-check_bowtie") == 0)) {
 			Opt->FixBowTie = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-fix_bowtie") == 0)) {
 			Opt->FixBowTie = 2;
 			brk = YUP;
@@ -338,7 +338,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->FixBowTie = 0;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -373,18 +373,18 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->out_volprefix = SUMA_copy_string(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-out_type") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -out_type \n");
 				exit (1);
 			}
-			if ((Opt->oType = 
-               SUMA_GuessSurfFormatFromExtension(argv[kar], NULL)) <= 
+			if ((Opt->oType =
+               SUMA_GuessSurfFormatFromExtension(argv[kar], NULL)) <=
                   SUMA_FT_NOT_SPECIFIED) {
             /* For backward compatibility */
-            Opt->oType = SUMA_guess_surftype_argv(argv[kar]);        
+            Opt->oType = SUMA_guess_surftype_argv(argv[kar]);
          }
          if (Opt->oType <= SUMA_FT_NOT_SPECIFIED) Opt->oType=SUMA_GIFTI;
          brk = YUP;
@@ -398,10 +398,10 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			}
 			Opt->in_name = argv[kar]; kar ++;
          Opt->nodecol = atoi(argv[kar]); kar ++;
-         Opt->labelcol = atoi(argv[kar]); 
+         Opt->labelcol = atoi(argv[kar]);
 			brk = YUP;
 		}
-      
+
 #if 0
       if (!brk && (strcmp(argv[kar], "-spec") == 0)) {
          kar ++;
@@ -412,7 +412,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->spec_file = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -422,7 +422,7 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 			Opt->sv_name = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && (strncmp(argv[kar], "-surf_", 6) == 0)) {
 			if (kar + 1>= argc)  {
 		  		fprintf (SUMA_STDERR, "need argument after -surf_X SURF_NAME \n");
@@ -438,38 +438,38 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
          Opt->N_surf = ind+1;
          brk = YUP;
 		}
-#endif      
+#endif
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
-                  "Error %s:\nOption %s not understood. Try -help for usage\n", 
+                  "Error %s:\nOption %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
-      
+
    }
-   
+
    /* sanity checks */
    if (Opt->FixBowTie < 0) {
       if (Opt->DoVol) Opt->FixBowTie = 1; /* important to check in this case */
       else Opt->FixBowTie = 0;
    }
-   
+
    if (Opt->adjust_contour < 0) {
       if (Opt->DoVol) Opt->adjust_contour = 0;
       else Opt->adjust_contour = 0;
    }
-   
+
    if (!Opt->out_prefix) Opt->out_prefix = SUMA_copy_string("SurfPatch");
-   
+
    if (Opt->thislabel >= 0 && Opt->labelcol < 0) {
       SUMA_SL_Err("Cannot use -masklabel without specifying "
                   "ilabel in -input option");
       exit(1);
-   } 
+   }
    if (Opt->minhits < 1 || Opt->minhits > 3) {
       SUMA_SL_Err("minhits must be > 0 and < 3");
       exit(1);
@@ -482,18 +482,18 @@ SUMA_GETPATCH_OPTIONS *SUMA_GetPatch_ParseInput (char *argv[], int argc,
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
+{/* Main */
    static char FuncName[]={"SurfPatch"};
-   SUMA_GETPATCH_OPTIONS *Opt; 
-   char *ppref=NULL, ext[5]; 
+   SUMA_GETPATCH_OPTIONS *Opt;
+   char *ppref=NULL, ext[5];
    float *far=NULL;
    MRI_IMAGE *im = NULL;
    int SO_read = -1;
-   int   *NodePatch=NULL, N_NodePatch=-1, *FaceSetList=NULL , 
-         N_FaceSet = -1, N_Node = -1, N_Spec=0;          
+   int   *NodePatch=NULL, N_NodePatch=-1, *FaceSetList=NULL ,
+         N_FaceSet = -1, N_Node = -1, N_Spec=0;
    int i, inodeoff=-1, ilabeloff=-1, nvec, ncol, cnt;
    SUMA_SurfaceObject *SO = NULL;
-   SUMA_PATCH *ptch = NULL; 
+   SUMA_PATCH *ptch = NULL;
    SUMA_SurfSpecFile *Spec;
    SUMA_INDEXING_ORDER d_order;
    void *SO_name = NULL;
@@ -503,16 +503,16 @@ int main (int argc,char *argv[])
    float *NodeList = NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
-	
+
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-   
-   
+
+
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
+
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
-   
+
    Opt = SUMA_GetPatch_ParseInput (argv, argc, ps);
    if (argc < 2)
     {
@@ -534,24 +534,24 @@ int main (int argc,char *argv[])
                   "for specifying surfaces.");
       exit(1);
    }
-   
+
    if (Spec->N_Surfs < 1) {
       SUMA_S_Err("No surfaces");
       exit(1);
    }
-     
+
    if (Opt->DoVol && Spec->N_Surfs != 2) {
       SUMA_S_Errv("Must specify 2 and only 2 surfaces with -vol options\n"
                   "Have %d from the command line\n",Spec->N_Surfs);
       exit(1);
    }
-   
+
    if (!Opt->Do_p2s && Opt->nodedepth) {
       SUMA_S_Err("You should not use -node_depth without -patch2surf");
       exit(1);
    }
-   
-   if (Opt->oType != SUMA_FT_NOT_SPECIFIED && !Opt->VolOnly) { 
+
+   if (Opt->oType != SUMA_FT_NOT_SPECIFIED && !Opt->VolOnly) {
       for (i=0; i < Spec->N_Surfs; ++i) {
          if (Spec->N_Surfs > 1) {
             sprintf(ext, "_%c", 65+i);
@@ -559,19 +559,19 @@ int main (int argc,char *argv[])
          } else {
             ppref = SUMA_copy_string(Opt->out_prefix);
          }
-         
-         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, 
+
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL,
                                            Opt->oType, &exists);
          if (exists && !THD_ok_overwrite()) {
             fprintf(SUMA_STDERR, "Error %s:\nOutput file(s) %s* on disk.\n"
                                  "Will not overwrite.\n", FuncName, ppref);
             exit(1);
          }
-         if (ppref) SUMA_free(ppref); ppref = NULL; 
+         if (ppref) SUMA_free(ppref); ppref = NULL;
          if (SO_name) SUMA_free(SO_name); SO_name = NULL;
-      } 
+      }
    }
-   
+
    /* read in the file containing the node information */
    im = mri_read_1D (Opt->in_name);
 
@@ -589,11 +589,11 @@ int main (int argc,char *argv[])
                            "One or both user-specified node (%d) and \n"
                            "label (%d) columns are too high. Maximum usable\n"
                            "column index is %d.\n"
-                           , FuncName, ncol, Opt->nodecol, 
+                           , FuncName, ncol, Opt->nodecol,
                            Opt->labelcol, ncol -1 );
       exit(1);
    }
-   
+
    d_order = SUMA_COLUMN_MAJOR;
 
    if (!nvec) {
@@ -607,7 +607,7 @@ int main (int argc,char *argv[])
       exit(1);
    }
    inodeoff = Opt->nodecol*nvec;
-   if (Opt->labelcol < 0) { /* all listed nodes */ 
+   if (Opt->labelcol < 0) { /* all listed nodes */
       for (i=0; i<nvec; ++i) {
          NodePatch[i] = far[i+inodeoff];
       }
@@ -622,7 +622,7 @@ int main (int argc,char *argv[])
                ++cnt;
             }
          }
-         N_NodePatch = cnt;     
+         N_NodePatch = cnt;
       } else { /* select labels */
          cnt = 0;
          for (i=0; i<nvec; ++i) {
@@ -631,53 +631,53 @@ int main (int argc,char *argv[])
                ++cnt;
             }
          }
-         N_NodePatch = cnt;    
+         N_NodePatch = cnt;
       }
       NodePatch = (int *) SUMA_realloc(NodePatch , sizeof(int)*N_NodePatch);
    }
-   
+
    /* done with im, free it */
-   mri_free(im); im = NULL;   
-   
+   mri_free(im); im = NULL;
+
    if (Opt->DoVol) {
-      SUMA_SurfaceObject *SO1 = 
+      SUMA_SurfaceObject *SO1 =
          SUMA_Load_Spec_Surf_with_Metrics(Spec, 0, ps->sv[0], 0);
-      SUMA_SurfaceObject *SO2 = 
+      SUMA_SurfaceObject *SO2 =
          SUMA_Load_Spec_Surf_with_Metrics(Spec, 1, ps->sv[0], 0);
       double Vol = 0.0;
       SUMA_SurfaceObject *SOp = SUMA_Alloc_SurfObject_Struct(1);
       byte *adj_N=NULL;
-      
-      if (Opt->adjust_contour) 
+
+      if (Opt->adjust_contour)
          adj_N = SUMA_calloc(SO1->N_Node, sizeof(byte));
-      
+
       if (!SO1 || !SO2) {
          SUMA_SL_Err("Failed to load surfaces.");
          exit(1);
       }
       /* a chunk used to test SUMA_Pattie_Volume */
-      Vol = SUMA_Pattie_Volume(SO1, SO2, NodePatch, N_NodePatch, 
-                               SOp, Opt->minhits, 
-                               Opt->FixBowTie, Opt->adjust_contour, 
+      Vol = SUMA_Pattie_Volume(SO1, SO2, NodePatch, N_NodePatch,
+                               SOp, Opt->minhits,
+                               Opt->FixBowTie, Opt->adjust_contour,
                                adj_N, Opt->verb);
       fprintf (SUMA_STDOUT,"Volume = %f\n", fabs(Vol));
       if (Opt->out_volprefix) {
          if (Opt->oType != SUMA_FT_NOT_SPECIFIED) SOp->FileType = Opt->oType;
          if (Opt->flip) {
-            if (Opt->verb > 1) 
+            if (Opt->verb > 1)
                SUMA_S_Note("Flipping stitched surf's triangles\n");
             SUMA_FlipSOTriangles (SOp);
          }
 
          if (!(SUMA_Save_Surface_Object_Wrap ( Opt->out_volprefix, NULL,
-                                               SOp, SUMA_PLY, SUMA_ASCII, 
+                                               SOp, SUMA_PLY, SUMA_ASCII,
                                                NULL))) {
             fprintf (SUMA_STDERR,
                      "Error %s: Failed to write surface object.\n", FuncName);
          }
          if (Opt->adjust_contour && adj_N) {
-            Opt->out_volprefix = 
-                     SUMA_append_replace_string(Opt->out_volprefix, 
+            Opt->out_volprefix =
+                     SUMA_append_replace_string(Opt->out_volprefix,
                                                    ".adjneighb","",1);
             ppref = SUMA_Extension(Opt->out_volprefix, ".1D.dset", NOPE);
             SUMA_WRITE_IND_ARRAY_1D(adj_N, NULL, SO1->N_Node, 1, ppref);
@@ -686,8 +686,8 @@ int main (int argc,char *argv[])
       }
       if (SOp) SUMA_Free_Surface_Object(SOp); SOp = NULL;
    }
-   
-   
+
+
    if (!Opt->VolOnly) {
       FaceSetList = NULL;
       N_FaceSet = -1;
@@ -701,22 +701,22 @@ int main (int argc,char *argv[])
             /* otherwise, when you reset the number of FaceSets for example,
                and you still write in GIFTI, the old contents of aSO will
                prevail */
-            SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO); 
+            SO->aSO = SUMA_FreeAfniSurfaceObject(SO->aSO);
          }
          /* extract the patch */
          ptch = SUMA_getPatch (NodePatch, N_NodePatch, SO->N_Node,
-                               SO->FaceSetList,  SO->N_FaceSet, 
-                               SO->MF, Opt->minhits, 
-                               Opt->FixBowTie, (!i && !Opt->DoVol)); 
-                                    /* verbose only for first patch, and 
-                                    if no volume computation was required  
+                               SO->FaceSetList,  SO->N_FaceSet,
+                               SO->MF, Opt->minhits,
+                               Opt->FixBowTie, (!i && !Opt->DoVol));
+                                    /* verbose only for first patch, and
+                                    if no volume computation was required
                                     This is to keep the warnings to a minimum*/
          if (!ptch) {
             SUMA_SL_Err("Failed to form patch.");
             exit(1);
          }
          if (LocalHead) SUMA_ShowPatch(ptch, NULL);
-      
+
          /* Now create a surface with that patch */
          if (Spec->N_Surfs > 1) {
             sprintf(ext, "_%c", 65+i);
@@ -727,7 +727,7 @@ int main (int argc,char *argv[])
          /* save the original type */
          typetmp = SO->FileType;
          if (Opt->oType != SUMA_FT_NOT_SPECIFIED) SO->FileType = Opt->oType;
-         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL, 
+         SO_name = SUMA_Prefix2SurfaceName(ppref, NULL, NULL,
                                            SO->FileType, &exists);
          if (ppref) SUMA_free(ppref); ppref = NULL;
          /* save the original pointers to the facesets and their number */
@@ -735,16 +735,16 @@ int main (int argc,char *argv[])
          N_FaceSet = SO->N_FaceSet;
          NodeList = SO->NodeList;
          N_Node = SO->N_Node;
-         
+
          /* replace with Patch */
          SO->FaceSetList = ptch->FaceSetList;
-         SO->N_FaceSet = ptch->N_FaceSet; 
-         
+         SO->N_FaceSet = ptch->N_FaceSet;
+
          if (Opt->Do_p2s) {
-            if (LocalHead) 
+            if (LocalHead)
                fprintf (SUMA_STDERR,
                         "%s: Changing patch to surface...\n", FuncName);
-            SOnew = SUMA_Patch2Surf(SO->NodeList, SO->N_Node, 
+            SOnew = SUMA_Patch2Surf(SO->NodeList, SO->N_Node,
                                     SO->FaceSetList, SO->N_FaceSet, 3);
             if (!SOnew) {
                SUMA_S_Err("Failed to change patch to surface.");
@@ -755,7 +755,7 @@ int main (int argc,char *argv[])
             SO->N_Node = SOnew->N_Node;
             SO->NodeList = SOnew->NodeList;
          }
-          
+
          if (SO->N_FaceSet <= 0) {
             SUMA_S_Warn("The patch is empty.\n"
                         " Non existing surface not written to disk.\n");
@@ -763,7 +763,7 @@ int main (int argc,char *argv[])
             /* Is the gain wanted? */
             if (Opt->coordgain) {
                SUMA_SL_Note("Applying coord gain to surface nodes!");
-               for (cnt=0; cnt < SO->NodeDim*SO->N_Node; ++cnt) 
+               for (cnt=0; cnt < SO->NodeDim*SO->N_Node; ++cnt)
                   SO->NodeList[cnt] *= Opt->coordgain;
             }
             if (Opt->flip) {
@@ -772,20 +772,20 @@ int main (int argc,char *argv[])
                SUMA_RECOMPUTE_NORMALS(SO);
             }
 
-            if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType, 
+            if (!SUMA_Save_Surface_Object (SO_name, SO, SO->FileType,
                                            SUMA_ASCII, NULL)) {
                   fprintf (SUMA_STDERR,
-                           "Error %s: Failed to write surface object.\n", 
+                           "Error %s: Failed to write surface object.\n",
                            FuncName);
                   exit (1);
             }
          }
-         
+
          if (Opt->nodedepth) {
             float *dpth=NULL, mx=0.0;
             SUMA_LH("Writing node depths into %s...\n", Opt->nodedepth);
             SUMA_PC_XYZ_PROJ *pcp=NULL;
-            if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth, 
+            if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth,
                                0.0, NULL, &mx, &pcp) < 0) {
                SUMA_S_Err("Failed to compute node depth");
                exit(1);
@@ -793,7 +793,7 @@ int main (int argc,char *argv[])
                if (!SUMA_WriteNodeDepth(Opt->nodedepth,pcp,dpth, mx)) {
                   SUMA_S_Err("Failed to write node depth");
                   exit(1);
-               } 
+               }
             }
             SUMA_ifree(dpth);
             pcp = SUMA_Free_PC_XYZ_Proj(pcp);
@@ -805,31 +805,31 @@ int main (int argc,char *argv[])
          SO->N_FaceSet = N_FaceSet; N_FaceSet = -1;
          SO->NodeList = NodeList; NodeList = NULL;
          SO->N_Node = N_Node; N_Node = -1;
-         
-         
+
+
          if (SO_name) SUMA_free(SO_name); SO_name = NULL;
          if (ptch) SUMA_freePatch(ptch); ptch = NULL;
-         if (SOnew) SUMA_Free_Surface_Object(SOnew); SOnew = NULL; 
+         if (SOnew) SUMA_Free_Surface_Object(SOnew); SOnew = NULL;
                /* get rid of old surface object */
-            
+
 
       }
-   } 
-   
+   }
+
    SUMA_LH("clean up");
    if (!SUMA_FreeSpecFields(Spec)) { SUMA_S_Err("Failed to free spec fields"); }
    SUMA_free(Spec); Spec = NULL;
    if (Opt->out_prefix) SUMA_free(Opt->out_prefix); Opt->out_prefix = NULL;
-   if (Opt->out_volprefix) SUMA_free(Opt->out_volprefix); 
+   if (Opt->out_volprefix) SUMA_free(Opt->out_volprefix);
                                                 Opt->out_volprefix = NULL;
-   if (Opt) SUMA_free(Opt);   
+   if (Opt) SUMA_free(Opt);
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
-   
+
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {
       SUMA_SL_Err("SUMAg_CF Cleanup Failed!");
    }
-   
+
    SUMA_RETURN(0);
-} 
+}

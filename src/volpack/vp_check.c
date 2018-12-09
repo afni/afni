@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -214,7 +214,7 @@ vpContext *vpc;
 	    if (vpc->shade_weight_table == NULL)
 		return(VPSetError(vpc, VPERROR_BAD_SHADER));
 	    if (vpc->shade_weight_table_size !=
-		(vpc->field_max[vpc->weight_field]+1) * sizeof(float) * 
+		(vpc->field_max[vpc->weight_field]+1) * sizeof(float) *
 		vpc->num_materials)
 		return(VPSetError(vpc, VPERROR_BAD_SHADER));
 	    if (vpc->field_size[vpc->weight_field] != 1)

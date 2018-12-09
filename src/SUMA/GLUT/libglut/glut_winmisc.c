@@ -58,7 +58,7 @@ glutPositionWindow(int x, int y)
 void
 glutReshapeWindow(int w, int h)
 {
-  if(w <= 0 || h <= 0) 
+  if(w <= 0 || h <= 0)
     __glutWarning("glutReshapeWindow: non-positive width or height not allowed");
 
   __glutCurrentWindow->desiredWidth = w;

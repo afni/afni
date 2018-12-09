@@ -391,7 +391,7 @@ void get_options
       fprintf (stderr, "%s Error: %s \n", PROGRAM_NAME, message);
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1);
-      
+
 
     }
 
@@ -464,12 +464,12 @@ ENTRY("adwarp_follower_dataset") ;
   new_dset->view_type = anat_parent->view_type;   /* but different view type */
   /* use template space of parent to mark as TLRC/MNI/... */
   MCW_strncpy( new_dset->atlas_space ,
-     anat_parent->atlas_space , THD_MAX_NAME ) ; 
+     anat_parent->atlas_space , THD_MAX_NAME ) ;
   new_dset->anat_parent = anat_parent;            /* what else makes sense? */
 
   new_dset->tagset = NULL ;  /* Oct 1998 */
   new_dset->Label_Dtable = NULL;                  /* ZSS Feb 26 2010 */
-  
+
   MCW_strncpy( new_dset->anat_parent_name ,
                anat_parent->self_name , THD_MAX_NAME ) ;
 
@@ -507,7 +507,7 @@ ENTRY("adwarp_follower_dataset") ;
       anat_parent->warp->type == new_dset->warp->type ){
 
     switch( anat_parent->warp->type ){
-	
+
     case WARP_AFFINE_TYPE:
       COPY_LMAP_BOUNDS( new_dset->warp->rig_bod.warp ,
 			anat_parent->warp->rig_bod.warp ) ;
@@ -694,7 +694,7 @@ ENTRY("adwarp_refashion_dataset") ;
   dkptr->dimsizes[2] = dset->daxes->nzz ;       /* daxes don't match! */
 
   /* write the header out */
- 
+
   good = THD_write_3dim_dataset( NULL,NULL , dset , False ) ;
   if( !good ){
     fprintf(stderr,"\a\n*** cannot write dataset header ***\n") ;
@@ -841,16 +841,16 @@ STATUS("have new image") ;
          }
 	code = fwrite( imar , dsiz , npix , far ) ;
 	mri_free(im) ;
-	
+
 	if( code != npix ){
 	  fprintf(stderr,
 		  "\a\n*** failure to write dataset slice %d (is disk full?)\n",kk) ;
 	  COMPRESS_fclose(far) ;
 	  COMPRESS_unlink( dkptr->brick_name ) ;
-	
+
 	  RETURN(False) ;
 	}
-	
+
     } /* end of loop over kk (z-direction) */
 
     if( option_data->verbose ) fprintf(stderr,"\n");

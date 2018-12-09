@@ -8,7 +8,7 @@ char *AFNI_All_Documented_Widgets(void)
    char *s=NULL;
    SUMA_ENTRY;
    s = SUMA_append_replace_string(s,AFNI_Help_AllMainCont(TXT),"\n",3);
-   
+
    /* s = SUMA_append_replace_string(s,SUMA_Help_AllInstaCorrCont(TXT),"\n",3);*/
    SUMA_RETURN(s);
 }
@@ -19,7 +19,7 @@ char * AFNI_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
    static char sss[64]={"You Should Never Get This"};
    static int lock = 0;
    char *DW = SUMA_get_DocumentedWidgets();
-   
+
    if (target == WEB && !DW) { /* That is when gsf needs DocumentedWidgets */
       char *ss=NULL;
       if (!lock) {
@@ -40,7 +40,7 @@ char * AFNI_gsf(char *uwname, TFORM target, char **hintout, char **helpout)
          SUMA_RETURN(sss);
       }
    }
-   
+
    SUMA_RETURN(SUMA_gsf_eng(uwname, target, hintout, helpout));
 }
 
@@ -56,24 +56,24 @@ char * AFNI_Help_AllMainCont (TFORM targ)
                      "AfniCont->ProgCont->done",
                      NULL };
    SUMA_ENTRY;
-   
+
    SS = SUMA_StringAppend (NULL, NULL);
-   
+
    k = 0;
    while (worder[k]) {
          s = AFNI_gsf(worder[k], targ, &sii, &shh);
          if (!shh || strstr(sii, shh)) {/* help same as hint */
             SS = SUMA_StringAppend_va(SS, "%s\n", s);
          } else {
-            SS = SUMA_StringAppend_va(SS, "%s\n%s\n", 
+            SS = SUMA_StringAppend_va(SS, "%s\n%s\n",
                                    s, shh?shh:"");
          }
          SUMA_ifree(sii); SUMA_ifree(shh);
       ++k;
    }
-          
+
    SUMA_SS2S(SS, s);
-      
+
    SUMA_RETURN(SUMA_Sphinx_String_Edit(&s, targ, 0));
 }
 

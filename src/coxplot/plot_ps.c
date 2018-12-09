@@ -186,7 +186,7 @@ void ps_linemod( char * s)
      fprintf( psfile , "[] 0 setdash\n") ;
   }
 }
-	
+
 void ps_space( int ix1 , int iy1 , int ix2 , int iy2 )
 { if( prolog_not_output ) ps_prolog() ;
   if (inpath) ps_stroke() ;

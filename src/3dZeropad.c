@@ -206,7 +206,7 @@ int main( int argc , char * argv[] )
 
       /*- what the hell? -*/
 
-      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ; 
+      fprintf(stderr,"** 3dZeropad: Illegal option: %s\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1) ;
    }
@@ -215,7 +215,7 @@ int main( int argc , char * argv[] )
       ERROR_message("Too few options, try %s -help for details\n",argv[0]);
       exit(1);
    }
-   
+
    /*- check to see if the user asked for something, anything -*/
 
    if( mset == NULL ){
@@ -459,5 +459,5 @@ int main( int argc , char * argv[] )
               "** 3dZeropad: Failed to write output!\n" ) ;
       exit(1) ;
    }
-   
+
 }

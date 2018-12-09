@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -115,7 +115,7 @@ char * RENAME_main( PLUGIN_interface * plint )
    find = THD_dset_in_sessionlist( FIND_IDCODE, idc, GLOBAL_library.sslist, -1 ) ;
    iss  = find.sess_index ;
    ss   = GLOBAL_library.sslist->ssar[iss] ;
-   id = find.dset_index ; 
+   id = find.dset_index ;
 
    /*-- for each element of this row,
         change its internal names and, if needed, filenames on disk --*/
@@ -125,7 +125,7 @@ char * RENAME_main( PLUGIN_interface * plint )
    for( ivv=FIRST_VIEW_TYPE ; ivv <= LAST_VIEW_TYPE ; ivv++ ){
 
       dset = GET_SESSION_DSET(ss, id, ivv);
-      
+
       if( ! ISVALID_3DIM_DATASET(dset) ) continue ;  /* skip this one */
 
       /*-- copy the old filenames --*/

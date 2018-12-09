@@ -175,7 +175,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     0 ,         /* default value */
                     FALSE       /* allow user to edit value? */
                   ) ;
-				
+
 	PLUTO_add_number( plint ,
                     "Threshold" ,  /* label next to chooser */
                     1 ,         /* smallest possible value */
@@ -183,7 +183,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
                     0 ,         /* decimal shift (none in this case) */
                     2 ,         /* default value */
                     FALSE       /* allow user to edit value? */
-                  ) ;	
+                  ) ;
 	/*-- Third line of input: intensity mask --*/
 
    PLUTO_add_option( plint ,
@@ -266,7 +266,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
    int demean ,ndmp,nprf;
    char *str, *nprfxstr, *mssg;
    float minx , maxx , minthr , maxthr ;
-	
+
 	str = (char *) calloc (PLUGIN_MAX_STRING_RANGE+10,sizeof(char));
 	nprfxstr	 = (char *) calloc (PLUGIN_MAX_STRING_RANGE+20,sizeof(char));
 	/* Do not allocate more space for mssg, because AFNI would choke on it*/
@@ -290,8 +290,8 @@ static char * DUMP_main( PLUGIN_interface * plint )
    		return "************************\n"
              "Bad 1st line option \n"
              "************************"  ;
-   	}	
-   	
+   	}
+
 
    idc  = PLUTO_get_idcode(plint) ; 	/* get 1st dataset item */
    xset = PLUTO_find_dset(idc) ;                   /* get ptr to dataset */
@@ -299,23 +299,23 @@ static char * DUMP_main( PLUGIN_interface * plint )
       return "**********************\n"
              "Cannot find Dataset #1\n"
              "**********************"  ;
-	
+
 	ud->dsetname = DSET_FILECODE (xset);
 	ud->Nsub = DSET_NVALS (xset);
-	
+
 	/*--------- loop over ramining options ---------*/
 	ud->DoInt = NOPE;
 	ud->DoThres = NOPE;
 	ud->DoInd = NOPE;
-	
+
 	ud->intind = 1; /* The first subbrick is numbered 1 here, it makes more sense to the user.*/
 	ud->thrind = 2;
-	
+
 	do
 		{
 			tag = PLUTO_get_optiontag(plint) ;
 			if (tag == NULL) break;
-			
+
 			if (equal_strings (tag, "Index") == 1)
 				{
 					ud->DoInd = YUP;
@@ -323,7 +323,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 					ud->thrind = PLUTO_get_number(plint) ;
 					continue;
 				}
-			
+
 			if (equal_strings (tag, "Intensity") == 1)
 				{
 					ud->DoInt = YUP;
@@ -331,7 +331,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 					ud->maxi = PLUTO_get_number(plint) ;
 					continue;
 				}
-			
+
 			if (equal_strings (tag, "Threshold") == 1)
 				{
 					ud->DoThres = YUP;
@@ -339,27 +339,27 @@ static char * DUMP_main( PLUGIN_interface * plint )
 					ud->maxth = PLUTO_get_number(plint) ;
 					continue;
 				}
-			
+
 			if (equal_strings (tag, "Output") == 1)
 					{
 						ud->strout = PLUTO_get_string(plint) ;
 						continue;
 					}
-			
-			
+
+
 		} while (1);
-		
+
 	if ( ISFUNC(xset) ) ud->isfunc = YUP;
 		else ud->isfunc = NOPE;
-	
+
 	if ( ISANAT(xset) ) ud->isanat = YUP;
 		else ud->isanat = NOPE;
-	
+
 	if (xset->func_type == FUNC_FIM_TYPE)
 			ud->fimonly = 1;
 		else
 			ud->fimonly = 0;
-	
+
 	if (ud->isanat && (ud->DoThres== YUP || ud->DoInd == YUP))
 		{
 			return "*************************************\n"
@@ -367,7 +367,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
                 "for fim or ANAT type bricks !\n"
                 "*************************************"  ;
 		}
-	
+
 
 	if (ud->DoInd == YUP && (ud->fimonly == YUP && ud->isfunc == YUP))
 		{
@@ -376,7 +376,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
                 "type bricks, they only have one !\n"
                 "*******************************"  ;
 		}
-			
+
 
 	/* Check for plausibility of input parameters */
 	if ((ud->DoInt && (ud->maxi < ud->mini)) || (ud->DoThres && (ud->maxth < ud->minth)))
@@ -388,7 +388,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
 		}
 	if (ud->DoInd && (ud->intind > ud->Nsub || ud->thrind > ud->Nsub))
 		{
-		
+
 		return "**********************\n"
              "One or both of the indices\n"
              "is larger than the maximum\n"
@@ -404,12 +404,12 @@ static char * DUMP_main( PLUGIN_interface * plint )
    	nprf = 0;
    else
    	nprf = 1;
-   	
-	
+
+
    if (nprf == 1 && (int)strlen(ud->strout) == 0)
    	nprf = 0;
-		
-	
+
+
    if (nprf == 0)
    	{
 			sprintf (nprfxstr,"%s.3Ddump",DSET_PREFIX(xset));
@@ -417,18 +417,18 @@ static char * DUMP_main( PLUGIN_interface * plint )
    	}
 
 
-	sprintf (str,"%s.log",ud->strout);	
-		
+	sprintf (str,"%s.log",ud->strout);
+
    if ((filexists(ud->strout) == 1) || (filexists(str) == 1))
    	{
    		return "**************************************\n"
    		       "Output file(s) exists, can't overwrite\n"
    		       "**************************************\n";
    	}
-   	
+
 	ud->outfile = fopen (ud->strout,"w");
 	ud->outlogfile = fopen (str,"w");
-	
+
 	if ((ud->outfile == NULL) || (ud->outlogfile == NULL))
 		{
 			return "*****************************************\n"
@@ -436,7 +436,7 @@ static char * DUMP_main( PLUGIN_interface * plint )
    		       "Check permissions.\n"
    		       "*****************************************\n";
 		}
-	
+
    /*------------------------------------------------------*/
    /*---------- At this point, the inputs are OK ----------*/
 
@@ -459,32 +459,32 @@ static char * DUMP_main( PLUGIN_interface * plint )
              					"*********************************"  ;
 
 						break;
-			
+
 				}
 		}
 
    /*-- put the output to the screen --*/
 
    /* That output message was too long. AFNI was crashing, must ask Bob to allow more verbose messages */
-	
+
    /*sprintf(mssg , "            Dataset %s was dumped.\n"
                  "%d voxels (%5f %% of total) met the boundary conditions.\n"
                   , DSET_FILECODE(xset) , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;*/
-						
+
    /* That's shorter */
 	sprintf(mssg , "%d voxels (%5f %% of total) were dumped.\n"
 	                 , ndmp , (float)ndmp/(float)(ud->nxx * ud->nyy * ud-> nzz)*100.0) ;
 
 	PLUTO_popup_message( plint , mssg ) ;
-	
-	
-	
+
+
+
 	fclose (ud->outfile);
 	fclose (ud->outlogfile);
-	free (nprfxstr);	
+	free (nprfxstr);
 	free (str);
 	free (mssg);
-	
+
    return NULL ;  /* null string returned means all was OK */
 }
 
@@ -498,45 +498,45 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
    int ii , jj, nxyz , fxar_new = 0  ,xpos,ypos,zpos , ndmp, pass;
 
 	ndmp = -1;
-	
+
    /*-- get datasets sizes --*/
 
 	ud->nxx = xset->daxes->nxx;
 	ud->nyy = xset->daxes->nyy;
 	ud->nzz = xset->daxes->nzz;
-	
+
    nxyz = xset->daxes->nxx * xset->daxes->nyy * xset->daxes->nzz ;
 
    /* Allocate space for data storage */
 	fxar = (float *) malloc( sizeof(float) * nxyz ) ; fxar_new = 1 ;
    Storear = (float **) allocate2D (ud->Nsub ,nxyz ,sizeof(float)); /* changed from :  allocate2D (nxyz  ,ud->Nsub,sizeof(float)) */
-	
+
 	if (fxar == NULL || Storear == NULL)
 		{
 			return -2;
 		}
-	
+
 	/*-- load the first dataset into memory --*/
 
 		DSET_load( xset ) ;
-		
-	/* Store Bricks in 2D array */	
+
+	/* Store Bricks in 2D array */
    for (ii = 0;ii < ud->Nsub; ++ii)
 		{
    		xar   = DSET_ARRAY(xset,ii) ;        /* get the array */
    		EDIT_coerce_scale_type (nxyz,DSET_BRICK_FACTOR(xset,ii),
    							DSET_BRICK_TYPE(xset,ii), xar,	MRI_float,fxar ) ;
-			
+
 			/* Store the iith sub-brick in Storear array */
 			for (jj = 0; jj < nxyz; ++jj)
 					Storear[ii][jj] = fxar[jj]; /* changed from : Storear[jj][ii] */
 		}
-		
+
    DSET_unload( xset ) ;  /* don't need this in memory anymore */
-   	
+
 	/* Dump the input info data to the log file */
 	write_ud (ud);
-	
+
 
    /* Now dump the data that meets the threshold */
 
@@ -548,40 +548,40 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
       			if (Storear[ud->intind-1][ii] < ud->mini || Storear[ud->intind-1][ii] > ud->maxi) /* changed both from : Storear[ii][ud->intind-1]*/
       				pass = NOPE;
       		}
-      	
+
       	if (pass && ud->DoThres)
       		{
       			if (Storear[ud->thrind-1][ii] < ud->minth || Storear[ud->thrind-1][ii] > ud->maxth)/* changed both from : Storear[ii][ud->intind-1]*/
       				pass = NOPE;
       		}
-      	
+
       	if (pass)
       	{
       		zpos = (int)ii / (int)(xset->daxes->nxx * xset->daxes->nyy);
 				ypos = (int)(ii - zpos * xset->daxes->nxx * xset->daxes->nyy) / xset->daxes->nxx;
 				xpos = ii - ( ypos * xset->daxes->nxx ) - ( zpos * xset->daxes->nxx * xset->daxes->nyy ) ;
-         	
+
          	fprintf (ud->outfile,"%d\t%d\t%d\t%d\t",ii,xpos,ypos,zpos);
-         		
+
 				for (jj = 0; jj < ud->Nsub; ++jj)
 					fprintf (ud->outfile," %f\t",Storear[jj][ii]); /* changed from: Storear[ii][jj] */
-					
+
 				fprintf (ud->outfile,"\n");
-					    	
+
 				++ndmp;
          }
         }
-		
+
 		/* increment by one because I want it to start at 0 */
      	++ndmp;
    }
-	
-	
+
+
 	fprintf (ud->outlogfile,"\n%d voxel points met the threshold conditions\n",ndmp);
-	
+
    /*-- free up arrays --*/
 
-	
+
    if( fxar_new )
 		{
 		free(fxar) ;
@@ -590,11 +590,11 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
 	 	{
 			DSET_unload(xset) ;
 		}
-	
-	
+
+
 	free2D ((char **)Storear,ud->Nsub);	/* changed from free2D ((char **)Storear,nxyz); */
 
-	
+
    return ndmp ;
 }
 
@@ -602,7 +602,7 @@ static int Dumpit( extract_data* ud, THD_3dim_dataset * xset)
 /* ************************************************************ */
 /* function to check for file existence       */
 /* ************************************************************ */
-	
+
 static int filexists (char *f_name)
 {/*filexists*/
         FILE *outfile;
@@ -641,8 +641,8 @@ void write_ud (extract_data* ud)
 		fprintf (ud->outlogfile,"Threshold index = %d\n",ud->thrind);
 		fprintf (ud->outlogfile,"\nThe format for the output file is the following:\n");
 	   fprintf (ud->outlogfile,"VI\tX\tY\tZ\tSb1\tSb2\t... Sbn\n\n");
-		
-		
+
+
 		return;
 	}
 
@@ -779,7 +779,7 @@ int equal_strings (char *s1,char *s2)
 
    while (s1[i] == s2[i]
    			&& s1[i] != '\0' && s2[i] != '\0') ++i;
-   			
+
    	if (s1[i] == '\0' && s2[i] == '\0') return (1);
    	 else return (0);
 

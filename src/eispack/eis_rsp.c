@@ -6,18 +6,18 @@
 #include "f2c.h"
 
 /* Subroutine */ int rsp_(integer *nm, integer *n, integer *nv, doublereal *a,
-	 doublereal *w, integer *matz, doublereal *z__, doublereal *fv1, 
+	 doublereal *w, integer *matz, doublereal *z__, doublereal *fv1,
 	doublereal *fv2, integer *ierr)
 {
     /* System generated locals */
     integer z_dim1, z_offset, i__1, i__2;
 
     /* Local variables */
-    extern /* Subroutine */ int tred3_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int tred3_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *);
     integer i__, j;
-    extern /* Subroutine */ int trbak3_(integer *, integer *, integer *, 
-	    doublereal *, integer *, doublereal *), tqlrat_(integer *, 
+    extern /* Subroutine */ int trbak3_(integer *, integer *, integer *,
+	    doublereal *, integer *, doublereal *), tqlrat_(integer *,
 	    doublereal *, doublereal *, integer *), tql2_(integer *, integer *
 	    , doublereal *, doublereal *, doublereal *, integer *);
 
@@ -61,12 +61,12 @@
 /*        FV1  AND  FV2  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

@@ -5,20 +5,20 @@
 ******************************************************************************/
 /*---------------------------------------------------------------------------*/
 /*
-  Program to calculate the voxelwise convolution of given impulse response   
-  function (IRF) time series contained in a 3d+time dataset with a specified 
-  input stimulus function time series.  This program will also calculate     
-  convolutions involving multiple IRF's and multiple stimulus functions.      
-  Input options include addition of system noise to the estimated output.    
-  Output consists of an AFNI 3d+time dataset which contains the estimated    
-  system response.  Alternatively, if all inputs are .1D time series files,  
-  then the output will be a single .1D time series file.                     
+  Program to calculate the voxelwise convolution of given impulse response
+  function (IRF) time series contained in a 3d+time dataset with a specified
+  input stimulus function time series.  This program will also calculate
+  convolutions involving multiple IRF's and multiple stimulus functions.
+  Input options include addition of system noise to the estimated output.
+  Output consists of an AFNI 3d+time dataset which contains the estimated
+  system response.  Alternatively, if all inputs are .1D time series files,
+  then the output will be a single .1D time series file.
 
   File:    3dConvolve.c
   Author:  B. Douglas Ward
   Date:    28 June 2001
 
-  Mod:     Correction to baseline parameter input error checking for case 
+  Mod:     Correction to baseline parameter input error checking for case
            of concatenated runs.
   Date:    11 July 2001
 
@@ -59,7 +59,7 @@
 /*---------------------------------------------------------------------------*/
 
 typedef struct DC_options
-{ 
+{
   int nxyz;                /* number of voxels in the input dataset */
   int nt;                  /* number of input 3d+time dataset time points */
   int NFirst;              /* first time point to calculate by convolution */
@@ -167,7 +167,7 @@ void display_help_menu()
     "                       if the -input1D option is used)                 \n"
     "                                                                       \n"
     );
-  
+
   PRINT_COMPILE_DATE ; exit(0);
 }
 
@@ -176,12 +176,12 @@ void display_help_menu()
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   DC_options * option_data    /* deconvolution program options */
 )
- 
+
 {
   int is;                     /* input stimulus time series index */
 
@@ -200,7 +200,7 @@ void initialize_options
   option_data->sigma   = 0.0;
   option_data->seed    = 1234567;
   option_data->xout    = 0;
-  
+
 
   /*----- Initialize stimulus options -----*/
   option_data->num_stimts     = 0;
@@ -213,8 +213,8 @@ void initialize_options
 
   /*----- Initialize character strings -----*/
   option_data->input_filename  = NULL;
-  option_data->mask_filename   = NULL;  
-  option_data->base_filename   = NULL;  
+  option_data->mask_filename   = NULL;
+  option_data->base_filename   = NULL;
   option_data->censor_filename = NULL;
   option_data->concat_filename = NULL;
   option_data->errts_filename  = NULL;
@@ -228,13 +228,13 @@ void initialize_options
 /*
   Routine to initialize the stimulus options.
 */
- 
-void initialize_stim_options 
+
+void initialize_stim_options
 (
   DC_options * option_data,   /* deconvolution program options */
   int num_stimts              /* number of input stimulus time series */
 )
- 
+
 {
   int is;                     /* input stimulus time series index */
 
@@ -259,7 +259,7 @@ void initialize_stim_options
 
   /*----- Initialize stimulus options -----*/
   for (is = 0;  is < num_stimts;  is++)
-    {  
+    {
       option_data->stim_filename[is] = NULL;
 
       option_data->stim_minlag[is] = 0;
@@ -280,7 +280,7 @@ void initialize_stim_options
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   DC_options * option_data         /* deconvolution program options */
 )
 
@@ -298,16 +298,16 @@ void get_options
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
+
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
+  if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();
 
-  
+
   /*----- initialize the input options -----*/
-  initialize_options (option_data); 
+  initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
@@ -322,8 +322,8 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
-     
+
+
       /*-----   -input1D   -----*/
       if (strcmp(argv[nopt], "-input1D") == 0)
 	{
@@ -331,8 +331,8 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -mask filename   -----*/
       if (strcmp(argv[nopt], "-mask") == 0)
 	{
@@ -344,35 +344,35 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -censor filename   -----*/
       if (strcmp(argv[nopt], "-censor") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -censor ");
-	  option_data->censor_filename = 
+	  option_data->censor_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->censor_filename);
 	  strcpy (option_data->censor_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -concat filename   -----*/
       if (strcmp(argv[nopt], "-concat") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -concat ");
-	  option_data->concat_filename = 
+	  option_data->concat_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->concat_filename);
 	  strcpy (option_data->concat_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
@@ -416,7 +416,7 @@ void get_options
 	  continue;
 	}
 
-      
+
       /*-----   -base_file filename   -----*/
       if (strcmp(argv[nopt], "-base_file") == 0)
 	{
@@ -428,7 +428,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -num_stimts num  -----*/
       if (strcmp(argv[nopt], "-num_stimts") == 0)
@@ -442,12 +442,12 @@ void get_options
 	    }
 
 	  initialize_stim_options (option_data, ival);
-	 
+
 	  nopt++;
 	  continue;
 	}
 
-      
+
       /*-----   -stim_file k sname   -----*/
       if (strcmp(argv[nopt], "-stim_file") == 0)
 	{
@@ -460,20 +460,20 @@ void get_options
 	  k = ival-1;
 	  nopt++;
 
-	  option_data->stim_filename[k] 
+	  option_data->stim_filename[k]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->stim_filename[k]);
 	  strcpy (option_data->stim_filename[k], argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_minlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_minlag") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_minlag");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -489,13 +489,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_maxlag k lag   -----*/
       if (strcmp(argv[nopt], "-stim_maxlag") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_maxlag");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -511,13 +511,13 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stim_nptr k p   -----*/
       if (strcmp(argv[nopt], "-stim_nptr") == 0)
 	{
 	  nopt++;
-	  if (nopt+1 >= argc)  
+	  if (nopt+1 >= argc)
 	    DC_error ("need 2 arguments after -stim_nptr");
 
 	  sscanf (argv[nopt], "%d", &ival);
@@ -533,7 +533,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -iresp k iprefix   -----*/
       if (strcmp(argv[nopt], "-iresp") == 0)
@@ -547,7 +547,7 @@ void get_options
 	  k = ival-1;
 	  nopt++;
 
-	  option_data->iresp_filename[k] 
+	  option_data->iresp_filename[k]
 	    = malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->iresp_filename[k]);
 	  strcpy (option_data->iresp_filename[k], argv[nopt]);
@@ -567,21 +567,21 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -sigma s  -----*/
       if (strcmp(argv[nopt], "-sigma") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -sigma ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  if (fval < 0.0)
 	    DC_error ("illegal argument after -sigma ");
 	  option_data->sigma = fval;
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----  -seed s  -----*/
       if (strcmp(argv[nopt], "-seed") == 0)
@@ -595,8 +595,8 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
-      
+
+
       /*-----   -xout   -----*/
       if (strcmp(argv[nopt], "-xout") == 0)
 	{
@@ -604,26 +604,26 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -output filename   -----*/
       if (strcmp(argv[nopt], "-output") == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  DC_error ("need argument after -output ");
-	  option_data->output_filename = 
+	  option_data->output_filename =
 	    malloc (sizeof(char)*THD_MAX_NAME);
 	  MTEST (option_data->output_filename);
 	  strcpy (option_data->output_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       DC_error (message);
-      
+
     }
 
 
@@ -636,7 +636,7 @@ void get_options
   a column selector attached.
 */
 
-float * read_time_series 
+float * read_time_series
 (
   char * ts_filename,          /* time series file name (plus column index) */
   int * ts_length              /* output value for time series length */
@@ -647,7 +647,7 @@ float * read_time_series
   char * cpt;                    /* pointer to column suffix */
   char filename[THD_MAX_NAME];   /* time series file name w/o column index */
   char subv[THD_MAX_NAME];       /* string containing column index */
-  MRI_IMAGE * im, * flim;  /* pointers to image structures 
+  MRI_IMAGE * im, * flim;  /* pointers to image structures
 			      -- used to read 1D ASCII */
   float * far;             /* pointer to MRI_IMAGE floating point data */
   int nx;                  /* number of time points in time series */
@@ -671,7 +671,7 @@ float * read_time_series
       DC_error (message);
     }
 
-  
+
   /*----- Set pointer to data, and set dimensions -----*/
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
@@ -685,9 +685,9 @@ float * read_time_series
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   
-  
-  
+    ts_data[ipt] = far[ipt + iy*nx];
+
+
   mri_free (flim);  flim = NULL;
 
   return (ts_data);
@@ -783,8 +783,8 @@ void read_input_data
   /*----- Read the input baseline, IRF, and error time series data -----*/
 
 
-  /*----- Read .1D files -----*/  
-  if (option_data->input1D)   
+  /*----- Read .1D files -----*/
+  if (option_data->input1D)
     {
       *dset_time = NULL;
       nt = option_data->NLast + 1;
@@ -793,11 +793,11 @@ void read_input_data
       /*----- Read the baseline parameter .1D time series -----*/
       if (option_data->base_filename != NULL)
 	{
-	  *base_data = read_time_series (option_data->base_filename, 
+	  *base_data = read_time_series (option_data->base_filename,
 					 base_length);
 	  if (*base_data == NULL)
-	    { 
-	      sprintf (message,  "Unable to read baseline .1D file: %s", 
+	    {
+	      sprintf (message,  "Unable to read baseline .1D file: %s",
 		       option_data->base_filename);
 	      DC_error (message);
 	    }
@@ -817,26 +817,26 @@ void read_input_data
 	  MTEST (*irf_length);
 	    for (is = 0;  is < num_stimts;  is++)
 	      {
-		(*irf_data)[is] 
-		  = read_time_series (option_data->iresp_filename[is], 
+		(*irf_data)[is]
+		  = read_time_series (option_data->iresp_filename[is],
 				      &(*irf_length)[is]);
-		if ((*irf_data)[is] == NULL)  
-		  { 
-		    sprintf (message,  "Unable to read IRF .1D file: %s", 
+		if ((*irf_data)[is] == NULL)
+		  {
+		    sprintf (message,  "Unable to read IRF .1D file: %s",
 			     option_data->iresp_filename[is]);
 		    DC_error (message);
 		  }
-	      }  
+	      }
 	}
 
       /*----- Read the error .1D time series -----*/
       if (option_data->errts_filename != NULL)
 	{
-	  *errts_data = read_time_series (option_data->errts_filename, 
+	  *errts_data = read_time_series (option_data->errts_filename,
 					  errts_length);
 	  if (*errts_data == NULL)
-	    { 
-	      sprintf (message,  "Unable to read residual error .1D file: %s", 
+	    {
+	      sprintf (message,  "Unable to read residual error .1D file: %s",
 		       option_data->errts_filename);
 	      DC_error (message);
 	    }
@@ -850,16 +850,16 @@ void read_input_data
 
 
   /*----- Read 3d+time datasets -----*/
-  else if (option_data->input_filename != NULL)   
+  else if (option_data->input_filename != NULL)
     {
       /*----- Read the input 3d+time (template) dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
-      if (!ISVALID_3DIM_DATASET(*dset_time))  
-	{ 
-	  sprintf (message,  "Unable to open template dataset file: %s", 
+      if (!ISVALID_3DIM_DATASET(*dset_time))
+	{
+	  sprintf (message,  "Unable to open template dataset file: %s",
 		   option_data->input_filename);
 	  DC_error (message);
-	}  
+	}
       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
       nt = DSET_NVALS (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
@@ -868,12 +868,12 @@ void read_input_data
       if (option_data->mask_filename != NULL)
 	{
 	  *mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(*mask_dset))  
-	    { 
-	      sprintf (message,  "Unable to open mask file: %s", 
+	  if (!ISVALID_3DIM_DATASET(*mask_dset))
+	    {
+	      sprintf (message,  "Unable to open mask file: %s",
 		       option_data->mask_filename);
 	      DC_error (message);
-	    }  
+	    }
      DSET_load(*mask_dset) ; CHECK_LOAD_ERROR(*mask_dset) ;
 	}
 
@@ -881,12 +881,12 @@ void read_input_data
       if (option_data->base_filename != NULL)
 	{
 	  *base_dset = THD_open_dataset (option_data->base_filename);
-	  if (!ISVALID_3DIM_DATASET(*base_dset))  
-	    { 
-	      sprintf (message,  "Unable to open baseline parameter file: %s", 
+	  if (!ISVALID_3DIM_DATASET(*base_dset))
+	    {
+	      sprintf (message,  "Unable to open baseline parameter file: %s",
 		       option_data->base_filename);
 	      DC_error (message);
-	    }  
+	    }
 	  DSET_load(*base_dset); CHECK_LOAD_ERROR(*base_dset);
 	  *base_length = DSET_NVALS (*base_dset);
 	}
@@ -902,7 +902,7 @@ void read_input_data
 	  *irf_length = (int *) malloc (sizeof(int) * num_stimts);
 	  MTEST (*irf_length);
 
-	  *irf_dset = (THD_3dim_dataset **) 
+	  *irf_dset = (THD_3dim_dataset **)
 	    malloc (sizeof(THD_3dim_dataset *) * num_stimts);
 	  MTEST (*irf_dset);
 
@@ -910,27 +910,27 @@ void read_input_data
 	    {
 	      (*irf_dset)[is]
 		= THD_open_dataset (option_data->iresp_filename[is]);
-	      if (!ISVALID_3DIM_DATASET((*irf_dset)[is]))  
-		{ 
-		  sprintf (message,  "Unable to open IRF file: %s", 
+	      if (!ISVALID_3DIM_DATASET((*irf_dset)[is]))
+		{
+		  sprintf (message,  "Unable to open IRF file: %s",
 			   option_data->iresp_filename[is]);
 		  DC_error (message);
-		}  
+		}
          DSET_load((*irf_dset)[is]) ; CHECK_LOAD_ERROR((*irf_dset)[is]) ;
 	      (*irf_length)[is] = DSET_NVALS ((*irf_dset)[is]);
-	    }	       
-	} 
+	    }
+	}
 
       /*----- Read the input error time series dataset -----*/
       if (option_data->errts_filename != NULL)
 	{
 	  *err_dset = THD_open_dataset (option_data->errts_filename);
-	  if (!ISVALID_3DIM_DATASET(*err_dset))  
-	    { 
-	      sprintf (message,  "Unable to open error time series file: %s", 
+	  if (!ISVALID_3DIM_DATASET(*err_dset))
+	    {
+	      sprintf (message,  "Unable to open error time series file: %s",
 		       option_data->errts_filename);
 	      DC_error (message);
-	    }  
+	    }
      DSET_load(*err_dset); CHECK_LOAD_ERROR(*err_dset);
 	  *errts_length = DSET_NVALS (*err_dset);
 	}
@@ -956,14 +956,14 @@ void read_input_data
   if (option_data->censor_filename != NULL)
     {
       /*----- Read the input censor time series array -----*/
-      *censor_array = read_time_series (option_data->censor_filename, 
+      *censor_array = read_time_series (option_data->censor_filename,
 					censor_length);
-      if (*censor_array == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read censor time series file: %s", 
+      if (*censor_array == NULL)
+	{
+	  sprintf (message,  "Unable to read censor time series file: %s",
 		   option_data->censor_filename);
 	  DC_error (message);
-	}  
+	}
     }
   else
     {
@@ -974,7 +974,7 @@ void read_input_data
       for (it = 0;  it < nt;  it++)
 	(*censor_array)[it] = 1.0;
     }
-      
+
 
   /*----- Read the input stimulus time series -----*/
   if (num_stimts > 0)
@@ -986,12 +986,12 @@ void read_input_data
 
       for (is = 0;  is < num_stimts;  is++)
 	{
-	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is], 
+	  (*stimulus)[is] = read_time_series (option_data->stim_filename[is],
 					      &((*stim_length)[is]));
-	  
+
 	  if ((*stimulus)[is] == NULL)
 	    {
-	      sprintf (message,  "Unable to read stimulus time series: %s", 
+	      sprintf (message,  "Unable to read stimulus time series: %s",
 		       option_data->stim_filename[is]);
 	      DC_error (message);
 	    }
@@ -1006,7 +1006,7 @@ void read_input_data
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -1017,27 +1017,27 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                			           GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       DC_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -1046,10 +1046,10 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       DC_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1058,7 +1058,7 @@ void check_one_output_file
   Routine to check whether output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   DC_options * option_data,       /* deconvolution program options */
   THD_3dim_dataset * dset_time    /* input 3d+time data set */
@@ -1066,9 +1066,9 @@ void check_output_files
 
 {
 
-  if ((option_data->output_filename != NULL) && (option_data->input1D != 1))  
+  if ((option_data->output_filename != NULL) && (option_data->input1D != 1))
     check_one_output_file (dset_time, option_data->output_filename);
-  
+
 }
 
 
@@ -1076,8 +1076,8 @@ void check_output_files
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs 
+
+void check_for_valid_inputs
 (
   DC_options * option_data,       /* deconvolution program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
@@ -1130,18 +1130,18 @@ void check_for_valid_inputs
 	       option_data->censor_filename);
       DC_error (message);
     }
-  
-  
+
+
   /*----- Create list of good (usable) time points -----*/
   *good_list = (int *) malloc (sizeof(int) * nt);  MTEST (*good_list);
   NFirst = option_data->NFirst;
   if (NFirst < 0)
     {
       for (is = 0;  is < num_stimts;  is++)
-	if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+	if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])
 	  NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
     }
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast;
   if (NLast < 0)  NLast = nt;
 
   N = 0;
@@ -1150,9 +1150,9 @@ void check_for_valid_inputs
     {
       if (ib+1 < num_blocks)
 	if (it >= block_list[ib+1])  ib++;
-      
+
       irb = it - block_list[ib];
-	  
+
       if ((irb >= NFirst) && (irb <= NLast) && (censor_array[it]))
 	{
 	  (*good_list)[N] = it;
@@ -1163,7 +1163,7 @@ void check_for_valid_inputs
 
   /*----- Check for sufficient data -----*/
   if (N == 0)  DC_error ("No usable time points?");
-  if (N <= p) 
+  if (N <= p)
     {
        sprintf (message,  "Insufficient data for estimating %d parameters", p);
        DC_error (message);
@@ -1214,7 +1214,7 @@ void check_for_valid_inputs
 	       option_data->errts_filename);
       DC_error (message);
     }
-  
+
 
   /*----- Check number of baseline parameters -----*/
   if (base_length != (option_data->polort+1)*num_blocks)
@@ -1266,11 +1266,11 @@ void zero_fill_volume (float ** fvol, int nxyz)
 {
   int ixyz;
 
-  *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol); 
+  *fvol  = (float *) malloc (sizeof(float) * nxyz);   MTEST(*fvol);
 
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     (*fvol)[ixyz]  = 0.0;
-      
+
 }
 
 
@@ -1279,7 +1279,7 @@ void zero_fill_volume (float ** fvol, int nxyz)
   Allocate memory for output volumes.
 */
 
-void allocate_memory 
+void allocate_memory
 (
   DC_options * option_data,  /* deconvolution algorithm options */
   float *** outts_vol        /* volumes for ouput time series */
@@ -1315,10 +1315,10 @@ void allocate_memory
   Perform all program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   DC_options ** option_data,       /* deconvolution algorithm options */
   THD_3dim_dataset ** dset_time,   /* input 3d+time data set */
   THD_3dim_dataset ** mask_dset,   /* input mask data set */
@@ -1340,30 +1340,30 @@ void initialize_program
   int * errts_length,              /* length of error time series data */
   float *** predts_vol             /* volumes for predicted time series data */
 )
-     
+
 {
 
 
   /*----- Allocate memory -----*/
   *option_data = (DC_options *) malloc (sizeof(DC_options));
 
-   
+
   /*----- Get command line inputs -----*/
   get_options (argc, argv, *option_data);
 
 
   /*----- Read input data -----*/
-  read_input_data (*option_data, dset_time, mask_dset, base_dset, err_dset, 
+  read_input_data (*option_data, dset_time, mask_dset, base_dset, err_dset,
 		   irf_dset, base_data, base_length, irf_data, irf_length,
 		   censor_array, censor_length, block_list, num_blocks,
 		   stimulus, stim_length, errts_data, errts_length);
 
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time, *mask_dset, *base_length,
-			  *irf_length, *censor_array, *censor_length, 
-			  *block_list, *num_blocks, *stim_length, 
+			  *irf_length, *censor_array, *censor_length,
+			  *block_list, *num_blocks, *stim_length,
 			  *errts_length, good_list);
-  
+
 
   /*----- Allocate memory for output volumes -----*/
   allocate_memory (*option_data, predts_vol);
@@ -1380,7 +1380,7 @@ void initialize_program
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void extract_ts_array 
+void extract_ts_array
 (
   THD_3dim_dataset * dset,           /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
@@ -1471,12 +1471,12 @@ void calc_response
 	  predts[good_list[it]] += rand_normal (0.0, sigma*sigma);
 	}
     }
-    
+
 
   /*----- dispose of vectors -----*/
   vector_destroy (&yhat);
 
- 
+
 }
 
 
@@ -1485,10 +1485,10 @@ void calc_response
   Save results for this voxel.
 */
 
-void save_voxel 
+void save_voxel
 (
   DC_options * option_data,  /* deconvolution algorithm options */
-  int iv,                    /* current voxel index */      
+  int iv,                    /* current voxel index */
   float * predts,            /* output predicted time series */
 
   float ** predts_vol        /* volumes for predicted time series data */
@@ -1519,7 +1519,7 @@ void save_voxel
   Calculate the impulse response function and associated statistics.
 */
 
-void calculate_results 
+void calculate_results
 (
   DC_options * option_data,      /* deconvolution algorithm options */
   THD_3dim_dataset * dset,       /* input 3d+time data set */
@@ -1540,7 +1540,7 @@ void calculate_results
   int  errts_length,             /* length of error time series data */
   float ** predts_vol            /* volumes for predicted time series data */
 )
-  
+
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
   float mask_val[1];          /* value of mask at current voxel */
@@ -1562,8 +1562,8 @@ void calculate_results
   int N;                   /* number of usable data points */
 
   int num_stimts;          /* number of stimulus time series */
-  int * min_lag;           /* minimum time delay for impulse response */ 
-  int * max_lag;           /* maximum time delay for impulse response */ 
+  int * min_lag;           /* minimum time delay for impulse response */
+  int * max_lag;           /* maximum time delay for impulse response */
   int * nptr;              /* number of stim fn. time points per TR */
 
   int it;                  /* data point index */
@@ -1609,18 +1609,18 @@ void calculate_results
   ts_array = (float *) malloc (sizeof(float) * nt);   MTEST (ts_array);
   if (option_data->input1D)
     for (it = 0;  it < nt;  it++)  ts_array[it] = 0.0;
-  
+
 
   /*----- Initialize the independent variable matrix -----*/
-  init_indep_var_matrix (p, q, polort, nt, N, good_list, block_list, 
-			 num_blocks, num_stimts, stimulus, stim_length, 
+  init_indep_var_matrix (p, q, polort, nt, N, good_list, block_list,
+			 num_blocks, num_stimts, stimulus, stim_length,
 			 min_lag, max_lag, nptr, NULL, &xdata);
   if (option_data->xout)  matrix_sprint ("X matrix:", xdata);
 
 
   vector_create (p, &coef);
 
-  
+
   /*----- Loop over all voxels -----*/
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
@@ -1628,10 +1628,10 @@ void calculate_results
       if (mask != NULL)
 	{
 	  extract_ts_array (mask, ixyz, mask_val);
-	  if (mask_val[0] == 0.0)  continue; 
+	  if (mask_val[0] == 0.0)  continue;
 	}
-      
-	  
+
+
       /*----- Extract model parameters for this voxel -----*/
       if (option_data->input1D)
 	{
@@ -1664,11 +1664,11 @@ void calculate_results
 		{
 		  coef.elts[ip] = coefts[ilag-min_lag[is]];
 		  ip++;
-		}	  
+		}
 	    }
 	}
-        
-   
+
+
       /*----- Extract error time series for this voxel -----*/
       if ((option_data->input1D) && (errts_data != NULL))
 	for (it = 0;  it < nt;  it++)
@@ -1683,28 +1683,28 @@ void calculate_results
 
 
       /*----- Calculate the system response for this voxel -----*/
-      calc_response (nt, ts_array, good_list, N, xdata, coef, 
+      calc_response (nt, ts_array, good_list, N, xdata, coef,
 		     predts, errts, sigma);
-      
-     
+
+
       /*----- Save results for this voxel -----*/
       save_voxel (option_data, ixyz, predts, predts_vol);
-       
-	  
+
+
       /*----- Report results for this voxel -----*/
-      if (option_data->input1D) 
+      if (option_data->input1D)
 	{
 	  printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	  
+
 	  for (it = 0;  it < nt;  it++)
 	    {
 	      printf  (" %f \n", predts[it]);
 	    }
-	  
+
 	}
-      
+
     }  /*----- Loop over voxels -----*/
-  
+
 
   /*----- Dispose of matrices and vectors -----*/
   vector_destroy (&coef);
@@ -1718,16 +1718,16 @@ void calculate_results
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to write one AFNI 3d+time data set. 
+  Routine to write one AFNI 3d+time data set.
 */
 
 
-void write_ts_array 
+void write_ts_array
 (
   int argc,                              /* number of input arguments */
-  char ** argv,                          /* array of input arguments */ 
+  char ** argv,                          /* array of input arguments */
   DC_options * option_data,              /* deconvolution algorithm options */
-  int ts_length,                         /* length of time series data */  
+  int ts_length,                         /* length of time series data */
   float ** vol_array,                    /* output time series volume data */
   char * output_filename                 /* output afni data set file name */
 )
@@ -1737,28 +1737,28 @@ void write_ts_array
 
   THD_3dim_dataset * dset = NULL;        /* input afni data set pointer */
   THD_3dim_dataset * new_dset = NULL;    /* output afni data set pointer */
-  int ib;                                /* sub-brick index */ 
+  int ib;                                /* sub-brick index */
   int ierror;                            /* number of errors in editing data */
-  int nxyz;                              /* total number of voxels */ 
+  int nxyz;                              /* total number of voxels */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   char * input_filename;    /* input afni data set file name */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
-  char label[80];           /* label for output file */ 
-  
+  char label[80];           /* label for output file */
+
 
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
   dset = THD_open_one_dataset (input_filename);
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
 
- 
+
   /*----- allocate memory -----*/
   bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar);
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
-  
-  
+
+
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
 
@@ -1777,24 +1777,24 @@ void write_ts_array
 
   /*----- Delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
-  
+
 
   ierror = EDIT_dset_items (new_dset,
 			    ADN_prefix,      output_filename,
 			    ADN_label1,      output_filename,
 			    ADN_self_name,   output_filename,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
-			    ADN_datum_all,   MRI_short,   
+			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,
+			    ADN_datum_all,   MRI_short,
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
 			    ADN_none);
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
@@ -1802,14 +1802,14 @@ void write_ts_array
     exit(1) ;
   }
 
-  
+
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
     {
 
       /*----- Set pointer to appropriate volume -----*/
       volume = vol_array[ib];
-      
+
       /*----- Allocate memory for output sub-brick -----*/
       bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
       MTEST (bar[ib]);
@@ -1822,7 +1822,7 @@ void write_ts_array
       fbuf[ib] = factor;
 
       /*----- attach bar[ib] to be sub-brick #ib -----*/
-      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+      mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
 
       EDIT_misfit_report( DSET_FILECODE(new_dset) , ib ,
                           nxyz , factor , bar[ib] , volume ) ;
@@ -1837,7 +1837,7 @@ void write_ts_array
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
   fprintf (stderr,"-- Output 3D+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
 
-  /*----- deallocate memory -----*/   
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
   free (fbuf);   fbuf = NULL;
 
@@ -1848,11 +1848,11 @@ void write_ts_array
 /*
   Write one time series array to specified file.
 */
- 
-void write_one_ts 
+
+void write_one_ts
 (
   char * prefix,                  /* output time series prefix name */
-  int ts_length,                  /* length of time series data */  
+  int ts_length,                  /* length of time series data */
   float ** vol_array              /* output time series volume data */
 )
 
@@ -1887,7 +1887,7 @@ void write_one_ts
 void output_results
 (
   int argc,                 /* number of input arguments */
-  char ** argv,             /* array of input arguments */ 
+  char ** argv,             /* array of input arguments */
   DC_options * option_data, /* deconvolution algorithm options */
 
   float ** predts_vol       /* volumes for predicted time series data */
@@ -1909,10 +1909,10 @@ void output_results
     if (option_data->input1D)
       write_one_ts (option_data->output_filename, nt, predts_vol);
     else
-      write_ts_array (argc, argv, option_data, nt, predts_vol, 
+      write_ts_array (argc, argv, option_data, nt, predts_vol,
 		      option_data->output_filename);
 
-  
+
 }
 
 
@@ -1945,22 +1945,22 @@ void terminate_program
   nt = (*option_data)->nt;
 
 
-  /*----- Deallocate memory for option data -----*/   
+  /*----- Deallocate memory for option data -----*/
   if (*option_data != NULL)
     { free (*option_data);  *option_data = NULL; }
 
   /*----- Deallocate base parameter memory -----*/
   if (*base_data != NULL)
     { free (*base_data);  *base_data = NULL; }
-  
+
   /*----- Deallocate memory for IRF time series -----*/
   if (*irf_data != NULL)
     {
       for (is = 0;  is < num_stimts;  is++)
 	if ((*irf_data)[is] != NULL)
-	  { free ((*irf_data)[is]);  (*irf_data)[is] = NULL; } 
-      free (*irf_data);  *irf_data = NULL; 
-    } 
+	  { free ((*irf_data)[is]);  (*irf_data)[is] = NULL; }
+      free (*irf_data);  *irf_data = NULL;
+    }
 
   /*----- Deallocate memory for IRF length -----*/
   if (*irf_length != NULL)
@@ -1969,11 +1969,11 @@ void terminate_program
   /*----- Deallocate memory for censor array -----*/
   if (*censor_array != NULL)
     { free (*censor_array);  *censor_array = NULL; }
-  
+
   /*----- Deallocate memory for list of usable time points -----*/
   if (*good_list != NULL)
     { free (*good_list);  *good_list = NULL; }
-  
+
   /*----- Deallocate memory for list of block starting points -----*/
   if (*block_list != NULL)
     { free (*block_list);  *block_list = NULL; }
@@ -1983,18 +1983,18 @@ void terminate_program
     {
       for (is = 0;  is < num_stimts;  is++)
 	if ((*stimulus)[is] != NULL)
-	  { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; } 
-      free (*stimulus);  *stimulus = NULL; 
-    } 
+	  { free ((*stimulus)[is]);  (*stimulus)[is] = NULL; }
+      free (*stimulus);  *stimulus = NULL;
+    }
 
   /*----- Deallocate memory for length of stimulus time series -----*/
   if (*stim_length != NULL)
     { free (*stim_length);  *stim_length = NULL; }
-  
+
   /*----- Deallocate memory for residual error time series -----*/
   if (*errts_data != NULL)
     { free (*errts_data);  *errts_data = NULL; }
-  
+
   /*----- Deallocate space for predicted time series -----*/
   if (*predts_vol != NULL)
     {
@@ -2010,10 +2010,10 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -2050,14 +2050,14 @@ int main
 
   float ** predts_vol = NULL;  /* volumes for estimated time series data */
   int is;                      /* stimulus index */
-  
 
-  
+
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -2067,39 +2067,39 @@ int main
 
 
   /*----- Program initialization -----*/
-  initialize_program (argc, argv, 
+  initialize_program (argc, argv,
               &option_data, &dset_time, &mask_dset, &base_dset, &err_dset,
 	      &irf_dset, &base_data, &base_length, &irf_data, &irf_length,
 	      &censor_array, &censor_length,
-	      &good_list, &block_list, &num_blocks, &stimulus, &stim_length, 
+	      &good_list, &block_list, &num_blocks, &stimulus, &stim_length,
 	      &errts_data, &errts_length, &predts_vol);
 
 
   /*----- Perform convolution -----*/
-  calculate_results (option_data, dset_time, mask_dset, base_dset, err_dset, 
+  calculate_results (option_data, dset_time, mask_dset, base_dset, err_dset,
 		     irf_dset, base_data, base_length, irf_data, irf_length,
 		     good_list, block_list, num_blocks, stimulus, stim_length,
 		     errts_data, errts_length, predts_vol);
-  
 
-  /*----- Deallocate memory for input datasets -----*/   
-  if (dset_time != NULL)  
+
+  /*----- Deallocate memory for input datasets -----*/
+  if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
-  if (mask_dset != NULL)  
+  if (mask_dset != NULL)
     { THD_delete_3dim_dataset (mask_dset, False);  mask_dset = NULL; }
-  if (base_dset != NULL)  
+  if (base_dset != NULL)
     { THD_delete_3dim_dataset (base_dset, False);  base_dset = NULL; }
-  if (err_dset != NULL)  
+  if (err_dset != NULL)
     { THD_delete_3dim_dataset (err_dset, False);   err_dset = NULL; }
-  if (irf_dset != NULL)  
-    { 
+  if (irf_dset != NULL)
+    {
       for (is = 0;  is < option_data->num_stimts;  is++)
-	if (irf_dset[is] != NULL)  
-	  { 
-	    THD_delete_3dim_dataset (irf_dset[is], False);  
-	    irf_dset[is] = NULL; 
+	if (irf_dset[is] != NULL)
+	  {
+	    THD_delete_3dim_dataset (irf_dset[is], False);
+	    irf_dset[is] = NULL;
 	  }
-      free(irf_dset);   irf_dset = NULL; 
+      free(irf_dset);   irf_dset = NULL;
     }
 
 

@@ -34,7 +34,7 @@ extern "C" {
 /* Define for using single precision */
 /*
  * If you can, use configure --enable-float instead of changing this
- * flag directly 
+ * flag directly
  */
 #define FFTW_ENABLE_FLOAT 1
 
@@ -46,7 +46,7 @@ typedef double fftw_real;
 #endif
 
 /*********************************************
- * Complex numbers and operations 
+ * Complex numbers and operations
  *********************************************/
 typedef struct {
      fftw_real re, im;
@@ -84,12 +84,12 @@ typedef enum {
 /*********************************************
  *              Codelets
  *********************************************/
-typedef void (fftw_notw_codelet) 
+typedef void (fftw_notw_codelet)
      (const fftw_complex *, fftw_complex *, int, int);
 typedef void (fftw_twiddle_codelet)
      (fftw_complex *, const fftw_complex *, int,
       int, int);
-typedef void (fftw_generic_codelet) 
+typedef void (fftw_generic_codelet)
      (fftw_complex *, const fftw_complex *, int,
       int, int, int);
 typedef void (fftw_real2hc_codelet)
@@ -126,8 +126,8 @@ typedef struct {
      enum fftw_node_type type;	/* TWIDDLE or NO_TWIDDLE */
      int signature;		/* unique id */
      int ntwiddle;		/* number of twiddle factors */
-     const int *twiddle_order;	/* 
-				 * array that determines the order 
+     const int *twiddle_order;	/*
+				 * array that determines the order
 				 * in which the codelet expects
 				 * the twiddle factors
 				 */
@@ -179,7 +179,7 @@ typedef struct fftw_rader_data_struct {
      fftw_codelet_desc *cdesc;
 } fftw_rader_data;
 
-typedef void (fftw_rader_codelet) 
+typedef void (fftw_rader_codelet)
      (fftw_complex *, const fftw_complex *, int,
       int, int, fftw_rader_data *);
 
@@ -363,27 +363,27 @@ extern void fftw_fprint_plan(FILE *f, fftw_plan plan);
 typedef struct {
      int is_in_place;		/* 1 if for in-place FFTs, 0 otherwise */
 
-     int rank;			/* 
+     int rank;			/*
 				 * the rank (number of dimensions) of the
-				 * array to be FFTed 
+				 * array to be FFTed
 				 */
      int *n;			/*
 				 * the dimensions of the array to the
-				 * FFTed 
+				 * FFTed
 				 */
      fftw_direction dir;
 
      int *n_before;		/*
-				 * n_before[i] = product of n[j] for j < i 
+				 * n_before[i] = product of n[j] for j < i
 				 */
      int *n_after;		/* n_after[i] = product of n[j] for j > i */
 
      fftw_plan *plans;		/* 1d fftw plans for each dimension */
 
      int nbuffers, nwork;
-     fftw_complex *work;	/* 
+     fftw_complex *work;	/*
 				 * work array big enough to hold
-				 * nbuffers+1 of the largest dimension 
+				 * nbuffers+1 of the largest dimension
 				 * (has nwork elements)
 				 */
 } fftwnd_data;

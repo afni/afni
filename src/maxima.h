@@ -10,7 +10,7 @@
 #ifdef  __cplusplus
 extern "C" {
 #endif
-   
+
 /*  AFNI stuff  */
 
 /*--------------------  defines    ----------------------------------------*/
@@ -122,7 +122,7 @@ static void	show_point_list_s  ( char * mesg, point_list_s *, int );
 int 		point_comp_neg     ( const void *, const void * );
 int 		point_comp_pos     ( const void *, const void * );
 
- 
+
 int  disp_r_afni_s         ( char * mesg, r_afni_s * A );
 int  disp_str_list         ( char * list[], int len );
 int  display_coords        ( r_afni_s *, maxima_s * );

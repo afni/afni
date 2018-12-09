@@ -15,14 +15,14 @@
 #define MINEIG (0) // minimum allowed eigenvalue
 
 #ifdef XORG7
-   #define CORR_FUN(a,b,n) (THD_pearson_corrd((n),(a),(b)))	
+   #define CORR_FUN(a,b,n) (THD_pearson_corrd((n),(a),(b)))
    #define GSL_RAN gsl_ran_gaussian
 #else
    #define CORR_FUN(a,b,n) (gsl_stats_correlation((a), 1, (b), 1, (n)))
    #define GSL_RAN gsl_ran_gaussian_ziggurat
 #endif
 
-// Added in Feb,2015.  
+// Added in Feb,2015.
 int ByeByeBundle( int A,
                   int B,
                   int NET,
@@ -40,7 +40,7 @@ int MatrInd_to_FlatUHT_DIAG_M(int i, int j, int N);
 int MatrInd_to_FlatUHT(int i, int j, int N);
 int FlatUHT_Len(int N);
 
-int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST, 
+int ViveLeRoi(THD_3dim_dataset *REF, int **ROILIST, int **INVLIST,
 				  int *NUMROI, int *INVROI);
 
 int CheckNotMask(int id, int br, short **amask, int AO);
@@ -49,44 +49,44 @@ int ScoreTrackGrid_M( float ***PG,int idx, int h, int C,
                       THD_3dim_dataset **inset, int bot, int top);
 
 int TrackItP_NEW_M( int NHAR, short *DirPerVox, int SEL, float **CC,
-                    int *IND, float *PHYSIND, 
-                    float *Edge, int *dim, float minFA, 
-                    float maxAng, int arrMax, 
+                    int *IND, float *PHYSIND,
+                    float *Edge, int *dim, float minFA,
+                    float maxAng, int arrMax,
                     int **T, float **flT, int FB, float *physL,
                     int ***ID2);
 
-int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX, 
+int Setup_Labels_Indices_Unc_M_both(int *Dim, int ***mskd, int ***INDEX,
                                     int ***INDEX2, float **UNC,
-                                    float **coorded, float **copy_coorded, 
-                                    THD_3dim_dataset *insetFA, 
+                                    float **coorded, float **copy_coorded,
+                                    THD_3dim_dataset *insetFA,
                                     short *DirPerVox,
                                     int N_HAR,
-                                    THD_3dim_dataset **insetV, 
+                                    THD_3dim_dataset **insetV,
                                     THD_3dim_dataset *insetUC,
                                     float unc_minei_std, float unc_minfa_std,
                                     int N_nets, int *NROI,
-                                    THD_3dim_dataset *mset1, int **MAPROI, 
+                                    THD_3dim_dataset *mset1, int **MAPROI,
                                     int **INV_LABELS, int ***NETROI);
 
 int Setup_Ndir_per_vox( int N_HAR, int *Dim, int ***mskd,
-                        int ***INDEX, 
+                        int ***INDEX,
                         int ***INDEX2,
                         THD_3dim_dataset **insetHARDIR,
                         short *DirPerVox);
 
 int DTI_Perturb_M( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
-                   float **UNC, float **coorded, float **copy_coorded, 
-                   gsl_rng *r, 
+                   float **UNC, float **coorded, float **copy_coorded,
+                   gsl_rng *r,
                    THD_3dim_dataset **insetV);
 
 int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
-                   float **UNC, float **coorded, float **copy_coorded, 
+                   float **UNC, float **coorded, float **copy_coorded,
                    gsl_rng *r, short *DirPerVox);
 
-int Two_DOF_Rot( float *X, float *Y, 
+int Two_DOF_Rot( float *X, float *Y,
                  double POL, double AZIM, float rot[3][3] );
 
-int WritebasicProbFiles( int N_nets, int Ndata, int Nvox, 
+int WritebasicProbFiles( int N_nets, int Ndata, int Nvox,
                          char *prefix, THD_3dim_dataset *insetFA,
                          int *TV_switch, char *voxel_order, int *NROI,
                          int ***NETROI, int ***mskd, int ***INDEX2, int *Dim,

@@ -31,7 +31,7 @@
 		duplicated classes in the map file in the order that they appear
 		(e.g., given a sequence of classes [ D C A B A ], the reorderd
 		order returned will be indices for [ A1 A2 B C D ]).
-		
+
 		The "epoch map" is a series of entries (given in a text file)
 		which indicates the classification and, implicitly, the target
 		order of epochs of a time-course. These maps are companions to
@@ -49,7 +49,7 @@
 		point from the resulting reordering. 'EpochClass' is a single letter,
 		[a-zA-Z], which classifies the current epoch; the contatenated number
 		is an increasing value from 1 to the epoch length and is used mainly
-		to delimit contiguous instances of the same class. 
+		to delimit contiguous instances of the same class.
 
 		For example:
 
@@ -94,8 +94,8 @@
 			#   RingSize |               __A__
 			#            |          __D__|
 			#            |     __B__|
-			#            |    |     
-			#            |__C_|    
+			#            |    |
+			#            |__C_|
 			#            |_____________________
 			#            1                   20 (TR)
 			#
@@ -246,13 +246,13 @@ for(i = 0, line = 1, excluded = 0;; line++) {
 
 	/* Get the next line */
 	fgets(cBuf, sizeof(cBuf), inf);
-	
+
 	/* Delete newline character */
 	sptr = strchr(cBuf, '\n');
 	if(sptr) {
 		*sptr = 0;
 		}
-  
+
 	/* Eat leading whitespace */
 	sptr = cBuf;
 	while(isspace(*sptr)) ++sptr;
@@ -350,7 +350,7 @@ for(i = 0, line = 1; i < rawLength; line++) {
 	if(sptr) {
 		*sptr = 0;
 		}
-  
+
 	/* Eat leading whitespace */
 	sptr = cBuf;
 	while(isspace(*sptr)) ++sptr;
@@ -382,7 +382,7 @@ for(i = 0, line = 1; i < rawLength; line++) {
 		k = classNum[i];
 		if(k != 1) {
 			printf("!! [AFNI/reorder] Invalid class numbering at line %d [Should start at 1] {1} !!\n"
-				, line); 
+				, line);
 			free(classList);
 			free(classNum);
 			free(index);
@@ -415,7 +415,7 @@ for(i = 0, line = 1; i < rawLength; line++) {
 		k = classNum[i];
 		if(k != 1) {
 			printf("!! [AFNI/reorder] Invalid class numbering at line %d [Should start at 1] {2} !!\n"
-				, line); 
+				, line);
 			free(classList);
 			free(classNum);
 			free(index);
@@ -449,10 +449,10 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			#ifdef DEBUG_PLUGIN_REORDER_PARSEMAP
 			printf("[parseMap] Contiguous class: %c\n", currentClass);
 			#endif
-	
+
 			k = 1;
 			(*classCount)++;
-	
+
 			/* reallocate space */
 			(*classKRH) = (ClassInfo *)realloc((void *)(*classKRH), (*classCount)*sizeof(ClassInfo));
 			if(NULL == (*classKRH)) {
@@ -468,7 +468,7 @@ for(i = 0, line = 1; i < rawLength; line++) {
 			}
 		else if(classNum[i] != k) {
 			printf("!! [AFNI/reorder] Invalid class numbering at line %d {3} !!\n"
-				, line); 
+				, line);
 			free(index);
 			free(classList);
 			free(classNum);
@@ -569,7 +569,7 @@ for(i = 0, currentClass = 0; i < *length; /* quit when all indices are remapped 
 			#ifdef DEBUG_PLUGIN_REORDER_PARSEMAP
 			printf("    Index[%d] <-- %d [Old index]\n", i, k);
 			#endif
-			index[i] = k; /* store the position of the TR value from the old time-course */ 
+			index[i] = k; /* store the position of the TR value from the old time-course */
 			classList[k] = 0; /* mark as 'done' */
 			++i;
 			++k;

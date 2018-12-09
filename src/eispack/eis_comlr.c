@@ -6,7 +6,7 @@
 #include "f2c.h"
 
 /* Subroutine */ int comlr_(integer *nm, integer *n, integer *low, integer *
-	igh, doublereal *hr, doublereal *hi, doublereal *wr, doublereal *wi, 
+	igh, doublereal *hr, doublereal *hi, doublereal *wr, doublereal *wi,
 	integer *ierr)
 {
     /* System generated locals */
@@ -19,7 +19,7 @@
     integer i__, j, l=0, m=0, en, ll, mm;
     doublereal si, ti, xi, yi, sr, tr, xr, yr;
     integer im1;
-    extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 
+    extern /* Subroutine */ int csroot_(doublereal *, doublereal *,
 	    doublereal *, doublereal *);
     integer mp1, itn, its;
     doublereal zzi, zzr;
@@ -74,12 +74,12 @@
 /*     CALLS CSROOT FOR COMPLEX SQUARE ROOT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -127,10 +127,10 @@ L240:
 	    goto L300;
 	}
 	tst1 = (d__1 = hr[l - 1 + (l - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[
-		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l * 
+		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l *
 		hr_dim1], abs(d__3)) + (d__4 = hi[l + l * hi_dim1], abs(d__4))
 		;
-	tst2 = tst1 + (d__1 = hr[l + (l - 1) * hr_dim1], abs(d__1)) + (d__2 = 
+	tst2 = tst1 + (d__1 = hr[l + (l - 1) * hr_dim1], abs(d__1)) + (d__2 =
 		hi[l + (l - 1) * hi_dim1], abs(d__2));
 	if (tst2 == tst1) {
 	    goto L300;
@@ -150,9 +150,9 @@ L300:
     }
     sr = hr[en + en * hr_dim1];
     si = hi[en + en * hi_dim1];
-    xr = hr[enm1 + en * hr_dim1] * hr[en + enm1 * hr_dim1] - hi[enm1 + en * 
+    xr = hr[enm1 + en * hr_dim1] * hr[en + enm1 * hr_dim1] - hi[enm1 + en *
 	    hi_dim1] * hi[en + enm1 * hi_dim1];
-    xi = hr[enm1 + en * hr_dim1] * hi[en + enm1 * hi_dim1] + hi[enm1 + en * 
+    xi = hr[enm1 + en * hr_dim1] * hi[en + enm1 * hi_dim1] + hi[enm1 + en *
 	    hi_dim1] * hr[en + enm1 * hr_dim1];
     if (xr == 0. && xi == 0.) {
 	goto L340;
@@ -180,9 +180,9 @@ L310:
     goto L340;
 /*     .......... FORM EXCEPTIONAL SHIFT .......... */
 L320:
-    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en 
+    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en
 	    - 2) * hr_dim1], abs(d__2));
-    si = (d__1 = hi[en + enm1 * hi_dim1], abs(d__1)) + (d__2 = hi[enm1 + (en 
+    si = (d__1 = hi[en + enm1 * hi_dim1], abs(d__1)) + (d__2 = hi[enm1 + (en
 	    - 2) * hi_dim1], abs(d__2));
 
 L340:
@@ -199,11 +199,11 @@ L340:
     --itn;
 /*     .......... LOOK FOR TWO CONSECUTIVE SMALL */
 /*                SUB-DIAGONAL ELEMENTS .......... */
-    xr = (d__1 = hr[enm1 + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[enm1 + 
+    xr = (d__1 = hr[enm1 + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[enm1 +
 	    enm1 * hi_dim1], abs(d__2));
-    yr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[en + enm1 * 
+    yr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hi[en + enm1 *
 	    hi_dim1], abs(d__2));
-    zzr = (d__1 = hr[en + en * hr_dim1], abs(d__1)) + (d__2 = hi[en + en * 
+    zzr = (d__1 = hr[en + en * hr_dim1], abs(d__1)) + (d__2 = hi[en + en *
 	    hi_dim1], abs(d__2));
 /*     .......... FOR M=EN-1 STEP -1 UNTIL L DO -- .......... */
     i__1 = enm1;
@@ -217,7 +217,7 @@ L340:
 		m - 1) * hi_dim1], abs(d__2));
 	xi = zzr;
 	zzr = xr;
-	xr = (d__1 = hr[m - 1 + (m - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[m 
+	xr = (d__1 = hr[m - 1 + (m - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[m
 		- 1 + (m - 1) * hi_dim1], abs(d__2));
 	tst1 = zzr / yi * (zzr + xr + xi);
 	tst2 = tst1 + yr;
@@ -300,9 +300,9 @@ L480:
 L580:
 	i__2 = j;
 	for (i__ = l; i__ <= i__2; ++i__) {
-	    hr[i__ + (j - 1) * hr_dim1] = hr[i__ + (j - 1) * hr_dim1] + xr * 
+	    hr[i__ + (j - 1) * hr_dim1] = hr[i__ + (j - 1) * hr_dim1] + xr *
 		    hr[i__ + j * hr_dim1] - xi * hi[i__ + j * hi_dim1];
-	    hi[i__ + (j - 1) * hi_dim1] = hi[i__ + (j - 1) * hi_dim1] + xr * 
+	    hi[i__ + (j - 1) * hi_dim1] = hi[i__ + (j - 1) * hi_dim1] + xr *
 		    hi[i__ + j * hi_dim1] + xi * hr[i__ + j * hr_dim1];
 /* L600: */
 	}

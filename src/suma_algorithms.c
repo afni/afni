@@ -678,7 +678,7 @@ else {
    *                                                                         *
    **************************************************************************/
 
-   new_element->next = element; 
+   new_element->next = element;
    new_element->prev = element->prev;
 
    if (element->prev == NULL)
@@ -786,7 +786,7 @@ void *dlist_ith_elmt_data(DList *list, int index)
 {
    int cnt=0;
    DListElmt *element;
-   
+
    if (!list || index < 0 || index > list->size-1) return(NULL);
 
    element = list->head;

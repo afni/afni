@@ -81,7 +81,7 @@ MRI_IMAGE * RIC_ToCardiacPhase(MRI_IMAGE * card, float threshold);
    It is the caller's responsibility to call mri_free() on the returned struct.
 
    Implementation note: Convolution is overkill just to get sgn(dR/dt), so
-   this implementation estimates the slope with the difference between 
+   this implementation estimates the slope with the difference between
    winsize-point means on either side of each point. Try setting winsize to
    1/2 the sampling rate of resp in Herz. The size of the histogram H is
    defined in RIC_HISTSIZE.

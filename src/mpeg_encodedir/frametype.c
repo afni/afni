@@ -81,10 +81,10 @@ FType_Type(frameNum)
     int frameNum;
 {
   if (use_cache) return (int)frameTable[frameNum].typ;
-  
+
   if ( forceEncodeLast && (frameNum+1 == numInputFiles) ) {
     int result;
-    
+
     result = framePattern[frameNum % framePatternLen];
     if ( result == 'b' ) return 'i';
     else return result;
@@ -92,7 +92,7 @@ FType_Type(frameNum)
     if (specificsOn) {
       static int lastI = -1;
       int newtype;
-      
+
       if (lastI > frameNum) lastI = -1;
       newtype = SpecTypeLookup(frameNum);
       switch (newtype) {
@@ -136,10 +136,10 @@ FType_FutureRef(currFrameNum)
     } else {
       index = currFrameNum % framePatternLen;
       futureIndex = frameTable[index].next->number;
-      
+
       result = currFrameNum +
 	(((futureIndex-index)+framePatternLen) % framePatternLen);
-      
+
       if ( (result >= numInputFiles) && forceEncodeLast ) {
 	return numInputFiles-1;
       } else {
@@ -172,7 +172,7 @@ FType_PastRef(currFrameNum)
     } else {
       index = currFrameNum % framePatternLen;
       pastIndex = frameTable[index].prev->number;
-      
+
       return currFrameNum -
 	(((index-pastIndex)+framePatternLen) % framePatternLen);
     }
@@ -222,14 +222,14 @@ SetFramePattern(pattern)
     firstI = -1;
     for ( index = 0; index < len; index++ ) {
       switch( SIMPLE_ASCII_UPPER(pattern[index]) ) {
-      case 'I':	
+      case 'I':
 	buf[index] = 'i';
 	if (firstI == -1) firstI = index;
 	break;
-      case 'P':	
-	buf[index] = 'p'; 
+      case 'P':
+	buf[index] = 'p';
 	break;
-      case 'B':	
+      case 'B':
 	buf[index] = 'b';
 	break;
       default:
@@ -342,7 +342,7 @@ ComputeFrameTable()
 	        break;
 	}
     }
-    
+
     /* why? SRS */
     frameTable[table_size].number = framePatternLen;
     ptr = firstB;

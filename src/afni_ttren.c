@@ -138,17 +138,17 @@ static char helpstring[] =
 ;
 
 /*----------------------------------------------------------------------------*/
-TTRR_controls * New_TTRR_controls(char *atname) 
+TTRR_controls * New_TTRR_controls(char *atname)
 {
    TTRR_controls * ttlc = NULL;
    int i = 0, tto_count = 0;
-   
+
    if (!atname) return(ttlc);
    if ((tto_count = atlas_n_points(atname)) <= 0) return(ttlc);
-   
+
    ttlc = myXtNew(TTRR_controls) ;
    memset(ttlc, 0, sizeof(TTRR_controls));
-   
+
    ttlc->reg_av = (MCW_arrowval **)calloc(tto_count,sizeof(MCW_arrowval *));
    ttlc->reg_label = (char **)calloc(tto_count,sizeof(char *));
    ttlc->reg_tto = (short *)calloc(tto_count,sizeof(short));
@@ -189,13 +189,13 @@ static void TTRR_setup_widgets( MCW_DC * dc )
    Widget toprc , bar=NULL , actar , frame , separator , label ;
    int ww,hh,bww , ii, n_points, maxlength, levelmark ;
    ATLAS_POINT *tto_list=NULL;
-   
+
 ENTRY("TTRR_setup_widgets") ;
 
    /**** sanity checks ****/
 
    if( dc == NULL || ttc != NULL ) EXRETURN ;   /* might be better to check ttc->dc */
-                                                
+
    SHOW_AFNI_PAUSE ;
 
    if (!(tto_list = atlas_points(Current_Atlas_Default_Name()))) {
@@ -210,7 +210,7 @@ ENTRY("TTRR_setup_widgets") ;
    ttc->dc = dc ;
 
    /* if this is YES, inverts the whole line that contains the structure */
-   ttc->av_invert = AFNI_yesenv( "AFNI_TTRR_INVERT" ) ; 
+   ttc->av_invert = AFNI_yesenv( "AFNI_TTRR_INVERT" ) ;
 
    /**** create Shell that can be opened up later ****/
 

@@ -177,17 +177,17 @@ int compute_results(options_t * opts)
 
    /* the first 3 methods are varieties of enorm/dvars */
    if( method == T21_METH_ENORM ||
-       method == T21_METH_RMS   || 
+       method == T21_METH_RMS   ||
        method == T21_METH_SRMS  ||
        method == T21_METH_S_SRMS)  RETURN(compute_enorm(opts, method));
 
    if( method == T21_METH_MDIFF ||
        method == T21_METH_SMDIFF ) RETURN(compute_meandiff(opts, method));
-   
+
    if( method == T21_METH_4095_COUNT ||
        method == T21_METH_4095_FRAC  ||
        method == T21_METH_4095_WARN ) RETURN(compute_4095(opts, method));
-   
+
    ERROR_message("unknown method index %d", method);
 
    RETURN(1);
@@ -278,7 +278,7 @@ int compute_meandiff(options_t * opts, int method)
 
    free(dwork);
    free(fdata);
-  
+
    if( opts->verb > 1 ) INFO_message("successfully computed mean diff");
 
    RETURN(0);
@@ -352,7 +352,7 @@ int compute_4095(options_t * opts, int method)
 
    /* no longer needed */
    free(fdata);
-  
+
    /* babble to user */
    if( opts->verb )
       INFO_message("global max = %f", gmax);
@@ -382,7 +382,7 @@ int compute_4095(options_t * opts, int method)
 }
 
 
-/* this is basically enorm, with scaling variants 
+/* this is basically enorm, with scaling variants
  *
  * convert dsum to dmean and then a scalar:
  * method = 1 : enorm  sqrt(ss)
@@ -485,7 +485,7 @@ int compute_enorm(options_t * opts, int method)
 
    free(dwork);
    free(fdata);
-  
+
    if( opts->verb > 1 ) INFO_message("successfully computed enorm");
 
    RETURN(0);
@@ -550,7 +550,7 @@ int meth_name_to_index(char * name)
 
    if( ! strcasecmp(name, "enorm") )   return T21_METH_ENORM;
 
-   if( ! strcasecmp(name, "rms") || 
+   if( ! strcasecmp(name, "rms") ||
        ! strcasecmp(name, "dvars") )   return T21_METH_RMS;
 
    if( ! strcasecmp(name, "srms") ||

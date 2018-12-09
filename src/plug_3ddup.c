@@ -7,7 +7,7 @@
 /*****************************************************************************
    Like 3ddup, but as a plugin.  RWCox - 06 Aug 2003.
 ******************************************************************************/
-   
+
 static char helpstring[] =
   " Purpose: Make a 'warp-on-demand' duplicated of a dataset.\n"
   "\n"

@@ -9,7 +9,7 @@
 
 static doublereal c_b11 = 1.;
 
-/* Subroutine */ int tqlrat_(integer *n, doublereal *d__, doublereal *e2, 
+/* Subroutine */ int tqlrat_(integer *n, doublereal *d__, doublereal *e2,
 	integer *ierr)
 {
     /* System generated locals */
@@ -24,7 +24,7 @@ static doublereal c_b11 = 1.;
     integer i__, j, l, m;
     doublereal p, r__, s, t;
     integer l1, ii;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer mml;
 
@@ -43,7 +43,7 @@ static doublereal c_b11 = 1.;
 /*        D CONTAINS THE DIAGONAL ELEMENTS OF THE INPUT MATRIX. */
 
 /*        E2 CONTAINS THE SQUARES OF THE SUBDIAGONAL ELEMENTS OF THE */
-/*          INPUT MATRIX IN ITS LAST N-1 POSITIONS.  E2(1) IS ARBITRARY. 
+/*          INPUT MATRIX IN ITS LAST N-1 POSITIONS.  E2(1) IS ARBITRARY.
 */
 
 /*      ON OUTPUT */
@@ -63,12 +63,12 @@ static doublereal c_b11 = 1.;
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

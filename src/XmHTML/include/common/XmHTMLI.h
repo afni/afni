@@ -14,7 +14,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -38,7 +38,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:56  rwcox
 * Cadd
@@ -56,7 +56,7 @@
 * Revision 1.1  1997/08/30 00:07:31  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _XmHTMLI_h_
 #define _XmHTMLI_h_
@@ -84,7 +84,7 @@ extern "C" {
 #define RANGE(a,b,c) { if (a < b) a = b;  if (a > c) a = c; }
 
 /*********************************************************************
-* @Module: parse.c 
+* @Module: parse.c
 * @Description: XmHTML HTML parser
 *
 * @Exports:
@@ -199,7 +199,7 @@ extern String _XmHTMLTextGetString(XmHTMLObject *objects);
 	(id) == HT_CAPTION || (id) == HT_A || (id) == HT_DT)
 
 /*********************************************************************
-* @Module: callbacks.c 
+* @Module: callbacks.c
 * @Description: XmHTML callback routines
 *
 * @Exports:
@@ -218,10 +218,10 @@ extern String _XmHTMLTextGetString(XmHTMLObject *objects);
 
 extern void _XmHTMLLinkCallback(XmHTMLWidget html);
 
-extern void _XmHTMLTrackCallback(XmHTMLWidget html, XEvent *event, 
+extern void _XmHTMLTrackCallback(XmHTMLWidget html, XEvent *event,
 	XmHTMLAnchor *anchor);
 
-extern Boolean _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event, 
+extern Boolean _XmHTMLActivateCallback(XmHTMLWidget html, XEvent *event,
 	XmHTMLAnchor *anchor);
 
 extern Boolean _XmHTMLDocumentCallback(XmHTMLWidget html, Boolean html32,
@@ -255,7 +255,7 @@ extern Boolean _XmHTMLEventProcess(XmHTMLWidget html, XEvent *event,
 extern void _XmHTMLEventFreeDatabase(XmHTMLWidget old, XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: format.c 
+* @Module: format.c
 * @Description : XmHTML formatting routines, translate the parse output
 *                to a set of objects suitable for displaying a HTML page.
 *
@@ -270,7 +270,7 @@ extern void _XmHTMLformatObjects(XmHTMLWidget old, XmHTMLWidget html);
 extern XmHTMLAnchor* _XmHTMLNewAnchor(XmHTMLWidget html, XmHTMLObject *object);
 
 /*********************************************************************
-* @Module: frames.c 
+* @Module: frames.c
 * @Description: XmHTML frame support
 *
 * @Exports:
@@ -280,7 +280,7 @@ extern XmHTMLAnchor* _XmHTMLNewAnchor(XmHTMLWidget html, XmHTMLObject *object);
 *                        any previous frame lists.
 * _XmHTMLReconfigureFrames   : recompute the frame layout after a widget
 *                              resize.
-* 
+*
 **********************************************************************/
 
 extern Boolean _XmHTMLCreateFrames(XmHTMLWidget old, XmHTMLWidget html);
@@ -295,7 +295,7 @@ extern int _XmHTMLCheckForFrames(XmHTMLWidget html, XmHTMLObject *objects);
 extern void _XmHTMLReconfigureFrames(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: forms.c 
+* @Module: forms.c
 * @Description: XmHTML HTML form support.
 *
 * @Exports:
@@ -344,7 +344,7 @@ extern void _XmHTMLProcessTraversal(Widget w, int direction);
 extern Boolean _XmHTMLFormCreateClipmask(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: XmHTML.c 
+* @Module: XmHTML.c
 * @Description: XmHTML Widget definition, widget methods and public
 *               functions.
 *
@@ -371,10 +371,10 @@ extern Boolean _XmHTMLFormCreateClipmask(XmHTMLWidget html);
 *                          represent an anchor.
 **********************************************************************/
 
-extern XmHTMLObjectTableElement _XmHTMLGetAnchorByValue(XmHTMLWidget html, 
+extern XmHTMLObjectTableElement _XmHTMLGetAnchorByValue(XmHTMLWidget html,
 	int anchor_id);
 
-extern XmHTMLObjectTableElement _XmHTMLGetAnchorByName(XmHTMLWidget html, 
+extern XmHTMLObjectTableElement _XmHTMLGetAnchorByName(XmHTMLWidget html,
 	String anchor);
 
 extern void _XmHTMLClearArea(XmHTMLWidget html, int x, int y, int width,
@@ -447,7 +447,7 @@ extern void _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value);
 extern void _XmHTMLCheckXCC(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: paint.c 
+* @Module: paint.c
 * @Description: XmHTML rendering routines.
 *
 * @Exports:
@@ -475,7 +475,7 @@ extern void _XmHTMLPaintAnchorEntry(XmHTMLWidget html,
 	XmHTMLObjectTable *anchor);
 
 /*********************************************************************
-* @Module: layout.c 
+* @Module: layout.c
 * @Description : XmHTML layout computation routines
 *
 * @Exports:
@@ -487,7 +487,7 @@ extern void _XmHTMLPaintAnchorEntry(XmHTMLWidget html,
 extern void _XmHTMLComputeLayout(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: StringUtil.c 
+* @Module: StringUtil.c
 * @Description: string manipulators and HTML tag analyzers.
 *
 * @Exports:
@@ -516,7 +516,7 @@ extern void _XmHTMLComputeLayout(XmHTMLWidget html);
 * _XmHTMLGetMaxLineLength  : Returns maximum width of a line in pixels of
 *                            the current document or 75% of screen width,
 *                            whatever is the smallest.
-* 
+*
 **********************************************************************/
 
 extern void my_upcase(char *string);
@@ -573,12 +573,12 @@ extern int _XmHTMLTagGetNumber(char *attributes, char *tag, int def);
 
 extern int _XmHTMLTagCheckNumber(char *attributes, char *tag, int def);
 
-extern Boolean _XmHTMLTagCheckValue(char *attributes, 
+extern Boolean _XmHTMLTagCheckValue(char *attributes,
 	char *tag, char *check);
 
 extern Alignment _XmHTMLGetImageAlignment(char *attributes);
 
-extern Alignment _XmHTMLGetHorizontalAlignment(char *attributes, 
+extern Alignment _XmHTMLGetHorizontalAlignment(char *attributes,
 	Alignment def_align);
 
 extern Alignment _XmHTMLGetVerticalAlignment(char *attributes,
@@ -591,7 +591,7 @@ extern TableRuling _XmHTMLGetRuling(char *attributes, TableRuling def);
 extern Dimension _XmHTMLGetMaxLineLength(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: colors.c 
+* @Module: colors.c
 * @Description : XmHTML *text* color allocation routines.
 *
 * @Exports:
@@ -610,7 +610,7 @@ extern Boolean _XmHTMLConfirmColor32(char *color);
 extern Boolean _XmHTMLAddPalette(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: images.c 
+* @Module: images.c
 * @Description: XmHTML image loading/manipulation routines.
 *
 * @Defines:
@@ -783,7 +783,7 @@ typedef struct _XmHTMLRawImageData{
 }while(0)
 
 /*****
-* Definition of a W3C icon entity. 
+* Definition of a W3C icon entity.
 *****/
 typedef struct {
 	char *escape;
@@ -849,14 +849,14 @@ extern void _XmHTMLImageUpdateChilds(XmHTMLImage *image);
 
 extern void _XmHTMLImageCheckDelayedCreation(XmHTMLWidget html);
 
-extern void _XmHTMLMakeAnimation(XmHTMLWidget html, XmHTMLImage *image, 
+extern void _XmHTMLMakeAnimation(XmHTMLWidget html, XmHTMLImage *image,
 	Dimension width, Dimension height);
 
-extern Pixmap _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image, 
+extern Pixmap _XmHTMLInfoToPixmap(XmHTMLWidget html, XmHTMLImage *image,
 	XmImageInfo *info, Dimension width, Dimension height,
 	unsigned long *global_cmap, PIXMAP *clip);
 
-extern XmImageStatus _XmHTMLReplaceOrUpdateImage(XmHTMLWidget html, 
+extern XmImageStatus _XmHTMLReplaceOrUpdateImage(XmHTMLWidget html,
 	XmImageInfo *info, XmImageInfo *new_info, XmHTMLObjectTableElement *elePtr);
 
 extern void _XmHTMLFreeImage(XmHTMLWidget html, XmHTMLImage *image);
@@ -871,7 +871,7 @@ extern void _XmHTMLLoadBodyImage(XmHTMLWidget html, String url);
 extern String _XmHTMLImageGetIconAttribs(Widget w, int index);
 
 /*********************************************************************
-* @Module: quantize.c 
+* @Module: quantize.c
 * @Description : XmHTML color quantization and dithering routines
 *
 * @Exports:
@@ -893,7 +893,7 @@ extern void _XmHTMLPixelizeRGB(Byte *rgb, XmHTMLRawImageData *img_data);
 extern void _XmHTMLDitherImage(XmHTMLWidget html, XmHTMLRawImageData *img_data);
 
 /*********************************************************************
-* @Module: map.c 
+* @Module: map.c
 * @Description: XmHTML imagemap routines
 *
 * @Defines:
@@ -918,7 +918,7 @@ extern XmHTMLImageMap* _XmHTMLCreateImagemap(String name);
 
 extern void _XmHTMLStoreImagemap(XmHTMLWidget html, XmHTMLImageMap *map);
 
-extern void _XmHTMLAddAreaToMap(XmHTMLWidget html, XmHTMLImageMap *map, 
+extern void _XmHTMLAddAreaToMap(XmHTMLWidget html, XmHTMLImageMap *map,
 	XmHTMLObject *object);
 
 extern XmHTMLImageMap *_XmHTMLGetImagemap(XmHTMLWidget html, String name);
@@ -930,11 +930,11 @@ extern void _XmHTMLCheckImagemaps(XmHTMLWidget html);
 
 extern void _XmHTMLFreeImageMaps(XmHTMLWidget html);
 
-extern void _XmHTMLDrawImagemapSelection(XmHTMLWidget html, 
+extern void _XmHTMLDrawImagemapSelection(XmHTMLWidget html,
 	XmHTMLImage *image);
 
 /*********************************************************************
-* @Module: plc.c 
+* @Module: plc.c
 * Description: XmHTML Progressive Loader Context interfacing routines.
 *
 * @Exports:
@@ -954,7 +954,7 @@ extern void _XmHTMLKillPLCCycler(XmHTMLWidget html);
 extern void _XmHTMLPLCCheckIntervals(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: fonts.c 
+* @Module: fonts.c
 * @Description: XmHTML font loading & caching routines.
 *
 * @Exports:
@@ -994,7 +994,7 @@ extern XmHTMLfont *_XmHTMLLoadFontWithFace(XmHTMLWidget html, int size,
 extern void _XmHTMLUnloadFonts(XmHTMLWidget html);
 
 /*********************************************************************
-* @Module: events.c 
+* @Module: events.c
 * @Description: HTML4.0 event routines
 *
 * @Exports:
@@ -1016,7 +1016,7 @@ extern AllEvents *_XmHTMLCheckFormEvents(XmHTMLWidget html, String attributes,
 	unsigned long *mask_return);
 
 /*********************************************************************
-* @Module: output.c 
+* @Module: output.c
 * @Description: XmHTML text output/conversion functions
 *
 * @Exports:
@@ -1032,22 +1032,22 @@ extern AllEvents *_XmHTMLCheckFormEvents(XmHTMLWidget html, String attributes,
 extern XmHTMLPaperSize *_XmHTMLTextCheckAndConvertPaperDef(XmHTMLWidget html,
 	XmHTMLPaperSize *pdef, Byte type);
 
-extern String _XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+extern String _XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options);
 
-extern String _XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+extern String _XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options);
 
-extern String _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+extern String _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options);
 
 #endif /* XmHTML_ERROR_FUNCS */
 
 /*********************************************************************
-* @Module: error.c 
+* @Module: error.c
 * @Description: XmHTML warning/error functions
 *
 * @Exports:
@@ -1079,7 +1079,7 @@ extern void __XmHTMLWarning(
 
 extern void __XmHTMLError(
 #if NeedVarargsPrototypes
-	Widget w, String module, int line, String routine, 
+	Widget w, String module, int line, String routine,
 	String fmt, ...
 #endif
 );
@@ -1113,7 +1113,7 @@ extern void __XmHTMLBadParent(Widget w, String func);
 #define _XmHTMLWarning __XmHTMLWarning
 #define _XmHTMLError   __XmHTMLError
 
-extern void _XmHTMLAllocError(Widget w, char *module, char *routine, 
+extern void _XmHTMLAllocError(Widget w, char *module, char *routine,
 	char *func, int size);
 
 #ifdef _XFUNCPROTOEND

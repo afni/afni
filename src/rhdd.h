@@ -9,7 +9,7 @@ typedef struct {
    float *xlat , *ylat , *zlat ;
    float *xdis , *ydis , *zdis ;
 
-   int    num_pqroff 
+   int    num_pqroff
    int_triple pqroff ;
    float (*bfun)(float,float,float) ;
 } LAT_func ;

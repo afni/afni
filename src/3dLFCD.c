@@ -144,8 +144,8 @@ struct _list_node
 }
 
 /* freeing all of the allocated mem on an error can get a little messy. instead
-   we can use this macro to check what has been allocated and kill it. this of 
-   course requires strict discipline for initiazing all pointers to NULL and 
+   we can use this macro to check what has been allocated and kill it. this of
+   course requires strict discipline for initiazing all pointers to NULL and
    resetting them to NULL when free'd. i should be able to handle that */
 #define CHECK_AND_FREE_ALL_ALLOCATED_MEM \
 { \
@@ -316,7 +316,7 @@ int main( int argc , char *argv[] )
 
     /* CC - added flags for thresholding correlations */
     double thresh = 0.0;
-  
+
     /* CC - variables to assist going back and forth between mask and volume indices */
     long * vol_ndx_to_mask_ndx = NULL;
 
@@ -517,7 +517,7 @@ int main( int argc , char *argv[] )
       DSET_unload(mset) ;
       DSET_delete(mset) ;
       mset = NULL ;
-   } 
+   }
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
@@ -530,7 +530,7 @@ int main( int argc , char *argv[] )
       nmask = nvox ;
       INFO_message("computing for all %d voxels",nmask) ;
    }
-   
+
    if( method == ETA2 && polort >= 0 )
       WARNING_message("Polort for -eta2 should probably be -1...");
 
@@ -558,7 +558,7 @@ int main( int argc , char *argv[] )
                     sizeof(MRI_vectim), "vectim");
     PRINT_MEM_STATS( "vectim" );
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+   /*--- CC the vectim contains a mapping between voxel index and mask index,
          tap into that here to avoid duplicating memory usage, also create a
          mapping that goes the other way ---*/
 
@@ -570,7 +570,7 @@ int main( int argc , char *argv[] )
         /* create a mapping that goes the opposite way */
         if(( vol_ndx_to_mask_ndx = (long*)calloc( nvox, sizeof(long) )) == NULL)
         {
-            ERROR_EXIT_CC( 
+            ERROR_EXIT_CC(
                 "Could not allocate %d byte array for mask index mapping\n",
                 nmask*sizeof(long));
         }
@@ -591,7 +591,7 @@ int main( int argc , char *argv[] )
     }
 
     /* -- CC unloading the dataset to reduce memory usage ?? -- */
-    DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), 
+    DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)),
         "input dset");
     DSET_unload(xset) ;
     PRINT_MEM_STATS("inset unload");
@@ -599,20 +599,20 @@ int main( int argc , char *argv[] )
     /* -- CC configure detrending --*/
     if( polort < 0 && method == PEARSON )
     {
-        polort = 0; 
+        polort = 0;
         WARNING_message("Pearson correlation always uses polort >= 0");
     }
     if( polort >= 0 )
     {
         for( ii=0 ; ii < xvectim->nvec ; ii++ )
-        {  
+        {
             /* remove polynomial trend */
             DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
         }
     }
 
 
-    /* -- this procedure does not change time series that 
+    /* -- this procedure does not change time series that
           have zero variance -- */
     if( method == PEARSON ) THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
@@ -622,7 +622,7 @@ int main( int argc , char *argv[] )
     /*-- configure the output dataset */
     if( abuc )
     {
-        EDIT_dset_items( 
+        EDIT_dset_items(
             cset ,
             ADN_prefix    , prefix         ,
             ADN_nvals     , nsubbriks      , /* 2 subbricks */
@@ -631,8 +631,8 @@ int main( int argc , char *argv[] )
             ADN_func_type , ANAT_BUCK_TYPE ,
             ADN_datum_all , MRI_float      ,
             ADN_none ) ;
-    } 
-    else 
+    }
+    else
     {
         EDIT_dset_items( cset ,
             ADN_prefix    , prefix         ,
@@ -665,7 +665,7 @@ int main( int argc , char *argv[] )
 
     /* copy measure data into the subbrik */
     bodset = DSET_ARRAY(cset,subbrik);
- 
+
     /* -- Configure the subbriks: Weighted LFCD */
     subbrik = 1;
     EDIT_BRICK_TO_NOSTAT(cset,subbrik) ;                     /* stat params  */
@@ -684,7 +684,7 @@ int main( int argc , char *argv[] )
     /* increment memory stats */
     INC_MEM_STATS( (DSET_NVOX(cset)*DSET_NVALS(cset)*sizeof(float)),
         "output dset");
-    PRINT_MEM_STATS( "outset" );    
+    PRINT_MEM_STATS( "outset" );
 
     /*-- tell the user what we are about to do --*/
     INFO_message( "Calculating LFCD with threshold = %f.\n", thresh);
@@ -707,7 +707,7 @@ int main( int argc , char *argv[] )
         list_node* recycled_nodes = NULL ;
         list_node* boundary_list = NULL ;
         long* seen_voxels;
-        double car = 0.0 ; 
+        double car = 0.0 ;
 
         /*-- get information about who we are --*/
 #ifdef USE_OMP
@@ -734,9 +734,9 @@ int main( int argc , char *argv[] )
         {  /*----- outer voxel loop -----*/
 
             if( ithr == 0 && vstep > 2 )
-            { 
-                vii++ ; 
-                if( vii%vstep == vstep/2 && MEM_STAT == 0 ) vstep_print(); 
+            {
+                vii++ ;
+                if( vii%vstep == vstep/2 && MEM_STAT == 0 ) vstep_print();
             }
 
             /* get ref time series from this voxel */
@@ -745,7 +745,7 @@ int main( int argc , char *argv[] )
             /* initialize the boundary with the target voxel */
             if( recycled_nodes == NULL)
             {
-                /* this looks like it is redundant, but I want the first if 
+                /* this looks like it is redundant, but I want the first if
                    statement to run in the critical section and the second
                    if statement to run after it */
 #pragma omp critical(mem_alloc)
@@ -781,7 +781,7 @@ int main( int argc , char *argv[] )
             }
             new_node->next = boundary_list;
             boundary_list = new_node;
-            
+
             /* reset the seen_voxels map */
             memset(seen_voxels, 0, xvectim->nvec*sizeof(long));
 
@@ -798,7 +798,7 @@ int main( int argc , char *argv[] )
                 {
                     ix = ( current_node->ix + (dx-1) );
                     /* make sure that we are in bounds */
-                    if (( ix < 0 ) || ( ix > DSET_NX(xset) )) 
+                    if (( ix < 0 ) || ( ix > DSET_NX(xset) ))
                     {
                         continue;
                     }
@@ -806,7 +806,7 @@ int main( int argc , char *argv[] )
                     for( dy = 0; dy < 3; dy++ )
                     {
                         jy = ( current_node->jy + (dy-1) );
-                        /* make sure that we are in bounds */                        
+                        /* make sure that we are in bounds */
                         if (( jy < 0 ) || ( jy > DSET_NY(xset) ))
                         {
                             continue;
@@ -816,13 +816,13 @@ int main( int argc , char *argv[] )
                         {
                             kz = ( current_node->kz + (dz-1) );
                             /* make sure that we are in bounds */
-                            if (( kz < 0 ) || (kz > DSET_NZ(xset))) 
+                            if (( kz < 0 ) || (kz > DSET_NZ(xset)))
                             {
                                 continue;
                             }
 
                             /* get the index of this voxel */
-                            target_mask_ndx = 
+                            target_mask_ndx =
                                 vol_ndx_to_mask_ndx[ DSET_ixyz_to_index(xset,ix,jy,kz) ];
 
                             /* if the voxel is in the mask, and hasn't been
@@ -847,7 +847,7 @@ int main( int argc , char *argv[] )
 
                                     if( recycled_nodes == NULL)
                                     {
-                /* this looks like it is redundant, but I want the first if 
+                /* this looks like it is redundant, but I want the first if
                    statement to run in the critical section and the second
                    if statement to run after it */
 #pragma omp critical(mem_alloc)
@@ -868,7 +868,7 @@ int main( int argc , char *argv[] )
                                     }
 
                                     /* determine the full ndx for the seed target */
-                                    new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ target_mask_ndx ]; 
+                                    new_node->vox_vol_ndx = mask_ndx_to_vol_ndx[ target_mask_ndx ];
 
                                     /* add source, dest, correlation to 1D file */
                                     new_node->ix = ix ;
@@ -885,7 +885,7 @@ int main( int argc , char *argv[] )
                                     {
                                         wodset[ mask_ndx_to_vol_ndx[ lout ]] += car;
                                         bodset[ mask_ndx_to_vol_ndx[ lout ]] += 1;
-                                    }                                  
+                                    }
                                 } /* if car > thresh */
                             } /* if vox is in mask and hasn't been seen */
                         } /* for dz */
@@ -898,7 +898,7 @@ int main( int argc , char *argv[] )
 
             } /* while( boundary_list != NULL ) */
         } /* for lout */
- 
+
         /* clean up the memory that is local to this thread */
         if (seen_voxels != NULL) free( seen_voxels );
 
@@ -912,7 +912,7 @@ int main( int argc , char *argv[] )
 
     /* update the user so that they know what we are up to */
     INFO_message ("AFNI_OMP finished\n");
- 
+
     INFO_message("Done..\n") ;
 
     if( vol_ndx_to_mask_ndx != NULL )

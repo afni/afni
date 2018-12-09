@@ -59,7 +59,7 @@ static doublereal c_b455 = 12.;
 #define r8_token__ (equiv_0)
     static integer nextcode;
     static char c_message__[30];
-    extern /* Subroutine */ int get_token__(char *, integer *, doublereal *, 
+    extern /* Subroutine */ int get_token__(char *, integer *, doublereal *,
 	    integer *, ftnlen);
     static doublereal val_token__;
     static integer nf;
@@ -144,7 +144,7 @@ static doublereal c_b455 = 12.;
 	if (*(unsigned char *)c_ch__ != ' ') {
 	    if (*(unsigned char *)c_ch__ >= 'a' && *(unsigned char *)c_ch__ <=
 		     'z') {
-		*(unsigned char *)c_ch__ = (char) (*(unsigned char *)c_ch__ + 
+		*(unsigned char *)c_ch__ = (char) (*(unsigned char *)c_ch__ +
 			('A' - 'a'));
 	    }
 /* !convert case */
@@ -207,7 +207,7 @@ static doublereal c_b455 = 12.;
 /*  string. */
 
 L1000:
-    get_token__(c_local__ + (npos - 1), &ntoken, &val_token__, &nused, nlen - 
+    get_token__(c_local__ + (npos - 1), &ntoken, &val_token__, &nused, nlen -
 	    (npos - 1));
 
     if (ntoken == 1999) {
@@ -609,78 +609,78 @@ L9000:
 
 
 
-/* Subroutine */ int execute_(integer *n_opcode__, char *c_code__, ftnlen 
+/* Subroutine */ int execute_(integer *n_opcode__, char *c_code__, ftnlen
 	c_code_len)
 {
     /* Initialized data */
 
-    static char c_funcname__[32*123] = "SIN                             " 
+    static char c_funcname__[32*123] = "SIN                             "
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
 	    "                " "SINH                            " "COSH      "
 	    "                      " "TANH                            " "ASIN"
-	    "H                           " "ACOSH                           " 
+	    "H                           " "ACOSH                           "
 	    "ATANH                           " "EXP                         "
 	    "    " "LOG                             " "LOG10                 "
 	    "          " "ABS                             " "INT             "
 	    "                " "SQRT                            " "MAX       "
 	    "                      " "MIN                             " "AI  "
-	    "                            " "DAI                             " 
+	    "                            " "DAI                             "
 	    "I0                              " "I1                          "
 	    "    " "J0                              " "J1                    "
 	    "          " "K0                              " "K1              "
 	    "                " "Y0                              " "Y1        "
 	    "                      " "BI                              " "DBI "
-	    "                            " "ERF                             " 
+	    "                            " "ERF                             "
 	    "ERFC                            " "GAMMA                       "
 	    "    " "QG                              " "QGINV                 "
 	    "          " "BELL2                           " "RECT            "
 	    "                " "STEP                            " "BOOL      "
 	    "                      " "AND                             " "OR  "
-	    "                            " "MOFN                            " 
+	    "                            " "MOFN                            "
 	    "ASTEP                           " "SIND                        "
 	    "    " "COSD                            " "TAND                  "
 	    "          " "MEDIAN                          " "FICO_T2P        "
 	    "                " "FICO_P2T                        " "FICO_T2Z  "
 	    "                      " "FITT_T2P                        " "FITT"
-	    "_P2T                        " "FITT_T2Z                        " 
+	    "_P2T                        " "FITT_T2Z                        "
 	    "FIFT_T2P                        " "FIFT_P2T                    "
 	    "    " "FIFT_T2Z                        " "FIZT_T2P              "
 	    "          " "FIZT_P2T                        " "FIZT_T2Z        "
 	    "                " "FICT_T2P                        " "FICT_P2T  "
 	    "                      " "FICT_T2Z                        " "FIBT"
-	    "_T2P                        " "FIBT_P2T                        " 
+	    "_T2P                        " "FIBT_P2T                        "
 	    "FIBT_T2Z                        " "FIBN_T2P                    "
 	    "    " "FIBN_P2T                        " "FIBN_T2Z              "
 	    "          " "FIGT_T2P                        " "FIGT_P2T        "
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
-	    "_T2Z                        " "ZTONE                           " 
+	    "_T2Z                        " "ZTONE                           "
 	    "LMODE                           " "HMODE                       "
 	    "    " "GRAN                            " "URAN                  "
 	    "          " "IRAN                            " "ERAN            "
 	    "                " "LRAN                            " "ORSTAT    "
 	    "                      " "TENT                            " "MAD "
-	    "                            " "ARGMAX                          " 
+	    "                            " "ARGMAX                          "
 	    "ARGNUM                          " "NOTZERO                     "
 	    "    " "ISZERO                          " "EQUALS                "
 	    "          " "ISPOSITIVE                      " "ISNEGATIVE      "
 	    "                " "MEAN                            " "STDEV     "
 	    "                      " "SEM                             " "PLEG"
-	    "                            " "CDF2STAT                        " 
+	    "                            " "CDF2STAT                        "
 	    "STAT2CDF                        " "PAIRMAX                     "
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
 	    "                      " "POSVAL                          " "NOT "
-	    "                            " "MOD                             " 
+	    "                            " "MOD                             "
 	    "WITHIN                          " "MINABOVE                    "
 	    "    " "MAXBELOW                        " "EXTREME               "
 	    "          " "ABSEXTREME                      " "CHOOSE          "
 	    "                " "IFELSE                          " "LOGCOSH   "
 	    "                      " "ACFWXM                          " "GAMP"
-	    "                            " "GAMQ                            " 
+	    "                            " "GAMQ                            "
 	    "DUMMY                           ";
 
     /* Builtin functions */
@@ -766,73 +766,73 @@ L8000:
 {
     /* Initialized data */
 
-    static char c_funcname__[32*123] = "SIN                             " 
+    static char c_funcname__[32*123] = "SIN                             "
 	    "COS                             " "TAN                         "
 	    "    " "ASIN                            " "ACOS                  "
 	    "          " "ATAN                            " "ATAN2           "
 	    "                " "SINH                            " "COSH      "
 	    "                      " "TANH                            " "ASIN"
-	    "H                           " "ACOSH                           " 
+	    "H                           " "ACOSH                           "
 	    "ATANH                           " "EXP                         "
 	    "    " "LOG                             " "LOG10                 "
 	    "          " "ABS                             " "INT             "
 	    "                " "SQRT                            " "MAX       "
 	    "                      " "MIN                             " "AI  "
-	    "                            " "DAI                             " 
+	    "                            " "DAI                             "
 	    "I0                              " "I1                          "
 	    "    " "J0                              " "J1                    "
 	    "          " "K0                              " "K1              "
 	    "                " "Y0                              " "Y1        "
 	    "                      " "BI                              " "DBI "
-	    "                            " "ERF                             " 
+	    "                            " "ERF                             "
 	    "ERFC                            " "GAMMA                       "
 	    "    " "QG                              " "QGINV                 "
 	    "          " "BELL2                           " "RECT            "
 	    "                " "STEP                            " "BOOL      "
 	    "                      " "AND                             " "OR  "
-	    "                            " "MOFN                            " 
+	    "                            " "MOFN                            "
 	    "ASTEP                           " "SIND                        "
 	    "    " "COSD                            " "TAND                  "
 	    "          " "MEDIAN                          " "FICO_T2P        "
 	    "                " "FICO_P2T                        " "FICO_T2Z  "
 	    "                      " "FITT_T2P                        " "FITT"
-	    "_P2T                        " "FITT_T2Z                        " 
+	    "_P2T                        " "FITT_T2Z                        "
 	    "FIFT_T2P                        " "FIFT_P2T                    "
 	    "    " "FIFT_T2Z                        " "FIZT_T2P              "
 	    "          " "FIZT_P2T                        " "FIZT_T2Z        "
 	    "                " "FICT_T2P                        " "FICT_P2T  "
 	    "                      " "FICT_T2Z                        " "FIBT"
-	    "_T2P                        " "FIBT_P2T                        " 
+	    "_T2P                        " "FIBT_P2T                        "
 	    "FIBT_T2Z                        " "FIBN_T2P                    "
 	    "    " "FIBN_P2T                        " "FIBN_T2Z              "
 	    "          " "FIGT_T2P                        " "FIGT_P2T        "
 	    "                " "FIGT_T2Z                        " "FIPT_T2P  "
 	    "                      " "FIPT_P2T                        " "FIPT"
-	    "_T2Z                        " "ZTONE                           " 
+	    "_T2Z                        " "ZTONE                           "
 	    "LMODE                           " "HMODE                       "
 	    "    " "GRAN                            " "URAN                  "
 	    "          " "IRAN                            " "ERAN            "
 	    "                " "LRAN                            " "ORSTAT    "
 	    "                      " "TENT                            " "MAD "
-	    "                            " "ARGMAX                          " 
+	    "                            " "ARGMAX                          "
 	    "ARGNUM                          " "NOTZERO                     "
 	    "    " "ISZERO                          " "EQUALS                "
 	    "          " "ISPOSITIVE                      " "ISNEGATIVE      "
 	    "                " "MEAN                            " "STDEV     "
 	    "                      " "SEM                             " "PLEG"
-	    "                            " "CDF2STAT                        " 
+	    "                            " "CDF2STAT                        "
 	    "STAT2CDF                        " "PAIRMAX                     "
 	    "    " "PAIRMIN                         " "AMONGST               "
 	    "          " "CBRT                            " "RHDDC2          "
 	    "                " "HRFBK4                          " "HRFBK5    "
 	    "                      " "POSVAL                          " "NOT "
-	    "                            " "MOD                             " 
+	    "                            " "MOD                             "
 	    "WITHIN                          " "MINABOVE                    "
 	    "    " "MAXBELOW                        " "EXTREME               "
 	    "          " "ABSEXTREME                      " "CHOOSE          "
 	    "                " "IFELSE                          " "LOGCOSH   "
 	    "                      " "ACFWXM                          " "GAMP"
-	    "                            " "GAMQ                            " 
+	    "                            " "GAMQ                            "
 	    "DUMMY                           ";
 
     /* Format strings */
@@ -958,7 +958,7 @@ L8000:
 /*  or a number. */
 
     *(unsigned char *)&ch__1[0] = *(unsigned char *)c_first__;
-    if (*(unsigned char *)&ch__1[0] >= 'A' && *(unsigned char *)&ch__1[0] <= 
+    if (*(unsigned char *)&ch__1[0] >= 'A' && *(unsigned char *)&ch__1[0] <=
 	    'Z') {
 /* !a name */
 
@@ -966,8 +966,8 @@ L8000:
 L110:
 	*(unsigned char *)&ch__1[0] = *(unsigned char *)&c_input__[npos - 1];
 	if (! (*(unsigned char *)&ch__1[0] >= 'A' && *(unsigned char *)&ch__1[
-		0] <= 'Z' || *(unsigned char *)&ch__1[0] >= '0' && *(unsigned 
-		char *)&ch__1[0] <= '9' || *(unsigned char *)&ch__1[0] == '_' 
+		0] <= 'Z' || *(unsigned char *)&ch__1[0] >= '0' && *(unsigned
+		char *)&ch__1[0] <= '9' || *(unsigned char *)&ch__1[0] == '_'
 		|| *(unsigned char *)&ch__1[0] == '$')) {
 	    goto L120;
 	}
@@ -1011,11 +1011,11 @@ L220:
 
     } else /* if(complicated condition) */ {
 	*(unsigned char *)&ch__1[0] = *(unsigned char *)c_first__;
-	if (*(unsigned char *)&ch__1[0] >= '0' && *(unsigned char *)&ch__1[0] 
+	if (*(unsigned char *)&ch__1[0] >= '0' && *(unsigned char *)&ch__1[0]
 		<= '9' || *(unsigned char *)c_first__ == '.') {
 	    npos = 2;
 L310:
-	    *(unsigned char *)&ch__1[0] = *(unsigned char *)&c_input__[npos - 
+	    *(unsigned char *)&ch__1[0] = *(unsigned char *)&c_input__[npos -
 		    1];
 	    if (! (*(unsigned char *)&ch__1[0] >= '0' && *(unsigned char *)&
 		    ch__1[0] <= '9')) {
@@ -1042,7 +1042,7 @@ L420:
 		;
 	    }
 /* !allow for exponent */
-	    if (*(unsigned char *)&c_input__[npos - 1] == 'E' || *(unsigned 
+	    if (*(unsigned char *)&c_input__[npos - 1] == 'E' || *(unsigned
 		    char *)&c_input__[npos - 1] == 'D') {
 		ipos = npos + 1;
 		if (*(unsigned char *)&c_input__[ipos - 1] == '+' || *(
@@ -1058,7 +1058,7 @@ L420:
 L510:
 		    *(unsigned char *)&ch__1[0] = *(unsigned char *)&
 			    c_input__[npos - 1];
-		    if (! (*(unsigned char *)&ch__1[0] >= '0' && *(unsigned 
+		    if (! (*(unsigned char *)&ch__1[0] >= '0' && *(unsigned
 			    char *)&ch__1[0] <= '9')) {
 			goto L520;
 		    }
@@ -1176,7 +1176,7 @@ L200:
 
 
 
-integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen 
+integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
 	sym_len, ftnlen c_code_len)
 {
     /* System generated locals */
@@ -1207,7 +1207,7 @@ integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
     for (ncode = 1; ncode <= i__1; ++ncode) {
 	if (s_cmp(c_code__ + (ncode << 3), "PUSHSYM", (ftnlen)8, (ftnlen)7) ==
 		 0) {
-	    if (*(unsigned char *)&c_code__[(ncode + 1) * 8] == *(unsigned 
+	    if (*(unsigned char *)&c_code__[(ncode + 1) * 8] == *(unsigned
 		    char *)sss) {
 		ret_val = 1;
 		return ret_val;
@@ -1222,7 +1222,7 @@ integer hassym_(char *sym, integer *num_code__, char *c_code__, ftnlen
 
 
 
-doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val, 
+doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
 	ftnlen c_code_len)
 {
     /* System generated locals */
@@ -1233,7 +1233,7 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
     integer s_cmp(char *, char *, ftnlen, ftnlen);
     double d_int(doublereal *), pow_dd(doublereal *, doublereal *), sin(
-	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal), 
+	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal),
 	    exp(doublereal), log(doublereal), d_lg10(doublereal *), asin(
 	    doublereal), acos(doublereal), atan(doublereal), atan2(doublereal,
 	     doublereal), sinh(doublereal), cosh(doublereal), tanh(doublereal)
@@ -1249,28 +1249,28 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     static integer itm;
     extern doublereal lor_(integer *, doublereal *);
     static integer ntm;
-    extern doublereal land_(integer *, doublereal *), mean_(integer *, 
-	    doublereal *), derf_(doublereal *), gamp_(doublereal *, 
-	    doublereal *), eran_(doublereal *), gamq_(doublereal *, 
+    extern doublereal land_(integer *, doublereal *), mean_(integer *,
+	    doublereal *), derf_(doublereal *), gamp_(doublereal *,
+	    doublereal *), eran_(doublereal *), gamq_(doublereal *,
 	    doublereal *), gran_(doublereal *, doublereal *), iran_(
 	    doublereal *), bool_(doublereal *), lran_(doublereal *), rect_(
 	    doublereal *), uran_(doublereal *), tent_(doublereal *), step_(
 	    doublereal *), bell2_(doublereal *), derfc_(doublereal *);
     static integer ncode;
-    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
+    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *,
 	    doublereal *);
     static integer neval;
     extern doublereal lmofn_(integer *, integer *, doublereal *), qginv_(
-	    doublereal *), stdev_(integer *, doublereal *), ztone_(doublereal 
-	    *), zzmod_(doublereal *, doublereal *), dbesi0_(doublereal *), 
+	    doublereal *), stdev_(integer *, doublereal *), ztone_(doublereal
+	    *), zzmod_(doublereal *, doublereal *), dbesi0_(doublereal *),
 	    dbesi1_(doublereal *), dbesj0_(doublereal *), dbesj1_(doublereal *
 	    ), dbesk0_(doublereal *), dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
-    extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *), 
-	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *, 
-	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *, 
+    extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *),
+	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *,
+	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
-	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *);
@@ -1278,33 +1278,33 @@ doublereal pareval_(integer *num_code__, char *c_code__, doublereal *r8val,
     extern doublereal median_(integer *, doublereal *);
     static integer ialpha;
     extern doublereal cbrtff_(doublereal *), amongf_(integer *, doublereal *),
-	     argmax_(integer *, doublereal *), choose_(integer *, integer *, 
-	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *), 
+	     argmax_(integer *, doublereal *), choose_(integer *, integer *,
+	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *),
 	    fibnpt_(doublereal *, doublereal *, doublereal *), ficotp_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), acfwxm_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), pairmn_(
 	    integer *, doublereal *), lncosh_(doublereal *), ficopt_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), argnum_(
-	    integer *, doublereal *), ficttp_(doublereal *, doublereal *), 
-	    fictpt_(doublereal *, doublereal *), fifttp_(doublereal *, 
-	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *, 
-	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *, 
-	    doublereal *), fibttp_(doublereal *, doublereal *, doublereal *), 
-	    pairmx_(integer *, doublereal *), fibtpt_(doublereal *, 
-	    doublereal *, doublereal *), fibttz_(doublereal *, doublereal *, 
+	    integer *, doublereal *), ficttp_(doublereal *, doublereal *),
+	    fictpt_(doublereal *, doublereal *), fifttp_(doublereal *,
+	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *,
+	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *,
+	    doublereal *), fibttp_(doublereal *, doublereal *, doublereal *),
+	    pairmx_(integer *, doublereal *), fibtpt_(doublereal *,
+	    doublereal *, doublereal *), fibttz_(doublereal *, doublereal *,
 	    doublereal *), ficttz_(doublereal *, doublereal *), posval_(
-	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *), 
+	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *),
 	    fifttz_(doublereal *, doublereal *, doublereal *), figttp_(
-	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *, 
-	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *,
+	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *,
 	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
-	    doublereal *, doublereal *), orstat_(integer *, integer *, 
+	    doublereal *, doublereal *), orstat_(integer *, integer *,
 	    doublereal *), fipttp_(doublereal *, doublereal *), fiptpt_(
 	    doublereal *, doublereal *), fizttp_(doublereal *), fiztpt_(
 	    doublereal *), fipttz_(doublereal *, doublereal *), fitttz_(
 	    doublereal *, doublereal *), fizttz_(doublereal *);
     static doublereal r8_eval__[128];
-    extern doublereal withinf_(integer *, doublereal *), extreme_(integer *, 
+    extern doublereal withinf_(integer *, doublereal *), extreme_(integer *,
 	    doublereal *);
 
 
@@ -1374,7 +1374,7 @@ L1000:
 /* ....................................................................... */
     } else if (s_cmp(cncode, "**", (ftnlen)8, (ftnlen)2) == 0) {
 	--neval;
-	if (r8_eval__[neval - 1] > 0. || r8_eval__[neval - 1] != 0. && 
+	if (r8_eval__[neval - 1] > 0. || r8_eval__[neval - 1] != 0. &&
 		r8_eval__[neval] == d_int(&r8_eval__[neval])) {
 	    r8_eval__[neval - 1] = pow_dd(&r8_eval__[neval - 1], &r8_eval__[
 		    neval]);
@@ -1895,13 +1895,13 @@ L8000:
 
 
 
-/* Subroutine */ int parevec_(integer *num_code__, char *c_code__, doublereal 
-	*va, doublereal *vb, doublereal *vc, doublereal *vd, doublereal *ve, 
-	doublereal *vf, doublereal *vg, doublereal *vh, doublereal *vi, 
-	doublereal *vj, doublereal *vk, doublereal *vl, doublereal *vm, 
-	doublereal *vn, doublereal *vo, doublereal *vp, doublereal *vq, 
-	doublereal *vr, doublereal *vs, doublereal *vt, doublereal *vu, 
-	doublereal *vv, doublereal *vw, doublereal *vx, doublereal *vy, 
+/* Subroutine */ int parevec_(integer *num_code__, char *c_code__, doublereal
+	*va, doublereal *vb, doublereal *vc, doublereal *vd, doublereal *ve,
+	doublereal *vf, doublereal *vg, doublereal *vh, doublereal *vi,
+	doublereal *vj, doublereal *vk, doublereal *vl, doublereal *vm,
+	doublereal *vn, doublereal *vo, doublereal *vp, doublereal *vq,
+	doublereal *vr, doublereal *vs, doublereal *vt, doublereal *vu,
+	doublereal *vv, doublereal *vw, doublereal *vx, doublereal *vy,
 	doublereal *vz, integer *lvec, doublereal *vout, ftnlen c_code_len)
 {
     /* System generated locals */
@@ -1913,7 +1913,7 @@ L8000:
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen);
     integer s_cmp(char *, char *, ftnlen, ftnlen);
     double d_int(doublereal *), pow_dd(doublereal *, doublereal *), sin(
-	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal), 
+	    doublereal), cos(doublereal), tan(doublereal), sqrt(doublereal),
 	    exp(doublereal), log(doublereal), d_lg10(doublereal *), asin(
 	    doublereal), acos(doublereal), atan(doublereal), atan2(doublereal,
 	     doublereal), sinh(doublereal), cosh(doublereal), tanh(doublereal)
@@ -1932,7 +1932,7 @@ L8000:
     static integer itm, jtm;
     extern doublereal lor_(integer *, doublereal *);
     static integer ntm;
-    extern doublereal land_(integer *, doublereal *), mean_(integer *, 
+    extern doublereal land_(integer *, doublereal *), mean_(integer *,
 	    doublereal *), derf_(doublereal *), eran_(doublereal *), gran_(
 	    doublereal *, doublereal *), iran_(doublereal *), bool_(
 	    doublereal *), lran_(doublereal *), rect_(doublereal *);
@@ -1942,7 +1942,7 @@ L8000:
     static doublereal r8val[1664]	/* was [64][26] */;
     extern doublereal derfc_(doublereal *);
     static integer ncode;
-    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *, 
+    extern doublereal hmode_(integer *, doublereal *), lmode_(integer *,
 	    doublereal *);
     static integer neval;
     extern doublereal lmofn_(integer *, integer *, doublereal *);
@@ -1955,11 +1955,11 @@ L8000:
 	    ), dbesi1_(doublereal *), dbesj0_(doublereal *), dbesj1_(
 	    doublereal *), dbesk0_(doublereal *), dbesk1_(doublereal *);
 #define c8_val__ ((char *)equiv_0)
-    extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *), 
-	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *, 
-	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *, 
+    extern doublereal rhddc2_(doublereal *, doublereal *, doublereal *),
+	    hrfbk4_(doublereal *, doublereal *), hrfbk5_(doublereal *,
+	    doublereal *), cdf2st_(doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *), dbesy0_(doublereal *), dbesy1_(
-	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *, 
+	    doublereal *), st2cdf_(doublereal *, doublereal *, doublereal *,
 	    doublereal *, doublereal *);
 #define r8_val__ (equiv_0)
     extern doublereal dgamma_(doublereal *);
@@ -1967,33 +1967,33 @@ L8000:
     extern doublereal median_(integer *, doublereal *);
     static integer ialpha;
     extern doublereal cbrtff_(doublereal *), amongf_(integer *, doublereal *),
-	     argmax_(integer *, doublereal *), choose_(integer *, integer *, 
-	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *), 
+	     argmax_(integer *, doublereal *), choose_(integer *, integer *,
+	    doublereal *), fibntp_(doublereal *, doublereal *, doublereal *),
 	    fibnpt_(doublereal *, doublereal *, doublereal *), ficotp_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), acfwxm_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), pairmn_(
 	    integer *, doublereal *), lncosh_(doublereal *), ficopt_(
 	    doublereal *, doublereal *, doublereal *, doublereal *), argnum_(
-	    integer *, doublereal *), ficttp_(doublereal *, doublereal *), 
-	    fictpt_(doublereal *, doublereal *), fifttp_(doublereal *, 
-	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *, 
-	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *, 
-	    doublereal *), fibttp_(doublereal *, doublereal *, doublereal *), 
-	    pairmx_(integer *, doublereal *), fibtpt_(doublereal *, 
-	    doublereal *, doublereal *), fibttz_(doublereal *, doublereal *, 
+	    integer *, doublereal *), ficttp_(doublereal *, doublereal *),
+	    fictpt_(doublereal *, doublereal *), fifttp_(doublereal *,
+	    doublereal *, doublereal *), fiftpt_(doublereal *, doublereal *,
+	    doublereal *), ficotz_(doublereal *, doublereal *, doublereal *,
+	    doublereal *), fibttp_(doublereal *, doublereal *, doublereal *),
+	    pairmx_(integer *, doublereal *), fibtpt_(doublereal *,
+	    doublereal *, doublereal *), fibttz_(doublereal *, doublereal *,
 	    doublereal *), ficttz_(doublereal *, doublereal *), posval_(
-	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *), 
+	    doublereal *), fibntz_(doublereal *, doublereal *, doublereal *),
 	    fifttz_(doublereal *, doublereal *, doublereal *), figttp_(
-	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *, 
-	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *, 
+	    doublereal *, doublereal *, doublereal *), figtpt_(doublereal *,
+	    doublereal *, doublereal *), figttz_(doublereal *, doublereal *,
 	    doublereal *), fitttp_(doublereal *, doublereal *), fittpt_(
-	    doublereal *, doublereal *), orstat_(integer *, integer *, 
+	    doublereal *, doublereal *), orstat_(integer *, integer *,
 	    doublereal *), fipttp_(doublereal *, doublereal *), fiptpt_(
 	    doublereal *, doublereal *), fizttp_(doublereal *), fiztpt_(
 	    doublereal *), fipttz_(doublereal *, doublereal *), fitttz_(
 	    doublereal *, doublereal *), fizttz_(doublereal *);
     static doublereal r8_eval__[6464]	/* was [64][101] */;
-    extern doublereal withinf_(integer *, doublereal *), extreme_(integer *, 
+    extern doublereal withinf_(integer *, doublereal *), extreme_(integer *,
 	    doublereal *);
 
 
@@ -2218,21 +2218,21 @@ L1000:
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] += r8val[iv - ibv 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] += r8val[iv - ibv
 			    + (jf << 6) - 65];
 		}
 	    } else if (s_cmp(c2code, "-", (ftnlen)8, (ftnlen)1) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] -= r8val[iv - ibv 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] -= r8val[iv - ibv
 			    + (jf << 6) - 65];
 		}
 	    } else if (s_cmp(c2code, "*", (ftnlen)8, (ftnlen)1) == 0) {
 		ncode += 2;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] *= r8val[iv - ibv 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] *= r8val[iv - ibv
 			    + (jf << 6) - 65];
 		}
 	    } else if (s_cmp(c2code, "/", (ftnlen)8, (ftnlen)1) == 0) {
@@ -2240,7 +2240,7 @@ L1000:
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
 		    if (r8val[iv - ibv + (jf << 6) - 65] != 0.) {
-			r8_eval__[iv - ibv + (neval << 6) - 65] /= r8val[iv - 
+			r8_eval__[iv - ibv + (neval << 6) - 65] /= r8val[iv -
 				ibv + (jf << 6) - 65];
 		    } else {
 			r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
@@ -2251,7 +2251,7 @@ L1000:
 		++ncode;
 		i__2 = ivtop;
 		for (iv = ivbot; iv <= i__2; ++iv) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8val[iv - ibv 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8val[iv - ibv
 			    + (jf << 6) - 65];
 		}
 	    }
@@ -2310,7 +2310,7 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] += r8_eval__[iv - ibv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] += r8_eval__[iv - ibv
 			+ (neval + 1 << 6) - 65];
 	    }
 /* ....................................................................... */
@@ -2318,7 +2318,7 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] -= r8_eval__[iv - ibv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] -= r8_eval__[iv - ibv
 			+ (neval + 1 << 6) - 65];
 	    }
 /* ....................................................................... */
@@ -2326,7 +2326,7 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] *= r8_eval__[iv - ibv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] *= r8_eval__[iv - ibv
 			+ (neval + 1 << 6) - 65];
 	    }
 /* ....................................................................... */
@@ -2335,7 +2335,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval + 1 << 6) - 65] != 0.) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] /= r8_eval__[iv - 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] /= r8_eval__[iv -
 			    ibv + (neval + 1 << 6) - 65];
 		} else {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = 0.;
@@ -2347,8 +2347,8 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] > 0. || r8_eval__[
-			iv - ibv + (neval << 6) - 65] != 0. && r8_eval__[iv - 
-			ibv + (neval + 1 << 6) - 65] == d_int(&r8_eval__[iv - 
+			iv - ibv + (neval << 6) - 65] != 0. && r8_eval__[iv -
+			ibv + (neval + 1 << 6) - 65] == d_int(&r8_eval__[iv -
 			ibv + (neval + 1 << 6) - 65])) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = pow_dd(&
 			    r8_eval__[iv - ibv + (neval << 6) - 65], &
@@ -2359,56 +2359,56 @@ L1000:
 	} else if (s_cmp(cncode, "--", (ftnlen)8, (ftnlen)2) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = -r8_eval__[iv - ibv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = -r8_eval__[iv - ibv
 			+ (neval << 6) - 65];
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "SIN", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "SIND", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = sin(r8_eval__[iv -
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "COS", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "COSD", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = cos(r8_eval__[iv -
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "TAN", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "TAND", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = tan(r8_eval__[iv -
 			ibv + (neval << 6) - 65] * .01745329251994);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "SQRT", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = sqrt((d__1 = 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = sqrt((d__1 =
 			r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)));
 	    }
 /* ....................................................................... */
@@ -2441,7 +2441,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0.) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] = log((d__1 = 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] = log((d__1 =
 			    r8_eval__[iv - ibv + (neval << 6) - 65], abs(d__1)
 			    ));
 		}
@@ -2451,7 +2451,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0.) {
-		    d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], 
+		    d__2 = (d__1 = r8_eval__[iv - ibv + (neval << 6) - 65],
 			    abs(d__1));
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = d_lg10(&d__2);
 		}
@@ -2460,7 +2460,7 @@ L1000:
 	} else if (s_cmp(cncode, "INT", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = d_int(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = d_int(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -2469,7 +2469,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 /* Computing MAX */
-		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], d__2 = 
+		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], d__2 =
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = max(d__1,d__2);
 	    }
@@ -2479,7 +2479,7 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 /* Computing MIN */
-		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], d__2 = 
+		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65], d__2 =
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = min(d__1,d__2);
 	    }
@@ -2507,7 +2507,7 @@ L1000:
 	} else if (s_cmp(cncode, "ATAN", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = atan(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = atan(r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -2515,10 +2515,10 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0. || 
+		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0. ||
 			r8_eval__[iv - ibv + (neval + 1 << 6) - 65] != 0.) {
 		    r8_eval__[iv - ibv + (neval << 6) - 65] = atan2(r8_eval__[
-			    iv - ibv + (neval << 6) - 65], r8_eval__[iv - ibv 
+			    iv - ibv + (neval << 6) - 65], r8_eval__[iv - ibv
 			    + (neval + 1 << 6) - 65]);
 		}
 	    }
@@ -2527,7 +2527,7 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = gran_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = gran_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
 			neval + 1 << 6) - 65]);
 	    }
@@ -2544,28 +2544,28 @@ L1000:
 	} else if (s_cmp(cncode, "URAN", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = uran_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = uran_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "IRAN", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = iran_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = iran_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "ERAN", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = eran_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = eran_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "LRAN", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = lran_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = lran_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -2602,7 +2602,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = rhddc2_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -2642,15 +2642,15 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = acfwxm_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
-			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6)
 			- 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "TANH", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = tanh(r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = tanh(r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -2707,21 +2707,21 @@ L1000:
 	} else if (s_cmp(cncode, "AI", (ftnlen)8, (ftnlen)2) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = dai_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = dai_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "BI", (ftnlen)8, (ftnlen)2) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = dbi_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = dbi_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65], &c__1);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "ERF", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = derf_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = derf_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "ERFC", (ftnlen)8, (ftnlen)4) == 0) {
@@ -2793,7 +2793,7 @@ L1000:
 	} else if (s_cmp(cncode, "QG", (ftnlen)8, (ftnlen)2) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = qg_(&r8_eval__[iv - 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = qg_(&r8_eval__[iv -
 			ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "QGINV", (ftnlen)8, (ftnlen)5) == 0) {
@@ -2811,13 +2811,13 @@ L1000:
 	} else if (s_cmp(cncode, "RECT", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = rect_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = rect_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "STEP", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "POSVAL", (ftnlen)8, (ftnlen)6) == 0) {
@@ -2829,13 +2829,13 @@ L1000:
 	} else if (s_cmp(cncode, "TENT", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = tent_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = tent_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "BOOL", (ftnlen)8, (ftnlen)4) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "ZTONE", (ftnlen)8, (ftnlen)5) == 0) {
@@ -2851,8 +2851,8 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = cdf2st_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
-			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6)
 			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "STAT2CDF", (ftnlen)8, (ftnlen)8) == 0) {
@@ -2861,18 +2861,18 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = st2cdf_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
-			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6)
 			- 65], &r8_eval__[iv - ibv + (neval + 4 << 6) - 65]);
 	    }
 /* ....................................................................... */
 	} else if (s_cmp(cncode, "NOTZERO", (ftnlen)8, (ftnlen)7) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = bool_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
-	} else if (s_cmp(cncode, "ISZERO", (ftnlen)8, (ftnlen)6) == 0 || 
+	} else if (s_cmp(cncode, "ISZERO", (ftnlen)8, (ftnlen)6) == 0 ||
 		s_cmp(cncode, "NOT", (ftnlen)8, (ftnlen)3) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
@@ -2883,14 +2883,14 @@ L1000:
 	    --neval;
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65] - r8_eval__[iv 
+		d__1 = r8_eval__[iv - ibv + (neval << 6) - 65] - r8_eval__[iv
 			- ibv + (neval + 1 << 6) - 65];
 		r8_eval__[iv - ibv + (neval << 6) - 65] = 1. - bool_(&d__1);
 	    }
 	} else if (s_cmp(cncode, "ISPOSITI", (ftnlen)8, (ftnlen)8) == 0) {
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
-		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = step_(&r8_eval__[iv
 			- ibv + (neval << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "ISNEGATI", (ftnlen)8, (ftnlen)8) == 0) {
@@ -2907,7 +2907,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = land_(&ntm, scop);
@@ -2919,7 +2919,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = median_(&ntm, scop);
@@ -2931,7 +2931,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = mad_(&ntm, scop);
@@ -2943,7 +2943,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = mean_(&ntm, scop);
@@ -2955,7 +2955,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = stdev_(&ntm, scop);
@@ -2967,7 +2967,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = sem_(&ntm, scop);
@@ -2981,10 +2981,10 @@ L1000:
 		itm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) - 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) -
 			    65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = orstat_(&itm, &ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = orstat_(&itm, &ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "HMODE", (ftnlen)8, (ftnlen)5) == 0) {
@@ -2994,7 +2994,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = hmode_(&ntm, scop);
@@ -3006,7 +3006,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lmode_(&ntm, scop);
@@ -3018,7 +3018,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = lor_(&ntm, scop);
@@ -3032,10 +3032,10 @@ L1000:
 		itm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) - 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) -
 			    65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = lmofn_(&itm, &ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "ASTEP", (ftnlen)8, (ftnlen)5) == 0) {
@@ -3056,7 +3056,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = argmax_(&ntm, scop);
@@ -3068,7 +3068,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = argnum_(&ntm, scop);
@@ -3080,7 +3080,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = pairmx_(&ntm, scop);
@@ -3092,7 +3092,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = pairmn_(&ntm, scop);
@@ -3104,7 +3104,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = amongf_(&ntm, scop);
@@ -3116,7 +3116,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = withinf_(&ntm, scop)
@@ -3129,10 +3129,10 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = minabove_(&ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = minabove_(&ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "MAXBELOW", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3142,10 +3142,10 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = maxbelow_(&ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = maxbelow_(&ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "EXTREME", (ftnlen)8, (ftnlen)7) == 0) {
@@ -3155,7 +3155,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
 		r8_eval__[iv - ibv + (neval << 6) - 65] = extreme_(&ntm, scop)
@@ -3168,10 +3168,10 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 << 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm - 1 <<
 			    6) - 65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = absextreme_(&ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = absextreme_(&ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "CHOOSE", (ftnlen)8, (ftnlen)6) == 0) {
@@ -3183,10 +3183,10 @@ L1000:
 		itm = (integer) r8_eval__[iv - ibv + (neval << 6) - 65];
 		i__3 = ntm;
 		for (jtm = 1; jtm <= i__3; ++jtm) {
-		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) - 
+		    scop[jtm - 1] = r8_eval__[iv - ibv + (neval + jtm << 6) -
 			    65];
 		}
-		r8_eval__[iv - ibv + (neval << 6) - 65] = choose_(&itm, &ntm, 
+		r8_eval__[iv - ibv + (neval << 6) - 65] = choose_(&itm, &ntm,
 			scop);
 	    }
 	} else if (s_cmp(cncode, "IFELSE", (ftnlen)8, (ftnlen)6) == 0) {
@@ -3194,10 +3194,10 @@ L1000:
 	    i__2 = ivtop;
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		if (r8_eval__[iv - ibv + (neval << 6) - 65] != 0.) {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8_eval__[iv - 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8_eval__[iv -
 			    ibv + (neval + 1 << 6) - 65];
 		} else {
-		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8_eval__[iv - 
+		    r8_eval__[iv - ibv + (neval << 6) - 65] = r8_eval__[iv -
 			    ibv + (neval + 2 << 6) - 65];
 		}
 	    }
@@ -3219,8 +3219,8 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = ficopt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
-			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6)
 			- 65]);
 	    }
 	} else if (s_cmp(cncode, "FICO_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3229,8 +3229,8 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = ficotz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
-			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6) 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
+			2 << 6) - 65], &r8_eval__[iv - ibv + (neval + 3 << 6)
 			- 65]);
 	    }
 /* ....................................................................... */
@@ -3266,7 +3266,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fifttp_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIFT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3275,7 +3275,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fiftpt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIFT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3284,7 +3284,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fifttz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -3339,7 +3339,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibttp_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIBT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3348,7 +3348,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibtpt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIBT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3357,7 +3357,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibttz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -3367,7 +3367,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibntp_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIBN_P2T", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3376,7 +3376,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibnpt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIBN_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3385,7 +3385,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = fibntz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -3395,7 +3395,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = figttp_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIGT_P2T", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3404,7 +3404,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = figtpt_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 	} else if (s_cmp(cncode, "FIGT_T2Z", (ftnlen)8, (ftnlen)8) == 0) {
@@ -3413,7 +3413,7 @@ L1000:
 	    for (iv = ivbot; iv <= i__2; ++iv) {
 		r8_eval__[iv - ibv + (neval << 6) - 65] = figttz_(&r8_eval__[
 			iv - ibv + (neval << 6) - 65], &r8_eval__[iv - ibv + (
-			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval + 
+			neval + 1 << 6) - 65], &r8_eval__[iv - ibv + (neval +
 			2 << 6) - 65]);
 	    }
 /* ....................................................................... */
@@ -3710,7 +3710,7 @@ doublereal gran1_(doublereal *b, doublereal *s)
 
     g = unif_(&c_b444) - 6. + unif_(&c_b445) + unif_(&c_b446) + unif_(&c_b447)
 	     + unif_(&c_b448) + unif_(&c_b449) + unif_(&c_b450) + unif_(&
-	    c_b451) + unif_(&c_b452) + unif_(&c_b453) + unif_(&c_b454) + 
+	    c_b451) + unif_(&c_b452) + unif_(&c_b453) + unif_(&c_b454) +
 	    unif_(&c_b455);
     ret_val = *b + *s * g;
     return ret_val;
@@ -3795,7 +3795,7 @@ doublereal qginv_(doublereal *p)
 /*  Step 1:  use 26.2.23 from Abramowitz and Stegun */
 
     dt = sqrt(log(dp) * -2.);
-    dx = dt - ((dt * .010328 + .802853) * dt + 2.525517) / (((dt * .001308 + 
+    dx = dt - ((dt * .010328 + .802853) * dt + 2.525517) / (((dt * .001308 +
 	    .189269) * dt + 1.432788) * dt + 1.);
 
 /*  Step 2:  do 3 Newton steps to improve this */

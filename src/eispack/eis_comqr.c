@@ -6,7 +6,7 @@
 #include "f2c.h"
 
 /* Subroutine */ int comqr_(integer *nm, integer *n, integer *low, integer *
-	igh, doublereal *hr, doublereal *hi, doublereal *wr, doublereal *wi, 
+	igh, doublereal *hr, doublereal *hi, doublereal *wr, doublereal *wi,
 	integer *ierr)
 {
     /* System generated locals */
@@ -20,7 +20,7 @@
     integer i__, j, l=0, en, ll;
     doublereal si, ti, xi, yi, sr, tr, xr, yr;
     extern doublereal pythag_(doublereal *, doublereal *);
-    extern /* Subroutine */ int csroot_(doublereal *, doublereal *, 
+    extern /* Subroutine */ int csroot_(doublereal *, doublereal *,
 	    doublereal *, doublereal *);
     integer lp1, itn, its;
     doublereal zzi, zzr;
@@ -79,12 +79,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -113,7 +113,7 @@
 	if (hi[i__ + (i__ - 1) * hi_dim1] == 0.) {
 	    goto L170;
 	}
-	norm = pythag_(&hr[i__ + (i__ - 1) * hr_dim1], &hi[i__ + (i__ - 1) * 
+	norm = pythag_(&hr[i__ + (i__ - 1) * hr_dim1], &hi[i__ + (i__ - 1) *
 		hi_dim1]);
 	yr = hr[i__ + (i__ - 1) * hr_dim1] / norm;
 	yi = hi[i__ + (i__ - 1) * hi_dim1] / norm;
@@ -123,7 +123,7 @@
 	i__2 = *igh;
 	for (j = i__; j <= i__2; ++j) {
 	    si = yr * hi[i__ + j * hi_dim1] - yi * hr[i__ + j * hr_dim1];
-	    hr[i__ + j * hr_dim1] = yr * hr[i__ + j * hr_dim1] + yi * hi[i__ 
+	    hr[i__ + j * hr_dim1] = yr * hr[i__ + j * hr_dim1] + yi * hi[i__
 		    + j * hi_dim1];
 	    hi[i__ + j * hi_dim1] = si;
 /* L155: */
@@ -132,7 +132,7 @@
 	i__2 = ll;
 	for (j = *low; j <= i__2; ++j) {
 	    si = yr * hi[j + i__ * hi_dim1] + yi * hr[j + i__ * hr_dim1];
-	    hr[j + i__ * hr_dim1] = yr * hr[j + i__ * hr_dim1] - yi * hi[j + 
+	    hr[j + i__ * hr_dim1] = yr * hr[j + i__ * hr_dim1] - yi * hi[j +
 		    i__ * hi_dim1];
 	    hi[j + i__ * hi_dim1] = si;
 /* L160: */
@@ -175,7 +175,7 @@ L240:
 	    goto L300;
 	}
 	tst1 = (d__1 = hr[l - 1 + (l - 1) * hr_dim1], abs(d__1)) + (d__2 = hi[
-		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l * 
+		l - 1 + (l - 1) * hi_dim1], abs(d__2)) + (d__3 = hr[l + l *
 		hr_dim1], abs(d__3)) + (d__4 = hi[l + l * hi_dim1], abs(d__4))
 		;
 	tst2 = tst1 + (d__1 = hr[l + (l - 1) * hr_dim1], abs(d__1));
@@ -225,7 +225,7 @@ L310:
     goto L340;
 /*     .......... FORM EXCEPTIONAL SHIFT .......... */
 L320:
-    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en 
+    sr = (d__1 = hr[en + enm1 * hr_dim1], abs(d__1)) + (d__2 = hr[enm1 + (en
 	    - 2) * hr_dim1], abs(d__2));
     si = 0.;
 
@@ -248,7 +248,7 @@ L340:
     for (i__ = lp1; i__ <= i__1; ++i__) {
 	sr = hr[i__ + (i__ - 1) * hr_dim1];
 	hr[i__ + (i__ - 1) * hr_dim1] = 0.;
-	d__1 = pythag_(&hr[i__ - 1 + (i__ - 1) * hr_dim1], &hi[i__ - 1 + (i__ 
+	d__1 = pythag_(&hr[i__ - 1 + (i__ - 1) * hr_dim1], &hi[i__ - 1 + (i__
 		- 1) * hi_dim1]);
 	norm = pythag_(&d__1, &sr);
 	xr = hr[i__ - 1 + (i__ - 1) * hr_dim1] / norm;
@@ -310,9 +310,9 @@ L540:
 L560:
 	    hr[i__ + (j - 1) * hr_dim1] = xr * yr - xi * yi + hi[j + (j - 1) *
 		     hi_dim1] * zzr;
-	    hr[i__ + j * hr_dim1] = xr * zzr + xi * zzi - hi[j + (j - 1) * 
+	    hr[i__ + j * hr_dim1] = xr * zzr + xi * zzi - hi[j + (j - 1) *
 		    hi_dim1] * yr;
-	    hi[i__ + j * hi_dim1] = xr * zzi - xi * zzr - hi[j + (j - 1) * 
+	    hi[i__ + j * hi_dim1] = xr * zzi - xi * zzr - hi[j + (j - 1) *
 		    hi_dim1] * yi;
 /* L580: */
 	}

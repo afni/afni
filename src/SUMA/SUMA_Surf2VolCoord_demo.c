@@ -129,16 +129,16 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    }
    if (detail > 1) {
        printf(
-"%s"                 
-"\n"                    
+"%s"
+"\n"
 "%s"
 "%s"
                "\n", help_msg, sio,  s);
-      SUMA_free(s); s = NULL; 
-      SUMA_free(st); st = NULL; 
-      SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL;
+      SUMA_free(st); st = NULL;
+      SUMA_free(sio); sio = NULL;
    }
-   if (detail) {  
+   if (detail) {
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
    }
    exit(0);
@@ -147,14 +147,14 @@ void usage_Surf2VolCoord_demo (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
                      char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_Surf2VolCoord_demo_ParseInput"}; 
+   static char FuncName[]={"SUMA_Surf2VolCoord_demo_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar, i;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->obj_type = 0; /* sub-brick index */
    Opt->NodeDbg = -1;
@@ -169,9 +169,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
 			 usage_Surf2VolCoord_demo(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -179,13 +179,13 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
             fprintf (SUMA_STDERR, "need a number after -prefix \n");
             exit (1);
          }
-         Opt->out_vol_prefix = 
-            SUMA_AfniPrefix(argv[++kar], Opt->out_vol_view, NULL, 
+         Opt->out_vol_prefix =
+            SUMA_AfniPrefix(argv[++kar], Opt->out_vol_view, NULL,
                             &(Opt->out_vol_exists));
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-closest_nodes") == 0))
       {
          if (kar+1 >= argc)
@@ -193,14 +193,14 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
             fprintf (SUMA_STDERR, "need a 1D file after -closest_nodes \n");
             exit (1);
          }
-         if (!(Opt->fvec = SUMA_Load1D_eng(argv[++kar], 
+         if (!(Opt->fvec = SUMA_Load1D_eng(argv[++kar],
                                  &(Opt->fvec_dim), &(Opt->n_fvec), 1, 1))) {
             SUMA_S_Errv("Failed to read %s\n", argv[kar]);
             exit(1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-closest_node") == 0))
       {
          if (kar+1 >= argc)
@@ -219,7 +219,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
          brk = YUP;
       }
 
-      
+
       if (!brk && (strcmp(argv[kar], "-qual") == 0)) {
          if (kar+1 >= argc)
          {
@@ -229,17 +229,17 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
          Opt->s = SUMA_copy_string(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-RAI") == 0)) {
          Opt->b1 = 0;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-LPI") == 0)) {
          Opt->b1 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-verb") == 0)) {
          if (kar+1 >= argc)
          {
@@ -249,7 +249,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grid_parent") == 0))
       {
          if (kar+1 >= argc)
@@ -257,19 +257,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
             fprintf (SUMA_STDERR, "need a dataset after -grid_parent \n");
             exit (1);
          }
-         Opt->out_grid_prefix = 
-            SUMA_AfniPrefix(argv[++kar], Opt->out_grid_view, NULL, 
+         Opt->out_grid_prefix =
+            SUMA_AfniPrefix(argv[++kar], Opt->out_grid_view, NULL,
                             &(Opt->out_grid_exists));
          if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
-            fprintf(SUMA_STDERR, 
+            fprintf(SUMA_STDERR,
                     "Error Surf2VolCoord_demo:\n"
-                    "Grid parent %s%s does not exist.\n", 
+                    "Grid parent %s%s does not exist.\n",
                     Opt->out_grid_prefix, Opt->out_grid_view);
             exit(1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-grid_subbrick") == 0))
       {
          if (kar+1 >= argc)
@@ -280,7 +280,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
          Opt->obj_type = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -288,7 +288,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
@@ -299,30 +299,30 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_Surf2VolCoord_demo_ParseInput(
             fprintf (SUMA_STDERR, "need a number after -one_node \n");
             exit (1);
          }
-         
+
          Opt->NodeDbg = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
                   "Error Surf2VolCoord_demo:\n"
                   "Option %s not understood. Try -help for usage\n", argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"Surf2VolCoord_demo"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"Surf2VolCoord_demo"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int N_Spec=0;
@@ -337,47 +337,47 @@ int main (int argc,char *argv[])
    float *tmpXYZ=NULL, *mindist=NULL;
    int di, dj, dk, dijk, nx, ny, nxy, i0, i1, mode;
    float fi, fj, fk;
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-sv;");
-   
+
    Opt = SUMA_Surf2VolCoord_demo_ParseInput (argv, argc, ps);
    if (argc < 2) {
       SUMA_S_Err("Too few options");
       usage_Surf2VolCoord_demo(ps, 0);
       exit (1);
    }
-   
+
 
    if (Opt->debug > 2) LocalHead = YUP;
    if (Opt->n_fvec) mode = 1;
    else mode = 0;
-   
+
    /* some checks ...*/
    if (!Opt->out_vol_prefix) {
-      if (mode==0) { 
-         Opt->out_vol_prefix = 
-            SUMA_AfniPrefix("Surf2VolCoord_demo", 
-                            NULL, NULL, &(Opt->out_vol_exists)); 
+      if (mode==0) {
+         Opt->out_vol_prefix =
+            SUMA_AfniPrefix("Surf2VolCoord_demo",
+                            NULL, NULL, &(Opt->out_vol_exists));
          strncpy(Opt->out_vol_view, Opt->out_grid_view, SUMA_VIEW_LENGTH);
       }
    } else {
       if (SUMA_AfniExistsView(Opt->out_vol_exists, Opt->out_vol_view)) {
-         fprintf(SUMA_STDERR, 
-                  "Error Surf2VolCoord_demo:\nOutput volume %s%s exists.\n", 
+         fprintf(SUMA_STDERR,
+                  "Error Surf2VolCoord_demo:\nOutput volume %s%s exists.\n",
                   Opt->out_vol_prefix, Opt->out_vol_view);
          exit(1);
       }
    }
-   
+
    if (Opt->out_grid_prefix) {
       if (!SUMA_AfniExistsView(Opt->out_grid_exists, Opt->out_grid_view)) {
          fprintf(SUMA_STDERR, "Error Surf2VolCoord_demo:\n"
-                              "Grid parent %s%s does not exist.\n", 
+                              "Grid parent %s%s does not exist.\n",
                               Opt->out_grid_prefix, Opt->out_grid_view);
          exit(1);
       }
@@ -391,19 +391,19 @@ int main (int argc,char *argv[])
                  "Only one method allowed.");
       exit(1);
    }
-   
-      
+
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
       exit(1);
    }
-   
+
    if (N_Spec != 1) {
       SUMA_S_Err("Multiple spec at input.");
       exit(1);
    }
-   
+
    if (mode == 0 && Spec->N_Surfs!=1) {
       SUMA_S_Err("Only one surface allowed in demo mode");
       exit(1);
@@ -413,14 +413,14 @@ int main (int argc,char *argv[])
                   Spec->N_Surfs, Opt->s, (int)strlen(Opt->s));
       exit(1);
    }
-   
+
    if (mode == 1 && Opt->b1) {/* go from LPI to RAI */
       for (i=0; i<Opt->n_fvec; ++i) {
          Opt->fvec[Opt->fvec_dim*i] = -Opt->fvec[Opt->fvec_dim*i];
          Opt->fvec[Opt->fvec_dim*i+1] = -Opt->fvec[Opt->fvec_dim*i+1];
-      }  
+      }
    }
-   
+
    for (isrf=0; isrf < Spec->N_Surfs; ++isrf) {
       SO = SUMA_Load_Spec_Surf(Spec, isrf, ps->sv[0], 0);
       if (!SO) {
@@ -430,7 +430,7 @@ int main (int argc,char *argv[])
                                  FuncName );
             exit(1);
 
-      }   
+      }
       if (Opt->NodeDbg >= 0 && Opt->NodeDbg >= SO->N_Node) {
          fprintf (SUMA_STDERR,"Error %s:\n"
                                  "Node index %d is >= SO->N_Node (%d)\n"
@@ -439,7 +439,7 @@ int main (int argc,char *argv[])
             exit(1);
       }
 
-      
+
       if (mode == 1) {
          double dd=0.0;
          int n;
@@ -448,41 +448,41 @@ int main (int argc,char *argv[])
                   Opt->fvec_dim, SO->NodeDim);
             exit (1);
          }
-         if (!mindist) mindist = 
+         if (!mindist) mindist =
                (float *)SUMA_calloc(Opt->n_fvec,sizeof(float));
          if (!minnode) minnode =
                (int *)SUMA_calloc(Opt->n_fvec,sizeof(int));
-         if (!bestflag) bestflag = 
+         if (!bestflag) bestflag =
                (int *)SUMA_calloc(Opt->n_fvec,sizeof(int));
          for (i=0; i<Opt->n_fvec; ++i) {
             if (isrf==0) mindist[i] = 156779800000.0;
             for (n=0; n<SO->N_Node; ++n) {
                SUMA_SEG_NORM( (SO->NodeList+SO->NodeDim*n),
                               (Opt->fvec+Opt->fvec_dim*i), dd);
-               if (dd < mindist[i]) { 
-                  mindist[i] = dd; minnode[i] = n; bestflag[i]=isrf; 
+               if (dd < mindist[i]) {
+                  mindist[i] = dd; minnode[i] = n; bestflag[i]=isrf;
                }
             }
-         }  
+         }
       } else {
          /***********          The demo mode *****************/
          /* By now SO is the surface object whose coordinates have transformed
-         so that it is in register with the surface volume specifed on command 
+         so that it is in register with the surface volume specifed on command
          line.
          */
 
          /* Now let us read the volume from which you would be accessing values.
-         That volume should be in alignment with -sv but not at the same 
+         That volume should be in alignment with -sv but not at the same
          resolution.
-         I assume that this volume contains one sub-brick for simplicity. If no 
+         I assume that this volume contains one sub-brick for simplicity. If no
          such volume is specified then we'll use the -sv volume for that */
 
          if (Opt->out_grid_prefix) {
-            vpname = SUMA_append_string(Opt->out_grid_prefix, 
+            vpname = SUMA_append_string(Opt->out_grid_prefix,
                                         Opt->out_grid_view);
             vp = SUMA_VolPar_Attr(vpname);
             dset = THD_open_dataset( vpname );
-         } else { 
+         } else {
             vp = SO->VolPar;
             if (!vp) {
                fprintf (SUMA_STDERR,"Error %s:\n"
@@ -500,7 +500,7 @@ int main (int argc,char *argv[])
             }
             dset = THD_open_dataset( vpname );
          }
-         /* load .BRIK into memory */   
+         /* load .BRIK into memory */
          DSET_load(dset);
          if (LocalHead) {
             fprintf(SUMA_STDERR,"%s: Using %s for grid\n", FuncName, vpname);
@@ -512,21 +512,21 @@ int main (int argc,char *argv[])
                                  FuncName, DSET_NVALS(dset), Opt->obj_type );
                   exit(1);
          }
-         /* transform the surface's coordinates from RAImm to 3dfind 
-            RAI coordinates are the mm coordinates you see displayed in AFNI's 
-               top left corner 
-            3dfind are the equivalent coordinates expressed in index coordinates 
-               on the grid volume 
-            Say you have a node at 13.4, 23, -54 mm (RAI), its 3dfind coordinate 
-               might be: 3.2 , 56.1,   124.8 which would be closest to voxel with 
-               ijk indices 3, 56, 125 in the volume defined by grid parent 
+         /* transform the surface's coordinates from RAImm to 3dfind
+            RAI coordinates are the mm coordinates you see displayed in AFNI's
+               top left corner
+            3dfind are the equivalent coordinates expressed in index coordinates
+               on the grid volume
+            Say you have a node at 13.4, 23, -54 mm (RAI), its 3dfind coordinate
+               might be: 3.2 , 56.1,   124.8 which would be closest to voxel with
+               ijk indices 3, 56, 125 in the volume defined by grid parent
                (dset or vp).
-            To get that voxel's value, you just access element 3,56, 125. 
-            Note that in this example, I am getting voxel values for all  coords 
-            in vector tmpXYZ and those happen to be all the nodes of the surface. 
-            But you could put whatever coordinates or subset of coordinates you 
+            To get that voxel's value, you just access element 3,56, 125.
+            Note that in this example, I am getting voxel values for all  coords
+            in vector tmpXYZ and those happen to be all the nodes of the surface.
+            But you could put whatever coordinates or subset of coordinates you
             want in there. Just be sure to change SO->N_Node to reflect
-            the number of triplets in tmpXYZ   
+            the number of triplets in tmpXYZ
          */
 
          /* copy surface coordinates to preserve them, we're going to ijk land */
@@ -535,7 +535,7 @@ int main (int argc,char *argv[])
             SUMA_SL_Crit("Faile to allocate");
             exit(1);
          }
-         memcpy ((void*)tmpXYZ, (void *)SO->NodeList, 
+         memcpy ((void*)tmpXYZ, (void *)SO->NodeList,
                   SO->N_Node * 3 * sizeof(float));
          if (!SUMA_vec_dicomm_to_3dfind (tmpXYZ, SO->N_Node, vp)) {
             SUMA_SL_Err("Failed to effectuate coordinate transform.");
@@ -554,13 +554,13 @@ int main (int argc,char *argv[])
                         DSET_NVOX(dset));
             exit(1);
          }
-         EDIT_coerce_scale_type( DSET_NVOX(dset) , 
+         EDIT_coerce_scale_type( DSET_NVOX(dset) ,
                                  DSET_BRICK_FACTOR(dset,Opt->obj_type) ,
-                                 DSET_BRICK_TYPE(dset,Opt->obj_type), 
+                                 DSET_BRICK_TYPE(dset,Opt->obj_type),
                                  DSET_ARRAY(dset, Opt->obj_type) ,   /* input  */
                                  MRI_double               , dvec  ) ;/* output */
 
-         nx = DSET_NX(dset); ny = DSET_NY(dset); nxy = nx * ny; 
+         nx = DSET_NX(dset); ny = DSET_NY(dset); nxy = nx * ny;
          if (Opt->NodeDbg >= 0) { i0 = Opt->NodeDbg; i1 = Opt->NodeDbg+1; }
          else { i0 = 0; i1 = SO->N_Node;};
          for (i=i0; i<i1; ++i) {
@@ -568,16 +568,16 @@ int main (int argc,char *argv[])
             fj = tmpXYZ[3*i+1]; dj = SUMA_ROUND(fj);
             fk = tmpXYZ[3*i+2]; dk = SUMA_ROUND(fk);
             dijk = SUMA_3D_2_1D_index(di, dj, dk, nx, nxy);
-            fprintf(SUMA_STDOUT, 
+            fprintf(SUMA_STDOUT,
                      "Node Index %d: RAImm %.3f %.3f %.3f : "
                      "3dfind %.1f %.1f %.1f : 3dind %d %d %d : Val %f\n",
                       i,
-                   SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
+                   SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2],
                       fi, fj, fk, di, dj, dk,
                       dvec[dijk]);
 
          }
-         SUMA_free(dvec); dvec = NULL; 
+         SUMA_free(dvec); dvec = NULL;
          SUMA_free(tmpXYZ); tmpXYZ = NULL;
          /* no need for data in input volume anymore */
          PURGE_DSET(dset);
@@ -593,30 +593,30 @@ int main (int argc,char *argv[])
       FILE *fout=NULL;
       if (Opt->out_vol_prefix) {
          if (!(fout = fopen(Opt->out_vol_prefix,"w"))) {
-            SUMA_S_Errv("Failed to open %s for output", 
+            SUMA_S_Errv("Failed to open %s for output",
                         Opt->out_vol_prefix);
             exit(1);
          }
       } else {
          fout = SUMA_STDOUT;
-      }   
+      }
       if (Opt->debug) fprintf(fout,"#Closest_Node Distance_to_Coord\n");
       for (i=0; i<Opt->n_fvec; ++i) {
-         fprintf(fout,"%d%c %f\n", 
-                  minnode[i], 
-                  Opt->s ? Opt->s[bestflag[i]]:'A'+bestflag[i], 
+         fprintf(fout,"%d%c %f\n",
+                  minnode[i],
+                  Opt->s ? Opt->s[bestflag[i]]:'A'+bestflag[i],
                   mindist[i]);
       }
       if (fout != SUMA_STDOUT) fclose(fout); fout=NULL;
    }
-      
+
 
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { 
-            SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) {
+            SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
@@ -624,8 +624,8 @@ int main (int argc,char *argv[])
    if (minnode) SUMA_free(minnode); minnode = NULL;
    if (bestflag) SUMA_free(bestflag); bestflag = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
-   
-} 
+
+}

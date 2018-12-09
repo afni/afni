@@ -75,7 +75,7 @@ static struct {
    int nofloatscan ;           /* 14 Sep 1999 */
 
    int swap_eight ;            /* 06 Feb 2003 */
-   
+
    int quit_if_bad;            /* 25 Nov 2011 */
 
 } argopt  ;
@@ -4709,7 +4709,7 @@ printf("T3D_read_images: nvals set to %d\n",nvals) ;
    /*--- 15 Dec 2005: set the coordinate matrices in the header as well ---*/
 
    THD_set_daxes_to_dicomm(daxes) ;
- 
+
    if( !ISVALID_MAT44(daxes->ijk_to_dicom) ) THD_daxes_to_mat44(daxes) ;
     /*-----*/
 
@@ -5578,7 +5578,7 @@ STATUS("check data types") ;
 
 #ifndef NO_NAMES
    if( strlen(user_inputs.dataset_name) == 0 ){
-      T3D_poperr( OUTERR,"You **MUST** supply a name for the dataset!", 
+      T3D_poperr( OUTERR,"You **MUST** supply a name for the dataset!",
             perr ) ;
       good = False ;
    }
@@ -6253,5 +6253,5 @@ T3D_reverse_list(int gnim, char ** gname)
    for(i=0; i<gnim; i++)
       gname[i] = strlist[i];
 
-   free(strlist);      
+   free(strlist);
 }

@@ -5,12 +5,12 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int htribk_(integer *nm, integer *n, doublereal *ar, 
-	doublereal *ai, doublereal *tau, integer *m, doublereal *zr, 
+/* Subroutine */ int htribk_(integer *nm, integer *n, doublereal *ar,
+	doublereal *ai, doublereal *tau, integer *m, doublereal *zr,
 	doublereal *zi)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset, i__1, i__2, i__3;
 
     /* Local variables */
@@ -58,12 +58,12 @@
 /*     IS REAL AND THAT VECTOR EUCLIDEAN NORMS ARE PRESERVED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -118,7 +118,7 @@
 
 	    i__3 = l;
 	    for (k = 1; k <= i__3; ++k) {
-		s = s + ar[i__ + k * ar_dim1] * zr[k + j * zr_dim1] - ai[i__ 
+		s = s + ar[i__ + k * ar_dim1] * zr[k + j * zr_dim1] - ai[i__
 			+ k * ai_dim1] * zi[k + j * zi_dim1];
 		si = si + ar[i__ + k * ar_dim1] * zi[k + j * zi_dim1] + ai[
 			i__ + k * ai_dim1] * zr[k + j * zr_dim1];
@@ -131,9 +131,9 @@
 
 	    i__3 = l;
 	    for (k = 1; k <= i__3; ++k) {
-		zr[k + j * zr_dim1] = zr[k + j * zr_dim1] - s * ar[i__ + k * 
+		zr[k + j * zr_dim1] = zr[k + j * zr_dim1] - s * ar[i__ + k *
 			ar_dim1] - si * ai[i__ + k * ai_dim1];
-		zi[k + j * zi_dim1] = zi[k + j * zi_dim1] - si * ar[i__ + k * 
+		zi[k + j * zi_dim1] = zi[k + j * zi_dim1] - si * ar[i__ + k *
 			ar_dim1] + s * ai[i__ + k * ai_dim1];
 /* L120: */
 	    }

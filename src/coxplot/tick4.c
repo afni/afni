@@ -31,7 +31,7 @@ extern struct {
 
 
 
-/* Subroutine */ int tick4_(integer *lmajx, integer *lminx, integer *lmajy, 
+/* Subroutine */ int tick4_(integer *lmajx, integer *lminx, integer *lmajy,
 	integer *lminy)
 {
     static real scale;

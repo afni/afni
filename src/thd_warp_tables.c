@@ -14,10 +14,10 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
    int index, int space_index);
 void set_nspaces(int n);
 void set_atlas_nspaces(void);
-int get_nspaces(void);   
+int get_nspaces(void);
 void free_session_row(THD_session *sess, int index);
-   
-   
+
+
 /* get the dataset with a specific ID code and a specific space index */
 THD_3dim_dataset *
 get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index)
@@ -25,7 +25,7 @@ get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index)
    THD_3dim_dataset *dset = NULL;
    THD_dsarr *dsrow;
    int i,j;
-   
+
    ENTRY("get_session_dset_id");
    for(j=0; j < sess->num_dsset; j++){
       dsrow = sess->dsrow[j];   /* list of datasets in different spaces */
@@ -34,7 +34,7 @@ get_session_dset_id(THD_session *sess, MCW_idcode idcode, int space_index)
          if( dset != NULL && EQUIV_IDCODES(idcode,dset->idcode) )
             RETURN(get_session_dset(sess, i, space_index));
       }
-   }     
+   }
    RETURN(NULL);   /* no dataset with same ID code */
 }
 
@@ -44,7 +44,7 @@ get_session_dset(THD_session *sess, int index, int space_index)
 {
    THD_3dim_dataset *dset = NULL;
    THD_dsarr *dsrow;
-      
+
    ENTRY("get_session_dset");
 #ifdef DEBUG_WARPTABLES
    fprintf(stderr,"getsession0 index %d %d\n",index, space_index);
@@ -77,7 +77,7 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
    THD_3dim_dataset *td;
    int i, rmrow;
 #endif
-   
+
    ENTRY("set_session_dset");
 #ifdef DEBUG_WARPTABLES
    fprintf(stderr,"setsession0 index %d %d\n",index, space_index);
@@ -98,7 +98,7 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
       if(rmrow){
          free_session_row(sess,index);
          RETURN(0);
-      }         
+      }
    }
 #endif
 
@@ -111,20 +111,20 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
       }
       sess->dsrow[index] = dsrow;
       dsrow->nds = 1;
-      dsrow->ds = (THD_3dim_dataset **) 
+      dsrow->ds = (THD_3dim_dataset **)
            calloc(nspaces, sizeof(THD_3dim_dataset *));
       if(dsrow->ds == NULL)   /* could not allocate memory for dataset row */
          RETURN(1);
       dsrow->ds[space_index] = dset;
       sess->ndsets = 1;
-      RETURN(0);   
+      RETURN(0);
    }
    if(index >= ((sess->ndsets)-1)) {
 #ifdef DEBUG_WARPTABLES
    fprintf(stderr,"setsession1 index %d\n",index);
 #endif
       /* need to allocate for another row  - index should always be next one */
-      sess->dsrow = (THD_dsarr **) realloc(sess->dsrow, 
+      sess->dsrow = (THD_dsarr **) realloc(sess->dsrow,
                      (1+index)*sizeof(THD_dsarr *));
       dsrow = (THD_dsarr *) calloc(1, sizeof(THD_dsarr));
       if((sess->dsrow==NULL) || (dsrow == NULL)) {
@@ -132,7 +132,7 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
       }
       sess->dsrow[index] = dsrow;
       dsrow->nds = 1;
-      dsrow->ds = (THD_3dim_dataset **) 
+      dsrow->ds = (THD_3dim_dataset **)
            calloc(nspaces, sizeof(THD_3dim_dataset *));
       if(dsrow->ds == NULL)   /* could not allocate memory for dataset row */
          RETURN(1);
@@ -154,7 +154,7 @@ set_session_dset(THD_3dim_dataset *dset, THD_session *sess,
       /* allocate and set dataset */
       dsrow->nds++;
       /* for now skip sparse dataset table, just use all spaces */
-/*      dsrow->ds = (THD_3dim_dataset *) 
+/*      dsrow->ds = (THD_3dim_dataset *)
           realloc(dsrow->ds, dsrow->nds * sizeof(THD_3dim_dataset *));*/
       dsrow->ds[space_index] = dset;
    }
@@ -185,7 +185,7 @@ free_session_row(THD_session *sess, int index)
    }
    free(dsrow);
    dsrow = NULL;
-   
+
    EXRETURN;
 }
 
@@ -194,13 +194,13 @@ void
 free_session_table(THD_session *sess)
 {
    int i;
-   
+
    ENTRY("free_session_table");
    if(sess->dsrow==NULL)
       EXRETURN;
 
    for(i=0;i<sess->ndsets;i++)
-       free_session_row(sess, i);   
+       free_session_row(sess, i);
    free(sess->dsrow);
    EXRETURN;
 }
@@ -217,7 +217,7 @@ void
 set_atlas_nspaces()
 {
    ATLAS_SPACE_LIST *asl=get_G_space_list();
-   
+
    if (asl) nspaces = asl->nspaces;
    else nspaces = 0;
 }

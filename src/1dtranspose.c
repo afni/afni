@@ -32,7 +32,7 @@ int main( int argc , char * argv[] )
    if( argc > 2 && !THD_filename_ok(argv[2]) ){
       fprintf(stderr,"** Illegal output filename!\n"); exit(1);
    }
-   if( !THD_ok_overwrite() && argc > 2 && strcmp(argv[2],"-") != 0 && 
+   if( !THD_ok_overwrite() && argc > 2 && strcmp(argv[2],"-") != 0 &&
          THD_is_file(argv[2])  ){
       fprintf(stderr,"** Output file already exists!\n"); exit(1);
    }

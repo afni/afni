@@ -6,13 +6,13 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * Tue Nov 28 10:00:36 MET 2000
  *
  * ADDITIONS, CHANGES
@@ -82,7 +82,7 @@ void ZeroCrossings_Are_Negative()
 int Extract_ZeroCrossing_2D ( void *bufferIn, bufferType typeIn,
 			      void *bufferOut, bufferType typeOut, int *bufferDims )
 {
-  if ( sign_ZeroCrossing > 0 ) 
+  if ( sign_ZeroCrossing > 0 )
     return( Extract_PositiveZeroCrossing_2D( bufferIn, typeIn, bufferOut,
 					     typeOut, bufferDims ) );
   return( Extract_NegativeZeroCrossing_2D( bufferIn, typeIn, bufferOut,
@@ -113,13 +113,13 @@ int Extract_PositiveZeroCrossing_2D ( void *bufferIn,
      Dans un contexte de detection de contours (ex laplacien)
      cela marque dans les zones sombres (par rapport a clair)
   */
-     
+
   char *proc="Extract_PositiveZeroCrossing_2D";
   int x, y, z, iz, iy;
   int dx  = bufferDims[0];
   int dxy = bufferDims[0] * bufferDims[1];
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -154,7 +154,7 @@ int Extract_PositiveZeroCrossing_2D ( void *bufferIn,
    *   // we mark (x+1,y) if (x,y) <= 0 && (x+1,y) > 0
    *
    */
-  
+
 #define _POSITIVE_ZERO_CROSSINGS_( TYPE ) {                     \
   TYPE *resBuf = (TYPE*)bufferOut;                              \
   iz = bufferDims[2]*bufferDims[1]*bufferDims[0];               \
@@ -189,17 +189,17 @@ int Extract_PositiveZeroCrossing_2D ( void *bufferIn,
   case FLOAT :
     {
       r32 *theBuf = (r32*)bufferIn;
-    
+
       switch( typeOut ) {
 
       case UCHAR :
 	_POSITIVE_ZERO_CROSSINGS_( u8 )
 	break;
-	
+
       case FLOAT :
 	_POSITIVE_ZERO_CROSSINGS_( r32 )
 	break;
-	
+
       default :
 	if ( _VERBOSE_ > 0 )
 	  fprintf( stderr, " Error in %s: such output type not handled.\n", proc );
@@ -243,13 +243,13 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
      Dans un contexte de detection de contours (ex laplacien)
      cela marque dans les zones sombres (par rapport a clair)
   */
-     
+
   char *proc="Extract_NegativeZeroCrossing_2D";
   int x, y, z, iz, iy;
   int dx  = bufferDims[0];
   int dxy = bufferDims[0] * bufferDims[1];
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -265,7 +265,7 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
   }
 
 
-  
+
   /*
    * // the (bufferDims[1]-1) first rows
    * for ( y=0, iy=0; y<bufferDims[1]-1; y++, iy+=dx )
@@ -286,7 +286,7 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
    *   // we mark (x+1,y) if (x,y) >= 0 && (x+1,y) < 0
    *
    */
-  
+
 #define _NEGATIVE_ZERO_CROSSINGS_( TYPE ) {                     \
   TYPE *resBuf = (TYPE*)bufferOut;                              \
   iz = bufferDims[2]*bufferDims[1]*bufferDims[0];               \
@@ -322,9 +322,9 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
   case FLOAT :
     {
       r32 *theBuf = (r32*)bufferIn;
-    
+
       switch( typeOut ) {
-	
+
       case UCHAR :
 	_NEGATIVE_ZERO_CROSSINGS_( u8 )
 	break;
@@ -332,16 +332,16 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
       case FLOAT :
 	_NEGATIVE_ZERO_CROSSINGS_( r32 )
 	break;
-	
+
       default :
 	if ( _VERBOSE_ > 0 )
 	  fprintf( stderr, " Error in %s: such output type not handled.\n", proc );
 	return( EXIT_ON_FAILURE );
       }
-      
+
     }
     break;
-    
+
   default :
     if ( _VERBOSE_ > 0 )
       fprintf( stderr, " Error in %s: such input type not handled.\n", proc );
@@ -381,12 +381,12 @@ int Extract_NegativeZeroCrossing_2D ( void *bufferIn,
 int Mask_With_Image( void *bufferIn,   bufferType typeIn,
 		     void *bufferMask, bufferType typeMask,
 		     void *bufferOut,  bufferType typeOut,
-		     int *bufferDims ) 
+		     int *bufferDims )
 {
   char *proc = "Mask_With_Image";
   int i, v;
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -395,14 +395,14 @@ int Mask_With_Image( void *bufferIn,   bufferType typeIn,
     return( EXIT_ON_FAILURE );
   }
   v = bufferDims[0] * bufferDims[1] * bufferDims[2];
-  
+
   if ( typeIn != typeOut ) {
     if ( _VERBOSE_ > 0 )
       fprintf( stderr, " Fatal error in %s: buffers in and out should have the same type.\n", proc );
     return( EXIT_ON_FAILURE );
   }
 
-  
+
 #define _MASK_( type ) { \
   type *theBuf = (type*)bufferIn;  \
   type *resBuf = (type*)bufferOut; \
@@ -457,7 +457,7 @@ int Mask_With_Image( void *bufferIn,   bufferType typeIn,
 
   return( EXIT_ON_SUCCESS );
 }
-		     
+
 
 
 
@@ -497,7 +497,7 @@ static void GradientModulus2D( float *gradient_modulus,
   register float *norme = gradient_modulus;
   register float *gx = derivative_along_X;
   register float *gy = derivative_along_Y;
-  
+
   for ( i=0; i<length; i++, norme++, gx++, gy++ )
     *norme = sqrt( (*gx)*(*gx) + (*gy)*(*gy) );
 }
@@ -513,7 +513,7 @@ static void GradientModulus3D( float *gradient_modulus,
   register float *gx = derivative_along_X;
   register float *gy = derivative_along_Y;
   register float *gz = derivative_along_Z;
-  
+
   for ( i=0; i<length; i++, norme++, gx++, gy++, gz++ )
     *norme = sqrt( (*gx)*(*gx) + (*gy)*(*gy) + (*gz)*(*gz) );
 }
@@ -540,7 +540,7 @@ static void GradientModulus3D( float *gradient_modulus,
 int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
 					     void *bufferOut, bufferType typeOut,
 					     int *bufferDims, int *borderLengths,
-					     float *filterCoefs, 
+					     float *filterCoefs,
 					     recursiveFilterType filterType )
 {
   char *proc = "Gradient_On_Laplacian_ZeroCrossings_2D";
@@ -559,7 +559,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
 
 
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -567,7 +567,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       fprintf( stderr, " Fatal error in %s: improper buffer's dimension.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
+
   /*
    * test of the coefficients
    */
@@ -577,7 +577,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       fprintf( stderr, " Error in %s: negative coefficient's value.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
+
 
   /*
    *
@@ -586,14 +586,14 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
   sliceDims[0] = bufferDims[0];
   sliceDims[1] = bufferDims[1];
   sliceDims[2] = 1;
-  
+
 
   if ( typeOut == FLOAT ) {
     theXX = (float*)malloc( 2 * dimxXdimy * sizeof( float ) );
   } else {
     theXX = (float*)malloc( 3 * dimxXdimy * sizeof( float ) );
   }
-  
+
 
   if ( theXX == NULL ) {
     if ( _VERBOSE_ > 0 ) {
@@ -610,16 +610,16 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
     theYY  = theGR;
     theYY += dimxXdimy;
   }
-  
-  
-  
+
+
+
   for ( z=0; z<bufferDims[2]; z++ ) {
 
     if ( typeOut == FLOAT ) {
       theYY = ((float*)bufferOut) + z * dimxXdimy;
     }
-    
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXX, FLOAT, 
+
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXX, FLOAT,
 				  sliceDims, borderLengths,
 				  Xderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -630,7 +630,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       return( EXIT_ON_FAILURE );
     }
 
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theGR, FLOAT, 
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theGR, FLOAT,
 				  sliceDims, borderLengths,
 				  Yderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -643,7 +643,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
 
     GradientModulus2D( theGR, theGR, theXX, dimxXdimy );
 
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXX, FLOAT, 
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXX, FLOAT,
 				  sliceDims, borderLengths,
 				  XXderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -654,7 +654,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       return( EXIT_ON_FAILURE );
     }
 
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theYY, FLOAT, 
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theYY, FLOAT,
 				  sliceDims, borderLengths,
 				  YYderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -664,16 +664,16 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       free( theXX );
       return( EXIT_ON_FAILURE );
     }
-    
-    
-    /* 
+
+
+    /*
      * theYY = laplacian
      */
     for ( i=0; i<dimxXdimy; i++ ) theYY[i] += theXX[i];
 
     /*
      * theXX = zero-crossings
-     */ 
+     */
     if ( Extract_ZeroCrossing_2D( theYY, FLOAT, theXX, FLOAT, sliceDims ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
 	fprintf( stderr, " Fatal error in %s:", proc );
@@ -683,7 +683,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       return( EXIT_ON_FAILURE );
     }
 
-    
+
 
     if ( Mask_With_Image( theGR, FLOAT, theXX, FLOAT, theYY, FLOAT, sliceDims ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -694,7 +694,7 @@ int Gradient_On_Laplacian_ZeroCrossings_2D ( void *bufferIn, bufferType typeIn,
       return( EXIT_ON_FAILURE );
     }
 
-    
+
     if ( typeOut != FLOAT ) {
       switch ( typeOut ) {
       case UCHAR :
@@ -775,7 +775,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
 
   double gx, gy;
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -783,7 +783,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       fprintf( stderr, " Fatal error in %s: improper buffer's dimension.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
+
   /*
    * test of the coefficients
    */
@@ -793,7 +793,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       fprintf( stderr, " Error in %s: negative coefficient's value.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
+
 
   /*
    *
@@ -802,14 +802,14 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
   sliceDims[0] = bufferDims[0];
   sliceDims[1] = bufferDims[1];
   sliceDims[2] = 1;
-  
+
 
   if ( typeOut == FLOAT ) {
     theXX = (float*)malloc( 4 * dimxXdimy * sizeof( float ) );
   } else {
     theXX = (float*)malloc( 5 * dimxXdimy * sizeof( float ) );
   }
-  
+
   if ( theXX == NULL ) {
     if ( _VERBOSE_ > 0 ) {
       fprintf( stderr, " Fatal error in %s:", proc );
@@ -817,7 +817,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
     }
     return( EXIT_ON_FAILURE );
   }
-  
+
 
 
   theX = theY = theYY = theXX;
@@ -831,16 +831,16 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
     theXY  =   theXX;
     theXY += 4*dimxXdimy;
   }
-  
-  
-  
+
+
+
   for ( z=0; z<bufferDims[2]; z++ ) {
 
     if ( typeOut == FLOAT ) {
       theXY = ((float*)bufferOut) + z * dimxXdimy;
     }
-    
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theX, FLOAT, 
+
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theX, FLOAT,
 				  sliceDims, borderLengths,
 				  Ysmooth, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -851,7 +851,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
 
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theY, FLOAT, 
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theY, FLOAT,
 				  sliceDims, borderLengths,
 				  Xsmooth, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -865,7 +865,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
 
 
 
-    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXY, FLOAT, 
+    if ( RecursiveFilterOnBuffer( bufferIn, typeIn, theXY, FLOAT,
 				  sliceDims, borderLengths,
 				  XYderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -879,7 +879,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
 
 
 
-    if ( RecursiveFilterOnBuffer( theX, FLOAT, theXX, FLOAT, 
+    if ( RecursiveFilterOnBuffer( theX, FLOAT, theXX, FLOAT,
 				  sliceDims, borderLengths,
 				  XXderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -890,7 +890,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
 
-    if ( RecursiveFilterOnBuffer( theY, FLOAT, theYY, FLOAT, 
+    if ( RecursiveFilterOnBuffer( theY, FLOAT, theYY, FLOAT,
 				  sliceDims, borderLengths,
 				  YYderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -904,7 +904,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
 
 
 
-    if ( RecursiveFilterOnBuffer( theX, FLOAT, theX, FLOAT, 
+    if ( RecursiveFilterOnBuffer( theX, FLOAT, theX, FLOAT,
 				  sliceDims, borderLengths,
 				  Xderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -915,7 +915,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
 
-    if ( RecursiveFilterOnBuffer( theY, FLOAT, theY, FLOAT, 
+    if ( RecursiveFilterOnBuffer( theY, FLOAT, theY, FLOAT,
 				  sliceDims, borderLengths,
 				  Yderiv, filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -927,7 +927,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
     }
 
 
-    
+
     /*
      * theXY = gradient . Hessian * gradient
      */
@@ -937,7 +937,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       theXY[i] = gx * ( theXX[i] * gx + theXY[i] * gy ) +
 	         gy * ( theXY[i] * gx + theYY[i] * gy );
     }
-    
+
     /*
      * theYY = gradient modulus
      */
@@ -946,7 +946,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
 
     /*
      * theXX = zero-crossings
-     */ 
+     */
     if ( Extract_ZeroCrossing_2D( theXY, FLOAT, theXX, FLOAT, sliceDims ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
 	fprintf( stderr, " Fatal error in %s:", proc );
@@ -967,7 +967,7 @@ int Gradient_On_GradientHessianGradient_ZeroCrossings_2D ( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
 
-    
+
     if ( typeOut != FLOAT ) {
       switch ( typeOut ) {
       case UCHAR :

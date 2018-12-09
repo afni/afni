@@ -1,7 +1,7 @@
 #ifndef _AFNI_AMALLOC_HEADER_
 #define _AFNI_AMALLOC_HEADER_
 /************************************************************************
-   Casting macros to fixup AFNI stuff for compiling with g++. 
+   Casting macros to fixup AFNI stuff for compiling with g++.
    Original dealt with only malloc() casting stuff, but more
    has been added since.
 ************************************************************************/

@@ -299,7 +299,7 @@ int main( int argc , char * argv[] )
            }
          }
 
-         /* possibly keep track of non-zero voxels only */ 
+         /* possibly keep track of non-zero voxels only */
          if(non_zero){
             count = (int **) malloc( sizeof(int *)*nval ) ;    /* array of sub-bricks */
             for( kk=0 ; kk < nval ; kk++ ){
@@ -668,7 +668,7 @@ int main( int argc , char * argv[] )
    } /* end sd loop */
 
    #if 0 /* Now using EDIT_add_bricks_from_far.
-            Delete this section next time you see it. ZSS Dec 2011 */   
+            Delete this section next time you see it. ZSS Dec 2011 */
    switch( datum ){
 
       default:
@@ -774,9 +774,9 @@ int main( int argc , char * argv[] )
          ERROR_message("Failed to create output sub-bricks");
          exit(1);
       }
-   }   
+   }
    #endif
-   
+
    if( verb ) fprintf(stderr,"  ++ Computing output statistics\n") ;
    THD_load_statistics( outset ) ;
 

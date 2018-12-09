@@ -51,7 +51,7 @@ void AFNI_start_io( int nim )
 
    if( AFNI_mode == AFNI_OPEN_CONTROL_MODE ){
 
-      sprintf( AFNI_iochan , "tcp:%s:%d" , 
+      sprintf( AFNI_iochan , "tcp:%s:%d" ,
                AFNI_host , get_port_named("AFNI_CONTROL_PORT") ) ;
 
       if( AFNI_verbose )

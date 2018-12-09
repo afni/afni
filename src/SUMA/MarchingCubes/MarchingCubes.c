@@ -37,23 +37,23 @@ void set_suma_debug(int dbg)
 void print_cube(MCB *mcb) { printf( "\t%f %f %f %f %f %f %f %f\n", mcb->cube[0], mcb->cube[1], mcb->cube[2], mcb->cube[3], mcb->cube[4], mcb->cube[5], mcb->cube[6], mcb->cube[7]) ; }
 //_____________________________________________________________________________
 
-void set_resolution( MCB *mcb, int size_x,  int size_y,  int size_z ) 
-{ 
-   mcb->size_x = size_x ;  mcb->size_y = size_y ;  mcb->size_z = size_z ; 
+void set_resolution( MCB *mcb, int size_x,  int size_y,  int size_z )
+{
+   mcb->size_x = size_x ;  mcb->size_y = size_y ;  mcb->size_z = size_z ;
    return;
 }
 void set_method    ( MCB *mcb, int originalMC ) {
-    /* originalMC = false is the default */ 
-    mcb->originalMC = originalMC ; 
+    /* originalMC = false is the default */
+    mcb->originalMC = originalMC ;
     return;
 }
 
   // Data access
-float get_data  (  MCB *mcb, int i,  int j,  int k )  { 
-   return (mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y]) ; 
+float get_data  (  MCB *mcb, int i,  int j,  int k )  {
+   return (mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y]) ;
 }
 void  set_data  (  MCB *mcb, float val,  int i,  int j,  int k ) {
-  (mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] = val) ; 
+  (mcb->data[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] = val) ;
 }
 int   get_x_vert(  MCB *mcb , int i,  int j,  int k )  { return (mcb->x_verts[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] ); }
 int   get_y_vert(  MCB *mcb , int i,  int j,  int k )  { return (mcb->y_verts[ i + j*mcb->size_x + k*mcb->size_x*mcb->size_y] ); }
@@ -137,7 +137,7 @@ void run(MCB *mcb)
     process_cube( mcb) ;
    }
 
-   if (debug) { 
+   if (debug) {
       printf("Marching Cubes end: cpu %ld\n", clock() ) ;
       for( mcb->i = 0 ; mcb->i < 15 ; mcb->i++ )
       {
@@ -190,7 +190,7 @@ void init_all (MCB *mcb)
 void clean_temps(MCB *mcb)
 //-----------------------------------------------------------------------------
 {
-  free(mcb->data); 
+  free(mcb->data);
   free(mcb->x_verts);
   free(mcb->y_verts);
   free(mcb->z_verts);
@@ -466,12 +466,12 @@ void process_cube( MCB *mcb)
 //-----------------------------------------------------------------------------
 {
   int   v12 = -1 ;
-  /* print_cube(mcb) ; 
+  /* print_cube(mcb) ;
   fprintf (stderr,"_case=%d\n", mcb->_case);
   fprintf (stderr,"N=%d\n", mcb->N[mcb->_case]);*/
   if (mcb->_case >= N_MAX) {
    fprintf (stderr,"Unexpected _case value of %d\nResetting to 0.\n",mcb->_case);
-   mcb->_case = 0; 
+   mcb->_case = 0;
   }
   mcb->N[mcb->_case]++ ;
 
@@ -835,7 +835,7 @@ void add_triangle( MCB *mcb , const char* trig, char n, int v12 )
     }
 
     if( t%3 == 2 )
-    { 
+    {
       Triangle *T = NULL;
       if( mcb->ntrigs >= mcb->Ntrigs )
       {
@@ -861,7 +861,7 @@ void add_triangle( MCB *mcb , const char* trig, char n, int v12 )
 //_____________________________________________________________________________
 // Calculating gradient
 
-float get_x_grad( MCB *mcb,  int i,  int j,  int k ) 
+float get_x_grad( MCB *mcb,  int i,  int j,  int k )
 //-----------------------------------------------------------------------------
 {
   if( i > 0 )
@@ -876,7 +876,7 @@ float get_x_grad( MCB *mcb,  int i,  int j,  int k )
 }
 //-----------------------------------------------------------------------------
 
-float get_y_grad( MCB *mcb,  int i,  int j,  int k ) 
+float get_y_grad( MCB *mcb,  int i,  int j,  int k )
 //-----------------------------------------------------------------------------
 {
   if( j > 0 )
@@ -891,7 +891,7 @@ float get_y_grad( MCB *mcb,  int i,  int j,  int k )
 }
 //-----------------------------------------------------------------------------
 
-float get_z_grad( MCB *mcb, int i,  int j,  int k ) 
+float get_z_grad( MCB *mcb, int i,  int j,  int k )
 //-----------------------------------------------------------------------------
 {
   if( k > 0 )
@@ -929,7 +929,7 @@ int add_x_vertex(MCB *mcb )
 {
    Vertex *vert;
    float   u;
-  
+
   test_vertex_addition(mcb) ;
   vert = mcb->vertices + mcb->nverts++ ;
 
@@ -944,7 +944,7 @@ int add_x_vertex(MCB *mcb )
   vert->nz = (1-u)*get_z_grad(mcb, mcb->i,mcb->j,mcb->k) + u*get_z_grad(mcb, mcb->i+1,mcb->j,mcb->k) ;
 
   u = (float) sqrt( vert->nx * vert->nx + vert->ny * vert->ny +vert->nz * vert->nz ) ;
-  
+
   if( u > 0 )
   {
     vert->nx /= u ;
@@ -1233,13 +1233,13 @@ void write1Dmcb(MCB *mcb)
       fprintf( fp, " %f %f %f\n", mcb->vertices[i].x, mcb->vertices[i].y, mcb->vertices[i].z ) ;
    printf("\n   %d vertices written\n", mcb->nverts ) ;
    fclose(fp);
-   
+
    fp = fopen( "testFaces.1D", "w" ) ;
    for ( i = 0; i < mcb->ntrigs; i++ )
     fprintf( fp, "%d %d %d\n", mcb->triangles[i].v3, mcb->triangles[i].v2, mcb->triangles[i].v1 ) ;
    printf("   %d triangles written\n", mcb->ntrigs ) ;
    printf("Suggested command for viewing:\n");
-   printf("quickspec -tn 1D testNodes.1D testFaces.1D && suma -spec quick.spec\n"); 
+   printf("quickspec -tn 1D testNodes.1D testFaces.1D && suma -spec quick.spec\n");
    fclose(fp);
 }
 
@@ -1255,12 +1255,12 @@ void compute_data( MCB mc , int obj_type)
   float r,R, a, b, c, d;
   int WriteVol = debug;
   FILE *fid = NULL;
-  
+
   if (obj_type < 0 || obj_type > 9) {
    fprintf(stderr,"Bad obj_type. Value must be between 0 and 9\n");
    return;
   }
-  
+
   if (WriteVol) {
    char vname[200],vnamepref[200];
    sprintf(vnamepref,"mc_shape_%d_vol%d", obj_type, mc.size_x);
@@ -1271,7 +1271,7 @@ void compute_data( MCB mc , int obj_type)
             , obj_type, vname, mc.size_x, mc.size_y, mc.size_z, vnamepref, vname, vnamepref);
    fid = fopen(vname, "w");
   }
- 
+
   r = 1.85f ;
   R = 4 ;
 
@@ -1327,10 +1327,10 @@ void compute_data( MCB mc , int obj_type)
          case 9: // Drip
             val = x*x + y*y - 0.5*( 0.995*z*z + 0.005 - z*z*z ) +0.0025;  // -0.0754+0.01, -0.0025 + 0.01, grid 40^3, [-1.5,1.5];
             break;
-         /*case : // 
+         /*case : //
             val = ;
             break;
-         case : // 
+         case : //
             val = ;
             break;*/
         }
@@ -1353,7 +1353,7 @@ void z_compute_data( MCB mc , char *fname)
    FILE *fid=NULL;
    float *v = NULL;
    int cnt = 0, nv, ir, jr, kr;
-   
+
    nv = mc.size_z*mc.size_y*mc.size_x;
    v = (float *)malloc(sizeof(float)*nv);
    fid = fopen(fname, "r");
@@ -1366,12 +1366,12 @@ void z_compute_data( MCB mc , char *fname)
       #if 0
          fprintf(stderr, "%d %d %d %f\n", ir, jr, kr, (v[cnt]));
       #endif
-      set_data( &mc, v[cnt], ir, jr, kr); 
+      set_data( &mc, v[cnt], ir, jr, kr);
    }
-  
-  
-    
-  fclose(fid); fid = NULL; 
+
+
+
+  fclose(fid); fid = NULL;
   free(v); v = NULL;
 }
 

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /***** This program makes a "duplicate" of a dataset, which is
@@ -152,7 +152,7 @@ WARNING_message("This program (3ddup) is old, not maintained, and probably usele
       if( ( isfunc && function_type == FUNC_BUCK_TYPE) ||
           (!isfunc && anatomy_type  == ANAT_BUCK_TYPE)   )  /* 30 Nov 1997 */
          new_nvals = dset_in->dblk->nvals ;
-      
+
 
       if( new_nvals > dset_in->dblk->nvals ){
          fprintf(stderr,

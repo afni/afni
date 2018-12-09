@@ -5,7 +5,7 @@
  * Human Genome Center, Institute of Medical Science, University of Tokyo,
  * 4-6-1 Shirokanedai, Minato-ku, Tokyo 108-8639, Japan.
  * Contact: mdehoon 'AT' gsc.riken.jp
- * 
+ *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation with or without modifications and for any purpose and
  * without fee is hereby granted, provided that any copyright notices
@@ -14,7 +14,7 @@
  * names of the contributors or copyright holders not be used in
  * advertising or publicity pertaining to distribution of the software
  * without specific prior permission.
- * 
+ *
  * THE CONTRIBUTORS AND COPYRIGHT HOLDERS OF THIS SOFTWARE DISCLAIM ALL
  * WARRANTIES WITH REGARD TO THIS SOFTWARE, INCLUDING ALL IMPLIED
  * WARRANTIES OF MERCHANTABILITY AND FITNESS, IN NO EVENT SHALL THE
@@ -23,7 +23,7 @@
  * OF USE, DATA OR PROFITS, WHETHER IN AN ACTION OF CONTRACT, NEGLIGENCE
  * OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN CONNECTION WITH THE USE
  * OR PERFORMANCE OF THIS SOFTWARE.
- * 
+ *
  */
 
 #include <time.h>
@@ -272,10 +272,10 @@ static void
 freedatamask(int n, double** data)
 { int i;
   for (i = 0; i < n; i++)
-  { 
+  {
     free(data[i]);
   }
-  
+
   free(data);
 }
 
@@ -334,7 +334,7 @@ void CALL svd(int m, int n, double** u, double w[], double** v, int* ierr)
  *   A=usv  of a real m by n rectangular matrix, where m is greater
  *   then or equal to n.  Householder bidiagonalization and a variant
  *   of the QR algorithm are used.
- *  
+ *
  *
  *   On input.
  *
@@ -604,9 +604,9 @@ void CALL svd(int m, int n, double** u, double w[], double** v, int* ierr)
 /* ********************************************************************* */
 
 static
-double euclid (int n, double** data1, double** data2, 
+double euclid (int n, double** data1, double** data2,
   const double weight[], int index1, int index2, int transpose)
- 
+
 /*
 Purpose
 =======
@@ -658,7 +658,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
       {  double term = data1[index1][i] - data2[index2][i];
         result += weight[i]*term*term;
         tweight += weight[i];
-	
+
       }
   }
   else
@@ -667,7 +667,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
         result += weight[i]*term*term;
         tweight += weight[i];
       }
-    
+
   }
   if (!tweight) return 0; /* usually due to empty clusters */
   result /= tweight;
@@ -728,20 +728,20 @@ Otherwise, the distance between two columns in the matrix is calculated.
   int i;
   if (transpose==0) /* Calculate the distance between two rows */
   { for (i = 0; i < n; i++)
-    { 
+    {
        double term = data1[index1][i] - data2[index2][i];
        result = result + weight[i]*fabs(term);
        tweight += weight[i];
-      
+
     }
   }
   else
   { for (i = 0; i < n; i++)
-    { 
+    {
        double term = data1[i][index1] - data2[i][index2];
         result = result + weight[i]*fabs(term);
         tweight += weight[i];
-      
+
     }
   }
   if (!tweight) return 0; /* usually due to empty clusters */
@@ -752,7 +752,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 /* ********************************************************************* */
 
 static
-double correlation (int n, double** data1, double** data2, 
+double correlation (int n, double** data1, double** data2,
   const double weight[], int index1, int index2, int transpose)
 /*
 Purpose
@@ -809,7 +809,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
   if (transpose==0) /* Calculate the distance between two rows */
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[index1][i];
         double term2 = data2[index2][i];
         double w = weight[i];
@@ -819,13 +819,13 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         tweight += w;
-      
+
     }
   }
   else
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[i][index1];
         double term2 = data2[i][index2];
         double w = weight[i];
@@ -835,7 +835,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         tweight += w;
-      
+
     }
   }
   if (!tweight) return 0; /* usually due to empty clusters */
@@ -907,7 +907,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
   if (transpose==0) /* Calculate the distance between two rows */
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[index1][i];
         double term2 = data2[index2][i];
         double w = weight[i];
@@ -917,13 +917,13 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         tweight += w;
-      
+
     }
   }
   else
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[i][index1];
         double term2 = data2[i][index2];
         double w = weight[i];
@@ -933,7 +933,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         tweight += w;
-      
+
     }
   }
   if (!tweight) return 0; /* usually due to empty clusters */
@@ -950,7 +950,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 /* ********************************************************************* */
 
 static
-double ucorrelation (int n, double** data1, double** data2, 
+double ucorrelation (int n, double** data1, double** data2,
    const double weight[], int index1, int index2, int transpose)
 /*
 Purpose
@@ -1009,7 +1009,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
   if (transpose==0) /* Calculate the distance between two rows */
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[index1][i];
         double term2 = data2[index2][i];
         double w = weight[i];
@@ -1017,13 +1017,13 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         flag = 1;
-      
+
     }
   }
   else
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[i][index1];
         double term2 = data2[i][index2];
         double w = weight[i];
@@ -1031,7 +1031,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         flag = 1;
-      
+
     }
   }
   if (!flag) return 0.;
@@ -1045,7 +1045,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 /* ********************************************************************* */
 
 static
-double uacorrelation (int n, double** data1, double** data2, 
+double uacorrelation (int n, double** data1, double** data2,
   const double weight[], int index1, int index2, int transpose)
 /*
 Purpose
@@ -1104,7 +1104,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
   if (transpose==0) /* Calculate the distance between two rows */
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[index1][i];
         double term2 = data2[index2][i];
         double w = weight[i];
@@ -1112,13 +1112,13 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         flag = 1;
-      
+
     }
   }
   else
   { int i;
     for (i = 0; i < n; i++)
-    { 
+    {
        double term1 = data1[i][index1];
         double term2 = data2[i][index2];
         double w = weight[i];
@@ -1126,7 +1126,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
         denom1 += w*term1*term1;
         denom2 += w*term2*term2;
         flag = 1;
-      
+
     }
   }
   if (!flag) return 0.;
@@ -1140,7 +1140,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 /* *********************************************************************  */
 
 static
-double spearman (int n, double** data1, double** data2, 
+double spearman (int n, double** data1, double** data2,
    const double weight[], int index1, int index2, int transpose)
 /*
 Purpose
@@ -1208,16 +1208,16 @@ Otherwise, the distance between two columns in the matrix is calculated.
       { tdata1[m] = data1[index1][i];
 	tdata2[m] = data2[index2][i];
         m++;
-      
+
       }
   }
   else
   { for (i = 0; i < n; i++)
-    { 
+    {
        tdata1[m] = data1[i][index1];
         tdata2[m] = data2[i][index2];
         m++;
-      
+
     }
   }
   if (m==0) return 0;
@@ -1260,7 +1260,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 /* *********************************************************************  */
 
 static
-double kendall (int n, double** data1, double** data2, 
+double kendall (int n, double** data1, double** data2,
   const double weight[], int index1, int index2, int transpose)
 /*
 Purpose
@@ -1319,9 +1319,9 @@ Otherwise, the distance between two columns in the matrix is calculated.
   int i, j;
   if (transpose==0)
   { for (i = 0; i < n; i++)
-     
+
       { for (j = 0; j < i; j++)
-         
+
           { double x1 = data1[index1][i];
             double x2 = data1[index1][j];
             double y1 = data2[index2][i];
@@ -1334,15 +1334,15 @@ Otherwise, the distance between two columns in the matrix is calculated.
             if (x1 != x2 && y1 == y2) exy++;
             flag = 1;
           }
-        
+
       }
-    
+
   }
   else
   { for (i = 0; i < n; i++)
-     
+
       { for (j = 0; j < i; j++)
-         
+
           { double x1 = data1[i][index1];
             double x2 = data1[j][index1];
             double y1 = data2[i][index2];
@@ -1355,9 +1355,9 @@ Otherwise, the distance between two columns in the matrix is calculated.
             if (x1 != x2 && y1 == y2) exy++;
             flag = 1;
           }
-        
+
       }
-    
+
   }
   if (!flag) return 0.;
   denomx = con + dis + exx;
@@ -1370,7 +1370,7 @@ Otherwise, the distance between two columns in the matrix is calculated.
 
 /* *********************************************************************  */
 
-static double(*setmetric(char dist)) 
+static double(*setmetric(char dist))
   (int, double**, double**, const double[], int, int, int)
 { switch(dist)
   { case 'e': return &euclid;
@@ -1652,7 +1652,7 @@ The cluster number to which an element was assigned.
 /* ********************************************************************* */
 
 static void getclustermeans(int nclusters, int nrows, int ncolumns,
-  double** data,  int clusterid[], double** cdata, 
+  double** data,  int clusterid[], double** cdata,
   int transpose)
 /*
 Purpose
@@ -1722,10 +1722,10 @@ columns (microarrays) are specified.
     for (k = 0; k < nrows; k++)
     { i = clusterid[k];
       for (j = 0; j < ncolumns; j++)
-      { 
+      {
 	cdata[i][j]+=data[k][j];
         voxlcounter[i][j]++;
-        
+
       }
     }
    for (i = 0; i < nclusters; i++)
@@ -1735,8 +1735,8 @@ columns (microarrays) are specified.
           voxlcounter[i][j] = 1;
         }
       }
-    } 
-    
+    }
+
   }
   else
   { for (i = 0; i < nrows; i++)
@@ -1749,8 +1749,8 @@ columns (microarrays) are specified.
     { i = clusterid[k];
       for (j = 0; j < nrows; j++)
       { cdata[j][i]+=data[j][k];
-	voxlcounter[j][i]++; 
-        
+	voxlcounter[j][i]++;
+
       }
     }
    for (i = 0; i < nrows; i++)
@@ -1760,7 +1760,7 @@ columns (microarrays) are specified.
           voxlcounter[i][j] = 1;
         }
       }
-    }   
+    }
   }
 
   for (i = 0; i < nclusters; i++)
@@ -1774,7 +1774,7 @@ columns (microarrays) are specified.
 
 static void
 getclustermedians(int nclusters, int nrows, int ncolumns,
-  double** data, int clusterid[], double** cdata, 
+  double** data, int clusterid[], double** cdata,
   int transpose, double cache[])
 /*
 Purpose
@@ -1839,18 +1839,18 @@ calculating the medians.
     { for (j = 0; j < ncolumns; j++)
       { int count = 0;
         for (k = 0; k < nrows; k++)
-	  { if (i==clusterid[k]) 
+	  { if (i==clusterid[k])
           { cache[count] = data[k][j];
             count++;
           }
         }
         if (count>0)
         { cdata[i][j] = median(count,cache);
-         
+
         }
         else
         { cdata[i][j] = 0.;
-         
+
         }
       }
     }
@@ -1867,21 +1867,21 @@ calculating the medians.
         }
         if (count>0)
         { cdata[j][i] = median(count,cache);
-         
+
         }
         else
         { cdata[j][i] = 0.;
-         
+
         }
       }
     }
   }
 }
- 
+
 /* ********************************************************************* */
 
 int getclustercentroids(int nclusters, int nrows, int ncolumns,
-  double** data, int clusterid[], double** cdata, 
+  double** data, int clusterid[], double** cdata,
   int transpose, char method)
 /*
 Purpose
@@ -2025,7 +2025,7 @@ centroid.
 /* ********************************************************************* */
 
 static int
-kmeans(int nclusters, int nrows, int ncolumns, double** data, 
+kmeans(int nclusters, int nrows, int ncolumns, double** data,
   double weight[], int transpose, int npass, char dist,
   double** cdata, int clusterid[], double* error,
   int tclusterid[], int counts[], int mapping[])
@@ -2101,7 +2101,7 @@ kmeans(int nclusters, int nrows, int ncolumns, double** data,
         break; /* Identical solution found; break out of this loop */
     }
 
-    if (npass<=1) 
+    if (npass<=1)
     { *error = total;
       break;
     }
@@ -2130,7 +2130,7 @@ kmeans(int nclusters, int nrows, int ncolumns, double** data,
 /* ---------------------------------------------------------------------- */
 
 static int
-kmedians(int nclusters, int nrows, int ncolumns, double** data, 
+kmedians(int nclusters, int nrows, int ncolumns, double** data,
   double weight[], int transpose, int npass, char dist,
   double** cdata, int clusterid[], double* error,
   int tclusterid[], int counts[], int mapping[], double cache[])
@@ -2206,7 +2206,7 @@ kmedians(int nclusters, int nrows, int ncolumns, double** data,
         break; /* Identical solution found; break out of this loop */
     }
 
-    if (npass<=1) 
+    if (npass<=1)
     { *error = total;
       break;
     }
@@ -2277,7 +2277,7 @@ of the matrix are clustered.
 
 npass      (input) int
 The number of times clustering is performed. Clustering is performed npass
-times, each time starting from a different (random) initial assignment of 
+times, each time starting from a different (random) initial assignment of
 genes to clusters. The clustering solution with the lowest within-cluster sum
 of distances is chosen.
 If npass==0, then the clustering algorithm will be run once, where the initial
@@ -2327,7 +2327,7 @@ number of clusters is larger than the number of elements being clustered,
   int* tclusterid;
   int* mapping = NULL;
   double** cdata;
-  
+
   int* counts;
 
   if (nelements < nclusters)
@@ -2371,7 +2371,7 @@ number of clusters is larger than the number of elements being clustered,
       return;
     }
   }
-  
+
   if (method=='m')
   { double* cache = malloc(nelements*sizeof(double));
     if(cache)
@@ -2675,7 +2675,7 @@ when microarrays are being clustered.
 
 /* ******************************************************************** */
 
-double* calculate_weights(int nrows, int ncolumns, double** data, 
+double* calculate_weights(int nrows, int ncolumns, double** data,
   double weights[], int transpose, char dist, double cutoff, double exponent)
 
 /*
@@ -2777,7 +2777,7 @@ weights array, the function returns NULL.
 
 /* ******************************************************************** */
 
-void cuttree (int nelements, Node* tree, int nclusters, int clusterid[]) 
+void cuttree (int nelements, Node* tree, int nclusters, int clusterid[])
 
 /*
 Purpose
@@ -2832,7 +2832,7 @@ error occured, all elements in clusterid are set to -1.
   }
   for (i = 0; i < n; i++) nodeid[i] = -1;
   for (i = n-1; i >= 0; i--)
-  { if(nodeid[i]<0) 
+  { if(nodeid[i]<0)
     { j = icluster;
       nodeid[i] = j;
       icluster++;
@@ -2850,7 +2850,7 @@ error occured, all elements in clusterid are set to -1.
 /* ******************************************************************** */
 
 static
-Node* pclcluster (int nrows, int ncolumns, double** data, 
+Node* pclcluster (int nrows, int ncolumns, double** data,
   double weight[], double** distmatrix, char dist, int transpose)
 
 /*
@@ -2930,7 +2930,7 @@ If a memory error occurs, pclcluster returns NULL.
 
   Node* result;
   double** newdata;
-  
+
   int* distid = malloc(nelements*sizeof(int));
   if(!distid) return NULL;
   result = malloc(nnodes*sizeof(Node));
@@ -2941,7 +2941,7 @@ If a memory error occurs, pclcluster returns NULL.
   if(!makedatamask(nelements, ndata, &newdata))
   { free(result);
     free(distid);
-    return NULL; 
+    return NULL;
   }
 
   for (i = 0; i < nelements; i++) distid[i] = i;
@@ -2952,7 +2952,7 @@ If a memory error occurs, pclcluster returns NULL.
   { for (i = 0; i < nelements; i++)
     { for (j = 0; j < ndata; j++)
       { newdata[i][j] = data[j][i];
-        
+
       }
     }
     data = newdata;
@@ -2979,13 +2979,13 @@ If a memory error occurs, pclcluster returns NULL.
     for (i = 0; i < ndata; i++)
     { data[js][i] = data[js][i] + data[is][i];
 
-     
+
     }
     free(data[is]);
-    
+
     data[is] = data[nnodes-inode];
-    
-  
+
+
     /* Fix the distances */
     distid[is] = distid[nnodes-inode];
     for (i = 0; i < is; i++)
@@ -3002,11 +3002,11 @@ If a memory error occurs, pclcluster returns NULL.
 
   /* Free temporarily allocated space */
   free(data[0]);
-  
+
   free(data);
-  
+
   free(distid);
- 
+
   return result;
 }
 
@@ -3027,7 +3027,7 @@ int nodecompare(const void* a, const void* b)
 /* ---------------------------------------------------------------------- */
 
 static
-Node* pslcluster (int nrows, int ncolumns, double** data, 
+Node* pslcluster (int nrows, int ncolumns, double** data,
   double weight[], double** distmatrix, char dist, int transpose)
 
 /*
@@ -3382,7 +3382,7 @@ If a memory error occurs, palcluster returns NULL.
 
 /* ******************************************************************* */
 
-Node* CALL treecluster (int nrows, int ncolumns, double** data, 
+Node* CALL treecluster (int nrows, int ncolumns, double** data,
   double weight[], int transpose, char dist, char method, double** distmatrix)
 /*
 Purpose
@@ -3498,7 +3498,7 @@ If a memory error occurs, treecluster returns NULL.
     for (i = 1; i < nelements; i++) free(distmatrix[i]);
     free (distmatrix);
   }
- 
+
   return result;
 }
 
@@ -3519,7 +3519,7 @@ If a memory error occurs, treecluster returns NULL.
 double CALL clusterdistance (int nrows, int ncolumns, double** data,
    double weight[], int n1, int n2, int index1[], int index2[],
   char dist, char method, int transpose)
-              
+
 /*
 Purpose
 =======
@@ -3634,13 +3634,13 @@ when microarrays are being clustered.
       if (transpose==0)
       { double distance;
         double* cdata[2];
-       
+
         int* count[2];
         count[0] = calloc(ncolumns,sizeof(int));
         count[1] = calloc(ncolumns,sizeof(int));
         cdata[0] = calloc(ncolumns,sizeof(double));
         cdata[1] = calloc(ncolumns,sizeof(double));
-        
+
         for (i = 0; i < n1; i++)
         { k = index1[i];
           for (j = 0; j < ncolumns; j++)
@@ -3660,7 +3660,7 @@ when microarrays are being clustered.
           { if (count[i][j]>0)
             { cdata[i][j] = cdata[i][j] / count[i][j];
 	    }
-            
+
           }
         distance =
           metric (ncolumns,cdata,cdata,weight,0,1,0);
@@ -3675,18 +3675,18 @@ when microarrays are being clustered.
       { double distance;
         int** count = malloc(nrows*sizeof(int*));
         double** cdata = malloc(nrows*sizeof(double*));
-        
+
         for (i = 0; i < nrows; i++)
         { count[i] = calloc(2,sizeof(int));
           cdata[i] = calloc(2,sizeof(double));
-         
+
         }
         for (i = 0; i < n1; i++)
         { k = index1[i];
           for (j = 0; j < nrows; j++)
 	    {  cdata[j][0] = cdata[j][0] + data[j][k];
               count[j][0] = count[j][0] + 1;
-            
+
 	    }
         }
         for (i = 0; i < n2; i++)
@@ -3694,25 +3694,25 @@ when microarrays are being clustered.
           for (j = 0; j < nrows; j++)
 	    {  cdata[j][1] = cdata[j][1] + data[j][k];
               count[j][1] = count[j][1] + 1;
-            
+
 	    }
         }
         for (i = 0; i < nrows; i++)
           for (j = 0; j < 2; j++)
             if (count[i][j]>0)
             { cdata[i][j] = cdata[i][j] / count[i][j];
-              
+
             }
 
         distance = metric (nrows,cdata,cdata,weight,0,1,1);
         for (i = 0; i < nrows; i++)
         { free (count[i]);
           free (cdata[i]);
-         
+
         }
         free (count);
         free (cdata);
-       
+
         return distance;
       }
     }
@@ -3722,10 +3722,10 @@ when microarrays are being clustered.
       { double distance;
         double* temp = malloc(nrows*sizeof(double));
         double* cdata[2];
-      
+
         for (i = 0; i < 2; i++)
         { cdata[i] = malloc(ncolumns*sizeof(double));
-      
+
         }
         for (j = 0; j < ncolumns; j++)
         { int count = 0;
@@ -3733,15 +3733,15 @@ when microarrays are being clustered.
           { i = index1[k];
 	    temp[count] = data[i][j];
 	    count++;
-            
+
           }
           if (count>0)
           { cdata[0][j] = median (count,temp);
-           
+
           }
           else
           { cdata[0][j] = 0.;
-           
+
           }
         }
         for (j = 0; j < ncolumns; j++)
@@ -3750,15 +3750,15 @@ when microarrays are being clustered.
           { i = index2[k];
             temp[count] = data[i][j];
               count++;
-            
+
           }
           if (count>0)
           { cdata[1][j] = median (count,temp);
-           
+
           }
           else
           { cdata[1][j] = 0.;
-           
+
           }
         }
         distance = metric (ncolumns,cdata,cdata,weight,0,1,0);
@@ -3773,10 +3773,10 @@ when microarrays are being clustered.
       { double distance;
         double* temp = malloc(ncolumns*sizeof(double));
         double** cdata = malloc(nrows*sizeof(double*));
-      
+
         for (i = 0; i < nrows; i++)
         { cdata[i] = malloc(2*sizeof(double));
-        
+
         }
         for (j = 0; j < nrows; j++)
         { int count = 0;
@@ -3784,33 +3784,33 @@ when microarrays are being clustered.
           { i = index1[k];
 	    temp[count] = data[j][i];
 	    count++;
-            
+
           }
           if (count>0)
           { cdata[j][0] = median (count,temp);
-            
+
           }
           else
           { cdata[j][0] = 0.;
-            
+
           }
         }
         for (j = 0; j < nrows; j++)
         { int count = 0;
           for (k = 0; k < n2; k++)
           { i = index2[k];
-            
+
              temp[count] = data[j][i];
              count++;
-            
+
           }
           if (count>0)
           { cdata[j][1] = median (count,temp);
-            
+
           }
           else
           { cdata[j][1] = 0.;
-            
+
           }
         }
         distance = metric (nrows,cdata,cdata,weight,0,1,1);

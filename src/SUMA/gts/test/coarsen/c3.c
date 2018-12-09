@@ -101,7 +101,7 @@ int main (int argc, char * argv[])
                                 e21, e20, e17);
 
   GtsVolumeOptimizedParams params = { 0.5, 0.5, 0. };
-  
+
   gts_surface_add_face (surface, f1);
   gts_surface_add_face (surface, f2);
   gts_surface_add_face (surface, f3);
@@ -118,8 +118,8 @@ int main (int argc, char * argv[])
   fprintf (stderr, "volume: %g\n", gts_surface_volume (surface));
 
 #if 0
-  v = edge_collapse (surface, e21, 
-		     (GtsCoarsenFunc) gts_volume_optimized_vertex, 
+  v = edge_collapse (surface, e21,
+		     (GtsCoarsenFunc) gts_volume_optimized_vertex,
 		     &params);
 #else
   v = gts_volume_optimized_vertex (e21, gts_vertex_class (), &params);
@@ -127,15 +127,15 @@ fprintf (stderr, "v: %.10g %.10g %.10g\n",
 	 GTS_POINT (v)->x, GTS_POINT (v)->y, GTS_POINT (v)->z);
   fprintf (stderr, "before: check for folds...\n");
   gts_edge_collapse_creates_fold (e21, v, 0.999695413509);
-  v = edge_collapse (surface, e21, 
-		     (GtsCoarsenFunc) gts_volume_optimized_vertex, 
+  v = edge_collapse (surface, e21,
+		     (GtsCoarsenFunc) gts_volume_optimized_vertex,
 		     &params);
   fprintf (stderr, "after: check for folds...\n");
   {
     GSList * i = v->segments;
     while (i) {
       GtsEdge * e = i->data;
-      gts_triangles_are_folded (e->triangles,  
+      gts_triangles_are_folded (e->triangles,
 				GTS_SEGMENT (e)->v1,
 				GTS_SEGMENT (e)->v2,
 				0.999695413509);

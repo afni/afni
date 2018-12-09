@@ -18,7 +18,7 @@
 
    Mod:     Change to routine write_afni_data to reduce truncation error.
    Date:    27 January 1997
-	
+
    Mod:     Added machine specific code for checking disk space.
    Date:    29 January 1997
 

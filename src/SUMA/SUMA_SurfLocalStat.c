@@ -16,7 +16,7 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
       " -stat sss   = Compute the statistic named 'sss' on the values\n"
       "               extracted from the region around each voxel:\n"
       "               * mean   = average of the values\n"
-      /* "               * stdev  = standard deviation\n" 
+      /* "               * stdev  = standard deviation\n"
       "               * var    = variance (stdev*stdev)\n"
       "               * cvar   = coefficient of variation = stdev/fabs(mean)\n"
       "               * median = median of the values\n"
@@ -44,8 +44,8 @@ void usage_SurfLocalStat (SUMA_GENERIC_ARGV_PARSE *ps)
                "%s"
                "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
-      SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL;
+      SUMA_free(sio); sio = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
 }
@@ -55,14 +55,14 @@ static int ncode=-1 , code[MAX_NCODE];
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_SurfLocalStat_ParseInput"}; 
+   static char FuncName[]={"SUMA_SurfLocalStat_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->ps = ps; /* for convenience */
    Opt->NodeDbg = -1;
@@ -77,9 +77,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
 			 usage_SurfLocalStat(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -87,11 +87,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-node_debug") == 0))
       {
          if (kar+1 >= argc)
@@ -99,11 +99,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             fprintf (SUMA_STDERR, "need a node index after -node_debug \n");
             exit (1);
          }
-         
+
          Opt->NodeDbg = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0))
       {
          if (kar+1 >= argc)
@@ -111,11 +111,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             fprintf (SUMA_STDERR, "need a dset prefix after -prefix \n");
             exit (1);
          }
-         
+
          Opt->out_prefix = SUMA_copy_string(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-stat") == 0))
       {
          char *cpt ;
@@ -143,16 +143,16 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             code[ncode++] = NSTAT_MEDIAN; code[ncode++] = NSTAT_MAD   ;
             code[ncode++] = NSTAT_MIN   ; code[ncode++] = NSTAT_MAX   ;
             code[ncode++] = NSTAT_ABSMAX; code[ncode++] = NSTAT_NUM   ;
-            code[ncode++] = NSTAT_FWHMx ; 
+            code[ncode++] = NSTAT_FWHMx ;
          }
          else {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                "-stat '%s' is an unknown statistic type",argv[kar]) ;
          }
          brk = YUP;
       }
-      
-      if (!brk && (strcmp(argv[kar], "-hood") == 0 || 
+
+      if (!brk && (strcmp(argv[kar], "-hood") == 0 ||
                    strcmp(argv[kar], "-nbhd_rad") == 0))
       {
          if (kar+1 >= argc)
@@ -160,26 +160,26 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
             fprintf (SUMA_STDERR, "need a value after -nbhd_rad \n");
             exit (1);
          }
-         
+
          Opt->r = atof(argv[++kar]);
          if (Opt->r <= 0.0) {
-            SUMA_S_Errv("neighborhood radius is not valid (have %f from %s).\n", 
+            SUMA_S_Errv("neighborhood radius is not valid (have %f from %s).\n",
                         Opt->r, argv[kar]);
 		      exit (1);
          }
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
-			SUMA_S_Errv("Option %s not understood. Try -help for usage\n", 
+			SUMA_S_Errv("Option %s not understood. Try -help for usage\n",
                      argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    if (!Opt->out_prefix) {
       Opt->out_prefix = SUMA_copy_string("SurfLocalstat");
    }
@@ -196,9 +196,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfLocalStat_ParseInput(char *argv[], in
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfLocalstat"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"SurfLocalstat"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_DSET_FORMAT iform = SUMA_NO_DSET_FORMAT;
    SUMA_DSET *din=NULL, *dout=NULL;
@@ -207,19 +207,19 @@ int main (int argc,char *argv[])
    SUMA_SurfaceObject *SO=NULL, *SOf=NULL;
    char *ooo=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
 
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-m;-dset;-talk;");
-   
+
    if (argc < 2) {
       usage_SurfLocalStat(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_SurfLocalStat_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
@@ -232,7 +232,7 @@ int main (int argc,char *argv[])
       SUMA_S_Errv("Failed to load dset named %s\n", Opt->ps->dsetname[0]);
       exit(1);
    }
-   
+
    Spec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -251,46 +251,46 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
-   if (Spec->N_Surfs == 2) { 
-      SOf = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[0], Opt->debug); 
+
+   }
+   if (Spec->N_Surfs == 2) {
+      SOf = SUMA_Load_Spec_Surf(Spec, 1, ps->sv[0], Opt->debug);
       if (!SOf) {
          fprintf (SUMA_STDERR,"Error %s:\n"
                               "Failed to find surface\n"
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      }   
+      }
    } else { SOf = NULL; }
-   
-   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname, 
-                              Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node, 
+
+   if (!(Opt->nmask = SUMA_load_all_command_masks(Opt->ps->bmaskname,
+                              Opt->ps->nmaskname, Opt->ps->cmask, SO->N_Node,
                               &N_inmask)) && N_inmask < 0) {
          SUMA_S_Err("Failed loading mask");
          exit(1);
    }
 
-   if (!(dout = SUMA_CalculateLocalStats(SO, din, 
+   if (!(dout = SUMA_CalculateLocalStats(SO, din,
                                     Opt->nmask, 1,
                                     Opt->r, NULL,
-                                    ncode, code, 
+                                    ncode, code,
                                     NULL, Opt->NodeDbg,
                                     SOf))) {
       SUMA_S_Err("Failed in SUMA_CalculateLocalStats");
       exit(1);
    }
-   
+
    /* write it out */
-   ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform, 
+   ooo = SUMA_WriteDset_s(Opt->out_prefix, dout, iform,
                            THD_ok_overwrite(), 0);
    SUMA_free(ooo); ooo=NULL;
-   
+
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
-   
+
    exit(0);
-   
-} 
+
+}

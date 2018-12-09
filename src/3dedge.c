@@ -1,9 +1,9 @@
 /********************************************************************************
-3dEdge                                                                                  
-Justin Knoll 5/23/00                                                                    
+3dEdge
+Justin Knoll 5/23/00
 
-Generates an edge-detected mask from the input 3d+time dataset.                          
-Needs boundary checking for non-sagittal datasets.                                      
+Generates an edge-detected mask from the input 3d+time dataset.
+Needs boundary checking for non-sagittal datasets.
 
 ********************************************************************************/
 
@@ -14,8 +14,8 @@ Needs boundary checking for non-sagittal datasets.
 #include <math.h>
 
 /*******************************************************************************/
-void errorExit(char *message) { 
-	
+void errorExit(char *message) {
+
 	fprintf(stderr, "\n\nError in 3dEdge:\n%s\n\nTry 3dEdge -help\n",message);
 	exit(1);
 }
@@ -48,7 +48,7 @@ void helpMessage()
 int edgeCount(int l, int nxx, int nyy, int nvox)
 /*
   computes the number of edges the voxel has - e.g. a voxel in the corner of a sub-brick has three
-  edges. this is necessary to apply the neighborCount to boundary voxels. 
+  edges. this is necessary to apply the neighborCount to boundary voxels.
 */
 {
   int count=0;
@@ -71,7 +71,7 @@ int edgeCount(int l, int nxx, int nyy, int nvox)
 
   if (((l % (nxx*nyy)) %  nxx) == (nxx - 1)) count++;
   if (((l % (nxx*nyy)) %  nxx) == (nxx - 2)) count++;
- 
+
   return (count*25) - (count*count)-1;
 }
 
@@ -81,11 +81,11 @@ float neighborCount(unsigned char *mask, int location, int nxx, int nyy, int nvo
   int c=0; /* number of neighbors */
   int i, j, k; /*axes */
   int tmpLocation;
-  float percent;  
+  float percent;
   for (i=-2 ; i <= 2 ; i++)
     for (j=-2 ; j <= 2 ; j++)
       for (k=-2 ; k <= 2 ; k++)
-/* 
+/*
    the if condition below is the bitwise OR of the three variables. It is true if at least one variable is not zero.
    if all three are zero, we are at the voxel itself, not a neighbor.
 */
@@ -94,7 +94,7 @@ float neighborCount(unsigned char *mask, int location, int nxx, int nyy, int nvo
 	    tmpLocation = location;
 	    tmpLocation += i;
 	    tmpLocation += (j * nxx);
-	    if (location < (nxx*nyy)) 
+	    if (location < (nxx*nyy))
 	      {
 		if (k < 0) continue;
 		  tmpLocation += (k * nxx * nyy);
@@ -114,7 +114,7 @@ float neighborCount(unsigned char *mask, int location, int nxx, int nyy, int nvo
 		if (k > 1) continue;
 		  tmpLocation += (k * nxx * nyy);
 	      }
-	    if (mask[tmpLocation]) 
+	    if (mask[tmpLocation])
 	      c++;
 	  }
   percent = ( (float) c / (124 - edgeCount(location, nxx, nyy, nvox)));
@@ -134,10 +134,10 @@ void recurseSelect(unsigned char *mask, int nxx, int nyy, int nvox, int i)
 	{
 	  recurseSelect(mask, nxx, nyy, nvox, (i + 1));
 	  recurseSelect(mask, nxx, nyy, nvox, (i - 1));
-      
+
 	  recurseSelect(mask, nxx, nyy, nvox, (i + nxx));
 	  recurseSelect(mask, nxx, nyy, nvox, (i - nxx));
-      
+
 	  recurseSelect(mask, nxx, nyy, nvox, (i + (nxx * nyy)));
 	  recurseSelect(mask, nxx, nyy, nvox, (i - (nxx * nyy)));
 	}
@@ -168,7 +168,7 @@ int centerOfMass(unsigned char *mask, int nxx, int nyy, int nvox)
   xMass /= mass;
   yMass /= mass;
   zMass /= mass;
-  return (int) ((int) (xMass+0.49) + ((int) (yMass+0.49) * nxx) + ((int) (zMass+0.49) * (nxx * nyy))); 
+  return (int) ((int) (xMass+0.49) + ((int) (yMass+0.49) * nxx) + ((int) (zMass+0.49) * (nxx * nyy)));
 }
 
 /*******************************************************************************/
@@ -177,8 +177,8 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
   int nvox, ntimes;
   int nxx, nyy;
   int i,j;
-  unsigned char *inputTimeStep_b;  
-  short *inputTimeStep_s;  
+  unsigned char *inputTimeStep_b;
+  short *inputTimeStep_s;
   float *inputTimeStep_f;
   unsigned char *mask;
   double *sums;
@@ -187,20 +187,20 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
   THD_3dim_dataset *outputDataset=NULL;
 
   DSET_load(inputDataset);
-  
+
   ntimes = DSET_NUM_TIMES(inputDataset);
   nvox = DSET_NVOX(inputDataset);
 
   nxx=inputDataset->daxes->nxx;
   nyy=inputDataset->daxes->nyy;
- 
+
   sums = (double *) malloc(nvox * sizeof(double));
   mask = (unsigned char *) malloc(nvox * sizeof(unsigned char));
   newMask = (unsigned char *) malloc(nvox * sizeof(unsigned char));
 
 /*
   the for loop below switches to handle different subbrick types (float, byte, short), and stores the
-  square of the values at each voxel in sums[]. 
+  square of the values at each voxel in sums[].
 */
   for (j=0 ; j < ntimes ; j++)
     {
@@ -210,8 +210,8 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
 	  {
 	    inputTimeStep_b = (unsigned char *) DSET_ARRAY(inputDataset, j);
 	    for (i=0 ; i < nvox ; i++)
-	      {  
-		sums[i] += inputTimeStep_b[i]; 
+	      {
+		sums[i] += inputTimeStep_b[i];
 	      }
 	    break;
 	  }
@@ -219,8 +219,8 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
 	  {
 	    inputTimeStep_s = (short *) DSET_ARRAY(inputDataset, j);
 	    for (i=0 ; i < nvox ; i++)
-	      {  
-		sums[i] += inputTimeStep_s[i]; 
+	      {
+		sums[i] += inputTimeStep_s[i];
 	      }
 	    break;
 	  }
@@ -228,7 +228,7 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
 	  {
 	    inputTimeStep_f = (float *) DSET_ARRAY(inputDataset, j);
             for (i=0 ; i < nvox ; i++)
-	      {  
+	      {
 		sums[i] += inputTimeStep_f[i];
 	      }
 	    break;
@@ -237,8 +237,8 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
 	  errorExit("Dataset sub-brick is of unrecognized type.");
 	}
 
-     /* calculate average of voxels over time */   
-    } 
+     /* calculate average of voxels over time */
+    }
   for (i=0 ; i < nvox ; i++)
     {
       sums[i] /= ntimes;
@@ -246,31 +246,31 @@ unsigned char* edgeDetect(THD_3dim_dataset *inputDataset, float rmsThresh, float
     }
   rms /= nvox;
   rms = sqrt(rms);
-  
+
 
   for (i=0 ; i < nvox ; i++)
     {
       mask[i] = (sums[i] >= (rms * rmsThresh));
     }
 /* fill holes and remove outlayers based on number of nearest neighbors */
-   for (i = 0 ; i < nvox ; i++)  
+   for (i = 0 ; i < nvox ; i++)
      if (neighborCount(mask, i, nxx, nyy, nvox) < neighbors) newMask[i]=0;
      else
        newMask[i]=mask[i];
-   for (i = 0 ; i < nvox ; i++) 
+   for (i = 0 ; i < nvox ; i++)
      mask[i] = newMask[i];
-   for (i = 0 ; i < nvox ; i++)  
+   for (i = 0 ; i < nvox ; i++)
       if (neighborCount(mask, i, nxx, nyy, nvox) > neighbors) newMask[i]=1;
-   for (i = 0 ; i < nvox ; i++) 
+   for (i = 0 ; i < nvox ; i++)
      mask[i] = newMask[i];
 
    i = centerOfMass(mask, nxx, nyy, nvox);
 /*   printf("i=%d\n", i);*/
    recurseSelect(mask, nxx, nyy, nvox, i);
 
-   for (i = 0 ; i < nvox ; i++) 
+   for (i = 0 ; i < nvox ; i++)
      mask[i] = mask[i]==2;
-   
+
    free(sums);
    free(newMask);
    return mask;
@@ -286,12 +286,12 @@ int applyMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix,
   double* timeStep;
   THD_3dim_dataset *outputDataset;
 
-  unsigned char *inputTimeStep_b;  
-  short *inputTimeStep_s;  
+  unsigned char *inputTimeStep_b;
+  short *inputTimeStep_s;
   float *inputTimeStep_f;
 
-  unsigned char *outputTimeStep_b;  
-  short *outputTimeStep_s;  
+  unsigned char *outputTimeStep_b;
+  short *outputTimeStep_s;
   float *outputTimeStep_f;
 
   ntimes = DSET_NUM_TIMES(inputDataset);
@@ -313,7 +313,7 @@ int applyMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix,
 	    inputTimeStep_b = (unsigned char *) DSET_ARRAY(inputDataset, j);
 	    outputTimeStep_b = (unsigned char *) malloc(sizeof(unsigned char) * nvox);
 	    for (i=0 ; i < nvox ; i++)
-	      {  
+	      {
 		if (mask[i])
 		  outputTimeStep_b[i] = inputTimeStep_b[i];
 		else
@@ -327,7 +327,7 @@ int applyMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix,
 	    inputTimeStep_s = (short *) DSET_ARRAY(inputDataset, j);
 	    outputTimeStep_s = (short *) malloc(sizeof(short) * nvox);
 	    for (i=0 ; i < nvox ; i++)
-	      {  
+	      {
 		if (mask[i])
 		  outputTimeStep_s[i] = inputTimeStep_s[i];
 		else
@@ -341,7 +341,7 @@ int applyMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix,
 	    inputTimeStep_f = (float *) DSET_ARRAY(inputDataset, j);
 	    outputTimeStep_f = (float *) malloc(sizeof(inputTimeStep_f));
             for (i=0 ; i < nvox ; i++)
-	      {  
+	      {
 		if (mask[i])
 		  outputTimeStep_f[i] = inputTimeStep_f[i];
 		else
@@ -353,10 +353,10 @@ int applyMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix,
 	default:
 	  errorExit("Dataset sub-brick is of unrecognized type.");
 	}
-    } 
+    }
     tross_Copy_History( inputDataset, outputDataset );
     tross_Make_History( "3dedge" , argc, argv, outputDataset) ;
-    DSET_write(outputDataset);  
+    DSET_write(outputDataset);
 /*    DSET_unload(inputDataset);
     DSET_unload(outputDataset); */
 }
@@ -365,7 +365,7 @@ void saveMask(THD_3dim_dataset *inputDataset, unsigned char *mask, char *prefix)
 {
   int ierr;
   THD_3dim_dataset *outputDataset;
-  
+
   outputDataset = EDIT_empty_copy(inputDataset);
   ierr = EDIT_dset_items(outputDataset,
 			   ADN_prefix, prefix,      /* prefix */
@@ -392,7 +392,7 @@ THD_3dim_dataset* openDataset(char *name)
   if (DSET_BRICK_FACTOR(newDataset, 0))
     errorExit("I can't deal with datasets containing scaling factors");
 /* else, make it so   */
-  return newDataset; 
+  return newDataset;
 }
 
 /*******************************************************************************/
@@ -406,7 +406,7 @@ int main(int argc, char *argv[])
   char *maskName = "mask";
   unsigned char *mask;
   THD_3dim_dataset *inputDataset=NULL;
-  
+
   if (argc < 2 || (strcmp(argv[1], "-help") == 0))
     {
       helpMessage();

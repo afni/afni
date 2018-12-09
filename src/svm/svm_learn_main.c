@@ -28,7 +28,7 @@ char docfile[200];           /* file with training examples */
 char modelfile[200];         /* file for resulting classifier */
 char restartfile[200];       /* file with initial alphas */
 
-void   read_input_parameters(int, char **, char *, char *, char *, long *, 
+void   read_input_parameters(int, char **, char *, char *, char *, long *,
 			     LEARN_PARM *, KERNEL_PARM *);
 void   wait_any_key();
 void   print_help();
@@ -36,7 +36,7 @@ void   print_help();
 
 
 int main (int argc, char* argv[])
-{  
+{
   DOC **docs;  /* training examples */
   long totwords,totdoc,i;
   double *target;
@@ -83,14 +83,14 @@ int main (int argc, char* argv[])
   }
 
   /* Warning: The model contains references to the original data 'docs'.
-     If you want to free the original data, and only keep the model, you 
+     If you want to free the original data, and only keep the model, you
      have to make a deep copy of 'model'. */
   /* deep_copy_of_model=copy_model(model); */
   write_model(modelfile,model);
 
   free(alpha_in);
   free_model(model,0);
-  for(i=0;i<totdoc;i++) 
+  for(i=0;i<totdoc;i++)
     free_example(docs[i],1);
   free(docs);
   free(target);
@@ -106,7 +106,7 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
 {
   long i;
   char type[100];
-  
+
   /* set default */
   strcpy (modelfile, "svm_model");
   strcpy (learn_parm->predfile, "trans_predictions");
@@ -142,8 +142,8 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
   strcpy(type,"c");
 
   for(i=1;(i<argc) && ((argv[i])[0] == '-');i++) {
-    switch ((argv[i])[1]) 
-      { 
+    switch ((argv[i])[1])
+      {
       case '?': print_help(); exit(0);
       case 'z': i++; strcpy(type,argv[i]); break;
       case 'v': i++; (*verbosity)=atol(argv[i]); break;
@@ -188,7 +188,7 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
     strcpy (modelfile, argv[i+1]);
   }
   if(learn_parm->svm_iter_to_shrink == -9999) {
-    if(kernel_parm->kernel_type == LINEAR) 
+    if(kernel_parm->kernel_type == LINEAR)
       learn_parm->svm_iter_to_shrink=2;
     else
       learn_parm->svm_iter_to_shrink=100;
@@ -214,28 +214,28 @@ void read_input_parameters(int argc,char *argv[],char *docfile,char *modelfile,
     wait_any_key();
     print_help();
     exit(0);
-  }    
-  if((learn_parm->skip_final_opt_check) 
+  }
+  if((learn_parm->skip_final_opt_check)
      && (kernel_parm->kernel_type == LINEAR)) {
     printf("\nIt does not make sense to skip the final optimality check for linear kernels.\n\n");
     learn_parm->skip_final_opt_check=0;
-  }    
-  if((learn_parm->skip_final_opt_check) 
+  }
+  if((learn_parm->skip_final_opt_check)
      && (learn_parm->remove_inconsistent)) {
     printf("\nIt is necessary to do the final optimality check when removing inconsistent \nexamples.\n");
     wait_any_key();
     print_help();
     exit(0);
-  }    
+  }
   if((learn_parm->svm_maxqpsize<2)) {
-    printf("\nMaximum size of QP-subproblems not in valid range: %ld [2..]\n",learn_parm->svm_maxqpsize); 
+    printf("\nMaximum size of QP-subproblems not in valid range: %ld [2..]\n",learn_parm->svm_maxqpsize);
     wait_any_key();
     print_help();
     exit(0);
   }
   if((learn_parm->svm_maxqpsize<learn_parm->svm_newvarsinqp)) {
-    printf("\nMaximum size of QP-subproblems [%ld] must be larger than the number of\n",learn_parm->svm_maxqpsize); 
-    printf("new variables [%ld] entering the working set in each iteration.\n",learn_parm->svm_newvarsinqp); 
+    printf("\nMaximum size of QP-subproblems [%ld] must be larger than the number of\n",learn_parm->svm_maxqpsize);
+    printf("new variables [%ld] entering the working set in each iteration.\n",learn_parm->svm_newvarsinqp);
     wait_any_key();
     print_help();
     exit(0);
@@ -355,7 +355,7 @@ void print_help()
   printf("                        [y [w*x+b] - 1] >= eps (default 0.001)\n");
   printf("         -y [0,1]    -> restart the optimization from alpha values in file\n");
   printf("                        specified by -a option. (default 0)\n");
-  printf("         -h [5..]    -> number of iterations a variable needs to be\n"); 
+  printf("         -h [5..]    -> number of iterations a variable needs to be\n");
   printf("                        optimal before considered for shrinking (default 100)\n");
   printf("         -f [0,1]    -> do final optimality check for variables removed\n");
   printf("                        by shrinking. Although this test is usually \n");
@@ -373,19 +373,3 @@ void print_help()
   wait_any_key();
   printf("\nMore details in:\n");
   printf("[1] T. Joachims, Making Large-Scale SVM Learning Practical. Advances in\n");
-  printf("    Kernel Methods - Support Vector Learning, B. Schölkopf and C. Burges and\n");
-  printf("    A. Smola (ed.), MIT Press, 1999.\n");
-  printf("[2] T. Joachims, Estimating the Generalization performance of an SVM\n");
-  printf("    Efficiently. International Conference on Machine Learning (ICML), 2000.\n");
-  printf("[3] T. Joachims, Transductive Inference for Text Classification using Support\n");
-  printf("    Vector Machines. International Conference on Machine Learning (ICML),\n");
-  printf("    1999.\n");
-  printf("[4] K. Morik, P. Brockhausen, and T. Joachims, Combining statistical learning\n");
-  printf("    with a knowledge-based approach - A case study in intensive care  \n");
-  printf("    monitoring. International Conference on Machine Learning (ICML), 1999.\n");
-  printf("[5] T. Joachims, Learning to Classify Text Using Support Vector\n");
-  printf("    Machines: Methods, Theory, and Algorithms. Dissertation, Kluwer,\n");
-  printf("    2002.\n\n");
-}
-
-

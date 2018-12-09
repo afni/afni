@@ -798,12 +798,12 @@ ENTRY("THD_insert_atr") ;
 
 /*------------------------------------------------------------------*/
 
-int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2) 
+int THD_copy_labeltable_atr( THD_datablock *d1,  THD_datablock *d2)
 {
    ATR_any *atr=NULL;
-   
+
    ENTRY("THD_copy_labeltable_atr") ;
-   
+
    if (!d1 || !d2 || !ISVALID_DATABLOCK(d1) || !ISVALID_DATABLOCK(d2)) RETURN(0);
    if ((atr = THD_find_atr(d2, "VALUE_LABEL_DTABLE"))) {
       THD_insert_atr( d1 , THD_copy_atr( atr ) ) ;

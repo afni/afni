@@ -6,23 +6,23 @@
 #include "f2c.h"
 
 /* Subroutine */ int rsm_(integer *nm, integer *n, doublereal *a, doublereal *
-	w, integer *m, doublereal *z__, doublereal *fwork, integer *iwork, 
+	w, integer *m, doublereal *z__, doublereal *fwork, integer *iwork,
 	integer *ierr)
 {
     /* System generated locals */
     integer a_dim1, a_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int tred1_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int tred1_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *);
     integer k1, k2, k3, k4, k5, k6, k7, k8;
-    extern /* Subroutine */ int trbak1_(integer *, integer *, doublereal *, 
-	    doublereal *, integer *, doublereal *), tqlrat_(integer *, 
-	    doublereal *, doublereal *, integer *), imtqlv_(integer *, 
+    extern /* Subroutine */ int trbak1_(integer *, integer *, doublereal *,
+	    doublereal *, integer *, doublereal *), tqlrat_(integer *,
+	    doublereal *, doublereal *, integer *), imtqlv_(integer *,
 	    doublereal *, doublereal *, doublereal *, doublereal *, integer *,
-	     integer *, doublereal *), tinvit_(integer *, integer *, 
+	     integer *, doublereal *), tinvit_(integer *, integer *,
 	    doublereal *, doublereal *, doublereal *, integer *, doublereal *,
-	     integer *, doublereal *, integer *, doublereal *, doublereal *, 
+	     integer *, doublereal *, integer *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *);
 
 
@@ -63,12 +63,12 @@
 /*        IWORK  IS AN INTEGER TEMPORARY STORAGE ARRAY OF DIMENSION N. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

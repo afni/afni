@@ -19,73 +19,73 @@ int count_procs(char *pname)
    int nproc, jj;
    FILE *fp=NULL;
    int verb=0;
-   
+
    if (!pname) pname = "apsearch";
-   
+
    if (SUMA_isEnv("SUMA_CountProcs_Verb","YES")) verb = 1;
-   
+
    if (verb) {
       fprintf(stderr,"  Checking ps:\n");
       sprintf(sbuf, "\\ps -caA | \\grep %s", pname);
       system(sbuf);
    }
-   
+
    sprintf(sbuf, "afni_util.py -print \"get_process_depth(prog='%s')\"", pname);
    if (verb) fprintf(stderr," Executing %s\n", sbuf);
-   
+
    fp = popen( sbuf , "r" ) ;
-   if( fp == NULL ){ 
-      ERROR_message(" popen fails\n"); 
-      exit(1); 
+   if( fp == NULL ){
+      ERROR_message(" popen fails\n");
+      exit(1);
    }
 
    jj = fscanf(fp,"%d",&nproc) ;
-   if( jj != 1 ){ 
-      ERROR_message(" 1st fscanf fails\n"); 
-      pclose(fp); 
-      exit(1); 
+   if( jj != 1 ){
+      ERROR_message(" 1st fscanf fails\n");
+      pclose(fp);
+      exit(1);
    }
-   
-   pclose(fp); 
+
+   pclose(fp);
    if (verb) fprintf(stderr,"Got %d\n", nproc);
    return(nproc);
 }
 
-int update_help_for_afni_programs(int force_recreate, 
-                                  byte verb, byte clean, 
+int update_help_for_afni_programs(int force_recreate,
+                                  byte verb, byte clean,
                                   THD_string_array **hlist )
 {
    int ii, iaf, icomm, estat;
    char hout[128], houtc[128], scomm[256], *etr=NULL, *hdir=NULL, *etm=NULL;
    THD_string_array *progs=NULL;
-   
-   
+
+
    ENTRY("produce_help_for_afni_programs");
-   
+
    if (hlist && *hlist) {
       ERROR_message("if hlist then must have *hlist = NULL\n");
-      RETURN(0);   
+      RETURN(0);
    }
-   
+
    if (!(hdir = THD_get_helpdir(0))) {
       ERROR_message("Have no help directory\n");
       RETURN(0);
    }
-   
+
    if (!(progs = THD_get_all_afni_executables())) {
       ERROR_message("Cannot get list of programs");
       RETURN(0);
    }
-   
+
    if (hlist) INIT_SARR((*hlist));
    icomm=0;
    for (ii=0, iaf=0; ii<progs->num ; ii++ ){
       /* ------------------------------------------------------------*/
       /* THIS BLOCK is essentially get_updated_help_file()
-         But I keep it separate because of the need for 
+         But I keep it separate because of the need for
          nap time. Knowing when to sleep in get_updated_help_file()
          is not that simple.                                   */
-      etr = THD_trailname( progs->ar[ii] , 0 ) ; 
+      etr = THD_trailname( progs->ar[ii] , 0 ) ;
       if (!etr || strlen(etr) < 2) {
          WARNING_message("Fishy executable named %s\n",progs->ar[ii]);
          continue;
@@ -99,59 +99,59 @@ int update_help_for_afni_programs(int force_recreate,
       snprintf(houtc, 120*sizeof(char),
                "%s/%s.complete", hdir, etr);
       if (!force_recreate && THD_is_file(hout)) {
-         if (verb) 
+         if (verb)
             fprintf(stderr,"Reusing %s (%d/%d)\n", hout, ii, progs->num );
          if (!THD_is_file(houtc)) {
             prog_complete_command(etr, houtc, -1);
-         }      
+         }
       } else {
-         if (verb) 
-            fprintf(stderr,"Creating %s (%d/%d)\n", hout, ii, progs->num); 
-         if (icomm > 25) { /* sleep a little to allow 
+         if (verb)
+            fprintf(stderr,"Creating %s (%d/%d)\n", hout, ii, progs->num);
+         if (icomm > 25) { /* sleep a little to allow
                               forked processes to end */
             NI_sleep(250); icomm = 0;
          }
          /* The echo below is there to make programs that
             don't like -help and expect stdin to shut up and quit
             As a result, it is hard to get the status of -help
-            command and use it wisely here without risking 
-            trouble. 
+            command and use it wisely here without risking
+            trouble.
             */
          if (THD_is_file( hout)) {
             snprintf(scomm, 250*sizeof(char),
                "chmod u+w %s", hout);
-            system(scomm); 
+            system(scomm);
          }
          snprintf(scomm, 250*sizeof(char),
                "\\echo '' 2>&1 | %s -help > %s 2>&1 ", etr, hout);
-         system(scomm); 
+         system(scomm);
          snprintf(scomm, 250*sizeof(char),
                "chmod a-w %s", hout);
-         system(scomm); 
+         system(scomm);
          prog_complete_command(etr, houtc, -1);
          ++icomm;
       }
       /* ------------------------------------------------------------*/
-      
+
       if (hlist) ADDTO_SARR((*hlist), hout);
-      
+
    }
    /* cleanup hdir */
    if (verb) fprintf(stderr,"Cleaning help directory %s\n",hdir);
    if (clean && system("@clean_help_dir")) {
       WARNING_message("Failed cleaning help directory");
    }
-   
+
    DESTROY_SARR(progs) ;
-   
+
    RETURN(1);
 }
 
-         
-int apsearch_usage(TFORM targ, int detail) 
+
+int apsearch_usage(TFORM targ, int detail)
 {
    int i = 0;
-   
+
    ENTRY("apsearch_usage");
    /* print help message in three sections */
    sphinx_fprintf(targ, stdout,
@@ -163,7 +163,7 @@ int apsearch_usage(TFORM targ, int detail)
    "           [OPTIONS]\n"
    "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      sphinx_printf (targ, 
+      sphinx_printf (targ,
 "Parameters:\n"
 "===========\n"
 "  -word WORD: WORD being sought\n"
@@ -222,13 +222,13 @@ int apsearch_usage(TFORM targ, int detail)
 "                  or accurate. It is created by parsing the program's\n"
 "                  -help output for likely candidates. \n"
 "                  It is meant to act as an aid in locating\n"
-"                  certain options.\n"  
+"                  certain options.\n"
 "  -list_popts PROG: Like -all_popts, but preserve unique set of options\n"
 "                    only, no chunks of help output are preserved.\n"
 "  -popts_complete_command PROG: Generate a csh command that can be sourced\n"
 "                                to allow option autocompletion for program\n"
 "                                PROG.\n"
-"                          See also option -bash and -update_all_afni_help\n" 
+"                          See also option -bash and -update_all_afni_help\n"
 "  -bash: Use bash format for the complete command. Default is csh/tcsh\n"
 "         This option MUST PRECEDE option -popts_complete_command\n"
 "  -ci: Case insensitive search (default)\n"
@@ -278,7 +278,7 @@ int apsearch_usage(TFORM targ, int detail)
 "                     Priority goes to env. variable AFNI_WEB_DOWNLOADER, \n"
 "                     otherwise afni will try to find something suitable.\n"
 "  -view_text_file FILE: Open FILE with editor of -afni_text_editor\n"
-"  -view_readme SOMETHING: Find a readme.SOMETHINGISH and open it\n" 
+"  -view_readme SOMETHING: Find a readme.SOMETHINGISH and open it\n"
 "  -apsearch_log_file: Print the name of the logfile that is used to save\n"
 "                      some results of apsearch's functions. This option\n"
 "                      is for debugging purposes and is only activated if\n"
@@ -309,7 +309,7 @@ int apsearch_usage(TFORM targ, int detail)
 "                              is alphabetical. It also dumps duplicate names\n"
 "                              which can happen when you start to remove \n"
 "                              extensions known to AFNI. See -wild* options\n"
-"                              below.\n" 
+"                              below.\n"
 "        Example: -wild_files '*.do *.HEAD'\n"
 "-wild_files_noAext: After compiling list, remove all known AFNI extensions \n"
 "                    and preserve unique set of resultant names\n"
@@ -387,10 +387,10 @@ int apsearch_usage(TFORM targ, int detail)
 "\n"
 "Global Options:\n"
 "===============\n"
-"%s\n%s", 
+"%s\n%s",
    THD_helpdir(0), THD_abindir(1),
    detail > 1 ? get_gopt_help():"",
-   detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):""); 
+   detail > 1 ? SUMA_Offset_SLines(get_help_help(),2):"");
    PRINT_COMPILE_DATE ;
    }
    return 0;
@@ -398,25 +398,25 @@ int apsearch_usage(TFORM targ, int detail)
 
 
 /*----------------------------------------------------------------------------*/
-char *text_from_stdin(int *nread) 
+char *text_from_stdin(int *nread)
 {
    int N_lbuf = 30000;
    char lbuf[N_lbuf+1];
    char *txt=NULL, *cpt=NULL;
    int ex = 0, i, N_alloc=0, nchar=0, nnew;
-   
-   
+
+
    if (nread) *nread = -1;
-   
+
    i = 0; N_alloc=0; nchar=0, nnew=0;
-   do{  
+   do{
       cpt = afni_fgets(lbuf,N_lbuf,stdin) ;
       lbuf[N_lbuf] = '\0';
       ex = feof(stdin);
-      if( cpt==NULL && !ex){ 
+      if( cpt==NULL && !ex){
          free(txt);
          ERROR_message("Failure reading from stdin");
-         return(NULL); 
+         return(NULL);
       }
       if (!ex) {
          nnew = strlen(lbuf);
@@ -428,14 +428,14 @@ char *text_from_stdin(int *nread)
          strcat(txt, lbuf); nchar += nnew;
       }
    } while (!ex);
-   
-   
+
+
    txt = (char *)realloc(txt, sizeof(char)*(1+nchar));
    txt[nchar]='\0';
-   
+
    if (nread) *nread = nchar;
-   
-   return(txt); 
+
+   return(txt);
 }
 
 /* A function to test function unique_str. Use for debugging only */
@@ -466,11 +466,11 @@ int Test_unique_str(void)
 
    if ((ws = unique_str(ww, N_words, 0, 0, &N_unq, &isrt))) {
       fprintf(stdout,
-            "\n%d/%d unique strings, case sensisitve, names as is:\n", 
+            "\n%d/%d unique strings, case sensisitve, names as is:\n",
                      N_unq, N_words);
       for (i=0; i<N_words; ++i) {
          fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage",
                   isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
       }
       if (isrt) free(isrt); isrt = NULL;
@@ -483,7 +483,7 @@ int Test_unique_str(void)
                      N_unq, N_words);
       for (i=0; i<N_words; ++i) {
          fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage",
                   isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
       }
       if (isrt) free(isrt); isrt = NULL;
@@ -495,7 +495,7 @@ int Test_unique_str(void)
                      N_unq, N_words);
       for (i=0; i<N_words; ++i) {
          fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage",
                   isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
       }
       if (isrt) free(isrt); isrt = NULL;
@@ -508,7 +508,7 @@ int Test_unique_str(void)
                      N_unq, N_words);
       for (i=0; i<N_words; ++i) {
          fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage",
                   isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
       }
       if (isrt) free(isrt); isrt = NULL;
@@ -522,7 +522,7 @@ int Test_unique_str(void)
                      N_unq, N_words);
       for (i=0; i<N_words; ++i) {
          fprintf(stdout,"%d %s (ww[%d]=%s)\n",
-                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage", 
+                  i, ws[i]?ws[i]:"NULL - what follows is legit garbage",
                   isrt[i], ww[isrt[i]]?ww[isrt[i]]:"NULL" );
       }
       if (isrt) free(isrt); isrt = NULL;
@@ -542,8 +542,8 @@ int main(int argc, char **argv)
        show_score=0, N_fnamev=0, MAX_FNAMES = 0, uopts=0,
        compcom = 0, shtp = 0;
    float *ws_score=NULL, last_score=-1.0;
-   char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL, 
-         *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ", 
+   char *fname=NULL, *text=NULL, *prog=NULL, *word="Ma fich haga", **ws=NULL,
+         *all_popts=NULL, *popt=NULL, stdinflag[] = " [+.-STDIN-.+] ",
          *pname=NULL;
    THD_string_array *fnamev = NULL;
    APPROX_STR_DIFF *D=NULL;
@@ -554,137 +554,137 @@ int main(int argc, char **argv)
        wild_all_files = 0, wild_orig_name = 0, wild_ci=0;
    TFORM spx_tar = TFORM_NOT_SET;
 
-   mainENTRY("apsearch main"); machdep() ; 
-   
+   mainENTRY("apsearch main"); machdep() ;
+
    /* Check for race conditions, but do allow this program to call itself once
    to accomodate the automatic handling of -h_apsx in mainENTRY(). */
    if ((nproc = count_procs("apsearch")) > 2) {
       ERROR_message("Race condition detected. I'm out");
       exit(1);
    }
-   
+
    max_hits = 3;
    test_only=0;
    min_different_hits = -1;
    if (argc <= 1) {
       apsearch_usage(TXT, 0);
-      return(1); 
+      return(1);
    }
-   
-   iarg = 1 ; 
+
+   iarg = 1 ;
    while( iarg < argc ){
       CHECK_HELP(argv[iarg], apsearch_usage);
-      if (strcmp(argv[iarg],"-ci") == 0) { 
-         ci = 1; 
+      if (strcmp(argv[iarg],"-ci") == 0) {
+         ci = 1;
          ++iarg;
-         continue; 
-      }
-      
-      if (strcmp(argv[iarg],"-cs") == 0) { 
-         ci = 0; 
-         ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-afni_help_dir") == 0) { 
+      if (strcmp(argv[iarg],"-cs") == 0) {
+         ci = 0;
+         ++iarg;
+         continue;
+      }
+
+      if (strcmp(argv[iarg],"-afni_help_dir") == 0) {
          fprintf(stdout,"%s\n", THD_helpdir(0));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-test_unique_str") == 0) { 
+      if (strcmp(argv[iarg],"-test_unique_str") == 0) {
          Test_unique_str();
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_data_dir") == 0) { 
+      if (strcmp(argv[iarg],"-afni_data_dir") == 0) {
          fprintf(stdout,"%s\n", THD_datadir(0));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_rc_file") == 0) { 
+      if (strcmp(argv[iarg],"-afni_rc_file") == 0) {
          fprintf(stdout,"%s\n", THD_afnirc());
          return(0);
       }
-      
-      if (strcmp(argv[iarg],"-afni_home_dir") == 0) { 
+
+      if (strcmp(argv[iarg],"-afni_home_dir") == 0) {
          fprintf(stdout,"%s\n", THD_homedir(0));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_custom_atlas_dir") == 0) { 
+      if (strcmp(argv[iarg],"-afni_custom_atlas_dir") == 0) {
          fprintf(stdout,"%s\n", THD_custom_atlas_dir(0));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_custom_atlas_file") == 0) { 
+      if (strcmp(argv[iarg],"-afni_custom_atlas_file") == 0) {
          fprintf(stdout,"%s\n", THD_custom_atlas_file(NULL));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_bin_dir") == 0) { 
+      if (strcmp(argv[iarg],"-afni_bin_dir") == 0) {
          fprintf(stdout,"%s\n", THD_abindir(0));
          return(0);
       }
-      
-      if (strcmp(argv[iarg],"-apsearch_log_file") == 0) { 
+
+      if (strcmp(argv[iarg],"-apsearch_log_file") == 0) {
          fprintf(stdout,"%s\n", THD_helpsearchlog(0));
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_text_editor") == 0) { 
+      if (strcmp(argv[iarg],"-afni_text_editor") == 0) {
          char *ss = GetAfniTextEditor();
          fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_web_downloader") == 0) { 
+      if (strcmp(argv[iarg],"-afni_web_downloader") == 0) {
          char *ss = GetAfniWebDownloader();
          fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-afni_web_browser") == 0) { 
+      if (strcmp(argv[iarg],"-afni_web_browser") == 0) {
          char *ss = GetAfniWebBrowser();
          fprintf(stdout,"%s\n", ss?ss:"NONE FOUND");
          return(0);
       }
 
-      if (strcmp(argv[iarg],"-show_score") == 0) { 
-         show_score=1; 
+      if (strcmp(argv[iarg],"-show_score") == 0) {
+         show_score=1;
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-show_score_detail") == 0) { 
-         show_score=2; 
+      if (strcmp(argv[iarg],"-show_score_detail") == 0) {
+         show_score=2;
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-func_test") == 0) { 
-         test_only = 0; 
+      if (strcmp(argv[iarg],"-func_test") == 0) {
+         test_only = 0;
          ++iarg;
-         continue; 
+         continue;
       }
 
       /* 3 Feb 2014 [rickr] */
       if (strcmp(argv[iarg],"-global_help") == 0 ||
-          strcmp(argv[iarg],"-gopts_help") == 0) { 
+          strcmp(argv[iarg],"-gopts_help") == 0) {
          printf(
       "--------------------------------------------------------------------\n"
       "Global Options: options available to most AFNI programs, but usually\n"
       "                not found in the -help output.\n"
       "--------------------------------------------------------------------\n"
              "%s\n%s", SUMA_Offset_SLines(get_help_help(),2), get_gopt_help());
-         return(0); 
+         return(0);
       }
 
-      if (strcmp(argv[iarg],"-race_check") == 0) { 
+      if (strcmp(argv[iarg],"-race_check") == 0) {
          char sbuf[100];
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need a program name after -race_check\n"); 
+                     "** Error: Need a program name after -race_check\n");
             return(1);
          }
          sprintf(sbuf,"%s -race_test",argv[iarg]);
@@ -692,12 +692,12 @@ int main(int argc, char **argv)
          NI_sleep(1000);
          system(sbuf);
          ++iarg;
-         continue; 
+         continue;
       }
 
-      
 
-      if (strcmp(argv[iarg],"-file") == 0) { 
+
+      if (strcmp(argv[iarg],"-file") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -706,13 +706,13 @@ int main(int argc, char **argv)
 
          fname = argv[iarg];
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-has-h_raw") == 0) { 
+      if (strcmp(argv[iarg],"-has-h_raw") == 0) {
          char *s=NULL;
          int ans;
-         
+
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -724,11 +724,11 @@ int main(int argc, char **argv)
          fprintf(stdout, "%d\n", ans);
          return(0);
       }
-      
+
       if (strcmp(argv[iarg],"-sphinx_phelp") == 0 ||
           strcmp(argv[iarg],"-txt_phelp") == 0 ||
           strcmp(argv[iarg],"-raw_phelp") == 0 ||
-          strcmp(argv[iarg],"-asphinx_phelp") == 0) { 
+          strcmp(argv[iarg],"-asphinx_phelp") == 0) {
          TFORM form=NO_FORMAT;
          char *s=NULL;
          ++iarg;
@@ -738,7 +738,7 @@ int main(int argc, char **argv)
                " -sphinx_phelp/-txt_phelp/-raw_phelp\n");
             return(1);
          }
-         
+
               if (strcmp(argv[iarg-1],"-txt_phelp") == 0) form = TXT;
          else if (strcmp(argv[iarg-1],"-sphinx_phelp") == 0) form = SPX;
          else if (strcmp(argv[iarg-1],"-asphinx_phelp") == 0) form = ASPX;
@@ -753,40 +753,40 @@ int main(int argc, char **argv)
          }
          ++iarg;
          return(0);
-         continue; 
+         continue;
       }
-      
-      
-      
+
+
+
       if (!strcmp(argv[iarg],"-doc_markup_sample")) {
          SUMA_Sphinx_String_Edit_Help(NULL,0);
          ++iarg;
          return(0);
-         continue; 
+         continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-doc_markup_sample_web")) {
          SUMA_Sphinx_String_Edit_Help(NULL,1);
          ++iarg;
          return(0);
-         continue; 
+         continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-doc_2_txt")) {
          spx_tar = TXT;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-doc_2_spx")) {
          spx_tar = SPX;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-doc_2_aspx")) {
          spx_tar = ASPX;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-hdoc_2_txt")) {
          ++iarg;
          if (iarg >= argc || !strcmp(argv[iarg],"-")) {
@@ -797,7 +797,7 @@ int main(int argc, char **argv)
          spx_tar = TXT;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-hdoc_2_spx")) {
          ++iarg;
          if (iarg >= argc || !strcmp(argv[iarg],"-")) {
@@ -805,11 +805,11 @@ int main(int argc, char **argv)
                      "** Error: Need a program name after -hdoc_*\n"); return(1);
          }
          pname = argv[iarg];
-         
+
          spx_tar = SPX;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-hdoc_2_aspx")) {
          ++iarg;
          if (iarg >= argc || !strcmp(argv[iarg],"-")) {
@@ -817,13 +817,13 @@ int main(int argc, char **argv)
                      "** Error: Need a program name after -hdoc_*\n"); return(1);
          }
          pname = argv[iarg];
-         
+
          spx_tar = ASPX;
          ++iarg; continue;
       }
-      
-      
-      if (strcmp(argv[iarg],"-files") == 0) { 
+
+
+      if (strcmp(argv[iarg],"-files") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -832,25 +832,25 @@ int main(int argc, char **argv)
          while (iarg < argc && argv[iarg][0] != '-') {
             if ( ! fnamev ) INIT_SARR(fnamev);
             if (!THD_is_file(argv[iarg])) {
-               ERROR_exit("Argument %s for -files is not a file on disk\n", 
-                             argv[iarg]); 
+               ERROR_exit("Argument %s for -files is not a file on disk\n",
+                             argv[iarg]);
             }
-            ADDUTO_SARR(fnamev, argv[iarg]); 
+            ADDUTO_SARR(fnamev, argv[iarg]);
             ++iarg;
          }
-         continue; 
+         continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-wild_files_noAext")) {
          wild_noext = 1;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-wild_files_noAext_noAview")) {
          wild_noext = 2;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-wild_files_orig_name")) {
          wild_orig_name = 1;
          ++iarg; continue;
@@ -860,7 +860,7 @@ int main(int argc, char **argv)
          wild_orig_name = -1;
          ++iarg; continue;
       }
-      
+
       if (!strcmp(argv[iarg],"-wild_all_files")) {
          wild_all_files = 1;
          ++iarg; continue;
@@ -869,63 +869,63 @@ int main(int argc, char **argv)
          wild_ci = 1;
          ++iarg; continue;
       }
-      if (!strcmp(argv[iarg],"-wild_files")) { 
+      if (!strcmp(argv[iarg],"-wild_files")) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
                "** Error: Need wildcards files after -wild_files\n"); return(1);
          }
          while (iarg < argc && argv[iarg][0] != '-') {
-            wild_list = 
-               SUMA_append_replace_string(wild_list, argv[iarg], " ", 1); 
+            wild_list =
+               SUMA_append_replace_string(wild_list, argv[iarg], " ", 1);
             ++iarg;
          }
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-stdin") == 0 || strcmp(argv[iarg],"-") == 0) { 
+
+      if (strcmp(argv[iarg],"-stdin") == 0 || strcmp(argv[iarg],"-") == 0) {
          fname = stdinflag;
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-view_prog_help") == 0) { 
+
+      if (strcmp(argv[iarg],"-view_prog_help") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need program name after -view_prog_help\n"); 
+                     "** Error: Need program name after -view_prog_help\n");
                      return(1);
          }
          view_prog_help(argv[iarg]);
          return(0);
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-web_prog_help") == 0) { 
+
+      if (strcmp(argv[iarg],"-web_prog_help") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need program name after -web_prog_help\n"); 
+                     "** Error: Need program name after -web_prog_help\n");
                      return(1);
          }
          web_prog_help(argv[iarg],0);
          return(0);
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-web_class_docs") == 0) { 
+
+      if (strcmp(argv[iarg],"-web_class_docs") == 0) {
          web_class_docs(NULL);
          return(0);
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-view_readme") == 0) { 
+
+      if (strcmp(argv[iarg],"-view_readme") == 0) {
          char *rout=NULL, **ws=NULL;
          int N_ws, i;
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need README name after -view_readme\n"); 
+                     "** Error: Need README name after -view_readme\n");
                      return(1);
          }
          if ((rout = find_readme_file(argv[iarg]))) {
@@ -940,33 +940,33 @@ int main(int argc, char **argv)
                   fprintf( stderr, "   Perhaps you're looking for:\n");
                for (i=0; i< N_ws; ++i) {
                   if (i<max_hits) fprintf( stderr, "   %d- %s\n", i, ws[i]);
-                  free(ws[i]); 
+                  free(ws[i]);
                }
                free(ws);
             }
-         }  
+         }
          return(0);
       }
-      
-      if (strcmp(argv[iarg],"-view_text_file") == 0) { 
+
+      if (strcmp(argv[iarg],"-view_text_file") == 0) {
          char *rout=NULL, **ws=NULL;
          int N_ws, i;
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need a filename after -view_text_file\n"); 
+                     "** Error: Need a filename after -view_text_file\n");
                      return(1);
          }
          if (!THD_is_file(argv[iarg])) {
             fprintf( stderr,
-                     "** Error: File %s not found.\n", argv[iarg]); 
+                     "** Error: File %s not found.\n", argv[iarg]);
                      return(1);
          }
-         view_text_file(argv[iarg]); 
+         view_text_file(argv[iarg]);
          return(0);
       }
-      
-      if (strcmp(argv[iarg],"-text") == 0) { 
+
+      if (strcmp(argv[iarg],"-text") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -975,11 +975,11 @@ int main(int argc, char **argv)
 
          text = argv[iarg];
          ++iarg;
-         continue; 
+         continue;
       }
-      
+
       if (strcmp(argv[iarg],"-phelp") == 0 ||
-          strcmp(argv[iarg],"-popt") == 0 ) { 
+          strcmp(argv[iarg],"-popt") == 0 ) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -990,10 +990,10 @@ int main(int argc, char **argv)
          else prog = argv[iarg];
 
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-all_popts") == 0 ) { 
+
+      if (strcmp(argv[iarg],"-all_popts") == 0 ) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -1004,11 +1004,11 @@ int main(int argc, char **argv)
          uopts = 0;
          max_hits = -1;
          word = "-";
-         ++iarg; 
-         continue; 
+         ++iarg;
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-list_popts") == 0 ) { 
+      if (strcmp(argv[iarg],"-list_popts") == 0 ) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -1019,24 +1019,24 @@ int main(int argc, char **argv)
          uopts = 1;
          max_hits = -1;
          word = "-";
-         ++iarg; 
-         continue; 
+         ++iarg;
+         continue;
       }
-      
+
       if (strcmp(argv[iarg],"-C_all_prog_opt_array") == 0) {
          progopt_C_array(NULL, 1, NULL, 0);
          return(0);
-         ++iarg; 
+         ++iarg;
          continue;
       }
-      
+
       if (strcmp(argv[iarg],"-C_all_append_prog_opt_array") == 0) {
          progopt_C_array(NULL, 1, NULL, 1);
          return(0);
-         ++iarg; 
+         ++iarg;
          continue;
       }
-      
+
       if (strcmp(argv[iarg],"-C_prog_opt_array") == 0) {
          ++iarg;
          if (iarg >= argc) {
@@ -1046,22 +1046,22 @@ int main(int argc, char **argv)
          }
          progopt_C_array(NULL, 1, argv[iarg], 1);
          return(0);
-         ++iarg; 
+         ++iarg;
          continue;
       }
-      
-      
+
+
       if (strcmp(argv[iarg],"-bash") == 0) {
          shtp = 1;
-         ++iarg; 
+         ++iarg;
          continue;
       }
-      
-      if (strcmp(argv[iarg],"-popts_complete_command") == 0 ) { 
+
+      if (strcmp(argv[iarg],"-popts_complete_command") == 0 ) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-               "** Error: Need program name after -popts_complete_command\n"); 
+               "** Error: Need program name after -popts_complete_command\n");
             return(1);
          }
 
@@ -1069,18 +1069,18 @@ int main(int argc, char **argv)
          if (1) {
             prog_complete_command(all_popts, NULL, shtp);
             return(0);
-         }         
+         }
 
          uopts = 1;
          compcom = 1;
          max_hits = -1;
          word = "-";
-         
-         ++iarg; 
-         continue; 
+
+         ++iarg;
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-word") == 0 || strcmp(argv[iarg],"-w") == 0) { 
+
+      if (strcmp(argv[iarg],"-word") == 0 || strcmp(argv[iarg],"-w") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
@@ -1089,110 +1089,110 @@ int main(int argc, char **argv)
 
          word = argv[iarg];
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-max_hits") == 0 || strcmp(argv[iarg],"-m") == 0) { 
+
+      if (strcmp(argv[iarg],"-max_hits") == 0 || strcmp(argv[iarg],"-m") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
                      "** Error: Need an integer after -max_hits\n"); return(1);
          }
 
-         max_hits = atoi(argv[iarg]); 
+         max_hits = atoi(argv[iarg]);
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-min_different_hits") == 0) { 
+
+      if (strcmp(argv[iarg],"-min_different_hits") == 0) {
          ++iarg;
          if (iarg >= argc) {
             fprintf( stderr,
-                     "** Error: Need an integer after -min_different_hits\n"); 
+                     "** Error: Need an integer after -min_different_hits\n");
                      return(1);
          }
 
-         min_different_hits = atoi(argv[iarg]); 
+         min_different_hits = atoi(argv[iarg]);
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-unique_hits_only") == 0) { 
+
+      if (strcmp(argv[iarg],"-unique_hits_only") == 0) {
          unq_only = 1;
          ++iarg;
-         continue; 
+         continue;
       }
-      
-      if (strcmp(argv[iarg],"-update_all_afni_help") == 0) { 
+
+      if (strcmp(argv[iarg],"-update_all_afni_help") == 0) {
          update_help_for_afni_programs(0, 1, 1, NULL); return(0);
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-recreate_all_afni_help") == 0) { 
+      if (strcmp(argv[iarg],"-recreate_all_afni_help") == 0) {
          update_help_for_afni_programs(1, 1, 1, NULL); return(0);
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-all_afni_help") == 0) { 
-         update_help_for_afni_programs(0, 0, 0, &fnamev); 
+      if (strcmp(argv[iarg],"-all_afni_help") == 0) {
+         update_help_for_afni_programs(0, 0, 0, &fnamev);
          ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-list_all_afni_progs") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_progs") == 0) {
          list_afni_programs(0, 0); return(0);
          ++iarg;
-         continue; 
-      }
-      
-      if (strcmp(argv[iarg],"-list_all_afni_P_progs") == 0) { 
-         list_afni_programs(1, 0); return(0);
-         ++iarg;
-         continue; 
-      }
-      
-      if (strcmp(argv[iarg],"-list_all_afni_readmes") == 0) { 
-         list_afni_readmes(0, 0); return(0);
-         ++iarg;
-         continue; 
-      }
-      
-      if (strcmp(argv[iarg],"-list_all_afni_P_readmes") == 0) { 
-         list_afni_readmes(1, 0); return(0);
-         ++iarg;
-         continue; 
-      }
-      
-      if (strcmp(argv[iarg],"-list_all_afni_dsets") == 0) { 
-         list_afni_dsets(0, 0); return(0);
-         ++iarg;
-         continue; 
+         continue;
       }
 
-      if (strcmp(argv[iarg],"-list_all_afni_P_dsets") == 0) { 
+      if (strcmp(argv[iarg],"-list_all_afni_P_progs") == 0) {
+         list_afni_programs(1, 0); return(0);
+         ++iarg;
+         continue;
+      }
+
+      if (strcmp(argv[iarg],"-list_all_afni_readmes") == 0) {
+         list_afni_readmes(0, 0); return(0);
+         ++iarg;
+         continue;
+      }
+
+      if (strcmp(argv[iarg],"-list_all_afni_P_readmes") == 0) {
+         list_afni_readmes(1, 0); return(0);
+         ++iarg;
+         continue;
+      }
+
+      if (strcmp(argv[iarg],"-list_all_afni_dsets") == 0) {
+         list_afni_dsets(0, 0); return(0);
+         ++iarg;
+         continue;
+      }
+
+      if (strcmp(argv[iarg],"-list_all_afni_P_dsets") == 0) {
          list_afni_dsets(1, 0); return(0);
          ++iarg;
-         continue; 
+         continue;
       }
-      
+
       { /* bad news in tennis shoes */
          fprintf(stderr,"** Error %s: bad option %s\n", argv[0], argv[iarg]);
          suggest_best_prog_option(argv[0], argv[iarg]);
          return 1;
       }
 
-   } 
-   
+   }
+
    if (fname && text) {
       ERROR_message("-file and -text are mutually exclusive");
       return 1;
    }
-   
+
    if (min_different_hits<=0) min_different_hits = -1;
    if (max_hits <=0) max_hits = MRI_maxint;
-   
+
    if (test_only) {
       test_approx_str_match();
       return 0;
@@ -1213,14 +1213,14 @@ int main(int argc, char **argv)
          exit(0);
       }
       /* some sorting needed */
-      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
+      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext,
                               &nsort, &isrt))) {
          if (wild_orig_name == -1) {/* verbose output */
-            fprintf(stdout, "\n%d/%d unique strings, noext = %d:\n",  
-                     nsort, nglob, wild_noext); 
+            fprintf(stdout, "\n%d/%d unique strings, noext = %d:\n",
+                     nsort, nglob, wild_noext);
             for (i=0; i<nsort; ++i) {
                fprintf(stdout,"%d %s (wglob[%d]=%s)\n",
-                 i, wsort[i]?wsort[i]:"NULL - what followsort is legit garbage", 
+                 i, wsort[i]?wsort[i]:"NULL - what followsort is legit garbage",
                  isrt[i], wglob[isrt[i]]?wglob[isrt[i]]:"NULL" );
             }
          } else {
@@ -1247,7 +1247,7 @@ int main(int argc, char **argv)
          exit(1);
       }
    }
-   
+
    if ((fnamev || fname || text || prog || popt || all_popts)) {
       if (!strcmp(word,"Ma fich haga") && spx_tar == TFORM_NOT_SET) {
          ERROR_message(
@@ -1262,7 +1262,7 @@ int main(int argc, char **argv)
                if (sso) {
                   fprintf(stdout,"%s", sso); free(sso); sso = NULL;
                } else {
-                  ERROR_message("Failed to sphinx edit string in %s", 
+                  ERROR_message("Failed to sphinx edit string in %s",
                                  fnamev->ar[i]);
                   return 1;
                }
@@ -1293,7 +1293,7 @@ int main(int argc, char **argv)
                }
                return 0;
             } else {
-               ws = approx_str_sort_tfile(fname, 0, &N_ws, word, 
+               ws = approx_str_sort_tfile(fname, 0, &N_ws, word,
                          ci, &ws_score,
                          NULL, &D, 1, '\0');
             }
@@ -1315,18 +1315,18 @@ int main(int argc, char **argv)
                }
                return 0;
             } else {
-               ws = approx_str_sort_text(stdtext, &N_ws, word, 
+               ws = approx_str_sort_text(stdtext, &N_ws, word,
                                ci, &ws_score,
                                NULL, &D, '\0');
                free(stdtext); stdtext=NULL;
-            } 
+            }
          }
       } else if (text) {
-         ws = approx_str_sort_text(text, &N_ws, word, 
+         ws = approx_str_sort_text(text, &N_ws, word,
                             ci, &ws_score,
                             NULL, &D, '\0');
       } else if (prog) {
-         ws = approx_str_sort_phelp(prog, 0, &N_ws, word, 
+         ws = approx_str_sort_phelp(prog, 0, &N_ws, word,
                             ci, &ws_score,
                             NULL, &D, 1, '\\');
       } else if (popt) {
@@ -1334,11 +1334,11 @@ int main(int argc, char **argv)
          return 0;
       } else if (all_popts) {
          /* one can also use print_prog_options(all_popts); return(0); */
-         ws = approx_str_sort_all_popts(all_popts, 0, &N_ws, 
+         ws = approx_str_sort_all_popts(all_popts, 0, &N_ws,
                             ci, &ws_score,
                             NULL, &D, uopts, 1, '\\');
       }
-      
+
       i_unique_score = 0; last_score = -1.0; new_score=1;
       for (i=0; i<N_ws; ++i) {
          if (ws[i]) {
@@ -1353,21 +1353,21 @@ int main(int argc, char **argv)
                   switch(show_score) {
                      case 0:
                         fprintf(stdout,"   ");
-                        if ((D+i)->srcfile && 
+                        if ((D+i)->srcfile &&
                             strncmp((D+i)->srcfile,APSEARCH_TMP_PREF,
-                                             strlen(APSEARCH_TMP_PREF))) 
+                                             strlen(APSEARCH_TMP_PREF)))
                            fprintf(stdout,"(%s) ",(D+i)->srcfile);
                         break;
-                     case 1: 
-                        fprintf(stdout,"%03f ", 
+                     case 1:
+                        fprintf(stdout,"%03f ",
                                     ws_score[i]);
-                        if ((D+i)->srcfile && 
+                        if ((D+i)->srcfile &&
                             strncmp((D+i)->srcfile,APSEARCH_TMP_PREF,
-                                             strlen(APSEARCH_TMP_PREF))) 
+                                             strlen(APSEARCH_TMP_PREF)))
                            fprintf(stdout,"(%s) ",(D+i)->srcfile);
                         break;
                      case 2:
-                        fprintf(stdout,"%s ", 
+                        fprintf(stdout,"%s ",
                            approx_string_diff_info(D+i, NULL));
                         break;
                      default:
@@ -1381,8 +1381,8 @@ int main(int argc, char **argv)
          }
       } free(ws);  if (ws_score) free(ws_score); ws_score=NULL;
       if (D) free(D); D=NULL;
-   } 
-   
+   }
+
    if (fnamev) DESTROY_SARR(fnamev); fnamev=NULL;
-   return 0;  
+   return 0;
 }

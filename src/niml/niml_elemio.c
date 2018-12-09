@@ -973,7 +973,7 @@ NI_dpr("ENTER NI_write_element\n") ;
 #endif
 
 #undef  AF
-#define AF      
+#define AF
 #define ADDOUT(q) if(nout<0){AF;fprintf(stderr,"NIML: write abort %s\n",q);return -1;} else ntot+=nout
 
    if( !NI_stream_writeable(ns) ) return -1 ;  /* stupid user */
@@ -1461,7 +1461,7 @@ void * NI_read_element_fromfile( char *fname )
 void * NI_read_element_fromstring( char *nstr )
 {
    NI_stream_type *ns ;  void *nini ;
-   
+
    if( nstr == NULL || *nstr == '\0' ) return (NULL) ;
 
    /* convert string to a NIML element */
@@ -1470,7 +1470,7 @@ void * NI_read_element_fromstring( char *nstr )
    NI_stream_setbuf( ns , nstr ) ;
    nini = NI_read_element( ns , 1 ) ;
    NI_stream_close( ns ) ;
-   
+
    return (nini) ;
 }
 /*------------------------------------------------------------------------*/

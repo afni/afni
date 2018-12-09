@@ -44,7 +44,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Global constants. 
+  Global constants.
 */
 
 #define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
@@ -57,7 +57,7 @@
 */
 
 typedef struct WA_options
-{ 
+{
   int NFirst;              /* first image from input 3d+time dataset to use */
   int NLast;               /* last image from input 3d+time dataset to use */
   int N;                   /* number of usable data points from input data */
@@ -65,27 +65,27 @@ typedef struct WA_options
   int p;                   /* number of parameters in the full model */
   int q;                   /* number of parameters in the baseline model */
 
-  float fdisp;             /* minimum F-statistic for display */ 
+  float fdisp;             /* minimum F-statistic for display */
   char * input_filename;   /* input 3d+time dataset */
   char * mask_filename;    /* input mask dataset */
   char * input1D_filename; /* input fMRI measurement time series */
 
-  int wavelet_type;        /* indicates type of wavelet */        
+  int wavelet_type;        /* indicates type of wavelet */
 
   int num_stop_filters;             /* number of wavelet stop filters */
-  int stop_band[MAX_FILTERS];       /* wavelet filter stop band */ 
+  int stop_band[MAX_FILTERS];       /* wavelet filter stop band */
   int stop_mintr[MAX_FILTERS];      /* min. time for stop band */
   int stop_maxtr[MAX_FILTERS];      /* max. time for stop band */
   float * stop_filter;              /* select wavelet coefs. to stop */
 
   int num_base_filters;             /* number of wavelet base filters */
-  int base_band[MAX_FILTERS];       /* wavelet filter base band */ 
+  int base_band[MAX_FILTERS];       /* wavelet filter base band */
   int base_mintr[MAX_FILTERS];      /* min. time for base band */
   int base_maxtr[MAX_FILTERS];      /* max. time for base band */
   float * base_filter;              /* select wavelet coefs. for baseline */
 
   int num_sgnl_filters;             /* number of wavelet signal filters */
-  int sgnl_band[MAX_FILTERS];       /* wavelet filter signal band */ 
+  int sgnl_band[MAX_FILTERS];       /* wavelet filter signal band */
   int sgnl_mintr[MAX_FILTERS];      /* min. time for signal band */
   int sgnl_maxtr[MAX_FILTERS];      /* max. time for signal band */
   float * sgnl_filter;              /* select wavelet coefs. for signal */
@@ -177,7 +177,7 @@ void display_help_menu()
     "                     parameters of interest, such as the F-statistic   \n"
     "                     for significance of the wavelet signal model.     \n"
     );
-  
+
   PRINT_COMPILE_DATE ; exit(0);
 }
 
@@ -186,12 +186,12 @@ void display_help_menu()
 /*
   Routine to initialize the input options.
 */
- 
-void initialize_options 
+
+void initialize_options
 (
   WA_options * option_data    /* wavelet analysis program options */
 )
- 
+
 {
   int is;                     /* filter index */
 
@@ -239,7 +239,7 @@ void initialize_options
 
   /*----- Initialize file name character strings -----*/
   option_data->input_filename = NULL;
-  option_data->mask_filename = NULL;  
+  option_data->mask_filename = NULL;
   option_data->input1D_filename = NULL;
   option_data->bucket_filename = NULL;
   option_data->coefts_filename = NULL;
@@ -258,7 +258,7 @@ void initialize_options
 void get_options
 (
   int argc,                        /* number of input arguments */
-  char ** argv,                    /* array of input arguments */ 
+  char ** argv,                    /* array of input arguments */
   WA_options * option_data         /* wavelet program options */
 )
 
@@ -271,25 +271,25 @@ void get_options
 
 
   /*-- addto the arglist, if user wants to --*/
-   machdep() ; 
+   machdep() ;
   { int new_argc ; char ** new_argv ;
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
+
 
   /*----- does user request help menu? -----*/
-  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();  
+  if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
 
 
   /*----- Add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
-  
+
   /*----- initialize the input options -----*/
-  initialize_options (option_data); 
+  initialize_options (option_data);
 
-  
+
   /*----- main loop over input options -----*/
   while (nopt < argc )
     {
@@ -310,7 +310,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -input filename   -----*/
       if (strncmp(argv[nopt], "-input", 8) == 0)
@@ -323,21 +323,21 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -input1D filename   -----*/
       if (strncmp(argv[nopt], "-input1D", 8) == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  WA_error ("need argument after -input1D ");
-	  option_data->input1D_filename = 
+	  option_data->input1D_filename =
 	    malloc (sizeof(char)*MAX_NAME_LENGTH);
 	  MTEST (option_data->input1D_filename);
 	  strcpy (option_data->input1D_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -mask filename   -----*/
       if (strncmp(argv[nopt], "-mask", 5) == 0)
@@ -350,7 +350,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -nfirst num  -----*/
       if (strncmp(argv[nopt], "-nfirst", 7) == 0)
@@ -385,18 +385,18 @@ void get_options
 	{
 	  nopt++;
 	  if (nopt >= argc)  WA_error ("need argument after -fdisp ");
-	  sscanf (argv[nopt], "%f", &fval); 
+	  sscanf (argv[nopt], "%f", &fval);
 	  option_data->fdisp = fval;
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -filt_stop band mintr maxtr   -----*/
       if (strncmp(argv[nopt], "-filt_stop", 10) == 0)
 	{
 	  nopt++;
-	  if (nopt+2 >= argc)  
+	  if (nopt+2 >= argc)
 	    WA_error ("need 3 arguments after -filt_stop");
 
 	  ifilter = option_data->num_stop_filters;
@@ -422,13 +422,13 @@ void get_options
 	  option_data->num_stop_filters++;
 	  continue;
 	}
-      
+
 
       /*-----   -filt_base band mintr maxtr   -----*/
       if (strncmp(argv[nopt], "-filt_base", 10) == 0)
 	{
 	  nopt++;
-	  if (nopt+2 >= argc)  
+	  if (nopt+2 >= argc)
 	    WA_error ("need 3 arguments after -filt_base");
 
 	  ifilter = option_data->num_base_filters;
@@ -454,13 +454,13 @@ void get_options
 	  option_data->num_base_filters++;
 	  continue;
 	}
-      
+
 
       /*-----   -filt_sgnl band mintr maxtr   -----*/
       if (strncmp(argv[nopt], "-filt_sgnl", 10) == 0)
 	{
 	  nopt++;
-	  if (nopt+2 >= argc)  
+	  if (nopt+2 >= argc)
 	    WA_error ("need 3 arguments after -filt_sgnl");
 
 	  ifilter = option_data->num_sgnl_filters;
@@ -486,7 +486,7 @@ void get_options
 	  option_data->num_sgnl_filters++;
 	  continue;
 	}
-      
+
 
       /*-----   -fout   -----*/
       if (strncmp(argv[nopt], "-fout", 5) == 0)
@@ -495,7 +495,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -rout   -----*/
       if (strncmp(argv[nopt], "-rout", 5) == 0)
@@ -504,7 +504,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -cout   -----*/
       if (strncmp(argv[nopt], "-cout", 5) == 0)
@@ -513,7 +513,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -vout   -----*/
       if (strncmp(argv[nopt], "-vout", 5) == 0)
@@ -522,7 +522,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -stat_first   -----*/
       if (strncmp(argv[nopt], "-stat_first", 11) == 0)
@@ -531,7 +531,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -datum DTYPE   -----*/
       if (strncmp(argv[nopt], "-datum", 6) == 0)
@@ -546,7 +546,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -bucket filename   -----*/
       if (strncmp(argv[nopt], "-bucket", 6) == 0)
@@ -559,21 +559,21 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -coefts filename   -----*/
       if (strncmp(argv[nopt], "-coefts", 8) == 0)
 	{
 	  nopt++;
 	  if (nopt >= argc)  WA_error ("need file prefixname after -coefts ");
-	  option_data->coefts_filename = 
+	  option_data->coefts_filename =
 	    malloc (sizeof(char)*MAX_NAME_LENGTH);
 	  MTEST (option_data->coefts_filename);
 	  strcpy (option_data->coefts_filename, argv[nopt]);
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -fitts filename   -----*/
       if (strncmp(argv[nopt], "-fitts", 7) == 0)
@@ -586,7 +586,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -sgnlts filename   -----*/
       if (strncmp(argv[nopt], "-sgnlts", 7) == 0)
@@ -599,7 +599,7 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*-----   -errts filename   -----*/
       if (strncmp(argv[nopt], "-errts", 6) == 0)
@@ -612,15 +612,15 @@ void get_options
 	  nopt++;
 	  continue;
 	}
-      
+
 
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       WA_error (message);
-      
+
     }
 
-  
+
 }
 
 
@@ -631,7 +631,7 @@ void get_options
   a column selector attached.
 */
 
-float * read_time_series 
+float * read_time_series
 (
   char * ts_filename,          /* time series file name (plus column index) */
   int * ts_length              /* output value for time series length */
@@ -657,7 +657,7 @@ float * read_time_series
       WA_error (message);
     }
 
-  
+
   /*----- Set pointer to data, and set dimensions -----*/
   far = MRI_FLOAT_PTR(flim);
   nx = flim->nx;
@@ -666,15 +666,15 @@ float * read_time_series
     fprintf(stderr,"WARNING: time series %s has %d columns\n",ts_filename,ny);
   }
 
-  
+
   /*----- Save the time series data -----*/
   *ts_length = nx;
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx];   
-  
-  
+    ts_data[ipt] = far[ipt + iy*nx];
+
+
   mri_free (flim);  flim = NULL;
 
   return (ts_data);
@@ -703,14 +703,14 @@ void read_input_data
   if (option_data->input1D_filename != NULL)
     {
       /*----- Read the input fMRI 1D time series -----*/
-      *fmri_data = read_time_series (option_data->input1D_filename, 
+      *fmri_data = read_time_series (option_data->input1D_filename,
 				     fmri_length);
-      if (*fmri_data == NULL)  
-	{ 
-	  sprintf (message,  "Unable to read time series file: %s", 
+      if (*fmri_data == NULL)
+	{
+	  sprintf (message,  "Unable to read time series file: %s",
 		   option_data->input1D_filename);
 	  WA_error (message);
-	}  
+	}
       *dset_time = NULL;
     }
 
@@ -718,24 +718,24 @@ void read_input_data
     {
       /*----- Read the input 3d+time dataset -----*/
       *dset_time = THD_open_one_dataset (option_data->input_filename);
-      if (!ISVALID_3DIM_DATASET(*dset_time))  
-	{ 
-	  sprintf (message,  "Unable to open data file: %s", 
+      if (!ISVALID_3DIM_DATASET(*dset_time))
+	{
+	  sprintf (message,  "Unable to open data file: %s",
 		   option_data->input_filename);
 	  WA_error (message);
-	}  
+	}
       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
 
       if (option_data->mask_filename != NULL)
 	{
 	  /*----- Read the input mask dataset -----*/
 	  *mask_dset = THD_open_dataset (option_data->mask_filename);
-	  if (!ISVALID_3DIM_DATASET(*mask_dset))  
-	    { 
-	      sprintf (message,  "Unable to open mask file: %s", 
+	  if (!ISVALID_3DIM_DATASET(*mask_dset))
+	    {
+	      sprintf (message,  "Unable to open mask file: %s",
 		       option_data->mask_filename);
 	      WA_error (message);
-	    }  
+	    }
 	  DSET_load(*mask_dset) ;
 	}
     }
@@ -750,7 +750,7 @@ void read_input_data
   Routine to check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   THD_3dim_dataset * dset_time,     /* input 3d+time data set */
   char * filename                   /* name of output file */
@@ -761,27 +761,27 @@ void check_one_output_file
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
 
-  
+
   /*----- make an empty copy of input dataset -----*/
   new_dset = EDIT_empty_copy( dset_time ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset_time) ? HEAD_FUNC_TYPE :
                                			           GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
       sprintf (message,
-	       "*** %d errors in attempting to create output dataset!\n", 
+	       "*** %d errors in attempting to create output dataset!\n",
 	       ierror);
       WA_error (message);
     }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       sprintf (message,
@@ -790,10 +790,10 @@ void check_one_output_file
 	       new_dset->dblk->diskptr->header_name);
       WA_error (message);
     }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -802,7 +802,7 @@ void check_one_output_file
   Routine to check whether output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   WA_options * option_data,       /* wavelet analysis program options */
   THD_3dim_dataset * dset_time    /* input 3d+time data set */
@@ -810,21 +810,21 @@ void check_output_files
 
 {
 
-  if (option_data->bucket_filename != NULL)   
+  if (option_data->bucket_filename != NULL)
     check_one_output_file (dset_time, option_data->bucket_filename);
 
-  if (option_data->coefts_filename != NULL)   
+  if (option_data->coefts_filename != NULL)
     check_one_output_file (dset_time, option_data->coefts_filename);
 
-  if (option_data->fitts_filename != NULL)   
+  if (option_data->fitts_filename != NULL)
     check_one_output_file (dset_time, option_data->fitts_filename);
 
-  if (option_data->sgnlts_filename != NULL)   
+  if (option_data->sgnlts_filename != NULL)
     check_one_output_file (dset_time, option_data->sgnlts_filename);
 
-  if (option_data->errts_filename != NULL)   
+  if (option_data->errts_filename != NULL)
     check_one_output_file (dset_time, option_data->errts_filename);
-  
+
 }
 
 
@@ -832,8 +832,8 @@ void check_output_files
 /*
   Routine to check for valid inputs.
 */
-  
-void check_for_valid_inputs 
+
+void check_for_valid_inputs
 (
   WA_options * option_data,       /* wavelet analysis program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
@@ -871,8 +871,8 @@ void check_for_valid_inputs
 /*
   Routine to initialize the filters and control variables.
 */
-  
-void initialize_filters 
+
+void initialize_filters
 (
   WA_options * option_data,       /* wavelet analysis program options */
   THD_3dim_dataset * dset_time,   /* input 3d+time data set */
@@ -895,11 +895,11 @@ void initialize_filters
   else
     nt = DSET_NUM_TIMES (dset_time);
 
- 
+
   /*----- Determine the number of usable time points -----*/
   NFirst = option_data->NFirst;
 
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast;
   if (NLast > nt-1)  NLast = nt-1;
 
   N = NLast - NFirst + 1;
@@ -911,22 +911,22 @@ void initialize_filters
 
 
   /*----- Initialize the filters -----*/
-  option_data->stop_filter = 
+  option_data->stop_filter =
     FWT_1d_stop_filter (option_data->num_stop_filters, option_data->stop_band,
 			option_data->stop_mintr,  option_data->stop_maxtr,
 			option_data->NFirst, option_data->N);
 
-  option_data->base_filter = 
+  option_data->base_filter =
     FWT_1d_pass_filter (option_data->num_base_filters, option_data->base_band,
 			option_data->base_mintr,  option_data->base_maxtr,
 			option_data->NFirst, option_data->N);
-					  
-  option_data->sgnl_filter = 
+
+  option_data->sgnl_filter =
     FWT_1d_pass_filter (option_data->num_sgnl_filters, option_data->sgnl_band,
 			option_data->sgnl_mintr,  option_data->sgnl_maxtr,
 			option_data->NFirst, option_data->N);
 
-					  
+
   /*----- Count numbers of model parameters -----*/
   f = 0;
   for (i = 0;  i < N;  i++)
@@ -953,7 +953,7 @@ void initialize_filters
       {
 	p++;
       }
-  option_data->p = p;    
+  option_data->p = p;
 
 
   return;
@@ -965,7 +965,7 @@ void initialize_filters
   Allocate memory for output volumes.
 */
 
-void allocate_memory 
+void allocate_memory
 (
   WA_options * option_data,         /* wavelet analysis options */
   THD_3dim_dataset * dset,          /* input 3d+time data set */
@@ -1002,7 +1002,7 @@ void allocate_memory
   for (ip = 0;  ip < p;  ip++)
     {
       (*coef_vol)[ip]  = (float *) malloc (sizeof(float) * nxyz);
-      MTEST((*coef_vol)[ip]);    
+      MTEST((*coef_vol)[ip]);
        for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	{
 	  (*coef_vol)[ip][ixyz]  = 0.0;
@@ -1084,10 +1084,10 @@ void allocate_memory
   Perform all program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   WA_options ** option_data,        /* wavelet analysis options */
   THD_3dim_dataset ** dset_time,    /* input 3d+time data set */
   THD_3dim_dataset ** mask_dset,    /* input mask data set */
@@ -1104,13 +1104,13 @@ void initialize_program
   float *** sgnlts_vol,      /* volumes for signal model fit to input data */
   float *** errts_vol        /* volumes for residual errors */
 )
-     
+
 {
 
   /*----- Allocate memory -----*/
   *option_data = (WA_options *) malloc (sizeof(WA_options));
 
-   
+
   /*----- Get command line inputs -----*/
   get_options (argc, argv, *option_data);
 
@@ -1121,15 +1121,15 @@ void initialize_program
 
   /*----- Check for valid inputs -----*/
   check_for_valid_inputs (*option_data, *dset_time, *mask_dset);
-  
+
 
   /*----- Initialize the filters and control variables  -----*/
   initialize_filters (*option_data, *dset_time, *mask_dset, *fmri_length);
-  
+
 
   /*----- Allocate memory for output volumes -----*/
   if ((*option_data)->input1D_filename == NULL)
-    allocate_memory (*option_data, *dset_time, 
+    allocate_memory (*option_data, *dset_time,
 		     coef_vol, mse_vol, ffull_vol, rfull_vol,
 		     coefts_vol, fitts_vol, sgnlts_vol, errts_vol);
 
@@ -1141,7 +1141,7 @@ void initialize_program
   Get the time series for one voxel from the AFNI 3d+time data set.
 */
 
-void extract_ts_array 
+void extract_ts_array
 (
   THD_3dim_dataset * dset_time,      /* input 3d+time dataset */
   int iv,                            /* get time series for this voxel */
@@ -1183,10 +1183,10 @@ void extract_ts_array
   Save results for this voxel.
 */
 
-void save_voxel 
+void save_voxel
 (
   WA_options * option_data,    /* wavelet analysis options */
-  int iv,                      /* current voxel index */      
+  int iv,                      /* current voxel index */
   float * coef,                /* regression parameters */
   float mse,                   /* full model mean square error */
   float ffull,                 /* full model F-statistic */
@@ -1210,7 +1210,7 @@ void save_voxel
 )
 
 {
-  int ip;                   /* parameter index */ 
+  int ip;                   /* parameter index */
   int p;                    /* total number of parameters */
   int it;                   /* time point index */
   int N;                    /* number of usable data points */
@@ -1272,7 +1272,7 @@ void save_voxel
   Calculate the wavelet signal model and associated statistics.
 */
 
-void calculate_results 
+void calculate_results
 (
   WA_options * option_data,         /* wavelet analysis options */
   THD_3dim_dataset * dset,          /* input 3d+time data set */
@@ -1290,7 +1290,7 @@ void calculate_results
   float ** sgnlts_vol,      /* volumes for full model fit to input data */
   float ** errts_vol        /* volumes for residual errors */
 )
-  
+
 {
   float * ts_array = NULL;    /* array of measured data for one voxel */
   float mask_val[1];          /* value of mask at current voxel */
@@ -1300,7 +1300,7 @@ void calculate_results
   int q;                      /* number of parameters in the baseline model */
 
   float * coef = NULL;        /* regression parameters */
-  float sse_base;             /* baseline model error sum of squares */ 
+  float sse_base;             /* baseline model error sum of squares */
   float sse_full;             /* full model error sum of squares */
   float ffull;                /* full model F-statistic */
   float rfull;                /* full model R^2 stat. */
@@ -1331,12 +1331,12 @@ void calculate_results
     }
   else
     {
-      nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;       
+      nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
       nt = DSET_NUM_TIMES (dset);
     }
 
   NFirst = option_data->NFirst;
-  NLast = option_data->NLast;   
+  NLast = option_data->NLast;
   N = option_data->N;
   f = option_data->f;
   q = option_data->q;
@@ -1351,7 +1351,7 @@ void calculate_results
   sgnlts   = (float *) malloc (sizeof(float) * N);    MTEST (sgnlts);
   errts    = (float *) malloc (sizeof(float) * N);    MTEST (errts);
 
-  
+
   /*----- Loop over all voxels -----*/
   for (ixyz = 0;  ixyz < nxyz;  ixyz++)
     {
@@ -1359,10 +1359,10 @@ void calculate_results
       if (mask != NULL)
 	{
 	  extract_ts_array (mask, ixyz, mask_val);
-	  if (mask_val[0] == 0.0)  continue; 
+	  if (mask_val[0] == 0.0)  continue;
 	}
-      
-      
+
+
       /*----- Extract Y-data for this voxel -----*/
       if (option_data->input1D_filename != NULL)
 	{
@@ -1372,9 +1372,9 @@ void calculate_results
       else
 	extract_ts_array (dset, ixyz, ts_array);
 
-      	  
+
       /*----- Perform the wavelet analysis for this voxel-----*/
-      wavelet_analysis (option_data->wavelet_type, 
+      wavelet_analysis (option_data->wavelet_type,
 			f, option_data->stop_filter,
 			q, option_data->base_filter,
 			p, option_data->sgnl_filter,
@@ -1382,36 +1382,36 @@ void calculate_results
 			&sse_base, &sse_full, &ffull, &rfull,
 			coefts, fitts, sgnlts, errts);
 
-      
+
       /*----- Save results for this voxel -----*/
       if (option_data->input1D_filename == NULL)
-	save_voxel (option_data, ixyz, coef, sse_full/(N-f-p), ffull, rfull, 
-		    coefts, fitts, sgnlts, errts, 
-		    coef_vol, mse_vol, ffull_vol, rfull_vol, 
+	save_voxel (option_data, ixyz, coef, sse_full/(N-f-p), ffull, rfull,
+		    coefts, fitts, sgnlts, errts,
+		    coef_vol, mse_vol, ffull_vol, rfull_vol,
 		    coefts_vol, fitts_vol, sgnlts_vol, errts_vol);
       else
-	{  
+	{
 	  /*----- If only one voxel, save results as .1D files -----*/
 	  ts_fprint ("WA.coefts.1D", N, coefts);
 	  ts_fprint ("WA.fitts.1D",  N, fitts);
 	  ts_fprint ("WA.sgnlts.1D", N, sgnlts);
 	  ts_fprint ("WA.errts.1D",  N, errts);
 	}
-      
-	  
+
+
       /*----- Report results for this voxel -----*/
       if ( ((ffull > option_data->fdisp) && (option_data->fdisp >= 0.0))
 	   || (option_data->input1D_filename != NULL) )
 	{
 	  printf ("\n\nResults for Voxel #%d: \n", ixyz);
-	  report_results (N, NFirst, f, p, q, 
+	  report_results (N, NFirst, f, p, q,
 			  option_data->base_filter, option_data->sgnl_filter,
-			  coef, sse_base, sse_full, ffull, rfull, 
+			  coef, sse_base, sse_full, ffull, rfull,
 			  &label);
 	  printf ("%s \n", label);
 	}
 
-	  
+
     }  /*----- Loop over voxels -----*/
 
 
@@ -1428,16 +1428,16 @@ void calculate_results
 
 /*---------------------------------------------------------------------------*/
 /*
-  Routine to write one AFNI 3d+time data set. 
+  Routine to write one AFNI 3d+time data set.
 */
 
 
-void write_ts_array 
+void write_ts_array
 (
   int argc,                              /* number of input arguments */
-  char ** argv,                          /* array of input arguments */ 
+  char ** argv,                          /* array of input arguments */
   WA_options * option_data,              /* wavelet analysis options */
-  int ts_length,                         /* length of time series data */  
+  int ts_length,                         /* length of time series data */
   float *** vol_array,                   /* output time series volume data */
   char * output_filename                 /* output afni data set file name */
 )
@@ -1447,29 +1447,29 @@ void write_ts_array
 
   THD_3dim_dataset * dset = NULL;        /* input afni data set pointer */
   THD_3dim_dataset * new_dset = NULL;    /* output afni data set pointer */
-  int ib;                                /* sub-brick index */ 
+  int ib;                                /* sub-brick index */
   int ierror;                            /* number of errors in editing data */
-  int nxyz;                              /* total number of voxels */ 
+  int nxyz;                              /* total number of voxels */
   float factor;             /* factor is new scale factor for sub-brick #ib */
   char * input_filename;    /* input afni data set file name */
   short ** bar = NULL;      /* bar[ib] points to data for sub-brick #ib */
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
-  char label[80];           /* label for output file */ 
-  
+  char label[80];           /* label for output file */
+
 
   /*----- Initialize local variables -----*/
   input_filename = option_data->input_filename;
   dset = THD_open_one_dataset (input_filename);
   nxyz = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz;
 
- 
+
   /*----- allocate memory -----*/
   if( option_data->datum != MRI_float )
     { bar  = (short **) malloc (sizeof(short *) * ts_length);   MTEST (bar); }
   fbuf = (float *)  malloc (sizeof(float)   * ts_length);   MTEST (fbuf);
-  
-  
+
+
   /*-- make an empty copy of the prototype dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (dset);
 
@@ -1488,24 +1488,24 @@ void write_ts_array
 
   /*----- Delete prototype dataset -----*/
   THD_delete_3dim_dataset (dset, False);  dset = NULL ;
-  
+
 
   ierror = EDIT_dset_items (new_dset,
 			    ADN_prefix,      output_filename,
 			    ADN_label1,      output_filename,
 			    ADN_self_name,   output_filename,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,  
+			    ADN_malloc_type, DATABLOCK_MEM_MALLOC,
 			    ADN_datum_all,   option_data->datum,
 			    ADN_nvals,       ts_length,
 			    ADN_ntt,         ts_length,
 			    ADN_none);
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
@@ -1513,7 +1513,7 @@ void write_ts_array
     exit(1) ;
   }
 
-  
+
   /*----- attach bricks to new data set -----*/
   for (ib = 0;  ib < ts_length;  ib++)
   {
@@ -1522,14 +1522,14 @@ void write_ts_array
           fbuf[ib] = 1.0;  /* factor array is all 1's for float output */
 
           /*----- attach vol_array[ib] to be sub-brick #ib -----*/
-          mri_fix_data_pointer ((*vol_array)[ib], DSET_BRICK(new_dset,ib)); 
+          mri_fix_data_pointer ((*vol_array)[ib], DSET_BRICK(new_dset,ib));
           (*vol_array)[ib] = NULL;  /* data is now owned by dataset */
       }
       else
       {
           /*----- Set pointer to appropriate volume -----*/
           volume = (*vol_array)[ib];
-      
+
           /*----- Allocate memory for output sub-brick -----*/
           bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
           MTEST (bar[ib]);
@@ -1542,7 +1542,7 @@ void write_ts_array
           fbuf[ib] = factor;
 
           /*----- attach bar[ib] to be sub-brick #ib -----*/
-          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib)); 
+          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
       }
   }
   if( option_data->datum == MRI_float ) *vol_array = NULL;
@@ -1555,9 +1555,9 @@ void write_ts_array
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset (NULL, NULL, new_dset, True);
   fprintf(stderr,"--- Wrote 3d+time dataset into %s\n",DSET_BRIKNAME(new_dset)) ;
-  
 
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset (new_dset, False);   new_dset = NULL ;
   free (fbuf);   fbuf = NULL;
 
@@ -1577,10 +1577,10 @@ void attach_sub_brick
   int nxyz,                 /* total number of voxels */
   int brick_type,           /* indicates statistical type of sub-brick */
   char * brick_label,       /* character string label for sub-brick */
-  int dof, 
-  int ndof, 
+  int dof,
+  int ndof,
   int ddof,                 /* degrees of freedom */
-  short ** bar              /* bar[ib] points to data for sub-brick #ib */  
+  short ** bar              /* bar[ib] points to data for sub-brick #ib */
 )
 
 {
@@ -1593,10 +1593,10 @@ void attach_sub_brick
   MTEST (bar[ibrick]);
   factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
 				      MRI_short, bar[ibrick]);
-  
+
   if (factor < EPSILON)  factor = 0.0;
   else factor = 1.0 / factor;
-  
+
 
   /*----- edit the sub-brick -----*/
   EDIT_BRICK_LABEL (new_dset, ibrick, brick_label);
@@ -1606,8 +1606,8 @@ void attach_sub_brick
     EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
   else if (brick_type == FUNC_FT_TYPE)
     EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
-  
-  
+
+
   /*----- attach bar[ib] to be sub-brick #ibrick -----*/
   EDIT_substitute_brick (new_dset, ibrick, MRI_short, bar[ibrick]);
 
@@ -1625,8 +1625,8 @@ void attach_float_brick
   float * volume,           /* volume of floating point data */
   int brick_type,           /* indicates statistical type of sub-brick */
   char * brick_label,       /* character string label for sub-brick */
-  int dof, 
-  int ndof, 
+  int dof,
+  int ndof,
   int ddof                  /* degrees of freedom */
 )
 
@@ -1639,8 +1639,8 @@ void attach_float_brick
     EDIT_BRICK_TO_FITT (new_dset, ibrick, dof);
   else if (brick_type == FUNC_FT_TYPE)
     EDIT_BRICK_TO_FIFT (new_dset, ibrick, ndof, ddof);
-  
-  
+
+
   /*----- attach bar[ib] to be sub-brick #ibrick -----*/
   EDIT_substitute_brick (new_dset, ibrick, MRI_float, volume);
 
@@ -1654,10 +1654,10 @@ void attach_float_brick
   for the MRI_float dataset sub-bricks.             07 Feb 2006 [rickr]
 */
 
-void write_bucket_data 
+void write_bucket_data
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   WA_options * option_data,         /* wavelet analysis options */
 
   float *** coef_vol,       /* array of volumes of signal model parameters */
@@ -1697,9 +1697,9 @@ void write_bucket_data
   /*----- read prototype dataset -----*/
   old_dset = THD_open_one_dataset (option_data->input_filename);
 
-    
+
   /*----- Initialize local variables -----*/
-  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;  
+  nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
   nt = DSET_NUM_TIMES (old_dset);
 
 
@@ -1709,7 +1709,7 @@ void write_bucket_data
   N = option_data->N;
   NFirst = option_data->NFirst;
   printf ("f = %d   q = %d   p = %d   N = %d \n", f, q, p, N);
-  
+
 
   /*----- Calculate number of sub-bricks in the bucket -----*/
   nbricks = p * option_data->cout
@@ -1719,8 +1719,8 @@ void write_bucket_data
 
   strcpy (output_prefix, option_data->bucket_filename);
   strcpy (output_session, "./");
-  
- 
+
+
   /*----- allocate memory -----*/
   if( option_data->datum != MRI_float )
   {
@@ -1739,8 +1739,8 @@ void write_bucket_data
   sprintf (label, "Output prefix: %s", output_prefix);
   tross_Append_History ( new_dset, label);
 
-  
-  /*----- delete prototype dataset -----*/ 
+
+  /*----- delete prototype dataset -----*/
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
 
 
@@ -1754,25 +1754,25 @@ void write_bucket_data
 			    ADN_datum_all,       option_data->datum,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      fprintf(stderr, 
-	      "*** %d errors in attempting to create bucket dataset!\n", 
+      fprintf(stderr,
+	      "*** %d errors in attempting to create bucket dataset!\n",
 	      ierror);
       exit(1);
     }
-  
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+
+  if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
-  
+
 
   /*----- Attach individual sub-bricks to the bucket dataset -----*/
   ibrick = 0;
@@ -1782,20 +1782,20 @@ void write_bucket_data
   if (option_data->cout)
     {
       /*----- User can choose to place full model stats first -----*/
-      if (option_data->stat_first)  
+      if (option_data->stat_first)
 	ibrick += option_data->vout + option_data->rout + option_data->fout;
 
       icoef = 0;
-      for (it = 0;  it < N;  it++)        
-	{                      
+      for (it = 0;  it < N;  it++)
+	{
 	  if (option_data->sgnl_filter[it])
-	    {                             
+	    {
 	      /*----- Wavelet coefficient -----*/
 	      brick_type = FUNC_FIM_TYPE;
-	      
+
 	      {
 		int band, mintr, maxtr;
-		
+
 		if (it == 0)
 		  {
 		    band = -1;
@@ -1808,17 +1808,17 @@ void write_bucket_data
 		    mintr = (it - powerof2(band)) * powerof2(my_log2(N)-band);
 		    maxtr = mintr + powerof2(my_log2(N)-band) - 1;
 		  }
-	    
+
 		mintr += NFirst;
 		maxtr += NFirst;
-	    
+
 		if (option_data->base_filter[it])
 		  sprintf (brick_label, "B(%2d)[%3d,%3d]", band, mintr, maxtr);
 		else
 		  sprintf (brick_label, "S(%2d)[%3d,%3d]", band, mintr, maxtr);
 	      }
 
-	      volume = (*coef_vol)[icoef];		  
+	      volume = (*coef_vol)[icoef];
               if( option_data->datum == MRI_float )
               {
                   attach_float_brick (new_dset, ibrick, volume,
@@ -1826,13 +1826,13 @@ void write_bucket_data
                   (*coef_vol)[icoef] = NULL; /* dataset owns this now */
               }
               else
-                  attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+                  attach_sub_brick (new_dset, ibrick, volume, nxyz,
                                     brick_type, brick_label, 0, 0, 0, bar);
-	      
+
 	      ibrick++;
 	      icoef++;
 	    }
-	  
+
 	}  /* End loop over Wavelet coefficients */
 
         if( option_data->datum == MRI_float ) /* then free array, also */
@@ -1843,7 +1843,7 @@ void write_bucket_data
     }  /* if (option_data->cout) */
 
 
-      
+
   /*----- Statistics for full model -----*/
   if (option_data->stat_first)  ibrick = 0;
 
@@ -1860,7 +1860,7 @@ void write_bucket_data
           *mse_vol = NULL;  /* since the dataset owns this now */
       }
       else
-          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+          attach_sub_brick (new_dset, ibrick, volume, nxyz,
                             brick_type, brick_label, 0, 0, 0, bar);
       ibrick++;
     }
@@ -1878,7 +1878,7 @@ void write_bucket_data
           *rfull_vol = NULL;  /* since the dataset owns this now */
       }
       else
-          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+          attach_sub_brick (new_dset, ibrick, volume, nxyz,
                             brick_type, brick_label, 0, 0, 0, bar);
       ibrick++;
     }
@@ -1898,7 +1898,7 @@ void write_bucket_data
           *ffull_vol = NULL;  /* since the dataset owns this now */
       }
       else
-          attach_sub_brick (new_dset, ibrick, volume, nxyz, 
+          attach_sub_brick (new_dset, ibrick, volume, nxyz,
                             brick_type, brick_label, 0, ndof, ddof, bar);
       ibrick++;
     }
@@ -1910,8 +1910,8 @@ void write_bucket_data
   fprintf(stderr,"Writing `bucket' dataset ");
   fprintf(stderr,"into %s\n", DSET_BRIKNAME(new_dset));
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -1928,7 +1928,7 @@ void write_bucket_data
 void output_results
 (
   int argc,                         /* number of input arguments */
-  char ** argv,                     /* array of input arguments */ 
+  char ** argv,                     /* array of input arguments */
   WA_options * option_data,         /* wavelet analysis options */
 
   float *** coef_vol,        /* array of volumes of signal model parameters */
@@ -1951,32 +1951,32 @@ void output_results
 
   /*----- Write the bucket dataset -----*/
   if (option_data->bucket_filename != NULL)
-    write_bucket_data (argc, argv, option_data,  coef_vol, 
+    write_bucket_data (argc, argv, option_data,  coef_vol,
 		       mse_vol, ffull_vol, rfull_vol);
 
 
 
   /*----- Write the forward wavelet transform coefficients -----*/
   if (option_data->coefts_filename != NULL)
-    write_ts_array (argc, argv, option_data, N, coefts_vol, 
+    write_ts_array (argc, argv, option_data, N, coefts_vol,
 		    option_data->coefts_filename);
 
 
   /*----- Write the wavelet filtered 3d+time dataset -----*/
   if (option_data->fitts_filename != NULL)
-    write_ts_array (argc, argv, option_data, N, fitts_vol, 
+    write_ts_array (argc, argv, option_data, N, fitts_vol,
 		    option_data->fitts_filename);
 
 
   /*----- Write the signal model 3d+time dataset -----*/
   if (option_data->sgnlts_filename != NULL)
-    write_ts_array (argc, argv, option_data, N, sgnlts_vol, 
+    write_ts_array (argc, argv, option_data, N, sgnlts_vol,
 		    option_data->sgnlts_filename);
 
 
   /*----- Write the residual errors 3d+time dataset -----*/
   if (option_data->errts_filename != NULL)
-    write_ts_array (argc, argv, option_data, N, errts_vol, 
+    write_ts_array (argc, argv, option_data, N, errts_vol,
 		    option_data->errts_filename);
 
 
@@ -2014,25 +2014,25 @@ void terminate_program
   N = (*option_data)->N;
 
 
-  /*----- Deallocate memory for option data -----*/   
+  /*----- Deallocate memory for option data -----*/
   if ((*option_data)->stop_filter != NULL)  free ((*option_data)->stop_filter);
   if ((*option_data)->base_filter != NULL)  free ((*option_data)->base_filter);
   if ((*option_data)->sgnl_filter != NULL)  free ((*option_data)->sgnl_filter);
-  if ((*option_data)->input_filename != NULL) 
+  if ((*option_data)->input_filename != NULL)
     free ((*option_data)->input_filename);
-  if ((*option_data)->mask_filename != NULL)  
-    free ((*option_data)->mask_filename);  
-  if ((*option_data)->input1D_filename != NULL) 
+  if ((*option_data)->mask_filename != NULL)
+    free ((*option_data)->mask_filename);
+  if ((*option_data)->input1D_filename != NULL)
     free ((*option_data)->input1D_filename);
-  if ((*option_data)->bucket_filename != NULL) 
+  if ((*option_data)->bucket_filename != NULL)
     free ((*option_data)->bucket_filename);
-  if ((*option_data)->coefts_filename != NULL) 
+  if ((*option_data)->coefts_filename != NULL)
     free ((*option_data)->coefts_filename);
-  if ((*option_data)->fitts_filename != NULL) 
+  if ((*option_data)->fitts_filename != NULL)
     free ((*option_data)->fitts_filename);
-  if ((*option_data)->sgnlts_filename != NULL) 
+  if ((*option_data)->sgnlts_filename != NULL)
     free ((*option_data)->sgnlts_filename);
-  if ((*option_data)->errts_filename != NULL) 
+  if ((*option_data)->errts_filename != NULL)
     free ((*option_data)->errts_filename);
   free (*option_data);  *option_data = NULL;
 
@@ -2042,7 +2042,7 @@ void terminate_program
 
 
   /*----- Deallocate space for volume data -----*/
-  if (*coef_vol  != NULL) 
+  if (*coef_vol  != NULL)
     {
       for (ip = 0;  ip < p;  ip++)
 	{
@@ -2051,10 +2051,10 @@ void terminate_program
 	}
       free (*coef_vol);   *coef_vol  = NULL;
     }
-  
+
   if (*mse_vol   != NULL)    { free (*mse_vol);    *mse_vol   = NULL; }
   if (*ffull_vol != NULL)    { free (*ffull_vol);  *ffull_vol = NULL; }
-  if (*rfull_vol != NULL)    { free (*rfull_vol);  *rfull_vol = NULL; } 
+  if (*rfull_vol != NULL)    { free (*rfull_vol);  *rfull_vol = NULL; }
 
 
   /*----- Deallocate space for forward wavelet transform coefficients -----*/
@@ -2108,10 +2108,10 @@ void terminate_program
 
 /*---------------------------------------------------------------------------*/
 
-int main 
+int main
 (
   int argc,                /* number of input arguments */
-  char ** argv             /* array of input arguments */ 
+  char ** argv             /* array of input arguments */
 )
 
 {
@@ -2131,12 +2131,12 @@ int main
   float ** sgnlts_vol = NULL;  /* volumes for signal model fit to input data */
   float ** errts_vol = NULL;   /* volumes for residual errors */
 
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -2146,37 +2146,37 @@ int main
    mainENTRY("3dWavelets main") ; machdep() ;
 WARNING_message("This program (3dWavelets) is old, obsolete, and not maintained!") ;
 
-  
+
   /*----- Program initialization -----*/
-  initialize_program (argc, argv, &option_data, 
+  initialize_program (argc, argv, &option_data,
 		      &dset_time, &mask_dset, &fmri_data, &fmri_length,
-		      &coef_vol, &mse_vol, &ffull_vol, &rfull_vol, 
+		      &coef_vol, &mse_vol, &ffull_vol, &rfull_vol,
 		      &coefts_vol, &fitts_vol, &sgnlts_vol, &errts_vol);
 
 
   /*----- Perform wavelet analysis -----*/
   calculate_results (option_data, dset_time, mask_dset, fmri_data, fmri_length,
-		     coef_vol, mse_vol, ffull_vol, rfull_vol, 
+		     coef_vol, mse_vol, ffull_vol, rfull_vol,
 		     coefts_vol, fitts_vol, sgnlts_vol, errts_vol);
-  
 
-  /*----- Deallocate memory for input datasets -----*/   
-  if (dset_time != NULL)  
+
+  /*----- Deallocate memory for input datasets -----*/
+  if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
-  if (mask_dset != NULL)  
+  if (mask_dset != NULL)
     { THD_delete_3dim_dataset (mask_dset, False);  mask_dset = NULL; }
 
 
   /*----- Write requested output files -----*/
   /* (pass addresses, in case data is stolen for datasets) 7 Feb 2006 [rickr] */
   if (option_data->input1D_filename == NULL)
-    output_results (argc, argv, option_data, &coef_vol, &mse_vol, 
-		    &ffull_vol, &rfull_vol, 
+    output_results (argc, argv, option_data, &coef_vol, &mse_vol,
+		    &ffull_vol, &rfull_vol,
 		    &coefts_vol, &fitts_vol, &sgnlts_vol, &errts_vol);
 
 
   /*----- Terminate program -----*/
-  terminate_program (&option_data, &fmri_data, 
+  terminate_program (&option_data, &fmri_data,
 		     &coef_vol, &mse_vol, &ffull_vol, &rfull_vol,
 		     &coefts_vol, &fitts_vol, &sgnlts_vol, &errts_vol);
 

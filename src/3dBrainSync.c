@@ -1117,7 +1117,7 @@ int main( int argc , char *argv[] )
    if( ortset == NULL && permset == NULL )
      ERROR_exit("Processing the data failed for some reason :(") ;
 
-   if( verb > 1 ) 
+   if( verb > 1 )
      ININFO_message("Writing results [%s]" , TIMER ) ;
 
    if( ortset != NULL ){

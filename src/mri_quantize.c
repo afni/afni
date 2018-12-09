@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 MRI_IMAGE * mri_quantize( int newcolors , MRI_IMAGE * im ) ;
@@ -41,7 +41,7 @@ MRI_IMAGE * mri_quantize( int newcolors , MRI_IMAGE * im )
 
    /** sanity checks **/
 
-   if( im == NULL             || newcolors < 2      ||   
+   if( im == NULL             || newcolors < 2      ||
       MRI_RGB_PTR(im) == NULL || im->kind != MRI_rgb  ) return NULL ;
 
    /** make copy of input image as ints **/

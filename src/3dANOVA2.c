@@ -335,7 +335,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 		}
 	    }
 	}
-	
+
 
       /*-----   -diskspace   -----*/
       if( strncmp(argv[nopt],"-diskspace",5) == 0 )
@@ -348,7 +348,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
       /*-----    -datum type   -----*/
       if( strncmp(argv[nopt],"-datum",5) == 0 ){
 	if( ++nopt >= argc ) ANOVA_error("need an argument after -datum!") ;
-	
+
 	if( strcmp(argv[nopt],"short") == 0 ){
 	  option_data->datum = MRI_short ;
 	} else if( strcmp(argv[nopt],"float") == 0 ){
@@ -479,17 +479,17 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -dset ");
-	
+
 	  nopt++;
 	  sscanf (argv[nopt], "%d", &jval);
 	  if ((jval <= 0) || (jval > option_data->b))
 	    ANOVA_error ("illegal argument after -dset ");
-	
+
 	  n[ival-1][jval-1] += 1;
 	  nij = n[ival-1][jval-1];
 	  if (nij > MAX_OBSERVATIONS)
 	    ANOVA_error ("too many data files");
-	
+
 	  /*--- check whether input files exist ---*/
 	  nopt++;
 	  dset = THD_open_dataset( argv[nopt] ) ;
@@ -504,7 +504,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	    }
 
 	  THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-	
+
 	  option_data->xname[ival-1][jval-1][0][nij-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xname[ival-1][jval-1][0][nij-1], argv[nopt]);
@@ -570,17 +570,17 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -amean ");
-	
+
 	  option_data->num_ameans++;
 	  if (option_data->num_ameans > MAX_MEANS)
 	    ANOVA_error ("too many factor A level mean estimates");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -amean ");
 	  option_data->ameans[option_data->num_ameans-1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->amname[option_data->num_ameans-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->amname[option_data->num_ameans-1], argv[nopt]);
@@ -594,17 +594,17 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -bmean ");
-	
+
 	  option_data->num_bmeans++;
 	  if (option_data->num_bmeans > MAX_MEANS)
 	    ANOVA_error ("too many factor B level mean estimates");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -bmean ");
 	  option_data->bmeans[option_data->num_bmeans-1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->bmname[option_data->num_bmeans-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->bmname[option_data->num_bmeans-1], argv[nopt]);
@@ -618,23 +618,23 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  ANOVA_error ("need 3 arguments after -xmean ");
-	
+
 	  option_data->num_xmeans++;
 	  if (option_data->num_xmeans > MAX_MEANS)
 	    ANOVA_error ("too many cell mean estimates");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -xmean ");
 	  option_data->xmeans[option_data->num_xmeans-1][0] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -xmean ");
 	  option_data->xmeans[option_data->num_xmeans-1][1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->xmname[option_data->num_xmeans-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xmname[option_data->num_xmeans-1], argv[nopt]);
@@ -648,23 +648,23 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  ANOVA_error ("need 3 arguments after -adiff ");
-	
+
 	  option_data->num_adiffs++;
 	  if (option_data->num_adiffs > MAX_DIFFS)
 	    ANOVA_error ("too many factor A level differences");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -adiff ");
 	  option_data->adiffs[option_data->num_adiffs-1][0] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -adiff ");
 	  option_data->adiffs[option_data->num_adiffs-1][1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->adname[option_data->num_adiffs-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->adname[option_data->num_adiffs-1], argv[nopt]);
@@ -678,23 +678,23 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+2 >= argc)  ANOVA_error ("need 3 arguments after -bdiff ");
-	
+
 	  option_data->num_bdiffs++;
 	  if (option_data->num_bdiffs > MAX_DIFFS)
 	    ANOVA_error ("too many factor B level differences");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -bdiff ");
 	  option_data->bdiffs[option_data->num_bdiffs-1][0] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -bdiff ");
 	  option_data->bdiffs[option_data->num_bdiffs-1][1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->bdname[option_data->num_bdiffs-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->bdname[option_data->num_bdiffs-1], argv[nopt]);
@@ -708,35 +708,35 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+4 >= argc)  ANOVA_error ("need 5 arguments after -xdiff ");
-	
+
 	  option_data->num_xdiffs++;
 	  if (option_data->num_xdiffs > MAX_DIFFS)
 	    ANOVA_error ("too many cell means differences");
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -xdiff ");
 	  option_data->xdiffs[option_data->num_xdiffs-1][0][0] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -xdiff ");
 	  option_data->xdiffs[option_data->num_xdiffs-1][0][1] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -xdiff ");
 	  option_data->xdiffs[option_data->num_xdiffs-1][1][0] = ival - 1;
 	  nopt++;
-	
+
 	  sscanf (argv[nopt], "%d", &ival);
 	  if ((ival <= 0) || (ival > option_data->b))
 	    ANOVA_error ("illegal argument after -xdiff ");
 	  option_data->xdiffs[option_data->num_xdiffs-1][1][1] = ival - 1;
 	  nopt++;
-	
+
 	  option_data->xdname[option_data->num_xdiffs-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xdname[option_data->num_xdiffs-1], argv[nopt]);
@@ -751,18 +751,18 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt + option_data->a >= argc)
             ANOVA_error ("need a+1 arguments after -acontr ");
-	
+
 	  option_data->num_acontr++;
 	  if (option_data->num_acontr > MAX_CONTR)
 	    ANOVA_error ("too many factor A level contrasts");
-	
+
 	  for (i = 0;  i < option_data->a;  i++)
 	    {
 	      sscanf (argv[nopt], "%f", &fval);
 	      option_data->acontr[option_data->num_acontr - 1][i] = fval ;
 	      nopt++;
 	    }
-	
+
 	  option_data->acname[option_data->num_acontr-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->acname[option_data->num_acontr-1], argv[nopt]);
@@ -777,18 +777,18 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt + option_data->b >= argc)
             ANOVA_error ("need b+1 arguments after -bcontr ");
-	
+
 	  option_data->num_bcontr++;
 	  if (option_data->num_bcontr > MAX_CONTR)
 	    ANOVA_error ("too many factor B level contrasts");
-	  	
+
 	  for (i = 0;  i < option_data->b;  i++)
 	    {
 	      sscanf (argv[nopt], "%f", &fval);
 	      option_data->bcontr[option_data->num_bcontr - 1][i] = fval ;
 	      nopt++;
 	    }
-	
+
 	  option_data->bcname[option_data->num_bcontr-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->bcname[option_data->num_bcontr-1], argv[nopt]);
@@ -803,11 +803,11 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  nopt++;
 	  if (nopt + (option_data->a * option_data->b) >= argc)
             ANOVA_error ("need ab+1 arguments after -xcontr ");
-	
+
 	  option_data->num_xcontr++;
 	  if (option_data->num_xcontr > MAX_CONTR)
 	    ANOVA_error ("too many cell means contrasts");
-	  	
+
 	  for (i = 0;  i < option_data->a;  i++)
 	    for (j = 0;  j < option_data->b;  j++)
 	      {
@@ -815,7 +815,7 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 		option_data->xcontr[option_data->num_xcontr - 1][i][j] = fval ;
 		nopt++;
 	      }
-	
+
 	  option_data->xcname[option_data->num_xcontr-1]
 	    =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  strcpy (option_data->xcname[option_data->num_xcontr-1], argv[nopt]);
@@ -1208,7 +1208,7 @@ void calculate_sum (anova_options * option_data,
       /*-----  loop over levels of factor B  -----*/
       for (j = jbot;  j < jtop;  j++)
 	{
-	  /*----- sum observations within this cell -----*/	
+	  /*----- sum observations within this cell -----*/
 	  for (m = 0;  m < n;  m++)
 	    {
 	      read_afni_data (option_data,
@@ -1563,7 +1563,7 @@ void calculate_ssij (anova_options * option_data)
 	{
 	  /*----- sum over observations -----*/
 	  calculate_sum (option_data, i, j, ysum);
-	
+
 	  /*----- add to ssij -----*/
 	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	    ssij[ixyz] += ysum[ixyz] * ysum[ixyz] / nval;
@@ -1628,7 +1628,7 @@ void calculate_ssijk (anova_options * option_data)
 	    {
 	      read_afni_data (option_data,
 			      option_data->xname[i][j][0][m], y);
-	
+
 	      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 		ssijk[ixyz] += y[ixyz] * y[ixyz];
 	    }

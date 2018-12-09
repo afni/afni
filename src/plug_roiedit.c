@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /***********************************************************************
  *
  * plug_roiedit.c               - a region of interest editor (afni plugin)
@@ -691,15 +691,15 @@ r_main_mk_save_as_fr( Widget parent )
     ac = 0;
     XtSetArg( al[ ac ], XmNdialogTitle,
 	    XmStringCreateLtoR( "Save As", gRX.charset ) );  ac++;
-    XtSetArg( al[ ac ], XmNtextString, 
+    XtSetArg( al[ ac ], XmNtextString,
 	    XmStringCreateLtoR( gRA.save_as_name, gRX.charset ) );  ac++;
-    XtSetArg( al[ ac ], XmNselectionLabelString, 
+    XtSetArg( al[ ac ], XmNselectionLabelString,
 	    XmStringCreateLtoR( "AFNI prefix : ", gRX.charset ) );  ac++;
-    XtSetArg( al[ ac ], XmNokLabelString, 
+    XtSetArg( al[ ac ], XmNokLabelString,
 	    XmStringCreateLtoR( "save", gRX.charset ) );            ac++;
-    XtSetArg( al[ ac ], XmNapplyLabelString, 
+    XtSetArg( al[ ac ], XmNapplyLabelString,
 	    XmStringCreateLtoR( "overwrite", gRX.charset ) );       ac++;
-    XtSetArg( al[ ac ], XmNcancelLabelString, 
+    XtSetArg( al[ ac ], XmNcancelLabelString,
 	    XmStringCreateLtoR( "hide", gRX.charset ) );            ac++;
     XtSetArg( al[ ac ], XmNminimizeButtons, True );                 ac++;
     XtSetArg( al[ac], XmNinitialResourcesPersistent, False );       ac++;
@@ -711,11 +711,11 @@ r_main_mk_save_as_fr( Widget parent )
 	XmInternAtom( gRX.display, "WM_DELETE_WINDOW", False ),
 	( XtCallbackProc )r_any_cb_hide, "saveas" );
 
-    XtAddCallback( gRX.save_as_file_d, XmNokCallback, 
+    XtAddCallback( gRX.save_as_file_d, XmNokCallback,
 	    ( XtCallbackProc )r_main_cb_saveas, ( XtPointer )0 );
-    XtAddCallback( gRX.save_as_file_d, XmNapplyCallback, 
+    XtAddCallback( gRX.save_as_file_d, XmNapplyCallback,
 	    ( XtCallbackProc )r_main_cb_saveas, ( XtPointer )1 );
-    XtAddCallback( gRX.save_as_file_d, XmNcancelCallback, 
+    XtAddCallback( gRX.save_as_file_d, XmNcancelCallback,
 	    ( XtCallbackProc )r_any_cb_hide, "saveas" );
 
     XtManageChild( XmSelectionBoxGetChild( gRX.save_as_file_d,
@@ -756,7 +756,7 @@ r_wtgr_mk_main_shell( r_X_s * X )
     ENTRY("r_wtgr_mk_main_shell");
 
 /* create a main RC widget with four frame children */
-    
+
     if ( ! r_init_Alg_values( &gRA ) )
 	EXRETURN;
 
@@ -946,7 +946,7 @@ r_HL_mk_maxsize_fr( holes_s * H, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -967,12 +967,12 @@ r_HL_mk_maxsize_fr( holes_s * H, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     H->maxsize_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( H->maxsize_w );
-    XtAddCallback( H->maxsize_w, XmNactivateCallback, 
+    XtAddCallback( H->maxsize_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_HL_cb_set_maxsize, NULL );
-    XtAddCallback( H->maxsize_w, XmNlosingFocusCallback, 
+    XtAddCallback( H->maxsize_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_HL_cb_set_maxsize, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -999,7 +999,7 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -1020,12 +1020,12 @@ r_HL_mk_fillval_fr( holes_s * H, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     H->fillval_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( H->fillval_w );
-    XtAddCallback( H->fillval_w, XmNactivateCallback, 
+    XtAddCallback( H->fillval_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_HL_cb_set_fill_val, NULL );
-    XtAddCallback( H->fillval_w, XmNlosingFocusCallback, 
+    XtAddCallback( H->fillval_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_HL_cb_set_fill_val, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -1129,7 +1129,7 @@ r_HL_cb_fill(
 	    /* 1 = OK, 0 = BAD point found, -1 = memory error */
 	    if ( ( status = r_HL_check_neighbors( &Search, coord ) ) == -1 )
 		EXRETURN;
-	    
+
 	    if ( ( fill_size > H->max_size ) || ( status == 0 ) )
 	    {
 		status = 0;     /* if we enter through fill_size */
@@ -1410,7 +1410,7 @@ r_INT_mk_fillval_fr( interp_s * I, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -1431,12 +1431,12 @@ r_INT_mk_fillval_fr( interp_s * I, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     I->fillval_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( I->fillval_w );
-    XtAddCallback( I->fillval_w, XmNactivateCallback, 
+    XtAddCallback( I->fillval_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_INT_cb_set_fill_val, NULL );
-    XtAddCallback( I->fillval_w, XmNlosingFocusCallback, 
+    XtAddCallback( I->fillval_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_INT_cb_set_fill_val, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -1493,7 +1493,7 @@ r_any_cb_apply(
 **----------------------------------------------------------------------
  */
 static void
-r_any_cb_hide( 
+r_any_cb_hide(
 	Widget w,
 	char *    client_data,
 	XtPointer call_data
@@ -1533,7 +1533,7 @@ r_any_cb_hide(
 **----------------------------------------------------------------------
  */
 static void
-r_any_cb_raise( 
+r_any_cb_raise(
 	Widget w,
 	char    * client_data,
 	XtPointer call_data
@@ -1583,7 +1583,7 @@ r_any_cb_raise(
 **----------------------------------------------------------------------
  */
 static void
-r_any_cb_undo( 
+r_any_cb_undo(
 	Widget    w,
 	XtPointer client_data,
 	XtPointer call_data
@@ -1774,13 +1774,13 @@ r_index2pt( int coord, int nx, int ny, int nz )
 **
 **  Initialize the point connection structure.
 **
-**  structure : 
+**  structure :
 **
 ** typedef struct
 ** {
 **     r_ipt_t   source;
 **     r_ipt_t   dest;
-** 
+**
 **     int       cur_pt;        * flag denoting first or second point *
 ** } r_pt_conn_s;
 **
@@ -1807,7 +1807,7 @@ r_init_pt_conn_s( r_pt_conn_s * P )
 **
 **  Initialize the Algorithm values.
 **
-**  structure : 
+**  structure :
 **
 **  typedef struct
 **  {
@@ -1886,7 +1886,7 @@ r_wt_mk_main_frame( r_X_s * X, Widget parent )
 		XmALIGNMENT_BASELINE_BOTTOM);  ac++;
     label = XmCreateLabel( frame, "label", al, ac );
     XtManageChild( label );
-    
+
     ac = 0;
     rc = XmCreateRowColumn( frame, "rowcolumn", al, ac );
 
@@ -1934,7 +1934,7 @@ r_gr_mk_main_frame( r_X_s * X, Widget parent )
 		XmALIGNMENT_BASELINE_BOTTOM);  ac++;
     label = XmCreateLabel( frame, "label", al, ac );
     XtManageChild( label );
-    
+
     ac = 0;
     rc = XmCreateRowColumn( frame, "rowcolumn", al, ac );
 
@@ -1993,7 +1993,7 @@ r_init_Alg_values( r_alg_s * A )
 	A->adata = (short *)DSET_BRICK_ARRAY( A->anat, 0 );
 	/*fprintf(stderr,"Set A->adata to %p\n",A->adata);*/
     }
-    
+
     /*
     ** Create boundary memory and check for malloc success.
     */
@@ -2183,7 +2183,7 @@ r_any_cb_fill_stats(
 	aptr++;
 	fptr++;
     }
-	
+
     printf( "------------------------------------------------------------\n" );
 
     if ( size > 0 )
@@ -2243,7 +2243,7 @@ r_histogram( r_alg_s * A, int min, int max, int check_val )
 	aptr++;
 	fptr++;
     }
-	
+
     printf( "  value   \t   nvox    \t    %%\n" );
     printf( "--------- \t --------- \t --------- \n" );
 
@@ -2682,7 +2682,7 @@ r_wt_mk_strong_bord_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNset,     True );  ac++;
     XtSetArg( al[ ac ], XmNwidth, 1 ); ac++;
@@ -2720,7 +2720,7 @@ r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -2741,12 +2741,12 @@ r_wt_mk_nbrs_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->wt_min_nbrs_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->wt_min_nbrs_w );
-    XtAddCallback( X->wt_min_nbrs_w, XmNactivateCallback, 
+    XtAddCallback( X->wt_min_nbrs_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_wt_cb_set_min_nbrs, NULL );
-    XtAddCallback( X->wt_min_nbrs_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->wt_min_nbrs_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_wt_cb_set_min_nbrs, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -2773,7 +2773,7 @@ r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -2794,12 +2794,12 @@ r_gr_mk_max_dist_w( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     junk = XmCreateText( rc, "text", al, ac );
     XtManageChild( junk );
-    XtAddCallback( junk, XmNactivateCallback, 
+    XtAddCallback( junk, XmNactivateCallback,
 	    ( XtCallbackProc )r_gr_cb_set_max_dist, NULL );
-    XtAddCallback( junk, XmNlosingFocusCallback, 
+    XtAddCallback( junk, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_gr_cb_set_max_dist, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -2825,7 +2825,7 @@ r_wt_mk_fillval_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -2846,12 +2846,12 @@ r_wt_mk_fillval_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->wt_fill_val_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->wt_fill_val_w );
-    XtAddCallback( X->wt_fill_val_w, XmNactivateCallback, 
+    XtAddCallback( X->wt_fill_val_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_wt_cb_set_fill_val, NULL );
-    XtAddCallback( X->wt_fill_val_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->wt_fill_val_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_wt_cb_set_fill_val, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -2877,7 +2877,7 @@ r_gr_mk_fillval_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -2898,12 +2898,12 @@ r_gr_mk_fillval_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->gr_fill_val_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->gr_fill_val_w );
-    XtAddCallback( X->gr_fill_val_w, XmNactivateCallback, 
+    XtAddCallback( X->gr_fill_val_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_gr_set_fill_val, NULL );
-    XtAddCallback( X->gr_fill_val_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->gr_fill_val_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_gr_set_fill_val, NULL );
-    
-    
+
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -2929,7 +2929,7 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;                     /* to hold labels and text */
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -2950,18 +2950,18 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->gr_range_min_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->gr_range_min_w );
-    XtAddCallback( X->gr_range_min_w, XmNactivateCallback, 
+    XtAddCallback( X->gr_range_min_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_gr_cb_set_range, "from" );
-    XtAddCallback( X->gr_range_min_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->gr_range_min_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_gr_cb_set_range, "from" );
-    
+
     ac = 0;
     xstr = XmStringCreateLtoR( " to ", gRX.charset );
     XtSetArg( al[ ac ], XmNlabelString, xstr );  ac++;
     junk = XmCreateLabel( rc, "label", al, ac );
     XtManageChild( junk );
     XmStringFree( xstr );
-    
+
 
     sprintf( string, "%d", gRA.gr_range_max );
 
@@ -2970,11 +2970,11 @@ r_gr_mk_range_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->gr_range_max_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->gr_range_max_w );
-    XtAddCallback( X->gr_range_max_w, XmNactivateCallback, 
+    XtAddCallback( X->gr_range_max_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_gr_cb_set_range, "to" );
-    XtAddCallback( X->gr_range_max_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->gr_range_max_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_gr_cb_set_range, "to" );
-    
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -3000,7 +3000,7 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
 
     ac = 0;
     frame = XmCreateFrame( parent, "frame", al, ac );
-    
+
     ac = 0;                     /* to hold labels and text */
     XtSetArg( al[ ac ], XmNpacking, XmPACK_TIGHT );  ac++;
     XtSetArg( al[ ac ], XmNorientation, XmHORIZONTAL );  ac++;
@@ -3021,18 +3021,18 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->wt_range_min_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->wt_range_min_w );
-    XtAddCallback( X->wt_range_min_w, XmNactivateCallback, 
+    XtAddCallback( X->wt_range_min_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_wt_cb_set_range, "from" );
-    XtAddCallback( X->wt_range_min_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->wt_range_min_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_wt_cb_set_range, "from" );
-    
+
     ac = 0;
     xstr = XmStringCreateLtoR( " to ", gRX.charset );
     XtSetArg( al[ ac ], XmNlabelString, xstr );  ac++;
     junk = XmCreateLabel( rc, "label", al, ac );
     XtManageChild( junk );
     XmStringFree( xstr );
-    
+
 
     sprintf( string, "%d", gRA.wt_range_max );
 
@@ -3041,11 +3041,11 @@ r_wt_mk_range_fr( r_X_s * X, Widget parent )
     XtSetArg( al[ ac ], XmNwidth, 80 );  ac++;
     X->wt_range_max_w = XmCreateText( rc, "text", al, ac );
     XtManageChild( X->wt_range_max_w );
-    XtAddCallback( X->wt_range_max_w, XmNactivateCallback, 
+    XtAddCallback( X->wt_range_max_w, XmNactivateCallback,
 	    ( XtCallbackProc )r_wt_cb_set_range, "to" );
-    XtAddCallback( X->wt_range_max_w, XmNlosingFocusCallback, 
+    XtAddCallback( X->wt_range_max_w, XmNlosingFocusCallback,
 	    ( XtCallbackProc )r_wt_cb_set_range, "to" );
-    
+
     XtManageChild( rc );
     XtManageChild( frame );
 
@@ -3094,9 +3094,9 @@ r_any_cb_unfill(
 /*----------------------------------------------------------------------
 **
 **  Make the check to see if a user boundary neighbor exists.
-** 
+**
 **  Okay neighbors values are zero and testval.
-** 
+**
 **----------------------------------------------------------------------
  */
 static int
@@ -3148,7 +3148,7 @@ r_wt_bad_ngbr_exists( r_alg_s * A, int current, int testval )
 /*----------------------------------------------------------------------
 **
 **  Make the check for adding a point to the border.
-** 
+**
 **----------------------------------------------------------------------
  */
 static int
@@ -3599,11 +3599,11 @@ r_wt_set_neighbors( r_alg_s * A )
 		     ( *(aptr-1) >= A->wt_range_min ) )
 		    (*nptr)++;
 
-		if ( ( *(aptr+1) <= A->wt_range_max ) && 
+		if ( ( *(aptr+1) <= A->wt_range_max ) &&
 		     ( *(aptr+1) >= A->wt_range_min ) )
 		    (*nptr)++;
 
-		if ( ( *(aptr-nx) <= A->wt_range_max ) && 
+		if ( ( *(aptr-nx) <= A->wt_range_max ) &&
 		     ( *(aptr-nx) >= A->wt_range_min ) )
 		    (*nptr)++;
 
@@ -3611,7 +3611,7 @@ r_wt_set_neighbors( r_alg_s * A )
 		     ( *(aptr+nx) >= A->wt_range_min ) )
 		    (*nptr)++;
 
-		if ( ( *(aptr-nxy) <= A->wt_range_max ) && 
+		if ( ( *(aptr-nxy) <= A->wt_range_max ) &&
 		     ( *(aptr-nxy) >= A->wt_range_min) )
 		    (*nptr)++;
 
@@ -4218,7 +4218,7 @@ r_afni_set_fill_point(
     /*printf("A = %p,  A->adata = %p,  A->point_coord = %d\n",
 	    A,A->adata,A->point_coord);
     fflush(stdout);*/
-    
+
     if ( A->adata == NULL )
     {
 	/*fprintf(stderr,"Loading data...\n");
@@ -4296,7 +4296,7 @@ r_mk_scale_bar(
 **
 **  Display the contents of the algorithm structure.
 **
-**--------------------------------------------------------------------- 
+**---------------------------------------------------------------------
  */
 
 static void
@@ -4600,7 +4600,7 @@ r_main_cb_show_structs( void )
     ENTRY("r_main_cb_show_structs");
 
     printf( "------------------------------------------------------------\n" );
-	
+
     r_main_show_alg_vals    ( &gRA );
     r_main_show_INT_vals    ( &gRI );
     r_main_show_HL_vals     ( &gRH );
@@ -4619,7 +4619,7 @@ r_main_cb_show_structs( void )
 **
 **  The technique here is to keep two curves of data stored.
 **
-**  Operations that we need to consider are :   
+**  Operations that we need to consider are :
 **
 **      o  inserting a new line ( on any line draw )
 **              if none     { insert first  }
@@ -5526,7 +5526,7 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
    vload = value_float ;
 
    /* RCR - code for interpolation */
-   if ( ! gRI.afni_undo && 
+   if ( ! gRI.afni_undo &&
 	( ( mode_ival == MODE_CURVE ) || ( mode_ival == MODE_CLOSED ) ||
 	  ( mode_ival == MODE_CONN_PTS ) )
       )
@@ -5536,7 +5536,7 @@ static void DRAW_into_dataset( int np , int * xd , int * yd , int * zd , void * 
 	int        count, coord;
 	int      * ipA, * ipB, * ipc;
 	points_t * Bp, tmpB;
-	
+
 	if ( gRI.A.used == 0 )  /* if first IP set is empty, use it */
 	    Bp = &gRI.A;
 	else if ( gRI.B.used == 0 )     /* else, similarly for second       */

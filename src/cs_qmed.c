@@ -20,7 +20,7 @@ float qmean_float( int n , float *ar )
 
 
 /*------------------------------------------------------------------------
-    Compute non-zero mean of an array of floats 
+    Compute non-zero mean of an array of floats
 -------------------------------------------------------------------------*/
 float qnzmean_float( int n , float *ar )
 {
@@ -39,7 +39,7 @@ float qnzmean_float( int n , float *ar )
    /* might have no non-zero voxels, so just return 0*/
    if(ngood<=0) sum = 0.0;
    /* otherwise return average */
-   else sum /= ngood ; 
+   else sum /= ngood ;
    return sum ;
 }
 

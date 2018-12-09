@@ -906,7 +906,7 @@ void DRAW_make_widgets(void)
                             " \n"
                             "Sets the maximum voxel gap that gets filled in.\n"
                           ) ;
-     XtManageChild( fillin_gap_av->wrowcol ) ;   
+     XtManageChild( fillin_gap_av->wrowcol ) ;
 #endif
 
      xstr = XmStringCreateLtoR( "*Do the Fill*" , XmFONTLIST_DEFAULT_TAG ) ;
@@ -971,7 +971,7 @@ void DRAW_make_widgets(void)
       if (!(ttatlas_list = New_ttatlas_compendium(plugdraw_atlasname))) {
          ERROR_message("Failed compending. This should not happen");
       }
-      
+
       tto_list = atlas_points(plugdraw_atlasname);
       nr = 0 ;
       for( ii=0 ; ii < atlas_n_points(plugdraw_atlasname) ; ii++ ){
@@ -2018,7 +2018,7 @@ static void dump_vallab(void)
    char str[256]={""};
    char *cstr;
    int i;
-   
+
    if( dset == NULL ) return ;
 
    for(i=1;i<=3;i++){
@@ -3047,7 +3047,7 @@ void DRAW_fillin_CB( Widget w , XtPointer cd , XtPointer cb )
 /*--------------------------------------------------------------------------
    22 Aug 2001: TT Atlas Regions action callback
 ----------------------------------------------------------------------------*/
-/******* Note any changes here should be reflected in both 
+/******* Note any changes here should be reflected in both
      plug_drawdset.c:DRAW_ttatlas_CB()
      3dfractionize.c:main()
   or updated to use the same function instead in the future....
@@ -3071,7 +3071,7 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    float z1,z2 , y1,y2 , x1,x2 , xx1,xx2,yy1,yy2,zz1,zz2 ;
    float f1,f2,f , g1,g2,g , h1,h2,h , sx,sy,sz , tx,ty,tz , sxyz ;
    float vthresh;
-   int at_sbi, fim_type, at_nsb; 
+   int at_sbi, fim_type, at_nsb;
    THD_fvec3 vv ;
 
    /* sanity checks */
@@ -3081,9 +3081,9 @@ void DRAW_ttatlas_CB( Widget w, XtPointer client_data, XtPointer call_data )
    if( !CAN_TALTO(im3d) ){ XBell(dc->display,100); return; }
 
    /* get default atlas dataset, maybe TTatlas+tlrc */
-   
+
    if (!(dseTT = TT_retrieve_atlas_dset(plugdraw_atlasname, 1))) {
-      return;   
+      return;
    }
    DSET_load(dseTT) ;
 
@@ -3774,24 +3774,24 @@ Atlas_chooser(Widget rc)
    int k, nr , atlasind=0 ;
    ATLAS_LIST *atl=NULL;
    MCW_arrowval *atlas_av;
-   
+
    if( Atlas_With_Trimming(Current_Atlas_Default_Name(),1, NULL) <= 0 )
       return(NULL);
 
     /*** make list of atlases to include ***/
- 
+
    atl = env_atlas_list();
    nr = atl->natlases;
    if (!(atlas_names = Atlas_Names_List(atl))) {
       WARNING_message("No atlases in default list.");
       return(NULL);
    }
- 
+
    /* get the actual atlas index to put in as default */
 
    for (k=0; k<nr; ++k) {
      if(strcmp(Current_Atlas_Default_Name(), atlas_names[k])==0)
-        atlasind = k; 
+        atlasind = k;
    }
 
 
@@ -3818,7 +3818,7 @@ Atlas_chooser(Widget rc)
 }
 
 /* callback function for choosing a new atlas */
-static void 
+static void
 choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
 {
    int ii, nr;
@@ -3827,9 +3827,9 @@ choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
    char *tempatlasname;
    char title_str[256];
    XmString xstr ;
-   
+
    textdata = av->text_data;
-   
+
 
    /* check if the atlas is the same one we already have */
    if(strcmp(plugdraw_atlasname, textdata[av->ival])==0)
@@ -3845,7 +3845,7 @@ choose_new_atlas_CB(MCW_arrowval *av , XtPointer cd )
    }
    plugdraw_atlasname = textdata[av->ival]; /* point to current atlas name */
    free_plugdraw_atlas_list();
-  
+
    /*** make list of atlas regions to include ***/
    if (!(ttatlas_list = New_ttatlas_compendium(plugdraw_atlasname))) {
       ERROR_message("Failed compending on atlas change.");
@@ -3911,7 +3911,7 @@ static float get_afni_thresh_percent()
    ppp = AFNI_numenv("AFNI_DRAW_THRESH");
 
    if( ppp > 0.0f && ppp <= 100.0f ) {
-      thresh = ppp; 
+      thresh = ppp;
    }
    return(thresh);
 }

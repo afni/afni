@@ -9,7 +9,7 @@
  *----------------------------------------------------------------------
  */
 
-static char g_history[] = 
+static char g_history[] =
  "----------------------------------------------------------------------\n"
  " history:\n"
  "\n"
@@ -24,7 +24,7 @@ static char g_history[] =
 #include <unistd.h>  /* UNIX standard function definitions */
 #include <fcntl.h>   /* File control definitions */
 #include <errno.h>   /* Error number definitions */
-                                                                                
+
 #include <stdlib.h>
 #include <signal.h>
 #include <sys/file.h>
@@ -108,19 +108,19 @@ int main(int argc, char *argv[])
 
     if( gopts.swap == 2 ) swap_2(data, gopts.block_len/2);
     else if( gopts.swap == 4 ) swap_4(data, gopts.block_len/4);
-    
+
     if( (rv = open_serial(&gopts, &gcontr)) != 0 )
         return rv;
 
     nblocks = 0;
-    while(! done && (gopts.nblocks <= 0 || nblocks < gopts.nblocks) ) 
+    while(! done && (gopts.nblocks <= 0 || nblocks < gopts.nblocks) )
     {
         len = set_data(&gopts, &gcontr, data);
         if( len > 0 ) done = send_serial(&gopts, &gcontr, data, len);
         else          done = 1;
         nblocks++;
 	if( gopts.ms_sleep ) ms_sleep(gopts.ms_sleep);
-    } 
+    }
 
     free(data);
     close_ports();
@@ -153,7 +153,7 @@ int set_data( opts_t * opts, control_t * contr, char * data )
         if( opts->debug )
             fprintf(stderr,"-d setting %d ints from %8d to %8d\n",
                 ints, counter, counter+ints-1);
-        
+
         sp = (short *)data;
         for( c = 0; c < ints; c++ )
             *sp++ = counter++;
@@ -206,7 +206,7 @@ void cleanup(int sig_num)
 
     exit(0);
 }
-        
+
 #define CHECK_ARG_COUNT(ac,str)         \
         do {                            \
             if ((ac+1) >= argc) {       \
@@ -427,20 +427,20 @@ int send_serial(opts_t * opt, control_t * contr, char * data, int len)
         fprintf(stderr,"+d wrote %d bytes to port\n", len);
 
     return 0;
-} 
+}
 
 
 int open_serial(opts_t *opt, control_t * contr)
 {
     struct termios topt;
-        
-    contr->spfd = open(opt->sport_fname, O_RDWR | O_NOCTTY | O_NDELAY); 
+
+    contr->spfd = open(opt->sport_fname, O_RDWR | O_NOCTTY | O_NDELAY);
     if (contr->spfd < 0)
     {
         perror("pe: Failed to open the serial port ");
         return -1;
     }
-        
+
     fcntl(contr->spfd, F_SETFL, FNDELAY);  /* nonblocking reads */
 
     /* get the current options for the port */
@@ -452,7 +452,7 @@ int open_serial(opts_t *opt, control_t * contr)
 
     /* enable the receiver and set local mode */
     topt.c_cflag |= (CLOCAL | CREAD );
-        
+
     /* set 8 bit N parity */
     topt.c_cflag &= ~PARENB;
     /* topt.c_cflag &= ~CSTOPB; */
@@ -474,7 +474,7 @@ int open_serial(opts_t *opt, control_t * contr)
     if( opt->debug )
         fprintf(stderr,"+d successfully opened serial port %s\n",
             opt->sport_fname);
-        
+
     return 0;
 }
 
@@ -487,7 +487,7 @@ int disp_opts_t( char * info, opts_t * O )
 {
     if ( info )
         fputs(info, stderr);
-    
+
     if ( ! O )
     {
         fprintf(stderr,"** disp_opts_t: O == NULL\n");

@@ -1,5 +1,5 @@
 /*
- 
+
 The interface routines for reading and writing PLY polygon files.
 
 Greg Turk, February 1994
@@ -19,16 +19,16 @@ chars representing red, green and blue.
 ---------------------------------------------------------------
 
 Copyright (c) 1994 The Board of Trustees of The Leland Stanford
-Junior University.  All rights reserved.   
-  
-Permission to use, copy, modify and distribute this software and its   
-documentation for any purpose is hereby granted without fee, provided   
-that the above copyright notice and this permission notice appear in   
-all copies of this software and that you do not sell the software.   
-  
-THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,   
-EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY   
-WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.   
+Junior University.  All rights reserved.
+
+Permission to use, copy, modify and distribute this software and its
+documentation for any purpose is hereby granted without fee, provided
+that the above copyright notice and this permission notice appear in
+all copies of this software and that you do not sell the software.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
+EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
+WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 
 */
 
@@ -41,17 +41,17 @@ WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
 /* Keep in sync with PLY_CHAR, etc. definitions in ply.h */
 char *type_names[] = {
 "invalid",
-"char", "uint8", "short", 
+"char", "uint8", "short",
 "int", "int32",
 "uchar", "ushort", "uint",
 "float", "float32", "double",
 };
 
 int ply_type_size[] = {
-  0, 
-  1, 1, 2, 
+  0,
+  1, 1, 2,
   4, 4,
-  1, 2, 4, 
+  1, 2, 4,
   4, 4, 8
 };
 
@@ -1164,7 +1164,7 @@ PlyOtherProp *ply_get_other_properties(
 #endif
   other->size = elem->other_size;
   other->props = (PlyProperty **) myalloc (sizeof(PlyProperty) * elem->nprops);
-  
+
   /* save descriptions of each "other" property */
   nprops = 0;
   for (i = 0; i < elem->nprops; i++) {
@@ -1183,7 +1183,7 @@ PlyOtherProp *ply_get_other_properties(
     elem->other_offset = NO_OTHER_PROPS;
   }
 #endif
-  
+
   /* return structure */
   return (other);
 }
@@ -1659,7 +1659,7 @@ void binary_get_element(PlyFile *plyfile, char *elem_ptr)
       /* The "if" was added by Afra Zomorodian 8/22/95
        * so that zipper won't crash reading plies that have additional
        * properties.
-       */ 
+       */
       if (store_it) {
 	item_size = ply_type_size[prop->internal_type];
       }

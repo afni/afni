@@ -71,7 +71,7 @@ new_NC_string(size_t slen, const char *str)
 #if 0
 	sz = _RNDUP(sz, X_ALIGN);
 #endif
-		
+
 	ncstrp = (NC_string *)malloc(sz);
 	if( ncstrp == NULL )
 		return NULL;
@@ -86,7 +86,7 @@ new_NC_string(size_t slen, const char *str)
 		(void) strncpy(ncstrp->cp, str, ncstrp->nchars +1);
 		ncstrp->cp[ncstrp->nchars] = 0;
 	}
-	
+
 	return(ncstrp);
 }
 

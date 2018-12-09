@@ -259,7 +259,7 @@ int main( int argc, char * argv[] )
  *
  * This function runs until either a volume is located, or an
  * error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -371,7 +371,7 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
  * find_more_volumes:   given first volume, keep scanning for others
  *
  * This function runs until a fatal error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -522,7 +522,7 @@ static int find_more_volumes( vol_t * v0, param_t * p, ART_comm * ac )
  *
  *     - start should be at the expected beginning of a volume!
  *     - *fl_start may be returned as a new starting index into fnames
- * 
+ *
  * return:   -2 : on programming error
  *           -1 : on data error
  *            0 : on success - no volume yet
@@ -641,7 +641,7 @@ static int volume_search(
          * starting slice was not the first in the volume.  Try restarting
          * from the current position.
          */
-        
+
         fprintf( stderr, "\n"
                 "*************************************************\n"
                 "Error: missing slice(s) in first volume!\n"
@@ -689,7 +689,7 @@ static int volume_search(
  * volume_match:   scan p->flist for a matching volume
  *
  *     - start should be at the expected beginning of a volume!
- * 
+ *
  * return:   -2 : fatal error
  *           -1 : recoverable data error
  *            0 : on success - no volume yet
@@ -791,7 +791,7 @@ static int volume_match( vol_t * vin, vol_t * vout, param_t * p, int start )
         /* check last slice - count and fp should be okay*/
         if ( (p->nused - start) <= vin->nim )   /* no more images to check */
             return 0;                           /* wait for more data      */
-        
+
         fp_test = fp + 1;                              /* check next image */
         if ( fabs( vin->z_first - fp_test->geh.zoff ) < IFM_EPSILON )
         {
@@ -910,7 +910,7 @@ static int check_error( int * retry, float tr, char * note )
  *     - decide number of files to scan (max == 0 implies the rest)
  *     - allocate necessary p->flist memory
  *     - read GE structures
- * 
+ *
  * return:       < 0  : on error
  *         files read : on success
  *----------------------------------------------------------------------
@@ -965,7 +965,7 @@ static int read_ge_files(
             return 0;
         }
     }
-    
+
     if ( gD.level > 3 )
     {
         int fnum;
@@ -1449,7 +1449,7 @@ static int init_extras( param_t * p, ART_comm * ac )
         ac->mode = AFNI_OPEN_CONTROL_MODE;
         ART_open_afni_link( ac, 2, 1, gD.level );
     }
-    
+
     /* check directory depth of start_file against glob_dir */
     if ( p->opts.start_file != NULL )
     {
@@ -1608,7 +1608,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff ;
         float uv17 = -1.0;
-        
+
    if( hi == NULL ) return -1;            /* bad */
    hi->good = 0 ;                       /* not good yet */
    if( pathname    == NULL ||
@@ -1771,7 +1771,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         fread( &uv17 , 4, 1 , imfile ) ;
         if( swap ) swap_4(&uv17) ;
         /* printf ("%d ", (int)uv17);  */
-        hi->uv17 = (int)uv17; 
+        hi->uv17 = (int)uv17;
         /* printf ("\n"); */
 
         /* store the ge_extra info */
@@ -1783,7 +1783,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         fp->gex.kk     = kk;
 
         memcpy( fp->gex.xyz, xyz, sizeof(xyz) );
-        
+
         hi->good = 1 ;                  /* this is a good file */
 
     } /* end of actually reading image header */
@@ -2042,7 +2042,7 @@ static int idisp_ge_header_info( char * info, ge_header_info * I )
 }
 
 /*----------------------------------------------------------------------
- * usage 
+ * usage
  *----------------------------------------------------------------------
 */
 static int usage ( char * prog, int level )
@@ -2912,7 +2912,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                 v->geh.orients[5] = 'P';
             }
             break;
-            
+
         case 3:                                 /* IS */
             if ( v->z_delta > 0 )
             {
@@ -2925,7 +2925,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                 v->geh.orients[5] = 'I';
             }
             break;
-            
+
         default:
         {
             fprintf(stderr, "** COS failure: kk (%d) out of [1,3] range\n", kk);

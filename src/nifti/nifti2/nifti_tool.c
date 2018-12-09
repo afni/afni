@@ -629,7 +629,7 @@ int verify_opts( nt_opts * opts, char * prog )
    ac += (opts->diff_hdr  || opts->diff_hdr1 || opts->diff_hdr2
                           || opts->diff_nim                    ) ? 1 : 0;
    ac += (opts->disp_hdr  || opts->disp_hdr1 || opts->disp_hdr2
-                          || opts->disp_nim  || opts->disp_ana  
+                          || opts->disp_nim  || opts->disp_ana
                           || opts->disp_exts || opts->disp_cext) ? 1 : 0;
    ac += (opts->mod_hdr   || opts->mod_nim                     ) ? 1 : 0;
    ac += (opts->swap_hdr  || opts->swap_ana  || opts->swap_old ) ? 1 : 0;
@@ -2698,7 +2698,7 @@ int act_disp_cext( nt_opts * opts )
       {
          if( nim->ext_list[ec].ecode != NIFTI_ECODE_CIFTI ) continue;
          found++;
-         
+
          if( found == 1 && g_debug > 1 )
             fprintf(stdout,"header file '%s', ext %d of %d is CIFTI\n",
                     nim->fname, ec, nim->num_ext);
@@ -2744,7 +2744,7 @@ int act_disp_hdr( nt_opts * opts )
       }
 
       /* set the number of fields to display */
-      nfields = opts->flist.len > 0 ? opts->flist.len : 
+      nfields = opts->flist.len > 0 ? opts->flist.len :
                    nver <= 1 ? NT_HDR1_NUM_FIELDS : NT_HDR2_NUM_FIELDS;
 
       if( g_debug > 0 )
@@ -4922,7 +4922,7 @@ nifti_image * nt_image_read( nt_opts * opts, char * fname, int doread )
  * this adds the option to generage an empty image, if the
  * filename starts with "MAKE_IM"
  *----------------------------------------------------------------------*/
-void * nt_read_header(char * fname, int * nver, int * swapped, int check, 
+void * nt_read_header(char * fname, int * nver, int * swapped, int check,
                       int new_datatype, int64_t new_dim[8])
 {
     nifti_image * nim = NULL;
@@ -4958,7 +4958,7 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
         if( !nptr ) return NULL;
         if( g_debug > 1 ) fprintf(stderr,"-d have NIFTI-%d header, %s\n",
                                   nv, fname);
-            
+
         /* negative means convert, if necessary */
         if( *nver == -1 ) {
            nifti_1_header * hdr=NULL;

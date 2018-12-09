@@ -19,7 +19,7 @@ int main( int argc , char * argv[] )
    char *ssep=NULL, *sprep = NULL, *cpt=NULL;
    char ssep_def[] = {"~"};
    char quote = '\0';
-   
+
    if( argc < 3 || strcmp(argv[1],"-help") == 0 ){
       printf(
 "Usage: 3dAttribute [options] aname dset\n"
@@ -42,7 +42,7 @@ int main( int argc , char * argv[] )
  "                  multiple sub-bricks. The default is '~', which is what\n"
  "                  is used internally in AFNI's .HEAD file. For tcsh,\n"
  "                  I recommend ' ' which makes parsing easy, assuming each\n"
- "                  individual string contains no spaces to begin with.\n" 
+ "                  individual string contains no spaces to begin with.\n"
  "                  Try -ssep 'NUM'\n"
  "    -sprep SPREP  Use string SPREP to replace blank space in string \n"
  "                  attributes.\n"
@@ -60,17 +60,17 @@ int main( int argc , char * argv[] )
          do_all = do_name = 1 ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-center") == 0 ){
          do_center = 1 ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-quote") == 0 ){
          quote = '\'' ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-ssep") == 0 ){
          nopt++ ;
          if (nopt >= argc) {
@@ -80,7 +80,7 @@ int main( int argc , char * argv[] )
          ssep = argv[nopt] ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-sprep") == 0 ){
          nopt++ ;
          if (nopt >= argc) {
@@ -90,7 +90,7 @@ int main( int argc , char * argv[] )
          sprep = argv[nopt] ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-name") == 0 ){
          do_name = 1 ;
          nopt++ ; continue ;
@@ -112,9 +112,9 @@ int main( int argc , char * argv[] )
    } else {
       HasSb = 1 ;
    }
-   
+
    if (HasSb) {
-      dset  = THD_open_dataset( argv[nopt] ) ;/* changed from open_one_ to allow 
+      dset  = THD_open_dataset( argv[nopt] ) ;/* changed from open_one_ to allow
                                                 for getting sub-brick specific
                                                 attributes ZSS-April 08 */
       if (ISVALID_DSET(dset)) {
@@ -131,7 +131,7 @@ int main( int argc , char * argv[] )
    if( !ISVALID_DSET(dset) ){
       fprintf(stderr,"*** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-   
+
    if( !do_all && aname){
       atr = THD_find_atr( dset->dblk , aname ) ;
       if( atr == NULL ) {
@@ -139,7 +139,7 @@ int main( int argc , char * argv[] )
             *cpt = '\0';
             /* see if attribute is present in parent dset but
             not preserved with sub-brick selection */
-            dset = THD_open_one_dataset( argv[nopt] ) ; /* memory leak, 
+            dset = THD_open_one_dataset( argv[nopt] ) ; /* memory leak,
                                                          but OK here */
             if (  ISVALID_DSET(dset) &&
                   THD_find_atr( dset->dblk , aname ) ) {

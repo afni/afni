@@ -145,8 +145,8 @@ int main( int argc , char * argv[] )
 "    and Cs values.\n"
 "  -phiding = use Ding method for computing phi (default)\n"
 "  -phiexp = use exponential method for computing phi\n"
-"  -noneg = set negative voxels to 0\n" 
-"  -setneg NEGVAL = set negative voxels to NEGVAL\n" 
+"  -noneg = set negative voxels to 0\n"
+"  -setneg NEGVAL = set negative voxels to NEGVAL\n"
 "  -edgefraction n.nnn = adjust the fraction of the anisotropic\n"
 "    component to be added to the original image. Can vary between\n"
 "    0 and 1. Default =0.5\n"
@@ -183,8 +183,8 @@ int main( int argc , char * argv[] )
   datum = MRI_float;
    compute_method = -1;  /* detect multiple or default selection of compute_method */
 
-   deltatflag = -1.0;    /* pseudo-time step */ 
-     
+   deltatflag = -1.0;    /* pseudo-time step */
+
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-prefix") == 0 ){
 	  if (++nopt >= argc)
@@ -249,7 +249,7 @@ int main( int argc , char * argv[] )
              flag2D3D = 3;
           else {
             ERROR_exit("can't select both 2D and 3D flags");
-            
+
           }
           nopt++;
           continue;
@@ -266,7 +266,7 @@ int main( int argc , char * argv[] )
           nopt++;
           continue;
         }
-  
+
      if (strcmp (argv[nopt], "-save_temp_with_diff_measures") == 0)
         {
 	  save_tempdsets_flag = 1;
@@ -274,16 +274,16 @@ int main( int argc , char * argv[] )
           nopt++;
           continue;
         }
-  
+
      if( strcmp(argv[nopt],"-iters") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -iters!");
-	      
+
 	   }
            iters = strtol(argv[nopt], NULL, 10);
 	   if ((iters <1)||(iters>200)) {
 	      ERROR_exit("Error - iters must be between 1 and 200");
-	     
+
            }
           nopt++;
 	  continue;
@@ -292,12 +292,12 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-deltat") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -deltat!");
-	      
+
 	   }
            deltatflag = atof(argv[nopt]);
 	   if (deltatflag <0) {
 	      ERROR_exit( "Error - deltatflag must be positive!");
-	     
+
            }
           nopt++;
 	  continue;
@@ -306,12 +306,12 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-sigma1") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -sigma1!");
-	      
+
 	   }
            aniso_sigma1 = atof(argv[nopt]);
 	   if (aniso_sigma1 <0) {
 	      ERROR_exit( "Error - sigma1 must be positive!");
-	     
+
            }
           nopt++;
 	  continue;
@@ -322,7 +322,7 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-sigma2") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -sigma2!");
-	      
+
 	   }
            aniso_sigma2 = atof(argv[nopt]);
 	   if (aniso_sigma2 <0) {
@@ -362,11 +362,11 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-setneg") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -setneg!");
-	      
+
 	   }
       noneg = 1;
       NegVal = atof(argv[nopt]);
-      
+
       nopt++;
 	   continue;
      }
@@ -379,12 +379,12 @@ int main( int argc , char * argv[] )
      if( strcmp(argv[nopt],"-edgefraction") == 0 ){
 	   if(++nopt >=argc ){
 	      ERROR_exit("Error - need an argument after -edgefraction!");
-	      
+
 	   }
            edgefraction = atof(argv[nopt]);
 	   if ((edgefraction <0) || (edgefraction > 1)) {
 	      ERROR_exit( "Error - edgefraction must be between 0 and 1!");
-	     
+
            }
            nopt++;
 	   continue;
@@ -409,7 +409,7 @@ int main( int argc , char * argv[] )
      }
 
      ERROR_exit( "Error - unknown option %s", argv[nopt]);
- 
+
 
    }
 
@@ -417,7 +417,7 @@ int main( int argc , char * argv[] )
    /*----- read input dataset -----*/
 
    if( nopt >= argc ){
-      ERROR_exit("No input dataset!?"); 
+      ERROR_exit("No input dataset!?");
    }
 
    dset = THD_open_dataset( argv[nopt] ) ;
@@ -435,13 +435,13 @@ int main( int argc , char * argv[] )
    }
 
    if(flag2D3D == 0)
-     flag2D3D = 2;    /* make default 2D processing for speed */ 
+     flag2D3D = 2;    /* make default 2D processing for speed */
    if(maskptr)
       Fix_mask(maskptr, dset, flag2D3D);  /* set mask edge voxels to 2, all others to 1 */
 
    if(afnitalk_flag) {            /* set up viewer */
       port = START_PORT;
-      ret = 0; 
+      ret = 0;
       while ((ret==0) && (port<MAX_PORT)) {   /* find first unused port */
          ret = Smooth_Open_Stream(port); /* Open test stream */
          if(ret==0){     /* should fail because we haven't opened aiv yet */
@@ -456,7 +456,7 @@ int main( int argc , char * argv[] )
         afnitalk_flag = 0;
         ERROR_message("+++aiv has too many ports open");
       }
-      else { 
+      else {
          sprintf(tempstring,"aiv -p %d &", port);
          ret = system(tempstring); /* use the aiv program to display a slice */
 
@@ -471,7 +471,7 @@ int main( int argc , char * argv[] )
 
    if(compute_method==-1)
       compute_method = 0;
-      
+
    INFO_message("loading original data");
   /* load the original DWI dataset */
    DSET_mallocize (dset);
@@ -483,11 +483,11 @@ int main( int argc , char * argv[] )
   } else {
    cen[0] = cen[1] = cen[2] = 0.0;
   }
-   
+
 
   /* copy to udset in floats */
   /* printf("Copying to float");*/
-#if 0 
+#if 0
   data_im = DSET_BRICK (dset, 0); /* assume all data is same type as first sub-brik */
   if(data_im->kind==MRI_float) {   /* if data is already float, do not copy */
      udset = dset;
@@ -506,7 +506,7 @@ int main( int argc , char * argv[] )
         output_datum = data_im->kind;   /*  match original type of data */
 
      }
-     
+
      if(output_datum ==  MRI_float)
         udset = Copy_dset_to_float(dset, prefix);
      else
@@ -518,7 +518,7 @@ int main( int argc , char * argv[] )
 	   Compute_3dAS_Max_Brick(udset, maskptr, i, &as_fmax, &as_fmin);
 	   brikmax[i] = as_fmax;
 	   brikmin[i] = as_fmin;
-	}      
+	}
      }
 
 
@@ -526,17 +526,17 @@ int main( int argc , char * argv[] )
      THD_delete_3dim_dataset(dset , False ) ;  /* do not need original anymore */
 
 /*  }*/
-    
+
   if(afnitalk_flag) {
       Show_dset_slice(udset);  /* show mid-slice in middle brik */
   }
-  
- 
+
+
   for(i=0;i<iters;i++){
      INFO_message("iteration %d", i);
      /* compute image diffusion tensor dataset */
      INFO_message("   computing structure tensor");
-     structtensor =  DWIstructtensor(udset, flag2D3D, maskptr, 
+     structtensor =  DWIstructtensor(udset, flag2D3D, maskptr,
                      smooth_flag, save_tempdsets_flag*(i+1), (float *)cen);
  /* Test_data(structtensor);*/
      if((i==iters-1)&&(save_tempdsets_flag)) {
@@ -558,7 +558,7 @@ int main( int argc , char * argv[] )
   }
 
 
-  
+
   /* save the dataset */
   tross_Make_History ("3danisosmooth", argc, argv, udset);
   if(output_datum==MRI_float) {
@@ -613,7 +613,7 @@ int main( int argc , char * argv[] )
   }
 
 /*   stopSaturn();*/
-   
+
    exit (0);
 }
 
@@ -690,10 +690,10 @@ static int Smooth_Open_Stream(port)
    Wait_tot = 0;                /* check connection */
    while(Wait_tot < Smooth_WriteCheckWaitMax){
       nn = NI_stream_writecheck( ns , Smooth_WriteCheckWait) ;
-      if( nn == 1 ){ 
-         RETURN(0) ; 
+      if( nn == 1 ){
+         RETURN(0) ;
       }
-      if( nn <  0 ){ 
+      if( nn <  0 ){
          ns = NULL;
          RETURN(1);
       }
@@ -753,12 +753,12 @@ static int Smooth_Show_Image(far, nx, ny)
 }
 
 
-/*! Smooth dataset image using image diffusion tensor 
+/*! Smooth dataset image using image diffusion tensor
    If (save_tempdsets_flag) then temp datasets are saved
    with a suffix of .DD where DD is the iteration number,
    which is save_tempdsets_flag-1                        */
-static void Smooth_dset_tensor(THD_3dim_dataset *udset, 
-                               THD_3dim_dataset *structtensor, int flag2D3D, 
+static void Smooth_dset_tensor(THD_3dim_dataset *udset,
+                               THD_3dim_dataset *structtensor, int flag2D3D,
                                byte *maskptr, int save_tempdsets_flag)
 {
   MRI_IMARR *Gradient_Im;
@@ -770,10 +770,10 @@ static void Smooth_dset_tensor(THD_3dim_dataset *udset,
   ENTRY("Smooth_dset_tensor");
 
   /* find mean and max of (Dxx+Dyy)*/
-  Compute_Dstats(structtensor,flag2D3D, maskptr); 
+  Compute_Dstats(structtensor,flag2D3D, maskptr);
   /* deviation from mean, can use structtensor space */
   /*  printf("Compute Ematrix\n");*/
-  Compute_Ematrix(structtensor, flag2D3D, maskptr); 
+  Compute_Ematrix(structtensor, flag2D3D, maskptr);
   if(save_tempdsets_flag) {
     snprintf(obuff, 127,"Ematrix.%02d", save_tempdsets_flag-1);
     Save_imarr_to_dset(structtensor->dblk->brick,structtensor, obuff);
@@ -890,7 +890,7 @@ static void Compute_Dstats(THD_3dim_dataset *structtensor,int flag2D3D, byte *ma
     }
   }
 
-  /* if(maskptr!=NULL) 
+  /* if(maskptr!=NULL)
      nvox = data_im->nxyz;*/
   if(nvox==0)
     Dmean = 0.0;
@@ -1104,7 +1104,7 @@ static void Compute_Smooth_old(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int 
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/
    /* F = (Dmean / DeltaX^2) * [ 1/6  2/3  1/6]
                               [ 2/3 -10/3 2/3]
-                              [ 1/6  2/3  1/6]U 
+                              [ 1/6  2/3  1/6]U
 
     The kernel for 3D is 3 3x3 kernel stencils:
 
@@ -1112,7 +1112,7 @@ static void Compute_Smooth_old(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int 
     a d a                 b a b
     b a b                 c b c
 
-    at slice p       at slices p+/-1 
+    at slice p       at slices p+/-1
     a, b, c, d values are listed below.
     The kernel is applied to the U (original image matrix */
    /* Delta X is 1.0 here for cubic voxels */
@@ -1158,7 +1158,7 @@ static void Compute_Smooth_old(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int 
                            vox_val(l,k+1,j, ar, nx, ny, nz, maskptr,l,k,j)) + \
 	              c * uval);
             else {
-	      /* multiply by 'a' four voxel values in current slice and in 
+	      /* multiply by 'a' four voxel values in current slice and in
                  centers of slices before and after current slice */
   	       Fval = a * (vox_val(l,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l-1,k,j, ar, nx, ny, nz, maskptr,l,k,j) + \
@@ -1205,8 +1205,8 @@ static void Compute_Smooth_old(THD_3dim_dataset *tempdset, MRI_IMARR *G_Im, int 
 
    EXRETURN;
 }
- 
- 
+
+
 #if 1
 /*! update dset with new smoothed image */
 static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_dataset *tempdset, MRI_IMARR *G_Im,
@@ -1225,17 +1225,17 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    float v19=0.0, v20=0.0, v21, v22, v23, v24=0.0, v25=0.0, v26=0.0;
 
    float sv0, sv1=0.0, sv2=0.0;
-   int vx,vy,vz, nxm1, nym1, nzm1,nxy;  
+   int vx,vy,vz, nxm1, nym1, nzm1,nxy;
    int maskflag=0, baseoffset;
    float sv00061824, sv01071925=0.0, sv02082026=0.0, sv0915, sv1016=0.0, sv1117=0.0, sv0321, sv0422=0.0, sv0523=0.0;
    float Gfrac, Ffrac;
    float as_fmin=0.0, as_fmax=0.0;
-      
+
    ENTRY("Compute_Smooth");
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/
    /* F = (Dmean / DeltaX^2) * [ 1/6  2/3  1/6]
                               [ 2/3 -10/3 2/3]
-                              [ 1/6  2/3  1/6]U 
+                              [ 1/6  2/3  1/6]U
 
     The kernel for 3D is 3 3x3 kernel stencils:
 
@@ -1243,7 +1243,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
     a d a                 b a b
     b a b                 c b c
 
-    at slice p       at slices p+/-1 
+    at slice p       at slices p+/-1
     a, b, c, d values are listed below.
     The kernel is applied to the U (original image matrix */
    /* Delta X is 1.0 here for cubic voxels */
@@ -1265,17 +1265,17 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
      as_fmax = brikmax[outbrik];   /* limit max to max of original brik */
      as_fmin = brikmin[outbrik];
    }
-   
+
   /** load the grid parameters **/
    data_im = DSET_BRICK (tempdset, 0);
    nx = data_im->nx; ny = data_im->ny; nz = data_im->nz; nxyz = data_im->nxyz;
    nxy = nx * ny;
-   
+
    /* precompute offsets for each stencil point relative to the center point */
    nxm1 = nx - 1;
    nym1 = ny - 1;
    nzm1 = nz - 1;
-   
+
    baseoffset = 0;
 
       data_im = DSET_BRICK (tempdset, 0);  /* set pointer to the 0th sub-brik of the dataset */
@@ -1284,7 +1284,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
       data_im = DSET_BRICK(udset, outbrik); /* update output dataset here */
       tempptr =  (float *) mri_data_pointer(data_im);  /*  put calculated values here in output dataset */
       tempmaskptr = maskptr;   /* reset mask pointer */
-     
+
    if(flag2D3D==2) {
       for(vz=0;vz<nz;vz++) {
          for(vy=0;vy<ny;vy++) {
@@ -1297,7 +1297,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		      vptr0++;
 		      vptr1++;
 		      Gvalptr++;
-                      *tempptr++ = 0.0f;      
+                      *tempptr++ = 0.0f;
 		      continue;
         	  }
         	}
@@ -1309,12 +1309,12 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		    /* set first row of 3 voxels and vptr0 */
                     if(vy==0) {
 		       v0 = v1 = v2 = v4; /* all are orig voxel value, don't need vptr0*/
-		    } 
+		    }
                     else {
 		       v0 = vox_val(vx-1, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		       v1 = vox_val(vx, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		       v2 = vox_val(vx+1, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                       vptr0 = vptr - nx;  /* init pointer for first row */		     
+                       vptr0 = vptr - nx;  /* init pointer for first row */
                     }
                     /* middle row of voxels */
 	   	    v3 = vox_val(vx-1, vy, vz, ar, nx, ny, nz, maskptr, vx, vy, vz);
@@ -1327,7 +1327,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		       v6 = vox_val(vx-1, vy+1, vz, ar, nx, ny, nz, maskptr, vx, vy, vz);
 		       v7 = vox_val(vx, vy+1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		       v8 = vox_val(vx+1, vy+1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                       vptr1 = vptr + nx;  /* init pointer for third row */		     
+                       vptr1 = vptr + nx;  /* init pointer for third row */
                     }
 		    sv0 = v0 + v6;   /* initialize sums of equivalent column components */
 		    sv1 = v1 + v7;
@@ -1339,7 +1339,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		   /*v0 = v1;*/
 		   /*v1 = v2;*/
 		   v2 = *(++vptr0);
-	   
+
                   /* same row as voxel */
                    v3 = v4;
 		   v4 = v5;
@@ -1367,7 +1367,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		   }
 		 }
         	*tempptr++ =  Fval;
-        	Gvalptr++; 
+        	Gvalptr++;
         	baseoffset++;
   	 }
        }
@@ -1391,14 +1391,14 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		    vptr7++;
 		    vptr8++;
 		    Gvalptr++;
-                    *tempptr++ = 0.0f;      
-		    
+                    *tempptr++ = 0.0f;
+
                     continue;
                  }
 		 /* edge of mask treat special if value in mask is 2 and not 1*/
                }
-	       
-   
+
+
                if((maskflag==2) || (vx<1) || (vy<=1) || (vx==nxm1) || (vy==nym1) || (vz<=1)
 	       || (vz==nzm1)){   /* special cases at edges */
 		  /* get voxels for 3x3 stencil  in central slice as before */
@@ -1408,12 +1408,12 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
                   if(vy==0) {
 		     v0 = v1 = v2 = v9 = v10 = v11 = v18 = v19 = v20 = v13; /* all are orig voxel value, don't need vptr0*/
                      vptr0 = vptr3 = vptr6 = vptr;
-		  } 
+		  }
                   else {
 		     v9 = vox_val(vx-1, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		     v10 = vox_val(vx, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		     v11 = vox_val(vx+1, vy-1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                     vptr3 = vptr - nx;  /* init pointer for first row */		     
+                     vptr3 = vptr - nx;  /* init pointer for first row */
                   }
 
                   /* middle row of voxels */
@@ -1428,10 +1428,10 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		     v15 = vox_val(vx-1, vy+1, vz, ar, nx, ny, nz, maskptr, vx, vy, vz);
 		     v16 = vox_val(vx, vy+1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
 		     v17 = vox_val(vx+1, vy+1, vz, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                     vptr5 = vptr + nx;  /* init pointer for third row */		     
+                     vptr5 = vptr + nx;  /* init pointer for third row */
                   }
-		  
-	  
+
+
 		  /* now get values from z-1 slice */
    		  /* get voxels for 3x3 stencil  in central slice as before */
 		  if(vz==0){
@@ -1447,7 +1447,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 			 v0 = vox_val(vx-1, vy-1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			 v1 = vox_val(vx, vy-1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			 v2 = vox_val(vx+1, vy-1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                	 vptr0 = vptr1 - nx;  /* init pointer for first row */		     
+                	 vptr0 = vptr1 - nx;  /* init pointer for first row */
                       }
 
                       /* middle row of voxels */
@@ -1459,9 +1459,9 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 			 v6 = vox_val(vx-1, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx, vy, vz);
 			 v7 = vox_val(vx, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			 v8 = vox_val(vx+1, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                	 vptr2 = vptr1 + nx;  /* init pointer for third row */		     
+                	 vptr2 = vptr1 + nx;  /* init pointer for third row */
                       }
-                  }                      
+                  }
   	          /* now get values from z+1 slice */
 		  if(vz==nzm1){  /* last slice in volume */
                      v18 = v19 = v20 = v21 = v22 = v23 = v24 =v25 = v26 = v13;
@@ -1476,7 +1476,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 			v18 = vox_val(vx-1, vy-1, vz+1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			v19 = vox_val(vx, vy-1, vz+1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			v20 = vox_val(vx+1, vy-1, vz+1, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                	vptr6 = vptr7 - nx;  /* init pointer for first row */		     
+                	vptr6 = vptr7 - nx;  /* init pointer for first row */
                      }
 
                      /* middle row of voxels */
@@ -1488,17 +1488,17 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 			v24 = vox_val(vx-1, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx, vy, vz);
 			v25 = vox_val(vx, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
 			v26 = vox_val(vx+1, vy+1, vz-1, ar, nx, ny, nz, maskptr, vx,vy,vz);
-                	vptr8 = vptr7 + nx;  /* init pointer for third row */		     
+                	vptr8 = vptr7 + nx;  /* init pointer for third row */
                      }
 	          }
-                 
-		 
+
+
 		 sv00061824 = v0 + v6 + v18 + v24;
 		 sv01071925 = v1 + v7 + v19 + v25;
-		 
+
                  sv0915 = v9 + v15;
 		 sv1016 = v10 + v16;
-		 
+
 		 sv0321 = v3 + v21;
 		 sv0422 = v4 + v22;
 
@@ -1516,7 +1516,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
                  /*v6 = v7;
                  v7 = v8;*/
 		 v8 = *(++vptr2);
-		 
+
                  /*z slice */
 		 /*v9 = v10;
 		 v10 = v11;*/
@@ -1529,7 +1529,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
                  /*v15 = v16;
                  v16 = v17;*/
 		 v17 = *(++vptr5);
-		 
+
 		 /* z+1 slice */
 		 /*v18 = v19;
 		 v19 = v20;*/
@@ -1545,10 +1545,10 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 
 		 sv00061824 = sv01071925;
 		 sv01071925 = sv02082026;
-		 
+
                  sv0915 = sv1016;
 		 sv1016 = sv1117;
-		 
+
 		 sv0321 = sv0422;
 		 sv0422 = sv0523;
 	     }
@@ -1561,13 +1561,13 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 
          /* precomputing sums not only avoids redoing additions but also resetting voxel values
             not on sliding edge */
-	  /* we only need to update voxels on right edge v2, v5, v8, v11, v14, v17, v20, v23, v26 */  
+	  /* we only need to update voxels on right edge v2, v5, v8, v11, v14, v17, v20, v23, v26 */
           /*  and update v12, v13 */
               sv02082026  = v2 + v8 + v20 + v26;
 	      sv1117 = v11 + v17;
 	      sv0523 = v5 + v23;
-	      
-	      /* multiply by 'a' four voxel values in current slice and in 
+
+	      /* multiply by 'a' four voxel values in current slice and in
                  centers of slices before and after current slice */
 	       Fval = a * (v12 + v14 + sv1016 + sv0422);
 	       /*Fval = a * (v12 + v14 + v10 + v16 + v4 + v22);*/
@@ -1594,18 +1594,18 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 		   }
 		 }
 
-        	*tempptr++ = Fval; 
-        	Gvalptr++; 
+        	*tempptr++ = Fval;
+        	Gvalptr++;
         	baseoffset++;
        }   /* x */
       }  /* y */
-     } /* z */		 
+     } /* z */
 
-   }   
+   }
 
    EXRETURN;
 }
- 
+
 #endif
 
 #if 0
@@ -1625,7 +1625,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    /* compute isotropic diffusion component of smooth, F and then overall smooth*/
    /* F = (Dmean / DeltaX^2) * [ 1/6  2/3  1/6]
                               [ 2/3 -10/3 2/3]
-                              [ 1/6  2/3  1/6]U 
+                              [ 1/6  2/3  1/6]U
 
     The kernel for 3D is 3 3x3 kernel stencils:
 
@@ -1633,7 +1633,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
     a d a                 b a b
     b a b                 c b c
 
-    at slice p       at slices p+/-1 
+    at slice p       at slices p+/-1
     a, b, c, d values are listed below.
     The kernel is applied to the U (original image matrix */
    /* Delta X is 1.0 here for cubic voxels */
@@ -1654,7 +1654,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
    ny    = daxes->nyy ;
    nz    = daxes->nzz ;
    nbriks = tempdset->dblk->nvals;
- 
+
    for(i=0;i<nbriks; i++) {  /* for each sub-brik in dataset */
       data_im = DSET_BRICK (tempdset, i);  /* set pointer to the ith sub-brik of the dataset */
       ar =  (float *) mri_data_pointer(data_im); /* ar is pointer to sub-brik*/
@@ -1681,7 +1681,7 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
                            vox_val(l,k+1,j, ar, nx, ny, nz, maskptr,l,k,j)) + \
 	              c * uval);
             else {
-	      /* multiply by 'a' four voxel values in current slice and in 
+	      /* multiply by 'a' four voxel values in current slice and in
                  centers of slices before and after current slice */
   	       Fval = a * (vox_val(l,k-1,j, ar, nx, ny, nz, maskptr,l,k,j) + \
                            vox_val(l-1,k,j, ar, nx, ny, nz, maskptr,l,k,j) + \
@@ -1728,37 +1728,37 @@ static void Compute_Smooth(THD_3dim_dataset *udset, int outbrik, THD_3dim_datase
 
    EXRETURN;
 }
- 
-#endif 
- 
+
+#endif
+
 /*! set mask edge voxels to 2, all others to 1 */
 static void
-Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)  
+Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 {
    int ii, jj, kk, nx, ny, nz, nxy, nxyz1, nxyz2, nxyz;
    byte *mptr;
    THD_dataxes   * daxes ;
-   
+
    mptr = maskptr;
    /** load the grid parameters **/
    daxes = dset->daxes ;
    nx    = daxes->nxx ;
    ny    = daxes->nyy ;
    nz    = daxes->nzz ;
- 
+
    nxy = nx * ny;
    nxyz = nxy*nz;
    nxyz1 = nxyz2 = 0;
-   
+
    if(flag2D3D==2) {
        for(kk=0;kk<nz;kk++) {
          for(jj=0;jj<ny;jj++) {
-	     for(ii=0;ii<nx;ii++) {  
+	     for(ii=0;ii<nx;ii++) {
 	        if(*mptr) { /* if mask value anything other than 0 */
 		    if((jj>0) && (jj<(ny-1)) && (ii>0) && (ii<nx-1)) {
            /* check all neighboring voxels to see if all surrounding voxels are also included */
         	       if(Check_Neighbors_2D(mptr,nx)) {
-		         *mptr = 1;  /* replace with value of 1 if all neigbors are 1 also*/	
+		         *mptr = 1;  /* replace with value of 1 if all neigbors are 1 also*/
 			  nxyz1++;
 			 }
         	       else {
@@ -1777,7 +1777,7 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
    else {           /* 3D version */
       for(kk=0;kk<nz;kk++) {
          for(jj=0;jj<ny;jj++) {
-	     for(ii=0;ii<nx;ii++) {  
+	     for(ii=0;ii<nx;ii++) {
                  if(*mptr) { /* if mask value anything other than 0 */
 		    if((kk>0)&&(kk<(nz-1)) && (jj>0) && (jj<(ny-1)) && (ii>0) && (ii<nx-1)) {
 		       if(Check_Neighbors_3D(mptr, nx, nxy)) {
@@ -1795,7 +1795,7 @@ Fix_mask(byte *maskptr, THD_3dim_dataset *dset, int flag2D3D)
 		mptr++;
             }
 	 }
-      } 
+      }
    }
    INFO_message("total voxels %d, voxels completely inside mask %d, voxels on edge of mask %d\n", nxyz, nxyz1,
    nxyz2);
@@ -1808,7 +1808,7 @@ static int Check_Neighbors_2D(byte *mptr, int nx)
 {
    byte *bptr;
    int flag;
-   
+
    /* check 1st row of 3 voxels */
    bptr = mptr - nx + 1;
    flag =  (*bptr) && (*(bptr+1)) && (*(bptr+2));
@@ -1827,7 +1827,7 @@ static int Check_Neighbors_2D(byte *mptr, int nx)
    bptr = mptr+nx-1;
    flag =  (*bptr) && (*(bptr+1)) && (*(bptr+2));
    return(flag);
-} 
+}
 
 /*! for 3D check 3x3x3 neighborhood to see if any voxels in neighborhod are not in mask */
 /* if any neighbors are not in mask, return 0 */
@@ -1835,7 +1835,7 @@ static int Check_Neighbors_3D(byte *mptr, int nx, int nxy)
 {
    byte *bptr;
    int flag;
-  
+
    bptr = mptr - nxy;
    flag = Check_Neighbors_2D(bptr, nx);
    if(flag==0) return(0);
@@ -1855,12 +1855,12 @@ Update_Brik(THD_3dim_dataset *indset, THD_3dim_dataset *outdset, int brickn)
    int nxyz;
    float *in_ar, *out_ar;
    MRI_IMAGE *data_im;
- 
+
    ENTRY("Update_Brik");
    data_im = DSET_BRICK (indset, 0);  /* 1st sub-brik of the input dataset */
    nxyz = data_im->nxyz;
    in_ar = (float *) mri_data_pointer(data_im); /* in_ar is pointer to data */
-   data_im = DSET_BRICK(outdset, brickn); 
+   data_im = DSET_BRICK(outdset, brickn);
    out_ar = (float *) mri_data_pointer(data_im); /* out_ar is pointer to output data */
    memcpy(out_ar, in_ar, nxyz*sizeof(MRI_float));
    EXRETURN;
@@ -1885,8 +1885,8 @@ Test_data(THD_3dim_dataset *indset)
      for(j=0;j<nxyz;j++) {
 	*in_ar = uval;
         in_ar++;
-     } 
-   }	 
+     }
+   }
 }
 
 /*! get voxel value at x,y,z from image but limit by dimensions and mask */
@@ -1912,14 +1912,14 @@ float vox_val(int x,int y,int z,float *imptr, int nx, int ny, int nz, byte *mask
    z = max(z, 0);
 
    offset = nx*(z*ny+y) + x;
-   /* put mask check here too */ 
+   /* put mask check here too */
    if((maskptr!=NULL) && !(*(maskptr+offset))) /* if not in mask use i,j,k offset*/
      offset = nx*(k*ny+j) + i;
    voxval = *(imptr+offset);
 
    /*define VOX_VAL(x,y,offset,nx, ny) \
      (*((offset) + min(max((y),0),(ny-1))*(nx) + min(max((x),0),(nx-1))))*/
-   
+
    return(voxval);
 }
 
@@ -1942,7 +1942,7 @@ static void Compute_3dAS_Max(THD_3dim_dataset *dset, byte *maskptr, float *asfma
   *asfmax = -1E38;
 
   nbriks = dset->dblk->nvals;
-  
+
   for(i=0;i<nbriks;i++) {
     data_im = DSET_BRICK(dset, i);
     fptr = (float *) mri_data_pointer(data_im);
@@ -2001,7 +2001,7 @@ static void Compute_3dAS_Max_Brick(THD_3dim_dataset *dset, byte *maskptr, int br
 
 /* scale float dataset that may have a mask by multiplication by fratio */
 static void
-AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio)  
+AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio)
 {
   int i, j, nbriks;
   MRI_IMAGE *data_im = NULL;
@@ -2013,7 +2013,7 @@ AS_scale_float_dset(THD_3dim_dataset *dset, byte *maskptr, float fratio)
 
   tempmaskptr = maskptr;
   nbriks = dset->dblk->nvals;
-  
+
   for(i=0;i<nbriks;i++) {
     data_im = DSET_BRICK(dset, i);
     fptr = (float *) mri_data_pointer(data_im);

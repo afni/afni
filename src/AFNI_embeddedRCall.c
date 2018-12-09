@@ -1,4 +1,4 @@
-/* A copy of embeddedRCall.h found in R's source directory 
+/* A copy of embeddedRCall.h found in R's source directory
    under tests/Embedding/ */
 #include <Rembedded.h>
 #include "AFNI_embeddedRCall.h"
@@ -24,7 +24,7 @@ eval_R_command(const char *funcName, int argc, char *argv[])
     R_tryEval(e, R_GlobalEnv, &errorOccurred);
 
     Rf_endEmbeddedR(0);
-    UNPROTECT(2);   
+    UNPROTECT(2);
     return(0);
 }
 

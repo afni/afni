@@ -81,12 +81,12 @@ static doublereal c_b49 = 0.;
 
 /*        Z CONTAINS THE REAL AND IMAGINARY PARTS OF THE EIGENVECTORS. */
 /*          IF THE I-TH EIGENVALUE IS REAL, THE I-TH COLUMN OF Z */
-/*          CONTAINS ITS EIGENVECTOR.  IF THE I-TH EIGENVALUE IS COMPLEX 
+/*          CONTAINS ITS EIGENVECTOR.  IF THE I-TH EIGENVALUE IS COMPLEX
 */
 /*          WITH POSITIVE IMAGINARY PART, THE I-TH AND (I+1)-TH */
 /*          COLUMNS OF Z CONTAIN THE REAL AND IMAGINARY PARTS OF ITS */
 /*          EIGENVECTOR.  THE EIGENVECTORS ARE UNNORMALIZED.  IF AN */
-/*          ERROR EXIT IS MADE, NONE OF THE EIGENVECTORS HAS BEEN FOUND. 
+/*          ERROR EXIT IS MADE, NONE OF THE EIGENVECTORS HAS BEEN FOUND.
 */
 
 /*        IERR IS SET TO */
@@ -97,12 +97,12 @@ static doublereal c_b49 = 0.;
 /*     CALLS CDIV FOR COMPLEX DIVISION. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -160,7 +160,7 @@ L70:
 	if (l == *low) {
 	    goto L100;
 	}
-	s = (d__1 = h__[l - 1 + (l - 1) * h_dim1], abs(d__1)) + (d__2 = h__[l 
+	s = (d__1 = h__[l - 1 + (l - 1) * h_dim1], abs(d__1)) + (d__2 = h__[l
 		+ l * h_dim1], abs(d__2));
 	if (s == 0.) {
 	    s = norm;
@@ -198,7 +198,7 @@ L100:
 	h__[i__ + i__ * h_dim1] -= x;
     }
 
-    s = (d__1 = h__[en + na * h_dim1], abs(d__1)) + (d__2 = h__[na + enm2 * 
+    s = (d__1 = h__[en + na * h_dim1], abs(d__1)) + (d__2 = h__[na + enm2 *
 	    h_dim1], abs(d__2));
     x = s * .75;
     y = x;
@@ -215,7 +215,7 @@ L130:
 	zz = h__[m + m * h_dim1];
 	r__ = x - zz;
 	s = y - zz;
-	p = (r__ * s - w) / h__[m + 1 + m * h_dim1] + h__[m + (m + 1) * 
+	p = (r__ * s - w) / h__[m + 1 + m * h_dim1] + h__[m + (m + 1) *
 		h_dim1];
 	q = h__[m + 1 + (m + 1) * h_dim1] - zz - r__ - s;
 	r__ = h__[m + 2 + (m + 1) * h_dim1];
@@ -226,9 +226,9 @@ L130:
 	if (m == l) {
 	    goto L150;
 	}
-	tst1 = abs(p) * ((d__1 = h__[m - 1 + (m - 1) * h_dim1], abs(d__1)) + 
+	tst1 = abs(p) * ((d__1 = h__[m - 1 + (m - 1) * h_dim1], abs(d__1)) +
 		abs(zz) + (d__2 = h__[m + 1 + (m + 1) * h_dim1], abs(d__2)));
-	tst2 = tst1 + (d__1 = h__[m + (m - 1) * h_dim1], abs(d__1)) * (abs(q) 
+	tst2 = tst1 + (d__1 = h__[m + (m - 1) * h_dim1], abs(d__1)) * (abs(q)
 		+ abs(r__));
 	if (tst2 == tst1) {
 	    goto L150;
@@ -339,7 +339,7 @@ L225:
 /*     .......... COLUMN MODIFICATION .......... */
 	i__2 = j;
 	for (i__ = 1; i__ <= i__2; ++i__) {
-	    p = x * h__[i__ + k * h_dim1] + y * h__[i__ + (k + 1) * h_dim1] + 
+	    p = x * h__[i__ + k * h_dim1] + y * h__[i__ + (k + 1) * h_dim1] +
 		    zz * h__[i__ + (k + 2) * h_dim1];
 	    h__[i__ + k * h_dim1] -= p;
 	    h__[i__ + (k + 1) * h_dim1] -= p * q;
@@ -349,7 +349,7 @@ L225:
 /*     .......... ACCUMULATE TRANSFORMATIONS .......... */
 	i__2 = *igh;
 	for (i__ = *low; i__ <= i__2; ++i__) {
-	    p = x * z__[i__ + k * z_dim1] + y * z__[i__ + (k + 1) * z_dim1] + 
+	    p = x * z__[i__ + k * z_dim1] + y * z__[i__ + (k + 1) * z_dim1] +
 		    zz * z__[i__ + (k + 2) * z_dim1];
 	    z__[i__ + k * z_dim1] -= p;
 	    z__[i__ + (k + 1) * z_dim1] -= p * q;
@@ -545,7 +545,7 @@ L710:
 	    goto L720;
 	}
 	h__[na + na * h_dim1] = q / h__[en + na * h_dim1];
-	h__[na + en * h_dim1] = -(h__[en + en * h_dim1] - p) / h__[en + na * 
+	h__[na + en * h_dim1] = -(h__[en + en * h_dim1] - p) / h__[en + na *
 		h_dim1];
 	goto L730;
 L720:
@@ -589,7 +589,7 @@ L770:
 	    }
 	    d__1 = -ra;
 	    d__2 = -sa;
-	    cdiv_(&d__1, &d__2, &w, &q, &h__[i__ + na * h_dim1], &h__[i__ + 
+	    cdiv_(&d__1, &d__2, &w, &q, &h__[i__ + na * h_dim1], &h__[i__ +
 		    en * h_dim1]);
 	    goto L790;
 /*     .......... SOLVE COMPLEX EQUATIONS .......... */
@@ -612,14 +612,14 @@ L783:
 L784:
 	    d__1 = x * r__ - zz * ra + q * sa;
 	    d__2 = x * s - zz * sa - q * ra;
-	    cdiv_(&d__1, &d__2, &vr, &vi, &h__[i__ + na * h_dim1], &h__[i__ + 
+	    cdiv_(&d__1, &d__2, &vr, &vi, &h__[i__ + na * h_dim1], &h__[i__ +
 		    en * h_dim1]);
 	    if (abs(x) <= abs(zz) + abs(q)) {
 		goto L785;
 	    }
-	    h__[i__ + 1 + na * h_dim1] = (-ra - w * h__[i__ + na * h_dim1] + 
+	    h__[i__ + 1 + na * h_dim1] = (-ra - w * h__[i__ + na * h_dim1] +
 		    q * h__[i__ + en * h_dim1]) / x;
-	    h__[i__ + 1 + en * h_dim1] = (-sa - w * h__[i__ + en * h_dim1] - 
+	    h__[i__ + 1 + en * h_dim1] = (-sa - w * h__[i__ + en * h_dim1] -
 		    q * h__[i__ + na * h_dim1]) / x;
 	    goto L790;
 L785:
@@ -631,7 +631,7 @@ L785:
 /*     .......... OVERFLOW CONTROL .......... */
 L790:
 /* Computing MAX */
-	    d__3 = (d__1 = h__[i__ + na * h_dim1], abs(d__1)), d__4 = (d__2 = 
+	    d__3 = (d__1 = h__[i__ + na * h_dim1], abs(d__1)), d__4 = (d__2 =
 		    h__[i__ + en * h_dim1], abs(d__2));
 	    t = max(d__3,d__4);
 	    if (t == 0.) {

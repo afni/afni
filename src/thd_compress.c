@@ -38,8 +38,8 @@ static void COMPRESS_setup_programs(void)  /* 03 May 2013 */
 
    if( !first ) return ;
    first = 0 ;
-   if( getenv("SKIP_COMPRESS_SETUP") ) return; /* Temp. fix. Strange R crash. 
-                                                   ZSS  09 May 2013           */ 
+   if( getenv("SKIP_COMPRESS_SETUP") ) return; /* Temp. fix. Strange R crash.
+                                                   ZSS  09 May 2013           */
    /* for some symmetry, init pgname based on AFNI_COMPRESSOR
     * (for either gzip or pigz)           19 Sep 2013 [rickr] */
    cind = THD_enviro_write_compression();

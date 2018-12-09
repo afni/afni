@@ -48,7 +48,7 @@ char * SUMA_Help_AllVolCont (TFORM targ);
 char * SUMA_Help_AllGraphCont (TFORM targ);
 char * SUMA_Help_AllSurfCont (TFORM targ);
 char * SUMA_Help_AllSurfCont_old (void);
-void SUMA_click_webhelp_CB(Widget w, XtPointer data, 
+void SUMA_click_webhelp_CB(Widget w, XtPointer data,
                                      XtPointer callData);
 char *SUMA_do_type_2_contwname(SUMA_DO_Types do_type);
 char * SUMA_gsf(char *wname, TFORM target, char **hintout, char **helpout);

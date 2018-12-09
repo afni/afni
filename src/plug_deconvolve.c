@@ -8,7 +8,7 @@
 /*
   Plugin to calculate the deconvolution of a measured 3d+time dataset
   with a specified input stimulus time series.  Output consists of the
-  least squares estimate of the impulse response function, and the fitted 
+  least squares estimate of the impulse response function, and the fitted
   time series (input stimulus convolved with estimated impulse response
   function).
 
@@ -52,7 +52,7 @@
   Date:    09 November 1999
 
   Mod:     Modifications for compatibility with 3dDeconvolve options for
-           writing the fitted full model time series (-fitts) and the 
+           writing the fitted full model time series (-fitts) and the
            residual error time series (-errts) to 3d+time datasets.
   Date:    22 November 1999
 
@@ -78,7 +78,7 @@
   Mod:     Added -glt_label option for labeling the GLT matrix.
   Date:    23 June 2000
 
-  Mod:     Added Concat Runs option for analysis of a concatenated 3d+time 
+  Mod:     Added Concat Runs option for analysis of a concatenated 3d+time
            dataset.
   Date:    27 June 2000
 
@@ -88,13 +88,13 @@
   Mod:     Increased maximum number of linear constraints.
   Date:    07 December 2000
 
-  Mod:     Changes required for compatibility with -nodata option 
+  Mod:     Changes required for compatibility with -nodata option
            (norm.std.dev.'s for GLT linear constraints).
   Date:    21 December 2000
 
   Mod:     Added NPTR option, to allow input stim functions to be sampled
            at a multiple of the 1/TR rate.
-  Date:    02 January 2001 
+  Date:    02 January 2001
 
   Mod:     Increased maximum degree of polynomial ort.
   Date:    16 May 2001
@@ -107,8 +107,8 @@
            for individual linear constraints within a GLT.
   Date:    29 January 2002
 
-  Mod:     Allow user to specify no baseline parameters in the model 
-           by setting Baseline to "None".           
+  Mod:     Allow user to specify no baseline parameters in the model
+           by setting Baseline to "None".
   Date:    26 February 2002
 
   Mod:     Allow user to specify which input stimulus functions are part of
@@ -116,11 +116,11 @@
   Date:    02 May 2002
 
   Mod:     Improved graphical representation of the estimated impulse response
-           function when the user selects option DC_IRF under Tran 1D of the 
+           function when the user selects option DC_IRF under Tran 1D of the
            graph options menu.
   Date:    06 May 2002
 
-  Mod:     Fixed bug in show_options rountine that would cause program crash 
+  Mod:     Fixed bug in show_options rountine that would cause program crash
            when the baseline was set to "None".
   Date:    03 Oct 2002
 
@@ -215,7 +215,7 @@ static char helpstring[] =
 /*------- Strings for baseline control ------*/
 
 #define NBASE 7
-static char * baseline_strings[NBASE] = {"None", "Const", "Linear", 
+static char * baseline_strings[NBASE] = {"None", "Const", "Linear",
 			    "Quadrtc", "Cubic", "Quartic", "Quintic" };
 
 static char * false_or_true[2] = {"False", "True"};
@@ -275,7 +275,7 @@ static matrix xtxinvxt_full;      /* matrix:  (1/(X'X))X' for full model */
 static matrix x_base;             /* extracted X matrix   for baseline model */
 static matrix xtxinvxt_base;      /* matrix:  (1/(X'X))X' for baseline model */
 static matrix x_rdcd[MAX_STIMTS]; /* extracted X matrices for reduced models */
-static matrix xtxinvxt_rdcd[MAX_STIMTS];     
+static matrix xtxinvxt_rdcd[MAX_STIMTS];
                                   /* matrix:  (1/(X'X))X' for reduced models */
 
 static int glt_num;                 /* number of general linear tests */
@@ -330,7 +330,7 @@ static void initialize_options ()
   strcpy (concat_label, " ");    /* label for concatenation */
   concat_column = 0;             /* column containing list of blocks (runs) */
   num_blocks = 1;                /* number of blocks (runs) */
-  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);  
+  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);
   block_list[0] = 0;             /* list of block (run) starting points */
 
 
@@ -372,7 +372,7 @@ static void initialize_options ()
                                   /* matrix:  (1/(X'X))X' for baseline model */
   for (is =0;  is < MAX_STIMTS;  is++)
     {
-      matrix_initialize (&x_rdcd[is]); 
+      matrix_initialize (&x_rdcd[is]);
                                   /* extracted X matrices for reduced models */
       matrix_initialize (&xtxinvxt_rdcd[is]);
                                   /* matrix:  (1/(X'X))X' for reduced models */
@@ -396,7 +396,7 @@ static void initialize_options ()
                                            /* matrices: C(1/(X'X))C' for GLT */
       matrix_initialize (&glt_cmat[iglt]);
                                              /* general linear test matrices */
-      matrix_initialize (&glt_amat[iglt]); 
+      matrix_initialize (&glt_amat[iglt]);
                                       /* constant GLT matrices for later use */
       vector_initialize (&glt_coef[iglt]);
                                     /* linear combinations from GLT matrices */
@@ -435,8 +435,8 @@ static void reset_options ()
   strcpy (concat_label, " ");    /* label for concatenation */
   concat_column = 0;             /* column containing list of blocks (runs) */
   num_blocks = 1;                /* number of blocks (runs) */
-  if (block_list != NULL)  free (block_list);       
-  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);  
+  if (block_list != NULL)  free (block_list);
+  block_list = (int *) malloc (sizeof(int) * 1);  MTEST (block_list);
   block_list[0] = 0;             /* list of block (run) starting points */
 
 
@@ -445,8 +445,8 @@ static void reset_options ()
   strcpy (censor_label, " ");        /* censor time series label */
   censor_column = 0;                 /* column containing censor array */
   if (censor_array != NULL)
-    {  
-      free (censor_array);   
+    {
+      free (censor_array);
       censor_array = NULL;           /* censor time series array */
     }
   censor_length = 0;                 /* length of censor time series */
@@ -487,7 +487,7 @@ static void reset_options ()
                                   /* matrix:  (1/(X'X))X' for baseline model */
   for (is =0;  is < MAX_STIMTS;  is++)
     {
-      matrix_destroy (&x_rdcd[is]); 
+      matrix_destroy (&x_rdcd[is]);
                                   /* extracted X matrices for reduced models */
       matrix_destroy (&xtxinvxt_rdcd[is]);
                                   /* matrix:  (1/(X'X))X' for reduced models */
@@ -507,7 +507,7 @@ static void reset_options ()
                                            /* matrices: C(1/(X'X))C' for GLT */
       matrix_destroy (&glt_cmat[iglt]);
                                              /* general linear test matrices */
-      matrix_destroy (&glt_amat[iglt]); 
+      matrix_destroy (&glt_amat[iglt]);
                                       /* constant GLT matrices for later use */
       vector_destroy (&glt_coef[iglt]);
                                     /* linear combinations from GLT matrices */
@@ -550,7 +550,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_short_choose(plint) ;  /* 29 Mar 2002 [RWCox]: */
    PLUTO_short_number(plint) ;  /* make 'Choose' and number widgets shorter */
 
-   PLUTO_add_hint (plint, 
+   PLUTO_add_hint (plint,
      "Control DC_Fit, DC_Err, and DC_IRF Deconvolution Functions");
 
    PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
@@ -597,7 +597,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
      {
        PLUTO_add_option (plint, "GLT Mat", "GLT Mat", FALSE);
        PLUTO_add_string( plint, "Label", 0, NULL, 1);
-       PLUTO_add_string( plint, "File", 0, NULL, 1);     
+       PLUTO_add_string( plint, "File", 0, NULL, 1);
        PLUTO_add_number (plint, "# Rows", 1, MAX_CONSTR, 0, 0, TRUE);
      }
 
@@ -605,7 +605,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_register_1D_funcstr ("DC_Fit" , DC_Fit);
    PLUTO_register_1D_funcstr ("DC_Err" , DC_Err);
    PLUTO_register_1D_funcstr ("DC_IRF" , DC_IRF);
-   
+
 
    /*----- Initialize options and global data -----*/
    initialize_options ();
@@ -628,7 +628,7 @@ static void show_options ()
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -649,7 +649,7 @@ static void show_options ()
       printf ("Concatenation:     Label = %8s ", concat_label);
       printf ("Column = %3d  \n", concat_column);
       for (ib = 0;  ib < num_blocks;  ib++)
-	printf ("Run #%d  Initial Point = %d \n", ib+1, block_list[ib]); 
+	printf ("Run #%d  Initial Point = %d \n", ib+1, block_list[ib]);
     }
 
 
@@ -678,7 +678,7 @@ static void show_options ()
 	    printf ("Baseline:      Label = %8s ", stim_label[is]);
 	  else
 	    printf ("Stimulus:      Label = %8s ", stim_label[is]);
-	  printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d   ", 
+	  printf ("Column = %3d   Min. Lag = %3d   Max. Lag = %3d   ",
 		  stim_column[is], min_lag[is], max_lag[is]);
 	  printf ("NPTR = %d \n", nptr[is]);
 	}
@@ -692,11 +692,11 @@ static void show_options ()
       for (iglt = 0;  iglt < glt_num;  iglt++)
 	{
 	  printf ("GLT:       Label = %8s   ", glt_label[iglt]);
-   	  printf ("#Rows = %2d   Input File: %s \n", 
+   	  printf ("#Rows = %2d   Input File: %s \n",
 		  glt_rows[iglt], glt_filename[iglt]);
 	}
     }
- 
+
 }
 
 
@@ -712,11 +712,11 @@ static char * DC_main( PLUGIN_interface * plint )
   char * str;                           /* input string */
   int is;                               /* stimulus index */
   int iglt;                             /* general linear test index */
-  MRI_IMAGE * stim;     /* pointers to image structures 
+  MRI_IMAGE * stim;     /* pointers to image structures
                            -- used to read 1D ASCII */
   float * far;          /* pointer to MRI_IMAGE floating point data */
   int ipt;              /* time point index */
-  
+
 
   /*----- Reset options and global data -----*/
   reset_options ();
@@ -729,11 +729,11 @@ static char * DC_main( PLUGIN_interface * plint )
   plug_NFirst = PLUTO_get_number (plint);
   plug_NLast  = PLUTO_get_number (plint);
   strcpy (IRF_label, PLUTO_get_string (plint));
-	  
+
 
   /*--------- go to Concat Runs input line ---------*/
   str = PLUTO_peek_optiontag (plint);
-  if (str != NULL) 
+  if (str != NULL)
 
     /*----- Read Concat Runs input Line -----*/
     if (strcmp (str, "Concat") == 0)
@@ -742,17 +742,17 @@ static char * DC_main( PLUGIN_interface * plint )
 	strcpy (concat_label, PLUTO_get_string(plint));
 
 	stim = PLUTO_get_timeseries(plint) ;
-	
-	if (stim == NULL || stim->nx < 1 
+
+	if (stim == NULL || stim->nx < 1
 	    ||  stim->kind != MRI_float)
 	  return "**************************\n"
 	    "Illegal Concat File Input!\n"
 	    "**************************"  ;
-	
+
 	/*----- Column in file which contains the concat function -----*/
 	concat_column = PLUTO_get_number(plint);
-	
-	if ((concat_column < 0) 
+
+	if ((concat_column < 0)
 	    ||(concat_column > stim->ny - 1))
 	  return "**********************************\n"
 	    "Illegal Concat File Column Number!\n"
@@ -764,15 +764,15 @@ static char * DC_main( PLUGIN_interface * plint )
 	if (block_list != NULL)  free (block_list);
 	block_list = (int *) malloc (sizeof(int) * num_blocks);
 	MTEST (block_list);
-	
+
 	for (ipt = 0;  ipt < num_blocks;  ipt++)
-	  block_list[ipt] = floor (far[ipt+concat_column*(stim->nx)] + 0.5); 
+	  block_list[ipt] = floor (far[ipt+concat_column*(stim->nx)] + 0.5);
       }
-  
+
 
   /*--------- go to Censor input line ---------*/
   str = PLUTO_peek_optiontag (plint);
-  if (str != NULL) 
+  if (str != NULL)
 
     /*----- Read Censor input Line -----*/
     if (strcmp (str, "Censor") == 0)
@@ -781,18 +781,18 @@ static char * DC_main( PLUGIN_interface * plint )
 	strcpy (censor_label, PLUTO_get_string(plint));
 
 	stim = PLUTO_get_timeseries(plint) ;
-	
-	if (stim == NULL || stim->nx < 3 
+
+	if (stim == NULL || stim->nx < 3
 	    ||  stim->kind != MRI_float)
 	  return "**************************\n"
 	    "Illegal Censor File Input!\n"
 	    "**************************"  ;
 
-	
+
 	/*----- Column in file which contains the censor function -----*/
 	censor_column = PLUTO_get_number(plint);
-	
-	if ((censor_column < 0) 
+
+	if ((censor_column < 0)
 	    ||(censor_column > stim->ny - 1))
 	  return "**********************************\n"
 	    "Illegal Censor File Column Number!\n"
@@ -800,7 +800,7 @@ static char * DC_main( PLUGIN_interface * plint )
 
 
 	/*----- Extract censor time series from MRI data structure -----*/
-	if (censor_array != NULL) 
+	if (censor_array != NULL)
 	  {
 	    free (censor_array);
 	    censor_array = NULL;
@@ -809,37 +809,37 @@ static char * DC_main( PLUGIN_interface * plint )
 	censor_length = stim->nx;
 	censor_array = (float *) malloc (sizeof(float) * (stim->nx));
 	MTEST (censor_array);
-	
+
 	num_censor = 1;
 	for (ipt = 0;  ipt < (stim->nx);  ipt++)
-	  censor_array[ipt] 
-	    = far[ipt + censor_column*(stim->nx)]; 
+	  censor_array[ipt]
+	    = far[ipt + censor_column*(stim->nx)];
       }
-  
+
 
   /*------ Loop over input line(s) -----*/
   do
     {
-      str = PLUTO_get_optiontag(plint); 
+      str = PLUTO_get_optiontag(plint);
       if (str == NULL)  break;
       if ((strcmp (str, "StimFnc") != 0) && (strcmp (str, "GLT Mat") != 0))
         return "************************\n"
                "Illegal optiontag found!\n"
                "************************";
-     
+
 
       /*----- Read Input Stimulus Line -----*/
       if (strcmp (str, "StimFnc") == 0)
-	{      
+	{
 	  str =  PLUTO_get_string(plint);
 	  if (strlen(str) != 0)  strcpy (stim_label[num_stimts], str);
 
 	  if (strcmp(stim_label[num_stimts], IRF_label) == 0)
 	    plug_IRF = num_stimts;
-	  
+
 	  stim = PLUTO_get_timeseries(plint) ;
-	  
-	  if (stim == NULL || stim->nx < 3 
+
+	  if (stim == NULL || stim->nx < 3
 	      ||  stim->kind != MRI_float)
 	    return "*************************\n"
 	           "Illegal Timeseries Input!\n"
@@ -849,7 +849,7 @@ static char * DC_main( PLUGIN_interface * plint )
 	  /*----- Column in file which contains the stimulus function -----*/
 	  stim_column[num_stimts] = PLUTO_get_number(plint);
 
-	  if ((stim_column[num_stimts] < 0) 
+	  if ((stim_column[num_stimts] < 0)
 	    ||(stim_column[num_stimts] > stim->ny - 1))
 	    return "********************************\n"
 	           "Illegal Stim File Column Number!\n"
@@ -857,7 +857,7 @@ static char * DC_main( PLUGIN_interface * plint )
 
 
 	  /*----- Extract stimulus time series from MRI data structure -----*/
-	  if (stimulus[num_stimts] != NULL) 
+	  if (stimulus[num_stimts] != NULL)
 	    {
 	      free (stimulus[num_stimts]);
 	      stimulus[num_stimts] = NULL;
@@ -868,8 +868,8 @@ static char * DC_main( PLUGIN_interface * plint )
 	  MTEST (stimulus[num_stimts]);
 
 	  for (ipt = 0;  ipt < (stim->nx);  ipt++)
-	    stimulus[num_stimts][ipt] 
-	      = far[ipt + stim_column[num_stimts]*(stim->nx)]; 
+	    stimulus[num_stimts][ipt]
+	      = far[ipt + stim_column[num_stimts]*(stim->nx)];
 
 
 	  /*----- Minimum and Maximum time lags for model -----*/
@@ -879,26 +879,26 @@ static char * DC_main( PLUGIN_interface * plint )
 	  str    = PLUTO_get_string (plint);
 	  stim_base[num_stimts] = PLUTO_string_index (str, 2, false_or_true);
 
-	  
+
 	  if (min_lag[num_stimts] > max_lag[num_stimts])
 	    return "**************************\n"
                    "Require Min Lag <= Max Lag\n"
 	           "**************************"  ;
-	  
+
 	  num_stimts++;
 	}
 
 
       /*----- Read General Matrix Test Line -----*/
       if (strcmp (str, "GLT Mat") == 0)
-	{      
+	{
 	  str =  PLUTO_get_string(plint);
 	  if (strlen(str) != 0)  strcpy (glt_label[glt_num], str);
 
 	  strcpy (glt_filename[glt_num], PLUTO_get_string(plint));
 
 	  glt_rows[glt_num] = PLUTO_get_number(plint);
-      
+
 	  glt_num++;
 	}
 
@@ -916,13 +916,13 @@ static char * DC_main( PLUGIN_interface * plint )
       if (stim_base[is])  plug_q += max_lag[is] - min_lag[is] + 1;
       plug_p += max_lag[is] - min_lag[is] + 1;
       if (plug_p > MAX_XVARS)
-	{ 
+	{
 	  return "****************************\n"
 	    "Too many parameters in model \n"
 	    "****************************"  ;
 	}
     }
- 
+
 
   /*----- Read the general linear test matrices -----*/
   if (glt_num > 0)
@@ -933,12 +933,12 @@ static char * DC_main( PLUGIN_interface * plint )
 			  plug_p,
 			  &(glt_cmat[iglt]), 0);
 	if (glt_cmat[iglt].elts == NULL)
-	  { 
+	  {
 	    return "**************************\n"
                    "Unable to read GLT matrix \n"
 	           "**************************"  ;
 	  }
-      } 
+      }
 
 
   /*----- Show the user input options -----*/
@@ -948,7 +948,7 @@ static char * DC_main( PLUGIN_interface * plint )
   /*--- nothing left to do until data arrives ---*/
   initialize = 1 ;  /* successful initialization */
   prev_nt = 0;      /* previous time series length */
-  
+
   return NULL ;
 }
 
@@ -958,7 +958,7 @@ static char * DC_main( PLUGIN_interface * plint )
   Calculate the impulse response function and associated statistics.
 */
 
-static int calculate_results 
+static int calculate_results
 (
   int nt,               /* number of time points */
   double dt,            /* delta time */
@@ -971,7 +971,7 @@ static int calculate_results
   float ** errts        /* full model residual error time series */
 
 )
-  
+
 {
   float * ts_array;           /* array of measured data for one voxel */
 
@@ -991,7 +991,7 @@ static int calculate_results
   float rfull;                /* full model R^2 statistic */
   float mse;                  /* mean square error from full model */
 
-  vector y;                   /* vector of measured data */       
+  vector y;                   /* vector of measured data */
 
   int NFirst;            /* first image from input 3d+time dataset to use */
   int NLast;             /* last image from input 3d+time dataset to use */
@@ -1017,7 +1017,7 @@ static int calculate_results
   vector_initialize (&scoef);
   vector_initialize (&tcoef);
   vector_initialize (&y);
-  
+
 
   /*----- Initialize local variables -----*/
   qp = plug_qp;
@@ -1053,16 +1053,16 @@ static int calculate_results
 	  DC_error ("Invalid concatenated runs list");
 	  return (0);
 	}
-    
+
 
   /*----- Create list of good (usable) data points -----*/
   good_list = (int *) malloc (sizeof(int) * nt);  MTEST (good_list);
   NFirst = plug_NFirst;
   if (NFirst < 0)
     for (is = 0;  is < num_stimts;  is++)
-      if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])  
+      if (NFirst < (max_lag[is]+nptr[is]-1)/nptr[is])
 	NFirst = (max_lag[is]+nptr[is]-1)/nptr[is];
-  NLast = plug_NLast;   
+  NLast = plug_NLast;
 
   N = 0;
   ib = 0;
@@ -1070,9 +1070,9 @@ static int calculate_results
     {
       if (ib+1 < num_blocks)
 	if (it >= block_list[ib+1])  ib++;
-      
+
       irb = it - block_list[ib];
-	  
+
       if ((irb >= NFirst) && (irb <= NLast))
 	if ((num_censor == 0) || (censor_array[it]))
 	  {
@@ -1086,7 +1086,7 @@ static int calculate_results
       DC_error ("No usable time points?");
       return (0);
     }
-  if (N <= p)  
+  if (N <= p)
     {
       DC_error ("Insufficient time series data for deconvolution fit");
       return (0);
@@ -1104,14 +1104,14 @@ static int calculate_results
     {
       /*----- Initialize the independent variable matrix -----*/
       demean_base = (plug_polort >= 0) ;
-      ok = init_indep_var_matrix (p, qp, plug_polort, nt, N, good_list, 
+      ok = init_indep_var_matrix (p, qp, plug_polort, nt, N, good_list,
 				  block_list, num_blocks, num_stimts, stimulus,
 				  stim_length, min_lag, max_lag, nptr, stim_base, &xdata);
 
-      
+
       /*----- Initialization for the regression analysis -----*/
       if (ok)
-	ok = init_regression_analysis (p, qp, num_stimts, stim_base, min_lag, 
+	ok = init_regression_analysis (p, qp, num_stimts, stim_base, min_lag,
 			max_lag, xdata, &x_full, &xtxinv_full, &xtxinvxt_full,
 			&x_base, &xtxinvxt_base, x_rdcd, xtxinvxt_rdcd);
 
@@ -1119,10 +1119,10 @@ static int calculate_results
       /*----- Initialization for the general linear test analysis -----*/
       if (ok)
 	if (glt_num > 0)
-	  ok = init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat, 
+	  ok = init_glt_analysis (xtxinv_full, glt_num, glt_cmat, glt_amat,
 				  cxtxinvct);
     }
-      
+
   if (ok)
     {
       /*----- Extract Y-data for this voxel -----*/
@@ -1130,34 +1130,34 @@ static int calculate_results
       ts_array = vec;
       for (i = 0;  i < N;  i++)
 	y.elts[i] = ts_array[good_list[i]];
-      
-      
+
+
       /*----- Perform the regression analysis for this voxel-----*/
       regression_analysis (N, p, q, num_stimts, min_lag, max_lag,
 			   x_full, xtxinv_full, xtxinvxt_full, x_base,
-			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
-			   y, rms_min, &mse, &coef, &scoef, &tcoef, 
-			   fpart, rpart, &ffull, &rfull, &novar, 
+			   xtxinvxt_base, x_rdcd, xtxinvxt_rdcd,
+			   y, rms_min, &mse, &coef, &scoef, &tcoef,
+			   fpart, rpart, &ffull, &rfull, &novar,
 			   *fitts, *errts);
-      
- 	  
+
+
       /*----- Perform the general linear tests for this voxel -----*/
       if (glt_num > 0)
 	glt_analysis (N, p, x_full, y, mse*(N-p), coef, novar, cxtxinvct,
-		      glt_num, glt_rows, glt_cmat, glt_amat, 
+		      glt_num, glt_rows, glt_cmat, glt_amat,
 		      glt_coef, glt_tcoef, fglt, rglt);
-      
-     
+
+
       /*----- Save the fit parameters -----*/
       vector_to_array (coef, fit);
-  
-      
+
+
       /*----- Report results for this voxel -----*/
       printf ("\nResults for Voxel: \n");
-      report_results (N, qp, q, p, plug_polort, block_list, num_blocks, 
+      report_results (N, qp, q, p, plug_polort, block_list, num_blocks,
 		      num_stimts, stim_label, stim_base, min_lag, max_lag,
-		      coef, tcoef, fpart, rpart, ffull, rfull, mse, 
-		      glt_num, glt_label, glt_rows, glt_coef, 
+		      coef, tcoef, fpart, rpart, ffull, rfull, mse,
+		      glt_num, glt_label, glt_rows, glt_coef,
 		      glt_tcoef, fglt, rglt, label);
       printf ("%s \n", *label);
 
@@ -1173,7 +1173,7 @@ static int calculate_results
       prev_nt = 0;
     }
 
-  
+
   /*----- Dispose of vectors -----*/
   vector_destroy (&y);
   vector_destroy (&tcoef);
@@ -1239,7 +1239,7 @@ static void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 
 {
   int N;              /* first image from input 3d+time dataset to use */
-  float val;               /* residual value at a time point */ 
+  float val;               /* residual value at a time point */
   int n;                   /* time index */
   int ifit;                /* parameter index */
   int nfit;                /* number of fit parameters */
@@ -1278,7 +1278,7 @@ static void DC_Err (int nt, double to, double dt, float * vec, char ** label)
 /*
   Estimate the system impulse response function.
 */
- 
+
 static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 
 {
@@ -1289,7 +1289,7 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
   int ip;                  /* impulse response function parameter index */
   int q;                   /* number of parameters in the baseline model */
   int it;                  /* array index */
-  int ntdnp;               /* number of array points per IRF parameter */  
+  int ntdnp;               /* number of array points per IRF parameter */
   int ok;                  /* Boolean for successful calculation */
   float * fitts = NULL;    /* full model fitted time series */
   float * errts = NULL;    /* full model residual error time series */
@@ -1310,9 +1310,9 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
     {
       if ((num_stimts == 1) || (plug_IRF < 0) || (plug_IRF >= num_stimts))
 	plug_IRF = 0;
-      
+
       np = max_lag[plug_IRF] - min_lag[plug_IRF] + 1;
-      
+
       q = plug_qp;
       for (ip = 0;  ip < plug_IRF;  ip++)
 	q += max_lag[ip] - min_lag[ip] + 1;
@@ -1327,7 +1327,7 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 	  float r;
 
 	  ntdnp = nt / (np-1);
-      
+
 	  vec[0] = fit[q];
 	  for (it = 0;  it < nt;  it++)
 	    {
@@ -1335,7 +1335,7 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
 	      if (ip < np)
 		{
 		  r = (float) it / (float) ntdnp - (ip-1);
-		  vec[it] = r * fit[q+ip] + (1.0-r) * fit[q+ip-1]; 
+		  vec[it] = r * fit[q+ip] + (1.0-r) * fit[q+ip-1];
 		}
 	      else
 		vec[it] = fit[q+np-1];
@@ -1347,7 +1347,7 @@ static void DC_IRF (int nt, double to, double dt, float * vec, char ** label)
   /*----- Deallocate memory -----*/
   free (fitts);   fitts = NULL;
   free (errts);   errts = NULL;
-  
+
   return;
 }
 

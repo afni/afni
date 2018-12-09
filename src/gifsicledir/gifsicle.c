@@ -188,10 +188,10 @@ static const char *output_option_types[] = {
 #define SCALE_FACTOR_TYPE	(Clp_MaxDefaultType + 10)
 
 Clp_Option options[] = {
-  
+
   { "append", 0, APPEND_OPT, 0, 0 },
   { "app-extension", 'x', APP_EXTENSION_OPT, Clp_ArgString, 0 },
-  
+
   { "background", 'B', BACKGROUND_OPT, COLOR_TYPE, Clp_Negate },
   { "batch", 'b', 'b', 0, 0 },
   { "bg", 0, BACKGROUND_OPT, COLOR_TYPE, Clp_Negate },
@@ -206,43 +206,43 @@ Clp_Option options[] = {
   { "comment", 'c', COMMENT_OPT, Clp_ArgString, 0 },
   { "no-comments", 'c', NO_COMMENTS_OPT, 0, Clp_OnlyNegated },
   { "crop", 0, CROP_OPT, RECTANGLE_TYPE, Clp_Negate },
-  
+
   { "delay", 'd', 'd', Clp_ArgInt, Clp_Negate },
   { "delete", 0, DELETE_OPT, 0, 0 },
   { "disposal", 'D', DISPOSAL_OPT, DISPOSAL_TYPE, Clp_Negate },
   { "dither", 'f', DITHER_OPT, 0, Clp_Negate },
   { "done", 0, ALTER_DONE_OPT, 0, 0 },
-  
+
   { "explode", 'e', 'e', 0, 0 },
   { "explode-by-name", 'E', 'E', 0, 0 },
   { "extension", 0, EXTENSION_OPT, Clp_ArgString, 0 },
   { "no-extensions", 'x', NO_EXTENSIONS_OPT, 0, 0 },
   { "extension-info", 0, EXTENSION_INFO_OPT, 0, Clp_Negate },
-  
+
   { "flip-horizontal", 0, FLIP_HORIZ_OPT, 0, Clp_Negate },
   { "flip-vertical", 0, FLIP_VERT_OPT, 0, Clp_Negate },
   { "no-flip", 0, NO_FLIP_OPT, 0, 0 },
-  
+
   { "help", 'h', HELP_OPT, 0, 0 },
-  
-  { "info", 'I', INFO_OPT, 0, Clp_Negate },  
+
+  { "info", 'I', INFO_OPT, 0, Clp_Negate },
   { "insert-before", 0, INSERT_OPT, FRAME_SPEC_TYPE, 0 },
   { "interlace", 'i', 'i', 0, Clp_Negate },
-  
+
   { "logical-screen", 'S', LOGICAL_SCREEN_OPT, DIMENSIONS_TYPE, Clp_Negate },
   { "loopcount", 'l', 'l', LOOP_TYPE, Clp_Optional | Clp_Negate },
-  
+
   { "merge", 'm', 'm', 0, 0 },
   { "method", 0, COLORMAP_ALGORITHM_OPT, COLORMAP_ALG_TYPE, 0 },
-  
+
   { "name", 'n', NAME_OPT, Clp_ArgString, 0 },
   { "no-names", 'n', NO_NAME_OPT, 0, Clp_OnlyNegated },
-  
+
   { "optimize", 'O', OPTIMIZE_OPT, Clp_ArgInt, Clp_Negate | Clp_Optional },
   { "output", 'o', OUTPUT_OPT, Clp_ArgStringNotOption, 0 },
-  
+
   { "position", 'p', POSITION_OPT, POSITION_TYPE, Clp_Negate },
-  
+
   { "replace", 0, REPLACE_OPT, FRAME_SPEC_TYPE, 0 },
   { "resize", 0, RESIZE_OPT, DIMENSIONS_TYPE, Clp_Negate },
   { "resize-width", 0, RESIZE_WIDTH_OPT, Clp_ArgUnsigned, Clp_Negate },
@@ -272,22 +272,22 @@ Clp_Option options[] = {
   { "same-position", 0, SAME_POSITION_OPT, 0, 0 },
   { "same-screen", 0, SAME_LOGICAL_SCREEN_OPT, 0, 0 },
   { "same-transparent", 0, SAME_TRANSPARENT_OPT, 0, 0 },
-  
+
   { "transform-colormap", 0, COLOR_TRANSFORM_OPT, Clp_ArgStringNotOption,
     Clp_Negate },
   { "transparent", 't', 't', COLOR_TYPE, Clp_Negate },
-  
+
   { "unoptimize", 'U', UNOPTIMIZE_OPT, 0, Clp_Negate },
   { "use-colormap", 0, USE_COLORMAP_OPT, Clp_ArgString, Clp_Negate },
-  
+
   { "verbose", 'v', VERBOSE_OPT, 0, Clp_Negate },
   { "version", 0, VERSION_OPT, 0, 0 },
-  
+
   { 0, 'w', NO_WARNINGS_OPT, 0, Clp_Negate },
   { "warnings", 0, WARNINGS_OPT, 0, Clp_Negate },
-  
+
   { "xinfo", 0, EXTENSION_INFO_OPT, 0, Clp_Negate },
-  
+
 };
 
 
@@ -313,7 +313,7 @@ set_frame_change(int kind)
 {
   int i;
   Gt_Frameset *fset;
-  
+
   if (mode == BLANK_MODE)
     set_mode(MERGING);
   if (mode < DELETING && frames_done) {
@@ -322,37 +322,37 @@ set_frame_change(int kind)
   }
   assert(!nested_mode);
   nested_mode = mode;
-  
+
   switch (kind) {
-    
+
    case DELETE_OPT:
     mode = DELETING;
     break;
-    
+
    case REPLACE_OPT:
     for (i = frame_spec_1; i < frame_spec_2; i++)
       FRAME(frames, i).use = 0;
     /* We want to use the last frame's delay, but nothing else about it. */
     FRAME(frames, i).use = -1;
     /* FALLTHRU */
-    
+
    case INSERT_OPT:
     /* Define a nested frameset (or use an existing one). */
     fset = FRAME(frames, frame_spec_2).nest;
     if (!fset) fset = new_frameset(8);
     FRAME(frames, frame_spec_2).nest = fset;
-    
+
     /* Later: Merge frames at the end of the nested frameset. */
     mode = INSERTING;
     nested_frames = frames;
     frames = fset;
     break;
-    
+
    case APPEND_OPT:
     /* Just merge frames at the end of this frameset. */
     mode = INSERTING;
     break;
-    
+
   }
 }
 
@@ -373,13 +373,13 @@ show_frame(int imagenumber, int usename)
 {
   Gif_Image *gfi;
   Gt_Frame *frame;
-  
+
   if (!input) return;
   gfi = Gif_GetImage(input, imagenumber);
   if (!gfi) return;
-  
+
   switch (mode) {
-    
+
    case MERGING:
    case INSERTING:
    case EXPLODING:
@@ -387,18 +387,18 @@ show_frame(int imagenumber, int usename)
     frame = add_frame(frames, -1, input, gfi);
     if (usename) frame->explode_by_name = 1;
     break;
-    
+
    case BATCHING:
     add_frame(frames, first_input_frame + imagenumber, input, gfi);
     break;
-    
+
    case DELETING:
     frame = &FRAME(frames, first_input_frame + imagenumber);
     frame->use = 0;
     break;
-    
+
   }
-  
+
   next_frame = 0;
   frames_done = 1;
 }
@@ -418,13 +418,13 @@ gifread_error(const char *message, int which_image, void *thunk)
   static int different_error_count = 0;
   static int same_error_count = 0;
   const char *filename = (const char *)thunk;
-  
+
   if (gifread_error_count == 0) {
     last_which_image = -1;
     last_message[0] = 0;
     different_error_count = 0;
   }
-  
+
   gifread_error_count++;
   if (last_message[0] && different_error_count <= 10
       && (last_which_image != which_image || message == 0
@@ -439,7 +439,7 @@ gifread_error(const char *message, int which_image, void *thunk)
 
   if (last_message[0] == 0)
     different_error_count++;
-  
+
   same_error_count++;
   if (message)
     strcpy(last_message, message);
@@ -450,7 +450,7 @@ gifread_error(const char *message, int which_image, void *thunk)
     error("Error while reading `%s' frame #%d:", filename, which_image);
     last_which_image = which_image;
   }
-  
+
   if (different_error_count == 11 && message) {
     error("(more errors while reading `%s')", filename);
     different_error_count++;
@@ -465,7 +465,7 @@ input_stream(char *name)
   int i;
   int saved_next_frame = next_frame;
   Gt_Frame old_def_frame;
-  
+
   input = 0;
   input_name = name;
   frames_done = 0;
@@ -473,7 +473,7 @@ input_stream(char *name)
   next_input = 0;
   if (next_output) combine_output_options();
   files_given++;
-  
+
   if (name == 0 || strcmp(name, "-") == 0) {
 #if defined(_MSDOS) || defined(_WIN32)
     _setmode(_fileno(stdin), _O_BINARY);
@@ -488,7 +488,7 @@ input_stream(char *name)
     error("%s: %s", name, strerror(errno));
     return;
   }
-  
+
   /* special error message for empty files */
   i = getc(f);
   if (i == EOF) {
@@ -496,27 +496,27 @@ input_stream(char *name)
     return;
   }
   ungetc(i, f);
-  
+
   if (verbosing) verbose_open('<', name);
   gifread_error_count = 0;
   gfs = Gif_FullReadFile(f, gif_read_flags | GIF_READ_COMPRESSED,
 			 gifread_error, (void *)name);
   fclose(f);
   gifread_error(0, -1, (void *)name); /* print out last error message */
-  
+
   if (!gfs || (Gif_ImageCount(gfs) == 0 && gfs->errors > 0)) {
     error("%s: not a GIF", name);
     Gif_DeleteStream(gfs);
     if (verbosing) verbose_close('>');
     return;
   }
-  
+
   input = gfs;
-  
+
   /* Processing when we've got a new input frame */
   if (mode == BLANK_MODE)
     set_mode(MERGING);
-  
+
   if (active_output_data.output_name == 0) {
     /* Don't override explicit output names.
        This code works 'cause output_name is reset to 0 after each output. */
@@ -532,26 +532,26 @@ input_stream(char *name)
 	active_output_data.output_name = explode_name;
     }
   }
-  
+
   /* This code rather sucks. Here's the problem: Since we consider options
      strictly sequentially, one at a time, we can't tell the difference
      between these:
-     
+
      --name=X g.gif             h.gif   // name on g.gif #0
      --name=X g.gif          #2 h.gif   // name on g.gif #2
               g.gif --name=X #2 h.gif   // name on g.gif #2
               g.gif --name=X    h.gif   // name on h.gif #0 !!!
-      
+
      Here's the solution. Mark when we CHANGE an option. After processing
      an input GIF, mark all the options as `unchanged' -- but leave the
      VALUES as is. Then when we read the next frame, CLEAR the unchanged
      options. So it's like so: (* means changed, . means not.)
-     
+
      [-.] --name=X [X*] g.gif [X.] #2 [-.] h.gif   == name on g.gif #2
      [-.] g.gif [-.] --name=X [X*] #2 [-.] h.gif  == name on g.gif #2
      [-.] --name=X [X*] g.gif [X.|-.] h.gif  == name on g.gif #0
      [-.] g.gif [-.] --name=X [X*] h.gif  == name on h.gif #0 */
-  
+
   /* Clear old options from the last input stream */
   if (!CHANGED(saved_next_frame, CH_NAME))
     def_frame.name = 0;
@@ -560,7 +560,7 @@ input_stream(char *name)
   if (!CHANGED(saved_next_frame, CH_EXTENSION))
     def_frame.extensions = 0;
   def_frame.input_filename = input_name;
-  
+
   old_def_frame = def_frame;
   first_input_frame = frames->count;
   if (gfs->nimages > 1)
@@ -568,7 +568,7 @@ input_stream(char *name)
   for (i = 0; i < gfs->nimages; i++)
     add_frame(frames, -1, gfs, gfs->images[i]);
   def_frame = old_def_frame;
-  
+
   if (unoptimizing)
     if (!Gif_Unoptimize(gfs)) {
       static int context = 0;
@@ -579,7 +579,7 @@ input_stream(char *name)
       }
       context = 1;
     }
-  
+
   apply_color_transforms(input_transforms, gfs);
   gfs->refcount++;
 }
@@ -588,7 +588,7 @@ void
 input_done(void)
 {
   if (!input) return;
-  
+
   if (verbosing) verbose_close('>');
   /*if (infoing) {
     int i;
@@ -599,10 +599,10 @@ input_done(void)
       if (FRAME(frames, i).stream == input && FRAME(frames, i).use)
 	image_info(infoing, input, FRAME(frames, i).image, colormap_infoing);
   }*/
-  
+
   Gif_DeleteStream(input);
   input = 0;
-  
+
   if (mode == DELETING)
     frame_change_done();
   if (mode == BATCHING || mode == EXPLODING)
@@ -627,7 +627,7 @@ set_new_fixed_colormap(char *name)
       col[i].blue = (i % 6) * 0x33;
     }
     def_output_data.colormap_fixed = cm;
-    
+
   } else if (name && (strcmp(name, "gray") == 0
 		      || strcmp(name, "grey") == 0)) {
     Gif_Colormap *cm = Gif_NewFullColormap(256, 256);
@@ -635,13 +635,13 @@ set_new_fixed_colormap(char *name)
     for (i = 0; i < 256; i++)
       col[i].red = col[i].green = col[i].blue = i;
     def_output_data.colormap_fixed = cm;
-    
+
   } else if (name && strcmp(name, "bw") == 0) {
     Gif_Colormap *cm = Gif_NewFullColormap(2, 256);
     cm->col[0].red = cm->col[0].green = cm->col[0].blue = 0;
     cm->col[1].red = cm->col[1].green = cm->col[1].blue = 255;
     def_output_data.colormap_fixed = cm;
-    
+
   } else
     def_output_data.colormap_fixed = read_colormap_file(name, 0);
 }
@@ -662,13 +662,13 @@ do_colormap_change(Gif_Stream *gfs)
 {
   if (active_output_data.colormap_fixed)
     do_set_colormap(gfs, active_output_data.colormap_fixed);
-  
+
   if (active_output_data.colormap_size > 0) {
     int nhist;
     Gif_Color *hist;
     Gif_Colormap *(*adapt_func)(Gif_Color *, int, int);
     Gif_Colormap *new_cm;
-    
+
     /* set up the histogram */
     {
       int i, any_locals = 0;
@@ -681,29 +681,29 @@ do_colormap_change(Gif_Stream *gfs)
 	return;
       }
     }
-    
+
     switch (active_output_data.colormap_algorithm) {
-      
+
      case COLORMAP_DIVERSITY:
       adapt_func = &colormap_flat_diversity;
       break;
-      
+
      case COLORMAP_BLEND_DIVERSITY:
       adapt_func = &colormap_blend_diversity;
       break;
-      
+
      case COLORMAP_MEDIAN_CUT:
       adapt_func = &colormap_median_cut;
       break;
-      
+
      default:
       fatal_error("can't happen");
-      
+
     }
-    
+
     new_cm = (*adapt_func)(hist, nhist, active_output_data.colormap_size);
     do_set_colormap(gfs, new_cm);
-    
+
     Gif_DeleteArray(hist);
     Gif_DeleteColormap(new_cm);
   }
@@ -718,7 +718,7 @@ static void
 write_stream(char *output_name, Gif_Stream *gfs)
 {
   FILE *f;
-  
+
   if (output_name)
     f = fopen(output_name, "wb");
   else {
@@ -737,7 +737,7 @@ write_stream(char *output_name, Gif_Stream *gfs)
     f = stdout;
     output_name = "<stdout>";
   }
-  
+
   if (f) {
     Gif_FullWriteFile(gfs, gif_write_flags, f);
     fclose(f);
@@ -754,17 +754,17 @@ merge_and_write_frames(char *outfile, int f1, int f2)
   int colormap_change;
   assert(!nested_mode);
   if (verbosing) verbose_open('[', outfile ? outfile : "#stdout#");
-  
+
   colormap_change = active_output_data.colormap_size > 0
     || active_output_data.colormap_fixed;
   compress_immediately = !colormap_change
     && active_output_data.scaling == 0
     && active_output_data.optimizing <= 0;
   warn_local_colormaps = !colormap_change;
-  
+
   out = merge_frame_interval(frames, f1, f2, &active_output_data,
 			     compress_immediately);
-  
+
   if (out) {
     if (active_output_data.scaling == 1)
       resize_stream(out, active_output_data.resize_width,
@@ -781,7 +781,7 @@ merge_and_write_frames(char *outfile, int f1, int f2)
     write_stream(outfile, out);
     Gif_DeleteStream(out);
   }
-  
+
   if (verbosing) verbose_close(']');
 }
 
@@ -792,7 +792,7 @@ output_information(const char *outfile)
   int i, j;
   Gt_Frame *fr;
   Gif_Stream *gfs;
-  
+
   if (infoing == 2)
     f = stderr;
   else if (outfile == 0)
@@ -804,7 +804,7 @@ output_information(const char *outfile)
       return;
     }
   }
-  
+
   for (i = 0; i < frames->count; i++)
     FRAME(frames, i).stream->userflags = 97;
 
@@ -821,7 +821,7 @@ output_information(const char *outfile)
 	  image_info(f, gfs, fr->image, fr->colormap_info);
 	}
     }
-  
+
   if (f != stderr && f != stdout)
     fclose(f);
 }
@@ -836,19 +836,19 @@ output_frames(void)
   int i;
   char *outfile = active_output_data.output_name;
   active_output_data.output_name = 0;
-  
+
   /* Output information only now. */
   if (infoing)
     output_information(outfile);
-  
+
   if (infoing != 1 && frames->count > 0)
     switch (mode) {
-      
+
      case MERGING:
      case BATCHING:
       merge_and_write_frames(outfile, 0, -1);
       break;
-      
+
      case EXPLODING: {
        /* Use the current output name for consistency, even though that means
 	  we can't explode different frames to different names. Not a big deal
@@ -859,35 +859,35 @@ output_frames(void)
 	 if (fr->stream->nimages > max_nimages)
 	   max_nimages = fr->stream->nimages;
        }
-       
+
        if (!outfile) /* Watch out! */
 	 outfile = "-";
-       
+
        for (i = 0; i < frames->count; i++) {
 	 Gt_Frame *fr = &FRAME(frames, i);
 	 int imagenumber = Gif_ImageNumber(fr->stream, fr->image);
 	 char *explodename;
-	 
+
 	 char *imagename = 0;
 	 if (fr->explode_by_name)
 	   imagename = fr->name ? fr->name : fr->image->identifier;
-	 
+
 	 explodename = explode_filename(outfile, imagenumber, imagename,
 					max_nimages);
 	 merge_and_write_frames(explodename, i, i);
        }
        break;
      }
-     
+
      case INSERTING:
       /* do nothing */
       break;
-      
+
     }
-  
+
   active_next_output = 0;
   clear_frameset(frames, 0);
-  
+
   /* cropping: clear the `crop->ready' information, which depended on the last
      input image. */
   if (def_frame.crop)
@@ -938,12 +938,12 @@ handle_extension(Clp_Parser *clp, int is_app)
       fatal_error("bad extension type: must be a number between 0 and 255");
     gfex = Gif_NewExtension(l, 0);
   }
-  
+
   gfex->data = (byte *)extension_body;
   gfex->length = strlen(extension_body);
   gfex->next = def_frame.extensions;
   def_frame.extensions = gfex;
-  
+
   return 1;
 }
 
@@ -959,48 +959,48 @@ initialize_def_frame(void)
   def_frame.stream = 0;
   def_frame.image = 0;
   def_frame.use = 1;
-  
+
   def_frame.name = 0;
   def_frame.no_name = 0;
   def_frame.comment = 0;
   def_frame.no_comments = 0;
-  
+
   def_frame.interlacing = -1;
   def_frame.transparent.haspixel = 0;
   def_frame.left = -1;
   def_frame.top = -1;
   def_frame.position_is_offset = 0;
-  
+
   def_frame.crop = 0;
-  
+
   def_frame.delay = -1;
   def_frame.disposal = -1;
-  
+
   def_frame.nest = 0;
   def_frame.explode_by_name = 0;
-  
+
   def_frame.no_extensions = 0;
   def_frame.extensions = 0;
-  
+
   def_frame.flip_horizontal = 0;
   def_frame.flip_vertical = 0;
-  
+
   /* output defaults */
   def_output_data.output_name = 0;
-  
+
   def_output_data.screen_width = -1;
   def_output_data.screen_height = -1;
   def_output_data.background.haspixel = 0;
   def_output_data.loopcount = -2;
-  
+
   def_output_data.colormap_size = 0;
   def_output_data.colormap_fixed = 0;
   def_output_data.colormap_algorithm = COLORMAP_DIVERSITY;
   def_output_data.colormap_dither = 0;
-  
+
   def_output_data.optimizing = 0;
   def_output_data.scaling = 0;
-  
+
   active_output_data = def_output_data;
 }
 
@@ -1014,9 +1014,9 @@ combine_output_options(void)
     MARK_CH(output, value);				\
     active_output_data.field = def_output_data.field;	\
   }
-  
+
   COMBINE_ONE_OUTPUT_OPTION(CH_OUTPUT, output_name);
-  
+
   if (CHANGED(recent, CH_LOGICAL_SCREEN)) {
     MARK_CH(output, CH_LOGICAL_SCREEN);
     active_output_data.screen_width = def_output_data.screen_width;
@@ -1024,7 +1024,7 @@ combine_output_options(void)
   }
   COMBINE_ONE_OUTPUT_OPTION(CH_BACKGROUND, background);
   COMBINE_ONE_OUTPUT_OPTION(CH_LOOPCOUNT, loopcount);
-  
+
   COMBINE_ONE_OUTPUT_OPTION(CH_OPTIMIZE, optimizing);
   COMBINE_ONE_OUTPUT_OPTION(CH_COLORMAP, colormap_size);
   COMBINE_ONE_OUTPUT_OPTION(CH_COLORMAP_METHOD, colormap_algorithm);
@@ -1036,7 +1036,7 @@ combine_output_options(void)
     active_output_data.colormap_fixed = def_output_data.colormap_fixed;
   }
   COMBINE_ONE_OUTPUT_OPTION(CH_DITHER, colormap_dither);
-  
+
   if (CHANGED(recent, CH_RESIZE)) {
     MARK_CH(output, CH_RESIZE);
     active_output_data.scaling = def_output_data.scaling;
@@ -1045,10 +1045,10 @@ combine_output_options(void)
     active_output_data.scale_x = def_output_data.scale_x;
     active_output_data.scale_y = def_output_data.scale_y;
   }
-  
+
   def_output_data.colormap_fixed = 0;
   def_output_data.output_name = 0;
-  
+
   active_next_output |= next_output;
   next_output = 0;
 }
@@ -1091,7 +1091,7 @@ main(int argc, char **argv)
 {
   Clp_Parser *clp =
     Clp_NewParser(argc, argv, sizeof(options) / sizeof(options[0]), options);
-  
+
   Clp_AddStringListType
     (clp, LOOP_TYPE, Clp_AllowNumbers,
      "infinite", 0, "forever", 0,
@@ -1119,16 +1119,16 @@ main(int argc, char **argv)
   Clp_AddType(clp, TWO_COLORS_TYPE, Clp_DisallowOptions, parse_two_colors, 0);
   Clp_SetOptionChar(clp, '+', Clp_ShortNegated);
   Clp_SetErrorHandler(clp, clp_error_handler);
-  
+
   program_name = Clp_ProgramName(clp);
-  
+
   frames = new_frameset(16);
   initialize_def_frame();
-  
+
 #ifdef DMALLOC
   dmalloc_verbose("fudge");
 #endif
-  
+
   /* Yep, I'm an idiot.
      GIF dimensions are unsigned 16-bit integers. I assume that these
      numbers will fit in an `int'. This assertion tests that assumption.
@@ -1139,33 +1139,33 @@ main(int argc, char **argv)
     int i = m;
     assert(i > 0 && "configuration/lameness failure! bug the author!");
   }
-  
+
   while (1) {
     int opt = Clp_Next(clp);
     switch (opt) {
-      
+
       /* MODE OPTIONS */
-      
+
      case 'b':
       set_mode(BATCHING);
       break;
-      
+
      case 'm':
       set_mode(MERGING);
       break;
-      
+
      case 'e':
       set_mode(EXPLODING);
       def_frame.explode_by_name = 0;
       break;
-      
+
      case 'E':
       set_mode(EXPLODING);
       def_frame.explode_by_name = 1;
       break;
-      
+
       /* INFORMATION OPTIONS */
-      
+
      case INFO_OPT:
       if (clp->negated)
 	infoing = 0;
@@ -1174,7 +1174,7 @@ main(int argc, char **argv)
            suppress) */
 	infoing = (infoing == 1 ? 2 : 1);
       break;
-      
+
      case COLOR_INFO_OPT:
       if (clp->negated)
 	def_frame.colormap_info = 0;
@@ -1183,7 +1183,7 @@ main(int argc, char **argv)
 	if (!infoing) infoing = 1;
       }
       break;
-      
+
      case EXTENSION_INFO_OPT:
       if (clp->negated)
 	def_frame.extensions_info = 0;
@@ -1192,13 +1192,13 @@ main(int argc, char **argv)
 	if (!infoing) infoing = 1;
       }
       break;
-      
+
      case VERBOSE_OPT:
       verbosing = clp->negated ? 0 : 1;
       break;
-      
+
       /* FRAME CHANGE OPTIONS */
-      
+
      case DELETE_OPT:
      case REPLACE_OPT:
      case INSERT_OPT:
@@ -1206,69 +1206,69 @@ main(int argc, char **argv)
       frame_change_done();
       set_frame_change(opt);
       break;
-      
+
      case ALTER_DONE_OPT:
       frame_change_done();
       break;
-      
+
       /* IMAGE OPTIONS */
-      
+
      case NAME_OPT:
       if (clp->negated) goto no_names;
       MARK_CH(frame, CH_NAME);
       def_frame.name = clp->arg;
       break;
-      
+
      no_names:
      case NO_NAME_OPT:
       MARK_CH(frame, CH_NAME);
       def_frame.no_name = 1;
       def_frame.name = 0;
       break;
-      
+
      case SAME_NAME_OPT:
       def_frame.no_name = 0;
       def_frame.name = 0;
       break;
-      
+
      case COMMENT_OPT:
       if (clp->negated) goto no_comments;
       MARK_CH(frame, CH_COMMENT);
       if (!def_frame.comment) def_frame.comment = Gif_NewComment();
       Gif_AddComment(def_frame.comment, clp->arg, -1);
       break;
-      
+
      no_comments:
      case NO_COMMENTS_OPT:
       Gif_DeleteComment(def_frame.comment);
       def_frame.comment = 0;
       def_frame.no_comments = 1;
       break;
-      
+
      case SAME_COMMENTS_OPT:
       def_frame.no_comments = 0;
       break;
-      
+
      case 'i':
       MARK_CH(frame, CH_INTERLACE);
       def_frame.interlacing = clp->negated ? 0 : 1;
       break;
-      
+
      case SAME_INTERLACE_OPT:
       def_frame.interlacing = -1;
       break;
-      
+
      case POSITION_OPT:
       MARK_CH(frame, CH_POSITION);
       def_frame.left = clp->negated ? 0 : position_x;
       def_frame.top = clp->negated ? 0 : position_y;
       break;
-      
+
      case SAME_POSITION_OPT:
       def_frame.left = -1;
       def_frame.top = -1;
       break;
-      
+
      case 't':
       MARK_CH(frame, CH_TRANSPARENT);
       if (clp->negated)
@@ -1278,11 +1278,11 @@ main(int argc, char **argv)
 	def_frame.transparent.haspixel = parsed_color.haspixel ? 2 : 1;
       }
       break;
-      
+
      case SAME_TRANSPARENT_OPT:
       def_frame.transparent.haspixel = 0;
       break;
-      
+
      case BACKGROUND_OPT:
       MARK_CH(output, CH_BACKGROUND);
       if (clp->negated) {
@@ -1293,12 +1293,12 @@ main(int argc, char **argv)
 	def_output_data.background.haspixel = parsed_color.haspixel ? 2 : 1;
       }
       break;
-      
+
      case SAME_BACKGROUND_OPT:
       MARK_CH(output, CH_BACKGROUND);
       def_output_data.background.haspixel = 0;
       break;
-      
+
      case LOGICAL_SCREEN_OPT:
       MARK_CH(output, CH_LOGICAL_SCREEN);
       if (clp->negated)
@@ -1308,12 +1308,12 @@ main(int argc, char **argv)
 	def_output_data.screen_height = dimensions_y;
       }
       break;
-      
+
      case SAME_LOGICAL_SCREEN_OPT:
       MARK_CH(output, CH_LOGICAL_SCREEN);
       def_output_data.screen_width = def_output_data.screen_height = -1;
       break;
-      
+
      case CROP_OPT:
       if (clp->negated) goto no_crop;
       MARK_CH(frame, CH_CROP);
@@ -1329,78 +1329,78 @@ main(int argc, char **argv)
 	def_frame.crop = crop;
       }
       break;
-      
+
      no_crop:
      case SAME_CROP_OPT:
       def_frame.crop = 0;
       break;
-      
+
       /* extensions options */
-      
+
      case NO_EXTENSIONS_OPT:
       def_frame.no_extensions = 1;
       break;
-      
+
      case SAME_EXTENSIONS_OPT:
       def_frame.no_extensions = 0;
       break;
-      
+
      case EXTENSION_OPT:
       if (!handle_extension(clp, 0))
 	goto bad_option;
       break;
-      
+
      case APP_EXTENSION_OPT:
       if (!handle_extension(clp, 1))
 	goto bad_option;
       break;
-      
+
       /* IMAGE DATA OPTIONS */
-      
+
      case FLIP_HORIZ_OPT:
       MARK_CH(frame, CH_FLIP);
       def_frame.flip_horizontal = !clp->negated;
       break;
-      
+
      case FLIP_VERT_OPT:
       MARK_CH(frame, CH_FLIP);
       def_frame.flip_vertical = !clp->negated;
       break;
-       
+
      case NO_FLIP_OPT:
       def_frame.flip_horizontal = def_frame.flip_vertical = 0;
       break;
-      
+
      case NO_ROTATE_OPT:
       def_frame.rotation = 0;
       break;
-       
+
      case ROTATE_90_OPT:
       MARK_CH(frame, CH_ROTATE);
       def_frame.rotation = 1;
       break;
-       
+
      case ROTATE_180_OPT:
       MARK_CH(frame, CH_ROTATE);
       def_frame.rotation = 2;
       break;
-      
+
      case ROTATE_270_OPT:
       MARK_CH(frame, CH_ROTATE);
       def_frame.rotation = 3;
       break;
-       
+
       /* ANIMATION OPTIONS */
-      
+
      case 'd':
       MARK_CH(frame, CH_DELAY);
       def_frame.delay = clp->negated ? 0 : clp->val.i;
       break;
-      
+
      case SAME_DELAY_OPT:
       def_frame.delay = -1;
       break;
-      
+
      case DISPOSAL_OPT:
       MARK_CH(frame, CH_DISPOSAL);
       if (clp->negated)
@@ -1410,11 +1410,11 @@ main(int argc, char **argv)
       else
 	def_frame.disposal = clp->val.i;
       break;
-      
+
      case SAME_DISPOSAL_OPT:
       def_frame.disposal = -1;
       break;
-      
+
      case 'l':
       MARK_CH(output, CH_LOOPCOUNT);
       if (clp->negated)
@@ -1422,12 +1422,12 @@ main(int argc, char **argv)
       else
 	def_output_data.loopcount = (clp->have_arg ? clp->val.i : 0);
       break;
-      
+
      case SAME_LOOPCOUNT_OPT:
       MARK_CH(output, CH_LOOPCOUNT);
       def_output_data.loopcount = -2;
       break;
-      
+
      case OPTIMIZE_OPT:
       MARK_CH(output, CH_OPTIMIZE);
       if (clp->negated)
@@ -1435,12 +1435,12 @@ main(int argc, char **argv)
       else
 	def_output_data.optimizing = (clp->have_arg ? clp->val.i : 1);
       break;
-      
+
      case UNOPTIMIZE_OPT:
       UNCHECKED_MARK_CH(input, CH_UNOPTIMIZE);
       unoptimizing = clp->negated ? 0 : 1;
       break;
-      
+
       /* WHOLE-GIF OPTIONS */
 
      case CAREFUL_OPT: {
@@ -1452,7 +1452,7 @@ main(int argc, char **argv)
        }
        break;
      }
-      
+
      case CHANGE_COLOR_OPT: {
        next_input |= CH_CHANGE_COLOR;
        if (clp->negated)
@@ -1465,7 +1465,7 @@ main(int argc, char **argv)
 	   (input_transforms, parsed_color, parsed_color2);
        break;
      }
-     
+
      case COLOR_TRANSFORM_OPT:
       next_output |= CH_COLOR_TRANSFORM;
       if (clp->negated)
@@ -1475,7 +1475,7 @@ main(int argc, char **argv)
 	output_transforms = append_color_transform
 	  (output_transforms, &pipe_color_transformer, clp->arg);
       break;
-      
+
      case COLORMAP_OPT:
       MARK_CH(output, CH_COLORMAP);
       if (clp->negated)
@@ -1489,7 +1489,7 @@ main(int argc, char **argv)
 	}
       }
       break;
-      
+
      case USE_COLORMAP_OPT:
       MARK_CH(output, CH_USE_COLORMAP);
       Gif_DeleteColormap(def_output_data.colormap_fixed);
@@ -1498,17 +1498,17 @@ main(int argc, char **argv)
       else
 	set_new_fixed_colormap(clp->arg);
       break;
-      
+
      case COLORMAP_ALGORITHM_OPT:
       MARK_CH(output, CH_COLORMAP_METHOD);
       def_output_data.colormap_algorithm = clp->val.i;
       break;
-      
+
      case DITHER_OPT:
       MARK_CH(output, CH_DITHER);
       def_output_data.colormap_dither = !clp->negated;
       break;
-      
+
      case RESIZE_OPT:
       MARK_CH(output, CH_RESIZE);
       if (clp->negated)
@@ -1522,7 +1522,7 @@ main(int argc, char **argv)
 	def_output_data.resize_height = dimensions_y;
       }
       break;
-      
+
      case RESIZE_WIDTH_OPT:
       MARK_CH(output, CH_RESIZE);
       if (clp->negated)
@@ -1536,7 +1536,7 @@ main(int argc, char **argv)
 	def_output_data.resize_height = 0;
       }
       break;
-      
+
      case RESIZE_HEIGHT_OPT:
       MARK_CH(output, CH_RESIZE);
       if (clp->negated)
@@ -1550,7 +1550,7 @@ main(int argc, char **argv)
 	def_output_data.resize_height = clp->val.u;
       }
       break;
-      
+
      case SCALE_OPT:
       MARK_CH(output, CH_RESIZE);
       if (clp->negated)
@@ -1564,17 +1564,17 @@ main(int argc, char **argv)
 	def_output_data.scale_y = parsed_scale_factor_y;
       }
       break;
-      
+
       /* RANDOM OPTIONS */
-      
+
      case NO_WARNINGS_OPT:
       no_warnings = !clp->negated;
       break;
-      
+
      case WARNINGS_OPT:
       no_warnings = clp->negated;
       break;
-      
+
      case VERSION_OPT:
 #ifdef GIF_UNGIF
       printf("LCDF Gifsicle %s (ungif)\n", VERSION);
@@ -1587,12 +1587,12 @@ There is NO warranty, not even for merchantability or fitness for a\n\
 particular purpose.\n");
       exit(EXIT_OK);
       break;
-      
+
      case HELP_OPT:
       usage();
       exit(EXIT_OK);
       break;
-      
+
      case OUTPUT_OPT:
       MARK_CH(output, CH_OUTPUT);
       if (strcmp(clp->arg, "-") == 0)
@@ -1600,43 +1600,43 @@ particular purpose.\n");
       else
 	def_output_data.output_name = clp->arg;
       break;
-      
+
       /* NONOPTIONS */
-      
+
      case Clp_NotOption:
       if (clp->arg[0] != '#' || !frame_argument(clp, clp->arg)) {
 	input_done();
 	input_stream(clp->arg);
       }
       break;
-      
+
      case Clp_Done:
       goto done;
-      
+
      bad_option:
      case Clp_BadOption:
       short_usage();
       exit(EXIT_USER_ERR);
       break;
-      
+
      default:
       break;
-      
+
     }
   }
-  
+
  done:
-  
+
   if (next_output)
     combine_output_options();
   if (!files_given)
     input_stream(0);
-  
+
   frame_change_done();
   input_done();
   if (mode == MERGING)
     output_frames();
-  
+
   verbose_endline();
   print_useless_options("frame", next_frame, frame_option_types);
   print_useless_options("input", next_input, input_option_types);

@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int bakvec_(integer *nm, integer *n, doublereal *t, 
+/* Subroutine */ int bakvec_(integer *nm, integer *n, doublereal *t,
 	doublereal *e, integer *m, doublereal *z__, integer *ierr)
 {
     /* System generated locals */
@@ -53,20 +53,20 @@
 
 /*        IERR IS SET TO */
 /*          ZERO       FOR NORMAL RETURN, */
-/*          2*N+I      IF E(I) IS ZERO WITH T(I,1) OR T(I-1,3) NON-ZERO. 
+/*          2*N+I      IF E(I) IS ZERO WITH T(I,1) OR T(I-1,3) NON-ZERO.
 */
-/*                     IN THIS CASE, THE SYMMETRIC MATRIX IS NOT SIMILAR 
+/*                     IN THIS CASE, THE SYMMETRIC MATRIX IS NOT SIMILAR
 */
 /*                     TO THE ORIGINAL MATRIX, AND THE EIGENVECTORS */
 /*                     CANNOT BE FOUND BY THIS PROGRAM. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

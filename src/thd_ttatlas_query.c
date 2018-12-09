@@ -1732,7 +1732,7 @@ char * get_linkrbrain_site(void)
 /*--------------------------------------------------------------------*/
 
 /* show links out to linkrbrain */
-/* linkrbrain server has been down for quite a while. 
+/* linkrbrain server has been down for quite a while.
  * Default to not try - DRG 08 Nov 2017 */
 int
 show_linkrbrain_link()
@@ -3594,7 +3594,7 @@ AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *atlas_name, char
    aar->N_chnks = 0;
    aar->chnks = NULL;
 
-#if 0 
+#if 0
 took out number checking and processing for D99 macaque atlas
 not sure why it was there in the first place!
    int  isnum=0;
@@ -3608,7 +3608,7 @@ not sure why it was there in the first place!
 /* printf("atlas is all numbers %s, %d\n", lbl,aar->id);*/
 
 /*       isnum = atoi(lbl);
-      free(lbl); lbl = NULL; 
+      free(lbl); lbl = NULL;
       if (aar->id && isnum != aar->id) {
          ERROR_message("Information conflict!");
          RETURN(Free_Atlas_Region(aar)) ;
@@ -6775,7 +6775,7 @@ char *NoLeftRight (char *name)
 
 /* get atlas name type - show either short name, long name or both together
  * This applies to individual region labels like
-*   amyl, amygdala or "amyl amygdala" */ 
+*   amyl, amygdala or "amyl amygdala" */
 int Atlas_name_type()
 {
    char *nametype;
@@ -6786,7 +6786,7 @@ int Atlas_name_type()
 
    /* maybe name something else? */
    nametype = my_getenv("AFNI_ATLAS_NAME_TYPE");
- 
+
 //   atlas_name_code = 0;
    atlas_name_code = 2;  /* make default - show both name - short name and long name */
 
@@ -6815,19 +6815,19 @@ char *Atlas_name_choice(ATLAS_POINT *atp)
 
    /* get environment setting for name, long name or both names */
    switch(Atlas_name_type()){
-     /* just the long name */ 
+     /* just the long name */
       case 1:
-          if (atp->longname && strlen(atp->longname))          
+          if (atp->longname && strlen(atp->longname))
              sprintf(tmps, "%s", atp->longname);
           else
-             sprintf(tmps, "%s", atp->name);               
+             sprintf(tmps, "%s", atp->name);
           break;
       /* combination - both name and long name with brackets around long name*/
       case 2:
           if (atp->longname && strlen(atp->longname))
              sprintf(tmps, "%s [%s]", atp->name, atp->longname);
           else
-             sprintf(tmps, "%s", atp->name);               
+             sprintf(tmps, "%s", atp->name);
           break;
       /* just the short, original name */
       case 0:
@@ -7491,7 +7491,7 @@ byte is_probabilistic_atlas(ATLAS *atlas) {
 }
 
 /* return the label associated with a key,
-   see also Atlas_Val_Key_to_Val_Name 
+   see also Atlas_Val_Key_to_Val_Name
 *  main function to get label from index key*/
 char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac) {
    char *klab = NULL;
@@ -9359,7 +9359,7 @@ int AFNI_get_dset_label_ival(THD_3dim_dataset *dset, int *val, char *str)
 /* Fill the int_list with a single label value or an expanded list
  *
  * return: -1 on error, else number of ints found
- * 
+ *
  * needs expanding
 */
 int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
@@ -9402,7 +9402,7 @@ int thd_LT_label_to_int_list(THD_3dim_dataset *dset, int_list *ilist, char *str)
 
 /* top-level function for converting globally known labels to a corresponding
  * list of ints
- * 
+ *
  * e.g. AFNI_GLAB_FS5_WM might expand to a list of FreeSurfer 5 WM values
  * e.g. AFNI_GLAB_FS6_WM might be useful if FreeSurfer 6 changes the numbers
  *

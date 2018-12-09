@@ -30,7 +30,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -156,7 +156,7 @@ GOPStoMPEG(numGOPS, outputFileName, outputFilePtr)
       if (Fsize_x == 0 || Fsize_y == 0) {
 	Fsize_Note(0, x, y);
       }}
-    
+
     bb = Bitio_New(outputFilePtr);
 
     Mhead_GenSequenceHeader(bb, Fsize_x, Fsize_y, /* pratio */ aspectRatio,
@@ -176,7 +176,7 @@ GOPStoMPEG(numGOPS, outputFileName, outputFilePtr)
 
 	    for (q = 0;   q < READ_ATTEMPTS;  ++q ) {
 	      if ( (inputFile = fopen(fileName, "rb")) != NULL ) break;
-	      fprintf(stderr, "ERROR:  Couldn't read (GOPStoMPEG):  %s retry %d\n", 
+	      fprintf(stderr, "ERROR:  Couldn't read (GOPStoMPEG):  %s retry %d\n",
 		      fileName, q);
 	      fflush(stderr);
 	      sleep(1);
@@ -185,7 +185,7 @@ GOPStoMPEG(numGOPS, outputFileName, outputFilePtr)
 	      fprintf(stderr, "Giving up (%d attepmts).\n", READ_ATTEMPTS);
 	      exit(1);
 	    }
-	    
+
 	    if (! realQuiet) {
 	    	fprintf(stdout, "appending file:  %s\n", fileName);
 	    }
@@ -313,7 +313,7 @@ FramesToMPEG(numFrames, outputFileName, outputFile, parallel)
 			   /* user_data */ NULL, /* user_data_size */ 0);
 		Bitio_Flush(bb);
 		SetGOPStartTime(ind);
-		
+
 		currentGOP -= gopSize;
 	    }
 
@@ -335,7 +335,7 @@ FramesToMPEG(numFrames, outputFileName, outputFile, parallel)
 	      fprintf(stderr, "Giving up (%d attepmts).\n", READ_ATTEMPTS);
 	      exit(1);
 	    }
-	    
+
 	    AppendFile(outputFile, inputFile);
 	    if ( parallel ) {
 		remove(fileName);
@@ -360,7 +360,7 @@ FramesToMPEG(numFrames, outputFileName, outputFile, parallel)
 
 		    for (q = 0;   q < READ_ATTEMPTS;  ++q ) {
 		      if ( (inputFile = fopen(fileName, "rb")) != NULL ) break;
-		      fprintf(stderr, "ERROR:  Couldn't read (bNum=%d):  %s retry %d\n", 
+		      fprintf(stderr, "ERROR:  Couldn't read (bNum=%d):  %s retry %d\n",
 			      bNum, fileName, q);
 		      fflush(stderr);
 		      sleep(1);
@@ -369,12 +369,12 @@ FramesToMPEG(numFrames, outputFileName, outputFile, parallel)
 		      fprintf(stderr, "Giving up (%d attepmts).\n", READ_ATTEMPTS);
 		      exit(1);
 		    }
-		    
+
 		    AppendFile(outputFile, inputFile);
 		    if ( parallel ) {
 			remove(fileName);
 		    }
-			
+
 		    currentGOP++;
 		    IncrementTCTime();
 		}
@@ -445,7 +445,7 @@ FramesToMPEG(numFrames, outputFileName, outputFile, parallel)
 
 		    for (q = 0;   q < READ_ATTEMPTS;  ++q ) {
 		      if ( (inputFile = fopen(fileName, "rb")) != NULL ) break;
-		      fprintf(stderr, "ERROR:  Couldn't read (FramestoMPEG):  %s retry %d\n", 
+		      fprintf(stderr, "ERROR:  Couldn't read (FramestoMPEG):  %s retry %d\n",
 			      fileName, q);
 		      fflush(stderr);
 		      sleep(1);

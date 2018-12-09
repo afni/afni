@@ -129,7 +129,7 @@ static void
 char* reason;
 {
 #if 0
-  extern char* sys_errlist[]; 
+  extern char* sys_errlist[];
   extern int errno;
   char* e;
 
@@ -233,7 +233,7 @@ FILE* file;
       (void) fprintf( stderr, "%s: EOF / read error\n", progname );
       return EOF;
     }
-    
+
   if ( ich == '#' )
     {
       do
@@ -544,7 +544,7 @@ int format;
 	  *gP = val;
 	}
       break;
-	
+
     case RPGM_FORMAT:
       if ( fread( grayrow, 1, cols, file ) != cols )
 	{
@@ -1222,7 +1222,7 @@ int* colorsP;
 	    cht[hash] = chl;
 	  }
       }
-    
+
   return cht;
 }
 

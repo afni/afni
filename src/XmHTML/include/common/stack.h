@@ -10,7 +10,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,7 +34,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
@@ -42,7 +42,7 @@
 * Revision 1.1  1998/04/04 06:27:26  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _stack_h_
 #define _stack_h_

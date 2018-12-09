@@ -52,7 +52,7 @@ int LS_decode_parameters(char *str, float *params)
    RETURN(iparams);
 }
 
-void usage_3dLocalstat(int detail) 
+void usage_3dLocalstat(int detail)
 {
         printf(
 "Usage: 3dLocalstat [options] dataset\n"
@@ -193,8 +193,8 @@ void usage_3dLocalstat(int detail)
 "                           of values that went into the histogram.\n"
 "                           That would be the number of non-masked voxels\n"
 "                           in the neighborhood if outliers are NOT\n"
-"                           ignored (default).\n" 
-"                       For histograms of labeled datasets, use 3dLocalHistog\n" 
+"                           ignored (default).\n"
+"                       For histograms of labeled datasets, use 3dLocalHistog\n"
 "\n"
 "               More than one '-stat' option can be used.\n"
 "\n"
@@ -277,7 +277,7 @@ int main( int argc , char *argv[] )
                        "mode;nzmode;filled;unfilled;has_mask;has_mask2;ALL;" };
    THD_3dim_dataset *inset=NULL , *outset ;
    int ncode=0 , code[MAX_NCODE] , iarg=1 , ii ;
-   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1], 
+   float codeparams[MAX_NCODE][MAX_CODE_PARAMS+1],
          redx[3]={0.0, 0.0, 0.0}, mxvx=0.0;
    MCW_cluster *nbhd=NULL ;
    byte *mask=NULL ; int mask_nx=0,mask_ny=0,mask_nz=0 , automask=0 ;
@@ -314,7 +314,7 @@ int main( int argc , char *argv[] )
         usage_3dLocalstat(strlen(argv[iarg])>3 ? 2:1);
         exit(0);
      }
-      
+
      if( strncmp(argv[iarg],"-q",2) == 0 ){
        verb = 0 ; iarg++ ; continue ;
      }
@@ -398,16 +398,16 @@ int main( int argc , char *argv[] )
        automask = 1 ;
        iarg++ ; continue ;
      }
-     
+
      /* Some -stat options must be processed after input and neighborhoods
         are generated, so brief check here followed by processing below */
      if( strcmp(argv[iarg],"-stat") == 0 ){
        char *cpt, padname[128]={""};
-       
+
        int iizz;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-stat'") ;
 
-       cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ; 
+       cpt = argv[iarg] ; if( *cpt == '-' ) cpt++ ;
        snprintf(padname,126,"%s;", cpt);
        if ( strncmp(cpt,"perc:",5) && strncmp(cpt,"hist:",5) &&
            !strcasestr(allstats, padname)) {
@@ -415,7 +415,7 @@ int main( int argc , char *argv[] )
        }
        ncode = 1; /* Have something, set fully later */
        iarg++ ; continue ;
-     }  
+     }
 
      if( strcmp(argv[iarg],"-nbhd") == 0 ){
        char *cpt ;
@@ -445,19 +445,19 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
-     
-     if( strcmp(argv[iarg],"-reduce_grid") == 0 || 
+
+     if( strcmp(argv[iarg],"-reduce_grid") == 0 ||
          strcmp(argv[iarg],"-reduce_restore_grid") == 0 ){
        if (strcmp(argv[iarg],"-reduce_restore_grid") == 0) restore_grid = 1;
-       
-       if( ++iarg >= argc ) 
+
+       if( ++iarg >= argc )
          ERROR_exit( "Need 1 or 3 arguments after '-reduce_grid' "
                      "or '-reduce_restore_grid'") ;
 
-       redx[0] = (float)strtod(argv[iarg],NULL); redx[2] = redx[1] = redx[0]; 
-       if( iarg+2 < argc && *(argv[iarg+1]) != '-' && *(argv[iarg+2]) != '-') { 
+       redx[0] = (float)strtod(argv[iarg],NULL); redx[2] = redx[1] = redx[0];
+       if( iarg+2 < argc && *(argv[iarg+1]) != '-' && *(argv[iarg+2]) != '-') {
          redx[1] = (float)strtod(argv[++iarg],NULL);
-         redx[2] = (float)strtod(argv[++iarg],NULL); 
+         redx[2] = (float)strtod(argv[++iarg],NULL);
        }
        if (redx[0] < 1.0 || redx[1] < 1.0 || redx[2] < 1.0) {
          ERROR_exit("Bad values for -reduce_grid %f %f %f \n"
@@ -466,15 +466,15 @@ int main( int argc , char *argv[] )
        }
        iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-reduce_max_vox") == 0) {
-      if( ++iarg >= argc ) 
+      if( ++iarg >= argc )
          ERROR_exit( "Need 1 argument after '-reduce_max_vox' ") ;
       mxvx = (float)strtod(argv[iarg],NULL);
       restore_grid = 1;
       iarg++ ; continue ;
-     }     
-     
+     }
+
      if( strcmp(argv[iarg],"-grid_rmode") == 0) {
         if( ++iarg >= argc ) ERROR_exit("Need argument after '-grid_rmode'") ;
         if ( ( (resam_mode = resam_str2mode(argv[iarg]) ) < 0 ) ||
@@ -482,7 +482,7 @@ int main( int argc , char *argv[] )
              ERROR_exit("invalid resample mode <%s>\n", argv[iarg] );
         iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-fillvalue") == 0) {
         if( ++iarg >= argc ) ERROR_exit("Need argument after '-fillvalue'") ;
         fillvalue = strtod(argv[iarg],NULL);
@@ -519,8 +519,8 @@ int main( int argc , char *argv[] )
    if (argc < 2) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
-   }  
-   
+   }
+
    /*---- check for stupid user inputs ----*/
 
    if( ncode <= 0 ) ERROR_exit("No '-stat' options given?");
@@ -557,7 +557,7 @@ int main( int argc , char *argv[] )
      ntype = NTYPE_SPHERE ; na = -1.01f ;
      if( verb ) INFO_message("Using default neighborhood = self + 6 neighbors") ;
    }
-   
+
    if (mxvx) {
       redx[0] = redx[1] = redx[2] = 1.0;
    }
@@ -617,8 +617,8 @@ int main( int argc , char *argv[] )
                         dz = fabsf(DSET_DZ(inset)) ; }
        nbhd = MCW_tohdmask( dx,dy,dz , na ) ;
        if (mxvx) {
-         if (na/dx > mxvx) redx[0] = na / (mxvx * dx); 
-         if (nb/dy > mxvx) redx[1] = nb / (mxvx * dy); 
+         if (na/dx > mxvx) redx[0] = na / (mxvx * dx);
+         if (nb/dy > mxvx) redx[1] = nb / (mxvx * dy);
          if (nc/dz > mxvx) redx[2] = nc / (mxvx * dz);
        }
      }
@@ -629,10 +629,10 @@ int main( int argc , char *argv[] )
    if (verb > 1) {
       MCW_showmask (nbhd, NULL, NULL, stderr);
    }
-   if( verb && redx[0] > 0.0) 
-      INFO_message("Computing grid reduction: %f %f %f (%f)\n", 
+   if( verb && redx[0] > 0.0)
+      INFO_message("Computing grid reduction: %f %f %f (%f)\n",
                      redx[0], redx[1], redx[2], mxvx);
-   
+
    /* Now figure out what is needed for holding output */
    ncode = 0; iarg = 1;
    while( iarg < argc ){
@@ -689,7 +689,7 @@ int main( int argc , char *argv[] )
                        "stat is processed");
           }
           for (ipv=0; ipv<nbhd->num_pt; ++ipv)  code[ncode++] = NSTAT_LIST;
-       } 
+       }
        else if( strncasecmp(cpt,"hist",4) == 0) {
           /* How many you say? */
          if (LS_decode_parameters(cpt, codeparams[ncode]) <= 0) {
@@ -712,7 +712,7 @@ int main( int argc , char *argv[] )
          /*
          fprintf(stderr,
           "codeparams[%d][..]=[npar=%d min=%f max=%f N=%d ignore_outliers=%d]\n",
-                  ncode, (int)codeparams[ncode][0],      codeparams[ncode][1], 
+                  ncode, (int)codeparams[ncode][0],      codeparams[ncode][1],
                               codeparams[ncode][2], (int)codeparams[ncode][3],
                          (int)codeparams[ncode][4]); */
          stp = (int)codeparams[ncode][3];
@@ -758,7 +758,7 @@ int main( int argc , char *argv[] )
          code[ncode++] = NSTAT_SUM   ; code[ncode++] = NSTAT_MODE   ;
          code[ncode++] = NSTAT_FWHMx ; code[ncode++] = NSTAT_FWHMy ;
          code[ncode++] = NSTAT_FWHMz ; do_fwhm++ ;
-         code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ; 
+         code[ncode++] = NSTAT_RANK  ; code[ncode++] = NSTAT_FRANK ;
          code[ncode++] = NSTAT_P2SKEW; code[ncode++] = NSTAT_KURT  ;
          code[ncode++] = NSTAT_NZNUM ; code[ncode++] = NSTAT_FNZNUM;
        }
@@ -769,7 +769,7 @@ int main( int argc , char *argv[] )
    }
    if( ncode <= 0 ) ERROR_exit("No '-stat' options given???");
 
-    
+
    if( !shootmyfoot && do_fwhm && nbhd->num_pt < 19 )
      ERROR_exit("FWHM requires neighborhood of at least 19 voxels!");
 
@@ -778,7 +778,7 @@ int main( int argc , char *argv[] )
    THD_localstat_verb(verb) ;
    THD_localstat_datum(datum);
 
-   outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams, 
+   outset = THD_localstat(inset , mask , nbhd , ncode , code, codeparams,
                           redx, restore_grid == 1 ? resam_mode : -1);
    if( outset == NULL ) ERROR_exit("Function THD_localstat() fails?!") ;
 
@@ -800,9 +800,9 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_VAR]     = "VAR"  ;   lcode[NSTAT_NUM]        = "NUM"    ;
      lcode[NSTAT_FWHMx]   = "FWHMx";   lcode[NSTAT_PERCENTILE] = "PERC";
      lcode[NSTAT_FWHMy]   = "FWHMy";   lcode[NSTAT_SUM]        = "SUM"    ;
-     lcode[NSTAT_FWHMz]   = "FWHMz";   lcode[NSTAT_FWHMbar]    = "FWHMavg"; 
+     lcode[NSTAT_FWHMz]   = "FWHMz";   lcode[NSTAT_FWHMbar]    = "FWHMavg";
      lcode[NSTAT_RANK]    = "RANK" ;   lcode[NSTAT_FRANK]      = "FRANK";
-     lcode[NSTAT_P2SKEW]  = "P2skew";  lcode[NSTAT_KURT]       = "KURT"; 
+     lcode[NSTAT_P2SKEW]  = "P2skew";  lcode[NSTAT_KURT]       = "KURT";
      lcode[NSTAT_mMP2s0]  = "MEDIAN";  lcode[NSTAT_mMP2s1]     = "MAD";
      lcode[NSTAT_mMP2s2]  = "P2skew";  lcode[NSTAT_mmMP2s0]    = "MEAN";
      lcode[NSTAT_mmMP2s1] = "MEDIAN";  lcode[NSTAT_mmMP2s2]    = "MAD";
@@ -811,12 +811,12 @@ int main( int argc , char *argv[] )
      lcode[NSTAT_FILLED]  = "FILLED";  lcode[NSTAT_UNFILLED]   = "UNFILLED" ;
      lcode[NSTAT_MASKED]  = "HAS_MASK";  lcode[NSTAT_MASKED2]   = "HAS_MASK2" ;
      lcode[NSTAT_diffs0]  = "AvgDif";  lcode[NSTAT_diffs1]     = "MinDif";
-                                       lcode[NSTAT_diffs2]     = "MaxDif"; 
+                                       lcode[NSTAT_diffs2]     = "MaxDif";
      lcode[NSTAT_adiffs0] = "Avg|Dif|";lcode[NSTAT_adiffs1]    = "Min|Dif|";
                                        lcode[NSTAT_adiffs2]    = "Max|Dif|";
-     lcode[NSTAT_LIST]    = "list";    lcode[NSTAT_HIST]       = "hist"; 
+     lcode[NSTAT_LIST]    = "list";    lcode[NSTAT_HIST]       = "hist";
      lcode[NSTAT_MODE]    = "MODE";    lcode[NSTAT_NZMODE]     = "NZMODE";
-     
+
      if( DSET_NVALS(inset) == 1 ){
        ii=0;
        while(ii < DSET_NVALS(outset)) {

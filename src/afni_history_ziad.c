@@ -8,9 +8,9 @@
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
@@ -52,16 +52,16 @@
    And it might help eradicate misery from this world.
    Did I also mention that it can fit on the first line
    beautfully, right after the short string? WOW!
-   - We should probably start building a program list. To make sure 
-   that we have no typos there. We can have users add to that list 
-   whenever they introduce a program for the first time. This way 
-   nobody has to do it at once. 
-   - Also, we need to have special 'program names' like: 
+   - We should probably start building a program list. To make sure
+   that we have no typos there. We can have users add to that list
+   whenever they introduce a program for the first time. This way
+   nobody has to do it at once.
+   - Also, we need to have special 'program names' like:
    "afni-general", "suma-general", "general"
    or perhaps
    "AFNI", "SUMA", "ALL"
    these would be used to refer to package-wide changes.
-*/ 
+*/
 
 afni_history_struct ziad_history[] = {
 /*=====BELOW THIS LINE=====*/
@@ -273,7 +273,7 @@ afni_history_struct ziad_history[] = {
 
  { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_NEW_OPT,
    "Made program output centrality measures with -do o .",
-   "Documentaiton hidden until option is ready for mass usage." 
+   "Documentaiton hidden until option is ready for mass usage."
  },
 
  { 21, Jan, 2015, ZSS, "3dGenPriors", MICRO, TYPE_MODIFY,
@@ -283,62 +283,62 @@ afni_history_struct ziad_history[] = {
 
  { 21, Jan, 2015, ZSS, "3dSkullStrip", MICRO, TYPE_BUG_FIX,
    "Made program take sub-brick selectors at input.",
-   "Involved bringing SUMA_AfniExists() and SUMA_AfniPrefix() from stone age." 
+   "Involved bringing SUMA_AfniExists() and SUMA_AfniPrefix() from stone age."
  },
 
  { 16, Jan, 2015, ZSS, "3dHist", MICRO, TYPE_NEW_OPT,
    "Added -get outl",
-   "Included fixing returned values in SUMA_hist_value() when out of bounds." 
+   "Included fixing returned values in SUMA_hist_value() when out of bounds."
  },
 
  { 15, Jan, 2015, ZSS, "imcat", MICRO, TYPE_NEW_OPT,
    "-zero_wrap, and -gray_wrap for padding with black, white, or gray levels.",
-   NULL 
+   NULL
  },
 
  { 15, Jan, 2015, ZSS, "@ExamineGenFeatDists", MICRO, TYPE_NEW_OPT,
    "Added option -nx, padding with white, fixed couple of small glitches too.",
-   NULL 
+   NULL
  },
 
  { 13, Jan, 2015, ZSS, "afni-general", MICRO, TYPE_MODIFY,
    "Made R_io.so loading error a little more helpful.",
-   NULL 
+   NULL
  },
 
  { 9, Jan, 2015, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Made sure neighborhoods containing central voxel return its value 1st.",
-   NULL 
+   NULL
  },
 
  { 9, Jan, 2015, ZSS, "suma-general", MINOR, TYPE_MODIFY,
    "Released new documentation to the wild.",
-   NULL 
+   NULL
  },
 
  { 9, Jan, 2015, ZSS, "3dLocalstat", MINOR, TYPE_MODIFY,
    "Added -*diffs options for computing local differences",
-   NULL 
+   NULL
  },
 
  { 29, Dec, 2014, ZSS, "suma-general", MINOR, TYPE_MODIFY,
    "Lot of additions to SphinxDocs/SUMA, plus auto-doc for SUMA controller",
-   NULL 
+   NULL
  },
 
  { 29, Dec, 2014, ZSS, "afni_open", MICRO, TYPE_MODIFY,
    "Made it open local .html files",
-   NULL 
+   NULL
  },
 
  { 22, Dec, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added All Objs button to initialize controllers for all objects if desired",
-   NULL 
+   NULL
  },
 
  { 10, Dec, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
    "Added -autocrop* options",
-   NULL 
+   NULL
  },
 
  { 4, Dec, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
@@ -346,23 +346,23 @@ afni_history_struct ziad_history[] = {
    "No so good for openGL colors. Negative values get clamped at 0.\n"
    "Default coloring is now ABS(X|Y|Z) now."
  },
- 
+
  { 4, Dec, 2014, ZSS, "3dinfo", MINOR, TYPE_NEW_OPT,
    "Added -handedness option.",
    NULL
  },
- 
+
  { 26, Nov, 2014, ZSS, "3danisosmooth", MINOR, TYPE_NEW_OPT,
    "Output of diffusion measures, along with adjustment of debug volumes",
    "For details, see tersely named option  -save_temp_with_diff_measures, \n"
    "along with modified help for -savetempdata"
  },
- 
+
  { 24, Nov, 2014, ZSS, "3dRetinoPhase", MINOR, TYPE_BUG_FIX,
    "Fixed floating point precision error that resulted in error message",
    NULL
  },
- 
+
  { 24, Nov, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Fixed clash between matrix.h and matrix_f.h",
    "Clash was my own doing, I had introduced it by including matrix.h\n"
@@ -370,7 +370,7 @@ afni_history_struct ziad_history[] = {
    "now. Care must be taken to include matrix_f.h early in a .c file and\n"
    "that would stop the inclusion of matrix.h from suma_*.h files."
  },
- 
+
  { 21, Nov, 2014, ZSS, "afni-general", MAJOR, TYPE_MODIFY,
    "More and more and more changes to the -help",
    "Devised system to simplify, so to speak, the generation of \n"
@@ -379,17 +379,17 @@ afni_history_struct ziad_history[] = {
   "See program 3dToyProg.c for an example on how to write help for C programs.\n"
    "See also Writing_Help.rst for more details."
  },
- 
+
  { 11, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "GraphCont->CN->Col now abide by the 'u' selection for unconnected nodes",
    NULL
  },
- 
+
  { 11, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Made matrix display labels track selection",
    NULL
  },
- 
+
  { 4, Nov, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Continued modifications for help generating functions, now with selfies",
    "Now SUMA can take selfies of the varied widget frames, making the  \n"
@@ -397,73 +397,73 @@ afni_history_struct ziad_history[] = {
    "of ISQ_snapfile() called ISQ_snapfile2() and a rendering of a colormap\n"
    "in X11. Search for Fake_Cmap for relevant locations in C code."
  },
- 
+
  { 17, Oct, 2014, ZSS, "suma", MAJOR, TYPE_GENERAL,
    "Modifications for help generating functions",
    "New tools allow for automatic Sphinx formatted documentation straight \n"
    "from BHelp buttons. Added scrolling to arrow fields."
  },
- 
+
  { 17, Oct, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Added -load_masks, -save_masks, and -masks for driving tract controller",
    "Options help in creating all GUI help and herald the automation of the \n"
    "tract and tract masking controller."
  },
- 
+
  { 17, Oct, 2014, ZSS, "afni-general", MAJOR, TYPE_GENERAL,
    "Checked in first pass of SUMA sphinx documentation",
    "GUI documentaiton is automatically generated from BHelp text."
  },
- 
+
  { 15, Oct, 2014, ZSS, "imcat", MINOR, TYPE_NEW_OPT,
    "Added -respad_in, -gscale, and -pad_val options",
    "Proces involved modifications to mri_read_resamp_many_files(),\n"
    "mri_zeropad_2D(), and a new mri_valpad_2D(). See imcat -help for details."
  },
- 
+
  { 10, Oct, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added directions and point clouds as DOs",
    "See interactive help for #directions, #points"
  },
- 
+
  { 7, Oct, 2014, ZSS, "AFNIio.R", MINOR, TYPE_NEW_OPT,
    "Allowed specification and inheritance of TR in write functions",
    NULL
  },
- 
+
  { 30, Sep, 2014, ZSS, "suma", MAJOR, TYPE_BUG_FIX,
    "Fixed bug with NUMLOCK keeping surfaces from rotating on linux!",
    NULL
  },
- 
+
  { 30, Sep, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Now show bundles labels recently added to FATCAT",
    NULL
  },
- 
+
  { 24, Sep, 2014, ZSS, "ConvertSurface", MICRO, TYPE_BUG_FIX,
    "Fixed bug with line projection of coordinates.",
    NULL
  },
- 
+
  { 23, Sep, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Allowed interactive cluster thresholding by node number (-ve Area value)",
    "Previously this was possible only via command line's -n option.\n"
    "Command line now also supports negative -amm2 values if -n is not set.\n"
  },
- 
+
  { 22, Sep, 2014, ZSS, "3dGenFeatureDist", MINOR, TYPE_NEW_OPT,
    "Added -hspec to explicitly set histogram generation parameters",
    NULL
  },
- 
+
  { 17, Sep, 2014, ZSS, "ConvertSurface", MINOR, TYPE_NEW_OPT,
    "Added -pc_proj and -node_depth options.",
    "These options are meant to help localizing seeds along DBS electrodes.\n"
    "Relevant C code functions: SUMA_NodeDepth(), SUMA_Project_Coords_PCA()\n"
    "and SUMA_*_PC_XYZ_Proj()\n"
  },
-  
+
  { 17, Sep, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "A few miscellaneous errors here and there",
    "One was caused by extra space in driver command\n"
@@ -471,125 +471,125 @@ afni_history_struct ziad_history[] = {
    "followed by a command line drive command.\n"
    "Intersection parameters were not fully initialized under some conditions.\n"
  },
-  
+
  { 16, Sep, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Use of percentiles in range settings was broken. That is no more.",
    "Problem was caused by reliance on colp->V without resetting it\n"
    "when a new range was set. That is because colp->V gets clamped\n"
    "by the range of values being set."
  },
-  
+
  { 12, Sep, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Crosshair mismatch when prying surfs in multiple linked viewers",
    NULL
  },
-  
+
  { 12, Sep, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed crash caused by toggling off 'I' selection for volumes",
    NULL
  },
-  
+
  { 03, Sep, 2014, ZSS, "3dSetupGroupInCorr", MINOR, TYPE_BUG_FIX,
    "Made -labels option work well with -LRpairs",
    NULL
  },
-  
+
  { 29, Aug, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added -drive_com to allow the driving of SUMA by its command line",
    NULL
  },
-  
+
  { 28, Aug, 2014, ZSS, "3dHist", MINOR, TYPE_NEW_OPT,
    "Added -equalized to do histogram equalization on the whole volume",
    NULL
  },
-  
+
  { 25, Aug, 2014, ZSS, "ParseName", MINOR, TYPE_NEW_OPT,
    "Added -*PrefixView, and improved -out to multi-components",
    NULL
  },
-  
+
  { 25, Aug, 2014, ZSS, "@Align_Centers", MINOR, TYPE_BUG_FIX,
    "Made program handle NIFTI input. Irrrrgh.",
    NULL
  },
-  
+
  { 5, Aug, 2014, ZSS, "@SUMA_Make_Spec_FS", MINOR, TYPE_NEW_OPT,
    "Made program handle FreeSurfer's -contrasurfreg output",
    NULL
  },
-  
+
  { 1, Aug, 2014, ZSS, "3dGenFeatureDist", MINOR, TYPE_NEW_PROG,
    "Program written a while ago, placed in the distribution now",
    NULL
  },
-  
+
  { 31, Jul, 2014, ZSS, "3dpc", MICRO, TYPE_NEW_OPT,
    "Added option -nscale to scale covariance matrix by number of samples",
    "This would make output consistent with R and matlab decompositions\n"
    "Also changed output files names for 1D files to make program not clobber\n"
    "results in .1D mode"
  },
-  
+
  { 18, Jul, 2014, ZSS, "3dTstat", MICRO, TYPE_NEW_OPT,
    "Added option -nscale to avoid scaling with byte/short output",
    NULL
  },
-  
+
  { 17, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Made ROIgrow work with single node ROIs, see help for -node_labels PER_NODE",
    NULL
  },
-  
+
  { 16, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Fixed bug with computation of tract_P0_offset_private values",
    NULL
  },
-  
+
  { 15, Jul, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Added different ways to highlight masked tracts",
    NULL
  },
-  
+
  { 11, Jul, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
    "Changes to help functions to create Sphinx friendly keypress docs ",
    "See hidden options suma -help_interactive and -help_sphinx_interactive\n"
    "for sample output."
  },
-  
+
  { 7, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
    "Made -dataTable options take text file instead of command line opts ",
    "This makes it possible to have very large tables without exceeding\n"
    "limit on command line length. File name has to begin with '@'\n"
    "in keeping with some C-language 3d progs."
  },
-  
+
  { 2, Jun, 2014, ZSS, "auto_warp", MINOR, TYPE_NEW_OPT,
    "Added -qworkhard and -qw_opts for finer control of 3dQwarp step ",
    NULL
  },
-  
- 
+
+
  { 21, May, 2014, ZSS, "3dinfo", MINOR, TYPE_NEW_OPT,
    "Option -iname to give filename as appearing on the command line",
    NULL
  },
-  
+
  { 05, May, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_HomeAfterPrying to avoid a 'home' reset with prying",
    NULL
  },
-  
+
  { 24, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Reading of OBJ file format for triangular meshes.",
    NULL
  },
-  
+
  { 24, Apr, 2014, ZSS, "AFNIio.R", MICRO, TYPE_MODIFY,
    "Improvements for write.AFNI & read.AFNI to handle 1D files more smoothly",
    "Also added 'TR' to dset.attr() function."
  },
-  
+
  { 18, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Allow graph dataset bundle references to be located based on gdset's path",
    "This way if a graph dataset named GDSET refers to a tract file TRACT \n"
@@ -597,143 +597,143 @@ afni_history_struct ziad_history[] = {
    "to load the graph, then the search for TRACT will also consider SOMEPATH/\n"
    "as an option"
  },
-  
+
  { 18, Apr, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Color map changes/thresholding changes now working with multi-viewers",
    "This was not the case before. Problem was that Texture had to be reloaded\n"
    "for all viewers displaying the volume, once the viewer's rendering context\n"
    "is current. That's all handled via per_sv_extra[]"
  },
-  
+
  { 17, Apr, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Added -controller_position to position object controller window",
    NULL
  },
-  
+
  { 17, Apr, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
    "Distinguishing  window size and glxarea size in SUMA_SurfaceViewer struct",
    "The two are slightly different in size because of window decorations.\n"
    "This correct a silly resizing of the SUMA window when a new view state is\n"
    "loaded."
  },
-  
+
  { 16, Apr, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed problem with opening new controllers when cont. window is closed",
    "See Apr. 16 2014 note in function SUMA_viewSurfaceCont()\n"
  },
-  
+
  { 16, Apr, 2014, ZSS, "3dTcorr1D", MINOR, TYPE_MODIFY,
    "Turned heart of main() into a standalone function in thd_Tcorr1D.c",
    "This way we can run the equivalent of 3dTcorr1D from other C programs\n"
    "such as 3dNetCorr"
  },
-  
+
  { 16, Apr, 2014, ZSS, "3dRprogDemo", MINOR, TYPE_NEW_PROG,
    "A toy program to show how to write a command line R program with AFNI",
    "Created to help Cesar Caballero and Natalia Petridou implement their\n"
    "Paradigm Free Mapping method."
  },
-  
+
  { 8, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added 'F10' to toggle prying axis between Z and Y",
-   NULL 
+   NULL
  },
-  
+
  { 8, Apr, 2014, ZSS, "afni", MICRO, TYPE_NEW_ENV,
    "AFNI_ICORR_UBER_USER allows access to special InstaCorr distance measures",
    "Set variable to YES to have access to special distance measures in\n"
    "the plugin"
  },
-  
+
  { 8, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_VO_InitSlices controls how volumes slices are shown at startup",
    "See ~/.sumarc for details, run suma -update_env if variable is missing."
  },
-  
+
  { 4, Apr, 2014, ZSS, "suma", MICRO, TYPE_MODIFY,
    "Improved autopositioning of surf. controller. Better with dual displays.",
    "Also canceled repositioning after very first opening of controllers"
  },
-  
+
  { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Made prying do both hinge rotation and translation",
    "Difference is in the direction of mouse motion.\n"
    "Also made vertical prying cause rotation about screen x axis for spheres"
  },
-  
+
  { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_Dset_NodeConnections controls how connections to a node are displayed",
    "See ~/.sumarc for details, run suma -update_env if variable is missing."
  },
-  
+
  { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added three modes for controlling how connections to a node are shown.",
    "This makes it possible to greatly reduce the clutter of the display.\n"
    "See menu 'CN' that controls this"
  },
-  
+
  { 4, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "A double select click makes all graph edges appear.",
    "This only has an effect if the current object in focus is a\n"
    "graph object"
  },
-  
+
  { 3, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_ENV,
    "SUMA_Dset_Font to initialize text in graph datasets",
    "See ~/.sumarc for details, run suma -update_env if variable is missing."
  },
-  
+
  { 2, Apr, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Made AFNI's crosshair changes move tract mask in SUMA",
    "This happens when the viewer is in Mask Manipulation Mode."
  },
-  
+
  { 2, Apr, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Made SUMA_crosshair_xyz carry information on overlay dataset",
    "This is in response to a request by Nick Oosterhoff"
  },
-  
+
  { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added 'F11' to allow users to set the object rendering order",
-   "This is an interactive version of env: SUMA_ObjectDisplayOrder" 
+   "This is an interactive version of env: SUMA_ObjectDisplayOrder"
  },
-  
+
  { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Implemented doppleganger for masks on pried surfaces",
-   NULL 
+   NULL
  },
-  
+
  { 28, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added prying along the horizontal direction too",
    "This is most handy when you want to travel along the \n"
    "lateral surface and still see what gives in tracts or on\n"
-   "slices." 
+   "slices."
  },
-  
+
  { 27, Mar, 2014, ZSS, "suma-general", MICRO, TYPE_NEW_ENV,
    "Added SUMA_ObjectDisplayOrder to control object display sequence",
    "This only affects the rendering in the few instances where alpha\n"
    "blending is used. Run suma -update_env then search for env in \n"
-   "~/.sumarc for details." 
+   "~/.sumarc for details."
  },
-  
+
  { 27, Mar, 2014, ZSS, "@auto_tlrc", MICRO, TYPE_NEW_OPT,
    "Added -overwrite for Stephen Robinson",
    NULL
  },
-  
+
  { 26, Mar, 2014, ZSS, "afni-general", MINOR, TYPE_NEW_OPT,
    "Shift+Control+right click in SUMA will trigger Instacorr refresh in AFNI",
    "This way you can click on an object in SUMA and still get AFNI to \n"
    "so a volumetric ICOR computation, with all accompnaying talk back to SUMA.\n"
    "etc.\n"
  },
-  
+
  { 26, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Made double-click right click outside of objects turn off mask movement",
    NULL
  },
-  
+
  { 26, Mar, 2014, ZSS, "suma-general", MINOR, TYPE_NEW_OPT,
    "Wrote a new function to handle input events",
    "New function SUMA_RecordEvent() records X events into a structure\n"
@@ -745,7 +745,7 @@ afni_history_struct ziad_history[] = {
    "qualifiers. Still need to check about handling of button swap, or \n"
    "conditions when drawing, etc."
  },
-  
+
  { 18, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Improved selection logic on slices and for graphs.",
    "Graph selection was changed so that what is rendered is selectable.\n"
@@ -757,51 +757,51 @@ afni_history_struct ziad_history[] = {
    "selection process a little, but it keeps one from selecting 'air' when\n"
    "when clicking on voxels that meet the threshold but are alpha masked.\n"
  },
-  
+
  { 17, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed residual surface shading after volume is selected.",
    "Problem was caused by residual emissivitiy colored left over \n"
    "from the highlighting of the selected slice. Also wrote functions\n"
-   "SUMA_DiffEnablingState*() to help identify such problems." 
+   "SUMA_DiffEnablingState*() to help identify such problems."
  },
-  
+
  { 13, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "More improvements to multiple object transparency.",
    "There's lots more than meets the eye. See comment in functions \n"
    "SUMA_DrawVolumeDO_3D() and SUMA_StippleMask_shift()"
  },
-  
+
  { 13, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_OPT,
    "A few more tweaks, like -aw and -d",
    "See afni_open -help for details"
  },
-  
+
  { 12, Mar, 2014, ZSS, "afni_open", MINOR, TYPE_NEW_PROG,
    "A simple program to help us open certain files on typical machines",
    "There is no help for the program yet, it is also not part of the\n"
    "compiled binaries yet. New functions such as GetAfniWebDownloader(),\n"
    "GetAfniPDFViewer(), and GetAfniImageViewer() were added to machdep.c"
  },
-  
+
  { 12, Mar, 2014, ZSS, "afni-general", MICRO, TYPE_NEW_ENV,
    "AFNI_IMAGE_VIEWER and AFNI_PDF_VIEWER for you know what.",
  },
-  
+
  { 12, Mar, 2014, ZSS, "suma", MICRO, TYPE_BUG_FIX,
    "SUMA crashed if you deleted a tract mask that was being moved.",
    "This is now a thing of the past."
  },
-  
+
  { 6, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added option to make rendered slices jump to new cross hair location",
    "See new function SUMA_VO_set_slices_XYZ() for details"
  },
-  
+
  { 5, Mar, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Fixed initial setting of masks to be relative to center of tracts object",
    "This required creation of SUMA_ADO_Center() and SUMA_ADO_Range() functions."
  },
-  
+
  { 5, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Opening surf controller after selecting voxel on slice caused crash in demo",
    "This happened in FATCAT_DEMO's Do_09* script, example 1 (SET1). While I am\n"
@@ -809,7 +809,7 @@ afni_history_struct ziad_history[] = {
    "the program from getting shutdown. Some day I'll track the source of the\n"
    "message, for now, recovery seems complete."
  },
-  
+
  { 4, Mar, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Surface-based InstaCorr stopped refreshing with new click.",
    "The problem was caused by the failure to update the copies of I and \n"
@@ -817,58 +817,58 @@ afni_history_struct ziad_history[] = {
    "version. For the fix, search for 'ResetOverlay_Vecs' string, and see \n"
    "function SUMA_DSET_ClearOverlay_Vecs()"
  },
-  
+
  { 25, Feb, 2014, ZSS, "suma", MICRO, TYPE_NEW_OPT,
    "Secret option for Javier to make graph dsets display on top of everything",
    "The option is hidden for now, requiring the use of both -dev and \n"
    "a temporary env. The two can be combined on the command line with:\n"
    "  suma -dev -setenv \"'JAVIER_DEPTH_SPECIAL = YES'\" ... "
  },
-  
+
  { 25, Feb, 2014, ZSS, "ConvertDset", MINOR, TYPE_NEW_OPT,
    "Added -dset_labels option to label dset sub-bricks.",
    "Normally 3drefit would handle that, but not for graph dsets, not yet \n"
    "at least"
  },
-  
+
  { 25, Feb, 2014, ZSS, "afni-general", MICRO, TYPE_BUG_FIX,
    "Modified Makefile.macosx* to start building SurfMesh again.",
    NULL
  },
-  
+
  { 25, Feb, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added loading/saving of masks and evaluation expressions to GUI.",
    NULL
  },
-  
+
  { 25, Feb, 2014, ZSS, "suma", MINOR, TYPE_NEW_OPT,
    "Added tract length masking in Masks GUI.",
    NULL
  },
-  
+
  { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed crash during crazy matrix rotations.",
    "The problem was caused by divisions by very small sizes under certain\n"
    "projection (viewing) angles\n"
  },
-  
+
  { 19, Feb, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed indexing errors in sparse matrices with certain node (point) lists.",
    "The problem occurred when point lists were supersets of the points used to\n"
    "define the edges."
  },
-  
+
  { 19, Feb, 2014, ZSS, "DriveSuma", MINOR, TYPE_NEW_OPT,
    "Added -Clst and -UseClst options to DriveSuma",
    NULL
- }, 
- 
+ },
+
  { 19, Feb, 2014, ZSS, "ConvertDset", MICRO, TYPE_BUG_FIX,
    "Removed stringent test on number of points in edge list",
    "The program insisted on having the same number or points (nodes)\n"
    "in the node list as there are unique points making up the graph.\n"
- }, 
- 
+ },
+
  { 18, Feb, 2014, ZSS, "suma", MAJOR, TYPE_MODIFY,
    "Added tract masking with boolean expressions",
    "This allows users to specify the masking function\n"
@@ -876,13 +876,13 @@ afni_history_struct ziad_history[] = {
    "The interface also allows for the coloring of various tracts based\n"
    "on which masks they travel through. This addition is only available\n"
    "with the -dev option, though the restriction will soon be lifted."
- }, 
- 
+ },
+
  { 10, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Changed ordering of objects displayed to prevent graph text masking",
    NULL,
- }, 
- 
+ },
+
  { 6, Feb, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Increased Maximum number of viewers to 10 for Javier's desire",
    "To allow the increase without needlessly waisting memory,\n"
@@ -893,80 +893,80 @@ afni_history_struct ziad_history[] = {
    "should do the same, in the future. \n"
    "The downside of sharing is that coloration will\n"
    "be the same across all viewers for the same object.\n"
- }, 
- 
+ },
+
  { 31, Jan, 2014, ZSS, "afni-general", MINOR, TYPE_MODIFY,
    "Lessened dependency on new libgsl to allow FATCAT build on xorg7",
    "This necessitated creating a double version of thd_correlate()\n"
-   "and adding -DXORG7 to the xorg7 makefiles" 
- }, 
- 
+   "and adding -DXORG7 to the xorg7 makefiles"
+ },
+
  { 31, Jan, 2014, ZSS, "suma", MINOR, TYPE_BUG_FIX,
    "Fixed problem with graph where segments were turning black.",
    "Problem was caused by a stale pointer copy stored in SDO->colv\n"
-   "bad bad bad!" 
- }, 
- 
+   "bad bad bad!"
+ },
+
  { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
    "Added transparency for slice displays",
-   NULL 
- }, 
- 
+   NULL
+ },
+
  { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
    "Added GUI for tract mask editing",
-   NULL 
- }, 
- 
+   NULL
+ },
+
  { 23, Jan, 2014, ZSS, "suma", MINOR, TYPE_GENERAL,
    "Added volume rendering in addition to slice rendering ",
-   "No clipping planes yet." 
- }, 
- 
+   "No clipping planes yet."
+ },
+
  { 10, Jan, 2014, ZSS, "DriveSuma", MICRO, TYPE_NEW_ENV,
    "Added SUMA_DriveSumaMaxCloseWait env ",
    "This controls how long DriveSuma waits before it considers\n"
    "a currently open stream lost forever. Consider also\n"
-   "env SUMA_DriveSumaMaxWait." 
- }, 
- 
+   "env SUMA_DriveSumaMaxWait."
+ },
+
  { 8, Jan, 2014, ZSS, "ConvertDset", MINOR, TYPE_NEW_OPT,
    "Added -graph_XYZ_LPI to flip coords to RAI for the user.",
    NULL
- }, 
- 
+ },
+
  { 8, Jan, 2014, ZSS, "ConvertDset", MINOR, TYPE_BUG_FIX,
    "Fixed problem introduced by earlier -graph_named_nodelist_txt change",
    "Problem was one of parsing and made the program fail to read in all\n"
    "entries in labels file.\n"
- }, 
- 
+ },
+
  { 6, Jan, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Set proper voxel identification in interface. No more resampling.",
    "RAI resampling is no longer needed, but stil available by setting\n"
    "SUMA_VO_Reorient.\n"
- }, 
- 
+ },
+
  { 3, Jan, 2014, ZSS, "suma", MAJOR, TYPE_MODIFY,
    "Big improvements to slice rendering",
    "Improvements include proper alpha masking and auto thresholding\n"
    "Montage-like capability.\n"
    "Percentile thresholding and intensity range setting\n"
    "Fixed intersection bug with multi-slice rendering\n"
- }, 
- 
+ },
+
  { 3, Jan, 2014, ZSS, "suma", MINOR, TYPE_MODIFY,
    "Modernized some driver handling functions to use ADO instead of SO",
    "Improvements will allow easier driving of SUMA for non-surface\n"
    "objects. For now we're not quite there yet. Soon one hopes.\n"
- }, 
- 
+ },
+
 
  { 31, Dec, 2013, ZSS, "suma", MAJOR, TYPE_MODIFY,
    "Improvements to tract rendering",
    "Added stenciling to allow for rendering of masked tracts without\n"
    "interfering with unmasked tracts\n"
- }, 
- 
+ },
+
  { 24, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed SUMA's erroneous switch of colplanes for tracts",
    "Problem was in thoughtless use of SUMA_ADO_Overlay0() insead\n"
@@ -1024,17 +1024,17 @@ afni_history_struct ziad_history[] = {
    "for a graph dataset. To set group IDs and color, see ConvertDset's\n"
    "option -graph_named_nodelist_txt\n"
  },
- 
+
  { 17, Dec , 2013 , ZSS , "ConvertDset" , MINOR , TYPE_NEW_OPT,
    "ConvertDset's -graph_named_nodelist_txt now takes node grouping and color",
-   "See -graph_named_nodelist_txt's help section for details" 
+   "See -graph_named_nodelist_txt's help section for details"
  },
- 
+
  { 17, Dec , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed SUMA's opacity cycling with 'o'",
    "NULL"
  },
- 
+
 
  { 11, Dec , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
    "Wildcard file expansion with extension and view trimming and sorting",
@@ -1094,14 +1094,14 @@ afni_history_struct ziad_history[] = {
    "In this manner a -sv volume that is not in AFNI's\n"
    "current session will still be loaded into the current session\n"
    "See afni function AFNI_append_dset_to_session() and wherever it\n"
-   "is used for details" 
+   "is used for details"
  },
 
  { 1, Oct , 2013 , ZSS , "afni" , MINOR , TYPE_MODIFY,
    "Made AFNI seek and add to session a missing SUMA surface volume",
    "See afni function AFNI_append_dset_to_session() and wherever it\n"
    "is used for details. That function is under afni_plugin.c which is one\n"
-   "of the few .c files with access to the GLOBAL_library structure." 
+   "of the few .c files with access to the GLOBAL_library structure."
  },
 
  { 1, Oct , 2013 , ZSS , "afni" , MINOR , TYPE_MODIFY,
@@ -1123,14 +1123,14 @@ afni_history_struct ziad_history[] = {
    "background is changed.\n"
    "Help message for picking updated.\n"
    "Shift+Alt+Button-3 press will now take a snapshot of the pick buffer\n"
-   "to help with debugging." 
+   "to help with debugging."
  },
 
  { 16, Sep , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Switched functions of mouse buttons 1 and 2 when viewing GRAPH MATRIX",
    "This means matrix spatial rotation would be done with button 2 and\n"
    "shifting with button 1. Selection can also be done with button 3 whenever\n"
-   "there is no selectable surface in sight." 
+   "there is no selectable surface in sight."
  },
 
  { 13, Sep , 2013 , ZSS , "3dToyProg" , MICRO , TYPE_NEW_PROG,
@@ -1177,42 +1177,42 @@ afni_history_struct ziad_history[] = {
    "the dataset gets purged from memory by the writing function.\n"
    "Kudos to Isaac Schwabacher for doggedly pursuing the bug.\n"
  },
- 
+
  { 3, Sep , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "Text annotation of graph dset representation with shadows.",
    NULL
  },
- 
+
  { 3, Sep , 2013 , ZSS , "MapIcosahedron" , MICRO , TYPE_BUG_FIX,
    "Program was crashing with message about binSearch failing.",
    "Problem was caused by recent changes to binSearch that forced\n"
    "exact matching.\n"
  },
- 
+
  { 19, Aug , 2013 , ZSS , "@DO.examples" , MICRO , TYPE_MODIFY,
    "Changes to help with builds and tests on NeuroDebian",
    "Minor tweaks, cleanup and new option -timeout for prompt_user program.\n"
  },
- 
+
  { 19, Aug , 2013 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Dreaded __builtin_object_size came up for 3dTproject",
    "Replace memcpy with AAmemcpy in cs_symeig.c . Separated OMP\n"
    "macros from mrilib.h by putting them in Aomp.h\n"
  },
- 
+
  { 16, Aug , 2013 , ZSS , "suma-general" , MAJOR , TYPE_MODIFY,
    "Yet another still hidden expansion of graph dsets",
    "Modifications to many data structures and handling functions\n"
    "to allow for the storage and display of graph datasets (such as\n"
    "correlation matrices, and the like.\n"
  },
- 
+
  { 16, Aug , 2013 , ZSS , "afni-general" , MAJOR , TYPE_MODIFY,
    "Changes to tractography I/O API to allow for graph dataset handling",
    "Effort in concert with Paul Taylor\n"
  },
- 
- 
+
+
  { 6, Aug , 2013 , ZSS , "suma-general" , MINOR , TYPE_MODIFY,
    "Recreated suma_MNI_N27.tgz and suma_TT_N27.tgz with LPI GIFTI",
    "The surfaces had to be recreated to fit LPI assumption.\n"
@@ -1220,13 +1220,13 @@ afni_history_struct ziad_history[] = {
    "SUMA will warn when using old archive to help users with transition\n"
    "See @SUMA_Make_Spec_FS -nocor and -GNIFTI options for more info.\n"
  },
- 
+
  { 6, Aug , 2013 , ZSS , "MapIcosahedron" , MINOR , TYPE_MODIFY,
    "Hard coded skipping of outer-pial-smoothed surfaces",
    "Those brain envelopes are not isotopic with the rest of \n"
    "the surfaces so there is no point standardizing them."
  },
- 
+
  { 5, Aug , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_MODIFY,
    "Option -nocor is now obsolte. -GNIFTI replaces it",
    "This was necessary to alert whoever was using -nocor that\n"
@@ -1234,45 +1234,45 @@ afni_history_struct ziad_history[] = {
    "they are in LPI in keeping with the standard.\n"
    "See @SUMA_Make_Spec_FS -nocor and -GNIFTI options for more info.\n"
  },
- 
+
  { 5, Aug , 2013 , ZSS , "inspec" , MINOR , TYPE_NEW_OPT,
    "Added -remove_state to remove surfaces of specific state from spec file",
    NULL
  },
- 
+
  { 31, Jul , 2013 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
    "Added -xmat_1D NegXY to flip X Y coordinate sign of surfaces.",
    "This should make it easy to turn GIFTI files with RAI units to\n"
    "LPI with something like: \n"
    "ConvertSurface -i toy.gii -o_gii toy -overwrite -xmat_1D NegXY\n"
  },
- 
+
  { 31, Jul , 2013 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
    "Added -merge_surfs to facilitate ECOG strip merging.",
    NULL
  },
- 
+
  { 29, Jul , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Coordinates xform of GIFTI surfaces was applied too late",
    NULL
  },
- 
+
  { 26, Jul , 2013 , ZSS , "@RetinoProc" , MICRO , TYPE_MODIFY,
    "Fixed bad option name in -help and clarified -delay option",
    NULL
  },
- 
+
  { 14, Jun , 2013 , ZSS , "1dmatcalc" , MICRO , TYPE_MODIFY,
    "Set status to 1 on failure",
    NULL
  },
- 
+
  { 4, Jun , 2013 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
    "Added nearest neighbor search option",
    "There is no need to search along a certain direction when\n"
    "mapping between two speres of identical radius and size.\n"
  },
- 
+
  { 9, May , 2013 , ZSS , "R_io" , MINOR , TYPE_BUG_FIX,
    "Temporary fix of segfault happening in R from R_io.so",
    "Source of problem is a call to COMPRESS_setup_programs()\n"
@@ -1281,63 +1281,63 @@ afni_history_struct ziad_history[] = {
    "address 0x3800000100, cause 'memory not mapped'\n"
    "However a temporary env. SKIP_COMPRESS_SETUP will get around it."
  },
- 
+
  { 22, Apr , 2013 , ZSS , "3dAutoTcorrelate" , MINOR , TYPE_NEW_OPT,
    "Added -out1D option to output correlations in text format.",
    NULL
  },
- 
+
  { 9, Apr , 2013 , ZSS , "@RetinoProc" , MINOR , TYPE_NEW_OPT,
    "Added options for providing orts for each input time series",
    "See options -*_orts in the help output."
  },
- 
+
  { 1, Apr , 2013 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "AFNIio.R's newid.AFNI() was duplicated and the more compact one was broken",
    NULL
  },
- 
+
  { 1, Apr , 2013 , ZSS , "3dAutoTcorrelate" , MICRO , TYPE_NEW_OPT,
    "Added option -mask_source",
    NULL
  },
- 
+
  { 28, Mar , 2013 , ZSS , "@RetinoProc" , MICRO , TYPE_BUG_FIX,
    "Parsing of -on* and -off* options failed for non-integral values",
    NULL
  },
- 
+
  { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Loop variable error in 3DEdge/src/convert.c variable s32buf",
    "Affected regions in some locations under: case UCHAR and case SSHORT\n"
  },
- 
+
  { 26, Mar , 2013 , ZSS , "suma" , MICRO , TYPE_MODIFY,
    "AlignToExperiment transforms no longer applied to spherical surfaces ",
    "This makes spheres show up better by default in SUMA for prying.\n"
  },
- 
+
  { 26, Mar , 2013 , ZSS , "SurfSmooth" , MICRO , TYPE_NEW_OPT,
    "Added -match_center to force recentering of smoothed surfaces.",
    "SurfSmooth -help for details\n"
  },
- 
+
  { 26, Mar , 2013 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added option -inflate for automatic creation of semi-inflated surfaces",
    "See @SUMA_Make_Spec_FS -help for details\n"
  },
- 
+
  { 25, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Merged handling of CoordBias with Prying, all in VisX",
    "Lots of annoying little details there. See functions like:\n"
    "  SUMA_*CoordBias*, SUMA_ApplyVisXform(), and SUMA_Apply_VisX_Chain()\n"
  },
- 
+
  { 22, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Added stippling for line segments DOs, see SUMA's ctrl+h for details.",
    NULL
  },
- 
+
  { 20, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Texture demos in DriveSuma were failing.",
    "Problem was a combination of coordinate clipping when frame coords\n"
@@ -1345,12 +1345,12 @@ afni_history_struct ziad_history[] = {
    "to move texture on surface into mobile.niml.do\n"
    "Depth test is no longer disabled with textures.\n"
  },
- 
+
  { 20, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Text was not appearing at times. Bug was in SUMA_SO_NIDO_Node_Texture()",
    NULL
  },
- 
+
  { 19, Mar , 2013 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Prying was off for new GIFTI standard-mesh surfaces.",
    "Bug was caused by a failure to identify LR sides of GIFTI\n"
@@ -1469,25 +1469,25 @@ afni_history_struct ziad_history[] = {
  { 6, Feb , 2013 , ZSS , "MakeColorMap" , MINOR , TYPE_NEW_OPT,
    "-suma_cmap, -usercolutfile, and -sdset* options for SUMA colormaps",
    "The new options allow users to create SUMA's colormaps with labels\n"
-   "and turn datasets into labeled datasets with the user's colormap\n" 
+   "and turn datasets into labeled datasets with the user's colormap\n"
  },
 
  { 4, Feb , 2013 , ZSS , "R" , MICRO , TYPE_BUG_FIX,
    "Properly set IDCODE of new dsets, read .1D.dset as dset not matrix",
-   NULL 
+   NULL
  },
 
  { 1, Feb , 2013 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
    "SUMA_ContourThickness to control the tickness of dset contour lines",
    "Addition made in response to Valentinos' feedback.\n"
-   "Documentation is in .sumarc file.\n" 
+   "Documentation is in .sumarc file.\n"
  },
 
  { 22, Jan , 2013 , ZSS , "HalloSuma" , MINOR , TYPE_NEW_PROG,
    "A sample light-weight program to illustrate 2-way communication with AFNI",
    "The program can be compiled in C or C++ along with the NIML library\n"
    "without having to link to AFNI/SUMA libraries.\n"
-   "Documentation is the code.\n" 
+   "Documentation is the code.\n"
  },
 
  { 22, Jan , 2013 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
@@ -1909,7 +1909,7 @@ afni_history_struct ziad_history[] = {
    "  -Can control connectivity radius and min area or min nodes\n"
    "  -When you click on a node inside a cluster, the node in that\n"
    "     cluster with the highest value is highlighted with a black\n"
-   "     sphere." 
+   "     sphere."
  },
 
  { 24, Aug , 2012 , ZSS , "niprobe" , MICRO , TYPE_NEW_PROG,
@@ -1977,105 +1977,105 @@ afni_history_struct ziad_history[] = {
    "would have written mmm+orig under P1/\n"
    "To make matters less palatable other programs like 3dcalc behaved \n"
    "differently: 3dcalc -prefix ccc -a P1/joe+orig -expr 'a' \n"
-   "would produce ./ccc+orig \n" 
+   "would produce ./ccc+orig \n"
  },
- 
+
  { 6, Jul , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Use ArrowFields when datasets have large numbers of sub-bricks",
    "The switch is done automatically and is controlled with env:\n"
    "SUMA_ArrowFieldSelectorTrigger"
  },
- 
+
  { 6, Jul , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
    "SUMA_ArrowFieldSelectorTrigger set threshold for using ArrowFields",
    "For datasets with sub-bricks >= SUMA_ArrowFieldSelectorTrigger\n"
    "and arrow field is used to switch between sub-bricks"
  },
- 
+
  { 28, Jun , 2012 , ZSS , "ROIgrow" , MINOR , TYPE_NEW_OPT,
    "Added -insphere and -inbox options",
    "These options grow ROIs by finding nodes that fall inside a box or sphere\n"
    "of preset size around nodes in the original ROIs."
  },
- 
+
  { 19, Jun , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added -switch_cmode to allow switching how values map to colors",
-   "This controls the 'Col' menu in SUMA's surface controller.\n" 
+   "This controls the 'Col' menu in SUMA's surface controller.\n"
  },
- 
+
  { 19, Jun , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Ctrl+W was not saving datasets when filenames contained a path",
-   "Problem had to do with clumsy prefix forming.\n" 
+   "Problem had to do with clumsy prefix forming.\n"
  },
- 
+
  { 4, Jun , 2012 , ZSS , "@Install_AfniRetinoDemo" , MICRO , TYPE_NEW_PROG,
    "Demo script to download and run Retinotopy pipeline demo",
    NULL
  },
- 
+
  { 4, Jun , 2012 , ZSS , "@Install_TSrestMovieDemo" , MICRO , TYPE_NEW_PROG,
    "Demo script to make a resting state movie a la Daniel Margulies'",
    NULL
  },
- 
+
  { 1, Jun , 2012 , ZSS , "3dROIstats" , MICRO , TYPE_BUG_FIX,
    "3dROIstats crashed on float dsets with scaling. Not anymore",
    "Problem was scaling brick pointer without mallocizing first."
  },
- 
+
  { 31, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Merged ptaylor's code changes into the distribution",
    NULL
  },
- 
+
  { 25, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
    "Improve auto-name generation and enabled output format specification",
    NULL
  },
- 
+
  { 24, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Merger of changes in P. Taylor's code",
    NULL
  },
- 
+
  { 23, May , 2012 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Allow label-based selection for annotation files",
    "See function: process_NSD_labeltable(), now you can do something like:\n"
    "3dcalc -a std.60.lh.aparc.a2009s.annot.niml.dset'<wm_lh_G_precentral>' \\\n"
    "       -expr 'step(a)' -prefix wm_lh_G_precentral.niml.dset \n"
  },
- 
+
  { 21, May , 2012 , ZSS , "ROIgrow" , MICRO , TYPE_BUG_FIX,
    "ROIgrow was not taking -spec surface definition",
    NULL
  },
- 
+
  { 21, May , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Made the script also port thickness data and take them to std. space",
    NULL
  },
- 
+
  { 21, May , 2012 , ZSS , "3dTcorrelate" , MINOR , TYPE_NEW_OPT,
    "Added -covariance option, turned off DOF setting for anything but pearson.",
    "See function THD_covariance()\n"
  },
- 
+
  { 21, May , 2012 , ZSS , "MapIcosahedron" , MINOR , TYPE_NEW_OPT,
    "Made program output mapping info file for use with SurfToSurf",
    "Also made microscopic improvement to automatic dset name generation for"
    " -dset_map"
  },
- 
+
  { 21, May , 2012 , ZSS , "SurfToSurf" , MICRO , TYPE_BUG_FIX,
    "Microscopic improvement to automatic dset name generation for output dsets",
    NULL
  },
- 
+
  { 15, May , 2012 , ZSS , "1dRplot" , MICRO , TYPE_NEW_OPT,
    "Added -load.Rdat to regenerate previous plot on command line",
    NULL
  },
- 
+
  { 15, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_NEW_OPT,
    "Added '[1dcat FF.1D]' syntax for sub-brick selections in 1D file",
    "This was added for the same reason '[count ...]' was added, and \n"
@@ -2083,22 +2083,22 @@ afni_history_struct ziad_history[] = {
    "of 100+ sub-bricks virtually guarantees some string limit is reached,\n"
    "somewhere. See 3dTcat -help for details"
  },
- 
+
  { 8, May , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Code updates for P. Taylor's tractography",
    NULL
  },
- 
+
  { 8, May , 2012 , ZSS , "3dSeg" , MINOR , TYPE_BUG_FIX,
    "Fixed memory leak problem",
    NULL
  },
- 
+
  { 8, May , 2012 , ZSS , "count" , MINOR , TYPE_NEW_OPT,
    "Added -form to count: count -form %c 49 130",
    NULL
  },
- 
+
  { 4, May , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added inverse distance measures to InstaCorr",
    "For the moment, those options are only accessible to usernames \n"
@@ -2107,7 +2107,7 @@ afni_history_struct ziad_history[] = {
    "used at the moment, it would be from 3dLocalBistat once I get around\n"
    "to testing it. For now, its access from 3dLocalBistat is #if-ed out.\n"
  },
- 
+
  { 27, APR , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added percentile thresholding to AFNI's interface",
    "Relevant functions:\n"
@@ -2120,29 +2120,29 @@ afni_history_struct ziad_history[] = {
    "  th_sort, N_th_sort, th_sortid in AFNI_view_info;\n"
    "Feature also accessible from plugout_drive with: SET_FUNC_PERCENTILE +/-\n"
  },
- 
+
  { 26, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "Made header_name be same as brik_name for NIFTI dsets",
    "Changes were in EDIT_dset_items(), search for April 26"
  },
- 
+
  { 24, APR , 2012 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Can read .niml.tract files as DOs. Nothing too fancy yet",
    "Tractography files are loaded and handled like any DO.\n"
    "See function SUMA_DrawTractDO().\n"
  },
- 
+
  { 24, APR , 2012 , ZSS , "3dTrackID" , MINOR , TYPE_MODIFY,
    "Modified 3dTrackID to make use of new track I/O functions.",
    NULL
  },
- 
+
  { 24, APR , 2012 , ZSS , "afni-general" , MINOR , TYPE_MODIFY,
    "Wrote TrackIO.[ch] to handle tractography data I/O.",
    "All changes are under ptaylor/ . New tract format is in NIML.\n"
    "See functions in TrackIO.h for details.\n"
  },
- 
+
 
 #if 0 /* not yet */
  { 16, APR , 2012 , ZSS , "BrainSkin" , MINOR , TYPE_NEW_PROG,
@@ -2163,7 +2163,7 @@ afni_history_struct ziad_history[] = {
    "Added -NN_geom[23] for controlled inflation.",
    NULL
  },
- 
+
 #endif
 
  { 16, APR , 2012 , ZSS , "SurfaceMetrics" , MINOR , TYPE_MODIFY,
@@ -2367,18 +2367,18 @@ afni_history_struct ziad_history[] = {
    "This fixed a problem with anatomicals ranging in the million(!) to\n"
    "come up the equivalent of a binary mask with -orig_vol.\n"
  },
- 
+
  { 10, FEB , 2012 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Improved snapshot making. Previous bugs were caused by buffer swap problems",
    "This fixed (I hope for good), problems of recording ('r'), continuous \n"
    "recording (OS X and Linux), and the oversampling.\n"
  },
- 
+
  { 9, FEB , 2012 , ZSS , "3dSurf2Vol" , MINOR , TYPE_NEW_OPT,
    "Added -sdata, making 3dSurf2Vol compatible with multitude of surface dsets",
    NULL
  },
- 
+
  { 7, FEB , 2012 , ZSS , "3dcopy" , MINOR , TYPE_BUG_FIX,
    "Fixed problem with 3dcopy HHH.nii TTT+orig not producing output",
    "Problem was caused by new change to EDIT_empty_copy() which\n"
@@ -2386,12 +2386,12 @@ afni_history_struct ziad_history[] = {
    "Fix involved setting storage mode per the prefix or view in \n"
    "EDIT_dset_items()\n"
  },
- 
+
  { 7, FEB , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Added -bkg_col and -autorecord options",
    NULL
  },
- 
+
  { 7, FEB , 2012 , ZSS , "SurfMeasures" , MINOR , TYPE_NEW_OPT,
    "Added -out option to handle output in various formats.",
    "Also added -func ALL option.\n"
@@ -2401,166 +2401,166 @@ afni_history_struct ziad_history[] = {
    "Added automatic sub-brick selection matching IxT in interface",
    "Also see corresponding env var: SUMA_IxT_LinkMode\n"
  },
- 
+
  { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Improved (I hope) sub-brick labels. Added FDR too.",
    "Same improvements to all 3dANOVA programs.\n"
  },
- 
+
  { 6, FEB , 2012 , ZSS , "3dANOVA3" , MINOR , TYPE_BUG_FIX,
    "Fixed comaptibility with .niml.dset data",
    "This required more improvements (I hope) to THD_init_diskptr_names() and\n"
    "EDIT_empty_copy() for surface-based datasets.\n"
  },
- 
+
  { 6, FEB , 2012 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "3drefit was failing on the view change when target dset is under a path.",
    "Prolem was with default catenation of path to DSET_BRIKNAME and \n"
    "DSET_HEADNAME. Those now contain the path automatically.\n"
  },
- 
+
  { 26, JAN , 2012 , ZSS , "3dinfill" , MINOR , TYPE_NEW_PROG,
    "Fills holes in a volume based on neighboring values",
    "This program is a wrapper to function SUMA_VolumeInFill.\n"
    "Written in response to a query by Mike Beauchamp.\n"
  },
- 
+
  { 24, JAN , 2012 , ZSS , "SurfExtrema" , MINOR , TYPE_NEW_PROG,
    "Finds nodes that are local extrema on the surface.",
    "Program in response to request by Daniel Margulies\n"
  },
- 
+
  { 23, JAN , 2012 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added -ld and -no_ld options",
    "@SUMA_Make_Spec_FS by default now runs MapIcosahedron at two ld values.\n"
  },
- 
+
  { 23, JAN , 2012 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
    "Added -atlas_followers",
    "Automatically bring along atlas datasets under -surf_anat's directory.\n"
  },
- 
+
  { 23, JAN , 2012 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT,
    "Allowed addition of 'R' or 'L' when jumping to a node.",
    "This make DriveSuma work well with node indices that are specified\n"
    "for two hemispheres as is done in the batch mode of 3dGroupInCorr.\n"
    "This applies to both suma and DriveSuma",
  },
- 
+
  { 23, JAN , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Improved logic for assigning ROIs when parent is not present",
    "ROI parent assignment now takes into account last visited surface"
    "in any of the open viewer, and hemisphere side when appropriate.",
  },
- 
+
  { 23, JAN , 2012 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
    "Fixed bug in display of FRAME bound textures.",
    "Looks like it had to do with depth testing.",
  },
- 
+
  { 20, JAN , 2012 , ZSS , "afni" , MICRO , TYPE_MODIFY,
    "Trim dset names to keep them readable in plugin dataset selector buttons",
    "See function TrimString() and how it is used in PLUG_finalize_dataset_CB()",
  },
- 
+
  { 20, JAN , 2012 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Added -h_web, and -Vname= to all C command-line programs.",
    "See also apsearch -web_prog_help option",
  },
- 
+
  { 19, JAN , 2012 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT,
    "Allow definition of DO on the fly with -fixed_do, -mobile_do.",
    "See DriveAfni -help and suma -help_nido",
  },
-    
+
  { 18, JAN , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_ENV,
    "SUMA_Position_Original for controlling initial window position.",
    "Use suma -update_env ; to update env file, then look for\n"
    " env SUMA_Position_Original for help and default value.",
  },
-    
+
  { 18, JAN , 2012 , ZSS , "niccc" , MINOR , TYPE_NEW_OPT,
    "-s option to test string NI elements",
    NULL,
  },
-    
+
  { 18, JAN , 2012 , ZSS , "Surf2VolCoord" , MINOR , TYPE_NEW_OPT,
    "-closest_* options to create find nodes that fall closest to XYZ locations",
    NULL,
  },
-    
+
  { 17, JAN , 2012 , ZSS , "3dGroupInCorr" , MINOR , TYPE_NEW_OPT,
    "Allowed BATCH mode to work on surfaces.",
    NULL,
  },
-    
+
  { 13, JAN , 2012 , ZSS , "ParseName" , MINOR , TYPE_NEW_OPT,
    "Options -pre and -app help in creating filenames regarding of type",
    NULL,
  },
-    
+
  { 11, JAN , 2012 , ZSS , "3dROIstats" , MICRO , TYPE_MODIFY,
    "Use ROI labels in output if label tables or atlas point lists are present",
    NULL,
  },
-    
+
  { 11, JAN , 2012 , ZSS , "3drefit" , MICRO , TYPE_NEW_OPT,
    "Added -copytables to copy label tables and atlas point lists",
    NULL,
  },
-    
+
  { 11, JAN , 2012 , ZSS , "afni-general" , MICRO , TYPE_MODIFY,
    "Added copying of label table and atlas point lists to aux copying function",
    "See functions THD_copy_labeltable_atr and THD_copy_datablock_auxdata\n"
-   "for details." 
+   "for details."
  },
-    
+
  { 10, JAN , 2012 , ZSS , "3dTagalign" , MICRO , TYPE_NEW_OPT,
    "Added interpolation options.",
    NULL,
  },
-    
+
  { 9, JAN , 2012 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT,
    "Added -setSUMAenv,-N_fore_smooth, and -N_final_smooth",
    NULL,
  },
-    
+
  { 9, JAN , 2012 , ZSS , "suma-general" , MICRO , TYPE_NEW_OPT,
    "Added -setenv to all SUMA programs",
    NULL,
  },
-    
+
  { 6, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
    "Added -keep_separate to allow for another way to split ROIs",
    NULL,
  },
-    
+
  { 4, JAN , 2012 , ZSS , "ROI2dataset" , MICRO , TYPE_NEW_OPT,
    "Added -nodelist_with_ROIval to facilitate splitting ROIs",
    NULL,
  },
-    
+
  { 4, JAN , 2012 , ZSS , "@Atlasize" , MICRO , TYPE_NEW_OPT,
    "Allow for delimiters in keys file and handle names with spaces",
    "Similar additions are made to @MakeLabelTable",
  },
-    
+
  { 4, JAN , 2012 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Automatically add an Atlas to whereami list if encountered in the session",
    NULL,
  },
-    
+
  { 30, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Simplified how afni handles custom group or single-subject atlases",
    "By default, SessionAtlases and AFNI_SUPP_ATLAS_DIR/CustomAtlases.niml\n"
    "are added to the atlas list for whereami queries.",
  },
-    
+
  { 30, DEC , 2011 , ZSS , "@AfniEnv" , MINOR , TYPE_NEW_PROG,
    "A convenience script to automatically edit .afnirc",
    NULL,
  },
-    
+
  { 30, DEC , 2011 , ZSS , "@Atlasize" , MINOR , TYPE_NEW_PROG,
    "A convenience script to turn a dataset to an atlas",
    "The script makes it easy to create a group atlas or a single-subject\n"
@@ -2568,17 +2568,17 @@ afni_history_struct ziad_history[] = {
    "recognizes making them available to the user without bothering with\n"
    "too many environment variable settings.\n",
  },
-    
+
  { 30, DEC , 2011 , ZSS , "@MakeLabelTable" , MINOR , TYPE_NEW_OPT,
    "Improved @MakeLabelTable's creation of ATLAS niml files",
    NULL,
  },
-    
+
  { 30, DEC , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
    "Numerous new options to 3dinfo, including checks for dset presence on disk",
    NULL,
  },
-    
+
  { 30, DEC , 2011 , ZSS , "afni-general" , MINOR , TYPE_BUG_FIX,
    "NIFTI datasets used to loose their path information upon loading.",
    "This is problematic for a few reasons. For instance, afni ~/tmp/joe.niml\n"
@@ -2591,173 +2591,173 @@ afni_history_struct ziad_history[] = {
    "on Dec 27 but explicitly setting the path at output. But the fix needed\n"
    "to happen for other programs so that is now done at the io level.)\n",
  },
-    
+
  { 27, DEC , 2011 , ZSS , "3drefit" , MINOR , TYPE_BUG_FIX,
    "3drefit failed when refitting a NIFTI dset in another directory.",
    "If you did something like 3drefit -space MNI joe/jim/dset.nii\n"
    "you ended up with a new dataset ./dset.nii as opposed to modifying\n"
    "the one under joe/jim/ directory",
  },
-    
+
  { 20, DEC , 2011 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX,
    "-prefix failed when input dset was mastered.",
    "Better use macro PREP_LOADED_DSET_4_REWRITE whenever modifying\n"
    "a dataset loaded from disk for the purporse of rewriting it.",
  },
-    
+
  { 20, DEC , 2011 , ZSS , "3dUpsample" , MINOR , TYPE_NEW_OPT,
    "Allow for upsampling to go to 11 (actually 320) and control output datum",
    NULL,
  },
- 
+
  { 20, DEC , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "SUMA now allows for direct recording to disk.",
    "See SUMA's ctrl+h for key ctrl+R for details.\n"
    "Related environment variable is SUMA_AutoRecordPrefix.",
  },
- 
+
  { 20, DEC , 2011 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "SUMA now displays area labels in the viewer, F9 key toggles it",
    "See SUMA's ctrl+h output in the section for F9\n"
    "Related environment variable is SUMA_ShowLabelsAtCrossHair.",
  },
- 
+
  { 13, DEC , 2011 , ZSS , "3dinfo" , MINOR , TYPE_NEW_OPT,
    "-same_* options return information about dset pairs",
    NULL,
  },
- 
+
  { 13, DEC , 2011 , ZSS , "@SUMA_AlignToExperiment" , MINOR , TYPE_NEW_OPT,
    "-init_xform to allow for an initial transformation of -surf_anat",
    NULL,
  },
- 
+
  { 13, DEC , 2011 , ZSS , "plugout_drive" , MICRO , TYPE_BUG_FIX,
    "AFNI_drive_switch_* functions discriminated against short prefixes.",
    NULL,
  },
- 
+
  { 12, DEC , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_OPT,
    "Small improvements and addition of logging option of search results",
    "See -apsearch_log_file option for details. Logging is only enabled\n"
    "if AFNI_LOG_BEST_PROG_OPTION is set to YES.",
  },
- 
+
  { 12, DEC , 2011 , ZSS , "@global_parse" , MINOR , TYPE_NEW_PROG,
    "Script to simplify support of global options such as h_find from scripts",
    NULL ,
  },
- 
+
  { 12, DEC , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Slice displays can now show atlas labels in addition to slice location ",
    "The displays are turned on by right-clicking on the slice viewer's color\n"
    "bar and then setting the 'Label' to something other than 'OFF'\n"
    "See isqCR_getlabel, ISQ_getlabel, and AFNI_get_dset_val_label in code\n",
  },
- 
+
  { 9, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
    "SUMA_DoNotSendStates restricts certain surfaces from getting sent to suma.",
    NULL,
  },
- 
+
  { 7, DEC , 2011 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "Added atlas creation of aseg, aparc+aseg, in addition to aparc.a200*",
    "See whereami's example 3 for how to extract ROIs from FreeSurfer atlases.",
  },
- 
+
  { 7, DEC , 2011 , ZSS , "@FS_roi_label" , MICRO , TYPE_BUG_FIX,
    "Fixed bug caused by not cleaning tmp files under /tmp/ with -rankmap",
    "This bug should not have affected anyone. It showed up as I\n"
    "was making @SUMA_Make_Spec_FS process more than one type of\n"
    "parcellation volume.\n",
  },
- 
+
  { 6, DEC , 2011 , ZSS , "apsearch" , MICRO , TYPE_NEW_OPT,
    "-stdin for input",
    "More tweaking of search distances and a battery of tests\n"
    "to help decide if tweak is in the right direction.\n",
  },
- 
+
  { 5, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_OPT,
    "Added -h_view to all C command-line programs.",
    "See also apsearch -view_prog_help option",
  },
- 
+
  { 5, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_NEW_ENV,
    "AFNI_GUI_EDITOR controls user's preferred text editor.",
    "See apsearch -afni_text_editor.",
  },
- 
+
  { 2, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "Added 'Save' button to suma text info windows",
    NULL,
  },
- 
+
  { 2, DEC , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_ENV,
    "SUMA_NodeCoordsUnits allows the specification of node coord. units",
    NULL,
  },
- 
+
  { 2, DEC , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Wrote SOLARIS_strcasestr to replace missing strcasestr on SOLARIS",
    NULL,
  },
- 
+
  { 2, DEC , 2011 , ZSS , "ConvertSurface" , MINOR , TYPE_NEW_OPT,
    "-XYZscale is added to scale the coordinates of a surface",
    "Surface that are not in mm coordinates can look pretty bad in SUMA.\n"
    "This scaling option can be used to easily change coordinates from cm to mm\n"
    "for example.",
  },
- 
+
  { 30, NOV , 2011 , ZSS , "ConvertDset" , MICRO , TYPE_NEW_OPT,
    "-pad_to_node 0 now padds output dset to max node in input dset",
    NULL,
  },
- 
+
  { 29, NOV , 2011 , ZSS , "@clean_help_dir" , MICRO , TYPE_NEW_PROG,
    "Removes redundant help files from the afni help directory.",
    NULL,
  },
- 
+
  { 29, NOV , 2011 , ZSS , "@DeblankFileNames" , MICRO , TYPE_NEW_PROG,
    "Replaces spaces in filenames with_something_less_annoying.",
    NULL,
  },
- 
+
  { 28, NOV , 2011 , ZSS , "afni-general" , MICRO , TYPE_BUG_FIX,
    "Fixed function THD_deplus_prefix to improve prefix cleanup",
    "Previous version cleaned +orig but not +orig.HEAD or +orig. for example.\n"
    "Current one removes +orig +orig. +orig.HEAD +orig.BRIK +orig.BRIK.gz and\n"
    "corresponding +acpc and +tlrc brethren.\n"
  },
- 
+
  { 25, NOV , 2011 , ZSS , "Dimon" , MICRO , TYPE_NEW_OPT,
    "Added -gert_quit_on_err",
    "Passes -quit_on_err option to to3d."
  },
- 
+
  { 25, NOV , 2011 , ZSS , "to3d" , MICRO , TYPE_NEW_OPT,
    "Added -quit_on_err",
    "Keeps to3d from going in interactive mode in case of error."
  },
- 
+
  { 22, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
    "Added -h_find as a global option",
    "afni -help now outputs information about 'Global options'"
  },
- 
+
  { 21, NOV , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
    "Added -all_opts as a global option",
    "The option is the equivalent of running apsearch -all_opts \n"
    "for a certain program."
  },
- 
+
  { 21, NOV , 2011 , ZSS , "apsearch" , MICRO , TYPE_NEW_OPT,
    "Added -all_opts to show all options for a program",
    NULL
  },
- 
+
 
  { 17, NOV , 2011 , ZSS , "apsearch" , MINOR , TYPE_NEW_PROG,
    "This is a program to test approximate string matching functions",
@@ -2786,17 +2786,17 @@ afni_history_struct ziad_history[] = {
    "Added threshold locking capability under the 'Lock' menu",
    NULL
  },
- 
+
  { 17, NOV , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "If AFNI_NO_OPTION_HINT, don't bother with helpful suggestions",
    NULL
  },
- 
+
  { 15, NOV , 2011 , ZSS , "afni_general" , MINOR , TYPE_BUG_FIX,
    "Fixed bug introduced by cleaning up header_name and brick_name",
    NULL
  },
- 
+
  { 15, NOV , 2011 , ZSS , "afni_general" , MINOR , TYPE_BUG_FIX,
    "More changes regarding obliquity warnings.",
    "   AFNI:\n"
@@ -2830,34 +2830,34 @@ afni_history_struct ziad_history[] = {
    "AFNI issues warning when obliquity differs for a pair of viewed sets.\n"
    "It does not repeat warnings for a certain pair. It only output one set\n"
    "of warnings per dataset when 'switch ulay' is set, although I'd love to\n"
-   "get rid of that habit as soon as possible.\n"   
+   "get rid of that habit as soon as possible.\n"
   } ,
 
  { 10, NOV , 2011 , ZSS , "3dinfo" , MICRO , TYPE_BUG_FIX,
    "Many new options for selective information.",
-   NULL   
+   NULL
   } ,
 
  { 2, NOV , 2011 , ZSS , "3dfim+" , MICRO , TYPE_BUG_FIX,
    "Turned off scaling for Best Index in output dset",
-   NULL   
+   NULL
   } ,
 
  { 26, OCT , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "Made SUMA hide overlay from SUMA whenever 'See Overlay' is off in AFNI",
-   NULL   
+   NULL
   } ,
 
  { 26, OCT , 2011 , ZSS , "afni" , MICRO , TYPE_BUG_FIX,
    "Fixed bug where AFNI sent the max voxel to suma despite threshold",
    "In BYTE and SHORT datasets the maximum voxel always got sent to\n"
    "suma, even if the threshold was higher than the maximum value in\n"
-   "the dataset.\n"   
+   "the dataset.\n"
   } ,
 
  { 18, OCT , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
    "Added -available_npb* options to suggest available port blocks",
-   NULL  
+   NULL
   } ,
 
  { 14, OCT , 2011 , ZSS , "afni-general" , MINOR , TYPE_GENERAL,
@@ -2954,7 +2954,7 @@ afni_history_struct ziad_history[] = {
    "with the shortest distance of each voxel to the surface.\n"
    "See examples under 3dSurfMask -help."
   } ,
- 
+
  { 16, JUN , 2011 , ZSS , "SurfPatch" , MINOR , TYPE_NEW_OPT,
    "-flip_orientation allows for reversing triangle orientation.",
    "See new examples under SurfPatch -help"
@@ -2979,7 +2979,7 @@ afni_history_struct ziad_history[] = {
  { 7, JUN , 2011 , ZSS , "afni" , MINOR , TYPE_NEW_OPT,
    "Added 'w' key for writing out colormap to disk.",
    "See suma's help for the colormap.\n"
-   "(press ctrl+h with cursor over the colormap in the surface controller)"  
+   "(press ctrl+h with cursor over the colormap in the surface controller)"
   } ,
 
  { 7, JUN , 2011 , ZSS , "afni-general" , MAJOR , TYPE_NEW_OPT,
@@ -2988,27 +2988,27 @@ afni_history_struct ziad_history[] = {
    "allows users to use a different set of ports for different AFNI/SUMA/etc.\n"
    "sessions."
    "Port numbers should no longer be hard coded anywhere. New dedicated\n"
-   "ports should be added to then new init_ports_list() function."  
+   "ports should be added to then new init_ports_list() function."
   } ,
 
  { 7, JUN , 2011 , ZSS , "afni" , MICRO , TYPE_NEW_OPT,
    "-list_ports, -port_number* give port assignment information",
-   "See afni -help for details."  
+   "See afni -help for details."
   } ,
 
  { 7, JUN , 2011 , ZSS , "suma" , MICRO , TYPE_NEW_OPT,
    "-np, -list_ports, -port_number* control and report port assignments",
-   "See suma -help for details."  
+   "See suma -help for details."
   } ,
 
  { 19, MAY , 2011 , ZSS , "@RetinoProc" , MINOR , TYPE_NEW_OPT,
    "Added support for multiple reference time series.",
-   "Search for -var* options in @RetinoProc -help.\n" 
+   "Search for -var* options in @RetinoProc -help.\n"
   } ,
 
  { 19, MAY , 2011 , ZSS , "3dRetinoPhase" , MINOR , TYPE_NEW_OPT,
    "Added option to use best of multiple reference time series.",
-   "Search for -multi_ref_ts in 3dRetinoPhase -help\n" 
+   "Search for -multi_ref_ts in 3dRetinoPhase -help\n"
  } ,
 
  { 18, MAY , 2011 , ZSS , "suma" , MICRO , TYPE_BUG_FIX,
@@ -3021,7 +3021,7 @@ afni_history_struct ziad_history[] = {
    "The options -wm, -pial, etc. allow for tight control of mapping\n"
    "onto specific layers in the cortex.\n"
    "Option -delay improves latency estimation compare to using the phase\n"
-   "of the fundamental frequency.\n" 
+   "of the fundamental frequency.\n"
   } ,
 
   { 18, MAY , 2011 , ZSS , "SurfRetinoMap" , MINOR , TYPE_MODIFY,
@@ -3041,7 +3041,7 @@ afni_history_struct ziad_history[] = {
    "angles datasets. \n"
    "And speaking of correlation coefficients, the significance levels should\n"
    "be taken with a grain of salt, especially in derived datasets such as \n"
-   "field angle, and VFR in SurfRetinoMap.\n" 
+   "field angle, and VFR in SurfRetinoMap.\n"
   } ,
 
  { 18, MAY , 2011 , ZSS , "3ddelay" , MINOR , TYPE_NEW_OPT,
@@ -3355,24 +3355,24 @@ afni_history_struct ziad_history[] = {
    "SUMA now detects retinotopy results and displays them appropriately",
    NULL
  } ,
- 
+
  { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_OPT,
    "Shift+Ctrl left, right rotates surface about Z axis",
    "Useful for rotating flat surfaces"
  } ,
- 
+
   { 23, AUG , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
    "Allow users to specify colormaps for retinotopy results",
    "See help section for variables:\n"
    "  SUMA_RetinoAngle_DsetColorMap and SUMA_VFR_DsetColorMap\n"
    "in your ~/.sumarc, after running suma -update_env.\n"
  } ,
- 
+
   { 23, AUG , 2010 , ZSS , "@RetinoProc" , MAJOR , TYPE_NEW_PROG,
    "Packages processing step for phase-based retinotopic mapping.",
    "See @RetinoProc -help for details\n"
  } ,
- 
+
   { 23, AUG , 2010 , ZSS , "3dRetinoPhase" , MAJOR , TYPE_NEW_PROG,
    "Calculate visual field angle from phase-based retinotopy data.",
    NULL
@@ -3382,12 +3382,12 @@ afni_history_struct ziad_history[] = {
    "Calculates Visual Field Signs from visual field angle data",
    NULL
   } ,
- 
+
   { 23, AUG , 2010 , ZSS , "@SUMA_Make_Spec_FS" , MICRO , TYPE_MODIFY,
    "Script now looks for brain envelope surface from FreeSurfer",
    "Thanks to Mike Beauchamp for the modification."
   } ,
- 
+
  { 18, AUG , 2010 , ZSS , "@DriveSuma" , MINOR , TYPE_MODIFY,
    "Improvements to @DriveSuma to make it more didactic",
    NULL
@@ -3433,17 +3433,17 @@ afni_history_struct ziad_history[] = {
 
  { 28, JUL , 2010 , ZSS , "plugout_drive" , MINOR , TYPE_NEW_OPT,
    "Added SET_INDEX to plugout_drive",
-   NULL 
+   NULL
  } ,
 
  { 26, JUL , 2010 , ZSS , "3dclust" , MINOR , TYPE_BUG_FIX,
    "Mean calculations were off for large clusters with large values.",
-   NULL 
+   NULL
  } ,
 
  { 8, JUL , 2010 , ZSS , "suma" , MINOR , TYPE_BUG_FIX,
    "Fixed striping with contour objects",
-   NULL 
+   NULL
  } ,
 
  { 6, JUL , 2010 , ZSS , "suma" , MINOR , TYPE_NEW_ENV,
@@ -3453,7 +3453,7 @@ afni_history_struct ziad_history[] = {
    "be made available to SUMA. For help on colormap file formats,\n"
    "open a surface controller ('View'-->'Surface Controller'), \n"
    "click on BHelp (bottom left) and then click on 'New' button\n"
-   "which is to the right of the colormap selector." 
+   "which is to the right of the colormap selector."
  } ,
 
  { 1, JUL , 2010 , ZSS , "SurfToSurf" , MINOR , TYPE_NEW_OPT,
@@ -3468,7 +3468,7 @@ afni_history_struct ziad_history[] = {
 "\n"
 "In 'Usage 2', the old version performed two resampling operations. One in \n" "3dWarp with the default quintic kernel, the other in 3dresample with the \n"
 "Bk kernel. The new version can perform only one resampling thereby  \n"
-"reducing the smoothness of the final result. To change from the default\n" 
+"reducing the smoothness of the final result. To change from the default\n"
 "behavior,use the new option -onewarp. "
 "\n"
 "The help output of the old version stated that -rmode controlled the \n"
@@ -3484,9 +3484,9 @@ afni_history_struct ziad_history[] = {
 "This is no longer the case. In the current version, you will \n"
 "get a skull-stripped version of the input in TLRC space \n"
 "(no intensity adjustment).\n"
-"Behavior of the -warp_orig_vol is unchanged.\n" 
+"Behavior of the -warp_orig_vol is unchanged.\n"
 "This change in 'Usage 1' does not affect the registration transform, \n"
-"nor 'Usage 2'.\n" 
+"nor 'Usage 2'.\n"
 "If you insist on the old mode of operation, then contact me and I will \n"
 "send you an older version of @auto_tlrc."
  } ,
@@ -3692,68 +3692,68 @@ afni_history_struct ziad_history[] = {
    "Improved script to make it pick up new naming convention.",
    NULL
  } ,
- 
+
  { 25 , NOV , 2009 , ZSS , "MapIcosahedron" , MAJOR , TYPE_NEW_OPT ,
    "Added -NN_dset_map and -dset_map options to map dsets onto new meshes",
    "The program now automatically warps LabelDsets specified in the spec\n"
    "file, or any dataset specified on the command line."
  } ,
- 
+
  { 24 , NOV , 2009 , ZSS , "1dmatcalc" , MINOR , TYPE_NEW_OPT ,
    "Added &read4x4Xform to read in spatial affine transformations.",
    "1dmatcalc can now take in spatial affine transforms in vector\n"
    "or matrix form"
  } ,
- 
+
  { 24 , NOV , 2009 , ZSS , "afni-matlab" , MINOR , TYPE_BUG_FIX ,
    "Stopped writing empty attributes which caused trouble in AFNI.",
    "Empty attributes make AFNI halt the parsing of the header."
  } ,
- 
+
  { 23 , NOV , 2009 , ZSS , "afni" , MICRO , TYPE_BUG_FIX ,
    "A couple of small fixes to drive_switch functions.",
    "The problem with with sscanf reading past string end\n"
    "in certain cases."
  } ,
- 
+
  { 23 , NOV , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
    "Workaround for connection drop between AFNI and SUMA in Shared Memory Mode.",
    "Env SUMA_AttemptTalkRecover allows SUMA to recover from drop.\n"
    "This ENV is set by default to No."
  } ,
- 
+
  { 19 , NOV , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
    "Fixed recorder lag on OS X machines.",
    "On OS X platforms, the 'r' or 'R' recording modes\n"
    "used to record the previous image it seems. "
  } ,
- 
+
  { 17 , NOV , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
    "Script now automatically sets up the spec file with labeled datasets",
    "Labeled datasets are created from annotation files,\n"
    "and are now rendered in a special manner in SUMA"
  } ,
- 
+
  { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
    "SUMA_AlwaysAssignSurface (see suma -environment for details)",
    NULL
- } ,  
- 
+ } ,
+
  { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
    "SUMA_LabelDsetOpacity (see suma -environment for details)",
    NULL
- } ,  
- 
+ } ,
+
  { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
    "SUMA_ConvexityDsetOpacity (see suma -environment for details)",
    NULL
- } ,  
- 
+ } ,
+
  { 17 , NOV , 2009 , ZSS , "suma_general" , MINOR , TYPE_NEW_ENV ,
    "SUMA_ShowLabelDsetAtStartup (see suma -environment for details)",
    NULL
- } ,  
- 
+ } ,
+
  { 17 , NOV , 2009 , ZSS , "ROI2dataset" , MINOR , TYPE_NEW_OPT ,
    "Option -label_dset creates a labeled dataset from ROIs.",
    "Labeled datasets are now rendered in a special manner in SUMA"
@@ -3928,12 +3928,12 @@ afni_history_struct ziad_history[] = {
    "Added -okzero to keep program from exiting with all zero input",
    "Added options to force output for empty ROIs."
  } ,
- 
+
  { 8 , MAY , 2009 , ZSS , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT ,
    "The script now automatically turns FS annot files to SUMA ROI files",
    NULL
  } ,
- 
+
  { 8 , MAY , 2009 , ZSS , "suma" , MINOR , TYPE_BUG_FIX ,
    "Better display of ROI contours on patches",
    "Suma now correctly handles ROI display when the ROIs\n"
@@ -3950,81 +3950,81 @@ afni_history_struct ziad_history[] = {
    "A program that substitutes a voxel's value by that value's rank",
    NULL
  } ,
- 
+
  { 29 , APR , 2009 , ZSS , "SurfSmooth" , MINOR , TYPE_BUG_FIX ,
    "-detprefix_* options now do something!",
    NULL
  } ,
- 
+
  { 29 , APR , 2009 , ZSS , "3dTcorrMap" , MINOR , TYPE_NEW_OPT ,
    "-VarThresh* options for obtaining counts at different thresholds",
    NULL
  } ,
- 
+
  { 29 , APR , 2009 , ZSS , "ConvertDset" , MINOR , TYPE_NEW_OPT ,
    "-node_select_1D now respects node ordering",
    NULL
  } ,
- 
+
  { 29 , APR , 2009 , ZSS , "ROI2dataset" , MINOR , TYPE_NEW_OPT ,
    "-nodelist* options to output node sequence forming ROI",
    NULL
  } ,
- 
+
  { 29 , APR , 2009 , ZSS , "MapIcosahedron" , MINOR , TYPE_BUG_FIX ,
    "Fixed crash when using -it option for geometry smoothing",
    NULL
  } ,
- 
+
  { 14 , APR , 2009 , ZSS , "suma-general" , MINOR , TYPE_BUG_FIX ,
    "niml ROI files with empty ROI no longer crash suma/ROI2dataset",
    NULL
  } ,
- 
+
  { 6 , APR , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT ,
    "Added support for '.', ',', and space keys, and 'shw_0'",
    NULL
  } ,
- 
+
  { 1 , APR , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
    "Arrow keys based navigation along surface.",
-   "See 'Alt+U-D' section in SUMA's interactive usage help.\n" 
+   "See 'Alt+U-D' section in SUMA's interactive usage help.\n"
  } ,
- 
+
  { 1 , APR , 2009 , ZSS , "suma" , MICRO , TYPE_NEW_ENV ,
    "Added SUMA_KeyNodeJump variable \n",
    "This variable controls number of nodes to jump with arrow keys navigation."
    "See suma -environment for complete list and defaults.\n"
  } ,
- 
+
  { 31 , MAR , 2009 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
    "Added 'on the fly' dot product computation",
    "This feature is only available with SUMA's -dev\n"
    "option. It is still in testing mode and its \n"
    "interface may change. If intrigued, see 'D' key's\n"
-   "help in SUMA's interactive usage help.\n" 
+   "help in SUMA's interactive usage help.\n"
  } ,
- 
+
  { 31 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_MODIFY ,
    "Handling of double precision datatypes.",
    NULL
  } ,
- 
+
  { 31 , MAR , 2009 , ZSS , "DriveSuma" , MINOR , TYPE_NEW_OPT ,
    "Added support for '[' and ']' keys and -view_surf",
    NULL
  } ,
- 
+
  { 26 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT ,
    "Support for reading/writing MNI .obj surfaces",
    NULL
  } ,
- 
+
  { 12 , MAR , 2009 , ZSS , "suma-general" , MINOR , TYPE_NEW_OPT ,
    "SUMA talks to matlab.",
    NULL
  } ,
- 
+
 
  { 10 , FEB , 2009 , ZSS , "DriveSuma" , MICRO , TYPE_NEW_OPT ,
    "Added -anim_dup to slow down movies",
@@ -4101,7 +4101,7 @@ afni_history_struct ziad_history[] = {
    "Added history note to 3dCM",
    NULL
  },
- 
+
  { 8, DEC , 2008 , ZSS , "suma" , MICRO ,  TYPE_BUG_FIX,
    "SUMA works now with LESSTIF, interface is almost the same as in MOTIF",
    NULL
@@ -4135,37 +4135,37 @@ afni_history_struct ziad_history[] = {
    "See SpharmReco -help and the demo script @Spharm.examples\n"
    "for details."
  },
- 
+
  { 21 , NOV , 2008 , ZSS , "@fast_roi" , MAJOR ,  TYPE_NEW_PROG,
    "Creates Atlas-based ROIs in original space for real-time experiments ",
    NULL
  },
- 
+
  { 13 , NOV , 2008 , ZSS , "suma" , MINOR ,  TYPE_NEW_OPT,
    "Added a NIDO sphere as Displayable Object ",
    "See suma -help_nido for details."
  },
- 
+
  { 13 , NOV , 2008 , ZSS , "@SUMA_AlignToExperiment" , MINOR ,  TYPE_NEW_OPT,
    "Added -al option to use 3dAllineate -lpa ",
    NULL
  },
- 
+
  { 03 , NOV , 2008 , ZSS , "3dNLfim" , MICRO ,  TYPE_NEW_OPT,
    "Added Exp (single exponential) model ",
    NULL
  },
- 
+
  { 17 , OCT , 2008 , ZSS , "imcat" , MICRO ,  TYPE_NEW_OPT,
    "-crop is a new option for cropping an image ",
    NULL
  },
- 
+
  { 03 , OCT , 2008 , ZSS , "suma" , MICRO ,  TYPE_NEW_ENV,
    "SUMA_StartUpLocation to control initial window placement ",
    "See output for suma -environment for details."
  },
- 
+
  { 03 , OCT , 2008 , ZSS , "@DO.examples" , MINOR ,  TYPE_NEW_PROG,
    "A script that demonstrates the use of Displayable Objects",
    "See SUMA's interactive help for ctrl+alt+s for more information\n"
@@ -4204,7 +4204,7 @@ afni_history_struct ziad_history[] = {
    "Starting sphere center was incorrectly initialized",
    NULL
  },
- 
+
  { 29 , AUG , 2008 , ZSS , "afni-general" , MICRO,  TYPE_GENERAL,
    "Added toy programs 3dTsmoothR.c and toyR.c to test C<-->R interface",
    "The programs demonstrate how to call R functions from C.\n"
@@ -4213,12 +4213,12 @@ afni_history_struct ziad_history[] = {
    "Then make 3dTsmoothR toyR\n"
    "The programs demonstrate time series processing and plotting in R."
  },
-  
+
  { 29 , AUG , 2008 , ZSS , "ExamineXmat" , MAJOR,  TYPE_NEW_PROG,
    "An interactive tool to examine a design matrix",
    NULL
  },
- 
+
  { 29 , AUG , 2008 , ZSS , "3ddelay" , MINOR ,  TYPE_BUG_FIX,
    "Unitialized pointer in 3ddelay",
    NULL
@@ -4234,7 +4234,7 @@ afni_history_struct ziad_history[] = {
    "Focus Point output. Note that the rest of the whereami\n"
    "output remains unchanged."
  },
-  
+
  { 29 , MAY , 2008 , ZSS , "3dfim+" , MINOR , TYPE_MODIFY ,
    "allowed for -polort -1 and for sub-brick selection with dataset names",
    NULL
@@ -4388,23 +4388,23 @@ afni_history_struct ziad_history[] = {
    "GIFTI writing can now be done with SUMA programs.\n"
    "For example, see options -o_gii and -xml* in ConvertSurface program."
  } ,
- 
+
  { 28 , FEB , 2008 , ZSS , "suma-general" , MAJOR , TYPE_NEW_ENV ,
    "Support for GIFTI surface format reading" ,
-   NULL 
+   NULL
  } ,
- 
+
  { 27 , FEB , 2008 , ZSS , "suma" , MAJOR , TYPE_GENERAL ,
    "Addition of p and q values under threshold bar" ,
    "Use BHelp on p and q text in suma to get more info."
  } ,
- 
+
  { 27 , FEB , 2008 , ZSS , "suma-general" , MICRO , TYPE_BUG_FIX ,
    "Another bout of initialization and leak fixes based on valgrind's output" ,
    "The hope is that some weird X behavior is caused by uninitialized\n"
    "variables."
  } ,
- 
+
  { 14 , FEB , 2008 , ZSS , "suma" , MAJOR , TYPE_GENERAL ,
    "Graphing of dset content with 'g'" ,
    "A graph of the column content at a node can be plotted\n"
@@ -4416,12 +4416,12 @@ afni_history_struct ziad_history[] = {
    "An option to show all of suma's environment variables" ,
    "See help for -environment in suma -help."
  } ,
- 
+
  { 6 , FEB , 2008 , ZSS , "SurfDist" , MAJOR , TYPE_NEW_PROG ,
    "Program to calculate geodesic internodal distances" ,
    NULL
  } ,
- 
+
  { 12 , JAN , 2008 , ZSS , "suma" , MAJOR , TYPE_GENERAL ,
    "Scroll lists for I T and B selectors in suma" ,
    "Right click on pulldown menu titles to get\n"
@@ -4430,7 +4430,7 @@ afni_history_struct ziad_history[] = {
    "Right click on 'I' to the left of suma's Intensity Selection\n"
    "button for an illustration."
  } ,
- 
+
  { 19 , DEC , 2007 , ZSS , "suma-general" , MAJOR , TYPE_GENERAL ,
    "Use of '[i]' to select node index from surface dset" ,
    "Square bracket '[]' selection works for surface-based\n"
@@ -4446,19 +4446,19 @@ afni_history_struct ziad_history[] = {
    "Grows regions separately, depending on labels" ,
    NULL
  } ,
- 
+
  { 18 , DEC , 2007 , ZSS , "ROI2dataset" , MINOR , TYPE_GENERAL ,
    "Output full datasets if needed" ,
    NULL
  } ,
- 
+
  { 17 , DEC , 2007 , ZSS , "ConvertDset" , MINOR , TYPE_GENERAL ,
    "Output of full dsets if needed" ,
    "This can be used to force a dataset with data\n"
    "defined on a few nodes to be written out with a\n"
    "complete list of nodes, using 0 where no data are defined."
  } ,
- 
+
  { 19 , NOV , 2007 , ZSS , "Surf2VolCoord" , MINOR , TYPE_NEW_PROG ,
    "Program to show surface-node to voxel correspondence" ,
    "This can be used to understand how surface coordinates\n"
@@ -4473,17 +4473,17 @@ afni_history_struct ziad_history[] = {
    "* HEAT_05 method improved to reduce numerical precision\n"
    "problems."
  } ,
- 
+
  { 26 , SEP , 2007 , ZSS , "SurfFWHM" , SUPER , TYPE_NEW_PROG ,
    "Program to estimate FWHM of data on surface" ,
    NULL
  } ,
- 
+
  { 10 , MAR , 2007 , ZSS , "MapIcosahedron" , MINOR , TYPE_MODIFY ,
    "Better handling of surface centers" ,
    NULL
  } ,
- 
+
  { 15 , FEB , 2007 , ZSS , "suma" , MINOR , TYPE_NEW_OPT ,
    "High resolution image saving with ctrl+r" ,
    "Very high resolution images can be created.\n"
@@ -4500,7 +4500,7 @@ afni_history_struct ziad_history[] = {
    "When a dataset is reloaded, it replaces the one\n"
    "already loaded in suma."
  } ,
- 
+
  { 5 , JAN , 2007 , ZSS , "imcat" , MINOR , TYPE_NEW_PROG ,
    "Program to stitch images." ,
    NULL
@@ -4511,7 +4511,7 @@ afni_history_struct ziad_history[] = {
    "Allows display of segments, spheres and other markers\n"
    "See suma's interactive help 'ctrl+h' for more info."
  } ,
- 
+
  { 20 , SEP , 2006 , ZSS , "DriveSuma" , MAJOR , TYPE_NEW_PROG ,
    "Program to control SUMA from the command line" ,
    NULL
@@ -4522,6 +4522,6 @@ afni_history_struct ziad_history[] = {
    NULL
  } ,
 
- 
+
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;

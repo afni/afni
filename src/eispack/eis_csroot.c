@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int csroot_(doublereal *xr, doublereal *xi, doublereal *yr, 
+/* Subroutine */ int csroot_(doublereal *xr, doublereal *xi, doublereal *yr,
 	doublereal *yi)
 {
     /* Builtin functions */

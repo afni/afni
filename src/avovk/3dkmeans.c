@@ -1,5 +1,5 @@
 #include <stdio.h>
-#include <stdlib.h> 
+#include <stdlib.h>
 #include <string.h>
 
 #include "../mrilib.h"
@@ -57,7 +57,7 @@ static void display_help(int detail)
  "                  its 0th sub-brick will be used.\n"
  "              * Do not use quotes inside the 'opts' string!\n"
  "\n");
-#if 0 
+#if 0
    /* Not implemented */
   printf ("  -cg a|m       Specifies whether to center each row\n"
           "                in the data\n"
@@ -129,7 +129,7 @@ static void display_help(int detail)
           "                of clusters k to use. \n"
           "                Default is kmeans with k = 3 clusters\n");
 #endif
-  printf ("  -k number     Specify number of clusters\n");  
+  printf ("  -k number     Specify number of clusters\n");
   printf ("  -remap  METH  Reassign clusters numbers based on METH:\n"
           "                   NONE: No remapping (default)\n"
           "                   COUNT: based on cluster size ascending\n"
@@ -179,9 +179,9 @@ static void display_help(int detail)
           "                FILE.info1.1D: Within cluster sum of distances\n"
           "                FILE.info2.1D: Maximum distance within each cluster\n"
           "                FILE.vcd.1D: Distance from voxel to its centroid\n");
-  printf ("  -voxdbg I J K Output debugging info for voxel I J K\n");    
+  printf ("  -voxdbg I J K Output debugging info for voxel I J K\n");
   printf ("  -seed SEED    Seed for the random number generator.\n"
-          "                Default is 1234567\n");    
+          "                Default is 1234567\n");
   EXRETURN;
 }
 
@@ -190,7 +190,7 @@ static void display_help(int detail)
 /* ========================================================================= */
 
 int main(int argc, char **argv)
-{ 
+{
    int ii=0, ncol=0, nrow=0, nl=0, nc=0;
    int i = 1;
    char* filename[256];
@@ -213,12 +213,12 @@ int main(int argc, char **argv)
    int n = 0, Ncoltot=0, nc0=0, nx=0, ny=0, nz=0;
    char *prefixvcd = NULL, *clust_init_name=NULL;
 
-   
+
    mainENTRY("3dkmeans"); machdep();/* Used to be called 3dAclustering_fNM */
    PRINT_VERSION("3dkmeans"); AUTHOR("avovk") ;
-   
+
    oc = new_kmeans_oc();
-   
+
    oc.r = -1;
    oc.k = 0;
    oc.kh = 0;
@@ -229,11 +229,11 @@ int main(int argc, char **argv)
    oc.remap = NONE;
    oc.user_labeltable=NULL;
    oc.nclabels=0;
-   
+
    for (i=0; i<4; ++i) oc.voxdebug[i] = -1;
    N_iset = 0;
    filename[N_iset] = NULL;
-   
+
 
    i = 1;
    while (i < argc)
@@ -251,25 +251,25 @@ int main(int argc, char **argv)
     { clusterlib_display_version();
       RETURN(0);
     }
-    if(     !strcmp(argument,"--help") 
-         || !strcmp(argument,"-h") 
+    if(     !strcmp(argument,"--help")
+         || !strcmp(argument,"-h")
          || !strcmp(argument,"-help") )
     { display_help(strlen(argument) > 3 ? 2:1);
       RETURN(0);
     }
-    if(     !strcmp(argument,"--verb") 
+    if(     !strcmp(argument,"--verb")
          || !strcmp(argument,"-verb") )
     { oc.verb +=1;
       continue;
     }
-    if(     !strcmp(argument,"--write_dists") 
+    if(     !strcmp(argument,"--write_dists")
          || !strcmp(argument,"-write_dists") )
     { oc.writedists=1;
       continue;
     }
-    if(     !strcmp(argument,"--remap") 
+    if(     !strcmp(argument,"--remap")
          || !strcmp(argument,"-remap") )
-    { 
+    {
       if (i<argc) {
        if (!strcmp("COUNT",argv[i])) {
          oc.remap = COUNT;
@@ -356,7 +356,7 @@ int main(int argc, char **argv)
       i++;
       continue;
     }
-    
+
     if(!strcmp(argument,"-seed"))
     { if (i==argc)
       { printf ("Error: Need a +ve integer after -seed\n");
@@ -370,7 +370,7 @@ int main(int argc, char **argv)
       i++;
       continue;
     }
-    
+
     if( strncmp(argument,"-mask",5) == 0 ){
        if( mask_dset != NULL )
          ERROR_exit("Cannot have two -mask options!\n") ;
@@ -401,7 +401,7 @@ int main(int argc, char **argv)
        if( cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
        i++ ; continue ;
     }
-      
+
     if(!strcmp(argument,"-ng"))
     { ng = 1;
       continue;
@@ -410,7 +410,7 @@ int main(int argc, char **argv)
     { na = 1;
       continue;
     }
-    
+
     if(!strcmp(argument,"-f") || !strcmp(argument,"-input")) {
          if (i==argc)
         { printf ("Error reading command line argument -f (or -input): "
@@ -440,12 +440,12 @@ int main(int argc, char **argv)
             printf ("Error: Too many labels!\n");
             RETURN(1);
          }
-         ++oc.nclabels; 
+         ++oc.nclabels;
          i++;
         } while (i< argc && argv[i][0] != '-');
         continue;
     }
-    
+
     switch (argument[1])
     { case 'l': l=1; break;
       case 'u':
@@ -555,12 +555,12 @@ int main(int argc, char **argv)
         i++;
         break;
       }
-      default: 
+      default:
          printf ("Unknown option %s\n", argv[i-1]);
          suggest_best_prog_option(argv[0], argv[i-1]);
          RETURN(1);
     }
-    
+
    }
    if (argc < 2) {
       printf ("Too few options!");
@@ -569,7 +569,7 @@ int main(int argc, char **argv)
    }
 
    if (oc.k <= 0 && oc.kh <= 0) oc.k = 3;
-   
+
    if (clust_init_name) {
       if (oc.r > 0) {
          ERROR_message("Can't use -clust_init and -r > 0");
@@ -577,12 +577,12 @@ int main(int argc, char **argv)
       } else {
          oc.r = 0;
       }
-   } 
-   
+   }
+
    if (oc.r == -1) oc.r = 1;
-   
-   
-   
+
+
+
    if(oc.jobname == NULL) oc.jobname = clusterlib_setjobname(filename[0],1);
 
    if (oc.nclabels && oc.nclabels != oc.k && oc.nclabels != oc.kh) {
@@ -590,29 +590,29 @@ int main(int argc, char **argv)
                oc.nclabels, oc.k > 0 ? oc.k : oc.kh);
       RETURN(1);
    }
-   
+
    /* load dsets and prepare array data for sending to clustering functions */
-   
+
    if (!prefix) {
-      prefix = (char *)calloc(strlen(oc.jobname)+15,sizeof(char)); 
-      sprintf(prefix,"%s.k%d",oc.jobname, oc.k); 
+      prefix = (char *)calloc(strlen(oc.jobname)+15,sizeof(char));
+      sprintf(prefix,"%s.k%d",oc.jobname, oc.k);
       THD_force_ok_overwrite(1) ;   /* don't worry about overwriting */
    }
-   
+
    /* ------------- Mask business -----------------*/
    if( mask_dset == NULL ){
       mask = NULL ;
-      if( oc.verb ) 
+      if( oc.verb )
          INFO_message("Using all voxels in the entire dataset (no mask)\n") ;
    } else {
-      mnx = DSET_NX(mask_dset); 
-      mny = DSET_NY(mask_dset); 
+      mnx = DSET_NX(mask_dset);
+      mny = DSET_NY(mask_dset);
       mnz = DSET_NZ(mask_dset);
       mnxyz = mnx*mny*mnz;
       mask = THD_makemask( mask_dset , 0 , mask_bot, mask_top ) ;
       if( mask == NULL ) ERROR_exit("Can't make mask") ;
       nmask = THD_countmask( mnx*mny*mnz  , mask ) ;
-      if( oc.verb ) 
+      if( oc.verb )
          INFO_message("%d voxels in the [%dx%dx%d] mask",nmask, mnx, mny, mnz) ;
       if( nmask <= 0 ) ERROR_exit("No voxels in the mask!\n") ;
       DSET_delete(mask_dset) ;
@@ -621,7 +621,7 @@ int main(int argc, char **argv)
    if( cmask != NULL ){
       if( mask != NULL ){
          if (mnxyz != ncmask) ERROR_exit("Mask and cmask dimension mismatch") ;
-         for( ii=0 ; ii < mnxyz ; ii++ ) 
+         for( ii=0 ; ii < mnxyz ; ii++ )
             mask[ii] = (mask[ii] && cmask[ii]) ;
          free(cmask) ;
          nmask = THD_countmask( mnxyz , mask ) ;
@@ -636,11 +636,11 @@ int main(int argc, char **argv)
          if( oc.verb ) INFO_message("%d voxels in the cmask\n",nmask) ;
       }
    }
-   
+
    if (signame) {
       MRI_IMAGE *im = NULL;
       float *far = NULL;
-      
+
       /* catenate all input dsets */
       if (N_iset == 1) {
          in_set = THD_open_dataset(filename[0]);
@@ -656,27 +656,27 @@ int main(int argc, char **argv)
                      "Consdier catenating the input externally.\n"
                      "Let me know if it becomes annoying ...\n");
       }
-      
+
       /* load the set of distance files */
-      im = mri_read_1D (signame); 
+      im = mri_read_1D (signame);
       far = MRI_FLOAT_PTR(im);
       /* Now call distance function */
       if (!thd_Adist ( in_set,
-                       mask, 
+                       mask,
                        far, im->ny,
                        &dist_set ,
                        oc)) {
-         ERROR_exit("Failed in thd_Acluster");                 
+         ERROR_exit("Failed in thd_Acluster");
       }
-      if (im) mri_free(im); im = NULL; far = NULL; 
+      if (im) mri_free(im); im = NULL; far = NULL;
       /* add history to output data and write them  out */
-      if( oc.verb && dist_set) 
+      if( oc.verb && dist_set)
             ININFO_message("\nWriting datasets: %s",prefix) ;
       if (dist_set) {
          EDIT_dset_items(  dist_set , ADN_prefix  , prefix, ADN_none);
          tross_Copy_History( in_set , dist_set ) ;
          tross_Make_History( "3dkmeans" , argc, argv , dist_set ) ;
-         DSET_write(dist_set); DSET_unload(dist_set); 
+         DSET_write(dist_set); DSET_unload(dist_set);
          DSET_delete(dist_set); dist_set = NULL;
       }
    } else {
@@ -684,7 +684,7 @@ int main(int argc, char **argv)
       Ncoltot=0;
       /* Read in dset(s) and create D */
       for (iset = 0; iset < N_iset; ++iset) {
-         if (oc.verb) fprintf(stderr,"Reading %s's header (%d/%d), ", 
+         if (oc.verb) fprintf(stderr,"Reading %s's header (%d/%d), ",
                                     filename[iset], iset+1, N_iset);
          in_set = THD_open_dataset(filename[iset]);
          CHECK_OPEN_ERROR(in_set,filename[iset]) ;
@@ -698,25 +698,25 @@ int main(int argc, char **argv)
             nrow = DSET_NVOX(in_set);
             nx = DSET_NX(in_set); ny = DSET_NY(in_set); nz = DSET_NZ(in_set);
             if (  mask                                              &&
-                  ( ( (mnx >= 0 && mnx != DSET_NX(in_set)) || 
-                      (mny >= 0 && mny != DSET_NY(in_set)) || 
+                  ( ( (mnx >= 0 && mnx != DSET_NX(in_set)) ||
+                      (mny >= 0 && mny != DSET_NY(in_set)) ||
                       (mnz >= 0 && mnz != DSET_NZ(in_set))  )    ||
                     ( mnxyz != nx*ny*nz ) ) ) {
                ERROR_exit("Dimension mismatch between mask (%d=%dx%dx%d)\n"
                           "                 and input dset (%d=%dx%dx%d)",
-                          mnxyz, mnx, mny,mnz, nx*ny*nz, nx,ny,nz);      
+                          mnxyz, mnx, mny,mnz, nx*ny*nz, nx,ny,nz);
             }
             if (!mask) nmask = DSET_NVOX(in_set);
          } else { /* check for consistency with previous input */
-            if (  (nx != DSET_NX(in_set) || 
-                   ny != DSET_NY(in_set) || 
+            if (  (nx != DSET_NX(in_set) ||
+                   ny != DSET_NY(in_set) ||
                    nz != DSET_NZ(in_set) ) ) {
                ERROR_exit( "Dimension mismatch between input dset"
-                           " %s and preceding ones", filename[iset]);      
-            }     
+                           " %s and preceding ones", filename[iset]);
+            }
             ncol = DSET_NVALS(in_set);
          }
-         if (oc.verb) fprintf(stderr," %d cols\n ", 
+         if (oc.verb) fprintf(stderr," %d cols\n ",
                                     ncol);
          Ncoltot += ncol;
          /* get rid of dset */
@@ -727,37 +727,37 @@ int main(int argc, char **argv)
          if (Ncoltot == 1) oc.distmetric = 'e';
          else oc.distmetric = 'u';
       }
-      
+
       /* Now allocate for D */
       D = (float **)calloc(sizeof(float*), nmask);
       for (ii=0;ii<(nmask);++ii) {
          if (!(D[ii] = (float *)calloc(sizeof(float), Ncoltot))) {
-            fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
+            fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n",
                            nmask, Ncoltot);
             RETURN(1);
          }
       }
 
-      dvec = (float * )malloc(sizeof(float)*Ncoltot) ;  /* array to hold series 
-                                                         longer than needed, but 
+      dvec = (float * )malloc(sizeof(float)*Ncoltot) ;  /* array to hold series
+                                                         longer than needed, but
                                                          less hassle*/
       nc0 = 0;
       for (iset = 0; iset < N_iset; ++iset) {
-         if (oc.verb) 
+         if (oc.verb)
             fprintf(stderr,"Patience, rereading %s...\n", filename[iset]);
          in_set = THD_open_dataset(filename[iset]);
          DSET_load(in_set) ; ncol = DSET_NVALS(in_set);
 
          if (oc.verb) {
-            ININFO_message("Filling cols [%d..%d] of D(%dx%d) (mask=%p).\n", 
+            ININFO_message("Filling cols [%d..%d] of D(%dx%d) (mask=%p).\n",
                               nc0,nc0+ncol-1, nmask, Ncoltot, mask);
          }
          ii = 0;
          for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
             if (!mask || mask[nl]) {
-               THD_extract_array( nl , in_set , 0 , dvec ) ; 
-               for (nc=0; nc<ncol; ++nc) D[ii][nc0+nc] = dvec[nc]; 
-               ++ii;                              
+               THD_extract_array( nl , in_set , 0 , dvec ) ;
+               for (nc=0; nc<ncol; ++nc) D[ii][nc0+nc] = dvec[nc];
+               ++ii;
             }
          }
          nc0 += ncol;
@@ -768,13 +768,13 @@ int main(int argc, char **argv)
 
       /* Load initialization */
       if (clust_init_name) {
-         if (oc.verb) fprintf(stderr,"Reading %s's header, ", 
+         if (oc.verb) fprintf(stderr,"Reading %s's header, ",
                                     clust_init_name);
          if (!(clust_init = THD_open_dataset(clust_init_name))) {
             ERROR_exit("Failed to read initialization dset %s\n",
                         clust_init_name);
          }
-         DSET_load(clust_init) ; 
+         DSET_load(clust_init) ;
          CHECK_OPEN_ERROR(clust_init,clust_init_name) ;
       }
 
@@ -785,7 +785,7 @@ int main(int argc, char **argv)
                         &dist_set ,
                         clust_init,
                         oc, D, Ncoltot)) {
-         ERROR_exit("Failed in thd_Acluster");                 
+         ERROR_exit("Failed in thd_Acluster");
       }
 
       /* freedom */
@@ -801,14 +801,14 @@ int main(int argc, char **argv)
 
 
       /* add history to output data and write them  out */
-      if( oc.verb && 
-          (clust_set || dist_set)) 
+      if( oc.verb &&
+          (clust_set || dist_set))
         ININFO_message("\nWriting dataset: %s %s",prefix, prefixvcd) ;
       if (clust_set) {
          EDIT_dset_items(  clust_set , ADN_prefix  , prefix, ADN_none);
          tross_Copy_History( in_set , clust_set ) ;
          tross_Make_History( "3dkmeans" , argc, argv , clust_set ) ;
-         DSET_write(clust_set); DSET_unload(clust_set); 
+         DSET_write(clust_set); DSET_unload(clust_set);
          DSET_delete(clust_set); clust_set = NULL;
       }
       ININFO_message("\nWriting dataset: %s", prefixvcd) ;
@@ -816,14 +816,14 @@ int main(int argc, char **argv)
          EDIT_dset_items(  dist_set , ADN_prefix  , prefixvcd, ADN_none);
          tross_Copy_History( in_set , dist_set ) ;
          tross_Make_History( "3dkmeans" , argc, argv , dist_set ) ;
-         DSET_write(dist_set); 
-         DSET_unload(dist_set); 
-         DSET_delete(dist_set); 
+         DSET_write(dist_set);
+         DSET_unload(dist_set);
+         DSET_delete(dist_set);
          dist_set = NULL;
       }
 
    }
- 
+
    if (prefix) free(prefix); prefix=NULL;
    if (mask) free(mask); mask = NULL;
    if (oc.jobname) free(oc.jobname); oc.jobname = NULL;

@@ -47,7 +47,7 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
         register int ii;
         outval = 0.0f;
         for( ii=0; ii < npt; ii++) {
-           if(far[ii] == maskvalue) { 
+           if(far[ii] == maskvalue) {
              outval = unfillvalue;
              break;
           }
@@ -60,7 +60,7 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
         register int ii;
         outval = 0.0f;
         for( ii=0; ii < npt; ii++) {
-          if(far[ii] == maskvalue2) { 
+          if(far[ii] == maskvalue2) {
              outval = unfillvalue;
              break;
           }
@@ -85,7 +85,7 @@ float mri_nstat( int code , int npt , float *far , float voxval, MCW_cluster *nb
      }
      break ;
 
-     
+
      case NSTAT_SIGMA:   /* these 3 need the mean and variance sums */
      case NSTAT_CVAR:
      case NSTAT_VAR:{
@@ -256,7 +256,7 @@ int mri_nstat_diffs( int npt , float *far , float *fv6, int doabs)
    if ( npt == 1 ) { /* Nothing to do, return quietly though */
       return 1;
    }
-   
+
    if (doabs==0) {
       vv = (far[1]-far[0]);
       mm = vvmin = vvmax = vv;
@@ -265,11 +265,11 @@ int mri_nstat_diffs( int npt , float *far , float *fv6, int doabs)
          if (vv < vvmin) {
             vvmin = vv;
          } else if (vv > vvmax) {
-            vvmax = vv; 
+            vvmax = vv;
          }
          mm += vv ;
       }
-      mm /= (npt-1) ; 
+      mm /= (npt-1) ;
       fv6[0] = mm;
       fv6[1] = vvmin;
       fv6[2] = vvmax;
@@ -281,11 +281,11 @@ int mri_nstat_diffs( int npt , float *far , float *fv6, int doabs)
          if (vv < vvmin) {
             vvmin = vv;
          } else if (vv > vvmax) {
-            vvmax = vv; 
+            vvmax = vv;
          }
          mm += vv ;
       }
-      mm /= (npt-1) ; 
+      mm /= (npt-1) ;
       fv6[0] = mm;
       fv6[1] = vvmin;
       fv6[2] = vvmax;
@@ -299,26 +299,26 @@ int mri_nstat_diffs( int npt , float *far , float *fv6, int doabs)
          if (vv < vvmin) {
             vvmin = vv;
          } else if (vv > vvmax) {
-            vvmax = vv; 
+            vvmax = vv;
          }
          mm += vv ;
          if (vva < vvmina) {
             vvmina = vva;
          } else if (vva > vvmaxa) {
-            vvmaxa = vva; 
+            vvmaxa = vva;
          }
          mma += vva ;
       }
-      mm  /= (npt-1) ; 
-      mma /= (npt-1) ; 
+      mm  /= (npt-1) ;
+      mma /= (npt-1) ;
       fv6[0] = mm;
       fv6[1] = vvmin;
       fv6[2] = vvmax;
       fv6[3] = mma;
       fv6[4] = vvmina;
       fv6[5] = vvmaxa;
-   } 
-   
+   }
+
    return 1 ;
 }
 
@@ -350,8 +350,8 @@ THD_fvec3 mri_nstat_fwhmxyz( int xx, int yy, int zz,
    int count, countx, county, countz;
 
    LOAD_FVEC3(fw_xyz,-1,-1,-1) ;  /* load with bad values */
-   
-   if( im == NULL || im->kind != MRI_float || nbhd == NULL 
+
+   if( im == NULL || im->kind != MRI_float || nbhd == NULL
                   || nbhd->num_pt < 19) return fw_xyz;
 
    far = MRI_FLOAT_PTR(im) ;
@@ -916,7 +916,7 @@ ENTRY("THD_localstat") ;
                             (int)codeparam[cc][0]);
 
               min =      codeparam[cc][1];
-              max =      codeparam[cc][2]; 
+              max =      codeparam[cc][2];
               N   = (int)codeparam[cc][3];
               iout= (int)codeparam[cc][4];
               W = (max - min)/(double)N;
@@ -949,12 +949,12 @@ ENTRY("THD_localstat") ;
 
            if (nbar) {
             for (pp=0; pp<nbar_num; ++pp) aar[cc+pp][ijk] = (float)nbar[pp];
-           } 
-           cc += (nbhd->num_pt-1) ; /* number of sub-bricks added, minus 1 
-                                   Do not use nbar_num-1 because at 
+           }
+           cc += (nbhd->num_pt-1) ; /* number of sub-bricks added, minus 1
+                                   Do not use nbar_num-1 because at
                                    volume edges you will not have
                                    as many neighbors as elsewhere*/
-         
+
          } else if( code[cc] == NSTAT_diffs0 ){ /*3 values */
            mri_nstat_diffs( nbar_num , nbar, fv6, 0 ) ;
            aar[cc  ][ijk] = fv6[0]; /* average difference */

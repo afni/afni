@@ -32,7 +32,7 @@
 
 static inline uint64_t avg2(uint64_t a, uint64_t b)
 {
-    return (a | b) - (((a ^ b) & BYTE_VEC(0xfe)) >> 1);    
+    return (a | b) - (((a ^ b) & BYTE_VEC(0xfe)) >> 1);
 }
 
 // Load two unaligned quadwords from addr. This macro only works if

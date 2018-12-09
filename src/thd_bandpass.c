@@ -59,7 +59,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 
 /*--------------------------------------------------------------------------*/
 /*! Return the number of degrees of freedom that would remain after
-    bandpassing (the dimension of the subspace the data will be 
+    bandpassing (the dimension of the subspace the data will be
     projected into).
 
     Returns twice the length of the passband index range.

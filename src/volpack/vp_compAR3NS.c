@@ -5,17 +5,17 @@
 /*
  * Copyright (c) 1994 The Board of Trustees of The Leland Stanford
  * Junior University.  All rights reserved.
- * 
+ *
  * Permission to use, copy, modify and distribute this software and its
  * documentation for any purpose is hereby granted without fee, provided
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * Author:
  *    Phil Lacroute
  *    Computer Systems Laboratory
@@ -35,7 +35,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -56,19 +56,19 @@
 
 
 
-    
-    
-    
-    
-    
 
-    
-    
-    
+
+
+
+
+
+
+
+
 #define USE_SHADOW_BUFFER
-	    
-    
-    
+
+
+
 
 
 #undef UNROLL_RUN_LOOP
@@ -125,30 +125,30 @@
 
 
 #define RGB
-    
-    
-    
-    
+
+
+
+
 
 
 
 
 
 #define RAWVOLUME
-	
-	
-	
-	
-	
-	
-	
+
+
+
+
+
+
+
 
 
 #undef INDEX_VOLUME
 
 
-    
-    
+
+
 
 
 
@@ -485,24 +485,24 @@ GrayIntPixel *shadow_buffer;
     trace_pixel_ptr = 0;
     if (vpc->trace_u >= 0 && vpc->trace_v >= 0) {
 #ifdef GRAYSCALE
-	trace_pixel_ptr = &vpc->int_image.gray_intim[vpc->trace_u + 
+	trace_pixel_ptr = &vpc->int_image.gray_intim[vpc->trace_u +
 		      vpc->trace_v*vpc->intermediate_width];
 #endif
 #ifdef RGB
-	trace_pixel_ptr = &vpc->int_image.rgb_intim[vpc->trace_u + 
+	trace_pixel_ptr = &vpc->int_image.rgb_intim[vpc->trace_u +
 		      vpc->trace_v*vpc->intermediate_width];
 #endif
 #ifdef COMPUTE_SHADOW_BUFFER
 	slice_u_int = (int)ceil(vpc->shear_i * vpc->trace_shadow_k +
 				vpc->trans_i) - 1;
-	shadow_slice_u_int = (int)ceil(vpc->shadow_shear_i * 
+	shadow_slice_u_int = (int)ceil(vpc->shadow_shear_i *
 			     vpc->trace_shadow_k + vpc->shadow_trans_i) - 1;
 	slice_v_int = (int)ceil(vpc->shear_j * vpc->trace_shadow_k
 				+ vpc->trans_j) - 1;
 	shadow_slice_v_int = (int)ceil(vpc->shadow_shear_j *
 			     vpc->trace_shadow_k + vpc->shadow_trans_j) - 1;
 	trace_pixel_ptr = &vpc->shadow_buffer[vpc->trace_u +
-		shadow_slice_u_int - slice_u_int + 
+		shadow_slice_u_int - slice_u_int +
 		(vpc->trace_v + shadow_slice_v_int -
 		slice_v_int)*vpc->shadow_width];
 #endif
@@ -960,8 +960,8 @@ GrayIntPixel *shadow_buffer;
 		/* only the top-left voxel contributes to the first
 		   pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -978,74 +978,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1056,27 +1056,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1085,13 +1085,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1103,16 +1103,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1144,8 +1144,8 @@ GrayIntPixel *shadow_buffer;
 		/* only the bottom left voxel contributes to the first
 		   pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1162,74 +1162,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1240,27 +1240,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1269,13 +1269,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1287,16 +1287,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1328,8 +1328,8 @@ GrayIntPixel *shadow_buffer;
 		/* the top and bottom left voxels contribute to the
 		   first pixel of the run, and the rest are zero */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1346,74 +1346,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1430,74 +1430,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1508,47 +1508,47 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1557,13 +1557,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1575,16 +1575,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1614,8 +1614,8 @@ GrayIntPixel *shadow_buffer;
 		break;
 	    case ALL_ZERO__TOP_NONZERO:
 		/* first pixel: only the top-right voxel contributes */
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1632,73 +1632,73 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1709,27 +1709,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTR;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -1738,13 +1738,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -1756,16 +1756,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -1800,8 +1800,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1818,74 +1818,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -1896,28 +1896,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -1934,93 +1934,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2029,13 +2029,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2047,16 +2047,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2093,8 +2093,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2111,74 +2111,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2189,28 +2189,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2227,93 +2227,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2322,13 +2322,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2340,16 +2340,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2383,8 +2383,8 @@ GrayIntPixel *shadow_buffer;
 		/* first pixel: bottom-left and top-right voxels
 		   contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2401,74 +2401,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2479,28 +2479,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2517,93 +2517,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2612,13 +2612,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2630,16 +2630,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2674,8 +2674,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2692,74 +2692,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -2770,28 +2770,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2808,93 +2808,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -2903,13 +2903,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -2921,16 +2921,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -2964,8 +2964,8 @@ GrayIntPixel *shadow_buffer;
 		/* first pixel: top-left, bottom-left and top-right voxels
 		   contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -2982,74 +2982,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3066,74 +3066,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3144,48 +3144,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3202,93 +3202,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3297,13 +3297,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3315,16 +3315,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3359,8 +3359,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3377,74 +3377,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3455,28 +3455,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3493,93 +3493,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3588,13 +3588,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3606,16 +3606,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3647,8 +3647,8 @@ GrayIntPixel *shadow_buffer;
 		break;
 	    case ALL_ZERO__BOT_NONZERO:
 		/* first pixel: only the bottom-right voxel contributes */
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3665,73 +3665,73 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3742,27 +3742,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBR;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -3771,13 +3771,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -3789,16 +3789,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -3820,7 +3820,7 @@ GrayIntPixel *shadow_buffer;
 		    ipixel->lnk = 1;
 	        }
 #           endif
-	};	
+	};
 		ipixel += 1; shadow_pixel += 1;
 		topRLEdata += 1 * voxel_istride;
 		botRLEdata += 1 * voxel_istride;
@@ -3833,8 +3833,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3851,74 +3851,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -3929,28 +3929,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -3967,93 +3967,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4062,13 +4062,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4080,16 +4080,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4122,8 +4122,8 @@ GrayIntPixel *shadow_buffer;
 	    case TOP_NONZERO__BOT_NONZERO:
 		/* first pixel: top-left and bottom-right voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4140,74 +4140,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4218,28 +4218,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4256,93 +4256,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4351,13 +4351,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4369,16 +4369,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4413,8 +4413,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4431,74 +4431,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4509,28 +4509,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4547,93 +4547,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4642,13 +4642,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4660,16 +4660,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4706,8 +4706,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4724,74 +4724,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -4802,28 +4802,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -4840,93 +4840,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -4935,13 +4935,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -4953,16 +4953,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -4996,8 +4996,8 @@ GrayIntPixel *shadow_buffer;
 		/* first pixel: top-left, bottom-left and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5014,74 +5014,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5098,74 +5098,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5176,48 +5176,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5234,93 +5234,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5329,13 +5329,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5347,16 +5347,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5391,8 +5391,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5409,74 +5409,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5487,28 +5487,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5525,93 +5525,93 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5620,13 +5620,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5638,16 +5638,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5679,8 +5679,8 @@ GrayIntPixel *shadow_buffer;
 		break;
 	    case ALL_ZERO__ALL_NONZERO:
 		/* first pixel: top-right and bottom-right voxels contribute */
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5697,74 +5697,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5781,73 +5781,73 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -5858,47 +5858,47 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTR;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -5907,13 +5907,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -5925,16 +5925,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -5969,8 +5969,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -5987,74 +5987,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6071,74 +6071,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -6149,48 +6149,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6207,74 +6207,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6291,113 +6291,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -6406,13 +6406,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -6424,16 +6424,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -6467,8 +6467,8 @@ GrayIntPixel *shadow_buffer;
 		/* first pixel: top-left, top-right and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6485,74 +6485,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -6563,28 +6563,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6601,74 +6601,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6685,113 +6685,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -6800,13 +6800,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -6818,16 +6818,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -6855,15 +6855,15 @@ GrayIntPixel *shadow_buffer;
 		botRLEdata += 1 * voxel_istride;
 		count--;
 		SET_VOXELS_LOADED;
-		    
+
 		/* do the rest of the pixels in this run;
 		   all four voxels contribute */
 		while (count > 0) {
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6880,74 +6880,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -6964,74 +6964,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7042,48 +7042,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7100,74 +7100,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7184,113 +7184,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7299,13 +7299,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7317,16 +7317,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -7360,8 +7360,8 @@ GrayIntPixel *shadow_buffer;
 		/* first pixel: bottom-left, top-right and bottom-right
 		   voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7378,74 +7378,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7456,28 +7456,28 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7494,74 +7494,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7578,113 +7578,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -7693,13 +7693,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -7711,16 +7711,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -7748,15 +7748,15 @@ GrayIntPixel *shadow_buffer;
 		botRLEdata += 1 * voxel_istride;
 		count--;
 		SET_VOXELS_LOADED;
-		    
+
 		/* do the rest of the pixels in this run;
 		   all four voxels contribute */
 		while (count > 0) {
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7773,74 +7773,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7857,74 +7857,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -7935,48 +7935,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -7993,74 +7993,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8077,113 +8077,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -8192,13 +8192,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -8210,16 +8210,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -8255,8 +8255,8 @@ GrayIntPixel *shadow_buffer;
 		    if (PIXEL_IS_OPAQUE(ipixel))
 			break;
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8273,74 +8273,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8357,74 +8357,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -8435,48 +8435,48 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		    
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8493,74 +8493,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8577,113 +8577,113 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
-		    
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -8692,13 +8692,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -8710,16 +8710,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -8766,7 +8766,7 @@ GrayIntPixel *shadow_buffer;
 		}
 		if (ipixel->lnk != 0)
 		    break;
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -8777,13 +8777,13 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = 0;
        acc_rclr = acc_gclr = acc_bclr = 0;
 		if (last_run_state & TOP_NONZERO) {
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8800,98 +8800,98 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		    }
-		    
+
        acc_opc += top_opc * wgtTL;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
 		}
 		if (last_run_state & BOT_NONZERO) {
 		    if (!voxels_loaded) {
-			
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -8908,97 +8908,97 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		    }
-		    
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
 		}
 		if (run_state & TOP_NONZERO) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9015,89 +9015,89 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
+
        acc_opc += top_opc * wgtTR;
-       
+
 	    acc_rclr += (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_gclr += (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
 	    acc_bclr += (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTR = top_opc;
         trace_rclrTR = top_rclr;
                      trace_gclrTR = top_gclr;
                      trace_bclrTR = top_bclr;
-	
+
     }
 #endif
 ;
@@ -9108,8 +9108,8 @@ GrayIntPixel *shadow_buffer;
 		    }
 		}
 		if (run_state & BOT_NONZERO) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9126,89 +9126,89 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
-		    
+
        acc_opc += bot_opc * wgtBR;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBR;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBR = bot_opc;
         trace_rclrBR = bot_rclr;
                      trace_gclrBR = bot_gclr;
                      trace_bclrBR = bot_bclr;
-	
+
     }
 #endif
 ;
@@ -9218,7 +9218,7 @@ GrayIntPixel *shadow_buffer;
 			botRLEdata += 1 * voxel_istride;
 		    }
 		}
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -9227,13 +9227,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -9245,16 +9245,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -9324,8 +9324,8 @@ GrayIntPixel *shadow_buffer;
 	    case TOP_NONZERO:
 		/* only the top-left voxel contributes */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9342,74 +9342,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -9420,27 +9420,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -9449,13 +9449,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -9467,16 +9467,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -9503,8 +9503,8 @@ GrayIntPixel *shadow_buffer;
 	    case BOT_NONZERO:
 		/* only the bottom left voxel contributes */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9521,74 +9521,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -9599,27 +9599,27 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = bot_opc * wgtBL;
-       
+
 	    acc_rclr = (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr = (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr = (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -9628,13 +9628,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -9646,16 +9646,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);
@@ -9682,8 +9682,8 @@ GrayIntPixel *shadow_buffer;
 	    case ALL_NONZERO:
 		/* the top and bottom left voxels contribute */
 		if (!voxels_loaded) {
-		    
-    
+
+
 	    opac_param = VoxelField(topRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9700,74 +9700,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		top_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(topRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(topRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    top_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    top_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    top_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    top_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    top_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        top_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        top_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        top_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        top_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    top_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    top_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    top_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    top_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    top_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    top_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        top_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        top_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        top_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        top_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        top_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        top_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = top_opc * slice_depth_cueing;
-    
+
         top_rclr *= shade_factor;
 	top_gclr *= shade_factor;
 	top_bclr *= shade_factor;
-    
+
             top_rsclr *= shade_factor;
 	    top_gsclr *= shade_factor;
 	    top_bsclr *= shade_factor;
-		    
-    
+
+
 	    opac_param = VoxelField(botRLEdata - voxel_istride, param0_offset, param0_size);
 	    opacity = param0_table[opac_param];
 	    if (param1_size != 0) {
@@ -9784,74 +9784,74 @@ GrayIntPixel *shadow_buffer;
 	    } else {
 		bot_opc = (float)0.;
 	    };
-    
-    
+
+
     shade_index=num_materials*3*ShortField(botRLEdata - voxel_istride,norm_offset);
     weight_index = num_materials * ByteField(botRLEdata - voxel_istride, wgt_offset);
-    
-        
-	
-    bot_rclr = 
-    shade_table[shade_index + 3*0 + 0] * 
+
+
+
+    bot_rclr =
+    shade_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_gclr = 
-    shade_table[shade_index + 3*0 + 1] * 
+
+    bot_gclr =
+    shade_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-    bot_bclr = 
-    shade_table[shade_index + 3*0 + 2] * 
+
+    bot_bclr =
+    shade_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_rsclr = 
-    shadow_table[shade_index + 3*0 + 0] * 
+
+        bot_rsclr =
+    shadow_table[shade_index + 3*0 + 0] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_gsclr = 
-    shadow_table[shade_index + 3*0 + 1] * 
+
+        bot_gsclr =
+    shadow_table[shade_index + 3*0 + 1] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
-	
-        bot_bsclr = 
-    shadow_table[shade_index + 3*0 + 2] * 
+
+        bot_bsclr =
+    shadow_table[shade_index + 3*0 + 2] *
 	((num_materials > 1) ? weight_table[weight_index] : (float)1.0);
         for (m = 1; m < num_materials; m++) {
-	     
-	
-    bot_rclr += 
-    shade_table[shade_index + 3*m + 0] * 
+
+
+    bot_rclr +=
+    shade_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-    bot_gclr += 
-    shade_table[shade_index + 3*m + 1] * 
+
+    bot_gclr +=
+    shade_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-    bot_bclr += 
-    shade_table[shade_index + 3*m + 2] * 
+
+    bot_bclr +=
+    shade_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
-	
-        bot_rsclr += 
-    shadow_table[shade_index + 3*m + 0] * 
+
+        bot_rsclr +=
+    shadow_table[shade_index + 3*m + 0] *
 	weight_table[weight_index + m];
-	
-        bot_gsclr += 
-    shadow_table[shade_index + 3*m + 1] * 
+
+        bot_gsclr +=
+    shadow_table[shade_index + 3*m + 1] *
 	weight_table[weight_index + m];
-	
-        bot_bsclr += 
-    shadow_table[shade_index + 3*m + 2] * 
+
+        bot_bsclr +=
+    shadow_table[shade_index + 3*m + 2] *
 	weight_table[weight_index + m];
 	};
     shade_factor = bot_opc * slice_depth_cueing;
-    
+
         bot_rclr *= shade_factor;
 	bot_gclr *= shade_factor;
 	bot_bclr *= shade_factor;
-    
+
             bot_rsclr *= shade_factor;
 	    bot_gsclr *= shade_factor;
 	    bot_bsclr *= shade_factor;
 		}
-		
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = 0.; trace_opcBL = 0.; trace_opcTR = 0.; trace_opcBR = 0.;
@@ -9862,47 +9862,47 @@ GrayIntPixel *shadow_buffer;
     }
 #endif
 ;
-		
+
        acc_opc = top_opc * wgtTL;
-       
+
 	    acc_rclr = (top_rclr + top_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_gclr = (top_gclr + top_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
 	    acc_bclr = (top_bclr + top_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtTL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcTL = top_opc;
         trace_rclrTL = top_rclr;
                      trace_gclrTL = top_gclr;
                      trace_bclrTL = top_bclr;
-	
+
     }
 #endif
 ;
-		
+
        acc_opc += bot_opc * wgtBL;
-       
+
 	    acc_rclr += (bot_rclr + bot_rsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_gclr += (bot_gclr + bot_gsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
 	    acc_bclr += (bot_bclr + bot_bsclr *
 			 ((float)1.0 - shadow_pixel->opcflt)) * wgtBL;
-       
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 	trace_opcBL = bot_opc;
         trace_rclrBL = bot_rclr;
                      trace_gclrBL = bot_gclr;
                      trace_bclrBL = bot_bclr;
-	
+
     }
 #endif
 ;
-		
+
 	COUNT_RESAMPLE;
 	if (acc_opc > min_opacity) {
 	    COUNT_COMPOSITE;
@@ -9911,13 +9911,13 @@ GrayIntPixel *shadow_buffer;
 	        ASSERT(iopc < max_opacity);
 #           endif
 	    iopc_inv = (float)1. - iopc;
-	    
+
 	ipixel->rclrflt += acc_rclr * iopc_inv;
 	ipixel->gclrflt += acc_gclr * iopc_inv;
 	ipixel->bclrflt += acc_bclr * iopc_inv;
 	    iopc += acc_opc * iopc_inv;
 	    ipixel->opcflt = iopc;
-	    
+
 #ifdef DEBUG
     if (ipixel == trace_pixel_ptr) {
 #ifdef COMPUTE_SHADOW_BUFFER
@@ -9929,16 +9929,16 @@ GrayIntPixel *shadow_buffer;
 	printf("  %3.0f %3.0f %3.0f",trace_opcBL*255.,trace_rclrBL,wgtBL*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcTR*255.,trace_rclrTR,wgtTR*100.);
 	printf("  %3.0f %3.0f %3.0f",trace_opcBR*255.,trace_rclrBR,wgtBR*100.);
-	printf("  %3.0f %3.0f\n", iopc*255., 
+	printf("  %3.0f %3.0f\n", iopc*255.,
 	       ipixel->rclrflt);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_rsclrTL);
 	printf("      %3.0f    ",trace_rsclrBL);
 	printf("      %3.0f    ",trace_rsclrTR);
 	printf("      %3.0f    ",trace_rsclrBR);
 	printf("  %3.0f\n", shadow_pixel->opcflt * 255.);
-        
+
 	printf("              ");
 	printf("      %3.0f    ",trace_gclrTL);
 	printf("      %3.0f    ",trace_gclrBL);

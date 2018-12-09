@@ -6,13 +6,13 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  * ADDITIONS, CHANGES
@@ -51,7 +51,7 @@ int main( int argc, char* argv[] )
 
   /*
    * 2D image, example of use
-   */ 
+   */
 
 
   /*
@@ -69,7 +69,7 @@ int main( int argc, char* argv[] )
     fprintf( stderr, " example #%d: allocation of second buffer failed.\n", example );
     exit( 1 );
   }
-  
+
   /*
    * reading the 2D image (raw data)
    */
@@ -130,7 +130,7 @@ int main( int argc, char* argv[] )
 
   /*
    * 3D image, example of use
-   */ 
+   */
 
 
   /*
@@ -148,7 +148,7 @@ int main( int argc, char* argv[] )
     fprintf( stderr, " example #%d: allocation of second buffer failed.\n", example );
     exit( 1 );
   }
-  
+
   /*
    * reading the 3D image (raw data)
    */
@@ -209,7 +209,7 @@ int main( int argc, char* argv[] )
 
   /*
    * 3D image, second example of use
-   */ 
+   */
 
 
   /*
@@ -227,7 +227,7 @@ int main( int argc, char* argv[] )
     fprintf( stderr, " example #%d: allocation of second buffer failed.\n", example );
     exit( 1 );
   }
-  
+
   /*
    * reading the image
    */
@@ -272,7 +272,7 @@ int main( int argc, char* argv[] )
   }
 
   /*
-   * writing 
+   * writing
    */
   fd = creat( "images/mri64x64x64.tmp", 0644 );
   if ( write( fd, bufferOut, bufferLength ) != bufferLength ) {
@@ -294,7 +294,7 @@ int main( int argc, char* argv[] )
 
   /*
    * ZSS: 3D image, third example of use
-   */ 
+   */
 
 
   /*
@@ -312,7 +312,7 @@ int main( int argc, char* argv[] )
     fprintf( stderr, " example #%d: allocation of second buffer failed.\n", example );
     exit( 1 );
   }
-  
+
   /*
    * reading the image
    */
@@ -357,7 +357,7 @@ int main( int argc, char* argv[] )
   }
 
   /*
-   * writing 
+   * writing
    */
   fd = creat( "images/DemoSubj_SurfVol_Edge+orig.BRIK", 0644 );
   if ( write( fd, bufferOut, bufferLength ) != bufferLength ) {
@@ -366,7 +366,7 @@ int main( int argc, char* argv[] )
   }
   close( fd );
 
-   
+
   /*
    *
    */

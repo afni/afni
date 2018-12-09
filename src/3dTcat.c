@@ -233,7 +233,7 @@ void TCAT_read_opts( int argc , char *argv[] )
     /*----- Remove View Type from string to make output prefix -----*/
          MCW_strncpy( TCAT_output_prefix , argv[nopt] , ilen+1) ;
 
-    /*----- Note: no "continue" statement here.  File name 
+    /*----- Note: no "continue" statement here.  File name
                   will now be processed as an input dataset -----*/
 
       } /* end of -glueto prefatory actions */
@@ -252,10 +252,10 @@ void TCAT_read_opts( int argc , char *argv[] )
         nopt++ ;
 
         if( TCAT_verb )
-           INFO_message("3dTcat, file_expand nexp = %d, fexp[0] = %s\n", 
+           INFO_message("3dTcat, file_expand nexp = %d, fexp[0] = %s\n",
                         nexp, *fexp);
 
-        for( ee=0 ; ee < nexp ; ee++ ){ 
+        for( ee=0 ; ee < nexp ; ee++ ){
 
           /**** read dataset ****/
 
@@ -662,7 +662,7 @@ int main( int argc , char *argv[] )
    mainENTRY("3dTcat main"); machdep() ; PRINT_VERSION("3dTcat") ;
    set_obliquity_report(0); /* silence obliquity */
    (void)COX_clock_time() ;
-   
+
    { int new_argc ; char ** new_argv ;
      addto_args( argc , argv , &new_argc , &new_argv ) ;
      if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }

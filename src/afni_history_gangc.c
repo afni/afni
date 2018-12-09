@@ -8,9 +8,9 @@
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
@@ -72,97 +72,97 @@ afni_history_struct gangc_history[] = {
     "See more details at https://afni.nimh.nih.gov/sscc/gangc/SVAR.html"
   } ,
 
-  
+
   { 8 , JUL , 2010 , GC , "3dICC_REML.R" , MINOR , TYPE_NEW_PROG ,
     "IntraClass Correlation (ICC) with REML Method",
 	 "This is an R program that calculates ICC with REML method on 3D \n"
     "volume data based on linear mixed-effects modeling scheme. See \n"
-    "more details at https://afni.nimh.nih.gov/sscc/gangc/ICC_REML.html" 
+    "more details at https://afni.nimh.nih.gov/sscc/gangc/ICC_REML.html"
   } ,
-  
+
   { 23 , NOV , 2009 , GC , "3dKS.R" , MINOR , TYPE_NEW_PROG ,
     "Kolmogorov-Smirnov test",
 	 "This is an R program that runs Kolmogrov-Smirnov test between\n"
     "two groups of subjects. It takes individual sub-brick files from\n"
     "each subject as input and spills two sub-bricks in the output,\n"
 	 "first one being the Kolmogorov-Smirnov statistic D, while the 2nd\n"
-    "the corresponding Z-score." 
+    "the corresponding Z-score."
   } ,
-  
-  
+
+
   { 20 , MAY , 2009 , GC , "3dMEMA.R" , SUPER , TYPE_NEW_PROG ,
     "Mixed-Effects Meta Analysis (MEMA)",
 	 "This is an R program that runs group analysis in a truly random\n"
     "mixed-effects sense by taking both beta and t-statistic as input\n"
 	 "instead of beta value only in the conventional method. See more \n"
-    "details at https://afni.nimh.nih.gov/sscc/gangc/MEMA.html" 
+    "details at https://afni.nimh.nih.gov/sscc/gangc/MEMA.html"
   } ,
-  
-  
+
+
   { 22 , DEC , 2008 , GC , "3dICC.R" , MAJOR , TYPE_NEW_PROG ,
     "IntraClass Correlation (ICC) with ANOVA scheme",
-	 "This is an R program that calculates ICC on 3D volume data based on a\n" 
+	 "This is an R program that calculates ICC on 3D volume data based on a\n"
     "two- or three-way random-effects ANOVA scheme. See more details at\n"
-	 "https://afni.nimh.nih.gov/sscc/gangc/ICC" 
+	 "https://afni.nimh.nih.gov/sscc/gangc/ICC"
   } ,
-  
+
   { 16 , DEC , 2008 , GC , "3dGC.R" , MAJOR , TYPE_NEW_PROG ,
     "Bivariate Granger causality analysis",
-	 "This is an R program that runs Granger causality analysis with a\n" 
+	 "This is an R program that runs Granger causality analysis with a\n"
     "seed region versus the rest of the brain. See more details at\n"
-	 "https://afni.nimh.nih.gov/sscc/gangc/3dGC" 
+	 "https://afni.nimh.nih.gov/sscc/gangc/3dGC"
   } ,
-  
+
   { 9 , OCT , 2008 , GC , "1dGC.R" , SUPER , TYPE_NEW_PROG ,
     "Multivariate Granger causality analysis",
 	 "This is an R program that runs Granger causality analysis among a few\n"
 	 "pre-select regions. See more details at\n"
-    "https://afni.nimh.nih.gov/sscc/gangc/1dGC" 
+    "https://afni.nimh.nih.gov/sscc/gangc/1dGC"
   } ,
-  
+
   { 29 , FEB , 2008 , GC , "3dICA.R" , SUPER , TYPE_NEW_PROG ,
     "Independent component analysis",
 	 "This is an R program that runs independent component analysis. It\n"
-	 "takes one dataset that presumably has already been properly\n"     
+	 "takes one dataset that presumably has already been properly\n"
     "pre-processed.already been properly pre-processed. See more details at\n"
-    "https://afni.nimh.nih.gov/sscc/gangc/ica.html" 
+    "https://afni.nimh.nih.gov/sscc/gangc/ica.html"
   } ,
-  
+
   { 20 , SEP , 2007 , GC , "3dLME.R" , SUPER , TYPE_NEW_PROG ,
-    "An R program for linear mixed-effects analysis at group level in AFNI", 
-    "See more details at https://afni.nimh.nih.gov/sscc/gangc/lme.html" 
+    "An R program for linear mixed-effects analysis at group level in AFNI",
+    "See more details at https://afni.nimh.nih.gov/sscc/gangc/lme.html"
   } ,
-  
+
   { 17 , JAN , 2007 , GC , "1dSEM" , SUPER , TYPE_NEW_PROG ,
     "Path analysis (or structural equation modeling) at group level.",
-	 
-    "See more details on: https://afni.nimh.nih.gov/sscc/gangc/PathAna.html" 
+
+    "See more details on: https://afni.nimh.nih.gov/sscc/gangc/PathAna.html"
   } ,
-  
+
   { 1 , DEC , 2005 , GC , "3dANOVA3" , MAJOR , TYPE_NEW_OPT ,
-    "New options to run 2nd-order general linear contrasts in 3dANOVA3. \n",	 
-    "See more details on: https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
+    "New options to run 2nd-order general linear contrasts in 3dANOVA3. \n",
+    "See more details on: https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
   } ,
-  
+
   { 23 , SEP , 2005 , GC , "3dANOVA2 and 3dANOVA3" , SUPER , TYPE_BUG_FIX ,
     "Significant modifications in 3dANOVA2 and 3dANOVA3",
     "The changes were made to avoid statistics inflation for general linear\n"
-	 "contrasts when coefficients don't add up to 0. See more details at\n"	 
-    "https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html" 
+	 "contrasts when coefficients don't add up to 0. See more details at\n"
+    "https://afni.nimh.nih.gov/sscc/gangc/ANOVA_Mod.html"
   } ,
-  
+
   { 27 , JUL , 2004 , GC , "PathAna" , SUPER , TYPE_NEW_PROG ,
-    "A Matlab package that runs group analysis of up to 5-way ANOVA",	 
+    "A Matlab package that runs group analysis of up to 5-way ANOVA",
     "This package adopts the conventional ANOVA approach to handling gorup\n"
 	 "analysis. And it requires Statistics Toolbox other than the basic Matlab.\n"
-	 "See more details on: https://afni.nimh.nih.gov/sscc/gangc" 
+	 "See more details on: https://afni.nimh.nih.gov/sscc/gangc"
   } ,
-  
+
   { 27 , JUL , 2004 , GC , "IndiAna" , SUPER , TYPE_NEW_PROG ,
-    "A Matlab package for individual subject analysis",	 
-	 "See more details at https://afni.nimh.nih.gov/sscc/gangc" 
+    "A Matlab package for individual subject analysis",
+	 "See more details at https://afni.nimh.nih.gov/sscc/gangc"
   } ,
-  
+
 
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;

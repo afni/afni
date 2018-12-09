@@ -1,8 +1,8 @@
-/* 
+/*
    written by: PA Taylor
 
    Aug. 2016: v1.0, starting
-   
+
 */
 
 #include <stdio.h>
@@ -11,13 +11,13 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
+#include <mrilib.h>
+#include <3ddata.h>
 #include "DoTrackit.h"
 #include "checks_and_balances.h"
 #include "rsfc.h"
 
-void usage_SpaceTimeCorr(int detail) 
+void usage_SpaceTimeCorr(int detail)
 {
    printf(
 "\n"
@@ -119,8 +119,8 @@ int main(int argc, char *argv[]) {
 
    int myloc[3] = {0,0,0};
 
-   mainENTRY("3dSpaceTimeCorr"); machdep(); 
-  
+   mainENTRY("3dSpaceTimeCorr"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -128,33 +128,33 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    // INFO_message("version: NU");
-	
+
    /** scan args **/
    if (argc == 1) { usage_SpaceTimeCorr(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_SpaceTimeCorr(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       if( strcmp(argv[iarg],"-out_Zcorr") == 0) {
          ZOUT=1;
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-insetA") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-insetA'");
 
          insetTIMEA = THD_open_dataset(argv[iarg]);
@@ -164,14 +164,14 @@ int main(int argc, char *argv[]) {
          Dim = (int *)calloc(4,sizeof(int));
          DSET_load(insetTIMEA); CHECK_LOAD_ERROR(insetTIMEA);
          Nvox = DSET_NVOX(insetTIMEA) ;
-         Dim[0] = DSET_NX(insetTIMEA); Dim[1] = DSET_NY(insetTIMEA); 
-         Dim[2] = DSET_NZ(insetTIMEA); Dim[3] = DSET_NVALS(insetTIMEA); 
+         Dim[0] = DSET_NX(insetTIMEA); Dim[1] = DSET_NY(insetTIMEA);
+         Dim[2] = DSET_NZ(insetTIMEA); Dim[3] = DSET_NVALS(insetTIMEA);
 
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-insetB") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-insetB'");
 
          insetTIMEB = THD_open_dataset(argv[iarg]);
@@ -184,7 +184,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
 
          MASK = THD_open_dataset(argv[iarg]) ;
@@ -192,7 +192,7 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
@@ -208,7 +208,7 @@ int main(int argc, char *argv[]) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
-	
+
    if( (!insetTIMEA) || (!insetTIMEB) )
       ERROR_exit("Need both insetA and insetB to be input!");
 
@@ -223,7 +223,7 @@ int main(int argc, char *argv[]) {
 
 	INFO_message("Checked inputs.");
 
-	
+
    // ****************************************************************
    // ****************************************************************
    //                    pre-stuff, make storage
@@ -231,13 +231,13 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    mskd = (byte ***) calloc( Dim[0], sizeof(byte **) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
       mskd[i] = (byte **) calloc( Dim[1], sizeof(byte *) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
-      for ( j = 0 ; j < Dim[1] ; j++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
+      for ( j = 0 ; j < Dim[1] ; j++ )
          mskd[i][j] = (byte *) calloc( Dim[2], sizeof(byte) );
 
-   if( (mskd == NULL) ) { 
+   if( (mskd == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(4);
    }
@@ -247,13 +247,13 @@ int main(int argc, char *argv[]) {
    //                    Beginning of main loops
    // *************************************************************
    // *************************************************************
-	
+
 
    // go through once: define data vox
    ctr = 0;
    idx = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( MASK ) {
                if( THD_get_voxel(MASK,idx,0)>0 ){
@@ -284,13 +284,13 @@ int main(int argc, char *argv[]) {
    // **************************************************************
    // **************************************************************
 
-   mapA = (float *)calloc(Nmskdm1, sizeof(float)); 
-   mapB = (float *)calloc(Nmskdm1, sizeof(float)); 
+   mapA = (float *)calloc(Nmskdm1, sizeof(float));
+   mapB = (float *)calloc(Nmskdm1, sizeof(float));
 
-   scorrAB = (float *)calloc(Nvox, sizeof(float)); 
+   scorrAB = (float *)calloc(Nvox, sizeof(float));
 
-   tsX = (float *)calloc(Dim[3], sizeof(float)); 
-   tsY = (float *)calloc(Dim[3], sizeof(float)); 
+   tsX = (float *)calloc(Dim[3], sizeof(float));
+   tsY = (float *)calloc(Dim[3], sizeof(float));
 
    if( (mapA == NULL) || (mapB == NULL) || (scorrAB == NULL) ||
        (tsX == NULL) || (tsY == NULL)) {
@@ -298,14 +298,14 @@ int main(int argc, char *argv[]) {
       exit(2);
    }
 
-   
+
    INFO_message("Now the work begins!");
    t_start = time(NULL);
 
    // go through once: define data vox
    ctr = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
 
@@ -313,7 +313,7 @@ int main(int argc, char *argv[]) {
                myloc[1]=j;
                myloc[2]=k;
 
-               mm = THD_extract_float_array(ctr,insetTIMEA,tsX);  
+               mm = THD_extract_float_array(ctr,insetTIMEA,tsX);
                mm = WB_corr_loop(
                                  tsX,tsY,
                                  insetTIMEA,
@@ -322,8 +322,8 @@ int main(int argc, char *argv[]) {
                                  mapA,
                                  myloc
                                  );
-               
-               mm = THD_extract_float_array(ctr,insetTIMEB,tsX);  
+
+               mm = THD_extract_float_array(ctr,insetTIMEB,tsX);
                mm = WB_corr_loop(
                                  tsX,tsY,
                                  insetTIMEB,
@@ -333,12 +333,12 @@ int main(int argc, char *argv[]) {
                                  myloc
                                  );
 
-               scorrAB[ctr] = THD_pearson_corr(Nmskdm1,mapA,mapB); 
+               scorrAB[ctr] = THD_pearson_corr(Nmskdm1,mapA,mapB);
 
                nprog++;
                if (nprog % np == 0) {
                   fprintf(stderr,"\t%s %3.0f%% %s -> %.2f min\n",
-                          "[", nprog *10./np,"]", 
+                          "[", nprog *10./np,"]",
                           (float) difftime( time(NULL), t_start)/60. );
                }
             }
@@ -348,10 +348,10 @@ int main(int argc, char *argv[]) {
    if(ZOUT) {
       INFO_message("Doing Fisher Z transform of output at user behest.");
       ctr = 0;
-      for( k=0 ; k<Dim[2] ; k++ ) 
-         for( j=0 ; j<Dim[1] ; j++ ) 
+      for( k=0 ; k<Dim[2] ; k++ )
+         for( j=0 ; j<Dim[1] ; j++ )
             for( i=0 ; i<Dim[0] ; i++ ) {
-               if( mskd[i][j][k] ) 
+               if( mskd[i][j][k] )
                   scorrAB[ctr] = BOBatanhf(scorrAB[ctr]);
                ctr++;
             }
@@ -362,12 +362,12 @@ int main(int argc, char *argv[]) {
    //                 Store and output
    // **************************************************************
    // **************************************************************
-	
-   outset = EDIT_empty_copy( insetTIMEA ) ; 
+
+   outset = EDIT_empty_copy( insetTIMEA ) ;
 
    EDIT_dset_items( outset,
-                    ADN_datum_all , MRI_float, 
-                    ADN_ntt       , 1, 
+                    ADN_datum_all , MRI_float,
+                    ADN_ntt       , 1,
                     ADN_nvals     , 1,
                     ADN_prefix    , prefix,
                     ADN_none ) ;
@@ -376,9 +376,9 @@ int main(int argc, char *argv[]) {
     ERROR_exit("Can't overwrite existing dataset '%s'",
                DSET_HEADNAME(outset));
 
-  EDIT_substitute_brick(outset, 0, MRI_float, scorrAB); 
+  EDIT_substitute_brick(outset, 0, MRI_float, scorrAB);
   scorrAB=NULL;
-  
+
   THD_load_statistics(outset);
   tross_Make_History("3dSpaceTimeCorr", argc, argv, outset);
   THD_write_3dim_dataset(NULL, NULL, outset, True);
@@ -388,7 +388,7 @@ int main(int argc, char *argv[]) {
    //                    Freeing
    // ************************************************************
    // ************************************************************
-	
+
    if(mapA)
       free(mapA);
    if(mapB)
@@ -418,16 +418,16 @@ int main(int argc, char *argv[]) {
       free(MASK);
    }
    if(mskd){
-      for( i=0 ; i<Dim[0] ; i++) 
-         for( j=0 ; j<Dim[1] ; j++) 
+      for( i=0 ; i<Dim[0] ; i++)
+         for( j=0 ; j<Dim[1] ; j++)
             free(mskd[i][j]);
-      for( i=0 ; i<Dim[0] ; i++) 
+      for( i=0 ; i<Dim[0] ; i++)
          free(mskd[i]);
       free(mskd);
    }
-   
+
    if(Dim)
       free(Dim);
-	
+
    return 0;
 }

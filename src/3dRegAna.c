@@ -24,7 +24,7 @@
            'bucket' dataset.
   Date:    08 January 1998
 
-  Mod:     Some of the regression analysis software has been moved to 
+  Mod:     Some of the regression analysis software has been moved to
            the include file RegAna.c.
   Date:	   20 August 1998
 
@@ -124,7 +124,7 @@ char SUFFIX[1024] = ".3dregana." ;
 
 #define MAX_XVARS 101            /* max. number of independent variables */
 #define MAX_OBSERVATIONS 1000    /* max. number of input datasets */
-#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */ 
+#define MAX_NAME_LENGTH THD_MAX_NAME   /* max. string length for file names */
 #define MEGA  1048576            /* one megabyte */
 
 static char * commandline = NULL ;       /* command line for history notes */
@@ -140,13 +140,13 @@ typedef struct model
 
 
 typedef struct RA_options
-{ 
+{
   int   datum;                 /* data type for "intensity" data subbrick */
   char  session[MAX_NAME_LENGTH];     /* name of output directory */
 
   char  ** yname;              /* names of the input data files */
   char  * first_dataset;       /* name of the first data set */
-   
+
   int   nx, ny, nz;            /* data set dimensions */
   int   nxyz;                  /* number of voxels per image */
 
@@ -162,7 +162,7 @@ typedef struct RA_options
   int * levels;                /* indices for repeat observations */
   int * counts;                /* counts of repeat observations */
   int c;                       /* number of unique rows in ind. var. matrix */
-  float flofmax;               /* max. allowed F due to lack of fit */  
+  float flofmax;               /* max. allowed F due to lack of fit */
 
   int numf;                    /* number of F-stats volumes      */
   int numr;                    /* number of R^2 volumes          */
@@ -203,7 +203,7 @@ void RA_error (char * message)
 
 void display_help_menu()
 {
-  printf 
+  printf
     (
      "This program performs multiple linear regression analysis.          \n\n"
      "Usage: \n"
@@ -257,7 +257,7 @@ void display_help_menu()
      "[-brick m tstat k label]   t-stat for kth regression coefficient      \n"
      "\n"
      "[-datum DATUM]     write the output in DATUM format. \n"
-     "                   Choose from short (default) or float.\n" 
+     "                   Choose from short (default) or float.\n"
      "\n" );
 
   printf
@@ -268,7 +268,7 @@ void display_help_menu()
      "      more than 1 sub-brick, a sub-brick selector must be used, e.g.: \n"
      "      -xydata 2.17 4.59 7.18  'fred+orig[3]'                          \n"
      );
-	  
+
   printf("\n" MASTER_SHORTHELP_STRING ) ;
 
   PRINT_COMPILE_DATE ; exit(0);
@@ -321,13 +321,13 @@ do{ int pv ; (ds) = THD_open_dataset((name)) ;                                \
    Get the dimensions of the 3d AFNI data sets.
 */
 
-void get_dimensions 
+void get_dimensions
 (
   RA_options * option_data            /* user input options */
 )
 
 {
-  
+
    THD_3dim_dataset * dset=NULL;
 
    /*----- read first dataset to get dimensions, etc. -----*/
@@ -338,7 +338,7 @@ void get_dimensions
    /*----- data set dimensions in voxels -----*/
    option_data->nx = dset->daxes->nxx ;
    option_data->ny = dset->daxes->nyy ;
-   option_data->nz = dset->daxes->nzz ;       
+   option_data->nz = dset->daxes->nzz ;
    option_data->nxyz = option_data->nx * option_data->ny * option_data->nz ;
 
    THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
@@ -348,14 +348,14 @@ void get_dimensions
 
 /*---------------------------------------------------------------------------*/
 /*
-  Read one AFNI data set from file 'filename'. 
+  Read one AFNI data set from file 'filename'.
   The data is converted to floating point (in ffim).
 */
 
-void read_afni_data 
+void read_afni_data
 (
   RA_options * option_data,        /* user input options */
-  char * filename,                 /* input AFNI dataset file name */    
+  char * filename,                 /* input AFNI dataset file name */
   int piece_len,                   /* number of voxels in current piece */
   int fim_offset,                  /* array offset to current piece */
   float * ffim                     /* input data in floating point format */
@@ -366,23 +366,23 @@ void read_afni_data
   THD_3dim_dataset * dset=NULL;    /* data set pointer */
   void * vfim = NULL;              /* image data pointer */
   int nx, ny, nz, nxyz;            /* data set dimensions in voxels */
-  
+
   nx = option_data->nx;
   ny = option_data->ny;
   nz = option_data->nz;
   nxyz = option_data->nxyz;
-  
-    
+
+
   /*----- read in the data -----*/
   DOPEN (dset, filename) ;
   iv = DSET_PRINCIPAL_VALUE(dset) ;
-  
+
   /*----- convert it to floats (in ffim) -----*/
   SUB_POINTER (dset, iv, fim_offset, vfim) ;
   EDIT_coerce_scale_type (piece_len, DSET_BRICK_FACTOR(dset,iv),
 			  DSET_BRICK_TYPE(dset,iv), vfim,      /* input  */
 			  MRI_float               ,ffim  ) ;   /* output */
-  
+
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
 }
 
@@ -392,7 +392,7 @@ void read_afni_data
   Routine to check whether one piece file already exists.
 */
 
-void check_piece 
+void check_piece
 (
   char * filename                    /* name of piece file */
 )
@@ -401,18 +401,18 @@ void check_piece
   FILE * far = NULL;                 /* pointer to temporary file */
   char sfilename[MAX_NAME_LENGTH];   /* name of temporary file */
   char message[MAX_NAME_LENGTH];     /* error message */
-  
-  
+
+
   /*-----  see if piece file already exists -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
   far = fopen (sfilename, "r");
   if (far != NULL)
     {
-      sprintf (message, "temporary file %s already exists. ", sfilename); 
+      sprintf (message, "temporary file %s already exists. ", sfilename);
       RA_error (message);
     }
-  
+
 }
 
 
@@ -421,7 +421,7 @@ void check_piece
    Routine to read a piece of floating point volume.
 */
 
-void read_piece 
+void read_piece
 (
   char * filename,                   /* root name of piece file */
   float * fin,                       /* input floating point piece */
@@ -433,26 +433,26 @@ void read_piece
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * far = NULL;                 /* floating point input file */
   int count;                         /* number of data items read from disk */
-  
-  
+
+
   /*----- input file name -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
-  
+
   /*----- open temporary data file for input -----*/
   far = fopen (sfilename, "r");
-  if (far == NULL) 
+  if (far == NULL)
     {
       sprintf (message, "Unable to open temporary file %s", sfilename);
       RA_error (message);
     }
-  
+
   /*----- read 3d data file -----*/
-  count = fread (fin, sizeof(float), size, far);   
+  count = fread (fin, sizeof(float), size, far);
   fclose (far);
-  
+
   /*----- error in reading file? -----*/
-  if (count != size)  
+  if (count != size)
     {
       sprintf (message, "Error in reading temporary file %s", sfilename);
       RA_error (message);
@@ -466,7 +466,7 @@ void read_piece
    disk file.
 */
 
-void write_piece 
+void write_piece
 (
   char * filename,                   /* root name of output piece file */
   float * fout,                      /* floating point output piece */
@@ -474,7 +474,7 @@ void write_piece
 )
 
 {
-  char sfilename[MAX_NAME_LENGTH];   /* piece file name */ 
+  char sfilename[MAX_NAME_LENGTH];   /* piece file name */
   char message[MAX_NAME_LENGTH];     /* error message */
   FILE * far = NULL;                 /* floating point output file */
   int count;                         /* number of data items written to disk */
@@ -488,29 +488,29 @@ void write_piece
    far = fopen (sfilename, "r");
    if (far != NULL)
    {
-      sprintf (message, "Temporary file %s already exists. ", sfilename); 
+      sprintf (message, "Temporary file %s already exists. ", sfilename);
       RA_error (message);
    }
 
    /*----- open temporary data file for output -----*/
    far = fopen (sfilename, "w");
-   if (far == NULL) 
+   if (far == NULL)
      {
-       sprintf (message, "Unable to write temporary file %s ", sfilename); 
+       sprintf (message, "Unable to write temporary file %s ", sfilename);
        RA_error (message);
      }
-     
+
    /*----- write 3d data set -----*/
    count = fwrite (fout, sizeof(float), size, far);
    fclose (far);
 
   /*----- error in writing file? -----*/
-  if (count != size)  
+  if (count != size)
     {
-      sprintf (message, "Error in writing temporary file %s ", sfilename); 
+      sprintf (message, "Error in writing temporary file %s ", sfilename);
       RA_error (message);
     }
- 
+
 }
 
 
@@ -519,30 +519,30 @@ void write_piece
   Routine to delete a file containing a piece of floating point volume.
 */
 
-void delete_piece 
+void delete_piece
 (
   char * filename      /* root name of piece file to be deleted */
 )
 
 {
   char sfilename[MAX_NAME_LENGTH];            /* file name */
-  
+
   /*----- build file name -----*/
   strcpy (sfilename, filename);
   strcat (sfilename, SUFFIX);
 
   /*----- delete 3d data file -----*/
   remove (sfilename);
-  
+
 }
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-  Allocate memory space for multiple pieces. 
+/*
+  Allocate memory space for multiple pieces.
 */
 
-void allocate_pieces 
+void allocate_pieces
 (
   matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
@@ -555,7 +555,7 @@ void allocate_pieces
   float *** tcoef_piece  /* piece t-statistics for regression parameters */
 )
 
-{  
+{
   int n;                 /* number of datasets */
   int p;                 /* number of parameters in the full model */
   int * flist = NULL;    /* list of parameters in the full model */
@@ -576,13 +576,13 @@ void allocate_pieces
 
 
   /*----- allocate memory space for input data -----*/
-  *yfimar = (float **) malloc (sizeof(float *) * n);  
+  *yfimar = (float **) malloc (sizeof(float *) * n);
   MTEST (*yfimar);
   for (i = 0;  i < n;  i++)
     {
-      (*yfimar)[i] = (float *) malloc(sizeof(float) * piece_size);  
+      (*yfimar)[i] = (float *) malloc(sizeof(float) * piece_size);
       MTEST ((*yfimar)[i]);
-    }  
+    }
 
 
   /*----- allocate memory space for F-statistics data -----*/
@@ -658,19 +658,19 @@ void allocate_pieces
     {
       ix = flist[ip];
 
-      if (   (option_data->fcoef_filename[ix] != NULL) 
+      if (   (option_data->fcoef_filename[ix] != NULL)
 	  || (option_data->rcoef_filename[ix] != NULL)
 	  || (option_data->tcoef_filename[ix] != NULL))
 	{
-	  (*coef_piece)[ix] = 
+	  (*coef_piece)[ix] =
 	    (float *) malloc (sizeof(float) * piece_size);
 	  MTEST ((*coef_piece)[ix]);
 	}
 
       if (option_data->tcoef_filename[ix] != NULL)
 	{
-	  (*tcoef_piece)[ix] = 
-	    (float *)  malloc (sizeof(float) * piece_size);      
+	  (*tcoef_piece)[ix] =
+	    (float *)  malloc (sizeof(float) * piece_size);
 	  MTEST ((*tcoef_piece)[ix]);
 	}
     }
@@ -709,7 +709,7 @@ void allocate_pieces
   Save multiple piece data into temporary files.
 */
 
-void save_pieces 
+void save_pieces
 (
   int piece,                  /* current piece index */
   int piece_len,              /* number of voxels in current piece */
@@ -722,12 +722,12 @@ void save_pieces
 
 {
   int ip;                                /* parameter index */
-  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
 
   /*----- save piece containing F-statistics -----*/
   if (freg_piece != NULL)
-    { 
+    {
       sprintf (filename, "freg.p%d", piece);
       write_piece (filename, freg_piece, piece_len);
     }
@@ -735,7 +735,7 @@ void save_pieces
 
   /*----- save piece containing R^2 -----*/
   if (rsqr_piece != NULL)
-    { 
+    {
       sprintf (filename, "rsqr.p%d", piece);
       write_piece (filename, rsqr_piece, piece_len);
     }
@@ -772,7 +772,7 @@ void save_pieces
   Deallocate memory space for multiple pieces.
 */
 
-void deallocate_pieces 
+void deallocate_pieces
 (
   int n,                  /* number of datasets */
   float *** yfimar,       /* array of pieces of Y-datasets */
@@ -794,13 +794,13 @@ void deallocate_pieces
 	{
 	  free ((*yfimar)[i]);   (*yfimar)[i] = NULL;
 	}
-      free (*yfimar);   
+      free (*yfimar);
       *yfimar = NULL;
     }
 
   /*----- deallocate memory space for F-statistics data -----*/
   if (*freg_piece != NULL)
-    {  
+    {
       free (*freg_piece);
       *freg_piece = NULL;
     }
@@ -854,16 +854,16 @@ void check_volume
 
 {
   int piece;                              /* piece index */
-  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
-  
+
   /*----- loop over the temporary data file pieces -----*/
   for (piece = 0;  piece < num_pieces;  piece++)
     {
       /*----- check for piece data file -----*/
       sprintf (sfilename, "%s.p%d", filename, piece);
-      check_piece (sfilename); 
-	  
+      check_piece (sfilename);
+
     }  /* loop over pieces */
 
 }
@@ -874,7 +874,7 @@ void check_volume
   Read 3d volume consisting of multiple piece files.
 */
 
-void read_volume 
+void read_volume
 (
   char * filename,            /* root file name */
   float * volume,             /* floating point volume data */
@@ -887,9 +887,9 @@ void read_volume
   int piece;                  /* piece index */
   int piece_len;              /* number of voxels in current piece */
   int fim_offset;             /* array offset to current piece */
-  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
-  
+
   /*----- loop over the temporary data file pieces -----*/
   for (piece = 0;  piece < num_pieces;  piece++)
     {
@@ -905,7 +905,7 @@ void read_volume
 
       /*----- read in the piece data -----*/
       sprintf (sfilename, "%s.p%d", filename, piece);
-      read_piece (sfilename, volume + fim_offset, piece_len); 
+      read_piece (sfilename, volume + fim_offset, piece_len);
 
     }  /* loop over pieces */
 
@@ -927,17 +927,17 @@ void delete_volume
 
 {
   int piece;                              /* piece index */
-  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char sfilename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
-  
+
   /*----- loop over the temporary data file pieces -----*/
   for (piece = 0;  piece < num_pieces;  piece++)
     {
 
       /*----- delete the piece data file -----*/
       sprintf (sfilename, "%s.p%d", filename, piece);
-      delete_piece (sfilename); 
-	  
+      delete_piece (sfilename);
+
     }  /* loop over pieces */
 
 }
@@ -948,8 +948,8 @@ void delete_volume
   Routine to initialize input options.
 */
 
-void initialize_options 
-( 
+void initialize_options
+(
   model * regmodel,            /* regression model */
   RA_options * option_data     /* user input options */
 )
@@ -960,13 +960,13 @@ void initialize_options
 
   regmodel->p = 0;
   regmodel->q = 0;
-  
+
   option_data->datum = ILLEGAL_TYPE;
   strcpy (option_data->session, "./");
 
   option_data->yname = NULL;
   option_data->first_dataset = NULL;
-  
+
   option_data->nx = 0;
   option_data->ny = 0;
   option_data->nz = 0;
@@ -995,7 +995,7 @@ void initialize_options
   option_data->tcoef_filename = NULL;
 
   option_data->numfiles = 0;
-  
+
   /*----- allocate memory for storing data file names -----*/
   option_data->yname
       = (char **) malloc (sizeof(char *) * MAX_OBSERVATIONS);
@@ -1004,17 +1004,17 @@ void initialize_options
 
 
   /*----- allocate memory space and initialize pointers for filenames -----*/
-  option_data->fcoef_filename = 
+  option_data->fcoef_filename =
     (char **) malloc (sizeof(char *) * MAX_XVARS);
   if (option_data->fcoef_filename == NULL)
     RA_error ("Unable to allocate memory for fcoef_filename");
 
-  option_data->rcoef_filename = 
+  option_data->rcoef_filename =
     (char **) malloc (sizeof(char *) * MAX_XVARS);
   if (option_data->rcoef_filename == NULL)
     RA_error ("Unable to allocate memory for rcoef_filename");
 
-  option_data->tcoef_filename = 
+  option_data->tcoef_filename =
     (char **) malloc (sizeof(char *) * MAX_XVARS);
   if (option_data->tcoef_filename == NULL)
     RA_error ("Unable to allocate memory for tcoef_filename");
@@ -1036,13 +1036,13 @@ void initialize_options
 
 }
 
-   
+
 /*---------------------------------------------------------------------------*/
 /*
   Routine to sort model variable index numbers. (This is for convenience only.)
 */
 
-void sort_model_indices 
+void sort_model_indices
 (
   model * regmodel             /* regression model */
 )
@@ -1061,7 +1061,7 @@ void sort_model_indices
 	  regmodel->flist[j] = temp;
 	}
       else if (regmodel->flist[i] == regmodel->flist[j])
-	RA_error ("Duplicate variable indices in model definition");	
+	RA_error ("Duplicate variable indices in model definition");
 
 
   /*----- sort reduced model indices into ascending order -----*/
@@ -1082,10 +1082,10 @@ void sort_model_indices
    Routine to get user specified regression analysis inputs.
 */
 
-void get_inputs 
+void get_inputs
 (
   int argc,                    /* number of input arguments */
-  char ** argv,                /* array of input arguments */ 
+  char ** argv,                /* array of input arguments */
   matrix * xdata,              /* independent variable matrix */
   model * regmodel,            /* linear regression model */
   RA_options * option_data     /* user input options */
@@ -1097,7 +1097,7 @@ void get_inputs
   int ival, index;                 /* integer input */
   float fval;                      /* float input */
   int rows=0, cols=0;                  /* number rows and columns for x matrix */
-  int irows=0, jcols;                /* data point counters */ 
+  int irows=0, jcols;                /* data point counters */
   THD_3dim_dataset * dset=NULL;    /* test whether data set exists */
   char message[MAX_NAME_LENGTH];   /* error message */
   char label[MAX_NAME_LENGTH];     /* sub-brick label */
@@ -1109,10 +1109,10 @@ void get_inputs
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strncmp(argv[1], "-help", 5) == 0)  display_help_menu();
- 
-  
+
+
   /*----- add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- initialize the input options -----*/
@@ -1126,7 +1126,7 @@ void get_inputs
     /*-----   -datum type   -----*/
     if( strncmp(argv[nopt],"-datum",6) == 0 ){
       if( ++nopt >= argc ) RA_error("need an argument after -datum!") ;
-      
+
       if( strcmp(argv[nopt],"short") == 0 ){
 	option_data->datum = MRI_short ;
       } else if( strcmp(argv[nopt],"float") == 0 ){
@@ -1139,8 +1139,8 @@ void get_inputs
       }
       nopt++ ; continue ;  /* go to next arg */
     }
-      
-    
+
+
     /*-----   -session dirname    -----*/
     if( strncmp(argv[nopt],"-session",8) == 0 ){
       nopt++ ;
@@ -1148,8 +1148,8 @@ void get_inputs
       strcpy(option_data->session , argv[nopt++]) ;
       continue ;
     }
-    
-    
+
+
     /*-----   -diskspace   -----*/
     if( strncmp(argv[nopt],"-diskspace",10) == 0 )
       {
@@ -1157,7 +1157,7 @@ void get_inputs
 	nopt++ ; continue ;  /* go to next arg */
       }
 
-      
+
     /*-----   -workmem megabytes  -----*/
 
     if( strncmp(argv[nopt],"-workmem",6) == 0 ){
@@ -1168,14 +1168,14 @@ void get_inputs
       option_data->workmem = ival ;
       nopt++ ; continue ;
     }
-    
-    
+
+
     /*-----   -rmsmin r  -----*/
     if (strncmp(argv[nopt], "-rmsmin", 7) == 0)
       {
 	nopt++;
 	if (nopt >= argc)  RA_error ("need argument after -rmsmin ");
-	sscanf (argv[nopt], "%f", &fval); 
+	sscanf (argv[nopt], "%f", &fval);
 	if (fval < 0.0)
 	  RA_error ("illegal argument after -rmsmin ");
 	option_data->rms_min = fval;
@@ -1189,27 +1189,27 @@ void get_inputs
       {
 	nopt++;
 	if (nopt >= argc)  RA_error ("need argument after -flof ");
-	sscanf (argv[nopt], "%f", &fval); 
+	sscanf (argv[nopt], "%f", &fval);
 	if ((fval < 0.0) || (fval > 1.0))
 	  RA_error ("illegal argument after -flof ");
 	option_data->flofmax = fval;
 	nopt++;
 	continue;
       }
-        
-    
+
+
     /*-----   -fdisp fval   -----*/
     if (strncmp(argv[nopt], "-fdisp", 6) == 0)
       {
 	nopt++;
 	if (nopt >= argc)  RA_error ("need argument after -fdisp ");
-	sscanf (argv[nopt], "%f", &fval); 
+	sscanf (argv[nopt], "%f", &fval);
 	option_data->fdisp = fval;
 	nopt++;
 	continue;
       }
-    
-    
+
+
     /*-----   -rows n  -----*/
     if (strncmp(argv[nopt], "-rows", 5) == 0)
       {
@@ -1222,7 +1222,7 @@ void get_inputs
 	nopt++;
 	continue;
       }
- 
+
 
     /*-----   -cols m  -----*/
     if (strncmp(argv[nopt], "-cols", 5) == 0)
@@ -1239,39 +1239,39 @@ void get_inputs
 	irows = -1;
 	continue;
       }
-    
-    
+
+
     /*-----   -xydata x1 ... xm  y  -----*/
     if (strncmp(argv[nopt], "-xydata", 7) == 0)
       {
 	nopt++;
-	if (nopt + cols >= argc)  
+	if (nopt + cols >= argc)
 	  RA_error ("need cols+1 arguments after -xydata ");
-        
+
 	irows++;
 	if (irows > rows-1)  RA_error ("too many data files");
 
 	xdata->elts[irows][0] = 1.0;
 	for (jcols = 1;  jcols <= cols;  jcols++)
 	  {
-	    sscanf (argv[nopt], "%f", &fval); 
+	    sscanf (argv[nopt], "%f", &fval);
 	    xdata->elts[irows][jcols] = fval;
             nopt++;
-	  }  
-	
+	  }
+
 	/*--- check whether input files exist ---*/
 	dset = THD_open_dataset( argv[nopt] ) ;
    CHECK_OPEN_ERROR(dset,argv[nopt]) ;
 	THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-	
-	option_data->yname[irows] 
+
+	option_data->yname[irows]
 	  =  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	strcpy (option_data->yname[irows], argv[nopt]);
 	nopt++;
 	continue;
       }
 
-    
+
     /*-----   -model   -----*/
     if (strncmp(argv[nopt], "-model", 6) == 0)
       {
@@ -1289,11 +1289,11 @@ void get_inputs
 	      RA_error ("illegal argument after -model ");
             }
 	    regmodel->flist[regmodel->p] = ival;
-	
+
 	    regmodel->p++;
 	    nopt++;
 	  }
-	
+
 	if (strncmp(argv[nopt], ":", 1) == 0)
 	  {
             if (isdigit(argv[nopt][1]))  /* e.g. the user gives :3 ... */
@@ -1320,22 +1320,22 @@ void get_inputs
 		regmodel->q++;
 		nopt++;
 	      }
-	  }    
+	  }
         /* incorrect usage, complain and fail        24 Aug 2005 [rickr] */
         else
 	  {
             fprintf(stderr,"missing ':' between sets of -model parameters\n"
                            "    (is ':' attached to a number?)\n\n");
             RA_error ("bad -model usage ");
-	  }    
-	
+	  }
+
 	/*----- sort model variable indices into ascending order -----*/
 	sort_model_indices (regmodel);
-	
+
 	continue;
       }
-    
-        
+
+
     /*-----   -fcoef k filename   -----*/
     if (strncmp(argv[nopt], "-fcoef", 6) == 0)
       {
@@ -1346,18 +1346,18 @@ void get_inputs
 	  RA_error ("illegal argument after -fcoef ");
 	index = ival;
 	nopt++;
-	
-	option_data->fcoef_filename[index] = 
+
+	option_data->fcoef_filename[index] =
 	  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	if (option_data->fcoef_filename[index] == NULL)
 	  RA_error ("Unable to allocate memory for fcoef_filename");
 	strcpy (option_data->fcoef_filename[index], argv[nopt]);
-	
+
 	nopt++;
 	continue;
       }
-      
-    
+
+
     /*-----   -rcoef k filename   -----*/
     if (strncmp(argv[nopt], "-rcoef", 6) == 0)
       {
@@ -1368,18 +1368,18 @@ void get_inputs
 	  RA_error ("illegal argument after -rcoef ");
 	index = ival;
 	nopt++;
-	
-	option_data->rcoef_filename[index] = 
+
+	option_data->rcoef_filename[index] =
 	  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	if (option_data->rcoef_filename[index] == NULL)
 	  RA_error ("Unable to allocate memory for rcoef_filename");
 	strcpy (option_data->rcoef_filename[index], argv[nopt]);
-	
+
 	nopt++;
 	continue;
       }
-      
-    
+
+
     /*-----   -tcoef k filename   -----*/
     if (strncmp(argv[nopt], "-tcoef", 6) == 0)
       {
@@ -1390,13 +1390,13 @@ void get_inputs
 	  RA_error ("illegal argument after -tcoef ");
 	index = ival;
 	nopt++;
-	
-	option_data->tcoef_filename[index] = 
+
+	option_data->tcoef_filename[index] =
 	  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	if (option_data->tcoef_filename[index] == NULL)
 	  RA_error ("Unable to allocate memory for tcoef_filename");
 	strcpy (option_data->tcoef_filename[index], argv[nopt]);
-	
+
 	nopt++;
 	continue;
       }
@@ -1412,17 +1412,17 @@ void get_inputs
 	  RA_error ("illegal argument after -bucket ");
 	option_data->numbricks = ival;
 	nopt++;
-	
-	option_data->bucket_filename = 
+
+	option_data->bucket_filename =
 	  malloc (sizeof(char) * MAX_NAME_LENGTH);
 	if (option_data->bucket_filename == NULL)
 	  RA_error ("Unable to allocate memory for bucket_filename");
 	strcpy (option_data->bucket_filename, argv[nopt]);
-	  
+
 	/*----- set number of sub-bricks in the bucket -----*/
 	p = regmodel->p;
 	if (ival == 0)
-	  nbricks = 2*p + 2; 
+	  nbricks = 2*p + 2;
 	else
 	  nbricks = ival;
 	option_data->numbricks = nbricks;
@@ -1435,7 +1435,7 @@ void get_inputs
 	  {
 	    option_data->brick_type[ibrick] = -1;
 	    option_data->brick_coef[ibrick] = -1;
-	    option_data->brick_label[ibrick] = 
+	    option_data->brick_label[ibrick] =
 	      malloc (sizeof(char) * MAX_NAME_LENGTH);
 	  }
 
@@ -1472,7 +1472,7 @@ void get_inputs
 	continue;
       }
 
-    
+
     /*----- -brick m type k label -----*/
     if (strncmp(argv[nopt], "-brick", 6) == 0)
       {
@@ -1492,11 +1492,11 @@ void get_inputs
 	    if ((ival < 0) || (ival > cols))
 	      RA_error ("illegal argument after coef ");
 	    option_data->brick_coef[ibrick] = ival;
-    
+
 	    nopt++;
 	    if (nopt >= argc)  RA_error ("need more arguments after -brick ");
 	    strcpy (option_data->brick_label[ibrick], argv[nopt]);
-	    
+
 	  }
 	else if (strncmp(argv[nopt], "tstat", 4) == 0)
 	  {
@@ -1507,11 +1507,11 @@ void get_inputs
 	    if ((ival < 0) || (ival > cols))
 	      RA_error ("illegal argument after tstat ");
 	    option_data->brick_coef[ibrick] = ival;
-    
+
 	    nopt++;
 	    if (nopt >= argc)  RA_error ("need more arguments after -brick ");
 	    strcpy (option_data->brick_label[ibrick], argv[nopt]);
-	    
+
 	  }
 	else if (strncmp(argv[nopt], "fstat", 4) == 0)
 	  {
@@ -1520,7 +1520,7 @@ void get_inputs
 	    nopt++;
 	    if (nopt >= argc)  RA_error ("need more arguments after -brick ");
 	    strcpy (option_data->brick_label[ibrick], argv[nopt]);
-	    
+
 	  }
 	else if (strncmp(argv[nopt], "rstat", 4) == 0)
 	  {
@@ -1529,15 +1529,15 @@ void get_inputs
 	    nopt++;
 	    if (nopt >= argc)  RA_error ("need more arguments after -brick ");
 	    strcpy (option_data->brick_label[ibrick], argv[nopt]);
-	    
+
 	  }
-	else 
+	else
 	  {
-	    sprintf(message,"Unrecognized option after -brick: %s\n", 
+	    sprintf(message,"Unrecognized option after -brick: %s\n",
 		    argv[nopt]);
 	    RA_error (message);
 	  }
-	  
+
 	nopt++;
 	continue;
       }
@@ -1546,7 +1546,7 @@ void get_inputs
     /*----- unknown command -----*/
     sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
     RA_error (message);
-    
+
   }
 
   /*----- check for fewer than expected datasets -----*/
@@ -1560,8 +1560,8 @@ void get_inputs
   Count the number of output data volumes and output files required.
 */
 
-void count_volumes_and_files 
-(  
+void count_volumes_and_files
+(
   model * regmodel,            /* regression model */
   RA_options * option_data     /* user input options */
 )
@@ -1585,15 +1585,15 @@ void count_volumes_and_files
       ix = regmodel->flist[ip];
 
       if (option_data->fcoef_filename[ix] != NULL)
-	{  
+	{
 	  option_data->numf = 1;
 	  option_data->numfiles += 1;
 	}
     }
 
   for (ib = 0;  ib < nbricks;  ib++)
-    if (option_data->brick_type[ib] == FUNC_FT_TYPE)  
-      option_data->numf = 1; 
+    if (option_data->brick_type[ib] == FUNC_FT_TYPE)
+      option_data->numf = 1;
 
 
   /*----- count number of volumes and files for R^2 -----*/
@@ -1609,9 +1609,9 @@ void count_volumes_and_files
     }
 
   for (ib = 0;  ib < nbricks;  ib++)
-    if (option_data->brick_type[ib] == FUNC_THR_TYPE)  
-      option_data->numr = 1; 
-   
+    if (option_data->brick_type[ib] == FUNC_THR_TYPE)
+      option_data->numr = 1;
+
 
   /*----- count number of volumes and files for t-statistics -----*/
   for (ip = 0;  ip < p;  ip++)
@@ -1628,25 +1628,25 @@ void count_volumes_and_files
 	for (ib = 0;  ib < nbricks;  ib++)
 	  if ((option_data->brick_type[ib] == FUNC_TT_TYPE)
 	      && (option_data->brick_coef[ib] == ix))
-	    option_data->numt += 1;   
+	    option_data->numt += 1;
     }
 
- 
+
   /*----- count number of volumes for regression coefficients -----*/
   for (ip = 0;  ip < p;  ip++)
     {
       ix = regmodel->flist[ip];
 
-      if (   (option_data->fcoef_filename[ix] != NULL) 
+      if (   (option_data->fcoef_filename[ix] != NULL)
 	  || (option_data->rcoef_filename[ix] != NULL)
 	  || (option_data->tcoef_filename[ix] != NULL))
-	option_data->numc += 1;   
+	option_data->numc += 1;
 
       else
 	for (ib = 0;  ib < nbricks;  ib++)
 	  if ((option_data->brick_type[ib] == FUNC_FIM_TYPE)
 	      && (option_data->brick_coef[ib] == ix))
-	    option_data->numc += 1;   
+	    option_data->numc += 1;
     }
 
 }
@@ -1662,27 +1662,27 @@ void break_into_pieces
   int num_datasets,            /* number of input datasets */
   RA_options * option_data     /* user input options */
 )
- 
+
 {
   int num_vols;            /* number of output volumes */
 
 
-  /*----- count number of distinct floating point volumes required  -----*/ 
-  num_vols = option_data->numf + option_data->numr 
+  /*----- count number of distinct floating point volumes required  -----*/
+  num_vols = option_data->numf + option_data->numr
     + option_data->numt + option_data->numc;
 
   /*----- calculate number of voxels per piece -----*/
-  option_data->piece_size = option_data->workmem * MEGA 
+  option_data->piece_size = option_data->workmem * MEGA
     / ((num_datasets + num_vols) * sizeof(float));
-  if (option_data->piece_size > option_data->nxyz)  
+  if (option_data->piece_size > option_data->nxyz)
     option_data->piece_size = option_data->nxyz;
 
   /*----- calculate number of pieces per dataset -----*/
-  option_data->num_pieces = (option_data->nxyz + option_data->piece_size - 1) 
+  option_data->num_pieces = (option_data->nxyz + option_data->piece_size - 1)
     / option_data->piece_size;
 
-  printf ("num_pieces = %d    piece_size = %d \n", 
-	  option_data->num_pieces, option_data->piece_size);    
+  printf ("num_pieces = %d    piece_size = %d \n",
+	  option_data->num_pieces, option_data->piece_size);
 
 }
 
@@ -1691,10 +1691,10 @@ void break_into_pieces
 /*
   Identify repeat observations.  (Repeat observations are necessary for
   performing the F-test for lack of fit.)  Convert -flof input from alpha to
-  corresponding F value.   
+  corresponding F value.
 */
 
-void identify_repeats 
+void identify_repeats
 (
   matrix * xdata,              /* independent variable matrix */
   model * regmodel,            /* linear regression model */
@@ -1727,7 +1727,7 @@ void identify_repeats
   option_data->levels[0] = 0;
   option_data->counts[0] = 1;
   option_data->c = 1;
-  
+
 
   /*----- loop over observations -----*/
   for (i = 1;  i < xdata->rows;  i++)
@@ -1740,7 +1740,7 @@ void identify_repeats
 	  match = 1;
 	  for (j = 1;  j < xdata->cols;  j++)
 	    if (xdata->elts[i][j] != xdata->elts[k][j])  match = 0;
-	  
+
 	  if (match)
 	    {
 	      option_data->levels[i] = option_data->levels[k];
@@ -1767,7 +1767,7 @@ void identify_repeats
   if (status != 0)  RA_error ("Error in calculating F - lack of fit ");
   option_data->flofmax = f;
 
-  
+
 }
 
 
@@ -1776,7 +1776,7 @@ void identify_repeats
   Routine to check for valid inputs.
 */
 
-void check_for_valid_inputs 
+void check_for_valid_inputs
 (
   matrix * xdata,               /* independent variable matrix */
   model * regmodel,             /* regression model */
@@ -1790,7 +1790,7 @@ void check_for_valid_inputs
   /*----- check data set dimensions -----*/
   if (xdata->cols < 2)
     RA_error ("Too few X variables ");
-  if (xdata->rows < 3) 
+  if (xdata->rows < 3)
     RA_error ("Too few data sets for Y-observations ");
 
   /*----- check model dimensions -----*/
@@ -1828,7 +1828,7 @@ void check_for_valid_inputs
   Check whether one output file already exists.
 */
 
-void check_one_output_file 
+void check_one_output_file
 (
   RA_options * option_data,     /* user input options */
   char * filename               /* output file name */
@@ -1838,42 +1838,42 @@ void check_one_output_file
   THD_3dim_dataset * dset=NULL;       /* input afni data set pointer */
   THD_3dim_dataset * new_dset=NULL;   /* output afni data set pointer */
   int ierror;                         /* number of errors in editing data */
-  
-  
+
+
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset ) ;
   CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
-  
+
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_directory_name , option_data->session ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE :
                                			      GEN_FUNC_TYPE ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
 	    "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -1882,15 +1882,15 @@ void check_one_output_file
   Routine to check whether any output files already exist.
 */
 
-void check_output_files 
+void check_output_files
 (
   RA_options * option_data      /* user input options */
 )
 
 {
   int ix;       /* x-variable index */
-  
-  
+
+
   for (ix = 0;  ix < MAX_XVARS;  ix++)
     {
       if (option_data->fcoef_filename[ix] != NULL)
@@ -1903,7 +1903,7 @@ void check_output_files
 
   if (option_data->bucket_filename != NULL)
     check_one_output_file (option_data, option_data->bucket_filename);
-  
+
 }
 
 
@@ -1921,9 +1921,9 @@ void check_temporary_files
 
 {
   int p;                       /* number of parameters in full model */
-  int ip, ix;                  /* parameter index */ 
+  int ip, ix;                  /* parameter index */
   int num_pieces;              /* dataset is divided into this many pieces */
-  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
 
   /*----- initialize local variables -----*/
@@ -1946,14 +1946,14 @@ void check_temporary_files
       check_volume (filename, num_pieces);
     }
 
-	  
+
   /*----- check for t-statistics data files -----*/
   if (option_data->numt > 0)
     {
       for (ip = 0;  ip < p;  ip++)
 	{
 	  ix = regmodel->flist[ip];
-	  
+
 	  if (option_data->tcoef_filename[ix] != NULL)
 	    {
 	      sprintf (filename, "tcoef.%d", ix);
@@ -1969,7 +1969,7 @@ void check_temporary_files
       for (ip = 0;  ip < p;  ip++)
 	{
 	  ix = regmodel->flist[ip];
-	  
+
 	  if (    (option_data->fcoef_filename[ix] != NULL)
 	       || (option_data->rcoef_filename[ix] != NULL)
 	       || (option_data->tcoef_filename[ix] != NULL) )
@@ -1990,7 +1990,7 @@ void check_temporary_files
   the temporary data files.
 */
 
-void check_disk_space 
+void check_disk_space
 (
   RA_options * option_data      /* user input options */
 )
@@ -1999,20 +1999,20 @@ void check_disk_space
   char ch;                         /* user response */
   int nxyz;                        /* number of voxels per image */
   int nmax;                        /* maximum number of disk files */
-  char filename[MAX_NAME_LENGTH];  /* output file name */ 
+  char filename[MAX_NAME_LENGTH];  /* output file name */
 
 
   /*----- initialize local variables -----*/
   nxyz = option_data->nxyz;
 
   /*----- first, determine space required for temporary volume data -----*/
-  nmax = 4 * nxyz * (option_data->numf + option_data->numr + option_data->numt 
+  nmax = 4 * nxyz * (option_data->numf + option_data->numr + option_data->numt
     + option_data->numc);
 
   /*----- determine additional space required for output files -----*/
   nmax += 4 * nxyz * option_data->numfiles;
 
-  printf("\nThis problem requires approximately %d MB of free disk space.\n", 
+  printf("\nThis problem requires approximately %d MB of free disk space.\n",
 	  (nmax/1000000) + 1);
 
 
@@ -2031,10 +2031,10 @@ void check_disk_space
   Program initialization.
 */
 
-void initialize_program 
+void initialize_program
 (
   int argc,                    /* number of input arguments */
-  char ** argv,                /* array of input arguments */ 
+  char ** argv,                /* array of input arguments */
   matrix * xdata,              /* independent variable matrix */
   model * regmodel,            /* regression model */
   RA_options * option_data     /* user input options */
@@ -2059,7 +2059,7 @@ void initialize_program
   get_dimensions (option_data);
   printf ("Data set dimensions:  nx = %d  ny = %d  nz = %d  nxyz = %d \n",
 	 option_data->nx, option_data->ny, option_data->nz, option_data->nxyz);
- 
+
 
   /*----- count the number of output volumes and files required -----*/
   count_volumes_and_files (regmodel, option_data);
@@ -2070,17 +2070,17 @@ void initialize_program
 
 
   /*----- identify repeat observations -----*/
-  if (option_data->flofmax >= 0.0)  
+  if (option_data->flofmax >= 0.0)
     identify_repeats (xdata, regmodel, option_data);
-  
+
 
   /*----- check for valid inputs -----*/
   check_for_valid_inputs (xdata, regmodel, option_data);
 
-   
+
   /*----- check whether any of the output files already exist -----*/
-  if( THD_deathcon() ) check_output_files (option_data); 
- 
+  if( THD_deathcon() ) check_output_files (option_data);
+
 
   /*----- check whether temporary files already exist  -----*/
   check_temporary_files (xdata, regmodel, option_data);
@@ -2097,7 +2097,7 @@ void initialize_program
   Perform initialization required for the regression analysis.
 */
 
-void init_regression_analysis 
+void init_regression_analysis
 (
   int p,                        /* number of parameters in the full model */
   int q,                        /* number of parameters in the rdcd model */
@@ -2122,7 +2122,7 @@ void init_regression_analysis
   /*----- Initialize matrix -----*/
   matrix_initialize (&xtxinv_temp);
 
-  
+
   /*----- Initialize list of parameters in the constant model -----*/
   for (ip = 0;  ip < MAX_XVARS;  ip++)
     zlist[ip] = 0;
@@ -2145,7 +2145,7 @@ void init_regression_analysis
   Perform the entire regression analysis for one voxel.
 */
 
-void regression_analysis 
+void regression_analysis
 (
   int N,                      /* number of data points */
   int p,                      /* number of parameters in the full model */
@@ -2157,12 +2157,12 @@ void regression_analysis
   matrix xtxinvxt_base,       /* matrix:  (1/(X'X))X'  for baseline model */
   matrix x_rdcd,              /* extracted X matrix    for reduced model */
   matrix xtxinvxt_rdcd,       /* matrix:  (1/(X'X))X'  for reduced model */
-  vector y,                   /* vector of measured data */ 
+  vector y,                   /* vector of measured data */
   float rms_min,              /* minimum rms error to reject zero model */
   int * levels,               /* indices for repeat observations */
   int * counts,               /* number of observations at each level */
   int c,                      /* number of unique rows in ind. var. matrix */
-  float flofmax,              /* max. allowed F-stat due to lack of fit */  
+  float flofmax,              /* max. allowed F-stat due to lack of fit */
   float * flof,               /* F-statistic for lack of fit */
   vector * coef_full,         /* regression parameters */
   vector * scoef_full,        /* std. devs. for regression parameters */
@@ -2187,13 +2187,13 @@ void regression_analysis
   calc_coef (xtxinvxt_base, y, &coef_temp);
 
 
-  /*----- Calculate the error sum of squares for the baseline model -----*/ 
+  /*----- Calculate the error sum of squares for the baseline model -----*/
   sse_base = calc_sse (x_base, coef_temp, y);
 
-  
+
   /*----- Stop here if variation about baseline is sufficiently low -----*/
   if (sqrt(sse_base/N) < rms_min)
-    {   
+    {
       vector_create (p, coef_full);
       vector_create (p, scoef_full);
       vector_create (p, tcoef_full);
@@ -2206,14 +2206,14 @@ void regression_analysis
 
   /*----- Calculate regression coefficients for the full model  -----*/
   calc_coef (xtxinvxt_full, y, coef_full);
-  
-  
-  /*----- Calculate the error sum of squares for the full model -----*/ 
+
+
+  /*----- Calculate the error sum of squares for the full model -----*/
   sse_full = calc_sse (x_full, *coef_full, y);
-  
-  
+
+
   /*----- Calculate t-statistics for the regression coefficients -----*/
-  calc_tcoef (N, p, sse_full, xtxinv_full, 
+  calc_tcoef (N, p, sse_full, xtxinv_full,
 	      *coef_full, scoef_full, tcoef_full);
 
 
@@ -2222,12 +2222,12 @@ void regression_analysis
     {
       /*----- Calculate the pure error sum of squares -----*/
       sspe = calc_sspe (y, levels, counts, c);
-    
+
       /*----- Calculate F-statistic for lack of fit -----*/
       *flof = calc_flof (N, p, c, sse_full, sspe);
-    
-      if (*flof > flofmax) 
-	{   
+
+      if (*flof > flofmax)
+	{
 	  vector_create (p, coef_full);
 	  vector_create (p, scoef_full);
 	  vector_create (p, tcoef_full);
@@ -2235,7 +2235,7 @@ void regression_analysis
 	  *rsqr = 0.0;
 	  vector_destroy (&coef_temp);
 	  return;
-	} 
+	}
     }
   else
     *flof = -1.0;
@@ -2243,12 +2243,12 @@ void regression_analysis
 
   /*----- Calculate regression coefficients for reduced model -----*/
   calc_coef (xtxinvxt_rdcd, y, &coef_temp);
-  
-  
-  /*----- Calculate the error sum of squares for the reduced model -----*/ 
+
+
+  /*----- Calculate the error sum of squares for the reduced model -----*/
   sse_rdcd = calc_sse (x_rdcd, coef_temp, y);
 
-  
+
   /*----- Calculate F-statistic for significance of the regression -----*/
   *freg = calc_freg (N, p, q, sse_full, sse_rdcd);
 
@@ -2259,7 +2259,7 @@ void regression_analysis
 
   /*----- Dispose of vector -----*/
   vector_destroy (&coef_temp);
-   
+
 }
 
 
@@ -2268,10 +2268,10 @@ void regression_analysis
   Save results for current voxel into piece data for output later.
 */
 
-void save_voxel 
+void save_voxel
 (
   int iv,               /* current voxel number within piece */
-  vector y,             /* vector of measured data */       
+  vector y,             /* vector of measured data */
   float fdisp,          /* minimum F-statistic for display */
   model * regmodel,     /* linear regression model */
   float flof,           /* F-statistic for lack of fit */
@@ -2289,24 +2289,24 @@ void save_voxel
 {
   int ip;                 /* parameter index */
   int ix;                 /* x-variable index */
-  
 
-  /*----- save regression results into piece data -----*/ 
+
+  /*----- save regression results into piece data -----*/
   if (freg_piece != NULL)  freg_piece[iv] = freg;
   if (rsqr_piece != NULL)  rsqr_piece[iv] = rsqr;
-  
 
-  /*----- save regression parameter estimates -----*/  
+
+  /*----- save regression parameter estimates -----*/
   for (ip = 0;  ip < regmodel->p;  ip++)
     {
       ix = regmodel->flist[ip];
-                
+
       if (coef_piece[ix] != NULL)  coef_piece[ix][iv] = coef.elts[ip];
-                       
+
       if (tcoef_piece[ix] != NULL)  tcoef_piece[ix][iv] = tcoef.elts[ip];
-      
+
     }
-    
+
 
   /*----- if so requested, display results for this voxel -----*/
   if ((fdisp >= 0.0) && (freg >= fdisp))
@@ -2334,11 +2334,11 @@ void save_voxel
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the multiple linear regression analysis for all voxels  
+  Calculate the multiple linear regression analysis for all voxels
   (by breaking the datasets into smaller pieces, if necessary).
 */
 
-void calculate_results 
+void calculate_results
 (
   matrix xdata,               /* independent variable matrix */
   model * regmodel,           /* linear regression model */
@@ -2365,7 +2365,7 @@ void calculate_results
   matrix xtxinvxt_base;       /* matrix:  (1/(X'X))X'  for baseline model */
   matrix x_rdcd;              /* extracted X matrix    for reduced model */
   matrix xtxinvxt_rdcd;       /* matrix:  (1/(X'X))X'  for reduced model */
-  vector y;                   /* vector of measured data */       
+  vector y;                   /* vector of measured data */
 
   int i;                      /* dataset index */
   int nxyz;                   /* number of voxels per dataset */
@@ -2408,16 +2408,16 @@ void calculate_results
   nxyz = option_data->nxyz;
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
-  
+
 
   /*----- allocate memory space for pieces -----*/
-  allocate_pieces (xdata, regmodel, option_data, &yfimar, 
+  allocate_pieces (xdata, regmodel, option_data, &yfimar,
 		  &freg_piece, &rsqr_piece, &coef_piece, &tcoef_piece);
 
 
   /*----- initialization for the regression analysis -----*/
   init_regression_analysis (p, q, flist, rlist, xdata,
-			    &x_full, &xtxinv_full, &xtxinvxt_full, 
+			    &x_full, &xtxinv_full, &xtxinvxt_full,
 			    &x_base, &xtxinvxt_base, &x_rdcd, &xtxinvxt_rdcd);
 
 
@@ -2431,7 +2431,7 @@ void calculate_results
       matrix_print (xdata);
     }
 
-  
+
   /*----- loop over the pieces of the input datasets -----*/
   nvox = -1;
   for (piece = 0;  piece < num_pieces;  piece++)
@@ -2458,23 +2458,23 @@ void calculate_results
 	  /*----- extract Y-data for this voxel -----*/
 	  for (i = 0;  i < n;  i++)
 	    y.elts[i] = yfimar[i][ivox];
-     
+
 
 	  /*----- calculate results for this voxel -----*/
-	  regression_analysis (n, p, q,  
+	  regression_analysis (n, p, q,
 			       x_full, xtxinv_full, xtxinvxt_full, x_base,
-			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd, 
-			       y, option_data->rms_min, option_data->levels, 
-			       option_data->counts, option_data->c, 
+			       xtxinvxt_base, x_rdcd, xtxinvxt_rdcd,
+			       y, option_data->rms_min, option_data->levels,
+			       option_data->counts, option_data->c,
 			       option_data->flofmax, &flof,
 			       &coef, &scoef, &tcoef, &freg, &rsqr);
-    
+
 
 	  /*----- save results for this voxel -----*/
 	  save_voxel (ivox, y, option_data->fdisp,
 		      regmodel, flof, coef, tcoef, freg, rsqr,
 		      freg_piece, rsqr_piece, coef_piece, tcoef_piece);
-		       
+
 
 	}  /* loop over voxels within this piece */
 
@@ -2483,12 +2483,12 @@ void calculate_results
       save_pieces (piece, piece_len,
 		  freg_piece, rsqr_piece, coef_piece, tcoef_piece);
 
-	  
+
     }  /* loop over pieces */
 
 
   /*----- deallocate memory for pieces -----*/
-  deallocate_pieces (n, &yfimar, &freg_piece, &rsqr_piece, 
+  deallocate_pieces (n, &yfimar, &freg_piece, &rsqr_piece,
 		    &coef_piece, &tcoef_piece);
 
 
@@ -2502,30 +2502,30 @@ void calculate_results
   matrix_destroy (&xtxinvxt_base);
   matrix_destroy (&x_base);
   matrix_destroy (&xtxinvxt_full);
-  matrix_destroy (&xtxinv_full); 
-  matrix_destroy (&x_full); 
+  matrix_destroy (&xtxinv_full);
+  matrix_destroy (&x_full);
 
 }
 
 /*---------------------------------------------------------------------------*/
 /*
   Routine to write one AFNI data set.
-  
+
   This data set may be either  `fith' type (intensity + threshold)
                            or  `fitt' type (intensity + t-statistic)
                            or  `fift' type (intensity + F-statistic).
-  
+
   The intensity data is in ffim, and the corresponding statistic is in ftr.
-  
+
 */
 
-void write_afni_data 
+void write_afni_data
 (
   RA_options * option_data,           /* user input options */
   char * filename,                    /* output file name */
   float * ffim,                       /* volume of intensity data */
   float * ftr,                        /* volume of test statistics */
-  int func_type,                      /* afni data set type */  
+  int func_type,                      /* afni data set type */
   int numdof,                         /* numerator degrees of freedom */
   int dendof                          /* denominator degrees of freedom */
 )
@@ -2544,21 +2544,21 @@ void write_afni_data
   void  * vdif = NULL;                /* 1st sub-brick data pointer */
   float top, bot, func_scale_short=0.0;   /* parameters for scaling data */
   int top_ss, bot_ss=0;                 /* 2nd sub-brick value limits */
-  char label[80];                     /* label for output file history */ 
-  
-  
+  char label[80];                     /* label for output file history */
+
+
   /*----- initialize local variables -----*/
   nxyz = option_data->nxyz;
-  
+
   /*----- read first dataset -----*/
   dset = THD_open_dataset (option_data->first_dataset) ;
   CHECK_OPEN_ERROR(dset,option_data->first_dataset) ;
-  
+
 
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy( dset ) ;
-  
-  
+
+
   /*----- Record history of dataset -----*/
 
   sprintf (label, "Output prefix: %s", filename);
@@ -2566,57 +2566,57 @@ void write_afni_data
      tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
   else
      tross_Append_History ( new_dset, label);
-  
+
 
   output_datum = MRI_short ;
   ibuf[0] = output_datum ; ibuf[1] = MRI_short ;
-  
-  
+
+
   ierror = EDIT_dset_items( new_dset ,
 			    ADN_prefix , filename ,
 			    ADN_label1 , filename ,
 			    ADN_directory_name , option_data->session ,
 			    ADN_self_name , filename ,
-			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE : 
+			    ADN_type , ISHEAD(dset) ? HEAD_FUNC_TYPE :
 			                              GEN_FUNC_TYPE ,
 			    ADN_func_type , func_type ,
 			    ADN_nvals , FUNC_nvals[func_type] ,
 			    ADN_datum_array , ibuf ,
-			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type, DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 ){
     fprintf(stderr,
           "*** %d errors in attempting to create output dataset!\n", ierror ) ;
     exit(1) ;
   }
-  
+
   if( THD_is_file(new_dset->dblk->diskptr->header_name) ){
     fprintf(stderr,
 	    "*** Output dataset file %s already exists--cannot continue!\a\n",
 	    new_dset->dblk->diskptr->header_name ) ;
     exit(1) ;
   }
-  
-  /*----- deleting exemplar dataset -----*/ 
+
+  /*----- deleting exemplar dataset -----*/
   THD_delete_3dim_dataset( dset , False ) ; dset = NULL ;
-  
-  
+
+
   /*----- allocate memory for output data -----*/
   vdif = (void *)  malloc( mri_datum_size(output_datum) * nxyz ) ;
   tsp  = (short *) malloc( sizeof(short) * nxyz )                ;
-  
+
   /*----- attach bricks to new data set -----*/
-  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0)); 
-  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));  
-  
-  
+  mri_fix_data_pointer (vdif, DSET_BRICK(new_dset,0));
+  mri_fix_data_pointer (tsp, DSET_BRICK(new_dset,1));
+
+
   /*----- convert data type to output specification -----*/
-  fimfac = EDIT_coerce_autoscale_new (nxyz, 
-				      MRI_float, ffim, 
+  fimfac = EDIT_coerce_autoscale_new (nxyz,
+				      MRI_float, ffim,
 				      output_datum, vdif);
   if (fimfac != 0.0)  fimfac = 1.0 / fimfac;
-  
+
 
   top_ss = 32700;
 
@@ -2626,7 +2626,7 @@ void write_afni_data
       bot_ss =  0;
     }
   else if (func_type == FUNC_TT_TYPE)           /* t-statistic */
-    { 
+    {
       func_scale_short = FUNC_TT_SCALE_SHORT;
       bot_ss =  -top_ss;
     }
@@ -2637,7 +2637,7 @@ void write_afni_data
     }
   else
     RA_error ("Illegal ouput dataset function type");
-  
+
   top = top_ss / func_scale_short;
   bot = bot_ss / func_scale_short;
 
@@ -2648,10 +2648,10 @@ void write_afni_data
 	tsp[ii] = top_ss;
       else  if (ftr[ii] < bot)
 	tsp[ii] = bot_ss;
-      else 
+      else
 	tsp[ii] = (short) (func_scale_short * ftr[ii] + 0.5);
     }
-  
+
 
   /*----- write afni data set -----*/
   if (func_type == FUNC_THR_TYPE)               /* threshold */
@@ -2662,12 +2662,12 @@ void write_afni_data
     printf("++ Writing `fift' dataset ");
 
   printf("into %s\n", DSET_BRIKNAME(new_dset) ) ;
-  
-  fbuf[0] = numdof;   
+
+  fbuf[0] = numdof;
   fbuf[1] = dendof;
   for( ii=2 ; ii < MAX_STAT_AUX ; ii++ ) fbuf[ii] = 0.0 ;
   (void) EDIT_dset_items( new_dset , ADN_stat_aux , fbuf , ADN_none ) ;
-  
+
   fbuf[0] = (output_datum == MRI_short && fimfac != 1.0 ) ? fimfac : 0.0 ;
   fbuf[1] = 1.0 / func_scale_short ;
   (void) EDIT_dset_items( new_dset , ADN_brick_fac , fbuf , ADN_none ) ;
@@ -2676,14 +2676,14 @@ void write_afni_data
   { int ii = THD_create_all_fdrcurves( new_dset ) ;
     if( ii > 0 ) ININFO_message("created %d FDR curves in header",ii) ;
   }
-  
+
   THD_load_statistics( new_dset ) ;
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
+
 }
 
 
@@ -2692,7 +2692,7 @@ void write_afni_data
   Routine to write one bucket data set.
 */
 
-void write_bucket_data 
+void write_bucket_data
 (
   matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
@@ -2717,23 +2717,23 @@ void write_bucket_data
   int brick_coef;           /* regression coefficient index for sub-brick */
   char * brick_label;       /* character string label for sub-brick */
   int ierror;               /* number of errors in editing data */
-  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */
   int piece_size;           /* number of voxels in dataset piece */
   int num_pieces;           /* dataset is divided into this many pieces */
   float * volume = NULL;    /* volume of floating point data */
-  char label[80];           /* label for output file history */ 
-    
+  char label[80];           /* label for output file history */
+
   /*----- initialize local variables -----*/
   p = regmodel->p;
   q = regmodel->q;
   n = xdata.rows;
-  nxyz = option_data->nxyz; 
+  nxyz = option_data->nxyz;
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
   nbricks = option_data->numbricks;
   output_prefix = option_data->bucket_filename;
   output_session = option_data->session;
-  
+
 
   /*----- allocate memory -----*/
   volume = (float *) malloc (sizeof(float) * nxyz);
@@ -2745,15 +2745,15 @@ void write_bucket_data
     bar  = (short **) malloc (sizeof(short *) * nbricks);
     MTEST (bar);
    }
- 
+
   /*----- read first dataset -----*/
   old_dset = THD_open_dataset (option_data->first_dataset) ;
-  
+
 
   /*-- make an empty copy of this dataset, for eventual output --*/
   new_dset = EDIT_empty_copy (old_dset);
-  
-  
+
+
   /*----- Record history of dataset -----*/
   if( commandline != NULL )
      tross_Append_History( new_dset , commandline ) ;
@@ -2770,32 +2770,32 @@ void write_bucket_data
 			    ADN_func_type,       FUNC_BUCK_TYPE,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      fprintf(stderr, 
-	      "*** %d errors in attempting to create output dataset!\n", 
+      fprintf(stderr,
+	      "*** %d errors in attempting to create output dataset!\n",
 	      ierror);
       exit(1);
     }
-  
-  if (THD_is_file(DSET_HEADNAME(new_dset))) 
+
+  if (THD_is_file(DSET_HEADNAME(new_dset)))
     {
       fprintf(stderr,
 	      "*** Output dataset file %s already exists--cannot continue!\n",
 	      DSET_HEADNAME(new_dset));
       exit(1);
     }
-  
 
-  /*----- deleting exemplar dataset -----*/ 
+
+  /*----- deleting exemplar dataset -----*/
   THD_delete_3dim_dataset( old_dset , False );  old_dset = NULL ;
-  
 
-  /*----- loop over new sub-brick index, attach data array with 
-          EDIT_substitute_brick then put some strings into the labels and 
+
+  /*----- loop over new sub-brick index, attach data array with
+          EDIT_substitute_brick then put some strings into the labels and
           keywords, and modify the sub-brick scaling factor -----*/
   for (ib = 0;  ib < nbricks;  ib++)
     {
@@ -2805,7 +2805,7 @@ void write_bucket_data
       brick_label = option_data->brick_label[ib];
 
       if (brick_type == FUNC_FIM_TYPE)
-	{	
+	{
 	  sprintf (filename, "coef.%d", brick_coef);
 	}
       else  if (brick_type == FUNC_THR_TYPE)
@@ -2849,7 +2849,7 @@ void write_bucket_data
       /*----- edit the sub-brick -----*/
       EDIT_BRICK_LABEL (new_dset, ib, brick_label);
 
-      
+
 
     }
 
@@ -2866,8 +2866,8 @@ void write_bucket_data
   THD_load_statistics (new_dset);
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
 
-  
-  /*----- deallocate memory -----*/   
+
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
   free (volume);   volume = NULL;
 
@@ -2879,7 +2879,7 @@ void write_bucket_data
   Write out the user requested output files.
 */
 
-void output_results 
+void output_results
 (
   matrix xdata,                /* independent variable matrix */
   model * regmodel,            /* linear regression model */
@@ -2891,20 +2891,20 @@ void output_results
   int q;                    /* number of parameters in reduced model */
   int n;                    /* number of data points */
   int nxyz;                 /* number of voxels */
-  int ip, ix;               /* parameter index */ 
+  int ip, ix;               /* parameter index */
   int numdof, dendof;       /* numerator and denominator degrees of freedom */
   int piece_size;           /* number of voxels in dataset piece */
   int num_pieces;           /* dataset is divided into this many pieces */
   float * volume1 = NULL;   /* volume data for 1st sub-brick */
   float * volume2 = NULL;   /* volume data for 2nd sub-brick */
-  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
 
   /*----- initialize local variables -----*/
   p = regmodel->p;
   q = regmodel->q;
   n = xdata.rows;
-  nxyz = option_data->nxyz; 
+  nxyz = option_data->nxyz;
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
 
@@ -2921,11 +2921,11 @@ void output_results
     {
       numdof = n - p;
       dendof = 0;
-      
+
       for (ip = 0;  ip < p;  ip++)
 	{
 	  ix = regmodel->flist[ip];
-	  
+
 	  if (option_data->tcoef_filename[ix] != NULL)
 	    {
 	      sprintf (filename, "coef.%d", ix);
@@ -2934,10 +2934,10 @@ void output_results
 	      sprintf (filename, "tcoef.%d", ix);
 	      read_volume (filename, volume2, nxyz, piece_size, num_pieces);
 
-	      write_afni_data (option_data, 
-			       option_data->tcoef_filename[ix], 
-			       volume1, volume2, 
-			       FUNC_TT_TYPE, numdof, dendof); 
+	      write_afni_data (option_data,
+			       option_data->tcoef_filename[ix],
+			       volume1, volume2,
+			       FUNC_TT_TYPE, numdof, dendof);
 	    }
 	}
     }
@@ -2948,47 +2948,47 @@ void output_results
     {
       strcpy (filename, "rsqr");
       read_volume (filename, volume2, nxyz, piece_size, num_pieces);
-      
+
       for (ip = 0;  ip < p;  ip++)
 	{
 	  ix = regmodel->flist[ip];
-	  
+
 	  if (option_data->rcoef_filename[ix] != NULL)
 	    {
 	      sprintf (filename, "coef.%d", ix);
 	      read_volume (filename, volume1, nxyz, piece_size, num_pieces);
-	      
-	      write_afni_data (option_data, 
-			       option_data->rcoef_filename[ix], 
+
+	      write_afni_data (option_data,
+			       option_data->rcoef_filename[ix],
 			       volume1, volume2,
-			       FUNC_THR_TYPE, 0, 0); 
+			       FUNC_THR_TYPE, 0, 0);
 	    }
 	}
     }
 
-	  
+
   /*----- write F-statistics data files -----*/
   if (option_data->numf > 0)
     {
       strcpy (filename, "freg");
       read_volume (filename, volume2, nxyz, piece_size, num_pieces);
-      
+
       numdof = p - q;
       dendof = n - p;
-      
+
       for (ip = 0;  ip < p;  ip++)
 	{
 	  ix = regmodel->flist[ip];
-	  
+
 	  if (option_data->fcoef_filename[ix] != NULL)
 	    {
 	      sprintf (filename, "coef.%d", ix);
 	      read_volume (filename, volume1, nxyz, piece_size, num_pieces);
-	      
-	      write_afni_data (option_data, 
-			       option_data->fcoef_filename[ix], 
-			       volume1, volume2, 
-			       FUNC_FT_TYPE, numdof, dendof); 
+
+	      write_afni_data (option_data,
+			       option_data->fcoef_filename[ix],
+			       volume1, volume2,
+			       FUNC_FT_TYPE, numdof, dendof);
 	    }
 	}
     }
@@ -2996,7 +2996,7 @@ void output_results
 
   /*----- deallocate memory space for volume data -----*/
   free (volume1);   volume1 = NULL;
-  free (volume2);   volume2 = NULL;  
+  free (volume2);   volume2 = NULL;
 
 
   /*----- write the bucket dataset -----*/
@@ -3021,17 +3021,17 @@ void terminate_program
 
 {
   int p;                       /* number of parameters in full model */
-  int ip, ix;                  /* parameter index */ 
+  int ip, ix;                  /* parameter index */
   int ib;                      /* sub-brick index */
   int nxyz;                    /* number of voxels */
   int piece_size;              /* number of voxels in dataset piece */
   int num_pieces;              /* dataset is divided into this many pieces */
-  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */ 
+  char filename[MAX_NAME_LENGTH];        /* name for temporary data file */
 
 
   /*----- initialize local variables -----*/
   p = regmodel->p;
-  nxyz = option_data->nxyz; 
+  nxyz = option_data->nxyz;
   piece_size = option_data->piece_size;
   num_pieces = option_data->num_pieces;
 
@@ -3051,7 +3051,7 @@ void terminate_program
       delete_volume (filename, nxyz, piece_size, num_pieces);
     }
 
-	  
+
   /*----- delete t-statistics data files -----*/
   if (option_data->numt > 0)
     {
@@ -3108,7 +3108,7 @@ void terminate_program
       free (option_data->fcoef_filename);
       option_data->fcoef_filename = NULL;
     }
- 
+
   if (option_data->rcoef_filename != NULL)
     {
       for (ip = 0;  ip < MAX_XVARS;  ip++)
@@ -3122,7 +3122,7 @@ void terminate_program
       free (option_data->rcoef_filename);
       option_data->rcoef_filename = NULL;
     }
- 
+
   if (option_data->tcoef_filename != NULL)
     {
       for (ip = 0;  ip < MAX_XVARS;  ip++)
@@ -3181,7 +3181,7 @@ void terminate_program
       free (option_data->brick_label);
       option_data->brick_label = NULL;
     }
-      
+
 }
 
 
@@ -3190,24 +3190,24 @@ void terminate_program
   Multiple linear regression analysis (3dRegAna)
 */
 
-int main 
+int main
 (
   int argc,                    /* number of input arguments */
-  char ** argv                 /* array of input arguments */ 
+  char ** argv                 /* array of input arguments */
 )
 
 {
   RA_options option_data;      /* user input options */
-  matrix xdata;                /* independent variable matrix */ 
+  matrix xdata;                /* independent variable matrix */
   model regmodel;              /* linear regression model */
   int piece_size;              /* number of voxels in dataset piece */
 
-   
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -3224,7 +3224,7 @@ int main
     addto_args( argc , argv , &new_argc , &new_argv ) ;
     if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
+
   /*----- program initialization -----*/
   initialize_program (argc, argv, &xdata, &regmodel, &option_data);
 
@@ -3235,10 +3235,10 @@ int main
 
   /*----- write requested output files -----*/
   output_results (xdata, &regmodel, &option_data);
-		  
+
 
   /*----- end of program -----*/
-  terminate_program (&xdata, &regmodel, &option_data);  
+  terminate_program (&xdata, &regmodel, &option_data);
 
   exit(0);
 }

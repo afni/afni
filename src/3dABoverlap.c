@@ -95,7 +95,7 @@ int main( int argc , char * argv[] )
      THD_3dim_dataset *cset ;
      if( verb ) INFO_message("resampling dataset B to match dataset A") ;
 
-     cset = r_new_resam_dset( bset, aset, 0.0,0.0,0.0,NULL, 
+     cset = r_new_resam_dset( bset, aset, 0.0,0.0,0.0,NULL,
                               MRI_BILINEAR, NULL, 1, 0 ) ;
      DSET_delete(bset) ; bset = cset ;
    }

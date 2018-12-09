@@ -42,29 +42,29 @@ MRI_IMAGE * CORMAT_fetch(void)
 /*....................................................................*/
 
 void CORMAT_add_vector( int nv , float *vv )
-{  
+{
    int ii,itop , ktop,kk ;
    float ss , sq ;
-   
+
    if( maxlag <= 0 || nv <= 2 || vv == NULL ) return ;
-   
+
    switch(port){
-     default: 
+     default:
      case 0:  THD_const_detrend      ( nv , vv , NULL           ); break;
      case 1:  THD_linear_detrend     ( nv , vv , NULL,NULL      ); break;
      case 2:  THD_quadratic_detrend  ( nv , vv , NULL,NULL,NULL ); break;
      case 3:  THD_cubic_detrend      ( nv , vv                  ); break;
    }
    THD_normRMS( nv , vv ) ;
-   
+
    ktop = MIN(maxlag,nv-1) ;
    for( kk=1 ; kk <= ktop ; kk++ ){
-     itop = nv-kk ; 
+     itop = nv-kk ;
      for( ii=0 ; ii < itop ; ii++ ){
        cor[kk-1] += vv[ii] * vv[ii+kk] ; ncor[kk-1]++ ;
      }
    }
-   
+
    return ;
 }
 
@@ -216,13 +216,13 @@ fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
        }
        iarg++ ; continue ;
      }
-       
+
      if( strcmp(argv[iarg],"-maxlag") == 0 ){
        if( ++iarg >= argc )
          ERROR_exit("Need argument after option %s",argv[iarg-1]) ;
        mmlag = (int)strtod(argv[iarg],NULL) ;
        iarg++ ; continue ;
-     }   
+     }
 
      if( strcmp(argv[iarg],"-concat") == 0 ){
        if( concim != NULL )
@@ -280,7 +280,7 @@ fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
    }
 
    /*-- set up blocks of continuous time data --*/
-       
+
    if( DSET_IS_TCAT(inset) ){
      if( concim != NULL ){
        WARNING_message("Ignoring -concat, since dataset is auto-catenated") ;
@@ -291,7 +291,7 @@ fprintf(stderr,"argv[%d] = %s\n",iarg,argv[iarg]) ;
      concar[0] = 0.0 ;
      for( ii=0 ; ii < inset->tcat_num-1 ; ii++ )
        concar[ii+1] = concar[ii] + inset->tcat_len[ii] ;
-   } else if( concim == NULL ){ 
+   } else if( concim == NULL ){
      concim = mri_new(1,1,MRI_float) ;
      concar = MRI_FLOAT_PTR(concim)  ; concar[0] = 0 ;
    }

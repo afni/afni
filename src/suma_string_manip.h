@@ -8,7 +8,7 @@ char *SUMA_ReplaceChars(char *s1, char *ca, char *es);
 char *insert_in_string(char **s, char *pos, char *ins, int *nalloc);
 char *summarize_string(char *us, int lmax);
 char *SUMA_strncat(char *s1, char *s2, int nmax);
-char *line_begins_with(char *cur, char *opt, int *nb, 
+char *line_begins_with(char *cur, char *opt, int *nb,
                        char *term, char *bracketers, int mintoend);
 void write_string(char *s, char *prelude, char *postscript,
                  int nmax, int multiline, FILE *fout);
@@ -21,7 +21,7 @@ int SUMA_NI_get_num_strings( char *ss , char *sep);
 void SUMA_Show_NI_str_ar(NI_str_array *nisa, FILE *out);
 char *SUMA_NI_str_ar_2_comp_str (NI_str_array *nisa, char *sep);
 NI_str_array *SUMA_comp_str_2_NI_str_ar(char *s, char *sep);
-NI_str_array *SUMA_NI_str_array(NI_str_array *clss, char *what, char *action); 
+NI_str_array *SUMA_NI_str_array(NI_str_array *clss, char *what, char *action);
 int SUMA_NI_str_array_find( char *targ , NI_str_array *sar, int partial, int ci);
 
 
@@ -31,7 +31,7 @@ SUMA_Boolean SUMA_Set_Sub_String(char **cs, char *sep, int ii, char *str);
 int SUMA_Remove_Sub_String(char *cs, char *sep, char *strn);
 
 void *SUMA_AdvancePastNumbers(char *op, char **opend, SUMA_VARTYPE tp);
-void *SUMA_strtol_vec(char *op, int nvals, int *nread, 
+void *SUMA_strtol_vec(char *op, int nvals, int *nread,
                       SUMA_VARTYPE vtp, char **opend);
 
 char *SUMA_Break_String(char *si, int mxln);

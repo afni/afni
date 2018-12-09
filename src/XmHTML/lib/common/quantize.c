@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget library.
@@ -57,7 +57,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -71,7 +71,7 @@ static char rcsId[]="$Header$";
 * Revision 1.5  1997/10/23 00:25:17  newt
 * XmHTML Beta 1.1.0 release
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -198,7 +198,7 @@ static void QuickQuantize(Byte *rgb, XmHTMLRawImageData *img_data);
 * Name: 		my_bcopy
 * Return Type: 	void
 * Description: 	safe bcopy, areas may overlap.
-* In: 
+* In:
 *	src:		data to be copied;
 *	dst:		destination;
 *	len:		no of bytes to copy;
@@ -211,7 +211,7 @@ my_bcopy(char *src, char *dst, size_t len)
 	/* areas are the same */
 	if(src == dst || len <= 0)
 		return;
-  
+
 	if(src < dst && src+len > dst)
 	{
 		/* do a backward copy */
@@ -233,14 +233,14 @@ my_bcopy(char *src, char *dst, size_t len)
 * Name:			QuickRGB
 * Return Type: 	Boolean
 * Description: 	attemps a quick 24 to 8 bit image conversion
-* In: 
+* In:
 *	rgb:		raw image data, RGB format;
 *	img_data:	destination;
 *	max_colors:	maximum no of colors allowed;
 * Returns:
 *	True when image was converted, False if not.
 *****/
-static Boolean 
+static Boolean
 QuickRGB(Byte *rgb, XmHTMLRawImageData *img_data, int max_colors)
 {
 	unsigned long colors[XmHTML_MAX_IMAGE_COLORS],col;
@@ -254,12 +254,12 @@ QuickRGB(Byte *rgb, XmHTMLRawImageData *img_data, int max_colors)
 
 	/* put the first color in the table by hand */
 	num_colors = 0;
-	mid = 0;  
+	mid = 0;
 
 	for(i = width*height, p = rgb; i; i--)
 	{
 		/* make truecolor pixel val */
-		col  = (((Pixel) *p++) << 16);  
+		col  = (((Pixel) *p++) << 16);
 		col += (((Pixel) *p++) << 8);
 		col +=  *p++;
 
@@ -296,7 +296,7 @@ QuickRGB(Byte *rgb, XmHTMLRawImageData *img_data, int max_colors)
 	/* Pixelize data: map pixel values of the RGB image in the colormap */
 	for(i = width*height, p = rgb, pix = img_data->data; i; i--,pix++)
 	{
-		col  = (((Pixel)*p++) << 16);  
+		col  = (((Pixel)*p++) << 16);
 		col += (((Pixel)*p++) << 8);
 		col +=  *p++;
 
@@ -336,7 +336,7 @@ QuickRGB(Byte *rgb, XmHTMLRawImageData *img_data, int max_colors)
 * Return Type: 	Byte*
 * Description: 	quick conversion of RGB image with > 256 colors to a
 *				paletted image using a 256 colors imagemap.
-* In: 
+* In:
 *	rgb:		rgb image data (3 bytes per pixel, rgb order), pixel 0 at
 *				top left corner;
 *	data:		buffer for reduced image, filled upon return.
@@ -401,7 +401,7 @@ QuickQuantize(Byte *rgb, XmHTMLRawImageData *img_data)
 				*tmpPtr++ = (int)*rgb++;
 
 		/* convert RGB scanline to indexed scanline */
-		for(j = 0, thisPtr = thisLine, nextPtr = nextLine; j < width; 
+		for(j = 0, thisPtr = thisLine, nextPtr = nextLine; j < width;
 			j++, pp++)
 		{
 			/* get RGB values */
@@ -412,13 +412,13 @@ QuickQuantize(Byte *rgb, XmHTMLRawImageData *img_data)
 			/* check validity of component ranges */
 			RANGE(r,0,255);
 			RANGE(g,0,255);
-			RANGE(b,0,255);  
-      
+			RANGE(b,0,255);
+
 			/* choose actual pixel value */
 			val = (((r & RMASK) >> RSHIFT) | ((g & GMASK) >> GSHIFT) |
 				((b & BMASK) >> BSHIFT));
 			*pp = val;
-      
+
 			/* compute color errors */
 			r -= GETR(cols[val]);
 			g -= GETG(cols[val]);
@@ -429,8 +429,8 @@ QuickQuantize(Byte *rgb, XmHTMLRawImageData *img_data)
 			/* adjust RIGHT pixel */
 			if(j != jmax)
 			{
-				thisPtr[0] += SIXTEENTH * (r*7); 
-				thisPtr[1] += SIXTEENTH * (g*7); 
+				thisPtr[0] += SIXTEENTH * (r*7);
+				thisPtr[1] += SIXTEENTH * (g*7);
 				thisPtr[2] += SIXTEENTH * (b*7);
 			}
 
@@ -525,7 +525,7 @@ ppm_quant(Byte *pic24, pixel **pix, XmHTMLRawImageData *img_data,
 		chv = ppm_computechist(pixels, cols, rows, MAXCOLORS, &colors);
 		if(chv != (chist_vec) 0)
 			break;
-    
+
 		newmaxval = maxval / 2;
 
 		for(row=0; row<rows; ++row)
@@ -642,7 +642,7 @@ ppm_quant(Byte *pic24, pixel **pix, XmHTMLRawImageData *img_data,
 *				This is based on Paul Heckbert's paper "Color Image
 *				Quantization for Frame Buffer Display",
 *				SIGGRAPH '82 Proceedings, page 297.
-* In: 
+* In:
 *
 * Returns:
 *
@@ -725,7 +725,7 @@ mediancut(chist_vec chv, int colors, int sum, int maxval, int max_colors)
 		else if(gl >= bl)
 			qsort((char*)&(chv[indx]), (size_t)clrs,
 				sizeof(struct chist_item), greencompare);
-		else 
+		else
 			qsort((char*)&(chv[indx]), (size_t)clrs,
 				sizeof(struct chist_item), bluecompare);
 
@@ -751,9 +751,9 @@ mediancut(chist_vec chv, int colors, int sum, int maxval, int max_colors)
 		++boxes;
 		qsort((char*)bv, (size_t)boxes, sizeof(struct box),sumcompare);
 	} /* while (boxes ... */
-  
+
 	/* Now choose a representative color for each box. */
-  
+
 	for(bi = 0; bi < boxes; bi++)
 	{
 		register int indx = bv[bi].index;
@@ -788,21 +788,21 @@ mediancut(chist_vec chv, int colors, int sum, int maxval, int max_colors)
 static int
 redcompare(const void *p1, const void *p2)
 {
-  return((int)PPM_GETR(((chist_vec)p1)->color) - 
+  return((int)PPM_GETR(((chist_vec)p1)->color) -
          (int)PPM_GETR(((chist_vec)p2)->color));
 }
 
 static int
 greencompare(const void *p1, const void *p2)
 {
-  return((int) PPM_GETG( ((chist_vec)p1)->color) - 
+  return((int) PPM_GETG( ((chist_vec)p1)->color) -
          (int) PPM_GETG( ((chist_vec)p2)->color));
 }
 
 static int
 bluecompare(const void *p1, const void *p2)
 {
-  return((int) PPM_GETB( ((chist_vec)p1)->color) - 
+  return((int) PPM_GETB( ((chist_vec)p1)->color) -
          (int) PPM_GETB( ((chist_vec)p2)->color));
 }
 
@@ -812,7 +812,7 @@ sumcompare(const void *p1, const void *p2)
   return(((box_vector) p2)->sum - ((box_vector) p1)->sum);
 }
 
-static chist_vec 
+static chist_vec
 ppm_computechist(pixel **pixels, int cols, int rows, int maxcolors,
 	int *colorsP)
 {
@@ -852,7 +852,7 @@ ppm_computechash(pixel **pixels, int cols, int rows, int maxcolors,
 				if(PPM_EQUAL(chl->ch.color, *pP))
 					break;
 			}
-      
+
 			if(chl != (chist_list)0)
 				++(chl->ch.value);
 			else
@@ -862,7 +862,7 @@ ppm_computechash(pixel **pixels, int cols, int rows, int maxcolors,
 					ppm_freechash(cht);
 					return((chash_table)0);
 				}
-	
+
 				chl = (chist_list)malloc(sizeof(struct chist_list_item));
 
 				chl->ch.color = *pP;
@@ -939,7 +939,7 @@ ppm_freechash(chash_table cht)
 * Name: 		_XmHTMLConvert24to8
 * Return Type: 	void
 * Description: 	transforms a 24bit RGB image to an 8bit paletted image
-* In: 
+* In:
 *	data:		original image data (in RGB format)
 *	img_data:	raw image data. Will receive paletted image data and colormap.
 *	max_colors:	maximum no of colors to use. Only used by ppm_quant.
@@ -981,7 +981,7 @@ _XmHTMLConvert24to8(Byte *data, XmHTMLRawImageData *img_data, int max_colors,
 * Name:			_XmHTMLQuantizeImage
 * Return Type: 	void
 * Description: 	quantizes an image to max_colors
-* In: 
+* In:
 *	img_data:	image to be quantized;
 *	max_colors:	max. no of colors allowed;
 * Returns:
@@ -1024,13 +1024,13 @@ _XmHTMLQuantizeImage(XmHTMLRawImageData *img_data, int max_colors)
 * Name:			_XmHTMLPixelizeRGB
 * Return Type: 	void
 * Description: 	converts RGB data to paletted data. Doesn't do any quantizing.
-* In: 
+* In:
 *	rgb:		raw rgb data;
 *	img_data:	destination.
 * Returns:
 *	nothing, but upon return img_data contains a valid colormap (with possibly
 *	more than XmHTML_MAX_IMAGE_COLORS colors) and the data field has been
-*	pixelized. 
+*	pixelized.
 *****/
 void
 _XmHTMLPixelizeRGB(Byte *rgb, XmHTMLRawImageData *img_data)
@@ -1048,12 +1048,12 @@ _XmHTMLPixelizeRGB(Byte *rgb, XmHTMLRawImageData *img_data)
 
 	/* put the first color in the table by hand */
 	num_colors = 0;
-	mid = 0;  
+	mid = 0;
 
 	for(i = width*height, p = rgb; i; i--)
 	{
 		/* make truecolor pixel val */
-		col  = (((Pixel) *p++) << 16);  
+		col  = (((Pixel) *p++) << 16);
 		col += (((Pixel) *p++) << 8);
 		col +=  *p++;
 
@@ -1094,7 +1094,7 @@ _XmHTMLPixelizeRGB(Byte *rgb, XmHTMLRawImageData *img_data)
 	/* Pixelize data: map pixel values of the RGB image in the colormap */
 	for(i = width*height, p = rgb, pix = img_data->data; i; i--,pix++)
 	{
-		col  = (((Pixel)*p++) << 16);  
+		col  = (((Pixel)*p++) << 16);
 		col += (((Pixel)*p++) << 8);
 		col +=  *p++;
 
@@ -1178,7 +1178,7 @@ _XmHTMLDitherImage(XmHTMLWidget html, XmHTMLRawImageData *img_data)
 					g = GETG(cmap[(int)*ptr]);
 					b = GETB(cmap[(int)*ptr]);
 					used[(int)*ptr] = (int)XCCGetIndexFromPalette(xcc, &r,
-						&g, &b, &f); 
+						&g, &b, &f);
 				}
 				*ptr = (Byte)used[(int)*ptr];
 			}

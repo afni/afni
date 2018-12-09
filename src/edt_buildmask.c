@@ -103,7 +103,7 @@ MCW_cluster * MCW_spheremask( float dx, float dy, float dz, float radius )
    for( ii=0 ; ii < nn ; ii++ ){
      x = mask->i[ii]*dx; y = mask->j[ii]*dy; z = mask->k[ii]*dz;
 
-/*     if((x==0.0)&&(y==0.0)&&(z==0.0)) 
+/*     if((x==0.0)&&(y==0.0)&&(z==0.0))
          mask->mag[ii] = 1.0;
      else
 */
@@ -232,7 +232,7 @@ MCW_cluster * MCW_tohdmask( float dx, float dy, float dz, float radius )
      b = jj*dy ;
      for( ii=-idx ; ii <= idx ; ii++ ){
        a = ii*dx ;
-       if( (ii || jj || kk) && TOHD_inside(a,b,c,radius) ) 
+       if( (ii || jj || kk) && TOHD_inside(a,b,c,radius) )
                               ADDTO_CLUSTER( mask , ii,jj,kk , 0 ) ;
    }}}
 
@@ -247,16 +247,16 @@ void MCW_showmask (MCW_cluster *nbhd, char *opening, char *closing, FILE *fout)
    if (!nbhd) {
       fprintf(fout, "NULL nbhd\n");
    } else {
-      fprintf(fout, "Neighborhood of %d voxels (%d allocated), %s mag.\n", 
+      fprintf(fout, "Neighborhood of %d voxels (%d allocated), %s mag.\n",
                     nbhd->num_pt, nbhd->num_all, nbhd->mag?"with":"without");
       if (nbhd->mag) {
          for (ii=0; ii<nbhd->num_pt; ++ii) {
-            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d, Mag: %f\n", 
+            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d, Mag: %f\n",
                            nbhd->i[ii], nbhd->j[ii], nbhd->k[ii], nbhd->mag[ii]);
          }
       } else {
          for (ii=0; ii<nbhd->num_pt; ++ii) {
-            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d\n", 
+            fprintf (fout, "Offset[I J K]: %+03d %+03d %+03d\n",
                         nbhd->i[ii], nbhd->j[ii], nbhd->k[ii]);
          }
       }

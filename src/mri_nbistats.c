@@ -127,7 +127,7 @@ float mri_nbistat( int code , MRI_IMAGE *im , MRI_IMAGE *jm )
        if( val >= 0.0f ) outval = qfit[1] ;
      }
      break ;
-     
+
      case NBISTAT_EUCLIDIAN_DIST:  /* May 4 2012 ZSS */
        outval = THD_distance( npt , far , gar , 0) ; break ;
 

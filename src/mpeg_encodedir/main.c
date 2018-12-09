@@ -29,7 +29,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -278,7 +278,7 @@ main(argc, argv)
 		Usage(1);
 	    }
 	} else if ( strcmp(argv[idx], "-combine_gops") == 0 ) {
-	    if ( (function != ENCODE_FRAMES) || (whichGOP != -1) || 
+	    if ( (function != ENCODE_FRAMES) || (whichGOP != -1) ||
 		 (frameStart != -1) ) {
 		Usage(1);
 	    }
@@ -567,7 +567,7 @@ Usage(int exit_val)
 /* extended usage (used by parallel code; shouldn't be called by user):
     -child parallelHostName portNumber ioPortNumber combinePortNumber machineNumber remote
     -io_server parallelHostName portNumber
-    
+
     (remote = 1 if need to use ioPortNumber)
  */
 }

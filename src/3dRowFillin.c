@@ -157,8 +157,8 @@ int main( int argc , char * argv[] )
 
    if (bin) DSET_mallocize(inset);
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
-   
-   
+
+
    /* binarize input */
    if (bin) {
       switch(DSET_BRICK_TYPE(inset,0)) {
@@ -166,7 +166,7 @@ int main( int argc , char * argv[] )
             short *dp;
             dp = DSET_ARRAY(inset, 0);
             for (i=0; i<DSET_NVOX(inset); ++i) {
-               if (dp[i]) dp[i]=1;  
+               if (dp[i]) dp[i]=1;
             }
             break;
          }
@@ -174,12 +174,12 @@ int main( int argc , char * argv[] )
             byte *dp;
             dp = DSET_ARRAY(inset, 0);
             for (i=0; i<DSET_NVOX(inset); ++i) {
-               if (dp[i]) dp[i]=1;  
+               if (dp[i]) dp[i]=1;
             }
             break;
          }
          default:
-            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;   
+            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;
       }
    }
 
@@ -195,7 +195,7 @@ int main( int argc , char * argv[] )
       DSET_unload(inset) ;
       nftot = 0; dcode=0;
       for (dcode=1; dcode<4; ++dcode) {
-         nftot = nftot + 
+         nftot = nftot +
                   THD_dataset_rowfillin( outset , 0 , dcode , maxgap ) ;
       }
       fprintf(stderr,"++ Number of voxels OR filled = %d\n",nftot) ;
@@ -203,13 +203,13 @@ int main( int argc , char * argv[] )
       int nf=0;
       THD_3dim_dataset *otmp[3]={NULL, NULL, NULL};
       MRI_IMAGE *brimtmp=NULL;
-      
+
       brim = mri_copy( DSET_BRICK(inset,0) ) ;
       EDIT_substitute_brick( outset , 0 , brim->kind , mri_data_pointer(brim) ) ;
       for (i=0; i<3; ++i) {
          otmp[i] = EDIT_empty_copy( outset ) ;
          brimtmp = mri_copy( DSET_BRICK(inset,0) ) ;
-         EDIT_substitute_brick( otmp[i] , 0 , 
+         EDIT_substitute_brick( otmp[i] , 0 ,
                         brimtmp->kind, mri_data_pointer(brimtmp) ) ;
          THD_dataset_rowfillin( otmp[i] , 0 , i+1 , maxgap);
       }
@@ -224,8 +224,8 @@ int main( int argc , char * argv[] )
             for (i=0; i<DSET_NVOX(outset); ++i) {
                if ( !doo[i] &&  (dp[0][i] == dp[1][i]) &&
                     (dp[0][i] == dp[2][i]) && dp[0][i] ) {
-                  doo[i] = dp[0][i]; ++nftot;   
-               }  
+                  doo[i] = dp[0][i]; ++nftot;
+               }
             }
             break;
          }
@@ -237,19 +237,19 @@ int main( int argc , char * argv[] )
             for (i=0; i<DSET_NVOX(outset); ++i) {
                if ( !doo[i] && (dp[0][i] == dp[1][i]) &&
                     (dp[0][i] == dp[2][i]) && dp[0][i] ) {
-                  doo[i] = dp[0][i]; ++nftot;   
-               }  
+                  doo[i] = dp[0][i]; ++nftot;
+               }
             }
             break;
          }
          default:
-            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;   
+            fprintf(stderr,"*** Illegal brick type!\n") ; exit(1) ;
       }
-      
+
       for (i=0; i<3; ++i) DSET_delete(otmp[i]); otmp[i] = NULL;
       fprintf(stderr,"++ Number of voxels AND filled = %d\n",nftot) ;
    }
-   
+
    DSET_write(outset) ;
    exit(0) ;
 }

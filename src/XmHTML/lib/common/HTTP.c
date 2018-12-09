@@ -32,17 +32,17 @@ static char rcsId[]="$Header$";
 *
 * Note from the Author:
 *
-*	A first attempt at a simple HTTP library, mainly used as a test harness for 
-*	the forms work in XmHTML, it does lots of bad things and isn't a complete 
-*	implementation. I didn't use the W3C libww 'cause its too big and doesn't 
-*	seem to work for POSTs --- rmo 
+*	A first attempt at a simple HTTP library, mainly used as a test harness for
+*	the forms work in XmHTML, it does lots of bad things and isn't a complete
+*	implementation. I didn't use the W3C libww 'cause its too big and doesn't
+*	seem to work for POSTs --- rmo
 *
-*	The code is based on a quick read of the HTTP 1.0 rfc, with ideas for 
-*	implementation taken from the Chimera Browser. 
+*	The code is based on a quick read of the HTTP 1.0 rfc, with ideas for
+*	implementation taken from the Chimera Browser.
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -50,7 +50,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/10/23 00:28:23  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -86,7 +86,7 @@ static char rcsId[]="$Header$";
 #endif /* DMALLOC */
 
 #ifdef NEED_SOCKS
-/* This is _very_ firewall specific, this works for me (after much trial and 
+/* This is _very_ firewall specific, this works for me (after much trial and
  * error --- offer */
 #include "socks.h"
 
@@ -137,7 +137,7 @@ connectTimeout(int signal)
 }
 #endif
 
-/* This is the main routine for sending a request and getting a response, 
+/* This is the main routine for sending a request and getting a response,
  * everything else in this file is waffle */
 void
 loadHTTPURL(void *unused, HTTPRequest * request, HTTPCookieRequest *cookieReq)
@@ -290,14 +290,14 @@ re_issue_request:
 		fprintf(stderr, "sending request (%i)\n", request->method);
 #endif
 
-	if( cookieReq != NULL && cookieReq->cookieList != NULL ) 
+	if( cookieReq != NULL && cookieReq->cookieList != NULL )
 		cookie = makeCookie(cookieReq->cookieList);
 #ifdef DEBUG
 	if( http_debug )
 		if( cookie )
 			fprintf(stderr,"The server wants a cookie '%s'\n",cookie);
 #endif /* _DEBUG */
-	
+
 	switch(request->method)
 	{
 		case HTTPGET:
@@ -310,7 +310,7 @@ re_issue_request:
 			}
 			reqStr = (char*)malloc(strlen(GET_METHOD) + strlen(filename) +
 						(formStr ? strlen(formStr) + 1 : 0) +
-						strlen(HTTPVERSIONHDR) + strlen(USER_AGENT) + 
+						strlen(HTTPVERSIONHDR) + strlen(USER_AGENT) +
 						(cookie ? strlen(cookie) + 1 : 0) +
 						strlen(NEWLINE) + 3);
 			sprintf(reqStr,
@@ -339,11 +339,11 @@ re_issue_request:
 							strlen(filename) + strlen(HTTPVERSIONHDR) +
 							(cookie ? strlen(cookie) + 1 : 0) +
 							strlen(USER_AGENT) + strlen(NEWLINE) + 2);
-			sprintf(reqStr, "%s%s%s%s%s", 
-					POST_METHOD, 
-					filename, 
-					HTTPVERSIONHDR, 
-					USER_AGENT, 
+			sprintf(reqStr, "%s%s%s%s%s",
+					POST_METHOD,
+					filename,
+					HTTPVERSIONHDR,
+					USER_AGENT,
 					( cookie ? cookie : "" ) );
 
 			if(request->form_data)
@@ -380,7 +380,7 @@ re_issue_request:
 			char *reqStr = NULL;
 
 			reqStr = (char*)malloc(strlen(HEAD_METHOD) + strlen(filename) +
-						strlen(HTTPVERSIONHDR) + strlen(USER_AGENT) + 
+						strlen(HTTPVERSIONHDR) + strlen(USER_AGENT) +
 						strlen(NEWLINE) + 3);
 			sprintf(reqStr,
 					"%s%s%s%s%s",
@@ -519,14 +519,14 @@ re_issue_request:
 
 			/* parse the headers for any cookies */
 			for (i = 0; i < res->num_headers; i++ )
-			{ 
+			{
 				if(!strcasecmp(res->headers[i].name, "Set-Cookie"))
 					setCookie(cookieReq,SetCookie,res->headers[i].value,
 						hostname);
 				else if(!strcasecmp(res->headers[i].name, "Set-Cookie2"))
 					setCookie(cookieReq, SetCookie2, res->headers[i].value,
 						hostname);
-			}			
+			}
 
 			/* store data in string (most likely this was a cgi request) */
 			if(request->type == HTTPLoadToString)
@@ -734,7 +734,7 @@ deleteResponse(HTTPResponse * res)
 /*****
 * unescape HTTP escaped chars.
 * Replacement is done inline.
-*****/ 
+*****/
 void
 HTTPUnescapeResponse(char *buf)
 {
@@ -865,7 +865,7 @@ static const char *hex = "0123456789ABCDEF";
 * Return Type: 	char*
 * Description: 	appends src to dest, translating certain chars to their
 *				hexadecimal representation as we do;
-* In: 
+* In:
 *	dest:		destination buffer. This buffer must be large enough to contain
 *				the expanded source text;
 *	src:		text to be appended;
@@ -902,7 +902,7 @@ appendHex(char *dest, char *src)
 * Return Type: 	char*
 * Description: 	creates a fully valid QUERY_STRING from the given name/value
 *				pairs.
-* In: 
+* In:
 *	formdata:	array of name/value pairs from a form submit. Encoding
 *				terminates when a NULL name has been detected.
 * Returns:
@@ -977,7 +977,7 @@ encodeFormData(HTTPNamedValues * formdata)
 
 /*
  * stolen from the chimera browser --- rmo.
- * 
+ *
  */
 #define isspace8(a) ((a) < 33 && (a) > 0)
 
@@ -1263,7 +1263,7 @@ HTTPFindAbsoluteURL(char *url, char *baseUrl)
 	return (NewString(new_url));
 }
 
-void 
+void
 freeURL(long parse, char *scheme, char *username, char *password,
 	char *hostname, int port, char *filename)
 {

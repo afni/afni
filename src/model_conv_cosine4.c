@@ -43,7 +43,7 @@
 
    R. Reynolds                                             6 Sep 2013
 ******************************************************************************/
-   
+
 #include "NLfit_model.h"
 
 static int     refnum  = 0 ;     /* # pts in refts */

@@ -105,7 +105,7 @@ new_NC_attr(
 	strp = new_NC_string(strlen(name), name);
 	if(strp == NULL)
 		return NULL;
-	
+
 	attrp = new_x_NC_attr(strp, type, nelems);
 	if(attrp == NULL)
 	{
@@ -166,7 +166,7 @@ void
 free_NC_attrarrayV(NC_attrarray *ncap)
 {
 	assert(ncap != NULL);
-	
+
 	if(ncap->nalloc == 0)
 		return;
 
@@ -255,7 +255,7 @@ incr_NC_attrarray(NC_attrarray *ncap, NC_attr *newelemp)
 			(ncap->nalloc + NC_ARRAY_GROWBY) * sizeof(NC_attr *));
 		if(vp == NULL)
 			return NC_ENOMEM;
-	
+
 		ncap->value = vp;
 		ncap->nalloc += NC_ARRAY_GROWBY;
 	}
@@ -345,7 +345,7 @@ NC_findattr(const NC_attrarray *ncap, const char *name)
 /*
  * Look up by ncid, varid and name, return NULL if not found
  */
-static int 
+static int
 NC_lookupattr(int ncid,
 	int varid,
 	const char *name, /* attribute name */
@@ -403,7 +403,7 @@ nc_inq_attname(int ncid, int varid, int attnum, char *name)
 }
 
 
-int 
+int
 nc_inq_attid(int ncid, int varid, const char *name, int *attnump)
 {
 	int status;
@@ -418,7 +418,7 @@ nc_inq_attid(int ncid, int varid, const char *name, int *attnump)
 	ncap = NC_attrarray0(ncp, varid);
 	if(ncap == NULL)
 		return NC_ENOTVAR;
-	
+
 
 	attrpp = NC_findattr(ncap, name);
 	if(attrpp == NULL)
@@ -430,7 +430,7 @@ nc_inq_attid(int ncid, int varid, const char *name, int *attnump)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_atttype(int ncid, int varid, const char *name, nc_type *datatypep)
 {
 	int status;
@@ -446,7 +446,7 @@ nc_inq_atttype(int ncid, int varid, const char *name, nc_type *datatypep)
 	return NC_NOERR;
 }
 
-int 
+int
 nc_inq_attlen(int ncid, int varid, const char *name, size_t *lenp)
 {
 	int status;
@@ -583,18 +583,18 @@ nc_copy_att(int ncid_in, int varid_in, const char *name, int ncid_out, int ovari
 		if(!NC_indef(ncp) )
 		{
 			attrp = *attrpp; /* convenience */
-	
+
 			if(iattrp->xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = iattrp->xsz;
 			attrp->type = iattrp->type;
 			attrp->nelems = iattrp->nelems;
 
 			(void) memcpy(attrp->xvalue, iattrp->xvalue,
 				iattrp->xsz);
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -608,7 +608,7 @@ nc_copy_att(int ncid_in, int varid_in, const char *name, int ncid_out, int ovari
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1042,11 +1042,11 @@ nc_put_att_text(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(NC_CHAR, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = NC_CHAR;
 			attrp->nelems = nelems;
@@ -1058,7 +1058,7 @@ nc_put_att_text(int ncid, int varid, const char *name,
 				if(status != NC_NOERR)
 					return status;
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1072,7 +1072,7 @@ nc_put_att_text(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1183,11 +1183,11 @@ nc_put_att_schar(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1198,7 +1198,7 @@ nc_put_att_schar(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Ischar(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1216,7 +1216,7 @@ nc_put_att_schar(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1330,11 +1330,11 @@ nc_put_att_uchar(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1345,7 +1345,7 @@ nc_put_att_uchar(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Iuchar(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1363,7 +1363,7 @@ nc_put_att_uchar(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1477,11 +1477,11 @@ nc_put_att_short(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1492,7 +1492,7 @@ nc_put_att_short(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Ishort(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1510,7 +1510,7 @@ nc_put_att_short(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1624,11 +1624,11 @@ nc_put_att_int(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1639,7 +1639,7 @@ nc_put_att_int(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Iint(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1657,7 +1657,7 @@ nc_put_att_int(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1771,11 +1771,11 @@ nc_put_att_long(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1786,7 +1786,7 @@ nc_put_att_long(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Ilong(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1804,7 +1804,7 @@ nc_put_att_long(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -1918,11 +1918,11 @@ nc_put_att_float(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -1933,7 +1933,7 @@ nc_put_att_float(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Ifloat(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -1951,7 +1951,7 @@ nc_put_att_float(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))
@@ -2065,11 +2065,11 @@ nc_put_att_double(int ncid, int varid, const char *name,
 		{
 			const size_t xsz = ncx_len_NC_attrV(type, nelems);
 			attrp = *attrpp; /* convenience */
-	
+
 			if(xsz > attrp->xsz)
 				return NC_ENOTINDEFINE;
 			/* else, we can reuse existing without redef */
-			
+
 			attrp->xsz = xsz;
 			attrp->type = type;
 			attrp->nelems = nelems;
@@ -2080,7 +2080,7 @@ nc_put_att_double(int ncid, int varid, const char *name,
 				status = ncx_pad_putn_Idouble(&xp, nelems,
 					value, type);
 			}
-			
+
 			set_NC_hdirty(ncp);
 
 			if(NC_doHsync(ncp))
@@ -2098,7 +2098,7 @@ nc_put_att_double(int ncid, int varid, const char *name,
 		}
 		/* else, redefine using existing array slot */
 		old = *attrpp;
-	} 
+	}
 	else
 	{
 		if(!NC_indef(ncp))

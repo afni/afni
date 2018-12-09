@@ -65,7 +65,7 @@ static int CALC_read_opts( int argc , char * argv[] ) ;
 /*------------------------------------------------------------------
   Input: cmd  = a command string, like the options for 3dcalc
          nxyz = pointer to integer
-         forced_mask_length = force length of mask to be 
+         forced_mask_length = force length of mask to be
                               forced_mask_length. This is used
                               for sparse surface dsets.
                               Use 0 when not dealing with surface
@@ -133,12 +133,12 @@ ENTRY("EDT_calcmask") ;
       /*keep track of the maximum node index */
       node_dset = CALC_dset[ids];
       nodemax = CALC_dset[ids]->dblk->node_list[0];
-      for (zii=0; zii<CALC_dset[ids]->dblk->nnodes; ++zii) 
+      for (zii=0; zii<CALC_dset[ids]->dblk->nnodes; ++zii)
          if (nodemax < CALC_dset[ids]->dblk->node_list[zii])  nodemax = CALC_dset[ids]->dblk->node_list[zii];
       if (forced_mask_length > 0) {
          if (nodemax+1 > forced_mask_length) {
             fprintf(stderr,"** nodemax(+1) of %d(+1) is larger than the forced_mask_length of %d\n"
-                        "   -cmask datasets may be inappropriate for surface used\n", 
+                        "   -cmask datasets may be inappropriate for surface used\n",
                         nodemax, forced_mask_length);
             CALC_nvox = 0;
             goto CLEANUP;
@@ -146,7 +146,7 @@ ENTRY("EDT_calcmask") ;
          nodemax = forced_mask_length-1;
       }
    }
-   
+
    for (ids=0; ids<26; ids++)
       atoz[ids] = (double *) malloc(sizeof(double) * VSIZE ) ;
 
@@ -361,7 +361,7 @@ ENTRY("EDT_calcmask") ;
       for (zii=0; zii<CALC_nvox; ++zii) {
          if (bmask[zii]) m2[node_dset->dblk->node_list[zii]] = 1;
       }
-      free(bmask); 
+      free(bmask);
       bmask = m2; m2 = NULL;
       CALC_nvox = nodemax+1;
    }

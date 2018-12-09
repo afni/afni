@@ -62,12 +62,12 @@ WARNING_message("This program (3dAFNItoMINC) is old, not maintained, and probabl
         narg++ ; continue ;
      }
 
-      
+
      if( strcmp(argv[narg],"-swap") == 0 ){
         flags |= MINC_SWAPIZE_MASK ;
         narg++ ; continue ;
      }
-     
+
      fprintf(stderr,"** ERROR: unknown option: %s\n",argv[narg]); exit(1);
    }
 

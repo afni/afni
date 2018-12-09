@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -73,7 +73,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:02:42  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -110,7 +110,7 @@ static int* getCoordinates(String attributes, int *ncoords);
 * than the top side and smaller than the bottom side.
 */
 #define PointInRect(X,Y,CRD) \
-	(((X) >= CRD[0] && (X) <= CRD[2]) && ((Y) >= CRD[1] && (Y) <= CRD[3])) 
+	(((X) >= CRD[0] && (X) <= CRD[2]) && ((Y) >= CRD[1] && (Y) <= CRD[3]))
 /*
 * a point is in a circle if the distance from the circle's origin to the
 * point is less than the radius of the circle (plain ol' Pythagoras)
@@ -139,7 +139,7 @@ struct _mapArea{
 * Name: 		createPoly
 * Return Type: 	Region
 * Description: 	creates a polygon region given the polygon's coordinates
-* In: 
+* In:
 *	npoints:	total no of points
 *	points:		array of points defining the polygon.
 *				The last point automatically connects to the first.
@@ -164,7 +164,7 @@ createPoly(int npoints, int *points)
 	/* last point is same as first point */
 	xpoints[half].x = points[0];
 	xpoints[half].y = points[1];
-	
+
 	/* create the region */
 	region = XPolygonRegion(xpoints, half+1, WindingRule);
 
@@ -178,7 +178,7 @@ createPoly(int npoints, int *points)
 * Name: 		deleteArea
 * Return Type: 	void
 * Description: 	frees all memory occupied by the given area
-* In: 
+* In:
 *	area:		area to free
 * Returns:
 *	nothing
@@ -206,7 +206,7 @@ deleteArea(mapArea *area)
 * Name: 		freeImageMap
 * Return Type: 	void
 * Description: 	frees the given imagemap and all areas defined for it.
-* In: 
+* In:
 *	map:		imagemap to free
 * Returns:
 *	nothing
@@ -234,7 +234,7 @@ freeImageMap(XmHTMLImageMap *map)
 * Name: 		getCoordinates
 * Return Type: 	int*
 * Description: 	returns array of map coordinates
-* In: 
+* In:
 *	attributes:	raw area specs
 *	*ncoords:	no of coordinates, filled upon return
 * Returns:
@@ -274,9 +274,9 @@ getCoordinates(String attributes, int *ncoords)
 
 	/* allocate memory for these coordinates */
 	coords = (int*)calloc(num, sizeof(int));
-	
+
 	/* now convert to numbers */
-	for(num = 0, tmp = strtok(chPtr, ","); tmp != NULL; 
+	for(num = 0, tmp = strtok(chPtr, ","); tmp != NULL;
 		tmp = strtok(NULL, ","), num++)
 		coords[num] = atoi(tmp);
 
@@ -286,10 +286,10 @@ getCoordinates(String attributes, int *ncoords)
 #ifdef DEBUG
 	{
 		int i;
-		_XmHTMLDebug(10, ("map.c: getCoordinates: "));  
+		_XmHTMLDebug(10, ("map.c: getCoordinates: "));
 		for(i = 0; i < num; i++)
 			_XmHTMLDebug(10, ("%i ", coords[i]));
-		_XmHTMLDebug(10, ("\n"));  
+		_XmHTMLDebug(10, ("\n"));
 	}
 #endif
 
@@ -302,7 +302,7 @@ getCoordinates(String attributes, int *ncoords)
 * Return Type: 	int
 * Description: 	checks the attributes for coordinates but this time
 *				any sequence of non-digits is considered as a separator.
-* In: 
+* In:
 *	attributes:	raw area specs
 *	*ncoords:	no of coordinates, filled upon return
 * Returns:
@@ -354,7 +354,7 @@ getComplexCoordinates(String attributes, int *ncoords)
 
 	/* allocate memory for these coordinates */
 	coords = (int*)calloc(num, sizeof(int));
-	
+
 	/* convert coordinates to numbers */
 	tmp = chPtr;
 	num = 0;
@@ -378,10 +378,10 @@ getComplexCoordinates(String attributes, int *ncoords)
 #ifdef DEBUG
 	{
 		int i;
-		_XmHTMLDebug(10, ("map.c: getComplexCoordinates: "));  
+		_XmHTMLDebug(10, ("map.c: getComplexCoordinates: "));
 		for(i = 0; i < num; i++)
 			_XmHTMLDebug(10, ("%i ", coords[i]));
-		_XmHTMLDebug(10, ("\n"));  
+		_XmHTMLDebug(10, ("\n"));
 	}
 #endif
 
@@ -390,7 +390,7 @@ getComplexCoordinates(String attributes, int *ncoords)
 }
 
 static void
-drawSelectionRectangle(XmHTMLWidget html, XmHTMLImage *image, 
+drawSelectionRectangle(XmHTMLWidget html, XmHTMLImage *image,
 	mapArea *area)
 {
 	ToolkitAbstraction *tka = HTML_ATTR(tka);
@@ -404,7 +404,7 @@ drawSelectionRectangle(XmHTMLWidget html, XmHTMLImage *image,
 }
 
 static void
-drawSelectionPolygon(XmHTMLWidget html, XmHTMLImage *image, 
+drawSelectionPolygon(XmHTMLWidget html, XmHTMLImage *image,
 	mapArea *area)
 {
 	ToolkitAbstraction *tka = HTML_ATTR(tka);
@@ -444,7 +444,7 @@ drawSelectionArc(XmHTMLWidget html, XmHTMLImage *image,
 	/* upper-left corner of bounding rectangle */
 	x -= radius;
 	y -= radius;
-	
+
 	tka->SetForeground(tka->dpy, HTML_ATTR(gc), HTML_ATTR(imagemap_fg));
 	tka->DrawArc(tka->dpy, tka->win, HTML_ATTR(gc), x, y, 2*radius,
 		2*radius, 0, 23040);
@@ -458,14 +458,14 @@ drawSelectionArc(XmHTMLWidget html, XmHTMLImage *image,
 * Name: 		_XmHTMLAddAreaToMap
 * Return Type: 	void
 * Description: 	adds the given area specification to the given imagemap
-* In: 
+* In:
 *	map:		XmHTMLImageMap
 *	object:		raw area data
 * Returns:
 *	nothing
 *****/
 void
-_XmHTMLAddAreaToMap(XmHTMLWidget html, XmHTMLImageMap *map, 
+_XmHTMLAddAreaToMap(XmHTMLWidget html, XmHTMLImageMap *map,
 	XmHTMLObject *object)
 {
 	static mapArea *area;
@@ -625,7 +625,7 @@ _XmHTMLAddAreaToMap(XmHTMLWidget html, XmHTMLImageMap *map,
 * Name: 		_XmHTMLCreateImagemap
 * Return Type: 	XmHTMLImageMap
 * Description: 	initializes a new imagemap
-* In: 
+* In:
 *	name:		name for this map
 * Returns:
 *	the newly created imagemap
@@ -648,7 +648,7 @@ _XmHTMLCreateImagemap(String name)
 * Name: 		_XmHTMLStoreImagemap
 * Return Type: 	void
 * Description: 	stores the given imagemap in the given html widget
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	map:		map to store
 * Returns:
@@ -668,7 +668,7 @@ _XmHTMLStoreImagemap(XmHTMLWidget html, XmHTMLImageMap *map)
 	}
 
 	/* walk to the one but last map in the list and insert it */
-	for(tmp = html->html.image_maps; tmp != NULL && tmp->next != NULL; 
+	for(tmp = html->html.image_maps; tmp != NULL && tmp->next != NULL;
 		tmp = tmp->next);
 	tmp->next = map;
 }
@@ -677,7 +677,7 @@ _XmHTMLStoreImagemap(XmHTMLWidget html, XmHTMLImageMap *map)
 * Name: 		_XmHTMLGetImagemap
 * Return Type: 	XmHTMLImageMap*
 * Description: 	retrieves the imagemap with the given name.
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	name:		name of map to retrieve
 * Returns:
@@ -691,7 +691,7 @@ _XmHTMLGetImagemap(XmHTMLWidget html, String name)
 	if(!name || *name == '\0')
 		return(NULL);
 
-	for(tmp = html->html.image_maps; tmp != NULL && 
+	for(tmp = html->html.image_maps; tmp != NULL &&
 		strcasecmp(tmp->name, &name[1]); tmp = tmp->next);
 
 	_XmHTMLFullDebug(10, ("map.c: _XmHTMLGetImageMap, found %s match for "
@@ -704,7 +704,7 @@ _XmHTMLGetImagemap(XmHTMLWidget html, String name)
 * Name: 		_XmHTMLDrawImagemapSelection
 * Return Type: 	void
 * Description: 	draws a bounding box around each area in an imagemap
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	image:		image for which to paint bounding boxes
 * Returns:
@@ -751,7 +751,7 @@ _XmHTMLDrawImagemapSelection(XmHTMLWidget html, XmHTMLImage *image)
 * Return Type: 	XmHTMLAnchor*
 * Description:  checks whether the given coordinates lie somewhere within
 *				the given imagemap.
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	x,y:		point coordinates, relative to upper-left corner of the
 *				html widget
@@ -834,7 +834,7 @@ _XmHTMLGetAnchorFromMap(XmHTMLWidget html, int x, int y,
 * Name: 		_XmHTMLFreeImageMaps
 * Return Type: 	void
 * Description: 	frees all imagemaps for the given widget
-* In: 
+* In:
 *	html:		XmHTMLWidget
 * Returns:
 *	nothing
@@ -860,7 +860,7 @@ _XmHTMLFreeImageMaps(XmHTMLWidget html)
 * Name: 		_XmHTMLCheckImagemaps
 * Return Type: 	void
 * Description: 	checks whether an image requires an external imagemap
-* In: 
+* In:
 *	html:		XmHTMLWidget containing images to check
 * Returns:
 *	nothing
@@ -882,7 +882,7 @@ _XmHTMLCheckImagemaps(XmHTMLWidget html)
 	if(html->html.images == NULL || html->html.imagemap_callback == NULL)
 	{
 		_XmHTMLDebug(10, ("map.c: _XmHTMLCheckImagemaps End: %s.\n",
-			(html->html.images ? "no imagemap_callback" : 
+			(html->html.images ? "no imagemap_callback" :
 			"no images in document")));
 		return;
 	}

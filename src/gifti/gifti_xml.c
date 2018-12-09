@@ -11,7 +11,7 @@ static int  append_to_cdata     (gxml_data *, const char *, int);
 static int  append_to_data      (gxml_data *, const char *, int);
 static int  append_to_data_ascii(gxml_data *, const char *, int);
 static int  append_to_data_b64  (gxml_data *, char*,long long,const char*, int);
-/* 
+/*
 static int  append_to_data_b64gz(gxml_data *, const char *, int);
 */
 
@@ -71,7 +71,7 @@ static giiMetaData * find_current_MetaData(gxml_data *, int);
 #elif defined(__GNUC__) && defined(__i386)
 #define XMLCALL __attribute__((cdecl))
 #else
-#define XMLCALL 
+#define XMLCALL
 #endif
 #endif /* not defined XMLCALL */
 
@@ -172,10 +172,10 @@ static gxml_data GXD = {
 static unsigned char b64_encode_table[64] = {
     'A', 'B', 'C', 'D', 'E', 'F', 'G', 'H',             /* 26 upper case */
     'I', 'J', 'K', 'L', 'M', 'N', 'O', 'P',
-    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z', 
+    'Q', 'R', 'S', 'T', 'U', 'V', 'W', 'X', 'Y', 'Z',
     'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h',             /* 26 lower case */
     'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p',
-    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z', 
+    'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z',
     '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',   /* 10 digits */
     '+', '/'
 };
@@ -241,7 +241,7 @@ gifti_image * gxml_read_image(const char * fname, int read_data,
     char       * buf = NULL;
     int          bsize;    /* be sure it doesn't change at some point */
     int          done = 0, pcount = 1;
- 
+
     if( init_gxml_data(xd, 0, dalist, dalen) ) /* reset non-user variables */
         return NULL;
 
@@ -346,7 +346,7 @@ gifti_image * gxml_read_image_buf(const char * buf_in, long long bin_len,
     char       * buf = NULL;
     int          bsize;    /* be sure it doesn't change at some point */
     int          done = 0, pcount = 1;
- 
+
     if( init_gxml_data(xd, 0, dalist, dalen) ) /* reset non-user variables */
         return NULL;
 
@@ -1473,7 +1473,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
         switch( etype ) {
             default: /* do nothing special */
                 break;
-            case GXML_ETYPE_DATA : 
+            case GXML_ETYPE_DATA :
                 if(xd->verb>3)fprintf(stderr,"-- data dind = %lld\n",xd->dind);
                 /* if we have not read data, but allocated for it, free */
                 da = xd->gim->darray[xd->gim->numDA-1];
@@ -1484,7 +1484,7 @@ static int epop( gxml_data * xd, int etype, const char * ename )
                 }
                 break;
 
-            case GXML_ETYPE_DATAARRAY  : 
+            case GXML_ETYPE_DATAARRAY  :
                 pop_darray(xd);
                 break;
 
@@ -1716,7 +1716,7 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
     } else if( !da->data ) {
         fprintf(stderr,"** A2D: no data allocated\n");
         return 1;
-    } 
+    }
 
     switch( da->encoding ){
         case GIFTI_ENCODING_ASCII:
@@ -1744,7 +1744,7 @@ static int append_to_data(gxml_data * xd, const char * cdata, int len)
  *       +------+----------+--------+---+
  *       | doff | copy_len | unused | 1 |  (last 1 assures null termination)
  *       +------+----------+--------+---+
- * 
+ *
  * - while there are bytes left to process (rem_bytes_in > 0)
  *       copy_len = bytes to process now
  *       copy that many bytes to ddata
@@ -1893,7 +1893,7 @@ static int copy_b64_data(gxml_data * xd, const char * src, char * dest,
             for(c = 0; c < src_len; c++){
                 if( b64_decode_table[usrc[c]] == (unsigned char)0x80 )
                     errs++;
-                else 
+                else
                     dest[apply_len++] = src[c];
             }
             break;
@@ -2225,7 +2225,7 @@ static int decode_ascii(gxml_data * xd, char * cdata, int cdlen, int type,
     }
 
     switch( type ) {
-        default : 
+        default :
             fprintf(stderr,"** decode_ascii cannot decode type %d\n",type);
             return -1;
         case NIFTI_TYPE_UINT8: {
@@ -2602,7 +2602,7 @@ static int stack_is_valid(gxml_data * xd)
     }
 
     /* verify proper parent (or invalid type) */
-    valid = 1;          
+    valid = 1;
     bad_parent = 0;
     parent = xd->stack[xd->depth-2];    /* depth is at least 2 */
     switch( etype ) {
@@ -2717,7 +2717,7 @@ static int update_xml_buf_size(gxml_data * xd, long long bytes)
                     (void *)xd,bytes);
         return 0;
     }
-    
+
     new_size = partial_buf_size(bytes);
     if( new_size != xd->buf_size ){
         if( xd->verb > 2 )
@@ -2795,7 +2795,7 @@ static int gxml_write_gifti(gxml_data * xd, FILE * fp)
         for( c = 0; c < gim->numDA; c++ )
             ewrite_darray(xd, gim->darray[c], fp);
     }
-    
+
     xd->depth--;
     fprintf(fp,"</%s>\n",enames[GXML_ETYPE_GIFTI]);
 
@@ -2871,7 +2871,7 @@ static int ewrite_data(gxml_data * xd, giiDataArray * da, FILE * fp)
         return 0;
     }
 
-    if (da->encoding == GIFTI_ENCODING_EXTBIN) /* then write as empty */ 
+    if (da->encoding == GIFTI_ENCODING_EXTBIN) /* then write as empty */
         fprintf(fp, "%*s<%s/>\n", spaces, "", enames[GXML_ETYPE_DATA]);
     else  /* write normal Data tag */
         fprintf(fp, "%*s<%s>", spaces, "", enames[GXML_ETYPE_DATA]);
@@ -3001,7 +3001,7 @@ static int ewrite_data_line(void * data, int type, long long row,
 
     fprintf(fp, "%*s", space, "");
     switch( type ) {
-        default : 
+        default :
             fprintf(stderr,"** write_data_line, unknown type %d\n",type);
             return -1;
         case NIFTI_TYPE_UINT8: {

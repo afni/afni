@@ -2284,7 +2284,7 @@ int main( int argc , char *argv[] )
      /* 24 Feb 2010: special option for -lpc+stuff or -lpa+stuff */
 
      if( micho_fallthru ||
-         (strlen(argv[iarg]) > 6 && 
+         (strlen(argv[iarg]) > 6 &&
            (   strncasecmp(argv[iarg],"-lpc+",5) == 0
             || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;

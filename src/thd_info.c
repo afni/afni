@@ -28,24 +28,24 @@ const char * storage_mode_str(int mode) {
       case STORAGE_BY_BRICK:
          return("BRIK") ;
       case STORAGE_BY_MINC:
-         return("MINC") ; 
+         return("MINC") ;
       case STORAGE_BY_VOLUMES:
-         return("Volume") ; 
+         return("Volume") ;
       case STORAGE_BY_ANALYZE:
-         return("ANALYZE") ; 
+         return("ANALYZE") ;
       case STORAGE_BY_CTFMRI:
-         return("CTF MRI") ; 
+         return("CTF MRI") ;
       case STORAGE_BY_CTFSAM:
-         return("CTF SAM") ; 
+         return("CTF SAM") ;
       case STORAGE_BY_1D:
-         return("AFNI .1D") ; 
+         return("AFNI .1D") ;
       case STORAGE_BY_3D:
-         return("AFNI .3D") ; 
+         return("AFNI .3D") ;
       case STORAGE_BY_NIFTI:
-         return("NIFTI") ; 
+         return("NIFTI") ;
       case STORAGE_BY_MPEG:
-         return("MPEG") ; 
-      case STORAGE_BY_NIML:   
+         return("MPEG") ;
+      case STORAGE_BY_NIML:
          return("NIML") ;
       case STORAGE_BY_NI_SURF_DSET:
          return("NI_SURF_DSET") ;
@@ -56,18 +56,18 @@ const char * storage_mode_str(int mode) {
     }
 }
 
-/* Return the prefix of a dataset without file extensions 
+/* Return the prefix of a dataset without file extensions
    Returned string must be freed */
-char *DSET_prefix_noext(THD_3dim_dataset *dset) 
-{ 
+char *DSET_prefix_noext(THD_3dim_dataset *dset)
+{
    char *ppp, *eee, *ccc=NULL;
    int ii;
-   
+
    if (!dset) return(NULL);
-   
+
    ppp = DSET_PREFIX(dset);
    if (!ppp) ppp = "NO_PREFIX";
-   
+
    ccc = (char *)malloc(sizeof(char)*(1+strlen(ppp)));
    ccc[0]='\0';
    eee = find_filename_extension( ppp );
@@ -87,7 +87,7 @@ int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
 {
    int obliquity = -1;
    float angle= 0.0f;
-      
+
    if(ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
       angle = THD_compute_oblique_angle(dset->daxes->ijk_to_dicom_real, 0);
       if(angle>0.0) {
@@ -101,9 +101,9 @@ int dset_obliquity(THD_3dim_dataset *dset , float *anglep)
 }
 
 /* common tolerance is OBLIQ_ANGLE_THRESH = 0.01 */
-double dset_obliquity_angle_diff(THD_3dim_dataset *dset1, 
-                                 THD_3dim_dataset *dset2, 
-                                 double tol) 
+double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
+                                 THD_3dim_dataset *dset2,
+                                 double tol)
 {
    if (!dset1 || !dset1->daxes ||
        !dset2 || !dset2->daxes ) return(0.0);
@@ -113,30 +113,30 @@ double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
 }
 
 /* common tolerance is OBLIQ_ANGLE_THRESH = 0.01 */
-double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2, 
-                                  double tol) 
+double daxes_obliquity_angle_diff(THD_dataxes *ax1, THD_dataxes *ax2,
+                                  double tol)
 {
    double angle, rangle;
    if (!ax1 || !ax2) return(0.0);
    angle = THD_compute_oblique_angle(ax1->ijk_to_dicom_real, 0);
    rangle = THD_compute_oblique_angle(ax2->ijk_to_dicom_real, 0);
-   rangle = angle-rangle; 
+   rangle = angle-rangle;
    if (rangle < 0.0) rangle = -rangle;
    if (rangle < tol) rangle = 0.0;
    return(rangle);
 }
 
-/* 
+/*
    A debugging function to show the state of the various file naming fields
 */
-void THD_show_dataset_names( THD_3dim_dataset *dset, char *head, FILE *out) 
+void THD_show_dataset_names( THD_3dim_dataset *dset, char *head, FILE *out)
 {
    if (!dset) {
-      fprintf(stderr,"NULL dset"); 
+      fprintf(stderr,"NULL dset");
       return;
    }
    if (!out) out = stderr;
-   
+
    if (head && !strcmp(head,"FOR_3DINFO")) {
       fprintf(out, "    filecode: %s"
                       "    header_name: %s"
@@ -165,15 +165,15 @@ void THD_show_dataset_names( THD_3dim_dataset *dset, char *head, FILE *out)
    return;
 }
 
-int THD_dset_minmax (THD_3dim_dataset *dset, int scl, 
+int THD_dset_minmax (THD_3dim_dataset *dset, int scl,
                          float *min, float *max)
 {
    int i=0;
    float mm, MM;
-   
+
    *min = 0.0; *max = 0.0;
    if (!dset) return(0);
-   
+
    for (i=0; i<DSET_NVALS(dset); ++i) {
       if (!THD_subbrick_minmax (dset, i, scl, &mm, &MM)) {
          return(0);
@@ -205,15 +205,15 @@ float THD_dset_min(THD_3dim_dataset *dset, int scl) {
    return(min);
 }
 
-int THD_subbrick_minmax (THD_3dim_dataset *dset, int isb, int scl, 
+int THD_subbrick_minmax (THD_3dim_dataset *dset, int isb, int scl,
                          float *min, float *max)
 {
    float tf = 1.0;
-   
+
    *min = 0.0; *max = 0.0;
    if (!dset) return(0);
-   RELOAD_STATS(dset);  
-    
+   RELOAD_STATS(dset);
+
    if( ISVALID_STATISTIC(dset->stats) ) {
       *min = dset->stats->bstat[isb].min;
       *max = dset->stats->bstat[isb].max;

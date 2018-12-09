@@ -31,12 +31,12 @@ extern int  AFNI_needs_dset_ijk(void) ;
 #define Mmmmmm_PIiiiii  3.1415926535897932385
 
 
-void signal_model 
+void signal_model
 (
     float  * params,           /* parameters for signal model */
     int      ts_len,           /* length of time series data */
     float ** x_array,          /* independent variable matrix */
-    float  * ts_array          /* estimated signal model time series */  
+    float  * ts_array          /* estimated signal model time series */
 );
 
 typedef struct
@@ -124,7 +124,7 @@ MODEL_interface * initialize_model ()
     M->min_constr[0] = 0.0;  M->max_constr[0] = 0.99;
     M->min_constr[1] = 0.0;  M->max_constr[1] = 0.99;
     M->min_constr[2] = 0.0;  M->max_constr[2] = 0.99;
-  
+
     M->call_func = &signal_model; /* set the signal model generator callback */
 
     return (M);
@@ -138,7 +138,7 @@ void signal_model (
     float  * params,            /* parameters for signal model */
     int      ts_len,            /* length of time series data */
     float ** x_array,           /* independent variable matrix */
-    float  * ts_array           /* estimated signal model time series */  
+    float  * ts_array           /* estimated signal model time series */
 )
 {
     static demri_params P;
@@ -161,7 +161,7 @@ void signal_model (
 
         /* verify TF (inter-frame time) (maybe we don't need TF) */
         if( !errs && P.TF != x_array[1][1] - x_array[0][1] )
-            fprintf(stderr, 
+            fprintf(stderr,
               "warning: TF (%f) != x_array time (%f), using dataset TR\n",
               P.TF, x_array[1][1] - x_array[0][1]);
 
@@ -252,7 +252,7 @@ void signal_model (
             return;
             /* do something here?  panic into error?? */
         }
-        if(P.debug > 3) printf("Voxel index %d, R1I value %f\n", P.ijk, P.RIT); 
+        if(P.debug > 3) printf("Voxel index %d, R1I value %f\n", P.ijk, P.RIT);
     }
 
     /* get any residual Ct value */
@@ -260,7 +260,7 @@ void signal_model (
     {
         P.ijk = AFNI_needs_dset_ijk();
         P.rct = resid_ct_ptr[P.ijk];  /*  get residual Ct from dataset */
-        if(P.debug > 3) printf("Voxel index %d, rCt value %f\n", P.ijk, P.rct); 
+        if(P.debug > 3) printf("Voxel index %d, rCt value %f\n", P.ijk, P.rct);
     }
 
     /* get any flip angle scale factor value */
@@ -269,7 +269,7 @@ void signal_model (
         P.ijk = AFNI_needs_dset_ijk();
         P.faf = flipangle_factor_ptr[P.ijk]; /*get flipangle factor from dset */
         if(P.debug > 3) printf(
-            "Voxel index %d, flipangle factor value %f\n", P.ijk, P.rct); 
+            "Voxel index %d, flipangle factor value %f\n", P.ijk, P.rct);
     }
     else P.faf = 1;
 
@@ -336,7 +336,7 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
     Ct[n] = P1*P2 * sum [ Cp[k] * exp(P3*(n-k)) ] + P1*P4 * (Cp[m]+Cp[n])
     note: in exp_list, max power is (P3*(len-1-m)), m is nfirst
     note: Ct is stored in P->comp
-    
+
     If we have a residual Ct value, rcr, apply it an let it decay as:
     by adding (rct - Cp[0]) * exp( -kep * (n+1) * TF ) for each n.
 
@@ -344,7 +344,7 @@ static int compute_ts( demri_params * P, float * ts, int ts_len )
 
         note that n*TR = t (time, in seconds)
         note that Ct has already decayed by 1 TR of time, hence +1
-    
+
     ** This is the only place that the dataset TR (which we label as TF,
        the inter-frame TR) is used in this model.
 */
@@ -371,7 +371,7 @@ static int ct_from_cp(demri_params * P, double * ct, float * cp,
     dval = exp(P3); /* first val, elist[i] is a power of this */
     for( k = 1; k < len; k++ )   /* fill the list */
         elist[k] = dval * elist[k-1];
-    
+
     /* start at 0    8 May 2008 [rickr] */
     for( n = 0; n < len; n++ )
     {
@@ -452,8 +452,8 @@ static int R1_from_c(demri_params * P, int len)
 {
     double * R1 = P->comp;
     int      n;
-    
-    for( n = 0; n < len; n++ ) 
+
+    for( n = 0; n < len; n++ )
         R1[n] = P->RIT + P->r1 * R1[n];
 
     /* maybe print out the array */
@@ -585,7 +585,7 @@ static int get_env_params(demri_params * P)
        mp_theta = atof(envp);
     if( mp_theta <= M_D3_THETA_MIN || mp_theta >= M_D3_THETA_MAX )
     {
-        fprintf(stderr, 
+        fprintf(stderr,
           "** error: plasma theta (MP_THETA) (%f) is not in range(%f, %f)\n",
           mp_theta, M_D3_THETA_MIN, M_D3_THETA_MAX);
         errs++;
@@ -655,17 +655,17 @@ static int get_env_params(demri_params * P)
     if( envp ) P->debug = atoi(envp);
 
     /* check if non-uniform intrinsic Relaxivity map is assigned */
-    envp = my_getenv("AFNI_MODEL_D3_R1I_DSET");  
+    envp = my_getenv("AFNI_MODEL_D3_R1I_DSET");
     if(envp)
     {
         /* verify R1I dataset existence and open dataset */
         dset_R1I = THD_open_one_dataset (envp);
-        if (dset_R1I == NULL)  
+        if (dset_R1I == NULL)
           { fprintf(stderr,"Unable to open R1I dataset: %s", envp); return 1; }
 
         DSET_mallocize (dset_R1I);
         DSET_load(dset_R1I);
-        if( !DSET_LOADED((dset_R1I)) ) 
+        if( !DSET_LOADED((dset_R1I)) )
             { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
 
         if( DSET_BRICK_TYPE(dset_R1I, 0) != MRI_float )
@@ -717,7 +717,7 @@ static int get_env_params(demri_params * P)
 
 
     /* check for residual contrast data */
-    envp = my_getenv("AFNI_MODEL_D3_RESID_CT_DSET");  
+    envp = my_getenv("AFNI_MODEL_D3_RESID_CT_DSET");
     if(envp)
     {
         /* verify RCT dataset existence and open dataset */
@@ -728,7 +728,7 @@ static int get_env_params(demri_params * P)
         }
         DSET_mallocize (dset_resid_ct);
         DSET_load(dset_resid_ct);
-        if( !DSET_LOADED((dset_resid_ct)) ) 
+        if( !DSET_LOADED((dset_resid_ct)) )
             { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
 
         if( DSET_BRICK_TYPE(dset_resid_ct, 0) != MRI_float )
@@ -748,17 +748,17 @@ static int get_env_params(demri_params * P)
     }
 
     /* check if non-uniform flip angle factor map is assigned */
-    envp = my_getenv("AFNI_MODEL_D3_FLIPANGLE_FACTOR_DATASET");  
+    envp = my_getenv("AFNI_MODEL_D3_FLIPANGLE_FACTOR_DATASET");
     if(envp)
     {
         /* verify R1I dataset existence and open dataset */
         dset_FAF = THD_open_one_dataset (envp);
-        if (dset_FAF == NULL)  
+        if (dset_FAF == NULL)
           { fprintf(stderr,"Unable to open flip angle factor dataset: %s", envp); return 1; }
 
         DSET_mallocize (dset_FAF);
         DSET_load(dset_FAF);
-        if( !DSET_LOADED((dset_FAF)) ) 
+        if( !DSET_LOADED((dset_FAF)) )
             { fprintf(stderr,"Can't load dataset %s",envp) ; return 1; }
 
         if( DSET_BRICK_TYPE(dset_FAF, 0) != MRI_float )
@@ -921,7 +921,7 @@ static int convert_mp_to_cp(demri_params * P, int mp_len)
         mp[c] = 0.0;
 
     /* and compute the remainder of the array */
-    for( ; c < mp_len; c++) 
+    for( ; c < mp_len; c++)
     {
         /* start with ratio */
         dval = (ertr_c0  -  c0_ertr_c0 * mp[c] / m0)  /
@@ -992,7 +992,7 @@ static int disp_demri_params( char * mesg, demri_params * p )
 
 static int model_help(void)
 {
-    printf( 
+    printf(
     "------------------------------------------------------------\n"
     "DEMRI - Dynamic (contrast) Enhanced MRI\n"
     "\n"

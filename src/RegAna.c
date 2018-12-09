@@ -16,7 +16,7 @@
   Date:    07 September 1999
 
   Mod:     Modifications for compatibility with 3dDeconvolve options for
-           writing the fitted full model time series (-fitts) and the 
+           writing the fitted full model time series (-fitts) and the
            residual error time series (-errts) to 3d+time datasets.
   Date:    22 November 1999
 
@@ -61,14 +61,14 @@ void RA_error (char * message);  /* prototype */
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( RA_error ("Cannot allocate memory") )
-     
+
 
 /*---------------------------------------------------------------------------*/
 /*
   Calculate constant matrices to be used for all voxels.
 */
 
-int calc_matrices 
+int calc_matrices
 (
   matrix xdata,                 /* experimental design matrix      */
   int p,                        /* number of parameters            */
@@ -114,7 +114,7 @@ ENTRY("calc_matrices") ;
   Calculate constant matrix to be used for general linear test (GLT).
 */
 
-int calc_glt_matrix 
+int calc_glt_matrix
 (
   matrix xtxinv,              /* matrix:  1/(X'X)  */
   matrix c,                   /* matrix representing GLT linear constraints */
@@ -178,7 +178,7 @@ ENTRY("calc_glt_matrix") ;
   Calculate the error sum of squares.
 */
 
-float  calc_sse 
+float  calc_sse
 (
   matrix x,                  /* independent variable matrix  */
   vector b,                  /* vector of estimated regression parameters */
@@ -219,7 +219,7 @@ float  calc_sse
 
   /*----- return SSE -----*/
   return (sse);
- 
+
 }
 
 
@@ -267,13 +267,13 @@ float  calc_resids
 
   /*----- return SSE -----*/
   return (sse);
- 
+
 }
 
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate the error sum of squares.  Also, return the fitted time series, 
+  Calculate the error sum of squares.  Also, return the fitted time series,
   and residual errors time series.
 */
 
@@ -318,7 +318,7 @@ float  calc_sse_fit
 
   /*----- return SSE -----*/
   return (sse);
- 
+
 }
 
 
@@ -327,7 +327,7 @@ float  calc_sse_fit
   Calculate the pure error sum of squares.
 */
 
-float  calc_sspe 
+float  calc_sspe
 (
   vector y,                  /* vector of measured data */
   int * levels,              /* indices for repeat observations */
@@ -345,7 +345,7 @@ float  calc_sspe
   /*----- initialize sum -----*/
   sum = (float *) malloc (sizeof(float) * c);
   MTEST (sum);
-  
+
   for (j = 0;  j < c;  j++)
     sum[j] = 0.0;
 
@@ -367,13 +367,13 @@ float  calc_sspe
       sspe += diff * diff;
     }
 
-  
+
   free (sum);   sum = NULL;
 
 
   /*----- return SSPE -----*/
   return (sspe);
- 
+
 }
 
 
@@ -426,7 +426,7 @@ float calc_flof
   Calculate the regression coefficients.
 */
 
-void calc_coef 
+void calc_coef
 (
   matrix xtxinvxt,            /* matrix:  (1/(X'X))X'   */
   vector y,                   /* vector of measured data   */
@@ -446,7 +446,7 @@ void calc_coef
   Calculate least squares estimators under the reduced model.
 */
 
-void calc_rcoef 
+void calc_rcoef
 (
   matrix a,            /* constant matrix for least squares calculation  */
   vector coef,         /* vector of regression parameters */
@@ -466,7 +466,7 @@ void calc_rcoef
   Calculate linear combinations of regression coefficients.
 */
 
-void calc_lcoef 
+void calc_lcoef
 (
   matrix c,            /* matrix representing GLT linear constraints  */
   vector coef,         /* vector of regression parameters */
@@ -483,11 +483,11 @@ void calc_lcoef
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate standard deviations and t-statistics for the regression 
+  Calculate standard deviations and t-statistics for the regression
   coefficients.
 */
 
-void calc_tcoef 
+void calc_tcoef
 (
   int n,                      /* number of data points */
   int p,                      /* number of parameters in the full model */
@@ -540,7 +540,7 @@ void calc_tcoef
       /*----- Limit range of values for t-statistic -----*/
       if (tstat < -MAXT)  tstat = -MAXT;
       if (tstat >  MAXT)  tstat = MAXT;
-      
+
       tcoef->elts[i] = tstat;
     }
 }
@@ -577,7 +577,7 @@ float calc_freg
   msef   = ssef / (n - p);            if (msef  < 0.0)  msef  = 0.0;
 
   if (msreg > MAXF*msef)  freg = MAXF;
-  else 
+  else
     if (msef < EPSILON)
       freg = 0.0;
     else
@@ -600,7 +600,7 @@ float calc_freg
   Calculate the coefficient of multiple determination R^2.
 */
 
-float calc_rsqr 
+float calc_rsqr
 (
   float ssef,                 /* error sum of squares from full model */
   float sser                  /* error sum of squares from reduced model */

@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -45,7 +45,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:28  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -83,7 +83,7 @@ static char rcsId[]="$Header$";
 /*****
 * A stripped down array of all words that are searchable. Contains enough
 * information to search for text and provide information about the
-* selection that should be made to display the text found. 
+* selection that should be made to display the text found.
 *****/
 typedef struct _WordTab{
 #ifdef DEBUG
@@ -178,7 +178,7 @@ CreateWordList(XmHTMLWidget html, XmHTMLTextFinder finder)
 					}
 					else
 					{
-						if(!(words[i].spacing & TEXT_SPACE_TRAIL) && 
+						if(!(words[i].spacing & TEXT_SPACE_TRAIL) &&
 							i+1 < n_words &&
 							!(words[i+1].spacing & TEXT_SPACE_LEAD))
 						{
@@ -287,7 +287,7 @@ CreateWordList(XmHTMLWidget html, XmHTMLTextFinder finder)
 					}
 					else
 					{
-						if(!(words[i].spacing & TEXT_SPACE_TRAIL) && 
+						if(!(words[i].spacing & TEXT_SPACE_TRAIL) &&
 							i+1 < n_words &&
 							!(words[i+1].spacing & TEXT_SPACE_LEAD))
 						{
@@ -326,7 +326,7 @@ CreateWordList(XmHTMLWidget html, XmHTMLTextFinder finder)
 									memcpy(chPtr, words[k].word,
 										words[k].len);
 									chPtr += words[k].len;
-									
+
 									/* move to next slot */
 									j++;
 								}
@@ -486,7 +486,7 @@ XmHTMLTextSetHighlight(Widget w, XmHTMLTextPosition first,
 				else
 				{
 					XmHTMLObjectTable *end;
-				 
+
 					end = (last.start ? last.start->next : NULL);
 
 					for(elePtr = first.start; elePtr != end;
@@ -542,7 +542,7 @@ XmHTMLTextShowPosition(Widget w, XmHTMLTextPosition position)
 * Return Type: 	XmHTMLTextFinder
 * Description:	Create a new Finder Context suitable for searching the
 *				contents of a HTML Widget;
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 * Returns:
 *	a new Finder context.
@@ -578,7 +578,7 @@ XmHTMLTextFinderCreate(Widget w)
 * Return Type: 	void
 * Description: 	destroys a finder context and frees any resources allocated
 *				by it.
-* In: 
+* In:
 *	finder:		finder to be destroyed.
 * Returns:
 *	nothing.
@@ -607,7 +607,7 @@ XmHTMLTextFinderDestroy(XmHTMLTextFinder finder)
 * Name: 		XmHTMLTextFinderSetPattern
 * Return Type: 	Boolean
 * Description:	sets the search pattern in a finder.
-* In: 
+* In:
 *	finder:		finder to be updated;
 *	to_find:	text to be searched;
 * Returns:
@@ -662,7 +662,7 @@ XmHTMLTextFinderSetPattern(XmHTMLTextFinder finder, String to_find)
 * Return Type: 	Boolean
 * Description: 	allows users to fine-tune the pattern-compiler by providing
 *				their own regcomp flags.
-* In: 
+* In:
 *	finder:		current Finder Context;
 *	flags:		regcomp flags to be used.
 *	direction:	search direction.
@@ -729,7 +729,7 @@ XmHTMLTextFinderSetPatternFlags(XmHTMLTextFinder finder, int flags,
 			finder->direction = dummy.direction;
 
 			/* recompile pattern */
-			(void)XmHTMLTextFinderSetPattern(finder, to_find); 
+			(void)XmHTMLTextFinderSetPattern(finder, to_find);
 
 			/* and restore error code */
 			finder->last_err = last_err;
@@ -761,7 +761,7 @@ XmHTMLTextFinderSetPatternFlags(XmHTMLTextFinder finder, int flags,
 * Name:			XmHTMLTextFinderGetError
 * Return Type: 	int
 * Description: 	returns error code of the last known regex error.
-* In: 
+* In:
 *	finder:		current Finder Context;
 * Returns:
 *	error code of last known regex error.
@@ -776,7 +776,7 @@ XmHTMLTextFinderGetError(XmHTMLTextFinder finder)
 * Name:			XmHTMLTextFinderGetErrorString
 * Return Type: 	String
 * Description: 	returns a description of the the last known regex error.
-* In: 
+* In:
 *	finder:		current Finder Context;
 * Returns:
 *	A newly allocated string that must be freed by the caller
@@ -818,7 +818,7 @@ XmHTMLTextFinderGetErrorString(XmHTMLTextFinder finder)
 			case RE_EEMPTY:
 				strcpy(err_buf, XMHTML_MSG_131);
 				break;
-			case RE_ENOMEM:	
+			case RE_ENOMEM:
 				strcpy(err_buf, XMHTML_MSG_132);
 				break;
 			case RE_EBADPARENT:
@@ -843,7 +843,7 @@ XmHTMLTextFinderGetErrorString(XmHTMLTextFinder finder)
 * Return Type: 	void
 * Description: 	rewinds the finder to it's starting position and clears
 *				the pattern buffer.
-* In: 
+* In:
 *	finder:		finder to be reset;
 * Returns:
 *	nothing.
@@ -876,7 +876,7 @@ XmHTMLTextFinderReset(XmHTMLTextFinder finder)
 * Return Type: 	XmHTMLRegexStatus
 * Description: 	find the first appearance of the compiled pattern in the
 *				current text.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	finder:		current finder id;
 * Returns:

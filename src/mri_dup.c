@@ -498,7 +498,7 @@ ENTRY("mri_dup2D_rgb_NN") ;
    bout  = (rgbyte *) MRI_RGB_PTR(outim) ;
 
    for( jj=0 ; jj < ny ; jj++ ){   /* loop over input rows */
-     
+
      for ( kk= 0; kk < nup; kk++ ) { /* do rows nup times */
 
        bin1 = bin;

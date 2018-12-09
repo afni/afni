@@ -6,11 +6,11 @@
 #include "f2c.h"
 
 /* Subroutine */ int bandr_(integer *nm, integer *n, integer *mb, doublereal *
-	a, doublereal *d__, doublereal *e, doublereal *e2, logical *matz, 
+	a, doublereal *d__, doublereal *e, doublereal *e2, logical *matz,
 	doublereal *z__)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, z_dim1, z_offset, i__1, i__2, i__3, i__4, i__5, 
+    integer a_dim1, a_offset, z_dim1, z_offset, i__1, i__2, i__3, i__4, i__5,
 	    i__6;
     doublereal d__1;
 
@@ -57,7 +57,7 @@
 /*          IS STORED IN THE LAST N+1-MB POSITIONS OF THE FIRST COLUMN, */
 /*          ITS NEXT SUBDIAGONAL IN THE LAST N+2-MB POSITIONS OF THE */
 /*          SECOND COLUMN, FURTHER SUBDIAGONALS SIMILARLY, AND FINALLY */
-/*          ITS PRINCIPAL DIAGONAL IN THE N POSITIONS OF THE LAST COLUMN. 
+/*          ITS PRINCIPAL DIAGONAL IN THE N POSITIONS OF THE LAST COLUMN.
 */
 /*          CONTENTS OF STORAGES NOT PART OF THE MATRIX ARE ARBITRARY. */
 
@@ -82,12 +82,12 @@
 /*          IS NOT REFERENCED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -178,7 +178,7 @@ L70:
 		f2 = b1 * a[j1 + *mb * a_dim1];
 		a[j + m1 * a_dim1] = -b2 * (b1 * a[j + m1 * a_dim1] - a[j + *
 			mb * a_dim1]) - f2 + a[j + m1 * a_dim1];
-		a[j1 + *mb * a_dim1] = b2 * (b2 * a[j + *mb * a_dim1] + f1) + 
+		a[j1 + *mb * a_dim1] = b2 * (b2 * a[j + *mb * a_dim1] + f1) +
 			a[j1 + *mb * a_dim1];
 		a[j + *mb * a_dim1] = b1 * (f2 - f1) + a[j + *mb * a_dim1];
 
@@ -225,7 +225,7 @@ L350:
 		i__5 = *n;
 		for (l = 1; l <= i__5; ++l) {
 		    u = z__[l + j1 * z_dim1] + b2 * z__[l + j * z_dim1];
-		    z__[l + j * z_dim1] = -b1 * z__[l + j1 * z_dim1] + z__[l 
+		    z__[l + j * z_dim1] = -b1 * z__[l + j1 * z_dim1] + z__[l
 			    + j * z_dim1];
 		    z__[l + j1 * z_dim1] = u;
 /* L400: */
@@ -242,7 +242,7 @@ L450:
 		u = b1 * (f2 - f1) + a[j1 + *mb * a_dim1];
 		a[j + m1 * a_dim1] = b2 * (b1 * a[j + m1 * a_dim1] - a[j1 + *
 			mb * a_dim1]) + f2 - a[j + m1 * a_dim1];
-		a[j1 + *mb * a_dim1] = b2 * (b2 * a[j1 + *mb * a_dim1] + f1) 
+		a[j1 + *mb * a_dim1] = b2 * (b2 * a[j1 + *mb * a_dim1] + f1)
 			+ a[j + *mb * a_dim1];
 		a[j + *mb * a_dim1] = u;
 
@@ -290,7 +290,7 @@ L480:
 		i__5 = *n;
 		for (l = 1; l <= i__5; ++l) {
 		    u = b2 * z__[l + j1 * z_dim1] + z__[l + j * z_dim1];
-		    z__[l + j * z_dim1] = -z__[l + j1 * z_dim1] + b1 * z__[l 
+		    z__[l + j * z_dim1] = -z__[l + j1 * z_dim1] + b1 * z__[l
 			    + j * z_dim1];
 		    z__[l + j1 * z_dim1] = u;
 /* L490: */

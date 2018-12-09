@@ -1,7 +1,7 @@
-/* 
+/*
    For viewing 3vec or RGB colors easily in SUMA:
    for particular use with AJJ coloring
-	
+
    P. Taylor, Oct 2015.
 */
 
@@ -11,8 +11,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include <mrilib.h>
+#include <3ddata.h>
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
@@ -21,7 +21,7 @@
 #include <colorbasic.h>
 
 
-void usage_VecRGB_to_HSL(int detail) 
+void usage_VecRGB_to_HSL(int detail)
 {
 	printf(
 "\n"
@@ -103,7 +103,7 @@ int main(int argc, char *argv[]) {
    // all either calc'ed or given
    float **RGB=NULL;
    float **HSL=NULL;
-   
+
    float *outarr=NULL;  // will hold intens values (e.g., FA)
 
    THD_3dim_dataset *OUT=NULL;
@@ -112,48 +112,48 @@ int main(int argc, char *argv[]) {
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dVecRGB_to_HSL"); machdep(); 
+   mainENTRY("3dVecRGB_to_HSL"); machdep();
 	if (argc == 1) { usage_VecRGB_to_HSL(1); exit(0); }
-   
+
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_VecRGB_to_HSL(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-     
+
       if( strcmp(argv[iarg],"-in_vec") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-in_vec'");
          invec = strdup(argv[iarg]) ;
-         
+
          iarg++ ; continue ;
       }
-      
+
       // make this an optional argument; specifically for DTI stuff
       if( strcmp(argv[iarg],"-in_scal") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-in_scal'");
          inscal = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-mask") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          maskname = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
 
@@ -178,8 +178,8 @@ int main(int argc, char *argv[]) {
 
    VEC = THD_open_dataset(invec);
 
-   Nvox = Basic_Dim_and_Nvox( VEC, 
-                              Dim, 4, 
+   Nvox = Basic_Dim_and_Nvox( VEC,
+                              Dim, 4,
                               invec);
 
    if( Dim[3] != 3 )
@@ -192,15 +192,15 @@ int main(int argc, char *argv[]) {
    // ------------------------ start alloc --------------------------------
 
    RGB = calloc( Nvox, sizeof(RGB));         // N x 3, at moment
-   for(i=0 ; i<Nvox ; i++) 
-      RGB[i] = calloc(3, sizeof(float)); 
+   for(i=0 ; i<Nvox ; i++)
+      RGB[i] = calloc(3, sizeof(float));
    HSL = calloc( 3, sizeof(HSL));            // 3 x N, for outputting
-   for(i=0 ; i<3 ; i++) 
-      HSL[i] = calloc(Nvox, sizeof(float)); 
+   for(i=0 ; i<3 ; i++)
+      HSL[i] = calloc(Nvox, sizeof(float));
 
    outarr = (float *)calloc(Nvox,sizeof(float)); // 1 x N, for outputting
 
-   if( (RGB == NULL) || (HSL == NULL) || (outarr == NULL)) { 
+   if( (RGB == NULL) || (HSL == NULL) || (outarr == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(17);
    }
@@ -209,8 +209,8 @@ int main(int argc, char *argv[]) {
 
    // ------------------------ start mask --------------------------------
 
-   mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd2 == NULL)) { 
+   mskd2 = (byte *)calloc(Nvox,sizeof(byte));
+   if( (mskd2 == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
@@ -218,12 +218,12 @@ int main(int argc, char *argv[]) {
    if(maskname) {
       MASK = THD_open_dataset(maskname);
       DSET_load(MASK);  CHECK_LOAD_ERROR(MASK);
-      
+
       if( 1 != DSET_NVALS(MASK) )
          ERROR_exit("Mask file '%s' is not scalar-- "
                     "it has %d bricks!",
                     maskname, DSET_NVALS(MASK));
-      
+
       for( k=0 ; k<Nvox ; k++ )
          if (THD_get_voxel(MASK, k, 0) > 0 )
             mskd2[k] = 1;
@@ -240,7 +240,7 @@ int main(int argc, char *argv[]) {
          magn2 = 0;
          for( i=0 ; i<3 ; i++ )
             magn2+= THD_get_voxel(VEC,k,i)*THD_get_voxel(VEC,k,i);
-         if( magn2 > 0.1) 
+         if( magn2 > 0.1)
             mskd2[k] = 1;
       }
    }
@@ -273,43 +273,43 @@ int main(int argc, char *argv[]) {
 
    // only input, at the moment:  take XYZ -> RGB
    if( invec ) {
-      if( Color_Vec_XYZdset_to_RGB( VEC, RGB, mskd2, Nvox ) ) 
+      if( Color_Vec_XYZdset_to_RGB( VEC, RGB, mskd2, Nvox ) )
          ERROR_exit("Couldn't convert VEC to RGB");
    }
 
    // RGB -> HSL
-   if( Color_Vec_RGB_to_HSL( RGB, HSL, mskd2, Nvox ) ) 
+   if( Color_Vec_RGB_to_HSL( RGB, HSL, mskd2, Nvox ) )
       ERROR_exit("Couldn't convert RGB to HSL");
 
    // ------------------------ stop RGB/HSL------------------------------
 
    // ----------------------- start output------------------------------
 
-   OUT = EDIT_empty_copy( VEC ); 
-   
+   OUT = EDIT_empty_copy( VEC );
+
 	EDIT_dset_items( OUT,
-                    ADN_datum_all, MRI_float , 
+                    ADN_datum_all, MRI_float ,
                     ADN_prefix, prefix,
-                    ADN_none );                   // 3 for HSL 
-   
+                    ADN_none );                   // 3 for HSL
+
    EDIT_substitute_brick(OUT, 0, MRI_float, HSL[0]);
-   EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]); 
-   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]); 
+   EDIT_substitute_brick(OUT, 1, MRI_float, HSL[1]);
+   EDIT_substitute_brick(OUT, 2, MRI_float, HSL[2]);
    if(inscal) { // one more from scalar input, e.g., for FA in DTI case
       EDIT_add_bricklist( OUT,
-                          1, NULL , NULL , NULL );   
+                          1, NULL , NULL , NULL );
       EDIT_substitute_brick(OUT, 3, MRI_float, outarr);
    }
    outarr=NULL;
-   
+
    for( i=0 ; i<3 ; i++ )
       HSL[i]=NULL;
-   
-	EDIT_BRICK_LABEL(OUT,0,"Hue");      
-	EDIT_BRICK_LABEL(OUT,1,"Sat");      
-	EDIT_BRICK_LABEL(OUT,2,"Lum");      
+
+	EDIT_BRICK_LABEL(OUT,0,"Hue");
+	EDIT_BRICK_LABEL(OUT,1,"Sat");
+	EDIT_BRICK_LABEL(OUT,2,"Lum");
 	if(inscal)
-      EDIT_BRICK_LABEL(OUT,3,"Bri_extra"); 
+      EDIT_BRICK_LABEL(OUT,3,"Bri_extra");
 
 	THD_load_statistics( OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(OUT)) )
@@ -317,30 +317,30 @@ int main(int argc, char *argv[]) {
 					  DSET_HEADNAME(OUT));
 	tross_Make_History("3dVecRGB_to_HSL", argc, argv, OUT);
 	THD_write_3dim_dataset(NULL, NULL, OUT, True);
-	DSET_delete(OUT); 
-  	free(OUT); 
+	DSET_delete(OUT);
+  	free(OUT);
 
    // #################################################################
    // ##########################  free remaining ######################
    // #################################################################
-   
-   
+
+
    DSET_delete(VEC);
    free(VEC);
    free(invec);
-   
+
    if (inscal){
       DSET_delete(SCAL);
       free(SCAL);
       free(inscal);
    }
-      
+
    free(prefix);
 
    for( i=0 ; i<Nvox ; i++ )
       free(RGB[i]);
    free(RGB);
-   
+
    for( i=0 ; i<3 ; i++ )
       free(HSL[i]);
    free(HSL);

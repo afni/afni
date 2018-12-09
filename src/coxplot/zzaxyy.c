@@ -36,7 +36,7 @@ static integer c__0 = 0;
 
 
 
-/* Subroutine */ int zzaxyy_(real *x, real *y1, real *y2, integer *iside, 
+/* Subroutine */ int zzaxyy_(real *x, real *y1, real *y2, integer *iside,
 	integer *ilab)
 {
     /* Format strings */
@@ -62,9 +62,9 @@ static integer c__0 = 0;
     static real yv, xx, yy;
     extern /* Subroutine */ int zzlgin_(real *, real *, integer *);
     static integer nl1, nl2, npower, nshift;
-    extern /* Subroutine */ int zzlabl_(real *, char *, integer *, ftnlen), 
-	    pwritf_(real *, real *, char *, integer *, integer *, integer *, 
-	    integer *, ftnlen), zzlogy_(real *, real *, real *, integer *, 
+    extern /* Subroutine */ int zzlabl_(real *, char *, integer *, ftnlen),
+	    pwritf_(real *, real *, char *, integer *, integer *, integer *,
+	    integer *, ftnlen), zzlogy_(real *, real *, real *, integer *,
 	    real *, real *), zzliny_(real *, real *, real *, integer *, real *
 	    , integer *, real *);
     static real yv1, yv2, yy1, yy2;
@@ -78,7 +78,7 @@ static integer c__0 = 0;
 
 
 
-/*  Draw an axis in the y-direction from (X,Y1) to (X,Y2)  [user coords] 
+/*  Draw an axis in the y-direction from (X,Y1) to (X,Y2)  [user coords]
 */
 /*  with the specified divisions and tics.  If ISIDE is positive, the */
 /*  tic marks appear in the +x direction and the labels in the -x */
@@ -148,7 +148,7 @@ static integer c__0 = 0;
 	nlab = ndec;
     }
 
-/*  Calculate the max number of characters needed for labels into NSHIFT. 
+/*  Calculate the max number of characters needed for labels into NSHIFT.
 */
 
     if (zzzplt_1.iycoor < 0) {

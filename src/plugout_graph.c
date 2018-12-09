@@ -13,7 +13,7 @@
 
 static char afni_host[128] = "." ;
 static char afni_name[128] = "\0" ;
-static int  afni_port      = 0 ;  /* Init. before parsing command line  
+static int  afni_port      = 0 ;  /* Init. before parsing command line
                                     ZSS June 2011 */
 static int  afni_verbose   = 0 ;  /* print out debug info? */
 
@@ -32,9 +32,9 @@ int main( int argc , char * argv[] )
    int narg , ii ;
 
    (void)AFNI_prefilter_args(&argc,argv);
-   
+
    afni_port = get_port_named("PLUGOUT_GRAPH_PORT"); /* ZSS June 2011 */
-   
+
    /***** See if the pitiful user wants help *****/
 
    if( argc == 2 && strncmp(argv[1],"-help",5) == 0 ){
@@ -180,14 +180,14 @@ int afni_io(void)
       char afni_iocname[128] ;           /* will hold name of I/O channel */
 
       /** Note that the control channel is always a
-          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0") 
+          TCP/IP channel to port #get_port_named("AFNI_PLUGOUT_TCP_0")
           (used to be #7957) on the AFNI host system **/
 
       if( strcmp(afni_host,".") == 0 )
-         sprintf( afni_iocname , "tcp:%s:%d" , 
+         sprintf( afni_iocname , "tcp:%s:%d" ,
             "localhost", get_port_named("AFNI_PLUGOUT_TCP_2") ); /* make name */
       else
-         sprintf( afni_iocname , "tcp:%s:%d" , 
+         sprintf( afni_iocname , "tcp:%s:%d" ,
             afni_host, get_port_named("AFNI_PLUGOUT_TCP_2") ) ;  /* make name */
 
       afni_ioc = iochan_init( afni_iocname , "create" ) ;    /* create it */

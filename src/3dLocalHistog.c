@@ -606,7 +606,7 @@ ENTRY("THD_localhistog") ;
 
    if( do_prob ){
      byte **bbar ; int pp ;
- 
+
      if( verb ) INFO_message("Conversion to probabilities") ;
 
  AFNI_OMP_START ;

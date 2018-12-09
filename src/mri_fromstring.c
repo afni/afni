@@ -94,7 +94,7 @@ ENTRY("mri_1D_fromstring") ;
 }
 
 /*---------------------------------------------------------------------------*/
-/*! Similar to mri_1D_fromstring, but for 'ragged' 1D files. [05 Jan 2007] 
+/*! Similar to mri_1D_fromstring, but for 'ragged' 1D files. [05 Jan 2007]
 *//*-------------------------------------------------------------------------*/
 
 MRI_IMAGE * mri_read_ragged_fromstring( char *str , float filler )

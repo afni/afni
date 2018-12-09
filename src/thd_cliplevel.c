@@ -125,7 +125,7 @@ ENTRY("THD_cliplevel") ;
    free(hist) ;
 
    fac = ncut / sfac ;
-   if( fac > 1.e+38 ) fac = 1.e+38 ;   
+   if( fac > 1.e+38 ) fac = 1.e+38 ;
    RETURN( (float)fac ) ;
 }
 

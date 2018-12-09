@@ -74,7 +74,7 @@ static integer c__32768 = 32768;
     /* Builtin functions */
     integer s_wsfe(cilist *), e_wsfe(void), s_rsfe(cilist *), do_fio(integer *
 	    , char *, ftnlen), e_rsfe(void), f_open(olist *), f_clos(cllist *)
-	    , s_rsle(cilist *), do_lio(integer *, integer *, char *, ftnlen), 
+	    , s_rsle(cilist *), do_lio(integer *, integer *, char *, ftnlen),
 	    e_rsle(void), s_cmp(char *, char *, ftnlen, ftnlen);
     /* Subroutine */ int s_copy(char *, char *, ftnlen, ftnlen), s_cat(char *,
 	     char **, integer *, integer *, ftnlen);
@@ -84,8 +84,8 @@ static integer c__32768 = 32768;
     static integer iend;
     static doublereal fvec[32768];
     static integer info;
-    extern /* Subroutine */ int dcov_(U_fp, integer *, integer *, integer *, 
-	    doublereal *, doublereal *, doublereal *, integer *, integer *, 
+    extern /* Subroutine */ int dcov_(U_fp, integer *, integer *, integer *,
+	    doublereal *, doublereal *, doublereal *, integer *, integer *,
 	    doublereal *, doublereal *, doublereal *, doublereal *);
     static integer ierr;
     static doublereal xpar[66];
@@ -97,11 +97,11 @@ static integer c__32768 = 32768;
     static char cexpr[128];
     static integer iwork[66];
     extern /* Subroutine */ int dnls1e_(U_fp, integer *, integer *, integer *,
-	     doublereal *, doublereal *, doublereal *, integer *, integer *, 
+	     doublereal *, doublereal *, doublereal *, integer *, integer *,
 	    integer *, doublereal *, integer *);
     extern /* Subroutine */ int ff_();
     static logical lchuse[26];
-    extern /* Subroutine */ int parser_(char *, logical *, integer *, char *, 
+    extern /* Subroutine */ int parser_(char *, logical *, integer *, char *,
 	    ftnlen, ftnlen);
     static integer ilower, iupper, istart, nprint, ich;
     static doublereal xin, yin, tol, war1[30], war2[30], war3[30], war4[32768]
@@ -361,7 +361,7 @@ L340:
     e_rsfe();
     if (*(unsigned char *)chans >= 'A' && *(unsigned char *)chans <= 'Z') {
 	ich = *(unsigned char *)chans - iupper;
-    } else if (*(unsigned char *)chans >= 'a' && *(unsigned char *)chans <= 
+    } else if (*(unsigned char *)chans >= 'a' && *(unsigned char *)chans <=
 	    'z') {
 	ich = *(unsigned char *)chans - ilower;
     } else {
@@ -373,7 +373,7 @@ L340:
 /* .......................................................................
  */
 /*  Assign 1st column variable name to VEctor VARiable, and */
-/*  all others to be FiXed Variables;  get initial values for the latter 
+/*  all others to be FiXed Variables;  get initial values for the latter
 */
 
     exdata_1.ivevar = ich;
@@ -431,7 +431,7 @@ L100004:
 	goto L9900;
     }
 
-    dcov_((U_fp)ff_, &iopt, &m, &n, xpar, fvec, work, &c__32768, &info, war1, 
+    dcov_((U_fp)ff_, &iopt, &m, &n, xpar, fvec, work, &c__32768, &info, war1,
 	    war2, war3, war4);
 
     s_wsfe(&io___47);
@@ -447,7 +447,7 @@ L100004:
 	if (info == 1) {
 	    xin = sqrt(work[i__ + (i__ << 15) - 32769]);
 	    s_wsfe(&io___48);
-	    *(unsigned char *)&ch__1[0] = (char) (exdata_1.ifxvar[i__ - 1] + 
+	    *(unsigned char *)&ch__1[0] = (char) (exdata_1.ifxvar[i__ - 1] +
 		    iupper);
 	    do_fio(&c__1, ch__1, 1L);
 	    do_fio(&c__1, (char *)&xpar[i__ - 1], (ftnlen)sizeof(doublereal));
@@ -455,7 +455,7 @@ L100004:
 	    e_wsfe();
 	} else {
 	    s_wsfe(&io___49);
-	    *(unsigned char *)&ch__1[0] = (char) (exdata_1.ifxvar[i__ - 1] + 
+	    *(unsigned char *)&ch__1[0] = (char) (exdata_1.ifxvar[i__ - 1] +
 		    iupper);
 	    do_fio(&c__1, ch__1, 1L);
 	    do_fio(&c__1, (char *)&xpar[i__ - 1], (ftnlen)sizeof(doublereal));
@@ -540,13 +540,13 @@ L9900:
     /* Local variables */
     static integer i__, j, k;
     static doublereal vaz[851968]	/* was [32768][26] */;
-    extern /* Subroutine */ int parevec_(integer *, char *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int parevec_(integer *, char *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
 	    doublereal *, integer *, doublereal *, ftnlen);
 
     /* Fortran I/O blocks */

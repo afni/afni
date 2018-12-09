@@ -95,7 +95,7 @@ int main( int argc , char * argv[] )
       }
       if( strcmp(argv[nopt],"-input") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: need an argument after -input!\n"); 
+            fprintf(stderr,"** ERROR: need an argument after -input!\n");
             exit(1);
          }
          insetname = argv[nopt] ;
@@ -108,23 +108,23 @@ int main( int argc , char * argv[] )
 #endif
         do_inedge = 1 ; nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-scale_floats") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: a factor after -scale_floats!\n"); 
+            fprintf(stderr,"** ERROR: a factor after -scale_floats!\n");
             exit(1);
          }
          ffac = (float)strtod(argv[nopt],NULL) ;
          nopt++ ; continue ;
       }
-      
+
       if( strncmp(argv[nopt],"-verbose",5) == 0 ){
          verb++ ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-datum") == 0 ){
          if( ++nopt >= argc ){
-            fprintf(stderr,"** ERROR: need an argument after -datum!\n"); 
+            fprintf(stderr,"** ERROR: need an argument after -datum!\n");
             exit(1);
          }
          if( strcmp(argv[nopt],"short") == 0 ){
@@ -185,11 +185,11 @@ int main( int argc , char * argv[] )
          nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
          nval = DSET_NVALS(inset) ;
 
-         sum = (float **) malloc( sizeof(float *)*nval ) ;    
+         sum = (float **) malloc( sizeof(float *)*nval ) ;
                                           /* array of sub-bricks */
          for( kk=0 ; kk < nval ; kk++ ){
-           sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  
-                                             /* kk-th sub-brick */ 
+           sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;
+                                             /* kk-th sub-brick */
          }
 
          outset = EDIT_empty_copy( inset ) ;
@@ -211,8 +211,8 @@ int main( int argc , char * argv[] )
             exit(1) ;
          }
 
-      } 
-      
+      }
+
 
       /*-- read data from disk --*/
 
@@ -239,7 +239,7 @@ int main( int argc , char * argv[] )
 #endif
 
       /*-- Edge detect each sub-brik --*/
-      
+
       indims[0] = DSET_NX(inset);
       indims[1] = DSET_NY(inset);
       indims[2] = DSET_NZ(inset);
@@ -280,17 +280,17 @@ int main( int argc , char * argv[] )
                 fprintf( stderr, "ERROR: gradient extraction failed.\n" );
                 exit( 1 );
               }
-             
+
            }
            break ;
 
             case MRI_short:{
                short *pp = (short *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk)  ;
-               
+
                if( fac && verb) {
                   INFO_message(
-                     "Ignoring brick factor of %f for Gradient Extraction", 
+                     "Ignoring brick factor of %f for Gradient Extraction",
                                  fac);
                }
                if (verb) INFO_message("Going to Extract_Gradient_Maxima_3D\n");
@@ -309,10 +309,10 @@ int main( int argc , char * argv[] )
             case MRI_byte:{
                byte *pp = (byte *) DSET_ARRAY(inset,kk) ;
                float fac = DSET_BRICK_FACTOR(inset,kk)  ;
-               
+
                if( fac && verb) {
                   INFO_message(
-                     "Ignoring brick factor of %f for Gradient Extraction", 
+                     "Ignoring brick factor of %f for Gradient Extraction",
                                  fac);
                }
                if ( Extract_Gradient_Maxima_3D( (void *)pp, UCHAR,
@@ -332,7 +332,7 @@ int main( int argc , char * argv[] )
       DSET_delete(inset) ;
    }
 
-      
+
 
    switch( datum ){
 

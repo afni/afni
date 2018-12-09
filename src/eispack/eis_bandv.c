@@ -5,8 +5,8 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int bandv_(integer *nm, integer *n, integer *mbw, doublereal 
-	*a, doublereal *e21, integer *m, doublereal *w, doublereal *z__, 
+/* Subroutine */ int bandv_(integer *nm, integer *n, integer *mbw, doublereal
+	*a, doublereal *e21, integer *m, doublereal *w, doublereal *z__,
 	integer *ierr, integer *nv, doublereal *rv, doublereal *rv6)
 {
     /* System generated locals */
@@ -25,7 +25,7 @@
     doublereal x0=0.0, x1;
     integer mb, m21, ii, ij, jj, kj;
     doublereal uk=0.0, xu;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer ij1, kj1, its;
     doublereal eps2=0.0, eps3, eps4=0.0;
@@ -33,7 +33,7 @@
 
 
 /*     THIS SUBROUTINE FINDS THOSE EIGENVECTORS OF A REAL SYMMETRIC */
-/*     BAND MATRIX CORRESPONDING TO SPECIFIED EIGENVALUES, USING INVERSE 
+/*     BAND MATRIX CORRESPONDING TO SPECIFIED EIGENVALUES, USING INVERSE
 */
 /*     ITERATION.  THE SUBROUTINE MAY ALSO BE USED TO SOLVE SYSTEMS */
 /*     OF LINEAR EQUATIONS WITH A SYMMETRIC OR NON-SYMMETRIC BAND */
@@ -49,7 +49,7 @@
 
 /*        MBW IS THE NUMBER OF COLUMNS OF THE ARRAY A USED TO STORE THE */
 /*          BAND MATRIX.  IF THE MATRIX IS SYMMETRIC, MBW IS ITS (HALF) */
-/*          BAND WIDTH, DENOTED MB AND DEFINED AS THE NUMBER OF ADJACENT 
+/*          BAND WIDTH, DENOTED MB AND DEFINED AS THE NUMBER OF ADJACENT
 */
 /*          DIAGONALS, INCLUDING THE PRINCIPAL DIAGONAL, REQUIRED TO */
 /*          SPECIFY THE NON-ZERO PORTION OF THE LOWER TRIANGLE OF THE */
@@ -68,7 +68,7 @@
 /*          IF THE SUBROUTINE IS BEING USED TO SOLVE SYSTEMS OF LINEAR */
 /*          EQUATIONS AND THE COEFFICIENT MATRIX IS NOT SYMMETRIC, A IS */
 /*          N BY 2*MB-1 INSTEAD WITH LOWER TRIANGLE AS ABOVE AND WITH */
-/*          ITS FIRST SUPERDIAGONAL STORED IN THE FIRST N-1 POSITIONS OF 
+/*          ITS FIRST SUPERDIAGONAL STORED IN THE FIRST N-1 POSITIONS OF
 */
 /*          COLUMN MB+1, ITS SECOND SUPERDIAGONAL IN THE FIRST N-2 */
 /*          POSITIONS OF COLUMN MB+2, FURTHER SUPERDIAGONALS SIMILARLY, */
@@ -86,14 +86,14 @@
 /*        M IS THE NUMBER OF SPECIFIED EIGENVALUES OR THE NUMBER OF */
 /*          SYSTEMS OF LINEAR EQUATIONS. */
 
-/*        W CONTAINS THE M EIGENVALUES IN ASCENDING OR DESCENDING ORDER. 
+/*        W CONTAINS THE M EIGENVALUES IN ASCENDING OR DESCENDING ORDER.
 */
 /*          IF THE SUBROUTINE IS BEING USED TO SOLVE SYSTEMS OF LINEAR */
 /*          EQUATIONS (A-W(R)*I)*X(R)=B(R), WHERE I IS THE IDENTITY */
 /*          MATRIX, W(R) SHOULD BE SET ACCORDINGLY, FOR R=1,2,...,M. */
 
 /*        Z CONTAINS THE CONSTANT MATRIX COLUMNS (B(R),R=1,2,...,M), IF */
-/*          THE SUBROUTINE IS USED TO SOLVE SYSTEMS OF LINEAR EQUATIONS. 
+/*          THE SUBROUTINE IS USED TO SOLVE SYSTEMS OF LINEAR EQUATIONS.
 */
 
 /*        NV MUST BE SET TO THE DIMENSION OF THE ARRAY PARAMETER RV */
@@ -123,12 +123,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

@@ -4,16 +4,16 @@
 #endif
 
 /* store the special names used for xmats */
-static char special_xmats[] = {"RandShift, RandRigid, RandAffine, Scale, NegXY"}; 
+static char special_xmats[] = {"RandShift, RandRigid, RandAffine, Scale, NegXY"};
 void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
-   
+
   {/*Usage*/
           static char FuncName[]={"usage_SUMA_ConvertSurface"};
           char * s = NULL, *sio=NULL;
-          
+
           s = SUMA_help_basics();
           sio  = SUMA_help_IO_Args(ps);
-         
+
           printf (
 "\n"
 "Usage:  ConvertSurface <-i_TYPE inSurf> <-o_TYPE outSurf> \n"
@@ -24,7 +24,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "    Only fields pertinent to SUMA are preserved.\n"
 "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      printf (
 "%s"
 "\n"
 "  Alternate GIFTI output qualifiers:\n"
@@ -33,7 +33,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "        -xml_b64:   For Base64 (more compact)\n"
 "        -xml_b64gz: For Base64 GZIPPED (most compact, needs gzip libraries)\n"
 "     If AFNI_NIML_TEXT_DATA environment variable is set to YES, the\n"
-"     the default is -xml_ascii, otherwise it is -xml_b64\n" 
+"     the default is -xml_ascii, otherwise it is -xml_b64\n"
 "\n"
 "    -orient_out STR: Output coordinates in STR coordinate system. \n"
 "                      STR is a three character string following AFNI's \n"
@@ -47,7 +47,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "             Option makes sense for BrainVoyager, Caret/SureFit and \n"
 "             FreeSurfer surfaces.\n"
 "             But the implementation for Caret/Surefit is not finished yet \n"
-"             (ask if needed).\n" 
+"             (ask if needed).\n"
 "    -make_consistent: Check the consistency of the surface's mesh (triangle\n"
 "                      winding). This option will write out a new surface \n"
 "                      even if the mesh was consistent.\n"
@@ -66,10 +66,10 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "        in RAI (with -MNI_rai) or LPI (with -MNI_lpi)).\n"
 "        NOTE: -MNI_lpi option has not been tested yet (I have no data\n"
 "        to test it on. Verify alignment with AFNI and please report\n"
-"        any bugs.\n" 
+"        any bugs.\n"
 "        This option can be used without the -tlrc option.\n"
 "        But that assumes that surface nodes are already in\n"
-"        AFNI RAI tlrc coordinates .\n"    
+"        AFNI RAI tlrc coordinates .\n"
 "   NOTE: The vertex coordinates coordinates of the input surfaces are only\n"
 "         transformed if -sv option is used. If you do transform surfaces, \n"
 "         take care not to load them into SUMA with another -sv option.\n"
@@ -97,7 +97,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                          This option outputs file DEPTHPREF.pcdepth.1D.dset\n"
 "                          which contains node index, followed by depth, then \n"
 "                          height of node. See also same option in SurfPatch\n"
-"\n" 
+"\n"
 "    -pc_proj ONTO PREFIX: Project coordinates onto ONTO, where ONTO is one \n"
 "                   of the parameters listed below.\n"
 "              ONTO values for plane projections along various normals:\n"
@@ -120,7 +120,7 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "    Note: This is the last operation to be performed by this program, \n"
 "          and no surfaces are written out in the end.\n"
 "\n"
-#endif                
+#endif
 "    Options for applying arbitrary affine transform:\n"
 "    [xyz_new] = [Mr] * [xyz_old - cen] + D + cen\n"
 "    -xmat_1D mat: Apply transformation specified in 1D file mat.1D.\n"
@@ -153,34 +153,34 @@ void usage_SUMA_ConvertSurface (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                   -xmat_1D\n"
 "\n"
 "%s"
-"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+"\n", (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." ,
       (detail > 1) ? s : "");
   }/*Usage*/
-       if (sio) SUMA_free(sio); s = NULL;        
-       if (s) SUMA_free(s); s = NULL;        
+       if (sio) SUMA_free(sio); s = NULL;
+       if (s) SUMA_free(s); s = NULL;
        if (detail) {
-          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL; 
+          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
           printf ("\t\t Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
       }
    return;
-}   
+}
 int main (int argc,char *argv[])
 {/* Main */
-   static char FuncName[]={"ConvertSurface"}; 
+   static char FuncName[]={"ConvertSurface"};
 	int kar, volexists, i, j, Doinv, randseed, Domergesurfs=0, pciref;
    float DoR2S, fv[3], *pcxyzref;
    double xcen[3], sc[3];
    double xform[4][4];
-   char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL, 
+   char  *if_name = NULL, *of_name = NULL, *if_name2 = NULL,
          *of_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *OF_name = NULL, *OF_name2 = NULL, *tlrc_name = NULL,
-         *acpc_name=NULL, *xmat_name = NULL, *ifpar_name = NULL, 
+         *acpc_name=NULL, *xmat_name = NULL, *ifpar_name = NULL,
          *ifpar_name2 = NULL;
-   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED, 
+   SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED,
                      iparType = SUMA_FT_NOT_SPECIFIED,
                      oType = SUMA_FT_NOT_SPECIFIED;
-   SUMA_SO_File_Format iForm = SUMA_FF_NOT_SPECIFIED, 
-                        iparForm = SUMA_FF_NOT_SPECIFIED, 
+   SUMA_SO_File_Format iForm = SUMA_FF_NOT_SPECIFIED,
+                        iparForm = SUMA_FF_NOT_SPECIFIED,
                         oFormat = SUMA_FF_NOT_SPECIFIED;
    SUMA_SurfaceObject *SO = NULL, *SOpar = NULL, *SOsurf = NULL;
    SUMA_PARSED_NAME *of_name_strip = NULL, *of_name2_strip = NULL;
@@ -195,20 +195,20 @@ int main (int argc,char *argv[])
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean exists;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
-	
+
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-o;-i;-sv;-ipar;");
-   
-   
+
+
    kar = 1;
    xmat_name = NULL;
    xcen[0] = 0.0; xcen[1] = 0.0; xcen[2] = 0.0;
 	brk = NOPE;
-   orcode[0] = '\0'; 
+   orcode[0] = '\0';
    randseed = 1234;
    sprintf(orsurf,"RAI");
    Docen = NOPE;
@@ -239,18 +239,18 @@ int main (int argc,char *argv[])
 			 usage_SUMA_ConvertSurface(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
-		
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       SUMA_TO_LOWER(argv[kar]);
-		      
+
       if (!brk && (strcmp(argv[kar], "-seed") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
 				exit (1);
 			}
-			randseed = atoi(argv[kar]); 
+			randseed = atoi(argv[kar]);
 			brk = YUP;
 		}
 
@@ -260,51 +260,51 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 3 values after -XYZscale\n");
 				exit (1);
 			}
-			sc[0] = strtod(argv[kar], NULL); kar ++; 
-			sc[1] = strtod(argv[kar], NULL); kar ++; 
+			sc[0] = strtod(argv[kar], NULL); kar ++;
+			sc[1] = strtod(argv[kar], NULL); kar ++;
          sc[2] = strtod(argv[kar], NULL);
 			xmat_name = "Scale";
          Doxmat = YUP;
          Doinv = 0;
          brk = YUP;
 		}
-      
-      if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) || 
+
+      if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) ||
                     (strcmp(argv[kar], "-xmat_1D") == 0) ) ) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
 				exit (1);
 			}
-			xmat_name = argv[kar]; 
+			xmat_name = argv[kar];
          Doxmat = YUP;
          Doinv = 0;
 			brk = YUP;
 		}
-      
-      if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) || 
+
+      if (!brk && ( (strcmp(argv[kar], "-ixmat_1d") == 0) ||
                     (strcmp(argv[kar], "-ixmat_1D") == 0) ) ) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
 				exit (1);
 			}
-			xmat_name = argv[kar]; 
+			xmat_name = argv[kar];
          Doxmat = YUP;
          Doinv = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-polar_decomp") == 0)) {
          Do_PolDec = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-merge_surfs") == 0)) {
          Domergesurfs = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-pc_proj") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
@@ -335,10 +335,10 @@ int main (int argc,char *argv[])
             exit(1);
          }
          PCprojpref = argv[kar];
-			
+
          brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-node_depth") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -353,10 +353,10 @@ int main (int argc,char *argv[])
             exit(1);
          }
          NodeDepthpref = argv[kar];
-         
+
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-make_consistent") == 0)) {
          Do_wind = YUP;
 			brk = YUP;
@@ -366,7 +366,7 @@ int main (int argc,char *argv[])
          Do_flip = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
          kar ++;
 			if (kar+2>= argc)  {
@@ -375,16 +375,16 @@ int main (int argc,char *argv[])
 			}
 			xcen[0] = atof(argv[kar]); ++kar;
 			xcen[1] = atof(argv[kar]); ++kar;
-			xcen[2] = atof(argv[kar]); 
+			xcen[2] = atof(argv[kar]);
          Docen = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-native") == 0)) {
          Do_native = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-orient_out") == 0)) {
          kar ++;
 			if (kar>= argc)  {
@@ -395,10 +395,10 @@ int main (int argc,char *argv[])
          if (!SUMA_ok_orstring(orcode)) {
             fprintf (SUMA_STDERR, "%s is a bad orientation string\n", orcode);
 				exit (1);
-         } 
+         }
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-radial_to_sphere") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -408,17 +408,17 @@ int main (int argc,char *argv[])
          DoR2S = atof(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-patch2surf") == 0)) {
          Do_p2s = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-xml_ascii") == 0)) {
          oFormat = SUMA_XML_ASCII_SURF;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-xml_b64") == 0)) {
          oFormat = SUMA_XML_B64_SURF;
          brk = YUP;
@@ -431,29 +431,29 @@ int main (int argc,char *argv[])
          Do_tlrc = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-acpc") == 0)) {
          Do_acpc = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-mni_rai") == 0)) {
          Do_mni_RAI = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-mni_lpi") == 0)) {
          Do_mni_LPI = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -463,7 +463,7 @@ int main (int argc,char *argv[])
         usage_SUMA_ConvertSurface (ps, 0);
         exit (1);
    }
-   
+
    /* transfer info from ps structure (backward compat) */
 
    if (ps->o_N_surfnames) {
@@ -486,21 +486,21 @@ int main (int argc,char *argv[])
       iparType = ps->ipar_FT[0];
       iparForm = ps->ipar_FF[0];
    }
-   
+
    if (ps->N_sv) sv_name = ps->sv[0];
    if (ps->N_vp) vp_name = ps->vp[0];
-         
+
    /* sanity checks */
    if (Do_native && orcode[0] != '\0') {
       SUMA_S_Err("Options -native and -orient_out are mutually exclusive");
-      exit(1);   
+      exit(1);
    }
-   
+
    if (Do_mni_LPI && Do_mni_RAI) {
       SUMA_S_Err("\nCombining -MNI_lpi and -MNI_rai options.\nNot good.");
       exit(1);
    }
-   
+
    if (!if_name) {
       SUMA_S_Err("input surface not specified.\n");
       exit(1);
@@ -517,8 +517,8 @@ int main (int argc,char *argv[])
       SUMA_S_Err("output type not recognized.\n");
       exit(1);
    }
-   if (  oType != SUMA_GIFTI && 
-         oFormat >= SUMA_XML_SURF && 
+   if (  oType != SUMA_GIFTI &&
+         oFormat >= SUMA_XML_SURF &&
          oFormat <= SUMA_XML_B64GZ_SURF &&
          (Do_PCproj < 0 && !Do_NodeDepth) ){
       SUMA_S_Err("XML output options only valid with -o_gii\n");
@@ -546,17 +546,17 @@ int main (int argc,char *argv[])
                      "The MNI transform should only be applied to a\n"
                      "Surface in the AFNI tlrc coordinate space.\n");
    }
-   
+
    if (Do_acpc && Do_tlrc) {
       SUMA_S_Err("You can't do -tlrc and -acpc simultaneously.");
       exit(1);
    }
-   
+
    if ((Doxmat || Docen) && (Do_acpc || Do_tlrc)) {
       SUMA_S_Err("You can't do -tlrc or -acpc with -xmat_1D and -xcenter.\n");
       exit(1);
    }
-   
+
    if ((!Doxmat && Docen)) {
       SUMA_S_Err("You can't use -xcenter without -xmat_1D.\n");
       exit(1);
@@ -567,29 +567,29 @@ int main (int argc,char *argv[])
        exit(1);
       }
    }
-   
+
    if (oType == SUMA_VEC) {
       if (!of_name2) {
        SUMA_S_Err("output vec surface incorrectly specified. \n");
        exit(1);
       }
    }
-   
+
    if ( ps->i_N_surfnames > 1 && !Domergesurfs) {
       SUMA_S_Err("Multiple surfaces specified without -merge_surfs option\n"
                  "Nothing to do for such an input\n");
       exit(1);
    }
-   
-   
+
+
    /* test for existence of input files */
-   
+
    if (!SUMA_is_predefined_SO_name(if_name, NULL, NULL, NULL, NULL) &&
        !SUMA_filexists(if_name)) {
       SUMA_S_Errv("if_name %s not found.\n", if_name);
       exit(1);
    }
-   
+
    if (if_name2) {
       if (!SUMA_filexists(if_name2)) {
          SUMA_S_Errv("if_name2 %s not found.\n", if_name2);
@@ -603,14 +603,14 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-   
+
    if (ifpar_name) {
       if (!SUMA_filexists(ifpar_name)) {
          SUMA_S_Errv("ifpar_name %s not found.\n", ifpar_name);
          exit(1);
       }
    }
-   
+
    if (xmat_name) {
       if (!strstr(special_xmats,xmat_name) && !SUMA_filexists(xmat_name)) {
          SUMA_S_Errv("xmat file %s not found.\n", xmat_name);
@@ -633,14 +633,14 @@ int main (int argc,char *argv[])
       }
       if (head) SUMA_free(head); head = NULL;
    }
-   
-  
+
+
    if ((Do_tlrc || Do_acpc) && (!sv_name)) {
       fprintf (SUMA_STDERR,
                "Error %s: -tlrc must be used with -sv option.\n", FuncName);
       exit(1);
    }
-   
+
    if (vp_name) {
       if (!SUMA_filexists(vp_name)) {
          fprintf (SUMA_STDERR,
@@ -654,35 +654,35 @@ int main (int argc,char *argv[])
       if (of_name2) {
          SUMA_SFname *SFname;
 
-         SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL, 
+         SO_name = SUMA_2Prefix2SurfaceName (of_name, of_name2, NULL,
                                              vp_name, oType, &exists);
          SFname = (SUMA_SFname *)SO_name;
          OF_name2 = SUMA_copy_string(SFname->name_topo);
          OF_name = SUMA_copy_string(SFname->name_coord);
       } else {
-         SO_name = SUMA_Prefix2SurfaceName (of_name, NULL, vp_name, 
+         SO_name = SUMA_Prefix2SurfaceName (of_name, NULL, vp_name,
                                             oType, &exists);
          OF_name = SUMA_copy_string((char *) SO_name);
       }
 
       if (exists && !THD_ok_overwrite()) {
-         if (OF_name2) 
+         if (OF_name2)
             fprintf (SUMA_STDERR,
-                     "Error %s: output file(s) %s and/or %s exist already.\n", 
+                     "Error %s: output file(s) %s and/or %s exist already.\n",
                      FuncName, OF_name, OF_name2);
          else fprintf ( SUMA_STDERR,
-                        "Error %s: output file %s exists already.\n", 
+                        "Error %s: output file %s exists already.\n",
                         FuncName, OF_name);
          exit(1);
       }
-   }   
+   }
    /* now for the real work */
    if (Doxmat) {
       MRI_IMAGE *im = NULL;
       double *far=NULL;
       int nrow, ncol;
       if (!strcmp(xmat_name,"RandRigid")) {
-         SUMA_FillRandXform(xform, randseed, 2); 
+         SUMA_FillRandXform(xform, randseed, 2);
       } else if (!strcmp(xmat_name,"RandAffine")) {
          SUMA_FillRandXform(xform, randseed, 3);
       } else if (!strcmp(xmat_name,"RandShift")) {
@@ -702,7 +702,7 @@ int main (int argc,char *argv[])
          nrow = im->nx;
          ncol = im->ny;
          if (nrow == 1) {
-            if (ncol != 12) { 
+            if (ncol != 12) {
                SUMA_SL_Err("Mat file must have\n"
                            "one row of 12 columns.");
                mri_free(im); im = NULL;   /* done with that baby */
@@ -715,9 +715,9 @@ int main (int argc,char *argv[])
                xform[i/4][2] = far[i]; ++i;
                xform[i/4][3] = far[i]; ++i;
             }
-            xform[3][0] = 0.0;  
-            xform[3][1] = 0.0;  
-            xform[3][2] = 0.0;  
+            xform[3][0] = 0.0;
+            xform[3][1] = 0.0;
+            xform[3][2] = 0.0;
             xform[3][3] = 1.0;
          } else {
             if (ncol < 4 ) {
@@ -746,28 +746,28 @@ int main (int argc,char *argv[])
                xform[i][2] = far[i+2*nrow];
                xform[i][3] = far[i+3*nrow];
             }
-            xform[3][0] = 0.0;  
-            xform[3][1] = 0.0;  
-            xform[3][2] = 0.0;  
+            xform[3][0] = 0.0;
+            xform[3][1] = 0.0;
+            xform[3][2] = 0.0;
             xform[3][3] = 1.0;
          }
-      }  
-      
+      }
+
       if (LocalHead) {
          fprintf(SUMA_STDERR,"\n++ ConvertSurface xform:\n");
          for (i=0; i < 4; ++i) {
             fprintf(SUMA_STDERR," %+.5f\t%+.5f\t%+.5f\t%+.5f\n",
-                   xform[i][0], xform[i][1], 
-                   xform[i][2], xform[i][3]);  
+                   xform[i][0], xform[i][1],
+                   xform[i][2], xform[i][3]);
          }
          fprintf(SUMA_STDERR,"\n");
       }
-      
+
       mri_free(im); im = NULL;
-      
+
       if (Doinv) {
          mat44 A, A0;
-   
+
          LOAD_MAT44( A0, \
                   xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
                   xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
@@ -777,9 +777,9 @@ int main (int argc,char *argv[])
                   xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
                   xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
                   xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
-      }            
+      }
 
-      
+
       if (Do_PolDec) {
          #ifdef USE_DECOMPOSE_SHOEMAKE
             /* a little something to do a polar decomposition on M into M = Q*S*/
@@ -791,21 +791,21 @@ int main (int argc,char *argv[])
                det = polar_decomp(M, q,s);
                fprintf(fout,"#[M][D]: (D is the shift)\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
-                                 M[i][0], M[i][1], M[i][2], M[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
+                                 M[i][0], M[i][1], M[i][2], M[i][3]);
                fprintf(fout,"#Q:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
-                                 q[i][0], q[i][1], q[i][2], q[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
+                                 q[i][0], q[i][1], q[i][2], q[i][3]);
                fprintf(fout,"#S:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
                                  s[i][0], s[i][1], s[i][2], s[i][3]);
                fprintf(fout,"#det: %f\n", det);
                fprintf(fout,  "#[Q][D]: A close xform to [M][D], "
                               "without scaling.\n#M = Q*S\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n",
                                  q[i][0], q[i][1], q[i][2], M[i][3]);
                fclose(fout); SUMA_free(stmp); stmp = NULL;
             }
@@ -813,53 +813,53 @@ int main (int argc,char *argv[])
             fprintf(SUMA_STDOUT,"Replacing matrix:\n");
             for (i=0;i<3; ++i)
                   fprintf( SUMA_STDOUT,
-                           " %.5f   %.5f  %.5f  %.5f\n", 
-                           M[i][0], M[i][1], M[i][2], M[i][3]); 
+                           " %.5f   %.5f  %.5f  %.5f\n",
+                           M[i][0], M[i][1], M[i][2], M[i][3]);
             fprintf(SUMA_STDOUT,"     with matrix:\n");
             for (i=0;i<3; ++i)
-                  fprintf(SUMA_STDOUT, 
-                           " %.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(SUMA_STDOUT,
+                           " %.5f   %.5f  %.5f  %.5f\n",
                            q[i][0], q[i][1], q[i][2], M[i][3]);
-            for (i=0;i<3; ++i) { 
-               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; 
+            for (i=0;i<3; ++i) {
+               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2];
             }
-            
+
          #else
-            {/* use the NIFTI polar decomposition function 
+            {/* use the NIFTI polar decomposition function
                (same results as above)*/
                mat33 Q, A;
-               for (i=0;i<3;++i) { 
-                  A.m[i][0] = xform[i][0]; 
-                  A.m[i][1] = xform[i][1]; 
-                  A.m[i][2] = xform[i][2]; 
+               for (i=0;i<3;++i) {
+                  A.m[i][0] = xform[i][0];
+                  A.m[i][1] = xform[i][1];
+                  A.m[i][2] = xform[i][2];
                }
                Q = nifti_mat33_polar( A );
                /* replace user's xform with orthogonal one: */
                fprintf(SUMA_STDOUT,"Replacing matrix:\n");
                for (i=0;i<3; ++i)
                      fprintf( SUMA_STDOUT,
-                              " %.5f   %.5f  %.5f  %.5f\n", 
-                              xform[i][0], xform[i][1], 
-                              xform[i][2], xform[i][3]); 
+                              " %.5f   %.5f  %.5f  %.5f\n",
+                              xform[i][0], xform[i][1],
+                              xform[i][2], xform[i][3]);
                fprintf(SUMA_STDOUT,"     with matrix:\n");
                for (i=0;i<3; ++i)
                      fprintf( SUMA_STDOUT,
-                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              " %.5f   %.5f  %.5f  %.5f\n",
                               Q.m[i][0], Q.m[i][1], Q.m[i][2], xform[i][3]);
-               for (i=0;i<3; ++i) { 
-                  xform[i][0] = Q.m[i][0]; 
-                  xform[i][1] = Q.m[i][1]; 
-                  xform[i][2] = Q.m[i][2]; 
+               for (i=0;i<3; ++i) {
+                  xform[i][0] = Q.m[i][0];
+                  xform[i][1] = Q.m[i][1];
+                  xform[i][2] = Q.m[i][2];
                }
-                
+
             }
-         #endif 
+         #endif
       }
    }
-   
+
    if ( ps->i_N_surfnames ==  1) {
       /* load that one surface */
-      SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name, 
+      SO = SUMA_Load_Surface_Object_Wrapper ( if_name, if_name2, vp_name,
                                               iType, iForm, sv_name, 1);
       if (!SO) {
          SUMA_S_Err("Failed to read input surface.\n");
@@ -877,10 +877,10 @@ int main (int argc,char *argv[])
          exit(1);
       }
       for (ii = 0; ii<ps->i_N_surfnames; ++ii) {
-         SOar[ii] = SUMA_Load_Surface_Object_Wrapper(ps->i_surfnames[ii], 
+         SOar[ii] = SUMA_Load_Surface_Object_Wrapper(ps->i_surfnames[ii],
                                                      ps->i_surftopo[ii],
-                                                     vp_name, 
-                                                     ps->i_FT[0], ps->i_FF[0], 
+                                                     vp_name,
+                                                     ps->i_FT[0], ps->i_FF[0],
                                                      sv_name, 1);
       }
       if (!(SO = SUMA_MergeSurfs(SOar, ps->i_N_surfnames))) {
@@ -892,15 +892,15 @@ int main (int argc,char *argv[])
          SOar[ii]=NULL;
       } SUMA_free(SOar); SOar=NULL;
    }
-   
+
    if (DoR2S > 0.0000001) {
       if (!SUMA_ProjectSurfaceToSphere(SO, NULL , DoR2S , NULL)) {
          SUMA_S_Err("Failed to project to surface");
          exit(1);
       }
    }
-   
-   
+
+
    if (ifpar_name) {
       SOpar = SUMA_Load_Surface_Object_Wrapper ( ifpar_name, ifpar_name2,
                                  vp_name, iparType, iparForm, sv_name, 1);
@@ -909,47 +909,47 @@ int main (int argc,char *argv[])
          exit (1);
       }
       /* need edge list */
-      if (!SUMA_SurfaceMetrics_eng (SOpar,"EdgeList", NULL, 0, 
+      if (!SUMA_SurfaceMetrics_eng (SOpar,"EdgeList", NULL, 0,
                                     SUMAg_CF->DsetList)) {
          SUMA_SL_Err("Failed to create edgelist for parent");
          exit(1);
       }
    }
-   
-   
+
+
    /* if Do_wind */
    if (Do_wind) {
       fprintf (SUMA_STDOUT,
          "Checking and repairing mesh's winding consistency...\n");
-      /* check the winding, but that won't fix the normals, 
+      /* check the winding, but that won't fix the normals,
       you'll have to recalculate those things, if need be ... */
-      if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, 0, 
+      if (!SUMA_SurfaceMetrics_eng (SO, "CheckWind", NULL, 0,
                                     SUMAg_CF->DsetList)) {
          SUMA_S_Err("Failed in SUMA_SurfaceMetrics.\n");
          exit(1);
-      }   
+      }
    }
 
    if (Do_flip) {
       fprintf (SUMA_STDOUT,
          "Flipping triangle winding...\n");
-      SUMA_FlipSOTriangles(SO);   
+      SUMA_FlipSOTriangles(SO);
    }
-   
+
    if (Do_tlrc) {
       fprintf (SUMA_STDOUT,"Performing talairach transform...\n");
 
       /* form the tlrc version of the surface volume */
       tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
-                                        strlen(SO->VolPar->prefix)+60, 
+                                        strlen(SO->VolPar->prefix)+60,
                                         sizeof(char));
-      sprintf (tlrc_name, "%s%s+tlrc.HEAD", 
+      sprintf (tlrc_name, "%s%s+tlrc.HEAD",
                            SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(tlrc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
          exit(1);
       }
-      
+
       /* read the tlrc header */
       aset = THD_open_dataset(tlrc_name) ;
       if( !ISVALID_DSET(aset) ){
@@ -960,49 +960,49 @@ int main (int argc,char *argv[])
          SUMA_S_Err("tlrc_name does not contain a talairach transform.\n");
          exit(1);
       }
-      
+
       warp = aset->warp ;
-      
+
       /* now warp the coordinates, one node at a time */
       if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
          SUMA_S_Err("Failed in SUMA_AFNI_forward_warp_xyz.\n");
          exit(1);
       }
 
-      
+
    }
-   
+
    if (Do_acpc) {
       fprintf (SUMA_STDOUT,"Performing acpc transform...\n");
 
       /* form the acpc version of the surface volume */
       acpc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
-                                        strlen(SO->VolPar->prefix)+60, 
+                                        strlen(SO->VolPar->prefix)+60,
                                         sizeof(char));
-      sprintf (acpc_name, 
+      sprintf (acpc_name,
                "%s%s+acpc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(acpc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, acpc_name);
          exit(1);
       }
-      
+
       /* read the acpc header */
       aset = THD_open_dataset(acpc_name) ;
       if( !ISVALID_DSET(aset) ){
          fprintf (SUMA_STDERR,
-                  "Error %s: %s is not a valid data set.\n", 
+                  "Error %s: %s is not a valid data set.\n",
                   FuncName, acpc_name) ;
          exit(1);
       }
       if( aset->warp == NULL ){
          fprintf (SUMA_STDERR,
-                  "Error %s: acpc_name does not contain an acpc transform.\n", 
+                  "Error %s: acpc_name does not contain an acpc transform.\n",
                   FuncName);
          exit(1);
       }
-      
+
       warp = aset->warp ;
-      
+
       /* now warp the coordinates, one node at a time */
       if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
          fprintf (SUMA_STDERR,
@@ -1010,9 +1010,9 @@ int main (int argc,char *argv[])
          exit(1);
       }
 
-      
+
    }
-   
+
    if (Do_mni_RAI) {
       fprintf (SUMA_STDOUT,"Performing MNI_RAI transform...\n");
       /* apply the mni warp */
@@ -1023,7 +1023,7 @@ int main (int argc,char *argv[])
       }
       sprintf(orsurf,"RAI");
    }
-   
+
    if (Do_mni_LPI) {
       fprintf (SUMA_STDOUT,"Performing MNI_LPI transform...\n");
       /* apply the mni warp */
@@ -1034,31 +1034,31 @@ int main (int argc,char *argv[])
       }
       sprintf(orsurf,"LPI");
    }
-   
+
    if (Doxmat) {
       fprintf (SUMA_STDOUT,"Performing affine transform...\n");
       if (LocalHead) {
          for (i=0; i<3 ; ++i) {
             fprintf (SUMA_STDERR,
-                     "M[%d][:] = %f %f %f %f\n", 
+                     "M[%d][:] = %f %f %f %f\n",
                      i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
          }
          fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
       }
       if (Docen) {
          if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
-                                       xform, 0, xcen)) { 
-            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+                                       xform, 0, xcen)) {
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1);
          }
       } else {
          if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
-                                       xform, 0, NULL)) { 
-            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+                                       xform, 0, NULL)) {
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1);
          }
       }
       SUMA_Blank_AfniSO_Coord_System(SO->aSO);
    }
-   
+
    if (orcode[0] != '\0') {
       SUMA_LHv("Changing coordinates from %s to %s\n", orsurf, orcode);
       if (!SUMA_CoordChange(orsurf, orcode, SO->NodeList, SO->N_Node)) {
@@ -1067,32 +1067,32 @@ int main (int argc,char *argv[])
       }
       SUMA_Blank_AfniSO_Coord_System(SO->aSO);
    }
-   
+
    if (Do_p2s) {
       SUMA_SurfaceObject *SOold = SO;
       SUMA_LH("Changing patch to surface...");
-      SO = SUMA_Patch2Surf(SOold->NodeList, SOold->N_Node, 
+      SO = SUMA_Patch2Surf(SOold->NodeList, SOold->N_Node,
                            SO->FaceSetList, SO->N_FaceSet, 3);
       if (!SO) {
          SUMA_S_Err("Failed to change patch to surface.");
          exit(1);
       }
-      
+
       /* get rid of old surface object */
       SUMA_Free_Surface_Object(SOold);
    }
-   
+
    if (Do_native) {
       if (!SUMA_Delign_to_VolPar (SO, NULL)) {
          SUMA_S_Err("Failed to transform coordinates to native space");
-         exit(1);  
+         exit(1);
       }
    }
-   
+
    if (Do_NodeDepth) {
       float *dpth=NULL, mx=0.0;
       SUMA_PC_XYZ_PROJ *pcp=NULL;
-      if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth, 
+      if (SUMA_NodeDepth(SO->NodeList, SO->N_Node, E1_DIR_PRJ, &dpth,
                      0.0, NULL, &mx, &pcp) < 0) {
          SUMA_S_Err("Failed to compute node depth");
          exit(1);
@@ -1100,12 +1100,12 @@ int main (int argc,char *argv[])
          if (!SUMA_WriteNodeDepth(NodeDepthpref,pcp,dpth, mx)) {
             SUMA_S_Err("Failed to write node depth");
             exit(1);
-         } 
+         }
       }
       SUMA_ifree(dpth);
       pcp = SUMA_Free_PC_XYZ_Proj(pcp);
    }
-   
+
    if (Do_PCproj > NO_PRJ) {
       SUMA_PC_XYZ_PROJ *pcp=NULL;
       pciref = 0; pcxyzref = NULL;
@@ -1119,14 +1119,14 @@ int main (int argc,char *argv[])
             exit(1);
          } else {
            pcp = SUMA_Free_PC_XYZ_Proj(pcp);
-         }  
-         
+         }
+
          exit(0);
       }
    }
 
-   
-   
+
+
    /* write the surface object */
    if (SO_name) {
       if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
@@ -1134,14 +1134,14 @@ int main (int argc,char *argv[])
       if (!(SUMA_Save_Surface_Object ( SO_name,
                                     SO, oType, oFormat, SOpar))) {
          fprintf (SUMA_STDERR,
-                  "Error %s: Failed to write surface object.\n", 
+                  "Error %s: Failed to write surface object.\n",
                   FuncName);
          exit (1);
       }
-   } 
-   
-   
-   
+   }
+
+
+
    if (of_name_strip) of_name_strip = SUMA_Free_Parsed_Name (of_name_strip);
    if (of_name2_strip) of_name2_strip = SUMA_Free_Parsed_Name (of_name2_strip);
    if (OF_name) SUMA_free(OF_name);

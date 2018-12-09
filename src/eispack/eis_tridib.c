@@ -9,9 +9,9 @@
 
 static doublereal c_b33 = 1.;
 
-/* Subroutine */ int tridib_(integer *n, doublereal *eps1, doublereal *d__, 
-	doublereal *e, doublereal *e2, doublereal *lb, doublereal *ub, 
-	integer *m11, integer *m, doublereal *w, integer *ind, integer *ierr, 
+/* Subroutine */ int tridib_(integer *n, doublereal *eps1, doublereal *d__,
+	doublereal *e, doublereal *e2, doublereal *lb, doublereal *ub,
+	integer *m11, integer *m, doublereal *w, integer *ind, integer *ierr,
 	doublereal *rv4, doublereal *rv5)
 {
     /* System generated locals */
@@ -84,7 +84,7 @@ static doublereal c_b33 = 1.;
 /*        IND CONTAINS IN ITS FIRST M POSITIONS THE SUBMATRIX INDICES */
 /*          ASSOCIATED WITH THE CORRESPONDING EIGENVALUES IN W -- */
 /*          1 FOR EIGENVALUES BELONGING TO THE FIRST SUBMATRIX FROM */
-/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC.. 
+/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC..
 */
 
 /*        IERR IS SET TO */
@@ -100,12 +100,12 @@ static doublereal c_b33 = 1.;
 /*     THAN TRIDIB, IF MORE THAN N/4 EIGENVALUES ARE TO BE FOUND. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -303,7 +303,7 @@ L220:
     }
 /*     .......... LOOP FOR K-TH EIGENVALUE */
 /*                FOR K=M2 STEP -1 UNTIL M1 DO -- */
-/*                (-DO- NOT USED TO LEGALIZE -COMPUTED GO TO-) .......... 
+/*                (-DO- NOT USED TO LEGALIZE -COMPUTED GO TO-) ..........
 */
     k = m2;
 L250:

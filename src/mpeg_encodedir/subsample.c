@@ -32,7 +32,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -135,7 +135,7 @@ LumMotionErrorA(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -312,7 +312,7 @@ LumMotionErrorB(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -489,7 +489,7 @@ LumMotionErrorC(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -663,7 +663,7 @@ LumMotionErrorD(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	}
 
 	if ( yHalf ) {
-	    if ( my < 0 ) {	   
+	    if ( my < 0 ) {
 		fy--;
 	    }
 	    prev = prevFrame->halfBoth;

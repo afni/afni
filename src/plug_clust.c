@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -14,10 +14,10 @@
   Simple plugin to cluster data and return new dataset
   Author:   RW Cox
 
-  Mod:      Added Erode/Dilate option to sever narrow connecting path 
-            between clusters, by first eroding the outer layer of voxels, 
+  Mod:      Added Erode/Dilate option to sever narrow connecting path
+            between clusters, by first eroding the outer layer of voxels,
             then restoring voxels near the main body of the cluster.
-	    Also, added 'Type' option to control processing of data 
+	    Also, added 'Type' option to control processing of data
 	    inside clusters.
   Author:   B. Douglas Ward
   Date:     19 June 1998
@@ -60,11 +60,11 @@ DEFINE_PLUGIN_PROTOTYPE
 PLUGIN_interface * PLUGIN_init( int ncall )
 {
    PLUGIN_interface * plint ;
- 
+
    /*----- plugin option labels -----*/                      /* 19 June 1998 */
    char * boolean_types[2] = {"False", "True"};
    char * cluster_types[7] = {"Keep", "Mean", "Max", "AMax", "SMax", "Size",
-			      "Order"};                      
+			      "Order"};
 
    if( ncall > 0 ) return NULL ;  /* only one interface */
    CHECK_IF_ALLOWED("3DCLUSTER","3D Cluster") ;  /* 30 Sep 2016 */
@@ -102,7 +102,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
    PLUTO_add_option (plint, "Erode/Dilate", "Erode/Dilate", FALSE);
    PLUTO_add_hint (plint , "Sever narrow connecting paths between clusters");
    PLUTO_add_number (plint, "% Voxels", 0, 100, 0, 50, TRUE);
-   PLUTO_add_hint (plint , 
+   PLUTO_add_hint (plint ,
 		   "Min % of active 'neighbors' for a voxel to survive");
    PLUTO_add_string (plint, "Dilate?",  2, boolean_types, 0);
    PLUTO_add_hint (plint , "Restore voxels near main body of cluster");
@@ -181,7 +181,7 @@ static char * CLUST_main( PLUGIN_interface * plint )
    else  if (strcmp(str,"Order") == 0)  clust_type = ECFLAG_ORDER;
    else  if (strcmp(str,"Depth") == 0)  clust_type = ECFLAG_DEPTH;
    else
-     return 
+     return
        "**********************************\n"
        "CLUST_main: Illegal Cluster option\n"
        "**********************************";
@@ -201,18 +201,18 @@ static char * CLUST_main( PLUGIN_interface * plint )
        PLUTO_next_option(plint) ;
        pv  = PLUTO_get_number(plint);
        if ((pv > 0.0) && (rmm <= 0.0))
-	 return 
+	 return
 	   "*******************************************************\n"
 	   "CLUST_main: Erode/Dilate requires use of Cluster option\n"
 	   "*******************************************************";
        else
 	 pv  = pv / 100.0;
-       
+
        str = PLUTO_get_string(plint);
        if (strcmp (str, "True") == 0)
 	 {
 	   if (pv <= 0.0)
-	     return 
+	     return
 	       "***********************************************\n"
 	       "CLUST_main: Dilate requires use of Erode option\n"
 	       "***********************************************";
@@ -220,15 +220,15 @@ static char * CLUST_main( PLUGIN_interface * plint )
 	     dilate = 1;
 	 }
        else
-	 dilate = 0;       
+	 dilate = 0;
      }
    else
      {
        pv = 0.0;
        dilate = 0;
      }
-   
-   
+
+
    tag = PLUTO_peek_optiontag(plint) ;
    if( tag != NULL && strcmp(tag,"Threshold") == 0 ){
       PLUTO_next_option(plint) ;

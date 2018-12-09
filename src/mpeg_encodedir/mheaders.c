@@ -284,7 +284,7 @@ static uint32 mbPatTable[][2] = {
 
 #define SEQ_END_CODE	0x000001b7
 
-/* not static anymore because information is used for computing frame rate 
+/* not static anymore because information is used for computing frame rate
  * and for statistics */
 const double VidRateNum[9]={1.0, 23.976, 24.0, 25.0, 29.97, 30.0,
                              50.0 ,59.94, 60.0};
@@ -362,7 +362,7 @@ Mhead_GenPictureHeader(bbPtr, frameType, pictCount, f_code)
 	temporalRef = (pictCount-lastGOPStart);
     }
     temporalRef = (temporalRef % 1024);
-	
+
     DBG_PRINT(("Picture Header\n"));
     GenPictHead(bbPtr, temporalRef, frameType,
 		0 /* vbv_delay */,

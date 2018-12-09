@@ -69,7 +69,7 @@ double sampleEn( float* xvec, long nval, long w, double r )
         {
             for ( kk=0; kk<w; kk++ )
             {
-                /* lets make sure we aren't exceeding 
+                /* lets make sure we aren't exceeding
                    arrays */
                 if ((ii+kk > nval) || (jj+kk > nval ))
                 {
@@ -86,7 +86,7 @@ double sampleEn( float* xvec, long nval, long w, double r )
             {
                 B = B + 1;
             }
-            
+
             if ((ii+kk+1 > nval) || (jj+kk+1 > nval ))
             {
                 WARNING_message("Indexing exceeds array bounds (%ld, %ld, %ld) (%s,%d)\n",
@@ -290,7 +290,7 @@ int main( int argc , char *argv[] )
 
       /* update running memory statistics to reflect loading the image */
       DSET_unload(mset) ;
-   } 
+   }
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
@@ -303,7 +303,7 @@ int main( int argc , char *argv[] )
       nmask = nvox ;
       INFO_message("computing for all %d voxels",nmask) ;
    }
-   
+
    /*-- create vectim from input dataset --*/
    INFO_message("vectim-izing input dataset") ;
 
@@ -311,7 +311,7 @@ int main( int argc , char *argv[] )
    xvectim = THD_dset_to_vectim( xset , mask , 0 ) ;
    if( xvectim == NULL ) ERROR_exit("Can't create vectim?!") ;
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+   /*--- CC the vectim contains a mapping between voxel index and mask index,
          tap into that here to avoid duplicating memory usage ---*/
 
    if( mask != NULL )
@@ -344,7 +344,7 @@ int main( int argc , char *argv[] )
     if( ( mse_results = (double*)calloc( num_scales*nmask, sizeof(double) )) == NULL )
     {
         ERROR_message( "Could not allocate %d byte array for MSE calculation\n",
-                nmask*sizeof(long)); 
+                nmask*sizeof(long));
     }
 
     /*-- tell the user what we are about to do --*/
@@ -403,7 +403,7 @@ int main( int argc , char *argv[] )
 
                 /* get ref time series from this voxel */
                 xsar = VECTIM_PTR(xvectim,lout) ;
-    
+
                 /* calculate the entropy at scale = 1 */
                 mse_results[ lout ] =
                     sampleEn( xsar, xvectim->nvals, ent_win, rthresh * sd );
@@ -494,7 +494,7 @@ int main( int argc , char *argv[] )
        /* CC this sets the subbrik scaling factor, which we will probably want
           to do again after we calculate the voxel values */
        EDIT_BRICK_FACTOR(cset,subbrik,1.0) ;                 /* scale factor */
-    
+
        sprintf(str,"Multi-scale entropy (%d)", subbrik) ;
 
        EDIT_BRICK_LABEL(cset,subbrik,str) ;
@@ -513,7 +513,7 @@ int main( int argc , char *argv[] )
           {
               ii = kout ;
           }
-   
+
           if( mse_results == NULL )
           {
               WARNING_message("MSE Results is NULL %d > %d (%s,%d)\n",

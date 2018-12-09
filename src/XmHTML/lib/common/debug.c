@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -72,7 +72,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:08  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -139,7 +139,7 @@ __rsd_at_exit(void)
 * Return Type: 	void
 * Description: 	printf that flushes the given message to the requested output
 *				file (which can be stdout).
-* In: 
+* In:
 *	fmt:		message format;
 *	...:		args to fmt;
 * Returns:
@@ -147,7 +147,7 @@ __rsd_at_exit(void)
 *****/
 void
 #ifdef __STDC__
-__rsd_fprintf(char *fmt, ...) 
+__rsd_fprintf(char *fmt, ...)
 {
 	va_list arg_list;
 	va_start(arg_list, fmt);
@@ -173,7 +173,7 @@ __rsd_fprintf(fmt, va_alist)
 * Name: 		__rsd_initDebug
 * Return Type: 	void
 * Description: 	initialise the global debug variables.
-* In: 
+* In:
 *	initial:	initial debug level to set
 * Returns:
 *	nothing.
@@ -245,10 +245,10 @@ __rsd_selectDebugLevels(char *levels)
 	for(chPtr = strtok(text, ","); chPtr != NULL; chPtr = strtok(NULL, ","))
 	{
 		i = 0;
-		i = atoi(chPtr);		
+		i = atoi(chPtr);
 		if(i && i <= MAX_DEBUG_LEVELS)
 		{
-			fprintf(stderr, "__rsd_selectDebugLevels: selecting level %i\n", 
+			fprintf(stderr, "__rsd_selectDebugLevels: selecting level %i\n",
 				i);
 			__rsd__debug_levels_defined[i] = 1;
 			ret_val = 1;

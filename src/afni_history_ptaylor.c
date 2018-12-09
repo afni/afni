@@ -8,9 +8,9 @@
     basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long descrption with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see afni_history.h)
 
            - levels are :
@@ -52,16 +52,16 @@
    And it might help eradicate misery from this world.
    Did I also mention that it can fit on the first line
    beautfully, right after the short string? WOW!
-   - We should probably start building a program list. To make sure 
-   that we have no typos there. We can have users add to that list 
-   whenever they introduce a program for the first time. This way 
-   nobody has to do it at once. 
-   - Also, we need to have special 'program names' like: 
+   - We should probably start building a program list. To make sure
+   that we have no typos there. We can have users add to that list
+   whenever they introduce a program for the first time. This way
+   nobody has to do it at once.
+   - Also, we need to have special 'program names' like:
    "afni-general", "suma-general", "general"
    or perhaps
    "AFNI", "SUMA", "ALL"
    these would be used to refer to package-wide changes.
-*/ 
+*/
 
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
@@ -980,7 +980,7 @@ afni_history_struct ptaylor_history[] = {
    "Use list of ROIs to select subnetwork of analysis for 3dMVM.",
    "Previously, sublist only applied to post hocs, not 3dMVM models.\n"
 },
-   
+
 { 18, Sep , 2015 , PT , "@GradFlipTest" , MICRO , TYPE_MODIFY,
    "For DWI analysis: just linear fitting of tensor.",
    "Faster 3dDWItoDT usage, only do linear fit.\n"
@@ -1452,6 +1452,6 @@ afni_history_struct ptaylor_history[] = {
    "with the 2^(ROI number) labelling system within subbrick outputs.\n"
  },
 
- 
+
  { 99,99,99, NULL,NULL, 99,99, NULL,NULL}  /** the end (do not delete) **/
 } ;

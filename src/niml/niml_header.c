@@ -386,7 +386,7 @@ NI_str_array * NI_decode_string_list( char *ss , char *sep )
 
 /*--------------------------------------------------------------------*/
 /*! Like NI_decode_string_list, but will not use space as a delimiter
-                                                      ZSS Dec 2010 
+                                                      ZSS Dec 2010
 ----------------------------------------------------------------------*/
 
 NI_str_array * NI_strict_decode_string_list( char *ss , char *sep )

@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:42  rwcox
@@ -83,7 +83,7 @@ typedef struct detail_def {
 }  Slice_Specifics;
 
 typedef struct fsl_def {
-  int framenum; 
+  int framenum;
   int frametype;
   char qscale;
   Slice_Specifics *slc;

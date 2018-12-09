@@ -39,9 +39,9 @@ static integer c__5 = 5;
 
     /* Builtin functions */
     integer s_wsfe(cilist *), do_fio(integer *, char *, ftnlen), e_wsfe(void),
-	     s_rsfe(cilist *), e_rsfe(void), s_cmp(char *, char *, ftnlen, 
-	    ftnlen), f_open(olist *), f_rew(alist *), f_clos(cllist *), 
-	    s_rsle(cilist *), do_lio(integer *, integer *, char *, ftnlen), 
+	     s_rsfe(cilist *), e_rsfe(void), s_cmp(char *, char *, ftnlen,
+	    ftnlen), f_open(olist *), f_rew(alist *), f_clos(cllist *),
+	    s_rsle(cilist *), do_lio(integer *, integer *, char *, ftnlen),
 	    e_rsle(void);
 
     /* Local variables */
@@ -54,7 +54,7 @@ static integer c__5 = 5;
     static char c_code__[8*200*26];
     static integer ialpha;
     static char c_expr__[666];
-    extern /* Subroutine */ int parser_(char *, logical *, integer *, char *, 
+    extern /* Subroutine */ int parser_(char *, logical *, integer *, char *,
 	    ftnlen, ftnlen);
     static logical lstout;
     extern doublereal pareval_(integer *, char *, doublereal *, ftnlen);
@@ -113,13 +113,13 @@ L100:
     if (i__1 != 0) {
 	goto L1000;
     }
-    if (s_cmp(c_expr__, " ", 666L, 1L) == 0 || s_cmp(c_expr__, "end", 666L, 
+    if (s_cmp(c_expr__, " ", 666L, 1L) == 0 || s_cmp(c_expr__, "end", 666L,
 	    3L) == 0 || s_cmp(c_expr__, "exit", 666L, 4L) == 0 || s_cmp(
 	    c_expr__, "quit", 666L, 4L) == 0) {
 	goto L1000;
     }
 
-    parser_(c_expr__, &c_true, &num_code__[nout - 1], c_code__ + (nout * 200 
+    parser_(c_expr__, &c_true, &num_code__[nout - 1], c_code__ + (nout * 200
 	    - 200 << 3), 666L, 8L);
 
     if (num_code__[nout - 1] <= 0) {
@@ -144,7 +144,7 @@ L100:
     if (nout <= 9) {
 	goto L100;
     }
-/* ---------------------------------------------------------------------- 
+/* ----------------------------------------------------------------------
 */
 L1000:
     --nout;
@@ -274,7 +274,7 @@ L100002:
 	    goto L1030;
 	}
     }
-/* ..................................................................... 
+/* .....................................................................
 */
 L1050:
     n_cstop__ = 0;
@@ -292,7 +292,7 @@ L1050:
     if (i__1 != 0) {
 	goto L1090;
     }
-    if (s_cmp(c_expr__, " ", 666L, 1L) == 0 || s_cmp(c_expr__, "1", 666L, 1L) 
+    if (s_cmp(c_expr__, " ", 666L, 1L) == 0 || s_cmp(c_expr__, "1", 666L, 1L)
 	    == 0) {
 	goto L1090;
     }
@@ -300,7 +300,7 @@ L1050:
     if (n_cstop__ <= 0) {
 	goto L1050;
     }
-/* ..................................................................... 
+/* .....................................................................
 */
 L1090:
     irow = 0;
@@ -328,7 +328,7 @@ L1100:
 
     i__1 = nout;
     for (i__ = 1; i__ <= i__1; ++i__) {
-	rout[i__ - 1] = pareval_(&num_code__[i__ - 1], c_code__ + (i__ * 200 
+	rout[i__ - 1] = pareval_(&num_code__[i__ - 1], c_code__ + (i__ * 200
 		- 200 << 3), r8val, 8L);
 /* L1200: */
     }
@@ -379,7 +379,7 @@ integer inumc_(char *cline, ftnlen cline_len)
     icilist ici__1;
 
     /* Builtin functions */
-    integer s_rsli(icilist *), do_lio(integer *, integer *, char *, ftnlen), 
+    integer s_rsli(icilist *), do_lio(integer *, integer *, char *, ftnlen),
 	    e_rsli(void);
 
     /* Local variables */

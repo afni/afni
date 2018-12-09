@@ -229,10 +229,10 @@ void matrix_scale (float  k, matrix a, matrix * c);
 
 void matrix_transpose (matrix a, matrix * t);
 
- 
+
 /*---------------------------------------------------------------------------*/
 /*
-  Use Gaussian elimination to calculate inverse of matrix a.  Result is 
+  Use Gaussian elimination to calculate inverse of matrix a.  Result is
   matrix ainv.
 */
 
@@ -242,7 +242,7 @@ int matrix_inverse_dsc (matrix a, matrix * ainv);
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate square root of symmetric positive definite matrix a.  
+  Calculate square root of symmetric positive definite matrix a.
   Result is matrix s.
 */
 
@@ -355,7 +355,7 @@ float  vector_multiply_subtract (matrix a, vector b, vector c, vector * d) ;
 
 /*---------------------------------------------------------------------------*/
 /*
-  Calculate dot product of vector a with vector b. 
+  Calculate dot product of vector a with vector b.
 */
 
 float  vector_dot (vector a, vector b);

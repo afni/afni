@@ -41,12 +41,12 @@
 
 int main( int argc, char *argv[] )
 {
-  
+
   /*---------- DECLARATIONS ----------*/
   enum modes mode = NOTHING;
   int svm_type = CLASSIFICATION; /* JL May 2009: There are three  svm_types:
                                     CLASSIFICATION,  REGRESSION and RANKING
-                                    which are defined in svm_common.h */ 
+                                    which are defined in svm_common.h */
   ASLoptions options;
   KERNEL_PARM kernel_parm;      /* svm-light structure */
   LEARN_PARM learn_parm;        /* svm-light structure */
@@ -83,13 +83,13 @@ int main( int argc, char *argv[] )
 
 
   mainENTRY("3dsvm");           /* ZSS, see -trace option in input_parse*/
-  
+
 
   /* JL June 2011: Modified error handling. Passing errorString as argument
-   * to most functions and calling ERROR_exit() only from main. This gives us the 
-   * flexibility to employ the same functions for plugin and command-line usage.  
-   * For plugin calls, the error message is diplayed to the user 
-   * as a pop-up, memory is freed properly and the afni controller stays operational!. 
+   * to most functions and calling ERROR_exit() only from main. This gives us the
+   * flexibility to employ the same functions for plugin and command-line usage.
+   * For plugin calls, the error message is diplayed to the user
+   * as a pop-up, memory is freed properly and the afni controller stays operational!.
    */
 
 
@@ -137,17 +137,17 @@ int main( int argc, char *argv[] )
   /*----- TRAIN FUNCTIONS ---------------*/
   if( mode == TRAIN || mode == TRAIN_AND_TEST ) {
     if( svm_type == CLASSIFICATION ) {
-      if( train_classification(&model, &learn_parm, &kernel_parm, &kernel_cache_size, 
+      if( train_classification(&model, &learn_parm, &kernel_parm, &kernel_cache_size,
             &options, dsetTrain, dsetMask, dsetMaskArray, myargc, myargv, errorString) ) {
-          
+
         freeArgv( myargv, myargc );
         ERROR_exit(errorString);
       }
     }
     else if( svm_type == REGRESSION ) {
-      if( train_regression(&model, &learn_parm, &kernel_parm, &kernel_cache_size, 
+      if( train_regression(&model, &learn_parm, &kernel_parm, &kernel_cache_size,
         &options, dsetTrain, dsetMask, dsetMaskArray, myargc, myargv, errorString) ) {
-        
+
 
         freeArgv( myargv, myargc );
         ERROR_exit(errorString);
@@ -159,7 +159,7 @@ int main( int argc, char *argv[] )
       ERROR_exit("What happened?! Training type unknown!");
     }
   }
-  
+
   /*----- TEST FUNCTIONS ---------------*/
   if( mode == TEST || mode == TRAIN_AND_TEST ) {
 

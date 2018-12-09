@@ -71,12 +71,12 @@
 /*                     WHILE THE J-TH EIGENVALUE IS BEING SOUGHT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -131,7 +131,7 @@ L70:
 	if (l == *low) {
 	    goto L100;
 	}
-	s = (d__1 = h__[l - 1 + (l - 1) * h_dim1], abs(d__1)) + (d__2 = h__[l 
+	s = (d__1 = h__[l - 1 + (l - 1) * h_dim1], abs(d__1)) + (d__2 = h__[l
 		+ l * h_dim1], abs(d__2));
 	if (s == 0.) {
 	    s = norm;
@@ -169,7 +169,7 @@ L100:
 	h__[i__ + i__ * h_dim1] -= x;
     }
 
-    s = (d__1 = h__[en + na * h_dim1], abs(d__1)) + (d__2 = h__[na + enm2 * 
+    s = (d__1 = h__[en + na * h_dim1], abs(d__1)) + (d__2 = h__[na + enm2 *
 	    h_dim1], abs(d__2));
     x = s * .75;
     y = x;
@@ -186,7 +186,7 @@ L130:
 	zz = h__[m + m * h_dim1];
 	r__ = x - zz;
 	s = y - zz;
-	p = (r__ * s - w) / h__[m + 1 + m * h_dim1] + h__[m + (m + 1) * 
+	p = (r__ * s - w) / h__[m + 1 + m * h_dim1] + h__[m + (m + 1) *
 		h_dim1];
 	q = h__[m + 1 + (m + 1) * h_dim1] - zz - r__ - s;
 	r__ = h__[m + 2 + (m + 1) * h_dim1];
@@ -197,9 +197,9 @@ L130:
 	if (m == l) {
 	    goto L150;
 	}
-	tst1 = abs(p) * ((d__1 = h__[m - 1 + (m - 1) * h_dim1], abs(d__1)) + 
+	tst1 = abs(p) * ((d__1 = h__[m - 1 + (m - 1) * h_dim1], abs(d__1)) +
 		abs(zz) + (d__2 = h__[m + 1 + (m + 1) * h_dim1], abs(d__2)));
-	tst2 = tst1 + (d__1 = h__[m + (m - 1) * h_dim1], abs(d__1)) * (abs(q) 
+	tst2 = tst1 + (d__1 = h__[m + (m - 1) * h_dim1], abs(d__1)) * (abs(q)
 		+ abs(r__));
 	if (tst2 == tst1) {
 	    goto L150;
@@ -302,7 +302,7 @@ L225:
 /*     .......... COLUMN MODIFICATION .......... */
 	i__2 = j;
 	for (i__ = 1; i__ <= i__2; ++i__) {
-	    p = x * h__[i__ + k * h_dim1] + y * h__[i__ + (k + 1) * h_dim1] + 
+	    p = x * h__[i__ + k * h_dim1] + y * h__[i__ + (k + 1) * h_dim1] +
 		    zz * h__[i__ + (k + 2) * h_dim1];
 	    h__[i__ + k * h_dim1] -= p;
 	    h__[i__ + (k + 1) * h_dim1] -= p * q;

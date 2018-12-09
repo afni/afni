@@ -275,7 +275,7 @@ int main( int argc , char *argv[] )
    /*--- user should be flogged twice ---*/
 
    if( argc < 2 ){
-     usage_1dCorrelate(1) ; exit(0) ; 
+     usage_1dCorrelate(1) ; exit(0) ;
    }
 
    if( iarg == argc )

@@ -2,7 +2,7 @@
 #include <stdio.h>
 
 /*----------------------------------------------------------------------------
-   Become a daemon: fork, die, setsid, fork, die, disconnect 
+   Become a daemon: fork, die, setsid, fork, die, disconnect
 ------------------------------------------------------------------------------*/
 
 void daemonize(void)

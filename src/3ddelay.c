@@ -135,7 +135,7 @@ typedef struct DELAY_options
    char * outname; /* Name of ascii output files */
    char * outnamets; /* Name of ascii output files */
    char * outnamelog; /* Name of ascii output files */
-   
+
    char * input_filename;   /* input 3d+time dataset filename */
    char * mask_filename;    /* input mask dataset filename */
    char * input1D_filename; /* input fMRI measurement time series */
@@ -205,7 +205,7 @@ void display_help_menu()
 "-fs fs             Sampling frequency in Hz. of data time series (1/TR). \n"
 "-T  Tstim          Stimulus period in seconds. \n"
 "                   If the stimulus is not periodic, you can set Tstim to 0.\n"
-"[-prefix bucket]   The prefix for the results Brick.\n" 
+"[-prefix bucket]   The prefix for the results Brick.\n"
 "                   The first subbrick is for Delay.\n"
 "                   The second subbrick is for Covariance, which is an \n"
 "                   estimate of the power in voxel time series at the\n"
@@ -233,13 +233,13 @@ void display_help_menu()
 "[-phzwrp]          Delay (or phase) wrap.\n"
 "                   This switch maps delays from: \n"
 "                   (Seconds) 0->T/2 to 0->T/2 and T/2->T to -T/2->0\n"
-"                   (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n" 
+"                   (Degrees) 0->180 to 0->180 and 180->360 to -180->0\n"
 "                   (Radians) 0->pi to 0->pi and pi->2pi to -pi->0\n"
 "                   You can't use this option unless you specify a \n"
 "                   value for Tstim > 0.\n"
 "[-nophzwrp]        Do not wrap phase (default).\n"
 "[-phzreverse]      Reverse phase such that phase -> (T-phase)\n"
-"[-phzscale SC]     Scale phase: phase -> phase*SC (default no scaling)\n"   
+"[-phzscale SC]     Scale phase: phase -> phase*SC (default no scaling)\n"
 "\n"
 "[-bias]            Do not correct for the bias in the estimates [1][2]\n"
 "[-nobias | -correct_bias] Do correct for the bias in the estimates\n"
@@ -323,7 +323,7 @@ void display_help_menu()
 "         Hum Brain Mapp, 2001. 13(2): p. 74-93.\n"
 "   [4] : Saad, Z.S., E.A. DeYoe, and K.M. Ropella, Estimation of FMRI \n"
 "         Response Delays.  Neuroimage, 2003. 18(2): p. 494-504.\n"
-"\n" 
+"\n"
     );
 
   PRINT_COMPILE_DATE ; exit(0);
@@ -357,7 +357,7 @@ void write_ud ( DELAY_options* ud);
 
 void indexTOxyz ( DELAY_options* ud, int ncall, int *xpos , int *ypos , int *zpos);
 
-void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos);     
+void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos);
 
 void error_report ( DELAY_options* ud, int ncall );
 
@@ -510,7 +510,7 @@ void get_options
         nopt++;
         continue;
       }
-  
+
 
       /*-----   -nfirst num  -----*/
       if (strcmp(argv[nopt], "-nfirst") == 0)
@@ -551,8 +551,8 @@ void get_options
         nopt++;
         continue;
       }
- 
- 
+
+
 
       /*-----   -T num  -----*/
       if (strcmp(argv[nopt], "-T") == 0)
@@ -589,7 +589,7 @@ void get_options
         nopt++;
         continue;
       }
- 
+
 
       /*-----   -prefix filename   -----*/
       if (strcmp(argv[nopt], "-prefix") == 0)
@@ -602,8 +602,8 @@ void get_options
         nopt++;
         continue;
       }
- 
-      
+
+
       /*-----   -uS  -----*/
       if (strcmp(argv[nopt], "-uS") == 0)
       {
@@ -641,7 +641,7 @@ void get_options
         nopt++;
         continue;
       }
-      
+
       /*-----   -phzreverse  -----*/
       if (strcmp(argv[nopt], "-phzreverse") == 0)
       {
@@ -649,7 +649,7 @@ void get_options
         nopt++;
         continue;
       }
-      
+
       if (strcmp(argv[nopt], "-phzscale") == 0)
       {
         nopt++;
@@ -720,21 +720,21 @@ void get_options
         if (nopt >= argc)  {
            option_data->outname = NULL;
           option_data->outnamelog = NULL;
-         
+
          continue; }
         if (strncmp(argv[nopt], "-", 1) == 0) {
            option_data->outname = NULL;
          option_data->outnamelog = NULL;
          continue; }
-           
+
         option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
         option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
-      
+
         MTEST (option_data->outname);
         MTEST (option_data->outnamelog);
         strcpy (option_data->outname, argv[nopt]);
         sprintf (option_data->outnamelog, "%s.log", option_data->outname);
-   
+
         nopt++;
         continue;
       }
@@ -755,7 +755,7 @@ void get_options
          option_data->outnamets = NULL;
            option_data->outname = NULL;
          continue; }
-           
+
         option_data->outname = malloc (sizeof(char)*THD_MAX_NAME);
         option_data->outnamelog = malloc (sizeof(char)*(THD_MAX_NAME+4));
         option_data->outnamets = malloc (sizeof(char)*(THD_MAX_NAME+3));
@@ -763,22 +763,22 @@ void get_options
         MTEST (option_data->outname);
        MTEST (option_data->outnamets);
         MTEST (option_data->outnamelog);
-   
+
         strcpy (option_data->outname, argv[nopt]);
         sprintf (option_data->outnamets, "%s.ts", option_data->outname);
         sprintf (option_data->outnamelog, "%s.log", option_data->outname);
-      
+
         nopt++;
         continue;
       }
 
- 
-      
-      
+
+
+
       /*----- unknown command -----*/
       sprintf(message,"Unrecognized command line option: %s\n", argv[nopt]);
       FIM_error (message);
- 
+
     }
 
 }
@@ -835,7 +835,7 @@ float * read_one_time_series
   ts_data = (float *) malloc (sizeof(float) * nx);
   MTEST (ts_data);
   for (ipt = 0;  ipt < nx;  ipt++)
-    ts_data[ipt] = far[ipt + iy*nx]; 
+    ts_data[ipt] = far[ipt + iy*nx];
 
 
   mri_free (flim);  flim = NULL;
@@ -919,7 +919,7 @@ void read_input_data
   int nref_in=-1  ;
   int nmsk = 0;
   float **ref_in=NULL  ;
-  THD_3dim_dataset *newset=NULL; 
+  THD_3dim_dataset *newset=NULL;
   MRI_IMARR *corder_inar=NULL ;
 
 
@@ -981,9 +981,9 @@ void read_input_data
          FIM_error (message);
      }
    }
- 
+
    {
- 
+
       /* detrend that baby */
       if (option_data->polort == -1) { /* choose your goose */
          option_data->polort = DSET_NVALS(*dset_time)/150+1;
@@ -1004,7 +1004,7 @@ void read_input_data
          sprintf (message,  "detrending failed!");
          FIM_error (message);
       }
- 
+
       DSET_delete(*dset_time); *dset_time=newset; newset = NULL;
    }
     }
@@ -1103,7 +1103,7 @@ void check_one_output_file
       FIM_error (message);
     }
 
-  /*----- deallocate memory -----*/ 
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -1156,7 +1156,7 @@ void check_for_valid_inputs
   int N;                   /* number of usable time points */
    int lncheck;
    byte LocalHead = 0;
- 
+
   /*----- Initialize local variables -----*/
   if (option_data->input1D_filename != NULL)
     nt = fmri_length;
@@ -1170,7 +1170,7 @@ void check_for_valid_inputs
 
   NFirst = option_data->NFirst;
 
-  NLast = option_data->NLast; 
+  NLast = option_data->NLast;
   if (NLast > nt-1)  NLast = nt-1;
   option_data->NLast = NLast;
 
@@ -1223,7 +1223,7 @@ if (LocalHead) fprintf(stderr,"Checking ref2\n");
       exit (1);
    }
 
-if (LocalHead) fprintf(stderr,"Bucket names\n");   
+if (LocalHead) fprintf(stderr,"Bucket names\n");
   /* --- decide on the bucket name ----*/
    if (option_data->bucket_filename == NULL)
    {
@@ -1233,7 +1233,7 @@ if (LocalHead) fprintf(stderr,"Bucket names\n");
       /*make sure that prefix is OK*/
       check_output_files (option_data, dset_time);
    }
-     
+
   /* --- decide on the output name ----*/
    /* The log file is created no matter what */
    if (option_data->outname == NULL)
@@ -1261,33 +1261,33 @@ if (LocalHead) fprintf(stderr,"Bucket names\n");
  /* check some options */
  if (option_data->scl != 1.0 && option_data->wrp) {
    printf("Error: -phzwrp is not good  with -phzscale not set to 1.0\n");
-   exit (1); 
- }   
- 
+   exit (1);
+ }
+
  /* ------- Open files for writing -------------*/
-    
-if (LocalHead) fprintf(stderr,"Output files\n");   
+
+if (LocalHead) fprintf(stderr,"Output files\n");
    option_data->outlogfile = fopen (option_data->outnamelog,"w"); /* open log file regardless */
-   
+
    if (option_data->out == YUP)                           /* open outfile */
-            {               
+            {
                option_data->outwrite = fopen (option_data->outname,"w");
-               
+
                if (option_data->outts == YUP)
                   {
                      option_data->outwritets = fopen (option_data->outnamets,"w");
-                     
+
                   }
-               
+
                if ((option_data->outwrite == NULL) || (option_data->outlogfile == NULL) ||\
                    (option_data->outwritets == NULL && option_data->outts == YUP) )
                   {
                      printf ("\nCould not open ascii output files for writing\n");
                      exit (1);
                   }
-   
+
             }
-   
+
    /* Write out user variables to Logfile */
    write_ud (option_data);         /* writes user data to a file */
 
@@ -1321,7 +1321,7 @@ void allocate_memory
 
 
   /*----- Allocate memory space for fim parameters -----*/
-  *fim_params_vol  = (float **) malloc (sizeof(float *) * NBUCKETS); 
+  *fim_params_vol  = (float **) malloc (sizeof(float *) * NBUCKETS);
   MTEST(*fim_params_vol);
 
   for (ip = 0;  ip < NBUCKETS;  ip++)
@@ -1367,7 +1367,7 @@ void initialize_program
   /*----- Allocate memory -----*/
   *option_data = (DELAY_options *) malloc (sizeof(DELAY_options));
 
- 
+
   /*----- Get command line inputs -----*/
   get_options (argc, argv, *option_data);
 
@@ -1441,7 +1441,7 @@ void extract_ts_array
 
 void save_voxel
 (
-  int iv,                      /* current voxel index */ 
+  int iv,                      /* current voxel index */
   float * fim_params,          /* array of fim parameters */
   float ** fim_params_vol      /* array of volumes of fim output parameters */
 )
@@ -1534,14 +1534,14 @@ void calculate_results
    float slp=0.0, delu=0.0, del=0.0,  xcor=0.0, xcorCoef=0.0,vts=0.0,
           vrvec=0.0, dtx=0.0 , x0=0.0,x1=0.0;
    int  actv=-1, opt=-1, iposdbg=-1;
-   
+
    for (i=0;i<NBUCKETS;++i) FimParams[i]=-1.0;
-   
+
    #ifdef ZDBG
       xyzTOindex (option_data, &iposdbg, IPOSx,  IPOSy , IPOSz);
       printf ("Debug for %d: %d, %d, %d\n\n", iposdbg, IPOSx,  IPOSy , IPOSz);
    #endif
- 
+
 
   /*----- Initialize matrices and vectors -----*/
   matrix_initialize (&xdata);
@@ -1568,7 +1568,7 @@ void calculate_results
     }
 
   NFirst = option_data->NFirst;
-  NLast = option_data->NLast; 
+  NLast = option_data->NLast;
   N = option_data->N;
   p = option_data->p;
   q = option_data->q;
@@ -1617,7 +1617,7 @@ void calculate_results
    /*--- get scaling factors for input sub-bricks ---*/
    nuse      = option_data->NLast - option_data->NFirst + 1;
    fac = (float *) malloc( sizeof(float) * nuse ) ;   /* factors */ MTEST (fac);
- 
+
 
    use_fac = 0 ;
    for( kk=0 ; kk < nuse ; kk++ ){
@@ -1644,7 +1644,7 @@ void calculate_results
            extract_ts_array (mask, ixyz, mask_val);
            if (mask_val[0] == 0.0)  continue;
          }
-      
+
       #ifdef ZDBG
          if (ixyz == iposdbg)
             {
@@ -1654,8 +1654,8 @@ void calculate_results
 
 
      /*----- Extract Y-data for this voxel -----*/
-      
- 
+
+
       if (option_data->input1D_filename != NULL)
          {
            for (i = 0;  i < N;  i++)
@@ -1685,9 +1685,9 @@ void calculate_results
       #endif
 
 
-   
+
    opt = 1; /* set to 0 for cleanup */
-   
+
       /*** scale? ***/
 
       #ifdef ZDBG
@@ -1698,10 +1698,10 @@ void calculate_results
             /*getchar ();*/
          }
       #endif
-         
+
       if( use_fac )
          for( kk=0 ; kk < nuse ; kk++ ) vox_vect[kk] *= fac[kk] ;
- 
+
       /* calculate the T0 and Tdelta */
       /** compute start time of this timeseries **/
 
@@ -1720,7 +1720,7 @@ void calculate_results
          else
             dtx = 0.0;
       }
-   
+
       #ifdef ZDBG
       if (ixyz == iposdbg)
          {
@@ -1738,26 +1738,26 @@ void calculate_results
    if (option_data->errcode == 0) /* If there are no errors, proceed */
       { /*option_data->errcode == 0 inner loop */
                hunwrap (delu, (float)(option_data->fs), option_data->T, slp, option_data->wrp, option_data->unt, option_data->rev, option_data->scl, &del );
-               
+
                actv = 1;                  /* assume voxel is active */
-   
+
                if (xcorCoef < option_data->co) actv = 0;         /* determine if voxel is activated using xcorCoef  */
-   
+
                if ((actv == 1) && (option_data->out == YUP))       /* if voxel is truly activated, write results to file without modifying return value */
                   {
                      indexTOxyz ( option_data , ixyz, &xpos , &ypos , &zpos);
                      fprintf (option_data->outwrite,"%d\t%d\t%d\t%d\t%f\t%f\t%f\t%f\t%f\n", ixyz , xpos , ypos , zpos ,  delu , del , xcor , xcorCoef , vts);
                      if (option_data->outts == YUP)
                         {
-                           writets (option_data, vox_vect);   
+                           writets (option_data, vox_vect);
                         }
                   }
 
       }/*option_data->errcode == 0 inner loop */
-         
+
    else if (option_data->errcode == ERROR_LONGDELAY)
-            {               
-               error_report ( option_data , ixyz);   
+            {
+               error_report ( option_data , ixyz);
 
                del = 0.0;                        /* Set all the variables to Null and don't set xcorCoef to an impossible value*/
                xcorCoef = 0.0;                  /*  because the data might still be OK */
@@ -1766,19 +1766,19 @@ void calculate_results
             }
          else if (option_data->errcode != 0)
             {
-               error_report ( option_data , ixyz);   
+               error_report ( option_data , ixyz);
 
                del = 0.0;                        /* Set all the variables to Null and set xcorCoef to an impossible value*/
-               xcorCoef = NOWAYXCORCOEF;                  
+               xcorCoef = NOWAYXCORCOEF;
                xcor = 0.0;
-            }   
-   
-   
+            }
+
+
       FimParams[DELINDX] = del;
       FimParams[COVINDX] = xcor;
       FimParams[COFINDX] = xcorCoef;
       FimParams[VARINDX] = vts;
-   
+
       #ifdef ZDBG
       if (ixyz == iposdbg)
          {
@@ -1790,13 +1790,13 @@ void calculate_results
             /*getchar ();*/
          }
       #endif
-   
+
       /*----- Save results for this voxel -----*/
       if (option_data->input1D_filename == NULL)
    save_voxel (ixyz, FimParams, fim_params_vol);
- 
- 
- 
+
+
+
     }  /*----- Loop over voxels -----*/
 
 
@@ -1974,7 +1974,7 @@ void write_bucket_data
              ADN_directory_name,  output_session,
              ADN_type,            HEAD_FUNC_TYPE,
              ADN_func_type,       FUNC_BUCK_TYPE,
-             ADN_datum_all,       MRI_short , 
+             ADN_datum_all,       MRI_short ,
                             ADN_ntt,             0,               /* no time */
              ADN_nvals,           nbricks,
              ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
@@ -2000,7 +2000,7 @@ void write_bucket_data
   /*----- Attach individual sub-bricks to the bucket dataset -----*/
   ibrick = 0;
   for (ip = 0;  ip < NBUCKETS;  ip++)
-    {                       
+    {
       strcpy (brick_label, DELAY_OUTPUT_TYPE_name[ip]);
 
       if (ip == COFINDX)
@@ -2015,7 +2015,7 @@ void write_bucket_data
            nsam = 0; nfit = 0; nort = 0;
          }
 
-      volume = fim_params_vol[ip];      
+      volume = fim_params_vol[ip];
       attach_sub_brick (new_dset, ibrick, volume, nxyz,
          brick_type, brick_label, nsam, nfit, nort, bar);
 
@@ -2038,7 +2038,7 @@ void write_bucket_data
   fprintf(stderr,"into %s\n", DSET_PREFIX(new_dset));
 
 
-  /*----- deallocate memory -----*/ 
+  /*----- deallocate memory -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
 
 }
@@ -2168,7 +2168,7 @@ void write_ud (struct DELAY_options* option_data)
       fprintf (option_data->outlogfile,"\nThe format for the output file is the following:\n");
       fprintf (option_data->outlogfile,"VI\tX\tY\tZ\tDuff\tDel\tCov\txCorCoef\tVTS\n");
       fprintf (option_data->outlogfile,"\nError Log <message> <index> <x> <y> <z>\n\n");
-      
+
       return;
    }
 
@@ -2176,7 +2176,7 @@ void write_ud (struct DELAY_options* option_data)
 /* function to compute x, y, z coordinates from the index       */
 /* ************************************************************ */
 
-void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *ypos , int *zpos)     
+void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *ypos , int *zpos)
    {
       *zpos = (int)ncall / (int)(option_data->nxx*option_data->nyy);
       *ypos = (int)(ncall - *zpos * option_data->nxx * option_data->nyy) / (int)option_data->nxx;
@@ -2184,12 +2184,12 @@ void indexTOxyz (struct DELAY_options* option_data, int ncall, int *xpos , int *
       return;
    }
 
-void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos)     
+void xyzTOindex (struct DELAY_options* option_data, int *ncall, int xpos , int ypos , int zpos)
    {
       *ncall = zpos * ( option_data->nxx*option_data->nyy ) + ypos * option_data->nxx + xpos;
       return;
    }
-   
+
 /* ************************************************************ */
 /* function to report errors encountered to the logfile         */
 /* Only errors that happen during runtime (while delays are     */
@@ -2222,20 +2222,20 @@ void error_report (struct DELAY_options* option_data, int ncall )
             default:
                fprintf (option_data->outlogfile,"De Fault, De Fault (%d), the two sweetest words in the english langage ! ",option_data->errcode);
                break;
-         }   
+         }
       fprintf (option_data->outlogfile,"%d\t%d\t%d\t%d\t\n", ncall , xpos , ypos , zpos  );
       return;
    }
-   
+
 /* *************************************************************** */
 /* function to write the time course into a line in the given file */
 /* *************************************************************** */
 
 void writets (struct DELAY_options * option_data,float * ts)
 
-   {   
+   {
       int i;
-      
+
       for (i=0;i<option_data->ln;++i)
          {
             fprintf (option_data->outwritets, "%f\t",ts[i]);
@@ -2265,7 +2265,7 @@ void terminate_program
   num_idealts = (*option_data)->num_idealts;
 
 
-  /*----- Deallocate memory for option data -----*/ 
+  /*----- Deallocate memory for option data -----*/
   free (*option_data);  *option_data = NULL;
 
 
@@ -2287,8 +2287,8 @@ void terminate_program
 
       free (*fim_params_vol);   *fim_params_vol  = NULL;
     }
-   
-      
+
+
 
 }
 
@@ -2346,7 +2346,7 @@ int main
            fim_params_vol);
   if (LocalHead) fprintf(stderr,"\n");
 
-  /*----- Deallocate memory for input datasets -----*/ 
+  /*----- Deallocate memory for input datasets -----*/
   if (dset_time != NULL)
     { THD_delete_3dim_dataset (dset_time, False);  dset_time = NULL; }
   if (mask_dset != NULL)

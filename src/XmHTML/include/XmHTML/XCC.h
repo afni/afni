@@ -11,9 +11,9 @@
 * Author:				John L. Cwikla
 *
 * Copyright 1994,1995 John L. Cwikla
-* Copyright (C) 1997 by Ripley Software Development 
+* Copyright (C) 1997 by Ripley Software Development
 * All Rights Reserved
-* 
+*
 * This file is part of the XmHTML Widget Library.
 *
 * See below for John L. Cwikla's original copyright notice and distribution
@@ -71,7 +71,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -101,7 +101,7 @@
 * Revision 1.7  1997/03/02 23:44:25  newt
 * Expanded copyright marker
 *
-*****/ 
+*****/
 
 #ifndef _xcc_h_
 #define _xcc_h_
@@ -119,7 +119,7 @@ extern XCC XCCMonoCreate(Display *_dpy, Visual *_visual, Colormap _colormap);
 
 extern void XCCFree(XCC _xcc);
 
-extern unsigned long XCCGetPixel(XCC _xcc, unsigned short _red, 
+extern unsigned long XCCGetPixel(XCC _xcc, unsigned short _red,
 	unsigned short _green, unsigned short _blue, Boolean *failed);
 
 extern void XCCGetPixels(XCC _xcc, unsigned short *reds,

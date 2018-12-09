@@ -60,7 +60,7 @@
  *        -swap_bytes          use byte swapping for numbers
  *
  * examples:
- * 
+ *
  *    file_tool -help
  *    file_tool -help_ge
  *    file_tool -ge_all -infiles I.100
@@ -74,7 +74,7 @@
  *----------------------------------------------------------------------
 */
 
-static char g_history[] = 
+static char g_history[] =
  "----------------------------------------------------------------------\n"
  " file_tool history:\n"
  "\n"
@@ -343,7 +343,7 @@ scr_show_bad_bs( char ** fname, param_t * p )
     int           lnum = 1;
 
     FILE        * outfp = NULL; /* for writing "corrected" file */
-    int           bstart, bc;   /* 'bad' fixing vars            */ 
+    int           bstart, bc;   /* 'bad' fixing vars            */
 
     if( read_file( filename, &fdata, &flen ) < 0 ) return -1;
 
@@ -384,7 +384,7 @@ scr_show_bad_bs( char ** fname, param_t * p )
            }
            bad++;
            break;
-        } 
+        }
 
         /* if '\\\n', then warn if prior char is not space */
         if( count > 0 && fdata[count+1] == '\n' && ! isspace(fdata[count-1])
@@ -753,11 +753,11 @@ int read_analyze_file(param_t * p, field_s * fields, ft_analyze_header * hdr,
         fprintf(stderr,"** ft_read_analyze failure for '%s'\n", fname);
         return 1;
     }
-                                                                            
+
     if( p->debug > 0 )
         fprintf(stderr,"\nANALYZE header file '%s', %d fields\n",
                 fname, FT_ANA_NUM_FIELDS);
-                                                                            
+
     /* check for byte-swapping */
     if( hdr->sizeof_hdr != 348 ) {
         if( p->debug )
@@ -979,7 +979,7 @@ process_file( char * filename, param_t * p )
     /* if passed length was not given, init to filesize */
     if ( p->length > 0 ) length = p->length;
     else                 length = THD_filesize(filename);
-   
+
     if ( (fp = fopen( filename, "r+" )) == NULL )
     {
         fprintf( stderr, "failure: cannot open <%s> for 'rw'\n", filename );
@@ -1267,7 +1267,7 @@ set_params( param_t * p, int argc, char * argv[] )
                        "option usage: -debug LEVEL\n"
                        "    where LEVEL is the debug level (0,1 or 2)\n",
                        stderr );
-                return -1; 
+                return -1;
             }
 
             p->debug = atoi(argv[++ac]);
@@ -1635,7 +1635,7 @@ int check_mod_type( char * name )
 
 /*------------------------------------------------------------
  *  Display usage information, depending on usage level:
- *  
+ *
  *  - USE_SHORT   : most basic usage info
  *  - USE_VERSION : display the current version info
  *  - USE_GE      : describe GE struct elements
@@ -2117,7 +2117,7 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras *E, ge_off *off )
    char orients[8] , str[8] ;
    int nx , ny , bpp , cflag , hdroff ;
         float uv17 = -1.0;
-        
+
    if( hi == NULL ) return -1;            /* bad */
    hi->good = 0 ;                       /* not good yet */
    if( pathname    == NULL ||
@@ -2286,9 +2286,9 @@ read_ge_header( char *pathname , ge_header_info *hi, ge_extras *E, ge_off *off )
         fread( &uv17 , 4, 1 , imfile ) ;
         if( swap ) swap_4(&uv17) ;
         /* printf ("%d ", (int)uv17);  */
-        hi->uv17 = (int)uv17; 
+        hi->uv17 = (int)uv17;
         /* printf ("\n"); */
-        
+
         hi->good = 1 ;                  /* this is a good file */
 
         E->bpp    = bpp;                /* store the ge_extra info */

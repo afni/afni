@@ -119,12 +119,12 @@ static float alpha01_nx064_nz01_fwhm500[32] = {
  40.84,43.86,45.94,48.14,51.44,58.30,64.83,73.43,82.50,92.40,
  109.83,125.62};
 static float *alpha01_nx064_nz01[21] = {
- alpha01_nx064_nz01_fwhm000, alpha01_nx064_nz01_fwhm025, alpha01_nx064_nz01_fwhm050, 
- alpha01_nx064_nz01_fwhm075, alpha01_nx064_nz01_fwhm100, alpha01_nx064_nz01_fwhm125, 
- alpha01_nx064_nz01_fwhm150, alpha01_nx064_nz01_fwhm175, alpha01_nx064_nz01_fwhm200, 
- alpha01_nx064_nz01_fwhm225, alpha01_nx064_nz01_fwhm250, alpha01_nx064_nz01_fwhm275, 
- alpha01_nx064_nz01_fwhm300, alpha01_nx064_nz01_fwhm325, alpha01_nx064_nz01_fwhm350, 
- alpha01_nx064_nz01_fwhm375, alpha01_nx064_nz01_fwhm400, alpha01_nx064_nz01_fwhm425, 
+ alpha01_nx064_nz01_fwhm000, alpha01_nx064_nz01_fwhm025, alpha01_nx064_nz01_fwhm050,
+ alpha01_nx064_nz01_fwhm075, alpha01_nx064_nz01_fwhm100, alpha01_nx064_nz01_fwhm125,
+ alpha01_nx064_nz01_fwhm150, alpha01_nx064_nz01_fwhm175, alpha01_nx064_nz01_fwhm200,
+ alpha01_nx064_nz01_fwhm225, alpha01_nx064_nz01_fwhm250, alpha01_nx064_nz01_fwhm275,
+ alpha01_nx064_nz01_fwhm300, alpha01_nx064_nz01_fwhm325, alpha01_nx064_nz01_fwhm350,
+ alpha01_nx064_nz01_fwhm375, alpha01_nx064_nz01_fwhm400, alpha01_nx064_nz01_fwhm425,
  alpha01_nx064_nz01_fwhm450, alpha01_nx064_nz01_fwhm475, alpha01_nx064_nz01_fwhm500} ;
 
 static float alpha05_nx064_nz01_fwhm000[32] = {
@@ -233,12 +233,12 @@ static float alpha05_nx064_nz01_fwhm500[32] = {
  28.67,30.94,32.88,34.92,36.55,41.94,46.74,52.63,59.74,67.34,
  81.24,93.87};
 static float *alpha05_nx064_nz01[21] = {
- alpha05_nx064_nz01_fwhm000, alpha05_nx064_nz01_fwhm025, alpha05_nx064_nz01_fwhm050, 
- alpha05_nx064_nz01_fwhm075, alpha05_nx064_nz01_fwhm100, alpha05_nx064_nz01_fwhm125, 
- alpha05_nx064_nz01_fwhm150, alpha05_nx064_nz01_fwhm175, alpha05_nx064_nz01_fwhm200, 
- alpha05_nx064_nz01_fwhm225, alpha05_nx064_nz01_fwhm250, alpha05_nx064_nz01_fwhm275, 
- alpha05_nx064_nz01_fwhm300, alpha05_nx064_nz01_fwhm325, alpha05_nx064_nz01_fwhm350, 
- alpha05_nx064_nz01_fwhm375, alpha05_nx064_nz01_fwhm400, alpha05_nx064_nz01_fwhm425, 
+ alpha05_nx064_nz01_fwhm000, alpha05_nx064_nz01_fwhm025, alpha05_nx064_nz01_fwhm050,
+ alpha05_nx064_nz01_fwhm075, alpha05_nx064_nz01_fwhm100, alpha05_nx064_nz01_fwhm125,
+ alpha05_nx064_nz01_fwhm150, alpha05_nx064_nz01_fwhm175, alpha05_nx064_nz01_fwhm200,
+ alpha05_nx064_nz01_fwhm225, alpha05_nx064_nz01_fwhm250, alpha05_nx064_nz01_fwhm275,
+ alpha05_nx064_nz01_fwhm300, alpha05_nx064_nz01_fwhm325, alpha05_nx064_nz01_fwhm350,
+ alpha05_nx064_nz01_fwhm375, alpha05_nx064_nz01_fwhm400, alpha05_nx064_nz01_fwhm425,
  alpha05_nx064_nz01_fwhm450, alpha05_nx064_nz01_fwhm475, alpha05_nx064_nz01_fwhm500} ;
 
 static float alpha10_nx064_nz01_fwhm000[32] = {
@@ -347,12 +347,12 @@ static float alpha10_nx064_nz01_fwhm500[32] = {
  23.07,24.98,26.93,28.70,30.45,35.02,39.15,44.46,50.55,56.23,
  67.96,79.57};
 static float *alpha10_nx064_nz01[21] = {
- alpha10_nx064_nz01_fwhm000, alpha10_nx064_nz01_fwhm025, alpha10_nx064_nz01_fwhm050, 
- alpha10_nx064_nz01_fwhm075, alpha10_nx064_nz01_fwhm100, alpha10_nx064_nz01_fwhm125, 
- alpha10_nx064_nz01_fwhm150, alpha10_nx064_nz01_fwhm175, alpha10_nx064_nz01_fwhm200, 
- alpha10_nx064_nz01_fwhm225, alpha10_nx064_nz01_fwhm250, alpha10_nx064_nz01_fwhm275, 
- alpha10_nx064_nz01_fwhm300, alpha10_nx064_nz01_fwhm325, alpha10_nx064_nz01_fwhm350, 
- alpha10_nx064_nz01_fwhm375, alpha10_nx064_nz01_fwhm400, alpha10_nx064_nz01_fwhm425, 
+ alpha10_nx064_nz01_fwhm000, alpha10_nx064_nz01_fwhm025, alpha10_nx064_nz01_fwhm050,
+ alpha10_nx064_nz01_fwhm075, alpha10_nx064_nz01_fwhm100, alpha10_nx064_nz01_fwhm125,
+ alpha10_nx064_nz01_fwhm150, alpha10_nx064_nz01_fwhm175, alpha10_nx064_nz01_fwhm200,
+ alpha10_nx064_nz01_fwhm225, alpha10_nx064_nz01_fwhm250, alpha10_nx064_nz01_fwhm275,
+ alpha10_nx064_nz01_fwhm300, alpha10_nx064_nz01_fwhm325, alpha10_nx064_nz01_fwhm350,
+ alpha10_nx064_nz01_fwhm375, alpha10_nx064_nz01_fwhm400, alpha10_nx064_nz01_fwhm425,
  alpha10_nx064_nz01_fwhm450, alpha10_nx064_nz01_fwhm475, alpha10_nx064_nz01_fwhm500} ;
 
 static float **nx064_nz01[3] = {
@@ -464,12 +464,12 @@ static float alpha01_nx064_nz02_fwhm500[32] = {
  75.22,80.67,85.11,89.73,94.33,107.44,119.40,136.14,154.20,173.20,
  207.40,249.00};
 static float *alpha01_nx064_nz02[21] = {
- alpha01_nx064_nz02_fwhm000, alpha01_nx064_nz02_fwhm025, alpha01_nx064_nz02_fwhm050, 
- alpha01_nx064_nz02_fwhm075, alpha01_nx064_nz02_fwhm100, alpha01_nx064_nz02_fwhm125, 
- alpha01_nx064_nz02_fwhm150, alpha01_nx064_nz02_fwhm175, alpha01_nx064_nz02_fwhm200, 
- alpha01_nx064_nz02_fwhm225, alpha01_nx064_nz02_fwhm250, alpha01_nx064_nz02_fwhm275, 
- alpha01_nx064_nz02_fwhm300, alpha01_nx064_nz02_fwhm325, alpha01_nx064_nz02_fwhm350, 
- alpha01_nx064_nz02_fwhm375, alpha01_nx064_nz02_fwhm400, alpha01_nx064_nz02_fwhm425, 
+ alpha01_nx064_nz02_fwhm000, alpha01_nx064_nz02_fwhm025, alpha01_nx064_nz02_fwhm050,
+ alpha01_nx064_nz02_fwhm075, alpha01_nx064_nz02_fwhm100, alpha01_nx064_nz02_fwhm125,
+ alpha01_nx064_nz02_fwhm150, alpha01_nx064_nz02_fwhm175, alpha01_nx064_nz02_fwhm200,
+ alpha01_nx064_nz02_fwhm225, alpha01_nx064_nz02_fwhm250, alpha01_nx064_nz02_fwhm275,
+ alpha01_nx064_nz02_fwhm300, alpha01_nx064_nz02_fwhm325, alpha01_nx064_nz02_fwhm350,
+ alpha01_nx064_nz02_fwhm375, alpha01_nx064_nz02_fwhm400, alpha01_nx064_nz02_fwhm425,
  alpha01_nx064_nz02_fwhm450, alpha01_nx064_nz02_fwhm475, alpha01_nx064_nz02_fwhm500} ;
 
 static float alpha05_nx064_nz02_fwhm000[32] = {
@@ -578,12 +578,12 @@ static float alpha05_nx064_nz02_fwhm500[32] = {
  52.17,56.45,60.06,63.92,68.00,78.22,88.19,100.45,114.58,129.08,
  156.95,184.00};
 static float *alpha05_nx064_nz02[21] = {
- alpha05_nx064_nz02_fwhm000, alpha05_nx064_nz02_fwhm025, alpha05_nx064_nz02_fwhm050, 
- alpha05_nx064_nz02_fwhm075, alpha05_nx064_nz02_fwhm100, alpha05_nx064_nz02_fwhm125, 
- alpha05_nx064_nz02_fwhm150, alpha05_nx064_nz02_fwhm175, alpha05_nx064_nz02_fwhm200, 
- alpha05_nx064_nz02_fwhm225, alpha05_nx064_nz02_fwhm250, alpha05_nx064_nz02_fwhm275, 
- alpha05_nx064_nz02_fwhm300, alpha05_nx064_nz02_fwhm325, alpha05_nx064_nz02_fwhm350, 
- alpha05_nx064_nz02_fwhm375, alpha05_nx064_nz02_fwhm400, alpha05_nx064_nz02_fwhm425, 
+ alpha05_nx064_nz02_fwhm000, alpha05_nx064_nz02_fwhm025, alpha05_nx064_nz02_fwhm050,
+ alpha05_nx064_nz02_fwhm075, alpha05_nx064_nz02_fwhm100, alpha05_nx064_nz02_fwhm125,
+ alpha05_nx064_nz02_fwhm150, alpha05_nx064_nz02_fwhm175, alpha05_nx064_nz02_fwhm200,
+ alpha05_nx064_nz02_fwhm225, alpha05_nx064_nz02_fwhm250, alpha05_nx064_nz02_fwhm275,
+ alpha05_nx064_nz02_fwhm300, alpha05_nx064_nz02_fwhm325, alpha05_nx064_nz02_fwhm350,
+ alpha05_nx064_nz02_fwhm375, alpha05_nx064_nz02_fwhm400, alpha05_nx064_nz02_fwhm425,
  alpha05_nx064_nz02_fwhm450, alpha05_nx064_nz02_fwhm475, alpha05_nx064_nz02_fwhm500} ;
 
 static float alpha10_nx064_nz02_fwhm000[32] = {
@@ -692,12 +692,12 @@ static float alpha10_nx064_nz02_fwhm500[32] = {
  42.10,45.96,49.69,53.10,56.11,65.28,73.83,84.26,96.73,108.21,
  133.17,157.29};
 static float *alpha10_nx064_nz02[21] = {
- alpha10_nx064_nz02_fwhm000, alpha10_nx064_nz02_fwhm025, alpha10_nx064_nz02_fwhm050, 
- alpha10_nx064_nz02_fwhm075, alpha10_nx064_nz02_fwhm100, alpha10_nx064_nz02_fwhm125, 
- alpha10_nx064_nz02_fwhm150, alpha10_nx064_nz02_fwhm175, alpha10_nx064_nz02_fwhm200, 
- alpha10_nx064_nz02_fwhm225, alpha10_nx064_nz02_fwhm250, alpha10_nx064_nz02_fwhm275, 
- alpha10_nx064_nz02_fwhm300, alpha10_nx064_nz02_fwhm325, alpha10_nx064_nz02_fwhm350, 
- alpha10_nx064_nz02_fwhm375, alpha10_nx064_nz02_fwhm400, alpha10_nx064_nz02_fwhm425, 
+ alpha10_nx064_nz02_fwhm000, alpha10_nx064_nz02_fwhm025, alpha10_nx064_nz02_fwhm050,
+ alpha10_nx064_nz02_fwhm075, alpha10_nx064_nz02_fwhm100, alpha10_nx064_nz02_fwhm125,
+ alpha10_nx064_nz02_fwhm150, alpha10_nx064_nz02_fwhm175, alpha10_nx064_nz02_fwhm200,
+ alpha10_nx064_nz02_fwhm225, alpha10_nx064_nz02_fwhm250, alpha10_nx064_nz02_fwhm275,
+ alpha10_nx064_nz02_fwhm300, alpha10_nx064_nz02_fwhm325, alpha10_nx064_nz02_fwhm350,
+ alpha10_nx064_nz02_fwhm375, alpha10_nx064_nz02_fwhm400, alpha10_nx064_nz02_fwhm425,
  alpha10_nx064_nz02_fwhm450, alpha10_nx064_nz02_fwhm475, alpha10_nx064_nz02_fwhm500} ;
 
 static float **nx064_nz02[3] = {
@@ -809,12 +809,12 @@ static float alpha01_nx064_nz03_fwhm500[32] = {
  119.62,129.80,136.00,144.00,152.00,174.00,192.00,217.00,243.00,273.00,
  326.67,378.75};
 static float *alpha01_nx064_nz03[21] = {
- alpha01_nx064_nz03_fwhm000, alpha01_nx064_nz03_fwhm025, alpha01_nx064_nz03_fwhm050, 
- alpha01_nx064_nz03_fwhm075, alpha01_nx064_nz03_fwhm100, alpha01_nx064_nz03_fwhm125, 
- alpha01_nx064_nz03_fwhm150, alpha01_nx064_nz03_fwhm175, alpha01_nx064_nz03_fwhm200, 
- alpha01_nx064_nz03_fwhm225, alpha01_nx064_nz03_fwhm250, alpha01_nx064_nz03_fwhm275, 
- alpha01_nx064_nz03_fwhm300, alpha01_nx064_nz03_fwhm325, alpha01_nx064_nz03_fwhm350, 
- alpha01_nx064_nz03_fwhm375, alpha01_nx064_nz03_fwhm400, alpha01_nx064_nz03_fwhm425, 
+ alpha01_nx064_nz03_fwhm000, alpha01_nx064_nz03_fwhm025, alpha01_nx064_nz03_fwhm050,
+ alpha01_nx064_nz03_fwhm075, alpha01_nx064_nz03_fwhm100, alpha01_nx064_nz03_fwhm125,
+ alpha01_nx064_nz03_fwhm150, alpha01_nx064_nz03_fwhm175, alpha01_nx064_nz03_fwhm200,
+ alpha01_nx064_nz03_fwhm225, alpha01_nx064_nz03_fwhm250, alpha01_nx064_nz03_fwhm275,
+ alpha01_nx064_nz03_fwhm300, alpha01_nx064_nz03_fwhm325, alpha01_nx064_nz03_fwhm350,
+ alpha01_nx064_nz03_fwhm375, alpha01_nx064_nz03_fwhm400, alpha01_nx064_nz03_fwhm425,
  alpha01_nx064_nz03_fwhm450, alpha01_nx064_nz03_fwhm475, alpha01_nx064_nz03_fwhm500} ;
 
 static float alpha05_nx064_nz03_fwhm000[32] = {
@@ -923,12 +923,12 @@ static float alpha05_nx064_nz03_fwhm500[32] = {
  84.78,91.23,97.33,102.79,108.27,124.38,138.63,156.24,178.00,198.62,
  243.80,282.50};
 static float *alpha05_nx064_nz03[21] = {
- alpha05_nx064_nz03_fwhm000, alpha05_nx064_nz03_fwhm025, alpha05_nx064_nz03_fwhm050, 
- alpha05_nx064_nz03_fwhm075, alpha05_nx064_nz03_fwhm100, alpha05_nx064_nz03_fwhm125, 
- alpha05_nx064_nz03_fwhm150, alpha05_nx064_nz03_fwhm175, alpha05_nx064_nz03_fwhm200, 
- alpha05_nx064_nz03_fwhm225, alpha05_nx064_nz03_fwhm250, alpha05_nx064_nz03_fwhm275, 
- alpha05_nx064_nz03_fwhm300, alpha05_nx064_nz03_fwhm325, alpha05_nx064_nz03_fwhm350, 
- alpha05_nx064_nz03_fwhm375, alpha05_nx064_nz03_fwhm400, alpha05_nx064_nz03_fwhm425, 
+ alpha05_nx064_nz03_fwhm000, alpha05_nx064_nz03_fwhm025, alpha05_nx064_nz03_fwhm050,
+ alpha05_nx064_nz03_fwhm075, alpha05_nx064_nz03_fwhm100, alpha05_nx064_nz03_fwhm125,
+ alpha05_nx064_nz03_fwhm150, alpha05_nx064_nz03_fwhm175, alpha05_nx064_nz03_fwhm200,
+ alpha05_nx064_nz03_fwhm225, alpha05_nx064_nz03_fwhm250, alpha05_nx064_nz03_fwhm275,
+ alpha05_nx064_nz03_fwhm300, alpha05_nx064_nz03_fwhm325, alpha05_nx064_nz03_fwhm350,
+ alpha05_nx064_nz03_fwhm375, alpha05_nx064_nz03_fwhm400, alpha05_nx064_nz03_fwhm425,
  alpha05_nx064_nz03_fwhm450, alpha05_nx064_nz03_fwhm475, alpha05_nx064_nz03_fwhm500} ;
 
 static float alpha10_nx064_nz03_fwhm000[32] = {
@@ -1037,12 +1037,12 @@ static float alpha10_nx064_nz03_fwhm500[32] = {
  69.22,75.06,80.71,85.43,90.53,105.21,116.82,132.31,150.86,168.05,
  204.14,238.17};
 static float *alpha10_nx064_nz03[21] = {
- alpha10_nx064_nz03_fwhm000, alpha10_nx064_nz03_fwhm025, alpha10_nx064_nz03_fwhm050, 
- alpha10_nx064_nz03_fwhm075, alpha10_nx064_nz03_fwhm100, alpha10_nx064_nz03_fwhm125, 
- alpha10_nx064_nz03_fwhm150, alpha10_nx064_nz03_fwhm175, alpha10_nx064_nz03_fwhm200, 
- alpha10_nx064_nz03_fwhm225, alpha10_nx064_nz03_fwhm250, alpha10_nx064_nz03_fwhm275, 
- alpha10_nx064_nz03_fwhm300, alpha10_nx064_nz03_fwhm325, alpha10_nx064_nz03_fwhm350, 
- alpha10_nx064_nz03_fwhm375, alpha10_nx064_nz03_fwhm400, alpha10_nx064_nz03_fwhm425, 
+ alpha10_nx064_nz03_fwhm000, alpha10_nx064_nz03_fwhm025, alpha10_nx064_nz03_fwhm050,
+ alpha10_nx064_nz03_fwhm075, alpha10_nx064_nz03_fwhm100, alpha10_nx064_nz03_fwhm125,
+ alpha10_nx064_nz03_fwhm150, alpha10_nx064_nz03_fwhm175, alpha10_nx064_nz03_fwhm200,
+ alpha10_nx064_nz03_fwhm225, alpha10_nx064_nz03_fwhm250, alpha10_nx064_nz03_fwhm275,
+ alpha10_nx064_nz03_fwhm300, alpha10_nx064_nz03_fwhm325, alpha10_nx064_nz03_fwhm350,
+ alpha10_nx064_nz03_fwhm375, alpha10_nx064_nz03_fwhm400, alpha10_nx064_nz03_fwhm425,
  alpha10_nx064_nz03_fwhm450, alpha10_nx064_nz03_fwhm475, alpha10_nx064_nz03_fwhm500} ;
 
 static float **nx064_nz03[3] = {
@@ -1154,12 +1154,12 @@ static float alpha01_nx064_nz04_fwhm500[32] = {
  158.25,169.33,178.43,188.83,198.50,225.50,252.00,285.50,328.00,366.50,
  436.25,512.00};
 static float *alpha01_nx064_nz04[21] = {
- alpha01_nx064_nz04_fwhm000, alpha01_nx064_nz04_fwhm025, alpha01_nx064_nz04_fwhm050, 
- alpha01_nx064_nz04_fwhm075, alpha01_nx064_nz04_fwhm100, alpha01_nx064_nz04_fwhm125, 
- alpha01_nx064_nz04_fwhm150, alpha01_nx064_nz04_fwhm175, alpha01_nx064_nz04_fwhm200, 
- alpha01_nx064_nz04_fwhm225, alpha01_nx064_nz04_fwhm250, alpha01_nx064_nz04_fwhm275, 
- alpha01_nx064_nz04_fwhm300, alpha01_nx064_nz04_fwhm325, alpha01_nx064_nz04_fwhm350, 
- alpha01_nx064_nz04_fwhm375, alpha01_nx064_nz04_fwhm400, alpha01_nx064_nz04_fwhm425, 
+ alpha01_nx064_nz04_fwhm000, alpha01_nx064_nz04_fwhm025, alpha01_nx064_nz04_fwhm050,
+ alpha01_nx064_nz04_fwhm075, alpha01_nx064_nz04_fwhm100, alpha01_nx064_nz04_fwhm125,
+ alpha01_nx064_nz04_fwhm150, alpha01_nx064_nz04_fwhm175, alpha01_nx064_nz04_fwhm200,
+ alpha01_nx064_nz04_fwhm225, alpha01_nx064_nz04_fwhm250, alpha01_nx064_nz04_fwhm275,
+ alpha01_nx064_nz04_fwhm300, alpha01_nx064_nz04_fwhm325, alpha01_nx064_nz04_fwhm350,
+ alpha01_nx064_nz04_fwhm375, alpha01_nx064_nz04_fwhm400, alpha01_nx064_nz04_fwhm425,
  alpha01_nx064_nz04_fwhm450, alpha01_nx064_nz04_fwhm475, alpha01_nx064_nz04_fwhm500} ;
 
 static float alpha05_nx064_nz04_fwhm000[32] = {
@@ -1268,12 +1268,12 @@ static float alpha05_nx064_nz04_fwhm500[32] = {
  111.75,121.20,129.73,137.47,145.00,166.38,186.83,212.88,242.78,270.50,
  323.14,382.86};
 static float *alpha05_nx064_nz04[21] = {
- alpha05_nx064_nz04_fwhm000, alpha05_nx064_nz04_fwhm025, alpha05_nx064_nz04_fwhm050, 
- alpha05_nx064_nz04_fwhm075, alpha05_nx064_nz04_fwhm100, alpha05_nx064_nz04_fwhm125, 
- alpha05_nx064_nz04_fwhm150, alpha05_nx064_nz04_fwhm175, alpha05_nx064_nz04_fwhm200, 
- alpha05_nx064_nz04_fwhm225, alpha05_nx064_nz04_fwhm250, alpha05_nx064_nz04_fwhm275, 
- alpha05_nx064_nz04_fwhm300, alpha05_nx064_nz04_fwhm325, alpha05_nx064_nz04_fwhm350, 
- alpha05_nx064_nz04_fwhm375, alpha05_nx064_nz04_fwhm400, alpha05_nx064_nz04_fwhm425, 
+ alpha05_nx064_nz04_fwhm000, alpha05_nx064_nz04_fwhm025, alpha05_nx064_nz04_fwhm050,
+ alpha05_nx064_nz04_fwhm075, alpha05_nx064_nz04_fwhm100, alpha05_nx064_nz04_fwhm125,
+ alpha05_nx064_nz04_fwhm150, alpha05_nx064_nz04_fwhm175, alpha05_nx064_nz04_fwhm200,
+ alpha05_nx064_nz04_fwhm225, alpha05_nx064_nz04_fwhm250, alpha05_nx064_nz04_fwhm275,
+ alpha05_nx064_nz04_fwhm300, alpha05_nx064_nz04_fwhm325, alpha05_nx064_nz04_fwhm350,
+ alpha05_nx064_nz04_fwhm375, alpha05_nx064_nz04_fwhm400, alpha05_nx064_nz04_fwhm425,
  alpha05_nx064_nz04_fwhm450, alpha05_nx064_nz04_fwhm475, alpha05_nx064_nz04_fwhm500} ;
 
 static float alpha10_nx064_nz04_fwhm000[32] = {
@@ -1382,12 +1382,12 @@ static float alpha10_nx064_nz04_fwhm500[32] = {
  90.49,99.00,106.25,113.44,120.44,138.89,156.30,177.64,203.80,228.40,
  275.36,322.60};
 static float *alpha10_nx064_nz04[21] = {
- alpha10_nx064_nz04_fwhm000, alpha10_nx064_nz04_fwhm025, alpha10_nx064_nz04_fwhm050, 
- alpha10_nx064_nz04_fwhm075, alpha10_nx064_nz04_fwhm100, alpha10_nx064_nz04_fwhm125, 
- alpha10_nx064_nz04_fwhm150, alpha10_nx064_nz04_fwhm175, alpha10_nx064_nz04_fwhm200, 
- alpha10_nx064_nz04_fwhm225, alpha10_nx064_nz04_fwhm250, alpha10_nx064_nz04_fwhm275, 
- alpha10_nx064_nz04_fwhm300, alpha10_nx064_nz04_fwhm325, alpha10_nx064_nz04_fwhm350, 
- alpha10_nx064_nz04_fwhm375, alpha10_nx064_nz04_fwhm400, alpha10_nx064_nz04_fwhm425, 
+ alpha10_nx064_nz04_fwhm000, alpha10_nx064_nz04_fwhm025, alpha10_nx064_nz04_fwhm050,
+ alpha10_nx064_nz04_fwhm075, alpha10_nx064_nz04_fwhm100, alpha10_nx064_nz04_fwhm125,
+ alpha10_nx064_nz04_fwhm150, alpha10_nx064_nz04_fwhm175, alpha10_nx064_nz04_fwhm200,
+ alpha10_nx064_nz04_fwhm225, alpha10_nx064_nz04_fwhm250, alpha10_nx064_nz04_fwhm275,
+ alpha10_nx064_nz04_fwhm300, alpha10_nx064_nz04_fwhm325, alpha10_nx064_nz04_fwhm350,
+ alpha10_nx064_nz04_fwhm375, alpha10_nx064_nz04_fwhm400, alpha10_nx064_nz04_fwhm425,
  alpha10_nx064_nz04_fwhm450, alpha10_nx064_nz04_fwhm475, alpha10_nx064_nz04_fwhm500} ;
 
 static float **nx064_nz04[3] = {
@@ -1499,12 +1499,12 @@ static float alpha01_nx064_nz05_fwhm500[32] = {
  191.25,204.00,217.57,229.40,239.00,270.33,302.00,341.50,388.50,437.00,
  528.00,619.50};
 static float *alpha01_nx064_nz05[21] = {
- alpha01_nx064_nz05_fwhm000, alpha01_nx064_nz05_fwhm025, alpha01_nx064_nz05_fwhm050, 
- alpha01_nx064_nz05_fwhm075, alpha01_nx064_nz05_fwhm100, alpha01_nx064_nz05_fwhm125, 
- alpha01_nx064_nz05_fwhm150, alpha01_nx064_nz05_fwhm175, alpha01_nx064_nz05_fwhm200, 
- alpha01_nx064_nz05_fwhm225, alpha01_nx064_nz05_fwhm250, alpha01_nx064_nz05_fwhm275, 
- alpha01_nx064_nz05_fwhm300, alpha01_nx064_nz05_fwhm325, alpha01_nx064_nz05_fwhm350, 
- alpha01_nx064_nz05_fwhm375, alpha01_nx064_nz05_fwhm400, alpha01_nx064_nz05_fwhm425, 
+ alpha01_nx064_nz05_fwhm000, alpha01_nx064_nz05_fwhm025, alpha01_nx064_nz05_fwhm050,
+ alpha01_nx064_nz05_fwhm075, alpha01_nx064_nz05_fwhm100, alpha01_nx064_nz05_fwhm125,
+ alpha01_nx064_nz05_fwhm150, alpha01_nx064_nz05_fwhm175, alpha01_nx064_nz05_fwhm200,
+ alpha01_nx064_nz05_fwhm225, alpha01_nx064_nz05_fwhm250, alpha01_nx064_nz05_fwhm275,
+ alpha01_nx064_nz05_fwhm300, alpha01_nx064_nz05_fwhm325, alpha01_nx064_nz05_fwhm350,
+ alpha01_nx064_nz05_fwhm375, alpha01_nx064_nz05_fwhm400, alpha01_nx064_nz05_fwhm425,
  alpha01_nx064_nz05_fwhm450, alpha01_nx064_nz05_fwhm475, alpha01_nx064_nz05_fwhm500} ;
 
 static float alpha05_nx064_nz05_fwhm000[32] = {
@@ -1613,12 +1613,12 @@ static float alpha05_nx064_nz05_fwhm500[32] = {
  134.07,145.00,154.50,163.69,173.10,198.92,223.50,256.08,293.62,328.00,
  396.50,465.67};
 static float *alpha05_nx064_nz05[21] = {
- alpha05_nx064_nz05_fwhm000, alpha05_nx064_nz05_fwhm025, alpha05_nx064_nz05_fwhm050, 
- alpha05_nx064_nz05_fwhm075, alpha05_nx064_nz05_fwhm100, alpha05_nx064_nz05_fwhm125, 
- alpha05_nx064_nz05_fwhm150, alpha05_nx064_nz05_fwhm175, alpha05_nx064_nz05_fwhm200, 
- alpha05_nx064_nz05_fwhm225, alpha05_nx064_nz05_fwhm250, alpha05_nx064_nz05_fwhm275, 
- alpha05_nx064_nz05_fwhm300, alpha05_nx064_nz05_fwhm325, alpha05_nx064_nz05_fwhm350, 
- alpha05_nx064_nz05_fwhm375, alpha05_nx064_nz05_fwhm400, alpha05_nx064_nz05_fwhm425, 
+ alpha05_nx064_nz05_fwhm000, alpha05_nx064_nz05_fwhm025, alpha05_nx064_nz05_fwhm050,
+ alpha05_nx064_nz05_fwhm075, alpha05_nx064_nz05_fwhm100, alpha05_nx064_nz05_fwhm125,
+ alpha05_nx064_nz05_fwhm150, alpha05_nx064_nz05_fwhm175, alpha05_nx064_nz05_fwhm200,
+ alpha05_nx064_nz05_fwhm225, alpha05_nx064_nz05_fwhm250, alpha05_nx064_nz05_fwhm275,
+ alpha05_nx064_nz05_fwhm300, alpha05_nx064_nz05_fwhm325, alpha05_nx064_nz05_fwhm350,
+ alpha05_nx064_nz05_fwhm375, alpha05_nx064_nz05_fwhm400, alpha05_nx064_nz05_fwhm425,
  alpha05_nx064_nz05_fwhm450, alpha05_nx064_nz05_fwhm475, alpha05_nx064_nz05_fwhm500} ;
 
 static float alpha10_nx064_nz05_fwhm000[32] = {
@@ -1727,12 +1727,12 @@ static float alpha10_nx064_nz05_fwhm500[32] = {
  107.74,117.22,125.83,134.24,142.59,165.61,187.22,214.91,247.00,278.11,
  339.57,397.17};
 static float *alpha10_nx064_nz05[21] = {
- alpha10_nx064_nz05_fwhm000, alpha10_nx064_nz05_fwhm025, alpha10_nx064_nz05_fwhm050, 
- alpha10_nx064_nz05_fwhm075, alpha10_nx064_nz05_fwhm100, alpha10_nx064_nz05_fwhm125, 
- alpha10_nx064_nz05_fwhm150, alpha10_nx064_nz05_fwhm175, alpha10_nx064_nz05_fwhm200, 
- alpha10_nx064_nz05_fwhm225, alpha10_nx064_nz05_fwhm250, alpha10_nx064_nz05_fwhm275, 
- alpha10_nx064_nz05_fwhm300, alpha10_nx064_nz05_fwhm325, alpha10_nx064_nz05_fwhm350, 
- alpha10_nx064_nz05_fwhm375, alpha10_nx064_nz05_fwhm400, alpha10_nx064_nz05_fwhm425, 
+ alpha10_nx064_nz05_fwhm000, alpha10_nx064_nz05_fwhm025, alpha10_nx064_nz05_fwhm050,
+ alpha10_nx064_nz05_fwhm075, alpha10_nx064_nz05_fwhm100, alpha10_nx064_nz05_fwhm125,
+ alpha10_nx064_nz05_fwhm150, alpha10_nx064_nz05_fwhm175, alpha10_nx064_nz05_fwhm200,
+ alpha10_nx064_nz05_fwhm225, alpha10_nx064_nz05_fwhm250, alpha10_nx064_nz05_fwhm275,
+ alpha10_nx064_nz05_fwhm300, alpha10_nx064_nz05_fwhm325, alpha10_nx064_nz05_fwhm350,
+ alpha10_nx064_nz05_fwhm375, alpha10_nx064_nz05_fwhm400, alpha10_nx064_nz05_fwhm425,
  alpha10_nx064_nz05_fwhm450, alpha10_nx064_nz05_fwhm475, alpha10_nx064_nz05_fwhm500} ;
 
 static float **nx064_nz05[3] = {
@@ -1844,12 +1844,12 @@ static float alpha01_nx064_nz06_fwhm500[32] = {
  212.33,228.00,240.20,257.00,272.00,313.00,349.00,399.00,453.33,511.00,
  613.33,726.00};
 static float *alpha01_nx064_nz06[21] = {
- alpha01_nx064_nz06_fwhm000, alpha01_nx064_nz06_fwhm025, alpha01_nx064_nz06_fwhm050, 
- alpha01_nx064_nz06_fwhm075, alpha01_nx064_nz06_fwhm100, alpha01_nx064_nz06_fwhm125, 
- alpha01_nx064_nz06_fwhm150, alpha01_nx064_nz06_fwhm175, alpha01_nx064_nz06_fwhm200, 
- alpha01_nx064_nz06_fwhm225, alpha01_nx064_nz06_fwhm250, alpha01_nx064_nz06_fwhm275, 
- alpha01_nx064_nz06_fwhm300, alpha01_nx064_nz06_fwhm325, alpha01_nx064_nz06_fwhm350, 
- alpha01_nx064_nz06_fwhm375, alpha01_nx064_nz06_fwhm400, alpha01_nx064_nz06_fwhm425, 
+ alpha01_nx064_nz06_fwhm000, alpha01_nx064_nz06_fwhm025, alpha01_nx064_nz06_fwhm050,
+ alpha01_nx064_nz06_fwhm075, alpha01_nx064_nz06_fwhm100, alpha01_nx064_nz06_fwhm125,
+ alpha01_nx064_nz06_fwhm150, alpha01_nx064_nz06_fwhm175, alpha01_nx064_nz06_fwhm200,
+ alpha01_nx064_nz06_fwhm225, alpha01_nx064_nz06_fwhm250, alpha01_nx064_nz06_fwhm275,
+ alpha01_nx064_nz06_fwhm300, alpha01_nx064_nz06_fwhm325, alpha01_nx064_nz06_fwhm350,
+ alpha01_nx064_nz06_fwhm375, alpha01_nx064_nz06_fwhm400, alpha01_nx064_nz06_fwhm425,
  alpha01_nx064_nz06_fwhm450, alpha01_nx064_nz06_fwhm475, alpha01_nx064_nz06_fwhm500} ;
 
 static float alpha05_nx064_nz06_fwhm000[32] = {
@@ -1958,12 +1958,12 @@ static float alpha05_nx064_nz06_fwhm500[32] = {
  143.79,155.50,166.50,178.14,189.00,219.25,250.15,286.73,331.25,373.75,
  459.00,542.40};
 static float *alpha05_nx064_nz06[21] = {
- alpha05_nx064_nz06_fwhm000, alpha05_nx064_nz06_fwhm025, alpha05_nx064_nz06_fwhm050, 
- alpha05_nx064_nz06_fwhm075, alpha05_nx064_nz06_fwhm100, alpha05_nx064_nz06_fwhm125, 
- alpha05_nx064_nz06_fwhm150, alpha05_nx064_nz06_fwhm175, alpha05_nx064_nz06_fwhm200, 
- alpha05_nx064_nz06_fwhm225, alpha05_nx064_nz06_fwhm250, alpha05_nx064_nz06_fwhm275, 
- alpha05_nx064_nz06_fwhm300, alpha05_nx064_nz06_fwhm325, alpha05_nx064_nz06_fwhm350, 
- alpha05_nx064_nz06_fwhm375, alpha05_nx064_nz06_fwhm400, alpha05_nx064_nz06_fwhm425, 
+ alpha05_nx064_nz06_fwhm000, alpha05_nx064_nz06_fwhm025, alpha05_nx064_nz06_fwhm050,
+ alpha05_nx064_nz06_fwhm075, alpha05_nx064_nz06_fwhm100, alpha05_nx064_nz06_fwhm125,
+ alpha05_nx064_nz06_fwhm150, alpha05_nx064_nz06_fwhm175, alpha05_nx064_nz06_fwhm200,
+ alpha05_nx064_nz06_fwhm225, alpha05_nx064_nz06_fwhm250, alpha05_nx064_nz06_fwhm275,
+ alpha05_nx064_nz06_fwhm300, alpha05_nx064_nz06_fwhm325, alpha05_nx064_nz06_fwhm350,
+ alpha05_nx064_nz06_fwhm375, alpha05_nx064_nz06_fwhm400, alpha05_nx064_nz06_fwhm425,
  alpha05_nx064_nz06_fwhm450, alpha05_nx064_nz06_fwhm475, alpha05_nx064_nz06_fwhm500} ;
 
 static float alpha10_nx064_nz06_fwhm000[32] = {
@@ -2072,12 +2072,12 @@ static float alpha10_nx064_nz06_fwhm500[32] = {
  116.19,127.95,138.88,149.25,158.91,184.58,208.67,240.38,277.62,314.44,
  388.46,466.25};
 static float *alpha10_nx064_nz06[21] = {
- alpha10_nx064_nz06_fwhm000, alpha10_nx064_nz06_fwhm025, alpha10_nx064_nz06_fwhm050, 
- alpha10_nx064_nz06_fwhm075, alpha10_nx064_nz06_fwhm100, alpha10_nx064_nz06_fwhm125, 
- alpha10_nx064_nz06_fwhm150, alpha10_nx064_nz06_fwhm175, alpha10_nx064_nz06_fwhm200, 
- alpha10_nx064_nz06_fwhm225, alpha10_nx064_nz06_fwhm250, alpha10_nx064_nz06_fwhm275, 
- alpha10_nx064_nz06_fwhm300, alpha10_nx064_nz06_fwhm325, alpha10_nx064_nz06_fwhm350, 
- alpha10_nx064_nz06_fwhm375, alpha10_nx064_nz06_fwhm400, alpha10_nx064_nz06_fwhm425, 
+ alpha10_nx064_nz06_fwhm000, alpha10_nx064_nz06_fwhm025, alpha10_nx064_nz06_fwhm050,
+ alpha10_nx064_nz06_fwhm075, alpha10_nx064_nz06_fwhm100, alpha10_nx064_nz06_fwhm125,
+ alpha10_nx064_nz06_fwhm150, alpha10_nx064_nz06_fwhm175, alpha10_nx064_nz06_fwhm200,
+ alpha10_nx064_nz06_fwhm225, alpha10_nx064_nz06_fwhm250, alpha10_nx064_nz06_fwhm275,
+ alpha10_nx064_nz06_fwhm300, alpha10_nx064_nz06_fwhm325, alpha10_nx064_nz06_fwhm350,
+ alpha10_nx064_nz06_fwhm375, alpha10_nx064_nz06_fwhm400, alpha10_nx064_nz06_fwhm425,
  alpha10_nx064_nz06_fwhm450, alpha10_nx064_nz06_fwhm475, alpha10_nx064_nz06_fwhm500} ;
 
 static float **nx064_nz06[3] = {
@@ -2189,12 +2189,12 @@ static float alpha01_nx064_nz07_fwhm500[32] = {
  226.00,244.33,260.00,277.00,287.60,334.25,374.00,430.00,488.33,551.00,
  672.00,801.00};
 static float *alpha01_nx064_nz07[21] = {
- alpha01_nx064_nz07_fwhm000, alpha01_nx064_nz07_fwhm025, alpha01_nx064_nz07_fwhm050, 
- alpha01_nx064_nz07_fwhm075, alpha01_nx064_nz07_fwhm100, alpha01_nx064_nz07_fwhm125, 
- alpha01_nx064_nz07_fwhm150, alpha01_nx064_nz07_fwhm175, alpha01_nx064_nz07_fwhm200, 
- alpha01_nx064_nz07_fwhm225, alpha01_nx064_nz07_fwhm250, alpha01_nx064_nz07_fwhm275, 
- alpha01_nx064_nz07_fwhm300, alpha01_nx064_nz07_fwhm325, alpha01_nx064_nz07_fwhm350, 
- alpha01_nx064_nz07_fwhm375, alpha01_nx064_nz07_fwhm400, alpha01_nx064_nz07_fwhm425, 
+ alpha01_nx064_nz07_fwhm000, alpha01_nx064_nz07_fwhm025, alpha01_nx064_nz07_fwhm050,
+ alpha01_nx064_nz07_fwhm075, alpha01_nx064_nz07_fwhm100, alpha01_nx064_nz07_fwhm125,
+ alpha01_nx064_nz07_fwhm150, alpha01_nx064_nz07_fwhm175, alpha01_nx064_nz07_fwhm200,
+ alpha01_nx064_nz07_fwhm225, alpha01_nx064_nz07_fwhm250, alpha01_nx064_nz07_fwhm275,
+ alpha01_nx064_nz07_fwhm300, alpha01_nx064_nz07_fwhm325, alpha01_nx064_nz07_fwhm350,
+ alpha01_nx064_nz07_fwhm375, alpha01_nx064_nz07_fwhm400, alpha01_nx064_nz07_fwhm425,
  alpha01_nx064_nz07_fwhm450, alpha01_nx064_nz07_fwhm475, alpha01_nx064_nz07_fwhm500} ;
 
 static float alpha05_nx064_nz07_fwhm000[32] = {
@@ -2303,12 +2303,12 @@ static float alpha05_nx064_nz07_fwhm500[32] = {
  152.56,168.06,181.00,193.91,206.83,241.00,271.86,314.20,366.00,415.50,
  509.00,608.80};
 static float *alpha05_nx064_nz07[21] = {
- alpha05_nx064_nz07_fwhm000, alpha05_nx064_nz07_fwhm025, alpha05_nx064_nz07_fwhm050, 
- alpha05_nx064_nz07_fwhm075, alpha05_nx064_nz07_fwhm100, alpha05_nx064_nz07_fwhm125, 
- alpha05_nx064_nz07_fwhm150, alpha05_nx064_nz07_fwhm175, alpha05_nx064_nz07_fwhm200, 
- alpha05_nx064_nz07_fwhm225, alpha05_nx064_nz07_fwhm250, alpha05_nx064_nz07_fwhm275, 
- alpha05_nx064_nz07_fwhm300, alpha05_nx064_nz07_fwhm325, alpha05_nx064_nz07_fwhm350, 
- alpha05_nx064_nz07_fwhm375, alpha05_nx064_nz07_fwhm400, alpha05_nx064_nz07_fwhm425, 
+ alpha05_nx064_nz07_fwhm000, alpha05_nx064_nz07_fwhm025, alpha05_nx064_nz07_fwhm050,
+ alpha05_nx064_nz07_fwhm075, alpha05_nx064_nz07_fwhm100, alpha05_nx064_nz07_fwhm125,
+ alpha05_nx064_nz07_fwhm150, alpha05_nx064_nz07_fwhm175, alpha05_nx064_nz07_fwhm200,
+ alpha05_nx064_nz07_fwhm225, alpha05_nx064_nz07_fwhm250, alpha05_nx064_nz07_fwhm275,
+ alpha05_nx064_nz07_fwhm300, alpha05_nx064_nz07_fwhm325, alpha05_nx064_nz07_fwhm350,
+ alpha05_nx064_nz07_fwhm375, alpha05_nx064_nz07_fwhm400, alpha05_nx064_nz07_fwhm425,
  alpha05_nx064_nz07_fwhm450, alpha05_nx064_nz07_fwhm475, alpha05_nx064_nz07_fwhm500} ;
 
 static float alpha10_nx064_nz07_fwhm000[32] = {
@@ -2417,12 +2417,12 @@ static float alpha10_nx064_nz07_fwhm500[32] = {
  122.37,134.25,145.33,156.11,167.40,196.95,226.27,261.50,304.00,348.44,
  440.00,526.25};
 static float *alpha10_nx064_nz07[21] = {
- alpha10_nx064_nz07_fwhm000, alpha10_nx064_nz07_fwhm025, alpha10_nx064_nz07_fwhm050, 
- alpha10_nx064_nz07_fwhm075, alpha10_nx064_nz07_fwhm100, alpha10_nx064_nz07_fwhm125, 
- alpha10_nx064_nz07_fwhm150, alpha10_nx064_nz07_fwhm175, alpha10_nx064_nz07_fwhm200, 
- alpha10_nx064_nz07_fwhm225, alpha10_nx064_nz07_fwhm250, alpha10_nx064_nz07_fwhm275, 
- alpha10_nx064_nz07_fwhm300, alpha10_nx064_nz07_fwhm325, alpha10_nx064_nz07_fwhm350, 
- alpha10_nx064_nz07_fwhm375, alpha10_nx064_nz07_fwhm400, alpha10_nx064_nz07_fwhm425, 
+ alpha10_nx064_nz07_fwhm000, alpha10_nx064_nz07_fwhm025, alpha10_nx064_nz07_fwhm050,
+ alpha10_nx064_nz07_fwhm075, alpha10_nx064_nz07_fwhm100, alpha10_nx064_nz07_fwhm125,
+ alpha10_nx064_nz07_fwhm150, alpha10_nx064_nz07_fwhm175, alpha10_nx064_nz07_fwhm200,
+ alpha10_nx064_nz07_fwhm225, alpha10_nx064_nz07_fwhm250, alpha10_nx064_nz07_fwhm275,
+ alpha10_nx064_nz07_fwhm300, alpha10_nx064_nz07_fwhm325, alpha10_nx064_nz07_fwhm350,
+ alpha10_nx064_nz07_fwhm375, alpha10_nx064_nz07_fwhm400, alpha10_nx064_nz07_fwhm425,
  alpha10_nx064_nz07_fwhm450, alpha10_nx064_nz07_fwhm475, alpha10_nx064_nz07_fwhm500} ;
 
 static float **nx064_nz07[3] = {
@@ -2534,12 +2534,12 @@ static float alpha01_nx064_nz08_fwhm500[32] = {
  223.25,242.00,255.50,272.50,289.50,332.00,374.50,435.67,513.00,586.67,
  737.00,897.50};
 static float *alpha01_nx064_nz08[21] = {
- alpha01_nx064_nz08_fwhm000, alpha01_nx064_nz08_fwhm025, alpha01_nx064_nz08_fwhm050, 
- alpha01_nx064_nz08_fwhm075, alpha01_nx064_nz08_fwhm100, alpha01_nx064_nz08_fwhm125, 
- alpha01_nx064_nz08_fwhm150, alpha01_nx064_nz08_fwhm175, alpha01_nx064_nz08_fwhm200, 
- alpha01_nx064_nz08_fwhm225, alpha01_nx064_nz08_fwhm250, alpha01_nx064_nz08_fwhm275, 
- alpha01_nx064_nz08_fwhm300, alpha01_nx064_nz08_fwhm325, alpha01_nx064_nz08_fwhm350, 
- alpha01_nx064_nz08_fwhm375, alpha01_nx064_nz08_fwhm400, alpha01_nx064_nz08_fwhm425, 
+ alpha01_nx064_nz08_fwhm000, alpha01_nx064_nz08_fwhm025, alpha01_nx064_nz08_fwhm050,
+ alpha01_nx064_nz08_fwhm075, alpha01_nx064_nz08_fwhm100, alpha01_nx064_nz08_fwhm125,
+ alpha01_nx064_nz08_fwhm150, alpha01_nx064_nz08_fwhm175, alpha01_nx064_nz08_fwhm200,
+ alpha01_nx064_nz08_fwhm225, alpha01_nx064_nz08_fwhm250, alpha01_nx064_nz08_fwhm275,
+ alpha01_nx064_nz08_fwhm300, alpha01_nx064_nz08_fwhm325, alpha01_nx064_nz08_fwhm350,
+ alpha01_nx064_nz08_fwhm375, alpha01_nx064_nz08_fwhm400, alpha01_nx064_nz08_fwhm425,
  alpha01_nx064_nz08_fwhm450, alpha01_nx064_nz08_fwhm475, alpha01_nx064_nz08_fwhm500} ;
 
 static float alpha05_nx064_nz08_fwhm000[32] = {
@@ -2648,12 +2648,12 @@ static float alpha05_nx064_nz08_fwhm500[32] = {
  153.76,169.09,181.84,195.00,208.71,244.43,280.80,327.43,382.00,436.12,
  541.38,656.12};
 static float *alpha05_nx064_nz08[21] = {
- alpha05_nx064_nz08_fwhm000, alpha05_nx064_nz08_fwhm025, alpha05_nx064_nz08_fwhm050, 
- alpha05_nx064_nz08_fwhm075, alpha05_nx064_nz08_fwhm100, alpha05_nx064_nz08_fwhm125, 
- alpha05_nx064_nz08_fwhm150, alpha05_nx064_nz08_fwhm175, alpha05_nx064_nz08_fwhm200, 
- alpha05_nx064_nz08_fwhm225, alpha05_nx064_nz08_fwhm250, alpha05_nx064_nz08_fwhm275, 
- alpha05_nx064_nz08_fwhm300, alpha05_nx064_nz08_fwhm325, alpha05_nx064_nz08_fwhm350, 
- alpha05_nx064_nz08_fwhm375, alpha05_nx064_nz08_fwhm400, alpha05_nx064_nz08_fwhm425, 
+ alpha05_nx064_nz08_fwhm000, alpha05_nx064_nz08_fwhm025, alpha05_nx064_nz08_fwhm050,
+ alpha05_nx064_nz08_fwhm075, alpha05_nx064_nz08_fwhm100, alpha05_nx064_nz08_fwhm125,
+ alpha05_nx064_nz08_fwhm150, alpha05_nx064_nz08_fwhm175, alpha05_nx064_nz08_fwhm200,
+ alpha05_nx064_nz08_fwhm225, alpha05_nx064_nz08_fwhm250, alpha05_nx064_nz08_fwhm275,
+ alpha05_nx064_nz08_fwhm300, alpha05_nx064_nz08_fwhm325, alpha05_nx064_nz08_fwhm350,
+ alpha05_nx064_nz08_fwhm375, alpha05_nx064_nz08_fwhm400, alpha05_nx064_nz08_fwhm425,
  alpha05_nx064_nz08_fwhm450, alpha05_nx064_nz08_fwhm475, alpha05_nx064_nz08_fwhm500} ;
 
 static float alpha10_nx064_nz08_fwhm000[32] = {
@@ -2762,12 +2762,12 @@ static float alpha10_nx064_nz08_fwhm500[32] = {
  125.06,138.36,150.59,161.88,172.70,204.61,234.75,275.92,324.36,369.71,
  461.78,558.25};
 static float *alpha10_nx064_nz08[21] = {
- alpha10_nx064_nz08_fwhm000, alpha10_nx064_nz08_fwhm025, alpha10_nx064_nz08_fwhm050, 
- alpha10_nx064_nz08_fwhm075, alpha10_nx064_nz08_fwhm100, alpha10_nx064_nz08_fwhm125, 
- alpha10_nx064_nz08_fwhm150, alpha10_nx064_nz08_fwhm175, alpha10_nx064_nz08_fwhm200, 
- alpha10_nx064_nz08_fwhm225, alpha10_nx064_nz08_fwhm250, alpha10_nx064_nz08_fwhm275, 
- alpha10_nx064_nz08_fwhm300, alpha10_nx064_nz08_fwhm325, alpha10_nx064_nz08_fwhm350, 
- alpha10_nx064_nz08_fwhm375, alpha10_nx064_nz08_fwhm400, alpha10_nx064_nz08_fwhm425, 
+ alpha10_nx064_nz08_fwhm000, alpha10_nx064_nz08_fwhm025, alpha10_nx064_nz08_fwhm050,
+ alpha10_nx064_nz08_fwhm075, alpha10_nx064_nz08_fwhm100, alpha10_nx064_nz08_fwhm125,
+ alpha10_nx064_nz08_fwhm150, alpha10_nx064_nz08_fwhm175, alpha10_nx064_nz08_fwhm200,
+ alpha10_nx064_nz08_fwhm225, alpha10_nx064_nz08_fwhm250, alpha10_nx064_nz08_fwhm275,
+ alpha10_nx064_nz08_fwhm300, alpha10_nx064_nz08_fwhm325, alpha10_nx064_nz08_fwhm350,
+ alpha10_nx064_nz08_fwhm375, alpha10_nx064_nz08_fwhm400, alpha10_nx064_nz08_fwhm425,
  alpha10_nx064_nz08_fwhm450, alpha10_nx064_nz08_fwhm475, alpha10_nx064_nz08_fwhm500} ;
 
 static float **nx064_nz08[3] = {
@@ -2879,12 +2879,12 @@ static float alpha01_nx064_nz09_fwhm500[32] = {
  241.00,259.33,275.50,292.50,310.50,363.33,406.75,474.00,550.00,617.50,
  765.00,928.00};
 static float *alpha01_nx064_nz09[21] = {
- alpha01_nx064_nz09_fwhm000, alpha01_nx064_nz09_fwhm025, alpha01_nx064_nz09_fwhm050, 
- alpha01_nx064_nz09_fwhm075, alpha01_nx064_nz09_fwhm100, alpha01_nx064_nz09_fwhm125, 
- alpha01_nx064_nz09_fwhm150, alpha01_nx064_nz09_fwhm175, alpha01_nx064_nz09_fwhm200, 
- alpha01_nx064_nz09_fwhm225, alpha01_nx064_nz09_fwhm250, alpha01_nx064_nz09_fwhm275, 
- alpha01_nx064_nz09_fwhm300, alpha01_nx064_nz09_fwhm325, alpha01_nx064_nz09_fwhm350, 
- alpha01_nx064_nz09_fwhm375, alpha01_nx064_nz09_fwhm400, alpha01_nx064_nz09_fwhm425, 
+ alpha01_nx064_nz09_fwhm000, alpha01_nx064_nz09_fwhm025, alpha01_nx064_nz09_fwhm050,
+ alpha01_nx064_nz09_fwhm075, alpha01_nx064_nz09_fwhm100, alpha01_nx064_nz09_fwhm125,
+ alpha01_nx064_nz09_fwhm150, alpha01_nx064_nz09_fwhm175, alpha01_nx064_nz09_fwhm200,
+ alpha01_nx064_nz09_fwhm225, alpha01_nx064_nz09_fwhm250, alpha01_nx064_nz09_fwhm275,
+ alpha01_nx064_nz09_fwhm300, alpha01_nx064_nz09_fwhm325, alpha01_nx064_nz09_fwhm350,
+ alpha01_nx064_nz09_fwhm375, alpha01_nx064_nz09_fwhm400, alpha01_nx064_nz09_fwhm425,
  alpha01_nx064_nz09_fwhm450, alpha01_nx064_nz09_fwhm475, alpha01_nx064_nz09_fwhm500} ;
 
 static float alpha05_nx064_nz09_fwhm000[32] = {
@@ -2993,12 +2993,12 @@ static float alpha05_nx064_nz09_fwhm500[32] = {
  163.73,178.60,193.86,207.25,220.33,260.00,296.71,344.33,403.44,465.43,
  581.00,709.80};
 static float *alpha05_nx064_nz09[21] = {
- alpha05_nx064_nz09_fwhm000, alpha05_nx064_nz09_fwhm025, alpha05_nx064_nz09_fwhm050, 
- alpha05_nx064_nz09_fwhm075, alpha05_nx064_nz09_fwhm100, alpha05_nx064_nz09_fwhm125, 
- alpha05_nx064_nz09_fwhm150, alpha05_nx064_nz09_fwhm175, alpha05_nx064_nz09_fwhm200, 
- alpha05_nx064_nz09_fwhm225, alpha05_nx064_nz09_fwhm250, alpha05_nx064_nz09_fwhm275, 
- alpha05_nx064_nz09_fwhm300, alpha05_nx064_nz09_fwhm325, alpha05_nx064_nz09_fwhm350, 
- alpha05_nx064_nz09_fwhm375, alpha05_nx064_nz09_fwhm400, alpha05_nx064_nz09_fwhm425, 
+ alpha05_nx064_nz09_fwhm000, alpha05_nx064_nz09_fwhm025, alpha05_nx064_nz09_fwhm050,
+ alpha05_nx064_nz09_fwhm075, alpha05_nx064_nz09_fwhm100, alpha05_nx064_nz09_fwhm125,
+ alpha05_nx064_nz09_fwhm150, alpha05_nx064_nz09_fwhm175, alpha05_nx064_nz09_fwhm200,
+ alpha05_nx064_nz09_fwhm225, alpha05_nx064_nz09_fwhm250, alpha05_nx064_nz09_fwhm275,
+ alpha05_nx064_nz09_fwhm300, alpha05_nx064_nz09_fwhm325, alpha05_nx064_nz09_fwhm350,
+ alpha05_nx064_nz09_fwhm375, alpha05_nx064_nz09_fwhm400, alpha05_nx064_nz09_fwhm425,
  alpha05_nx064_nz09_fwhm450, alpha05_nx064_nz09_fwhm475, alpha05_nx064_nz09_fwhm500} ;
 
 static float alpha10_nx064_nz09_fwhm000[32] = {
@@ -3107,12 +3107,12 @@ static float alpha10_nx064_nz09_fwhm500[32] = {
  131.75,144.00,156.73,167.61,179.47,213.86,246.00,287.85,341.27,390.53,
  494.75,603.33};
 static float *alpha10_nx064_nz09[21] = {
- alpha10_nx064_nz09_fwhm000, alpha10_nx064_nz09_fwhm025, alpha10_nx064_nz09_fwhm050, 
- alpha10_nx064_nz09_fwhm075, alpha10_nx064_nz09_fwhm100, alpha10_nx064_nz09_fwhm125, 
- alpha10_nx064_nz09_fwhm150, alpha10_nx064_nz09_fwhm175, alpha10_nx064_nz09_fwhm200, 
- alpha10_nx064_nz09_fwhm225, alpha10_nx064_nz09_fwhm250, alpha10_nx064_nz09_fwhm275, 
- alpha10_nx064_nz09_fwhm300, alpha10_nx064_nz09_fwhm325, alpha10_nx064_nz09_fwhm350, 
- alpha10_nx064_nz09_fwhm375, alpha10_nx064_nz09_fwhm400, alpha10_nx064_nz09_fwhm425, 
+ alpha10_nx064_nz09_fwhm000, alpha10_nx064_nz09_fwhm025, alpha10_nx064_nz09_fwhm050,
+ alpha10_nx064_nz09_fwhm075, alpha10_nx064_nz09_fwhm100, alpha10_nx064_nz09_fwhm125,
+ alpha10_nx064_nz09_fwhm150, alpha10_nx064_nz09_fwhm175, alpha10_nx064_nz09_fwhm200,
+ alpha10_nx064_nz09_fwhm225, alpha10_nx064_nz09_fwhm250, alpha10_nx064_nz09_fwhm275,
+ alpha10_nx064_nz09_fwhm300, alpha10_nx064_nz09_fwhm325, alpha10_nx064_nz09_fwhm350,
+ alpha10_nx064_nz09_fwhm375, alpha10_nx064_nz09_fwhm400, alpha10_nx064_nz09_fwhm425,
  alpha10_nx064_nz09_fwhm450, alpha10_nx064_nz09_fwhm475, alpha10_nx064_nz09_fwhm500} ;
 
 static float **nx064_nz09[3] = {
@@ -3224,12 +3224,12 @@ static float alpha01_nx064_nz10_fwhm500[32] = {
  245.00,261.00,282.50,303.00,317.67,377.00,427.33,494.50,571.67,662.00,
  820.00,992.50};
 static float *alpha01_nx064_nz10[21] = {
- alpha01_nx064_nz10_fwhm000, alpha01_nx064_nz10_fwhm025, alpha01_nx064_nz10_fwhm050, 
- alpha01_nx064_nz10_fwhm075, alpha01_nx064_nz10_fwhm100, alpha01_nx064_nz10_fwhm125, 
- alpha01_nx064_nz10_fwhm150, alpha01_nx064_nz10_fwhm175, alpha01_nx064_nz10_fwhm200, 
- alpha01_nx064_nz10_fwhm225, alpha01_nx064_nz10_fwhm250, alpha01_nx064_nz10_fwhm275, 
- alpha01_nx064_nz10_fwhm300, alpha01_nx064_nz10_fwhm325, alpha01_nx064_nz10_fwhm350, 
- alpha01_nx064_nz10_fwhm375, alpha01_nx064_nz10_fwhm400, alpha01_nx064_nz10_fwhm425, 
+ alpha01_nx064_nz10_fwhm000, alpha01_nx064_nz10_fwhm025, alpha01_nx064_nz10_fwhm050,
+ alpha01_nx064_nz10_fwhm075, alpha01_nx064_nz10_fwhm100, alpha01_nx064_nz10_fwhm125,
+ alpha01_nx064_nz10_fwhm150, alpha01_nx064_nz10_fwhm175, alpha01_nx064_nz10_fwhm200,
+ alpha01_nx064_nz10_fwhm225, alpha01_nx064_nz10_fwhm250, alpha01_nx064_nz10_fwhm275,
+ alpha01_nx064_nz10_fwhm300, alpha01_nx064_nz10_fwhm325, alpha01_nx064_nz10_fwhm350,
+ alpha01_nx064_nz10_fwhm375, alpha01_nx064_nz10_fwhm400, alpha01_nx064_nz10_fwhm425,
  alpha01_nx064_nz10_fwhm450, alpha01_nx064_nz10_fwhm475, alpha01_nx064_nz10_fwhm500} ;
 
 static float alpha05_nx064_nz10_fwhm000[32] = {
@@ -3338,12 +3338,12 @@ static float alpha05_nx064_nz10_fwhm500[32] = {
  172.70,187.46,202.38,215.83,229.82,271.00,312.29,363.10,430.43,494.75,
  623.67,759.00};
 static float *alpha05_nx064_nz10[21] = {
- alpha05_nx064_nz10_fwhm000, alpha05_nx064_nz10_fwhm025, alpha05_nx064_nz10_fwhm050, 
- alpha05_nx064_nz10_fwhm075, alpha05_nx064_nz10_fwhm100, alpha05_nx064_nz10_fwhm125, 
- alpha05_nx064_nz10_fwhm150, alpha05_nx064_nz10_fwhm175, alpha05_nx064_nz10_fwhm200, 
- alpha05_nx064_nz10_fwhm225, alpha05_nx064_nz10_fwhm250, alpha05_nx064_nz10_fwhm275, 
- alpha05_nx064_nz10_fwhm300, alpha05_nx064_nz10_fwhm325, alpha05_nx064_nz10_fwhm350, 
- alpha05_nx064_nz10_fwhm375, alpha05_nx064_nz10_fwhm400, alpha05_nx064_nz10_fwhm425, 
+ alpha05_nx064_nz10_fwhm000, alpha05_nx064_nz10_fwhm025, alpha05_nx064_nz10_fwhm050,
+ alpha05_nx064_nz10_fwhm075, alpha05_nx064_nz10_fwhm100, alpha05_nx064_nz10_fwhm125,
+ alpha05_nx064_nz10_fwhm150, alpha05_nx064_nz10_fwhm175, alpha05_nx064_nz10_fwhm200,
+ alpha05_nx064_nz10_fwhm225, alpha05_nx064_nz10_fwhm250, alpha05_nx064_nz10_fwhm275,
+ alpha05_nx064_nz10_fwhm300, alpha05_nx064_nz10_fwhm325, alpha05_nx064_nz10_fwhm350,
+ alpha05_nx064_nz10_fwhm375, alpha05_nx064_nz10_fwhm400, alpha05_nx064_nz10_fwhm425,
  alpha05_nx064_nz10_fwhm450, alpha05_nx064_nz10_fwhm475, alpha05_nx064_nz10_fwhm500} ;
 
 static float alpha10_nx064_nz10_fwhm000[32] = {
@@ -3452,12 +3452,12 @@ static float alpha10_nx064_nz10_fwhm500[32] = {
  139.86,152.77,165.68,177.90,189.47,225.80,262.17,305.45,362.88,417.75,
  532.75,649.25};
 static float *alpha10_nx064_nz10[21] = {
- alpha10_nx064_nz10_fwhm000, alpha10_nx064_nz10_fwhm025, alpha10_nx064_nz10_fwhm050, 
- alpha10_nx064_nz10_fwhm075, alpha10_nx064_nz10_fwhm100, alpha10_nx064_nz10_fwhm125, 
- alpha10_nx064_nz10_fwhm150, alpha10_nx064_nz10_fwhm175, alpha10_nx064_nz10_fwhm200, 
- alpha10_nx064_nz10_fwhm225, alpha10_nx064_nz10_fwhm250, alpha10_nx064_nz10_fwhm275, 
- alpha10_nx064_nz10_fwhm300, alpha10_nx064_nz10_fwhm325, alpha10_nx064_nz10_fwhm350, 
- alpha10_nx064_nz10_fwhm375, alpha10_nx064_nz10_fwhm400, alpha10_nx064_nz10_fwhm425, 
+ alpha10_nx064_nz10_fwhm000, alpha10_nx064_nz10_fwhm025, alpha10_nx064_nz10_fwhm050,
+ alpha10_nx064_nz10_fwhm075, alpha10_nx064_nz10_fwhm100, alpha10_nx064_nz10_fwhm125,
+ alpha10_nx064_nz10_fwhm150, alpha10_nx064_nz10_fwhm175, alpha10_nx064_nz10_fwhm200,
+ alpha10_nx064_nz10_fwhm225, alpha10_nx064_nz10_fwhm250, alpha10_nx064_nz10_fwhm275,
+ alpha10_nx064_nz10_fwhm300, alpha10_nx064_nz10_fwhm325, alpha10_nx064_nz10_fwhm350,
+ alpha10_nx064_nz10_fwhm375, alpha10_nx064_nz10_fwhm400, alpha10_nx064_nz10_fwhm425,
  alpha10_nx064_nz10_fwhm450, alpha10_nx064_nz10_fwhm475, alpha10_nx064_nz10_fwhm500} ;
 
 static float **nx064_nz10[3] = {
@@ -3569,12 +3569,12 @@ static float alpha01_nx064_nz11_fwhm500[32] = {
  251.40,269.00,292.67,313.00,334.33,386.50,441.00,510.50,611.00,698.50,
  888.50,1092.00};
 static float *alpha01_nx064_nz11[21] = {
- alpha01_nx064_nz11_fwhm000, alpha01_nx064_nz11_fwhm025, alpha01_nx064_nz11_fwhm050, 
- alpha01_nx064_nz11_fwhm075, alpha01_nx064_nz11_fwhm100, alpha01_nx064_nz11_fwhm125, 
- alpha01_nx064_nz11_fwhm150, alpha01_nx064_nz11_fwhm175, alpha01_nx064_nz11_fwhm200, 
- alpha01_nx064_nz11_fwhm225, alpha01_nx064_nz11_fwhm250, alpha01_nx064_nz11_fwhm275, 
- alpha01_nx064_nz11_fwhm300, alpha01_nx064_nz11_fwhm325, alpha01_nx064_nz11_fwhm350, 
- alpha01_nx064_nz11_fwhm375, alpha01_nx064_nz11_fwhm400, alpha01_nx064_nz11_fwhm425, 
+ alpha01_nx064_nz11_fwhm000, alpha01_nx064_nz11_fwhm025, alpha01_nx064_nz11_fwhm050,
+ alpha01_nx064_nz11_fwhm075, alpha01_nx064_nz11_fwhm100, alpha01_nx064_nz11_fwhm125,
+ alpha01_nx064_nz11_fwhm150, alpha01_nx064_nz11_fwhm175, alpha01_nx064_nz11_fwhm200,
+ alpha01_nx064_nz11_fwhm225, alpha01_nx064_nz11_fwhm250, alpha01_nx064_nz11_fwhm275,
+ alpha01_nx064_nz11_fwhm300, alpha01_nx064_nz11_fwhm325, alpha01_nx064_nz11_fwhm350,
+ alpha01_nx064_nz11_fwhm375, alpha01_nx064_nz11_fwhm400, alpha01_nx064_nz11_fwhm425,
  alpha01_nx064_nz11_fwhm450, alpha01_nx064_nz11_fwhm475, alpha01_nx064_nz11_fwhm500} ;
 
 static float alpha05_nx064_nz11_fwhm000[32] = {
@@ -3683,12 +3683,12 @@ static float alpha05_nx064_nz11_fwhm500[32] = {
  178.38,195.07,210.00,224.67,240.55,283.53,326.50,381.67,450.25,520.33,
  661.00,810.00};
 static float *alpha05_nx064_nz11[21] = {
- alpha05_nx064_nz11_fwhm000, alpha05_nx064_nz11_fwhm025, alpha05_nx064_nz11_fwhm050, 
- alpha05_nx064_nz11_fwhm075, alpha05_nx064_nz11_fwhm100, alpha05_nx064_nz11_fwhm125, 
- alpha05_nx064_nz11_fwhm150, alpha05_nx064_nz11_fwhm175, alpha05_nx064_nz11_fwhm200, 
- alpha05_nx064_nz11_fwhm225, alpha05_nx064_nz11_fwhm250, alpha05_nx064_nz11_fwhm275, 
- alpha05_nx064_nz11_fwhm300, alpha05_nx064_nz11_fwhm325, alpha05_nx064_nz11_fwhm350, 
- alpha05_nx064_nz11_fwhm375, alpha05_nx064_nz11_fwhm400, alpha05_nx064_nz11_fwhm425, 
+ alpha05_nx064_nz11_fwhm000, alpha05_nx064_nz11_fwhm025, alpha05_nx064_nz11_fwhm050,
+ alpha05_nx064_nz11_fwhm075, alpha05_nx064_nz11_fwhm100, alpha05_nx064_nz11_fwhm125,
+ alpha05_nx064_nz11_fwhm150, alpha05_nx064_nz11_fwhm175, alpha05_nx064_nz11_fwhm200,
+ alpha05_nx064_nz11_fwhm225, alpha05_nx064_nz11_fwhm250, alpha05_nx064_nz11_fwhm275,
+ alpha05_nx064_nz11_fwhm300, alpha05_nx064_nz11_fwhm325, alpha05_nx064_nz11_fwhm350,
+ alpha05_nx064_nz11_fwhm375, alpha05_nx064_nz11_fwhm400, alpha05_nx064_nz11_fwhm425,
  alpha05_nx064_nz11_fwhm450, alpha05_nx064_nz11_fwhm475, alpha05_nx064_nz11_fwhm500} ;
 
 static float alpha10_nx064_nz11_fwhm000[32] = {
@@ -3797,12 +3797,12 @@ static float alpha10_nx064_nz11_fwhm500[32] = {
  149.19,162.59,175.52,187.29,200.42,236.00,273.21,317.93,375.88,435.18,
  555.71,694.40};
 static float *alpha10_nx064_nz11[21] = {
- alpha10_nx064_nz11_fwhm000, alpha10_nx064_nz11_fwhm025, alpha10_nx064_nz11_fwhm050, 
- alpha10_nx064_nz11_fwhm075, alpha10_nx064_nz11_fwhm100, alpha10_nx064_nz11_fwhm125, 
- alpha10_nx064_nz11_fwhm150, alpha10_nx064_nz11_fwhm175, alpha10_nx064_nz11_fwhm200, 
- alpha10_nx064_nz11_fwhm225, alpha10_nx064_nz11_fwhm250, alpha10_nx064_nz11_fwhm275, 
- alpha10_nx064_nz11_fwhm300, alpha10_nx064_nz11_fwhm325, alpha10_nx064_nz11_fwhm350, 
- alpha10_nx064_nz11_fwhm375, alpha10_nx064_nz11_fwhm400, alpha10_nx064_nz11_fwhm425, 
+ alpha10_nx064_nz11_fwhm000, alpha10_nx064_nz11_fwhm025, alpha10_nx064_nz11_fwhm050,
+ alpha10_nx064_nz11_fwhm075, alpha10_nx064_nz11_fwhm100, alpha10_nx064_nz11_fwhm125,
+ alpha10_nx064_nz11_fwhm150, alpha10_nx064_nz11_fwhm175, alpha10_nx064_nz11_fwhm200,
+ alpha10_nx064_nz11_fwhm225, alpha10_nx064_nz11_fwhm250, alpha10_nx064_nz11_fwhm275,
+ alpha10_nx064_nz11_fwhm300, alpha10_nx064_nz11_fwhm325, alpha10_nx064_nz11_fwhm350,
+ alpha10_nx064_nz11_fwhm375, alpha10_nx064_nz11_fwhm400, alpha10_nx064_nz11_fwhm425,
  alpha10_nx064_nz11_fwhm450, alpha10_nx064_nz11_fwhm475, alpha10_nx064_nz11_fwhm500} ;
 
 static float **nx064_nz11[3] = {
@@ -3914,12 +3914,12 @@ static float alpha01_nx064_nz12_fwhm500[32] = {
  261.50,285.00,302.67,323.50,340.50,397.75,455.50,527.00,624.00,714.00,
  917.00,1136.00};
 static float *alpha01_nx064_nz12[21] = {
- alpha01_nx064_nz12_fwhm000, alpha01_nx064_nz12_fwhm025, alpha01_nx064_nz12_fwhm050, 
- alpha01_nx064_nz12_fwhm075, alpha01_nx064_nz12_fwhm100, alpha01_nx064_nz12_fwhm125, 
- alpha01_nx064_nz12_fwhm150, alpha01_nx064_nz12_fwhm175, alpha01_nx064_nz12_fwhm200, 
- alpha01_nx064_nz12_fwhm225, alpha01_nx064_nz12_fwhm250, alpha01_nx064_nz12_fwhm275, 
- alpha01_nx064_nz12_fwhm300, alpha01_nx064_nz12_fwhm325, alpha01_nx064_nz12_fwhm350, 
- alpha01_nx064_nz12_fwhm375, alpha01_nx064_nz12_fwhm400, alpha01_nx064_nz12_fwhm425, 
+ alpha01_nx064_nz12_fwhm000, alpha01_nx064_nz12_fwhm025, alpha01_nx064_nz12_fwhm050,
+ alpha01_nx064_nz12_fwhm075, alpha01_nx064_nz12_fwhm100, alpha01_nx064_nz12_fwhm125,
+ alpha01_nx064_nz12_fwhm150, alpha01_nx064_nz12_fwhm175, alpha01_nx064_nz12_fwhm200,
+ alpha01_nx064_nz12_fwhm225, alpha01_nx064_nz12_fwhm250, alpha01_nx064_nz12_fwhm275,
+ alpha01_nx064_nz12_fwhm300, alpha01_nx064_nz12_fwhm325, alpha01_nx064_nz12_fwhm350,
+ alpha01_nx064_nz12_fwhm375, alpha01_nx064_nz12_fwhm400, alpha01_nx064_nz12_fwhm425,
  alpha01_nx064_nz12_fwhm450, alpha01_nx064_nz12_fwhm475, alpha01_nx064_nz12_fwhm500} ;
 
 static float alpha05_nx064_nz12_fwhm000[32] = {
@@ -4028,12 +4028,12 @@ static float alpha05_nx064_nz12_fwhm500[32] = {
  185.64,201.56,218.15,233.00,248.67,296.82,336.90,394.22,465.17,539.67,
  690.80,850.00};
 static float *alpha05_nx064_nz12[21] = {
- alpha05_nx064_nz12_fwhm000, alpha05_nx064_nz12_fwhm025, alpha05_nx064_nz12_fwhm050, 
- alpha05_nx064_nz12_fwhm075, alpha05_nx064_nz12_fwhm100, alpha05_nx064_nz12_fwhm125, 
- alpha05_nx064_nz12_fwhm150, alpha05_nx064_nz12_fwhm175, alpha05_nx064_nz12_fwhm200, 
- alpha05_nx064_nz12_fwhm225, alpha05_nx064_nz12_fwhm250, alpha05_nx064_nz12_fwhm275, 
- alpha05_nx064_nz12_fwhm300, alpha05_nx064_nz12_fwhm325, alpha05_nx064_nz12_fwhm350, 
- alpha05_nx064_nz12_fwhm375, alpha05_nx064_nz12_fwhm400, alpha05_nx064_nz12_fwhm425, 
+ alpha05_nx064_nz12_fwhm000, alpha05_nx064_nz12_fwhm025, alpha05_nx064_nz12_fwhm050,
+ alpha05_nx064_nz12_fwhm075, alpha05_nx064_nz12_fwhm100, alpha05_nx064_nz12_fwhm125,
+ alpha05_nx064_nz12_fwhm150, alpha05_nx064_nz12_fwhm175, alpha05_nx064_nz12_fwhm200,
+ alpha05_nx064_nz12_fwhm225, alpha05_nx064_nz12_fwhm250, alpha05_nx064_nz12_fwhm275,
+ alpha05_nx064_nz12_fwhm300, alpha05_nx064_nz12_fwhm325, alpha05_nx064_nz12_fwhm350,
+ alpha05_nx064_nz12_fwhm375, alpha05_nx064_nz12_fwhm400, alpha05_nx064_nz12_fwhm425,
  alpha05_nx064_nz12_fwhm450, alpha05_nx064_nz12_fwhm475, alpha05_nx064_nz12_fwhm500} ;
 
 static float alpha10_nx064_nz12_fwhm000[32] = {
@@ -4142,12 +4142,12 @@ static float alpha10_nx064_nz12_fwhm500[32] = {
  154.65,169.06,182.61,196.15,208.08,246.30,282.23,329.50,391.50,454.25,
  579.88,719.00};
 static float *alpha10_nx064_nz12[21] = {
- alpha10_nx064_nz12_fwhm000, alpha10_nx064_nz12_fwhm025, alpha10_nx064_nz12_fwhm050, 
- alpha10_nx064_nz12_fwhm075, alpha10_nx064_nz12_fwhm100, alpha10_nx064_nz12_fwhm125, 
- alpha10_nx064_nz12_fwhm150, alpha10_nx064_nz12_fwhm175, alpha10_nx064_nz12_fwhm200, 
- alpha10_nx064_nz12_fwhm225, alpha10_nx064_nz12_fwhm250, alpha10_nx064_nz12_fwhm275, 
- alpha10_nx064_nz12_fwhm300, alpha10_nx064_nz12_fwhm325, alpha10_nx064_nz12_fwhm350, 
- alpha10_nx064_nz12_fwhm375, alpha10_nx064_nz12_fwhm400, alpha10_nx064_nz12_fwhm425, 
+ alpha10_nx064_nz12_fwhm000, alpha10_nx064_nz12_fwhm025, alpha10_nx064_nz12_fwhm050,
+ alpha10_nx064_nz12_fwhm075, alpha10_nx064_nz12_fwhm100, alpha10_nx064_nz12_fwhm125,
+ alpha10_nx064_nz12_fwhm150, alpha10_nx064_nz12_fwhm175, alpha10_nx064_nz12_fwhm200,
+ alpha10_nx064_nz12_fwhm225, alpha10_nx064_nz12_fwhm250, alpha10_nx064_nz12_fwhm275,
+ alpha10_nx064_nz12_fwhm300, alpha10_nx064_nz12_fwhm325, alpha10_nx064_nz12_fwhm350,
+ alpha10_nx064_nz12_fwhm375, alpha10_nx064_nz12_fwhm400, alpha10_nx064_nz12_fwhm425,
  alpha10_nx064_nz12_fwhm450, alpha10_nx064_nz12_fwhm475, alpha10_nx064_nz12_fwhm500} ;
 
 static float **nx064_nz12[3] = {
@@ -4259,12 +4259,12 @@ static float alpha01_nx064_nz13_fwhm500[32] = {
  270.33,292.50,314.50,336.25,357.00,421.00,478.50,548.50,642.00,722.67,
  913.00,1147.00};
 static float *alpha01_nx064_nz13[21] = {
- alpha01_nx064_nz13_fwhm000, alpha01_nx064_nz13_fwhm025, alpha01_nx064_nz13_fwhm050, 
- alpha01_nx064_nz13_fwhm075, alpha01_nx064_nz13_fwhm100, alpha01_nx064_nz13_fwhm125, 
- alpha01_nx064_nz13_fwhm150, alpha01_nx064_nz13_fwhm175, alpha01_nx064_nz13_fwhm200, 
- alpha01_nx064_nz13_fwhm225, alpha01_nx064_nz13_fwhm250, alpha01_nx064_nz13_fwhm275, 
- alpha01_nx064_nz13_fwhm300, alpha01_nx064_nz13_fwhm325, alpha01_nx064_nz13_fwhm350, 
- alpha01_nx064_nz13_fwhm375, alpha01_nx064_nz13_fwhm400, alpha01_nx064_nz13_fwhm425, 
+ alpha01_nx064_nz13_fwhm000, alpha01_nx064_nz13_fwhm025, alpha01_nx064_nz13_fwhm050,
+ alpha01_nx064_nz13_fwhm075, alpha01_nx064_nz13_fwhm100, alpha01_nx064_nz13_fwhm125,
+ alpha01_nx064_nz13_fwhm150, alpha01_nx064_nz13_fwhm175, alpha01_nx064_nz13_fwhm200,
+ alpha01_nx064_nz13_fwhm225, alpha01_nx064_nz13_fwhm250, alpha01_nx064_nz13_fwhm275,
+ alpha01_nx064_nz13_fwhm300, alpha01_nx064_nz13_fwhm325, alpha01_nx064_nz13_fwhm350,
+ alpha01_nx064_nz13_fwhm375, alpha01_nx064_nz13_fwhm400, alpha01_nx064_nz13_fwhm425,
  alpha01_nx064_nz13_fwhm450, alpha01_nx064_nz13_fwhm475, alpha01_nx064_nz13_fwhm500} ;
 
 static float alpha05_nx064_nz13_fwhm000[32] = {
@@ -4373,12 +4373,12 @@ static float alpha05_nx064_nz13_fwhm500[32] = {
  192.17,209.43,225.30,240.10,255.00,299.45,342.00,401.88,474.50,548.00,
  698.50,871.33};
 static float *alpha05_nx064_nz13[21] = {
- alpha05_nx064_nz13_fwhm000, alpha05_nx064_nz13_fwhm025, alpha05_nx064_nz13_fwhm050, 
- alpha05_nx064_nz13_fwhm075, alpha05_nx064_nz13_fwhm100, alpha05_nx064_nz13_fwhm125, 
- alpha05_nx064_nz13_fwhm150, alpha05_nx064_nz13_fwhm175, alpha05_nx064_nz13_fwhm200, 
- alpha05_nx064_nz13_fwhm225, alpha05_nx064_nz13_fwhm250, alpha05_nx064_nz13_fwhm275, 
- alpha05_nx064_nz13_fwhm300, alpha05_nx064_nz13_fwhm325, alpha05_nx064_nz13_fwhm350, 
- alpha05_nx064_nz13_fwhm375, alpha05_nx064_nz13_fwhm400, alpha05_nx064_nz13_fwhm425, 
+ alpha05_nx064_nz13_fwhm000, alpha05_nx064_nz13_fwhm025, alpha05_nx064_nz13_fwhm050,
+ alpha05_nx064_nz13_fwhm075, alpha05_nx064_nz13_fwhm100, alpha05_nx064_nz13_fwhm125,
+ alpha05_nx064_nz13_fwhm150, alpha05_nx064_nz13_fwhm175, alpha05_nx064_nz13_fwhm200,
+ alpha05_nx064_nz13_fwhm225, alpha05_nx064_nz13_fwhm250, alpha05_nx064_nz13_fwhm275,
+ alpha05_nx064_nz13_fwhm300, alpha05_nx064_nz13_fwhm325, alpha05_nx064_nz13_fwhm350,
+ alpha05_nx064_nz13_fwhm375, alpha05_nx064_nz13_fwhm400, alpha05_nx064_nz13_fwhm425,
  alpha05_nx064_nz13_fwhm450, alpha05_nx064_nz13_fwhm475, alpha05_nx064_nz13_fwhm500} ;
 
 static float alpha10_nx064_nz13_fwhm000[32] = {
@@ -4487,12 +4487,12 @@ static float alpha10_nx064_nz13_fwhm500[32] = {
  158.00,172.58,186.31,199.67,212.43,251.93,288.00,337.78,398.65,466.30,
  600.43,743.00};
 static float *alpha10_nx064_nz13[21] = {
- alpha10_nx064_nz13_fwhm000, alpha10_nx064_nz13_fwhm025, alpha10_nx064_nz13_fwhm050, 
- alpha10_nx064_nz13_fwhm075, alpha10_nx064_nz13_fwhm100, alpha10_nx064_nz13_fwhm125, 
- alpha10_nx064_nz13_fwhm150, alpha10_nx064_nz13_fwhm175, alpha10_nx064_nz13_fwhm200, 
- alpha10_nx064_nz13_fwhm225, alpha10_nx064_nz13_fwhm250, alpha10_nx064_nz13_fwhm275, 
- alpha10_nx064_nz13_fwhm300, alpha10_nx064_nz13_fwhm325, alpha10_nx064_nz13_fwhm350, 
- alpha10_nx064_nz13_fwhm375, alpha10_nx064_nz13_fwhm400, alpha10_nx064_nz13_fwhm425, 
+ alpha10_nx064_nz13_fwhm000, alpha10_nx064_nz13_fwhm025, alpha10_nx064_nz13_fwhm050,
+ alpha10_nx064_nz13_fwhm075, alpha10_nx064_nz13_fwhm100, alpha10_nx064_nz13_fwhm125,
+ alpha10_nx064_nz13_fwhm150, alpha10_nx064_nz13_fwhm175, alpha10_nx064_nz13_fwhm200,
+ alpha10_nx064_nz13_fwhm225, alpha10_nx064_nz13_fwhm250, alpha10_nx064_nz13_fwhm275,
+ alpha10_nx064_nz13_fwhm300, alpha10_nx064_nz13_fwhm325, alpha10_nx064_nz13_fwhm350,
+ alpha10_nx064_nz13_fwhm375, alpha10_nx064_nz13_fwhm400, alpha10_nx064_nz13_fwhm425,
  alpha10_nx064_nz13_fwhm450, alpha10_nx064_nz13_fwhm475, alpha10_nx064_nz13_fwhm500} ;
 
 static float **nx064_nz13[3] = {
@@ -4604,12 +4604,12 @@ static float alpha01_nx064_nz14_fwhm500[32] = {
  278.33,300.00,326.00,351.00,374.00,428.33,501.00,570.50,663.67,765.00,
  999.00,1236.00};
 static float *alpha01_nx064_nz14[21] = {
- alpha01_nx064_nz14_fwhm000, alpha01_nx064_nz14_fwhm025, alpha01_nx064_nz14_fwhm050, 
- alpha01_nx064_nz14_fwhm075, alpha01_nx064_nz14_fwhm100, alpha01_nx064_nz14_fwhm125, 
- alpha01_nx064_nz14_fwhm150, alpha01_nx064_nz14_fwhm175, alpha01_nx064_nz14_fwhm200, 
- alpha01_nx064_nz14_fwhm225, alpha01_nx064_nz14_fwhm250, alpha01_nx064_nz14_fwhm275, 
- alpha01_nx064_nz14_fwhm300, alpha01_nx064_nz14_fwhm325, alpha01_nx064_nz14_fwhm350, 
- alpha01_nx064_nz14_fwhm375, alpha01_nx064_nz14_fwhm400, alpha01_nx064_nz14_fwhm425, 
+ alpha01_nx064_nz14_fwhm000, alpha01_nx064_nz14_fwhm025, alpha01_nx064_nz14_fwhm050,
+ alpha01_nx064_nz14_fwhm075, alpha01_nx064_nz14_fwhm100, alpha01_nx064_nz14_fwhm125,
+ alpha01_nx064_nz14_fwhm150, alpha01_nx064_nz14_fwhm175, alpha01_nx064_nz14_fwhm200,
+ alpha01_nx064_nz14_fwhm225, alpha01_nx064_nz14_fwhm250, alpha01_nx064_nz14_fwhm275,
+ alpha01_nx064_nz14_fwhm300, alpha01_nx064_nz14_fwhm325, alpha01_nx064_nz14_fwhm350,
+ alpha01_nx064_nz14_fwhm375, alpha01_nx064_nz14_fwhm400, alpha01_nx064_nz14_fwhm425,
  alpha01_nx064_nz14_fwhm450, alpha01_nx064_nz14_fwhm475, alpha01_nx064_nz14_fwhm500} ;
 
 static float alpha05_nx064_nz14_fwhm000[32] = {
@@ -4718,12 +4718,12 @@ static float alpha05_nx064_nz14_fwhm500[32] = {
  200.06,217.00,234.50,250.60,266.50,311.80,357.00,415.00,489.40,569.20,
  737.00,919.25};
 static float *alpha05_nx064_nz14[21] = {
- alpha05_nx064_nz14_fwhm000, alpha05_nx064_nz14_fwhm025, alpha05_nx064_nz14_fwhm050, 
- alpha05_nx064_nz14_fwhm075, alpha05_nx064_nz14_fwhm100, alpha05_nx064_nz14_fwhm125, 
- alpha05_nx064_nz14_fwhm150, alpha05_nx064_nz14_fwhm175, alpha05_nx064_nz14_fwhm200, 
- alpha05_nx064_nz14_fwhm225, alpha05_nx064_nz14_fwhm250, alpha05_nx064_nz14_fwhm275, 
- alpha05_nx064_nz14_fwhm300, alpha05_nx064_nz14_fwhm325, alpha05_nx064_nz14_fwhm350, 
- alpha05_nx064_nz14_fwhm375, alpha05_nx064_nz14_fwhm400, alpha05_nx064_nz14_fwhm425, 
+ alpha05_nx064_nz14_fwhm000, alpha05_nx064_nz14_fwhm025, alpha05_nx064_nz14_fwhm050,
+ alpha05_nx064_nz14_fwhm075, alpha05_nx064_nz14_fwhm100, alpha05_nx064_nz14_fwhm125,
+ alpha05_nx064_nz14_fwhm150, alpha05_nx064_nz14_fwhm175, alpha05_nx064_nz14_fwhm200,
+ alpha05_nx064_nz14_fwhm225, alpha05_nx064_nz14_fwhm250, alpha05_nx064_nz14_fwhm275,
+ alpha05_nx064_nz14_fwhm300, alpha05_nx064_nz14_fwhm325, alpha05_nx064_nz14_fwhm350,
+ alpha05_nx064_nz14_fwhm375, alpha05_nx064_nz14_fwhm400, alpha05_nx064_nz14_fwhm425,
  alpha05_nx064_nz14_fwhm450, alpha05_nx064_nz14_fwhm475, alpha05_nx064_nz14_fwhm500} ;
 
 static float alpha10_nx064_nz14_fwhm000[32] = {
@@ -4832,12 +4832,12 @@ static float alpha10_nx064_nz14_fwhm500[32] = {
  166.09,180.03,193.48,207.74,221.35,260.08,297.40,348.46,410.33,476.75,
  617.88,772.60};
 static float *alpha10_nx064_nz14[21] = {
- alpha10_nx064_nz14_fwhm000, alpha10_nx064_nz14_fwhm025, alpha10_nx064_nz14_fwhm050, 
- alpha10_nx064_nz14_fwhm075, alpha10_nx064_nz14_fwhm100, alpha10_nx064_nz14_fwhm125, 
- alpha10_nx064_nz14_fwhm150, alpha10_nx064_nz14_fwhm175, alpha10_nx064_nz14_fwhm200, 
- alpha10_nx064_nz14_fwhm225, alpha10_nx064_nz14_fwhm250, alpha10_nx064_nz14_fwhm275, 
- alpha10_nx064_nz14_fwhm300, alpha10_nx064_nz14_fwhm325, alpha10_nx064_nz14_fwhm350, 
- alpha10_nx064_nz14_fwhm375, alpha10_nx064_nz14_fwhm400, alpha10_nx064_nz14_fwhm425, 
+ alpha10_nx064_nz14_fwhm000, alpha10_nx064_nz14_fwhm025, alpha10_nx064_nz14_fwhm050,
+ alpha10_nx064_nz14_fwhm075, alpha10_nx064_nz14_fwhm100, alpha10_nx064_nz14_fwhm125,
+ alpha10_nx064_nz14_fwhm150, alpha10_nx064_nz14_fwhm175, alpha10_nx064_nz14_fwhm200,
+ alpha10_nx064_nz14_fwhm225, alpha10_nx064_nz14_fwhm250, alpha10_nx064_nz14_fwhm275,
+ alpha10_nx064_nz14_fwhm300, alpha10_nx064_nz14_fwhm325, alpha10_nx064_nz14_fwhm350,
+ alpha10_nx064_nz14_fwhm375, alpha10_nx064_nz14_fwhm400, alpha10_nx064_nz14_fwhm425,
  alpha10_nx064_nz14_fwhm450, alpha10_nx064_nz14_fwhm475, alpha10_nx064_nz14_fwhm500} ;
 
 static float **nx064_nz14[3] = {
@@ -4949,12 +4949,12 @@ static float alpha01_nx064_nz15_fwhm500[32] = {
  290.00,312.50,333.00,354.67,376.00,436.00,494.00,580.67,690.00,813.50,
  1052.00,1290.33};
 static float *alpha01_nx064_nz15[21] = {
- alpha01_nx064_nz15_fwhm000, alpha01_nx064_nz15_fwhm025, alpha01_nx064_nz15_fwhm050, 
- alpha01_nx064_nz15_fwhm075, alpha01_nx064_nz15_fwhm100, alpha01_nx064_nz15_fwhm125, 
- alpha01_nx064_nz15_fwhm150, alpha01_nx064_nz15_fwhm175, alpha01_nx064_nz15_fwhm200, 
- alpha01_nx064_nz15_fwhm225, alpha01_nx064_nz15_fwhm250, alpha01_nx064_nz15_fwhm275, 
- alpha01_nx064_nz15_fwhm300, alpha01_nx064_nz15_fwhm325, alpha01_nx064_nz15_fwhm350, 
- alpha01_nx064_nz15_fwhm375, alpha01_nx064_nz15_fwhm400, alpha01_nx064_nz15_fwhm425, 
+ alpha01_nx064_nz15_fwhm000, alpha01_nx064_nz15_fwhm025, alpha01_nx064_nz15_fwhm050,
+ alpha01_nx064_nz15_fwhm075, alpha01_nx064_nz15_fwhm100, alpha01_nx064_nz15_fwhm125,
+ alpha01_nx064_nz15_fwhm150, alpha01_nx064_nz15_fwhm175, alpha01_nx064_nz15_fwhm200,
+ alpha01_nx064_nz15_fwhm225, alpha01_nx064_nz15_fwhm250, alpha01_nx064_nz15_fwhm275,
+ alpha01_nx064_nz15_fwhm300, alpha01_nx064_nz15_fwhm325, alpha01_nx064_nz15_fwhm350,
+ alpha01_nx064_nz15_fwhm375, alpha01_nx064_nz15_fwhm400, alpha01_nx064_nz15_fwhm425,
  alpha01_nx064_nz15_fwhm450, alpha01_nx064_nz15_fwhm475, alpha01_nx064_nz15_fwhm500} ;
 
 static float alpha05_nx064_nz15_fwhm000[32] = {
@@ -5063,12 +5063,12 @@ static float alpha05_nx064_nz15_fwhm500[32] = {
  205.38,222.25,239.67,257.17,273.33,323.25,370.50,431.00,511.67,588.75,
  759.67,963.50};
 static float *alpha05_nx064_nz15[21] = {
- alpha05_nx064_nz15_fwhm000, alpha05_nx064_nz15_fwhm025, alpha05_nx064_nz15_fwhm050, 
- alpha05_nx064_nz15_fwhm075, alpha05_nx064_nz15_fwhm100, alpha05_nx064_nz15_fwhm125, 
- alpha05_nx064_nz15_fwhm150, alpha05_nx064_nz15_fwhm175, alpha05_nx064_nz15_fwhm200, 
- alpha05_nx064_nz15_fwhm225, alpha05_nx064_nz15_fwhm250, alpha05_nx064_nz15_fwhm275, 
- alpha05_nx064_nz15_fwhm300, alpha05_nx064_nz15_fwhm325, alpha05_nx064_nz15_fwhm350, 
- alpha05_nx064_nz15_fwhm375, alpha05_nx064_nz15_fwhm400, alpha05_nx064_nz15_fwhm425, 
+ alpha05_nx064_nz15_fwhm000, alpha05_nx064_nz15_fwhm025, alpha05_nx064_nz15_fwhm050,
+ alpha05_nx064_nz15_fwhm075, alpha05_nx064_nz15_fwhm100, alpha05_nx064_nz15_fwhm125,
+ alpha05_nx064_nz15_fwhm150, alpha05_nx064_nz15_fwhm175, alpha05_nx064_nz15_fwhm200,
+ alpha05_nx064_nz15_fwhm225, alpha05_nx064_nz15_fwhm250, alpha05_nx064_nz15_fwhm275,
+ alpha05_nx064_nz15_fwhm300, alpha05_nx064_nz15_fwhm325, alpha05_nx064_nz15_fwhm350,
+ alpha05_nx064_nz15_fwhm375, alpha05_nx064_nz15_fwhm400, alpha05_nx064_nz15_fwhm425,
  alpha05_nx064_nz15_fwhm450, alpha05_nx064_nz15_fwhm475, alpha05_nx064_nz15_fwhm500} ;
 
 static float alpha10_nx064_nz15_fwhm000[32] = {
@@ -5177,12 +5177,12 @@ static float alpha10_nx064_nz15_fwhm500[32] = {
  170.76,186.00,200.56,215.00,229.25,270.67,311.57,365.33,431.00,501.07,
  647.00,806.67};
 static float *alpha10_nx064_nz15[21] = {
- alpha10_nx064_nz15_fwhm000, alpha10_nx064_nz15_fwhm025, alpha10_nx064_nz15_fwhm050, 
- alpha10_nx064_nz15_fwhm075, alpha10_nx064_nz15_fwhm100, alpha10_nx064_nz15_fwhm125, 
- alpha10_nx064_nz15_fwhm150, alpha10_nx064_nz15_fwhm175, alpha10_nx064_nz15_fwhm200, 
- alpha10_nx064_nz15_fwhm225, alpha10_nx064_nz15_fwhm250, alpha10_nx064_nz15_fwhm275, 
- alpha10_nx064_nz15_fwhm300, alpha10_nx064_nz15_fwhm325, alpha10_nx064_nz15_fwhm350, 
- alpha10_nx064_nz15_fwhm375, alpha10_nx064_nz15_fwhm400, alpha10_nx064_nz15_fwhm425, 
+ alpha10_nx064_nz15_fwhm000, alpha10_nx064_nz15_fwhm025, alpha10_nx064_nz15_fwhm050,
+ alpha10_nx064_nz15_fwhm075, alpha10_nx064_nz15_fwhm100, alpha10_nx064_nz15_fwhm125,
+ alpha10_nx064_nz15_fwhm150, alpha10_nx064_nz15_fwhm175, alpha10_nx064_nz15_fwhm200,
+ alpha10_nx064_nz15_fwhm225, alpha10_nx064_nz15_fwhm250, alpha10_nx064_nz15_fwhm275,
+ alpha10_nx064_nz15_fwhm300, alpha10_nx064_nz15_fwhm325, alpha10_nx064_nz15_fwhm350,
+ alpha10_nx064_nz15_fwhm375, alpha10_nx064_nz15_fwhm400, alpha10_nx064_nz15_fwhm425,
  alpha10_nx064_nz15_fwhm450, alpha10_nx064_nz15_fwhm475, alpha10_nx064_nz15_fwhm500} ;
 
 static float **nx064_nz15[3] = {
@@ -5294,12 +5294,12 @@ static float alpha01_nx064_nz16_fwhm500[32] = {
  302.14,324.50,350.00,373.67,393.20,457.00,525.00,615.00,722.50,827.50,
  1059.00,1336.00};
 static float *alpha01_nx064_nz16[21] = {
- alpha01_nx064_nz16_fwhm000, alpha01_nx064_nz16_fwhm025, alpha01_nx064_nz16_fwhm050, 
- alpha01_nx064_nz16_fwhm075, alpha01_nx064_nz16_fwhm100, alpha01_nx064_nz16_fwhm125, 
- alpha01_nx064_nz16_fwhm150, alpha01_nx064_nz16_fwhm175, alpha01_nx064_nz16_fwhm200, 
- alpha01_nx064_nz16_fwhm225, alpha01_nx064_nz16_fwhm250, alpha01_nx064_nz16_fwhm275, 
- alpha01_nx064_nz16_fwhm300, alpha01_nx064_nz16_fwhm325, alpha01_nx064_nz16_fwhm350, 
- alpha01_nx064_nz16_fwhm375, alpha01_nx064_nz16_fwhm400, alpha01_nx064_nz16_fwhm425, 
+ alpha01_nx064_nz16_fwhm000, alpha01_nx064_nz16_fwhm025, alpha01_nx064_nz16_fwhm050,
+ alpha01_nx064_nz16_fwhm075, alpha01_nx064_nz16_fwhm100, alpha01_nx064_nz16_fwhm125,
+ alpha01_nx064_nz16_fwhm150, alpha01_nx064_nz16_fwhm175, alpha01_nx064_nz16_fwhm200,
+ alpha01_nx064_nz16_fwhm225, alpha01_nx064_nz16_fwhm250, alpha01_nx064_nz16_fwhm275,
+ alpha01_nx064_nz16_fwhm300, alpha01_nx064_nz16_fwhm325, alpha01_nx064_nz16_fwhm350,
+ alpha01_nx064_nz16_fwhm375, alpha01_nx064_nz16_fwhm400, alpha01_nx064_nz16_fwhm425,
  alpha01_nx064_nz16_fwhm450, alpha01_nx064_nz16_fwhm475, alpha01_nx064_nz16_fwhm500} ;
 
 static float alpha05_nx064_nz16_fwhm000[32] = {
@@ -5408,12 +5408,12 @@ static float alpha05_nx064_nz16_fwhm500[32] = {
  214.33,232.42,250.60,268.00,285.58,334.42,379.00,440.67,524.57,605.00,
  790.00,990.33};
 static float *alpha05_nx064_nz16[21] = {
- alpha05_nx064_nz16_fwhm000, alpha05_nx064_nz16_fwhm025, alpha05_nx064_nz16_fwhm050, 
- alpha05_nx064_nz16_fwhm075, alpha05_nx064_nz16_fwhm100, alpha05_nx064_nz16_fwhm125, 
- alpha05_nx064_nz16_fwhm150, alpha05_nx064_nz16_fwhm175, alpha05_nx064_nz16_fwhm200, 
- alpha05_nx064_nz16_fwhm225, alpha05_nx064_nz16_fwhm250, alpha05_nx064_nz16_fwhm275, 
- alpha05_nx064_nz16_fwhm300, alpha05_nx064_nz16_fwhm325, alpha05_nx064_nz16_fwhm350, 
- alpha05_nx064_nz16_fwhm375, alpha05_nx064_nz16_fwhm400, alpha05_nx064_nz16_fwhm425, 
+ alpha05_nx064_nz16_fwhm000, alpha05_nx064_nz16_fwhm025, alpha05_nx064_nz16_fwhm050,
+ alpha05_nx064_nz16_fwhm075, alpha05_nx064_nz16_fwhm100, alpha05_nx064_nz16_fwhm125,
+ alpha05_nx064_nz16_fwhm150, alpha05_nx064_nz16_fwhm175, alpha05_nx064_nz16_fwhm200,
+ alpha05_nx064_nz16_fwhm225, alpha05_nx064_nz16_fwhm250, alpha05_nx064_nz16_fwhm275,
+ alpha05_nx064_nz16_fwhm300, alpha05_nx064_nz16_fwhm325, alpha05_nx064_nz16_fwhm350,
+ alpha05_nx064_nz16_fwhm375, alpha05_nx064_nz16_fwhm400, alpha05_nx064_nz16_fwhm425,
  alpha05_nx064_nz16_fwhm450, alpha05_nx064_nz16_fwhm475, alpha05_nx064_nz16_fwhm500} ;
 
 static float alpha10_nx064_nz16_fwhm000[32] = {
@@ -5522,12 +5522,12 @@ static float alpha10_nx064_nz16_fwhm500[32] = {
  176.24,192.68,207.90,222.53,237.81,280.70,319.80,377.33,447.31,517.31,
  663.83,839.00};
 static float *alpha10_nx064_nz16[21] = {
- alpha10_nx064_nz16_fwhm000, alpha10_nx064_nz16_fwhm025, alpha10_nx064_nz16_fwhm050, 
- alpha10_nx064_nz16_fwhm075, alpha10_nx064_nz16_fwhm100, alpha10_nx064_nz16_fwhm125, 
- alpha10_nx064_nz16_fwhm150, alpha10_nx064_nz16_fwhm175, alpha10_nx064_nz16_fwhm200, 
- alpha10_nx064_nz16_fwhm225, alpha10_nx064_nz16_fwhm250, alpha10_nx064_nz16_fwhm275, 
- alpha10_nx064_nz16_fwhm300, alpha10_nx064_nz16_fwhm325, alpha10_nx064_nz16_fwhm350, 
- alpha10_nx064_nz16_fwhm375, alpha10_nx064_nz16_fwhm400, alpha10_nx064_nz16_fwhm425, 
+ alpha10_nx064_nz16_fwhm000, alpha10_nx064_nz16_fwhm025, alpha10_nx064_nz16_fwhm050,
+ alpha10_nx064_nz16_fwhm075, alpha10_nx064_nz16_fwhm100, alpha10_nx064_nz16_fwhm125,
+ alpha10_nx064_nz16_fwhm150, alpha10_nx064_nz16_fwhm175, alpha10_nx064_nz16_fwhm200,
+ alpha10_nx064_nz16_fwhm225, alpha10_nx064_nz16_fwhm250, alpha10_nx064_nz16_fwhm275,
+ alpha10_nx064_nz16_fwhm300, alpha10_nx064_nz16_fwhm325, alpha10_nx064_nz16_fwhm350,
+ alpha10_nx064_nz16_fwhm375, alpha10_nx064_nz16_fwhm400, alpha10_nx064_nz16_fwhm425,
  alpha10_nx064_nz16_fwhm450, alpha10_nx064_nz16_fwhm475, alpha10_nx064_nz16_fwhm500} ;
 
 static float **nx064_nz16[3] = {
@@ -5639,12 +5639,12 @@ static float alpha01_nx064_nz17_fwhm500[32] = {
  301.50,326.50,351.50,373.33,400.33,465.50,525.00,612.00,723.00,838.33,
  1107.50,1372.67};
 static float *alpha01_nx064_nz17[21] = {
- alpha01_nx064_nz17_fwhm000, alpha01_nx064_nz17_fwhm025, alpha01_nx064_nz17_fwhm050, 
- alpha01_nx064_nz17_fwhm075, alpha01_nx064_nz17_fwhm100, alpha01_nx064_nz17_fwhm125, 
- alpha01_nx064_nz17_fwhm150, alpha01_nx064_nz17_fwhm175, alpha01_nx064_nz17_fwhm200, 
- alpha01_nx064_nz17_fwhm225, alpha01_nx064_nz17_fwhm250, alpha01_nx064_nz17_fwhm275, 
- alpha01_nx064_nz17_fwhm300, alpha01_nx064_nz17_fwhm325, alpha01_nx064_nz17_fwhm350, 
- alpha01_nx064_nz17_fwhm375, alpha01_nx064_nz17_fwhm400, alpha01_nx064_nz17_fwhm425, 
+ alpha01_nx064_nz17_fwhm000, alpha01_nx064_nz17_fwhm025, alpha01_nx064_nz17_fwhm050,
+ alpha01_nx064_nz17_fwhm075, alpha01_nx064_nz17_fwhm100, alpha01_nx064_nz17_fwhm125,
+ alpha01_nx064_nz17_fwhm150, alpha01_nx064_nz17_fwhm175, alpha01_nx064_nz17_fwhm200,
+ alpha01_nx064_nz17_fwhm225, alpha01_nx064_nz17_fwhm250, alpha01_nx064_nz17_fwhm275,
+ alpha01_nx064_nz17_fwhm300, alpha01_nx064_nz17_fwhm325, alpha01_nx064_nz17_fwhm350,
+ alpha01_nx064_nz17_fwhm375, alpha01_nx064_nz17_fwhm400, alpha01_nx064_nz17_fwhm425,
  alpha01_nx064_nz17_fwhm450, alpha01_nx064_nz17_fwhm475, alpha01_nx064_nz17_fwhm500} ;
 
 static float alpha05_nx064_nz17_fwhm000[32] = {
@@ -5753,12 +5753,12 @@ static float alpha05_nx064_nz17_fwhm500[32] = {
  216.71,233.40,250.25,268.11,286.00,336.00,386.67,449.83,535.14,620.33,
  802.50,1014.20};
 static float *alpha05_nx064_nz17[21] = {
- alpha05_nx064_nz17_fwhm000, alpha05_nx064_nz17_fwhm025, alpha05_nx064_nz17_fwhm050, 
- alpha05_nx064_nz17_fwhm075, alpha05_nx064_nz17_fwhm100, alpha05_nx064_nz17_fwhm125, 
- alpha05_nx064_nz17_fwhm150, alpha05_nx064_nz17_fwhm175, alpha05_nx064_nz17_fwhm200, 
- alpha05_nx064_nz17_fwhm225, alpha05_nx064_nz17_fwhm250, alpha05_nx064_nz17_fwhm275, 
- alpha05_nx064_nz17_fwhm300, alpha05_nx064_nz17_fwhm325, alpha05_nx064_nz17_fwhm350, 
- alpha05_nx064_nz17_fwhm375, alpha05_nx064_nz17_fwhm400, alpha05_nx064_nz17_fwhm425, 
+ alpha05_nx064_nz17_fwhm000, alpha05_nx064_nz17_fwhm025, alpha05_nx064_nz17_fwhm050,
+ alpha05_nx064_nz17_fwhm075, alpha05_nx064_nz17_fwhm100, alpha05_nx064_nz17_fwhm125,
+ alpha05_nx064_nz17_fwhm150, alpha05_nx064_nz17_fwhm175, alpha05_nx064_nz17_fwhm200,
+ alpha05_nx064_nz17_fwhm225, alpha05_nx064_nz17_fwhm250, alpha05_nx064_nz17_fwhm275,
+ alpha05_nx064_nz17_fwhm300, alpha05_nx064_nz17_fwhm325, alpha05_nx064_nz17_fwhm350,
+ alpha05_nx064_nz17_fwhm375, alpha05_nx064_nz17_fwhm400, alpha05_nx064_nz17_fwhm425,
  alpha05_nx064_nz17_fwhm450, alpha05_nx064_nz17_fwhm475, alpha05_nx064_nz17_fwhm500} ;
 
 static float alpha10_nx064_nz17_fwhm000[32] = {
@@ -5867,12 +5867,12 @@ static float alpha10_nx064_nz17_fwhm500[32] = {
  180.71,197.30,212.60,228.36,241.83,283.78,325.45,384.83,458.17,531.80,
  685.00,867.43};
 static float *alpha10_nx064_nz17[21] = {
- alpha10_nx064_nz17_fwhm000, alpha10_nx064_nz17_fwhm025, alpha10_nx064_nz17_fwhm050, 
- alpha10_nx064_nz17_fwhm075, alpha10_nx064_nz17_fwhm100, alpha10_nx064_nz17_fwhm125, 
- alpha10_nx064_nz17_fwhm150, alpha10_nx064_nz17_fwhm175, alpha10_nx064_nz17_fwhm200, 
- alpha10_nx064_nz17_fwhm225, alpha10_nx064_nz17_fwhm250, alpha10_nx064_nz17_fwhm275, 
- alpha10_nx064_nz17_fwhm300, alpha10_nx064_nz17_fwhm325, alpha10_nx064_nz17_fwhm350, 
- alpha10_nx064_nz17_fwhm375, alpha10_nx064_nz17_fwhm400, alpha10_nx064_nz17_fwhm425, 
+ alpha10_nx064_nz17_fwhm000, alpha10_nx064_nz17_fwhm025, alpha10_nx064_nz17_fwhm050,
+ alpha10_nx064_nz17_fwhm075, alpha10_nx064_nz17_fwhm100, alpha10_nx064_nz17_fwhm125,
+ alpha10_nx064_nz17_fwhm150, alpha10_nx064_nz17_fwhm175, alpha10_nx064_nz17_fwhm200,
+ alpha10_nx064_nz17_fwhm225, alpha10_nx064_nz17_fwhm250, alpha10_nx064_nz17_fwhm275,
+ alpha10_nx064_nz17_fwhm300, alpha10_nx064_nz17_fwhm325, alpha10_nx064_nz17_fwhm350,
+ alpha10_nx064_nz17_fwhm375, alpha10_nx064_nz17_fwhm400, alpha10_nx064_nz17_fwhm425,
  alpha10_nx064_nz17_fwhm450, alpha10_nx064_nz17_fwhm475, alpha10_nx064_nz17_fwhm500} ;
 
 static float **nx064_nz17[3] = {
@@ -5984,12 +5984,12 @@ static float alpha01_nx064_nz18_fwhm500[32] = {
  312.60,337.00,360.50,383.67,410.00,477.00,541.33,631.00,749.00,889.67,
  1152.00,1424.00};
 static float *alpha01_nx064_nz18[21] = {
- alpha01_nx064_nz18_fwhm000, alpha01_nx064_nz18_fwhm025, alpha01_nx064_nz18_fwhm050, 
- alpha01_nx064_nz18_fwhm075, alpha01_nx064_nz18_fwhm100, alpha01_nx064_nz18_fwhm125, 
- alpha01_nx064_nz18_fwhm150, alpha01_nx064_nz18_fwhm175, alpha01_nx064_nz18_fwhm200, 
- alpha01_nx064_nz18_fwhm225, alpha01_nx064_nz18_fwhm250, alpha01_nx064_nz18_fwhm275, 
- alpha01_nx064_nz18_fwhm300, alpha01_nx064_nz18_fwhm325, alpha01_nx064_nz18_fwhm350, 
- alpha01_nx064_nz18_fwhm375, alpha01_nx064_nz18_fwhm400, alpha01_nx064_nz18_fwhm425, 
+ alpha01_nx064_nz18_fwhm000, alpha01_nx064_nz18_fwhm025, alpha01_nx064_nz18_fwhm050,
+ alpha01_nx064_nz18_fwhm075, alpha01_nx064_nz18_fwhm100, alpha01_nx064_nz18_fwhm125,
+ alpha01_nx064_nz18_fwhm150, alpha01_nx064_nz18_fwhm175, alpha01_nx064_nz18_fwhm200,
+ alpha01_nx064_nz18_fwhm225, alpha01_nx064_nz18_fwhm250, alpha01_nx064_nz18_fwhm275,
+ alpha01_nx064_nz18_fwhm300, alpha01_nx064_nz18_fwhm325, alpha01_nx064_nz18_fwhm350,
+ alpha01_nx064_nz18_fwhm375, alpha01_nx064_nz18_fwhm400, alpha01_nx064_nz18_fwhm425,
  alpha01_nx064_nz18_fwhm450, alpha01_nx064_nz18_fwhm475, alpha01_nx064_nz18_fwhm500} ;
 
 static float alpha05_nx064_nz18_fwhm000[32] = {
@@ -6098,12 +6098,12 @@ static float alpha05_nx064_nz18_fwhm500[32] = {
  221.00,240.50,260.00,278.73,295.29,349.57,398.80,465.33,549.50,639.67,
  836.50,1048.00};
 static float *alpha05_nx064_nz18[21] = {
- alpha05_nx064_nz18_fwhm000, alpha05_nx064_nz18_fwhm025, alpha05_nx064_nz18_fwhm050, 
- alpha05_nx064_nz18_fwhm075, alpha05_nx064_nz18_fwhm100, alpha05_nx064_nz18_fwhm125, 
- alpha05_nx064_nz18_fwhm150, alpha05_nx064_nz18_fwhm175, alpha05_nx064_nz18_fwhm200, 
- alpha05_nx064_nz18_fwhm225, alpha05_nx064_nz18_fwhm250, alpha05_nx064_nz18_fwhm275, 
- alpha05_nx064_nz18_fwhm300, alpha05_nx064_nz18_fwhm325, alpha05_nx064_nz18_fwhm350, 
- alpha05_nx064_nz18_fwhm375, alpha05_nx064_nz18_fwhm400, alpha05_nx064_nz18_fwhm425, 
+ alpha05_nx064_nz18_fwhm000, alpha05_nx064_nz18_fwhm025, alpha05_nx064_nz18_fwhm050,
+ alpha05_nx064_nz18_fwhm075, alpha05_nx064_nz18_fwhm100, alpha05_nx064_nz18_fwhm125,
+ alpha05_nx064_nz18_fwhm150, alpha05_nx064_nz18_fwhm175, alpha05_nx064_nz18_fwhm200,
+ alpha05_nx064_nz18_fwhm225, alpha05_nx064_nz18_fwhm250, alpha05_nx064_nz18_fwhm275,
+ alpha05_nx064_nz18_fwhm300, alpha05_nx064_nz18_fwhm325, alpha05_nx064_nz18_fwhm350,
+ alpha05_nx064_nz18_fwhm375, alpha05_nx064_nz18_fwhm400, alpha05_nx064_nz18_fwhm425,
  alpha05_nx064_nz18_fwhm450, alpha05_nx064_nz18_fwhm475, alpha05_nx064_nz18_fwhm500} ;
 
 static float alpha10_nx064_nz18_fwhm000[32] = {
@@ -6212,12 +6212,12 @@ static float alpha10_nx064_nz18_fwhm500[32] = {
  185.11,201.78,219.06,233.36,247.07,292.64,337.00,397.00,471.29,547.12,
  714.00,899.83};
 static float *alpha10_nx064_nz18[21] = {
- alpha10_nx064_nz18_fwhm000, alpha10_nx064_nz18_fwhm025, alpha10_nx064_nz18_fwhm050, 
- alpha10_nx064_nz18_fwhm075, alpha10_nx064_nz18_fwhm100, alpha10_nx064_nz18_fwhm125, 
- alpha10_nx064_nz18_fwhm150, alpha10_nx064_nz18_fwhm175, alpha10_nx064_nz18_fwhm200, 
- alpha10_nx064_nz18_fwhm225, alpha10_nx064_nz18_fwhm250, alpha10_nx064_nz18_fwhm275, 
- alpha10_nx064_nz18_fwhm300, alpha10_nx064_nz18_fwhm325, alpha10_nx064_nz18_fwhm350, 
- alpha10_nx064_nz18_fwhm375, alpha10_nx064_nz18_fwhm400, alpha10_nx064_nz18_fwhm425, 
+ alpha10_nx064_nz18_fwhm000, alpha10_nx064_nz18_fwhm025, alpha10_nx064_nz18_fwhm050,
+ alpha10_nx064_nz18_fwhm075, alpha10_nx064_nz18_fwhm100, alpha10_nx064_nz18_fwhm125,
+ alpha10_nx064_nz18_fwhm150, alpha10_nx064_nz18_fwhm175, alpha10_nx064_nz18_fwhm200,
+ alpha10_nx064_nz18_fwhm225, alpha10_nx064_nz18_fwhm250, alpha10_nx064_nz18_fwhm275,
+ alpha10_nx064_nz18_fwhm300, alpha10_nx064_nz18_fwhm325, alpha10_nx064_nz18_fwhm350,
+ alpha10_nx064_nz18_fwhm375, alpha10_nx064_nz18_fwhm400, alpha10_nx064_nz18_fwhm425,
  alpha10_nx064_nz18_fwhm450, alpha10_nx064_nz18_fwhm475, alpha10_nx064_nz18_fwhm500} ;
 
 static float **nx064_nz18[3] = {
@@ -6329,12 +6329,12 @@ static float alpha01_nx064_nz19_fwhm500[32] = {
  318.25,345.50,376.33,397.50,422.00,490.00,563.00,652.00,774.00,885.50,
  1174.33,1455.50};
 static float *alpha01_nx064_nz19[21] = {
- alpha01_nx064_nz19_fwhm000, alpha01_nx064_nz19_fwhm025, alpha01_nx064_nz19_fwhm050, 
- alpha01_nx064_nz19_fwhm075, alpha01_nx064_nz19_fwhm100, alpha01_nx064_nz19_fwhm125, 
- alpha01_nx064_nz19_fwhm150, alpha01_nx064_nz19_fwhm175, alpha01_nx064_nz19_fwhm200, 
- alpha01_nx064_nz19_fwhm225, alpha01_nx064_nz19_fwhm250, alpha01_nx064_nz19_fwhm275, 
- alpha01_nx064_nz19_fwhm300, alpha01_nx064_nz19_fwhm325, alpha01_nx064_nz19_fwhm350, 
- alpha01_nx064_nz19_fwhm375, alpha01_nx064_nz19_fwhm400, alpha01_nx064_nz19_fwhm425, 
+ alpha01_nx064_nz19_fwhm000, alpha01_nx064_nz19_fwhm025, alpha01_nx064_nz19_fwhm050,
+ alpha01_nx064_nz19_fwhm075, alpha01_nx064_nz19_fwhm100, alpha01_nx064_nz19_fwhm125,
+ alpha01_nx064_nz19_fwhm150, alpha01_nx064_nz19_fwhm175, alpha01_nx064_nz19_fwhm200,
+ alpha01_nx064_nz19_fwhm225, alpha01_nx064_nz19_fwhm250, alpha01_nx064_nz19_fwhm275,
+ alpha01_nx064_nz19_fwhm300, alpha01_nx064_nz19_fwhm325, alpha01_nx064_nz19_fwhm350,
+ alpha01_nx064_nz19_fwhm375, alpha01_nx064_nz19_fwhm400, alpha01_nx064_nz19_fwhm425,
  alpha01_nx064_nz19_fwhm450, alpha01_nx064_nz19_fwhm475, alpha01_nx064_nz19_fwhm500} ;
 
 static float alpha05_nx064_nz19_fwhm000[32] = {
@@ -6443,12 +6443,12 @@ static float alpha05_nx064_nz19_fwhm500[32] = {
  229.77,248.82,269.50,287.56,306.25,360.00,414.00,486.50,572.20,669.25,
  869.50,1095.17};
 static float *alpha05_nx064_nz19[21] = {
- alpha05_nx064_nz19_fwhm000, alpha05_nx064_nz19_fwhm025, alpha05_nx064_nz19_fwhm050, 
- alpha05_nx064_nz19_fwhm075, alpha05_nx064_nz19_fwhm100, alpha05_nx064_nz19_fwhm125, 
- alpha05_nx064_nz19_fwhm150, alpha05_nx064_nz19_fwhm175, alpha05_nx064_nz19_fwhm200, 
- alpha05_nx064_nz19_fwhm225, alpha05_nx064_nz19_fwhm250, alpha05_nx064_nz19_fwhm275, 
- alpha05_nx064_nz19_fwhm300, alpha05_nx064_nz19_fwhm325, alpha05_nx064_nz19_fwhm350, 
- alpha05_nx064_nz19_fwhm375, alpha05_nx064_nz19_fwhm400, alpha05_nx064_nz19_fwhm425, 
+ alpha05_nx064_nz19_fwhm000, alpha05_nx064_nz19_fwhm025, alpha05_nx064_nz19_fwhm050,
+ alpha05_nx064_nz19_fwhm075, alpha05_nx064_nz19_fwhm100, alpha05_nx064_nz19_fwhm125,
+ alpha05_nx064_nz19_fwhm150, alpha05_nx064_nz19_fwhm175, alpha05_nx064_nz19_fwhm200,
+ alpha05_nx064_nz19_fwhm225, alpha05_nx064_nz19_fwhm250, alpha05_nx064_nz19_fwhm275,
+ alpha05_nx064_nz19_fwhm300, alpha05_nx064_nz19_fwhm325, alpha05_nx064_nz19_fwhm350,
+ alpha05_nx064_nz19_fwhm375, alpha05_nx064_nz19_fwhm400, alpha05_nx064_nz19_fwhm425,
  alpha05_nx064_nz19_fwhm450, alpha05_nx064_nz19_fwhm475, alpha05_nx064_nz19_fwhm500} ;
 
 static float alpha10_nx064_nz19_fwhm000[32] = {
@@ -6557,12 +6557,12 @@ static float alpha10_nx064_nz19_fwhm500[32] = {
  192.28,208.57,225.94,243.00,258.58,303.50,347.60,409.00,485.33,568.71,
  734.00,928.00};
 static float *alpha10_nx064_nz19[21] = {
- alpha10_nx064_nz19_fwhm000, alpha10_nx064_nz19_fwhm025, alpha10_nx064_nz19_fwhm050, 
- alpha10_nx064_nz19_fwhm075, alpha10_nx064_nz19_fwhm100, alpha10_nx064_nz19_fwhm125, 
- alpha10_nx064_nz19_fwhm150, alpha10_nx064_nz19_fwhm175, alpha10_nx064_nz19_fwhm200, 
- alpha10_nx064_nz19_fwhm225, alpha10_nx064_nz19_fwhm250, alpha10_nx064_nz19_fwhm275, 
- alpha10_nx064_nz19_fwhm300, alpha10_nx064_nz19_fwhm325, alpha10_nx064_nz19_fwhm350, 
- alpha10_nx064_nz19_fwhm375, alpha10_nx064_nz19_fwhm400, alpha10_nx064_nz19_fwhm425, 
+ alpha10_nx064_nz19_fwhm000, alpha10_nx064_nz19_fwhm025, alpha10_nx064_nz19_fwhm050,
+ alpha10_nx064_nz19_fwhm075, alpha10_nx064_nz19_fwhm100, alpha10_nx064_nz19_fwhm125,
+ alpha10_nx064_nz19_fwhm150, alpha10_nx064_nz19_fwhm175, alpha10_nx064_nz19_fwhm200,
+ alpha10_nx064_nz19_fwhm225, alpha10_nx064_nz19_fwhm250, alpha10_nx064_nz19_fwhm275,
+ alpha10_nx064_nz19_fwhm300, alpha10_nx064_nz19_fwhm325, alpha10_nx064_nz19_fwhm350,
+ alpha10_nx064_nz19_fwhm375, alpha10_nx064_nz19_fwhm400, alpha10_nx064_nz19_fwhm425,
  alpha10_nx064_nz19_fwhm450, alpha10_nx064_nz19_fwhm475, alpha10_nx064_nz19_fwhm500} ;
 
 static float **nx064_nz19[3] = {
@@ -6674,12 +6674,12 @@ static float alpha01_nx064_nz20_fwhm500[32] = {
  321.00,343.33,366.00,395.50,419.50,489.00,562.00,666.00,778.00,898.50,
  1156.00,1473.50};
 static float *alpha01_nx064_nz20[21] = {
- alpha01_nx064_nz20_fwhm000, alpha01_nx064_nz20_fwhm025, alpha01_nx064_nz20_fwhm050, 
- alpha01_nx064_nz20_fwhm075, alpha01_nx064_nz20_fwhm100, alpha01_nx064_nz20_fwhm125, 
- alpha01_nx064_nz20_fwhm150, alpha01_nx064_nz20_fwhm175, alpha01_nx064_nz20_fwhm200, 
- alpha01_nx064_nz20_fwhm225, alpha01_nx064_nz20_fwhm250, alpha01_nx064_nz20_fwhm275, 
- alpha01_nx064_nz20_fwhm300, alpha01_nx064_nz20_fwhm325, alpha01_nx064_nz20_fwhm350, 
- alpha01_nx064_nz20_fwhm375, alpha01_nx064_nz20_fwhm400, alpha01_nx064_nz20_fwhm425, 
+ alpha01_nx064_nz20_fwhm000, alpha01_nx064_nz20_fwhm025, alpha01_nx064_nz20_fwhm050,
+ alpha01_nx064_nz20_fwhm075, alpha01_nx064_nz20_fwhm100, alpha01_nx064_nz20_fwhm125,
+ alpha01_nx064_nz20_fwhm150, alpha01_nx064_nz20_fwhm175, alpha01_nx064_nz20_fwhm200,
+ alpha01_nx064_nz20_fwhm225, alpha01_nx064_nz20_fwhm250, alpha01_nx064_nz20_fwhm275,
+ alpha01_nx064_nz20_fwhm300, alpha01_nx064_nz20_fwhm325, alpha01_nx064_nz20_fwhm350,
+ alpha01_nx064_nz20_fwhm375, alpha01_nx064_nz20_fwhm400, alpha01_nx064_nz20_fwhm425,
  alpha01_nx064_nz20_fwhm450, alpha01_nx064_nz20_fwhm475, alpha01_nx064_nz20_fwhm500} ;
 
 static float alpha05_nx064_nz20_fwhm000[32] = {
@@ -6788,12 +6788,12 @@ static float alpha05_nx064_nz20_fwhm500[32] = {
  232.88,252.83,272.67,291.73,309.82,361.67,414.80,485.50,574.25,667.33,
  877.00,1106.20};
 static float *alpha05_nx064_nz20[21] = {
- alpha05_nx064_nz20_fwhm000, alpha05_nx064_nz20_fwhm025, alpha05_nx064_nz20_fwhm050, 
- alpha05_nx064_nz20_fwhm075, alpha05_nx064_nz20_fwhm100, alpha05_nx064_nz20_fwhm125, 
- alpha05_nx064_nz20_fwhm150, alpha05_nx064_nz20_fwhm175, alpha05_nx064_nz20_fwhm200, 
- alpha05_nx064_nz20_fwhm225, alpha05_nx064_nz20_fwhm250, alpha05_nx064_nz20_fwhm275, 
- alpha05_nx064_nz20_fwhm300, alpha05_nx064_nz20_fwhm325, alpha05_nx064_nz20_fwhm350, 
- alpha05_nx064_nz20_fwhm375, alpha05_nx064_nz20_fwhm400, alpha05_nx064_nz20_fwhm425, 
+ alpha05_nx064_nz20_fwhm000, alpha05_nx064_nz20_fwhm025, alpha05_nx064_nz20_fwhm050,
+ alpha05_nx064_nz20_fwhm075, alpha05_nx064_nz20_fwhm100, alpha05_nx064_nz20_fwhm125,
+ alpha05_nx064_nz20_fwhm150, alpha05_nx064_nz20_fwhm175, alpha05_nx064_nz20_fwhm200,
+ alpha05_nx064_nz20_fwhm225, alpha05_nx064_nz20_fwhm250, alpha05_nx064_nz20_fwhm275,
+ alpha05_nx064_nz20_fwhm300, alpha05_nx064_nz20_fwhm325, alpha05_nx064_nz20_fwhm350,
+ alpha05_nx064_nz20_fwhm375, alpha05_nx064_nz20_fwhm400, alpha05_nx064_nz20_fwhm425,
  alpha05_nx064_nz20_fwhm450, alpha05_nx064_nz20_fwhm475, alpha05_nx064_nz20_fwhm500} ;
 
 static float alpha10_nx064_nz20_fwhm000[32] = {
@@ -6902,12 +6902,12 @@ static float alpha10_nx064_nz20_fwhm500[32] = {
  195.59,212.64,229.70,245.87,261.44,307.00,353.08,411.42,490.30,575.45,
  748.50,958.50};
 static float *alpha10_nx064_nz20[21] = {
- alpha10_nx064_nz20_fwhm000, alpha10_nx064_nz20_fwhm025, alpha10_nx064_nz20_fwhm050, 
- alpha10_nx064_nz20_fwhm075, alpha10_nx064_nz20_fwhm100, alpha10_nx064_nz20_fwhm125, 
- alpha10_nx064_nz20_fwhm150, alpha10_nx064_nz20_fwhm175, alpha10_nx064_nz20_fwhm200, 
- alpha10_nx064_nz20_fwhm225, alpha10_nx064_nz20_fwhm250, alpha10_nx064_nz20_fwhm275, 
- alpha10_nx064_nz20_fwhm300, alpha10_nx064_nz20_fwhm325, alpha10_nx064_nz20_fwhm350, 
- alpha10_nx064_nz20_fwhm375, alpha10_nx064_nz20_fwhm400, alpha10_nx064_nz20_fwhm425, 
+ alpha10_nx064_nz20_fwhm000, alpha10_nx064_nz20_fwhm025, alpha10_nx064_nz20_fwhm050,
+ alpha10_nx064_nz20_fwhm075, alpha10_nx064_nz20_fwhm100, alpha10_nx064_nz20_fwhm125,
+ alpha10_nx064_nz20_fwhm150, alpha10_nx064_nz20_fwhm175, alpha10_nx064_nz20_fwhm200,
+ alpha10_nx064_nz20_fwhm225, alpha10_nx064_nz20_fwhm250, alpha10_nx064_nz20_fwhm275,
+ alpha10_nx064_nz20_fwhm300, alpha10_nx064_nz20_fwhm325, alpha10_nx064_nz20_fwhm350,
+ alpha10_nx064_nz20_fwhm375, alpha10_nx064_nz20_fwhm400, alpha10_nx064_nz20_fwhm425,
  alpha10_nx064_nz20_fwhm450, alpha10_nx064_nz20_fwhm475, alpha10_nx064_nz20_fwhm500} ;
 
 static float **nx064_nz20[3] = {
@@ -7019,12 +7019,12 @@ static float alpha01_nx064_nz21_fwhm500[32] = {
  325.00,351.00,375.60,399.67,424.80,494.00,572.00,662.00,793.00,900.50,
  1195.00,1531.00};
 static float *alpha01_nx064_nz21[21] = {
- alpha01_nx064_nz21_fwhm000, alpha01_nx064_nz21_fwhm025, alpha01_nx064_nz21_fwhm050, 
- alpha01_nx064_nz21_fwhm075, alpha01_nx064_nz21_fwhm100, alpha01_nx064_nz21_fwhm125, 
- alpha01_nx064_nz21_fwhm150, alpha01_nx064_nz21_fwhm175, alpha01_nx064_nz21_fwhm200, 
- alpha01_nx064_nz21_fwhm225, alpha01_nx064_nz21_fwhm250, alpha01_nx064_nz21_fwhm275, 
- alpha01_nx064_nz21_fwhm300, alpha01_nx064_nz21_fwhm325, alpha01_nx064_nz21_fwhm350, 
- alpha01_nx064_nz21_fwhm375, alpha01_nx064_nz21_fwhm400, alpha01_nx064_nz21_fwhm425, 
+ alpha01_nx064_nz21_fwhm000, alpha01_nx064_nz21_fwhm025, alpha01_nx064_nz21_fwhm050,
+ alpha01_nx064_nz21_fwhm075, alpha01_nx064_nz21_fwhm100, alpha01_nx064_nz21_fwhm125,
+ alpha01_nx064_nz21_fwhm150, alpha01_nx064_nz21_fwhm175, alpha01_nx064_nz21_fwhm200,
+ alpha01_nx064_nz21_fwhm225, alpha01_nx064_nz21_fwhm250, alpha01_nx064_nz21_fwhm275,
+ alpha01_nx064_nz21_fwhm300, alpha01_nx064_nz21_fwhm325, alpha01_nx064_nz21_fwhm350,
+ alpha01_nx064_nz21_fwhm375, alpha01_nx064_nz21_fwhm400, alpha01_nx064_nz21_fwhm425,
  alpha01_nx064_nz21_fwhm450, alpha01_nx064_nz21_fwhm475, alpha01_nx064_nz21_fwhm500} ;
 
 static float alpha05_nx064_nz21_fwhm000[32] = {
@@ -7133,12 +7133,12 @@ static float alpha05_nx064_nz21_fwhm500[32] = {
  235.06,255.85,276.08,295.17,312.50,367.00,425.83,502.75,594.33,692.00,
  894.33,1144.67};
 static float *alpha05_nx064_nz21[21] = {
- alpha05_nx064_nz21_fwhm000, alpha05_nx064_nz21_fwhm025, alpha05_nx064_nz21_fwhm050, 
- alpha05_nx064_nz21_fwhm075, alpha05_nx064_nz21_fwhm100, alpha05_nx064_nz21_fwhm125, 
- alpha05_nx064_nz21_fwhm150, alpha05_nx064_nz21_fwhm175, alpha05_nx064_nz21_fwhm200, 
- alpha05_nx064_nz21_fwhm225, alpha05_nx064_nz21_fwhm250, alpha05_nx064_nz21_fwhm275, 
- alpha05_nx064_nz21_fwhm300, alpha05_nx064_nz21_fwhm325, alpha05_nx064_nz21_fwhm350, 
- alpha05_nx064_nz21_fwhm375, alpha05_nx064_nz21_fwhm400, alpha05_nx064_nz21_fwhm425, 
+ alpha05_nx064_nz21_fwhm000, alpha05_nx064_nz21_fwhm025, alpha05_nx064_nz21_fwhm050,
+ alpha05_nx064_nz21_fwhm075, alpha05_nx064_nz21_fwhm100, alpha05_nx064_nz21_fwhm125,
+ alpha05_nx064_nz21_fwhm150, alpha05_nx064_nz21_fwhm175, alpha05_nx064_nz21_fwhm200,
+ alpha05_nx064_nz21_fwhm225, alpha05_nx064_nz21_fwhm250, alpha05_nx064_nz21_fwhm275,
+ alpha05_nx064_nz21_fwhm300, alpha05_nx064_nz21_fwhm325, alpha05_nx064_nz21_fwhm350,
+ alpha05_nx064_nz21_fwhm375, alpha05_nx064_nz21_fwhm400, alpha05_nx064_nz21_fwhm425,
  alpha05_nx064_nz21_fwhm450, alpha05_nx064_nz21_fwhm475, alpha05_nx064_nz21_fwhm500} ;
 
 static float alpha10_nx064_nz21_fwhm000[32] = {
@@ -7247,12 +7247,12 @@ static float alpha10_nx064_nz21_fwhm500[32] = {
  197.46,215.45,232.35,249.81,265.77,312.07,360.47,422.14,502.83,587.50,
  765.33,970.20};
 static float *alpha10_nx064_nz21[21] = {
- alpha10_nx064_nz21_fwhm000, alpha10_nx064_nz21_fwhm025, alpha10_nx064_nz21_fwhm050, 
- alpha10_nx064_nz21_fwhm075, alpha10_nx064_nz21_fwhm100, alpha10_nx064_nz21_fwhm125, 
- alpha10_nx064_nz21_fwhm150, alpha10_nx064_nz21_fwhm175, alpha10_nx064_nz21_fwhm200, 
- alpha10_nx064_nz21_fwhm225, alpha10_nx064_nz21_fwhm250, alpha10_nx064_nz21_fwhm275, 
- alpha10_nx064_nz21_fwhm300, alpha10_nx064_nz21_fwhm325, alpha10_nx064_nz21_fwhm350, 
- alpha10_nx064_nz21_fwhm375, alpha10_nx064_nz21_fwhm400, alpha10_nx064_nz21_fwhm425, 
+ alpha10_nx064_nz21_fwhm000, alpha10_nx064_nz21_fwhm025, alpha10_nx064_nz21_fwhm050,
+ alpha10_nx064_nz21_fwhm075, alpha10_nx064_nz21_fwhm100, alpha10_nx064_nz21_fwhm125,
+ alpha10_nx064_nz21_fwhm150, alpha10_nx064_nz21_fwhm175, alpha10_nx064_nz21_fwhm200,
+ alpha10_nx064_nz21_fwhm225, alpha10_nx064_nz21_fwhm250, alpha10_nx064_nz21_fwhm275,
+ alpha10_nx064_nz21_fwhm300, alpha10_nx064_nz21_fwhm325, alpha10_nx064_nz21_fwhm350,
+ alpha10_nx064_nz21_fwhm375, alpha10_nx064_nz21_fwhm400, alpha10_nx064_nz21_fwhm425,
  alpha10_nx064_nz21_fwhm450, alpha10_nx064_nz21_fwhm475, alpha10_nx064_nz21_fwhm500} ;
 
 static float **nx064_nz21[3] = {
@@ -7364,12 +7364,12 @@ static float alpha01_nx064_nz22_fwhm500[32] = {
  331.50,362.00,385.67,410.00,435.00,509.00,585.00,687.00,824.00,953.00,
  1258.50,1568.00};
 static float *alpha01_nx064_nz22[21] = {
- alpha01_nx064_nz22_fwhm000, alpha01_nx064_nz22_fwhm025, alpha01_nx064_nz22_fwhm050, 
- alpha01_nx064_nz22_fwhm075, alpha01_nx064_nz22_fwhm100, alpha01_nx064_nz22_fwhm125, 
- alpha01_nx064_nz22_fwhm150, alpha01_nx064_nz22_fwhm175, alpha01_nx064_nz22_fwhm200, 
- alpha01_nx064_nz22_fwhm225, alpha01_nx064_nz22_fwhm250, alpha01_nx064_nz22_fwhm275, 
- alpha01_nx064_nz22_fwhm300, alpha01_nx064_nz22_fwhm325, alpha01_nx064_nz22_fwhm350, 
- alpha01_nx064_nz22_fwhm375, alpha01_nx064_nz22_fwhm400, alpha01_nx064_nz22_fwhm425, 
+ alpha01_nx064_nz22_fwhm000, alpha01_nx064_nz22_fwhm025, alpha01_nx064_nz22_fwhm050,
+ alpha01_nx064_nz22_fwhm075, alpha01_nx064_nz22_fwhm100, alpha01_nx064_nz22_fwhm125,
+ alpha01_nx064_nz22_fwhm150, alpha01_nx064_nz22_fwhm175, alpha01_nx064_nz22_fwhm200,
+ alpha01_nx064_nz22_fwhm225, alpha01_nx064_nz22_fwhm250, alpha01_nx064_nz22_fwhm275,
+ alpha01_nx064_nz22_fwhm300, alpha01_nx064_nz22_fwhm325, alpha01_nx064_nz22_fwhm350,
+ alpha01_nx064_nz22_fwhm375, alpha01_nx064_nz22_fwhm400, alpha01_nx064_nz22_fwhm425,
  alpha01_nx064_nz22_fwhm450, alpha01_nx064_nz22_fwhm475, alpha01_nx064_nz22_fwhm500} ;
 
 static float alpha05_nx064_nz22_fwhm000[32] = {
@@ -7478,12 +7478,12 @@ static float alpha05_nx064_nz22_fwhm500[32] = {
  241.29,263.50,282.75,302.20,323.00,379.75,436.40,510.50,605.00,704.71,
  916.00,1174.33};
 static float *alpha05_nx064_nz22[21] = {
- alpha05_nx064_nz22_fwhm000, alpha05_nx064_nz22_fwhm025, alpha05_nx064_nz22_fwhm050, 
- alpha05_nx064_nz22_fwhm075, alpha05_nx064_nz22_fwhm100, alpha05_nx064_nz22_fwhm125, 
- alpha05_nx064_nz22_fwhm150, alpha05_nx064_nz22_fwhm175, alpha05_nx064_nz22_fwhm200, 
- alpha05_nx064_nz22_fwhm225, alpha05_nx064_nz22_fwhm250, alpha05_nx064_nz22_fwhm275, 
- alpha05_nx064_nz22_fwhm300, alpha05_nx064_nz22_fwhm325, alpha05_nx064_nz22_fwhm350, 
- alpha05_nx064_nz22_fwhm375, alpha05_nx064_nz22_fwhm400, alpha05_nx064_nz22_fwhm425, 
+ alpha05_nx064_nz22_fwhm000, alpha05_nx064_nz22_fwhm025, alpha05_nx064_nz22_fwhm050,
+ alpha05_nx064_nz22_fwhm075, alpha05_nx064_nz22_fwhm100, alpha05_nx064_nz22_fwhm125,
+ alpha05_nx064_nz22_fwhm150, alpha05_nx064_nz22_fwhm175, alpha05_nx064_nz22_fwhm200,
+ alpha05_nx064_nz22_fwhm225, alpha05_nx064_nz22_fwhm250, alpha05_nx064_nz22_fwhm275,
+ alpha05_nx064_nz22_fwhm300, alpha05_nx064_nz22_fwhm325, alpha05_nx064_nz22_fwhm350,
+ alpha05_nx064_nz22_fwhm375, alpha05_nx064_nz22_fwhm400, alpha05_nx064_nz22_fwhm425,
  alpha05_nx064_nz22_fwhm450, alpha05_nx064_nz22_fwhm475, alpha05_nx064_nz22_fwhm500} ;
 
 static float alpha10_nx064_nz22_fwhm000[32] = {
@@ -7592,12 +7592,12 @@ static float alpha10_nx064_nz22_fwhm500[32] = {
  203.35,222.06,239.76,256.14,272.00,320.44,369.78,434.67,514.40,601.88,
  779.38,994.40};
 static float *alpha10_nx064_nz22[21] = {
- alpha10_nx064_nz22_fwhm000, alpha10_nx064_nz22_fwhm025, alpha10_nx064_nz22_fwhm050, 
- alpha10_nx064_nz22_fwhm075, alpha10_nx064_nz22_fwhm100, alpha10_nx064_nz22_fwhm125, 
- alpha10_nx064_nz22_fwhm150, alpha10_nx064_nz22_fwhm175, alpha10_nx064_nz22_fwhm200, 
- alpha10_nx064_nz22_fwhm225, alpha10_nx064_nz22_fwhm250, alpha10_nx064_nz22_fwhm275, 
- alpha10_nx064_nz22_fwhm300, alpha10_nx064_nz22_fwhm325, alpha10_nx064_nz22_fwhm350, 
- alpha10_nx064_nz22_fwhm375, alpha10_nx064_nz22_fwhm400, alpha10_nx064_nz22_fwhm425, 
+ alpha10_nx064_nz22_fwhm000, alpha10_nx064_nz22_fwhm025, alpha10_nx064_nz22_fwhm050,
+ alpha10_nx064_nz22_fwhm075, alpha10_nx064_nz22_fwhm100, alpha10_nx064_nz22_fwhm125,
+ alpha10_nx064_nz22_fwhm150, alpha10_nx064_nz22_fwhm175, alpha10_nx064_nz22_fwhm200,
+ alpha10_nx064_nz22_fwhm225, alpha10_nx064_nz22_fwhm250, alpha10_nx064_nz22_fwhm275,
+ alpha10_nx064_nz22_fwhm300, alpha10_nx064_nz22_fwhm325, alpha10_nx064_nz22_fwhm350,
+ alpha10_nx064_nz22_fwhm375, alpha10_nx064_nz22_fwhm400, alpha10_nx064_nz22_fwhm425,
  alpha10_nx064_nz22_fwhm450, alpha10_nx064_nz22_fwhm475, alpha10_nx064_nz22_fwhm500} ;
 
 static float **nx064_nz22[3] = {
@@ -7709,12 +7709,12 @@ static float alpha01_nx064_nz23_fwhm500[32] = {
  330.50,357.00,383.00,412.00,436.50,507.00,565.00,673.50,809.00,951.00,
  1260.00,1610.00};
 static float *alpha01_nx064_nz23[21] = {
- alpha01_nx064_nz23_fwhm000, alpha01_nx064_nz23_fwhm025, alpha01_nx064_nz23_fwhm050, 
- alpha01_nx064_nz23_fwhm075, alpha01_nx064_nz23_fwhm100, alpha01_nx064_nz23_fwhm125, 
- alpha01_nx064_nz23_fwhm150, alpha01_nx064_nz23_fwhm175, alpha01_nx064_nz23_fwhm200, 
- alpha01_nx064_nz23_fwhm225, alpha01_nx064_nz23_fwhm250, alpha01_nx064_nz23_fwhm275, 
- alpha01_nx064_nz23_fwhm300, alpha01_nx064_nz23_fwhm325, alpha01_nx064_nz23_fwhm350, 
- alpha01_nx064_nz23_fwhm375, alpha01_nx064_nz23_fwhm400, alpha01_nx064_nz23_fwhm425, 
+ alpha01_nx064_nz23_fwhm000, alpha01_nx064_nz23_fwhm025, alpha01_nx064_nz23_fwhm050,
+ alpha01_nx064_nz23_fwhm075, alpha01_nx064_nz23_fwhm100, alpha01_nx064_nz23_fwhm125,
+ alpha01_nx064_nz23_fwhm150, alpha01_nx064_nz23_fwhm175, alpha01_nx064_nz23_fwhm200,
+ alpha01_nx064_nz23_fwhm225, alpha01_nx064_nz23_fwhm250, alpha01_nx064_nz23_fwhm275,
+ alpha01_nx064_nz23_fwhm300, alpha01_nx064_nz23_fwhm325, alpha01_nx064_nz23_fwhm350,
+ alpha01_nx064_nz23_fwhm375, alpha01_nx064_nz23_fwhm400, alpha01_nx064_nz23_fwhm425,
  alpha01_nx064_nz23_fwhm450, alpha01_nx064_nz23_fwhm475, alpha01_nx064_nz23_fwhm500} ;
 
 static float alpha05_nx064_nz23_fwhm000[32] = {
@@ -7823,12 +7823,12 @@ static float alpha05_nx064_nz23_fwhm500[32] = {
  243.75,264.80,284.00,303.23,321.36,380.40,435.17,513.80,608.00,707.17,
  939.60,1204.00};
 static float *alpha05_nx064_nz23[21] = {
- alpha05_nx064_nz23_fwhm000, alpha05_nx064_nz23_fwhm025, alpha05_nx064_nz23_fwhm050, 
- alpha05_nx064_nz23_fwhm075, alpha05_nx064_nz23_fwhm100, alpha05_nx064_nz23_fwhm125, 
- alpha05_nx064_nz23_fwhm150, alpha05_nx064_nz23_fwhm175, alpha05_nx064_nz23_fwhm200, 
- alpha05_nx064_nz23_fwhm225, alpha05_nx064_nz23_fwhm250, alpha05_nx064_nz23_fwhm275, 
- alpha05_nx064_nz23_fwhm300, alpha05_nx064_nz23_fwhm325, alpha05_nx064_nz23_fwhm350, 
- alpha05_nx064_nz23_fwhm375, alpha05_nx064_nz23_fwhm400, alpha05_nx064_nz23_fwhm425, 
+ alpha05_nx064_nz23_fwhm000, alpha05_nx064_nz23_fwhm025, alpha05_nx064_nz23_fwhm050,
+ alpha05_nx064_nz23_fwhm075, alpha05_nx064_nz23_fwhm100, alpha05_nx064_nz23_fwhm125,
+ alpha05_nx064_nz23_fwhm150, alpha05_nx064_nz23_fwhm175, alpha05_nx064_nz23_fwhm200,
+ alpha05_nx064_nz23_fwhm225, alpha05_nx064_nz23_fwhm250, alpha05_nx064_nz23_fwhm275,
+ alpha05_nx064_nz23_fwhm300, alpha05_nx064_nz23_fwhm325, alpha05_nx064_nz23_fwhm350,
+ alpha05_nx064_nz23_fwhm375, alpha05_nx064_nz23_fwhm400, alpha05_nx064_nz23_fwhm425,
  alpha05_nx064_nz23_fwhm450, alpha05_nx064_nz23_fwhm475, alpha05_nx064_nz23_fwhm500} ;
 
 static float alpha10_nx064_nz23_fwhm000[32] = {
@@ -7937,12 +7937,12 @@ static float alpha10_nx064_nz23_fwhm500[32] = {
  204.90,223.90,241.40,258.86,275.70,324.33,372.89,437.23,518.00,609.56,
  801.40,1025.40};
 static float *alpha10_nx064_nz23[21] = {
- alpha10_nx064_nz23_fwhm000, alpha10_nx064_nz23_fwhm025, alpha10_nx064_nz23_fwhm050, 
- alpha10_nx064_nz23_fwhm075, alpha10_nx064_nz23_fwhm100, alpha10_nx064_nz23_fwhm125, 
- alpha10_nx064_nz23_fwhm150, alpha10_nx064_nz23_fwhm175, alpha10_nx064_nz23_fwhm200, 
- alpha10_nx064_nz23_fwhm225, alpha10_nx064_nz23_fwhm250, alpha10_nx064_nz23_fwhm275, 
- alpha10_nx064_nz23_fwhm300, alpha10_nx064_nz23_fwhm325, alpha10_nx064_nz23_fwhm350, 
- alpha10_nx064_nz23_fwhm375, alpha10_nx064_nz23_fwhm400, alpha10_nx064_nz23_fwhm425, 
+ alpha10_nx064_nz23_fwhm000, alpha10_nx064_nz23_fwhm025, alpha10_nx064_nz23_fwhm050,
+ alpha10_nx064_nz23_fwhm075, alpha10_nx064_nz23_fwhm100, alpha10_nx064_nz23_fwhm125,
+ alpha10_nx064_nz23_fwhm150, alpha10_nx064_nz23_fwhm175, alpha10_nx064_nz23_fwhm200,
+ alpha10_nx064_nz23_fwhm225, alpha10_nx064_nz23_fwhm250, alpha10_nx064_nz23_fwhm275,
+ alpha10_nx064_nz23_fwhm300, alpha10_nx064_nz23_fwhm325, alpha10_nx064_nz23_fwhm350,
+ alpha10_nx064_nz23_fwhm375, alpha10_nx064_nz23_fwhm400, alpha10_nx064_nz23_fwhm425,
  alpha10_nx064_nz23_fwhm450, alpha10_nx064_nz23_fwhm475, alpha10_nx064_nz23_fwhm500} ;
 
 static float **nx064_nz23[3] = {
@@ -8054,12 +8054,12 @@ static float alpha01_nx064_nz24_fwhm500[32] = {
  334.67,362.67,386.00,416.50,443.50,521.00,595.00,708.00,847.00,980.00,
  1305.00,1710.00};
 static float *alpha01_nx064_nz24[21] = {
- alpha01_nx064_nz24_fwhm000, alpha01_nx064_nz24_fwhm025, alpha01_nx064_nz24_fwhm050, 
- alpha01_nx064_nz24_fwhm075, alpha01_nx064_nz24_fwhm100, alpha01_nx064_nz24_fwhm125, 
- alpha01_nx064_nz24_fwhm150, alpha01_nx064_nz24_fwhm175, alpha01_nx064_nz24_fwhm200, 
- alpha01_nx064_nz24_fwhm225, alpha01_nx064_nz24_fwhm250, alpha01_nx064_nz24_fwhm275, 
- alpha01_nx064_nz24_fwhm300, alpha01_nx064_nz24_fwhm325, alpha01_nx064_nz24_fwhm350, 
- alpha01_nx064_nz24_fwhm375, alpha01_nx064_nz24_fwhm400, alpha01_nx064_nz24_fwhm425, 
+ alpha01_nx064_nz24_fwhm000, alpha01_nx064_nz24_fwhm025, alpha01_nx064_nz24_fwhm050,
+ alpha01_nx064_nz24_fwhm075, alpha01_nx064_nz24_fwhm100, alpha01_nx064_nz24_fwhm125,
+ alpha01_nx064_nz24_fwhm150, alpha01_nx064_nz24_fwhm175, alpha01_nx064_nz24_fwhm200,
+ alpha01_nx064_nz24_fwhm225, alpha01_nx064_nz24_fwhm250, alpha01_nx064_nz24_fwhm275,
+ alpha01_nx064_nz24_fwhm300, alpha01_nx064_nz24_fwhm325, alpha01_nx064_nz24_fwhm350,
+ alpha01_nx064_nz24_fwhm375, alpha01_nx064_nz24_fwhm400, alpha01_nx064_nz24_fwhm425,
  alpha01_nx064_nz24_fwhm450, alpha01_nx064_nz24_fwhm475, alpha01_nx064_nz24_fwhm500} ;
 
 static float alpha05_nx064_nz24_fwhm000[32] = {
@@ -8168,12 +8168,12 @@ static float alpha05_nx064_nz24_fwhm500[32] = {
  250.40,271.82,292.57,312.33,331.83,390.14,447.20,526.43,623.67,726.00,
  953.00,1235.50};
 static float *alpha05_nx064_nz24[21] = {
- alpha05_nx064_nz24_fwhm000, alpha05_nx064_nz24_fwhm025, alpha05_nx064_nz24_fwhm050, 
- alpha05_nx064_nz24_fwhm075, alpha05_nx064_nz24_fwhm100, alpha05_nx064_nz24_fwhm125, 
- alpha05_nx064_nz24_fwhm150, alpha05_nx064_nz24_fwhm175, alpha05_nx064_nz24_fwhm200, 
- alpha05_nx064_nz24_fwhm225, alpha05_nx064_nz24_fwhm250, alpha05_nx064_nz24_fwhm275, 
- alpha05_nx064_nz24_fwhm300, alpha05_nx064_nz24_fwhm325, alpha05_nx064_nz24_fwhm350, 
- alpha05_nx064_nz24_fwhm375, alpha05_nx064_nz24_fwhm400, alpha05_nx064_nz24_fwhm425, 
+ alpha05_nx064_nz24_fwhm000, alpha05_nx064_nz24_fwhm025, alpha05_nx064_nz24_fwhm050,
+ alpha05_nx064_nz24_fwhm075, alpha05_nx064_nz24_fwhm100, alpha05_nx064_nz24_fwhm125,
+ alpha05_nx064_nz24_fwhm150, alpha05_nx064_nz24_fwhm175, alpha05_nx064_nz24_fwhm200,
+ alpha05_nx064_nz24_fwhm225, alpha05_nx064_nz24_fwhm250, alpha05_nx064_nz24_fwhm275,
+ alpha05_nx064_nz24_fwhm300, alpha05_nx064_nz24_fwhm325, alpha05_nx064_nz24_fwhm350,
+ alpha05_nx064_nz24_fwhm375, alpha05_nx064_nz24_fwhm400, alpha05_nx064_nz24_fwhm425,
  alpha05_nx064_nz24_fwhm450, alpha05_nx064_nz24_fwhm475, alpha05_nx064_nz24_fwhm500} ;
 
 static float alpha10_nx064_nz24_fwhm000[32] = {
@@ -8282,12 +8282,12 @@ static float alpha10_nx064_nz24_fwhm500[32] = {
  208.89,227.87,245.75,264.29,281.47,332.67,383.25,449.83,532.50,621.67,
  814.67,1041.75};
 static float *alpha10_nx064_nz24[21] = {
- alpha10_nx064_nz24_fwhm000, alpha10_nx064_nz24_fwhm025, alpha10_nx064_nz24_fwhm050, 
- alpha10_nx064_nz24_fwhm075, alpha10_nx064_nz24_fwhm100, alpha10_nx064_nz24_fwhm125, 
- alpha10_nx064_nz24_fwhm150, alpha10_nx064_nz24_fwhm175, alpha10_nx064_nz24_fwhm200, 
- alpha10_nx064_nz24_fwhm225, alpha10_nx064_nz24_fwhm250, alpha10_nx064_nz24_fwhm275, 
- alpha10_nx064_nz24_fwhm300, alpha10_nx064_nz24_fwhm325, alpha10_nx064_nz24_fwhm350, 
- alpha10_nx064_nz24_fwhm375, alpha10_nx064_nz24_fwhm400, alpha10_nx064_nz24_fwhm425, 
+ alpha10_nx064_nz24_fwhm000, alpha10_nx064_nz24_fwhm025, alpha10_nx064_nz24_fwhm050,
+ alpha10_nx064_nz24_fwhm075, alpha10_nx064_nz24_fwhm100, alpha10_nx064_nz24_fwhm125,
+ alpha10_nx064_nz24_fwhm150, alpha10_nx064_nz24_fwhm175, alpha10_nx064_nz24_fwhm200,
+ alpha10_nx064_nz24_fwhm225, alpha10_nx064_nz24_fwhm250, alpha10_nx064_nz24_fwhm275,
+ alpha10_nx064_nz24_fwhm300, alpha10_nx064_nz24_fwhm325, alpha10_nx064_nz24_fwhm350,
+ alpha10_nx064_nz24_fwhm375, alpha10_nx064_nz24_fwhm400, alpha10_nx064_nz24_fwhm425,
  alpha10_nx064_nz24_fwhm450, alpha10_nx064_nz24_fwhm475, alpha10_nx064_nz24_fwhm500} ;
 
 static float **nx064_nz24[3] = {
@@ -8399,12 +8399,12 @@ static float alpha01_nx064_nz25_fwhm500[32] = {
  340.00,369.67,396.50,426.67,451.00,528.00,606.50,714.50,857.00,1004.00,
  1318.00,1686.00};
 static float *alpha01_nx064_nz25[21] = {
- alpha01_nx064_nz25_fwhm000, alpha01_nx064_nz25_fwhm025, alpha01_nx064_nz25_fwhm050, 
- alpha01_nx064_nz25_fwhm075, alpha01_nx064_nz25_fwhm100, alpha01_nx064_nz25_fwhm125, 
- alpha01_nx064_nz25_fwhm150, alpha01_nx064_nz25_fwhm175, alpha01_nx064_nz25_fwhm200, 
- alpha01_nx064_nz25_fwhm225, alpha01_nx064_nz25_fwhm250, alpha01_nx064_nz25_fwhm275, 
- alpha01_nx064_nz25_fwhm300, alpha01_nx064_nz25_fwhm325, alpha01_nx064_nz25_fwhm350, 
- alpha01_nx064_nz25_fwhm375, alpha01_nx064_nz25_fwhm400, alpha01_nx064_nz25_fwhm425, 
+ alpha01_nx064_nz25_fwhm000, alpha01_nx064_nz25_fwhm025, alpha01_nx064_nz25_fwhm050,
+ alpha01_nx064_nz25_fwhm075, alpha01_nx064_nz25_fwhm100, alpha01_nx064_nz25_fwhm125,
+ alpha01_nx064_nz25_fwhm150, alpha01_nx064_nz25_fwhm175, alpha01_nx064_nz25_fwhm200,
+ alpha01_nx064_nz25_fwhm225, alpha01_nx064_nz25_fwhm250, alpha01_nx064_nz25_fwhm275,
+ alpha01_nx064_nz25_fwhm300, alpha01_nx064_nz25_fwhm325, alpha01_nx064_nz25_fwhm350,
+ alpha01_nx064_nz25_fwhm375, alpha01_nx064_nz25_fwhm400, alpha01_nx064_nz25_fwhm425,
  alpha01_nx064_nz25_fwhm450, alpha01_nx064_nz25_fwhm475, alpha01_nx064_nz25_fwhm500} ;
 
 static float alpha05_nx064_nz25_fwhm000[32] = {
@@ -8513,12 +8513,12 @@ static float alpha05_nx064_nz25_fwhm500[32] = {
  252.38,273.11,294.14,315.50,336.33,397.17,453.75,533.70,636.50,745.20,
  977.83,1263.25};
 static float *alpha05_nx064_nz25[21] = {
- alpha05_nx064_nz25_fwhm000, alpha05_nx064_nz25_fwhm025, alpha05_nx064_nz25_fwhm050, 
- alpha05_nx064_nz25_fwhm075, alpha05_nx064_nz25_fwhm100, alpha05_nx064_nz25_fwhm125, 
- alpha05_nx064_nz25_fwhm150, alpha05_nx064_nz25_fwhm175, alpha05_nx064_nz25_fwhm200, 
- alpha05_nx064_nz25_fwhm225, alpha05_nx064_nz25_fwhm250, alpha05_nx064_nz25_fwhm275, 
- alpha05_nx064_nz25_fwhm300, alpha05_nx064_nz25_fwhm325, alpha05_nx064_nz25_fwhm350, 
- alpha05_nx064_nz25_fwhm375, alpha05_nx064_nz25_fwhm400, alpha05_nx064_nz25_fwhm425, 
+ alpha05_nx064_nz25_fwhm000, alpha05_nx064_nz25_fwhm025, alpha05_nx064_nz25_fwhm050,
+ alpha05_nx064_nz25_fwhm075, alpha05_nx064_nz25_fwhm100, alpha05_nx064_nz25_fwhm125,
+ alpha05_nx064_nz25_fwhm150, alpha05_nx064_nz25_fwhm175, alpha05_nx064_nz25_fwhm200,
+ alpha05_nx064_nz25_fwhm225, alpha05_nx064_nz25_fwhm250, alpha05_nx064_nz25_fwhm275,
+ alpha05_nx064_nz25_fwhm300, alpha05_nx064_nz25_fwhm325, alpha05_nx064_nz25_fwhm350,
+ alpha05_nx064_nz25_fwhm375, alpha05_nx064_nz25_fwhm400, alpha05_nx064_nz25_fwhm425,
  alpha05_nx064_nz25_fwhm450, alpha05_nx064_nz25_fwhm475, alpha05_nx064_nz25_fwhm500} ;
 
 static float alpha10_nx064_nz25_fwhm000[32] = {
@@ -8627,12 +8627,12 @@ static float alpha10_nx064_nz25_fwhm500[32] = {
  213.58,232.86,251.44,269.27,286.41,338.53,388.40,455.60,544.00,636.43,
  844.20,1074.33};
 static float *alpha10_nx064_nz25[21] = {
- alpha10_nx064_nz25_fwhm000, alpha10_nx064_nz25_fwhm025, alpha10_nx064_nz25_fwhm050, 
- alpha10_nx064_nz25_fwhm075, alpha10_nx064_nz25_fwhm100, alpha10_nx064_nz25_fwhm125, 
- alpha10_nx064_nz25_fwhm150, alpha10_nx064_nz25_fwhm175, alpha10_nx064_nz25_fwhm200, 
- alpha10_nx064_nz25_fwhm225, alpha10_nx064_nz25_fwhm250, alpha10_nx064_nz25_fwhm275, 
- alpha10_nx064_nz25_fwhm300, alpha10_nx064_nz25_fwhm325, alpha10_nx064_nz25_fwhm350, 
- alpha10_nx064_nz25_fwhm375, alpha10_nx064_nz25_fwhm400, alpha10_nx064_nz25_fwhm425, 
+ alpha10_nx064_nz25_fwhm000, alpha10_nx064_nz25_fwhm025, alpha10_nx064_nz25_fwhm050,
+ alpha10_nx064_nz25_fwhm075, alpha10_nx064_nz25_fwhm100, alpha10_nx064_nz25_fwhm125,
+ alpha10_nx064_nz25_fwhm150, alpha10_nx064_nz25_fwhm175, alpha10_nx064_nz25_fwhm200,
+ alpha10_nx064_nz25_fwhm225, alpha10_nx064_nz25_fwhm250, alpha10_nx064_nz25_fwhm275,
+ alpha10_nx064_nz25_fwhm300, alpha10_nx064_nz25_fwhm325, alpha10_nx064_nz25_fwhm350,
+ alpha10_nx064_nz25_fwhm375, alpha10_nx064_nz25_fwhm400, alpha10_nx064_nz25_fwhm425,
  alpha10_nx064_nz25_fwhm450, alpha10_nx064_nz25_fwhm475, alpha10_nx064_nz25_fwhm500} ;
 
 static float **nx064_nz25[3] = {
@@ -8744,12 +8744,12 @@ static float alpha01_nx064_nz26_fwhm500[32] = {
  350.67,381.00,413.00,441.25,470.00,546.50,620.50,728.00,868.00,1009.00,
  1329.00,1725.00};
 static float *alpha01_nx064_nz26[21] = {
- alpha01_nx064_nz26_fwhm000, alpha01_nx064_nz26_fwhm025, alpha01_nx064_nz26_fwhm050, 
- alpha01_nx064_nz26_fwhm075, alpha01_nx064_nz26_fwhm100, alpha01_nx064_nz26_fwhm125, 
- alpha01_nx064_nz26_fwhm150, alpha01_nx064_nz26_fwhm175, alpha01_nx064_nz26_fwhm200, 
- alpha01_nx064_nz26_fwhm225, alpha01_nx064_nz26_fwhm250, alpha01_nx064_nz26_fwhm275, 
- alpha01_nx064_nz26_fwhm300, alpha01_nx064_nz26_fwhm325, alpha01_nx064_nz26_fwhm350, 
- alpha01_nx064_nz26_fwhm375, alpha01_nx064_nz26_fwhm400, alpha01_nx064_nz26_fwhm425, 
+ alpha01_nx064_nz26_fwhm000, alpha01_nx064_nz26_fwhm025, alpha01_nx064_nz26_fwhm050,
+ alpha01_nx064_nz26_fwhm075, alpha01_nx064_nz26_fwhm100, alpha01_nx064_nz26_fwhm125,
+ alpha01_nx064_nz26_fwhm150, alpha01_nx064_nz26_fwhm175, alpha01_nx064_nz26_fwhm200,
+ alpha01_nx064_nz26_fwhm225, alpha01_nx064_nz26_fwhm250, alpha01_nx064_nz26_fwhm275,
+ alpha01_nx064_nz26_fwhm300, alpha01_nx064_nz26_fwhm325, alpha01_nx064_nz26_fwhm350,
+ alpha01_nx064_nz26_fwhm375, alpha01_nx064_nz26_fwhm400, alpha01_nx064_nz26_fwhm425,
  alpha01_nx064_nz26_fwhm450, alpha01_nx064_nz26_fwhm475, alpha01_nx064_nz26_fwhm500} ;
 
 static float alpha05_nx064_nz26_fwhm000[32] = {
@@ -8858,12 +8858,12 @@ static float alpha05_nx064_nz26_fwhm500[32] = {
  255.33,276.50,298.89,319.50,339.60,398.50,455.62,540.00,642.67,752.00,
  999.50,1294.00};
 static float *alpha05_nx064_nz26[21] = {
- alpha05_nx064_nz26_fwhm000, alpha05_nx064_nz26_fwhm025, alpha05_nx064_nz26_fwhm050, 
- alpha05_nx064_nz26_fwhm075, alpha05_nx064_nz26_fwhm100, alpha05_nx064_nz26_fwhm125, 
- alpha05_nx064_nz26_fwhm150, alpha05_nx064_nz26_fwhm175, alpha05_nx064_nz26_fwhm200, 
- alpha05_nx064_nz26_fwhm225, alpha05_nx064_nz26_fwhm250, alpha05_nx064_nz26_fwhm275, 
- alpha05_nx064_nz26_fwhm300, alpha05_nx064_nz26_fwhm325, alpha05_nx064_nz26_fwhm350, 
- alpha05_nx064_nz26_fwhm375, alpha05_nx064_nz26_fwhm400, alpha05_nx064_nz26_fwhm425, 
+ alpha05_nx064_nz26_fwhm000, alpha05_nx064_nz26_fwhm025, alpha05_nx064_nz26_fwhm050,
+ alpha05_nx064_nz26_fwhm075, alpha05_nx064_nz26_fwhm100, alpha05_nx064_nz26_fwhm125,
+ alpha05_nx064_nz26_fwhm150, alpha05_nx064_nz26_fwhm175, alpha05_nx064_nz26_fwhm200,
+ alpha05_nx064_nz26_fwhm225, alpha05_nx064_nz26_fwhm250, alpha05_nx064_nz26_fwhm275,
+ alpha05_nx064_nz26_fwhm300, alpha05_nx064_nz26_fwhm325, alpha05_nx064_nz26_fwhm350,
+ alpha05_nx064_nz26_fwhm375, alpha05_nx064_nz26_fwhm400, alpha05_nx064_nz26_fwhm425,
  alpha05_nx064_nz26_fwhm450, alpha05_nx064_nz26_fwhm475, alpha05_nx064_nz26_fwhm500} ;
 
 static float alpha10_nx064_nz26_fwhm000[32] = {
@@ -8972,12 +8972,12 @@ static float alpha10_nx064_nz26_fwhm500[32] = {
  215.43,234.45,253.61,272.69,290.80,343.00,391.78,461.92,550.50,643.20,
  854.80,1098.00};
 static float *alpha10_nx064_nz26[21] = {
- alpha10_nx064_nz26_fwhm000, alpha10_nx064_nz26_fwhm025, alpha10_nx064_nz26_fwhm050, 
- alpha10_nx064_nz26_fwhm075, alpha10_nx064_nz26_fwhm100, alpha10_nx064_nz26_fwhm125, 
- alpha10_nx064_nz26_fwhm150, alpha10_nx064_nz26_fwhm175, alpha10_nx064_nz26_fwhm200, 
- alpha10_nx064_nz26_fwhm225, alpha10_nx064_nz26_fwhm250, alpha10_nx064_nz26_fwhm275, 
- alpha10_nx064_nz26_fwhm300, alpha10_nx064_nz26_fwhm325, alpha10_nx064_nz26_fwhm350, 
- alpha10_nx064_nz26_fwhm375, alpha10_nx064_nz26_fwhm400, alpha10_nx064_nz26_fwhm425, 
+ alpha10_nx064_nz26_fwhm000, alpha10_nx064_nz26_fwhm025, alpha10_nx064_nz26_fwhm050,
+ alpha10_nx064_nz26_fwhm075, alpha10_nx064_nz26_fwhm100, alpha10_nx064_nz26_fwhm125,
+ alpha10_nx064_nz26_fwhm150, alpha10_nx064_nz26_fwhm175, alpha10_nx064_nz26_fwhm200,
+ alpha10_nx064_nz26_fwhm225, alpha10_nx064_nz26_fwhm250, alpha10_nx064_nz26_fwhm275,
+ alpha10_nx064_nz26_fwhm300, alpha10_nx064_nz26_fwhm325, alpha10_nx064_nz26_fwhm350,
+ alpha10_nx064_nz26_fwhm375, alpha10_nx064_nz26_fwhm400, alpha10_nx064_nz26_fwhm425,
  alpha10_nx064_nz26_fwhm450, alpha10_nx064_nz26_fwhm475, alpha10_nx064_nz26_fwhm500} ;
 
 static float **nx064_nz26[3] = {
@@ -9089,12 +9089,12 @@ static float alpha01_nx064_nz27_fwhm500[32] = {
  346.00,374.50,402.67,431.00,463.00,540.33,622.50,740.00,866.50,1025.00,
  1341.00,1766.00};
 static float *alpha01_nx064_nz27[21] = {
- alpha01_nx064_nz27_fwhm000, alpha01_nx064_nz27_fwhm025, alpha01_nx064_nz27_fwhm050, 
- alpha01_nx064_nz27_fwhm075, alpha01_nx064_nz27_fwhm100, alpha01_nx064_nz27_fwhm125, 
- alpha01_nx064_nz27_fwhm150, alpha01_nx064_nz27_fwhm175, alpha01_nx064_nz27_fwhm200, 
- alpha01_nx064_nz27_fwhm225, alpha01_nx064_nz27_fwhm250, alpha01_nx064_nz27_fwhm275, 
- alpha01_nx064_nz27_fwhm300, alpha01_nx064_nz27_fwhm325, alpha01_nx064_nz27_fwhm350, 
- alpha01_nx064_nz27_fwhm375, alpha01_nx064_nz27_fwhm400, alpha01_nx064_nz27_fwhm425, 
+ alpha01_nx064_nz27_fwhm000, alpha01_nx064_nz27_fwhm025, alpha01_nx064_nz27_fwhm050,
+ alpha01_nx064_nz27_fwhm075, alpha01_nx064_nz27_fwhm100, alpha01_nx064_nz27_fwhm125,
+ alpha01_nx064_nz27_fwhm150, alpha01_nx064_nz27_fwhm175, alpha01_nx064_nz27_fwhm200,
+ alpha01_nx064_nz27_fwhm225, alpha01_nx064_nz27_fwhm250, alpha01_nx064_nz27_fwhm275,
+ alpha01_nx064_nz27_fwhm300, alpha01_nx064_nz27_fwhm325, alpha01_nx064_nz27_fwhm350,
+ alpha01_nx064_nz27_fwhm375, alpha01_nx064_nz27_fwhm400, alpha01_nx064_nz27_fwhm425,
  alpha01_nx064_nz27_fwhm450, alpha01_nx064_nz27_fwhm475, alpha01_nx064_nz27_fwhm500} ;
 
 static float alpha05_nx064_nz27_fwhm000[32] = {
@@ -9203,12 +9203,12 @@ static float alpha05_nx064_nz27_fwhm500[32] = {
  258.46,279.08,299.60,321.00,341.00,400.43,462.27,544.67,655.00,765.33,
  1009.33,1301.00};
 static float *alpha05_nx064_nz27[21] = {
- alpha05_nx064_nz27_fwhm000, alpha05_nx064_nz27_fwhm025, alpha05_nx064_nz27_fwhm050, 
- alpha05_nx064_nz27_fwhm075, alpha05_nx064_nz27_fwhm100, alpha05_nx064_nz27_fwhm125, 
- alpha05_nx064_nz27_fwhm150, alpha05_nx064_nz27_fwhm175, alpha05_nx064_nz27_fwhm200, 
- alpha05_nx064_nz27_fwhm225, alpha05_nx064_nz27_fwhm250, alpha05_nx064_nz27_fwhm275, 
- alpha05_nx064_nz27_fwhm300, alpha05_nx064_nz27_fwhm325, alpha05_nx064_nz27_fwhm350, 
- alpha05_nx064_nz27_fwhm375, alpha05_nx064_nz27_fwhm400, alpha05_nx064_nz27_fwhm425, 
+ alpha05_nx064_nz27_fwhm000, alpha05_nx064_nz27_fwhm025, alpha05_nx064_nz27_fwhm050,
+ alpha05_nx064_nz27_fwhm075, alpha05_nx064_nz27_fwhm100, alpha05_nx064_nz27_fwhm125,
+ alpha05_nx064_nz27_fwhm150, alpha05_nx064_nz27_fwhm175, alpha05_nx064_nz27_fwhm200,
+ alpha05_nx064_nz27_fwhm225, alpha05_nx064_nz27_fwhm250, alpha05_nx064_nz27_fwhm275,
+ alpha05_nx064_nz27_fwhm300, alpha05_nx064_nz27_fwhm325, alpha05_nx064_nz27_fwhm350,
+ alpha05_nx064_nz27_fwhm375, alpha05_nx064_nz27_fwhm400, alpha05_nx064_nz27_fwhm425,
  alpha05_nx064_nz27_fwhm450, alpha05_nx064_nz27_fwhm475, alpha05_nx064_nz27_fwhm500} ;
 
 static float alpha10_nx064_nz27_fwhm000[32] = {
@@ -9317,12 +9317,12 @@ static float alpha10_nx064_nz27_fwhm500[32] = {
  217.48,237.33,255.67,274.93,293.00,344.71,397.21,464.81,554.71,654.12,
  864.67,1109.50};
 static float *alpha10_nx064_nz27[21] = {
- alpha10_nx064_nz27_fwhm000, alpha10_nx064_nz27_fwhm025, alpha10_nx064_nz27_fwhm050, 
- alpha10_nx064_nz27_fwhm075, alpha10_nx064_nz27_fwhm100, alpha10_nx064_nz27_fwhm125, 
- alpha10_nx064_nz27_fwhm150, alpha10_nx064_nz27_fwhm175, alpha10_nx064_nz27_fwhm200, 
- alpha10_nx064_nz27_fwhm225, alpha10_nx064_nz27_fwhm250, alpha10_nx064_nz27_fwhm275, 
- alpha10_nx064_nz27_fwhm300, alpha10_nx064_nz27_fwhm325, alpha10_nx064_nz27_fwhm350, 
- alpha10_nx064_nz27_fwhm375, alpha10_nx064_nz27_fwhm400, alpha10_nx064_nz27_fwhm425, 
+ alpha10_nx064_nz27_fwhm000, alpha10_nx064_nz27_fwhm025, alpha10_nx064_nz27_fwhm050,
+ alpha10_nx064_nz27_fwhm075, alpha10_nx064_nz27_fwhm100, alpha10_nx064_nz27_fwhm125,
+ alpha10_nx064_nz27_fwhm150, alpha10_nx064_nz27_fwhm175, alpha10_nx064_nz27_fwhm200,
+ alpha10_nx064_nz27_fwhm225, alpha10_nx064_nz27_fwhm250, alpha10_nx064_nz27_fwhm275,
+ alpha10_nx064_nz27_fwhm300, alpha10_nx064_nz27_fwhm325, alpha10_nx064_nz27_fwhm350,
+ alpha10_nx064_nz27_fwhm375, alpha10_nx064_nz27_fwhm400, alpha10_nx064_nz27_fwhm425,
  alpha10_nx064_nz27_fwhm450, alpha10_nx064_nz27_fwhm475, alpha10_nx064_nz27_fwhm500} ;
 
 static float **nx064_nz27[3] = {
@@ -9434,12 +9434,12 @@ static float alpha01_nx064_nz28_fwhm500[32] = {
  357.00,389.50,419.00,443.00,473.33,560.00,643.25,745.00,895.00,1042.50,
  1369.50,1755.00};
 static float *alpha01_nx064_nz28[21] = {
- alpha01_nx064_nz28_fwhm000, alpha01_nx064_nz28_fwhm025, alpha01_nx064_nz28_fwhm050, 
- alpha01_nx064_nz28_fwhm075, alpha01_nx064_nz28_fwhm100, alpha01_nx064_nz28_fwhm125, 
- alpha01_nx064_nz28_fwhm150, alpha01_nx064_nz28_fwhm175, alpha01_nx064_nz28_fwhm200, 
- alpha01_nx064_nz28_fwhm225, alpha01_nx064_nz28_fwhm250, alpha01_nx064_nz28_fwhm275, 
- alpha01_nx064_nz28_fwhm300, alpha01_nx064_nz28_fwhm325, alpha01_nx064_nz28_fwhm350, 
- alpha01_nx064_nz28_fwhm375, alpha01_nx064_nz28_fwhm400, alpha01_nx064_nz28_fwhm425, 
+ alpha01_nx064_nz28_fwhm000, alpha01_nx064_nz28_fwhm025, alpha01_nx064_nz28_fwhm050,
+ alpha01_nx064_nz28_fwhm075, alpha01_nx064_nz28_fwhm100, alpha01_nx064_nz28_fwhm125,
+ alpha01_nx064_nz28_fwhm150, alpha01_nx064_nz28_fwhm175, alpha01_nx064_nz28_fwhm200,
+ alpha01_nx064_nz28_fwhm225, alpha01_nx064_nz28_fwhm250, alpha01_nx064_nz28_fwhm275,
+ alpha01_nx064_nz28_fwhm300, alpha01_nx064_nz28_fwhm325, alpha01_nx064_nz28_fwhm350,
+ alpha01_nx064_nz28_fwhm375, alpha01_nx064_nz28_fwhm400, alpha01_nx064_nz28_fwhm425,
  alpha01_nx064_nz28_fwhm450, alpha01_nx064_nz28_fwhm475, alpha01_nx064_nz28_fwhm500} ;
 
 static float alpha05_nx064_nz28_fwhm000[32] = {
@@ -9548,12 +9548,12 @@ static float alpha05_nx064_nz28_fwhm500[32] = {
  262.62,283.60,307.17,329.00,348.88,414.17,475.75,563.20,669.00,787.67,
  1036.00,1321.33};
 static float *alpha05_nx064_nz28[21] = {
- alpha05_nx064_nz28_fwhm000, alpha05_nx064_nz28_fwhm025, alpha05_nx064_nz28_fwhm050, 
- alpha05_nx064_nz28_fwhm075, alpha05_nx064_nz28_fwhm100, alpha05_nx064_nz28_fwhm125, 
- alpha05_nx064_nz28_fwhm150, alpha05_nx064_nz28_fwhm175, alpha05_nx064_nz28_fwhm200, 
- alpha05_nx064_nz28_fwhm225, alpha05_nx064_nz28_fwhm250, alpha05_nx064_nz28_fwhm275, 
- alpha05_nx064_nz28_fwhm300, alpha05_nx064_nz28_fwhm325, alpha05_nx064_nz28_fwhm350, 
- alpha05_nx064_nz28_fwhm375, alpha05_nx064_nz28_fwhm400, alpha05_nx064_nz28_fwhm425, 
+ alpha05_nx064_nz28_fwhm000, alpha05_nx064_nz28_fwhm025, alpha05_nx064_nz28_fwhm050,
+ alpha05_nx064_nz28_fwhm075, alpha05_nx064_nz28_fwhm100, alpha05_nx064_nz28_fwhm125,
+ alpha05_nx064_nz28_fwhm150, alpha05_nx064_nz28_fwhm175, alpha05_nx064_nz28_fwhm200,
+ alpha05_nx064_nz28_fwhm225, alpha05_nx064_nz28_fwhm250, alpha05_nx064_nz28_fwhm275,
+ alpha05_nx064_nz28_fwhm300, alpha05_nx064_nz28_fwhm325, alpha05_nx064_nz28_fwhm350,
+ alpha05_nx064_nz28_fwhm375, alpha05_nx064_nz28_fwhm400, alpha05_nx064_nz28_fwhm425,
  alpha05_nx064_nz28_fwhm450, alpha05_nx064_nz28_fwhm475, alpha05_nx064_nz28_fwhm500} ;
 
 static float alpha10_nx064_nz28_fwhm000[32] = {
@@ -9662,12 +9662,12 @@ static float alpha10_nx064_nz28_fwhm500[32] = {
  218.92,238.62,257.77,278.69,296.73,351.69,404.83,478.50,572.10,675.75,
  886.00,1135.40};
 static float *alpha10_nx064_nz28[21] = {
- alpha10_nx064_nz28_fwhm000, alpha10_nx064_nz28_fwhm025, alpha10_nx064_nz28_fwhm050, 
- alpha10_nx064_nz28_fwhm075, alpha10_nx064_nz28_fwhm100, alpha10_nx064_nz28_fwhm125, 
- alpha10_nx064_nz28_fwhm150, alpha10_nx064_nz28_fwhm175, alpha10_nx064_nz28_fwhm200, 
- alpha10_nx064_nz28_fwhm225, alpha10_nx064_nz28_fwhm250, alpha10_nx064_nz28_fwhm275, 
- alpha10_nx064_nz28_fwhm300, alpha10_nx064_nz28_fwhm325, alpha10_nx064_nz28_fwhm350, 
- alpha10_nx064_nz28_fwhm375, alpha10_nx064_nz28_fwhm400, alpha10_nx064_nz28_fwhm425, 
+ alpha10_nx064_nz28_fwhm000, alpha10_nx064_nz28_fwhm025, alpha10_nx064_nz28_fwhm050,
+ alpha10_nx064_nz28_fwhm075, alpha10_nx064_nz28_fwhm100, alpha10_nx064_nz28_fwhm125,
+ alpha10_nx064_nz28_fwhm150, alpha10_nx064_nz28_fwhm175, alpha10_nx064_nz28_fwhm200,
+ alpha10_nx064_nz28_fwhm225, alpha10_nx064_nz28_fwhm250, alpha10_nx064_nz28_fwhm275,
+ alpha10_nx064_nz28_fwhm300, alpha10_nx064_nz28_fwhm325, alpha10_nx064_nz28_fwhm350,
+ alpha10_nx064_nz28_fwhm375, alpha10_nx064_nz28_fwhm400, alpha10_nx064_nz28_fwhm425,
  alpha10_nx064_nz28_fwhm450, alpha10_nx064_nz28_fwhm475, alpha10_nx064_nz28_fwhm500} ;
 
 static float **nx064_nz28[3] = {
@@ -9779,12 +9779,12 @@ static float alpha01_nx064_nz29_fwhm500[32] = {
  347.00,378.50,405.00,436.33,460.33,540.00,627.00,735.00,879.67,1025.00,
  1396.00,1815.50};
 static float *alpha01_nx064_nz29[21] = {
- alpha01_nx064_nz29_fwhm000, alpha01_nx064_nz29_fwhm025, alpha01_nx064_nz29_fwhm050, 
- alpha01_nx064_nz29_fwhm075, alpha01_nx064_nz29_fwhm100, alpha01_nx064_nz29_fwhm125, 
- alpha01_nx064_nz29_fwhm150, alpha01_nx064_nz29_fwhm175, alpha01_nx064_nz29_fwhm200, 
- alpha01_nx064_nz29_fwhm225, alpha01_nx064_nz29_fwhm250, alpha01_nx064_nz29_fwhm275, 
- alpha01_nx064_nz29_fwhm300, alpha01_nx064_nz29_fwhm325, alpha01_nx064_nz29_fwhm350, 
- alpha01_nx064_nz29_fwhm375, alpha01_nx064_nz29_fwhm400, alpha01_nx064_nz29_fwhm425, 
+ alpha01_nx064_nz29_fwhm000, alpha01_nx064_nz29_fwhm025, alpha01_nx064_nz29_fwhm050,
+ alpha01_nx064_nz29_fwhm075, alpha01_nx064_nz29_fwhm100, alpha01_nx064_nz29_fwhm125,
+ alpha01_nx064_nz29_fwhm150, alpha01_nx064_nz29_fwhm175, alpha01_nx064_nz29_fwhm200,
+ alpha01_nx064_nz29_fwhm225, alpha01_nx064_nz29_fwhm250, alpha01_nx064_nz29_fwhm275,
+ alpha01_nx064_nz29_fwhm300, alpha01_nx064_nz29_fwhm325, alpha01_nx064_nz29_fwhm350,
+ alpha01_nx064_nz29_fwhm375, alpha01_nx064_nz29_fwhm400, alpha01_nx064_nz29_fwhm425,
  alpha01_nx064_nz29_fwhm450, alpha01_nx064_nz29_fwhm475, alpha01_nx064_nz29_fwhm500} ;
 
 static float alpha05_nx064_nz29_fwhm000[32] = {
@@ -9893,12 +9893,12 @@ static float alpha05_nx064_nz29_fwhm500[32] = {
  259.20,282.09,303.50,324.38,344.22,406.27,470.17,555.80,664.67,783.00,
  1039.25,1347.00};
 static float *alpha05_nx064_nz29[21] = {
- alpha05_nx064_nz29_fwhm000, alpha05_nx064_nz29_fwhm025, alpha05_nx064_nz29_fwhm050, 
- alpha05_nx064_nz29_fwhm075, alpha05_nx064_nz29_fwhm100, alpha05_nx064_nz29_fwhm125, 
- alpha05_nx064_nz29_fwhm150, alpha05_nx064_nz29_fwhm175, alpha05_nx064_nz29_fwhm200, 
- alpha05_nx064_nz29_fwhm225, alpha05_nx064_nz29_fwhm250, alpha05_nx064_nz29_fwhm275, 
- alpha05_nx064_nz29_fwhm300, alpha05_nx064_nz29_fwhm325, alpha05_nx064_nz29_fwhm350, 
- alpha05_nx064_nz29_fwhm375, alpha05_nx064_nz29_fwhm400, alpha05_nx064_nz29_fwhm425, 
+ alpha05_nx064_nz29_fwhm000, alpha05_nx064_nz29_fwhm025, alpha05_nx064_nz29_fwhm050,
+ alpha05_nx064_nz29_fwhm075, alpha05_nx064_nz29_fwhm100, alpha05_nx064_nz29_fwhm125,
+ alpha05_nx064_nz29_fwhm150, alpha05_nx064_nz29_fwhm175, alpha05_nx064_nz29_fwhm200,
+ alpha05_nx064_nz29_fwhm225, alpha05_nx064_nz29_fwhm250, alpha05_nx064_nz29_fwhm275,
+ alpha05_nx064_nz29_fwhm300, alpha05_nx064_nz29_fwhm325, alpha05_nx064_nz29_fwhm350,
+ alpha05_nx064_nz29_fwhm375, alpha05_nx064_nz29_fwhm400, alpha05_nx064_nz29_fwhm425,
  alpha05_nx064_nz29_fwhm450, alpha05_nx064_nz29_fwhm475, alpha05_nx064_nz29_fwhm500} ;
 
 static float alpha10_nx064_nz29_fwhm000[32] = {
@@ -10007,12 +10007,12 @@ static float alpha10_nx064_nz29_fwhm500[32] = {
  219.53,238.77,257.50,277.00,294.59,350.56,405.50,476.89,570.33,672.75,
  891.14,1145.40};
 static float *alpha10_nx064_nz29[21] = {
- alpha10_nx064_nz29_fwhm000, alpha10_nx064_nz29_fwhm025, alpha10_nx064_nz29_fwhm050, 
- alpha10_nx064_nz29_fwhm075, alpha10_nx064_nz29_fwhm100, alpha10_nx064_nz29_fwhm125, 
- alpha10_nx064_nz29_fwhm150, alpha10_nx064_nz29_fwhm175, alpha10_nx064_nz29_fwhm200, 
- alpha10_nx064_nz29_fwhm225, alpha10_nx064_nz29_fwhm250, alpha10_nx064_nz29_fwhm275, 
- alpha10_nx064_nz29_fwhm300, alpha10_nx064_nz29_fwhm325, alpha10_nx064_nz29_fwhm350, 
- alpha10_nx064_nz29_fwhm375, alpha10_nx064_nz29_fwhm400, alpha10_nx064_nz29_fwhm425, 
+ alpha10_nx064_nz29_fwhm000, alpha10_nx064_nz29_fwhm025, alpha10_nx064_nz29_fwhm050,
+ alpha10_nx064_nz29_fwhm075, alpha10_nx064_nz29_fwhm100, alpha10_nx064_nz29_fwhm125,
+ alpha10_nx064_nz29_fwhm150, alpha10_nx064_nz29_fwhm175, alpha10_nx064_nz29_fwhm200,
+ alpha10_nx064_nz29_fwhm225, alpha10_nx064_nz29_fwhm250, alpha10_nx064_nz29_fwhm275,
+ alpha10_nx064_nz29_fwhm300, alpha10_nx064_nz29_fwhm325, alpha10_nx064_nz29_fwhm350,
+ alpha10_nx064_nz29_fwhm375, alpha10_nx064_nz29_fwhm400, alpha10_nx064_nz29_fwhm425,
  alpha10_nx064_nz29_fwhm450, alpha10_nx064_nz29_fwhm475, alpha10_nx064_nz29_fwhm500} ;
 
 static float **nx064_nz29[3] = {
@@ -10124,12 +10124,12 @@ static float alpha01_nx064_nz30_fwhm500[32] = {
  358.00,390.00,419.00,448.00,473.00,550.60,646.25,765.33,914.00,1071.50,
  1397.67,1847.00};
 static float *alpha01_nx064_nz30[21] = {
- alpha01_nx064_nz30_fwhm000, alpha01_nx064_nz30_fwhm025, alpha01_nx064_nz30_fwhm050, 
- alpha01_nx064_nz30_fwhm075, alpha01_nx064_nz30_fwhm100, alpha01_nx064_nz30_fwhm125, 
- alpha01_nx064_nz30_fwhm150, alpha01_nx064_nz30_fwhm175, alpha01_nx064_nz30_fwhm200, 
- alpha01_nx064_nz30_fwhm225, alpha01_nx064_nz30_fwhm250, alpha01_nx064_nz30_fwhm275, 
- alpha01_nx064_nz30_fwhm300, alpha01_nx064_nz30_fwhm325, alpha01_nx064_nz30_fwhm350, 
- alpha01_nx064_nz30_fwhm375, alpha01_nx064_nz30_fwhm400, alpha01_nx064_nz30_fwhm425, 
+ alpha01_nx064_nz30_fwhm000, alpha01_nx064_nz30_fwhm025, alpha01_nx064_nz30_fwhm050,
+ alpha01_nx064_nz30_fwhm075, alpha01_nx064_nz30_fwhm100, alpha01_nx064_nz30_fwhm125,
+ alpha01_nx064_nz30_fwhm150, alpha01_nx064_nz30_fwhm175, alpha01_nx064_nz30_fwhm200,
+ alpha01_nx064_nz30_fwhm225, alpha01_nx064_nz30_fwhm250, alpha01_nx064_nz30_fwhm275,
+ alpha01_nx064_nz30_fwhm300, alpha01_nx064_nz30_fwhm325, alpha01_nx064_nz30_fwhm350,
+ alpha01_nx064_nz30_fwhm375, alpha01_nx064_nz30_fwhm400, alpha01_nx064_nz30_fwhm425,
  alpha01_nx064_nz30_fwhm450, alpha01_nx064_nz30_fwhm475, alpha01_nx064_nz30_fwhm500} ;
 
 static float alpha05_nx064_nz30_fwhm000[32] = {
@@ -10238,12 +10238,12 @@ static float alpha05_nx064_nz30_fwhm500[32] = {
  263.30,286.25,311.12,332.67,356.25,421.75,484.12,570.75,682.83,801.75,
  1073.25,1387.50};
 static float *alpha05_nx064_nz30[21] = {
- alpha05_nx064_nz30_fwhm000, alpha05_nx064_nz30_fwhm025, alpha05_nx064_nz30_fwhm050, 
- alpha05_nx064_nz30_fwhm075, alpha05_nx064_nz30_fwhm100, alpha05_nx064_nz30_fwhm125, 
- alpha05_nx064_nz30_fwhm150, alpha05_nx064_nz30_fwhm175, alpha05_nx064_nz30_fwhm200, 
- alpha05_nx064_nz30_fwhm225, alpha05_nx064_nz30_fwhm250, alpha05_nx064_nz30_fwhm275, 
- alpha05_nx064_nz30_fwhm300, alpha05_nx064_nz30_fwhm325, alpha05_nx064_nz30_fwhm350, 
- alpha05_nx064_nz30_fwhm375, alpha05_nx064_nz30_fwhm400, alpha05_nx064_nz30_fwhm425, 
+ alpha05_nx064_nz30_fwhm000, alpha05_nx064_nz30_fwhm025, alpha05_nx064_nz30_fwhm050,
+ alpha05_nx064_nz30_fwhm075, alpha05_nx064_nz30_fwhm100, alpha05_nx064_nz30_fwhm125,
+ alpha05_nx064_nz30_fwhm150, alpha05_nx064_nz30_fwhm175, alpha05_nx064_nz30_fwhm200,
+ alpha05_nx064_nz30_fwhm225, alpha05_nx064_nz30_fwhm250, alpha05_nx064_nz30_fwhm275,
+ alpha05_nx064_nz30_fwhm300, alpha05_nx064_nz30_fwhm325, alpha05_nx064_nz30_fwhm350,
+ alpha05_nx064_nz30_fwhm375, alpha05_nx064_nz30_fwhm400, alpha05_nx064_nz30_fwhm425,
  alpha05_nx064_nz30_fwhm450, alpha05_nx064_nz30_fwhm475, alpha05_nx064_nz30_fwhm500} ;
 
 static float alpha10_nx064_nz30_fwhm000[32] = {
@@ -10352,12 +10352,12 @@ static float alpha10_nx064_nz30_fwhm500[32] = {
  224.83,245.83,264.57,283.92,304.21,359.31,412.86,490.87,588.40,685.33,
  910.33,1170.33};
 static float *alpha10_nx064_nz30[21] = {
- alpha10_nx064_nz30_fwhm000, alpha10_nx064_nz30_fwhm025, alpha10_nx064_nz30_fwhm050, 
- alpha10_nx064_nz30_fwhm075, alpha10_nx064_nz30_fwhm100, alpha10_nx064_nz30_fwhm125, 
- alpha10_nx064_nz30_fwhm150, alpha10_nx064_nz30_fwhm175, alpha10_nx064_nz30_fwhm200, 
- alpha10_nx064_nz30_fwhm225, alpha10_nx064_nz30_fwhm250, alpha10_nx064_nz30_fwhm275, 
- alpha10_nx064_nz30_fwhm300, alpha10_nx064_nz30_fwhm325, alpha10_nx064_nz30_fwhm350, 
- alpha10_nx064_nz30_fwhm375, alpha10_nx064_nz30_fwhm400, alpha10_nx064_nz30_fwhm425, 
+ alpha10_nx064_nz30_fwhm000, alpha10_nx064_nz30_fwhm025, alpha10_nx064_nz30_fwhm050,
+ alpha10_nx064_nz30_fwhm075, alpha10_nx064_nz30_fwhm100, alpha10_nx064_nz30_fwhm125,
+ alpha10_nx064_nz30_fwhm150, alpha10_nx064_nz30_fwhm175, alpha10_nx064_nz30_fwhm200,
+ alpha10_nx064_nz30_fwhm225, alpha10_nx064_nz30_fwhm250, alpha10_nx064_nz30_fwhm275,
+ alpha10_nx064_nz30_fwhm300, alpha10_nx064_nz30_fwhm325, alpha10_nx064_nz30_fwhm350,
+ alpha10_nx064_nz30_fwhm375, alpha10_nx064_nz30_fwhm400, alpha10_nx064_nz30_fwhm425,
  alpha10_nx064_nz30_fwhm450, alpha10_nx064_nz30_fwhm475, alpha10_nx064_nz30_fwhm500} ;
 
 static float **nx064_nz30[3] = {

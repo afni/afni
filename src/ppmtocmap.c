@@ -11,7 +11,7 @@ byte rgb[3*MAXCOL] ;
 int  ncol = 0 ;
 
 #define ASP(x,y) ( (x)[0]=(y)[0]   , (x)[1]=(y)[1]   , (x)[2]=(y)[2]  )
-#define EQP(x,y) ( (x)[0]==(y)[0] && (x)[1]==(y)[1] && (x)[2]==(y)[2] ) 
+#define EQP(x,y) ( (x)[0]==(y)[0] && (x)[1]==(y)[1] && (x)[2]==(y)[2] )
 
 int main( int argc , char * argv[] )
 {

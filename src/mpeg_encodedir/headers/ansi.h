@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -69,7 +69,7 @@
 #define ANSI_INCLUDED
 
 
-/*  
+/*
  *  _ANSI_ARGS_ macro stolen from Tcl6.5 by John Ousterhout
  */
 #undef _ANSI_ARGS_

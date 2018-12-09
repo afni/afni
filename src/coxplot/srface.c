@@ -68,7 +68,7 @@ static integer c__2 = 2;
 
 
 
-/* Subroutine */ int srface_(real *x, real *y, real *z__, integer *m, integer 
+/* Subroutine */ int srface_(real *x, real *y, real *z__, integer *m, integer
 	*mx, integer *nx, integer *ny, real *s, real *stereo)
 {
     /* Initialized data */
@@ -80,7 +80,7 @@ static integer c__2 = 2;
     static integer icnst = 0;
 
     /* System generated locals */
-    integer z_dim1, z_offset, m_dim2, m_offset, i__1, i__2, i__3, i__4, i__5, 
+    integer z_dim1, z_offset, m_dim2, m_offset, i__1, i__2, i__3, i__4, i__5,
 	    i__6, i__7, i__8, i__9, i__10;
 
     /* Local variables */
@@ -97,7 +97,7 @@ static integer c__2 = 2;
 	    , real *, real *, real *, integer *, integer *, real *, integer *,
 	     integer *, integer *, real *, real *);
     static real width;
-    extern /* Subroutine */ int draws_(integer *, integer *, integer *, 
+    extern /* Subroutine */ int draws_(integer *, integer *, integer *,
 	    integer *, integer *, integer *);
     static integer jpass, ipass;
     static real d1, d2;
@@ -109,13 +109,13 @@ static integer c__2 = 2;
     static integer mj, nj;
     extern /* Subroutine */ int srfabd_(void);
     static real ctheta, rx, ry, rz, ut, vt, qu, qv, ru, zz, rv;
-    extern /* Subroutine */ int ctcell_(real *, integer *, integer *, integer 
+    extern /* Subroutine */ int ctcell_(real *, integer *, integer *, integer
 	    *, integer *, integer *, integer *);
     static real stheta;
     static integer nxpass, nypass;
     static real ux1, vx1, ux2, vx2, uy1, vy1, uy2, vy2, dif, agl;
     static integer nla, mxf[2], myf[2];
-    extern /* Subroutine */ int set_(real *, real *, real *, real *, real *, 
+    extern /* Subroutine */ int set_(real *, real *, real *, real *, real *,
 	    real *, real *, real *, integer *);
     static integer mxj[2], myj[2], mxs[2], mys[2], nxp1, nyp1;
 
@@ -419,7 +419,7 @@ L230:
 		    ;
 	    i__2 = (integer) ru;
 	    i__5 = (integer) rv;
-	    draws_(&i__2, &i__5, &m[(i__ + jn * m_dim2 << 1) + 1], &m[(i__ + 
+	    draws_(&i__2, &i__5, &m[(i__ + jn * m_dim2 << 1) + 1], &m[(i__ +
 		    jn * m_dim2 << 1) + 2], &c__1, &c__0);
 /* L240: */
 	}
@@ -433,7 +433,7 @@ L230:
 	}
 	i__3 = nnxx;
 	for (i__ = 2; i__ <= i__3; ++i__) {
-	    draws_(&m[(i__ - 1 + jn * m_dim2 << 1) + 1], &m[(i__ - 1 + jn * 
+	    draws_(&m[(i__ - 1 + jn * m_dim2 << 1) + 1], &m[(i__ - 1 + jn *
 		    m_dim2 << 1) + 2], &m[(i__ + jn * m_dim2 << 1) + 1], &m[(
 		    i__ + jn * m_dim2 << 1) + 2], &c__1, &c__1);
 /* L250: */
@@ -453,7 +453,7 @@ L260:
 	    trn32s_(&xnow, &y[j], &srfip1_1.hskirt, &ru, &rv, &dummy, &c__1);
 	    i__2 = (integer) ru;
 	    i__5 = (integer) rv;
-	    draws_(&i__2, &i__5, &m[(in + j * m_dim2 << 1) + 1], &m[(in + j * 
+	    draws_(&i__2, &i__5, &m[(in + j * m_dim2 << 1) + 1], &m[(in + j *
 		    m_dim2 << 1) + 2], &c__1, &c__0);
 /* L270: */
 	}
@@ -467,8 +467,8 @@ L260:
 	}
 	i__3 = nnyy;
 	for (j = 2; j <= i__3; ++j) {
-	    draws_(&m[(in + (j - 1) * m_dim2 << 1) + 1], &m[(in + (j - 1) * 
-		    m_dim2 << 1) + 2], &m[(in + j * m_dim2 << 1) + 1], &m[(in 
+	    draws_(&m[(in + (j - 1) * m_dim2 << 1) + 1], &m[(in + (j - 1) *
+		    m_dim2 << 1) + 2], &m[(in + j * m_dim2 << 1) + 1], &m[(in
 		    + j * m_dim2 << 1) + 2], &c__1, &c__1);
 /* L280: */
 	}
@@ -495,7 +495,7 @@ L290:
 	i__ = mxs[0];
 	i__3 = nnyy;
 	for (j = 2; j <= i__3; ++j) {
-	    draws_(&m[(i__ + (j - 1) * m_dim2 << 1) + 1], &m[(i__ + (j - 1) * 
+	    draws_(&m[(i__ + (j - 1) * m_dim2 << 1) + 1], &m[(i__ + (j - 1) *
 		    m_dim2 << 1) + 2], &m[(i__ + j * m_dim2 << 1) + 1], &m[(
 		    i__ + j * m_dim2 << 1) + 2], &c__0, &c__1);
 /* L300: */
@@ -511,8 +511,8 @@ L310:
 	    k = mys[0];
 	    l = mys[1];
 	    if (srfip1_1.idrx != 0) {
-		draws_(&m[(i__ + k * m_dim2 << 1) + 1], &m[(i__ + k * m_dim2 
-			<< 1) + 2], &m[(i__ + l * m_dim2 << 1) + 1], &m[(i__ 
+		draws_(&m[(i__ + k * m_dim2 << 1) + 1], &m[(i__ + k * m_dim2
+			<< 1) + 2], &m[(i__ + l * m_dim2 << 1) + 1], &m[(i__
 			+ l * m_dim2 << 1) + 2], &c__1, &c__1);
 	    }
 	    if (srfblk_1.ndrz != 0 && ii != ni) {
@@ -533,14 +533,14 @@ L320:
 		    j = mj + jj * lj;
 		    jplj = j + lj;
 		    if (srfip1_1.idrx != 0 && jj != nj) {
-			draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j * 
-				m_dim2 << 1) + 2], &m[(i__ + jplj * m_dim2 << 
+			draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j *
+				m_dim2 << 1) + 2], &m[(i__ + jplj * m_dim2 <<
 				1) + 1], &m[(i__ + jplj * m_dim2 << 1) + 2], &
 				c__1, &c__1);
 		    }
 		    if (i__ != mxf[0] && srfip1_1.idry != 0) {
-			draws_(&m[(ipli + j * m_dim2 << 1) + 1], &m[(ipli + j 
-				* m_dim2 << 1) + 2], &m[(i__ + j * m_dim2 << 
+			draws_(&m[(ipli + j * m_dim2 << 1) + 1], &m[(ipli + j
+				* m_dim2 << 1) + 2], &m[(i__ + j * m_dim2 <<
 				1) + 1], &m[(i__ + j * m_dim2 << 1) + 2], &
 				c__1, &c__1);
 		    }
@@ -568,7 +568,7 @@ L360:
 	j = mys[0];
 	i__3 = nnxx;
 	for (i__ = 2; i__ <= i__3; ++i__) {
-	    draws_(&m[(i__ - 1 + j * m_dim2 << 1) + 1], &m[(i__ - 1 + j * 
+	    draws_(&m[(i__ - 1 + j * m_dim2 << 1) + 1], &m[(i__ - 1 + j *
 		    m_dim2 << 1) + 2], &m[(i__ + j * m_dim2 << 1) + 1], &m[(
 		    i__ + j * m_dim2 << 1) + 2], &c__0, &c__1);
 /* L370: */
@@ -585,7 +585,7 @@ L380:
 	    l = mxs[1];
 	    if (srfip1_1.idry != 0) {
 		draws_(&m[(k + j * m_dim2 << 1) + 1], &m[(k + j * m_dim2 << 1)
-			 + 2], &m[(l + j * m_dim2 << 1) + 1], &m[(l + j * 
+			 + 2], &m[(l + j * m_dim2 << 1) + 1], &m[(l + j *
 			m_dim2 << 1) + 2], &c__1, &c__1);
 	    }
 	    if (srfblk_1.ndrz != 0 && jj != nj) {
@@ -606,15 +606,15 @@ L390:
 		    i__ = mi + ii * li;
 		    ipli = i__ + li;
 		    if (srfip1_1.idry != 0 && ii != ni) {
-			draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j * 
+			draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j *
 				m_dim2 << 1) + 2], &m[(ipli + j * m_dim2 << 1)
 				 + 1], &m[(ipli + j * m_dim2 << 1) + 2], &
 				c__1, &c__1);
 		    }
 		    if (j != myf[0] && srfip1_1.idrx != 0) {
-			draws_(&m[(i__ + jplj * m_dim2 << 1) + 1], &m[(i__ + 
-				jplj * m_dim2 << 1) + 2], &m[(i__ + j * 
-				m_dim2 << 1) + 1], &m[(i__ + j * m_dim2 << 1) 
+			draws_(&m[(i__ + jplj * m_dim2 << 1) + 1], &m[(i__ +
+				jplj * m_dim2 << 1) + 2], &m[(i__ + j *
+				m_dim2 << 1) + 1], &m[(i__ + j * m_dim2 << 1)
 				+ 2], &c__1, &c__1);
 		    }
 		    if (srfblk_1.ndrz != 0 && ii != ni && jj != nnyy) {
@@ -650,8 +650,8 @@ L430:
 	    }
 	    i__2 = nnyy;
 	    for (j = 2; j <= i__2; ++j) {
-		draws_(&m[(if__ + (j - 1) * m_dim2 << 1) + 1], &m[(if__ + (j 
-			- 1) * m_dim2 << 1) + 2], &m[(if__ + j * m_dim2 << 1) 
+		draws_(&m[(if__ + (j - 1) * m_dim2 << 1) + 1], &m[(if__ + (j
+			- 1) * m_dim2 << 1) + 2], &m[(if__ + j * m_dim2 << 1)
 			+ 1], &m[(if__ + j * m_dim2 << 1) + 2], &c__1, &c__0);
 /* L440: */
 	    }
@@ -668,7 +668,7 @@ L460:
 	    }
 	    i__2 = nnxx;
 	    for (i__ = 2; i__ <= i__2; ++i__) {
-		draws_(&m[(i__ - 1 + jf * m_dim2 << 1) + 1], &m[(i__ - 1 + jf 
+		draws_(&m[(i__ - 1 + jf * m_dim2 << 1) + 1], &m[(i__ - 1 + jf
 			* m_dim2 << 1) + 2], &m[(i__ + jf * m_dim2 << 1) + 1],
 			 &m[(i__ + jf * m_dim2 << 1) + 2], &c__1, &c__0);
 /* L470: */
@@ -695,15 +695,15 @@ L490:
 	    i__2 = nnyy;
 	    for (j = 1; j <= i__2; ++j) {
 		if (srfip1_1.idrx != 0 && j != nnyy) {
-		    draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j * 
-			    m_dim2 << 1) + 2], &m[(i__ + (j + 1) * m_dim2 << 
+		    draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j *
+			    m_dim2 << 1) + 2], &m[(i__ + (j + 1) * m_dim2 <<
 			    1) + 1], &m[(i__ + (j + 1) * m_dim2 << 1) + 2], &
 			    c__1, &c__0);
 		}
 		if (srfip1_1.idry != 0 && i__ != nnxx) {
-		    draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j * 
-			    m_dim2 << 1) + 2], &m[(i__ + 1 + j * m_dim2 << 1) 
-			    + 1], &m[(i__ + 1 + j * m_dim2 << 1) + 2], &c__1, 
+		    draws_(&m[(i__ + j * m_dim2 << 1) + 1], &m[(i__ + j *
+			    m_dim2 << 1) + 2], &m[(i__ + 1 + j * m_dim2 << 1)
+			    + 1], &m[(i__ + 1 + j * m_dim2 << 1) + 2], &c__1,
 			    &c__0);
 		}
 		if (srfip1_1.idrz != 0 && i__ != nnxx && j != nnyy) {
@@ -763,7 +763,7 @@ L570:
 
 
 
-/* Subroutine */ int clset_(real *z__, integer *mx, integer *nx, integer *ny, 
+/* Subroutine */ int clset_(real *z__, integer *mx, integer *nx, integer *ny,
 	real *chi, real *clo, real *cinc, integer *nla, integer *nlm, real *
 	cl, integer *ncl, integer *icnst, integer *ioffp, real *spval, real *
 	bigest)
@@ -940,7 +940,7 @@ L140:
     if (srfblk_1.ioffp != 1) {
 	goto L10;
     }
-    if (h1 == srfblk_1.spval || h2 == srfblk_1.spval || h3 == srfblk_1.spval 
+    if (h1 == srfblk_1.spval || h2 == srfblk_1.spval || h3 == srfblk_1.spval
 	    || h4 == srfblk_1.spval) {
 	return 0;
     }
@@ -1000,88 +1000,88 @@ L20:
 	idub = 1;
 L30:
 	ra = (h1 - cv) / (h1 - h2);
-	mua = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 + 
+	mua = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 +
 		j1p1 * m_dim2 << 1) + 1] - m[(i1 + j1 * m_dim2 << 1) + 1]);
-	mva = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 + 
+	mva = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 +
 		j1p1 * m_dim2 << 1) + 2] - m[(i1 + j1 * m_dim2 << 1) + 2]);
 	rb = (h1 - cv) / (h1 - h4);
-	mub = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 + 
+	mub = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 +
 		j1 * m_dim2 << 1) + 1] - m[(i1 + j1 * m_dim2 << 1) + 1]);
-	mvb = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 + 
+	mvb = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 +
 		j1 * m_dim2 << 1) + 2] - m[(i1 + j1 * m_dim2 << 1) + 2]);
 	goto L100;
 L40:
 	idub = -1;
 L50:
 	ra = (h2 - cv) / (h2 - h1);
-	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 + 
+	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 1] - m[(i1 + j1p1 * m_dim2 << 1) + 1]);
-	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 + 
+	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 2] - m[(i1 + j1p1 * m_dim2 << 1) + 2]);
 	rb = (h2 - cv) / (h2 - h3);
-	mub = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 
+	mub = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 1] - m[(i1 + j1p1 * m_dim2 << 1) + 1])
 		;
-	mvb = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 
+	mvb = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 2] - m[(i1 + j1p1 * m_dim2 << 1) + 2])
 		;
 	goto L100;
 L60:
 	ra = (h2 - cv) / (h2 - h3);
-	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1p1 
+	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 1] - m[(i1 + j1p1 * m_dim2 << 1) + 1])
 		;
-	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1p1 
+	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 2] - m[(i1 + j1p1 * m_dim2 << 1) + 2])
 		;
 	rb = (h1 - cv) / (h1 - h4);
-	mub = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 + 
+	mub = (real) m[(i1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 +
 		j1 * m_dim2 << 1) + 1] - m[(i1 + j1 * m_dim2 << 1) + 1]);
-	mvb = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 + 
+	mvb = (real) m[(i1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 +
 		j1 * m_dim2 << 1) + 2] - m[(i1 + j1 * m_dim2 << 1) + 2]);
 	goto L100;
 L70:
 	ra = (h3 - cv) / (h3 - h2);
-	mua = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 
-		+ j1p1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1) + 
+	mua = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1
+		+ j1p1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1) +
 		1]);
-	mva = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 
-		+ j1p1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1) + 
+	mva = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1
+		+ j1p1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1) +
 		2]);
 	rb = (h3 - cv) / (h3 - h4);
 	mub = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 1] + rb * (real) (m[(
-		i1p1 + j1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1) 
+		i1p1 + j1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1)
 		+ 1]);
 	mvb = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 2] + rb * (real) (m[(
-		i1p1 + j1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1) 
+		i1p1 + j1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1)
 		+ 2]);
 	idub = 0;
 	goto L100;
 L80:
 	ra = (h2 - cv) / (h2 - h1);
-	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 + 
+	mua = (real) m[(i1 + j1p1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 1] - m[(i1 + j1p1 * m_dim2 << 1) + 1]);
-	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 + 
+	mva = (real) m[(i1 + j1p1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 2] - m[(i1 + j1p1 * m_dim2 << 1) + 2]);
 	rb = (h3 - cv) / (h3 - h4);
 	mub = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 1] + rb * (real) (m[(
-		i1p1 + j1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1) 
+		i1p1 + j1 * m_dim2 << 1) + 1] - m[(i1p1 + j1p1 * m_dim2 << 1)
 		+ 1]);
 	mvb = (real) m[(i1p1 + j1p1 * m_dim2 << 1) + 2] + rb * (real) (m[(
-		i1p1 + j1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1) 
+		i1p1 + j1 * m_dim2 << 1) + 2] - m[(i1p1 + j1p1 * m_dim2 << 1)
 		+ 2]);
 	goto L100;
 L90:
 	ra = (h4 - cv) / (h4 - h1);
-	mua = (real) m[(i1p1 + j1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 + 
+	mua = (real) m[(i1p1 + j1 * m_dim2 << 1) + 1] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 1] - m[(i1p1 + j1 * m_dim2 << 1) + 1]);
-	mva = (real) m[(i1p1 + j1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 + 
+	mva = (real) m[(i1p1 + j1 * m_dim2 << 1) + 2] + ra * (real) (m[(i1 +
 		j1 * m_dim2 << 1) + 2] - m[(i1p1 + j1 * m_dim2 << 1) + 2]);
 	rb = (h4 - cv) / (h4 - h3);
-	mub = (real) m[(i1p1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1 
+	mub = (real) m[(i1p1 + j1 * m_dim2 << 1) + 1] + rb * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 1] - m[(i1p1 + j1 * m_dim2 << 1) + 1])
 		;
-	mvb = (real) m[(i1p1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1 
+	mvb = (real) m[(i1p1 + j1 * m_dim2 << 1) + 2] + rb * (real) (m[(i1p1
 		+ j1p1 * m_dim2 << 1) + 2] - m[(i1p1 + j1 * m_dim2 << 1) + 2])
 		;
 	idub = 0;
@@ -1109,7 +1109,7 @@ L120:
 
 
 
-/* Subroutine */ int draws_(integer *mx1, integer *my1, integer *mx2, integer 
+/* Subroutine */ int draws_(integer *mx1, integer *my1, integer *mx2, integer
 	*my2, integer *idraw, integer *imark)
 {
     /* Initialized data */
@@ -1445,7 +1445,7 @@ L370:
 
 
 
-/* Subroutine */ int setr_(real *xmin, real *xmax, real *ymin, real *ymax, 
+/* Subroutine */ int setr_(real *xmin, real *xmax, real *ymin, real *ymax,
 	real *zmin, real *zmax, real *r0)
 {
     /* System generated locals */
@@ -1455,7 +1455,7 @@ L370:
     static real yeye, xeye, zeye, alpha;
     extern /* Subroutine */ int trn32s_(real *, real *, real *, real *, real *
 	    , real *, integer *);
-    static real dummy, dummie, xat, yat, zat, umn, vmn, xmn, ymn, zmn, umx, 
+    static real dummy, dummie, xat, yat, zat, umn, vmn, xmn, ymn, zmn, umx,
 	    vmx, xmx, ymx, zmx;
 
 
@@ -1516,7 +1516,7 @@ L20:
 
 
 
-/* Subroutine */ int trn32s_(real *x, real *y, real *z__, real *xt, real *yt, 
+/* Subroutine */ int trn32s_(real *x, real *y, real *z__, real *xt, real *yt,
 	real *zt, integer *iflag)
 {
     /* Initialized data */
@@ -1539,8 +1539,8 @@ L20:
 
     /* Local variables */
     static integer jump, jump2, jump3;
-    static real d__, q, r__, cosbe, cosga, sinbe, cosal, singa, u0, v0, u1, 
-	    v1, u2, v2, u3, v3, u4, v4, ax, ay, az, dx, ex, ey, ez, dy, dz, 
+    static real d__, q, r__, cosbe, cosga, sinbe, cosal, singa, u0, v0, u1,
+	    v1, u2, v2, u3, v3, u4, v4, ax, ay, az, dx, ex, ey, ez, dy, dz,
 	    xx, yy, zz;
 
     /* Assigned format variables */
@@ -1669,12 +1669,12 @@ L60:
 	case 1: goto L80;
     }
 L70:
-    xx = ((ex + q * (xx - ex) - ax) * cosbe - (ey + q * (yy - ey) - ay) * 
+    xx = ((ex + q * (xx - ex) - ax) * cosbe - (ey + q * (yy - ey) - ay) *
 	    cosal) * r__;
     yy = (ez + q * (zz - ez) - az) * r__;
     goto L90;
 L80:
-    xx = ((ez + q * (zz - ez) - az) * cosal - (ex + q * (xx - ex) - ax) * 
+    xx = ((ez + q * (zz - ez) - az) * cosal - (ex + q * (xx - ex) - ax) *
 	    cosga) * r__;
     yy = (ey + q * (yy - ey) - ay) * r__;
 L90:

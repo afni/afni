@@ -5,7 +5,7 @@
 ******************************************************************************/
 
 /*
-   Plugin to edit an AFNI dataset.  This plugin is an interactive version 
+   Plugin to edit an AFNI dataset.  This plugin is an interactive version
    of batch program 3dmerge.
 
    File:     plug_edit.c
@@ -13,8 +13,8 @@
    Date:     15 May 1997
 
 
-   Mod:      Added Erode/Dilate option to sever narrow connecting path 
-             between clusters, by first eroding the outer layer of voxels, 
+   Mod:      Added Erode/Dilate option to sever narrow connecting path
+             between clusters, by first eroding the outer layer of voxels,
 	     then restoring voxels near the main body of the cluster.
    Author:   B. Douglas Ward
    Date:     18 June 1998
@@ -32,7 +32,7 @@
 char * EDIT_main( PLUGIN_interface * ) ;
 
 
-static char helpstring[] = 
+static char helpstring[] =
   "Purpose: AFNI plugin to edit data and return new dataset.\n"
   "Inputs: \n"
   " Dataset       Input and Output datasets\n"
@@ -89,7 +89,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
   if( ncall > 0 ) return NULL ;  /* only one interface */
   CHECK_IF_ALLOWED("3DEDIT","3D Edit") ;  /* 30 Sep 2016 */
-  
+
   /*-- set titles and call point --*/
   plint = PLUTO_new_interface( "3D Edit" , "Dataset Editing" , helpstring ,
 			       PLUGIN_CALL_VIA_MENU , EDIT_main  ) ;
@@ -125,7 +125,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
   PLUTO_add_string (plint, "Abs Value", 2, boolean_types, 0);
   PLUTO_add_hint( plint , "Take absolute value?" ) ;
-  
+
   /*----- line 3 of input: Clipping -----*/
   PLUTO_add_option (plint, "Clip", "Clip", FALSE);
   PLUTO_add_hint( plint , "Zero out values in some range" ) ;
@@ -160,7 +160,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   PLUTO_add_option (plint, "Zero Vol UL", "Zero Vol UL", FALSE);
   PLUTO_add_number (plint, "x Upper", -999, 999, 0, 0, TRUE);
   PLUTO_add_number (plint, "y Upper", -999, 999, 0, 0, TRUE);
-  PLUTO_add_number (plint, "z Upper", -999, 999, 0, 0, TRUE);   
+  PLUTO_add_number (plint, "z Upper", -999, 999, 0, 0, TRUE);
 
   /*----- line 7 of input: Zero Volume -----*/
   PLUTO_add_option (plint, "Zero Vol LL", "Zero Vol LL", FALSE);
@@ -186,7 +186,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   PLUTO_add_hint (plint , "Sever narrow connecting paths between clusters");
 
   PLUTO_add_number (plint, "% Voxels", 0, 100, 0, 50, TRUE);
-  PLUTO_add_hint (plint,  
+  PLUTO_add_hint (plint,
 		  "Min % of active 'neighbors' for a voxel to survive");
 
   PLUTO_add_string (plint, "Dilate?",  2, boolean_types, 0);
@@ -208,7 +208,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   /*----- line 12 of input: Keep Threshold -----*/
   PLUTO_add_option (plint, "Keep Thr", "Keep Thr", FALSE);
   PLUTO_add_string (plint, "Keep?",  2, boolean_types, 0);
-  
+
   /*----- line 13 of input: Threshold Blur -----*/
   PLUTO_add_option (plint, "Thr Blur", "Thr Blur", FALSE);
   PLUTO_add_string (plint, "Format", 3, blur_types, 0);
@@ -233,7 +233,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 */
 
 char * EDIT_opts
-( 
+(
   PLUGIN_interface * plint,       /* plugin interface */
   THD_3dim_dataset ** dset,       /* original dataset */
   EDIT_options * edopt,           /* the editing options */
@@ -257,72 +257,72 @@ char * EDIT_opts
   float fval;                     /* input floating point value */
   float dx, dy, dz, dxyz;         /* voxel dimensions */
   float x1, x2, y1, y2, z1, z2;   /* zero volume limits */
-  float pv;                       /* pv % voxels within rmm must be active */  
-  
+  float pv;                       /* pv % voxels within rmm must be active */
+
 
   /*----- Check inputs from AFNI to see if they are reasonable-ish -----*/
   if( plint == NULL )
-    return 
+    return
       "*********************\n"
       "EDIT_opts: NULL input\n"
       "*********************";
-  
+
 
   /*--------- go to first input line ---------*/
   tag = PLUTO_get_optiontag(plint) ;
   if( (tag==NULL) || (strcmp(tag,"Dataset") != 0) )
-    return 
+    return
       "*********************************\n"
       "EDIT_opts: Bad dataset option tag\n"
       "*********************************";
-  
+
   idc  = PLUTO_get_idcode(plint) ;
   (*dset) = PLUTO_find_dset(idc) ;
   if( (*dset) == NULL )
-    return 
+    return
       "****************************\n"
       "EDIT_opts: Bad input dataset\n"
       "****************************";
-  
+
   if (DSET_NUM_TIMES((*dset)) > 1)
     return
       "*************************************************\n"
       "EDIT_opts: Unable to edit time-dependent datasets\n"
       "*************************************************";
-  
+
   /*----- get the dimensions -----*/
   dx = fabs((*dset)->daxes->xxdel);
   dy = fabs((*dset)->daxes->yydel);
   dz = fabs((*dset)->daxes->zzdel);
   dxyz  = dx*dy*dz ;
-  
-  
+
+
   str = PLUTO_get_string(plint);
-  if (str != NULL) 
+  if (str != NULL)
     {
       if( ! PLUTO_prefix_ok(str) )
-	return 
+	return
 	  "*********************\n"
 	  "EDIT_opts: bad prefix\n"
 	  "*********************";
       else
 	*new_prefix = str;
-    } 
-  
+    }
+
   str = PLUTO_get_string(plint);
-  if (str != NULL) 
+  if (str != NULL)
     {
       *new_session = str;
-    } 
-  
+    }
+
 
   /*------ loop over remaining options, check their tags, process them -----*/
-  do 
+  do
     {
-      tag = PLUTO_get_optiontag(plint) ; 
+      tag = PLUTO_get_optiontag(plint) ;
       if( tag == NULL ) break ;
-      
-      
+
+
       /*----- Miscellaneous Options -----*/
       if (strcmp (tag, "Options") == 0)
 	{
@@ -330,7 +330,7 @@ char * EDIT_opts
 	  if (strcmp (str, "True") == 0)
 	    {
 	      if (DSET_THRESH_INDEX(*dset) < 0)
-		return 
+		return
 		  "*********************************************\n"
 		  "EDIT_opts: Dataset has no threshold sub-brick\n"
 		  "*********************************************";
@@ -339,36 +339,36 @@ char * EDIT_opts
 	    }
 	  else
 	    edopt->thtoin = 0;
-	  
+
 	  str = PLUTO_get_string(plint);
 	  if (strcmp (str, "True") == 0)
 	    edopt->noneg = 1;
 	  else
 	    edopt->noneg = 0;
-	  
+
 	  str = PLUTO_get_string(plint);
 	  if (strcmp (str, "True") == 0)
 	    edopt->abss = 1;
 	  else
 	    edopt->abss = 0;
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Clip Option -----*/
       if (strcmp(tag,"Clip") == 0)
 	{
 	  bot = PLUTO_get_number(plint);
 	  top = PLUTO_get_number(plint);
 	  str = PLUTO_get_string(plint);
-	  
+
 	  if (bot >= top)
-	    return 
+	    return
 	      "**********************************************************\n"
 	      "EDIT_opts: First clip value must be less than second value\n"
 	      "**********************************************************";
-	  
+
 	  edopt->clip_bot = bot;
 	  edopt->clip_top = top;
 
@@ -376,7 +376,7 @@ char * EDIT_opts
 	    edopt->clip_unscaled = 1;
 	  else
 	    edopt->clip_unscaled = 0;
-	  
+
 	  continue;
 	}
 
@@ -385,24 +385,24 @@ char * EDIT_opts
       if (strcmp(tag,"Threshold") == 0)
 	{
 	  thresh = PLUTO_get_number(plint) ;
-	  
+
 	  if (thresh < 0.0)
-	    return 
+	    return
 	      "******************************\n"
 	      "EDIT_opts: Bad Threshold input\n"
 	      "******************************";
-	  
+
 	  if( thresh > 0.0 && DSET_THRESH_INDEX(*dset) < 0 )
-	    return 
+	    return
 	      "*********************************************\n"
 	      "EDIT_opts: Dataset has no threshold sub-brick\n"
 	      "*********************************************";
-	  
+
 	  edopt->thresh =  thresh;
 	  edopt->thbot  = -thresh;  /* 26 Dec 2007 */
-	  
+
 	  continue;
-	} 
+	}
 
 
       /*----- Blur Option -----*/
@@ -410,13 +410,13 @@ char * EDIT_opts
 	{
 	  str = PLUTO_get_string(plint);
 	  blur = PLUTO_get_number(plint);
-	  
+
 	  if (blur <= 0.0 )
-	    return 
+	    return
 	      "*****************************\n"
 	      "EDIT_opts: Illegal Blur input\n"
 	      "*****************************";
-	  
+
 	  if (strcmp(str,"Sigma") == 0)
 	    edopt->blur  = blur;
 	  else
@@ -426,22 +426,22 @@ char * EDIT_opts
 	      if (strcmp(str,"FWHM") == 0)
 		edopt->blur = FWHM_TO_SIGMA(blur);
 	      else
-		return 
+		return
 		  "******************************\n"
 		  "EDIT_opts: Illegal Blur option\n"
 		  "******************************";
-	  
+
 	  continue;
-	} 
-      
-      
+	}
+
+
       /*----- Zero Volume Option -----*/
       if (strcmp(tag, "Zero Vol UL") == 0)
 	{
 	  x2 = PLUTO_get_number(plint);
 	  y2 = PLUTO_get_number(plint);
 	  z2 = PLUTO_get_number(plint);
-	  
+
 	  tag = PLUTO_get_optiontag(plint);
 	  if (strcmp(tag, "Zero Vol LL") == 0)
 	    {
@@ -450,7 +450,7 @@ char * EDIT_opts
 	      z1 = PLUTO_get_number(plint);
 	    }
 	  else
-	    return 
+	    return
 	      "***************************\n"
 	      "EDIT_opts: Need Zero Vol LL\n"
 	      "***************************";
@@ -465,35 +465,35 @@ char * EDIT_opts
 
       if (strcmp(tag, "Zero Vol LL") == 0)
 	{
-	  return 
+	  return
 	    "***************************\n"
 	    "EDIT_opts: Need Zero Vol UL\n"
 	    "***************************";
 	}
-      
-      
+
+
       /*----- Cluster Option -----*/
       if (strcmp(tag,"Cluster") == 0)
 	{
 	  str = PLUTO_get_string(plint);
 	  rmm  = PLUTO_get_number(plint) ;
 	  vmul = PLUTO_get_number(plint) ;
-	  
+
 	  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) )
-	    return 
+	    return
 	      "***********************************\n"
 	      "EDIT_opts: Cluster rmm is too small\n"
 	      "***********************************";
 
 	  if (vmul <= dxyz)
-	    return 
+	    return
 	      "************************************\n"
 	      "EDIT_opts: Cluster vmul is too small\n"
 	      "************************************";
-	
+
 	  edopt->clust_rmm  = rmm;
 	  edopt->clust_vmul = vmul;
-	  
+
 	  if (strcmp(str,"Keep") == 0)
 	    edopt->edit_clust = ECFLAG_SAME;
 	  else
@@ -518,32 +518,32 @@ char * EDIT_opts
 		         if (strcmp(str,"Depth") == 0)
 			   edopt->edit_clust = ECFLAG_DEPTH;
                else
-			return 
+			return
 			  "*********************************\n"
 			  "EDIT_opts: Illegal Cluster option\n"
 			  "*********************************";
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Erosion/Dilation Option -----*/
       if (strcmp(tag,"Erode/Dilate") == 0)
 	{
 	  pv  = PLUTO_get_number(plint);
 	  if ((pv > 0.0) && (edopt->clust_rmm <= 0.0))
-	    return 
+	    return
 	      "******************************************************\n"
 	      "EDIT_opts: Erode/Dilate requires use of Cluster option\n"
 	      "******************************************************";
 	  else
 	    edopt->erode_pv  = pv / 100.0;
-	  
+
 	  str = PLUTO_get_string(plint);
 	  if (strcmp (str, "True") == 0)
 	    {
 	      if (pv <= 0.0)
-		return 
+		return
 		  "**********************************************\n"
 		  "EDIT_opts: Dilate requires use of Erode option\n"
 		  "**********************************************";
@@ -552,25 +552,25 @@ char * EDIT_opts
 	    }
 	  else
 	    edopt->dilate = 0;
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Filter Option -----*/
       if (strcmp(tag,"Filter") == 0)
 	{
 	  str = PLUTO_get_string(plint);
 	  rmm  = PLUTO_get_number(plint) ;
-	  
+
 	  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) )
-	    return 
+	    return
 	      "**********************************\n"
 	      "EDIT_opts: Filter rmm is too small\n"
 	      "**********************************";
 
 	  edopt->filter_rmm  = rmm;
-	  
+
 	  if (strcmp(str,"Mean") == 0)
 	    edopt->filter_opt = FCFLAG_MEAN;
 	  else
@@ -589,32 +589,32 @@ char * EDIT_opts
 		    if (strcmp(str,"Aver") == 0)       /* 07 Jan 1998 */
 		      edopt->filter_opt = FCFLAG_AVER;
 		    else
-		      return 
+		      return
 		        "********************************\n"
 		        "EDIT_opts: Illegal Filter option\n"
 		        "********************************";
-	  
+
 	  continue;
 	}
-      
+
 
       /*----- Multiply Option -----*/
       if (strcmp(tag,"Multiply") == 0)
 	{
 	  fval  = PLUTO_get_number(plint);
-	  
+
 	  if (fval == 0.0)
-	    return 
+	    return
 	      "*****************************\n"
 	      "EDIT_opts: Bad Multiply input\n"
 	      "*****************************";
-	  
+
 	  edopt->mult = fval;
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Datum Type Option -----*/
       if (strcmp(tag, "Datum") == 0)
 	{
@@ -627,18 +627,18 @@ char * EDIT_opts
 	    else
 	      if (strcmp(str,"Float") == 0)
 		*datum = MRI_float;
-	      else 
+	      else
 		{
-		  return 
+		  return
 		    "*****************************\n"
 		    "EDIT_opts: Illegal Datum type\n"
 		    "*****************************";
 		}
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Keep Threshold Option -----*/
       if (strcmp(tag,"Keep Thr") == 0)
 	{
@@ -646,7 +646,7 @@ char * EDIT_opts
 	  if (strcmp (str, "True") == 0)
 	    {
 	      if (DSET_THRESH_INDEX(*dset) < 0)
-		return 
+		return
 		  "*********************************************\n"
 		  "EDIT_opts: Dataset has no threshold sub-brick\n"
 		  "*********************************************";
@@ -655,29 +655,29 @@ char * EDIT_opts
 	    }
 	  else
 	    *keepthr = 0;
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Threshold Blur Option -----*/
       if (strcmp(tag,"Thr Blur") == 0)
 	{
 	  if (DSET_THRESH_INDEX(*dset) < 0)
-	    return 
+	    return
 	      "*********************************************\n"
 	      "EDIT_opts: Dataset has no threshold sub-brick\n"
 	      "*********************************************";
 
 	  str = PLUTO_get_string(plint);
 	  blur = PLUTO_get_number(plint) ;
-	  
+
 	  if (blur <= 0.0 )
-	    return 
+	    return
 	      "***************************************\n"
 	      "EDIT_opts: Illegal Threshold Blur input\n"
 	      "***************************************";
-	  
+
 	  if (strcmp(str,"Sigma") == 0)
 	    edopt->thrblur  = blur;
 	  else
@@ -687,37 +687,37 @@ char * EDIT_opts
 	      if (strcmp(str,"FWHM") == 0)
 		edopt->thrblur = FWHM_TO_SIGMA(blur);
 	      else
-		return 
+		return
 		  "******************************\n"
 		  "EDIT_opts: Illegal Blur option\n"
 		  "******************************";
-	  
+
 	  *keepthr = 1;
-	  
+
 	  continue;
-	} 
-      
-      
+	}
+
+
       /*----- Threshold Filter Option -----*/
       if (strcmp(tag,"Thr Filter") == 0)
 	{
 	  if (DSET_THRESH_INDEX(*dset) < 0)
-	    return 
+	    return
 	      "*********************************************\n"
 	      "EDIT_opts: Dataset has no threshold sub-brick\n"
 	      "*********************************************";
 
 	  str = PLUTO_get_string(plint);
 	  rmm  = PLUTO_get_number(plint) ;
-	  
+
 	  if ( (rmm < dx) && (rmm < dy) && (rmm < dz) )
-	    return 
+	    return
 	      "**************************************\n"
 	      "EDIT_opts: Thr Filter rmm is too small\n"
 	      "**************************************";
 
 	  edopt->thrfilter_rmm  = rmm;
-	  
+
 	  if (strcmp(str,"Mean") == 0)
 	    edopt->thrfilter_opt = FCFLAG_MEAN;
 	  else
@@ -736,22 +736,22 @@ char * EDIT_opts
 		    if (strcmp(str,"Aver") == 0)       /* 07 Jan 1998 */
 		      edopt->thrfilter_opt = FCFLAG_AVER;
 		    else
-		      return 
+		      return
 		        "************************************\n"
 		        "EDIT_opts: Illegal Thr Filter option\n"
 		        "************************************";
 
 	  *keepthr = 1;
-	  
+
 	  continue;
 	}
-      
+
 
       /*----- Threshold Datum Type Option -----*/
       if (strcmp(tag, "Thr Datum") == 0)
 	{
 	  if (DSET_THRESH_INDEX(*dset) < 0)
-	    return 
+	    return
 	      "*********************************************\n"
 	      "EDIT_opts: Dataset has no threshold sub-brick\n"
 	      "*********************************************";
@@ -765,34 +765,34 @@ char * EDIT_opts
 	    else
 	      if (strcmp(str,"Float") == 0)
 		*thrdatum = MRI_float;
-	      else 
+	      else
 		{
-		  return 
+		  return
 		    "***************************************\n"
 		    "EDIT_opts: Illegal Threshold Datum type\n"
 		    "***************************************";
 		}
-	  
+
 	  *keepthr = 1;
-	  
+
 	  continue;
 	}
-      
-      
+
+
       /*----- Illegal Option -----*/
-      else 
+      else
 	{
-	  return 
+	  return
 	    "***********************************\n"
 	    "EDIT_opts: Illegal optiontag found!\n"
 	    "***********************************";
 	}
-      
+
     } while(1) ;
-  
-  
+
+
   /*---------- End of input options ----------*/
-  
+
   return NULL;
 }
 
@@ -811,7 +811,7 @@ char * EDIT_main( PLUGIN_interface * plint )
   int PE_be_quiet = 0;
   char * PE_output_session = NULL;
   char * PE_output_prefix = NULL;
-  
+
 
   int nx,ny,nz , nxyz , ii ,  ival;
   THD_3dim_dataset * old_dset = NULL, * dset=NULL , * new_dset=NULL ;
@@ -819,18 +819,18 @@ char * EDIT_main( PLUGIN_interface * plint )
   float fimfac , fimfacinv , first_fimfac , thrfac ;
   int   output_datum , output_thdatum ;
   int   input_datum  , input_thdatum , first_datum ;
-  
+
   float thr_stataux[MAX_STAT_AUX] ;
   char * str;
 
-  
-  
+
+
   /*-- set up for dataset editing --*/
   INIT_EDOPT( &PE_edopt ) ;
 
 
   /*----- read input options -----*/
-  str = EDIT_opts (plint, &old_dset, &PE_edopt,  
+  str = EDIT_opts (plint, &old_dset, &PE_edopt,
 		   &PE_output_prefix, &PE_output_session, &PE_datum,
 		   &PE_keepthr, &PE_thdatum);
   if (str != NULL)  return (str);
@@ -849,9 +849,9 @@ char * EDIT_main( PLUGIN_interface * plint )
   input_datum = DSET_BRICK_TYPE(dset,ival) ;
   if (PE_datum >= 0) output_datum = PE_datum ;
   else               output_datum = input_datum ;
-  
+
   new_dset = EDIT_empty_copy( dset ) ;
-  
+
   EDIT_dset_items( new_dset ,
 		   ADN_prefix , PE_output_prefix ,
 		   ADN_label1 , PE_output_prefix ,
@@ -863,25 +863,25 @@ char * EDIT_main( PLUGIN_interface * plint )
     tross_Copy_History( dset , new_dset ) ;
     tross_Append_History( new_dset, his ) ; free(his) ;
   }
-  
+
   if( ! PE_keepthr && new_dset->dblk->nvals > 1 )
     EDIT_dset_items( new_dset ,
 		     ADN_nvals , 1 ,
 		     ADN_func_type , FUNC_FIM_TYPE ,
 		     ADN_none ) ;
-  
+
   if ( PE_keepthr && ISFUNC(new_dset) && FUNC_HAVE_THR(new_dset->func_type) )
     {
       ii            = FUNC_ival_thr[dset->func_type] ;
       input_thdatum = DSET_BRICK_TYPE(dset,ii) ;
       if (PE_thdatum >= 0) output_thdatum = PE_thdatum ;
       else                 output_thdatum = input_thdatum ;
-    } 
-  else 
+    }
+  else
     {
       output_thdatum = input_thdatum = ILLEGAL_TYPE ;
     }
-  
+
   if ( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
       fprintf(stderr,
@@ -890,54 +890,54 @@ char * EDIT_main( PLUGIN_interface * plint )
       return("*** Output file already exists -- cannot continue!");
       /*EXIT(1) ;*/
     }
-  
+
   if (! PE_be_quiet)
     {
       printf("-- editing input dataset in memory (%.1f MB)",
 	          ((double)dset->dblk->total_bytes) / MEGA ) ;
       fflush(stdout) ;
-    } 
+    }
 
 
   EDIT_one_dataset( dset , &PE_edopt ) ;  /* all the real work */
 
-  
+
   if (! PE_be_quiet)  { printf(".\n") ; fflush(stdout) ; }
-  
+
 
   /** Coerce the output data type into a new brick, if needed **/
   ival = DSET_PRINCIPAL_VALUE(dset) ;
   ii   = DSET_PRINCIPAL_VALUE(new_dset) ;
-  
+
   if( input_datum == output_datum )
     {
       /*
 	Attach the brick of the input dataset to the brick of the output.
-	This isn't exactly kosher, but we are exiting almost immediately. 
-      */ 
-      if (! PE_be_quiet) 
+	This isn't exactly kosher, but we are exiting almost immediately.
+      */
+      if (! PE_be_quiet)
 	printf ("connecting edited input to be output \n");
       mri_fix_data_pointer (DSET_ARRAY(dset,ival), DSET_BRICK(new_dset,ii));
       DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival);
     }
-  else 
+  else
     {
-      /** Must create a new brick and do the conversion **/ 
+      /** Must create a new brick and do the conversion **/
       void * dfim , * efim ;
       float etop ;
-      
+
       if(! PE_be_quiet)
 	{
 	  printf("-- coercing output datum to be %s\n",
 		 MRI_TYPE_name[output_datum]);
-	} 
-      
+	}
+
       efim = DSET_ARRAY(dset,ival) ;
       dfim = (void *) XtMalloc( mri_datum_size(output_datum) * nxyz ) ;
-      
+
       fimfac = EDIT_coerce_autoscale( nxyz , input_datum  , efim ,
 				      output_datum , dfim  ) ;
-      
+
       DSET_BRICK_FACTOR(new_dset,ii) = (fimfac != 0.0 && fimfac != 1.0)
 	? 1.0/fimfac : 0.0 ;
 
@@ -946,39 +946,39 @@ char * EDIT_main( PLUGIN_interface * plint )
     }
 
   /** Now do the threshold data **/
-  
+
   if( output_thdatum >= 0 )
-    {      
+    {
       ival = FUNC_ival_thr[    dset->func_type] ;
       ii   = FUNC_ival_thr[new_dset->func_type] ;
-      
+
       if( input_thdatum == output_thdatum )
 	{
 	  if (! PE_be_quiet)
 	    printf ("connecting input and output thresholds \n") ;
 	  mri_fix_data_pointer (DSET_ARRAY(dset,ival),DSET_BRICK(new_dset,ii));
-	  DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival) ; 
-	} 
-      else 
+	  DSET_BRICK_FACTOR(new_dset,ii) = DSET_BRICK_FACTOR(dset,ival) ;
+	}
+      else
 	{
 	  void * dfim , * efim ;
-	  
+
 	  if( ! PE_be_quiet )
 	    {
 	      printf("-- coercing threshold datum to be %s\n",
 		     MRI_TYPE_name[output_thdatum]);
-	    } 
-	  
+	    }
+
 	  efim = DSET_ARRAY(dset,ival) ;
 	  dfim = (void *) XtMalloc( mri_datum_size(output_thdatum) * nxyz ) ;
-	  
+
 	  switch( output_thdatum )
 	    {
 	    default: fprintf(stderr,"** illegal output_thdatum = %d\n",
 			     output_thdatum);
 	      return("** illegal output_thdatum");
 	      /* EXIT(1) ;*/
-	    
+
 	    case MRI_float:
 	      fimfacinv = 0.0 ;
 	      fimfac    = DSET_BRICK_FACTOR(dset,ival) ;
@@ -996,15 +996,15 @@ char * EDIT_main( PLUGIN_interface * plint )
 		{
 		  fimfac    = FUNC_scale_short[new_dset->func_type] ;
 		  fimfacinv = 1.0 / fimfac ;
-		} 
-	      else 
+		}
+	      else
 		if( input_datum == MRI_byte )
 		  {
 		    fimfac    = ((float)FUNC_scale_short[new_dset->func_type])
 		      / FUNC_scale_byte[new_dset->func_type] ;
 		    fimfacinv = 1.0 / FUNC_scale_short[new_dset->func_type] ;
-                  } 
-		else 
+                  }
+		else
 		  {
 		    fprintf(stderr,
 			    "** illegal input_thdatum = %d\n",input_thdatum);
@@ -1012,21 +1012,21 @@ char * EDIT_main( PLUGIN_interface * plint )
 		    /* EXIT(1) ;*/
                   }
 	      break ;
-	      
+
 	    case MRI_byte:
 	      if( input_datum == MRI_float )
 		{
 		  fimfac    = FUNC_scale_byte[new_dset->func_type] ;
 		  fimfacinv = 1.0 / fimfac ;
 		}
-	      else 
+	      else
 		if( input_datum == MRI_short )
 		  {
 		    fimfac    = ((float)FUNC_scale_byte[new_dset->func_type])
 		      / FUNC_scale_short[new_dset->func_type] ;
 		    fimfacinv = 1.0 / FUNC_scale_byte[new_dset->func_type] ;
-                  } 
-		else 
+                  }
+		else
 		  {
 		    fprintf(stderr,"** illegal input_thdatum = %d\n",
 			    input_thdatum);
@@ -1035,33 +1035,33 @@ char * EDIT_main( PLUGIN_interface * plint )
                   }
 	      break;
             }
-	  
+
 	  EDIT_coerce_scale_type( nxyz , fimfac ,
 				  DSET_BRICK_TYPE(dset,ival),efim ,
 				  output_thdatum,dfim );
-	  
+
 	  DSET_BRICK_FACTOR(new_dset,ii) = fimfacinv;
 	  EDIT_substitute_brick( new_dset , ii , output_thdatum , dfim );
 	  mri_free( DSET_BRICK(dset,ival) );
 	}
     }
-  
+
   if (! PE_be_quiet)
     printf("-- Writing edited dataset:%s\n" , DSET_BRIKNAME(new_dset) ) ;
-  
+
   ival = PLUTO_add_dset( plint , new_dset , DSET_ACTION_MAKE_CURRENT ) ;
 
   if (ival)
     {
       THD_delete_3dim_dataset( new_dset , False ) ;
-      return 
+      return
 	"*********************************************\n"
 	"EDIT_main: failure to add new dataset to AFNI\n"
 	"*********************************************" ;
     }
   else
     return (NULL) ;
-  
+
 }
 
 

@@ -68,7 +68,7 @@ typedef int ncio_movefunc(ncio *const nciop, off_t to, off_t from,
 typedef int ncio_syncfunc(ncio *const nciop);
 
 	/*
-	 * Don't call this. 
+	 * Don't call this.
 	 * Internal function called at close to
 	 * free up anything hanging off pvt;
 	 */
@@ -134,7 +134,7 @@ ncio_open(const char *path,
 	off_t igeto, size_t igetsz, size_t *sizehintp,
 	ncio **nciopp, void **const igetvpp);
 
-extern int 
+extern int
 ncio_close(ncio *nciop, int doUnlink);
 
 #endif /* _NCIO_H_ */

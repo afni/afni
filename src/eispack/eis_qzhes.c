@@ -5,11 +5,11 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int qzhes_(integer *nm, integer *n, doublereal *a, 
+/* Subroutine */ int qzhes_(integer *nm, integer *n, doublereal *a,
 	doublereal *b, logical *matz, doublereal *z__)
 {
     /* System generated locals */
-    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2, 
+    integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset, i__1, i__2,
 	    i__3;
     doublereal d__1, d__2;
 
@@ -47,7 +47,7 @@
 
 /*        B CONTAINS A REAL GENERAL MATRIX. */
 
-/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS 
+/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS
 */
 /*          ARE TO BE ACCUMULATED FOR LATER USE IN COMPUTING */
 /*          EIGENVECTORS, AND TO .FALSE. OTHERWISE. */
@@ -61,16 +61,16 @@
 /*          BELOW THE MAIN DIAGONAL HAVE BEEN SET TO ZERO. */
 
 /*        Z CONTAINS THE PRODUCT OF THE RIGHT HAND TRANSFORMATIONS IF */
-/*          MATZ HAS BEEN SET TO .TRUE.  OTHERWISE, Z IS NOT REFERENCED. 
+/*          MATZ HAS BEEN SET TO .TRUE.  OTHERWISE, Z IS NOT REFERENCED.
 */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
 /*     .......... INITIALIZE Z .......... */
@@ -209,7 +209,7 @@ L100:
 	    l = *n - lb;
 	    l1 = l + 1;
 /*     .......... ZERO A(L+1,K) .......... */
-	    s = (d__1 = a[l + k * a_dim1], abs(d__1)) + (d__2 = a[l1 + k * 
+	    s = (d__1 = a[l + k * a_dim1], abs(d__1)) + (d__2 = a[l1 + k *
 		    a_dim1], abs(d__2));
 	    if (s == 0.) {
 		goto L150;
@@ -240,7 +240,7 @@ L100:
 /* L120: */
 	    }
 /*     .......... ZERO B(L+1,L) .......... */
-	    s = (d__1 = b[l1 + l1 * b_dim1], abs(d__1)) + (d__2 = b[l1 + l * 
+	    s = (d__1 = b[l1 + l1 * b_dim1], abs(d__1)) + (d__2 = b[l1 + l *
 		    b_dim1], abs(d__2));
 	    if (s == 0.) {
 		goto L150;

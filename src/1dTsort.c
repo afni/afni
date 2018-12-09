@@ -16,7 +16,7 @@ void usage_1dTsort( int detail ){
       " -col j   = sort only on column #j (counting starts at 0),\n"
       "            and carry the rest of the columns with it.\n"
       " -imode   = typecast all values to integers, return the mode in\n"
-      "            the input then exit. No sorting results are returned.\n" 
+      "            the input then exit. No sorting results are returned.\n"
       "\n"
       "N.B.: Data will be read from standard input if the filename IS stdin,\n"
       "      and will also be row/column transposed if the filename is stdin\\'\n"
@@ -33,7 +33,7 @@ int main( int argc , char *argv[] )
    int dec=0 , flip=0 , iarg , csort=-1 , mode = 0;
 
    mainENTRY("1dTsort main") ; machdep() ;
-   
+
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
      if( strcmp(argv[iarg],"-help") == 0 || strcmp(argv[iarg],"-h") == 0){
@@ -58,7 +58,7 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[iarg],"-flip") == 0 ){
        flip = 1 ; iarg++ ; continue ;
      }
-     
+
      if( strcmp(argv[iarg],"-imode") == 0 ){
        mode = 1 ; iarg++ ; continue ;
      }
@@ -67,9 +67,9 @@ int main( int argc , char *argv[] )
      suggest_best_prog_option(argv[0], argv[iarg]);
      exit(1);
    }
-   
+
    if( argc < 2 ){
-     usage_1dTsort(1) ; exit(0) ; 
+     usage_1dTsort(1) ; exit(0) ;
    }
 
    if( iarg >= argc ) ERROR_exit("No 1D file on command line?!") ;

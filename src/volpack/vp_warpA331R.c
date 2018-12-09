@@ -5,17 +5,17 @@
 /*
  * Copyright (c) 1994 The Board of Trustees of The Leland Stanford
  * Junior University.  All rights reserved.
- * 
+ *
  * Permission to use, copy, modify and distribute this software and its
  * documentation for any purpose is hereby granted without fee, provided
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
- * 
+ *
  * Author:
  *    Phil Lacroute
  *    Computer Systems Laboratory
@@ -35,7 +35,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -56,15 +56,6 @@
 
 
 
-    
-    
-    
-    
-    
-
-    
-    
-    
 
 
 
@@ -74,21 +65,6 @@
 
 
 
-    
-    
-    
-    
-    
-
-
-
-
-
-    
-    
-    
-    
-    
 
 
 
@@ -97,7 +73,31 @@
 
 
 
-	
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 /* convert a float in the interval [0-1) to a 31-bit fixed point */
 #define FLTFRAC_TO_FIX31(f)	((int)((f) * 2147483648.))
@@ -159,7 +159,7 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 				   pixel in the current scan */
     double in_x_incr, in_y_incr;/* increments to in_x and in_y to give the
 				   input image coordinates of the next
-				   output image pixel in the current scan 
+				   output image pixel in the current scan
 				   (equal to dx_in/dx_out and dy_in/dx_out) */
     int in_x_incr_int, in_y_incr_int; /* integer part of in_x/y_incr */
     int in_x_incr_dlt, in_y_incr_dlt; /* sign of in_x/y_incr */
@@ -170,7 +170,7 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
     int rgt_edge_cnt;		/* # pixels on rgt w/ part filter overlap */
     int rgt_zero_cnt;		/* # zero pixels on right edge of scan */
     int x;			/* pixel index */
-    
+
 	float r_acc, g_acc, b_acc;
     int r_acc_int, g_acc_int, b_acc_int;
 	float opc_acc; int opc_acc_int;		/* pixel accumulator */
@@ -299,7 +299,7 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 		rgt_edge_cnt -= full_cnt + lft_edge_cnt + lft_zero_cnt;
 		if (rgt_edge_cnt < 0)
 		    rgt_edge_cnt = 0;
-		rgt_zero_cnt = out_width - lft_zero_cnt - lft_edge_cnt - 
+		rgt_zero_cnt = out_width - lft_zero_cnt - lft_edge_cnt -
 		    	       full_cnt - rgt_edge_cnt;
 	    }
 
@@ -328,21 +328,21 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 	    for (x = lft_zero_cnt; x < lft_zero_cnt + lft_edge_cnt; x++) {
 		wptr = VPBilirpWeight[FIX31_TO_WGTIND(yfrac)]
 		    		     [FIX31_TO_WGTIND(xfrac)];
-		
+
 	r_acc = g_acc = b_acc = 0;
 	opc_acc = 0;;
 		if (in_x_int >= 0 && in_x_int < in_width) {
 		    if (in_y_int >= 0 && in_y_int < in_height) {
-			
-	
+
+
 		r_acc += (wptr[0]) * (in_ptr[0].rclrflt);
 		g_acc += (wptr[0]) * (in_ptr[0].gclrflt);
 		b_acc += (wptr[0]) * (in_ptr[0].bclrflt);
 	opc_acc += (wptr[0]) * (in_ptr[0].opcflt);;
 		    }
 		    if (in_y_int+1 >= 0 && in_y_int+1 < in_height) {
-			
-	
+
+
 		r_acc += (wptr[2]) * (in_ptr[in_width].rclrflt);
 		g_acc += (wptr[2]) * (in_ptr[in_width].gclrflt);
 		b_acc += (wptr[2]) * (in_ptr[in_width].bclrflt);
@@ -351,29 +351,29 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 		}
 		if (in_x_int+1 >= 0 && in_x_int+1 < in_width) {
 		    if (in_y_int >= 0 && in_y_int < in_height) {
-			
-	
+
+
 		r_acc += (wptr[1]) * (in_ptr[1].rclrflt);
 		g_acc += (wptr[1]) * (in_ptr[1].gclrflt);
 		b_acc += (wptr[1]) * (in_ptr[1].bclrflt);
 	opc_acc += (wptr[1]) * (in_ptr[1].opcflt);;
 		    }
 		    if (in_y_int+1 >= 0 && in_y_int+1 < in_height) {
-			
-	
+
+
 		r_acc += (wptr[3]) * (in_ptr[in_width + 1].rclrflt);
 		g_acc += (wptr[3]) * (in_ptr[in_width + 1].gclrflt);
 		b_acc += (wptr[3]) * (in_ptr[in_width + 1].bclrflt);
 	opc_acc += (wptr[3]) * (in_ptr[in_width + 1].opcflt);;
 		    }
 		}
-		
-	    
+
+
 	opc_acc_int = opc_acc * (float)255.;
 	if (opc_acc_int > 255)
 	    opc_acc_int = 255;
 	((out_ptr)[0]) = opc_acc_int;
-	    
+
 		r_acc_int = r_acc;
 		if (r_acc_int > 255)
 		    r_acc_int = 255;
@@ -416,32 +416,32 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 				in_bytes_per_scan)) + in_x_int == in_ptr);
 		wptr = VPBilirpWeight[FIX31_TO_WGTIND(yfrac)]
 				     [FIX31_TO_WGTIND(xfrac)];
-		
-	
+
+
 		r_acc = (wptr[0]) * (in_ptr[0].rclrflt) +
-			(wptr[2]) * (in_ptr[in_width].rclrflt) +	
+			(wptr[2]) * (in_ptr[in_width].rclrflt) +
 			(wptr[1]) * (in_ptr[1].rclrflt) +
 			(wptr[3]) * (in_ptr[in_width+1].rclrflt);
 		g_acc = (wptr[0]) * (in_ptr[0].gclrflt) +
-			(wptr[2]) * (in_ptr[in_width].gclrflt) +	
+			(wptr[2]) * (in_ptr[in_width].gclrflt) +
 			(wptr[1]) * (in_ptr[1].gclrflt) +
 			(wptr[3]) * (in_ptr[in_width+1].gclrflt);
 		b_acc = (wptr[0]) * (in_ptr[0].bclrflt) +
-			(wptr[2]) * (in_ptr[in_width].bclrflt) +	
+			(wptr[2]) * (in_ptr[in_width].bclrflt) +
 			(wptr[1]) * (in_ptr[1].bclrflt) +
 			(wptr[3]) * (in_ptr[in_width+1].bclrflt);
-	
+
 	opc_acc = (wptr[0]) * (in_ptr[0].opcflt) +
-		  (wptr[2]) * (in_ptr[in_width].opcflt) +	
+		  (wptr[2]) * (in_ptr[in_width].opcflt) +
 		  (wptr[1]) * (in_ptr[1].opcflt) +
 		  (wptr[3]) * (in_ptr[in_width+1].opcflt);;
-		
-	    
+
+
 	opc_acc_int = opc_acc * (float)255.;
 	if (opc_acc_int > 255)
 	    opc_acc_int = 255;
 	((out_ptr)[0]) = opc_acc_int;
-	    
+
 		r_acc_int = r_acc;
 		if (r_acc_int > 255)
 		    r_acc_int = 255;
@@ -481,21 +481,21 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 		 x++) {
 		wptr = VPBilirpWeight[FIX31_TO_WGTIND(yfrac)]
 				     [FIX31_TO_WGTIND(xfrac)];
-		
+
 	r_acc = g_acc = b_acc = 0;
 	opc_acc = 0;;
 		if (in_x_int >= 0 && in_x_int < in_width) {
 		    if (in_y_int >= 0 && in_y_int < in_height) {
-			
-	
+
+
 		r_acc += (wptr[0]) * (in_ptr[0].rclrflt);
 		g_acc += (wptr[0]) * (in_ptr[0].gclrflt);
 		b_acc += (wptr[0]) * (in_ptr[0].bclrflt);
 	opc_acc += (wptr[0]) * (in_ptr[0].opcflt);;
 		    }
 		    if (in_y_int+1 >= 0 && in_y_int+1 < in_height) {
-			
-	
+
+
 		r_acc += (wptr[2]) * (in_ptr[in_width].rclrflt);
 		g_acc += (wptr[2]) * (in_ptr[in_width].gclrflt);
 		b_acc += (wptr[2]) * (in_ptr[in_width].bclrflt);
@@ -504,29 +504,29 @@ vpMatrix3 warp_matrix;		/* [ outx ]                 [ inx ] */
 		}
 		if (in_x_int+1 >= 0 && in_x_int+1 < in_width) {
 		    if (in_y_int >= 0 && in_y_int < in_height) {
-			
-	
+
+
 		r_acc += (wptr[1]) * (in_ptr[1].rclrflt);
 		g_acc += (wptr[1]) * (in_ptr[1].gclrflt);
 		b_acc += (wptr[1]) * (in_ptr[1].bclrflt);
 	opc_acc += (wptr[1]) * (in_ptr[1].opcflt);;
 		    }
 		    if (in_y_int+1 >= 0 && in_y_int+1 < in_height) {
-			
-	
+
+
 		r_acc += (wptr[3]) * (in_ptr[in_width + 1].rclrflt);
 		g_acc += (wptr[3]) * (in_ptr[in_width + 1].gclrflt);
 		b_acc += (wptr[3]) * (in_ptr[in_width + 1].bclrflt);
 	opc_acc += (wptr[3]) * (in_ptr[in_width + 1].opcflt);;
 		    }
 		}
-		
-	    
+
+
 	opc_acc_int = opc_acc * (float)255.;
 	if (opc_acc_int > 255)
 	    opc_acc_int = 255;
 	((out_ptr)[0]) = opc_acc_int;
-	    
+
 		r_acc_int = r_acc;
 		if (r_acc_int > 255)
 		    r_acc_int = 255;

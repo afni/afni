@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -120,28 +120,28 @@ Trapezoid part_overlap[9]; /* portion of the intersection with partial
        in int_lft and int_rgt */
     inset = -1.0 + filter_width / 2.0 + 1.0e-5;
     coords[0][0] = warp_matrix[0][0] * inset +
-		   warp_matrix[0][1] * inset + 
+		   warp_matrix[0][1] * inset +
 		   warp_matrix[0][2];
     coords[0][1] = warp_matrix[1][0] * inset +
-		   warp_matrix[1][1] * inset + 
+		   warp_matrix[1][1] * inset +
 		   warp_matrix[1][2];
     coords[1][0] = warp_matrix[0][0] * (in_width - 1 - inset) +
-		   warp_matrix[0][1] * inset + 
+		   warp_matrix[0][1] * inset +
 		   warp_matrix[0][2];
     coords[1][1] = warp_matrix[1][0] * (in_width - 1 - inset) +
-		   warp_matrix[1][1] * inset + 
+		   warp_matrix[1][1] * inset +
 		   warp_matrix[1][2];
     coords[2][0] = warp_matrix[0][0] * (in_width - 1 - inset) +
-		   warp_matrix[0][1] * (in_height - 1 - inset) + 
+		   warp_matrix[0][1] * (in_height - 1 - inset) +
 		   warp_matrix[0][2];
     coords[2][1] = warp_matrix[1][0] * (in_width - 1 - inset) +
-		   warp_matrix[1][1] * (in_height - 1 - inset) + 
+		   warp_matrix[1][1] * (in_height - 1 - inset) +
 		   warp_matrix[1][2];
     coords[3][0] = warp_matrix[0][0] * inset +
-		   warp_matrix[0][1] * (in_height - 1 - inset) + 
+		   warp_matrix[0][1] * (in_height - 1 - inset) +
 		   warp_matrix[0][2];
     coords[3][1] = warp_matrix[1][0] * inset +
-		   warp_matrix[1][1] * (in_height - 1 - inset) + 
+		   warp_matrix[1][1] * (in_height - 1 - inset) +
 		   warp_matrix[1][2];
     OrderCoords(coords, int_lft, int_rgt);
 
@@ -149,28 +149,28 @@ Trapezoid part_overlap[9]; /* portion of the intersection with partial
        in int_lft and int_rgt */
     inset = -filter_width / 2.0;
     coords[0][0] = warp_matrix[0][0] * inset +
-		   warp_matrix[0][1] * inset + 
+		   warp_matrix[0][1] * inset +
 		   warp_matrix[0][2];
     coords[0][1] = warp_matrix[1][0] * inset +
-		   warp_matrix[1][1] * inset + 
+		   warp_matrix[1][1] * inset +
 		   warp_matrix[1][2];
     coords[1][0] = warp_matrix[0][0] * (in_width - 1 - inset) +
-		   warp_matrix[0][1] * inset + 
+		   warp_matrix[0][1] * inset +
 		   warp_matrix[0][2];
     coords[1][1] = warp_matrix[1][0] * (in_width - 1 - inset) +
-		   warp_matrix[1][1] * inset + 
+		   warp_matrix[1][1] * inset +
 		   warp_matrix[1][2];
     coords[2][0] = warp_matrix[0][0] * (in_width - 1 - inset) +
-		   warp_matrix[0][1] * (in_height - 1 - inset) + 
+		   warp_matrix[0][1] * (in_height - 1 - inset) +
 		   warp_matrix[0][2];
     coords[2][1] = warp_matrix[1][0] * (in_width - 1 - inset) +
-		   warp_matrix[1][1] * (in_height - 1 - inset) + 
+		   warp_matrix[1][1] * (in_height - 1 - inset) +
 		   warp_matrix[1][2];
     coords[3][0] = warp_matrix[0][0] * inset +
-		   warp_matrix[0][1] * (in_height - 1 - inset) + 
+		   warp_matrix[0][1] * (in_height - 1 - inset) +
 		   warp_matrix[0][2];
     coords[3][1] = warp_matrix[1][0] * inset +
-		   warp_matrix[1][1] * (in_height - 1 - inset) + 
+		   warp_matrix[1][1] * (in_height - 1 - inset) +
 		   warp_matrix[1][2];
     OrderCoords(coords, ext_lft, ext_rgt);
 
@@ -232,13 +232,13 @@ Trapezoid part_overlap[9]; /* portion of the intersection with partial
 	    full_overlap[region].x_incr_lft = 0;
 	    full_overlap[region].x_incr_rgt = 0;
 	} else {
-	    full_overlap[region].x_incr_lft = 
+	    full_overlap[region].x_incr_lft =
 		(int_lft[ilft][0] - int_lft[ilft-1][0]) /
 		(int_lft[ilft][1] - int_lft[ilft-1][1]);
 	    full_overlap[region].x_top_lft =
 		int_lft[ilft-1][0] + (lasty+1 - int_lft[ilft-1][1]) *
 		full_overlap[region].x_incr_lft;
-	    full_overlap[region].x_incr_rgt = 
+	    full_overlap[region].x_incr_rgt =
 		(int_rgt[irgt][0] - int_rgt[irgt-1][0]) /
 		(int_rgt[irgt][1] - int_rgt[irgt-1][1]);
 	    full_overlap[region].x_top_rgt =
@@ -252,20 +252,20 @@ Trapezoid part_overlap[9]; /* portion of the intersection with partial
 	    part_overlap[region].x_incr_lft = 0;
 	    part_overlap[region].x_incr_rgt = 0;
 	} else {
-	    part_overlap[region].x_incr_lft = 
+	    part_overlap[region].x_incr_lft =
 		(ext_lft[elft][0] - ext_lft[elft-1][0]) /
 		(ext_lft[elft][1] - ext_lft[elft-1][1]);
 	    part_overlap[region].x_top_lft =
 		ext_lft[elft-1][0] + (lasty+1 - ext_lft[elft-1][1]) *
 		part_overlap[region].x_incr_lft;
-	    part_overlap[region].x_incr_rgt = 
+	    part_overlap[region].x_incr_rgt =
 		(ext_rgt[ergt][0] - ext_rgt[ergt-1][0]) /
 		(ext_rgt[ergt][1] - ext_rgt[ergt-1][1]);
 	    part_overlap[region].x_top_rgt =
 		ext_rgt[ergt-1][0] + (lasty+1 - ext_rgt[ergt-1][1]) *
 		part_overlap[region].x_incr_rgt;
 	}
-	ASSERT(!(full_overlap[region].x_top_lft <= 
+	ASSERT(!(full_overlap[region].x_top_lft <=
 		 full_overlap[region].x_top_rgt &&
 		 part_overlap[region].x_top_lft >
 		 part_overlap[region].x_top_rgt));

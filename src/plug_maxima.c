@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*----------------------------------------------------------------------
  *
  *  plug_maxima.c	- AFNI plugin to locate relative extrema
@@ -190,7 +190,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint, "Input" , "Input" , TRUE );
    PLUTO_add_hint( plint, "choose dataset for input" );
-   PLUTO_add_dataset(plint, "Dataset" , ANAT_ALL_MASK , FUNC_ALL_MASK, 
+   PLUTO_add_dataset(plint, "Dataset" , ANAT_ALL_MASK , FUNC_ALL_MASK,
                                          DIMEN_ALL_MASK | BRICK_SHORT_MASK );
    PLUTO_add_number( plint , "Sub-brick" , 0,9999,0 , 0,1 ) ; /* new [rickr] */
 
@@ -412,7 +412,7 @@ ENTRY("process_args");
 		RETURN( "-------------------------------\n"
 			"options : missing style string?\n"
 			"-------------------------------");
-	    if ((( style = PLUTO_string_index(str, 2, grStyle)) 
+	    if ((( style = PLUTO_string_index(str, 2, grStyle))
 				< 0 ) || ( style >= MAX_MAX_STYLE ) )
 	    {
 		sprintf( grMessage,
@@ -429,7 +429,7 @@ ENTRY("process_args");
 	    val = PLUTO_string_index(str, 2, grNY);
 	    if ( val > 0 ) quiet = 1;
 	    debug = PLUTO_get_number( plint );          /* Debug Level */
-	    
+
 	}
 	else if ( ! strcmp( optag, "dicom_coords" ) )
 	{

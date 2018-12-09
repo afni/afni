@@ -18,7 +18,7 @@ static int  nbytes , jj , first=1 ;
    #define TCP_PORT     7955
    /* replace with:
       get_port_named("CONTROL_PORT")
-      get_port_named("AFNI_PLUGOUT_TCP_BASE") 
+      get_port_named("AFNI_PLUGOUT_TCP_BASE")
    */
 #endif
 #define SHM_NAME     "shm:epsim:1M"
@@ -62,7 +62,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    Boolean * verbose, Boolean * nsize,
    int * zfirst, int * zlast, int * tfirst, int * tlast,
    char * input_filename, char * prefix_filename )
-   
+
 {
    const int BIGNUMBER = 10000;
    int nopt;
@@ -80,25 +80,25 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    strcpy(input_filename, "");
    strcpy(prefix_filename, "");
 
-   
+
    /* --- scan options --- */
-   nopt = 1 ; 
+   nopt = 1 ;
    while ( nopt < Argc && Argv[nopt][0] == '-' )
    {
-     
+
        /* --- help option --- */
       if ( strncmp(Argv[nopt],"-help",4) == 0 )  Syntax() ;
 
       /* --- verbose option --- */
-      if ( strncmp(Argv[nopt],"-v",2) == 0 )  
-      {  
+      if ( strncmp(Argv[nopt],"-v",2) == 0 )
+      {
          *verbose = TRUE;
          nopt++ ;
          continue;
       }
 #if 0
       /* --- nsize option --- */
-      if ( strncmp(Argv[nopt],"-nsize",4) == 0 ) 
+      if ( strncmp(Argv[nopt],"-nsize",4) == 0 )
       {
          *nsize = TRUE;
          nopt++ ;
@@ -111,7 +111,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          if( ++nopt >= Argc ) FatalError("-times needs an argument") ;
          ftemp = strtod( Argv[nopt] , NULL ) ;
          if( ftemp >= 1.0 ) ntimes = (int) ftemp ;
-         nopt++ ; continue ;   
+         nopt++ ; continue ;
       }
 
 #if 0
@@ -122,7 +122,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          ftemp = strtod( Argv[nopt] , NULL ) ;
          *zfirst = (int) ftemp ;
          nopt++ ;
-         continue ;   
+         continue ;
       }
 
       /* --- zlast option --- */
@@ -135,7 +135,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          continue ;
       }
 
-      /* --- tfirst option --- */ 
+      /* --- tfirst option --- */
       if ( strncmp(Argv[nopt],"-tfirst",4) == 0 )
       {
          if( ++nopt >= Argc ) FatalError("-tfirst needs an argument") ;
@@ -144,7 +144,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          nopt++ ;
          continue ;
       }
-       
+
       /* --- tlast option --- */
       if ( strncmp(Argv[nopt],"-tlast",4) == 0 )
       {
@@ -190,7 +190,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          strcpy( host , Argv[nopt] ) ;
          nopt++ ; continue ;
       }
-    
+
       /* --- input file name --- */
       if ( strncmp(Argv[nopt],"-input",4) == 0 )
       {
@@ -199,7 +199,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
          nopt++ ; continue ;
       }
 
-#if 0      
+#if 0
       /* --- prefix name --- */
       if ( strncmp(Argv[nopt],"-prefix",4) == 0 )
       {
@@ -212,19 +212,19 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
       /* --- exception --- */
       fprintf(stderr,"Don't understand argument %s\n",Argv[nopt]) ;
       FatalError ("Illegal input");
-      
+
    }  /* nopt */
-   
+
    /* --- check for valid inputs --- */
 #if 0
-   if (*zfirst > *zlast)   
+   if (*zfirst > *zlast)
       FatalError ("Cannot have zfirst > zlast");
-   if (*tfirst > *tlast)   
+   if (*tfirst > *tlast)
       FatalError ("Cannot have tfirst > tlast");
-   if (!strcmp(prefix_filename,"")) 
+   if (!strcmp(prefix_filename,""))
       FatalError ("Must specify prefix file name.");
 #endif
-   if (!strcmp(input_filename,"")) 
+   if (!strcmp(input_filename,""))
       FatalError ("Must specify input file name. ");
 
    if( strcmp(host,"localhost") != 0 && use_shm ){
@@ -253,21 +253,21 @@ int main( int argc , char * argv[] )
    int ibr, iz, count, izz,izsub ;
    int zfirst, zlast, tfirst, tlast;
    char input_filename[THD_MAX_NAME],
-        prefix_filename[THD_MAX_NAME], 
+        prefix_filename[THD_MAX_NAME],
         output_filename[THD_MAX_NAME],
         str[THD_MAX_NAME];
 
    /* --- get user command line inputs --- */
-   F3D_initialize_user_data (argc, argv, 
+   F3D_initialize_user_data (argc, argv,
       &verbose, &nsize,
       &zfirst, &zlast, &tfirst, &tlast,
       input_filename, prefix_filename );
-      
+
    /* --- open 3d data set --- */
    dset = THD_open_one_dataset( input_filename ) ;
    if( dset == NULL )  FatalError ("Unable to open input file") ;
-   if ( verbose )  printf("EPsim: 3d Dataset File = %s\n" , input_filename ) ; 
-      
+   if ( verbose )  printf("EPsim: 3d Dataset File = %s\n" , input_filename ) ;
+
    /* --- load data block --- */
    ok = THD_load_datablock( dset->dblk );
    if ( !ok )  FatalError ("Unable to load data block") ;
@@ -278,7 +278,7 @@ int main( int argc , char * argv[] )
    ny = dskptr->dimsizes[1];
    nz = dskptr->dimsizes[2];
    nv = dskptr->nvals;
-   if ( verbose )  
+   if ( verbose )
       printf ("EPsim: nx=%d  ny=%d  nz=%d  nv=%d\n",   nx, ny, nz, nv);
 
    /* --- check for valid user inputs --- */
@@ -289,7 +289,7 @@ int main( int argc , char * argv[] )
    if (zfirst > nz)  FatalError ("No data selected -- zfirst too large.");
    if (zlast < 1)    FatalError ("No data selected -- zlast too small.");
    if (tfirst > nv)  FatalError ("No data selected -- tfirst too large.");
-   if (tlast < 1)    FatalError ("No data selected -- tlast too small.");    
+   if (tlast < 1)    FatalError ("No data selected -- tlast too small.");
 
    /* --- get data type --- */
    kind = IMAGE_IN_IMARR ( dset->dblk->brick, 0 ) -> kind;
@@ -315,7 +315,7 @@ int main( int argc , char * argv[] )
    if( verbose ){ printf("!\n") ; fflush(stdout) ; }
 
    if( use_shm ) strcpy( buf , SHM_NAME ) ;
-   else          sprintf(buf , "tcp:%s:%d" , 
+   else          sprintf(buf , "tcp:%s:%d" ,
                          host , get_port_named("AFNI_PLUGOUT_TCP_BASE") ) ;
 
    if( use_child ){
@@ -424,7 +424,7 @@ int main( int argc , char * argv[] )
       for ( iz = zfirst-1 ; iz < zlast ; iz++ )
       {
          /* --- set 2d data pointer into 3d data set --- */
-         im = IMAGE_IN_IMARR ( dset->dblk->brick, ibr ); 
+         im = IMAGE_IN_IMARR ( dset->dblk->brick, ibr );
 
          if( use_3T ){
            izz = 2*iz ; if( izz >= nz ) izz -= izsub ;  /* alt ordering */
@@ -457,12 +457,12 @@ int main( int argc , char * argv[] )
             break;
             default :
                FatalError ("Illegal data type encountered.");
-         } 
+         }
 
 #if 0
          /* --- create 2d data file name --- */
          strcpy ( output_filename, prefix_filename );
-         if ( nv > 1 )  
+         if ( nv > 1 )
             sprintf ( str, "%02d.%04d", izz+1, ibr+1 );
          else
             if ( nz > 999 )
@@ -479,9 +479,9 @@ int main( int argc , char * argv[] )
             if( jj < 0 ) FatalError("send header info failed") ;
             first = 0 ;
          }
- 
+
          if ( verbose )
-            printf ( "EPsim: sending 2D image izz=%d ibr=%d\n", izz,ibr ); 
+            printf ( "EPsim: sending 2D image izz=%d ibr=%d\n", izz,ibr );
 
          jj = iochan_sendall( ioc , mri_data_pointer(im2d) , nbytes ) ;
          if( jj < 0 ) FatalError("send image failed") ;
@@ -497,11 +497,11 @@ int main( int argc , char * argv[] )
             mri_free (tim2d);
          }
 #endif
-         
+
          count ++ ;
 
       }  /* --- iz --- */
-   }  /* --- ibr --- */ 
+   }  /* --- ibr --- */
    sleep(20) ;
    } /* -- itim --*/
 

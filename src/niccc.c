@@ -35,7 +35,7 @@ void usage_niccc(int detail) {
               "   -match MATCH: If MATCH is exact, then attribute name\n"
               "                 is matched exactly. If MATCH is partial,\n"
               "                 then a match of all the characters in ATTR\n"
-              "                 is enough. For example, an ATTR of COEF would\n" 
+              "                 is enough. For example, an ATTR of COEF would\n"
               "                 match any of COEF COEF.1 COEF.2, etc.\n"
               "            Default is -match exact\n"
               "   -f: streamspec is a filename.\n"
@@ -47,7 +47,7 @@ void usage_niccc(int detail) {
               "           name with -attribute option\n"
               "   -find_nel_with_attr ATTR ATTRVAL: Only output elements \n"
               "               that have an attribute ATTR of value ATTRVAL.\n"
-              "               a status of 1 is returned if no match is found.\n" 
+              "               a status of 1 is returned if no match is found.\n"
               "   -skip_nel_with_attr ATTR ATTRVAL: Do not output elements \n"
               "               that have an attribute ATTR of value ATTRVAL.\n"
               "   niccc returns a status of 0 if it the stream opened.\n"
@@ -69,7 +69,7 @@ int main( int argc , char *argv[] )
    char *aa=NULL, *select_attr=NULL, *select_attr_val=NULL;
    int dodup = 0, nodata=0, dostderr=1, isfile=0;
    int stat = 0, excl = 0;
-   
+
    nn = 1;
    while (nn < argc && argv[nn][0] == '-') {
       if (!strcmp(argv[nn], "-help") || !strcmp(argv[nn], "-h")) {
@@ -86,19 +86,19 @@ int main( int argc , char *argv[] )
          dostderr = 0; ++nn; continue;
       }
       if (!strcmp(argv[nn],"-#")) {
-         mode = mode|NI_HEADERSHARP_FLAG; 
+         mode = mode|NI_HEADERSHARP_FLAG;
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-quiet")) {
-         shhh=1; 
+         shhh=1;
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-f")) {
-         isfile=1; 
+         isfile=1;
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-s")) {
-         isfile=2; 
+         isfile=2;
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-attribute")) {
@@ -106,8 +106,8 @@ int main( int argc , char *argv[] )
          if (nn >= argc) {
             fprintf(stderr,"Need attribute after -attribute\n");
             exit(1);
-         }  
-         attr=argv[nn]; 
+         }
+         attr=argv[nn];
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-nel_from_string")) {
@@ -115,9 +115,9 @@ int main( int argc , char *argv[] )
          if (nn >= argc) {
             fprintf(stderr,"Need string after -nel_from_string\n");
             exit(1);
-         }  
+         }
          nini = (NI_element *)NI_read_element_fromstring(argv[nn]);
-         
+
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-skip_nel_with_attr") ||
@@ -132,9 +132,9 @@ int main( int argc , char *argv[] )
             fprintf(stderr,
                "Need attribute and value after -skip_nel_with_attr\n");
             exit(1);
-         }  
+         }
          select_attr=argv[nn++];
-         select_attr_val = argv[nn]; 
+         select_attr_val = argv[nn];
          ++nn; continue;
       }
       if (!strcmp(argv[nn],"-match")) {
@@ -142,19 +142,19 @@ int main( int argc , char *argv[] )
          if (nn >= argc) {
             fprintf(stderr,"Need parameter after -match\n");
             exit(1);
-         }  
+         }
          if (!strcmp(argv[nn],"exact")) exact = 1;
          else if (!strcmp(argv[nn],"partial")) exact = 0;
          else {
             fprintf(stderr,"%s is not a valid value for -match. \n"
                            "Use either exact or partial\n", argv[nn]);
             exit(1);
-         } 
+         }
          ++nn; continue;
       }
 
       /* not on top of libmri for ERROR_message    24 Sep 2015 [rickr] */
-      fprintf(stderr, "** Bad option %s. See niccc -help for details.\n", 
+      fprintf(stderr, "** Bad option %s. See niccc -help for details.\n",
                argv[nn]);
       /* suggest_best_prog_option(argv[0], argv[nn]); */
       exit(1);
@@ -165,11 +165,11 @@ int main( int argc , char *argv[] )
    }
 
    if (nodata) mode = mode&NI_HEADERONLY_FLAG;
-   
+
    if (nn >= argc) {
       fprintf(stderr,"Usage: niccc [-dup] streamspec\n");exit(1);
    }
-   
+
    strm = (char *) realloc(strm, (strlen(argv[nn])+32)*sizeof(char));
    if (isfile == 2) {
       sprintf(strm,"str:");
@@ -183,13 +183,13 @@ int main( int argc , char *argv[] )
       }
       ns = NI_stream_open( strm, "r" ) ;
       if( ns == NULL ){
-         fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ; 
+         fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ;
          if (THD_is_file(strm)) {
             fprintf(stderr,
                "  It looks like %s is a file.\n"
                "  Make sure you use option -f before it\n",
-               strm) ;       
-         }  
+               strm) ;
+         }
          exit(1) ;
       }
    }
@@ -206,7 +206,7 @@ int main( int argc , char *argv[] )
      if( nn == 0 ){ NI_sleep(5); continue; }  /* waiting for Godot */
 
      if (dostderr) outf = stderr;
-     
+
      if ( (nn = NI_stream_readcheck( ns , 1 ) ) > 0) { /* check for data */
        if (!excl) {
          stat = 1; /* using -find, exit with status if not found */
@@ -226,8 +226,8 @@ int main( int argc , char *argv[] )
             if (exact) {
                aa = NI_get_attribute(nini, attr);
                if (aa) {
-                  if (shhh) fprintf(outf,"%s\n", aa); 
-                  else fprintf(outf,"%s: %s\n",attr, aa); 
+                  if (shhh) fprintf(outf,"%s\n", aa);
+                  else fprintf(outf,"%s: %s\n",attr, aa);
                   exit(0);
                } else {
                   if (!shhh) fprintf(stderr,"%s: Not found.\n", attr);
@@ -239,11 +239,11 @@ int main( int argc , char *argv[] )
                if( tt == NI_ELEMENT_TYPE ){
                   nel=(NI_element *)nini;
                   for( nn=0 ; nn < nel->attr_num ; nn++ ) {
-                     if( strncmp(nel->attr_lhs[nn],attr, 
+                     if( strncmp(nel->attr_lhs[nn],attr,
                                  strlen(attr)) == 0 ) {
-                        if (shhh) fprintf(outf,"%s\n", nel->attr_rhs[nn]); 
+                        if (shhh) fprintf(outf,"%s\n", nel->attr_rhs[nn]);
                         else fprintf(outf,"%s: %s\n",
-                                    nel->attr_lhs[nn], nel->attr_rhs[nn]); 
+                                    nel->attr_lhs[nn], nel->attr_rhs[nn]);
                         ++nfound;
                      }
                   }
@@ -258,7 +258,7 @@ int main( int argc , char *argv[] )
                      exit(1);
                    } else {
                      exit(1);
-                   }   
+                   }
                }
             }
          }

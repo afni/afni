@@ -14,7 +14,7 @@
 extern "C" {
 #endif
 
-/* 
+/*
  * GLUT API revision history:
  *
  * GLUT_API_VERSION is updated to reflect incompatible GLUT
@@ -34,9 +34,9 @@ extern "C" {
 #define GLUT_API_VERSION		3
 #endif
 
-/* 
+/*
  * GLUT implementation revision history:
- * 
+ *
  * GLUT_XLIB_IMPLEMENTATION is updated to reflect both GLUT
  * API revisions and implementation revisions (ie, bug fixes).
  *
@@ -44,7 +44,7 @@ extern "C" {
  * GLUT Xlib-based implementation.  11/29/94
  *
  * GLUT_XLIB_IMPLEMENTATION=2  mjk's second public release of
- * GLUT Xlib-based implementation providing GLUT version 2 
+ * GLUT Xlib-based implementation providing GLUT version 2
  * interfaces.
  *
  * GLUT_XLIB_IMPLEMENTATION=3  mjk's GLUT 2.2 images. 4/17/95

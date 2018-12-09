@@ -30,7 +30,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -97,7 +97,7 @@
 void
 JMovie2JPEG(infilename,obase,start,end)
     char *infilename;       /* input filename string */
-    char *obase;            /* output filename base string=>obase##.jpg */ 
+    char *obase;            /* output filename base string=>obase##.jpg */
     int start;              /* first frame to be extracted */
     int end;                /* last frame to be extracted */
 {

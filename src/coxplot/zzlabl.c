@@ -12,7 +12,7 @@ static integer c__1 = 1;
 
 
 
-/* Subroutine */ int zzlabl_(real *val, char *cout, integer *nchar, ftnlen 
+/* Subroutine */ int zzlabl_(real *val, char *cout, integer *nchar, ftnlen
 	cout_len)
 {
     /* Format strings */

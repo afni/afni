@@ -10,7 +10,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
@@ -51,7 +51,7 @@
 * Revision 1.1  1997/08/01 12:51:51  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _plc_h_
 #define _plc_h_
@@ -71,7 +71,7 @@
 *****/
 #ifdef HAVE_LIBJPEG
 #  include <jpeglib.h>
-#  ifndef HAVE_LIBPNG	
+#  ifndef HAVE_LIBPNG
 #    include <setjmp.h>
 #  endif
 #endif
@@ -150,7 +150,7 @@ typedef struct _PLC{
 * destructor():
 *	this function is called if the object should destroy its own data.
 *	It is called when the plc_status field reaches either PLC_COMPLETE or
-*	PLC_ABORT. 
+*	PLC_ABORT.
 * transfer():
 *	this function is called whenever an object-specific function returns.
 *	The purpose of this function is to signal the application that it
@@ -279,7 +279,7 @@ typedef struct{
 	/* GIF specific data follows */
 	Byte gbuf[256];					/* block of compressed raster data */
 	Boolean external_codec;			/* True -> uses external decoder */
-	
+
 	XmImageGifProc inflate;			/* external gif decoder */
 	XmHTMLGIFStream *gstream;		/* GIFStream() stream object */
 
@@ -313,7 +313,7 @@ typedef struct _plc_jpeg_err_mgr{
 	struct jpeg_error_mgr pub;		/* jpeg public fields */
 	jmp_buf setjmp_buffer;			/* for return to caller */
 }plc_jpeg_err_mgr;
-	
+
 typedef struct{
 	plc_common_object_fields;		/* fields common for all PLC structures */
 	plc_image_public_fields;		/* public  fields for all image objects */
@@ -442,7 +442,7 @@ extern size_t _PLCReadOK(PLC *plc, Byte *buf, int size);
 
 /*****
 * Read a block of bytes from a PLC descriptor. A block of bytes is
-* identified by a byte count followed by a block of data containing 
+* identified by a byte count followed by a block of data containing
 * byte_count bytes of data (only used for gif and gzf images).
 *****/
 extern size_t _PLCGetDataBlock(PLC *plc, Byte *buf);

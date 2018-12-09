@@ -35,7 +35,7 @@
 
 
 /*---------------- global data -------------------*/
-static char lbuf[4096] ;  
+static char lbuf[4096] ;
 static char sbuf[256] ;
 
 static int calc_tstats = 0;   /* set to 1 for calculating t-stats */
@@ -46,7 +46,7 @@ static int calc_tstats = 0;   /* set to 1 for calculating t-stats */
    Routine to print error message and stop.
 */
 
-void NLfit_error 
+void NLfit_error
 (
   char * message         /* message to be displayed */
 );
@@ -55,12 +55,12 @@ void NLfit_error
 /*---------------------------------------------------------------------------*/
 /*
   Routine to initialize the signal model by defining the number of parameters
-  in the signal model, the default values for the minimum and maximum 
+  in the signal model, the default values for the minimum and maximum
   parameter constraints, and setting the pointer to the function which
   implements the signal model.
 */
 
-void initialize_signal_model 
+void initialize_signal_model
 (
   NLFIT_MODEL_array * model_array,       /* the array of SO models */
   char * sname,            /* name of signal model (user input) */
@@ -75,12 +75,12 @@ void initialize_signal_model
 /*---------------------------------------------------------------------------*/
 /*
   Routine to initialize the noise0 model by defining the number of parameters
-  in the noise model, the default values for the minimum and maximum 
+  in the noise model, the default values for the minimum and maximum
   parameter constraints, and setting the pointer to the function which
   implements the noise model.
 */
 
-void initialize_noise_model 
+void initialize_noise_model
 (
   NLFIT_MODEL_array * model_array,       /* the array of SO models */
   char * nname,            /* name of noise model (user input) */
@@ -97,8 +97,8 @@ void initialize_noise_model
   Routine to calculate the least squares linear regression.
 */
 
-void calc_linear_regression 
-( 
+void calc_linear_regression
+(
   matrix x,              /* matrix of constants */
   vector y,              /* observation vector */
   vector * b,            /* estimated regression coefficients */
@@ -108,9 +108,9 @@ void calc_linear_regression
 
 /*---------------------------------------------------------------------------*/
 
-void calc_reduced_model 
-( 
-  int n,                 /* number of observations */        
+void calc_reduced_model
+(
+  int n,                 /* number of observations */
   int r,                 /* number of parameters in reduced model */
   float ** x_array,      /* data matrix */
   float * y_array,       /* observed time series */
@@ -124,7 +124,7 @@ void calc_reduced_model
   Routine to allocate memory required for calculation of the full model.
 */
 
-void initialize_full_model 
+void initialize_full_model
 (
   int dimension,            /* number of parameters in full model */
   int nbest,                /* keep nbest vectors from random search */
@@ -138,7 +138,7 @@ void initialize_full_model
   Routine to determine if the parameter vector violates the constraints.
 */
 
-int calc_constraints 
+int calc_constraints
 (
   int r,                  /* number of parameters in the noise model */
   int p,                  /* number of parameters in the signal model */
@@ -157,7 +157,7 @@ int calc_constraints
   Calculate the estimated time series using the full model.
 */
 
-void full_model 
+void full_model
 (
   vfp nmodel,                 /* pointer to noise model */
   vfp smodel,                 /* pointer to signal model */
@@ -171,11 +171,11 @@ void full_model
 
 /*---------------------------------------------------------------------------*/
 /*
-  This routine calculates the error sum of squares corresponding to 
+  This routine calculates the error sum of squares corresponding to
   the given vector of parameters for the full model.
 */
 
-float calc_sse 
+float calc_sse
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -199,7 +199,7 @@ float calc_sse
   Select and evaluate randomly chosen vectors in the parameter space.
 */
 
-void random_search 
+void random_search
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -226,7 +226,7 @@ void random_search
   Estimate the parameters for the full model.
 */
 
-void calc_full_model 
+void calc_full_model
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -257,7 +257,7 @@ void calc_full_model
   estimated parameter location.
 */
 
-void calc_partial_derivatives 
+void calc_partial_derivatives
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -276,7 +276,7 @@ void calc_partial_derivatives
 
 /*---------------------------------------------------------------------------*/
 
-void analyze_results 
+void analyze_results
 (
   vfp nmodel,             /* pointer to noise model */
   vfp smodel,             /* pointer to signal model */
@@ -290,7 +290,7 @@ void analyze_results
   int ts_length,          /* length of time series data */
   float ** x_array,       /* independent variable matrix */
   float * par_rdcd,       /* estimated parameters for the reduced model */
-  float sse_rdcd,         /* error sum of squares for the reduced model */ 
+  float sse_rdcd,         /* error sum of squares for the reduced model */
   float * par_full,       /* estimated parameters for the full model */
   float sse_full,         /* error sum of squares for the full model */
   float * rmsreg,         /* root-mean-square for the full regression model */
@@ -310,7 +310,7 @@ void analyze_results
   Report results for this voxel.
 */
 
-void report_results 
+void report_results
 (
   char * nname,            /* name of noise model */
   char * sname,            /* name of signal model */

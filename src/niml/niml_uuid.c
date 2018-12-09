@@ -153,7 +153,7 @@ void UNIQ_hashprefix_fill( char *idc )
         strcpy(idc,"XYZ") ;  /* innocent default prefix */
       }
    }
-   
+
    return;
 }
 
@@ -181,7 +181,7 @@ char * UNIQ_hashcode( char *str )
    int ii , nn ;
 
    idc = (char *)calloc(1,32) ;
-   
+
    UNIQ_hashprefix_fill( idc );  /* ZSS Apr 2013 */
    strcat(idc,"_") ;  /* recall idc was calloc()-ed */
 

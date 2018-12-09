@@ -8,8 +8,8 @@
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * July, 6 1999
  *
  * ADDITIONS, CHANGES

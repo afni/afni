@@ -133,7 +133,7 @@ float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
         tpat[ii] = tsl ; tsl += tframe ;
       }
 
-   } else if( strcmp(tpattern,"alt+z2")==0 ){  /* 22 Feb 2005 */ 
+   } else if( strcmp(tpattern,"alt+z2")==0 ){  /* 22 Feb 2005 */
       /*--- set up alternating in the +z direction ---*/
 
       tsl = 0.0f ;
@@ -177,7 +177,7 @@ float * TS_parse_tpattern( int nzz , float TR , char *tpattern )
         tpat[ii] = tsl ; tsl += tframe ;
       }
 
-   } else if( (strcmp(tpattern,"seq-z")==0 || strcmp(tpattern,"seqminus")==0) ){ 
+   } else if( (strcmp(tpattern,"seq-z")==0 || strcmp(tpattern,"seqminus")==0) ){
       /*--- set up sequential in the -z direction ---*/
 
       tsl = 0.0f ;

@@ -38,7 +38,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Global constants. 
+  Global constants.
 */
 
 #define MAX_NAME_LENGTH THD_MAX_NAME    /* max. string length for file names */
@@ -113,7 +113,7 @@ static int plug_num_base_filters = 0;    /* number of base filters */
 static int plug_base_band[MAX_FILTERS];  /* freq band for base filter */
 static int plug_base_mintr[MAX_FILTERS]; /* min time for base filter */
 static int plug_base_maxtr[MAX_FILTERS]; /* max time for base filter */
-static float * plug_base_filter = NULL;  /* select wavelet coefs. 
+static float * plug_base_filter = NULL;  /* select wavelet coefs.
                                             for baseline */
 
 static int plug_num_sgnl_filters = 0;    /* number of signal filters */
@@ -150,13 +150,13 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 			       helpstring, PLUGIN_CALL_VIA_MENU, WA_main);
 
   global_plint = plint ;  /* make global copy */
-  
-  PLUTO_add_hint (plint, 
+
+  PLUTO_add_hint (plint,
 		  "Control Wavelet Analysis Functions");
 
   PLUTO_set_sequence( plint , "A:funcs:fitting" ) ;
 
-  
+
   /*----- Initialize Global Variables -----*/
   for (is =0;  is < MAX_FILTERS;  is++)
     {
@@ -170,11 +170,11 @@ PLUGIN_interface * PLUGIN_init( int ncall )
       plug_sgnl_mintr[is] = 0.0;
       plug_sgnl_maxtr[is] = 0.0;
     }
-   
+
 
   /*----- Parameters -----*/
   PLUTO_add_option (plint, "Control",   "Control", TRUE);
-  PLUTO_add_string (plint, "Wavelet",   MAX_WAVELET_TYPE,  WAVELET_TYPE_name, 
+  PLUTO_add_string (plint, "Wavelet",   MAX_WAVELET_TYPE,  WAVELET_TYPE_name,
 		    plug_wavelet_type);
   PLUTO_add_number (plint, "NFirst",    0, 32767, 0, plug_NFirst, TRUE);
   PLUTO_add_number (plint, "NLast",     0, 32767, 0, plug_NLast,  TRUE);
@@ -184,7 +184,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
   for (is = 0;  is < MAX_FILTERS;  is++)
     {
       PLUTO_add_option (plint, "Filter", "Filter", FALSE);
-      PLUTO_add_string (plint, "Type",   NFILTER,  filter_strings, 
+      PLUTO_add_string (plint, "Type",   NFILTER,  filter_strings,
 			plug_filter_type);
       PLUTO_add_number (plint, "Band",  -1, MAX_BAND, 0, 0, TRUE);
       PLUTO_add_number (plint, "Min TR", 0, 10000, 0, 0, TRUE);
@@ -214,16 +214,16 @@ char * WA_main( PLUGIN_interface * plint )
 {
   char * str;                           /* input string */
   int is;                               /* filter index */
-  
+
 
   /*----- reset flag for successful initialization -----*/
   plug_initialize = 0;
-    
+
 
   /*--------- go to Control input line ---------*/
   PLUTO_next_option (plint);
   str    = PLUTO_get_string (plint);
-  plug_wavelet_type = PLUTO_string_index (str, MAX_WAVELET_TYPE, 
+  plug_wavelet_type = PLUTO_string_index (str, MAX_WAVELET_TYPE,
 					  WAVELET_TYPE_name);
   plug_NFirst = PLUTO_get_number (plint);
   plug_NLast  = PLUTO_get_number (plint);
@@ -236,70 +236,70 @@ char * WA_main( PLUGIN_interface * plint )
 
   do
     {
-      str = PLUTO_get_optiontag(plint); 
+      str = PLUTO_get_optiontag(plint);
       if (str == NULL)  break;
       if (strcmp (str, "Filter") != 0)
         return "************************\n"
                "Illegal optiontag found!\n"
                "************************";
-     
+
 
       /*----- Read Filter Specification Line -----*/
       str    = PLUTO_get_string (plint);
       plug_filter_type = PLUTO_string_index (str, NFILTER, filter_strings);
-      
+
       switch (plug_filter_type)
 	{
 	case 0:
 	  {
-	    plug_stop_band[plug_num_stop_filters] = PLUTO_get_number(plint);   
-	    plug_stop_mintr[plug_num_stop_filters] 
+	    plug_stop_band[plug_num_stop_filters] = PLUTO_get_number(plint);
+	    plug_stop_mintr[plug_num_stop_filters]
 	      = PLUTO_get_number(plint);
-	    plug_stop_maxtr[plug_num_stop_filters] 
+	    plug_stop_maxtr[plug_num_stop_filters]
 	      = PLUTO_get_number(plint);
-	  
-	    if (plug_stop_mintr[plug_num_stop_filters] > 
+
+	    if (plug_stop_mintr[plug_num_stop_filters] >
 		plug_stop_maxtr[plug_num_stop_filters])
 	      return "*************************\n"
 		"Require Min TR <= Max TR \n"
 		"*************************"  ;
-	    
+
 	    plug_num_stop_filters++;
 	    break;
 	  }
 
 	case 1:
 	  {
-	    plug_base_band[plug_num_base_filters] = PLUTO_get_number(plint);   
-	    plug_base_mintr[plug_num_base_filters] 
+	    plug_base_band[plug_num_base_filters] = PLUTO_get_number(plint);
+	    plug_base_mintr[plug_num_base_filters]
 	      = PLUTO_get_number(plint);
-	    plug_base_maxtr[plug_num_base_filters] 
+	    plug_base_maxtr[plug_num_base_filters]
 	      = PLUTO_get_number(plint);
-	  
-	    if (plug_base_mintr[plug_num_base_filters] > 
+
+	    if (plug_base_mintr[plug_num_base_filters] >
 		plug_base_maxtr[plug_num_base_filters])
 	      return "*************************\n"
 		"Require Min TR <= Max TR \n"
 		"*************************"  ;
-	    
+
 	    plug_num_base_filters++;
 	    break;
 	  }
 
 	case 2:
 	  {
-	    plug_sgnl_band[plug_num_sgnl_filters]=PLUTO_get_number(plint); 
+	    plug_sgnl_band[plug_num_sgnl_filters]=PLUTO_get_number(plint);
 	    plug_sgnl_mintr[plug_num_sgnl_filters]
 	      = PLUTO_get_number(plint);
 	    plug_sgnl_maxtr[plug_num_sgnl_filters]
 	      = PLUTO_get_number(plint);
-	  
-	    if (plug_sgnl_mintr[plug_num_sgnl_filters] > 
+
+	    if (plug_sgnl_mintr[plug_num_sgnl_filters] >
 		plug_sgnl_maxtr[plug_num_sgnl_filters])
 	      return "*************************\n"
 		"Require Min TR <= Max TR \n"
 		"*************************"  ;
-	    
+
 	    plug_num_sgnl_filters++;
 	    break;
 	  }
@@ -312,7 +312,7 @@ char * WA_main( PLUGIN_interface * plint )
   /*----- Identify software -----*/
   printf ("\n\n");
   printf ("Program: %s \n", PROGRAM_NAME);
-  printf ("Author:  %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:  %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -326,29 +326,29 @@ char * WA_main( PLUGIN_interface * plint )
   for (is = 0;  is < plug_num_stop_filters;  is++)
     {
       printf ("\nStop Filter:       Band = %4d   ", plug_stop_band[is]);
-      printf ("Min. TR = %4d   Max. TR = %4d \n", 
+      printf ("Min. TR = %4d   Max. TR = %4d \n",
 	      plug_stop_mintr[is], plug_stop_maxtr[is]);
     }
- 
+
   for (is = 0;  is < plug_num_base_filters;  is++)
     {
       printf ("\nBaseline Filter:   Band = %4d   ", plug_base_band[is]);
-      printf ("Min. TR = %4d   Max. TR = %4d \n", 
+      printf ("Min. TR = %4d   Max. TR = %4d \n",
 	      plug_base_mintr[is], plug_base_maxtr[is]);
     }
- 
+
   for (is = 0;  is < plug_num_sgnl_filters;  is++)
     {
       printf ("\nSignal Filter:     Band = %4d   ", plug_sgnl_band[is]);
-      printf ("Min. TR = %4d   Max. TR = %4d \n", 
+      printf ("Min. TR = %4d   Max. TR = %4d \n",
 	      plug_sgnl_mintr[is], plug_sgnl_maxtr[is]);
     }
- 
+
 
   /*--- nothing left to do until data arrives ---*/
   plug_initialize = 1 ;  /* successful initialization */
   plug_prev_nt = 0;      /* previous time series length */
-  
+
   return NULL ;
 }
 
@@ -358,7 +358,7 @@ char * WA_main( PLUGIN_interface * plint )
   Perform the wavelet analysis.
 */
 
-int calculate_results 
+int calculate_results
 (
   int nt,               /* number of time points */
   float * vec,          /* input measured time series data */
@@ -370,7 +370,7 @@ int calculate_results
   float ** sgnlts,      /* signal model fit to the time series data */
   float ** errts        /* residual error time series */
 )
-  
+
 {
   float * ts_array;        /* array of measured data for one voxel */
   float * coef;            /* regression parameters */
@@ -403,15 +403,15 @@ int calculate_results
   *NLast = N + *NFirst - 1;
 
 
-  plug_stop_filter = 
+  plug_stop_filter =
     FWT_1d_stop_filter (plug_num_stop_filters, plug_stop_band,
 			plug_stop_mintr, plug_stop_maxtr, *NFirst, N);
 
-  plug_base_filter = 
+  plug_base_filter =
     FWT_1d_pass_filter (plug_num_base_filters, plug_base_band,
 			plug_base_mintr, plug_base_maxtr, *NFirst, N);
 
-  plug_sgnl_filter = 
+  plug_sgnl_filter =
     FWT_1d_pass_filter (plug_num_sgnl_filters, plug_sgnl_band,
 			plug_sgnl_mintr, plug_sgnl_maxtr, *NFirst, N);
 
@@ -437,7 +437,7 @@ int calculate_results
     if (plug_sgnl_filter[i] == 1.0)
       {
 	p++;
-      }    
+      }
 
 
   /*----- Allocate memory for fitted time series and residuals -----*/
@@ -450,28 +450,28 @@ int calculate_results
 
   /*----- Extract data for this voxel -----*/
   ts_array = vec + *NFirst;
-      
-      
+
+
   /*----- Perform the wavelet analysis for this voxel-----*/
-  wavelet_analysis (plug_wavelet_type, 
+  wavelet_analysis (plug_wavelet_type,
 		    f, plug_stop_filter,
-		    q, plug_base_filter, 
+		    q, plug_base_filter,
 		    p, plug_sgnl_filter,
 		    N, ts_array, coef,
 		    &sse_base, &sse_full, &ffull, &rfull,
 		    *coefts, *fitts, *sgnlts, *errts);
 
-      
+
   /*----- Report results for this voxel -----*/
   printf ("\nResults for Voxel: \n");
-  report_results (N, *NFirst, f, p, q, 
-		  plug_base_filter, plug_sgnl_filter, 
-		  coef, sse_base, sse_full, ffull, rfull, 
-		  label);  
+  report_results (N, *NFirst, f, p, q,
+		  plug_base_filter, plug_sgnl_filter,
+		  coef, sse_base, sse_full, ffull, rfull,
+		  label);
   printf ("%s \n", *label);
 
   plug_prev_nt = nt;
-   
+
 
   /*----- Release memory -----*/
   free (plug_stop_filter);   plug_stop_filter = NULL;
@@ -503,7 +503,7 @@ void WA_fwt (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the wavelet filtered time series data -----*/
-  ok = calculate_results (nt, vec, &NFirst, &NLast, label, 
+  ok = calculate_results (nt, vec, &NFirst, &NLast, label,
 			  &coefts, &fitts, &sgnlts, &errts);
   if (!ok)
     {
@@ -523,7 +523,7 @@ void WA_fwt (int nt, double to, double dt, float * vec, char ** label)
 
   for (n = NLast+1;  n < nt;  n++)
     vec[n] = 0.0;
-    
+
 
   /*----- Deallocate memory -----*/
   free (coefts);   coefts = NULL;
@@ -555,7 +555,7 @@ void WA_fit (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the wavelet filtered time series data -----*/
-  ok = calculate_results (nt, vec, &NFirst, &NLast, label, 
+  ok = calculate_results (nt, vec, &NFirst, &NLast, label,
 			  &coefts, &fitts, &sgnlts, &errts);
   if (!ok)
     {
@@ -575,7 +575,7 @@ void WA_fit (int nt, double to, double dt, float * vec, char ** label)
 
   for (n = NLast+1;  n < nt;  n++)
     vec[n] = vec[NLast];
-    
+
 
   /*----- Deallocate memory -----*/
   free (coefts);   coefts = NULL;
@@ -607,7 +607,7 @@ void WA_sgnl (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the wavelet filtered time series data -----*/
-  ok = calculate_results (nt, vec, &NFirst, &NLast, label, 
+  ok = calculate_results (nt, vec, &NFirst, &NLast, label,
 			  &coefts, &fitts, &sgnlts, &errts);
   if (!ok)
     {
@@ -627,7 +627,7 @@ void WA_sgnl (int nt, double to, double dt, float * vec, char ** label)
 
   for (n = NLast+1;  n < nt;  n++)
     vec[n] = 0.0;
-    
+
 
   /*----- Deallocate memory -----*/
   free (coefts);   coefts = NULL;
@@ -659,7 +659,7 @@ void WA_err (int nt, double to, double dt, float * vec, char ** label)
 
 
   /*----- Calculate the wavelet filtered time series data -----*/
-  ok = calculate_results (nt, vec, &NFirst, &NLast, label, 
+  ok = calculate_results (nt, vec, &NFirst, &NLast, label,
 			  &coefts, &fitts, &sgnlts, &errts);
   if (!ok)
     {
@@ -679,7 +679,7 @@ void WA_err (int nt, double to, double dt, float * vec, char ** label)
 
   for (n = NLast+1;  n < nt;  n++)
     vec[n] = 0.0;
-    
+
 
   /*----- Deallocate memory -----*/
   free (coefts);   coefts = NULL;

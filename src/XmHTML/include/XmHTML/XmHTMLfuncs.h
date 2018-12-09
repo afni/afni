@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -92,7 +92,7 @@
 * Revision 1.1  1996/12/19 02:17:18  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _XmHTMLfuncs_h_
 #define _XmHTMLfuncs_h_

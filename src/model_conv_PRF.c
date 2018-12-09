@@ -6,7 +6,7 @@
 
    R. Reynolds      June, 2014
 ******************************************************************************/
-   
+
 #include "NLfit_model.h"
 
 static char  * g_model_ver = "model_conv_PRF, version 2.4, 19 Jun, 2018";
@@ -85,7 +85,7 @@ MODEL_interface * initialize_model ()
 
          g(x,y) = e^-[((x-x0)^2+(y-y0)^2)/(2*sigma^2)]
 
-  The resulting returned time series will be convolved in the 
+  The resulting returned time series will be convolved in the
   parent function.
 */
 static int signal_model

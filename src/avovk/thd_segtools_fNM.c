@@ -8,24 +8,24 @@
 static int verb=0;
 static int writedists=0;
 void segtools_verb( int ii ){ verb = ii ; if (verb > 1) writedists = 1;}
-void segtools_writedists (int ii) { 
-   /* The files you get with writedists 
+void segtools_writedists (int ii) {
+   /* The files you get with writedists
       .kgg.1D : Cluster assignments
       .dis.1D : Distance between clusters
       .cen.1D : Cluster centroids
       .info1.1D: Within cluster sum of distances
       .info2.1D: Maximum distance within each cluster
-      .vcd.1D: Voxel to centroids distnaces 
+      .vcd.1D: Voxel to centroids distnaces
    */
-   writedists = ii; 
+   writedists = ii;
 }
 
-OPT_KMEANS new_kmeans_oc(void) 
+OPT_KMEANS new_kmeans_oc(void)
 {
    OPT_KMEANS oc;
    int i;
    memset(&(oc), 0, sizeof(OPT_KMEANS));
-   
+
    oc.r = 1;
    oc.k = 0;
    oc.kh = 0;
@@ -41,7 +41,7 @@ OPT_KMEANS new_kmeans_oc(void)
    oc.voxdebug[0]=oc.voxdebug[1]=oc.voxdebug[2]=oc.voxdebug[3]=-1;
    return(oc);
 }
-   
+
 /*!
    \brief out_set = thd_polyfit( in_set,
                                  mask, polorder,
@@ -56,7 +56,7 @@ OPT_KMEANS new_kmeans_oc(void)
    \param prefix (char *) prefix of output dset
    \param verb (int) verbosity flag
    \return out_set (THD_3dim_dataset* ) Dset containing polynomial fits.
-*/         
+*/
 THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
                               byte *mask, int polorder,
                               char *prefix, int verb)
@@ -95,13 +95,13 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
 
    ncol = DSET_NVALS(in_set);
    nrow = DSET_NVOX(in_set);
-   
+
    X = gsl_matrix_alloc (ncol, polorder);
    y = gsl_vector_alloc (ncol);
-     
+
    c = gsl_vector_alloc (polorder);
    cov = gsl_matrix_alloc (polorder, polorder);
-     
+
    for (i = 0; i < ncol; i++)  {
       xi = i+1;
       gsl_matrix_set (X, i, 0, 1.0);
@@ -116,20 +116,20 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
 
     /*make header
       printf ("matrvola\n"); */
-    if (verb > 1) 
+    if (verb > 1)
       fprintf(stdout, "#%s_0\t%s_1\t%s_2\t%s_3\t%s_4\n",
                     DSET_PREFIX(in_set),DSET_PREFIX(in_set),
                     DSET_PREFIX(in_set),DSET_PREFIX(in_set),
                     DSET_PREFIX(in_set));
 
     /* go by lines - signatures
-       pre-allocate, I think this should be just fine, 
-       there should be no need to reinitialize work 
-       all the time */   
+       pre-allocate, I think this should be just fine,
+       there should be no need to reinitialize work
+       all the time */
     work = gsl_multifit_linear_alloc (ncol, polorder);
 
     dvec = (float * )malloc(sizeof(float)*ncol) ;  /* array to hold signature */
-    cbuf = (float *)malloc(sizeof(float)*polorder) ;  
+    cbuf = (float *)malloc(sizeof(float)*polorder) ;
                               /* array to hold fit */
     for (nl=0; nl<nrow; ++nl) {
       if (!mask || mask[nl]) {
@@ -137,7 +137,7 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
          posj = -1;
          posk = -1;
 
-         THD_extract_array( nl , in_set , 0 , dvec ) ; 
+         THD_extract_array( nl , in_set , 0 , dvec ) ;
                                     /*get signature from voxel */
 
          for (k = 0; k < ncol; k++) {
@@ -152,23 +152,23 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
             printf ("# sumsq = %g\n", sumsq); */
 
          for (i=0;i<polorder;++i) cbuf[i] = (float)C(i);
-         THD_insert_series( nl , out_set , polorder , MRI_float , cbuf , 1 ) ; 
+         THD_insert_series( nl , out_set , polorder , MRI_float , cbuf , 1 ) ;
                                        /* stick result in output */
-         if (verb > 1) 
-            fprintf (stdout,  "%11g\t%11g\t%11g\t%11g\t%11g\n", 
-                           C(0), C(1), C(2), C(3), C(4)); 
+         if (verb > 1)
+            fprintf (stdout,  "%11g\t%11g\t%11g\t%11g\t%11g\n",
+                           C(0), C(1), C(2), C(3), C(4));
 
          /*
          printf ("# covariance matrix:\n");
          printf ("[ %+.5e, %+.5e, %+.5e  \n",
                  COV(0,0), COV(0,1), COV(0,2));
-         printf ("  %+.5e, %+.5e, %+.5e  \n", 
+         printf ("  %+.5e, %+.5e, %+.5e  \n",
                  COV(1,0), COV(1,1), COV(1,2));
-         printf ("  %+.5e, %+.5e, %+.5e ]\n", 
+         printf ("  %+.5e, %+.5e, %+.5e ]\n",
                  COV(2,0), COV(2,1), COV(2,2));
           printf ("# chisq = %g\n", chisq);
          */
-      
+
       }
    }
    gsl_multifit_linear_free (work); work = NULL;
@@ -188,7 +188,7 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
 /**********************************************************************
    BEGIN: functions based on command.c code from The C clustering library.
    ANDREJ: If we end up using this, we must include copyright notice
-   in AFNI prominently 
+   in AFNI prominently
 **********************************************************************/
 
 void clusterlib_display_version(void)
@@ -215,7 +215,7 @@ char* clusterlib_setjobname(const char* basename, int strip)
   jobname = malloc((n+1)*sizeof(char));
   strncpy (jobname, basename, n);
   jobname[n] = '\0';
-  
+
   if (strip) { /* ZSS, also remove +orig? */
    n = strlen(jobname);
    extension = strstr(jobname,"+orig");
@@ -261,22 +261,22 @@ float** example_distance_gene(int nrows, int ncols, float** data)
 { int i, j, ii, nl, nc;
   float** distMatrix;
   float* weight = malloc(ncols*sizeof(float));
-  
+
 
 
   printf("============ Euclidean distance matrix between genes ============\n");
   for (i = 0; i < ncols; i++) weight[i] = 1.0;
-  distMatrix = distancematrix(nrows, ncols, data, weight, 'e', 0); 
-         /* ANDREJ: The compiler gave me a warning that: 
+  distMatrix = distancematrix(nrows, ncols, data, weight, 'e', 0);
+         /* ANDREJ: The compiler gave me a warning that:
          thd_segtools.c: In function 'example_distance_gene':
          thd_segtools.c:234: warning: assignment makes pointer from integer
                                     without a cast
          This led me to realize that the compiler did not have the prototype
          of this function before reaching this point and assumed the returned
          value was an int to be typecast to float **.
-         But int may not be enough to hold a pointer anymore  
-         
-         In any case, there just is not enough memory for this operation here 
+         But int may not be enough to hold a pointer anymore
+
+         In any case, there just is not enough memory for this operation here
          so we'll have to consider whether this is useful enough to pursue
          in different ways. */
 
@@ -295,9 +295,9 @@ float** example_distance_gene(int nrows, int ncols, float** data)
   }
   printf("\n");
     */
-  
- 
- 
+
+
+
   free(weight);
   return distMatrix;
 }
@@ -305,9 +305,9 @@ float** example_distance_gene(int nrows, int ncols, float** data)
 
 /* ========================================================================= */
 
-void example_hierarchical( int nrows, int ncols, 
-                           float** data, 
-                           char* jobname, 
+void example_hierarchical( int nrows, int ncols,
+                           float** data,
+                           char* jobname,
                            int k, float** distmatrix,
                            int *clusterid)
 /* Perform hierarchical clustering ... , float** distmatrix */
@@ -315,7 +315,7 @@ void example_hierarchical( int nrows, int ncols,
   const int nnodes = nrows-1;
   float* weight = malloc(ncols*sizeof(float));
   Node* tree;
-  
+
   char* filename;
   //char* filename2;
   FILE *out1; int n;
@@ -332,16 +332,16 @@ void example_hierarchical( int nrows, int ncols,
     { int dummy = k;
       do n++; while (dummy/=10);
     }
-    
+
 
   filename = malloc(n*sizeof(char));
-  
+
   sprintf (filename, "%s_C%d.hie", jobname, k);
   out1 = fopen( filename, "w" );
 
   /*FILE *out2;
   filename2 = malloc(n*sizeof(char));
-  
+
   sprintf (filename2, "%s_C%d.hi1", jobname, k);
   out2 = fopen( filename2, "w" );*/
 
@@ -366,11 +366,11 @@ void example_hierarchical( int nrows, int ncols,
 
   #if 0
    /* Andrej: This block looked like it was commented out
-    I took out some of the * / because they 
-    were generating warning and blocked out the 
-    entire section with #if 0 . 
+    I took out some of the * / because they
+    were generating warning and blocked out the
+    entire section with #if 0 .
     The compiler will not compile this section */
-    
+
   fprintf(out2,"Node     Item 1   Item 2    Distance\n");
   for(i=0; i<nnodes; i++)
     fprintf(out2,"%3d:%9d%9d      %g\n",
@@ -379,7 +379,7 @@ void example_hierarchical( int nrows, int ncols,
 	   fclose(out2);
   //free(tree);
 
-  
+
   printf("================ Pairwise maximum linkage clustering ============\n");
   tree = treecluster(nrows, ncols, data, weight, 0, 'e', 'm', 0);
   /* Here, we let treecluster calculate the distance matrix for us. In that
@@ -403,7 +403,7 @@ void example_hierarchical( int nrows, int ncols,
 
 
   printf("================ Pairwise average linkage clustering ============\n");
-  tree = treecluster(nrows, ncols, data, weight, 0, 'e', 'a', 0); 
+  tree = treecluster(nrows, ncols, data, weight, 0, 'e', 'a', 0);
   if (!tree)
   { /* Indication that the treecluster routine failed */
     printf ("treecluster routine failed due to insufficient memory\n");
@@ -420,7 +420,7 @@ void example_hierarchical( int nrows, int ncols,
 
 
   printf("================ Pairwise centroid linkage clustering ===========\n");
-  tree = treecluster(nrows, ncols, data, weight, 0, 'e', 'c', 0); 
+  tree = treecluster(nrows, ncols, data, weight, 0, 'e', 'c', 0);
   if (!tree)
   { /* Indication that the treecluster routine failed */
     printf ("treecluster routine failed due to insufficient memory\n");
@@ -447,15 +447,15 @@ void example_hierarchical( int nrows, int ncols,
   fclose(out1);
 
 
-   free(tree); 
+   free(tree);
   free(weight);
   return;
 }
 
 /* ========================================================================= */
 
-void getvoxlclusterdist(int* count, float** cdata, 
-			int* clusterid, float** data, char* jobname, 
+void getvoxlclusterdist(int* count, float** cdata,
+			int* clusterid, float** data, char* jobname,
 			int nclusters, int nrows, int ncols, float** vcdata,
          char dist)
 {
@@ -472,7 +472,7 @@ void getvoxlclusterdist(int* count, float** cdata,
       (int, float**, float**, const float[], int, int, int) =
          setmetric(dist);
    float *weight=NULL;
-   
+
 
    ENTRY("getvoxlclusterdist");
    /* allocate for answer arrays */
@@ -483,23 +483,23 @@ void getvoxlclusterdist(int* count, float** cdata,
 
 
   n = 512 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
-  
+
   dummy = nclusters;
   do n++; while (dummy/=10);
-    
+
   /*avovk, june 09, changed output names*/
-  
+
   filename4 = malloc(n*sizeof(char));
   sprintf (filename4, "%s_K%d_Gx.vcd.1D", jobname, nclusters);
   if (writedists) { out4 = fopen( filename4, "w" ); }
-  
+
   filename5 = malloc((n+2)*sizeof(char));
   sprintf (filename5, "%s_K%d_Gx.info2.1D", jobname, nclusters);
   if (writedists) {  out5 = fopen( filename5, "w" ); }
-  
+
   weight = (float *)calloc(ncols, sizeof(float));
   for (i = 0; i < ncols; ++i) weight[i] = 1.0;
-  
+
   for (i = 0; i < nrows; i++){
     #if 0      /* ZSS, distances should be same for clustering */
        difference = 0;
@@ -509,13 +509,13 @@ void getvoxlclusterdist(int* count, float** cdata,
          difference = difference + difference1*difference1;
        }
        vcdata[i][0] = 100/(1+sqrt(difference)); /* if values are close to 0 ?! */
-    #else   
+    #else
       distance = metric(ncols, cdata, data, weight, clusterid[i], i, 0);
       vcdata[i][0] = distance;   /* ZSS: Don't know what you want to do here */
     #endif
   }
 
-  /* avovk JULY29_2008, sept 05 */ 
+  /* avovk JULY29_2008, sept 05 */
   for (i = 0; i < nclusters; i++){
     max_vcdata[i] = 0;
   }
@@ -527,7 +527,7 @@ void getvoxlclusterdist(int* count, float** cdata,
   }
 
   if (out5) {
-   if (verb) 
+   if (verb)
       printf ("------- writing  max distances within clusters to file:\t\t"
               " %s_K_G%d.info2.1D", jobname, nclusters);
    fprintf(out5, "#max distance within cluster (job %s, %d clusters)\n",
@@ -562,8 +562,8 @@ void getvoxlclusterdist(int* count, float** cdata,
 /* ========================================================================= */
 
 
-void getvoxlclustersdist(int* count, float** cdata, 
-			int* clusterid, float** data, char* jobname, 
+void getvoxlclustersdist(int* count, float** cdata,
+			int* clusterid, float** data, char* jobname,
 			int nclusters, int nrows, int ncols, float **vcdata,
          char dist)
 {
@@ -576,13 +576,13 @@ void getvoxlclustersdist(int* count, float** cdata,
 
    weight = (float *)calloc(ncols, sizeof(float));
    for (i = 0; i < ncols; ++i) weight[i] = 1.0;
-   
+
    for (k = 0; k < nclusters; k++){
       for (i = 0; i < nrows; i++){
       #if 0 /* ZSS: distances should be same for clustering */
          difference = 0;
          difference1 = 0;
-         for (j = 0; j < ncols; j++) {   
+         for (j = 0; j < ncols; j++) {
             /*ZSS: Did you CHECK THIS LOOP ? ; j is going through fitcoef*/
       difference1 = cdata[k][j]-data[i][j];
       difference = difference + difference1*difference1;
@@ -594,7 +594,7 @@ void getvoxlclustersdist(int* count, float** cdata,
       #endif
       }   /* some kind of scaled probability */
    }
-  
+
   return;
 
 }
@@ -612,36 +612,36 @@ void color_palette(int nclusters, char* jobname)
   int nsteps, step, colorv, hexp1, hexp2;
   char* hexnumbers=NULL;
   int verb = 0;
-    
-  hexnumbers = (char *)malloc(32*sizeof(char)); 
+
+  hexnumbers = (char *)malloc(32*sizeof(char));
   sprintf (hexnumbers, "0123456789abcdef");
 
   n = 512 + strlen(jobname) + strlen(".pal") + 2;
   filename = (char *)malloc(n*sizeof(char));
-  sprintf (filename, "%s_K%d.pal", jobname,nclusters); 
+  sprintf (filename, "%s_K%d.pal", jobname,nclusters);
   /* output file name not good ! */
   if (!(out = fopen( filename, "w" ))) {
    fprintf(stderr,"Failed to open %s for writing\n", filename);
-  } 
-  
+  }
+
   c = nclusters;
-  
+
   nsteps = 256/nclusters;
 
   /*printf("num of color steps per cluster: %d \n",nsteps); */
 
   /* now we use those steps to create color fading to/from black*/
-  
+
   step = 256/nsteps - 2; /* number of clusters -1, that we don't go to black*/
 
-  if (nclusters < 3) 
+  if (nclusters < 3)
     step = 256/nsteps - 1;
 
 
   fprintf (out, "color_%d_clusters\n",nclusters);
 
   /* for ( i = 0; i < nclusters; i++) {*/
-  
+
   colorv = 255;
   for ( j = 0; j < nsteps; j++) {
     colorv = colorv - step;
@@ -659,9 +659,9 @@ void color_palette(int nclusters, char* jobname)
       colorv = colorv - step;
       hexp1 = colorv/16;
       hexp2 = colorv - hexp1*16;
-      
+
       fprintf (out, "#00%c%c00\n", hexnumbers[hexp1], hexnumbers[hexp2]);
-      
+
     }
   }
 
@@ -671,9 +671,9 @@ void color_palette(int nclusters, char* jobname)
       colorv = colorv - step;
       hexp1 = colorv/16;
       hexp2 = colorv - hexp1*16;
-      
+
       fprintf (out, "#0000%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2]);
-      
+
     }
   }
 
@@ -684,10 +684,10 @@ void color_palette(int nclusters, char* jobname)
       colorv = colorv - step;
       hexp1 = colorv/16;
       hexp2 = colorv - hexp1*16;
-      
-      fprintf (out, "#%c%c%c%c00\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+
+      fprintf (out, "#%c%c%c%c00\n", hexnumbers[hexp1], hexnumbers[hexp2],
 	       hexnumbers[hexp1], hexnumbers[hexp2]);
-      
+
     }
   }
 
@@ -697,10 +697,10 @@ void color_palette(int nclusters, char* jobname)
       colorv = colorv - step;
       hexp1 = colorv/16;
       hexp2 = colorv - hexp1*16;
-      
-      fprintf (out, "#00%c%c%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+
+      fprintf (out, "#00%c%c%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2],
 	       hexnumbers[hexp1], hexnumbers[hexp2]);
-      
+
     }
   }
 
@@ -710,14 +710,14 @@ void color_palette(int nclusters, char* jobname)
       colorv = colorv - step;
       hexp1 = colorv/16;
       hexp2 = colorv - hexp1*16;
-      
-      fprintf (out, "#%c%c00%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2], 
+
+      fprintf (out, "#%c%c00%c%c\n", hexnumbers[hexp1], hexnumbers[hexp2],
 	       hexnumbers[hexp1], hexnumbers[hexp2]);
-      
+
     }
   }
 
-  
+
   if (verb) printf ("------- Color palette written to file:\t\t"
 	  "%s_K%d.pal\n",jobname,nclusters);
 
@@ -727,14 +727,14 @@ void color_palette(int nclusters, char* jobname)
 
 /* ========================================================================= */
 
-void example_kmeans( int nrows, int ncols, 
-                     float** data, 
-                     int nclusters, int npass, 
+void example_kmeans( int nrows, int ncols,
+                     float** data,
+                     int nclusters, int npass,
                      char dist, char* jobname,
-                     int *clusterid, float **vcdata, 
+                     int *clusterid, float **vcdata,
                      REMAPS remap)
 /* Perform k-means clustering on genes */
-{ 
+{
    int i, j, ii, nl, nc;
    //const int nclusters = 3;
    const int transpose = 0;
@@ -755,7 +755,7 @@ void example_kmeans( int nrows, int ncols,
    int* count=NULL;
    float* weight = malloc(ncols*sizeof(float));
    float** cdata = malloc(nclusters*sizeof(float*));
-   
+
    int n=0;
    char* filename=NULL;
    char* filename2=NULL;
@@ -766,15 +766,15 @@ void example_kmeans( int nrows, int ncols,
    FILE *out3=NULL;
    FILE *out4=NULL;
    float a, b;
-   
-   
+
+
    for (i = 0; i < nclusters; i++)
    { cdata[i] = malloc(ncols*sizeof(float));
-    
+
    }
    for (i = 0; i < ncols; i++) weight[i] = 1.0;
 
-   
+
    /* ZSS: Andrej, that n was too small. I added 512 to get
            avoid the problem. */
    n = 512 + strlen(jobname) + strlen("_K_G") + strlen(".ext");
@@ -783,7 +783,7 @@ void example_kmeans( int nrows, int ncols,
    { int dummy = nclusters;
     do n++; while (dummy/=10);
    }
-    
+
    /* avovk */
    if (verb > 1) printf("a je u omari :) \n");
    filename = (char *)malloc(n*sizeof(char));
@@ -803,14 +803,14 @@ void example_kmeans( int nrows, int ncols,
    sprintf (filename4, "%s_K%02d_G%c.info1.1D", jobname, nclusters,dist);
    if (writedists) { out4 = fopen( filename4, "w" ); }
 
-   if (verb) { 
+   if (verb) {
      printf("======================== k-means clustering"
             " ========================\n");
 
       printf ("\n");
       printf ("----- doing %d pass-es... go stretch your legs...\n",npass);
    }
-   
+
    kcluster(   nclusters,
                nrows,ncols,data,
                weight,
@@ -822,7 +822,7 @@ void example_kmeans( int nrows, int ncols,
       case iCOUNT:
        { double count[nclusters];
          int *isort=NULL, imap[nclusters];
-         
+
          /* count number of voxels */
          for (i=0; i<nclusters; ++i) count[i]=0;
          for (i=0; i<nrows; ++i) {
@@ -835,14 +835,14 @@ void example_kmeans( int nrows, int ncols,
             imap[isort[i]] = nclusters -i -1;
          } else {
             imap[isort[i]] = i;
-         } 
-         fprintf(stderr,"Remapping cluster %d (count %ld) --> %d\n", 
+         }
+         fprintf(stderr,"Remapping cluster %d (count %ld) --> %d\n",
                   isort[i], (long)count[i], imap[isort[i]]);
        }
          for (i=0; i<nrows; ++i) {
             clusterid[i] = imap[clusterid[i]];
          }
-         free(isort); isort=NULL; 
+         free(isort); isort=NULL;
        }
        break;
       case MAG:
@@ -850,7 +850,7 @@ void example_kmeans( int nrows, int ncols,
        { double mg[nclusters];
          int *isort=NULL, imap[nclusters];
        if (!getclustercentroids( nclusters, nrows, ncols,
-                                 data, clusterid, cdata, 
+                                 data, clusterid, cdata,
                                  0, 'a')) {
          fprintf(stderr,"Failed to get centroids");
        }
@@ -868,34 +868,34 @@ void example_kmeans( int nrows, int ncols,
             imap[isort[i]] = nclusters -i -1;
          } else {
             imap[isort[i]] = i;
-         } 
-         if (verb) fprintf(stderr,"Remapping cluster %d (mag %f) --> %d\n", 
+         }
+         if (verb) fprintf(stderr,"Remapping cluster %d (mag %f) --> %d\n",
                   isort[i], mg[i], imap[isort[i]]);
        }
-      
+
          for (i=0; i<nrows; ++i) {
             clusterid[i] = imap[clusterid[i]];
          }
-       
+
        free(isort);
        }
          break;
       case NONE:
          break;
-      default: 
+      default:
          fprintf(stderr,
             "REMAPPING flag of %d unknown. No remapping done.\n", remap);
    }
-   
+
    if (verb) printf ("Solution found %d times; ", ifound);
    if (verb) printf ("within-cluster sum of distances is %f\n", error);
 
-   
+
    if (writedists) {
       fprintf (out4,"#within-cluster sum of distances: %f\n",error);
       fclose(out4); out4=NULL;
    }
-   
+
    if (writedists) {
       if (verb) printf ("------- writing Cluster assignments to file:\t\t"
              " %s_K_G%d.kgg.1D\n",jobname, nclusters);
@@ -903,18 +903,18 @@ void example_kmeans( int nrows, int ncols,
          fprintf (out1, "%09d\t %d\n", i, clusterid[i]);
       fclose(out1); out1=NULL;
    }
-   
+
    index = (int **)malloc(nclusters*sizeof(int*));
    count = (int *)malloc(nclusters*sizeof(int));
    for (i = 0; i < nclusters; i++) count[i] = 0;
    for (i = 0; i < nrows; i++) count[clusterid[i]]++;
    for (i = 0; i < nclusters; i++) index[i] = malloc(count[i]*sizeof(int));
    for (i = 0; i < nclusters; i++) count[i] = 0;
-   for (i = 0; i < nrows; i++){ 
+   for (i = 0; i < nrows; i++){
       int id = clusterid[i];
       index[id][count[id]] = i;
       count[id]++;
-   }  
+   }
 
    if (writedists) {
       if (verb) printf ("------- writing Distance between clusters to file:\t "
@@ -925,11 +925,11 @@ void example_kmeans( int nrows, int ncols,
         {
           for (j = 1+i; j < nclusters; j++)
 	    {
-	      distance = clusterdistance(nrows, ncols, data, 
-				         weight, count[i], count[j], index[i], 
-				         index[j], dist , 'a', 0);  
+	      distance = clusterdistance(nrows, ncols, data,
+				         weight, count[i], count[j], index[i],
+				         index[j], dist , 'a', 0);
 
-	      fprintf(out2,"#Distance between %d and %d: %7.3f\n", 
+	      fprintf(out2,"#Distance between %d and %d: %7.3f\n",
 		      i, j, distance);
 
 	    }
@@ -944,7 +944,7 @@ void example_kmeans( int nrows, int ncols,
    if (writedists) {
       if (verb) printf ("------- writing Cluster centroids to file:\t\t"
              "%s_K_G%d.cen.1D\n",jobname, nclusters);
-      for (i = 0; i < nclusters; i++){ 
+      for (i = 0; i < nclusters; i++){
         /*      fprintf(out3,"Cluster %2d:", i);*/
          for (j = 0; j < ncols; j++) fprintf(out3,"\t%7.3f", cdata[i][j]);
          fprintf(out3,"\n");
@@ -956,18 +956,18 @@ void example_kmeans( int nrows, int ncols,
    if (verb) printf("Done...\n");
 
    /* call function to calculate distance between each voxel and centroid */
-   /* we will need: 
+   /* we will need:
       count - number of elements in cluster as we allready have it
       cdata - cluster centroids
       clusterid
-      data */      
-             
-      getvoxlclusterdist(count, cdata, clusterid, data, jobname, 
+      data */
+
+      getvoxlclusterdist(count, cdata, clusterid, data, jobname,
 		      nclusters, nrows, ncols, vcdata, dist);
-      getvoxlclustersdist(count, cdata, clusterid, data, jobname, 
+      getvoxlclustersdist(count, cdata, clusterid, data, jobname,
 		      nclusters, nrows, ncols, vcdata, dist);
 
-      
+
       /*might want to make some calculations with vcdata*/
 
       /*lets calculate distance to centroid/sum(distance 2 all centroids)*/
@@ -980,21 +980,21 @@ void example_kmeans( int nrows, int ncols,
 	    if (vcdata[i][j+1]>a && vcdata[i][j+1]< b) b = vcdata[i][j+1];
 	  vcdata[i][nclusters+1] = (1.0-a/b)*100.0;
 	}
-      
+
       /* just a notice: first column is dist to centroid in THE cluster,
 	 then there are columns that describe distance to centroids from
-         each cluster centroid 
+         each cluster centroid
          - and we are adding another column here*/
 
-   
+
    for (i = 0; i < nclusters; i++) free(index[i]);
    free(index);
    free(count);
 
-   for (i = 0; i < nclusters; i++){ 
+   for (i = 0; i < nclusters; i++){
       free(cdata[i]);
    }
-   
+
    free(cdata);
    free(weight);
 
@@ -1006,11 +1006,11 @@ void example_kmeans( int nrows, int ncols,
 **********************************************************************/
 # define EPSILON             1E-10
 int thd_Adist (  THD_3dim_dataset *in_set,
-                 byte *mask, 
+                 byte *mask,
                  float *sigs, int nsigs,
                  THD_3dim_dataset **dist_set,
                  OPT_KMEANS oc)
-{ 
+{
    int ii, jj, kk;
    int ncol = -1, nvox = -1;
    float *distvec=NULL, **asigvec=NULL, **afsig=NULL;
@@ -1022,23 +1022,23 @@ int thd_Adist (  THD_3dim_dataset *in_set,
 
 
    ENTRY("thd_Adist");
-   
+
    nvox = DSET_NVOX(in_set);
-   ncol = DSET_NVALS(in_set); 
+   ncol = DSET_NVALS(in_set);
    if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
-   
+
    /* make sure in_set is loaded */
    DSET_load(in_set);
-   
-   
+
+
    /* equal weights for all elements of signature */
    weight = (float *)calloc(ncol, sizeof(float));
    for (ii = 0; ii < ncol; ii++) weight[ii] = 1.0;
-   
+
    /*array to hold one voxel's signature */
    asigvec = (float ** )calloc(1, sizeof(float*));
    asigvec[0] = (float *)calloc(ncol, sizeof(float)) ;
-   
+
    /* array to hold signatures in a way pleasing to metric */
    afsig = (float **)calloc(nsigs, sizeof(float*));
    ii=0;
@@ -1047,10 +1047,10 @@ int thd_Adist (  THD_3dim_dataset *in_set,
       for (kk=0; kk<ncol; ++kk) {
          afsig[jj][kk] = sigs[ii]; ++ii;
       }
-   }   
+   }
    /* Create temporary distance vector */
    distvec = (float *)calloc(nvox, sizeof(float));
-   
+
    /* prepare output */
    *dist_set = EDIT_empty_copy(in_set) ;
    EDIT_dset_items(  *dist_set ,
@@ -1060,12 +1060,12 @@ int thd_Adist (  THD_3dim_dataset *in_set,
                      ADN_brick_fac , NULL           ,
                      ADN_prefix    , "adist"   ,
                      ADN_none ) ;
-   
+
    for (jj=0; jj<nsigs; ++jj) {  /* for each signature type */
       for (ii=0; ii< nvox; ++ii) {
          distvec[ii]=0;
          if (!mask || mask[ii]) {
-            THD_extract_array( ii , in_set , 0 , asigvec[0] ) ; 
+            THD_extract_array( ii , in_set , 0 , asigvec[0] ) ;
             /* check if it is all non zero */
             for (kk=0; kk<ncol; ++kk) {
                if (asigvec[0][kk]) { /* non zero, calculate the distance */
@@ -1076,13 +1076,13 @@ int thd_Adist (  THD_3dim_dataset *in_set,
             if (oc.voxdebug[3] == ii) {
                char fname[128]={""};
                FILE *fout=NULL;
-               sprintf(fname, "distdbg.vox%d-%d-%d.sig%d.1D", 
+               sprintf(fname, "distdbg.vox%d-%d-%d.sig%d.1D",
                   oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2], jj);
                if ((fout = fopen(fname, "w"))) {
                   fprintf(fout,"#Col. 0 signature for voxel %d %d %d\n"
                                "#Col. 1 reference signature %d\n"
                                "#Distance per metric %c = %f\n",
-                               oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2], 
+                               oc.voxdebug[0], oc.voxdebug[1], oc.voxdebug[2],
                                jj, oc.distmetric, distvec[ii]);
                   for (kk=0; kk<ncol; ++kk){
                      fprintf(fout, "%f   %f\n", asigvec[0][kk], afsig[jj][kk]);
@@ -1103,15 +1103,15 @@ int thd_Adist (  THD_3dim_dataset *in_set,
       }
       /* put distvec back into output, and watch the scaling */
       EDIT_substitute_brick( *dist_set , jj , MRI_short , NULL ) ;
-      factor = EDIT_coerce_autoscale_new(nvox,  
-                                MRI_float,distvec, 
+      factor = EDIT_coerce_autoscale_new(nvox,
+                                MRI_float,distvec,
                                 MRI_short,
                                  (short*)DSET_BRICK_ARRAY(*dist_set,jj));
       if (factor < EPSILON)  factor = 0.0;
       else factor = 1.0 / factor;
       if( DSET_BRICK_TYPE(*dist_set,jj) == MRI_short )
       EDIT_misfit_report( DSET_FILECODE(*dist_set) , jj ,
-                          nvox , factor , 
+                          nvox , factor ,
                           (short*)DSET_BRICK_ARRAY(*dist_set,jj) ,  distvec) ;
       if (oc.verb) {
          ININFO_message("Subbrick factor for %d is %f\n ",
@@ -1119,20 +1119,20 @@ int thd_Adist (  THD_3dim_dataset *in_set,
       }
       sprintf(lll,"Dist.%c.Sig.%02d", oc.distmetric, jj);
       EDIT_dset_items (*dist_set, ADN_brick_label_one + jj, lll, ADN_none);             EDIT_BRICK_FACTOR (*dist_set, jj, factor);
-    
+
    }
-         
+
    if (oc.verb) {
       ININFO_message("Have %d/%d voxels to process "
                      "with %d dimensions per voxel.\n",
                      nvox, DSET_NVOX(in_set), ncol);
    }
-   
-   
+
+
    if (oc.verb) {
       ININFO_message("Freedom");
    }
-      
+
    free(weight); weight = NULL;
    free(distvec); distvec=NULL;
    free(asigvec[0]); asigvec[0]=NULL;
@@ -1156,9 +1156,9 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
    float **D=NULL;
    int ncol=0, ii, nl, nc, ret=0;
    float *dvec=NULL;
-   
+
    ENTRY("thd_Acluster1");
-   
+
    ncol = DSET_NVALS(in_set);
    if (!nmask) {
       ERROR_message("No voxels in mask");
@@ -1168,23 +1168,23 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
    D = (float **)calloc(sizeof(float*), nmask);
    for (ii=0;ii<(nmask);++ii) {
       if (!(D[ii] = (float *)calloc(sizeof(float), ncol))) {
-         fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
+         fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n",
                         nmask, ncol);
          RETURN(0);
       }
    }
 
-   dvec = (float * )malloc(sizeof(float)*ncol) ;  
+   dvec = (float * )malloc(sizeof(float)*ncol) ;
    if (oc.verb) {
-      ININFO_message("Filling %d cols of D(%dx%d) (mask=%p).\n", 
+      ININFO_message("Filling %d cols of D(%dx%d) (mask=%p).\n",
                         ncol, nmask, ncol, mask);
    }
    ii = 0;
    for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
       if (!mask || mask[nl]) {
-         THD_extract_array( nl , in_set , 0 , dvec ) ; 
-         for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc]; 
-         ++ii;                              
+         THD_extract_array( nl , in_set , 0 , dvec ) ;
+         for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc];
+         ++ii;
       }
    }
    free(dvec); dvec = NULL;
@@ -1197,7 +1197,7 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
                      dist_set ,
                      clust_init,
                      oc, D, ncol))) {
-      ERROR_message("Failed in thd_Acluster");                 
+      ERROR_message("Failed in thd_Acluster");
    }
 
    /* freedom */
@@ -1205,7 +1205,7 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
       for (ii=0; ii<nmask; ++ii) if (D[ii]) free(D[ii]);
       free(D); D = NULL;
    }
-      
+
    RETURN(ret);
 }
 
@@ -1214,7 +1214,7 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
    You can form the data array Dp outside of this function,
    so if Dp is not NULL, then only header structure of in_set
    is used. If Dp is NULL then it is formed inside the function
-   from the contents of in_set 
+   from the contents of in_set
    D_ncol is used to pass the number of columns in Dp. Note that
    D_ncol may be different from the number of sub-bricks in in_set
    because when Dp is filled externally, in_set can be one of the volumes
@@ -1235,9 +1235,9 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    float *dvec=NULL;
    float factor = 0.0;
    int* clusterid = NULL;
-   short *sc = NULL; 
+   short *sc = NULL;
    float *fc = NULL;
-   float** vcdata = NULL; 
+   float** vcdata = NULL;
    int nvc; /*this will be for number of columns in vcdata matrix*/
    int *vals = NULL, *vmap=NULL, N_vmap=0;
    char *label_table=NULL;
@@ -1245,7 +1245,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
 
 
    ENTRY("thd_Acluster");
-   
+
    if (!clust_set) {
       fprintf(stderr,
                "ERROR: Bad input\n");
@@ -1260,7 +1260,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
           DSET_NY(in_set) !=  DSET_NY(*clust_set) ||
           DSET_NZ(in_set) !=  DSET_NZ(*clust_set)) {
          ERROR_message("mismatch in *clust_set grid");
-         RETURN(0);    
+         RETURN(0);
       }
    } else { /* make new one */
       *clust_set = EDIT_empty_copy(in_set ) ;
@@ -1274,7 +1274,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       sc = (short *)calloc(sizeof(short),DSET_NVOX(in_set));
       EDIT_substitute_brick( *clust_set , 0 , MRI_short , sc ) ;
    }
-   
+
    if (dist_set) {
       if (*dist_set) { /* reuse verify match */
          if (DSET_NVOX(in_set) != DSET_NVOX(*dist_set) ||
@@ -1283,7 +1283,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
              DSET_NZ(in_set) !=  DSET_NZ(*dist_set) ||
              DSET_NVALS(*dist_set) !=  nvc ) {
             ERROR_message("mismatch in *dist_set grid");
-            RETURN(0);    
+            RETURN(0);
          }
       } else { /* make new one */
          *dist_set = EDIT_empty_copy(in_set) ;
@@ -1299,21 +1299,21 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       }
    }
 
-   
+
    if (!mask) nmask = DSET_NVOX(in_set);
-   
+
    if (!Dp) {
-      ncol = DSET_NVALS(in_set); 
+      ncol = DSET_NVALS(in_set);
       if (ncol < DSET_NUM_TIMES(in_set)) ncol = DSET_NUM_TIMES(in_set);
 
       /* make sure in_set is loaded */
       DSET_load(in_set);
-      
+
       /* Create data matrix */
       D = (float **)calloc(sizeof(float*), nmask);
       for (ii=0;ii<(nmask);++ii) {
          if (!(D[ii] = (float *)calloc(sizeof(float), ncol))) {
-            fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n", 
+            fprintf(stderr,"ERROR: Failed while allocating %dx%d float matrix\n",
                            nmask, ncol);
             RETURN(0);
          }
@@ -1327,19 +1327,19 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       ii = 0;
       for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
          if (!mask || mask[nl]) {
-            THD_extract_array( nl , in_set , 0 , dvec ) ; 
-            for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc]; 
-            ++ii;                              
+            THD_extract_array( nl , in_set , 0 , dvec ) ;
+            for (nc=0; nc<ncol; ++nc) D[ii][nc] = dvec[nc];
+            ++ii;
          }
       }
-      /* dump voxel values in in_set to free up memory, 
+      /* dump voxel values in in_set to free up memory,
          but keep header of in_set */
-      DSET_unload(in_set); 
+      DSET_unload(in_set);
    } else {
-      ncol = D_ncol; 
+      ncol = D_ncol;
       D = Dp;
-   }   
-   
+   }
+
    clust_seed(oc.rand_seed);
    if (oc.verb) {
       ININFO_message("Have %d/%d (%f) voxels to process "
@@ -1349,7 +1349,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                      ncol,
                      clust_seed(0));
    }
-   
+
    /* allocate for answer arrays */
    if (!(clusterid = (int *)calloc(sizeof(int), nmask))) {
       fprintf(stderr,"ERROR: Failed to allocate for clusterid\n");
@@ -1358,7 +1358,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
 
    /* initialize clusterid */
    if (clust_init) {
-      if (0 && oc.remap != NONE) { /* allow that. Just initializing does 
+      if (0 && oc.remap != NONE) { /* allow that. Just initializing does
                                      not mean cluster ids won't change in
                                      unpleasant manners */
          ERROR_message("Cannot use -clust_init, along with "
@@ -1366,10 +1366,10 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          RETURN (0);
       }
       if (oc.verb) {
-         ININFO_message("Initializing cluster per %s\n", 
+         ININFO_message("Initializing cluster per %s\n",
                      DSET_PREFIX(clust_init));
       }
-      if (!(vals = THD_unique_rank(clust_init, 0, mask, 
+      if (!(vals = THD_unique_rank(clust_init, 0, mask,
                                     "Lamour.1D", &vmap, &N_vmap))) {
          ERROR_message("Failed to rank\n");
          RETURN (0);
@@ -1401,11 +1401,11 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          RETURN(0);
       }
       if (!label_table && clust_init->Label_Dtable) {
-         label_table = Dtable_to_nimlstring(clust_init->Label_Dtable, 
+         label_table = Dtable_to_nimlstring(clust_init->Label_Dtable,
                                             "VALUE_LABEL_DTABLE");
       }
    }
-   
+
    /* allocate for answer array distance voxel centroid */
    if (oc.verb) {
       ININFO_message("Allocating for D, %dx%d\n", nmask, nvc);
@@ -1427,9 +1427,9 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       }
       segtools_verb(oc.verb);
       segtools_writedists(oc.writedists);
-      example_kmeans(   nmask, ncol, D, 
-                        oc.k, oc.r, oc.distmetric, 
-                        oc.jobname, clusterid, vcdata, 
+      example_kmeans(   nmask, ncol, D,
+                        oc.k, oc.r, oc.distmetric,
+                        oc.jobname, clusterid, vcdata,
                         oc.remap);
    } else if (oc.kh > 0) {
       if (oc.verb) {
@@ -1438,15 +1438,15 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                         oc.kh, oc.jobname);
       }
       if ((distmatrix = example_distance_gene(nmask, ncol, D))) {
-         example_hierarchical(   nmask, ncol, D, 
-                                 oc.jobname, oc.kh, 
-                                 distmatrix, 
+         example_hierarchical(   nmask, ncol, D,
+                                 oc.jobname, oc.kh,
+                                 distmatrix,
                                  clusterid);
-         /* ZSS: Andrej, this looks like a memory leak, 
+         /* ZSS: Andrej, this looks like a memory leak,
                   distmatrix should be freed here.
                   This free code is not tested yet! */
          ININFO_message("The freeing below has not been tested");
-         for (ii=0; ii<ncol; ++ii) free(distmatrix[ii]); 
+         for (ii=0; ii<ncol; ++ii) free(distmatrix[ii]);
          free(distmatrix); distmatrix = NULL;
       } else {
          ERROR_message("Failed to create distmatrix");
@@ -1456,26 +1456,26 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       ERROR_message("Bad option selection");
       RETURN(0);
    }
-   
+
    /* remap clusterid if needed */
    if (oc.remap == NONE && vmap) {
       if (oc.verb) {
          ININFO_message("Remapping output to cluster_init\n");
       }
-      
+
       for (ii=0; ii<nmask; ++ii) {
          clusterid[ii] = vmap[clusterid[ii]+1];
       }
    } else { /* just add 1 because cluster ids start at 0 */
       for (ii=0; ii<nmask; ++ii) clusterid[ii] += 1;
    }
-   
+
    /* create output datasets, if required*/
    if (oc.verb) {
       ININFO_message("loading results into %s\n",
                      DSET_PREFIX(*clust_set));
    }
-   
+
    /* transfer ints in clusterid to shorts array */
    sc = (short *)DSET_ARRAY(*clust_set,0);
    ii = 0;
@@ -1483,13 +1483,13 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       if (!mask || mask[nl]) {
          sc[nl] = (short)clusterid[ii];
          ++ii;
-      } else { 
+      } else {
          sc[nl] = 0;
       }
    }
    free(clusterid); clusterid = NULL;
-   sc = NULL; 
-   
+   sc = NULL;
+
    /* add the labeltable if it exists */
    if (label_table) {
       if (oc.verb) {
@@ -1500,14 +1500,14 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          ERROR_message("Failed to create Label_Dtable");
          RETURN(0);
       }
-     /* and stick it in the header. Label_Dtable is not preserved 
+     /* and stick it in the header. Label_Dtable is not preserved
          by dset writing function */
-      THD_set_string_atr( (*clust_set)->dblk , 
+      THD_set_string_atr( (*clust_set)->dblk ,
                         "VALUE_LABEL_DTABLE" ,  label_table) ;
 
       free(label_table); label_table=NULL;
-   }  
-   
+   }
+
    if (oc.user_labeltable) {
       Dtable *vl_dtable=NULL ;
 
@@ -1515,7 +1515,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          ININFO_message("Applying labeltable from %s", oc.user_labeltable) ;
       }
       if ((*clust_set)->Label_Dtable) {
-         destroy_Dtable((*clust_set)->Label_Dtable); 
+         destroy_Dtable((*clust_set)->Label_Dtable);
          (*clust_set)->Label_Dtable=NULL;
       }
       /* read the table */
@@ -1528,7 +1528,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          RETURN(0);
       }
       destroy_Dtable(vl_dtable); vl_dtable = NULL;
-      THD_set_string_atr( (*clust_set)->dblk , 
+      THD_set_string_atr( (*clust_set)->dblk ,
                            "VALUE_LABEL_DTABLE" , label_table ) ;
       free(label_table); label_table = NULL;
    }
@@ -1537,7 +1537,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
       /* Still no blasted labeltable */
       Dtable *vl_dtable=new_Dtable(5);
       char slab[256], sval[64], skmet[64];
-      int nclusters=0; 
+      int nclusters=0;
       if (oc.verb) ININFO_message("Creating new labeltable") ;
       if (oc.k > 0) {
          nclusters = oc.k;
@@ -1555,7 +1555,7 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                sprintf(sval,"%d", ii+1);
                sprintf(slab,"%s%d",skmet, ii+1);
             }
-            addto_Dtable( sval , slab , vl_dtable ) ; 
+            addto_Dtable( sval , slab , vl_dtable ) ;
          } else {
             if (vmap) {
                sprintf(sval,"%d", vmap[ii+1]);
@@ -1568,16 +1568,16 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
                              " No labeltable will be added\n", slab);
                RETURN(0);
             }
-            addto_Dtable( sval , slab , vl_dtable ) ; 
+            addto_Dtable( sval , slab , vl_dtable ) ;
          }
       }
       label_table = Dtable_to_nimlstring(vl_dtable, "VALUE_LABEL_DTABLE");
       destroy_Dtable(vl_dtable); vl_dtable = NULL;
-      THD_set_string_atr( (*clust_set)->dblk , 
+      THD_set_string_atr( (*clust_set)->dblk ,
                         "VALUE_LABEL_DTABLE" , label_table ) ;
       free(label_table); label_table = NULL;
    }
-   
+
    /* prepare output */
    if (dist_set) {
       ININFO_message("loading results into %s\n",
@@ -1591,19 +1591,19 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          ii = 0;
          for (nl=0; nl<DSET_NVOX(in_set); ++nl) {
 	         if (!mask || mask[nl]) {
-	            fc[nl] = (float)vcdata[ii][j]; 
+	            fc[nl] = (float)vcdata[ii][j];
 	            ++ii;
 	         }
          }
-         factor = EDIT_coerce_autoscale_new(DSET_NVOX(in_set),  
-                                MRI_float, fc, 
+         factor = EDIT_coerce_autoscale_new(DSET_NVOX(in_set),
+                                MRI_float, fc,
                                 MRI_short,
                                  (short*)DSET_BRICK_ARRAY(*dist_set,j));
          if (factor < EPSILON)  factor = 0.0;
          else factor = 1.0 / factor;
          if( DSET_BRICK_TYPE(*dist_set,j) == MRI_short )
             EDIT_misfit_report( DSET_FILECODE(*dist_set) , j ,
-                                DSET_NVOX(in_set) , factor , 
+                                DSET_NVOX(in_set) , factor ,
                                 (short*)DSET_BRICK_ARRAY(*dist_set,j), fc) ;
          free(fc); fc = NULL;
          if (oc.verb) {
@@ -1612,13 +1612,13 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
          }
 
          /* label bricks */
-         if (j==0) 
+         if (j==0)
             EDIT_dset_items (*dist_set, ADN_brick_label_one + j, "Dc", ADN_none);
          else if (j < nvc -1) {
             sprintf(lll,"Dc%02d", j-1);
             EDIT_dset_items (*dist_set, ADN_brick_label_one + j, lll, ADN_none);
          } else {
-            EDIT_dset_items (*dist_set, ADN_brick_label_one + j, 
+            EDIT_dset_items (*dist_set, ADN_brick_label_one + j,
                               "Dc_norm", ADN_none);
          }
          EDIT_BRICK_FACTOR (*dist_set, j, factor);
@@ -1633,19 +1633,19 @@ int thd_Acluster (  THD_3dim_dataset *in_set,
    if (oc.verb) {
       ININFO_message("Freedom");
    }
-   
+
    if (dvec) free(dvec); dvec=NULL;
 
 
    if (D != Dp) {
-      // To free D 
+      // To free D
       for (ii=0;ii<nmask;++ii) {
        if (D[ii]) free(D[ii]);
       }
       free(D); D = NULL;
    }else D = NULL;
-   
-   
+
+
    RETURN(1);
 }
 

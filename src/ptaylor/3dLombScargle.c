@@ -1,14 +1,14 @@
-/* 
+/*
    Description
 
-   [PT: Sept, 2014] Fixed up now. Will revisit tapers and windows laterz. 
+   [PT: Sept, 2014] Fixed up now. Will revisit tapers and windows laterz.
 
-   [PT: Sept 19, 2014] Fixed N of points for delF calc. 
- 
+   [PT: Sept 19, 2014] Fixed N of points for delF calc.
+
    [PT: Sept 26, 2014] Add in attribute output for Ntpts pre- and
    post-censoring.
 
-   [PT: June 12, 2018] 
+   [PT: June 12, 2018]
    + no more norm(al)ize
    + don't scale output by number of tpts after censoring
      -> with accompanying change in 3dAmpToRSFC
@@ -28,7 +28,7 @@
 #include "LS_funcs.h"
 #include "DoTrackit.h"
 
-void usage_LombScargle(int detail) 
+void usage_LombScargle(int detail)
 {
    printf(
 "\n"
@@ -86,7 +86,7 @@ void usage_LombScargle(int detail)
 "                          data set.\n"
 "    3) PREFIX_amp+orig   :volumetric data set containing a LS-derived\n"
 "             or           amplitude spectrum (by default, named 'amp') or a\n"
-"       PREFIX_pow+orig    power spectrum (see '-out_pow_spec', named 'pow')\n" 
+"       PREFIX_pow+orig    power spectrum (see '-out_pow_spec', named 'pow')\n"
 "                          one per voxel. \n"
 "                          Please note that the output amplitude and power\n"
 "                          spectra are 'one-sided', to represent the \n"
@@ -113,7 +113,7 @@ void usage_LombScargle(int detail)
 "      Another Fourier-related result is that for real, discrete time series,\n"
 "      the spectral amplitudes/power values are symmetric and periodic in N.\n"
 "      Therefore, |X[k]| = |X[-k]| = |X[N-k-1]| (in zero-base array \n"
-"      counting);\n" 
+"      counting);\n"
 "      the distinction between positive- and negative-indexed frequencies\n"
 "      can be thought of as signifying right- and left-traveling waves, which\n"
 "      both contribute to the total power of a specific frequency.\n"
@@ -253,7 +253,7 @@ scaling...
 "                    actual number of windows used is 2*NW - 1, as the \n"
 "                    windows will overlap by ~50%%. By default, NW=1; also \n"
 "                    by default, each window (even if NW=1) is tapered, \n"
-"                    currently using a (L2-normed) Hann function.\n" 
+"                    currently using a (L2-normed) Hann function.\n"
 
 Fun things like Welch-windowing capability\n"
 "  and time series tapering have been added now.
@@ -338,8 +338,8 @@ int main(int argc, char *argv[]) {
 
    float AVE=0., VAR=0.;
 
-   mainENTRY("3dLombScargle"); machdep(); 
-  
+   mainENTRY("3dLombScargle"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
@@ -347,45 +347,45 @@ int main(int argc, char *argv[]) {
    // ****************************************************************
 
    INFO_message("Reading in options.");
-	
+
    /** scan args **/
    if (argc == 1) { usage_LombScargle(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_LombScargle(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-	 
+
       if( strcmp(argv[iarg],"-inset") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-inset'");
 
-         //sprintf(in_name,"%s", argv[iarg]); 
+         //sprintf(in_name,"%s", argv[iarg]);
          insetTIME = THD_open_dataset(argv[iarg]);
          if( (insetTIME == NULL ))
-            ERROR_exit("Can't open time series dataset '%s'.", argv[iarg]); 
+            ERROR_exit("Can't open time series dataset '%s'.", argv[iarg]);
 
          Dim = (int *)calloc(4,sizeof(int));
          DSET_load(insetTIME); CHECK_LOAD_ERROR(insetTIME);
          Nvox = DSET_NVOX(insetTIME) ;
-         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME); 
-         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME); 
+         Dim[0] = DSET_NX(insetTIME); Dim[1] = DSET_NY(insetTIME);
+         Dim[2] = DSET_NZ(insetTIME); Dim[3]= DSET_NVALS(insetTIME);
          sampleTR = DSET_TR(insetTIME);
-      
-         if( Dim[3] < 2 ) 
+
+         if( Dim[3] < 2 )
             ERROR_exit("Input 'inset' is too short, only has %d vols."
-                       "  -> hardly a time *series*. My have Nvol>2.", 
+                       "  -> hardly a time *series*. My have Nvol>2.",
                        Dim[3]);
 
          INFO_message("TR in MR volume appears to be: %f s", sampleTR);
@@ -394,25 +394,25 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          HAVE_MASK=1;
 
-         sprintf(in_mask,"%s", argv[iarg]); 
+         sprintf(in_mask,"%s", argv[iarg]);
          MASK = THD_open_dataset(in_mask) ;
          if( (MASK == NULL ))
             ERROR_exit("Can't open time series dataset '%s'.",in_mask);
 
          DSET_load(MASK); CHECK_LOAD_ERROR(MASK);
-			
+
          iarg++ ; continue ;
       }
 
       /*
       if( strcmp(argv[iarg],"-welch_win") == 0 ){
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
             ERROR_exit("Need argument after '-welch_win'\n") ;
-       
+
          NSEG = atoi(argv[iarg]);
          if( NSEG <=0 ) {
             ERROR_message("Can't enter a negative number of segments for "
@@ -425,18 +425,18 @@ int main(int argc, char *argv[]) {
       */
 
       if( strcmp(argv[iarg],"-censor_1D") == 0 ){
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
             ERROR_exit("Need argument after '-censor_1D'\n") ;
-       
+
          in_censor = strdup(argv[iarg]) ;
 
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-censor_str") == 0 ){
-         if( ++iarg >= argc ) 
+         if( ++iarg >= argc )
             ERROR_exit("Need argument after '-censor_str'\n") ;
-       
+
          str_censor = strdup(argv[iarg]) ;
 
          iarg++ ; continue ;
@@ -445,7 +445,7 @@ int main(int argc, char *argv[]) {
 
       /*  unused-- shouldn't have, for consistency across groups
       if( strcmp(argv[iarg],"-upsamp_fac") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-upsamp_fac'");
          my_ofac = atof(argv[iarg]);
          if( my_ofac <=0 ) {
@@ -456,7 +456,7 @@ int main(int argc, char *argv[]) {
          }*/
 
       if( strcmp(argv[iarg],"-nyq_mult") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-nyq_mult'");
          my_hifac = (double) atof(argv[iarg]);
          if( my_hifac <=0 ) {
@@ -505,20 +505,20 @@ int main(int argc, char *argv[]) {
       ERROR_message("Too few options. Try -help for details.\n");
       exit(1);
    }
-  
+
    if( !insetTIME )
       ERROR_exit("Hey! No input time series data set! Use '-inset ...'.");
 
-   if( MASK ) 
+   if( MASK )
       if ( Dim[0] != DSET_NX(MASK) || Dim[1] != DSET_NY(MASK) ||
            Dim[2] != DSET_NZ(MASK) ) {
          ERROR_message("Mask and inset don't appear to have the same "
                        "spatial dimensions.\n");
          exit(1);
       }
-  
+
    INFO_message("Data read in.  Continuing");
-	
+
    // ****************************************************************
    // ****************************************************************
    //                    pre-stuff, make storage
@@ -528,7 +528,7 @@ int main(int argc, char *argv[]) {
    // ---------------------------------------------------------------
    // Welch window stuff
    NWIN = 2*NSEG - 1;         // 50% overlap of windows
-   NWINp1 = NWIN+1;           // for counting/ratios   
+   NWINp1 = NWIN+1;           // for counting/ratios
 
    if( NSEG == 1 )
       INFO_message("Single window.");
@@ -540,7 +540,7 @@ int main(int argc, char *argv[]) {
 
    WinDelT = (float *)calloc(NWIN,sizeof(float));
    WinInfo = (int **) calloc( NWIN, sizeof(int *) );
-   for ( i = 0 ; i < NWIN ; i++ ) 
+   for ( i = 0 ; i < NWIN ; i++ )
       WinInfo[i] = (int *) calloc( 2, sizeof(int) );
 
    if( (WinInfo == NULL) || (WinDelT == NULL) ) {
@@ -565,7 +565,7 @@ int main(int argc, char *argv[]) {
          // effectively *undoes* autotransp
          in_cen_im = mri_to_short( 1.0 , mri_transpose(flim));
       else
-         in_cen_im = mri_to_short( 1.0 , mri_copy(flim)); 
+         in_cen_im = mri_to_short( 1.0 , mri_copy(flim));
       mri_free(flim);
 
       i = in_cen_im->ny;
@@ -592,7 +592,7 @@ int main(int argc, char *argv[]) {
          // len(int_cens) = Ncen+1
          int_cens = MCW_get_intlist( Dim[3] , str_censor );
          INFO_message("--> Keeping %d volumes", int_cens[0]);
-         
+
          //fprintf(stderr, "\n");
          for( i=1 ; i<int_cens[0]+1 ; i++ ) {
           censor_sh[int_cens[i]] = 1;
@@ -604,17 +604,17 @@ int main(int argc, char *argv[]) {
       else {
          WARNING_message("no censor file input\n\t-> doing internal "
                          "checks for 0-full volumes to censor.");
-         
+
          for( l=0 ; l<Dim[3] ; l++ ) {
             temp_sum = 0.;
             idx = 0;
-            for( k=0 ; k<Dim[2] ; k++ ) 
-               for( j=0 ; j<Dim[1] ; j++ ) 
+            for( k=0 ; k<Dim[2] ; k++ )
+               for( j=0 ; j<Dim[1] ; j++ )
                   for( i=0 ; i<Dim[0] ; i++ ) {
                      temp_sum+= abs(THD_get_voxel(insetTIME,idx,l));
                      idx++;
                   }
-            if( temp_sum > EPS_V ) 
+            if( temp_sum > EPS_V )
                censor_sh[l] = 1;
          }
       }
@@ -629,40 +629,40 @@ int main(int argc, char *argv[]) {
       }
    }
    censor_flt = (float *)calloc(Npts_cen, sizeof(float));
-   
+
    if( (censor_flt == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(233);
    }
-   
+
    j = 0;
    for( i=0; i<Dim[3] ; i++)
       if(censor_sh[i]) {
          censor_flt[j] = i * sampleTR;
          j++;
-      }  
-   // -- - - - - - - - -  - - - - - - -  - - - - - - - - --  
+      }
+   // -- - - - - - - - -  - - - - - - -  - - - - - - - - --
 
    // populate float array of sampled times
-   sprintf(out_TS,"%s_time.1D",prefix); 
+   sprintf(out_TS,"%s_time.1D",prefix);
    if( (fout0 = fopen(out_TS, "w")) == NULL) {
       fprintf(stderr, "\n\nError opening file %s.\n", out_TS);
       exit(1);
    }
-   for( i=0; i<Npts_cen ; i++) 
+   for( i=0; i<Npts_cen ; i++)
       fprintf(fout0,"%.5f\n", censor_flt[i]);
    fprintf(fout0,"\n");
    fclose(fout0);
    INFO_message("Done writing (float) time points 1D file: %s", out_TS);
-  
+
    // ---------------------------------------------------------------
 
    // MASK
    mskd = (int ***) calloc( Dim[0], sizeof(int **) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
       mskd[i] = (int **) calloc( Dim[1], sizeof(int *) );
-   for ( i = 0 ; i < Dim[0] ; i++ ) 
-      for ( j = 0 ; j < Dim[1] ; j++ ) 
+   for ( i = 0 ; i < Dim[0] ; i++ )
+      for ( j = 0 ; j < Dim[1] ; j++ )
          mskd[i][j] = (int *) calloc( Dim[2], sizeof(int) );
    if( (mskd == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (mask).\n\n");
@@ -670,8 +670,8 @@ int main(int argc, char *argv[]) {
    }
    // go through once: define data vox
    idx = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             // also, check against data with all zero values
             temp_sum = 0.;
@@ -698,7 +698,7 @@ int main(int argc, char *argv[]) {
    //                    Beginning of main loops
    // *************************************************************
    // *************************************************************
-	
+
    // Calculate 'hifac' in order to have constant effective upper
    // frequency for a given time series length and TR; this is so that
    // different censoring still leads to having the same output
@@ -710,9 +710,9 @@ int main(int argc, char *argv[]) {
                    "for upper frequency is %.4f", my_hifac);
    }
    // Want this const across group and across windows.
-   delF = 1.0/(Dim[3]*sampleTR*my_ofac); 
+   delF = 1.0/(Dim[3]*sampleTR*my_ofac);
 
-   INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f", 
+   INFO_message("Total Ntpts=%d,  TR=%.4f, my_ofac=%.4f",
                 Dim[3], sampleTR, my_ofac);
    INFO_message("Frequency unit: Delta f = %e", delF);
 
@@ -720,11 +720,11 @@ int main(int argc, char *argv[]) {
    // alloc-- would be max lengths of things; will calculate "per
    // window" ones, as needs be)
    PR89_suppl_calc_Ns( Npts_cen, Dim[3],
-                         my_ofac, 
-                         my_hifac, 
+                         my_ofac,
+                         my_hifac,
                          &Npts_out,  // i.e., nout
                          &Npts_wrk); // i.e., ndim =nwk
-   INFO_message("Full time series: have %d total points after censoring.", 
+   INFO_message("Full time series: have %d total points after censoring.",
                 Npts_cen);
    INFO_message("Have %d points for outputting.", Npts_out);
    //INFO_message("Planning to have %d points for working.", Npts_wrk);
@@ -734,14 +734,14 @@ int main(int argc, char *argv[]) {
    wk2 = (double *)calloc(Npts_wrk, sizeof(double));
 
    /*all_ts = (float **) calloc( Npts_cen, sizeof(float *) );
-     for ( i = 0 ; i < Npts_cen ; i++ ) 
+     for ( i = 0 ; i < Npts_cen ; i++ )
      all_ts[i] = (float *) calloc( Nvox, sizeof(float) );*/
 
    all_ls = (float **) calloc( Npts_out, sizeof(float *) );
-   for ( i = 0 ; i < Npts_out ; i++ ) 
+   for ( i = 0 ; i < Npts_out ; i++ )
       all_ls[i] = (float *) calloc( Nvox, sizeof(float) );
 
-   if( //(all_ts == NULL) || 
+   if( //(all_ts == NULL) ||
       (wk1 == NULL) || (wk2 == NULL) ||
       (all_ls == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (time point arrays).\n\n");
@@ -753,7 +753,7 @@ int main(int argc, char *argv[]) {
    //fprintf(stderr," !!!!! NWIN = %d ", NWIN);
 
    // window calcs
-   WelchWindowInfo( censor_flt, Npts_cen, NSEG, 
+   WelchWindowInfo( censor_flt, Npts_cen, NSEG,
                     WinInfo, WinDelT, NWIN );
 
    // right now, welch window; *presently* all windows have same
@@ -765,14 +765,14 @@ int main(int argc, char *argv[]) {
       fprintf(stderr, "\n\n MemAlloc failure (window vec array).\n\n");
       exit(244);
    }
-   
+
    MakeWindowVec( WinVec, WinInfo[0][1] );
 
    // ---------------------- get time series ---------------------
 
    idx = 0;
-   for( k=0 ; k<Dim[2] ; k++ ) 
-      for( j=0 ; j<Dim[1] ; j++ ) 
+   for( k=0 ; k<Dim[2] ; k++ )
+      for( j=0 ; j<Dim[1] ; j++ )
          for( i=0 ; i<Dim[0] ; i++ ) {
             if( mskd[i][j][k] ) {
                m=0;
@@ -793,33 +793,33 @@ int main(int argc, char *argv[]) {
 
                   win_ofac = 1./(delF * WinDelT[w]); // calc'ed per win
                   PR89_suppl_calc_Ns( WinInfo[w][1], -1,
-                                      win_ofac,   
+                                      win_ofac,
                                       my_hifac,    // const for all wins
                                       &win_Npts_out,  // i.e., nout
                                       &win_Npts_wrk); // i.e., ndim =nwk
 
                   /*if(mk_info) {
-                    INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
+                    INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.",
                     w, win_ofac, Npts_out);
-                    INFO_message("windelt[%d]: %.3f  \t-->  winnumpts: %d .", 
+                    INFO_message("windelt[%d]: %.3f  \t-->  winnumpts: %d .",
                     w, WinDelT[w], WinInfo[w][1]);
                     INFO_message("%d   %d", win_Npts_out, win_Npts_wrk);
                     INFO_message("offset: %d", WinInfo[w][0]);
-                    
+
                     if (w == (NWIN-1))
                     mk_info=0;
                     }
                   */
-                  
+
                   /*for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
                     tpts_win[pp] = tpts[pp+WinInfo[w][0]];
                     if(NSEG>1)
                     for( pp=0 ; pp<WinInfo[w][1] ; pp++ )
                     tpts_win[pp]*= WinVec[pp];
                   */
-                  
+
                   if(DO_TAPER)
-                     PR89_fasper( censor_flt - 1 + WinInfo[w][0], 
+                     PR89_fasper( censor_flt - 1 + WinInfo[w][0],
                                   tpts - 1 + WinInfo[w][0], WinInfo[w][1],
                                   tpts_win - 1, WinVec - 1,
                                   win_ofac,
@@ -828,7 +828,7 @@ int main(int argc, char *argv[]) {
                                   DO_NORMALIZE,
                                   DO_AMPLITUDEIZE);
                   else
-                     PR89_fasper( censor_flt - 1 + WinInfo[w][0], 
+                     PR89_fasper( censor_flt - 1 + WinInfo[w][0],
                                   tpts - 1 + WinInfo[w][0], WinInfo[w][1],
                                   tpts_win - 1, NULL,
                                   win_ofac,
@@ -850,14 +850,14 @@ int main(int argc, char *argv[]) {
 
 
                   for( l=0 ; l<Npts_out ; l++ ) {
-                     all_ls[l][idx]+= (float) wk2[l]; 
+                     all_ls[l][idx]+= (float) wk2[l];
                   }
 
                }
-               for( l=0 ; l<Npts_out ; l++ ) { 
+               for( l=0 ; l<Npts_out ; l++ ) {
                   // normalizing and accounting for wins
-                  //all_ls[l][idx]*= ((float) Npts_cen) / NWIN; 
-                  all_ls[l][idx]/= (float) NWIN; 
+                  //all_ls[l][idx]*= ((float) Npts_cen) / NWIN;
+                  all_ls[l][idx]/= (float) NWIN;
                   //if( DO_NORMALIZE)
                   // all_ls[l][idx]/= Npts_cen; //Dim[3];
                   if( DO_AMPLITUDEIZE )
@@ -867,29 +867,29 @@ int main(int argc, char *argv[]) {
             idx++;
          }
 
-   
+
    /*for( w=0 ; w<NWIN ; w++ ) {
       win_ofac = (1./delF) / WinDelT[w]; // calc'ed per win
       PR89_suppl_calc_Ns( WinInfo[w][1],
-      win_ofac,   
+      win_ofac,
       my_hifac,    // const for all wins
       &win_Npts_out,  // i.e., nout
       &win_Npts_wrk); // i.e., ndim =nwk
-      
-      INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.", 
+
+      INFO_message("Window[%d] ofac: %.3f  \t-->  %d points.",
                    w, win_ofac, win_Npts_out);
                    }*/
-   
+
    INFO_message("Done Lomb-Scargling.");
    //INFO_message("Number of frequencies output = %d", (int) Npts_out);
 
    // store abcissa/freq values
-   sprintf(out_LS,"%s_freq.1D",prefix); 
+   sprintf(out_LS,"%s_freq.1D",prefix);
    if( (fout0 = fopen(out_LS, "w")) == NULL) {
       fprintf(stderr, "\n\nError opening file %s.\n",out_LS);
       exit(1);
    }
-   for( k=0 ; k<Npts_out ; k++ ) 
+   for( k=0 ; k<Npts_out ; k++ )
       fprintf(fout0,"%.5f\n", wk1[k]);
    fprintf(fout0,"\n");
    fclose(fout0);
@@ -902,20 +902,20 @@ int main(int argc, char *argv[]) {
    // **************************************************************
 
    // for output data set
-   outset_LS = EDIT_empty_copy( insetTIME ) ; 
+   outset_LS = EDIT_empty_copy( insetTIME ) ;
    if( NIFTI_OUT )
       sprintf(outset_name,"%s_%s.nii.gz",
-              prefix,out_type[DO_AMPLITUDEIZE]); 
+              prefix,out_type[DO_AMPLITUDEIZE]);
    else
       sprintf(outset_name,"%s_%s",
-              prefix,out_type[DO_AMPLITUDEIZE]); 
+              prefix,out_type[DO_AMPLITUDEIZE]);
 
    // EDIT_add_bricklist( outset_LS,
    //                  Npts_out-1, NULL , NULL , NULL );
 
    EDIT_dset_items( outset_LS,
-                    ADN_datum_all , MRI_float , 
-                    ADN_ntt   , Npts_out, 
+                    ADN_datum_all , MRI_float ,
+                    ADN_ntt   , Npts_out,
                     ADN_nvals , Npts_out,
                     ADN_ttorg , delF ,
                     ADN_ttdel , delF ,
@@ -928,24 +928,24 @@ int main(int argc, char *argv[]) {
 
    // copy data over
    for( i=0 ; i<Npts_out ; i++ ) {
-      EDIT_substitute_brick(outset_LS, i, MRI_float, all_ls[i]); 
+      EDIT_substitute_brick(outset_LS, i, MRI_float, all_ls[i]);
       all_ls[i]=NULL;
    }
 
    // ! Makin' an attribute, int array of len=2: Num of tpts without
    // ! censoring, and Num of tpts left after censoring
    { int *attin=malloc(sizeof(int)*(2)) ;
-      attin[0] = (int) Dim[3] ; 
+      attin[0] = (int) Dim[3] ;
       attin[1] = (int) Npts_cen;
       THD_set_int_atr( outset_LS->dblk ,
                        "N_TS_ORIG" , 2 , attin ) ;
       free(attin) ;
    }
-   
+
    THD_load_statistics(outset_LS);
    tross_Make_History("3dLombScargle", argc, argv, outset_LS);
    THD_write_3dim_dataset(NULL, NULL, outset_LS, True);
-  
+
    INFO_message("Done writing spectral vol file: %s", outset_name);
 
 
@@ -954,7 +954,7 @@ int main(int argc, char *argv[]) {
    //                    Freeing
    // ************************************************************
    // ************************************************************
-	
+
    INFO_message("Freeing...");
 
    DSET_delete(insetTIME);
@@ -972,7 +972,7 @@ int main(int argc, char *argv[]) {
    }
    free(all_ls);
 
-   for( i=0 ; i<Dim[0] ; i++) 
+   for( i=0 ; i<Dim[0] ; i++)
       for( j=0 ; j<Dim[1] ; j++) {
          free(mskd[i][j]);
       }
@@ -982,7 +982,7 @@ int main(int argc, char *argv[]) {
    free(mskd);
 
    if(WinInfo) {
-      for( i=0 ; i<NSEG ; i++) 
+      for( i=0 ; i<NSEG ; i++)
          free(WinInfo[i]);
       free(WinInfo);
    }
@@ -996,7 +996,7 @@ int main(int argc, char *argv[]) {
    if(str_censor)
       free(str_censor);
    if(censor_sh)
-      free(censor_sh); 
+      free(censor_sh);
    if(censor_flt)
       free(censor_flt);
    if(tpts)

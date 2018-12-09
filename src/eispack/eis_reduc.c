@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int reduc_(integer *nm, integer *n, doublereal *a, 
+/* Subroutine */ int reduc_(integer *nm, integer *n, doublereal *a,
 	doublereal *b, doublereal *dl, integer *ierr)
 {
     /* System generated locals */
@@ -42,7 +42,7 @@
 /*        A AND B CONTAIN THE REAL SYMMETRIC INPUT MATRICES.  ONLY THE */
 /*          FULL UPPER TRIANGLES OF THE MATRICES NEED BE SUPPLIED.  IF */
 /*          N IS NEGATIVE, THE STRICT LOWER TRIANGLE OF B CONTAINS, */
-/*          INSTEAD, THE STRICT LOWER TRIANGLE OF ITS CHOLESKY FACTOR L. 
+/*          INSTEAD, THE STRICT LOWER TRIANGLE OF ITS CHOLESKY FACTOR L.
 */
 
 /*        DL CONTAINS, IF N IS NEGATIVE, THE DIAGONAL ELEMENTS OF L. */
@@ -51,7 +51,7 @@
 
 /*        A CONTAINS IN ITS FULL LOWER TRIANGLE THE FULL LOWER TRIANGLE */
 /*          OF THE SYMMETRIC MATRIX DERIVED FROM THE REDUCTION TO THE */
-/*          STANDARD FORM.  THE STRICT UPPER TRIANGLE OF A IS UNALTERED. 
+/*          STANDARD FORM.  THE STRICT UPPER TRIANGLE OF A IS UNALTERED.
 */
 
 /*        B CONTAINS IN ITS STRICT LOWER TRIANGLE THE STRICT LOWER */
@@ -65,12 +65,12 @@
 /*          7*N+1      IF B IS NOT POSITIVE DEFINITE. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

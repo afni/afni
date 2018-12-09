@@ -650,7 +650,7 @@ float THD_distance( int n, float *x , float *y, int abs)
   }
 
   if (!abs) dp = sqrt(dp) ;
- 
+
   return (dp);
 }
 

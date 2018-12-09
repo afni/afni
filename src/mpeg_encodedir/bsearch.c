@@ -31,7 +31,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -252,9 +252,9 @@ BMotionSearch(currentBlock, prev, next, by, bx, fmy, fmx, bmy, bmx, oldMode)
     PMotionSearch(currentBlock, next, by, bx, bmy, bmx);
     return MOTION_BACKWARD;
   }
-  
+
   /* otherwise simply call the appropriate algorithm, based on user preference */
-  
+
     switch(bsearchAlg) {
 	case BSEARCH_SIMPLE:
 	    return BMotionSearchSimple(currentBlock, prev, next, by, bx, fmy,
@@ -310,7 +310,7 @@ BMotionSearchSimple(currentBlock, prev, next, by, bx, fmy, fmx, bmy, bmx,
     			    /* STEP 1 */
     BMotionSearchNoInterp(currentBlock, prev, next, by, bx, fmy, fmx,
 			  &forwardErr, bmy, bmx, &backErr, TRUE);
-			  
+
     			    /* STEP 2 */
 
     ComputeBMotionLumBlock(prev, next, by, bx, MOTION_INTERPOLATE,
@@ -380,7 +380,7 @@ BMotionSearchCross2(currentBlock, prev, next, by, bx, fmy, fmx, bmy, bmx,
     ComputeBMotionLumBlock(prev, next, by, bx, MOTION_BACKWARD,
 			   0, 0, *bmy, *bmx, backBlock);
 
-    /* try a cross-search; total of 4 local searches */    
+    /* try a cross-search; total of 4 local searches */
     newbmy = *bmy;	newbmx = *bmx;
     newfmy = *fmy;	newfmx = *fmx;
 
@@ -631,7 +631,7 @@ FindBestMatchExhaust(block, currentBlock, prev, by, bx, motionY, motionX,
 /* maybe should try spiral pattern centered around  prev motion vector? */
 
 
-    /* try a spiral pattern */    
+    /* try a spiral pattern */
     for ( distance = stepSize; distance <= searchRange; distance += stepSize ) {
 	tempRightMY = rightMY;
 	if ( distance < tempRightMY ) {
@@ -777,7 +777,7 @@ FindBestMatchTwoLevel(block, currentBlock, prev, by, bx, motionY, motionX,
 /* maybe should try spiral pattern centered around  prev motion vector? */
 
 
-    /* try a spiral pattern */    
+    /* try a spiral pattern */
     for ( distance = 2; distance <= searchRange; distance += 2 ) {
 	tempRightMY = rightMY;
 	if ( distance < tempRightMY ) {
@@ -1060,42 +1060,42 @@ BMotionSearchNoInterp(currentBlock, prev, next, by, bx, fmy, fmx, forwardErr,
     /* CALL SEARCH PROCEDURE */
     switch(psearchAlg) {
 	case PSEARCH_SUBSAMPLE:
-	    *forwardErr = PSubSampleSearch(currentBlock, prev, by, bx, 
+	    *forwardErr = PSubSampleSearch(currentBlock, prev, by, bx,
 					   fmy, fmx, searchRangeB);
-	    *backErr = PSubSampleSearch(currentBlock, next, by, bx, 
+	    *backErr = PSubSampleSearch(currentBlock, next, by, bx,
 					bmy, bmx, searchRangeB);
 	    break;
 	case PSEARCH_EXHAUSTIVE:
-	    *forwardErr = PLocalSearch(currentBlock, prev, by, bx, fmy, fmx, 
+	    *forwardErr = PLocalSearch(currentBlock, prev, by, bx, fmy, fmx,
 				       0x7fffffff, searchRangeB);
 	    if ( backNeeded ) {
-		*backErr = PLocalSearch(currentBlock, next, by, bx, bmy, bmx, 
+		*backErr = PLocalSearch(currentBlock, next, by, bx, bmy, bmx,
 					0x7fffffff, searchRangeB);
 	    } else {
-		*backErr = PLocalSearch(currentBlock, next, by, bx, bmy, bmx, 
+		*backErr = PLocalSearch(currentBlock, next, by, bx, bmy, bmx,
 					*forwardErr, searchRangeB);
 	    }
 	    break;
 	case PSEARCH_LOGARITHMIC:
-	    *forwardErr = PLogarithmicSearch(currentBlock, prev, by, bx, 
+	    *forwardErr = PLogarithmicSearch(currentBlock, prev, by, bx,
 					     fmy, fmx, searchRangeB);
-	    *backErr = PLogarithmicSearch(currentBlock, next, by, bx, 
+	    *backErr = PLogarithmicSearch(currentBlock, next, by, bx,
 					  bmy, bmx, searchRangeB);
 	    break;
 	case PSEARCH_TWOLEVEL:
-	    *forwardErr = PTwoLevelSearch(currentBlock, prev, by, bx, fmy, fmx, 
+	    *forwardErr = PTwoLevelSearch(currentBlock, prev, by, bx, fmy, fmx,
 					  0x7fffffff, searchRangeB);
 	    if ( backNeeded ) {
-		*backErr = PTwoLevelSearch(currentBlock, next, by, bx, bmy, bmx, 
+		*backErr = PTwoLevelSearch(currentBlock, next, by, bx, bmy, bmx,
 					   0x7fffffff, searchRangeB);
 	    } else {
-		*backErr = PTwoLevelSearch(currentBlock, next, by, bx, bmy, bmx, 
+		*backErr = PTwoLevelSearch(currentBlock, next, by, bx, bmy, bmx,
 					   *forwardErr, searchRangeB);
 	    }
 	    break;
 	default:
 	    fprintf(stderr, "ERROR:  Illegal PSEARCH ALG:  %d\n", psearchAlg);
-	    exit(1);	
+	    exit(1);
 	    break;
     }
 }

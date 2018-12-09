@@ -251,7 +251,7 @@ read_test()
         printf ("\n");
       }
     }
-    
+
     /* print out the properties we got, for debugging */
     for (j = 0; j < nprops; j++)
       printf ("property %s\n", plist[j]->name);

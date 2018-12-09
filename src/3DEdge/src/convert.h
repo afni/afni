@@ -8,8 +8,8 @@
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  * ADDITIONS, CHANGES
@@ -41,14 +41,14 @@ extern "C" {
  *
  * DESCRIPTION:
  *
- * Conversions from types DOUBLE or FLOAT to 
+ * Conversions from types DOUBLE or FLOAT to
  * others types are all implemented. I hope
  * I do not make mistakes.
  *
  * - When a real value is converted into an integer
  *   one, we take the nearest integer, i.e.
  *   (int)(real value - 0.5) for negative
- *   numbers, and (int)(real value + 0.5) for 
+ *   numbers, and (int)(real value + 0.5) for
  *   positive ones.
  *
  * - Some conversions are not yet implemented.

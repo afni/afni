@@ -16,7 +16,7 @@
 
 static char * PV2S_main( PLUGIN_interface * );
 
-static char g_help[] = 
+static char g_help[] =
     " This plugin provides an interface to the vol2surf options used by afni\n"
     " for the display of the Overlay dataset values on the surfaces in suma.\n"
     " \n"
@@ -671,7 +671,7 @@ ENTRY("PV2S_process_args");
     {
         if ( PV2S_check_surfaces(plint, lvpo.s0A, lvpo.s0B, mesg, sopt->debug) )
             RETURN(1);
-        if ( lvpo.s0A == lvpo.s0B ) 
+        if ( lvpo.s0A == lvpo.s0B )
         {
             sprintf( mesg,  "--------------------------------\n"
                             "error: for pair 0, surfA = surfB\n"
@@ -688,7 +688,7 @@ ENTRY("PV2S_process_args");
     {
         if ( PV2S_check_surfaces(plint, lvpo.s1A, lvpo.s1B, mesg, sopt->debug) )
             RETURN(1);
-        if ( lvpo.s1A == lvpo.s1B ) 
+        if ( lvpo.s1A == lvpo.s1B )
         {
             sprintf( mesg,  "--------------------------------\n"
                             "error: for pair 1, surfA = surfB\n"

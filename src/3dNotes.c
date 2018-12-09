@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*******************************************************
  * 3dNotes                                             *
  * T. Ross 8/99                                        *
@@ -23,7 +23,7 @@ void Error_Exit(char *message) {
 }
 
 void Show_Help(void) {
-   fprintf(stdout, 
+   fprintf(stdout,
 "Program: 3dNotes \n"
 "Author:  T. Ross \n"
 "(c)1999 Medical College of Wisconsin \n"
@@ -101,9 +101,9 @@ void Display_Notes(THD_3dim_dataset *dset) {
        free(chn) ;
        printf("\n");
      }
-   
+
    if(notecount==NULL) return;
-   
+
    num_notes = notecount->in[0];
    for (i=1; i<= num_notes; i++) {
       chn = tross_Get_Note( dset , i ) ;
@@ -121,10 +121,10 @@ void Display_Notes(THD_3dim_dataset *dset) {
       free(chn) ;
    }
 }
-   
+
 
 int main (int argc, char * argv[]) {
-        
+
    THD_3dim_dataset *dset=NULL;
    int narg = 1, i, curr_note=0, curr_del=0;
    char *notes[MAX_DSET_NOTES];
@@ -151,19 +151,19 @@ int main (int argc, char * argv[]) {
                 if( strncmp(argv[narg],"-help",5) == 0 ) {
                         Show_Help();
                 }
-                
+
                 if( strncmp(argv[narg],"-ses",4) == 0 ) {
                         narg++;
                         ShowString = 1;
-                        continue;    
+                        continue;
                 }
-                
+
                 if( strncmp(argv[narg],"-a",2) == 0 ) {
                         narg++;
                         if (narg==argc)
                                 Error_Exit("-a must be followed by a string");
                         notes[curr_note++] = argv[narg++];
-                        continue;       
+                        continue;
                 }
 
                 if( strncmp(argv[narg],"-h",2) == 0 ) {
@@ -195,12 +195,12 @@ int main (int argc, char * argv[]) {
                         delnotes[curr_del] = (int)atol(argv[narg++]);
                         if (delnotes[curr_del++] < 1)
                            Error_Exit("Cannot delete a note numbered < 1");
-                        continue;       
+                        continue;
                 }
    }
 
-   
-   
+
+
    if (ShowString) {
       char *str=NULL;
       for (i=0; i<curr_note; i++) {
@@ -211,18 +211,18 @@ int main (int argc, char * argv[]) {
          }
       }
    }
-   
+
    if( narg >= argc) {
       if (!ShowString) {
          Error_Exit("No input dataset!?\n") ;
       } else {
-         exit(0);  
+         exit(0);
       }
    }
 
    THD_set_write_compression(COMPRESS_NONE); /* do not alter compression*/
    dset = THD_open_one_dataset( argv[narg] ) ;
-   if( dset == NULL          ) Error_Exit("Cannot open dataset") ; 
+   if( dset == NULL          ) Error_Exit("Cannot open dataset") ;
    if( DSET_IS_MINC(dset)    ) Error_Exit("Cannot use MINC dataset") ;
    if( DSET_IS_ANALYZE(dset) ) Error_Exit("Cannot use ANALYZE dataset") ;
    if( DSET_IS_1D(dset)      ) Error_Exit("Cannot use .1D dataset") ;
@@ -235,11 +235,11 @@ int main (int argc, char * argv[]) {
       write_output = True ;
    else
       write_output = False ;
-         
+
    /* First, delete notes */
    do {
       delnum = 0;
-      /* find the largest note to delete, 
+      /* find the largest note to delete,
          since numbering for those > than deleted changes */
       for(i=0; i<curr_del; i++)
          if (delnotes[i]>delnum) {
@@ -256,7 +256,7 @@ int main (int argc, char * argv[]) {
    tross_Dont_Encode_Slash( 1 ) ;   /* 13 Mar 2003 */
    for (i=0; i<curr_note; i++)
       tross_Add_Note(dset, notes[i]);
-   
+
    /* Append to the history */
    if (history_note != NULL){
         if( HH == 0 )
@@ -274,9 +274,9 @@ int main (int argc, char * argv[]) {
            putenv("AFNI_DECONFLICT=OVERWRITE") ;
            THD_set_quiet_overwrite(1);
            THD_write_3dim_dataset( NULL,NULL , dset , write_output ) ;
-           THD_delete_3dim_dataset( dset , False ) ; 
+           THD_delete_3dim_dataset( dset , False ) ;
    }
 
-   
+
    return 0;
 }

@@ -619,7 +619,7 @@ PLUGIN_interface *PLUGIN_init(int ncall)
   PLUGIN_interface *plint;
   if(ncall > 0) return (PLUGIN_interface *)0;	/*only one interface*/
   CHECK_IF_ALLOWED("THRESHOLD","Threshold") ;  /* 30 Sep 2016 */
- 
+
 /*set titles and entry point*/
   plint = PLUTO_new_interface("Threshold", hint, help, PLUGIN_CALL_VIA_MENU, THRESH_main);
   PLUTO_add_hint(plint, hint);

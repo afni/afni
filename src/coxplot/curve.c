@@ -17,7 +17,7 @@ static integer c__1 = 1;
 
 /* Subroutine */ int curve_(real *x, real *y, integer *n)
 {
-    extern /* Subroutine */ int points_(real *, real *, integer *, integer *, 
+    extern /* Subroutine */ int points_(real *, real *, integer *, integer *,
 	    integer *);
 
 

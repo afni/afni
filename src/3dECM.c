@@ -117,8 +117,8 @@ static long total_mem = 0;
 
 
 /* freeing all of the allocated mem on an error can get a little messy. instead
-   we can use this macro to check what has been allocated and kill it. this of 
-   course requires strict discipline for initiazing all pointers to NULL and 
+   we can use this macro to check what has been allocated and kill it. this of
+   course requires strict discipline for initiazing all pointers to NULL and
    resetting them to NULL when free'd. i should be able to handle that */
 #define CHECK_AND_FREE_ALL_ALLOCATED_MEM \
 { \
@@ -263,7 +263,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
     INC_MEM_STATS(xvectim->nvec*sizeof(double), "v_prev");
     PRINT_MEM_STATS( "v_prev" );
 
-    /* -- xv_int is an intermediary of the A'v matrix 
+    /* -- xv_int is an intermediary of the A'v matrix
           product */
     xv_int = (double*)calloc(xvectim->nvals,sizeof(double));
 
@@ -328,7 +328,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
             xsar = VECTIM_PTR(xvectim,lout) ;
 
             v_new[lout] = scale*shift*v_prev_sum ;
-            
+
             for( lin=0; lin<xvectim->nvals; lin++ )
             {
                 v_new[lout] +=  scale*xv_int[lin]*xsar[lin];
@@ -349,7 +349,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         }
         v_new_norm = sqrt(v_new_sum_sq);
 
-        /* normalize the new vector, calculate the 
+        /* normalize the new vector, calculate the
            error between this vector and the previous,
            and get the sum */
         v_new_sum_sq = 0.0;
@@ -380,7 +380,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         if((power_it % 10) == 0)
             INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
                 power_it, v_err, v_prev_norm);
-    } 
+    }
 
     if ((v_err >= eps) && (power_it >= max_iter))
     {
@@ -393,7 +393,7 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
 
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
-    if( v_new != NULL ) 
+    if( v_new != NULL )
     {
         free(v_new);
         v_new = NULL;
@@ -401,8 +401,8 @@ double* calc_fecm_power(MRI_vectim *xvectim, double shift, double scale, double 
         /* update running memory statistics to reflect freeing the vectim */
         DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
     }
-   
-    if( xv_int != NULL ) 
+
+    if( xv_int != NULL )
     {
         free(xv_int);
         xv_int = NULL;
@@ -509,7 +509,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
 
         /* zero out the new vector */
         bzero(v_new, xvectim->nvec*sizeof(double));
-   
+
         /* reset the number of superthreshold values to 0 */
         nvals = 0;
 
@@ -553,7 +553,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         }
         v_new_norm = sqrt(v_new_sum_sq);
 
-        /* normalize the new vector, calculate the 
+        /* normalize the new vector, calculate the
            error between this vector and the previous,
            and get the sum */
         v_new_sum_sq = 0.0;
@@ -583,7 +583,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         if((power_it % 10) == 0)
             INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
                 power_it, v_err, v_prev_norm);
-    } 
+    }
 
     if ((v_err >= eps) && (power_it >= max_iter))
     {
@@ -596,7 +596,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
 
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
-    if( v_new != NULL ) 
+    if( v_new != NULL )
     {
         free(v_new);
         v_new = NULL;
@@ -604,7 +604,7 @@ double* calc_full_power_sparse(MRI_vectim *xvectim, double thresh,
         /* update running memory statistics to reflect freeing the vectim */
         DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
     }
- 
+
     /* free the weight matrix */
     if( sparse_array != NULL )
     {
@@ -716,7 +716,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
 
         /* zero out the new vector */
         bzero(v_new, xvectim->nvec*sizeof(double));
-   
+
         /* reset the number of superthreshold values to 0 */
         nvals = 0;
 
@@ -744,8 +744,8 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
             {
 
                 long thr_lout,thr_lin,ithr,nthr,vstep,vii,vndx ;
-                double car = 0.0; 
-                double max_val = -10.0; 
+                double car = 0.0;
+                double max_val = -10.0;
                 float *xsar = NULL;
                 float *ysar = NULL;
 
@@ -773,7 +773,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                         vii++;
                         if( vii%vstep == vstep/2 && MEM_STAT == 0)
                         {
-                            vstep_print(); 
+                            vstep_print();
                         }
                     }
 
@@ -800,7 +800,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                            reduce some of the competition for the critical section */
                         if( car >= thresh )
                         {
-                            /* use a critical section to make sure that the values 
+                            /* use a critical section to make sure that the values
                                do not get corrupted */
 #pragma omp critical(dataupdate)
                             {
@@ -819,13 +819,13 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                             }
 
                             /* incorporate the correlation in the weight_matrix, since
-                               each value is only calculated once, we don't need a 
+                               each value is only calculated once, we don't need a
                                critical sections */
                             vndx = ndx_vec[(xvectim->nvec-(thr_lout+1))] + thr_lin;
                             if(( vndx >= 0 ) && ( vndx < wsize ))
                             {
                                 if( binary == 1 )
-                                { 
+                                {
                                     weight_matrix[ vndx ]=scale*(1.0+shift);
                                 }
                                 else
@@ -838,7 +838,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                                 fprintf(stderr, "Index A (%ld >= %ld) out of bounds %ld %ld\n", vndx,
                                     wsize, thr_lout, thr_lin);
                             }
-                        
+
                         }
                     }
                 } /* for lout */
@@ -856,7 +856,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
             {
 
                 long thrb_lout,thrb_lin,ithr,nthr,vstep,vii,vndx ;
-                double car = 0.0; 
+                double car = 0.0;
                 float *xsar = NULL;
                 float *ysar = NULL;
 
@@ -897,7 +897,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                         /* get the correlation */
                         vndx = ndx_vec[(xvectim->nvec-(thrb_lout+1))] + thrb_lin;
                         if((vndx >= 0 ) && (vndx < wsize ))
-                        { 
+                        {
                             car = weight_matrix[vndx];
                         }
                         else
@@ -910,7 +910,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
                            reduce some of the competition for the critical section */
                         if( car != 0.0 )
                         {
-                            /* use a critical section to make sure that the values 
+                            /* use a critical section to make sure that the values
                                do not get corrupted */
 #pragma omp critical(dataupdate)
                             {
@@ -945,7 +945,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         }
         v_new_norm = sqrt(v_new_sum_sq);
 
-        /* normalize the new vector, calculate the 
+        /* normalize the new vector, calculate the
            error between this vector and the previous,
            and get the sum */
         v_new_sum_sq = 0.0;
@@ -975,7 +975,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         if ((power_it % 10) == 0)
             INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
                 power_it, v_err, v_prev_norm);
-    } 
+    }
 
     if ( nvals == 0 )
     {
@@ -999,7 +999,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
     printf( "finished with calculation! now freeing mem\n" );
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
-    if( v_new != NULL ) 
+    if( v_new != NULL )
     {
         free(v_new);
         v_new = NULL;
@@ -1007,7 +1007,7 @@ double* calc_full_power_max_mem(MRI_vectim *xvectim, double thresh, double shift
         /* update running memory statistics to reflect freeing the vectim */
         DEC_MEM_STATS(xvectim->nvec*sizeof(double), "v_new");
     }
- 
+
     /* free the weight matrix */
     if( weight_matrix != NULL )
     {
@@ -1097,7 +1097,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
 
         /* zero out the new vector */
         bzero(v_new, xvectim->nvec*sizeof(double));
-   
+
         /* reset the number of superthreshold values to 0 */
         nvals = 0;
 
@@ -1106,7 +1106,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
         {
 
             int lout,lin,ithr,nthr,vstep,vii ;
-            double car = 0.0; 
+            double car = 0.0;
             float *xsar = NULL;
             float *ysar = NULL;
 
@@ -1153,7 +1153,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
                     /* if above threshold then add in the value */
                     if( car >= thresh )
                     {
-                        /* use a critical section to make sure that the values 
+                        /* use a critical section to make sure that the values
                            do not get corrupted */
 #pragma omp critical(dataupdate)
                         {
@@ -1196,7 +1196,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
         }
         v_new_norm = sqrt(v_new_sum_sq);
 
-        /* normalize the new vector, calculate the 
+        /* normalize the new vector, calculate the
            error between this vector and the previous,
            and get the sum */
         v_new_sum_sq = 0.0;
@@ -1226,7 +1226,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
         if ((power_it % 10) == 0 )
             INFO_message ("Finished iter %d: Verr %3.3f, Vnorm %3.3f\n",
                 power_it, v_err, v_prev_norm);
-    } 
+    }
 
     if ( nvals == 0 )
     {
@@ -1244,7 +1244,7 @@ double* calc_full_power_min_mem(MRI_vectim *xvectim, double thresh, double shift
 
     /* the eigenvector that we are interested in should now be in v_prev,
        free all other power iteration temporary vectors */
-    if( v_new != NULL ) 
+    if( v_new != NULL )
     {
         free(v_new);
         v_new = NULL;
@@ -1359,7 +1359,7 @@ int main( int argc , char *argv[] )
     int nsubbriks = 2;
     int subbrik = 0;
     float * wodset;
- 
+
    /*----*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -1376,12 +1376,12 @@ int main( int argc , char *argv[] )
 "      1. Calculating the correlation between voxel time series for\n"
 "         every pair of voxels in the brain (as determined by masking)\n"
 "      2. Calculate the eigenvector corresponding to the largest\n"
-"         eigenvalue of the similarity matrix.\n\n" 
+"         eigenvalue of the similarity matrix.\n\n"
 "  Guaranteeing that this eigenvector is unique and all positive\n"
 "  requires that the similarity matrix is strictly positive. This\n"
 "  is enforced by either adding one to the correlations (Lohmann \n"
 "  et. al. 2010), or by adding one and dividing by two (Wink et al.\n"
-"  2012).\n\n" 
+"  2012).\n\n"
 "  Practically the power iteration algorithm described in Wink et\n"
 "  al. 2012) is used to optimize for computational time and memory\n"
 "  usage.\n\n"
@@ -1405,7 +1405,7 @@ int main( int argc , char *argv[] )
 "  -fecm       = uses a shortcut that substantially speeds up \n"
 "                computation, but is less flexibile in what can be\n"
 "                done the similarity matrix. i.e. does not allow \n"
-"                thresholding correlation coefficients. based on \n" 
+"                thresholding correlation coefficients. based on \n"
 "                fast eigenvector centrality mapping (Wink et. al\n"
 "                2012). Default when -thresh, or -sparsity\n"
 "                are NOT used.\n"
@@ -1490,7 +1490,7 @@ int main( int argc , char *argv[] )
       }
 
       if( strcmp(argv[nopt],"-full") == 0 ){
-         do_full = 1; 
+         do_full = 1;
          nopt++ ; continue ;
       }
 
@@ -1651,7 +1651,7 @@ int main( int argc , char *argv[] )
       DSET_unload(mset) ;
       DSET_delete(mset) ;
       mset = NULL ;
-   } 
+   }
    /* if automasking is requested, handle that now */
    else if( do_autoclip ){
       mask  = THD_automask( xset ) ;
@@ -1682,7 +1682,7 @@ int main( int argc , char *argv[] )
                     sizeof(MRI_vectim), "vectim");
     PRINT_MEM_STATS( "vectim" );
 
-   /*--- CC the vectim contains a mapping between voxel index and mask index, 
+   /*--- CC the vectim contains a mapping between voxel index and mask index,
          tap into that here to avoid duplicating memory usage, also create a
          mapping that goes the other way ---*/
 
@@ -1698,7 +1698,7 @@ int main( int argc , char *argv[] )
     }
 
     /* -- CC unloading the dataset to reduce memory usage ?? -- */
-    DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)), 
+    DEC_MEM_STATS((DSET_NVOX(xset) * DSET_NVALS(xset) * sizeof(double)),
         "input dset");
     DSET_unload(xset) ;
     PRINT_MEM_STATS("inset unload");
@@ -1708,14 +1708,14 @@ int main( int argc , char *argv[] )
     {
         INFO_message( "Detrending with polort = %d\n", polort );
         for( ii=0 ; ii < xvectim->nvec ; ii++ )
-        {  
+        {
             /* remove polynomial trend */
             DETREND_polort(polort,nvals,VECTIM_PTR(xvectim,ii)) ;
         }
     }
 
     /* -- CC normalize input data to zero mean and unit variance
-          this procedure does not change time series that 
+          this procedure does not change time series that
           have zero variance -- */
     THD_vectim_normalize(xvectim) ;  /* L2 norm = 1 */
 
@@ -1747,7 +1747,7 @@ int main( int argc , char *argv[] )
     {
         ERROR_EXIT_CC( "Eigen vector calculation failed!\n" );
     }
- 
+
     /*-- create output dataset --*/
     cset = EDIT_empty_copy( xset ) ;
 
@@ -1763,8 +1763,8 @@ int main( int argc , char *argv[] )
             ADN_func_type , ANAT_BUCK_TYPE ,
             ADN_datum_all , MRI_float     ,
             ADN_none ) ;
-    } 
-    else 
+    }
+    else
     {
         EDIT_dset_items( cset ,
             ADN_prefix    , prefix         ,

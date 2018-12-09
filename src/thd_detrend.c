@@ -13,7 +13,7 @@ int THD_is_zero( int npt , float *xx )  /* 20 May 2011 */
    int ii ;
 
    if( npt <= 0 || xx == NULL ) return 1 ;
-   
+
    for( ii=0 ; ii < npt ; ii++ ) if( xx[ii] != 0.0f ) return 0 ;
    return 1 ;
 }
@@ -25,7 +25,7 @@ int THD_is_constant( int npt , float *xx )  /* 20 May 2011 */
    int ii ; float val ;
 
    if( npt <= 1 || xx == NULL ) return 1 ;
-   
+
    val = xx[0] ;
    for( ii=1 ; ii < npt ; ii++ ) if( xx[ii] != val ) return 0 ;
    return 1 ;
@@ -600,7 +600,7 @@ ENTRY("THD_build_trigref") ;
 }
 
 /*----------------------------------------------------------------------------*/
- #undef  INMASK                                     /* ZSS: Changed from    */ 
+ #undef  INMASK                                     /* ZSS: Changed from    */
  #define INMASK(i) ((mask == NULL || mask[i]))      /*       mask != NULL   */
 /*----------------------------------------------------------------------------*/
 /* Fits each voxel time series to a linear model:
@@ -727,7 +727,7 @@ ENTRY("THD_extract_detrended_array") ;
      val = 1.0f / var[ii] ;
      for( tt=0 ; tt < nval ; tt++ ) far[tt] *= val ;
    }
-   
+
    /* ZSS: Need to free fitar */
    free(fitar); fitar=NULL;
    EXRETURN ;

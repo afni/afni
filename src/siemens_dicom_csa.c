@@ -37,7 +37,7 @@
  *   0029 1010                  : S8, 8 byte field type
  *   header:
  *      S4     hdr_id           : val == "SV10"
- *      uint8  unused1[4]       : 
+ *      uint8  unused1[4]       :
  *      uint32 n_tags           : number of tags (in [1,128], else fail)
  *      uint32 unused2          : val == 77
  *   each tag (same as for CSA1):

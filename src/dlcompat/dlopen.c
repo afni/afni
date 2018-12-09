@@ -7,7 +7,7 @@
  * Copyright (c) 1999 Apple Computer, Inc. All rights reserved.
  *
  * @APPLE_LICENSE_HEADER_START@
- * 
+ *
  * Portions Copyright (c) 1999 Apple Computer, Inc.  All Rights
  * Reserved.  This file contains Original Code and/or Modifications of
  * Original Code as defined in and that are subject to the Apple Public
@@ -15,7 +15,7 @@
  * except in compliance with the License.  Please obtain a copy of the
  * License at http://www.apple.com/publicsource and read it before using
  * this file.
- * 
+ *
  * The Original Code and all software distributed under the License are
  * distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY KIND, EITHER
  * EXPRESS OR IMPLIED, AND APPLE HEREBY DISCLAIMS ALL SUCH WARRANTIES,
@@ -23,7 +23,7 @@
  * FITNESS FOR A PARTICULAR PURPOSE OR NON- INFRINGEMENT.  Please see the
  * License for the specific language governing rights and limitations
  * under the License.
- * 
+ *
  * @APPLE_LICENSE_HEADER_END@
  */
 #include <stdio.h>
@@ -60,7 +60,7 @@
  */
 struct dlopen_handle {
     dev_t dev;		/* the path's device and inode number from stat(2) */
-    ino_t ino; 
+    ino_t ino;
     int dlopen_mode;	/* current dlopen mode for this handle */
     int dlopen_count;	/* number of times dlopen() called on this handle */
     NSModule module;	/* the NSModule returned by NSLinkModule() */
@@ -275,7 +275,7 @@ int mode)
 		p = p->next;
 	    }
 	}
-	
+
 	/*
 	 * We do not have a handle for this path if we were just trying to
 	 * look it up return NULL to indicate we don't have it.
@@ -375,7 +375,7 @@ int mode)
 	    init = NSAddressOfSymbol(NSSymbol);
 	    init();
 	}
-	
+
 	DEBUG_PRINT1("%p\n", p);
 	return(p);
 }

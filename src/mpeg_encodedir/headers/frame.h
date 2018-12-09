@@ -63,7 +63,7 @@ typedef struct mpegFrame {
     xelval rgb_maxval;      /* largest value of any pixel index */
     int rgb_format;         /* more info from pnm */
 
-    /*  
+    /*
      *  now, the YCrCb data.  All pixel information is stored in unsigned
      *  8-bit pieces.  We separate y, cr, and cb because cr and cb are
      *  subsampled by a factor of 2.
@@ -79,7 +79,7 @@ typedef struct mpegFrame {
     /* reference data */
     uint8 **ref_y, **ref_cr, **ref_cb;
 
-    /*  
+    /*
      *  these are the Blocks which will ultimately compose MacroBlocks.
      *  A Block is in a format that mp_fwddct() can crunch.
      */
@@ -93,7 +93,7 @@ typedef struct mpegFrame {
     boolean   halfComputed;        /* TRUE iff half-pixels already computed */
 
     struct mpegFrame *next;  /* points to the next B-frame to be encoded, if
-		       * stdin is used as the input. 
+		       * stdin is used as the input.
 		       */
 } MpegFrame;
 

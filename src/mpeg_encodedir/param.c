@@ -30,7 +30,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -394,7 +394,7 @@ int function;
 
   while ( fgets(input, 256, fpointer) != NULL ) {
     /* skip comments */
-    if ( input[0] == '#' ) {            
+    if ( input[0] == '#' ) {
       continue;
     }
 
@@ -429,7 +429,7 @@ int function;
       } else if ( strncmp(input, "BASE_FILE_FORMAT", 16) == 0 ) {
         charPtr = SkipSpacesTabs(&input[16]);
         SetFileFormat(charPtr);
-        if ( (strncmp(charPtr,"YUV",3) == 0) || 
+        if ( (strncmp(charPtr,"YUV",3) == 0) ||
             (strcmp(charPtr,"Y") == 0) ) {
           yuvUsed = TRUE;
         }
@@ -445,7 +445,7 @@ int function;
       } else if ( strncmp(input, "BUFFER_SIZE", 11) == 0 ) {
         charPtr = SkipSpacesTabs(&input[11]);
         setBufferSize(charPtr);
-        optionSeen[OPTION_BUFFER_SIZE] = TRUE;                  
+        optionSeen[OPTION_BUFFER_SIZE] = TRUE;
       }
       break;
 
@@ -678,7 +678,7 @@ int function;
         charPtr = SkipSpacesTabs(&input[3]);
         SetRemoteShell(charPtr);
       } else if ( strncmp(input, "RESIZE", 6) == 0 ) {
-        charPtr = SkipSpacesTabs(&input[6]);                    
+        charPtr = SkipSpacesTabs(&input[6]);
         sscanf(charPtr, "%dx%d", &outputWidth, &outputHeight);
         outputWidth &= ~(DCTSIZE * 2 - 1);
         outputHeight &= ~(DCTSIZE * 2 - 1);
@@ -1000,16 +1000,16 @@ char *endInput;
   while ( (fgets(input, 256, fpointer) != NULL) &&
 	 (strncmp(input, endInput, length) != 0) ) {
 
-    /* if input is coming in via standard input, keep on looping till the 
-     * endInput string is reached so that the program points to the right 
+    /* if input is coming in via standard input, keep on looping till the
+     * endInput string is reached so that the program points to the right
      * place on exit.
      */
     if ( stdinUsed ) {
       continue;
     }
-            
+
     /* ignore comments and newlines */
-    if ( (input[0] == '#') || (input[0] == '\n') ) { 
+    if ( (input[0] == '#') || (input[0] == '\n') ) {
       continue;
     }
 
@@ -1081,7 +1081,7 @@ char *endInput;
 	globPtr = input;
 	charPtr = left;
 	/* recopy left of whitespace */
-	while ( (*globPtr != '\0') && (*globPtr != '*') && 
+	while ( (*globPtr != '\0') && (*globPtr != '*') &&
 	        (*globPtr != ' ')  && (*globPtr != '\t')) {
 	  *charPtr = *globPtr;
 	  charPtr++;
@@ -1102,7 +1102,7 @@ char *endInput;
 	}
 	*charPtr = '\0';
       }
-      
+
       globPtr = SkipSpacesTabs(globPtr);
 
       if ( *globPtr != '[' ) {
@@ -1193,14 +1193,14 @@ char *endInput;
         inputFileEntries[numInputFileEntries]->glob = TRUE;
         full_path[0] = '\0';
         strcpy(full_path, currentPath);
-    
+
         if (! stdinUsed) {
           strcat(full_path, "/");
           strcat(full_path, input);
-          jmovie = fopen(input, "rb"); 
+          jmovie = fopen(input, "rb");
 
           if (jmovie == NULL) {
-            perror (input); 
+            perror (input);
             exit (1);
           }
 
@@ -1213,7 +1213,7 @@ char *endInput;
             exit(1);
           }
           fclose (jmovie);
-        }  
+        }
 
         strcpy(inputFileEntries[numInputFileEntries]->right,".jpg");
         inputFileEntries[numInputFileEntries]->numPadding = -1;
@@ -1269,7 +1269,7 @@ char *start;
  *
  * GetFrameRate
  *
- * take a character string with the input frame rate 
+ * take a character string with the input frame rate
  * and return the correct frame rate code for use in the Sequence header
  *
  * RETURNS: frame rate code as per MPEG-I spec
@@ -1358,23 +1358,23 @@ void
 JM2JPEG()
 {
   char full_path[MAXPATHLEN + 256];
-  char inter_file[MAXPATHLEN +256]; 
+  char inter_file[MAXPATHLEN +256];
   int ci;
 
   for(ci = 0; ci < numInputFileEntries; ci++) {
     inter_file[0] = '\0';
     full_path[0] = '\0';
     strcpy(full_path, currentPath);
-    
+
     if (! stdinUsed) {
       strcat(full_path, "/");
       strcat(full_path, inputFileEntries[ci]->left);
       strcpy(inter_file,full_path);
-    
+
       if (! realQuiet) {
         fprintf(stdout, "Extracting JPEG's in the JMOVIE from %s\n",full_path);
       }
-    
+
       JMovie2JPEG(full_path,
                   inter_file,
                   inputFileEntries[ci]->startID, inputFileEntries[ci]->endID);
@@ -1382,6 +1382,6 @@ JM2JPEG()
       fprintf (stderr, "ERROR: JMovie format not supported with stdin yet.\n");
       exit(1);
     }
-      
+
   }
 }

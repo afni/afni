@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 #undef DEBUG
@@ -16,10 +16,10 @@ int main( int argc , char *argv[] )
    char *old_name , *new_name ;
    char old_prefix[THD_MAX_PREFIX] , new_prefix[THD_MAX_PREFIX] ;
    int ii , old_len , new_len ;
-   
+
    mainENTRY("3drename") ; machdep() ; AFNI_logger("3drename",argc,argv) ;
    PRINT_VERSION("3drename") ;
-   
+
    if( argc != 3 || strcmp(argv[1],"-help") == 0 ){
       printf(
        "Usage 1: 3drename old_prefix new_prefix\n"
@@ -47,11 +47,11 @@ int main( int argc , char *argv[] )
    new_name = argv[nopt++] ; new_len = strlen(new_name) ;
 
    if( old_len < 1 || old_len > THD_MAX_PREFIX || !THD_filename_pure(old_name) ){
-      fprintf(stderr,"** Illegal old dataset name!(no paths allowed)\n") ; 
+      fprintf(stderr,"** Illegal old dataset name!(no paths allowed)\n") ;
       exit(1) ;
    }
    if( new_len < 1 || new_len > THD_MAX_PREFIX || !THD_filename_pure(new_name) ){
-      fprintf(stderr,"** Illegal new dataset name!(no paths allowed)\n") ; 
+      fprintf(stderr,"** Illegal new dataset name!(no paths allowed)\n") ;
       exit(1) ;
    }
 

@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
   Routine to initilize and calculate the diffusion model, fitting
   for So and D, where S is acquired as a function of b:
@@ -19,12 +19,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -40,12 +40,12 @@ DEFINE_MODEL_PROTOTYPE
 MODEL_interface * initialize_model ()
 {
   MODEL_interface * mi = NULL;
- 
+
   /*----- allocate memory space for model interface -----*/
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the diffusion model -----*/   
+  /*----- define interface for the diffusion model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "ADC");
@@ -82,22 +82,22 @@ MODEL_interface * initialize_model ()
 
   Definition of model parameters:
 
-     gs[0] = So  
+     gs[0] = So
      gs[1] = ADC: Apparent diffusion coefficient
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
   float t;                          /* time = in this case actually b factor */
-  float fval;                       /* time series value at time t */  
+  float fval;                       /* time series value at time t */
 
 
   for (it = 0;  it < ts_length;  it++)
@@ -106,7 +106,7 @@ void signal_model
       fval = gs[0] * exp(-t*gs[1]);
       ts_array[it] = fval;
     }
-  
+
 }
 
 

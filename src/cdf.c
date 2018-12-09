@@ -37,7 +37,7 @@ void Syntax(void)
          printf("       %4s  %-11.11s  %s\n",
                 FUNC_prefixstr[ii] , FUNC_typestr[ii]+6 , FUNC_label_stat_aux[ii] ) ;
    }
- 
+
    printf("\nEXAMPLES:\n"
           " Goal:    find p-value for t-statistic of 5.5 with 30 degrees of freedom\n"
           " COMMAND: cdf -t2p fitt 5.5 30\n"

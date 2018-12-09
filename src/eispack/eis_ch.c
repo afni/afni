@@ -6,21 +6,21 @@
 #include "f2c.h"
 
 /* Subroutine */ int ch_(integer *nm, integer *n, doublereal *ar, doublereal *
-	ai, doublereal *w, integer *matz, doublereal *zr, doublereal *zi, 
+	ai, doublereal *w, integer *matz, doublereal *zr, doublereal *zi,
 	doublereal *fv1, doublereal *fv2, doublereal *fm1, integer *ierr)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
 	    zi_dim1, zi_offset, i__1, i__2;
 
     /* Local variables */
     integer i__, j;
-    extern /* Subroutine */ int htridi_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *), htribk_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int htridi_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, doublereal *, doublereal *,
+	    doublereal *), htribk_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, integer *, doublereal *, doublereal *)
-	    , tqlrat_(integer *, doublereal *, doublereal *, integer *), 
-	    tql2_(integer *, integer *, doublereal *, doublereal *, 
+	    , tqlrat_(integer *, doublereal *, doublereal *, integer *),
+	    tql2_(integer *, integer *, doublereal *, doublereal *,
 	    doublereal *, integer *);
 
 
@@ -59,12 +59,12 @@
 /*        FV1, FV2, AND  FM1  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

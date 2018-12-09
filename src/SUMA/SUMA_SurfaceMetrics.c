@@ -12,14 +12,14 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
       char * s = NULL, *sio=NULL;
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
-      printf ( 
+      printf (
          "\n"
 "Usage: SurfaceMetrics <-Metric1> [[-Metric2] ...] \n"
 "                  <-SURF_1> \n"
 "                  [-tlrc] [<-prefix prefix>]\n"
 "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      printf (
 "Outputs information about a surface's mesh\n"
 "\n"
 "   -Metric1: Replace -Metric1 with the following:\n"
@@ -27,7 +27,7 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "            Volume unit is the cube of your surface's\n"
 "            coordinates unit, obviously.\n"
 "            Volume's sign depends on the orientation\n"
-"            of the surface's mesh.\n" 
+"            of the surface's mesh.\n"
 "            Make sure your surface is a closed one\n"
 "            and that winding is consistent.\n"
 "            Use SurfQual to check the surface.\n"
@@ -124,7 +124,7 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "         Col. 0: Node Index\n"
 "         Col. 1: X\n"
 "         Col. 2: Y\n"
-"         Col. 3: Z\n"     
+"         Col. 3: Z\n"
 "      -sph_coords: Output spherical coords of each node.\n"
 "      -sph_coords_center x y z: Shift each node by  x y z\n"
 "                                before calculating spherical\n"
@@ -195,15 +195,15 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "%s"
 "\n"
 "%s"
-"\n", 
-   (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." , 
+"\n",
+   (detail > 1) ? sio : "Use -help for I/O and miscellaneous options." ,
    (detail > 1) ? s : "" );
    }
       if (s) SUMA_free(s); s = NULL;
       if (sio) SUMA_free(sio); sio = NULL;
       if (detail) {
          s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
-         printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");   
+         printf ( "       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov \n");
       }
    return;
 }
@@ -212,7 +212,7 @@ void usage_SUMA_SurfaceMetrics (SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"Main_SUMA_SurfaceMetrics"};
-   char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL, 
+   char  *OutName=NULL, *OutPrefix = NULL, *if_name = NULL,
          *if_name2 = NULL, *sv_name = NULL, *vp_name = NULL,
          *tlrc_name = NULL;
    float *Cx = NULL, sph_center[3], NormScale;
@@ -223,9 +223,9 @@ int main (int argc,char *argv[])
    char *xmat_name=NULL;
    FILE *fout=NULL;
    SUMA_SO_File_Type iType = SUMA_FT_NOT_SPECIFIED;
-   SUMA_SurfaceObject *SO = NULL;   
+   SUMA_SurfaceObject *SO = NULL;
    SUMA_SFname *SF_name = NULL;
-   void *SO_name = NULL;   
+   void *SO_name = NULL;
    SUMA_SurfSpecFile *pSpec=NULL;
    THD_warp *warp=NULL ;
    THD_3dim_dataset *aset=NULL;
@@ -233,26 +233,26 @@ int main (int argc,char *argv[])
    char *spec_file, *histnote;
    char *closest_to_xyz = NULL;
    int insurf_method = 0, ind = 0, quiet=0, randseed;
-   SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv, 
-                  Do_area, Do_edges, Do_vol, Do_sph, NewCent, 
+   SUMA_Boolean   brk, Do_tlrc, Do_conv, Do_curv,
+                  Do_area, Do_edges, Do_vol, Do_sph, NewCent,
                   Do_cord, Do_TriNorm, Do_TriSine, Do_TriCosine,
                   Do_TriCoSine, Do_TriAngles, Do_PolDec,
                   Do_NodeAngles, Do_cen, Do_xmat, Do_inv,
-                  Do_NodeNorm, Do_en, Do_in, Do_et; 
-   SUMA_Boolean   LocalHead = NOPE;  
+                  Do_NodeNorm, Do_en, Do_in, Do_et;
+   SUMA_Boolean   LocalHead = NOPE;
    SUMA_DSET *ndset=NULL;
    char *oname=NULL;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
-   
+
 	SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-   
+
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
+
 	/* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
-   
+
    MetricList = SUMA_StringAppend (NULL, NULL);
    kar = 1;
 	brk = NOPE;
@@ -286,7 +286,7 @@ int main (int argc,char *argv[])
    NormScale = 5.0;
    NewCent = NOPE;
    OutPrefix = NULL;
-   for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }   
+   for (i=0; i<SURFACEMETRICS_MAX_SURF; ++i) { surf_names[i] = NULL; }
    spec_file = NULL;
 
 	while (kar < argc) { /* loop accross command ine options */
@@ -295,13 +295,13 @@ int main (int argc,char *argv[])
 			 usage_SUMA_SurfaceMetrics(ps, strlen(argv[kar]) > 3 ? 2:1);
           exit (0);
 		}
-		
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-sph_coords_center") == 0)) {
          kar ++;
 			if (kar+2 >= argc)  {
-		  		fprintf (SUMA_STDERR, 
+		  		fprintf (SUMA_STDERR,
                      "need 3 arguments after -sph_coords_center \n");
 				exit (1);
 			}
@@ -312,14 +312,14 @@ int main (int argc,char *argv[])
          Do_sph = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-seed") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (SUMA_STDERR, "need 1 integer after -seed\n");
 				exit (1);
 			}
-			randseed = atoi(argv[kar]); 
+			randseed = atoi(argv[kar]);
 			brk = YUP;
 		}
       if (!brk && ( (strcmp(argv[kar], "-xmat_1d") == 0) ||
@@ -329,7 +329,7 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 1 argument after -xmat_1D\n");
 				exit (1);
 			}
-			xmat_name = argv[kar]; 
+			xmat_name = argv[kar];
          Do_xmat = YUP;
          Do_inv = 0;
 			brk = YUP;
@@ -341,7 +341,7 @@ int main (int argc,char *argv[])
 		  		fprintf (SUMA_STDERR, "need 1 argument after -ixmat_1D\n");
 				exit (1);
 			}
-			xmat_name = argv[kar]; 
+			xmat_name = argv[kar];
          Do_xmat = YUP;
          Do_inv = 1;
 			brk = YUP;
@@ -350,7 +350,7 @@ int main (int argc,char *argv[])
          Do_PolDec = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-xcenter") == 0)) {
          kar ++;
 			if (kar+2>= argc)  {
@@ -359,7 +359,7 @@ int main (int argc,char *argv[])
 			}
 			xcen[0] = atof(argv[kar]); ++kar;
 			xcen[1] = atof(argv[kar]); ++kar;
-			xcen[2] = atof(argv[kar]); 
+			xcen[2] = atof(argv[kar]);
          Do_cen = YUP;
 			brk = YUP;
 		}
@@ -368,7 +368,7 @@ int main (int argc,char *argv[])
          quiet = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-tri_sines") == 0)) {
          Do_TriSine = YUP;
 			brk = YUP;
@@ -389,17 +389,17 @@ int main (int argc,char *argv[])
          Do_TriCoSine = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-sph_coords") == 0)) {
          Do_sph = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-coords") == 0)) {
          Do_cord = YUP;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -409,18 +409,18 @@ int main (int argc,char *argv[])
 			OutPrefix = SUMA_copy_string(argv[kar]);
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-sv") == 0)) {
          if (0 && iType == SUMA_FT_NOT_SPECIFIED) {
                               /* iType input no longer allowed */
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                      " -sv option must be preceeded by -i_TYPE option.");
             exit(1);
          }
          kar ++;
 			if (iType == SUMA_SUREFIT) {
             if (kar+1 >= argc)  {
-		  		   fprintf (SUMA_STDERR, 
+		  		   fprintf (SUMA_STDERR,
                   "need 2 argument after -sv (SurfaceVolume and VolumeParent)");
 				   exit (1);
 			   }
@@ -466,58 +466,58 @@ int main (int argc,char *argv[])
          closest_to_xyz = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-conv") == 0)) {
          Do_conv = YUP;
-         MetricList = SUMA_StringAppend (MetricList, "Convexity "); 
+         MetricList = SUMA_StringAppend (MetricList, "Convexity ");
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-area") == 0)) {
          Do_area = YUP;
-         MetricList = SUMA_StringAppend (MetricList, "PolyArea "); 
+         MetricList = SUMA_StringAppend (MetricList, "PolyArea ");
          brk = YUP;
       }
 
       if (!brk && (strcmp(argv[kar], "-curv") == 0)) {
          Do_curv = YUP;
-         MetricList = SUMA_StringAppend (MetricList, "Curvature "); 
+         MetricList = SUMA_StringAppend (MetricList, "Curvature ");
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-edges") == 0)) {
          Do_edges = YUP;
-         MetricList = SUMA_StringAppend (MetricList, "EdgeList "); 
+         MetricList = SUMA_StringAppend (MetricList, "EdgeList ");
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-vol") == 0)) {
          Do_vol = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-boundary_nodes") == 0)) {
          Do_en = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-boundary_triangles") == 0)) {
          Do_et = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-internal_nodes") == 0)) {
          Do_in = YUP;
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			fprintf (SUMA_STDERR,
-                  "Error %s: Option %s not understood. Try -help for usage\n", 
+                  "Error %s: Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
@@ -530,19 +530,19 @@ int main (int argc,char *argv[])
     }
 
    /* clean MetricList */
-   MetricList = SUMA_StringAppend (MetricList, NULL); 
-   
+   MetricList = SUMA_StringAppend (MetricList, NULL);
+
    /* sanity checks */
-   if (!strlen(MetricList->s) && 
-      !Do_vol && !Do_sph && !Do_cord && 
-      !Do_TriNorm && !Do_NodeNorm && 
+   if (!strlen(MetricList->s) &&
+      !Do_vol && !Do_sph && !Do_cord &&
+      !Do_TriNorm && !Do_NodeNorm &&
       !Do_en && !Do_et && !Do_in && !closest_to_xyz &&
-      !Do_TriSine && !Do_TriCosine && !Do_TriCoSine && 
+      !Do_TriSine && !Do_TriCosine && !Do_TriCoSine &&
       !Do_TriAngles && !Do_NodeAngles) {
       SUMA_S_Err("No Metrics specified.\nNothing to do.\n");
       exit(1);
    }
-   
+
    if (Do_tlrc && !ps->sv[0]) {
       fprintf (SUMA_STDERR,
                "Error %s: -tlrc must be used with -sv option.\n", FuncName);
@@ -551,17 +551,17 @@ int main (int argc,char *argv[])
 
    if ((Do_xmat || Do_cen) && (Do_tlrc)) {
       fprintf (SUMA_STDERR,
-               "Error %s: You can't do -tlrc or with -xmat_1D and -xcenter.\n", 
+               "Error %s: You can't do -tlrc or with -xmat_1D and -xcenter.\n",
                FuncName);
       exit(1);
    }
-   
+
    if ((!Do_xmat && Do_cen)) {
       fprintf (SUMA_STDERR,
                "Error %s: You can't use -xcenter without -xmat_1D.\n", FuncName);
       exit(1);
    }
-   
+
    pSpec = SUMA_IO_args_2_spec(ps, &N_Spec);
    if (N_Spec == 0) {
       SUMA_S_Err("No surfaces found.");
@@ -573,7 +573,7 @@ int main (int argc,char *argv[])
                   "for specifying surfaces.");
       exit(1);
    }
-   
+
    if (Do_xmat) {
       MRI_IMAGE *im = NULL;
       double *far=NULL;
@@ -595,7 +595,7 @@ int main (int argc,char *argv[])
          nrow = im->nx;
          ncol = im->ny;
          if (nrow == 1) {
-            if (ncol != 12) { 
+            if (ncol != 12) {
                SUMA_SL_Err("Mat file must have\n"
                            "one row of 12 columns.");
                mri_free(im); im = NULL;   /* done with that baby */
@@ -608,9 +608,9 @@ int main (int argc,char *argv[])
                xform[i/4][2] = far[i]; ++i;
                xform[i/4][3] = far[i]; ++i;
             }
-            xform[3][0] = 0.0;  
-            xform[3][1] = 0.0;  
-            xform[3][2] = 0.0;  
+            xform[3][0] = 0.0;
+            xform[3][1] = 0.0;
+            xform[3][2] = 0.0;
             xform[3][3] = 1.0;
          } else {
             if (ncol < 4 ) {
@@ -639,27 +639,27 @@ int main (int argc,char *argv[])
                xform[i][2] = far[i+2*nrow];
                xform[i][3] = far[i+3*nrow];
             }
-            xform[3][0] = 0.0;  
-            xform[3][1] = 0.0;  
-            xform[3][2] = 0.0;  
+            xform[3][0] = 0.0;
+            xform[3][1] = 0.0;
+            xform[3][2] = 0.0;
             xform[3][3] = 1.0;
-         }  
+         }
       }
       if (1|| LocalHead) {
          fprintf(SUMA_STDERR,"\n++ SurfaceMetrics xform:\n");
          for (i=0; i < 4; ++i) {
             fprintf(SUMA_STDERR," %+.5f\t%+.5f\t%+.5f\t%+.5f\n",
-                   xform[i][0], xform[i][1], 
-                   xform[i][2], xform[i][3]);  
+                   xform[i][0], xform[i][1],
+                   xform[i][2], xform[i][3]);
          }
          fprintf(SUMA_STDERR,"\n");
       }
-      
+
       mri_free(im); im = NULL;
-      
+
       if (Do_inv) {
          mat44 A, A0;
-   
+
          LOAD_MAT44( A0, \
                   xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
                   xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
@@ -669,9 +669,9 @@ int main (int argc,char *argv[])
                   xform[0][0], xform[0][1], xform[0][2], xform[0][3],    \
                   xform[1][0], xform[1][1], xform[1][2], xform[1][3],    \
                   xform[2][0], xform[2][1], xform[2][2], xform[2][3]   );
-      }            
+      }
 
-      
+
       if (Do_PolDec) {
          #ifdef USE_DECOMPOSE_SHOEMAKE
             /* a little something to do a polar decomposition on M into M = Q*S*/
@@ -683,21 +683,21 @@ int main (int argc,char *argv[])
                det = polar_decomp(M, q,s);
                fprintf(fout,"#[M][D]: (D is the shift)\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
-                                 M[i][0], M[i][1], M[i][2], M[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
+                                 M[i][0], M[i][1], M[i][2], M[i][3]);
                fprintf(fout,"#Q:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
-                                 q[i][0], q[i][1], q[i][2], q[i][3]); 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
+                                 q[i][0], q[i][1], q[i][2], q[i][3]);
                fprintf(fout,"#S:\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(fout,  "#%.5f   %.5f  %.5f  %.5f\n",
                                  s[i][0], s[i][1], s[i][2], s[i][3]);
                fprintf(fout,"#det: %f\n", det);
                fprintf(fout,  "#[Q][D]: A close xform to [M][D], "
                               "without scaling.\n#M = Q*S\n");
                for (i=0;i<3; ++i)
-                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(fout,  "%.5f   %.5f  %.5f  %.5f\n",
                                  q[i][0], q[i][1], q[i][2], M[i][3]);
                fclose(fout); SUMA_free(stmp); stmp = NULL;
             }
@@ -705,50 +705,50 @@ int main (int argc,char *argv[])
             if (!quiet) fprintf(SUMA_STDERR,"Replacing matrix:\n");
             for (i=0;i<3 && !quiet; ++i)
                   fprintf( SUMA_STDERR,
-                           " %.5f   %.5f  %.5f  %.5f\n", 
-                           M[i][0], M[i][1], M[i][2], M[i][3]); 
+                           " %.5f   %.5f  %.5f  %.5f\n",
+                           M[i][0], M[i][1], M[i][2], M[i][3]);
             if (!quiet) fprintf(SUMA_STDERR,"     with matrix:\n");
             for (i=0;i<3 && !quiet; ++i)
-                  fprintf(SUMA_STDOUT, 
-                           " %.5f   %.5f  %.5f  %.5f\n", 
+                  fprintf(SUMA_STDOUT,
+                           " %.5f   %.5f  %.5f  %.5f\n",
                            q[i][0], q[i][1], q[i][2], M[i][3]);
-            for (i=0;i<3; ++i) { 
-               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2]; 
+            for (i=0;i<3; ++i) {
+               M[i][0] = q[i][0]; M[i][1] = q[i][1]; M[i][2] = q[i][2];
             }
-            
+
          #else
-            {/* use the NIFTI polar decomposition function 
+            {/* use the NIFTI polar decomposition function
                (same results as above)*/
                mat33 Q, A;
-               for (i=0;i<3;++i) { 
-                  A.m[i][0] = xform[i][0]; 
-                  A.m[i][1] = xform[i][1]; 
-                  A.m[i][2] = xform[i][2]; 
+               for (i=0;i<3;++i) {
+                  A.m[i][0] = xform[i][0];
+                  A.m[i][1] = xform[i][1];
+                  A.m[i][2] = xform[i][2];
                }
                Q = nifti_mat33_polar( A );
                /* replace user's xform with orthogonal one: */
                if (!quiet) fprintf(SUMA_STDERR,"Replacing matrix:\n");
                for (i=0;i<3 && !quiet; ++i)
                      fprintf( SUMA_STDERR,
-                              " %.5f   %.5f  %.5f  %.5f\n", 
-                              xform[i][0], xform[i][1], 
-                              xform[i][2], xform[i][3]); 
+                              " %.5f   %.5f  %.5f  %.5f\n",
+                              xform[i][0], xform[i][1],
+                              xform[i][2], xform[i][3]);
                if (!quiet) fprintf(SUMA_STDERR,"     with matrix:\n");
                for (i=0;i<3 && !quiet; ++i)
                      fprintf( SUMA_STDERR,
-                              " %.5f   %.5f  %.5f  %.5f\n", 
+                              " %.5f   %.5f  %.5f  %.5f\n",
                               Q.m[i][0], Q.m[i][1], Q.m[i][2], xform[i][3]);
-               for (i=0;i<3; ++i) { 
-                  xform[i][0] = Q.m[i][0]; 
-                  xform[i][1] = Q.m[i][1]; 
-                  xform[i][2] = Q.m[i][2]; 
+               for (i=0;i<3; ++i) {
+                  xform[i][0] = Q.m[i][0];
+                  xform[i][1] = Q.m[i][1];
+                  xform[i][2] = Q.m[i][2];
                }
-                
+
             }
-         #endif 
+         #endif
       }
    }
-   
+
    SUMA_LH("Loading surface...");
    SO = SUMA_Load_Spec_Surf(pSpec, 0, ps->sv[0], 1);
 
@@ -757,39 +757,39 @@ int main (int argc,char *argv[])
       if (!quiet) {
          for (i=0; i<3 ; ++i) {
             fprintf (SUMA_STDERR,
-                     "M[%d][:] = %f %f %f %f\n", 
+                     "M[%d][:] = %f %f %f %f\n",
                      i, xform[i][0], xform[i][1], xform[i][2], xform[i][3]);
          }
          fprintf (SUMA_STDERR,"Cen[:] %f %f %f\n", xcen[0], xcen[1], xcen[2]);
       }
       if (Do_cen) {
          if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
-                                       xform, 0, xcen)) { 
-            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+                                       xform, 0, xcen)) {
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1);
          }
       } else {
          if (!SUMA_Apply_Coord_xform(  SO->NodeList, SO->N_Node, SO->NodeDim,
-                                       xform, 0, NULL)) { 
-            SUMA_SL_Err("Failed to xform coordinates"); exit(1); 
+                                       xform, 0, NULL)) {
+            SUMA_SL_Err("Failed to xform coordinates"); exit(1);
          }
       }
       /* recalculate normals */
       SUMA_RECOMPUTE_NORMALS(SO);
    }
-   
+
    if (Do_tlrc) {
       if (!quiet) fprintf (SUMA_STDERR,"Performing talairach transform...\n");
 
       /* form the tlrc version of the surface volume */
       tlrc_name = (char *) SUMA_calloc (strlen(SO->VolPar->dirname)+
-                                        strlen(SO->VolPar->prefix)+60, 
+                                        strlen(SO->VolPar->prefix)+60,
                                         sizeof(char));
       sprintf (tlrc_name, "%s%s+tlrc.HEAD", SO->VolPar->dirname, SO->VolPar->prefix);
       if (!SUMA_filexists(tlrc_name)) {
          fprintf (SUMA_STDERR,"Error %s: %s not found.\n", FuncName, tlrc_name);
          exit(1);
       }
-      
+
       /* read the tlrc header */
       aset = THD_open_dataset(tlrc_name) ;
       if( !ISVALID_DSET(aset) ){
@@ -800,24 +800,24 @@ int main (int argc,char *argv[])
          fprintf (SUMA_STDERR,"Error %s: tlrc_name does not contain a talairach transform.\n", FuncName);
          exit(1);
       }
-      
+
       warp = aset->warp ;
-      
+
       /* now warp the coordinates, one node at a time */
       if (!SUMA_AFNI_forward_warp_xyz(warp, SO->NodeList, SO->N_Node)) {
          fprintf (SUMA_STDERR,"Error %s: Failed in SUMA_AFNI_forward_warp_xyz.\n", FuncName);
          exit(1);
       }
 
-      
-      
+
+
    }
-   
+
    /* check on normals */
    if ((Do_TriNorm || Do_NodeNorm) && (!SO->NodeNormList || !SO->FaceNormList)) {
       SUMA_RECOMPUTE_NORMALS(SO);
    }
-   
+
    /* create the surface label*/
    SO->Label = SUMA_SurfaceFileName (SO, NOPE);
    if (!SO->Label) {
@@ -825,7 +825,7 @@ int main (int argc,char *argv[])
    }
 
    if (LocalHead) SUMA_Print_Surface_Object (SO, stderr);
-   
+
    /* Now do the deed */
    SUMA_LH ("%s",MetricList->s);
    if (strlen(MetricList->s)) {
@@ -836,15 +836,15 @@ int main (int argc,char *argv[])
    }
 
    SUMA_LH ("Done with Metrics");
-   
+
    /* output time */
    if (!OutPrefix) {
       OutPrefix = SUMA_copy_string(SO->Label);
    }
-   
+
    OutName = (char*) SUMA_malloc((strlen(OutPrefix) + 30) * sizeof(char));
    histnote = SUMA_HistString (NULL, argc, argv, NULL);
-   
+
    if (Do_sph) {
       double *sph=NULL;
       sprintf(OutName, "%s.sphcoord.1D.dset", OutPrefix);
@@ -866,7 +866,7 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Spherical coords, \n");
       fprintf (fout,
                "#  cartesian coords shifted by [%f %f %f] prior to xform\n",
@@ -877,17 +877,17 @@ int main (int argc,char *argv[])
       fprintf (fout,"#p  = phi(elevation)\n");
       fprintf (fout,"#nI\tr\tt\tp\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i < SO->N_Node; ++i) {
             fprintf (fout,"%d\t%f\t%f\t%f\n",
                   i, sph[3*i], sph[3*i+1],sph[3*i+2]);
       }
-      
+
       fclose(fout); fout = NULL;
-      
+
       if (sph) SUMA_free(sph); sph = NULL;
-   }  
-   
+   }
+
    if (Do_NodeNorm) {
       float norm[3];
       sprintf(OutName, "%s.NodeNormSeg.1D", OutPrefix);
@@ -901,7 +901,7 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Node normals.\n");
       fprintf (fout,"#  Segments from node along the direction of the normal "
                     "(of magnitude %f)\n", NormScale);
@@ -909,21 +909,21 @@ int main (int argc,char *argv[])
       fprintf (fout,"#  2nd three columns are the coordinate of a second "
                     "point along the normal\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_Node; ++i) {
-         norm[0] = SO->NodeNormList[3*i]; 
-         norm[1] = SO->NodeNormList[3*i+1]; 
+         norm[0] = SO->NodeNormList[3*i];
+         norm[1] = SO->NodeNormList[3*i+1];
          norm[2] = SO->NodeNormList[3*i+2];
          /* normal is expected to be normalized...*/
          norm[0] *= NormScale; norm[1] *= NormScale; norm[2] *= NormScale;
-         fprintf (fout,"%f %f %f \t%f %f %f\n", 
-            SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2], 
-            SO->NodeList[3*i]+norm[0], SO->NodeList[3*i+1]+norm[1], 
-            SO->NodeList[3*i+2]+norm[2]);            
+         fprintf (fout,"%f %f %f \t%f %f %f\n",
+            SO->NodeList[3*i], SO->NodeList[3*i+1], SO->NodeList[3*i+2],
+            SO->NodeList[3*i]+norm[0], SO->NodeList[3*i+1]+norm[1],
+            SO->NodeList[3*i+2]+norm[2]);
       }
-      
+
       fclose(fout); fout = NULL;
-      
+
       /* Also output a DO file*/
       sprintf(OutName, "%s.NodeNorm.1D.do", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
@@ -938,13 +938,13 @@ int main (int argc,char *argv[])
       fprintf (fout,"#node-based_vectors\n");
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout, "%d %f %f %f \n",
-                  i, SO->NodeNormList[3*i], 
-                     SO->NodeNormList[3*i+1], 
+                  i, SO->NodeNormList[3*i],
+                     SO->NodeNormList[3*i+1],
                      SO->NodeNormList[3*i+2]);
       }
       fclose(fout); fout = NULL;
    }
-   
+
    if (Do_TriNorm) {
       float tc[3], norm[3];
       int n1, n2, n3;
@@ -963,7 +963,7 @@ int main (int argc,char *argv[])
                     "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Triangle normals.\n");
       fprintf (fout,"#  Segments from centroid of triangle along the "
                     "direction of the normal (of magnitude %f)\n", NormScale);
@@ -971,24 +971,24 @@ int main (int argc,char *argv[])
       fprintf (fout,"#  2nd three columns are the coordinate of a second "
                     "point along the normal\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          /* coordinate of centroid */
          tc[0] = (SO->NodeList[3*n1]   + SO->NodeList[3*n2]   + SO->NodeList[3*n3]  )/3; /* centroid of triangle */
-         tc[1] = (SO->NodeList[3*n1+1] + SO->NodeList[3*n2+1] + SO->NodeList[3*n3+1])/3; 
+         tc[1] = (SO->NodeList[3*n1+1] + SO->NodeList[3*n2+1] + SO->NodeList[3*n3+1])/3;
          tc[2] = (SO->NodeList[3*n1+2] + SO->NodeList[3*n2+2] + SO->NodeList[3*n3+2])/3;
          norm[0] = SO->FaceNormList[3*i]; norm[1] = SO->FaceNormList[3*i+1]; norm[2] = SO->FaceNormList[3*i+2];
          /* normal is expected to be normalized...*/
          norm[0] *= NormScale; norm[1] *= NormScale; norm[2] *= NormScale;
-         fprintf (fout,"%f %f %f \t%f %f %f\n", tc[0], tc[1], tc[2], tc[0]+norm[0], tc[1]+norm[1], tc[2]+norm[2]);            
+         fprintf (fout,"%f %f %f \t%f %f %f\n", tc[0], tc[1], tc[2], tc[0]+norm[0], tc[1]+norm[1], tc[2]+norm[2]);
       }
-      
+
       fclose(fout); fout = NULL;
    }
-   
+
    if (Do_TriAngles) {
       int n1, n2, n3;
       float *p1, *p2, *p3;
@@ -1009,17 +1009,17 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Triangle Angles in radians(unsigned).\n");
       fprintf (fout,"#Col. 0: Triangle index.\n");
       fprintf (fout,"#Col. 1: angle at node 1\n");
       fprintf (fout,"#Col. 2: angle at node 2\n");
       fprintf (fout,"#Col. 3: angle at node 3\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
@@ -1054,7 +1054,7 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Angles at nodes in radians(unsigned).\n");
       fprintf (fout,"#Col. 0: Node index.\n");
       fprintf (fout,"#Col. 1: minimum angle at node \n");
@@ -1070,8 +1070,8 @@ int main (int argc,char *argv[])
          exit(1);
       }
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
@@ -1140,17 +1140,17 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Triangle Sines.\n");
       fprintf (fout,"#Col. 0: Triangle index.\n");
       fprintf (fout,"#Col. 1: sin(angle) at node 1\n");
       fprintf (fout,"#Col. 2: sin(angle) at node 2\n");
       fprintf (fout,"#Col. 3: sin(angle) at node 3\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
@@ -1183,17 +1183,17 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Triangle Cosines.\n");
       fprintf (fout,"#Col. 0: Triangle index.\n");
       fprintf (fout,"#Col. 1: cos(angle) at node 1\n");
       fprintf (fout,"#Col. 2: cos(angle) at node 2\n");
       fprintf (fout,"#Col. 3: cos(angle) at node 3\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
@@ -1226,7 +1226,7 @@ int main (int argc,char *argv[])
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Triangle Cosines and Sines.\n");
       fprintf (fout,"#Col. 0: Triangle index.\n");
       fprintf (fout,"#Col. 1: cos(angle) at node 1\n");
@@ -1236,10 +1236,10 @@ int main (int argc,char *argv[])
       fprintf (fout,"#Col. 5: sin(angle) at node 2\n");
       fprintf (fout,"#Col. 6: sin(angle) at node 3\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i<SO->N_FaceSet; ++i) {
-         n1 = SO->FaceSetList[3*i]; 
-         n2 = SO->FaceSetList[3*i+1]; 
+         n1 = SO->FaceSetList[3*i];
+         n2 = SO->FaceSetList[3*i+1];
          n3 = SO->FaceSetList[3*i+2];
          p1 = &(SO->NodeList[3*n1]);
          p2 = &(SO->NodeList[3*n2]);
@@ -1253,23 +1253,23 @@ int main (int argc,char *argv[])
                       i, c[0], c[1], c[2], s[0], s[1], s[2]);
       }
    }
-   
+
    if (Do_cord) {
       sprintf(OutName, "%s.coord.1D.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Coord output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err("Failed to open file for writing.\n"
                     "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Cartesian coords, \n");
-      fprintf (fout,"#  Center is: [%f %f %f] \n", 
+      fprintf (fout,"#  Center is: [%f %f %f] \n",
                   SO->Center[0], SO->Center[1], SO->Center[2]);
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,"#x  = X \n");
@@ -1277,46 +1277,46 @@ int main (int argc,char *argv[])
       fprintf (fout,"#z  = Z\n");
       fprintf (fout,"#nI\tx\ty\tz\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i < SO->N_Node; ++i) {
             fprintf (fout,"%d\t%f\t%f\t%f\t\n",
                   i, SO->NodeList[3*i], SO->NodeList[3*i+1],SO->NodeList[3*i+2]);
       }
-      
+
       fclose(fout); fout = NULL;
-   }  
-   
+   }
+
    if (Do_edges) {
-      
+
       SUMA_S_Note("Writing edges...");
-      
+
       if (!SO->EL) {
          SUMA_S_Err("Edge list not computed.");
          exit(1);
       }
-      
+
       sprintf(OutName, "%s.edges", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Edge output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err("Failed to open file for writing.\n"
                     "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Edge List\n");
       fprintf (fout,"#eI = Edge Index\n");
       fprintf (fout,"#n1 = Node 1\n");
       fprintf (fout,"#n2 = Node 2\n");
-      fprintf (fout,"#nt = Number of triangles containing edge\n"); 
+      fprintf (fout,"#nt = Number of triangles containing edge\n");
       fprintf (fout,"#eL = Edge Length\n");
       fprintf (fout,"#eI\tn1\tn2\tnt\teL\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i < SO->EL->N_EL; ++i) {
          if (SO->EL->ELps[i][2] >= 0) {
             n1 = SO->EL->EL[i][0];
@@ -1324,43 +1324,43 @@ int main (int argc,char *argv[])
             nt = SO->EL->ELps[i][2];
             n1_3 = 3 * n1;
             n2_3 = 3 * n2;
-            edgeL2 = ( (SO->NodeList[n2_3] - SO->NodeList[n1_3]) * 
+            edgeL2 = ( (SO->NodeList[n2_3] - SO->NodeList[n1_3]) *
                            (SO->NodeList[n2_3] - SO->NodeList[n1_3]) ) +
-                     ( (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) * 
+                     ( (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) *
                            (SO->NodeList[n2_3+1] - SO->NodeList[n1_3+1]) ) +
-                     ( (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) * 
-                           (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) ); 
-                     
+                     ( (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) *
+                           (SO->NodeList[n2_3+2] - SO->NodeList[n1_3+2]) );
+
             fprintf (fout,"%d\t%d\t%d\t%d\t%f\n",
                   i, n1, n2, nt, sqrt(edgeL2));
-                  
-         }   
+
+         }
       }
       fclose(fout); fout = NULL;
-      
+
    }
-   
+
    if (Do_area) {
       SUMA_S_Note("Writing areas...");
-      
+
       if (!SO->PolyArea) {
          SUMA_S_Err("Areas not computed");
          exit(1);
-      }  
-      
+      }
+
       sprintf(OutName, "%s.area", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Area output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err( "Failed to open file for writing.\n"
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#FaceSet Area\n");
       fprintf (fout,"#fI = FaceSet Index\n");
       fprintf (fout,"#fA = FaceSet Area\n");
@@ -1368,33 +1368,33 @@ int main (int argc,char *argv[])
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       for (i=0; i < SO->N_FaceSet; ++i) {
          fprintf (fout,"%d\t%f\n", i, SO->PolyArea[i]);
-      }  
-      
+      }
+
       fclose(fout); fout = NULL;
    }
-   
+
    if (Do_curv) {
-      
+
       SUMA_S_Note("Writing curvatures ...");
-      
+
       if (!SO->SC) {
          SUMA_S_Err("Curvatures not computed");
          exit(1);
       }
-      
+
       sprintf(OutName, "%s.curv.1D.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Curvature output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
-      
+
+
       if (!(fout = fopen(OutName,"w"))) {
          SUMA_S_Err( "Failed to open file for writing.\n"
                      "Check your permissions.\n");
          exit(1);
-      }  
-      
+      }
+
       fprintf (fout,"#Curvature\n");
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,
@@ -1407,17 +1407,17 @@ int main (int argc,char *argv[])
       fprintf (fout, "#nI\tT1[0]\tT1[1]\tT1[2]\tT2[0]\tT2[1]\tT2[2]"
                      "\tKp1\tKp2\tKp\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
-            i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2], 
+            i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2],
             SO->SC->T2[i][0], SO->SC->T2[i][1], SO->SC->T2[i][2],
-            SO->SC->Kp1[i], SO->SC->Kp2[i], 
+            SO->SC->Kp1[i], SO->SC->Kp2[i],
             sqrt(SO->SC->Kp1[i]*SO->SC->Kp1[i]+
                          SO->SC->Kp2[i]*SO->SC->Kp2[i]));
       }
       fclose(fout); fout = NULL;
-      
+
       /* Also output nice dset*/
       sprintf(OutName, "%s.curv.niml.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
@@ -1429,7 +1429,7 @@ int main (int argc,char *argv[])
       oname = SUMA_WriteDset_s(OutName, ndset, SUMA_BINARY_NIML, 1, 1);
       SUMA_free(oname); oname=NULL;
       SUMA_FreeDset(ndset); ndset=NULL;
-   
+
       /* And some niml DOs */
       sprintf(OutName, "%s.curv.1D.do", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
@@ -1445,12 +1445,12 @@ int main (int argc,char *argv[])
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout, "%d %f %f %f 1 0 0 1\n"
                         "%d %f %f %f 0 1 0 1\n",
-                        i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2], 
+                        i, SO->SC->T1[i][0], SO->SC->T1[i][1], SO->SC->T1[i][2],
                         i, SO->SC->T2[i][0], SO->SC->T2[i][1], SO->SC->T2[i][2]);
       }
       fclose(fout); fout = NULL;
    }
-   
+
    if (Do_conv) {
       SUMA_S_Note("Writing convexities ...");
       Cx = (float *)SUMA_GetCx(SO->idcode_str, SUMAg_CF->DsetList, 0);
@@ -1458,59 +1458,59 @@ int main (int argc,char *argv[])
          SUMA_S_Err("Convexities not computed");
          exit(1);
       }
-      
+
       sprintf(OutName, "%s.conv.1D.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Convexities output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err( "Failed to open file for writing.\n"
                      "Check your permissions.\n");
          exit(1);
-      }  
-      
+      }
+
       fprintf (fout,"#Convexity\n");
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,"#C = Convexity\n");
       fprintf (fout,"#nI\tC\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       for (i=0; i < SO->N_Node; ++i) {
          fprintf (fout,"%d\t%f\n", i, Cx[i]);
       }
-      
+
       fclose(fout); fout = NULL;
-      
+
       /* Also output nice dset*/
       sprintf(OutName, "%s.conv.niml.dset", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Curvature output dset exists.\nWill not overwrite.");
          exit(1);
       }
-      if (!(ndset =  SUMA_CreateFullDsetPointer( 
-            OutPrefix, 
-            SUMA_NODE_BUCKET, 
-            NULL, 
+      if (!(ndset =  SUMA_CreateFullDsetPointer(
+            OutPrefix,
+            SUMA_NODE_BUCKET,
+            NULL,
             NULL,
             SO->N_Node ))) {
          SUMA_S_Err("Failed to create dset");
          exit(1);
       }
 
-      if (!SUMA_AddDsetNelCol(ndset, "Convexity", SUMA_NODE_FLOAT, 
+      if (!SUMA_AddDsetNelCol(ndset, "Convexity", SUMA_NODE_FLOAT,
                               (void *)Cx, NULL, 1)) {
          SUMA_S_Err("Failed to add col Convexity");
          exit(1);
-      } 
+      }
       SUMA_AddNgrHist(ndset->ngr, "SurfaceMetrics", argc, argv);
       oname = SUMA_WriteDset_s(OutName, ndset, SUMA_BINARY_NIML, 1, 1);
       SUMA_free(oname); oname=NULL;
       SUMA_FreeDset(ndset); ndset=NULL;
-   }   
-   
+   }
+
    if (Do_vol) {
       float vol;
       int prob;
@@ -1521,22 +1521,22 @@ int main (int argc,char *argv[])
                      "Repeat with a rotated version of surface");
       }
       if (!quiet) {
-         fprintf (SUMA_STDOUT,   
+         fprintf (SUMA_STDOUT,
                "Volume of closed surface is %f (units3).\n"
-               "Signed volume is  %f (units3).\n", fabs(vol), vol); 
+               "Signed volume is  %f (units3).\n", fabs(vol), vol);
       } else {
-         fprintf (SUMA_STDOUT,   
-               "%f , %f \n", fabs(vol), vol); 
+         fprintf (SUMA_STDOUT,
+               "%f , %f \n", fabs(vol), vol);
       }
    }
-   
+
    if (Do_en || Do_in) {
       byte *enmask = NULL;
       if (!quiet) {
          if (Do_en) fprintf (SUMA_STDERR,"finding boundary nodes...\n");
          else fprintf (SUMA_STDERR,"finding internal nodes...\n");
       }
-      enmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));  
+      enmask = (byte *)SUMA_calloc(SO->N_Node, sizeof(byte));
       if (!enmask) {
          SUMA_S_Crit("Failed to allocate.");
          exit(1);
@@ -1551,11 +1551,11 @@ int main (int argc,char *argv[])
          /* find edges that form boundaries */
          if (SO->EL->ELps[i][2] == 1) {
             enmask[SO->EL->EL[i][0]] = 1;
-            enmask[SO->EL->EL[i][1]] = 1; 
+            enmask[SO->EL->EL[i][1]] = 1;
          }
          ++i;
       }
-      
+
       if (Do_en) {
          sprintf(OutName, "%s.boundarynodes.1D.dset", OutPrefix);
          if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
@@ -1569,7 +1569,7 @@ int main (int argc,char *argv[])
             /* find edges that are internal, NOT part of boundary already */
             if (SO->EL->ELps[i][2] > 1) {
                if (!enmask[SO->EL->EL[i][0]]) enmask[SO->EL->EL[i][0]] = 2;
-               if (!enmask[SO->EL->EL[i][1]]) enmask[SO->EL->EL[i][1]] = 2; 
+               if (!enmask[SO->EL->EL[i][1]]) enmask[SO->EL->EL[i][1]] = 2;
             }
             ++i;
          }
@@ -1579,14 +1579,14 @@ int main (int argc,char *argv[])
             exit(1);
          }
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err("Failed to open file for writing.\n"
                     "Check your permissions.\n");
          exit(1);
-      }  
-      
+      }
+
       if (Do_en) {
          fprintf (fout,"#Boundary Nodes\n");
       } else {
@@ -1595,7 +1595,7 @@ int main (int argc,char *argv[])
       fprintf (fout,"#nI = Node Index\n");
       fprintf (fout,"#nI\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
-      
+
       if (Do_en) {
          for (i=0; i < SO->N_Node; ++i) {
             if (enmask[i] == 1) fprintf (fout,"%d\n", i);
@@ -1606,41 +1606,41 @@ int main (int argc,char *argv[])
          }
       }
       SUMA_free(enmask); enmask = NULL;
-      
+
       fclose(fout); fout = NULL;
    }
-   
+
    if (Do_et) {
       int N_b, *boundt=(int*)SUMA_calloc(SO->N_FaceSet, sizeof(int));
-      
+
       N_b = SUMA_BoundaryTriangles(SO, boundt, 0);
       SUMA_S_Note("Writing edge triangles...");
-      
+
       sprintf(OutName, "%s.boundary_triangles", OutPrefix);
       if (!THD_ok_overwrite() && SUMA_filexists(OutName)) {
          SUMA_S_Err("Area output file exists.\nWill not overwrite.");
          exit(1);
       }
-      
+
       fout = fopen(OutName,"w");
       if (!fout) {
          SUMA_S_Err( "Failed to open file for writing.\n"
                      "Check your permissions.\n");
          exit(1);
       }
-      
+
       fprintf (fout,"#Boundary Triangles Area\n");
       fprintf (fout,"#BT = Index of boundary triangle\n");
       fprintf (fout,"#BT\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
       for (i=0; i < N_b; ++i) {
          fprintf (fout,"%d\n",  boundt[i]);
-      }  
+      }
       if (boundt) SUMA_free(boundt); boundt=NULL;
       fclose(fout); fout = NULL;
    }
-   
-   if (closest_to_xyz) { /* read xyz list, report closest node 
+
+   if (closest_to_xyz) { /* read xyz list, report closest node
                             (SLOW implementation...)*/
       MRI_IMAGE *im = NULL;
       float *far=NULL, *p=NULL;
@@ -1650,14 +1650,14 @@ int main (int argc,char *argv[])
       /* load the 1D file */
       im = mri_read_1D (closest_to_xyz);
       if (!im) {
-         fprintf(SUMA_STDERR,"Error %s:\n Failed to read/find %s.\n", 
+         fprintf(SUMA_STDERR,"Error %s:\n Failed to read/find %s.\n",
                   FuncName, closest_to_xyz);
          exit(1);
-      }   
+      }
 
       far = MRI_FLOAT_PTR(im);
       if (im->nx == 0) {
-         fprintf(SUMA_STDERR,"Error %s:\n Empty file %s.\n", 
+         fprintf(SUMA_STDERR,"Error %s:\n Empty file %s.\n",
                   FuncName, closest_to_xyz);
          exit(1);
       }
@@ -1703,7 +1703,7 @@ int main (int argc,char *argv[])
          SUMA_S_Err( "Failed to open file for writing.\n"
                      "Check your permissions.\n");
          exit(1);
-      }  
+      }
 
       fprintf (fout,"#closest nodes reference points\n");
       fprintf (fout,"#n = index of closest node\n");
@@ -1714,44 +1714,44 @@ int main (int argc,char *argv[])
       fprintf (fout,"#Xn = X of node\n");
       fprintf (fout,"#Yn = Y of node\n");
       fprintf (fout,"#Zn = Z of node\n");
-     
+
       fprintf (fout,"#n\td\tX\tY\tZ\tXn\tYn\tZn\n\n");
       if (histnote) fprintf (fout,"#History:%s\n", histnote);
 
       for (i=0; i < im->nx; ++i) {
-         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n", 
-            closest[i], dXYZ[i], far[i], far[i+im->nx], far[i+nx2], 
-               SO->NodeList[SO->NodeDim*closest[i]], 
-               SO->NodeList[SO->NodeDim*closest[i]+1], 
+         fprintf (fout,"%d\t%f\t%f\t%f\t%f\t%f\t%f\t%f\n",
+            closest[i], dXYZ[i], far[i], far[i+im->nx], far[i+nx2],
+               SO->NodeList[SO->NodeDim*closest[i]],
+               SO->NodeList[SO->NodeDim*closest[i]+1],
                SO->NodeList[SO->NodeDim*closest[i]+2]);
       }
 
       fclose(fout); fout = NULL;
 
       /* clean up im */
-      if (im) mri_free(im); im = NULL; 
+      if (im) mri_free(im); im = NULL;
 
       /* clean up other */
       if (closest) SUMA_free(closest); closest = NULL;
       if (dXYZ) SUMA_free(dXYZ); dXYZ = NULL;
    }
-   
+
    SUMA_LH("Clean up");
    /* clean up */
    if (MetricList) SUMA_free(MetricList);
    if (OutPrefix) SUMA_free(OutPrefix);
-   if (OutName) SUMA_free(OutName);   
+   if (OutName) SUMA_free(OutName);
    if (SO) SUMA_Free_Surface_Object(SO);
    if (!SUMA_FreeSpecFields(pSpec)) {
       SUMA_S_Err("Failed to free Spec fields");
-   } SUMA_free(pSpec); pSpec = NULL; 
+   } SUMA_free(pSpec); pSpec = NULL;
  	if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
-   
+
    /* dset and its contents are freed in SUMA_Free_CommonFields */
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
 
    if (histnote) SUMA_free(histnote);
-    
+
    SUMA_RETURN(0);
 } /* Main */

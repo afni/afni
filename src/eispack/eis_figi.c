@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int figi_(integer *nm, integer *n, doublereal *t, doublereal 
+/* Subroutine */ int figi_(integer *nm, integer *n, doublereal *t, doublereal
 	*d__, doublereal *e, doublereal *e2, integer *ierr)
 {
     /* System generated locals */
@@ -62,12 +62,12 @@
 /*                     TO THOSE OF  T  AND SHOULD NOT BE SOUGHT. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

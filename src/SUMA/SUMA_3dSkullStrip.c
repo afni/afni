@@ -552,7 +552,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
 			 usage_SUMA_BrainWrap(ps, strlen(argv[kar])>3?2:1);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
       if (!brk && (strcmp(argv[kar], "-pushout") == 0)) {
@@ -1182,7 +1182,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
                      argv[kar]);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}

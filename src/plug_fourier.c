@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "afni.h"
 
 #ifndef ALLOW_PLUGINS
@@ -27,7 +27,7 @@ static char helpstring[] =
    "   these points are set to the value of the n+1th point\n"
    "   such that the timeseries is the same length\n"
    "  A linear trend is removed before any filtering is performed.\n"
-   "   Setting retrend to 'Yes' restores this trend after filtering\n" 
+   "   Setting retrend to 'Yes' restores this trend after filtering\n"
    "   This is always yes for the 1D transform version\n"
    " Lowpass: Perform a low pass filtering of the data.\n"
    "  Fc is the frequency cutoff (in Hz).  Note that this is\n"
@@ -115,7 +115,7 @@ PLUGIN_interface * PLUGIN_init( int ncall )
 
    PLUTO_add_option( plint , "Preprocess" , "Preprocess" , TRUE ) ;
    PLUTO_add_number( plint , "Ignore" ,  0, 10,  0, 1 , FALSE) ;
-   PLUTO_add_string( plint, "Re-trend", 2, yn, 0); 
+   PLUTO_add_string( plint, "Re-trend", 2, yn, 0);
 
    /*-- fourth line of input: Lowpass option --*/
 
@@ -188,7 +188,7 @@ char * Fourier_Main( PLUGIN_interface * plint )
       else if( strcmp(tag,"Highpass") == 0 ){
          high_fc = PLUTO_get_number(plint);
       }
- 
+
       else if( strcmp(tag,"Autocorrelate") == 0 ){
          autocorr=TRUE;
       }
@@ -201,6 +201,6 @@ char * Fourier_Main( PLUGIN_interface * plint )
 
    if ((output_prefix == NULL) || (idc == NULL)) /* must be setting up for 1D transform */
       return NULL ;
-   else 
-      return Fourier_Filter_Driver(plint, input, low_fc, high_fc, ignore, autocorr, retrend, output_prefix);  
+   else
+      return Fourier_Filter_Driver(plint, input, low_fc, high_fc, ignore, autocorr, retrend, output_prefix);
 }

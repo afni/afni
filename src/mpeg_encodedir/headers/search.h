@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:42  rwcox
@@ -98,7 +98,7 @@
 	rightMY++;							     \
 	rightMX++;							     \
     }
-    
+
 #define VALID_MOTION(y,x)	\
     (((y) >= leftMY) && ((y) < rightMY) &&   \
      ((x) >= leftMX) && ((x) < rightMX) )

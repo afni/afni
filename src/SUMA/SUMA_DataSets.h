@@ -23,10 +23,10 @@
       SUMA_ParseInput_basics_s (argv, argc);   \
       /* glutInit(& argc, argv);  fails for remote connections 4 Sep 2016 */ \
    }
-#endif   
+#endif
 
-void SUMA_ParseInput_basics_s (char *argv[], int argc); 
-int SUMA_WriteDset_NameCheck_s (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp); 
+void SUMA_ParseInput_basics_s (char *argv[], int argc);
+int SUMA_WriteDset_NameCheck_s (char *Name, SUMA_DSET *dset, SUMA_DSET_FORMAT form, int verb, char **NameOutp);
 void WorkErrLog_s(void);
 SUMA_DSET * SUMA_FindDset_s (char *idcode, DList *DsetList);
 SUMA_DSET * SUMA_FindDset2_s (char *idcode, DList *DsetList, char *itype);
@@ -34,13 +34,13 @@ DListElmt * SUMA_FindDsetEl_s (char *idcode, DList *DsetList);
 int SUMA_GetNodeIndex_FromNodeRow_s(SUMA_DSET *dset, int row, int N_Node);
 int SUMA_GetNodeRow_FromNodeIndex_s(SUMA_DSET *dset, int node, int N_Node);
 SUMA_DSET *SUMA_LoadDset_s (char *Name, SUMA_DSET_FORMAT *form, int verb);
-char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset, 
+char * SUMA_WriteDset_s (char *Name, SUMA_DSET *dset,
                          SUMA_DSET_FORMAT form, int overwrite, int verb) ;
-char * SUMA_WriteDset_PreserveID (char *Name, SUMA_DSET *dset, 
+char * SUMA_WriteDset_PreserveID (char *Name, SUMA_DSET *dset,
                          SUMA_DSET_FORMAT form, int overwrite, int verb) ;
 char *SUMA_RemoveDsetExtension_s (char*Name, SUMA_DSET_FORMAT form);
-SUMA_DSET *SUMA_far2dset_s( char *FullName, char *dset_id, char *dom_id, 
-                                 float **farp, int vec_len, int vec_num, 
+SUMA_DSET *SUMA_far2dset_s( char *FullName, char *dset_id, char *dom_id,
+                                 float **farp, int vec_len, int vec_num,
                                  int ptr_cpy) ;
 SUMA_DSET *SUMA_LoadDXDset_s (char *Name, int verb);
 SUMA_DSET *SUMA_Load1DDset_s (char *oName, int verb);

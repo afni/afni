@@ -10,12 +10,12 @@
 //#define ALLOWED_NROI (150)   // buffer size for array of refset...
 
 
-int MoveData_to_InpSet( int *Dim, 
+int MoveData_to_InpSet( int *Dim,
                         float ****map,
                         int ****DATA,
                         short int ***iskel);
 
-int ROI_make_inflate( int *Dim, 
+int ROI_make_inflate( int *Dim,
                       int INFL_NUM,
                       int SKEL_STOP,
                       int NEIGHBOR_LIMIT,
@@ -36,7 +36,7 @@ int Make_SepLabels( int *Dim,
                     int ****DATA,
                     int max_nroi,
                     int *N_thr,
-                    int *NROI_IN, 
+                    int *NROI_IN,
                     int **ROI_LABELS_pre,
                     int VOLTHR,
                     int NEIGHBOR_LIMIT,
@@ -48,17 +48,17 @@ int Relabel_IfNecessary( int *Dim,
                          int ****DATA,
                          int *N_thr,
                          int *relab_vox,
-                         int *NROI_IN, 
+                         int *NROI_IN,
                          int *NROI_REF,
                          int **ROI_LABELS_REF,
                          int NEIGHBOR_LIMIT);
 
-int MakeSkels( int *Dim, 
+int MakeSkels( int *Dim,
                int HAVE_CSFSKEL,
-               short int ***CSF_SKEL, 
+               short int ***CSF_SKEL,
                THD_3dim_dataset *insetCSF_SKEL,
                int HAVESKEL,
-               short int ***SKEL, 
+               short int ***SKEL,
                THD_3dim_dataset *insetSKEL,
                float SKEL_THR );
 

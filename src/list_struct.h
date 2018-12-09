@@ -1,5 +1,5 @@
 #ifndef _LIST_STRUCT_H_
-#define _LIST_STRUCT_H_ 
+#define _LIST_STRUCT_H_
 
 /*----------------------------------------------------------------------
  * list_struct.h      - for creating and destroying lists
@@ -14,7 +14,7 @@ typedef struct { int num,nall;        float *  list; } float_list;
 typedef struct { int num,nall;        int   *  list; } int_list;
 typedef struct { int num,nall;        short *  list; } short_list;
 typedef struct { int num,nall,alloc;  char  ** list; } string_list;
-                                                                                
+
 /* pointer lists also include an element length field (# elements allocated) */
 typedef struct { int num,nall;  float ** list; } floatp_list;
 typedef struct { int num,nall;  int   ** list; } intp_list;

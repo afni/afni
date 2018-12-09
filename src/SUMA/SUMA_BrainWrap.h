@@ -13,24 +13,24 @@ typedef struct {
 
 void SUMA_setBrainWrap_NodeDbg(int n);
 int  SUMA_getBrainWrap_NodeDbg(void);
-float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+float SUMA_LoadPrepInVol (SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
                           SUMA_SurfaceObject **SOhull);
-int SUMA_Find_IminImax (float *xyz, float *dir, 
-            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni, 
-            float *MinMax, float *MinMax_dist , 
+int SUMA_Find_IminImax (float *xyz, float *dir,
+            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, int ni,
+            float *MinMax, float *MinMax_dist ,
             float *MinMax_over, float *MinMax_over_dist,
-            float *Means, float *undershish, float *overshish, 
-            int *fvecind_under, int *fvecind_over, 
+            float *Means, float *undershish, float *overshish,
+            int *fvecind_under, int *fvecind_over,
             float d1, float d4, int ShishMax);
-int SUMA_Find_IminImax_2 (float *xyz, float *dir, 
+int SUMA_Find_IminImax_2 (float *xyz, float *dir,
                         THD_3dim_dataset *in_vol, float **fvecp,
-                        float travstp, 
-                        float under_dist, float over_dist, 
-                        float stop_avg_thr,  int verb, 
-                        float *MinMax, float *MinMax_dist , 
+                        float travstp,
+                        float under_dist, float over_dist,
+                        float stop_avg_thr,  int verb,
+                        float *MinMax, float *MinMax_dist ,
                         float *MinMax_over, float *MinMax_over_dist,
-                        float *Means, 
-                        float *undershish, float *overshish, 
+                        float *Means,
+                        float *undershish, float *overshish,
                         int *fvecind_under, int *fvecind_over
                         );
 int SUMA_THD_WedgeNeighborhood(THD_3dim_dataset *dset, byte *mask,
@@ -40,92 +40,92 @@ int SUMA_THD_WedgeNeighborhood(THD_3dim_dataset *dset, byte *mask,
                                DList **Hoodu);
 int SUMA_THD_Radial_Avgs( THD_3dim_dataset  *dset, float *ufin,
                            byte *cmask, float *ucm,
-                           byte zeropad, 
+                           byte zeropad,
                            float under, float over, int trvoff[2],
                            float **umu, float **umo);
 int SUMA_THD_Radial_Stats( THD_3dim_dataset  *dset,
                            byte *cmask, float *ucm,
-                           THD_3dim_dataset **osetp, byte zeropad, 
+                           THD_3dim_dataset **osetp, byte zeropad,
                            float under, float over , int avgwin);
-int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz, 
-                        float *xyz_ijk, float *cen_ijk, 
+int SUMA_Vox_Radial_Stats (float *fvec, int nxx, int nyy, int nzz,
+                        float *xyz_ijk, float *cen_ijk,
                         int *voxtrav, int *trvoff,
-                        float *Means, 
-                        float *undershish, float *overshish, 
-                        int *fvecind_under, int *fvecind_over, 
+                        float *Means,
+                        float *undershish, float *overshish,
+                        int *fvecind_under, int *fvecind_over,
                         byte zeropad);
-int SUMA_Vox_Radial_Samples (float *fvec, int nxx, int nyy, int nzz, 
-                        float *xyz_ijk, float *cen_ijk, 
-                        float *undershish, 
+int SUMA_Vox_Radial_Samples (float *fvec, int nxx, int nyy, int nzz,
+                        float *xyz_ijk, float *cen_ijk,
+                        float *undershish,
                         int *fvecind_under);
 int SUMA_THD_Radial_HeadBoundary( THD_3dim_dataset  *dset, float uthr,
                            byte *cmask, float *ucm,
                            THD_3dim_dataset **osetp,
-                           byte zeropad, 
-                           float under, float over, 
+                           byte zeropad,
+                           float under, float over,
                            float avgwin, int arcfill,
                            float *Rcmstats, float *Rnzstats);
 int SUMA_CrudeNonHeadMask(THD_3dim_dataset *dset,
                             float *cm_dicom, byte **cmask,
                             float *mean, float *stdv);
-int SUMA_SkullMask (SUMA_SurfaceObject *SO, 
+int SUMA_SkullMask (SUMA_SurfaceObject *SO,
                     SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
-int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO, 
+int SUMA_StretchToFitLeCerveau (SUMA_SurfaceObject *SO,
                SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs);
-short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO, 
+short *SUMA_FindVoxelsInSurface_SLOW (SUMA_SurfaceObject *SO,
                         SUMA_VOLPAR *VolPar, int *N_inp, int box_only) ;
-short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist, 
-                               SUMA_VOLPAR *VolPar, int *N_inp, int fillhole, 
+short *SUMA_SurfGridIntersect (SUMA_SurfaceObject *SO, float *NodeIJKlist,
+                               SUMA_VOLPAR *VolPar, int *N_inp, int fillhole,
                                THD_3dim_dataset *fillholeset);
 
-short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar, 
+short *SUMA_FindVoxelsInSurface (SUMA_SurfaceObject *SO, SUMA_VOLPAR *VolPar,
                   int *N_inpnt, int  fillhole, THD_3dim_dataset *fillholeset) ;
-int SUMA_PushToEdge(SUMA_SurfaceObject *SO, 
-                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch, 
+int SUMA_PushToEdge(SUMA_SurfaceObject *SO,
+                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, float limtouch,
                     SUMA_COMM_STRUCT *cs, int agressive) ;
-int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO, 
-                          SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+int SUMA_PushToOuterSkull(SUMA_SurfaceObject *SO,
+                          SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
                           float limtouch, SUMA_COMM_STRUCT *cs, int N_itermax) ;
-int SUMA_PushToInnerSkull(SUMA_SurfaceObject *SO, 
-               SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+int SUMA_PushToInnerSkull(SUMA_SurfaceObject *SO,
+               SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
                float limtouch, SUMA_COMM_STRUCT *cs) ;
-int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO, 
-                            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+int SUMA_Reposition_Touchup(SUMA_SurfaceObject *SO,
+                            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
                             float limtouch, SUMA_COMM_STRUCT *cs) ;
-float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO, 
-                            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
+float *SUMA_Suggest_Touchup(SUMA_SurfaceObject *SO,
+                            SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
                             float limtouch, SUMA_COMM_STRUCT *cs, int *N_touch);
-float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO, 
-                                 SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
-                                 float limtouch, SUMA_COMM_STRUCT *cs, 
+float *SUMA_Suggest_Touchup_Grad(SUMA_SurfaceObject *SO,
+                                 SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
+                                 float limtouch, SUMA_COMM_STRUCT *cs,
                                  int *N_touch);
-float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO, 
-                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
-                                    float limtouch, SUMA_COMM_STRUCT *cs, 
+float *SUMA_Suggest_Touchup_PushEdge(SUMA_SurfaceObject *SO,
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
+                                    float limtouch, SUMA_COMM_STRUCT *cs,
                                     int *N_touch);
-float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO, 
-                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
-                                    float limtouch, SUMA_COMM_STRUCT *cs, 
+float *SUMA_Suggest_Touchup_PushOuterSkull(SUMA_SurfaceObject *SO,
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
+                                    float limtouch, SUMA_COMM_STRUCT *cs,
                                     int *N_touch, int priorityatnode);
-float *SUMA_Suggest_Touchup_PushInnerSkull(SUMA_SurfaceObject *SO, 
-                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, 
-                                    float limtouch, SUMA_COMM_STRUCT *cs, 
+float *SUMA_Suggest_Touchup_PushInnerSkull(SUMA_SurfaceObject *SO,
+                                    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt,
+                                    float limtouch, SUMA_COMM_STRUCT *cs,
                                     int *N_touch);
-SUMA_Boolean SUMA_LimitCoordToVolume(float *NewCoord,          
+SUMA_Boolean SUMA_LimitCoordToVolume(float *NewCoord,
                                      THD_3dim_dataset *in_volp,
                                      int units,
                                      int *limited);
 int SUMA_DidUserQuit(void);
 EDIT_options *SUMA_BlankAfniEditOptions(void);
 void *SUMA_Push_Nodes_To_Hull(SUMA_SurfaceObject *SO, SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt, SUMA_COMM_STRUCT *cs, int N_itermax);
-SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask, 
+SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
                           THD_3dim_dataset **poutsetp);
 
 /*!
    SUMA_WRAP_BRAIN_SMOOTH(niter, bufp1, bufp2);
    \brief a chunk used in two places in SUMA_BrainWrap.
    Requires two float pointers than can be null on the first call
-   but must be freed at the end 
+   but must be freed at the end
 */
 #define SUMA_WRAP_BRAIN_SMOOTH_NN(niter, dsmooth, refNodeList, nmask){ \
    SUMA_SurfaceObject m_SOref;   \
@@ -196,7 +196,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
 }
 
 /*!
-   this one is too wimpy to get rid of folding 
+   this one is too wimpy to get rid of folding
 */
 #define SUMA_WRAP_BRAIN_SMOOTH_TAUB(niter, dsmooth, refNodeList){ \
       dsmooth = SUMA_Taubin_Smooth( SO, NULL,   \
@@ -280,7 +280,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
       }  \
       if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* %d troubled nodes found\n", FuncName, m_N_troub); \
       if (1){ \
-         /* fix the big bumps: Bad for brain surface that has lots of bump on top, like 201, 
+         /* fix the big bumps: Bad for brain surface that has lots of bump on top, like 201,
          that kind of smoothing is better performed on an inner model of the skull .... Someday ....*/\
          if (LocalHead) fprintf (SUMA_STDERR,"%s: ********************* Now filtering...\n", FuncName); \
          m_wgt = SUMA_Chung_Smooth_Weights(SO);   \
@@ -314,8 +314,8 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
       if (m_wgt) SUMA_free2D ((char **)m_wgt, SO->N_Node); m_wgt = NULL;   \
 }
 
-#define SUMA_IS_EYE_ZONE(n,c) ( ( ( (n)[1] - (c)[1] ) < -10 && ( (n)[2] - (c)[2] ) < 0 ) ? 1 : 0 ) 
-#define SUMA_IS_LOWER_ZONE(n,c) ( ( ( (n)[2] - (c)[2] ) < 10 ) ? 1 : 0 ) 
+#define SUMA_IS_EYE_ZONE(n,c) ( ( ( (n)[1] - (c)[1] ) < -10 && ( (n)[2] - (c)[2] ) < 0 ) ? 1 : 0 )
+#define SUMA_IS_LOWER_ZONE(n,c) ( ( ( (n)[2] - (c)[2] ) < 10 ) ? 1 : 0 )
 
 /*!
    finds the mean coordinate of the neighboring nodes (not including node i)
@@ -332,7 +332,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
    mnc[0] = mnc[0] / (SO->FN->N_Neighb[i]); mnc[1] = mnc[1] / (SO->FN->N_Neighb[i]);  mnc[2] = mnc[2] / (SO->FN->N_Neighb[i]); \
 }
 /*!
-   find the mean segment length 
+   find the mean segment length
 */
 #define SUMA_MEAN_SEGMENT_LENGTH(SO, l) { \
    int m_cnt=0, m_j;   \
@@ -380,7 +380,7 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
    }  \
 }
 /*!
-   find the number of negative jumps above a certain threshold 
+   find the number of negative jumps above a certain threshold
 */
 #define SUMA_MIN_SHISH_JUMP(vec, diffmin, i_diffmin, thresh_clip, N_neg){  \
    int m_kk = 1;   \
@@ -395,15 +395,15 @@ SUMA_Boolean SUMA_3dedge3(THD_3dim_dataset *inset, float *emask,
 }
 
 /*! \brief fill a shish d units lond starting at xyz and moving along direction U
-   
+
       \param XYZ coordinates of starting point
       \param U the famed direction vector
       \param in_vol AFNI volume structure
-      \param fvec data vector 
-      \param stp size of the step to take 
+      \param fvec data vector
+      \param stp size of the step to take
       \param n_stp number of steps to take
       \param nxx, nxy number of voxels in the x and x*y directions
-      \param shish a vector to store fvec's values as it crosses them 
+      \param shish a vector to store fvec's values as it crosses them
       \param N_shishmax (int) maximum number of values allowed in shish
 */
 

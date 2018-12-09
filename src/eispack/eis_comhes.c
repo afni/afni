@@ -60,12 +60,12 @@
 /*     CALLS CDIV FOR COMPLEX DIVISION. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -93,7 +93,7 @@
 
 	i__2 = *igh;
 	for (j = m; j <= i__2; ++j) {
-	    if ((d__1 = ar[j + mm1 * ar_dim1], abs(d__1)) + (d__2 = ai[j + 
+	    if ((d__1 = ar[j + mm1 * ar_dim1], abs(d__1)) + (d__2 = ai[j +
 		    mm1 * ai_dim1], abs(d__2)) <= abs(xr) + abs(xi)) {
 		goto L100;
 	    }
@@ -151,18 +151,18 @@ L130:
 
 	    i__3 = *n;
 	    for (j = m; j <= i__3; ++j) {
-		ar[i__ + j * ar_dim1] = ar[i__ + j * ar_dim1] - yr * ar[m + j 
+		ar[i__ + j * ar_dim1] = ar[i__ + j * ar_dim1] - yr * ar[m + j
 			* ar_dim1] + yi * ai[m + j * ai_dim1];
-		ai[i__ + j * ai_dim1] = ai[i__ + j * ai_dim1] - yr * ai[m + j 
+		ai[i__ + j * ai_dim1] = ai[i__ + j * ai_dim1] - yr * ai[m + j
 			* ai_dim1] - yi * ar[m + j * ar_dim1];
 /* L140: */
 	    }
 
 	    i__3 = *igh;
 	    for (j = 1; j <= i__3; ++j) {
-		ar[j + m * ar_dim1] = ar[j + m * ar_dim1] + yr * ar[j + i__ * 
+		ar[j + m * ar_dim1] = ar[j + m * ar_dim1] + yr * ar[j + i__ *
 			ar_dim1] - yi * ai[j + i__ * ai_dim1];
-		ai[j + m * ai_dim1] = ai[j + m * ai_dim1] + yr * ai[j + i__ * 
+		ai[j + m * ai_dim1] = ai[j + m * ai_dim1] + yr * ai[j + i__ *
 			ai_dim1] + yi * ar[j + i__ * ar_dim1];
 /* L150: */
 	    }

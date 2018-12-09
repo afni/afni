@@ -17,12 +17,12 @@ static doublereal c_b5 = 0.;
     integer a_dim1, a_offset, b_dim1, b_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int qzit_(integer *, integer *, doublereal *, 
-	    doublereal *, doublereal *, logical *, doublereal *, integer *), 
-	    qzvec_(integer *, integer *, doublereal *, doublereal *, 
+    extern /* Subroutine */ int qzit_(integer *, integer *, doublereal *,
+	    doublereal *, doublereal *, logical *, doublereal *, integer *),
+	    qzvec_(integer *, integer *, doublereal *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *), qzhes_(
-	    integer *, integer *, doublereal *, doublereal *, logical *, 
-	    doublereal *), qzval_(integer *, integer *, doublereal *, 
+	    integer *, integer *, doublereal *, doublereal *, logical *,
+	    doublereal *), qzval_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, doublereal *, logical *,
 	     doublereal *);
     logical tf;
@@ -73,12 +73,12 @@ static doublereal c_b5 = 0.;
 /*           THE NORMAL COMPLETION CODE IS ZERO. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

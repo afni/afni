@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -99,7 +99,7 @@
 * Revision 1.1  1996/12/19 02:17:22  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _resources_h_
 #define _resources_h_
@@ -119,7 +119,7 @@ static XtResource resources [] =
 		XmNanchorCursor,
 		XmCCursor, XmRCursor,
 		sizeof(Cursor), Offset(anchor_cursor),
-		XmRImmediate, (XtPointer)NULL 
+		XmRImmediate, (XtPointer)NULL
 	},
 	{
 		XmNanchorDisplayCursor,
@@ -171,7 +171,7 @@ static XtResource resources [] =
 	},
 	{
 		XmNanchorUnderlineType,
-		XmCAnchorUnderlineType, 
+		XmCAnchorUnderlineType,
 		XmRAnchorUnderlineType,
 		sizeof(XtEnum), Offset(anchor_underline_type),
 		XmRImmediate, (XtPointer)XmSINGLE_LINE
@@ -185,7 +185,7 @@ static XtResource resources [] =
 	},
 	{
 		XmNanchorTargetUnderlineType,
-		XmCAnchorUnderlineType, 
+		XmCAnchorUnderlineType,
 		XmRAnchorUnderlineType,
 		sizeof(XtEnum), Offset(anchor_target_underline_type),
 		XmRImmediate, (XtPointer)XmSINGLE_DASHED_LINE
@@ -415,14 +415,14 @@ static XtResource resources [] =
 	},
 	{
 		XmNscrollBarDisplayPolicy,
-		XmCScrollBarDisplayPolicy, 
+		XmCScrollBarDisplayPolicy,
 		XmRScrollBarDisplayPolicy,
 		sizeof(XtEnum), Offset(sb_policy),
 		XmRImmediate, (XtPointer)XmAS_NEEDED
 	},
 	{
 		XmNscrollBarPlacement,
-		XmCScrollBarPlacement, 
+		XmCScrollBarPlacement,
 		XmRScrollBarPlacement,
 		sizeof(XtEnum), Offset(sb_placement),
 		XmRImmediate, (XtPointer)XmBOTTOM_RIGHT
@@ -431,7 +431,7 @@ static XtResource resources [] =
 		XmNmarginHeight,
 		XmCMarginHeight, XmRDimension,
 		sizeof(Dimension), Offset(margin_height),
-		XmRImmediate, (XtPointer)XmHTML_DEFAULT_MARGIN 
+		XmRImmediate, (XtPointer)XmHTML_DEFAULT_MARGIN
 	},
 	{
 		XmNmarginWidth,
@@ -441,7 +441,7 @@ static XtResource resources [] =
 	},
 	{
 		XmNstringDirection,
-		XmCStringDirection, 
+		XmCStringDirection,
 		XmRStringDirection,
 		sizeof(XtEnum), Offset(string_direction),
 		XmRImmediate, (XtPointer)XmSTRING_DIRECTION_L_TO_R
@@ -481,7 +481,7 @@ static XtResource resources [] =
 		XmCWorkWindow, XmRWidget,
 		sizeof(Widget), Offset(work_area),
 		XmRImmediate, (XtPointer)NULL
-	},	
+	},
 	{
 		XmNenableBadHTMLWarnings,
 		XmCHTMLWarningMode, XmRHTMLWarningMode,

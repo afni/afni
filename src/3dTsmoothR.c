@@ -11,7 +11,7 @@
 
 #include "mrilib.h"
 
-#include "AFNI_embeddedRCall.h"             
+#include "AFNI_embeddedRCall.h"
 #include <Rdefines.h>
 #include <R_ext/Rdynload.h>
 
@@ -71,8 +71,8 @@ int main( int argc , char * argv[] )
    float * (*lwin)(int) = NULL ;
    SEXP e, e1, rv, rs, ropt;
 
-   
-   
+
+
    /* start of code */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -85,7 +85,7 @@ int main( int argc , char * argv[] )
  " Example: 3dTsmoothR -prefix TSsmoothed TS+orig\n"
  " ************************************************* \n"
  "\n"
-#if 0 
+#if 0
  "Usage: 3dTsmoothR [options] dataset\n"
  "Smooths each voxel time series in a 3D+time dataset and produces\n"
  "as output a new 3D+time dataset (e.g., lowpass filter in time).\n"
@@ -379,12 +379,12 @@ int main( int argc , char * argv[] )
 
    /***** loop over voxels *****/
 
-   { 
+   {
       char *pp=NULL;
       /* RRR init stuff */
-   
+
       init_R(argc, argv);  /* AFNI's arguments will drive this bananas */
-      
+
       /* source smoothing functions */
       if (!(pp = Add_plausible_path("smooth.R"))) {
          fprintf(stderr,"Failed to find smooth.R\n");
@@ -395,19 +395,19 @@ int main( int argc , char * argv[] )
       PROTECT(e=lang2(install("source"),install("sss")));
       eval(e, R_GlobalEnv);
       UNPROTECT(2);
-   
+
       /* RRR allocate for vector carriers */
       PROTECT(rv=allocVector(REALSXP, ntime));
-      defineVar(install("f"), rv, R_GlobalEnv); /* put rv in R's environment and 
+      defineVar(install("f"), rv, R_GlobalEnv); /* put rv in R's environment and
                                                 name it "f" */
       /* set smoothing options CRUDE */
       PROTECT(ropt=allocVector(REALSXP, 2));
       defineVar(install("op"), ropt, R_GlobalEnv);
-      REAL(ropt)[0] = 3; REAL(ropt)[1]=0.1; 
-      PROTECT(e1=lang2(install("set_filteropt"),install("op")));    
+      REAL(ropt)[0] = 3; REAL(ropt)[1]=0.1;
+      PROTECT(e1=lang2(install("set_filteropt"),install("op")));
       PROTECT(e=eval(e1,R_GlobalEnv));
       UNPROTECT(2);
-      
+
       free(pp); pp=NULL;
    }
    for( ii=0 ; ii < nxyz ; ii++  ){  /* 1 time series at a time */
@@ -441,13 +441,13 @@ int main( int argc , char * argv[] )
       #else
       {/* RRR smoothing */
             /* fill rv with values */
-         for( kk=0 ; kk < ntime ; kk++ ) REAL(rv)[kk] = fxar[kk];  
+         for( kk=0 ; kk < ntime ; kk++ ) REAL(rv)[kk] = fxar[kk];
             /* smooth  */
-         PROTECT(e1=lang2(install("filter_1D"),install("f")));    
+         PROTECT(e1=lang2(install("filter_1D"),install("f")));
          PROTECT(e=eval(e1,R_GlobalEnv));
          /* put in output */
          for( kk=0 ; kk < ntime ; kk++ ) fxar[kk] = REAL(e)[kk];
-         UNPROTECT(2); 
+         UNPROTECT(2);
       }
 
       #endif
@@ -479,7 +479,7 @@ int main( int argc , char * argv[] )
    }  /* end of loop over voxels */
 
    DSET_unload(old_dset) ; free(ftap) ;
-   
+
    if (DSET_write(new_dset) != False) {
       fprintf(stderr,"++ output dataset: %s\n",DSET_BRIKNAME(new_dset)) ;
       exit(0) ;
@@ -487,7 +487,7 @@ int main( int argc , char * argv[] )
       fprintf(stderr,
          "** 3dTsmoothR: Failed to write output!\n" ) ;
       exit(1) ;
-   }   
+   }
 
 }
 

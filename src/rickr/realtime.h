@@ -6,9 +6,9 @@
 #if 0
    #define AFNI_CONTROL_PORT  7954      /* always send control data to AFNI    */
    #define AFNI_TCP_PORT      7953      /* maybe send image data to AFNI       */
-   /* 
-   replace these two with: 
-      get_port_named("AFNI_CONTROL_PORT") 
+   /*
+   replace these two with:
+      get_port_named("AFNI_CONTROL_PORT")
       and
       get_port_named("AFNI_TCP_PORT")
    */

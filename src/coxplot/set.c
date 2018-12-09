@@ -38,7 +38,7 @@ static integer c__1 = 1;
 
 
 
-/* Subroutine */ int set_(real *xobj1, real *xobj2, real *yobj1, real *yobj2, 
+/* Subroutine */ int set_(real *xobj1, real *xobj2, real *yobj1, real *yobj2,
 	real *xsub1, real *xsub2, real *ysub1, real *ysub2, integer *ltype)
 {
     /* Initialized data */
@@ -73,9 +73,9 @@ static integer c__1 = 1;
  */
 /*  Check entry values for reasonableness. */
 
-    if (*xobj1 < zzzplt_1.xpgmin || *xobj1 >= *xobj2 || *xobj2 > 
+    if (*xobj1 < zzzplt_1.xpgmin || *xobj1 >= *xobj2 || *xobj2 >
 	    zzzplt_1.xpgmax || *xsub1 == *xsub2 || *yobj1 < zzzplt_1.ypgmin ||
-	     *yobj1 >= *yobj2 || *yobj2 > zzzplt_1.ypgmax || *ysub1 == *ysub2 
+	     *yobj1 >= *yobj2 || *yobj2 > zzzplt_1.ypgmax || *ysub1 == *ysub2
 	    || *ltype <= 0 || *ltype > 4) {
 	goto L9000;
     }

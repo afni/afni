@@ -319,7 +319,7 @@ ENTRY("THD_load_datablock") ; /* 29 Aug 2001 */
       ERROR_message("Cannot handle tracts here");
       RETURN( False ) ;
    }
-   
+
    if( dkptr->storage_mode == STORAGE_BY_GIFTI ) {  /* 13 Feb 2008 */
      THD_load_gifti( blk ) ;
      ii = THD_count_databricks( blk ) ;
@@ -1059,7 +1059,7 @@ ENTRY("THD_apply_master_limits") ;
            if     ( fval < -fvmax ) mbot = (short)-fvmax;
            else if( fval >  fvmax ) mbot = (short)fvmax;
            else                     mbot = (short)ceilf(fval);
-           
+
            fval = top/mfac;
            if     ( fval < -fvmax ) mtop = (short)-fvmax;
            else if( fval >  fvmax ) mtop = (short)fvmax;
@@ -1094,12 +1094,12 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
            if     ( fval < 0     ) mbot = (byte)0;
            else if( fval > fvmax ) mbot = (byte)fvmax;
            else                    mbot = (byte)ceilf(fval);
-           
+
            fval = top/mfac;
            if     ( fval < 0     ) mtop = (byte)0;
            else if( fval > fvmax ) mtop = (byte)fvmax;
            else                    mtop = (byte)floorf(fval);
-           
+
            /* old way: mbot = BYTEIZE(bot/mfac) ; mtop = BYTEIZE(top/mfac) ; */
            for( ii=0 ; ii < nxyz ; ii++ )
               if( mar[ii] < mbot || mar[ii] > mtop ) mar[ii] = 0 ;
@@ -1136,7 +1136,7 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 
 /*----------------------------------------------------------------------------*/
 /*! Apply master limit lists to data sub-bricks.           30 Nov 2016 [rickr]
-  
+
     Like THD_apply_master_subrange(), but require all values to have
     corresponding entries in master_csv list.
 
@@ -1144,7 +1144,7 @@ fprintf(stderr,"mbot=%d mtop=%d\n",(int)mbot,(int)mtop) ;
 
     Perhaps this should all go directly through floats?  Perhaps generalize
     to list of float ranges?  It would not be difficult.
-  
+
     return 0 on success
 *//*--------------------------------------------------------------------------*/
 int THD_apply_master_subrange_list( THD_datablock * blk )

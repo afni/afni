@@ -10,7 +10,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -32,7 +32,7 @@
 * About this file:
 *
 *	XmHTML is originally an Xt/Motif based Widget. To make porting to
-*	other toolkits a bit easier, XmHTML uses a toolkit abstraction and a 
+*	other toolkits a bit easier, XmHTML uses a toolkit abstraction and a
 *	set of defines that allow you to replace all X/Xt/Xm functions used by
 *	XmHTML.
 *
@@ -50,7 +50,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -61,7 +61,7 @@
 * Revision 1.1  1998/04/04 06:27:29  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _toolkit_h_
 #define _toolkit_h_

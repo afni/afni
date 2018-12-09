@@ -30,7 +30,7 @@ void mc_help(void)
             "Usage 1: mc <obj_type>\n"
             "           obj_type is a number between 0 and 9\n");
    for (i=0; i<10;++i) {
-   printf(  "           %d: %s\n", i, Obj_Types[i]);   
+   printf(  "           %d: %s\n", i, Obj_Types[i]);
    }
    printf(  "Usage 2: mc <Vol.1D> <Res> \n"
             "           Vol.1D is the (Res x Res x Res) volume in 1D format.\n"
@@ -65,10 +65,10 @@ void mc_help(void)
             "         quickspec -tn 1D testNodes.1D testFaces.1D\n"
             "         suma -spec quick.spec \n"
             "\n" );
-            
+
 }
 /* usage:
-   mc 
+   mc
 */
 //_____________________________________________________________________________
 // main function
@@ -79,7 +79,7 @@ int main (int argc, char **argv)
   int obj_type=0;
   int Resx = 256, Resy =256, Resz =256;
   char *fname = NULL;
-  
+
   if (argc == 1) {
    /* help */
    mc_help();
@@ -106,7 +106,7 @@ int main (int argc, char **argv)
    fprintf(stderr,"Bad usage.\n");
    exit(1);
   }
-  
+
   mcp = MarchingCubes(-1, -1, -1);
   set_resolution( mcp, Resx, Resy, Resz) ;
 
@@ -116,7 +116,7 @@ int main (int argc, char **argv)
    compute_data( *mcp , obj_type) ;
   }else if (argc == 3 || argc == 5) {
    z_compute_data( *mcp , fname) ;
-  } 
+  }
   run(mcp) ;
   clean_temps(mcp) ;
 

@@ -93,7 +93,7 @@ static int estimate_m1( int nq , float *qq )
           - also, in '-old' mode, the m0 correction will not be made
       - if flags&2==1, then the q-values are corrected for arbitrary
         correlation structure -- this is not usually necessary for FMRI
-        task activation data 
+        task activation data
       - if flags&4==1, then the output is q-values, not z-values
       - to mask, set input values to a statistic that will give p==1
         (e.g., 0.0 for t, F, or rho; 1.0 for p) -- and set flags=0;

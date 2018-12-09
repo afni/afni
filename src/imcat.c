@@ -3,14 +3,14 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 #define XYNUM    0
 #define YXNUM    1
 #define XDOTYNUM 2
 #define YDOTXNUM 3
-void imcat_usage(int detail) 
+void imcat_usage(int detail)
 {
          printf(
  "Usage: imcat [options] fname1 fname2 etc.\n"
@@ -113,7 +113,7 @@ void imcat_usage(int detail)
  "   Stitching together 3 images getting rid of annoying white boundary:\n"
  "\n"
  "   imcat -prefix surfview_pry3b.jpg -ny 1 -autocrop surfview.000[789].jpg\n"
- "\n"   
+ "\n"
  "Example 20 (assuming afni is in ~/abin directory):\n"
  "   imcat -prefix bigcat.jpg -scale_image ~/abin/afnigui_logo.jpg \\\n"
  "         -matrix_from_scale -rand_wrap -rgb_out -respad_in 128 128 \\\n"
@@ -145,16 +145,16 @@ int main( int argc , char * argv[] )
    int gap = 0, ScaleInt=0, force_rgb_out = 0, matrix_size_from_scale = 0;
    byte  gap_col[3] = {255, 20, 128}, pval = 0 ;
    MRI_IMAGE *imscl=NULL;
-   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0, 
+   int kkk, nscl=-1, resix=-1, resiy=-1, force_rgb_at_input=0,
        N_byte = 0, N_rgb = 0, ks = 1, wrapmode = 1;
    float *scl=NULL, fac=1.0, ff=0;
    byte *scl3=NULL, *rgb=NULL, *b1, *b2, *b3;
    char name[100];
    void *ggg=NULL;
-   
-   
+
+
    mainENTRY("imcat main"); machdep() ;
-    
+
     wrapmode = 1;
     ScaleInt = 0;
     resix=-1;
@@ -182,7 +182,7 @@ int main( int argc , char * argv[] )
          wrapmode = 2;
          iarg++ ; continue ;
        }
-              
+
        if( strcmp(argv[iarg],"-matrix") == 0 ){
          if (iarg+2 >= argc) {
             fprintf(stderr,"*** ERROR: Need two integers after -matrix\n");
@@ -192,7 +192,7 @@ int main( int argc , char * argv[] )
          ny = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-crop") == 0 ){
          if (iarg+4 >= argc) {
             fprintf(stderr,
@@ -205,12 +205,12 @@ int main( int argc , char * argv[] )
          cutB = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-autocrop") == 0 ){
          cutlev = -1; cutlevu = -1;
          iarg++ ; continue ;
        }
-       
+
        if ( strcmp(argv[iarg],"-autocrop_ctol") == 0 ){
          if (iarg+2 >= argc) {
             fprintf(stderr,
@@ -225,10 +225,10 @@ int main( int argc , char * argv[] )
                "Got %d\n", cutlevu);
             exit(1);
          }
-         
+
          iarg++ ; continue ;
        }
-       
+
        if ( strcmp(argv[iarg],"-autocrop_atol") == 0 ){
          if (iarg+2 >= argc) {
             fprintf(stderr,
@@ -243,11 +243,11 @@ int main( int argc , char * argv[] )
                "Got %d\n", cutlevu);
             exit(1);
          }
-         
+
          iarg++ ; continue ;
        }
-       
-       
+
+
        if( strcmp(argv[iarg],"-res_in") == 0 ){
          if (iarg+2 >= argc) {
             fprintf(stderr,"*** ERROR: Need two integers after -res_in\n");
@@ -257,7 +257,7 @@ int main( int argc , char * argv[] )
          resiy = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-gscale") == 0 ){
          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need one float after -gscale\n");
@@ -266,7 +266,7 @@ int main( int argc , char * argv[] )
          fac = (float) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
 
        if( strcmp(argv[iarg],"-respad_in") == 0 ){
          if (iarg+2 >= argc) {
@@ -278,7 +278,7 @@ int main( int argc , char * argv[] )
          ks = -1;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-pad_val") == 0 ){
          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need one byte after -pad_val\n");
@@ -287,7 +287,7 @@ int main( int argc , char * argv[] )
          pval = (byte) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-nx") == 0 ){
          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an integer after -nx\n");
@@ -296,13 +296,13 @@ int main( int argc , char * argv[] )
          nx = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-ny") == 0 ){
          if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an integer after -ny\n");
             exit(1);
          }
-         ny = (int) strtod( argv[++iarg] , NULL ) ; 
+         ny = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
 
@@ -311,7 +311,7 @@ int main( int argc , char * argv[] )
             fprintf(stderr,"*** ERROR: Need an integer after -gap\n");
             exit(1);
          }
-         gap = (int) strtod( argv[++iarg] , NULL ) ; 
+         gap = (int) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
        if( strcmp(argv[iarg],"-gap_col") == 0 ){
@@ -325,7 +325,7 @@ int main( int argc , char * argv[] )
          gap_col[2] = (byte) strtod( argv[++iarg] , NULL ) ;
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-scale_image") == 0 ){
           if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an image after -scale_image\n");
@@ -334,7 +334,7 @@ int main( int argc , char * argv[] )
           scale_image = argv[++iarg];
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-scale_pixels") == 0 ){
           if (iarg+1 >= argc) {
             fprintf(stderr,"*** ERROR: Need an image after -scale_pixels\n");
@@ -347,17 +347,17 @@ int main( int argc , char * argv[] )
           }
           iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-scale_intensity") == 0) {
          ScaleInt = 1;
          iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-rgb_out") == 0) {
          force_rgb_out = 1;
          iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-zero_wrap") == 0) {
          mri_Set_OK_WrapZero(1);
          iarg++ ; continue ;
@@ -366,7 +366,7 @@ int main( int argc , char * argv[] )
          mri_Set_OK_WrapZero(255);
          iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-gray_wrap") == 0) {
          byte bb;
          if (iarg+1 >= argc) {
@@ -388,7 +388,7 @@ int main( int argc , char * argv[] )
          matrix_size_from_scale = 1;
          iarg++ ; continue ;
        }
-       
+
        if( strcmp(argv[iarg],"-prefix") == 0 ){
           MCW_strncpy( prefix , argv[++iarg] , 240 ) ;
           iarg++ ; continue ;
@@ -398,19 +398,19 @@ int main( int argc , char * argv[] )
        suggest_best_prog_option(argv[0], argv[iarg]);
        exit(1) ;
     }
-    
+
     if( argc < 4 ){
       ERROR_message("Too few options");
       imcat_usage(0);
       exit(1) ;
     }
-    
+
     if (cutlevu == -1 && cutlev == -1) {
       /* No params set, but autocrop desired*/
       cutlev = 20;
       cutlevu = 20;
     }
-    
+
     if (scale_image) {
       if (!(imscl = mri_read_just_one(scale_image))) {
          fprintf(stderr,"*** Failed to read scale image.\n");
@@ -438,17 +438,17 @@ int main( int argc , char * argv[] )
                scl[kkk] = ((float)rgb[kkk  ]* fac);
                if ((ff=scl[kkk])>255) ff = 255;
                scl3[3*kkk  ] = scl3[3*kkk+1] = scl3[3*kkk+2] = ff;
-            } 
+            }
         } else {
          fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
             exit(1);
         }
       }
    }
-   
+
    if (matrix_size_from_scale) {
       if (imscl) {
-         fprintf(stderr,"+++ Matrix size of %dx%d, based on scale image\n", 
+         fprintf(stderr,"+++ Matrix size of %dx%d, based on scale image\n",
                          imscl->nx, imscl->ny);
          nx = imscl->nx; ny = imscl->ny;
       } else {
@@ -460,9 +460,9 @@ int main( int argc , char * argv[] )
    /* allow from catwrapping */
    if (wrapmode == 2) mri_Set_OK_catrandwrap();
    else mri_Set_OK_catwrap();
-  
+
    /* read all images */
-   inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg, 
+   inimar = mri_read_resamp_many_files( argc-iarg , argv+iarg,
                                         resix, ks*resiy, pval) ;
    if( inimar == NULL ){
       fprintf(stderr,"*** no input images read!\a\n") ;
@@ -472,7 +472,7 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   /* Figure out cropping based on one image, written as loop in 
+   /* Figure out cropping based on one image, written as loop in
    case I change my mind */
    if (cutlev >= 0 || cutlevu >= 0) {
       MRI_IMAGE *imin;
@@ -492,7 +492,7 @@ int main( int argc , char * argv[] )
             kkk = 0;
             /* fprintf(stderr,"RGB image nx=%d, ny=%d, cut lev %d, avg lev %d\n",
                     imin->nx, imin->ny, cutlev, cutlevu); */
-            
+
             /* Compute column and row averages */
             if (cutlevu >= 0) {
                colav = (byte *)calloc(3*imin->nx, sizeof(byte));
@@ -508,7 +508,7 @@ int main( int argc , char * argv[] )
                   colav[3*kx+1] = (byte)(d1/imin->ny);
                   colav[3*kx+2] = (byte)(d2/imin->ny);
                }
-               rowav = (byte *)calloc(3*imin->ny, sizeof(byte));   
+               rowav = (byte *)calloc(3*imin->ny, sizeof(byte));
                for (ky=0; ky<imin->ny; ++ky) {
                   d0 = d1 = d2 = 0.0;
                   for (kx=0; kx<imin->nx; ++kx) {
@@ -522,7 +522,7 @@ int main( int argc , char * argv[] )
                   rowav[3*ky+2] = (byte)(d2/imin->nx);
                }
             }
-            
+
             /* Left */
             cutL = 0;
             mis = 0;
@@ -536,8 +536,8 @@ int main( int argc , char * argv[] )
                          ABS(rgb[3*kkk+2] - rgb[2]) > cutlev ) {
                         /* fprintf(stderr,
                              "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
-                                rgb[0], rgb[1], rgb[2], kx, ky, 
-                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */ 
+                                rgb[0], rgb[1], rgb[2], kx, ky,
+                                rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
                         mis = 1;
                      }
                   }
@@ -571,7 +571,7 @@ int main( int argc , char * argv[] )
                          ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
                         /* fprintf(stderr,
                              "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
-                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[0], rgb[1], rgb[2], kx, ky,
                                 rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
                         mis = 1;
                      }
@@ -606,7 +606,7 @@ int main( int argc , char * argv[] )
                          ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
                         /* fprintf(stderr,
                              "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
-                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[0], rgb[1], rgb[2], kx, ky,
                                 rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
                         mis = 1;
                      }
@@ -641,7 +641,7 @@ int main( int argc , char * argv[] )
                          ABS(rgb[3*kkk+2] - rgb[e2]) > cutlev ) {
                         /* fprintf(stderr,
                              "Break from [%d %d %d] at %d %d with [%d %d %d]\n",
-                                rgb[0], rgb[1], rgb[2], kx, ky, 
+                                rgb[0], rgb[1], rgb[2], kx, ky,
                                 rgb[3*kkk  ], rgb[3*kkk+1], rgb[3*kkk+2]); */
                         mis = 1;
                      }
@@ -669,7 +669,7 @@ int main( int argc , char * argv[] )
         } else if (imin->kind == MRI_byte) {
             e0 = (imin->nx*imin->ny-1);
             kkk = 0;
-            /* fprintf(stderr,"Byte image nx=%d, ny=%d, cut level %d, %d\n", 
+            /* fprintf(stderr,"Byte image nx=%d, ny=%d, cut level %d, %d\n",
                     imin->nx, imin->ny, cutlev, cutlevu); */
             /* Compute column and row averages */
             if (cutlevu >= 0) {
@@ -682,7 +682,7 @@ int main( int argc , char * argv[] )
                   }
                   colav[kx  ] = (byte)(d0/imin->ny);
                }
-               rowav = (byte *)calloc(imin->ny, sizeof(byte));   
+               rowav = (byte *)calloc(imin->ny, sizeof(byte));
                for (ky=0; ky<imin->ny; ++ky) {
                   d0 = 0.0;
                   for (kx=0; kx<imin->nx; ++kx) {
@@ -811,32 +811,32 @@ int main( int argc , char * argv[] )
                   ++cutT;
                   /* fprintf(stderr,"Line at y=%d is cst\n", ky); */
                }
-            } 
+            }
             if (colav) free(colav); colav=NULL;
             if (rowav) free(rowav); rowav=NULL;
         } else {
             fprintf(stderr,"*** For autocrop image must be RGB or byte type.\n");
             exit(1);
         }
-        
-        fprintf(stdout,"+++ Autocrop set to L%d R%d T%d B%d\n", 
-                       cutL, cutR, cutT, cutB); 
+
+        fprintf(stdout,"+++ Autocrop set to L%d R%d T%d B%d\n",
+                       cutL, cutR, cutT, cutB);
       }
    }
-   
+
    /* crop all images if needed */
    if (cutL || cutR || cutT || cutB) {
       /* original image size */
       nxin = IMAGE_IN_IMARR(inimar,0)->nx;
       nyin = IMAGE_IN_IMARR(inimar,0)->ny;
-      
+
       nbad = mri_cut_many_2D(inimar, cutL, nxin-1-cutR, cutT, nyin-1-cutB);
       if (nbad) {
          fprintf(stderr,"*** failed (%d) in cropping operation!\a\n", nbad) ;
          exit(1) ;
       }
    }
-   
+
    /* figure out the count */
    if (nx < 0 && ny < 0) {
       nx = ny = (int)sqrt((double)inimar->num+0.00001);
@@ -849,7 +849,7 @@ int main( int argc , char * argv[] )
       if (inimar->num % ny) {
          fprintf(stderr,"--- Have %d images, not divisible by %d\n"
                         "    will pad to fill matrix.\n"
-                        , inimar->num, ny);      
+                        , inimar->num, ny);
          nx = inimar->num / ny + 1;
       } else {
          nx = inimar->num / ny;
@@ -864,23 +864,23 @@ int main( int argc , char * argv[] )
          ny = inimar->num / nx;
       }
    }
-   
+
    if( nx < 1 || ny < 1 ){
     fprintf(stderr,"*** ERROR: illegal values nx=%d ny=%d\n",nx,ny);
     exit(1) ;
    }
    if (nx*ny > inimar->num) {
-      fprintf(stderr,"+++ Have %d images. Will wrap to fill %dx%d matrix\n", 
+      fprintf(stderr,"+++ Have %d images. Will wrap to fill %dx%d matrix\n",
                inimar->num, nx, ny);
    } else if (nx*ny < inimar->num) {
       fprintf(stderr,"+++ Have more images than needed to fill matrix.\n"
-                     "    Will ignore the last %d images.\n", 
+                     "    Will ignore the last %d images.\n",
                      inimar->num- nx*ny);
    }
-   
+
    nxin = IMAGE_IN_IMARR(inimar,0)->nx;
    nyin = IMAGE_IN_IMARR(inimar,0)->ny;
-   
+
    fprintf(stdout, "+++ Arranging %d images (each %dx%d) into a %dx%d matrix.\n",                    inimar->num, nxin, nyin, nx, ny);
 
    force_rgb_at_input = 0;
@@ -889,7 +889,7 @@ int main( int argc , char * argv[] )
    else {
       /* if have multiple types, must also go rgb */
       for (kkk=0; kkk<inimar->num; ++kkk) {
-         if (IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_byte && 
+         if (IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_byte &&
              IMAGE_IN_IMARR(inimar,kkk)->kind != MRI_rgb) {
             fprintf(stderr,"*** Unexpected image kind on input.\n"
                            "    Only byte and rgb (3byte) images allowed.\n");
@@ -898,11 +898,11 @@ int main( int argc , char * argv[] )
             ++N_byte;
          } else if (IMAGE_IN_IMARR(inimar,kkk)->kind == MRI_rgb) {
             ++N_rgb;
-         } 
+         }
          if (N_byte && N_rgb) { force_rgb_at_input = 1; continue; }
       }
    }
-   
+
    if (force_rgb_at_input) { /* make sure all images are rgb type */
       MRI_IMAGE *imin, *newim;
       int kkk, nmin;
@@ -921,11 +921,11 @@ int main( int argc , char * argv[] )
             exit(1);
          }
       }
-   } 
+   }
 
-   
+
    ggg = (void *)gap_col;
-   
+
    if (!(im = mri_cat2D( nx , ny , gap , ggg , inimar ))) {
       fprintf(stderr,"*** ERROR: Failed to create image!\n");
       exit(1) ;
@@ -939,11 +939,11 @@ int main( int argc , char * argv[] )
       MRI_COPY_AUX(newim,im) ; mri_free(im);
       im = newim;
    }
-   
-   /* image scaling needed, not very efficient in implementation but 
+
+   /* image scaling needed, not very efficient in implementation but
       mostly for fun */
    if (scale_image && ( im->kind == MRI_rgb || im->kind == MRI_byte) ) {
-      MRI_IMARR *imtriple ; 
+      MRI_IMARR *imtriple ;
       MRI_IMAGE *rim, *gim, *bim, *tim, *imin, *newim;
       fprintf(stderr,"+++ Scaling by image\n");
       if (!imscl) {
@@ -959,7 +959,7 @@ int main( int argc , char * argv[] )
                scl[kkk] = ((float)rgb[3*kkk  ] +
                           (float)rgb[3*kkk+1] +
                           (float)rgb[3*kkk+2] ) / 3.0 * fac ;
-               
+
                if ((ff = rgb[3*kkk  ]* fac) > 255)  ff=255 ;
                scl3[3*kkk  ] = ff;
                if ((ff = rgb[3*kkk+1]* fac) > 255)  ff=255;
@@ -972,21 +972,21 @@ int main( int argc , char * argv[] )
                scl[kkk] = ((float)rgb[kkk  ]* fac) ;
                if ((ff = rgb[kkk]* fac) > 255) ff = 255;
                scl3[3*kkk  ] = scl3[3*kkk+1] = scl3[3*kkk+2] = ff;
-            } 
+            }
         } else {
          fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
             exit(1);
         }
       }
-      
+
       /* Now break the image again */
       if (!(inimar = mri_uncat2D(  nxin ,  nyin ,im ))) {
          fprintf(stderr,"*** Failed to cut up image\n");
          exit(1);
       }
       mri_free(im); im = NULL;
-      
-      for (kkk=0; kkk<inimar->num; ++kkk) {  
+
+      for (kkk=0; kkk<inimar->num; ++kkk) {
          imin = IMAGE_IN_IMARR(inimar,kkk);
          /*  sprintf(name,"prescaled.%d.ppm", kkk);
            mri_write(name,imin); */
@@ -1000,24 +1000,24 @@ int main( int argc , char * argv[] )
            bim = IMAGE_IN_IMARR(imtriple,2) ; FREE_IMARR(imtriple) ;
            /* scale image */
            if (ScaleInt) {
-              /* fprintf(stderr,"Scaling image %d by %f\n", 
+              /* fprintf(stderr,"Scaling image %d by %f\n",
                                  kkk, scl[kkk%nscl]); */
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], rim ); 
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], rim );
                                                    mri_free(rim); rim = tim;
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], gim ); 
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], gim );
                                                    mri_free(gim); gim = tim;
-              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], bim ); 
+              tim = mri_to_byte_scl(0.0, scl[kkk%nscl], bim );
                                                    mri_free(bim); bim = tim;
            } else {
-              /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n", 
+              /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n",
                               kkk,  (float)scl3[3*(kkk%nscl)  ],
                                     (float)scl3[3*(kkk%nscl)+1],
                                     (float)scl3[3*(kkk%nscl)+2]); */
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)  ], rim ); 
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)  ], rim );
                                                     mri_free(rim); rim = tim;
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], gim ); 
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+1], gim );
                                                     mri_free(gim); gim = tim;
-              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+2], bim ); 
+              tim = mri_to_byte_scl(0.0, (float)scl3[3*(kkk%nscl)+2], bim );
                                                     mri_free(bim); bim = tim;
            }
            newim = mri_3to_rgb( rim, gim, bim ) ;
@@ -1026,16 +1026,16 @@ int main( int argc , char * argv[] )
            IMAGE_IN_IMARR(inimar,kkk) = newim;
          } else if(imin->kind == MRI_byte) {
            /* scale image */
-           /* fprintf(stderr,"Scaling byte image %d by %f\n", 
-                              kkk, scl[kkk%nscl]); */ 
-           newim = mri_to_byte_scl(0.0, (float)scl[kkk%nscl], imin ); 
+           /* fprintf(stderr,"Scaling byte image %d by %f\n",
+                              kkk, scl[kkk%nscl]); */
+           newim = mri_to_byte_scl(0.0, (float)scl[kkk%nscl], imin );
            MRI_COPY_AUX(newim,imin) ; mri_free(imin);
            /* sprintf(name,"postscaled.%d.ppm", kkk);
            mri_write(name,newim); */
            IMAGE_IN_IMARR(inimar,kkk) = newim;
          } else {
             fprintf(stderr,
-               "*** image %d is not rgb or byte. No scaling for you!\n", 
+               "*** image %d is not rgb or byte. No scaling for you!\n",
                kkk%inimar->num);
          }
       }
@@ -1052,25 +1052,25 @@ int main( int argc , char * argv[] )
    }
 
    if (scale_pixels) {
-      MRI_IMARR *imtriple ; 
+      MRI_IMARR *imtriple ;
       MRI_IMAGE *rim, *gim, *bim, *tim, *newim;
       if (im->kind != MRI_rgb && im->kind != MRI_byte) {
-         fprintf(stderr,"*** Output not MRI_rgb or MRI_byte. Cannot scale.\n"); 
+         fprintf(stderr,"*** Output not MRI_rgb or MRI_byte. Cannot scale.\n");
          exit(1);
       }
       fprintf(stderr,"*** Pixel scaling ...\n");
-      if (!(imar = mri_read_resamp_many_files( 1 , &scale_pixels, 
+      if (!(imar = mri_read_resamp_many_files( 1 , &scale_pixels,
                                                  im->nx, ks*im->ny, pval )) ||
            imar->num != 1) {
          fprintf(stderr,"*** Failed to read 1 image from %s\n", scale_pixels);
          exit(1) ;
       }
-      
+
       if (imscl) mri_free(imscl); imscl=NULL;
       if (scl) free(scl); scl=NULL;
       if (scl3) free(scl3); scl3 = NULL;
-      
-      imscl = IMAGE_IN_IMARR(imar,0);      
+
+      imscl = IMAGE_IN_IMARR(imar,0);
       rgb= MRI_BYTE_PTR(imscl);
       nscl = imscl->nx*imscl->ny;
       scl = (float *)malloc(sizeof(float)*nscl);
@@ -1090,7 +1090,7 @@ int main( int argc , char * argv[] )
             scl3[3*kkk  ] = rgb[kkk];  /* inefficient, but makes life easy */
             scl3[3*kkk+1] = rgb[kkk];
             scl3[3*kkk+2] = rgb[kkk];
-         } 
+         }
       } else {
          fprintf(stderr,"*** Scale image must be RGB or byte type.\n");
          exit(1);
@@ -1111,9 +1111,9 @@ int main( int argc , char * argv[] )
                b1[kkk] = BYTEIZE((b1[kkk]*(float)scl[kkk])/255.0);
                b2[kkk] = BYTEIZE((b2[kkk]*(float)scl[kkk])/255.0);
                b3[kkk] = BYTEIZE((b3[kkk]*(float)scl[kkk])/255.0);
-            }      
+            }
          } else {
-            /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n", 
+            /* fprintf(stderr,"Scaling image %d by [%.2f %.2f %.2f]\n",
                            kkk,  (float)scl3[3*(kkk%nscl)  ],
                                  (float)scl3[3*(kkk%nscl)+1],
                                  (float)scl3[3*(kkk%nscl)+2]); */
@@ -1121,7 +1121,7 @@ int main( int argc , char * argv[] )
                b1[kkk] = BYTEIZE((b1[kkk]*(float)scl3[3*kkk  ])/255.0);
                b2[kkk] = BYTEIZE((b2[kkk]*(float)scl3[3*kkk+1])/255.0);
                b3[kkk] = BYTEIZE((b3[kkk]*(float)scl3[3*kkk+2])/255.0);
-            }   
+            }
          }
          newim = mri_3to_rgb( rim, gim, bim ) ;
          mri_free(rim) ; mri_free(gim) ; mri_free(bim) ;
@@ -1140,7 +1140,7 @@ int main( int argc , char * argv[] )
       if (scl) free(scl); scl = NULL;
       if (scl3) free(scl3); scl3 = NULL;
    }
-   
+
    if (!(STRING_HAS_SUFFIX_CASE(prefix,".1D"))) {
       if (!(STRING_HAS_SUFFIX_CASE(prefix,".jpg")) &&
           !(STRING_HAS_SUFFIX_CASE(prefix,".ppm")) ) {
@@ -1163,7 +1163,7 @@ int main( int argc , char * argv[] )
          fprintf(stderr,"*** ERROR: Failed to convert output image.\n");
          exit(1) ;
       }
-      fff= MRI_FLOAT_PTR(tim);  
+      fff= MRI_FLOAT_PTR(tim);
       for (jj=0; jj<tim->ny; ++jj)  {
          for (ii=0; ii<tim->nx; ++ii) {
             fprintf(fout,"%.4f ", fff[jj*tim->nx+ii]);
@@ -1171,11 +1171,11 @@ int main( int argc , char * argv[] )
          fprintf(fout,"\n");
       }
       fclose(fout);
-      mri_free(tim); tim = NULL;  
-      fprintf(stdout, "You can view image %s with:\n 1dgrayplot %s \n", 
+      mri_free(tim); tim = NULL;
+      fprintf(stdout, "You can view image %s with:\n 1dgrayplot %s \n",
                         fnam, prefix);
    }
-   
+
    mri_free(im); im = NULL;
     exit(0) ;
 }

@@ -157,7 +157,7 @@ void CREN_set_min_opacity( void * ah , float opm )
      CREN_SUM_VOX   = integral of voxel data times opacity
      CREN_MIP_VOX   = maximum voxel intensity
      CREN_MIP_OPA   = maximum opacity
-     CREN_MINIP_VOX = minimum nonzero voxel intensity [09 May 2006] 
+     CREN_MINIP_VOX = minimum nonzero voxel intensity [09 May 2006]
 -----------------------------------------------------------------------------*/
 
 void CREN_set_render_mode( void * ah , int mmm )

@@ -1,7 +1,7 @@
 
-/* 
+/*
    P. Taylor, April 2014
-	
+
    Convert eigen{values,vectors} to DTs.
 
 */
@@ -12,8 +12,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include <mrilib.h>
+#include <3ddata.h>
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
@@ -22,12 +22,12 @@
 #include "DoTrackit.h"
 #include <diffusiony.h>
 
-#define N_dti_vals (3) 
-#define N_dti_vecs (3) 
+#define N_dti_vals (3)
+#define N_dti_vecs (3)
 
 
 
-void usage_EigsToDT(int detail) 
+void usage_EigsToDT(int detail)
 {
 	printf(
 "\n"
@@ -37,7 +37,7 @@ void usage_EigsToDT(int detail)
 "\n"
 "  May be helpful in converting output from different software packages.\n"
 "  Part of FATCAT (Taylor & Saad, 2013) in AFNI.\n"
-"  It is essentially the inverse of the existing AFNI command: 3dDTeig.\n" 
+"  It is essentially the inverse of the existing AFNI command: 3dDTeig.\n"
 "\n"
 "  Minor note and caveat:\n"
 "  This program has been checked for consistency with 3dDWItoDT outputs (that\n"
@@ -163,47 +163,47 @@ int main(int argc, char *argv[]) {
    // #########################  load  ##################################
    // ###################################################################
 
-   mainENTRY("3dEigsToDT"); machdep(); 
+   mainENTRY("3dEigsToDT"); machdep();
 	if (argc == 1) { usage_EigsToDT(1); exit(0); }
-   
+
    iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_EigsToDT(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-     
+
       if( strcmp(argv[iarg],"-eig_vecs") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-eig_vecs'");
          eigvecs = strdup(argv[iarg]) ;
-         
+
          iarg++ ; continue ;
       }
-      
+
       if( strcmp(argv[iarg],"-eig_vals") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-eig_vals'");
          eigvals = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-prefix") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-prefix'");
          prefix = strdup(argv[iarg]) ;
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-prefix'");
          iarg++ ; continue ;
       }
-   
+
       if( strcmp(argv[iarg],"-mask") == 0) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
          maskname = strdup(argv[iarg]) ;
-      
+
          iarg++ ; continue ;
       }
 
@@ -221,7 +221,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-scale_eigs") == 0) {
-			if( ++iarg >= argc ) 
+			if( ++iarg >= argc )
 				ERROR_exit("Need integer argument after '-scale_eigs'");
          LAMSCALE = atof(argv[iarg]);
          if(LAMSCALE <= 0 )
@@ -259,27 +259,27 @@ int main(int argc, char *argv[]) {
 
    if(eigvals){
 
-      wild_list = SUMA_append_replace_string(wild_list, eigvals, " ", 1); 
+      wild_list = SUMA_append_replace_string(wild_list, eigvals, " ", 1);
 
       INFO_message("SEARCHING for files with prefix '%s'",eigvals);
-      
-      MCW_wildcards(wild_list, &nglob, &wglob ); 
-      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
+
+      MCW_wildcards(wild_list, &nglob, &wglob );
+      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext,
                               &nsort, &isrt))) {
-         
-         if( nsort < N_dti_vals ) 
+
+         if( nsort < N_dti_vals )
             ERROR_exit("Only found %d files in eigval search: need %d.",
                        nsort, N_dti_vals);
-         
-         EVALS = (THD_3dim_dataset **)calloc(N_dti_vals, 
+
+         EVALS = (THD_3dim_dataset **)calloc(N_dti_vals,
                                              sizeof(THD_3dim_dataset *));
-         if( EVALS == NULL ) 
+         if( EVALS == NULL )
             ERROR_exit("Memory allocation error for EVALS, oddly.");
-         
-         
+
+
          for( ii=0 ; ii< N_dti_vals; ii++) {
             EVALS[ii] = THD_open_dataset(wglob[isrt[ii]]);
-            if( EVALS[ii] == NULL ) 
+            if( EVALS[ii] == NULL )
                ERROR_exit("Can't open dataset '%s'",wglob[isrt[ii]]);
             DSET_load(EVALS[ii]);  CHECK_LOAD_ERROR(EVALS[ii]);
             INFO_message("Loaded L%d file: '%s'",ii+1, wglob[isrt[ii]]);
@@ -290,13 +290,13 @@ int main(int argc, char *argv[]) {
                           wglob[isrt[ii]],DSET_NVALS(EVALS[ii]));
 
          }
-         
+
          if (isrt) free(isrt); isrt = NULL;
          for (i=0; i<nglob; ++i) if (wsort[i]) free(wsort[i]);
          free(wsort); wsort = NULL;
          SUMA_ifree(wild_list);
          MCW_free_wildcards( nglob , wglob ) ;
-      } 
+      }
       else {
          ERROR_message("Failed to sort");
          SUMA_ifree(wild_list);
@@ -304,14 +304,14 @@ int main(int argc, char *argv[]) {
          exit(1);
       }
    }
-   
+
 
    Nvox = DSET_NVOX(EVALS[0]);
-   Dim[0] = DSET_NX(EVALS[0]); 
-   Dim[1] = DSET_NY(EVALS[0]); 
-   Dim[2] = DSET_NZ(EVALS[0]); 
-   
-   for( ii=0 ; ii< N_dti_vals; ii++) 
+   Dim[0] = DSET_NX(EVALS[0]);
+   Dim[1] = DSET_NY(EVALS[0]);
+   Dim[2] = DSET_NZ(EVALS[0]);
+
+   for( ii=0 ; ii< N_dti_vals; ii++)
       if(  ( Dim[0] != DSET_NX(EVALS[ii]) ) ||
            ( Dim[1] != DSET_NY(EVALS[ii]) ) ||
            ( Dim[2] != DSET_NZ(EVALS[ii]) ) )
@@ -320,28 +320,28 @@ int main(int argc, char *argv[]) {
       ERROR_exit("Error reading Nvox from eigenvalue file.");
 
    if(eigvecs){
-      
-      wild_list = SUMA_append_replace_string(wild_list, eigvecs, " ", 1); 
-      
+
+      wild_list = SUMA_append_replace_string(wild_list, eigvecs, " ", 1);
+
       INFO_message("SEARCHING for files with prefix '%s'",eigvecs);
-      
-      MCW_wildcards(wild_list, &nglob, &wglob ); 
-      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext, 
+
+      MCW_wildcards(wild_list, &nglob, &wglob );
+      if ((wsort = unique_str(wglob, nglob, wild_ci, wild_noext,
                               &nsort, &isrt))) {
-         
-         if( nsort < N_dti_vecs ) 
+
+         if( nsort < N_dti_vecs )
             ERROR_exit("Only found %d files in eigval search: need %d.",
                        nsort, N_dti_vecs);
-         
-         EVECS = (THD_3dim_dataset **)calloc(N_dti_vecs, 
+
+         EVECS = (THD_3dim_dataset **)calloc(N_dti_vecs,
                                              sizeof(THD_3dim_dataset *));
-         if( EVECS == NULL ) 
+         if( EVECS == NULL )
             ERROR_exit("Memory allocation error for EVECS, oddly.");
-         
-         
+
+
          for( ii=0 ; ii< N_dti_vecs; ii++) {
             EVECS[ii] = THD_open_dataset(wglob[isrt[ii]]);
-            if( EVECS[ii] == NULL ) 
+            if( EVECS[ii] == NULL )
                ERROR_exit("Can't open dataset '%s'",wglob[isrt[ii]]);
             DSET_load(EVECS[ii]);  CHECK_LOAD_ERROR(EVECS[ii]);
             INFO_message("Loaded V%d file: '%s'",ii+1, wglob[isrt[ii]]);
@@ -363,7 +363,7 @@ int main(int argc, char *argv[]) {
          free(wsort); wsort = NULL;
          SUMA_ifree(wild_list);
          MCW_free_wildcards( nglob , wglob ) ;
-      } 
+      }
       else {
          ERROR_message("Failed to sort");
          SUMA_ifree(wild_list);
@@ -371,22 +371,22 @@ int main(int argc, char *argv[]) {
          exit(1);
       }
    }
-   
-   mskd2 = (byte *)calloc(Nvox,sizeof(byte)); 
-   if( (mskd2 == NULL)) { 
+
+   mskd2 = (byte *)calloc(Nvox,sizeof(byte));
+   if( (mskd2 == NULL)) {
       fprintf(stderr, "\n\n MemAlloc failure (masks).\n\n");
       exit(122);
    }
-   
+
    if(maskname) {
       MASK = THD_open_dataset(maskname);
       DSET_load(MASK);  CHECK_LOAD_ERROR(MASK);
-      
+
       if( 1 != DSET_NVALS(MASK) )
          ERROR_exit("Mask file '%s' is not scalar-- "
                     "it has %d bricks!",
                     maskname, DSET_NVALS(MASK));
-      
+
       for( k=0 ; k<Nvox ; k++ )
          if (THD_get_voxel(MASK, k, 0) > 0 )
             mskd2[k] = 1;
@@ -401,12 +401,12 @@ int main(int argc, char *argv[]) {
          if( fabs(THD_get_voxel(EVALS[0],k,0) > EPS_V) )
             mskd2[k] = 1;
    }
-      
 
-	dt = calloc(6,sizeof(dt)); 
-	for(i=0 ; i<6 ; i++) 
-		dt[i] = calloc( Nvox,sizeof(float)); 
-   if( dt == NULL ) { 
+
+	dt = calloc(6,sizeof(dt));
+	for(i=0 ; i<6 ; i++)
+		dt[i] = calloc( Nvox,sizeof(float));
+   if( dt == NULL ) {
       fprintf(stderr, "\n\n MemAlloc failure (DTs).\n\n");
       exit(122);
    }
@@ -414,11 +414,11 @@ int main(int argc, char *argv[]) {
    INFO_message("Calculate sum of dyads.");
    i = Dyadize( dt, Nvox, EVALS, LAMSCALE, EVECS, INV, mskd2 );
 
-   DT_OUT = EDIT_empty_copy( EVALS[0] ); 
+   DT_OUT = EDIT_empty_copy( EVALS[0] );
 	EDIT_add_bricklist(DT_OUT,
 							 5, NULL , NULL , NULL );
 	EDIT_dset_items(DT_OUT,
-						 ADN_datum_all, MRI_float , 
+						 ADN_datum_all, MRI_float ,
                    ADN_prefix, prefix,
 						 ADN_none );
 
@@ -427,12 +427,12 @@ int main(int argc, char *argv[]) {
 		dt[i]=NULL;
 	}
 
-	EDIT_BRICK_LABEL(DT_OUT,0,"Dxx");      
-	EDIT_BRICK_LABEL(DT_OUT,1,"Dxy");      
-	EDIT_BRICK_LABEL(DT_OUT,2,"Dyy");      
-	EDIT_BRICK_LABEL(DT_OUT,3,"Dxz");      
-	EDIT_BRICK_LABEL(DT_OUT,4,"Dyz");      
-	EDIT_BRICK_LABEL(DT_OUT,5,"Dzz");     
+	EDIT_BRICK_LABEL(DT_OUT,0,"Dxx");
+	EDIT_BRICK_LABEL(DT_OUT,1,"Dxy");
+	EDIT_BRICK_LABEL(DT_OUT,2,"Dyy");
+	EDIT_BRICK_LABEL(DT_OUT,3,"Dxz");
+	EDIT_BRICK_LABEL(DT_OUT,4,"Dyz");
+	EDIT_BRICK_LABEL(DT_OUT,5,"Dzz");
 
 	THD_load_statistics( DT_OUT );
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(DT_OUT)) )
@@ -440,13 +440,13 @@ int main(int argc, char *argv[]) {
 					  DSET_HEADNAME(DT_OUT));
 	tross_Make_History("3dEigsToDT", argc, argv, DT_OUT);
 	THD_write_3dim_dataset(NULL, NULL, DT_OUT, True);
-	DSET_delete(DT_OUT); 
-  	free(DT_OUT); 
-   
+	DSET_delete(DT_OUT);
+  	free(DT_OUT);
+
    // #################################################################
    // ##########################  free  ###############################
    // #################################################################
-   
+
    for( i=0 ; i<N_dti_vals ; i++) {
       DSET_delete(EVALS[i]);
       free(EVALS[i]);
@@ -459,7 +459,7 @@ int main(int argc, char *argv[]) {
    }
    free(EVECS);
 
-	for(i=0 ; i<6 ; i++) 
+	for(i=0 ; i<6 ; i++)
       free(dt[i]);
    free(dt);
 

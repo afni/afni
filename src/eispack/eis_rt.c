@@ -12,11 +12,11 @@
     integer a_dim1, a_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int figi_(integer *, integer *, doublereal *, 
+    extern /* Subroutine */ int figi_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, integer *), figi2_(
-	    integer *, integer *, doublereal *, doublereal *, doublereal *, 
-	    doublereal *, integer *), imtql1_(integer *, doublereal *, 
-	    doublereal *, integer *), imtql2_(integer *, integer *, 
+	    integer *, integer *, doublereal *, doublereal *, doublereal *,
+	    doublereal *, integer *), imtql1_(integer *, doublereal *,
+	    doublereal *, integer *), imtql2_(integer *, integer *,
 	    doublereal *, doublereal *, doublereal *, integer *);
 
 
@@ -58,12 +58,12 @@
 /*        FV1  IS A TEMPORARY STORAGE ARRAY. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

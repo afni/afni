@@ -2,19 +2,19 @@
  * version 0.12.
  * (Implements POSIX draft P10003.2/D11.2, except for
  * internationalization features.)
- * 
+ *
  * Copyright (C) 1993 Free Software Foundation, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2, or (at your option)
  * any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
@@ -182,8 +182,8 @@ init_syntax_once()
  * use `alloca' instead of `malloc'.  This is because using malloc in
  * re_search* or re_match* could cause memory leaks when C-g is used in
  * Emacs; also, malloc is slower and causes storage fragmentation.  On
- * the other hand, malloc is more portable, and easier to debug.  
- * 
+ * the other hand, malloc is more portable, and easier to debug.
+ *
  * Because we sometimes use alloca, some routines have to be macros,
  * not functions -- `alloca'-allocated space disappears at the end of the
  * function it is called in.  */
@@ -250,7 +250,7 @@ typedef char boolean;
  * expressions.  Some opcodes are followed by argument bytes.  A
  * command code can specify any interpretation whatsoever for its
  * arguments.  Zero bytes may appear in the compiled regular expression.
- * 
+ *
  * The value of `exactn' is needed in search.c (search_buffer) in Emacs.
  * So regex.h defines a symbol `RE_EXACTN_VALUE' to be 1; the value of
  * `exactn' we use here must also be 1.  */
@@ -793,7 +793,7 @@ reg_syntax_t re_syntax_options = RE_SYNTAX_EMACS;
 /* Specify the precise syntax of regexps for compilation.  This provides
  * for compatibility for various utilities which historically have
  * different, incompatible syntaxes.
- * 
+ *
  * The argument SYNTAX is a bit mask comprised of the various bits
  * defined in regex.h.  We return the old syntax.  */
 
@@ -838,7 +838,7 @@ static boolean at_begline_loc_p(), at_endline_loc_p();
 static boolean group_in_compile_stack();
 static reg_errcode_t compile_range();
 
-/* Fetch the next character in the uncompiled pattern---translating it 
+/* Fetch the next character in the uncompiled pattern---translating it
  * if necessary.  Also cast from a signed character in the constant
  * string passed to us by the user to an unsigned char that we can use
  * as an array index (in, e.g., `translate').  */
@@ -1033,10 +1033,10 @@ typedef struct {
 
 /* `regex_compile' compiles PATTERN (of length SIZE) according to SYNTAX.
  * Returns one of error codes defined in `regex.h', or zero for success.
- * 
+ *
  * Assumes the `allocated' (and perhaps `buffer') and `translate'
  * fields are set in BUFP on entry.
- * 
+ *
  * If it succeeds, results are put in BUFP (if it returns an error, the
  * contents of BUFP are undefined):
  * `buffer' is the compiled pattern;
@@ -1045,7 +1045,7 @@ typedef struct {
  * `fastmap_accurate' is zero;
  * `re_nsub' is the number of subexpressions in PATTERN;
  * `not_bol' and `not_eol' are zero;
- * 
+ *
  * The `fastmap' and `newline_anchor' fields are neither
  * examined nor set.  */
 
@@ -1258,8 +1258,8 @@ regex_compile(pattern, size, syntax, bufp)
 		if (many_times_ok) {	/* More than one repetition is allowed, so put in at the
 					 * end a backward relative jump from `b' to before the next
 					 * jump we're going to put in below (which jumps from
-					 * laststart to after this jump).  
-					 * 
+					 * laststart to after this jump).
+					 *
 					 * But if we are at the `*' in the exact sequence `.*\n',
 					 * insert an unconditional jump backwards to the .,
 					 * instead of the beginning of the loop.  This way we only
@@ -1422,7 +1422,7 @@ regex_compile(pattern, size, syntax, bufp)
 			str[c1] = '\0';
 
 			/* If isn't a word bracketed by `[:' and:`]':
-			 * undo the ending character, the letters, and leave 
+			 * undo the ending character, the letters, and leave
 			 * the leading `:' and `[' (but set bits for them).  */
 			if (c == ':' && *p == ']') {
 			    int ch;
@@ -1663,11 +1663,11 @@ regex_compile(pattern, size, syntax, bufp)
 		 * jump (put in below, which in turn will jump to the next
 		 * (if any) alternative's such jump, etc.).  The last such
 		 * jump jumps to the correct final destination.  A picture:
-		 * _____ _____ 
-		 * |   | |   |   
-		 * |   v |   v 
-		 * a | b   | c   
-		 * 
+		 * _____ _____
+		 * |   | |   |
+		 * |   v |   v
+		 * a | b   | c
+		 *
 		 * If we are at `b', then fixup_alt_jump right now points to a
 		 * three-byte space after `a'.  We'll put in the jump, set
 		 * fixup_alt_jump to right after `b', and leave behind three
@@ -1691,7 +1691,7 @@ regex_compile(pattern, size, syntax, bufp)
 	    case '{':
 		/* If \{ is a literal.  */
 		if (!(syntax & RE_INTERVALS)
-		/* If we're at `\{' and it's not the open-interval 
+		/* If we're at `\{' and it's not the open-interval
 		 * operator.  */
 		    || ((syntax & RE_INTERVALS) && (syntax & RE_NO_BK_BRACES))
 		    || (p - 2 == pattern && p == pend))
@@ -1785,7 +1785,7 @@ regex_compile(pattern, size, syntax, bufp)
 			    lower_bound);
 			b += 5;
 
-			/* Code to initialize the lower bound.  Insert 
+			/* Code to initialize the lower bound.  Insert
 			 * before the `succeed_n'.  The `5' is the last two
 			 * bytes of this `set_number_at', plus 3 bytes of
 			 * the following `succeed_n'.  */
@@ -1795,7 +1795,7 @@ regex_compile(pattern, size, syntax, bufp)
 			if (upper_bound > 1) {	/* More than one repetition is allowed, so
 						 * append a backward jump to the `succeed_n'
 						 * that starts this interval.
-						 * 
+						 *
 						 * When we've reached this during matching,
 						 * we'll have matched the interval once, so
 						 * jump back only `upper_bound - 1' times.  */
@@ -1813,7 +1813,7 @@ regex_compile(pattern, size, syntax, bufp)
 			     * so everything is getting moved up by 5.
 			     * Conclusion: (b - 2) - (laststart + 3) + 5,
 			     * i.e., b - laststart.
-			     * 
+			     *
 			     * We insert this at the beginning of the loop
 			     * so that if we fail during matching, we'll
 			     * reinitialize the bounds.  */
@@ -2111,7 +2111,7 @@ at_endline_loc_p(p, pend, syntax)
 }
 
 
-/* Returns true if REGNUM is in one of COMPILE_STACK's elements and 
+/* Returns true if REGNUM is in one of COMPILE_STACK's elements and
  * false if it's not.  */
 
 static boolean
@@ -2136,9 +2136,9 @@ group_in_compile_stack(compile_stack, regnum)
  * starting character is in `P[-2]'.  (`P[-1]' is the character `-'.)
  * Then we set the translation of all bits between the starting and
  * ending characters (inclusive) in the compiled pattern B.
- * 
+ *
  * Return an error code.
- * 
+ *
  * We use these short variable names so we can use the same macros as
  * `regex_compile' itself.  */
 
@@ -2161,8 +2161,8 @@ compile_range(p_ptr, pend, translate, syntax, b)
      * with unsigned char *'s; if the high bit of the pattern character
      * is set, the range endpoints will be negative if we fetch using a
      * signed char *.
-     * 
-     * We also want to fetch the endpoints without translating them; the 
+     *
+     * We also want to fetch the endpoints without translating them; the
      * appropriate translation is done in the bit-setting loop below.  */
     range_start = ((unsigned char *) p)[-2];
     range_end = ((unsigned char *) p)[0];
@@ -2234,10 +2234,10 @@ typedef struct {
 
 
 /* Double the size of FAIL_STACK, up to approximately `re_max_failures' items.
- * 
+ *
  * Return 1 if succeeds, and 0 if either ran out of memory
- * allocating space for it or it was already too large.  
- * 
+ * allocating space for it or it was already too large.
+ *
  * REGEX_REALLOCATE requires `destination' be declared.   */
 
 #define DOUBLE_FAIL_STACK(fail_stack)					\
@@ -2254,8 +2254,8 @@ typedef struct {
          1)))
 
 
-/* Push PATTERN_OP on FAIL_STACK. 
- * 
+/* Push PATTERN_OP on FAIL_STACK.
+ *
  * Return 1 if was able to do so and 0 if ran out of memory allocating
  * space to do so.  */
 #define PUSH_PATTERN_OP(pattern_op, fail_stack)				\
@@ -2285,12 +2285,12 @@ typedef struct {
 
 
 /* Push the information about the state we will need
- * if we ever fail back to it.  
- * 
+ * if we ever fail back to it.
+ *
  * Requires variables fail_stack, regstart, regend, reg_info, and
  * num_regs be declared.  DOUBLE_FAIL_STACK requires `destination' be
  * declared.
- * 
+ *
  * Does `return FAILURE_CODE' if runs out of memory.  */
 
 #define PUSH_FAILURE_POINT(pattern_place, string_place, failure_code)	\
@@ -2391,14 +2391,14 @@ typedef struct {
 
 
 /* Pops what PUSH_FAIL_STACK pushes.
- * 
+ *
  * We restore into the parameters, all of which should be lvalues:
  * STR -- the saved data position.
  * PAT -- the saved pattern position.
  * LOW_REG, HIGH_REG -- the highest and lowest active registers.
  * REGSTART, REGEND -- arrays of string positions.
  * REG_INFO -- array of information about each subexpression.
- * 
+ *
  * Also assumes the variables `fail_stack' and (if debugging), `bufp',
  * `pend', `string1', `size1', `string2', and `size2'.  */
 
@@ -2463,13 +2463,13 @@ typedef struct {
  * BUFP.  A fastmap records which of the (1 << BYTEWIDTH) possible
  * characters can start a string that matches the pattern.  This fastmap
  * is used by re_search to skip quickly over impossible starting points.
- * 
+ *
  * The caller must supply the address of a (1 << BYTEWIDTH)-byte data
  * area as BUFP->fastmap.
- * 
+ *
  * We set the `fastmap', `fastmap_accurate', and `can_be_null' fields in
  * the pattern buffer.
- * 
+ *
  * Returns 0 if we succeed, -2 if an internal error.   */
 
 int
@@ -2741,10 +2741,10 @@ re_compile_fastmap(bufp)
  * this memory for recording register information.  STARTS and ENDS
  * must be allocated using the malloc library routine, and must each
  * be at least NUM_REGS * sizeof (regoff_t) bytes long.
- * 
+ *
  * If NUM_REGS == 0, then subsequent matches should allocate their own
  * register data.
- * 
+ *
  * Unless this function is called, the first search or match using
  * PATTERN_BUFFER will allocate its own register data, without
  * freeing the old data.  */
@@ -2788,20 +2788,20 @@ re_search(bufp, string, size, startpos, range, regs)
 /* Using the compiled pattern in BUFP->buffer, first tries to match the
  * virtual concatenation of STRING1 and STRING2, starting first at index
  * STARTPOS, then at STARTPOS + 1, and so on.
- * 
+ *
  * STRING1 and STRING2 have length SIZE1 and SIZE2, respectively.
- * 
+ *
  * RANGE is how far to scan while trying to match.  RANGE = 0 means try
  * only at STARTPOS; in general, the last start tried is STARTPOS +
  * RANGE.
- * 
+ *
  * In REGS, return the indices of the virtual concatenation of STRING1
  * and STRING2 that matched the entire BUFP->buffer and its contained
  * subexpressions.
- * 
+ *
  * Do not consider matching one past the index STOP in the virtual
  * concatenation of STRING1 and STRING2.
- * 
+ *
  * We return either the position in the strings at which the match was
  * found, -1 if no match, or -2 if error (such as failure
  * stack overflow).  */
@@ -2922,8 +2922,8 @@ static boolean alt_match_null_string_p(), common_op_match_null_string_p(),
  * onto the failure stack.  Other register information, such as the
  * starting and ending positions (which are addresses), and the list of
  * inner groups (which is a bits list) are maintained in separate
- * variables.  
- * 
+ * variables.
+ *
  * We are making a (strictly speaking) nonportable assumption here: that
  * the compiler will pack our bit fields into something that fits into
  * the type of `word', i.e., is something that fits into one item on the
@@ -3067,11 +3067,11 @@ re_match(bufp, string, size, pos, regs)
  * the (virtual) concatenation of STRING1 and STRING2 (of length SIZE1
  * and SIZE2, respectively).  We start matching at POS, and stop
  * matching at STOP.
- * 
+ *
  * If REGS is non-null and the `no_sub' field of BUFP is nonzero, we
  * store offsets for the substring each group matched in REGS.  See the
  * documentation for exactly how many groups we fill.
- * 
+ *
  * We return -1 if no match, -2 if an internal error (such as the
  * failure stack overflowing).  Otherwise, we return the length of the
  * matched substring.  */
@@ -3155,7 +3155,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
     register_info_type *reg_info = NULL;
 
     /* The following record the register info as found in the above
-     * variables when we find a match better than any we've seen before. 
+     * variables when we find a match better than any we've seen before.
      * This happens as we backtrack through the failure points, which in
      * turn happens only if we have not yet matched the entire string. */
     unsigned best_regs_set = false;
@@ -3254,7 +3254,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 	end_match_2 = string2 + stop - size1;
     }
 
-    /* `p' scans through the pattern as `d' scans through the data. 
+    /* `p' scans through the pattern as `d' scans through the data.
      * `dend' is the end of the input string that `d' points within.  `d'
      * is advanced into the following input string whenever necessary, but
      * this happens before fetching; therefore, at the beginning of the
@@ -3618,7 +3618,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 		     * failed match, e.g., with `(a*)*b' against `ab' for
 		     * regstart[1], and, e.g., with `((a*)*(b*)*)*'
 		     * against `aba' for regend[3].
-		     * 
+		     *
 		     * Also restore the registers for inner groups for,
 		     * e.g., `((a*)(b*))*' against `aba' (register 3 would
 		     * otherwise get trashed).  */
@@ -3768,7 +3768,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 	     * then the . fails against the \n.  But the next thing we want
 	     * to do is match the \n against the \n; if we restored the
 	     * string value, we would be back at the foo.
-	     * 
+	     *
 	     * Because this is used only in specific cases, we don't need to
 	     * check all the things that `on_failure_jump' does, to make
 	     * sure the right things get saved on the stack.  Hence we don't
@@ -3787,14 +3787,14 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 
 
 	    /* Uses of on_failure_jump:
-	     * 
+	     *
 	     * Each alternative starts with an on_failure_jump that points
 	     * to the beginning of the next alternative.  Each alternative
 	     * except the last ends with a jump that in effect jumps past
 	     * the rest of the alternatives.  (They really jump to the
 	     * ending jump of the following alternative, because tensioning
 	     * these jumps is a hassle.)
-	     * 
+	     *
 	     * Repeats start with an on_failure_jump that points past both
 	     * the repetition text and either the following jump or
 	     * pop_failure_jump back to this on_failure_jump.  */
@@ -3851,7 +3851,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 		 * would have to backtrack because of (as in, e.g., `a*a')
 		 * then we can change to pop_failure_jump, because we'll
 		 * never have to backtrack.
-		 * 
+		 *
 		 * This is not true in the case of alternatives: in
 		 * `(a|ab)*' we do need to backtrack to the `ab' alternative
 		 * (e.g., if the string was `ab').  But instead of trying to
@@ -3879,7 +3879,7 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 		    p1 = p + mcnt;
 
 		    /* p1[0] ... p1[2] are the `on_failure_jump' corresponding
-		     * to the `maybe_finalize_jump' of this case.  Examine what 
+		     * to the `maybe_finalize_jump' of this case.  Examine what
 		     * follows.  */
 		    if ((re_opcode_t) p1[3] == exactn && p1[5] != c) {
 			p[-3] = (unsigned char) pop_failure_jump;
@@ -4190,13 +4190,13 @@ re_match_2(bufp, string1, size1, string2, size2, pos, regs, stop)
 
 
 /* We are passed P pointing to a register number after a start_memory.
- * 
+ *
  * Return true if the pattern up to the corresponding stop_memory can
  * match the empty string, and false otherwise.
- * 
+ *
  * If we find the matching stop_memory, sets P to point to one past its number.
  * Otherwise, sets P to an undefined byte less than or equal to END.
- * 
+ *
  * We don't handle duplicates properly (yet).  */
 
 static boolean
@@ -4228,11 +4228,11 @@ group_match_null_string_p(p, end, reg_info)
 		 * The last alternative starts with only a jump,
 		 * whereas the rest start with on_failure_jump and end
 		 * with a jump, e.g., here is the pattern for `a|b|c':
-		 * 
+		 *
 		 * /on_failure_jump/0/6/exactn/1/a/jump_past_alt/0/6
 		 * /on_failure_jump/0/6/exactn/1/b/jump_past_alt/0/3
-		 * /exactn/1/c                                            
-		 * 
+		 * /exactn/1/c
+		 *
 		 * So, we have to first go through the first (n-1)
 		 * alternatives and then deal with the last one separately.  */
 
@@ -4312,7 +4312,7 @@ alt_match_null_string_p(p, end, reg_info)
     unsigned char *p1 = p;
 
     while (p1 < end) {
-	/* Skip over opcodes that can match nothing, and break when we get 
+	/* Skip over opcodes that can match nothing, and break when we get
 	 * to one that can't.  */
 
 	switch ((re_opcode_t) * p1) {
@@ -4334,8 +4334,8 @@ alt_match_null_string_p(p, end, reg_info)
 
 
 /* Deals with the ops common to group_match_null_string_p and
- * alt_match_null_string_p.  
- * 
+ * alt_match_null_string_p.
+ *
  * Sets P to one after the op and its arguments, if any.  */
 
 static boolean
@@ -4443,10 +4443,10 @@ bcmp_translate(s1, s2, len, translate)
 /* re_compile_pattern is the GNU regular expression compiler: it
  * compiles PATTERN (of length SIZE) and puts the result in BUFP.
  * Returns 0 if the pattern was valid, otherwise an error string.
- * 
+ *
  * Assumes the `allocated' (and perhaps `buffer') and `translate' fields
  * are set in BUFP on entry.
- * 
+ *
  * We call regex_compile to do the actual compilation.  */
 
 const char *
@@ -4532,10 +4532,10 @@ re_exec(s)
 #ifndef emacs
 
 /* regcomp takes a regular expression as a string and compiles it.
- * 
+ *
  * PREG is a regex_t *.  We do not expect any fields to be initialized,
  * since POSIX says we shouldn't.  Thus, we set
- * 
+ *
  * `buffer' to the compiled pattern;
  * `used' to the length of the compiled pattern;
  * `syntax' to RE_SYNTAX_POSIX_EXTENDED if the
@@ -4544,24 +4544,24 @@ re_exec(s)
  * `newline_anchor' to REG_NEWLINE being set in CFLAGS;
  * `fastmap' and `fastmap_accurate' to zero;
  * `re_nsub' to the number of subexpressions in PATTERN.
- * 
+ *
  * PATTERN is the address of the pattern string.
- * 
+ *
  * CFLAGS is a series of bits which affect compilation.
- * 
+ *
  * If REG_EXTENDED is set, we use POSIX extended syntax; otherwise, we
  * use POSIX basic syntax.
- * 
+ *
  * If REG_NEWLINE is set, then . and [^...] don't match newline.
  * Also, regexec will try a match beginning after every newline.
- * 
+ *
  * If REG_ICASE is set, then we considers upper- and lowercase
  * versions of letters to be equivalent when matching.
- * 
+ *
  * If REG_NOSUB is set, then when PREG is passed to regexec, that
  * routine will report only success or failure, and nothing about the
  * registers.
- * 
+ *
  * It returns 0 if it succeeds, nonzero if it doesn't.  (See regex.h for
  * the return codes and their meanings.)  */
 
@@ -4610,7 +4610,7 @@ regcomp(preg, pattern, cflags)
 
     preg->no_sub = !!(cflags & REG_NOSUB);
 
-    /* POSIX says a null character in the pattern terminates it, so we 
+    /* POSIX says a null character in the pattern terminates it, so we
      * can use strlen here in compiling the pattern.  */
     ret = regex_compile(pattern, strlen(pattern), syntax, preg);
 
@@ -4625,16 +4625,16 @@ regcomp(preg, pattern, cflags)
 
 /* regexec searches for a given pattern, specified by PREG, in the
  * string STRING.
- * 
+ *
  * If NMATCH is zero or REG_NOSUB was set in the cflags argument to
  * `regcomp', we ignore PMATCH.  Otherwise, we assume PMATCH has at
  * least NMATCH elements, and we set them to the offsets of the
  * corresponding matched substrings.
- * 
+ *
  * EFLAGS specifies `execution flags' which affect matching: if
  * REG_NOTBOL is set, then ^ does not match at the beginning of the
  * string; if REG_NOTEOL is set, then $ does not match at the end.
- * 
+ *
  * We return 0 if we find a match and REG_NOMATCH if not.  */
 
 int
@@ -4707,7 +4707,7 @@ regerror(errcode, preg, errbuf, errbuf_size)
 
     if (errcode < 0
 	|| errcode >= (sizeof(re_error_msg) / sizeof(re_error_msg[0])))
-	/* Only error codes returned by the rest of the code should be passed 
+	/* Only error codes returned by the rest of the code should be passed
 	 * to this routine.  If we are given anything else, or if other regex
 	 * code generates an invalid error code, then the program has a bug.
 	 * Dump core so we can fix it.  */

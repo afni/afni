@@ -628,7 +628,7 @@ ENTRY("glt_analysis") ;
 	{
 	  /*----- Calculate the GLT linear combinations -----*/
 	  calc_lcoef (glt_cmat[iglt], coef, &glt_coef[iglt]);
-	
+
 	  /*----- Calculate t-statistics for GLT linear combinations -----*/
 	  calc_tcoef (N, p, ssef, cxtxinvct[iglt],
 		      glt_coef[iglt], &scoef, &glt_tcoef[iglt]);
@@ -788,7 +788,7 @@ void report_results
 	{
 	  sprintf (sbuf, "\nBaseline for Run #%d: \n", ib+1);
 	  if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;
-	
+
 	  mfirst =  ib    * (polort+1);
 	  mlast  = (ib+1) * (polort+1);
 	  for (m = mfirst;  m < mlast;  m++)
@@ -812,7 +812,7 @@ void report_results
   for (is = 0;  is < num_stimts;  is++)
     {
       if (baseline[is])
-	sprintf (sbuf, "\nBaseline: %s \n", stim_label[is]);	
+	sprintf (sbuf, "\nBaseline: %s \n", stim_label[is]);
       else
 	sprintf (sbuf, "\nStimulus: %s \n", stim_label[is]);
       if (strlen(lbuf) < MAXBUF)  strcat(lbuf,sbuf); else goto finisher ;

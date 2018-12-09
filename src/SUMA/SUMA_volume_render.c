@@ -3,10 +3,10 @@
 extern SUMA_CommonFields *SUMAg_CF;
 extern SUMA_DO *SUMAg_DOv;
 extern SUMA_SurfaceViewer *SUMAg_SVv;
-extern int SUMAg_N_SVv; 
-extern int SUMAg_N_DOv;  
+extern int SUMAg_N_SVv;
+extern int SUMAg_N_DOv;
 
-/* Volume rendering code, based on GLUT-3.7's advanced97/volume.c 
+/* Volume rendering code, based on GLUT-3.7's advanced97/volume.c
 See also SUMA_GLUT_volumedemo.c*/
 
 
@@ -19,20 +19,20 @@ static GLfloat lightpos[4] = {150., 150., 150., 1.f};
 int SUMA_MoveCutplane (SUMA_VolumeObject *VO, int iplane, float d)
 {
    static char FuncName[]={"SUMA_MoveCutplane"};
-   
+
    SUMA_ENTRY;
-   
+
    if (iplane < 0 || iplane > 5) {
       SUMA_S_Err("Bad plane index");
       SUMA_RETURN(0);
    }
-   
+
    VO->CutPlane[iplane][3] = VO->CutPlane[iplane][3]+d;
    if (!SUMA_SetTextureClipPlaneSurface(VO, iplane)) {
       SUMA_S_Err("Failed to set cutplane surface");
       SUMA_RETURN(0);
    }
-   
+
    SUMA_RETURN(1);
 }
 
@@ -48,11 +48,11 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
    SUMA_OVERLAYS *colplane = NULL, *curcolplane=NULL;
    SUMA_Boolean SetupOverlay = YUP, MakeOverlayCurrent = YUP;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    dset = *dsetp;
-    
+
    /* make sure data part of dset is loaded, not just the header          */
    DSET_mallocize(dset); DSET_load(dset);
    orcode[0] = ORIENT_typestr[dset->daxes->xxorient][0] ;
@@ -68,16 +68,16 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
                     "No reorienting done.", forcode);
        } else if (strcmp(orcode,forcode) ) {
          char sss[5];
-         SUMA_S_Note("Resampling %s from %s to %s, per user request.\n", 
+         SUMA_S_Note("Resampling %s from %s to %s, per user request.\n",
                      DSET_HEADNAME(dset), orcode, forcode);
-         odset = r_new_resam_dset(dset, NULL, 0.0, 0.0, 0.0, 
+         odset = r_new_resam_dset(dset, NULL, 0.0, 0.0, 0.0,
                                   forcode, MRI_LINEAR, NULL, 1, 1);
          sprintf(sss, ".%s",forcode);
          np = SUMA_append_string(DSET_PREFIX(dset), sss);
          EDIT_dset_items(  odset ,
                          ADN_prefix      , np,
                          ADN_none ) ;
-         tross_Copy_History( dset , odset ) ;      
+         tross_Copy_History( dset , odset ) ;
          DSET_delete(dset); dset = odset; odset = NULL;
          if (LocalHead && 0) {
             SUMA_LH("Writing resampled dset");
@@ -87,12 +87,12 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          *dsetp = dset;
       }
    }
-  
-   sdset = SUMA_afnidset2sumadset(&dset, 1, 1, 0); 
+
+   sdset = SUMA_afnidset2sumadset(&dset, 1, 1, 0);
    if (dset) {
       SUMA_S_Warn("Leakage! dset should be null by now...");
    }
-   
+
    /* Does this dset have a built in colormap?
       If it does, then loadit into SCM */
    if (!SUMA_Insert_Cmap_of_Dset(sdset)) {
@@ -100,7 +100,7 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
       SUMA_FreeDset(sdset); sdset = NULL;
       SUMA_RETURN(NOPE);
    }
-   
+
    if (SetupOverlay) {
       OverInd = -1;
       SUMA_LH("Looking for pre-existing overlay on %s", SDSET_LABEL(sdset));
@@ -118,16 +118,16 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          SUMA_LH("Creating anew");
          OverInd = SUMA_ADO_N_Overlays(ado);
       }
-      if (!(colplane = SUMA_CreateOverlayPointer ( ADO_LABEL(ado), 
+      if (!(colplane = SUMA_CreateOverlayPointer ( ADO_LABEL(ado),
                                                 sdset, ADO_ID(ado), colplane))) {
          SUMA_S_Err("Failed to create overlay");
          SUMA_RETURN(NOPE);
       }
       colplane->isBackGrnd = NOPE;
-      
+
       /* Add this plane to VO's Overlays */
       SUMA_LH("VO has %d overlays", SUMA_ADO_N_Overlays(ado));
-      if (!SUMA_AddNewPlane (ado, colplane, SUMAg_DOv, 
+      if (!SUMA_AddNewPlane (ado, colplane, SUMAg_DOv,
                              SUMAg_N_DOv, OKdup)) {
          SUMA_SL_Err("Failed in SUMA_AddNewPlane");
          SUMA_FreeOverlayPointer(colplane);
@@ -137,7 +137,7 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          SUMA_RETURN(NOPE);
       }
       SUMA_LH("VO now has %d overlays", SUMA_ADO_N_Overlays(ado));
-      
+
       /* Match previous setting? */
       curcolplane = SUMA_ADO_CurColPlane(ado);
       if (SUMA_PreserveOverlaySettings(curcolplane, colplane)) {
@@ -153,17 +153,17 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          colplane->OptScl->UseThr = settingPlane->OptScl->UseThr;
          colplane->OptScl->UseBrt = settingPlane->OptScl->UseBrt;
          colplane->OptScl->ThrMode = settingPlane->OptScl->ThrMode;
-         colplane->OptScl->ThreshRange[0] = 
+         colplane->OptScl->ThreshRange[0] =
                                        settingPlane->OptScl->ThreshRange[0];
-         colplane->OptScl->ThreshRange[1] = 
+         colplane->OptScl->ThreshRange[1] =
                                        settingPlane->OptScl->ThreshRange[1];
-         colplane->OptScl->BrightRange[0] = 
+         colplane->OptScl->BrightRange[0] =
                                        settingPlane->OptScl->BrightRange[0];
-         colplane->OptScl->BrightRange[1] = 
+         colplane->OptScl->BrightRange[1] =
                                        settingPlane->OptScl->BrightRange[1];
-         colplane->OptScl->BrightMap[0] = 
+         colplane->OptScl->BrightMap[0] =
                                        settingPlane->OptScl->BrightMap[0];
-         colplane->OptScl->BrightMap[1] = 
+         colplane->OptScl->BrightMap[1] =
                                        settingPlane->OptScl->BrightMap[1];
          colplane->SymIrange = settingPlane->SymIrange;
          colplane->OptScl->IntRange[0] = settingPlane->OptScl->IntRange[0];
@@ -172,13 +172,13 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          if (dsetcmap) {
             SUMA_STRING_REPLACE(colplane->cmapname, dsetcmap);
          } else {
-            SUMA_STRING_REPLACE(colplane->cmapname, 
+            SUMA_STRING_REPLACE(colplane->cmapname,
                                 settingPlane->cmapname);
-         }         
+         }
          colplane->OptScl->Clusterize = settingPlane->OptScl->Clusterize;
-         colplane->OptScl->ClustOpt->AreaLim = 
+         colplane->OptScl->ClustOpt->AreaLim =
             settingPlane->OptScl->ClustOpt->AreaLim;
-         colplane->OptScl->ClustOpt->DistLim = 
+         colplane->OptScl->ClustOpt->DistLim =
             settingPlane->OptScl->ClustOpt->DistLim;
       } else {
          /* set the opacity, index column and the range */
@@ -196,17 +196,17 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          colplane->OptScl->RangeUnits = SUMA_PERC_VALUE_UNITS;
          colplane->OptScl->IntRange[0] = 2;
          colplane->OptScl->IntRange[1] = 98;
-         colplane->OptScl->AutoIntRange = 0; /* turn of auto ranging 
+         colplane->OptScl->AutoIntRange = 0; /* turn of auto ranging
                                  Otherwise SurfCont fields won't reflect
                                  what will eventually get put into IntRange[]
-                                 in the ScaleToMap functions when the 
+                                 in the ScaleToMap functions when the
                                  SurfCont is first opened */
          #endif
          if (colplane->SymIrange) {
-            colplane->OptScl->IntRange[0] = 
+            colplane->OptScl->IntRange[0] =
                -fabs(SUMA_MAX_PAIR( colplane->OptScl->IntRange[0],
                                     colplane->OptScl->IntRange[1]));
-            colplane->OptScl->IntRange[1] = 
+            colplane->OptScl->IntRange[1] =
                -colplane->OptScl->IntRange[0];
          }
 
@@ -218,7 +218,7 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
             /* don't worry, there's a default one */
          }
       }
-      if (colplane->OptScl->Clusterize) 
+      if (colplane->OptScl->Clusterize)
          colplane->OptScl->RecomputeClust = 1;
       /* colorize the plane */
       SUMA_LH("Colorizing Plane");
@@ -232,11 +232,11 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
          if (!SurfCont) {
             SUMA_S_Err("OMG");
          } else {
-            SurfCont->curColPlane = colplane; 
+            SurfCont->curColPlane = colplane;
          }
       }
    }
-   
+
    /* Add as new volume element */
    n_VE = SUMA_VO_NumVE(VO);
    VO->VE[n_VE] = (SUMA_VolumeElement*)SUMA_calloc(1,
@@ -246,34 +246,34 @@ SUMA_DSET *SUMA_adset_to_VE(SUMA_VolumeObject *VO, THD_3dim_dataset **dsetp)
       SUMA_S_Err("Failed to inset dset pointer. Replace is not enabled");
       SUMA_RETURN(NOPE);
    }
-   
+
    if (!SUMA_VE_Set_Dims(VO->VE, n_VE)) {
       SUMA_S_Err("Failed to set dims");
       SUMA_RETURN(NOPE);
    }
- 
+
    /* Prep colorplane */
    SUMA_LH("Prep texture");
-   if (!(VO->VE[n_VE]->texvec = 
+   if (!(VO->VE[n_VE]->texvec =
          SUMA_VE_to_tex3d(VO->VE, n_VE, (byte)n_VE))) {
       SUMA_S_Err("Failed in dset to text3d");
       VO = SUMA_FreeVolumeObject(VO);
       SUMA_RETURN(NOPE);
    }
    SUMA_LHv("Have slot %d,%s\n", n_VE, SUMA_VE_Headname(VO->VE, n_VE));
-      
+
    /* Set the box limits */
-   SUMA_dset_extreme_corners(sdset, 
+   SUMA_dset_extreme_corners(sdset,
                            VO->VE[n_VE]->vo0, VO->VE[n_VE]->voN, 1);
-   SUMA_dset_extreme_corners(sdset, 
+   SUMA_dset_extreme_corners(sdset,
                            VO->VE[n_VE]->bo0, VO->VE[n_VE]->boN, 0);
-                              
-                              
+
+
    SUMA_RETURN(sdset);
 }
 
 GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col)
-{  
+{
    static char FuncName[]={"SUMA_VE_to_tex3d"};
    char *filename;
    GLubyte *tex3ddata;
@@ -281,43 +281,43 @@ GLubyte * SUMA_VE_to_tex3d(SUMA_VolumeElement **VE, int iVE, byte col)
    GLint newval;
    SUMA_DSET *sdset=NULL;
    SUMA_Boolean LocalHead = NOPE;
-    
+
    SUMA_ENTRY;
-    
+
    if (!(sdset = SUMA_VE_dset(VE, iVE))) {
       SUMA_S_Err("No volume found");
-      SUMA_RETURN(NULL); 
+      SUMA_RETURN(NULL);
    }
-   if (!(tex3ddata = 
+   if (!(tex3ddata =
             (GLubyte *)SUMA_malloc(4*SUMA_VE_Nvox(VE, iVE)*sizeof(GLubyte)))) {
       SUMA_S_Crit("Failed to allocate.");
-      SUMA_RETURN(NULL); 
+      SUMA_RETURN(NULL);
    }
    if (LocalHead) {
-      SUMA_LHv("Copying %d intensity in R, G, B, A \n", 
+      SUMA_LHv("Copying %d intensity in R, G, B, A \n",
                SUMA_VE_Nvox(VE, iVE)*4);
    }
    #if 0
    if (!SUMA_Colorize_dset_OBSOLETE(sdset, tex3ddata, col)) {
       SUMA_S_Err("Failed to colorize VO");
-      SUMA_RETURN(NULL); 
+      SUMA_RETURN(NULL);
    }
    #endif
-   
+
    SUMA_RETURN(tex3ddata);
 }
 
 /* This function here is for illustrative purposes.
-   It may be too inefficient to have to allocate and 
-   free SV for each colorizing operation. 
-   
+   It may be too inefficient to have to allocate and
+   free SV for each colorizing operation.
+
 */
-SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset, 
+SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
                                 byte *tex3ddata, byte colopt)
 {
    static char FuncName[]={"SUMA_Colorize_dset_OBSOLETE"};
-   static SUMA_SCALE_TO_MAP_OPT *Opt=NULL;  
-   static SUMA_COLOR_MAP *ColMap=NULL; 
+   static SUMA_SCALE_TO_MAP_OPT *Opt=NULL;
+   static SUMA_COLOR_MAP *ColMap=NULL;
    SUMA_COLOR_SCALED_VECT * SV= NULL;
    float *floatvol=NULL;
    byte *bytevol=NULL, am=0;
@@ -325,9 +325,9 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
    int av=0;
    SUMA_Boolean ans = YUP;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    /* setup some defaults for now. */
    if (!Opt) { /* setup once, this struct should be part of VO, perhaps.
                   Or part of sv structure, perhaps... */
@@ -337,7 +337,7 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
          SUMA_ShowScaleToMapOpt(Opt, NULL, 1);
       }
    }
-   
+
    if (!ColMap) {
       char *eee=getenv("SUMA_VO_ColorMap");
       if (eee) {
@@ -347,27 +347,27 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
          }
       } else {
          eee = "bgyr64";
-      } 
+      }
       ColMap = SUMA_FindNamedColMap(eee);
       if (!ColMap) {
          SUMA_S_Errv("Could not get %s\n", eee);
          SUMA_RETURN(NOPE);
       }
-         
+
    }
    /* No need to colorize as was done in the days of olde.
-      Now colorization is handled in SUMA_Overlays_2_GLCOLAR4, 
+      Now colorization is handled in SUMA_Overlays_2_GLCOLAR4,
       SUMA_ColorizePlane, and SUMA_ScaleToMap_Interactive */
-      
+
    SUMA_RETURN(ans);
-   
+
    /* Create temporary holding structure for colorized vectors */
    if (!(SV = SUMA_Create_ColorScaledVect(SDSET_NVOX(dset), 0))) {
       SUMA_S_Err("Failed to create SV");
       ans = NOPE;      goto CLEANUP;
    }
-   
-            
+
+
    /* copy into tex3ddata */
    if (!colopt) {
       bytevol = (byte *)SUMA_calloc(SDSET_NVOX(dset), sizeof(byte));
@@ -375,10 +375,10 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
          SUMA_S_Err("Failed to allocate for bytevol");
          ans = NOPE;      goto CLEANUP;
       }
-      EDIT_coerce_scale_type( 
+      EDIT_coerce_scale_type(
                   SDSET_VECLEN(dset) ,
                   SDSET_BRICK_FACTOR(dset,0) ,
-                  SDSET_BRICK_TYPE(dset,0), 
+                  SDSET_BRICK_TYPE(dset,0),
                   SDSET_ARRAY(dset, 0) ,   /* input  */
                   MRI_byte               , bytevol  ) ;
       j=0;
@@ -396,10 +396,10 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
          SUMA_S_Err("Failed to allocate for floatvol");
          ans = NOPE;      goto CLEANUP;
       }
-      EDIT_coerce_scale_type( 
+      EDIT_coerce_scale_type(
                   SDSET_NVOX(dset) ,
                   SDSET_BRICK_FACTOR(dset,0) ,
-                  SDSET_BRICK_TYPE(dset,0), 
+                  SDSET_BRICK_TYPE(dset,0),
                   SDSET_ARRAY(dset, 0) ,   /* input  */
                   MRI_float               , floatvol  ) ;
       if (!SUMA_ScaleToMap_alaAFNI (floatvol, SDSET_NVOX(dset),
@@ -413,11 +413,11 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
          i3 = 3*i; am = 0;
          tex3ddata[j] = (byte)(SV->cV[i3  ] * 255);
                                    am = tex3ddata[j];  ++j;
-         tex3ddata[j] = (byte)(SV->cV[i3+1] * 255); 
+         tex3ddata[j] = (byte)(SV->cV[i3+1] * 255);
             if (tex3ddata[j] > am) am = tex3ddata[j];  ++j;
          tex3ddata[j] = (byte)(SV->cV[i3+2] * 255);
             if (tex3ddata[j] > am) am = tex3ddata[j];  ++j;
-         if (SV->isMasked[i]) { 
+         if (SV->isMasked[i]) {
             tex3ddata[j] = 0;
          } else {
             tex3ddata[j] = am;
@@ -430,7 +430,7 @@ SUMA_Boolean SUMA_Colorize_dset_OBSOLETE(SUMA_DSET *dset,
    if (SV) SUMA_Free_ColorScaledVect(SV); SV = NULL;
    if (bytevol) SUMA_free(bytevol); bytevol = NULL;
    if (floatvol) SUMA_free(floatvol); floatvol = NULL;
- 
+
    SUMA_RETURN(ans);
 }
 
@@ -463,9 +463,9 @@ void SUMA_CreateSphereList(void)
 void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER, char *Label)
 {
    static char FuncName[]={"SUMA_RecordEnablingState"};
-   
+
    SUMA_ENTRY;
-   
+
    if (!SER) {
       SUMA_S_Err("NULL SER, how am I to record?");
       SUMA_RETURNe;
@@ -496,19 +496,19 @@ void SUMA_RecordEnablingState(SUMA_EnablingRecord *SER, char *Label)
    glGetFloatv(GL_CURRENT_COLOR, SER->CurCol);
    glGetIntegerv(GL_COLOR_MATERIAL_PARAMETER, &(SER->ColMatParam));
    glGetIntegerv(GL_COLOR_MATERIAL_FACE, &(SER->ColMatFace));
-   
+
    SUMA_RETURNe;
 }
 
 void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
 {
    static char FuncName[]={"SUMA_RestoreEnablingState"};
-   
+
    SUMA_ENTRY;
    if (!SER) {
       SUMA_S_Err("No pointer amigo");
       SUMA_RETURNe;
-   }   
+   }
    if (SER->ALPHA_TEST) glEnable(GL_ALPHA_TEST);
    else glDisable(GL_ALPHA_TEST);
    if (SER->DEPTH_TEST) glEnable(GL_DEPTH_TEST);
@@ -551,12 +551,12 @@ void SUMA_RestoreEnablingState(SUMA_EnablingRecord *SER)
    else glDisable(GL_LINE_SMOOTH);
    if (SER->COLOR_MATERIAL) glEnable(GL_COLOR_MATERIAL);
    else glDisable(GL_COLOR_MATERIAL);
-   
+
    /* For now, do not bother setting colors, etc. */
-   
-   /* if (SER->) glEnable(); 
+
+   /* if (SER->) glEnable();
       else glDisable() */
-   
+
    SUMA_RETURNe;
 }
 
@@ -566,90 +566,90 @@ char *SUMA_EnablingState_Info(SUMA_EnablingRecord *SERu)
    char *s=NULL;
    SUMA_EnablingRecord SERl, *SER;
    SUMA_STRING *SS=NULL;
-   
+
    SUMA_ENTRY;
-      
+
    SS = SUMA_StringAppend(NULL, NULL);
    if (!SERu) {
-      SUMA_RecordEnablingState(&SERl, FuncName); 
+      SUMA_RecordEnablingState(&SERl, FuncName);
       SER = &SERl;
    }  else {
       SER = SERu;
    }
-   
-   SUMA_StringAppend_va(SS,"OpenGL State Record for %s\n", SER->Label);
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-                       "GL_ALPHA_TEST", SER->ALPHA_TEST ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-                        "GL_DEPTH_TEST",SER->DEPTH_TEST ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-               "GL_TEXTURE_3D_EXT", SER->TEXTURE_3D_EXT ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_TEXTURE_2D", SER->TEXTURE_2D ? "+++":"---");
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_TEXTURE_3D", SER->TEXTURE_3D ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_TEXTURE_GEN_S", SER->TEXTURE_GEN_S ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_TEXTURE_GEN_T", SER->TEXTURE_GEN_T ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_TEXTURE_GEN_R", SER->TEXTURE_GEN_R ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE0", SER->CLIP_PLANE0 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE1", SER->CLIP_PLANE1 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE2", SER->CLIP_PLANE2 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE3", SER->CLIP_PLANE3 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE4", SER->CLIP_PLANE4 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_CLIP_PLANE5", SER->CLIP_PLANE5 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_LIGHTING", SER->LIGHTING ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_COLOR_MATERIAL", SER->COLOR_MATERIAL ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %d\n", 
-           "COLOR_MATERIAL_PARAMETER", SER->ColMatParam); 
-   SUMA_StringAppend_va(SS,"% 24s is %d\n", 
-           "COLOR_MATERIAL_FACE", SER->ColMatFace);
-   SUMA_StringAppend_va(SS,"% 24s is %.3f %.3f %.3f %.3f\n", 
-           "CURRENT_COLOR", 
-           SER->CurCol[0], SER->CurCol[1], SER->CurCol[2], SER->CurCol[3] ); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_LIGHT0", SER->LIGHT0 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_LIGHT1", SER->LIGHT1 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_LIGHT2", SER->LIGHT2 ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_BLEND", SER->BLEND ? "+++":"---"); 
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_LINE_SMOOTH", SER->LINE_SMOOTH ? "+++":"---"); 
 
-/*   
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_ ", SER-> ? "+++":"---"); 
+   SUMA_StringAppend_va(SS,"OpenGL State Record for %s\n", SER->Label);
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+                       "GL_ALPHA_TEST", SER->ALPHA_TEST ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+                        "GL_DEPTH_TEST",SER->DEPTH_TEST ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+               "GL_TEXTURE_3D_EXT", SER->TEXTURE_3D_EXT ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_TEXTURE_2D", SER->TEXTURE_2D ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_TEXTURE_3D", SER->TEXTURE_3D ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_TEXTURE_GEN_S", SER->TEXTURE_GEN_S ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_TEXTURE_GEN_T", SER->TEXTURE_GEN_T ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_TEXTURE_GEN_R", SER->TEXTURE_GEN_R ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE0", SER->CLIP_PLANE0 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE1", SER->CLIP_PLANE1 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE2", SER->CLIP_PLANE2 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE3", SER->CLIP_PLANE3 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE4", SER->CLIP_PLANE4 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_CLIP_PLANE5", SER->CLIP_PLANE5 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_LIGHTING", SER->LIGHTING ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_COLOR_MATERIAL", SER->COLOR_MATERIAL ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %d\n",
+           "COLOR_MATERIAL_PARAMETER", SER->ColMatParam);
+   SUMA_StringAppend_va(SS,"% 24s is %d\n",
+           "COLOR_MATERIAL_FACE", SER->ColMatFace);
+   SUMA_StringAppend_va(SS,"% 24s is %.3f %.3f %.3f %.3f\n",
+           "CURRENT_COLOR",
+           SER->CurCol[0], SER->CurCol[1], SER->CurCol[2], SER->CurCol[3] );
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_LIGHT0", SER->LIGHT0 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_LIGHT1", SER->LIGHT1 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_LIGHT2", SER->LIGHT2 ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_BLEND", SER->BLEND ? "+++":"---");
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_LINE_SMOOTH", SER->LINE_SMOOTH ? "+++":"---");
+
+/*
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_ ", SER-> ? "+++":"---");
                         */
    SUMA_SS2S(SS,s);
-   
+
    SUMA_RETURN(s);
 }
 
-void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out, 
+void SUMA_ShowEnablingState(SUMA_EnablingRecord *SER, FILE *out,
                             char *preamble) {
    static char FuncName[]={"SUMA_ShowEnablingState"};
    char *s=NULL;
    SUMA_ENTRY;
    if (!out) out = SUMA_STDOUT;
-   
+
    s = SUMA_EnablingState_Info(SER);
-   
+
    fprintf(out, "%s%s", preamble ? preamble:"", s);
-   
+
    SUMA_free(s); s = NULL;
-   
+
    SUMA_RETURNe;
 }
 
@@ -661,9 +661,9 @@ char *SUMA_DiffEnablingState_Info(SUMA_EnablingRecord *SERnew,
    static SUMA_EnablingRecord SER, *SER_last=NULL;
    SUMA_EnablingRecord now;
    SUMA_STRING *SS=NULL;
-   
+
    SUMA_ENTRY;
-   
+
    if (!SERref) { /* Use last record */
       if (!SER_last) { /* No last record */
          SUMA_RecordEnablingState(&SER, "From Diff");
@@ -675,164 +675,164 @@ char *SUMA_DiffEnablingState_Info(SUMA_EnablingRecord *SERnew,
       SUMA_RecordEnablingState(&now, "From Diff");
       SERnew = &now;
    }
-   
+
    SS = SUMA_StringAppend(NULL, NULL);
    SUMA_StringAppend_va(SS,"OpenGL State Diff: %s vs. %s\n",
                         SERnew->Label, SERref->Label);
    if (SERnew->ALPHA_TEST != SERref->ALPHA_TEST) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_ALPHA_TEST", 
-                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_ALPHA_TEST",
+                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST);
    }
    if (SERnew->DEPTH_TEST != SERref->DEPTH_TEST) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_DEPTH_TEST", 
-                              SERnew->DEPTH_TEST , SERref->DEPTH_TEST); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_DEPTH_TEST",
+                              SERnew->DEPTH_TEST , SERref->DEPTH_TEST);
    }
    if (SERnew->TEXTURE_3D_EXT != SERref->TEXTURE_3D_EXT) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_3D_EXT", 
-                              SERnew->TEXTURE_3D_EXT , SERref->TEXTURE_3D_EXT); 
-   }   
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_3D_EXT",
+                              SERnew->TEXTURE_3D_EXT , SERref->TEXTURE_3D_EXT);
+   }
    if (SERnew->TEXTURE_2D != SERref->TEXTURE_2D) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_2D", 
-                              SERnew->TEXTURE_2D , SERref->TEXTURE_2D); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_2D",
+                              SERnew->TEXTURE_2D , SERref->TEXTURE_2D);
    }
    if (SERnew->TEXTURE_3D != SERref->TEXTURE_3D) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_3D", 
-                              SERnew->TEXTURE_3D , SERref->TEXTURE_3D); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_3D",
+                              SERnew->TEXTURE_3D , SERref->TEXTURE_3D);
    }
    if (SERnew->TEXTURE_GEN_S != SERref->TEXTURE_GEN_S) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_GEN_S", 
-                              SERnew->TEXTURE_GEN_S , SERref->TEXTURE_GEN_S); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_GEN_S",
+                              SERnew->TEXTURE_GEN_S , SERref->TEXTURE_GEN_S);
    }
    if (SERnew->TEXTURE_GEN_T != SERref->TEXTURE_GEN_T) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_GEN_T", 
-                              SERnew->TEXTURE_GEN_T , SERref->TEXTURE_GEN_T); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_GEN_T",
+                              SERnew->TEXTURE_GEN_T , SERref->TEXTURE_GEN_T);
    }
    if (SERnew->TEXTURE_GEN_R != SERref->TEXTURE_GEN_R) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_TEXTURE_GEN_R", 
-                              SERnew->TEXTURE_GEN_R , SERref->TEXTURE_GEN_R); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_TEXTURE_GEN_R",
+                              SERnew->TEXTURE_GEN_R , SERref->TEXTURE_GEN_R);
    }
    if (SERnew->CLIP_PLANE0 != SERref->CLIP_PLANE0) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_CLIP_PLANE0", 
-                              SERnew->CLIP_PLANE0 , SERref->CLIP_PLANE0); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_CLIP_PLANE0",
+                              SERnew->CLIP_PLANE0 , SERref->CLIP_PLANE0);
    }
    if (SERnew->CLIP_PLANE1 != SERref->CLIP_PLANE1) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_CLIP_PLANE1", 
-                              SERnew->CLIP_PLANE1 , SERref->CLIP_PLANE1); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_CLIP_PLANE1",
+                              SERnew->CLIP_PLANE1 , SERref->CLIP_PLANE1);
    }
    if (SERnew->CLIP_PLANE2 != SERref->CLIP_PLANE2) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_CLIP_PLANE2", 
-                              SERnew->CLIP_PLANE2 , SERref->CLIP_PLANE2); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_CLIP_PLANE2",
+                              SERnew->CLIP_PLANE2 , SERref->CLIP_PLANE2);
    }
    if (SERnew->ALPHA_TEST != SERref->ALPHA_TEST) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_ALPHA_TEST", 
-                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_ALPHA_TEST",
+                              SERnew->ALPHA_TEST , SERref->ALPHA_TEST);
    }
    if (SERnew->CLIP_PLANE4 != SERref->CLIP_PLANE4) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_CLIP_PLANE4", 
-                              SERnew->CLIP_PLANE4 , SERref->CLIP_PLANE4); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_CLIP_PLANE4",
+                              SERnew->CLIP_PLANE4 , SERref->CLIP_PLANE4);
    }
    if (SERnew->CLIP_PLANE5 != SERref->CLIP_PLANE5) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_CLIP_PLANE5", 
-                              SERnew->CLIP_PLANE5 , SERref->CLIP_PLANE5); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_CLIP_PLANE5",
+                              SERnew->CLIP_PLANE5 , SERref->CLIP_PLANE5);
    }
    if (SERnew->LIGHTING != SERref->LIGHTING) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_LIGHTING", 
-                              SERnew->LIGHTING , SERref->LIGHTING); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_LIGHTING",
+                              SERnew->LIGHTING , SERref->LIGHTING);
    }
    if (SERnew->COLOR_MATERIAL != SERref->COLOR_MATERIAL) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "GL_COLOR_MATERIAL", 
-                              SERnew->COLOR_MATERIAL , SERref->COLOR_MATERIAL); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "GL_COLOR_MATERIAL",
+                              SERnew->COLOR_MATERIAL , SERref->COLOR_MATERIAL);
    }
    if (SERnew->CurCol[0] != SERnew->CurCol[0] ||
        SERnew->CurCol[1] != SERnew->CurCol[1] ||
        SERnew->CurCol[2] != SERnew->CurCol[2] ||
        SERnew->CurCol[3] != SERnew->CurCol[3]) {
        SUMA_StringAppend_va(SS,
-                  "% 24s is %.3f %.3f %.3f %.3f vs %.3f %.3f %.3f %.3f\n", 
-                  "CURRENT_COL", 
-                  SERnew->CurCol[0], SERnew->CurCol[1], 
+                  "% 24s is %.3f %.3f %.3f %.3f vs %.3f %.3f %.3f %.3f\n",
+                  "CURRENT_COL",
+                  SERnew->CurCol[0], SERnew->CurCol[1],
                   SERnew->CurCol[2], SERnew->CurCol[3],
-                  SERref->CurCol[0], SERref->CurCol[1], 
-                  SERref->CurCol[2], SERref->CurCol[3] );  
+                  SERref->CurCol[0], SERref->CurCol[1],
+                  SERref->CurCol[2], SERref->CurCol[3] );
    }
    if (SERnew->ColMatParam != SERref->ColMatParam) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "COLOR_MATERIAL_PARAMETER", 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "COLOR_MATERIAL_PARAMETER",
                               SERnew->ColMatParam , SERref->ColMatParam);
    }
    if (SERnew->ColMatFace != SERref->ColMatFace) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "COLOR_MATERIAL_FACE", 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "COLOR_MATERIAL_FACE",
                               SERnew->ColMatFace , SERref->ColMatFace);
    }
    if (SERnew->LIGHT0 != SERref->LIGHT0) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "LIGHT0", 
-                              SERnew->LIGHT0 , SERref->LIGHT0); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "LIGHT0",
+                              SERnew->LIGHT0 , SERref->LIGHT0);
    }
    if (SERnew->LIGHT1 != SERref->LIGHT1) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "LIGHT1", 
-                              SERnew->LIGHT1 , SERref->LIGHT1); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "LIGHT1",
+                              SERnew->LIGHT1 , SERref->LIGHT1);
    }
    if (SERnew->LIGHT2 != SERref->LIGHT2) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "LIGHT2", 
-                              SERnew->LIGHT2 , SERref->LIGHT2); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "LIGHT2",
+                              SERnew->LIGHT2 , SERref->LIGHT2);
    }
    if (SERnew->BLEND != SERref->BLEND) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "BLEND", 
-                              SERnew->BLEND , SERref->BLEND); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "BLEND",
+                              SERnew->BLEND , SERref->BLEND);
    }
    if (SERnew->LINE_SMOOTH != SERref->LINE_SMOOTH) {
-      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n", 
-                              "LINE_SMOOTH", 
-                              SERnew->LINE_SMOOTH , SERref->LINE_SMOOTH); 
+      SUMA_StringAppend_va(SS,"% 24s is %d vs %d\n",
+                              "LINE_SMOOTH",
+                              SERnew->LINE_SMOOTH , SERref->LINE_SMOOTH);
    }
 
-/*   
-   SUMA_StringAppend_va(SS,"% 24s is %s\n", 
-           "GL_ ", SER-> ? "+++":"---"); 
+/*
+   SUMA_StringAppend_va(SS,"% 24s is %s\n",
+           "GL_ ", SER-> ? "+++":"---");
                         */
-   SUMA_StringAppend_va(SS,"End of Diff.\n\n"); 
+   SUMA_StringAppend_va(SS,"End of Diff.\n\n");
    SUMA_SS2S(SS,s);
-   
+
    /* Keep track of last visited */
    SUMA_CopyEnablingState(SER_last, SERnew);
    SUMA_RETURN(s);
 }
 
-void SUMA_DiffEnablingState(SUMA_EnablingRecord *SERnew, 
-                            SUMA_EnablingRecord *SERref, FILE *out, 
+void SUMA_DiffEnablingState(SUMA_EnablingRecord *SERnew,
+                            SUMA_EnablingRecord *SERref, FILE *out,
                             char *preamble) {
    static char FuncName[]={"SUMA_DiffEnablingState"};
    char *s=NULL;
    SUMA_ENTRY;
    if (!out) out = SUMA_STDOUT;
-   
+
    s = SUMA_DiffEnablingState_Info(SERnew, SERref);
-   
+
    fprintf(out, "%s%s", preamble ? preamble:"", s);
-   
+
    SUMA_free(s); s = NULL;
-   
+
    SUMA_RETURNe;
 }
 
@@ -840,11 +840,11 @@ int SUMA_CopyEnablingState(SUMA_EnablingRecord *SERnew,
                            SUMA_EnablingRecord *SERref)
 {
    static char FuncName[]={"SUMA_CopyEnablingState"};
-   
+
    SUMA_ENTRY;
-   
+
    if (!SERnew || !SERref) SUMA_RETURN(NOPE);
-   
+
    strcpy(SERnew->Label,SERref->Label);
    SERnew->ALPHA_TEST = SERref->ALPHA_TEST ;
    SERnew->DEPTH_TEST = SERref->DEPTH_TEST ;
@@ -868,25 +868,25 @@ int SUMA_CopyEnablingState(SUMA_EnablingRecord *SERnew,
    SERnew->BLEND = SERref->BLEND ;
    SERnew->LINE_SMOOTH = SERref->LINE_SMOOTH ;
    SUMA_COPY_VEC(SERref->CurCol,SERnew->CurCol,4,GLfloat, GLfloat);
-      
-   SUMA_RETURN(YUP);   
+
+   SUMA_RETURN(YUP);
 }
 
-void SUMA_dset_slice_corners( int slc, float *orig, float *del, 
+void SUMA_dset_slice_corners( int slc, float *orig, float *del,
                               int *nvox, float *corners)
 {
-   static char FuncName[]={"SUMA_dset_slice_corners"};   
+   static char FuncName[]={"SUMA_dset_slice_corners"};
    int kk=0;
    SUMA_ENTRY;
-   
+
    corners[kk]  = orig[0] + 0       * del[0]; ++kk;
    corners[kk]  = orig[1] + 0       * del[1]; ++kk;
    corners[kk]  = orig[2] + slc     * del[2]; ++kk;
-   
+
    corners[kk]  = orig[0] + nvox[0] * del[0]; ++kk;
    corners[kk]  = orig[1] + 0       * del[1]; ++kk;
    corners[kk]  = orig[2] + slc     * del[2]; ++kk;
-   
+
    corners[kk]  = orig[0] + nvox[0] * del[0]; ++kk;
    corners[kk]  = orig[1] + nvox[1] * del[1]; ++kk;
    corners[kk]  = orig[2] + slc     * del[2]; ++kk;
@@ -894,11 +894,11 @@ void SUMA_dset_slice_corners( int slc, float *orig, float *del,
    corners[kk]  = orig[0] + 0       * del[0]; ++kk;
    corners[kk]  = orig[1] + nvox[1] * del[1]; ++kk;
    corners[kk]  = orig[2] + slc     * del[2]; ++kk;
-   
+
    SUMA_RETURNe;
 }
 
-SUMA_Boolean SUMA_LoadVolDO (char *fname, 
+SUMA_Boolean SUMA_LoadVolDO (char *fname,
                         SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp,
 			byte PutVOinList)
 {
@@ -911,19 +911,19 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
    if (!fname) SUMA_RETURN(NOPE);
    if (coord_type != SUMA_NORM_SCREEN_UNIT &&
        coord_type != SUMA_WORLD) coord_type = SUMA_WORLD;
-       
+
    if (!(dset = THD_open_dataset( fname ))) {
       SUMA_S_Errv("Failed to open %s\n", fname);
       SUMA_free(fname); fname = NULL;
       SUMA_RETURN(NOPE);
-   }     
+   }
 
    /* Create a DO from dset */
    if (VOp) {
       if (*VOp == NULL) {
          if (!(VO = SUMA_CreateVolumeObject(fname))) {
             SUMA_S_Err("Failed to create volume object");
-            if (dset) DSET_delete(dset); 
+            if (dset) DSET_delete(dset);
             SUMA_free(fname); fname = NULL;
             SUMA_RETURN(NOPE);
          }
@@ -934,7 +934,7 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
    } else {
       if (!(VO = SUMA_CreateVolumeObject(fname))) {
          SUMA_S_Err("Failed to create volume object");
-         if (dset) DSET_delete(dset); 
+         if (dset) DSET_delete(dset);
          SUMA_free(fname); fname = NULL;
          SUMA_RETURN(NOPE);
       }
@@ -944,7 +944,7 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
       SUMA_S_Err("Failed to add volume");
       if (dset) DSET_delete(dset);
       if (VO_N_VOLS(VO) == 0) {
-         VO = SUMA_FreeVolumeObject(VO); 
+         VO = SUMA_FreeVolumeObject(VO);
          if (VOp) *VOp = NULL;
       }
       SUMA_free(fname); fname = NULL;
@@ -956,48 +956,48 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
       SUMA_X_SurfCont *SurfCont = NULL;
       SUMA_VOL_SAUX *VSaux=NULL;
       VO->TexEnvMode = GL_REPLACE;
-      if ((SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO)) && 
+      if ((SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO)) &&
           (VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO))) {
          /* Do the defaults, then modify per env */
          VSaux->ShowAxSlc = 1;
          SurfCont->Ax_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Ax")/2.0);
          SurfCont->Ax_slc->mont_inc = 1;
-         
+
          VSaux->ShowSaSlc = 1;
-         SurfCont->Sa_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Sa")/2.0); 
+         SurfCont->Sa_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Sa")/2.0);
          SurfCont->Sa_slc->mont_num = 2;
          SurfCont->Sa_slc->mont_inc =
                         (int)SUMA_MAX_PAIR(SurfCont->Sa_slc->slice_num/2,1);
          VSaux->ShowCoSlc = 0;
-         SurfCont->Co_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Co")/2.0); 
-         
+         SurfCont->Co_slc->slice_num = (int)(SUMA_VO_N_Slices(VO, "Co")/2.0);
+
          VSaux->ShowVrSlc = 0;
          VSaux->VrSelect = 0;
          VSaux->SlicesAtCrosshair = 0;
          /* Maybe params froms the env? */
          SUMA_Set_VO_Slice_Params(SUMA_EnvVal("SUMA_VO_InitSlices"), VO);
          /* And for selectable VR */
-         { 
+         {
             char *eee = getenv("SUMA_VrSelectable");
             if (eee) {
                if (strcmp(eee,"NO") == 0)  VSaux->VrSelect = NOPE;
                else if (strcmp(eee,"YES") == 0) VSaux->VrSelect = YUP;
                else {
-                  fprintf (SUMA_STDERR,   
+                  fprintf (SUMA_STDERR,
                            "Warning %s:\n"
                         "Bad value for environment variable SUMA_VrSelectable\n"
                            "Assuming default of YES", FuncName);
                   VSaux->VrSelect = YUP;
                }
             } else VSaux->VrSelect = YUP;
-         } 
+         }
       } else {
          SUMA_S_Err("Failed to initialize volume display");
       }
    }
    if (PutVOinList) {
       /* Add VO into DO list */
-      if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)VO,  
+      if (!SUMA_AddDO(SUMAg_DOv, &(SUMAg_N_DOv), (void *)VO,
                 	VO_type, coord_type)) {
 	 fprintf(SUMA_STDERR,"Error %s: Error Adding DO\n", FuncName);
 	 SUMA_RETURN(NOPE);
@@ -1006,7 +1006,7 @@ SUMA_Boolean SUMA_LoadVolDO (char *fname,
    SUMA_RETURN(YUP);
 }
 
-int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO) 
+int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
 {
    static char FuncName[]={"SUMA_Set_VO_Slice_Params"};
    NI_str_array *sar=NULL, *sub=NULL;
@@ -1014,7 +1014,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
    float fval;
    SUMA_X_SurfCont *SurfCont = NULL;
    SUMA_VOL_SAUX *VSaux=NULL;
-            
+
    SUMA_ENTRY;
    if (!params || params[0]=='\0') SUMA_RETURN(1);
    if (!VO) { SUMA_S_Err("NO VO"); SUMA_RETURN(0); }
@@ -1026,7 +1026,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
    if (!(sar = SUMA_NI_decode_string_list( params , ",; "))) {
       SUMA_S_Err("Huh?"); SUMA_RETURN(0);
    }
-               
+
    /* Each string should be the form: variant:sn:num:inc */
    err = 0;
    VSaux->ShowAxSlc = 0;
@@ -1052,7 +1052,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                   }
                   if (sub->num > 2) {
                      val = (int)strtod(sub->str[2], NULL);
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Ax")) {
                          SurfCont->Ax_slc->mont_num = val;
                      }
@@ -1062,7 +1062,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                      if (fval > 0.0 && fval < 1.0) {
                         val = fval * (SUMA_VO_N_Slices(VO, "Ax")-1);
                      } else val = (int)fval;
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Ax")) {
                          SurfCont->Ax_slc->mont_inc = val;
                      }
@@ -1083,7 +1083,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                   }
                   if (sub->num > 2) {
                      val = (int)strtod(sub->str[2], NULL);
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Sa")) {
                          SurfCont->Sa_slc->mont_num = val;
                      }
@@ -1093,7 +1093,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                      if (fval > 0.0 && fval < 1.0) {
                         val = fval * (SUMA_VO_N_Slices(VO, "Sa")-1);
                      } else val = (int)fval;
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Sa")) {
                          SurfCont->Sa_slc->mont_inc = val;
                      }
@@ -1114,7 +1114,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                   }
                   if (sub->num > 2) {
                      val = (int)strtod(sub->str[2], NULL);
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Co")) {
                          SurfCont->Co_slc->mont_num = val;
                      }
@@ -1124,7 +1124,7 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
                      if (fval > 0.0 && fval < 1.0) {
                         val = fval * (SUMA_VO_N_Slices(VO, "Co")-1);
                      } else val = (int)fval;
-                     if (val > 0 && 
+                     if (val > 0 &&
                          val < SUMA_VO_N_Slices(VO, "Co")) {
                          SurfCont->Co_slc->mont_inc = val;
                      }
@@ -1144,24 +1144,24 @@ int SUMA_Set_VO_Slice_Params(char *params, SUMA_VolumeObject *VO)
             VSaux->ShowCoSlc = 0;
             VSaux->ShowVrSlc = 0;
          }
-         
+
       }
       sub = SUMA_free_NI_str_array(sub);
    }
-   sar = SUMA_free_NI_str_array(sar); 
-   
+   sar = SUMA_free_NI_str_array(sar);
+
    /* You must have something showing for now because otherwise you can't open
    a volume controller! */
-   if (!VSaux->ShowAxSlc && !VSaux->ShowSaSlc && 
+   if (!VSaux->ShowAxSlc && !VSaux->ShowSaSlc &&
        !VSaux->ShowCoSlc && !VSaux->ShowVrSlc ) {
       SUMA_S_Note("For now, must force something to show");
       VSaux->ShowAxSlc = 1;
    }
-   
+
    SUMA_RETURN(1);
 }
 
-SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel, 
+SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
                                     SUMA_DO_CoordUnits defaultcoordtype)
 {
    static char FuncName[]={"SUMA_Load3DTextureNIDOnel"};
@@ -1171,25 +1171,25 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
    SUMA_VolumeObject *VO=NULL;
    SUMA_DO_CoordUnits coord_type=SUMA_WORLD;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
-   if (  !nel || 
+
+   if (  !nel ||
          strcmp(nel->name,"3DTex")   )
       SUMA_RETURN(NOPE);
-   
+
    if (NI_IS_STR_ATTR_EQUAL(nel, "read_status", "read")) SUMA_RETURN(YUP);
-    
+
    NI_set_attribute(nel,"read_status","fail");
-   
+
    if (! (fname = SUMA_copy_string(NI_get_attribute(nel,"filename"))) )
       SUMA_RETURN(NOPE);
-   if (!SUMA_search_file(&fname, NULL)) { /* can't find it */ 
+   if (!SUMA_search_file(&fname, NULL)) { /* can't find it */
       SUMA_LH("Failed to find %s", fname);
       SUMA_free(fname); fname = NULL;
       SUMA_RETURN(NOPE);
    }
-   
+
    /* Is there a particular coord type in nel? */
    if ((atr = NI_get_attribute(nel, "coord_type"))) {
       if ((coord_type = SUMA_CoordType(atr))
@@ -1202,7 +1202,7 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
    }else {
       coord_type = defaultcoordtype;
    }
-   
+
    if (!(SUMA_LoadVolDO(fname, coord_type, &VO,1))) {
       SUMA_S_Err("Failed to read %s", NI_get_attribute(nel,"filename"));
       SUMA_ifree(fname);
@@ -1216,35 +1216,35 @@ SUMA_Boolean SUMA_Load3DTextureNIDOnel (NI_element *nel,
       SUMA_LHv("Loading %s\n", atr);
       if (! (fname = SUMA_copy_string(atr)) )
          SUMA_RETURN(NOPE);
-      if (!SUMA_search_file(&fname, NULL)) { /* can't find it */ 
-         SUMA_S_Errv("Failed to find %s\n", fname); 
+      if (!SUMA_search_file(&fname, NULL)) { /* can't find it */
+         SUMA_S_Errv("Failed to find %s\n", fname);
          SUMA_free(fname); fname = NULL;
          break;
       }
-      
+
       if (!(SUMA_LoadVolDO( fname, coord_type, &VO,1))) {
          SUMA_S_Errv("Failed to open %s\n", fname);
          SUMA_free(fname); fname = NULL;
          break;
       }
-      
+
       SUMA_LHv("Added %s\n", SUMA_VE_Headname(VO->VE, i+1));
-      SUMA_free(fname); fname = NULL;  
+      SUMA_free(fname); fname = NULL;
       ++i;
       sprintf(stmp,"overlay%d",i);
-   } 
-      
-   
-   VO->TexEnvMode = SUMA_NIDO_TexEnvMode(nel, GL_REPLACE); 
+   }
+
+
+   VO->TexEnvMode = SUMA_NIDO_TexEnvMode(nel, GL_REPLACE);
 
    /* store pointer copy of DO in nel */
    NI_SET_PTR(nel, "DO", VO);
    /* store idcode_str of DO in nel */
    NI_SET_STR(nel,"DO_idcode_str", VO->idcode_str);
-   
+
    /* mark nel as read */
    NI_set_attribute(nel,"read_status","read");
-    
+
    SUMA_RETURN(YUP);
 }
 
@@ -1255,63 +1255,63 @@ SUMA_VolumeObject *SUMA_VOof3DTextureNIDOnel(NI_element *nel)
    int ii;
    char *idcode_str=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!(idcode_str = NI_get_attribute(nel, "DO_idcode_str"))) {
       SUMA_S_Err("NULL nel DO_idcode_str");
       SUMA_RETURN(NULL);
    }
-   
+
    for (ii=0; ii<SUMAg_N_DOv; ++ii) {
       if (SUMA_isVO(SUMAg_DOv[ii])) {
          VO = (SUMA_VolumeObject *)(SUMAg_DOv[ii].OP);
          if (!strcmp(VO->idcode_str, idcode_str)) SUMA_RETURN(VO);
       }
    }
-   
+
    SUMA_LHv("DO for nel %s, %s, not found\n",
       nel->name, idcode_str);
-      
+
    SUMA_RETURN(NULL);
 }
 
-NI_element *SUMA_3DTextureNIDOnelofVO(SUMA_VolumeObject *VO) 
+NI_element *SUMA_3DTextureNIDOnelofVO(SUMA_VolumeObject *VO)
 {
    static char FuncName[]={"SUMA_3DTextureNIDOnelofVO"};
    NI_element *nel = NULL;
-   
+
    SUMA_ENTRY;
-   
+
    SUMA_S_Err("Sorry, not implemented yet");
-   
+
    SUMA_RETURN(nel);
 }
 
 /*!
-   centers of first and last voxels in volume in RAI 
+   centers of first and last voxels in volume in RAI
 */
-void SUMA_dset_extreme_corners( SUMA_DSET *dset, 
+void SUMA_dset_extreme_corners( SUMA_DSET *dset,
                                 float * mincorner, float *maxcorner,
                                 int voxcen)
 {
-   static char FuncName[]={"SUMA_dset_extreme_corners"};   
+   static char FuncName[]={"SUMA_dset_extreme_corners"};
    float A[4][4], I[3], *v;
    int *dims;
    SUMA_Boolean LocalHead = NOPE;
-    
+
    SUMA_ENTRY;
-   
-   
+
+
    if (mincorner) mincorner[0] = mincorner[1] = mincorner[2] = 0.0;
    if (maxcorner) maxcorner[0] = maxcorner[1] = maxcorner[2] = 0.0;
-   
-   if (!dset || !(v=SUMA_GetDatasetI2X(dset, A)) || 
+
+   if (!dset || !(v=SUMA_GetDatasetI2X(dset, A)) ||
        !(dims = SUMA_GetDatasetDimensions(dset)) ) {
       SUMA_S_Err("no valid ijk_to_dicom_real") ;
       SUMA_RETURNe;
    }
-   
+
    if (mincorner) {
       if (voxcen) {
          mincorner[0] = A[0][3];
@@ -1324,24 +1324,24 @@ void SUMA_dset_extreme_corners( SUMA_DSET *dset,
    }
    if (maxcorner) {
       if (voxcen) {
-         I[0] = dims[0]-1; 
+         I[0] = dims[0]-1;
          I[1] = dims[1]-1;
          I[2] = dims[2]-1;
          AFF44_MULT_I(maxcorner, A, I);
       } else {
-         I[0] = dims[2]-0.5; 
+         I[0] = dims[2]-0.5;
          I[1] = dims[1]-0.5;
          I[2] = dims[2]-0.5;
          AFF44_MULT_I(maxcorner, A, I);
       }
    }
-   
+
    SUMA_RETURNe;
 }
 
 /*!
    Corners of box defining volume boundaries
-   
+
    0,    0,    0
    Nx-1, 0,    0
    Nx-1, Ny-1, 0
@@ -1350,19 +1350,19 @@ void SUMA_dset_extreme_corners( SUMA_DSET *dset,
    Nx-1, 0,    Nz-1
    Nx-1, Ny-1, Nz-1
    0,    Ny-1, Nz-1
-    
+
 */
-SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset, 
+SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset,
                                     float * corners, int voxcen)
 {
-   static char FuncName[]={"SUMA_dset_box_corners"};   
+   static char FuncName[]={"SUMA_dset_box_corners"};
    float A[4][4], I[24], *v, *vi;
    int *dims, i;
    SUMA_Boolean LocalHead = NOPE;
-    
+
    SUMA_ENTRY;
-   
-   if (!dset || !(v=SUMA_GetDatasetI2X(dset, A)) || 
+
+   if (!dset || !(v=SUMA_GetDatasetI2X(dset, A)) ||
        !(dims = SUMA_GetDatasetDimensions(dset)) ) {
       SUMA_S_Err("no valid ijk_to_dicom_real") ;
       SUMA_RETURN(NOPE);
@@ -1371,7 +1371,7 @@ SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset,
       SUMA_S_Err("No return vehicle");
       SUMA_RETURN(NOPE);
    }
-   
+
    /* Fill up the IJKs */
    i = 0;
    I[i++] = 0;         I[i++] = 0;         I[i++] = 0;
@@ -1382,7 +1382,7 @@ SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset,
    I[i++] = dims[0]-1; I[i++] = 0;         I[i++] = dims[2]-1;
    I[i++] = dims[0]-1; I[i++] = dims[1]-1; I[i++] = dims[2]-1;
    I[i++] = 0;         I[i++] = dims[1]-1; I[i++] = dims[2]-1;
-   
+
    /* offset for non voxel center? */
    if (!voxcen) {
       for (i=0; i<24; ++i) {
@@ -1390,44 +1390,44 @@ SUMA_Boolean SUMA_dset_box_corners( SUMA_DSET *dset,
          else I[i] -= 0.5;
       }
    }
-   
+
    for (i=0; i<24; i = i +3) {
       v = corners+i;
       vi = I+i;
-      AFF44_MULT_I(v, A, vi); 
+      AFF44_MULT_I(v, A, vi);
    }
-   
+
    SUMA_RETURN(YUP);
 }
 
-/* Older version, OK for cardinal axes only 
+/* Older version, OK for cardinal axes only
    Use SUMA_dset_tex_slice_corners() */
-void SUMA_dset_tex_slice_corners_card( int slci, THD_3dim_dataset *dset, 
-                              GLfloat *tcorners, GLfloat *corners, 
+void SUMA_dset_tex_slice_corners_card( int slci, THD_3dim_dataset *dset,
+                              GLfloat *tcorners, GLfloat *corners,
                               int dim, int voxcen)
 {
-   static char FuncName[]={"SUMA_dset_tex_slice_corners_card"};   
+   static char FuncName[]={"SUMA_dset_tex_slice_corners_card"};
    int kk=0;
    float orig[3] = { 0, 0, 0}, del[3] = { 0, 0, 0};
    int nvox[3] = { 0, 0, 0};
    int slcx, slcy, slcz=0;
    SUMA_Boolean LocalHead = NOPE;
-    
+
    SUMA_ENTRY;
-   
+
    if (!voxcen) {
       SUMA_LH("voxcen == 0 not supported in this old version");
    }
-   
-   orig[0] = dset->daxes->xxorg ; 
-   orig[1] = dset->daxes->yyorg ; 
-   orig[2] = dset->daxes->zzorg ; 
+
+   orig[0] = dset->daxes->xxorg ;
+   orig[1] = dset->daxes->yyorg ;
+   orig[2] = dset->daxes->zzorg ;
    nvox[0] = DSET_NX(dset);
    nvox[1] = DSET_NY(dset);
    nvox[2] = DSET_NZ(dset);
-   del[0] = dset->daxes->xxdel ; 
-   del[1] = dset->daxes->yydel ; 
-   del[2] = dset->daxes->zzdel ; 
+   del[0] = dset->daxes->xxdel ;
+   del[1] = dset->daxes->yydel ;
+   del[2] = dset->daxes->zzdel ;
 
    switch (dim) {
       default:
@@ -1435,141 +1435,141 @@ void SUMA_dset_tex_slice_corners_card( int slci, THD_3dim_dataset *dset,
          SUMA_RETURNe;
       case 2:
          kk = 0;
-    corners[kk] = orig[0] + 0       * del[0]; 
+    corners[kk] = orig[0] + 0       * del[0];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[1] + 0       * del[1]; 
+    corners[kk] = orig[1] + 0       * del[1];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + slci    * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2];
    tcorners[kk] = ((float)slci+0.5)/(float)nvox[2];++kk;
-   
-    corners[kk] = orig[0] + (nvox[0]-1) * del[0];  
+
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[1] + 0       * del[1]; 
+    corners[kk] = orig[1] + 0       * del[1];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + slci    * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2];
    tcorners[kk] = tcorners[2];                  ++kk;
 
-   
-    corners[kk] = orig[0] + (nvox[0]-1) * del[0]; 
+
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + slci    * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2];
    tcorners[kk] = tcorners[2];                  ++kk;
 
-    corners[kk] = orig[0] + 0       * del[0]; 
+    corners[kk] = orig[0] + 0       * del[0];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + slci    * del[2]; 
+    corners[kk] = orig[2] + slci    * del[2];
    tcorners[kk] = tcorners[2];                  ++kk;
          break;
       case 1:
          kk = 0;
-    corners[kk] = orig[0] + 0       * del[0]; 
+    corners[kk] = orig[0] + 0       * del[0];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[1] + slci    * del[1]; 
+    corners[kk] = orig[1] + slci    * del[1];
    tcorners[kk] = ((float)slci+0.5)/(float)nvox[1];++kk;
-    corners[kk] = orig[2] + 0       * del[2]; 
+    corners[kk] = orig[2] + 0       * del[2];
    tcorners[kk] = 0;                            ++kk;
-           
-    corners[kk] = orig[0] + (nvox[0]-1) * del[0];  
+
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[1] + slci    * del[1]; 
+    corners[kk] = orig[1] + slci    * del[1];
    tcorners[kk] = tcorners[1];                  ++kk;
-    corners[kk] = orig[2] + 0       * del[2]; 
+    corners[kk] = orig[2] + 0       * del[2];
    tcorners[kk] = 0;                            ++kk;
 
 
-    corners[kk] = orig[0] + (nvox[0]-1) * del[0]; 
+    corners[kk] = orig[0] + (nvox[0]-1) * del[0];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[1] + slci    * del[1]; 
+    corners[kk] = orig[1] + slci    * del[1];
    tcorners[kk] = tcorners[1];                  ++kk;
-    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2];
    tcorners[kk] = 1;                            ++kk;
 
-    corners[kk] = orig[0] + 0       * del[0]; 
+    corners[kk] = orig[0] + 0       * del[0];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[1] + slci    * del[1]; 
+    corners[kk] = orig[1] + slci    * del[1];
    tcorners[kk] = tcorners[1];                  ++kk;
-    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2];
    tcorners[kk] = 1;                            ++kk;
          break;
       case 0:
          kk = 0;
-    corners[kk] = orig[0] + slci    * del[0]; 
+    corners[kk] = orig[0] + slci    * del[0];
    tcorners[kk] = ((float)slci+0.5)/(float)nvox[0];++kk;
-    corners[kk] = orig[1] + 0       * del[1]; 
+    corners[kk] = orig[1] + 0       * del[1];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + 0       * del[2]; 
+    corners[kk] = orig[2] + 0       * del[2];
    tcorners[kk] = 0;                            ++kk;
-           
-    corners[kk] = orig[0] + slci    * del[0]; 
+
+    corners[kk] = orig[0] + slci    * del[0];
    tcorners[kk] = tcorners[0];                  ++kk;
-    corners[kk] = orig[1] + (nvox[1]-1) * del[1];  
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + 0       * del[2]; 
+    corners[kk] = orig[2] + 0       * del[2];
    tcorners[kk] = 0;                            ++kk;
 
 
-    corners[kk] = orig[0] + slci    * del[0]; 
+    corners[kk] = orig[0] + slci    * del[0];
    tcorners[kk] = tcorners[0];                  ++kk;
-    corners[kk] = orig[1] + (nvox[1]-1) * del[1]; 
+    corners[kk] = orig[1] + (nvox[1]-1) * del[1];
    tcorners[kk] = 1;                            ++kk;
-    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2];
    tcorners[kk] = 1;                            ++kk;
 
-    corners[kk] = orig[0] + slci    * del[0]; 
+    corners[kk] = orig[0] + slci    * del[0];
    tcorners[kk] = tcorners[0];                  ++kk;
-    corners[kk] = orig[1] + 0       * del[1]; 
+    corners[kk] = orig[1] + 0       * del[1];
    tcorners[kk] = 0;                            ++kk;
-    corners[kk] = orig[2] + (nvox[2]-1) * del[2]; 
+    corners[kk] = orig[2] + (nvox[2]-1) * del[2];
    tcorners[kk] = 1;                            ++kk;
          break;
    }
-   
+
    if (LocalHead) {
       SUMA_LHv("Slice %d, dim %d corners and textures\n", slci, dim);
       for (kk=0; kk<4; ++kk) {
          fprintf(SUMA_STDERR,
                   "c%d: %.3f   %.3f   %.3f\n"
-                  "t%d: %.3f   %.3f   %.3f\n", 
+                  "t%d: %.3f   %.3f   %.3f\n",
             kk, corners[3*kk],corners[3*kk+1],corners[3*kk+2],
             kk, tcorners[3*kk],tcorners[3*kk+1],tcorners[3*kk+2]);
-                              
+
       }
       fprintf(SUMA_STDERR,"\n");
    }
-   
+
    SUMA_RETURNe;
 }
 
-/* Get slider value from texture corners, 
+/* Get slider value from texture corners,
    inverse of SUMA_dset_tex_slice_corners_gui*/
 int SUMA_dset_gui_slice_from_tex_slice(SUMA_VolumeElement **VE, int ive,
                      float *PlEq, int voxcen,
                      char *variant,int *slider)
 {
-   static char FuncName[]={"SUMA_dset_gui_slice_from_tex_slice"};   
+   static char FuncName[]={"SUMA_dset_gui_slice_from_tex_slice"};
    char *orcode;
    int dim=0, nslc=0, *dims;
-   float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0}, 
+   float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0},
          Dir0[3] = {1, 0, 0}, Dir1[3] = {0, 1, 0}, Dir2[3] = {0, 0, 1},
          dd, d0, d1, d2;
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
-    
-   SUMA_ENTRY;  
-   
+
+   SUMA_ENTRY;
+
    if (ive < 0) ive = 0;
-   if (!(dset = SUMA_VE_dset(VE, ive)) || !PlEq || 
+   if (!(dset = SUMA_VE_dset(VE, ive)) || !PlEq ||
        !(dims = SUMA_GetDatasetDimensions(dset))) {
       SUMA_S_Err("no dset or no variant") ;
       SUMA_RETURN(-1);
    }
-   
+
    if (slider) *slider = -1;
-   
+
    orcode = SUMA_Dset_orcode(dset);
    if (orcode[0] == 'X') { SUMA_S_Err("No orcode"); SUMA_RETURN(-1); }
 
@@ -1589,17 +1589,17 @@ int SUMA_dset_gui_slice_from_tex_slice(SUMA_VolumeElement **VE, int ive,
    }
    SUMA_LH("PlEq: %f %f %f %f\n"
             "I  : %f %f %f\n"
-            "Dots: %f %f %f, orcode %s, dim %d", 
+            "Dots: %f %f %f, orcode %s, dim %d",
            PlEq[0], PlEq[1], PlEq[2], PlEq[3],
            I[0], I[1], I[2], d0, d1, d2, orcode, dim)
    if (variant) {
            if (orcode[dim] == 'I' || orcode[dim] == 'S') sprintf(variant,"Ax");
       else if (orcode[dim] == 'R' || orcode[dim] == 'L') sprintf(variant,"Sa");
       else if (orcode[dim] == 'A' || orcode[dim] == 'P') sprintf(variant,"Co");
-   } 
-   
+   }
+
    /* Don't bother which slice number this is, just return the dim */
-   SUMA_RETURN(dim); 
+   SUMA_RETURN(dim);
 }
 
 int SUMA_dset_gui_slice_from_tex_slice_d(SUMA_VolumeElement **VE, int ive,
@@ -1609,53 +1609,53 @@ int SUMA_dset_gui_slice_from_tex_slice_d(SUMA_VolumeElement **VE, int ive,
    static char FuncName[]={"SUMA_dset_gui_slice_from_tex_slice_d"};
    float fv[4];
    if (!PlEq) return(-1);
-   fv[0] = PlEq[0];    
-   fv[1] = PlEq[1];    
-   fv[2] = PlEq[2];    
+   fv[0] = PlEq[0];
+   fv[1] = PlEq[1];
+   fv[2] = PlEq[2];
    fv[3] = PlEq[3];
-   return(SUMA_dset_gui_slice_from_tex_slice(VE, ive, fv, 
+   return(SUMA_dset_gui_slice_from_tex_slice(VE, ive, fv,
                                              voxcen, variant, slider));
-}    
+}
 
 /* Get texture corners from slider values
 \sa SUMA_dset_gui_slice_from_tex_slice*/
-int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive, 
-                                             char *variant,int slider, 
+int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
+                                             char *variant,int slider,
                           GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen,
                           float *PlEq, int voxcen )
 {
-   static char FuncName[]={"SUMA_dset_tex_slice_corners_gui"};   
+   static char FuncName[]={"SUMA_dset_tex_slice_corners_gui"};
    char *orcode;
    int dim=0, nslc=0, *dims;
    float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0};
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
-    
-   SUMA_ENTRY;  
-   
+
+   SUMA_ENTRY;
+
    if (ive < 0) ive = 0;
-   if (!(dset = SUMA_VE_dset(VE, ive)) || !variant|| 
+   if (!(dset = SUMA_VE_dset(VE, ive)) || !variant||
        !(dims = SUMA_GetDatasetDimensions(dset))) {
       SUMA_S_Err("no dset or no variant") ;
       SUMA_RETURN(-1);
    }
-   
+
    orcode = SUMA_Dset_orcode(dset);
    if (orcode[0] == 'X') { SUMA_S_Err("No orcode"); SUMA_RETURN(-1); }
-   
+
    switch (variant[0]) {
       case 'A': /* axial slicing desired*/
-         if (orcode[0] == 'I' || orcode[0] == 'S') { 
+         if (orcode[0] == 'I' || orcode[0] == 'S') {
             dim = 0; nslc = slider;
             if (orcode[0] == 'S') nslc = VE[ive]->Ni-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Ni) nslc = VE[ive]->Ni-1;
-         } else if (orcode[1] == 'I' || orcode[1] == 'S') { 
+         } else if (orcode[1] == 'I' || orcode[1] == 'S') {
             dim = 1; nslc = slider;
             if (orcode[1] == 'S') nslc = VE[ive]->Nj-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Nj) nslc = VE[ive]->Nj-1;
-         } else if (orcode[2] == 'I' || orcode[2] == 'S') { 
+         } else if (orcode[2] == 'I' || orcode[2] == 'S') {
             dim = 2; nslc = slider;
             if (orcode[2] == 'S') nslc = VE[ive]->Nk-1-slider;
             if (nslc < 0) nslc = 0;
@@ -1663,40 +1663,40 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
          }
          break;
       case 'S': /* sagittal slicing desired */
-         if (orcode[0] == 'R' || orcode[0] == 'L') { 
+         if (orcode[0] == 'R' || orcode[0] == 'L') {
             dim = 0; nslc = slider;
             if (orcode[0] == 'L') nslc = VE[ive]->Ni-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Ni) nslc = VE[ive]->Ni-1;
-         } else if (orcode[1] == 'R' || orcode[1] == 'L') { 
+         } else if (orcode[1] == 'R' || orcode[1] == 'L') {
             dim = 1; nslc = slider;
             if (orcode[1] == 'L') nslc = VE[ive]->Nj-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Nj) nslc = VE[ive]->Nj-1;
-         } else if (orcode[2] == 'R' || orcode[2] == 'L') { 
+         } else if (orcode[2] == 'R' || orcode[2] == 'L') {
             dim = 2; nslc = slider;
             if (orcode[2] == 'L') nslc = VE[ive]->Nk-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Nk) nslc = VE[ive]->Nk-1;
-         } 
+         }
          break;
        case 'C': /* coronal slicing desired */
-         if (orcode[0] == 'A' || orcode[0] == 'P') { 
+         if (orcode[0] == 'A' || orcode[0] == 'P') {
             dim = 0; nslc = slider;
             if (orcode[0] == 'P') nslc = VE[ive]->Ni-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Ni) nslc = VE[ive]->Ni-1;
-         } else if (orcode[1] == 'A' || orcode[1] == 'P') { 
+         } else if (orcode[1] == 'A' || orcode[1] == 'P') {
             dim = 1; nslc = slider;
             if (orcode[1] == 'P') nslc = VE[ive]->Nj-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Nj) nslc = VE[ive]->Nj-1;
-         } else if (orcode[2] == 'A' || orcode[2] == 'P') { 
+         } else if (orcode[2] == 'A' || orcode[2] == 'P') {
             dim = 2; nslc = slider;
             if (orcode[2] == 'P') nslc = VE[ive]->Nk-1-slider;
             if (nslc < 0) nslc = 0;
             if (nslc >= VE[ive]->Nk) nslc = VE[ive]->Nk-1;
-         } 
+         }
          break;
       case 'V': /* Volume rendering, do not do much */
          SUMA_S_Note("What to return here?");
@@ -1712,33 +1712,33 @@ int SUMA_dset_tex_slice_corners_gui(SUMA_VolumeElement **VE, int ive,
       /* Compute normal direction and slice center in index space */
       switch (dim) {
          case 0:
-            I[0] = 1;            I[1] = 0;            I[2] = 0; 
+            I[0] = 1;            I[1] = 0;            I[2] = 0;
             C[0] = nslc;         C[1] = dims[1]/2.0;  C[2] = dims[2]/2.0;
             break;
          case 1:
-            I[0] = 0;            I[1] = 1;            I[2] = 0; 
+            I[0] = 0;            I[1] = 1;            I[2] = 0;
             C[0] = dims[0]/2.0;  C[1] = nslc;         C[2] = dims[2]/2.0;
             break;
          case 2:
-            I[0] = 0;            I[1] = 0;            I[2] = 1; 
+            I[0] = 0;            I[1] = 0;            I[2] = 1;
             C[0] = dims[0]/2.0;  C[1] = dims[1]/2.0;  C[2] = nslc;
             break;
       }
-      
+
       AFF44_MULT_D(PlEq, VE[ive]->I2X, I); /* Compute normal in xyz */
 
       AFF44_MULT_I(mid_slc, VE[ive]->I2X, C); /* center of slice */
       SUMA_SHIFT_PLANE_TO_P(PlEq, mid_slc); /*go through mid of slice*/
    }
    if (tcorners || corners || slc_cen) {
-      SUMA_dset_tex_slice_corners(nslc, dset, tcorners, corners, slc_cen, 
+      SUMA_dset_tex_slice_corners(nslc, dset, tcorners, corners, slc_cen,
                                   dim, voxcen);
    }
    SUMA_RETURN(dim);
 }
 
 /* Take an XYZ in RAI and return Ax, Sa, and Co GUI slider positions */
-float* SUMA_XYZ_to_gui_slices(SUMA_VolumeElement **VE, int ive, 
+float* SUMA_XYZ_to_gui_slices(SUMA_VolumeElement **VE, int ive,
                                     float *xyz, float *here)
 {
    static char FuncName[]={"SUMA_XYZ_to_gui_slices"};
@@ -1749,82 +1749,82 @@ float* SUMA_XYZ_to_gui_slices(SUMA_VolumeElement **VE, int ive,
    float I[3]={0.0, 0.0, 0.0}, C[3]={0.0, 0.0, 0.0};
    SUMA_DSET *dset=NULL;
    SUMA_Boolean LocalHead = NOPE;
-    
-   SUMA_ENTRY;  
-   
+
+   SUMA_ENTRY;
+
    if (icall > 9) icall=0;
    else ++icall;
-   
+
    if (!here) here = (float *)(n[icall]);
    here[0] = here[1] = here[2] = -1;
-   
+
    if (ive < 0) ive = 0;
-   if (!xyz || !(dset = SUMA_VE_dset(VE, ive)) || 
+   if (!xyz || !(dset = SUMA_VE_dset(VE, ive)) ||
        !(dims = SUMA_GetDatasetDimensions(dset)) ) {
       SUMA_S_Err("no dset or no variant") ;
       SUMA_RETURN(here);
    }
-   
+
    orcode = SUMA_Dset_orcode(dset);
    if (orcode[0] == 'X') { SUMA_S_Err("No orcode"); SUMA_RETURN(here); }
-   
+
    /* Change XYZ to I */
    AFF44_MULT_I(I, VE[ive]->X2I, xyz);
-   
+
    /* Get the slider values for A, S, C, in this order */
    /* First the Ax slice number */
    dim = 0;
-   if (orcode[0] == 'I' || orcode[0] == 'S') { 
+   if (orcode[0] == 'I' || orcode[0] == 'S') {
       if (orcode[0] == 'S') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
       else here[dim] = SUMA_ROUND(I[0]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
-   } else if (orcode[1] == 'I' || orcode[1] == 'S') { 
+   } else if (orcode[1] == 'I' || orcode[1] == 'S') {
       if (orcode[1] == 'S') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
       else here[dim] = SUMA_ROUND(I[1]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
-   } else if (orcode[2] == 'I' || orcode[2] == 'S') { 
+   } else if (orcode[2] == 'I' || orcode[2] == 'S') {
       if (orcode[2] == 'S') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
       else here[dim] = SUMA_ROUND(I[2]);
       if (here[dim] < 0) here[dim] = 0;
-      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;
    }
    dim = 1;  /* Now look for Sag */
-   if (orcode[0] == 'R' || orcode[0] == 'L') { 
+   if (orcode[0] == 'R' || orcode[0] == 'L') {
       if (orcode[0] == 'L') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
       else here[dim] = SUMA_ROUND(I[0]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
-   } else if (orcode[1] == 'R' || orcode[1] == 'L') { 
+   } else if (orcode[1] == 'R' || orcode[1] == 'L') {
       if (orcode[1] == 'L') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
       else here[dim] = SUMA_ROUND(I[1]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
-   } else if (orcode[2] == 'R' || orcode[2] == 'L') { 
+   } else if (orcode[2] == 'R' || orcode[2] == 'L') {
       if (orcode[2] == 'L') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
       else here[dim] = SUMA_ROUND(I[2]);
       if (here[dim] < 0) here[dim] = 0;
-      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
-   } 
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;
+   }
    dim = 2;  /* Now look for Co */
-   if (orcode[0] == 'A' || orcode[0] == 'P') { 
+   if (orcode[0] == 'A' || orcode[0] == 'P') {
       if (orcode[0] == 'P') here[dim] = VE[ive]->Ni-1-SUMA_ROUND(I[0]);
       else here[dim] = SUMA_ROUND(I[0]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Ni) here[dim] = VE[ive]->Ni-1;
-   } else if (orcode[1] == 'A' || orcode[1] == 'P') { 
+   } else if (orcode[1] == 'A' || orcode[1] == 'P') {
       if (orcode[1] == 'P') here[dim] = VE[ive]->Nj-1-SUMA_ROUND(I[1]);
       else here[dim] = SUMA_ROUND(I[1]);
       if (here[dim] < 0) here[dim] = 0;
       if (here[dim] >= VE[ive]->Nj) here[dim] = VE[ive]->Nj-1;
-   } else if (orcode[2] == 'A' || orcode[2] == 'P') { 
+   } else if (orcode[2] == 'A' || orcode[2] == 'P') {
       if (orcode[2] == 'P') here[dim] = VE[ive]->Nk-1-SUMA_ROUND(I[2]);
       else here[dim] = SUMA_ROUND(I[2]);
       if (here[dim] < 0) here[dim] = 0;
-      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;      
+      if (here[dim] >= VE[ive]->Nk) here[dim] = VE[ive]->Nk-1;
    }
-   SUMA_RETURN(here); 
+   SUMA_RETURN(here);
 }
 
 /* Set slices of VO at location xyz */
@@ -1836,7 +1836,7 @@ SUMA_Boolean SUMA_VO_set_slices_XYZ(SUMA_VolumeObject *VOu, float *xyz)
    SUMA_VOL_SAUX *VSaux=NULL;
    SUMA_VolumeObject *VO=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
 
    if (!xyz) SUMA_RETURN(NOPE);
@@ -1851,42 +1851,42 @@ SUMA_Boolean SUMA_VO_set_slices_XYZ(SUMA_VolumeObject *VOu, float *xyz)
                                                supplies volume or
                                                if volumes request it */
          slices = SUMA_XYZ_to_gui_slices(VO->VE, 0, xyz, NULL);
-         SUMA_LH("Jumping to slices Ax%f Sa%f Co%f", 
+         SUMA_LH("Jumping to slices Ax%f Sa%f Co%f",
                   slices[0], slices[1], slices[2]);
-         SUMA_set_slice((SUMA_ALL_DO *)VO, "Ax", 
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Ax",
                                   slices, "EngXYZ", 0);
-         SUMA_set_slice((SUMA_ALL_DO *)VO, "Sa", 
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Sa",
                                   slices+1, "EngXYZ", 0);
-         SUMA_set_slice((SUMA_ALL_DO *)VO, "Co", 
+         SUMA_set_slice((SUMA_ALL_DO *)VO, "Co",
                                   slices+2, "EngXYZ", 0);
       }
-      if (VOu) break; 
+      if (VOu) break;
    }
    SUMA_RETURN(YUP);
 }
 
-void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset, 
+void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
                            GLfloat *tcorners, GLfloat *corners, GLfloat *slc_cen,
                               int dim, int voxcen)
 {
-   static char FuncName[]={"SUMA_dset_tex_slice_corners"};   
+   static char FuncName[]={"SUMA_dset_tex_slice_corners"};
    int kk=0;
    int slcx, slcy, slcz=0, *dims;
    float A[4][4], I[3], T[3];
    SUMA_Boolean LocalHead = NOPE;
-    
+
    SUMA_ENTRY;
-      
+
    if (tcorners) memset(tcorners, 0, 4*3*sizeof(float));
    if (corners) memset(corners, 0, 4*3*sizeof(float));
-   
+
    if (!dset || !(SUMA_GetDatasetI2X(dset, A)) ||
        !(dims=SUMA_GetDatasetDimensions(dset)) ||
        !((tcorners && corners) || slc_cen) ) {
       SUMA_S_Err("no valid ijk_to_dicom_real or null input") ;
       SUMA_RETURNe;
    }
-   
+
    if (tcorners && corners) {
       switch (dim) {
          default:
@@ -1901,21 +1901,21 @@ void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
             SUMA_COPY_VEC(T, tcorners+3*kk, 3, float, GLfloat);
 
             kk = 1;
-            I[0] = dims[0]-1; I[1] = 0; I[2] = slci;  
+            I[0] = dims[0]-1; I[1] = 0; I[2] = slci;
             T[0] = 1;               T[1] = 0; T[2] = tcorners[2];
             if (!voxcen) {I[0] += 0.5; I[1] -= 0.5; }
             AFF44_MULT_I((corners+3*kk), A, I);
             SUMA_COPY_VEC(T, tcorners+3*kk, 3, float, GLfloat);
 
             kk = 2;
-            I[0] = dims[0]-1; I[1] = dims[1]-1; I[2] = slci;  
+            I[0] = dims[0]-1; I[1] = dims[1]-1; I[2] = slci;
             T[0] = 1;               T[1] = 1;               T[2] = tcorners[2];
             if (!voxcen) {I[0] += 0.5; I[1] += 0.5; }
             AFF44_MULT_I((corners+3*kk), A, I);
             SUMA_COPY_VEC(T, tcorners+3*kk, 3, float, GLfloat);
 
             kk = 3;
-            I[0] = 0; I[1] = dims[1]-1; I[2] = slci;  
+            I[0] = 0; I[1] = dims[1]-1; I[2] = slci;
             T[0] = 0; T[1] = 1;               T[2] = tcorners[2];
             if (!voxcen) {I[0] -= 0.5; I[1] += 0.5; }
             AFF44_MULT_I((corners+3*kk), A, I);
@@ -1982,25 +1982,25 @@ void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
             SUMA_COPY_VEC(T, tcorners+3*kk, 3, float, GLfloat);
             break;
       }
-   
+
       if (LocalHead) {
          float cen[3] = {0.0, 0.0, 0.0};
-         SUMA_LHv("Slice %d, dim %d %s corners and textures\n", 
+         SUMA_LHv("Slice %d, dim %d %s corners and textures\n",
                   slci, dim,
                   voxcen ? "Voxel Center":"Slice Edge");
          for (kk=0; kk<4; ++kk) {
             fprintf(SUMA_STDERR,
                      "c%d: %.3f   %.3f   %.3f\n"
-                     "t%d: %.3f   %.3f   %.3f\n", 
+                     "t%d: %.3f   %.3f   %.3f\n",
                kk, corners[3*kk],corners[3*kk+1],corners[3*kk+2],
                kk, tcorners[3*kk],tcorners[3*kk+1],tcorners[3*kk+2]);
            cen[0] += corners[3*kk  ];
-           cen[1] += corners[3*kk+1];                      
-           cen[2] += corners[3*kk+2];                      
+           cen[1] += corners[3*kk+1];
+           cen[2] += corners[3*kk+2];
          }
          fprintf(SUMA_STDERR,"\n");
          cen[0] /= 4.0; cen[1] /= 4.0; cen[2] /= 4.0;
-         fprintf(SUMA_STDERR, "Slice center RAI coord: %f %f %fmm\n", 
+         fprintf(SUMA_STDERR, "Slice center RAI coord: %f %f %fmm\n",
                               cen[0], cen[1], cen[2]);
       }
    }
@@ -2028,7 +2028,7 @@ void SUMA_dset_tex_slice_corners( int slci, SUMA_DSET *dset,
       SUMA_LH( "Slice center at RAI mm: %f %f %f",
                slc_cen[0], slc_cen[1], slc_cen[2]);
    }
-   
+
    SUMA_RETURNe;
 }
 
@@ -2040,55 +2040,55 @@ int SUMA_VO_SelectedSlice(SUMA_VolumeObject *vo, char *variant, float *scorners)
    int nslc = -1, dim, k;
    GLfloat slc_corners[12], slc_tcorners[12];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
-   if (!( (VSaux = SUMA_ADO_VSaux(ado)) && 
-          variant && 
-          VSaux->PR && 
+
+   if (!( (VSaux = SUMA_ADO_VSaux(ado)) &&
+          variant &&
+          VSaux->PR &&
           VSaux->PR->iAltSel[SUMA_VOL_I] >= 0 &&
           VSaux->PR->iAltSel[SUMA_VOL_J] >= 0 &&
           VSaux->PR->iAltSel[SUMA_VOL_K] >= 0 ) ) {
       SUMA_RETURN(-1);
    }
-   
+
    #if 0 /* Old way, does not work when in montage mode.
             Keep for the record */
-   if ((dim = SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0, 
-                                 VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0, 
+   if ((dim = SUMA_dset_gui_slice_from_tex_slice_d(vo->VE, 0,
+                                 VSaux->PR->dAltSel+SUMA_VOL_SLC_EQ0,
                                  0, variant,NULL))< 0) {
       SUMA_RETURN(-1);
    }
-   
-   
+
+
    nslc = VSaux->PR->iAltSel[SUMA_VOL_I+dim];
-   
-   SUMA_LH("Slice variant %s, dim %d. [%ld %ld %ld] -->%d", 
-            variant, dim, 
-            VSaux->PR->iAltSel[SUMA_VOL_I], 
+
+   SUMA_LH("Slice variant %s, dim %d. [%ld %ld %ld] -->%d",
+            variant, dim,
+            VSaux->PR->iAltSel[SUMA_VOL_I],
             VSaux->PR->iAltSel[SUMA_VOL_J],
             VSaux->PR->iAltSel[SUMA_VOL_K],
             nslc);
    if (nslc >= 0 && scorners) {
-      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc, 
-                          slc_tcorners, slc_corners, 
+      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc,
+                          slc_tcorners, slc_corners,
                           NULL, NULL, 0 );
       for (k=0; k<12; ++k) scorners[k] = slc_corners[k];
    }
    #else
-   SUMA_SlcCodeToVariant(VSaux->PR->iAltSel[SUMA_VOL_SLC_VARIANT], 
+   SUMA_SlcCodeToVariant(VSaux->PR->iAltSel[SUMA_VOL_SLC_VARIANT],
                          variant);
    nslc = VSaux->PR->iAltSel[SUMA_VOL_SLC_NUM];
-   SUMA_LH("Slice variant %s, [%ld %ld %ld] -->%d", 
-            variant,  
-            VSaux->PR->iAltSel[SUMA_VOL_I], 
+   SUMA_LH("Slice variant %s, [%ld %ld %ld] -->%d",
+            variant,
+            VSaux->PR->iAltSel[SUMA_VOL_I],
             VSaux->PR->iAltSel[SUMA_VOL_J],
             VSaux->PR->iAltSel[SUMA_VOL_K],
             nslc);
-   if (nslc >= 0 && scorners && 
+   if (nslc >= 0 && scorners &&
        VSaux->PR->iAltSel[SUMA_VOL_SLC_VARIANT] != SUMA_VR_VARIANT) {
-      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc, 
-                          slc_tcorners, slc_corners, 
+      SUMA_dset_tex_slice_corners_gui(vo->VE, 0, variant, nslc,
+                          slc_tcorners, slc_corners,
                           NULL, NULL, 0 );
       for (k=0; k<12; ++k) scorners[k] = slc_corners[k];
    }
@@ -2111,31 +2111,31 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    float tz = 0.0;
    static GLfloat init_rotationMatrix[4][4];
    static GLdouble dmatrix[16], init_mv_matrix[16];
-   float* nlt; /*JB: temporary node list, because I do not want to type 
+   float* nlt; /*JB: temporary node list, because I do not want to type
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
-   
+
    if (sv->DO_PickMode) {
       SUMA_LH("No need to draw volume in DO_PickMode");
       SUMA_RETURN(YUP);
    }
-   
+
    if (!VO->Show) SUMA_RETURN(YUP);
-   
+
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    }
-   
+
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
-   
-   
+
+
    if (0) {
       SUMA_LH( "Draw Clipping planes without modelview matrix enabled\n"
             "So planes are fixed in space.\n"
@@ -2153,10 +2153,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    glClipPlane(GL_CLIP_PLANE2, VO->CutPlane[2]);
    glClipPlane(GL_CLIP_PLANE3, VO->CutPlane[3]);
    glClipPlane(GL_CLIP_PLANE4, VO->CutPlane[4]);
-   glClipPlane(GL_CLIP_PLANE5, VO->CutPlane[5]); /* play with this 
+   glClipPlane(GL_CLIP_PLANE5, VO->CutPlane[5]); /* play with this
                                              one to change cuts*/
 
-   
+
    /* Now we need to draw the sucker */
    SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
@@ -2169,35 +2169,35 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    glEnable(GL_CLIP_PLANE4);
    glEnable(GL_CLIP_PLANE5);
 
-   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-               VO->TexEnvMode   ); /* what happens if 
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+               VO->TexEnvMode   ); /* what happens if
                               there is color already on a vertex (I would likely
                               not need this for 3D textures...*/
-   
+
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
-   gl_bl = glIsEnabled(GL_BLEND);  
-   
-   ive = 0;   
+   gl_bl = glIsEnabled(GL_BLEND);
+
+   ive = 0;
    while (VO->VE && VO->VE[ive]) {
       if (!VO->VE[ive]->texName) {
          if (!SUMA_CreateGL3DTexture(VO)) {
             SUMA_S_Err("Failed to create texture");
             SUMA_RETURN(NOPE);
-         }      
+         }
       }
 
-      SUMA_LHv("About to bind texture %d for %s\n", 
+      SUMA_LHv("About to bind texture %d for %s\n",
             VO->VE[ive]->texName[0], SUMA_VE_Headname(VO->VE, ive));
-      glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]); 
+      glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]);
                                              /* make texName be current */
 
       /* Now generate the coordinates */
-      SUMA_LHv( "About to generate polygons for dset %d (%p)\n", 
-               ive, SUMA_VE_dset(VO->VE, ive)); 
-      SUMA_LHv( "About to generate polygons for dset %d (%s)\n", 
-               ive, SUMA_VE_Headname(VO->VE, ive)); 
+      SUMA_LHv( "About to generate polygons for dset %d (%p)\n",
+               ive, SUMA_VE_dset(VO->VE, ive));
+      SUMA_LHv( "About to generate polygons for dset %d (%s)\n",
+               ive, SUMA_VE_Headname(VO->VE, ive));
       glShadeModel(GL_FLAT);     /* This should be reverted to sv's settings */
-      if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
+      if (!(gl_dt)) glEnable(GL_DEPTH_TEST);
       if (!(gl_bl)) glEnable(GL_BLEND);
 	   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       if (0 && LocalHead) {
@@ -2206,26 +2206,26 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
       }
       SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
 
-      /* The modelview matrix for drawing the quad vertices should remain the 
+      /* The modelview matrix for drawing the quad vertices should remain the
       same, the texture matrix will reflect object rotations.
-      IF you do want to see the 'slices', i.e. a stack of axial slices (for RAI 
+      IF you do want to see the 'slices', i.e. a stack of axial slices (for RAI
       dset), rather than volume rendering image, then allo the quads to be drawn
       with the scene's current modelview matrix and keep the texture matrix
-      as the identity matrix. 
+      as the identity matrix.
       This slice rendering could be useful to show
-      a triplet of slices (Ax, Sa, and Co), rather than the entire volume say. 
+      a triplet of slices (Ax, Sa, and Co), rather than the entire volume say.
       But that should
-      be done as a separate nel, or perhaps a different way of drawing a dset 
+      be done as a separate nel, or perhaps a different way of drawing a dset
       within SUMA. One should also decide whether that display is better done
       as 3 2D textures, rather than storing an entire 3D texture and just drawing
       a few quads from it */
       if (!ipass) {
-         /* store the Modelview_matrix to reuse later 
+         /* store the Modelview_matrix to reuse later
          Later on, this should be created automatically, when
          dset is loaded. I am not sure if using whatever was there
          when dset was first loaded is ideal in terms of artifact reduction
          The important thing however, is that the quads are drawn with the
-         same rotation matrix, translation should be applied normally. 
+         same rotation matrix, translation should be applied normally.
          It is the texture matrix that is changed
          with mouse movements, thereby allowing the volume to appear to move
          with other objects in the scene */
@@ -2233,27 +2233,27 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
          if (LocalHead) {
             SUMA_GL_MAT_SHOW(GL_MODELVIEW_MATRIX,"MV PreRecord\n");
          }
-         glGetDoublev(GL_MODELVIEW_MATRIX, init_mv_matrix); 
+         glGetDoublev(GL_MODELVIEW_MATRIX, init_mv_matrix);
          if (LocalHead) {
             fprintf(stderr,"init_mv_matrix initialized to:\n");
             for (i=0;i<16;++i) fprintf(stderr,"%.3f\t", init_mv_matrix[i]);
             fprintf(stderr,"\n");
          }
-         /* also store the rotation matrix at initialization, this is 
+         /* also store the rotation matrix at initialization, this is
          done to account for any prerotations already present on the scene */
-         SUMA_build_rotmatrix(init_rotationMatrix, 
-                              sv->GVS[sv->StdView].currentQuat); 
+         SUMA_build_rotmatrix(init_rotationMatrix,
+                              sv->GVS[sv->StdView].currentQuat);
          SUMA_S_Note("The use of this ipass variable is silly and would\n"
                      "only work when we are loading one texture only once.\n"
                      "The parameters recorded here, should be part of nel,\n"
                      "at the initialization stage and not stored this way.\n"
-                     "The same rant goes for silly clipping planes.\n"  );  
-         ++ipass;                            
+                     "The same rant goes for silly clipping planes.\n"  );
+         ++ipass;
       } else {
          if (0 && LocalHead) {
             SUMA_LH("init_mv_matrix recorded to be:");
             for (i=0;i<16;++i) fprintf(stderr,"%.3f\t", init_mv_matrix[i]);
-            fprintf(stderr,"\n");       
+            fprintf(stderr,"\n");
          }
       }
 
@@ -2262,8 +2262,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
          glMatrixMode(GL_MODELVIEW); glPushMatrix(); /* get a new one*/
          glLoadIdentity(); /* set to identity*/
          /* Now apply constant Modelview for Quads*/
-         glTranslatef ( sv->GVS[sv->StdView].translateVec[0], 
-                     sv->GVS[sv->StdView].translateVec[1], 0.0);   
+         glTranslatef ( sv->GVS[sv->StdView].translateVec[0],
+                     sv->GVS[sv->StdView].translateVec[1], 0.0);
          glMultMatrixd(init_mv_matrix);
 
       /* now for the texture coordinates, these should be transformed by
@@ -2273,21 +2273,21 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
 
          /* Now apply the inverse rotation params to the texture coordinates */
          SUMA_build_rotmatrix(rotationMatrix, sv->GVS[sv->StdView].currentQuat);
-         
+
          if (sv->ortho) {
-            SUMA_TRANSP_4MATRIX(rotationMatrix); /* transpose = inverse 
+            SUMA_TRANSP_4MATRIX(rotationMatrix); /* transpose = inverse
                                                 for rotation matrix*/
          } else {
             SUMA_INV_44ROTATIONMATRIX(rotationMatrix);
          }
-         glTranslatef ( 0.5, 0.5, 0.5); 
+         glTranslatef ( 0.5, 0.5, 0.5);
          glMultMatrixf(&rotationMatrix[0][0]);
          glMultMatrixf(&init_rotationMatrix[0][0]);  /* Need to multiply by
                                                         initial rotation applied
-                                                        to the scene. (initial=at 
+                                                        to the scene. (initial=at
                                                         the time quads were 1st
                                                         drawn*/
-         glTranslatef (-0.5, -0.5, -0.5);  
+         glTranslatef (-0.5, -0.5, -0.5);
 
 
       if (0 && LocalHead) {
@@ -2300,17 +2300,17 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
       /* slice by slice drawing, doing the deed by hand*/
       for(i = 0; i < VO_NK(VO); i++) {
          glBegin(GL_QUADS);
-            SUMA_dset_tex_slice_corners(i, SUMA_VE_dset(VO->VE,ive), tex_corn, 
+            SUMA_dset_tex_slice_corners(i, SUMA_VE_dset(VO->VE,ive), tex_corn,
                                         slc_corn, NULL, 2, 0);
             for (k=0; k<4; ++k) {
                glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tex_corn[3*k+2]);
                      /* this one is affected by the Texture MatrixMode */
-               glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]); 
+               glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
                      /* this one is affected by the Modelview matrixMode*/
             }
          glEnd();
       }
-      #else /* automatic texture coordinate generation, 
+      #else /* automatic texture coordinate generation,
             same artifact, and more complicated splane and rplane stuff, leave it
            just in case I'll need it. */
        glEnable(GL_TEXTURE_GEN_S);
@@ -2329,7 +2329,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
 
        for(i = 0; i < DSET_NZ(VO->VE[ive]->dset); i++) {
          glBegin(GL_QUADS);
-            SUMA_dset_tex_slice_corners(i,VO->VE[ive]->dset, 
+            SUMA_dset_tex_slice_corners(i,VO->VE[ive]->dset,
                                           tex_corn, slc_corn, NULL, 2, 0);
             for (k=0; k<4; ++k) {
                glVertex3f(slc_corn[3*k], slc_corn[3*k+1], slc_corn[3*k+2]);
@@ -2344,12 +2344,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
 
       glMatrixMode(GL_TEXTURE); glPopMatrix(); /* pop matrix of GL_TEXTURE */
       glMatrixMode(GL_MODELVIEW);  glPopMatrix();/* and Modelview*/
-     
+
       ++ive;
    }
-   
+
    glFlush();
-   
+
    /* disable the clipping planes */
    glDisable(GL_CLIP_PLANE0);
    glDisable(GL_CLIP_PLANE1);
@@ -2358,13 +2358,13 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    glDisable(GL_CLIP_PLANE4);
    glDisable(GL_CLIP_PLANE5);
 
-   
+
    /* Here we create a texture on the cutplane from the last dset loaded
-   At the moment, without this texture, nothing shows 
+   At the moment, without this texture, nothing shows
    of the overlay volume */
    if (LastTextureOnCutPlane) {
       --ive; /* bring ive counter to last dset put into texture*/
-      SUMA_dset_tex_slice_corners( 0, SUMA_VE_dset(VO->VE, ive), 
+      SUMA_dset_tex_slice_corners( 0, SUMA_VE_dset(VO->VE, ive),
                                    tex_corn, slc_corn, NULL, 2, 0);
 
       // Joachim says this is just wrong ...
@@ -2372,31 +2372,31 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
 
       if (!gl_dt) glDisable(GL_DEPTH_TEST);
 
-      /* If it were not for the slice textures shown here, then the overlay 
+      /* If it were not for the slice textures shown here, then the overlay
          texture would not show up at all! */
-      #if 0 
+      #if 0
       SUMA_LH("Texture on the slice, with triangles");
       glBegin(GL_TRIANGLES);
          k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]);
 
          k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); k+=2;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]);
 
       glEnd();
@@ -2406,8 +2406,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
          for (k=0; k<4; ++k) {
             glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
                   /* this one is affected by the Texture MatrixMode */
-            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], 
-                                          -VO->CutPlane[0][3]); 
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1],
+                                          -VO->CutPlane[0][3]);
                   /* this one is affected by the Modelview matrixMode*/
          }
       glEnd();
@@ -2416,23 +2416,23 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
       glDisable(GL_TEXTURE_3D);
    if (!gl_dt) glDisable(GL_DEPTH_TEST);
    if (!gl_bl) glDisable(GL_BLEND);
-   
-   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
    glEnable(GL_COLOR_MATERIAL);
    for (iplane=0; iplane < 6; ++iplane) {
       if (VO->UseCutPlane[iplane]) {
          if (iplane == VO->SelectedCutPlane) glColor3f(1.0, 1.0, 1.0);
-         else { 
+         else {
             if (ShowUnselected) {
-               if (iplane==0 || iplane == 1) glColor3f(1.0, 0.0, 0.0); 
-               if (iplane==2 || iplane == 3) glColor3f(0.0, 1.0, 0.0); 
-               if (iplane==4 || iplane == 5) glColor3f(0.0, 0.0, 1.0); 
+               if (iplane==0 || iplane == 1) glColor3f(1.0, 0.0, 0.0);
+               if (iplane==2 || iplane == 3) glColor3f(0.0, 1.0, 0.0);
+               if (iplane==4 || iplane == 5) glColor3f(0.0, 0.0, 1.0);
             } else {
                continue;
             }
          }
          glBegin(GL_LINE_LOOP);
-            nlt = VO->SOcut[iplane]->NodeList; 
+            nlt = VO->SOcut[iplane]->NodeList;
             glVertex3f( nlt[0],nlt[1],nlt[2] );
             glVertex3f( nlt[3],nlt[4],nlt[5] );
             glVertex3f( nlt[6],nlt[7],nlt[8] );
@@ -2446,9 +2446,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_OLD(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
 
-   
+
    SUMA_RETURN(YUP);
-   
+
 }
 
 SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
@@ -2462,7 +2462,7 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
    int nn;
    int N_slc=150;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
 
    if (!VO || !(VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO)) ||
@@ -2470,20 +2470,20 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
       SUMA_RETURN(NOPE);
    }
 
-   if (  SurfCont->VR_fld->N_slice_num < 0 || 
+   if (  SurfCont->VR_fld->N_slice_num < 0 ||
          SurfCont->VR_fld->N_slice_num > 2000) {
       N_slc = 150;
    } else N_slc = (int) SurfCont->VR_fld->N_slice_num;
-   
+
    cen = SUMA_VO_Grid_Center(VO, NULL);
    SUMA_ScreenPlane_WorldSpace(sv, cen, Eq);
    PlOff = (float *)SUMA_calloc(N_slc, sizeof(float));
-   if (!PlOff || (SUMA_PlaneBoxSlice( sv->GVS[sv->StdView].ViewFrom, Eq, 
+   if (!PlOff || (SUMA_PlaneBoxSlice( sv->GVS[sv->StdView].ViewFrom, Eq,
                                       VO->VE[0]->bcorners, NULL, NULL,
                                       PlOff, N_slc) < 0)) {
       SUMA_S_Err("Failed to allocate or get %d slicing planes", N_slc);
       SUMA_ifree(PlOff);
-      SUMA_RETURN(NOPE);                       
+      SUMA_RETURN(NOPE);
    }
    for (nn=0; nn<N_slc; ++nn) {
       rslc = (SUMA_RENDERED_SLICE *) SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
@@ -2494,7 +2494,7 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
               "(origin %f %f %f)",
                rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                SUMA_VE_Headname(VO->VE,0),
-               VO->VE[0]->I2X[3][0], 
+               VO->VE[0]->I2X[3][0],
                VO->VE[0]->I2X[3][1],VO->VE[0]->I2X[3][2]);
       dlist_ins_next(VSaux->vrslcl, dlist_head(VSaux->vrslcl), rslc);
    }
@@ -2504,7 +2504,7 @@ SUMA_Boolean SUMA_GET_VR_Slice_Pack(SUMA_VolumeObject *VO,
 
 SUMA_VOL_REN_VARIANTS SUMA_SlcVariantToCode(char *variant)
 {
-   
+
    static char FuncName[]={"SUMA_SlcVariantToCode"};
    if (!variant) {
       SUMA_S_Err("NULL variant");
@@ -2518,11 +2518,11 @@ SUMA_VOL_REN_VARIANTS SUMA_SlcVariantToCode(char *variant)
    return(SUMA_ERR_VARIANT);
 }
 
-void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant) 
+void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant)
 {
    static char FuncName[]={"SUMA_SlcCodeToVariant"};
    SUMA_Boolean LocalHead = NOPE;
-   
+
    variant[0] = '\0';
    switch (v) {
       default:
@@ -2550,10 +2550,10 @@ void SUMA_SlcCodeToVariant(SUMA_VOL_REN_VARIANTS v, char *variant)
          break;
    }
    return;
-}       
+}
 
 
-SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                                  char *variant, SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Get_Slice_Pack"};
@@ -2564,14 +2564,14 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
    SUMA_X_SurfCont *SurfCont = NULL;
    GLfloat slc_cen[6], scr_cen[6];
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VO || !(VSaux = SUMA_ADO_VSaux((SUMA_ALL_DO *)VO)) || !variant ||
        !(SurfCont = SUMA_ADO_Cont((SUMA_ALL_DO *)VO))) {
       SUMA_RETURN(NOPE);
    }
-   
+
    switch (variant[0]) {
       case 'A':
          slc = SurfCont->Ax_slc;
@@ -2590,21 +2590,21 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
          SUMA_S_Err("Bad variant");
          SUMA_RETURN(NOPE);
    }
-   
-   /* check for proper ordering direction 
+
+   /* check for proper ordering direction
       (only needed if montage is in order ) */
-   dim = SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant, 
+   dim = SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant,
                               0,  /* most inferior slice */
-                              NULL, NULL, slc_cen, NULL, 0); 
+                              NULL, NULL, slc_cen, NULL, 0);
    dim = SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant,
                               SUMA_VO_N_Slices(VO, variant)-1,/*superior++*/
-                              NULL, NULL, slc_cen+3, NULL, 0); 
+                              NULL, NULL, slc_cen+3, NULL, 0);
    /* which of the two is closer to my nose? */
-   SUMA_World2ScreenCoordsF(sv, 2, slc_cen, scr_cen, NULL, NOPE, NOPE); 
-   
-   
+   SUMA_World2ScreenCoordsF(sv, 2, slc_cen, scr_cen, NULL, NOPE, NOPE);
+
+
    if (slc->mont_num > 1) {
-      /* Form the slice planes. For now they are setup along the acquisition 
+      /* Form the slice planes. For now they are setup along the acquisition
          directions of the 0th VO->VE, but they need not be.
          Texture generation can then be carried out on any of the VEs
          regardless of their acquisition.                                */
@@ -2613,15 +2613,15 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
          iis = slc->mont_inc;
       } else {
          ii0 += (slc->mont_num-1)*slc->mont_inc;
-         iis = -slc->mont_inc;    
+         iis = -slc->mont_inc;
       }
       if (1) {
          i=0;
          while (i<slc->mont_num) {
             if (ii0 >= 0 && ii0 < SUMA_VO_N_Slices(VO, variant)) {
                SUMA_LH( "Top is closer bottom    %f %f %f --> scr z %f \n"
-                        "              top       %f %f %f --> scr z %f \n", 
-                        slc_cen[0], slc_cen[1], slc_cen[2], scr_cen[2], 
+                        "              top       %f %f %f --> scr z %f \n",
+                        slc_cen[0], slc_cen[1], slc_cen[2], scr_cen[2],
                         slc_cen[3], slc_cen[4], slc_cen[5], scr_cen[5]);
                rslc = (SUMA_RENDERED_SLICE *)
                               SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
@@ -2633,7 +2633,7 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                        "(origin %f %f %f), variant %s",
                         rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                         SUMA_VE_Headname(VO->VE,0),
-                        VO->VE[0]->I2X[3][0], 
+                        VO->VE[0]->I2X[3][0],
                         VO->VE[0]->I2X[3][1],VO->VE[0]->I2X[3][2],
                         rslc->variant);
                dlist_ins_prev(VSaux->slcl, dlist_head(VSaux->slcl), rslc);
@@ -2647,8 +2647,8 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
          while (i<slc->mont_num) {
             if (ii0 >= 0 && ii0 < SUMA_VO_N_Slices(VO, variant)) {
                SUMA_LH( "Bot is closer bottom    %f %f %f --> scr z %f \n"
-                        "              top       %f %f %f --> scr z %f \n", 
-                        slc_cen[0], slc_cen[1], slc_cen[2], scr_cen[2], 
+                        "              top       %f %f %f --> scr z %f \n",
+                        slc_cen[0], slc_cen[1], slc_cen[2], scr_cen[2],
                         slc_cen[3], slc_cen[4], slc_cen[5], scr_cen[5]);
 
                rslc = (SUMA_RENDERED_SLICE *)
@@ -2668,10 +2668,10 @@ SUMA_Boolean SUMA_Get_Slice_Pack(SUMA_VolumeObject *VO,
                            SUMA_malloc(sizeof(SUMA_RENDERED_SLICE));
       SUMA_dset_tex_slice_corners_gui(VO->VE, 0, variant, (int)slc->slice_num,
                                       NULL, NULL, NULL, rslc->Eq, 0);
-      rslc->slc_num = (int)slc->slice_num; 
+      rslc->slc_num = (int)slc->slice_num;
       snprintf(rslc->variant, 15, "%s", variant);
       dlist_ins_prev(VSaux->slcl, dlist_head(VSaux->slcl), rslc);
-      
+
    }
    SUMA_RETURN(YUP);
 }
@@ -2681,7 +2681,7 @@ int SUMA_Count_All_VO_Textures(void)
    static char FuncName[]={"SUMA_Count_All_VO_Textures"};
    int i, j, c = 0;
    SUMA_ALL_DO *ado=NULL;
-   
+
    for (i=0; i<SUMAg_N_DOv; ++i) {
       ado = iDO_ADO(i);
       if (ado->do_type == VO_type) {
@@ -2699,12 +2699,12 @@ int SUMA_Count_All_VO_Textures(void)
 /*
    Check if texture has been loaded for a particular viewer
    NOTE: N_tex is only set is the texture was NOT loaded */
-SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv, 
+SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv,
                                      GLuint texName, int *N_tex)
 {
    static char FuncName[]={"SUMA_SV_isTextureLoaded"};
    int i=0;
-   
+
    while (i<SUMA_MAX_DISPLAYABLE_OBJECTS && sv->LoadedTextures[i]!=-1) {
       if (sv->LoadedTextures[i] = (int)texName) return(YUP);
       ++i;
@@ -2716,14 +2716,14 @@ SUMA_Boolean SUMA_SV_isTextureLoaded(SUMA_SurfaceViewer *sv,
 }
 
 SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
-                                          SUMA_VolumeObject *VO, int j, 
+                                          SUMA_VolumeObject *VO, int j,
                                           int loadifneeded)
 {
    static char FuncName[]={"SUMA_SV_Mark_Textures_Status"};
    int N_tex = 0, i=0;
-   
+
    SUMA_ENTRY;
-   
+
    if (!sv || !MarkAs) {
       SUMA_RETURN(NOPE);
    }
@@ -2764,7 +2764,7 @@ SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
             VO = (SUMA_VolumeObject *)ado;
             j=0;
             while (VO->VE && VO->VE[j]) {
-               sv->LoadedTextures[N_tex] = VO->VE[j]->texName[0]; 
+               sv->LoadedTextures[N_tex] = VO->VE[j]->texName[0];
                if (loadifneeded) {
                   SUMA_VE_LoadTexture(VO->VE, j);
                }
@@ -2781,24 +2781,24 @@ SUMA_Boolean SUMA_SV_Mark_Textures_Status(SUMA_SurfaceViewer *sv, char *MarkAs,
    }
 }
 
-SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO, 
+SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO,
                                SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw_CIFTI_DO"};
    int i, pp=0;
    SUMA_ALL_DO *asdo=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    SUMA_LH("We are not rendering CIFTI DOs directly anymore.\n"
       	   "Delete once we're sure we won't go down this route.\n"
 	   "CIFTI DOs are rendered by rendering their elementary\n"
 	   "DOs. And if you do go down that route, safer to refer\n"
 	   "to DOs by their IDs");
-	          
+
    SUMA_RETURN(YUP);
-   
+
    for (i=0; i<CO->N_subdoms; ++i) {
       if (CO->subdoms_id[i]) {
       asdo = SUMA_CIFTI_subdom_ado(CO, i);
@@ -2812,16 +2812,16 @@ SUMA_Boolean SUMA_Draw_CIFTI_DO(SUMA_CIFTI_DO *CO,
 	    break;
 	 default:
 	    SUMA_S_Err("Not ready for subdom %d", asdo->do_type);
-	    break;      
+	    break;
       }
       }
    }
-   
-   
+
+
    SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO,
                                SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawVolumeDO"};
@@ -2839,7 +2839,7 @@ SUMA_Boolean SUMA_DrawVolumeDO(SUMA_VolumeObject *VO,
 
 
 /* Draw Volume Data, in slice mode for now */
-SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
                                     SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawVolumeDO_slices"};
@@ -2861,14 +2861,14 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
    SUMA_OVERLAYS *colp = NULL;
    SUMA_DSET *dset=NULL;
-   float* nlt; /*JB: temporary node list, because I do not want to type 
+   float* nlt; /*JB: temporary node list, because I do not want to type
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
    SUMA_ATRANS_MODES trmode=SATM_ViewerDefault;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
    if (!(colp = SUMA_ADO_CurColPlane(ado))) {
@@ -2879,12 +2879,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       SUMA_LH("No need to draw volume in DO_PickMode");
       SUMA_RETURN(YUP);
    }
-   
+
    if (!VO->Show) SUMA_RETURN(YUP);
-   
+
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
-      
-   if (!VO->VE || !VO->VE[0]) { 
+
+   if (!VO->VE || !VO->VE[0]) {
       SUMA_S_Err("No elements?");
       SUMA_RETURN(NOPE);
    }
@@ -2894,10 +2894,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    if (!(dset = SUMA_VO_dset(VO))) {
       SUMA_S_Err("No dset?");
       SUMA_RETURN(NOPE);
-   } 
+   }
 
    /* make sure all textures are ready */
-   ive = 0;   
+   ive = 0;
    while (VO->VE && VO->VE[ive]) {
       if (!VO->VE[ive]->texName) {
          if (!SUMA_CreateGL3DTexture(VO)) {
@@ -2921,45 +2921,45 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       ++ive;
    }
 
-   
+
    if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
       SUMA_S_Err("Failed to create tracking list");
-      SUMA_RETURN(NOPE); 
+      SUMA_RETURN(NOPE);
    }
-   
+
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    }
-   
+
    /* Now we need to draw the sucker */
    SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
-   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);   
+   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);
    if (colp->AlphaThresh == 0.0f) glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
    else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
                               /* Thresholded voxels alphas are set to 0 */
-   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-               VO->TexEnvMode   ); /* what happens if 
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+               VO->TexEnvMode   ); /* what happens if
                               there is color already on a vertex (I would likely
                               not need this for 3D textures...*/
-   
+
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
-   gl_bl = glIsEnabled(GL_BLEND);  
-   
-   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
-   
+   gl_bl = glIsEnabled(GL_BLEND);
+
+   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);
+
    glGetIntegerv(GL_SHADE_MODEL, &shmodel);
-   if (shmodel != GL_FLAT) 
+   if (shmodel != GL_FLAT)
       glShadeModel(GL_FLAT);
-      
+
    trmode = VSaux->TransMode;
    if (trmode == SATM_ViewerDefault) {
-      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode)) 
+      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode))
             <= SATM_ViewerDefault || trmode >= SATM_N_TransModes) {
-         SUMA_S_Warn("Bad trans mode change from %d to %d", 
+         SUMA_S_Warn("Bad trans mode change from %d to %d",
                       sv->TransMode,trmode);
-         trmode =  SATM_0;     
+         trmode =  SATM_0;
       }
    }
    if (trmode <= SATM_ViewerDefault || trmode > SATM_N_TransModes) {
@@ -2972,9 +2972,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       if ((!gl_bl)) glEnable(GL_BLEND);
       glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
    } else {
-      /* The safe way. Can't blend properly when showing 
+      /* The safe way. Can't blend properly when showing
          slices, particularly stacks and
-         multiple planes. Becomes a royal pain 
+         multiple planes. Becomes a royal pain
          to render all in proper order*/
       if ((gl_bl)) glDisable(GL_BLEND);
       if (trmode > SATM_0) {
@@ -2991,23 +2991,23 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    if (VSaux->ShowSaSlc && !SUMA_Get_Slice_Pack(VO, "Sa", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
+
    if (VSaux->ShowAxSlc && !SUMA_Get_Slice_Pack(VO, "Ax", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
-   
+
+
    if (VSaux->ShowCoSlc && !SUMA_Get_Slice_Pack(VO, "Co", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
+
    SUMA_LH("Have %d slices to render", dlist_size(VSaux->slcl));
    SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
-      
-      
+
+
    /* Generate the textures for all VEs. Note, no blending of textures
-      is done at the moment.                                          
-      If you have multiple VEs, you will need to render one slice at a 
+      is done at the moment.
+      If you have multiple VEs, you will need to render one slice at a
       time from each of the volumes. Blend them in the accumulate buffer
       and then return. Textures will need to be bound/unbound for each
       VE, each slice. Clunky but I won't bother with it until it proves
@@ -3021,52 +3021,52 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    if ((el = dlist_tail(VSaux->slcl))) {
       do {
          rslc = (SUMA_RENDERED_SLICE *)el->data;
-         
-         ive = 0;   
+
+         ive = 0;
          while (VO->VE && VO->VE[ive]) {
             if (ive != ivelast) {
-               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]); 
+               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]);
                ivelast = ive;
             }                                 /* make texName be current */
             /* compute plane intersection with VE[ive] */
-            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
-                                             rslc->Eq, VO->VE[ive]->bcorners, 
+            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom,
+                                             rslc->Eq, VO->VE[ive]->bcorners,
                                              slc_corn)) > 2) {
                SUMA_LH("Have plane %f %f %f %f, %d pts on vol %s",
                            rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                            nqd,  SUMA_VE_Headname(VO->VE,ive));
                glBegin(GL_POLYGON);
-                  for (k=0; k<6; ++k) { /* draw all 6 points always, even 
-                                           when there are repetitions. 
+                  for (k=0; k<6; ++k) { /* draw all 6 points always, even
+                                           when there are repetitions.
                                            Don't bother trimming to unique
                                            set unless this causes trouble */
                      /* change mm (edge coordinate to texture coords) */
                      AFF44_MULT_I(tex_corn, VO->VE[ive]->X2I, (slc_corn+3*k));
                      /* offset indices because slc_corn is on edge */
                      if (tex_corn[0] < 0) tex_corn[0] = 0;
-                     else if (tex_corn[0] > VO->VE[ive]->Ni-1) 
+                     else if (tex_corn[0] > VO->VE[ive]->Ni-1)
                         tex_corn[0] = VO->VE[ive]->Ni-1;
                      if (tex_corn[1] < 0) tex_corn[1] = 0;
-                     else if (tex_corn[1] > VO->VE[ive]->Nj-1) 
+                     else if (tex_corn[1] > VO->VE[ive]->Nj-1)
                         tex_corn[1] = VO->VE[ive]->Nj-1;
                      if (tex_corn[2] < 0) tex_corn[2] = 0;
-                     else if (tex_corn[2] > VO->VE[ive]->Nk-1) 
+                     else if (tex_corn[2] > VO->VE[ive]->Nk-1)
                         tex_corn[2] = VO->VE[ive]->Nk-1;
                      tex_corn[0] /= (float)(VO->VE[ive]->Ni-1);
                      tex_corn[1] /= (float)(VO->VE[ive]->Nj-1);
                      tex_corn[2] /= (float)(VO->VE[ive]->Nk-1);
-                     glTexCoord3f(tex_corn[0], 
+                     glTexCoord3f(tex_corn[0],
                                   tex_corn[1], tex_corn[2]);
                            /* this one is affected by the Texture MatrixMode */
-                     glVertex3f(slc_corn[3*k], 
-                                slc_corn[3*k+1], slc_corn[3*k+2]); 
+                     glVertex3f(slc_corn[3*k],
+                                slc_corn[3*k+1], slc_corn[3*k+2]);
                            /* this one is affected by the Modelview matrixMode*/
                   }
-               glEnd();                            
+               glEnd();
             }
             if (ive > 0) {
                SUMA_S_Warn("Add blending here");
-               /* Here is where you blend slice from this VE with the previous 
+               /* Here is where you blend slice from this VE with the previous
                   This should work just fine as is actually, no need to blend
                   separately unless doing overlay on top always. In that case,
                   render each VE separately then blend results across VEs
@@ -3074,20 +3074,20 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
             }
             ++ive;
          }
-            
+
          if (el != dlist_head(VSaux->slcl)) el = dlist_prev(el);
          else el = NULL;
       } while (el);
    }
    SUMA_CHECK_GL_ERROR("OpenGL Error ddd");
-   
+
    glFlush();
-   if (!gl_at) glDisable(GL_ALPHA_TEST); 
-   
+   if (!gl_at) glDisable(GL_ALPHA_TEST);
+
    glDisable(GL_TEXTURE_3D);
-   
+
    if (shmodel != GL_FLAT) glShadeModel(shmodel);
-   
+
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
@@ -3098,7 +3098,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    else glDisable(GL_BLEND);
 
    /* Now for the highlight */
-   if (SUMA_SV_GetShowSelectedFaceSet(sv)) { 
+   if (SUMA_SV_GetShowSelectedFaceSet(sv)) {
       int selslice = -1;
       float nlt[12];
       char variant[8]={"notset"};
@@ -3106,11 +3106,11 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
       selslice = SUMA_VO_SelectedSlice(VO, variant, nlt);
       if (selslice >= 0 && variant[0] != 'V') {
          SUMA_LH("Drawing %s Slice %d Selection Contour\n"
-                 "%f %f %f --> %f %f %f ...\n", 
+                 "%f %f %f --> %f %f %f ...\n",
                  variant, selslice,
-                 nlt[0],nlt[1],nlt[2], nlt[3],nlt[4],nlt[5]);    
-         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, No_Color);             
-         glColorMaterial(GL_FRONT, GL_EMISSION); 
+                 nlt[0],nlt[1],nlt[2], nlt[3],nlt[4],nlt[5]);
+         glMaterialfv(GL_FRONT, GL_AMBIENT_AND_DIFFUSE, No_Color);
+         glColorMaterial(GL_FRONT, GL_EMISSION);
          glEnable(GL_COLOR_MATERIAL);
          glColor4f(0.25, 0.25, 0.25, 1.0);
          glBegin(GL_LINE_LOOP);
@@ -3119,7 +3119,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
             glVertex3f( nlt[6],nlt[7],nlt[8] );
             glVertex3f( nlt[9],nlt[10],nlt[11] );
          glEnd();
-         glColor4f(0, 0, 0, 0); /* Kill emission,        ZSS. March 2014 
+         glColor4f(0, 0, 0, 0); /* Kill emission,        ZSS. March 2014
                         or risk hurting functions that expect it to be off. */
          glDisable(GL_COLOR_MATERIAL);
       } else {
@@ -3129,16 +3129,16 @@ SUMA_Boolean SUMA_DrawVolumeDO_slices(SUMA_VolumeObject *VO,
    } else {
       SUMA_LH("Do not show selected faceset");
    }
-   
+
    SUMA_LH("Undoing state changes, should fold ones above in here someday");
-   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL);
 
    SUMA_RETURN(YUP);
 }
 
 
 /* Draw Volume Data, in 3D this time */
-SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO, 
+SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
                                     SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_DrawVolumeDO_3D"};
@@ -3160,14 +3160,14 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
    SUMA_OVERLAYS *colp = NULL;
    SUMA_DSET *dset=NULL;
-   float* nlt; /*JB: temporary node list, because I do not want to type 
+   float* nlt; /*JB: temporary node list, because I do not want to type
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
    SUMA_ATRANS_MODES trmode=SATM_ViewerDefault;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
    if (!(colp = SUMA_ADO_CurColPlane(ado))) {
@@ -3178,31 +3178,31 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
       SUMA_LH("No need to draw volume in DO_PickMode");
       SUMA_RETURN(YUP);
    }
-   
+
    if (!VO->Show) SUMA_RETURN(YUP);
 
    if (!VSaux->ShowVrSlc) SUMA_RETURN(YUP);
-      
+
    if (!SUMA_GLStateTrack( "new", &st, FuncName, NULL, NULL)) {
       SUMA_S_Err("Failed to create tracking list");
-      SUMA_RETURN(NOPE); 
+      SUMA_RETURN(NOPE);
    }
-   
+
 
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    }
-   
+
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
-      
+
    /* Now we need to draw the sucker */
    SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
    /* You need a separate control for this ALPHA_TEST, perhaps.
       Enabling it, even at 0.1 threshold, causes ugly slice striping
       artifacts. It is possible we might need it for something later on...*/
-   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);   
+   if (!(gl_at = glIsEnabled(GL_ALPHA_TEST))) glEnable(GL_ALPHA_TEST);
    #if 0
    if (colp->AlphaThresh == 0.0f) glAlphaFunc(GL_ALWAYS, colp->AlphaThresh);
    else glAlphaFunc(GL_GREATER, colp->AlphaThresh);
@@ -3212,42 +3212,42 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
                                      for this. Usually you want it very small,
                                      or else you'll get ugly striping artifacts.
                                      But if you use the slice's alpha threshold,
-                                     you'll need to reduce it low enough to make 
-                                     the volume look nice but that give the 
+                                     you'll need to reduce it low enough to make
+                                     the volume look nice but that give the
                                      slices an ugly rim. */
    #endif
-   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-               VO->TexEnvMode   ); /* what happens if 
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+               VO->TexEnvMode   ); /* what happens if
                               there is color already on a vertex (I would likely
                               not need this for 3D textures...*/
-   
+
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
-   gl_bl = glIsEnabled(GL_BLEND);  
-   
-   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
+   gl_bl = glIsEnabled(GL_BLEND);
+
+   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);
    if (!(gl_bl)) glEnable(GL_BLEND);
 
    { /* Transparency games */
    /* Beware of the trickery of transparency.
    For cheese cloth transp, rendering multiple objects in a transparent
-   fashion is tricky. 
+   fashion is tricky.
    The bitmask autoshifting is not enough when many objects are in use.
    The stricking case is when you have two surfs and a volume, at 50% transp.
    If you shift for each object, then the first surface will get obscured by
    the volume (third object) because the twice shifted pattern will overlap
    with that of the first surf. One solution, now implemented, is to use the same
    mask shifting per class of objects. But then surfs won't be transparent
-   between them (not a big deal). The other option is to set the transparency 
-   differently for different objects (i.e. not using the viewer-wide 
-   transparency). Other options might help under certain cases (see 
+   between them (not a big deal). The other option is to set the transparency
+   differently for different objects (i.e. not using the viewer-wide
+   transparency). Other options might help under certain cases (see
    comment for function SUMA_StippleMask_shift().     ZSS March 13 2014    */
    trmode = VSaux->TransMode;
    if (trmode == SATM_ViewerDefault) {
-      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode)) 
+      if ((trmode = SUMA_TransMode2ATransMode(sv->TransMode))
             <= SATM_ViewerDefault || trmode >= SATM_N_TransModes) {
-         SUMA_S_Warn("Bad trans mode change from %d to %d", 
+         SUMA_S_Warn("Bad trans mode change from %d to %d",
                       sv->TransMode,trmode);
-         trmode =  SATM_0;     
+         trmode =  SATM_0;
       }
    }
    if (trmode <= SATM_ViewerDefault || trmode > SATM_N_TransModes) {
@@ -3266,7 +3266,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    }
    }
 
-   if (!VO->VE || !VO->VE[0]) { 
+   if (!VO->VE || !VO->VE[0]) {
       SUMA_S_Err("No elements?");
       SUMA_RETURN(NOPE);
    }
@@ -3276,10 +3276,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    if (!(dset = SUMA_VO_dset(VO))) {
       SUMA_S_Err("No dset?");
       SUMA_RETURN(NOPE);
-   } 
+   }
 
    /* make sure all textures are ready */
-   ive = 0;   
+   ive = 0;
    while (VO->VE && VO->VE[ive]) {
       if (!VO->VE[ive]->texName) {
          if (!SUMA_CreateGL3DTexture(VO)) {
@@ -3300,20 +3300,20 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    if (VSaux->ShowVrSlc && !SUMA_Get_Slice_Pack(VO, "Vr", sv)) {
       SUMA_S_Err("Failed to get VR slice pack");
    }
-   
-   
+
+
    SUMA_LH("Have %d slices to render", dlist_size(VSaux->vrslcl));
    /* Setup blending options */
       glGetIntegerv(GL_SHADE_MODEL, &shmodel);
-      if (shmodel != GL_FLAT) 
+      if (shmodel != GL_FLAT)
          glShadeModel(GL_FLAT);
 	   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
-      
-      
+
+
    /* Generate the textures for all VEs. Note, no blending of textures
-      is done at the moment.                                          
-      If you have multiple VEs, you will need to render one slice at a 
+      is done at the moment.
+      If you have multiple VEs, you will need to render one slice at a
       time from each of the volumes. Blend them in the accumulate buffer
       and then return. Textures will need to be bound/unbound for each
       VE, each slice. Clunky but I won't bother with it until it proves
@@ -3327,52 +3327,52 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    if ((el = dlist_tail(VSaux->vrslcl))) {
       do {
          rslc = (SUMA_RENDERED_SLICE *)el->data;
-         
-         ive = 0;   
+
+         ive = 0;
          while (VO->VE && VO->VE[ive]) {
             if (ive != ivelast) {
-               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]); 
+               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]);
                ivelast = ive;
             }                                 /* make texName be current */
             /* compute plane intersection with VE[ive] */
-            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
-                                             rslc->Eq, VO->VE[ive]->bcorners, 
+            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom,
+                                             rslc->Eq, VO->VE[ive]->bcorners,
                                              slc_corn)) > 2) {
                SUMA_LH("Have plane %f %f %f %f, %d pts on vol %s",
                            rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                            nqd,  SUMA_VE_Headname(VO->VE,ive));
                glBegin(GL_POLYGON);
-                  for (k=0; k<6; ++k) { /* draw all 6 points always, even 
-                                           when there are repetitions. 
+                  for (k=0; k<6; ++k) { /* draw all 6 points always, even
+                                           when there are repetitions.
                                            Don't bother trimming to unique
                                            set unless this causes trouble */
                      /* change mm (edge coordinate to texture coords) */
                      AFF44_MULT_I(tex_corn, VO->VE[ive]->X2I, (slc_corn+3*k));
                      /* offset indices because slc_corn is on edge */
                      if (tex_corn[0] < 0) tex_corn[0] = 0;
-                     else if (tex_corn[0] > VO->VE[ive]->Ni-1) 
+                     else if (tex_corn[0] > VO->VE[ive]->Ni-1)
                         tex_corn[0] = VO->VE[ive]->Ni-1;
                      if (tex_corn[1] < 0) tex_corn[1] = 0;
-                     else if (tex_corn[1] > VO->VE[ive]->Nj-1) 
+                     else if (tex_corn[1] > VO->VE[ive]->Nj-1)
                         tex_corn[1] = VO->VE[ive]->Nj-1;
                      if (tex_corn[2] < 0) tex_corn[2] = 0;
-                     else if (tex_corn[2] > VO->VE[ive]->Nk-1) 
+                     else if (tex_corn[2] > VO->VE[ive]->Nk-1)
                         tex_corn[2] = VO->VE[ive]->Nk-1;
                      tex_corn[0] /= (float)(VO->VE[ive]->Ni-1);
                      tex_corn[1] /= (float)(VO->VE[ive]->Nj-1);
                      tex_corn[2] /= (float)(VO->VE[ive]->Nk-1);
-                     glTexCoord3f(tex_corn[0], 
+                     glTexCoord3f(tex_corn[0],
                                   tex_corn[1], tex_corn[2]);
                            /* this one is affected by the Texture MatrixMode */
-                     glVertex3f(slc_corn[3*k], 
-                                slc_corn[3*k+1], slc_corn[3*k+2]); 
+                     glVertex3f(slc_corn[3*k],
+                                slc_corn[3*k+1], slc_corn[3*k+2]);
                            /* this one is affected by the Modelview matrixMode*/
                   }
-               glEnd();                                 
+               glEnd();
             }
             if (ive > 0) {
                SUMA_S_Warn("Add blending here");
-               /* Here is where you blend slice from this VE with the previous 
+               /* Here is where you blend slice from this VE with the previous
                   This should work just fine as is actually, no need to blend
                   separately unless doing overlay on top always. In that case,
                   render each VE separately then blend results across VEs
@@ -3380,20 +3380,20 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
             }
             ++ive;
          }
-            
+
          if (el != dlist_head(VSaux->vrslcl)) el = dlist_prev(el);
          else el = NULL;
       } while (el);
    }
    SUMA_CHECK_GL_ERROR("OpenGL Error ddd");
-   
+
    glFlush();
-   if (!gl_at) glDisable(GL_ALPHA_TEST); 
-   
+   if (!gl_at) glDisable(GL_ALPHA_TEST);
+
    glDisable(GL_TEXTURE_3D);
-   
+
    if (shmodel != GL_FLAT) glShadeModel(shmodel);
-   
+
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
@@ -3402,10 +3402,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_3D(SUMA_VolumeObject *VO,
    else glDisable(GL_DEPTH_TEST);
    if (gl_bl) glEnable(GL_BLEND);
    else glDisable(GL_BLEND);
-   
+
    /* This method should eventually replace the individual tests done above...*/
    SUMA_LH("Undoing state changes, should fold ones above in here someday");
-   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL); 
+   SUMA_GLStateTrack("r", &st, FuncName, NULL, NULL);
 
    SUMA_RETURN(YUP);
 }
@@ -3430,13 +3430,13 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    SUMA_ALL_DO *ado = (SUMA_ALL_DO *)VO;
    SUMA_VOL_SAUX *VSaux = SUMA_ADO_VSaux(ado);
    SUMA_DSET *dset=NULL;
-   float* nlt; /*JB: temporary node list, because I do not want to type 
+   float* nlt; /*JB: temporary node list, because I do not want to type
                   "VO->SOcut[0]->NodeList" over and over...*/
    SUMA_Boolean LastTextureOnCutPlane=YUP;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    #ifndef GL_VERSION_2_0
       /* GL must be old */
       SUMA_S_Err("Open GL < 2.0, glWindowPos2s() not yet supported (on all machines)");
@@ -3444,37 +3444,37 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    #else
    if (!VO) SUMA_RETURN(NOPE);
    if (!sv) sv = &(SUMAg_SVv[0]);
-   
+
    if (sv->DO_PickMode) {
       SUMA_LH("No need to draw volume in DO_PickMode");
       SUMA_RETURN(YUP);
    }
-   
+
    if (!VO->Show) SUMA_RETURN(YUP);
-   
+
    if (sv->PolyMode != SRM_Fill) {
       /* fill it up */
-      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);   
+      glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
    }
-   
+
    if (!VO->SOcut || !VO->SOcut[0]) SUMA_VO_InitCutPlanes(VO);
-      
+
    /* Now we need to draw the sucker */
    SUMA_CHECK_GL_ERROR("OpenGL Error pre texture");
    glEnable(GL_TEXTURE_3D);
 
-   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, 
-               VO->TexEnvMode   ); /* what happens if 
+   glTexEnvf(  GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE,
+               VO->TexEnvMode   ); /* what happens if
                               there is color already on a vertex (I would likely
                               not need this for 3D textures...*/
-   
+
    gl_dt = glIsEnabled(GL_DEPTH_TEST);
-   gl_bl = glIsEnabled(GL_BLEND);  
-   
-   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);      
+   gl_bl = glIsEnabled(GL_BLEND);
+
+   if (!(gl_dt)) glEnable(GL_DEPTH_TEST);
    if (!(gl_bl)) glEnable(GL_BLEND);
 
-   if (!VO->VE || !VO->VE[0]) { 
+   if (!VO->VE || !VO->VE[0]) {
       SUMA_S_Err("No elements?");
       SUMA_RETURN(NOPE);
    }
@@ -3484,10 +3484,10 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    if (!(dset = SUMA_VO_dset(VO))) {
       SUMA_S_Err("No dset?");
       SUMA_RETURN(NOPE);
-   } 
+   }
 
    /* make sure all textures are ready */
-   ive = 0;   
+   ive = 0;
    while (VO->VE && VO->VE[ive]) {
       if (!VO->VE[ive]->texName) {
          if (!SUMA_CreateGL3DTexture(VO)) {
@@ -3506,28 +3506,28 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    if (VSaux->ShowSaSlc && !SUMA_Get_Slice_Pack(VO, "Sa", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
+
    if (VSaux->ShowAxSlc && !SUMA_Get_Slice_Pack(VO, "Ax", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
-   
+
+
    if (VSaux->ShowCoSlc && !SUMA_Get_Slice_Pack(VO, "Co", sv)) {
       SUMA_S_Err("Failed to get Ax slice pack");
    }
-   
+
    SUMA_LH("Have %d slices to render", dlist_size(VSaux->slcl));
    /* Setup blending options */
       glGetIntegerv(GL_SHADE_MODEL, &shmodel);
-      if (shmodel != GL_FLAT) 
+      if (shmodel != GL_FLAT)
          glShadeModel(GL_FLAT);
 	   glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
       SUMA_CHECK_GL_ERROR("OpenGL Error pre setup");
-      
-      
+
+
    /* Generate the textures for all VEs. Note, no blending of textures
-      is done at the moment.                                          
-      If you have multiple VEs, you will need to render one slice at a 
+      is done at the moment.
+      If you have multiple VEs, you will need to render one slice at a
       time from each of the volumes. Blend them in the accumulate buffer
       and then return. Textures will need to be bound/unbound for each
       VE, each slice. Clunky but I won't bother with it until it proves
@@ -3541,48 +3541,48 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    if ((el = dlist_tail(VSaux->slcl))) {
       do {
          rslc = (SUMA_RENDERED_SLICE *)el->data;
-         
-         ive = 0;   
+
+         ive = 0;
          while (VO->VE && VO->VE[ive]) {
             if (ive != ivelast) {
-               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]); 
+               glBindTexture(GL_TEXTURE_3D, VO->VE[ive]->texName[0]);
                ivelast = ive;
             }                                 /* make texName be current */
             /* compute plane intersection with VE[ive] */
-            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
-                                             rslc->Eq, VO->VE[ive]->bcorners, 
+            if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom,
+                                             rslc->Eq, VO->VE[ive]->bcorners,
                                              slc_corn)) > 2) {
                SUMA_LH("Have plane %f %f %f %f, %d pts on vol %s",
                            rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                            nqd,  SUMA_VE_Headname(VO->VE,ive));
                glBegin(GL_POLYGON);
-                  for (k=0; k<6; ++k) { /* draw all 6 points always, even 
-                                           when there are repetitions. 
+                  for (k=0; k<6; ++k) { /* draw all 6 points always, even
+                                           when there are repetitions.
                                            Don't bother trimming to unique
                                            set unless this causes trouble */
                      /* change mm (edge coordinate to texture coords) */
                      AFF44_MULT_I(tex_corn, VO->VE[ive]->X2I, (slc_corn+3*k));
                      /* offset indices because slc_corn is on edge */
                      if (tex_corn[0] < 0) tex_corn[0] = 0;
-                     else if (tex_corn[0] > VO->VE[ive]->Ni-1) 
+                     else if (tex_corn[0] > VO->VE[ive]->Ni-1)
                         tex_corn[0] = VO->VE[ive]->Ni-1;
                      if (tex_corn[1] < 0) tex_corn[1] = 0;
-                     else if (tex_corn[1] > VO->VE[ive]->Nj-1) 
+                     else if (tex_corn[1] > VO->VE[ive]->Nj-1)
                         tex_corn[1] = VO->VE[ive]->Nj-1;
                      if (tex_corn[2] < 0) tex_corn[2] = 0;
-                     else if (tex_corn[2] > VO->VE[ive]->Nk-1) 
+                     else if (tex_corn[2] > VO->VE[ive]->Nk-1)
                         tex_corn[2] = VO->VE[ive]->Nk-1;
                      tex_corn[0] /= (float)(VO->VE[ive]->Ni-1);
                      tex_corn[1] /= (float)(VO->VE[ive]->Nj-1);
                      tex_corn[2] /= (float)(VO->VE[ive]->Nk-1);
-                     glTexCoord3f(tex_corn[0], 
+                     glTexCoord3f(tex_corn[0],
                                   tex_corn[1], tex_corn[2]);
                            /* this one is affected by the Texture MatrixMode */
-                     glVertex3f(slc_corn[3*k], 
-                                slc_corn[3*k+1], slc_corn[3*k+2]); 
+                     glVertex3f(slc_corn[3*k],
+                                slc_corn[3*k+1], slc_corn[3*k+2]);
                            /* this one is affected by the Modelview matrixMode*/
                   }
-               glEnd();                                 
+               glEnd();
             }
             #if 0
             {
@@ -3594,9 +3594,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                fff = (GLfloat *)dbuf;
                uidb = (GLfloat *)
                      SUMA_malloc(sv->X->aWIDTH*sv->X->aHEIGHT*sizeof(GLfloat));
-               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT,
                             GL_DEPTH_COMPONENT, GL_FLOAT, uidb);
-               
+
                ijmin = ijmax = (float)uidb[0];
                for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
                   if (ijmin > uidb[ij]) {
@@ -3614,9 +3614,9 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                dlum = SUMA_grabPixels(1, sv->X->aWIDTH, sv->X->aHEIGHT);
                /* reset anything dark */
                /* rewrite depth buffer */
-               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT,
                                  uidb, 5, 1, "dbuf.jpg", 1, 1);
-               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT,
                                  dlum, 1, 1, "dlum.jpg", 1, 1);
                /* free buffers */
                SUMA_ifree(dbuf); SUMA_ifree(dlum);
@@ -3625,12 +3625,12 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
             {
                GLfloat *dbuf;
                GLubyte *lbuf;
-               int ij; 
+               int ij;
                float ijmin, ijmax;
                /* grab depth buffer DOES NOT WORK*/
                dbuf = (GLfloat *)
                      SUMA_malloc(sv->X->aWIDTH*sv->X->aHEIGHT*sizeof(GLfloat));
-               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               glReadPixels(0, 0, sv->X->aWIDTH, sv->X->aHEIGHT,
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                ijmin = ijmax = (float)dbuf[0];
                for (ij=0; ij<sv->X->aWIDTH*sv->X->aHEIGHT; ++ij) {
@@ -3664,55 +3664,55 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
                }
                /* rewrite depth buffer */
                glWindowPos2s(0,0); /* specify raster position */
-               glDrawPixels(sv->X->aWIDTH, sv->X->aHEIGHT, 
+               glDrawPixels(sv->X->aWIDTH, sv->X->aHEIGHT,
                             GL_DEPTH_COMPONENT, GL_FLOAT, dbuf);
                /* render last slice again */
-               if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom, 
-                                             rslc->Eq, VO->VE[ive]->bcorners, 
+               if ((nqd = SUMA_PlaneBoxIntersect( sv->GVS[sv->StdView].ViewFrom,
+                                             rslc->Eq, VO->VE[ive]->bcorners,
                                              slc_corn)) > 2) {
                SUMA_LH("Have plane %f %f %f %f, %d pts on vol %s",
                            rslc->Eq[0], rslc->Eq[1], rslc->Eq[2], rslc->Eq[3],
                            nqd,  SUMA_VE_Headname(VO->VE,ive));
                glBegin(GL_POLYGON);
-                  for (k=0; k<6; ++k) { /* draw all 6 points always, even 
-                                           when there are repetitions. 
+                  for (k=0; k<6; ++k) { /* draw all 6 points always, even
+                                           when there are repetitions.
                                            Don't bother trimming to unique
                                            set unless this causes trouble */
                      /* change mm (edge coordinate to texture coords) */
                      AFF44_MULT_I(tex_corn, VO->VE[ive]->X2I, (slc_corn+3*k));
                      /* offset indices because slc_corn is on edge */
                      if (tex_corn[0] < 0) tex_corn[0] = 0;
-                     else if (tex_corn[0] > VO->VE[ive]->Ni-1) 
+                     else if (tex_corn[0] > VO->VE[ive]->Ni-1)
                         tex_corn[0] = VO->VE[ive]->Ni-1;
                      if (tex_corn[1] < 0) tex_corn[1] = 0;
-                     else if (tex_corn[1] > VO->VE[ive]->Nj-1) 
+                     else if (tex_corn[1] > VO->VE[ive]->Nj-1)
                         tex_corn[1] = VO->VE[ive]->Nj-1;
                      if (tex_corn[2] < 0) tex_corn[2] = 0;
-                     else if (tex_corn[2] > VO->VE[ive]->Nk-1) 
+                     else if (tex_corn[2] > VO->VE[ive]->Nk-1)
                         tex_corn[2] = VO->VE[ive]->Nk-1;
                      tex_corn[0] /= (float)(VO->VE[ive]->Ni-1);
                      tex_corn[1] /= (float)(VO->VE[ive]->Nj-1);
                      tex_corn[2] /= (float)(VO->VE[ive]->Nk-1);
-                     glTexCoord3f(tex_corn[0], 
+                     glTexCoord3f(tex_corn[0],
                                   tex_corn[1], tex_corn[2]);
                            /* this one is affected by the Texture MatrixMode */
-                     glVertex3f(slc_corn[3*k], 
-                                slc_corn[3*k+1], slc_corn[3*k+2]); 
+                     glVertex3f(slc_corn[3*k],
+                                slc_corn[3*k+1], slc_corn[3*k+2]);
                            /* this one is affected by the Modelview matrixMode*/
                   }
-               glEnd();                                 
-               }               
+               glEnd();
+               }
                /* junk it */
-               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT,
                                  dbuf, 5, 1, "dbuf.jpg", 1, 1);
-               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT, 
+               SUMA_PixelsToDisk(sv, sv->X->aWIDTH, sv->X->aHEIGHT,
                                  lbuf, 1, 1, "dlum.jpg", 1, 1);
                /* free buffers */
                SUMA_ifree(dbuf); SUMA_ifree(lbuf);
             }
             if (ive > 0) {
                SUMA_S_Warn("Add blending here");
-               /* Here is where you blend slice from this VE with the previous 
+               /* Here is where you blend slice from this VE with the previous
                   This should work just fine as is actually, no need to blend
                   separately unless doing overlay on top always. In that case,
                   render each VE separately then blend results across VEs
@@ -3720,22 +3720,22 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
             }
             ++ive;
          }
-            
+
          if (el != dlist_head(VSaux->slcl)) el = dlist_prev(el);
          else el = NULL;
       } while (el);
    }
    SUMA_CHECK_GL_ERROR("OpenGL Error ddd");
-   
+
    glFlush();
-   
-   
+
+
    /* Here we create a texture on the cutplane from the last dset loaded
-   At the moment, without this texture, nothing shows 
+   At the moment, without this texture, nothing shows
    of the overlay volume */
    if (0 && LastTextureOnCutPlane) {
       --ive; /* bring ive counter to last dset put into texture*/
-      SUMA_dset_tex_slice_corners( 0, SUMA_VE_dset(VO->VE, ive), 
+      SUMA_dset_tex_slice_corners( 0, SUMA_VE_dset(VO->VE, ive),
                                    tex_corn, slc_corn, NULL, 2, 0);
 
       // Joachim says this is just wrong ...
@@ -3743,31 +3743,31 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
 
       glEnable(GL_DEPTH_TEST);
 
-      /* If it were not for the slice textures shown here, then the overlay 
+      /* If it were not for the slice textures shown here, then the overlay
          texture would not show up at all! */
-      #if 0 
+      #if 0
       SUMA_LH("Texture on the slice, with triangles");
       glBegin(GL_TRIANGLES);
          k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]);
 
          k = 0;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); k+=2;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]); ++k;
-         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz); 
-            glVertex3f( slc_corn[3*k], slc_corn[3*k+1], 
+         glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
+            glVertex3f( slc_corn[3*k], slc_corn[3*k+1],
                                     -VO->CutPlane[0][3]);
 
       glEnd();
@@ -3777,8 +3777,8 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
          for (k=0; k<4; ++k) {
             glTexCoord3f(tex_corn[3*k], tex_corn[3*k+1], tz);
                   /* this one is affected by the Texture MatrixMode */
-            glVertex3f(slc_corn[3*k], slc_corn[3*k+1], 
-                                          -VO->CutPlane[0][3]); 
+            glVertex3f(slc_corn[3*k], slc_corn[3*k+1],
+                                          -VO->CutPlane[0][3]);
                   /* this one is affected by the Modelview matrixMode*/
          }
       glEnd();
@@ -3786,26 +3786,26 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
       glDisable(GL_DEPTH_TEST);
    }
    glDisable(GL_TEXTURE_3D);
-   
+
    if (!gl_bl) glDisable(GL_BLEND);
    if (shmodel != GL_FLAT) glShadeModel(shmodel);
    #if 0
-   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE); 
+   glColorMaterial(GL_FRONT, GL_AMBIENT_AND_DIFFUSE);
    glEnable(GL_COLOR_MATERIAL);
    for (iplane=0; iplane < 6; ++iplane) {
       if (VO->UseCutPlane[iplane]) {
          if (iplane == VO->SelectedCutPlane) glColor3f(1.0, 1.0, 1.0);
-         else { 
+         else {
             if (ShowUnselected) {
-               if (iplane==0 || iplane == 1) glColor3f(1.0, 0.0, 0.0); 
-               if (iplane==2 || iplane == 3) glColor3f(0.0, 1.0, 0.0); 
-               if (iplane==4 || iplane == 5) glColor3f(0.0, 0.0, 1.0); 
+               if (iplane==0 || iplane == 1) glColor3f(1.0, 0.0, 0.0);
+               if (iplane==2 || iplane == 3) glColor3f(0.0, 1.0, 0.0);
+               if (iplane==4 || iplane == 5) glColor3f(0.0, 0.0, 1.0);
             } else {
                continue;
             }
          }
          glBegin(GL_LINE_LOOP);
-            nlt = VO->SOcut[iplane]->NodeList; 
+            nlt = VO->SOcut[iplane]->NodeList;
             glVertex3f( nlt[0],nlt[1],nlt[2] );
             glVertex3f( nlt[3],nlt[4],nlt[5] );
             glVertex3f( nlt[6],nlt[7],nlt[8] );
@@ -3815,7 +3815,7 @@ SUMA_Boolean SUMA_DrawVolumeDO_exp(SUMA_VolumeObject *VO, SUMA_SurfaceViewer *sv
    }
    glDisable(GL_COLOR_MATERIAL);
    #endif
-   
+
    if (sv->PolyMode != SRM_Fill) {/* set fill mode back */
       SUMA_SET_GL_RENDER_MODE(sv->PolyMode);
    }
@@ -3834,16 +3834,16 @@ SUMA_Boolean SUMA_VE_LoadTexture(SUMA_VolumeElement **VE, int n)
    static char FuncName[]={"SUMA_VE_LoadTexture"};
    int i;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VE || n < 0 || !VE[n]) {
       SUMA_S_Err("NULL input %p %d %p", VE, n, (VE && n >=0) ? VE[n]:NULL);
       SUMA_RETURN(NOPE);
    }
-   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the 
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the
                                                 end of texel rows*/
-   if (!VE[n]->texName) { 
+   if (!VE[n]->texName) {
       VE[n]->texName = (GLuint *)SUMA_calloc(1,sizeof(GLuint));
       glGenTextures(1, VE[n]->texName); /* I just need 1 for now*/
    }
@@ -3851,14 +3851,14 @@ SUMA_Boolean SUMA_VE_LoadTexture(SUMA_VolumeElement **VE, int n)
       SUMA_S_Err("NULL texvec!");
       SUMA_RETURN(NOPE);
    }
-   
-   glBindTexture(GL_TEXTURE_3D, VE[n]->texName[0]); 
-                        /* make texName be the current one 
+
+   glBindTexture(GL_TEXTURE_3D, VE[n]->texName[0]);
+                        /* make texName be the current one
                            This will also create texture object
                            since this is the first time it is
                            called*/
 
-   /* Should texture repeat or no ? - This does not need to be set with 
+   /* Should texture repeat or no ? - This does not need to be set with
       every draw call, it should be done at init time*/
    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_S, GL_CLAMP);
    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_WRAP_T, GL_CLAMP);
@@ -3868,20 +3868,20 @@ SUMA_Boolean SUMA_VE_LoadTexture(SUMA_VolumeElement **VE, int n)
    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
    glTexParameteri(GL_TEXTURE_3D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 
-   SUMA_LHv("Storing texture for %s: %d %d %d\n", 
-            SUMA_VE_Headname(VE, n), SUMA_VE_Ni(VE, n), 
+   SUMA_LHv("Storing texture for %s: %d %d %d\n",
+            SUMA_VE_Headname(VE, n), SUMA_VE_Ni(VE, n),
             SUMA_VE_Nj(VE, n),  SUMA_VE_Nk(VE, n));
    /* And store the image poiner in question */
-   glTexImage3D   (  GL_TEXTURE_3D, 
+   glTexImage3D   (  GL_TEXTURE_3D,
                      0, /* texture level, highest resolution */
                      GL_RGBA, /* RGBA baby*/
-                     SUMA_VE_Ni(VE,n), 
+                     SUMA_VE_Ni(VE,n),
                      SUMA_VE_Nj(VE,n),
                      SUMA_VE_Nk(VE,n),
-		               0, /* border is 0 wide. Might have to do borders and 
+		               0, /* border is 0 wide. Might have to do borders and
                            split texture into two, if
                            volume is too big to fit into kangaroo's pouch */
-                     GL_RGBA, GL_UNSIGNED_BYTE, 
+                     GL_RGBA, GL_UNSIGNED_BYTE,
                      VE[n]->texvec);
    SUMA_RETURN(YUP);
 }
@@ -3891,15 +3891,15 @@ SUMA_Boolean SUMA_VO_InitCutPlanes(SUMA_VolumeObject *VO)
    static char FuncName[]={"SUMA_VO_InitCutPlanes"};
    int i,n;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (!VO) SUMA_RETURN(NOPE);
-   
+
       /* initialize clipping planes, assuming RAI.
    Even numbered planes cut above the coordinate
    Odd numbered planes cut below the coordinate.
-   For a plane P, Objects at X,Y,Z where 
+   For a plane P, Objects at X,Y,Z where
       p[0]X+p[1]Y+p[2]Z+p[3]>=0 are displayed
    Those planes are applied in object space.
    */
@@ -3911,44 +3911,44 @@ SUMA_Boolean SUMA_VO_InitCutPlanes(SUMA_VolumeObject *VO)
                "These default values, based on First and Last Voxel\n"
                "should be saved in nel.\n"
                "This stuff is not used at the moment. Reconsider later");
-   
+
    VO->CutPlane[0][3] = VO->VE[0]->voN[0]; /* Xmore */
    VO->CutPlane[1][3] = -VO->VE[0]->vo0[0]; /* Xless */
    VO->CutPlane[2][3] = VO->VE[0]->voN[1]; /* Ymore */
    VO->CutPlane[3][3] = -VO->VE[0]->vo0[1]; /* Yless */
    VO->CutPlane[4][3] = VO->VE[0]->voN[2]; /* Zmore */
    VO->CutPlane[5][3] = -VO->VE[0]->vo0[2]; /* Zless */
-         
+
    VO->CutPlane[0][0] = 0.0;  /* Z (I/S) plane Clip below plane*/
-   VO->CutPlane[0][1] = 0.0; 
-   VO->CutPlane[0][2] = 1.0; 
-   VO->CutPlane[0][3] = 0.8*VO->VE[0]->voN[2]; 
-   
+   VO->CutPlane[0][1] = 0.0;
+   VO->CutPlane[0][2] = 1.0;
+   VO->CutPlane[0][3] = 0.8*VO->VE[0]->voN[2];
+
    VO->CutPlane[1][0] = 0.0;  /* Z (I/S) plane, clip above plane*/
-   VO->CutPlane[1][1] = 0.0; 
-   VO->CutPlane[1][2] = -1.0; 
+   VO->CutPlane[1][1] = 0.0;
+   VO->CutPlane[1][2] = -1.0;
    VO->CutPlane[1][3] = -0.8*VO->VE[0]->vo0[2];
-   
+
    VO->CutPlane[2][0] = 0.0;  /* Y (A/P) plane, clip anterior plane*/
-   VO->CutPlane[2][1] = 1.0; 
-   VO->CutPlane[2][2] = 0.0; 
-   VO->CutPlane[2][3] = 0.8*VO->VE[0]->voN[1];; 
-   
+   VO->CutPlane[2][1] = 1.0;
+   VO->CutPlane[2][2] = 0.0;
+   VO->CutPlane[2][3] = 0.8*VO->VE[0]->voN[1];;
+
    VO->CutPlane[3][0] = 0.0;  /* Y (A/P) plane, clip posterior plane*/
-   VO->CutPlane[3][1] = -1.0; 
-   VO->CutPlane[3][2] = 0.0; 
+   VO->CutPlane[3][1] = -1.0;
+   VO->CutPlane[3][2] = 0.0;
    VO->CutPlane[3][3] = -0.8*VO->VE[0]->vo0[1];
-   
+
    VO->CutPlane[4][0] = 1.0;  /* X (R/L) plane, clip right plane*/
-   VO->CutPlane[4][1] = 0.0; 
-   VO->CutPlane[4][2] = 0.0; 
-   VO->CutPlane[4][3] = 0.8*VO->VE[0]->voN[0]; 
-   
+   VO->CutPlane[4][1] = 0.0;
+   VO->CutPlane[4][2] = 0.0;
+   VO->CutPlane[4][3] = 0.8*VO->VE[0]->voN[0];
+
    VO->CutPlane[5][0] = -1.0;  /* X (R/L) plane, clip left plane*/
-   VO->CutPlane[5][1] = 0.0; 
-   VO->CutPlane[5][2] = 0.0; 
+   VO->CutPlane[5][1] = 0.0;
+   VO->CutPlane[5][2] = 0.0;
    VO->CutPlane[5][3] = -0.8*VO->VE[0]->vo0[0];
-   
+
    for (i=0; i<6; ++i) {
       SUMA_SetTextureClipPlaneSurface(VO, i);
    }
@@ -3961,13 +3961,13 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
    static char FuncName[]={"SUMA_CreateGL3DTexture"};
    int i,n;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    SUMA_LH("Initializing and creating texture\n"
            "So if I am handling the mixing, it is the \n"
            "color vector that ends up filling the texture map...");
-   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the 
+   glPixelStorei(GL_UNPACK_ALIGNMENT, 1); /* Have no padding at the
                                                 end of texel rows*/
    if (0) {
    SUMA_S_Note(
@@ -3989,7 +3989,7 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
    }
    n = 0;
    while (VO->VE && VO->VE[n]) {
-      if (!VO->VE[n]->texName) { 
+      if (!VO->VE[n]->texName) {
          VO->VE[n]->texName = (GLuint *)SUMA_calloc(1,sizeof(GLuint));
          glGenTextures(1, VO->VE[n]->texName); /* I just need 1 for now*/
 
@@ -4003,73 +4003,73 @@ SUMA_Boolean SUMA_CreateGL3DTexture(SUMA_VolumeObject *VO)
                      "have a reason to exist?");
       }
       ++n;
-   }   
-   
+   }
+
    if (!SUMA_VO_InitCutPlanes(VO)) {
       SUMA_S_Err("Failed to init cutplanes");
       SUMA_RETURN(NOPE);
    }
-   
-   SUMA_RETURN(YUP);   
+
+   SUMA_RETURN(YUP);
 }
 
-SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel, 
-                                    SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_Draw3DTextureNIDOnel (NI_element *nel,
+                                    SUMA_SurfaceObject *SO,
                                     SUMA_DO_CoordUnits default_coord_type,
-                                    float *default_txcol, 
+                                    float *default_txcol,
                                     void *default_font, int default_node,
                                     SUMA_SurfaceViewer *sv)
 {
    static char FuncName[]={"SUMA_Draw3DTextureNIDOnel"};
    SUMA_VolumeObject *VO=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
 
-   
+
    if (!nel || strcmp(nel->name,"3DTex")) SUMA_RETURN(NOPE);
-   
+
    if (NI_IS_STR_ATTR_EQUAL(nel,"read_status","fail")) {
       /* can't be read */
       SUMA_LH("read_status is fail, giving up");
       SUMA_RETURN(NOPE);
    }
-   
-   
+
+
    if (!NI_IS_STR_ATTR_EQUAL(nel,"read_status","read")) { /* read it */
       if (!SUMA_Load3DTextureNIDOnel(nel, default_coord_type)) {
          SUMA_LH("Failed to load 3d texture");
          SUMA_RETURN(NOPE);
       }
-      
+
       if (!(VO = SUMA_VOof3DTextureNIDOnel(nel))) {
          SUMA_S_Err("Failed to find corresponding VO");
          SUMA_RETURN(NOPE);
       }
-      
+
       if (!SUMA_CreateGL3DTexture(VO)) {
          SUMA_S_Err("Failed to create texture");
          SUMA_RETURN(NOPE);
-      }      
+      }
    } else {
       if (!(VO = SUMA_VOof3DTextureNIDOnel(nel))) {
          SUMA_S_Err("Failed to find corresponding VO");
          SUMA_RETURN(NOPE);
       }
-   }   
+   }
 
    if (!SUMA_DrawVolumeDO(VO, sv)) {
       SUMA_S_Err("Failed to draw volume");
       SUMA_RETURN(NOPE);
    }
-      
 
-   
-   
-   SUMA_RETURN(YUP);     
+
+
+
+   SUMA_RETURN(YUP);
 }
 
-int iPlane2Dim(int iplane) 
+int iPlane2Dim(int iplane)
 {
    if (iplane == 0 || iplane == 1) return(2);
    else if (iplane == 2 || iplane == 3) return(1);
@@ -4093,23 +4093,23 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
-   if (!VO || !VO->VE || !(dset = SUMA_VE_dset(VO->VE,0)) 
+
+   if (!VO || !VO->VE || !(dset = SUMA_VE_dset(VO->VE,0))
        || iplane < 0 || iplane > 5) {
       SUMA_S_Err("Bad flow");
       SUMA_RETURN(NOPE);
    }
-   if (!VO->SOcut[iplane]) { 
+   if (!VO->SOcut[iplane]) {
       SUMA_LH("Creating surface for first time");
 
-      NodeList = (float *)SUMA_calloc(3*4, sizeof(float)); 
+      NodeList = (float *)SUMA_calloc(3*4, sizeof(float));
             /* four nodes for a rectangle */
-      FaceSetList = (int *)SUMA_calloc(2*3, sizeof(int));  
-            /* two triangles   */       
-      
+      FaceSetList = (int *)SUMA_calloc(2*3, sizeof(int));
+            /* two triangles   */
+
       switch (iplane) {
          case 0:/* initialize for plane 0 */
-            SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = slc_corn[3*k];
@@ -4129,7 +4129,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
             NodeList[3*k+2] = -VO->CutPlane[iplane][3];
             break;
          case 1:
-            SUMA_dset_tex_slice_corners( 0, dset,  tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset,  tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = slc_corn[3*k];
@@ -4149,7 +4149,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
             NodeList[3*k+2] = -VO->CutPlane[iplane][3];
             break;
          case 2:
-            SUMA_dset_tex_slice_corners( 0, dset,  tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset,  tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = slc_corn[3*k];
@@ -4169,7 +4169,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
             NodeList[3*k+2] = slc_corn[3*k+2];
             break;
          case 3:
-            SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = slc_corn[3*k];
@@ -4189,7 +4189,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
             NodeList[3*k+2] = slc_corn[3*k+2];
             break;
          case 4:
-            SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = -VO->CutPlane[iplane][3];
@@ -4209,7 +4209,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
             NodeList[3*k+2] = slc_corn[3*k+2];
             break;
          case 5:
-            SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+            SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                          slc_corn, NULL, iPlane2Dim(iplane), 0);
             k=0;
             NodeList[3*k] = -VO->CutPlane[iplane][3];
@@ -4239,13 +4239,13 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
       FaceSetList[3] = 0;
       FaceSetList[4] = 2;
       FaceSetList[5] = 3;
-      
+
       nsoopt = SUMA_NewNewSOOpt();
       VO->SOcut[iplane] = SUMA_NewSO( &NodeList, 4, &FaceSetList, 2, nsoopt );
       /* free nsoopt here */
       nsoopt = SUMA_FreeNewSOOpt(nsoopt);
-   } 
-   
+   }
+
    NodeList = VO->SOcut[iplane]->NodeList;
    FaceSetList = VO->SOcut[iplane]->FaceSetList;
 
@@ -4253,7 +4253,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
    /* adjust depending on which plane is called for */
    switch (iplane) {
       case 0:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] = slc_corn[3*k];
@@ -4271,10 +4271,10 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k] = slc_corn[3*k];
          NodeList[3*k+1] = slc_corn[3*k+1];
          NodeList[3*k+2] = -VO->CutPlane[iplane][3];
-	 
+
          break;
       case 1:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] = slc_corn[3*k];
@@ -4294,7 +4294,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k+2] = VO->CutPlane[iplane][3];
          break;
       case 2:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] = slc_corn[3*k];
@@ -4314,7 +4314,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k+2] = slc_corn[3*k+2];
          break;
       case 3:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] = slc_corn[3*k];
@@ -4334,7 +4334,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k+2] = slc_corn[3*k+2];
          break;
       case 4:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] = -VO->CutPlane[iplane][3];
@@ -4354,7 +4354,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
          NodeList[3*k+2] = slc_corn[3*k+2];
          break;
       case 5:
-         SUMA_dset_tex_slice_corners( 0, dset, tex_corn, 
+         SUMA_dset_tex_slice_corners( 0, dset, tex_corn,
                                       slc_corn, NULL, iPlane2Dim(iplane), 0);
          k=0;
          NodeList[3*k] =  VO->CutPlane[iplane][3];
@@ -4376,7 +4376,7 @@ SUMA_Boolean SUMA_SetTextureClipPlaneSurface(
       default:
          SUMA_S_Err("Should not be here");
          break;
-   } 
+   }
 
    SUMA_RETURN(YUP);
 }
@@ -4389,15 +4389,15 @@ SUMA_SurfaceObject ** SUMA_TextureClipPlaneSurfaces(int *N_SOv)
    int ii=0, jj, kk;
    SUMA_Boolean LocalHead = NOPE;
 
-   
+
    SUMA_ENTRY;
-   
+
    *N_SOv=0;
    for (ii=0; ii<SUMAg_N_DOv; ++ii) {
       if (SUMA_isVO(SUMAg_DOv[ii])) *N_SOv = *N_SOv+6;
    }
-   
-   SOv = (SUMA_SurfaceObject **)SUMA_calloc(*N_SOv, 
+
+   SOv = (SUMA_SurfaceObject **)SUMA_calloc(*N_SOv,
                                  sizeof(SUMA_SurfaceObject *));
    kk = 0;
    for (ii=0; ii<SUMAg_N_DOv; ++ii) {
@@ -4410,9 +4410,9 @@ SUMA_SurfaceObject ** SUMA_TextureClipPlaneSurfaces(int *N_SOv)
          }
       }
    }
-   
+
    *N_SOv = kk;
-   
+
    SUMA_RETURN(SOv);
 }
 
@@ -4422,9 +4422,9 @@ SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO)
    SUMA_VolumeObject *VO=NULL, *VOr = NULL;
    int ii=0, jj, kk;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    VO = NULL; VOr=NULL;
    for (ii=0; ii<SUMAg_N_DOv; ++ii) {
       if (SUMA_isVO(SUMAg_DOv[ii])) {
@@ -4440,7 +4440,7 @@ SUMA_VolumeObject *SUMA_VolumeObjectOfClipPlaneSurface(SUMA_SurfaceObject *SO)
          }
       }
    }
-   
+
    SUMA_RETURN(VOr);
 }
 
@@ -4449,5 +4449,5 @@ int SUMA_VO_SlicesAtCrosshair(SUMA_VolumeObject *VO)
    SUMA_VOL_SAUX *VSaux = VDO_VSAUX(VO);
    if (VSaux) return(VSaux->SlicesAtCrosshair);
    return(0);
-}   
+}
 

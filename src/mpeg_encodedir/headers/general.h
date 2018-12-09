@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.5  2004/04/02 15:12:41  rwcox
@@ -77,7 +77,7 @@
  * if your /usr/include headers do not have these, then pass -DMISSING_PROTOS
  * to your compiler
  *
- */ 
+ */
 #ifdef MISSING_PROTOS
 int fprintf();
 int fwrite();
@@ -144,7 +144,7 @@ typedef short int16;
      *	    1) long's are 32 bits and
      *	    2) int's are not
      */
-#ifdef LONG_32		
+#ifdef LONG_32
 typedef unsigned long uint32;
 typedef long int32;
 #else

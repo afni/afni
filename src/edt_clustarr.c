@@ -97,7 +97,7 @@ ENTRY("EDIT_cluster_array") ;
                default          :                                     break;
             }
          }
-         
+
       }
    }  /* iclu */
 

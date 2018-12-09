@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -1166,7 +1166,7 @@ int icount;		/* scanline length */
 /*
  * vpOctreeMask
  *
- * Fill a 3D array with a mask computed from an octree. 
+ * Fill a 3D array with a mask computed from an octree.
  * Each array element is set to one of three values depending upon
  * the value of the corresponding voxel in the octree:
  *    0		voxel is definitely transparent
@@ -1356,7 +1356,7 @@ int j;			/* scanline number */
 		VPBug("runaway scanline detected by VPCheckRuns");
 	}
 	opacity = VPClassifyVoxel(vpc, voxel);
-	if (opacity > vpc->min_opacity && 
+	if (opacity > vpc->min_opacity &&
 	    fabs(opacity - vpc->min_opacity) > 0.001) {
 	    if (!is_non_zero) {
 		printf("\n");

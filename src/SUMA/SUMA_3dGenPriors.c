@@ -20,12 +20,12 @@ static int vn=0 ;
 
 
 
-int GenPriors(SEG_OPTS *Opt) 
+int GenPriors(SEG_OPTS *Opt)
 {
    static char FuncName[]={"GenPriors"};
-   
+
    SUMA_ENTRY;
-   
+
 
    /* get the probability maps */
    if (!Opt->pset && Opt->DO_p) {
@@ -50,11 +50,11 @@ int GenPriors(SEG_OPTS *Opt)
          }
       }
    }
-      
+
    /* Get the classes */
    if (!Opt->cset && Opt->crefix && Opt->DO_c) {
-      if (!(SUMA_assign_classes_eng(Opt->pset, 
-                           Opt->clss->str, Opt->clss->num, Opt->keys, 
+      if (!(SUMA_assign_classes_eng(Opt->pset,
+                           Opt->clss->str, Opt->clss->num, Opt->keys,
                            Opt->cmask, &Opt->cset))) {
          ERROR_message("Failed aimlessly");
          SUMA_RETURN(0);
@@ -64,20 +64,20 @@ int GenPriors(SEG_OPTS *Opt)
       ERROR_exit("Output file %s already exists -- cannot continue!\n",
                   DSET_HEADNAME(Opt->cset) ) ;
       }
-   }  
-   
+   }
+
    /* group classes ? */
    if (Opt->group_classes) {
       THD_3dim_dataset *gcset=NULL;
       THD_3dim_dataset *gpset=NULL;
-      if (!SUMA_Regroup_classes (Opt, 
+      if (!SUMA_Regroup_classes (Opt,
                      Opt->clss->str, Opt->clss->num, Opt->keys,
                      Opt->group_classes->str,
                      Opt->group_classes->num,
                      Opt->group_keys, Opt->cmask,
-                     Opt->pset, 
+                     Opt->pset,
                      Opt->cset,
-                     &gpset, 
+                     &gpset,
                      &gcset) ) {
          ERROR_message("Failed to regroup");
          SUMA_RETURN(0);
@@ -85,7 +85,7 @@ int GenPriors(SEG_OPTS *Opt)
       DSET_write(gpset);
       DSET_write(gcset);
    }
-          
+
    SUMA_RETURN(1);
 }
 static char shelp_GenPriors[] = {
@@ -178,7 +178,7 @@ static char shelp_GenPriors[] = {
 "                         -cset anat.c   \\\n"
 "                         -labeltable DSC.niml.lt \\\n"
 "                         -do pc   \\\n"
-"                         -regroup_classes  'CSF GM WM Out'\n"           
+"                         -regroup_classes  'CSF GM WM Out'\n"
 "  -classes 'C1 C2 C3': Classify into these classes only. Alternative is\n"
 "                       to classify from all the classes in the training data\n"
 "  -features 'F1 F2 F3 ...': Use these features only. Otherwise use all \n"
@@ -188,7 +188,7 @@ static char shelp_GenPriors[] = {
 "                            want exact feature name matching, use\n"
 "                            option -strict_feature_match\n"
 "  -strict_feature_match: Use strict feature name matching when resolving \n"
-"                         which feature to keep from the traning set.\n" 
+"                         which feature to keep from the traning set.\n"
 "  -featgroups 'G1 G2 G3 ...': TO BE WRITTEN\n"
 "                            Example: -featgroups 'MEDI MAD. P2S'\n"
 "  -ShowThisDist DIST: Show information obtained from the training data about\n"
@@ -202,26 +202,26 @@ static char shelp_GenPriors[] = {
 };
 
 
-void GenPriors_usage(int detail) 
+void GenPriors_usage(int detail)
 {
    int i = 0;
-   
+
    ENTRY("GenPriors_usage");
-   
-   
+
+
    printf( "%s", shelp_GenPriors );
    PRINT_AFNI_OMP_USAGE("3dGenPriors",NULL);
    EXRETURN;
 }
 
-SEG_OPTS *GenPriors_Default(char *argv[], int argc) 
+SEG_OPTS *GenPriors_Default(char *argv[], int argc)
 {
    SEG_OPTS *Opt=NULL;
-   
+
    ENTRY("GenPriors_Default");
-   
+
    Opt = SegOpt_Struct();
-   
+
    Opt->helpfunc = &GenPriors_usage;
    Opt->ps = SUMA_Parse_IO_Args(argc, argv, "-talk;");
    Opt->aset_name = NULL;
@@ -242,15 +242,15 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->cset = NULL;
    Opt->debug = 0;
    Opt->idbg = Opt->kdbg = Opt->jdbg = -1;
-   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent 
+   Opt->binwidth = 0.01; /* the R function area.gam was used to pick a decent
                             binwidth. I picked a large one where discrepancy
-                            between Reference and Approximation was good. 
-                            0.1 is too coarse, 0.001 is overkill*/ 
+                            between Reference and Approximation was good.
+                            0.1 is too coarse, 0.001 is overkill*/
    Opt->feats=Opt->clss=NULL;
    Opt->feat_exp=NULL; Opt->featexpmeth=0; Opt->featsfam=NULL;
    Opt->keys = NULL;
    Opt->mixfrac=NULL;
-   Opt->UseTmp = 1; 
+   Opt->UseTmp = 1;
    Opt->logp = 1;
    Opt->VoxDbg = -1;
    Opt->VoxDbgOut = NULL;
@@ -278,24 +278,24 @@ SEG_OPTS *GenPriors_Default(char *argv[], int argc)
    Opt->fast = 1;
    Opt->ShowThisDist = NULL;
    Opt->featmatchmode = 1;/* strstr match */
-   
+
    RETURN(Opt);
 }
 
-int GenPriors_CheckOpts(SEG_OPTS *Opt) 
+int GenPriors_CheckOpts(SEG_OPTS *Opt)
 {
    ENTRY("GenPriors_CheckOpts");
-   if (  !Opt->sig_name || 
+   if (  !Opt->sig_name ||
           !Opt->ndist_name  ) {
       ERROR_message("Missing input");
       RETURN(0);
    }
-   
+
    if (Opt->group_keys && !Opt->group_classes) {
       ERROR_message("Keys but no classes");
       RETURN(0);
    }
-   
+
    if (Opt->featexpmeth == 1 && !Opt->featsfam) {
       ERROR_message( "Feature exponentition by feature groups"
                      "but not groups given.");
@@ -306,15 +306,15 @@ int GenPriors_CheckOpts(SEG_OPTS *Opt)
 
 SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 {
-   static char FuncName[]={"GenPriors_ParseInput"}; 
+   static char FuncName[]={"GenPriors_ParseInput"};
    int kar, i, ind, exists;
    char *outname, cview[10];
    int brk = 0;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    ENTRY("GenPriors_ParseInput");
-   
+
    brk = 0;
    kar = 1;
 	while (kar < argc) { /* loop accross command ine options */
@@ -323,20 +323,20 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			 Opt->helpfunc(0);
           exit (0);
 		}
-      
+
  		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-     
+
       #ifdef USE_TRACING
             if( strncmp(argv[kar],"-trace",5) == 0 ){
                DBG_trace = 1 ;
                brk = 1 ;
             }
-            if( strncmp(argv[kar],"-TRACE",5) == 0 ){  
+            if( strncmp(argv[kar],"-TRACE",5) == 0 ){
                DBG_trace = 2 ;
                brk = 1 ;
             }
       #endif
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -345,18 +345,18 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->debug = atoi(argv[kar]);
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-fast") == 0)) {
          Opt->fast = 1;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-slow") == 0)) {
          Opt->fast = 0;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-save_extra") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -366,13 +366,13 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          SUMA_S_Warn("Fix that ugly option");
 			Opt->Writepcg_G_au = TRUE;
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-talk_afni") == 0)) {
          Opt->ps->cs->talk_suma = 1;
          brk = 1;
-		}      
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-do") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -384,59 +384,59 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			if (strchr(argv[kar], 'x')) Opt->DO_x = 1;
 			if (strchr(argv[kar], 'p')) Opt->DO_p = 1;
 			if (strchr(argv[kar], 'o')) Opt->DO_o = 1;
-         
+
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-L2") == 0)) {
 			Opt->fitmeth = SEG_LSQFIT;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-L1") == 0)) {
 			Opt->fitmeth = SEG_L1FIT;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-openmp") == 0)) {
 			Opt->openmp = 1;
          brk = 1;
-		}   
-         
+		}
+
       if (!brk && (strcmp(argv[kar], "-no_openmp") == 0)) {
 			Opt->openmp = 0;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-pweight") == 0)) {
 			Opt->pweight = 1;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-no_pweight") == 0)) {
 			Opt->pweight = 0;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-no_edge") == 0)) {
 			Opt->edge = 0;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-edge") == 0)) {
 			Opt->edge = 1;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-edge1") == 0)) {
 			Opt->edge = 1;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-edge2") == 0)) {
 			Opt->edge = 2;
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-vox_debug") == 0)) {
          kar ++;
@@ -446,23 +446,23 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
          if (kar+2<argc) { /* see if we have ijk */
             int iii, jjj, kkk;
-            if (  argv[kar  ][0]!='-' && 
-                  argv[kar+1][0]!='-' && 
+            if (  argv[kar  ][0]!='-' &&
+                  argv[kar+1][0]!='-' &&
                   argv[kar+2][0]!='-' &&
                 (iii = atoi(argv[kar  ])) >= 0 &&
-                (jjj = atoi(argv[kar+1])) >= 0 && 
+                (jjj = atoi(argv[kar+1])) >= 0 &&
                 (kkk = atoi(argv[kar+2])) >= 0 ) {
                Opt->VoxDbg3[0]=iii;
                Opt->VoxDbg3[1]=jjj;
-               Opt->VoxDbg3[2]=kkk;    
+               Opt->VoxDbg3[2]=kkk;
                ++kar; ++kar;
-            } 
+            }
          }
 			if (Opt->VoxDbg3[0] < 0) {
             Opt->VoxDbg = atoi(argv[kar]);
          }
          brk = 1;
-		}      
+		}
 
       if (!brk && (strcmp(argv[kar], "-vox_debug_file") == 0)) {
          kar ++;
@@ -478,18 +478,18 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             Opt->VoxDbgOut = fopen(argv[kar],"w");
          }
          brk = 1;
-		}      
-      
+		}
+
       if (strcmp(argv[kar],"-logp") == 0 ) {
          Opt->logp = 1;
          brk = 1;
       }
-      
+
       if (strcmp(argv[kar],"-p") == 0 ) {
          Opt->logp = 0;
          brk = 1;
       }
-      
+
       if( strcmp(argv[kar],"-use_tmp") == 0 ){
          Opt->UseTmp = 1 ;
          brk = 1;
@@ -499,7 +499,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->UseTmp = 0 ;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-vox_debug") == 0)) {
          kar ++;
 			if (kar+2 >= argc)  {
@@ -510,8 +510,8 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->jdbg = atoi(argv[kar]); ++kar;
          Opt->kdbg = atoi(argv[kar]);
          brk = 1;
-		} 
-     
+		}
+
       if (!brk && (strcmp(argv[kar], "-cmask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -521,7 +521,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          if( Opt->cmask == NULL ) ERROR_exit("Can't compute -cmask!\n");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-mask") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -530,8 +530,8 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->mset_name = argv[kar];
          brk = 1;
-      }      
-      
+      }
+
       if( !brk && (strncmp(argv[kar],"-mrange",5) == 0) ){
          if( kar+2 >= argc )
            ERROR_exit("-mrange option requires 2 following arguments!\n");
@@ -541,7 +541,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
            ERROR_exit("-mrange inputs are illegal!\n") ;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-anat") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -551,22 +551,22 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->aset_name = argv[kar];
          brk = 1;
 		}
-            
+
       if (!brk && (strcmp(argv[kar], "-sig") == 0)) {
          kar ++;
 			if (kar >= argc)  {
 		  		fprintf (stderr, "need argument after -sig \n");
 				exit (1);
 			}
-			while (kar < argc && argv[kar][0] != '-') { 
-            Opt->sig_name = 
+			while (kar < argc && argv[kar][0] != '-') {
+            Opt->sig_name =
                SUMA_append_replace_string(Opt->sig_name, argv[kar], " ", 1);
             ++kar;
          }
          if (kar < argc && argv[kar][0] == '-') --kar; /* unwind */
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-pset") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -576,7 +576,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->this_pset_name = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-gold") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -606,7 +606,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->pstCgALLname = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-priCgL") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -616,7 +616,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->priCgLname = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-priCgALL") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -626,7 +626,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->priCgALLname = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-wL") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -640,7 +640,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          }
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-priCgA") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -650,7 +650,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->priCgAname = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-wA") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -664,7 +664,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          }
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-cset") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -684,7 +684,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->this_fset_name = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-xset") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -694,7 +694,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->this_xset_name = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-tdist") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -723,8 +723,8 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			}
 			Opt->na = atof(argv[kar]);
          brk = 1;
-		} 
-      
+		}
+
       if (!brk && (strcmp(argv[kar], "-blur_meth") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -741,7 +741,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          }
          brk = 1;
 		}
-            
+
       if (!brk && (strcmp(argv[kar], "-prefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -764,7 +764,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->xrefix,"%s.x", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-pprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -776,7 +776,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->prefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-fprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -788,7 +788,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->frefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-cprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -800,7 +800,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->crefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-cgprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -812,7 +812,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->cgrefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-pgprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -824,7 +824,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->pgrefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-xprefix") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -836,7 +836,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          sprintf(Opt->xrefix,"%s", argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-bias_classes") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -846,7 +846,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->bias_classes = argv[kar];
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-group_classes") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -868,12 +868,12 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             ERROR_exit("Bad option %s after -group_keys", argv[kar]);
          }
          Opt->group_keys = (int *)calloc(nstr->num, sizeof(int));
-         for (ii=0;ii<nstr->num; ++ii) 
+         for (ii=0;ii<nstr->num; ++ii)
             Opt->group_keys[ii] = strtol(nstr->str[ii],NULL,10);
          NI_delete_str_array(nstr);nstr=NULL;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-classes") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -883,7 +883,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->clss = NI_strict_decode_string_list(argv[kar] ,";, ");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-features") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -893,12 +893,12 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->feats = NI_strict_decode_string_list(argv[kar] ,";, ");
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-strict_feature_match") == 0)) {
          Opt->featmatchmode = 0;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-featgroups") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -920,10 +920,10 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             Opt->featexpmeth=1;
          } else if (!strncasecmp(argv[kar],"by_featcorr",9)) {
             Opt->featexpmeth=2;
-         } 
+         }
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-split_classes") == 0)) {
          NI_str_array *nstr=NULL; int ii;
          kar ++;
@@ -936,13 +936,13 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          for (ii=0;ii<nstr->num; ++ii) {
             Opt->Split[ii] = strtol(nstr->str[ii],NULL,10);
             if (Opt->Split[ii]<1 || Opt->Split[ii]>9) {
-               SUMA_S_Errv("Bad split value of %d in %s\n", 
+               SUMA_S_Errv("Bad split value of %d in %s\n",
                            Opt->Split[ii], argv[kar]);
                exit(1);
             }
          }
          Opt->Split[nstr->num]=-1; /* plug */
-         
+
          brk = 1;
 		}
 
@@ -950,12 +950,12 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->Other = 1;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-no_other") == 0)) {
          Opt->Other = 0;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-keys") == 0)) {
          NI_str_array *nstr=NULL; int ii;
          kar ++;
@@ -967,12 +967,12 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
             ERROR_exit("Bad option %s after -keys", argv[kar]);
          }
          Opt->keys = (int *)calloc(nstr->num, sizeof(int));
-         for (ii=0;ii<nstr->num; ++ii) 
+         for (ii=0;ii<nstr->num; ++ii)
             Opt->keys[ii] = strtol(nstr->str[ii],NULL,10);
          NI_delete_str_array(nstr);nstr=NULL;
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-bias_order") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -983,7 +983,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->bias_meth = "Poly";
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-bias_fwhm") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -994,7 +994,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
          Opt->bias_meth = "Wells";
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-enhance_cset_init") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1015,17 +1015,17 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->N_main = atoi(argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-clust_cset_init") == 0)) {
 			Opt->clust_cset_init = 1;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-no_clust_cset_init") == 0)) {
 			Opt->clust_cset_init = 0;
          brk = 1;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-uid") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1035,7 +1035,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			snprintf(Opt->uid,128,"%s",argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-mixfrac") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1055,7 +1055,7 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
 			Opt->B = atof(argv[kar]);
          brk = 1;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-ShowThisDist") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -1070,13 +1070,13 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
                          "Try -help for usage\n", argv[kar], kar);
 			suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-		} else {	
+		} else {
 			brk = 0;
 			kar ++;
 		}
 
    }
-   
+
    if (!Opt->prefix) Opt->prefix = strdup("./GenPriorsOut.p");
    if (!Opt->frefix) Opt->frefix = strdup("./GenPriorsOut.f");
    if (!Opt->xrefix) Opt->xrefix = strdup("./GenPriorsOut.x");
@@ -1091,14 +1091,14 @@ SEG_OPTS *GenPriors_ParseInput (SEG_OPTS *Opt, char *argv[], int argc)
       SUMA_S_Warn("Cannot do logp with fast yet, reverting to p");
       Opt->logp=0;
    }
-   
+
 
    RETURN(Opt);
 }
 
-float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats, 
-                                     int method, char *tdist, 
-                                     NI_str_array *featsfam, float **usethis) 
+float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
+                                     int method, char *tdist,
+                                     NI_str_array *featsfam, float **usethis)
 {
    static char FuncName[]={"SUMA_ComputeFeatureExponents"};
    int ii, jj, kk, cc;
@@ -1109,27 +1109,27 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
    float **feat_exp=usethis, wadj;
    char *fname=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_ENTRY;
-   
+
    if (method == 1 && !featsfam) {
       SUMA_S_Err("featsfam is NULL, and method is 1");
       SUMA_RETURN(feat_exp);
-   } 
-   
+   }
+
    if (method == 2 && !tdist) {
       SUMA_S_Err("tdist is NULL, and method is 2");
       SUMA_RETURN(feat_exp);
    }
-   
+
    if (method ==0 && (featsfam || tdist) && LocalHead) {
       SUMA_S_Warn("method is 0 and featsfam or tdist are not null.\n"
                   "Latter two will be ignored.");
    }
-   
-   if (!feat_exp) 
+
+   if (!feat_exp)
       feat_exp = (float **)SUMA_allocate2D(clss->num,feats->num,sizeof(float));
-   
+
    switch (method) {
       case 0:
          SUMA_LH("Uniform exponentiation");
@@ -1162,19 +1162,19 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
                   if (feat_exp[cc][jj] == ii) ++kk;
                }
                for (jj=0; kk>0 && jj<feats->num; ++jj) {
-                  if (feat_exp[cc][jj] == ii) 
+                  if (feat_exp[cc][jj] == ii)
                      feat_exp[cc][jj] = 1.0/(float)kk;
                }
             }
             for (jj=0; jj<feats->num; ++jj) {
-               if (feat_exp[cc][jj] >= featsfam->num) 
+               if (feat_exp[cc][jj] >= featsfam->num)
                   feat_exp[cc][jj] = 1.0;
             }
-            /* You don't need to adjust exponentiation because different 
+            /* You don't need to adjust exponentiation because different
                classes get the same total exponentiation, however adjusting
                make probabilities comparable across methods 0, 1, and 2 */
             wadj=0.0;
-            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii]; 
+            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii];
             wadj = (float)feats->num/wadj;
             for (ii=0; ii<feats->num; ++ii) feat_exp[cc][ii] *= wadj;
          }
@@ -1187,17 +1187,17 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
             fname = SUMA_corrmat_fname(tdist, clss->str[cc],1);
             if (!(C = (NI_element*) Seg_NI_read_file(fname))) {
                SUMA_S_Errv("Failed to read %s\n", fname);
-               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num); 
-               SUMA_free(imap); imap=NULL; 
-               SUMA_RETURN(usethis); 
+               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num);
+               SUMA_free(imap); imap=NULL;
+               SUMA_RETURN(usethis);
             }
             if (!(Cfeats = SUMA_comp_str_2_NI_str_ar(
                               NI_get_attribute(C,"ColumnLabels"), " ; "))) {
                SUMA_S_Errv("Failed to get feature labels from %s\n",fname);
-               SUMA_free(imap); imap=NULL; 
-               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num); 
+               SUMA_free(imap); imap=NULL;
+               if (!usethis) SUMA_free2D((char **)feat_exp, clss->num);
                NI_free_element(C); C=NULL;
-               SUMA_RETURN(usethis);               
+               SUMA_RETURN(usethis);
             }
             for (ii=0; ii<feats->num;++ii) {
                imap[ii] = SUMA_NI_str_array_find(feats->str[ii], Cfeats, 0, 0);
@@ -1208,7 +1208,7 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
                   SUMA_free(imap); imap=NULL; SUMA_free_NI_str_array(Cfeats);
                   NI_free_element(C); C=NULL;
                   SUMA_RETURN(usethis);
-               }        
+               }
             }
             for (ii=0; ii<feats->num; ++ii) {
                fv = (float *)C->vec[imap[ii]];
@@ -1220,12 +1220,12 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
             for (ii=0; ii<feats->num; ++ii) {
                feat_exp[cc][ii] = 1/feat_exp[cc][ii];
             }
-            
+
             /* You must adjust for different classes getting different total
                exponentiation, adjustment is made to make probabilities
                comparable across methods*/
             wadj=0.0;
-            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii]; 
+            for (ii=0; ii<feats->num; ++ii) wadj += feat_exp[cc][ii];
             wadj = (float)feats->num/wadj;
             for (ii=0; ii<feats->num; ++ii) feat_exp[cc][ii] *= wadj;
 
@@ -1235,12 +1235,12 @@ float **SUMA_ComputeFeatureExponents(NI_str_array *clss, NI_str_array *feats,
          SUMA_free(imap);
          break;
    }
-   
+
    SUMA_RETURN(feat_exp);
 }
 
 
-int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)   
+int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
 {
    static char FuncName[]={"SUMA_3dGP_CompareDists"};
    int ia = 0, i=0;
@@ -1250,7 +1250,7 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
    FILE *fout=NULL, *scrout=NULL;
    SUMA_Boolean LocalHead = NOPE;
    SUMA_ENTRY;
-   
+
    sprintf(sbuf,"@GP.%s.dists", Opt->uid);
    SUMA_S_Notev("See script %s for comparisons of input "
                 "features to those of the training set.\n",
@@ -1260,9 +1260,9 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
                   "set alljpg = ()\n");
 
    for (i=0; i<Opt->feats->num; ++i) {
-      if (!(FD = SUMA_find_feature_dist(Opt->FDV, NULL, Opt->feats->str[i], 
+      if (!(FD = SUMA_find_feature_dist(Opt->FDV, NULL, Opt->feats->str[i],
                                         NULL, NULL))) {
-         SUMA_S_Errv("Failed to find dist struct for %s\n", 
+         SUMA_S_Errv("Failed to find dist struct for %s\n",
                       Opt->feats->str[i]);
          SUMA_RETURN(0);
       }
@@ -1272,14 +1272,14 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
             /* Create histogram using parameters from training  */
             SB_LABEL(Opt->sig, Opt->feats->str[i], ia);
             if (ia<0) {
-               SUMA_S_Errv("Failed to find %s", Opt->feats->str[i]); 
+               SUMA_S_Errv("Failed to find %s", Opt->feats->str[i]);
                SUMA_RETURN(0);
             }
             sprintf(sbuf, "h(%s)",Opt->feats->str[i]);
-            if ((hhn = SUMA_dset_hist(Opt->sig, ia, 
+            if ((hhn = SUMA_dset_hist(Opt->sig, ia,
                                        Opt->cmask, sbuf, FD->hh, 0, 0, NULL))) {
                SUMA_LHv("Got %s\n", sbuf);
-               sprintf(sbuf, "h.%s_%s.1D", 
+               sprintf(sbuf, "h.%s_%s.1D",
                      Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);
                fout = fopen(sbuf,"w");
                for (ia=0; ia<FD->hh->K; ++ia) {
@@ -1288,7 +1288,7 @@ int SUMA_3dGP_CompareDists(SEG_OPTS *Opt)
                }
                fclose(fout); fout=NULL;
                SUMA_Free_hist(hhn); hhn = NULL;
-               sprintf(sbuf, "h.%s_%s", 
+               sprintf(sbuf, "h.%s_%s",
                      Opt->uid[0] != '\0' ? Opt->uid:"test", Opt->feats->str[i]);
                fprintf(scrout,"\n"
                      "1dRplot -x %s.1D'[0]' -input %s.1D'[1,2]' \\\n"
@@ -1326,17 +1326,17 @@ int main(int argc, char **argv)
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
-   
+
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    Opt = GenPriors_Default(argv,  argc);
    Opt = GenPriors_ParseInput (Opt, argv,  argc);
-   
+
    if (!GenPriors_CheckOpts(Opt)) {
       ERROR_exit("Failed on option check");
    }
-   
+
    if (Opt->ndist_name) {
-      Opt->FDV = SUMA_get_all_dists(Opt->ndist_name); 
+      Opt->FDV = SUMA_get_all_dists(Opt->ndist_name);
       if (!(allclss = SUMA_dists_classset(Opt->FDV))) {
          SUMA_S_Err("No class set?");
          exit(1);
@@ -1348,27 +1348,27 @@ int main(int argc, char **argv)
       SUMA_S_Notev("Have total of %d features, %d classes from training\n",
                    allfeats->num, allclss->num);
    }
-   
+
    if (Opt->ShowThisDist) {
       if (!strcmp(Opt->ShowThisDist, "ALL")) {
          SUMA_Show_dists(Opt->FDV, NULL, 1);
       } else {
          SUMA_Show_dist(
-            SUMA_find_feature_dist( Opt->FDV, 
+            SUMA_find_feature_dist( Opt->FDV,
                                  Opt->ShowThisDist, NULL, NULL, NULL),
                      NULL);
       }
-      exit(0); 
+      exit(0);
    }
-   
-   /* load the input data */   
-   if (Opt->sig_name && !(Opt->sig = Seg_load_dset( Opt->sig_name ))) {      
+
+   /* load the input data */
+   if (Opt->sig_name && !(Opt->sig = Seg_load_dset( Opt->sig_name ))) {
       exit(1);
    }
-   
+
    /* Fix VoxDbg */
    if (Opt->VoxDbg >= 0) {
-      Vox1D2Vox3D(Opt->VoxDbg, 
+      Vox1D2Vox3D(Opt->VoxDbg,
                   DSET_NX(Opt->sig), DSET_NX(Opt->sig)*DSET_NY(Opt->sig),
                   Opt->VoxDbg3);
    } else if (Opt->VoxDbg3[0]>=0) {
@@ -1381,9 +1381,9 @@ int main(int argc, char **argv)
                Opt->VoxDbg, Opt->VoxDbg3[0], Opt->VoxDbg3[1], Opt->VoxDbg3[2]);
       exit(1);
    }
-   
 
-   
+
+
    if (!Opt->clss) { /* get all classes from training */
       Opt->clss = allclss; allclss = NULL;
    } else {
@@ -1392,7 +1392,7 @@ int main(int argc, char **argv)
          nfound=0;
          for (i=0; i<allclss->num; ++i) {
             if (strstr(allclss->str[i], Opt->clss->str[j])) {
-               nisa = SUMA_NI_str_array(nisa, allclss->str[i], "A"); 
+               nisa = SUMA_NI_str_array(nisa, allclss->str[i], "A");
                ++nfound;
             }
          }
@@ -1412,7 +1412,7 @@ int main(int argc, char **argv)
                       "%d classes in training set.\n",
                       nisa->num, allclss->num);
       }
-      Opt->clss = SUMA_free_NI_str_array(Opt->clss); 
+      Opt->clss = SUMA_free_NI_str_array(Opt->clss);
       Opt->clss = nisa; nisa = NULL;
       #if 0
       /* make sure we have all classes represented in training */
@@ -1424,13 +1424,13 @@ int main(int argc, char **argv)
       }
       #endif
    }
-   
+
    if (!Opt->feats) { /* get all features from input signatures */
       for (i=0; i<DSET_NVALS(Opt->sig); ++i) {
-         Opt->feats = SUMA_NI_str_array(Opt->feats, 
+         Opt->feats = SUMA_NI_str_array(Opt->feats,
                                         DSET_BRICK_LABEL(Opt->sig,i),"A");
       }
-   } 
+   }
    if (!Opt->feats) { /* Should not happen here */
       SUMA_S_Err("No features by this point?!?");
       exit(1);
@@ -1441,12 +1441,12 @@ int main(int argc, char **argv)
          for (i=0; i<allfeats->num; ++i) {
             if (Opt->featmatchmode) { /* partial match */
                if (strstr(allfeats->str[i], Opt->feats->str[j])) {
-                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A"); 
+                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A");
                   ++nfound;
                }
             } else {
                if (!strcmp(allfeats->str[i], Opt->feats->str[j])) {
-                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A"); 
+                  nisa = SUMA_NI_str_array(nisa, allfeats->str[i], "A");
                   ++nfound;
                }
             }
@@ -1467,13 +1467,13 @@ int main(int argc, char **argv)
                       "%d features in training set.\n",
                       nisa->num, allfeats->num);
       }
-      Opt->feats = SUMA_free_NI_str_array(Opt->feats); 
+      Opt->feats = SUMA_free_NI_str_array(Opt->feats);
       Opt->feats = nisa; nisa = NULL;
       #if 0
       /* make sure we have all features represented in training*/
       for (i=0; i<Opt->feats->num; ++i) {
          if (SUMA_NI_str_array_find(Opt->feats->str[i], allfeats, 1, 0) < 0) {
-            SUMA_S_Errv("Feature %s not in training group!\n", 
+            SUMA_S_Errv("Feature %s not in training group!\n",
                         Opt->feats->str[i]);
             exit(1);
          }
@@ -1483,30 +1483,30 @@ int main(int argc, char **argv)
 
    SUMA_S_Notev("Will be using %d features and %d classes.\n",
                    Opt->feats->num, Opt->clss->num);
-   
+
    /* Compare distributions from this set to those from training */
    SUMA_3dGP_CompareDists(Opt);
 
-   
-   if (!(Opt->feat_exp = SUMA_ComputeFeatureExponents(Opt->clss, Opt->feats, 
-                                 Opt->featexpmeth, Opt->ndist_name, 
-                                 Opt->featsfam, NULL))){ 
+
+   if (!(Opt->feat_exp = SUMA_ComputeFeatureExponents(Opt->clss, Opt->feats,
+                                 Opt->featexpmeth, Opt->ndist_name,
+                                 Opt->featsfam, NULL))){
          SUMA_S_Err("Failed to compute exponents, method 1");
          exit(1);
    }
-   
-   
+
+
    /* Show features and their exponents */
    for (cc=0; cc<Opt->clss->num; ++cc) {
       float sss=0.0;
       for (i=0; i<Opt->feats->num; ++i) {
          sss += Opt->feat_exp[cc][i];
-         fprintf(SUMA_STDOUT,"Class %s, feature %s, exponent %f\n", 
+         fprintf(SUMA_STDOUT,"Class %s, feature %s, exponent %f\n",
                  Opt->clss->str[cc], Opt->feats->str[i], Opt->feat_exp[cc][i]);
       }
-      fprintf(SUMA_STDOUT,"                  Exponent sum: %f\n", sss); 
+      fprintf(SUMA_STDOUT,"                  Exponent sum: %f\n", sss);
    }
-   
+
    /* make sure we have mixfrac */
    if (!Opt->mixfrac) {
       SUMA_S_Note("Using Equal Mixing Fractions");
@@ -1518,24 +1518,24 @@ int main(int argc, char **argv)
       /* force one for the moment */
       ERROR_exit("Cannot handle user mixfrac yet");
    }
-   
-   
+
+
    if (Opt->mset_name && strcmp(Opt->mset_name,"VOX_DEBUG")) {
-      if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {      
+      if (!(Opt->mset = Seg_load_dset( Opt->mset_name ))) {
          exit(1);
       }
    }
 
    if (Opt->this_pset_name) {
       SUMA_S_Notev("Reading pre-existing %s\n",Opt->this_pset_name);
-      if (!(Opt->pset = Seg_load_dset( Opt->this_pset_name ))) {      
+      if (!(Opt->pset = Seg_load_dset( Opt->this_pset_name ))) {
          exit(1);
       }
    }
-   
+
    if (Opt->this_cset_name) {
       SUMA_S_Notev("Reading pre-existing %s\n",Opt->this_cset_name);
-      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {      
+      if (!(Opt->cset = Seg_load_dset( Opt->this_cset_name ))) {
          exit(1);
       }
       #if 0
@@ -1543,7 +1543,7 @@ int main(int argc, char **argv)
          because that guy might have a labeltable that contains more
          classes than in the training file. */
       if (!Opt->clss) { /* try to get it from this dset */
-         if (!Seg_ClssAndKeys_from_dset(Opt->cset, &(Opt->clss), 
+         if (!Seg_ClssAndKeys_from_dset(Opt->cset, &(Opt->clss),
                                           &(Opt->clss_keys))) {
             ERROR_message("No clss to be found in cset.\n"
                           "Must specify labeltable");
@@ -1558,13 +1558,13 @@ int main(int argc, char **argv)
       ERROR_message("Must specify -tdist");
       exit(1);
    }
-   
+
    /* labeltable? */
    if (Opt->labeltable_name) {
       Dtable *vl_dtable=NULL;
       char *labeltable_str=NULL;
       int kk=0;
-      
+
       /* read the table */
       if (!(labeltable_str = AFNI_suck_file( Opt->labeltable_name))) {
          ERROR_exit("Failed to read %s", Opt->labeltable_name);
@@ -1575,28 +1575,28 @@ int main(int argc, char **argv)
       /* make sure all classes are in the labeltable */
       for (i=0; i<Opt->clss->num; ++i) {
          if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-            ERROR_exit("Key not found in %s for %s ", 
+            ERROR_exit("Key not found in %s for %s ",
                         Opt->labeltable_name, Opt->clss->str[i]);
          }
          if (Opt->keys) {
             if (Opt->keys[i]!=kk) {
                ERROR_exit("Key mismatch %d %d", Opt->keys[i], kk);
             }
-         }   
-      }   
+         }
+      }
       if (!Opt->keys) { /* get them from table */
          Opt->keys = (int *)calloc(Opt->clss->num, sizeof(int));
          for (i=0; i<Opt->clss->num; ++i) {
             if ((kk = SUMA_KeyofLabel_Dtable(vl_dtable, Opt->clss->str[i]))<0){
-               ERROR_exit("(should noy happen) Key not found in %s for %s ", 
+               ERROR_exit("(should noy happen) Key not found in %s for %s ",
                            Opt->labeltable_name, Opt->clss->str[i]);
             }
             Opt->keys[i] = kk;
          }
       }
       destroy_Dtable(vl_dtable); vl_dtable=NULL;
-   } 
-   
+   }
+
    if (!Opt->keys) {
       /* add default keys */
       SUMA_S_Note("Keys not available, assuming defaults");
@@ -1605,37 +1605,37 @@ int main(int argc, char **argv)
          Opt->keys[i] = i+1;
       }
    }
-   
+
    /* Show the match between keys and classes */
    SUMA_ShowClssKeys(Opt->clss->str, Opt->clss->num, Opt->keys);
-   
-   
-   
+
+
+
    if (Opt->group_classes) { /* just a check */
-      if (!SUMA_Regroup_classes (Opt, 
+      if (!SUMA_Regroup_classes (Opt,
                      Opt->clss->str, Opt->clss->num, Opt->keys,
-                     Opt->group_classes->str, 
+                     Opt->group_classes->str,
                      Opt->group_classes->num, NULL,
-                     NULL, NULL, NULL, 
+                     NULL, NULL, NULL,
                      NULL, NULL)) {
          ERROR_exit("Failed to determine mapping");
       }
    }
-   
-   
+
+
    if (Opt->sig) {
       Opt->cmask = MaskSetup(Opt, Opt->sig, 1,
-                &(Opt->mset), &(Opt->cmask), Opt->dimcmask, 
+                &(Opt->mset), &(Opt->cmask), Opt->dimcmask,
                 Opt->mask_bot, Opt->mask_top, &(Opt->cmask_count));
    }
-   
-   
+
+
    if (Opt->VoxDbg >= 0) {
       fprintf(Opt->VoxDbgOut, "Command:");
       for (i=0; i<argc; ++i) {
          fprintf(Opt->VoxDbgOut, "%s ", argv[i]);
       }
-      fprintf(Opt->VoxDbgOut, "\nDebug info for voxel %d (%d %d %d)\n", 
+      fprintf(Opt->VoxDbgOut, "\nDebug info for voxel %d (%d %d %d)\n",
                Opt->VoxDbg, Opt->VoxDbg3[0], Opt->VoxDbg3[1], Opt->VoxDbg3[2]);
    }
 
@@ -1645,11 +1645,11 @@ int main(int argc, char **argv)
                   "match number of pset subricks %d\n",
                   Opt->clss->num , DSET_NVALS(Opt->pset));
    }
-   
+
    if (!GenPriors(Opt)) {
       ERROR_exit("Failed in GenPriors");
    }
-   
+
    /* write output */
    if (Opt->pset && !Opt->this_pset_name) {
       DSET_write(Opt->pset);
@@ -1660,9 +1660,9 @@ int main(int argc, char **argv)
    if (Opt->cset && !Opt->this_cset_name) {
       DSET_write(Opt->cset);
    }
-   
+
    /* all done, free */
    Opt = free_SegOpts(Opt);
-   
+
    PRINT_COMPILE_DATE ; exit(0);
 }

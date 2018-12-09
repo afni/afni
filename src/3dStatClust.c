@@ -6,7 +6,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This program performs agglomerative hierarchical clustering of voxels 
+  This program performs agglomerative hierarchical clustering of voxels
   for user specified parameter sub-bricks.
 
 
@@ -63,7 +63,7 @@
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( printf ("Cannot allocate memory \n"),  exit(1) )
-     
+
 
 /*---------------------------------------------------------------------------*/
 
@@ -227,7 +227,7 @@ int SC_read_opts( int argc , char * argv[] )
       if( strncmp(argv[nopt],"-session",6) == 0 ){
          nopt++ ;
          if( nopt >= argc ){
-            SC_error (" need argument after -session!"); 
+            SC_error (" need argument after -session!");
          }
          MCW_strncpy( SC_session , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
@@ -269,7 +269,7 @@ int SC_read_opts( int argc , char * argv[] )
          if( nopt >= argc ){
             SC_error (" need argument after -nclust!");
          }
-	 sscanf (argv[nopt], "%d", &ival); 
+	 sscanf (argv[nopt], "%d", &ival);
 	 if ((ival < 1) || (ival > 255)){
             SC_error (" Require 1 <= nclust <= 255 ");
          }
@@ -285,9 +285,9 @@ int SC_read_opts( int argc , char * argv[] )
 	 float fval;
          nopt++ ;
          if( nopt+1 >= argc ){
-            SC_error (" need 2 arguments after -thresh!"); 
+            SC_error (" need 2 arguments after -thresh!");
          }
-	 sscanf (argv[nopt], "%f", &fval); 
+	 sscanf (argv[nopt], "%f", &fval);
 	 if (fval < 0.0){
             SC_error (" Require thr >= 0.0 ");
          }
@@ -350,7 +350,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
   if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) SC_Syntax() ;
 
   /*----- Add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- Read input options -----*/
@@ -363,7 +363,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 
   if (thr_dset == NULL)
     {
-      sprintf (message, "Cannot open threshold dataset %s", SC_thr_filename); 
+      sprintf (message, "Cannot open threshold dataset %s", SC_thr_filename);
       SC_error (message);
     }
 
@@ -386,7 +386,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
   EDIT_coerce_scale_type (nvox, DSET_BRICK_FACTOR(thr_dset,iv),
 			  DSET_BRICK_TYPE(thr_dset,iv), vfim,     /* input  */
 			  MRI_float                   , ffim);    /* output */
-  
+
   /*----- Delete threshold dataset -----*/
   THD_delete_3dim_dataset (thr_dset, False);  thr_dset = NULL ;
 
@@ -396,7 +396,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
   for (ivox = 0;  ivox < nvox;  ivox++)
     if (fabs(ffim[ivox]) > SC_thr)  SC_nvox++;
   if (SC_verb)  printf ("Number of voxels above threshold = %d \n", SC_nvox);
-  if (SC_nvox < MIN_NVOX)  
+  if (SC_nvox < MIN_NVOX)
     {
       sprintf (message, "Only %d voxels above threshold.  Cannot continue.",
 	       SC_nvox);
@@ -419,7 +419,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 	icount++;
       }
 
-  
+
   /*----- Allocate memory for parameter array -----*/
   SC_parameters = (float **) malloc (sizeof(float *) * MAX_PARAMETERS);
   MTEST (SC_parameters);
@@ -439,7 +439,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 
       if (param_dset == NULL)
 	{
-	  sprintf (message, "Cannot open parameter dataset %s", argv[nopt]); 
+	  sprintf (message, "Cannot open parameter dataset %s", argv[nopt]);
 	  SC_error (message);
 	}
 
@@ -448,11 +448,11 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 	  || (nz != DSET_NZ(param_dset)))
 	{
 	  sprintf (message, "Parameter dataset %s has incompatible dimensions",
-		   argv[nopt]); 
+		   argv[nopt]);
 	  SC_error (message);
 	}
-	
-     
+
+
       /*----- Get number of parameters specified by this dataset -----*/
       nbricks = DSET_NVALS(param_dset);
 
@@ -466,16 +466,16 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 	  EDIT_coerce_scale_type (nvox, DSET_BRICK_FACTOR(param_dset,ibrick),
 		     DSET_BRICK_TYPE(param_dset,ibrick), vfim,   /* input  */
 		     MRI_float                         , ffim);  /* output */
-  
+
 	  /*----- Allocate memory for parameter data -----*/
-	  SC_parameters[SC_dimension] 
+	  SC_parameters[SC_dimension]
 	    = (float *) malloc (sizeof(float) * SC_nvox);
 	  MTEST (SC_parameters[SC_dimension]);
-	  
+
 	  /*----- Save parameter data for all voxels above threshold -----*/
 	  for (ivox = 0;  ivox < SC_nvox;  ivox++)
 	    SC_parameters[SC_dimension][ivox] = ffim[SC_voxels[ivox]];
-	  
+
 	  /*----- Increment count of parameters -----*/
 	  SC_dimension++;
 
@@ -483,7 +483,7 @@ THD_3dim_dataset * initialize_program ( int argc , char * argv[] )
 
       /*----- Delete parameter dataset -----*/
       THD_delete_3dim_dataset (param_dset, False);  param_dset = NULL ;
-     
+
       nopt++;
     }
 
@@ -542,7 +542,7 @@ THD_3dim_dataset * form_clusters ()
       matrix_identity (SC_dimension, &s);
       matrix_identity (SC_dimension, &sinv);
     }
-  
+
 
   /*----- Set number of sub-bricks -----*/
   if (SC_nvox < SC_nclust)
@@ -565,7 +565,7 @@ THD_3dim_dataset * form_clusters ()
   tross_Copy_History (thr_dset, new_dset);
   if( commandline != NULL ) tross_Append_History( new_dset , commandline ) ;
 
-  
+
   /*----- Delete threshold dataset -----*/
   THD_delete_3dim_dataset (thr_dset, False);  thr_dset = NULL ;
 
@@ -579,18 +579,18 @@ THD_3dim_dataset * form_clusters ()
 			    ADN_func_type,       FUNC_BUCK_TYPE,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      sprintf (message, 
-	      " %d errors in attempting to create bucket dataset! ", 
+      sprintf (message,
+	      " %d errors in attempting to create bucket dataset! ",
 	      ierror);
       SC_error (message);
     }
- 
-  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset))) 
+
+  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)))
     {
       sprintf (message,
 	      " Output dataset file %s already exists--cannot continue! ",
@@ -602,7 +602,7 @@ THD_3dim_dataset * form_clusters ()
   /*----- Allocate memory -----*/
   bar  = (byte **) malloc (sizeof(byte *) * nbricks);
   MTEST (bar);
-  
+
 
   /*----- Build lowest level of cluster hierarchy -----*/
   for (ivox = 0;  ivox < SC_nvox;  ivox++)
@@ -614,7 +614,7 @@ THD_3dim_dataset * form_clusters ()
       /*----- Copy the parameter array -----*/
       for (ip = 0;  ip < SC_dimension;  ip++)
 	parameters[ip] = SC_parameters[ip][ivox];
-      
+
       /*----- If using stat. dist., transform the parameter vector -----*/
       if (SC_statdist)
 	{
@@ -655,16 +655,16 @@ THD_3dim_dataset * form_clusters ()
 	      printf ("\n\n# Clusters = %d \n\n", iclust);
 	      print_all_clusters (head_clust, s);
 	    }
-     
+
 	  /*----- allocate memory for output sub-brick -----*/
 	  ibrick = iclust-1;
 	  bar[ibrick]  = (byte *) malloc (sizeof(byte) * nxyz);
 	  MTEST (bar[ibrick]);
 
 	  /*----- Save clusters into output sub-brick -----*/
-	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)	   
+	  for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	    bar[ibrick][ixyz] = 0;
-	  save_all_clusters (head_clust, bar[ibrick]); 
+	  save_all_clusters (head_clust, bar[ibrick]);
 
 	  /*----- attach bar[ib] to be sub-brick #ibrick -----*/
 	  EDIT_substitute_brick (new_dset, ibrick, MRI_byte, bar[ibrick]);
@@ -673,9 +673,9 @@ THD_3dim_dataset * form_clusters ()
 
       /*----- Agglomerate clusters -----*/
       if (iclust > 1)
-	head_clust = agglomerate_clusters (head_clust, 
+	head_clust = agglomerate_clusters (head_clust,
 					   SC_verb*(iclust <= nbricks));
-	  
+
 
     }
 
@@ -690,7 +690,7 @@ THD_3dim_dataset * form_clusters ()
 
   /*----- Return hierarchical clustering -----*/
   return (new_dset);
-  
+
 }
 
 
@@ -702,12 +702,12 @@ int main( int argc , char * argv[] )
   THD_3dim_dataset * clust_dset = NULL;    /* hierarchical clusters data set */
   int ip;                                  /* parameter index */
 
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -725,7 +725,7 @@ int main( int argc , char * argv[] )
 
 
   /*----- Initialize program:  get all operator inputs; get indices
-    for voxels above threshold; get parameter vectors for all voxels 
+    for voxels above threshold; get parameter vectors for all voxels
     above threshold  -----*/
   initialize_program (argc, argv);
 
@@ -733,20 +733,20 @@ int main( int argc , char * argv[] )
   /*----- Perform agglomerative hierarchical clustering -----*/
   clust_dset = form_clusters ();
 
-  
+
   /*----- Output the hierarchical clustering dataset -----*/
   if( SC_verb ) fprintf(stderr,"Computing sub-brick statistics\n") ;
   THD_load_statistics( clust_dset ) ;
 
   THD_write_3dim_dataset( NULL,NULL , clust_dset , True ) ;
   if( SC_verb ) fprintf(stderr,"Wrote output to %s\n", DSET_BRIKNAME(clust_dset) );
-  
 
-  /*----- Deallocate memory for cluster dataset -----*/   
+
+  /*----- Deallocate memory for cluster dataset -----*/
   THD_delete_3dim_dataset( clust_dset , False ) ; clust_dset = NULL ;
-  
+
   exit(0) ;
-  
+
 
 }
 

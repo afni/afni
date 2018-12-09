@@ -314,11 +314,11 @@ process_as_floats( THD_3dim_dataset * dset, hemi_s * hs )
     if ( maxabs != 0.0 )
     {
 	factor = MRI_TYPE_maxval[MRI_short] /maxabs;        /* 32767? / maxabs */
-    
+
 	EDIT_coerce_scale_type( nvox, factor, MRI_float, fdata, MRI_short, sdata );
-    
+
 	DSET_BRICK_FACTOR( dset, 0 ) = factor == 0.0 ? 0.0 : 1.0 / factor;
-    
+
 	THD_load_statistics( dset );
     }
     free(fdata);

@@ -13,17 +13,17 @@
 /*
  * Copyright (c) 1995 The Regents of the University of California.
  * All rights reserved.
- * 
+ *
  * Permission to use, copy, modify, and distribute this software and its
  * documentation for any purpose, without fee, and without written agreement is
  * hereby granted, provided that the above copyright notice and the following
  * two paragraphs appear in all copies of this software.
- * 
+ *
  * IN NO EVENT SHALL THE UNIVERSITY OF CALIFORNIA BE LIABLE TO ANY PARTY FOR
  * DIRECT, INDIRECT, SPECIAL, INCIDENTAL, OR CONSEQUENTIAL DAMAGES ARISING OUT
  * OF THE USE OF THIS SOFTWARE AND ITS DOCUMENTATION, EVEN IF THE UNIVERSITY OF
  * CALIFORNIA HAS BEEN ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- * 
+ *
  * THE UNIVERSITY OF CALIFORNIA SPECIFICALLY DISCLAIMS ANY WARRANTIES,
  * INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY
  * AND FITNESS FOR A PARTICULAR PURPOSE.  THE SOFTWARE PROVIDED HEREUNDER IS
@@ -125,14 +125,14 @@ void Tune_Init()
     }
     fprintf(collect_quant_fp, "# %s\n", outputFileName);
     fprintf(collect_quant_fp, "#");
-    for (i=0; i<64; i++) 
+    for (i=0; i<64; i++)
       fprintf(collect_quant_fp, " %d", qtable[i]);
     fprintf(collect_quant_fp, "\n#");
-    for (i=0; i<64; i++) 
+    for (i=0; i<64; i++)
       fprintf(collect_quant_fp, " %d", niqtable[i]);
-    fprintf(collect_quant_fp, "\n# %d %d %d\n\n", 
+    fprintf(collect_quant_fp, "\n# %d %d %d\n\n",
 	    GetIQScale(), GetPQScale(), GetBQScale());
-    
+
   }
 
   if (DoLaplace) {
@@ -144,7 +144,7 @@ void Tune_Init()
     decodeRefFrames = TRUE;
     printSNR = TRUE;
   }
-    
+
 }
 
 /*===========================================================================*
@@ -162,7 +162,7 @@ void ParseTuneParam(charPtr)
 char *charPtr;
 {
   switch (ASCII_TOUPPER(*charPtr)) {
-  case 'B': 
+  case 'B':
     if (1 != sscanf(charPtr+2, "%d", &block_bound)) {
       fprintf(stderr, "Invalid tuning parameter (b) in parameter file.\n");
     }
@@ -269,11 +269,11 @@ char *charPtr;
   int items_scanned;
 
   kill_dim = TRUE;
-  items_scanned = sscanf(charPtr, "%d %d %f", 
+  items_scanned = sscanf(charPtr, "%d %d %f",
 			 &kill_dim_break, &kill_dim_end, &kill_dim_slope);
   if (items_scanned != 3) {
     kill_dim_slope = 0.25;
-    items_scanned = sscanf(charPtr, "%d %d", 
+    items_scanned = sscanf(charPtr, "%d %d",
 			   &kill_dim_break, &kill_dim_end);
     if (items_scanned != 2) {
       /* Use defaults */
@@ -302,7 +302,7 @@ char *charPtr;
  *
  * RETURNS:	nothing
  *
- * SIDE EFFECTS:    sets squash_max_differences SquashMaxLum SquashMaxChr 
+ * SIDE EFFECTS:    sets squash_max_differences SquashMaxLum SquashMaxChr
  *
  *===========================================================================*/
 void SetupSquashSmall(charPtr)
@@ -387,7 +387,7 @@ void CalcLambdas()
 {
   int i,j,n;
   double var;
-  
+
   n = LaplaceNum;
   for (i = 0;   i < 3;  i++) {
     for (j = 0;  j < 64;  j++) {
@@ -426,11 +426,11 @@ Mpost_UnQuantZigBlockLaplace(in, out, qscale, iblock)
 
     /* qtable[0] must be 8 */
     out[0][0] = (int16)(in[0] * 8);
-    
+
     for ( index = 1;  index < DCTSIZE_SQ;  index++ ) {
       position = ZAG[index];
       level = in[index];
-      
+
       if (level == 0) {
 	((int16 *)out)[position] = 0;
 	continue;
@@ -502,7 +502,7 @@ char *charPtr;
     default:
       fprintf(stderr, "Unknown TUNE parameter setting format %s\n", cp);
     }}
-}  
+}
 
 int mse(blk1, blk2)
 Block blk1, blk2;

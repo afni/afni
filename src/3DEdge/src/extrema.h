@@ -6,13 +6,13 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  * ADDITIONS, CHANGES
@@ -54,19 +54,19 @@ extern "C" {
  *
  * - borderLengths[0] is the number of points to be
  *   added at both ends of each X line (if
- *   positive). The value of each endpoint is 
+ *   positive). The value of each endpoint is
  *   repeated borderLengths[0] times to produce
- *   a line of length 
+ *   a line of length
  *   bufferDims[0] + 2 * borderLengths[0].
  *
  *   borderLengths[1] is the number of points to be
  *   added at both ends of each Y line.
  *
  * - filterCoefs[0] is the coefficient of the filter
- *   to be applied along direction X. 
+ *   to be applied along direction X.
  *
  *   filterCoefs[1] is the coefficient of the filter
- *   to be applied along direction Y. 
+ *   to be applied along direction Y.
  *
  * - filterType is the type of recursive filter to
  *   be applied to the 3D buffer.
@@ -124,9 +124,9 @@ extern int Extract_Gradient_Maxima_2D( void *bufferIn, /* input buffer */
  *
  * - borderLengths[0] is the number of points to be
  *   added at both ends of each X line (if
- *   positive). The value of each endpoint is 
+ *   positive). The value of each endpoint is
  *   repeated borderLengths[0] times to produce
- *   a line of length 
+ *   a line of length
  *   bufferDims[0] + 2 * borderLengths[0].
  *
  *   borderLengths[1] is the number of points to be
@@ -136,13 +136,13 @@ extern int Extract_Gradient_Maxima_2D( void *bufferIn, /* input buffer */
  *   added at both ends of each Z line.
  *
  * - filterCoefs[0] is the coefficient of the filter
- *   to be applied along direction X. 
+ *   to be applied along direction X.
  *
  *   filterCoefs[1] is the coefficient of the filter
- *   to be applied along direction Y. 
+ *   to be applied along direction Y.
  *
  *   filterCoefs[2] is the coefficient of the filter
- *   to be applied along direction Z. 
+ *   to be applied along direction Z.
  *
  * - filterType is the type of recursive filter to
  *   be applied to the 3D buffer.
@@ -194,7 +194,7 @@ extern int Extract_Gradient_Maxima_3D( void *bufferIn, /* input buffer */
  * To decide if a point is a gradient extrema,
  * we look towards +/- the direction of the gradient
  * at a distance of 1. If both bilinear interpolated
- * modulus are smaller than the one of the current 
+ * modulus are smaller than the one of the current
  * point, then we have a gradient extrema.
  *
  * PARAMETERS:
@@ -202,7 +202,7 @@ extern int Extract_Gradient_Maxima_3D( void *bufferIn, /* input buffer */
  * - bufferDims[0] is the dimension along X,
  *
  *   bufferDims[1] is the dimension along Y.
- * 
+ *
  */
 extern void Remove_Gradient_NonMaxima_Slice_2D( float *maxima, /* result buffer */
 					float *gx, /* first component of the gradient */
@@ -224,7 +224,7 @@ extern void Remove_Gradient_NonMaxima_Slice_2D( float *maxima, /* result buffer 
  * To decide if a point is a gradient extrema,
  * we look towards +/- the direction of the gradient
  * at a distance of 1. If both bilinear interpolated
- * modulus are smaller than the one of the current 
+ * modulus are smaller than the one of the current
  * point, then we have a gradient extrema.
  *
  * PARAMETERS:
@@ -233,14 +233,14 @@ extern void Remove_Gradient_NonMaxima_Slice_2D( float *maxima, /* result buffer 
  *
  *   bufferDims[1] is the dimension along Y.
  *
- * - (*norme[0]) is the buffer of the gradient's 
- *   modulus of the previous slice. 
+ * - (*norme[0]) is the buffer of the gradient's
+ *   modulus of the previous slice.
  *
- *   (*norme[1]) is the buffer of the gradient's 
- *   modulus of the current slice. 
+ *   (*norme[1]) is the buffer of the gradient's
+ *   modulus of the current slice.
  *
- *   (*norme[2]) is the buffer of the gradient's 
- *   modulus of the next slice. 
+ *   (*norme[2]) is the buffer of the gradient's
+ *   modulus of the next slice.
  */
 extern void Remove_Gradient_NonMaxima_Slice_3D( float *maxima, /* result buffer */
 					float *gx, /* first component of the gradient */
@@ -261,8 +261,8 @@ extern void Remove_Gradient_NonMaxima_Slice_3D( float *maxima, /* result buffer 
  *
  * Only positive value of epsilon are considered.
  *
- * Default value is 0.5. 
- * 
+ * Default value is 0.5.
+ *
  * If images are normalized, i.e.,
  * their values range is [0,1], a "good" epsilon
  * value is 0.00001 (because 1/2^16 = .0000152587890625
@@ -276,22 +276,22 @@ extern void SetGradientExtremaEpsilon( double epsilon /* epsilon value */ );
  *
  * DESCRIPTION:
  * A point M is considered as a gradient extrema
- * if its modulus is larger than the ones of 
+ * if its modulus is larger than the ones of
  * M+G and M-G where G is the normalized gradient
  * (the unit vector in the direction of the gradient).
  *
- * The modulus for both M+G and M-G will be generally 
- * estimated with a [bi,tri]linear interpolation. 
+ * The modulus for both M+G and M-G will be generally
+ * estimated with a [bi,tri]linear interpolation.
  * However, the coefficient of this interpolation
  * for M+G are the same (with a permutation) than the
  * ones of M-G. For efficiency, we use them again.
  *
  * However, a probleme may occur when one of the gradient
- * component is equal to one: using the same coefficients 
- * with a permutation leads to errors. 
+ * component is equal to one: using the same coefficients
+ * with a permutation leads to errors.
  * Thus, if one gradient derivative is larger (in absolute value)
- * than (1.0 - epsilon), we use the nearest modulus value as 
- * the estimated value (which makes sense). 
+ * than (1.0 - epsilon), we use the nearest modulus value as
+ * the estimated value (which makes sense).
  *
  * By default, epsilon is set to 0.01.
  */

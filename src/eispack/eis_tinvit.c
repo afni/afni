@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int tinvit_(integer *nm, integer *n, doublereal *d__, 
+/* Subroutine */ int tinvit_(integer *nm, integer *n, doublereal *d__,
 	doublereal *e, doublereal *e2, integer *m, doublereal *w, integer *
 	ind, doublereal *z__, integer *ierr, doublereal *rv1, doublereal *rv2,
 	 doublereal *rv3, doublereal *rv4, doublereal *rv6)
@@ -25,7 +25,7 @@
     doublereal x0=0.0, x1;
     integer ii, jj, ip=0;
     doublereal uk=0.0, xu=0.0;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer tag, its;
     doublereal eps2=0.0, eps3=0.0, eps4=0.0;
@@ -65,13 +65,13 @@
 
 /*        M IS THE NUMBER OF SPECIFIED EIGENVALUES. */
 
-/*        W CONTAINS THE M EIGENVALUES IN ASCENDING OR DESCENDING ORDER. 
+/*        W CONTAINS THE M EIGENVALUES IN ASCENDING OR DESCENDING ORDER.
 */
 
 /*        IND CONTAINS IN ITS FIRST M POSITIONS THE SUBMATRIX INDICES */
 /*          ASSOCIATED WITH THE CORRESPONDING EIGENVALUES IN W -- */
 /*          1 FOR EIGENVALUES BELONGING TO THE FIRST SUBMATRIX FROM */
-/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC. 
+/*          THE TOP, 2 FOR THOSE BELONGING TO THE SECOND SUBMATRIX, ETC.
 */
 
 /*     ON OUTPUT */
@@ -91,12 +91,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

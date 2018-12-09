@@ -34,7 +34,7 @@ extern struct {
 /* Subroutine */ int vector_(real *x, real *y)
 {
     static real xx, yy;
-    extern /* Subroutine */ int zzline_(real *, real *, real *, real *), 
+    extern /* Subroutine */ int zzline_(real *, real *, real *, real *),
 	    zzphys_(real *, real *);
 
 

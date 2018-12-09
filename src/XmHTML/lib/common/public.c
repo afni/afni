@@ -14,7 +14,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -35,7 +35,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.2  2012/03/01 17:56:31  ziad
 * Cput
@@ -46,7 +46,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/27 06:54:17  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -95,7 +95,7 @@ static char rcsId[]="$Header$";
 * Name: 		XmHTMLAnchorGetId
 * Return Type: 	int
 * Description: 	returns the internal id of an anchor
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	anchor:		anchor to locate
 * Returns:
@@ -123,7 +123,7 @@ XmHTMLAnchorGetId(Widget w, String anchor)
 * Name: 		XmHTMLAnchorScrollToId
 * Return Type: 	void
 * Description: 	moves the text with the current anchor on top.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	anchor_id:	internal anchor id to scroll to.
 * Returns:
@@ -133,7 +133,7 @@ void
 XmHTMLAnchorScrollToId(Widget w, int anchor_id)
 {
 	XmHTMLWidget html;
-	XmHTMLObjectTableElement anchor_data = NULL;	
+	XmHTMLObjectTableElement anchor_data = NULL;
 
 	/* sanity check */
 	if(!w || !XmIsHTML(w))
@@ -167,7 +167,7 @@ XmHTMLAnchorScrollToId(Widget w, int anchor_id)
 * Name: 		XmHTMLAnchorScrollToName
 * Return Type: 	void
 * Description: 	moves the text with the current anchor on top.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	anchor:		anchor to scroll to.
 * Returns:
@@ -213,10 +213,10 @@ XmHTMLAnchorScrollToName(Widget w, String anchor)
 * Return Type: 	void
 * Description: 	checks an HTML instance against a current href name
 *               alters any matching anchors to 'visited' and causes refesh
-* In: 
+* In:
 *	w:			html widget
 *	href:		current anchors reference
-*	visited:	if True, href will be rendered as visited, if False, anchor 
+*	visited:	if True, href will be rendered as visited, if False, anchor
 *				will be rendered as not visited.
 * Returns:
 *	nothing.
@@ -300,7 +300,7 @@ XmHTMLAnchorReEval(Widget w, String href, Boolean visited)
 			}
 		}
 		/* skip remaining anchor words of the master block */
-		while(i < html->html.anchor_words-1 && 
+		while(i < html->html.anchor_words-1 &&
 			html->html.anchors[i].owner == html->html.anchors[i+1].owner)
 			i++;
 	}
@@ -317,7 +317,7 @@ XmHTMLAnchorReEval(Widget w, String href, Boolean visited)
 * Name:			XmHTMLAnchorVisibleById
 * Return Type: 	Boolean
 * Description: 	figure out if the given anchor is in the visible area.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	anchor_id:	ID of anchor for which to test visibility
 * Returns:
@@ -327,7 +327,7 @@ Boolean
 XmHTMLAnchorVisibleById(Widget w, int anchor_id)
 {
 	XmHTMLWidget html;
-	XmHTMLObjectTableElement anchor_data = NULL;	
+	XmHTMLObjectTableElement anchor_data = NULL;
 
 	/* sanity check */
 	if(!w || !XmIsHTML(w))
@@ -355,7 +355,7 @@ XmHTMLAnchorVisibleById(Widget w, int anchor_id)
 * Name:			XmHTMLAnchorVisibleByName
 * Return Type: 	Boolean
 * Description: 	figure out if the given anchor is in the visible area.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	anchor:		NAME of anchor for which to test visibility
 * Returns:
@@ -365,7 +365,7 @@ Boolean
 XmHTMLAnchorVisibleByName(Widget w, String anchor)
 {
 	XmHTMLWidget html;
-	XmHTMLObjectTableElement anchor_data = NULL;	
+	XmHTMLObjectTableElement anchor_data = NULL;
 
 	/* sanity check */
 	if(!w || !XmIsHTML(w))
@@ -397,7 +397,7 @@ XmHTMLAnchorVisibleByName(Widget w, String anchor)
 * Name: 		XmHTMLTextScrollToLine
 * Return Type: 	void
 * Description: 	scrolls the widget to the given line number.
-* In: 
+* In:
 *	w:			widget to scroll
 *	line:		line number to scroll to.
 * Returns:
@@ -424,7 +424,7 @@ XmHTMLTextScrollToLine(Widget w, int line)
 * Name: 		XmHTMLTextGetSource
 * Return Type: 	String
 * Description: 	return a POINTER to the original, unmodified document.
-* In: 
+* In:
 *	w:			XmHTMLWidget in question
 * Returns:
 *	a *pointer* to the original text, or NULL when w isn't a subclass of XmHTML
@@ -449,7 +449,7 @@ XmHTMLTextGetSource(Widget w)
 *				This return buffer is not necessarely equal to the original
 *				document as the document verification and repair routines
 *				are capable of modifying the original rather heavily.
-* In: 
+* In:
 *	w:			XmHTMLWidget in question
 * Returns:
 *	An allocated buffer containing the composed text upon success, NULL on
@@ -474,10 +474,10 @@ XmHTMLTextGetString(Widget w)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -581,7 +581,7 @@ documentLoadNormal(XmHTMLWidget html, String text, size_t len)
 	HTML_ATTR(input_complete) = True;
 
 	/* Parse the raw HTML text */
-	HTML_ATTR(elements) = _XmHTMLparseHTML(html, HTML_ATTR(elements), 
+	HTML_ATTR(elements) = _XmHTMLparseHTML(html, HTML_ATTR(elements),
 		HTML_ATTR(source), html);
 
 	/* Trigger link callback */
@@ -619,7 +619,7 @@ documentLoadNormal(XmHTMLWidget html, String text, size_t len)
 		_XmHTMLClearArea(html, 0, 0, CORE_ATTR(width), CORE_ATTR(height));
 
 	/*****
-	* Check for onLoad events: this should take place after the area 
+	* Check for onLoad events: this should take place after the area
 	* has been cleared so that the widget's own callbacks are activated
 	* first. Otherwise expose events may be generated and cause redisplay
 	* with an inconsistent widget context...
@@ -637,10 +637,10 @@ documentLoadNormal(XmHTMLWidget html, String text, size_t len)
 
 #ifdef CANDO_PROGRESSIVE_LOAD
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -652,10 +652,10 @@ documentLoadProgressive(XmHTMLWidget w, String text, size_t len)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -667,10 +667,10 @@ documentLoadIncremental(XmHTMLWidget w, String text, size_t len)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -686,7 +686,7 @@ documentFlush(XmHTMLWidget w, String text, size_t len)
 * Name: 		XmHTMLTextSetString
 * Return Type: 	void
 * Description: 	sets the given text into the given HTML widget
-* In: 
+* In:
 *	w:			XmHTMLWidget in question
 *	value:		text to set
 * Returns:
@@ -727,7 +727,7 @@ XmHTMLTextSetString(Widget w, String text)
 * Name: 		XmHTMLTextSetStringWithLength
 * Return Type: 	void
 * Description: 	sets the given text into the given HTML widget
-* In: 
+* In:
 *	w:			XmHTMLWidget in question
 *	value:		text to set. Doesn't have to be NULL terminated
 *	len:		size of input string.
@@ -773,10 +773,10 @@ XmHTMLTextSetStringWithLength(Widget w, String text, size_t len)
 
 #ifdef CANDO_PROGRESSIVE_LOAD
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -804,10 +804,10 @@ XmHTMLTextUpdate(Widget w, String text, size_t len)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -835,10 +835,10 @@ XmHTMLTextAppend(Widget w, String text, size_t len)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -877,10 +877,10 @@ XmHTMLTextFlush(Widget w, String text, size_t len)
 }
 
 /*****
-* Name: 
-* Return Type: 
-* Description: 
-* In: 
+* Name:
+* Return Type:
+* Description:
+* In:
 *
 * Returns:
 *
@@ -907,7 +907,7 @@ XmHTMLTextSetLoadType(Widget w, XmHTMLLoadType load_type)
 * Name:			XmHTMLTextGetFormatted
 * Return Type: 	String
 * Description: 	returns a formatted copy of the current document.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	papertype:	type of paper to use (any of the XmHTMLTEXT_PAPERSIZE enums);
 *	papersize:	size of paper for custom stuff, or default overrides;
@@ -1010,7 +1010,7 @@ XmHTMLTextGetFormatted(Widget w, unsigned char papertype,
 * Name: 		XmHTMLImageGetInfoSize
 * Return Type: 	int
 * Description: 	returns the size of the given XmImageInfo structure.
-* In: 
+* In:
 *	info:		ptr to a XmImageInfo structure;
 * Returns:
 *	size of the given XmImageInfo structure.
@@ -1053,12 +1053,12 @@ XmHTMLImageGetImageInfoSize(XmImageInfo *info)
 * Name: 		XmHTMLImageFreeAllImages
 * Return Type: 	void
 * Description: 	releases all allocated images and associated structures
-* In: 
+* In:
 *	html:		XmHTMLWidget for which to free all images
 * Returns:
 *	nothing
 *****/
-void 
+void
 XmHTMLImageFreeAllImages(Widget w)
 {
 	XmHTMLImage *image, *image_list;
@@ -1104,7 +1104,7 @@ XmHTMLImageFreeAllImages(Widget w)
 * Name: 		XmHTMLImageFreeImageInfo
 * Return Type: 	void
 * Description: 	free the given XmImageInfo structure
-* In: 
+* In:
 *	info:		image to free
 * Returns:
 *	nothing
@@ -1135,7 +1135,7 @@ XmHTMLImageFreeImageInfo(Widget w, XmImageInfo *info)
 * Name: 		XmHTMLImageAddImageMap
 * Return Type: 	void
 * Description: 	add the given imagemap to a HTML widget
-* In: 
+* In:
 *	w:			widget
 *	image_map:	raw html data containing the imagemap to parse.
 * Returns:
@@ -1212,7 +1212,7 @@ XmHTMLImageAddImageMap(Widget w, String image_map)
 * Name: 		XmHTMLImageGetType
 * Return Type: 	int
 * Description: 	determines the type of a given image
-* In: 
+* In:
 *	file:		name of image file to check
 * Returns:
 *	the image type if supported, IMAGE_UNKNOWN otherwise.
@@ -1255,10 +1255,10 @@ XmHTMLImageGetType(String file, unsigned char *buf, int size)
 
 /*****
 * Name:			XmHTMLImageJPEGSupported
-* Return Type:	Boolean 
+* Return Type:	Boolean
 * Description:	check if JPEG support is available (this is a compile time
 *				option).
-* In: 
+* In:
 *	nothing.
 * Returns:
 *	True if support is available, False if not.
@@ -1275,10 +1275,10 @@ XmHTMLImageJPEGSupported(void)
 
 /*****
 * Name:			XmHTMLImagePNGSupported
-* Return Type:	Boolean 
+* Return Type:	Boolean
 * Description:	check if PNG support is available (this is a compile time
 *				option).
-* In: 
+* In:
 *	nothing.
 * Returns:
 *	True if support is available, False if not.
@@ -1295,10 +1295,10 @@ XmHTMLImagePNGSupported(void)
 
 /*****
 * Name:			XmHTMLImageGZFSupported
-* Return Type:	Boolean 
+* Return Type:	Boolean
 * Description:	check if GZF support is available (this is a compile time
 *				option).
-* In: 
+* In:
 *	nothing.
 * Returns:
 *	True if support is available, False if not.
@@ -1317,7 +1317,7 @@ XmHTMLImageGZFSupported(void)
 * Name: 		XmHTMLImageUpdate
 * Return Type: 	XmImageStatus
 * Description: 	updates an image
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	image:		image info representing the image to be updated.
 *				This must be an XmImageInfo structure *known* to XmHTML.
@@ -1365,7 +1365,7 @@ XmHTMLImageUpdate(Widget w, XmImageInfo *image)
 		xs = temp->x - html->html.scroll_x;
 		ys = temp->y - html->html.scroll_y;
 		/* We may paint the image, but we only do it when it's visible */
-		if(!(xs + temp->width < 0 || xs > html->html.work_width || 
+		if(!(xs + temp->width < 0 || xs > html->html.work_width ||
 			ys + temp->height < 0 || ys > html->html.work_height))
 		{
 			_XmHTMLDebug(6, ("images.c: XmHTMLImageUpdate, painting image "
@@ -1395,10 +1395,10 @@ XmHTMLImageUpdate(Widget w, XmImageInfo *image)
 * Name: 		XmHTMLImageReplace
 * Return Type: 	XmImageStatus
 * Description: 	replaces the XmImageInfo structure with a new one
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	image:		XmImageInfo structure to be replaced, must be known by XmHTML
-*	new_image:	new XmImageInfo structure 
+*	new_image:	new XmImageInfo structure
 * Returns:
 *	XmIMAGE_ALMOST if replacing this image requires a recomputation of the
 *	document layout, XmIMAGE_OK if not and some other value upon error.
@@ -1423,7 +1423,7 @@ XmHTMLImageReplace(Widget w, XmImageInfo *image, XmImageInfo *new_image)
 	/* sanity */
 	if(image == NULL || new_image == NULL)
 	{
-		_XmHTMLWarning(__WFUNC__(w, func), XMHTML_MSG_21, 
+		_XmHTMLWarning(__WFUNC__(w, func), XMHTML_MSG_21,
 			(image == NULL ? "NULL image arg" : "NULL new_image arg"), func);
 		return(XmIMAGE_BAD);
 	}
@@ -1443,7 +1443,7 @@ XmHTMLImageReplace(Widget w, XmImageInfo *image, XmImageInfo *new_image)
 		xs = temp->x - html->html.scroll_x;
 		ys = temp->y - html->html.scroll_y;
 		/* We may paint the image, but we only do it when it's visible */
-		if(!(xs + temp->width < 0 || xs > html->html.work_width || 
+		if(!(xs + temp->width < 0 || xs > html->html.work_width ||
 			ys + temp->height < 0 || ys > html->html.work_height))
 		{
 			_XmHTMLDebug(6, ("images.c: XmHTMLImageReplace, painting image "
@@ -1466,7 +1466,7 @@ XmHTMLImageReplace(Widget w, XmImageInfo *image, XmImageInfo *new_image)
 			tka->Sync(tka->dpy, True);
 		}
 	}
-	return(XmIMAGE_OK); 
+	return(XmIMAGE_OK);
 }
 
 /**********
@@ -1476,9 +1476,9 @@ XmHTMLImageReplace(Widget w, XmImageInfo *image, XmImageInfo *new_image)
 /*****
 * Name: 		XmHTMLTagCheck
 * Return Type: 	Boolean
-* Description: 	checks whether the given tag exists in the attributes of a 
+* Description: 	checks whether the given tag exists in the attributes of a
 *				HTML element
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 * Returns:
@@ -1494,11 +1494,11 @@ XmHTMLTagCheck(String attributes, String tag)
 * Name: 		XmHTMLTagGetValue
 * Return Type: 	String
 * Description: 	looks for the specified tag in the given list of attributes.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 * Returns:
-*	if tag exists, the value of this tag, NULL otherwise. 
+*	if tag exists, the value of this tag, NULL otherwise.
 *	return value is always malloc'd; caller must free it.
 *****/
 String
@@ -1511,7 +1511,7 @@ XmHTMLTagGetValue(String attributes, String tag)
 * Name: 		XmHTMLTagGetNumber
 * Return Type: 	int
 * Description: 	retrieves the numerical value of the given tag.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	def:		default value if tag is not found.
@@ -1530,7 +1530,7 @@ XmHTMLTagGetNumber(String attributes, String tag, int default_value)
 * Description: 	retrieves the numerical value of the given tag.
 *				If the returned no is negative, the specified value was
 *				a relative number. Otherwise it's an absolute number.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	def:		default value if tag is not found.
@@ -1549,7 +1549,7 @@ XmHTMLTagCheckNumber(String attributes, String tag,
 * Return Type: 	Boolean
 * Description: 	checks whether the specified tag in the given list of attributes
 *				has a certain value.
-* In: 
+* In:
 *	attributes:	attributes from an HTML element
 *	tag:		tag to look for.
 *	check:		value to check.
@@ -1570,12 +1570,12 @@ XmHTMLTagCheckValue(String attributes, String tag, String check)
 * Name: 		XmHTMLGetVersion
 * Return Type: 	int
 * Description: 	returns the version number of XmHTML
-* In: 
+* In:
 *	nothing
 * Returns:
 *	version number of this library.
 *****/
-int 
+int
 XmHTMLGetVersion(void)
 {
 	return(XmHTMLVersion);
@@ -1629,12 +1629,12 @@ XmHTMLGetVersionString(void)
 * Name: 		XmHTMLGetTitle
 * Return Type: 	String
 * Description: 	returns the value of the <title></title> element
-* In: 
+* In:
 *	w:			XmHTMLWidget in question
 * Returns:
 *	value of the title upon success, NULL on failure.
 *****/
-String 
+String
 XmHTMLGetTitle(Widget w)
 {
 	XmHTMLWidget html;
@@ -1695,7 +1695,7 @@ XmHTMLGetTitle(Widget w)
 * Return Type: 	XmHTMLInfoStructure*
 * Description: 	Retrieves the contents of an image and/or anchor at the
 *				given cursor position.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	x:			x-location of pointer, relative to left side of the workArea
 *	y:			y-location of pointer, relative to top side of the workArea
@@ -1737,7 +1737,7 @@ XmHTMLXYToInfo(Widget w, int x, int y)
 
 	/* pick up a possible anchor or imagemap location */
 	anchor = NULL;
-			
+
 	if((anchor_word = _XmHTMLGetAnchor(html, x, y, &anchor_img)) == NULL)
 		anchor = _XmHTMLGetImageAnchor(html, x, y, &anchor_img);
 
@@ -1746,7 +1746,7 @@ XmHTMLXYToInfo(Widget w, int x, int y)
 		anchor = anchor_word->owner->anchor;
 
 	/*
-	* Final check: if this anchor is a form component it can't be followed 
+	* Final check: if this anchor is a form component it can't be followed
 	* as this is an internal-only anchor.
 	*/
 	if(anchor && anchor->url_type == ANCHOR_FORM_IMAGE)
@@ -1851,7 +1851,7 @@ XmHTMLXYToInfo(Widget w, int x, int y)
 * Return Type: 	XmHTMLDocumentInfo
 * Description: 	returns a list of all images and anchors found in the
 *				currently displayed page.
-* In: 
+* In:
 *	w:			XmHTMLWidget id.
 * Returns:
 *	a new XmHTMLDocumentInfo structure on success or NULL on failure.
@@ -1932,7 +1932,7 @@ XmHTMLGetDocumentInfo(Widget w)
 * Name:			XmHTMLFreeDocumentInfo
 * Return Type: 	void
 * Description: 	frees a XmHTMLDocumentInfo structure.
-* In: 
+* In:
 *	doc_info:	structure to be freed.
 * Returns:
 *	nothing.
@@ -1957,7 +1957,7 @@ XmHTMLFreeDocumentInfo(XmHTMLDocumentInfo *doc_info)
 * Return Type: 	void
 * Description: 	forces a layout recomputation of the currently loaded document
 *				and triggers a redisplay.
-* In: 
+* In:
 *	w:			Widget for which to redo layout computation.
 * Returns:
 *	nothing
@@ -2002,7 +2002,7 @@ XmHTMLRedisplay(Widget w)
 /*
    A function used to get around refreshing problems without
    the potential for resizing if _XmHTMLLayout(html);
-   is called as in XmHTMLRedisplay.    ZSS March 2012 
+   is called as in XmHTMLRedisplay.    ZSS March 2012
 */
 void
 XmHTMLRefresh(Widget w)

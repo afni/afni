@@ -6,7 +6,7 @@
 #define ASSIF(p,v) if( p!= NULL ) *p = v
 
 /* local prototypes */
-static int find_connected_set(byte *, int, int, int, int, 
+static int find_connected_set(byte *, int, int, int, int,
                               THD_ivec3 *, int_list *);
 static int set_mask_vals     (byte *, int_list *, byte);
 
@@ -597,7 +597,7 @@ ENTRY("THD_mask_fillin_completely") ;
 
 /*----------------------------------------------------------------------*/
 /*! Fill any holes in a byte mask.                   26 Apr 2012 [rickr]
- 
+
     A hole is defined as a connected set of zero voxels that does not
     reach a volume edge.
 
@@ -615,7 +615,7 @@ ENTRY("THD_mask_fillin_completely") ;
     return -1 on error, else number of voxels filled
 ------------------------------------------------------------------------*/
 
-int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm, 
+int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm,
                          THD_ivec3 * dirs, int verb )
 {
    int_list   Cset; /* current connected set of voxels */
@@ -764,7 +764,7 @@ static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
               if     ( doi && ( i==0 || i == nx-1 ) ) has_edge = 1;
               else if( doj && ( j==0 || j == ny-1 ) ) has_edge = 1;
               else if( dok && ( k==0 || k == nz-1 ) ) has_edge = 1;
-           } else if( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 ) 
+           } else if( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 )
               has_edge = 1;
          }
 
@@ -1061,7 +1061,7 @@ ENTRY("THD_mask_erode") ;
 
    /* mark for erosion interior voxels that do not have sufficient nonzero  */
    /* nbhrs (the default case would erode if even 1 neighbor is not masked, */
-   /* i.e., if <= 17 neighbors are masked)                                  */ 
+   /* i.e., if <= 17 neighbors are masked)                                  */
    STATUS("marking to erode") ;
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
@@ -1278,7 +1278,7 @@ void THD_autobbox_npad( int c ){ bbox_npad = c; }
 -----------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
-                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp, 
+                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp,
                    char *prefix)
 {
    MRI_IMAGE *medim ;
@@ -1287,7 +1287,7 @@ THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
    int nvox , ii ;
 
 ENTRY("THD_autobbox") ;
-   
+
    medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL) ;
 
    mar  = MRI_FLOAT_PTR(medim) ;
@@ -1315,7 +1315,7 @@ ENTRY("THD_autobbox") ;
          ERROR_message("Could not create cropped volume!") ;
       }
    }
-   mri_free(medim) ; 
+   mri_free(medim) ;
    RETURN(cropped) ;
 }
 

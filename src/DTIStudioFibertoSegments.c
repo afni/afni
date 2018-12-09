@@ -4,28 +4,28 @@
 # format from Hangyi Jiang for DTIStudio fibers
 File Header (128 bytes):
 char     sFiberFileTag[8] = "FiberDat";
-int        nFiberNr;	// number of fibers in this file 
-int        nFiberLenMax;	// max-length of fibers 
+int        nFiberNr;	// number of fibers in this file
+int        nFiberLenMax;	// max-length of fibers
 float     fFiberLenMean;	// mean-length of fibers
-int        nImgWidth;		// image dimension 
-int        nImgHeight; 
+int        nImgWidth;		// image dimension
+int        nImgHeight;
 int        nImgSlices;
-float	fPixelSizeWidth;	// voxel size 
-float	fPixelSizeHeight; 
+float	fPixelSizeWidth;	// voxel size
+float	fPixelSizeHeight;
 float	fSliceThickness;
 
-int	enumSliceOrientation;  // orientation:  0=Coronal, 1=Axial, 
-2=Sagittal 
-int	enumSliceSequencing;  // sequencing:  0=Normal,  1= 
-		
-Fiber Data (starts from offset 128 bytes) 
-for each fiber: 
-  int      nLength;    // fiber length; 
-  int      nReserved; 
-  int      nFiberStartIndex;   // the start-point of the selected fiber 
+int	enumSliceOrientation;  // orientation:  0=Coronal, 1=Axial,
+2=Sagittal
+int	enumSliceSequencing;  // sequencing:  0=Normal,  1=
+
+Fiber Data (starts from offset 128 bytes)
+for each fiber:
+  int      nLength;    // fiber length;
+  int      nReserved;
+  int      nFiberStartIndex;   // the start-point of the selected fiber
   int      nFiberEndIndex;     // the end-point of the selected fiber
   XYZ_TRIPLE  xyzFiberChain[];	// the fiber data, in x-y-z format.
-then, next fiber.. 
+then, next fiber..
 #endif
 
 #include "mrilib.h"
@@ -45,7 +45,7 @@ int main( int argc , char * argv[] )
    int npts, nfibers;
    int statcode, ii;
    int swapdata = 0;
-   
+
    /*----- Read command line -----*/
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage: DTIStudioFibertoSegments [options] dataset\n"
@@ -83,10 +83,10 @@ int main( int argc , char * argv[] )
          swapdata = 1;
 	 nopt++; continue;
      }
-     
+
      ERROR_exit("unknown option %s\n", argv[nopt]);
    }
- 
+
    fout = fopen (outfname, "w") ;
    if( fout == NULL ){
      ERROR_exit("can not create %s for some reason!\n", outfname);
@@ -107,7 +107,7 @@ int main( int argc , char * argv[] )
    if( fin == NULL ){
       ERROR_exit("can not open %s for some reason!\n", infname);
    }
- 
+
 
 
    /* read the header */
@@ -124,7 +124,7 @@ int main( int argc , char * argv[] )
    if((statcode>=1) && (swapdata)) {
        swap_fourbytes(1, &nfibers ) ;
    }
-     
+
    if((statcode<1)||(nfibers<1)) {
      fclose(fin);
      fclose(fout);
@@ -138,7 +138,7 @@ int main( int argc , char * argv[] )
       statcode = fread(&npts,sizeof(int),1, fin);
       if((statcode>=1) && (swapdata)) {
         swap_fourbytes(1,&npts) ;
-      }   
+      }
 
       if((statcode<1)||(npts<1)) {
          fclose(fin);

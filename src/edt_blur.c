@@ -1461,11 +1461,11 @@ MRI_IMAGE * mri_byte_blur2D( float sig , MRI_IMAGE *im )
 
 ENTRY("mri_byte_blur2D") ;
    if( im == NULL || im->kind != MRI_byte || sig <= 0.0f ) RETURN(NULL) ;
-   
-   rim = mri_to_mri( MRI_float, im  ) ; 
+
+   rim = mri_to_mri( MRI_float, im  ) ;
    FIR_blur_volume_3d( rim->nx,rim->ny,1 , 1.0f,1.0f,1.0f ,
                        MRI_FLOAT_PTR(rim) , sig,sig,0.0f   ) ;
-   
+
    newim = mri_to_mri( MRI_byte , rim );
    MRI_COPY_AUX(newim,im) ;
    mri_free(rim);

@@ -1,13 +1,13 @@
 /*
  * (c) Copyright 1993, Silicon Graphics, Inc.
- * ALL RIGHTS RESERVED 
- * Permission to use, copy, modify, and distribute this software for 
+ * ALL RIGHTS RESERVED
+ * Permission to use, copy, modify, and distribute this software for
  * any purpose and without fee is hereby granted, provided that the above
  * copyright notice appear in all copies and that both the copyright notice
- * and this permission notice appear in supporting documentation, and that 
+ * and this permission notice appear in supporting documentation, and that
  * the name of Silicon Graphics, Inc. not be used in advertising
  * or publicity pertaining to distribution of the software without specific,
- * written prior permission. 
+ * written prior permission.
  *
  * THE MATERIAL EMBODIED ON THIS SOFTWARE IS PROVIDED TO YOU "AS-IS"
  * AND WITHOUT WARRANTY OF ANY KIND, EXPRESS, IMPLIED OR OTHERWISE,
@@ -21,9 +21,9 @@
  * ADVISED OF THE POSSIBILITY OF SUCH LOSS, HOWEVER CAUSED AND ON
  * ANY THEORY OF LIABILITY, ARISING OUT OF OR IN CONNECTION WITH THE
  * POSSESSION, USE OR PERFORMANCE OF THIS SOFTWARE.
- * 
- * 
- * US Government Users Restricted Rights 
+ *
+ *
+ * US Government Users Restricted Rights
  * Use, duplication, or disclosure by the Government is subject to
  * restrictions set forth in FAR 52.227.19(c)(2) or subparagraph
  * (c)(1)(ii) of the Rights in Technical Data and Computer Software
@@ -52,9 +52,9 @@
 #ifdef __GLX_MOTIF
 #include <Xm/PrimitiveP.h>
 #include "GLwMDrawAP.h"
-#else 
+#else
 #include "GLwDrawAP.h"
-#endif 
+#endif
 #include <assert.h>
 #include <stdio.h>
 
@@ -64,7 +64,7 @@
 #define glwDrawingAreaClassRec           glwMDrawingAreaClassRec
 #define glwDrawingAreaWidgetClass        glwMDrawingAreaWidgetClass
 #define GLwDrawingAreaRec                GLwMDrawingAreaRec
-#endif 
+#endif
 
 #define ATTRIBLIST_SIZE 32
 
@@ -119,52 +119,52 @@ static XtResource resources[] = {
 
   {GLwNbufferSize, GLwCBufferSize, XtRInt, sizeof (int),
        offset(bufferSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNlevel, GLwCLevel, XtRInt, sizeof (int),
        offset(level), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNrgba, GLwCRgba, XtRBoolean, sizeof (Boolean),
        offset(rgba), XtRImmediate, (XtPointer) FALSE},
-  
+
   {GLwNdoublebuffer, GLwCDoublebuffer, XtRBoolean, sizeof (Boolean),
        offset(doublebuffer), XtRImmediate, (XtPointer) FALSE},
-  
+
   {GLwNstereo, GLwCStereo, XtRBoolean, sizeof (Boolean),
        offset(stereo), XtRImmediate, (XtPointer) FALSE},
-  
+
   {GLwNauxBuffers, GLwCAuxBuffers, XtRInt, sizeof (int),
        offset(auxBuffers), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNredSize, GLwCColorSize, XtRInt, sizeof (int),
        offset(redSize), XtRImmediate, (XtPointer) 1},
-  
+
   {GLwNgreenSize, GLwCColorSize, XtRInt, sizeof (int),
        offset(greenSize), XtRImmediate, (XtPointer) 1},
-  
+
   {GLwNblueSize, GLwCColorSize, XtRInt, sizeof (int),
        offset(blueSize), XtRImmediate, (XtPointer) 1},
-  
+
   {GLwNalphaSize, GLwCAlphaSize, XtRInt, sizeof (int),
        offset(alphaSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNdepthSize, GLwCDepthSize, XtRInt, sizeof (int),
        offset(depthSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNstencilSize, GLwCStencilSize, XtRInt, sizeof (int),
        offset(stencilSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNaccumRedSize, GLwCAccumColorSize, XtRInt, sizeof (int),
        offset(accumRedSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNaccumGreenSize, GLwCAccumColorSize, XtRInt, sizeof (int),
        offset(accumGreenSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNaccumBlueSize, GLwCAccumColorSize, XtRInt, sizeof (int),
        offset(accumBlueSize), XtRImmediate, (XtPointer) 0},
-  
+
   {GLwNaccumAlphaSize, GLwCAccumAlphaSize, XtRInt, sizeof (int),
        offset(accumAlphaSize), XtRImmediate, (XtPointer) 0},
-  
+
   /* the attribute list */
   {GLwNattribList, GLwCAttribList, XtRPointer, sizeof(int *),
        offset(attribList), XtRImmediate, (XtPointer) NULL},
@@ -203,7 +203,7 @@ static XtResource resources[] = {
   {XmNtraversalOn, XmCTraversalOn, XmRBoolean, sizeof (Boolean),
    XtOffset (GLwDrawingAreaWidget, primitive.traversal_on), XmRImmediate,
    (XtPointer)FALSE},
-  
+
   /* highlighting is normally disabled, as when Motif tries to disable
    * highlighting, it tries to reset the color back to the parent's
    * background (usually Motif blue).  Unfortunately, that is in a
@@ -212,12 +212,12 @@ static XtResource resources[] = {
   {XmNhighlightOnEnter, XmCHighlightOnEnter, XmRBoolean, sizeof (Boolean),
    XtOffset (GLwDrawingAreaWidget, primitive.highlight_on_enter),
    XmRImmediate, (XtPointer) FALSE},
-  
+
   {XmNhighlightThickness, XmCHighlightThickness, XmRHorizontalDimension,
    sizeof (Dimension),
    XtOffset (GLwDrawingAreaWidget, primitive.highlight_thickness),
    XmRImmediate, (XtPointer) 0},
-#endif 
+#endif
   };
 
 
@@ -236,16 +236,16 @@ static XtResource initializeResources[] = {
 
 
 /* reallocate any colors we need in the new colormap */
-  
+
 /* The background is obtained only if the allocateBackground resource is TRUE*/
 static XtResource backgroundResources[] = {
 #ifdef __GLX_MOTIF
-  {XmNbackground, XmCBackground,XmRPixel, 
+  {XmNbackground, XmCBackground,XmRPixel,
    sizeof(Pixel),XtOffset(GLwDrawingAreaWidget,core.background_pixel),
    XmRString,(XtPointer)"lightgrey"},
    /*XmRCallProc,(XtPointer)_XmBackgroundColorDefault},*/
 
-  {XmNbackgroundPixmap,XmCPixmap,XmRXmBackgroundPixmap, 
+  {XmNbackgroundPixmap,XmCPixmap,XmRXmBackgroundPixmap,
    sizeof(Pixmap),XtOffset(GLwDrawingAreaWidget,core.background_pixmap),
    XmRImmediate,(XtPointer)XmUNSPECIFIED_PIXMAP},
 
@@ -258,7 +258,7 @@ static XtResource backgroundResources[] = {
   {XtNbackgroundPixmap, XtCPixmap, XtRPixmap, sizeof(Pixmap),
    XtOffset(GLwDrawingAreaWidget,core.background_pixmap),
    XtRImmediate,(XtPointer)XtUnspecifiedPixmap},
-#endif  
+#endif
   };
 
 
@@ -268,7 +268,7 @@ static XtResource backgroundResources[] = {
  */
 #ifdef __GLX_MOTIF
 static XtResource otherColorResources[] = {
-  {XmNforeground,XmCForeground,XmRPixel, 
+  {XmNforeground,XmCForeground,XmRPixel,
    sizeof(Pixel),XtOffset(GLwDrawingAreaWidget,primitive.foreground),
    XmRString,(XtPointer)"lighgrey"},
    /*XmRCallProc, (XtPointer) _XmForegroundColorDefault},*/
@@ -338,9 +338,9 @@ GLwDrawingAreaClassRec glwDrawingAreaClassRec = {
     /* arm_and_activate          */        NULL,
     /* get_resources             */        NULL,
     /* num get_resources         */        0,
-    /* extension                 */        NULL,                                
+    /* extension                 */        NULL,
   }
-#endif 
+#endif
   };
 
 WidgetClass glwDrawingAreaWidgetClass=(WidgetClass)&glwDrawingAreaClassRec;
@@ -432,7 +432,7 @@ static void createColormap(GLwDrawingAreaWidget w,int offset,XrmValue *value){
   static int cacheEntries=0;
   static int cacheMalloced=0;
   register int i;
-    
+
   assert(w->glwDrawingArea.visualInfo);
 
   /* see if we can find it in the cache */
@@ -458,7 +458,7 @@ static void createColormap(GLwDrawingAreaWidget w,int offset,XrmValue *value){
       cmapCache=(struct cmapCache*)XtRealloc((char*)cmapCache,sizeof(struct cmapCache)*cacheMalloced);
       }
     }
-       
+
   cmapCache[cacheEntries].cmap=XCreateColormap(XtDisplay(w),
                                                RootWindow(XtDisplay(w),
                                                w->glwDrawingArea.visualInfo->screen),
@@ -510,7 +510,7 @@ static void Initialize(GLwDrawingAreaWidget req,GLwDrawingAreaWidget neww,ArgLis
   if(req->glwDrawingArea.allocateOtherColors){
     XtGetApplicationResources((Widget)neww,neww,otherColorResources,XtNumber(otherColorResources),args,*num_args);
     }
-#endif 
+#endif
   }
 
 
@@ -522,14 +522,14 @@ static void Realize(Widget w,Mask *valueMask,XSetWindowAttributes *attributes){
   Status status;
   Window windows[2],*windowsReturn,*windowList;
   int countReturn,i;
-   
+
   /* if we haven't requested that the background be both installed and
    * allocated, don't install it.
    */
   if(!(glw->glwDrawingArea.installBackground && glw->glwDrawingArea.allocateBackground)){
     *valueMask&=~CWBackPixel;
     }
- 
+
   XtCreateWindow(w,(unsigned int)InputOutput,glw->glwDrawingArea.visualInfo->visual,*valueMask,attributes);
 
   /* if appropriate, call XSetWMColormapWindows to install the colormap */
@@ -542,7 +542,7 @@ static void Realize(Widget w,Mask *valueMask,XSetWindowAttributes *attributes){
 
       /* check to see if there is already a property */
       status=XGetWMColormapWindows(XtDisplay(parentShell),XtWindow(parentShell),&windowsReturn,&countReturn);
-            
+
       /* if no property, just create one */
       if(!status){
         windows[0]=XtWindow(w);
@@ -624,7 +624,7 @@ static void Destroy(GLwDrawingAreaWidget glw){
 
       /* make sure there is a property */
       status=XGetWMColormapWindows(XtDisplay(parentShell),XtWindow(parentShell),&windowsReturn,&countReturn);
-            
+
       /* if no property, just return.  If there was a property, continue */
       if(status){
 
@@ -636,7 +636,7 @@ static void Destroy(GLwDrawingAreaWidget glw){
             for(i++; i<countReturn; i++){ windowsReturn[i-1]=windowsReturn[i]; }
 
             XSetWMColormapWindows(XtDisplay(parentShell),XtWindow(parentShell),windowsReturn,countReturn-1);
-            break; 
+            break;
             }
           }
         XtFree((char *)windowsReturn);

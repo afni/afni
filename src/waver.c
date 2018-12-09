@@ -169,7 +169,7 @@ double waveform_FILE( double t )   /* 23 Aug 2005 */
    nn = (int) tf ;
    tf = tf - (double)nn ;
    if( nn < 0 || nn > FILE_nval ) return 0.0 ;
-                  
+
    /* Changed (tf < 0.0001) to (tf && tf < 0.0001)
    Otherwise an extra repetition would occur if tf is exactly 0.
    To illustrate:
@@ -182,11 +182,11 @@ double waveform_FILE( double t )   /* 23 Aug 2005 */
    returns: 1 1 0 0     (OK)
    and   waver -dt 1 -FILE 1 '1D:1 1' -tstim 0.001
    returns: 0 1 0.001 0 0 (OK)
-                                       R&Z   */ 
+                                       R&Z   */
    if( nn == FILE_nval )
      return (tf && tf < 0.0001) ? (double)FILE_val[nn-1] : 0.0 ;
 
-   /* The if statement is to guard against reading nn+1 when 
+   /* The if statement is to guard against reading nn+1 when
    nn is equal to FILE_nval -1            R&Z   */
    if (nn == FILE_nval -1) return ((1.0-tf)*FILE_val[nn]);
    else return ( (1.0-tf)*FILE_val[nn] + tf*FILE_val[nn+1] ) ;
@@ -227,12 +227,12 @@ int main( int argc , char * argv[] )
    /* this writes to stdout (default), so no version    06 Jan 2006 [rickr] */
    /* PRINT_VERSION("waver"); */
    mainENTRY("waver"); machdep(); AFNI_logger("waver",argc,argv);
-   
+
    Process_Options( argc , argv ) ;
    if( argc < 2) {
       Syntax(0);
       exit(0) ;
-   } 
+   }
 
    /*---- compute duration of sampled waveform ----*/
 

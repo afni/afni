@@ -583,8 +583,8 @@ static int pva_demux (uint8_t * buf, uint8_t * end)
 		state = DEMUX_SKIP;
 		state_bytes = bytes - (end - buf);
 		return 0;
-	    } 
-	    buf += bytes; 
+	    }
+	    buf += bytes;
 	} else {
 	    len = 8;
 	    if (header[5] & 0x10) {

@@ -35,7 +35,7 @@ sparse_array_node* free_sparse_list( sparse_array_node* list )
     {
        tptr = list;
        list = list->next;
-       free(tptr); 
+       free(tptr);
     }
     return( NULL );
 }
@@ -94,9 +94,9 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
             {
                 /* free the list of hist_nodes */
                 free_sparse_list( histogram[kout].nodes );
-                histogram[kout].nodes = NULL; 
+                histogram[kout].nodes = NULL;
             }
-        } 
+        }
 
         /* all of the linked lists should be empty,
            now free the bin array */
@@ -117,7 +117,7 @@ hist_node_head* free_histogram(hist_node_head * histogram, int nhistbins)
    inputs:
        xvectim: the input time courses that will be correlated
        sparsity: the percentage of the top correlations that should be retained
-       threshold: a threshold that should be applied to determine if a correlation 
+       threshold: a threshold that should be applied to determine if a correlation
            should be retained. For sparsity thresholding this value will be used
            as an initial guess to speed calculation and a higher threshold may
            ultimately be calculated through the adaptive process.
@@ -157,7 +157,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
     mem_budget = mem_allowance;
 
     INFO_message( "Starting create_sparse_corr_array with a memory allowance of %ld", mem_budget);
- 
+
     /* calculate the total number of possible correlations */
     totPosCor = .5 * ( xvectim->nvec -1 ) * ( xvectim->nvec );
 
@@ -182,7 +182,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
         /* and the number of desired correlations */
         ngoal = nretain = (long)ceil(((double)totPosCor)*((double)sparsity) / 100.0);
 
-        /* check to see if we want to use more memory than would be used by the 
+        /* check to see if we want to use more memory than would be used by the
            full correlation matrix, if so, the we should probably just use full
            correlation - or min memory func */
         if((ngoal * sizeof( sparse_array_node )) > mem_budget)
@@ -223,7 +223,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
         {
             /* if the allocation fails, free all memory and exit */
             ERROR_message( "Could not allocate %d byte array for histogram\n",
-                nhistbins*sizeof(hist_node_head)); 
+                nhistbins*sizeof(hist_node_head));
             return( NULL );
         }
 
@@ -233,8 +233,8 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
             histogram[ kout ].bin_low = thresh+kout*binwidth;
             histogram[ kout ].bin_high = histogram[ kout ].bin_low+binwidth;
             histogram[ kout ].nbin = 0;
-            histogram[ kout ].nodes = NULL; 
-            histogram[ kout ].tail = NULL; 
+            histogram[ kout ].nodes = NULL;
+            histogram[ kout ].tail = NULL;
             /*
                 INFO_message("Hist bin %d [%3.3f, %3.3f) [%d, %p]\n",
                     kout, histogram[ kout ].bin_low, histogram[ kout ].bin_high,
@@ -251,7 +251,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
         float *xsar , *ysar ;
         sparse_array_node* new_node = NULL ;
         int new_node_idx = 0;
-        double car = 0.0 ; 
+        double car = 0.0 ;
 
         /*-- get information about who we are --*/
 #ifdef USE_OMP
@@ -286,7 +286,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                 /* get ref time series from this voxel */
                 xsar = VECTIM_PTR(xvectim,lout);
 
-                /* try to make calculation more efficient by only calculating the unique 
+                /* try to make calculation more efficient by only calculating the unique
                    correlations */
                 for( lin=(lout+1) ; lin < xvectim->nvec ; lin++ )
                 {  /*----- inner loop over voxels -----*/
@@ -310,7 +310,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                so check it again */
                             if (car >= thresh )
                             {
-                                /* create a node to add to the histogram, try to use a 
+                                /* create a node to add to the histogram, try to use a
                                    recycled node to save time and memory */
                                 if ( recycled_nodes == NULL )
                                 {
@@ -321,7 +321,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                     }
                                     else
                                     {
-                                        new_node = NULL; 
+                                        new_node = NULL;
                                     }
                                 }
                                 else
@@ -332,7 +332,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                 }
                                 if( new_node == NULL )
                                 {
-                                    /* allocate memory for this node, rather than fiddling with 
+                                    /* allocate memory for this node, rather than fiddling with
                                        error handling here, lets just move on */
                                     WARNING_message("Could not allocate a new node!");
                                 }
@@ -350,7 +350,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                         new_node->next = sparse_array->nodes;
                                         sparse_array->nodes = new_node;
                                         sparse_array->num_nodes = sparse_array->num_nodes + 1;
-                                        new_node = NULL; 
+                                        new_node = NULL;
                                     }
                                     /* otherwise, populate to proper bin of histogram */
                                     else
@@ -368,7 +368,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                         else
                                         {
                                             /* populate histogram node */
-                                            new_node->row = lout; 
+                                            new_node->row = lout;
                                             new_node->column = lin;
                                             new_node->weight = car;
                                             new_node->next = NULL;
@@ -382,12 +382,12 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                                 histogram[new_node_idx].tail = new_node;
                                             }
                                             /* increment bin count */
-                                            histogram[new_node_idx].nbin++; 
+                                            histogram[new_node_idx].nbin++;
 
                                             /* see if there are enough correlations in the histogram
                                                for the sparsity - prune un-needed hist bins*/
                                             while ((totNumCor - histogram[bottom_node_idx].nbin) > nretain)
-                                            { 
+                                            {
                                                 /* push the histogram nodes onto the list of recycled nodes, it could be
                                                    that this hist bin is empty, in which case we have nothing to add */
                                                 if( histogram[bottom_node_idx].tail != NULL )
@@ -404,13 +404,13 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                                                                          histogram[bottom_node_idx].nbin);
                                                     }
                                                 }
-        
-                                                /* bookkeeping */ 
+
+                                                /* bookkeeping */
                                                 histogram[bottom_node_idx].nodes = NULL;
                                                 histogram[bottom_node_idx].tail = NULL;
                                                 totNumCor -= histogram[bottom_node_idx].nbin;
                                                 histogram[bottom_node_idx].nbin = 0;
-             
+
                                                 /* get the new threshold */
                                                 thresh = (double)histogram[++bottom_node_idx].bin_low;
                                                 /*INFO_message("Increasing threshold to %3.2f (%d)\n",
@@ -458,7 +458,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
 
             /* pull the requested number of nodes off of the histogram */
             for ( kout = (nhistbins-1); kout >= bottom_node_idx; kout-- )
-            { 
+            {
                 if((histogram[ kout ].nodes != NULL ) &&
                    (histogram[ kout ].nbin > 0))
                 {
@@ -474,7 +474,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                     /* increment the number of nodes */
                     sparse_array->num_nodes = sparse_array->num_nodes +
                         histogram[ kout ].nbin;
-      
+
                     /* remove the references from the histogram,
                        this is super important considering we don't want
                        to accidently free any nodes that are on the sparse_array
@@ -482,7 +482,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
                     histogram[ kout ].nodes = NULL;
                     histogram[ kout ].tail = NULL;
                     histogram[ kout ].nbin = 0;
-                } 
+                }
                 /* dont take more than we want */
                 if ( sparse_array->num_nodes > nretain ) break;
             }
@@ -503,7 +503,7 @@ sparse_array_head_node* create_sparse_corr_array( MRI_vectim* xvectim, double sp
         else
         {
             INFO_message( "Correlation threshold (%3.2lf) resulted in %ld"
-                " correlations (%3.2lf%% sparsity).\n", thresh, 
+                " correlations (%3.2lf%% sparsity).\n", thresh,
                 sparse_array->num_nodes,
                 100.0*((double)sparse_array->num_nodes)/((double)totPosCor));
         }

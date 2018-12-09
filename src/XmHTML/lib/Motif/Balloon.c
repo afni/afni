@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -42,7 +42,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/04 06:27:15  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -53,7 +53,7 @@ static char rcsId[]="$Header$";
 #include <unistd.h>
 #include <signal.h>
 
-#include <X11/IntrinsicP.h> 
+#include <X11/IntrinsicP.h>
 #include <X11/StringDefs.h>
 #include <X11/extensions/shape.h>
 #include <X11/Xmu/Converters.h>
@@ -94,7 +94,7 @@ static char rcsId[]="$Header$";
 /*  */
 static void ClassInitialize(void);
 
-/* class initialize method */ 
+/* class initialize method */
 static void Initialize(Widget request, Widget init, ArgList args,
 	Cardinal *num_args);
 
@@ -145,7 +145,7 @@ static XtResource resources[] =
 		XmNfont,
 		XmCFont, XmRFontStruct,
 		sizeof(XFontStruct*), Offset(font),
-		XmRString, 
+		XmRString,
         	"-adobe-helvetica-bold-r-normal-*-12-*-*-*-*-*-*-*"
 	},
 #else
@@ -275,12 +275,12 @@ XmBalloonClassRec xmBalloonClassRec = {
 },
 											/* composite_class fields	*/
 {
-	XtInheritGeometryManager,				/* geometry_manager   		*/    	
-	XtInheritChangeManaged,					/* change_managed			*/	
-	XtInheritInsertChild,					/* insert_child				*/	
-	XtInheritDeleteChild,					/* delete_child				*/	
-	NULL									/* extension				*/	
-}, 
+	XtInheritGeometryManager,				/* geometry_manager   		*/
+	XtInheritChangeManaged,					/* change_managed			*/
+	XtInheritInsertChild,					/* insert_child				*/
+	XtInheritDeleteChild,					/* delete_child				*/
+	NULL									/* extension				*/
+},
 											/* shell class fields		*/
 {
 	(XtPointer)NULL,						/* extension				*/
@@ -497,7 +497,7 @@ SetValues(Widget current, Widget request, Widget set, ArgList args,
 * Return Type: 	void
 * Description: 	XmBalloon destroy method. Deletes the GC we have been using
 *				and frees the space allocated for the label.
-* In: 
+* In:
 *	w:			XmBalloonWidget id;
 * Returns:
 *	nothing.
@@ -544,7 +544,7 @@ drawText(Display *dpy, XmBalloonWidget balloon, Drawable drawable, GC gc,
 		ATTR(source), ATTR(source_len));
 #else
 	XmbDrawString(dpy, drawable, ATTR(fontset), gc,
-		ATTR(margin_width) + x_offset, 
+		ATTR(margin_width) + x_offset,
 		ATTR(margin_height) + ATTR(baseline) + y_offset,
 		ATTR(source), ATTR(source_len));
 #endif
@@ -598,7 +598,7 @@ drawBalloonShaped(Widget w, Position x, Position y, int width)
 		&(ATTR(maskt))));
 
 	setTransform(&ATTR(t), face_width, bwidth - face_width,
-		bheight - face_height, face_height, 
+		bheight - face_height, face_height,
 		-WINDOW_WIDTH(balloon)/2, WINDOW_WIDTH(balloon)/2,
 		-WINDOW_HEIGHT(balloon)/2, WINDOW_HEIGHT(balloon)/2);
 
@@ -662,7 +662,7 @@ drawBalloonShaped(Widget w, Position x, Position y, int width)
 	XShapeCombineMask(dpy, win, ShapeBounding, 0, 0, shape_mask, ShapeSet);
 
 	/* erase clipmask */
-	XSetForeground(dpy, ATTR(shape_gc), 0); 
+	XSetForeground(dpy, ATTR(shape_gc), 0);
 	XFillRectangle(dpy, shape_mask, ATTR(shape_gc), 0, 0, bwidth, bheight);
 	XSetForeground(dpy, ATTR(shape_gc), 1);
 
@@ -724,7 +724,7 @@ drawBalloonSquared(Widget w, Position x, Position y, int width)
 	Display *dpy = XtDisplay(w);
 
 	/* resize to fit */
-	XtResizeWidget((Widget)balloon, 2*ATTR(margin_width) + width, 
+	XtResizeWidget((Widget)balloon, 2*ATTR(margin_width) + width,
 		2*ATTR(margin_height) + ATTR(font_height),
 		balloon->core.border_width);
 
@@ -753,7 +753,7 @@ drawBalloonSquared(Widget w, Position x, Position y, int width)
 * Name: 		popupBalloon
 * Return Type: 	void
 * Description: 	pops up a balloon widget;
-* In: 
+* In:
 *	client_..:	timeout client data, this is a XmBalloonWidget.
 *	id:			interval id. When 0 it means this function has been called
 *				directly from within the widget code. This will cause any
@@ -785,7 +785,7 @@ popupBalloon(XtPointer client_data, XtIntervalId *id)
 		int dir, ascent, descent;
 		XCharStruct sw;
 		XTextExtents(ATTR(font), ATTR(source), ATTR(source_len),
-			&dir, &ascent, &descent, &sw); 
+			&dir, &ascent, &descent, &sw);
 		logical.width = sw.width;
 	}
 #else
@@ -839,7 +839,7 @@ popupBalloon(XtPointer client_data, XtIntervalId *id)
 * Return Type: 	void
 * Description: 	Timeout when the popdownDelay resource has been set.
 *				Pops down a currently popped up balloon.
-* In: 
+* In:
 *	client_..:	timeout client data, this is a XmBalloonWidget.
 *	id:			interval id. When 0 it means this function has been called
 *				directly from within the widget code. This will cause any
@@ -876,7 +876,7 @@ popdownBalloon(XtPointer client_data, XtIntervalId *id)
 * Return Type: 	void
 * Description: 	computes the required font extents for properly displaying
 *				the label in the popped up widget.
-* In: 
+* In:
 *	BALLOON:	XmBalloonWidget id;
 * Returns:
 *	nothing.
@@ -926,7 +926,7 @@ computeFontInfo(BALLOON)
 * Name: 		checkGC
 * Return Type: 	void
 * Description: 	creates a GC for us to use;
-* In: 
+* In:
 *	BALLOON:	XmBalloonWidget id;
 * Returns:
 *	nothing.
@@ -938,10 +938,10 @@ checkGC(BALLOON)
 
 	xgc.foreground = ATTR(foreground);
 	xgc.background = balloon->core.background_pixel;
-	xgc.fill_style = FillSolid; 
+	xgc.fill_style = FillSolid;
 
-#if XtSpecificationRelease < 5	
-	xgc.font = ATTR(font->fid); 
+#if XtSpecificationRelease < 5
+	xgc.font = ATTR(font->fid);
 #endif
 
 	if(ATTR(gc))
@@ -955,7 +955,7 @@ checkGC(BALLOON)
 * Return Type: 	Boolean
 * Description: 	checks is a new label has been provided, and if so updates
 *				the previous label.
-* In: 
+* In:
 *	BALLOON:	XmBalloonWidget id;
 *	label:		new label. Can be NULL.
 * Returns:
@@ -995,7 +995,7 @@ setLabel(BALLOON, String label)
 		{
 			new_label = True;
 
-			/* free previous source */	
+			/* free previous source */
 			free(ATTR(source));
 
 			/* reset to NULL */
@@ -1062,7 +1062,7 @@ setTransform(Transform *t, int xx1, int xx2, int xy1, int xy2,
 * Name: 		XmCreateBalloon
 * Return Type: 	Widget
 * Description: 	creates an XmBalloonWidget.
-* In: 
+* In:
 *	parent:		parent for this new widget;
 *	name:		name for the newly created widget;
 *	argslist:	list of arguments to be used for creating this widget;
@@ -1085,7 +1085,7 @@ XmCreateBalloon(Widget parent, String name, ArgList arglist, Cardinal argcount)
 * Name: 		XmBalloonPopup
 * Return Type: 	void
 * Description: 	displays a XmBalloonWidget
-* In: 
+* In:
 *	w:			widget ID, must be of class xmBalloonWidgetClass;
 *	event:		event information for proper popup location;
 *	label:		label to be displayed;
@@ -1130,7 +1130,7 @@ XmBalloonPopup(Widget w, Position x, Position y, String label)
 		{
 			ATTR(pop_x) = x;
 			ATTR(pop_y) = y;
-			popupBalloon((XtPointer)balloon, 0); 
+			popupBalloon((XtPointer)balloon, 0);
 		}
 	}
 }
@@ -1139,7 +1139,7 @@ XmBalloonPopup(Widget w, Position x, Position y, String label)
 * Name: 		XmBalloonPopdown
 * Return Type: 	void
 * Description: 	pops down a popped up XmBalloonWidget
-* In: 
+* In:
 *	w:			widget ID, must be of class xmBalloonWidgetClass;
 * Returns:
 *	nothing.

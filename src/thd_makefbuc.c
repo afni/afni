@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "thd_maker.h"
 
 /* set this to allow single volume input, i.e. no < 2 requirement */
@@ -402,7 +402,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
       ufunc( tzero,tdelta, nuse,fxar,ts_mean,ts_slope, user_data, nbrik,val );
 #endif
       }
-      
+
       for( iv=0 ; iv < nbrik ; iv++ ) fout[iv][ii] = val[iv] ;
 
    } /* end of outer loop over 1 voxels at a time */
@@ -459,7 +459,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
             }
             if (nscale) {
                sfac = 0.0;
-               EDIT_coerce_type( nvox, MRI_float, fout[iv] , 
+               EDIT_coerce_type( nvox, MRI_float, fout[iv] ,
                                        MRI_short, bout ) ;
             } else {
                sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;
@@ -493,7 +493,7 @@ THD_3dim_dataset * MAKER_4D_to_typed_fbuc( THD_3dim_dataset * old_dset ,
             }
             if (nscale) {
                sfac = 0.0;
-               EDIT_coerce_type( nvox, MRI_float, fout[iv] , 
+               EDIT_coerce_type( nvox, MRI_float, fout[iv] ,
                                        MRI_byte,  bout ) ;
             } else {
                sfac = MCW_vol_amax( nvox,1,1 , MRI_float , fout[iv] ) ;

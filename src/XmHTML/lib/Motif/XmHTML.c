@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -73,26 +73,26 @@ static char rcsId[]="$Header$";
 * image whenever possible. Added the XmHTMLFrameGetChild convenience function.
 *
 * Revision 1.10  1997/03/28 07:05:28  newt
-* Frame interface added. 
-* Horizontal scrolling bugfix. 
+* Frame interface added.
+* Horizontal scrolling bugfix.
 * Added all remaining action routines and adjusted translation table.
 *
 * Revision 1.9  1997/03/20 08:04:38  newt
 * XmHTMLImageFreeImageInfo, XmNrepeatDelay, changes in public image functions
 *
 * Revision 1.8  1997/03/11 19:49:53  newt
-* Fix 03/11/97-01, SetValues. 
+* Fix 03/11/97-01, SetValues.
 * Added XmHTMLImageGetType, updated XmHTMLImageReplace and XmHTMLImageUpdate
 *
 * Revision 1.7  1997/03/04 18:45:15  newt
 * ?
 *
 * Revision 1.6  1997/03/04 00:55:54  newt
-* Delayed Image Loading changes: XmHTMLReplaceImage, XmHTMLUpdateImage 
+* Delayed Image Loading changes: XmHTMLReplaceImage, XmHTMLUpdateImage
 * and XmHTMLRedisplay added
 *
 * Revision 1.5  1997/03/02 23:06:35  newt
-* Added image/imagemap support; changed expose method; added background 
+* Added image/imagemap support; changed expose method; added background
 * image painting
 *
 * Revision 1.4  1997/02/11 02:05:44  newt
@@ -107,7 +107,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:03  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -125,9 +125,9 @@ static char rcsId[]="$Header$";
 #include <Xm/DrawP.h>
 #include <Xm/XmStrDefs.h>	/* For motif XmN macros */
 
-/***** 
+/*****
 * Test if these macros are present. They are required for conversion of the
-* enumeration resource values. I don't know if they are present in Motif 1.2.X. 
+* enumeration resource values. I don't know if they are present in Motif 1.2.X.
 * If not here, spit out an error message.
 * If you can't compile this because this error occurs, please contact us
 * at the address given below and state what version of Motif you are using.
@@ -154,8 +154,8 @@ static char rcsId[]="$Header$";
 #include "bitmaps/fingers_m.xbm"
 
 /*** External Function Prototype Declarations ***/
-/* 
-* undocumented motif functions used: (declared in XmP.h): 
+/*
+* undocumented motif functions used: (declared in XmP.h):
 * _XmRedisplayGadgets (Widget, XEvent*, Region);
 */
 
@@ -167,7 +167,7 @@ static char rcsId[]="$Header$";
 
 /*** Private Function Prototype Declarations ****/
 /***
-* Private functions 
+* Private functions
 ***/
 static void CreateAnchorCursor(XmHTMLWidget html);
 static void CreateHTMLWidget(XmHTMLWidget html);
@@ -208,7 +208,7 @@ static void DrawRedisplay(Widget w, XmHTMLWidget html, XEvent *event);
 static void VisibilityHandler(Widget w, XmHTMLWidget html, XEvent *event);
 
 /* MapNotify action routine for the work area */
-static void Mapped(Widget w, XmHTMLWidget html, XEvent *event); 
+static void Mapped(Widget w, XmHTMLWidget html, XEvent *event);
 
 /* class set_values method */
 static Boolean SetValues(Widget current, Widget request, Widget set,
@@ -225,27 +225,27 @@ static XtGeometryResult GeometryManager(Widget w, XtWidgetGeometry *request,
 static void Destroy(Widget w);
 
 /* Action routines */
-static void	ExtendStart(Widget w, XEvent *event, String *params, 
+static void	ExtendStart(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void	ExtendAdjust(Widget w, XEvent *event, String *params, 
+static void	ExtendAdjust(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void	ExtendEnd(Widget w, XEvent *event, String *params, 
+static void	ExtendEnd(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void TrackMotion(Widget w, XEvent *event, String *params, 
+static void TrackMotion(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void TrackFocus(Widget w, XEvent *event, String *params, 
+static void TrackFocus(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLProcessInput(Widget w, XEvent *event, String *params, 
+static void HTMLProcessInput(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLPageUpOrLeft(Widget w, XEvent *event, String *params, 
+static void HTMLPageUpOrLeft(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLPageDownOrRight(Widget w, XEvent *event, String *params, 
+static void HTMLPageDownOrRight(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params, 
+static void HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params, 
+static void HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
-static void HTMLTopOrBottom(Widget w, XEvent *event, String *params, 
+static void HTMLTopOrBottom(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
 static void HTMLTraverseCurrent(Widget w, XEvent *event, String *params,
 		Cardinal *num_params);
@@ -272,7 +272,7 @@ static XmRepTypeId enable_repid, conv_repid, load_repid;
 * This looks ugly, since it's a static block of text it doesn't take up that
 * much data space.
 *****/
-static char translations[] = 
+static char translations[] =
 "Ctrl <Key>osfPageUp: page-up-or-left(1)\n\
 Ctrl <Key>osfPageDown: page-down-or-right(1)\n\
 Ctrl <Key>osfBeginLine: top-or-bottom(0)\n\
@@ -301,7 +301,7 @@ Ctrl <Key>Tab: ManagerGadgetNextTabGroup()\n\
 <KeyUp>: process-html-input()";
 
 /* Action routines provided by XmHTML */
-static XtActionsRec actions[] = 
+static XtActionsRec actions[] =
 {
 	{"extend-start",            (XtActionProc)ExtendStart},
 	{"extend-adjust",           (XtActionProc)ExtendAdjust},
@@ -320,11 +320,11 @@ static XtActionsRec actions[] =
 	{"traverse-next-or-prev",   (XtActionProc)HTMLTraverseNextOrPrev}
 };
 
-/* 
+/*
 * copy of original list. Motif destroys the original list and therefore
 * XmHTML crashes when we try to use the above list again.
 */
-static XtActionsRec spareActions[] = 
+static XtActionsRec spareActions[] =
 {
 	{"extend-start",            (XtActionProc)ExtendStart},
 	{"extend-adjust",           (XtActionProc)ExtendAdjust},
@@ -420,12 +420,12 @@ XmHTMLClassRec xmHTMLClassRec = {
 },
 											/* constraint_class fields */
 {
-	NULL,									/* resource list		*/	 
-	0,										/* num resources		*/	 
-	0,										/* constraint size		*/	 
-	NULL,									/* init proc			*/	 
-	NULL,									/* destroy proc			*/	 
-	NULL,									/* set values proc		*/	 
+	NULL,									/* resource list		*/
+	0,										/* num resources		*/
+	0,										/* constraint size		*/
+	NULL,									/* init proc			*/
+	NULL,									/* destroy proc			*/
+	NULL,									/* set values proc		*/
 	NULL									/* extension			*/
 },
 											/* manager_class fields */
@@ -436,12 +436,12 @@ XmHTMLClassRec xmHTMLClassRec = {
 	NULL,									/* syn_cont_resources	*/
 	0,										/* num_syn_cont_resources*/
 	XmInheritParentProcess,					/* parent_process		*/
-	NULL									/* extension 			*/	
+	NULL									/* extension 			*/
 },
-											/* html_class fields */	 
-{	
+											/* html_class fields */
+{
 	0										/* none					*/
-}	
+}
 };
 
 /* Establish the widget class name as an externally accessible symbol. */
@@ -488,7 +488,7 @@ ClassInitialize(void)
 		_XmHTMLWarning(__WFUNC__(NULL, "ClassInitialize"),
 			"Version number mismatch: this library was compiled as\n"
 			"    version %i using XmHTML.h version %i.",
-			VERSION, XmHTMLVersion); 
+			VERSION, XmHTMLVersion);
 	}
 
 	/* Get appropriate representation type convertor id's */
@@ -537,7 +537,7 @@ ClassInitialize(void)
 * Name:			ClassPartInitialize
 * Return Type: 	void
 * Description:  object class method to initialize class part structure fields.
-* In: 
+* In:
 *	subclass:	pointer to a widget class structure.
 * Returns:
 *	nothing.
@@ -562,7 +562,7 @@ ClassPartInitialize(WidgetClass wc)
 * Name: 		Initialize
 * Return Type: 	void
 * Description: 	Called when the widget is instantiated
-* In: 
+* In:
 *	request:	widget with resource values set as requested by the argument
 *				list, resource database and widget defaults
 *	init:		same widget with values as modified by superclass initialize()
@@ -570,7 +570,7 @@ ClassPartInitialize(WidgetClass wc)
 *	args:		argument list passed to XtCreateWidget
 *	num_args:	number of entries in the argument list
 * Returns:
-*	nothing, but init is updated with checked/updated resource values.	
+*	nothing, but init is updated with checked/updated resource values.
 *****/
 static void
 Initialize(Widget request, Widget init, ArgList args, Cardinal *num_args)
@@ -609,14 +609,14 @@ Initialize(Widget request, Widget init, ArgList args, Cardinal *num_args)
 	CheckAnchorUnderlining(html, html);
 
 	/* ScrollBarDisplayPolicy */
-	if(!XmRepTypeValidValue(sb_policy_repid, HTML_ATTR(sb_policy), 
+	if(!XmRepTypeValidValue(sb_policy_repid, HTML_ATTR(sb_policy),
 		(Widget)html))
 		HTML_ATTR(sb_policy) = XmAS_NEEDED;
 	else if(HTML_ATTR(sb_policy) == XmSTATIC)
 		HTML_ATTR(needs_vsb) = True;
 
 	/* ScrollBarPlacement */
-	if(!XmRepTypeValidValue(sb_placement_repid, HTML_ATTR(sb_placement), 
+	if(!XmRepTypeValidValue(sb_placement_repid, HTML_ATTR(sb_placement),
 		(Widget)html))
 		HTML_ATTR(sb_placement) = XmBOTTOM_RIGHT;
 
@@ -709,10 +709,10 @@ Initialize(Widget request, Widget init, ArgList args, Cardinal *num_args)
 	HTML_ATTR(delayed_creation)  = False;	/* no delayed image creation */
 	HTML_ATTR(embedded)          = (XmHTMLExtObj*)NULL;
 
-	/***** 
+	/*****
 	* Original colors must be stored. They can be altered by the
 	* <BODY> element, so if we get a body without any or some of these
-	* colors specified, we can use the proper default values for the 
+	* colors specified, we can use the proper default values for the
 	* unspecified elements.
 	*****/
 	HTML_ATTR(body_fg_save)             = HTML_ATTR(body_fg);
@@ -886,12 +886,12 @@ Initialize(Widget request, Widget init, ArgList args, Cardinal *num_args)
 * Name: 		CreateAnchorCursor
 * Return Type: 	void
 * Description: 	creates the built-in anchor cursor
-* In: 
+* In:
 *	html:		XmHTMLWidget for which to create a cursor
 * Returns:
 *	nothing.
 *****/
-static void 
+static void
 CreateAnchorCursor(XmHTMLWidget html)
 {
 	_XmHTMLDebug(1, ("XmHTML.c: CreateAnchorCursor Start\n"));
@@ -917,7 +917,7 @@ CreateAnchorCursor(XmHTMLWidget html)
 
 		(void)XParseColor(display, TkaGetColormap(html), "black", &black_def);
 
-		HTML_ATTR(anchor_cursor) = XCreatePixmapCursor(display, shape, mask, 
+		HTML_ATTR(anchor_cursor) = XCreatePixmapCursor(display, shape, mask,
 			&white_def, &black_def, fingers_x_hot, fingers_y_hot);
 	}
 	_XmHTMLDebug(1, ("XmHTML.c: CreateAnchorCursor End\n"));
@@ -967,11 +967,11 @@ _XmHTMLRaiseFormWidgets(XmHTMLWidget html)
 * Name:			OverrideExposure
 * Return Type: 	void
 * Description: 	expose event filter when HTML form widgets are being scrolled.
-* In: 
+* In:
 *	w:			unused;
 *	client_..:	unused;
 *	event:		XEvent info;
-*	continu..:	flag to tell X whether or not to propagate this event; 
+*	continu..:	flag to tell X whether or not to propagate this event;
 * Returns:
 *	nothing.
 * Note:
@@ -992,7 +992,7 @@ OverrideExposure(Widget w, XtPointer client_data, XEvent *event,
 			"\t(x = %i, y = %i, width = %i, height = %i)\n",
 			(event->xany.type == Expose ? "Expose" : "GraphicsExpose"),
 			event->xexpose.x, event->xexpose.y,
-			event->xexpose.width, event->xexpose.height)); 
+			event->xexpose.width, event->xexpose.height));
 		if(event->xany.type == GraphicsExpose &&
 			NULL != XtWindowToWidget(XtDisplay(w),
 					event->xgraphicsexpose.drawable))
@@ -1012,9 +1012,9 @@ OverrideExposure(Widget w, XtPointer client_data, XEvent *event,
 		if(event->xany.type == GraphicsExpose &&
 			event->xgraphicsexpose.count == 0)
 			return;
-		
+
 		/* Gather all other pending events and disallow continuation */
-		while((XCheckWindowEvent(XtDisplay(w), XtWindow(w), ExposureMask, 
+		while((XCheckWindowEvent(XtDisplay(w), XtWindow(w), ExposureMask,
 				&expose)) == True)
 			;
 		*continue_to_dispatch = False;
@@ -1030,7 +1030,7 @@ OverrideExposure(Widget w, XtPointer client_data, XEvent *event,
 * Name: 		_XmHTMLScrollForm
 * Return Type: 	void
 * Description: 	scrolls all widgets of all forms in the current document.
-* In: 
+* In:
 *	html:		XmHTML widget id
 * Returns:
 *	nothing.
@@ -1068,7 +1068,7 @@ _XmHTMLScrollForm(XmHTMLWidget html)
 #else
 	/*****
 	* To prevent the X exposure handling from going haywire, we simply
-	* override *any* exposure events generated by moving the widgets 
+	* override *any* exposure events generated by moving the widgets
 	* around.
 	*****/
 	XtInsertEventHandler(HTML_ATTR(work_area), ExposureMask, True,
@@ -1165,7 +1165,7 @@ _XmHTMLScrollForm(XmHTMLWidget html)
 * Name: 		_XmHTMLScrollObjects
 * Return Type: 	void
 * Description: 	scrolls all external objects forms in the current document.
-* In: 
+* In:
 *	html:		XmHTML widget id
 * Returns:
 *	nothing.
@@ -1202,7 +1202,7 @@ _XmHTMLScrollObjects(XmHTMLWidget html)
 #else
 	/*****
 	* To prevent the X exposure handling from going haywire, we simply
-	* override *any* exposure events generated by moving the widgets 
+	* override *any* exposure events generated by moving the widgets
 	* around.
 	*****/
 	XtInsertEventHandler(HTML_ATTR(work_area), ExposureMask, True,
@@ -1296,7 +1296,7 @@ _XmHTMLScrollObjects(XmHTMLWidget html)
 * Name: 		ScrollCB
 * Return Type: 	void
 * Description: 	callback procedure for scrollbar movement
-* In: 
+* In:
 *	w:			originator
 *	arg1:		client_data, in this case a XmHTMLWidget
 *	arg2:		event specific callback structure.
@@ -1347,7 +1347,7 @@ ScrollCB(Widget w, XtPointer arg1, XtPointer arg2)
 * Return Type: 	void
 * Description: 	creates the HTML widget
 *				The actual area we use to draw into is a drawingAreaWidget.
-* In: 
+* In:
 *	html:		widget to be created.
 * Returns:
 *	nothing
@@ -1379,10 +1379,10 @@ CreateHTMLWidget(XmHTMLWidget html)
 	XtAddEventHandler((Widget)HTML_ATTR(work_area), VisibilityChangeMask, True,
 		(XtEventHandler)VisibilityHandler, (XtPointer)html);
 
-	XtAddEventHandler((Widget)html, SubstructureNotifyMask, 
+	XtAddEventHandler((Widget)html, SubstructureNotifyMask,
 		True, (XtEventHandler)Mapped, (XtPointer)html);
 
-	/* 
+	/*
 	* For some reason, Motif fucks up the original action list, so we
 	* need to use a fallback copy instead.
 	* Crash happens in XrmStringToQuark().
@@ -1406,7 +1406,7 @@ CreateHTMLWidget(XmHTMLWidget html)
 		XtSetArg(args[argc], XmNrepeatDelay, HTML_ATTR(repeat_delay)); argc++;
 		/* make them a little bit more responsive */
 		XtSetArg(args[argc], XmNinitialDelay, 100); argc++;
-		HTML_ATTR(vsb) = XtCreateWidget("verticalScrollBar", 
+		HTML_ATTR(vsb) = XtCreateWidget("verticalScrollBar",
 			xmScrollBarWidgetClass, (Widget)html, args, argc);
 	}
 	XtManageChild(HTML_ATTR(vsb));
@@ -1423,7 +1423,7 @@ CreateHTMLWidget(XmHTMLWidget html)
 		XtSetArg(args[argc], XmNrepeatDelay, HTML_ATTR(repeat_delay)); argc++;
 		/* make them a little bit more responsive */
 		XtSetArg(args[argc], XmNinitialDelay, 100); argc++;
-		HTML_ATTR(hsb) = XtCreateWidget("horizontalScrollBar", 
+		HTML_ATTR(hsb) = XtCreateWidget("horizontalScrollBar",
 			xmScrollBarWidgetClass, (Widget)html, args, argc);
 	}
 	XtManageChild(HTML_ATTR(hsb));
@@ -1433,7 +1433,7 @@ CreateHTMLWidget(XmHTMLWidget html)
 	XtAddCallback(HTML_ATTR(hsb), XmNdragCallback,
 		(XtCallbackProc)ScrollCB, (XtPointer)html);
 
-	/* 
+	/*
 	* subtract margin_width once to minimize number of calcs in
 	* the paint routines: every thing rendered starts at an x position
 	* of margin_width.
@@ -1456,14 +1456,14 @@ CreateHTMLWidget(XmHTMLWidget html)
 * Name: 		_XmHTMLGetScrollDim
 * Return Type: 	void
 * Description: 	retrieves width & height of the scrollbars
-* In: 
+* In:
 *	html:		XmHTMLWidget for which to retrieve these values
 *	hsb_height: thickness of horizontal scrollbar, filled upon return
 *	vsb_width:	thickness of vertical scrollbar, filled upon return
 * Returns:
 *	nothing
 * Note:
-*	I had a nicely working caching version of this routine under Linux & 
+*	I had a nicely working caching version of this routine under Linux &
 *	Motif 2.0.1, but under HPUX with 1.2.0 this never worked. This does.
 *****/
 void
@@ -1531,7 +1531,7 @@ _XmHTMLGetScrollDim(XmHTMLWidget html, int *hsb_height, int *vsb_width)
 * Name: 		_XmHTMLCheckScrollBars
 * Return Type: 	void
 * Description: 	(re)configures scrollbars
-* In: 
+* In:
 *	html:		HTML widget to configure
 * Returns:
 *	nothing.
@@ -1654,9 +1654,9 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 	if(HTML_ATTR(needs_vsb) && vsb_on_left == False)
 		dx += vsb_width;
 
-	tka->ResizeWidget(HTML_ATTR(work_area), 
-		CORE_ATTR(width) - dx, CORE_ATTR(height) - dy, 
-		ATTR_CORE(HTML_ATTR(work_area), border_width)); 
+	tka->ResizeWidget(HTML_ATTR(work_area),
+		CORE_ATTR(width) - dx, CORE_ATTR(height) - dy,
+		ATTR_CORE(HTML_ATTR(work_area), border_width));
 
 	if(HTML_ATTR(needs_hsb) == True)
 	{
@@ -1672,7 +1672,7 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 			ATTR_CORE(HTML_ATTR(hsb), border_width));
 
 		/* pageIncrement == sliderSize */
-		pinc = HTML_ATTR(work_width) - 2*(HTML_ATTR(default_font) ? 
+		pinc = HTML_ATTR(work_width) - 2*(HTML_ATTR(default_font) ?
 				HTML_ATTR(default_font)->m_width :
 				XmHTML_HORIZONTAL_SCROLL_INCREMENT);
 		/* sanity check */
@@ -1699,7 +1699,7 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 		XtSetArg(args[argc], XmNmaximum, HTML_ATTR(formatted_width)); argc++;
 		XtSetArg(args[argc], XmNvalue, HTML_ATTR(scroll_x)); argc++;
 		XtSetArg(args[argc], XmNsliderSize, pinc); argc++;
-		XtSetArg(args[argc], XmNincrement, (HTML_ATTR(default_font) ? 
+		XtSetArg(args[argc], XmNincrement, (HTML_ATTR(default_font) ?
 					HTML_ATTR(default_font)->m_width :
 					XmHTML_HORIZONTAL_SCROLL_INCREMENT));
 		argc++;
@@ -1719,18 +1719,18 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 	if(HTML_ATTR(needs_vsb) == True)
 	{
 		int pinc;
-		
+
 		_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLCheckScrollBars, setting vsb\n"));
 
 		/* Set vsb size; adjust y-position if we have a hsb */
 		dy = (HTML_ATTR(needs_hsb) ? hsb_height : 0);
-		tka->ResizeWidget(HTML_ATTR(vsb), 
+		tka->ResizeWidget(HTML_ATTR(vsb),
 			ATTR_CORE(HTML_ATTR(vsb), width),
 			CORE_ATTR(height) - dy - 2*st,
 			ATTR_CORE(HTML_ATTR(vsb), border_width));
 
 		/* pageIncrement == sliderSize */
-		pinc = HTML_ATTR(work_height) - 2*(HTML_ATTR(default_font) ? 
+		pinc = HTML_ATTR(work_height) - 2*(HTML_ATTR(default_font) ?
 			HTML_ATTR(default_font)->height : XmHTML_VERTICAL_SCROLL_INCREMENT);
 		/* sanity check */
 		if(pinc < 1)
@@ -1755,7 +1755,7 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 		XtSetArg(args[argc], XmNmaximum, HTML_ATTR(formatted_height)); argc++;
 		XtSetArg(args[argc], XmNvalue, HTML_ATTR(scroll_y)); argc++;
 		XtSetArg(args[argc], XmNsliderSize, pinc); argc++;
-		XtSetArg(args[argc], XmNincrement, (HTML_ATTR(default_font) ? 
+		XtSetArg(args[argc], XmNincrement, (HTML_ATTR(default_font) ?
 				HTML_ATTR(default_font)->height :
 				XmHTML_VERTICAL_SCROLL_INCREMENT)); argc++;
 		XtSetArg(args[argc], XmNpageIncrement, pinc); argc++;
@@ -1777,8 +1777,8 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 * Name: 		Mapped
 * Return Type: 	void
 * Description: 	event handler for CreateNotify events.
-* In: 
-*	w:			owner of this eventhandler 
+* In:
+*	w:			owner of this eventhandler
 *	html:		client data, XmHTMLWidget to which w belongs
 *	event:		CreateNotify event data
 * Returns:
@@ -1788,7 +1788,7 @@ _XmHTMLCheckScrollBars(XmHTMLWidget html)
 *	the CreateNotify event, so we work with the MapNotify event. This is
 *	required to get the text rendered correctly when it has been
 *	set inside the Xt[Va]Create[Managed]Widget and before XtRealizeWidget
-*	has been called: we do not have a window yet and thus no valid gc. Bad 
+*	has been called: we do not have a window yet and thus no valid gc. Bad
 *	things happen otherwise.
 *****/
 /*ARGSUSED*/
@@ -1814,7 +1814,7 @@ Mapped(Widget w, XmHTMLWidget html, XEvent *event)
 	HTML_ATTR(work_height) = CORE_ATTR(height);
 	/* and width as well, fix 10/26/97-01, kdh */
 	HTML_ATTR(work_width) = CORE_ATTR(width) - HTML_ATTR(margin_width) -
-							ATTR_CORE(HTML_ATTR(vsb), width); 
+							ATTR_CORE(HTML_ATTR(vsb), width);
 
 	_XmHTMLDebug(1, ("XmHTML.c: Mapped, new work area dimensions: %ix%i\n",
 		HTML_ATTR(work_width), HTML_ATTR(work_height)));
@@ -1824,9 +1824,9 @@ Mapped(Widget w, XmHTMLWidget html, XEvent *event)
 
 	_XmHTMLLayout(html);
 
-	/* no longer needed now, so remove it */ 
+	/* no longer needed now, so remove it */
 	XtRemoveEventHandler(w, SubstructureNotifyMask, True,
-		(XtEventHandler)Mapped, (XtPointer)html); 	
+		(XtEventHandler)Mapped, (XtPointer)html);
 
 	/*****
 	* IRIX seems to have problems with this. Trigger a Redisplay by
@@ -1847,8 +1847,8 @@ Mapped(Widget w, XmHTMLWidget html, XEvent *event)
 *				serve or ignore GraphicsExpose requests: if we're partially
 *				obscured we need to respond to them, in all other cases we
 *				can ignore them.
-* In: 
-*	w:			owner of this eventhandler 
+* In:
+*	w:			owner of this eventhandler
 *	html:		client data, XmHTMLWidget to which w belongs
 *	event:		VisibilityNotify event data
 * Returns:
@@ -1873,7 +1873,7 @@ VisibilityHandler(Widget w, XmHTMLWidget html, XEvent *event)
 * Return Type: 	void
 * Description: 	computes XmHTML's widget dimensions if we have to autosize
 *				in either direction.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	nothing.
@@ -1929,7 +1929,7 @@ _XmHTMLAutoSizeWidget(XmHTMLWidget html)
 			has_vsb = True;
 		else /* no vertical scrollbar needed */
 			has_vsb = False;
-	
+
 		_XmHTMLDebug(1, ("XmHTML.c: autoSizeWidget, initial dimension: "
 			"%ix%i. has_vsb: %s\n", width, height,
 			has_vsb ? "yes" : "no"));
@@ -1938,7 +1938,7 @@ _XmHTMLAutoSizeWidget(XmHTMLWidget html)
 		_XmHTMLComputeLayout(html);
 
 		/*
-		* We have made a pass on the document, so we know now the formatted 
+		* We have made a pass on the document, so we know now the formatted
 		* dimensions. If the formatted width exceeds the maximum allowable
 		* width, we need to add a horizontal scrollbar, and if the formatted
 		* height exceeds the maximum allowable height we need to add a
@@ -2043,9 +2043,9 @@ _XmHTMLAutoSizeWidget(XmHTMLWidget html)
 	* needed, we need to adjust the formatted width accordingly.
 	*/
 	if(has_vsb && granted)
-		HTML_ATTR(formatted_width) -= vsb_width; 
+		HTML_ATTR(formatted_width) -= vsb_width;
 
-	/* 
+	/*
 	* If our resize request was denied we need to recompute the text
 	* layout using the original widget dimensions. The previous layout is
 	* invalid since it used guessed widget dimensions instead of the previous
@@ -2069,8 +2069,8 @@ _XmHTMLAutoSizeWidget(XmHTMLWidget html)
 * Name: 		DrawRedisplay
 * Return Type: 	void
 * Description: 	Eventhandler for exposure events on the work_area
-* In: 
-*	w:			owner of this eventhandler 
+* In:
+*	w:			owner of this eventhandler
 *	html:		client data, XmHTMLWidget to which w belongs
 *	event:		expose event data.
 * Returns:
@@ -2085,7 +2085,7 @@ _XmHTMLAutoSizeWidget(XmHTMLWidget html)
 static void
 DrawRedisplay(Widget w, XmHTMLWidget html, XEvent *event)
 {
-	/* 
+	/*
 	* must use int for y-positions. The Position and Dimension typedefs
 	* are shorts, which may produce bad results if the scrolled position
 	* exceeds the size of a short
@@ -2150,7 +2150,7 @@ DrawRedisplay(Widget w, XmHTMLWidget html, XEvent *event)
 	/*
 	* coalesce multiple expose events into one.
 	*/
-	while((XCheckWindowEvent(XtDisplay(w), XtWindow(w), ExposureMask, 
+	while((XCheckWindowEvent(XtDisplay(w), XtWindow(w), ExposureMask,
 			&expose)) == True)
 	{
 		int dx, dy, dh, dw;
@@ -2213,14 +2213,14 @@ DrawRedisplay(Widget w, XmHTMLWidget html, XEvent *event)
 * Name: 		Redisplay
 * Return Type: 	void
 * Description: 	xmHTMLWidgetClass expose method.
-* In: 
+* In:
 *	w:			widget to expose
 *	event:		description of event that triggered an expose
 *	region:		region to display.
 * Returns:
 *	nothing
 *****/
-static void 
+static void
 Redisplay(Widget w, XEvent *event, Region region)
 {
 	_XmHTMLDebug(1, ("XmHTML.c: Redisplay Start\n"));
@@ -2236,18 +2236,18 @@ Redisplay(Widget w, XEvent *event, Region region)
 * Name: 		SetValues
 * Return Type: 	Boolean
 * Description: 	xmHTMLWidgetClass SetValues method.
-* In: 
+* In:
 *	current:	copy of widget before any set_values methods are called
 *	request:	copy of widget after resources have changed but before any
 *				set_values methods are called
 *	set:		widget with resources set and as modified by any superclass
 *				methods that have called XtSetValues()
 *	args:		argument list passed to XtSetValues, done by programmer
-*	num_args:	no of args 
+*	num_args:	no of args
 * Returns:
 *	True if a changed resource requires a redisplay, False otherwise.
 *****/
-static Boolean 
+static Boolean
 SetValues(Widget current, Widget request, Widget set,
 	ArgList args, Cardinal *num_args)
 {
@@ -2263,7 +2263,7 @@ SetValues(Widget current, Widget request, Widget set,
 	unsigned long event_to_check = 0L;
 
 	/* fix 06/17/97-01, aj */
-	int i;	
+	int i;
 	int valueReq = False;
 
 	_XmHTMLDebug(1, ("XmHTML.c: SetValues Start\n"));
@@ -2303,7 +2303,7 @@ SetValues(Widget current, Widget request, Widget set,
 	* properly.
 	*
 	* fix 06/17/97-01, aj
-	* Patch to fix clearing if doing setvalues without XmNvalue  
+	* Patch to fix clearing if doing setvalues without XmNvalue
 	* Determine if we have a set value request and only check new source
 	* if it has been supplied explicitly.
 	*
@@ -2445,7 +2445,7 @@ SetValues(Widget current, Widget request, Widget set,
 			*****/
 			_XmHTMLEventProcess(w_curr, NULL,
 				ATTR_HTML(w_curr, body_events)->onUnload);
-		} 
+		}
 		/* clear the unload bit */
 		event_to_check &= ~EVENT_UNLOAD;
 
@@ -2579,7 +2579,7 @@ SetValues(Widget current, Widget request, Widget set,
 		need_reformat = True;
 	}
 
-	/* 
+	/*
 	* Colors. For now we redo the layout since all colors are stored
 	* in the ObjectTable data.
 	* Not that effective, perhaps use multiple GC's, but thats a lot of
@@ -2650,15 +2650,15 @@ SetValues(Widget current, Widget request, Widget set,
 		ATTR_HTML(w_curr, highlight_on_enter))
 		ATTR_HTML(w_new, armed_anchor) = (XmHTMLObjectTable*)NULL;
 
-	/* 
+	/*
 	* anchor underlining. Also needs a full layout computation as
 	* underlining data is stored in the ObjectTable data
 	*/
-	if( (ATTR_HTML(w_req, anchor_underline_type)         != 
+	if( (ATTR_HTML(w_req, anchor_underline_type)         !=
 			ATTR_HTML(w_curr, anchor_underline_type))         ||
-		(ATTR_HTML(w_req, anchor_visited_underline_type) != 
+		(ATTR_HTML(w_req, anchor_visited_underline_type) !=
 			ATTR_HTML(w_curr, anchor_visited_underline_type)) ||
-		(ATTR_HTML(w_req, anchor_target_underline_type)  != 
+		(ATTR_HTML(w_req, anchor_target_underline_type)  !=
 			ATTR_HTML(w_curr, anchor_target_underline_type)))
 	{
 		CheckAnchorUnderlining(w_new, w_req);
@@ -2668,7 +2668,7 @@ SetValues(Widget current, Widget request, Widget set,
 	{
 		/*
 		* Support for color & font attributes. Needs a redo of the layout
-		* if changed. We only need to check for this if the above test 
+		* if changed. We only need to check for this if the above test
 		* failed as that will also trigger a redo of the layout.
 		*/
 		if(ATTR_HTML(w_req, allow_color_switching) !=
@@ -2790,15 +2790,15 @@ SetValues(Widget current, Widget request, Widget set,
 
 		/*****
 		* It the current document makes heavy use of images we first need
-		* to clear it. Not doing this would cause a shift in the colors of 
-		* the current document (as they are being released) which does not 
-		* look nice. Therefore first clear the entire display* area *before* 
+		* to clear it. Not doing this would cause a shift in the colors of
+		* the current document (as they are being released) which does not
+		* look nice. Therefore first clear the entire display* area *before*
 		* freeing anything at all.
 		*****/
 		if(ATTR_HTML(w_new, gc) != NULL)
 		{
 			ATTR_HTML(w_curr, tka)->ClearArea(ATTR_HTML(w_new, tka)->dpy,
-				ATTR_HTML(w_new, tka)->win, 0, 0, 
+				ATTR_HTML(w_new, tka)->win, 0, 0,
 				ATTR_CORE(w_new, width), ATTR_CORE(w_new, height), False);
 		}
 
@@ -2951,7 +2951,7 @@ SetValues(Widget current, Widget request, Widget set,
 		* When a body image is present it is very likely that a highlight
 		* color based upon the current background actually makes an anchor
 		* invisible when highlighting is selected. Therefore we base the
-		* highlight color on the activated anchor background when we have a 
+		* highlight color on the activated anchor background when we have a
 		* body image, and on the document background when no body image is
 		* present.
 		*****/
@@ -2997,7 +2997,7 @@ SetValues(Widget current, Widget request, Widget set,
 	/*
 	* Scroll to the requested line or restore previous line if it has been
 	* messed up as the result of a resource change requiring a recompuation
-	* of the layout. 
+	* of the layout.
 	*/
 	if(ATTR_HTML(w_req, top_line) != ATTR_HTML(w_curr, top_line))
 	{
@@ -3015,10 +3015,10 @@ SetValues(Widget current, Widget request, Widget set,
 	if(ATTR_HTML(w_req, repeat_delay) != ATTR_HTML(w_curr, repeat_delay))
 	{
 		if(ATTR_HTML(w_new, vsb) && XtIsManaged(ATTR_HTML(w_new, vsb)))
-			XtVaSetValues(ATTR_HTML(w_new, vsb), 
+			XtVaSetValues(ATTR_HTML(w_new, vsb),
 				XmNrepeatDelay, ATTR_HTML(w_new, repeat_delay), NULL);
 		if(ATTR_HTML(w_new, hsb) && XtIsManaged(ATTR_HTML(w_new, hsb)))
-			XtVaSetValues(ATTR_HTML(w_new, hsb), 
+			XtVaSetValues(ATTR_HTML(w_new, hsb),
 				XmNrepeatDelay, ATTR_HTML(w_new, repeat_delay), NULL);
 	}
 	/* see if we have to restart the animations if they were frozen */
@@ -3101,12 +3101,12 @@ SetValues(Widget current, Widget request, Widget set,
 * Name: 		GetValues
 * Return Type: 	void
 * Description: 	XmHTMLWidgetClass get_values_hook method.
-* In: 
+* In:
 *
 * Returns:
 *	nothing
 *****/
-static void 
+static void
 GetValues(Widget w, ArgList args, Cardinal *num_args)
 {
 	register int i;
@@ -3156,12 +3156,12 @@ GetValues(Widget w, ArgList args, Cardinal *num_args)
 * Name: 		GeometryManager
 * Return Type: 	XtGeometryResult
 * Description:	XmHTMLWidgetClass geometry_manager method
-* In: 
+* In:
 *
 * Returns:
 *	Don't care. Just pass everything on.
 *****/
-static XtGeometryResult 
+static XtGeometryResult
 GeometryManager(Widget w, XtWidgetGeometry *request,
 	XtWidgetGeometry *geometry_return)
 {
@@ -3188,12 +3188,12 @@ GeometryManager(Widget w, XtWidgetGeometry *request,
 * Name: 		Destroy
 * Return Type: 	void
 * Description: 	XmHTMLWidgetClass destroy method. Frees up allocated resources.
-* In: 
+* In:
 *	w:			widget to destroy
 * Returns:
 *	nothing
 *****/
-static void 
+static void
 Destroy(Widget w)
 {
 	XmHTMLWidget html = (XmHTMLWidget)w;
@@ -3232,7 +3232,7 @@ Destroy(Widget w)
 * Name: 		HTMLProcessInput
 * Return Type: 	void
 * Description: 	handles keyboard input for the HTML widget.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	event:		ButtonEvent structure
 *	params:		additional args, unused
@@ -3242,13 +3242,13 @@ Destroy(Widget w)
 * Note:
 *	This routine calls any installed XmNinputCallback callback resources.
 *****/
-static void 
+static void
 HTMLProcessInput(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	XmHTMLWidget html;
 	/*
 	* If this action proc is called directly from within application code,
-	* w is a html widget. In all other cases this action proc is called 
+	* w is a html widget. In all other cases this action proc is called
 	* for the translations installed on the work_area, and thus we need to
 	* use XtParent to get our html widget.
 	*/
@@ -3268,7 +3268,7 @@ HTMLProcessInput(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Name: 		HTMLPageUpOrLeft
 * Return Type: 	void
 * Description: 	keyboard navigation action routine
-* In: 
+* In:
 *	w:			widget id; XmHTMLWidget id if called from within application
 *				code, work_area if handled by XmHTML itself;
 *	event:		key event;
@@ -3280,7 +3280,7 @@ HTMLProcessInput(Widget w, XEvent *event, String *params, Cardinal *num_params)
 *	This routine also honors the repeatDelay resource.
 *****/
 static void
-HTMLPageUpOrLeft(Widget w, XEvent *event, String *params, 
+HTMLPageUpOrLeft(Widget w, XEvent *event, String *params,
 		Cardinal *num_params)
 {
 	int which;
@@ -3319,7 +3319,7 @@ HTMLPageUpOrLeft(Widget w, XEvent *event, String *params,
 * Name: 		HTMLDownOrRight
 * Return Type: 	void
 * Description: 	keyboard navigation action routine
-* In: 
+* In:
 *	w:			widget id; XmHTMLWidget id if called from within application
 *				code, work_area if handled by XmHTML itself;
 *	event:		key event;
@@ -3331,7 +3331,7 @@ HTMLPageUpOrLeft(Widget w, XEvent *event, String *params,
 *	This routine also honors the repeatDelay resource.
 *****/
 static void
-HTMLPageDownOrRight(Widget w, XEvent *event, String *params, 
+HTMLPageDownOrRight(Widget w, XEvent *event, String *params,
 		Cardinal *num_params)
 {
 	int which;
@@ -3370,7 +3370,7 @@ HTMLPageDownOrRight(Widget w, XEvent *event, String *params,
 * Name: 		HTMLIncrementUpOrLeft
 * Return Type: 	void
 * Description: 	keyboard navigation action routine
-* In: 
+* In:
 *	w:			widget id; XmHTMLWidget id if called from within application
 *				code, work_area if handled by XmHTML itself;
 *	event:		key event;
@@ -3382,7 +3382,7 @@ HTMLPageDownOrRight(Widget w, XEvent *event, String *params,
 *	This routine also honors the repeatDelay resource.
 *****/
 static void
-HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params, 
+HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params,
 		Cardinal *num_params)
 {
 	int which;
@@ -3423,7 +3423,7 @@ HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params,
 * Name: 		HTMLIncrementDownOrRight
 * Return Type: 	void
 * Description: 	keyboard navigation action routine
-* In: 
+* In:
 *	w:			widget id; XmHTMLWidget id if called from within application
 *				code, work_area if handled by XmHTML itself;
 *	event:		key event;
@@ -3435,7 +3435,7 @@ HTMLIncrementUpOrLeft(Widget w, XEvent *event, String *params,
 *	This routine also honors the repeatDelay resource.
 *****/
 static void
-HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params, 
+HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params,
 		Cardinal *num_params)
 {
 	int which;
@@ -3466,10 +3466,10 @@ HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params,
 		which));
 
 	if(which == 0 && XtIsManaged(HTML_ATTR(vsb)))
-		XtCallActionProc(HTML_ATTR(vsb), "IncrementDownOrRight", event, 
+		XtCallActionProc(HTML_ATTR(vsb), "IncrementDownOrRight", event,
 			params, 1);
 	else if(which == 1 && XtIsManaged(HTML_ATTR(hsb)))
-		XtCallActionProc(HTML_ATTR(hsb), "IncrementDownOrRight", event, 
+		XtCallActionProc(HTML_ATTR(hsb), "IncrementDownOrRight", event,
 			params, 1);
 }
 
@@ -3477,7 +3477,7 @@ HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params,
 * Name: 		HTMLTopOrBottom
 * Return Type: 	void
 * Description: 	keyboard navigation action routine
-* In: 
+* In:
 *	w:			widget id; XmHTMLWidget id if called from within application
 *				code, work_area if handled by XmHTML itself;
 *	event:		key event;
@@ -3490,7 +3490,7 @@ HTMLIncrementDownOrRight(Widget w, XEvent *event, String *params,
 *	or vice-versa
 *****/
 static void
-HTMLTopOrBottom(Widget w, XEvent *event, String *params, 
+HTMLTopOrBottom(Widget w, XEvent *event, String *params,
 		Cardinal *num_params)
 {
 	int which;
@@ -3592,12 +3592,12 @@ HTMLTraverseNextOrPrev(Widget w, XEvent *event, String *params,
 * Return Type: 	void
 * Description: 	buttonPress action routine. Initializes a selection when
 *				not over an anchor, else paints the anchor as being selected.
-* In: 
+* In:
 *
 * Returns:
 *	nothing.
 *****/
-static void	
+static void
 ExtendStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	/* need to use XtParent since we only get button events from work_area */
@@ -3693,12 +3693,12 @@ ExtendStart(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Return Type: 	void
 * Description: 	buttondrag action routine. Adjusts the selection initiated
 *				by ExtendStart.
-* In: 
+* In:
 *
 * Returns:
 *	nothing.
 *****/
-static void	
+static void
 ExtendAdjust(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	XmHTMLWidget html;
@@ -3720,17 +3720,17 @@ ExtendAdjust(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Name: 		ExtendEnd
 * Return Type: 	void
 * Description: 	buttonrelease tracking action routine. Terminates the selection
-*				initiated by ExtendStart. When over an anchor, paints the 
+*				initiated by ExtendStart. When over an anchor, paints the
 *				anchor as being deselected. XmNactivateCallback  or
 *				XmNarmCallback callback resources are only called if the
-*				buttonpress and release occur within a certain time limit 
+*				buttonpress and release occur within a certain time limit
 *				(XmHTML_MAX_BUTTON_RELEASE_TIME, defined XmHTMLfuncs.h)
-* In: 
+* In:
 *
 * Returns:
 *	nothing
 *****/
-static void	
+static void
 ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	/* need to use XtParent since we only get button events from work_area */
@@ -3759,8 +3759,8 @@ ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 	if(((anchor_word = _XmHTMLGetAnchor(html, x, y, &anchor_img)) != NULL) ||
 		((anchor = _XmHTMLGetImageAnchor(html, x, y, &anchor_img)) != NULL))
 	{
-		/* 
-		* OK, release took place over an anchor, see if it falls within the 
+		/*
+		* OK, release took place over an anchor, see if it falls within the
 		* allowable time limit and we are still over the anchor selected by
 		* ExtendStart.
 		*/
@@ -3797,7 +3797,7 @@ ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 
 		_XmHTMLFullDebug(1, ("XmHTML.c: ExtendEnd, anchor selected is %s\n",
 			anchor->href));
-		/* 
+		/*
 		* if we had a selected anchor and it's equal to the current anchor
 		* and the button was released in time, trigger the activation callback.
 		*/
@@ -3863,7 +3863,7 @@ ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Description: 	mouse tracker; calls XmNanchorTrackCallback and/or HTML4.0
 *				event processing if entering/leaving an anchor.
 *				Also calls XmNmotionTrackCallback when installed.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	event:		MotionEvent structure
 *	params:		additional args, unused
@@ -3871,7 +3871,7 @@ ExtendEnd(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Returns:
 *	nothing
 *****/
-static void 
+static void
 TrackMotion(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	/* need to use XtParent since we only get motion events from work_area */
@@ -3941,7 +3941,7 @@ TrackMotion(Widget w, XEvent *event, String *params, Cardinal *num_params)
 		anchor = anchor_word->owner->anchor;
 
 	/* Trigger callback and set cursor if we are entering a new element */
-	if(anchor != HTML_ATTR(anchor_current_cursor_element)) 
+	if(anchor != HTML_ATTR(anchor_current_cursor_element))
 	{
 		_XmHTMLFullDebug(1, ("XmHTML.c: TrackMotion, new anchor.\n"));
 
@@ -4018,10 +4018,10 @@ TrackMotion(Widget w, XEvent *event, String *params, Cardinal *num_params)
 /*****
 * Name: 		TrackFocus
 * Return Type: 	void
-* Description: 	focus tracker; calls XmNanchorTrackCallback if 
+* Description: 	focus tracker; calls XmNanchorTrackCallback if
 *				entering/leaving an anchor.
 *				Also calls XmNfocusCallback when installed.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	event:		FocusIn/FocusOut/Leave/Event structure
 *	params:		additional args, unused
@@ -4029,7 +4029,7 @@ TrackMotion(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Returns:
 *	nothing
 *****/
-static void 
+static void
 TrackFocus(Widget w, XEvent *event, String *params, Cardinal *num_params)
 {
 	/* need to use XtParent since we only get motion events from work_area */
@@ -4092,7 +4092,7 @@ TrackFocus(Widget w, XEvent *event, String *params, Cardinal *num_params)
 					"LeaveNotify" : "FocusOut"));
 
 			/* invalidate current selection if there is one */
-			if(HTML_ATTR(anchor_track_callback) && 
+			if(HTML_ATTR(anchor_track_callback) &&
 				HTML_ATTR(anchor_current_cursor_element))
 				_XmHTMLTrackCallback(html, event, NULL);
 
@@ -4118,7 +4118,7 @@ TrackFocus(Widget w, XEvent *event, String *params, Cardinal *num_params)
 * Name: 		CheckAnchorUnderlining
 * Return Type: 	void
 * Description: 	validate anchor underlining enumeration values.
-* In: 
+* In:
 *	html:		target widget
 *	req:		requester widget
 * Returns:
@@ -4128,7 +4128,7 @@ static void
 CheckAnchorUnderlining(XmHTMLWidget html, XmHTMLWidget req)
 {
 	/* Anchor Underlining values */
-	if(!XmRepTypeValidValue(underline_repid, req->html.anchor_underline_type, 
+	if(!XmRepTypeValidValue(underline_repid, req->html.anchor_underline_type,
 		(Widget)html))
 		HTML_ATTR(anchor_underline_type) = XmSINGLE_LINE;
 	else
@@ -4156,11 +4156,11 @@ CheckAnchorUnderlining(XmHTMLWidget html, XmHTMLWidget req)
 	}
 
 	/* Visited Anchor Underlining values */
-	if(!XmRepTypeValidValue(underline_repid, 
+	if(!XmRepTypeValidValue(underline_repid,
 		ATTR_HTML(req, anchor_visited_underline_type), (Widget)html))
 		HTML_ATTR(anchor_visited_underline_type) = XmSINGLE_LINE;
 	else
-		HTML_ATTR(anchor_visited_underline_type) = 
+		HTML_ATTR(anchor_visited_underline_type) =
 			ATTR_HTML(req, anchor_visited_underline_type);
 
 	/* Set corresponding private resources */
@@ -4185,11 +4185,11 @@ CheckAnchorUnderlining(XmHTMLWidget html, XmHTMLWidget req)
 	}
 
 	/* Target Anchor Underlining values */
-	if(!XmRepTypeValidValue(underline_repid, 
+	if(!XmRepTypeValidValue(underline_repid,
 		HTML_ATTR(anchor_target_underline_type), (Widget)html))
 		ATTR_HTML(req, anchor_target_underline_type) = XmSINGLE_DASHED_LINE;
 	else
-		HTML_ATTR(anchor_target_underline_type) = 
+		HTML_ATTR(anchor_target_underline_type) =
 			ATTR_HTML(req, anchor_target_underline_type);
 
 	/* Set corresponding private resources */
@@ -4218,7 +4218,7 @@ CheckAnchorUnderlining(XmHTMLWidget html, XmHTMLWidget req)
 * Name: 		CheckAlignment
 * Return Type: 	void
 * Description: 	checks and sets the alignment resources
-* In: 
+* In:
 *	html:		target widget
 *	req:		requestor widget
 * Returns:
@@ -4256,7 +4256,7 @@ CheckAlignment(XmHTMLWidget html, XmHTMLWidget req)
 * Name:			_XmHTMLCvtStringToWarning
 * Return Type: 	Boolean
 * Description: 	converts a XmHTML XmCHTMLWarningType to it's internal value.
-* In: 
+* In:
 *	dpy:		display with which this conversion is associated;
 *	args:		any XrmValue arguments to this converter. Always NULL;
 *	num_args:	no of args. Always 0;
@@ -4355,7 +4355,7 @@ end:
 * Return Type: 	void
 * Description: 	adjust slider value so it does not exceed the maximum
 *				slider value.
-* In: 
+* In:
 *	vsb:		vertical scrollbar widget id;
 *	value:		current slider value.
 * Returns:
@@ -4381,7 +4381,7 @@ _XmHTMLAdjustVerticalScrollValue(Widget vsb, int *value)
 * Name: 		XmCreateHTML
 * Return Type: 	Widget
 * Description: 	creates a XmHTML widget
-* In: 
+* In:
 *	parent:		widget to act as parent for this new XmHTMLWidget
 *	name:		name for the new widget
 *	arglist:	arguments for this new XmHTMLWidget
@@ -4403,7 +4403,7 @@ XmCreateHTML(Widget parent, String name, ArgList arglist, Cardinal argcount)
 #endif
 
 	if(parent && !XmIsGadget(parent))
-		return(XtCreateWidget(name, xmHTMLWidgetClass, parent, 
+		return(XtCreateWidget(name, xmHTMLWidgetClass, parent,
 			arglist, argcount));
 
 	/* invalid parent, needs a widget, not a gadget */

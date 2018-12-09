@@ -6,15 +6,15 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  * Input must be of PBM/PGM/PPM raw format, output will be the same.
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  * ADDITIONS, CHANGES
@@ -89,7 +89,7 @@ int main( int argc, char* argv[] )
   float filterCoefs[3] = {1.0, 1.0, 1.0};
   float c = 1.0;
   recursiveFilterType filterType = ALPHA_DERICHE;
-  
+
   enumOutput typeOutput = _GRADIENT_EXTREMA_;
 
   strcpy( program, argv[0] );
@@ -99,18 +99,18 @@ int main( int argc, char* argv[] )
   for ( i=1; i<argc; i++ ) {
     if ( argv[i][0] == '-' ) {
 
-      if ( (strcmp ( argv[i], "-help" ) == 0) || 
+      if ( (strcmp ( argv[i], "-help" ) == 0) ||
 	   (strcmp ( argv[i], "-h" ) == 0) ) {
 	ErrorMessage( "help message\n", 1 );
       }
-      
-      else if ( (strcmp ( argv[i], "-verbose" ) == 0) || 
+
+      else if ( (strcmp ( argv[i], "-verbose" ) == 0) ||
 		(strcmp ( argv[i], "-v" ) == 0) ) {
 	GradientExtrema_verbose();
 	ZeroCrossings_verbose ( );
       }
 
-      else if ( (strcmp ( argv[i], "-no-verbose" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-no-verbose" ) == 0) ||
 		(strcmp ( argv[i], "-nv" ) == 0) ) {
 	GradientExtrema_noverbose();
       }
@@ -139,7 +139,7 @@ int main( int argc, char* argv[] )
 	typeOutput = _GRADIENT_HESSIAN_;
       }
 
-      else if ( (strcmp ( argv[i], "-alpha" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-alpha" ) == 0) ||
 		(strcmp ( argv[i], "-a" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -alpha...\n", 0 );
@@ -149,7 +149,7 @@ int main( int argc, char* argv[] )
 	filterType = ALPHA_DERICHE;
       }
 
-      else if ( (strcmp ( argv[i], "-sigma" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-sigma" ) == 0) ||
 		(strcmp ( argv[i], "-s" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -sigma...\n", 0 );
@@ -159,7 +159,7 @@ int main( int argc, char* argv[] )
 	filterType = GAUSSIAN_DERICHE;
       }
 
-      else if ( (strcmp ( argv[i], "-msigma" ) == 0) || 
+      else if ( (strcmp ( argv[i], "-msigma" ) == 0) ||
 		(strcmp ( argv[i], "-ms" ) == 0) ) {
 	i += 1;
 	if ( i >= argc)    ErrorMessage( "parsing -msigma...\n", 0 );
@@ -178,10 +178,10 @@ int main( int argc, char* argv[] )
     else if ( argv[i][0] != 0 ) {
       if ( nbNames == 0 ) {
 	strcpy( nameImageIn, argv[i] );
-      } 
+      }
       else if ( nbNames == 1 ) {
 	strcpy( nameImageOut, argv[i] );
-      } 
+      }
       else {
 	sprintf( nameImageIn, "too many image name (%s)\n", argv[i] );
 	ErrorMessage( nameImageIn, 0);
@@ -269,5 +269,5 @@ int main( int argc, char* argv[] )
   }
 
   _writePnmImage( nameImageOut, bufferDims[0], bufferDims[1], bufferDims[2], nbytes, bufferOut );
-  
+
 }

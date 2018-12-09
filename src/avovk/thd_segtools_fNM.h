@@ -11,33 +11,33 @@ THD_3dim_dataset *thd_polyfit(THD_3dim_dataset *in_set,
                               char *prefix, int verb);
 
 typedef enum { NONE = 0, COUNT, iCOUNT, MAG, iMAG } REMAPS;
-   
+
 /**********************************************************************
    BEGIN: functions based on command.c code from The C clustering library.
 **********************************************************************/
 void segtools_verb(int ii);
-void example_kmeans( int nrows, int ncols, 
-                     float** data, 
-                     int nclusters, int npass, 
+void example_kmeans( int nrows, int ncols,
+                     float** data,
+                     int nclusters, int npass,
                      char dist, char* jobname,
-                     int *clusterid, float **vcdata, 
+                     int *clusterid, float **vcdata,
                      REMAPS remap);
 void clusterlib_display_version(void);
 char* clusterlib_setjobname(const char* basename, int strip);
 int clusterlib_readnumber(const char word[]);
 char clusterlib_getmetric(int i);
 float** example_distance_gene(int nrows, int ncols, float** data);
-void example_hierarchical( int nrows, int ncols, 
-                           float** data, 
-                           char* jobname, 
+void example_hierarchical( int nrows, int ncols,
+                           float** data,
+                           char* jobname,
                            int k, float** distmatrix,
                            int *clusterid);
-void getvoxlclusterdist(int* count, float** cdata, 
-			int* clusterid, float** data, char* jobname, 
+void getvoxlclusterdist(int* count, float** cdata,
+			int* clusterid, float** data, char* jobname,
 			int nclusters, int nrows, int ncols, float **vcdata,
          char dist);
-void getvoxlclustersdist(int* count, float** cdata, 
-			int* clusterid, float** data, char* jobname, 
+void getvoxlclustersdist(int* count, float** cdata,
+			int* clusterid, float** data, char* jobname,
 			int nclusters, int nrows, int ncols, float **vcdata,
          char dist);
 void color_palette(int nclusters, char* jobname);
@@ -45,7 +45,7 @@ void color_palette(int nclusters, char* jobname);
 /**********************************************************************
    END: functions based on command.c code from The C clustering library.
 **********************************************************************/
-                     
+
 typedef struct {
    int k;
    int kh;
@@ -64,7 +64,7 @@ typedef struct {
 
 OPT_KMEANS new_kmeans_oc(void);
 int thd_Adist (  THD_3dim_dataset *in_set,
-                 byte *mask, 
+                 byte *mask,
                  float *sigs, int nsigs,
                  THD_3dim_dataset **dist_set,
                  OPT_KMEANS oc);
@@ -73,13 +73,13 @@ int thd_Acluster1 (   THD_3dim_dataset *in_set,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
                   THD_3dim_dataset *clust_init,
-                  OPT_KMEANS oc);                 
+                  OPT_KMEANS oc);
 int thd_Acluster (  THD_3dim_dataset *in_set,
                   byte *mask, int nmask,
                   THD_3dim_dataset **clust_set,
                   THD_3dim_dataset **dist_set,
                   THD_3dim_dataset *clust_init,
-                  OPT_KMEANS oc , 
+                  OPT_KMEANS oc ,
                   float **Dp, int Dp_ncol);
 
 #endif

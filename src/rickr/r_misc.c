@@ -1,5 +1,5 @@
 
-/* ------  functions open for use:  (i.e. non-static) ------------------ 
+/* ------  functions open for use:  (i.e. non-static) ------------------
  *
  * r_sprintf_long_to_hex  - convert a long to a hex digit string
  *
@@ -167,7 +167,7 @@ char * cat_strings(char * slist[], int nstr, char * sepstr)
 
 /* display sequence of slist strings to FILE stream, from bot to top
  * (follow with newline)
- * 
+ *
  * example: disp_strings(stderr, "-- prior args: ",
  *                       argc, argv, nopt-3, nopt-1, " ", 1);
  *

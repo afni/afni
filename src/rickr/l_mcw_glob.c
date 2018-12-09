@@ -745,7 +745,7 @@ int rglob_set_sort_dir( int dir )                     /* 14 Feb 2005 [rickr] */
    if ( dir == 1 )       g_sort_dir =  1;
    else if ( dir == -1 ) g_sort_dir = -1;
    else                  return 1;          /* else, ignore and signal error */
-                                                                                
+
    return 0;
 }
 

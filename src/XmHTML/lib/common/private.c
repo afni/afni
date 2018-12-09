@@ -14,7 +14,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -35,7 +35,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.3  2012/03/01 17:56:31  ziad
 * Cput
@@ -49,7 +49,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1998/04/27 06:54:13  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -82,7 +82,7 @@ void PaintBackground(XmHTMLWidget html, int x, int y, int width, int height);
 * Description: 	main screen refresher: given an exposure rectangle, this
 *				routine determines the proper paint engine start and end
 *				points and calls the painter.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	x,y:		upper-left corner of exposure region
 *	width:		width of exposure region
@@ -151,7 +151,7 @@ _XmHTMLRefresh(XmHTMLWidget html, int x, int y, int width, int height)
 	* We try to be a little bit smart here.
 	* paint_start == NULL is a valid stream command, so check it.
 	*/
-	start = (HTML_ATTR(paint_start) ? 
+	start = (HTML_ATTR(paint_start) ?
 		HTML_ATTR(paint_start) : HTML_ATTR(formatted));
 
 	/* sanity */
@@ -327,7 +327,7 @@ _XmHTMLRefresh(XmHTMLWidget html, int x, int y, int width, int height)
 * Name: 		PaintBackground
 * Return Type: 	void
 * Description:	update background with the given region
-* In: 
+* In:
 *	html:		XmHTMLWidget for which to do background painting.
 *	x,y:		origin of region to update
 *	width,height: dimensions of region to update.
@@ -351,11 +351,11 @@ PaintBackground(XmHTMLWidget html, int x, int y, int width, int height)
 	if(!tka || !tka->win)
 		return;
 
-	/***** 
+	/*****
 	* We need to figure out a correct starting point for the first
 	* tile to be drawn (ts_[x,y]_origin in the GC).
 	* We know the region to update. First we need to get the number of tiles
-	* drawn so far. Since we want the *total* number of tiles drawn, we must 
+	* drawn so far. Since we want the *total* number of tiles drawn, we must
 	* add the scroll offsets to the region origin.
 	*****/
 	tile_width  = HTML_ATTR(body_image)->width;
@@ -404,7 +404,7 @@ PaintBackground(XmHTMLWidget html, int x, int y, int width, int height)
 	tka->SetTSOrigin(tka->dpy, HTML_ATTR(bg_gc), tsx, tsy);
 
 	/* a plain fillrect will redraw the background portion */
-	tka->FillRectangle(tka->dpy, tka->win, HTML_ATTR(bg_gc), 
+	tka->FillRectangle(tka->dpy, tka->win, HTML_ATTR(bg_gc),
 		x, y, width, height);
 
 	_XmHTMLDebug(1, ("XmHTML.c: PaintBackground end\n"));
@@ -416,7 +416,7 @@ PaintBackground(XmHTMLWidget html, int x, int y, int width, int height)
 * Return Type: 	XmHTMLWord*
 * Description: 	determines if the given x and y positions are within the
 *				bounding rectangle of an anchor.
-* In: 
+* In:
 *	w:			HTML widget to check
 *	x,y:		position to validate
 *	img:		image if anchor is part of an anchored image map.
@@ -475,7 +475,7 @@ _XmHTMLGetAnchor(XmHTMLWidget html, int x, int y, XmHTMLImage *img)
 * Return Type: 	XmHTMLAnchor*
 * Description: 	determines if the given x and y positions lie upon an image
 *				that has an imagemap
-* In: 
+* In:
 *	html:		HTML widget to check
 *	x,y:		position to validate
 *	list:		list of images. If NULL the default list is used.
@@ -516,9 +516,9 @@ _XmHTMLGetImageAnchor(XmHTMLWidget html, int x, int y, XmHTMLImage *list)
 				"(no owner).", image->url));
 		}
 #endif
-		if(image->owner && (xs >= image->owner->x && 
+		if(image->owner && (xs >= image->owner->x &&
 				xs <= (image->owner->x + image->owner->width)) &&
-			(ys >= image->owner->y && 
+			(ys >= image->owner->y &&
 				ys <= (image->owner->y + image->owner->height)))
 		{
 			if(image->map_type != XmMAP_NONE)
@@ -532,7 +532,7 @@ _XmHTMLGetImageAnchor(XmHTMLWidget html, int x, int y, XmHTMLImage *list)
 				if((imagemap = _XmHTMLGetImagemap(html,
 						image->map_url)) != NULL)
 				{
-					if((anchor = _XmHTMLGetAnchorFromMap(html, x, y, image, 
+					if((anchor = _XmHTMLGetAnchorFromMap(html, x, y, image,
 						imagemap)) != NULL)
 					{
 						_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLGetImageAnchor, "
@@ -540,7 +540,7 @@ _XmHTMLGetImageAnchor(XmHTMLWidget html, int x, int y, XmHTMLImage *list)
 						return(anchor);
 					}
 				}
-				
+
 			}
 		}
 	}
@@ -553,7 +553,7 @@ _XmHTMLGetImageAnchor(XmHTMLWidget html, int x, int y, XmHTMLImage *list)
 * Name: 		_XmHTMLOnImage
 * Return Type: 	XmHTMLImage*
 * Description: 	checks whether the given positions fall within an image
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	x:			pointer x-position
 *	y:			pointer y-position
@@ -574,9 +574,9 @@ _XmHTMLOnImage(XmHTMLWidget html, int x, int y)
 
 	for(image = HTML_ATTR(images); image != NULL; image = image->next)
 	{
-		if(image->owner && (xs >= image->owner->x && 
+		if(image->owner && (xs >= image->owner->x &&
 				xs <= (image->owner->x + image->owner->width)) &&
-			(ys >= image->owner->y && 
+			(ys >= image->owner->y &&
 				ys <= (image->owner->y + image->owner->height)))
 		{
 			_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLOnImage, image selected: %s\n",
@@ -592,7 +592,7 @@ _XmHTMLOnImage(XmHTMLWidget html, int x, int y)
 * Name: 		_XmHTMLReset
 * Return Type: 	void
 * Description: 	resets all non-persistent resources to their defaults
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	free_img:	true when images should be freed. This will only be True
 *				when the widget has received a new source.
@@ -665,7 +665,7 @@ _XmHTMLReset(XmHTMLWidget html, Boolean free_img)
 * Name: 		_XmHTMLFreeExpendableResources
 * Return Type: 	void
 * Description: 	frees all non-persistent resources of a Widget
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	free_img:	true when images should be freed. This will only be True
 *				when the widget has received a new source.
@@ -742,8 +742,8 @@ _XmHTMLFreeExpendableResources(XmHTMLWidget html, Boolean free_img)
 * Name: 		_XmHTMLGetLineObject
 * Return Type: 	void
 * Description: 	get the object located at the given y position.
-* In: 
-*	html:		XmHTMLWidget 
+* In:
+*	html:		XmHTMLWidget
 *	y_pos:		current text y position.
 * Returns:
 *	located element.
@@ -756,7 +756,7 @@ _XmHTMLGetLineObject(XmHTMLWidget html, int y_pos)
 
 	/*
 	* y_pos given must fall in the bounding box of an element.
-	* We try to be a little bit smart here: 
+	* We try to be a little bit smart here:
 	* If we have a paint engine end and it's y position is below the
 	* requested position, walk forwards until we find a match.
 	* If we have a paint engine start and it's y position is below the
@@ -867,8 +867,8 @@ _XmHTMLGetLineObject(XmHTMLWidget html, int y_pos)
 * Return Type: 	void
 * Description: 	get & set the linenumber of the line at the top of the
 *				working area.
-* In: 
-*	html:		XmHTMLWidget 
+* In:
+*	html:		XmHTMLWidget
 *	y_pos:		current text y position.
 * Returns:
 *	nothing, but the top_line field of the htmlRec is updated.
@@ -891,7 +891,7 @@ _XmHTMLSetCurrentLineNumber(XmHTMLWidget html, int y_pos)
 		HTML_ATTR(top_line) = tmp->line;
 
 		/*****
-		* If the current element has got more than one word in it, and these 
+		* If the current element has got more than one word in it, and these
 		* words span accross a number of lines, adjust the linenumber.
 		*****/
 		if(tmp->n_words > 1 && tmp->words[0].y != tmp->words[tmp->n_words-1].y)
@@ -912,9 +912,9 @@ _XmHTMLSetCurrentLineNumber(XmHTMLWidget html, int y_pos)
 /*****
 * Name: 		_XmHTMLCheckMaxColorSetting
 * Return Type: 	void
-* Description: 	checks value of the XmNmaxImageColors resource against 
+* Description: 	checks value of the XmNmaxImageColors resource against
 *				maximum number of colors allowed for this display.
-* In: 
+* In:
 *	html:		XmHTMLWidget
 * Returns:
 *	nothing;
@@ -952,7 +952,7 @@ _XmHTMLCheckMaxColorSetting(XmHTMLWidget html)
 * Name: 		_XmHTMLGetAnchorByName
 * Return Type: 	XmHTMLObjectTableElement
 * Description: 	returns the named anchor data.
-* In: 
+* In:
 *	html:		XmHTMLWidget
 *	anchor:		anchor to locate, with a leading hash sign.
 * Returns:
@@ -961,7 +961,7 @@ _XmHTMLCheckMaxColorSetting(XmHTMLWidget html)
 XmHTMLObjectTableElement
 _XmHTMLGetAnchorByName(XmHTMLWidget html, String anchor)
 {
-	XmHTMLObjectTableElement anchor_data;	
+	XmHTMLObjectTableElement anchor_data;
 	int i;
 	String chPtr = NULL;
 
@@ -977,7 +977,7 @@ _XmHTMLGetAnchorByName(XmHTMLWidget html, String anchor)
 	for(i = 0 ; i < HTML_ATTR(num_named_anchors); i++)
 	{
 		anchor_data = &(HTML_ATTR(named_anchors[i]));
-		if(anchor_data->anchor && anchor_data->anchor->name && 
+		if(anchor_data->anchor && anchor_data->anchor->name &&
 			!strcmp(anchor_data->anchor->name, chPtr))
 		{
 			_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLGetAnchorByName End, "
@@ -993,7 +993,7 @@ _XmHTMLGetAnchorByName(XmHTMLWidget html, String anchor)
 * Name: 		_XmHTMLGetAnchorByValue
 * Return Type: 	XmHTMLObjectTableElement
 * Description: 	returns the named anchor data.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	anchor_id:	internal anchor id.
 * Returns:
@@ -1002,7 +1002,7 @@ _XmHTMLGetAnchorByName(XmHTMLWidget html, String anchor)
 XmHTMLObjectTableElement
 _XmHTMLGetAnchorByValue(XmHTMLWidget html, int anchor_id)
 {
-	XmHTMLObjectTableElement anchor_data;	
+	XmHTMLObjectTableElement anchor_data;
 	int i;
 	String func = "_XmHTMLGetAnchorByValue";
 
@@ -1023,14 +1023,14 @@ _XmHTMLGetAnchorByValue(XmHTMLWidget html, int anchor_id)
 
 	/* hmm, something went wrong, search the whole list of named anchors */
 	_XmHTMLWarning(__WFUNC__(html, func),
-		XMHTML_MSG_18, anchor_id); 
+		XMHTML_MSG_18, anchor_id);
 
 	for(i = 0 ; i < HTML_ATTR(num_named_anchors); i++)
 	{
 		anchor_data = &(HTML_ATTR(named_anchors[i]));
 		if(anchor_data->id == anchor_id)
 		{
-			_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLGetAnchorByValue End, "	
+			_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLGetAnchorByValue End, "
 				"match found.\n"));
 			return(anchor_data);
 		}
@@ -1044,7 +1044,7 @@ _XmHTMLGetAnchorByValue(XmHTMLWidget html, int anchor_id)
 * Return Type: 	int
 * Description: 	translates a vertical position to the current line number
 *				in the currently displayed document.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	y:			absolute document y position.
 * Returns:
@@ -1065,8 +1065,8 @@ _XmHTMLVerticalPosToLine(XmHTMLWidget html, int y)
 		_XmHTMLDebug(1, ("XmHTML.c: VerticalPosToLine, object found, "
 			"y_pos = %i, linenumber = %i\n", tmp->y, tmp->line));
 
-		/* 
-		* If the current element has got more than one word in it, and these 
+		/*
+		* If the current element has got more than one word in it, and these
 		* words span accross a number of lines, adjust the linenumber.
 		*/
 		if(tmp->n_words > 1 && tmp->words[0].y != tmp->words[tmp->n_words-1].y)
@@ -1088,7 +1088,7 @@ _XmHTMLVerticalPosToLine(XmHTMLWidget html, int y)
 * Name: 		_XmHTMLScrollToLine
 * Return Type: 	void
 * Description: 	scrolls the widget to the given line number.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	line:		line number to scroll to.
 * Returns:
@@ -1158,7 +1158,7 @@ _XmHTMLScrollToLine(XmHTMLWidget html, int line)
 		value = tmp->y;
 		HTML_ATTR(top_line) = tmp->line;
 
-		/* 
+		/*
 		* Not exactly the requested line. Now check the line numbers of
 		* the text inside this object. We need to subtract the height of this
 		* object if we want to have it displayed properly.
@@ -1168,7 +1168,7 @@ _XmHTMLScrollToLine(XmHTMLWidget html, int line)
 			if(tmp->n_words)
 			{
 				/* fix 11/11/97-01, dbl */
-				for(i = 0; i < tmp->n_words && line > tmp->words[i].line; 
+				for(i = 0; i < tmp->n_words && line > tmp->words[i].line;
 					i++);
 				/* if found, we need to take y position of the previous word */
 				if(i != tmp->n_words && i != 0)
@@ -1198,7 +1198,7 @@ _XmHTMLScrollToLine(XmHTMLWidget html, int line)
 * Name:			_XmHTMLDestroyPhaseZero
 * Return Type: 	void
 * Description: 	discard all toolkit independent resources
-* In: 
+* In:
 *	html:		XmHTMLWidget id being destroyed
 * Returns:
 *	nothing
@@ -1256,7 +1256,7 @@ _XmHTMLDestroyPhaseZero(XmHTMLWidget html)
 * Name: 		_XmHTMLCheckGC
 * Return Type: 	void
 * Description: 	creates a Graphics Context to be used for rendering
-* In: 
+* In:
 *	html:		XmHTMLWidget
 * Returns:
 *	nothing, but a GC is created and stored in the widget's internal data
@@ -1301,10 +1301,10 @@ _XmHTMLCheckGC(XmHTMLWidget html)
 /*****
 * Name: 		_XmHTMLLayout
 * Return Type: 	void
-* Description: 	main layout algorithm. 
+* Description: 	main layout algorithm.
 *				computes text layout and configures the scrollbars.
 *				Also handles image recreation.
-* In: 
+* In:
 *	html:		widget to layout
 * Returns:
 *	nothing
@@ -1347,18 +1347,18 @@ _XmHTMLLayout(XmHTMLWidget html)
 * Name: 		_XmHTMLResize
 * Return Type: 	void
 * Description: 	xmHTMLWidgetClass resize method.
-* In: 
+* In:
 *	w:			resized widget.
 * Returns:
 *	nothing
 *****/
-void 
+void
 _XmHTMLResize(Widget w)
 {
 	Boolean do_expose;
 	XmHTMLWidget html = (XmHTMLWidget)w;
 	int foo, vsb_width;
-	ToolkitAbstraction *tka = HTML_ATTR(tka); 
+	ToolkitAbstraction *tka = HTML_ATTR(tka);
 
 	_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLResize Start\n"));
 
@@ -1379,7 +1379,7 @@ _XmHTMLResize(Widget w)
 	_XmHTMLGetScrollDim(html, &foo, &vsb_width);
 
 	/* No change in size, return */
-	if((CORE_ATTR(height) == HTML_ATTR(work_height)) && 
+	if((CORE_ATTR(height) == HTML_ATTR(work_height)) &&
 		(CORE_ATTR(width) == (HTML_ATTR(work_width) + HTML_ATTR(margin_width) +
 			vsb_width)))
 	{
@@ -1389,13 +1389,13 @@ _XmHTMLResize(Widget w)
 
 	/*
 	* Check if we have to do layout and generate an expose event.
-	* When the widget shrinks, X does not generate an expose event. 
-	* We want to recompute layout and generate an expose event when the 
+	* When the widget shrinks, X does not generate an expose event.
+	* We want to recompute layout and generate an expose event when the
 	* width changes.
 	* When the height increases, we only want to generate a partial
 	* exposure (this gets handled in Redisplay).
 	*/
-	do_expose = (CORE_ATTR(width) != (HTML_ATTR(work_width) + 
+	do_expose = (CORE_ATTR(width) != (HTML_ATTR(work_width) +
 		HTML_ATTR(margin_width) + vsb_width));
 
 	_XmHTMLDebug(1, ("XmHTML.c: _XmHTMLResize, new window dimensions: %ix%i.\n",
@@ -1406,13 +1406,13 @@ _XmHTMLResize(Widget w)
 	/* Clear current visible text */
 	if(do_expose)
 	{
-		/* 
+		/*
 		* save new height & width of visible area.
 		* subtract margin_width once to minimize number of calcs in
 		* the paint routines: every thing rendered starts at an x position
 		* of margin_width.
 		*/
-		HTML_ATTR(work_width) = CORE_ATTR(width) - HTML_ATTR(margin_width) - 
+		HTML_ATTR(work_width) = CORE_ATTR(width) - HTML_ATTR(margin_width) -
 			vsb_width;
 		HTML_ATTR(work_height)= CORE_ATTR(height);
 
@@ -1425,22 +1425,22 @@ _XmHTMLResize(Widget w)
 	/* change in height */
 	else
 	{
-		/* 
-		* Get new start & end points for the paint engine 
-		* We have two cases: shrink or stretch. 
+		/*
+		* Get new start & end points for the paint engine
+		* We have two cases: shrink or stretch.
 		* When stretched, we generate an exposure event for the added
-		* area and let DrawRedisplay figure it out. If shrunk, adjust 
+		* area and let DrawRedisplay figure it out. If shrunk, adjust
 		* end point for the paint engine.
 		*/
 
 		/* Window has been stretched */
 		if(HTML_ATTR(work_height) < CORE_ATTR(height))
 		{
-			/* 
+			/*
 			* formatted_height has some formatting offsets in it. Need
 			* to subtract them first.
 			*/
-			int max = HTML_ATTR(formatted_height) - HTML_ATTR(margin_height) - 
+			int max = HTML_ATTR(formatted_height) - HTML_ATTR(margin_height) -
 				HTML_ATTR(default_font)->descent;
 			/*
 			* If the stretch is so large that the entire text will fit
@@ -1456,7 +1456,7 @@ _XmHTMLResize(Widget w)
 			/* reset scrollbars (this will also resize the work_area) */
 			_XmHTMLCheckScrollBars(html);
 
-			/* 
+			/*
 			* just clear the entire area. Will generate a double exposure
 			* but everything will be painted as it should.
 			*/
@@ -1466,7 +1466,7 @@ _XmHTMLResize(Widget w)
 		else
 		{
 			XmHTMLObjectTable *start, *end;
-			int y; 
+			int y;
 
 			/* get new y maximum */
 			y = HTML_ATTR(scroll_y) + CORE_ATTR(height);
@@ -1508,7 +1508,7 @@ _XmHTMLResize(Widget w)
 * Name: 		_XmHTMLClearArea
 * Return Type: 	void
 * Description: 	XClearArea wrapper. Does form component updating as well.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	x,y:		upper left corner of region to be updated;
 *	width:		width of region;
@@ -1558,7 +1558,7 @@ _XmHTMLClearArea(XmHTMLWidget html, int x, int y, int width, int height)
 * Return Type: 	void
 * Description: 	creates an XCC for the given XmHTMLWidget if one hasn't been
 *				allocated yet.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 * Returns:
 *	nothing
@@ -1580,7 +1580,7 @@ _XmHTMLCheckXCC(XmHTMLWidget html)
 	_XmHTMLCheckGC(html);
 
 	/*
-	* Create an XCC. 
+	* Create an XCC.
 	* XmHTML never decides whether or not to use a private or standard
 	* colormap. A private colormap can be supplied by setting it on the
 	* widget's parent, we know how to deal with that.
@@ -1605,7 +1605,7 @@ _XmHTMLCheckXCC(XmHTMLWidget html)
 * Name: 		_XmHTMLMoveToPos
 * Return Type: 	void
 * Description: 	scroll the working area with the given value
-* In: 
+* In:
 *	w:			originator
 *	html:		XmHTMLWidget
 *	value:		position to scroll to
@@ -1629,7 +1629,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 	width = CORE_ATTR(width);
 	height = CORE_ATTR(height);
 
-	/* 
+	/*
 	* need to adjust slider position since we may not be called from
 	* the scrollbar callback handler.
 	*/
@@ -1647,7 +1647,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 	/* vertical scrolling */
 	if(w == HTML_ATTR(vsb))
 	{
-		/* 
+		/*
 		* clicking on the slider causes activation of the scrollbar
 		* callbacks. Since there is no real movement, just return.
 		* Not doing this will cause an entire redraw of the window.
@@ -1687,7 +1687,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 				* in range
 				*****/
 				if(form && form->can_clip)
-				{ 
+				{
 					int xs = form->x - HTML_ATTR(scroll_x);
 					int ys = form->y - value;
 
@@ -1703,7 +1703,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 
 				/* copy visible part upward */
 				tka->CopyArea(tka->dpy, tka->win, tka->win, HTML_ATTR(gc), 0,
-					inc, HTML_ATTR(work_width) + HTML_ATTR(margin_width), 
+					inc, HTML_ATTR(work_width) + HTML_ATTR(margin_width),
 					HTML_ATTR(work_height) - inc - hsb_height, 0, 0);
 
 				if(form)
@@ -1733,7 +1733,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 				* in range
 				*****/
 				if(form && form->can_clip)
-				{ 
+				{
 					int xs = form->x - HTML_ATTR(scroll_x);
 					int ys = form->y - value;
 
@@ -1749,7 +1749,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 
 				/* copy area down */
 				tka->CopyArea(tka->dpy, tka->win, tka->win, HTML_ATTR(gc), 0, 0,
-					HTML_ATTR(work_width) + HTML_ATTR(margin_width), 
+					HTML_ATTR(work_width) + HTML_ATTR(margin_width),
 					HTML_ATTR(work_height) - inc, 0, inc);
 
 				/* save paint engine end */
@@ -1769,7 +1769,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 	/* horizontal scrolling */
 	else if(w == HTML_ATTR(hsb))
 	{
-		/* 
+		/*
 		* clicking on the slider causes activation of the scrollbar
 		* callbacks. Since there is no real movement, just return.
 		* Not doing this will cause an entire redraw of the window.
@@ -1804,7 +1804,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 				* in range
 				*****/
 				if(form && form->can_clip)
-				{ 
+				{
 					int xs = form->x - value;
 					int ys = form->y - HTML_ATTR(scroll_y);
 
@@ -1835,7 +1835,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 			/* large increment, use default area */
 		}
 		/* moving left (text moving right) */
-		else 
+		else
 		{
 			inc = HTML_ATTR(scroll_x) - value;
 
@@ -1856,7 +1856,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 				* in range
 				*****/
 				if(form && form->can_clip)
-				{ 
+				{
 					int xs = form->x - value;
 					int ys = form->y - HTML_ATTR(scroll_y);
 
@@ -1875,7 +1875,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 				tka->CopyArea(tka->dpy, tka->win, tka->win, HTML_ATTR(gc), 0, 0,
 					HTML_ATTR(work_width) - inc + HTML_ATTR(margin_width) +
 						vsb_width,
-					HTML_ATTR(work_height), inc, 0); 
+					HTML_ATTR(work_height), inc, 0);
 
 				if(form)
 					tka->SetClipMask(tka->dpy, HTML_ATTR(gc), None);
@@ -1895,7 +1895,7 @@ _XmHTMLMoveToPos(Widget w, XmHTMLWidget html, int value)
 	}
 
 	/* update display */
-	if (0) { /* Not radical enough it seems. 
+	if (0) { /* Not radical enough it seems.
               Causes refresh problems when scroll bar is moved
               ZSS: March 2012 */
       _XmHTMLClearArea(html, x, y, width, height);

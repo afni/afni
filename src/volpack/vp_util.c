@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -73,7 +73,7 @@ float *ramp_y;	/* y coordinates of the endpoints */
  * VPBug
  *
  * Print an error message and exit.  The argument is a printf-style format
- * string followed by parameters. 
+ * string followed by parameters.
  */
 
 #ifdef ANSI_C

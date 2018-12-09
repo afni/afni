@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _THD_SHEAR3D_HEADER_
 #define _THD_SHEAR3D_HEADER_
 
@@ -60,10 +60,10 @@ extern THD_dmat33 rot_to_matrix( int ax1 , double th1 ,
                                  int ax2 , double th2 , int ax3 , double th3  ) ;
 extern MCW_3shear rot_to_shear( int ax1 , double th1 ,
                          int ax2 , double th2 ,
-                         int ax3 , double th3 , 
+                         int ax3 , double th3 ,
                          int dcode , double dx , double dy , double dz ,
                          double xdel , double ydel , double zdel ) ;
-extern MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec , 
+extern MCW_3shear rot_to_shear_matvec( THD_dmat33 rmat , THD_dfvec3 tvec ,
                                 double xdel , double ydel , double zdel )  ;
 extern THD_dmat33 DMAT_xt_x( THD_dmat33 inmat ) ;
 extern THD_dmat33 DMAT_x_xt( THD_dmat33 inmat ) ;   /* 09 Apr 2003 */

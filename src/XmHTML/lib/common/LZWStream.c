@@ -15,7 +15,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -32,7 +32,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -55,7 +55,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/05/28 01:27:00  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -147,7 +147,7 @@ static Byte rmask[9] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
 * Name: 		LZWStreamGetCode MACRO
 * Return Type: 	N/A
 * Description: 	gets next code signal from the LZW stream
-* In: 
+* In:
 *	lzw:		current LZWStream
 *	code:		value to update
 * Returns:
@@ -195,7 +195,7 @@ static Byte rmask[9] = {0x00, 0x01, 0x03, 0x07, 0x0f, 0x1f, 0x3f, 0x7f, 0xff};
 * Return Type: 	int
 * Description:  calls "uncompress" to uncompress the LZW-compressed GIF raster
 *				data
-* In: 
+* In:
 *	lzw:		current LZWStream
 * Returns:
 *	True upon success, False on error.
@@ -241,7 +241,7 @@ LZWStreamUncompressData(LZWStream *lzw)
 * Name: 		LZWStreamPackBits
 * Return Type: 	void
 * Description: 	buffers LZW codes and writes them out when the buffer is full.
-* In: 
+* In:
 *	lzw:		current LZWStream
 *	code:		LZW code to be written.
 * Returns:
@@ -381,7 +381,7 @@ LZWStreamPackBits(LZWStream *lzw, int code)
 * Return Type: 	void
 * Description: 	converts the GIF LZW compressed raster data to the compress
 *				compressed data format. codeSize < 8
-* In: 
+* In:
 *	lzw:		current LZWStream object
 * Returns:
 *	nothing
@@ -515,7 +515,7 @@ LZWStreamConvertBelow8(LZWStream *lzw)
 * Return Type: 	void
 * Description: 	converts the GIF LZW compressed raster data to the compress
 *				compressed data format. codeSize >= 8
-* In: 
+* In:
 *	lzw:		current LZWStream object
 * Returns:
 *	nothing
@@ -573,7 +573,7 @@ LZWStreamConvert8OrAbove(LZWStream *lzw)
 				first = False;
 			}
 
-			/* 
+			/*
 			* code signal less than clear code signal: compressed data,
 			* store it.
 			*/
@@ -602,7 +602,7 @@ LZWStreamConvert8OrAbove(LZWStream *lzw)
 				eod = True;
 			}
 			else
-				/* 
+				/*
 				* code signal higher than end code signal: compressed data,
 				* store it.
 				*/
@@ -695,7 +695,7 @@ LZWStreamConvert8OrAbove(LZWStream *lzw)
 * Name: 		LZWStreamConvert
 * Return Type: 	void
 * Description: 	LZW decoder driver
-* In: 
+* In:
 *	lzw:		current LZWStream
 * Returns:
 *	nothing
@@ -713,11 +713,11 @@ LZWStreamConvert(LZWStream *lzw)
 * Name: 		LZWStreamInit
 * Return Type: 	int
 * Description: 	initializes the given stream
-* In: 
+* In:
 *	lzw:		current LZWStream
 * Returns:
 *	0 when codeSize is wrong, -1 when no temporary file could be created,
-*	1 otherwise. 
+*	1 otherwise.
 *****/
 int
 LZWStreamInit(LZWStream *lzw)
@@ -840,7 +840,7 @@ LZWStreamInit(LZWStream *lzw)
 * Name: 		LZWStreamCreate
 * Return Type: 	LZWStream
 * Description: 	allocates a new stream
-* In: 
+* In:
 *	ib:			data input buffer
 * Returns:
 *	a newly created stream object.
@@ -874,7 +874,7 @@ LZWStreamCreate(ImageBuffer *ib, char *zCmd)
 * Name: 		LZWStreamDestroy
 * Return Type: 	void
 * Description: 	destroys the given LZW stream
-* In: 
+* In:
 *	lzw:		LZWStream to destroy
 * Returns:
 *	nothing.
@@ -897,7 +897,7 @@ LZWStreamDestroy(LZWStream *lzw)
 * Name: 		LZWStreamFillBuffer
 * Return Type: 	int
 * Description:	read uncompressed data from the stream
-* In: 
+* In:
 *	lzw:		current LZWStream object
 *	data:		output buffer
 *	size:		size of output buffer
@@ -926,7 +926,7 @@ LZWStreamFillBuffer(LZWStream *lzw, unsigned char *data, int size)
 * Name: 		LZWStreamUncompress
 * Return Type: 	unsigned char *
 * Description:	return an allocated buffer with uncompressed stream data
-* In: 
+* In:
 *	lzw:		current LZWStream
 *	size:		size of data read, filled upon return.
 * Returns:

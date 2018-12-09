@@ -14,7 +14,7 @@
     /* Local variables */
     integer i__, j;
     extern /* Subroutine */ int imtql1_(integer *, doublereal *, doublereal *,
-	     integer *), imtql2_(integer *, integer *, doublereal *, 
+	     integer *), imtql2_(integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, integer *);
 
 
@@ -53,12 +53,12 @@
 /*           AND IMTQL2.  THE NORMAL COMPLETION CODE IS ZERO. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */

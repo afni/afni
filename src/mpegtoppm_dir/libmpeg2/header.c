@@ -273,8 +273,8 @@ static inline void finalize_sequence (sequence_t * sequence)
 	height *= sequence->display_width;
 
     } else {
-	if (sequence->byte_rate == 50 * 0x3ffff) 
-	    sequence->byte_rate = 0;        /* mpeg-1 VBR */ 
+	if (sequence->byte_rate == 50 * 0x3ffff)
+	    sequence->byte_rate = 0;        /* mpeg-1 VBR */
 
 	switch (sequence->pixel_width) {
 	case 0:	case 15:	/* illegal */
@@ -434,7 +434,7 @@ int mpeg2_header_picture (mpeg2dec_t * mpeg2dec)
 
 		fbuf = &(mpeg2dec->fbuf_alloc[mpeg2dec->alloc_index++].fbuf);
 		fbuf->id = NULL;
-		if (mpeg2dec->convert_start) {    
+		if (mpeg2dec->convert_start) {
 		    fbuf->buf[0] =
 			(uint8_t *) mpeg2_malloc (mpeg2dec->convert_size[0],
 						  ALLOC_CONVERTED);
@@ -611,7 +611,7 @@ int mpeg2_header_user_data (mpeg2dec_t * mpeg2dec)
     mpeg2dec->info.user_data_len += (mpeg2dec->chunk_ptr - 4 -
 				     mpeg2dec->chunk_start);
     mpeg2dec->chunk_start = mpeg2dec->chunk_ptr - 1;
-    
+
     return 0;
 }
 

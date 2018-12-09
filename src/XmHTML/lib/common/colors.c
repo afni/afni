@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:37  rwcox
 * Cadd
@@ -85,7 +85,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:07  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -115,15 +115,15 @@ static int CreateColormap(XmHTMLWidget html, XCOLOR *cmap);
 static Boolean confirm_warning = True;
 
 /* HTML-3.2 color names */
-static String html_32_color_names[16] = {"black", "silver", "gray", 
-	"white", "maroon", "red", "purple", "fuchsia", "green", 
-	"lime", "olive", "yellow", "navy", "blue", "teal", 
+static String html_32_color_names[16] = {"black", "silver", "gray",
+	"white", "maroon", "red", "purple", "fuchsia", "green",
+	"lime", "olive", "yellow", "navy", "blue", "teal",
 	"aqua"};
 
 /* corresponding HTML-3.2 sRGB values */
-static String html_32_color_values[16] = {"#000000", "#c0c0c0", "#808080", 
-	"#ffffff", "#800000", "#ff0000", "#800080", "#ff00ff", "#008000", 
-	"#00ff00", "#808000", "#ffff00", "#000080", "#0000ff", "#008080", 
+static String html_32_color_values[16] = {"#000000", "#c0c0c0", "#808080",
+	"#ffffff", "#800000", "#ff0000", "#800080", "#ff00ff", "#008000",
+	"#00ff00", "#808000", "#ffff00", "#000080", "#0000ff", "#008080",
 	"#00ffff"};
 
 /* for creating a 3/3/2 based palette */
@@ -139,7 +139,7 @@ static String html_32_color_values[16] = {"#000000", "#c0c0c0", "#808080",
 * Return Type: 	Boolean
 * Description: 	verifies the validity of the given colorname and returns
 *				the corresponding RGB components for the requested color.
-* In: 
+* In:
 *	dpy:		Display on which color should be allocated;
 *	colormap:	colormap in which color should be allocated;
 *	color:		name of color to allocate. Either symbolic or an RGB triplet;
@@ -211,7 +211,7 @@ tryColor(ToolkitAbstraction *tka, COLORMAP colormap, String color, XCOLOR *def)
 * Return Type: 	Pixel
 * Description: 	retrieves the pixel value for a color name. Color can be
 *				given as a color name as well as a color value.
-* In: 
+* In:
 *	display:	display where color value should be retrieved from
 *	color:		the color to allocate.
 *	def_pixel:	default pixel to return if color allocation fails
@@ -287,7 +287,7 @@ _XmHTMLGetPixelByName(XmHTMLWidget html, String color, Pixel def_pixel)
 	if(!success)
 	{
 		/* failed, return default pixel */
-		_XmHTMLWarning(__WFUNC__(html, "_XmHTMLGetPixelByName"), 
+		_XmHTMLWarning(__WFUNC__(html, "_XmHTMLGetPixelByName"),
 			XMHTML_MSG_30, color);
 		return(def_pixel);
 	}
@@ -299,7 +299,7 @@ _XmHTMLGetPixelByName(XmHTMLWidget html, String color, Pixel def_pixel)
 * Name: 		_XmHTMLConfirmColor32
 * Return Type: 	void
 * Description: 	converts the given named color to the corresponding sRGB value.
-* In: 
+* In:
 *	color:		color name to check
 * Returns:
 *	nothing, but if a match is found, color is updated with the corresponding
@@ -308,7 +308,7 @@ _XmHTMLGetPixelByName(XmHTMLWidget html, String color, Pixel def_pixel)
 *	This routine is here for consistency. The standard HTML 3.2 colors are
 *	referred to as the ``standard 16 color Windows VGA pallete''. This
 *	uttermost *dumb*, *stupid* (you name it) pallete does not only contain an
-*	absolute minimum of 16 colors, but in addition, most of the color names 
+*	absolute minimum of 16 colors, but in addition, most of the color names
 *	used are unknown to almost all X servers! Can you imagine a greater m$
 *	ignorance!!!! Yuck.
 *****/
@@ -341,7 +341,7 @@ _XmHTMLConfirmColor32(char *color)
 	}
 	/* nope, don't know it. Use black */
 	if(confirm_warning)
-		_XmHTMLWarning(__WFUNC__(NULL, "_XmHTMLConfirmColor32"), 
+		_XmHTMLWarning(__WFUNC__(NULL, "_XmHTMLConfirmColor32"),
 			XMHTML_MSG_31, color);
 	return(False);
 }
@@ -351,7 +351,7 @@ _XmHTMLConfirmColor32(char *color)
 * Return Type: 	Pixel
 * Description: 	allocates the named color and takes the XmNmaxImageColors
 *				resource into account.
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	color:		colorname, either symbolic or an RGB triplet.
 *	def_pixel:	pixel to return when allocation of "color" fails.
@@ -441,8 +441,8 @@ XmHTMLAllocColor(Widget w, String color, Pixel def_pixel)
 		gi = (GETG(def) >> 8);
 		bi = (GETB(def) >> 8);
 
-		/* 
-		* walk all colors in the colormap and see which one is the 
+		/*
+		* walk all colors in the colormap and see which one is the
 		* closest. Uses plain least squares.
 		*/
 		for(i = 0; i < cmapsize && mdist != 0; i++)
@@ -490,7 +490,7 @@ XmHTMLAllocColor(Widget w, String color, Pixel def_pixel)
 * Name: 		XmHTMLFreeColor
 * Return Type: 	void
 * Description: 	releases an allocated pixel
-* In: 
+* In:
 *	w:			XmHTMLWidget id;
 *	pixel:		pixel to be freed.
 * Returns:
@@ -542,7 +542,7 @@ _XmHTMLAddPalette(XmHTMLWidget html)
 				/* skip to next entry */
 				while(*chPtr != '\0' && !isspace(*chPtr))
 					chPtr++;
-			} 
+			}
 			else
 			{
 				RANGE(r,0,255);
@@ -656,7 +656,7 @@ CreateColormap(XmHTMLWidget html, XCOLOR *cmap)
 * Name:			CreateColormap
 * Return Type: 	int
 * Description: 	creates a colormap (with equally spaced color components)
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	cmap:		colormap storage room. Filled upon return.
 * Returns:
@@ -682,7 +682,7 @@ CreateColormap(XmHTMLWidget html, XCOLOR *cmap)
 	/*****
 	* requested colormap size.
 	* To get an even distribution of the colors, we require this value to be
-	* a triple power, with a minumum of 8 colors. 
+	* a triple power, with a minumum of 8 colors.
 	*****/
 	max_colors = HTML_ATTR(max_image_colors);
 	if(max_colors < 8)

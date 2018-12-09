@@ -14,20 +14,20 @@ typedef struct {
    float **coors;   // Coors per slice
 } slidice;
 
-slidice *Create_slidice( int *Dim, 
+slidice *Create_slidice( int *Dim,
                          THD_3dim_dataset *A,
                          THD_3dim_dataset *B );
 slidice *Free_slidice(slidice *ss, int n);
 
 // calculate output lengths along FOV
-int Find_slidice_orange( slidice *ss, 
+int Find_slidice_orange( slidice *ss,
                          int FOV_TYPE,
                          byte **orange);
 
 
 
 // actual dice calcs
-int Dice_em_up_calcs( slidice *ss, 
+int Dice_em_up_calcs( slidice *ss,
                       byte ***ma,
                       byte ***mb);
 
@@ -38,13 +38,13 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
 int Color_Vec_RGB_to_HSL( float **RGB,           // N by 3 array
                           float **HSL,           // 3xn array
                           byte *mskd,            // byte mask
-                          int Nvox               // num vox  
+                          int Nvox               // num vox
                           ) ;
 
 int Color_Vec_XYZdset_to_RGB( THD_3dim_dataset *VEC, // 3-vect
                           float **RGB,           // N by 2D array
                           byte *mskd,            // byte mask
-                          int Nvox               // num vox  
+                          int Nvox               // num vox
                           );
 float Color_Compand_sRGB(float x);
 

@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines to initialize and implement the 
+  This file contains routines to initialize and implement the
   beta distribution function signal model.
 
   File:     model_beta.c
@@ -19,12 +19,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -46,7 +46,7 @@ MODEL_interface * initialize_model ()
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the differential - exponential model -----*/   
+  /*----- define interface for the differential - exponential model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "Beta");
@@ -70,7 +70,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[2] = -5000.0;    mi->max_constr[2] =  5000.0;
   mi->min_constr[3] =    0.00;    mi->max_constr[3] =    10.0;
   mi->min_constr[4] =    0.00;    mi->max_constr[4] =    10.0;
-  
+
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
 
@@ -88,25 +88,25 @@ MODEL_interface * initialize_model ()
 
   Definition of model parameters:
 
-     gs[0] = time delay of response (t0)  
+     gs[0] = time delay of response (t0)
      gs[1] = end of response (tf)
      gs[2] = multiplicative constant (k)
      gs[3] = beta distribution parameter (alpha)
      gs[4] = beta distribution parameter (beta)
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
   float t;                          /* time */
-  float fval;                       /* time series value at time t */  
+  float fval;                       /* time series value at time t */
   float x;                          /* rescaled t */
   float t0, tf, k, alpha, beta;     /* parameters */
 
@@ -130,7 +130,7 @@ void signal_model
       ts_array[it] = fval;
     }
 }
-  
+
 
 
 

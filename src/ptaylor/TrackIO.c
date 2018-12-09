@@ -1,8 +1,8 @@
-#include <afni.h> 
-#include <suma_afni_surface.h> 
-#include <suma_algorithms.h> 
+#include <afni.h>
+#include <suma_afni_surface.h>
+#include <suma_algorithms.h>
 #include <suma_utils.h>
-#include <suma_datasets.h> 
+#include <suma_datasets.h>
 #include "TrackIO.h"
 #include "readglob.h"      // need numbers of things for DTI in/out
 #include "suma_suma.h"
@@ -10,8 +10,8 @@
 static int NI_tract_type = -1;
 int get_NI_tract_type(void) {
    if (NI_tract_type == -1) {
-      if ((NI_tract_type = 
-           NI_rowtype_define( "TAYLOR_TRACT_DATUM", 
+      if ((NI_tract_type =
+           NI_rowtype_define( "TAYLOR_TRACT_DATUM",
                               TAYLOR_TRACT_DATUM_NIML_DEF)) < 0) {
          ERROR_message("Failed to define NIML tract type");
          return(-2);
@@ -26,22 +26,22 @@ void set_tract_verb(int v) { tract_verb=v; return; }
 
 /*!
 
-  tracts_buff (TAYLOR_TRACT *) array of N_tractsbuf tracts. 
+  tracts_buff (TAYLOR_TRACT *) array of N_tractsbuf tracts.
   free tracts_buff when this
   function returns.
-                                 
+
   grid (THD_3dim_dataset *) grid defining coordinate space.
   Only used at initialization level
-*/ 
-TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf, 
+*/
+TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
                                TAYLOR_TRACT *tracts_buff)
 {
    TAYLOR_BUNDLE *tb=NULL;
    int nn, tinb;
    TAYLOR_TRACT *tt=NULL;
-   
+
    ENTRY("AppCreateBundle");
-   
+
    if (!tbu) {
       tb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       tb->N_allocated = 0;
@@ -61,11 +61,11 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
       tb->tract_P0_offset_private = (int *)realloc(tb->tract_P0_offset_private,
                                           tb->N_allocated*sizeof(int));;
    }
-   
+
    if (tracts_buff && N_tractsbuf > 0) {
       for (nn=0; nn<N_tractsbuf; ++nn) {
          tinb = nn+tb->N_tracts;
-         tt = tb->tracts+tinb; 
+         tt = tb->tracts+tinb;
          tt->id = tracts_buff[nn].id;
          tt->N_pts3 = tracts_buff[nn].N_pts3;
          tt->pts = (float *)calloc(tt->N_pts3, sizeof(float));
@@ -77,13 +77,13 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
          if (tinb == 0) tb->tract_P0_offset_private[tinb] = 0;
          else {
             --tt; /* get previous tract */
-            tb->tract_P0_offset_private[tinb] = 
+            tb->tract_P0_offset_private[tinb] =
                   tb->tract_P0_offset_private[tinb-1]+tt->N_pts3/3;
          }
       }
       tb->N_tracts += N_tractsbuf;
-   } 
-   
+   }
+
    RETURN(tb);
 }
 
@@ -102,7 +102,7 @@ TAYLOR_BUNDLE *AppCreateBundle(TAYLOR_BUNDLE *tbu, int N_tractsbuf,
   the array even though they aren't full locations.
 
 */
-TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff, 
+TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
 									int id, THD_3dim_dataset *grid)
 {
    TAYLOR_TRACT *tt=NULL;
@@ -111,14 +111,14 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
    float ORIG[3], Ledge[3];
 
    ENTRY("Create_Tract");
-   
+
    if (grid) {
       if (ORIENT_typestr[grid->daxes->xxorient][0] != 'R' ||
           ORIENT_typestr[grid->daxes->yyorient][0] != 'A' ||
           ORIENT_typestr[grid->daxes->zzorient][0] != 'I' ) {
          ERROR_message("Only expecting RAI grids");
          RETURN(NULL);
-      }  
+      }
    } else {
       if (!nwarn) {
          WARNING_message("No grid, coordinates in UHU\n"
@@ -140,13 +140,13 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
    ORIG[0] = DSET_XORG(grid);
    ORIG[1] = DSET_YORG(grid);
    ORIG[2] = DSET_ZORG(grid);
-   Ledge[0] = fabs(DSET_DX(grid)); 
-   Ledge[1] = fabs(DSET_DY(grid)); 
-   Ledge[2] = fabs(DSET_DZ(grid)); 
+   Ledge[0] = fabs(DSET_DX(grid));
+   Ledge[1] = fabs(DSET_DY(grid));
+   Ledge[2] = fabs(DSET_DZ(grid));
 
    kk=0;
    if (pts_buff) { // A and B are inclusive vals
-      for (ii=ptA; ii<=ptB; ++ii) { 
+      for (ii=ptA; ii<=ptB; ++ii) {
          //       tt->pts[kk] = pts_buff[ii][0]+DSET_XORG(grid);++kk;
          //       tt->pts[kk] = pts_buff[ii][1]+DSET_YORG(grid);++kk;
          //       tt->pts[kk] = pts_buff[ii][2]+DSET_ZORG(grid);++kk;
@@ -168,23 +168,23 @@ TAYLOR_TRACT *Create_Tract_NEW(int ptA, int ptB, float **pts_buff,
 
 ----> can prob delete now; Nov,2016
 
-TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB, 
+TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
 									int N_ptsF, float **pts_buffF,
 									int id, THD_3dim_dataset *grid)
 {
    TAYLOR_TRACT *tt=NULL;
    int kk = 0, ii=0;
    static int nwarn=0;
-   
+
    ENTRY("Create_Tract");
-   
+
    if (grid) {
       if (ORIENT_typestr[grid->daxes->xxorient][0] != 'R' ||
           ORIENT_typestr[grid->daxes->yyorient][0] != 'A' ||
           ORIENT_typestr[grid->daxes->zzorient][0] != 'I' ) {
          ERROR_message("Only expecting RAI grids");
          RETURN(NULL);
-      }  
+      }
    } else {
       if (!nwarn) {
          WARNING_message("No grid, coordinates in UHU\n"
@@ -220,23 +220,23 @@ TAYLOR_TRACT *Create_Tract(int N_ptsB, float **pts_buffB,
    RETURN(tt);
    }*/
 
-TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int n) 
+TAYLOR_TRACT *Free_Tracts(TAYLOR_TRACT *tt, int n)
 {
    int i;
-   
+
    ENTRY("Free_Tract");
    if (!tt) RETURN(NULL);
    for (i=0; i<n; ++i) {
       if (tt[i].pts) free(tt[i].pts);
    }
-   free(tt); 
+   free(tt);
    RETURN(NULL);
 }
 
-TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb) 
+TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb)
 {
    ENTRY("Free_Bundle");
-   
+
    if (!tb) RETURN(NULL);
    tb->tracts = Free_Tracts(tb->tracts, tb->N_tracts);
    if (tb->tract_P0_offset_private) free(tb->tract_P0_offset_private);
@@ -245,13 +245,13 @@ TAYLOR_BUNDLE *Free_Bundle(TAYLOR_BUNDLE *tb)
    RETURN(NULL);
 }
 
-TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net) 
+TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net)
 {
    TAYLOR_BUNDLE *tb=NULL;
    int i;
-   
+
    ENTRY("Free_Network");
-   
+
    if (!net) RETURN(NULL);
    if (net->grid) DSET_delete(net->grid);
    if (net->FA) DSET_delete(net->FA);
@@ -268,22 +268,22 @@ TAYLOR_NETWORK *Free_Network(TAYLOR_NETWORK *net)
    }
    if (net->bundle_tags) free(net->bundle_tags);
    if (net->bundle_alt_tags) free(net->bundle_alt_tags);
-   
+
    free(net);
-   
+
    RETURN(NULL);
 }
 
 
-void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu) 
+void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu)
 {
    int show_max;
    int ii=0;
-   
+
    ENTRY("Show_Taylor_Tract");
    if (!out) out = stderr;
    if (!tt) {
-      fprintf(out,"NULL tt"); 
+      fprintf(out,"NULL tt");
       EXRETURN;
    }
    fprintf(out,"  track id %d, Npts=%d\n", tt->id, TRACT_NPTS(tt));
@@ -291,59 +291,59 @@ void Show_Taylor_Tract(TAYLOR_TRACT *tt, FILE *out, int show_maxu)
    else if (show_maxu == 0) show_max = (TRACT_NPTS(tt) < 5) ? TRACT_NPTS(tt) : 5;
    else show_max = show_maxu;
    for (ii=0; ii<show_max; ++ii) {
-      fprintf(out, "   %f %f %f\n", 
+      fprintf(out, "   %f %f %f\n",
 				  tt->pts[3*ii], tt->pts[3*ii+1],tt->pts[3*ii+2]);
-   }  
+   }
    EXRETURN;
 }
 
-void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu) 
+void Show_Taylor_Bundle(TAYLOR_BUNDLE *tb, FILE *out, int show_maxu)
 {
    int show_max;
    int ii=0;
    ENTRY("Show_Taylor_Bundle");
    if (!out) out = stderr;
    if (!tb) {
-      fprintf(out,"NULL tb"); 
+      fprintf(out,"NULL tb");
       EXRETURN;
    }
-   fprintf(out,"  Bundle has %d tracts, Ends %s\n", 
+   fprintf(out,"  Bundle has %d tracts, Ends %s\n",
                tb->N_tracts, tb->bundle_ends ? tb->bundle_ends:"NULL");
    if ((show_maxu < 0) || (tb->N_tracts < show_maxu)) show_max = tb->N_tracts;
-   else if (show_maxu == 0) show_max = (tb->N_tracts < 5) ? tb->N_tracts : 5;  
+   else if (show_maxu == 0) show_max = (tb->N_tracts < 5) ? tb->N_tracts : 5;
    else show_max = show_maxu;
-   
+
    for (ii=0; ii<show_max; ++ii) {
       Show_Taylor_Tract(tb->tracts+ii, out, show_maxu);
-   }  
+   }
    EXRETURN;
 }
 
-void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out, 
-                         int show_maxu, int show_maxub) 
+void Show_Taylor_Network(TAYLOR_NETWORK *net, FILE *out,
+                         int show_maxu, int show_maxub)
 {
    TAYLOR_BUNDLE *tb=NULL;
    int show_max;
    int ii=0;
-   
+
    ENTRY("Show_Taylor_Network");
    if (!out) out = stderr;
    if (!net) {
-      fprintf(out,"NULL net"); 
+      fprintf(out,"NULL net");
       EXRETURN;
    }
    fprintf(out,"  Network has %d bundles\n", net->N_tbv);
    if (show_maxu < 0) show_max = net->N_tbv;
-   else if (show_maxu == 0) show_max = (net->N_tbv < 5) ? net->N_tbv : 5;  
+   else if (show_maxu == 0) show_max = (net->N_tbv < 5) ? net->N_tbv : 5;
    else show_max = show_maxu;
-   
+
    for (ii=0; ii<show_max; ++ii)
       Show_Taylor_Bundle(net->tbv[ii], out, show_maxub);
-     
+
    EXRETURN;
 }
 
-float Tract_Length(TAYLOR_TRACT *tt) 
+float Tract_Length(TAYLOR_TRACT *tt)
 {
    float l = -1.0, dx, dy, dz;
    int i, N, i13, i03;
@@ -363,7 +363,7 @@ float Tract_Length(TAYLOR_TRACT *tt)
 int Bundle_N_points(TAYLOR_BUNDLE *bun, byte recalc)
 {
    int it, nn;
-   
+
    if (!bun) return(-1);
    if (!recalc && bun->N_points_private > 0) return(bun->N_points_private);
    for (it=0, nn=0; it<bun->N_tracts; ++it) {
@@ -377,7 +377,7 @@ int Bundle_N_points(TAYLOR_BUNDLE *bun, byte recalc)
 int Network_N_points(TAYLOR_NETWORK *net, byte recalc)
 {
    int nb, ib=0, nn=-1, it;
-   
+
    if (!net) return(-1);
    if (!recalc && net->N_points_private > 0) return(net->N_points_private);
    nn = 0;
@@ -389,7 +389,7 @@ int Network_N_points(TAYLOR_NETWORK *net, byte recalc)
          }
          net->tbv[ib]->N_points_private = nb/3;
          nn += nb;
-      } 
+      }
    }
    nn /= 3;
    net->N_points_private = nn;
@@ -399,14 +399,14 @@ int Network_N_points(TAYLOR_NETWORK *net, byte recalc)
 int Network_N_tracts(TAYLOR_NETWORK *net, byte recalc)
 {
    int nb, ib=0, nn=-1, it;
-   
+
    if (!net) return(-1);
    if (!recalc && net->N_tracts_private > 0) return(net->N_tracts_private);
    nn = 0;
    for (ib=0; ib<net->N_tbv; ++ib) {
       if (net->tbv[ib]) {
          nn += net->tbv[ib]->N_tracts;
-      } 
+      }
    }
    net->N_tracts_private = nn;
    return(nn);
@@ -416,7 +416,7 @@ int Network_Max_tract_length(TAYLOR_NETWORK *net, byte recalc,
                              int *t, int *b)
 {
    int ib, it;
-   
+
    if (!net) return(-1);
    if (!recalc && net->Longest_tract_length_private > 0) {
       if (t) *t = net->Longest_tract_index_in_bundle_private;
@@ -426,7 +426,7 @@ int Network_Max_tract_length(TAYLOR_NETWORK *net, byte recalc,
    net->Longest_tract_length_private = 0;
    for (ib=0; ib<net->N_tbv; ++ib) {
       for (it=0; it<net->tbv[ib]->N_tracts; ++it) {
-         if (net->tbv[ib]->tracts[it].N_pts3 > 
+         if (net->tbv[ib]->tracts[it].N_pts3 >
              net->Longest_tract_length_private) {
             net->Longest_tract_length_private = net->tbv[ib]->tracts[it].N_pts3;
             net->Longest_tract_index_in_bundle_private = it;
@@ -435,7 +435,7 @@ int Network_Max_tract_length(TAYLOR_NETWORK *net, byte recalc,
       }
    }
    net->Longest_tract_length_private /= 3;
-   
+
    if (t) *t = net->Longest_tract_index_in_bundle_private;
    if (b) *b = net->Longest_tract_bundle_index_in_network_private;
    return(net->Longest_tract_length_private);
@@ -450,26 +450,26 @@ int Network_N_bundles(TAYLOR_NETWORK *net)
 int Network_PTB_to_1P(TAYLOR_NETWORK *net, int p, int t, int b)
 {
    int PP, it, ip, ib;
-   
+
    ENTRY("Network_PTB_to_1P");
-   
+
    if (!net || p<0 || t<0 || b<0) RETURN(-1);
-   
+
    #if 0
    fprintf(stderr,"P %d, T %d, B %d, \n"
                   "N_bundlesNet=%d, N_tractsBundle=%d, N_pointsTract %d\n",
                   p, t, b, b<net->N_tbv ? net->N_tbv:-1,
            (b<net->N_tbv) ? net->tbv[b]->N_tracts:-1,
-           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ? 
+           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ?
                                           net->tbv[b]->tracts[t].N_pts3/3 : -1);
    #endif
-   
+
    if (b>=net->N_tbv) RETURN(-1);
-   
+
    if (t>=net->tbv[b]->N_tracts) RETURN(-1);
-   
+
    if ((3*p)>=net->tbv[b]->tracts[t].N_pts3) RETURN(-1);
-   
+
    PP = 0;
    for (ib=0; ib<b; ++ib) {
       PP += Bundle_N_points(net->tbv[ib], 0);
@@ -483,66 +483,66 @@ int Network_PTB_to_1P(TAYLOR_NETWORK *net, int p, int t, int b)
       if (t > 0) PP += net->tbv[b]->tract_P0_offset_private[t];
    }
    PP += p;
-   
+
    RETURN(PP);
 }
 
 int Network_TB_to_1T(TAYLOR_NETWORK *net, int t, int b)
 {
    int it, ib, l1=0;
-   
+
    ENTRY("Network_TB_to_1T");
-   
+
    if (!net || b<0 || t<0) RETURN(-1);
-   
+
    #if 0
    fprintf(stderr,"T %d, B %d, \n"
                   "N_bundlesNet=%d, N_tractsBundle=%d, N_pointsTract %d\n",
                   t, b, b<net->N_tbv ? net->N_tbv:-1,
            (b<net->N_tbv) ? net->tbv[b]->N_tracts:-1,
-           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ? 
+           (b<net->N_tbv && t<net->tbv[b]->N_tracts) ?
                                           net->tbv[b]->tracts[t].N_pts3/3 : -1);
    #endif
-   
+
    if (b>=net->N_tbv) RETURN(-1);
-   
+
    if (t>=net->tbv[b]->N_tracts) RETURN(-1);
-      
+
    l1 = 0;
    for (ib=0; ib<b; ++ib) {
       l1 += net->tbv[ib]->N_tracts;
    }
    l1 += t;
-   
+
    RETURN(l1);
 }
 
-int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b, 
+int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b,
                      int *PP0, int *PP1)
 {
    int ib;
-   
+
    ENTRY("Network_1T_to_TB");
-   
+
    if (!net || TT < 0) RETURN(-1);
-   
+
    ib = 0;
    while (ib < net->N_tbv && net->tbv[ib]->N_tracts <= TT) {
       TT -= net->tbv[ib]->N_tracts;
       ++ib;
    }
    if (ib >= net->N_tbv) RETURN(-1);
-   
+
    /* We are in bundle ib, tract TT within ib */
    if (b) *b = ib; if (t) *t = TT;
-   
+
    /* what is the 1st and last point (indexed into the network) of that tract? */
    if (PP0) {
       #if 1
-      *PP0 = Network_PTB_to_1P(net, 0, TT, ib);    
+      *PP0 = Network_PTB_to_1P(net, 0, TT, ib);
       #else /* No speed up, don't bother */
       int kb;
-      for (kb = 0, *PP0 =0; kb< ib; ++kb) 
+      for (kb = 0, *PP0 =0; kb< ib; ++kb)
          *PP0 += Bundle_N_points(net->tbv[ib], 0);
       for (kb=0; kb<TT; ++kb) *PP0 += net->tbv[ib]->tracts[kb].N_pts3/3;
       #endif
@@ -554,35 +554,35 @@ int Network_1T_to_TB(TAYLOR_NETWORK *net, int TT, int *t, int *b,
 int Network_1B_to_1P(TAYLOR_NETWORK *net, int BB, int *PP1)
 {
    int ib, PP0;
-   
+
    ENTRY("Network_1B_to_1P");
-   
+
    if (!net || BB < 0 || BB >= net->N_tbv) RETURN(-1);
-   
+
    ib = PP0 = 0;
    while (ib < BB) {
       PP0 += Bundle_N_points(net->tbv[ib], 0);
       ++ib;
    }
-   
+
    if (PP1) *PP1 = PP0 + Bundle_N_points(net->tbv[BB], 0)-1;
-   
+
    RETURN(PP0);
 }
 
-/* Go from point index into the whole network to 
+/* Go from point index into the whole network to
  (bundle in network, tract in bundle, point in tract)
  and if l1u is not NULL, return the index into the whole
  network of the tract containing the point index.
  The latter index is useful for retrieving data stored
  per tract, rather than per point (SUMA_LEV1_DAT). */
-int Network_1P_to_PTB(TAYLOR_NETWORK *net, int PP, 
+int Network_1P_to_PTB(TAYLOR_NETWORK *net, int PP,
                       int *p, int *t, int *b, int *l1u)
 {
    int ib, bnp, it, tnp, l1;
-   
+
    ENTRY("Network_1P_to_PTB");
-   
+
    if (!net || PP<0) RETURN(-1);
 
    ib = l1 = 0;
@@ -592,38 +592,38 @@ int Network_1P_to_PTB(TAYLOR_NETWORK *net, int PP,
       ++ib;
    }
    if (ib >= net->N_tbv) RETURN(-1);
-   
+
    /* We're in bundle ib, get tract in question */
    it = 0;
-   while (it < net->tbv[ib]->N_tracts && 
+   while (it < net->tbv[ib]->N_tracts &&
           ((tnp = net->tbv[ib]->tracts[it].N_pts3/3) <= PP)) {
       PP -= tnp;
       ++it;
-   } 
+   }
    if (it >= net->tbv[ib]->N_tracts) RETURN(-1);
    l1 += it; /* Tract index (into whole network) */
-   
+
    *p = PP;
    *t = it;
    *b = ib;
-   
+
    if (l1u) *l1u= l1;
-   
-   RETURN(1);   
+
+   RETURN(1);
 }
 
 NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
 {
    NI_element *nel=NULL;
    char colabs[1024]={""};
-   
+
    ENTRY("Tract_2_NIel");
-   
+
    if (!tt || TRACT_NPTS(tt) < 0) RETURN(nel);
-   
+
    nel = NI_new_data_element("tract", TRACT_NPTS(tt));
    NI_SETA_INT(nel, "id", tt->id);
-   
+
    if (tt->pts) {
       strncat(colabs, "x;", (1023-strlen(colabs))*sizeof(char));
       NI_add_column_stride(nel, NI_FLOAT, tt->pts  , 3);
@@ -632,7 +632,7 @@ NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
       strncat(colabs, "z;", (1023-strlen(colabs))*sizeof(char));
       NI_add_column_stride(nel, NI_FLOAT, tt->pts+2, 3);
    }
-   
+
    NI_set_attribute(nel,"Column_Labels", colabs);
    RETURN(nel);
 }
@@ -640,14 +640,14 @@ NI_element *Tract_2_NIel(TAYLOR_TRACT *tt)
 NI_element *Tracts_2_NIel(TAYLOR_TRACT *tt, int N_tt)
 {
    NI_element *nel=NULL;
-   
+
    ENTRY("Tracts_2_NIel");
-   
+
    if (!tt || !N_tt) RETURN(nel);
-   
+
    nel = NI_new_data_element("tracts", N_tt);
    NI_add_column( nel , get_NI_tract_type(), tt );
-   
+
    NI_set_attribute(nel,"Column_Labels", "TaylorTract");
    RETURN(nel);
 }
@@ -657,12 +657,12 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
    TAYLOR_TRACT *tt = NULL, *ttn=NULL;
    float *fv0=NULL, *fv1=NULL, *fv2=NULL;
    int ii=0, kk=0, nn=0;
-   
+
    ENTRY("NIel_2_Tracts");
-   
+
    *N_tracts = 0;
-   if (!nel) RETURN(tt); 
-   
+   if (!nel) RETURN(tt);
+
    if (!strcmp(nel->name,"tract")) {
       *N_tracts = 1;
       tt = (TAYLOR_TRACT *)calloc(*N_tracts,sizeof(TAYLOR_TRACT));
@@ -673,9 +673,9 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
             ERROR_message("Failed to allocate");
             Free_Tracts(tt,*N_tracts); RETURN(NULL);
          }
-         fv0 = (float*)nel->vec[0]; 
-         fv1 = (float*)nel->vec[1]; 
-         fv2 = (float*)nel->vec[2]; 
+         fv0 = (float*)nel->vec[0];
+         fv1 = (float*)nel->vec[1];
+         fv2 = (float*)nel->vec[2];
          kk=0;
          for (ii=0; ii<TRACT_NPTS(tt); ++ii) {
             tt->pts[kk] = fv0[ii]; ++kk;
@@ -701,7 +701,7 @@ TAYLOR_TRACT *NIel_2_Tracts(NI_element *nel, int *N_tracts)
 						  nn, ttn->id, TRACT_NPTS(ttn), ttn->pts);
          }
          memcpy(tt[nn].pts, ttn->pts, ttn->N_pts3*sizeof(float));
-      }       
+      }
    }
    RETURN(tt);
 }
@@ -712,11 +712,11 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
    NI_group *ngr=NULL, *ngrgrid=NULL, *ngrfa=NULL;
    TAYLOR_BUNDLE *tb=NULL;
    int ii=0, N_All_tracts, ei, ei_alt, bb;
-   
+
    ENTRY("Network_2_NIgr");
-   
+
    if ( !net || !net->tbv || net->N_tbv < 1) RETURN(ngr);
-   
+
    ngr = NI_new_group_element(); NI_rename_group(ngr,"network");
    for (N_All_tracts=0, bb=0; bb<net->N_tbv; ++bb) {
       if ((tb = net->tbv[bb])) {
@@ -740,7 +740,7 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
                nel = Tracts_2_NIel(tb->tracts, tb->N_tracts);
                NI_SET_INT(nel,"Bundle_Tag", ei);
                if (ei_alt >= 0) NI_SET_INT(nel,"Bundle_Alt_Tag", ei_alt);
-               if (tb->bundle_ends) 
+               if (tb->bundle_ends)
                   NI_SET_STR(nel,"Bundle_Ends", tb->bundle_ends);
                NI_add_to_group(ngr, nel);
             }
@@ -760,9 +760,9 @@ NI_group *Network_2_NIgr(TAYLOR_NETWORK *net, int mode)
       NI_set_attribute(ngrfa,"bundle_aux_dset","FA");
       NI_add_to_group(ngr, ngrfa);
    }
-   
-      
-   
+
+
+
    RETURN(ngr);
 }
 
@@ -770,40 +770,40 @@ NI_group *Network_link(char *filename)
 {
    NI_group *ngr=NULL;
    char *fext = NULL;
-   
+
    ENTRY("Network_link");
-   
+
    if ( !filename) RETURN(ngr);
    fext = SUMA_Extension(filename, ".niml.tract", NOPE);
    ngr = NI_new_group_element(); NI_rename_group(ngr,"network_link");
    NI_set_attribute(ngr, "network_file", fext);
    SUMA_free(fext);
-   
+
    RETURN(ngr);
 }
 
 
-TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr) 
+TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 {
    TAYLOR_NETWORK *net=NULL;
-   TAYLOR_BUNDLE *tbb=NULL; 
+   TAYLOR_BUNDLE *tbb=NULL;
    TAYLOR_TRACT *tt=NULL;
    NI_element *nel=NULL;
    int ip=0, N_tracts=0, ei=0;
    char *bad=NULL, *sbuf=NULL;
    char tb_ends[128];
-   
+
    ENTRY("NIgr_2_Network");
 
    if (!ngr) RETURN(net);
    if (!strcmp(ngr->name,"bundle") ||/* old style */
-       !strcmp(ngr->name,"network") ) { 
+       !strcmp(ngr->name,"network") ) {
       net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
       net->N_points_private = -1;
       net->N_tracts_private = -1;
       tbb = (TAYLOR_BUNDLE *)calloc(1,sizeof(TAYLOR_BUNDLE));
       tbb->N_points_private = -1;
-      for( ip=0 ; ip < ngr->part_num ; ip++ ){ 
+      for( ip=0 ; ip < ngr->part_num ; ip++ ){
          switch( ngr->part_typ[ip] ){
 			case NI_GROUP_TYPE:
 				if (!(bad = NI_get_attribute(ngr,"bundle_aux_dset"))) {
@@ -815,7 +815,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 					net->FA = THD_niml_to_dataset((NI_group*)ngr->part[ip], 0);
 				} else {
 					WARNING_message("Not ready to feel the love for %s\n", bad);
-				}  
+				}
 				if ((sbuf = NI_get_attribute((NI_group*)ngr->part[ip]
 													  ,"atlas_space"))) {
 					snprintf(net->atlas_space,64*sizeof(char),"%s",sbuf);
@@ -828,7 +828,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 				if (!strcmp(nel->name,"tract") || !strcmp(nel->name,"tracts")) {
 					if ((tt = NIel_2_Tracts(nel, &N_tracts))) {
 						char *be=NULL;
-                  tbb = AppCreateBundle(tbb, N_tracts, tt); 
+                  tbb = AppCreateBundle(tbb, N_tracts, tt);
 						tt = Free_Tracts(tt, N_tracts);
                   NI_GET_INT(nel,"Bundle_Tag",ei);
                   if (!NI_GOT) ei = -1;
@@ -837,7 +837,7 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
                   } else {
                      // Sept 2014
                      snprintf( tb_ends, 128, "%03d<->%s", ei,"-1");
-                     net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL, 
+                     net = AppAddBundleToNetwork(net, &tbb, ei, -1, NULL,
                                                  tb_ends);
 					   }
                } else {
@@ -854,20 +854,20 @@ TAYLOR_NETWORK *NIgr_2_Network(NI_group *ngr)
 				break;
          }
       }
-   } 
+   }
    RETURN(net);
 }
 
-TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network, 
+TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
                                       TAYLOR_BUNDLE **tb, int tag, int alt_tag,
                                       THD_3dim_dataset *grid, char *EleName)
 {
    TAYLOR_NETWORK *net=NULL;
-   
+
    ENTRY("AppAddBundleToNetwork");
-   
+
    if (!tb) RETURN(net);
-   
+
    if (!network) {
       net = (TAYLOR_NETWORK *)calloc(1,sizeof(TAYLOR_NETWORK));
       net->N_allocated = -1;
@@ -876,12 +876,12 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
          snprintf(net->atlas_space,64*sizeof(char),"%s", grid->atlas_space);
       } else {
          snprintf(net->atlas_space,64*sizeof(char),"UNKNOWN");
-      }      
-   } else { 
+      }
+   } else {
       net = network;
       net->N_points_private = -1; /* uninitialize so that it gets reset later */
    }
-   
+
    if (net->N_allocated <= 0 || net->N_tbv >= net->N_allocated) {
       net->N_allocated += 100;
       net->tbv = (TAYLOR_BUNDLE **)realloc( net->tbv,
@@ -891,29 +891,29 @@ TAYLOR_NETWORK *AppAddBundleToNetwork(TAYLOR_NETWORK *network,
       net->bundle_alt_tags = (int *)realloc(net->bundle_alt_tags,
                                      sizeof(int)*net->N_allocated);
    }
-   
+
    /* PT: Let's chat about the location of bundle_ends and tags soon */
    if (EleName) (*tb)->bundle_ends = strdup(EleName);
    net->tbv[net->N_tbv] = *tb; *tb = NULL;
    net->bundle_tags[net->N_tbv] = tag;
    net->bundle_alt_tags[net->N_tbv] = alt_tag;
    ++net->N_tbv;
-   
+
    RETURN(net);
 }
 
-int Write_NI_Network(NI_group *ngr, char *name, char *mode) 
+int Write_NI_Network(NI_group *ngr, char *name, char *mode)
 {
    char *nameout=NULL;
    NI_stream ns;
-   
+
    ENTRY("Write_NI_Network");
-   
+
    if (!mode) mode = "NI_fast_binary";
-   
+
    /* be sure to init for tract datum */
    if (get_NI_tract_type() < 0) {
-      ERROR_message("Misere!"); 
+      ERROR_message("Misere!");
       RETURN(0);
    }
    if (!name) name = "no_name";
@@ -929,7 +929,7 @@ int Write_NI_Network(NI_group *ngr, char *name, char *mode)
       ERROR_message("Failed to open NI stream %s for writing.", nameout);
       RETURN(0);
    }
-   
+
    if (tract_verb) {
       fprintf(stderr,"About to write %s in mode %s...", nameout, mode);
    }
@@ -951,9 +951,9 @@ int Write_Bundle(TAYLOR_BUNDLE *tb, char *name, char *mode)
 {
    TAYLOR_NETWORK *net=NULL;
    int rval=0;
-   
+
    ENTRY("Write_Bundle");
-   
+
    if (!name) name = "no_name_jack";
    if (!tb) RETURN(0);
 
@@ -965,24 +965,24 @@ int Write_Bundle(TAYLOR_BUNDLE *tb, char *name, char *mode)
    net->bundle_tags[0]=-1;
    net->bundle_alt_tags[0]=-1;
    net->N_tbv=1;
-   
+
    rval = Write_Network(net, name, mode);
-   
+
    net->tbv[0]=0; net->N_tbv=0;
    Free_Network(net);
    RETURN(rval);
 }
 
-int Write_Network(TAYLOR_NETWORK *net, 
+int Write_Network(TAYLOR_NETWORK *net,
                   char *name, char *mode)
 {
    NI_group *ngr=NULL;
    int rval=0;
-   
+
    ENTRY("Write_Network");
    if (!name) name = "no_name_jack";
    if (!net) RETURN(0);
-   
+
    if (!mode) mode = "NI_fast";
    if (net->N_tbv > 1 && !strcasestr(mode,"NI_fast")) {
       ERROR_message("Cannot write more than one bundle in slow mode");
@@ -996,30 +996,30 @@ int Write_Network(TAYLOR_NETWORK *net,
       ERROR_message("Stop making bad choices! %s\n",mode);
       RETURN(0);
    }
-   
+
    rval = Write_NI_Network(ngr, name, mode);
    NI_free_element(ngr); ngr=NULL;
-   
+
    RETURN(rval);
-} 
+}
 
 NI_group * Read_NI_Network(char *name)
 {
-   
+
    NI_stream ns;
    NI_group *ngr=NULL;
    char *nameout=NULL;
-   
+
    ENTRY("Read_NI_Network");
-   
+
    /* be sure to init for tract datum */
    if (get_NI_tract_type() < 0) {
-      ERROR_message("Misere!"); 
+      ERROR_message("Misere!");
       RETURN(ngr);
    }
-   
+
    if (!name) RETURN(ngr);
-   
+
    if (strcmp(name,"file:")) { /* have regular file name */
       if (THD_is_file(name)) {
          nameout = (char *)calloc(strlen(name)+35, sizeof(char));
@@ -1036,7 +1036,7 @@ NI_group * Read_NI_Network(char *name)
          }
       }
    }
-   
+
    ns = NI_stream_open(nameout,"r");
    if (!ns) RETURN(ngr);
    if (get_tract_verb()) fprintf(stderr,"About to read %s ...", nameout);
@@ -1047,41 +1047,41 @@ NI_group * Read_NI_Network(char *name)
    RETURN(ngr);
 }
 
-TAYLOR_NETWORK * Read_Network(char *name) 
+TAYLOR_NETWORK * Read_Network(char *name)
 {
    NI_group *ngr=NULL;
    TAYLOR_NETWORK *net=NULL;
-   
+
    ENTRY("Read_Network");
-   
+
    if (!name) RETURN(net);
-   
+
    if (!(ngr = Read_NI_Network(name))) {
       ERROR_message("Failed to read NI_Bundle %s\n", name);
       RETURN(net);
    }
-   
+
    if (!(net = NIgr_2_Network(ngr))) {
       ERROR_message("Failed to turn group element to bundle %s\n", name);
       NI_free_element(ngr); ngr = NULL;
       RETURN(net);
    }
- 
+
    NI_free_element(ngr); ngr = NULL;
-   
+
    RETURN(net);
 }
 
-int NI_getTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg, 
+int NI_getTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg,
                          float *MinL, int *SeedPerV)
 {
    char *atr=NULL;
-   
+
    ENTRY("NI_getTractAlgOpts");
    if (!nel) RETURN(1);
-   
+
    if (MinFA && (atr=NI_get_attribute(nel,"Thresh_FA"))) {
-      *MinFA = (float)strtod(atr,NULL); 
+      *MinFA = (float)strtod(atr,NULL);
    }
    if (MaxAngDeg && (atr=NI_get_attribute(nel,"Thresh_ANG"))) {
       *MaxAngDeg = (float)strtod(atr,NULL);
@@ -1098,18 +1098,18 @@ int NI_getTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg,
    if (SeedPerV && (atr=NI_get_attribute(nel,"Nseed_Z"))) {
       SeedPerV[2] = (int)strtod(atr,NULL);
    }
-   
+
    RETURN(0);
 }
 
-NI_element * NI_setTractAlgOpts_M(NI_element *nel, float *MinFA, 
-										  float *MaxAngDeg, float *MinL, 
+NI_element * NI_setTractAlgOpts_M(NI_element *nel, float *MinFA,
+										  float *MaxAngDeg, float *MinL,
                                   int *SeedPerV)
-{   
+{
    ENTRY("NI_setTractAlgOpts");
-   
+
    if (!nel) nel = NI_new_data_element ("TRACK_opts",0);
-   
+
    if (MinFA ) {
       NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
    }
@@ -1124,12 +1124,12 @@ NI_element * NI_setTractAlgOpts_M(NI_element *nel, float *MinFA,
       NI_SETA_INT(nel,"Nseed_Y",SeedPerV[1]);
       NI_SETA_INT(nel,"Nseed_Z",SeedPerV[2]);
    }
-   
+
    RETURN(nel);
 }
-      
 
-NI_element * ReadTractAlgOpts_M(char *fname) 
+
+NI_element * ReadTractAlgOpts_M(char *fname)
 {
    NI_stream ns=NULL;
    NI_element *nel=NULL;
@@ -1137,11 +1137,11 @@ NI_element * ReadTractAlgOpts_M(char *fname)
    int SeedPerV[3];
    char *strm=NULL;
    FILE *fin4=NULL;
-   
-   ENTRY("ReadTractAlgOpts");  
-       
+
+   ENTRY("ReadTractAlgOpts");
+
    if (!fname || !THD_is_file(fname)) RETURN(NULL);
-   
+
    if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
       strm = (char *)calloc(strlen(fname)+20, sizeof(char));
       sprintf(strm,"file:%s",fname);
@@ -1169,25 +1169,25 @@ NI_element * ReadTractAlgOpts_M(char *fname)
       }
 
       fclose(fin4);
-      if (!(nel = 
-            NI_setTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL, 
+      if (!(nel =
+            NI_setTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL,
                                SeedPerV))){
          ERROR_message("Failed to get options");
          RETURN(NULL);
       }
    }
-   
+
    RETURN(nel);
-}      
+}
 
 // THIS one doesn't need to change with new format for MULTI/HARDI update
-int WriteTractAlgOpts(char *fname, NI_element *nel) 
+int WriteTractAlgOpts(char *fname, NI_element *nel)
 {
    char *strm=NULL;
    NI_stream ns=NULL;
-   
+
    ENTRY("WriteTractAlgOpts");
-   
+
    if (!nel) {
       fprintf(stderr, "NULL nel\n");
       RETURN(1);
@@ -1210,17 +1210,17 @@ int WriteTractAlgOpts(char *fname, NI_element *nel)
    NI_write_element(ns,nel,NI_TEXT_MODE);
    NI_stream_close(ns); free(strm); strm = NULL;
    RETURN(0);
-} 
+}
 
-int NI_getProbTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg, 
-									float *MinL, float *NmNsFr, int *Nseed, 
+int NI_getProbTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg,
+									float *MinL, float *NmNsFr, int *Nseed,
 									int *Nmonte)
 {
    char *atr=NULL;
-   
+
    ENTRY("NI_getProbTractAlgOpts");
    if (!nel) RETURN(1);
-   
+
    if (MinFA && ( (atr=NI_get_attribute(nel,"Thresh_FA")) ||
                   (atr=NI_get_attribute(nel,"MinFA"))) ) {
       *MinFA = (float)strtod(atr,NULL);
@@ -1248,15 +1248,15 @@ int NI_getProbTractAlgOpts_M(NI_element *nel, float *MinFA, float *MaxAngDeg,
    RETURN(0);
 }
 
-NI_element * NI_setProbTractAlgOpts_M(NI_element *nel, float *MinFA, 
+NI_element * NI_setProbTractAlgOpts_M(NI_element *nel, float *MinFA,
 												float *MaxAngDeg, float *MinL,
-												float *NmNsFr, int *Nseed, 
+												float *NmNsFr, int *Nseed,
 												int *Nmonte)
-{   
+{
    ENTRY("NI_setProbTractAlgOpts_M");
-   
+
    if (!nel) nel = NI_new_data_element ("PROBTRACK_opts",0);
-   
+
    if (MinFA ) {
       NI_SETA_FLOAT(nel,"Thresh_FA",*MinFA);
    }
@@ -1275,11 +1275,11 @@ NI_element * NI_setProbTractAlgOpts_M(NI_element *nel, float *MinFA,
 	if (Nmonte) {
       NI_SETA_INT(nel,"Nmonte",*Nmonte);
 	}
-   
+
    RETURN(nel);
 }
 
-NI_element * ReadProbTractAlgOpts_M(char *fname) 
+NI_element * ReadProbTractAlgOpts_M(char *fname)
 {
    NI_stream ns=NULL;
    NI_element *nel=NULL;
@@ -1287,11 +1287,11 @@ NI_element * ReadProbTractAlgOpts_M(char *fname)
    int Nseed, Nmonte;
    char *strm=NULL;
    FILE *fin4=NULL;
-   
-   ENTRY("ReadProbTractAlgOpts");  
-       
+
+   ENTRY("ReadProbTractAlgOpts");
+
    if (!fname || !THD_is_file(fname)) RETURN(NULL);
-   
+
    if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
       strm = (char *)calloc(strlen(fname)+20, sizeof(char));
       sprintf(strm,"file:%s",fname);
@@ -1318,20 +1318,20 @@ NI_element * ReadProbTractAlgOpts_M(char *fname)
       }
       fclose(fin4);
       //printf("%f %f %f %f %d %d",
-      //     MinFA,MaxAngDeg,MinL,NmNsFr,Nseed,Nmonte); 
+      //     MinFA,MaxAngDeg,MinL,NmNsFr,Nseed,Nmonte);
 
-      if (!(nel = 
-            NI_setProbTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL, 
+      if (!(nel =
+            NI_setProbTractAlgOpts_M(NULL, &MinFA, &MaxAngDeg, &MinL,
 											  &NmNsFr,&Nseed,&Nmonte))){
          ERROR_message("Failed to get options");
          RETURN(NULL);
       }
    }
-   
-   RETURN(nel);
-}      
 
-int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx, 
+   RETURN(nel);
+}
+
+int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
                            THD_3dim_dataset **PARS,
                            int PAR_BOT, int PAR_TOP,
                            float **loc, int **locI, int len,
@@ -1342,7 +1342,7 @@ int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
   float READS_fl;
 
   ENTRY("SimpleWriteDetNetTr");
-  
+
   // first write len of tr
   READS_in = len;
   fwrite(&READS_in,sizeof(READS_in),1,file);
@@ -1353,21 +1353,21 @@ int SimpleWriteDetNetTr_M(int N_HAR, FILE *file, int ***idx,
     for( aa=0 ; aa<3 ; aa++ ) {
       READS_fl = loc[m][aa];
       if(!TV[aa])
-        READS_fl = Ledge[aa]*Dim[aa]-READS_fl;	
+        READS_fl = Ledge[aa]*Dim[aa]-READS_fl;
       fwrite(&READS_fl,sizeof(READS_fl),1,file);
     }
     bb=idx[locI[m][0]][locI[m][1]][locI[m][2]];
     if(N_HAR) { // hardi, single param
-       READS_fl = THD_get_voxel(PARS[PAR_BOT], bb, 0); 
+       READS_fl = THD_get_voxel(PARS[PAR_BOT], bb, 0);
        fwrite(&READS_fl,sizeof(READS_fl),1,file);
     }
-    else 
+    else
        for( aa=1 ; aa<4 ; aa++ ) {
-          READS_fl = THD_get_voxel(PARS[aa], bb, 0); 
+          READS_fl = THD_get_voxel(PARS[aa], bb, 0);
           fwrite(&READS_fl,sizeof(READS_fl),1,file);
        }
   }
-  
+
   RETURN(1);
 }
 
@@ -1376,12 +1376,12 @@ int Free_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS)
    ENTRY("Free_Insta_Tract_Setup");
 
    if (!ITS) RETURN(0);
-   
+
    if (ITS->grid) DSET_delete(ITS->grid);
    ITS->grid = NULL;
-   
+
    /* Do not delte ITS , leave it to calling function */
-  
+
    RETURN(1);
 }
 
@@ -1392,26 +1392,26 @@ INSTA_TRACT_SETUP *New_Insta_Tract_Setup(INSTA_TRACT_SETUP *ITS)
 
    if (!ITS) ITS = (INSTA_TRACT_SETUP *)calloc(1,sizeof(INSTA_TRACT_SETUP));
    else Free_Insta_Tract_Setup(ITS);
-   
+
    /* Put any initialization here ... */
-   
+
    RETURN(ITS);
 }
 
 
 // *****************-> NIMLly reading in DTI input  <-*********************
 
-NI_element * ReadDTI_inputs(char *fname) 
+NI_element * ReadDTI_inputs(char *fname)
 {
    NI_stream ns=NULL;
    NI_element *nel=NULL;
    char *strm=NULL;
    FILE *fin4=NULL;
-   
-   ENTRY("ReadDTI_inputs");  
-       
+
+   ENTRY("ReadDTI_inputs");
+
    if (!fname || !THD_is_file(fname)) RETURN(NULL);
-   
+
    if (STRING_HAS_SUFFIX(fname,".niml.opts")) {
       strm = (char *)calloc(strlen(fname)+20, sizeof(char));
       sprintf(strm,"file:%s",fname);
@@ -1428,27 +1428,27 @@ NI_element * ReadDTI_inputs(char *fname)
       ERROR_message("Failed to get DTI inputs from %s",fname);
       RETURN(NULL);
    }
-   
+
    RETURN(nel);
-}      
+}
 
 
-int NI_getDTI_inputs( NI_element *nel, 
+int NI_getDTI_inputs( NI_element *nel,
                       char **NameVECT,
-                      char *NameXF, 
-                      char **NameSCAL, 
+                      char *NameXF,
+                      char **NameSCAL,
                       char **NamePLUS,
                       int *extrafile, int *pars_top)
 {
    char *atr="NONAME";
    char tmp[THD_MAX_PREFIX];
    int i;
-   int ct_scal = 1;  // 1 -> start with space for 'extrafile' 
+   int ct_scal = 1;  // 1 -> start with space for 'extrafile'
 
    ENTRY("NI_getDTI_inputs");
    if (!nel) RETURN(1);
 
-   atr = (char *)calloc(100, sizeof(char)); 
+   atr = (char *)calloc(100, sizeof(char));
    if( (atr == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure.\n\n");
       exit(126);
@@ -1475,13 +1475,13 @@ int NI_getDTI_inputs( NI_element *nel,
    // for extra scalar
    sprintf(tmp, "dti_%s", DTI_XTRA_LABS[0]);
    if (NameXF && (atr=NI_get_attribute(nel,tmp))) {
-      snprintf(NameXF, N_CHAR_PATH, "%s", atr); 
+      snprintf(NameXF, N_CHAR_PATH, "%s", atr);
       *extrafile = 1;
    }
    else
       NameXF = NULL;
-   
-   
+
+
    // allow up to four extra files
    for( i=0 ; i<N_DTI_PLUS ; i++ ) {
       sprintf(tmp, "dti_%s", DTI_PLUS_LABS[i]);
@@ -1489,23 +1489,23 @@ int NI_getDTI_inputs( NI_element *nel,
          snprintf(NamePLUS[i], N_CHAR_PATH, "%s", atr);
          ct_scal++;
       }
-      else 
+      else
          snprintf(NamePLUS[i], N_CHAR_PATH, "%s", "\0");
    }
-   
+
    *pars_top = ct_scal; // 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
    INFO_message(" ct_scal: %d atr:%s ", ct_scal, atr);
-   
+
    RETURN(0);
 }
 
 
 
 //OLD
-/*int NI_getDTI_inputs( NI_element *nel, 
+/*int NI_getDTI_inputs( NI_element *nel,
                       char **NameVEC,
-                      char *NameXF, 
-                      char **NameSCAL, 
+                      char *NameXF,
+                      char **NameSCAL,
                       char **NameP,
                       int *extrafile, int *pars_top)
 {
@@ -1514,7 +1514,7 @@ int NI_getDTI_inputs( NI_element *nel,
 
    ENTRY("NI_getDTI_inputs");
    if (!nel) RETURN(1);
-   
+
    if (NameVEC[0] && (atr=NI_get_attribute(nel,"dti_V1"))) {
       snprintf(NameVEC[0],100,"%s", atr);
    }
@@ -1556,7 +1556,7 @@ int NI_getDTI_inputs( NI_element *nel,
       //printf("\nHERE! %d\n",ct_ex);
    }
    else snprintf(NameP[3],100,"%s", "\0");
-   
+
    *pars_top = 2 + 3 + ct_ex; // RD and extra; FA,MD;extras
 
    //printf("\nLISTED: PARS_TOP=%d with ct_ex=%d\n", *pars_top, ct_ex);

@@ -1,8 +1,8 @@
 
 /* Copyright (c) Mark J. Kilgard, 1996. */
 
-/* This program is freely distributable without licensing fees 
-   and is provided without guarantee or warrantee expressed or 
+/* This program is freely distributable without licensing fees
+   and is provided without guarantee or warrantee expressed or
    implied. This program is -not- in the public domain. */
 
 /* compile: cc -o glxdino glxdino.c -lGLU -lGL -lXmu -lX11 */
@@ -204,10 +204,10 @@ main(int argc, char **argv)
       fprintf(stdout,
                "A simple openGL test program for testing rendering to eps.\n"
                "Copyright (c) Mark J. Kilgard, 1996.\n" );
-      return(0); 
+      return(0);
     }
   }
-  
+
   dpy = XOpenDisplay(NULL);
   if (dpy == NULL)
     fatalError("could not open display");

@@ -41,16 +41,16 @@ int main( int argc , char * argv[] )
    }
 
    machdep() ;
-   
+
    /*--------------------------*/
-   
+
    ENTROPY_setup() ;
    do{
       nn = fread( buf , 1 , NBUF , stdin ) ;
       if( nn <= 0 ) break ;
       ENTROPY_accumulate( nn , buf ) ;
    } while(1) ;
-   
+
    /*--------------------------*/
 
    ee = ENTROPY_compute() ; ENTROPY_setdown() ;

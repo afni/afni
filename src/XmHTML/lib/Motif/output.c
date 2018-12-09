@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -48,7 +48,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/10/23 00:23:19  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -185,7 +185,7 @@ _XmHTMLTextCheckAndConvertPaperDef(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 * Name:			_XmHTMLTextGetPlain
 * Return Type: 	String
 * Description: 	converts text between start & end into a plain ASCII document.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	pdef:		papersize definition. unittype must be XmHTML_CHAR;
 *	start:		start object;
@@ -195,7 +195,7 @@ _XmHTMLTextCheckAndConvertPaperDef(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 *	a String with plain ASCII content. Must be freed by caller.
 *****/
 String
-_XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+_XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options)
 {
@@ -233,7 +233,7 @@ _XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 				words = elePtr->words;
 				for(i = 0; i < n_words; i++)
 				{
-					if(words[i].type == OBJ_TEXT || 
+					if(words[i].type == OBJ_TEXT ||
 						words[i].type == OBJ_BLOCK)
 					{
 						if(words[i].type == OBJ_BLOCK)
@@ -251,7 +251,7 @@ _XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 								nchars++;
 								nchars += x_pos;			/* lead spacing */
 							}
-							if(!(words[i].spacing & TEXT_SPACE_TRAIL) && 
+							if(!(words[i].spacing & TEXT_SPACE_TRAIL) &&
 								i+1 < n_words &&
 								!(words[i+1].spacing & TEXT_SPACE_LEAD))
 							{
@@ -388,7 +388,7 @@ _XmHTMLTextGetPlain(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 									nused++;
 								}
 							}
-							if(!(words[i].spacing & TEXT_SPACE_TRAIL) && 
+							if(!(words[i].spacing & TEXT_SPACE_TRAIL) &&
 								i+1 < n_words &&
 								!(words[i+1].spacing & TEXT_SPACE_LEAD))
 							{
@@ -507,7 +507,7 @@ fprintf(stderr, "Used %i characters out of %i maximum\n", nused, nchars);
 * Return Type: 	String
 * Description: 	converts text between start & end into a somewhat formatted
 *				ASCII document.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	pdef:		papersize definition. unittype must be XmHTML_CHAR;
 *	start:		start object;
@@ -517,7 +517,7 @@ fprintf(stderr, "Used %i characters out of %i maximum\n", nused, nchars);
 *	a String with formatted ASCII content. Must be freed by caller.
 *****/
 String
-_XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+_XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options)
 {
@@ -536,7 +536,7 @@ _XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 * Name:			_XmHTMLTextGetPS
 * Return Type: 	String
 * Description: 	converts text between start & end into a postscript document
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	pdef:		papersize definition. unittype must be XmHTML_POINT;
 *	start:		start object;
@@ -546,7 +546,7 @@ _XmHTMLTextGetFormatted(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 *	a String with postscript commands. Must be freed by caller.
 *****/
 String
-_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options)
 {
@@ -572,7 +572,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	}
 
 	/*****
-	* dirty trick: create a single pixmap in which we will draw each 
+	* dirty trick: create a single pixmap in which we will draw each
 	* page. Set it as the drawable in the current tka, adjust the document
 	* dimensions to reflect the selected paper properties, recalculate
 	* the layout and paint each page. When a page has been rendered,
@@ -716,7 +716,7 @@ done:
 * Name:			_XmHTMLTextGetXPM
 * Return Type: 	String
 * Description: 	converts text between start & end into a postscript document
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	pdef:		papersize definition. unittype must be XmHTML_POINT;
 *	start:		start object;
@@ -726,7 +726,7 @@ done:
 *	a String with postscript commands. Must be freed by caller.
 *****/
 String
-_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef, 
+_XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	XmHTMLObjectTableElement start, XmHTMLObjectTableElement end,
 	Byte options)
 {
@@ -751,7 +751,7 @@ _XmHTMLTextGetPS(XmHTMLWidget html, XmHTMLPaperSize *pdef,
 	}
 
 	/*****
-	* dirty trick: create a single pixmap in which we will draw each 
+	* dirty trick: create a single pixmap in which we will draw each
 	* page. Set it as the drawable in the current tka, adjust the document
 	* dimensions to reflect the selected paper properties, recalculate
 	* the layout and paint each page. When a page has been rendered,

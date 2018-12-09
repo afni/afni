@@ -5,15 +5,15 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int cinvit_(integer *nm, integer *n, doublereal *ar, 
-	doublereal *ai, doublereal *wr, doublereal *wi, logical *select, 
+/* Subroutine */ int cinvit_(integer *nm, integer *n, doublereal *ar,
+	doublereal *ai, doublereal *wr, doublereal *wi, logical *select,
 	integer *mm, integer *m, doublereal *zr, doublereal *zi, integer *
 	ierr, doublereal *rm1, doublereal *rm2, doublereal *rv1, doublereal *
 	rv2)
 {
     /* System generated locals */
-    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset, 
-	    zi_dim1, zi_offset, rm1_dim1, rm1_offset, rm2_dim1, rm2_offset, 
+    integer ar_dim1, ar_offset, ai_dim1, ai_offset, zr_dim1, zr_offset,
+	    zi_dim1, zi_offset, rm1_dim1, rm1_offset, rm2_dim1, rm2_offset,
 	    i__1, i__2, i__3;
     doublereal d__1, d__2;
 
@@ -30,7 +30,7 @@
     doublereal ilambd;
     integer mp, uk;
     doublereal rlambd;
-    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal 
+    extern doublereal pythag_(doublereal *, doublereal *), epslon_(doublereal
 	    *);
     integer km1, ip1;
     doublereal growto=0.0, ukroot=0.0;
@@ -74,7 +74,7 @@
 
 /*        AR, AI, WI, AND SELECT ARE UNALTERED. */
 
-/*        WR MAY HAVE BEEN ALTERED SINCE CLOSE EIGENVALUES ARE PERTURBED 
+/*        WR MAY HAVE BEEN ALTERED SINCE CLOSE EIGENVALUES ARE PERTURBED
 */
 /*          SLIGHTLY IN SEARCHING FOR INDEPENDENT EIGENVECTORS. */
 
@@ -87,7 +87,7 @@
 
 /*        IERR IS SET TO */
 /*          ZERO       FOR NORMAL RETURN, */
-/*          -(2*N+1)   IF MORE THAN MM EIGENVECTORS HAVE BEEN SPECIFIED, 
+/*          -(2*N+1)   IF MORE THAN MM EIGENVECTORS HAVE BEEN SPECIFIED,
 */
 /*          -K         IF THE ITERATION CORRESPONDING TO THE K-TH */
 /*                     VALUE FAILS, */
@@ -101,12 +101,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -156,7 +156,7 @@
 	    if (uk == *n) {
 		goto L140;
 	    }
-	    if (ar[uk + 1 + uk * ar_dim1] == 0. && ai[uk + 1 + uk * ai_dim1] 
+	    if (ar[uk + 1 + uk * ar_dim1] == 0. && ai[uk + 1 + uk * ai_dim1]
 		    == 0.) {
 		goto L140;
 	    }
@@ -211,7 +211,7 @@ L240:
 	i__2 = km1;
 	for (ii = 1; ii <= i__2; ++ii) {
 	    i__ = k - ii;
-	    if (select[i__] && (d__1 = wr[i__] - rlambd, abs(d__1)) < eps3 && 
+	    if (select[i__] && (d__1 = wr[i__] - rlambd, abs(d__1)) < eps3 &&
 		    (d__2 = wi[i__] - ilambd, abs(d__2)) < eps3) {
 		goto L220;
 	    }
@@ -249,8 +249,8 @@ L280:
 	i__2 = uk;
 	for (i__ = 2; i__ <= i__2; ++i__) {
 	    mp = i__ - 1;
-	    if (pythag_(&rm1[i__ + mp * rm1_dim1], &rm2[i__ + mp * rm2_dim1]) 
-		    <= pythag_(&rm1[mp + mp * rm1_dim1], &rm2[mp + mp * 
+	    if (pythag_(&rm1[i__ + mp * rm1_dim1], &rm2[i__ + mp * rm2_dim1])
+		    <= pythag_(&rm1[mp + mp * rm1_dim1], &rm2[mp + mp *
 		    rm2_dim1])) {
 		goto L360;
 	    }
@@ -267,7 +267,7 @@ L280:
 	    }
 
 L360:
-	    if (rm1[mp + mp * rm1_dim1] == 0. && rm2[mp + mp * rm2_dim1] == 
+	    if (rm1[mp + mp * rm1_dim1] == 0. && rm2[mp + mp * rm2_dim1] ==
 		    0.) {
 		rm1[mp + mp * rm1_dim1] = eps3;
 	    }
@@ -310,15 +310,15 @@ L660:
 
 	    i__3 = uk;
 	    for (j = ip1; j <= i__3; ++j) {
-		x = x - rm1[i__ + j * rm1_dim1] * rv1[j] + rm2[i__ + j * 
+		x = x - rm1[i__ + j * rm1_dim1] * rv1[j] + rm2[i__ + j *
 			rm2_dim1] * rv2[j];
-		y = y - rm1[i__ + j * rm1_dim1] * rv2[j] - rm2[i__ + j * 
+		y = y - rm1[i__ + j * rm1_dim1] * rv2[j] - rm2[i__ + j *
 			rm2_dim1] * rv1[j];
 /* L680: */
 	    }
 
 L700:
-	    cdiv_(&x, &y, &rm1[i__ + i__ * rm1_dim1], &rm2[i__ + i__ * 
+	    cdiv_(&x, &y, &rm1[i__ + i__ * rm1_dim1], &rm2[i__ + i__ *
 		    rm2_dim1], &rv1[i__], &rv2[i__]);
 /* L720: */
 	}
@@ -383,7 +383,7 @@ L840:
 L880:
 	j = 1;
 	*ierr = -k;
-/*     .......... SET REMAINING VECTOR COMPONENTS TO ZERO .......... 
+/*     .......... SET REMAINING VECTOR COMPONENTS TO ZERO ..........
 */
 L900:
 	i__2 = *n;

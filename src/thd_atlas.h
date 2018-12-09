@@ -18,7 +18,7 @@
 #define SPARSE_CMAP 2
 
 #define MAXINT 65535
-#define MAX_WAMI_LINE_CHARS  80 
+#define MAX_WAMI_LINE_CHARS  80
 
 #define LINKRBRAIN_SITE "linkrbrain.eu"   /* 16 Oct 2015 */
 extern char * get_linkrbrain_site(void) ;
@@ -28,11 +28,11 @@ void print_atlas_point_list(ATLAS_POINT_LIST *apl);
 ATLAS_POINT_LIST * niml_atlas_label_table_to_atlas_list(NI_group *ngr);
 ATLAS_POINT_LIST *dset_niml_to_atlas_list(THD_3dim_dataset *dset);
 ATLAS_POINT_LIST *label_table_to_atlas_point_list(Dtable *dtbl);
-int whereami_9yards( ATLAS_COORD ac, ATLAS_QUERY **wamip, 
+int whereami_9yards( ATLAS_COORD ac, ATLAS_QUERY **wamip,
                      ATLAS_LIST *atlas_alist);
 void init_custom_atlas(void);
 const char *Space_Code_to_Space_Name (AFNI_STD_SPACES cod);
-AFNI_STD_SPACES Space_Name_to_Space_Code(char *nm); 
+AFNI_STD_SPACES Space_Name_to_Space_Code(char *nm);
 const char *Atlas_Code_to_Atlas_Space_Name (AFNI_ATLAS_CODES cod);
 const char *Atlas_Code_to_Atlas_Dset_Name (AFNI_ATLAS_CODES cod);
 AFNI_ATLAS_CODES Atlas_Dset_Name_to_Atlas_Code(char *dset_name);
@@ -66,10 +66,10 @@ int atlas_read_template(NI_element *nel, ATLAS_TEMPLATE *atlas_tpl);
 int atlas_read_atlas(NI_element *nel, ATLAS *atlas, char *pd);
 int atlas_read_atlas_space(NI_element *nel, ATLAS_SPACE *at_space);
 int make_space_neighborhood(ATLAS_SPACE_LIST *at_spl, ATLAS_XFORM_LIST *atlas_xfl);
-ATLAS_XFORM *get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space, 
+ATLAS_XFORM *get_xform_neighbor(ATLAS_XFORM_LIST *atlas_xfl, ATLAS_SPACE *at_space,
    ATLAS_SPACE *dest_space, int *inv_xf);
 ATLAS_XFORM_LIST *
-   pathlist_to_xform_list(int *nPath, int N_n, ATLAS_XFORM_LIST *atlas_xfl, 
+   pathlist_to_xform_list(int *nPath, int N_n, ATLAS_XFORM_LIST *atlas_xfl,
    ATLAS_SPACE_LIST *at_spl);
 int copy_xform(ATLAS_XFORM *src_xform, ATLAS_XFORM *dest_xform);
 ATLAS_XFORM_LIST *
@@ -79,7 +79,7 @@ ATLAS_XFORM_LIST *read_space_xforms(NI_stream space_niml);
 ATLAS_XFORM_LIST *calc_xform_list(ATLAS_XFORM_LIST *xfl);
 int find_atlas_space_index(char *spacename);
 void report_available_spaces(char *src);
-ATLAS_SPACE_LIST *find_available_spaces(char *src_space_name, 
+ATLAS_SPACE_LIST *find_available_spaces(char *src_space_name,
                                         ATLAS_SPACE_LIST *this_list);
 char * THD_get_generic_space(THD_3dim_dataset *dset);
 char * THD_get_view_space(THD_3dim_dataset *dset);
@@ -127,7 +127,7 @@ int x2piece_12piece_mult(ATLAS_XFORM *xf,
    ATLAS_XFORM *xf2, ATLAS_XFORM *xf3, int dir);
 int x12piece_12piece_mult(ATLAS_XFORM *xf,
    ATLAS_XFORM *xf2, ATLAS_XFORM *xf3);
-   
+
 int invert_xform(ATLAS_XFORM *xf);
 int invert_affine(ATLAS_XFORM *xf);
 int invert_12piece(ATLAS_XFORM *xf);

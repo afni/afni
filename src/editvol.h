@@ -294,7 +294,7 @@ typedef struct EDIT_options {
 
    int rank;                      /*!< 13 Nov 2007 --> ZSS: Rank dset values. */
    char rankmapname[THD_MAX_NAME+THD_MAX_PREFIX+1];
-   
+
    int isomode;                  /*!< 03 March 2010, ZSS: Use value for clust */
 } EDIT_options ;
 
@@ -462,11 +462,11 @@ extern THD_datablock *    EDIT_empty_datablock(void) ;          /* 11 Mar 2005 *
 extern void EDIT_add_bricklist( THD_3dim_dataset *,int,int *,float *,void *sbr[] ) ;
 
 extern void EDIT_add_brick( THD_3dim_dataset * , int , float , void * ) ;
-extern int EDIT_add_bricks_from_far(THD_3dim_dataset *dset, 
+extern int EDIT_add_bricks_from_far(THD_3dim_dataset *dset,
                                       float **far, int nval,
-                                      int otype, char scaleopt, 
+                                      int otype, char scaleopt,
                                       int verb);
-                    
+
 extern void EDIT_substitute_brick( THD_3dim_dataset *,  int,int, void * ) ;
 extern void EDIT_substscale_brick( THD_3dim_dataset *,  int,int, void *, int,float ) ;
 
@@ -713,18 +713,18 @@ extern MRI_IMARR * mri_get_indexed_nbhd( MRI_IMAGE *, byte *,
 extern int mri_get_nbhd_array( MRI_IMAGE *inim , byte *mask ,
                                int xx, int yy, int zz, MCW_cluster *nbhd, void *nar ) ;
 extern int mri_load_nbhd_indices ( int nx, int ny, int nz , byte *mask ,
-                          int xx, int yy, int zz, MCW_cluster *nbhd, 
+                          int xx, int yy, int zz, MCW_cluster *nbhd,
                           int *nind);
 extern MRI_IMAGE * mri_localstat( MRI_IMAGE *, byte *, MCW_cluster *, int ) ;
 extern THD_3dim_dataset * THD_localstat( THD_3dim_dataset *, byte *,
-                                         MCW_cluster *, int, int *, 
+                                         MCW_cluster *, int, int *,
                                          float p[][MAX_CODE_PARAMS+1],
                                          float *reduce_grid, int resam_mode) ;
 extern void THD_localstat_verb(int) ;
-extern int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk, 
-                                 THD_3dim_dataset *gset, 
+extern int DSET_1Dindex_to_regrid_ijk( THD_3dim_dataset *iset, int ijk,
+                                 THD_3dim_dataset *gset,
                                  int *ii, int *jj, int *kk);
-extern THD_3dim_dataset * THD_reduced_grid_copy(THD_3dim_dataset *dset, 
+extern THD_3dim_dataset * THD_reduced_grid_copy(THD_3dim_dataset *dset,
                                  float *redx);
 extern MRI_IMAGE * mri_localbistat( MRI_IMAGE *, MRI_IMAGE *,
                                     byte *, MCW_cluster *, int ) ;

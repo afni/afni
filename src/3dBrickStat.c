@@ -78,13 +78,13 @@ static void Max_tsfunc( double tzero , double tdelta ,
                         double ts_slope , void *ud , int nbriks, float *val ) ;
 static float minvalue=1E10, maxvalue=-1E10;
 */
- 
+
 /*! compute the overall minimum and maximum voxel values for a dataset */
 int main( int argc , char * argv[] )
 {
    THD_3dim_dataset * old_dset , * new_dset ;  /* input and output datasets */
    int nopt, nbriks;
-   int slow_flag, quick_flag, min_flag, max_flag, mean_flag, 
+   int slow_flag, quick_flag, min_flag, max_flag, mean_flag,
        automask,count_flag, sum_flag, var_flag, absolute_flag;
    int positive_flag, negative_flag, zero_flag, nan_flag, perc_flag, vol_flag;
 
@@ -122,8 +122,8 @@ int main( int argc , char * argv[] )
    perc_flag = 0;
    mmin = 1.0;
    mmax = -1.0;
-   mask_dset_name = NULL;      
-   
+   mask_dset_name = NULL;
+
    datum = MRI_float;
    while( nopt < argc && argv[nopt][0] == '-' ){
       if( strcmp(argv[nopt],"-help") == 0 ||
@@ -131,7 +131,7 @@ int main( int argc , char * argv[] )
         usage_3dBrickStat(strlen(argv[nopt])> 3 ? 2:1);
         exit(0);
       }
-      
+
       if( strcmp(argv[nopt],"-ver") == 0 ){
         PRINT_VERSION("3dBrickStat"); AUTHOR("Daniel Glen");
         nopt++; continue;
@@ -146,25 +146,25 @@ int main( int argc , char * argv[] )
 	perc_flag = 1;
         ++nopt;
         if (nopt + 2 >= argc) {
-           ERROR_exit( "** Error: Need 3 parameter after -percentile\n"); 
+           ERROR_exit( "** Error: Need 3 parameter after -percentile\n");
         }
         mp0 = atof(argv[nopt])/100.0f; ++nopt;
         mps = atof(argv[nopt])/100.0f; ++nopt;
-        mp1 = atof(argv[nopt])/100.0f; 
+        mp1 = atof(argv[nopt])/100.0f;
         if (mps == 0.0f) {
-         ERROR_exit( "** Error: step cannot be 0" ); 
+         ERROR_exit( "** Error: step cannot be 0" );
         }
         if (mp0 < 0 || mp0 > 100 || mp1 < 0 || mp1 > 100) {
-         ERROR_exit( "** Error: p0 and p1 must be >=0 and <= 100" ); 
+         ERROR_exit( "** Error: p0 and p1 must be >=0 and <= 100" );
         }
-        
+
         nopt++; continue;
       }
 
       if( strcmp(argv[nopt],"-median") == 0 ){
 	perc_flag = 1;
-        mp0 = 0.50f; 
-        mps = 0.01f; 
+        mp0 = 0.50f;
+        mps = 0.01f;
         mp1 = 0.50f;
         nopt++; continue;
       }
@@ -227,7 +227,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-positive") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 1;
 	negative_flag = 0;
@@ -238,7 +238,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-negative") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 0;
 	negative_flag = 1;
@@ -249,7 +249,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-zero") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 0;
         negative_flag = 0;
@@ -260,7 +260,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-non-positive") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 0;
 	negative_flag = 1;
@@ -270,7 +270,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-non-negative") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 1;
 	negative_flag = 0;
@@ -281,7 +281,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-non-zero") == 0 ){
         if(positive_flag!=-1) {
           ERROR_exit( "Can not use multiple +/-/0 options");
-          
+
         }
         positive_flag = 1;
 	negative_flag = 1;
@@ -297,7 +297,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-nan") == 0 ){
         if(nan_flag!=-1) {
           ERROR_exit( "Can not use both -nan -nonan options");
-          
+
         }
         nan_flag = 1;
         nopt++; continue;
@@ -306,7 +306,7 @@ int main( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-nonan") == 0 ){
         if(nan_flag!=-1) {
           ERROR_exit( "Can not use both -nan -nonan options");
-          
+
         }
         nan_flag = 0;
         nopt++; continue;
@@ -317,7 +317,7 @@ int main( int argc , char * argv[] )
 
          if( mmm != NULL ){
            ERROR_exit(" ERROR: can't use -autoclip/mask with -mask!");
-           
+
          }
          automask = 1 ; nopt++ ; continue ;
       }
@@ -332,10 +332,10 @@ int main( int argc , char * argv[] )
             ERROR_exit(
                "1st value in -mrange %s %s should be the smallest one",
                argv[nopt-1], argv[nopt]);
-         } 
+         }
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-mvalue") == 0 ){
          if (nopt+1 >= argc) {
             ERROR_exit(" ERROR: Need 1 value after -mvalue");
@@ -344,10 +344,10 @@ int main( int argc , char * argv[] )
          mmax = mmin ;
          nopt++ ; continue ;
       }
-      
+
       if( strcmp(argv[nopt],"-mask") == 0 ){
          if( mask_dset_name != NULL )
-            ERROR_exit(" ERROR: can't have 2 -mask options!");         
+            ERROR_exit(" ERROR: can't have 2 -mask options!");
          mask_dset_name = argv[++nopt];
          nopt++ ; continue ;
       }
@@ -371,18 +371,18 @@ int main( int argc , char * argv[] )
       }
       mask_dset = THD_open_dataset(mask_dset_name) ;
       CHECK_OPEN_ERROR(mask_dset,mask_dset_name) ;
-       
+
       mmm = THD_makemask( mask_dset , 0 , mmin, mmax ) ;
       mmvox = DSET_NVOX( mask_dset ) ;
       ninmask = THD_countmask (mmvox, mmm);
       if (!ninmask) {
          ERROR_exit(" No voxels in mask !");
-      }  
+      }
       /* text output program, so avoid extras   26 Dec 2013 [rickr] */
       /* INFO_message("%d voxels in mask\n", ninmask); */
-      DSET_delete(mask_dset) ; 
+      DSET_delete(mask_dset) ;
    }
-         
+
    if(((mmm!=NULL) && (quick_flag))||(automask &&quick_flag)) {
       if(quick_flag==1)
          WARNING_message( "+++ Warning - can't have quick option with mask");
@@ -391,9 +391,9 @@ int main( int argc , char * argv[] )
    }
 
   /* if max_flag is not set by user, check if other user options set */
-   if(max_flag==-1) {                
+   if(max_flag==-1) {
      if(min_flag || mean_flag || count_flag || vol_flag || sum_flag
-                 || perc_flag || var_flag) 
+                 || perc_flag || var_flag)
          max_flag = 0;
       else
 	max_flag = 1;                  /* otherwise check only for max */
@@ -406,7 +406,7 @@ int main( int argc , char * argv[] )
           /* mean flag or count_flag implies slow */
      slow_flag = 1;
    }
-   
+
    /* check slow and quick options */
    if((slow_flag)&&(quick_flag!=1))  /* if user asked for slow give it to him */
       quick_flag = 0;
@@ -416,7 +416,7 @@ int main( int argc , char * argv[] )
    if((max_flag==0)&&(min_flag==0))   /* if the user only asked for mean */
      quick_flag = 0;                  /*  no need to do quick way */
 
-   if((quick_flag) && 
+   if((quick_flag) &&
       ((absolute_flag==1)||(positive_flag==1)||(negative_flag==1)||(zero_flag==1)))
      WARNING_message( " Warning - ignoring +/-/0/abs flags for quick computations");
 
@@ -429,7 +429,7 @@ int main( int argc , char * argv[] )
    /*----- read input dataset -----*/
 
    if( nopt >= argc ){
-      ERROR_exit(" No input dataset!?"); 
+      ERROR_exit(" No input dataset!?");
    }
 
    old_dset = THD_open_dataset( argv[nopt] ) ;
@@ -438,7 +438,7 @@ int main( int argc , char * argv[] )
    nxyz = DSET_NVOX(old_dset) ;
    if( mmm != NULL && mmvox != nxyz ){
       ERROR_exit(" Mask and input datasets not the same size!") ;
-      
+
    }
 
    if(automask && mmm == NULL ){
@@ -450,33 +450,33 @@ int main( int argc , char * argv[] )
 
    if(quick_flag)
       Print_Header_MinMax(min_flag, max_flag, old_dset);
- 
+
    if(slow_flag!=1)
       exit(0);
 
    /* ZSS do some diddlyiddly sorting - DO not affect Daniel's function later on*/
    if (perc_flag == 1) {
       DSET_mallocize (old_dset);
-      DSET_load (old_dset);	                
+      DSET_load (old_dset);
       if (DSET_NVALS(old_dset) != 1) {
          ERROR_exit( "-percentile can only be used on one sub-brick only.\n"
                      "Use sub-brick selectors '[.]' to specify sub-brick of interest.\n");
       }
-      
+
      /* prep for input and output of percentiles */
       if (mp0 > mp1) {
-         N_mp = 1; 
+         N_mp = 1;
       } else {
          /* allocate one above ceiling to prevent truncation error (and crash),
             N_mp is recomputed anyway      16 Mar 2009 [rickr]               */
          N_mp = (int)((double)(mp1-mp0)/(double)mps) + 2;
-      } 
+      }
       mpv = (double *)malloc(sizeof(double)*N_mp);
       perc = (double *)malloc(sizeof(double)*N_mp);
       if (!mpv || !perc) {
          ERROR_message("Failed to allocate for mpv or perc");
          exit(1);
-      }  
+      }
       N_mp = 0;
       mp = mp0;
       do {
@@ -489,32 +489,32 @@ int main( int argc , char * argv[] )
                zero_flag, positive_flag, negative_flag )) {
 
          ERROR_message("Failed to compute percentiles.");
-         exit(1);         
+         exit(1);
       }
-      
+
       /* take care of brick factor */
       if (DSET_BRICK_FACTOR(old_dset,0)) {
          for (i=0; i<N_mp; ++i) {
             perc[i] = perc[i]*DSET_BRICK_FACTOR(old_dset,0);
          }
       }
-      
+
       for (i=0; i<N_mp; ++i) {
-         fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]); 
+         fprintf(stdout,"%.1f %f   ", mpv[i]*100.0f, perc[i]);
       }
       free(mpv); mpv = NULL;
       free(perc); perc = NULL;
-      
+
    }
 
    Max_func(min_flag, max_flag, mean_flag,count_flag,
         positive_flag, negative_flag, zero_flag, absolute_flag,
         nan_flag, sum_flag, var_flag, vol_flag,old_dset, mmm, mmvox);
 
-   
+
    if(mmm!=NULL)
      free(mmm);
-   
+
    exit(0);
 
 /* unused code time series method for extracting data */
@@ -541,9 +541,9 @@ int main( int argc , char * argv[] )
                  0   /* Allow auto scaling of output */
               ) ;
    if(min_flag)
-     printf("%-13.6g ", minvalue); 
+     printf("%-13.6g ", minvalue);
    if(max_flag)
-     printf("%-13.6g", maxvalue); 
+     printf("%-13.6g", maxvalue);
    printf("\n");
    exit(0) ;
 #endif
@@ -556,7 +556,7 @@ int Minflag, Maxflag;
 THD_3dim_dataset * dset;
 {
   int ival, nval_per;
-  float tf=0.0; 
+  float tf=0.0;
   double scaledmin, scaledmax, internalmin, internalmax, overallmin, overallmax;
 
   overallmin = 1E10;
@@ -586,7 +586,7 @@ THD_3dim_dataset * dset;
             if(scaledmax > overallmax)
 	      overallmax = scaledmax;
 	 }
-      } 
+      }
       else {
          WARNING_message("No valid statistics in header. \n"
                          "Use -slow option to generate a new one.") ;
@@ -610,7 +610,7 @@ THD_3dim_dataset * dset;
 /*! search whole dataset for minimum and maximum */
 /* load all at one time */
 static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
-    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag, 
+    int Posflag, int Negflag, int Zeroflag, int Absflag, int nan_flag,
     int Sumflag,
     int Varflag, int Volflag,  THD_3dim_dataset * dset, byte *mmm, int mmvox)
 {
@@ -714,7 +714,7 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
               if(((voxval<0)&&Negflag)||((voxval==0)&&Zeroflag)||((voxval>0)&&Posflag)) {
 	         sum += voxval;
             if (Varflag) sum2 += voxval*voxval;
-                 ++npts;            
+                 ++npts;
                  if(voxval<overallmin)
 	            overallmin = voxval;
                  if(voxval>overallmax)
@@ -736,16 +736,16 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
      printf("%-13d", npts);
 
    if(Volflag)
-     printf("%-13.6f", dset->daxes->xxdel *  dset->daxes->yydel * 
+     printf("%-13.6f", dset->daxes->xxdel *  dset->daxes->yydel *
           dset->daxes->zzdel * npts);
 
 
-   if (Sumflag) 
+   if (Sumflag)
       printf("%-13.6g ", sum);
    if (Varflag) {
       vr = (sum2-sum*sum/(double)npts)/(double)(npts-1);
-      if (Varflag == 2) printf("%-13.6g ", sqrt(vr)); 
-      else  printf("%-13.6g ", vr);   
+      if (Varflag == 2) printf("%-13.6g ", sqrt(vr));
+      else  printf("%-13.6g ", vr);
    }
    printf("\n");
 
@@ -766,7 +766,7 @@ static void Max_tsfunc( double tzero, double tdelta ,
    static int nvox, ncall;
    int i;
 
-  ENTRY("Max_tsfunc"); 
+  ENTRY("Max_tsfunc");
   /* ts is input vector data */
 
    /** is this a "notification"? **/

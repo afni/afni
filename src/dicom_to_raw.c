@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
           ) ;
     exit(0) ;
   }
-           
+
   for( kk=1 ; kk < argc ; kk++ ){
     imar = mri_read_dicom( argv[kk] ) ;
     if( imar == NULL ){

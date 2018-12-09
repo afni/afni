@@ -1,7 +1,7 @@
 #include "SUMA_suma.h"
 
 void usage_SUMA_FSread_annot_Main ()
-   
+
   {/*Usage*/
       static char FuncName[]={"usage_SUMA_FSread_annot_Main"};
       char * s = NULL;
@@ -87,27 +87,27 @@ void usage_SUMA_FSread_annot_Main ()
 "     -dset DSET: Write out a niml formatted label dataset which is handled\n"
 "                   in a special way in SUMA. If AFNI_NIML_TEXT_DATA is set\n"
 "                   to YES, then output is ASCII NIML.\n"
-"\n"        
+"\n"
                   "\n");
        s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
        printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
        exit (0);
   }/*Usage*/
-   
+
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"FSread_annot"};
    int kar, Showct, testmode;
-   char *fname = NULL, *fcmap = NULL, *fdset = NULL, 
+   char *fname = NULL, *fcmap = NULL, *fdset = NULL,
          *froi = NULL, *fcol = NULL, *ctfile=NULL, sbuf[1024]={""};
    SUMA_Boolean SkipCoords = NOPE, brk;
    SUMA_DSET *dset=NULL;
    int lbl1,lbl2, ver, hemi, FSdefault;
-   SUMA_Boolean LocalHead = NOPE;	
-   
+   SUMA_Boolean LocalHead = NOPE;
+
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
-   
+
 	/* allocate space for CommonFields structure */
 	SUMAg_CF = SUMA_Create_CommonFields ();
 	if (SUMAg_CF == NULL) {
@@ -137,17 +137,17 @@ int main (int argc,char *argv[])
 			 usage_SUMA_FSread_annot_Main();
           exit (0);
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-show_FScmap") == 0)) {
          Showct = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-testmode") == 0)) {
          testmode = 1;
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-input") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -176,11 +176,11 @@ int main (int argc,char *argv[])
                ctfile = sbuf;
                FSdefault = 1;
                SUMA_S_Notev("Using %s\n", ctfile);
-            }              
+            }
          }
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-FSversion") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -190,7 +190,7 @@ int main (int argc,char *argv[])
          if (strstr(argv[kar],"2009")) ver = 2009;
          else if (strstr(argv[kar],"2005")) ver = 2005;
          else {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                   "Bad value for -FSversion of %s (looking for 2005 or 2009)\n",
                   argv[kar]);
 				exit (1);
@@ -207,14 +207,14 @@ int main (int argc,char *argv[])
          if (strstr(argv[kar],"lh")) hemi = -1;
          else if (strstr(argv[kar],"rh")) hemi = 1;
          else {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                   "Bad value for -hemi of %s (looking for lh or rh)\n",
                   argv[kar]);
 				exit (1);
          }
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-FScmaprange") == 0)) {
          kar ++;
 			if (kar+1 >= argc)  {
@@ -222,17 +222,17 @@ int main (int argc,char *argv[])
 				exit (1);
 			}
          lbl1 = atoi(argv[kar]); ++kar;
-         lbl2 = atoi(argv[kar]); 
-         
+         lbl2 = atoi(argv[kar]);
+
          if (lbl1 > lbl2 || lbl1 < -1) {
-            fprintf (SUMA_STDERR, 
+            fprintf (SUMA_STDERR,
                   "Bad value for -FScmaprange of [%d %d]\n",
                   lbl1, lbl2);
 				exit (1);
          }
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-roi_1D") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -242,7 +242,7 @@ int main (int argc,char *argv[])
          froi = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && ( (strcmp(argv[kar], "-prefix") == 0) ||
                     (strcmp(argv[kar], "-dset") == 0) ) ) {
          kar ++;
@@ -253,7 +253,7 @@ int main (int argc,char *argv[])
          fdset = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-cmap_1D") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -263,7 +263,7 @@ int main (int argc,char *argv[])
          fcmap = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk && (strcmp(argv[kar], "-col_1D") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -273,24 +273,24 @@ int main (int argc,char *argv[])
          fcol = argv[kar];
 			brk = YUP;
 		}
-      
+
       if (!brk) {
 			fprintf (SUMA_STDERR,
                   "Error %s:\n"
-                  "Option %s not understood. Try -help for usage\n", 
+                  "Option %s not understood. Try -help for usage\n",
                   FuncName, argv[kar]);
 			exit (1);
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    if (!fname) {
       SUMA_SL_Err("No input file specified.");
       exit(1);
    }
-   
+
    if (ver == -1) {
       /* guess at version */
       if (strstr(fname,"2009")) {
@@ -303,7 +303,7 @@ int main (int argc,char *argv[])
          SUMA_S_Notev("Assuming FS annot version of %d\n", ver);
       }
    }
-   
+
    if (hemi == 0) {
       if (strstr(fname,"lh.")) {
          hemi = -1;
@@ -320,7 +320,7 @@ int main (int argc,char *argv[])
          }
       }
    }
-   
+
    if (ver == 2009 && !ctfile) {
       char *eee = getenv("FREESURFER_HOME");
       /* more obvious warning   29 Oct 2018 [rickr] */
@@ -331,9 +331,9 @@ int main (int argc,char *argv[])
          sprintf(sbuf, "%s/FreeSurferColorLUT.txt", eee);
          ctfile = sbuf;
          SUMA_S_Notev("Using %s\n", ctfile);
-      }  
+      }
    }
-   
+
    if (lbl1 < 0 && lbl2 < 0) {
       /* need some setup */
       if (ver == 2009) {
@@ -368,7 +368,7 @@ int main (int argc,char *argv[])
          }
       }
    }
-   
+
    if (!fcmap && !froi && !fcol && !Showct && !fdset) {
       SUMA_SL_Err("Nothing to do.\n"
                   "Use either -cmap_1D or \n"
@@ -380,7 +380,7 @@ int main (int argc,char *argv[])
    if (fdset) {
       int exists = 0;
       char *ooo=NULL;
-      exists = SUMA_WriteDset_NameCheck_s (fdset, NULL, 
+      exists = SUMA_WriteDset_NameCheck_s (fdset, NULL,
                                            SUMA_ASCII_NIML, 0, &ooo);
       if (exists != 0 && !THD_ok_overwrite()) {
          SUMA_S_Errv("Output dataset %s exists.\n", ooo);
@@ -390,67 +390,67 @@ int main (int argc,char *argv[])
    }
 
    if (froi) {
-      if (SUMA_filexists(froi) && !THD_ok_overwrite()) { 
+      if (SUMA_filexists(froi) && !THD_ok_overwrite()) {
          fprintf( SUMA_STDERR,
-                  "Error %s: File %s exists, will not overwrite.\n", 
+                  "Error %s: File %s exists, will not overwrite.\n",
                   FuncName, froi);
 	      SUMA_RETURN (NOPE);
       }
    }
-     
+
    if (fcmap) {
-      if (SUMA_filexists(fcmap) && !THD_ok_overwrite()) { 
+      if (SUMA_filexists(fcmap) && !THD_ok_overwrite()) {
          fprintf( SUMA_STDERR,
-                  "Error %s: File %s exists, will not overwrite.\n", 
+                  "Error %s: File %s exists, will not overwrite.\n",
                   FuncName, fcmap);
 	      SUMA_RETURN (NOPE);
       }
    }
-     
+
    if (fcol) {
-      if (SUMA_filexists(fcol) && !THD_ok_overwrite()) { 
+      if (SUMA_filexists(fcol) && !THD_ok_overwrite()) {
          fprintf( SUMA_STDERR,
-                  "Error %s: File %s exists, will not overwrite.\n", 
+                  "Error %s: File %s exists, will not overwrite.\n",
                   FuncName, fcol);
 	      SUMA_RETURN (NOPE);
       }
    }
-     
-   if (!SUMA_readFSannot (fname, froi, fcmap, fcol, Showct, ctfile, 
+
+   if (!SUMA_readFSannot (fname, froi, fcmap, fcol, Showct, ctfile,
                           lbl1, lbl2, &dset)) {
       SUMA_S_Err("Failed reading annotation file (or output file exists)");
       exit(1);
    }
-   
+
    if (!dset && fdset) {
       SUMA_S_Err("Have no dset to write");
       exit(1);
    }
-   
+
    if (fdset) {
       if (AFNI_yesenv("AFNI_NIML_TEXT_DATA")) {
          SUMA_WriteDset_eng(fdset, dset, SUMA_ASCII_NIML, 1, 1, 1);
       } else {
-         SUMA_WriteDset_eng(fdset, dset, SUMA_BINARY_NIML, 1, 1, 1);      
+         SUMA_WriteDset_eng(fdset, dset, SUMA_BINARY_NIML, 1, 1, 1);
       }
    }
-   
+
    if (testmode) {
       int key, indx, ism, suc;
       SUMA_COLOR_MAP *SM2=NULL, *SM=NULL;
       char *s=NULL, stmp[256];
       SUMA_PARSED_NAME *sname=NULL;
       NI_group *ngr=NULL;
-      
+
       SUMA_S_Note("Testing Chunk Begins");
-      
+
       /* check */
       if (!SUMA_is_Label_dset(dset, &ngr)) {
          SUMA_S_Err("Dset is no label dset");
          exit(1);
       }
       /* write it */
-      
+
       /* play with the colormap */
       if (ngr) {
          if (!(SM = SUMA_NICmapToCmap(ngr))){
@@ -487,7 +487,7 @@ int main (int argc,char *argv[])
                      "id %d is not in the hash table, as expected\n", key);
          } else {
             SUMA_S_Errv("Should not have found %d\n", key);
-         }      
+         }
 
          SUMA_S_Note("Now Show it to me");
          s = SUMA_ColorMapVec_Info (&SM, 1, 2);
@@ -498,8 +498,8 @@ int main (int argc,char *argv[])
          SUMA_S_Notev("Now turn it to niml (%s)\n", SM->Name);
          ngr = SUMA_CmapToNICmap(SM);
          sname = SUMA_ParseFname(SM->Name, NULL);
-         snprintf(stmp, 128*sizeof(char), 
-                  "file:%s.niml.cmap", sname->FileName_NoExt); 
+         snprintf(stmp, 128*sizeof(char),
+                  "file:%s.niml.cmap", sname->FileName_NoExt);
          NEL_WRITE_TX(ngr, stmp, suc);
          if (!suc) {
             SUMA_S_Errv("Failed to write %s\n", stmp);
@@ -518,11 +518,11 @@ int main (int argc,char *argv[])
          SUMA_Free_ColorMap(SM); SM = NULL;
          SUMA_Free_ColorMap(SM2); SM2 = NULL;
       }
-      
+
       SUMA_S_Note("Testing Chunk End");
    }
 
    if (dset) SUMA_FreeDset(dset); dset = NULL;
-   
+
    exit(0);
 }

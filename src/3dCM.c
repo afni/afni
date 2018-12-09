@@ -4,7 +4,7 @@
 
 int main( int argc , char * argv[] )
 {
-   int narg=1, do_automask=0 , iv , nxyz , do_set=0 , 
+   int narg=1, do_automask=0 , iv , nxyz , do_set=0 ,
       *rois=NULL, N_rois=0, all_rois = 0;
    THD_3dim_dataset *xset ;
    byte *mmm=NULL ; int nmask=0 , nvox_mask=0 ;
@@ -63,7 +63,7 @@ int main( int argc , char * argv[] )
       if( strncmp(argv[narg],"-mask",5) == 0 ){
          THD_3dim_dataset *mask_dset ;
          if( mmm != NULL ){
-            fprintf(stderr,"*** Cannot have two -mask options!\n") ; 
+            fprintf(stderr,"*** Cannot have two -mask options!\n") ;
             exit(1) ;
          }
          if( do_automask ){
@@ -107,14 +107,14 @@ int main( int argc , char * argv[] )
             rois[N_rois++] = atoi(argv[narg]);
             ++narg;
          }
-        
+
          continue ;
       }
       if( strncmp(argv[narg],"-all_rois",5) == 0 ){
          all_rois = 1;
          narg++ ; continue ;
       }
-      
+
       if( strcmp(argv[narg],"-automask") == 0 ){
          if( mmm != NULL ){
             fprintf(stderr,"*** Can't have -mask and -automask!\n") ; exit(1) ;
@@ -175,13 +175,13 @@ int main( int argc , char * argv[] )
          }
          fprintf(stderr,"#%d distinct ROIs\n", N_rois);
       }
-     
+
       if (!N_rois) {
 
          // [PT, Dec, 2016] allow integer ijk output
          cmv = THD_cmass( xset , 0 , mmm, cmode ) ;
          /*if( cmode == 1 ) // integer valued
-           printf("%d  %d  %d\n", (int) cmv.xyz[0], 
+           printf("%d  %d  %d\n", (int) cmv.xyz[0],
            (int) cmv.xyz[1], (int) cmv.xyz[2]) ;
            else*/
          printf("%g  %g  %g\n",cmv.xyz[0],cmv.xyz[1],cmv.xyz[2]) ;
@@ -218,7 +218,7 @@ int main( int argc , char * argv[] )
                   DSET_load( xset ) ;
                   DSET_overwrite(xset) ;
                   INFO_message("Wrote new dataset: %s",DSET_BRIKNAME(xset)) ;
-               }   
+               }
             }
          }
       } else {
@@ -229,13 +229,13 @@ int main( int argc , char * argv[] )
                printf("#ROI %d\n", rois[iv]);
                printf("%g  %g  %g\n",xyz[3*iv],xyz[3*iv+1],xyz[3*iv+2]) ;
             }
-            free(xyz); free(rois); 
+            free(xyz); free(rois);
          } else {
             ERROR_message("Failed in THD_roi_cmass"); continue;
          }
       }
       DSET_delete(xset) ;
    }
-   
+
    exit(0);
 }

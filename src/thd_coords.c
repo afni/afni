@@ -13,7 +13,7 @@ static int oblique_report_repeat2 = 100;
 static int first_oblique = 1;
 static int oblique_update = 0;
 static int OBL_report=1;
-void set_obliquity_report(int v) { OBL_report=v; } 
+void set_obliquity_report(int v) { OBL_report=v; }
 
 
 /*====================================================================
@@ -569,81 +569,81 @@ void THD_dicom_card_xform (THD_3dim_dataset *dset ,
 {
 
    THD_dfvec3 dicr;
-   
+
    /* rotation business */
    switch( dset->daxes->xxorient ){
       case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: 
+      case ORI_L2R_TYPE:
            tmat->mat[0][0] = dset->daxes->xxdel ; tmat->mat[0][1] = tmat->mat[0][2] = 0.0;
-         dics->xyz[0] = dset->daxes->xxorg;      
+         dics->xyz[0] = dset->daxes->xxorg;
          break ;
       case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: 
+      case ORI_A2P_TYPE:
            tmat->mat[1][0] = dset->daxes->xxdel ; tmat->mat[1][1] = tmat->mat[1][2] = 0.0;
-         dics->xyz[1] = dset->daxes->xxorg;      
+         dics->xyz[1] = dset->daxes->xxorg;
          break ;
       case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: 
+      case ORI_S2I_TYPE:
            tmat->mat[2][0] = dset->daxes->xxdel ; tmat->mat[2][1] = tmat->mat[2][2] = 0.0;
-         dics->xyz[2] = dset->daxes->xxorg;      
+         dics->xyz[2] = dset->daxes->xxorg;
          break ;
       default: THD_FATAL_ERROR("illegal xxorient code") ;
    }
 
    switch( dset->daxes->yyorient ){
       case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: 
+      case ORI_L2R_TYPE:
            tmat->mat[0][1] = dset->daxes->yydel ; tmat->mat[0][0] = tmat->mat[0][2] = 0.0;
-         dics->xyz[0] = dset->daxes->yyorg;      
+         dics->xyz[0] = dset->daxes->yyorg;
          break ;
       case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: 
+      case ORI_A2P_TYPE:
            tmat->mat[1][1] = dset->daxes->yydel ; tmat->mat[1][0] = tmat->mat[1][2] = 0.0;
-         dics->xyz[1] = dset->daxes->yyorg;      
+         dics->xyz[1] = dset->daxes->yyorg;
          break ;
       case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: 
+      case ORI_S2I_TYPE:
            tmat->mat[2][1] = dset->daxes->yydel ; tmat->mat[2][0] = tmat->mat[2][2] = 0.0;
-         dics->xyz[2] = dset->daxes->yyorg;      
+         dics->xyz[2] = dset->daxes->yyorg;
          break ;
-      
+
       default: THD_FATAL_ERROR("illegal yyorient code") ;
    }
 
    switch( dset->daxes->zzorient ){
       case ORI_R2L_TYPE:
-      case ORI_L2R_TYPE: 
+      case ORI_L2R_TYPE:
            tmat->mat[0][2] = dset->daxes->zzdel ; tmat->mat[0][0] = tmat->mat[0][1] = 0.0;
-         dics->xyz[0] = dset->daxes->zzorg;      
+         dics->xyz[0] = dset->daxes->zzorg;
          break ;
       case ORI_P2A_TYPE:
-      case ORI_A2P_TYPE: 
+      case ORI_A2P_TYPE:
            tmat->mat[1][2] = dset->daxes->zzdel ; tmat->mat[1][0] = tmat->mat[1][1] = 0.0;
-         dics->xyz[1] = dset->daxes->zzorg;      
+         dics->xyz[1] = dset->daxes->zzorg;
          break ;
       case ORI_I2S_TYPE:
-      case ORI_S2I_TYPE: 
+      case ORI_S2I_TYPE:
            tmat->mat[2][2] = dset->daxes->zzdel ; tmat->mat[2][0] = tmat->mat[2][1] = 0.0;
-         dics->xyz[2] = dset->daxes->zzorg;      
+         dics->xyz[2] = dset->daxes->zzorg;
          break ;
       default: THD_FATAL_ERROR("illegal zzorient code") ;
    }
-   
+
    return  ;
 }
 
 /*---------------------------------------------------------------------
    Return rotation and shift param. to go from i, j, k to Real
-   Dicom x,y,z 
+   Dicom x,y,z
 -----------------------------------------------------------------------*/
 void THD_dicom_real_xform(THD_3dim_dataset *dset ,
                           THD_dmat33 *tmat, THD_dfvec3 *dics )
 {
-   if (  !dset || !dset->daxes || 
+   if (  !dset || !dset->daxes ||
          !ISVALID_MAT44(dset->daxes->ijk_to_dicom_real)) {
       THD_FATAL_ERROR("null input or no valid ijk_to_dicom_real") ;
    }
-   
+
    UNLOAD_MAT44(dset->daxes->ijk_to_dicom_real,
       tmat->mat[0][0], tmat->mat[0][1], tmat->mat[0][2], dics->xyz[0],    \
       tmat->mat[1][0], tmat->mat[1][1], tmat->mat[1][2], dics->xyz[1],    \
@@ -692,7 +692,7 @@ float THD_compute_oblique_angle(mat44 ijk_to_dicom44, int verbose)
    if (fabs(ang_merit) > .01) {
      if ( verbose ) INFO_message("%f degrees from plumb.\n",ang_merit ) ;
    }
-   else 
+   else
       ang_merit = 0.0;
    return(ang_merit);
 }
@@ -725,14 +725,14 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
 
       INFO_message("Oblique dataset:%s is %f degrees from plumb.\n",
         DSET_BRIKNAME(dset), angle  ) ;
-      
+
    }
 
 
    oblique_report_index++;
 
    if(oblique_report_repeat2==-1) {   /* report obliquity n times, stop */
-      if(oblique_report_index>oblique_report_repeat) 
+      if(oblique_report_index>oblique_report_repeat)
          oblique_report_index = oblique_report_repeat;
       EXRETURN;
    }
@@ -744,7 +744,7 @@ void THD_report_obliquity(THD_3dim_dataset *dset)
    EXRETURN;
 }
 
-/* set the number of times to report obliquity and 
+/* set the number of times to report obliquity and
    the number of oblique datasets to skip.
    If the first number is 0, don't report at all.
    If the second number is 0 (and the first number is not), always report.
@@ -775,8 +775,8 @@ void THD_make_cardinal(THD_3dim_dataset *dset)
    THD_dfvec3 tvec ;
    mat44 Tc, Tr;
 
-   THD_dicom_card_xform(dset, &tmat, &tvec); 
-   LOAD_MAT44(Tc, 
+   THD_dicom_card_xform(dset, &tmat, &tvec);
+   LOAD_MAT44(Tc,
       tmat.mat[0][0], tmat.mat[0][1], tmat.mat[0][2], tvec.xyz[0],
       tmat.mat[1][0], tmat.mat[1][1], tmat.mat[1][2], tvec.xyz[1],
       tmat.mat[2][0], tmat.mat[2][1], tmat.mat[2][2], tvec.xyz[2]);

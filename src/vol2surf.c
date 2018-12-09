@@ -118,7 +118,7 @@ typedef struct
     int                oob_check;       /* should we check for oob?   */
     int                debug;           /* for local control         */
 } range_3dmm;
-                                                                                
+
 typedef struct
 {
     MRI_IMARR   ims;                    /* the image array struct     */
@@ -199,7 +199,7 @@ char gv2s_no_label[] = "undefined";
  *             sB           : surface B structure
  *             mask         : thresholding mask
  *             use_defaults : use default sopt structure
- * 
+ *
  *    output:  sd    : allocated v2s_results struct, with requested data
  *
  * This function is used to map data from an AFNI volume to a surface.
@@ -225,7 +225,7 @@ v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, int gp_index,
         sopt->debug = gv2s_plug_opts.sopt.debug;
         sopt->dnode = gv2s_plug_opts.sopt.dnode;
     }
-    else 
+    else
         sopt = &gv2s_plug_opts.sopt;
 
     sopt->gp_index = gp_index;
@@ -244,7 +244,7 @@ v2s_results * afni_vol2surf ( THD_3dim_dataset * gpar, int gp_index,
  *             sA           : surface A structure
  *             sB           : surface B structure
  *             mask         : volume mask
- * 
+ *
  *    output:  sd    : allocated v2s_results struct, with requested data
  *
  * This function is used to map data from an AFNI volume to a surface.
@@ -313,7 +313,7 @@ ENTRY("opt_vol2surf");
  *
  *    input:   sopt  : volume to surface options struct
  *             p     : volume to surface parameter struct
- * 
+ *
  *    output:  sd    : allocated v2s_results struct, with requested data
  *
  * This function is used to map data from an AFNI volume to a surface.
@@ -474,7 +474,7 @@ ENTRY("dump_surf_3dt");
     if ( sopt->debug > 1 )
         fprintf(stderr, "-d dset bounding box: (%f, %f, %f)\n"
                         "                      (%f, %f, %f)\n",
-                r3mm.dset_min.xyz[0],r3mm.dset_min.xyz[1],r3mm.dset_min.xyz[2], 
+                r3mm.dset_min.xyz[0],r3mm.dset_min.xyz[1],r3mm.dset_min.xyz[2],
                 r3mm.dset_max.xyz[0],r3mm.dset_max.xyz[1],r3mm.dset_max.xyz[2]);
 
     min_dist = 9999.9;                                          /* v2.3 */
@@ -867,7 +867,7 @@ ENTRY("segment_imarr");
         f3mm.xyz[2] = rat1 * R->p1.xyz[2] + ratn * R->pn.xyz[2];
 
         /* accept part being oob                30 Sep 2004 [rickr] */
-        if ( R->oob_check && 
+        if ( R->oob_check &&
              f3mm_out_of_bounds( &f3mm, &R->dset_min, &R->dset_max ) )
         {
             res->oob++;
@@ -1073,7 +1073,7 @@ ENTRY("v2s_apply_filter");
                 rr, sopt, index);
         RETURN(0.0);
     }
-    
+
     if ( rr->ims.num <= 0 )
         RETURN(0.0);
 
@@ -1500,26 +1500,26 @@ int set_3dmm_bounds ( THD_3dim_dataset *dset, THD_fvec3 *min, THD_fvec3 *max)
 {
     float tmp;
     int   c;
-                                                                                
+
 ENTRY("set_3dmm_bounds");
-                                                                                
+
     if ( !dset || !min || !max )
     {
         fprintf(stderr, "** invalid params to set_3dmm_bounds: (%p,%p,%p)\n",
                 dset, min, max );
         RETURN(-1);
     }
-                                                                                
+
     /* get undirected bounds */
     min->xyz[0] = DSET_XORG(dset) - 0.5 * DSET_DX(dset);
     max->xyz[0] = min->xyz[0] + DSET_NX(dset) * DSET_DX(dset);
-                                                                                
+
     min->xyz[1] = DSET_YORG(dset) - 0.5 * DSET_DY(dset);
     max->xyz[1] = min->xyz[1] + DSET_NY(dset) * DSET_DY(dset);
-                                                                                
+
     min->xyz[2] = DSET_ZORG(dset) - 0.5 * DSET_DZ(dset);
     max->xyz[2] = min->xyz[2] + DSET_NZ(dset) * DSET_DZ(dset);
-                                                                                
+
     for ( c = 0; c < 3; c++ )
         if ( min->xyz[c] > max->xyz[c] )
         {
@@ -1527,7 +1527,7 @@ ENTRY("set_3dmm_bounds");
             min->xyz[c] = max->xyz[c];
             max->xyz[c] = tmp;
         }
-                                                                                
+
     RETURN(0);
 }
 
@@ -1564,7 +1564,7 @@ ENTRY("allocate_output_mem");
     sd->nodes  = sd->volind = sd->i = sd->j = sd->k = sd->nvals = NULL;
     sd->vals   = NULL;
     sd->labels = NULL;
- 
+
     /* verify first and last node indices */
     if ( sopt->first_node <  0      ) sopt->first_node = 0;
     if ( sopt->first_node >= nnodes ) sopt->first_node = nnodes-1;
@@ -2174,7 +2174,7 @@ ENTRY("validate_v2s_inputs");
     if ( sopt->gp_index >= DSET_NVALS(p->gpar) )
     {
         fprintf(stderr,"** gp_index (%d) > max grid_parent index (%d)\n",
-                sopt->gp_index, DSET_NVALS(p->gpar) - 1); 
+                sopt->gp_index, DSET_NVALS(p->gpar) - 1);
         RETURN(2);
     }
 
@@ -2265,7 +2265,7 @@ int v2s_vals_over_steps( int map )
     return 0;
 }
 
-                                                                                
+
 /*----------------------------------------------------------------------
  * v2s_map_type - return an E_SMAP_XXX code
  *
@@ -2276,25 +2276,25 @@ int v2s_vals_over_steps( int map )
 int v2s_map_type ( char * map_str )
 {
     v2s_map_nums map;
-                                                                                
+
 ENTRY("v2s_map_type");
-                                                                                
+
     if ( map_str == NULL )
     {
         fprintf( stderr, "** v2s_map_type: missing map_str parameter\n" );
         RETURN((int)E_SMAP_INVALID);
     }
-                                                                                
+
     if ( sizeof(gv2s_map_names) / sizeof(char *) != (int)E_SMAP_FINAL )
     {
         fprintf( stderr, "** error:  gv2s_map_names/v2s_map_num mismatch\n");
         RETURN((int)E_SMAP_INVALID);
     }
-                                                                                
+
     /* not ready for E_SMAP_COUNT yet (until someone wants it) */
     if ( !strcmp( map_str, gv2s_map_names[E_SMAP_COUNT] ) )
         RETURN((int)E_SMAP_INVALID);
-                                                                                
+
     for ( map = E_SMAP_INVALID; map < E_SMAP_FINAL; map++ )
         if ( !strcmp( map_str, gv2s_map_names[map] ) )
             RETURN((int)map);
@@ -2470,7 +2470,7 @@ ENTRY("v2s_write_outfile_niml");
  * v2s_write_outfile_NSD        - write results to NI_SURF_DSET file
  *----------------------------------------------------------------------
 */
-int v2s_write_outfile_NSD(v2s_results *sd, v2s_opts_t * sopt, 
+int v2s_write_outfile_NSD(v2s_results *sd, v2s_opts_t * sopt,
                           v2s_param_t * p, int free_vals)
 {
     SUMA_DSET  * sdset;
@@ -2543,7 +2543,7 @@ ENTRY("v2s_write_outfile_NSD");
     else
         fprintf(stderr, "** WO_NSD: missing SPARSE_DATA?\n");
 
-    oname = SUMA_WriteDset_ns(sopt->outfile_niml, sdset, 
+    oname = SUMA_WriteDset_ns(sopt->outfile_niml, sdset,
                               SUMA_NO_DSET_FORMAT, 1,1);
     if(sopt->debug && oname) fprintf(stderr,"+d wrote NI_SURF_DSET %s\n",oname);
 

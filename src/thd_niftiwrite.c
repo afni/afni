@@ -745,7 +745,7 @@ ENTRY("get_slice_timing_pattern");
 
    /* we have linear offsets, now see if the slices match a known pattern */
    /* repeatedly: init to a pattern, and see if it fails */
-   
+
    /* SEQ_INC  (0,1,2,3...,l-1) */
    pattern = NIFTI_SLICE_SEQ_INC;  index = 0;
    for( c = 0; c < len; c++ ) {

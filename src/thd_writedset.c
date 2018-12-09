@@ -137,12 +137,12 @@ ENTRY("THD_write_3dim_dataset") ;
    if(THD_update_dset_atr_status()) {
       THD_set_dataset_attributes( dset ) ;
    }
-   
+
    /* The TROSS logger */
    if ((ppp = my_getenv("AFNI_HISTDB_SCRIPT")) && ppp[0] != '\0') {
       THD_set_string_atr( dset->dblk , "HISTDB_SCRIPT" , ppp ) ;
    }
-   
+
    /*----- 06 Jun 2007: deconflict dataset name? -----*/
 
    /* default is ERROR_exit */
@@ -177,7 +177,7 @@ ENTRY("THD_write_3dim_dataset") ;
    ppp = DSET_PREFIX(dset) ;
    if( STRING_HAS_SUFFIX(ppp,".nii")    ||
        STRING_HAS_SUFFIX(ppp,".nii.gz") ||
-       STRING_HAS_SUFFIX(ppp,".hdr")    || 
+       STRING_HAS_SUFFIX(ppp,".hdr")    ||
        use_NIFTI_format                 ||
        dset->dblk->diskptr->storage_mode == STORAGE_BY_NIFTI){
 
@@ -269,7 +269,7 @@ ENTRY("THD_write_3dim_dataset") ;
    RETURN(bb) ;
 }
 
-/* accessor functions to control whether attributes will be reinitialized 
+/* accessor functions to control whether attributes will be reinitialized
    from dset structure */
 /* 3drefit turns this off, but all other calls continue to reinitialize
    attributes. Turning off this reset of the attribute is needed for writing

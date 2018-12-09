@@ -52,12 +52,12 @@ LEARN_PARM *learn_parm;
   double margin,obj_before,obj_after;
   double sigdig,dist,epsilon_loqo;
   int iter;
- 
+
   if(!primal) { /* allocate memory at first call */
     primal=(double *)my_malloc(sizeof(double)*nx*3);
     dual=(double *)my_malloc(sizeof(double)*(nx*2+1));
   }
-  
+
   if(verbosity>=4) { /* really verbose */
     printf("\n\n");
     for(i=0;i<qp->opt_n;i++) {
@@ -98,9 +98,9 @@ LEARN_PARM *learn_parm;
 		   (double *)qp->opt_g0,(double *)qp->opt_g,
 		   (double *)qp->opt_ce,(double *)qp->opt_ce0,
 		   (double *)qp->opt_low,(double *)qp->opt_up,
-		   (double *)primal,(double *)dual, 
+		   (double *)primal,(double *)dual,
 		   (int)(verbosity-2),
-		   (double)sigdig,(int)iter, 
+		   (double)sigdig,(int)iter,
 		   (double)margin,(double)(qp->opt_up[0])/4.0,(int)0);
 
     if(isnan(dual[0])) {     /* check for choldc problem */
@@ -117,12 +117,12 @@ LEARN_PARM *learn_parm;
       }
     }
     else if(result!=OPTIMAL_SOLUTION) {
-      iter+=2000; 
+      iter+=2000;
       init_iter+=10;
       (opt_precision)*=10.0;   /* reduce precision */
       if(verbosity>=2) {
 	printf("NOTICE: Reducing precision of PR_LOQO due to (%ld).\n",result);
-      }      
+      }
     }
   }
 
@@ -135,7 +135,7 @@ LEARN_PARM *learn_parm;
   /* violate KT-Conditions, relax the epsilon on the bounds on alphas. */
   epsilon_loqo=1E-10;
   for(i=0;i<qp->opt_n;i++) {
-    dist=-model_b*qp->opt_ce[i]; 
+    dist=-model_b*qp->opt_ce[i];
     dist+=(qp->opt_g0[i]+1.0);
     for(j=0;j<i;j++) {
       dist+=(primal[j]*qp->opt_g[j*qp->opt_n+i]);
@@ -175,7 +175,7 @@ LEARN_PARM *learn_parm;
   if(isnan(obj_after) || isnan(model_b)) {
     for(i=0;i<qp->opt_n;i++) {
       primal[i]=qp->opt_xinit[i];
-    }     
+    }
     model_b=0;
     if(learn_parm->svm_maxqpsize>2) {
       learn_parm->svm_maxqpsize--;  /* decrease size of qp-subproblems */
@@ -190,13 +190,13 @@ LEARN_PARM *learn_parm;
     }
   }
 
-  if(precision_violations > 500) { 
+  if(precision_violations > 500) {
     (*epsilon_crit)*=10.0;
     precision_violations=0;
     if(verbosity>=1) {
       printf("\nWARNING: Relaxing epsilon on KT-Conditions.\n");
     }
-  }	  
+  }
 
   (*threshold)=model_b;
 

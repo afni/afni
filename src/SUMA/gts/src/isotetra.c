@@ -1,4 +1,4 @@
-/* GTS-Library conform marching tetrahedra algorithm 
+/* GTS-Library conform marching tetrahedra algorithm
  * Copyright (C) 2002 Gert Wollny
  *
  * This library is free software; you can redistribute it and/or
@@ -26,19 +26,19 @@
 #endif /* NATIVE_WIN32 */
 
 typedef struct {
-  gint nx, ny; 
-  gdouble ** data; 
+  gint nx, ny;
+  gdouble ** data;
 } slice_t;
 
 typedef struct {
   gint x, y, z;
   gboolean mid;
-  gdouble d; 
-} tetra_vertex_t; 
+  gdouble d;
+} tetra_vertex_t;
 
 /* this helper is a lookup table for vertices */
 typedef struct {
-  gint nx, ny; 
+  gint nx, ny;
   GtsVertex ** vtop, ** vmid, **vbot;
 } helper_t ;
 
@@ -47,13 +47,13 @@ typedef struct {
 } helper_bcl ;
 
 
-static helper_t * init_helper (int nx, int ny) 
+static helper_t * init_helper (int nx, int ny)
 {
-  gint nxy = 4*nx*ny; 
+  gint nxy = 4*nx*ny;
   helper_t *retval = g_malloc0 (sizeof (helper_t));
 
-  retval->nx = nx; 
-  retval->ny = ny; 
+  retval->nx = nx;
+  retval->ny = ny;
   retval->vtop = g_malloc0 (sizeof (GtsVertex *)*nxy);
   retval->vmid = g_malloc0 (sizeof (GtsVertex *)*nxy);
   retval->vbot = g_malloc0 (sizeof (GtsVertex *)*nxy);
@@ -69,7 +69,7 @@ static helper_bcl * init_helper_bcl (void)
   return retval;
 }
 
-static void free_helper (helper_t * h) 
+static void free_helper (helper_t * h)
 {
   g_free (h->vtop);
   g_free (h->vmid);
@@ -77,7 +77,7 @@ static void free_helper (helper_t * h)
   g_free (h);
 }
 
-static void free_helper_bcl (helper_bcl * h) 
+static void free_helper_bcl (helper_bcl * h)
 {
   g_hash_table_destroy (h->vtop);
   g_hash_table_destroy (h->vbot);
@@ -86,17 +86,17 @@ static void free_helper_bcl (helper_bcl * h)
 
 /* move the vertices in the bottom slice to the top, and clear the
    other slices in the lookup tables */
-static void helper_advance (helper_t * h) 
+static void helper_advance (helper_t * h)
 {
   GtsVertex ** help = h->vbot;
-  h->vbot = h->vtop; 
+  h->vbot = h->vtop;
   h->vtop = help;
-  
+
   memset (h->vmid, 0, 4*sizeof(GtsVertex *) * h->nx * h->ny);
   memset (h->vbot, 0, 4*sizeof(GtsVertex *) * h->nx * h->ny);
 }
 
-static void helper_advance_bcl (helper_bcl * h) 
+static void helper_advance_bcl (helper_bcl * h)
 {
   GHashTable * help = g_hash_table_new (g_str_hash, g_str_equal);
 
@@ -107,72 +107,72 @@ static void helper_advance_bcl (helper_bcl * h)
 
 /* find the zero-crossing of line through v1 and v2 and return the
    corresponding GtsVertex */
-static GtsVertex * get_vertex (gint mz, 
-			       const tetra_vertex_t * v1, 
-			       const tetra_vertex_t * v2, 
-			       helper_t * help, 
+static GtsVertex * get_vertex (gint mz,
+			       const tetra_vertex_t * v1,
+			       const tetra_vertex_t * v2,
+			       helper_t * help,
 			       GtsCartesianGrid * g,
 			       GtsVertexClass * klass)
 {
-  GtsVertex ** vertex; 
-  gint x, y, index, idx2, z; 
-  gdouble dx, dy, dz, d; 
+  GtsVertex ** vertex;
+  gint x, y, index, idx2, z;
+  gdouble dx, dy, dz, d;
 
   g_assert (v1->d - v2->d != 0.);
-  
+
   dx = dy = dz = 0.0;
   d = v1->d/(v1->d - v2->d);
 
   index = 0;
-  
+
   if (v1->x != v2->x) {
     index |= 1;
     dx = d;
   }
-  
+
   if (v1->y != v2->y) {
     index |= 2;
     dy = d;
   }
-  
+
   if (v1->z != v2->z) {
     dz = d;
   }
 
   x = v1->x;
   if (v1->x > v2->x) {  x = v2->x; dx = 1.0 - dx; }
-  
+
   y = v1->y;
   if (v1->y > v2->y) {  y = v2->y; dy = 1.0 - dy;}
-  
+
   z = v1->z;
   if (v1->z > v2->z) {  z = v2->z; dz = 1.0 - dz;}
-  
+
   idx2 = 4 * ( x + y * help->nx ) + index;
-  
+
   if (v1->z == v2->z)
     vertex = (mz == z) ? &help->vtop[idx2] : &help->vbot[idx2];
   else
     vertex = &help->vmid[idx2];
-  
+
   if (mz != z && dz != 0.0) {
     fprintf(stderr, "%f \n", dz);
   }
-  
+
   /* if vertex is not yet created, do it now */
   if (!*vertex)
     *vertex = gts_vertex_new (klass,
-			      g->dx * ( x + dx) + g->x, 
-			      g->dy * ( y + dy) + g->y, 
+			      g->dx * ( x + dx) + g->x,
+			      g->dy * ( y + dy) + g->y,
 			      g->dz * ( z + dz) + g->z);
-  
+
   return *vertex;
 }
 
-static GtsVertex * get_vertex_bcl (gint mz, 
-				   const tetra_vertex_t * v1, 
-				   const tetra_vertex_t * v2, 
-				   helper_bcl * help, 
+static GtsVertex * get_vertex_bcl (gint mz,
+				   const tetra_vertex_t * v1,
+				   const tetra_vertex_t * v2,
+				   helper_bcl * help,
 				   GtsCartesianGrid * g,
 				   GtsVertexClass * klass)
 {
@@ -183,7 +183,7 @@ static GtsVertex * get_vertex_bcl (gint mz,
 
   g_assert (v1->d - v2->d != 0.);
 
-  /* first find correct hash table */  
+  /* first find correct hash table */
   if ((v1->z > mz) && (v2->z > mz))
     table = help->vtop;
   else
@@ -230,29 +230,29 @@ static GtsEdge * get_edge (GtsVertex * v1, GtsVertex * v2,
 			   GtsEdgeClass * klass)
 {
   GtsSegment *s;
-  GtsEdge *edge; 
-  
+  GtsEdge *edge;
+
   g_assert (v1);
   g_assert (v2);
-  
+
   s = gts_vertices_are_connected (v1, v2);
-  
+
   if (GTS_IS_EDGE (s))
     edge = GTS_EDGE(s);
   else
     edge = gts_edge_new (klass, v1, v2);
-  return edge; 
+  return edge;
 }
 
-static void add_face (GtsSurface * surface, 
-		      const tetra_vertex_t * a1, const tetra_vertex_t * a2, 
-		      const tetra_vertex_t * b1, const tetra_vertex_t * b2, 
-		      const tetra_vertex_t * c1, const tetra_vertex_t * c2, 
-		      gint rev, helper_t * help, 
+static void add_face (GtsSurface * surface,
+		      const tetra_vertex_t * a1, const tetra_vertex_t * a2,
+		      const tetra_vertex_t * b1, const tetra_vertex_t * b2,
+		      const tetra_vertex_t * c1, const tetra_vertex_t * c2,
+		      gint rev, helper_t * help,
 		      gint z, GtsCartesianGrid * g)
 {
-  GtsFace * t; 
-  GtsEdge * e1, * e2, * e3; 	
+  GtsFace * t;
+  GtsEdge * e1, * e2, * e3;
   GtsVertex * v1 = get_vertex (z, a1, a2, help, g, surface->vertex_class);
   GtsVertex * v2 = get_vertex (z, b1, b2, help, g, surface->vertex_class);
   GtsVertex * v3 = get_vertex (z, c1, c2, help, g, surface->vertex_class);
@@ -268,25 +268,25 @@ static void add_face (GtsSurface * surface,
   } else {
     e1 = get_edge (v1, v3, surface->edge_class);
     e2 = get_edge (v2, v3, surface->edge_class);
-    e3 = get_edge (v1, v2, surface->edge_class);	
+    e3 = get_edge (v1, v2, surface->edge_class);
   }
-  
-  t = gts_face_new (surface->face_class, e1, e2, e3);	
+
+  t = gts_face_new (surface->face_class, e1, e2, e3);
   gts_surface_add_face (surface, t);
 }
 
-static void add_face_bcl (GtsSurface * surface, 
-			  const tetra_vertex_t * a1, 
-			  const tetra_vertex_t * a2, 
-			  const tetra_vertex_t * b1, 
-			  const tetra_vertex_t * b2, 
-			  const tetra_vertex_t * c1, 
-			  const tetra_vertex_t * c2, 
-			  gint rev, helper_bcl * help, 
+static void add_face_bcl (GtsSurface * surface,
+			  const tetra_vertex_t * a1,
+			  const tetra_vertex_t * a2,
+			  const tetra_vertex_t * b1,
+			  const tetra_vertex_t * b2,
+			  const tetra_vertex_t * c1,
+			  const tetra_vertex_t * c2,
+			  gint rev, helper_bcl * help,
 			  gint z, GtsCartesianGrid * g)
 {
-  GtsFace * t; 
-  GtsEdge * e1, * e2, * e3; 	
+  GtsFace * t;
+  GtsEdge * e1, * e2, * e3;
   GtsVertex * v1 = get_vertex_bcl (z, a1, a2, help, g, surface->vertex_class);
   GtsVertex * v2 = get_vertex_bcl (z, b1, b2, help, g, surface->vertex_class);
   GtsVertex * v3 = get_vertex_bcl (z, c1, c2, help, g, surface->vertex_class);
@@ -301,137 +301,137 @@ static void add_face_bcl (GtsSurface * surface,
   } else {
     e1 = get_edge (v1, v3, surface->edge_class);
     e2 = get_edge (v2, v3, surface->edge_class);
-    e3 = get_edge (v1, v2, surface->edge_class);	
+    e3 = get_edge (v1, v2, surface->edge_class);
   }
 
-  t = gts_face_new (surface->face_class, e1, e2, e3);	
+  t = gts_face_new (surface->face_class, e1, e2, e3);
   gts_surface_add_face (surface, t);
 }
 
 /* create a new slice of site nx \times ny */
-static slice_t * new_slice (gint nx, gint ny) 
+static slice_t * new_slice (gint nx, gint ny)
 {
-  gint x; 
+  gint x;
   slice_t * retval = g_malloc (sizeof (slice_t));
 
   retval->data = g_malloc (nx*sizeof(gdouble *));
   retval->nx = nx;
-  retval->ny = ny;  
-  for (x = 0; x < nx; x++) 
+  retval->ny = ny;
+  for (x = 0; x < nx; x++)
     retval->data[x] = g_malloc (ny*sizeof (gdouble));
-  return retval; 
+  return retval;
 }
 
 /* initialize a slice with inival */
 static void slice_init (slice_t * slice, gdouble inival)
 {
-  gint x, y; 
-  
+  gint x, y;
+
   g_assert (slice);
-	
-  for (x = 0; x < slice->nx; x++) 
+
+  for (x = 0; x < slice->nx; x++)
     for (y = 0; y < slice->ny; y++)
-      slice->data[x][y] = inival; 
+      slice->data[x][y] = inival;
 }
 
 /* free the memory of a slice */
-static void free_slice (slice_t * slice) 
+static void free_slice (slice_t * slice)
 {
-  gint x; 
-	
+  gint x;
+
   g_return_if_fail (slice != NULL);
-	
-  for (x = 0; x < slice->nx; x++) 
-    g_free (slice->data[x]);  
+
+  for (x = 0; x < slice->nx; x++)
+    g_free (slice->data[x]);
   g_free (slice->data);
   g_free (slice);
 }
 
-static void analyze_tetrahedra (const tetra_vertex_t * a, 
-				const tetra_vertex_t * b, 
-				const tetra_vertex_t * c, 
-				const tetra_vertex_t * d, 
-				gint parity, GtsSurface * surface, 
-				helper_t * help, 
+static void analyze_tetrahedra (const tetra_vertex_t * a,
+				const tetra_vertex_t * b,
+				const tetra_vertex_t * c,
+				const tetra_vertex_t * d,
+				gint parity, GtsSurface * surface,
+				helper_t * help,
 				gint z, GtsCartesianGrid * g)
 {
-  gint rev = parity; 
-  gint code = 0; 
-	
-  if (a->d >= 0.) code |= 1; 
-  if (b->d >= 0.) code |= 2; 
-  if (c->d >= 0.) code |= 4; 
+  gint rev = parity;
+  gint code = 0;
+
+  if (a->d >= 0.) code |= 1;
+  if (b->d >= 0.) code |= 2;
+  if (c->d >= 0.) code |= 4;
   if (d->d >= 0.) code |= 8;
-		
+
   switch (code) {
   case 15:
-  case 0: return; /* all inside or outside */		
-  
+  case 0: return; /* all inside or outside */
+
   case 14:rev = !parity;
   case  1:add_face (surface, a, b, a, d, a, c, rev, help, z, g);
 	  break;
-  case 13:rev = ! parity;  
+  case 13:rev = ! parity;
   case  2:add_face (surface, a, b, b, c, b, d, rev, help, z, g);
 	  break;
-  case 12:rev = !parity;	  
+  case 12:rev = !parity;
   case  3:add_face (surface, a, d, a, c, b, c, rev, help, z, g);
 	  add_face (surface, a, d, b, c, b, d, rev, help, z, g);
 	  break;
-  case 11:rev = !parity;	  
+  case 11:rev = !parity;
   case  4:add_face (surface, a, c, c, d, b, c, rev, help, z, g);
 	  break;
-  case 10:rev = !parity; 	  
+  case 10:rev = !parity;
   case 5: add_face (surface, a, b, a, d, c, d, rev, help, z, g);
 	  add_face (surface, a, b, c, d, b, c, rev, help, z, g);
-	  break;	
-  case  9:rev = !parity; 
+	  break;
+  case  9:rev = !parity;
   case  6:add_face (surface, a, b, a, c, c, d, rev, help, z, g);
 	  add_face (surface, a, b, c, d, b, d, rev, help, z, g);
 	  break;
   case  7:rev = !parity;
   case  8:add_face (surface, a, d, b, d, c, d, rev, help, z, g);
-    break; 
+    break;
   }
 }
 
-static void analyze_tetrahedra_bcl (const tetra_vertex_t * a, 
-				    const tetra_vertex_t * b, 
-				    const tetra_vertex_t * c, 
-				    const tetra_vertex_t * d, 
-				    GtsSurface * surface, 
-				    helper_bcl * help, 
+static void analyze_tetrahedra_bcl (const tetra_vertex_t * a,
+				    const tetra_vertex_t * b,
+				    const tetra_vertex_t * c,
+				    const tetra_vertex_t * d,
+				    GtsSurface * surface,
+				    helper_bcl * help,
 				    gint z, GtsCartesianGrid * g)
 {
   gint rev = 0;
-  gint code = 0; 
-	
-  if (a->d >= 0.) code |= 1; 
-  if (b->d >= 0.) code |= 2; 
-  if (c->d >= 0.) code |= 4; 
+  gint code = 0;
+
+  if (a->d >= 0.) code |= 1;
+  if (b->d >= 0.) code |= 2;
+  if (c->d >= 0.) code |= 4;
   if (d->d >= 0.) code |= 8;
 
   switch (code) {
   case 15:
-  case 0: return; /* all inside or outside */		
+  case 0: return; /* all inside or outside */
 
   case 14:rev = !rev;
   case  1:add_face_bcl (surface, a, b, a, d, a, c, rev, help, z, g);
 	  break;
-  case 13:rev = !rev;  
+  case 13:rev = !rev;
   case  2:add_face_bcl (surface, a, b, b, c, b, d, rev, help, z, g);
 	  break;
-  case 12:rev = !rev;	  
+  case 12:rev = !rev;
   case  3:add_face_bcl (surface, a, d, a, c, b, c, rev, help, z, g);
 	  add_face_bcl (surface, a, d, b, c, b, d, rev, help, z, g);
 	  break;
-  case 11:rev = !rev;	  
+  case 11:rev = !rev;
   case  4:add_face_bcl (surface, a, c, c, d, b, c, rev, help, z, g);
 	  break;
-  case 10:rev = !rev; 	  
+  case 10:rev = !rev;
   case 5: add_face_bcl (surface, a, b, a, d, c, d, rev, help, z, g);
 	  add_face_bcl (surface, a, b, c, d, b, c, rev, help, z, g);
-	  break;	
-  case  9:rev = !rev; 
+	  break;
+  case  9:rev = !rev;
   case  6:add_face_bcl (surface, a, b, a, c, c, d, rev, help, z, g);
 	  add_face_bcl (surface, a, b, c, d, b, d, rev, help, z, g);
 	  break;
@@ -441,19 +441,19 @@ static void analyze_tetrahedra_bcl (const tetra_vertex_t * a,
   }
 }
 
-static void  iso_slice_evaluate (slice_t * s1, slice_t * s2, 
-				 GtsCartesianGrid g, 
+static void  iso_slice_evaluate (slice_t * s1, slice_t * s2,
+				 GtsCartesianGrid g,
 				 gint z, GtsSurface * surface, helper_t * help)
 {
-  gint x,y; 
-  tetra_vertex_t v0, v1, v2, v3, v4, v5, v6, v7; 
-  gdouble ** s1p = s1->data; 
-  gdouble ** s2p = s2->data; 
-	
+  gint x,y;
+  tetra_vertex_t v0, v1, v2, v3, v4, v5, v6, v7;
+  gdouble ** s1p = s1->data;
+  gdouble ** s2p = s2->data;
+
   for (y = 0; y < g.ny-1; y++)
     for (x = 0; x < g.nx-1; x++) {
       gint parity = (((x ^ y) ^ z) & 1);
-      
+
       v0.x = x  ; v0.y = y  ; v0.z = z  ; v0.mid = FALSE; v0.d = s1p[x  ][y  ];
       v1.x = x  ; v1.y = y+1; v1.z = z  ; v1.mid = FALSE; v1.d = s1p[x  ][y+1];
       v2.x = x+1; v2.y = y  ; v2.z = z  ; v2.mid = FALSE; v2.d = s1p[x+1][y  ];
@@ -462,7 +462,7 @@ static void  iso_slice_evaluate (slice_t * s1, slice_t * s2,
       v5.x = x  ; v5.y = y+1; v5.z = z+1; v5.mid = FALSE; v5.d = s2p[x  ][y+1];
       v6.x = x+1; v6.y = y  ; v6.z = z+1; v6.mid = FALSE; v6.d = s2p[x+1][y  ];
       v7.x = x+1; v7.y = y+1; v7.z = z+1; v7.mid = FALSE; v7.d = s2p[x+1][y+1];
-      
+
       if (parity == 0) {
 	analyze_tetrahedra (&v0, &v1, &v2, &v4, parity, surface, help, z, &g);
 	analyze_tetrahedra (&v7, &v1, &v4, &v2, parity, surface, help, z, &g);
@@ -480,16 +480,16 @@ static void  iso_slice_evaluate (slice_t * s1, slice_t * s2,
 }
 
 static void  iso_slice_evaluate_bcl (slice_t * s1, slice_t * s2, slice_t * s3,
-				     GtsCartesianGrid g, 
-				     gint z, GtsSurface * surface, 
+				     GtsCartesianGrid g,
+				     gint z, GtsSurface * surface,
 				     helper_bcl * help)
 {
-  gint x,y; 
-  tetra_vertex_t v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, w0; 
+  gint x,y;
+  tetra_vertex_t v0, v1, v2, v3, v4, v5, v6, v7, v8, v9, w0;
   gdouble ** s1p = s1->data;
   gdouble ** s2p = s2->data;
   gdouble ** s3p = s3->data;
-	
+
   for (y = 0; y < g.ny-2; y++)
     for (x = 0; x < g.nx-2; x++) {
       v0.x = x  ; v0.y = y  ; v0.z = z  ; v0.mid = TRUE;
@@ -541,43 +541,43 @@ static void  iso_slice_evaluate_bcl (slice_t * s1, slice_t * s2, slice_t * s3,
 
 /*  copy src into dest by stripping off the iso value and leave out
     the boundary (which should be G_MINDOUBLE) */
-static void copy_to_bounded (slice_t * dest, slice_t * src, 
+static void copy_to_bounded (slice_t * dest, slice_t * src,
 			     gdouble iso, gdouble fill)
 {
-  gint x,y; 
+  gint x,y;
   gdouble * src_ptr;
   gdouble * dest_ptr = dest->data[0];
-  
+
   g_assert(dest->ny == src->ny + 2);
   g_assert(dest->nx == src->nx + 2);
-	
+
   for (y = 0; y < dest->ny; ++y, ++dest_ptr)
-    *dest_ptr = fill; 
-	
+    *dest_ptr = fill;
+
   for (x = 1; x < src->nx - 1; ++x) {
     dest_ptr = dest->data[x];
     src_ptr = src->data[x-1];
     *dest_ptr++ = fill;
     for (y = 0; y < src->ny; ++y, ++dest_ptr, ++src_ptr)
       *dest_ptr  = *src_ptr - iso;
-    *dest_ptr++ = fill; 
+    *dest_ptr++ = fill;
   }
-  
+
   dest_ptr = dest->data[y];
-  
+
   for (y = 0; y < dest->ny; ++y, ++dest_ptr)
-    *dest_ptr = fill; 
+    *dest_ptr = fill;
 }
 
 static void iso_sub (slice_t * s, gdouble iso)
 {
-  gint x,y; 
+  gint x,y;
 
   for (x = 0; x < s->nx; ++x) {
     gdouble *ptr = s->data[x];
 
     for (y = 0; y < s->ny; ++y, ++ptr)
-      *ptr -= iso; 
+      *ptr -= iso;
   }
 }
 
@@ -598,7 +598,7 @@ static void iso_sub (slice_t * s, gdouble iso)
  * The user function @f is called successively for each value of the z
  * coordinate defined by @g. It must fill the corresponding (x,y)
  * plane with the values of the function for which the isosurface is
- * to be computed.  
+ * to be computed.
  */
 void gts_isosurface_tetra_bounded (GtsSurface * surface,
 				   GtsCartesianGrid g,
@@ -606,11 +606,11 @@ void gts_isosurface_tetra_bounded (GtsSurface * surface,
 				   gpointer data,
 				   gdouble iso)
 {
-  slice_t *slice1, *slice2, *transfer_slice; 
-  GtsCartesianGrid g_intern = g; 
+  slice_t *slice1, *slice2, *transfer_slice;
+  GtsCartesianGrid g_intern = g;
   helper_t *helper;
-  gint z; 
-	
+  gint z;
+
   g_return_if_fail (surface != NULL);
   g_return_if_fail (f != NULL);
   g_return_if_fail (g.nx > 1);
@@ -620,57 +620,57 @@ void gts_isosurface_tetra_bounded (GtsSurface * surface,
   /* create the helper slices */
   slice1 = new_slice (g.nx + 2, g.ny + 2);
   slice2 = new_slice (g.nx + 2, g.ny + 2);
-	
+
   /*  initialize the first slice as OUTSIDE */
   slice_init (slice1, -1.0);
-	
+
   /* create a slice of the original image size */
   transfer_slice = new_slice (g.nx, g.ny);
-	
+
   /* adapt the parameters to our enlarged image */
   g_intern.x -= g.dx;
-  g_intern.y -= g.dy; 
+  g_intern.y -= g.dy;
   g_intern.z -= g.dz;
   g_intern.nx = g.nx + 2;
-  g_intern.ny = g.ny + 2; 	
+  g_intern.ny = g.ny + 2;
   g_intern.nz = g.nz;
-	
+
   /* create the helper for vertex-lookup */
   helper = init_helper (g_intern.nx, g_intern.ny);
-	
+
   /* go slicewise through the data */
-  z = 0; 
+  z = 0;
   while (z < g.nz) {
-    slice_t * hs; 
-    
+    slice_t * hs;
+
     /* request slice */
     f (transfer_slice->data, g, z, data);
-    g.z += g.dz; 
-    
+    g.z += g.dz;
+
     /* copy slice in enlarged image and mark the border as OUTSIDE */
     copy_to_bounded (slice2, transfer_slice, iso, -1.);
-    
+
     /* triangulate */
     iso_slice_evaluate (slice1, slice2, g_intern, z, surface, helper);
-    
+
     /* switch the input slices */
-    hs = slice1; slice1 = slice2; slice2 = hs; 
-    
+    hs = slice1; slice1 = slice2; slice2 = hs;
+
     /* switch the vertex lookup tables */
     helper_advance(helper);
-    ++z; 
+    ++z;
   }
-  
+
   /* initialize the last slice as OUTSIDE */
   slice_init (slice2, - 1.0);
-		
+
   /* close the object */
   iso_slice_evaluate(slice1, slice2, g_intern, z, surface, helper);
-  
+
   free_helper (helper);
   free_slice (slice1);
   free_slice (slice2);
-  free_slice (transfer_slice);	
+  free_slice (transfer_slice);
 }
 
 /**
@@ -688,7 +688,7 @@ void gts_isosurface_tetra_bounded (GtsSurface * surface,
  * The user function @f is called successively for each value of the z
  * coordinate defined by @g. It must fill the corresponding (x,y)
  * plane with the values of the function for which the isosurface is
- * to be computed.  
+ * to be computed.
  */
 void gts_isosurface_tetra (GtsSurface * surface,
 			   GtsCartesianGrid g,
@@ -696,11 +696,11 @@ void gts_isosurface_tetra (GtsSurface * surface,
 			   gpointer data,
 			   gdouble iso)
 {
-  slice_t *slice1, *slice2; 
+  slice_t *slice1, *slice2;
   helper_t *helper;
-  gint z; 
+  gint z;
   GtsCartesianGrid g_internal;
-  
+
   g_return_if_fail (surface != NULL);
   g_return_if_fail (f != NULL);
   g_return_if_fail (g.nx > 1);
@@ -708,46 +708,46 @@ void gts_isosurface_tetra (GtsSurface * surface,
   g_return_if_fail (g.nz > 1);
 
   memcpy (&g_internal, &g, sizeof (GtsCartesianGrid));
-	
+
   /* create the helper slices */
   slice1 = new_slice (g.nx, g.ny);
   slice2 = new_slice (g.nx, g.ny);
-  
+
   /* create the helper for vertex-lookup */
   helper = init_helper (g.nx, g.ny);
-	
+
   z = 0;
   f (slice1->data, g, z, data);
-  iso_sub (slice1, iso); 
-  
-  z++; 
+  iso_sub (slice1, iso);
+
+  z++;
   g.z += g.dz;
-  
+
   /* go slicewise through the data */
   while (z < g.nz) {
-    slice_t * hs; 
-    
+    slice_t * hs;
+
     /* request slice */
     f (slice2->data, g, z, data);
     iso_sub (slice2, iso);
-     
+
     g.z += g.dz;
-    
+
     /* triangulate */
     iso_slice_evaluate (slice1, slice2, g_internal, z-1, surface, helper);
-    
+
     /* switch the input slices */
-    hs = slice1; slice1 = slice2; slice2 = hs; 
-    
+    hs = slice1; slice1 = slice2; slice2 = hs;
+
     /* switch the vertex lookup tables */
     helper_advance (helper);
-    
-    ++z; 
+
+    ++z;
   }
 
   free_helper(helper);
   free_slice(slice1);
-  free_slice(slice2);	
+  free_slice(slice2);
 }
 
 /**
@@ -765,7 +765,7 @@ void gts_isosurface_tetra (GtsSurface * surface,
  * The user function @f is called successively for each value of the z
  * coordinate defined by @g. It must fill the corresponding (x,y)
  * plane with the values of the function for which the isosurface is
- * to be computed.  
+ * to be computed.
  *
  * This version produces the dual "body-centered" faces relative to
  * the faces produced by gts_isosurface_tetra().
@@ -778,9 +778,9 @@ void gts_isosurface_tetra_bcl (GtsSurface * surface,
 {
   slice_t *slice1, *slice2, *slice3;
   helper_bcl *helper;
-  gint z; 
+  gint z;
   GtsCartesianGrid g_internal;
-  
+
   g_return_if_fail (surface != NULL);
   g_return_if_fail (f != NULL);
   g_return_if_fail (g.nx > 1);
@@ -788,53 +788,53 @@ void gts_isosurface_tetra_bcl (GtsSurface * surface,
   g_return_if_fail (g.nz > 1);
 
   memcpy (&g_internal, &g, sizeof (GtsCartesianGrid));
-	
+
   /* create the helper slices */
   slice1 = new_slice (g.nx, g.ny);
   slice2 = new_slice (g.nx, g.ny);
   slice3 = new_slice (g.nx, g.ny);
-  
+
   /* create the helper for vertex-lookup */
   helper = init_helper_bcl ();
-	
+
   z = 0;
   f (slice1->data, g, z, data);
-  iso_sub (slice1, iso); 
+  iso_sub (slice1, iso);
 
-  z++; 
+  z++;
   g.z += g.dz;
 
   f (slice2->data, g, z, data);
-  iso_sub (slice1, iso); 
-  
-  z++; 
+  iso_sub (slice1, iso);
+
+  z++;
   g.z += g.dz;
-  
+
   /* go slicewise through the data */
   while (z < g.nz) {
-    slice_t * hs; 
-    
+    slice_t * hs;
+
     /* request slice */
     f (slice3->data, g, z, data);
     iso_sub (slice3, iso);
-     
+
     g.z += g.dz;
-    
+
     /* triangulate */
-    iso_slice_evaluate_bcl (slice1, slice2, slice3, g_internal, z-2, 
+    iso_slice_evaluate_bcl (slice1, slice2, slice3, g_internal, z-2,
 			    surface, helper);
-    
+
     /* switch the input slices */
     hs = slice1; slice1 = slice2; slice2 = slice3; slice3 = hs;
-    
+
     /* switch the vertex lookup tables */
     helper_advance_bcl (helper);
-    
-    ++z; 
+
+    ++z;
   }
 
   free_helper_bcl(helper);
   free_slice(slice1);
-  free_slice(slice2);	
-  free_slice(slice3);	
+  free_slice(slice2);
+  free_slice(slice3);
 }

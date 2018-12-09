@@ -12,20 +12,20 @@
 OUTDATED! Aug,2016--> use BOBatanh
 float FisherZ( double Rcorr)
 {
-  float Z=0.; 
+  float Z=0.;
   double denom=0.;
-  
+
   denom = 1.0-Rcorr;
   if( (Rcorr>=-1) && (denom>0) )
     Z = 0.5 * log( (1.+Rcorr)/denom );
   else
     Z = 0; // primarily for diag Corr Matr values...
-  
+
   return Z;
 }
 */
 
-int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T, 
+int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
                int *DIM, int *Nv)
 {
   int i,n;
@@ -36,12 +36,12 @@ int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
   for( n=0; n<DIM[3] ; n++)  // for each time pt
     for( i=0 ; i<Nv[0] ; i++) // for each vox in TS
       ts[n] += THD_get_voxel(T,LIST[i],n);
-  
+
   for( n=0; n<DIM[3] ; n++)
     RAT[n] = ts[n]/Nv[0];
-      
+
   free(ts);
-  
+
   RETURN(1);
 }
 
@@ -63,10 +63,10 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   gsl_permutation *P = gsl_permutation_calloc(TDIM); // will hold ranks
 
 
-  toP = (int *)calloc(TDIM,sizeof(int)); 
-  sorted = (int *)calloc(TDIM,sizeof(int)); 
+  toP = (int *)calloc(TDIM,sizeof(int));
+  sorted = (int *)calloc(TDIM,sizeof(int));
 
-  if( (toP ==NULL) || (sorted ==NULL) ) { 
+  if( (toP ==NULL) || (sorted ==NULL) ) {
     fprintf(stderr, "\n\n MemAlloc failure.\n\n");
     exit(122);
     }
@@ -74,7 +74,7 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
   // define time series as gsl vector
   for( m=0 ; m<TDIM ; m++)
     gsl_vector_set(Y,m, THD_get_voxel(T,idx,m));
-					
+
   // perform permutation
   val = gsl_sort_vector_index (P,Y);
   // apply permut to get sorted array values
@@ -82,14 +82,14 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
     sorted[m] = THD_get_voxel(T,idx,
                               gsl_permutation_get(P,m));
     // information of where it was
-    toP[m]= (int) gsl_permutation_get(P,m); 
+    toP[m]= (int) gsl_permutation_get(P,m);
     // default: just convert perm ind to rank ind:
     // series of rank vals
     IND[gsl_permutation_get(P,m)]=m+1;
   }
-					
+
   // ******** start tie rank adjustment *******
-  // find ties in sorted, record how many per time 
+  // find ties in sorted, record how many per time
   //  series, and fix in IND
   for( m=1 ; m<TDIM ; m++)
     if( (sorted[m]==sorted[m-1]) && LENTIE==0 ) {
@@ -111,13 +111,13 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
       ISTIE = -1; // reset, prob unnec
       LENTIE = 0; // reset
     } // ******* end of tie rank adjustment ***********
-  
+
   // FREE
   gsl_vector_free(Y);
   gsl_permutation_free(P);
   free(toP);
   free(sorted);
-  
+
   RETURN(1);
 }
 
@@ -129,19 +129,19 @@ int FindVoxHood(int *LIST, int **HS,
   int i,j,k,ii,jj,kk;//,m,n;
   int M = 0;// actual size of 'hood, because of possible boundary stuff
   int idx;
-	
-  for( i=0 ; i<VN ; i++) 
+
+  for( i=0 ; i<VN ; i++)
     LIST[i]=0; //wipe clean at start
-  
+
   for( i=0 ; i<VN ; i++) {
     // x,y,z vox indices.
     ii = iam[0]+HS[i][0];
     jj = iam[1]+HS[i][1];
     kk = iam[2]+HS[i][2];
-    
+
     // test possible conditions: inside boundaries and
     // being inside part of mask
-    if( (ii>=0) && (ii<DIM[0]) && 
+    if( (ii>=0) && (ii<DIM[0]) &&
         (jj>=0) && (jj<DIM[1]) &&
         (kk>=0) && (kk<DIM[2])) // inside boundaries
       if (MASK[ii][jj][kk]){ // inside mask
@@ -151,12 +151,12 @@ int FindVoxHood(int *LIST, int **HS,
       }
   }
   realHOOD[0]=M; // for friedman chi sq value
-	
+
   RETURN(1);
 }
 
 
-float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM, 
+float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
              int *realHOOD)
 {
   int i,j,k,ii,jj,kk,m,n;
@@ -167,18 +167,18 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
   double bigR = 0.;
   double fac1,fac2;
   double Tfac = 0.0;
-	
+
   if( (M<1) || (N<2) )
     ERROR_exit("WARNING: either neighborhood size (M=%d) or time series\n"
                "\tlength (N=%d) was too small!",M,N);
-	
+
   for( i=0 ; i<M ; i++)
     Tfac+= TIED[LIST[i]];
-	
+
   fac1 = fac2 = (double) M *  M * N;
   fac1*= (double) 3*(N+1)*(N+1); //fac in numer
   fac2*= (double) (N*N)-1; // fac in denom
-   
+
   // now go back through, and do sums over time series RANKS
   for( n=0; n<N ; n++) {
     miniR = 0.;
@@ -189,7 +189,7 @@ float ReHoIt(int *LIST, float **RANKS, int *TIED, int *DIM,
 
   W = 12.*bigR-fac1;
   W/= fac2 - 1.*M*Tfac;
-	
+
   return (float) W;
 }
 
@@ -197,11 +197,11 @@ int IntSpherVol(int *RD, float *NR){
   int i,j,k;
   int ct=0;
 
-  for ( i = 0 ; i <3 ; i++ ) 
+  for ( i = 0 ; i <3 ; i++ )
     RD[i] = (int) ceil(NR[i]);
   for( i=-RD[0] ; i<=RD[0] ; i++)
-    for( j=-RD[1] ; j<=RD[1] ; j++) 
-      for( k=-RD[2] ; k<=RD[2] ; k++) 
+    for( j=-RD[1] ; j<=RD[1] ; j++)
+      for( k=-RD[2] ; k<=RD[2] ; k++)
         if( pow(i/NR[0],2)+pow(j/NR[1],2)+pow(k/NR[2],2)<=1 ){
           ct++;
         }
@@ -214,11 +214,11 @@ int IntSpherSha(int **HS,int *RD, float *NR){
   int i,j,k;
   int ct=0;
 
-  for ( i = 0 ; i <3 ; i++ ) 
+  for ( i = 0 ; i <3 ; i++ )
     RD[i] = (int) ceil(NR[i]);
   for( i=-RD[0] ; i<=RD[0] ; i++)
-    for( j=-RD[1] ; j<=RD[1] ; j++) 
-      for( k=-RD[2] ; k<=RD[2] ; k++) 
+    for( j=-RD[1] ; j<=RD[1] ; j++)
+      for( k=-RD[2] ; k<=RD[2] ; k++)
         if( pow(i/NR[0],2)+pow(j/NR[1],2)+pow(k/NR[2],2)<=1 ){
           HS[ct][0]=i;
           HS[ct][1]=j;
@@ -234,10 +234,10 @@ int IntBoxVol(int *RD, float *NR){
    int i,j,k;
    int ct=0;
 
-   for ( i = 0 ; i <3 ; i++ ) 
+   for ( i = 0 ; i <3 ; i++ )
       RD[i] = (int) NR[i];
    for( i=-RD[0] ; i<=RD[0] ; i++)
-      for( j=-RD[1] ; j<=RD[1] ; j++) 
+      for( j=-RD[1] ; j<=RD[1] ; j++)
          for( k=-RD[2] ; k<=RD[2] ; k++) {
             ct++;
          }
@@ -250,25 +250,25 @@ int IntBoxSha(int **HS,int *RD, float *NR) {
    int i,j,k;
    int ct=0;
 
-   for ( i = 0 ; i <3 ; i++ ) 
+   for ( i = 0 ; i <3 ; i++ )
       RD[i] = (int) NR[i];
    for( i=-RD[0] ; i<=RD[0] ; i++)
-      for( j=-RD[1] ; j<=RD[1] ; j++) 
+      for( j=-RD[1] ; j<=RD[1] ; j++)
          for( k=-RD[2] ; k<=RD[2] ; k++) {
             HS[ct][0]=i;
             HS[ct][1]=j;
             HS[ct][2]=k;
             ct++;
          }
-  
+
    return ct;
 }
 
 
-int WB_netw_corr(int Do_r, 
+int WB_netw_corr(int Do_r,
                  int Do_Z,
-                 int HAVE_ROIS, 
-                 char *prefix, 
+                 int HAVE_ROIS,
+                 char *prefix,
                  int NIFTI_OUT,
                  int *NROI_REF,
                  int *Dim,
@@ -300,10 +300,10 @@ int WB_netw_corr(int Do_r,
    Nvox = Dim[0]*Dim[1]*Dim[2];
 
    // make average time series per voxel
-   AVE_TS_fl = calloc( 1,sizeof(AVE_TS_fl));  
-   for(i=0 ; i<1 ; i++) 
-      AVE_TS_fl[i] = calloc(Dim[3],sizeof(float)); 
-   
+   AVE_TS_fl = calloc( 1,sizeof(AVE_TS_fl));
+   for(i=0 ; i<1 ; i++)
+      AVE_TS_fl[i] = calloc(Dim[3],sizeof(float));
+
    if( (AVE_TS_fl == NULL) ) {
       fprintf(stderr, "\n\n MemAlloc failure (time series out).\n\n");
       exit(123);
@@ -325,7 +325,7 @@ int WB_netw_corr(int Do_r,
             AVE_TS_fl[0][j] = (float) ROI_AVE_TS[k][i][j];
 
          // use either ROI int value or labeltable value for output name
-         if( DO_STRLABEL ) 
+         if( DO_STRLABEL )
             sprintf(roilab, "%s", ROI_STR_LABELS[k][i+1]);
          else
             sprintf(roilab, "%03d", ROI_LABELS_REF[k][i+1]);
@@ -342,7 +342,7 @@ int WB_netw_corr(int Do_r,
             THD_load_statistics(OUT_CORR_MAP);
             tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;
             tross_Make_History( "3dNetcorr", argc, argv, OUT_CORR_MAP );
-            if( !THD_ok_overwrite() && 
+            if( !THD_ok_overwrite() &&
                 THD_is_ondisk(DSET_HEADNAME(OUT_CORR_MAP)) )
                ERROR_exit("Can't overwrite existing dataset '%s'",
                           DSET_HEADNAME(OUT_CORR_MAP));
@@ -354,19 +354,19 @@ int WB_netw_corr(int Do_r,
 
             sprintf(OUT_indivZ,"%s/WB_Z_ROI_%s%s",
                     OUT_indiv0, roilab, ftype);
-            
+
             OUT_Z_MAP = EDIT_empty_copy(OUT_CORR_MAP);
             EDIT_dset_items( OUT_Z_MAP,
                              ADN_nvals, 1,
-                             ADN_datum_all , MRI_float , 
+                             ADN_datum_all , MRI_float ,
                              ADN_prefix    , OUT_indivZ,
                              ADN_none ) ;
-            if( !THD_ok_overwrite() && 
+            if( !THD_ok_overwrite() &&
                 THD_is_ondisk(DSET_HEADNAME(OUT_Z_MAP)) )
                ERROR_exit("Can't overwrite existing dataset '%s'",
                           DSET_HEADNAME(OUT_Z_MAP));
 
-            zscores = (float *)calloc(Nvox,sizeof(float)); 
+            zscores = (float *)calloc(Nvox,sizeof(float));
             if( (zscores == NULL) ) {
                fprintf(stderr, "\n\n MemAlloc failure (zscores).\n\n");
                exit(123);
@@ -382,8 +382,8 @@ int WB_netw_corr(int Do_r,
                    zscores[j] =  (float) atanh(-MAX_R);
                  else
                  zscores[j] = (float) atanh(THD_get_voxel(OUT_CORR_MAP, j, 0));*/
-            
-            EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores); 
+
+            EDIT_substitute_brick(OUT_Z_MAP, 0, MRI_float, zscores);
             zscores=NULL;
 
             THD_load_statistics(OUT_Z_MAP);
@@ -402,10 +402,10 @@ int WB_netw_corr(int Do_r,
          OUT_CORR_MAP=NULL;
       }
    }
-   
+
    free(zscores);
    mri_free(mri);
-   for( i=0 ; i<1 ; i++) 
+   for( i=0 ; i<1 ; i++)
       free(AVE_TS_fl[i]);
    free(AVE_TS_fl);
    free(ftype);
@@ -428,12 +428,12 @@ int CalcPartCorrMatr( float **OUT, float **OUTB, float **IN, int M)
    for( i=0 ; i<M ; i++)
       for( j=0 ; j<M ; j++)
          gsl_matrix_set(CC, i, j, IN[i][j]);
-   
+
    // perform the LU decomp + inversion
    j = gsl_linalg_LU_decomp(CC, P, &k);
    j = gsl_linalg_LU_invert(CC, P, PC);
-   
-   
+
+
    for( i=0 ; i<M ; i++)
       for( j=0 ; j<M ; j++) {
          OUT[i][j] = OUTB[i][j] = - ((float) gsl_matrix_get(PC, i, j));
@@ -446,7 +446,7 @@ int CalcPartCorrMatr( float **OUT, float **OUTB, float **IN, int M)
                             "\t-> making all zeros.");
             BADB = 1;
          }
-         aa = (float) gsl_matrix_get(PC, i, i) * 
+         aa = (float) gsl_matrix_get(PC, i, i) *
             (float) gsl_matrix_get(PC, j, j);
          if(aa>0)
             OUT[i][j]/= sqrt(aa);
@@ -457,14 +457,14 @@ int CalcPartCorrMatr( float **OUT, float **OUTB, float **IN, int M)
             BAD = 1;
          }
       }
-   
+
    if(BAD)
       for( i=0 ; i<M ; i++)
-         for( j=0 ; j<M ; j++) 
+         for( j=0 ; j<M ; j++)
             OUT[i][j] = 0.;
    if(BADB)
       for( i=0 ; i<M ; i++)
-         for( j=0 ; j<M ; j++) 
+         for( j=0 ; j<M ; j++)
             OUTB[i][j] = 0.;
 
 

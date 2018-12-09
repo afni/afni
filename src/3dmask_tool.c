@@ -147,7 +147,7 @@ int main( int argc, char *argv[] )
       THD_3dim_dataset * crm = countset;
       countset = apply_dilations(countset, &params->RESD, 0, params->verb);
       DSET_delete(crm);
- 
+
       if( !countset ) RETURN(1);
    }
 
@@ -174,7 +174,7 @@ int main( int argc, char *argv[] )
  * 4. if not converting, modify original data
  * 5. undo any zeropad
  * 6. return new dataset
- * 
+ *
  * dilations are passed as a list of +/- integers (- means erode)
  *
  * convert: flag specifying whether dset should be converted to MRI_byte
@@ -427,7 +427,7 @@ int process_input_dsets(param_t * params)
 
    if( params->verb ) INFO_message("processing %d input datasets...",
                                    params->ndsets);
-   
+
    /* warn user of dilations */
    if(params->verb && params->ndsets) {
       int pad = needed_padding(&params->IND);
@@ -460,7 +460,7 @@ int process_input_dsets(param_t * params)
       /* apply dilations to all volumes, returning bytemask datasets */
       params->dsets[iset] = apply_dilations(dset, &params->IND,1,params->verb);
       if( ! params->dsets[iset] ) RETURN(1);
-   } 
+   }
 
    DSET_delete(dfirst); /* and nuke */
 
@@ -508,7 +508,7 @@ int count_masks(THD_3dim_dataset * dsets[], int ndsets, int verb, /* inputs */
 
    *nvol = 0;
    nxyz = DSET_NVOX(dsets[0]);
-   
+
    /* allocate memory for the counts */
    counts = (short *)calloc(nxyz, sizeof(short));
    if( !counts ) ERROR_exit("failed to malloc %d shorts", nxyz);
@@ -525,7 +525,7 @@ int count_masks(THD_3dim_dataset * dsets[], int ndsets, int verb, /* inputs */
                        iset, ivol);
 
          bptr = DBLK_ARRAY(dset->dblk, ivol);
-         for( ixyz = 0; ixyz < nxyz; ixyz++ ) 
+         for( ixyz = 0; ixyz < nxyz; ixyz++ )
             if( bptr[ixyz] ) counts[ixyz]++;
       }
 
@@ -1017,7 +1017,7 @@ int process_opts(param_t * params, int argc, char * argv[] )
 
       ERROR_message("** unknown option '%s'\n",argv[ac]);
       RETURN(-1);
-       
+
    }
 
    if( !dilations_are_valid(& params->IND) ||
@@ -1075,7 +1075,7 @@ int dilations_are_valid(int_list * D)
  *
  * Also allow for cases like "xy", "YX".
  *
- * dirs 
+ * dirs
  */
 int set_axis_directions(THD_3dim_dataset * dset, char * axes, THD_ivec3 * dirs)
 {

@@ -9,7 +9,7 @@
 typedef struct {
 
    // -help, -h
-   // -verb 
+   // -verb
 
    // Necessary for all running
    char *NAMEIN_mode;             //  "-mode"
@@ -22,7 +22,7 @@ typedef struct {
    char *in_EXTRA;                //  "-dti_extra"
    int NO_NONDTI_SEARCH;          //  "-dti_search_NO"
 
-   // HARDI input 
+   // HARDI input
    char *hardi_dir;               //  "-hardi_dirs"
    char *hardi_gfa;               //  "-hardi_gfa"
    char *hardi_pars;              //  "-hardi_pars"
@@ -31,7 +31,7 @@ typedef struct {
    char *NAMEIN_mask;             //  "-mask"
    char *NAMEIN_thru;             // "-thru_mask"
 
-   // algorithm options 
+   // algorithm options
    char *algopt_file_name;        //  "-algopt"
    float MinFA;                   //  "-alg_Thresh_FA"     - DET,MINIP,PROB
    float MaxAngDeg;               //  "-alg_Thresh_ANG"    - DET,MINIP,PROB

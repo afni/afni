@@ -26,7 +26,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:42  rwcox
@@ -143,7 +143,7 @@ void	ShowBFMVHistogram _ANSI_ARGS_((FILE *fpointer));
 
 /* specifics.c */
 void	Specifics_Init _ANSI_ARGS_((void));
-int     SpecLookup _ANSI_ARGS_((int fn, int typ, int num, 
+int     SpecLookup _ANSI_ARGS_((int fn, int typ, int num,
 				BlockMV **info, int start_qs));
 int SpecTypeLookup _ANSI_ARGS_((int fn));
 
@@ -151,5 +151,5 @@ int SpecTypeLookup _ANSI_ARGS_((int fn));
 
 void pnm_promoteformat _ANSI_ARGS_(( xel** xels, int cols, int rows, xelval maxval,
 int format, xelval newmaxval, int newformat ));
-void pnm_promoteformatrow _ANSI_ARGS_(( xel* xelrow, int cols, xelval maxval, 
+void pnm_promoteformatrow _ANSI_ARGS_(( xel* xelrow, int cols, xelval maxval,
 int format, xelval newmaxval, int newformat ));

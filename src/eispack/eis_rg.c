@@ -6,23 +6,23 @@
 #include "f2c.h"
 
 /* Subroutine */ int rg_(integer *nm, integer *n, doublereal *a, doublereal *
-	wr, doublereal *wi, integer *matz, doublereal *z__, integer *iv1, 
+	wr, doublereal *wi, integer *matz, doublereal *z__, integer *iv1,
 	doublereal *fv1, integer *ierr)
 {
     /* System generated locals */
     integer a_dim1, a_offset, z_dim1, z_offset;
 
     /* Local variables */
-    extern /* Subroutine */ int balbak_(integer *, integer *, integer *, 
+    extern /* Subroutine */ int balbak_(integer *, integer *, integer *,
 	    integer *, doublereal *, integer *, doublereal *), balanc_(
-	    integer *, integer *, doublereal *, integer *, integer *, 
+	    integer *, integer *, doublereal *, integer *, integer *,
 	    doublereal *), elmhes_(integer *, integer *, integer *, integer *,
 	     doublereal *, integer *), eltran_(integer *, integer *, integer *
 	    , integer *, doublereal *, integer *, doublereal *);
     integer is1, is2;
-    extern /* Subroutine */ int hqr_(integer *, integer *, integer *, integer 
+    extern /* Subroutine */ int hqr_(integer *, integer *, integer *, integer
 	    *, doublereal *, doublereal *, doublereal *, integer *), hqr2_(
-	    integer *, integer *, integer *, integer *, doublereal *, 
+	    integer *, integer *, integer *, integer *, doublereal *,
 	    doublereal *, doublereal *, doublereal *, integer *);
 
 
@@ -68,12 +68,12 @@
 /*        IV1  AND  FV1  ARE TEMPORARY STORAGE ARRAYS. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -107,7 +107,7 @@ L10:
 /*     .......... FIND BOTH EIGENVALUES AND EIGENVECTORS .......... */
 L20:
     eltran_(nm, n, &is1, &is2, &a[a_offset], &iv1[1], &z__[z_offset]);
-    hqr2_(nm, n, &is1, &is2, &a[a_offset], &wr[1], &wi[1], &z__[z_offset], 
+    hqr2_(nm, n, &is1, &is2, &a[a_offset], &wr[1], &wi[1], &z__[z_offset],
 	    ierr);
     if (*ierr != 0) {
 	goto L50;

@@ -33,7 +33,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -190,7 +190,7 @@ static int	    numI, numP, numB;
 
 
 /*==================*
- * GLOBAL VARIABLES *	
+ * GLOBAL VARIABLES *
  *==================*/
 
 /* important -- don't initialize anything here */
@@ -288,7 +288,7 @@ SetBitRateFileName(fileName)
  *	if whichGOP != -1 then does numbered GOP only (without sequence
  *			       header)
  *	if frameStart != -1 then does numbered frames only (without any
- *				 sequence or GOP headers)		       
+ *				 sequence or GOP headers)
  *
  * RETURNS:	amount of time it took
  *
@@ -490,7 +490,7 @@ GenMPEGStream(whichGOP, frameStart, frameEnd, qtable, niqtable, numFrames,
         SetFrameRate();
         */
          }
-    
+
 #ifdef BLEAH
 fprintf(stdout, "firstFrame, lastFrame = %d, %d;  real = %d, %d\n",
         firstFrame, lastFrame, realStart, realEnd);
@@ -502,7 +502,7 @@ fflush(stdout);
     for ( i = firstFrame; i <= lastFrame; i++) {
 
         /* break out of the near-infinite loop if input from stdin is done */
-#if 0 
+#if 0
       char eofcheck[1];
       if ( stdinUsed ) {
 	if (scanf("%c", eofcheck) != EOF) {
@@ -523,14 +523,14 @@ fflush(stdout);
 	if ( stdinUsed) {
 	  int eofcheck_;
 	  eofcheck_ = fgetc(stdin);
-	  if ( eofcheck_ == EOF) 
+	  if ( eofcheck_ == EOF)
 	    break;
-	  else 
+	  else
 	    ungetc(eofcheck_, stdin);
-	} 
+	}
 #endif
         frameType = FType_Type(i);
-	
+
         time(&tempTimeStart);
 
         /* skip non-reference frames if non-interactive
@@ -545,7 +545,7 @@ fflush(stdout);
             time(&tempTimeEnd);
             IOtime += (tempTimeEnd-tempTimeStart);
 
-            /* Add the B frame to the end of the queue of B-frames 
+            /* Add the B frame to the end of the queue of B-frames
              * for later encoding
              */
 
@@ -600,7 +600,7 @@ fflush(stdout);
 
           inputFrameBits = 24*Fsize_x*Fsize_y;
           SetBlocksPerSlice();
-          
+
           if ( (whichGOP == -1) && (frameStart == -1) ) {
             DBG_PRINT(("Generating sequence header\n"));
             bitstreamMode = getRateMode();
@@ -612,11 +612,11 @@ fflush(stdout);
 	          bit_rate = -1;
 	          buf_size = -1;
 	        }
-	    
+
 	    if (strlen(userDataFileName) != 0) {
 	      struct stat statbuf;
 	      FILE *fp;
-	      
+
 	      stat(userDataFileName,&statbuf);
 	      userDataSize = statbuf.st_size;
 	      userData = malloc(userDataSize);
@@ -652,10 +652,10 @@ fflush(stdout);
                                     /* ext_data */ NULL, /* ext_data_size */ 0,
                                     /* user_data */ userData, /* user_data_size */ userDataSize);
           }
-          
+
           firstFrameDone = TRUE;
         }
-        
+
         ProcessRefFrame(frame, bb, lastFrame, outputFileName);
 
     }
@@ -675,7 +675,7 @@ fflush(stdout);
       numBits = bb->cumulativeBits;
     } else {
       /* What should the correct value be?  Most likely 1.  "numBits" is
-         used below, so we need to make sure it's properly initialized 
+         used below, so we need to make sure it's properly initialized
        to somthing (anything).  */
       numBits = 1;
     }
@@ -748,7 +748,7 @@ IncrementTCTime()
 
        if fps = 24000/1001, then 1/1000 seconds = 24/1001 frames
        if fps = 30000/1001, then 1/1000 seconds = 30/1001 frames
-       if fps = 60000/1001, then 1/1000 seconds = 60/1001 frames     
+       if fps = 60000/1001, then 1/1000 seconds = 60/1001 frames
      */
 
     totalFramesSent++;
@@ -848,7 +848,7 @@ PrintStartStats(firstFrame, lastFrame)
 	    fprintf(stdout, "\n\n");
 	}
     }
-	
+
     for ( i = 0; i < 2; i++ ) {
 	if ( ( i == 0 ) && (! realQuiet) ) {
 	    fpointer = stdout;
@@ -871,7 +871,7 @@ PrintStartStats(firstFrame, lastFrame)
 	    fprintf(fpointer, "INPUT:  stdin\n");
 	  }
 
-	
+
 	if ( firstFrame == -1 ) {
 	    fprintf(fpointer, "OUTPUT:  %s\n", outputFileName);
 	} else if ( ! stdinUsed ) {
@@ -889,14 +889,14 @@ PrintStartStats(firstFrame, lastFrame)
 	fprintf(fpointer, "SLICES PER FRAME:  %d\n", slicesPerFrame);
 	if (searchRangeP==searchRangeB)
 	  fprintf(fpointer, "RANGE:  +/-%d\n", searchRangeP/2);
-	else fprintf(fpointer, "RANGES:  +/-%d %d\n", 
+	else fprintf(fpointer, "RANGES:  +/-%d %d\n",
 		     searchRangeP/2,searchRangeB/2);
 	fprintf(fpointer, "PIXEL SEARCH:  %s\n", pixelFullSearch ? "FULL" : "HALF");
 	fprintf(fpointer, "PSEARCH:  %s\n", PSearchName());
 	fprintf(fpointer, "BSEARCH:  %s\n", BSearchName());
-	fprintf(fpointer, "QSCALE:  %d %d %d\n", qscaleI, 
+	fprintf(fpointer, "QSCALE:  %d %d %d\n", qscaleI,
 		GetPQScale(), GetBQScale());
-	if (specificsOn) 
+	if (specificsOn)
 	  fprintf(fpointer, "(Except as modified by Specifics file)\n");
 	if ( referenceFrame == DECODED_FRAME ) {
 	    fprintf(fpointer, "REFERENCE FRAME:  DECODED\n");
@@ -919,7 +919,7 @@ PrintStartStats(firstFrame, lastFrame)
       }
     if (! realQuiet) {
     	fprintf(stdout, "\n\n");
-    }	
+    }
 }
 
 
@@ -969,7 +969,7 @@ NonLocalRefFrame(id)
 }
 
 
- 
+
 /*===========================================================================*
  *
  * SetFrameRate
@@ -1123,7 +1123,7 @@ fprintf(stdout, "GOP STARTS AT %d\n", frameNum-passedB);
 		frameNum++;
 		passedB++;
 	    }
-	} while ( (frameNum < numFrames) && 
+	} while ( (frameNum < numFrames) &&
 		  ((FType_Type(frameNum) != 'i') || (currGOP < gopSize)) );
 
 	currGOP -= gopSize;
@@ -1248,9 +1248,9 @@ char *outputFileName;
   boolean separateFiles;
   int	    id;
   time_t  tempTimeStart, tempTimeEnd;
-  
+
   separateFiles = (bb == NULL);
-  
+
   if ( separateFiles && (frame->id >= realStart) &&
       (frame->id <= realEnd) ) {
     if ( remoteIO ) {
@@ -1262,45 +1262,45 @@ char *outputFileName;
 		fileName);
 	exit(1);
       }
-      
+
       bb = Bitio_New(fpointer);
     }
   }
-  
+
   /* nothing to do */
   if ( frame->id < realStart ) {
     return;
   }
-  
+
   /* first, output this frame */
   if ( frame->type == TYPE_IFRAME ) {
-      
+
 #ifdef BLEAH
     fprintf(stdout, "I-frame %d, currentGOP = %d\n",
 	    frame->id, currentGOP);
     fflush(stdout);
 #endif
-      
+
     /* only start a new GOP with I */
     /* don't start GOP if only doing frames */
     if ( (! separateFiles) && (currentGOP >= gopSize) ) {
       int closed;
       static int num_gop = 0;
-	
+
       /* first, check to see if closed GOP */
       if ( totalFramesSent == frame->id || pastRefFrame == NULL) {
 	closed = 1;
       } else {
 	closed = 0;
       }
-	
+
       /* new GOP */
       if (num_gop != 0 && mult_seq_headers && num_gop % mult_seq_headers == 0) {
 	if (! realQuiet) {
 	  fprintf(stdout, "Creating new Sequence before GOP %d\n", num_gop);
 	  fflush(stdout);
 	}
-	  
+
 	Mhead_GenSequenceHeader(bb, Fsize_x, Fsize_y,
 				/* pratio */    aspectRatio,
 				/* pict_rate */ frameRate, /* bit_rate */ bit_rate,
@@ -1309,13 +1309,13 @@ char *outputFileName;
 				/* ext_data */ NULL,  /* ext_data_size */ 0,
 				/* user_data */ NULL, /* user_data_size */ 0);
       }
-	
+
       if (! realQuiet) {
 	fprintf(stdout, "Creating new GOP (closed = %c) before frame %d\n",
 		"FT"[closed], frame->id);
 	fflush(stdout);
       }
-	
+
       num_gop++;
       Mhead_GenGOPHeader(bb,	/* drop_frame_flag */ 0,
 			 tc_hrs, tc_min, tc_sec, tc_pict,
@@ -1329,12 +1329,12 @@ char *outputFileName;
 	SetGOPStartTime(pastRefFrame->id+1);
       }
     }
-      
+
     if ( (frame->id >= realStart) && (frame->id <= realEnd) ) {
       GenIFrame(bb, frame);
-	
+
       framesOutput++;
-	
+
       if ( separateFiles ) {
 	if ( remoteIO ) {
 	  SendRemoteFrame(frame->id, bb);
@@ -1344,18 +1344,18 @@ char *outputFileName;
 	}
       }
     }
-      
+
     numI--;
     timeMask &= 0x6;
-      
+
     currentGOP++;
     IncrementTCTime();
   } else {
     if ( (frame->id >= realStart) && (frame->id <= realEnd) ) {
       GenPFrame(bb, frame, pastRefFrame);
-	
+
       framesOutput++;
-	
+
       if ( separateFiles ) {
 	if ( remoteIO ) {
 	  SendRemoteFrame(frame->id, bb);
@@ -1365,26 +1365,26 @@ char *outputFileName;
 	}
       }
     }
-    
+
     numP--;
     timeMask &= 0x5;
     ShowRemainingTime();
-    
+
     currentGOP++;
     IncrementTCTime();
   }
-  
+
   /* now, output B-frames */
   if ( pastRefFrame != NULL ) {
     for ( id = pastRefFrame->id+1; id < futureRefFrame->id; id++ ) {
       if ( ! ((id >= realStart) && (id <= realEnd)) )
 	continue;
-	
+
       if ( ! stdinUsed ) {
 	bFrame = Frame_New(id, 'b');
-	  
+
 	time(&tempTimeStart);
-	  
+
 	/* read B frame, output it */
 	if ( remoteIO ) {
 	  GetRemoteFrame(bFrame, bFrame->id);
@@ -1396,26 +1396,26 @@ char *outputFileName;
 	    ReadFrame(bFrame, inputFileName, inputConversion, TRUE);
 	  }
 	}
-	  
+
 	time(&tempTimeEnd);
 	IOtime += (tempTimeEnd-tempTimeStart);
-	  
+
 	framesRead++;
       } else {
-	  
-	/* retrieve and remove B-frame from queue set up in 
-	 * GenMPEGStream 
+
+	/* retrieve and remove B-frame from queue set up in
+	 * GenMPEGStream
 	 */
 	bFrame = pastRefFrame->next;
 	pastRefFrame->next = bFrame->next;
       }
-	
-	
+
+
       if ( separateFiles ) {
 	if ( remoteIO ) {
 	  bb = Bitio_New(NULL);
 	} else {
-	  sprintf(fileName, "%s.frame.%d", outputFileName, 
+	  sprintf(fileName, "%s.frame.%d", outputFileName,
 		  bFrame->id);
 	  if ( (fpointer = fopen(fileName, "wb")) == NULL ) {
 	    fprintf(stderr, "ERROR:  Could not open output file(2):  %s\n",
@@ -1425,10 +1425,10 @@ char *outputFileName;
 	  bb = Bitio_New(fpointer);
 	}
       }
-	
+
       GenBFrame(bb, bFrame, pastRefFrame, futureRefFrame);
       framesOutput++;
-	
+
       if ( separateFiles ) {
 	if ( remoteIO ) {
 	  SendRemoteFrame(bFrame->id, bb);
@@ -1437,14 +1437,14 @@ char *outputFileName;
 	  fclose(fpointer);
 	}
       }
-	
+
       /* free this B frame right away */
       Frame_Free(bFrame);
-	
+
       numB--;
       timeMask &= 0x3;
       ShowRemainingTime();
-	
+
       currentGOP++;
       IncrementTCTime();
     }
@@ -1476,9 +1476,9 @@ char *outputFileName;
 
 	framesRead++;
       } else {
-	    
-	/* retrieve and remove B-frame from queue set up in 
-	 * GenMPEGStream 
+
+	/* retrieve and remove B-frame from queue set up in
+	 * GenMPEGStream
 	 */
 	printf("Yow, I doubt this works!\n");
 	bFrame = pastRefFrame->next;
@@ -1490,7 +1490,7 @@ char *outputFileName;
 	if ( remoteIO ) {
 	  bb = Bitio_New(NULL);
 	} else {
-	  sprintf(fileName, "%s.frame.%d", outputFileName, 
+	  sprintf(fileName, "%s.frame.%d", outputFileName,
 		  bFrame->id);
 	  if ( (fpointer = fopen(fileName, "wb")) == NULL ) {
 	    fprintf(stderr, "ERROR:  Could not open output file(2):  %s\n",
@@ -1523,14 +1523,14 @@ char *outputFileName;
       currentGOP++;
       IncrementTCTime();
     }
-    
+
   }
-  
+
   /* now free previous frame, if there was one */
   if ( pastRefFrame != NULL ) {
     Frame_Free(pastRefFrame);
   }
-  
+
   /* note, we may still not free last frame if lastFrame is incorrect
    * (if the last frames are B frames, they aren't output!)
    */
@@ -1624,25 +1624,25 @@ ReadDecodedRefFrame(frame, frameNumber)
       }}
 
     Frame_AllocDecoded(frame, TRUE);
-    
+
     for ( y = 0; y < height; y++ ) {
       if (fread(frame->decoded_y[y], 1, width, fpointer) != width) {
 	fprintf(stderr, "Could not read enough bytes from %s\n", fileName);
       }
     }
-    
+
     for (y = 0; y < (height >> 1); y++) {			/* U */
       if (fread(frame->decoded_cb[y], 1, width >> 1, fpointer) != (width>>1)) {
 	fprintf(stderr, "Could not read enough bytes from %s\n", fileName);
       }
     }
-    
+
     for (y = 0; y < (height >> 1); y++) {			/* V */
       if (fread(frame->decoded_cr[y], 1, width >> 1, fpointer) != (width>>1)) {
 	fprintf(stderr, "Could not read enough bytes from %s\n", fileName);
       }
     }
-    
+
     fclose(fpointer);
 }
 

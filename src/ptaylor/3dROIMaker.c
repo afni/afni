@@ -1,4 +1,4 @@
-/* 
+/*
    Turn ROIs into prep for tractography, written by PA Taylor
    (Oct/Nov, 2012).
 
@@ -9,7 +9,7 @@
 	Inflation/detection for voxels sharing face/edge, but not for only
 	vertex.
 
-	Dec. 2012: 
+	Dec. 2012:
 	     fixed bug about thresholds,
         include maskability,
 	     rename outputs, `*_WM' -> `*_GMI'.
@@ -24,9 +24,9 @@
         can redefine how tight the definition of neighbors is
         also put in HOT_POINTS option:  threshold based on vol to get
         max values.
-        --> bug fixed version; forgot a logical test in IF statement 
+        --> bug fixed version; forgot a logical test in IF statement
 
-    Aug/Sept 2014: 
+    Aug/Sept 2014:
         new option for pre-expansion first, for example if WM region
         is input (expand to boundary, stop, and expand in GM by a
         certain number of voxels).
@@ -47,7 +47,7 @@
 
     April 2015:
         minor bug fix: outsets needed to have brickfac nulled, for when
-        byte and short insets were used (-> had been causing error and 
+        byte and short insets were used (-> had been causing error and
         no output)
 
     Jul 2015:
@@ -69,16 +69,16 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
-#include <3ddata.h>    
+#include <mrilib.h>
+#include <rsfc.h>
+#include <3ddata.h>
 #include <gsl/gsl_rng.h>
 #include <Fat_Labels.h>
 #include "DoTrackit.h"
 #include "roiing.h"
 
 
-void usage_ROIMaker(int detail) 
+void usage_ROIMaker(int detail)
 {
 	printf(
 "\n"
@@ -102,7 +102,7 @@ void usage_ROIMaker(int detail)
 "  One can either specify a number of voxels with which to pad each ROI, \n"
 "  and/or input a white matter skeleton (such as could be defined from a \n"
 "  segmented T1 image or an FA map) and use this as an additional guide for\n"
-"  inflating the GM ROIs.  The output of this program can be used directly\n"  
+"  inflating the GM ROIs.  The output of this program can be used directly\n"
 "  for guiding tractography, such as with 3dTrackID.\n"
 "\n"
 "  If an input dataset ('-inset INSET') already contains integer delineation,\n"
@@ -123,11 +123,11 @@ void usage_ROIMaker(int detail)
 "\n"
 "  OUTPUTS:\n"
 "   + `GM' map of ROIs  :based on value- and volume-thresholding, would\n"
-"                        correspond most closely to gray matter regions of\n" 
+"                        correspond most closely to gray matter regions of\n"
 "                        activation. The values of each voxel are an integer,\n"
 "                        distinct per ROI.\n"
 "   + `GMI' map of ROIs :map of inflated GM ROIs, based on GM map, with the \n"
-"                        ROIs inflated either by a user-designed number of\n" 
+"                        ROIs inflated either by a user-designed number of\n"
 "                        voxels, or also possibly including information of\n"
 "                        the WM skeleton (so that inflation is halted after\n"
 "                        encountering WM). The values of each voxel are the\n"
@@ -204,7 +204,7 @@ void usage_ROIMaker(int detail)
 "                       NB: however, with CSF_SK, info must just be a binary\n"
 "                       mask already, and it will only be applied in trimming\n"
 "                       procedure (no affect on inflation); if input, INSET\n"
-"                       is automatically trimmed of CSF, independent of\n" 
+"                       is automatically trimmed of CSF, independent of\n"
 "                       using `-trim_off_wm'.  Again, trimming done before\n"
 "                       volume thresholding, so may decrease/separate regions\n"
 "                       (though, that may be useful/more physiological).\n"
@@ -288,7 +288,7 @@ int main(int argc, char *argv[]) {
    THD_3dim_dataset *outsetGM_tmp=NULL; // jul,2015: fix mismatch with rescal
 
    // default setting: neighbor shares face ONLY
-   int NEIGHBOR_LIMIT = 2; 
+   int NEIGHBOR_LIMIT = 2;
 
 	THD_3dim_dataset *MASK=NULL;
 	char in_mask[300];
@@ -302,7 +302,7 @@ int main(int argc, char *argv[]) {
 
 
 	int HAVEREF = 0; // switch if an external ref file for ROI labels is present
-   int HAVE_PREINF = 0, HAVE_IN = 0; 
+   int HAVE_PREINF = 0, HAVE_IN = 0;
 	int HAVESKEL = 0; // switch if an external ref file for ROI labels is present
 	int HAVE_CSFSKEL = 0; // similar to above...
 	int SKEL_STOP=0; // switch if inflation will be stopped in WM skeleton
@@ -323,11 +323,11 @@ int main(int argc, char *argv[]) {
 	int **N_refvox_R=NULL;
 	float SKEL_THR=0.5;// default, such as if input SKEL is a mask
 
-	int *Dim=NULL; 
+	int *Dim=NULL;
    // num of rois per brik, and inv labels
 	int *NROI_IN=NULL,*NROI_IN_b=NULL,*INVROI_IN=NULL;
    // allow labels to be non-consecutive.
-	int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL; 
+	int **ROI_LABELS_REF=NULL, **INV_LABELS_REF=NULL;
 	int *NROI_REF=NULL,*NROI_REF_b=NULL,*INVROI_REF=NULL;
 	int ****OLAP_RI=NULL; // info of overlap WRT ref and T inset
 	int **N_olap_RI=NULL,**N_olap_IR=NULL; // nums of rois per olap
@@ -337,7 +337,7 @@ int main(int argc, char *argv[]) {
    short int ***invSKEL=NULL;
 
 	// stuff for part 2: allow labels to be non-consecutive.
-	int **ROI_LABELS_GM=NULL, **INV_LABELS_GM=NULL; 
+	int **ROI_LABELS_GM=NULL, **INV_LABELS_GM=NULL;
 	int *NROI_GM=NULL,*INVROI_GM=NULL;
 	int ***COUNT_GM=NULL;
 
@@ -366,8 +366,8 @@ int main(int argc, char *argv[]) {
    char mini[50];
    FILE *fout1=NULL;
 
-	mainENTRY("3dROIMaker"); machdep(); 
-  
+	mainENTRY("3dROIMaker"); machdep();
+
 	// ****************************************************************
 	// ****************************************************************
 	//                    load AFNI stuff
@@ -379,40 +379,40 @@ int main(int argc, char *argv[]) {
 
 	// scan args
 	if (argc == 1) { usage_ROIMaker(1); exit(0); }
-	iarg = 1; 
+	iarg = 1;
 	while( iarg < argc && argv[iarg][0] == '-' ){
-		if( strcmp(argv[iarg],"-help") == 0 || 
+		if( strcmp(argv[iarg],"-help") == 0 ||
 			 strcmp(argv[iarg],"-h") == 0 ) {
 			usage_ROIMaker(strlen(argv[iarg])>3 ? 2:1);
 			exit(0);
 		}
-			 
+
 		if( strcmp(argv[iarg],"-inset") == 0 ){
-			iarg++ ; 
-			if( iarg >= argc ) 
+			iarg++ ;
+			if( iarg >= argc )
 				ERROR_exit("Need argument after '-inset'");
 
-			sprintf(in_name,"%s", argv[iarg]); 
+			sprintf(in_name,"%s", argv[iarg]);
          HAVE_IN = 1;
 
 			iarg++ ; continue ;
 		}
 
 		if( strcmp(argv[iarg],"-thresh") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-thresh'");
 			//INFO_message("Size of threshold is: %s",argv[iarg]);
 			THR = atof(argv[iarg]);
-			
+
 			iarg++ ; continue ;
 		}
-		
+
 		if( strcmp(argv[iarg],"-prefix") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-prefix'");
 			prefix = strdup(argv[iarg]);
 
-			if( !THD_filename_ok(prefix) ) 
+			if( !THD_filename_ok(prefix) )
 				ERROR_exit("Illegal name after '-prefix'");
 
          HAVEPREFIX = 1;
@@ -421,14 +421,14 @@ int main(int argc, char *argv[]) {
 
 
 		if( strcmp(argv[iarg],"-refset") == 0 ) {
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-refset'");
-			
-			sprintf(in_REF,"%s", argv[iarg]); 
+
+			sprintf(in_REF,"%s", argv[iarg]);
 			insetREF = THD_open_dataset(in_REF) ;
 			if( insetREF == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_REF);
-			
+
 			DSET_load(insetREF); CHECK_LOAD_ERROR(insetREF);
 			HAVEREF = DSET_NVALS(insetREF);
 
@@ -445,90 +445,90 @@ int main(int argc, char *argv[]) {
 
 
       if( strcmp(argv[iarg],"-preinfl_inset") == 0 ) {
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-preinfl_inset'");
-			
-			sprintf(inpre_name,"%s", argv[iarg]); 
+
+			sprintf(inpre_name,"%s", argv[iarg]);
          HAVE_PREINF=1;
 
 			iarg++ ; continue ;
-		}      
+		}
 
 		// can determine size of expansion based on this
 		if( strcmp(argv[iarg],"-preinfl_inflate") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-preinfl_inflate'");
 			PREINFL_NUM = atoi(argv[iarg]);
-			
+
 			if(PREINFL_NUM<=0)
 				ERROR_exit("Size of inflation layer for ROIs=%d: must be >0!",
 							  PREINFL_NUM);
-			
+
 			iarg++ ; continue ;
 		}
 
 		// can have vol thr.
 		if( strcmp(argv[iarg],"-volthr") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-volthr'");
 			VOLTHR = atoi(argv[iarg]);
-			
+
 			if(VOLTHR<=0)
 				ERROR_exit("Volume threshold for size of ROIs=%d: must be >0!",
 							  VOLTHR);
-			
+
 			iarg++ ; continue ;
 		}
 
       if( strcmp(argv[iarg],"-only_some_top") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-only_some_top'");
 			HOT_POINTS = atoi(argv[iarg]);
-			
+
 			if(HOT_POINTS<=0)
 				ERROR_exit("The number of (high-value) voxels to keep per ROI=%d: "
                        "must be >0!",
 							  HOT_POINTS);
-			
+
 			iarg++ ; continue ;
 		}
 
       if( strcmp(argv[iarg],"-only_conn_top") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-only_conn_top'");
 			HOT_CONN = atoi(argv[iarg]);
-			
+
 			if(HOT_CONN<=0)
 				ERROR_exit("The number of (high-value) voxels to keep per ROI=%d: "
                        "must be >0!",
 							  HOT_CONN);
-			
+
 			iarg++ ; continue ;
 		}
 
 
 		// can determine size of expansion based on this
 		if( strcmp(argv[iarg],"-inflate") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-inflate'");
 			INFL_NUM = atoi(argv[iarg]);
-			
+
 			if(INFL_NUM<=0)
 				ERROR_exit("Size of inflation layer for ROIs=%d: must be >0!",
 							  INFL_NUM);
-			
+
 			iarg++ ; continue ;
 		}
 
 		// use this to also to determine size of expansion
 		if( strcmp(argv[iarg],"-wm_skel") == 0 ) {
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-wm_skel'");
-			
+
 			insetSKEL = THD_open_dataset(argv[iarg]) ;
 			if( insetSKEL == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
-			
+
 			DSET_load(insetSKEL); CHECK_LOAD_ERROR(insetSKEL);
 			HAVESKEL = 1;// DSET_NVALS(insetSKEL);
 
@@ -536,10 +536,10 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-skel_thr") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-skel_thr'");
 			SKEL_THR = atof(argv[iarg]);
-			
+
 			iarg++ ; continue ;
 		}
 
@@ -565,13 +565,13 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-csf_skel") == 0 ) {
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-csf_skel'");
-			
+
 			insetCSF_SKEL = THD_open_dataset(argv[iarg]) ;
 			if( insetCSF_SKEL == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",argv[iarg]);
-			
+
 			DSET_load(insetCSF_SKEL); CHECK_LOAD_ERROR(insetCSF_SKEL);
 			HAVE_CSFSKEL = 1;
 
@@ -597,11 +597,11 @@ int main(int argc, char *argv[]) {
 		}
 
 		if( strcmp(argv[iarg],"-mask") == 0 ){
-			iarg++ ; if( iarg >= argc ) 
+			iarg++ ; if( iarg >= argc )
 							ERROR_exit("Need argument after '-mask'");
 			// HAVE_MASK=1;
 
-			sprintf(in_mask,"%s", argv[iarg]); 
+			sprintf(in_mask,"%s", argv[iarg]);
 			MASK = THD_open_dataset(in_mask) ;
 			if( MASK == NULL )
 				ERROR_exit("Can't open time series dataset '%s'.",in_mask);
@@ -622,7 +622,7 @@ int main(int argc, char *argv[]) {
 		exit(1);
 	}
 
-   if( HAVE_IN && HAVE_PREINF ) 
+   if( HAVE_IN && HAVE_PREINF )
       ERROR_exit("Can't have both '-inset' and '-preinfl_inset' together.");
    else if( HAVE_IN || HAVE_PREINF ) {
 
@@ -634,35 +634,35 @@ int main(int argc, char *argv[]) {
       if( inset == NULL )
          ERROR_exit("Can't open time series dataset '%s'.",in_name);
       DSET_load(inset); CHECK_LOAD_ERROR(inset);
-      
-      Dim[0] = DSET_NX(inset); Dim[1] = DSET_NY(inset); 
-      Dim[2] = DSET_NZ(inset); Dim[3]= DSET_NVALS(inset); 
+
+      Dim[0] = DSET_NX(inset); Dim[1] = DSET_NY(inset);
+      Dim[2] = DSET_NZ(inset); Dim[3]= DSET_NVALS(inset);
       Nvox = DSET_NVOX(inset) ;
       voxel_order[0]=ORIENT_typestr[inset->daxes->xxorient][0];
       voxel_order[1]=ORIENT_typestr[inset->daxes->yyorient][0];
       voxel_order[2]=ORIENT_typestr[inset->daxes->zzorient][0];
 
       inpmap = (float ****) calloc( Dim[0], sizeof(float ***) );
-      for ( i = 0 ; i < Dim[0] ; i++ ) 
+      for ( i = 0 ; i < Dim[0] ; i++ )
          inpmap[i] = (float ***) calloc( Dim[1], sizeof(float **) );
-      for ( i = 0 ; i < Dim[0] ; i++ ) 
-         for ( j = 0 ; j < Dim[1] ; j++ ) 
+      for ( i = 0 ; i < Dim[0] ; i++ )
+         for ( j = 0 ; j < Dim[1] ; j++ )
             inpmap[i][j] = (float **) calloc( Dim[2], sizeof(float *) );
-      for ( i=0 ; i<Dim[0] ; i++ ) 
-         for ( j=0 ; j<Dim[1] ; j++ ) 
-            for ( k= 0 ; k<Dim[2] ; k++ ) 
+      for ( i=0 ; i<Dim[0] ; i++ )
+         for ( j=0 ; j<Dim[1] ; j++ )
+            for ( k= 0 ; k<Dim[2] ; k++ )
                inpmap[i][j][k] = (float *) calloc( Dim[3], sizeof(float) );
 
-      if( inpmap == NULL ) { 
+      if( inpmap == NULL ) {
          fprintf(stderr, "\n MemAlloc failure with inputs.\n");
          exit(18);
       }
-      
-      for( k=0 ; k<Dim[2] ; k++ ) 
-         for( j=0 ; j<Dim[1] ; j++ ) 
+
+      for( k=0 ; k<Dim[2] ; k++ )
+         for( j=0 ; j<Dim[1] ; j++ )
             for( i=0 ; i<Dim[0] ; i++ ) {
-               idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]); 
-               for( m=0 ; m<Dim[3] ; m++ ) 
+               idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
+               for( m=0 ; m<Dim[3] ; m++ )
                   inpmap[i][j][k][m] = THD_get_voxel(inset,idx,m);
             }
    }
@@ -688,7 +688,7 @@ int main(int argc, char *argv[]) {
 		if((Dim[0] != DSET_NX(insetREF)) || (Dim[1] != DSET_NY(insetREF)) ||
 			(Dim[2] != DSET_NZ(insetREF)) )
 			ERROR_exit("The xyz-dimensions of refset and inset don't match");
-		
+
 		if( Dim[3] == HAVEREF )
 			INFO_message("Each subrik of refset will be applied to corresponding "
                       "inset brik.");
@@ -708,7 +708,7 @@ int main(int argc, char *argv[]) {
 		if((Dim[0] != DSET_NX(MASK)) || (Dim[1] != DSET_NY(MASK)) ||
 			(Dim[2] != DSET_NZ(MASK)) )
 			ERROR_exit("The xyz-dimensions of mask and inset don't match");
-		
+
 		if( Dim[3] == HAVE_MASK )
 			INFO_message("Each subrik of mask will be applied to corresponding "
                       "inset brik.");
@@ -726,12 +726,12 @@ int main(int argc, char *argv[]) {
 	}
 
 
-	
+
 	if(HAVESKEL) {
 		if((Dim[0] != DSET_NX(insetSKEL)) || (Dim[1] != DSET_NY(insetSKEL)) ||
 			(Dim[2] != DSET_NZ(insetSKEL)) )
 			ERROR_exit("The xyz-dimensions of WM skeleton and inset don't match");
-	
+
 		if( voxel_order[0] != ORIENT_typestr[insetSKEL->daxes->xxorient][0] ||
 			 voxel_order[1] != ORIENT_typestr[insetSKEL->daxes->yyorient][0] ||
 			 voxel_order[2] != ORIENT_typestr[insetSKEL->daxes->zzorient][0] )
@@ -741,11 +741,11 @@ int main(int argc, char *argv[]) {
 	}
 
 	if(HAVE_CSFSKEL) {
-		if((Dim[0] != DSET_NX(insetCSF_SKEL)) || 
+		if((Dim[0] != DSET_NX(insetCSF_SKEL)) ||
 			(Dim[1] != DSET_NY(insetCSF_SKEL)) ||
 			(Dim[2] != DSET_NZ(insetCSF_SKEL)) )
 			ERROR_exit("The xyz-dimensions of WM skeleton and inset don't match");
-	
+
 		if(voxel_order[0] != ORIENT_typestr[insetCSF_SKEL->daxes->xxorient][0] ||
 			voxel_order[1] != ORIENT_typestr[insetCSF_SKEL->daxes->yyorient][0] ||
 			voxel_order[2] != ORIENT_typestr[insetCSF_SKEL->daxes->zzorient][0] )
@@ -772,23 +772,23 @@ int main(int argc, char *argv[]) {
 	//                    make inset storage
 	// ****************************************************************
 	// ****************************************************************
-	
+
 	// WM SKELETON MAKING
 	SKEL = (short int ***) calloc( Dim[0], sizeof(short int **));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
 		SKEL[i] = (short int **) calloc( Dim[1], sizeof(short int *));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
-		for ( j = 0 ; j < Dim[1] ; j++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
+		for ( j = 0 ; j < Dim[1] ; j++ )
 			SKEL[i][j] = (short int *) calloc( Dim[2], sizeof(short int));
-	
+
 	CSF_SKEL = (short int ***) calloc( Dim[0], sizeof(short int **));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
 		CSF_SKEL[i] = (short int **) calloc( Dim[1], sizeof(short int *));
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
-		for ( j = 0 ; j < Dim[1] ; j++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
+		for ( j = 0 ; j < Dim[1] ; j++ )
 			CSF_SKEL[i][j] = (short int *) calloc( Dim[2], sizeof(short int));
 
-	if( (SKEL == NULL) || (CSF_SKEL == NULL) ) { 
+	if( (SKEL == NULL) || (CSF_SKEL == NULL) ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(16);
 	}
@@ -796,45 +796,45 @@ int main(int argc, char *argv[]) {
 	// make skeleton: either with file input, or just put 1s everywhere.
 	//idx = 0;
 	// should preserve relative ordering of data
-   i = MakeSkels( Dim, 
+   i = MakeSkels( Dim,
                   HAVE_CSFSKEL,
-                  CSF_SKEL, 
+                  CSF_SKEL,
                   insetCSF_SKEL,
                   HAVESKEL,
-                  SKEL, 
+                  SKEL,
                   insetSKEL,
                   SKEL_THR );
 
 	N_thr = (int *)calloc(Dim[3],sizeof(int)); // num of init vox per brik,const
 	relab_vox = (int *)calloc(Dim[3],sizeof(int)); // num of vox >thr per brik
 	NROI_IN = (int *)calloc(Dim[3],sizeof(int)); // num of roi per brik
-	
+
 	// for use in HAVEREF
 	NROI_IN_b = (int *)calloc(Dim[3],sizeof(int)); // num of roi per brik
 
 	DATA = (int ****) calloc( Dim[0], sizeof(int ***) );
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
 		DATA[i] = (int ***) calloc( Dim[1], sizeof(int **) );
-	for ( i = 0 ; i < Dim[0] ; i++ ) 
-		for ( j = 0 ; j < Dim[1] ; j++ ) 
+	for ( i = 0 ; i < Dim[0] ; i++ )
+		for ( j = 0 ; j < Dim[1] ; j++ )
 			DATA[i][j] = (int **) calloc( Dim[2], sizeof(int *) );
-	for ( i=0 ; i<Dim[0] ; i++ ) 
-		for ( j=0 ; j<Dim[1] ; j++ ) 
-			for ( k= 0 ; k<Dim[2] ; k++ ) 
+	for ( i=0 ; i<Dim[0] ; i++ )
+		for ( j=0 ; j<Dim[1] ; j++ )
+			for ( k= 0 ; k<Dim[2] ; k++ )
 				DATA[i][j][k] = (int *) calloc( Dim[3], sizeof(int) );
 
 	// will be output
 	temp_arr = calloc( Dim[3],sizeof(temp_arr));  // XYZ components
-	for(i=0 ; i<Dim[3] ; i++) 
-		temp_arr[i] = calloc( Nvox,sizeof(short int) ); 
+	for(i=0 ; i<Dim[3] ; i++)
+		temp_arr[i] = calloc( Nvox,sizeof(short int) );
    // jul,2015
    temp_arr_tmp = calloc( Dim[3],sizeof(temp_arr_tmp));  // XYZ components
-	for(i=0 ; i<Dim[3] ; i++) 
-		temp_arr_tmp[i] = calloc( Nvox,sizeof(short int) ); 
+	for(i=0 ; i<Dim[3] ; i++)
+		temp_arr_tmp[i] = calloc( Nvox,sizeof(short int) );
 
 	if( (DATA == NULL) || (N_thr == NULL) || (NROI_IN == NULL)
-		 || (NROI_IN_b == NULL) || (temp_arr == NULL) 
-       || (temp_arr_tmp == NULL)) { 
+		 || (NROI_IN_b == NULL) || (temp_arr == NULL)
+       || (temp_arr_tmp == NULL)) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(14);
 	}
@@ -845,38 +845,38 @@ int main(int argc, char *argv[]) {
       int **fakeINV_LABELS_GM=NULL;
 
       invSKEL = (short int ***) calloc( Dim[0], sizeof(short int **));
-      for ( i = 0 ; i < Dim[0] ; i++ ) 
+      for ( i = 0 ; i < Dim[0] ; i++ )
          invSKEL[i] = (short int **) calloc( Dim[1], sizeof(short int *));
-      for ( i = 0 ; i < Dim[0] ; i++ ) 
-         for ( j = 0 ; j < Dim[1] ; j++ ) 
+      for ( i = 0 ; i < Dim[0] ; i++ )
+         for ( j = 0 ; j < Dim[1] ; j++ )
             invSKEL[i][j] = (short int *) calloc( Dim[2], sizeof(short int));
 
       // pretend like it's just one big binary thing expanding here, hence
       // the '1+1'
       fakeCOUNT_GM = ( int ***) calloc( Dim[3], sizeof( int **));
-      for ( i = 0 ; i < Dim[3] ; i++ ) 
+      for ( i = 0 ; i < Dim[3] ; i++ )
          fakeCOUNT_GM[i] = ( int **) calloc( (1+1), sizeof( int *));
-      for ( i = 0 ; i < Dim[3] ; i++ ) 
-         for ( j = 0 ; j < (1+1) ; j++ ) 
+      for ( i = 0 ; i < Dim[3] ; i++ )
+         for ( j = 0 ; j < (1+1) ; j++ )
             fakeCOUNT_GM[i][j] = ( int *) calloc( 3, sizeof( int));
-      fakeINV_LABELS_GM = calloc( Dim[3],sizeof(fakeINV_LABELS_GM));  
-      for(i=0 ; i<Dim[3] ; i++) 
-         fakeINV_LABELS_GM[i] = calloc(1+1,sizeof(int)); 
+      fakeINV_LABELS_GM = calloc( Dim[3],sizeof(fakeINV_LABELS_GM));
+      for(i=0 ; i<Dim[3] ; i++)
+         fakeINV_LABELS_GM[i] = calloc(1+1,sizeof(int));
 
-      if( (invSKEL == NULL) || (fakeCOUNT_GM == NULL) || 
-          (fakeINV_LABELS_GM == NULL) ) { 
+      if( (invSKEL == NULL) || (fakeCOUNT_GM == NULL) ||
+          (fakeINV_LABELS_GM == NULL) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(14);
       }
-      
-      
-      
-      
+
+
+
+
       // !!!!!!! should also include CSF here, probably as well, if a
       // user entered it
-      
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
+
+		for( k=0 ; k<Dim[2] ; k++ )
+			for( j=0 ; j<Dim[1] ; j++ )
 				for( i=0 ; i<Dim[0] ; i++ ) {
                if( !SKEL[i][j][k] )
                   invSKEL[i][j][k] = 1;
@@ -900,9 +900,9 @@ int main(int argc, char *argv[]) {
                            N_thr );
 
       // go through and start inflating
-      // do 1 layer at a time, in case of squeezed neighborhoods and 
+      // do 1 layer at a time, in case of squeezed neighborhoods and
       // book counting of WM intersections, etc.
-      i = ROI_make_inflate( Dim, 
+      i = ROI_make_inflate( Dim,
                             PREINFL_NUM,
                             SKEL_STOP, // updated here: 1 -> SKEL_STOP
                             NEIGHBOR_LIMIT,
@@ -915,8 +915,8 @@ int main(int argc, char *argv[]) {
 
 
       // final editing before subtractions
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
+		for( k=0 ; k<Dim[2] ; k++ )
+			for( j=0 ; j<Dim[1] ; j++ )
 				for( i=0 ; i<Dim[0] ; i++ ) {
                if( HAVE_CSFSKEL) // and can turn it off if in CSF
                   if( CSF_SKEL[i][j][k] )
@@ -931,12 +931,12 @@ int main(int argc, char *argv[]) {
                               invSKEL );
 
 
-      for( i=0 ; i<Dim[3] ; i++) 
+      for( i=0 ; i<Dim[3] ; i++)
          free(fakeCOUNT_GM[i]);
       free(fakeCOUNT_GM);
 
-      
-      for(i=0 ; i<Dim[3] ; i++) 
+
+      for(i=0 ; i<Dim[3] ; i++)
          free(fakeINV_LABELS_GM[i]);
       free(fakeINV_LABELS_GM);
 
@@ -966,30 +966,30 @@ int main(int argc, char *argv[]) {
 	if(max_nroi==0)
 		ERROR_exit("No keeper voxels in ROIs in any brik!");
 
-	
+
 	// as big as could be needed for labelling...  probably way bigger
-	// than necessary (could buffer/realloc, but just start with this, 
+	// than necessary (could buffer/realloc, but just start with this,
 	// at least for time being)
-	ROI_LABELS_pre = calloc( Dim[3],sizeof(ROI_LABELS_pre));  
-	for(i=0 ; i<Dim[3] ; i++) 
+	ROI_LABELS_pre = calloc( Dim[3],sizeof(ROI_LABELS_pre));
+	for(i=0 ; i<Dim[3] ; i++)
 		ROI_LABELS_pre[i] = calloc(2*N_thr[i],sizeof(int));
    // always make, for ease of code use later; if no refset given, it
    // just stays as 0s.  By definition, if HAVEREF>0, then HAVEREF==Dim[3],
    // so this definition works
-   RESCALES = (int *)calloc(Dim[3], sizeof(int)); 
+   RESCALES = (int *)calloc(Dim[3], sizeof(int));
 
-	if( (ROI_LABELS_pre == NULL) 
-		 || (RESCALES == NULL) ) { 
+	if( (ROI_LABELS_pre == NULL)
+		 || (RESCALES == NULL) ) {
 		fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 		exit(15);
-	}		
-	
+	}
+
 	// ****************************************************************
 	// ****************************************************************
 	//                    labelling inset
 	// ****************************************************************
 	// ****************************************************************
-	
+
 
 
    if(HOT_POINTS && HOT_CONN)
@@ -1008,31 +1008,31 @@ int main(int argc, char *argv[]) {
                        DATA,
                        max_nroi,
                        N_thr,
-                       NROI_IN, 
+                       NROI_IN,
                        ROI_LABELS_pre,
                        VOLTHR,
                        NEIGHBOR_LIMIT,
                        HOT_POINTS,
                        HOT_CONN,
                        inpmap );
-	
+
 	// Step 3: do matching, or subtract values back to where they should be
 	if( HAVEREF > 0 ) {
-				
-		// Step 3A-1: SET UP MATRICES FOR THIS STUFF
-		NROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
-		NROI_REF_b = (int *)calloc(HAVEREF, sizeof(int)); // for counting
-		INVROI_REF = (int *)calloc(HAVEREF, sizeof(int)); 
-      temp_ref = calloc( HAVEREF,sizeof(temp_ref));  // XYZ components
-      for(i=0 ; i<HAVEREF ; i++) 
-         temp_ref[i] = calloc( Nvox,sizeof(short int) ); 
 
-		if( (NROI_REF == NULL) || (INVROI_REF == NULL) 
+		// Step 3A-1: SET UP MATRICES FOR THIS STUFF
+		NROI_REF = (int *)calloc(HAVEREF, sizeof(int));
+		NROI_REF_b = (int *)calloc(HAVEREF, sizeof(int)); // for counting
+		INVROI_REF = (int *)calloc(HAVEREF, sizeof(int));
+      temp_ref = calloc( HAVEREF,sizeof(temp_ref));  // XYZ components
+      for(i=0 ; i<HAVEREF ; i++)
+         temp_ref[i] = calloc( Nvox,sizeof(short int) );
+
+		if( (NROI_REF == NULL) || (INVROI_REF == NULL)
           || (NROI_REF_b == NULL) || (temp_ref == NULL) ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(122);
 		}
-		
+
       // NEW: allow for having `antimask'/negative/NOT-ROIs by simple
       // rescaling up of REFSET values, if there's a negative present;
       // then do normal labelling, and then rescale down again.
@@ -1040,29 +1040,29 @@ int main(int argc, char *argv[]) {
          THD_subbrick_minmax(insetREF, i, 1,&dum1[0], &dum2[0]);
          if( dum1[0]<0 )//??inset-->fixed
             RESCALES[i] = 1 - ((int) dum1[0]);
-         //printf("\n%d\t%d --> refscal=%d",(int) dum1[0], 
-         //     (int) dum2[0], RESCALES[i]);  
+         //printf("\n%d\t%d --> refscal=%d",(int) dum1[0],
+         //     (int) dum2[0], RESCALES[i]);
       }
-      
+
       // rescale values as necessary
       for( m=0 ; m<Dim[3] ; m++ ) {
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
 					for( i=0 ; i<Dim[0] ; i++ ) {
                   idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( THD_get_voxel(insetREF,idx,m)>0.5 ||
                       THD_get_voxel(insetREF,idx,m)<-0.5 ) {
-                     temp_ref[m][idx] = (short int) 
+                     temp_ref[m][idx] = (short int)
                         THD_get_voxel(insetREF,idx,m);
                      if( RESCALES[m] )
                         temp_ref[m][idx]+= (short int) RESCALES[m];
                   }
                }
       }
-      set_REFSCAL = EDIT_empty_copy( insetREF ) ; 
+      set_REFSCAL = EDIT_empty_copy( insetREF ) ;
 
       EDIT_dset_items(set_REFSCAL,
-							 ADN_datum_all , MRI_short , 
+							 ADN_datum_all , MRI_short ,
                       ADN_brick_fac, NULL,
 							 ADN_none ) ;
 
@@ -1074,7 +1074,7 @@ int main(int argc, char *argv[]) {
 
       for( i=0 ; i<HAVEREF ; i++)
          THD_subbrick_minmax(set_REFSCAL, i, 1, &dum1[0], &dum2[0]);
-      
+
 		for( i=0 ; i<HAVEREF ; i++) {
 			INVROI_REF[i] = (int) THD_subbrick_max(set_REFSCAL, i, 1);
          if( INVROI_REF[i] >= MIN_NTHR_MAX_NROILAB ) // Jan 2015: safety catch for small input sets
@@ -1083,64 +1083,64 @@ int main(int argc, char *argv[]) {
                        INVROI_REF[i] );
       }
 
-		ROI_LABELS_REF = calloc( HAVEREF,sizeof(ROI_LABELS_REF));  
-		for(i=0 ; i<HAVEREF ; i++) 
-			ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
-		INV_LABELS_REF = calloc( HAVEREF,sizeof(INV_LABELS_REF));  
-		for(i=0 ; i<HAVEREF ; i++) 
-			INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int)); 
+		ROI_LABELS_REF = calloc( HAVEREF,sizeof(ROI_LABELS_REF));
+		for(i=0 ; i<HAVEREF ; i++)
+			ROI_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
+		INV_LABELS_REF = calloc( HAVEREF,sizeof(INV_LABELS_REF));
+		for(i=0 ; i<HAVEREF ; i++)
+			INV_LABELS_REF[i] = calloc(INVROI_REF[i]+1,sizeof(int));
 		if( (ROI_LABELS_REF == NULL) || (ROI_LABELS_REF == NULL) ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
 		}
-		
+
 		// Step 3A-2: find out the labels in the ref, organize them
 		//            both backwards and forwards.
 		bb = ViveLeRoi(set_REFSCAL,
-							ROI_LABELS_REF, INV_LABELS_REF, 
+							ROI_LABELS_REF, INV_LABELS_REF,
 							NROI_REF,       INVROI_REF);
 		if( bb != 1)
 			ERROR_exit("Problem loading/assigning ROI labels");
 
-		N_olap_RI = calloc( HAVEREF,sizeof(N_olap_RI));  
-		for(i=0 ; i<HAVEREF ; i++) 
-			N_olap_RI[i] = calloc(NROI_REF[i]+1,sizeof(int)); 
-		N_olap_IR = calloc( HAVEREF,sizeof(N_olap_IR));  
-		for(i=0 ; i<HAVEREF ; i++) 
-			N_olap_IR[i] = calloc(NROI_IN[i]+1,sizeof(int)); 
-		EXTRA_LAB = (int *)calloc(Dim[3], sizeof(int)); 
+		N_olap_RI = calloc( HAVEREF,sizeof(N_olap_RI));
+		for(i=0 ; i<HAVEREF ; i++)
+			N_olap_RI[i] = calloc(NROI_REF[i]+1,sizeof(int));
+		N_olap_IR = calloc( HAVEREF,sizeof(N_olap_IR));
+		for(i=0 ; i<HAVEREF ; i++)
+			N_olap_IR[i] = calloc(NROI_IN[i]+1,sizeof(int));
+		EXTRA_LAB = (int *)calloc(Dim[3], sizeof(int));
 
 		OLAP_RI = (int ****) calloc( Dim[3], sizeof(int ***) );
-		for ( i=0 ; i<Dim[3] ; i++ ) 
+		for ( i=0 ; i<Dim[3] ; i++ )
 			OLAP_RI[i] = (int ***) calloc( NROI_REF[i]+1, sizeof(int **) );
-		for ( i=0 ; i<Dim[3] ; i++ ) 
-			for ( j = 0 ; j<NROI_REF[i]+1  ; j++ ) 
+		for ( i=0 ; i<Dim[3] ; i++ )
+			for ( j = 0 ; j<NROI_REF[i]+1  ; j++ )
 				OLAP_RI[i][j] = (int **) calloc( NROI_IN[i]+1, sizeof(int *) );
-		for ( i=0 ; i<Dim[3] ; i++ ) 
-			for ( j=0 ; j<NROI_REF[i]+1 ; j++ ) 
-				for ( k= 0 ; k<NROI_IN[i]+1 ; k++ ) 
+		for ( i=0 ; i<Dim[3] ; i++ )
+			for ( j=0 ; j<NROI_REF[i]+1 ; j++ )
+				for ( k= 0 ; k<NROI_IN[i]+1 ; k++ )
 					OLAP_RI[i][j][k] = (int *) calloc( 2,  sizeof(int) );
 
-		N_refvox_R = calloc( HAVEREF,sizeof(N_refvox_R));  
-		for(i=0 ; i<HAVEREF ; i++) 
-			N_refvox_R[i] = calloc(NROI_REF[i]+1,sizeof(int)); 
-		
+		N_refvox_R = calloc( HAVEREF,sizeof(N_refvox_R));
+		for(i=0 ; i<HAVEREF ; i++)
+			N_refvox_R[i] = calloc(NROI_REF[i]+1,sizeof(int));
+
 		if( (OLAP_RI == NULL) || (N_refvox_R == NULL) ||
-			 (N_olap_RI == NULL) || (N_olap_IR == NULL) 
-			 ) { 
+			 (N_olap_RI == NULL) || (N_olap_IR == NULL)
+			 ) {
 			fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(17);
 		}
 
-		
+
 		// Step 3A-3: go through data set and refset, keep track of
 		// any overlaps and number of voxels in each overlapping region.
 		// Also, count number of vox per refset ROI
 		for( m=0 ; m<Dim[3] ; m++ ) {
 
 			//idx=0;
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
 					for( i=0 ; i<Dim[0] ; i++ ) {
                   idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( THD_get_voxel(set_REFSCAL,idx,m)>0 ) {
@@ -1158,24 +1158,24 @@ int main(int argc, char *argv[]) {
 						//idx++;
 					}
 		}
-		
+
 		// At this point we should know: Nvox/ROI of the inset; Nvox/ROI
 		// of the refset, Noverlap voxels for any combination of ref and
 		// inset ROIs.  Can calculate percents of olap and dice coeffs
-		
+
 		// Step 3A-4: check and see the situation with overlapping of indices
 		for( m=0 ; m<Dim[3] ; m++ ) {
-			
+
 			for( i=1 ; i<=NROI_REF[m]; i++ ) // ind range due to labels
 				for( j=1 ; j<=NROI_IN[m]; j++ ) // ind range due to labels
 					if( OLAP_RI[m][i][j][0]>0 ) {
 						N_olap_RI[m][i]+=1;
 						N_olap_IR[m][j]+=1;
 					}
-			
+
 			// go through for each ref ROI and see what's up.
 			for( i=1 ; i<=NROI_REF[m]; i++ ) {// ind range due to labels
-				
+
 				// no matching overlap
 				if(N_olap_RI[m][i]==0) {
 					for( j=0 ; j<=NROI_IN[m]; j++ ) // range from zero...
@@ -1200,7 +1200,7 @@ int main(int argc, char *argv[]) {
 				}
 
 				// multiple overlap
-				else { 
+				else {
 					for( j=1 ; j<=NROI_IN[m]; j++ ) {// to find it
 						if( OLAP_RI[m][i][j][0]>0) { //found it
 							if(N_olap_IR[m][j]==1) { // chaste partners
@@ -1217,7 +1217,7 @@ int main(int argc, char *argv[]) {
 
 			for( j=1 ; j<=NROI_IN[m]; j++ )
 				if(N_olap_IR[m][j]==0) {
-					EXTRA_LAB[m]++; 
+					EXTRA_LAB[m]++;
 					// store this value to use to relabel below; have to make
 					// sure later than when this is subtracted down, it is
 					// bigger still than largest NROI_REF label, as well.
@@ -1227,23 +1227,23 @@ int main(int argc, char *argv[]) {
 						OLAP_RI[m][i][j][1] = -1; // label
 					NROI_IN_b[m]++; // keep tally of how many ROIs accounted for
 				}
-		
+
 		}
 
 		// now go through and start doing replacements, based on what
 		// overlaps were found above.
 		for( m=0 ; m<Dim[3] ; m++ ) {
-			
+
 			relab_vox[m]=0;
 			//idx=0;
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
 					for( i=0 ; i<Dim[0] ; i++ ) {
                   idx = THREE_TO_IJK(i,j,k,Dim[0],Dim[0]*Dim[1]);
 						if( DATA[i][j][k][m]>0 ) {
 							Y = DATA[i][j][k][m] - N_thr[m];
 							if( OLAP_RI[m][0][Y][1]<0 ) {// was neg val when stored
-								DATA[i][j][k][m] = -OLAP_RI[m][0][Y][1]; 
+								DATA[i][j][k][m] = -OLAP_RI[m][0][Y][1];
 								relab_vox[m]++;
 							}
 							for( ii=1 ; ii<=NROI_REF[m]; ii++ ) {
@@ -1264,14 +1264,14 @@ int main(int argc, char *argv[]) {
 					}
 		}
 
-		// ok, at this point, all *direct* overlaps and non-overlaps should 
-		// have been claimed.  Now, we go through and grow each region 
-		// (labelled with a 4) into ones with index value larger than N_thr[m].  
+		// ok, at this point, all *direct* overlaps and non-overlaps should
+		// have been claimed.  Now, we go through and grow each region
+		// (labelled with a 4) into ones with index value larger than N_thr[m].
 		i = Relabel_IfNecessary( Dim,
                                DATA,
                                N_thr,
                                relab_vox,
-                               NROI_IN, 
+                               NROI_IN,
                                NROI_REF,
                                ROI_LABELS_REF,
                                NEIGHBOR_LIMIT);
@@ -1279,14 +1279,14 @@ int main(int argc, char *argv[]) {
 
 	}
 	else { // simple case, just keep labels in order they were found.
-		for( m=0 ; m<Dim[3] ; m++ ) 
-			for( k=0 ; k<Dim[2] ; k++ ) 
-				for( j=0 ; j<Dim[1] ; j++ ) 
-					for( i=0 ; i<Dim[0] ; i++ ) 
-						if( DATA[i][j][k][m]>0 ) 
+		for( m=0 ; m<Dim[3] ; m++ )
+			for( k=0 ; k<Dim[2] ; k++ )
+				for( j=0 ; j<Dim[1] ; j++ )
+					for( i=0 ; i<Dim[0] ; i++ )
+						if( DATA[i][j][k][m]>0 )
 							DATA[i][j][k][m]-= N_thr[m];
 
-      for( m=0 ; m<Dim[3] ; m++ ) 
+      for( m=0 ; m<Dim[3] ; m++ )
          NROI_IN_b[m] = NROI_IN[m];
    }
 
@@ -1296,34 +1296,34 @@ int main(int argc, char *argv[]) {
 	//                 Store and output GM info
 	// **************************************************************
 	// **************************************************************
-	
+
 	outsetGM_tmp = EDIT_empty_copy( inset ) ; // jul,2015
-	outsetGM = EDIT_empty_copy( inset ) ; 
+	outsetGM = EDIT_empty_copy( inset ) ;
    if( NIFTI_OUT )
       sprintf(prefix_GM,"%s_GM.nii.gz",prefix); // jan,2015
    else
       sprintf(prefix_GM,"%s_GM",prefix);
 
-   
+
 	EDIT_dset_items( outsetGM,
-						  ADN_datum_all , MRI_short , 
+						  ADN_datum_all , MRI_short ,
                     ADN_brick_fac, NULL,
 						  ADN_prefix    , prefix_GM ,
 						  ADN_none ) ;
    EDIT_dset_items( outsetGM_tmp,
-						  ADN_datum_all , MRI_short , 
+						  ADN_datum_all , MRI_short ,
                     ADN_brick_fac, NULL,
 						  ADN_none ) ; // jul,2015
 
 	if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGM)) )
 		ERROR_exit("Can't overwrite existing dataset '%s'",
 					  DSET_HEADNAME(outsetGM));
-	
-   
+
+
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		idx=0;
-		for( k=0 ; k<Dim[2] ; k++ ) 
-			for( j=0 ; j<Dim[1] ; j++ ) 
+		for( k=0 ; k<Dim[2] ; k++ )
+			for( j=0 ; j<Dim[1] ; j++ )
 				for( i=0 ; i<Dim[0] ; i++ ) {
                if( DATA[i][j][k][m] ) {// account for neg values rescaled
                   temp_arr[m][idx] = DATA[i][j][k][m]-RESCALES[m];
@@ -1332,13 +1332,13 @@ int main(int argc, char *argv[]) {
                }
 					idx+=1;
 				}
-		EDIT_substitute_brick(outsetGM, m, MRI_short, temp_arr[m]); 
-		EDIT_substitute_brick(outsetGM_tmp, m, MRI_short, temp_arr_tmp[m]); 
+		EDIT_substitute_brick(outsetGM, m, MRI_short, temp_arr[m]);
+		EDIT_substitute_brick(outsetGM_tmp, m, MRI_short, temp_arr_tmp[m]);
 		temp_arr[m]=NULL; // to not get into trouble...
 		temp_arr_tmp[m]=NULL; // to not get into trouble...
 	}
 
-	
+
 	for( m=0 ; m<Dim[3] ; m++ ) {
 		free(temp_arr[m]);
  		free(temp_arr_tmp[m]);
@@ -1366,42 +1366,42 @@ int main(int argc, char *argv[]) {
 	// **************************************************************
 
    if (N_nonzer) {
-	
+
       // find all index numbers for GM systematically.
-      NROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
-      INVROI_GM = (int *)calloc(Dim[3], sizeof(int)); 
-      for( i=0 ; i<Dim[3] ; i++) 
+      NROI_GM = (int *)calloc(Dim[3], sizeof(int));
+      INVROI_GM = (int *)calloc(Dim[3], sizeof(int));
+      for( i=0 ; i<Dim[3] ; i++)
          INVROI_GM[i] = (int) THD_subbrick_max(outsetGM_tmp, i, 1);//??inset-->fixed. jul,2015: new fix, temp values b/c of rescaling
       if( (INVROI_GM == NULL ) || ( NROI_GM == NULL ) ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(122);
       }
 
-      ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));  
-      for(i=0 ; i<Dim[3] ; i++) 
-         ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
-      INV_LABELS_GM = calloc( Dim[3],sizeof(INV_LABELS_GM));  
-      for(i=0 ; i<Dim[3] ; i++) 
-         INV_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int)); 
+      ROI_LABELS_GM = calloc( Dim[3],sizeof(ROI_LABELS_GM));
+      for(i=0 ; i<Dim[3] ; i++)
+         ROI_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int));
+      INV_LABELS_GM = calloc( Dim[3],sizeof(INV_LABELS_GM));
+      for(i=0 ; i<Dim[3] ; i++)
+         INV_LABELS_GM[i] = calloc(INVROI_GM[i]+1,sizeof(int));
 
       // will hold counts of ROIs (total and on skeleton) and some switches:
       // GROW_ON = 1
       COUNT_GM = ( int ***) calloc( Dim[3], sizeof( int **));
-      for ( i = 0 ; i < Dim[3] ; i++ ) 
+      for ( i = 0 ; i < Dim[3] ; i++ )
          COUNT_GM[i] = ( int **) calloc( INVROI_GM[i]+1, sizeof( int *));
-      for ( i = 0 ; i < Dim[3] ; i++ ) 
-         for ( j = 0 ; j < INVROI_GM[i]+1 ; j++ ) 
+      for ( i = 0 ; i < Dim[3] ; i++ )
+         for ( j = 0 ; j < INVROI_GM[i]+1 ; j++ )
             COUNT_GM[i][j] = ( int *) calloc( 3, sizeof( int));
 
-      if( (ROI_LABELS_GM == NULL) || (INV_LABELS_GM == NULL) 
+      if( (ROI_LABELS_GM == NULL) || (INV_LABELS_GM == NULL)
           || (COUNT_GM == NULL)) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
 			exit(123);
       }
 
       // jul,2015: use '_tmp' one to match with DATA, which might be rescaled
-      bb = ViveLeRoi(outsetGM_tmp, 
-                     ROI_LABELS_GM, INV_LABELS_GM, 
+      bb = ViveLeRoi(outsetGM_tmp,
+                     ROI_LABELS_GM, INV_LABELS_GM,
                      NROI_GM,       INVROI_GM);
       if( bb != 1)
          ERROR_exit("Problem loading/assigning GM labels");
@@ -1413,12 +1413,12 @@ int main(int argc, char *argv[]) {
       // preliminary setting up of COUNT_GM
       for( m=0 ; m<Dim[3] ; m++ ) {
          // ?? Not sure what the next two lines were for...
-         //for( i=0 ; i<NROI_GM[m]+1 ; i++ ) 
+         //for( i=0 ; i<NROI_GM[m]+1 ; i++ )
          //	ROI_LABELS_GM[m][i] = 1; //switch to keep adding to it
 
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
-               for( i=0 ; i<Dim[0] ; i++ ) 
+         for( k=0 ; k<Dim[2] ; k++ )
+            for( j=0 ; j<Dim[1] ; j++ )
+               for( i=0 ; i<Dim[0] ; i++ )
                   if( DATA[i][j][k][m]>0 ) {
                      COUNT_GM[m][ INV_LABELS_GM[m][DATA[i][j][k][m]] ][1]++;
                      if(SKEL[i][j][k])
@@ -1427,9 +1427,9 @@ int main(int argc, char *argv[]) {
       }
 
       // go through and start inflating
-      // do 1 layer at a time, in case of squeezed neighborhoods and 
+      // do 1 layer at a time, in case of squeezed neighborhoods and
       // book counting of WM intersections, etc.
-      i = ROI_make_inflate( Dim, 
+      i = ROI_make_inflate( Dim,
                             INFL_NUM,
                             SKEL_STOP,
                             NEIGHBOR_LIMIT,
@@ -1441,17 +1441,17 @@ int main(int argc, char *argv[]) {
                             INV_LABELS_GM );
 
 
-      if(HAVE_PREINF) { 
+      if(HAVE_PREINF) {
          // get rid of last vestiges of WM
-      
+
          for( m=0 ; m<Dim[3] ; m++ )
-            for( k=0 ; k<Dim[2] ; k++ ) 
-               for( j=0 ; j<Dim[1] ; j++ ) 
-                  for( i=0 ; i<Dim[0] ; i++ ) 
-                     if( SKEL[i][j][k]) 
+            for( k=0 ; k<Dim[2] ; k++ )
+               for( j=0 ; j<Dim[1] ; j++ )
+                  for( i=0 ; i<Dim[0] ; i++ )
+                     if( SKEL[i][j][k])
                         DATA[i][j][k][m] = 0;
       }
-   
+
       // **************************************************************
       // **************************************************************
       //                 LABEL stuff
@@ -1459,16 +1459,16 @@ int main(int argc, char *argv[]) {
       // **************************************************************
       // nov, 2014:  labeltable stuff
       ROI_STR_LABELS = (char ***) calloc( Dim[3], sizeof(char **) );
-      for ( i=0 ; i<Dim[3] ; i++ ) 
+      for ( i=0 ; i<Dim[3] ; i++ )
          ROI_STR_LABELS[i] = (char **) calloc( NROI_GM[i]+1, sizeof(char *) );
-      for ( i=0 ; i<Dim[3] ; i++ ) 
-         for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+      for ( i=0 ; i<Dim[3] ; i++ )
+         for ( j=0 ; j<NROI_GM[i]+1 ; j++ )
             ROI_STR_LABELS[i][j] = (char *) calloc( 100 , sizeof(char) );
       if( ROI_STR_LABELS == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(123);
       }
-   
+
       // Nov 2014:  Labeltable stuff
       // check refset for table
       if(insetREF)
@@ -1479,23 +1479,23 @@ int main(int argc, char *argv[]) {
                if (!(roi_dtable = Dtable_from_nimlstring(LabTabStr))) {
                   ERROR_exit("Could not parse labeltable.");
                }
-            } 
+            }
             else {
                INFO_message("No label table from '-refset'.");
             }
          }
-   
+
       bb = Make_ROI_Output_Labels( ROI_STR_LABELS,
-                                   ROI_LABELS_GM, 
+                                   ROI_LABELS_GM,
                                    Dim[3],
                                    NROI_GM,
-                                   roi_dtable, 
+                                   roi_dtable,
                                    DUMP_with_LABELS);
-   
-      for( i=0 ; i<Dim[3] ; i++) 
+
+      for( i=0 ; i<Dim[3] ; i++)
          if( NROI_GM[i]>MAXNROI )
             MAXNROI = NROI_GM[i];
-   
+
       // **************************************************************
       // **************************************************************
       //                 Store and output GMI info
@@ -1503,15 +1503,15 @@ int main(int argc, char *argv[]) {
       // **************************************************************
 
       temp_arr2 = calloc( Dim[3],sizeof(temp_arr2));  // XYZ components
-      for(i=0 ; i<Dim[3] ; i++) 
-         temp_arr2[i] = calloc( Nvox,sizeof(short int) ); 
-	
-      if( temp_arr2 == NULL ) { 
+      for(i=0 ; i<Dim[3] ; i++)
+         temp_arr2[i] = calloc( Nvox,sizeof(short int) );
+
+      if( temp_arr2 == NULL ) {
          fprintf(stderr, "\n\n MemAlloc failure.\n\n");
          exit(14);
       }
 
-      outsetGMI = EDIT_empty_copy( inset ) ; 
+      outsetGMI = EDIT_empty_copy( inset ) ;
       if( NIFTI_OUT )
          sprintf(prefix_GMI,"%s_GMI.nii.gz",prefix); // jan,2015
       else
@@ -1520,8 +1520,8 @@ int main(int argc, char *argv[]) {
       // start labelly stuff
       // Nov 2014
       if( DUMP_with_LABELS ) {
-         sprintf(prefix_dtable,"%s_GMI.niml.lt",prefix); 
-         sprintf(prefix_dtableGM,"%s_GM.niml.lt",prefix); 
+         sprintf(prefix_dtable,"%s_GMI.niml.lt",prefix);
+         sprintf(prefix_dtableGM,"%s_GM.niml.lt",prefix);
 
          if( roi_dtable ) {
             // copy dtable
@@ -1532,7 +1532,7 @@ int main(int argc, char *argv[]) {
          else {
             new_dt = new_Dtable( MAXNROI );
          }
-      
+
          for( mm=0 ; mm<Dim[3] ; mm++) {
             for( bb=1 ; bb<=NROI_GM[mm] ; bb++) {
                snprintf(mini, 50, "%d", ROI_LABELS_GM[mm][bb]);
@@ -1549,9 +1549,9 @@ int main(int argc, char *argv[]) {
          Dtable_strGM = strdup(Dtable_str);
 
 
-         THD_set_string_atr( outsetGMI->dblk , 
+         THD_set_string_atr( outsetGMI->dblk ,
                              "VALUE_LABEL_DTABLE" , Dtable_str);
-      
+
          // output for GMI
          if( (fout1 = fopen(prefix_dtable, "w")) == NULL) {
             fprintf(stderr, "Error opening file %s.",prefix_dtable);
@@ -1560,10 +1560,10 @@ int main(int argc, char *argv[]) {
          fprintf(fout1,"%s",Dtable_str);
          fclose(fout1);
          free(Dtable_str); Dtable_str = NULL;
- 
+
          // copy for GM map
-      
-         THD_set_string_atr( outsetGM->dblk , 
+
+         THD_set_string_atr( outsetGM->dblk ,
                              "VALUE_LABEL_DTABLE" , Dtable_strGM);
 
          if( (fout1 = fopen(prefix_dtableGM, "w")) == NULL) {
@@ -1584,25 +1584,25 @@ int main(int argc, char *argv[]) {
 
 
       EDIT_dset_items( outsetGMI,
-                       ADN_datum_all , MRI_short , 
+                       ADN_datum_all , MRI_short ,
                        ADN_brick_fac, NULL,
                        ADN_prefix    , prefix_GMI ,
                        ADN_none ) ;
-	
+
       if( !THD_ok_overwrite() && THD_is_ondisk(DSET_HEADNAME(outsetGMI)) )
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(outsetGMI));
-		
+
       for( m=0 ; m<Dim[3] ; m++ ) {
          idx=0;
-         for( k=0 ; k<Dim[2] ; k++ ) 
-            for( j=0 ; j<Dim[1] ; j++ ) 
+         for( k=0 ; k<Dim[2] ; k++ )
+            for( j=0 ; j<Dim[1] ; j++ )
                for( i=0 ; i<Dim[0] ; i++ ) {
                   if( DATA[i][j][k][m] )
                      temp_arr2[m][idx] = DATA[i][j][k][m]-RESCALES[m];
                   idx+=1;
                }
-         EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]); 
+         EDIT_substitute_brick(outsetGMI, m, MRI_short, temp_arr2[m]);
          temp_arr2[m]=NULL; // to not get into trouble...
       }
 
@@ -1613,7 +1613,7 @@ int main(int argc, char *argv[]) {
       for( m=0 ; m<Dim[3] ; m++ )
          free(temp_arr2[m]);
       free(temp_arr2);
-	
+
       INFO_message("GMI map is done.");
 
       if( DUMP_with_LABELS )
@@ -1628,21 +1628,21 @@ int main(int argc, char *argv[]) {
       //                    Freeing
       // ************************************************************
       // ************************************************************
-		
-      for ( i=0 ; i<Dim[3] ; i++ ) 
-         for ( j=0 ; j<NROI_GM[i]+1 ; j++ ) 
+
+      for ( i=0 ; i<Dim[3] ; i++ )
+         for ( j=0 ; j<NROI_GM[i]+1 ; j++ )
             free(ROI_STR_LABELS[i][j]);
-      for ( i=0 ; i<Dim[3] ; i++ ) 
+      for ( i=0 ; i<Dim[3] ; i++ )
          free(ROI_STR_LABELS[i]);
       free(ROI_STR_LABELS);
-      
+
       if(LabTabStr)
-         free(LabTabStr); 
+         free(LabTabStr);
       if(roi_dtable)
          free(roi_dtable);
-      
+
       for( i=0 ; i<Dim[3] ; i++) {
-         for ( j = 0 ; j<NROI_GM[i]+1 ; j++ ) 
+         for ( j = 0 ; j<NROI_GM[i]+1 ; j++ )
             free(COUNT_GM[i][j]);
          free(COUNT_GM[i]);
          free(ROI_LABELS_GM[i]);
@@ -1673,13 +1673,13 @@ int main(int argc, char *argv[]) {
 	free(insetCSF_SKEL);
 	free(MASK);
 
-	for( i=0 ; i<Dim[0] ; i++) 
-		for( j=0 ; j<Dim[1] ; j++) 
+	for( i=0 ; i<Dim[0] ; i++)
+		for( j=0 ; j<Dim[1] ; j++)
 			for( k=0 ; k<Dim[2] ; k++) {
 				free(DATA[i][j][k]);
 				free(inpmap[i][j][k]);
          }
-	for( i=0 ; i<Dim[0] ; i++) 
+	for( i=0 ; i<Dim[0] ; i++)
 		for( j=0 ; j<Dim[1] ; j++) {
 			free(DATA[i][j]);
 			free(inpmap[i][j]);
@@ -1687,8 +1687,8 @@ int main(int argc, char *argv[]) {
 			free(CSF_SKEL[i][j]);
 		}
 	for( i=0 ; i<Dim[0] ; i++) {
-		free(DATA[i]);	
-      free(inpmap[i]);	
+		free(DATA[i]);
+      free(inpmap[i]);
 		free(SKEL[i]);
 		free(CSF_SKEL[i]);
 	}
@@ -1698,13 +1698,13 @@ int main(int argc, char *argv[]) {
 	free(CSF_SKEL);
 
    if( HAVE_PREINF ) {
-      for( i=0 ; i<Dim[0] ; i++) 
-         for( j=0 ; j<Dim[1] ; j++) 
+      for( i=0 ; i<Dim[0] ; i++)
+         for( j=0 ; j<Dim[1] ; j++)
             free(invSKEL[i][j]);
-      for( i=0 ; i<Dim[0] ; i++) 
+      for( i=0 ; i<Dim[0] ; i++)
          free(invSKEL[i]);
-      free(invSKEL);   
-   }      
+      free(invSKEL);
+   }
 
 	if(HAVEREF>0) {
 
@@ -1713,10 +1713,10 @@ int main(int argc, char *argv[]) {
 			free(INV_LABELS_REF[i]);
 			free(N_olap_RI[i]);
 			free(N_olap_IR[i]);
-			for ( j = 0 ; j<NROI_REF[i]+1 ; j++ ) 
-				for ( k = 0 ; k<NROI_IN[i]+1 ; k++ ) 
+			for ( j = 0 ; j<NROI_REF[i]+1 ; j++ )
+				for ( k = 0 ; k<NROI_IN[i]+1 ; k++ )
 					free(OLAP_RI[i][j][k]);
-			for ( j = 0 ; j<NROI_REF[i]+1 ; j++ ) 
+			for ( j = 0 ; j<NROI_REF[i]+1 ; j++ )
 				free(OLAP_RI[i][j]);
 			free(OLAP_RI[i]);
 		}
@@ -1725,12 +1725,12 @@ int main(int argc, char *argv[]) {
 		free(OLAP_RI);
 		free(N_olap_RI);
 		free(N_olap_IR);
-		
+
 		free(NROI_REF);
 		free(NROI_REF_b);
 		free(INVROI_REF);
 		free(EXTRA_LAB);
-      
+
       free(set_REFSCAL);
       DSET_delete(set_REFSCAL);
 	}

@@ -38,7 +38,7 @@ void usage_SUMA_coarsen (SUMA_GENERIC_ARGV_PARSE *ps)
             "     -i_TYPE SURFACE: Input surface. See below for details. \n"
             "              You can also use the -t* method or\n"
             "              the -spec SPECFILE -surf SURFACE method.\n"
-            "     -o_TYPE OUTPUT: Output surface, see below.\n"  
+            "     -o_TYPE OUTPUT: Output surface, see below.\n"
             "     -edges FRAC: surface will be simplified to number of\n"
             "              edges times FRAC (fraction). Default is .5\n"
             "              refines surface if edges > 1\n"
@@ -97,7 +97,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_coarsen_ParseInput (char *argv[], int arg
 
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
 
-      
+
       if (!brk && (strcmp(argv[kar], "-edges") == 0))
       {
          if (kar+1 >= argc)
@@ -147,7 +147,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_coarsen_ParseInput (char *argv[], int arg
    /* free SO_name for now */
    if (SO_name) SUMA_free(SO_name); SO_name = NULL;
 
-   
+
    SUMA_RETURN (Opt);
 
 }
@@ -183,7 +183,7 @@ int main (int argc,char *argv[])
 
 
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;-o;");
-   
+
    /* Allocate space for DO structure */
    SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
 
@@ -208,31 +208,31 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
-   
+
+   }
+
    S2 = SUMA_Mesh_Resample (SO, Opt->v0);
-      
+
    SO_name = SUMA_Prefix2SurfaceName(Opt->out_prefix, NULL, NULL, Opt->SurfFileType, &exists);
    if (exists) {
       fprintf(SUMA_STDERR,"Error %s:\nOutput file(s) %s* on disk.\nWill not overwrite.\n", FuncName, Opt->out_prefix);
       exit(1);
    }
-   
+
    /* write the surfaces to disk */
    fprintf (SUMA_STDERR,"%s: Writing surface  ...\n", FuncName);
    if (!SUMA_Save_Surface_Object (SO_name, S2, Opt->SurfFileType, Opt->SurfFileFormat, NULL)) {
       fprintf (SUMA_STDERR,"Error %s: Failed to write surface object.\n", FuncName);
       exit (1);
    }
-      
+
 
    SUMA_LH("clean up");
-   
+
    if (N_Spec) {
-      int k=0; 
+      int k=0;
       for (k=0; k<N_Spec; ++k) {
-         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); } 
+         if (!SUMA_FreeSpecFields(&(Spec[k]))) { SUMA_S_Err("Failed to free spec fields"); }
       }
       SUMA_free(Spec); Spec = NULL; N_Spec = 0;
    }
@@ -245,7 +245,7 @@ int main (int argc,char *argv[])
    if (!SUMA_Free_Displayable_Object_Vect (SUMAg_DOv, SUMAg_N_DOv)) {
       SUMA_SL_Err("DO Cleanup Failed!");
    }
-   
+
    if (!SUMA_Free_CommonFields(SUMAg_CF)) {SUMA_SL_Err("SUMAg_CF Cleanup Failed!");}
 
    SUMA_RETURN(0);

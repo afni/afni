@@ -80,7 +80,7 @@ main (int argc, char *argv[])
   char **roilabels=NULL;
   double chisq, cost;
   int calccost = 0;
-  
+
    /*----- Read command line -----*/
   if (argc < 2 || strcmp (argv[1], "-help") == 0)
     {
@@ -257,7 +257,7 @@ main (int argc, char *argv[])
            nopt++;
            continue;
        }
-        
+
      if (strcmp (argv[nopt], "-verbose") == 0)
         {
            if(++nopt >=argc ){
@@ -335,14 +335,14 @@ main (int argc, char *argv[])
     }
 
    Px = theta_init_matrix->nx; Py = theta_init_matrix->ny;
-   
+
    if ((Px < 2) || (Px > Py))
     {
       mri_free (theta_init_matrix);
       ERROR_message("Error - Not enough columns and rows or rows not equal to columns");
       ERROR_exit(" %d rows and %d columns found in theta matrix file", Px, Py);
     }
-  
+
    /* labels may be at beginning of each line, so extract thetas from 1D */
    /* extract theta init matrix separately */
    INIT_SQRMAT(theta_init_mat, Px);   /* assume at least x rows are correct */
@@ -359,13 +359,13 @@ main (int argc, char *argv[])
          DUMP_SQRMAT("Initial Theta Setup Matrix", theta_init_mat);
       INFO_message("\n");
 /*   }*/
-         
+
    ntheta = count_nonzero_sm(theta_init_mat);
    if((ntheta<2)&&(!model_search))
        ERROR_exit("Must have at least two connection path coefficients to estimate");
    if(verbose)
        INFO_message("ntheta, number of non-zero elements in connection path coefficients to calculate = %d\n",ntheta);
-   
+
    /* read Correlation matrix 1D file */
    corr_matrix = mri_read_1D (corr_file_str);
    if (corr_matrix == NULL)   {
@@ -373,7 +373,7 @@ main (int argc, char *argv[])
     }
 
    Cx = corr_matrix->nx; Cy = corr_matrix->ny;
-   
+
    if ((Cx != Px) || (Cx != Cy))
     {
       mri_free (corr_matrix);
@@ -395,7 +395,7 @@ main (int argc, char *argv[])
       ERROR_exit("Error reading psi vector file");
     }
    Cx = psi_vector->nx; Cy = psi_vector->ny;
-  
+
    if ((Cx != Px) || (Cy != 1))
     {
       mri_free (psi_vector);
@@ -434,10 +434,10 @@ main (int argc, char *argv[])
 
    if(model_search) {
       if(grow_all)
-         GrowAllModels(roilabels);   
+         GrowAllModels(roilabels);
       else
          ModelSearch(Px,roilabels);
-   }         
+   }
    else {
          cost  = ComputeThetawithPowell();  /* calculate connection coefficients */
          INFO_message("Cost is %g\n", cost);
@@ -456,7 +456,7 @@ main (int argc, char *argv[])
         if(roilabels[i])
            free(roilabels[i]);
      free(roilabels);
-   } 
+   }
 
    FreeGlobals ();
 
@@ -477,7 +477,7 @@ static void ModelSearch(int p, char **roilabels)
    sqrmat *tempmat, *tempmat2, *tempmat3, *newinvsigma;
    double maxMI, MI, cost, mincost, chisq0, chisq, pfi, aic;
    double *mat, *nat;
-   
+
    ENTRY("ModelSearch");
    maxmodel = max_paths;
    cost = HUGENUMBER;
@@ -489,10 +489,10 @@ static void ModelSearch(int p, char **roilabels)
    mat = kmat->mat;
    nat = theta_init_mat->mat;
    eta = 0.0001;   /* perturbation amount */
-   
+
    if(nmodels>maxmodel)      /* limit number of models to some maximum */
       nmodels = maxmodel;
-      
+
    kk = n*(n+1)/2;
    ntheta = count_nonzero_sm(theta_init_mat);
 
@@ -518,18 +518,18 @@ static void ModelSearch(int p, char **roilabels)
    INFO_message("-------------------------------------------------------------------------------\n\n");
    for(i=0;(i<nmodels)&&(cost>stop_cost);i++) {     /* for all possible combinations or maximum */
       invsigma = ComputeInvSigma();  /* more efficient and safer to calculate inverse first */
-      /* use inverse of the inverse sigma matrix for nice symmetric matrix */  
-      sigma = sm_inverse(invsigma);  
+      /* use inverse of the inverse sigma matrix for nice symmetric matrix */
+      sigma = sm_inverse(invsigma);
       /* sigma^-1*(sigma - C)*Sigma^-1 */
       invsigmaexp = ComputeInvSigmaExp(invsigma);
       maxMI = -HUGENUMBER; max_i = -1; max_j = -1; mincost = HUGENUMBER;
       for(j=0;j<p;j++) {  /* add an element to the current model */
-         for(k=0;k<p;k++) { 
+         for(k=0;k<p;k++) {
             if(NAT(j,k)==2.0) { /* allow user to exclude elements and don't do already modeled elements */
 
                temp2 = MAT(j,k);
-               NAT(j,k) = 1.0;            
-               cost = ComputeThetawithPowell();  /* recompute the optimization */ 
+               NAT(j,k) = 1.0;
+               cost = ComputeThetawithPowell();  /* recompute the optimization */
                if(cost<mincost) {
                    mincost = cost;
                    max_i = j;
@@ -546,7 +546,7 @@ static void ModelSearch(int p, char **roilabels)
                tempmat = sm_mult(invsigmaexp, Si_mat);
                dfdt = sm_trace(tempmat) / 2.0;
                KILL_SQRMAT(tempmat);
-               
+
                tempmat = sm_mult(invsigma, Si_mat);
                tempmat2 = sm_mult(tempmat, invsigma);
                tempmat3 = sm_mult(tempmat2, Si_mat);
@@ -556,12 +556,12 @@ static void ModelSearch(int p, char **roilabels)
                   maxMI = MI;
                   max_i = j;
                   max_j = k;
-               }          
+               }
                KILL_SQRMAT(tempmat);
                KILL_SQRMAT(tempmat2);
                KILL_SQRMAT(tempmat3);
-#endif               
-               
+#endif
+
                NAT(j,k) = 2.0;
                MAT(j,k) = temp2;
                ntheta = count_nonzero_sm(theta_init_mat);
@@ -572,13 +572,13 @@ static void ModelSearch(int p, char **roilabels)
       if((max_i<0)||(max_j<0)) {
          INFO_message("Error finding maximum direction\n");
          EXRETURN;
-      } 
+      }
       NAT(max_i, max_j) = 1.0;  /* this was the best estimated model to add in this iteration */
       cost = ComputeThetawithPowell();  /* recompute the optimization */
-      
+
       chisq = cost * (DF-1.0);
       INFO_message("\n");
-      INFO_message("Growing model at row,col = %d, %d\n", max_i, max_j); 
+      INFO_message("Growing model at row,col = %d, %d\n", max_i, max_j);
       if(roilabels)
          INFO_message(" %s -> %s\n", roilabels[max_j], roilabels[max_i]);
       INFO_message("   with new cost = %g, chisq = %g, ntheta = %d\n",
@@ -601,14 +601,14 @@ GrowAllModels(char **roilabels)
    int *thetavec, *minvec;
    double mincost, cost;
    int stopdepth, npts, notheta, maxdepth, depth, ntheta0;
-   sqrmat *theta0_mat, *bestkmat;   
+   sqrmat *theta0_mat, *bestkmat;
    double chisq0, chisq, pfi, aic;
-   
+
    ENTRY("GrowAllModels");
 
    ntheta0 = count_nonzero_sm(theta_init_mat); /* how many points required in original model */
    notheta = count_value_sm(theta_init_mat, 0.0);  /* how many points excluded with diagonal */
-   npts = theta_init_mat->n; 
+   npts = theta_init_mat->n;
    npts = npts*npts - notheta;  /* size of vector is number of non-diagonal elements */
 
    if(ntheta0!=0) {
@@ -675,7 +675,7 @@ GrowModel(int lastindex, int depth, int stopdepth, int *thetavec, int *minvec, i
 {
    int start, ii, temp;
    double cost;
-   
+
    ENTRY("GrowModel");
    start = lastindex + 1;  /* start at node right after previous index */
    if(start>=npts)
@@ -716,12 +716,12 @@ static void
 InitGlobals (int npts)
 {
   double lndetpsi, lndetC;
-  
+
   ENTRY ("InitGlobals");
 
   INIT_SQRMAT(kmat, npts);       /* path coefficients - where final results go*/
   i_mat = sm_identity(npts);      /* identity matrix */
-  lndetpsi = comp_lndet_diagsm(psi_mat);  
+  lndetpsi = comp_lndet_diagsm(psi_mat);
   lndetC = ln_det_sym(corr_sq_mat);
   F_fixed = lndetpsi - lndetC - npts;   /* fixed components of cost function*/
   inv_psi_mat  = inv_diag_sm(psi_mat);   /* compute inverse of diagonal psi matrix */
@@ -752,20 +752,20 @@ double SEM_Powell_cost_fun(int n, double *x)
 
 /* n is the number of parameters to test */
 /* The cost function for the SEM,
-     F = ln (det[Sigma]) + trace(C Sigma^-1) - ln (det[C] ) - P 
+     F = ln (det[Sigma]) + trace(C Sigma^-1) - ln (det[C] ) - P
    Sigma varies with the parameters of interest here
    Sigma = (I - K)^-1 Psi [(I-K)^-1]'
      where K is the connection matrix we're trying to find
    C is the estimated correlation matrix and is calculated
-     before finding the connection matrix. 
+     before finding the connection matrix.
    Efficiency is not very important for that computation.
 */
    static int ncall=0;
-   
+
    static double F = 0.0; /* the cost (error) using these parameters,x */
    double lndet_kkt, C_inv_sigma;
    sqrmat *inv_sigma;
-   
+
    if(n==0) {
       ncall = 0;   /* reset iteration counter */
       return(F);   /* return last computed cost too (as a bonus) */
@@ -779,23 +779,23 @@ double SEM_Powell_cost_fun(int n, double *x)
 
    /* Sigma^-1 = (I-K)^T Psi^-1 (I-K)   - this we need*/
    inv_sigma = ComputeInvSigma();
- 
+
    /* ln det[Sigma] = ln det[Psi] - ln det[I-K-K'+KK'] */
    /* ln det[Psi] = sum_i(log(Psi_ii)) */ /* calculated once */
    lndet_kkt = sm_lndet_iktk(kmat);
-    
+
      /* trace [C Sigma^-1]
        Sigma^-1 = (I-K)^T Psi^-1 (I-K)
        Psi^-1 = [(1/Psi1, 1/Psi2, 1/Psi3, ..., 1/Psim]   diagonal or vector  calculated once
        trace [C Sigma^-1] = C . Sigma^-1    large dot product - element wise multiplication and sum
      */
-       
+
 /*   F = lndetpsi - lndet_kkt + trace(C.Sigma^-1) - ln(det[C]) - P */
 /*   F = trace(C.Sigma^-1) - lndet_kkt + lndet_psi - ln(det[C]) - P */
 /* last three terms do not vary with theta, so calculated only once */
- 
+
    C_inv_sigma = sm_dot(corr_sq_mat, inv_sigma);
-   F =  F_fixed - lndet_kkt + C_inv_sigma; 
+   F =  F_fixed - lndet_kkt + C_inv_sigma;
    /* free up all the temporary matrices */
    KILL_SQRMAT(inv_sigma);
    if(verbose&&(!(ncall%verbose)))   /* show verbose messages every verbose=n voxels */
@@ -803,10 +803,10 @@ double SEM_Powell_cost_fun(int n, double *x)
          INFO_message("Iteration %d: cost %f\n",ncall,F);
       }
    ncall++;
-   
+
    return(F);
 }
- 
+
 
 /* compute cost for a given coefficient matrix */
 static double
@@ -815,24 +815,24 @@ SEM_cost_fun(sqrmat *thetamat)
    static double F = 0.0; /* the cost (error) using these parameters,x */
    double lndet_kkt, C_inv_sigma;
    sqrmat *inv_sigma;
- 
+
    /* *kmat = *thetamat; */   /* copy structure of initial theta matrix to kmat */
    EQUIV_SQRMAT(thetamat, kmat);
    /* Sigma^-1 = (I-K)^T Psi^-1 (I-K)   - this we need*/
    inv_sigma = ComputeInvSigma();
- 
+
    /* ln det[Sigma] = ln det[Psi] - ln det[I-K-K'+KK'] */
    /* ln det[Psi] = sum_i(log(Psi_ii)) */ /* calculated once */
    lndet_kkt = sm_lndet_iktk(kmat);
-    
+
    C_inv_sigma = sm_dot(corr_sq_mat, inv_sigma);
-   F =  F_fixed - lndet_kkt + C_inv_sigma; 
+   F =  F_fixed - lndet_kkt + C_inv_sigma;
    /* free up any temporary matrices */
    KILL_SQRMAT(inv_sigma);
-   
+
    return(F);
 }
- 
+
 
 
 /*! compute using optimization method by Powell, 2004*/
@@ -849,7 +849,7 @@ static double ComputeThetawithPowell() /*compute connection matrix */
    if((x==NULL)||(thetamin==NULL)||(thetamax==NULL)) {
       ERROR_exit("Error - Can not allocate memory for constraints!");
    }
-   
+
    /* set up lower and upper limits for search */
    for(i=0;i<ntheta;i++) {
       *(x+i) = 0.0;
@@ -871,7 +871,7 @@ static double ComputeThetawithPowell() /*compute connection matrix */
                max_iter, SEM_Powell_cost_fun);
    }
    fill_kmat(ntheta, x);  /* final fill of k matrix with thetas */
-   
+
    free(thetamax);
    free(thetamin);
    free(x);
@@ -884,7 +884,7 @@ static double ComputeThetawithPowell() /*compute connection matrix */
 static sqrmat * ComputeInvSigma()
 {
    sqrmat *inv_sigma, *imk, *imkt, *tempmat;
-   
+
    ENTRY("ComputeInvSigma");
     /* sigma = (I-K)^-1 Psi (I-K)^-T */
    /* Sigma^-1 = (I-K)^T Psi^-1 (I-K)   - this we need*/
@@ -898,7 +898,7 @@ static sqrmat * ComputeInvSigma()
    KILL_SQRMAT(tempmat);
    KILL_SQRMAT(imkt);
    KILL_SQRMAT(imk);
-   
+
    RETURN(inv_sigma);
 }
 
@@ -907,7 +907,7 @@ static sqrmat * ComputeInvSigma()
 static sqrmat * ComputeInvSigmaExp(sqrmat *invsigma)
 {
    sqrmat *smat, *tmat, *umat;
-   
+
    ENTRY("ComputeInvSigmaExp");
    /* sigma^-1*(sigma - C)*Sigma^-1 */
    /* sigma^-1 - sigma^-1 C sigma^-1 */
@@ -917,7 +917,7 @@ static sqrmat * ComputeInvSigmaExp(sqrmat *invsigma)
 
    KILL_SQRMAT(umat);
    KILL_SQRMAT(tmat);
-   
+
    RETURN(smat);
 }
 
@@ -927,7 +927,7 @@ static void fill_kmat(int nx,double *x)
 {
   double *thetaptr, *mat, *nat;
   int i,j,n, nfill, usespot;
-  
+
   ENTRY("fill_kmat");
   thetaptr = x;
   nat = theta_init_mat->mat;
@@ -956,7 +956,7 @@ static void fill_kmat(int nx,double *x)
             MAT(i,j) = 0.0;
      }
   }
-  
+
   EXRETURN;
 }
 
@@ -967,7 +967,7 @@ static void fill_theta(int nx,double *x)
 {
   double *thetaptr, *mat, *nat;
   int i,j,n, nfill, usespot;
-  
+
   ENTRY("fill_theta");
   thetaptr = x;
   nat = theta_init_mat->mat;
@@ -976,7 +976,7 @@ static void fill_theta(int nx,double *x)
   nfill = 0;
   for(i=0;i<n;i++) {
      for(j=0;j<n;j++) {
-        usespot = 0; 
+        usespot = 0;
         if(model_search) {   /* for model search, use values of 1 to model */
            if(NAT(i,j)==1.0)
               usespot = 1;
@@ -993,7 +993,7 @@ static void fill_theta(int nx,double *x)
         }
      }
   }
-  
+
   EXRETURN;
 }
 
@@ -1006,7 +1006,7 @@ UpdatethetawithArray(int *thetavec, sqrmat *theta0_mat)
    int *thetaptr;
 
    ENTRY("UpdatethetawithArray");
-    
+
    thetaptr = thetavec;
    mat = theta_init_mat->mat;
    nat = theta0_mat->mat;   /* exclusion matrix */
@@ -1040,7 +1040,7 @@ UpdateArraywiththeta(int *thetavec, sqrmat *theta0_mat)
                  *thetaptr = 1;
             else
                *thetaptr = 0;
-            thetaptr++;   
+            thetaptr++;
          }
       }
    }
@@ -1053,14 +1053,14 @@ Compute_chisq0(int npts)
 {
    double chisq;
    double lndetpsi, lndetC, trCinvpsi;
-  
+
    ENTRY ("Compute_chisq0");
 
-   lndetpsi = comp_lndet_diagsm(psi_mat);  
+   lndetpsi = comp_lndet_diagsm(psi_mat);
    lndetC = ln_det_sym(corr_sq_mat);
    trCinvpsi = sm_dot(corr_sq_mat, inv_psi_mat);
    chisq = (DF-1.0) * (lndetpsi + trCinvpsi - lndetC - npts);
-   RETURN(chisq); 
+   RETURN(chisq);
 }
 
 
@@ -1071,14 +1071,14 @@ static void im_to_sqrmat(MRI_IMAGE *mri_im, sqrmat *smat)
    int i,j,n,sqrwidth, imwidth, offset, imoffset;
    float *imptr;
    double *mat;
-   
+
    n = sqrwidth = smat->n;
    imwidth = mri_im->ny;
    offset = imwidth - sqrwidth;
    imptr = MRI_FLOAT_PTR (mri_im);
    imptr += (offset*sqrwidth);  /* ignore leading column if any */
    mat =  smat->mat;
-   
+
    for(i=0; i<sqrwidth;i++){
       for(j=0; j<sqrwidth;j++){
          imoffset = i*sqrwidth+j;
@@ -1093,7 +1093,7 @@ dump_mri_im(MRI_IMAGE *mri_im)
 {
    int i, Px, Py;
    float *imptr;
-   
+
    Px = mri_im->nx;
    Py = mri_im->ny;
    imptr = MRI_FLOAT_PTR (mri_im);
@@ -1107,12 +1107,12 @@ dump_mri_im(MRI_IMAGE *mri_im)
 #endif
 
 /*! copy lower triangular elements to upper triangle to make symmetric*/
-static void 
+static void
 LTtoSymSM(sqrmat *smat)
 {
    int i, j, sqrwidth, n;
    double *mat;
-   
+
    n = sqrwidth = smat->n;
    mat = smat->mat;
 
@@ -1123,7 +1123,7 @@ LTtoSymSM(sqrmat *smat)
    }
 }
 
-/*! compute the ln det of a diagonal matrix 
+/*! compute the ln det of a diagonal matrix
   = sum of the logs of the diagonal */
 static double
 comp_lndet_diagsm(sqrmat *smat)
@@ -1131,7 +1131,7 @@ comp_lndet_diagsm(sqrmat *smat)
    int i, n;
    double *mat, diag_el;
    double sum = 0;
-   
+
    ENTRY("comp_lndet_diagsm");
    n = smat->n;
    mat = smat->mat;
@@ -1151,7 +1151,7 @@ count_nonzero_sm(sqrmat *smat)
    int i, j, n;
    int sum = 0;
    double *mat;
-   
+
    ENTRY("count_nonzero_sm");
    n = smat->n;
    mat = smat->mat;
@@ -1161,7 +1161,7 @@ count_nonzero_sm(sqrmat *smat)
         if(MAT(i,j)) {
            if(!model_search)
                 sum++;
-           else 
+           else
               if(MAT(i,j) == 1.0)
                 sum++;
         }
@@ -1177,7 +1177,7 @@ count_value_sm(sqrmat *smat, double value)
    int i, j, n;
    int sum = 0;
    double *mat;
-   
+
    ENTRY("count_value_sm");
    n = smat->n;
    mat = smat->mat;
@@ -1197,10 +1197,10 @@ static double
 ln_det_sym(sqrmat *smat)
 {
    double sum = 0;
-   sqrmat *tmat;   
+   sqrmat *tmat;
 
    ENTRY("ln_det_sym");
-   
+
    tmat = sm_copy(smat);   /* create temporary copy of matrix */
    sm_choleski(tmat);      /* get lower triangular choleski factor*/
    sum = comp_lndet_diagsm(tmat);  /* 2*sum(ln(Diag)) */
@@ -1210,16 +1210,16 @@ ln_det_sym(sqrmat *smat)
 }
 
 /*! compute inverse of diagonal square matrix */
-static sqrmat * 
+static sqrmat *
 inv_diag_sm(sqrmat *smat)
 {
-   sqrmat *tmat;   
+   sqrmat *tmat;
    int i, n;
    double temp;
    double *mat, *nat;
-   
+
    ENTRY("inv_diag_sym");
-   
+
    n = smat->n;
    mat = smat->mat;
    tmat = sm_copy(smat);   /* create temporary copy of matrix */
@@ -1229,10 +1229,10 @@ inv_diag_sm(sqrmat *smat)
       if(temp==0.0) {   /* check for division by 0 */
          KILL_SQRMAT(tmat);
          RETURN(NULL);
-      } 
+      }
       NAT(i,i) = 1.0/temp;
    }
-      
+
    RETURN(tmat);
 }
 
@@ -1265,7 +1265,7 @@ sm_inverse(sqrmat *smat)
 
    matrix_destroy(&invmat);
    matrix_destroy(&tempmat);
-   RETURN(tmat);         
+   RETURN(tmat);
 }
 
 /*! Length of line buffer for mri_read_ascii() */
@@ -1278,20 +1278,20 @@ static char ** read_labels(char * file_str, int nrows)
    char *tempstr, *ptr;
    FILE *filehdl;
    int i;
-   
+
    ENTRY("read_labels");
    roi_label = (char **) malloc(nrows*sizeof(char *));
    tempstr = malloc(1024);   /* allow up to 1024 bytes for a leading string */
    filehdl = fopen(file_str,"r");
    (void) my_fgets( NULL , 0 , NULL ) ;  /* reset [20 Jul 2004] */
-  
+
    for(i=0;i<nrows;i++) {
          ptr = my_fgets( tempstr , LBUF , filehdl ) ;  /* read in non-comment line*/
          if( ptr==NULL || *ptr=='\0' ) break ; /* failure --> end of data */
          roi_label[i] = (char *) malloc(sizeof(char) * strlen(tempstr));
          sscanf(ptr,"%s",roi_label[i]);
     }
-   fclose(filehdl);   
+   fclose(filehdl);
    RETURN(roi_label);
 }
 

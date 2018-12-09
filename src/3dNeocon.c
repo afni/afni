@@ -15,7 +15,7 @@ static void NCO_help(void) ;  /* prototype */
 # define QEPS 1.e-4
 #endif
 
-#include "mrilib.h"        /* Keep after decision about matrix.h inclusion 
+#include "mrilib.h"        /* Keep after decision about matrix.h inclusion
                                                       ZSS  Nov. 21 2014*/
 
 /*---------------------------------------------------------------------------*/

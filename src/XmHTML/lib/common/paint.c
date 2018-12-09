@@ -33,7 +33,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -82,7 +82,7 @@ static char rcsId[]="$Header$";
 * adjustment.
 *
 * Revision 1.8  1997/03/11 19:57:04  newt
-* SetText now does both text and image layout. 
+* SetText now does both text and image layout.
 * DrawImage now does animated gifs and transparent images
 *
 * Revision 1.7  1997/03/04 18:48:52  newt
@@ -92,7 +92,7 @@ static char rcsId[]="$Header$";
 * ?
 *
 * Revision 1.5  1997/03/02 23:20:31  newt
-* Added setting and rendering of images. image-related changes to SetText. 
+* Added setting and rendering of images. image-related changes to SetText.
 * SetText now also ``glues'' words together properly
 *
 * Revision 1.4  1997/02/11 02:09:28  newt
@@ -107,7 +107,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1996/12/19 02:17:12  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -174,7 +174,7 @@ static void TimerCB(XtPointer data, XtIntervalId *id);
 * Name:			DrawText
 * Return Type: 	void
 * Description: 	main text rendering engine.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	data:		element to be painted;
 * Returns:
@@ -202,10 +202,10 @@ DrawText(XmHTMLWidget html, XmHTMLObjectTableElement data)
 	{
 		tmp = &words[i];
 
-		/* 
+		/*
 		* When any of the two cases below is true, the text at the current
-		* position is outside the exposed area. Not doing this check would 
-		* cause a visible flicker of the screen when scrolling: the entire 
+		* position is outside the exposed area. Not doing this check would
+		* cause a visible flicker of the screen when scrolling: the entire
 		* line would be repainted, even the invisible text.
 		* And we sure don't want to render any linebreaks, looks pretty ugly.
 		* (this test is a lot cheaper than doing ``invisible'' rendering)
@@ -238,16 +238,16 @@ DrawText(XmHTMLWidget html, XmHTMLObjectTableElement data)
 		if(tmp->line_data & LINE_UNDER)
 		{
 			int dy;
-			/* 
-			* vertical position for underline, barely connects with the 
+			/*
+			* vertical position for underline, barely connects with the
 			* underside of the ``deepest'' character.
 			*/
 			dy = ys + tmp->base->font->ul_offset;
 			AdjustWordWidth;
 
 			tka->SetLineAttributes(tka->dpy, gc,
-				tmp->base->font->ul_thickness, 
-				(tmp->line_data & LINE_SOLID ? 
+				tmp->base->font->ul_thickness,
+				(tmp->line_data & LINE_SOLID ?
 					tka->line_style[GC_LINE_SOLID] :
 					tka->line_style[GC_LINE_DOUBLE_DASH]),
 				tka->cap_style[GC_CAP_BUTT],
@@ -255,7 +255,7 @@ DrawText(XmHTMLWidget html, XmHTMLObjectTableElement data)
 
 			tka->DrawLine(tka->dpy, tka->win, gc, xs, dy, xs + width, dy);
 			if(tmp->line_data & LINE_DOUBLE)
-				tka->DrawLine(tka->dpy, tka->win, gc, xs, dy+2, xs + width, 
+				tka->DrawLine(tka->dpy, tka->win, gc, xs, dy+2, xs + width,
 					dy+2);
 		}
 		if(tmp->line_data & LINE_STRIKE)
@@ -279,7 +279,7 @@ DrawText(XmHTMLWidget html, XmHTMLObjectTableElement data)
 * Name:			DrawAnchor
 * Return Type: 	void
 * Description: 	main text anchor renderer.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	data:		anchor to be painted;
 * Returns:
@@ -332,7 +332,7 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 	if(!nwords)
 		return;		/* fix 01/30/97-01, kdh */
 
-	/* 
+	/*
 	* put all anchor words into an array if this anchor spans multiple
 	* objects (as can be the case with font changes within an anchor)
 	* If this isn't the case, just use the words of the current data
@@ -446,7 +446,7 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 					DrawAnchorButton(tka, x, y - font->ascent,
 						width, font->lineheight, topGC, bottomGC);
 				}
-				else	
+				else
 				{
 					/*****
 					* No anchor buttons. Determine which color to use to paint
@@ -469,7 +469,7 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 				}
 				/* set appropriate foreground color */
 				tka->SetForeground(tka->dpy, gc,
-					data->anchor_state == ANCHOR_SELECTED ? 
+					data->anchor_state == ANCHOR_SELECTED ?
 					HTML_ATTR(anchor_activated_fg) : data->fg);
 			}
 			else
@@ -510,7 +510,7 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 				else
 					tka->SetForeground(tka->dpy, gc, data->fg);
 			}
-			/* 
+			/*
 			* paint all text. Need to do it here since the XFillRect call
 			* would obliterate any text painted before it.
 			*/
@@ -537,11 +537,11 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 			}
 
 			/* Anchor buttons are never underlined, it looks ugly */
-			if(!HTML_ATTR(anchor_buttons) && 
+			if(!HTML_ATTR(anchor_buttons) &&
 				(tmp->line_data & LINE_SOLID || tmp->line_data & LINE_DASHED))
 			{
 				int dy = y + font->ul_offset;
-				tka->SetLineAttributes(tka->dpy, gc, 1, 
+				tka->SetLineAttributes(tka->dpy, gc, 1,
 					(tmp->line_data & LINE_SOLID ?
 						tka->line_style[GC_LINE_SOLID] :
 						tka->line_style[GC_LINE_DOUBLE_DASH]),
@@ -603,7 +603,7 @@ DrawAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 
 		/* store */
 		tka->DrawAnchorData(tka->dpy, tka->win, HTML_ATTR(gc), x, y, data);
-	
+
 	}
 }
 
@@ -647,7 +647,7 @@ DrawImageAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 				if(data->anchor_state == ANCHOR_INSELECT)
 				{
 					/* paint button highlighting */
-					if(HTML_ATTR(body_image) == NULL && 
+					if(HTML_ATTR(body_image) == NULL &&
 						data->words->image->clip != None)
 						tka->FillRectangle(tka->dpy, tka->win,
 							MGR_ATTR(highlight_GC), x, y , width, height);
@@ -658,7 +658,7 @@ DrawImageAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 				else if(data->anchor_state == ANCHOR_SELECTED)
 				{
 					/* paint button highlighting */
-					if(HTML_ATTR(body_image) == NULL && 
+					if(HTML_ATTR(body_image) == NULL &&
 						data->words->image->clip != None)
 						tka->FillRectangle(tka->dpy, tka->win,
 							MGR_ATTR(highlight_GC), x, y, width, height);
@@ -670,7 +670,7 @@ DrawImageAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 				else	/* button is unselected */
 				{
 					/* restore correct background */
-					if(HTML_ATTR(body_image) == NULL && 
+					if(HTML_ATTR(body_image) == NULL &&
 						data->words->image->clip != None)
 					{
 						tka->SetForeground(tka->dpy, gc, HTML_ATTR(body_bg));
@@ -763,7 +763,7 @@ DrawImageAnchor(XmHTMLWidget html, XmHTMLObjectTableElement data)
 * Name:			TimerCB
 * Return Type: 	void
 * Description: 	Xt timer callback procedure. Used by animations
-* In: 
+* In:
 *	data:		animation for which this timeout has been called;
 *	id:			id of timer used to activate this function.
 * Returns:
@@ -815,7 +815,7 @@ TimerCB(XtPointer data, XtIntervalId *id)
 * Return Type: 	void
 * Description: 	animation driver, does frame disposal and renders a new
 *				frame
-* In: 
+* In:
 *	w:			XmHTMLWidget id
 *	image:		image data
 *	xs:			absolute screen x-coordinate
@@ -900,7 +900,7 @@ DrawFrame(XmHTMLWidget html, XmHTMLImage *image, int xs, int ys)
 	/*****
 	* If we get here we are running the animation internally. First check the
 	* disposal method and update the current state accordingly *before*
-	* putting the next frame on the display. 
+	* putting the next frame on the display.
 	* Pixmap can be None if a frame falls outside the logical screen area.
 	* idx is the index of the previous frame (the frame that is currently
 	* being displayed).
@@ -991,7 +991,7 @@ DrawFrame(XmHTMLWidget html, XmHTMLImage *image, int xs, int ys)
 				tka->SetTSOrigin(tka->dpy, HTML_ATTR(bg_gc),
 						tsx - xs, tsy - ys);
 
-				/* do a fillrect to render the background image */ 
+				/* do a fillrect to render the background image */
 				tka->FillRectangle(tka->dpy, image->pixmap, HTML_ATTR(bg_gc),
 					fx, fy, width, height);
 				/*
@@ -1046,7 +1046,7 @@ DrawFrame(XmHTMLWidget html, XmHTMLImage *image, int xs, int ys)
 		height  = image->frames[idx].h;
 
 		/*
-		* get current screen state if we are to dispose of this frame by the 
+		* get current screen state if we are to dispose of this frame by the
 		* previous state. The previous state is given by the current pixmap,
 		* so we just create a new pixmap and copy the current one into it.
 		* This is about the fastest method I can think of.
@@ -1113,19 +1113,19 @@ nextframe:
 			/*
 			* If the current loop count matches the total loop count, depromote
 			* the animation to a regular image so the next time the timer
-			* callback is activated we will enter normal image processing. 
+			* callback is activated we will enter normal image processing.
 			*/
 			if(image->current_loop == image->loop_count)
 				image->options &= ~(IMG_ISANIM);
 		}
 	}
 	/*
-	* To prevent racing conditions, we must first remove an existing 
+	* To prevent racing conditions, we must first remove an existing
 	* timeout proc before adding a new one.
 	*/
 	REMOVE_TIMEOUTPROC(image);
 
-	image->proc_id = tka->AddTimeOut(image->context, 
+	image->proc_id = tka->AddTimeOut(image->context,
 		image->frames[idx].timeout, TimerCB, image);
 
 	_XmHTMLDebug(16, ("paint.c: DrawFrame end\n"));
@@ -1135,7 +1135,7 @@ nextframe:
 * Name: 		DrawRule
 * Return Type: 	void
 * Description: 	paints a horizontal rule.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	data:		element data;
 * Returns:
@@ -1155,7 +1155,7 @@ DrawRule(XmHTMLWidget html, XmHTMLObjectTableElement data)
 	int xs, ys;
 	ToolkitAbstraction *tka = HTML_ATTR(tka);
 
-	/* 
+	/*
 	* recompute rule layout if we are auto-sizing.
 	* Needs to be done since the formatted_width is only known once
 	* the entire document has been laid out.
@@ -1182,7 +1182,7 @@ DrawRule(XmHTMLWidget html, XmHTMLObjectTableElement data)
 					x = HTML_ATTR(margin_width) + HTML_ATTR(work_width) - width;
 					break;
 				case XmHALIGN_CENTER:
-					x = HTML_ATTR(margin_width) + 
+					x = HTML_ATTR(margin_width) +
 					(HTML_ATTR(work_width) - width - HTML_ATTR(margin_width))/2;
 				default:	/* shutup compiler */
 					break;
@@ -1276,20 +1276,20 @@ DrawBullet(XmHTMLWidget html, XmHTMLObjectTableElement data)
 	{
 		case XmMARKER_DISC:
 			tka->FillArc(tka->dpy, tka->win, gc,
-				xs - 2*data->width, ys - data->height, 
+				xs - 2*data->width, ys - data->height,
 				data->width, data->width, 0, 23040);
 			break;
 		case XmMARKER_SQUARE:
 			tka->DrawRectangle(tka->dpy, tka->win, gc,
-				xs - 2*data->width, ys - data->height, 
+				xs - 2*data->width, ys - data->height,
 				data->width, data->width);
 			break;
 		case XmMARKER_CIRCLE:
 			tka->DrawArc(tka->dpy, tka->win, gc,
-				xs - 2*data->width, ys - data->height, 
+				xs - 2*data->width, ys - data->height,
 				data->width, data->width, 0, 23040);
 			break;
-		default: 
+		default:
 			/* Textual markers are right-aligned. */
 			tka->DrawString(tka->dpy, tka->win, HTML_ATTR(default_font), gc,
 				xs - data->width, ys, data->text, data->len);
@@ -1301,7 +1301,7 @@ DrawBullet(XmHTMLWidget html, XmHTMLObjectTableElement data)
 * Name:			DrawAnchorButton
 * Return Type: 	void
 * Description: 	render an anchor as a button.
-* In: 
+* In:
 *	tka:		paint functions
 *	x,y:		position of top-left origin;
 *	width:		width of button;
@@ -1323,7 +1323,7 @@ DrawAnchorButton(ToolkitAbstraction *tka, int x, int y, Dimension width,
 * Name:			DrawTable
 * Return Type: 	XmHTMLObjectTableElement
 * Description: 	render a table.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	start:		starting object;
 *	data_end:	ending object
@@ -1331,7 +1331,7 @@ DrawAnchorButton(ToolkitAbstraction *tka, int x, int y, Dimension width,
 *	last element of the table or NULL.
 *****/
 static XmHTMLObjectTableElement
-DrawTable(XmHTMLWidget html, XmHTMLObjectTableElement start, 
+DrawTable(XmHTMLWidget html, XmHTMLObjectTableElement start,
 	XmHTMLObjectTableElement data_end)
 {
 	XmHTMLTable *table;
@@ -1407,7 +1407,7 @@ DrawTable(XmHTMLWidget html, XmHTMLObjectTableElement start,
 * Name:			DrawCellContent
 * Return Type: 	void
 * Description: 	render the contents of a single cell
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	start:		starting object;
 *	end:		ending object
@@ -1486,7 +1486,7 @@ DrawCellContent(XmHTMLWidget html, XmHTMLObjectTableElement start,
 * Return Type: 	void
 * Description: 	renders a frame around a table cell. Optionally fills it
 *				with a background color or image.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	cell:		cell to be framed;
 * Returns:
@@ -1657,7 +1657,7 @@ DrawCellFrame(XmHTMLWidget html, TableCell *cell)
 * Name:			DrawTableBorder
 * Return Type: 	void
 * Description: 	renders a frame around a table.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	table:		table for which a frame must be rendered;
 * Returns:
@@ -1756,7 +1756,7 @@ DrawTableBorder(XmHTMLWidget html, XmHTMLTable *table)
 * Name: 		_XmHTMLPaint
 * Return Type: 	void
 * Description: 	re-paints the given amount of data.
-* In: 
+* In:
 *	w:			widget to paint text to
 *	start:		start item
 *	end:		end item
@@ -1764,7 +1764,7 @@ DrawTableBorder(XmHTMLWidget html, XmHTMLTable *table)
 *	nothing.
 *****/
 void
-_XmHTMLPaint(XmHTMLWidget html, XmHTMLObjectTable *start, 
+_XmHTMLPaint(XmHTMLWidget html, XmHTMLObjectTable *start,
 	XmHTMLObjectTable *end)
 {
 	XmHTMLObjectTableElement temp;
@@ -1834,9 +1834,9 @@ _XmHTMLPaint(XmHTMLWidget html, XmHTMLObjectTable *start,
 * Name: 		_XmHTMLRestartAnimations
 * Return Type: 	void
 * Description: 	restarts all animations. Called by SetValues when the
-*				value of the XmNfreezeAnimations resource switches from 
+*				value of the XmNfreezeAnimations resource switches from
 *				True to False.
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	nothing.
@@ -1860,7 +1860,7 @@ _XmHTMLRestartAnimations(XmHTMLWidget html)
 * Name: 		_XmHTMLDrawImage
 * Return Type: 	void
 * Description: 	image refresher.
-* In: 
+* In:
 *	w:			XmHTMLWidget id
 *	data:		Object data.
 *	y_offset:	vertical offset for screen copying;
@@ -1928,10 +1928,10 @@ _XmHTMLDrawImage(XmHTMLWidget html, XmHTMLObjectTableElement data, int y_offset,
 		}
 		else
 		{
-			/* 
-			* When any of the two cases below is true, the image is not in the 
-			* exposed screen area. Not doing this check would cause a visible 
-			* flicker of the screen when scrolling: the entire image would be 
+			/*
+			* When any of the two cases below is true, the image is not in the
+			* exposed screen area. Not doing this check would cause a visible
+			* flicker of the screen when scrolling: the entire image would be
 			* repainted even if it is not visible.
 			*/
 			if(HTML_ATTR(paint_y) > data->words->y + image->height ||
@@ -1993,7 +1993,7 @@ _XmHTMLDrawImage(XmHTMLWidget html, XmHTMLObjectTableElement data, int y_offset,
 	/* check if we have to draw the imagemap bounding boxes */
 	if(image->map_type == XmMAP_CLIENT && HTML_ATTR(imagemap_draw))
 		_XmHTMLDrawImagemapSelection(html, image);
-	
+
 	_XmHTMLDebug(16, ("paint.c: DrawImage end\n"));
 }
 
@@ -2002,7 +2002,7 @@ _XmHTMLDrawImage(XmHTMLWidget html, XmHTMLObjectTableElement data, int y_offset,
 * Return Type: 	void
 * Description:  paints the currently active anchor in an unactivated state.
 *				_XmHTMLPaint will do the proper rendering.
-* In: 
+* In:
 *	w:			HTML widget of which to unset the current anchor
 * Returns:
 *	nothing.
@@ -2015,7 +2015,7 @@ _XmHTMLPaintAnchorUnSelected(XmHTMLWidget html)
 	start = HTML_ATTR(current_anchor);
 
 	/* pick up the anchor end. An anchor ends when the raw worddata changes. */
-	for(end = start; end != NULL && end->object == start->object; 
+	for(end = start; end != NULL && end->object == start->object;
 		end = end->next)
 		end->anchor_state = ANCHOR_UNSELECTED;
 
@@ -2034,7 +2034,7 @@ _XmHTMLPaintAnchorUnSelected(XmHTMLWidget html)
 * Return Type: 	void
 * Description:  paints the current active in an activated state.
 *				_XmHTMLPaint will do the proper rendering.
-* In: 
+* In:
 *	html:		HTML widget of which to set the current anchor
 * Returns:
 *	nothing.
@@ -2050,7 +2050,7 @@ _XmHTMLPaintAnchorSelected(XmHTMLWidget html, XmHTMLWord *anchor)
 	start = anchor->owner;
 
 	/* pick up anchor end. */
-	for(end = start; end != NULL && end->object == start->object; 
+	for(end = start; end != NULL && end->object == start->object;
 		end = end->next)
 		end->anchor_state = ANCHOR_SELECTED;
 
@@ -2065,7 +2065,7 @@ _XmHTMLPaintAnchorSelected(XmHTMLWidget html, XmHTMLWord *anchor)
 * Name: 		_XmHTMLPaintAnchorLeave
 * Return Type: 	void
 * Description:  remove anchor highlighting.
-* In: 
+* In:
 *	html:		HTML widget of which to set the current anchor
 * Returns:
 *	nothing.
@@ -2079,7 +2079,7 @@ _XmHTMLPaintAnchorLeave(XmHTMLWidget html)
 	start = HTML_ATTR(armed_anchor);
 
 	/* pick up the anchor end. */
-	for(end = start; end != NULL && end->object == start->object; 
+	for(end = start; end != NULL && end->object == start->object;
 		end = end->next)
 		end->anchor_state = ANCHOR_UNSELECTED;
 
@@ -2096,7 +2096,7 @@ _XmHTMLPaintAnchorLeave(XmHTMLWidget html)
 * Name: 		_XmHTMLPaintAnchorEntry
 * Return Type: 	void
 * Description: 	paints a highlight on the given anchor.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	anchor:		anchor to receive highlighting.
 * Returns:
@@ -2111,7 +2111,7 @@ _XmHTMLPaintAnchorEntry(XmHTMLWidget html, XmHTMLObjectTable *anchor)
 	start = HTML_ATTR(armed_anchor) = anchor;
 
 	/* pick up anchor end */
-	for(end = start; end != NULL && end->object == start->object; 
+	for(end = start; end != NULL && end->object == start->object;
 		end = end->next)
 		end->anchor_state = ANCHOR_INSELECT;
 

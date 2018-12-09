@@ -165,7 +165,7 @@ getOverlayVisualInfoRGB(unsigned int mode)
      GLUT_TRANSPARENT_INDEX).
 
      Theory versus practice for RGBA overlay transparency: In
-     theory, the reasonable thing is enabling overlay transparency 
+     theory, the reasonable thing is enabling overlay transparency
 
      when an overlay pixel's destination alpha is 0 because this
      allows overlay transparency to be controlled via alpha and
@@ -173,12 +173,12 @@ getOverlayVisualInfoRGB(unsigned int mode)
      of supports this practice (and it requires destination alpha
      which is typically optional and quite uncommon for overlay
      windows!).  In practice, the choice of  transparent pixel
-     value is typically "hardwired" into most graphics hardware to 
+     value is typically "hardwired" into most graphics hardware to
 
      a single pixel value.  SGI hardware uses true black (0,0,0)
      without regard for the destination alpha.  This is far from
      ideal because true black (a common color that is easy to
-     accidently generate) can not be generated in an RGBA overlay. 
+     accidently generate) can not be generated in an RGBA overlay.
 
      I am not sure what other vendors do.
 
@@ -193,18 +193,18 @@ getOverlayVisualInfoRGB(unsigned int mode)
      programmers that want to portably make use of overlays.
 
      To actually support transparent RGBA overlays, there are
-     really two reaonsable options.  ONE: Simply mandate that true 
+     really two reaonsable options.  ONE: Simply mandate that true
 
      black is the RGBA overlay transparent color (what IRIS GL
      did).  This is nice for programmers since only one option,
      nice for existing SGI hardware, bad for anyone (including
-     SGI) who wants to improve upon "true black" RGB transparency. 
+     SGI) who wants to improve upon "true black" RGB transparency.
 
-     Or TWO: Provide a set of queriable "transparency types" (like 
+     Or TWO: Provide a set of queriable "transparency types" (like
 
      "true black" or "alpha == 0" or "true white" or even a
      queriable transparent color).  This is harder for
-     programmers, OK for existing SGI hardware, and it leaves open 
+     programmers, OK for existing SGI hardware, and it leaves open
 
      the issue of what other modes are reasonable.
 
@@ -218,20 +218,20 @@ getOverlayVisualInfoRGB(unsigned int mode)
      Therefore, I defer any decision of how GLUT should support
      RGBA overlay transparency and leave support for it
      unimplemented. Nobody has been pressing me for RGBA overlay
-     transparency (though people have requested color index overlay 
+     transparency (though people have requested color index overlay
 
      transparency repeatedly).  Geez, if you read this far you are
      either really bored or maybe actually  interested in this
-     topic.  Anyway, if you have ideas (particularly if you plan on 
+     topic.  Anyway, if you have ideas (particularly if you plan on
 
-     implementing a hardware scheme for RGBA overlay transparency), 
+     implementing a hardware scheme for RGBA overlay transparency),
 
      I'd be interested.
 
      For the record, SGI's expiremental Framebufer Configuration
      experimental GLX extension uses option TWO.  Transparency
      modes for "none" and "RGB" are defined (others could be
-     defined later).  What RGB value is the transparent one must be 
+     defined later).  What RGB value is the transparent one must be
 
      queried. I was hoping GLUT could have something that required
      less work from the programmer to use portably. -mjk */

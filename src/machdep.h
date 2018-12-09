@@ -271,7 +271,7 @@ extern long   strtol() ;
 # define DONT_USE_MATRIX_MAT  /* 04 Mar 2005 */
 # undef  DONT_USE_HTMLWIN     /* 08 Jul 2011 */
 # define UNFONTIZE_HTMLWIN    /* 08 Jul 2011 */
-# define strcasestr AFNI_strcasestr 
+# define strcasestr AFNI_strcasestr
 
 
 #ifdef SOLARIS_OLD            /* 03 Feb 2009 [rickr] */

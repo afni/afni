@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int cdiv_(doublereal *ar, doublereal *ai, doublereal *br, 
+/* Subroutine */ int cdiv_(doublereal *ar, doublereal *ai, doublereal *br,
 	doublereal *bi, doublereal *cr, doublereal *ci)
 {
     /* System generated locals */

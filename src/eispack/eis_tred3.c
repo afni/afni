@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int tred3_(integer *n, integer *nv, doublereal *a, 
+/* Subroutine */ int tred3_(integer *n, integer *nv, doublereal *a,
 	doublereal *d__, doublereal *e, doublereal *e2)
 {
     /* System generated locals */
@@ -56,12 +56,12 @@
 /*          E2 MAY COINCIDE WITH E IF THE SQUARES ARE NOT NEEDED. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
 /*     .......... FOR I=N STEP -1 UNTIL 1 DO -- .......... */

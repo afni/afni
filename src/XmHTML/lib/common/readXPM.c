@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -72,7 +72,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:03:00  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -108,7 +108,7 @@ static XmHTMLRawImageData *doXpm(Widget html, ImageBuffer *ib,
 * Name: 		doXpm
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	converts the given xpm data to our own format
-* In: 
+* In:
 *	html:		widget id;
 *	ib:			current image buffer;
 *	xpm_image:	xpm image data;
@@ -231,7 +231,7 @@ doXpm(Widget html, ImageBuffer *ib, XpmImage *xpm_image)
 * Name: 		_XmHTMLReadXPM
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	reads an xpm image of any type from xpm data read from a file.
-* In: 
+* In:
 *	html:		widget id;
 *	ib:			image data;
 * Returns:
@@ -247,7 +247,7 @@ _XmHTMLReadXPM(Widget html, ImageBuffer *ib)
 	(void)memset(&xpm_image, 0, sizeof(xpm_image));
 	(void)memset(&foo, 0, sizeof(foo));
 
-	if((i = XpmCreateXpmImageFromBuffer((String)ib->buffer, &xpm_image, 
+	if((i = XpmCreateXpmImageFromBuffer((String)ib->buffer, &xpm_image,
 		&foo)) != XpmSuccess)
 	{
 		/* spit out appropriate error message */
@@ -270,7 +270,7 @@ _XmHTMLReadXPM(Widget html, ImageBuffer *ib)
 * Name: 		_XmHTMLCreateXpmFromData
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	reads an xpm image of any type from raw xpm data
-* In: 
+* In:
 *	html:		widget id;
 *	data:		xpm data
 * Returns:

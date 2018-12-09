@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:57  rwcox
 * Cadd
@@ -44,7 +44,7 @@
 * Revision 1.1  1996/12/19 02:17:20  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _escapes_h_
 #define _escapes_h_
@@ -56,7 +56,7 @@ typedef struct{
 }escape_data;
 
 /*
-* List of all possible HTML escape codes. This list has been alphabetically 
+* List of all possible HTML escape codes. This list has been alphabetically
 * sorted to speed up the search process.
 * This list contains 198 elements. The last element is the NULL element.
 * The first part of this table contains the hash escapes, the second part

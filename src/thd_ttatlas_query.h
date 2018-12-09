@@ -20,8 +20,8 @@
                         m==':' || m==';' || \
                         m=='(' || m==')' || \
                         m=='*' || m==',' || \
-                        m=='?') 
-      
+                        m=='?')
+
 #define IS_QUOTE(m) (   m=='"' || m=='\'' )
 
 #ifdef MAIN
@@ -71,7 +71,7 @@ typedef struct {
    int N_chnks; /*!< Number of chunks in label, as interpreted by afni */
    char **chnks; /*!< label chunks, as interpreted by afni*/
    char *atlas_name; /*!< Redundant with AFNI_ATLAS's content, but kept
-                          in cases where AFNI_ATLAS_REGION are used 
+                          in cases where AFNI_ATLAS_REGION are used
                           separately, such as with ROI_String_Decode.  */
 } AFNI_ATLAS_REGION;
 
@@ -82,9 +82,9 @@ typedef struct {
 } AFNI_ATLAS;
 
 typedef enum { CLASSIC_WAMI_ATLAS_SORT = 1,  TAB1_WAMI_ATLAS_SORT = 2,     TAB2_WAMI_ATLAS_SORT = 3,
-               CLASSIC_WAMI_ZONE_SORT,       TAB1_WAMI_ZONE_SORT,          TAB2_WAMI_ZONE_SORT } WAMI_SORT_MODES; 
+               CLASSIC_WAMI_ZONE_SORT,       TAB1_WAMI_ZONE_SORT,          TAB2_WAMI_ZONE_SORT } WAMI_SORT_MODES;
 
-               
+
 typedef enum { UNKNOWN_ATLAS=0, /*!< Dunno */
                AFNI_TLRC_ATLAS, /*!< The Classic */
                CA_EZ_N27_MPM_ATLAS,  /*!< Eickhoff, Zilles MPM atlas*/
@@ -106,11 +106,11 @@ typedef struct {
 typedef struct {
    float x, y, z; /*!< coordinates */
    char space_name[65]; /*!< Name of coordinate space, will supersede space */
-   char orcode[4]; /*!< The signs and labels of x y z axis (4th for nil char)*/ 
+   char orcode[4]; /*!< The signs and labels of x y z axis (4th for nil char)*/
 } ATLAS_COORD;
 
 typedef struct {
-   int N_label; /*!< number of label types available in a particular atlas. 
+   int N_label; /*!< number of label types available in a particular atlas.
                      For example the "Anterior Cingulate" can coincide with "Brodmann area 25" in TT_Daemon atlas.
                      In this case, N_label = 2 */
    int level; /*!< a number used to group zones together. This can be equal to the 'within' radius ... */
@@ -137,17 +137,17 @@ typedef struct {
 #define MAX_ELM(apl2) ((apl2) ? (apl2)->n_points:0)
 
 typedef struct {
-   THD_3dim_dataset *adset; 
+   THD_3dim_dataset *adset;
    int mxlablen;
    int probkey;
    byte *lrmask;            /* Do not free this one either */
    int maxkeyval;        /* Highest integral value in dset */
    int minkeyval;        /* Lowest integral value in dset */
-   ATLAS_POINT_LIST *apl2;  /* use new list structure for segmentation 
+   ATLAS_POINT_LIST *apl2;  /* use new list structure for segmentation
                               At the moment, apl2 is also filled for
                               probabilistic atlases because it is needed
                               to go from sub-brick label to area name. */
-   byte duplicateLRentries; /* Are LR labels listed in adh.apl and 
+   byte duplicateLRentries; /* Are LR labels listed in adh.apl and
                                under the same code?
                                (only case I know of is in TTO_list) */
    byte build_lr;
@@ -183,7 +183,7 @@ typedef struct {
               by the function Atlas_With_Trimming. The latter should
               be used almost exclusively to get an atlas */
 
-/* macro accessors for the atlas fields - first version is to pointer location, 
+/* macro accessors for the atlas fields - first version is to pointer location,
    second _S version is for default string if NULL string in structure */
 #define ATL_COMMENT(xa) ( ( (xa) && (xa)->comment) ?   \
                            (xa)->comment : NULL )
@@ -199,12 +199,12 @@ typedef struct {
                            (xa)->name : NULL )
 #define ATL_NAME_S(xa) ( (ATL_NAME(xa)) ? \
                                  (ATL_NAME(xa)) : "None" )
-                                 
+
 #define ATL_DSET(xa) ( ( (xa) && (xa)->adh ) ? \
                         (xa)->adh->adset : NULL )
 
 #define ATL_ADH_SET(xa) ( ( (xa) && (xa)->adh ) ? \
-                           (xa)->adh->params_set : 0 )                            
+                           (xa)->adh->params_set : 0 )
 
 #define ATL_ORIENT(xa) ( ( (xa) && (xa)->orient) ?   \
                            (xa)->orient : NULL )
@@ -287,18 +287,18 @@ typedef enum { LEV=0, /* Levenshtein distance */
                PMD, /* partial match depth */
                MWI, /* Matching word index (in line of words) */
                MWL, /* Line in multi-line text of matching word */
-               IWD, /* Intra Words Distance */ 
+               IWD, /* Intra Words Distance */
                N_APPROX_STR_DIMS /* leave the last */ } APPROX_STR_DIMS;
 
 #define SRCFILE_MAX 32
 
 typedef struct {
    int d[N_APPROX_STR_DIMS];
-   char srcfile[SRCFILE_MAX+1]; 
+   char srcfile[SRCFILE_MAX+1];
 } APPROX_STR_DIFF;
 
 typedef struct {
-   float w[N_APPROX_STR_DIMS]; 
+   float w[N_APPROX_STR_DIMS];
 } APPROX_STR_DIFF_WEIGHTS;
 
 
@@ -341,47 +341,47 @@ int ends_with(char *name, char *quote, int debl);
 APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi);
 float best_approx_str_match(char **words, int N_words, char *str, byte ci,
                            APPROX_STR_DIFF_WEIGHTS *Dwi);
-char **approx_str_sort(char **words, int N_words, char *str, byte ci, 
+char **approx_str_sort(char **words, int N_words, char *str, byte ci,
                        float **sorted_score, byte word_split,
                        APPROX_STR_DIFF_WEIGHTS *Dwi,
                        APPROX_STR_DIFF **Dout);
-char **approx_str_sort_text(char *text, int *N_ws, char *str, 
+char **approx_str_sort_text(char *text, int *N_ws, char *str,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
-                            APPROX_STR_DIFF **Dout, char join_breaks);      
-char **approx_str_sort_tfile(char *fname, int textinname, int *N_ws, char *str, 
+                            APPROX_STR_DIFF **Dout, char join_breaks);
+char **approx_str_sort_tfile(char *fname, int textinname, int *N_ws, char *str,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout, int verb, char join_breaks);
 THD_string_array *approx_str_sort_Ntfile(
-                      char **fnames, int N_names, char *str, 
+                      char **fnames, int N_names, char *str,
                       byte ci, float **sorted_score,
                       APPROX_STR_DIFF_WEIGHTS *Dwi,
                       APPROX_STR_DIFF **Doutp, int verb, char join_breaks);
 #define APSEARCH_TMP_PREF "__apsearch"
-char **approx_str_sort_phelp(char *prog, int textinname, int *N_ws, char *str, 
+char **approx_str_sort_phelp(char *prog, int textinname, int *N_ws, char *str,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout, int verb, char join_breaks);
-char **approx_str_sort_all_popts(char *prog, int textinname, int *N_ws, 
+char **approx_str_sort_all_popts(char *prog, int textinname, int *N_ws,
                             byte ci, float **sorted_score,
                             APPROX_STR_DIFF_WEIGHTS *Dwi,
                             APPROX_STR_DIFF **Dout,
                             int uopts, int verb, char join_breaks);
-char *get_updated_help_file(int force_recreate, byte verb, char *progname, 
+char *get_updated_help_file(int force_recreate, byte verb, char *progname,
                             int shtp);
 char **approx_str_sort_readmes(char *str, int *N_r);
-char **unique_str(char **words, int N_words, byte ci, 
+char **unique_str(char **words, int N_words, byte ci,
                   byte noae, int *N_unq, int **isort_out);
-char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi); 
-ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , 
+char *approx_string_diff_info(APPROX_STR_DIFF *D,APPROX_STR_DIFF_WEIGHTS *Dwi);
+ATLAS_SEARCH *Find_Atlas_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur ,
                                  ATLAS_SEARCH *usethissearch);
 ATLAS_SEARCH *Free_Atlas_Search(ATLAS_SEARCH *as);
 char *Report_Found_Regions(AFNI_ATLAS *aa, AFNI_ATLAS_REGION *ur , ATLAS_SEARCH *as, int *nexact);
 char * Clean_Atlas_Label( char *lb);
 char * Clean_Atlas_Label_to_Prefix( char *lb);
 ATLAS_ZONE *Get_Atlas_Zone(ATLAS_QUERY *aq, int level);
-ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code, 
+ATLAS_ZONE *Atlas_Zone(ATLAS_ZONE *zn, int level, char *label, int code,
                        float prob, float within, char *aname, char *webpage, char *connpage) ;
 ATLAS_ZONE *Free_Atlas_Zone(ATLAS_ZONE *zn);
 void Set_Show_Atlas_Mode(int md);
@@ -408,7 +408,7 @@ void set_TT_whereami_version(int atlas_list_version, int whereami_version);
 char * Atlas_Prob_String(float p);
 char * Atlas_Code_String(int c);
 byte Same_Chunks(AFNI_ATLAS_REGION *aar1, AFNI_ATLAS_REGION *aar2);
-THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar, 
+THD_3dim_dataset *Atlas_Region_Mask(AFNI_ATLAS_REGION *aar,
                                     int *codes, int n_codes,
                                     ATLAS_LIST *atlas_list);
 char Atlas_Voxel_Side( THD_3dim_dataset *dset, int k1d, byte *lrmask);
@@ -421,10 +421,10 @@ int * UniqueInt (int *y, int ysz, int *kunq, int Sorted );
 short * UniqueShort (short *y, int ysz, int *kunq, int Sorted );
 byte * UniqueByte (byte *y, int ysz, int *kunq, int Sorted );
 
-ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask, 
+ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
                                        ATLAS_LIST *atlas_list);
-int whereami_in_atlas(  char *aname, 
-                        ATLAS_COORD ac, 
+int whereami_in_atlas(  char *aname,
+                        ATLAS_COORD ac,
                         ATLAS_QUERY **wamip);
 char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac);
 char *Atlas_name_choice(ATLAS_POINT *atp);
@@ -434,7 +434,7 @@ byte is_integral_atlas(ATLAS *atlas);
 byte is_atlas_key_labeled(ATLAS *atlas, int key);
 int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
                       ATLAS_SPACE_LIST *asli, ATLAS_LIST *aali);
-int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode, 
+int XYZ_to_AtlasCoord(float x, float y, float z, char *orcode,
                               char *spacename, ATLAS_COORD*ac);
 /* change these to stop using the term code */
 char *Atlas_Code_to_Atlas_Description(AFNI_ATLAS_CODES icod);
@@ -448,9 +448,9 @@ char **free_names_list(char **nl, int N_nl);
 int find_in_names_list(char **nl, int N_nl, char *name);
 char **add_to_names_list(char **nl, int *N_nl, char *name);
 int set_adh_old_way(ATLAS_DSET_HOLDER *adh, char *aname);
-int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name); 
-int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces, 
-                           int N_out_spaces, ATLAS_COORD *acl, char *orcodeout); 
+int find_coords_in_space(ATLAS_COORD *acl, int N_acl, char *space_name);
+int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
+                           int N_out_spaces, ATLAS_COORD *acl, char *orcodeout);
 int wami_xform_xyz(float xi,float yi,float zi,
    float *xout, float *yout, float *zout,
    char *srcspace, char *destspace);
@@ -529,14 +529,14 @@ int show_linkrbrain_link();
 int show_sumsdb_link();
 char * neurosynth_coords_link(float x, float y, float z);
 char * sumsdb_coords_link(float x, float y, float z);
-int make_linkrbrain_xml(float *coords, int ncoords, 
+int make_linkrbrain_xml(float *coords, int ncoords,
     char *src_space, char *dest_space, char *linkrbrain_xml, int linkr_corr_type);
 int send_linkrbrain_xml(char *linkrbrain_xml, char *linkrbrain_results);
 
 /* Transforms for going from one space to another */
 #if 0
-static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI 
-                                                    space to AFNI's Talairach space (manual transformation, 12 piece-wise-linear xforms) 
+static char MNI_N27_to_AFNI_TLRC_HEAD[256] = {"TT_N27+tlrc"}; /*!<  TT_N27+tlrc was obtained by transforming N27 from MNI
+                                                    space to AFNI's Talairach space (manual transformation, 12 piece-wise-linear xforms)
                                                     N27 was taken from Zilles' v12 database (colin_seg.hdr) before it got changed
                                                     to MNI anatomical (by simple shift) in v13 database*/
 #endif
@@ -549,7 +549,7 @@ static char CUSTOM_ATLAS_PREFIX[256] = {"?CUSTOM?"}; /* default prefix of additi
 /* static char CUSTOM_ATLAS_PREFIX[256] = {"TTatlas_2010_master"};*/ /* default prefix of additional custom atlas */
 
 
-static float MNI_N27_to_AFNI_TLRC_WRP_VEC[360] = {       
+static float MNI_N27_to_AFNI_TLRC_WRP_VEC[360] = {
       0.9444444,              0,              0,              0,      0.9976303,
      0.06880209,              0,    -0.05989829,      0.8685252,       1.058824,
              -0,              0,             -0,      0.9976304,    -0.07902943,
@@ -621,10 +621,10 @@ static float MNI_N27_to_AFNI_TLRC_WRP_VEC[360] = {
              -0,              0,             -0,       1.046375,    -0.07699282,
              -0,     0.07216377,       1.116396,              0,      0.5821307,
       -4.211566,             -0,     -0.9333872,       4.659767,              0,
-             23,          -9999,         9999.9,           9999,              0 }; /*!< Taken from TT_N27+tlrc which was obtained by transforming 
-                                                                                    N27 from MNI space to AFNI's Talairach space (manual transformation, 
+             23,          -9999,         9999.9,           9999,              0 }; /*!< Taken from TT_N27+tlrc which was obtained by transforming
+                                                                                    N27 from MNI space to AFNI's Talairach space (manual transformation,
                                                                                     12 piece-wise-linear xforms) */
-             
+
 THD_fvec3 THD_mni_to_tta_N27( THD_fvec3 mv );
 THD_fvec3 THD_tta_to_mni_N27( THD_fvec3 mv );
 THD_fvec3 THD_mnia_to_tta_N27( THD_fvec3 mv );

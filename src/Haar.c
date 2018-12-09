@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
   This file contains routines for performing the Haar fast wavelet transform
   analysis of time series data.
@@ -46,7 +46,7 @@ void Haar_ip_FFWT_1d (int n, float * s)
 	  s[j*k] = a;
 	  s[j*k+i] = c;
 	}
-      
+
       i *= 2;
       j *= 2;
       /*
@@ -87,7 +87,7 @@ void Haar_ip_IFWT_1d (int n, float * s)
 	  s[j*k] = a0;
 	  s[j*k+i] = a1;
 	}
-      
+
       i /= 2;
       j /= 2;
       m *= 2;
@@ -113,7 +113,7 @@ void Haar_forward_pass_1d (int n, float * s)
   npts = powerof2 (n);
   a = (float *) malloc (sizeof(float) * npts/2);
   c = (float *) malloc (sizeof(float) * npts/2);
-  
+
   for (i = 0;  i < npts/2;  i++)
     {
       a[i] = (s[2*i] + s[2*i+1]) / 2.0;
@@ -166,11 +166,11 @@ void Haar_inverse_pass_1d (int n, float * s)
 
   npts = powerof2 (n);
   r = (float *) malloc (sizeof(float) * npts);
-  
+
   for (i = 0;  i < npts/2;  i++)
     {
       r[2*i]   = s[i] + s[i + npts/2];
-      r[2*i+1] = s[i] - s[i + npts/2]; 
+      r[2*i+1] = s[i] - s[i + npts/2];
     }
 
   for (i = 0;  i < npts;  i++)

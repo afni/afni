@@ -98,7 +98,7 @@ static char helpstring[] = /* Help string for plugin interface */
 		"	[ D1 D2 X1 D1 D2 D3 ] will cause the plug-in to abort.\n"
 		;
 
-static char *dupaction_strings[] = /* strings for duplicate action in plugin interface */ 
+static char *dupaction_strings[] = /* strings for duplicate action in plugin interface */
 		{ "Collate", "Average" };
 
 #define NUM_DUPACTION_STRINGS (sizeof(dupaction_strings)/sizeof(char *))
@@ -144,10 +144,10 @@ else {
 /***********************************************************************
 *  Set up the interface to the user:
 *  1) Create a new interface using "PLUTO_new_interface";
-*  
+*
 *  2) For each line of inputs, create the line with "PLUTO_add_option"
 *  	(this line of inputs can be optional or mandatory);
-*  
+*
 *  3) For each item on the line, create the item with
 *  	"PLUTO_add_dataset" for a dataset chooser,
 *  	"PLUTO_add_string"for a string chooser,
@@ -583,7 +583,7 @@ switch(old_datum) {
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("\n[Reorder] Collating/byte data...\n");
 		#endif
-		
+
 		/* Reorder the time-course of each voxel */
 		for(kk = 0; kk < mapLength; kk++) {
 			if(NULL == memcpy((void *)bData[kk]
@@ -600,9 +600,9 @@ switch(old_datum) {
 			perc = (100 * kk) / mapLength; /* display percentage done */
 			PLUTO_set_meter(plint, perc); /* on the progress meter */
 			}
-		
+
 		PLUTO_set_meter(plint, 100);      /* set progress meter to 100% */
-		
+
 		if(dupaction) { /* new_dset may change in length again */
 			/* Verify that averaging is possible:
 			     All duplicates must have the same length.
@@ -620,27 +620,27 @@ switch(old_datum) {
 					}
 				if(error) {
 					PLUTO_popup_message(plint
-							,"*********************************************************\n" 
+							,"*********************************************************\n"
 							 "* Duplicate stimulus regions in map file must have the  *\n"
 							 "* same length for averaging. Returning collated regions.*\n"
 							 "*********************************************************");
 					break;
 					}
 				}
-		
+
 			if(!error) { /* average the crap */
 				#ifdef DEBUG_PLUGIN_REORDER
 				printf("[Reorder] All duplicate epochs have the same length...\n");
 				#endif
-			
+
 				if(dupsToAverage) {
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Averaging duplicate epochs...\n");
 					printf("[Reorder] Initial time-length is %d...\n", mapLength);
 					#endif
-			
+
 					newLength = mapLength; /* length may change after averaging, track new length */
-		
+
 					/* Perform averaging */
 					/* For each class, do: */
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
@@ -648,25 +648,25 @@ switch(old_datum) {
 						printf("[Reorder] Processing instances of class %c...\n"
 							, classKRH[ii].classKRH);
 						#endif
-			
+
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
 							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
-			
+
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
-			
+
 						if(instances > 1) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Averaging %d contiguous epochs...\n", instances);
 							#endif
-		
+
 							divisor = (double)instances;
-		
+
 							/* For each time point in the duplicated classes: */
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
@@ -678,13 +678,13 @@ switch(old_datum) {
 									bData[timePoint][kk] = (byte)((sum / divisor) + 0.5);
 									}
 								}
-		
+
 							/* Update final length of time-course */
 							newLength = newLength - (classKRH[ii].length * (instances - 1));
-		
+
 							/* Jump over the indices of all instances of the current class */
 							startIndex = startIndex + (instances *classKRH[ii].length);
-		
+
 							/* Go to the next class to process */
 							ii += instances;
 							}
@@ -692,28 +692,28 @@ switch(old_datum) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Copying single epoch...\n");
 							#endif
-		
+
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									bData[timePoint][kk] = bData[jj][kk];
 									}
 								}
-		
+
 							/* Jump to the index of the next class in the time-course */
 							startIndex = startIndex + classKRH[ii].length;
-		
+
 							/* eat up another class */
 							++ii;
 							}
-		
+
 						/* Update progress meter with the percentage done */
 						perc = (100 * timePoint) / mapLength;
 						PLUTO_set_meter(plint, perc);
 						}
-			
+
 					/* Set progress meter to 100% */
 					PLUTO_set_meter(plint, 100);
-			
+
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Final time-length is %d...\n", newLength);
 					#endif
@@ -731,7 +731,7 @@ switch(old_datum) {
 								"!! Error while creating output dataset !!\n"
 								"*****************************************";
 						}
-			
+
 					/* Free unused subBRIKS */
 					if(newLength < mapLength) {
 						#ifdef DEBUG_PLUGIN_REORDER
@@ -754,7 +754,7 @@ switch(old_datum) {
 					}
 				}
 			}
-		
+
 		/* Write results into new dataset */
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("[Reorder] Writing %d subBRIKS into new data set...\n", mapLength);
@@ -768,7 +768,7 @@ switch(old_datum) {
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("\n[Reorder] Collating/short data...\n");
 		#endif
-		
+
 		/* Reorder the time-course of each voxel */
 		for(kk = 0; kk < mapLength; kk++) {
 			if(NULL == memcpy((void *)sData[kk]
@@ -785,9 +785,9 @@ switch(old_datum) {
 			perc = (100 * kk) / mapLength; /* display percentage done */
 			PLUTO_set_meter(plint, perc); /* on the progress meter */
 			}
-		
+
 		PLUTO_set_meter(plint, 100);      /* set progress meter to 100% */
-		
+
 		if(dupaction) { /* new_dset may change in length again */
 			/* Verify that averaging is possible:
 			     All duplicates must have the same length.
@@ -805,27 +805,27 @@ switch(old_datum) {
 					}
 				if(error) {
 					PLUTO_popup_message(plint
-							,"*********************************************************\n" 
+							,"*********************************************************\n"
 							 "* Duplicate stimulus regions in map file must have the  *\n"
 							 "* same length for averaging. Returning collated regions.*\n"
 							 "*********************************************************");
 					break;
 					}
 				}
-		
+
 			if(!error) { /* average the crap */
 				#ifdef DEBUG_PLUGIN_REORDER
 				printf("[Reorder] All duplicate epochs have the same length...\n");
 				#endif
-			
+
 				if(dupsToAverage) {
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Averaging duplicate epochs...\n");
 					printf("[Reorder] Initial time-length is %d...\n", mapLength);
 					#endif
-			
+
 					newLength = mapLength; /* length may change after averaging, track new length */
-		
+
 					/* Perform averaging */
 					/* For each class, do: */
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
@@ -833,25 +833,25 @@ switch(old_datum) {
 						printf("[Reorder] Processing instances of class %c...\n"
 							, classKRH[ii].classKRH);
 						#endif
-			
+
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
 							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
-			
+
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
-			
+
 						if(instances > 1) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Averaging %d contiguous epochs...\n", instances);
 							#endif
-		
+
 							divisor = (double)instances;
-		
+
 							/* For each time point in the duplicated classes: */
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
@@ -863,13 +863,13 @@ switch(old_datum) {
 									sData[timePoint][kk] = (short)((sum / divisor) + 0.5);
 									}
 								}
-		
+
 							/* Update final length of time-course */
 							newLength = newLength - (classKRH[ii].length * (instances - 1));
-		
+
 							/* Jump over the indices of all instances of the current class */
 							startIndex = startIndex + (instances *classKRH[ii].length);
-		
+
 							/* Go to the next class to process */
 							ii += instances;
 							}
@@ -877,28 +877,28 @@ switch(old_datum) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Copying single epoch...\n");
 							#endif
-		
+
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									sData[timePoint][kk] = sData[jj][kk];
 									}
 								}
-		
+
 							/* Jump to the index of the next class in the time-course */
 							startIndex = startIndex + classKRH[ii].length;
-		
+
 							/* eat up another class */
 							++ii;
 							}
-		
+
 						/* Update progress meter with the percentage done */
 						perc = (100 * timePoint) / mapLength;
 						PLUTO_set_meter(plint, perc);
 						}
-			
+
 					/* Set progress meter to 100% */
 					PLUTO_set_meter(plint, 100);
-			
+
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Final time-length is %d...\n", newLength);
 					#endif
@@ -916,7 +916,7 @@ switch(old_datum) {
 								"!! Error while creating output dataset !!\n"
 								"*****************************************";
 						}
-			
+
 					/* Free unused subBRIKS */
 					if(newLength < mapLength) {
 						#ifdef DEBUG_PLUGIN_REORDER
@@ -939,7 +939,7 @@ switch(old_datum) {
 					}
 				}
 			}
-		
+
 		/* Write results into new dataset */
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("[Reorder] Writing %d subBRIKS into new data set...\n", mapLength);
@@ -953,7 +953,7 @@ switch(old_datum) {
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("\n[Reorder] Collating/float data...\n");
 		#endif
-		
+
 		/* Reorder the time-course of each voxel */
 		for(kk = 0; kk < mapLength; kk++) {
 			if(NULL == memcpy((void *)fData[kk]
@@ -970,9 +970,9 @@ switch(old_datum) {
 			perc = (100 * kk) / mapLength; /* display percentage done */
 			PLUTO_set_meter(plint, perc); /* on the progress meter */
 			}
-		
+
 		PLUTO_set_meter(plint, 100);      /* set progress meter to 100% */
-		
+
 		if(dupaction) { /* new_dset may change in length again */
 			/* Verify that averaging is possible:
 			     All duplicates must have the same length.
@@ -990,27 +990,27 @@ switch(old_datum) {
 					}
 				if(error) {
 					PLUTO_popup_message(plint
-							,"*********************************************************\n" 
+							,"*********************************************************\n"
 							 "* Duplicate stimulus regions in map file must have the  *\n"
 							 "* same length for averaging. Returning collated regions.*\n"
 							 "*********************************************************");
 					break;
 					}
 				}
-		
+
 			if(!error) { /* average the crap */
 				#ifdef DEBUG_PLUGIN_REORDER
 				printf("[Reorder] All duplicate epochs have the same length...\n");
 				#endif
-			
+
 				if(dupsToAverage) {
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Averaging duplicate epochs...\n");
 					printf("[Reorder] Initial time-length is %d...\n", mapLength);
 					#endif
-			
+
 					newLength = mapLength; /* length may change after averaging, track new length */
-		
+
 					/* Perform averaging */
 					/* For each class, do: */
 					for(ii = 0, startIndex = 0, timePoint = 0; ii < classCount;) {
@@ -1018,25 +1018,25 @@ switch(old_datum) {
 						printf("[Reorder] Processing instances of class %c...\n"
 							, classKRH[ii].classKRH);
 						#endif
-			
+
 						/* Get the number of duplicates of the current class */
 						for(jj = ii + 1, instances = 1; jj < classCount; jj++, instances++) {
 							if(classKRH[ii].classKRH != classKRH[jj].classKRH) {
 								break;
 								}
 							}
-			
+
 						#ifdef DEBUG_PLUGIN_REORDER
 						printf("	%d instances of class %c...\n", instances, classKRH[ii].classKRH);
 						#endif
-			
+
 						if(instances > 1) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Averaging %d contiguous epochs...\n", instances);
 							#endif
-		
+
 							divisor = (double)instances;
-		
+
 							/* For each time point in the duplicated classes: */
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								/* For each voxel: */
@@ -1048,13 +1048,13 @@ switch(old_datum) {
 									fData[timePoint][kk] = (float)((sum / divisor) + 0.5);
 									}
 								}
-		
+
 							/* Update final length of time-course */
 							newLength = newLength - (classKRH[ii].length * (instances - 1));
-		
+
 							/* Jump over the indices of all instances of the current class */
 							startIndex = startIndex + (instances *classKRH[ii].length);
-		
+
 							/* Go to the next class to process */
 							ii += instances;
 							}
@@ -1062,28 +1062,28 @@ switch(old_datum) {
 							#ifdef DEBUG_PLUGIN_REORDER
 							printf("	Copying single epoch...\n");
 							#endif
-		
+
 							for(jj = startIndex; jj < (classKRH[ii].length+startIndex); jj++, timePoint++) {
 								for(kk = 0; kk < nvox; kk++) {
 									fData[timePoint][kk] = fData[jj][kk];
 									}
 								}
-		
+
 							/* Jump to the index of the next class in the time-course */
 							startIndex = startIndex + classKRH[ii].length;
-		
+
 							/* eat up another class */
 							++ii;
 							}
-		
+
 						/* Update progress meter with the percentage done */
 						perc = (100 * timePoint) / mapLength;
 						PLUTO_set_meter(plint, perc);
 						}
-			
+
 					/* Set progress meter to 100% */
 					PLUTO_set_meter(plint, 100);
-			
+
 					#ifdef DEBUG_PLUGIN_REORDER
 					printf("[Reorder] Final time-length is %d...\n", newLength);
 					#endif
@@ -1101,7 +1101,7 @@ switch(old_datum) {
 								"!! Error while creating output dataset !!\n"
 								"*****************************************";
 						}
-			
+
 					/* Free unused subBRIKS */
 					if(newLength < mapLength) {
 						#ifdef DEBUG_PLUGIN_REORDER
@@ -1124,7 +1124,7 @@ switch(old_datum) {
 					}
 				}
 			}
-		
+
 		/* Write results into new dataset */
 		#ifdef DEBUG_PLUGIN_REORDER
 		printf("[Reorder] Writing %d subBRIKS into new data set...\n", mapLength);

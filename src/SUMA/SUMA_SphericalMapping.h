@@ -32,12 +32,12 @@ typedef struct {
 typedef struct {
    int N_node;
    int N_face;
-   
-   float *node_DelDist; 
-   float *node_DelDot; 
-   float *node_Conv; 
-   float *face_DelDot; 
-   
+
+   float *node_DelDist;
+   float *node_DelDot;
+   float *node_Conv;
+   float *face_DelDot;
+
    float cm[3];
    float AvgDist;
 
@@ -48,11 +48,11 @@ typedef struct {
 SUMA_MorphInfo * SUMA_Create_MorphInfo (void);
 SUMA_Boolean SUMA_Free_MorphInfo (SUMA_MorphInfo *MI);
 SUMA_1dData *SUMA_Create_1dData (void);
-SUMA_Boolean SUMA_Free_1dData (SUMA_1dData *data); 
+SUMA_Boolean SUMA_Free_1dData (SUMA_1dData *data);
 
 SUMA_SurfaceObject * SUMA_morphToStd (SUMA_SurfaceObject *SO, SUMA_MorphInfo *MI, SUMA_Boolean nodeChk);
 float *SUMA_readColor (int numNodes, char* colFileNm);
-void SUMA_writeColorFile (float *array, int numNode, int *index, char fileNm[]);   
+void SUMA_writeColorFile (float *array, int numNode, int *index, char fileNm[]);
 void SUMA_writeFSfile (SUMA_SurfaceObject *SO, char firstLine[], char fileNm[]);
 void SUMA_writeSpecFile (SUMA_SpecSurfInfo *surfaces, int numSurf, char program[], char group[], char specFileNm[], char *histnote);
 void SUMA_read1D (char* fileNm, int* i_colm, int* i_locInfo, SUMA_1dData* data);
@@ -76,18 +76,18 @@ int SUMA_Bad_FacesetNorm_Dot_Radius(SUMA_SurfaceObject *SO, byte *FaceMask, doub
 
 
 SUMA_SO_map *SUMA_Create_SO_map (void);
-SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM); 
-SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out); 
-SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO, 
+SUMA_Boolean SUMA_Free_SO_map (SUMA_SO_map *SOM);
+SUMA_Boolean SUMA_Show_SO_map  (SUMA_SO_map *SOM, FILE *out);
+SUMA_Boolean SUMA_SphereQuality(SUMA_SurfaceObject *SO,
                                  char *Froot, char *shist,
                                  int *N_bad_nodes, int *N_bad_facesets);
 SUMA_Boolean SUMA_ProjectToSphere(SUMA_SurfaceObject *SO, float *ctr, float r);
 SUMA_SPHERE_QUALITY *
-   SUMA_SphericalDeviations(SUMA_SurfaceObject *SO, 
+   SUMA_SphericalDeviations(SUMA_SurfaceObject *SO,
                             SUMA_SPHERE_QUALITY *SSQ, char *opts);
 SUMA_SPHERE_QUALITY *SUMA_Alloc_SphereQuality(int N, int F);
 SUMA_SPHERE_QUALITY *SUMA_Free_SphereQuality(SUMA_SPHERE_QUALITY *);
-   
+
 #define SUMA_ICOSAHEDRON_DIMENSIONS(r, a, b, lgth){ /* r is the radius parameter passed to SUMA_CreateIcosahedron or the -rad option in CreateIcosahedron*/ \
    a = r*(1+sqrt(5)) / (sqrt(10+2*sqrt(5))); \
    b = 2*r / (sqrt(10+2*sqrt(5)));  \

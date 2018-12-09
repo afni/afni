@@ -27,6 +27,6 @@ static int meth_pluginned[] = {
    1               , 1              , 1               , 1             ,
    1               , 1              , 1               , 1             ,
    0               , 1              , 1               , 1             ,
-   1               , 1 
+   1               , 1
 };
 #endif

@@ -72,7 +72,7 @@ double student_t2z( double tt , double dof )
 /*---------------------------------------------------------------------
    Correlation coefficient statistic:
      nsam = # of samples used to compute rho ( > nfit+nort )
-     nfit = # of fitting parameters 
+     nfit = # of fitting parameters
      nort = # of nuisance parameters ( nfit+nort >= 1 )
 -----------------------------------------------------------------------*/
 

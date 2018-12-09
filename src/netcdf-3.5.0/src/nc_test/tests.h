@@ -41,7 +41,7 @@
 #define X_DOUBLE_MAX    1.79769313486230e+308
 #else
 /* scalb(1. - scalb(.5 , -52), 1024) */
-#define X_DOUBLE_MAX	1.7976931348623157e+308 
+#define X_DOUBLE_MAX	1.7976931348623157e+308
 #endif
 #define X_DOUBLE_MIN	(-X_DOUBLE_MAX)
 
@@ -425,7 +425,7 @@ void check_file(char *filename);
  * These functions are defined in ../libsrc and are
  * used to support interface version 2 backward compatiblity.
  * They are not really public, but we wrote these tests before
- * we decided to hide them. 
+ * we decided to hide them.
  * N.B. there is potential for these declarations to get
  * out of sync with those in ../libsrc/nc.h and the definitions.
  */

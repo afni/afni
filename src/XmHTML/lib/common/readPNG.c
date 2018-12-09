@@ -14,7 +14,7 @@ static char rcsId[]="$Header$";
 * Author:				newt
 *
 * Portions Copyright (C) 1994 by John Bradley. Used by permission.
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -35,7 +35,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -75,7 +75,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:02:56  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -119,7 +119,7 @@ static char rcsId[]="$Header$";
 * Name: 		my_png_error
 * Return Type: 	void
 * Description: 	png error function
-* In: 
+* In:
 *	png_ptr:	current png stream;
 *	msg:		message to be displayed;
 * Returns:
@@ -142,7 +142,7 @@ my_png_error(png_structp png_ptr, String msg)
 * Name: 		my_png_read
 * Return Type: 	void
 * Description: 	function called by png when it needs another chunk of data
-* In: 
+* In:
 *	png_ptr:	current png stream;
 *	data:		return buffer;
 *	len:		no of bytes to be copied.
@@ -173,7 +173,7 @@ my_png_read(png_structp png_ptr, png_bytep data, png_size_t len)
 * Name: 		_XmHTMLReadPNG
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	reads a PNG (Portable Network Graphics) image
-* In: 
+* In:
 *
 * Returns:
 *	loaded image data upon success or NULL on failure
@@ -237,7 +237,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 	/* now set error handler */
 	if(setjmp(png_ptr->jmpbuf))
 	{
-		/* 
+		/*
 		* PNG signalled an error. Destroy image data, free any allocated
 		* buffers and return NULL.
 		*/
@@ -389,7 +389,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 					STORE_COLOR(170, 170, 170, 2);
 					STORE_COLOR(255, 255, 255, 3);
 					break;
-				case 4: 
+				case 4:
 					/* allocate colormap */
 					ncolors = 16;
 					AllocRawImageCmap(img_data, ncolors);
@@ -400,7 +400,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 						STORE_COLOR(idx, idx, idx, i);
 					}
 					break;
-				case 8: 
+				case 8:
 					/* allocate colormap */
 					ncolors = 256;
 					AllocRawImageCmap(img_data, ncolors);
@@ -497,7 +497,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 		* Setting the delayed_creation flag instructs XmHTML to create an
 		* empty XmHTMLImage structure and delays the actual image composition
 		* until the position of this image is known. At that point the painter
-		* will call doAlphaChannel to do the actual image creation. 
+		* will call doAlphaChannel to do the actual image creation.
 		*/
 		row_ptrs = (png_bytep*)malloc(height*sizeof(png_bytep));
 		png_data = (png_bytep)malloc(height*info_ptr->rowbytes);
@@ -523,7 +523,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 		_XmHTMLDebug(15, ("_XmHTMLreadPNG: end, image creation delayed.\n"));
 
 		/* store image gamma value. We need it later on */
-		img_data->fg_gamma = fg_gamma; 
+		img_data->fg_gamma = fg_gamma;
 		img_data->type = IMAGE_PNG;
 		return(img_data);
 	}
@@ -579,7 +579,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 	png_destroy_read_struct(&png_ptr, &info_ptr, NULL);
 
 	_XmHTMLDebug(15, ("_XmHTMLreadPNG: end, image loaded.\n"));
-	
+
 	return(img_data);
 }
 
@@ -587,7 +587,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 * Name: 		_XmHTMLReReadPNG
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	rereads a PNG (Portable Network Graphics) image
-* In: 
+* In:
 *	html:		current XmHTMLWidget
 *	ib:			current image buffer;
 *	x,y:		absolute document position for this image;
@@ -598,7 +598,7 @@ _XmHTMLReadPNG(Widget html, ImageBuffer *ib)
 *	This function is *only* called for RGB images with a tRNS chunk or
 *	alpha channel support. It's purpose is to reprocess the raw image data
 *	so we can properly deal with the alpha channel. For overall PNG comments
-*	see the above routine. 
+*	see the above routine.
 *	This routine is called by doAlphaChannel().
 *****/
 XmHTMLRawImageData*
@@ -735,7 +735,7 @@ _XmHTMLReReadPNG(XmHTMLWidget html, XmHTMLRawImageData *raw_data, int x,
 				}
 			}
 			else
-			{	
+			{
 				/*
 				* Compositing is necessary.
 				* Get floating-point alpha and its complement.
@@ -743,7 +743,7 @@ _XmHTMLReReadPNG(XmHTMLWidget html, XmHTMLRawImageData *raw_data, int x,
 				*/
 				alpha = (float) ialpha / MAX_RGB_VAL;
 				compalpha = 1.0 - alpha;
-   
+
 				for(k = 0; k < 3; k++)
 				{
 					/*
@@ -761,7 +761,7 @@ _XmHTMLReReadPNG(XmHTMLWidget html, XmHTMLRawImageData *raw_data, int x,
 					/*
 					* Gamma correct for display.
 					* Convert to integer frame buffer pixel.
-					* We assume a viewing gamma of 1.2 
+					* We assume a viewing gamma of 1.2
 					*/
 					gcvideo = pow(comppix, 1.2/gamma);
 					fbpix[k] = (int) (gcvideo * fb_maxsample + 0.5);
@@ -784,7 +784,7 @@ _XmHTMLReReadPNG(XmHTMLWidget html, XmHTMLRawImageData *raw_data, int x,
 	img_data->color_class = raw_data->color_class;
 
 	_XmHTMLDebug(15, ("_XmHTMLReReadPNG: end, image loaded.\n"));
-	
+
 	return(img_data);
 }
 

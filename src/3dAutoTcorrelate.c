@@ -163,7 +163,7 @@ int main( int argc , char *argv[] )
    float (*corfun)(int,float *,float*) = NULL ;
 
    FILE *fout1D=NULL;
-   
+
    /*----*/
 
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
@@ -458,7 +458,7 @@ int main( int argc , char *argv[] )
       maskinner  = THD_makemask(msetinner, 0, 1.0, 0.0) ;
       nmaskinner = THD_countmask( nvox , maskinner ) ;
       INFO_message("%d voxels in -mask dataset",nmaskinner) ;
-      if( nmaskinner < 2 ) 
+      if( nmaskinner < 2 )
          ERROR_exit("Only %d voxels in -mask, exiting...",nmaskinner);
       DSET_unload(msetinner) ;
       DSET_delete(msetinner); msetinner = NULL;
@@ -468,7 +468,7 @@ int main( int argc , char *argv[] )
          nmaskinner = -nvox;  /* a flag to be sure we remember this deed */
       }
    }
-   
+
    if( method == ETA2 && polort >= 0 )
       WARNING_message("Polort for -eta2 should probably be -1...");
 
@@ -684,8 +684,8 @@ AFNI_OMP_END ;
        DSET_delete(mset) ;
      }
    }
-   
-   
+
+
    /* toss some trash */
 
    VECTIM_destroy(xvectim) ;
@@ -712,7 +712,7 @@ AFNI_OMP_END ;
    if (fout1D) { /* write results to ASCII file, hopefully when masked */
       if (fout1D && (!mask || !maskinner)) {
          ERROR_message("Option -1Dout restricted to commands using"
-                       "-mask and -mask_source options."); 
+                       "-mask and -mask_source options.");
       } else {
          float *far = (float *)calloc(nmask, sizeof(float));
          int jj;
@@ -733,21 +733,21 @@ AFNI_OMP_END ;
                THD_extract_float_array( jj, cset, far );
                for (ii=0; ii < nmask; ++ii)
                   fprintf(fout1D,"%f ", far[ii]);
-            } 
+            }
          }
          free(far); far=NULL;
-         fclose(fout1D); fout1D = NULL;  
+         fclose(fout1D); fout1D = NULL;
       }
    }
-   
+
    /* free inner mask if not a copy of mask */
    if ( maskinner && maskinner != mask) {
-      free(maskinner); 
+      free(maskinner);
    }
    nmaskinner = 0;
    maskinner=NULL;
    if (imap) free(imap) ; imap = NULL;
-   
+
    /* finito */
 
    if( !do_mmap ){

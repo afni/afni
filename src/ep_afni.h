@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #ifndef _AFNI_EPI_HEADER_
 #define _AFNI_EPI_HEADER_
 
@@ -13,9 +13,9 @@
 #if 0          /*  ZSS June 2011. Delete useless code after dust has settled.  */
    #define AFNI_CONTROL_PORT  7954      /* always send control data to AFNI    */
    #define AFNI_TCP_PORT      7953      /* maybe send image data to AFNI       */
-   /* 
-   replace these two with: 
-      get_port_named("AFNI_CONTROL_PORT") 
+   /*
+   replace these two with:
+      get_port_named("AFNI_CONTROL_PORT")
       and
       get_port_named("AFNI_TCP_PORT")
    */

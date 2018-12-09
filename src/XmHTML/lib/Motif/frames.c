@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -37,7 +37,7 @@ static char rcsId[]="$Header$";
 * code!!
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:30  rwcox
 * Cadd
@@ -72,7 +72,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/28 07:02:46  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include <config.h>
 #endif
@@ -157,7 +157,7 @@ static frameStack frame_base, *frame_stack;
 * Name: 		pushFrameSet
 * Return Type: 	void
 * Description: 	pushes a frameset on the stack
-* In: 
+* In:
 *	frame_set:	frameset to push
 * Returns:
 *	nothing
@@ -177,7 +177,7 @@ pushFrameSet(frameSet *frame_set)
 * Name: 		popFrameSet
 * Return Type: 	frameSet*
 * Description: 	pops a frameset of the stack
-* In: 
+* In:
 *	nothing
 * Returns:
 *	the next frameset on the stack, or NULL when stack is empty
@@ -204,7 +204,7 @@ popFrameSet(void)
 * Return Type: 	frameSet*
 * Description: 	creates and fills a frameSet structure with the info in it's
 *				attributes
-* In: 
+* In:
 *	attributes:	attributes for this frameset
 * Returns:
 *	a newly created frameset.
@@ -257,7 +257,7 @@ doFrameSet(String attributes)
 
 	/*****
 	* get dimensions: when we encounter a ``*'' in a size definition it
-	* means we are free to choose any size we want. When its a number 
+	* means we are free to choose any size we want. When its a number
 	* followed by a ``%'' we must choose the size relative against the total
 	* width of the render area. When it's a number not followed by anything
 	* we have an absolute size.
@@ -312,7 +312,7 @@ doFrameSet(String attributes)
 		frame_sets = list;
 	else
 	{
-		for(tmp = frame_sets; tmp != NULL && tmp->next != NULL; 
+		for(tmp = frame_sets; tmp != NULL && tmp->next != NULL;
 			tmp = tmp->next);
 		tmp->next = list;
 	}
@@ -333,7 +333,7 @@ doFrameSet(String attributes)
 * Name: 		doFrame
 * Return Type: 	XmHTMLFrameWidget*
 * Description: 	fills a HTML frame structure with data from it's attributes
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	attributes:	frame attributes
 * Returns:
@@ -415,7 +415,7 @@ doFrame(XmHTMLWidget html, String attributes)
 		frame->margin_height, frame->resize ? "yes" : "no",
 		frame->scroll_type == FRAME_SCROLL_AUTO ? "auto" :
 		(frame->scroll_type == FRAME_SCROLL_YES ? "always" : "none")));
-		
+
 	/*
 	* Actual widget creation is postponed until the very last moment
 	* of _XmHTMLCreateFrames
@@ -430,7 +430,7 @@ doFrame(XmHTMLWidget html, String attributes)
 * Name: 		insertFrameSetChild
 * Return Type: 	void
 * Description: 	inserts a child frameset in it's parent list
-* In: 
+* In:
 *	parent:		parent of this frameset
 *	child:		obvious
 * Returns:
@@ -482,7 +482,7 @@ insertFrameSetChild(frameSet *parent, frameSet *child)
 * Name: 		insertFrameChild
 * Return Type: 	void
 * Description: 	sets the geometry constraints on a HTML frame
-* In: 
+* In:
 *	frame_set:	frameset parent of this frame;
 *	frame:		frame for which to set the constraints
 * Returns:
@@ -506,7 +506,7 @@ insertFrameChild(frameSet *frame_set, XmHTMLFrameWidget *frame)
 	/* disable resizing if we don't have a border */
 	if(!frame->border)
 	  frame->resize = False;
-	
+
 	dad = frame_set->actualFrameSet;
 	for(c = dad->children ; c != NULL ; c = c->next)
 		if(!c->next)
@@ -526,7 +526,7 @@ insertFrameChild(frameSet *frame_set, XmHTMLFrameWidget *frame)
 * Return Type: 	void
 * Description: 	creates all HTML framesets and sets the geometry constraints
 *				on each frame.
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	frameset:	XmHTMLObject data;
 * Returns:
@@ -648,7 +648,7 @@ adjustFramesetRows(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 	cum_fixed_size = 0 ;
 	for (child = parent->children ; child != NULL ; child = child->next)
 	{
-		if(IS_FRAME_SIZE_FIXED(child)) 
+		if(IS_FRAME_SIZE_FIXED(child))
 		{
 			width = *p_width ;
 			height = child->size_s ;
@@ -665,7 +665,7 @@ adjustFramesetRows(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 	cum_rel_size = 0 ;
 	for (child = parent->children ; child != NULL ; child = child->next)
 	{
-		if(IS_FRAME_SIZE_RELATIVE(child)) 
+		if(IS_FRAME_SIZE_RELATIVE(child))
 		{
 			width = *p_width ;
 			height = child->size_s * (*p_height) / 100 ;
@@ -685,9 +685,9 @@ adjustFramesetRows(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 
 		/* count how many optional they are */
 		for (child = parent->children ; child != NULL ; child = child->next)
-			if(IS_FRAME_SIZE_OPTIONAL(child)) 
+			if(IS_FRAME_SIZE_OPTIONAL(child))
 				++nb_opt;
-    
+
 		if(nb_opt > 0)
 		{
 			int cum_size, remain_size, mean_opt_size ;
@@ -705,16 +705,16 @@ adjustFramesetRows(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 			/* go adjust */
 			for(child = parent->children ; child != NULL ; child = child->next)
 			{
-				if(IS_FRAME_SIZE_OPTIONAL(child)) 
+				if(IS_FRAME_SIZE_OPTIONAL(child))
 				{
 					width = *p_width ;
 					height = mean_opt_size ;
-	    
+
 					adjustFrame(child, &width, &height);
-	    
+
 					child->width = width ;
 					child->height = height ;
-					cum_opt_size += height ;	    
+					cum_opt_size += height ;
 				}
 			}
 		}
@@ -738,7 +738,7 @@ adjustFramesetColumns(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 	cum_fixed_size = 0 ;
 	for(child = parent->children ; child != NULL ; child = child->next)
 	{
-		if(IS_FRAME_SIZE_FIXED(child)) 
+		if(IS_FRAME_SIZE_FIXED(child))
 		{
 			width = child->size_s ;
 			height = *p_height ;
@@ -755,7 +755,7 @@ adjustFramesetColumns(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 	cum_rel_size = 0 ;
 	for (child = parent->children ; child != NULL ; child = child->next)
     {
-		if(IS_FRAME_SIZE_RELATIVE(child)) 
+		if(IS_FRAME_SIZE_RELATIVE(child))
 		{
 			width = child->size_s * (*p_width) / 100 ;
 			height = *p_height ;
@@ -775,9 +775,9 @@ adjustFramesetColumns(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 
 		/* count how many optional they are */
 		for (child = parent->children ; child != NULL ; child = child->next)
-			if(IS_FRAME_SIZE_OPTIONAL(child)) 
+			if(IS_FRAME_SIZE_OPTIONAL(child))
 				++nb_opt;
-    
+
 		if(nb_opt > 0)
 		{
 			int cum_size, remain_size, mean_opt_size ;
@@ -795,16 +795,16 @@ adjustFramesetColumns(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 			/* go adjust */
 			for(child = parent->children ; child != NULL ; child = child->next)
 			{
-				if(IS_FRAME_SIZE_OPTIONAL(child)) 
+				if(IS_FRAME_SIZE_OPTIONAL(child))
 				{
 					width = mean_opt_size ;
 					height = *p_height ;
-	    
+
 					adjustFrame(child, &width, &height);
-	    
+
 					child->width = width ;
 					child->height = height ;
-					cum_opt_size += width ;	    
+					cum_opt_size += width ;
 				}
 			}
 		}
@@ -824,7 +824,7 @@ adjustFrame(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 		*p_width = 1 ;
 	if(*p_height <= 0)
 		*p_height = 1 ;
-  
+
 	if(IS_FRAMESET(parent)) /* do recursion only if it is a frameset */
 	{
 		if(parent->layout == FRAMESET_LAYOUT_ROWS)
@@ -834,7 +834,7 @@ adjustFrame(XmHTMLFrameWidget *parent, int *p_width, int *p_height)
 	}
 }
 
-static void 
+static void
 locateFrame(XmHTMLFrameWidget *parent, int x, int y)
 {
 	parent->x = x;
@@ -852,7 +852,7 @@ locateFrame(XmHTMLFrameWidget *parent, int x, int y)
 				y += frame->height ;
 			}
 		}
-      
+
 		if(IS_FRAMESET_LAYOUT_COLS(parent))
 		{
 			for(frame = parent->children ; frame != NULL ; frame = frame->next)
@@ -870,11 +870,11 @@ adjustConstraints(XmHTMLWidget html)
 {
 	XmHTMLFrameWidget *root_frame;
 	int work_width, work_height;
-  
+
 	/* this uses the core dimensions */
 	work_width = html->core.width;
 	work_height = html->core.height;
-  
+
 	/* get the root frame */
 	root_frame = getRootFrameset(html);
 
@@ -890,7 +890,7 @@ adjustConstraints(XmHTMLWidget html)
 * Name: 		destroyFrameSets
 * Return Type: 	void
 * Description: 	destroys the memory used by the framesets
-* In: 
+* In:
 *	set:		list of framesets to be destroyed
 * Returns:
 *	nothing
@@ -919,7 +919,7 @@ destroyFrameSets(frameSet *set)
 * Name: 		mapFrames
 * Return Type: 	void
 * Description: 	map's all XmHTML frame childs to screen
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	nothing
@@ -948,7 +948,7 @@ mapFrames(XmHTMLWidget html)
 * Name: 		frameDestroyCallback
 * Return Type: 	void
 * Description: 	frame destruction notifier
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	frame:		frame data;
 * Returns:
@@ -1090,7 +1090,7 @@ relativeSizesSum(XmHTMLFrameWidget *frameset)
 * Name: 		_XmHTMLCheckForFrames
 * Return Type: 	int
 * Description: 	checks if the given list of objects contains HTML frames
-* In: 
+* In:
 *	html:		XmHTMLWidget id;
 *	objects:	parser output to check
 * Returns:
@@ -1123,7 +1123,7 @@ _XmHTMLCheckForFrames(XmHTMLWidget html, XmHTMLObject *objects)
 * Name: 		_XmHTMLDestroyFrames
 * Return Type: 	void
 * Description: 	frame destroyer
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 *	nframes:	no of frames to destroy;
 * Returns:
@@ -1157,7 +1157,7 @@ _XmHTMLDestroyFrames(XmHTMLWidget html, int nframes)
 * Name: 		_XmHTMLReconfigureFrames
 * Return Type: 	void
 * Description: 	resize method for XmHTML frame childs
-* In: 
+* In:
 *	html:		XmHTMLWidget id
 * Returns:
 *	nothing
@@ -1191,7 +1191,7 @@ _XmHTMLReconfigureFrames(XmHTMLWidget html)
 * Name:			_XmHTMLCreateFrame
 * Return Type: 	Widget
 * Description: 	creates a htmlWidgetClass widget for use in HTML frames.
-* In: 
+* In:
 *	html:		parent XmHTMLWidget id;
 *	frame:		data for frame (dimensions, name, ...)
 *	fptr:		callback data from the XmNframeCallback callback function.
@@ -1206,7 +1206,7 @@ _XmHTMLCreateFrame(XmHTMLWidget html, XmHTMLFrameWidget *frame,
 	Dimension argc = 0;
 	static Widget widget;
 	XmHTMLWidget html_widget;
-	ToolkitAbstraction *tka = HTML_ATTR(tka); 
+	ToolkitAbstraction *tka = HTML_ATTR(tka);
 
 	/* set constraints and other frame stuff */
 	XtSetArg(args[argc], XmNx, frame->x); argc++;
@@ -1258,7 +1258,7 @@ _XmHTMLCreateFrame(XmHTMLWidget html, XmHTMLFrameWidget *frame,
 		tka->UnmanageChild(ATTR_HTML(widget, hsb));
 		tka->UnmanageChild(ATTR_HTML(widget, vsb));
 	}
-	
+
 	html_widget = (XmHTMLWidget)widget;
 	ATTR_HTML(html_widget, is_frame) = True;
 	ATTR_HTML(html_widget, frame_border) = frame->border;
@@ -1322,7 +1322,7 @@ _XmHTMLCreateFrames(XmHTMLWidget old, XmHTMLWidget html)
 	}
 
 	/* move to the first frameset declaration */
-	for(tmp = html->html.elements; tmp != NULL && tmp->id != HT_FRAMESET; 
+	for(tmp = html->html.elements; tmp != NULL && tmp->id != HT_FRAMESET;
 		tmp = tmp->next);
 
 	current_frame = 0;
@@ -1391,7 +1391,7 @@ _XmHTMLDrawFrameBorder(XmHTMLWidget html)
 	Display *dsp = XtDisplay((Widget)html);
 	GC gc;
 	Window win = XtWindow((Widget)html);
-	
+
 	gc = html->manager.bottom_shadow_GC;
 	XFillRectangle(dsp, win, gc, x, y, width, 1);
 	XFillRectangle(dsp, win, gc, x, y, 1, height-1);
@@ -1410,11 +1410,11 @@ _XmHTMLDrawFrameBorder(XmHTMLWidget html)
 * Name: 		XmHTMLFrameGetChild
 * Return Type: 	Widget
 * Description: 	returns the Widget id of a frame child given it's name.
-* In: 
+* In:
 *	w:			XmHTMLWidget
 *	name:		name of frame to locate.
 * Returns:
-*	If found, the widget id of the requested frame, NULL otherwise. 
+*	If found, the widget id of the requested frame, NULL otherwise.
 *****/
 Widget
 XmHTMLFrameGetChild(Widget w, String name)

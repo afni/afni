@@ -11,7 +11,7 @@
  * that the above copyright notice and this permission notice appear in
  * all copies of this software and that you do not sell the software.
  * Commercial licensing is available by contacting the author.
- * 
+ *
  * THE SOFTWARE IS PROVIDED "AS IS" AND WITHOUT WARRANTY OF ANY KIND,
  * EXPRESS, IMPLIED OR OTHERWISE, INCLUDING WITHOUT LIMITATION, ANY
  * WARRANTY OF MERCHANTABILITY OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -44,7 +44,7 @@ static void DepthCueSlice ANSI_ARGS((vpContext *vpc, float *clr_slice,
     double depth_di, double depth_dj));
 static void TranslateSlice ANSI_ARGS((float *opc_slice, float *clr_slice,
     int width, int height, double WgtTL_d, double WgtBL_d, double WgtTR_d,
-    double WgtBR_d, int color_channels, float *resamp_opc_slice, 
+    double WgtBR_d, int color_channels, float *resamp_opc_slice,
     float *resmp_clr_slice));
 static void CompositeSlice ANSI_ARGS((float *resamp_opc, float *resamp_clr,
     int width, int height, int color_channels, void *int_image_ptr,
@@ -652,7 +652,7 @@ double min_opacity;	/* low opacity threshold */
                     }
 #endif
 		}
-		
+
 	    }
 	    resamp_opc++;
 	    if (color_channels == 1) {
@@ -728,11 +728,11 @@ vpContext *vpc;
 		  vpc->warp_2d[0][1]*vpc->warp_2d[1][0]);
     ma = vpc->warp_2d[1][1] * denom;
     mb = -vpc->warp_2d[0][1] * denom;
-    mc = (vpc->warp_2d[0][1]*vpc->warp_2d[1][2] - 
+    mc = (vpc->warp_2d[0][1]*vpc->warp_2d[1][2] -
 	  vpc->warp_2d[1][1]*vpc->warp_2d[0][2]) * denom;
     md = -vpc->warp_2d[1][0] * denom;
     me = vpc->warp_2d[0][0] * denom;
-    mf = (vpc->warp_2d[1][0]*vpc->warp_2d[0][2] - 
+    mf = (vpc->warp_2d[1][0]*vpc->warp_2d[0][2] -
 	  vpc->warp_2d[0][0]*vpc->warp_2d[1][2]) * denom;
 
     /* loop over the pixels of the final image */
@@ -838,7 +838,7 @@ vpContext *vpc;
 		r_int = 0;
 	    else
 		r_int = r;
-	    
+
 	    if (color_channels == 3) {
 		if (g > 255.)
 		    g_int = 255;

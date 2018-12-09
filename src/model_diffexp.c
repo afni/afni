@@ -3,9 +3,9 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 /*
-  This file contains routines to initialize and implement the 
+  This file contains routines to initialize and implement the
   differential exponential drug response signal model.
 
   File:     model_diffexp.c
@@ -19,12 +19,12 @@
 #include <math.h>
 #include "NLfit_model.h"
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 );
 
 
@@ -46,7 +46,7 @@ MODEL_interface * initialize_model ()
   mi = (MODEL_interface *) XtMalloc (sizeof(MODEL_interface));
 
 
-  /*----- define interface for the differential - exponential model -----*/   
+  /*----- define interface for the differential - exponential model -----*/
 
   /*----- name of this model -----*/
   strcpy (mi->label, "DiffExp");
@@ -68,7 +68,7 @@ MODEL_interface * initialize_model ()
   mi->min_constr[1] =  -500.0;    mi->max_constr[1] =   500.0;
   mi->min_constr[2] =     0.00;   mi->max_constr[2] =     0.15;
   mi->min_constr[3] =     0.15;   mi->max_constr[3] =     0.50;
-  
+
   /*----- function which implements the model -----*/
   mi->call_func = &signal_model;
 
@@ -86,24 +86,24 @@ MODEL_interface * initialize_model ()
 
   Definition of model parameters:
 
-     gs[0] = time delay of response (t0)  
+     gs[0] = time delay of response (t0)
      gs[1] = multiplicative constant (k)
      gs[2] = elimination rate constant (alpha1)
      gs[3] = absorption rate constant (alpha2)
 */
 
-void signal_model 
+void signal_model
 (
   float * gs,                /* parameters for signal model */
   int ts_length,             /* length of time series data */
   float ** x_array,          /* independent variable matrix */
-  float * ts_array           /* estimated signal model time series */  
+  float * ts_array           /* estimated signal model time series */
 )
 
 {
-  int it;                           /* time index */     
+  int it;                           /* time index */
   float t;                          /* time */
-  float fval;                       /* time series value at time t */  
+  float fval;                       /* time series value at time t */
 
 
   for (it = 0;  it < ts_length;  it++)
@@ -115,7 +115,7 @@ void signal_model
 	fval = gs[1] * (exp(-gs[2]*(t-gs[0])) - exp(-gs[3]*(t-gs[0])));
       ts_array[it] = fval;
     }
-  
+
 }
 
 

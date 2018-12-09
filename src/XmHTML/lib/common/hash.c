@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				XmHTML Developers Account
 *
-* Copyright (C) 1994-1998 by Ripley Software Development 
+* Copyright (C) 1994-1998 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -34,12 +34,12 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -91,7 +91,7 @@ struct _HashTable{
 * Return Type: 	void
 * Description: 	frees the table of a given hashtable. Only used when table
 *				is being rebuild.
-* In: 
+* In:
 *	table:		table to be destroyed;
 * Returns:
 *	nothing.
@@ -118,7 +118,7 @@ hashDestroy(HashTable *table)
 * Name: 		hashRemoveEntry
 * Return Type: 	HashEntry
 * Description: 	deletes a given entry from the given hashtable.
-* In: 
+* In:
 *	table:		table from which an entry should be deleted.
 *	entry:		entry to be deleted;
 *	key:		entry identifier
@@ -157,7 +157,7 @@ hashRemoveEntry(HashTable *table, HashEntry *entry, unsigned long key)
 * Description: 	enlarges & rebuilds the given hashtable. Used when the
 *				size of the current hashtable is becoming to small to store
 *				new info efficiently.
-* In: 
+* In:
 *	table:		table to rebuild
 * Returns:
 *	nothing.
@@ -191,14 +191,14 @@ hashRebuild(HashTable *table)
 
 
 /*************
-****** Hashing 
+****** Hashing
 *************/
 
 /*****
 * Name: 		HashCreate
 * Return Type: 	HashTable*
 * Description: 	creates & initializes a new hashing table.
-* In: 
+* In:
 *	hsize:		initial hashtable size;
 *	comparer:	key comparison function, optional. If present, a positive
 *				match should return a non-zero value and a negative match
@@ -224,7 +224,7 @@ HashCreate(int hsize, HashCompareFunc comparer)
 * Return Type: 	HashTable
 * Description: 	Initializes a hashtable with an initial size hsize.
 *				The table must already be allocated.
-* In: 
+* In:
 *	table:		hashtable to be initialized;
 *	hsize:		size of hashtable.
 *	comparer:	key comparison function, optional.
@@ -248,7 +248,7 @@ HashInit(HashTable *table, int hsize, HashCompareFunc comparer)
 * Name: 		HashPut
 * Return Type: 	void
 * Description: 	puts a new entry in the hash table
-* In: 
+* In:
 *	key:		handle to data to be stored;
 *	data:		data to be stored;
 * Returns:
@@ -259,7 +259,7 @@ HashPut(HashTable *table, unsigned long key, unsigned long data)
 {
 	unsigned long hkey;
 	HashEntry *nentry;
-    
+
 	nentry = (HashEntry*)malloc(sizeof(HashEntry));
 
 	nentry->key = key;
@@ -278,13 +278,13 @@ HashPut(HashTable *table, unsigned long key, unsigned long data)
 		table->table[hkey] = nentry;
     }
 	table->elements++;
-    
+
 	nentry->nptr = NULL;
 	nentry->pptr = table->last;
 	if(table->last)
 		table->last->nptr = nentry;
 	table->last = nentry;
-    
+
 	if(table->elements > (table->size*3)/2)
 	{
 		/* humpf, table getting too small, resize and rebuild. */
@@ -296,7 +296,7 @@ HashPut(HashTable *table, unsigned long key, unsigned long data)
 * Name: 		HashGet
 * Return Type: 	int
 * Description: 	retrieves a hash entry.
-* In: 
+* In:
 *	key:		id of entry to retrieve;
 *	*data:		object in which to store data reference;
 * Returns:
@@ -343,7 +343,7 @@ HashGet(HashTable *table, unsigned long key, unsigned long *data)
 * Name: 		HashDelete
 * Return Type: 	void
 * Description: 	deletes the hash entry for the given key.
-* In: 
+* In:
 *	table:		hashtable from which to delete an entry;
 *	key:		id of entry to be deleted.
 * Returns:
@@ -353,7 +353,7 @@ void
 HashDelete(HashTable *table, unsigned long key)
 {
     unsigned long hkey;
-    
+
     hkey = key % table->size;
     table->table[hkey] = hashRemoveEntry(table, table->table[hkey], key);
     table->elements--;
@@ -364,7 +364,7 @@ HashDelete(HashTable *table, unsigned long key)
 * Return Type: 	void
 * Description: 	completely destroys the given hashtable contents. Table
 *				and contents are not destroyed.
-* In: 
+* In:
 *	table:		table to be destroyed;
 * Returns:
 *	nothing.

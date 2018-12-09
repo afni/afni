@@ -9,7 +9,7 @@
      - dset = AFNI dataset
      - flags = logical OR of various masks:
      - MINC_FLOATIZE_MASK => force output in float format
-     - MINC_SWAPIZE_MASK => add -swap_bytes option  
+     - MINC_SWAPIZE_MASK => add -swap_bytes option
    Return value is 1 if went OK, 0 if not.
 -------------------------------------------------------------------*/
 
@@ -139,9 +139,9 @@ ENTRY("THD_write_minc") ;
    if (flags & MINC_SWAPIZE_MASK) {
       sprintf(cmd+strlen(cmd)," -swap_bytes");
    }
-   
+
    /* axes orientation */
-   
+
    sprintf(cmd+strlen(cmd)," -%c%c%c",axcode[2],axcode[1],axcode[0]) ;
 
    /* input and output data type */

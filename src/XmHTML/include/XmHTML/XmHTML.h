@@ -33,7 +33,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.2  2012/03/01 17:56:31  ziad
 * Cput
@@ -86,11 +86,11 @@
 * Changes in XmImageInfo; grouped and renamed convenience functions
 *
 * Revision 1.8  1997/03/04 18:45:55  newt
-* XmNimagemapBoundingBoxForeground and XmCImagemapDrawBoundingBoxes 
+* XmNimagemapBoundingBoxForeground and XmCImagemapDrawBoundingBoxes
 * resources added
 *
 * Revision 1.7  1997/03/04 00:56:30  newt
-* Delayed Image Loading: added the delayed field to the XmImageInfo structure. 
+* Delayed Image Loading: added the delayed field to the XmImageInfo structure.
 * Removed a number of obsolete defines
 *
 * Revision 1.6  1997/03/02 23:07:10  newt
@@ -111,7 +111,7 @@
 * Revision 1.1  1996/12/19 02:17:14  newt
 * Initial Revision
 *
-*****/ 
+*****/
 /*****
 * Public interfaces are listed at the end of this file
 *****/
@@ -194,7 +194,7 @@ XmHTML_LIBEXPORT Boolean XmHTMLImagePNGSupported(void);
 XmHTML_LIBEXPORT Boolean XmHTMLImageGZFSupported(void);
 
 /* Replace image with new_image */
-XmHTML_LIBEXPORT XmImageStatus XmHTMLImageReplace(Widget w, XmImageInfo *image, 
+XmHTML_LIBEXPORT XmImageStatus XmHTMLImageReplace(Widget w, XmImageInfo *image,
 		XmImageInfo *new_image);
 
 /* update image */
@@ -227,7 +227,7 @@ XmHTML_LIBEXPORT void XmHTMLImageProgressiveKill(Widget w);
 /*****
 * Create and return a XmImage for use other than with XmHTML.
 * When width and height are non-zero, the image read is scaled to the specified
-* dimensions. 
+* dimensions.
 *****/
 XmHTML_LIBEXPORT XmImage *XmImageCreate(Widget w, String file,
 	Dimension width, Dimension height, XmImageConfig *config);
@@ -391,7 +391,7 @@ XmHTML_LIBEXPORT Boolean XmHTMLTextFindToPosition(Widget w,
 
 /*****
 * Tag analyzers.
-* These routines allow you to filter values out of the attributes 
+* These routines allow you to filter values out of the attributes
 * attached to a HTML element.
 *****/
 XmHTML_LIBEXPORT int XmHTMLTagGetNumber(String attributes, String tag,
@@ -495,7 +495,7 @@ XmHTML_LIBEXPORT Widget XmHTMLFrameGetChild(Widget w, String name);
 
 /* Create a HTML widget if parent is not null and no subclass of XmGadget */
 XmHTML_LIBEXPORT Widget XmCreateHTML(Widget parent, String name,
-	ArgList arglist, 
+	ArgList arglist,
 	Cardinal argcount);
 
 /* force a recomputation of screen layout and trigger a redisplay */

@@ -1,18 +1,18 @@
 /* Definitions for data structures and routines for the regular
  * expression library, version 0.12.
- * 
+ *
  * Copyright (C) 1985, 1989, 1990, 1991, 1992, 1993 Free Software Foundation, Inc.
- * 
+ *
  * This program is free software; you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation; either version 2, or (at your option)
  * any later version.
- * 
+ *
  * This program is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
  * GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.  */
@@ -42,7 +42,7 @@ typedef unsigned reg_syntax_t;
 #define RE_BACKSLASH_ESCAPE_IN_LISTS (1)
 
 /* If this bit is not set, then + and ? are operators, and \+ and \? are
- * literals. 
+ * literals.
  * If set, then \+ and \? are operators and + and ? are literals.  */
 #define RE_BK_PLUS_QM (RE_BACKSLASH_ESCAPE_IN_LISTS << 1)
 
@@ -58,8 +58,8 @@ typedef unsigned reg_syntax_t;
  * ^  is an anchor if it is at the beginning of a regular
  * expression or after an open-group or an alternation operator;
  * $  is an anchor if it is at the end of a regular expression, or
- * before a close-group or an alternation operator.  
- * 
+ * before a close-group or an alternation operator.
+ *
  * This bit could be (re)combined with RE_CONTEXT_INDEP_OPS, because
  * POSIX draft 11.2 says that * etc. in leading positions is undefined.
  * We already implemented a previous draft which made those constructs
@@ -69,7 +69,7 @@ typedef unsigned reg_syntax_t;
 /* If this bit is set, then special characters are always special
  * regardless of where they are in the pattern.
  * If this bit is not set, then special characters are special only in
- * some contexts; otherwise they are ordinary.  Specifically, 
+ * some contexts; otherwise they are ordinary.  Specifically,
  * * + ? and intervals are only special when not after the beginning,
  * open-group, or alternation operator.  */
 #define RE_CONTEXT_INDEP_OPS (RE_CONTEXT_INDEP_ANCHORS << 1)
@@ -91,7 +91,7 @@ typedef unsigned reg_syntax_t;
 #define RE_HAT_LISTS_NOT_NEWLINE (RE_DOT_NOT_NULL << 1)
 
 /* If this bit is set, either \{...\} or {...} defines an
- * interval, depending on RE_NO_BK_BRACES. 
+ * interval, depending on RE_NO_BK_BRACES.
  * If not set, \{, \}, {, and } are literals.  */
 #define RE_INTERVALS (RE_HAT_LISTS_NOT_NEWLINE << 1)
 
@@ -116,7 +116,7 @@ typedef unsigned reg_syntax_t;
  * If not set, then \<digit> is a back-reference.  */
 #define RE_NO_BK_REFS (RE_NO_BK_PARENS << 1)
 
-/* If this bit is set, then | is an alternation operator, and \| is literal. 
+/* If this bit is set, then | is an alternation operator, and \| is literal.
  * If not set, then \| is an alternation operator, and | is literal.  */
 #define RE_NO_BK_VBAR (RE_NO_BK_REFS << 1)
 
@@ -450,10 +450,10 @@ extern int re_match_2
  * for recording register information.  STARTS and ENDS must be
  * allocated with malloc, and must each be at least `NUM_REGS * sizeof
  * (regoff_t)' bytes long.
- * 
+ *
  * If NUM_REGS == 0, then subsequent matches should allocate their own
  * register data.
- * 
+ *
  * Unless this function is called, the first search or match using
  * PATTERN_BUFFER will allocate its own register data, without
  * freeing the old data.  */

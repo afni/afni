@@ -17,7 +17,7 @@ THD_3dim_dataset * THD_open_tcat( char *dlist )
    double angle=0.0;
    char *dp, *dlocal = dlist;   /* local dlist, in case it is altered */
    char *sel=NULL;
-   
+
 ENTRY("THD_open_tcat") ;
 
    if( dlocal == NULL || *dlocal == '\0' ) RETURN(NULL) ;
@@ -182,9 +182,9 @@ ENTRY("THD_open_tcat") ;
    /*-- Check for type problems                    ZSS: Aug 27 2012 --*/
    for (nerr=0,dd=0; dd < ndset_in ; dd++) {
       for (sb=0; sb < DSET_NVALS(dset_in[dd]); ++sb) {
-         if ( DSET_BRICK_TYPE(dset_in[0],0) != 
+         if ( DSET_BRICK_TYPE(dset_in[0],0) !=
               DSET_BRICK_TYPE(dset_in[dd],sb) ) {
-            ++nerr;    
+            ++nerr;
          }
       }
    }
@@ -199,7 +199,7 @@ ENTRY("THD_open_tcat") ;
             nerr);
       nerr=0;
    }
-   
+
    /*-- OK, start making new dataset --*/
 
    new_nvals = 0 ;

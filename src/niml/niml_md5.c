@@ -101,13 +101,13 @@ static unsigned char PADDING[64] = {
   }
 
 /*----------------------------------------------------------------------*/
-/* #define USE_XOR  
-                        ZSS: Apr. 15 2015 
+/* #define USE_XOR
+                        ZSS: Apr. 15 2015
    I have no idea at the moment why USE_XOR ends up causing SUMA labels
    to get written on top of each other in the viewer. This happens on mac
-   and linux versions. This definition might also be causing 
-   other mysterious crashes in SUMA when opening the surface controller 
-   as reported on the message borad. 
+   and linux versions. This definition might also be causing
+   other mysterious crashes in SUMA when opening the surface controller
+   as reported on the message borad.
    For now, it will stay off until we sort out why this is causing grief.
    Valgrind did not point to anything fishy related to USE_XOR.
                                                                        */

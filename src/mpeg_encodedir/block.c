@@ -41,7 +41,7 @@
  * PROVIDE MAINTENANCE, SUPPORT, UPDATES, ENHANCEMENTS, OR MODIFICATIONS.
  */
 
-/*  
+/*
  *  $Header$
  *  $Log$
  *  Revision 1.4  2004/04/02 15:12:40  rwcox
@@ -264,7 +264,7 @@ ComputeDiffDCTs(current, prev, by, bx, my, mx, pattern)
 void
 ComputeMotionBlock(prev, by, bx, my, mx, motionBlock)
     uint8 **prev;
-    int by;	
+    int by;
     int bx;
     int my;
     int mx;
@@ -407,7 +407,7 @@ ComputeMotionLumBlock(prevFrame, by, bx, my, mx, motionBlock)
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -520,8 +520,8 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
     MpegFrame *prevFrame;
     int by;
     int bx;
-    int my;	
-    int mx;	    
+    int my;
+    int mx;
     int32 bestSoFar;
 {
     register int32 adiff = 0,  diff = 0;    /* max value of diff is 255*256 = 65280 */
@@ -547,7 +547,7 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -576,7 +576,7 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
       for ( y = 0; y < 16; y++ ) {
 	across = &(prev[fy+y][fx]);
 	cacross = currentBlock[y];
-	
+
 	localDiff = across[0]-cacross[0];     diff += ABS(localDiff);
 	localDiff = across[1]-cacross[1];     diff += ABS(localDiff);
 	localDiff = across[2]-cacross[2];     diff += ABS(localDiff);
@@ -593,20 +593,20 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	localDiff = across[13]-cacross[13];     diff += ABS(localDiff);
 	localDiff = across[14]-cacross[14];     diff += ABS(localDiff);
 	localDiff = across[15]-cacross[15];     diff += ABS(localDiff);
-	
+
 	if ( diff > bestSoFar ) {
 	  return diff;
 	}
       }
       break;
-      
+
     case LOCAL_DCT: {
       Block     dctdiff[4], dctquant[4];
       FlatBlock quant;
       int x, i, tmp;
       int distortion=0, datarate=0;
       int pq = GetPQScale();
-      
+
       for (y = 0;  y < 16;  y++) {
 	across = &(prev[fy+y][fx]);
 	cacross = currentBlock[y];
@@ -626,7 +626,7 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
 	  datarate += CalcRLEHuffLength(quant);
 	}
       }
-      
+
       /* Calculate distortion */
       for (y = 0;  y < 16;  y++) {
 	across = &(prev[fy+y][fx]);
@@ -645,7 +645,7 @@ LumMotionError(currentBlock, prevFrame, by, bx, my, mx, bestSoFar)
     case NO_DC_SEARCH: {
       extern int32 niqtable[];
       int pq = niqtable[0]*GetPQScale();
-      
+
       for ( y = 0; y < 16; y++ ) {
 	across = &(prev[fy+y][fx]);
 	cacross = currentBlock[y];
@@ -759,7 +759,7 @@ LumAddMotionError(currentBlock, blockSoFar, prevFrame, by, bx, my, mx,
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -1075,7 +1075,7 @@ BlockifyFrame(framePtr)
  * but leave it here anyway for clarity
  *
  * (startY, startX) = (0,0) for A....(0,1) for B...(1,0) for C...(1,1) for D
- *  
+ *
  */
 void
 ComputeSubSampledMotionLumBlock(prevFrame, by, bx, my, mx, motionBlock,
@@ -1111,7 +1111,7 @@ ComputeSubSampledMotionLumBlock(prevFrame, by, bx, my, mx, motionBlock,
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;
@@ -1200,7 +1200,7 @@ LumMotionErrorSubSampled(currentBlock, prevFrame, by, bx, my, mx, startY,
 	    if ( my < 0 ) {
 		fy--;
 	    }
-	    
+
 	    prev = prevFrame->halfBoth;
 	} else {
 	    prev = prevFrame->halfX;

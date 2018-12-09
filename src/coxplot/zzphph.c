@@ -41,7 +41,7 @@ extern struct {
 
 /*  Everything in this package eventually funnels into this routine, */
 /*  which depends on the hardware being drawn upon.  The device */
-/*  is chosen by the NPLOTR variable (in 'plotpak.inc' COMMON /ZZPLTR/): 
+/*  is chosen by the NPLOTR variable (in 'plotpak.inc' COMMON /ZZPLTR/):
 */
 
 /*    1 = Los Alamos CGS SunView window */

@@ -5,7 +5,7 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int htrid3_(integer *nm, integer *n, doublereal *a, 
+/* Subroutine */ int htrid3_(integer *nm, integer *n, doublereal *a,
 	doublereal *d__, doublereal *e, doublereal *e2, doublereal *tau)
 {
     /* System generated locals */
@@ -55,7 +55,7 @@
 /*        A CONTAINS INFORMATION ABOUT THE UNITARY TRANSFORMATIONS */
 /*          USED IN THE REDUCTION. */
 
-/*        D CONTAINS THE DIAGONAL ELEMENTS OF THE THE TRIDIAGONAL MATRIX. 
+/*        D CONTAINS THE DIAGONAL ELEMENTS OF THE THE TRIDIAGONAL MATRIX.
 */
 
 /*        E CONTAINS THE SUBDIAGONAL ELEMENTS OF THE TRIDIAGONAL */
@@ -69,12 +69,12 @@
 /*     CALLS PYTHAG FOR  DSQRT(A*A + B*B) . */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -103,7 +103,7 @@
 	i__2 = l;
 	for (k = 1; k <= i__2; ++k) {
 /* L120: */
-	    scale = scale + (d__1 = a[i__ + k * a_dim1], abs(d__1)) + (d__2 = 
+	    scale = scale + (d__1 = a[i__ + k * a_dim1], abs(d__1)) + (d__2 =
 		    a[k + i__ * a_dim1], abs(d__2));
 	}
 
@@ -122,7 +122,7 @@ L140:
 	for (k = 1; k <= i__2; ++k) {
 	    a[i__ + k * a_dim1] /= scale;
 	    a[k + i__ * a_dim1] /= scale;
-	    h__ = h__ + a[i__ + k * a_dim1] * a[i__ + k * a_dim1] + a[k + i__ 
+	    h__ = h__ + a[i__ + k * a_dim1] * a[i__ + k * a_dim1] + a[k + i__
 		    * a_dim1] * a[k + i__ * a_dim1];
 /* L150: */
 	}
@@ -137,7 +137,7 @@ L140:
 	}
 	tau[(l << 1) + 1] = (a[l + i__ * a_dim1] * tau[(i__ << 1) + 2] - a[
 		i__ + l * a_dim1] * tau[(i__ << 1) + 1]) / f;
-	si = (a[i__ + l * a_dim1] * tau[(i__ << 1) + 2] + a[l + i__ * a_dim1] 
+	si = (a[i__ + l * a_dim1] * tau[(i__ << 1) + 2] + a[l + i__ * a_dim1]
 		* tau[(i__ << 1) + 1]) / f;
 	h__ += f * g;
 	g = g / f + 1.;
@@ -165,9 +165,9 @@ L170:
 /*     .......... FORM ELEMENT OF A*U .......... */
 	    i__3 = jm1;
 	    for (k = 1; k <= i__3; ++k) {
-		g = g + a[j + k * a_dim1] * a[i__ + k * a_dim1] + a[k + j * 
+		g = g + a[j + k * a_dim1] * a[i__ + k * a_dim1] + a[k + j *
 			a_dim1] * a[k + i__ * a_dim1];
-		gi = gi - a[j + k * a_dim1] * a[k + i__ * a_dim1] + a[k + j * 
+		gi = gi - a[j + k * a_dim1] * a[k + i__ * a_dim1] + a[k + j *
 			a_dim1] * a[i__ + k * a_dim1];
 /* L180: */
 	    }
@@ -182,9 +182,9 @@ L190:
 
 	    i__3 = l;
 	    for (k = jp1; k <= i__3; ++k) {
-		g = g + a[k + j * a_dim1] * a[i__ + k * a_dim1] - a[j + k * 
+		g = g + a[k + j * a_dim1] * a[i__ + k * a_dim1] - a[j + k *
 			a_dim1] * a[k + i__ * a_dim1];
-		gi = gi - a[k + j * a_dim1] * a[k + i__ * a_dim1] - a[j + k * 
+		gi = gi - a[k + j * a_dim1] * a[k + i__ * a_dim1] - a[j + k *
 			a_dim1] * a[i__ + k * a_dim1];
 /* L200: */
 	    }
@@ -192,7 +192,7 @@ L190:
 L220:
 	    e[j] = g / h__;
 	    tau[(j << 1) + 2] = gi / h__;
-	    f = f + e[j] * a[i__ + j * a_dim1] - tau[(j << 1) + 2] * a[j + 
+	    f = f + e[j] * a[i__ + j * a_dim1] - tau[(j << 1) + 2] * a[j +
 		    i__ * a_dim1];
 /* L240: */
 	}
@@ -215,11 +215,11 @@ L220:
 
 	    i__3 = jm1;
 	    for (k = 1; k <= i__3; ++k) {
-		a[j + k * a_dim1] = a[j + k * a_dim1] - f * e[k] - g * a[i__ 
-			+ k * a_dim1] + fi * tau[(k << 1) + 2] + gi * a[k + 
+		a[j + k * a_dim1] = a[j + k * a_dim1] - f * e[k] - g * a[i__
+			+ k * a_dim1] + fi * tau[(k << 1) + 2] + gi * a[k +
 			i__ * a_dim1];
-		a[k + j * a_dim1] = a[k + j * a_dim1] - f * tau[(k << 1) + 2] 
-			- g * a[k + i__ * a_dim1] - fi * e[k] - gi * a[i__ + 
+		a[k + j * a_dim1] = a[k + j * a_dim1] - f * tau[(k << 1) + 2]
+			- g * a[k + i__ * a_dim1] - fi * e[k] - gi * a[i__ +
 			k * a_dim1];
 /* L250: */
 	    }

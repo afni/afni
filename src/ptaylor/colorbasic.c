@@ -22,7 +22,7 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
    float min_val, max_val;
    int   min_ind, max_ind;
    float mm_diff;
-   
+
    // for: LUMINANCE
    // not so intelligent way to get min/max colors...
    max_val = -1;
@@ -41,7 +41,7 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
    }
    mm_diff = max_val-min_val;
    HSL[2] = 0.5*(min_val+max_val);   // L
-   
+
    // for: SATURATION (and, in some cases, HUE)
    if ( fabs(mm_diff) < 0.0001 ) {
       // case of no saturation -> no Hue either
@@ -53,10 +53,10 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
          HSL[1] = mm_diff/(min_val+max_val);
       else  // Should still never be 0 in denom, I think...
          HSL[1] = mm_diff/(2.-min_val-max_val);
-      
+
       // for (remaining cases): HUE
       switch(max_ind) {
-         
+
       case 0: // R is max
          HSL[0] = (RGB[1] - RGB[2])/mm_diff;
          break;
@@ -89,7 +89,7 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
       HSL[0]/= 360.;
 
    }
-   
+
    RETURN(0);
 }
 
@@ -101,17 +101,17 @@ int Color_RGB_to_HSL( float *RGB,           // N by 3 array
 int Color_Vec_RGB_to_HSL( float **RGB,           // N by 3 array
                           float **HSL,           // 3xn array
                           byte *mskd,            // byte mask
-                          int Nvox               // num vox  
-                          )  
+                          int Nvox               // num vox
+                          )
 {
    int   i,j;
    int   out;
    float inp[3]= {0.,0.,0.};
 
-   for(i=0 ; i<Nvox ; i++) 
+   for(i=0 ; i<Nvox ; i++)
       if (mskd[i]) {
-         
-         out = Color_RGB_to_HSL( RGB[i], inp);  
+
+         out = Color_RGB_to_HSL( RGB[i], inp);
 
          // and copy values over because of odd shape of HSL
          for( j=0 ; j<3 ; j++ )
@@ -129,8 +129,8 @@ int Color_Vec_RGB_to_HSL( float **RGB,           // N by 3 array
 int Color_Vec_XYZdset_to_RGB( THD_3dim_dataset *VEC, // 3-vect
                               float **RGB,           // N by 3 array
                               byte *mskd,            // byte mask
-                              int Nvox               // num vox  
-                              )  
+                              int Nvox               // num vox
+                              )
 {
    int i,j,k;
 
@@ -143,14 +143,14 @@ int Color_Vec_XYZdset_to_RGB( THD_3dim_dataset *VEC, // 3-vect
    //for(k=0 ; k<3 ; k++)
    // fprintf(stderr,"%f\t", Minv[0][k]);
 
-   for(i=0 ; i<Nvox ; i++) 
+   for(i=0 ; i<Nvox ; i++)
       if (mskd[i]) {
          for(j=0 ; j<3 ; j++) {
             RGB[i][j] = fabs(THD_get_voxel(VEC, i, j));
             // for(k=0 ; k<3 ; k++)
             //   RGB[i][j]+= Minv[j][k]* fabs(THD_get_voxel(VEC, i, k));
             // compand
-            
+
             //RGB[i][j] = Color_Compand_sRGB(RGB[i][j]);
             //fprintf(stderr,"%f\t",RGB[i][j]);
          }
@@ -176,18 +176,18 @@ float Color_Compand_sRGB(float x)
    return y;
 }
 
-/* 
+/*
    Basic thing to get dimensions of a data set and returned Nvox, just
    at one go. Ndim is either 3 or 4, depending on whether you want only
    spatial or space+time, respectively.
 */
-int Basic_Dim_and_Nvox( THD_3dim_dataset *X, int *Dim, int Ndim, 
+int Basic_Dim_and_Nvox( THD_3dim_dataset *X, int *Dim, int Ndim,
                          char *prefix)
 {
    int Nvox = -1;
 
    if( Ndim == 4 ) {
-      Dim[3] = DSET_NVALS(X); 
+      Dim[3] = DSET_NVALS(X);
       if( Dim[3] <=0 )
          ERROR_exit("\n\n Problem getting %s data set dimension [3].\n\n",
                  prefix);
@@ -198,9 +198,9 @@ int Basic_Dim_and_Nvox( THD_3dim_dataset *X, int *Dim, int Ndim,
    }
 
    Nvox = DSET_NVOX(X);
-   Dim[0] = DSET_NX(X); 
-   Dim[1] = DSET_NY(X); 
-   Dim[2] = DSET_NZ(X); 
+   Dim[0] = DSET_NX(X);
+   Dim[1] = DSET_NY(X);
+   Dim[2] = DSET_NZ(X);
 
    if( (Nvox <=0) || (Dim[0] <=0) || (Dim[1] <=0) || (Dim[2] <=0) ){
       ERROR_exit("\n\n Problem getting %s data set dimensions.\n\n",
@@ -221,14 +221,14 @@ int Basic_compare_DSET_dims( THD_3dim_dataset *X, THD_3dim_dataset *Y,
    int DimX[4]={0,0,0,0};     // dim in each dir
 	int DimY[4]={0,0,0,0};     // dim in each dir
 
-   NvoxX = Basic_Dim_and_Nvox( X, 
-                               DimX, 
-                               Ndim, 
+   NvoxX = Basic_Dim_and_Nvox( X,
+                               DimX,
+                               Ndim,
                                prefixX);
 
-   NvoxY = Basic_Dim_and_Nvox( Y, 
-                               DimY, 
-                               Ndim, 
+   NvoxY = Basic_Dim_and_Nvox( Y,
+                               DimY,
+                               Ndim,
                                prefixY);
 
    for( i=0 ; i<Ndim ; i++ )

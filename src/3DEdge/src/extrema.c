@@ -6,13 +6,13 @@
  * LICENSE:
  * GPL v3.0 (see gpl-3.0.txt for details)
  *
- * DESCRIPTION: 
+ * DESCRIPTION:
  *
  *
  * AUTHOR:
  * Gregoire Malandain (gregoire.malandain@inria.fr)
- * 
- * CREATION DATE: 
+ *
+ * CREATION DATE:
  * June, 9 1998
  *
  * ADDITIONS, CHANGES
@@ -23,7 +23,7 @@
 
 static int _VERBOSE_ = 0;
 
-/* 
+/*
  * epsilon value to select gradient extrema candidates
  */
 static double _EPSILON_NORM_ = 0.5;
@@ -87,7 +87,7 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
   char *proc="Extract_Gradient_Maxima_2D";
   /*
    * auxiliary buffer
-   */ 
+   */
   float *tmpBuffer = (float*)NULL;
   /*
    * Pointers
@@ -108,7 +108,7 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
    */
   int z, dimxXdimy;
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -120,7 +120,7 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
   sliceDims[0] = bufferDims[0];
   sliceDims[1] = bufferDims[1];
   sliceDims[2] = 1;
-  
+
   /*
    * test of the coefficients
    */
@@ -129,8 +129,8 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
       fprintf( stderr, " Error in %s: negative coefficient's value.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
-  /* 
+
+  /*
    * Allocation of auxiliary buffer.
    * We need a slice buffer for each gradients' component
    * plus one for the modulus.
@@ -144,8 +144,8 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
   norme = tmpBuffer;
   gy = norme + dimxXdimy;
   gx = gy + dimxXdimy;
-  
-  /* 
+
+  /*
    * slice by slice processing.
    *
    * For each slice, we compute both the X and Y
@@ -156,8 +156,8 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
    *
    * An other solution may consist in computing
    * the  X and Y components of the gradient
-   * for the whole 3D buffer, and performing 
-   * the non-maxima suppression slice 
+   * for the whole 3D buffer, and performing
+   * the non-maxima suppression slice
    * by slice.
    */
   for ( z=0; z<bufferDims[2]; z++ ) {
@@ -225,7 +225,7 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
     }
     /*
      * Modulus of the gradient
-     */ 
+     */
     GradientModulus2D( norme, gx, gy, dimxXdimy );
 
     /*
@@ -236,7 +236,7 @@ int Extract_Gradient_Maxima_2D( void *bufferIn,
      * FLOAT, then we compute directly the result
      * into the slice #z of the result buffer.
      * Else, we compute the suppression of the
-     * non maxima into the gx buffer, and we 
+     * non maxima into the gx buffer, and we
      * convert it into the result buffer type.
      */
     if (typeOut == FLOAT ) {
@@ -298,14 +298,14 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   char *proc="Extract_Gradient_Maxima_3D";
   /*
    * auxiliary buffer
-   */ 
+   */
   float *tmpBuffer = (float*)NULL;
   float *bufferZsmoothed = (float*)NULL;
   float *bufferZderivated = (float*)NULL;
   /*
    * Pointers
    */
-  /* 
+  /*
    * gx[0] points toward the X gradient of the current slice
    * gx[0] points toward the X gradient of the next slice
    */
@@ -320,7 +320,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
    * norme[1] points toward the gradient modulus of the current slice
    * norme[2] points toward the gradient modulus of the next slice
    */
-  float *norme[3] = { (float*)NULL, (float*)NULL, (float*)NULL }; 
+  float *norme[3] = { (float*)NULL, (float*)NULL, (float*)NULL };
   float *sliceZsmoothed = (float*)NULL;
   float *pt = (float*)NULL;
   /*
@@ -336,7 +336,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
    */
   int z, dimxXdimy;
 
-  /* 
+  /*
    * We check the buffers' dimensions.
    */
   if ( (bufferDims[0] <= 0) || (bufferDims[1] <= 0) || (bufferDims[2] <= 0) ) {
@@ -364,7 +364,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   sliceDims[0] = bufferDims[0];
   sliceDims[1] = bufferDims[1];
   sliceDims[2] = 1;
-  
+
   /*
    * test of the coefficients
    */
@@ -374,12 +374,12 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
       fprintf( stderr, " Error in %s: negative coefficient's value.\n", proc );
     return( EXIT_ON_FAILURE );
   }
-  
-  /* 
+
+  /*
    * Allocation of auxiliary buffers.
    *
    * We need a 3D buffer for the Z component of the
-   * gradient, plus a 3D buffer for the 3D buffer 
+   * gradient, plus a 3D buffer for the 3D buffer
    * smoothed along Z, plus 7 2D buffers for the
    * X component of the gradient in both the current
    * and the next slices, idem for the Y component,
@@ -396,7 +396,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   if ( tmpBuffer == (float*)NULL ) {
     if ( _VERBOSE_ > 0 ) {
       fprintf( stderr, " Fatal error in %s:", proc );
-      fprintf( stderr, " unable to allocate auxiliary buffer.\n" );      
+      fprintf( stderr, " unable to allocate auxiliary buffer.\n" );
     }
     return( EXIT_ON_FAILURE );
   }
@@ -407,7 +407,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   norme[0] = gy[1] + dimxXdimy;
   norme[1] = norme[0] + dimxXdimy;
   norme[2] = norme[1] + dimxXdimy;
-  
+
   bufferZsmoothed = (float*)malloc( bufferDims[2] * dimxXdimy * sizeof( float ) );
   if ( bufferZsmoothed == (float*)NULL ) {
     if ( _VERBOSE_ > 0 ) {
@@ -417,7 +417,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     free( tmpBuffer );
     return( EXIT_ON_FAILURE );
   }
-  
+
   if ( typeOut == FLOAT ) {
     bufferZderivated = bufferOut;
   } else {
@@ -432,8 +432,8 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
   }
-  
-  /* 
+
+  /*
    * Computation of the Z component of the gradient.
    * Computation of the input buffer smoothed along Z.
    */
@@ -466,7 +466,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     if ( typeOut != FLOAT ) free( bufferZderivated );
     return( EXIT_ON_FAILURE );
   }
-  
+
   /*
    * First slice: extraction of 2D edges.
    *
@@ -479,7 +479,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   sliceZsmoothed = bufferZsmoothed;
   gz = bufferZderivated;
   if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				gx[0], FLOAT, sliceDims, 
+				gx[0], FLOAT, sliceDims,
 				borderLengths, Xgradient,
 				filterCoefs, filterType ) == 0 ) {
     if ( _VERBOSE_ > 0 ) {
@@ -492,7 +492,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     return( EXIT_ON_FAILURE );
   }
   if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				gy[0], FLOAT, sliceDims, 
+				gy[0], FLOAT, sliceDims,
 				borderLengths, Ygradient,
 				filterCoefs, filterType ) == 0 ) {
     if ( _VERBOSE_ > 0 ) {
@@ -507,10 +507,10 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   GradientModulus3D( norme[1], gx[0], gy[0], gz, dimxXdimy );
   Remove_Gradient_NonMaxima_Slice_2D( gz, gx[0], gy[0],
 				      norme[1], sliceDims );
-   
+
   /*
    * The first slice is already processed.
-   * 
+   *
    * We prepare the processing of the next slice.
    * - computation of the X component of the gradient
    *   for that slice
@@ -520,7 +520,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   sliceZsmoothed += dimxXdimy;
   gz += dimxXdimy;
   if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				gx[1], FLOAT, sliceDims, 
+				gx[1], FLOAT, sliceDims,
 				borderLengths, Xgradient,
 				filterCoefs, filterType ) == 0 ) {
     if ( _VERBOSE_ > 0 ) {
@@ -533,7 +533,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     return( EXIT_ON_FAILURE );
   }
   if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				gy[1], FLOAT, sliceDims, 
+				gy[1], FLOAT, sliceDims,
 				borderLengths, Ygradient,
 				filterCoefs, filterType ) == 0 ) {
     if ( _VERBOSE_ > 0 ) {
@@ -546,9 +546,9 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     return( EXIT_ON_FAILURE );
   }
   GradientModulus3D( norme[2], gx[1], gy[1], gz, dimxXdimy );
- 
+
   /*
-   * slice by slice processing 
+   * slice by slice processing
    */
   for ( z=1; z<bufferDims[2]-1; z++ ) {
     /*
@@ -556,7 +556,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
      */
     pt = gx[0]; gx[0] = gx[1]; gx[1] = pt;
     pt = gy[0]; gy[0] = gy[1]; gy[1] = pt;
-    pt = norme[0]; norme[0] = norme[1]; 
+    pt = norme[0]; norme[0] = norme[1];
     norme[1] = norme[2]; norme[2] = pt;
     /*
      * gx[0] and gy[0] are the X and Y components
@@ -577,7 +577,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
     sliceZsmoothed += dimxXdimy;
     gz += dimxXdimy;
     if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				  gx[1], FLOAT, sliceDims, 
+				  gx[1], FLOAT, sliceDims,
 				  borderLengths, Xgradient,
 				  filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -590,7 +590,7 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
       return( EXIT_ON_FAILURE );
     }
     if ( RecursiveFilterOnBuffer( sliceZsmoothed, FLOAT,
-				  gy[1], FLOAT, sliceDims, 
+				  gy[1], FLOAT, sliceDims,
 				  borderLengths, Ygradient,
 				  filterCoefs, filterType ) == 0 ) {
       if ( _VERBOSE_ > 0 ) {
@@ -612,9 +612,9 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
   }
 
   /*
-   * last slice 
-   * 
-   * Components and moduls of the gradient are 
+   * last slice
+   *
+   * Components and moduls of the gradient are
    * already computed.
    *
    * - 2D suppression of the non maxima
@@ -625,9 +625,9 @@ int Extract_Gradient_Maxima_3D( void *bufferIn,
    * conversion of the buffer bufferZderivated of type FLOAT
    * into the buffer bufferOut.
    */
-  
+
   if (typeOut != FLOAT ) {
-    ConvertBuffer( bufferZderivated, FLOAT, 
+    ConvertBuffer( bufferZderivated, FLOAT,
 		   bufferOut, typeOut, bufferDims[2]*dimxXdimy);
   }
 
@@ -649,8 +649,8 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
 				 float *norme,
 				 int *bufferDims )
 {
-  /* 
-   * the buffer norme[0] contains the gradient modulus of the 
+  /*
+   * the buffer norme[0] contains the gradient modulus of the
    * previous slice, the buffer norme[1] the ones of the
    * slice under study, while norme[2] containes the ones
    * of the next slice.
@@ -663,7 +663,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
   int dimxMinusOne = dimx - 1;
   int dimxPlusOne = dimx + 1;
   int dimyMinusOne = dimy - 1;
-  /* 
+  /*
    * pointers
    */
   register float *fl_pt1 = (float*)NULL;
@@ -683,7 +683,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
   int y_upper_left_corner;
   /*
    * coefficients
-   */ 
+   */
   register double dx, dy, dxdy;
   double c00, c01, c10, c11;
   /*
@@ -704,11 +704,11 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
   fl_pt2 = maxima + dimx + dimx - 1;
   for (y=1; y<dimy-1; y++, fl_pt1+=dimx, fl_pt2+=dimx )
     *fl_pt1 = *fl_pt2 = 0.0;
-  
+
   /*
    * We investigate the middle of the image.
    */
-  /* 
+  /*
    * Pointers are set to the first point
    * to be processed.
    */
@@ -764,7 +764,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
       *fl_max = *fl_nor;
       continue;
     }
-    
+
 
     /*
      * From here we perform a bilinear interpolation
@@ -785,7 +785,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
       *fl_max = 0.0;
       continue;
     }
-    /* 
+    /*
      * Upper left corner,
      * coordinates of the point to be interpolated
      * with respect to this corner.
@@ -795,8 +795,8 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
     dx = x_point_to_be_interpolated - (double)x_upper_left_corner;
     dy = y_point_to_be_interpolated - (double)y_upper_left_corner;
     dxdy = dx * dy;
-    /* 
-     * bilinear interpolation of the gradient modulus 
+    /*
+     * bilinear interpolation of the gradient modulus
      * norme[x_point_to_be_interpolated, y_point_to_be_interpolated] =
      *   norme[0,0] * ( 1 - dx) * ( 1 - dy ) +
      *   norme[1,0] * ( dx ) * ( 1 - dy ) +
@@ -820,7 +820,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
      * Here, we consider that it is strictly superior.
      * The next comparison will be superior or equal.
      * This way, the extrema is in the light part of the
-     * image. 
+     * image.
      * By inverting both tests, we can put it in the
      * dark side of the image.
      */
@@ -843,7 +843,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
       *fl_max = 0.0;
       continue;
     }
-    /* 
+    /*
      * Upper left corner.
      */
     x_upper_left_corner = (int)x_point_to_be_interpolated;
@@ -882,7 +882,7 @@ void Remove_Gradient_NonMaxima_Slice_2D( float *maxima,
       *(fl_upper_left + dimx) * c10 +
       *(fl_upper_left + dimxPlusOne) * c00;
     /*
-     * Last test to decide whether or not we 
+     * Last test to decide whether or not we
      * have an extrema
      */
     if ( *fl_nor < interpolated_norme ) {
@@ -908,8 +908,8 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
 				 float **norme,
 				 int *bufferDims )
 {
-  /* 
-   * the buffer norme[0] contains the gradient modulus of the 
+  /*
+   * the buffer norme[0] contains the gradient modulus of the
    * previous slice, the buffer norme[1] the ones of the
    * slice under study, while norme[2] containes the ones
    * of the next slice.
@@ -922,7 +922,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
   int dimxMinusOne = dimx - 1;
   int dimxPlusOne = dimx + 1;
   int dimyMinusOne = dimy - 1;
-  /* 
+  /*
    * pointers
    */
   register float *fl_pt1 = (float*)NULL;
@@ -947,7 +947,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
   int z_upper_left_corner;
   /*
    * coefficients
-   */ 
+   */
   register double dx, dy, dz;
   register double dxdy, dxdz, dydz;
   double c000, c010, c100, c110;
@@ -970,11 +970,11 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
   fl_pt2 = maxima + dimx + dimx - 1;
   for (y=1; y<dimy-1; y++, fl_pt1+=dimx, fl_pt2+=dimx )
     *fl_pt1 = *fl_pt2 = 0.0;
-  
+
   /*
    * We investigate the middle of the image.
    */
-  /* 
+  /*
    * Pointers are set to the first point
    * to be processed.
    */
@@ -1016,7 +1016,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       x_upper_left_corner = (int)( (double)x + normalized_gx + 0.5 );
       y_upper_left_corner = (int)( (double)y + normalized_gy + 0.5 );
       z_upper_left_corner = (int)( (double)z + normalized_gz + 0.5 );
-      interpolated_norme = *(norme[z_upper_left_corner] 
+      interpolated_norme = *(norme[z_upper_left_corner]
 			     + (x_upper_left_corner + y_upper_left_corner * dimx));
       if ( *fl_nor <= interpolated_norme ) {
 	*fl_max = 0.0;
@@ -1028,7 +1028,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       x_upper_left_corner = (int)( (double)x - normalized_gx + 0.5 );
       y_upper_left_corner = (int)( (double)y - normalized_gy + 0.5 );
       z_upper_left_corner = (int)( (double)z - normalized_gz + 0.5 );
-      interpolated_norme = *(norme[z_upper_left_corner] 
+      interpolated_norme = *(norme[z_upper_left_corner]
 			     + (x_upper_left_corner + y_upper_left_corner * dimx));
       if ( *fl_nor < interpolated_norme ) {
 	*fl_max = 0.0;
@@ -1040,7 +1040,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       *fl_max = *fl_nor;
       continue;
     }
-    
+
 
     /*
      * From here we perform a trilinear interpolation
@@ -1063,7 +1063,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       continue;
     }
 
-    /* 
+    /*
      * Upper left corner,
      * coordinates of the point to be interpolated
      * with respect to this corner.
@@ -1074,9 +1074,9 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
     dx = x_point_to_be_interpolated - (double)x_upper_left_corner;
     dy = y_point_to_be_interpolated - (double)y_upper_left_corner;
     dz = z_point_to_be_interpolated - (double)z_upper_left_corner;
-    /* 
-     * trilinear interpolation of the gradient modulus 
-     * norme[x_point_to_be_interpolated, 
+    /*
+     * trilinear interpolation of the gradient modulus
+     * norme[x_point_to_be_interpolated,
      *       y_point_to_be_interpolated,
      *       z_point_to_be_interpolated] =
      *   norme[0,0,0] * ( 1 - dx) * ( 1 - dy ) * ( 1 - dz ) +
@@ -1119,7 +1119,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
      * Here, we consider that it is strictly superior.
      * The next comparison will be superior or equal.
      * This way, the extrema is in the light part of the
-     * image. 
+     * image.
      * By inverting both tests, we can put it in the
      * dark side of the image.
      */
@@ -1143,7 +1143,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       *fl_max = 0.0;
       continue;
     }
-    /* 
+    /*
      * Upper left corner.
      */
     x_upper_left_corner = (int)x_point_to_be_interpolated;
@@ -1155,8 +1155,8 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
     dz = z_point_to_be_interpolated - (double)z_upper_left_corner;
     */
     /*
-     * We use the previous coefficients. 
-     * norme[x_point_to_be_interpolated, 
+     * We use the previous coefficients.
+     * norme[x_point_to_be_interpolated,
      *       y_point_to_be_interpolated,
      *       z_point_to_be_interpolated] =
      *   norme[0,0,0] * c111 +
@@ -1168,7 +1168,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
      *   norme[0,1,1] * c100 +
      *   norme[1,1,1] * c000
      *
-     
+
     fl_upper_left = norme[z_upper_left_corner]
       + (x_upper_left_corner + y_upper_left_corner * dimx);
     interpolated_norme = *(fl_upper_left) * c111 +
@@ -1212,7 +1212,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       *(fl_upper_left + dimx) * c011 +
       *(fl_upper_left + dimxPlusOne) * c111;
     */
-    
+
     fl_upper_left = norme[z_upper_left_corner]
       + (x_upper_left_corner + y_upper_left_corner * dimx);
     interpolated_norme = *(fl_upper_left) * c111 +
@@ -1227,7 +1227,7 @@ void Remove_Gradient_NonMaxima_Slice_3D( float *maxima,
       *(fl_upper_left + dimxPlusOne) * c000;
 
     /*
-     * Last test to decide whether or not we 
+     * Last test to decide whether or not we
      * have an extrema
      */
     if ( *fl_nor < interpolated_norme ) {
@@ -1263,7 +1263,7 @@ static void GradientModulus2D( float *gradient_modulus,
   register float *norme = gradient_modulus;
   register float *gx = derivative_along_X;
   register float *gy = derivative_along_Y;
-  
+
   for ( i=0; i<length; i++, norme++, gx++, gy++ )
     *norme = sqrt( (*gx)*(*gx) + (*gy)*(*gy) );
 }
@@ -1279,7 +1279,7 @@ static void GradientModulus3D( float *gradient_modulus,
   register float *gx = derivative_along_X;
   register float *gy = derivative_along_Y;
   register float *gz = derivative_along_Z;
-  
+
   for ( i=0; i<length; i++, norme++, gx++, gy++, gz++ )
     *norme = sqrt( (*gx)*(*gx) + (*gy)*(*gy) + (*gz)*(*gz) );
 }
@@ -1296,14 +1296,14 @@ void SetGradientExtremaEpsilon( double epsilon )
     _EPSILON_NORM_ = epsilon;
   }
 }
-    
+
 void SetGradientDerivativeEpsilon( double epsilon )
 {
   if ( (epsilon > 0.0) && (epsilon < 1.0) ) {
     _EPSILON_DERIVATIVE_ = 1.0 - epsilon;
   }
 }
-    
+
 
 
 

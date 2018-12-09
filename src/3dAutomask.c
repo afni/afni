@@ -19,7 +19,7 @@ int main( int argc , char * argv[] )
    int peels=1, nbhrs=17 ; /* 24 Oct 2006 */
    int apply_mask = 0;     /* 17 Nov 2009 */
    char *apply_prefix = NULL, *depthprefix=NULL;
-   short *depth=NULL, dodepth=0;      /* 02 March 2010 ZSS */ 
+   short *depth=NULL, dodepth=0;      /* 02 March 2010 ZSS */
 
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -46,7 +46,7 @@ int main( int argc , char * argv[] )
  "  -apply_prefix ppp = Apply mask to input dataset and save\n"
  "                masked dataset. If an apply_prefix is given\n"
  "                and not the usual prefix, the only output\n"
- "                will be the applied dataset\n" 
+ "                will be the applied dataset\n"
  "\n"
  "  -clfrac cc  = Set the 'clip level fraction' to 'cc', which\n"
  "                 must be a number between 0.1 and 0.9.\n"
@@ -91,9 +91,9 @@ int main( int argc , char * argv[] )
  "                The higher the number, the deeper a voxel is located \n"
  "                in the mask. \n"
 #ifdef ALLOW_FILLIN
-"          None of -peels, -dilate, -fillin, or -erode affect this option.\n" 
+"          None of -peels, -dilate, -fillin, or -erode affect this option.\n"
 #else
-"          None of -peels, -dilate, or -erode affect this option.\n" 
+"          None of -peels, -dilate, or -erode affect this option.\n"
 #endif
             ) ;
 
@@ -248,8 +248,8 @@ int main( int argc , char * argv[] )
      ERROR_exit("Mask creation fails for unknown reasons!\n");
 
    if (dodepth) {       /* ZSS March 02 2010 */
-      if (!(depth = THD_mask_depth( DSET_NX(dset), 
-                                    DSET_NY(dset),  
+      if (!(depth = THD_mask_depth( DSET_NX(dset),
+                                    DSET_NY(dset),
                                     DSET_NZ(dset), mask, 1, NULL))) {
          ERROR_exit("Failed to get depth vector!\n");
       }
@@ -457,7 +457,7 @@ int main( int argc , char * argv[] )
          ERROR_exit("Could not apply mask to dataset");
       }
    }
-   
+
    if (dodepth) {             /* ZSS March 02 2010 */
       if(verb) INFO_message("Writing depth dataset\n");
       if (mset) DSET_delete(mset); mset = NULL;
@@ -479,7 +479,7 @@ int main( int argc , char * argv[] )
 
       DSET_write( mset ) ;
       if( verb ) WROTE_DSET(mset) ;
-      
+
       DSET_delete(mset); mset = NULL;
    }
 
@@ -541,7 +541,7 @@ thd_apply_mask(THD_3dim_dataset * dset, byte *mask, char *prefix)
                  data_iptr++;
                  }
             }
-         } 
+         }
          break;
 
          case MRI_float:{

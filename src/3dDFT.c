@@ -63,7 +63,7 @@ int main( int argc , char * argv[] )
    int iarg=1 , doabs=0, ii, jj, kk, ll, nvox, nvals=1 , isreal=0 ;
    int nx, ny, nz, nfft=0 , detrend=0 , sgn=-1 ;
    float *xtap=NULL , ftap=0.0f ;  /* 27 Nov 2007 */
-     
+
 
    mainENTRY("3dDFT main"); machdep(); AFNI_logger("3dDFT",argc,argv);
    AUTHOR("Kevin Murphy & Zhark the Transformer") ;
@@ -75,14 +75,14 @@ int main( int argc , char * argv[] )
 
 #define GOOD_TYPE(tt) ((tt)==MRI_complex || (tt)==MRI_float || (tt)==MRI_short)
 
-   if(argc == 1){ usage_3dDFT(1); exit(0); } /* Bob's help shortcut */   
+   if(argc == 1){ usage_3dDFT(1); exit(0); } /* Bob's help shortcut */
 
    while( iarg < argc && argv[iarg][0] == '-' ){
       if (!strcmp(argv[iarg], "-help") || !strcmp(argv[iarg], "-h")) {
          usage_3dDFT(strlen(argv[iarg]) > 3 ? 2:1);
          exit(0);
       }
-      
+
       if( strcmp(argv[iarg],"-inverse") == 0 ){  /* 15 Apr 2011 */
         sgn = 1 ; csfft_scale_inverse(1) ; iarg++ ; continue ;
       }
@@ -129,7 +129,7 @@ int main( int argc , char * argv[] )
       ERROR_message("ILLEGAL option: %s\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]); exit(1);
    }
-   
+
    if( argc < 2) {
       ERROR_exit("Too few options, see -help for details");
    }

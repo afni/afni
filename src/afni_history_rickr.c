@@ -6,9 +6,9 @@
 /*  basic format: 3-field date, user, program_name, impact_level,
                   short description without newline
                   (optional) long description with intermediate newlines
-  
+
     copy entire section: { ... } ,
-  
+
     Notes: - months are JAN ... DEC (see .h file)
 
            - levels are :
@@ -6116,7 +6116,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 20, JUL, 2010, RCR, "xmat_tool.py", MICRO, TYPE_MODIFY,
-   "made small improvement out text formatting for cormat and cosmat", 
+   "made small improvement out text formatting for cormat and cosmat",
    NULL
  } ,
 
@@ -6127,7 +6127,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 19, JUL, 2010, RCR, "@DriveAfni", MICRO, TYPE_NEW_OPT,
-   "added -help", 
+   "added -help",
    NULL
  } ,
 
@@ -8255,12 +8255,12 @@ afni_history_struct rickr_history[] = {
  } ,
 
  { 27, FEB, 2008, RCR, "afni_proc.py", MINOR, TYPE_BUG_FIX,
-   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)", 
+   "fixed -regress_use_stim_files typo (was -regress_use_stim_times)",
    NULL
  } ,
 
  { 26, FEB, 2008, RCR, "afni_history", MICRO, TYPE_GENERAL,
-   "checked in initial afni_history files", 
+   "checked in initial afni_history files",
    NULL
  } ,
 
@@ -8323,7 +8323,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  20, DEC, 2006, RCR, "afni_proc.py", SUPER, TYPE_NEW_PROG,
-   "program to write complete single subject FMRI processing script", 
+   "program to write complete single subject FMRI processing script",
    NULL
  } ,
 
@@ -8333,7 +8333,7 @@ afni_history_struct rickr_history[] = {
  } ,
 
  {  22, OCT, 2006, RCR, "model_demri_3", MAJOR, TYPE_NEW_PROG,
-   "NLfim model for Dynamic Enhanced MRI", 
+   "NLfim model for Dynamic Enhanced MRI",
    NULL
  } ,
 

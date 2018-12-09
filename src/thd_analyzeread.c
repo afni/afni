@@ -244,7 +244,7 @@ ENTRY("THD_open_analyze") ;
            zz > 0 && zz < nz-1   ){ spmorg=1; spmxx=xx-1; spmyy=yy-1; spmzz=zz-1; }
        /*fprintf(stderr,  "\n"
                         "        xx      yy       zz     :   %d %d %d \n"
-                        "spmorg  spmxx   spmyy    spmzz  : %d %d %d %d\n", 
+                        "spmorg  spmxx   spmyy    spmzz  : %d %d %d %d\n",
                                                 xx, yy, zz,
                                                 spmorg, spmxx, spmyy, spmzz);*/
      }
@@ -311,13 +311,13 @@ ENTRY("THD_open_analyze") ;
      orgxyz.xyz[2] = -0.5 * (nz-1) * dz ; nwarn++ ;
    }
 
-   
+
    iview = VIEW_ORIGINAL_TYPE ;   /* can't tell if it is Talairach-ed (default)*/
    {/* ZSS Dec 15 03 */
       char *vie = getenv("AFNI_ANALYZE_VIEW") ;
       if (!vie) {
         static int nwarn = 0 ;
-        iview = VIEW_ORIGINAL_TYPE; 
+        iview = VIEW_ORIGINAL_TYPE;
         if( nwarn < 1 ){
           WARNING_message("Assuming view is +orig.\n"
                           "++    To change view or silence this message,\n"
@@ -328,7 +328,7 @@ ENTRY("THD_open_analyze") ;
         }
       } else {
          static int nwarn = 0 ;
-              if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE; 
+              if (strcmp(vie, "tlrc") == 0) iview = VIEW_TALAIRACH_TYPE;
          else if (strcmp(vie, "orig") == 0) iview = VIEW_ORIGINAL_TYPE;
          else if (strcmp(vie, "acpc") == 0) iview = VIEW_ACPCALIGNED_TYPE;
          else if( nwarn < 1 ) {
@@ -340,11 +340,11 @@ ENTRY("THD_open_analyze") ;
          }
       }
    }
-   
+
    if( AFNI_yesenv("AFNI_ANALYZE_ORIGINATOR") && spmorg ){  /* 03 Nov 2003 */
      if ( !getenv ("AFNI_ANALYZE_VIEW") ) { /* ZSS 16 Dec 2003 */
        iview = VIEW_TALAIRACH_TYPE ;        /* for backward compatibility */
-     } 
+     }
      orgxyz.xyz[0] = -spmxx * dx ; /* (0,0,0) is at (spmxx,spmyy,spmzz) */
      orgxyz.xyz[1] = -spmyy * dy ;
      orgxyz.xyz[2] = -spmzz * dz ;

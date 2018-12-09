@@ -22,12 +22,12 @@
 #include "NLfit_model.h"
 #define  NL_MM_DEF_DT   0.1    /* default dt, in seconds */
 
-void signal_model 
+void signal_model
 (
     float  * params,           /* parameters for signal model */
     int      ts_len,           /* length of time series data */
     float ** x_array,          /* independent variable matrix */
-    float  * ts_array          /* estimated signal model time series */  
+    float  * ts_array          /* estimated signal model time series */
 );
 
 /* computation of time series */
@@ -69,7 +69,7 @@ MODEL_interface * initialize_model ()
     M->min_constr[2] =   0.056;  M->max_constr[2] =   0.084;  /* mean 0.07 */
     M->min_constr[3] =   0.040;  M->max_constr[3] =   0.060;  /* mean 0.05 */
     M->min_constr[4] =   0.080;  M->max_constr[4] =   0.120;  /* mean 0.1  */
-  
+
     M->call_func = &signal_model; /* set the signal model generator callback */
 
     return (M);
@@ -88,7 +88,7 @@ void signal_model (
     float  * params,           /* parameters for signal model */
     int      ts_len,           /* length of time series data */
     float ** x_array,          /* independent variable matrix */
-    float  * ts_array          /* estimated signal model time series */  
+    float  * ts_array          /* estimated signal model time series */
 )
 {
     static int     first_call = 1;
@@ -131,7 +131,7 @@ void signal_model (
 
 
 /*----------------------------------------------------------------------
- * compute a time series (from time/rate), starting from 0 
+ * compute a time series (from time/rate), starting from 0
  *             -- assume a constant rate, until it changes
  *
  * use the modified euler's method: c(t+d) = c(t) + d/2 * (c'(t) + c'(t+d))
@@ -160,7 +160,7 @@ int compute_ts( float * rtimes, float * rates, int nrates,
     double tr_time;                 /* for output time, if tr>0      */
     int    irate, itr;              /* index into TR and rates list  */
 
-       
+
     dtm       = dt / 60.0;    /* diff. eq. has time in minutes */
     cur_time  = 0.0;          /* current time, in seconds      */
     tr_time   = 0.0;          /* time at current tr            */

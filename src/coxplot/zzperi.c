@@ -44,7 +44,7 @@ static integer c__0 = 0;
     static integer xlab, ylab;
     static real sxmin, sxmax, symin, symax;
     static integer isidex, isidey;
-    extern /* Subroutine */ int zzaxxx_(real *, real *, real *, integer *, 
+    extern /* Subroutine */ int zzaxxx_(real *, real *, real *, integer *,
 	    integer *), zzaxyy_(real *, real *, real *, integer *, integer *);
 
 

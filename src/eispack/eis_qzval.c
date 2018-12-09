@@ -5,8 +5,8 @@
 
 #include "f2c.h"
 
-/* Subroutine */ int qzval_(integer *nm, integer *n, doublereal *a, 
-	doublereal *b, doublereal *alfr, doublereal *alfi, doublereal *beta, 
+/* Subroutine */ int qzval_(integer *nm, integer *n, doublereal *a,
+	doublereal *b, doublereal *alfr, doublereal *alfi, doublereal *beta,
 	logical *matz, doublereal *z__)
 {
     /* System generated locals */
@@ -19,14 +19,14 @@
     /* Local variables */
     doublereal epsb, c__, d__, e=0.0;
     integer i__, j;
-    doublereal r__, s, t, a1, a2, u1, u2, v1, v2, a11, a12, a21, a22, 
+    doublereal r__, s, t, a1, a2, u1, u2, v1, v2, a11, a12, a21, a22,
 	    b11, b12, b22, di, ei;
     integer na;
     doublereal an=0.0, bn;
     integer en;
     doublereal cq, dr;
     integer nn;
-    doublereal cz, ti, tr, a1i, a2i, a11i, a12i, a22i, a11r, a12r, 
+    doublereal cz, ti, tr, a1i, a2i, a11i, a12i, a22i, a11r, a12r,
 	    a22r, sqi, ssi;
     integer isw;
     doublereal sqr, szi, ssr, szr;
@@ -59,7 +59,7 @@
 /*          LOCATION B(N,1) CONTAINS THE TOLERANCE QUANTITY (EPSB) */
 /*          COMPUTED AND SAVED IN  QZIT. */
 
-/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS 
+/*        MATZ SHOULD BE SET TO .TRUE. IF THE RIGHT HAND TRANSFORMATIONS
 */
 /*          ARE TO BE ACCUMULATED FOR LATER USE IN COMPUTING */
 /*          EIGENVECTORS, AND TO .FALSE. OTHERWISE. */
@@ -82,7 +82,7 @@
 /*          DIAGONAL ELEMENTS OF THE TRIANGULAR MATRIX THAT WOULD BE */
 /*          OBTAINED IF A WERE REDUCED COMPLETELY TO TRIANGULAR FORM */
 /*          BY UNITARY TRANSFORMATIONS.  NON-ZERO VALUES OF ALFI OCCUR */
-/*          IN PAIRS, THE FIRST MEMBER POSITIVE AND THE SECOND NEGATIVE. 
+/*          IN PAIRS, THE FIRST MEMBER POSITIVE AND THE SECOND NEGATIVE.
 */
 
 /*        BETA CONTAINS THE DIAGONAL ELEMENTS OF THE CORRESPONDING B, */
@@ -93,12 +93,12 @@
 /*          (FOR ALL THREE STEPS) IF MATZ HAS BEEN SET TO .TRUE. */
 
 /*     QUESTIONS AND COMMENTS SHOULD BE DIRECTED TO BURTON S. GARBOW, */
-/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY 
+/*     MATHEMATICS AND COMPUTER SCIENCE DIV, ARGONNE NATIONAL LABORATORY
 */
 
 /*     THIS VERSION DATED AUGUST 1983. */
 
-/*     ------------------------------------------------------------------ 
+/*     ------------------------------------------------------------------
 */
 
     /* Parameter adjustments */
@@ -155,10 +155,10 @@ L420:
 	bn = 0.;
 	goto L435;
 L430:
-	an = (d__1 = a[na + na * a_dim1], abs(d__1)) + (d__2 = a[na + en * 
-		a_dim1], abs(d__2)) + (d__3 = a[en + na * a_dim1], abs(d__3)) 
+	an = (d__1 = a[na + na * a_dim1], abs(d__1)) + (d__2 = a[na + en *
+		a_dim1], abs(d__2)) + (d__3 = a[en + na * a_dim1], abs(d__3))
 		+ (d__4 = a[en + en * a_dim1], abs(d__4));
-	bn = (d__1 = b[na + na * b_dim1], abs(d__1)) + (d__2 = b[na + en * 
+	bn = (d__1 = b[na + na * b_dim1], abs(d__1)) + (d__2 = b[na + en *
 		b_dim1], abs(d__2)) + (d__3 = b[en + en * b_dim1], abs(d__3));
 	a11 = a[na + na * a_dim1] / an;
 	a12 = a[na + en * a_dim1] / an;

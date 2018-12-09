@@ -48,7 +48,7 @@ typedef struct
     char   * sdata_file_1D;             /* input 1D surface data file  */
     char   * sdata_file_niml;           /* input niml surf data file   */
     char   * cmask_cmd;                 /* 3dcalc style mask command   */
-    char   * data_expr;                 /* comp. float from node data  */ 
+    char   * data_expr;                 /* comp. float from node data  */
     char   * map_str;                   /* how to map surf(s) to dset  */
     char   * datum_str;                 /* data type of output dset    */
     char   * f_index_str;               /* count by voxels or points   */

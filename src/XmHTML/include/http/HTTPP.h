@@ -34,7 +34,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:09:09  rwcox
 * Cadd
@@ -42,7 +42,7 @@
 * Revision 1.1  1997/10/23 00:28:29  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _HTTPP_h_
 #define _HTTPP_h_
@@ -65,14 +65,14 @@
 #define CONTENT_LEN "Content-Length: "
 #define CONTENT_TYPE "Content-Type: text/plain"
 
-/* makes the HTTP header for the cookieList, it is the string returned from 
- * this function that should be sent across the wire 
- * The user is responsible for freeing the space. 
+/* makes the HTTP header for the cookieList, it is the string returned from
+ * this function that should be sent across the wire
+ * The user is responsible for freeing the space.
  */
 char *makeCookie(HTTPCookieList *cookieList);
 
-/* parse str, make a cookie and add it to the req->setCooke list, type is 
- * SetCookie or SetCookie2, host is the host url (used as default for domain) 
+/* parse str, make a cookie and add it to the req->setCooke list, type is
+ * SetCookie or SetCookie2, host is the host url (used as default for domain)
  */
 void setCookie(HTTPCookieRequest *req, int type, char *str, char *host);
 

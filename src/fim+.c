@@ -29,13 +29,13 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  FIM output parameter definitions 
+  FIM output parameter definitions
 */
 
 #define MAX_OUTPUT_TYPE 12
 
 static char * OUTPUT_TYPE_name[MAX_OUTPUT_TYPE] =
-  { "Fit Coef", "Best Index", "% Change", "% From Ave", "Baseline", "Average", 
+  { "Fit Coef", "Best Index", "% Change", "% From Ave", "Baseline", "Average",
     "Correlation", "% From Top", "Topline", "Sigma Resid",
     "Spearman CC", "Quadrant CC" } ;
 
@@ -61,14 +61,14 @@ static char * OUTPUT_TYPE_name[MAX_OUTPUT_TYPE] =
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Initialize independent variable X matrix 
+/*
+   Initialize independent variable X matrix
 */
 
-int init_indep_var_matrix 
+int init_indep_var_matrix
 (
   int q,                      /* number of parameters in the baseline model */
-  int p,                      /* number of parameters in the baseline model 
+  int p,                      /* number of parameters in the baseline model
 			         plus number of ideals */
   int NFirst,                 /* index of first image to use in the analysis */
   int N,                      /* total number of images used in the analysis */
@@ -173,7 +173,7 @@ int init_indep_var_matrix
 		i = n + NFirst;
 		(*x).elts[n][m] = *(far + iq*nx + i);
 	      }
-	    
+
 	    m++;
 	  }
       else
@@ -218,18 +218,18 @@ int init_indep_var_matrix
 
   /*----- Find min, max, and ave for each column of the X matrix -----*/
   for (is = 0;  is < p;  is++)
-    {      
+    {
       x_bot[is] = x_top[is] = (*x).elts[0][is];
       x_ave[is] = 0.0;
       for (n = 0;  n < Ngood;  n++)
 	{
-	  if ((*x).elts[n][is] < x_bot[is])  x_bot[is] = (*x).elts[n][is];  
+	  if ((*x).elts[n][is] < x_bot[is])  x_bot[is] = (*x).elts[n][is];
 	  if ((*x).elts[n][is] > x_top[is])  x_top[is] = (*x).elts[n][is];
 	  x_ave[is] += (*x).elts[n][is] / Ngood;
 	}
     }
-  
-  
+
+
   matrix_destroy (&xgood);
 
   return (Ngood);
@@ -242,10 +242,10 @@ int init_indep_var_matrix
   Initialization for the regression analysis.
 */
 
-int init_regression_analysis 
+int init_regression_analysis
 (
   int q,                      /* number of parameters in the baseline model */
-  int p,                      /* number of parameters in the baseline model 
+  int p,                      /* number of parameters in the baseline model
 			         plus number of ideals */
   int N,                      /* total number of images used in the analysis */
   int num_idealts,            /* number of ideal time series */
@@ -260,15 +260,15 @@ int init_regression_analysis
 {
   int * plist = NULL;         /* list of model parameters */
   int ip, it;                 /* parameter indices */
-  int is, js;                 /* ideal indices */ 
+  int is, js;                 /* ideal indices */
   int jm;                     /* lag index */
   int ok;                     /* flag for successful matrix calculation */
   matrix xtxinv_temp;         /* intermediate results */
   vector ideal;               /* ideal vector */
   vector coef_temp;           /* intermediate results */
   vector xres;                /* vector of residuals */
-  float sse_base;             /* baseline model error sum of squares */ 
-        
+  float sse_base;             /* baseline model error sum of squares */
+
 
   /*----- Initialize matrix -----*/
   matrix_initialize (&xtxinv_temp);
@@ -298,7 +298,7 @@ int init_regression_analysis
 
       plist[q] = q + is;
 
-      ok = calc_matrices (xdata, q+1, plist, 
+      ok = calc_matrices (xdata, q+1, plist,
 			  &(x_ideal[is]), &xtxinv_temp, &(xtxinvxt_ideal[is]));
       if (!ok)  { matrix_destroy (&xtxinv_temp);  return (0); };
     }
@@ -315,7 +315,7 @@ int init_regression_analysis
 
       /*----- Calculate the error sum of squares for the baseline model -----*/
       sse_base = calc_resids (*x_base, coef_temp, ideal, &xres);
-    
+
       /*----- Form rank array from residual array -----*/
       rarray[is] = rank_darray (N, xres.elts);
 
@@ -338,8 +338,8 @@ int init_regression_analysis
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate a correlation coefficient. 
+/*
+   Calculate a correlation coefficient.
 */
 
 float calc_CC
@@ -374,13 +374,13 @@ float calc_CC
 
 
   return (cc);
- 
+
 }
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate the Spearman correlation coefficient. 
+/*
+   Calculate the Spearman correlation coefficient.
 */
 
 float calc_SpearmanCC
@@ -397,7 +397,7 @@ float calc_SpearmanCC
   float * ds = NULL;
   int i;
 
-  
+
   dr = (float *) malloc (sizeof(float) * N);
   ds = (float *) malloc (sizeof(float) * N);
 
@@ -414,13 +414,13 @@ float calc_SpearmanCC
 
   free (dr);   dr = NULL;
   free (ds);   ds = NULL;
- 
+
   return (cc);
 }
 
 
 /*---------------------------------------------------------------------------*/
-/* 
+/*
    Calculate the sign function.
 */
 
@@ -434,8 +434,8 @@ float sign (float x)
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate the Quadrant correlation coefficient. 
+/*
+   Calculate the Quadrant correlation coefficient.
 */
 
 float calc_QuadrantCC
@@ -452,7 +452,7 @@ float calc_QuadrantCC
   float * ds = NULL;
   int i;
 
-  
+
   dr = (float *) malloc (sizeof(float) * N);
   ds = (float *) malloc (sizeof(float) * N);
 
@@ -469,21 +469,21 @@ float calc_QuadrantCC
 
   free (dr);   dr = NULL;
   free (ds);   ds = NULL;
- 
+
   return (cc);
 }
 
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate percentage change relative to baseline. 
+/*
+   Calculate percentage change relative to baseline.
 */
 
 float percent_change (float num, float den)
 {
   const float EPSILON = 1.0e-10;      /* guard against divide by zero */
-  const float MAX_PERCENT = 1000.0;   /* limit maximum percent change */ 
+  const float MAX_PERCENT = 1000.0;   /* limit maximum percent change */
   float PrcntChange;
 
 
@@ -491,7 +491,7 @@ float percent_change (float num, float den)
     PrcntChange = sign(num) * MAX_PERCENT;
   else
     PrcntChange  = 100.0 * num / den;
- 
+
   if (PrcntChange >  MAX_PERCENT)   PrcntChange =  MAX_PERCENT;
   if (PrcntChange < -MAX_PERCENT)   PrcntChange = -MAX_PERCENT;
 
@@ -500,11 +500,11 @@ float percent_change (float num, float den)
 
 
 /*---------------------------------------------------------------------------*/
-/* 
-   Calculate results for this voxel. 
+/*
+   Calculate results for this voxel.
 */
 
-void regression_analysis 
+void regression_analysis
 (
   int N,                    /* number of usable data points */
   int q,                    /* number of parameters in baseline model */
@@ -530,7 +530,7 @@ void regression_analysis
   vector coef_temp;         /* intermediate results */
   vector coef_best;         /* best results */
   vector yres;              /* vector of residuals */
-  float rtemp, rbest;       /* best correlation coefficient */  
+  float rtemp, rbest;       /* best correlation coefficient */
   float stemp, sbest;       /* best Spearman correlation coefficient */
   float qtemp, qbest;       /* best quadrant correlation coefficient */
   float mse=0.0;            /* mean square error (sample variance) */
@@ -538,17 +538,17 @@ void regression_analysis
   float * sarray = NULL;    /* ranked array of measurement data */
 
                             /* fim output parameters */
-  float FitCoef      = 0.0; 
+  float FitCoef      = 0.0;
   int   BestIndex    = 0;
-  float PrcntChange  = 0.0; 
-  float Baseline     = 0.0; 
-  float Correlation  = 0.0; 
+  float PrcntChange  = 0.0;
+  float Baseline     = 0.0;
+  float Correlation  = 0.0;
   float PrcntFromAve = 0.0;
-  float Average      = 0.0; 
-  float PrcntFromTop = 0.0; 
-  float Topline      = 0.0; 
-  float SigmaResid   = 0.0; 
-  float SpearmanCC   = 0.0; 
+  float Average      = 0.0;
+  float PrcntFromTop = 0.0;
+  float Topline      = 0.0;
+  float SigmaResid   = 0.0;
+  float SpearmanCC   = 0.0;
   float QuadrantCC   = 0.0;
 
 
@@ -562,12 +562,12 @@ void regression_analysis
   calc_coef (xtxinvxt_base, y, &coef_temp);
 
 
-  /*----- Calculate the error sum of squares for the baseline model -----*/ 
+  /*----- Calculate the error sum of squares for the baseline model -----*/
   sse_base = calc_resids (x_base, coef_temp, y, &yres);
 
-    
+
   /*----- Form rank array from y array -----*/
-  if (output_type[FIM_SpearmanCC] || output_type[FIM_QuadrantCC]) 
+  if (output_type[FIM_SpearmanCC] || output_type[FIM_QuadrantCC])
     sarray = rank_darray (N, yres.elts);
 
 
@@ -580,7 +580,7 @@ void regression_analysis
       calc_coef (xtxinvxt_ideal[is], y, &coef_temp);
 
 
-      /*----- Calculate the error sum of squares for the ideal model -----*/ 
+      /*----- Calculate the error sum of squares for the ideal model -----*/
       sse_ideal = calc_sse (x_ideal[is], coef_temp, y);
 
 
@@ -602,7 +602,7 @@ void regression_analysis
 
       /*----- Calculate the Spearman rank correlation coefficient -----*/
       if (output_type[FIM_SpearmanCC])
-	{ 
+	{
 	  stemp = calc_SpearmanCC (N, rarray[is], sarray);
 	  if (fabs(stemp) > fabs(sbest))  sbest = stemp;
 	}
@@ -610,47 +610,47 @@ void regression_analysis
 
       /*----- Calculate the Quadrant correlation coefficient -----*/
       if (output_type[FIM_QuadrantCC])
-	{ 
+	{
 	  qtemp = calc_QuadrantCC (N, rarray[is], sarray);
 	  if (fabs(qtemp) > fabs(qbest))  qbest = qtemp;
 	}
     }
-  
+
   if ((0 <= BestIndex) && (BestIndex < num_idealts))
     {
       float Top, Ave, Base, Center;
       int ip;
-      
-      Top  = x_top[q+BestIndex];  
-      Ave  = x_ave[q+BestIndex];  
+
+      Top  = x_top[q+BestIndex];
+      Ave  = x_ave[q+BestIndex];
       Base = x_bot[q+BestIndex];
-      
-      
+
+
       FitCoef = coef_best.elts[q];
       Correlation = sqrt(rbest);
       if (FitCoef < 0.0)  Correlation = -Correlation;
-      
+
       Center = 0.0;
       for (ip = 0;  ip < q;  ip++)
 	Center += coef_best.elts[ip] * x_ave[ip];
-      
+
       Baseline = Center + FitCoef*Base;
       Average  = Center + FitCoef*Ave;
       Topline  = Center + FitCoef*Top;
 
-      
-      
+
+
       PrcntChange  = percent_change (FitCoef * (Top-Base), Baseline);
       PrcntFromAve = percent_change (FitCoef * (Top-Base), Average);
       PrcntFromTop = percent_change (FitCoef * (Top-Base), Topline);
-      
+
       SigmaResid = sqrt(mse);
-      
+
       SpearmanCC = sbest;
-      
+
       QuadrantCC = qbest;
     }
-  
+
 
   /*----- Save output parameters -----*/
   FimParams[FIM_FitCoef]      = FitCoef;
@@ -678,7 +678,7 @@ void regression_analysis
     { free (sarray);  sarray = NULL; }
 
 }
-  
+
 
 /*---------------------------------------------------------------------------*/
 
@@ -686,7 +686,7 @@ static char lbuf[4096];   /* character string containing statistical summary */
 static char sbuf[256];
 
 
-void report_results 
+void report_results
 (
   int * output_type,          /* output type options */
   float * FimParams,          /* output fim parameters */
@@ -696,25 +696,25 @@ void report_results
 {
   int ip;                     /* parameter index */
 
-  
+
   if( label != NULL ){  /* assemble this 1 line at a time from sbuf */
-    
+
     lbuf[0] = '\0' ;   /* make this a 0 length string to start */
-    
+
     /** for each reference, make a string into sbuf **/
 
     for (ip = 0;  ip < MAX_OUTPUT_TYPE;  ip++)
       if (output_type[ip])
 	  {
-	    sprintf (sbuf, "%12s = %10.4f \n", 
+	    sprintf (sbuf, "%12s = %10.4f \n",
 		     OUTPUT_TYPE_name[ip], FimParams[ip]);
 	    strcat (lbuf, sbuf);
-	  }    
+	  }
 
-    
+
     *label = lbuf ;  /* send address of lbuf back in what label points to */
   }
-  
+
 }
 
 

@@ -300,7 +300,7 @@ char *get_gopt_help() {
 "                      node index on an Icosahedron with -ld 120. See \n"
 "                      CreateIcosahedron for details.\n"
 "                   d:DSET.niml.dset which sets NODE to the maximum node found\n"
-"                      in dataset DSET.niml.dset.\n" 
+"                      in dataset DSET.niml.dset.\n"
 "                   ** This option is for surface-based datasets only.\n"
 "                      Some programs may not heed it, so check the output if\n"
 "                      you are not sure.\n"
@@ -308,7 +308,7 @@ char *get_gopt_help() {
 "                   way to tag a process and find it in the output of ps -a\n"
 "   -echo_edu: Echos the entire command line to stdout (without -echo_edu)\n"
 "              for edification purposes\n"
-"\n" 
+"\n"
 /* Do not add options for NIML ports here, get them with get_np_help() instead */
    };
    return(GOPT_HELP);
@@ -377,7 +377,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
      if( strncmp(argv[ii],"-V",2) == 0 && strchr(argv[ii],'=') != NULL ){
        if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,argv[ii]) ;
        fprintf(stdout,"%s\n",
-               (eee = my_getenv(argv[ii]+2)) ? eee:"") ; 
+               (eee = my_getenv(argv[ii]+2)) ? eee:"") ;
         used[ii] = 1 ; exit(0) ;
      }
 
@@ -385,33 +385,33 @@ int AFNI_prefilter_args( int *argc , char **argv )
 
      if( strcmp(argv[ii],"-overwrite") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -overwrite\n",ii) ;
-       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ; 
+       AFNI_setenv("AFNI_DECONFLICT=OVERWRITE") ;
        THD_set_quiet_overwrite(1); /* no need to kvetch */
        used[ii] = 1 ; continue ;
      }
 
      /*** echo command ***/
-     
+
      if( strcmp(argv[ii],"-echo_edu") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -echo_edu\n",ii) ;
        {
-         int jjj=0; 
-         fprintf(stdout,"\n+++ Command Echo:\n   "); 
-         for (jjj=0; jjj<narg; ++jjj)  { 
-            if (jjj != ii) {   
-               fprintf(stdout,"%s ", argv[jjj]);  
-            }     
+         int jjj=0;
+         fprintf(stdout,"\n+++ Command Echo:\n   ");
+         for (jjj=0; jjj<narg; ++jjj)  {
+            if (jjj != ii) {
+               fprintf(stdout,"%s ", argv[jjj]);
+            }
          }
          fprintf(stdout,"\n\n");
          used[ii] = 1 ; continue ;
        }
      }
-     
+
      if( strcmp(argv[ii],"-all_opts") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -all_opts\n",ii) ;
-       print_prog_options(argv[0]); used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       print_prog_options(argv[0]); used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
 
      if( strcmp(argv[ii],"-h_find") == 0 ){
@@ -422,11 +422,11 @@ int AFNI_prefilter_args( int *argc , char **argv )
        }
        used[ii] = 1 ; ii++;
        suggest_best_prog_option(argv[0], argv[ii]);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      if( strcmp(argv[ii],"-h_aspx") == 0 && ii == 1){
        char *s=NULL;
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_apsx\n",ii) ;
@@ -435,27 +435,27 @@ int AFNI_prefilter_args( int *argc , char **argv )
          exit(1);
        }
        fprintf(stdout,"%s", s); free(s);
-       used[ii] = 1 ; 
-       exit(0); 
+       used[ii] = 1 ;
+       exit(0);
      }
-     
-     
+
+
      if( strcmp(argv[ii],"-h_view") == 0 || strcmp(argv[ii],"-hview") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_view or -hview \n",ii) ;
        view_prog_help(argv[0]);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      if( strcmp(argv[ii],"-h_web") == 0  || strcmp(argv[ii],"-hweb") == 0 ){
        if( ttt ) fprintf(stderr,"++ argv[%d] is -h_web or -hweb\n",ii) ;
        web_prog_help(argv[0],0);
-       used[ii] = 1 ; 
-       exit(0); 
-         /* better exit, otherwise output get burried by program's own -help */ 
+       used[ii] = 1 ;
+       exit(0);
+         /* better exit, otherwise output get burried by program's own -help */
      }
-     
+
      /*** -ok_1D_text to set AFNI_1D_ZERO_TEXT ZSS Dec 09 ***/
 
      if( strcmp(argv[ii],"-ok_1D_text") == 0 ){
@@ -480,14 +480,14 @@ int AFNI_prefilter_args( int *argc , char **argv )
          exit(1);
        }
        used[ii] = 1 ; ii++;
-       
+
        if (!strncasecmp(argv[ii],"ld",2)) {
          if (strlen(argv[ii]) < 3) {
             fprintf(stderr,"** need a number right after ld (like ld120)\n");
             exit(1);
          }
          MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 0, 'n')-1;
-         if( ttt ) fprintf(stderr, "ld pad_to_node %d\n", 
+         if( ttt ) fprintf(stderr, "ld pad_to_node %d\n",
                                     MRILIB_DomainMaxNodeIndex);
        } else if (!strncasecmp(argv[ii],"rd",2)) {
          if (strlen(argv[ii]) < 3) {
@@ -495,7 +495,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
             exit(1);
          }
          MRILIB_DomainMaxNodeIndex = SUMA_IcoNums(atoi(argv[ii]+2), 1, 'n')-1;
-         if( ttt ) fprintf(stderr, "rd pad_to_node %d\n", 
+         if( ttt ) fprintf(stderr, "rd pad_to_node %d\n",
                                     MRILIB_DomainMaxNodeIndex);
        } else if (!strncasecmp(argv[ii],"d:",2)) {
          THD_3dim_dataset *dset=NULL;
@@ -505,19 +505,19 @@ int AFNI_prefilter_args( int *argc , char **argv )
             exit(1);
          }
          dset = THD_open_dataset(argv[ii]+2);
-         if (dset) { 
-            DSET_MAX_NODE(dset, MRILIB_DomainMaxNodeIndex); 
+         if (dset) {
+            DSET_MAX_NODE(dset, MRILIB_DomainMaxNodeIndex);
             DSET_delete(dset); dset = NULL;
-            if( ttt ) fprintf(stderr, "d: pad_to_node %d\n", 
-                                    MRILIB_DomainMaxNodeIndex);         
+            if( ttt ) fprintf(stderr, "d: pad_to_node %d\n",
+                                    MRILIB_DomainMaxNodeIndex);
          } else {
             fprintf(stderr,"** Could not load dset %s to determine padding\n",
                            argv[ii]+2);
-         } 
+         }
        } else {
          MRILIB_DomainMaxNodeIndex = atoi(argv[ii]);
-         if( ttt ) fprintf(stderr, "pad_to_node %d\n", 
-                                    MRILIB_DomainMaxNodeIndex);     
+         if( ttt ) fprintf(stderr, "pad_to_node %d\n",
+                                    MRILIB_DomainMaxNodeIndex);
        }
        if (MRILIB_DomainMaxNodeIndex < 0) {
          fprintf(stderr,"** parameter for -pad_to_node (%d) is negative!\n",
@@ -532,7 +532,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
        used[ii] = 1;
        continue ;
      }
-     
+
      if( strcmp(argv[ii],"-np") == 0 ||
          strcmp(argv[ii],"-npq") == 0 ){   /* ZSS, June 2011 */
        if( ttt ) fprintf(stderr,"++ argv[%d] is -np\n",ii) ;
@@ -549,18 +549,18 @@ int AFNI_prefilter_args( int *argc , char **argv )
                "   -np was ignored\n");
          }
        } else {
-         if (strcmp(argv[ii-1],"-npq")) 
+         if (strcmp(argv[ii-1],"-npq"))
             fprintf(stderr,"++ -np set to %d\n", get_user_np());
        }
        used[ii] = 1;
        continue ;
      }
-     
+
      if( strcmp(argv[ii],"-npb") == 0 ){   /* ZSS, June 2011 */
        if( ttt ) fprintf(stderr,"++ argv[%d] is -npb\n",ii) ;
        if (ii+1 >= narg) {
          fprintf(stderr,
-               "** -npb needs an integer NPB such that 0 <= NPB <= %d\n", 
+               "** -npb needs an integer NPB such that 0 <= NPB <= %d\n",
                get_max_port_bloc());
          exit(1);
        }
@@ -569,7 +569,7 @@ int AFNI_prefilter_args( int *argc , char **argv )
             fprintf(stderr,
                "** -npb is not an integer such that 0 <= NPB <= %d\n"
                "   -npb was ignored\n", get_max_port_bloc());
-       } 
+       }
        used[ii] = 1;
        continue ;
      }
@@ -590,29 +590,29 @@ int AFNI_prefilter_args( int *argc , char **argv )
       /* -max_port_bloc number and quit */
       if( strncmp(argv[ii],"-max_port_bloc", 8) == 0) {
          int pp = 0;
-         pp = get_max_port_bloc(); 
+         pp = get_max_port_bloc();
          if (strcmp(argv[ii-1], "-max_port_bloc_quiet")) {
-            fprintf(stdout, "Maximum port bloc number: %d\n", 
-                                pp); 
+            fprintf(stdout, "Maximum port bloc number: %d\n",
+                                pp);
          } else {
-            fprintf(stdout, "%d\n", pp); 
+            fprintf(stdout, "%d\n", pp);
          }
          exit(0);
       }
-      
+
       /* -num_assigned port number and quit */
       if( strncmp(argv[ii],"-num_assigned_ports", 8) == 0) {
          int pp = 0;
-         pp = get_max_port_bloc(); 
+         pp = get_max_port_bloc();
          if (strcmp(argv[ii-1], "-num_assigned_ports_quiet")) {
-            fprintf(stdout, "Number of assigned ports: %d\n", 
-                                pp); 
+            fprintf(stdout, "Number of assigned ports: %d\n",
+                                pp);
          } else {
-            fprintf(stdout, "%d\n", pp); 
+            fprintf(stdout, "%d\n", pp);
          }
          exit(0);
       }
-      
+
 
      /*** if get to here, argv[ii] is nothing special ***/
 
@@ -710,7 +710,7 @@ char *THD_get_image_globalrange_str()
 void THD_cycle_image_globalrange()
 {
    int ig;
-   
+
    ig = THD_get_image_globalrange();
    ig++;
    if(ig>2) ig = 0;

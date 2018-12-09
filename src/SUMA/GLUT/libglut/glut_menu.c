@@ -48,7 +48,7 @@ noFaultXAllocColor(Display * dpy, Colormap cmap, int cmapSize,
 {
   XColor *ctable, subColor;
   int i, bestmatch;
-  double mindist;       /* 3*2^16^2 exceeds long int precision. 
+  double mindist;       /* 3*2^16^2 exceeds long int precision.
                          */
 
   for (;;) {
@@ -145,7 +145,7 @@ menuVisualSetup(void)
           menuWhite = color.pixel;
           menuVisual = visual->vinfo.visual;
           menuDepth = visual->vinfo.depth;
-          /* If using overlays, avoid requesting "save unders". 
+          /* If using overlays, avoid requesting "save unders".
            */
           useSaveUnders = 0;
           XFree(overlayVisuals);

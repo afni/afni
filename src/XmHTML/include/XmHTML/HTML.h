@@ -11,7 +11,7 @@
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library
@@ -35,7 +35,7 @@
 * $Source$
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:08:41  rwcox
 * Cadd
@@ -66,7 +66,7 @@
 * Revision 1.1  1997/04/29 14:19:18  newt
 * Initial Revision
 *
-*****/ 
+*****/
 
 #ifndef _HTML_h_
 #define _HTML_h_
@@ -101,7 +101,7 @@ HT_TR, HT_TT, HT_U, HT_UL, HT_VAR, HT_ZTEXT
 *****/
 extern String *html_tokens;
 
-/***** 
+/*****
 * XmHTML defines the following callback reasons. This might produce strange
 * results once Motif decides to uses enum values above 16383.
 * Send us a mail at ripley@xs4all.nl if you get problems that are due to
@@ -338,7 +338,7 @@ typedef enum{
 *****/
 enum{
 	XmHTML_NONE = 0,				/* no warnings	*/
-	XmHTML_UNKNOWN_ELEMENT = 1,	
+	XmHTML_UNKNOWN_ELEMENT = 1,
 	XmHTML_BAD = 2,
 	XmHTML_OPEN_BLOCK = 4,
 	XmHTML_CLOSE_BLOCK = 8,
@@ -391,7 +391,7 @@ enum{
 #define STREAM_RESIZE	-3		/* resize input buffer						*/
 
 /*****
-* Possible return values for the XmNdecodeGIFProc resource and 
+* Possible return values for the XmNdecodeGIFProc resource and
 * values for the XmHTMLGIFStream state.
 *****/
 #define GIF_STREAM_OK		 2
@@ -443,7 +443,7 @@ enum{
 * XmIMAGE_COLORSPACE_INDEXED
 *	image uses a fixed palette. Colorcube is mapped to a 1D lookup-table.
 * XmIMAGE_COLORSPACE_RGB
-*	image uses a full 3D colorcube. 
+*	image uses a full 3D colorcube.
 *****/
 enum{
 	/* XmIMAGE_NONE */
@@ -566,7 +566,7 @@ enum{
 *		image will not be matched exactly.
 *	MapToPalette:
 *		Use closest distance algorithm to map colors to the palette. No
-*		error correction is performed. Reasonably fast, but quality 
+*		error correction is performed. Reasonably fast, but quality
 *		heavily depends on the distribution of the colors in the image.
 * XmBEST
 *	RGBConversion (default):
@@ -575,7 +575,7 @@ enum{
 *		image is computed, the most used colors are selected and the resulting
 *		image is dithered to this palette.
 *		Offers best 24 to 8bit conversion and is probably faster than XmSLOW
-*		as only images with more than XmNmaxImageColors will be dithered. 
+*		as only images with more than XmNmaxImageColors will be dithered.
 *	MapToPalette:
 *		Ordered dithering using predefined error matrices. Reasonably fast and
 *		quite good results;
@@ -829,7 +829,7 @@ typedef struct _XmHTMLTextPosition{
 	int fc;								/* first char in selection start	*/
 }XmHTMLTextPosition;
 
-/***** 
+/*****
 * The following structure is returned by the XmHTMLImageDefaultProc convenience
 * function. When a procedure for the XmNimageProc resource is installed,
 * it *must* return this structure.
@@ -1049,9 +1049,9 @@ typedef struct _XmHTMLPLCStream{
 * made when the internal loader is destroying it's internal objects as
 * well).
 *
-* All following fields are the ``public'' fields and must be updated by the 
+* All following fields are the ``public'' fields and must be updated by the
 * external decoder. The msg field can be set to an error message if the
-* external decoder fails for some reason. XmHTML will then display this 
+* external decoder fails for some reason. XmHTML will then display this
 * error message and abort this image.
 *****/
 typedef struct _XmHTMLGIFStream{
@@ -1120,7 +1120,7 @@ typedef struct _XmHTMLEvent{
 /*****
 * XmNobjectCallback tag_attributes substructure.
 *****/
-typedef struct{ 
+typedef struct{
 	unsigned long flags;	/* defines which fields have a value		*/
 	String attributes;		/* unfiltered attributes					*/
 
@@ -1272,7 +1272,7 @@ typedef struct
 
 /*****
 * XmNimagemapCallback callback structure.
-* callback reasons can be one of the following: 
+* callback reasons can be one of the following:
 * XmCR_HTML_IMAGEMAP_ACTIVATE
 *	user clicked on an image. Valid fields are x, y and image_name. x and y
 *	are relative to the upper-left corner of the image. Only invoked when

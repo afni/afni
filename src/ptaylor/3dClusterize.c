@@ -1,4 +1,4 @@
-/* 
+/*
    Description
 
    2018 05 08: + inception for this version
@@ -46,8 +46,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
+#include <mrilib.h>
+#include <3ddata.h>
 #include "DoTrackit.h"
 #include "basic_boring.h"
 
@@ -65,7 +65,7 @@ int MakeBrickLab2(char *c0, char *c1, char *c2);
 
 int mycheck_is_int(char *x);
 
-void usage_Clusterize(int detail) 
+void usage_Clusterize(int detail)
 {
    printf(
 " PURPOSE ~1~\n"
@@ -422,7 +422,7 @@ int main(int argc, char *argv[]) {
 
    THD_3dim_dataset *insetA = NULL;
    THD_3dim_dataset *INMASK=NULL;
-   char *prefix=NULL; 
+   char *prefix=NULL;
 
    int STATINPUT  = 1; // flag for whether user input stat (1) or pval (0)
    int STATINPUT2 = 1;
@@ -437,14 +437,14 @@ int main(int argc, char *argv[]) {
    int NNTYPE = 0;   // user *needs* to choose? or just make 1 by
    // default?
    int thr_type = 0;  // user needs to choose with -1sided, -2sided,
-                      // etc.; 
-                      //  1 -> 1sided, right; 
+                      // etc.;
+                      //  1 -> 1sided, right;
                       // -1 -> 1sided, left;
-                      //  2 -> 2sided; 
-                      // -2 -> bisided; 
+                      //  2 -> 2sided;
+                      // -2 -> bisided;
                       //  3 -> within_range
-   float thr_1sid = -1.1e10; 
-   
+   float thr_1sid = -1.1e10;
+
    // names modeled on existing progs, like afni_vedit.c
    float vmul;        // cluster vol thr: can be neg, pos, zero
    float rmm=0;       // for now, leave as zero to flag using NN neigh val
@@ -455,9 +455,9 @@ int main(int argc, char *argv[]) {
    int   posfunc = 0;      // use for "pos only" behavior-- not needed here
    int   no_inmask = 1 ;   // about reading mask from header
    byte *mask=NULL;        // can be input or read from header
-   int nmask=0; 
+   int nmask=0;
 
-   int nx, ny, nz, nxy, nxyz; 
+   int nx, ny, nz, nxy, nxyz;
    float dxf, dyf, dzf;
    MCW_cluster_array *clar=NULL, *clar2=NULL, *clbig=NULL;
    char c1d[2] = {""}, c1dn[2] = {""};
@@ -467,7 +467,7 @@ int main(int argc, char *argv[]) {
    MRI_IMAGE *cim=NULL;  void *car=NULL;  // copies of thr vol to apply thr
    MRI_IMAGE *cim2=NULL; void *car2=NULL; // same as cim, but for bisided
 
-   int qv; 
+   int qv;
    short *mmm=NULL;
    int iclu, ipt, ii, jj, kk, ptmin;
    MCW_cluster *cl=NULL;
@@ -487,9 +487,9 @@ int main(int argc, char *argv[]) {
    char *CL_mritype = NULL;
    int CL_quiet     = 0;
    int CL_summarize = 0;
-   int CL_do_mni    = 0; 
+   int CL_do_mni    = 0;
    int CL_1Dform    = 1;
-   int CL_noabs     = 0;  
+   int CL_noabs     = 0;
    int do_binary    = 0;
    THD_coorder CL_cord;
    float dx, dy, dz, xx, yy, zz, mm, ms, fimfac=0.0,
@@ -504,30 +504,30 @@ int main(int argc, char *argv[]) {
    float vol_total;
    int ndet, nopt, do_mni;
 
-   int FOUND_CLUSTERS = 0; 
-   int OUTVOL_IF_NO_CLUST = 0; 
+   int FOUND_CLUSTERS = 0;
+   int OUTVOL_IF_NO_CLUST = 0;
    int STAT_nsides = -1;
 
-   mainENTRY("3dClusterize"); machdep(); 
-  
+   mainENTRY("3dClusterize"); machdep();
+
    // ****************************************************************
    // ****************************************************************
    //                    load AFNI stuff
    // ****************************************************************
    // ****************************************************************
-	
+
    /** scan args **/
    if (argc == 1) { usage_Clusterize(1); exit(0); }
-   iarg = 1; 
+   iarg = 1;
    while( iarg < argc && argv[iarg][0] == '-' ){
-      if( strcmp(argv[iarg],"-help") == 0 || 
+      if( strcmp(argv[iarg],"-help") == 0 ||
           strcmp(argv[iarg],"-h") == 0 ) {
          usage_Clusterize(strlen(argv[iarg])>3 ? 2:1);
          exit(0);
       }
-		
+
       if( strcmp(argv[iarg],"-inset") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-inset'");
 
          insetA = THD_open_dataset(argv[iarg]);
@@ -538,35 +538,35 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-pref_map") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-pref_map'");
          prefix = strdup(argv[iarg]);
-         if( !THD_filename_ok(prefix) ) 
+         if( !THD_filename_ok(prefix) )
             ERROR_exit("Illegal name after '-pref_map'");
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-pref_dat") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-pref_dat'");
          CL_prefix = strdup(argv[iarg]);
-         if( !THD_filename_ok(CL_prefix) ) 
+         if( !THD_filename_ok(CL_prefix) )
             ERROR_exit("Illegal name after '-pref_dat'");
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-out_mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '%s'",
                                 argv[iarg-1]);
          CL_maskout = strdup(argv[iarg]);
-         if( !THD_filename_ok(CL_maskout) ) 
+         if( !THD_filename_ok(CL_maskout) )
             ERROR_exit("Illegal name after '%s'", argv[iarg-1]);
          iarg++ ; continue ;
       }
 
       if( strcmp(argv[iarg],"-mask") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-mask'");
 
          INMASK = THD_open_dataset(argv[iarg]);
@@ -589,8 +589,8 @@ int main(int argc, char *argv[]) {
 
       // index for vol to be thresholded; can also be brick_label str
       if( strcmp(argv[iarg],"-ithr") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-ithr'");         
+         iarg++ ; if( iarg >= argc )
+                     ERROR_exit("Need argument after '-ithr'");
          if( mycheck_is_int(argv[iarg]) )
             ithr = atoi(argv[iarg]);
          else
@@ -600,8 +600,8 @@ int main(int argc, char *argv[]) {
 
       // index for vol to be clusterized; can also be brick_label str
       if( strcmp(argv[iarg],"-idat") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
-                     ERROR_exit("Need argument after '-idat'");         
+         iarg++ ; if( iarg >= argc )
+                     ERROR_exit("Need argument after '-idat'");
          if( mycheck_is_int(argv[iarg]) )
             ival = atoi(argv[iarg]);
          else
@@ -613,7 +613,7 @@ int main(int argc, char *argv[]) {
 
       // 2 necessary args needed after this opt
       if( strcmp(argv[iarg],"-1sided") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need 2 arguments after '-1sided'");
          // get first arg
          if( ( strcmp(argv[iarg],"RIGHT_TAIL") == 0 ) ||
@@ -622,12 +622,12 @@ int main(int argc, char *argv[]) {
          else if( ( strcmp(argv[iarg],"LEFT_TAIL") == 0 ) ||
                   ( strcmp(argv[iarg],"LEFT") == 0 ) )
             thr_type = -1; // only where A or B is nonzero
-         else 
+         else
             // out of tails
             ERROR_exit("Illegal immediately following '-1sided'"
                        ": need 'RIGHT_TAIL' or 'LEFT_TAIL'");
          // get second arg
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need 2 arguments after '-1sided'");
 
          // STATINPUT gets acted on later, when we know thr vol for
@@ -650,7 +650,7 @@ int main(int argc, char *argv[]) {
             tht = thr_1sid;
             thb = BIIIIG_NUM;
             sprintf(repstr, "left-tail stat=%f", tht);
-         }         
+         }
 
          MakeBrickLab1(blab1,argv[iarg-2]+1,argv[iarg-1],argv[iarg]);
 
@@ -663,7 +663,7 @@ int main(int argc, char *argv[]) {
       if( ( strcmp(argv[iarg],"-2sided") == 0 ) ||
           ( strcmp(argv[iarg],"-bisided") == 0 ) ||
           ( strcmp(argv[iarg],"-within_range") == 0 ) ) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need at least one argument after '%s'",
                                 argv[iarg-1]);
 
@@ -686,13 +686,13 @@ int main(int argc, char *argv[]) {
             // ... and we're done here with 1 arg
          }
          else { // get second arg: must not be 'p=...'
-            iarg++ ; if( iarg >= argc ) 
+            iarg++ ; if( iarg >= argc )
                         ERROR_exit("Need 2 arguments after '%s' here",
                                    argv[iarg-2]);
             STATINPUT2 = CheckStringStart(argv[iarg],"p=", chtmp);
-            if( !STATINPUT ) 
+            if( !STATINPUT )
                ERROR_exit("If using 'p=...', only use one argument!");
-            
+
             thb = atof(chtmp); // for bot of R tail
             sprintf(repstr, "left-tail stat=%f;  "
                     "right-tail stat=%f", tht, thb);
@@ -705,11 +705,11 @@ int main(int argc, char *argv[]) {
 
          iarg++ ; continue ;
       }
-            
+
       // ---------- control pars
 
       if( strcmp(argv[iarg],"-NN") == 0 ) {
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-NN'");
          NNTYPE = atoi(argv[iarg]);
          switch( NNTYPE ) {
@@ -726,7 +726,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-clust_nvox") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-clust_nvox'");
          vmul = atof(argv[iarg]);
          if ( vmul <= 0 )
@@ -741,7 +741,7 @@ int main(int argc, char *argv[]) {
       }
 
       if( strcmp(argv[iarg],"-clust_vol") == 0 ){
-         iarg++ ; if( iarg >= argc ) 
+         iarg++ ; if( iarg >= argc )
                      ERROR_exit("Need argument after '-clust_vol'");
          vmul = atof(argv[iarg]);
          if ( vmul <= 0 )
@@ -816,7 +816,7 @@ int main(int argc, char *argv[]) {
 
    if (iarg < 3)
       ERROR_exit("Too few options. Try -help for details.\n");
-	
+
    if( !thr_type )
       ERROR_exit("Hey, you need to put in threshold type/value!"
                  "For example, '-2sided ...', '-1sided ...', etc.\n");
@@ -826,12 +826,12 @@ int main(int argc, char *argv[]) {
    THD_load_no_mmap();
    DSET_load(insetA); CHECK_LOAD_ERROR(insetA);
    Dim = (int *)calloc(4, sizeof(int));
-   if( (Dim == NULL) ) 
+   if( (Dim == NULL) )
       ERROR_exit("MemAlloc failure (arrs).\n\n");
    Nvox = Basic_Info_Dim_and_Nvox( insetA, Dim, 4);
 
    // Compare dsets: if no match, this will exit with error
-   if ( INMASK ) 
+   if ( INMASK )
       i = Basic_Compare_DSET_dims(insetA, INMASK, 3);
 
    if ( !no_inmask && INMASK )
@@ -897,7 +897,7 @@ int main(int argc, char *argv[]) {
                  "Can't run a left-sided test on this stat, as "
                  "it only has one (positive) side.");
 
-   if ( !NNTYPE ) 
+   if ( !NNTYPE )
       ERROR_exit("Need to choose a neighborhood type: '-NN ?'");
 
    // ****************************************************************
@@ -919,7 +919,7 @@ int main(int argc, char *argv[]) {
                                    DSET_BRICK_STATAUX(insetA, ithr));
          INFO_message("Converted left-tail p=%f -> stat=%f", tmpt, tht);
          sprintf(repstr, "left-tail p=%f -> stat=%f", tmpt, tht);
-         
+
       }
       else if( thr_type == 1 ) {// 1sided, right; factor of 2 for 1sided conv
          thb = THD_pval_to_stat( 2*thb,
@@ -952,14 +952,14 @@ int main(int argc, char *argv[]) {
    if ( INMASK ) { // explicit from user
       INFO_message("Reading in user's mask");
       mask = (byte *)calloc(Nvox, sizeof(byte));
-      
-      for( i=0 ; i<Nvox ; i++ ) 
+
+      for( i=0 ; i<Nvox ; i++ )
          if( THD_get_voxel(INMASK, i, 0) )
             mask[i] = 1;
    }
    else if( !no_inmask ) { // just from 3dclust! the old '-inmask' there
       INFO_message("Getting mask from header");
-      ATR_string *atr = 
+      ATR_string *atr =
          THD_find_string_atr(insetA->dblk,"AFNI_CLUSTSIM_MASK");
       if( atr != NULL ){                       // mask stored as B64 string
          nmask = mask_b64string_nvox(atr->ch);            // length of mask
@@ -1009,7 +1009,7 @@ int main(int argc, char *argv[]) {
    if( !no_inmask && !mask )
       ERROR_exit("User asked to use a mask from a header, but \n"
                  "\tthere doesn't appear to be one stored.");
- 
+
    // apply masks, *IF* one was input somehow. Does nada if mask==NULL
    if( mask ) {
       //INFO_message("Applying mask.");
@@ -1026,7 +1026,7 @@ int main(int argc, char *argv[]) {
 
    if( ival >= 0 ) {
       dim = DBLK_BRICK(dblk,ival);
-      if( dim == NULL || mri_data_pointer(dim) == NULL ) 
+      if( dim == NULL || mri_data_pointer(dim) == NULL )
          ERROR_exit("Bad properties of dset to be clusterized");
    }
 
@@ -1048,7 +1048,7 @@ int main(int argc, char *argv[]) {
    // ithr volume is, indeed, a stat.
    if ( istatfunc != ILLEGAL_TYPE ) {
       if( FUNC_need_stat_aux[istatfunc] > 0 ) {
-         sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]); 
+         sprintf(repstat, "%s :", FUNC_label_stat_aux[istatfunc]);
          for( i=0 ; i < FUNC_need_stat_aux[istatfunc] ; i++ ) {
             sprintf(rrstr," %g ", DBLK_BRICK_STATPAR(dblk, ithr, i));
             strcat(repstat, rrstr);
@@ -1060,34 +1060,34 @@ int main(int argc, char *argv[]) {
                     ithr);
       strcat(repstat, "not a stat!");
    }
-         
+
    // ------- what dsets get clusterized and reportized?
    // ------- IF: the user input an additional dataset, then that;
    // ------- ELSE: all depends on the statistics
 
    if( ival < 0 ) { // i.e., no data set input: use only thr dset
-      cim = mri_copy(tim); 
+      cim = mri_copy(tim);
       CL_mritype = strdup(MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ithr) ]);
       }
    else { // use extra dset
-      cim = mri_copy(dim); 
+      cim = mri_copy(dim);
       CL_mritype = strdup(MRI_TYPE_name[ DSET_BRICK_TYPE(insetA, ival) ]);
       }
 
    car = mri_data_pointer(cim);
-   if( car == NULL ){ 
+   if( car == NULL ){
       mri_free(cim) ;
       ERROR_exit("Badness in first internal copy");
    }
 
    if( (thr_type==-2 ) ) { // in case of bisidedness
       if( ival < 0 ) // i.e., no data set input: use only thr dset
-         cim2 = mri_copy(tim); 
+         cim2 = mri_copy(tim);
       else // use extra dset
-         cim2 = mri_copy(dim); 
+         cim2 = mri_copy(dim);
 
       car2 = mri_data_pointer(cim2);
-      if( car2 == NULL ){ 
+      if( car2 == NULL ){
          mri_free(cim2) ;
          ERROR_exit("Badness in second internal copy");
       }
@@ -1102,7 +1102,7 @@ int main(int argc, char *argv[]) {
    nx    = insetA->daxes->nxx;
    ny    = insetA->daxes->nyy;
    nz    = insetA->daxes->nzz;
-   nxy   = nx * ny; 
+   nxy   = nx * ny;
    nxyz = nxy * nz;
    dx = fabs(insetA->daxes->xxdel);
    dy = fabs(insetA->daxes->yydel);
@@ -1119,7 +1119,7 @@ int main(int argc, char *argv[]) {
    if( CL_1Dform ) {
       sprintf(c1d, "#");
       sprintf(c1dn, " ");
-   } 
+   }
    else {
       c1d[0] = '\0';
       c1dn[0] = '\0';
@@ -1130,7 +1130,7 @@ int main(int argc, char *argv[]) {
    //                 main calcs: threshold+cluster
    // **************************************************************
    // **************************************************************
-   
+
    //INFO_message("Thresholding...");
 
    // for 1sided or 2sided, do this
@@ -1143,12 +1143,12 @@ int main(int argc, char *argv[]) {
       clar = NIH_find_clusters( nx, ny, nz, dxf, dyf, dzf,
                                 cim->kind, car, rmm,
                                 0 );
-   } 
+   }
    else if( thr_type == -2 ) { // bisided
 
       // threshold data CIM:
       mri_threshold( -BIIIIG_NUM, thb, tim, cim );
-      
+
       // find clusters of ALL size
       clar = NIH_find_clusters( nx, ny, nz, dxf, dyf, dzf,
                                 cim->kind, car, rmm,
@@ -1156,7 +1156,7 @@ int main(int argc, char *argv[]) {
 
       // ... and same for the other side
       mri_threshold( tht, BIIIIG_NUM, tim, cim2 );
-      
+
       // find clusters of ALL size
       clar2 = NIH_find_clusters( nx, ny, nz, dxf, dyf, dzf,
                                  cim2->kind, car2, rmm,
@@ -1181,9 +1181,9 @@ int main(int argc, char *argv[]) {
    if( clar ) {
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ ){
          cl = clar->clar[iclu];
-         if( cl != NULL && cl->num_pt >= ptmin ){ // big enough 
-            ADDTO_CLARR(clbig,cl);                // copy pointer 
-            clar->clar[iclu] = NULL;              // null out original 
+         if( cl != NULL && cl->num_pt >= ptmin ){ // big enough
+            ADDTO_CLARR(clbig,cl);                // copy pointer
+            clar->clar[iclu] = NULL;              // null out original
          }
       }
       DESTROY_CLARR(clar);
@@ -1191,12 +1191,12 @@ int main(int argc, char *argv[]) {
 
    // also add in other side, if bisided ON; and if any clusters were
    // found in other side
-   if ( (thr_type == -2) && clar2 ) { 
+   if ( (thr_type == -2) && clar2 ) {
       for( iclu=0 ; iclu < clar2->num_clu ; iclu++ ){
          cl = clar2->clar[iclu];
-         if( cl != NULL && cl->num_pt >= ptmin ){ // big enough 
-            ADDTO_CLARR(clbig,cl);                // copy pointer 
-            clar2->clar[iclu] = NULL;             // null out original 
+         if( cl != NULL && cl->num_pt >= ptmin ){ // big enough
+            ADDTO_CLARR(clbig,cl);                // copy pointer
+            clar2->clar[iclu] = NULL;             // null out original
          }
       }
       DESTROY_CLARR(clar2);
@@ -1224,19 +1224,19 @@ int main(int argc, char *argv[]) {
       if( clar->num_clu < 3333 ) {
          INFO_message("Sorting clusters by size.");
          SORT_CLARR(clar);
-      } 
+      }
       else if( CL_summarize != 1 ){
          printf("%s** TOO MANY CLUSTERS TO SORT BY VOLUME ***\n", c1d) ;
       }
-      
+
       // --------------- make array of cluster ROIs
-      
+
       mmm = (short *) calloc(sizeof(short), nxyz);
       for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
-         cl = clar->clar[iclu] ; 
+         cl = clar->clar[iclu] ;
          if( cl == NULL ) continue ;
          for( ipt=0 ; ipt < cl->num_pt ; ipt++ ) {
-            ii = cl->i[ipt]; 
+            ii = cl->i[ipt];
             jj = cl->j[ipt];
             kk = cl->k[ipt];
             mmm[ii+jj*nx+kk*nxy] = (do_binary) ? 1 : (iclu+1);
@@ -1246,18 +1246,18 @@ int main(int argc, char *argv[]) {
 
    // --------------- write out copy of the data volume, if asked
 
-   if( CL_prefix && (ival >= 0) && 
+   if( CL_prefix && (ival >= 0) &&
        ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST) ) {
 
       INFO_message("Writing out dataset masked by clusters.");
-      
+
       THD_3dim_dataset *dset=NULL;
-      
+
       // copy the single brick we will output
       dset = THD_copy_one_sub( insetA, ival );
-           
+
       switch( DSET_BRICK_TYPE(dset, 0) ) {
-         
+
       case MRI_byte: {
          byte *bar = (byte *) DSET_ARRAY(dset, 0);
          for( ii=0 ; ii < nxyz ; ii++ )
@@ -1322,8 +1322,8 @@ int main(int argc, char *argv[]) {
 
       tross_Copy_History( insetA , dset );
       tross_Make_History( "3dClusterize", argc, argv, dset );
-      DSET_write(dset); 
-      WROTE_DSET(dset); 
+      DSET_write(dset);
+      WROTE_DSET(dset);
       DSET_delete(dset);
 
    }
@@ -1331,13 +1331,13 @@ int main(int argc, char *argv[]) {
    // --------------- write out map of cluster ROIs
 
    if ( FOUND_CLUSTERS || OUTVOL_IF_NO_CLUST ) {
-      
+
       if ( prefix ) {
          INFO_message("Writing out map of cluster ROIs.");
-         
+
          THD_3dim_dataset *qset=NULL;
          qset = EDIT_empty_copy(insetA);
-         
+
          EDIT_dset_items( qset ,
                           ADN_prefix , prefix ,
                           ADN_nvals  , 1 ,
@@ -1347,13 +1347,13 @@ int main(int argc, char *argv[]) {
             ERROR_exit("Can't overwrite existing dataset '%s'",
                        DSET_HEADNAME(qset));
 
-         EDIT_substitute_brick(qset, 0, MRI_short, mmm); 
+         EDIT_substitute_brick(qset, 0, MRI_short, mmm);
          mmm = NULL;
-         
+
          // useful props: integer colormap and brick labelling
          qset->int_cmap = INT_CMAP;
          EDIT_BRICK_LABEL(qset, 0, blab1);
-         
+
          tross_Copy_History( insetA , qset ) ;
          tross_Make_History( "3dClusterize", argc , argv , qset );
          DSET_write(qset); WROTE_DSET(qset); DSET_delete(qset);
@@ -1370,9 +1370,9 @@ int main(int argc, char *argv[]) {
          THD_coorder_fill( "LPI", &CL_cord );
 
       if( !CL_quiet ) {
-      
+
          if( CL_summarize != 1 ) {
-            printf( 
+            printf(
                    "%s\n"
                    //"%sCluster report for file %s %s\n"
                    "%s  Cluster report \n"
@@ -1409,16 +1409,16 @@ int main(int argc, char *argv[]) {
             // to internal/calculation considerations.
             //printf("%s[Fake voxel dimen    = %.3f mm X %.3f mm X %.3f mm ]\n",
             //       c1d, dxf,dyf,dzf);
-         
-            if( mask && nmask ==0 ) 
+
+            if( mask && nmask ==0 )
                printf("%s[ Mask                = %s ]\n", c1d, repmask);
-            else if( !no_inmask && mask != NULL )           
+            else if( !no_inmask && mask != NULL )
                printf("%s[ Mask                = %s ]\n", c1d, repmask);
             else if( nmask > 0 )
                printf("%s[ Mask                = (skipping internal) ]\n", c1d);
             else if( nmask < 0 ) // shd not happen
                printf("%s[ Mask                = (un-usable internal) ]\n", c1d);
-         
+
             if (CL_noabs)
                printf ("%s[ Mean and SEM based on "
                        "signed voxel intensities ]\n%s\n", c1d, c1d);
@@ -1443,16 +1443,16 @@ int main(int argc, char *argv[]) {
                     );
 
          } else {
-            if (CL_noabs) 
-               printf ("%sMean and SEM based on Signed voxel intensities: \n", 
+            if (CL_noabs)
+               printf ("%sMean and SEM based on Signed voxel intensities: \n",
                        c1d);
             else
                printf ("%sMean and SEM based on Absolute Value "
                        "of voxel intensities: \n", c1d);
             printf("%sCluster summary for file %s %s\n" ,
                    c1d, argv[iarg] , do_mni ? "[MNI coords]" : "");
-            printf("%sVolume  CM %s  CM %s  CM %s  Mean    SEM    \n", 
-                   c1d, 
+            printf("%sVolume  CM %s  CM %s  CM %s  Mean    SEM    \n",
+                   c1d,
                    ORIENT_tinystr[ CL_cord.xxor ],
                    ORIENT_tinystr[ CL_cord.yyor ],
                    ORIENT_tinystr[ CL_cord.zzor ]);
@@ -1463,24 +1463,24 @@ int main(int argc, char *argv[]) {
 
       vol_total = nvox_total = 0;
       glmmsum = glmssum = glsqsum = glxxsum = glyysum = glzzsum = 0;
-   
+
       for( iclu=0; iclu < clar->num_clu; iclu++ ){
          cl = clar->clar[iclu];
          if( cl == NULL || cl->num_pt < ptmin ) continue;  // no good
-      
+
          volsum = cl->num_pt * dxf*dyf*dzf;
          xxsum = yysum = zzsum = mmsum = mssum = 0.0;
          xxmax = yymax = zzmax = mmmax = msmax = 0.0;
          sqsum = sem = 0;
-      
-         // These should be pegged at whatever actual max/min values are 
+
+         // These should be pegged at whatever actual max/min values are
          RLmax = APmax = ISmax = -1000;
          RLmin = APmin = ISmin = 1000;
-      
+
          for( ipt=0; ipt < cl->num_pt; ipt++ ) {
 
             ii = cl->i[ipt]; jj = cl->j[ipt]; kk = cl->k[ipt];
-         
+
             fv = THD_3dind_to_3dmm( insetA, TEMP_IVEC3(ii,jj,kk) );
             fv = THD_3dmm_to_dicomm( insetA, fv );
             xx = fv.xyz[0]; yy = fv.xyz[1]; zz = fv.xyz[2];
@@ -1488,13 +1488,13 @@ int main(int argc, char *argv[]) {
                THD_dicom_to_coorder( &CL_cord , &xx,&yy,&zz );
             else
                THD_3tta_to_3mni( &xx , &yy , &zz );
-         
+
             ms = cl->mag[ipt];
             mm = fabs(ms);
-         
+
             mssum += ms;
-            mmsum += mm; 
-         
+            mmsum += mm;
+
             sqsum += mm * mm;
 
             // PT: forward looking note-- to calculate center of mass of
@@ -1507,23 +1507,23 @@ int main(int argc, char *argv[]) {
                xxmax = xx ; yymax = yy ; zzmax = zz ;
                mmmax = mm ; msmax = ms ;
             }
-         
+
             /* Dimensions: */
             if ( xx > RLmax )
                RLmax = xx;
             if ( xx < RLmin )
-               RLmin = xx;	
+               RLmin = xx;
             if ( yy > APmax )
                APmax = yy;
             if ( yy < APmin )
-               APmin = yy;		
+               APmin = yy;
             if ( zz > ISmax )
                ISmax = zz;
             if ( zz < ISmin )
                ISmin = zz;
          }
          if( mmsum == 0.0 ) continue ;
-      
+
          // PT: I think that the "gl*" parameters are "global" ones.
          glmssum += mssum;
          glmmsum += mmsum;
@@ -1531,49 +1531,49 @@ int main(int argc, char *argv[]) {
          glxxsum += xxsum;
          glyysum += yysum;
          glzzsum += zzsum;
-      
+
          ndet++ ;
-         xxsum /= mmsum; 
-         yysum /= mmsum; 
+         xxsum /= mmsum;
+         yysum /= mmsum;
          zzsum /= mmsum;
-    
-         if (CL_noabs)   
+
+         if (CL_noabs)
             mean = mssum / cl->num_pt;
-         else            
+         else
             mean = mmsum / cl->num_pt;
-    
+
          if( fimfac != 0.0 ) {
-            mean  *= fimfac;  
+            mean  *= fimfac;
             msmax *= fimfac;
-            sqsum *= fimfac*fimfac; 
-         }  
+            sqsum *= fimfac*fimfac;
+         }
 
          /* MSB 11/1/96  Calculate SEM using SEM^2=s^2/N,
             where s^2 = (SUM Y^2)/N - (Ymean)^2
-            where sqsum = (SUM Y^2 ) 
+            where sqsum = (SUM Y^2 )
          */
-    
+
          if (cl->num_pt > 1) {
             sem = (sqsum - (cl->num_pt * mean * mean)) / (cl->num_pt - 1);
-            if (sem > 0.0) 
+            if (sem > 0.0)
                sem = sqrt( sem / cl->num_pt );
-            else 
+            else
                sem = 0.0;
          }
          else
             sem = 0.0;
-    
+
          if( CL_summarize != 1 ) {
             MCW_fc7(mean,  buf1);
             MCW_fc7(msmax, buf2);
             MCW_fc7(sem,   buf3);
-       
+
             printf("%s%6.0f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %5.1f  %7s  %7s  %7s  %5.1f  %5.1f  %5.1f \n",
-                   c1dn, volsum, xxsum, yysum, zzsum, 
-                   RLmin, RLmax, APmin, APmax, ISmin, ISmax, 
+                   c1dn, volsum, xxsum, yysum, zzsum,
+                   RLmin, RLmax, APmin, APmax, ISmin, ISmax,
                    buf1, buf3, buf2, xxmax, yymax, zzmax );
          }
-    
+
          nvox_total += cl->num_pt;
          vol_total  += volsum;
       }
@@ -1581,33 +1581,33 @@ int main(int argc, char *argv[]) {
       DESTROY_CLARR(clar);
       if( ndet == 0 ) {
          printf("%s** NO CLUSTERS FOUND ABOVE THRESHOLD VOLUME ***\n", c1d);
-         if( AFNI_yesenv("AFNI_3dclust_report_zero") ) 
+         if( AFNI_yesenv("AFNI_3dclust_report_zero") )
             printf(" 0\n");
       }
-   
-      // Calculate global SEM 
-      if (CL_noabs)   glmean = glmssum / nvox_total; 
+
+      // Calculate global SEM
+      if (CL_noabs)   glmean = glmssum / nvox_total;
       else            glmean = glmmsum / nvox_total;
-   
-      if( fimfac != 0.0 ) { 
-         glsqsum *= fimfac*fimfac; 
-         glmean *= fimfac; 
+
+      if( fimfac != 0.0 ) {
+         glsqsum *= fimfac*fimfac;
+         glmean *= fimfac;
       }
       if (nvox_total > 1) {
          sem = (glsqsum - (nvox_total*glmean*glmean)) / (nvox_total - 1);
-         if (sem > 0.0) sem = sqrt( sem / nvox_total );  
+         if (sem > 0.0) sem = sqrt( sem / nvox_total );
          else sem = 0.0;
       }
       else
          sem = 0.0;
 
       glxxsum /= glmmsum ; glyysum /= glmmsum ; glzzsum /= glmmsum ;
-   
+
       // Modified so that mean and SEM would print in correct column
       if( CL_summarize == 1 ) {
          if( !CL_quiet )
             printf( "%s------  -----  -----  ----- -------- -------- \n", c1d);
-         printf("%s%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n", 
+         printf("%s%6.0f  %5.1f  %5.1f  %5.1f %8.1f %6.3f\n",
                 c1d, vol_total, glxxsum, glyysum, glzzsum, glmean, sem);
       }
       else if( ndet > 1 && CL_summarize != -1 ) {
@@ -1618,7 +1618,7 @@ int main(int argc, char *argv[]) {
          printf ("%s%6.0f  %5.1f  %5.1f  %5.1f                                            %7s  %7s                             \n",
                  c1d, vol_total, glxxsum, glyysum, glzzsum, buf1, buf3 ) ;
       }
-   
+
    }
 
    // --------------- write out utilized mask
@@ -1626,7 +1626,7 @@ int main(int argc, char *argv[]) {
    if( CL_maskout && mask ) {
 
       INFO_message("Writing out whole brain mask.");
-      
+
       THD_3dim_dataset *mset=NULL;
       mset = EDIT_empty_copy(insetA);
       EDIT_dset_items( mset ,
@@ -1638,13 +1638,13 @@ int main(int argc, char *argv[]) {
          ERROR_exit("Can't overwrite existing dataset '%s'",
                     DSET_HEADNAME(mset));
 
-      EDIT_substitute_brick(mset, 0, MRI_byte, mask); 
+      EDIT_substitute_brick(mset, 0, MRI_byte, mask);
       mask = NULL;
-      
+
       tross_Copy_History( insetA , mset ) ;
       tross_Make_History( "3dClusterize", argc , argv , mset );
-      DSET_write(mset); 
-      WROTE_DSET(mset); 
+      DSET_write(mset);
+      WROTE_DSET(mset);
       DSET_delete(mset);
    }
 
@@ -1653,7 +1653,7 @@ int main(int argc, char *argv[]) {
    //                    Freeing
    // ************************************************************
    // ************************************************************
-	
+
    //INFO_message("Cleaning");
 
    if( mmm )
@@ -1668,7 +1668,7 @@ int main(int argc, char *argv[]) {
       DSET_delete(INMASK);
       free(INMASK);
    }
-      
+
    if(mask)
       free(mask);
 
@@ -1681,10 +1681,10 @@ int main(int argc, char *argv[]) {
    // if( cl )
    // KILL_CLUSTER(cl);
 
-   if( cim ) 
+   if( cim )
       free(cim);
 
-   if( cim2 ) 
+   if( cim2 )
       free(cim2);
 
    //INFO_message("Done!");
@@ -1801,11 +1801,11 @@ int ssgn(float x)
 int MakeBrickLab1(char *c0, char *c1, char *c2, char *c3)
 { // string together strings to make a label; sep each with a comma
 
-   strcat(c0, c1); 
+   strcat(c0, c1);
    strcat(c0, ",");
-   strcat(c0, c2); 
+   strcat(c0, c2);
    strcat(c0, ",");
-   strcat(c0, c3); 
+   strcat(c0, c3);
    strcat(c0, ",");
 
    return 0;
@@ -1814,9 +1814,9 @@ int MakeBrickLab1(char *c0, char *c1, char *c2, char *c3)
 int MakeBrickLab2(char *c0, char *c1, char *c2)
 { // string together strings to make a label; sep each with a comma
 
-   strcat(c0, c1); 
+   strcat(c0, c1);
    strcat(c0, ",");
-   strcat(c0, c2); 
+   strcat(c0, c2);
    strcat(c0, ",");
 
    return 0;
@@ -1827,13 +1827,13 @@ int MakeBrickLab2(char *c0, char *c1, char *c2)
 int mycheck_is_int(char *x)
 {
    int n, i=0;
-   
+
    n = strlen(x);
-   while( i<n && isdigit(x[i]) ) 
+   while( i<n && isdigit(x[i]) )
       i++;
 
-   if( n-i ) 
+   if( n-i )
       return 0;
-   else 
+   else
       return 1;
 }

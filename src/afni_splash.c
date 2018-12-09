@@ -1803,14 +1803,14 @@ ENTRY("AFNI_finalsave_layout_CB") ;
         else
           fprintf(gp,"SET_FUNC_RANGE %c.%f\n" , abet[cc] ,
                   zm3d->vwid->func->range_av->fval        ) ;
-        
+
         #if 0 /* Do we need this here ? */
         if( zm3d->cont_perc_thr )  /* ZSS April 27 2012 */
           fprintf(gp,"SET_FUNC_PERCENTILE %c.+\n" , abet[cc] ) ;
         else
           fprintf(gp,"SET_FUNC_PERCENTILE %c.-\n" , abet[cc] ) ;
         #endif
-         
+
         if( ISVALID_DSET(zm3d->anat_now) ){          /* 27 Dec 2006 */
           char *pp = DSET_PREFIX(zm3d->anat_now) ;
           if( pp == NULL || *pp == '\0' ) pp = DSET_IDCODE_STR(zm3d->anat_now);

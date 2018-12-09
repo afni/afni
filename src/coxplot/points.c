@@ -8,7 +8,7 @@
 
 
 
-/* Subroutine */ int points_(real *x, real *y, integer *n, integer *ichar, 
+/* Subroutine */ int points_(real *x, real *y, integer *n, integer *ichar,
 	integer *ipen)
 {
     /* System generated locals */

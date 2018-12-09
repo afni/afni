@@ -4,16 +4,16 @@
 
 // ------------------- for DTI globbing -------------------------------
 
-#define N_DTI_XTRA (1)     
-#define N_DTI_SCAL (4)     
-#define N_DTI_VECT (3) 
+#define N_DTI_XTRA (1)
+#define N_DTI_SCAL (4)
+#define N_DTI_VECT (3)
 #define N_DTI_PLUS (4)     // number of allowed additional param files
                            // in NIMLver
 
 #define N_CHAR_PATH (300)  // for possible path length in fnames
 
 // for tracking output
-#define N_DTI_MAX_PARS ( N_DTI_SCAL + N_DTI_PLUS + N_DTI_XTRA ) 
+#define N_DTI_MAX_PARS ( N_DTI_SCAL + N_DTI_PLUS + N_DTI_XTRA )
 
 //#define N_DTI_SCAL_TOT (10) // 1+2+3, matches with N_DTI_SCAL; !!!
 

@@ -71,7 +71,7 @@ int ART_start_io( ART_comm * ac, int debug )
 
    if( ac->mode == AFNI_OPEN_CONTROL_MODE ){
 
-      sprintf( ac->ioc_name , "tcp:%s:%d" , 
+      sprintf( ac->ioc_name , "tcp:%s:%d" ,
                ac->host , get_port_named("AFNI_CONTROL_PORT") ) ;
 
       if( debug > 1 )
@@ -217,7 +217,7 @@ int ART_send_end_of_run( ART_comm * ac, int run, int seq, int debug )
                    run, seq);
         return 0;
     }
-    
+
     /* otherwise, note update for next time */
     prev_run = run;
     prev_seq = seq;
@@ -440,7 +440,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
 
     /* data organization style rcr - here */
     /* was 2D+zt, but for num_chan > 1, should be 3D+t            8 Sep 2014 */
-    /* NEW: 3D+timing is sorted by volume (see num_chan>1) but has 
+    /* NEW: 3D+timing is sorted by volume (see num_chan>1) but has
             slice timing info (3D+t does not)                     3 Aug 2015 */
     strcpy( tbuf, "ACQUISITION_TYPE 3D+timing" );
     ART_ADD_TO_BUF( ac->buf, tbuf );
@@ -565,11 +565,11 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
     {
         sprintf( tbuf,
             "OBLIQUE_XFORM %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f %f",
-                 ac->oblique_xform[0],  ac->oblique_xform[1], 
-                 ac->oblique_xform[2],  ac->oblique_xform[3], 
-                 ac->oblique_xform[4],  ac->oblique_xform[5], 
-                 ac->oblique_xform[6],  ac->oblique_xform[7], 
-                 ac->oblique_xform[8],  ac->oblique_xform[9], 
+                 ac->oblique_xform[0],  ac->oblique_xform[1],
+                 ac->oblique_xform[2],  ac->oblique_xform[3],
+                 ac->oblique_xform[4],  ac->oblique_xform[5],
+                 ac->oblique_xform[6],  ac->oblique_xform[7],
+                 ac->oblique_xform[8],  ac->oblique_xform[9],
                  ac->oblique_xform[10], ac->oblique_xform[11],
                  ac->oblique_xform[12], ac->oblique_xform[13],
                  ac->oblique_xform[14], ac->oblique_xform[15] );
@@ -598,7 +598,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
             graph_win = "coronalgraph";
             image_win = "coronalimage";
         }
-        
+
         /* open image and graph window - possibly adding pinnum */
         sprintf(tbuf, "DRIVE_AFNI OPEN_WINDOW %s\n"
                       "DRIVE_AFNI OPEN_WINDOW %s", image_win, graph_win );
@@ -706,7 +706,7 @@ int ART_send_control_info( ART_comm * ac, vol_t * v, int debug )
             strcat( tbuf, " " );
             strcat( tbuf, ac->param->opts.argv[count] );
         }
-        
+
         ART_ADD_TO_BUF( ac->buf, tbuf );
     }
 

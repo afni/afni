@@ -41,13 +41,13 @@ void PDF_error (char * message);
 
 /*---------------------------------------------------------------------------*/
 /*
-  macro to test a malloc-ed pointer for validity 
+  macro to test a malloc-ed pointer for validity
 */
 
 #define PDF_MTEST(ptr) \
 if((ptr)==NULL) \
 ( PDF_error ("Cannot allocate memory") )
-     
+
 
 /*---------------------------------------------------------------------------*/
 /*
@@ -78,7 +78,7 @@ void PDF_normalize (pdf * p);
   Create pdf data structure by allocating memory and initializing values.
 */
 
-void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd, 
+void PDF_create (int nbin, float * prob, float lower_bnd, float upper_bnd,
 		 pdf * p);
 
 
@@ -97,7 +97,7 @@ void PDF_copy (pdf p, pdf * pc);
 
 float PDF_ibin_to_xvalue (pdf p, int ibin);
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Convert value of independent variable to bin number.
@@ -105,7 +105,7 @@ float PDF_ibin_to_xvalue (pdf p, int ibin);
 
 int PDF_xvalue_to_ibin (pdf p, float xvalue);
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Convert value of independent variable to probability.
@@ -113,7 +113,7 @@ int PDF_xvalue_to_ibin (pdf p, float xvalue);
 
 float PDF_xvalue_to_pvalue (pdf p, float xvalue);
 
-  
+
 /*---------------------------------------------------------------------------*/
 /*
   Print contents of pdf p to screen.
@@ -178,22 +178,22 @@ void PDF_float_range (int npts, float * farray,
 */
 
 void PDF_short_to_pdf (int npts, short * sarray, pdf * p);
- 
- 
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Estimate the pdf corresponding to the input float array.
 */
 
 void PDF_float_to_pdf (int npts, float * farray, int num_bins, pdf * p);
- 
- 
+
+
 /*---------------------------------------------------------------------------*/
 /*
   Find extrema of pdf function.
 */
 
-void PDF_find_extrema (pdf p, int * num_min, int * pdf_min, 
+void PDF_find_extrema (pdf p, int * num_min, int * pdf_min,
 		       int * num_max, int * pdf_max);
 
 

@@ -6,16 +6,16 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  This program calculates a functional image from an AFNI 3D+time data set, 
+  This program calculates a functional image from an AFNI 3D+time data set,
   by calculating the correlation between the image time series and one or
   more reference ("ideal") time series.
-  
+
   File:     3dfim.c
   Date:     06 September 1996
 
   Incorporated "ort" time series into 3dfim program.
   BDW       12 December 1996
- 
+
   Added -percent option for calculating relative effect of reference waveform
   upon observed time series.
   BDW       19 May 1997
@@ -23,7 +23,7 @@
   Corrected reference to "ort" time series data structure.
   BDW       05 Sept 1997
 
-  Print a more explicit error message when ideal or "ort" time series are not 
+  Print a more explicit error message when ideal or "ort" time series are not
   of sufficient length.
   BDW       14 January 1998
 
@@ -60,9 +60,9 @@
 
 
 THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
-   time_series_array * ref_ts , time_series_array * ort_ts , 
-   int itbot, char * new_prefix, 
-   float max_percent        /* 19 May 1997 */ ) 
+   time_series_array * ref_ts , time_series_array * ort_ts ,
+   int itbot, char * new_prefix,
+   float max_percent        /* 19 May 1997 */ )
 {
    THD_3dim_dataset * new_dset ;
    int ifim , it,iv , nvox=0 , ngood_ref , ntime , it1 , dtyp , nxyz;
@@ -81,24 +81,24 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
    static float * ref_vec = NULL ;
    static int    nref_vec = -666 ;
 
-   float * ref_ts_min = NULL, 
-         * ref_ts_max = NULL, 
+   float * ref_ts_min = NULL,
+         * ref_ts_max = NULL,
          * baseline   = NULL;      /* 19 May 1997 */
 
    int i;
-   
+
    int nupdt      = 0 ,  /* number of updates done yet */
        min_updt   = 5 ;  /* min number needed for display */
 
 
    /*--- check for legal inputs ---*/      /* 14 Jan 1998 */
 
-   if (!DSET_GRAPHABLE(dset_time)) 
+   if (!DSET_GRAPHABLE(dset_time))
      {
        fprintf (stderr, "Error:  Invalid 3d+time input data file \n");
        RETURN (NULL);
      }
-   
+
    if (ref_ts == NULL)
      {
        fprintf (stderr, "Error:  No ideal time series \n");
@@ -107,10 +107,10 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 
    for (i = 0;  i < ref_ts->num;  i++)
      if (ref_ts->tsarr[i]->len < DSET_NUM_TIMES(dset_time))
-       { 
+       {
 	 fprintf (stderr,
 	   "Error:  ideal time series is too short: ntime=%d num_ts=%d \n",
-		  DSET_NUM_TIMES(dset_time), 
+		  DSET_NUM_TIMES(dset_time),
 		  ref_ts->tsarr[i]->len);
 	 RETURN (NULL) ;
        }
@@ -126,16 +126,16 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 	 {
 	   nx_ort = ort_ts->tsarr[i]->len ;
 	   if (nx_ort < DSET_NUM_TIMES(dset_time))   /* 14 Jan 1998 */
-	     { 
+	     {
 	       fprintf (stderr,
 		 "Error:  ort time series is too short: ntime=%d ort_ts=%d \n",
-			DSET_NUM_TIMES(dset_time), 
+			DSET_NUM_TIMES(dset_time),
 			ort_ts->tsarr[i]->len);
 	       RETURN (NULL) ;
-	     }	   
+	     }
 	 }
-     } 
-   else 
+     }
+   else
      {
        internal_ort = 1 ;
      }
@@ -167,15 +167,15 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 
       if (max_percent > 0.0)       /* 19 May 1997 */
 	{
-	  ref_ts_min[ivec] = (float) SO_BIG;              
+	  ref_ts_min[ivec] = (float) SO_BIG;
 	  ref_ts_max[ivec] = - (float) SO_BIG;
 	}
 
       for( it=itbot ; it < ntime ; it++ )
 	{
          if( tsar[it] < SO_BIG )
-	   { 
-	     ifim++ ; 
+	   {
+	     ifim++ ;
 	     if( it1 < 0 ) it1 = it ;
 
 	     if (max_percent > 0.0)      /* 19 May 1997 */
@@ -196,7 +196,7 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 
    /** at this point, ngood_ref = max number of good reference points,
        and                  it1 = index of first point used in first reference **/
-   
+
    dtyp = DSET_BRICK_TYPE(dset_time,it1) ;
    if( ! AFNI_GOOD_FUNC_DTYPE(dtyp) ){
       STATUS("illegal input data type!") ;
@@ -280,7 +280,7 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
       free(indx) ; RETURN(NULL) ;
    }
 
-  
+
    /*----- allocate space for baseline values -----*/
    if (max_percent > 0.0)    /* 19 May 1997 */
      {
@@ -294,7 +294,7 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
        else  /* initialize baseline values to zero */
 	 for (iv = 0;  iv < nvox;  iv++)
 	   baseline[iv] = 0.0;
-     } 
+     }
 
 
    /** allocate extra space for comparing results from multiple ref vectors **/
@@ -420,8 +420,8 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
          if (internal_ort)          /* 10 Dec 1996 */
 	   {
 	     ref_vec[2] = tsar[it] ;
-	   } 
-	 else 
+	   }
+	 else
 	   {
 	     for( iv=0 ; iv < ny_ort ; iv++ )
                ref_vec[iv+2] = ort_ts->tsarr[iv]->ts[it];
@@ -466,14 +466,14 @@ THD_3dim_dataset * fim3d_fimmer_compute ( THD_3dim_dataset * dset_time ,
 	   if (ivec == 0)
 	     for (iv = 0;  iv < nvox;  iv++)
 	       baseline[iv] += vval[iv] / ngood_ref;
- 
+
       }
       if( nnow > 0 ) nupdt++ ;
 
 
       /*--- Load results into the dataset and redisplay it ---*/
 
-      if( nupdt == ngood_ref ) 
+      if( nupdt == ngood_ref )
       {
          /*--- set the statistical parameters ---*/
 
@@ -514,7 +514,7 @@ STATUS("getting 1 ref alpha") ;
 		  }
 		topval = max_percent;
 	      }
-	    else 
+	    else
 	      {
 		topval = 0.0 ;
 		for( iv=0 ; iv < nvox ; iv++ )
@@ -560,8 +560,8 @@ STATUS("getting 1 ref pcor") ;
 	    /*--- modify alpha for percentage change calculation ---*/
 	    if (max_percent > 0.0)    /* 19 May 1997 */
 	      for (iv = 0;  iv < nvox;  iv++)
-		abest[iv] *= 100.0 * (ref_ts_max[0] - ref_ts_min[0]);	       
-	      
+		abest[iv] *= 100.0 * (ref_ts_max[0] - ref_ts_min[0]);
+
             PCOR_get_pcor( pc_ref[0] , pc_vc[0] , rbest ) ;
 
             /*--- for each succeeding ref vector,
@@ -643,7 +643,7 @@ STATUS("setting brick_fac") ;
       }
    }
 
- 
+
    /*--- End of recursive updates; now free temporary workspaces ---*/
 
    for( ivec=0 ; ivec < ny_ref ; ivec++ ){
@@ -662,7 +662,7 @@ STATUS("setting brick_fac") ;
 
    /* --- load the statistics --- */
    THD_load_statistics (new_dset);
-   
+
    /*--- Return new dataset ---*/
 
    RETURN(new_dset) ;
@@ -672,13 +672,13 @@ STATUS("setting brick_fac") ;
 
 /** structure type to hold results from scanning the command line options **/
 
-typedef struct 
+typedef struct
 {
    char prefix_name[THD_MAX_NAME];    /* filename root for output */
    THD_3dim_dataset * dset;           /* input 3d+time data set */
    time_series_array * idts;          /* array of ideal time series */
-   time_series_array * ortts;         /* array of ort time series */ 
-   int first_im;                      /* first time series point to be used */ 
+   time_series_array * ortts;         /* array of ort time series */
+   int first_im;                      /* first time series point to be used */
    float max_percent;                 /* max. percentage change due to ideal
                                          time series,  19 May 1997 */
 } line_opt ;
@@ -702,7 +702,7 @@ void Syntax( char * ) ;
 
 void get_line_opt( int argc , char *argv[] , line_opt *opt )
 {
-  
+
    int nopt ;
    float ftemp ;
    MRI_IMAGE *im ;
@@ -715,9 +715,9 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
 
    /* --- give help if needed --- */
    if( argc < 2 || strncmp(argv[1],"-help",4) == 0 ) Syntax(NULL) ;
-  
+
    /*----- add to program log -----*/
-   AFNI_logger (PROGRAM_NAME,argc,argv); 
+   AFNI_logger (PROGRAM_NAME,argc,argv);
 
    /* --- setup opt with defaults --- */
    strcpy (opt->prefix_name, "");   /* no prefix name yet */
@@ -742,8 +742,8 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
       Note that the 'while' will increment the argument index (nopt)  --- */
 
    nopt = 1 ;
-   
-   do{ 
+
+   do{
 
 #ifdef DEBUG
 #  define DBOPT(str) fprintf(stderr,"at option %s: %s\n",argv[nopt],str)
@@ -780,8 +780,8 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
             ideal = RWC_read_time_series( argv[nopt] ) ;
             if( ideal == NULL )  Syntax ("Unable to read ideal time series.");
             ADDTO_TSARR( opt->idts , ideal ) ;
-         } 
-         else 
+         }
+         else
          {  /* --- many files --- */
             for( nopt++ ; !IS_CLOSER(argv[nopt]) && nopt<argc ; nopt++ )
             {
@@ -824,8 +824,8 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
             ort = RWC_read_time_series( argv[nopt] ) ;
             if( ort == NULL )  Syntax ("Unable to read ort time series.");
             ADDTO_TSARR( opt->ortts , ort ) ;
-         } 
-         else 
+         }
+         else
          {  /* --- many files --- */
             for( nopt++ ; !IS_CLOSER(argv[nopt]) && nopt<argc ; nopt++ )
             {
@@ -843,10 +843,10 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
       if( strncmp(argv[nopt], "-prefix", 5) == 0 ){
          DBOPT("-prefix") ;
          if( ++nopt >= argc ) Syntax("-prefix needs a name") ;
-         if( strcmp(opt->prefix_name, "") )  
+         if( strcmp(opt->prefix_name, "") )
             Syntax("Cannot have two prefix output names!" ) ;
          strcpy (opt->prefix_name, argv[nopt]) ;
-         DBOPT("stored as prefix") ; 
+         DBOPT("stored as prefix") ;
          continue ;
       }
 
@@ -861,7 +861,7 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
          strcpy (input_filename, argv[nopt] );
          /* open 3d data set */
          opt->dset = THD_open_one_dataset( argv[nopt] ) ;
-         if( opt->dset == NULL ) 
+         if( opt->dset == NULL )
          {
             fprintf(stderr, "\n** Unable to open 3d+time data file: %s\n",
                     argv[nopt]);
@@ -873,13 +873,13 @@ void get_line_opt( int argc , char *argv[] , line_opt *opt )
       /* unidentified option */
       sprintf( err_note , "Unknown option %s" , argv[nopt] ) ;
       Syntax(err_note) ;
-      
+
    } while( ++nopt < argc ) ;  /* loop until all args are read, or we break */
 
 
    /* --- check for valid user inputs --- */
    if (!strcmp(input_filename,""))  Syntax ("No input file name was given.");
-   if( opt->idts->num == 0 ) Syntax("No ideal response vector was defined!") ; 
+   if( opt->idts->num == 0 ) Syntax("No ideal response vector was defined!") ;
    if (!strcmp(opt->prefix_name,""))  Syntax ("No prefix name was specified.");
 
 
@@ -917,7 +917,7 @@ void Syntax( char *note )
    " ",
    "-ort fname      fname = filename of a time series to which the image data",
    "                        is to be orthogonalized ",
-   " ", 
+   " ",
    "            N.B.: It is possible to specify more than",
    "            one ideal time series file. Each one is separately correlated",
    "            with the image time series and the one most highly correlated",
@@ -976,7 +976,7 @@ int main( int argc , char *argv[] )
    line_opt  opt ;               /* holds data constructed from command line */
    THD_3dim_dataset * new_dset;  /* functional data set to be calculated */
    Boolean ok;                   /* true if 3d write is successful */
-   
+
 
    /*----- Identify software -----*/
 #if 0
@@ -1005,21 +1005,21 @@ WARNING_message("This program (3dfim) is very old, may not be useful, and will n
    get_line_opt( argc , argv , &opt ) ;
 
    /* --- calculate functional image --- */
-   new_dset = fim3d_fimmer_compute (opt.dset, opt.idts, opt.ortts, 
-				    opt.first_im, opt.prefix_name, 
+   new_dset = fim3d_fimmer_compute (opt.dset, opt.idts, opt.ortts,
+				    opt.first_im, opt.prefix_name,
 				    opt.max_percent);  /* 19 May 1997 */
 
    /*----- Record history of dataset -----*/
    tross_Copy_History( opt.dset , new_dset ) ;
    tross_Make_History( PROGRAM_NAME , argc , argv , new_dset ) ;
-   
+
    /* --- write 3d functional image data --- */
    ok = THD_write_3dim_dataset ("", opt.prefix_name, new_dset, TRUE);
    if (!ok)  Syntax ("Failure to write functional data set.");
-   
+
    /* --- cleanup --- */
    THD_delete_3dim_dataset (new_dset, FALSE);
-   
+
    return (0);
 }
 

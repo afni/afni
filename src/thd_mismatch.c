@@ -58,12 +58,12 @@ ENTRY("THD_dataset_mismatch") ;
    /* (allow for truncation differnces)   22 May 2015 [rickr] */
    angle = dset_obliquity_angle_diff(ds1, ds2, OBLIQ_ANGLE_THRESH);
    if (angle > 0.0) code |= MISMATCH_OBLIQ ;
-   
+
    RETURN(code) ;
 }
 
 /*---------------------------------------------------------------------
-  23 Feb 2012: Return the absolute value of the difference between 
+  23 Feb 2012: Return the absolute value of the difference between
                two volumes, divided by the number of voxels
                and the number of sub-bricks. Voxels that are zero
                in both sets are not counted.
@@ -76,15 +76,15 @@ double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
    int i=0, k=0;
    double *a1=NULL, *a2=NULL;
    MRI_IMAGE *b1 = NULL , *b2 = NULL;
-   
+
    ENTRY("THD_diff_vol_vals");
-   
+
    if (!d1 && !d2) RETURN(dd);
    if (!d1 || !d2) RETURN(-1.0);
 
    if (!EQUIV_GRIDS(d1,d2)) RETURN(-1.0);
    if (DSET_NVALS(d1) != DSET_NVALS(d2)) RETURN(-1.0);
-  
+
    DSET_mallocize(d1) ; DSET_load(d1) ;
    DSET_mallocize(d2) ; DSET_load(d2) ;
    dd = 0.0; denom = 0;
@@ -101,6 +101,6 @@ double THD_diff_vol_vals(THD_3dim_dataset *d1, THD_3dim_dataset *d2, int scl) {
       mri_clear_data_pointer(b2); mri_free(b2) ;
    }
    if (scl && denom>0.0) dd /= denom;
-   
-   RETURN(dd);   
-}  
+
+   RETURN(dd);
+}

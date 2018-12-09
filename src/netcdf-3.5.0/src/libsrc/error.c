@@ -58,7 +58,7 @@ vms_strerror( int status )
 
 	msgbuf[0] = 0;
 	ret = SYS$GETMSG(status, &msglen, &message, 15, 0);
-	
+
 	if(ret != SS$_BUFFEROVF && ret != SS$_NORMAL) {
 		(void) strcpy(msgbuf, "EVMSERR");
 	}
@@ -74,11 +74,11 @@ const char *
 nc_strerror(int err)
 {
 
-#ifdef vms 
+#ifdef vms
 	if(err == EVMSERR)
 	{
 		return vms_strerror(err);
-	}	
+	}
 	/* else */
 #endif /* vms */
 

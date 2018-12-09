@@ -17,7 +17,7 @@
          - people doing local builds will not see this change
             - local build versions and dates will separate over time
 
-    OLD: AFNI_2011_12_21_1014 
+    OLD: AFNI_2011_12_21_1014
        - such labels were done with Ctag in CVS
        - created Dec, 2004 - Dec, 2011 (though rarely after 2005)
        - as it labeled _every_ source file, it was dropped
@@ -47,7 +47,7 @@
        - THD_check_AFNI_version(): command line progs update comments
        - MCW_popup_message_once(): afni GUI: situational comments
           - slowly growing? list, all seen on new accounts (or systems)
-         
+
  ***********************************************************************
  */
 

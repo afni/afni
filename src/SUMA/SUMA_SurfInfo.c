@@ -5,9 +5,9 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
       static char FuncName[]={"usage_SurfInfo"};
       char * s = NULL, *sio=NULL, *st = NULL, *sts = NULL;
       int i;
-      
+
       SUMA_ENTRY;
-      
+
       s = SUMA_help_basics();
       sio  = SUMA_help_IO_Args(ps);
       printf ( "\n"
@@ -18,7 +18,7 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
                "     -detail DETAIL: 1 = calculate surface metrics.\n"
                "     -debug DEBUG: Debugging level (2 turns LocalHead ON)\n"
                "   Specific Info: Using any of these options outputs values\n"
-               "                  only for the specified parameters.\n"  
+               "                  only for the specified parameters.\n"
                "     -N_Node: Number of nodes\n"
                "     -N_FaceSet or -N_Tri: Number of triangles.\n"
                "     -COM: Center of mass\n"
@@ -29,8 +29,8 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
                "%s"
                "%s"
                "\n", sio,  s);
-      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL; 
-      SUMA_free(sio); sio = NULL;       
+      SUMA_free(s); s = NULL; SUMA_free(st); st = NULL;
+      SUMA_free(sio); sio = NULL;
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       printf("       Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov     \n");
       exit(0);
@@ -38,14 +38,14 @@ void usage_SurfInfo (SUMA_GENERIC_ARGV_PARSE *ps)
 
 SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int argc, SUMA_GENERIC_ARGV_PARSE *ps)
 {
-   static char FuncName[]={"SUMA_SurfInfo_ParseInput"}; 
+   static char FuncName[]={"SUMA_SurfInfo_ParseInput"};
    SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt=NULL;
    int kar;
    SUMA_Boolean brk;
    SUMA_Boolean LocalHead = NOPE;
 
    SUMA_ENTRY;
-   
+
    Opt = SUMA_Alloc_Generic_Prog_Options_Struct();
    Opt->b2=0;
    Opt->in_1D=" ; ";
@@ -57,9 +57,9 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
 			 usage_SurfInfo(ps);
           exit (0);
 		}
-		
+
 		SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       if (!brk && (strcmp(argv[kar], "-debug") == 0))
       {
          if (kar+1 >= argc)
@@ -67,11 +67,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a number after -debug \n");
             exit (1);
          }
-         
+
          Opt->debug = atoi(argv[++kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-detail") == 0))
       {
          if (kar+1 >= argc)
@@ -79,7 +79,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a number after -detail \n");
             exit (1);
          }
-         
+
          Opt->b1 = (byte)atoi(argv[++kar]);
          brk = YUP;
       }
@@ -91,11 +91,11 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
             fprintf (SUMA_STDERR, "need a string after -sep \n");
             exit (1);
          }
-         
+
          Opt->in_1D = argv[++kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-input") == 0))
       {
          if (kar+1 >= argc)
@@ -105,38 +105,38 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
          }
          if (Opt->n_in_namev < SUMA_GENERIC_PROG_MAX_IN_NAME) {
             Opt->in_namev[Opt->n_in_namev] = argv[++kar];
-            ++Opt->n_in_namev; 
+            ++Opt->n_in_namev;
          } else {
                SUMA_S_Err("Too many input dsets on command line");
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-N_Node") == 0))
       {
          Opt->s = SUMA_append_replace_string(Opt->s,"N_Node","|",1);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-COM") == 0))
       {
          Opt->s = SUMA_append_replace_string(Opt->s,"COM","|",1);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-N_FaceSet") == 0
                   || strcmp(argv[kar], "-N_Tri") == 0))
       {
          Opt->s = SUMA_append_replace_string(Opt->s,(argv[kar]+1),"|",1);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-quiet") == 0))
       {
          Opt->b2 = 1;
          brk = YUP;
       }
-      
+
       if (!brk && !ps->arg_checked[kar]) {
 			/* Assume the rest is input data */
 			while (kar < argc) {
@@ -147,19 +147,19 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_SurfInfo_ParseInput(char *argv[], int arg
                SUMA_S_Err("Too many input surfaces on command line");
             }
          }
-		} else {	
+		} else {
 			brk = NOPE;
 			kar ++;
 		}
    }
-   
+
    SUMA_RETURN(Opt);
 }
 
 int main (int argc,char *argv[])
-{/* Main */    
-   static char FuncName[]={"SurfInfo"}; 
-   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;  
+{/* Main */
+   static char FuncName[]={"SurfInfo"};
+   SUMA_GENERIC_PROG_OPTIONS_STRUCT *Opt;
    SUMA_GENERIC_ARGV_PARSE *ps=NULL;
    SUMA_SurfSpecFile *Spec = NULL;
    int i, N_Spec;
@@ -173,16 +173,16 @@ int main (int argc,char *argv[])
    /* Allocate space for DO structure */
 	SUMAg_DOv = SUMA_Alloc_DisplayObject_Struct (SUMA_MAX_DISPLAYABLE_OBJECTS);
    ps = SUMA_Parse_IO_Args(argc, argv, "-i;-t;-spec;-s;-sv;");
-   
+
    if (argc < 2) {
       usage_SurfInfo(ps);
       exit (1);
    }
-   
+
    Opt = SUMA_SurfInfo_ParseInput (argv, argc, ps);
 
    if (Opt->debug > 2) LocalHead = YUP;
-   
+
    if (ps->s_N_surfnames + ps->i_N_surfnames + ps->t_N_surfnames != 1) {
       SUMA_S_Err("Multiple surface specifications used. "
                  "Only one surface allowed.");
@@ -207,13 +207,13 @@ int main (int argc,char *argv[])
                               "in spec file. \n",
                               FuncName );
          exit(1);
-      
-   }   
+
+   }
    if (Opt->b1) {
       SUMA_LH("Calculating all metrics, be patient...");
       /* calc trimmings */
       if (!SUMA_SurfaceMetrics_eng(SO, "Convexity|EdgeList|PolyArea|Curvature|"
-                                       "EdgeList|MemberFace|CheckWind", 
+                                       "EdgeList|MemberFace|CheckWind",
                                        NULL, Opt->debug, SUMAg_CF->DsetList)) {
          fprintf (SUMA_STDERR,
                   "Error %s: Failed in SUMA_SurfaceMetrics.\n", FuncName);
@@ -225,35 +225,35 @@ int main (int argc,char *argv[])
       char *s=NULL;
       i = 0;
       while ( (s=SUMA_NI_get_ith_string(Opt->s,"|",i) ) ) {
-         if (!strcmp(s,"N_Node")) {   
+         if (!strcmp(s,"N_Node")) {
             if (Opt->b2) {
                if (i) fprintf(SUMA_STDOUT, "%s%d", Opt->in_1D, SO->N_Node);
                else fprintf(SUMA_STDOUT, "%d", SO->N_Node);
             } else {
                if (i) fprintf(SUMA_STDOUT, "%s%s=%d", Opt->in_1D, s, SO->N_Node);
                else fprintf(SUMA_STDOUT, "%s=%d", s, SO->N_Node);
-            }         
-         } else if (!strcmp(s,"N_Tri") || !strcmp(s,"N_FaceSet")) {   
+            }
+         } else if (!strcmp(s,"N_Tri") || !strcmp(s,"N_FaceSet")) {
             if (Opt->b2) {
                if (i) fprintf(SUMA_STDOUT, "%s%d", Opt->in_1D, SO->N_FaceSet);
                else fprintf(SUMA_STDOUT, "%d", SO->N_FaceSet);
             } else {
-               if (i) fprintf(SUMA_STDOUT, "%s%s=%d", 
+               if (i) fprintf(SUMA_STDOUT, "%s%s=%d",
                                           Opt->in_1D, s, SO->N_FaceSet);
                else fprintf(SUMA_STDOUT, "%s=%d", s, SO->N_FaceSet);
             }
          } else if (!strcmp(s,"COM")) {
             if (Opt->b2) {
-               if (i) fprintf(SUMA_STDOUT, "%s%f %f %f", 
-                              Opt->in_1D, 
+               if (i) fprintf(SUMA_STDOUT, "%s%f %f %f",
+                              Opt->in_1D,
                               SO->Center[0], SO->Center[1],SO->Center[2]);
-               else fprintf(SUMA_STDOUT, "%f %f %f", 
+               else fprintf(SUMA_STDOUT, "%f %f %f",
                               SO->Center[0], SO->Center[1],SO->Center[2]);
             } else {
-               if (i) fprintf(SUMA_STDOUT, "%s%s=%f %f %f", 
-                              Opt->in_1D, s, 
+               if (i) fprintf(SUMA_STDOUT, "%s%s=%f %f %f",
+                              Opt->in_1D, s,
                               SO->Center[0], SO->Center[1],SO->Center[2]);
-               else fprintf(SUMA_STDOUT, "%s=%f %f %f", s, 
+               else fprintf(SUMA_STDOUT, "%s=%f %f %f", s,
                               SO->Center[0], SO->Center[1],SO->Center[2]);
             }
          } else {
@@ -268,8 +268,8 @@ int main (int argc,char *argv[])
    if (SO) SUMA_Free_Surface_Object(SO); SO = NULL;
    if (ps) SUMA_FreeGenericArgParse(ps); ps = NULL;
    if (Opt) Opt = SUMA_Free_Generic_Prog_Options_Struct(Opt);
-   if (!SUMA_Free_CommonFields(SUMAg_CF)) 
+   if (!SUMA_Free_CommonFields(SUMAg_CF))
       SUMA_error_message(FuncName,"SUMAg_CF Cleanup Failed!",1);
    exit(0);
-   
-} 
+
+}

@@ -400,7 +400,7 @@ ENTRY("MCW_erode_clusters") ;
     {
     case MRI_short:
       for (ijk = 0;  ijk < nxyz;  ijk++)
-	{	
+	{
 	  if (sfar[ijk] == 0)  continue;
 	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
 
@@ -424,7 +424,7 @@ ENTRY("MCW_erode_clusters") ;
 
     case MRI_byte:
       for (ijk = 0;  ijk < nxyz;  ijk++)
-	{	
+	{
 	  if (bfar[ijk] == 0)  continue;
 	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
 
@@ -448,7 +448,7 @@ ENTRY("MCW_erode_clusters") ;
 
     case MRI_float:
       for (ijk = 0;  ijk < nxyz;  ijk++)
-	{	
+	{
 	  if (ffar[ijk] == 0.0)  continue;
 	  IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
 
@@ -503,10 +503,10 @@ ENTRY("MCW_erode_clusters") ;
 	{
 	case MRI_short:
 	  for (ijk = 0;  ijk < nxyz;  ijk++)
-	    {	
+	    {
 	      if (efim[ijk] == 0.0)  continue;
 	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
-	
+
 	      /*---- Determine if any active voxels in the neighborhood ----*/
 	      for (imask = 0;  imask < nmask;  imask++)
 		{
@@ -518,18 +518,18 @@ ENTRY("MCW_erode_clusters") ;
 		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
 		  if (sfar[ijkm] != 0)  break;
 		}
-	
+
 	      /*----- Reset voxel not to be restored -----*/
 	      if (imask == nmask)  efim[ijk] = 0.0;
 	    }
 	  break;
-	
+
 	case MRI_byte:
 	  for (ijk = 0;  ijk < nxyz;  ijk++)
-	    {	
+	    {
 	      if (efim[ijk] == 0.0)  continue;
 	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
-	
+
 	      /*---- Determine if any active voxels in the neighborhood ----*/
 	      for (imask = 0;  imask < nmask;  imask++)
 		{
@@ -541,18 +541,18 @@ ENTRY("MCW_erode_clusters") ;
 		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
 		  if (bfar[ijkm] != 0)  break;
 		}
-	
+
 	      /*----- Reset voxel not to be restored -----*/
 	      if (imask == nmask)  efim[ijk] = 0.0;
 	    }
 	  break;
-	
+
 	case MRI_float:
 	  for (ijk = 0;  ijk < nxyz;  ijk++)
-	    {	
+	    {
 	      if (efim[ijk] == 0.0)  continue;
 	      IJK_TO_THREE (ijk, iv, jv, kv, nx, nxy);
-	
+
 	      /*---- Determine if any active voxels in the neighborhood ----*/
 	      for (imask = 0;  imask < nmask;  imask++)
 		{
@@ -564,7 +564,7 @@ ENTRY("MCW_erode_clusters") ;
 		  ijkm = THREE_TO_IJK (im, jm, km, nx, nxy);
 		  if (ffar[ijkm] != 0.0)  break;
 		}
-	
+
 	      /*----- Reset voxel not to be restored -----*/
 	      if (imask == nmask)  efim[ijk] = 0.0;
 	    }
@@ -579,7 +579,7 @@ ENTRY("MCW_erode_clusters") ;
 	  for (ijk = 0;  ijk < nxyz;  ijk++)
 	    if (efim[ijk] != 0.0)  sfar[ijk] = (short) efim[ijk];
 	    break;
-	
+
 	case MRI_byte:
 	  for (ijk = 0;  ijk < nxyz;  ijk++)
 	    if (efim[ijk] != 0.0)  bfar[ijk] = (byte) efim[ijk];

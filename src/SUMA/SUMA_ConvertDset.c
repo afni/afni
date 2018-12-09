@@ -19,13 +19,13 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
    s = SUMA_help_basics();
    sd = SUMA_help_dset();
    sm = SUMA_help_mask();
-   printf ( 
+   printf (
 "Usage: \n"
 "  ConvertDset -o_TYPE -input DSET [-i_TYPE] [-prefix OUT_PREF]\n"
 "  Converts a surface dataset from one format to another.\n"
 "\n%s", detail ? "":"use -h or -help for more help detail.\n");
    if (detail) {
-      printf ( 
+      printf (
 "  Mandatory parameters:\n"
 "     -o_TYPE: TYPE of output datasets\n"
 "              where TYPE is one of:\n"
@@ -78,7 +78,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                              input dataset will be ignored.\n"
 "                              When in doubt, use the 1D output format along \n"
 "                              with -prepend_node_index_1D and spot check your\n"
-"                              results.\n" 
+"                              results.\n"
 "     -prepend_node_index_1D: Add a node index column to the data, rather\n"
 "                             than keep it as part of the metadata.\n"
 "     -pad_to_node MAX_INDEX: Output a full dset from node 0 \n"
@@ -95,7 +95,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                node index on an Icosahedron with -ld 120. See \n"
 "                CreateIcosahedron for details.\n"
 "             d:DSET.niml.dset which sets MAX_INDEX to the maximum node found\n"
-"                      in dataset DSET.niml.dset.\n"       
+"                      in dataset DSET.niml.dset.\n"
 "\n"
 "     -labelize CMAP: Turn the dataset into a labeled set per the colormap in\n"
 "                     CMAP. A CMAP can easily be generated with MakeColorMap's\n"
@@ -144,7 +144,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "                graph (default).\n"
 "     -multigraph: Expect each column in input dataset to define an entire\n"
 "                  graph. Each column in this case should be a column-stacked\n"
-"                  square matrix.\n" 
+"                  square matrix.\n"
 "\n"
 "     -i_TYPE: TYPE of input datasets\n"
 "              where TYPE is one of:\n"
@@ -167,7 +167,7 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
 "               3dinfo -n4 -label Split3.000* v2s.lh.TS.niml.dset\\\n"
 "     -no_history: Do not include a history element in the output\n"
 "  Notes:\n"
-"     -This program will not overwrite pre-existing files.\n"  
+"     -This program will not overwrite pre-existing files.\n"
 "     -The new data set is given a new idcode.\n"
 "\n"
 "%s"
@@ -200,27 +200,27 @@ void usage_ConverDset(SUMA_GENERIC_ARGV_PARSE *ps, int detail)
      (detail > 1) ? sm : "",
      (detail > 1) ? s : "");
       }
-   SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; SUMA_free(sm); sm = NULL;  
+   SUMA_free(s); s = NULL; SUMA_free(sd); sd = NULL; SUMA_free(sm); sm = NULL;
    if (detail) {
       #ifdef SUMA_COMPILED
       s = SUMA_New_Additions(0, 1); printf("%s\n", s);SUMA_free(s); s = NULL;
       #endif
-      fprintf (SUMA_STDOUT, 
+      fprintf (SUMA_STDOUT,
          "    Ziad S. Saad SSCC/NIMH/NIH saadz@mail.nih.gov\n\n");
    }
-   return; 
+   return;
 }
 int main (int argc,char *argv[])
 {/* Main */
    static char FuncName[]={"ConvertDset"};
-   int   kar, brk, i_input, i, j, *Ti=NULL, 
+   int   kar, brk, i_input, i, j, *Ti=NULL,
          *indexmap = NULL, add_node_index, prepend_node_index,
          no_hist ;
    byte *Tb=NULL, *auto_nmask=NULL;
    float *fv = NULL, *cols=NULL;
    SUMA_DSET_FORMAT iform, oform;
    SUMA_DSET *dset = NULL, *dseti=NULL, *dset_m = NULL;
-   char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile, 
+   char *NameOut, *prfx = NULL, *prefix = NULL, *cmapfile,
          *graph_nodelist_1D=NULL, *graph_nodeindlist_1D=NULL,
          *graph_edgelist_1D=NULL, *graph_nodeindlist_txt=NULL, **names=NULL;
    char *ooo=NULL, *node_index_1d = NULL, *node_mask = NULL;
@@ -233,10 +233,10 @@ int main (int argc,char *argv[])
    SUMA_COLOR_MAP *SM=NULL;
    NI_str_array *dlabs=NULL;
    SUMA_Boolean LocalHead = NOPE;
-   
+
    SUMA_STANDALONE_INIT;
    SUMA_mainENTRY;
-   
+
    ps = SUMA_Parse_IO_Args(argc, argv, "-mask;");
 
    pad_to_node = -1;
@@ -263,16 +263,16 @@ int main (int argc,char *argv[])
          usage_ConverDset  (ps, strlen(argv[kar]) > 3 ? 2:1);
          exit (0);
       }
-      
+
       SUMA_SKIP_COMMON_OPTIONS(brk, kar);
-      
+
       SUMA_TO_LOWER(argv[kar]);
-      
+
       if (SUMA_isOutputFormatFromArg(argv[kar], &oform)) {
          brk = YUP;
-      } 
+      }
 
-      
+
       if (!brk && (strcmp(argv[kar], "-i_1d") == 0))
       {
          if (iform != SUMA_NO_DSET_FORMAT) {
@@ -294,14 +294,14 @@ int main (int argc,char *argv[])
          RAI = 0;
          brk = YUP;
       }
-      
-      
+
+
       if (!brk && (strcmp(argv[kar], "-graphize") == 0))
       {
          toGDSET = 1;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-onegraph") == 0))
       {
          OneMat = 1;
@@ -321,7 +321,7 @@ int main (int argc,char *argv[])
          iform = SUMA_NIML;
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-i_dx") == 0))
       {
          if (iform != SUMA_NO_DSET_FORMAT) {
@@ -331,11 +331,11 @@ int main (int argc,char *argv[])
          iform = SUMA_ASCII_OPEN_DX_DSET;
          brk = YUP;
       }
-      
-      
-      if (  !brk && 
+
+
+      if (  !brk &&
             (  strcmp(argv[kar], "-input") == 0 ||
-               strcmp(argv[kar], "-i") == 0 || 
+               strcmp(argv[kar], "-i") == 0 ||
                strcmp(argv[kar], "-i_") == 0)   )
       {
          if (kar+1 >= argc) {
@@ -365,7 +365,7 @@ int main (int argc,char *argv[])
          }
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-graph_nodelist_1d") == 0))
       {
          if (kar+2 >= argc) {
@@ -425,7 +425,7 @@ int main (int argc,char *argv[])
          node_index_1d = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-node_select_1d") == 0))
       {
          if (kar+1 >= argc) {
@@ -436,22 +436,22 @@ int main (int argc,char *argv[])
          node_mask = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-add_node_index") == 0))
       {
-         
+
          add_node_index = 1;
          brk = YUP;
       }
       if (!brk && (strcmp(argv[kar], "-prepend_node_index_1d") == 0))
       {
-         
+
          prepend_node_index = 1;
          brk = YUP;
       }
-      if (  !brk && 
+      if (  !brk &&
             (  strcmp(argv[kar], "-prefix") == 0 ||
-               strcmp(argv[kar], "-o") == 0 ||  
+               strcmp(argv[kar], "-o") == 0 ||
                strcmp(argv[kar], "-o_") == 0 ) )
       {
          if (kar+1 >= argc) {
@@ -462,7 +462,7 @@ int main (int argc,char *argv[])
          prfx = argv[kar];
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-split") == 0))
       {
          if (kar+1 >= argc) {
@@ -473,7 +473,7 @@ int main (int argc,char *argv[])
          split = atoi(argv[kar]);
          brk = YUP;
       }
-      
+
       if (!brk && (strcmp(argv[kar], "-dset_labels") == 0)) {
          kar ++;
 			if (kar >= argc)  {
@@ -483,18 +483,18 @@ int main (int argc,char *argv[])
 			dlabs = NI_strict_decode_string_list(argv[kar] ,";, ");
          brk = 1;
 		}
-      
+
       if (!brk && !ps->arg_checked[kar]) {
          fprintf (SUMA_STDERR,
             "Error %s: Option %s not understood. Try -help for usage\n",
                FuncName, argv[kar]);
          suggest_best_prog_option(argv[0], argv[kar]);
          exit (1);
-      } else {   
+      } else {
          brk = NOPE;
          kar ++;
       }
-      
+
    }/* loop accross command ine options */
    if (argc < 3) {
       usage_ConverDset  (ps, 0);
@@ -514,7 +514,7 @@ int main (int argc,char *argv[])
       if (prfx) {
          /* try to guess */
          oform = SUMA_GuessFormatFromExtension(prfx, argv[i_input]);
-         SUMA_LHv("Guessing output format to be: %s\n", 
+         SUMA_LHv("Guessing output format to be: %s\n",
                   SUMA_Dset_Format_Name(oform));
          if (oform == SUMA_NO_DSET_FORMAT) {
             SUMA_SL_Err("Output format MUST be specified, or should be\n"
@@ -526,7 +526,7 @@ int main (int argc,char *argv[])
          exit(1);
       }
    }
-   
+
    exists = SUMA_WriteDset_NameCheck_s (prfx, NULL, oform, 0, &ooo);
    if (exists != 0 && !overwrite) {
       SUMA_S_Errv("Output dataset %s exists.\n", ooo);
@@ -535,19 +535,19 @@ int main (int argc,char *argv[])
    }
 
    for (i=i_input; i<i_input + 1; ++i) {
-      if (LocalHead) 
-         fprintf(SUMA_STDERR,"%s:\n Reading %s...\n", FuncName, argv[i]); 
-      dset = SUMA_LoadDset_s (argv[i], &iform, 0); 
+      if (LocalHead)
+         fprintf(SUMA_STDERR,"%s:\n Reading %s...\n", FuncName, argv[i]);
+      dset = SUMA_LoadDset_s (argv[i], &iform, 0);
       if (!dset) { SUMA_SL_Err(  "Failed to load dataset.\n"
                                  "Make sure file exists\n"
                                  "and is of the specified\n"
                                  "format."); exit(1); }
       if (LocalHead) {
-         fprintf(SUMA_STDERR,"%s:\n Read dset of format %s\n", 
+         fprintf(SUMA_STDERR,"%s:\n Read dset of format %s\n",
             FuncName, SUMA_Dset_Format_Name(iform));
          SUMA_ShowDset(dset, 0, NULL);
       }
-      
+
       if (dlabs) {
          if (dlabs->num != SDSET_VECNUM(dset)) {
             SUMA_S_Err("You have %d labels but %d sub-bricks in dset %s",
@@ -560,7 +560,7 @@ int main (int argc,char *argv[])
          }
          NI_delete_str_array(dlabs); dlabs = NULL;
       }
-      
+
       if (toGDSET) {
          SUMA_LH("Going to graph format");
          if (graph_edgelist_1D) {
@@ -578,11 +578,11 @@ int main (int argc,char *argv[])
             if (!(dsetc = SUMA_CoercedCopyofDset(dseti, SUMA_int, NULL))) {
                SUMA_S_Err("Failed to copy to ints?");
                exit(1);
-            }  
+            }
             SUMA_FreeDset(dseti); dseti = dsetc; dsetc = NULL;
             switch (SDSET_VECNUM(dseti)){
                case 2:
-                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat, 
+                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat,
                                            NULL,
                                            (int *)SDSET_VEC(dseti,0),
                                            (int *)SDSET_VEC(dseti,1)))) {
@@ -590,7 +590,7 @@ int main (int argc,char *argv[])
                   }
                   break;
                case 3:
-                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat, 
+                  if (!(SUMA_Dset_to_GDSET(&dset, NULL, OneMat,
                                            (int *)SDSET_VEC(dseti,0),
                                            (int *)SDSET_VEC(dseti,1),
                                            (int *)SDSET_VEC(dseti,2)))) {
@@ -607,15 +607,15 @@ int main (int argc,char *argv[])
                SUMA_S_Err("Failed to graphize");
             }
          }
-         
+
          if (graph_nodelist_1D) {
             SUMA_DSET *dsetind=NULL;
             SUMA_LH("Set Aux shape");
             if (!SUMA_GDSET_Set_Aux_matrix_shape(dset)) {
                SUMA_S_Err("Need my matrix params");
                exit(1);
-            } 
-            
+            }
+
             SUMA_LH("Now the nodelist");
             iform = SUMA_1D;
             if (!(dseti = SUMA_LoadDset_s (graph_nodelist_1D, &iform, 0))) {
@@ -624,12 +624,12 @@ int main (int argc,char *argv[])
             }
             if (SDSET_VECNUM(dseti) != 3) {
                SUMA_S_Err("Bad nodelist source\n"
-                          "Only 3 column allowed, have %d of them in %s", 
+                          "Only 3 column allowed, have %d of them in %s",
                           SDSET_VECNUM(dseti), graph_nodelist_1D);
                exit(1);
             }
             if (graph_nodeindlist_1D) {
-               if (!(dsetind = 
+               if (!(dsetind =
                         SUMA_LoadDset_s (graph_nodeindlist_1D, &iform, 0))) {
                   SUMA_S_Err("Failed to load node index list %s",
                              graph_nodeindlist_1D);
@@ -642,7 +642,7 @@ int main (int argc,char *argv[])
                   exit(1);
                }
                if (SDSET_VECFILLED(dseti) != SDSET_VECFILLED(dsetind)) {
-                  SUMA_S_Errv( 
+                  SUMA_S_Errv(
                      "mismatch in number of values between %s and %s\n",
                      graph_nodelist_1D, graph_nodeindlist_1D);
                   exit(1);
@@ -650,7 +650,7 @@ int main (int argc,char *argv[])
                /* coerce index input to int */
                {
                   SUMA_DSET *dsetc=NULL;
-                  if (!(dsetc = SUMA_CoercedCopyofDset(dsetind, 
+                  if (!(dsetc = SUMA_CoercedCopyofDset(dsetind,
                                                        SUMA_int, NULL))) {
                      SUMA_S_Err("Failed coerce");
                      exit(1);
@@ -658,13 +658,13 @@ int main (int argc,char *argv[])
                   SUMA_FreeDset(dsetind); dsetind = dsetc; dsetc = NULL;
                }
                ivec = SDSET_VEC(dsetind,0);
-               dsetind->dnel->vec[0] = NULL; 
+               dsetind->dnel->vec[0] = NULL;
                SUMA_FreeDset(dsetind); dsetind = NULL;
             } else if (graph_nodeindlist_txt) {
                char *fl=NULL, *fle=NULL, *fl2=NULL;
                int ok=0, cnt=0, mxcol=0, nalloc=0, nchar, ans;
                float dum;
-               
+
                /* Load file that has node indices and labels */
                if (!(fl = SUMA_file_suck(graph_nodeindlist_txt, &nchar))) {
                   SUMA_S_Errv("Faile to read %s\n", graph_nodeindlist_txt);
@@ -678,17 +678,17 @@ int main (int argc,char *argv[])
                   do {
                      /* skip comment, if any */
                      SUMA_IS_COMMENT_LINE(fl, fle, '#', ans);
-                     if (ans) {  
-                        SUMA_LH("Skipping comment..."); 
+                     if (ans) {
+                        SUMA_LH("Skipping comment...");
                         SUMA_SKIP_LINE(fl, fle);
                      }
-                  } while (ans); 
-                  SUMA_SKIP_BLANK(fl, fle); if (fl == fle) break; 
+                  } while (ans);
+                  SUMA_SKIP_BLANK(fl, fle); if (fl == fle) break;
                   SUMA_LHv("Now at >>%s<<\n", fl);
                   /* read first number */
-                  SUMA_ADVANCE_PAST_NUM(fl, dum, ok); 
-                  if (!ok && fl!=fle) { 
-                     SUMA_S_Errv("Failed to read i, stuck at >>%s<<\n", 
+                  SUMA_ADVANCE_PAST_NUM(fl, dum, ok);
+                  if (!ok && fl!=fle) {
+                     SUMA_S_Errv("Failed to read i, stuck at >>%s<<\n",
                                  fl); exit(1);
                   }
                   if (cnt >= nalloc) {
@@ -711,7 +711,7 @@ int main (int argc,char *argv[])
                   } else {
                      SUMA_S_Errv("Failed to get label associated with index %d\n"
                                  ,ivec[cnt]);
-                     exit(1); 
+                     exit(1);
                   }
                   /* And lastly, do we have numbers left? */
                   SUMA_SKIP_PURE_BLANK(fl, fle);
@@ -756,14 +756,14 @@ int main (int argc,char *argv[])
                }
                if (cnt != SDSET_VECFILLED(dseti)) {
                   SUMA_S_Errv("Have %d entries in %s but %d enties in %s\n",
-                           cnt, graph_nodeindlist_txt, 
+                           cnt, graph_nodeindlist_txt,
                            SDSET_VECFILLED(dseti), graph_nodelist_1D);
                   exit(1);
                }
                /* check on colors and grouping */
                if (clan[0] == -2) {/* No grouping, no colors */
                   SUMA_ifree(clan); SUMA_ifree(cols);
-               } else { 
+               } else {
                   mxgrp = -1;
                   for (cnt=0; cnt <SDSET_VECFILLED(dseti); ++cnt) {
                      if (clan[cnt] > mxgrp) mxgrp = clan[cnt];
@@ -786,8 +786,8 @@ int main (int argc,char *argv[])
             }
 
             SUMA_LH( "Have %d node indices %d .. %d in %s\n"
-                     "Graph %s has %ld segment nodes, %ld nodes defined.\n", 
-                    SDSET_VECFILLED(dseti), ivec[0], 
+                     "Graph %s has %ld segment nodes, %ld nodes defined.\n",
+                    SDSET_VECFILLED(dseti), ivec[0],
                     ivec[SDSET_VECFILLED(dseti)-1], SDSET_LABEL(dseti),
                     SDSET_LABEL(dset), GDSET_N_SEG_POINTS(dset),
                     GDSET_N_ALL_POINTS(dset));
@@ -810,24 +810,24 @@ int main (int argc,char *argv[])
                                                      cols,
                                                      SDSET_VECFILLED(dseti)))) {
                SUMA_S_Err("Failed to add node list");
-               exit(1);                                       
+               exit(1);
             }
             SUMA_FreeDset(dseti); dseti = NULL;
             if (ivec) free(ivec); ivec=NULL;
             if (names) SUMA_free(names); names = NULL;
             SUMA_ifree(cols); SUMA_ifree(clan);
          }
-         if (LocalHead) SUMA_ShowDset(dset,0, NULL);  
+         if (LocalHead) SUMA_ShowDset(dset,0, NULL);
       }
-      
+
       SUMA_LH("Checking on inel...");
       /* make sure inel is initialized*/
-      if (!dset->inel || !SDSET_NODEINDLEN(dset)) { 
-         SUMA_SL_Err("Bad dset->inel\nOld niml dset?"); 
-         SUMA_ShowDset(dset,0, NULL); 
+      if (!dset->inel || !SDSET_NODEINDLEN(dset)) {
+         SUMA_SL_Err("Bad dset->inel\nOld niml dset?");
+         SUMA_ShowDset(dset,0, NULL);
          SUMA_DUMP_TRACE("Bad dset->inel, dumping trace for debug:");
-         SUMA_FreeDset(dset); dset = NULL; 
-         SUMA_RETURN(1); 
+         SUMA_FreeDset(dset); dset = NULL;
+         SUMA_RETURN(1);
       }
 
       SUMA_LH("On to node index stuff...");
@@ -836,7 +836,7 @@ int main (int argc,char *argv[])
          if (!(dseti = SUMA_LoadDset_s (node_index_1d, &iform, 0))) {
             SUMA_S_Err("Failed to load node index dset");
             exit(1);
-         } 
+         }
          if (SDSET_VECNUM(dseti) != 1) {
             SUMA_S_Err("Bad node index source, only one column allowed");
             exit(1);
@@ -845,50 +845,50 @@ int main (int argc,char *argv[])
             SUMA_S_Err(
                "mismatch in number of values in index source and dataset");
             exit(1);
-         } 
+         }
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) {
             Ti[j] = (int)fv[j];
          }
-         if (!SUMA_AddDsetNelCol (  dset, "Node Index", 
+         if (!SUMA_AddDsetNelCol (  dset, "Node Index",
                                     SUMA_NODE_INDEX, (void *)Ti, NULL, 1)) {
             SUMA_SL_Err("Failed to add column");
             if (Ti) SUMA_free(Ti); Ti = NULL;
             exit(1);
          }
-         SUMA_free(Ti); Ti = NULL; 
+         SUMA_free(Ti); Ti = NULL;
          SUMA_FreeDset(dseti); dseti = NULL;
       }
-      
-      
+
+
       if (add_node_index) {
          if (!SUMA_PopulateDsetNodeIndexNel(dset, 1)) {
             SUMA_S_Err("Failed to add node index column");
             exit(1);
          }
       }
-             
+
       if (pad_to_node == 0) {
          DSET_MAX_NODE_INDEX(dset, pad_to_node);
          if (pad_to_node < 0) {
-            SUMA_S_Err( "Failed to get max node index in input dset.\n" 
-                  "Cannot set pad_to_node automatically\n");   
+            SUMA_S_Err( "Failed to get max node index in input dset.\n"
+                  "Cannot set pad_to_node automatically\n");
             exit(1);
          }
       }
       if (pad_to_node > 0) {
          SUMA_S_Notev("Padding output dset until node %d\n", pad_to_node);
       }
-       
-      SUMA_LHv("On to auto_nmask ...%p %p %p\n", 
+
+      SUMA_LHv("On to auto_nmask ...%p %p %p\n",
                ps->bmaskname,ps->nmaskname,ps->cmask);
-      if (!(auto_nmask = 
-               SUMA_load_all_command_masks(  ps->bmaskname, 
-                                             ps->nmaskname, 
-                                             ps->cmask, 
-                                             SDSET_VECFILLED(dset), 
-                                             &N_inmask)) 
+      if (!(auto_nmask =
+               SUMA_load_all_command_masks(  ps->bmaskname,
+                                             ps->nmaskname,
+                                             ps->cmask,
+                                             SDSET_VECFILLED(dset),
+                                             &N_inmask))
             && N_inmask < 0) {
             SUMA_S_Err("Failed loading mask");
             exit(1);
@@ -900,21 +900,21 @@ int main (int argc,char *argv[])
             exit(1);
          }
          SUMA_FreeDset(dset); dset = NULL;
-         dset = dset_m;  dset_m = NULL;       
+         dset = dset_m;  dset_m = NULL;
       }
-      
+
       SUMA_LH("On to node_mask ...");
       if (node_mask) { /* mask dataset */
          iform = SUMA_1D;
          if (!(dseti = SUMA_LoadDset_s (node_mask, &iform, 0))) {
             SUMA_S_Err("Failed to load node_selection dset");
             exit(1);
-         } 
+         }
          if (SDSET_VECNUM(dseti) != 1) {
             SUMA_S_Err("Bad node index source, only one column allowed");
             exit(1);
          }
-         
+
          Ti = (int *) SUMA_calloc(SDSET_VECFILLED(dseti), sizeof(int));
          fv = (float *)dseti->dnel->vec[0];
          for (j=0; j<SDSET_VECFILLED(dseti); ++j) Ti[j] = (int)fv[j];
@@ -922,7 +922,7 @@ int main (int argc,char *argv[])
          if (orderednodelist) {
             int *inlu=NULL, N_inlu=0;
             /* make sure indexlist is unique */
-            inlu = SUMA_UniqueInt(Ti, SDSET_VECFILLED(dseti), 
+            inlu = SUMA_UniqueInt(Ti, SDSET_VECFILLED(dseti),
                                   &N_inlu, 0);
             SUMA_free(inlu); inlu = NULL;
             if (N_inlu != SDSET_VECFILLED(dseti)) {
@@ -930,7 +930,7 @@ int main (int argc,char *argv[])
                            "This is not supported.");
                exit(1);
             }
-   
+
 
             if (!(dset_m = SUMA_MaskedByOrderedNodeIndexCopyofDset(
                      dset, Ti, SDSET_VECFILLED(dseti),  NULL, 1, 0))) {
@@ -950,52 +950,52 @@ int main (int argc,char *argv[])
                exit(1);
             }
          }
-         
-         SUMA_free(Ti); Ti = NULL; 
+
+         SUMA_free(Ti); Ti = NULL;
          SUMA_free(indexmap); indexmap = NULL;
-         SUMA_FreeDset(dseti); dseti = NULL;         
+         SUMA_FreeDset(dseti); dseti = NULL;
          SUMA_FreeDset(dset); dset = NULL;
-         dset = dset_m;  dset_m = NULL;       
+         dset = dset_m;  dset_m = NULL;
       }
 
-      
+
       if (pad_to_node >= 0) {
          dset_m = SUMA_PaddedCopyofDset ( dset, pad_to_node );
          SUMA_FreeDset(dset); dset = NULL;
-         dset = dset_m; dset_m = NULL;       
+         dset = dset_m; dset_m = NULL;
       }
-      
+
       SUMA_LH("On to prefix ...");
-      
+
       if (!prfx) {
          /* don't use iform because some 1Ds are NIML compatible and they get
          read-in as such unless you specifically order otherwise. */
          prefix = SUMA_RemoveDsetExtension_s(argv[i], SUMA_NO_DSET_FORMAT);
-      } else { 
-         prefix = SUMA_copy_string(prfx); 
+      } else {
+         prefix = SUMA_copy_string(prfx);
       }
-      
+
       /* set a new ID for the dset */
       SUMA_NEWDSET_ID_LABEL_HIST(dset, prefix) ;
-      
-      
+
+
       if (no_hist) {
          SUMA_RemoveDsetHist(dset);
       }
-            
-      if (prepend_node_index) {/* prepend node index? */         
-         if (!SUMA_InsertDsetNelCol (  dset, "Node Index Copy", 
-                                       SUMA_NODE_INT, 
-                                       (void *)(dset->inel->vec[0]), 
+
+      if (prepend_node_index) {/* prepend node index? */
+         if (!SUMA_InsertDsetNelCol (  dset, "Node Index Copy",
+                                       SUMA_NODE_INT,
+                                       (void *)(dset->inel->vec[0]),
                                        NULL ,1, 0)) {
             SUMA_S_Err("Failed to insert column");
          }
-         if (LocalHead) SUMA_ShowDset(dset,0, NULL); 
+         if (LocalHead) SUMA_ShowDset(dset,0, NULL);
       }
-      
+
       if (cmapfile && SM) { /* labelize */
          SUMA_DSET *idset;
-         if (!SUMA_is_AllConsistentCastType_dset(dset, SUMA_int)) { 
+         if (!SUMA_is_AllConsistentCastType_dset(dset, SUMA_int)) {
             idset = SUMA_CoercedCopyofDset(dset, SUMA_int, NULL);
          } else {
             idset = dset;
@@ -1004,19 +1004,19 @@ int main (int argc,char *argv[])
             SUMA_S_Err("Failed to make change");
             exit(1);
          }
-      
+
          if (idset != dset) {
             SUMA_FreeDset(dset); dset = idset; idset=NULL;
          }
       }
-      
+
       SUMA_LHv("About to write dset to %s\n", prefix);
       if (!split) {
          NameOut = SUMA_WriteDset_s (prefix, dset, oform, overwrite, 0);
-         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
-            SUMA_SL_Err("Failed to write dataset."); exit(1); 
+         if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) {
+            SUMA_SL_Err("Failed to write dataset."); exit(1);
          } else {
-            if (NameOut) SUMA_free(NameOut); NameOut = NULL;      
+            if (NameOut) SUMA_free(NameOut); NameOut = NULL;
          }
       } else {
          int ksp, ikp, ikps, nsplits=(int)ceil((float)SDSET_VECNUM(dset)/split);
@@ -1027,7 +1027,7 @@ int main (int argc,char *argv[])
          for (ksp=0; ksp<split; ++ksp) {
             sprintf(cbuf,"%04d",ksp);
             memset(colmask, 0, sizeof(byte)*SDSET_VECNUM(dset));
-            ikp = ksp*nsplits; 
+            ikp = ksp*nsplits;
             ikps = SUMA_MIN_PAIR(SDSET_VECNUM(dset), (ksp+1)*nsplits);
             if (ikp == ikps) continue; /* all one */
             while (ikp < ikps) colmask[ikp++]=1;
@@ -1035,25 +1035,25 @@ int main (int argc,char *argv[])
             prefs = SUMA_append_replace_string(prefs,cbuf,".", 1);
             if (!(ds = SUMA_MaskedCopyofDset(dset, NULL, colmask, 1, 1))) {
                SUMA_S_Err("Failed to get masked copy");
-               exit(1); 
-            } 
+               exit(1);
+            }
             NameOut = SUMA_WriteDset_s (prefs, ds, oform, overwrite, 0);
-            if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) { 
-               SUMA_SL_Err("Failed to write dataset."); exit(1); 
+            if (!NameOut && !SUMA_IS_DSET_STDXXX_FORMAT(oform)) {
+               SUMA_SL_Err("Failed to write dataset."); exit(1);
             } else {
                if (NameOut) SUMA_free(NameOut); NameOut = NULL;
             }
             if (prefs) SUMA_free(prefs);
-            SUMA_FreeDset(ds); ds=NULL; 
+            SUMA_FreeDset(ds); ds=NULL;
          }
          SUMA_free(colmask); colmask=NULL;
       }
-      
+
       if (SM) SUMA_Free_ColorMap(SM); SM = NULL;
-      if (prefix) SUMA_free(prefix); prefix = NULL;    
+      if (prefix) SUMA_free(prefix); prefix = NULL;
       if (dset) SUMA_FreeDset((void *)dset); dset = NULL;
       if (NameOut) SUMA_free(NameOut); NameOut = NULL;
    }
-   
+
 	SUMA_RETURN(0);
-}    
+}

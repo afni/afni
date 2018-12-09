@@ -8,8 +8,8 @@
 /*
   This program finds local extrema (minima or maxima) of the input
   dataset values for each sub-brick of the input dataset.  The extrema
-  may be determined either for each volume, or for each individual slice.  
-  Only those voxels whose corresponding intensity value is greater than 
+  may be determined either for each volume, or for each individual slice.
+  Only those voxels whose corresponding intensity value is greater than
   the user specified data threshold will be considered.
 
   File:    3dExtrema.c
@@ -38,7 +38,7 @@
 
 /*---------------------------------------------------------------------------*/
 /*
-  Structure declarations 
+  Structure declarations
 */
 
 struct extrema;
@@ -69,7 +69,7 @@ typedef struct extrema
 static THD_coorder EX_cord;  /* get orientation from AFNI_ORIENT environment */
 
 static int EX_nx, EX_ny, EX_nz,           /* dataset dimensions in voxels */
-           EX_nxy, EX_nxyz;               
+           EX_nxy, EX_nxyz;
 
 static int        EX_quiet      = 0;      /* flag for suppress screen output */
 static int        EX_relation   = 1;      /* flag for binary relation */
@@ -99,7 +99,7 @@ static byte * EX_mask = NULL;             /* mask for voxels above thr. */
 
 static char * commandline = NULL;          /* command line for history notes */
 
-static THD_3dim_dataset * EX_dset = NULL;  /* first input dataset */  
+static THD_3dim_dataset * EX_dset = NULL;  /* first input dataset */
 
 /*---------------------------------------------------------------------------*/
 
@@ -108,7 +108,7 @@ static THD_3dim_dataset * EX_dset = NULL;  /* first input dataset */
 #define MTEST(ptr) \
 if((ptr)==NULL) \
 ( printf ("Cannot allocate memory \n"),  exit(1) )
-     
+
 
 /*---------------------------------------------------------------------------*/
 
@@ -160,14 +160,14 @@ void EX_error (char * message)
 /*
   Create an empty extrema.
 */
-  
+
 extrema * initialize_extrema ()
 {
   extrema * extrema_ptr = NULL;
 
   extrema_ptr = (extrema *) malloc (sizeof(extrema));
   MTEST (extrema_ptr);
-  
+
   extrema_ptr->intensity = 0.0;
   extrema_ptr->centroid = NULL;
   extrema_ptr->count = 0;
@@ -177,7 +177,7 @@ extrema * initialize_extrema ()
   extrema_ptr->next_extrema = NULL;
 
   return (extrema_ptr);
-  
+
 }
 
 
@@ -240,7 +240,7 @@ void print_all_extrema (int ivolume, int islice, extrema * extrema_ptr)
          printf ("%10s",    "Count");
          printf ("%6s[mm]", "Dist");
          printf ("\n");
-         
+
          printf ( "%5s", "-----");
          printf ("%15s", "---------");
          printf ("%10s", "------");
@@ -285,7 +285,7 @@ float extrema_distance (extrema * aextrema, extrema * bextrema)
     }
 
   return (sqrt(sumsqr));
-  
+
 }
 
 
@@ -294,7 +294,7 @@ float extrema_distance (extrema * aextrema, extrema * bextrema)
   Find the extrema which is nearest to new_extrema.
   Set the nearest_dist and nearest_extrema structure elements accordingly.
 */
-  
+
 void find_nearest_extrema (extrema * new_extrema, extrema * head_extrema)
 {
   const float MAX_DIST = 1.0e+30;
@@ -370,7 +370,7 @@ extrema * new_extrema (float * centroid, float intensity,
   head_extrema = add_extrema (extrema_ptr, head_extrema);
 
   return (head_extrema);
-  
+
 }
 
 
@@ -397,7 +397,7 @@ void delete_extrema (extrema * extrema_ptr)
 /*---------------------------------------------------------------------------*/
 /*
   Remove one extrema from linked list of extrema.
-  Reset extrema pointers, and recalculate nearest extrema distances 
+  Reset extrema pointers, and recalculate nearest extrema distances
   where needed.  Finally, delete the extrema from memory.
 */
 
@@ -405,7 +405,7 @@ extrema * remove_extrema (extrema * aextrema, extrema * head_extrema)
 {
   extrema * extrema_ptr = NULL;
   extrema * next_extrema = NULL;
-  
+
 
   if (head_extrema == NULL)  return NULL;
 
@@ -423,7 +423,7 @@ extrema * remove_extrema (extrema * aextrema, extrema * head_extrema)
 	    extrema_ptr->next_extrema = next_extrema->next_extrema;
 	  else
 	    extrema_ptr = next_extrema;
-	  
+
 	  next_extrema = extrema_ptr->next_extrema;
 	}
     }
@@ -435,7 +435,7 @@ extrema * remove_extrema (extrema * aextrema, extrema * head_extrema)
       extrema_ptr = head_extrema;
       while (extrema_ptr != NULL)
 	{
-	  if (extrema_ptr->nearest_extrema == aextrema) 
+	  if (extrema_ptr->nearest_extrema == aextrema)
 	    {
 	      find_nearest_extrema (extrema_ptr, head_extrema);
 	    }
@@ -474,7 +474,7 @@ extrema * average_extrema (extrema * aextrema, extrema * bextrema)
 
 
   /*----- Average of extrema intensities -----*/
-  abextrema->intensity = 
+  abextrema->intensity =
     (na*aextrema->intensity + nb*bextrema->intensity) / (na+nb);
 
 
@@ -484,9 +484,9 @@ extrema * average_extrema (extrema * aextrema, extrema * bextrema)
 
   /*----- Average of extrema locations -----*/
   for (i = 0;  i < EX_DIMENSION;  i++)
-    abextrema->centroid[i] = 
+    abextrema->centroid[i] =
       (na*aextrema->centroid[i] + nb*bextrema->centroid[i]) / (na + nb);
-  
+
 
   return (abextrema);
 }
@@ -519,7 +519,7 @@ extrema * weight_extrema (extrema * aextrema, extrema * bextrema)
 
 
   /*----- Weighted average of extrema intensities -----*/
-  abextrema->intensity = 
+  abextrema->intensity =
     (suma*aextrema->intensity + sumb*bextrema->intensity) / (suma + sumb);
 
 
@@ -529,9 +529,9 @@ extrema * weight_extrema (extrema * aextrema, extrema * bextrema)
 
   /*----- Weighted average of extrema locations -----*/
   for (i = 0;  i < EX_DIMENSION;  i++)
-    abextrema->centroid[i] = 
+    abextrema->centroid[i] =
       (suma*aextrema->centroid[i] + sumb*bextrema->centroid[i]) / (suma+sumb);
-  
+
 
   return (abextrema);
 }
@@ -541,8 +541,8 @@ extrema * weight_extrema (extrema * aextrema, extrema * bextrema)
 /*
   Merge two extrema.
 */
-  
-extrema * merge_extrema (extrema * aextrema, extrema * bextrema, 
+
+extrema * merge_extrema (extrema * aextrema, extrema * bextrema,
 			 extrema * head_extrema)
 {
   extrema * abextrema = NULL;
@@ -560,7 +560,7 @@ extrema * merge_extrema (extrema * aextrema, extrema * bextrema,
 	}
       else
 	{
-	  bextrema->count++;	  
+	  bextrema->count++;
 	  head_extrema = remove_extrema (aextrema, head_extrema);
 	}
       break;
@@ -578,12 +578,12 @@ extrema * merge_extrema (extrema * aextrema, extrema * bextrema,
 
       /*----- Add the merged extrema to the linked list -----*/
       head_extrema = add_extrema (abextrema, head_extrema);
-  
+
       break;
 
 
     case 3:   /*----- Merge extrema using weighted average -----*/
- 
+
       /*----- Merge two extrema into one new extrema -----*/
       abextrema = weight_extrema (aextrema, bextrema);
 
@@ -611,8 +611,8 @@ extrema * merge_extrema (extrema * aextrema, extrema * bextrema,
 
 extrema * sort_extrema (extrema * head_extrema)
 {
-  extrema * i  = NULL; 
-  extrema * ip = NULL; 
+  extrema * i  = NULL;
+  extrema * ip = NULL;
   extrema * m  = NULL;
   extrema * mp = NULL;
   extrema * j  = NULL;
@@ -657,10 +657,10 @@ extrema * sort_extrema (extrema * head_extrema)
 
       /*----- Move down the list -----*/
       ip = i;
-	
+
     }
 
-  
+
   /*----- Replace head extrema -----*/
   head_extrema = guard->next_extrema;
   delete_extrema (guard);
@@ -701,10 +701,10 @@ extrema * agglomerate_extrema (extrema * head_extrema, float sep_dist)
 	      min_dist = extrema_ptr->nearest_dist;
 	      aextrema = extrema_ptr;
 	      bextrema = extrema_ptr->nearest_extrema;
-	    } 
+	    }
 	  extrema_ptr = extrema_ptr->next_extrema;
 	}
-      
+
       /*
 	printf ("min_dist = %f \n", min_dist);
       */
@@ -731,7 +731,7 @@ float * to_3dmm (int ixyz)
   int ix, jy, kz;
   THD_fvec3 fv;
   THD_ivec3 iv;
-  
+
 
   location = (float *) malloc (sizeof(float) * EX_DIMENSION);
 
@@ -740,11 +740,11 @@ float * to_3dmm (int ixyz)
   iv.ijk[0] = ix;  iv.ijk[1] = jy;  iv.ijk[2] = kz;
 
   fv = THD_3dind_to_3dmm (EX_dset, iv);
-  
+
   fv = THD_3dmm_to_dicomm (EX_dset, fv);
-  
+
   x = fv.xyz[0];  y = fv.xyz[1];  z = fv.xyz[2];
-  
+
   THD_dicom_to_coorder (&EX_cord, &x, &y, &z);
 
   location[0] = x;  location[1] = y;  location[2] = z;
@@ -758,9 +758,9 @@ float * to_3dmm (int ixyz)
   Find all extrema within one volume (or slice).
 */
 
-extrema * find_extrema 
+extrema * find_extrema
 (
-  float * fvol,                  /* volume or slice of floating point data */ 
+  float * fvol,                  /* volume or slice of floating point data */
   int num_nv,                    /* number of neighboring voxels */
   int nfirst,                    /* index of first voxel in volume or slice */
   int nlast                      /* index of last voxel in volume or slice */
@@ -775,12 +775,12 @@ extrema * find_extrema
   extrema * head_extrema = NULL; /* linked list of extrema */
   int passed_test;               /* flag for voxel is valid extema */
 
-  
+
   /*----- Initialize local variables -----*/
-  nx = EX_nx;      ny = EX_ny;      nz = EX_nz;  
+  nx = EX_nx;      ny = EX_ny;      nz = EX_nz;
   nxy = nx * ny;   nxyz = nx*ny*nz;
-  
-  
+
+
   /*----- Loop over voxels -----*/
   for (ixyz = nfirst;  ixyz < nlast;  ixyz++)
     {
@@ -790,8 +790,8 @@ extrema * find_extrema
 
       /*----- Does voxel satisfy data threshold criterion? -----*/
       fval = fvol[ixyz];
-      if (fabs(fval) < EX_data_thr)  continue; 
-	
+      if (fabs(fval) < EX_data_thr)  continue;
+
       /*----- Begin loop over neighboring voxels -----*/
       it = 0;
       passed_test = 1;
@@ -801,30 +801,30 @@ extrema * find_extrema
 
 	  /*----- Check for valid neighbor index -----*/
 	  if ((ijk < nfirst) || (ijk >= nlast))
-	    {  
-	      if (EX_interior)  passed_test = 0;
-	    }
-  
-	  /*----- Early exit if neighbor is not inside the mask -----*/
-	  else if (!EX_mask[ijk])  
 	    {
 	      if (EX_interior)  passed_test = 0;
 	    }
-	    
+
+	  /*----- Early exit if neighbor is not inside the mask -----*/
+	  else if (!EX_mask[ijk])
+	    {
+	      if (EX_interior)  passed_test = 0;
+	    }
+
 	  /*----- Test binary relation -----*/
 	  else
 	    switch (EX_relation)
 	      {
-	      case EX_GT: 
+	      case EX_GT:
 		if (fval <= fvol[ijk])
 		  passed_test = 0;  break;
-	      case EX_GE: 
+	      case EX_GE:
 		if (fval <  fvol[ijk])
 		  passed_test = 0;  break;
-	      case EX_LT: 
+	      case EX_LT:
 		if (fval >= fvol[ijk])
 		  passed_test = 0;  break;
-	      case EX_LE: 
+	      case EX_LE:
 		if (fval >  fvol[ijk])
 		  passed_test = 0;  break;
 	      }
@@ -833,14 +833,14 @@ extrema * find_extrema
 	}
 
 
-      /*----- If extrema are found, save relevant information -----*/ 
-      if (passed_test) 
+      /*----- If extrema are found, save relevant information -----*/
+      if (passed_test)
 	{
 	  location = to_3dmm (ixyz);
 	  head_extrema = new_extrema (location, fval, head_extrema);
 	}
     }
-  
+
 
   /*----- Agglomerate extrema -----*/
   if (EX_sep_dist > 0.0)  head_extrema = agglomerate_extrema (head_extrema,
@@ -875,11 +875,11 @@ int from_3dmm (float * location)
   fv.xyz[0] = x;  fv.xyz[1] = y;  fv.xyz[2] = z;
 
   fv = THD_dicomm_to_3dmm (EX_dset, fv);
- 
+
   iv = THD_3dmm_to_3dind (EX_dset, fv);
-    
+
   ix = iv.ijk[0];  jy = iv.ijk[1];  kz = iv.ijk[2];
- 
+
   if (ix < 0) ix = 0;   if (ix > EX_nx-1) ix = EX_nx-1;
   if (jy < 0) jy = 0;   if (jy > EX_ny-1) jy = EX_ny-1;
   if (kz < 0) kz = 0;   if (kz > EX_nz-1) kz = EX_nz-1;
@@ -1029,7 +1029,7 @@ int EX_read_opts( int argc , char * argv[] )
          if( nopt >= argc ){
             EX_error (" need argument after -prefix!");
          }
-	 EX_output_prefix = (char *) malloc (sizeof(char) * THD_MAX_PREFIX); 
+	 EX_output_prefix = (char *) malloc (sizeof(char) * THD_MAX_PREFIX);
          MCW_strncpy( EX_output_prefix , argv[nopt++] , THD_MAX_PREFIX ) ;
          continue ;
       }
@@ -1039,9 +1039,9 @@ int EX_read_opts( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-session") == 0 ){
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need argument after -session!"); 
+            EX_error (" need argument after -session!");
          }
-	 EX_session = (char *) malloc (sizeof(char) * THD_MAX_NAME); 
+	 EX_session = (char *) malloc (sizeof(char) * THD_MAX_NAME);
          MCW_strncpy( EX_session , argv[nopt++] , THD_MAX_NAME ) ;
          continue ;
       }
@@ -1121,10 +1121,10 @@ int EX_read_opts( int argc , char * argv[] )
       if( strcmp(argv[nopt],"-mask_file") == 0 ){
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need 1 argument after -mask_file"); 
+            EX_error (" need 1 argument after -mask_file");
          }
 
-	 EX_mask_filename = (char *) malloc (sizeof(char) * THD_MAX_NAME); 
+	 EX_mask_filename = (char *) malloc (sizeof(char) * THD_MAX_NAME);
          MCW_strncpy( EX_mask_filename , argv[nopt++] , THD_MAX_NAME ) ;
 	 continue;
       }
@@ -1135,9 +1135,9 @@ int EX_read_opts( int argc , char * argv[] )
 	 float fval;
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need 1 argument after -mask_thr"); 
+            EX_error (" need 1 argument after -mask_thr");
          }
-	 sscanf (argv[nopt], "%f", &fval); 
+	 sscanf (argv[nopt], "%f", &fval);
 	 if (fval < 0.0){
             EX_error (" Require mask_thr >= 0.0 ");
          }
@@ -1152,9 +1152,9 @@ int EX_read_opts( int argc , char * argv[] )
 	 float fval;
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need 1 argument after -data_thr"); 
+            EX_error (" need 1 argument after -data_thr");
          }
-	 sscanf (argv[nopt], "%f", &fval); 
+	 sscanf (argv[nopt], "%f", &fval);
 	 if (fval < 0.0){
             EX_error (" Require data_thr >= 0.0 ");
          }
@@ -1162,7 +1162,7 @@ int EX_read_opts( int argc , char * argv[] )
 	 nopt++;  continue;
 
       }
-      
+
 
       /**** -remove ****/
       if( strcmp(argv[nopt],"-remove") == 0 ){
@@ -1190,9 +1190,9 @@ int EX_read_opts( int argc , char * argv[] )
 	 int ival;
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need 1 argument after -nbest"); 
+            EX_error (" need 1 argument after -nbest");
          }
-	 sscanf (argv[nopt], "%i", &ival); 
+	 sscanf (argv[nopt], "%i", &ival);
 	 if (ival < 0) {
             EX_error (" Require -nbest parameter >= 0 ");
          }
@@ -1206,9 +1206,9 @@ int EX_read_opts( int argc , char * argv[] )
 	 float fval;
          nopt++ ;
          if( nopt >= argc ){
-            EX_error (" need 1 argument after -sep_dist"); 
+            EX_error (" need 1 argument after -sep_dist");
          }
-	 sscanf (argv[nopt], "%f", &fval); 
+	 sscanf (argv[nopt], "%f", &fval);
 	 if (fval < 0.0){
             EX_error (" Require data_thr >= 0.0 ");
          }
@@ -1231,7 +1231,7 @@ int EX_read_opts( int argc , char * argv[] )
 
    }  /* end of loop over command line arguments */
 
-   
+
    /*----- Check for valid input -----*/
    if ((EX_merge == 3) && (EX_maxima == 0))
      EX_error ("-weight option is not compatible with -minima option");
@@ -1273,9 +1273,9 @@ void initialize_program (int argc, char * argv[], int * nopt)
   /*----- Does user request help menu? -----*/
   if( argc < 2 || strcmp(argv[1],"-help") == 0 ) EX_Syntax() ;
 
-  
+
   /*----- Add to program log -----*/
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
+  AFNI_logger (PROGRAM_NAME,argc,argv);
 
 
   /*----- Read input options -----*/
@@ -1294,7 +1294,7 @@ void initialize_program (int argc, char * argv[], int * nopt)
 
       if (EX_dset == NULL)
 	{
-	  sprintf (message, "Cannot open mask dataset %s", EX_mask_filename); 
+	  sprintf (message, "Cannot open mask dataset %s", EX_mask_filename);
 	  EX_error (message);
 	}
 
@@ -1303,8 +1303,8 @@ void initialize_program (int argc, char * argv[], int * nopt)
 
 
       /*----- Get dimensions of mask dataset -----*/
-      nx   = DSET_NX(EX_dset);   
-      ny   = DSET_NY(EX_dset);   
+      nx   = DSET_NX(EX_dset);
+      ny   = DSET_NY(EX_dset);
       nz   = DSET_NZ(EX_dset);
       nxy  = nx * ny;  nxyz = nx*ny*nz;
 
@@ -1319,30 +1319,30 @@ void initialize_program (int argc, char * argv[], int * nopt)
       EDIT_coerce_scale_type (nxyz, DSET_BRICK_FACTOR(EX_dset,iv),
 			      DSET_BRICK_TYPE(EX_dset,iv), vfim,   /* input  */
 			      MRI_float                   , ffim); /* output */
-  
-      
+
+
       /*----- Allocate memory for mask volume -----*/
       EX_mask = (byte *) malloc (sizeof(byte) * nxyz);
       MTEST (EX_mask);
-      
-      
+
+
       /*----- Create mask of voxels above mask threshold -----*/
       nthr = 0;
       for (ixyz = 0;  ixyz < nxyz;  ixyz++)
-	if (fabs(ffim[ixyz]) >= EX_mask_thr)  
-	  { 
+	if (fabs(ffim[ixyz]) >= EX_mask_thr)
+	  {
 	    EX_mask[ixyz] = 1;
 	    nthr++;
 	  }
 	else
 	  EX_mask[ixyz] = 0;
 
-      if (!EX_quiet)  
+      if (!EX_quiet)
 	printf ("Number of voxels above mask threshold = %d \n", nthr);
-      if (nthr < MIN_NTHR)  
+      if (nthr < MIN_NTHR)
 	{
-	  sprintf (message, 
-		   "Only %d voxels above mask threshold.  Cannot continue.", 
+	  sprintf (message,
+		   "Only %d voxels above mask threshold.  Cannot continue.",
 		   nthr);
 	  EX_error (message);
 	}
@@ -1371,12 +1371,12 @@ void initialize_program (int argc, char * argv[], int * nopt)
     /*----- Get dimensions of input dataset -----*/
     if (nxyz == 0)
       {
-	nx   = DSET_NX(EX_dset);   
-	ny   = DSET_NY(EX_dset);   
+	nx   = DSET_NX(EX_dset);
+	ny   = DSET_NY(EX_dset);
 	nz   = DSET_NZ(EX_dset);
 	nxy  = nx * ny;  nxyz = nx*ny*nz;
       }
-    
+
     /*----- Create mask, if not already done -----*/
     if (EX_mask == NULL)
       {
@@ -1389,23 +1389,23 @@ void initialize_program (int argc, char * argv[], int * nopt)
 
   }
 
-  
+
   /*----- Save dimensions of dataset for compatibility test -----*/
   EX_nx   = nx;     EX_ny   = ny;     EX_nz   = nz;
-  EX_nxy  = nxy;    EX_nxyz = nxyz; 
+  EX_nxy  = nxy;    EX_nxyz = nxyz;
 
 
   /*----- The offset array definitions were borrowed from plug_maxima -----*/
   EX_offset[ 0] = +1;     EX_offset[ 8] = nxy;       EX_offset[17] = -nxy;
   EX_offset[ 1] = -1;     EX_offset[ 9] = nxy+1;     EX_offset[18] = -nxy+1;
-  EX_offset[ 2] =  nx;    EX_offset[10] = nxy-1;     EX_offset[19] = -nxy-1; 
+  EX_offset[ 2] =  nx;    EX_offset[10] = nxy-1;     EX_offset[19] = -nxy-1;
   EX_offset[ 3] =  nx+1;  EX_offset[11] = nxy+nx;    EX_offset[20] = -nxy+nx;
   EX_offset[ 4] =  nx-1;  EX_offset[12] = nxy+nx+1;  EX_offset[21] = -nxy+nx+1;
   EX_offset[ 5] = -nx;    EX_offset[13] = nxy+nx-1;  EX_offset[22] = -nxy+nx-1;
   EX_offset[ 6] = -nx+1;  EX_offset[14] = nxy-nx;    EX_offset[23] = -nxy-nx;
   EX_offset[ 7] = -nx-1;  EX_offset[15] = nxy-nx+1;  EX_offset[24] = -nxy-nx+1;
                           EX_offset[16] = nxy-nx-1;  EX_offset[25] = -nxy-nx-1;
-  
+
 }
 
 
@@ -1428,9 +1428,9 @@ void process_all_datasets (int argc, char * argv[], int nopt)
 
 
   /*----- Initialize local variables -----*/
-  nx = EX_nx;  ny = EX_ny;  nz = EX_nz;  
+  nx = EX_nx;  ny = EX_ny;  nz = EX_nz;
   nxy = nx * ny;  nxyz = nx*ny*nz;
-  
+
 
   /*----- Allocate memory for float data -----*/
   ffim = (float *) malloc (sizeof(float) * EX_nxyz);   MTEST (ffim);
@@ -1450,7 +1450,7 @@ void process_all_datasets (int argc, char * argv[], int nopt)
 
       if (input_dset == NULL)
 	{
-	  sprintf (message, "Cannot open input dataset %s", argv[nopt]); 
+	  sprintf (message, "Cannot open input dataset %s", argv[nopt]);
 	  EX_error (message);
 	}
 
@@ -1459,11 +1459,11 @@ void process_all_datasets (int argc, char * argv[], int nopt)
 	  || (EX_nz != DSET_NZ(input_dset)))
 	{
 	  sprintf (message, "Input dataset %s has incompatible dimensions",
-		   argv[nopt]); 
+		   argv[nopt]);
 	  EX_error (message);
 	}
-	
-     
+
+
       /*----- Get number of volumes specified for this dataset -----*/
       nbricks = DSET_NVALS(input_dset);
 
@@ -1474,20 +1474,20 @@ void process_all_datasets (int argc, char * argv[], int nopt)
 	  if (!EX_quiet)  printf ("Reading volume #%d \n", EX_nbricks);
 
 	  SUB_POINTER (input_dset, ibrick, 0, vfim);
-	  EDIT_coerce_scale_type 
+	  EDIT_coerce_scale_type
 	    (EX_nxyz, DSET_BRICK_FACTOR(input_dset,ibrick),
 	     DSET_BRICK_TYPE(input_dset,ibrick), vfim,   /* input  */
 	     MRI_float                         , ffim);  /* output */
-	  
+
 	  if (EX_slice)  /*----- Find extrema slice-by-slice -----*/
 	    {
 	      for (kz = 0;  kz < nz;  kz++)
 		{
 		  nfirst = kz*nxy;  nlast = nfirst + nxy;
-		  EX_head_extrema[EX_num_ll] 
+		  EX_head_extrema[EX_num_ll]
 		    = find_extrema (ffim, 8, nfirst, nlast);
 		  EX_num_ll++;
-		  if (EX_num_ll >= EX_MAX_LL)  
+		  if (EX_num_ll >= EX_MAX_LL)
 		    EX_error ("Exceeded Max. Number of Linked Lists");
 		}
 	    }
@@ -1495,18 +1495,18 @@ void process_all_datasets (int argc, char * argv[], int nopt)
 	    {
 	      EX_head_extrema[EX_num_ll] = find_extrema (ffim, 26, 0, nxyz);
 	      EX_num_ll++;
-	      if (EX_num_ll >= EX_MAX_LL)  
+	      if (EX_num_ll >= EX_MAX_LL)
 		EX_error ("Exceeded Max. Number of Linked Lists");
 	    }
 
 	  /*----- Increment count of sub-bricks -----*/
-	  EX_nbricks++;  
+	  EX_nbricks++;
 	}
 
 
       /*----- Delete input dataset -----*/
       THD_delete_3dim_dataset (input_dset, False);  input_dset = NULL ;
-     
+
       nopt++;
     }
 
@@ -1543,10 +1543,10 @@ void write_bucket ()
 
 
   /*----- Initialize local variables -----*/
-  nz = EX_nz;  
+  nz = EX_nz;
   nxyz = EX_nxyz;
   nbricks = EX_nbricks;
-  if (!EX_quiet) 
+  if (!EX_quiet)
     printf ("\nOutput dataset will have %d sub-bricks\n", nbricks);
 
 
@@ -1568,18 +1568,18 @@ void write_bucket ()
 			    ADN_func_type,       FUNC_BUCK_TYPE,
                             ADN_ntt,             0,               /* no time */
 			    ADN_nvals,           nbricks,
-			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,  
+			    ADN_malloc_type,     DATABLOCK_MEM_MALLOC ,
 			    ADN_none ) ;
-  
+
   if( ierror > 0 )
     {
-      sprintf (message, 
-	      " %d errors in attempting to create bucket dataset! ", 
+      sprintf (message,
+	      " %d errors in attempting to create bucket dataset! ",
 	      ierror);
       EX_error (message);
     }
- 
-  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) ) 
+
+  if ( THD_deathcon() && THD_is_file(DSET_HEADNAME(new_dset)) )
     {
       sprintf (message,
 	      " Output dataset file %s already exists--cannot continue! ",
@@ -1591,7 +1591,7 @@ void write_bucket ()
   /*----- Allocate memory -----*/
   bar  = (byte **) malloc (sizeof(byte *) * nbricks);
   MTEST (bar);
-  
+
 
   /*----- Save extrema into sub-bricks -----*/
   for (ibrick = 0;  ibrick < nbricks;  ibrick++)
@@ -1601,18 +1601,18 @@ void write_bucket ()
       MTEST (bar[ibrick]);
 
       /*----- Save extrema into output sub-brick -----*/
-      for (ixyz = 0;  ixyz < nxyz;  ixyz++)	   
+      for (ixyz = 0;  ixyz < nxyz;  ixyz++)
 	bar[ibrick][ixyz] = 0;
       if (EX_slice)
 	for (kz = 0;  kz < nz;  kz++)
 	  {
 	    head_extrema = EX_head_extrema[kz+ibrick*nz];
-	    save_all_extrema (head_extrema, bar[ibrick]); 	    
+	    save_all_extrema (head_extrema, bar[ibrick]);
 	  }
       else
 	{
 	  head_extrema = EX_head_extrema[ibrick];
-	  save_all_extrema (head_extrema, bar[ibrick]); 
+	  save_all_extrema (head_extrema, bar[ibrick]);
 	}
 
       /*----- attach bar[ib] to be sub-brick #ibrick -----*/
@@ -1627,12 +1627,12 @@ void write_bucket ()
 
   THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
   if( !EX_quiet ) fprintf(stderr,"Wrote output dataset: %s\n", DSET_BRIKNAME(new_dset) );
-  
 
-  /*----- Deallocate memory for extrema dataset -----*/   
+
+  /*----- Deallocate memory for extrema dataset -----*/
   THD_delete_3dim_dataset( new_dset , False ) ; new_dset = NULL ;
-  
-  
+
+
 }
 
 
@@ -1646,7 +1646,7 @@ void output_results ()
   int islice,  ibrick;
   int nslices, nbricks;
 
-    
+
   /*----- Initialize local variables -----*/
   nbricks = EX_nbricks;
   nslices = EX_nz;
@@ -1661,7 +1661,7 @@ void output_results ()
 	{
 	  for (islice = 0;  islice < nslices;  islice++)
 	    {
-	      print_all_extrema (ibrick, islice, 
+	      print_all_extrema (ibrick, islice,
 				 EX_head_extrema[islice + ibrick*nslices]);
 	    }
 	}
@@ -1685,13 +1685,13 @@ int main( int argc , char * argv[] )
 
 {
   int nopt;
-  
+
 
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");
@@ -1702,14 +1702,14 @@ int main( int argc , char * argv[] )
 
 
   /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
-  machdep() ; 
+  machdep() ;
   { int new_argc ; char ** new_argv ;
   addto_args( argc , argv , &new_argc , &new_argv ) ;
   if( new_argv != NULL ){ argc = new_argc ; argv = new_argv ; }
   }
-  
 
-  /*----- Initialize program:  get all operator inputs; 
+
+  /*----- Initialize program:  get all operator inputs;
     create mask for voxels above mask threshold -----*/
   initialize_program (argc, argv, &nopt);
 

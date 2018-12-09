@@ -55,7 +55,7 @@ int main( int argc , char * argv[] )
             );
 
         printf("\n" MASTER_SHORTHELP_STRING ) ;
-        PRINT_COMPILE_DATE; 
+        PRINT_COMPILE_DATE;
         exit(0);
     }
 
@@ -94,7 +94,7 @@ int main( int argc , char * argv[] )
     ndset = argc - narg ;
     if( ndset <= 1 )
     {
-        fprintf(stderr,"*** No input datasets!?\n"); 
+        fprintf(stderr,"*** No input datasets!?\n");
         exit(1);
     }
 
@@ -149,7 +149,7 @@ int main( int argc , char * argv[] )
     }
     if( DSET_NUM_TIMES(xset) > 1 )
     {
-        fprintf(stderr,"*** cannot use time-dependent datasets!\n"); 
+        fprintf(stderr,"*** cannot use time-dependent datasets!\n");
         DSET_delete(mask_dset);
         DSET_delete(xset);
         DSET_delete(yset);
@@ -202,22 +202,22 @@ int main( int argc , char * argv[] )
     CHECK_LOAD_ERROR(xset);
     ivx   = 0 ;
     itypx = DSET_BRICK_TYPE(xset,ivx) ;
-    xar   = DSET_ARRAY(xset,ivx); 
+    xar   = DSET_ARRAY(xset,ivx);
     if( xar == NULL )
-    { 
+    {
         fprintf(stderr,"Could not access brick %d in first datset\n", ivx);
         exit(1);
     }
     if( itypx == MRI_float )
     {
-        fxar = (float *) xar; 
+        fxar = (float *) xar;
         fxar_new = 0;
-    } 
-    else 
+    }
+    else
     {
-        fxar = (float *) malloc( sizeof(float) * nvox ); 
+        fxar = (float *) malloc( sizeof(float) * nvox );
         if( fxar == NULL )
-        { 
+        {
             fprintf(stderr,"Could not allocate fxar\n");
             exit(1);
         }
@@ -225,15 +225,15 @@ int main( int argc , char * argv[] )
         EDIT_coerce_type( nvox, itypx, xar, MRI_float, fxar );
     }
 
-    DSET_load(yset); 
+    DSET_load(yset);
     CHECK_LOAD_ERROR(yset);
- 
+
     for( ivy=0; ivy<DSET_NUM_TIMES(yset); ivy++ )
     {
         itypy = DSET_BRICK_TYPE(yset,ivy);
-        yar   = DSET_ARRAY(yset,ivy); 
+        yar   = DSET_ARRAY(yset,ivy);
         if( yar == NULL )
-        { 
+        {
             fprintf(stderr,"Could not access brick %d in second datset\n", ivy);
             if( fxar_new == 1 )
                 free(fxar);
@@ -247,14 +247,14 @@ int main( int argc , char * argv[] )
         if( itypy == MRI_float )
         {
             fyar = (float *) yar ; fyar_new = 0 ;
-        } 
-        else 
+        }
+        else
         {
             if( fyar == NULL )
             {
-                fyar = (float *) malloc( sizeof(float) * nvox ); 
+                fyar = (float *) malloc( sizeof(float) * nvox );
                 if( fyar == NULL )
-                { 
+                {
                     fprintf(stderr,"Could not allocate fyar\n");
                     if( fxar_new == 1 )
                     free( fxar);
@@ -280,8 +280,8 @@ int main( int argc , char * argv[] )
         dxy -= bias_val;
         printf( "%g\n",dxy );
     }
-   
-    if ( fxar_new == 1 ) free( fxar ); 
+
+    if ( fxar_new == 1 ) free( fxar );
     if ( fyar_new == 1 ) free( fyar );
     if ( mmm != NULL ) free ( mmm );
     DSET_delete(mask_dset);

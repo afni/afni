@@ -88,7 +88,7 @@ void F3D_initialize_user_data ( int Argc, char * Argv[],
    if (Argc < 2 || strncmp(Argv[1],"-help",4) == 0) Syntax();
 
    /*----- Add to program log -----*/
-   machdep(); AFNI_logger (PROGRAM_NAME,Argc,Argv); 
+   machdep(); AFNI_logger (PROGRAM_NAME,Argc,Argv);
 
    /* --- set default values --- */
    *verbose = FALSE;
@@ -233,12 +233,12 @@ int main( int argc , char * argv[] )
         output_filename[THD_MAX_NAME],
         str[THD_MAX_NAME];
 
-  
+
   /*----- Identify software -----*/
 #if 0
   printf ("\n\n");
   printf ("Program:          %s \n", PROGRAM_NAME);
-  printf ("Author:           %s \n", PROGRAM_AUTHOR); 
+  printf ("Author:           %s \n", PROGRAM_AUTHOR);
   printf ("Initial Release:  %s \n", PROGRAM_INITIAL);
   printf ("Latest Revision:  %s \n", PROGRAM_LATEST);
   printf ("\n");

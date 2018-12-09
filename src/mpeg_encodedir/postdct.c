@@ -213,7 +213,7 @@ Mpost_UnQuantZigBlock(in, out, qscale, iblock)
     int	    position;
     register int	    qentry;
     int	    level, coeff;
-    
+
     if ( iblock ) {
 	/* qtable[0] must be 8 */
 	out[0][0] = (int16)(in[0] * 8);
@@ -299,7 +299,7 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
   register int position;
   boolean nonZero = FALSE;
   boolean overflow = FALSE;
-  
+
   DBG_PRINT(("Mpost_QuantZigBlock...\n"));
   if (iblock) {
     /*
@@ -308,7 +308,7 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
      */
     temp = ((int16 *) in)[ZAG[0]];
     qentry = qtable[ZAG[0]];
-    
+
     if (temp < 0) {
       temp = -temp;
       temp += (qentry >> 1);
@@ -322,12 +322,12 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
       nonZero = TRUE;
     }
     out[0] = temp;
-    
+
     for (i = 1; i < DCTSIZE_SQ; i++) {
       position = ZAG[i];
       temp = ((int16 *) in)[position];
       qentry = qtable[position] * qscale;
-      
+
       /* see 1993 MPEG doc, section D.6.3.4 */
       if (temp < 0) {
 	temp = -temp;
@@ -340,7 +340,7 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
 	temp += (qentry >> 1);
 	temp /= qentry;
       }
-      
+
       if ( temp != 0 ) {
 	nonZero = TRUE;
 	out[i] = temp;
@@ -357,14 +357,14 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
     for (i = 0; i < DCTSIZE_SQ; i++) {
       position = ZAG[i];
       temp = ((int16 *) in)[position];
-      
+
       /* multiply by non-intra qtable */
       qentry = qscale * niqtable[position];
-      
+
       /* see 1993 MPEG doc, D.6.4.5 */
       temp *= 8;
       temp /= qentry;	    /* truncation toward 0 -- correct */
-      
+
       if ( temp != 0 ) {
 	nonZero = TRUE;
 	out[i] = temp;
@@ -375,7 +375,7 @@ Mpost_QuantZigBlock(in, out, qscale, iblock)
 	  temp = 255;
 	  overflow = TRUE;
 	}
-	
+
       } else out[i]=0;
     }
   }
@@ -599,7 +599,7 @@ CalcRLEHuffLength(in)
   register int nbits;
   register int countbits=0;
   boolean first_dct = TRUE;
-  
+
   for (i = 0; i < DCTSIZE_SQ; i++) {
     cur = in[i];
     acur = ABS(cur);
@@ -632,7 +632,7 @@ CalcRLEHuffLength(in)
       nzeros++;
     }
   }
-  
+
   countbits += 2; /* end of block marker */
   return countbits;
 }

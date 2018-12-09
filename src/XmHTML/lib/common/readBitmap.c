@@ -13,7 +13,7 @@ static char rcsId[]="$Header$";
 *
 * Author:				newt
 *
-* Copyright (C) 1994-1997 by Ripley Software Development 
+* Copyright (C) 1994-1997 by Ripley Software Development
 * All Rights Reserved
 *
 * This file is part of the XmHTML Widget Library.
@@ -34,7 +34,7 @@ static char rcsId[]="$Header$";
 *
 *****/
 /*****
-* ChangeLog 
+* ChangeLog
 * $Log$
 * Revision 1.1  2011/06/30 16:10:38  rwcox
 * Cadd
@@ -69,7 +69,7 @@ static char rcsId[]="$Header$";
 * Revision 1.1  1997/03/02 23:02:45  newt
 * Initial Revision
 *
-*****/ 
+*****/
 #ifdef HAVE_CONFIG_H
 #include "config.h"
 #endif
@@ -102,7 +102,7 @@ Byte bitmap_bits[8] = { 1, 2, 4, 8, 16, 32, 64, 128 };
 * Name: 		bgets
 * Return Type: 	String
 * Description: 	memory buffer version of fgets
-* In: 
+* In:
 *	buf:		character buffer
 *	max_len:	max chars to read
 *	ib:			memory buffer
@@ -121,7 +121,7 @@ bgets(String buf, int max_len, ImageBuffer *ib)
 
 		while(True)
 		{
-			if(len < max_len-1 && *chPtr != '\0' && *chPtr != '\n' && 
+			if(len < max_len-1 && *chPtr != '\0' && *chPtr != '\n' &&
 				ib->next + len < ib->size)
 			{
 				len++;
@@ -145,7 +145,7 @@ bgets(String buf, int max_len, ImageBuffer *ib)
 * Name: 		_XmHTMLReadBitmap
 * Return Type: 	XmHTMLRawImageData*
 * Description: 	X11 Bitmap reading routine
-* In: 
+* In:
 *
 * Returns:
 *	loaded image data
@@ -235,7 +235,7 @@ _XmHTMLReadBitmap(Widget html, ImageBuffer *ib)
 	/* Get fore- and background color values */
 	GETP(fg_color) = HTML_ATTR(body_fg);
 	GETP(bg_color) = HTML_ATTR(body_bg);
-			
+
 	/* get display colormap */
 	cmap = TkaGetColormap(html);
 
@@ -245,12 +245,12 @@ _XmHTMLReadBitmap(Widget html, ImageBuffer *ib)
 
 	blackbit = 0; /* fg_color.pixel; */
 	whitebit = 1; /* bg_color.pixel; */
-	
+
 	GETR(img_data->cmap[0]) = GETR(fg_color);
 	GETG(img_data->cmap[0]) = GETG(fg_color);
 	GETB(img_data->cmap[0]) = GETB(fg_color);
 	GETP(img_data->cmap[0]) = GETP(fg_color);
-			
+
 	GETR(img_data->cmap[1]) = GETR(bg_color);
 	GETG(img_data->cmap[1]) = GETG(bg_color);
 	GETB(img_data->cmap[1]) = GETB(bg_color);
@@ -316,7 +316,7 @@ _PLC_XBM_bgets(String buf, int max_len, PLC *plc)
 
 		while(True)
 		{
-			if(len < max_len-1 && *chPtr != '\0' && *chPtr != '\n' && 
+			if(len < max_len-1 && *chPtr != '\0' && *chPtr != '\n' &&
 				*chPtr != '}' && xbm->buf_pos + len < xbm->byte_count)
 			{
 				len++;
@@ -367,7 +367,7 @@ _PLC_XBM_Init(PLC *plc)
 
 	/* rewind input buffers, it may not be the first time we are doing this */
 	_PLCRewindInputBuffer(plc);
-	
+
 	/*****
 	* We don't know how large the raw data will be at this point, allocate
 	* a default buffer so we can get at least the initial image data
@@ -479,7 +479,7 @@ _PLC_XBM_Init(PLC *plc)
 	/* Get fore- and background color values */
 	GETP(fg_color) = HTML_ATTR(body_fg);
 	GETP(bg_color) = HTML_ATTR(body_bg);
-			
+
 	/* get display colormap */
 	cmap = TkaGetColormap(html);
 
@@ -491,7 +491,7 @@ _PLC_XBM_Init(PLC *plc)
 	GETG(xbm->cmap[0]) = GETG(fg_color);
 	GETB(xbm->cmap[0]) = GETB(fg_color);
 	GETP(xbm->cmap[0]) = GETP(fg_color);
-			
+
 	GETR(xbm->cmap[1]) = GETR(bg_color);
 	GETG(xbm->cmap[1]) = GETG(bg_color);
 	GETB(xbm->cmap[1]) = GETB(bg_color);
@@ -536,7 +536,7 @@ _PLC_XBM_ScanlineProc(PLC *plc)
 	}
 	/* raw image data start */
 	xbm->buf_pos = xbm->data_start;
-	
+
 	/* decoded image data start */
 	ptr = xbm->data;
 	xbm->data_pos = 0;

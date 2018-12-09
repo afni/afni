@@ -48,7 +48,7 @@ typedef struct {
    int           len;
    afni_xml_t ** xlist;
 } afni_xml_list;
-   
+
 typedef struct {
    /* general control */
    int     verb;        /* verbose level (0=quiet, 1=default) */
