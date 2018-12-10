@@ -343,10 +343,10 @@ void Qhelp(void)
     "    and should be considered experimental at this infundibulum.\n"
     " ++ The 'local' correlation options are also now available:\n"
     "      '-lpc' for Local Pearson minimization (i.e., EPI-T1 registration)\n"
-    "      '-lpa' for Local Pearson maximization\n"
-    "    These options also have not been extensively tested.\n"
-    "    Also, the '+ZZ' modifier is not available for these cost functions,\n"
+    "      '-lpa' for Local Pearson maximization (i.e., T1-FA registration)\n"
+    "    However, the '+ZZ' modifier is not available for these cost functions,\n"
     "    unlike in program 3dAllineate.\n"
+    "    These advanced cost options have not been extensively tested.\n"
     " ** If you use '-lpc', then '-maxlev 0' is automatically set. If you want\n"
     "    to go to more refined levels, you can set '-maxlev' AFTER '-lpc' on the\n"
     "    command line. Using maxlev > 1 is not recommended for EPI-T1 alignment.\n"
@@ -613,7 +613,7 @@ void Qhelp(void)
 #ifdef ALLOW_DUPLO
     "             *** However, you CAN use -duplo with -allineate.\n"
 #endif
-    "             ->* The '-awarp' option will output the computed warp from the\n"
+    "               * The '-awarp' option will output the computed warp from the\n"
     "                 intermediea 3dAllineate-d dataset to the base dataset,\n"
     "                 in case you want that for some reason. This option will\n"
     "                 only have meaning if '-allineate' or '-allinfast' is used.\n"
@@ -624,8 +624,6 @@ void Qhelp(void)
     "   *OR*        * This option lets you add extra options to the 3dAllineate\n"
     " -allopt         command to be run by 3dQwarp. Normally, you won't need\n"
     "                 to do this.\n"
-    "               * All the extra options for the 3dAllineate command line\n"
-    "                 should be enclosed inside a pair of quote marks.\n"
     "               * Note that the default cost functional in 3dAllineate is\n"
     "                 the Hellinger metric ('-hel'); some people prefer '-lpa+ZZ',\n"
     "                 and so should use something like this:\n"
@@ -1078,9 +1076,24 @@ void Qhelp(void)
 #endif
 #endif
     "\n"
-    " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
-    "               * Very slow (about 4 times longer). Also experimental.\n"
+    " -cubic12     = Use 12 parameter cubic polynomials, instead of 24 parameter\n"
+    "                polynomials (the current default patch warps are 24 parameter).\n"
+    "               * '-cubic12' will be faster than the default, and combining\n"
+    "                 it with '-workhard' will make '-cubic12' run at about the\n"
+    "                 same speed as the 24 parameter cubics.\n"
+    "               * Is it less accurate than '-cubic24'? That is very hard\n"
+    "                 to say accurately without more work.\n"
+    "\n"
+    " -cubic24     = Use 24 parameter cubic Hermite polynomials.\n"
+    "               * At this time [Dec 2018], this choice is the default,\n"
+    "                 and this option is only provided for the possible future\n"
+    "                 event when '-cubic12' becomes the default method.\n"
+#ifdef ALLOW_QMODE
+    "\n"
+    " -Qonly       = Use 81 parameter Hermite quintic polynomials at all levels.\n"
+    "               * Very slow (about 4 times longer than '-cubic24').\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
+#endif
     "\n"
     " -nopad      = Do NOT use zero-padding on the 3D base and source images.\n"
     "               [Default == zero-pad as needed]\n"
@@ -1920,16 +1933,29 @@ int main( int argc , char *argv[] )
        nopt++ ; continue ;
      }
 
-     /*---------------*/
+     /*------ Types of warp polynomials---------*/
 
 #ifdef ALLOW_QMODE
      if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
        Hqfinal = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
+       INFO_message("Using 81 parameter quintic polynomials for patch warps") ;
        Hqonly = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
 #endif
+
+     /*----- Dec 2018 -----*/
+
+     if( strcasecmp(argv[nopt],"-cubic12") == 0 ){
+       INFO_message("Using 12 parameter cubic polynomials for patch warps") ;
+       Huse_cubic_minus = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-cubic24") == 0 ){
+       INFO_message("Using 24 parameter cubic polynomials for patch warps") ;
+       Huse_cubic_minus = 1 ; nopt++ ; continue ;
+     }
 
 #ifdef ALLOW_BASIS5
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
@@ -2237,6 +2263,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
+       Hzeasy = meth_is_lpc = 1 ; mlev = 0 ;
        meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
 
@@ -2386,7 +2413,7 @@ STATUS("check for errors") ;
    }
 
    if( meth_is_lpc && mlev > 0 )
-     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc'") ;
+     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc' or 'lpa'") ;
 
 #ifdef ALLOW_DUPLO
    if( do_plusminus && duplo ){
