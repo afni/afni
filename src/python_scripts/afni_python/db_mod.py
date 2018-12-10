@@ -9124,7 +9124,7 @@ g_help_notes = """
                 c. threshold/clusterize resulting datasets, just as with a
                    task analysis
 
-                   (afni GUI, 3dclust, or 3dmerge)
+                   (afni GUI, 3dClusterize)
 
     --------------------------------------------------
     FREESURFER NOTE: ~2~
@@ -9604,18 +9604,6 @@ g_help_notes = """
             One would have afni_proc.py extract average time series (or maybe
             principal components) from all the ROIs in a dataset and apply
             them as regressors of interest or of no interest.
-
-        - with 3dBlurToFWHM, using an AlphaSim look-up table might be possible
-
-            Since the blur and data grid could both be isotropic and integral,
-            and since the transformation could depend on a known anatomy (such
-            as the N27 Colin brain or icbm_452), it would be easy to create a
-            look-up table of AlphaSim results (so users would not actually need
-            to run it).
-
-            The known numbers would correspond to a cluster size (each for a
-            given, common voxel-wise threshold).  This correction could then
-            be applied automatically.  Again, not yet implemented...
 
         - no interpolation of statistics
 
@@ -12400,8 +12388,8 @@ g_help_options = """
             values are saved to the file blur_est.$subj.1D, along with any
             similar output from errts.
 
-            These blur estimates may be input to AlphaSim, for any multiple
-            testing correction done for this subject.  If AlphaSim is run at
+            These blur estimates may be input to 3dClustSim, for any multiple
+            testing correction done for this subject.  If 3dClustSim is run at
             the group level, it is reasonable to average these estimates
             across all subjects (assuming they were scanned with the same
             protocol and at the same scanner).
@@ -12417,8 +12405,8 @@ g_help_options = """
             This option specifies to run 3dFWHMx on the errts dataset, output
             from the regression (by 3dDeconvolve).
 
-            These blur estimates may be input to AlphaSim, for any multiple
-            testing correction done for this subject.  If AlphaSim is run at
+            These blur estimates may be input to 3dClustSim, for any multiple
+            testing correction done for this subject.  If 3dClustSim is run at
             the group level, it is reasonable to average these estimates
             across all subjects (assuming they were scanned with the same
             protocol and at the same scanner).
@@ -13099,10 +13087,10 @@ g_help_options = """
             regression analysis.  Since the default is 'yes', the effective use
             of this option would be to turn off the operation.
 
-            3dClustSim is a more advanced version of AlphaSim, and generates a
-            table of cluster sizes/alpha values that can be then stored in the
-            stats dataset for a simple multiple comparison correction in the
-            cluster interface of the afni GUI.
+            3dClustSim generates a table of cluster sizes/alpha values that can
+            then be stored in the stats dataset for a simple multiple
+            comparison correction in the cluster interface of the afni GUI, or
+            which can be applied via a program like 3dClusterize.
 
             The blur estimates and mask dataset are required, and so the
             option is only relevant in the context of blur estimation.
