@@ -620,9 +620,10 @@ g_history = """
         - and check for respective dependencies
     6.23 Nov 26, 2018: added opt -volreg_warp_final_interp
     6.24 Dec  5, 2018: reduced dependency list for apqc HTML to just Xvfb
+    6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
 """
 
-g_version = "version 6.24, December 5, 2018"
+g_version = "version 6.25, December 10, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2965,7 +2966,7 @@ class SubjProcSream:
               '# (akin to static images from running @ss_review_driver)\n'  \
               'apqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
               '    -uvar_json %s\n'                                         \
-              './@ss_review_html\n'                                         \
+              'tcsh @ss_review_html\n'                                      \
               'apqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (self.html_rev_style, self.ssr_uvars)
 
