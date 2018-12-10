@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10 , DEC , 2018 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "-cubic12 = use 12 parameter cubics instead of 24" ,
+   "Faster, and probably just as accurate." } ,
+
  { 28 , NOV , 2018 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
    "Add lpa+ cost functional" ,
    "Like lpc+, with extra stuff added in for robustness. Per the suggestion\n"

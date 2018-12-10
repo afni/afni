@@ -11,6 +11,10 @@
 #include <nifti2_io.h>
 #endif
 
+#ifdef  __cplusplus
+extern "C" {
+#endif
+
 /* also #include "gifti_xml.h", but at the end */
 
 /* ---------------------------------------------------------------------- */
@@ -336,6 +340,10 @@ char * gifticlib_version         (void);
 
 #undef G_CHECK_NULL_STR
 #define G_CHECK_NULL_STR(s) (s ? s : "NULL")
+
+#ifdef  __cplusplus
+}
+#endif
 
 #include "gifti_xml.h" /* needs gifti_io.h, but users should not #include it */
 
