@@ -360,61 +360,90 @@ double HQwarp_minhexvol( int npar , double *par )
    double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    MRI_IMAGE *him ; float *har=NULL ;
 
-   if( npar < 81 ) return 0.0 ;         /* something bad */
+   if( npar != 81 && npar != 30 ) return 0.0 ;         /* something bad */
 
    if( nb < 9 ) HQwarp_setup_warp_basis(51) ;
 
    ddd = del*del*del ;
 
-   for( hh=kk=0 ; kk < nb ; kk++ ){
-    for( jj=0 ; jj < nb ; jj++ ){
-     for( ii=0 ; ii < nb ; ii++,hh++ ){
-      xx[hh] = cc[ii]
-                +b0[kk]*b0[jj]*b0[ii]*xpar[ 0] +b1[kk]*b0[jj]*b0[ii]*xpar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*xpar[ 2] +b0[kk]*b1[jj]*b0[ii]*xpar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*xpar[ 4] +b2[kk]*b1[jj]*b0[ii]*xpar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*xpar[ 6] +b1[kk]*b2[jj]*b0[ii]*xpar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*xpar[ 8] +b0[kk]*b0[jj]*b1[ii]*xpar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*xpar[10] +b2[kk]*b0[jj]*b1[ii]*xpar[11]
-                +b0[kk]*b1[jj]*b1[ii]*xpar[12] +b1[kk]*b1[jj]*b1[ii]*xpar[13]
-                +b2[kk]*b1[jj]*b1[ii]*xpar[14] +b0[kk]*b2[jj]*b1[ii]*xpar[15]
-                +b1[kk]*b2[jj]*b1[ii]*xpar[16] +b2[kk]*b2[jj]*b1[ii]*xpar[17]
-                +b0[kk]*b0[jj]*b2[ii]*xpar[18] +b1[kk]*b0[jj]*b2[ii]*xpar[19]
-                +b2[kk]*b0[jj]*b2[ii]*xpar[20] +b0[kk]*b1[jj]*b2[ii]*xpar[21]
-                +b1[kk]*b1[jj]*b2[ii]*xpar[22] +b2[kk]*b1[jj]*b2[ii]*xpar[23]
-                +b0[kk]*b2[jj]*b2[ii]*xpar[24] +b1[kk]*b2[jj]*b2[ii]*xpar[25]
-                +b2[kk]*b2[jj]*b2[ii]*xpar[26] ;
-      yy[hh] = cc[jj]
-                +b0[kk]*b0[jj]*b0[ii]*ypar[ 0] +b1[kk]*b0[jj]*b0[ii]*ypar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*ypar[ 2] +b0[kk]*b1[jj]*b0[ii]*ypar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*ypar[ 4] +b2[kk]*b1[jj]*b0[ii]*ypar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*ypar[ 6] +b1[kk]*b2[jj]*b0[ii]*ypar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*ypar[ 8] +b0[kk]*b0[jj]*b1[ii]*ypar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*ypar[10] +b2[kk]*b0[jj]*b1[ii]*ypar[11]
-                +b0[kk]*b1[jj]*b1[ii]*ypar[12] +b1[kk]*b1[jj]*b1[ii]*ypar[13]
-                +b2[kk]*b1[jj]*b1[ii]*ypar[14] +b0[kk]*b2[jj]*b1[ii]*ypar[15]
-                +b1[kk]*b2[jj]*b1[ii]*ypar[16] +b2[kk]*b2[jj]*b1[ii]*ypar[17]
-                +b0[kk]*b0[jj]*b2[ii]*ypar[18] +b1[kk]*b0[jj]*b2[ii]*ypar[19]
-                +b2[kk]*b0[jj]*b2[ii]*ypar[20] +b0[kk]*b1[jj]*b2[ii]*ypar[21]
-                +b1[kk]*b1[jj]*b2[ii]*ypar[22] +b2[kk]*b1[jj]*b2[ii]*ypar[23]
-                +b0[kk]*b2[jj]*b2[ii]*ypar[24] +b1[kk]*b2[jj]*b2[ii]*ypar[25]
-                +b2[kk]*b2[jj]*b2[ii]*ypar[26] ;
-      zz[hh] = cc[kk]
-                +b0[kk]*b0[jj]*b0[ii]*zpar[ 0] +b1[kk]*b0[jj]*b0[ii]*zpar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*zpar[ 2] +b0[kk]*b1[jj]*b0[ii]*zpar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*zpar[ 4] +b2[kk]*b1[jj]*b0[ii]*zpar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*zpar[ 6] +b1[kk]*b2[jj]*b0[ii]*zpar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*zpar[ 8] +b0[kk]*b0[jj]*b1[ii]*zpar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*zpar[10] +b2[kk]*b0[jj]*b1[ii]*zpar[11]
-                +b0[kk]*b1[jj]*b1[ii]*zpar[12] +b1[kk]*b1[jj]*b1[ii]*zpar[13]
-                +b2[kk]*b1[jj]*b1[ii]*zpar[14] +b0[kk]*b2[jj]*b1[ii]*zpar[15]
-                +b1[kk]*b2[jj]*b1[ii]*zpar[16] +b2[kk]*b2[jj]*b1[ii]*zpar[17]
-                +b0[kk]*b0[jj]*b2[ii]*zpar[18] +b1[kk]*b0[jj]*b2[ii]*zpar[19]
-                +b2[kk]*b0[jj]*b2[ii]*zpar[20] +b0[kk]*b1[jj]*b2[ii]*zpar[21]
-                +b1[kk]*b1[jj]*b2[ii]*zpar[22] +b2[kk]*b1[jj]*b2[ii]*zpar[23]
-                +b0[kk]*b2[jj]*b2[ii]*zpar[24] +b1[kk]*b2[jj]*b2[ii]*zpar[25]
-                +b2[kk]*b2[jj]*b2[ii]*zpar[26] ;
-   }}}
+   if( npar == 30 ){  /* special case [11 Dec 2018] */
+
+     xpar = par ; ypar = par+10 ; zpar = par+20 ;
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+        yy[hh] = cc[jj]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+        zz[hh] = cc[kk]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+     }}}
+
+   } else { /* npar == 81 */
+
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[ 0] +b1[kk]*b0[jj]*b0[ii]*xpar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[ 2] +b0[kk]*b1[jj]*b0[ii]*xpar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[ 4] +b2[kk]*b1[jj]*b0[ii]*xpar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*xpar[ 6] +b1[kk]*b2[jj]*b0[ii]*xpar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*xpar[ 8] +b0[kk]*b0[jj]*b1[ii]*xpar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*xpar[10] +b2[kk]*b0[jj]*b1[ii]*xpar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[12] +b1[kk]*b1[jj]*b1[ii]*xpar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*xpar[14] +b0[kk]*b2[jj]*b1[ii]*xpar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*xpar[16] +b2[kk]*b2[jj]*b1[ii]*xpar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*xpar[18] +b1[kk]*b0[jj]*b2[ii]*xpar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*xpar[20] +b0[kk]*b1[jj]*b2[ii]*xpar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*xpar[22] +b2[kk]*b1[jj]*b2[ii]*xpar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*xpar[24] +b1[kk]*b2[jj]*b2[ii]*xpar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*xpar[26] ;
+        yy[hh] = cc[jj]
+                  +b0[kk]*b0[jj]*b0[ii]*ypar[ 0] +b1[kk]*b0[jj]*b0[ii]*ypar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*ypar[ 2] +b0[kk]*b1[jj]*b0[ii]*ypar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*ypar[ 4] +b2[kk]*b1[jj]*b0[ii]*ypar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*ypar[ 6] +b1[kk]*b2[jj]*b0[ii]*ypar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*ypar[ 8] +b0[kk]*b0[jj]*b1[ii]*ypar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*ypar[10] +b2[kk]*b0[jj]*b1[ii]*ypar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*ypar[12] +b1[kk]*b1[jj]*b1[ii]*ypar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*ypar[14] +b0[kk]*b2[jj]*b1[ii]*ypar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*ypar[16] +b2[kk]*b2[jj]*b1[ii]*ypar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*ypar[18] +b1[kk]*b0[jj]*b2[ii]*ypar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*ypar[20] +b0[kk]*b1[jj]*b2[ii]*ypar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*ypar[22] +b2[kk]*b1[jj]*b2[ii]*ypar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*ypar[24] +b1[kk]*b2[jj]*b2[ii]*ypar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*ypar[26] ;
+        zz[hh] = cc[kk]
+                  +b0[kk]*b0[jj]*b0[ii]*zpar[ 0] +b1[kk]*b0[jj]*b0[ii]*zpar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*zpar[ 2] +b0[kk]*b1[jj]*b0[ii]*zpar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*zpar[ 4] +b2[kk]*b1[jj]*b0[ii]*zpar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*zpar[ 6] +b1[kk]*b2[jj]*b0[ii]*zpar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*zpar[ 8] +b0[kk]*b0[jj]*b1[ii]*zpar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*zpar[10] +b2[kk]*b0[jj]*b1[ii]*zpar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*zpar[12] +b1[kk]*b1[jj]*b1[ii]*zpar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*zpar[14] +b0[kk]*b2[jj]*b1[ii]*zpar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*zpar[16] +b2[kk]*b2[jj]*b1[ii]*zpar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*zpar[18] +b1[kk]*b0[jj]*b2[ii]*zpar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*zpar[20] +b0[kk]*b1[jj]*b2[ii]*zpar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*zpar[22] +b2[kk]*b1[jj]*b2[ii]*zpar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*zpar[24] +b1[kk]*b2[jj]*b2[ii]*zpar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*zpar[26] ;
+     }}}
+   }
 
 #undef  IJK
 #undef  TOT
@@ -588,6 +617,7 @@ int main( int argc , char *argv[] )
             "Hbasis_parmax=btop in mri_nwarp.c were picked (minhexvol about 0.5).\n"
             "For use by Emperor Zhark only!!\n"
             "  order = 3 or 5 [cubic or quintic] or -3,-4,-5 [expanded cubic]\n"
+            "          or -2 [cubic lite] or -30 [quintic lite]\n"
             "  btop  = max value for warp coefficient\n"
             "  ngrid = grid size (default=51)\n"
             "  fname = prefix for output dataset (default=no output)\n"
@@ -639,6 +669,10 @@ int main( int argc , char *argv[] )
      minhexvol        = HCwarp_minhexvol ;
    } else if( nord == 5 ){
      npar = 81 ;
+     setup_warp_basis = HQwarp_setup_warp_basis ;
+     minhexvol        = HQwarp_minhexvol ;
+   } else if( nord == -30 ){
+     npar = 30 ;
      setup_warp_basis = HQwarp_setup_warp_basis ;
      minhexvol        = HQwarp_minhexvol ;
    } else if( nord == -2 ){
