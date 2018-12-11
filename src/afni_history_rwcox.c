@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Also add -Quint30 and -lite options" ,
+   "To run with reduced order polynomials, which are faster and appear to be\n"
+   "about as accurate (as they should be, in asymptotic approximation\n"
+   "theory)." } ,
+
  { 10 , DEC , 2018 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
    "-cubic12 = use 12 parameter cubics instead of 24" ,
    "Faster, and probably just as accurate." } ,
