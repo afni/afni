@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Dec, 2018, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
+   "use mkdir -p; reconcile write_as_nifti and NIFTI prefix",
+   "Thanks to C Smith for noting the issue."
+ } ,
+
  {  4, Dec, 2018, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "Makefiles: working towards using libmri.so",
    "Pass MRI_SHARED, and apply with SUMA_SHARED_LOPTS in SUMA."

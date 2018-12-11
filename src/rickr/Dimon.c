@@ -151,11 +151,14 @@ static char * g_history[] =
     " 4.21 Sep  6, 2017 [rickr]:\n"
     "      - apply xim in realtime.c, so not sending short end of run\n"
     " 4.22 Dec 10, 2017 [rickr]: apply -gert_to3d_prefix for GEMS\n"
-    " 4.23 May 23, 2018 [rickr]: add -ushort2float\n"
+    " 4.23 May 23, 2018 [rickr]: add -ushort2float\n",
+    " 4.24 Dec 11, 2018 [rickr]:\n"
+    "      - reconcile write_as_nifti and NIFTI prefix\n"
+    "      - add -p option to mkdir\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.23 (May 23, 2018)"
+#define DIMON_VERSION "version 4.24 (December 11, 2018)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -5989,7 +5992,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
              "set OutDir       = '%s'     # output directoy for datasets\n"
              "\n\n"
              "#---------- make sure output directory exists ----------\n"
-             "test -d $OutDir || mkdir $OutDir\n",
+             "test -d $OutDir || mkdir -p $OutDir\n",
              opts->gert_outdir );
 
     fprintf(fp, "\n\n");
@@ -6088,8 +6091,13 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
         /* and possibly move output datasets there */
         if( opts->gert_outdir ) {
-            fprintf(fp, "mv %s%s $OutDir\n\n", pname,
-                    opts->gert_format==1 ? ".nii" : "+orig.*");
+            char * suffix = "";
+            /* reconcile write_as_nifti and NIFTI prefix */
+            if( nifti_find_file_extension(pname) ) suffix = "";
+            else if( opts->gert_format == 1 )      suffix = ".nii";
+            else                                   suffix = "+orig.*";
+
+            fprintf(fp, "mv %s%s $OutDir\n\n", pname, suffix);
         }
     }
 
