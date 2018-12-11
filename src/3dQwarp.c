@@ -42,7 +42,7 @@
 #undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
 #define USE_NEW_HSAVE              /* 13 Mar 2018 */
 
-#undef  ALLOW_DUPLO                /* 26 Jul 2018 */
+#undef ALLOW_DUPLO                 /* 26 Jul 2018 - turn duplo off*/
 #ifdef ALLOW_DUPLO
 #  define DUPLO_STRING "-duplo"
 #else
@@ -1082,7 +1082,7 @@ void Qhelp(void)
     "                 it with '-workhard' will make '-cubic12' run at about the\n"
     "                 same speed as the 24 parameter cubics.\n"
     "               * Is it less accurate than '-cubic24'? That is very hard\n"
-    "                 to say accurately without more work.\n"
+    "                 to say accurately without more work. In priniple, No.\n"
     "\n"
     " -cubic24     = Use 24 parameter cubic Hermite polynomials.\n"
     "               * At this time [Dec 2018], this choice is the default,\n"
@@ -1090,9 +1090,34 @@ void Qhelp(void)
     "                 event when '-cubic12' becomes the default method.\n"
 #ifdef ALLOW_QMODE
     "\n"
-    " -Qonly       = Use 81 parameter Hermite quintic polynomials at all levels.\n"
+    " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
     "               * Very slow (about 4 times longer than '-cubic24').\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
+    "\n"
+    " -Quint81    = When quintic polynomials are used, use the full 81 parameter\n"
+    "               set of basis functions (the current default set).\n"
+    "\n"
+    " -Quint30    = Use the smaller 30 parameter set of quintic basis functions.\n"
+    "              * These options ('-Quint81' and '-Quint30') only change\n"
+    "                the operation if you also use some other option that\n"
+    "                implies the use of quintic polynomials for warping.\n"
+    "\n"
+    " -lite       = Another way to specify the use of the 12 parameter cubics\n"
+    "               and the 30 parameter quintics.\n"
+    "\n"
+    " -nolite     = Turn off the '-lite' warp functions and use the 24 parameter\n"
+    "               cubics *and* the 81 parameter quintics.\n"
+    "              * This option is present for the possible future when '-lite'\n"
+    "                becomes the default, and you wish to have backwards\n"
+    "                warping compatibility.\n"
+#else
+    "\n"
+    " -lite       = Another way to specify the use of the 12 parameter cubics.\n"
+    "\n"
+    " -nolite     = Another way to specify the use of the 24 parameter cubics.\n"
+    "              * This option is present for the possible future when '-lite'\n"
+    "                becomes the default, and you wish to have backwards\n"
+    "                warping compatibility.\n"
 #endif
     "\n"
     " -nopad      = Do NOT use zero-padding on the 3D base and source images.\n"
@@ -1121,6 +1146,8 @@ void Qhelp(void)
     "                 that are defined over grids that are larger than the datasets\n"
     "                 to which they are applied; this is why Zhark says above that\n"
     "                 a padded warp 'is normally not an issue'.\n"
+    "               * However, if you want to use an AFNI nonlinear warp in some\n"
+    "                 external non-AFNI program, you might have to use this option :(\n"
     "\n"
     " -expad EE    = This option instructs the program to pad the warp by an extra\n"
     "                'EE' voxels (and then 3dQwarp starts optimizing it).\n"
@@ -1133,12 +1160,14 @@ void Qhelp(void)
     "               * Note that this option perforce turns off '-nopadWARP'.\n"
     "\n"
     " -ballopt     = Normally, the incremental warp parameters are optimized inside\n"
-    "                a rectangular 'box' (24 dimensional for cubic patches, 81 for\n"
-    "                quintic patches), whose limits define the amount of distortion\n"
+    "                a rectangular 'box' (e.g., 24 dimensional for cubic patches, 81\n"
+    "                for quintic patches), which limits the amount of distortion\n"
     "                allowed at each step. Using '-ballopt' switches these limits\n"
     "                to be applied to a 'ball' (interior of a hypersphere), which\n"
     "                can allow for larger incremental displacements. Use this\n"
     "                option if you think things need to be able to move farther.\n"
+    "               * Note also that the '-lite' polynomial warps allow for\n"
+    "                 larger incremental displacements than the '-nolite' warps.\n"
     "\n"
     " -boxopt      = Use the 'box' optimization limits instead of the 'ball'\n"
     "                [this is the default at present].\n"
@@ -1323,6 +1352,29 @@ void Qhelp(void)
     "cases arise, and we are trying to make the program flexible enough to deal with\n"
     "them all. The SAMPLE USAGE section above is a good place to start for guidance.\n"
     "Or you can use the @SSwarper or auto_warp.py scripts.\n"
+    "\n"
+    "----- The '-lite' warp polynomials -----\n"
+    "The '-nolite' cubics have 8 basis functions per spatial dimension, since they\n"
+    "are the full tensor product of the 2 Hermite cubics H0 and H1:\n"
+    "  H0(x)*H0(y)*H0(z)  H1(x)*H0(y)*H0(z)  H0(x)*H1(y)*H0(z)  H0(x)*H0(y)*H1(z)\n"
+    "  H1(x)*H1(y)*H0(z)  H1(x)*H0(y)*H1(z)  H0(x)*H1(y)*H1(z)  H1(x)*H1(y)*H1(z)\n"
+    "and then there are 3 sets of these for x, y, and z displacements, giving\n"
+    "24 total basis functions for a cubic 3D warp patch. The '-lite' cubics\n"
+    "omit any of the tensor product functions whose indexes sum to more than 1,\n"
+    "so there are only 4 basis functions per spatial dimension:\n"
+    "  H0(x)*H0(y)*H0(z)  H1(x)*H0(y)*H0(z)  H0(x)*H1(y)*H0(z)  H0(x)*H0(y)*H1(z)\n"
+    "yielding 12 total basis functions.\n"
+    "\n"
+    "The effects of using the '-lite' polynomial warps is that 3dQwarp runs faster,\n"
+    "since there are fewer parameters to optimize. Accuracy should not be impaired,\n"
+    "as the approximation quality (in the mathematical sense) of the '-lite'\n"
+    "polynomials is of the same order as the '-nolite' full tensor product.\n"
+#ifdef ALLOW_QMODE
+    "\n"
+    "Similarly, the '-nolite' quintics have 27 basis functions per spatial\n"
+    "dimension, since they are the product of the 3 Hermite quintics Q0, Q1, Q2.\n"
+    "The '-lite' quintics omit any tensor product whose indexes sum to more than 2.\n"
+#endif
     "\n"
     "-------------------------------------------------------------------------------\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
@@ -1948,13 +2000,25 @@ int main( int argc , char *argv[] )
      /*----- Dec 2018 -----*/
 
      if( strcasecmp(argv[nopt],"-cubic12") == 0 ){
-       INFO_message("Using 12 parameter cubic polynomials for patch warps") ;
-       Huse_cubic_minus = 1 ; nopt++ ; continue ;
+       Huse_cubic_lite = 1 ; nopt++ ; continue ;
      }
 
      if( strcasecmp(argv[nopt],"-cubic24") == 0 ){
-       INFO_message("Using 24 parameter cubic polynomials for patch warps") ;
-       Huse_cubic_minus = 1 ; nopt++ ; continue ;
+       Huse_cubic_lite = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-quint30") == 0 ){
+       Huse_quintic_lite = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-quint81") == 0 ){
+       Huse_quintic_lite = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-lite") == 0 ){
+       Huse_cubic_lite = Huse_quintic_lite = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nolite") == 0 ){
+       Huse_cubic_lite = Huse_quintic_lite = 0 ; nopt++ ; continue ;
      }
 
 #ifdef ALLOW_BASIS5
