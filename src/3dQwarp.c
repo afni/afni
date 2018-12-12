@@ -18,7 +18,12 @@
 
     - for patches with more than (say) 41^3=68921 'good' voxels, [not hard]
       extract a pseudorandom subset of them for the correlation
-      calculation when penfac=0; also, keep penfac=0 to lev=2
+      calculation when penfac=0
+
+    - Keep penfac=0 to lev=3                                     [DONE]
+
+    - Lighter weight polynomial warps                            [DONE]
+      (but not yet for plusminus maps)
 
     - vector-valued images                                       [medium]
 
@@ -1104,6 +1109,10 @@ void Qhelp(void)
     "\n"
     " -lite       = Another way to specify the use of the 12 parameter cubics\n"
     "               and the 30 parameter quintics.\n"
+#ifdef ALLOW_PLUSMINUS
+    "              * NOTE: at this time, these 'light weight' polynomials aren't\n"
+    "                      implemented in the '-plusminus' warping routines :(\n"
+#endif
     "\n"
     " -nolite     = Turn off the '-lite' warp functions and use the 24 parameter\n"
     "               cubics *and* the 81 parameter quintics.\n"
@@ -1113,6 +1122,10 @@ void Qhelp(void)
 #else
     "\n"
     " -lite       = Another way to specify the use of the 12 parameter cubics.\n"
+#ifdef ALLOW_PLUSMINUS
+    "              * NOTE: at this time, these 'light weight' polynomials aren't\n"
+    "                      implemented in the '-plusminus' warping routines :(\n"
+#endif
     "\n"
     " -nolite     = Another way to specify the use of the 24 parameter cubics.\n"
     "              * This option is present for the possible future when '-lite'\n"
@@ -1365,10 +1378,14 @@ void Qhelp(void)
     "  H0(x)*H0(y)*H0(z)  H1(x)*H0(y)*H0(z)  H0(x)*H1(y)*H0(z)  H0(x)*H0(y)*H1(z)\n"
     "yielding 12 total basis functions.\n"
     "\n"
-    "The effects of using the '-lite' polynomial warps is that 3dQwarp runs faster,\n"
+    "One effect of using the '-lite' polynomial warps is that 3dQwarp runs faster,\n"
     "since there are fewer parameters to optimize. Accuracy should not be impaired,\n"
     "as the approximation quality (in the mathematical sense) of the '-lite'\n"
     "polynomials is of the same order as the '-nolite' full tensor product.\n"
+    "\n"
+    "Another effect is that the upper limits on the displacements by any individual\n"
+    "warp patch are somewhat larger than for the full basis set, which may be useful\n"
+    "in some situations.\n"
 #ifdef ALLOW_QMODE
     "\n"
     "Similarly, the '-nolite' quintics have 27 basis functions per spatial\n"
