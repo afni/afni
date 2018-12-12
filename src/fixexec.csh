@@ -1,5 +1,9 @@
 #!/bin/tcsh
 
+## this script is to fix the executable status for files in the AFNI binaries,
+## since some of them end up not being readable/runnable by the world
+## -- RWCox 12 Dec 2018
+
 if( $#argv < 1 )then
   set dir = $HOME/abin
 else
@@ -12,7 +16,7 @@ endif
 
 pushd $dir
 
-find . -type f -executable -exec chmod -v ugo+rx {} \;
+find . -executable -exec chmod -v ugo+rx {} \;
 
 popd
 
