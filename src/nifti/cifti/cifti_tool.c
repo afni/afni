@@ -103,7 +103,7 @@ int main(int argc, char * argv[])
 
 /* ----------------------------------------------------------------- */
 int process_args(int argc, char * argv[], opts_t * opts)
-{ 
+{
    int ac;
 
    if( argc < 2 ) return show_help();   /* typing '-help' is sooo much work */
@@ -112,7 +112,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
    for( ac = 1; ac < argc; ac++ ) {
       if( ! strcmp(argv[ac], "-h") || ! strcmp(argv[ac], "-help") ) {
          return show_help();
-      } else if( ! strcmp(argv[ac], "-hist") ){ 
+      } else if( ! strcmp(argv[ac], "-hist") ){
          show_hist();
          return 1;
       } else if( ! strcmp(argv[ac], "-as_cext") ||
@@ -204,7 +204,7 @@ int disp_cifti_extension(nifti_image * nim, opts_t * opts)
    int                ind;
 
    if(gopt.verb > 1)
-      fprintf(stderr,"-- displaying CIFTI extension to %s\n", 
+      fprintf(stderr,"-- displaying CIFTI extension to %s\n",
               opts->fout ? opts->fout : "DEFAULT" );
 
    if( !nim ) return 1;
@@ -219,7 +219,7 @@ int disp_cifti_extension(nifti_image * nim, opts_t * opts)
    }
 
    fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
-   
+
    /* possibly close file */
    close_stream(fp);
 
@@ -231,20 +231,20 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
    FILE * fp;
 
    if(gopt.verb > 1)
-      fprintf(stderr,"-- evaluating CIFTI extension to %s\n", 
+      fprintf(stderr,"-- evaluating CIFTI extension to %s\n",
               opts->fout ? opts->fout : "DEFAULT" );
 
    fp = open_write_stream(opts->fout);
    axml_set_wstream(fp);
 
-   if( opts->verb > 1 ) fprintf(stderr, "-- recursive eval from %s\n", 
+   if( opts->verb > 1 ) fprintf(stderr, "-- recursive eval from %s\n",
                                 opts->eval_type ? opts->eval_type : "NULL");
    axml_set_verb(opts->verb);
 
    if( axio_text_to_binary(ax) )
       fprintf(stderr,"** errors converting text to data\n");
 
-   if( ! opts->eval_type ) 
+   if( ! opts->eval_type )
       axml_recur(ax_show_names, ax);
    else if( ! strcmp(opts->eval_type, "has_data" ) )
       axml_recur(ax_has_data, ax);
@@ -260,7 +260,7 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
       axml_recur(ax_show_text_data, ax);
    else /* show_names is default */
       axml_recur(ax_show_names, ax);
-   
+
    /* possibly close file */
    close_stream(fp);
 
