@@ -29,7 +29,7 @@
       - float quatern_b,c,d  -> double quatern_b,c,d    (3 fields)
       - float srow_x,y,z[4]  -> double srow_x,y,z[4]    (3 fields)
       - char magic[4]        -> char magic[8]
-      - char unused_str[15]  -> padding added at the end of the header   
+      - char unused_str[15]  -> padding added at the end of the header
 
       - previously unused fields have been removed:
            data_type, db_name, extents, session_error, regular, glmax, glmin
@@ -98,7 +98,7 @@ struct nifti_2_header {    /* NIFTI-2 usage             */ /* NIFTI-1 usage     
    char    dim_info;       /*!< MRI slice ordering      */ /* char dim_info       */ /* 524 */
    char    unused_str[15]; /*!< unused, filled with \0  */                           /* 525 */
 };                                                                 /****** total bytes: 540 */
-typedef struct nifti_2_header nifti_2_header; 
+typedef struct nifti_2_header nifti_2_header;
 
 /* restore packing behavior */
 #pragma pack(pop)

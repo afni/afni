@@ -6394,7 +6394,7 @@ nifti_image *nifti_image_from_ascii( const char *str, int * bytes_read )
 
    /* scan for opening string */
 
-   spos = 0 ; 
+   spos = 0 ;
    ii = sscanf( str+spos , "%1023s%n" , lhs , &nn ) ; spos += nn ;
    if( ii == 0 || strcmp(lhs,"<nifti_image") != 0 ) return NULL ;
 
