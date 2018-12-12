@@ -4,6 +4,17 @@
 /***    and compiled with OpenMP enabled (USE_OMP #define-d), for speed    ***/
 /*****************************************************************************/
 
+/***
+   Potential housecleaning chores:           [Dec 2018]
+    * remove the USE_HLOADER code forever
+    * remove the ALLOW_DUPLO code forever (ALLOW_HDUPLO is set in 3dQwarp.c)
+    * don't need ALLOW_QMODE #define - that is, make this permanent;
+      and same for ALLOW_PLUSMINUS
+    * don't remove/alter ALLOW_BASIS5 and ALLOW_INEDGE yet;
+      still on the fence about these, and the former is a lot
+      of complex code that shouldn't be cast aside just yet
+***/
+
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
 
@@ -7970,10 +7981,15 @@ static int Hlev_start =   0 ;  /* initial level of patches */
 static int Hlev_end   = 666 ;  /* final level of patches to head towards */
 static int Hlev_final =   0 ;  /* final level actually reached */
 static int Hlev_now   =   0 ;  /* the level we are playing with at the moment */
-static int Hduplo     =   0 ;  /* duplo mode? (faster, somewhat less accurate) */
 static int Hfinal     =   0 ;  /* is this the final level we are working on now? */
 static int Hworkhard1 =   0 ;  /* workhard stuff (but who wants to work hard?) */
 static int Hworkhard2 =  -1 ;
+
+#ifdef ALLOW_DUPLO
+static int Hduplo     =   0 ;  /* duplo mode? (faster, somewhat less accurate) */
+#else
+# define   Hduplo         0
+#endif
 
 static int Hopt_ball  =   0 ;  /* 'BALL' optimization strategy? [13 Jan 2015] */
 
@@ -11333,7 +11349,8 @@ ENTRY("IW3D_warpomatic") ;
 #else
      nlevr = ( WORKHARD(0) || SUPERHARD(0) || Hduplo ) ? 2 : 1 ;
 #endif
-     /* force the warp to happen, but don't use any penalty */
+     if( Hznoq  ) nlevr = 0 ; else if( Hzeasy ) nlevr = 1 ;
+     /* force the warp to happen, but don't use any penalty at this level */
      Hforce = 1 ; Hfactor = Hfactor_q ; Hpen_use = 0 ; Hlev_now = 0 ;
      PBLUR_BASE  (ibbb,ittt,jbbb,jttt,kbbb,kttt) ;  /* progressive blur, if ordered */
      PBLUR_SOURCE(ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
@@ -11343,30 +11360,31 @@ ENTRY("IW3D_warpomatic") ;
      else
        Haasrcim = IW3D_warp_floatim( Haawarp, SRCIM, Himeth , 1.0f ) ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
-     /* always start with cubic step */
+     /* always start with cubic steps (lite then heavy)*/
+#ifndef USE_HLOADER
      BOXOPT ;
-     (void)IW3D_improve_warp( cmode , ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-     if( SUPERHARD(0) || cmode == MRI_CUBIC_LITE ){
-       BALLOPT ;
-       (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt );
-     }
+#endif
+     BALLOPT ;
+     (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-          if( Hznoq  ) nlevr = 0 ;
-     else if( Hzeasy ) nlevr = 1 ;
-     for( iii=0 ; iii < nlevr ; iii++ ){  /* and some quintic steps */
-       Hcostold = Hcost ;
-       if( iii%2 == 0 ) BOXOPT ;
-       else             BALLOPT ;
-       (void)IW3D_improve_warp( qmode, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+     /* do some quintic steps (unless told not to) */
+     if( nlevr >= 1 ){
+       itnum = 0 ;
+#ifndef USE_HLOADER
+       BOXOPT ;
+       (void)IW3D_improve_warp( MRI_QUINTIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-       if( iii < nlevr-1 && Hcostold-Hcost < 0.00444f ){
-         if( Hverb > 1 )
-           ININFO_message("       --> too little improvement: breaking out of lev=0 iterates") ;
-         break ;
+       itnum++ ;
+#endif
+       if( nlevr > itnum ){
+         BALLOPT ;
+         (void)IW3D_improve_warp( MRI_QUINTIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        }
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      }
-#if 0 && defined(ALLOW_BASIS5)
+#if 0 && defined(ALLOW_BASIS5)  /* slow and useless */
      if( (!Hznoq && !Hzeasy) && (H4zero || WORKHARD(0) || SUPERHARD(0)) ){
        BALLOPT ;
        (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -11714,7 +11732,10 @@ Image_plus_Warp * IW3D_warp_s2bim( MRI_IMAGE *bim , MRI_IMAGE *wbim , MRI_IMAGE 
 ENTRY("IW3D_warp_s2bim") ;
 
    WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hlev_end = S2BIM_mlev ;
-   Hnpar_sum = 0 ; Hduplo = 0 ;
+   Hnpar_sum = 0 ;
+#ifdef ALLOW_DUPLO
+   Hduplo = 0 ;
+#endif
 
    /* the user can set the Hshrink factor (default=0.749999) but why bother? */
 
@@ -13372,7 +13393,10 @@ Image_plus_Warp ** IW3D_warp_s2bim_plusminus(
 ENTRY("IW3D_warp_s2bim_plusminus") ;
 
    WO_iwarp = S2BIM_iwarp ; Hlev_start = S2BIM_ilev ; Hlev_end = S2BIM_mlev ;
-   Hnpar_sum = 0 ; Hduplo = 0 ;
+   Hnpar_sum = 0 ;
+#ifdef ALLOW_DUPLO
+   Hduplo = 0 ;
+#endif
 
    Hshrink = AFNI_numenv("AFNI_WARPOMATIC_SHRINK") ;
    if( Hshrink > 1.0f                       ) Hshrink = 1.0f / Hshrink ;
