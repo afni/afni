@@ -19,7 +19,7 @@
 #elif defined(__GNUC__) && defined(__i386)
 #define XMLCALL __attribute__((cdecl))
 #else
-#define XMLCALL 
+#define XMLCALL
 #endif
 #endif /* not defined XMLCALL */
 
@@ -120,7 +120,7 @@ static int  process_popped_element(afni_xml_control * xd, int pop_depth,
 static int  reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
 static int  white_first    (const char * str, int len);
 static int  white_last     (const char * str, int len);
- 
+
 static int  show_depth     (afni_xml_control *, int show);
 static int  show_attrs     (afni_xml_control *, const char **, int);
 
@@ -221,7 +221,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
     char       * buf = NULL;
     int          bsize;    /* be sure it doesn't change at some point */
     int          done = 0, pcount = 1;
- 
+
     if( init_axml_ctrl(xd, 0) ) /* reset non-user variables */
         return xlist;
 
@@ -351,7 +351,7 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
       fprintf(fp, "%*snchild : %d\n", indent, "", ax->nchild);
       if(verb>3) fprintf(fp, "%*sxparent : %s\n",indent,"",
                          ax->xparent ? "SET" : "NONE" );
-   } else 
+   } else
       /* just show the name */
       fprintf(fp, "%*s%s\n", indent, "", ax->name);
 
@@ -427,7 +427,7 @@ int axml_add_attrs(afni_xml_t * ax, const char ** attr)
       ax->attrs.name[aind]  = strdup(strip_whitespace(attr[c],0));
       ax->attrs.value[aind] = strdup(strip_whitespace(attr[c+1],0));
    }
- 
+
    return 0;
 }
 
@@ -501,7 +501,7 @@ int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 
    depth++;
    if( ax->nchild > 0 && ax->xchild )
-      for( ind=0; ind < ax->nchild; ind++ ) 
+      for( ind=0; ind < ax->nchild; ind++ )
          axml_recur(func, ax->xchild[ind]);
    depth--;
 
@@ -511,7 +511,7 @@ int axml_recur(int(*func)(FILE * fp, afni_xml_t *, int), afni_xml_t * ax)
 
 /* generic recursive function to find something in an xml tree
    (using a depth-first search)
-   
+
       func      : function to determine whether a struct is the desired one
       ax        : root of the search tree
       depth     : current depth
@@ -810,7 +810,7 @@ static afni_xml_t * make_afni_xml(const char * ename, const char ** attr)
    if( ! newp ) return NULL;
 
    axml_add_attrs(newp, attr);
- 
+
    return newp;
 }
 
@@ -901,7 +901,7 @@ static void XMLCALL cb_char(void *udata, const char * cdata, int length)
 }
 
 /* append new string (of given length) to old string and length */
-static int append_to_string(char ** ostr, int * olen, 
+static int append_to_string(char ** ostr, int * olen,
                             const char * istr, int ilen)
 {
    int newlen;
@@ -925,7 +925,7 @@ static int append_to_string(char ** ostr, int * olen,
    return 0;
 }
 
-static int disp_gen_text(afni_xml_control * xd, const char * header, 
+static int disp_gen_text(afni_xml_control * xd, const char * header,
                          const char * cdata, int length)
 {
    const char * str = cdata;

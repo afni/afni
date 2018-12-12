@@ -32,7 +32,7 @@ static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
 
 
 /* read a complete CIFTI dataset, returning nifti and and xml pieces
-   
+
    text data is converted to binary, when known
  */
 int axio_read_cifti_file(const char * fname, int get_ndata,
@@ -256,7 +256,7 @@ int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
    for( matkid = 0; matkid < xm->nchild; matkid++ ) {
       xt = xm->xchild[matkid];
       if( strcmp(xt->name, "MatrixIndicesMap") ) continue;
-      
+
       if( verb > 1 ) fprintf(ofp, "-- have %d MIMap children\n", xt->nchild);
 
       for( kid=0; kid<xt->nchild; kid++ ) {
@@ -361,7 +361,7 @@ static void disp_parcel_child(FILE * fp, afni_xml_t * ax, int verb)
    disp_name_n_desc(fp, xc,  6, verb);
    disp_name_n_desc(fp, xc1, 9, verb);
    disp_name_n_desc(fp, xc2, 9, verb);
-   
+
 
    fputc('\n', fp);
 }
@@ -416,7 +416,7 @@ static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
       return 1;
    }
 
-   /* Vertices, TransformationMatrixVoxelIndicesIJKtoXYZ, 
+   /* Vertices, TransformationMatrixVoxelIndicesIJKtoXYZ,
       VertexIndices, VoxelIndicesIJK (convert to straight index?) */
 
    if( ! strcmp(ax->name, "TransformationMatrixVoxelIndicesIJKtoXYZ") )
@@ -505,7 +505,7 @@ static int can_process_dtype(int dtype)
    if( dtype == NIFTI_TYPE_FLOAT64 )    return 1;
 
    /* warn if type is not even nifti */
-   if( ! is_valid_nifti_type(dtype) ) 
+   if( ! is_valid_nifti_type(dtype) )
       fprintf(stderr,"** DNT, %d is invalid as NIFTI type\n", dtype);
 
    return 0;
