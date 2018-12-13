@@ -94,7 +94,7 @@ PROGS_2  = 3dTshift 3dDetrend 1dfft 1dcat 3drename 1dnorm afni_vcheck 3ddot     
 
 PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         \
            3dSpatNorm fftest serial_helper 3dDTeig 3dDWItoDT 3dWarpDrive        \
-           nifti_tool 3dAllineate nifti1_test whereami plugout_drive 3dLSS      \
+           nifti_tool 3dAllineate whereami plugout_drive 3dLSS                  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
            3dmaxima GLTsymtest 3dPval stimband 1dNLfit                          \
@@ -151,7 +151,7 @@ PROGRAMS_NOPLUG = afni to3d from3d abut 3dclust nsize 3dinfo 3dproject 3dmerge  
                   dicom_hdr 3dDespike dicom_to_raw file_tool rotcom 3dUniformize    \
                   3dWarp nicat 3dSpatNorm 3dWarpDrive 3dretroicor ge_header 3dTnorm \
                   3dAFNItoRaw DTIStudioFibertoSegments im2niml 3dLocalstat 3dGetrow \
-                  nifti_tool 3dAllineate nifti1_test Dimon1 Dimon 3danisosmooth     \
+                  nifti_tool 3dAllineate Dimon1 Dimon 3danisosmooth                 \
                   3dmaxima 3dTwotoComplex 3dInvFMRI 1dmatcalc 3dmatcalc 3dAcost     \
                   3dLocalBistat 3dFWHMx 3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize       \
                   1dMarry 3dEmpty 3dTsort 1dTsort 1dFlagMotion 3dTfitter 1dBport    \
