@@ -2,6 +2,5 @@
 #Please contact hans-johnson@uiowa.edu for making enhancments/corrections
 
 include_directories(${NIFTI_SOURCE_DIR}/niftilib ${NIFTI_SOURCE_DIR}/znzlib ${NIFTI_SOURCE_DIR}/nifticdf)
-subdirs(niftilib)
-subdirs(nifti_regress_test)
-
+add_subdirectory(niftilib)
+add_subdirectory(nifti_regress_test)
