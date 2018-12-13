@@ -1,0 +1,143 @@
+#!/bin/tcsh
+
+# ----------------------------------------------------------------------
+# Remove trailing spaces and tabs from the ends of lines.
+#
+# this is similar to @diff.files
+# ----------------------------------------------------------------------
+
+
+set prog = `basename $0`
+set retval = 0
+
+if ( $#argv < 1 ) goto HELP
+
+# --------------------------------------------------
+# main variables, probably modifiable
+set apply     = 0
+set show      = 0
+set diffprog  = diff
+set tempfile  = junk.temp.file
+set filelist  = ()
+
+# --------------------------------------------------
+# options to update main variables
+
+set ac = 1
+while ( $ac <= $#argv )
+   if ( "$argv[$ac]" == "-help" ) then
+      goto HELP
+   else if ( "$argv[$ac]" == "-apply" ) then
+      set apply = 1
+   else if ( "$argv[$ac]" == "-show" ) then
+      set show = 1
+   else if ( "$argv[$ac]" == "-diffprog" ) then
+      @ ac ++
+      set diffprog = $argv[$ac]
+   else if ( "$argv[$ac]" == "-tempfile" ) then
+      @ ac ++
+      set tempfile = $argv[$ac]
+   else if ( -f $argv[$ac] ) then
+      set filelist = ( $argv[$ac-] )
+      break
+   endif
+
+   @ ac += 1
+end
+
+# --------------------------------------------------
+# make sure there are files to look at
+if ( $#filelist > 0 ) then
+   set found = 1
+   foreach file ( $filelist )
+      if ( ! -f $file ) then
+         echo "** missing input file $file"
+         set found = 0
+      endif
+   end
+   if ( ! $found ) exit 1
+else
+   echo "** $prog ERROR: no files to check"
+   exit 1
+endif
+
+# --------------------------------------------------
+# make sure we have something to diff with
+if ( $show ) then
+   echo `which $diffprog` >& /dev/null
+   if ( $status ) then
+      echo "** $prog ERROR: missing diff program '$diffprog'"
+      exit 1
+   endif
+endif
+
+
+# ======================================================================
+# get to work
+
+set applied = 0
+foreach file ( $filelist )
+
+   # first strip
+   sed s/'[ 	][ 	]*$//' $file > $tempfile
+
+   # then compare
+   cmp -s $file $tempfile
+
+   # if no diff, just move on
+   if ( ! $status ) continue
+
+   echo "==== diffs ====================  $file "
+
+   # show?
+   if ( $show ) then
+      $diffprog $tempfile $file
+   endif
+
+   # apply the changes
+   if ( $apply ) then
+      @ applied += 1
+      \cp $tempfile $file
+   endif
+
+end
+\rm -f $tempfile
+
+if ( $applied ) then
+   echo ""
+   echo "++ modified $applied files"
+   echo ""
+endif
+
+
+
+exit $retval
+
+# --------------------------------------------------
+HELP:
+cat << EOF
+
+   usage: $prog [options] FILE FILE ...
+
+   This script is mean to strip any trailing tabs or spaces at the ends of
+   lines (little sed command).  It can be run in testing mode or to actually
+   apply the changes.
+
+   By default, the program only mentions diffs, use -apply to apply them.
+
+   options:
+
+        -help           : show this help
+
+        -apply          : do not just test for space, modify the files
+
+        -show           : show diffs of files (probably done in test mode)
+        -diffprog PROG  : use program PROG for diffs
+                          (default is 'diff', consider 'xxdiff')
+        -tempfile FILE  : use FILE for a temporary file (sed output)
+
+   ----------------------------------------
+   R Reynolds  Dec, 2018
+
+EOF
+
