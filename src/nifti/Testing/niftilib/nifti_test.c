@@ -158,6 +158,11 @@ void compare_reference_image_values(nifti_image const * const reference_image, n
 
 int main (int argc, char *argv[])
 {
+  if (argc > 1)
+  {
+    printf("The test program takes no arguments: %s", argv[0]);
+    return EXIT_FAILURE;
+  }
   char TEMP_STR[256];
   nifti_set_debug_level(3);
   int Errors=0;
