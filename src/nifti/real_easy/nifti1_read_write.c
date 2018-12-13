@@ -100,9 +100,226 @@ typedef float MY_DATATYPE;
 #define NII_HEADER_SIZE 352
 
 
-main(argc,argv)
-int argc;
-char *argv[];
+/**********************************************************************
+ *
+ * read_nifti_file
+ *
+ **********************************************************************/
+static int read_nifti_file(char * const hdr_file, char * const data_file)
+{
+        nifti_1_header hdr;
+        FILE *fp;
+        int ret,i;
+        double total;
+        MY_DATATYPE *data=NULL;
+
+
+/********** open and read header */
+        fp = fopen(hdr_file,"r");
+        if (fp == NULL) {
+                fprintf(stderr, "\nError opening header file %s\n",hdr_file);
+                exit(1);
+        }
+        ret = fread(&hdr, MIN_HEADER_SIZE, 1, fp);
+        if (ret != 1) {
+                fprintf(stderr, "\nError reading header file %s\n",hdr_file);
+                exit(1);
+        }
+        fclose(fp);
+
+
+/********** print a little header information */
+        fprintf(stderr, "\n%s header information:",hdr_file);
+        fprintf(stderr, "\nXYZT dimensions: %d %d %d %d",hdr.dim[1],hdr.dim[2],hdr.dim[3],hdr.dim[4]);
+        fprintf(stderr, "\nDatatype code and bits/pixel: %d %d",hdr.datatype,hdr.bitpix);
+        fprintf(stderr, "\nScaling slope and intercept: %.6f %.6f",hdr.scl_slope,hdr.scl_inter);
+        fprintf(stderr, "\nByte offset to data in datafile: %ld",(long)(hdr.vox_offset));
+        fprintf(stderr, "\n");
+
+
+/********** open the datafile, jump to data offset */
+        fp = fopen(data_file,"r");
+        if (fp == NULL) {
+                fprintf(stderr, "\nError opening data file %s\n",data_file);
+                exit(1);
+        }
+
+        ret = fseek(fp, (long)(hdr.vox_offset), SEEK_SET);
+        if (ret != 0) {
+                fprintf(stderr, "\nError doing fseek() to %ld in data file %s\n",(long)(hdr.vox_offset), data_file);
+                exit(1);
+        }
+
+
+/********** allocate buffer and read first 3D volume from data file */
+        data = (MY_DATATYPE *) malloc(sizeof(MY_DATATYPE) * hdr.dim[1]*hdr.dim[2]*hdr.dim[3]);
+        if (data == NULL) {
+                fprintf(stderr, "\nError allocating data buffer for %s\n",data_file);
+                exit(1);
+        }
+        ret = fread(data, sizeof(MY_DATATYPE), hdr.dim[1]*hdr.dim[2]*hdr.dim[3], fp);
+        if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]) {
+                fprintf(stderr, "\nError reading volume 1 from %s (%d)\n",data_file,ret);
+                exit(1);
+        }
+        fclose(fp);
+
+
+/********** scale the data buffer  */
+        if (hdr.scl_slope != 0) {
+                for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]; i++)
+                        data[i] = (data[i] * hdr.scl_slope) + hdr.scl_inter;
+        }
+
+
+/********** print mean of data */
+        total = 0;
+        for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]; i++)
+                total += data[i];
+        total /= (hdr.dim[1]*hdr.dim[2]*hdr.dim[3]);
+        fprintf(stderr, "\nMean of volume 1 in %s is %.3f\n",data_file,total);
+
+
+        return(0);
+}
+
+
+/**********************************************************************
+ *
+ * write_nifti_file
+ *
+ * write a sample nifti1 (.nii) data file
+ * datatype is float32
+ * XYZT size is 64x64x16x10
+ * XYZ voxel size is 1mm
+ * TR is 1500ms
+ *
+ **********************************************************************/
+static int write_nifti_file(char * const hdr_file, char * const data_file)
+{
+        nifti_1_header hdr;
+        nifti1_extender pad={0,0,0,0};
+        FILE *fp;
+        int ret,i;
+        MY_DATATYPE *data=NULL;
+        short do_nii;
+
+
+/********** make sure user specified .hdr/.img or .nii/.nii */
+        if ( (strlen(hdr_file) < 4) || (strlen(data_file) < 4) ) {
+                fprintf(stderr, "\nError: write files must end with .hdr/.img or .nii/.nii extension\n");
+                exit(1);
+        }
+
+        if ( (!strncmp(hdr_file+(strlen(hdr_file)-4), ".hdr",4)) &&
+             (!strncmp(data_file+(strlen(data_file)-4), ".img",4)) ) {
+                do_nii = 0;
+        }
+        else if ( (!strncmp(hdr_file+(strlen(hdr_file)-4), ".nii",4)) &&
+                  (!strncmp(data_file+(strlen(data_file)-4), ".nii",4)) ) {
+                do_nii = 1;
+        }
+        else {
+                fprintf(stderr, "\nError: file(s) to be written must end with .hdr/.img or .nii/.nii extension\n");
+                exit(1);
+        }
+
+
+/********** fill in the minimal default header fields */
+        bzero((void *)&hdr, sizeof(hdr));
+        hdr.sizeof_hdr = MIN_HEADER_SIZE;
+        hdr.dim[0] = 4;
+        hdr.dim[1] = 64;
+        hdr.dim[2] = 64;
+        hdr.dim[3] = 16;
+        hdr.dim[4] = 10;
+        hdr.datatype = NIFTI_TYPE_FLOAT32;
+        hdr.bitpix = 32;
+        hdr.pixdim[1] = 1.0;
+        hdr.pixdim[2] = 1.0;
+        hdr.pixdim[3] = 1.0;
+        hdr.pixdim[4] = 1.5;
+        if (do_nii)
+                hdr.vox_offset = (float) NII_HEADER_SIZE;
+        else
+                hdr.vox_offset = (float)0;
+        hdr.scl_slope = 100.0;
+        hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC;
+        if (do_nii)
+                strncpy(hdr.magic, "n+1\0", 4);
+        else
+                strncpy(hdr.magic, "ni1\0", 4);
+
+
+/********** allocate buffer and fill with dummy data  */
+        data = (MY_DATATYPE *) malloc(sizeof(MY_DATATYPE) * hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]);
+        if (data == NULL) {
+                fprintf(stderr, "\nError allocating data buffer for %s\n",data_file);
+                exit(1);
+        }
+
+        for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]; i++)
+                data[i] = i / hdr.scl_slope;
+
+
+/********** write first 348 bytes of header   */
+        fp = fopen(hdr_file,"w");
+        if (fp == NULL) {
+                fprintf(stderr, "\nError opening header file %s for write\n",hdr_file);
+                exit(1);
+        }
+        ret = fwrite(&hdr, MIN_HEADER_SIZE, 1, fp);
+        if (ret != 1) {
+                fprintf(stderr, "\nError writing header file %s\n",hdr_file);
+                exit(1);
+        }
+
+
+/********** if nii, write extender pad and image data   */
+        if (do_nii == 1) {
+
+                ret = fwrite(&pad, 4, 1, fp);
+                if (ret != 1) {
+                        fprintf(stderr, "\nError writing header file extension pad %s\n",hdr_file);
+                        exit(1);
+                }
+
+                ret = fwrite(data, (size_t)(hdr.bitpix/8), hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4], fp);
+                if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]) {
+                        fprintf(stderr, "\nError writing data to %s\n",hdr_file);
+                        exit(1);
+                }
+
+                fclose(fp);
+        }
+
+
+/********** if hdr/img, close .hdr and write image data to .img */
+        else {
+
+                fclose(fp);     /* close .hdr file */
+
+                fp = fopen(data_file,"w");
+                if (fp == NULL) {
+                        fprintf(stderr, "\nError opening data file %s for write\n",data_file);
+                        exit(1);
+                }
+                ret = fwrite(data, (size_t)(hdr.bitpix/8), hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4], fp);
+                if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]) {
+                        fprintf(stderr, "\nError writing data to %s\n",data_file);
+                        exit(1);
+                }
+
+                fclose(fp);
+        }
+
+
+        free(data);
+        return(0);
+}
+
+/********** The main program for this test case */
+int main(int argc, char * argv[])
 {
 
 char *hdr_file, *data_file;
@@ -138,224 +355,4 @@ else if (do_write)
 
 
 exit(0);
-}
-
-/**********************************************************************
- *
- * read_nifti_file
- *
- **********************************************************************/
-int read_nifti_file(hdr_file, data_file)
-char *hdr_file, *data_file;
-{
-nifti_1_header hdr;
-FILE *fp;
-int ret,i;
-double total;
-MY_DATATYPE *data=NULL;
-
-
-/********** open and read header */
-fp = fopen(hdr_file,"r");
-if (fp == NULL) {
-        fprintf(stderr, "\nError opening header file %s\n",hdr_file);
-        exit(1);
-}
-ret = fread(&hdr, MIN_HEADER_SIZE, 1, fp);
-if (ret != 1) {
-        fprintf(stderr, "\nError reading header file %s\n",hdr_file);
-        exit(1);
-}
-fclose(fp);
-
-
-/********** print a little header information */
-fprintf(stderr, "\n%s header information:",hdr_file);
-fprintf(stderr, "\nXYZT dimensions: %d %d %d %d",hdr.dim[1],hdr.dim[2],hdr.dim[3],hdr.dim[4]);
-fprintf(stderr, "\nDatatype code and bits/pixel: %d %d",hdr.datatype,hdr.bitpix);
-fprintf(stderr, "\nScaling slope and intercept: %.6f %.6f",hdr.scl_slope,hdr.scl_inter);
-fprintf(stderr, "\nByte offset to data in datafile: %ld",(long)(hdr.vox_offset));
-fprintf(stderr, "\n");
-
-
-/********** open the datafile, jump to data offset */
-fp = fopen(data_file,"r");
-if (fp == NULL) {
-        fprintf(stderr, "\nError opening data file %s\n",data_file);
-        exit(1);
-}
-
-ret = fseek(fp, (long)(hdr.vox_offset), SEEK_SET);
-if (ret != 0) {
-        fprintf(stderr, "\nError doing fseek() to %ld in data file %s\n",(long)(hdr.vox_offset), data_file);
-        exit(1);
-}
-
-
-/********** allocate buffer and read first 3D volume from data file */
-data = (MY_DATATYPE *) malloc(sizeof(MY_DATATYPE) * hdr.dim[1]*hdr.dim[2]*hdr.dim[3]);
-if (data == NULL) {
-        fprintf(stderr, "\nError allocating data buffer for %s\n",data_file);
-        exit(1);
-}
-ret = fread(data, sizeof(MY_DATATYPE), hdr.dim[1]*hdr.dim[2]*hdr.dim[3], fp);
-if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]) {
-        fprintf(stderr, "\nError reading volume 1 from %s (%d)\n",data_file,ret);
-        exit(1);
-}
-fclose(fp);
-
-
-/********** scale the data buffer  */
-if (hdr.scl_slope != 0) {
-        for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]; i++)
-                data[i] = (data[i] * hdr.scl_slope) + hdr.scl_inter;
-}
-
-
-/********** print mean of data */
-total = 0;
-for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]; i++)
-        total += data[i];
-total /= (hdr.dim[1]*hdr.dim[2]*hdr.dim[3]);
-fprintf(stderr, "\nMean of volume 1 in %s is %.3f\n",data_file,total);
-
-
-return(0);
-}
-
-
-/**********************************************************************
- *
- * write_nifti_file
- *
- * write a sample nifti1 (.nii) data file
- * datatype is float32
- * XYZT size is 64x64x16x10
- * XYZ voxel size is 1mm
- * TR is 1500ms
- *
- **********************************************************************/
-int write_nifti_file(hdr_file, data_file)
-char *hdr_file, *data_file;
-{
-nifti_1_header hdr;
-nifti1_extender pad={0,0,0,0};
-FILE *fp;
-int ret,i;
-MY_DATATYPE *data=NULL;
-short do_nii;
-
-
-/********** make sure user specified .hdr/.img or .nii/.nii */
-if ( (strlen(hdr_file) < 4) || (strlen(data_file) < 4) ) {
-        fprintf(stderr, "\nError: write files must end with .hdr/.img or .nii/.nii extension\n");
-        exit(1);
-}
-
-if ( (!strncmp(hdr_file+(strlen(hdr_file)-4), ".hdr",4)) &&
-     (!strncmp(data_file+(strlen(data_file)-4), ".img",4)) ) {
-        do_nii = 0;
-}
-else if ( (!strncmp(hdr_file+(strlen(hdr_file)-4), ".nii",4)) &&
-     (!strncmp(data_file+(strlen(data_file)-4), ".nii",4)) ) {
-        do_nii = 1;
-}
-else {
-        fprintf(stderr, "\nError: file(s) to be written must end with .hdr/.img or .nii/.nii extension\n");
-        exit(1);
-}
-
-
-/********** fill in the minimal default header fields */
-bzero((void *)&hdr, sizeof(hdr));
-hdr.sizeof_hdr = MIN_HEADER_SIZE;
-hdr.dim[0] = 4;
-hdr.dim[1] = 64;
-hdr.dim[2] = 64;
-hdr.dim[3] = 16;
-hdr.dim[4] = 10;
-hdr.datatype = NIFTI_TYPE_FLOAT32;
-hdr.bitpix = 32;
-hdr.pixdim[1] = 1.0;
-hdr.pixdim[2] = 1.0;
-hdr.pixdim[3] = 1.0;
-hdr.pixdim[4] = 1.5;
-if (do_nii)
-        hdr.vox_offset = (float) NII_HEADER_SIZE;
-else
-        hdr.vox_offset = (float)0;
-hdr.scl_slope = 100.0;
-hdr.xyzt_units = NIFTI_UNITS_MM | NIFTI_UNITS_SEC;
-if (do_nii)
-        strncpy(hdr.magic, "n+1\0", 4);
-else
-        strncpy(hdr.magic, "ni1\0", 4);
-
-
-/********** allocate buffer and fill with dummy data  */
-data = (MY_DATATYPE *) malloc(sizeof(MY_DATATYPE) * hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]);
-if (data == NULL) {
-        fprintf(stderr, "\nError allocating data buffer for %s\n",data_file);
-        exit(1);
-}
-
-for (i=0; i<hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]; i++)
-        data[i] = i / hdr.scl_slope;
-
-
-/********** write first 348 bytes of header   */
-fp = fopen(hdr_file,"w");
-if (fp == NULL) {
-        fprintf(stderr, "\nError opening header file %s for write\n",hdr_file);
-        exit(1);
-}
-ret = fwrite(&hdr, MIN_HEADER_SIZE, 1, fp);
-if (ret != 1) {
-        fprintf(stderr, "\nError writing header file %s\n",hdr_file);
-        exit(1);
-}
-
-
-/********** if nii, write extender pad and image data   */
-if (do_nii == 1) {
-
-        ret = fwrite(&pad, 4, 1, fp);
-        if (ret != 1) {
-                fprintf(stderr, "\nError writing header file extension pad %s\n",hdr_file);
-                exit(1);
-        }
-
-        ret = fwrite(data, (size_t)(hdr.bitpix/8), hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4], fp);
-        if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]) {
-                fprintf(stderr, "\nError writing data to %s\n",hdr_file);
-                exit(1);
-        }
-
-        fclose(fp);
-}
-
-
-/********** if hdr/img, close .hdr and write image data to .img */
-else {
-
-        fclose(fp);     /* close .hdr file */
-
-        fp = fopen(data_file,"w");
-        if (fp == NULL) {
-                fprintf(stderr, "\nError opening data file %s for write\n",data_file);
-                exit(1);
-        }
-        ret = fwrite(data, (size_t)(hdr.bitpix/8), hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4], fp);
-        if (ret != hdr.dim[1]*hdr.dim[2]*hdr.dim[3]*hdr.dim[4]) {
-                fprintf(stderr, "\nError writing data to %s\n",data_file);
-                exit(1);
-        }
-
-        fclose(fp);
-}
-
-
-free(data);
-return(0);
 }
