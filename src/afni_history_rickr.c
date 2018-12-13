@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Dec, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
+   "removed nift1-test from the distribution",
+   NULL
+ } ,
+
+ { 13, Dec, 2018, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "merged NIFTI updates from NIFTI-Imaging/nifti_clib repo",
+   NULL
+ } ,
+
  { 11, Dec, 2018, RCR, "Dimon", MINOR, TYPE_BUG_FIX,
    "use mkdir -p; reconcile write_as_nifti and NIFTI prefix",
    "Thanks to C Smith for noting the issue."
