@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Dec, 2018, RCR, "@strip.whitespace", MINOR, TYPE_NEW_PROG,
+   "stored under scripts_src; guess what it does",
+   NULL
+ } ,
+
  { 13, Dec, 2018, RCR, "Makefile.INCLUDE", MICRO, TYPE_MODIFY,
    "removed nift1-test from the distribution",
    NULL
