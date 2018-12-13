@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 13 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Make -lite work with -plusminus" ,
+   "Also, remove the HLOADER code permanently and with extreme prejudice.\n"
+   "Ditto for DUPLO." } ,
+
  { 11 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
    "Also add -Quint30 and -lite options" ,
    "To run with reduced order polynomials, which are faster and appear to be\n"
