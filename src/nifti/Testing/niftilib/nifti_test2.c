@@ -6,6 +6,12 @@
 #include <nifti1_io.h>
 int main (int argc, char *argv[])
 {
+  if (argc > 1)
+  {
+    printf("The test program takes no arguments: %s", argv[0]);
+    return EXIT_FAILURE;
+  }
+
   /*
    * create a 'dummy' image
    */
