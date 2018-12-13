@@ -8192,7 +8192,7 @@ static INLINE float_triple HCwarp_eval_basis3( float x )
    } else {
      bb = 1.0f - aa ; bb = bb*bb ;
      ee.a = bb * (1.0f+2.0f*aa) ;  /* f(0)  = 1 ; */
-     ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75 */
+     ee.b = bb * x * 6.75f ;       /* f'(0) = 1 * 6.75  f(1/3) = 1 */
      ee.c = bb * (1.0f+2.0f*aa-15.0f*aa*aa) ;
    }
    return ee ;
@@ -11051,7 +11051,7 @@ ENTRY("IW3D_improve_warp") ;
 
    /* skip if not enough points for number of parameters [07 Apr 2016] */
 
-   if( nwb < 3*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
+   if( nwb < 5*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
      if( Hverb > 2 )
        ININFO_message(
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d voxels inmask vs %d parameters)" ,
@@ -12601,7 +12601,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
    /* skip if not enough points for number of parameters [07 Apr 2016] */
 
-   if( nwb < 3*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
+   if( nwb < 5*Hnparmap ){  /* Hnparmap was set in a *setup_basis* just above */
      if( Hverb > 2 )
        ININFO_message(
          "     %s patch %03d..%03d %03d..%03d %03d..%03d : skipping (%d voxels inmask vs %d parameters)" ,
