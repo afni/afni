@@ -429,7 +429,7 @@ ENTRY("mri_read") ;
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-     fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
+     ERROR_message("mri_read: couldn't open file %s" , fname ) ;
      RETURN( NULL );
    }
 
@@ -739,8 +739,8 @@ The_Old_Way:
          im = mri_read_stuff( fname ) ;    /* 22 Nov 2002 */
          if( im != NULL ) RETURN( im );
 
-         fprintf( stderr , "do not recognize image file %s\n" , fname );
-         fprintf( stderr , "length seen as %d\n" , length ) ;
+         ERROR_message("mri_read: do not recognize image file %s" , fname );
+         ERROR_message("          -- FWIW: length seen as %d bytes" , length ) ;
          RETURN( NULL );
    }
 
@@ -1131,7 +1131,7 @@ ENTRY("mri_read_3D") ;
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-     fprintf( stderr , "couldn't open image file %s\n" , fname ) ;
+     ERROR_message("mri_read_3D: couldn't open file %s" , fname ) ;
      RETURN(NULL);
    }
 
@@ -1149,7 +1149,7 @@ ENTRY("mri_read_3D") ;
    nneed = hglob + (datum_len*nx*ny+himage) * (long long)nz ;
    if( length < nneed ){
       ERROR_message(
-        "image file %s is %lld bytes long but must be at least %lld bytes long\n"
+        "mri_read_3D: file %s is %lld bytes long but must be at least %lld bytes long\n"
         "  for hglobal=%lld himage=%d nx=%d ny=%d nz=%d and voxel=%d bytes\n",
         fname,length,nneed,hglob,himage,nx,ny,nz,datum_len ) ;
       fclose( imfile ) ;
@@ -1728,7 +1728,7 @@ ENTRY("mri_read_ppm3") ;
 
    imfile = fopen( fname , "r" ) ;
    if( imfile == NULL ){
-      fprintf(stderr,"couldn't open file %s in mri_read_ppm3\n",fname); RETURN(NULL) ;
+     ERROR_message("mri_read_ppm3: couldn't open file %s" , fname ) ; RETURN(NULL) ;
    }
 
    /*** check if a raw PPM file ***/
@@ -2036,7 +2036,10 @@ ENTRY("mri_read_ppm_header") ;
 
    /*** open input file ***/
 
-   imfile = fopen( fname , "r" ) ; if( imfile == NULL ) EXRETURN ;
+   imfile = fopen( fname , "r" ) ;
+   if( imfile == NULL ){
+     ERROR_message("mri_read_ppm_header: couldn't open file %s" , fname ) ; EXRETURN ;
+   }
 
    /*** check if a raw PPM file ***/
 
@@ -2077,7 +2080,9 @@ ENTRY("mri_read_ppm") ;
    /*** open input file ***/
 
    imfile = fopen( fname , "r" ) ;
-   if( imfile == NULL ) RETURN(NULL);
+   if( imfile == NULL ){
+     ERROR_message("mri_read_ppm: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    /*** check if a raw PPM file ***/
 
@@ -2520,7 +2525,9 @@ STATUS(fname) ;  /* 16 Oct 2007 */
 
    fts = fopen( fname , "r" );
    if( fts == NULL ){ NI_sleep(33); fts = fopen( fname , "r" ); }
-   if( fts == NULL ) RETURN(NULL);
+   if( fts == NULL ){
+     ERROR_message("mri_read_ascii: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
 
@@ -2532,7 +2539,9 @@ STATUS(fname) ;  /* 16 Oct 2007 */
    save_comments = 1 ;                   /* 03 Aug 2016 */
    ptr = my_fgets( buf , LBUF , fts ) ;
    if( ptr==NULL || *ptr=='\0' ){        /* bad read? */
-     FRB(comment_buffer); FRB(buf); fclose(fts); RETURN(NULL);
+     FRB(comment_buffer); FRB(buf); fclose(fts);
+     ERROR_message("mri_read_ascii: can't read any valid data from file %s",fname) ;
+     RETURN(NULL) ;
    }
    save_comments = 0;
    if( comment_buffer ) cbuf = strdup(comment_buffer); /* 6 Aug 2016 [rickr] */
@@ -2678,7 +2687,10 @@ ENTRY("mri_read_double_ascii") ;
      fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
    }
 
-   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
+   fts = fopen( fname , "r" );
+   if( fts == NULL ){
+     ERROR_message("mri_read_double_ascii: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
 
@@ -2822,7 +2834,10 @@ ENTRY("mri_read_complex_ascii") ;
      fprintf(stderr,"Somebody was too lazy to allow this option here.\n"); RETURN(NULL);
    }
 
-   fts = fopen( fname , "r" ); if( fts == NULL ) RETURN(NULL);
+   fts = fopen( fname , "r" );
+   if( fts == NULL ){
+     ERROR_message("mri_read_complex_ascii: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    if( buf == NULL ) buf = AFMALL(char, LBUF) ; /* create buffer */
 
@@ -3006,6 +3021,8 @@ ENTRY("mri_read_1D") ;
      inim = mri_read_1D_stdin() ;
      if( inim != NULL && fname[ii-1] == '\'' ){
        flim = mri_transpose(inim); mri_free(inim); inim = flim;
+     } else if( inim == NULL ){
+       ERROR_message("mri_read_1D: can't read 1D data from stdin") ;
      }
      RETURN(inim) ;
    }
@@ -3030,12 +3047,14 @@ ENTRY("mri_read_1D") ;
       (fname[2] == ':' || fname[3] == ':') ){
 
      MRI_IMARR *imar = mri_read_3D(fname) ;
-     if( imar == NULL ) RETURN(NULL) ;
+     if( imar == NULL ){
+       ERROR_message("mri_read_1D: can't read valid data from %s",fname) ;
+       RETURN(NULL);
+     }
      if( IMARR_COUNT(imar) == 0 ){ DESTROY_IMARR(imar); RETURN(NULL); }
      outim = mri_to_float( IMARR_SUBIM(imar,0) ) ;
      DESTROY_IMARR(imar) ; RETURN(outim) ;
    }
-
 
    /*-- back to reading from an actual file --*/
 
@@ -3045,9 +3064,13 @@ ENTRY("mri_read_1D") ;
 
    if( strncmp(dname,"1D:",3) == 0 ){       /* 28 Apr 2003 */
      outim = mri_1D_fromstring( dname+3 ) ;
-     /** if( outim == NULL ) ERROR_message("read of '1D:' string fails") ; **/
-     if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
-     mri_add_name("1D:...",outim) ; RETURN(outim) ;
+     if( outim == NULL ){
+       ERROR_message("mri_read_1D: can't read from string '%s'",dname) ;
+     } else {
+       if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
+       mri_add_name("1D:...",outim) ;
+     }
+     RETURN(outim) ;
    }
 
    /*-- split filename and subvector list --*/
@@ -3177,7 +3200,10 @@ ENTRY("mri_read_1D_headerlines") ;
 
      fp = stdin ;
    } else {
-     fp = fopen( fname , "r" ) ; if( fp == NULL ) RETURN(NULL) ;
+     fp = fopen( fname , "r" ) ;
+     if( fp == NULL ){
+       ERROR_message("mri_read_1D_headerlines: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+     }
    }
 
    /* read # lines, catenate them */
@@ -3363,7 +3389,7 @@ ENTRY("mri_read_double_1D") ;
      if( flip ){ inim=mri_transpose(outim); mri_free(outim); outim=inim; }
      RETURN(outim) ;
      */
-     ERROR_message("Somebody was too lazy to allow this option here."); RETURN(NULL);
+     ERROR_message("Somebody nameless was too lazy to allow this option here."); RETURN(NULL);
    }
 
    /*-- split filename and subvector list --*/
@@ -3657,7 +3683,11 @@ ENTRY("mri_read_ascii_ragged") ;
      FRB(buf); RETURN(outim) ;
    }
 
-   fts = fopen( fname , "r" ); if( fts == NULL ){ FRB(buf); RETURN(NULL); }
+   fts = fopen( fname , "r" );
+   if( fts == NULL ){
+     FRB(buf) ;
+     ERROR_message("mri_read_ascii_ragged: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    if( buf == NULL ) buf = AFMALL(char, LBUF) ;
 
@@ -3739,7 +3769,10 @@ ENTRY("mri_read_ascii_ragged_complex") ;
 
    if( fname == NULL || *fname == '\0' ) RETURN(NULL) ;
 
-   fts = fopen(fname,"r"); if( fts == NULL ) RETURN(NULL) ;
+   fts = fopen(fname,"r");
+   if( fts == NULL ){
+     ERROR_message("mri_read_ascii_ragged_complex: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    buf = (char *)malloc(LBUF) ;
 
@@ -3846,7 +3879,10 @@ ENTRY("mri_read_ascii_ragged_fvect") ;
      RETURN(outim) ;
    }
 
-   fts = fopen(fname,"r"); if( fts == NULL ) RETURN(NULL) ;
+   fts = fopen(fname,"r");
+   if( fts == NULL ){
+     ERROR_message("mri_read_ascii_ragged_fvect: couldn't open file %s" , fname ) ; RETURN(NULL) ;
+   }
 
    buf = (char *)malloc(LBUF) ;
 
@@ -3927,6 +3963,10 @@ static void read_ascii_floats( char * fname, int * nff , float ** ff )
 
    fts = fopen( fname , "r" ) ;
    if( fts == NULL ){ *nff=0 ; *ff=NULL ; return ; }
+   if( fts == NULL ){
+     *nff = 0 ; *ff = NULL ;
+     ERROR_message("mri_read_ascii_floats: couldn't open file %s" , fname ) ; return ;
+   }
 
    /* make some space */
 
@@ -4143,7 +4183,9 @@ static int mri_imcount_analyze75( char * hname )
 ENTRY("mri_imcount_analyze75") ;
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) RETURN(0) ;
+   if( fp == NULL ){
+     ERROR_message("mri_imcount_analyze75: couldn't open file %s" , hname ) ; RETURN(0) ;
+   }
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
@@ -4198,7 +4240,9 @@ ENTRY("mri_read_analyze75") ;
    /* read header file into struct */
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) RETURN(NULL) ;
+   if( fp == NULL ){
+     ERROR_message("mri_read_analyze75: couldn't open file %s" , hname ) ; RETURN(NULL) ;
+   }
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
@@ -4288,8 +4332,7 @@ ENTRY("mri_read_analyze75") ;
 
    fp = fopen( iname , "rb" ) ;
    if( fp == NULL ){
-      fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
-      RETURN(NULL) ;
+     ERROR_message("mri_read_analyze75: couldn't open file %s" , iname ) ; RETURN(NULL) ;
    }
 
    ngood = datum_len*nx*ny*nz ;
@@ -4386,7 +4429,9 @@ ENTRY("mri_read3D_analyze75") ;
    /* read header file into struct */
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) RETURN(NULL) ;
+   if( fp == NULL ){
+     ERROR_message("mri_read3D_analyze75: couldn't open file %s" , hname ) ; RETURN(NULL) ;
+   }
    hdr.dime.dim[0] = 0 ;
    fread( &hdr , 1 , sizeof(struct dsr) , fp ) ;
    fclose(fp) ;
@@ -4470,8 +4515,7 @@ ENTRY("mri_read3D_analyze75") ;
 
    fp = fopen( iname , "rb" ) ;
    if( fp == NULL ){
-      fprintf(stderr,"*** Can't open ANALYZE file %s\n",iname) ;
-      RETURN(NULL) ;
+     ERROR_message("mri_read3D_analyze75: couldn't open file %s" , iname ) ; RETURN(NULL) ;
    }
 
    ngood = datum_len*nx*ny*nz*nt ;
@@ -4562,7 +4606,9 @@ static int mri_imcount_siemens( char * hname )
    /*--- read header data ---*/
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) return 0 ;
+   if( fp == NULL ){
+     ERROR_message("mri_imcount_siemens: couldn't open file %s" , hname ) ; return 0 ;
+   }
    fread( &head , sizeof(struct Siemens_vision_header) , 1 , fp ) ;
 
    /*-- check some integer in header to determine if we need to byteswap --*/
@@ -4653,7 +4699,9 @@ ENTRY("mri_read_siemens") ;
    /*--- read header data ---*/
 
    fp = fopen( hname , "rb" ) ;
-   if( fp == NULL ) RETURN(NULL) ;
+   if( fp == NULL ){
+     ERROR_message("mri_read_siemens: couldn't open file %s" , hname ) ; RETURN(NULL) ;
+   }
    fread( &head , sizeof(struct Siemens_vision_header) , 1 , fp ) ;
 
    /*-- check some integer in header to determine if we need to byteswap --*/
@@ -4789,13 +4837,15 @@ Done:
     Bytes 128-131 should be "DICM" in a Dicom Part 10 file
 */
 
-int check_dicom_magic_num( char *fname )
+static int check_dicom_magic_num( char *fname )
 {
   FILE *fp;
   char test_string[5] ;
 
   fp = fopen( fname, "rb" ) ;
-  if(fp == NULL ) return 0 ;
+  if( fp == NULL ){
+    ERROR_message("check_dicom_magic_num: couldn't open file %s" , fname ) ; return 0 ;
+  }
   fseek( fp, 128 , SEEK_SET ) ;
   fread( test_string , 1 , 4 , fp ) ; test_string[4] = '\0' ;
   fclose( fp ) ;
@@ -4851,8 +4901,7 @@ void mri_input_delay( MRI_IMAGE * im )
    if( strcmp(im->fname,"ALLZERO") != 0 ){
       imfile = fopen( im->fname , "r" ) ;
       if( imfile == NULL ){
-         fprintf( stderr , "couldn't open delayed image file %s\n" , im->fname ) ;
-         return ;
+        ERROR_message("mri_input_delay: couldn't open file %s" , im->fname ) ; return ;
       }
    }
 
@@ -5070,8 +5119,7 @@ MRI_IMARR * mri_read_3D_delay( char * tname )
    if( strcmp(fname,"ALLZERO") != 0 ){
       imfile = fopen( fname , "r" ) ;
       if( imfile == NULL ){
-         fprintf( stderr , "couldn't open delayed image file %s\n" , fname ) ;
-         return NULL ;
+        ERROR_message("mri_read_3D_delay: couldn't open file %s" , fname ) ; return NULL ;
       }
    } else {
       imfile = NULL ;
@@ -5166,7 +5214,12 @@ ENTRY("mri_read_1D_headerline") ;
 
    /* open input file */
 
-   fts = fopen(dname,"r") ; free(dname) ; if( fts == NULL ) RETURN(NULL) ;
+   fts = fopen(dname,"r") ;
+   if( fts == NULL ){
+     ERROR_message("mri_read_1D_headerline: couldn't open file %s" , dname ) ;
+     free(dname) ; RETURN(NULL) ;
+   }
+   free(dname) ;
 
    /* read lines until we get a useful line */
 

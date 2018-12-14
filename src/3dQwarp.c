@@ -1965,8 +1965,16 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 1 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-4zero") == 0 ){      /* 12 Apr 2016 [SECRET] */
-       H4zero = 1 ; nopt++ ; continue ;
+     if( strcasecmp(argv[nopt],"-5zero")  == 0 ){      /* 12 Apr 2016 [SECRET] */
+       H5zero = 1 ; nopt++ ; continue ;
+     }
+#else
+     if( strcasecmp(argv[nopt],"-5final") == 0 ||
+         strcasecmp(argv[nopt],"-4final") == 0 ||
+         strcasecmp(argv[nopt],"-3final") == 0 ||
+         strcasecmp(argv[nopt],"-5zero")  == 0   ){
+       WARNING_message("Option '%s' is disabled :(",argv[nopt]) ;
+       nopt++ ; continue ;
      }
 #endif
 
