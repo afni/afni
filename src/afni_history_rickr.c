@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Dec, 2018, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
+   "include mask and params in -csim_show_clustsize",
+   NULL
+ } ,
+
  { 13, Dec, 2018, RCR, "@strip.whitespace", MINOR, TYPE_NEW_PROG,
    "stored under scripts_src; guess what it does",
    NULL
