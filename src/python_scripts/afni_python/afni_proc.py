@@ -621,9 +621,10 @@ g_history = """
     6.23 Nov 26, 2018: added opt -volreg_warp_final_interp
     6.24 Dec  5, 2018: reduced dependency list for apqc HTML to just Xvfb
     6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
+    6.26 Dec 19, 2018: show exec command on both tcsh and bash syntax
 """
 
-g_version = "version 6.25, December 10, 2018"
+g_version = "version 6.26, December 19, 2018"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1072,7 +1073,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-ask_me', 0, [],       # QnA session
                         helpstr='have afni_proc.py as the user for options')
         self.valid_opts.add_opt('-bash', 0, [],
-                        helpstr='show execution help in bash syntax')
+                        helpstr='obsolete: show execution help in bash syntax')
         self.valid_opts.add_opt('-check_afni_version', 1, [],
                         acplist=['yes','no'],
                         helpstr='check that AFNI is current enough')
@@ -2257,9 +2258,11 @@ class SubjProcSream:
                         "** warning have only 1 run to analyze\n" \
                         "-------------------------------------")
 
-            print("\n--> script is file: %s" % self.script)
-            print('    consider the script execution command: \n\n' \
-                    '      %s\n' % self.exec_cmd)
+            print("\n--> script is file: %s\n" % self.script)
+            print('    to execute via tcsh:\n'            \
+                  '         %s\n\n'                       \
+                  '    to execute via bash:\n'            \
+                  '         %s\n' % (self.tcsh_cmd, self.bash_cmd))
 
         return
 
@@ -2588,11 +2591,14 @@ class SubjProcSream:
         self.tcsh_cmd = 'tcsh %s %s |& tee %s'     % \
                         (opts, self.script, outputname)
 
-        if self.user_opts.find_opt('-bash'): self.exec_cmd = self.bash_cmd
-        else:                                self.exec_cmd = self.tcsh_cmd
+        #if self.user_opts.find_opt('-bash'): self.exec_cmd = self.bash_cmd
+        if self.user_opts.find_opt('-bash'):
+           print("** -bash now unneeded: both tcsh and bash syntax are shown")
 
-        self.write_text('# execute via : \n'      \
-                        '#   %s\n\n' % self.exec_cmd)
+        self.write_text('# to execute via tcsh: \n'      \
+                        '#   %s\n' % self.tcsh_cmd)
+        self.write_text('# to execute via bash: \n'      \
+                        '#   %s\n\n' % self.bash_cmd)
 
         # maybe the user want to check the status of the init operations
         if not self.check_setup_errors: stat_inc = ''
