@@ -8152,6 +8152,7 @@ static INLINE float_pair HCwarp_eval_basis( float x )
      function #4 (ee.d) =  3 internal zero crossings
      function #5 (ee.e) =  4 internal zero crossings
    Functions #3-5 integrate to 0 over the interval [0..1] (orthogonal to 1).
+   All functions are scaled so that their peak value is 1.
    Function #5 is also orthogonal to x over [0..1].              [02 Nov 2015]
 *//*--------------------------------------------------------------------------*/
 
@@ -8211,6 +8212,27 @@ static INLINE float_quint HCwarp_eval_basis5( float x )
    }
    return ee ;
 }
+
+/***************************************************************************
+   ## brute force csh script to plot the above 5 functions:
+   \rm e?.1D
+   foreach ii ( `count -dig 1 0 200` )
+     set xx = `ccalc "-1+0.01*$ii"`
+     set aa = `ccalc "abs($xx)"`
+     set bb = `ccalc "(1.0-$aa)^2"`
+     set ea = `ccalc "$bb * (1.0+2.0*$aa)"`
+     set eb = `ccalc "$bb * $xx * 6.75"`
+     set ec = `ccalc "$bb * (1.0+2.0*$aa-$aa*$aa*15.0)"`
+     set ed = `ccalc "$bb * $xx * (1.0-$aa*$aa*5.0) * 9.75"`
+     set ee = `ccalc "$bb * (1.0+2.0*$aa-$aa*$aa*57.0+$aa*$aa*$aa*84.0)"`
+     echo $ea >> ea.1D
+     echo $eb >> eb.1D
+     echo $ec >> ec.1D
+     echo $ed >> ed.1D
+     echo $ee >> ee.1D
+   end
+   1dplot -del 0.01 -xzero -1 -sepscl e?.1D
+****************************************************************************/
 #endif /* ALLOW_BASIS5 */
 
 /*----------------------------------------------------------------------------*/
@@ -8469,7 +8491,7 @@ ENTRY("HCwarp_setup_basis345") ;
        if( rr+qq+pp < nb5 ) ss++ ;
    }}}
    H5nparm = nparm = ss ;
-INFO_message("cubic+%d nparm=%d",nplus,nparm) ;
+   /*** INFO_message("cubic+%d nparm=%d",nplus,nparm) ; ***/
 
    /* if not going to use all 3D displacements,
       create map from active set of parameters to total set of parameters:
@@ -10359,7 +10381,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_1:  /* basis3 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
-       Hbasis_parmax = 0.0432*Hfactor ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 1 ) ;
        Hnpar         = 3*H5nparm ;
@@ -10368,7 +10390,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_2:  /* basis4 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
-       Hbasis_parmax = 0.0222*Hfactor ;
+       Hbasis_parmax = 0.0222 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 2 ) ;
        Hnpar         = 3*H5nparm ;
@@ -10377,7 +10399,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0155*Hfactor ;
+       Hbasis_parmax = 0.0222 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
@@ -10692,23 +10714,29 @@ ENTRY("IW3D_warpomatic") ;
      BOXOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+     if( nlevr ){
+       BALLOPT ;
+       (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+     }
      BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      if( nlevr ){
-       BOXOPT ;
+       BALLOPT ;
        (void)IW3D_improve_warp( MRI_QUINTIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-       BALLOPT ;
-       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
-       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-#ifdef ALLOW_BASIS5
+#if 0 && defined(ALLOW_BASIS5)
        if( H5zero ){
-         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+         BALLOPT ;
+         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
          HCwarp_setup_basis345(0,0,0,0,0) ; /* cleanup */
          if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        }
 #endif
+       BALLOPT ;
+       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      }
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
        sprintf(warplab,"Lev0.%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
@@ -10850,7 +10878,7 @@ ENTRY("IW3D_warpomatic") ;
      else if( Hqhard         ){ zmode2 = qmode ; }
      if( xwid < NGMIN_Q || ywid < NGMIN_Q || zwid < NGMIN_Q )  /* 28 Oct 2015 */
        zmode = zmode2 = cmode ;
-#ifdef ALLOW_BASIS5
+#if 0 && defined(ALLOW_BASIS5)
      if( (Hfinal && H5final) && xwid*ywid*zwid < NVOXMAX_PLUS ){
        if(        xwid*ywid*zwid >= NGMIN_PLUS_3*NGMIN_PLUS_3*NGMIN_PLUS_3 && H5final >= 3 ){
          zmode = zmode2 = MRI_CUBIC_PLUS_3 ;
@@ -11525,7 +11553,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_1:  /* basis3 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_1 ;
-       Hbasis_parmax = 0.0432*Hfactor ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 1 ) ;
        Hnpar         = 3*H5nparm ;
@@ -11534,7 +11562,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_2:  /* basis4 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
-       Hbasis_parmax = 0.0222*Hfactor ;
+       Hbasis_parmax = 0.0222 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 2 ) ;
        Hnpar         = 3*H5nparm ;
@@ -11543,7 +11571,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0155*Hfactor ;
+       Hbasis_parmax = 0.0222 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
