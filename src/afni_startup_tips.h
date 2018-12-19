@@ -993,6 +993,7 @@ static char *gby[] = {
      "We give you tools; You build things with them"                 ,
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
+     "You look familiar - Do you come here often?"                   ,
 
      /* bastardizations of Shakespeare */
 
@@ -1315,6 +1316,7 @@ static char *gby[] = {
      "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
      "If there was closed-book test on how to be YOU, would you get a passing grade?"         ,
      "An alternative fact: truth isn't truth"                                                 ,
+     "Our time together has passed away like swift drafts of nectar in the high halls"        ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
