@@ -4039,7 +4039,10 @@ ENTRY("ISQ_saver_CB") ;
            MRI_IMAGE *qim ;
 
            if( dbg ) fprintf(stderr,"  zooming\n") ;
-           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           // [PT: Dec 19, 2018] Change default behavior to be NN interp.
+           // Here and below, this condition **used** to be:
+           // if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
            qim = mri_dup2D(zf,tim) ;
            mri_dup2D_mode(7) ;
            mri_free(tim) ; tim = qim ;
@@ -4315,7 +4318,8 @@ ENTRY("ISQ_saver_CB") ;
          if( DO_BLOWUP(seq) ){
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
-           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+           if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
            tim = mri_dup2D(zf,flim) ;
            mri_dup2D_mode(7) ;
            mri_free(flim) ; flim = tim ;
@@ -13388,7 +13392,8 @@ ENTRY("ISQ_save_image") ;
 
    if( DO_BLOWUP(seq) ){
      int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-     if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+     // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+     if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
      flim = mri_dup2D(zf,tim) ;
      mri_dup2D_mode(7) ;
      if( flim != NULL ){ mri_free(tim); tim = flim; }
@@ -13734,7 +13739,8 @@ ENTRY("ISQ_save_anim") ;
 
       if( DO_BLOWUP(seq) ){
         int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-        if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+        // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+        if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
         tim = mri_dup2D(zf,flim) ;
         mri_dup2D_mode(7) ;
         mri_free(flim) ; flim = tim ;
