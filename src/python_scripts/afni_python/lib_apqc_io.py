@@ -15,6 +15,9 @@
 #ver = '1.3' ; date = 'Dec 5, 2018' 
 # + [PT] have removed numpy dependency for 'basic' APQC HTML functionality
 #
+#ver = '1.3b' ; date = 'Dec 19, 2018' 
+# + [PT] make 1dplot.py show correct help
+#
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
@@ -240,7 +243,7 @@ EXAMPLES ~1~
 
 1) Plot Euclidean norm (enorm) profile, with the censor limit and
    related file of censoring:
-1dplotpy                                     \\
+1dplot.py                                    \\
     -sepscl                                  \\
     -boxplot_on                              \\
     -infiles      motion_sub-10506_enorm.1D  \\
@@ -254,7 +257,7 @@ EXAMPLES ~1~
 
 2) Plot the 6 solid body parameters from 3dvolreg, along with
    the useful composite 'enorm' and outlier time series
-1dplotpy                                     \\
+1dplot.py                                    \\
     -sepscl                                  \\
     -boxplot_on                              \\
     -reverse_order                           \\
@@ -867,7 +870,7 @@ def parse_1dplot_args(argv):
             sys.exit(0)
 
         elif argv[i] == "-help" or argv[i] == "-h" or argv[i] == "-hview":
-            print(help_string_apqc_make_tcsh)
+            print(help_string_apqc_1dplot)
             sys.exit(0)
 
         # ---------- req ---------------
