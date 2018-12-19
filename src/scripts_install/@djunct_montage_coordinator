@@ -7,6 +7,11 @@
 #
 # auth: PA Taylor (NIMH, NIH, USA)
 # ===================================================================
+#
+set set version = "2.0";  set rev_dat = "Dec 19, 2018"
+#   + [PT] fix the focal point conditions.
+#
+# ===================================================================
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
@@ -127,27 +132,47 @@ end
 # ----------------- quantities related to mont dims ------------------
 
 # get ceilings of 'montage number + 1', in each direction
-set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
-set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
-set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
-set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+#set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
+#set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+#set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
+#set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+
+## [PT: Dec 19, 2018] fix these values, and how they get used just
+## below to find the focal coors in terms of ijk values, which is a
+## little odd, to be honest.
+# zero-based numbers
+# representing the row or col to jump to for the focal slice in the
+# montage.
+if ( `echo "( $mx % 2 )" | bc` == 1 ) then
+    set cmx = `echo "( ( $mx - 1) / 2 )" | bc`
+else
+    set cmx = `echo "( $mx / 2 )" | bc`
+endif
+
+if ( `echo "( $my % 2 )" | bc` == 1 ) then
+    set cmy = `echo "( ( $my - 1) / 2 )" | bc`
+else
+    set cmy = `echo "( $my / 2 )" | bc`
+endif
 
 # total number of panels
 @ tot     = $mx * $my 
 # which panel is the "focal" one in the montage: 1-based counting for tcsh
-@ hpan    = ( ( $cmy - 1 ) * $mx ) + $cmx    
+@ hpan    = ( ( $cmy ) * $mx ) + $cmx    
 #echo "$cmx $cmy $tot $hpan"
-set pfrac = `echo "scale=5; ( ( $hpan - 0.5 ) / ( $tot ) ) " | bc` # ????
-#echo "++ pfrac = $pfrac"
 
+# ## [PT: Dec 19, 2018] admittedly, this is an *odd* set of conditions
+# to reposition the centerpoint for the montage.  This depends very
+# much on how hpan is defined, above
 foreach i ( `seq 1 1 3` )
-    set ccc0 = `echo "scale=5; ( ( $Dim[$i] * $pfrac ) - 1 )" | bc`
-    set ccc1 = `echo $ccc0 | perl -nl -MPOSIX -e 'print floor($_);'`
-    if ( ( $all_ori[$i] == 'R' ) || ( $all_ori[$i] == 'P' )  \
-        || ( $all_ori[$i] == 'S' ) ) then
-        set coors[$i] = `echo "$Dim[$i] - $ccc1" | bc`
+    if ( ( $all_ori[$i] == 'R' ) ) then 
+        set coors[$i] = `echo "$Dim[$i] - $hpan " | bc`
+    else if ( ( $all_ori[$i] == 'P' ) || ( $all_ori[$i] == 'S' ) ) then
+        set coors[$i] = `echo "$Dim[$i] -  $hpan - 1 " | bc`
+    else if ( ( $all_ori[$i] == 'L' ) ) then
+        set coors[$i] = `echo " $hpan - 1 " | bc`
     else
-        set coors[$i] = $ccc1
+        set coors[$i] = $hpan
     endif
 end
 
