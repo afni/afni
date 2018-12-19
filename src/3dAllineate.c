@@ -521,14 +521,20 @@ int main( int argc , char *argv[] )
      printf(
 "Usage: 3dAllineate [options] sourcedataset\n"
 "\n"
-"Program to align one dataset (the 'source') to a base dataset.\n"
-"Options are available to control:\n"
+"Program to align one dataset (the 'source') to a base dataset,\n"
+"using an affine (matrix) transformation of space.\n"
+"* Options are available to control:\n"
 " ++ How the matching between the source and the base is computed\n"
 "    (i.e., the 'cost functional' measuring image mismatch).\n"
 " ++ How the resliced source is interpolated to the base space.\n"
 " ++ The complexity of the spatial transformation ('warp') used.\n"
 " ++ And many many technical options to control the process in detail,\n"
 "    if you know what you are doing (or just like to fool around).\n"
+"\n"
+"* This program is a generalization of and improvement on the older\n"
+"    software 3dWarpDrive.\n"
+"\n"
+"* For nonlinear transformations, see progam 3dQwarp.\n"
 "\n"
 "=====----------------------------------------------------------------------\n"
 "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -4855,7 +4861,7 @@ STATUS("zeropad weight dataset") ;
             meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal ){
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
          if( verb > 1 )
-           ININFO_message(" - Set %s parameters back to pure lpc before Final",
+           ININFO_message(" - Set %s parameters back to purity before Final iterations",
                           meth_shortname[meth_code-1] ) ;
          rad *= 1.666f ;
        } else {
