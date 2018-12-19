@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Dec , 2018 , PT , "@djunct_montage_coordinator" , MAJOR , TYPE_BUG_FIX,
+   "This montage coordinator was noooot picking the right vol to focus on.",
+   "That should be fixed via magical incantations now.\n"
+},
+
 { 5, Dec , 2018 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "Reduce list of program dependencies to more accurate one.",
    "List is muuuuch shorter now; had just been relic of @snapshot_volreg.\n"
