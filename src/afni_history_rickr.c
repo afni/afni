@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Dec, 2018, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "show execution syntax in both tcsh and bash",
+   "Done to appease the mighty P Taylor."
+ } ,
+
  { 14, Dec, 2018, RCR, "1d_tool.py", MINOR, TYPE_ENHANCE,
    "include mask and params in -csim_show_clustsize",
    NULL

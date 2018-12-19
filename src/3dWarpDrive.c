@@ -395,15 +395,23 @@ int main( int argc , char * argv[] )
             "Usage: 3dWarpDrive [options] dataset\n"
             "Warp a dataset to match another one (the base).\n"
             "\n"
-            "This program is a generalization of 3dvolreg.  It tries to find\n"
-            "a spatial transformation that warps a given dataset to match an\n"
-            "input dataset (given by the -base option).  It will be slow.\n"
+            "* This program is a generalization of 3dvolreg.  It tries to find\n"
+            "  a spatial transformation that warps a given dataset to match an\n"
+            "  input dataset (given by the -base option).  It will be slow.\n"
+            "* Here, the spatical transformation is defined by a matrix; thus,\n"
+            "  it is an affine warp.\n"
+            "* Program 3dAllineate can also compute such an affine transformation,\n"
+            "  and it has more options for how the base and input (source) datasets\n"
+            "  are to be matched. Thus, the usefulness of the older 3dWarpDrive\n"
+            "  program is now limited. For future work, consider using 3dAllineate.\n"
+            "*****\n"
+            "***** For nonlinear spatial warping, see program 3dQwarp. *****\n"
+            "*****\n"
             "\n"
             " *** Also see the script align_epi_anat.py for a more general ***\n"
             " **  alignment procedure, which does not require that the two  **\n"
             " **  datasets be defined on the same 3D grid.                  **\n"
-            " **  align_epi_anat.py uses program 3dAllineate, which can     **\n"
-            " *** also do nonlinear (polynomial) warping for registration. ***\n"
+            " **  align_epi_anat.py uses program 3dAllineate.               **\n"
             "\n"
             "--------------------------\n"
             "Transform Defining Options: [exactly one of these must be used]\n"
@@ -417,6 +425,7 @@ int main( int argc , char * argv[] )
             "  N.B.: At this time, the image intensity is NOT \n"
             "         adjusted for the Jacobian of the transformation.\n"
             "  N.B.: -bilinear_general is not yet implemented.\n"
+            "        AND WILL NEVER BE.\n"
             "\n"
             "-------------\n"
             "Other Options:\n"
@@ -806,12 +815,12 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[nopt],"-input") == 0 ){
+     if( strcmp(argv[nopt],"-input") == 0 || strcmp(argv[nopt],"-source") == 0 ){
        if( ++nopt >= argc )
-         ERROR_exit("Need an argument after -input!\n");
+         ERROR_exit("Need an argument after %s!",argv[nopt-1]);
        inset = THD_open_dataset( argv[nopt] ) ;
        if( inset == NULL )
-         ERROR_exit("Can't open -input dataset %s\n",argv[nopt]);
+         ERROR_exit("Can't open %s dataset %s\n",argv[nopt-1],argv[nopt]);
        nopt++ ; continue ;
      }
 

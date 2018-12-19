@@ -406,7 +406,7 @@ static int Hverb = 1 ;
    faces of the warp in function IW3D_load_external_slopes().
 *//*-------------------------------------------------------------------------*/
 
-static float mean_slope( int nvec , int veclen , float **vec )
+float mean_slope( int nvec , int veclen , float **vec )
 {
    float ssum=0.0f ; int iv ;
 
@@ -6410,7 +6410,7 @@ int    CW_get_saved_expad     (void){ return CW_saved_expad ;      }
 /*----------------------------------------------------------------------------*/
 /* Erase the above static data */
 
-static void CW_clear_data(void)
+void CW_clear_data(void)
 {
    int ii ;
    for( ii=0 ; ii < CW_NMAX ; ii++ ){
@@ -6461,7 +6461,7 @@ float_triple M44_max_shifts( mat44_vec *mvv )
 
 /*----------------------------------------------------------------------------*/
 
-static mat44_vec * CW_read_affine_warp( char *cp )
+mat44_vec * CW_read_affine_warp( char *cp )
 {
    mat44 mmm ; mat44_vec *mvv=NULL ;
    MRI_IMAGE *qim ; float *qar, *tar ; char *wp , *ocp ;
@@ -6549,7 +6549,7 @@ ININFO_message("output Matrix[%d]",nmat) ;
 
 /*----------------------------------------------------------------------------*/
 
-static mat44 CW_read_affine_warp_OLD( char *cp )
+mat44 CW_read_affine_warp_OLD( char *cp )
 {
    mat44_vec *mvv ; mat44 mmm ;
 
@@ -6782,7 +6782,7 @@ ENTRY("CW_read_dataset_warp") ;
 /*----------------------------------------------------------------------------*/
 /* Load one warp into the nn-th static data, inverting it if necessary (etc.) */
 
-static void CW_load_one_warp( int nn , char *cp )
+void CW_load_one_warp( int nn , char *cp )
 {
    THD_3dim_dataset *dset ; IndexWarp3D *AA ;
 
@@ -8863,7 +8863,7 @@ ENTRY("HQwarp_setup_basis") ;
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
 /* evaluate cubic warp the slower way (from 1D basis arrays) */
 
-static void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
+void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 {
    int ii,jj,kk ;
    float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
@@ -8903,7 +8903,7 @@ static void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 /*----------------------------------------------------------------------------*/
 /* evaluate cubic warp the faster way (from pre-computed 3D basis arrays) */
 
-static void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
+void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
    float b0zb0yb0x,b1zb0yb0x, b0zb1yb0x,b1zb1yb0x,
          b0zb0yb1x,b1zb0yb1x, b0zb1yb1x,b1zb1yb1x ;
@@ -8936,7 +8936,7 @@ static void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 /* evaluate cubic-- warp the slower way (from 1D basis arrays) */
 /* cubic-- = just the 000, 001, 010, and 100 products = 4*3 functions */
 
-static void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
+void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 {
    int ii,jj,kk ;
    float b0zb0yb0x, b1zb0yb0x, b0zb1yb0x, b0zb0yb1x ;
@@ -8973,7 +8973,7 @@ static void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 /* evaluate cubic-- warp the faster way (from pre-computed 3D basis arrays) */
 /* cubic-- = just the 000, 001, 010, and 100 products = 4*3 functions */
 
-static void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
+void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 {
    float b0zb0yb0x, b1zb0yb0x, b0zb1yb0x, b0zb0yb1x ;
 
@@ -8999,7 +8999,7 @@ static void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
 /* evaluate quintic warp the slower way (from 1D basis arrays) */
 
-static void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
+void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 {
    int ii,jj,kk ;
    float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,b2zb1yb0x,
@@ -9065,7 +9065,7 @@ static void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 /*----------------------------------------------------------------------------*/
 /* evaluate quintic warp the faster way (from 3D basis arrays) */
 
-static void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
+void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
 
 #if 1
@@ -9137,7 +9137,7 @@ static void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 /* This just uses 30 parameters = the set of basis
    functions whose tensor indexes add up to only 0, 1, or 2 */
 
-static void HQwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
+void HQwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 {
    int ii,jj,kk ;
    float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,
@@ -9177,7 +9177,7 @@ static void HQwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 /*----------------------------------------------------------------------------*/
 /* evaluate quintic warp lite the faster way (from 3D basis arrays) */
 
-static void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
+void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 {
    float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,
          b0zb2yb0x,b0zb0yb1x, b1zb0yb1x,b0zb1yb1x, b0zb0yb2x ;
@@ -9255,7 +9255,7 @@ static void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 /*............................................................................*/
 /* evaluate BASIS5 warps the faster way (from 3D basis arrays) */
 
-static void HCwarp_eval_B_basis345( int qin , float *xx , float *yy , float *zz )
+void HCwarp_eval_B_basis345( int qin , float *xx , float *yy , float *zz )
 {
    float t1,t2,t3,t4,t5,t6,t7 ; int qq=qin , jj , np1=H5nparm-1 ;
 
