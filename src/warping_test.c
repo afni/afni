@@ -505,8 +505,9 @@ double HQwarp_minhexvol( int npar , double *par )
 
 /*----------------------------------------------------------------------------*/
 static int nb5 = 3 ;  /* should be 2 or 3 or 4 or 5 */
+static int np5 = 0 ;  /* should be 10 or 20 or 35 */
 /*----------------------------------------------------------------------------*/
-/* npar is 3*nb5*nb5*nb5 = 24 or 81 or 192 or 375 */
+/* npar is 3*np5 = 30 or 60 or 105 */
 
 double HCwarp_minhexvol5( int npar , double *par )
 {
@@ -515,27 +516,41 @@ double HCwarp_minhexvol5( int npar , double *par )
    int ii,jj,kk,hh , nbq , pp,qq,rr,ss ;
    double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    MRI_IMAGE *him ; float *har=NULL ;
-   int mpar = nb5*nb5*nb5 ;
+   int mpar ;
 
-   if( npar < 3*mpar ) return 0.0 ;         /* something bad */
+   if( np5 == 0 ){
+     /* count number of parameters (for each spatial dimension) */
+     for( ss=rr=0 ; rr < nb5 ; rr++ ){ /* 3 loops over basis func order */
+      for( qq=0 ; qq < nb5 ; qq++ ){
+       for( pp=0 ; pp < nb5 ; pp++ ){
+         if( rr+qq+pp < nb5 ) ss++ ;
+     }}}
+     np5 = ss ;
+     INFO_message("basis5 np5 (per x,y,z) = %d",np5) ;
+   }
+
+   if( par == NULL || npar < 3*np5 ) return 0.0 ;         /* something bad */
 
    if( nb < 9 ) HCwarp_setup_warp_basis5(51) ;
 
+   mpar = np5 ;
    ddd  = del*del*del ;
    xpar = par ;
    ypar = par + mpar ;
    zpar = par + 2*mpar ;
-
    for( hh=kk=0 ; kk < nb ; kk++ ){
     for( jj=0 ; jj < nb ; jj++ ){
      for( ii=0 ; ii < nb ; ii++,hh++ ){
       xx[hh] = cc[ii] ; yy[hh] = cc[jj] ; zz[hh] = cc[kk] ;
       for( ss=rr=0 ; rr < nb5 ; rr++ ){
        for( qq=0 ; qq < nb5 ; qq++ ){
-        for( pp=0 ; pp < nb5 ; pp++,ss++ ){
-          xx[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * xpar[ss] ;
-          yy[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * ypar[ss] ;
-          zz[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * zpar[ss] ;
+        for( pp=0 ; pp < nb5 ; pp++ ){
+          if( rr+qq+pp < nb5 ){
+            xx[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * xpar[ss] ;
+            yy[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * ypar[ss] ;
+            zz[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * zpar[ss] ;
+            ss++ ;
+          }
       }}}
    }}}
 
@@ -675,22 +690,24 @@ int main( int argc , char *argv[] )
      npar = 30 ;
      setup_warp_basis = HQwarp_setup_warp_basis ;
      minhexvol        = HQwarp_minhexvol ;
-   } else if( nord == -2 ){
-     npar = 24 ; nb5 = 2 ;
-     setup_warp_basis = HCwarp_setup_warp_basis5 ;
-     minhexvol        = HCwarp_minhexvol5 ;
    } else if( nord == -3 ){
-     npar = 81 ; nb5 = 3 ;
+     nb5 = 3 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else if( nord == -4 ){
-     npar = 192 ; nb5 = 4 ;
+     nb5 = 4 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else if( nord == -5 ){
-     npar = 375 ; nb5 = 5 ;
+     nb5 = 5 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else {
      ERROR_exit("Illegal order value %d -- must be 3 or 5",nord) ;
    }
