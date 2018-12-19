@@ -241,7 +241,7 @@ COMMAND OPTIONS ~1~
 -montx   MX        :(req) montage dimension: number of panels along x-axis 
                     (i.e., number of cols)
 
--montx   MY        :(req) montage dimension: number of panels along y-axis 
+-monty   MY        :(req) montage dimension: number of panels along y-axis 
                     (i.e., number of rows)
 
 -out_ijk           :make program output 'I J K' values.
