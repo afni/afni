@@ -1235,12 +1235,22 @@ class Afni1D:
       if verb > 1:
          self.csimobj.show()
 
+      # make a blur parameter estimate string
+      param_str = ''
+      try:
+         params    = self.csimobj.val('bvals')
+         param_str = ', '.join(['%s' % p for p in params])
+      except:
+         pass
+
       print("ClustSim attributes:")
       print("    neighbors      : NN-%s" % self.csimobj.val('NN'))
       print("    sidedness      : %s" % self.csimobj.val('sided'))
       print("    blur est type  : %s" % self.csimobj.val('btype'))
+      print("    blur params    : %s" % param_str)
       print("    grid voxels    : %s" % self.csimobj.val('grid_nvox'))
       print("    grid vox size  : %s" % self.csimobj.val('grid_vsize'))
+      print("    mask           : %s" % self.csimobj.val('mask'))
       print("    mask N voxels  : %s" % self.csimobj.val('mask_nvox'))
       print("")
 
@@ -1256,7 +1266,7 @@ class Afni1D:
       if not self.csim_has_vo(): return 0
 
       alist = ['command', 'btype', 'bvals', 'sided', 'grid_nvox', 'grid_vsize',
-               'mask_nvox', 'NN', 'avals']
+               'mask', 'mask_nvox', 'NN', 'avals']
       cobj = self.csimobj
       attrs = cobj.attributes()
       hasall = 1
@@ -1309,8 +1319,15 @@ class Afni1D:
                      bval = float(csplit[ind+1])
                      cobj.bvals = [bval, bval, bval]
                   elif csplit[ind] == '-insdat':
+                     # if no mask, use this one
+                     if not cobj.valid('mask'):
+                        cobj.mask = csplit[ind+1]
+                     cobj.insdat = csplit[ind+1]
                      cobj.btype = 'NONE'
                      cobj.bvals = []
+                  # 2 ways to get mask: -mask or -insdat
+                  elif csplit[ind] == '-mask':
+                     cobj.mask = csplit[ind+1]
                   else:
                      continue
                   
