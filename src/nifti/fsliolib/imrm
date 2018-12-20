@@ -26,4 +26,3 @@ for f in $@ ; do
   # do the rm silently
   /bin/rm -f ${fn}.img ${fn}.hdr ${fn}.hdr.gz ${fn}.img.gz ${fn}.nii ${fn}.nii.gz ${fn}.mnc ${fn}.mnc.gz
 done
-

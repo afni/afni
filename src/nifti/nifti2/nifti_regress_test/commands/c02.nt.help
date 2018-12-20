@@ -2,4 +2,3 @@
 nifti_tool -help
 nifti_tool -help_datatypes
 nifti_tool -help_datatypes T
-

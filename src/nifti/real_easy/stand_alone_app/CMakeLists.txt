@@ -7,13 +7,13 @@
 # run "cmake -DNIFTI_DIR:PATH=${build_or_install_dir}/NIFTI ${THIS_SOURCE_DIR}"
 #
 
-cmake_minimum_required(VERSION 2.8.12 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.10.2 FATAL_ERROR)
 
 project(real_easy)
 find_package(NIFTI 2.1.0 CONFIG REQUIRED)
 
 add_executable(real_easy nifti1_read_write.c)
-target_link_libraries(real_easy PUBLIC NIFTI::niftiio)
+target_link_libraries(real_easy PUBLIC ${NIFTI_PACKAGE_PREFIX}NIFTI::${NIFTI_PACKAGE_PREFIX}niftiio)
 
 add_executable(nifti_cdf_program nifti_cdf_program.c)
-target_link_libraries(nifti_cdf_program NIFTI::nifticdf)
+target_link_libraries(nifti_cdf_program PUBLIC ${NIFTI_PACKAGE_PREFIX}NIFTI::${NIFTI_PACKAGE_PREFIX}nifticdf)

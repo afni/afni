@@ -1,5 +1,13 @@
 #include <nifti1_io.h>   /* directly include I/O library functions */
 
+
+static int local_fileexists(const char* fname)
+{
+    znzFile fp = znzopen( fname , "rb" , 1 ) ;
+    if( !znz_isnull(fp) )  { znzclose(fp);  return 1; }
+    return 0; /* fp is NULL */
+}
+
 /*-----------------------------------------------*/
 /*    cc -o nifti1_test -O2 nifti1_test.c -lm    */
 /*-----------------------------------------------*/
@@ -90,6 +98,10 @@ int main( int argc , char *argv[] )
      strcat(nim->iname,".gz");
    }
    nifti_image_write( nim ) ;
+   if ( ! local_fileexists( nim->fname ) )
+   {
+     return EXIT_FAILURE;
+   }
    nifti_image_free( nim ) ;
-   exit(0) ;
+   return EXIT_SUCCESS;
 }

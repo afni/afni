@@ -170,7 +170,7 @@ void FslSetFileType(FSLIO *fslio, int filetype);
 int  FslIsSingleFileType(int filetype);
 int  FslIsCompressedFileType(int filetype);
 int  FslBaseFileType(int filetype);
-char* FslFileTypeString(int filetype);
+const char* FslFileTypeString(int filetype);
 
 int  FslGetWriteMode(const FSLIO *fslio);
 void FslSetWriteMode(FSLIO *fslio, int mode);
@@ -185,8 +185,7 @@ FSLIO *FslInit(void);
 void   FslInitHeader(FSLIO *fslio, short t,
                    size_t x, size_t y, size_t z, size_t v,
                    float vx, float vy, float vz, float tr,
-                   size_t dim,
-                   const char* units);
+                   size_t dim);
 void   FslSetInit(FSLIO* fslio);
 void   FslCloneHeader(FSLIO *dest, const FSLIO *src);
 
@@ -269,6 +268,3 @@ double ***d3matrix(int zh,  int yh, int xh);
 #endif
 
 #endif
-
-
-

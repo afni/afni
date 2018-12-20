@@ -7,6 +7,10 @@ echo Missing Binary directory name
 exit 1
 fi
 
+## ensure that a clean download can occur
+#  by preventing downloads with .1 .2 .3 suffix
+#  if a previous tgz file is present
+rm -f nifti_regress_data.tgz*
 
 if cd $1
 then
@@ -39,7 +43,7 @@ echo failed tar xzvf nifti_regress_data.tgz
 exit 1
 fi
 
-if rm -f nifti_regress_data.tgz
+if rm -f nifti_regress_data.tgz*
 then
 echo ""
 else
@@ -48,4 +52,3 @@ exit 1
 fi
 
 exit 0
-

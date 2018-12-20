@@ -489,7 +489,7 @@ static int   is_uppercase      (const char * str);
 static int   make_lowercase    (char * str);
 static int   make_uppercase    (char * str);
 static int   need_nhdr_swap    (short dim0, int hdrsize);
-static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
+static int   print_hex_vals    (const char * data, size_t nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (const char *str);
 
@@ -1831,7 +1831,7 @@ void nifti_dmat44_to_quatern(nifti_dmat44 R ,
        c = 0.25l* (r23+r32) / d ;
        a = 0.25l* (r21-r12) / d ;
      }
-     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; a=-a; }
+     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; }
    }
 
    ASSIF(qb,b) ; ASSIF(qc,c) ; ASSIF(qd,d) ;
@@ -1970,7 +1970,7 @@ void nifti_mat44_to_quatern( mat44 R ,
        c = 0.25l* (r23+r32) / d ;
        a = 0.25l* (r21-r12) / d ;
      }
-     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; a=-a; }
+     if( a < 0.0l ){ b=-b ; c=-c ; d=-d; }
    }
 
    ASSIF(qb,(float)b) ; ASSIF(qc,(float)c) ; ASSIF(qd,(float)d) ;
@@ -2939,7 +2939,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
 *//*--------------------------------------------------------------------*/
 void nifti_swap_2bytes( int64_t n , void *ar )    /* 2 bytes at a time */
 {
-   register int64_t ii ;
+   int64_t ii ;
    unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
    unsigned char   tval;
 
@@ -2956,9 +2956,9 @@ void nifti_swap_2bytes( int64_t n , void *ar )    /* 2 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_4bytes( int64_t n , void *ar )    /* 4 bytes at a time */
 {
-   register int64_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0; cp2 = cp0+3;
@@ -2977,9 +2977,9 @@ void nifti_swap_4bytes( int64_t n , void *ar )    /* 4 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_8bytes( int64_t n , void *ar )    /* 8 bytes at a time */
 {
-   register int64_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+7;
@@ -2998,9 +2998,9 @@ void nifti_swap_8bytes( int64_t n , void *ar )    /* 8 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_16bytes( int64_t n , void *ar )    /* 16 bytes at a time */
 {
-   register int64_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+15;
@@ -3021,9 +3021,9 @@ void nifti_swap_16bytes( int64_t n , void *ar )    /* 16 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_bytes( int64_t n , int siz , void *ar )
 {
-   register int64_t ii ;
+   int64_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+(siz-1);
@@ -4394,9 +4394,9 @@ int is_nifti_file( const char *hname )
    return -1 ;                          /* not good */
 }
 
-static int print_hex_vals( const char * data, int nbytes, FILE * fp )
+static int print_hex_vals( const char * data, size_t nbytes, FILE * fp )
 {
-   int c;
+   size_t c;
 
    if ( !data || nbytes < 1 || !fp ) return -1;
 
@@ -6116,8 +6116,9 @@ static int nifti_read_extensions( nifti_image *nim, znzFile fp, int64_t remain )
    while (nifti_read_next_extension(&extn, nim, remain, fp) > 0)
    {
       if( nifti_add_exten_to_list(&extn, &Elist, (int)count+1) < 0 ){
+         free(Elist);
          if( g_opts.debug > 0 )
-            fprintf(stderr,"** NIFTI: failed adding ext %" PRId64 " to list\n",
+           fprintf(stderr,"** NIFTI: failed adding ext %" PRId64 " to list\n",
                     count);
          return -1;
       }
@@ -6170,8 +6171,8 @@ int nifti_add_extension(nifti_image *nim, const char * data, int len, int ecode)
    nifti1_extension ext;
 
    /* error are printed in functions */
-   if( nifti_fill_extension(&ext, data, len, ecode) )                 return -1;
-   if( nifti_add_exten_to_list(&ext, &nim->ext_list, nim->num_ext+1)) return -1;
+   if( nifti_fill_extension(&ext, data, len, ecode) )  { free(ext.edata);   return -1; }
+   if( nifti_add_exten_to_list(&ext, &nim->ext_list, nim->num_ext+1)) { free(ext.edata);   return -1; }
 
    nim->num_ext++;  /* success, so increment */
 
@@ -6239,7 +6240,7 @@ static int nifti_fill_extension( nifti1_extension *ext, const char * data,
 
    if( !ext || !data || len < 0 ){
       fprintf(stderr,"** NIFTI fill_ext: bad params (%p,%p,%d)\n",
-              (void *)ext, data, len);
+              (void *)ext, (void *)data, len);
       return -1;
    } else if( ! nifti_is_valid_ecode(ecode) ){
       fprintf(stderr,"** NIFTI fill_ext: invalid ecode %d\n", ecode);
@@ -6283,7 +6284,7 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
                                       int remain, znzFile fp )
 {
    int swap = nim->byteorder != nifti_short_order();
-   int count, size, code;
+   int count, size, code = -1;
 
    /* first clear nex */
    nex->esize = nex->ecode = 0;
@@ -6299,7 +6300,7 @@ static int nifti_read_next_extension( nifti1_extension * nex, nifti_image *nim,
    count = (int)znzread( &size, 4, 1, fp );
    if( count == 1 ) count += (int)znzread( &code, 4, 1, fp );
 
-   if( count != 2 ){
+   if( count != 2 || code == -1 ){
       if( g_opts.debug > 2 )
          fprintf(stderr,"-d current extension read failed\n");
       znzseek(fp, -4*count, SEEK_CUR); /* back up past any read */
@@ -6414,7 +6415,7 @@ int valid_nifti_extensions(const nifti_image * nim)
 
        \return -1 on error, else NIFTI version
  *//*--------------------------------------------------------------------*/
-int nifti_header_version(const char * buf, int nbytes){
+int nifti_header_version(const char * buf, size_t nbytes){
    nifti_1_header *n1p = (nifti_1_header *)buf;
    nifti_2_header *n2p = (nifti_2_header *)buf;
    char            fname[] = { "nifti_header_version" };
@@ -6428,7 +6429,7 @@ int nifti_header_version(const char * buf, int nbytes){
 
    if( nbytes < sizeof(nifti_1_header) ) {
       if(g_opts.debug > 0)
-         fprintf(stderr,"** %s: nbytes=%d, too small for test", fname, nbytes);
+         fprintf(stderr,"** %s: nbytes=%zu, too small for test", fname, nbytes);
       return -1;
    }
 
@@ -6740,7 +6741,7 @@ int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
 
     case NIFTI_TYPE_FLOAT32:
     case NIFTI_TYPE_COMPLEX64:{
-        register float *far = (float *)dataptr ; register int64_t jj,nj ;
+        float *far = (float *)dataptr ; int64_t jj,nj ;
         nj = ntot / sizeof(float) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -6752,7 +6753,7 @@ int64_t nifti_read_buffer(znzFile fp, void* dataptr, int64_t ntot,
 
     case NIFTI_TYPE_FLOAT64:
     case NIFTI_TYPE_COMPLEX128:{
-        register double *far = (double *)dataptr ; register int64_t jj,nj ;
+        double *far = (double *)dataptr ; int64_t jj,nj ;
         nj = ntot / sizeof(double) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -8103,7 +8104,7 @@ char *nifti_image_to_ascii( const nifti_image *nim )
 
    if( nim == NULL ) return NULL ;   /* stupid caller */
 
-   buf = (char *)calloc(1,65534); nbuf = 0; /* longer than needed, to be safe */
+   buf = (char *)calloc(1,65534); /* longer than needed, to be safe */
    if( !buf ){
       fprintf(stderr,"** NIFTI NITA: failed to alloc %d bytes\n",65534);
       return NULL;
@@ -9163,7 +9164,7 @@ static int make_pivot_list(nifti_image *nim, const int64_t dims[], int pivots[],
    }
 
    /* make sure to include 0 as a pivot (instead of just 1, if it is) */
-   if( pivots[len-1] != 0 ){
+   if( len > 0 && pivots[len-1] != 0 ){
       pivots[len] = 0;
       prods[len] = 1;
       len++;
@@ -9571,5 +9572,3 @@ int nifti_disp_type_list( int which )
 
     return 0;
 }
-
-

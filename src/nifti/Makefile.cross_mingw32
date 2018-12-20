@@ -81,14 +81,14 @@ install-devpak: build-devpak
 devpak: install-devpak
 	# nifti_tool header is unecessary
 	rm $(devpak_dir)/include/nifti/nifti_tool.h
-	
+
 	# generate devpak info file
 	sed -e s/__full_version__/$(nifti_version)/g \
 	    -e s/__major_version__/$(nifti_version)/g \
 		< packaging/DevPackage.template > $(devpak_dir)/nifticlib.DevPackage
-	
+
 	# include license and readme
 	cp LICENSE README $(devpak_dir)
-	
+
 	# compress
 	cd $(devpak_dir) && tar cvjf ../nifticlib-$(nifti_version).DevPak *

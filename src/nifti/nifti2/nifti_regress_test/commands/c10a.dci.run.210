@@ -13,4 +13,3 @@ nifti_tool -disp_ci  0  0  0 -1  1  1  1 -infiles r.333.nii -quiet \
 
 diff o.10a.dci.?
 if( $status ) echo '** failure, o.10a.dci timeseries files differ'
-

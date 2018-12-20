@@ -7,7 +7,7 @@ N2DIR           = ../nifti2
 
 ## Compiler  defines
 CC		= gcc -g
-IFLAGS          = -I. 
+IFLAGS          = -I.
 CFLAGS          = -Wall -std=gnu99 -pedantic
 NIFLAGS         = $(IFLAGS) -I$(N2DIR) -I../niftilib -I../znzlib $(USEZLIB)
 
@@ -31,10 +31,10 @@ clean:
 	$(RM) *.o afni_xml_tool cifti_tool
 
 #afni_xml.o: afni_xml.c afni_xml.h
-#	$(CC) -c $(CFLAGS) -I. $< 
+#	$(CC) -c $(CFLAGS) -I. $<
 
 cifti_tool.o: cifti_tool.c
-	$(CC) -c $(CFLAGS) $(NIFLAGS) $< 
+	$(CC) -c $(CFLAGS) $(NIFLAGS) $<
 
 cifti_tool: $(OBJS) $(NOBJS) cifti_tool.o
 	$(CC) -o $@ $(CFLAGS) $(NIFLAGS) \
@@ -51,5 +51,3 @@ nifticdf.o:
 
 znzlib.o:
 	$(CC) -c -DHAVE_ZLIB $(CFLAGS) $(NIFLAGS) ../znzlib/znzlib.c
-
-
