@@ -164,7 +164,7 @@ static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
 #include "nifti1_io.h"
-#include "nifti_tool.h"
+#include "nifti1_tool.h"
 
 /* local prototypes */
 static int free_opts_mem(nt_opts * nopt);

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Dec, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "incorporate updates from the NIFTI_Imaging/nifti_clib repo",
+   "And update Makefile.INCLUDE."
+ } ,
+
  { 19, Dec, 2018, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "show execution syntax in both tcsh and bash",
    "Done to appease the mighty P Taylor."
