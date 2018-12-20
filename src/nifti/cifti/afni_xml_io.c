@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <nifti2_io.h>
+#include <inttypes.h>
 #include "afni_xml_io.h"
 
 
@@ -211,7 +212,7 @@ int axio_show_cifti_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
 
 typedef void(*gen_disp_func_t)(FILE *, afni_xml_t *, int);
 #define AXIO_NMIM_KIDS 5
-static char * MIM_kids[AXIO_NMIM_KIDS+1] =
+static const char * MIM_kids[AXIO_NMIM_KIDS+1] =
    { "NamedMap", "Surface", "Parcel", "Volume", "BrainModel", "INVALID" };
 static gen_disp_func_t MIM_disp_funcs[AXIO_NMIM_KIDS] = {
    disp_namedmap_child, disp_surface_child, disp_parcel_child,
@@ -232,7 +233,7 @@ static int get_map_index(afni_xml_t * ax)
 }
 
 
-int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
+int axio_show_mim_summary(FILE * fp, const char * mesg, afni_xml_t * ax, int verb)
 {
    afni_xml_t * xm, * xt;
    FILE       * ofp = fp ? fp : stderr;
@@ -273,7 +274,7 @@ int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
 /* depth first search for struct with given name
    if maxd >= 0, impose depth restriction
  */
-afni_xml_t * axio_find_map_name(afni_xml_t * ax, char * name, int maxd)
+afni_xml_t * axio_find_map_name(afni_xml_t * ax, const char * name, int maxd)
 {
    afni_xml_t * rv;
    int          ind;
@@ -312,7 +313,7 @@ static void disp_name_n_desc(FILE * fp, afni_xml_t * ax, int indent, int verb)
       else
          fprintf(fp, "\n%*s: %.*s ...\n", indent+3, "", max, ax->xtext);
       if( verb > 1 && ax->blen > 0 )
-         fprintf(fp, "%*s: %lld values of type %s\n", indent+3, "",
+         fprintf(fp, "%*s: %" PRId64 " values of type %s\n", indent+3, "",
                  ax->blen, nifti_datatype_string(ax->btype));
    } else
       fputc('\n', fp);
@@ -406,6 +407,7 @@ static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
    int64_t   ival;
    char    * cp;
 
+   (void)(depth);  // depth is not used for this variant
    if( ! ax ) return 1;
    if( ! ax->xtext || ax->xlen <= 0 ) return 0;  /* nothing to allocate */
 
@@ -471,7 +473,7 @@ static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
 
    ax->bdata = malloc(nbyper * ntok);
    if( ! ax->bdata ) {
-      fprintf(fp, "** axio_alloc: failed to allocate %lld vals of size %d\n",
+      fprintf(fp, "** axio_alloc: failed to allocate %" PRId64 " vals of size %d\n",
               ntok, nbyper);
       ax->blen = 0;
       return 1;
@@ -491,7 +493,7 @@ static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
       if( nread == 0 ) { free(ax->bdata); ax->bdata = NULL; }
 
       ax->blen = nread;
-      fprintf(fp, "** axio_alloc: read only %lld of %lld f64\n", nread, ntok);
+      fprintf(fp, "** axio_alloc: read only %" PRId64 " of %" PRId64 " f64\n", nread, ntok);
       return 1;
    }
 

@@ -44,7 +44,7 @@ static int FslOverrideOutputType=-1;
     \return  A string with the data format name, e.g. "ANALYZE-7.5"
     \sa FSL_TYPE
 */
-char* FslFileTypeString(int filetype)
+const char* FslFileTypeString(int filetype)
 {
   if (filetype==FSL_TYPE_ANALYZE)          return "ANALYZE-7.5";
   if (filetype==FSL_TYPE_NIFTI)            return "NIFTI-1+";
@@ -354,7 +354,9 @@ void FslGetHdrImgNames(const char* filename, const FSLIO* fslio,
   free(basename);
 
   /* Failure */
+  free(*hdrname);
   *hdrname = NULL;
+  free(*imgname);
   *imgname = NULL;
 }
 
@@ -407,7 +409,7 @@ void FslInit4Write(FSLIO* fslio, const char* filename, int ft)
 
   if ( (FslBaseFileType(imgtype)!=FSL_TYPE_MINC) ) {
     FslInitHeader(fslio, NIFTI_TYPE_FLOAT32,
-                  1, 1, 1, 3,  0.0, 0.0, 0.0, 0.0,  4, "mm");
+                  1, 1, 1, 3,  0.0, 0.0, 0.0, 0.0,  4);
 
     FslSetFileType(fslio,imgtype);  /* this is after InitHeader as niftiptr set there */
 
@@ -433,8 +435,7 @@ void FslInit4Write(FSLIO* fslio, const char* filename, int ft)
 void FslInitHeader(FSLIO *fslio, short t,
                    size_t x, size_t y, size_t z, size_t v,
                    float vx, float vy, float vz, float tr,
-                   size_t dim,
-                   const char* units)
+                   size_t dim)
 {
   /* NB: This function does not set the file type or write mode*/
 
@@ -459,7 +460,6 @@ void FslCloneHeader(FSLIO *dest, const FSLIO *src)
   /* only clone the information that is stored in the disk version of the header */
   /*  - therefore _not_ the filenames, output type, write mode, etc */
 
-  char *fname=NULL, *iname=NULL;
   void *data=NULL;
   int filetype, writemode;
   int preserve_nifti_values = 0;
@@ -469,8 +469,6 @@ void FslCloneHeader(FSLIO *dest, const FSLIO *src)
   if (src->niftiptr!=NULL) {
     /* preserve the filenames, output type and write mode */
     if (dest->niftiptr != NULL) {
-      fname = dest->niftiptr->fname;
-      iname = dest->niftiptr->iname;
       data = dest->niftiptr->data;
       preserve_nifti_values = 1;
     }
@@ -600,10 +598,12 @@ int check_for_multiple_filenames(const char* filename)
       if (!FslIgnoreMFQ) {
         otype = getenv("FSLMULTIFILEQUIT");
         if (otype!=NULL) {
+          free(tmpname);
           fprintf(stderr,"STOPPING PROGRAM\n");
           exit(EXIT_FAILURE);
         }
       }
+      free(tmpname);
       return 1;
     }
   return 0;
@@ -674,13 +674,19 @@ FSLIO *FslXOpen(const char *filename, const char *opts, int filetype)
     /** ====================== Open file for writing ====================== **/
 
     FslInit4Write(fslio,filename,filetype);
-    imgtype = FslGetFileType(fslio);
+        imgtype = FslGetFileType(fslio);
     fslio->written_hdr = 0;
 
     /* open the image file - not the header */
+    if ( fslio->niftiptr == NULL )
+    {
+        free(fslio);
+        return NULL;
+    }
     fslio->fileptr = znzopen(fslio->niftiptr->iname,bopts,FslIsCompressedFileType(imgtype));
     if (znz_isnull(fslio->fileptr)) {
       fprintf(stderr,"Error: failed to open file %s\n",fslio->niftiptr->iname);
+      free(fslio);
       return NULL;
     }
 
@@ -701,6 +707,7 @@ FSLIO *FslXOpen(const char *filename, const char *opts, int filetype)
   /* see if the extension indicates a minc file */
   imgtype = FslFileType(filename);
   if ((imgtype>=0) && (FslBaseFileType(imgtype)==FSL_TYPE_MINC)) {
+    free(fslio);
     fprintf(stderr,"Warning:: Minc is not yet supported\n");
     return NULL;
   }
@@ -862,7 +869,7 @@ void FslWriteAllVolumes(FSLIO *fslio, const void *buffer)
 {
   short x,y,z,t;
 
-  if (fslio==NULL)  FSLIOERR("FslWriteAllVolumes: Null pointer passed for FSLIO");
+  if (fslio==NULL || fslio->niftiptr == NULL )  FSLIOERR("FslWriteAllVolumes: Null pointer passed for FSLIO");
 
   FslGetDim(fslio,&x,&y,&z,&t);
   FslWriteHeader(fslio);
@@ -887,20 +894,21 @@ void FslWriteAllVolumes(FSLIO *fslio, const void *buffer)
     \param fslio        pointer to open dataset
     \param buffer       pointer to data array. Size and datatype of this buffer
     \param nvols        number of volumes to write
-    \return ??? looks like return of retval is missing ???  0 on error.
+    \return number of bytes written
  */
 size_t FslWriteVolumes(FSLIO *fslio, const void *buffer, size_t nvols)
 {
   /* The dimensions and datatype must be set before calling this function */
-  int retval;
+  size_t retval = 0;  // initialize to failure
   if (fslio==NULL)  FSLIOERR("FslWriteVolumes: Null pointer passed for FSLIO");
   if ( (!fslio->written_hdr) && (FslIsSingleFileType(FslGetFileType(fslio))) &&
        (FslIsCompressedFileType(FslGetFileType(fslio))) )
     { FSLIOERR("FslWriteVolumes: header must be written before data for single compressed file types"); }
 
   if (fslio->niftiptr!=NULL) {
-    long int nbytes, bpv;
-    bpv = fslio->niftiptr->nbyper;  /* bytes per voxel */
+    size_t bytes_written;
+    size_t nbytes;
+    long int bpv = fslio->niftiptr->nbyper;  /* bytes per voxel */
     nbytes = nvols * FslGetVolSize(fslio) * bpv;
 
     if ( (FslBaseFileType(FslGetFileType(fslio))==FSL_TYPE_ANALYZE)
@@ -921,16 +929,17 @@ size_t FslWriteVolumes(FSLIO *fslio, const void *buffer, size_t nvols)
           }
         }
       }
-      retval = nifti_write_buffer(fslio->fileptr, tmpbuf, nbytes);
+      bytes_written = nifti_write_buffer(fslio->fileptr, tmpbuf, nbytes);
       free(tmpbuf);
     } else {
-      retval = nifti_write_buffer(fslio->fileptr, buffer, nbytes);
+      bytes_written = nifti_write_buffer(fslio->fileptr, buffer, nbytes);
     }
+    retval = ( bytes_written == nbytes ) ? bytes_written : 0;
   }
   if (fslio->mincptr!=NULL) {
     fprintf(stderr,"Warning:: Minc is not yet supported\n");
   }
-  return 0;  /* failure */
+  return retval;
 }
 
 
@@ -1107,7 +1116,8 @@ size_t FslReadTimeSeries(FSLIO *fslio, void *buffer, short xVox, short yVox, sho
 {
   size_t volbytes, offset, orig_offset;
   size_t n;
-  short xdim,ydim,zdim,v,wordsize;
+  short xdim,ydim,zdim,v;
+  size_t wordsize;
 
   if (fslio==NULL)  FSLIOERR("FslReadTimeSeries: Null pointer passed for FSLIO");
   if (fslio->niftiptr!=NULL) {
@@ -1142,21 +1152,6 @@ size_t FslReadTimeSeries(FSLIO *fslio, void *buffer, short xVox, short yVox, sho
   if (fslio->mincptr!=NULL) {
     fprintf(stderr,"Warning:: Minc is not yet supported\n");
   }
-  return 0;
-}
-
-
-size_t FslReadCplxVolumes(FSLIO *fslio, void *buffer, size_t nvols, char mode)
-{
-  if (fslio==NULL)  FSLIOERR("FslReadCplxVolumes: Null pointer passed for FSLIO");
-  fprintf(stderr,"Warning:: FslReadCplxVolumes is not yet supported\n");
-  return 0;
-}
-
-size_t FslWriteCplxVolumes(FSLIO *fslio, void *buffer, size_t nvols, char mode)
-{
-  if (fslio==NULL)  FSLIOERR("FslWriteCplxVolumes: Null pointer passed for FSLIO");
-  fprintf(stderr,"Warning:: FslWriteCplxVolumes is not yet supported\n");
   return 0;
 }
 
@@ -1975,6 +1970,7 @@ int FslClose(FSLIO *fslio)
     if (fslio->niftiptr->byteorder != nifti_short_order()) {AvwSwapHeader(hdr);}
     hptr = znzopen(fslio->niftiptr->fname,"wb",FslIsCompressedFileType(FslGetFileType(fslio)));
     if (znz_isnull(hptr)) {
+      free(hdr);
       fprintf(stderr,"Error:: Could not write origin data to header file %s.\n",
               fslio->niftiptr->fname);
       return -1;
@@ -2243,7 +2239,10 @@ double ****FslGetBufferAsScaledDouble(FSLIO *fslio)
     if (ret == 0)
         return(newbuf);
     else
+    {
+        free(newbuf);
         return(NULL);
+    }
 
   } /* nifti data */
 
@@ -2426,4 +2425,3 @@ double ****d4matrix(int th, int zh,  int yh, int xh)
 
         return t;
 }
-

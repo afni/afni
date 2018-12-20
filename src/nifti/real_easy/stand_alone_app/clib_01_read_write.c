@@ -16,13 +16,13 @@
 int show_help( void )
 {
    printf(
-      "cib_01_read_write: short exmample of reading/writing NIfTI\n"
+      "clib_01_read_write: short exmample of reading/writing NIfTI\n"
       "\n"
       "    This program is to demonstrate how to read a NIfTI dataset,\n"
       "    set output filenames and write a NIfTI dataset, all via the\n"
       "    standard NIfTI C library.\n"
       "\n"
-      "    basic usage: cib_01_read_write -input FILE_IN -output FILE_OUT\n"
+      "    basic usage: clib_01_read_write -input FILE_IN -output FILE_OUT\n"
       "\n"
       "    options:     -help           : show this help\n"
       "                 -verb LEVEL     : the verbose level to LEVEL\n"

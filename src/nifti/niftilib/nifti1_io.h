@@ -335,7 +335,7 @@ int    valid_nifti_brick_list(nifti_image * nim , int nbricks,
                               const int * blist, int disp_error);
 
 /* znzFile operations */
-znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim);
+znzFile nifti_image_open(const char * hname, const char * opts, nifti_image ** nim);
 znzFile nifti_image_write_hdr_img(nifti_image *nim, int write_data,
                                   const char* opts);
 znzFile nifti_image_write_hdr_img2( nifti_image *nim , int write_opts ,

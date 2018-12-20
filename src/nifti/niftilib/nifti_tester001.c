@@ -290,9 +290,9 @@ int main (int argc, char *argv[])
               NIFTITEST_FALSE,&Errors);
     {
     nifti_1_header x = nifti_convert_nim2nhdr(reference_image);
-    char buf[512];
-    sprintf(buf,"nifti_hdr_looks_good %s",reference_image->fname);
-    PrintTest(buf,
+    char local_buffer[512];
+    sprintf(local_buffer,"nifti_hdr_looks_good %s",reference_image->fname);
+    PrintTest(local_buffer,
               !nifti_hdr_looks_good(&x),
               NIFTITEST_FALSE,&Errors);
     }

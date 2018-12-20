@@ -30,4 +30,3 @@ foreach file (*)
     echo $file...
     diff ../$r1/$file $file >& ../$ddir/d.$file
 end
-

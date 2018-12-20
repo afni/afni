@@ -9397,7 +9397,7 @@ returns the modulo of a and b
 } /* END */
 
 /***=====================================================================***/
-void ftnstop(char* msg)
+void ftnstop(const char* msg)
 /************************************************************************
 FTNSTOP:
 Prints msg to standard error and then exits
@@ -10973,7 +10973,7 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      NIFTI_INTENT_LOG10PVAL  = -log10(p)
 *****************************************************************************/
 
-char *inam[]={ NULL , NULL ,
+char const * const inam[]={ NULL , NULL ,
                        "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
                        "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
                        "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
@@ -11104,4 +11104,3 @@ double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3 )
    pq.q = 0.5*(1.0-pq.p) ; pq.p = 0.5*(1.0+pq.p) ;          /* mangle it */
    return normal_pq2s( pq ) ;                               /* find z  */
 }
-

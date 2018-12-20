@@ -3,6 +3,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <expat.h>
+#include <inttypes.h>
 #include "afni_xml.h"
 
 #define AXML_MIN_BSIZE 2048
@@ -111,12 +112,11 @@ static int  epop (afni_xml_control *, const char *);
 static int  add_to_xchild_list(afni_xml_t * parent, afni_xml_t * child);
 static int  add_to_xroot_list (afni_xml_control * xd, afni_xml_t * newp);
 static int  append_to_string(char **, int *, const char *, int);
-static int  disp_axml_ctrl (char * mesg, afni_xml_control * dp, int show_all );
+static int  disp_axml_ctrl ( const char *mesg, afni_xml_control * dp, int show_all );
 static int  disp_gen_text(afni_xml_control *, const char *, const char *, int);
 static void free_whitespace(void);
 static int  init_axml_ctrl (afni_xml_control *xd, int doall);
-static int  process_popped_element(afni_xml_control * xd, int pop_depth,
-                                   const char * ename);
+static int  process_popped_element(afni_xml_control * xd, const char * ename);
 static int  reset_xml_buf  (afni_xml_control * xd, char ** buf, int * bsize);
 static int  white_first    (const char * str, int len);
 static int  white_last     (const char * str, int len);
@@ -181,12 +181,12 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
       bshort = loc_strnlen(buf, blen);
       if( bshort < blen ) {
          if( xd->verb > 1 )
-            fprintf(stderr,"-- AXML: truncating fbuffer from %d to %lld\n",
+            fprintf(stderr,"-- AXML: truncating fbuffer from %u to %" PRId64  "\n",
                     blen, bshort);
          blen = (int)bshort;
       }
 
-      done = blen < bsize;
+      done = blen < (unsigned)  bsize;
 
       if(xd->verb > 4) fprintf(stderr,"-- XML_Parse # %d\n", pcount);
       pcount++;
@@ -236,7 +236,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
     /* check for early termination */
     bin_remain = loc_strnlen(buf_in, bin_len);
     if( bin_remain < bin_len && xd->verb > 1 )
-       fprintf(stderr,"-- AXML: truncating buffer from %lld to %lld\n",
+       fprintf(stderr,"-- AXML: truncating buffer from %" PRId64 " to %" PRId64 "\n",
                bin_len, bin_remain);
 
     /* create a new buffer */
@@ -244,7 +244,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
     if( reset_xml_buf(xd, &buf, &bsize) ) { return xlist; }
 
     if(xd->verb > 1)
-       fprintf(stderr,"-- reading xml from length %lld buffer\n", bin_remain);
+       fprintf(stderr,"-- reading xml from length %" PRId64 " buffer\n", bin_remain);
 
     /* create parser, init handlers */
     parser = init_xml_parser((void *)xd);
@@ -287,7 +287,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
 
 
 /* display the list of afni_xml_t structs */
-int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb)
+int axml_disp_xlist( const char *mesg, afni_xml_list * axlist, int verb)
 {
    FILE * fp = stderr;
    int    ind;
@@ -311,7 +311,7 @@ int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb)
 }
 
 /* recursive function to display an afni_xml_t struct */
-int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
+int axml_disp_xml_t( const char *mesg, afni_xml_t * ax, int indent, int verb)
 {
    FILE * fp = stderr;
    int    ind;
@@ -338,7 +338,7 @@ int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb)
          if( ax->bdata || ax->blen > 0 ) {
             fprintf(fp, "%*sbdata  : %s\n", indent, "",
                         ax->bdata ? "SET" : "CLEAR");
-            fprintf(fp, "%*sblen   : %lld\n", indent, "", ax->blen);
+            fprintf(fp, "%*sblen   : %" PRId64 "\n", indent, "", ax->blen);
             fprintf(fp, "%*sbtype  : %d\n", indent, "", ax->btype);
          }
       }
@@ -586,7 +586,7 @@ static int init_axml_ctrl(afni_xml_control *xd, int doall)
 }
 
 
-static int disp_axml_ctrl(char * mesg, afni_xml_control * dp, int show_all )
+static int disp_axml_ctrl( const char *mesg, afni_xml_control * dp, int show_all )
 {
    if( mesg ) fputs(mesg, stderr);
 
@@ -731,7 +731,7 @@ static int epop(afni_xml_control * xd, const char * ename)
           fprintf(stderr,"-- skip=%d, depth=%d, skipping pop element '%s'\n",
                   xd->dskip, xd->depth, ename);
    } else {
-      process_popped_element(xd, xd->depth-1, ename);
+      process_popped_element(xd, ename);
    }
 
    if( ! xd->dskip ) {
@@ -748,8 +748,7 @@ static int epop(afni_xml_control * xd, const char * ename)
    return 0;
 }
 
-static int process_popped_element(afni_xml_control * xd, int pop_depth,
-                                  const char * ename)
+static int process_popped_element(afni_xml_control * xd, const char * ename)
 {
    afni_xml_t * ax;
    ax = xd->stack[xd->depth-1];
@@ -997,4 +996,3 @@ static int64_t loc_strnlen(const char * str, int64_t maxlen)
 
    return len;  /* max of maxlen */
 }
-

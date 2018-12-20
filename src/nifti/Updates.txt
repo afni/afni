@@ -126,4 +126,3 @@ Updates for NIFTI-2
     - RR added flat nifti2 directory to contain all needed source for now:
         Makefile nifti2.h nifti2_io.[ch] nifti_tool.[ch] clib_02.nifti2.c
     - RR nifti2_io.[ch] is a NIFTI-2 update of the NIFTI-1 version
-

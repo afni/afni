@@ -120,4 +120,3 @@ GENERATE_MAN           = NO
 # is still experimental and very incomplete.
 
 GENERATE_XML           = NO
-

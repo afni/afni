@@ -80,4 +80,3 @@ proc remove_ext { args } {
 
     return [ exec sh -c "${FSLDIR}/bin/remove_ext $cleanedargs" ]
 }
-
