@@ -3384,9 +3384,9 @@ znzlib.o:nifti/znzlib/znzlib.c nifti/znzlib/znzlib.h
 	$(RM) $@
 	$(CC) -c nifti/znzlib/znzlib.c $(INFLAGS)
 
-nifti_stats.o:nifti/utils/nifti_stats.c
+nifti_stats.o:nifti/nifticdf/nifti_stats.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti_stats.c $(INFLAGS)
+	$(CC) -c nifti/nifticdf/nifti_stats.c $(INFLAGS)
 
 # 64-bit gcc 4.0+ has optimization problem with this file
 # -> use 3.4 if necessary		19 May 2010 [rickr]
@@ -3394,25 +3394,25 @@ nifticdf.o:nifti/nifticdf/nifticdf.c
 	$(RM) $@
 	$(CCOLD) -D__COMPILE_UNUSED_FUNCTIONS__ -c nifti/nifticdf/nifticdf.c $(INFLAGS)
 
-nifti_statlib.o:nifti/utils/nifti_stats.c nifti_statlib.c
+nifti_statlib.o:nifti/nifticdf/nifti_stats.c nifti_statlib.c
 	$(RM) $@
-	$(CC) -c nifti_statlib.c -Inifti/utils $(INFLAGS)
+	$(CC) -c nifti_statlib.c -Inifti/nifticdf $(INFLAGS)
 
 nifti_stats:nifti_stats.o nifticdf.o
 	$(RM) $@
 	$(CC) -o nifti_stats nifti_stats.o nifticdf.o -lm
 
-nifti1_test.o:nifti/utils/nifti1_test.c
+nifti1_test.o:nifti/niftilib/nifti1_test.c
 	$(RM) $@
-	$(CC) -c nifti/utils/nifti1_test.c $(INFLAGS)
+	$(CC) -c nifti/niftilib/nifti1_test.c $(INFLAGS)
 
 nifti1_test:nifti1_test.o nifti1_io.o znzlib.o
 	$(RM) $@
 	$(CC) -o nifti1_test nifti1_test.o nifti1_io.o znzlib.o $(LZLIB) -lm
 
-nifti1_tool.o:nifti/utils/nifti_tool.c
+nifti1_tool.o:nifti/niftilib/nifti1_tool.c
 	$(RM) $@
-	$(CC) -c -o $@ nifti/utils/nifti_tool.c $(INFLAGS)
+	$(CC) -c nifti/niftilib/nifti1_tool.c $(INFLAGS)
 
 nifti1_tool:nifti1_tool.o nifti1_io.o znzlib.o
 	$(RM) $@
