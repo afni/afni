@@ -70,10 +70,12 @@ foreach iter (`count -digits 4 1 $iterations`)
         -add_stim_class HMA 10 stim rest        \
         -add_stim_class HMS 10 stim rest        \
         -add_stim_class NULL 14 tnull INSTANT   \
+        -prefix threat_app.$iter                \
+      #                                         \
+      # might not need to edit below here...    \
         -write_event_list events.$iter.txt      \
         -show_timing_stats                      \
         -seed $seed                             \
-        -prefix threat_app.$iter                \
         -save_3dd_cmd cmd.3dd.$iter.txt >& out.mrt.$iter
 
 
