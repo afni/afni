@@ -15,12 +15,13 @@
  *----------------------------------------------------------------------
  */
 #include <stdio.h>
+#include <inttypes.h>
 
 #define USE_NIFTI2
 #include <nifti2_io.h>
 #include "afni_xml_io.h"
 
-static char * g_history[] =
+static const char * g_history[] =
 {
   "----------------------------------------------------------------------\n"
   "cifti_tool modification history:\n",
@@ -312,7 +313,7 @@ int ax_has_data(FILE * fp, afni_xml_t * ax, int depth)
 
    if( gopt.verb > 2 ) {
       fprintf(fp,"%*sdata in depth %d %s : ", depth*3, "", depth, ax->name);
-      fprintf(fp,"xtext[%d], bdata[%lld]\n", ax->xlen, ax->blen);
+      fprintf(fp,"xtext[%d], bdata[%" PRId64 "]\n", ax->xlen, ax->blen);
    } else if( gopt.verb > 1 )
       fprintf(fp,"%*sdata in depth %d %s\n", depth*3, "", depth, ax->name);
    else
@@ -329,7 +330,7 @@ int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
    if( ! ax->bdata && ax->blen <= 0 ) return 0;
 
    if( gopt.verb > 1 ) fprintf(fp,"%*sdata in depth %d ", depth*3, "", depth);
-   fprintf(fp, "%s : bdata[%lld]", ax->name, ax->blen);
+   fprintf(fp, "%s : bdata[%" PRId64 "]", ax->name, ax->blen);
 
    if( gopt.verb > 2 && ax->blen > 1 ) {
       if( ax->btype == NIFTI_TYPE_FLOAT64 ) {
@@ -337,7 +338,7 @@ int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
          fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
       } else if( ax->btype == NIFTI_TYPE_INT64 ) {
          int64_t * dp = (int64_t *)ax->bdata;
-         fprintf(fp, " = %lld  %lld  ...\n", dp[0], dp[1]);
+         fprintf(fp, " = %" PRId64 "  %" PRId64 "  ...\n", dp[0], dp[1]);
       }
    } else fputc('\n', fp);
 
@@ -358,10 +359,10 @@ int ax_num_tokens(FILE * fp, afni_xml_t * ax, int depth)
    nt = axio_num_tokens(ax->xtext, ax->xlen);
 
    if( gopt.verb > 1 )
-      fprintf(fp,"%*stokens in depth %d %s: %lld\n",
+      fprintf(fp,"%*stokens in depth %d %s: %" PRId64 "\n",
               depth*3, "", depth, ax->name, nt);
    else
-      fprintf(fp,"%s %lld\n", ax->name, nt);
+      fprintf(fp,"%s %" PRId64 "\n", ax->name, nt);
 
    return 0;
 }
@@ -494,4 +495,3 @@ int show_help( void )
       "\n");
    return 1;
 }
-

@@ -60,5 +60,3 @@ if [ $# -gt 2 -o -d $2 ] ; then
       if [ -f ${f1}.mnc.gz ] ; then /bin/mv ${f1}.mnc.gz ${dir} ; fi
   done
 fi
-
-

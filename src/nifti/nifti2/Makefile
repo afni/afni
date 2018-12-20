@@ -50,9 +50,8 @@ znzlib.o:
 # maybe we want to build NIFTI-1 nifti_tool
 nifti1_tool: $(MISC_OBJS)
 	$(CC) -o $@ -I../utils $(CFLAGS) \
-	../utils/nifti_tool.c ../niftilib/nifti1_io.c $(MISC_OBJS) $(LLIBS)
+	../niftilib/nifti_tool.c ../niftilib/nifti1_io.c $(MISC_OBJS) $(LLIBS)
 
 # make non-clashing version
 nifti2_tool: nifti_tool
 	cp -p nifti_tool nifti2_tool
-

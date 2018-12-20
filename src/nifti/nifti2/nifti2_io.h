@@ -410,7 +410,7 @@ void  nifti_swap_Nbytes ( int64_t n , int siz , void *ar ) ;
 int    nifti_datatype_is_valid       (int dtype, int for_nifti);
 int    nifti_datatype_from_string    (const char * name);
 const char * nifti_datatype_to_string(int dtype);
-int    nifti_header_version          (const char * buf, int nbytes);
+int    nifti_header_version          (const char * buf, size_t nbytes);
 
 int64_t nifti_get_filesize( const char *pathname ) ;
 void  swap_nifti_header ( void * h , int ni_ver ) ;

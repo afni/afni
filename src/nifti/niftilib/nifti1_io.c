@@ -435,7 +435,7 @@ static int   is_uppercase      (const char * str);
 static int   make_lowercase    (char * str);
 static int   make_uppercase    (char * str);
 static int   need_nhdr_swap    (short dim0, int hdrsize);
-static int   print_hex_vals    (const char * data, int nbytes, FILE * fp);
+static int   print_hex_vals    (const char * data, size_t nbytes, FILE * fp);
 static int   unescape_string   (char *str);  /* string utility functions */
 static char *escapize_string   (const char *str);
 
@@ -2139,7 +2139,7 @@ void nifti_mat44_to_orientation( mat44 R , int *icod, int *jcod, int *kcod )
 *//*--------------------------------------------------------------------*/
 void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
 {
-   register size_t ii ;
+   size_t ii ;
    unsigned char * cp1 = (unsigned char *)ar, * cp2 ;
    unsigned char   tval;
 
@@ -2156,9 +2156,9 @@ void nifti_swap_2bytes( size_t n , void *ar )    /* 2 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
 {
-   register size_t ii ;
+   size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0; cp2 = cp0+3;
@@ -2177,9 +2177,9 @@ void nifti_swap_4bytes( size_t n , void *ar )    /* 4 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
 {
-   register size_t ii ;
+   size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+7;
@@ -2198,9 +2198,9 @@ void nifti_swap_8bytes( size_t n , void *ar )    /* 8 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
 {
-   register size_t ii ;
+   size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+15;
@@ -2221,9 +2221,9 @@ void nifti_swap_16bytes( size_t n , void *ar )    /* 16 bytes at a time */
 *//*--------------------------------------------------------------------*/
 void nifti_swap_bytes( size_t n , int siz , void *ar )
 {
-   register size_t ii ;
+   size_t ii ;
    unsigned char * cp0 = (unsigned char *)ar, * cp1, * cp2 ;
-   register unsigned char tval ;
+   unsigned char tval ;
 
    for( ii=0 ; ii < n ; ii++ ){
        cp1 = cp0;  cp2 = cp0+(siz-1);
@@ -3501,9 +3501,9 @@ int is_nifti_file( const char *hname )
    return -1 ;                          /* not good */
 }
 
-static int print_hex_vals( const char * data, int nbytes, FILE * fp )
+static int print_hex_vals( const char * data, size_t nbytes, FILE * fp )
 {
-   int c;
+   size_t c;
 
    if ( !data || nbytes < 1 || !fp ) return -1;
 
@@ -3927,7 +3927,7 @@ nifti_image* nifti_convert_nhdr2nim(struct nifti_1_header nhdr,
         <br>NULL if something fails badly.
     \sa nifti_image_load, nifti_image_free
  */
-znzFile nifti_image_open(const char * hname, char * opts, nifti_image ** nim)
+znzFile nifti_image_open(const char * hname, const char * opts, nifti_image ** nim)
 {
   znzFile fptr=NULL;
   /* open the hdr and reading it in, but do not load the data  */
@@ -4998,7 +4998,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
 
     case NIFTI_TYPE_FLOAT32:
     case NIFTI_TYPE_COMPLEX64:{
-        register float *far = (float *)dataptr ; register size_t jj,nj ;
+        float *far = (float *)dataptr ; size_t jj,nj ;
         nj = ntot / sizeof(float) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -5010,7 +5010,7 @@ size_t nifti_read_buffer(znzFile fp, void* dataptr, size_t ntot,
 
     case NIFTI_TYPE_FLOAT64:
     case NIFTI_TYPE_COMPLEX128:{
-        register double *far = (double *)dataptr ; register size_t jj,nj ;
+        double *far = (double *)dataptr ; size_t jj,nj ;
         nj = ntot / sizeof(double) ;
         for( jj=0 ; jj < nj ; jj++ )   /* count fixes 30 Nov 2004 [rickr] */
            if( !IS_GOOD_FLOAT(far[jj]) ){
@@ -7531,5 +7531,3 @@ int nifti_disp_type_list( int which )
 
     return 0;
 }
-
-

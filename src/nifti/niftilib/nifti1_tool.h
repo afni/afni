@@ -4,8 +4,8 @@
 #define NT_CMD_LEN 2048
 
 typedef struct{
-   int     len;
-   char ** list;
+   int           len;
+   const char ** list;
 } str_list;
 
 typedef struct{
@@ -118,9 +118,9 @@ int    act_rm_ext     ( nt_opts * opts );
 int    act_strip      ( nt_opts * opts );  /* strip extras from datasets */
 
 
-field_s * get_hdr_field( char * fname, int show_fail );
-field_s * get_nim_field( char * fname, int show_fail );
-char    * field_type_str (int type);
+field_s    * get_hdr_field( const char * fname, int show_fail );
+field_s    * get_nim_field( const char * fname, int show_fail );
+const char * field_type_str (int type);
 
 int diff_hdrs     (nifti_1_header *s0, nifti_1_header *s1, int display);
 int diff_hdrs_list(nifti_1_header *s0, nifti_1_header *s1, str_list *slist,
@@ -129,34 +129,34 @@ int diff_nims     (nifti_image *s0,nifti_image *s1,        int display);
 int diff_nims_list(nifti_image *s0,nifti_image *s1,str_list *slist,int display);
 
 int add_int          (int_list * ilist, int val);
-int add_string       (str_list * slist, char * str);
-int check_total_size (char *mesg, field_s *fields, int nfields, int tot_size);
+int add_string       (str_list * slist, const char * str);
+int check_total_size ( const char *mesg, field_s *fields, int nfields, int tot_size);
 int clear_float_zeros( char * str );
 int diff_field       (field_s *fieldp, void * str0, void * str1, int nfields);
-int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen);
-int disp_field       (char *mesg,field_s *fp,void *str,int nfields,int header);
-int disp_field_s_list(char * mesg, field_s *, int nfields);
-int disp_nt_opts     (char * mesg, nt_opts * opts);
+int disp_nifti1_extension( const char *mesg, nifti1_extension * ext, int maxlen);
+int disp_field       ( const char *mesg,field_s *fp,void *str,int nfields,int header);
+int disp_field_s_list( const char *mesg, field_s *, int nfields);
+int disp_nt_opts     ( const char *mesg, nt_opts * opts);
 int disp_raw_data    (void * data, int type, int nvals, char space,int newline);
 int fill_cmd_string  (nt_opts * opts, int argc, char * argv[]);
-int fill_field       (field_s *fp, int type, int offset, int num, char *name);
+int fill_field       (field_s *fp, int type, int offset, int num, const char *name);
 int fill_hdr_field_array(field_s * nh_fields);
 int fill_nim_field_array(field_s * nim_fields);
 int fill_ana_field_array(field_s * ah_fields);
 int modify_all_fields(void *basep, nt_opts *opts, field_s *fields, int flen);
-int modify_field     (void * basep, field_s * field, char * data);
+int modify_field     (void * basep, field_s * field, const char * data);
 int process_opts     (int argc, char * argv[], nt_opts * opts);
-int remove_ext_list  (nifti_image * nim, char ** elist, int len);
-int usage            (char * prog, int level);
-int use_full         (char * prog);
+int remove_ext_list  (nifti_image * nim, const char ** elist, int len);
+int usage            (const char * prog, int level);
+int use_full         (const char * prog);
 int verify_opts      (nt_opts * opts, char * prog);
-int write_hdr_to_file(nifti_1_header * nhdr, char * fname);
+int write_hdr_to_file(nifti_1_header * nhdr, const char * fname);
 
 /* wrappers for nifti reading functions (allow MAKE_IM) */
-nifti_image    * nt_image_read (nt_opts * opts, char * fname, int doread);
-nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
+nifti_image    * nt_image_read (nt_opts * opts, const char * fname, int doread);
+nifti_image    * nt_read_bricks(nt_opts * opts, const char * fname, int len,
                                 int * list, nifti_brick_list * NBL);
-nifti_1_header * nt_read_header(nt_opts * opts, char * fname, int * swapped,
+nifti_1_header * nt_read_header(nt_opts * opts, const char * fname, int * swapped,
                                 int check);
 
 

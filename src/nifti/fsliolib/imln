@@ -34,4 +34,3 @@ if [ -f ${f1}.nii ] ; then ln -fs ${f1}.nii ${f2}.nii ; fi
 if [ -f ${f1}.nii.gz ] ; then ln -fs ${f1}.nii.gz ${f2}.nii.gz ; fi
 if [ -f ${f1}.mnc ] ; then ln -fs ${f1}.mnc ${f2}.mnc ; fi
 if [ -f ${f1}.mnc.gz ] ; then ln -fs ${f1}.mnc.gz ${f2}.mnc.gz ; fi
-

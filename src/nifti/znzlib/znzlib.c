@@ -319,4 +319,3 @@ int znzprintf(znzFile stream, const char *format, ...)
 }
 
 #endif
-
