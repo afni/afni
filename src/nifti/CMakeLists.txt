@@ -88,14 +88,20 @@ enable_testing()
 include(CTest)
 #Needs an if clause and more work before testing can take place.
 set_if_not_defined(NIFTI_BUILD_TESTING ${BUILD_TESTING})
-if (NIFTI_BUILD_TESTING AND CMAKE_VERSION GREATER_EQUAL 3.11.0) # CMAKE VERSION 3.11.0 needed for fetching data with cmake
+
+if (NIFTI_BUILD_TESTING )
+  set_if_not_defined(NIFTI_SHELL_SCRIPT_TESTS "ON")
+  if ( CMAKE_VERSION VERSION_LESS 3.11.0 )
+    # CMAKE VERSION 3.11.0 needed for fetching data with cmake
+    message(FATAL_ERROR "ERROR:  The testing framework for nifti_clib requires CMake version 3.11.0 or greater")
+  endif()
 
   include(FetchContent) # fetch data a configure time to simplify tests
   # If new or changed data is needed, add that data to the https://github.com/NIFTI-Imaging/nifti-test-data repo
   # make a new release, and then update the URL and hash (shasum -a 256 <downloaded tarball>).
   FetchContent_Declare( fetch_testing_data
-          URL      https://github.com/NIFTI-Imaging/nifti-test-data/archive/v3.0.0.tar.gz
-          URL_HASH SHA256=8a22554ca196f707f7c8cdc102e1a30117cd67da41d269390952683076ffcac8
+          URL      https://github.com/NIFTI-Imaging/nifti-test-data/archive/v3.0.1.tar.gz
+          URL_HASH SHA256=81accd390e7c7223e090ea8b2acaf145424b28148db3ef0eee4e9d6b2fd4d521
           )
   FetchContent_GetProperties(fetch_testing_data)
   if(NOT fetch_testing_data)

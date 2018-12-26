@@ -39,7 +39,7 @@ static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
 int axio_read_cifti_file(const char * fname, int get_ndata,
                          nifti_image ** nim_out, afni_xml_t ** ax_out)
 {
-   nifti_image      * nim;
+   nifti_image      * nim = NULL;
    afni_xml_t       * ax = NULL;
 
    if( !fname || !nim_out || !ax_out ) {
@@ -148,7 +148,7 @@ afni_xml_t * axio_cifti_from_ext(nifti_image * nim)
 
    /* just read until we have a CIFTI extension to process */
    ext = nim->ext_list;
-   for( ind = 0; ind < nim->num_ext; ind++ ) {
+   for( ind = 0; ind < nim->num_ext; ind++, ext++ ) {
       if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
       return axio_read_buf(ext->edata, ext->esize-8);
    }
@@ -404,7 +404,7 @@ static void disp_brainmodel_child(FILE * fp, afni_xml_t * ax, int verb)
    (prototype matches first argument of axml_recur) */
 static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
 {
-   int64_t   ival;
+   int64_t   ival = 0 ;
    char    * cp;
 
    (void)(depth);  // depth is not used for this variant
@@ -520,6 +520,7 @@ static int64_t text_to_i64(int64_t * result, const char * text, int64_t nvals)
    int64_t * rptr, val;
    int64_t   nread;
 
+   *result = 0; // Initialize to zero incase of failure
    if( ! text || ! result) return 1;
    if( nvals <= 0 )        return 0;
 
