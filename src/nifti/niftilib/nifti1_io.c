@@ -7173,7 +7173,8 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
    dim_index = nim->dim[0];
    while( dim_index > 0 ){
       prods[len] = 1;
-      while( dim_index > 0 && (nim->dim[dim_index] == 1 || dims[dim_index] == -1) ){
+      while( dim_index > 0 && 
+             (nim->dim[dim_index] == 1 || dims[dim_index] == -1) ){
          prods[len] *= nim->dim[dim_index];
          dim_index--;
       }
@@ -7183,6 +7184,7 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
    }
 
    /* make sure to include 0 as a pivot (instead of just 1, if it is) */
+   /* (check len, though we have already validated nifti_image) */
    if( len > 0 && pivots[len-1] != 0 ){
       pivots[len] = 0;
       prods[len] = 1;
@@ -7193,9 +7195,11 @@ static int make_pivot_list(nifti_image * nim, const int dims[], int pivots[],
 
    if( g_opts.debug > 2 ){
       fprintf(stderr,"+d pivot list created, pivots :");
-      for(dim_index = 0; dim_index < len; dim_index++) fprintf(stderr," %d", pivots[dim_index]);
+      for(dim_index = 0; dim_index < len; dim_index++)
+          fprintf(stderr," %d", pivots[dim_index]);
       fprintf(stderr,", prods :");
-      for(dim_index = 0; dim_index < len; dim_index++) fprintf(stderr," %d", prods[dim_index]);
+      for(dim_index = 0; dim_index < len; dim_index++)
+          fprintf(stderr," %d", prods[dim_index]);
       fputc('\n',stderr);
    }
 
