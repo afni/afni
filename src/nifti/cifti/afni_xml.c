@@ -32,6 +32,21 @@
 #endif
 
 
+/*
+ * realloc does not clear memory of ptr on failure.
+ * This wrapper function checks the return status,
+ * and deletes ptr if reallocation fails.
+ */
+static void * safe_realloc(void * ptr , size_t size)
+{
+  void * ptr_realloc = realloc( ptr, size );
+  if(!ptr_realloc)
+  {
+    free(ptr);
+  }
+  return ptr_realloc;
+}
+
 /* ---------------------------------------------------------------------- */
 /* XML global struct and access functions                                 */
 
@@ -153,18 +168,24 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
 
    if( !fname ) {
       fprintf(stderr,"** axml_read_image: missing filename\n");
+      xd->xroot = NULL;
       return xlist;
    }
 
    fp = fopen(fname, "r");
    if( !fp ) {
       fprintf(stderr,"** failed to open XML file '%s'\n", fname);
+      xd->xroot = NULL;
       return xlist;
    }
 
    /* create a new buffer */
    bsize = 0;
-   if( reset_xml_buf(xd, &buf, &bsize) ) { fclose(fp); return xlist; }
+   if( reset_xml_buf(xd, &buf, &bsize) ) {
+     fclose(fp);
+     xd->xroot = NULL;
+     return xlist;
+   }
 
    if(xd->verb > 1) fprintf(stderr,"-- reading xml file '%s'\n", fname);
 
@@ -204,6 +225,7 @@ afni_xml_list axml_read_file(const char * fname, int read_data)
 
    if(xd->verb > 1) fprintf(stderr,"++ done parsing XML file %s\n", fname);
 
+   xd->xroot = NULL; /* Stop pointing to xlist */
    return xlist;
 }
 
@@ -230,6 +252,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
 
     if( ! buf_in || bin_len < 0L ) {
        fprintf(stderr,"** axml_read_buf: missing buffer\n");
+       xd->xroot=NULL;
        return xlist;
     }
 
@@ -241,7 +264,11 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
 
     /* create a new buffer */
     bsize = 0;
-    if( reset_xml_buf(xd, &buf, &bsize) ) { return xlist; }
+    if( reset_xml_buf(xd, &buf, &bsize) )
+    {
+      xd->xroot = NULL; /* Stop pointing to xlist */
+      return xlist;
+    }
 
     if(xd->verb > 1)
        fprintf(stderr,"-- reading xml from length %" PRId64 " buffer\n", bin_remain);
@@ -259,8 +286,10 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
         if( bin_remain >= bsize ) blen = bsize;
         else                      blen = bin_remain;
 
-        memcpy(buf, bin_ptr, blen);
-        buf[blen] = '\0';
+        if(blen > 0 && blen <= (unsigned)bsize) {
+           memcpy(buf, bin_ptr, blen);
+           buf[blen] = '\0';
+        }
 
         /* update bytes remaining to process and decide if done */
         bin_remain -= blen;
@@ -282,6 +311,7 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
 
     if(xd->verb > 1) fprintf(stderr,"++ done parsing XML buffer\n");
 
+    xd->xroot = NULL; /* Stop pointing to xlist */
     return xlist;
 }
 
@@ -610,7 +640,7 @@ static int disp_axml_ctrl( const char *mesg, afni_xml_control * dp, int show_all
    return 0;
 }
 
-/* if bsize is no longer correct, update it and realloc the buffer */
+/* if bsize is no longer correct, update it and safe_realloc the buffer */
 static int reset_xml_buf(afni_xml_control * xd, char ** buf, int * bsize)
 {
     if( *bsize == xd->buf_size ) {
@@ -623,8 +653,7 @@ static int reset_xml_buf(afni_xml_control * xd, char ** buf, int * bsize)
         fprintf(stderr,"++ update buf, %d to %d bytes\n",*bsize,xd->buf_size);
 
     *bsize = xd->buf_size;
-    *buf = (char *)realloc(*buf, (*bsize+1) * sizeof(char));
-
+    *buf = (char *)safe_realloc(*buf, (*bsize+1) * sizeof(char));
     if( ! *buf ) {
         fprintf(stderr,"** failed to alloc %d bytes of xml buf!\n", *bsize);
         *bsize = 0;
@@ -768,7 +797,7 @@ static int add_to_xroot_list(afni_xml_control * xd, afni_xml_t * newp)
    if( xd->xroot->len <= 0 ) { xd->xroot->len = 0; xd->xroot->xlist = NULL; }
 
    xd->xroot->len++;
-   xd->xroot->xlist = (afni_xml_t **)realloc(xd->xroot->xlist,
+   xd->xroot->xlist = (afni_xml_t **)safe_realloc(xd->xroot->xlist,
                                      xd->xroot->len * sizeof(afni_xml_t *));
    if( ! xd->xroot->xlist ) {
       fprintf(stderr,"** failed to alloc %d AXMLT pointers\n", xd->xroot->len);
@@ -786,7 +815,7 @@ static int add_to_xchild_list(afni_xml_t * parent, afni_xml_t * child)
    if( parent->nchild <= 0 ) { parent->nchild = 0; parent->xchild = NULL; }
 
    parent->nchild++;
-   parent->xchild = (afni_xml_t **)realloc(parent->xchild,
+   parent->xchild = (afni_xml_t **)safe_realloc(parent->xchild,
                                    parent->nchild * sizeof(afni_xml_t *));
    if( ! parent->xchild ) {
       fprintf(stderr,"** failed to alloc %d AXML pointers\n", parent->nchild);
@@ -845,7 +874,7 @@ static char * strip_whitespace(const char * str, int slen)
 
    /* make sure we have local space */
    if( len > blen ) { /* allocate a bigger buffer */
-      buf = (char *)realloc(buf, (len+1) * sizeof(char));
+      buf = (char *)safe_realloc(buf, (len+1) * sizeof(char));
       if( !buf ) {
          fprintf(stderr,"** failed to alloc wspace buf of len %d\n", len+1);
          return (char *)str;
@@ -910,7 +939,7 @@ static int append_to_string(char ** ostr, int * olen,
 
    newlen = *olen + ilen;
 
-   *ostr = (char *)realloc(*ostr, newlen * sizeof(char));
+   *ostr = (char *)safe_realloc(*ostr, newlen * sizeof(char));
    if( !*ostr ) {
       fprintf(stderr,"** AX.A2S: failed to alloc %d chars\n", newlen);
       return 1;

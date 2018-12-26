@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Dec, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
+   "incorporate more updates from the NIFTI_Imaging/nifti_clib repo",
+   NULL
+ } ,
+
  { 20, Dec, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "incorporate updates from the NIFTI_Imaging/nifti_clib repo",
    "And update Makefile.INCLUDE."

@@ -175,7 +175,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
 /* ----------------------------------------------------------------- */
 int process(opts_t * opts)
 {
-   nifti_image * nim;
+   nifti_image * nim = NULL;
    afni_xml_t  * ax;
 
    if( !opts->fin ){ fprintf(stderr, "** missing option '-input'\n"); return 1;}
@@ -219,7 +219,9 @@ int disp_cifti_extension(nifti_image * nim, opts_t * opts)
       return 1;
    }
 
-   fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
+   if(ext) {
+     fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
+   }
 
    /* possibly close file */
    close_stream(fp);
@@ -335,10 +337,14 @@ int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
    if( gopt.verb > 2 && ax->blen > 1 ) {
       if( ax->btype == NIFTI_TYPE_FLOAT64 ) {
          double * dp = (double *)ax->bdata;
-         fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
+         if(dp) {
+           fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
+         }
       } else if( ax->btype == NIFTI_TYPE_INT64 ) {
          int64_t * dp = (int64_t *)ax->bdata;
-         fprintf(fp, " = %" PRId64 "  %" PRId64 "  ...\n", dp[0], dp[1]);
+         if(dp) {
+           fprintf(fp, " = %" PRId64 "  %" PRId64 "  ...\n", dp[0], dp[1]);
+         }
       }
    } else fputc('\n', fp);
 
