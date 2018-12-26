@@ -8,8 +8,11 @@
 # auth: PA Taylor (NIMH, NIH, USA)
 # ===================================================================
 #
-set set version = "2.0";  set rev_dat = "Dec 19, 2018"
+#set set version = "2.0";  set rev_dat = "Dec 19, 2018"
 #   + [PT] fix the focal point conditions.
+#
+set set version = "2.1";  set rev_dat = "Dec 21, 2018"
+#   + [PT] re-fix the focal point conditions.
 #
 # ===================================================================
 
@@ -137,12 +140,20 @@ end
 #set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
 #set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
 
+# ------- 1) find zero-based index of montage slices to focus on
+
+# It isn't always just the "middle" one, because in a matrix-like
+# montage, the choice is a bit more complicated.  Basically, it is a
+# central slice, in each dimension rounded up.  
+#
+# This is also complicated by going back and forth between 0-based and
+# 1-based index numbers.  
+
 ## [PT: Dec 19, 2018] fix these values, and how they get used just
 ## below to find the focal coors in terms of ijk values, which is a
 ## little odd, to be honest.
-# zero-based numbers
-# representing the row or col to jump to for the focal slice in the
-# montage.
+# zero-based numbers representing the row or col to jump to for the
+# focal slice in the montage.
 if ( `echo "( $mx % 2 )" | bc` == 1 ) then
     set cmx = `echo "( ( $mx - 1) / 2 )" | bc`
 else
@@ -157,23 +168,38 @@ endif
 
 # total number of panels
 @ tot     = $mx * $my 
-# which panel is the "focal" one in the montage: 1-based counting for tcsh
+# which panel is the "focal" one in the montage: 0-based counting for tcsh
 @ hpan    = ( ( $cmy ) * $mx ) + $cmx    
-#echo "$cmx $cmy $tot $hpan"
+#echo "$mx $my $tot"
+#echo "$cmx $cmy  $hpan"
+
+# where we go just depends on this
+set gapord = `@djunct_slice_space -nwin $tot -inset "$ulay"`
+
+#set pfrac = `echo "scale=5; ( ( $hpan + 1 ) / ( $tot + 1 ) ) " | bc` # ????
+#echo "++ pfrac = $pfrac"
 
 # ## [PT: Dec 19, 2018] admittedly, this is an *odd* set of conditions
 # to reposition the centerpoint for the montage.  This depends very
 # much on how hpan is defined, above
 foreach i ( `seq 1 1 3` )
+    set offset = `echo "scale=5; ( $Dim[$i] - ( ( $tot - 1 ) * $gapord[$i] ) ) / 2" | bc`
+    set ccc0   = `echo "scale=5; $offset + ( $hpan * $gapord[$i] ) " | bc`
+    set ccc1   = `echo $ccc0 | perl -nl -MPOSIX -e 'print floor($_);'`
+    #echo OCC $offset $ccc0  $ccc1 $hpan
+    
+    # somehow, R&L are just a little bit different
     if ( ( $all_ori[$i] == 'R' ) ) then 
-        set coors[$i] = `echo "$Dim[$i] - $hpan " | bc`
-    else if ( ( $all_ori[$i] == 'P' ) || ( $all_ori[$i] == 'S' ) ) then
-        set coors[$i] = `echo "$Dim[$i] -  $hpan - 1 " | bc`
+        set ccc2 = `echo "scale=0; $Dim[$i] - $ccc1 " | bc`
     else if ( ( $all_ori[$i] == 'L' ) ) then
-        set coors[$i] = `echo " $hpan - 1 " | bc`
+        set ccc2 = `echo "scale=0; $ccc1 - 1 " | bc`
+    else if ( ( $all_ori[$i] == 'P' ) || ( $all_ori[$i] == 'S' ) ) then
+        set ccc2 = `echo "scale=0; $Dim[$i] - 1 - $ccc1 " | bc`
     else
-        set coors[$i] = $hpan
+        set ccc2 = `echo "scale=0; $ccc1 " | bc`
     endif
+
+    set coors[$i] = `echo $ccc2 | perl -nl -MPOSIX -e 'print floor($_);'`
 end
 
 # ----------------- convert IJK to XYZ -----------------------------
@@ -189,7 +215,6 @@ else
     echo "** ERROR: bad output type!"
     echo "          This is not an option: '$OUT_TYPE'"
     goto BAD_EXIT
-
 endif
 
 goto GOOD_EXIT
