@@ -259,8 +259,8 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
     /* check for early termination */
     bin_remain = loc_strnlen(buf_in, bin_len);
     if( bin_remain < bin_len && xd->verb > 1 )
-       fprintf(stderr,"-- AXML: truncating buffer from %" PRId64 " to %" PRId64 "\n",
-               bin_len, bin_remain);
+       fprintf(stderr,"-- AXML: truncating buffer from %" PRId64 
+                      " to %" PRId64 "\n", bin_len, bin_remain);
 
     /* create a new buffer */
     bsize = 0;
@@ -271,7 +271,8 @@ afni_xml_list axml_read_buf(const char * buf_in, int64_t bin_len)
     }
 
     if(xd->verb > 1)
-       fprintf(stderr,"-- reading xml from length %" PRId64 " buffer\n", bin_remain);
+       fprintf(stderr,"-- reading xml from length %" PRId64 " buffer\n",
+               bin_remain);
 
     /* create parser, init handlers */
     parser = init_xml_parser((void *)xd);
