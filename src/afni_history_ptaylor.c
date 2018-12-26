@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Dec , 2018 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
+   "Adjusted coordinator for a couple situations.",
+   "Should be more centered for both 3D and 4D applications.\n"
+},
+
 { 19, Dec , 2018 , PT , "@djunct_montage_coordinator" , MAJOR , TYPE_BUG_FIX,
    "This montage coordinator was noooot picking the right vol to focus on.",
    "That should be fixed via magical incantations now.\n"
