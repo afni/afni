@@ -100,10 +100,13 @@ nifti_image * generate_reference_image( const char * write_image_filename , int 
   reference_image->data=(signed int *)calloc(NumVoxels,sizeof(signed int)) ; /*!< pointer to data: nbyper*nvox bytes     */
   PrintTest("Checking memory allocation",reference_image->data ==0 ,NIFTITEST_TRUE,Errors);
   {
-  signed int i=0;
-  for(; i < (signed int)NumVoxels ; i++)
+    if(reference_image->data)
     {
-    ((signed int *)(reference_image->data))[i]=i;
+      signed int i=0;
+      for(; i < (signed int)NumVoxels ; i++)
+        {
+        ((signed int *)(reference_image->data))[i]=i;
+        }
     }
   }
   }
@@ -117,6 +120,16 @@ nifti_image * generate_reference_image( const char * write_image_filename , int 
 
 void compare_reference_image_values(nifti_image const * const reference_image, nifti_image const * const reloaded_image, int * const Errors)
 {
+  if( ! reference_image  || ! reference_image->data )
+  {
+    printf("ERROR: Reference image is NULL\n");
+    exit(-1);
+  }
+  if( ! reloaded_image  || ! reloaded_image->data )
+  {
+    printf("ERROR: Reloaded image is NULL\n");
+    exit(-1);
+  }
   PrintTest("Checking nifti_type",(reference_image->nifti_type!=reloaded_image->nifti_type),NIFTITEST_FALSE,Errors);
   PrintTest("Checking fname",(strcmp(reference_image->fname,reloaded_image->fname)),NIFTITEST_FALSE,Errors);
   PrintTest("Checking iname",(strcmp(reference_image->iname,reloaded_image->iname)),NIFTITEST_FALSE,Errors);
@@ -137,15 +150,15 @@ void compare_reference_image_values(nifti_image const * const reference_image, n
   PrintTest("Check loaded data is non null",(reloaded_image->data==0),NIFTITEST_TRUE,Errors);
   PrintTest("Check reference_image data is non null",(reference_image->data==0),NIFTITEST_TRUE,Errors);
   {
-  unsigned int CurrVoxel=0;
-  for(; CurrVoxel < NumVoxels ; CurrVoxel++)
-    {
-    /*printf("%d ",CurrVoxel); fflush(stdout);*/
-    if( ((int *)(reference_image->data))[CurrVoxel] !=  ((int *)(reloaded_image->data))[CurrVoxel])
+    unsigned int CurrVoxel=0;
+    for(; CurrVoxel < NumVoxels ; CurrVoxel++)
       {
-      PrintTest("Incorrect Pixel Value Found",0,NIFTITEST_FALSE,Errors);
+      /*printf("%d ",CurrVoxel); fflush(stdout);*/
+      if( ((int *)(reference_image->data))[CurrVoxel] !=  ((int *)(reloaded_image->data))[CurrVoxel])
+        {
+        PrintTest("Incorrect Pixel Value Found",0,NIFTITEST_FALSE,Errors);
+        }
       }
-    }
   }
   }
   PrintTest("Checking xyz_units",(reference_image->xyz_units!=reloaded_image->xyz_units),NIFTITEST_FALSE,Errors);
@@ -192,6 +205,12 @@ int main (int argc, char *argv[])
     printf("======= Testing with filename: %s ======\n",write_image_filename[filenameindex]);
     fflush(stdout);
     nifti_image * reference_image = generate_reference_image(write_image_filename[filenameindex],&Errors);
+    if( ! reference_image )
+    {
+      printf("ERROR: reference image not generated.");
+      fflush(stdout);
+      return EXIT_FAILURE;
+    }
     /*
      * Add an extension to test extension reading
      */
@@ -233,7 +252,7 @@ int main (int argc, char *argv[])
 
     }
     {
-    nifti_image * reloaded_image = nifti_image_read(reference_image->fname,1);
+    nifti_image * reloaded_image = (reference_image->fname) ? nifti_image_read(reference_image->fname,1): NULL;
     PrintTest("Reload of image ",reloaded_image==0,NIFTITEST_TRUE,&Errors);
 
     {

@@ -9217,6 +9217,7 @@ static int make_pivot_list(nifti_image *nim, const int64_t dims[], int pivots[],
 int64_t * nifti_get_int64list( int64_t nvals , const char * str )
 {
    int64_t *subv = NULL ;
+   int64_t *subv_realloc = NULL;
    int64_t ii , nout ;
    int64_t ibot,itop,istep , nused ;
    int     ipos , slen ;
@@ -9283,12 +9284,14 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
 
       if( str[ipos] == ',' || ISEND(str[ipos]) ){
          nout++ ;
-         subv = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
-         if( !subv ) {
+         subv_realloc = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
+         if( !subv_realloc ) {
+            free(subv);
             fprintf(stderr,"** nifti_get_intlist: failed realloc of %" PRId64
                     " ints\n", nout+1);
             return NULL;
          }
+         subv = subv_realloc;
          subv[0]    = nout ;
          subv[nout] = ibot ;
          if( ISEND(str[ipos]) ) break ; /* done */
@@ -9363,12 +9366,14 @@ int64_t * nifti_get_int64list( int64_t nvals , const char * str )
 
       for( ii=ibot ; (ii-itop)*istep <= 0 ; ii += istep ){
          nout++ ;
-         subv = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
-         if( !subv ) {
+         subv_realloc = (int64_t *)realloc( (char *)subv , sizeof(int64_t)*(nout+1) ) ;
+         if( !subv_realloc ) {
+            free(subv);
             fprintf(stderr,"** nifti_get_intlist: failed realloc of %" PRId64
                     " ints\n", nout+1);
             return NULL;
          }
+         subv = subv_realloc;
          subv[0]    = nout ;
          subv[nout] = ii ;
       }
