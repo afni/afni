@@ -2179,6 +2179,19 @@ static mat44 rot_matrix( int ax1, double th1,
 }
 
 /*--------------------------------------------------------------------------*/
+/* Net rotation given 3 perpendicular angles [02 Jan 2019] */
+
+float total_rotation_degrees( float ax, float ay, float az )
+{
+   mat44 rr ; double cth , th ;
+
+   rr  = rot_matrix( 0,D2R*ax , 1,D2R*ay , 2,D2R*az ) ;
+   cth = 0.5 * sqrt( 1.0 + rr.m[0][0] + rr.m[1][1] + rr.m[2][2] ) ;
+   th  = 360.0 / PI * acos(cth) ;
+   return (float)th ;
+}
+
+/*--------------------------------------------------------------------------*/
 static int pgmat=0 ;
 void mri_genalign_set_pgmat( int p ){ pgmat = p; }
 
