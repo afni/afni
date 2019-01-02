@@ -2290,7 +2290,7 @@ int main( int argc , char *argv[] )
      /* 24 Feb 2010: special option for -lpc+stuff or -lpa+stuff */
 
      if( micho_fallthru ||
-         (strlen(argv[iarg]) > 6 && 
+         (strlen(argv[iarg]) > 6 &&
            (   strncasecmp(argv[iarg],"-lpc+",5) == 0
             || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
@@ -4181,6 +4181,21 @@ STATUS("zeropad weight dataset") ;
         if( jj > 0 && jj%3 == 0 ) fprintf(stderr,"\n    "); \
         fprintf(stderr," %9s=%8.4f",                        \
      stup.wfunc_param[jj].name,stup.wfunc_param[jj].xxx) ;  \
+        if( jj == 2 )                                              \
+         fprintf(stderr,"  ...  enorm=%8.4f mm",                   \
+          sqrt( stup.wfunc_param[0].xxx*stup.wfunc_param[0].xxx    \
+               +stup.wfunc_param[1].xxx*stup.wfunc_param[1].xxx    \
+               +stup.wfunc_param[2].xxx*stup.wfunc_param[2].xxx)); \
+        else if( jj == 5 )                                  \
+         fprintf(stderr,"  ...  total=%8.4f deg",           \
+          total_rotation_degrees(stup.wfunc_param[3].xxx,   \
+                                 stup.wfunc_param[4].xxx,   \
+                                 stup.wfunc_param[5].xxx)); \
+        else if( jj == 8 )                                  \
+         fprintf(stderr,"  ...  vol3D=%8.4f",               \
+           stup.wfunc_param[6].xxx                          \
+          *stup.wfunc_param[7].xxx                          \
+          *stup.wfunc_param[8].xxx ) ;                      \
       }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)

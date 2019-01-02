@@ -130,13 +130,13 @@ int main( int argc , char * argv[] )
       exit(1) ;
    }
 
-   if (strcmp(dstr,"XYZ.OR")==0) dcode = 4;
-   else if (strcmp(dstr,"XYZ.AND")==0) dcode = 5;
+        if (strcasecmp(dstr,"XYZ.OR") ==0) dcode = 4;
+   else if (strcasecmp(dstr,"XYZ.AND")==0) dcode = 5;
    else {
       switch( *dstr ){
-         case 'x': dcode = 1 ; break ;
-         case 'y': dcode = 2 ; break ;
-         case 'z': dcode = 3 ; break ;
+         case 'X': case 'x': dcode = 1 ; break ;
+         case 'Y': case 'y': dcode = 2 ; break ;
+         case 'Z': case 'z': dcode = 3 ; break ;
          default:
            if( *dstr == ORIENT_tinystr[outset->daxes->xxorient][0] ||
                *dstr == ORIENT_tinystr[outset->daxes->xxorient][1]  ) dcode = 1 ;
@@ -150,10 +150,10 @@ int main( int argc , char * argv[] )
       }
    }
    if( dcode == 0 ){
-      fprintf(stderr,"*** Illegal -dir direction!\n") ; exit(1) ;
+      ERROR_exit("Illegal -dir direction '%s'",dstr) ;
    }
    if( verb )
-      fprintf(stderr,"++ Direction = axis %d in dataset\n",dcode) ;
+      INFO_message("Direction = axis %d in dataset",dcode) ;
 
    if (bin) DSET_mallocize(inset);
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
