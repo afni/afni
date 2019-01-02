@@ -1904,6 +1904,8 @@ extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
 /******* end of BLOK-ization stuff here -- also see mri_genalign_util.c *******/
 
+extern float total_rotation_degrees( float ax, float ay, float az ) ; /* 02 Jan 2019 */
+
  /* struct to control mri_genalign.c optimization */
 
 typedef struct {
