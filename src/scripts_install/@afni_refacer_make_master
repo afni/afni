@@ -1,0 +1,125 @@
+#!/bin/tcsh
+
+## *** You do not need to run this script, unless you want  ***
+## *** to make your own 'master' shell for refacing,        ***
+## *** instead of using the one supplied with AFNI binaries ***
+
+## * This script takes as input a list of T1-weighted dataset names
+##    that have NOT been skull-stripped or defaced or refaced.
+## * The output is a dataset afni_refacer_shell.nii.gz that
+##    contains the average 'face', which will be applied in
+##    script @afni_refacer_run.
+## * Where I say 'face', I mean 'non-brain tissue', which includes
+##    some skull regions, thus altering the outer shape of the
+##    head to some extent.
+## * A minimum of 9 input datasets is required; 20 is probably
+##    enough to produce a master for refacing purposes.
+
+## * This script depends on the existence of two datasets:
+##     MNI152_2009_template_SSW.nii.gz = MNI-space skull stripping template
+##     afni_refacer_MNIbmask10.nii.gz  = MNI-space dilated brain mask
+#  * These datasets should be in the AFNI binaries path
+## * The first dataset is used (by @afni_refacer_make_onebigA12 and
+##   @afni_refacer_run) to align a dataset to MNI space
+## * The second dataset is used to mask off the brain region when making
+##    the output dataset afni_refacer_shell.nii.gz
+
+if ( $#argv < 9 ) then
+  echo "** ERROR in @afni_refacer_make_master: need at least 9 input datasets" ; exit 1
+endif
+
+# Unifize and align each dataset to MNI-space in a 'big' volume
+# -- most time is spent doing this, via @afni_refacer_make_onebigA12
+
+foreach ddd ( $argv )
+  set ppp = `@GetAfniPrefix $ddd`
+  set ppp = `basename $ppp .gz`
+  set ppp = `basename $ppp .nii`
+  if ( ! -f $ppp.bigA12.nii ) then
+    tcsh @afni_refacer_make_onebigA12 $ddd
+  endif
+end
+
+# The list of output datasets from the above
+
+set dlist = ( *.bigA12.nii )
+if ( $#dlist < 9 ) then
+  echo "** ERROR: don't find at least 9 *.bigA12.nii datasets" ; exit 1
+endif
+
+# A 'junk' prefix, for temp files to be deleted later
+
+set qqq = junk.`3dnewid -fun11`
+
+# Find the MNI dilated brain mask (i.e., stuff NOT to reface)
+
+set mset  = "afni_refacer_MNIbmask10.nii.gz"
+set mpath = `@FindAfniDsetPath "$mset"`
+if ( "$mpath" == '' ) then
+   echo "** @afni_refacer_make_master -- Failed to find mask $mset -- exiting :(" ; exit 1
+endif
+   set mset = $mpath/$mset
+endif
+
+# Extend the MNI dilated brain mask to the 'bigA12' size
+
+3dZeropad -master $dlist[1] -prefix $qqq.bmaskA.nii $mset
+
+# And extend it downwards in the middle of the neck
+
+3dcalc    -prefix $qqq.bmaskB.nii -a $qqq.bmaskA.nii -dicom \
+          -expr 'step(step(a)+step(1377-x*x-(y-42)*(y-42))*step(-z-78))'
+
+# Compute the median of nonzero values at each voxel of the 'bigA12' collection
+
+3dTstat -nzmedian -prefix $qqq.afni_refacer1.nii "$dlist"
+
+# And the count of how many nonzero values are at each voxel
+
+3dTstat -nzcount  -prefix $qqq.afni_refacer2.nii "$dlist"
+
+# nnn = count threshold for inclusion in the final mask
+
+@ nnn = 1 + $#dlist / 4
+
+# Make a full mask of the head from the median mask
+
+3dAutomask  -eclip      -prefix $qqq.afni_refacerM1.nii  \
+            "3dcalc( -a $qqq.afni_refacer1.nii       \
+                     -b $qqq.afni_refacer2.nii       \
+                     -expr step(b-$nnn)*a )"
+3dRowFillin -dir XYZ.OR -prefix $qqq.afni_refacerM2.nii $qqq.afni_refacerM1.nii
+
+# Make a shell - only include voxels not in the extended brain mask 'step(1-c)'
+# This shell is a dataset with intensity variation, not just a binary mask;
+# the intensity values are from the median mask.
+
+3dcalc -a $qqq.afni_refacer1.nii -b $qqq.afni_refacer2.nii -c $qqq.bmaskB.nii \
+       -expr "step(b-$nnn)*step(1-c)*max(a,0)" -prefix $qqq.afni_refacer3.nii
+
+# Blur the shell (inside itself) a little for further confusion
+
+3dBlurInMask -fwhm 3.333 -mask $qqq.afni_refacer3.nii \
+             -prefix $qqq.afni_refacer4.nii $qqq.afni_refacer3.nii
+
+# Mark the voxels outside the full head mask with a negative value
+# (so that they will end up 0 in the output of @afni_refacer_run)
+
+3dcalc -a $qqq.afni_refacer4.nii -b $qqq.afni_refacerM2.nii \
+       -expr 'a*step(b)-iszero(b)'                          \
+       -prefix $qqq.afni_refacer5.nii
+
+# Convert to shorts (from floats) to create the final output dataset
+
+if( -f afni_refacer_shell.nii.gz ) \rm afni_refacer_shell.nii.gz
+3dcalc -a $qqq.afni_refacer5.nii -expr a -datum short -nscale -prefix afni_refacer_shell.nii
+gzip -9v afni_refacer_shell.nii
+
+# delete the trash, claim victory
+
+\rm -f $qqq.*
+
+echo "=== output afni_refacer_shell.nii.gz"
+echo "--- If you are satisfied with the results: \rm *.bigA12.nii"
+
+exit 0

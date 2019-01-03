@@ -1,0 +1,147 @@
+#!/bin/tcsh
+
+## This script re-faces one input dataset, using a master shell dataset to
+## write over the subject's 'face' region (which includes a bunch of skull).
+## The single command line argument is the name of a T1-weighted dataset.
+
+## *** Note the script name is '@afni_refacer_run'  ***
+## *** and is not a 'defacer' since it replaces the ***
+## *** face instead of just cutting it out!         ***
+
+## This script relies on two datasets that are included with AFNI binaries:
+##   MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template
+##   afni_refacer_shell.nii.gz       = dataset to replace face region
+## The latter dataset was made with the script @afni_refacer_make_master.
+
+# check the input command line
+
+if ( $#argv < 1 ) then
+  echo "@afni_refacer_run needs an input dataset name" ; exit 0
+endif
+if ( "$argv[1]" == "-help" ) then
+  echo "@afni_refacer_run inputdataset" ; exit 0
+endif
+
+# name of input dataset
+
+set iset  = $argv[1]
+if ( ! -f $iset ) then
+   echo "** @afni_refacer_run -- Failed to find input $iset -- exiting :(" ; exit 1
+endif
+
+# find MNI template (target for 3dAllineate)
+
+set tset  = "MNI152_2009_template_SSW.nii.gz"
+set tpath = `@FindAfniDsetPath "$tset"`
+if ( "$tpath" == '' ) then
+   echo "** @afni_refacer_run -- Failed to find template $tset -- exiting :(" ; exit 1
+endif
+set Basedset = $tpath/$tset
+
+# find AFNI refacer shell (to replace subject face)
+
+set mset = "afni_refacer_shell.nii.gz"
+if ( -f $mset ) then
+  set mset = $cwd/$mset
+endif
+if ( ! -f $mset ) then
+  set tpath = `@FindAfniDsetPath "$mset"`
+  if ( "$tpath" == '' ) then
+    echo "** @afni_refacer_run -- Failed to find refacer shell $mset -- exiting :(" ; exit 1
+  endif
+  set mset = $tpath/$mset
+endif
+
+# extract prefix of input dataset
+
+set ppp = `@GetAfniPrefix $iset`
+set ppp = `basename $ppp .gz`
+set ppp = `basename $ppp .nii`
+
+# datum (e.g., short or float) of input dataset - for use at end of script
+
+set idatum = `3dinfo -datum $iset`
+
+# create temp directory name
+
+set qqq = junk_refacer.$ppp.`3dnewid -fun11`
+
+# make temp directory, copy input dataset there
+
+mkdir -p $qqq
+set nnn = `3dnvals $iset`
+if ( "$nnn" == "1" ) then
+  3dcopy $iset junk_refacer.INPUT.nii
+else
+  3dcalc -a $iset'[0]' -expr a -prefix junk_refacer.INPUT.nii
+endif
+
+mv junk_refacer.INPUT.nii $qqq
+cd $qqq
+set jset = junk_refacer.INPUT.nii
+
+# Unifize input to a standard T1 image intensity
+
+3dUnifize -GM -prefix junk_refacer.U.nii -ssave junk_refacer.S.nii $jset
+
+# Align to the MNI template - save only the transform matrix
+
+3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
+            -source junk_refacer.U.nii -prefix NULL               \
+            -warp shift_rotate_scale -cost ls -cmass -conv 0.5    \
+            -source_automask+4 -fineblur 3 -norefinal -twobest 3  \
+            -num_rtb 0  -1Dmatrix_save junk_refacer.A12.1D
+
+# compute the inverse matrix, to transform from MNI back to orig space
+
+cat_matvec -ONELINE junk_refacer.A12.1D -I > junk_refacer.I12.1D
+
+# transform the refacer shell from MNI back to subject original space and grid
+
+3dAllineate -1Dmatrix_apply junk_refacer.I12.1D -source $mset \
+            -final linear -prefix junk_refacer.MM.nii -master $jset -float
+3drefit -space ORIG junk_refacer.MM.nii
+
+# scale factor for refacer shell to be about the same intensity as the input:
+#  ibar = mean of input over refacer shell
+#  mbar = mean of refacer shell
+#  ifac = scale factor for refacer shell to match input (sort of)
+# This method doesn't allow for duplicating shading artifacts in the input
+# dataset, but that would be somewhat more work.
+
+set ibar = `3dBrickStat -non-zero -mean \
+             "3dcalc( -a junk_refacer.MM.nii -b $jset -expr step(a)*b )"`
+set mbar = `3dBrickStat -non-zero -mean \
+             "3dcalc( -a junk_refacer.MM.nii          -expr step(a)*a )"`
+set ifac = `ccalc "1.222*${ibar}/${mbar}"`
+
+# plop the scaled refacer shell 'c' on top of the input 'a':
+# -- where the shell is positive = step(c)*c
+# -- zero out anything where the shell is negative = iszero(c)*a
+# -- since the master shell is negative in the outer volume,
+#    is zero in the 'brain' region, and is positive in the
+#    parts of the volume to be replaced.
+
+3dcalc -a $jset                        -c junk_refacer.MM.nii  \
+       -expr "step(c)*c*${ifac}+iszero(c)*a"                   \
+       -prefix $ppp.refacer.RESULT.nii -datum float
+
+# also make a short-valued copy of the result, if practicable
+
+set mmm = `3dBrickStat -max $ppp.refacer.RESULT.nii`
+@ mmm   = `ccalc -int $mmm`
+
+if ( "$idatum" == "short" && $mmm < 32000 ) then
+  mv $ppp.refacer.RESULT.nii junk.RESULT.nii
+  3dcalc -a junk.RESULT.nii -expr a -datum short -nscale -prefix $ppp.refacer.RESULT.nii
+endif
+
+# push output up to the input level (over-writing any existing output)
+
+\mv -f $ppp.refacer.RESULT.nii ..
+cd ..
+
+# trash the junk, vamoose the ranch
+
+\rm -rf $qqq
+exit 0
