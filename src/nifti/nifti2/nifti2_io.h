@@ -493,7 +493,7 @@ int64_t nifti_read_buffer(znzFile fp, void* datatptr, int64_t ntot,
 int     nifti_write_all_data(znzFile fp, nifti_image * nim,
                              const nifti_brick_list * NBL);
 int64_t  nifti_write_buffer(znzFile fp, const void * buffer, int64_t numbytes);
-nifti_image *nifti_read_ascii_image(znzFile fp, char *fname, int flen,
+nifti_image *nifti_read_ascii_image(znzFile fp, const char *fname, int flen,
                          int read_data);
 znzFile nifti_write_ascii_image(nifti_image *nim, const nifti_brick_list * NBL,
                          const char * opts, int write_data, int leave_open);

@@ -154,7 +154,6 @@ int disp_float(nifti_image * nim, int vol, int slice, int line, int offset)
       return 1;
    }
 
-   /* or */
    lloff = vol*nxyz + slice*nxy + line*nx + offset;
    d2 = dp + lloff;
 
