@@ -1,0 +1,71 @@
+#!/bin/tcsh
+
+## This script converts one dataset to MNI space in a 'big' format,
+## used for creating a refacer 'master' dataset
+## -- see script @afni_refacer_make_master for where it is called
+## -- there is little or no reason for you to run this script yourself
+
+if( $#argv < 1 )then
+  echo "@afni_refacer_make_onebigA12 needs an input dataset name" ; exit 0
+endif
+
+# the input dataset name
+
+set iset  = $argv[1]
+if ( ! -f $iset ) then
+  echo "** @afni_refacer_make_onebigA12 -- can't find input $iset -- exiting :(" ; exit 1
+endif
+
+# find the MNI template dataset
+
+set tset  = "MNI152_2009_template_SSW.nii.gz"
+set tpath = `@FindAfniDsetPath "$tset"`
+if( "$tpath" == '' ) then
+   echo "** @afni_refacer_make_onebigA12 -- Failed to find template $tset -- exiting :(" ; exit 1
+endif
+if( "$tpath" == '.' ) set tpath = "$cwd"
+set Basedset = $tpath/$tset
+
+# prefix manglization
+
+set ppp = `@GetAfniPrefix $iset`
+set ppp = `basename $ppp .gz`
+set ppp = `basename $ppp .nii`
+set qqq = `3dnewid -fun11`
+
+# make a temporary workspace directory,
+# copy the input dataset to that, and then do stuff
+
+mkdir -p junk_reface.$qqq
+3dcopy $iset junk_reface.INPUT.nii
+mv junk_reface.INPUT.nii junk_reface.$qqq
+cd junk_reface.$qqq
+set iset = junk_reface.INPUT.nii
+
+# uniform-ize the signal intensities, for alignment to MNI template
+
+3dUnifize -GM -prefix junk_reface.U.nii $iset
+
+# calculate matrix for alignment to MNI template
+# -- do not apply the matrix now, that will be done later
+
+3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'  -warp shift_rotate_scale    \
+            -source junk_reface.U.nii -prefix NULL -1Dmatrix_save junk_reface.A12.1D \
+            -cost ls -conv 0.5 -cmass -source_automask+4 -fineblur 3 -twobest 3 -norefinal -num_rtb 0
+
+# create a template dataset that is padded around the edges,
+# to allow for a range of weird orientations in the input
+
+3dZeropad -I 120 -A 100 -P 50 -S 50 -prefix junk_reface.M1.nii $Basedset'[1]'
+
+# now transform the input to MNI space fitting into the big template grid
+
+3dAllineate -1Dmatrix_apply junk_reface.A12.1D -source junk_reface.U.nii \
+            -master junk_reface.M1.nii -prefix ../$ppp.bigA12.nii
+
+# toss the trash and run away screaming
+
+cd ..
+\rm -rf junk_reface.$qqq
+echo "=== output = $ppp.bigA12.nii"
+exit 0
