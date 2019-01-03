@@ -1,21 +1,35 @@
 #!/bin/tcsh
 
-## * This script takes as input a list of T1-weighted dataset names
-##    that have not been skull-stripped or defaced or refaced.
-## * The output is a dataset afni_refacer_shell.nii.gz that
-##    contains the average 'face' to apply in @afni_refacer_run.
-## * A minimum of 9 input datasets is required; 20 is probably
-##    enough to produce a master for refacing purposes.
-
 ## *** You do not need to run this script, unless you want  ***
 ## *** to make your own 'master' shell for refacing,        ***
 ## *** instead of using the one supplied with AFNI binaries ***
+
+## * This script takes as input a list of T1-weighted dataset names
+##    that have NOT been skull-stripped or defaced or refaced.
+## * The output is a dataset afni_refacer_shell.nii.gz that
+##    contains the average 'face', which will be applied in
+##    script @afni_refacer_run.
+## * Where I say 'face', I mean 'non-brain tissue', which includes
+##    some skull regions, thus altering the outer shape of the
+##    head to some extent.
+## * A minimum of 9 input datasets is required; 20 is probably
+##    enough to produce a master for refacing purposes.
+
+## * This script depends on the existence of two datasets:
+##     MNI152_2009_template_SSW.nii.gz = MNI-space skull stripping template
+##     afni_refacer_MNIbmask10.nii.gz  = MNI-space dilated brain mask
+#  * These datasets should be in the AFNI binaries path
+## * The first dataset is used (by @afni_refacer_make_onebigA12 and
+##   @afni_refacer_run) to align a dataset to MNI space
+## * The second dataset is used to mask off the brain region when making
+##    the output dataset afni_refacer_shell.nii.gz
 
 if ( $#argv < 9 ) then
   echo "** ERROR in @afni_refacer_make_master: need at least 9 input datasets" ; exit 1
 endif
 
 # Unifize and align each dataset to MNI-space in a 'big' volume
+# -- most time is spent doing this, via @afni_refacer_make_onebigA12
 
 foreach ddd ( $argv )
   set ppp = `@GetAfniPrefix $ddd`
@@ -30,7 +44,7 @@ end
 
 set dlist = ( *.bigA12.nii )
 if ( $#dlist < 9 ) then
-  echo "** ERROR: don't have at least 9 *.bigA12.nii datasets" ; exit 1
+  echo "** ERROR: don't find at least 9 *.bigA12.nii datasets" ; exit 1
 endif
 
 # A 'junk' prefix, for temp files to be deleted later
@@ -101,7 +115,7 @@ if( -f afni_refacer_shell.nii.gz ) \rm afni_refacer_shell.nii.gz
 3dcalc -a $qqq.afni_refacer5.nii -expr a -datum short -nscale -prefix afni_refacer_shell.nii
 gzip -9v afni_refacer_shell.nii
 
-# And delete the trash
+# delete the trash, claim victory
 
 \rm -f $qqq.*
 
