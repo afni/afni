@@ -177,9 +177,11 @@ static const char * g_history[] =
   "2.05 24 Jul 2017 [rickr]\n"
   "   - display ANALYZE header via appropriate NIFTI-1\n"
   "   - apply more PRId64 for 64-bit int I/O\n"
+  "2.06 03 Jan 2019 [rickr]\n",
+  "   - mod_hdr and swap_as_nifti fail on valid NIFTI-2 headers\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.05 (July 24, 2017)";
+static char g_version[] = "version 2.06 (January 3, 2019)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2992,7 +2994,7 @@ int act_disp_nims( nt_opts * opts )
 
 /*----------------------------------------------------------------------
  * - read header
- * - modify header
+ * - modify header (assuming nifti-1 format)
  * - if -prefix duplicate file
  * - else if swapped, swap back
  * - overwrite file header      (allows (danger-of) no evaluation of data)
@@ -3020,12 +3022,26 @@ int act_mod_hdrs( nt_opts * opts )
          continue;
       }
 
-/* rcr - this should be mod_hdr1s */
-
       /* do not validate the header structure */
       nhdr = nt_read_header(fname, &nver, &swap, 0,
                              opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;
+
+      /* if this is a valid NIFTI-2 header, fail */
+      if( ! nifti_hdr1_looks_good(nhdr) ) {
+         nifti_2_header * n2hdr;
+         int              n2ver=2;
+         n2hdr = nt_read_header(fname, &n2ver, NULL, 0, 0, 0);
+         if( nifti_hdr2_looks_good(n2hdr) ) {
+            if( g_debug > 0 )
+               fprintf(stderr,"** refusing to modify NIFTI-2 header "
+                              "as NIFTI-1 in %s\n", fname);
+            free(nhdr);
+            free(n2hdr);
+            return 1;
+         }
+         free(n2hdr);
+      }
 
       if( g_debug > 1 )
       {
@@ -3086,7 +3102,7 @@ int act_mod_hdrs( nt_opts * opts )
 
 /*----------------------------------------------------------------------
  * - read header
- * - swap header
+ * - swap header (fail on nifti2)
  * - if -prefix duplicate file
  * - overwrite file header      (allows (danger-of) no evaluation of data)
  *----------------------------------------------------------------------*/
@@ -3119,12 +3135,26 @@ int act_swap_hdrs( nt_opts * opts )
          continue;
       }
 
-/* rcr - this should be swap_hdr1s */
-
       /* do not validate the header structure */
       nhdr = nt_read_header(fname, &nver, &swap, 0, opts->new_datatype,
                                                     opts->new_dim);
       if( !nhdr ) return 1;
+
+      /* if this is a valid NIFTI-2 header, fail */
+      if( ! nifti_hdr1_looks_good(nhdr) ) {
+         nifti_2_header * n2hdr;
+         int              n2ver=2;
+         n2hdr = nt_read_header(fname, &n2ver, NULL, 0, 0, 0);
+         if( nifti_hdr2_looks_good(n2hdr) ) {
+            if( g_debug > 0 )
+               fprintf(stderr,"** refusing to swap NIFTI-2 header "
+                              "as NIFTI-1 in %s\n", fname);
+            free(nhdr);
+            free(n2hdr);
+            return 1;
+         }
+         free(n2hdr);
+      }
 
       if( g_debug > 1 ) {
          const char * str = "NIfTI";

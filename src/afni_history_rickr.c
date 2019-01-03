@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jan, 2019, RCR, "nifti_tool", MICRO, TYPE_MODIFY,
+   "have -mod_hdr/-swap_as_nifti fail on valid NIFTI-2 header",
+   NULL
+ } ,
+
  { 26, Dec, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,
    "incorporate more updates from the NIFTI_Imaging/nifti_clib repo",
    NULL
