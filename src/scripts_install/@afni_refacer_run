@@ -13,16 +13,42 @@
 ##   afni_refacer_shell.nii.gz       = dataset to replace face region
 ## The latter dataset was made with the script @afni_refacer_make_master.
 
-# check the input command line
+# ---------- Help the luser? ----------
+
+set dohelp = 0
+if ( $#argv == 0 ) then
+  set dohelp = 1
+else
+  if ( "$argv[1]" == "-help" ) set dohelp = 1
+endif
+
+if ( $dohelp ) then
+  echo
+  echo "Usage:"
+  echo "  @afni_refacer_run T1w-dataset-name"
+  echo
+  echo "* This script re-faces one input dataset, using a master shell dataset to"
+  echo "   write over the subject's 'face' region."
+  echo "* The single command line argument is the name of a T1-weighted dataset."
+  echo "* This script has no options."
+  echo "* This is NOT a 'defacer' since it replaces the face instead of removing it!"
+  echo "* This script relies on two datasets that are included with AFNI binaries:"
+  echo "    MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template"
+  echo "    afni_refacer_shell.nii.gz       = dataset to replace face region"
+  echo "  The latter dataset was made with the script @afni_refacer_make_master."
+  echo
+  echo "Author - The Face of Imperial Zhark, Who is Terrible to Behold!"
+  echo
+  exit 0
+endif
+
+# ---------- check the input command line ---------
 
 if ( $#argv < 1 ) then
   echo "@afni_refacer_run needs an input dataset name" ; exit 0
 endif
-if ( "$argv[1]" == "-help" ) then
-  echo "@afni_refacer_run inputdataset" ; exit 0
-endif
 
-# name of input dataset
+# ---------- name of input dataset ----------
 
 set iset  = $argv[1]
 if ( ! -f $iset ) then
