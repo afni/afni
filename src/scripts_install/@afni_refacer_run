@@ -1,7 +1,17 @@
 #!/bin/tcsh
 
 ## This script re-faces one input dataset, using a master shell dataset to
-## write over the subject's 'face' region (which includes a bunch of skull)
+## write over the subject's 'face' region (which includes a bunch of skull).
+## The single command line argument is the name of a T1-weighted dataset.
+
+## *** Note the script name is '@afni_refacer_run'  ***
+## *** and is not a 'defacer' since it replaces the ***
+## *** face instead of just cutting it out!         ***
+
+## This script relies on two datasets that are included with AFNI binaries:
+##   MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template
+##   afni_refacer_shell.nii.gz       = dataset to replace face region
+## The latter dataset was made with the script @afni_refacer_make_master.
 
 # check the input command line
 
@@ -19,7 +29,7 @@ if ( ! -f $iset ) then
    echo "** @afni_refacer_run -- Failed to find input $iset -- exiting :(" ; exit 1
 endif
 
-# find MNI template
+# find MNI template (target for 3dAllineate)
 
 set tset  = "MNI152_2009_template_SSW.nii.gz"
 set tpath = `@FindAfniDsetPath "$tset"`
@@ -35,11 +45,11 @@ if ( -f $mset ) then
   set mset = $cwd/$mset
 endif
 if ( ! -f $mset ) then
-  set ttt = `@FindAfniDsetPath "$mset"`
-  if ( "$ttt" == '' ) then
+  set tpath = `@FindAfniDsetPath "$mset"`
+  if ( "$tpath" == '' ) then
     echo "** @afni_refacer_run -- Failed to find refacer shell $mset -- exiting :(" ; exit 1
   endif
-  set mset = $ttt/$mset
+  set mset = $tpath/$mset
 endif
 
 # extract prefix of input dataset
@@ -74,7 +84,7 @@ set jset = junk_refacer.INPUT.nii
 
 3dUnifize -GM -prefix junk_refacer.U.nii -ssave junk_refacer.S.nii $jset
 
-# Align to the MNI template - only save the transform matrix
+# Align to the MNI template - save only the transform matrix
 
 3dAllineate -base $Basedset'[1]' -weight $Basedset'[2]'           \
             -source junk_refacer.U.nii -prefix NULL               \
@@ -105,7 +115,7 @@ set mbar = `3dBrickStat -non-zero -mean \
              "3dcalc( -a junk_refacer.MM.nii          -expr step(a)*a )"`
 set ifac = `ccalc "1.222*${ibar}/${mbar}"`
 
-# plop the scaled refacer shell on top of the input,
+# plop the scaled refacer shell 'c' on top of the input 'a':
 # -- where the shell is positive = step(c)*c
 # -- zero out anything where the shell is negative = iszero(c)*a
 # -- since the master shell is negative in the outer volume,
@@ -126,12 +136,12 @@ if ( "$idatum" == "short" && $mmm < 32000 ) then
   3dcalc -a junk.RESULT.nii -expr a -datum short -nscale -prefix $ppp.refacer.RESULT.nii
 endif
 
-# push output up to the input level
+# push output up to the input level (over-writing any existing output)
 
-mv $ppp.refacer.RESULT.nii ..
+\mv -f $ppp.refacer.RESULT.nii ..
 cd ..
 
-# vamoose the ranch
+# trash the junk, vamoose the ranch
 
 \rm -rf $qqq
 exit 0
