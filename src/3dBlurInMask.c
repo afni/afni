@@ -335,7 +335,7 @@ STATUS("process fwar") ;
 
      niter_fxyz = (int)rintf(2.0f*fwmax*fwmax*FFAC/(0.05f*dmin*dmin)) + 1 ;
 
-/** INFO_message("niter_fxyz = %d",niter_fxyz) ; **/
+     if( verb ) INFO_message("-FWHMdset: niter=%d  npos=%d",niter_fxyz,nfpos) ;
 
 STATUS("create fxim etc.") ;
 

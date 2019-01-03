@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 3 , JAN , 2019 , RWC , "@afni_refacer_XXX" , MINOR , TYPE_NEW_PROG ,
+   "Scripts to re-face a T1-weighted dataset" ,
+   "@afni_refacer_make_master = makes the 'shell' dataset used to replace\n"
+   "the face\n"
+   "@afni_refacer_fun = runs re-facing on one input dataset" } ,
+
  { 13 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Make -lite work with -plusminus" ,
    "Also, remove the HLOADER code permanently and with extreme prejudice.\n"
