@@ -381,10 +381,19 @@ static char const * const gni2_history[] =
   "   - print int64_t using PRId64 macro, (ugly, but no warnings)\n"
   "2.06 01 Oct, 2018 [rickr]\n"
   "   - errors should all mention NIFTI, slight additional clarity\n"
+  "2.07 18 Dec, 2018 [hmjohnson]\n"
+  "   - added some const qualifiers\n"
+  "   - removed register keywords\n"
+  "   - fixed potential memory leaks in error conditions\n"
+  "   - appeased compilers\n"
+  "   - duped nifti1.h under nifti2, so directories do not cross reference\n"
+  "2.08 02 Jan, 2019 [rickr]\n"
+  "   - fixed CIFTI extension reading if not first\n"
+  "   - re-allow reading of ASCII headers (not part of standard)\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.06 (1 October, 2018)";
+        = "nifti-2 library version 2.08 (3 January, 2019)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
@@ -1831,6 +1840,7 @@ void nifti_dmat44_to_quatern(nifti_dmat44 R ,
        c = 0.25l* (r23+r32) / d ;
        a = 0.25l* (r21-r12) / d ;
      }
+     /* to be mathematically consistent, this would include a = -a */
      if( a < 0.0l ){ b=-b ; c=-c ; d=-d; }
    }
 
@@ -1970,6 +1980,7 @@ void nifti_mat44_to_quatern( mat44 R ,
        c = 0.25l* (r23+r32) / d ;
        a = 0.25l* (r21-r12) / d ;
      }
+     /* to be mathematically consistent, this would include a = -a */
      if( a < 0.0l ){ b=-b ; c=-c ; d=-d; }
    }
 
@@ -4880,7 +4891,7 @@ nifti_image* nifti_convert_n1hdr2nim(nifti_1_header nhdr, const char * fname)
      return NULL ; } while(0)
 
 /*----------------------------------------------------------------------*/
-/*! convert a nifti_1_header into a nift1_image
+/*! convert a nifti_2_header into a nifti_image
 
    \return an allocated nifti_image, or NULL on failure
 *//*--------------------------------------------------------------------*/
@@ -5291,6 +5302,7 @@ nifti_1_header * nifti_read_n1_hdr(const char * hname, int *swapped, int check)
     \param check   flag to check for invalid nifti_2_header
 
     \warning ASCII header type is not supported
+             allow now, convert nim 2 hdr   [02 Jan 2019 rickr]
 
     \sa nifti_read_header, nifti_read_n1_hdr,
         nifti_image_read, nifti_image_read_bricks
@@ -5299,8 +5311,9 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
                                     int check)
 {
    nifti_2_header   nhdr, * hptr;
+   nifti_image    * nim=NULL;
    znzFile          fp;
-   int              bytes, lswap;
+   int              bytes, lswap, rv;
    char           * hfile;
    char             fname[] = { "nifti_read_n2_hdr" };
 
@@ -5323,11 +5336,20 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
 
    free(hfile);  /* done with filename */
 
+   /* ASCII is not part of standard, but allow */
    if( has_ascii_header(fp) == 1 ){
-      znzclose( fp );
-      if( g_opts.debug > 0 )
-         LNI_FERR(fname,"ASCII header type not supported for NIFTI-2",hname);
-      return NULL;
+      if( g_opts.debug > 1 )
+         LNI_FERR(fname,"++ reading ASCII header via NIFTI-2", hname);
+      nim = nifti_read_ascii_image(fp, hname, -1, 0);
+      znzclose(fp) ;
+      if( ! nim ) return NULL;
+
+      hptr = (nifti_2_header *)malloc(sizeof(nifti_2_header));
+      rv = nifti_convert_nim2n2hdr(nim, hptr);
+      free(nim);
+
+      if( rv ) { free(hptr); return NULL; }
+      return hptr;
    }
 
    /* read the binary header */
@@ -5657,6 +5679,14 @@ void * nifti_read_header( const char *hname, int *nver, int check )
       return NULL;
    }
 
+   /**- first try to read dataset as ASCII (and return NIFTI2 if so) */
+   if( has_ascii_header( fp ) ) {
+      znzclose(fp) ;
+      free(hfile);
+      if( nver ) *nver = 2;
+      return nifti_read_n2_hdr(hname, NULL, check);
+   }
+
    /**- next read into nifti_1_header and determine nifti type */
    ii = (int)znzread(&n1hdr, 1, h1size, fp);
 
@@ -5800,8 +5830,11 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       free(hfile);
       return NULL;
    }
-   else if ( rv == 1 )  /* process special file type */
-      return nifti_read_ascii_image( fp, hfile, filesize, read_data );
+   else if ( rv == 1 ) { /* process special file type */
+      nim = nifti_read_ascii_image( fp, hfile, filesize, read_data );
+      free(hfile);
+      return nim;
+   }
 
    h1size = sizeof(nifti_1_header);
    h2size = sizeof(nifti_2_header);
@@ -5984,7 +6017,7 @@ static int has_ascii_header( znzFile fp )
 
    NOTE: this is NOT part of the NIFTI-1 standard
 *//*--------------------------------------------------------------------*/
-nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
+nifti_image * nifti_read_ascii_image(znzFile fp, const char *fname, int flen,
                                      int read_data)
 {
    nifti_image * nim;
@@ -5994,9 +6027,10 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
    if( nifti_is_gzfile(fname) ){
      LNI_FERR(lfunc,"compression not supported for file type NIFTI_FTYPE_ASCII",
               fname);
-     free(fname);  znzclose(fp);  return NULL;
+     znzclose(fp);  return NULL;
    }
    slen = flen;  /* slen will be our buffer length */
+   if( slen <= 0 ) slen = nifti_get_filesize(fname);
 
    if( g_opts.debug > 1 )
       fprintf(stderr,"-d %s: have ASCII NIFTI file of size %d\n",fname,slen);
@@ -6005,13 +6039,13 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
    sbuf = (char *)calloc(sizeof(char),slen+1) ;
    if( !sbuf ){
       fprintf(stderr,"** %s: failed to alloc %d bytes for sbuf",lfunc,65530);
-      free(fname);  znzclose(fp);  return NULL;
+      znzclose(fp);  return NULL;
    }
    znzread( sbuf , 1 , slen , fp ) ;
    nim = nifti_image_from_ascii( sbuf, &txt_size ) ; free( sbuf ) ;
    if( nim == NULL ){
       LNI_FERR(lfunc,"failed nifti_image_from_ascii()",fname);
-      free(fname);  znzclose(fp);  return NULL;
+      znzclose(fp);  return NULL;
    }
    nim->nifti_type = NIFTI_FTYPE_ASCII ;
 
@@ -6023,7 +6057,6 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
       (void) nifti_read_extensions(nim, fp, (int64_t)remain);
    }
 
-   free(fname);
    znzclose( fp ) ;
 
    nim->iname_offset = -1 ;  /* check from the end of the file */
@@ -8103,6 +8136,9 @@ char *nifti_image_to_ascii( const nifti_image *nim )
    char *buf , *ebuf ; int nbuf ;
 
    if( nim == NULL ) return NULL ;   /* stupid caller */
+
+   if( g_opts.debug > 2 )
+      fprintf(stderr,"+d converting %s to ASCII\n",nim->fname);
 
    buf = (char *)calloc(1,65534); /* longer than needed, to be safe */
    if( !buf ){

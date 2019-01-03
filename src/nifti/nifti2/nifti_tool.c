@@ -518,7 +518,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          opts->mod_nim = 1;
       else if( ! strcmp(argv[ac], "-keep_hist") )
          opts->keep_hist = 1;
-      else if( ! strcmp(argv[ac], "-new_dim") )
+      else if( ! strncmp(argv[ac], "-new_dim", 8) )
       {
          /* we need to read in the 8 dimension values */
          int index;
@@ -4967,6 +4967,9 @@ void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
            nifti_1_header * hdr=NULL;
            if( nv <= 1 ) return nptr;
 
+           if(g_debug > 1)
+              fprintf(stderr,"+d nifti_tool: convert n2hdr -> n1hdr\n");
+
            /* else assume 2: convert headers via nim? */
            hdr = (nifti_1_header *)malloc(sizeof(nifti_1_header));
            if( !hdr ) {
@@ -4991,6 +4994,9 @@ void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
            if( nv == 2 ) return nptr;
 
            /* else assume 2: convert headers via nim? */
+           if(g_debug > 1)
+              fprintf(stderr,"+d nifti_tool: convert n1hdr -> n2hdr\n");
+
            hdr = (nifti_2_header *)malloc(sizeof(nifti_2_header));
            if( !hdr ) {
               fprintf(stderr,"** %s: failed to alloc nifti_2_header\n", func);
