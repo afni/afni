@@ -70,6 +70,7 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
         add_test( NAME nifti_newfiles_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/newfiles_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
 
         add_test( NAME nifti_dts_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/dts_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
+        add_test( NAME nifti_mod_hdr2_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/mod_header_2_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
         set_tests_properties( nifti_dts_test PROPERTIES DEPENDS nifti_bricks_test)
 
 

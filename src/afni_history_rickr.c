@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Jan, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "add regression testing scripts",
+   NULL
+ } ,
+
  {  4, Jan, 2019, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
    "add -mod_hdr2, specific to NIFTI-2 headers",
    NULL
