@@ -44,6 +44,22 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , JAN , 2019 , RWC , "@SSwarper" , MINOR , TYPE_NEW_OPT ,
+   "Add '-nolite' option" ,
+   "3dQwarp usage has been altered to include the '-lite' option by default,\n"
+   "for faster computations. If backward compatibility is needed, use\n"
+   "'-nolite'." } ,
+
+ { 4 , JAN , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Change way patch sizes are initialized for lev > 0" ,
+   "Old way: based on full grid size\n"
+   "New way: based on lev=0 patch size, from autobox\n"
+   "Advantage of new way: with lots of zero padding, first few levs may have\n"
+   "such large patches that they do nothing of value.\n"
+   "Stupidity: I don't know why I didn't think of this before - probably\n"
+   "because I never before ran a case with lots of zero padding (100+ voxels\n"
+   "on each face)." } ,
+
  { 3 , JAN , 2019 , RWC , "@afni_refacer_XXX" , MINOR , TYPE_NEW_PROG ,
    "Scripts to re-face a T1-weighted dataset" ,
    "@afni_refacer_make_master = makes the 'shell' dataset used to replace\n"
