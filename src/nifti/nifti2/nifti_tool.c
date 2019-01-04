@@ -3435,7 +3435,7 @@ int write_hdr_to_file( nifti_1_header * nhdr, const char * fname )
 
 
 /*----------------------------------------------------------------------
- * overwrite nifti_1_header in the given file
+ * overwrite nifti_2_header in the given file
  *----------------------------------------------------------------------*/
 int write_hdr2_to_file( nifti_2_header * nhdr, const char * fname )
 {
