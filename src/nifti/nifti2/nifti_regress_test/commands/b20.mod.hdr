@@ -1,0 +1,38 @@
+#!/bin/tcsh
+
+# written in the format of the bash scripts under cmake_testscripts
+# (this is not meant to be run along with the c* scritps here)
+
+if ( $#argv < 2 ) then
+   echo "** missing nifti tool and data directory name"
+   exit 1
+endif
+
+set NT = $1
+set DATA = $2
+set OUT_DATA = `dirname $DATA`
+
+cd $OUT_DATA
+
+rm -f mod.hdr2*
+
+echo "==== diff_nim on Conte vs ones"
+$NT -diff_nim  -infiles $DATA/Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii \
+                        $DATA/ones.dscalar.nii
+
+echo "==== diff_hdr2 on Conte vs ones"
+$NT -diff_hdr2 -infiles $DATA/Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii \
+                        $DATA/ones.dscalar.nii
+
+echo "==== mod_hdr2 on Conte"
+$NT -infiles $DATA/Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii \
+    -mod_hdr2 -mod_field slice_code 2 -prefix mod.hdr2.nii
+
+echo "==== diff_nim on Conte vs mod"
+$NT -diff_nim  -infiles $DATA/Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii \
+                        mod.hdr2.nii
+
+echo "==== diff_hdr2 on Conte vs mod"
+$NT -diff_hdr2 -infiles $DATA/Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii \
+                        mod.hdr2.nii
+
