@@ -49,9 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
- {  3, Jan, 2019, RCR, "nifti_tool", MICRO, TYPE_MODIFY,
-   "have -mod_hdr/-swap_as_nifti fail on valid NIFTI-2 header",
+ {  4, Jan, 2019, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
+   "add -mod_hdr2, specific to NIFTI-2 headers",
    NULL
+ } ,
+
+ {  3, Jan, 2019, RCR, "nifti_tool", MINOR, TYPE_MODIFY,
+   "have -mod_hdr/-swap_as_nifti fail on valid NIFTI-2 header",
+   "Re-allow processing of ASCII headers (via NIFTI-2).\n"
+   "Also, incorporate updates from H Johnson."
  } ,
 
  { 26, Dec, 2018, RCR, "afni-general", MINOR, TYPE_MODIFY,

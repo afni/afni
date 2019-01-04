@@ -581,7 +581,7 @@ int    is_valid_nifti_type         (int nifti_type);
 int    nifti_test_datatype_sizes   (int verb);
 int    nifti_type_and_names_match  (nifti_image * nim, int show_warn);
 int    nifti_update_dims_from_array(nifti_image * nim);
-void   nifti_set_iname_offset      (nifti_image *nim);
+void   nifti_set_iname_offset      (nifti_image *nim, int nifti_ver);
 int    nifti_set_type_from_names   (nifti_image * nim);
 int    nifti_add_extension(nifti_image * nim, const char * data, int len,
                            int ecode );
