@@ -17,10 +17,10 @@ typedef struct{
             /* action options (flags) */
    int      check_hdr,  check_nim;
    int      diff_hdr,   diff_hdr1, diff_hdr2, diff_nim;
-   int      disp_hdr1,  disp_hdr2, disp_hdr, disp_nim, disp_ana;
-   int      disp_exts,  add_exts, rm_exts, disp_cext;
-   int      mod_hdr,    mod_nim;
-   int      swap_hdr,   swap_ana, swap_old;
+   int      disp_hdr1,  disp_hdr2, disp_hdr,  disp_nim,  disp_ana;
+   int      disp_exts,  add_exts,  rm_exts,   disp_cext;
+   int      mod_hdr,    mod_hdr2,  mod_nim;
+   int      swap_hdr,   swap_ana,  swap_old;
 
    int      strip;               /* strip extras from dataset(s)  */
    int      cbl, cci;            /* -copy_XXX option flags        */
@@ -124,6 +124,7 @@ int    act_disp_nims  ( nt_opts * opts );
 int    act_disp_anas  ( nt_opts * opts );
 int    act_disp_ts    ( nt_opts * opts );  /* display time series */
 int    act_mod_hdrs   ( nt_opts * opts );
+int    act_mod_hdr2s  ( nt_opts * opts );
 int    act_mod_nims   ( nt_opts * opts );
 int    act_swap_hdrs  ( nt_opts * opts );
 int    act_rm_ext     ( nt_opts * opts );
@@ -169,7 +170,8 @@ int remove_ext_list  (nifti_image * nim, const char ** elist, int len);
 int usage            (char * prog, int level);
 int use_full         ();
 int verify_opts      (nt_opts * opts, char * prog);
-int write_hdr_to_file(nifti_1_header * nhdr, const char * fname);
+int write_hdr_to_file (nifti_1_header * nhdr, const char * fname);
+int write_hdr2_to_file(nifti_2_header * nhdr, const char * fname);
 
 /* wrappers for nifti reading functions (allow MAKE_IM) */
 nifti_image    * nt_image_read (nt_opts * opts, const char * fname, int doread);

@@ -390,6 +390,7 @@ static char const * const gni2_history[] =
   "2.08 02 Jan, 2019 [rickr]\n"
   "   - fixed CIFTI extension reading if not first\n"
   "   - re-allow reading of ASCII headers (not part of standard)\n"
+  "   - nifti_set_iname_offset() now takes nifti_ver, to adjust for size\n"
 };
 
 static const char gni_version[]
@@ -5339,7 +5340,7 @@ nifti_2_header * nifti_read_n2_hdr(const char * hname, int * swapped,
    /* ASCII is not part of standard, but allow */
    if( has_ascii_header(fp) == 1 ){
       if( g_opts.debug > 1 )
-         LNI_FERR(fname,"++ reading ASCII header via NIFTI-2", hname);
+         fprintf(stderr,"++ reading ASCII header via NIFTI-2 in %s\n", hname);
       nim = nifti_read_ascii_image(fp, hname, -1, 0);
       znzclose(fp) ;
       if( ! nim ) return NULL;
@@ -7642,14 +7643,26 @@ int nifti_extension_size(nifti_image *nim)
 /*----------------------------------------------------------------------*/
 /*! set the nifti_image iname_offset field, based on nifti_type
 
+    - use nifti_ver to determine the size of the header
+      (0: default, else NIFTI-version)
     - if writing to 2 files, set offset to 0
     - if writing to a single NIFTI-1 file, set the offset to
          352 + total extension size, then align to 16-byte boundary
     - if writing an ASCII header, set offset to -1
 *//*--------------------------------------------------------------------*/
-void nifti_set_iname_offset(nifti_image *nim)
+void nifti_set_iname_offset(nifti_image *nim, int nifti_ver)
 {
    int64_t offset;
+   int64_t hsize = sizeof(nifti_1_header);  /* default */
+
+   if( nifti_ver < 0 || nifti_ver > 2 ) {
+      if( g_opts.debug > 0 )
+         fprintf(stderr,"** invalid nifti_ver = %d for set_iname_offset\n",
+                 nifti_ver);
+      /* but stick with the default */
+   } else if( nifti_ver == 2 ) {
+      hsize = sizeof(nifti_2_header);
+   }
 
    switch( nim->nifti_type ){
 
@@ -7660,7 +7673,7 @@ void nifti_set_iname_offset(nifti_image *nim)
 
      /* NIFTI-1 single binary file - always update */
      case NIFTI_FTYPE_NIFTI1_1:
-       offset = nifti_extension_size(nim)+sizeof(nifti_1_header)+4;
+       offset = nifti_extension_size(nim) + hsize + 4;
        /* be sure offset is aligned to a 16 byte boundary */
        if ( ( offset % 16 ) != 0 )  offset = ((offset + 0xf) & ~0xf);
        if( nim->iname_offset != offset ){
@@ -7750,7 +7763,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
    if( write_data && NBL && ! nifti_NBL_matches_nim(nim, NBL) )
       ERREX("NBL does not match nim");
 
-   nifti_set_iname_offset(nim);
+   nifti_set_iname_offset(nim, 1);
 
    if( g_opts.debug > 1 ){
       fprintf(stderr,"-d writing nifti file '%s'...\n", nim->fname);
@@ -7767,6 +7780,7 @@ znzFile nifti_image_write_hdr_img2(nifti_image *nim, int write_opts,
         - if that fails try NIFTI-2
    */
    if( nifti_convert_nim2n1hdr(nim, &n1hdr) ) {
+      nifti_set_iname_offset(nim, 2);
       if( nifti_convert_nim2n2hdr(nim, &n2hdr) ) return NULL;
       fprintf(stderr,"+d writing %s as NIFTI-2, instead...\n", nim->fname);
       nver = 2; /* we will write NIFTI-2 */
