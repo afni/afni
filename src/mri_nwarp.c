@@ -10645,6 +10645,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
    IndexWarp3D *OutWarp ;  /* the return value */
    char warplab[64] ;      /* 02 Jan 2015 */
+   int xwid0,ywid0,zwid0 ; /* 04 Jan 2019 */
 
 ENTRY("IW3D_warpomatic") ;
 
@@ -10671,6 +10672,8 @@ ENTRY("IW3D_warpomatic") ;
    xwid = (imax-imin)/8       ; ywid = (jmax-jmin)/8       ; zwid = (kmax-kmin)/8       ;
    ibbb = MAX(0,imin-xwid)    ; jbbb = MAX(0,jmin-ywid)    ; kbbb = MAX(0,kmin-zwid)    ;
    ittt = MIN(Hnx-1,imax+xwid); jttt = MIN(Hny-1,jmax+ywid); kttt = MIN(Hnz-1,kmax+zwid);
+
+   xwid0 = ittt-ibbb+1 ; ywid0 = jttt-jbbb+1 ; zwid0 = kttt-kbbb+1 ;
 
    /* actual warp at lev=0 is over domain ibbb..ittt X jbbb..jttt X kbbb..kttt */
 
@@ -10805,9 +10808,15 @@ ENTRY("IW3D_warpomatic") ;
 
      if( ! HAVE_HGRID ){  /* the olden way */
        flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
+#if 0
        xwid = (Hnx+1)*flev ; if( xwid%2 == 0 ) xwid++ ;  /* patch sizes must be odd */
        ywid = (Hny+1)*flev ; if( ywid%2 == 0 ) ywid++ ;
        zwid = (Hnz+1)*flev ; if( zwid%2 == 0 ) zwid++ ;
+#else
+       xwid = xwid0*flev ; if( xwid%2 == 0 ) xwid++ ;    /* 04 Jan 2019 */
+       ywid = ywid0*flev ; if( ywid%2 == 0 ) ywid++ ;
+       zwid = zwid0*flev ; if( zwid%2 == 0 ) zwid++ ;
+#endif
      } else {             /* the new-fangled way [31 Dec 2014] */
        xwid = ywid = zwid = HGRID(lev) ;
        if( xwid == 0 ) xwid = ywid = zwid = hgzero ;
@@ -11998,6 +12007,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    int zmode=MRI_CUBIC , nlevr , nsup,isup , leve ;
    int zmode2=MRI_CUBIC , zmodeX ; int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
    char warplab[64] ;
+   int xwid0,ywid0,zwid0 ; /* 04 Jan 2019 */
 
 ENTRY("IW3D_warpomatic_plusminus") ;
 
@@ -12017,6 +12027,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    xwid = (imax-imin)/8       ; ywid = (jmax-jmin)/8       ; zwid = (kmax-kmin)/8       ;
    ibbb = MAX(0,imin-xwid)    ; jbbb = MAX(0,jmin-ywid)    ; kbbb = MAX(0,kmin-zwid)    ;
    ittt = MIN(Hnx-1,imax+xwid); jttt = MIN(Hny-1,jmax+ywid); kttt = MIN(Hnz-1,kmax+zwid);
+
+   xwid0 = ittt-ibbb+1 ; ywid0 = jttt-jbbb+1 ; zwid0 = kttt-kbbb+1 ;
 
    diii = ittt-ibbb+1 ; djjj = jttt-jbbb+1 ; dkkk = kttt-kbbb+1 ;
    iter = MAX(diii,djjj) ; iter = MAX(iter,dkkk) ;
@@ -12101,9 +12113,15 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      /* compute width of rectangles at this level */
 
      flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
+#if 0
      xwid = (Hnx+1)*flev ; if( xwid%2 == 0 ) xwid++ ;
      ywid = (Hny+1)*flev ; if( ywid%2 == 0 ) ywid++ ;
      zwid = (Hnz+1)*flev ; if( zwid%2 == 0 ) zwid++ ;
+#else
+     xwid = xwid0*flev ; if( xwid%2 == 0 ) xwid++ ;    /* 04 Jan 2019 */
+     ywid = ywid0*flev ; if( ywid%2 == 0 ) ywid++ ;
+     zwid = zwid0*flev ; if( zwid%2 == 0 ) zwid++ ;
+#endif
 
      /* decide if we are doing things in x, y, and/or z */
 
