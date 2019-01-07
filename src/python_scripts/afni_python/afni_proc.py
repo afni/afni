@@ -622,7 +622,9 @@ g_history = """
     6.24 Dec  5, 2018: reduced dependency list for apqc HTML to just Xvfb
     6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
     6.26 Dec 19, 2018: show exec command on both tcsh and bash syntax
-    6.27 Jan  7, 2019: added opt -volreg_method volreg|allineate
+    6.27 Jan  7, 2019:
+         - added opt -volreg_method volreg|allineate
+         - nest apqc_make_tcsh.py under @ss_review_basic block
 """
 
 g_version = "version 6.26, December 19, 2018"
@@ -2890,17 +2892,20 @@ class SubjProcSream:
 
         # at the end, if the basic review script is here, run it
         if self.epi_review:
+           # maybe we will have an html sub-section
+           htmlstr = ''
+           if self.html_rev_style in g_html_review_styles:
+              htmlstr = '\n' + self.run_html_review(istr='    ')
+                
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
-                'if ( -e %s ) ./%s |& tee %s\n\n'                        \
-                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
-           self.write_text(ss)
+                'if ( -e %s ) then\n'                                    \
+                '    ./%s |& tee %s\n'                                   \
+                '%s'                                                     \
+                'endif\n\n'                                              \
+                % (self.ssr_basic, self.ssr_basic, self.ssr_b_out, htmlstr)
 
-           # rcr - nest under above
-           if self.html_rev_style in g_html_review_styles:
-              ss = self.run_html_review()
-              if ss:
-                 self.write_text(ss)
+           self.write_text(ss)
 
         cmd_str = self.script_final_error_checks()
         if cmd_str: 
@@ -2958,7 +2963,7 @@ class SubjProcSream:
 
         return cmd
 
-    def run_html_review(self):
+    def run_html_review(self, istr=''):
         """run apqc_make_tcsh.py"""
         if self.html_rev_style not in g_html_review_styles: return ''
         if self.html_rev_style == 'none':                   return ''
@@ -2975,20 +2980,23 @@ class SubjProcSream:
                  "   (missing: %s)\n" % ', '.join(missing))
            return ''
 
-        cmd = '# generate html ss review pages\n'                           \
-              '# (akin to static images from running @ss_review_driver)\n'  \
-              'apqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
-              '    -uvar_json %s\n'                                         \
-              'tcsh @ss_review_html\n'                                      \
-              'apqc_make_html.py -qc_dir QC_$subj\n\n'                      \
-              % (self.html_rev_style, self.ssr_uvars)
+        cmd = '%s# generate html ss review pages\n'                           \
+              '%s# (akin to static images from running @ss_review_driver)\n'  \
+              '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
+              '%s    -uvar_json %s\n'                                         \
+              '%stcsh @ss_review_html\n'                                      \
+              '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
+              % (istr, istr,
+                 istr, self.html_rev_style,
+                 istr, self.ssr_uvars,
+                 istr, istr)
 
         if self.out_dir:
            ocmd = 'afni_open -b %s/QC_$subj/index.html' % self.out_dir
         else:
            ocmd = 'afni_open -b QC_$subj/index.html'
 
-        cmd += 'echo "\\nconsider running: \\n\\n    %s\\n"\n\n' % ocmd
+        cmd += '%secho "\\nconsider running: \\n\\n    %s\\n"\n' % (istr, ocmd)
 
         return cmd
 
