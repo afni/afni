@@ -622,6 +622,7 @@ g_history = """
     6.24 Dec  5, 2018: reduced dependency list for apqc HTML to just Xvfb
     6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
     6.26 Dec 19, 2018: show exec command on both tcsh and bash syntax
+    6.27 Jan  7, 2019: added opt -volreg_method volreg|allineate
 """
 
 g_version = "version 6.26, December 19, 2018"
@@ -1222,6 +1223,8 @@ class SubjProcSream:
                         acplist=['first','third', 'last', 'MIN_OUTLIER',
                                  'MEDIAN_BLIP'],
                         helpstr="align to first, third, last or MIN_OUTILER TR")
+        self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
+                        helpstr="specify -cost for 3dAllineate in volreg [lpa]")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
@@ -1236,6 +1239,9 @@ class SubjProcSream:
                         helpstr='interpolation method used in volreg')
         self.valid_opts.add_opt('-volreg_warp_final_interp', 1, [],
                         helpstr='final interpolation used when apply warps')
+        self.valid_opts.add_opt('-volreg_method', 1, [],
+                        acplist=['volreg','allineate'],
+                        helpstr='specify program for EPI volume registration')
         # rcr - antiquate old motsim options
         self.valid_opts.add_opt('-volreg_motsim', 0, [],
                         helpstr='create a motion simulated time series')
@@ -2890,6 +2896,7 @@ class SubjProcSream:
                 % (self.ssr_basic, self.ssr_basic, self.ssr_b_out)
            self.write_text(ss)
 
+           # rcr - nest under above
            if self.html_rev_style in g_html_review_styles:
               ss = self.run_html_review()
               if ss:
