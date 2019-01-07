@@ -1946,7 +1946,7 @@ int main( int argc , char *argv[] )
           qim = mri_read_1D( argv[iarg] ) ;
           if( qim == NULL )
             ERROR_exit("Can't read -allcostX1D '%s' :-(",argv[iarg]) ;
-            allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
+          allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
        }
        if( allcostX1D->nx < 12 )
          ERROR_exit("-allcostX1D '%s' has only %d values per row :-(" ,
@@ -4695,7 +4695,8 @@ STATUS("zeropad weight dataset") ;
      /*-----------------------------------------------------------------------*/
      /*----------------------- do final resolution pass ----------------------*/
 
-     if( verb ) INFO_message("*** Fine pass begins ***") ;
+     if( verb > 1 || (verb && kk == 0) ) /* 7 Jan 2019 [rickr] */
+        INFO_message("*** Fine pass begins ***") ;
      ctim = COX_cpu_time() ;
 
      stup.interp_code = interp_code ;  /* set interpolation   */
