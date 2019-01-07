@@ -1794,6 +1794,7 @@ def db_mod_volreg(block, proc, user_opts):
 
     apply_uopt_to_block('-volreg_method', user_opts, block)
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
+    apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
     apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
@@ -1923,7 +1924,7 @@ def db_cmd_volreg(proc, block):
     # maybe there are extra options to append to the command
     opt = block.opts.find_opt('-volreg_opts_vr')
     if not opt or not opt.parlist: other_opts = ''
-    else: other_opts = '%s \\\n' % ' '.join(opt.parlist)
+    else: other_opts = ' '.join(opt.parlist)
 
     if basevol: bstr = basevol
     else:       bstr = "%s'[%d]'" % (base,sub)
@@ -1970,7 +1971,7 @@ def db_cmd_volreg(proc, block):
 
         prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
-        matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D \\\n'
+        matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D'
         if doblip: cstr = cstr + ', blip warp'
         if doe2a:  cstr = cstr + ', align to anat'
         if dowarp: cstr = cstr + ', warp to tlrc space'
@@ -2027,27 +2028,33 @@ def db_cmd_volreg(proc, block):
        # changes: no zpad, need cost, automask, source_automask
        #          1Dfile to m12, change padding
        # extract first 6 from dfile.m12.r$run.1D to make dfile.r$run.1D
-       if matstr: matstr = '%*s%s' % (8, ' ', matstr)
-       if other_opts: other_opts = '%*s%s' % (8, ' ', other_opts)
-       # we will probably add options to modify 'auto' options
-       autostuff = "-automask -source_automask -autoweight "
+       if matstr: matstr = '%*s%s \\\n' % (8, ' ', matstr)
+       if other_opts: other_opts = '%*s%s \\\n' % (8, ' ', other_opts)
 
-       vrcmd = "    3dAllineate %s\\\n"                         \
-               "        -base %s \\\n"                          \
-               "        -source %s -prefix %s \\\n"             \
-               "        -1Dfile dfile.m12.r$run.1D \\\n"        \
-               "%s"                                             \
-               "        -cost %s %s \\\n"                       \
-               "%s" %                                           \
+       # let the user override the -auto options
+       autostuff = "-automask -source_automask -autoweight "
+       alist, rv = block.opts.get_string_list('-volreg_allin_auto_stuff')
+       if alist and len(alist) > 0:
+          if alist[0] == 'NONE': autostuff = ''
+          else:                  autostuff = '%s ' % ' '.join(alist)
+
+       vrcmd = "    3dAllineate %s\\\n"                     \
+               "        -base %s \\\n"                      \
+               "        -source %s \\\n"                    \
+               "        -prefix %s \\\n"                    \
+               "        -1Dfile dfile.m12.r$run.1D \\\n"    \
+               "%s"                                         \
+               "%s"                                         \
+               "        -cost %s %s\n\n" %                  \
                (autostuff, bstr, prev_prefix, prefix,
-                matstr, allin_cost, resam, other_opts)
+                matstr, other_opts, allin_cost, resam)
 
        vrcmd += "    # and extract the 6 rigid-body params\n"   \
                 "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
 
     else: # 'volreg'
-       if matstr: matstr = '%*s%s' % (13, ' ', matstr)
-       if other_opts: other_opts = '%*s%s' % (13, ' ', other_opts)
+       if matstr: matstr = '%*s%s \\\n' % (13, ' ', matstr)
+       if other_opts: other_opts = '%*s%s \\\n' % (13, ' ', other_opts)
        vrcmd = "    3dvolreg -verbose -zpad %d -base %s \\\n"        \
                "             -1Dfile dfile.r$run.1D -prefix %s \\\n" \
                "             %s \\\n"                                \

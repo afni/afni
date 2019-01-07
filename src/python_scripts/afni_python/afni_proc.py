@@ -623,8 +623,9 @@ g_history = """
     6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
     6.26 Dec 19, 2018: show exec command on both tcsh and bash syntax
     6.27 Jan  7, 2019:
-         - added opt -volreg_method volreg|allineate
-         - nest apqc_make_tcsh.py under @ss_review_basic block
+        - added opt -volreg_method volreg|allineate
+        - added opt -volreg_allin_auto_stuff
+        - nest apqc_make_tcsh.py under @ss_review_basic block
 """
 
 g_version = "version 6.26, December 19, 2018"
@@ -1225,6 +1226,8 @@ class SubjProcSream:
                         acplist=['first','third', 'last', 'MIN_OUTLIER',
                                  'MEDIAN_BLIP'],
                         helpstr="align to first, third, last or MIN_OUTILER TR")
+        self.valid_opts.add_opt('-volreg_allin_auto_stuff', -1, [],
+                        helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
