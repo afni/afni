@@ -49,9 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
- {  8, Jan, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+ {  8, Jan, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add make targets prog_list_bin and _scripts, which generate prog_list.txt",
    "This is done to partition binaries vs scripts."
+ } ,
+
+ {  8, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "add -volreg_method, and corresponding options",
+   "This allows one to use 3dAllineate for EPI motion registration.\n"
+   "Options -volreg_allin_cost and -volreg_allin_auto_stuff (as well as\n"
+   "the old -volreg_opts_vr) can be used to control -cost and other options."
  } ,
 
  {  4, Jan, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
