@@ -623,12 +623,12 @@ g_history = """
     6.25 Dec 10, 2018: run ss_review_html via tcsh instead of ./
     6.26 Dec 19, 2018: show exec command on both tcsh and bash syntax
     6.27 Jan  7, 2019:
-        - added opt -volreg_method volreg|allineate
-        - added opt -volreg_allin_auto_stuff
+        - added opt -volreg_method 3dvolreg|3dAllineate
+        - added opts -volreg_allin_auto_stuff and -volreg_allin_cost
         - nest apqc_make_tcsh.py under @ss_review_basic block
 """
 
-g_version = "version 6.26, December 19, 2018"
+g_version = "version 6.27, January 7, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -700,7 +700,7 @@ g_todo_str = """todo:
   - improve on distortion correction via gentle NL alignment with anat
   - finish @radial_correlate updates, like _opts and _volreg
      - maybe add to gen_ss_review_scripts.py
-  - allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
+  x allow for 3dAllineate in place of 3dvolreg: -volreg_use_allineate
   - blip correction:
      - pass warp result dset(s)
   - add option to block anat from anat followers?
@@ -1245,7 +1245,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_warp_final_interp', 1, [],
                         helpstr='final interpolation used when apply warps')
         self.valid_opts.add_opt('-volreg_method', 1, [],
-                        acplist=['volreg','allineate'],
+                        acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')
         # rcr - antiquate old motsim options
         self.valid_opts.add_opt('-volreg_motsim', 0, [],
