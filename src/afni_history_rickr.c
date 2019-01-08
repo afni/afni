@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Jan, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add make targets prog_list_bin and _scripts, which generate prog_list.txt",
+   "This is done to partition binaries vs scripts."
+ } ,
+
  {  4, Jan, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "add regression testing scripts",
    NULL
