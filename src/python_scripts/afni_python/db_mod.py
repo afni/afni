@@ -2009,16 +2009,16 @@ def db_cmd_volreg(proc, block):
 
     # ------------------------------
     # generate volreg command
-    vrmeth = 'volreg'
+    vrmeth = '3dvolreg'
     vv, rv = block.opts.get_string_opt('-volreg_method')
     if vv and not rv:
-       if vv not in ['volreg', 'allineate']:
+       if vv not in ['3dvolreg', '3dAllineate']:
           print("** bad -volreg_method %s" % vv)
           return
        if proc.verb > 1: print("++ updating -volreg_method to %s" % vv)
        vrmeth = vv
     
-    if vrmeth == 'allineate':
+    if vrmeth == '3dAllineate':
        allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
                                                   default='lpa')
        if rv:
@@ -2052,7 +2052,7 @@ def db_cmd_volreg(proc, block):
        vrcmd += "    # and extract the 6 rigid-body params\n"   \
                 "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
 
-    else: # 'volreg'
+    else: # '3dvolreg'
        if matstr: matstr = '%*s%s \\\n' % (13, ' ', matstr)
        if other_opts: other_opts = '%*s%s \\\n' % (13, ' ', other_opts)
        vrcmd = "    3dvolreg -verbose -zpad %d -base %s \\\n"        \
@@ -11139,6 +11139,32 @@ g_help_options = """
             See also -tcat_remove_first_trs, -volreg_base_ind and
             -volreg_base_dset.
 
+        -volreg_allin_auto_stuff OPT ...  : specify 'auto' options for 3dAllin.
+
+                e.g. -volreg_allin_auto_stuff -autoweight -warp shift_rotate
+
+            When using 3dAllineate to do EPI motion correction, the default
+            'auto' options applied are:
+
+                -automask -source_automask -autoweight
+            
+            Use this option to _replace_ them with whatever is preferable.
+
+          * All 3 options will be replaced, so if -autoweight is still wanted,
+            for example, please include it with -volreg_allin_auto_stuff.
+
+             Please see '3dAllineate -help' for more details.
+
+        -volreg_allin_cost COST : specify the cost function used in 3dAllineate
+
+                e.g. -volreg_allin_cost lpa+zz
+
+            When using 3dAllineate to do EPI motion correction, the default
+            cost function is lpa.  Use this option to specify another.
+
+             Please see '3dAllineate -help' for more details, including a list
+             of cost functions.
+
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
                 e.g. -volreg_base_dset subj10/vreg_base+orig'[0]'
@@ -11192,12 +11218,12 @@ g_help_options = """
 
                 3dAllineate -base FINAL_EPI -input FINAL_ANAT -allcostX
 
-             The text output is stored in the file out.allcostX.txt.
+            The text output is stored in the file out.allcostX.txt.
 
-             This operation is informational only, to help evaluate alignment
-             costs across subjects.
+            This operation is informational only, to help evaluate alignment
+            costs across subjects.
 
-             Please see '3dAllineate -help' for more details.
+            Please see '3dAllineate -help' for more details.
 
         -volreg_compute_tsnr yes/no : compute TSNR datasets from volreg output
 
@@ -11218,6 +11244,16 @@ g_help_options = """
                 e.g. -volreg_interp -quintic
                 e.g. -volreg_interp -Fourier
                 default: -cubic
+
+            Please see '3dvolreg -help' for more information.
+
+        -volreg_method METHOD   : specify method for EPI motion correction
+
+                e.g. -volreg_method 3dAllineate
+                default: 3dvolreg
+
+            Use this option to specify which program should be run to perform
+            EPI to EPI base motion correction over time.
 
             Please see '3dvolreg -help' for more information.
 
