@@ -1,6 +1,11 @@
 #include "mrilib.h"
 #include "thd_conformist.c"
 
+          /*******************************************************/
+          /**  Note that all real work is done in mri_nwarp.c,  **/
+          /**  which is #include-d a little farther down.       **/
+          /*******************************************************/
+
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
     - NN interpolation of data, for matching label datasets      [not hard]
@@ -26,6 +31,9 @@
       (but not yet for plusminus maps)                           [DONE]
 
     - vector-valued images                                       [medium]
+
+    - crop warps where they are all zero, but not past           [easy and]
+      the base volume dimensions                                 [tedious]
 
     - GPU acceleration                                           [ugh squared]
 *//*-------------------------------------------------------------------------*/
