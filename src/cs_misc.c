@@ -127,10 +127,10 @@ char * approximate_number_string( double val )
 
      /** also see http://www.isthe.com/chongo/tech/math/number/tenpower.html **/
 
-     case 1: strcat(sval+strlen(sval)," thousand [kilo]")     ; break ;
-     case 2: strcat(sval+strlen(sval)," million [mega]" )     ; break ;
-     case 3: strcat(sval+strlen(sval)," billion [giga]" )     ; break ;
-     case 4: strcat(sval+strlen(sval)," trillion [tera]")     ; break ;
+     case 1: strcat(sval+strlen(sval)," thousand")     ; break ;
+     case 2: strcat(sval+strlen(sval)," million" )     ; break ;
+     case 3: strcat(sval+strlen(sval)," billion" )     ; break ;
+     case 4: strcat(sval+strlen(sval)," trillion")     ; break ;
      case 5: strcat(sval+strlen(sval)," quadrillion [peta]")  ; break ;
      case 6: strcat(sval+strlen(sval)," quintillion [exa]")   ; break ;
      case 7: strcat(sval+strlen(sval)," sextillion [zetta]")  ; break ;
@@ -152,9 +152,9 @@ char * approximate_number_string( double val )
      case 33: strcat(sval+strlen(sval)," duotrigintillion") ; break ;
      case 101: strcat(sval+strlen(sval)," centillion")      ; break ;
 
-     case -1: strcat(sval+strlen(sval)," thousand-ths [milli]")   ; break ;
-     case -2: strcat(sval+strlen(sval)," million-ths [micro]")    ; break ;
-     case -3: strcat(sval+strlen(sval)," billion-ths [nano]")     ; break ;
+     case -1: strcat(sval+strlen(sval)," thousand-ths")           ; break ;
+     case -2: strcat(sval+strlen(sval)," million-ths")            ; break ;
+     case -3: strcat(sval+strlen(sval)," billion-ths")            ; break ;
      case -4: strcat(sval+strlen(sval)," trillion-ths [pico]")    ; break ;
      case -5: strcat(sval+strlen(sval)," quadrillion-ths [femto]"); break ;
      case -6: strcat(sval+strlen(sval)," quintillion-ths [atto]") ; break ;
