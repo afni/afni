@@ -50,6 +50,8 @@ set tpath     = '$tpath'
 set subj      = '$subj'
 set str_msg   = '`@FindAfniDsetPath $btemplate`'
 
+set liteopt   = "-lite"
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -88,6 +90,10 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set minp = "$argv[$ac]"
+
+    # [Jan 2019 - RWC]
+    else if ( "$argv[$ac]" == "-nolite" ) then
+        set liteopt = "-nolite"
 
     # output dir
     else if ( "$argv[$ac]" == "-odir" ) then
@@ -192,7 +198,7 @@ endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
 
-3dQwarp \
+3dQwarp $liteopt                                      \
     -base   "${Basedset}[1]"                          \
     -source $odir/anatU."$SubID".nii                  \
     -weight "${Basedset}[2]"                          \
@@ -201,9 +207,9 @@ endif
 
 ## Step #4: mask off the skull from the template (second skull-strip)
 
-3dmask_tool                          \
-    -input "${Basedset}[3]"          \
-    -dilate_input 1                  \
+3dmask_tool                        \
+    -input "${Basedset}[3]"        \
+    -dilate_input 1                \
     -prefix "${pref}MASK.nii"
 
 3dcalc                             \
@@ -261,7 +267,7 @@ endif
 #  into pieces will (I hope) elide this annoyance - RWC :(
 
 # Piece number 1
-3dQwarp                                  \
+3dQwarp $liteopt                         \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
@@ -270,7 +276,7 @@ endif
     -nodset -prefix "${pref}QQ5.nii"
 
 # Piece number 2
-3dQwarp                                  \
+3dQwarp $liteopt                         \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}QQ5_WARP.nii"       \
@@ -280,7 +286,7 @@ endif
 
 if( $minp > 13 )then
 # Final piece for coarse final patch size
-  3dQwarp                                  \
+  3dQwarp $liteopt                         \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
@@ -291,7 +297,7 @@ if( $minp > 13 )then
 else
 # Penultimate piece for refined final patch size
   @ mpp = $minp + 6
-  3dQwarp                                  \
+  3dQwarp $liteopt                         \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
@@ -299,7 +305,7 @@ else
       -pblur                               \
       -nodset -prefix "${pref}QQ9.nii"
 # Ultimate piece for refined final patch size
-  3dQwarp                                  \
+  3dQwarp $liteopt                         \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ9_WARP.nii"       \
@@ -353,7 +359,8 @@ USAGE ~1~
         -base   BB        \
         -subid  SS        \
        {-odir OD}         \
-       {-minp MP}
+       {-minp MP}         \
+       {-nolite}
 
 where:
 
@@ -379,6 +386,13 @@ where:
               (def: directory of the '-input AA').
 
   -minp   MP :(opt) minimum patch size on final 3dQwarp (def: 11).
+
+  -nolite    :(opt) Do not use the '-lite' option with 3dQwarp;
+              This option is used for backward compatibility, if you want
+              to run 3dQwarp the same way as older versions of @SSwarper.
+              The new way (starting Jan 2019) is to use the '-lite'
+              option with 3dQwarp to speed up the calculations.
+              (def: use '-lite' for faster calculations).
 
 # -----------------------------------------------------------------
 
