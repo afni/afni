@@ -118,7 +118,8 @@ void NWA_help(void)
       "                ++ In particular, if the transformation includes a\n"
       "                   long-distance translation, then the source dataset\n"
       "                   grid may not have a lot of overlap with the source\n"
-      "                   dataset after it is transformed!\n"
+      "                   dataset after it is transformed -- in this case, you\n"
+      "                   really want to use this '-master' option.\n"
       "\n"
       " -newgrid dd  = 'dd' is the new grid spacing (cubical voxels, in mm)\n"
       "   *OR        = ++ This lets you resize the master dataset grid spacing.\n"
@@ -373,6 +374,25 @@ void NWA_help(void)
       "  warp is already included in the output nonlinear warp from 3dQwarp, and so it\n"
       "  does NOT need to be applied again in 3dNwarpApply!  This mistake has been made\n"
       "  in the past, and the results were not good.\n"
+      "\n"
+      "* When using '-allineate' in 3dQwarp, and when there is a large coordinate shift\n"
+      "  between the base and source datasets, then the _WARP dataset output by 3dQwarp\n"
+      "  will cover a huge grid to encompass both the base and source. In turn, this\n"
+      "  can cause 3dNwarpApply to need a lot of memory when it applies that warp.\n"
+      "  ++ Some changes were made [Jan 2019] to reduce the size of this problem,\n"
+      "     but it still exists.\n"
+      "  ++ We have seen this most often in source datasets which have the (0,0,0)\n"
+      "     point not in the middle of the volume, but at a corner of the volume.\n"
+      "     Since template datasets (such as MNI152_2009_template_SSW.nii.gz) have\n"
+      "     (0,0,0) inside the brain, a dataset with (0,0,0) at a corner of the 3D\n"
+      "     volume will need a giant coordinate shift to match the template dataset.\n"
+      "     And in turn, the encompassing grid that overlaps the source and template\n"
+      "     (base) datasets will be huge.\n"
+      "  ++ The simplest way to fix this problem is to do something like\n"
+      "       @Align_Centers -base MNI152_2009_template_SSW.nii.gz -dset Fred.nii\n"
+      "     which will produce dataset Fred_shft.nii, that will have its grid\n"
+      "     center approximately lined up with the template (base) dataset.\n"
+      "     And from then on, use Fred_shft.nii as your input dataset.\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
@@ -718,6 +738,10 @@ int main( int argc , char *argv[] )
    if( dset_srcar == NULL )
      ERROR_exit("No -source option?  What do you want to do? :-(") ;
 
+#ifdef USING_MCW_MALLOC
+   if( verb > 1 ){ enable_mcw_malloc() ; }
+#endif
+
    /*-- deal with extra or insufficient prefixes --*/
 
    if( nprefix > dset_srcar->num ){  /* extra */
@@ -795,11 +819,11 @@ int main( int argc , char *argv[] )
    /* here is where geometry of nonlinear warps is harmonized (if needed) */
 
    if( nwc->actual_geomstring == NULL )
-     IW3D_set_geometry_nwarp_catlist( nwc , EDIT_get_geometry_string(dset_mast) ) ;
+     IW3D_set_geometry_nwarp_catlist( nwc, EDIT_get_geometry_string(dset_mast) ) ;
 
    /* combine warps (matrices and datasets) to the extent possible */
 
-   IW3D_reduce_nwarp_catlist( nwc ) ;  /* may already have been done */
+   IW3D_reduce_nwarp_catlist( nwc ) ;  /* IW3D_read_nwarp_catlist may do this */
    NI_sleep(1) ;
 
    /*--------- the actual work of warping ---------*/

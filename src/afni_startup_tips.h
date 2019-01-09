@@ -1435,6 +1435,11 @@ static char *gby[] = {
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
 
+     "\n"
+     "  S. Holmes:   The past and the present are within the field of my inquiry,\n"
+     "               but what a man may do in the future is a hard question to answer.\n"
+     "  Free Energy: Fokker-Planck equation to the rescue" ,
+
      /* from Quentin Crisp */
 
      "Don't clean your house. After 4 years, the dirt doesn't get any worse" ,
