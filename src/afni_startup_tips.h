@@ -1150,6 +1150,10 @@ static char *gby[] = {
      "Moderation is fatal - nothing succeeds like excess"                       ,
      "The world is a stage - but the play is badly cast"                        ,
      "An idea that is not dangerous is unworthy of being called an idea at all" ,
+     "The world is a stage, but the play is badly cast"                         ,
+     "The only true necessities are totally useless things"                     ,
+     "The soul is born old but grows young."                                    ,
+     "When given the choice of two evils, the pessimist chooses both"           ,
 
      /* Longer quotes */
 

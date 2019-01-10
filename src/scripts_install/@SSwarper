@@ -5,7 +5,7 @@
 
 # --------------------- revision history -------------------------
 #
-#set version   = "1.0"; 
+#set version   = "1.0";
 #set rev_dat   = "some prior event in the spacetime continuum"
 #   + RWC started and developed this program
 #
@@ -39,7 +39,7 @@ endif
 set this_prog = "@SSwarper"
 
 set Adataset = ""    # req/ input dataset
-set SubID    = ""    # req/ the subject ID 
+set SubID    = ""    # req/ the subject ID
 set Basedset = ""    # req/ reference dset- must have 4 bricks
 set odir     = ""    # opt/ output dir
 
@@ -51,6 +51,10 @@ set subj      = '$subj'
 set str_msg   = '`@FindAfniDsetPath $btemplate`'
 
 set liteopt   = "-lite"
+set tightness = 0
+set doclean   = 1
+set verbopt   = ""
+set skipwarp  = 0
 
 # ------------------- process options, a la rr ----------------------
 
@@ -72,7 +76,7 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set Adataset = "$argv[$ac]"
-        
+
     else if ( "$argv[$ac]" == "-subid" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -94,6 +98,26 @@ while ( $ac <= $#argv )
     # [Jan 2019 - RWC]
     else if ( "$argv[$ac]" == "-nolite" ) then
         set liteopt = "-nolite"
+
+    # [Jan 2019 - RWC]
+
+    else if ( "$argv[$ac]" == "-tight" ) then
+        @ tightness ++
+
+    # [Jan 2019 - RWC]
+
+    else if ( "$argv[$ac]" == "-noclean" ) then
+        set doclean = 0
+
+    # [Jan 2019 - RWC]
+
+    else if ( "$argv[$ac]" == "-skipwarp" ) then
+        set skipwarp = 1
+
+    # [Jan 2019 - RWC]
+
+    else if ( "$argv[$ac]" == "-verb" ) then
+        set verbopt = "-verb"
 
     # output dir
     else if ( "$argv[$ac]" == "-odir" ) then
@@ -185,11 +209,15 @@ if( ! -f $odir/anatU."${SubID}".nii ) then
   3dUnifize -prefix $odir/anatU."$SubID".nii -GM -input "$Adataset" -clfrac 0.4
 endif
 
+if( ! -f $odir/anatUA."${SubID}".nii ) then
+  3danisosmooth -prefix anatUA."${SubID}".nii -iters 1 -3D -automask -noneg anatU."${SubID}".nii
+endif
+
 # Step #2: Strip Skull (Ziad's way)
 
 if( ! -f $odir/anatS."${SubID}".nii ) then
     3dSkullStrip \
-    -input  $odir/anatU."$SubID".nii  \
+    -input  $odir/anatUA."$SubID".nii \
     -prefix $odir/anatS."$SubID".nii  \
     -debug 1 -ld 33 -niter 777        \
     -shrink_fac_bot_lim 0.777         \
@@ -198,18 +226,19 @@ endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
 
-3dQwarp $liteopt                                      \
+3dQwarp $liteopt $verbopt                             \
     -base   "${Basedset}[1]"                          \
-    -source $odir/anatU."$SubID".nii                  \
+    -source $odir/anatUA."$SubID".nii                 \
     -weight "${Basedset}[2]"                          \
-    -allineate -noneg -maxlev 5 -zeasy -iwarp -awarp  \
+    -allineate -noneg -maxlev 5 -iwarp -awarp         \
+    -workhard:3:5                                     \
     -prefix "${pref}TAL5.nii"
 
-## Step #4: mask off the skull from the template (second skull-strip)
+## Step #4: mask off the skull using the template (second skull-strip)
 
 3dmask_tool                        \
     -input "${Basedset}[3]"        \
-    -dilate_input 1                \
+    -dilate_input 2                \
     -prefix "${pref}MASK.nii"
 
 3dcalc                             \
@@ -226,12 +255,12 @@ endif
     -source "${pref}TAL5mm.nii"        \
     -prefix "${pref}TAL5ww.nii"
 
-## warp the mask itself (dilated by 2) back to orig space
+## warp the mask itself (dilated) back to orig space
 
 \rm -f "${pref}MASK.nii"
 3dmask_tool                      \
     -input "${Basedset}[3]"      \
-    -dilate_input 2              \
+    -dilate_input 3              \
     -prefix "${pref}MASK.nii"
 3dNwarpApply \
     -nwarp "${pref}TAL5_WARPINV.nii"   \
@@ -248,6 +277,10 @@ endif
        -c "${pref}MASKO.nii"          \
        -expr 'step(c)*max(a,b)'       \
        -prefix "$odir/anatSS.${SubID}.nii"
+
+# don't do any more if skipping the final (precision) warp
+
+if( $skipwarp ) goto CLEANUP
 
 ## Step #6: affine transform that result to template space
 
@@ -267,7 +300,7 @@ endif
 #  into pieces will (I hope) elide this annoyance - RWC :(
 
 # Piece number 1
-3dQwarp $liteopt                         \
+3dQwarp $liteopt $verbopt                \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}TAL5_AWARP.nii"     \
@@ -276,7 +309,7 @@ endif
     -nodset -prefix "${pref}QQ5.nii"
 
 # Piece number 2
-3dQwarp $liteopt                         \
+3dQwarp $liteopt $verbopt                \
     -base "${Basedset}[0]"               \
     -source "${pref}AffSS.nii"           \
     -iniwarp "${pref}QQ5_WARP.nii"       \
@@ -286,7 +319,7 @@ endif
 
 if( $minp > 13 )then
 # Final piece for coarse final patch size
-  3dQwarp $liteopt                         \
+  3dQwarp $liteopt $verbopt                \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
@@ -297,7 +330,7 @@ if( $minp > 13 )then
 else
 # Penultimate piece for refined final patch size
   @ mpp = $minp + 6
-  3dQwarp $liteopt                         \
+  3dQwarp $liteopt $verbopt                \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ7_WARP.nii"       \
@@ -305,7 +338,7 @@ else
       -pblur                               \
       -nodset -prefix "${pref}QQ9.nii"
 # Ultimate piece for refined final patch size
-  3dQwarp $liteopt                         \
+  3dQwarp $liteopt $verbopt                \
       -base "${Basedset}[0]"               \
       -source "${pref}AffSS.nii"           \
       -iniwarp "${pref}QQ9_WARP.nii"       \
@@ -314,15 +347,22 @@ else
       -prefix $odir/anatQQ."${SubID}".nii
 endif
 
-## Cleanup
-
-\mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
-\rm -f "${pref}"*
-
 ## Step #7: Make two pretty pictures, and scram
 
 @snapshot_volreg $odir/anatQQ."${SubID}".nii $Basedset $odir/AM"${SubID}"
 @snapshot_volreg $Basedset $odir/anatQQ."${SubID}".nii $odir/MA"${SubID}"
+
+## Clean up the junk
+
+CLEANUP:
+
+if ( $doclean ) then
+  \rm -f "${pref}"*
+endif
+
+## Rename affine warp matrix
+
+\mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
 
 goto GOOD_EXIT
 
@@ -337,9 +377,9 @@ OVERVIEW ~1~
 
 This script has dual purposes for processing a given subject's
 anatomical volume:
-    + to skull-strip the brain, and 
+    + to skull-strip the brain, and
     + to calculate the warp to a reference template/standard space.
-Automatic snapshots of the registration are created, as well, to help 
+Automatic snapshots of the registration are created, as well, to help
 the QC process.
 
 This program cordially ties in directly with afni_proc.py, so you can
@@ -369,10 +409,10 @@ where:
 
   -base   BB :(req) a base template dataset, with contrast similar to
               the input AA dset, probably from some kind of standard
-              template.  
+              template.
               NB: this dataset is not *just* a standard template,
               because it is not a single volume-- read about its
-              composition in the NOTES on the 'The Template Dataset', 
+              composition in the NOTES on the 'The Template Dataset',
               below.
               The program first checks if the dset BB exists as
               specified; if not, then if just the filename has been
@@ -393,6 +433,17 @@ where:
               The new way (starting Jan 2019) is to use the '-lite'
               option with 3dQwarp to speed up the calculations.
               (def: use '-lite' for faster calculations).
+
+  -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
+              verbose progress information - mostly used for debugging.
+
+  -noclean   :(opt) Do not delete the 'junk' files at the end of
+              computations - mostly used for debugging and testing.
+
+  -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
+              This option is used if you just want the skull-stripped
+              result in original coordinates, without the warping
+              to the template space (anatQQ). The script will run faster.
 
 # -----------------------------------------------------------------
 
@@ -417,10 +468,11 @@ help).
 
 OUTPUTS ~1~
 
-Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).  
+Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
 Then the outputs from this script will be"
 
   anatU.sub007.nii        = intensity uniform-ized original dataset;
+  anatUA.sub007.nii       = anisotropically smoothed version of the above
   anatS.sub007.nii        = first pass skull-stripped original dataset;
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
@@ -451,10 +503,10 @@ Then the outputs from this script will be"
   ${this_prog} successfully -- here, 'subj' is the subject
   identifier:
 
-  |  set btemplate = MNI152_2009_template_SSW.nii.gz    
+  |  set btemplate = MNI152_2009_template_SSW.nii.gz
   |  set tpath = \`@FindAfniDsetPath \${btemplate}\`
-  |  if( "$tpath" == "" ) exit 1                    
-  |                                                 
+  |  if( "$tpath" == "" ) exit 1
+  |
   |  afni_proc.py                                                  \
   |    [...other stuff here: processing blocks, options...]        \
   |    -copy_anat anatSS.\${subj}.nii                               \
