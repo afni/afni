@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jan, 2019, RCR, "dicom_hinfo", MICRO, TYPE_NEW_OPT,
+   "add -sepstr option",
+   "Done for ZXu on message board."
+ } ,
+
  {  8, Jan, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "add make targets prog_list_bin and _scripts, which generate prog_list.txt",
    "This is done to partition binaries vs scripts."
