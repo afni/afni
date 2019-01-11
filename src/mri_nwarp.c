@@ -40,6 +40,30 @@
 
 #define DEBUG_CATLIST
 
+#define DEBUG_MEMORY
+#undef  MEMORY_CHECK
+#if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC)
+# define MEMORY_CHECK(mm)                                              \
+   do{ long long nb = mcw_malloc_total() ;                             \
+       if( nb > 0 ) ININFO_message("Memory = %s (%s): %s" ,            \
+                      commaized_integer_string(nb) ,                   \
+                      approximate_number_string((double)nb) , (mm) ) ; \
+   } while(0)
+static char * wans(void)
+{ static char sss[256] ;
+  long long nb = mcw_malloc_total() ;
+  if( nb > 0 )
+    sprintf( sss , "{%s}" , approximate_number_string((double)nb) ) ;
+  else
+    strcpy( sss , "\0" ) ;
+  return sss ;
+}
+# define MEMORY_SHORT wans()
+#else
+# define MEMORY_CHECK(mm) /*nada*/
+# define MEMORY_SHORT     "\0"
+#endif
+
 /*..........................................................................*/
 /** Note that the functions for 3dQwarp (4000+ lines of code)
     are only compiled if macro ALLOW_QWARP is #define-d -- see 3dQwarp.c.
@@ -97,8 +121,8 @@
 #define WARP_IS_QUINTIC(wc) ( (wc == MRI_QUINTIC) || (wc == MRI_QUINTIC_LITE) )
 #define WARP_IS_CUBIC(wc)   ( !WARP_IS_QUINTIC(wc) )
 
-static int Huse_cubic_lite   = 0 ; /* Dec 2018 */
-static int Huse_quintic_lite = 0 ; /* set these for the LITE warp functions */
+static int Huse_cubic_lite   = 1 ; /* Dec 2018 */
+static int Huse_quintic_lite = 1 ; /* set these for the LITE warp functions */
 
 /* control verbosity of mri_nwarp functions */
 
@@ -5743,6 +5767,10 @@ ENTRY("THD_nwarp_dataset_array") ;
    if( next < 32 ) next = 32 ;   /* warp extension, just for luck */
 #endif
 
+#ifdef DEBUG_CATLIST
+MEMORY_CHECK("enter THD_nwarp_dataset_array") ;
+#endif
+
    if( dxyz_mast > 0.0f ){  /* if altering output grid spacings */
      THD_3dim_dataset *qset ; double dxyz = (double)dxyz_mast ;
      qset = r_new_resam_dset( dset_mast , NULL ,
@@ -5821,22 +5849,30 @@ if( verb_nww > 1 ) fprintf(stderr,"[nvar=%d]",nwc->nvar) ;
 
      if( iv < nwc->nvar ){        /* don't do duplicates if past */
                                   /* end of 'time' inside nwc */
-       /*** toss the old warps */
+       /*** toss any old warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr," a") ;
+if( verb_nww > 1 ) fprintf(stderr," a%s",MEMORY_SHORT) ;
 #endif
        DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
        DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
        /*** get the iv-th warp from the list, and pad it */
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"b") ;
+if( verb_nww > 1 ) fprintf(stderr,"b%s",MEMORY_SHORT) ;
 #endif
        dset_nwarp = IW3D_from_nwarp_catlist( nwc , iv ) ; /* get the iv-th warp */
        if( dset_nwarp == NULL ){  /* should never happen */
          ERROR_message("Can't acquire/compute nwarp dataset #%d ?!?",iv); RETURN(NULL) ;
        }
+
+       if( iv == 0 ){  /* save the warped space label [moved here 07 Jan 2019] */
+         for( kds=0 ; kds < numds ; kds++ ){
+           dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
+           MCW_strncpy( dset_ooo->atlas_space , dset_nwarp->atlas_space , THD_MAX_NAME ) ;
+         }
+       }
+
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"'") ;
+if( verb_nww > 1 ) fprintf(stderr,"'%s",MEMORY_SHORT) ;
 #endif
        if( next > 0 ){
          dset_qwarp = THD_nwarp_extend( dset_nwarp , next,next,next,next,next,next ) ;
@@ -5850,6 +5886,8 @@ if( verb_nww > 1 ) fprintf(stderr,"'") ;
          }
        }
 
+       DSET_delete(dset_nwarp) ; dset_nwarp = NULL ; /* 07 Jan 2019 */
+
        if( !ISVALID_MAT44(dset_qwarp->daxes->ijk_to_dicom) )
          THD_daxes_to_mat44(dset_qwarp->daxes) ;
        nwarp_cmat = dset_qwarp->daxes->ijk_to_dicom ; /* coordinates of warp */
@@ -5858,31 +5896,28 @@ if( verb_nww > 1 ) fprintf(stderr,"'") ;
 
        INIT_IMARR(imar_nwarp) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"c") ;
+if( verb_nww > 1 ) fprintf(stderr,"c%s",MEMORY_SHORT) ;
 #endif
        fim = THD_extract_float_brick(0,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
        fim = THD_extract_float_brick(1,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
        fim = THD_extract_float_brick(2,dset_qwarp) ; ADDTO_IMARR(imar_nwarp,fim) ;
 
+       DSET_delete(dset_qwarp) ; dset_qwarp = NULL ; /* 07 Jan 2019 */
+
        /* the actual work of setting up the warp for this sub-brick */
 
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"d") ;
+if( verb_nww > 1 ) fprintf(stderr,"d%s",MEMORY_SHORT) ;
 #endif
        imar_src = THD_setup_nwarp( imar_nwarp, 0,amat ,
                                    nwarp_cmat, wincode , wfac ,
                                    src_cmat , mast_cmat , nx , ny , nz ) ;
 
+       DESTROY_IMARR(imar_nwarp) ; /* 07 Jan 2019 */
+
        ip = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,0) ) ;  /* warped indexes, */
        jp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,1) ) ;  /* for interpolation */
        kp = MRI_FLOAT_PTR( IMARR_SUBIM(imar_src,2) ) ;  /* of dataset values */
-
-       if( iv == 0 ){  /* save the warped space label, if present */
-         for( kds=0 ; kds < numds ; kds++ ){
-           dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
-           MCW_strncpy( dset_ooo->atlas_space , dset_nwarp->atlas_space , THD_MAX_NAME ) ;
-         }
-       }
 
      } else if( !reuse & verb_nww ){
        reuse = 1 ; fprintf(stderr,"[R]") ;  /* flag that re-use has started */
@@ -5895,14 +5930,14 @@ if( verb_nww > 1 ) fprintf(stderr,"d") ;
        if( DSET_NVALS(dset_sss) < iv ) continue ;  /* dataset is done already */
        dset_ooo = DSET_IN_3DARR(dset_out,kds) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"-") ;
+if( verb_nww > 1 ) fprintf(stderr,"-%s",MEMORY_SHORT) ;
 #endif
        if( DSET_BRICK_TYPE(dset_sss,iv) != MRI_complex ){
          fim = THD_extract_float_brick(iv,dset_sss) ; DSET_unload_one(dset_sss,iv) ;
          wim = mri_new_vol(nx,ny,nz,MRI_float) ;
          /*** the actual warping is done in the function below! ***/
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"+") ;
+if( verb_nww > 1 ) fprintf(stderr,"+%s",MEMORY_SHORT) ;
 #endif
          THD_interp_floatim( fim, nxyz,ip,jp,kp, dincode, MRI_FLOAT_PTR(wim) ) ;
 
@@ -5912,7 +5947,7 @@ if( verb_nww > 1 ) fprintf(stderr,"+") ;
            float fb=(float)fmm.a , ft=(float)fmm.b ; int qq ;
            float *war=MRI_FLOAT_PTR(wim) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"*") ;
+if( verb_nww > 1 ) fprintf(stderr,"*%s",MEMORY_SHORT) ;
 #endif
            for( qq=0 ; qq < wim->nvox ; qq++ ){
              if( war[qq] < fb ) war[qq] = fb ; else if( war[qq] > ft ) war[qq] = ft ;
@@ -5925,16 +5960,16 @@ if( verb_nww > 1 ) fprintf(stderr,"*") ;
          fim = DSET_BRICK(dset_sss,iv) ;
          wim = mri_new_vol(nx,ny,nz,MRI_complex) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"+") ;
+if( verb_nww > 1 ) fprintf(stderr,"+%s",MEMORY_SHORT) ;
 #endif
          THD_interp_complexim( fim, nxyz,ip,jp,kp, dincode, MRI_COMPLEX_PTR(wim) ) ;
          EDIT_substitute_brick( dset_ooo, iv, MRI_complex, MRI_COMPLEX_PTR(wim) ) ;
          /* fim here is NOT a copy, so don't delete it */
        }
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr,"!") ;
+if( verb_nww > 1 ) fprintf(stderr,"!%s",MEMORY_SHORT) ;
 #endif
-       mri_clear_and_free(wim) ;  /* clear and free won't delete the data, just the shell */
+       mri_clear_and_free(wim) ;  /* clear_and_free won't delete the data, just the shell */
      } /* end of loop over input datasets */
 
      if( verb_nww && iv%vp == 0 ) fprintf(stderr,".") ;  /* progress meter */
@@ -5943,7 +5978,7 @@ if( verb_nww > 1 ) fprintf(stderr,"!") ;
 
    /* toss the final warps */
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) fprintf(stderr," z") ;
+if( verb_nww > 1 ) fprintf(stderr," z%s",MEMORY_SHORT) ;
 #endif
    DSET_delete  (dset_nwarp) ; DSET_delete  (dset_qwarp) ;
    DESTROY_IMARR(imar_nwarp) ; DESTROY_IMARR(imar_src  ) ;
@@ -5953,7 +5988,7 @@ if( verb_nww > 1 ) fprintf(stderr," z") ;
    }
    if( newprefix ) free(prefix) ;
 
-   if( verb_nww ) fprintf(stderr,"Z\n") ;  /* end of progress */
+   if( verb_nww ) fprintf(stderr,"Z%s\n",MEMORY_SHORT) ;  /* end of progress */
 
    RETURN(dset_out) ;
 }
@@ -7165,7 +7200,7 @@ if( verb_nww > 1 ) ININFO_message("results: master_geomstring = %s  actual_geoms
      if( !ISVALID_DSET(nwc->nwarp[ii]) ) continue ;
      gg = EDIT_get_geometry_string(nwc->nwarp[ii]) ;
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) ININFO_message("-- warp #%d geometry = %s",ii,gg) ;
+if( verb_nww > 1 ) ININFO_message("-- warp #%d geometry = %s %s",ii,gg,MEMORY_SHORT) ;
 #endif
      if( EDIT_geometry_string_diff(hs,gg) > 0.01f ){
 #ifdef DEBUG_CATLIST
@@ -7242,7 +7277,7 @@ if( verb_nww > 1 ){
 Try_It_Again_Dude:  /* target for loop back when ndone > 0 */
 
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) INFO_message("-- IW3D_reduce_nwarp_catlist -- start loop") ;
+if( verb_nww > 1 ) INFO_message("-- IW3D_reduce_nwarp_catlist -- start loop %s",MEMORY_SHORT) ;
 #endif
 
    for( ndone=ii=0 ; ii < nwc->ncat-1 ; ii=jj ){
@@ -7371,7 +7406,7 @@ else if( verb_nww > 1 ) ININFO_message("IW3D_reduce_nwarp_catlist: warp-Matrix[%
    }
 
 #ifdef DEBUG_CATLIST
-if( verb_nww > 1 ) ININFO_message("-- loop reduction operation count = %d",ndone) ;
+if( verb_nww > 1 ) ININFO_message("-- loop reduction operation count = %d %s",ndone,MEMORY_SHORT) ;
 #endif
    totaldone += ndone ;
    if( ndone > 0 || !doall ){ doall = 1 ; goto Try_It_Again_Dude ; }
@@ -7408,7 +7443,7 @@ if( verb_nww > 1 ) ININFO_message("-- loop reduction operation count = %d",ndone
 
 #ifdef DEBUG_CATLIST
 if( verb_nww > 1 ){
-   fprintf(stderr,"+++++ final structure of Nwarp_catlist:") ;
+   fprintf(stderr,"+++++ final structure of Nwarp_catlist: %s",MEMORY_SHORT) ;
    for( ii=0 ; ii < nwc->ncat ; ii++ ){
      if( NWC_nwarp(nwc,ii) != NULL ){
        fprintf(stderr," Nwarp ;") ;
@@ -7547,7 +7582,7 @@ if( verb_nww > 1 ) fprintf(stderr,"}") ;
 }
 
 /*----------------------------------------------------------------------------*/
-/* Construct an Nwarp_catlist from a list of strings (filename). */
+/* Construct an Nwarp_catlist from a list of strings (filenames). */
 
 Nwarp_catlist * IW3D_read_nwarp_catlist( char *cstr )
 {

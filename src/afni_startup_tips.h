@@ -1150,6 +1150,10 @@ static char *gby[] = {
      "Moderation is fatal - nothing succeeds like excess"                       ,
      "The world is a stage - but the play is badly cast"                        ,
      "An idea that is not dangerous is unworthy of being called an idea at all" ,
+     "The world is a stage, but the play is badly cast"                         ,
+     "The only true necessities are totally useless things"                     ,
+     "The soul is born old but grows young."                                    ,
+     "When given the choice of two evils, the pessimist chooses both"           ,
 
      /* Longer quotes */
 
@@ -1434,6 +1438,11 @@ static char *gby[] = {
 
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
+
+     "\n"
+     "  S. Holmes:   The past and the present are within the field of my inquiry,\n"
+     "               but what a man may do in the future is a hard question to answer.\n"
+     "  Free Energy: Fokker-Planck equation to the rescue" ,
 
      /* from Quentin Crisp */
 

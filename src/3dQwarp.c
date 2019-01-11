@@ -1,6 +1,11 @@
 #include "mrilib.h"
 #include "thd_conformist.c"
 
+          /*******************************************************/
+          /**  Note that all real work is done in mri_nwarp.c,  **/
+          /**  which is #include-d a little farther down.       **/
+          /*******************************************************/
+
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
     - NN interpolation of data, for matching label datasets      [not hard]
@@ -26,6 +31,9 @@
       (but not yet for plusminus maps)                           [DONE]
 
     - vector-valued images                                       [medium]
+
+    - crop warps where they are all zero, but not past           [easy and]
+      the base volume dimensions                                 [tedious]
 
     - GPU acceleration                                           [ugh squared]
 *//*-------------------------------------------------------------------------*/
@@ -1087,12 +1095,12 @@ void Qhelp(void)
     " -lite       = Another way to specify the use of the 12 parameter cubics\n"
     "               and the 30 parameter quintics.\n"
     "              * This option now works with the '-plusminus' warping method :)\n"
+    "              * THIS OPTION IS NOW THE DEFAULT * [Jan 2019]\n"
     "\n"
     " -nolite     = Turn off the '-lite' warp functions and use the 24 parameter\n"
     "               cubics *and* the 81 parameter quintics.\n"
-    "              * This option is present for the possible future when '-lite'\n"
-    "                becomes the default, and you wish to have backwards\n"
-    "                warping compatibility.\n"
+    "              * This option is present for if you wish to have backwards\n"
+    "                warping compatibility with older versions of 3dQwarp.\n"
     "\n"
     " -nopad      = Do NOT use zero-padding on the 3D base and source images.\n"
     "               [Default == zero-pad as needed]\n"
@@ -1105,10 +1113,21 @@ void Qhelp(void)
     "                reason that Zhark can think of, but it is here to be symmetrical\n"
     "                with 3dAllineate.\n"
     "              * Note that the output (warped from source) dataset will be on the\n"
-    "                base dataset grid whether or not zero-padding is allowed.,\n"
+    "                base dataset grid whether or not zero-padding is allowed.\n"
     "                However, unless you use the following option, allowing zero-\n"
     "                padding (i.e., the default operation) will make the output WARP\n"
     "                dataset(s) be on a larger grid (also see '-expad' below).\n"
+    "           **** When grid centers of the base and source dataset are far apart\n"
+    "                in (x,y,z) coordinates, then a large amount of zero-padding\n"
+    "                is required to make the grid spaces overlap. This situation can\n"
+    "                cause problems, and most often arises when the (x,y,z)=(0,0,0)\n"
+    "                point in the source grid is in a corner of the volume instead\n"
+    "                of the middle. You can fix that problem by using a command like:\n"
+    "            @Align_Centers -base MNI152_2009_template_SSW.nii.gz -dset Fred.nii\n"
+    "                and then using dataset Fred_shft.nii as your input file for all\n"
+    "                purposes (including afni_proc.py).\n"
+    "              * A warning message will be output to the screen if very large\n"
+    "                amounts of zero-padding are required.\n"
     "\n"
     " -nopadWARP   = If you do NOT use '-nopad' (that is, you DO allow zero-padding\n"
     "                during the warp computations), then the computed warp will often\n"
@@ -1463,6 +1482,35 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
    free(cmd) ;
    return ;
 }
+
+#if 0
+/*---------------------------------------------------------------------------*/
+/* Function for cropping a warp dataset [08 Jan 2019] - not used at present  */
+
+THD_3dim_dataset * Qcrop_dataset( THD_3dim_dataset *iset , char *prefix )
+{
+   THD_3dim_dataset *oset ;
+   int xm,ym,zm,xp,yp,zp ;
+
+   if( iset == NULL ) return NULL ;
+
+   if( prefix == NULL ) prefix = "Zyxt" ;
+
+   THD_autobbox_clip(0) ;   /* alter default options */
+   THD_autobbox_npad(0) ;   /* for finding box and padding */
+   MRI_autobbox_clust(0) ;
+   THD_autobbox_noexpand(1) ;
+
+   /* do all the work */
+
+   oset = THD_autobbox( iset , &xm,&xp , &ym,&yp , &zm,&zp , prefix ) ;
+   if( oset == NULL ) return NULL ;
+
+   if( Hverb )
+     INFO_message("Cropping dataset %s",DSET_PREFIX(iset)) ;
+   return oset ;
+}
+#endif
 
 /*---------------------------------------------------------------------------*/
 /* Function for writing out intermediate saved warps during optimization */
@@ -2867,10 +2915,12 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
        if( do_warn ){
          WARNING_message(
            "At least one padding is more than 50%% of dataset grid size!" ) ;
+#if 0
          WARNING_message(
            "  Computation time might be tremendously long :(") ;
+#endif
          WARNING_message(
-           "  Preliminary alignment of dataset centers might help a LOT.") ;
+           "  Alignment of dataset grid centers might help a LOT: @Align_Centers") ;
        }
 
        /*-- replace base image --*/

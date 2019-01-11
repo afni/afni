@@ -44,27 +44,34 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
- { 4 , JAN , 2019 , RWC , "@SSwarper" , MINOR , TYPE_NEW_OPT ,
-   "Add '-nolite' option" ,
-   "3dQwarp usage has been altered to include the '-lite' option by default,\n"
-   "for faster computations. If backward compatibility is needed, use\n"
-   "'-nolite'." } ,
+ { 8 , JAN , 2019 , RWC , "@SSwarper" , MINOR , TYPE_NEW_OPT ,
+   "Add '-nolite' option" , "For backwards compatibility and testing." } ,
+
+ { 8 , JAN , 2019 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
+   "-lite is now the default -- for speed" ,
+   "Based on using @SSwarper with and without -nolite on 31 datasets.\n"
+   "Results are very similar, and no systematic differences between\n"
+   "the -lite and -nolite groups observed in mean or stdev." } ,
+
+ { 7 , JAN , 2019 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Hopefully uses somewhat less memory now :)" ,
+   NULL } ,
 
  { 4 , JAN , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Change way patch sizes are initialized for lev > 0" ,
    "Old way: based on full grid size\n"
    "New way: based on lev=0 patch size, from autobox\n"
    "Advantage of new way: with lots of zero padding, first few levs may have\n"
-   "such large patches that they do nothing of value.\n"
+   "such large patches that they do nothing of value, but burn CPU time.\n"
    "Stupidity: I don't know why I didn't think of this before - probably\n"
    "because I never before ran a case with lots of zero padding (100+ voxels\n"
-   "on each face)." } ,
+   "on each face) and watched its snail-like progress with -verb." } ,
 
  { 3 , JAN , 2019 , RWC , "@afni_refacer_XXX" , MINOR , TYPE_NEW_PROG ,
    "Scripts to re-face a T1-weighted dataset" ,
    "@afni_refacer_make_master = makes the 'shell' dataset used to replace\n"
    "the face\n"
-   "@afni_refacer_fun = runs re-facing on one input dataset" } ,
+   "@afni_refacer_run = runs re-facing on one input dataset" } ,
 
  { 13 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
    "Make -lite work with -plusminus" ,

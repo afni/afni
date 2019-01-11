@@ -5375,6 +5375,8 @@ extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
 extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
+extern void THD_autobbox_npad(int) ;
+extern void THD_autobbox_noexpand(int) ;                   /* 08 Jan 2019 */
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
@@ -5410,6 +5412,7 @@ extern MRI_IMAGE * THD_mad_brick   ( THD_3dim_dataset * ) ;  /* 07 Dec 2006 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_aveabs_brick( THD_3dim_dataset * ) ;  /* 11 May 2009 */
+extern MRI_IMAGE * THD_maxabs_brick( THD_3dim_dataset * ) ;  /* 08 Jan 2019 */
 
 extern MRI_IMARR * THD_medmad_bricks   (THD_3dim_dataset *); /* 07 Dec 2006 */
 extern MRI_IMARR * THD_meansigma_bricks(THD_3dim_dataset *); /* 07 Dec 2006 */

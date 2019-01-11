@@ -46,8 +46,7 @@ ENTRY("THD_zeropad") ;
    if( add_I==0 && add_S==0 && add_P==0 &&
        add_A==0 && add_L==0 && add_R==0    ){
 
-      fprintf(stderr,"++ THD_zeropad: all pad values are zero!\n") ;
-
+      INFO_message("THD_zeropad: all pad values are zero - just copying dataset") ;
       outset = EDIT_full_copy( inset , prefix ) ;  /* 14 May 2002 */
       RETURN( outset );
    }
