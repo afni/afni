@@ -356,13 +356,13 @@ endif
 
 CLEANUP:
 
-if ( $doclean ) then
-  \rm -f "${pref}"*
-endif
-
 ## Rename affine warp matrix
 
 \mv -f "${pref}TAL5_Allin.aff12.1D" $odir/anatQQ."${SubID}".aff12.1D
+
+if ( $doclean ) then
+  \rm -f "${pref}"*
+endif
 
 goto GOOD_EXIT
 
