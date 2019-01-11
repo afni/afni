@@ -2562,8 +2562,11 @@ static int init_dicom_globals(dicom_globals_t * info)
 /* Get some header info from a DICOM file [15 Nov 2011 - RWCox] */
 /*
  * nposn = name position (was dolast): -1 = first, 0 = skip, 1 = last
- *                                                 5 Oct 2012 [rickr] */
-char * mri_dicom_hdrinfo( char *fname , int natt , char **att , int nposn )
+ *                                                 5 Oct 2012 [rickr]
+ * sepstr: if non-NULL, use a separator (instead of space) 11 Jan 2019 [rickr]
+ */
+char * mri_dicom_hdrinfo( char *fname , int natt , char **att , int nposn,
+                          char *sepstr )
 {
    char *strout=NULL , *ppp , **epos , *ddd , sss[256] ;
    int aa ;
@@ -2614,8 +2617,10 @@ ENTRY("mri_dicom_hdrinfo") ;
      }
 
      /* if name is first or after first output, add a space */
-     if( nposn != -1 && aa == 0 ) strout = THD_zzprintf(strout,"%s" ,sss) ;
-     else                         strout = THD_zzprintf(strout," %s",sss) ;
+     if( nposn != -1 && aa == 0 ) 
+        strout = THD_zzprintf(strout,"%s" ,sss) ;
+     else
+        strout = THD_zzprintf(strout,"%s%s",sepstr?sepstr:" ", sss) ;
    }
    if( nposn == 1 ) strout = THD_zzprintf(strout," %s",fname) ;
 
@@ -2635,9 +2640,9 @@ static char *cut_str_range(char const *input, size_t start, size_t len) {
  }
 
 /* get full tag until new line character */
-char * mri_dicom_hdrinfo_full( char *fname , int natt , char **att , int nposn )
+char * mri_dicom_hdrinfo_full( char *fname , int natt , char **att , int nposn,
+                               char *sepstr )
 {
-
    char *strout=NULL, *ppp, **epos, *ddd, *end_of_line, *full_tag=NULL;
    int aa, end_index;
 
@@ -2693,10 +2698,11 @@ ENTRY("mri_dicom_hdrinfo_full") ;
      if( nposn != -1 && aa == 0 ){
          strout = THD_zzprintf(strout,"%s" ,full_tag?full_tag:"null") ;
      } else {
-         strout = THD_zzprintf(strout," %s",full_tag?full_tag:"null") ;
+         strout = THD_zzprintf(strout,"%s%s", sepstr?sepstr:" ",
+                                              full_tag?full_tag:"null") ;
      }
      if( full_tag ) free(full_tag);
    }
-   if( nposn == 1 ) strout = THD_zzprintf(strout," %s",fname) ;
+   if(nposn == 1) strout = THD_zzprintf(strout,"%s%s",sepstr?sepstr:" ",fname);
    free(epos) ; free(ppp) ; RETURN(strout) ;
 }

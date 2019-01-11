@@ -3,6 +3,7 @@
 int main(int argc, char **argv)
 {
    char *str ;
+   char *sepstr=NULL;           /* 11 Jan 2019 [rickr] */
    int ii, iarg=1 , nposn=-1 ;  /* default name position is first */
    int ntag=0 ; char **tag=NULL ;
    int full_entry=0 ;
@@ -32,6 +33,8 @@ int main(int argc, char **argv)
             " -full_entry    = Output the full entry if it is more than\n"
             "                  one word or contains white space. If the entry is\n"
             "                  REALLY long, this may be truncated.\n"
+            "\n"
+            " -sepstr STR    = use STR to separate fields, rather than space\n"
             "\n"
             " ~4~\n"
             "* The purpose of this program is to be used in scripts to figure out\n"
@@ -181,6 +184,13 @@ int main(int argc, char **argv)
        nposn = 0 ; iarg++ ; continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-sepstr") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
+       sepstr = argv[iarg] ;
+       iarg++ ;
+       continue ;
+     }
+
      if( strcasecmp(argv[iarg],"-tag") == 0 ){
        char *ttt ;
        if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
@@ -213,9 +223,9 @@ int main(int argc, char **argv)
 
    for( ii=iarg ; ii < argc ; ii++ ){
      if( full_entry == 0 )
-        str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , nposn ) ;
+        str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , nposn , sepstr ) ;
     else
-        str = mri_dicom_hdrinfo_full( argv[ii] , ntag , tag , nposn ) ;
+        str = mri_dicom_hdrinfo_full( argv[ii] , ntag , tag , nposn , sepstr ) ;
 
      if( str == NULL ) continue ;
      printf("%s\n",str) ;
