@@ -627,10 +627,11 @@ g_history = """
         - added opts -volreg_allin_auto_stuff and -volreg_allin_cost
         - nest apqc_make_tcsh.py under @ss_review_basic block
     6.28 Jan 16, 2019:
+        - have -regress_mot_as_ort default to yes
         - rename external_volreg_base to vr_base_external
 """
 
-g_version = "version 6.27, January 7, 2019"
+g_version = "version 6.28, January 16, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1425,7 +1426,7 @@ class SubjProcSream:
                         helpstr="specify which motion parameters to apply")
         self.valid_opts.add_opt('-regress_mot_as_ort', 1, [],
                         acplist=['yes','no'],
-                        helpstr="apply motion params via -ortvec")
+                        helpstr="apply motion params via -ortvec (def: yes)")
         self.valid_opts.add_opt('-regress_motion_file', 1, [],
                         helpstr="external file to apply as motion regressors")
         self.valid_opts.add_opt('-regress_motion_per_run', 0, [],

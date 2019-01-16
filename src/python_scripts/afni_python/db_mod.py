@@ -5066,8 +5066,8 @@ def db_cmd_regress(proc, block):
     if not married_types_match(proc, proc.stims_orig, stim_types, basis): return
 
     # note whether motion regs will be done via -ortvec
-    opt = block.opts.find_opt('-regress_mot_as_ort')
-    mot_as_ort = OL.opt_is_yes(opt)
+    # the default is now 'yes' [changed 16 Jan, 2019]
+    mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
     if mot_as_ort: nmotion = 0
@@ -12405,15 +12405,15 @@ g_help_options = """
 
         -regress_mot_as_ort yes/no : regress motion parameters using -ortvec
 
-                default: no
+                default: yes
+                [default changed from 'no' to 'yes' 16 Jan, 2019]
 
-            By default, motion parameters are applied to 3dvolreg using
-            -stim_file and -stim_base.  Use this option to apply them using
-            -ortvec, instead.
+            Applying this option with 'no', motion parameters would be passed
+            to 3dDeconvolve using -stim_file and -stim_base, instead of the
+            default -ortvec.
 
-            One difference is in having a "cleaner" 3dDeconvolve command,
-            without the many extra -stim_file options.  Another is a change in
-            the labels associated with the individual parameters.  Otherwise,
+            Using -ortvec (the default) produces a "cleaner" 3dDeconvolve
+            command, without the many extra -stim_file options.  Otherwise,
             all results should be the same.
 
         -regress_motion_per_run : regress motion parameters from each run
