@@ -626,6 +626,8 @@ g_history = """
         - added opt -volreg_method 3dvolreg|3dAllineate
         - added opts -volreg_allin_auto_stuff and -volreg_allin_cost
         - nest apqc_make_tcsh.py under @ss_review_basic block
+    6.28 Jan 16, 2019:
+        - rename external_volreg_base to vr_base_external
 """
 
 g_version = "version 6.27, January 7, 2019"
@@ -815,7 +817,7 @@ class SubjProcSream:
         self.blip_obl_rev = 0           # is it oblique
 
         self.vr_ext_base= None          # name of external volreg base 
-        self.vr_ext_pre = 'external_volreg_base' # copied volreg base prefix
+        self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_fint = ''          # final interpolation for warped dsets
