@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "-regress_mot_as_ort now defaults to yes; use vr_base_external",
+   "This should not affect results, it is prep for other evil designs."
+ } ,
+
  { 11, Jan, 2019, RCR, "dicom_hinfo", MICRO, TYPE_NEW_OPT,
    "add -sepstr option",
    "Done for ZXu on message board."
@@ -565,7 +570,7 @@ afni_history_struct rickr_history[] = {
 
  { 25, Apr, 2018, RCR, "meica.py", MINOR, TYPE_BUG_FIX,
    "deal with numpy update that fails for 'array == None', use 'is None'",
-   "Thanks to dowdlelt on MB for noting this and pointing to the emdupre\n"
+   "Thanks to dowdlele on MB for noting this and pointing to the emdupre\n"
    "update on https://github.com/ME-ICA/me-ica."
  } ,
 
