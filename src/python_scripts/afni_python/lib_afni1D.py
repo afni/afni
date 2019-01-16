@@ -259,6 +259,109 @@ class Afni1D:
             print('index %3d%s%s' % (ind, gstr, lstr))
          elif show_labs: print('%s' % self.labels[ind])
 
+   def show_df_info(self):
+      show_groups = (len(self.groups) == self.nvec)
+      show_labs = (len(self.labels) == self.nvec)
+      if not show_groups and not show_labs:
+         print('** no DF info to show')
+         return
+
+      # known -ortvec label prefix list: ROI ROIPC bandpass morts mot
+      # seen by:
+      # grep -h '   -ortvec' results.*/proc.* | awk '{print $3}' \
+      #      | tr '._' ' ' | awk '{print $1}' | sort | uniq
+
+
+      print("")
+      print("***************** function in progress... ****************")
+
+      pol_list = [ind for ind in range(self.nvec) if self.groups[ind] < 0]
+      zero_list = [ind for ind in range(self.nvec) if self.groups[ind] == 0]
+      pos_list = [ind for ind in range(self.nvec) if self.groups[ind] > 0]
+      bp_list = [ind for ind in zero_list \
+                     if UTIL.starts_with(self.labels[ind], "bandpass")]
+
+      print("")
+      print("pol_list    : len %d" % len(pol_list))
+      print("zero_list   : len %d" % len(zero_list))
+      print("pos_list    : len %d" % len(pos_list))
+      print("bp_list     : len %d" % len(bp_list))
+      print("nruns %d, nvec %d, nt %d, nrowfull %d" \
+            % (self.nruns, self.nvec, self.nt, self.nrowfull))
+      print("run_len     : %s" % UTIL.int_list_string(self.run_len))
+      print("run_len_nc  : %s" % UTIL.int_list_string(self.run_len_nc))
+
+      run_starts = [0]*self.nruns
+      roff = 0
+      for rind, rlen in enumerate(self.run_len):
+         run_starts[rind] += roff
+         roff += rlen
+      print("run_starts  : %s" % UTIL.int_list_string(run_starts))
+      bp_counts = [0]*self.nruns
+      for bind, bpind in enumerate(bp_list):
+         rind = self.get_bp_run(self.mat[bpind], run_starts)
+         if rind < 0 or rind >= self.nruns:
+            print("** bad bp rind = %d" % rind)
+         else:
+            bp_counts[rind] += 1
+
+      print("bp_counts   : %s" % UTIL.int_list_string(bp_counts))
+      print("")
+
+
+   def get_bp_run(self, bpreg, run_starts):
+      """given a bandpass regressor and the run starts, return the 0-based
+         run index that seems to apply
+
+         So find the min and max indices of non-zero value, and check that
+         they are in the same run.
+      """
+      # for some reason, zeros are not exactly zero in the X-matrix
+      # (epsilon does not need to be too small, since all regressors
+      # should have a max close to 1)
+      epsilon = 0.001
+      nzmax = -1
+
+      nt = len(bpreg)
+
+      # find the first non-zero value
+      nzmin = -1
+      for tp in range(nt):
+         if abs(bpreg[tp]) > epsilon:
+            nzmin = tp
+            break
+
+      # and the last
+      nzmax = -1
+      for tp in range(nt-1, -1, -1):
+         if abs(bpreg[tp]) > epsilon:
+            nzmax = tp
+            break
+
+      # if we failed, bail
+      if nzmin < 0 or nzmax < 0:
+         print("** get_bp_run: BP reg is all zero?")
+         return -1
+
+      # see if they were in the same run
+      rind_min = self.get_run_index(run_starts, nzmin)
+      rind_max = self.get_run_index(run_starts, nzmax)
+
+      if rind_min != rind_max:
+         print("** get_bp_run: rind_min != rind_max (%d != %d)" \
+               % (rind_min, rind_max))
+         return -1
+
+      return rind_min
+
+   def get_run_index(self, run_starts, index):
+      """ignore first run start, and see if index is less than any"""
+
+      for rind in range(len(run_starts)-1):
+         if index < run_starts[rind+1]:
+            return rind
+      return len(run_starts) - 1
+
    def reduce_by_label_prefix(self, keep_pre=[], drop_pre=[]):
 
       rv, newlist = self.label_prefix_to_ints(keep_pre, drop_pre)
@@ -2606,6 +2709,9 @@ class Afni1D:
 
    def init_from_matrix(self, matrix):
       """initialize Afni1D from a 2D (or 1D) array"""
+
+      if self.verb > 3: print("-- Afni1D: init_from_matrix")
+
       if type(matrix) != type([]):
          print('** matrix for init must be [[float]] format')
          return 1
