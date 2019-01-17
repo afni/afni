@@ -3,14 +3,14 @@
 ## 11/2017 Justin Rajendra
 ## launch shiny plot of FATCAT outputs
 
+## get the current program name
+set prog = `basename $0`
+
 ## find the shiny folder
-set afni_bin = `which afni`
+set afni_bin = `which ${prog}`
 set afni_dir = `dirname ${afni_bin}`
 set ShinyFolder = "${afni_dir}/shiny/FATCAT_matplot_shiny"
 set InFolder = ""
-
-## get the current program name
-set prog = `basename $0`
 
 ## show help
 if ( $#argv < 1 ) then
@@ -37,8 +37,7 @@ if ( "$InFolder" == "" ) then
     goto SHOW_HELP
 endif
 if ( ! -d $InFolder ) then
-    echo ; echo "Error: ${InFolder} does not exist." ; echo
-    exit 1
+    echo ; echo "Error: ${InFolder} does not exist." ; echo ; exit 1
 endif
 
 ## get full path for the input folder
