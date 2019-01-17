@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Jan, 2019, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
+   "add option -show_df_info, to partition degrees of freedom in X-matrix",
+   NULL
+ } ,
+
  { 16, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "-regress_mot_as_ort now defaults to yes; use vr_base_external",
    "This should not affect results, it is prep for other evil designs."
