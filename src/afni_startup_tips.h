@@ -710,16 +710,6 @@ static char *gby[] = {
      "Ever returning spring, trinity sure to me you bring"           ,
      "If thou wast not grant to sing, thou would'st surely die"      ,
      "Here, user that slowly passes, I give you my sprig of lilac"   ,
-     "What a long strange trip it's been"                            ,
-     "Sometime the light shines on me, other times I can barely see" ,
-     "When life looks like Easy Street, there is danger at your door",
-     "Like the morning sun I come, like the wind I go"               ,
-     "What I want to know is, where does the time go?"               ,
-     "Every silver lining's got a touch of grey"                     ,
-     "A friend of the devil is a friend of mine"                     ,
-     "Well, I ain't often right, but I never been wrong"             ,
-     "If the horse don't pull, you got to carry the load"            ,
-     "Hang it up and see what tomorrow brings"                       ,
      "The flower that once has blown, for ever dies"                 ,
      "Drink! for you know not why you go, or where"                  ,
      "Tomorrow we feast with us at home"                             ,
@@ -1154,6 +1144,17 @@ static char *gby[] = {
      "The only true necessities are totally useless things"                     ,
      "The soul is born old but grows young."                                    ,
      "When given the choice of two evils, the pessimist chooses both"           ,
+     "Never love anyone who treats you like you're ordinary"                    ,
+     "The smallest act of kindness is worth more than the grandest intention"   ,
+     "I can believe anything, provided that it is quite incredible"             ,
+
+     "\n In this world there are only two tragedies:\n"
+     "   One is not getting what one wants, and the other is getting it"        ,
+
+     "\n The world is divided into two classes:\n"
+     "   Those who believe the incredible, and those who do the improbable"     ,
+
+     "Whenever a man does a thoroughly stupid thing, it is always from the noblest motives" ,
 
      /* Longer quotes */
 
@@ -1325,6 +1326,29 @@ static char *gby[] = {
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
      "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
+
+     /* Grateful Dead (mostly) */
+
+     "Once in a while you get shown the light in the strangest of places, if you look at it right"      ,
+     "There is no road, no simple highway, between the dawn and the dark of night"                      ,
+     "Without love in the dream, it will never come true"                                               ,
+     "Talk about your plenty, talk about your ills, one man gathers what another man spills"            ,
+     "The grass ain’t greener, the wine ain’t sweeter, either side of the hill"                         ,
+     "Someday, everything is gonna be different when I paint my masterpiece"                            ,
+     "What a long strange trip it's been"                                                               ,
+     "Sometime the light shines on me, other times I can barely see"                                    ,
+     "When life looks like Easy Street, there is danger at your door"                                   ,
+     "Like the morning sun I come, like the wind I go"                                                  ,
+     "What I want to know is, where does the time go?"                                                  ,
+     "Every silver lining's got a touch of grey"                                                        ,
+     "A friend of the devil is a friend of mine"                                                        ,
+     "Well, I ain't often right, but I never been wrong"                                                ,
+     "If the horse don't pull, you got to carry the load"                                               ,
+     "Hang it up and see what tomorrow brings"                                                          ,
+     "Nothing left to do but smile, smile, smile"                                                       ,
+     "If the thunder don't get you, then the lightning will"                                            ,
+     "Only you and me at the edge of an endless sea"                                                    ,
+     "Trouble ahead, trouble behind, and you know that notion, just crossed my mind"                    ,
 
      /* Multi-line quotes */
      "\n  A journey of a thousand miles begins with a single stride,\n"
