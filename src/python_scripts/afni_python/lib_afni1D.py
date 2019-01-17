@@ -260,10 +260,19 @@ class Afni1D:
          elif show_labs: print('%s' % self.labels[ind])
 
    def show_df_info(self):
+      """just in case, since AP processing will depend on this"""
+      # self.protected_show_df_info()
+      try: self.protected_show_df_info()
+      except: print("** failed show_df_info")
+
+   def protected_show_df_info(self):
       show_groups = (len(self.groups) == self.nvec)
       show_labs = (len(self.labels) == self.nvec)
       if not show_groups and not show_labs:
          print('** no DF info to show')
+         return
+      if self.GLapplied != 1:
+         print("** show_df_info: requires original Xmat from 3dDeconvolve")
          return
 
       # known -ortvec label prefix list: ROI ROIPC bandpass morts mot
@@ -272,42 +281,135 @@ class Afni1D:
       #      | tr '._' ' ' | awk '{print $1}' | sort | uniq
 
 
-      print("")
-      print("***************** function in progress... ****************")
+      ort_labs = ['ROIPC', 'ROI', 'bandpass', 'morts']
+      mot_labs = ['mot_deriv', 'mot', 'roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
+      nortlabs = len(ort_labs)
+      nmotlabs = len(mot_labs)
+      # put them together for extraction
+      all_ort_labs = ort_labs[:]
+      all_ort_labs.extend(mot_labs[:])
 
+      # partition regressors by group (polort, other RONI, ROI)
       pol_list = [ind for ind in range(self.nvec) if self.groups[ind] < 0]
       zero_list = [ind for ind in range(self.nvec) if self.groups[ind] == 0]
       pos_list = [ind for ind in range(self.nvec) if self.groups[ind] > 0]
+
       bp_list = [ind for ind in zero_list \
                      if UTIL.starts_with(self.labels[ind], "bandpass")]
 
-      print("")
-      print("pol_list    : len %d" % len(pol_list))
-      print("zero_list   : len %d" % len(zero_list))
-      print("pos_list    : len %d" % len(pos_list))
-      print("bp_list     : len %d" % len(bp_list))
-      print("nruns %d, nvec %d, nt %d, nrowfull %d" \
-            % (self.nruns, self.nvec, self.nt, self.nrowfull))
-      print("run_len     : %s" % UTIL.int_list_string(self.run_len))
-      print("run_len_nc  : %s" % UTIL.int_list_string(self.run_len_nc))
+      # partition group 0 (RONI)
+      missed, ort_counts = self.count_sublist_labs(self.labels, all_ort_labs, 
+                                                   index_list=zero_list)
 
+      # get counts from any motion labels
+      # (now we have any ort_lab count, motcount, and missed)
+      motcount = UTIL.loc_sum(ort_counts[nortlabs:])
+
+      # maybe Paul will want BP counts across runs
+      bp_run_counts = self.get_bp_counts_by_run(bp_list, verb=(self.verb>1))
+
+      # make a print list of 3 element strings
+      plist = []
+
+      # real info
+      ncensor = self.nrowfull - self.nt
+      totalDF = self.nrowfull
+      plist.append(self._df_entry("initial DF", totalDF, 1.0))
+      # group > 0, censoring, -1
+      plist.append(self._df_entry("regressors of interest", len(pos_list),
+                                 1.0*len(pos_list)/totalDF))
+      plist.append(self._df_entry("DF used for censoring", ncensor,
+                                 1.0*ncensor/totalDF))
+      plist.append(self._df_entry("DF used for plort", len(pol_list),
+                                 1.0*len(pol_list)/totalDF))
+      # group 0: motion ort_lab entries, other (missed)
+      plist.append(self._df_entry("DF used for motion", motcount,
+                                 1.0*motcount/totalDF))
+
+      # other counts are reported only if positive
+      for oind, olab in enumerate(ort_labs):
+         if ort_counts[oind] > 0:
+            plist.append(self._df_entry("DF used for %s"%olab,
+                         ort_counts[oind], 1.0*ort_counts[oind]/totalDF))
+      if missed > 0:
+         plist.append(self._df_entry("DF used for other RONI", missed,
+                                    1.0*missed/totalDF))
+
+      plist.append(self._df_entry("total DF used", ncensor+self.nvec,
+                                 1.0*(ncensor+self.nvec)/totalDF))
+      plist.append(self._df_entry("final DF", self.nt-self.nvec,
+                                 1.0*(self.nt-self.nvec)/totalDF))
+
+      # get max string lengths for padding
+      m0 = max(len(p[0]) for p in plist)
+      m1 = max(len(p[1]) for p in plist)
+      m2 = max(len(p[2]) for p in plist)
+
+      # and finally, print this out, assuming conversion to percent
+      print("")
+      for p in plist:
+         print("%-*s : %*s : %*s %%" % (m0, p[0], m1, p[1], m2, p[2]))
+      print("")
+
+   def _df_entry(self, v1, v2, v3, v3_f2pct=1):
+      """return list of values converted to strings
+         if v3_f2pct: convert as fraction to percent
+      """
+      if v3_f2pct: s3 = '%.1f'%(100.0*v3)
+      else:        s3 = '%s' % v3
+      return ['%s'%v1, '%s'%v2, s3]
+
+   def get_bp_counts_by_run(self, bp_list, verb=0):
+      """return a list of bp_counts across runs"""
+
+      # note the index at the start of each run
       run_starts = [0]*self.nruns
       roff = 0
       for rind, rlen in enumerate(self.run_len):
          run_starts[rind] += roff
          roff += rlen
-      print("run_starts  : %s" % UTIL.int_list_string(run_starts))
+      if verb: print("run_starts  : %s" % UTIL.int_list_string(run_starts))
+
+      # for each bp reg, see which run it seems to belong to
       bp_counts = [0]*self.nruns
       for bind, bpind in enumerate(bp_list):
          rind = self.get_bp_run(self.mat[bpind], run_starts)
          if rind < 0 or rind >= self.nruns:
-            print("** bad bp rind = %d" % rind)
+            if verb: print("** bad bp rind = %d" % rind)
          else:
             bp_counts[rind] += 1
+      if verb: print("bp_counts   : %s" % UTIL.int_list_string(bp_counts))
 
-      print("bp_counts   : %s" % UTIL.int_list_string(bp_counts))
-      print("")
+      return bp_counts
 
+   def count_sublist_labs(self, labels, prefix_list, index_list=None):
+      """given a list of labels and a corresponding index sub-list (None?),
+         return a list of counts of each prefix in prefix_list (checked in
+         order)
+
+         If index list is None, use all.
+
+         return num_not_found, and count list
+      """
+      if not labels or len(labels) == 0: return 0, []
+      if not prefix_list or len(prefix_list) == 0: return 0, []
+
+      # first note which elements of 'labels' we will go after
+      if index_list == None: ind_list = list(range(len(labels)))
+      else:                  ind_list = index_list
+
+      notfound = 0
+      counts = [0]*len(prefix_list)
+      for lind in ind_list:
+         found = 0
+         for pind, prefix in enumerate(prefix_list):
+            if UTIL.starts_with(labels[lind], prefix):
+               counts[pind] += 1
+               found = 1
+               break
+         if not found: notfound += 1
+
+      return notfound, counts
 
    def get_bp_run(self, bpreg, run_starts):
       """given a bandpass regressor and the run starts, return the 0-based
