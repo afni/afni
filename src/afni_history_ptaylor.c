@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Jan , 2019 , PT , "@SSwarper" , MINOR , TYPE_BUG_FIX,
+   "Program wouldn't run with '-odir ..' opt.",
+   "Now it will.\n"
+},
+
 { 21, Dec , 2018 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
    "Adjusted coordinator for a couple situations.",
    "Should be more centered for both 3D and 4D applications.\n"

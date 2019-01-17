@@ -15,9 +15,12 @@
 #set version   = "1.1"; set rev_dat   = "July 1, 2018"
 #   + fixed searching for path of dset, use explicit check first
 #
-set version   = "1.2"; set rev_dat   = "July 5, 2018"
+#set version   = "1.2"; set rev_dat   = "July 5, 2018"
 #   + set check if OMP_NUM_THREADS is explicitly set, so echoing don't
 #     break it -- thanks P. Molfese et al.!
+#
+set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
+#   + [PT] bug fix-- 3danisosmooth cmd was missing ${odir} on I/O
 #
 # ----------------------------------------------------------------
 
@@ -206,11 +209,21 @@ endif
 ## Step #1: Unifize the input T1
 
 if( ! -f $odir/anatU."${SubID}".nii ) then
-  3dUnifize -prefix $odir/anatU."$SubID".nii -GM -input "$Adataset" -clfrac 0.4
+  3dUnifize                           \
+    -GM                               \
+    -clfrac 0.4                       \
+    -prefix $odir/anatU."$SubID".nii  \
+    -input "$Adataset" 
 endif
 
 if( ! -f $odir/anatUA."${SubID}".nii ) then
-  3danisosmooth -prefix anatUA."${SubID}".nii -iters 1 -3D -automask -noneg anatU."${SubID}".nii
+  3danisosmooth                         \
+    -iters 1                            \
+    -3D                                 \
+    -automask                           \
+    -noneg                              \
+    -prefix $odir/anatUA."${SubID}".nii \
+    $odir/anatU."${SubID}".nii
 endif
 
 # Step #2: Strip Skull (Ziad's way)
@@ -279,8 +292,16 @@ endif
        -prefix "$odir/anatSS.${SubID}.nii"
 
 # DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
-3dmask_tool -dilate_inputs -3 3 -prefix ${pref}de3.nii -input anatSS."${SubID}".nii
-3dcalc -a anatSS."${SubID}".nii -b ${pref}de3.nii -expr 'a*step(b)' -prefix anatSSc."${SubID}".nii
+3dmask_tool                           \
+    -dilate_inputs -3 3               \
+    -prefix ${pref}de3.nii            \
+    -input  anatSS."${SubID}".nii
+3dcalc                                \
+    -a anatSS."${SubID}".nii          \
+    -b ${pref}de3.nii                 \
+    -expr 'a*step(b)'                 \
+    -prefix anatSSc."${SubID}".nii
+
 \rm -f ${pref}de3.nii anatSS."${SubID}".nii
 \mv -f anatSSc."${SubID}".nii anatSS."${SubID}".nii
 
@@ -354,8 +375,16 @@ else
 endif
 
 # DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
-3dmask_tool -dilate_inputs -1 1 -prefix ${pref}de3.nii -input anatQQ."${SubID}".nii
-3dcalc -a anatQQ."${SubID}".nii -b ${pref}de3.nii -expr 'a*step(b)' -prefix anatQQc."${SubID}".nii
+3dmask_tool                             \
+    -dilate_inputs -1 1                 \
+    -prefix ${pref}de3.nii              \
+    -input  anatQQ."${SubID}".nii
+3dcalc                                  \
+    -a anatQQ."${SubID}".nii            \
+    -b ${pref}de3.nii                   \
+    -expr 'a*step(b)'                   \
+    -prefix anatQQc."${SubID}".nii
+
 \rm -f ${pref}de3.nii anatQQ."${SubID}".nii
 \mv -f anatQQc."${SubID}".nii anatQQ."${SubID}".nii
 
