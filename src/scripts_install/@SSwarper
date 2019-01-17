@@ -278,6 +278,12 @@ endif
        -expr 'step(c)*max(a,b)'       \
        -prefix "$odir/anatSS.${SubID}.nii"
 
+# DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
+3dmask_tool -dilate_inputs -3 3 -prefix ${pref}de3.nii -input anatSS."${SubID}".nii
+3dcalc -a anatSS."${SubID}".nii -b ${pref}de3.nii -expr 'a*step(b)' -prefix anatSSc."${SubID}".nii
+\rm -f ${pref}de3.nii anatSS."${SubID}".nii
+\mv -f anatSSc."${SubID}".nii anatSS."${SubID}".nii
+
 # don't do any more if skipping the final (precision) warp
 
 if( $skipwarp ) goto CLEANUP
@@ -346,6 +352,12 @@ else
       -pblur -minpatch $minp               \
       -prefix $odir/anatQQ."${SubID}".nii
 endif
+
+# DRG's erode-dilate trick for cleanup of little crap [16 Jan 2019]
+3dmask_tool -dilate_inputs -1 1 -prefix ${pref}de3.nii -input anatQQ."${SubID}".nii
+3dcalc -a anatQQ."${SubID}".nii -b ${pref}de3.nii -expr 'a*step(b)' -prefix anatQQc."${SubID}".nii
+\rm -f ${pref}de3.nii anatQQ."${SubID}".nii
+\mv -f anatQQc."${SubID}".nii anatQQ."${SubID}".nii
 
 ## Step #7: Make two pretty pictures, and scram
 
@@ -596,6 +608,3 @@ BAD_EXIT:
 
 GOOD_EXIT:
     exit 0
-
-
-

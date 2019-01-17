@@ -7,7 +7,7 @@
 set prog = `basename $0`
 
 ## find afni and set the shiny path
-set afni_bin  = `which afni`
+set afni_bin  = `which ${prog}`
 set afni_dir = `dirname $afni_bin`
 set ShinyFolder = ""
 set InTable = ""
