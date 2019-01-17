@@ -130,6 +130,10 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -show_group_labels
 
+       d. Display "degree of freedom" information:
+
+         1d_tool.py -infile X.xmat.1D -show_df_info
+
    Example 6a.  Show correlation matrix warnings for this matrix. ~2~
 
          1d_tool.py -infile X.xmat.1D -show_cormat_warnings
@@ -905,6 +909,7 @@ general options: ~2~
    -show_cormat                 : display correlation matrix
    -show_cormat_warnings        : display correlation matrix warnings
    -show_df_info                : display info about degrees of freedom in xmat.1D file
+   -show_df_protect yes/no      : protection flag (def=yes)
    -show_gcor                   : display GCOR: the average correlation
    -show_gcor_all               : display many ways of computing (a) GCOR
    -show_gcor_doc               : display descriptions of those ways
@@ -1144,9 +1149,10 @@ g_history = """
    2.01 Apr 18, 2018 - added -csim_show_clustsize and related options
    2.02 May 18, 2018 - handle '3dttest++ -Clustsim' files, with no blur
    2.03 Dec 14, 2018 - include mask and params in -csim_show_clustsize output
+   2.04 Jan 17, 2019 - added -show_df_info and -show_df_protect
 """
 
-g_version = "1d_tool.py version 2.03, Dec 14, 2018"
+g_version = "1d_tool.py version 2.04, Jan 17, 2019"
 
 
 class A1DInterface:
@@ -1209,6 +1215,7 @@ class A1DInterface:
       self.show_cormat_warn= 0          # show cormat warnings
       self.show_displace   = 0          # max_displacement (0,1,2)
       self.show_df_info    = 0          # show infor on degrees of freedom in xmat.1D
+      self.show_df_protect = 1          # flag for show_df_info()
       self.show_gcor       = 0          # bitmask: GCOR, all, doc
       self.show_group_labels = 0        # show the groups and labels
       self.show_indices    = 0          # bitmask for index lists to show
@@ -1465,6 +1472,10 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-show_df_info', 0, [], 
                       helpstr='show degrees of freedom information from xmat.1D')
+
+      self.valid_opts.add_opt('-show_df_protect', 1, [], 
+                      acplist=['yes', 'no'],
+                      helpstr='protect against -show_df_info failure')
 
       self.valid_opts.add_opt('-show_gcor', 0, [], 
                       helpstr='display GCOR : the average correlation')
@@ -1898,6 +1909,10 @@ class A1DInterface:
          elif opt.name == '-show_df_info':
             self.show_df_info = 1
 
+         elif opt.name == '-show_df_protect':
+            if OL.opt_is_no(opt):
+               self.show_df_protect = 0
+
          elif opt.name == '-show_gcor':         # show_gcor is bit mask
             self.show_gcor |= 1
 
@@ -2174,7 +2189,8 @@ class A1DInterface:
       if self.show_labels: self.adata.show_labels()
       if self.show_group_labels: self.adata.show_group_labels()
       if self.global_index >= 0: self.show_index_to_run_tr()
-      if self.show_df_info: self.adata.show_df_info()
+      if self.show_df_info:
+         self.adata.show_df_info(protect=self.show_df_protect)
 
       # treat reverse as a toggle
       if self.reverse_rank:

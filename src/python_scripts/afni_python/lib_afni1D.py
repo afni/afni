@@ -259,13 +259,17 @@ class Afni1D:
             print('index %3d%s%s' % (ind, gstr, lstr))
          elif show_labs: print('%s' % self.labels[ind])
 
-   def show_df_info(self):
-      """just in case, since AP processing will depend on this"""
-      # self.protected_show_df_info()
-      try: self.protected_show_df_info()
-      except: print("** failed show_df_info")
+   def show_df_info(self, protect=1):
+      """protect, just in case, since AP processing will depend on this"""
+      if self.verb > 4: print("++ show_df_info, protect=%d"%protect)
+      if protect: self.protected_show_df_info()
+      else:       self._show_df_info()
 
    def protected_show_df_info(self):
+      try: self._show_df_info()
+      except: print("** failed show_df_info")
+
+   def _show_df_info(self):
       show_groups = (len(self.groups) == self.nvec)
       show_labs = (len(self.labels) == self.nvec)
       if not show_groups and not show_labs:
@@ -315,12 +319,13 @@ class Afni1D:
       ncensor = self.nrowfull - self.nt
       totalDF = self.nrowfull
       plist.append(self._df_entry("initial DF", totalDF, 1.0))
+      plist.append([]) # blank line
       # group > 0, censoring, -1
-      plist.append(self._df_entry("regressors of interest", len(pos_list),
+      plist.append(self._df_entry("DF used for regs of interest", len(pos_list),
                                  1.0*len(pos_list)/totalDF))
       plist.append(self._df_entry("DF used for censoring", ncensor,
                                  1.0*ncensor/totalDF))
-      plist.append(self._df_entry("DF used for plort", len(pol_list),
+      plist.append(self._df_entry("DF used for polort", len(pol_list),
                                  1.0*len(pol_list)/totalDF))
       # group 0: motion ort_lab entries, other (missed)
       plist.append(self._df_entry("DF used for motion", motcount,
@@ -337,18 +342,22 @@ class Afni1D:
 
       plist.append(self._df_entry("total DF used", ncensor+self.nvec,
                                  1.0*(ncensor+self.nvec)/totalDF))
+      plist.append([]) # blank line
       plist.append(self._df_entry("final DF", self.nt-self.nvec,
                                  1.0*(self.nt-self.nvec)/totalDF))
 
       # get max string lengths for padding
-      m0 = max(len(p[0]) for p in plist)
-      m1 = max(len(p[1]) for p in plist)
-      m2 = max(len(p[2]) for p in plist)
+      m0 = max([len(p[0]) for p in plist if len(p) > 0])
+      m1 = max([len(p[1]) for p in plist if len(p) > 0])
+      m2 = max([len(p[2]) for p in plist if len(p) > 0])
 
       # and finally, print this out, assuming conversion to percent
       print("")
       for p in plist:
-         print("%-*s : %*s : %*s %%" % (m0, p[0], m1, p[1], m2, p[2]))
+         if len(p) == 3:
+            print("%-*s : %*s : %*s%%" % (m0, p[0], m1, p[1], m2, p[2]))
+         else:
+            print("")
       print("")
 
    def _df_entry(self, v1, v2, v3, v3_f2pct=1):
