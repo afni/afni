@@ -4,10 +4,14 @@
 ## 11/2017 Justin Rajendra
 ## install R packages for afni/shiny/whatever
 
+## get the current program name
+set prog = `basename $0`
+
 ## find afni for OmicCircos install script
-set afni_bin = `which afni`
+set afni_bin = `which ${prog}`
 set afni_dir = `dirname ${afni_bin}`
 set OmicR    = "${afni_dir}/shiny/misc/OmicCircos_pkg_install.R"
+set CranMirror = "https://cloud.r-project.org"
 
 ## check for R
 set R_bin = "`where R`"
@@ -15,20 +19,18 @@ if ( "$R_bin" == "" ) then
     echo ; echo "ERROR: R not found!" ; echo
     echo "Is R installed?"
     echo "If not, download and install R from:"
-    echo "https://cran.r-project.org"
+    echo "${CranMirror}"
     echo "If R is installed, does it run on your tcsh command line?"
     echo "If not, check your paths." ; echo
     exit 1
 endif
-
-## get the current program name
-set prog = `basename $0`
 
 ## set the defaults
 set afni    = "boo"
 set shiny   = "boo"
 set custom  = "boo"
 set circos  = "boo"
+set ChangeMirror = "boo"
 
 ## list of packages
 set afniPkgs  = "c('afex','phia','snow','nlme','lme4','paran','psych','brms')"
@@ -54,6 +56,10 @@ while ( $narg <= $amax )
         @ narg ++
         set custom = "yay"
         set custList = "$argv[$narg]"
+    else if ( "$argv[$narg]" == "-mirror" ) then
+        @ narg ++
+        set ChangeMirror = "yay"
+        set CranMirror = "$argv[$narg]"
     else if ( "$argv[$narg]" == "-help" || "$argv[$narg]" == "-h" ) then
         goto SHOW_HELP
     else
@@ -68,13 +74,13 @@ end
 ## install afni basics
 if ( $afni == "yay") then
     echo "Installing: ${afniPkgs}" ; echo
-    Rscript -e "install.packages(${afniPkgs},repos='https://cran.rstudio.com')"
+    Rscript -e "install.packages(${afniPkgs},repos='${CranMirror}')"
 endif
 
 ## install disco shiny stuff
 if ( $shiny == "yay" ) then
     echo "Installing: ${discoPkgs}" ; echo
-    Rscript -e "install.packages(${discoPkgs},repos='https://cran.rstudio.com')"
+    Rscript -e "install.packages(${discoPkgs},repos='${CranMirror}')"
 endif
 
 ## install OmicCircos
@@ -89,7 +95,7 @@ if ( $custom == "yay" ) then
     set custList = `echo \'{$custList}\' | tr ' ' ,`
     set custPkgs = "c(${custList})"
     echo "Trying to install: ${custPkgs}" ; echo
-    Rscript -e "install.packages(${custPkgs},repos='https://cran.rstudio.com')"
+    Rscript -e "install.packages(${custPkgs},repos='${CranMirror}')"
 endif  ## end custom list
 
 exit 0
@@ -127,6 +133,9 @@ cat << EOF
                 Requires a space separated list of packages.
                 Must start and end with double quotes.
                 e.g. "earth wind fire"
+
+      -mirror : Set the cran mirror to something besides the default of
+                https://cloud.r-project.org
 
       -help   : Show this help.
 
