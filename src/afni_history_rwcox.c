@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , JAN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
+   "Add DRG's erode-dilate trick to clip off some little stuff." ,
+   NULL } ,
+
  { 8 , JAN , 2019 , RWC , "@SSwarper" , MINOR , TYPE_NEW_OPT ,
    "Add '-nolite' option" , "For backwards compatibility and testing." } ,
 
