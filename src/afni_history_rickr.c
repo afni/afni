@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "process df_info, and hand off new uvars",
+   NULL
+ } ,
+
  { 18, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "run 1d_tool.py -show_df_info, unless -regress_show_df_info no",
    NULL

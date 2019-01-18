@@ -52,9 +52,11 @@ g_ss_uvar_fields = [ \
    ['tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD'],
    ['errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD'],
    ['ss_review_dset',  'ss_review_basic output file', 'out.ss_review.FT.txt'],
-   ['pre_ss_warn_dset','out.pre_ss_warn.txt', 'out.pre_ss_warn.txt'],
-   ['tent_warn_dset',  'out.tent_warn.txt file', 'out.tent_warn.txt'],
-   ['decon_err_dset',  '3dDeconvolve.err file', '3dDeconvolve.err']
+   ['df_info_dset',    'degree of freedom info', 'out.df_info.txt'],
+   ['cormat_warn_dset','correlation warns in Xmat', 'out.cormat_warn.txt'],
+   ['pre_ss_warn_dset','pre-steady state warnings', 'out.pre_ss_warn.txt'],
+   ['tent_warn_dset',  'tent truncation warnings', 'out.tent_warn.txt'],
+   ['decon_err_dset',  '3dDeconvolve warnings', '3dDeconvolve.err']
    ]
 
 
