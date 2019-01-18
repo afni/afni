@@ -4431,6 +4431,7 @@ def db_mod_regress(block, proc, user_opts):
     errs = 0  # allow errors to accumulate
 
     apply_uopt_to_block('-regress_motion_file', user_opts, block)
+    apply_uopt_to_block('-regress_show_df_info', user_opts, block)
 
     apply_uopt_to_block('-regress_anaticor', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
@@ -5066,7 +5067,7 @@ def db_cmd_regress(proc, block):
     if not married_types_match(proc, proc.stims_orig, stim_types, basis): return
 
     # note whether motion regs will be done via -ortvec
-    # the default is now 'yes' [changed 16 Jan, 2019]
+    # the default is now 'yes' [changed 16 Jan 2019]
     mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
@@ -5391,6 +5392,13 @@ def db_cmd_regress(proc, block):
         rcmd = "# display any large pairwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
                " |& tee out.cormat_warn.txt\n\n" % proc.xmat
+        cmd = cmd + rcmd
+
+    # make a file with df_info
+    if not block.opts.have_no_opt('-regress_show_df_info'):
+        rcmd = "# display degrees of freedom info from X-matrix\n"  \
+               "1d_tool.py -show_df_info -infile %s"                \
+               " |& tee out.df_info.txt\n\n" % proc.xmat
         cmd = cmd + rcmd
 
     # if we have any TENT functions, check the stim files for odd timing

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "run 1d_tool.py -show_df_info, unless -regress_show_df_info no",
+   NULL
+ } ,
+
  { 17, Jan, 2019, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add option -show_df_info, to partition degrees of freedom in X-matrix",
    NULL
