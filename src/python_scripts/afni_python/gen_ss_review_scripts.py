@@ -854,9 +854,10 @@ g_history = """
         - nt_applied, nt_orig, ss_review_dset, xmat_stim
           pre_ss_warn_dset, decon_err_dset, tent_warn_dset
    1.4  Nov 21, 2018: look for and parse 3dQwarp template name
+   1.5  Jan 18, 2019: added df_info processing
 """
 
-g_version = "gen_ss_review_scripts.py version 1.4, November 21, 2018"
+g_version = "gen_ss_review_scripts.py version 1.5, January 18, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1501,7 +1502,8 @@ class MyInterface:
       """
 
       # get file names from g_eg_uvar
-      labels = ['pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
+      labels = ['df_info_dset', 'cormat_warn_dset',
+                'pre_ss_warn_dset', 'tent_warn_dset', 'decon_err_dset']
 
       for label in labels:
          fname = g_eg_uvar.val(label)
@@ -2687,7 +2689,19 @@ class MyInterface:
          print('** missing X-matrix, cannot drive regress_warnings')
          return 1
 
-      txt = 'echo ' + UTIL.section_divider('regession warnings',
+      txt = 'echo ' + UTIL.section_divider('degrees of freedom info',
+                                           maxlen=60, hchar='-') + '\n\n'
+
+      txt += '# if there is a df_info file, display it\n'               \
+             'if ( -f out.df_info.txt ) then\n'                         \
+             '   echo ------------- out.df_info.txt -------------\n'    \
+             '   cat out.df_info.txt\n'                                 \
+             '   echo --------------------------------------------\n'   \
+             'endif\n'                                                  \
+             '\n'                                                       \
+             'echo ""\n'                                                \
+
+      txt += 'echo ' + UTIL.section_divider('regression warnings',
                                            maxlen=60, hchar='-') + '\n\n'
 
       txt += '# if 3dDeconvolve made an error/warnings file, show it\n' \
@@ -2729,6 +2743,8 @@ class MyInterface:
 
       txt += '\n'                                                        \
              'prompt_user -pause "                                 \\\n' \
+             '   review: evaluate degrees of freedom information   \\\n' \
+             '                                                     \\\n' \
              '   review: check for regression warnings             \\\n' \
              '      - review any regressor correlation warnings    \\\n' \
              '      - review any TENT warnings from timing_tool.py \\\n' \
@@ -2738,6 +2754,7 @@ class MyInterface:
              '   "\n'                                                    \
 
       self.commands_drive += \
+             'cat out.df_info.txt\n'                                     \
              'cat 3dDeconvolve.err\n'                                    \
              '1d_tool.py -show_cormat_warnings -infile %s\n' % xset
 
