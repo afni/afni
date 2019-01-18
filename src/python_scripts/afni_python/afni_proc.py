@@ -629,12 +629,15 @@ g_history = """
     6.28 Jan 16, 2019:
         - have -regress_mot_as_ort default to yes
         - rename external_volreg_base to vr_base_external
+    6.29 Jan 18, 2019:
+        - run 1d_tool.py -show_df_info, unless -regress_show_df_info no
 """
 
-g_version = "version 6.28, January 16, 2019"
+g_version = "version 6.29, January 18, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
       [ "19 Nov 2018",  "apqc_make_tcsh.py" ],
       [ " 3 May 2018",  "@extract_meica_ortvec" ],
       [ "23 Mar 2018",  "tedana_wrapper.py" ],
@@ -1377,6 +1380,12 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
+        self.valid_opts.add_opt('-regress_cormat_warnigns', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='show any correl warns from Xmat (def=yes)')
+        self.valid_opts.add_opt('-regress_show_df_info', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='show DoF/regressor info from Xmat (def=yes)')
         self.valid_opts.add_opt('-regress_make_cbucket', 1, [],
                         acplist=['yes','no'],
                         helpstr="request cbucket dataset of all betas (yes/no)")
