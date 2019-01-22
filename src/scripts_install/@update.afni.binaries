@@ -67,6 +67,9 @@ history for $prog :
   3.5  04 Apr 2018 : missed sysname
   3.6  16 Oct 2018 : default OS X package is macos_10.12_local
                    - add newline before dotfile appends
+  3.7  22 Jan 2019 : check for obsolete packages
+                   - add -show_obsoletes, -show_obsoletes_grep
+                     and -show_system_progs
 
 -------------------------------------------------------------------------------
 EOF
@@ -75,7 +78,19 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.6, October 16, 2018"
+set aub_version = "3.7, January 22, 2019"
+
+# make a growing list of obsolete packages, particularly in case the user
+# tries to upgrade one of them and fails (at "no update needed")
+set obsolete_list = (                                           \
+        linux_gcc32 linux_gcc33_64 linux_glibc22                \
+        NIH.openSUSE.11.4_64                                    \
+        linux_fedora_21_64 linux_fedora_25_64                   \
+        solaris29_suncc solaris29_suncc_64                      \
+        macosx_10.5_Intel_64 macosx_10.6_Intel_64               \
+        macosx_10.7_Intel_64 macosx_10.7_local                  \
+        macosx_10.8_gcc macosx_10.8_icc                         \
+        )
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -89,8 +104,15 @@ set tmp_dir = ".tmp.install"    # should start with '.'
 set make_backup = 1             # backup previous binaries
 
 set sys_ok = 0                  # OK to update having system programs
+
+    # if any $system_progs are in the abin, updates
+    # should not go through this script
 set system_progs = ( apt-get at cc cpp cmp diff du gcc less man md5sum od \
                      passwd perl python scp srm sudo vi vim wc xterm yum )
+set show_system_progs = 0
+
+set show_obsoletes = 0
+set show_obsoletes_grep = 0     # greppable
 
 if ( $#argv == 0 ) then
     set help = 1
@@ -216,6 +238,13 @@ while ( $ac <= $#argv )
         set do_recur = 0
     else if ( "$argv[$ac]" == "-quick" ) then
         set quick = 1
+    else if ( "$argv[$ac]" == "-show_obsoletes" ) then
+        set show_obsoletes = 1
+    else if ( "$argv[$ac]" == "-show_obsoletes_grep" ) then
+        set show_obsoletes = 1
+        set show_obsoletes_grep = 1
+    else if ( "$argv[$ac]" == "-show_system_progs" ) then
+        set show_system_progs = 1
     else if ( "$argv[$ac]" == "-sys_ok" ) then
         set sys_ok = 1
     else if ( "$argv[$ac]" == "-ver" ) then
@@ -295,6 +324,7 @@ examples:
        $prog -package linux_openmp_64 -bindir ~/abin
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
+       $prog -show_obsoletes
 
        $prog -local_package macos_10.12_local.tgz
 
@@ -407,6 +437,37 @@ options:
 
            -no_recur
            -apsearch no
+
+    -show_obsoletes       : list any obsolete packages
+
+        Display the set of AFNI packages that are no longer being updated.
+
+        This is a terminal option.
+
+    -show_obsoletes_grep  : list any obsolete packages (easy to grep)
+
+        Display the set of AFNI packages that are no longer being updated.
+
+        This is the same as -show_obsoletes, but each line with a package
+        name will start with "obsolete:", as in:
+
+             obsolete: linux_gcc32
+             obsolete: linux_gcc33_64
+             obsolete: macosx_10.7_Intel_64
+             obsolete: macosx_10.7_local
+
+        This is a terminal option.
+
+    -show_system_progs    : show system programs that do no belong in abin
+
+        Display the set of system utilities that suggest afni is in a system
+        binary directory, rather than a user's abin.
+
+        If any such program is in the AFNI binaries directory, an update will
+        not be allowed.
+
+        This was introduced to protect from 'afni' being in under /usr/bin in
+        Neurodebian.
 
     -sys_ok               : OK to update, even if system progs found
 
@@ -786,6 +847,53 @@ endif
 SKIP_RECUR:
 
 # ----------------------------------------------------------------------
+# maybe we want to get local information and quit
+# (put this after recur, so that we still get updates, first)
+
+# system programs (that should not be in abin)
+if ( $show_system_progs ) then
+   echo ""
+   echo "the following programs should not appear in AFNI binary directory:"
+   echo ""
+   echo -n "    "
+   echo $system_progs | sed "s/ /\n    /g"
+   echo ""
+   exit 0
+endif
+
+# obsoletes
+if ( $show_obsoletes ) then
+   echo ""
+   echo "the following packages are no longer being updated/compiled:"
+   echo ""
+   # possibly allow the user easier way to grep for results
+   if ( $show_obsoletes_grep ) then
+       set space_str = "    obsolete: "
+   else
+       set space_str = "    "
+   endif
+   
+   # This \n does not work on macs, so be slow for now...
+   # echo -n "$space_str"
+   # echo $obsolete_list | sed "s/ /\n$space_str/g"
+   foreach oname ( $obsolete_list )
+      echo "$space_str$oname"
+   end
+   echo ""
+   exit 0
+endif
+
+# warn the user if the package is obsolete
+foreach oname ( $obsolete_list )
+   if ( "$package" == $oname ) then
+      echo ""
+      echo "** warning: package $package is no longer being updated"
+      echo ""
+   endif
+end
+
+
+# ----------------------------------------------------------------------
 # maybe we want to test protocols and exit
 if ( $test_protos ) then
    echo ""
@@ -887,6 +995,25 @@ if ( $local_package == "" ) then
    cmp -s $pp ../$pp
    if ( ! $status ) then
        echo "++ no update needed"
+
+       # warn the user if the package is obsolete
+       foreach oname ( $obsolete_list )
+          if ( "$package" == $oname ) then
+             echo ""
+             echo "** warning: package $package is no longer being updated"
+             echo ""
+
+             # special case suggestions
+             if ( "$package" == "macosx_10.7_local" || \
+                  "$package" == "macosx_10.7_Intel_64" ) then
+                echo "-- consider using package: macos_10.12_local"
+                echo ""
+             endif
+
+             break
+          endif
+       end
+
        cd ..
        \rm -fr $tmp_dir
        exit
@@ -1128,7 +1255,7 @@ EOF
 endif
 
 # maybe they need to set the DYLD_F_L_P
-if ( $package == macos_10.12_Intel_64 && $#prog_list > 0 ) then
+if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
    echo ""
    echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
    echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
@@ -1140,4 +1267,7 @@ cd ..
 \rm -fr $tmp_dir
 
 echo "done, yay (binaries are under $abin)"
+
+exit 0
+
 

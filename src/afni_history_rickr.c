@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jan, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add -show_obsoletes[_grep] and -show_system_progs",
+   "Inspired by Z Saad."
+ } ,
+
  { 22, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "added -regress_est_blur_detrend",
    "We might change the default to no detrending here."
