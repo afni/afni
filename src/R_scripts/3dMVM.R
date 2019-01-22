@@ -1112,9 +1112,10 @@ mvCom5 <- function(fm, nF_mvE5) {
                                                 
 runAOV <- function(inData, dataframe, ModelForm) {
    out <- lop$outInit
-   if(!is.null(lop$resid)) residout <- rep(0, length(inData))
+   # when a voxel-wise covariate is included, 2nd half of input data inData stores the covariate
+   if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
    options(warn = -1)
-   if (!all(abs(inData) < 10e-8)) {       
+   if (!all(abs(inData) < 10e-8)) {  # not all 0s     
       dataframe$Beta<-inData[1:lop$NoFile]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData[(lop$NoFile+1):(lop$NoFile+lop$nSubj)], all(is.na(lop$vVarCenters)))
