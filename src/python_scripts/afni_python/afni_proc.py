@@ -631,9 +631,10 @@ g_history = """
         - rename external_volreg_base to vr_base_external
     6.29 Jan 18, 2019:
         - run 1d_tool.py -show_df_info, unless -regress_show_df_info no
+    6.30 Jan 22, 2019: added -regress_est_blur_detrend yes/no
 """
 
-g_version = "version 6.29, January 18, 2019"
+g_version = "version 6.30, January 22, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1456,6 +1457,9 @@ class SubjProcSream:
 
         self.valid_opts.add_opt('-regress_compute_fitts', 0, [],
                         helpstr="compute fitts only after 3dDeconvolve")
+        self.valid_opts.add_opt('-regress_est_blur_detrend', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="apply -detrend in blur_estimation (def=yes)")
         self.valid_opts.add_opt('-regress_est_blur_epits', 0, [],
                         helpstr="estimate blur from scaled EPI time series")
         self.valid_opts.add_opt('-regress_est_blur_errts', 0, [],

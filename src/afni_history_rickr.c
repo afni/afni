@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "added -regress_est_blur_detrend",
+   "We might change the default to no detrending here."
+ } ,
+
  { 18, Jan, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "process df_info, and hand off new uvars",
    NULL
