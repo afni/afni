@@ -4701,6 +4701,8 @@ def db_mod_regress(block, proc, user_opts):
     if uopt and not bopt:
         block.opts.add_opt('-regress_est_blur_errts', 0, [])
 
+    apply_uopt_to_block('-regress_est_blur_detrend', user_opts, block)
+
     # check for errts prefix
     uopt = user_opts.find_opt('-regress_errts_prefix')
     bopt = block.opts.find_opt('-regress_errts_prefix')
@@ -5067,7 +5069,7 @@ def db_cmd_regress(proc, block):
     if not married_types_match(proc, proc.stims_orig, stim_types, basis): return
 
     # note whether motion regs will be done via -ortvec
-    # the default is now 'yes' [changed 16 Jan 2019]
+    # the default is now 'yes' [changed 16 Jan, 2019]
     mot_as_ort = block.opts.have_yes_opt('-regress_mot_as_ort', default=1)
 
     # count stim, motion counts if not as_ort
@@ -6047,6 +6049,9 @@ def db_cmd_blur_est(proc, block):
     ropt = block.opts.find_opt('-regress_reml_exec')
     sopt = block.opts.find_opt('-regress_3dD_stop')
 
+    # allow use to turn this off    22 Jan 2019
+    detrend = block.opts.have_yes_opt('-regress_est_blur_detrend', default=1)
+
     if not aopt and not eopt:
         if proc.verb > 0: print('-- no 3dClustSim (since no blur estimation)')
         return cmd
@@ -6074,19 +6079,20 @@ def db_cmd_blur_est(proc, block):
     if aopt:
         bstr = blur_est_loop_str(proc,
                     'all_runs%s$subj%s' % (proc.sep_char, proc.view),
-                    mask_dset, 'epits', blur_file)
+                    mask_dset, 'epits', blur_file, detrend=detrend)
         if not bstr: return
         cmd = cmd + bstr
 
     if eopt and not sopt: # want errts, and 3dD was not stopped
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_pre, proc.view),
-                    mask_dset, 'errts', blur_file, proc.errts_cen)
+                    mask_dset, 'errts', blur_file, proc.errts_cen,
+                    detrend=detrend)
         if not bstr: return
         cmd = cmd + bstr
     if eopt and ropt and proc.errts_reml: # want errts and reml was executed
         # cannot use ${}, so escape the '_'
         bstr = blur_est_loop_str(proc, '%s%s' % (proc.errts_reml, proc.view),
-                    mask_dset, 'err_reml', blur_file)
+                    mask_dset, 'err_reml', blur_file, detrend=detrend)
         if not bstr: return
         cmd = cmd + bstr
 
@@ -6166,7 +6172,8 @@ def make_clustsim_commands(proc, block, cmethods, blur_file, mask_dset,
 
     return 0, cstr
 
-def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
+def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0,
+                                                          detrend=1):
     """return tcsh command string to compute blur from this dset
         proc     : afni_proc SubjProcStream (for reps or reps_all)
         dname    : dataset name to estimate blur on
@@ -6206,15 +6213,19 @@ def blur_est_loop_str(proc, dname, mname, label, outfile, trs_cen=0):
     acffile = 'out.3dFWHMx.ACF.%s.r$run.1D' % label
     if proc.ACFdir != '': acffile = '%s/%s' % (proc.ACFdir, acffile)
 
+    # detrend?
+    if detrend: detstr = '-detrend '
+    else:       detstr = ''
+
     cmd = cmd +                                                 \
       '# restrict to uncensored TRs, per run\n'                 \
       'foreach run ( $runs )\n'                                 \
       '%s'                                                      \
-      '    3dFWHMx -detrend -mask %s \\\n'                      \
+      '    3dFWHMx %s-mask %s \\\n'                             \
       '            -ACF %s \\\n'                                \
       '            %s%s >> %s\n'                                \
       'end\n\n'                                                 \
-      % (tstr1, mask, acffile, inset, tstr2, tmpfile)
+      % (tstr1, detstr, mask, acffile, inset, tstr2, tmpfile)
 
     btypes = ['FWHM', 'ACF']
     for bind, btype in enumerate(btypes):
@@ -12486,8 +12497,8 @@ g_help_options = """
 
         -regress_cormat_warnings Y/N : specify whether to get cormat warnings
 
-                e.g. -mask_cormat_warnings No
-                default: Yes
+                e.g. -mask_cormat_warnings no
+                default: yes
 
             By default, '1d_tool.py -show_cormat_warnings' is run on the
             regression matrix.  Any large, pairwise correlations are shown
@@ -12496,6 +12507,18 @@ g_help_options = """
             This option allows one to disable such functionality.
 
             Please see '1d_tool.py -help' for more details.
+
+        -regress_est_blur_detrend yes/no : use -detrend in blur estimation
+
+                e.g. -regress_est_blur_detrend no
+                default: yes
+
+            This option specifies whether to apply the -detrend option when
+            running 3dFWHMx to estimate the blur (auto correlation function)
+            size/parameters.  It will apply to both epits and errts estimation.
+
+            See also -regress_est_blur_epits, -regress_est_blur_errts.
+            Please see '3dFWHMx -help' for more details.
 
         -regress_est_blur_epits      : estimate the smoothness of the EPI data
 
