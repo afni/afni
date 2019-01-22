@@ -1133,7 +1133,7 @@ if( PRINT_TRACING ){
                           | KeyPressMask        /* get keystrokes */
                           | ButtonPressMask     /* button presses */
                           | ExposureMask        /* exposures */
-                          | StructureNotifyMask /* resizes */
+                          | StructureNotifyMask /* resizes (Configure events) */
                           | Button1MotionMask   /* motion while #1 is down */
                           | ButtonReleaseMask   /* button releases */
                          ,
@@ -1650,7 +1650,7 @@ if( PRINT_TRACING ){
                             0
                           | ButtonPressMask      /* button presses */
                           | ExposureMask         /* exposures */
-                          | StructureNotifyMask  /* resizes */
+                          | StructureNotifyMask  /* resizes (Configure events) */
                          ,
                          FALSE ,                 /* nonmaskable events? */
                          ISQ_drawing_EV ,        /* super-handler! */
@@ -1751,7 +1751,8 @@ if( PRINT_TRACING ){
    newseq->vgize_fac = INDEX_TO_VGFAC(2) ;
 
    newseq->zer_color = 0 ;
-   ii = DC_find_overlay_color( newseq->dc , getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
+   ii = DC_find_closest_overlay_color( newseq->dc ,
+                                       getenv("AFNI_IMAGE_ZEROCOLOR") ) ;
    if( ii > 0 ) newseq->zer_color = ii ;
 
    { char *blab[1] = { "Crop Autocenter?" } ;
@@ -4038,7 +4039,10 @@ ENTRY("ISQ_saver_CB") ;
            MRI_IMAGE *qim ;
 
            if( dbg ) fprintf(stderr,"  zooming\n") ;
-           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           // [PT: Dec 19, 2018] Change default behavior to be NN interp.
+           // Here and below, this condition **used** to be:
+           // if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
            qim = mri_dup2D(zf,tim) ;
            mri_dup2D_mode(7) ;
            mri_free(tim) ; tim = qim ;
@@ -4314,7 +4318,8 @@ ENTRY("ISQ_saver_CB") ;
          if( DO_BLOWUP(seq) ){
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
-           if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+           // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+           if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
            tim = mri_dup2D(zf,flim) ;
            mri_dup2D_mode(7) ;
            mri_free(flim) ; flim = tim ;
@@ -5394,6 +5399,12 @@ if( AFNI_yesenv("AFNI_IMSEQ_DEBUG") ){
 
      /**** actually put the image to the screen ****/
 
+#if 0
+INFO_message("ISQ_show_image(seq=%p) %d x %d",
+             (void *)seq ,
+             (int)seq->sized_xim->width , (int)seq->sized_xim->height ) ;
+#endif
+
      XPutImage( seq->dc->display , XtWindow(seq->wimage) , seq->dc->origGC ,
                 seq->sized_xim , 0,0,0,0,
                 seq->sized_xim->width , seq->sized_xim->height ) ;
@@ -5876,10 +5887,16 @@ DPRI(" .. Expose; count=",event->count) ;
 
 STATUS(" .. really a hidden resize") ;
 
+#if 0
+INFO_message("convert Expose to ConfigureNotify") ;
+#endif
                   nev.type = ConfigureNotify ; nev.width = nx ; nev.height = ny ;
                   ISQ_drawing_EV( w, client_data, (XEvent *) &nev, continue_to_dispatch ) ;
 
                } else
+#if 0
+INFO_message("Expose") ;
+#endif
                   ISQ_show_image( seq ) ;
             }
             else if( w == seq->wbar )
@@ -6158,7 +6175,7 @@ STATUS("scroll wheel ==> change slice") ;
       case ConfigureNotify:{
          XConfigureEvent *event = (XConfigureEvent *) ev ;
 
-         static int am_active = 0  ;  /* 09 Oct 1999 */
+         static int am_active = 0 ; /* 09 Oct 1999 */
 
 #if 0
          /* 04 Nov 2003: don't do anything while mouse is down */
@@ -6173,6 +6190,20 @@ STATUS("scroll wheel ==> change slice") ;
          if( am_active ) break ;      /* prevent recursion */
          am_active = 1 ;
 
+#if 0
+         /* Scan forward and see if another such event is
+            pending.  If so, don't process this one.
+            [doesn't work well - can result in not redrawing at proper size?] */
+
+         { XEvent evjunk ; int egood ;
+           egood = XCheckWindowEvent(XtDisplay(w),XtWindow(w),StructureNotifyMask,&evjunk) ;
+           if( egood && evjunk.type == ConfigureNotify ){
+             am_active = 0 ; break ;
+           }
+         }
+#endif
+
+
  if(PRINT_TRACING){
   char str[256] ;
   sprintf(str," .. ConfigureNotify: width=%d height=%d",
@@ -6185,9 +6216,18 @@ STATUS("scroll wheel ==> change slice") ;
 
          if( w == seq->wimage ){
 
-            if( (seq->sized_xim == NULL)                  ||
-                (event->width  != seq->sized_xim->width ) ||
-                (event->height != seq->sized_xim->height)   ){
+            int nx,ny ;
+#if 0
+            int ntime=NI_clock_time(); /* 09 May 2018 [useless?] */
+            static int ltime=-666;
+            if( ntime-ltime < 2 ){ am_active = 0 ; break ; } /* too fast? */
+            ltime = ntime ;
+#endif
+
+            MCW_widget_geom( seq->wimage , &nx , &ny , NULL,NULL ) ;
+            if( (seq->sized_xim == NULL)       ||
+                (nx != seq->sized_xim->width ) ||    /* modified 09 May 2018 */
+                (ny != seq->sized_xim->height)   ){  /* to check nx and ny */
 
                seq->wimage_width = seq->wimage_height = -1 ; /* Feb 1998 */
 
@@ -6200,29 +6240,43 @@ STATUS("scroll wheel ==> change slice") ;
 fprintf(stderr,"ConfigureNotify: width=%d height=%d\n",event->width,event->height);
 #endif
 
+#if 0 /* removed 10 May 2018 */
                if( AFNI_yesenv("AFNI_ENFORCE_ASPECT") && !seq->opt.free_aspect ){
-                 static int last_time=0 ; int now_time=NI_clock_time() ;
-                 if( now_time == 0 || now_time-last_time > 33 )
+                 static int last_time=-666 ; int now_time=NI_clock_time() ;
+                 if( now_time-last_time > 555 )
                    ISQ_reset_dimen( seq, seq->last_width_mm, seq->last_height_mm ) ;
 #if 0
 else fprintf(stderr,"  -- too soon to enforce aspect!\n") ;
 #endif
                  last_time = now_time ;
                }
+#endif
 
                /*-- now show the image in the new window size --*/
 
+#if 0
+INFO_message("ConfigureNotify") ;
+#endif
                ISQ_show_image( seq ) ;
+            } else {
+#if 0
+INFO_message("reject image ConfigureNotify") ;
+#endif
             }
 
          } else if( w == seq->wbar ){
-
-             if( (seq->sized_xbar == NULL)                  ||
-                 (event->width  != seq->sized_xbar->width ) ||
-                 (event->height != seq->sized_xbar->height)   ){
+             int nx,ny ;
+             MCW_widget_geom( seq->wbar , &nx , &ny , NULL,NULL ) ;
+             if( (seq->sized_xbar == NULL)       ||
+                 (nx != seq->sized_xbar->width ) ||
+                 (ny != seq->sized_xbar->height)   ){
 
                KILL_2ndXIM( seq->given_xbar , seq->sized_xbar ) ;
                ISQ_show_bar( seq ) ;
+            } else {
+#if 0
+INFO_message("reject wbar ConfigureNotify") ;
+#endif
             }
          }
 
@@ -13338,7 +13392,8 @@ ENTRY("ISQ_save_image") ;
 
    if( DO_BLOWUP(seq) ){
      int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-     if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+     // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+     if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
      flim = mri_dup2D(zf,tim) ;
      mri_dup2D_mode(7) ;
      if( flim != NULL ){ mri_free(tim); tim = flim; }
@@ -13684,7 +13739,8 @@ ENTRY("ISQ_save_anim") ;
 
       if( DO_BLOWUP(seq) ){
         int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-        if( !AFNI_yesenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
+        // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+        if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
         tim = mri_dup2D(zf,flim) ;
         mri_dup2D_mode(7) ;
         mri_free(flim) ; flim = tim ;
@@ -14086,7 +14142,7 @@ static MRI_IMAGE * mri_vgize( MRI_IMAGE *iim )
 /* ININFO_message("max angle=%g",bmax) ; */
 
    /* rotate streak directions randomly */
-   if( bmax > 0.0f ){
+   if( bmax > 0.0f && vgize_sigfac > 0.0111f ){
      bmax = (22.2f * PI/180.0f) / bmax ;  /* max angle is 22.2 degrees */
      for( kk=0 ; kk < nxy ; kk++ ){
        bx = bxar[kk] ; by = byar[kk] ;

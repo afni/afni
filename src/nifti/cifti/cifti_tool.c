@@ -15,12 +15,13 @@
  *----------------------------------------------------------------------
  */
 #include <stdio.h>
+#include <inttypes.h>
 
 #define USE_NIFTI2
 #include <nifti2_io.h>
 #include "afni_xml_io.h"
 
-static char * g_history[] =
+static const char * g_history[] =
 {
   "----------------------------------------------------------------------\n"
   "cifti_tool modification history:\n",
@@ -103,7 +104,7 @@ int main(int argc, char * argv[])
 
 /* ----------------------------------------------------------------- */
 int process_args(int argc, char * argv[], opts_t * opts)
-{ 
+{
    int ac;
 
    if( argc < 2 ) return show_help();   /* typing '-help' is sooo much work */
@@ -112,7 +113,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
    for( ac = 1; ac < argc; ac++ ) {
       if( ! strcmp(argv[ac], "-h") || ! strcmp(argv[ac], "-help") ) {
          return show_help();
-      } else if( ! strcmp(argv[ac], "-hist") ){ 
+      } else if( ! strcmp(argv[ac], "-hist") ){
          show_hist();
          return 1;
       } else if( ! strcmp(argv[ac], "-as_cext") ||
@@ -174,7 +175,7 @@ int process_args(int argc, char * argv[], opts_t * opts)
 /* ----------------------------------------------------------------- */
 int process(opts_t * opts)
 {
-   nifti_image * nim;
+   nifti_image * nim = NULL;
    afni_xml_t  * ax;
 
    if( !opts->fin ){ fprintf(stderr, "** missing option '-input'\n"); return 1;}
@@ -204,7 +205,7 @@ int disp_cifti_extension(nifti_image * nim, opts_t * opts)
    int                ind;
 
    if(gopt.verb > 1)
-      fprintf(stderr,"-- displaying CIFTI extension to %s\n", 
+      fprintf(stderr,"-- displaying CIFTI extension to %s\n",
               opts->fout ? opts->fout : "DEFAULT" );
 
    if( !nim ) return 1;
@@ -218,8 +219,10 @@ int disp_cifti_extension(nifti_image * nim, opts_t * opts)
       return 1;
    }
 
-   fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
-   
+   if(ext) {
+     fprintf(fp, "%.*s\n", ext->esize-8, ext->edata);
+   }
+
    /* possibly close file */
    close_stream(fp);
 
@@ -231,20 +234,20 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
    FILE * fp;
 
    if(gopt.verb > 1)
-      fprintf(stderr,"-- evaluating CIFTI extension to %s\n", 
+      fprintf(stderr,"-- evaluating CIFTI extension to %s\n",
               opts->fout ? opts->fout : "DEFAULT" );
 
    fp = open_write_stream(opts->fout);
    axml_set_wstream(fp);
 
-   if( opts->verb > 1 ) fprintf(stderr, "-- recursive eval from %s\n", 
+   if( opts->verb > 1 ) fprintf(stderr, "-- recursive eval from %s\n",
                                 opts->eval_type ? opts->eval_type : "NULL");
    axml_set_verb(opts->verb);
 
    if( axio_text_to_binary(ax) )
       fprintf(stderr,"** errors converting text to data\n");
 
-   if( ! opts->eval_type ) 
+   if( ! opts->eval_type )
       axml_recur(ax_show_names, ax);
    else if( ! strcmp(opts->eval_type, "has_data" ) )
       axml_recur(ax_has_data, ax);
@@ -260,7 +263,7 @@ int eval_cifti_extension(afni_xml_t * ax, opts_t * opts)
       axml_recur(ax_show_text_data, ax);
    else /* show_names is default */
       axml_recur(ax_show_names, ax);
-   
+
    /* possibly close file */
    close_stream(fp);
 
@@ -312,7 +315,7 @@ int ax_has_data(FILE * fp, afni_xml_t * ax, int depth)
 
    if( gopt.verb > 2 ) {
       fprintf(fp,"%*sdata in depth %d %s : ", depth*3, "", depth, ax->name);
-      fprintf(fp,"xtext[%d], bdata[%lld]\n", ax->xlen, ax->blen);
+      fprintf(fp,"xtext[%d], bdata[%" PRId64 "]\n", ax->xlen, ax->blen);
    } else if( gopt.verb > 1 )
       fprintf(fp,"%*sdata in depth %d %s\n", depth*3, "", depth, ax->name);
    else
@@ -329,15 +332,19 @@ int ax_has_bdata(FILE * fp, afni_xml_t * ax, int depth)
    if( ! ax->bdata && ax->blen <= 0 ) return 0;
 
    if( gopt.verb > 1 ) fprintf(fp,"%*sdata in depth %d ", depth*3, "", depth);
-   fprintf(fp, "%s : bdata[%lld]", ax->name, ax->blen);
+   fprintf(fp, "%s : bdata[%" PRId64 "]", ax->name, ax->blen);
 
    if( gopt.verb > 2 && ax->blen > 1 ) {
       if( ax->btype == NIFTI_TYPE_FLOAT64 ) {
          double * dp = (double *)ax->bdata;
-         fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
+         if(dp) { /* repetetive checks to appease compilers */
+           fprintf(fp, " = %lf  %lf  ...\n", dp[0], dp[1]);
+         }
       } else if( ax->btype == NIFTI_TYPE_INT64 ) {
          int64_t * dp = (int64_t *)ax->bdata;
-         fprintf(fp, " = %lld  %lld  ...\n", dp[0], dp[1]);
+         if(dp) {
+           fprintf(fp, " = %" PRId64 "  %" PRId64 "  ...\n", dp[0], dp[1]);
+         }
       }
    } else fputc('\n', fp);
 
@@ -358,10 +365,10 @@ int ax_num_tokens(FILE * fp, afni_xml_t * ax, int depth)
    nt = axio_num_tokens(ax->xtext, ax->xlen);
 
    if( gopt.verb > 1 )
-      fprintf(fp,"%*stokens in depth %d %s: %lld\n",
+      fprintf(fp,"%*stokens in depth %d %s: %" PRId64 "\n",
               depth*3, "", depth, ax->name, nt);
    else
-      fprintf(fp,"%s %lld\n", ax->name, nt);
+      fprintf(fp,"%s %" PRId64 "\n", ax->name, nt);
 
    return 0;
 }
@@ -494,4 +501,3 @@ int show_help( void )
       "\n");
    return 1;
 }
-

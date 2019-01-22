@@ -1260,7 +1260,8 @@ if(PRINT_TRACING){
 
        for( nb=0,ii=ib ; ii < n && nb < maxsort ; ii++ ){
          if( good[ii] ){
-           wv[nb]=WW(ii); xdup[nb]=x[ii]; ydup[nb]=y[ii]; xn[nb]=yn[nb]=nb++;
+           wv[nb]=WW(ii); xdup[nb]=x[ii]; ydup[nb]=y[ii]; xn[nb]=yn[nb]=nb;
+           nb++; /* separate for clarity */
          }
        }
 #if 0
@@ -1505,7 +1506,8 @@ ENTRY("build_byteized_vectors") ;
 
        for( nb=0,ii=ib ; ii < n && nb < maxsort ; ii++ ){
          if( good[ii] ){
-           xdup[nb]=x[ii]; ydup[nb]=y[ii]; xn[nb]=yn[nb]=nb++;
+           xdup[nb]=x[ii]; ydup[nb]=y[ii]; xn[nb]=yn[nb]=nb;
+           nb++;
          }
        }
        ib = ii ;             /* where to start extracting next outer loop */

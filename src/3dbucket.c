@@ -43,7 +43,7 @@
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array * BUCK_dsar  = NULL ;
-static XtPointer_array        * BUCK_subv  = NULL ;
+static RwcPointer_array        * BUCK_subv  = NULL ;
 static int                      BUCK_nvox  = -1 ;
 static int                      BUCK_dry   = 0 ;
 static int                      BUCK_verb  = 0 ;
@@ -154,7 +154,7 @@ void BUCK_read_opts( int argc , char * argv[] )
          }
          nopt++ ;
          if( nopt >= argc ){
-            fprintf(stderr,"need argument after -glueto or -aglueto!\n") ; 
+            fprintf(stderr,"need argument after -glueto or -aglueto!\n") ;
             exit(1) ;
          }
          if (strncmp(argv[nopt-1],"-aglueto",5) == 0) { /* ZSS April 16 2010 */
@@ -289,9 +289,9 @@ void BUCK_read_opts( int argc , char * argv[] )
 	    /*----- Note: no "continue" statement here.  File name will now
 	      be processed as an input dataset -----*/
       }
-      
+
       if( argv[nopt][0] == '-' ){
-         fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ; 
+         fprintf(stderr,"Unknown option: %s\n",argv[nopt]) ;
          suggest_best_prog_option(argv[0], argv[nopt]);
          exit(1) ;
       }
@@ -303,7 +303,7 @@ void BUCK_read_opts( int argc , char * argv[] )
          if (strlen(argv[nopt]) > THD_MAX_NAME-1) {
             ERROR_exit( "Too long a filename for '%s'\n"
                            "Maximum limit is %d\n", argv[nopt], THD_MAX_NAME-1);
-         }  
+         }
          strcpy(dname,argv[nopt]) ;
          subv[0] = '\0' ;  /* make sure subv is reset ZSS Nov. 2010*/
       } else if( cpt == argv[nopt] ){
@@ -313,16 +313,16 @@ void BUCK_read_opts( int argc , char * argv[] )
          ii = cpt - argv[nopt] ;
          if (ii > THD_MAX_NAME-1) {
             ERROR_exit( "Too long a filename for '%s'\n"
-                        "Maximum character limit is %d, have %d\\n", 
+                        "Maximum character limit is %d, have %d\\n",
                         argv[nopt], THD_MAX_NAME-1, ii);
-         }  
+         }
          if (strlen(argv[nopt])-ii > THD_MAX_NAME-1) {
             ERROR_exit( "Too long a sub-brick selection for '%s'\n"
                         "Maximum limit is %d, have %d\n"
                   "Consider using '[1dcat FF.1D]' or '[count ...]' methods\n"
-                  "for sub-brick selection. See 3dTcat -help for details.\n", 
+                  "for sub-brick selection. See 3dTcat -help for details.\n",
                         argv[nopt], THD_MAX_NAME-1, strlen(argv[nopt])-ii);
-         }  
+         }
          memcpy(dname,argv[nopt],ii) ; dname[ii] = '\0' ;
          strcpy(subv,cpt) ;
       }
@@ -344,7 +344,7 @@ void BUCK_read_opts( int argc , char * argv[] )
 
       if( BUCK_type < 0 ) BUCK_type = dset->type ;
 
-      BUCK_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ; 
+      BUCK_ccode = COMPRESS_filecode(dset->dblk->diskptr->brick_name) ;
          /* 16 Mar 2010 */
 
       ii = dset->daxes->nxx * dset->daxes->nyy * dset->daxes->nzz ;
@@ -368,7 +368,7 @@ void BUCK_read_opts( int argc , char * argv[] )
       ADDTO_XTARR(BUCK_subv,svar) ;
 
    }  /* end of loop over command line arguments */
-   
+
    if( argc < 2) {
       ERROR_message("Too few options");
       BUCK_Syntax(0) ;
@@ -496,10 +496,9 @@ int * BUCK_get_subv( int nvals , char * str )
 void BUCK_Syntax(int detail)
 {
    printf(
-    "Concatenate sub-bricks from input datasets into one big\n"
-    "'bucket' dataset.\n"
+    "Concatenate sub-bricks from input datasets into one big 'bucket' dataset. ~1~\n"
     "Usage: 3dbucket options\n"
-    "where the options are:\n"
+    "where the options are: ~1~\n"
    ) ;
 
    printf(
@@ -545,6 +544,7 @@ void BUCK_Syntax(int detail)
  "can select every third sub-brick by using the selection list\n"
  "  fred+orig[0..$(3)]\n"
  "\n"
+ "Notes: ~1~\n"
  "N.B.: The sub-bricks are output in the order specified, which may\n"
  " not be the order in the original datasets.  For example, using\n"
  "  fred+orig[0..$(2),1..$(2)]\n"
@@ -571,7 +571,8 @@ void BUCK_Syntax(int detail)
  " calling the output dataset C, you would type\n"
  "    3dbucket -prefix C -fbuc 'A+orig[0]' -fbuc 'B+orig[1]'\n"
  "\n"
- "WARNING: using this program, it is possible to create a dataset that\n"
+ "WARNING: ~1~\n"
+ "         Using this program, it is possible to create a dataset that\n"
  "         has different basic datum types for different sub-bricks\n"
  "         (e.g., shorts for brick 0, floats for brick 1).\n"
  "         Do NOT do this!  Very few AFNI programs will work correctly\n"
@@ -601,7 +602,7 @@ int main( int argc , char * argv[] )
 
    mainENTRY("3dbucket main"); machdep(); PRINT_VERSION("3dbucket") ;
    set_obliquity_report(0); /* silence obliquity */
-   
+
    /*-- 20 Apr 2001: addto the arglist, if user wants to [RWCox] --*/
 
    { int new_argc ; char ** new_argv ;
@@ -710,7 +711,7 @@ int main( int argc , char * argv[] )
                                    DSET_BRICK_TYPE(dset,jv) , DSET_ARRAY(dset,jv) ) ;
 
             /*----- preserve label when one exists --- Modified March 2010 ZSS*/
-            if (DSET_HAS_LABEL(dset, jv) ) 
+            if (DSET_HAS_LABEL(dset, jv) )
               sprintf (buf, "%s", DSET_BRICK_LABEL(dset,jv));
             else
               sprintf(buf,"%.12s[%d]",DSET_PREFIX(dset),jv) ;
@@ -836,7 +837,8 @@ int main( int argc , char * argv[] )
       if( BUCK_glue ) putenv("AFNI_DECONFLICT=OVERWRITE") ;
       if( BUCK_glue && BUCK_ccode >= 0 )
         THD_set_write_compression(BUCK_ccode) ; /* 16 Mar 2010 */
-      THD_write_3dim_dataset( NULL,NULL , new_dset , True ) ;
+      if ( ! THD_write_3dim_dataset( NULL,NULL , new_dset , True ) )
+         exit(1) ;
       if( BUCK_verb ) fprintf(stderr,"-verb: wrote output: %s\n",DSET_BRIKNAME(new_dset)) ;
    }
 

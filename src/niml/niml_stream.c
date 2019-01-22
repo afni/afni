@@ -50,6 +50,7 @@ static int sigurg = 0 ;  /* 02 Jan 2004 */
 
 /*! Next delay in milliseconds, given current delay. */
 
+#undef  NEXTDMS
 #define NEXTDMS(dm) MIN(1.1*(dm)+1.01,66.0)
 
 /*-------------------------------------------------------------------*/

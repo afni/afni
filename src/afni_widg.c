@@ -809,6 +809,8 @@ STATUS("making imag->rowcol") ;
    if( im3d->type == AFNI_3DDATA_VIEW ){
       static char *bbox_label[1] = { "GIC: Apair MirrorLR" } ;
 
+   /*---*/
+
       imag->pop_instacorr_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -821,6 +823,8 @@ STATUS("making imag->rowcol") ;
                      AFNI_imag_pop_CB , im3d ) ;
       XtSetSensitive( imag->pop_instacorr_pb , False ) ;
 
+   /*---*/
+
       imag->pop_icorrapair_pb =  /* Apr 2013: for 3dGroupInCorr */
          XtVaCreateWidget(       /* note is not managed now */
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -832,6 +836,8 @@ STATUS("making imag->rowcol") ;
       XtAddCallback( imag->pop_icorrapair_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
 
+   /*---*/
+
       imag->pop_icorramirr_pb =  /* note is not managed now */
          XtVaCreateWidget(
             "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -842,6 +848,8 @@ STATUS("making imag->rowcol") ;
             NULL ) ;
       XtAddCallback( imag->pop_icorramirr_pb , XmNactivateCallback ,
                      AFNI_imag_pop_CB , im3d ) ;
+
+   /*---*/
 
       imag->pop_icorrjump_pb =
          XtVaCreateManagedWidget(
@@ -1066,6 +1074,8 @@ STATUS("making imag->rowcol") ;
    XtAddCallback( imag->pop_environment_pb , XmNactivateCallback ,
                   AFNI_imag_pop_CB , im3d ) ;
 
+   /*---*/
+
    imag->pop_drawdataset_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -1153,6 +1163,8 @@ STATUS("making imag->rowcol") ;
              "menu" , xmSeparatorWidgetClass , imag->crosshair_menu ,
               XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   /*---*/
+
     imag->crosshair_dicom_pb =
        XtVaCreateManagedWidget(
           "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
@@ -1165,6 +1177,8 @@ STATUS("making imag->rowcol") ;
                    AFNI_crosshair_pop_CB , im3d ) ;
     MCW_register_hint( imag->crosshair_dicom_pb ,
                        "Show xyz coordinates in DICOM order" ) ;
+
+   /*---*/
 
     imag->crosshair_spm_pb =
        XtVaCreateManagedWidget(
@@ -1179,6 +1193,8 @@ STATUS("making imag->rowcol") ;
     MCW_register_hint( imag->crosshair_spm_pb ,
                        "Show xyz coordinates in SPM/FSL order" ) ;
 
+   /*---*/
+
     imag->crosshair_ijk_pb =      /* 04 Oct 2010 */
        XtVaCreateManagedWidget(
           "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
@@ -1191,6 +1207,8 @@ STATUS("making imag->rowcol") ;
                    AFNI_crosshair_pop_CB , im3d ) ;
     MCW_register_hint( imag->crosshair_ijk_pb ,
                        "Show 3D voxel indexes (ijk) instead of xyz" ) ;
+
+   /*---*/
 
     imag->crosshair_jtxyz_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
@@ -1205,6 +1223,8 @@ STATUS("making imag->rowcol") ;
     MCW_register_hint( imag->crosshair_jtxyz_pb ,
                        "Jump crosshairs to these xyz coordinates" ) ;
 
+   /*---*/
+
     imag->crosshair_jtijk_pb =      /* 01 Aug 2011 */
        XtVaCreateManagedWidget(
           "menu" , xmPushButtonWidgetClass , imag->crosshair_menu ,
@@ -1217,6 +1237,8 @@ STATUS("making imag->rowcol") ;
                    AFNI_crosshair_pop_CB , im3d ) ;
     MCW_register_hint( imag->crosshair_jtijk_pb ,
                        "Jump to 3D ijk index (UnderLay)" ) ;
+
+   /*---*/
 
     imag->crosshair_jtijk_olay_pb =  /* 20 Apr 2016 */
        XtVaCreateManagedWidget(
@@ -1509,6 +1531,8 @@ STATUS("imag->view_frame") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   /*---*/
+
    imag->name_xyz_lab =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , imag->xyz_rowcol ,
@@ -1521,6 +1545,8 @@ STATUS("imag->view_frame") ;
          NULL ) ;
    LABELIZE(imag->name_xyz_lab) ;
 
+   /*---*/
+
    imag->image_xyz_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->xyz_rowcol ,
@@ -1531,6 +1557,8 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    imag->graph_xyz_pb =
       XtVaCreateManagedWidget(
@@ -1558,6 +1586,8 @@ STATUS("imag->view_frame") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   /*---*/
+
    imag->name_yzx_lab =
       XtVaCreateManagedWidget(
          "dialog" , xmLabelWidgetClass , imag->yzx_rowcol ,
@@ -1570,6 +1600,8 @@ STATUS("imag->view_frame") ;
          NULL ) ;
    LABELIZE(imag->name_yzx_lab) ;
 
+   /*---*/
+
    imag->image_yzx_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->yzx_rowcol ,
@@ -1580,6 +1612,8 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    imag->graph_yzx_pb =
       XtVaCreateManagedWidget(
@@ -1605,6 +1639,8 @@ STATUS("imag->view_frame") ;
             XmNmarginWidth , 0 ,
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
+   /*---*/
+
          NULL ) ;
 
    imag->name_zxy_lab =
@@ -1619,6 +1655,8 @@ STATUS("imag->view_frame") ;
          NULL ) ;
    LABELIZE(imag->name_zxy_lab) ;
 
+   /*---*/
+
    imag->image_zxy_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->zxy_rowcol ,
@@ -1629,6 +1667,8 @@ STATUS("imag->view_frame") ;
             XmNtraversalOn   , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    imag->graph_zxy_pb =
       XtVaCreateManagedWidget(
@@ -1991,6 +2031,8 @@ STATUS("making view->rowcol") ;
                          ) ;
    MCW_set_widget_bg( view->sess_lab , BROWN_COLOR , 0 ) ;
 
+   /*---*/
+
    hstr = (horz) ? "Switch" : "Switch Directory" ;
    view->choose_sess_pb =
       XtVaCreateManagedWidget(
@@ -2009,8 +2051,9 @@ STATUS("making view->rowcol") ;
      "session 3D datasets may be viewed." ) ;
    MCW_register_hint( view->choose_sess_pb ,
                       "Switch between session directories" ) ;
-   MCW_set_widget_bg( view->choose_sess_pb , "black"   , 0 ) ;
-   MCW_set_widget_fg( view->choose_sess_pb , "#ffddaa" ) ;
+   BLACK_AND_WHITE_WIDGET( view->choose_sess_pb ) ;
+
+   /*---*/
 
    hstr = (horz) ? "Read" : "Read New Directory" ;
    view->read_sess_pb =
@@ -2084,8 +2127,7 @@ STATUS("making view->rowcol") ;
    ) ;                                                              \
    MCW_register_hint( view->choose_anat_pb ,                        \
                       "Switch datasets for underlay/graphs" ) ;     \
-   MCW_set_widget_bg( view->choose_anat_pb , "black" , 0 ) ;        \
-   MCW_set_widget_fg( view->choose_anat_pb , "#ffddaa" ) ;          \
+   BLACK_AND_WHITE_WIDGET(view->choose_anat_pb) ;                   \
    view_count ++ ;                                                  \
  } while(0)
 
@@ -2235,6 +2277,8 @@ STATUS("making view->rowcol") ;
                 XmNseparatorType , XmDOUBLE_LINE ,
             NULL ) ;
 
+   /*---*/
+
    view->popchoose_sess_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -2247,6 +2291,8 @@ STATUS("making view->rowcol") ;
    XtAddCallback( view->popchoose_sess_pb , XmNactivateCallback ,
                   AFNI_choose_dataset_CB , im3d ) ;
 
+   /*---*/
+
    view->popchoose_anat_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , imag->popmenu ,
@@ -2258,6 +2304,8 @@ STATUS("making view->rowcol") ;
 
    XtAddCallback( view->popchoose_anat_pb , XmNactivateCallback ,
                   AFNI_choose_dataset_CB , im3d ) ;
+
+   /*---*/
 
    view->popchoose_func_pb =
       XtVaCreateManagedWidget(
@@ -2698,6 +2746,8 @@ STATUS("making marks->rowcol") ;
                  XmNseparatorType , XmDOUBLE_LINE ,
              NULL ) ;
 
+   /*---*/
+
    marks->always_popup[(marks->num_always_popup)++] =
    marks->pop_set_pb =
       XtVaCreateWidget(
@@ -2710,6 +2760,8 @@ STATUS("making marks->rowcol") ;
 
    XtAddCallback( marks->pop_set_pb , XmNactivateCallback ,
                   AFNI_marks_action_CB , im3d ) ;
+
+   /*---*/
 
    marks->always_popup[(marks->num_always_popup)++] =
    marks->pop_clear_pb =
@@ -2825,14 +2877,80 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   func->thrtop_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->thr_rowcol ,
+            XmNorientation , XmHORIZONTAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 1 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
    func->thr_label =
       XtVaCreateManagedWidget(
-         "dialog" , xmLabelWidgetClass , func->thr_rowcol ,
+         "dialog" , xmLabelWidgetClass , func->thrtop_rowcol ,
             LABEL_ARG("Thr") ,
             XmNrecomputeSize , False ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->thr_label) ;
+
+   /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] ---*/
+
+   func->thrtop_alpha_pb =
+      XtVaCreateManagedWidget(
+         "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
+            LABEL_ARG("A") ,
+            XmNmarginWidth  , 2 ,
+            XmNmarginHeight , 0 ,
+            XmNspacing      , 0 ,
+            XmNborderWidth  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thrtop_alpha_pb , XmNactivateCallback ,
+                  AFNI_func_thrtop_CB , im3d ) ;
+   MCW_register_hint( func->thrtop_alpha_pb ,
+                      "Turn on/off alpha fading for below threshold voxels" ) ;
+   BLACK_AND_WHITE_WIDGET(func->thrtop_alpha_pb) ;
+
+   if( AFNI_yesenv("AFNI_FUNC_ALPHA") ){
+     im3d->vinfo->thr_use_alpha = 1 ;
+     MCW_invert_widget(func->thrtop_alpha_pb) ;
+   } else {
+     im3d->vinfo->thr_use_alpha = 0 ;
+   }
+
+   /*---*/
+
+   func->thrtop_boxed_pb =
+      XtVaCreateManagedWidget(
+         "font8" , xmPushButtonWidgetClass , func->thrtop_rowcol ,
+            LABEL_ARG("B") ,
+            XmNmarginWidth  , 2 ,
+            XmNmarginHeight , 0 ,
+            XmNspacing      , 0 ,
+            XmNborderWidth  , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thrtop_boxed_pb , XmNactivateCallback ,
+                  AFNI_func_thrtop_CB , im3d ) ;
+   MCW_register_hint( func->thrtop_boxed_pb ,
+                      "Turn on/off boxes around above threshold voxel clusters" ) ;
+   BLACK_AND_WHITE_WIDGET(func->thrtop_boxed_pb) ;
+
+   if( AFNI_yesenv("AFNI_FUNC_BOXED") ){
+     im3d->vinfo->thr_use_boxed = 1 ;
+     MCW_invert_widget(func->thrtop_boxed_pb) ;
+   } else {
+     im3d->vinfo->thr_use_boxed = 0 ;
+   }
+
+   /*-------------------------------------------------------------------------*/
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
    MCW_register_help( func->thr_label ,
@@ -2842,6 +2960,7 @@ STATUS("making func->rowcol") ;
       "Motif library for this computer system."
    ) ;
 #else
+#if 0
    MCW_register_help( func->thr_label ,
       "Shows the type of threshold\n"
       "statistic that is available\n"
@@ -2858,6 +2977,7 @@ STATUS("making func->rowcol") ;
       FUNC_PT_LABEL  " = " FUNC_PT_DESCRIPTOR  "\n"
    ) ;
    MCW_register_hint( func->thr_label , "Type of threshold statistic" ) ;
+#endif
 #endif
 
    /**--------- 05 Sep 2006: create menu hidden on the thr_label ---------**/
@@ -2987,6 +3107,19 @@ STATUS("making func->rowcol") ;
    im3d->vinfo->fix_pval   = im3d->vinfo->fix_qval   = 0    ; /* 27 Feb 2014 */
    im3d->vinfo->fixed_pval = im3d->vinfo->fixed_qval = 0.0f ;
 
+   /*-- Set pval = 0.001 button [05 Nov 2018] --*/
+
+   func->thr_setpval_001_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->thr_menu ,
+            LABEL_ARG("Set p=0.001") ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->thr_setpval_001_pb , XmNactivateCallback ,
+                  AFNI_func_setpval_001_CB , im3d ) ;
+   MCW_register_hint( func->thr_setpval_001_pb , "Set p-value to 0.001" ) ;
+
    /* Threshold sign arrowval [08 Aug 2007] */
 
    { static char *thr_sign_label[3] = { "Pos & Neg",
@@ -3012,6 +3145,7 @@ STATUS("making func->rowcol") ;
                             "show Positives, Negatives, or Both?" ) ;
     }
 
+#if 0 /* disabled 02 Nov 2018 */
    /* Threshold use alpha arrowval [08 Dec 2014] */
 
    { static char *thr_alpha_label[3] = { "Off" , "Linear" , "Quadratic"} ;
@@ -3060,6 +3194,7 @@ STATUS("making func->rowcol") ;
       MCW_reghint_children( func->thr_floor_av->wrowcol ,
                             "Minimum value for Alpha (fading factor)" ) ;
     }
+#endif
 
    /* FDR button */
 
@@ -3322,7 +3457,7 @@ STATUS("making func->rowcol") ;
 
    /*--- environment button in menu [10 Feb 2004] ---*/
 
-#ifdef ALLOW_PLUGINS
+#if 0 && defined(ALLOW_PLUGINS)
    func->pbar_environment_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -3337,7 +3472,24 @@ STATUS("making func->rowcol") ;
    func->pbar_environment_pb = NULL ;
 #endif
 
-   func->pbar_equalize_pb =
+   /*---*/
+
+   func->pbar_setrange_1_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Set OLay range = 1") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XtAddCallback( func->pbar_setrange_1_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   MCW_register_hint( func->pbar_setrange_1_pb , "Set Overlay range to 1" ) ;
+
+   /*---*/
+
+   func->pbar_equalize_pb =      /* 16 Nov 2018 */
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
             LABEL_ARG("Equalize Spacing") ,
@@ -3347,21 +3499,28 @@ STATUS("making func->rowcol") ;
          NULL ) ;
    XtAddCallback( func->pbar_equalize_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
-
    MCW_register_hint( func->pbar_equalize_pb , "Space separators equally" ) ;
 
-   func->pbar_settop_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Set Top Value") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-   XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
-                  AFNI_pbar_CB , im3d ) ;
-   MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
-   XtSetSensitive( func->pbar_settop_pb , !PBAR_FULLRANGE ) ;
+   /*---*/
+
+   if( !PBAR_FULLRANGE ){
+     func->pbar_settop_pb =
+        XtVaCreateManagedWidget(
+           "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+              LABEL_ARG("Set Top Value") ,
+              XmNmarginHeight , 0 ,
+              XmNtraversalOn , True  ,
+              XmNinitialResourcesPersistent , False ,
+           NULL ) ;
+     XtAddCallback( func->pbar_settop_pb , XmNactivateCallback ,
+                    AFNI_pbar_CB , im3d ) ;
+     MCW_register_hint( func->pbar_settop_pb , "Is scaled by 'range' controls" ) ;
+     /*** XtSetSensitive( func->pbar_settop_pb , !PBAR_FULLRANGE ) ; ***/
+   } else {
+     func->pbar_settop_pb = NULL ; /* 16 Nov 2018 */
+   }
+
+   /*---*/
 
    func->pbar_flip_pb =
       XtVaCreateManagedWidget(
@@ -3379,6 +3538,8 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   /*---*/
+
    func->pbar_jumpto_thmax_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -3392,6 +3553,8 @@ STATUS("making func->rowcol") ;
    MCW_register_hint( func->pbar_jumpto_thmax_pb , "Jumpto OLay thresholded maximum" ) ;
    XtSetSensitive( func->pbar_jumpto_thmax_pb , False ) ;
    MCW_set_widget_bg( func->pbar_jumpto_thmax_pb , "black" , 0 ) ;
+
+   /*---*/
 
    func->pbar_jumpto_thmin_pb =
       XtVaCreateManagedWidget(
@@ -3411,6 +3574,25 @@ STATUS("making func->rowcol") ;
             "dialog" , xmSeparatorWidgetClass , func->pbar_menu ,
              XmNseparatorType , XmSINGLE_LINE , NULL ) ;
 
+   /* 15 Jun 2000: image save button */
+
+   func->pbar_saveim_pb =
+      XtVaCreateManagedWidget(
+         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
+            LABEL_ARG("Save pbar to image") ,
+            XmNmarginHeight , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   MCW_register_hint( func->pbar_saveim_pb ,
+                      "Write color bar out as image file" );
+
+   XtAddCallback( func->pbar_saveim_pb , XmNactivateCallback ,
+                  AFNI_pbar_CB , im3d ) ;
+
+   /*---*/
+
    func->pbar_readin_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
@@ -3424,6 +3606,8 @@ STATUS("making func->rowcol") ;
 
    XtAddCallback( func->pbar_readin_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
+
+   /*---*/
 
    func->pbar_writeout_pb =
       XtVaCreateManagedWidget(
@@ -3440,22 +3624,7 @@ STATUS("making func->rowcol") ;
    XtAddCallback( func->pbar_writeout_pb , XmNactivateCallback ,
                   AFNI_pbar_CB , im3d ) ;
 
-   /* 15 Jun 2000: image save button */
-
-   func->pbar_saveim_pb =
-      XtVaCreateManagedWidget(
-         "dialog" , xmPushButtonWidgetClass , func->pbar_menu ,
-            LABEL_ARG("Save to PPM") ,
-            XmNmarginHeight , 0 ,
-            XmNtraversalOn , True  ,
-            XmNinitialResourcesPersistent , False ,
-         NULL ) ;
-
-   MCW_register_hint( func->pbar_saveim_pb ,
-                      "Write out as image file" );
-
-   XtAddCallback( func->pbar_saveim_pb , XmNactivateCallback ,
-                  AFNI_pbar_CB , im3d ) ;
+   /* Show table button */
 
    func->pbar_showtable_pb =
       XtVaCreateManagedWidget(
@@ -3743,7 +3912,7 @@ STATUS("making func->rowcol") ;
 #define VEDIT_COLOR_B "#004466"
 #define VEDIT_NOPT    (VEDIT_LAST_VALUE+1)
    { static char *options_vedit_label[] =
-       { "InstaCorr" , "InstaCalc" , "GrpInCorr" } ;
+       { "InstaCorr" , "InstaCalc" , "3dTstat" , "GrpInCorr" } ;
      int nopt = (num_entry==1) ? VEDIT_NOPT : VEDIT_NOPT-1 ;  /* no GrpInCorr after [A] */
      int ibut ;
      func->options_vedit_av = new_MCW_arrowval(
@@ -3845,6 +4014,8 @@ STATUS("making func->rowcol") ;
    im3d->vedskip     = 0 ; /* 20 Dec 2007 */
    im3d->vednomask   = 0 ; /* 01 Aug 2011 */
 
+   /*---*/
+
    func->clu_cluster_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , func->clu_rowcol ,
@@ -3872,6 +4043,10 @@ STATUS("making func->rowcol") ;
                         "    (e.g., is 'warp-on-demand' only)."
                      ) ;
 
+   im3d->vinfo->clusterize_nnlev = 2 ;  /* 02 Nov 2018 */
+   im3d->vinfo->clusterize_size  = 40 ; /* defaults for Clusterize */
+   im3d->vinfo->clusterize_bisid = 1 ;
+
    hrc = XtVaCreateWidget(
          "dialog" , xmRowColumnWidgetClass , func->clu_rowcol ,
             XmNorientation , XmHORIZONTAL ,
@@ -3882,6 +4057,8 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    func->clu_clear_pb =
       XtVaCreateManagedWidget(
@@ -3898,6 +4075,8 @@ STATUS("making func->rowcol") ;
                                            "clustering of the\n"
                                            "thresholded overlay\n"
                                            "volume." ) ;
+   /*---*/
+
    func->clu_report_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , hrc ,
@@ -3933,6 +4112,8 @@ STATUS("making func->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    func->icor_pb =
          XtVaCreateManagedWidget(
@@ -3975,6 +4156,8 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
+   /*---*/
+
    func->icalc_pb =
          XtVaCreateManagedWidget(
             "dialog" , xmPushButtonWidgetClass , func->icalc_rowcol ,
@@ -4002,6 +4185,48 @@ STATUS("making func->rowcol") ;
 
    im3d->icalc_setup = NULL ;
 
+   /*--- 22 Mar 2018: Tstat stuff ---*/
+
+   func->tstat_rowcol =
+      XtVaCreateWidget(
+         "dialog" , xmRowColumnWidgetClass , func->vedit_frame ,
+            XmNorientation , XmVERTICAL ,
+            XmNpacking , XmPACK_TIGHT ,
+            XmNmarginHeight, 0 ,
+            XmNmarginWidth , 0 ,
+            XmNspacing     , 0 ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+
+   /*---*/
+
+   func->tstat_pb =
+         XtVaCreateManagedWidget(
+            "dialog" , xmPushButtonWidgetClass , func->tstat_rowcol ,
+               LABEL_ARG("Setup Tstat") ,
+               XmNmarginHeight , 0 ,
+               XmNtraversalOn , True  ,
+               XmNinitialResourcesPersistent , False ,
+            NULL ) ;
+   MCW_set_widget_bg( func->tstat_pb , VEDIT_COLOR_B , 0 ) ;
+   XtAddCallback( func->tstat_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
+   MCW_register_hint( func->tstat_pb , "Control Tstat calculations" ) ;
+
+   xstr = XmStringCreateLtoR( "*NOT Ready* " , XmFONTLIST_DEFAULT_TAG ) ;
+   func->tstat_label =
+      XtVaCreateManagedWidget(
+         "dialog" , xmLabelWidgetClass , func->tstat_rowcol ,
+            XmNrecomputeSize , False ,
+            XmNlabelString , xstr ,
+            XmNalignment , XmALIGNMENT_CENTER ,
+            XmNtraversalOn , True  ,
+            XmNinitialResourcesPersistent , False ,
+         NULL ) ;
+   XmStringFree(xstr) ;
+   MCW_set_widget_bg(func->tstat_label,STOP_COLOR,0) ;
+
+
    /*--- 22 Dec 2009: Group InstaCorr stuff ---*/
 
    if( num_entry == 1 ){  /* only in controller A */
@@ -4018,6 +4243,8 @@ STATUS("making func->rowcol") ;
               XmNinitialResourcesPersistent , False ,
            NULL ) ;
 
+   /*---*/
+
      func->gicor_pb =
            XtVaCreateManagedWidget(
               "dialog" , xmPushButtonWidgetClass , func->gicor_rowcol ,
@@ -4026,7 +4253,7 @@ STATUS("making func->rowcol") ;
                  XmNtraversalOn , True  ,
                  XmNinitialResourcesPersistent , False ,
               NULL ) ;
-     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR_B , 0 ) ;
+     MCW_set_widget_bg( func->gicor_pb , VEDIT_COLOR_A , 0 ) ;
      XtAddCallback( func->gicor_pb , XmNactivateCallback , AFNI_misc_CB , im3d ) ;
      MCW_register_hint( func->gicor_pb , "Control 3dGroupInCorr calculations" ) ;
 
@@ -4334,6 +4561,7 @@ STATUS("making func->rowcol") ;
          (XtPointer) im3d ,                /* is pressed, and its data */
          NULL,NULL                         /* no special display */
       ) ;
+   XtVaSetValues( func->range_av->wtext, XmNcolumns, 8, NULL ); /* 13 Nov 2018 */
 
    func->range_av->parent = (XtPointer) im3d ;
 
@@ -4500,6 +4728,7 @@ STATUS("making func->rowcol") ;
 
    /*-- manage the managers --*/
 
+   XtManageChild( func->thrtop_rowcol ) ;
    XtManageChild( func->thr_rowcol ) ;
    XtManageChild( func->inten_rowcol ) ;
    XtManageChild( func->range_rowcol ) ;
@@ -4812,6 +5041,8 @@ STATUS("making dmode->rowcol") ;
    MCW_register_hint( dmode->write_anat_pb ,
                       "Write current underlay to disk at resampling resolution" ) ;
 
+   /*---*/
+
    dmode->write_func_pb =
       XtVaCreateManagedWidget(
          "dialog" , xmPushButtonWidgetClass , dmode->write_rowcol ,
@@ -4825,6 +5056,8 @@ STATUS("making dmode->rowcol") ;
 
    MCW_register_hint( dmode->write_func_pb ,
                       "Write current overlay dataset to disk at resampling resolution" ) ;
+
+   /*---*/
 
    dmode->write_many_pb =
       XtVaCreateManagedWidget(
@@ -4904,6 +5137,8 @@ STATUS("making dmode->rowcol") ;
                   AFNI_saveas_dataset_CB , im3d ) ;
    MCW_register_hint( dmode->saveas_anat_pb ,
                       "Write current underlay to disk at its internal resolution" ) ;
+
+   /*---*/
 
    dmode->saveas_func_pb =
       XtVaCreateManagedWidget(
@@ -4987,6 +5222,8 @@ STATUS("making dmode->rowcol") ;
 
    MCW_register_hint( dmode->rescan_all_pb ,
                       "Read all sessions again" ) ;
+
+   /*---*/
 
    dmode->rescan_timeseries_pb =
       XtVaCreateManagedWidget(
@@ -5250,6 +5487,8 @@ STATUS("making prog->rowcol") ;
             XmNtraversalOn , True  ,
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
+
+   /*---*/
 
    prog->button_help_pb =
       XtVaCreateManagedWidget(
@@ -5682,19 +5921,30 @@ STATUS("making prog->rowcol") ;
       prog->hidden_melter_pb =
             XtVaCreateManagedWidget(
                "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-#if 0
-                  LABEL_ARG("AFNI Meltdown") ,
-#else
                   LABEL_ARG("Activate Omega-13") ,
-#endif
                   XmNmarginHeight , 0 ,
                   XmNtraversalOn , True  ,
                   XmNinitialResourcesPersistent , False ,
                NULL ) ;
       XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
-      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;        \
-      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;          \
+      MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;
+      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;
+
+      /*----------*/
+
+      prog->hidden_sound_pb =
+            XtVaCreateManagedWidget(
+               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                  LABEL_ARG("Play startup sound") ,
+                  XmNmarginHeight , 0 ,
+                  XmNtraversalOn , True  ,
+                  XmNinitialResourcesPersistent , False ,
+               NULL ) ;
+      XtAddCallback( prog->hidden_sound_pb , XmNactivateCallback ,
+                     AFNI_hidden_CB , im3d ) ;
+      MCW_set_widget_bg( prog->hidden_sound_pb , "#330077" , 0 ) ;
+      MCW_set_widget_fg( prog->hidden_sound_pb , "#ffcc22" ) ;
 
       /*----------*/
 
@@ -7268,32 +7518,14 @@ ENTRY("AFNI_vedit_CB") ;
    XtUnmanageChild( im3d->vwid->func->vedit_frame ) ;
 
    switch( av->ival ){
-#if 0
-     /* switch to Clusters */
-     case 0:
-       DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
-       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
-       DESTROY_ICOR_setup(im3d->iset) ;
-       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
-       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
-       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
-       if( im3d->vwid->func->gicor_rowcol != NULL )
-         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
-       XtManageChild  ( im3d->vwid->func->clu_rowcol  ) ;
-     break ;
-#endif
 
      /* switch to InstaCorr */
      case VEDIT_INSTACORR:
-#if 0
-       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-#endif
+       DISABLE_TSTAT(im3d) ;
        DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
        XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
-#if 0
-       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
+       XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icor_rowcol ) ;
@@ -7301,33 +7533,40 @@ ENTRY("AFNI_vedit_CB") ;
 
      /* switch to InstaCalc [18 Sep 2009] */
      case VEDIT_INSTACALC:
-#if 0
-       UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-#endif
+       DISABLE_TSTAT(im3d) ;
        DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
        DESTROY_ICOR_setup(im3d->iset) ;
        DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
-#if 0
-       XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
        XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
        if( im3d->vwid->func->gicor_rowcol != NULL )
          XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
        XtManageChild  ( im3d->vwid->func->icalc_rowcol) ;
      break ;
 
+     /* switch to Tstat [22 Mar 2018] */
+     case VEDIT_TSTAT:
+       DISABLE_INSTACALC(im3d) ;
+       DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
+       DESTROY_ICOR_setup(im3d->iset) ;
+       DISABLE_GRPINCORR(im3d) ;                          /* GrpInCorr off */
+       XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
+       XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+       if( im3d->vwid->func->gicor_rowcol != NULL )
+         XtUnmanageChild( im3d->vwid->func->gicor_rowcol ) ;
+       XtManageChild  ( im3d->vwid->func->tstat_rowcol) ;
+     break ;
+
      /* switch to Group InstaCorr [22 Dec 2009] */
      case VEDIT_GRINCORR:
        if( im3d->vwid->func->gicor_rowcol != NULL ){
+         DISABLE_TSTAT(im3d) ;
          DISABLE_INSTACALC(im3d) ;                          /* InstaCalc off */
          DISABLE_INSTACORR(im3d) ;                          /* InstaCorr off */
          DESTROY_ICOR_setup(im3d->iset) ;
-#if 0
-         UNCLUSTERIZE(im3d) ;                               /* Clusters off */
-         XtUnmanageChild( im3d->vwid->func->clu_rowcol  ) ;
-#endif
          XtUnmanageChild( im3d->vwid->func->icor_rowcol ) ;
          XtUnmanageChild( im3d->vwid->func->icalc_rowcol) ;
+         XtUnmanageChild( im3d->vwid->func->tstat_rowcol) ;
          XtManageChild  ( im3d->vwid->func->gicor_rowcol) ;
          if( im3d->giset != NULL ) ENABLE_GRPINCORR(im3d) ;
          else                      DISABLE_GRPINCORR(im3d) ;

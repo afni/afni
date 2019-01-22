@@ -29,5 +29,3 @@ for fn in $@ ; do
   lst="$lst $f";
 done
 echo $lst;
-
-

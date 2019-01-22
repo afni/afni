@@ -90,7 +90,7 @@ ENTRY("THD_array_3dim_from_block") ;
 
       for( id=0 ; id < dset_arr->num ; id++ ){
          THD_delete_3dim_dataset( dset_arr->ar[id] , False ) ;
-         myXtFree( dset_arr->ar[id] ) ;
+         myRwcFree( dset_arr->ar[id] ) ;
       }
 
       FREE_3DARR( dset_arr ) ;

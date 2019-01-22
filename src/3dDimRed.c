@@ -174,7 +174,7 @@ int main( int argc , char *argv[] )
    int ndset=0,nim=0,nvim=0 , ndim=0 , chunk=0,im,imbot,imtop ;
    char *prefix="dimred" ;
    MRI_IMARR *imarc ;
-   XtPointer_array *dsar ;
+   RwcPointer_array *dsar ;
    THD_3dim_dataset *iset=NULL,*kset ; MRI_IMAGE *tim ;
    float *cfixv=NULL , *cvect=NULL , *csave=NULL ;
    size_t msize , ntsiz , ndsiz ;

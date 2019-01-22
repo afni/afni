@@ -160,8 +160,11 @@ int main(int argc, char *argv[])
     port_list * plist = &g_ports;
     int         rv;
 
-    if ( (rv = get_options(&opt, &mp, plist, argc, argv)) != 0 )
-        return rv;
+    if ( (rv = get_options(&opt, &mp, plist, argc, argv)) != 0 ) {
+        /* return 0 on terminal success */
+        if( rv > 0 ) return 0;
+        else         return 1;
+    }
     
     /* register interrupt trap */
     signal( SIGHUP,  clean_n_exit );
@@ -482,6 +485,11 @@ void clean_n_exit(int sig_num)
             }                           \
         } while (0)                     \
 
+
+/* return  0 : success with continuation
+           1 : success, but termination
+          -1 : failure
+*/
 int get_options(optiondata *opt, motparm * mp, port_list * plist,
                 int argc, char *argv[])
 {

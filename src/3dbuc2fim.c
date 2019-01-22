@@ -38,7 +38,7 @@
 /*-------------------------- global data --------------------------*/
 
 static THD_3dim_dataset_array * B2F_dsar  = NULL ;
-static XtPointer_array        * B2F_subv  = NULL ;
+static RwcPointer_array        * B2F_subv  = NULL ;
 static int                      B2F_nvox  = -1 ;
 static int                      B2F_verb  = 0 ;
 static int                      B2F_func_type  = -1;

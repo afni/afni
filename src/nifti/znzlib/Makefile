@@ -7,7 +7,7 @@ INCFLAGS = $(ZLIB_INC)
 SRCS=znzlib.c
 OBJS=znzlib.o
 
-depend:	
+depend:
 	$(RM) -f depend.mk
 	$(MAKE) depend.mk
 

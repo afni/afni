@@ -17,6 +17,12 @@ set hostname = afni.nimh.nih.gov
 set hostproto = https://
 set hostsite = $hostproto$hostname
 
+set sysname = `uname -s`
+if ( $status ) then
+   echo "** command failure: uname -s"
+   set sysname = ""
+endif
+
 # ----------------------------------------------------------------------
 # history section
 
@@ -58,6 +64,9 @@ history for $prog :
   3.2  23 Jun 2017 : unalias grep; only update cur_afni if not abin
   3.3  10 Jul 2017 : if bindir is relative, fail without -no_recur
   3.4  21 Jul 2017 : oops, apparently that needs quotes to block eval
+  3.5  04 Apr 2018 : missed sysname
+  3.6  16 Oct 2018 : default OS X package is macos_10.12_local
+                   - add newline before dotfile appends
 
 -------------------------------------------------------------------------------
 EOF
@@ -66,7 +75,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.4, July 21, 2017"
+set aub_version = "3.6, October 16, 2018"
 
 # ----------------------------------------------------------------------
 # apply any options
@@ -266,7 +275,7 @@ examples:
 
     individual user: initial install or udpate
 
-       The default package is linux_openmp_64 (Linux) or macosx_10.7_local
+       The default package is linux_openmp_64 (Linux) or macos_10.12_local
        (OS X).  The default binary directory is ~/abin.
 
        $prog -defaults -do_extras
@@ -281,13 +290,13 @@ examples:
     other examples:
 
        $prog -defaults
-       $prog -defaults -package macosx_10.7_local
+       $prog -defaults -package macos_10.12_local
        $prog -package linux_openmp_64
        $prog -package linux_openmp_64 -bindir ~/abin
        $prog -package linux_openmp_64 -programs suma 3dRSFC
        $prog -package linux_openmp_64 -programs file_tool python_scripts/*.py
 
-       $prog -local_package macosx_10.7_local.tgz
+       $prog -local_package macos_10.12_local.tgz
 
 options:
 
@@ -504,13 +513,8 @@ if ( $package == "" ) then
           exit 1
       endif
    else
-      # pick package based on OS
-      set sysname = `uname -s`
+      # pick package based on OS (sysname is set above)
       set errs = 0
-      if ( $status ) then
-         @ errs ++
-         set sysname = ""
-      endif
 
       set cpuname = `uname -p`
       if ( $status ) then
@@ -532,7 +536,7 @@ if ( $package == "" ) then
          endif
       else if ( $sysname == Darwin ) then
          # default to no.omp.glib for now
-         set package = macosx_10.7_local
+         set package = macos_10.12_local
       else
          @ errs ++
       endif
@@ -727,6 +731,12 @@ if ( $do_recur ) then
    endif
 
    # ----- okay, we have a new installer to check on
+
+   # make sure it is executable
+   if ( ! -x $prog ) then
+      echo "-- fixing lost permissions on $prog"
+      chmod +x $prog
+   endif
 
    # see if there are any changes to apply
    cmp -s $prog ../$prog
@@ -1046,6 +1056,8 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( $status ) then
          # finally, update .csrhc and our current path
          echo "++ adding $abin to path in $rcfile ..."
+         # newline, in case they are missing one?
+         echo ''                                >> $rcfile
          echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
          set path = ( $path $abin )
       endif
@@ -1069,8 +1081,28 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       if ( $status ) then
          # not found, so append to file
          echo "++ adding $abin to PATH in $brcfile ..."
+         # add a newline, just in case
+         echo ''                        >> $brcfile
          echo 'export PATH=$PATH:'$abin >> $brcfile
       endif
+
+      # ---------------------------
+      # and .bash_profile, but only if it exists
+      set brcfile = ~/.bash_profile
+      if ( -f $brcfile ) then
+         \grep $abin:t $brcfile >& /dev/null
+         if ( $status ) then
+            # $abin not found, so append to file
+            echo "++ adding $abin to PATH in $brcfile ..."
+            echo 'export PATH=$PATH:'$abin >> $brcfile
+         endif
+      else if ( $sysname == Darwin ) then
+         echo "++ will source .bashrc from newly created .bash_profile"
+         echo '' >> $brcfile
+         echo '. $HOME/.bashrc' > $brcfile
+      endif
+
+      # so... what about .profile?
 
    endif
 endif
@@ -1082,7 +1114,7 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    echo "++ running $cmd ..."
    $cmd
    
-   \grep afni_help_dir $rcfile >& /dev/null
+   \grep all_progs.COMP $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
       cat << EOF >> $rcfile
 
@@ -1096,7 +1128,7 @@ EOF
 endif
 
 # maybe they need to set the DYLD_F_L_P
-if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
+if ( $package == macos_10.12_Intel_64 && $#prog_list > 0 ) then
    echo ""
    echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
    echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"

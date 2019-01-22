@@ -229,8 +229,8 @@ static float MRI_TYPE_maxval[9] =
 
 /*! Force a float into a byte. */
 
-#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                     \
-                      : ((xx) > 255.0) ? (byte)255 : (byte)rint(xx) )
+#define BYTEIZE(xx)  (  ((xx) <   0.0) ? (byte)0                      \
+                      : ((xx) > 255.0) ? (byte)255 : (byte)rintf(xx) )
 
 /*! Determine if a MRI_TYPE is an integer type. */
 
@@ -829,6 +829,7 @@ extern int csfft_nextup_one35(int) ;
 extern int csfft_nextup_even(int) ;
 extern void csfft_scale_inverse(int) ;
 extern void csfft_force_fftn(int) ; /* 08 Oct 2017 */
+extern int csfft_allows_anything(void) ; /* Jun 2018 */
 
 extern void mri_fftshift( MRI_IMAGE *, float,float,float, int ) ; /* 13 May 2003 */
 
@@ -857,7 +858,10 @@ extern int         mri_possibly_dicom( char * ) ;        /* 07 May 2003 */
 extern int         mri_siemens_slice_times( int *, int *, float ** );
 extern int         mri_sst_get_verb( void );
 extern int         mri_sst_set_verb( int );
-extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att , int nposn ) ;
+extern char *      mri_dicom_hdrinfo( char *fname, int natt, char **att ,
+                                      int nposn, char *sepstr) ;
+extern char *      mri_dicom_hdrinfo_full( char *fname, int natt, char **att ,
+                                      int nposn, char *sepstr ) ;
 
 /*! Set the data pointer in an MRI_IMAGE to NULL. */
 
@@ -918,6 +922,10 @@ extern MRI_IMAGE * mri_expand_2D( int , MRI_IMAGE * ) ;  /* 22 Feb 2004 */
 extern MRI_IMAGE *mri_new( int , int , MRI_TYPE ) ;
 extern MRI_IMAGE *mri_read( char * ) ;
 extern MRI_IMAGE *mri_read_ge4( char * ) ;               /* 03 Jun 2003 */
+
+extern void   fclose_maybe( FILE *fp ) ;
+extern FILE * fopen_maybe ( char *fname ) ;
+
 extern int mri_write( char * , MRI_IMAGE * ) ;
 extern int mri_write_pnm( char * , MRI_IMAGE * ) ;
 extern int mri_write_jpg( char * , MRI_IMAGE * ) ;       /* 15 Apr 2005 */
@@ -1185,7 +1193,6 @@ extern void mri_flatfilter_usedxyz  ( int i ) ;
 
 void mri_Set_KO_catwrap(void);
 void mri_Set_OK_catwrap(void);
-void mri_Set_OK_catwrap(void);
 void mri_Set_OK_catrandwrap(void);
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
@@ -1396,10 +1403,11 @@ extern double poisson_p2t ( double qq , double lambda ) ;
 }
 #endif
 
-/*----------*/
+/*-----------------------------------------------------*/
+/* Add extra int 'kk' to floatvec struct [26 Jun 2018] */
 
-typedef struct { int nar ; float  *ar , dx,x0 ; } floatvec ;
-typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
+typedef struct { int nar ; float  *ar , dx,x0 ; int kk ; } floatvec ;
+typedef struct { int nar ; double *ar , dx,x0 ; int kk ; } doublevec ;
 #define KILL_floatvec(fv)                      \
   do{ if( (fv) != NULL ){                      \
         if( (fv)->ar != NULL ) free((fv)->ar); \
@@ -1411,6 +1419,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (fv) = (floatvec *)malloc(sizeof(floatvec)) ;     \
       (fv)->nar = (n) ; (fv)->dx=1.0f; (fv)->x0=0.0f;   \
       (fv)->ar  = (float *)calloc(sizeof(float),(n)) ;  \
+      (fv)->kk  = 0 ;                                   \
       if( (fv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_floatvec malloc fails\n"); \
   } while(0)
 
@@ -1418,6 +1427,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
   do{ (dv) = (doublevec *)malloc(sizeof(doublevec)) ;     \
       (dv)->nar = (n) ; (dv)->dx=1.0; (dv)->x0=0.0;       \
       (dv)->ar  = (double *)calloc(sizeof(double),(n)) ;  \
+      (dv)->kk  = 0 ;                                     \
       if( (dv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_doublevec malloc fails\n"); \
   } while(0)
 
@@ -1425,6 +1435,7 @@ typedef struct { int nar ; double *ar , dx,x0 ; } doublevec ;
  do{ int n = (fv)->nar ; MAKE_floatvec((ev),n) ;      \
      (ev)->dx = (fv)->dx ; (ev)->x0 = (fv)->x0 ;      \
      memcpy( (ev)->ar, (fv)->ar, sizeof(float)*n ) ;  \
+     (ev)->kk = (fv)->kk ;                            \
  } while(0)
 
 #define RESIZE_floatvec(fv,m)                                     \
@@ -1442,7 +1453,7 @@ extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
 
-/*----------*/
+/*-----------------------------------------------------*/
 
 typedef struct { int nar ; int *ar ; } intvec ;
 #define KILL_intvec(iv)                        \
@@ -1473,7 +1484,7 @@ typedef struct { int nvec ; intvec *ivar ; } intvecvec ;
       memcpy( (iv)->ar+ni, (jv)->ar, sizeof(int)*(jv)->nar ) ; \
   } while(0)
 
-/*----------*/  /* 20 Jan 2016 */
+/*--------------------------------------------------*/  /* 20 Jan 2016 */
 
 typedef struct { int nar ; int64_t *ar ; } int64vec ;
 #define KILL_int64vec(iv)                      \
@@ -1490,7 +1501,7 @@ typedef struct { int nar ; int64_t *ar ; } int64vec ;
       if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: MAKE_int64vec malloc fails\n"); \
   } while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 
 typedef struct { int nar ; short *ar ; } shortvec ;
 #define KILL_shortvec(iv)                    \
@@ -1513,7 +1524,7 @@ typedef struct { int nar ; short *ar ; } shortvec ;
         if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_shortvec malloc fails\n"); \
   }} while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 /* Jul 2010 */
 
 typedef struct { int nar ; byte *ar ; } bytevec ;
@@ -1537,7 +1548,7 @@ typedef struct { int nar ; byte *ar ; } bytevec ;
         if( (iv)->ar == NULL ) fprintf(stderr,"** ERROR: RESIZE_bytevec malloc fails\n"); \
   }} while(0)
 
-/*----------*/
+/*--------------------------------------------------*/
 
 typedef struct {
   int nbot, ntop , gbot ;
@@ -1584,7 +1595,7 @@ extern char * SYM_test_gltsym( char *varlist , char *gltsym ) ; /* 01 May 2015 *
 #include "rcmat.h"            /* 30 Dec 2008 */
 
 #ifdef HAVE_ZLIB
-#include "zlib.h"             /* 02 Mar 2009 */
+#include <zlib.h>             /* 02 Mar 2009 */
 #endif
 
 #include "misc_math.h"        /* 21 Jun 2010 [rickr] */
@@ -1830,13 +1841,14 @@ extern void mri_metrics( MRI_IMAGE *, MRI_IMAGE *, float * ) ;
 #define GA_MATCH_PEARSON_LOCALS    11  /* experimental */
 #define GA_MATCH_PEARSON_LOCALA    12  /* experimental */
 
-#define GA_MATCH_LPC_MICHO_SCALAR  13  /* experimental [24 Feb 2010] */
+#define GA_MATCH_LPC_MICHO_SCALAR  13  /* 24 Feb 2010 */
+#define GA_MATCH_LPA_MICHO_SCALAR  14  /* 28 Nov 2018 */
 
-#define GA_MATCH_NCDZLIB           14  /* very experimental */
+#define GA_MATCH_NCDZLIB           15  /* very experimental */
 
-#define GA_MATCH_PEARCLP_SCALAR    15
+#define GA_MATCH_PEARCLP_SCALAR    16
 
-#define GA_MATCH_METHNUM_SCALAR    14  /* Largest value in sequence above */
+#define GA_MATCH_METHNUM_SCALAR    14  /* Largest useful value in sequence above */
 
  /* methods for smoothing images */
 
@@ -1893,6 +1905,8 @@ extern floatvec * GA_pearson_vector( GA_BLOK_set *, float *, float *, float * );
 extern void GA_pearson_ignore_zero_voxels(int) ; /* 23 Feb 2010 */
 
 /******* end of BLOK-ization stuff here -- also see mri_genalign_util.c *******/
+
+extern float total_rotation_degrees( float ax, float ay, float az ) ; /* 02 Jan 2019 */
 
  /* struct to control mri_genalign.c optimization */
 
@@ -2046,7 +2060,6 @@ extern void GA_interp_wsinc5_2D( MRI_IMAGE *fim ,
 extern int GA_gcd(int,int) ;
 extern int GA_find_relprime_fixed(int) ;
 extern MRI_IMAGE * GA_smooth( MRI_IMAGE *im, int meth, float rad ) ;
-extern void GA_set_outval(float) ;
 
 extern MRI_IMAGE * GA_indexwarp( MRI_IMAGE *, int, MRI_IMAGE * ) ;
 extern MRI_IMAGE * GA_indexwarp_plus( MRI_IMAGE *, int, MRI_IMAGE *,
@@ -2089,18 +2102,6 @@ extern MRI_IMARR * mri_genalign_scalar_xyzwarp(      /* 10 Dec 2010 */
 
 extern void mri_genalign_scalar_clrwght( GA_setup * ) ;  /* 18 Oct 2006 */
 
-/*--------------------------------------------------------------------------*/
-/* Prototypes for functions in nifti_stats.c */
-
-extern int nifti_intent_code    ( char * ) ;
-extern double nifti_stat2cdf    ( double, int, double,double,double ) ;
-extern double nifti_stat2rcdf   ( double, int, double,double,double ) ;
-extern double nifti_cdf2stat    ( double, int, double,double,double ) ;
-extern double nifti_rcdf2stat   ( double, int, double,double,double ) ;
-extern double nifti_stat2zscore ( double, int, double,double,double ) ;
-extern double nifti_stat2hzscore( double, int, double,double,double ) ;
-/*------------------------------------------------------------------*/
-
 extern THD_fvec3 mri_estimate_FWHM_1dif( MRI_IMAGE * , byte * ) ;
 extern MRI_IMAGE * THD_estimate_FWHM_all( THD_3dim_dataset *, byte *, int,int ) ;
 extern void FHWM_1dif_dontcheckplus( int ) ;
@@ -2117,6 +2118,8 @@ extern MCW_cluster * THD_estimate_ACF( THD_3dim_dataset *dset,
 extern float_quad ACF_cluster_to_modelE( MCW_cluster *acf, float dx, float dy, float dz ) ;
 extern MRI_IMAGE * ACF_get_1D(void) ;
 extern float mriarr_estimate_FWHM_acf( MRI_IMARR *imar, byte *mask, int unif, float radius ) ;
+
+void set_ACF_2D( int nn ) ; /* 25 Oct 2018 */
 
 void mri_fwhm_setfester( THD_fvec3 (*func)(MRI_IMAGE *, byte *) ) ;
 
@@ -2372,6 +2375,9 @@ extern void NwarpCalcRPN_verb(int i) ;
 extern void THD_interp_floatim( MRI_IMAGE *fim ,
                                 int np , float *ip , float *jp , float *kp ,
                                 int code, float *outar ) ;
+extern void THD_interp_complexim( MRI_IMAGE *fim ,
+                                  int np , float *ip , float *jp , float *kp ,
+                                  int code, complex *outar ) ; /* 27 Mar 2018 */
 extern MRI_IMARR * THD_setup_nwarp( MRI_IMARR *bimar,
                                     int use_amat    , mat44 amat ,
                                     mat44 cmat_bim  ,
@@ -2401,6 +2407,40 @@ extern int THD_nwarp_inverse_xyz( THD_3dim_dataset *dset_nwarp ,
                                   float dfac , int npt ,
                                   float *xin , float *yin , float *zin ,
                                   float *xut , float *yut , float *zut  ) ;
+/*----------------------------------------------------------------------------*/
+/* Aug 2018 - sound stuff - cs_playsound.c */
+
+extern void play_sound_1D( int nn , float *xx ) ;
+extern void mri_play_sound( MRI_IMAGE *im , int ignore ) ;
+extern void set_sound_note_type( char *typ ) ;
+extern void set_sound_gain_value( int ggg ) ;
+extern void set_sound_twotone( int ggg ) ;      /* do not use this */
+extern char * get_sound_player(void) ;
+extern void sound_set_note_ADSR(int) ;
+
+extern void sound_write_au_header( FILE *fp, int nn, int srate, int code ) ;
+extern void sound_write_au_ulaw( char *fname, int nn, float *aa, int srate, float scl ) ;
+extern void sound_write_au_8PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
+
+extern void sound_write_au_16PCM( char *fname, int nn, float *aa, int srate, float scl ) ;
+
+extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
+                                       float fbot, float ftop, int srate, int nsper ) ;
+
+extern void kill_sound_players(void) ;
+
+#define SOUND_WAVEFORM_SINE     1
+#define SOUND_WAVEFORM_SQUARE   2
+#define SOUND_WAVEFORM_TRIANGLE 3
+#define SOUND_WAVEFORM_H2SINE   4
+#define SOUND_WAVEFORM_SQSINE   5
+
+#define SOUND_WAVECODE_BASE     1048576.0f
+
+extern void sound_set_note_waveform( int nn ) ;
+extern void sound_make_note( float frq, int waveform, int srate, int nsam, float *sam ) ;
+extern MRI_IMAGE * mri_sound_1D_to_notes( MRI_IMAGE *imin, int srate, int nsper,
+                                          int ny, int ignore , int use_wavecodes ) ;
 
 /*----------------------------------------------------------------------------*/
 

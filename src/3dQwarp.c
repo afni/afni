@@ -1,6 +1,11 @@
 #include "mrilib.h"
 #include "thd_conformist.c"
 
+          /*******************************************************/
+          /**  Note that all real work is done in mri_nwarp.c,  **/
+          /**  which is #include-d a little farther down.       **/
+          /*******************************************************/
+
 /*---------------------------------------------------------------------------*/
 /* Features to ruminate about:
     - NN interpolation of data, for matching label datasets      [not hard]
@@ -12,15 +17,23 @@
 
     - initial 3dAllineate phase (-allineate or -resample)        [DONE]
 
-    - symmetric mapping,                                         [very hard]
+    - symmetric mapping,                                         [very slow]
       with Src(W(x)) = Bas(INV(W(x))) instead of Src(W(x))=B(x)
-      -- plusminus is nearly the same, and simpler!
+      -- plusminus is nearly the same, and much simpler!
 
     - for patches with more than (say) 41^3=68921 'good' voxels, [not hard]
       extract a pseudorandom subset of them for the correlation
-      calculation when penfac=0; also, keep penfac=0 to lev=2
+      calculation when penfac=0
+
+    - Keep penfac=0 to lev=3                                     [DONE]
+
+    - Lighter weight polynomial warps '-lite'                    [DONE]
+      (but not yet for plusminus maps)                           [DONE]
 
     - vector-valued images                                       [medium]
+
+    - crop warps where they are all zero, but not past           [easy and]
+      the base volume dimensions                                 [tedious]
 
     - GPU acceleration                                           [ugh squared]
 *//*-------------------------------------------------------------------------*/
@@ -36,11 +49,10 @@
 
 /** include the warping functions, and enable the warp-optimizing functions **/
 
-#define ALLOW_QWARP                /* this must be defined, or nothing works! */
-#define ALLOW_QMODE                /* allows -Qfinal and -Qonly options */
-#define ALLOW_PLUSMINUS            /* allows -plusminus option */
-#undef  USE_PLUSMINUS_INITIALWARP  /* don't do this! doesn't work well! */
+#define ALLOW_QWARP                /* Duhhhhhh */
+#define USE_NEW_HSAVE              /* 13 Mar 2018 */
 
+/*----------------------------------------------------------------------*/
 #include "mri_nwarp.c"             /* all the real work is done in here */
 
 /** include the Powell NEWUOA functions for nonlinear optimization **/
@@ -51,6 +63,7 @@
 #include "powell_newuoa.c"
 #undef max
 #undef min
+/*----------------------------------------------------------------------*/
 
 /** constants for the mri_weightize() function (liberated from 3dAllineate) **/
 
@@ -69,6 +82,8 @@ static float wball_f = 0.0f ;
 
 static THD_3dim_dataset *wmask_set = NULL ;  /* 21 Dec 2016 */
 static float             wmask_f   = 0.0f ;
+
+static int do_plusminus = 0 ;  /* doing plusminus warping? */
 
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
@@ -239,18 +254,44 @@ void Qhelp(void)
   printf(
     "\n"
     "* Computes a nonlinearly warped version of source_dataset to match base_dataset.\n"
+    " ++ Written by Zhark the Warped, so take nothing here too seriously.\n"
     " ++ The detail allowed in the warping is set by the '-minpatch' option.\n"
     " ++ The discrete warp computed herein is a representation of an underlying\n"
     "    piecewise polynomial C1 diffeomorphism.\n"
     " ++ See the OUTLINE OF WARP OPTIMIZATION METHOD section, far below, for details.\n"
     "\n"
-    "* The simplest way to use this program is via the auto_warp.py script.\n"
-    "* Or to use the @SSwarper script, for warping a T1-weighted dataset to\n"
-    "  the (human brain) MNI 2009 template dataset supplied with AFNI binaries.\n"
+    "* Other AFNI programs in this nonlinear warping collection include:\n"
+    " ++ 3dNwarpAdjust = adjust a set  of nonlinear warps to remove any mean warp\n"
+    " ++ 3dNwarpApply  = apply a nonlinear warp to transform a dataset\n"
+    " ++ 3dNwarpCalc   = calculate a new nonlinear warp from other input warps\n"
+    " ++ 3dNwarpCat    = catenate/compose two or more warps to produce a new warp\n"
+    " ++ 3dNwarpFuncs  = compute some functions of a nonlinear warp\n"
+    " ++ 3dNwarpXYZ    = apply a nonlinear warp to discrete set of (x,y,z) triples\n"
+    " ++ @SSwarper     = Script that combines 3dQwarp and 3dSkullStrip (SS) to\n"
+    "                    produce a brain volume warped to a template and with\n"
+    "                    the non-brain tissue ('skull') removed.\n"
+    " ++ auto_warp.py  = Python program to run 3dQwarp for you\n"
+    " ++ unWarpEPI.py  = Python program to unwarp EPI datasets, using\n"
+    "                    a reverse-blip reference volume\n"
+    " ++ afni_proc.py  = General AFNI pipeline for FMRI datasets, which can use\n"
+    "                    auto_warp.py and unWarpEPI.py along the way.\n"
+    "\n"
+    "* 3dQwarp is where nonlinear warps come from (in AFNI).\n"
+    " ++ For the most part, the above programs either use warps from 3dQwarp,\n"
+    "    or they provide easier ways to run 3dQwarp.\n"
+    "\n"
+    "* The simplest way to use 3dQwarp is via the @SSwarper script, for\n"
+    "  warping a T1-weighted dataset to the (human brain) MNI 2009 template\n"
+    "  dataset supplied with AFNI binaries (other templates also available).\n"
+    "\n"
+    "* The next simplest way to use 3dQwarp is via the auto_warp.py program.\n"
+    "\n"
+    "* You can use 3dQwarp directly if you want to control (or play with) the\n"
+    "  various options for setting up the warping process.\n"
     "\n"
     "* Input datasets must be on the same 3D grid (unlike program 3dAllineate)!\n"
     " ++ Or you will get a fatal error when the program checks the datasets!\n"
-    " ++ However, You can use the '-allineate' option in 3dQwarp to do\n"
+    " ++ However, you can use the '-allineate' option in 3dQwarp to do\n"
     "    affine alignment before the nonlinear alignment, which will also\n"
     "    resample the aligned source image to the base dataset grid.\n"
     " ++ OR, you can use the '-resample' option in 3dQwarp to resample the\n"
@@ -258,15 +299,16 @@ void Qhelp(void)
     "    without doing any preliminary affine alignment.\n"
     "\n"
     "* 3dQwarp CAN be used on 2D images -- that is, datasets with a single\n"
-    "  slice.  How well it works on such datasets has not been investigated\n"
+    "  slice. How well it works on such datasets has not been investigated\n"
     "  much, but it DOES work (and quickly, since the amount of data is small).\n"
     " ++ You CAN input .jpg or .png files as the source and base images.\n"
     " ++ 3dQwarp will convert RGB images to grayscale and attempt to align those.\n"
     "    The output will still be in dataset format (not image format) and\n"
-    "    will be in grayscale floating point (not color).  To get the warped\n"
+    "    will be in grayscale floating point (not color). To get the warped\n"
     "    image output in .jpg or .png format, you can open the output dataset\n"
-    "    in the AFNI GUI and save the image -- after turning off crosshairs\n"
-    "    and Left-Right flipping.\n"
+    "    in the AFNI GUI and save the image -- after turning off crosshairs!\n"
+    "  + To get an RGB copy of a warped image, you have to apply the warp to\n"
+    "    each channel (R, G, B) separately and then fuse the results.\n"
     " ++ Applying this program to 2D images is mostly for fun; the actual\n"
     "    utility of it in brain imaging is not clear to Emperor Zhark.\n"
     "\n"
@@ -283,6 +325,7 @@ void Qhelp(void)
     " ++ If the datasets have markedly different contrasts (e.g., T1 and T2), then\n"
     "    using a non-standard matching function such as '-nmi' or '-hel' or '-lpa'\n"
     "    might work better than the default Pearson correlation matching function.\n"
+    "    (This type of warping has not been tested much here at AFNI headquarters.)\n"
     "\n"
     "******************************************************************************\n"
     "* If the input datasets do NOT overlap reasonably well (please look at them  *\n"
@@ -294,23 +337,24 @@ void Qhelp(void)
     "* 'Overlap well' means that the datasets match well in coordinate space.     *\n"
     "* In some cases, datasets may match well voxel-wise, but the xyz coordinates *\n"
     "* defined in the dataset headers do not match -- in such a case, 3dQwarp     *\n"
-    "* will fail.  This is why Zhark urges you to LOOK at the overlap in AFNI,    *\n"
-    "* which uses coordinates for display matching, not voxel indexes.  Or use    *\n"
+    "* will fail. This is why Zhark urges you to LOOK at the overlap in AFNI,     *\n"
+    "* which uses coordinates for display matching, not voxel indexes. Or use     *\n"
     "* the '-allineate' option to get 3dAllineate to line up the dataset by       *\n"
-    "* brute force, just to be safe (at the cost of a little extra CPU time).     *\n"
+    "* brute force, just to be safe (at the cost of a some extra CPU time).       *\n"
     "******************************************************************************\n"
     "\n"
     "* Outputs of 3dQwarp are the warped dataset and the warp that did it.\n"
     " ++ These datasets are stored in float format, no matter what the\n"
     "    data type of the source dataset.\n"
+    " ++ Many other optional outputs are described later.\n"
     "\n"
     "* Simple example:\n"
-    "    3dQwarp -allineate -blur 0 5              \\\n"
-    "            -base ~/abin/MNI152_1mm+tlrc.HEAD \\\n"
-    "            -source sub637_T1.nii             \\\n"
+    "    3dQwarp -allineate -blur 0 5                         \\\n"
+    "            -base ~/abin/MNI152_2009_template_SSW.nii.gz \\\n"
+    "            -source sub637_T1.nii                        \\\n"
     "            -prefix sub637_T1qw.nii\n"
     "  which will produce a dataset warped to match the MNI152 T1 template\n"
-    "  at a 1 mm resolution.  Since the MNI152 template is already pretty\n"
+    "  at a 1 mm resolution. Since the MNI152 template is already somewhat\n"
     "  blurry, the amount of blurring applied to it is set to zero, while\n"
     "  the source dataset (presumably not blurry) will be Gaussian blurred\n"
     "  with a FWHM of 5 mm.\n"
@@ -327,11 +371,13 @@ void Qhelp(void)
     "    and should be considered experimental at this infundibulum.\n"
     " ++ The 'local' correlation options are also now available:\n"
     "      '-lpc' for Local Pearson minimization (i.e., EPI-T1 registration)\n"
-    "      '-lpa' for Local Pearson maximization\n"
-    "    These options also have not been extensively tested.\n"
-    " ** If you use '-lpc', then '-maxlev 0' is automatically set.  If you want\n"
+    "      '-lpa' for Local Pearson maximization (i.e., T1-FA registration)\n"
+    "    However, the '+ZZ' modifier is not available for these cost functions,\n"
+    "    unlike in program 3dAllineate.\n"
+    "    These advanced cost options have not been tested very much.\n"
+    " ** If you use '-lpc', then '-maxlev 0' is automatically set. If you want\n"
     "    to go to more refined levels, you can set '-maxlev' AFTER '-lpc' on the\n"
-    "    command line.  Using maxlev > 1 is not recommended for EPI-T1 alignment.\n"
+    "    command line. Using maxlev > 1 is not recommended for EPI-T1 alignment.\n"
     " ** For aligning EPI to T1, the '-lpc' option can be used; my advice\n"
     "    would be to do something like the following:\n"
     "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
@@ -358,9 +404,9 @@ void Qhelp(void)
     "      should not cause a problem (we hope).\n"
     "    * Third, 3dNwarpApply is used to take the inverse warp from 3dQwarp to\n"
     "      transform the EPI to the T1 space, since 3dQwarp transformed the T1 to\n"
-    "      EPI space.  This inverse warp was output by 3dQwarp using '-iwarp'.\n"
+    "      EPI space. This inverse warp was output by 3dQwarp using '-iwarp'.\n"
     "    * Someday, this procedure may be incorporated into align_epi_anat.py :-)\n"
-    " *** It is vitally important to visually look at the results of this process! **\n"
+    " ** It is vitally important to visually look at the results of this process! **\n"
 #if defined(USE_OMP) && defined(__GNU_C__)
     " ++ Note that these 'adventurous' matching options may cause trouble with\n"
     "    OpenMP compiled with GNU gcc, due to a bug in gcc's OpenMP library\n"
@@ -368,15 +414,20 @@ void Qhelp(void)
     "    -- this issue is one reason these options are labeled 'adventurous'.\n"
     "    -- It sometimes happens that gcc's OpenMP will 'freeze' during a long\n"
     "       run, apparently due to a 'race condition' bug in the GNU OpenMP\n"
-    "       library.  If this happens to you, one workaround is to\n"
+    "       library. If this happens to you, one workaround is to\n"
     "       run the program to a larger minimum patch size, then\n"
     "       re-start the warping process from the last saved warp,\n"
     "       using '-inilev' and '-iniwarp'.\n"
+#ifdef USE_NEW_HSAVE
+    "       Using the '-allsave' option would also let you re-start the warping\n"
+    "       from the end of the last completed level, since that option saves\n"
+    "       the computed warp as each level finishes before starting the next.\n"
+#endif
     "    -- Also, the use of '-verb' will cause 3dQwarp to print a\n"
     "       report for every patch, which will usually make it obvious\n"
     "       when the program freezes up.\n"
     "    -- Unfortunately, Emperor Zhark doesn't know how to get around\n"
-    "       this problem with gcc (except to use the Intel icc compiler).\n"
+    "       this problem with gcc (except to use the Intel icc compiler) :(\n"
 #endif
     "\n"
     "* For aligning T1-weighted anatomical volumes, Zhark recommends that\n"
@@ -391,9 +442,10 @@ void Qhelp(void)
     "    source dataset; again, see the SAMPLE USAGE section below.\n"
     " ++ Some people prefer to nonlinearly align datasets with the 'skull' left on.\n"
     "    You are free to try this, of course, but we have not tested this method.\n"
+    "    We give you tools; you build things with them.\n"
     "\n"
     "* If for some deranged reason you have datasets with very non-cubical voxels,\n"
-    "  they should be resampled to a cubical grid before trying 3dQwarp.  For example,\n"
+    "  they should be resampled to a cubical grid before trying 3dQwarp. For example,\n"
     "  if you have acquired 1x1x4 mm T1-weighted structural volumes (why?), then\n"
     "  resample them to 1x1x1 mm before doing any other registration processing.\n"
     "  For example:\n"
@@ -425,7 +477,7 @@ void Qhelp(void)
     "                -source anatT1_US+orig -twopass -cost lpa \\\n"
     "                -1Dmatrix_save anatT1_USA.aff12.1D        \\\n"
     "                -autoweight -fineblur 3 -cmass\n"
-    "    3dQwarp -prefix anatT1_USAQ -duplo -blur 0 3 \\\n"
+    "    3dQwarp -prefix anatT1_USAQ -blur 0 3 \\\n"
     "            -base TEMPLATE+tlrc -source anatT1_USA+tlrc\n"
     "\n"
     "  You can then use the anatT1_USAQ_WARP+tlrc dataset to transform other\n"
@@ -440,8 +492,8 @@ void Qhelp(void)
     "  place of 'NEWSOURCE' in the above command.\n"
     "\n"
     "  Note that the '-nwarp' option to 3dNwarpApply has TWO filenames inside\n"
-    "  single quotes.  This feature tells that program to compose (catenate) those\n"
-    "  2 spatial transformations before applying the resulting warp.  See the -help\n"
+    "  single quotes. This feature tells that program to compose (catenate) those\n"
+    "  2 spatial transformations before applying the resulting warp. See the -help\n"
     "  output of 3dNwarpApply for more sneaky/cunning ways to make the program warp\n"
     "  datasets (and also see the example just below).\n"
     "\n"
@@ -487,6 +539,9 @@ void Qhelp(void)
     "--------------------\n"
     "COMMAND LINE OPTIONS (too many of them)\n"
     "--------------------\n"
+    "\n"
+    "++++++++++ Input and Outputs +++++++++++++\n"
+    "\n"
     " -base   base_dataset   = Alternative way to specify the base dataset.\n"
     "\n"
     " -source source_dataset = Alternative way to specify the source dataset.\n"
@@ -496,23 +551,24 @@ void Qhelp(void)
     "                         * But you cannot use just one of '-base' or '-source'\n"
     "                           and then put the other input dataset name at the\n"
     "                           end of the command line!\n"
-    "                       *** Please note that if you are using 3dUnifize on\n"
-    "                           one dataset (or the template was made with 3dUnifize-d\n"
+    "                       *** Please note that if you are using 3dUnifize on one\n"
+    "                           dataset (or the template was made with 3dUnifize-d\n"
     "                           datasets), then the other dataset should also be\n"
-    "                           processed the same way for better results.  This dictum\n"
-    "                           applies in general: the source and base datasets should\n"
-    "                           be pre-processed the same way, as far as possible.\n"
+    "                           processed the same way for better results. This\n"
+    "                           dictum applies in general: the source and base\n"
+    "                           datasets should be pre-processed the same way,\n"
+    "                           as far as practicable.\n"
     "\n"
     " -prefix ppp  = Sets the prefix for the output datasets.\n"
     "               * The source dataset is warped to match the base\n"
     "                 and gets prefix 'ppp'. (Except if '-plusminus' is used.)\n"
     "               * The final interpolation to this output dataset is\n"
-    "                 done using the 'wsinc5' method.  See the output of\n"
+    "                 done using the 'wsinc5' method. See the output of\n"
     "                   3dAllineate -HELP\n"
     "                 (in the \"Modifying '-final wsinc5'\" section) for\n"
     "                 the lengthy technical details.\n"
     "               * The 3D warp used is saved in a dataset with\n"
-    "                 prefix 'ppp_WARP' -- this dataset can be used\n"
+    "                 prefix '{prefix}_WARP' -- this dataset can be used\n"
     "                 with 3dNwarpApply and 3dNwarpCat, for example.\n"
     "                 * To be clear, this is the warp from source dataset\n"
     "                   coordinates to base dataset coordinates, where the\n"
@@ -522,26 +578,39 @@ void Qhelp(void)
     "                     base( (x,y,z) + WARP(x,y,z) ) matches source(x,y,z)\n"
     "                   Another way to think of this warp is that it 'pulls'\n"
     "                   values back from source space to base space.\n"
-    "               * 3dNwarpApply would use 'ppp_WARP' to transform datasets\n"
+    "               * 3dNwarpApply would use '{prefix}_WARP' to transform datasets\n"
     "                 aligned with the source dataset to be aligned with the\n"
     "                 base dataset.\n"
     "              ** If you do NOT want this warp saved, use the option '-nowarp'.\n"
-    "            -->> (However, this warp is usually the most valuable possible output!)\n"
+    "            -->> (But: This warp is usually the most valuable possible output!)\n"
     "               * If you want to calculate and save the inverse 3D warp,\n"
-    "                 use the option '-iwarp'.  This inverse warp will then be\n"
-    "                 saved in a dataset with prefix 'ppp_WARPINV'.\n"
+    "                 use the option '-iwarp'. This inverse warp will then be\n"
+    "                 saved in a dataset with prefix '{prefix}_WARPINV'.\n"
     "               * This inverse warp could be used to transform data from base\n"
     "                 space to source space, if you need to do such an operation.\n"
     "               * You can easily compute the inverse later, say by a command like\n"
-    "                   3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
+    "                  3dNwarpCat -prefix Z_WARPINV 'INV(Z_WARP+tlrc)'\n"
     "                 or the inverse can be computed as needed in 3dNwarpApply, like\n"
-    "                   3dNwarpApply -nwarp 'INV(Z_WARP+tlrc)' -source Dataset.nii ...\n"
+    "                  3dNwarpApply -nwarp 'INV(Z_WARP+tlrc)' -source Dataset.nii ...\n"
+    "\n"
+    " -nowarp      = Do not save the _WARP file.\n"
+    "               * By default, the {prefix}_WARP dataset will be saved.\n"
+    "\n"
+    " -iwarp       = Do compute and save the _WARPINV file.\n"
+    "               * By default, the {prefix}_WARPINV file is NOT saved.\n"
+    "\n"
+    " -nodset      = Do not save the warped source dataset (i.e., if you only\n"
+    "                need the _WARP).\n"
+    "               * By default, the warped source dataset {prefix} is saved.\n"
+    "\n"
+    "\n"
+    "++++++++++ Preliminary affine (linear transformation) alignment ++++++++++\n"
     "\n"
     " -allineate   = This option will make 3dQwarp run 3dAllineate first, to align\n"
     "   *OR*         the source dataset to the base with an affine transformation.\n"
     " -allin         It will then use that alignment as a starting point for the\n"
     "   *OR*         nonlinear warping.\n"
-    " -allinfast    * With -allineate, the source dataset does NOT have to be on\n"
+    " -allinfast    * With '-allineate', the source dataset does NOT have to be on\n"
     "                 the same 3D grid as the base, since the intermediate output\n"
     "                 of 3dAllineate (the substitute source) will be on the grid\n"
     "                 as the base.\n"
@@ -550,39 +619,41 @@ void Qhelp(void)
     "                 option '-onepass' to the 3dAllineate command line, to make\n"
     "                 it run faster (by avoiding the time-consuming coarse pass\n"
     "                 step of trying lots of shifts and rotations to find an idea\n"
-    "                 of how to start).\n"
+    "                 of how to start). But you should KNOW that the datasets do\n"
+    "                 overlap well before using '-allinfast'.\n"
     "          -->>** The final output warp dataset is the warp directly between\n"
     "                 the original source dataset and the base (i.e., the catenation\n"
     "                 of the affine matrix from 3dAllineate and the nonlinear warp\n"
     "                 from the 'warpomatic' procedure in 3dQwarp).\n"
-    "          -->>** The above point means that you should NOT NOT NOT use the affine\n"
-    "                 warp output by the '-allineate' option in combination with the\n"
-    "                 nonlinear warp output by 3dQwarp (say, when using 3dNwarpApply),\n"
-    "                 since the affine warp would then be applied twice -- which would\n"
-    "                 be WRONG WRONG WRONG.\n"
+    "          -->>** The above point means that you should NOT NOT NOT use the\n"
+    "                 affine warp output by the '-allineate' option in combination\n"
+    "                 with the nonlinear warp output by 3dQwarp (say, when using\n"
+    "                 3dNwarpApply), since the affine warp would then be applied\n"
+    "                 twice -- which would be WRONG WRONG WRONG.\n"
     "          -->>** The final output warped dataset is warped directly from the\n"
     "                 original source dataset, NOT from the substitute source.\n"
     "               * The intermediate files from 3dAllineate (the substitute source\n"
     "                 dataset and the affine matrix) are saved, using 'prefix_Allin'\n"
-    "                 in the filenames.  If you wish to have them deleted, use the\n"
+    "                 in the filenames. If you wish to have them deleted, use the\n"
     "                 option '-allinkill' in addition to '-allineate'.\n"
     "             *** The following 3dQwarp options CANNOT be used with -allineate:\n"
     "                   -plusminus  -inilev  -iniwarp\n"
-    "             *** However, you CAN use -duplo with -allineate.\n"
     "               * The '-awarp' option will output the computed warp from the\n"
     "                 intermediea 3dAllineate-d dataset to the base dataset,\n"
     "                 in case you want that for some reason. This option will\n"
     "                 only have meaning if '-allineate' or '-allinfast' is used.\n"
     "                 The prefix of the '-awarp' output will have the string\n"
-    "                 '_AWARP' appended to the '-prefix' for the output dataset.\n"
+    "                 '_AWARP' appended to the {prefix} for the output dataset.\n"
     "\n"
     " -allineate_opts '-opt ...'\n"
     "   *OR*        * This option lets you add extra options to the 3dAllineate\n"
-    " -allopt         command to be run by 3dQwarp.  Normally, you won't need\n"
+    " -allopt         command to be run by 3dQwarp. Normally, you won't need\n"
     "                 to do this.\n"
-    "               * All the extra options for the 3dAllineate command line\n"
-    "                 should be enclosed inside a pair of quote marks; e.g.,\n"
-    "                    -allopt '-cost lpa -verb'\n"
+    "               * Note that the default cost functional in 3dAllineate is\n"
+    "                 the Hellinger metric ('-hel'); some people prefer '-lpa+ZZ',\n"
+    "                 and so should use something like this:\n"
+    "                     -allopt '-cost lpa+ZZ'\n"
+    "                 to ensure 3dAllineate uses the desired cost functional.\n"
     "               * If '-emask' is used in 3dQwarp, the same option will be\n"
     "                 passed to 3dAllineate automatically, so you don't have to\n"
     "                 do that yourself.\n"
@@ -591,10 +662,10 @@ void Qhelp(void)
     "                 happen, and you won't EVER get any Christmas presents again!\n"
     "\n"
     " -resample    = This option simply resamples the source dataset to match the\n"
-    "                base dataset grid.  You can use this if the two datasets\n"
+    "                base dataset grid. You can use this if the two datasets\n"
     "                overlap well (as seen in the AFNI GUI), but are not on the\n"
     "                same 3D grid.\n"
-    "               * If they don't overlap well, use -allineate instead.\n"
+    "               * If they don't overlap very well, use '-allineate' instead.\n"
     "               * As with -allineate, the final output dataset is warped\n"
     "                 directly from the source dataset, not from the resampled\n"
     "                 source dataset.\n"
@@ -603,61 +674,82 @@ void Qhelp(void)
     "               * If the base and source datasets ARE on the same 3D grid,\n"
     "                 then the -resample option will be ignored.\n"
     "               * You CAN use -resample with these 3dQwarp options:\n"
-    "                   -plusminus  -inilev  -iniwarp  -duplo\n"
+    "                   -plusminus  -inilev  -iniwarp\n"
+    "                 In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
+    "               * Unless you are in a hurry, '-allineate' is better.\n"
     "\n"
-    " -nowarp      = Do not save the _WARP file.\n"
-    " -iwarp       = Do compute and save the _WARPINV file.\n"
-    " -nodset      = Do not save the warped source dataset (i.e., if you only need the _WARP).\n"
+    " -awarp       = If '-allineate' is used, output the nonlinear warp that\n"
+    "                transforms from the 3dAllineate-d affine alignment of\n"
+    "                source-to-base to the base. This warp (output {prefix}_AWARP)\n"
+    "                combined with the affine transformation {prefix}.aff12.1D is\n"
+    "                the same as the final {prefix}_WARP nonlinear transformation\n"
+    "                directly from source-to-base.\n"
+    "               * The '-awarp' output is mostly useful when you need to have\n"
+    "                 this incremental nonlinear warp for various purposes; for\n"
+    "                 example, it is used in the @SSwarper script.\n"
+    "               * '-awarp' will not do anything unless '-allineate' is also\n"
+    "                 used, because it doesn't have anything to do!\n"
+    "               * By default, this {prefix}_AWARP file is NOT saved.\n"
+    "\n"
+    "++++++++++ Computing the 'cost' functional = how datasets are matched ++++++++++\n"
     "\n"
     " -pear        = Use strict Pearson correlation for matching.\n"
     "               * Not usually recommended, since the 'clipped Pearson' method\n"
     "                 used by default will reduce the impact of outlier values.\n"
-#if 0
-    " -localstat   = Normally, the correlation being optimized is computed globally\n"
-    "                (over the entire volume).  With this option, the correlation is\n"
-    "                computed over only the patch being worked on at any given moment.\n"
-    "               * If you use '-verb', you'll see that the cost functional (negative\n"
-    "                 of the correlation) decreases as the program progresses.  With\n"
-    "                 '-localstat', this continual decrease will not happen, and the\n"
-    "                 reported cost will go up and down as the patches vary.  However,\n"
-    "                 the program will still give a good match (one hopes and prays).\n"
-#endif
+    "               * No partridges or trees are implied by this option.\n"
+    "\n"
+    " -hel         = Hellinger metric\n"
+    " -mi          = Mutual information\n"
+    " -nmi         = Normalized mutual information\n"
+    " -lpc         = Local Pearson correlation (signed)\n"
+    " -lpa         = Local Pearson correlation (absolute value)\n"
+    "               * These options mirror those in 3dAllineate, and have not\n"
+    "                 been tested much. They may not be very useful.\n"
+    "               * In particular, nonlinear warping of low resolution EPI\n"
+    "                 data to T1 data is a difficult task, and can introduce\n"
+    "                 more distortions to the result than it fixes.\n"
     "\n"
     " -noneg       = Replace negative values in either input volume with 0.\n"
     "               * If there ARE negative input values, and you do NOT use -noneg,\n"
-    "                 then strict Pearson correlation will be used, since the 'clipped'\n"
-    "                 method only is implemented for non-negative volumes.\n"
-    "               * '-noneg' is not the default, since there might be situations where\n"
-    "                 you want to align datasets with positive and negative values mixed.\n"
-    "               * But, in many cases, the negative values in a dataset are just the\n"
-    "                 result of interpolation artifacts (or other peculiarities), and so\n"
-    "                 they should be ignored.  That is what '-noneg' is for.\n"
+    "                 then strict Pearson correlation will be used, since the\n"
+    "                 'clipped' method only is implemented for non-negative volumes.\n"
+    "               * '-noneg' is not the default, since there might be situations\n"
+    "                 where you want to align datasets with positive and negative\n"
+    "                 values mixed.\n"
+    "               * But, in many cases, the negative values in a dataset are just\n"
+    "                 the result of interpolation artifacts (or other peculiarities),\n"
+    "                 and so they should be ignored. That is what '-noneg' is for.\n"
+    "               * Therefore, '-noneg' is recommended for most applications.\n"
     "\n"
-    " -nopenalty   = Don't use a penalty on the cost function; the goal\n"
+    " -nopenalty   = Don't use a penalty on the cost functional; the goal\n"
     "                of the penalty is to reduce grid distortions.\n"
     "               * If there penalty is turned off AND you warp down to\n"
     "                 a fine scale (e.g., '-minpatch 11'), you will probably\n"
     "                 get strange-looking results.\n"
     "\n"
     " -penfac ff   = Use the number 'ff' to weight the penalty.\n"
-    "                The default value is 1.  Larger values of 'ff' mean the\n"
+    "                The default value is 1. Larger values of 'ff' mean the\n"
     "                penalty counts more, reducing grid distortions,\n"
     "                insha'Allah; '-nopenalty' is the same as '-penfac 0'.\n"
+#if 0
     "           -->>* [23 Sep 2013] -- Zhark increased the default value of\n"
     "                 the penalty by a factor of 5, and also made it get\n"
     "                 progressively larger with each level of refinement.\n"
     "                 Thus, warping results will vary from earlier instances\n"
     "                 of 3dQwarp.\n"
     "               * The progressive increase in the penalty at higher levels\n"
-    "                 means that the 'cost function' can actually look like the\n"
+    "                 means that the 'cost functional' can actually look like the\n"
     "                 alignment is getting worse when the levels change.\n"
     "               * IF you wish to turn off this progression, for whatever\n"
     "                 reason (e.g., to keep compatibility with older results),\n"
-    "                 use the option '-penold'.  To be completely compatible with\n"
+    "                 use the option '-penold'. To be completely compatible with\n"
     "                 the older 3dQwarp, you'll also have to use '-penfac 0.2'.\n"
+#endif
     "\n"
     " -useweight   = With '-useweight', each voxel in the base automask is weighted\n"
-    "                by the intensity of the (blurred) base image.  This makes\n"
+    "                by the intensity of the (blurred) base image. This makes\n"
     "                white matter count more in T1-weighted volumes, for example.\n"
     "           -->>* [24 Mar 2014] This option is is now the default.\n"
     "\n"
@@ -685,76 +777,33 @@ void Qhelp(void)
     "               * '-wball' does change the binary weight created by\n"
     "                 the '-noweight' option.\n"
     "               * You can only use '-wball' once in a run of 3dQwarp.\n"
-    "             *** The effect of '-wball' is not dramatic.  The example\n"
+    "             *** The effect of '-wball' is not dramatic. The example\n"
     "                 above makes the average brain image across a collection\n"
     "                 of subjects a little sharper in the thalamic area, which\n"
-    "                 might have some small value.  If you care enough about\n"
+    "                 might have some small value. If you care enough about\n"
     "                 alignment to use '-wball', then you should examine the\n"
     "                 results from 3dQwarp for each subject, to see if the\n"
     "                 alignments are good enough for your purposes.\n"
     "\n"
     " -wmask ws f  = Similar to '-wball', but here, you provide a dataset 'ws'\n"
     "                that indicates where to increase the weight.\n"
-    "               * The 'ws' dataset must be on the same 3D grid as the base dataset.\n"
+    "               * The 'ws' dataset must be on the same 3D grid as the base\n"
+    "                  dataset.\n"
     "               * 'ws' is treated as a mask -- it only matters where it\n"
     "                 is nonzero -- otherwise, the values inside are not used.\n"
     "               * After 'ws' comes the factor 'f' by which to increase the\n"
-    "                 automatically computed weight.  Where 'ws' is nonzero,\n"
+    "                 automatically computed weight. Where 'ws' is nonzero,\n"
     "                 the weighting will be multiplied by (1+f).\n"
     "               * As with '-wball', the factor 'f' should be between 1 and 100.\n"
     "               * You cannot use '-wball' and '-wmask' together!\n"
     "\n"
-    " -wtprefix p  = Saves the auto-computed weight volume to a dataset with prefix 'p'.\n"
+    " -wtprefix p  = Saves auto-computed weight volume to a dataset with prefix 'p'.\n"
     "                If you are sufficiently dedicated, you could manually edit\n"
-    "                this volume, in the AFNI GUI, in 3dcalc, et cetera.  And then\n"
+    "                this volume, in the AFNI GUI, in 3dcalc, et cetera. And then\n"
     "                use it, instead of the auto-computed default weight, via the\n"
     "                '-weight' option.\n"
     "               * If you use the '-emask' option, the effects of the exclusion\n"
     "                 mask are NOT shown in this output dataset!\n"
-    "\n"
-    " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
-    "                doing the alignment (the output dataset will not be blurred).\n"
-    "                The default is 2.345 (for no good reason).\n"
-    "               * Optionally, you can provide 2 values for 'bb', and then\n"
-    "                 the first one is applied to the base volume, the second\n"
-    "                 to the source volume.\n"
-    "           -->>* e.g., '-blur 0 3' to skip blurring the base image\n"
-    "                 (if the base is a blurry template, for example).\n"
-    "               * A negative blur radius means to use 3D median filtering,\n"
-    "                 rather than Gaussian blurring.  This type of filtering will\n"
-    "                 better preserve edges, which can be important in alignment.\n"
-    "               * If the base is a template volume that is already blurry,\n"
-    "                 you probably don't want to blur it again, but blurring\n"
-    "                 the source volume a little is probably a good idea, to\n"
-    "                 help the program avoid trying to match tiny features.\n"
-    "               * Note that -duplo will blur the volumes some extra\n"
-    "                 amount for the initial small-scale warping, to make\n"
-    "                 that phase of the program converge more rapidly.\n"
-    "\n"
-    " -pblur       = Use progressive blurring; that is, for larger patch sizes,\n"
-    "                the amount of blurring is larger.  The general idea is to\n"
-    "                avoid trying to match finer details when the patch size\n"
-    "                and incremental warps are coarse.  When '-blur' is used\n"
-    "                as well, it sets a minimum amount of blurring that will\n"
-    "                be used. [06 Aug 2014 -- '-pblur' may become the default someday].\n"
-    "               * You can optionally give the fraction of the patch size that\n"
-    "                 is used for the progressive blur by providing a value between\n"
-    "                 0 and 0.25 after '-pblur'.  If you provide TWO values, the\n"
-    "                 the first fraction is used for progressively blurring the\n"
-    "                 base image and the second for the source image.  The default\n"
-    "                 parameters when just '-pblur' is given is the same as giving\n"
-    "                 the options as '-pblur 0.09 0.09'.\n"
-    "               * '-pblur' is useful when trying to match 2 volumes with high\n"
-    "                 amounts of detail; e.g, warping one subject's brain image to\n"
-    "                 match another's, or trying to warp to match a detailed template.\n"
-    "               * Note that using negative values with '-blur' means that the\n"
-    "                 progressive blurring will be done with median filters, rather\n"
-    "                 than Gaussian linear blurring.\n"
-    "         -->>*** The combination of the -allineate and -pblur options will make\n"
-    "                 the results of using 3dQwarp to align to a template somewhat\n"
-    "                 less sensitive to initial head position and scaling.\n"
-    "\n"
-    " -nopblur     = Don't use '-pblur'; equivalent to '-pblur 0 0'.\n"
     "\n"
     " -emask ee    = Here, 'ee' is a dataset to specify a mask of voxels\n"
     "                to EXCLUDE from the analysis -- all voxels in 'ee'\n"
@@ -774,32 +823,95 @@ void Qhelp(void)
     "           -->>* Note that the emask applies to the base dataset,\n"
     "                 so if you are registering a pre- and post-surgery\n"
     "                 volume, you would probably use the post-surgery\n"
-    "                 dataset as the base.  If you eventually want the\n"
+    "                 dataset as the base. If you eventually want the\n"
     "                 result back in the pre-surgery space, then you\n"
     "                 would use the inverse warp afterwards (in 3dNwarpApply).\n"
     "\n"
+    " -inedge      = Enhance interior edges in the base and source volumes, to\n"
+    "                make the cost functional give more weight to these edges.\n"
+    "               * This option MIGHT produce slightly better alignments, but\n"
+    "                 its effect is small.\n"
+    "               * The output transformed source dataset will NOT have these\n"
+    "                 enhanced edges; the enhancement is done internally on the\n"
+    "                 volume image copies that are being matched.\n"
+    "\n"
+    "++++++++++ Blurring the inputs (avoid trying to match TOO much detail) +++++++++\n"
+    "\n"
+    " -blur bb     = Gaussian blur the input images by 'bb' (FWHM) voxels before\n"
+    "                doing the alignment (the output dataset will not be blurred).\n"
+    "                The default is 2.345 (for no good reason).\n"
+    "               * Optionally, you can provide 2 values for 'bb', and then\n"
+    "                 the first one is applied to the base volume, the second\n"
+    "                 to the source volume.\n"
+    "           -->>* e.g., '-blur 0 3' to skip blurring the base image\n"
+    "                 (if the base is a blurry template, for example).\n"
+    "               * A negative blur radius means to use 3D median filtering,\n"
+    "                 rather than Gaussian blurring. This type of filtering will\n"
+    "                 better preserve edges, which might be important in alignment.\n"
+    "               * If the base is a template volume that is already blurry,\n"
+    "                 you probably don't want to blur it again, but blurring\n"
+    "                 the source volume a little is probably a good idea, to\n"
+    "                 help the program avoid trying to match tiny features.\n"
+    "\n"
+    " -pblur       = Use progressive blurring; that is, for larger patch sizes,\n"
+    "                the amount of blurring is larger. The general idea is to\n"
+    "                avoid trying to match finer details when the patch size\n"
+    "                and incremental warps are coarse. When '-blur' is used\n"
+    "                as well, it sets a minimum amount of blurring that will\n"
+    "                be used. [06 Aug 2014 -- '-pblur' may be the default someday].\n"
+    "               * You can optionally give the fraction of the patch size that\n"
+    "                 is used for the progressive blur by providing a value between\n"
+    "                 0 and 0.25 after '-pblur'. If you provide TWO values, the\n"
+    "                 the first fraction is used for progressively blurring the\n"
+    "                 base image and the second for the source image. The default\n"
+    "                 parameters when just '-pblur' is given is the same as giving\n"
+    "                 the options as '-pblur 0.09 0.09'.\n"
+    "               * '-pblur' is useful when trying to match 2 volumes with high\n"
+    "                 amounts of detail; e.g, warping one subject's brain image to\n"
+    "                 match another's, or trying to match a detailed template.\n"
+    "               * Note that using negative values with '-blur' means that the\n"
+    "                 progressive blurring will be done with median filters, rather\n"
+    "                 than Gaussian linear blurring.\n"
+    "         -->>*** The combination of the -allineate and -pblur options will make\n"
+    "                 the results of using 3dQwarp to align to a template somewhat\n"
+    "                 less sensitive to initial head position and scaling.\n"
+    "\n"
+    " -nopblur     = Don't use '-pblur'; equivalent to '-pblur 0 0'.\n"
+    "\n"
+    "++++++++++ Restricting the warp directions ++++++++++\n"
+    "\n"
     " -noXdis      = These options let you specify that the warp should not\n"
-    " -noYdis      = displace in the given direction.  For example, combining\n"
+    " -noYdis      = displace in the given direction. For example, combining\n"
     " -noZdis      = -noXdis and -noZdis would mean only warping along the\n"
     "                y-direction would be allowed.\n"
     "               * Here, 'x' refers to the first coordinate in the dataset,\n"
-    "                 which is usually the Right-to-Left direction.  Et cetera.\n"
+    "                 which is usually the Right-to-Left direction. Et cetera.\n"
+    "               * Note that the output WARP dataset(s) will have sub-bricks\n"
+    "                 for the displacements which are all zero; every WARP dataset\n"
+    "                 has 3 sub-bricks.\n"
 #if 0
     "               * xyz coordinates herein refer to the DICOM order, where\n"
     "                   -x = Right  -y = Anterior   -z = Inferior\n"
     "                   +x = Left   +y = Posterior  +z = Superior\n"
 #endif
     "\n"
+    "++++++++++ Controlling the warp calculation process in detail ++++++++++\n"
+    "\n"
     " -iniwarp ww  = 'ww' is a dataset with an initial nonlinear warp to use.\n"
     "               * If this option is not used, the initial warp is the identity.\n"
     "               * You can specify a catenation of warps (in quotes) here, as in\n"
     "                 program 3dNwarpApply.\n"
+    "               * You can scale a 3D warp's displacments by prefixing the dataset\n"
+    "                 name by 'FAC:a,b,c:Warpdatasetname' where a b c are numbers\n"
+    "                 by which to scale the x- y- z-displacments.\n"
     "               * As a special case, if you just input an affine matrix in a .1D\n"
-    "                 file, that will work also -- it is treated as giving the initial\n"
+    "                 file, that also works -- it is treated as giving the initial\n"
     "                 warp via the string \"IDENT(base_dataset) matrix_file.aff12.1D\".\n"
-    "               * You CANNOT use this option with -duplo !!\n"
     "               * -iniwarp is usually used with -inilev to re-start 3dQwarp from\n"
-    "                 a previous stopping point.\n"
+    "                 a previous stopping point, or from the output of '-allsave'.\n"
+    "               * In particular, '-iniwarp' and '-resample' will work\n"
+    "                 together if you need to re-start a warp job from the\n"
+    "                 output of '-allsave'.\n"
 #if 0
     "               * Special cases allow the creation of an initial affine 'warp'\n"
     "                 from a list of 12 numbers:\n"
@@ -811,7 +923,7 @@ void Qhelp(void)
     "                   parameters, as would come from 3dAllineate's\n"
     "                   '-1Dparam_save' option.\n"
     "                 * The numeric parameters can be separated by commas\n"
-    "                   or blanks.  The closing ')' isn't really required, but\n"
+    "                   or blanks. The closing ')' isn't really required, but\n"
     "                   the opening '(' after 'MATRIX' or 'PARAM' is needed.\n"
     "                   For this reason, you will probably need to put this\n"
     "                   argument inside 'single' or \"double\" quotes, to protect\n"
@@ -819,15 +931,14 @@ void Qhelp(void)
 #endif
     "\n"
     " -inilev lv   = 'lv' is the initial refinement 'level' at which to start.\n"
-    "               * Usually used with -iniwarp; CANNOT be used with -duplo.\n"
     "               * The combination of -inilev and -iniwarp lets you take the\n"
     "                 results of a previous 3dQwarp run and refine them further:\n"
     "                   3dQwarp -prefix Q25 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
-    "                           -duplo -minpatch 25 -blur 0 3\n"
+    "                           -minpatch 25 -blur 0 3\n"
     "                   3dQwarp -prefix Q11 -source SS+tlrc -base TEMPLATE+tlrc \\\n"
     "                           -inilev 7 -iniwarp Q25_WARP+tlrc -blur 0 2\n"
     "                 Note that the source dataset in the second run is the SAME as\n"
-    "                 in the first run.  If you don't see why this is necessary,\n"
+    "                 in the first run. If you don't see why this is necessary,\n"
     "                 then you probably need to seek help from an AFNI guru.\n"
     "          -->>** Also see the script @toMNI_Qwarpar for the use of this option\n"
     "                 in creating a template dataset from a collection of scans from\n"
@@ -840,24 +951,25 @@ void Qhelp(void)
     "               * The smallest allowed patch size is " NGMINS ".\n"
 #ifdef USE_OMP
     "               * OpenMP parallelization becomes inefficient for patch sizes\n"
-    "                 smaller than about 15x15x15 -- which is why running 3dQwarp down\n"
-    "                 to the minimum patch level of " NGMINS " can be very slow.\n"
+    "                 smaller than about 15x15x15 -- which is why running 3dQwarp\n"
+    "                 down to the minimum patch level of " NGMINS " can be very slow.\n"
 #endif
-#if (NGMIN < 7) && defined(ALLOW_QMODE)
+#if (NGMIN < 7)
     "               * You may want stop at a larger patch size (say 7 or 9) and use\n"
     "                 the -Qfinal option to run that final level with quintic warps,\n"
     "                 which might run faster and provide the same degree of warp detail.\n"
 #endif
     "               * Trying to make two different brain volumes match in fine detail\n"
-    "                 is usually a waste of time, especially in humans.  There is too\n"
-    "                 much variability in anatomy to match gyrus to gyrus accurately.\n"
+    "                 is usually a waste of time, especially in humans. There is too\n"
+    "                 much variability in anatomy to match gyrus to gyrus accurately,\n"
+    "                 especially in the small foldings in the outer cerebral cortex.\n"
     "                 For this reason, the default minimum patch size is 25 voxels.\n"
     "                 Using a smaller '-minpatch' might try to force the warp to\n"
     "                 match features that do not match, and the result can be useless\n"
     "                 image distortions -- another reason to LOOK AT THE RESULTS.\n"
     "                                                        -------------------\n"
     "\n"
-    " -maxlev lv   = Here, 'lv' is the maximum refinement 'level' to use.  This\n"
+    " -maxlev lv   = Here, 'lv' is the maximum refinement 'level' to use. This\n"
     "                is an alternate way to specify when the program should stop.\n"
     "               * To only do global polynomial warping, use '-maxlev 0'.\n"
     "               * If you use both '-minpatch' and '-maxlev', then you are\n"
@@ -874,34 +986,42 @@ void Qhelp(void)
     "               * If you use the '0' patch size again after the first position,\n"
     "                 you will actually get an iteration at the size of the\n"
     "                 default patch level 1, where the patch sizes are 75%% of\n"
-    "                 the volume dimension.  There is no way to force the program\n"
+    "                 the volume dimension. There is no way to force the program\n"
     "                 to literally repeat the sui generis step of lev=0.\n"
-    "               * You cannot use -gridlist with -duplo or -plusminus!\n"
+    "               * You cannot use -gridlist with: -plusminus :(\n"
     "\n"
     " -allsave     = This option lets you save the output warps from each level\n"
-    "   *OR*         of the refinement process.  Mostly used for experimenting.\n"
-    " -saveall      * Cannot be used with -nopadWARP, -duplo, or -plusminus.\n"
+    "   *OR*         of the refinement process. Mostly used for experimenting.\n"
+    " -saveall      * Cannot be used with: -nopadWARP :(\n"
+    "               * You could use the saved warps to create different versions\n"
+    "                 of the warped source datasets (using 3dNwarpApply), to help\n"
+    "                 you visualize how the warping process makes progress.\n"
+#ifndef USE_NEW_HSAVE
     "               * Will only save all the outputs if the program terminates\n"
     "                 normally -- if it crashes, or freezes, then all these\n"
     "                 warps are lost.\n"
-#if defined(USE_OMP) && defined(__GNU_C__)
+#else
+    "               * The saved warps are written out at the end of each level,\n"
+    "                 before the next level starts computation. Thus, they could\n"
+    "                 be used to re-start the computation if the program crashed\n"
+    "                 (by using options '-inilev' and '-iniwarp').\n"
+    "               * If '-allsave' is used with '-plusminus', the intermediate\n"
+    "                 saved warps are the \"PLUS\" half-warps (which are what the\n"
+    "                 program is optimizing).\n"
 #endif
+
+#if defined(USE_OMP) && defined(__GNU_C__) /* I forget why this was here - getting old :( */
+#endif
+
     "\n"
-    " -duplo       = Start off with 1/2 scale versions of the volumes,\n"
-    "                for getting a speedy coarse first alignment.\n"
-    "               * Then scales back up to register the full volumes.\n"
-    "                 The goal is greater speed, and it seems to help this\n"
-    "                 positively piggish program to be more expeditious.\n"
-    "               * However, accuracy is somewhat lower with '-duplo',\n"
-    "                 for reasons that currenly elude Zhark; for this reason,\n"
-    "                 the Emperor does not usually use '-duplo'.\n"
+    " -duplo       = *** THIS OPTION IS NO LONGER AVAILABLE ***\n"
     "\n"
     " -workhard    = Iterate more times, which can help when the volumes are\n"
     "                hard to align at all, or when you hope to get a more precise\n"
     "                alignment.\n"
     "               * Slows the program down (possibly a lot), of course.\n"
-    "               * When you combine '-workhard'  with '-duplo', only the\n"
-    "                 full size volumes get the extra iterations.\n"
+    "               * Combined with '-lite', takes about the same amount of time\n"
+    "                 as '-nolite' without '-workhard' :)\n"
     "               * For finer control over which refinement levels work hard,\n"
     "                 you can use this option in the form (for example)\n"
     "                     -workhard:4:7\n"
@@ -911,15 +1031,10 @@ void Qhelp(void)
     "                 this extra option will REALLY slow things down.\n"
     "           -->>* Under most circumstances, you should not need to use either\n"
     "                 -workhard or -superhard.\n"
-    "           -->>* The fastest way to register to a template image is via the\n"
-    "                 -duplo option, and without the -workhard or -superhard options.\n"
-#ifdef ALLOW_QMODE
     "           -->>* If you use this option in the form '-Workhard' (first letter\n"
     "                 in upper case), then the second iteration at each level is\n"
     "                 done with quintic polynomial warps.\n"
-#endif
 
-#ifdef ALLOW_QMODE
     "\n"
     " -Qfinal      = At the finest patch size (the final level), use Hermite\n"
     "                quintic polynomials for the warp instead of cubic polynomials.\n"
@@ -935,7 +1050,6 @@ void Qhelp(void)
     "                 polynomials.\n"
     "               * This option is also not usually needed, and is experimental.\n"
 #endif
-#endif /* ALLOW_QMODE */
 
 #if 0                /* Don't let the user know about this option! [Apr 2016] */
 #ifdef ALLOW_BASIS5
@@ -949,84 +1063,75 @@ void Qhelp(void)
     "                 similar to '-minpatch 7' but with more efficient use of\n"
     "                 OpenMP threads.\n"
     "               * For now [Apr 2016], this option is still being benchmarked\n"
-    "                 and otherwise tested.  Be careful out there!\n"
+    "                 and otherwise tested. Be careful out there!\n"
 #endif
 #endif
+    "\n"
+    " -cubic12     = Use 12 parameter cubic polynomials, instead of 24 parameter\n"
+    "                polynomials (the current default patch warps are 24 parameter).\n"
+    "               * '-cubic12' will be faster than the default, and combining\n"
+    "                 it with '-workhard' will make '-cubic12' run at about the\n"
+    "                 same speed as the 24 parameter cubics.\n"
+    "               * Is it less accurate than '-cubic24'? That is very hard\n"
+    "                 to say accurately without more work. In priniple, No.\n"
+    "\n"
+    " -cubic24     = Use 24 parameter cubic Hermite polynomials.\n"
+    "               * At this time [Dec 2018], this choice is the default,\n"
+    "                 and this option is only provided for the possible future\n"
+    "                 event when '-cubic12' becomes the default method.\n"
     "\n"
     " -Qonly       = Use Hermite quintic polynomials at all levels.\n"
-    "               * Very slow (about 4 times longer).  Also experimental.\n"
+    "               * Very slow (about 4 times longer than '-cubic24').\n"
     "               * Will produce a (discrete representation of a) C2 warp.\n"
-
-#ifdef ALLOW_PLUSMINUS
     "\n"
-    " -plusminus   = Normally, the warp displacements dis(x) are defined to match\n"
-    "                base(x) to source(x+dis(x)).  With this option, the match\n"
-    "                is between base(x-dis(x)) and source(x+dis(x)) -- the two\n"
-    "                images 'meet in the middle'.\n"
-    "               * One goal is to mimic the warping done to MRI EPI data by\n"
-    "                 field inhomogeneities, when registering between a 'blip up'\n"
-    "                 and a 'blip down' down volume, which will have opposite\n"
-    "                 distortions.\n"
-    "               * Define Wp(x) = x+dis(x) and Wm(x) = x-dis(x).  Then since\n"
-    "                 base(Wm(x)) matches source(Wp(x)), by substituting INV(Wm(x))\n"
-    "                 wherever we see x, we have base(x) matches source(Wp(INV(Wm(x))));\n"
-    "                 that is, the warp V(x) that one would get from the 'usual' way\n"
-    "                 of running 3dQwarp is V(x) = Wp(INV(Wm(x))).\n"
-    "               * Conversely, we can calculate Wp(x) in terms of V(x) as follows:\n"
-    "                   If V(x) = x + dv(x), define Vh(x) = x + dv(x)/2;\n"
-    "                   then Wp(x) = V(INV(Vh(x)))\n"
-    "               * With the above formulas, it is possible to compute Wp(x) from\n"
-    "                 V(x) and vice-versa, using program 3dNwarpCalc.  The requisite\n"
-    "                 commands are left as an exercise for the aspiring AFNI Jedi Master.\n"
-    "               * You can use the semi-secret '-pmBASE' option to get the V(x)\n"
-    "                 warp and the source dataset warped to base space, in addition to\n"
-    "                 the Wp(x) '_PLUS' and Wm(x) '_MINUS' warps.\n"
-    "           -->>* Alas: -plusminus does not work with -duplo or -allineate :-(\n"
-    "               * However, you can use -iniwarp with -plusminus :-)\n"
-#ifdef USE_PLUSMINUS_INITIALWARP
-    "               * If -plusminus is used, the -plusminus warp is initialized by\n"
-    "                 a coarse warping of the source to the base, then these warp\n"
-    "                 displacements are scaled by 0.5, and then the actual\n"
-    "                 'meet in the middle' warp optimization begins from that point.\n"
-#endif
-    "           -->>* The outputs have _PLUS (from the source dataset) and _MINUS\n"
-    "                 (from the base dataset) in their filenames, in addition to\n"
-    "                 the prefix.  The -iwarp option, if present, will be ignored.\n"
+    " -Quint81    = When quintic polynomials are used, use the full 81 parameter\n"
+    "               set of basis functions (the current default set).\n"
     "\n"
-    " -pmNAMES p m = This option lets you change the PLUS and MINUS prefix appendages\n"
-    "                alluded to directly above to something else that might be more\n"
-    "                easy for you to grok.  For example, if you are warping EPI volumes\n"
-    "                with phase-encoding in the LR-direction with volumes that had\n"
-    "                phase-encoding in the RL-direction, you might do something like\n"
-    "        -base EPI_LR+orig -source EPI_RL+orig -plusminus -pmNAMES RL LR -prefix EPIuw\n"
-    "                recalling the the PLUS name goes with the source (RL) and the\n"
-    "                MINUS name goes with the base (RL).  Then you'd end up with datasets\n"
-    "                  EPIuw_LR+orig and EPIuw_LR_WARP+orig from the base\n"
-    "                  EPIuw_RL+orig and EPIuw_RL_WARP+orig from the source\n"
-    "                The EPIuw_LR_WARP+orig file could then be used to unwarp (e.g.,\n"
-    "                using 3dNwarpApply) other LR-encoded EPI datasets from the same\n"
-    "                scanning session.\n"
-#endif
+    " -Quint30    = Use the smaller 30 parameter set of quintic basis functions.\n"
+    "              * These options ('-Quint81' and '-Quint30') only change\n"
+    "                the operation if you also use some other option that\n"
+    "                implies the use of quintic polynomials for warping.\n"
+    "\n"
+    " -lite       = Another way to specify the use of the 12 parameter cubics\n"
+    "               and the 30 parameter quintics.\n"
+    "              * This option now works with the '-plusminus' warping method :)\n"
+    "              * THIS OPTION IS NOW THE DEFAULT * [Jan 2019]\n"
+    "\n"
+    " -nolite     = Turn off the '-lite' warp functions and use the 24 parameter\n"
+    "               cubics *and* the 81 parameter quintics.\n"
+    "              * This option is present for if you wish to have backwards\n"
+    "                warping compatibility with older versions of 3dQwarp.\n"
     "\n"
     " -nopad      = Do NOT use zero-padding on the 3D base and source images.\n"
-    "               [Default == zero-pad, if needed]\n"
+    "               [Default == zero-pad as needed]\n"
     "              * The underlying model for deformations goes to zero at the\n"
-    "                edge of the volume being warped.  However, if there is\n"
+    "                edge of the volume being warped. However, if there is\n"
     "                significant data near an edge of the volume, then it won't\n"
     "                get displaced much, and so the results might not be good.\n"
     "              * Zero padding is designed as a way to work around this potential\n"
-    "                problem.  You should NOT need the '-nopad' option for any\n"
+    "                problem. You should NOT need the '-nopad' option for any\n"
     "                reason that Zhark can think of, but it is here to be symmetrical\n"
     "                with 3dAllineate.\n"
     "              * Note that the output (warped from source) dataset will be on the\n"
-    "                base dataset grid whether or not zero-padding is allowed.  However,\n"
-    "                unless you use the following option, allowing zero-padding (i.e.,\n"
-    "                the default operation) will make the output WARP dataset(s) be\n"
-    "                on a larger grid (also see '-expad' below).\n"
+    "                base dataset grid whether or not zero-padding is allowed.\n"
+    "                However, unless you use the following option, allowing zero-\n"
+    "                padding (i.e., the default operation) will make the output WARP\n"
+    "                dataset(s) be on a larger grid (also see '-expad' below).\n"
+    "           **** When grid centers of the base and source dataset are far apart\n"
+    "                in (x,y,z) coordinates, then a large amount of zero-padding\n"
+    "                is required to make the grid spaces overlap. This situation can\n"
+    "                cause problems, and most often arises when the (x,y,z)=(0,0,0)\n"
+    "                point in the source grid is in a corner of the volume instead\n"
+    "                of the middle. You can fix that problem by using a command like:\n"
+    "            @Align_Centers -base MNI152_2009_template_SSW.nii.gz -dset Fred.nii\n"
+    "                and then using dataset Fred_shft.nii as your input file for all\n"
+    "                purposes (including afni_proc.py).\n"
+    "              * A warning message will be output to the screen if very large\n"
+    "                amounts of zero-padding are required.\n"
     "\n"
     " -nopadWARP   = If you do NOT use '-nopad' (that is, you DO allow zero-padding\n"
     "                during the warp computations), then the computed warp will often\n"
-    "                be bigger than the base volume.  This situation is normally not\n"
+    "                be bigger than the base volume. This situation is normally not\n"
     "                an issue, but if for some reason you require the warp volume to\n"
     "                match the base volume, then use '-nopadWARP' to have the output\n"
     "                WARP dataset(s) truncated.\n"
@@ -1034,6 +1139,8 @@ void Qhelp(void)
     "                 that are defined over grids that are larger than the datasets\n"
     "                 to which they are applied; this is why Zhark says above that\n"
     "                 a padded warp 'is normally not an issue'.\n"
+    "               * However, if you want to use an AFNI nonlinear warp in some\n"
+    "                 external non-AFNI program, you might have to use this option :(\n"
     "\n"
     " -expad EE    = This option instructs the program to pad the warp by an extra\n"
     "                'EE' voxels (and then 3dQwarp starts optimizing it).\n"
@@ -1046,20 +1153,92 @@ void Qhelp(void)
     "               * Note that this option perforce turns off '-nopadWARP'.\n"
     "\n"
     " -ballopt     = Normally, the incremental warp parameters are optimized inside\n"
-    "                a rectangular 'box' (24 dimensional for cubic patches, 81 for\n"
-    "                quintic patches), whose limits define the amount of distortion\n"
-    "                allowed at each step.  Using '-ballopt' switches these limits\n"
+    "                a rectangular 'box' (e.g., 24 dimensional for cubic patches, 81\n"
+    "                for quintic patches), which limits the amount of distortion\n"
+    "                allowed at each step. Using '-ballopt' switches these limits\n"
     "                to be applied to a 'ball' (interior of a hypersphere), which\n"
-    "                can allow for larger incremental displacements.  Use this\n"
+    "                can allow for larger incremental displacements. Use this\n"
     "                option if you think things need to be able to move farther.\n"
+    "               * Note also that the '-lite' polynomial warps allow for\n"
+    "                 larger incremental displacements than the '-nolite' warps.\n"
     "\n"
     " -boxopt      = Use the 'box' optimization limits instead of the 'ball'\n"
     "                [this is the default at present].\n"
-    "               * Note that if '-workhard' is used, then ball and box optimization\n"
-    "                 are alternated in the different iterations at each level, so\n"
-    "                 these two options have no effect in that case.\n"
+    "               * Note that if '-workhard' is used, then ball and box\n"
+    "                 optimization are alternated in the different iterations at\n"
+    "                 each level, so these two options have no effect in that case.\n"
+
     "\n"
-    " -verb        = Print out very very verbose progress messages (to stderr) :-)\n"
+    "++++++++++ Meet-in-the-middle warping - Also know as '-plusminus' +++++++++\n"
+    "\n"
+    " -plusminus   = Normally, the warp displacements dis(x) are defined to match\n"
+    "                base(x) to source(x+dis(x)). With this option, the match\n"
+    "                is between base(x-dis(x)) and source(x+dis(x)) -- the two\n"
+    "                images 'meet in the middle'.\n"
+    "               * One goal is to mimic the warping done to MRI EPI data by\n"
+    "                 field inhomogeneities, when registering between a 'blip up'\n"
+    "                 and a 'blip down' down volume, which will have opposite\n"
+    "                 distortions.\n"
+    "               * Define Wp(x) = x+dis(x) and Wm(x) = x-dis(x). Then since\n"
+    "                 base(Wm(x)) matches source(Wp(x)), by substituting INV(Wm(x))\n"
+    "                 wherever we see x, we have base(x) matches source(Wp(INV(Wm(x))));\n"
+    "                 that is, the warp V(x) that one would get from the 'usual' way\n"
+    "                 of running 3dQwarp is V(x) = Wp(INV(Wm(x))).\n"
+    "               * Conversely, we can calculate Wp(x) in terms of V(x) as follows:\n"
+    "                   If V(x) = x + dv(x), define Vh(x) = x + dv(x)/2;\n"
+    "                   then Wp(x) = V(INV(Vh(x)))\n"
+    "               * With the above formulas, it is possible to compute Wp(x) from\n"
+    "                 V(x) and vice-versa, using program 3dNwarpCalc. The requisite\n"
+    "                 commands are left as exercises for aspiring AFNI Jedi Masters.\n"
+    "               *** Also see the '-pmBASE' option described below.\n"
+    "           -->>* Alas: -plusminus does not work with: -allineate :-(\n"
+    "                    ++ If a prior linear alignment is needed, it will have\n"
+    "                       to be done \"manually\" using 3dAllineate, and then use\n"
+    "                       the output of that program as the '-source' dataset for\n"
+    "                       3dQwarp.\n"
+    "                    ++ Generally speaking, -plusminus works well if the base and\n"
+    "                       source datasets are reasonably well aligned to start with.\n"
+    "               * However, you can use -iniwarp with -plusminus :-)\n"
+    "           -->>* The outputs have _PLUS (from the source dataset) and _MINUS\n"
+    "                 (from the base dataset) in their filenames, in addition to\n"
+    "                 the {prefix}. The -iwarp option, if present, will be ignored.\n"
+    "               * If you use '-iniwarp' with '-plusminus', the warp dataset to\n"
+    "                 provide with '-iniwarp' is the '_PLUS' warp. That is, you can't\n"
+    "                 use a \"full base-to-source warp\" for the initial warp\n"
+    "                 (one reason '-allineate' doesn't work with '-plusminus').\n"
+    "\n"
+    " -pmNAMES p m = This option lets you change the PLUS and MINUS prefix appendages\n"
+    "                alluded to directly above to something else that might be more\n"
+    "                easy for you to grok. For example, if you are warping EPI\n"
+    "                volumes with phase-encoding in the LR-direction with volumes\n"
+    "                that had phase-encoding in the RL-direction, you might do\n"
+    "                something like\n"
+    "   -base EPI_LR+orig -source EPI_RL+orig -plusminus -pmNAMES RL LR -prefix EPIuw\n"
+    "                recalling that the PLUS name goes with the source (RL) and the\n"
+    "                MINUS name goes with the base (RL). Then you'd end up with\n"
+    "                datasets\n"
+    "                  EPIuw_LR+orig and EPIuw_LR_WARP+orig from the base\n"
+    "                  EPIuw_RL+orig and EPIuw_RL_WARP+orig from the source\n"
+    "                The EPIuw_LR_WARP+orig file could then be used to unwarp (e.g.,\n"
+    "                using 3dNwarpApply) other LR-encoded EPI datasets from the same\n"
+    "                scanning session.\n"
+    "\n"
+    " -pmBASE      = With '-plusminus', computes the V(x) warp (source to base)\n"
+    "                from the plusminus half-warp, and writes it to disk.\n"
+    "                Also writes out the source dataset warped to base space,\n"
+    "                in addition to the Wp(x) '_PLUS' and Wm(x) '_MINUS' results\n"
+    "               * Sneaky aside: if you want the potential for larger displacements\n"
+    "                 than 'normal' 3dQwarp, use '-plusminus', since the meet-in-the-\n"
+    "                 middle approach will allow the full-size displacements in EACH\n"
+    "                 of the half-warps, so that the overall displacment between\n"
+    "                 base and source can be larger. The use of '-pmBASE' will let\n"
+    "                 you get the source-transformed-to-base result at the end.\n"
+    "                 If you don't want the plusminus 'in-the-middle' outputs,\n"
+    "                 just delete them later.\n"
+    "\n"
+    "++++++++++ How 'LOUD' do you want this program to be? ++++++++++\n"
+    "\n"
+    " -verb        = Print out very verbose progress messages (to stderr) :-)\n"
     " -quiet       = Cut out most of the fun fun fun progress messages :-(\n"
     "\n"
     "-----------------------------------\n"
@@ -1069,15 +1248,16 @@ void Qhelp(void)
     "the current point, you can do so with a command like\n"
     "  kill -s QUIT processID\n"
     "where 'processID' is the process identifier number (pid) for the 3dQwarp\n"
-    "program you want to terminate.  A command like\n"
+    "program you want to terminate. A command like\n"
     "  ps aux | grep 3dQwarp\n"
     "will give you a list of all your processes with the string '3dQwarp' in\n"
-    "the command line.  For example, at the moment I wrote this text, I would\n"
+    "the command line. For example, at the moment I wrote this text, I would\n"
     "get the response\n"
-    "  rwcox 62873 693.8  2.3  3274496 755284   p2  RN+  12:36PM 380:25.26 3dQwarp -prefix ...\n"
-    "  rwcox  6421   0.0  0.0  2423356    184   p0  R+    1:33PM   0:00.00 grep 3dQwarp\n"
-    "  rwcox  6418   0.0  0.0  2563664   7344   p4  S+    1:31PM   0:00.15 vi 3dQwarp.c\n"
+    " rwcox 62873 693.8 2.3 3274496 755284 p2 RN+ 12:36PM 380:25.26 3dQwarp -prefix ...\n"
+    " rwcox  6421   0.0 0.0 2423356    184 p0 R+   1:33PM   0:00.00 grep 3dQwarp\n"
+    " rwcox  6418   0.0 0.0 2563664   7344 p4 S+   1:31PM   0:00.15 vi 3dQwarp.c\n"
     "so the processID for the actual run of 3dQwarp was 62873.\n"
+    "(Also, you can see that Zhark is a 'vi' acolyte, not an 'emacs' heretic.)\n"
     "\n"
     "The program will 'notice' the QUIT signal at the end of the optimization\n"
     "of the next patch, so it may be a moment or two before it actually saves\n"
@@ -1085,76 +1265,123 @@ void Qhelp(void)
     "\n"
     "Of course, if you just want to kill the process in a brute force way, with\n"
     "nothing left behind to examine, then 'kill processID' will work.\n"
+#ifdef USE_NEW_HSAVE
+    "\n"
+    "Using 'kill -s QUIT' combined with '-allsave' might be useful in some\n"
+    "circumstances. At least to get some idea of what happened before you\n"
+    "were forced to stop 3dQwarp.\n"
+#endif
     "\n"
     "----------------------------------------------------------------\n"
     "CLARIFICATION about the confusing forward and inverse warp issue\n"
     "----------------------------------------------------------------\n"
     "An AFNI nonlinear warp dataset stores the displacements (in DICOM mm) from\n"
-    "the base dataset grid to the source dataset grid.  For computing the source\n"
+    "the base dataset grid to the source dataset grid. For computing the source\n"
     "dataset warped to the base dataset grid, these displacements are needed,\n"
     "so that for each grid point in the output (warped) dataset, the corresponding\n"
     "location in the source dataset can be found, and then the value of the source\n"
     "at that point can be computed (interpolated).\n"
     "\n"
     "That is, this forward warp is good for finding where a given point in the\n"
-    "base dataset maps to in the source dataset.  However, for finding where a\n"
+    "base dataset maps to in the source dataset. However, for finding where a\n"
     "given point in the source dataset maps to in the base dataset, the inverse\n"
-    "warp is needed.  Or, if you wish to warp the base dataset to 'look like' the\n"
+    "warp is needed. Or, if you wish to warp the base dataset to 'look like' the\n"
     "source dataset, then you use 3dNwarpApply with the input warp being the\n"
     "inverse warp from 3dQwarp.\n"
     "\n"
     "-----------------------------------\n"
-    "OUTLINE OF WARP OPTIMIZATION METHOD\n"
+    "OUTLINE of warp optimization method\n"
     "-----------------------------------\n"
-    "Repeated composition of incremental warps defined by Hermite cubic basis functions,\n"
-    "first over the entire volume, then over steadily shrinking and overlapping patches\n"
-    "(increasing 'levels': the patches shrink by a factor of 0.75 at each level).\n"
+    "Repeated composition of incremental warps defined by Hermite cubic basis\n"
+    "functions, first over the entire volume, then over steadily shrinking and\n"
+    "overlapping patches increasing 'levels': the patches shrink by a factor of\n"
+    "0.75 at each level).\n"
     "\n"
     "At 'level 0' (over the entire volume), Hermite quintic basis functions are also\n"
-    "employed, but these are not used at the more refined levels.  All basis functions\n"
+    "employed, but these are not used at the more refined levels. All basis functions\n"
     "herein are (at least) continuously differentiable, so the discrete warp computed\n"
-    "will be a representation of an underlying C1 diffeomorphism.  The basis functions\n"
-    "go to zero at the edge of each patch, so the overall warp will decay to the identity\n"
-    "warp (displacements=0) at the edge of the base volume. (However, use of '-allineate'\n"
-    "can make the final output warp be nonzero at the edges; the programs that apply\n"
-    "warps to datasets linearly extrapolate warp displacements outside the 3D box over\n"
-    "which the warp is defined.)\n"
+    "will be a representation of an underlying C1 diffeomorphism. The basis functions\n"
+    "go to zero at the edge of each patch, so the overall warp will decay to the\n"
+    "identity warp (displacements=0) at the edge of the base volume. (However, use\n"
+    "of '-allineate' can make the final output warp be nonzero at the edges; the\n"
+    "programs that apply warps to datasets linearly extrapolate warp displacements\n"
+    "outside the 3D box over which the warp is defined.)\n"
     "\n"
     "For this procedure to work, the source and base datasets need to be reasonably\n"
     "well aligned already (e.g., via 3dAllineate, if necessary). Multiple warps can\n"
     "later be composed and applied via programs 3dNwarpApply and/or 3dNwarpCalc.\n"
     "\n"
     "Note that it is not correct to say that the resulting warp is a piecewise cubic\n"
-    "(or quintic) polynomial.  The first warp created (at level 0) is such a warp;\n"
-    "call that W0(x).  Then the incremental warp W1(x) applied at the next iteration\n"
+    "(or quintic) polynomial. The first warp created (at level 0) is such a warp;\n"
+    "call that W0(x). Then the incremental warp W1(x) applied at the next iteration\n"
     "is also a cubic polynomial warp (say), and the result is W0(W1(x)), which is\n"
-    "more complicated than a cubic polynomial -- and so on.  The incremental warps\n"
+    "more complicated than a cubic polynomial -- and so on. The incremental warps\n"
     "aren't added, but composed, so that the mathematical form of the final warp\n"
-    "would be very unwieldy to express in polynomial form.  Of course, the program\n"
+    "would be very unwieldy to express in polynomial form. Of course, the program\n"
     "just keeps track of the displacements, not the polynomial coefficients, so it\n"
     "doesn't 'care' about the underlying polynomials at all.\n"
     "\n"
     "One reason for incremental improvement by composition, rather than by addition,\n"
     "is the simple fact that if W0(x) is invertible and W1(x) is invertible, then\n"
-    "W0(W1(x)) is also invertible -- but W0(x)+W1(x) might not be.  The incremental\n"
+    "W0(W1(x)) is also invertible -- but W0(x)+W1(x) might not be. The incremental\n"
     "polynomial warps are kept invertible by simple constraints on the magnitudes\n"
     "of their coefficients.\n"
     "\n"
-    "The penalty is a Neo-Hookean elastic energy function, based on a combination\n"
-    "of bulk and shear distortions; cf. http://en.wikipedia.org/wiki/Neo-Hookean_solid\n"
-    "The goal is to keep the warps from becoming too 'weird' (not that this always works).\n"
+    "The penalty is a Neo-Hookean elastic energy function, based on a combination of\n"
+    "bulk and shear distortions: cf. http://en.wikipedia.org/wiki/Neo-Hookean_solid\n"
+    "The goal is to keep the warps from becoming too 'weird' (doesn't always work).\n"
     "\n"
     "By perusing the many options above, you can see that the user can control the\n"
-    "warp optimization in various ways.  All these options make using 3dQwarp seem\n"
-    "pretty complicated.  The reason there are so many options is that many different\n"
+    "warp optimization in various ways. All these options make using 3dQwarp seem\n"
+    "pretty complicated. The reason there are so many options is that many different\n"
     "cases arise, and we are trying to make the program flexible enough to deal with\n"
-    "them all.  The SAMPLE USAGE section above is a good place to start for guidance.\n"
+    "them all. The SAMPLE USAGE section above is a good place to start for guidance.\n"
+    "Or you can use the @SSwarper or auto_warp.py scripts.\n"
+    "\n"
+    "----------------- The warp polynomials: '-lite' and '-nolite' -----------------\n"
+    "The '-nolite' cubics have 8 basis functions per spatial dimension, since they\n"
+    "are the full tensor product of the 2 Hermite cubics H0 and H1:\n"
+    "  H0(x)*H0(y)*H0(z)  H1(x)*H0(y)*H0(z)  H0(x)*H1(y)*H0(z)  H0(x)*H0(y)*H1(z)\n"
+    "  H1(x)*H1(y)*H0(z)  H1(x)*H0(y)*H1(z)  H0(x)*H1(y)*H1(z)  H1(x)*H1(y)*H1(z)\n"
+    "and then there are 3 sets of these for x, y, and z displacements, giving\n"
+    "24 total basis functions for a cubic 3D warp patch. The '-lite' cubics\n"
+    "omit any of the tensor product functions whose indexes sum to more than 1,\n"
+    "so there are only 4 basis functions per spatial dimension:\n"
+    "  H0(x)*H0(y)*H0(z)  H1(x)*H0(y)*H0(z)  H0(x)*H1(y)*H0(z)  H0(x)*H0(y)*H1(z)\n"
+    "yielding 12 total basis functions (again, 3 of each function above for each\n"
+    "spatial dimension).. The 2 1D basis functions, defined over the interval\n"
+    "[-1,1], and scaled to have maximum magnitude 1, are\n"
+    "  H0(x) = (1-abs(x))^2 * (1+2*abs(x)) // H0(0) = 1  H0'(0) = 0\n"
+    "  H1(x) = (1-abs(x))^2 * x * 6.75     // H1(0) = 0  H1'(0) = 6.75  H1(1/3) = 1\n"
+    "These functions and their first derivatives are 0 at x=+/-1, which is apparent\n"
+    "from the '(1-abs(x))^2' factor they have in common. The functions are also\n"
+    "continuous and differentiable at x=0; thus, they and their unit translates\n"
+    "can serve as a basis for C1(R): the Banach space of continuously differentiable\n"
+    "functions on the real line.\n"
+    "\n"
+    "One effect of using the '-lite' polynomial warps is that 3dQwarp runs faster,\n"
+    "since there are fewer parameters to optimize. Accuracy should not be impaired,\n"
+    "as the approximation quality (in the mathematical sense) of the '-lite'\n"
+    "polynomials is of the same order as the '-nolite' full tensor product.\n"
+    "\n"
+    "Another effect is that the upper limits on the displacements by any individual\n"
+    "warp patch are somewhat larger than for the full basis set, which may be useful\n"
+    "in some situations.\n"
+    "\n"
+    "Similarly, the '-nolite' quintics have 27 basis functions per spatial\n"
+    "dimension, since they are the product of the 3 Hermite quintics Q0, Q1, Q2.\n"
+    "The '-lite' quintics omit any tensor product whose indexes sum to more than 2.\n"
+    "Formulae for these 3 polynomials can be found in function HQwarp_eval_basis()\n"
+    "in AFNI file mri_nwarp.c. For each Qi, Qi(+/-1)=Qi'(+/-1)=Qi''(+/-1) = 0;\n"
+    "these functions are twice continuously differentiable, and can serve as\n"
+    "a basis for C2(R).\n"
     "\n"
     "-------------------------------------------------------------------------------\n"
     "***** This program is experimental and subject to sudden horrific change! *****\n"
     "-------------------------------------------------------------------------------\n"
     "\n"
     "----- AUTHOR = Zhark the Grotesquely Warped -- Fall/Winter/Spring 2012-13 -----\n"
+    "-----          (but still strangely handsome)                             -----\n"
   ) ;
 
   PRINT_AFNI_OMP_USAGE(
@@ -1162,7 +1389,7 @@ void Qhelp(void)
    "* Tests show that using more 10-12 CPUs with 3dQwarp doesn't help much.\n"
    "  If you have more CPUs on one system, it's faster to run two or three\n"
    "  separate registration jobs in parallel than to use all the CPUs on\n"
-   "  one 3dQwarp task.\n"
+   "  one 3dQwarp task at a time.\n"
   ) ;
   exit(0) ;
 }
@@ -1256,6 +1483,94 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
    return ;
 }
 
+#if 0
+/*---------------------------------------------------------------------------*/
+/* Function for cropping a warp dataset [08 Jan 2019] - not used at present  */
+
+THD_3dim_dataset * Qcrop_dataset( THD_3dim_dataset *iset , char *prefix )
+{
+   THD_3dim_dataset *oset ;
+   int xm,ym,zm,xp,yp,zp ;
+
+   if( iset == NULL ) return NULL ;
+
+   if( prefix == NULL ) prefix = "Zyxt" ;
+
+   THD_autobbox_clip(0) ;   /* alter default options */
+   THD_autobbox_npad(0) ;   /* for finding box and padding */
+   MRI_autobbox_clust(0) ;
+   THD_autobbox_noexpand(1) ;
+
+   /* do all the work */
+
+   oset = THD_autobbox( iset , &xm,&xp , &ym,&yp , &zm,&zp , prefix ) ;
+   if( oset == NULL ) return NULL ;
+
+   if( Hverb )
+     INFO_message("Cropping dataset %s",DSET_PREFIX(iset)) ;
+   return oset ;
+}
+#endif
+
+/*---------------------------------------------------------------------------*/
+/* Function for writing out intermediate saved warps during optimization */
+
+static int do_allin=0 ; char *allopt=NULL ;
+static mat44 allin_matrix, allin_adjust_matrix ;
+static THD_3dim_dataset *adset=NULL , *bset=NULL ;
+static char *prefix = "Qwarp" ;
+static int saved_argc=0 ; static char **saved_argv=NULL ;
+
+#ifdef USE_NEW_HSAVE
+void save_intermediate_warp( IndexWarp3D *hwarp , char *nam )
+{
+   IndexWarp3D *tarp ; char suffix[64], *qprefix ; THD_3dim_dataset *qset ;
+
+   if( hwarp == NULL || nam == NULL ) return ;
+
+ENTRY("save_intermediate_warp") ;
+
+   if( do_allin ){
+STATUS("compose with allin") ;
+     tarp = IW3D_compose_w1m2(hwarp,allin_adjust_matrix,MRI_WSINC5) ;
+   } else {
+     tarp = hwarp ;
+   }
+
+STATUS("adoption") ;
+   IW3D_adopt_dataset(tarp,adset) ;
+   if( do_plusminus )
+     sprintf(suffix,"_%s_PLUS_WARPsave",nam) ;
+   else
+     sprintf(suffix,"_%s_WARPsave",nam) ;
+   qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
+STATUS("convert to dset") ;
+   qset = IW3D_to_dataset( tarp , qprefix ) ;
+   if( bset != NULL ){
+STATUS("copy history") ;
+     tross_Copy_History( bset , qset ) ;
+     if( saved_argc > 0 ){
+STATUS("make new history") ;
+       tross_Make_History( "3dQwarp" , saved_argc,saved_argv , qset ) ;
+     }
+STATUS("copy atlas_space") ;
+     MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+  }
+  if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+    float qar[12] ;
+    UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                              qar[4],qar[5],qar[ 6],qar[ 7],
+                              qar[8],qar[9],qar[10],qar[11] ) ;
+    THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+  }
+STATUS("write warp") ;
+   DSET_write(qset); fprintf(stderr,"[%s]",DSET_BRIKNAME(qset)); DSET_delete(qset);
+   if( tarp != hwarp ) IW3D_destroy(tarp) ;
+   if( Hverb > 1 ) fprintf(stderr,"\n") ;
+   EXRETURN ;
+}
+#endif
+
 /*****************************************************************************/
 /*---------------------------------------------------------------------------*/
 /*                                                                           */
@@ -1266,28 +1581,27 @@ void Qallin_resample( char *basname , char *srcname )  /* 17 Jul 2013 */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *bset=NULL , *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
+   THD_3dim_dataset *sset=NULL , *oset , *iwset=NULL , *sstrue=NULL ;
    char *bsname=NULL , *iwname=NULL , *ssname=NULL , *esname=NULL ;
    MRI_IMAGE *bim=NULL , *wbim=NULL , *sim=NULL , *oim=NULL ; float bmin,smin ;
    IndexWarp3D *oww=NULL , *owwi=NULL ; Image_plus_Warp *oiw=NULL ;
-   char *prefix="Qwarp" , *prefix_clean=NULL ; int nopt , nevox=0 ;
+   char *prefix_clean=NULL ; int nopt , nevox=0 ;
    char *wtprefix=NULL  , *wtprefix_clean=NULL ;
    int meth=GA_MATCH_PEARCLP_SCALAR ; int meth_is_lpc=0 ;
    int ilev=0 , nowarp=0 , nowarpi=1 , mlev=666 , nodset=0 , nnz ;
    int do_awarp=0 ; /* 21 Dec 2016 */
-   int duplo=0 , qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
+   int qsave=0 , minpatch=0 , nx,ny,nz , ct , nnn , noneg=0 ;
    float dx,dy,dz ;
-   int do_allin=0 ; char *allopt=NULL ; mat44 allin_matrix ;
-   float dxal=0.0f,dyal=0.0f,dzal=0.0f ;
+   float dxal=0.0f,dyal=0.0f,dzal=0.0f ; int have_dxyzal=0 ;
    int do_resam=0 ; int keep_allin=1 ;
    int flags=0 , nbad=0 ;
    double cput=0.0 ;
-   int do_plusminus=0; Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
+   Image_plus_Warp **sbww=NULL, *qiw=NULL; /* 14 May 2013 */
    char *plusname="PLUS" , *minusname="MINUS" ;
    char appendage[THD_MAX_NAME] ;
    int zeropad=1, pad_xm=0,pad_xp=0, pad_ym=0,pad_yp=0, pad_zm=0,pad_zp=0 ; /* 13 Sep 2013 */
    int nxold=0,nyold=0,nzold=0 ;
-   int zeropad_warp=1 ; THD_3dim_dataset *adset=NULL ;  /* 19 Mar 2014 */
+   int zeropad_warp=1 ;
    int expad=0 , minpad=0 ;
    int iwpad_xm=0,iwpad_xp=0, iwpad_ym=0,iwpad_yp=0, iwpad_zm=0,iwpad_zp=0 ;
    int do_pmbase=0 ;
@@ -1332,7 +1646,10 @@ int main( int argc , char *argv[] )
    (void)COX_clock_time() ;  /* initialize the clock timer */
    putenv("AFNI_WSINC5_SILENT=YES") ;
 
-   LOAD_IDENT_MAT44(allin_matrix); /* Just to quiet initialization warning */
+   LOAD_IDENT_MAT44(allin_matrix);        /* Just to quiet initialization warning */
+   LOAD_IDENT_MAT44(allin_adjust_matrix); /* Just to quiet initialization warning */
+
+   saved_argc = argc ; saved_argv = argv ; /* 13 Mar 2018 */
 
    /*------------- scan for and parse options -------------*/
 
@@ -1385,6 +1702,28 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
+     if( strcasecmp(argv[nopt],"-inedge") == 0 ){  /* Jul 2018 */
+#ifdef ALLOW_INEDGE
+       Hinedge_doit = 1 ;
+#else
+       ERROR_message("Option %s is disabled now -- ignoring it",argv[nopt]) ;
+#endif
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-warpscale") == 0 ){ /* 08 Aug 2018 [SECRET] */
+       float fff ;
+       if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       fff = (float)strtod(argv[nopt],NULL) ;
+       if( fff <= 0.5f ) fff = 0.5f ; else if( fff > 2.0f ) fff = 2.0f ;
+       Hfactor_q = fff ;
+       nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
      if( strcasecmp(argv[nopt],"-noneg") == 0 ){  /* 24 May 2013 */
        noneg =  1 ; nopt++ ; continue ;
      }
@@ -1412,7 +1751,7 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-minpad") == 0 ){  /* SECRET OPTION */
+     if( strcasecmp(argv[nopt],"-minpad") == 0 ){  /* [SECRET] */
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        minpad = (int)strtod(argv[nopt],NULL) ;
        if( minpad < 0 ) minpad = 0 ;
@@ -1449,7 +1788,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-allinfast") == 0 ||       /* 19 Jul 2013 */
          strcasecmp(argv[nopt],"-allfast"  ) == 0   ){
-       do_allin =  2 ; nopt++ ; continue ;
+       do_allin = 2 ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1471,11 +1810,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-plusminus") == 0 || strcmp(argv[nopt],"+-") == 0 ){
-#ifdef ALLOW_PLUSMINUS
        do_plusminus++ ; nopt++ ; continue ;
-#else
-       ERROR_exit("Option '%s' is not currently available :-(",argv[nopt]) ;
-#endif
      }
 
      /*---------------*/
@@ -1552,7 +1887,6 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-inilev") == 0 ){
-       if( duplo          ) ERROR_exit("Cannot use -inilev with -duplo :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        ilev = (int)strtod(argv[nopt],NULL) ;
        if( ilev < 0 ) ilev = 0 ; else if( ilev > 19 ) ilev = 19 ;
@@ -1562,7 +1896,6 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-maxlev") == 0 ){
-       if( duplo          ) ERROR_exit("Cannot use -maxlev with -duplo :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        mlev = (int)strtod(argv[nopt],NULL) ;
        if( mlev < 0 ) mlev = 0 ; else if( mlev > 99 ) mlev = 99 ;
@@ -1573,7 +1906,6 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-iniwarp") == 0 ){
        char *apt=NULL ;
-       if( duplo )          ERROR_exit("Cannot use -iniwarp with -duplo :-(") ;
        if( iwname != NULL ) ERROR_exit("Cannot use -iniwarp twice :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
        iwname = strdup(argv[nopt]) ; nopt++ ; continue ;
@@ -1594,11 +1926,8 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-duplo") == 0 ){
-       if( iwname != NULL )
-         ERROR_exit("Cannot use -duplo with -iniwarp :-(") ;
-       if( ilev != 0 || mlev < 99 )
-         ERROR_exit("Cannot use -duplo with -inilev or -maxlev :-(") ;
-       duplo = 1 ; nopt++ ; continue ;
+       WARNING_message("-duplo is no longer supported, and is being ignored") ;
+       nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -1621,9 +1950,7 @@ int main( int argc , char *argv[] )
          Hworkhard2 = (int)strtod(cpt+1,NULL) ;
          addone = 1 ;
        }
-#ifdef ALLOW_QMODE
        if( argv[nopt][1] == 'W' ) Hqhard = 1 ;
-#endif
        nopt++ ; if( addone ) nopt++ ;
 
        continue ;
@@ -1663,23 +1990,43 @@ int main( int argc , char *argv[] )
          Hsuperhard2 = (int)strtod(cpt+1,NULL) ;
          addone = 1 ;
        }
-#ifdef ALLOW_QMODE
        if( argv[nopt][1] == 'S' ) Hqhard = 1 ;
-#endif
        if( addone ) nopt++ ;
        nopt++ ; continue ;
      }
 
-     /*---------------*/
+     /*------ Types of warp polynomials---------*/
 
-#ifdef ALLOW_QMODE
      if( strcasecmp(argv[nopt],"-Qfinal") == 0 ){     /* 07 May 2013 */
        Hqfinal = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
      if( strcasecmp(argv[nopt],"-Qonly") == 0 ){      /* 27 Jun 2013 */
+       INFO_message("Using 81 parameter quintic polynomials for patch warps") ;
        Hqonly = 1 ; H5final = 0 ; nopt++ ; continue ;
      }
-#endif
+
+     /*----- Dec 2018 -----*/
+
+     if( strcasecmp(argv[nopt],"-cubic12") == 0 ){
+       Huse_cubic_lite = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-cubic24") == 0 ){
+       Huse_cubic_lite = 1 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-quint30") == 0 ){
+       Huse_quintic_lite = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-quint81") == 0 ){
+       Huse_quintic_lite = 0 ; nopt++ ; continue ;
+     }
+
+     if( strcasecmp(argv[nopt],"-lite") == 0 ){
+       Huse_cubic_lite = Huse_quintic_lite = 1 ; nopt++ ; continue ;
+     }
+     if( strcasecmp(argv[nopt],"-nolite") == 0 ){
+       Huse_cubic_lite = Huse_quintic_lite = 0 ; nopt++ ; continue ;
+     }
 
 #ifdef ALLOW_BASIS5
      if( strcasecmp(argv[nopt],"-5final") == 0 ){     /* 06 Nov 2015 [SECRET] */
@@ -1691,8 +2038,16 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-3final") == 0 ){     /* 06 Nov 2015 [SECRET] */
        H5final = 1 ; Hqfinal = 0 ; nopt++ ; continue ;
      }
-     if( strcasecmp(argv[nopt],"-4zero") == 0 ){      /* 12 Apr 2016 [SECRET] */
-       H4zero = 1 ; nopt++ ; continue ;
+     if( strcasecmp(argv[nopt],"-5zero")  == 0 ){      /* 12 Apr 2016 [SECRET] */
+       H5zero = 1 ; nopt++ ; continue ;
+     }
+#else
+     if( strcasecmp(argv[nopt],"-5final") == 0 ||
+         strcasecmp(argv[nopt],"-4final") == 0 ||
+         strcasecmp(argv[nopt],"-3final") == 0 ||
+         strcasecmp(argv[nopt],"-5zero")  == 0   ){
+       WARNING_message("Option '%s' is disabled :(",argv[nopt]) ;
+       nopt++ ; continue ;
      }
 #endif
 
@@ -1893,7 +2248,7 @@ int main( int argc , char *argv[] )
 
      /*---------------*/
 
-     if( strcasecmp(argv[nopt],"-pencut") == 0 ){  /* 21 Mar 2014 [SECRET OPTION] */
+     if( strcasecmp(argv[nopt],"-pencut") == 0 ){  /* 21 Mar 2014 [SECRET] */
        double val ;
        if( ++nopt >= argc ) ERROR_exit("need arg after -pencut") ;
        val = strtod(argv[nopt],NULL) ;
@@ -1987,6 +2342,7 @@ int main( int argc , char *argv[] )
      /*---------------*/
 
      if( strcasecmp(argv[nopt],"-lpa") == 0 ){
+       Hzeasy = meth_is_lpc = 1 ; mlev = 0 ;
        meth = GA_MATCH_PEARSON_LOCALA ; nopt++ ; continue ;
      }
 
@@ -1994,19 +2350,14 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-allsave") == 0 ||
          strcasecmp(argv[nopt],"-saveall") == 0       ){   /* 02 Jan 2015 */
-       Hsave_allwarps = 1 ; nopt++ ; continue ;
+       Hsave_allwarps = 1 ;
+#ifdef USE_NEW_HSAVE
+       Hsave_callback_func = save_intermediate_warp ;      /* 13 Mar 2018 */
+#endif
+       nopt++ ; continue ;
      }
-
-
 
      /*---------------*/
-
-#if 0  /* this should NOT be enabled! */
-     if( strcasecmp(argv[nopt],"-localstat") == 0 ){  /* 09 Sep 2013 */
-       Hlocalstat = 1 ; nopt++ ; continue ;
-     }
-#endif
-
 
      if( strcasecmp(argv[nopt],"-gridlist") == 0 ){  /* 31 Dec 2014 */
        MRI_IMAGE *gim ; float *gar ; int gg , nbad ;
@@ -2101,22 +2452,12 @@ STATUS("check for errors") ;
      ERROR_message("You cannot use -allineate and -inilev together :-(") ; nbad++ ;
    }
 
-   if( iwname != NULL && duplo ){
-     ERROR_message("You cannot combine -iniwarp and -duplo !! :-((") ; nbad++ ;
-   }
-   if( (ilev != 0 || mlev < 99 ) && duplo ){
-     ERROR_message("You cannot combine -inilev or -maxlev and -duplo !! :-((") ; nbad++ ;
-   }
-
    if( bset != NULL && sset == NULL ){
      ERROR_message("You can't use -base without -source!") ; nbad++ ;
    } else if( bset == NULL && sset != NULL ) {
      ERROR_message("You can't use -source without -base!") ; nbad++ ;
    }
 
-   if( HAVE_HGRID && duplo ){  /* 02 Jan 2015 */
-     ERROR_message("You can't combine -gridlist with -duplo :-(") ; nbad++ ;
-   }
    if( HAVE_HGRID && do_plusminus ){
      ERROR_message("You can't combine -gridlist with -plusminus :-(") ; nbad++ ;
    }
@@ -2137,12 +2478,7 @@ STATUS("check for errors") ;
    }
 
    if( meth_is_lpc && mlev > 0 )
-     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc'") ;
-
-   if( do_plusminus && duplo ){
-     duplo = 0 ;
-     WARNING_message("Alas, -plusminus does not work with -duplo -- turning -duplo off") ;
-   }
+     WARNING_message("Use of '-maxlev 0' is recommended with '-lpc' or 'lpa'") ;
 
    if( !do_plusminus && do_pmbase ){  /* 12 Aug 2014 */
      WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;
@@ -2202,13 +2538,6 @@ STATUS("check for errors") ;
      WARNING_message("-minpatch %d is too big for -3final [max=%d]: using -Qfinal instead",
                      minpatch, NGMAX_PLUS_1 ) ;
      H5final = 0 ; Hqfinal = 1 ;
-   }
-#endif
-
-#if 0
-   if( Hlocalstat && meth != GA_MATCH_PEARCLP_SCALAR && meth != GA_MATCH_PEARSON_SCALAR ){
-     Hlocalstat = 0 ;
-     WARNING_message("the cost functional choice disables -localstat") ;
    }
 #endif
 
@@ -2336,7 +2665,7 @@ STATUS("3dAllineate coming up next") ;
                                qar[4],qar[5],qar[ 6],qar[ 7],
                                qar[8],qar[9],qar[10],qar[11] ) ;
          /* save the magnitude of the shifts (needed for zero pad guesstimate */
-       dxal = fabsf(qar[3]) ; dyal = fabsf(qar[7]) ; dzal = fabsf(qar[11]) ;
+       dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
        if( !keep_allin ){
          remove(qs) ;           /* erase the 3dAllineate matrix file from disk */
          if( Hverb ) ININFO_message("3dAllineate output files have been deleted");
@@ -2381,6 +2710,15 @@ STATUS("construct initial warp") ;
        ERROR_exit("Cannot open -iniwarp %s",iwname) ;
      if( DSET_NVALS(iwset) < 3 || DSET_BRICK_TYPE(iwset,0) != MRI_float )
        ERROR_exit("-iniwarp %s is not in the right format :-(",argv[nopt]) ;
+
+     /* check for previous -allin matrix [16 Mar 2018] */
+
+     { ATR_float *afl = THD_find_float_atr( iwset->dblk , "QWARP_ALLIN_MATRIX" ) ;
+       if( afl != NULL && afl->nfl > 11 ){
+         float *qar = afl->fl ;
+         dxal = fabsf(qar[3]); dyal = fabsf(qar[7]); dzal = fabsf(qar[11]); have_dxyzal = 1;
+       }
+     }
 
      /* compute how much bset must be padded to fit the iniwarp [11 Apr 2014] */
 
@@ -2502,10 +2840,11 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
      pad_ym = MIN(bpad_ym,spad_ym) ; pad_yp = MAX(bpad_yp,spad_yp) ;
      pad_zm = MIN(bpad_zm,spad_zm) ; pad_zp = MAX(bpad_zp,spad_zp) ;
 
-     if( do_allin ){                              /* extend pad size for */
+     if( have_dxyzal ){                           /* extend pad size for */
        float dm = MIN(dx,dy) ; dm = MIN(dm,dz) ;  /* 3dAllineate shifts? */
        dxal /= dm ; dyal /= dm ; dzal /= dm ;
        dm = MAX(dxal,dyal); dm = MAX(dm,dzal); mpad_min += (int)rintf(1.0111f*dm);
+       /* INFO_message("dxyzal => mpad_min = %d",mpad_min) ; */
      }
 
      /* define minimum padding for each direction */
@@ -2562,10 +2901,27 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
                 pad_ym > 0 || pad_yp > 0 || pad_zm > 0 || pad_zp > 0) ;
 
      if( zeropad ){  /*----- print a report and actually do it -----*/
-       if( Hverb )
+
+       int do_warn , wx,wy,wz ;  /* excess padding? [11 Jan 2018] */
+       wx = bim->nx/2; wy = bim->ny/2; wz = bim->nz/2;
+       do_warn = (pad_xm > wx) || (pad_xp > wx) ||
+                 (pad_ym > wy) || (pad_yp > wy) ||
+                 ( wz > 1 && ((pad_zm >= wz) || (pad_zp >= wz)) ) ;
+
+       if( Hverb || do_warn )
          INFO_message("Dataset zero-pad:"
                       " xbot=%d xtop=%d  ybot=%d ytop=%d  zbot=%d ztop=%d voxels",
                        pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ) ;
+       if( do_warn ){
+         WARNING_message(
+           "At least one padding is more than 50%% of dataset grid size!" ) ;
+#if 0
+         WARNING_message(
+           "  Computation time might be tremendously long :(") ;
+#endif
+         WARNING_message(
+           "  Alignment of dataset grid centers might help a LOT: @Align_Centers") ;
+       }
 
        /*-- replace base image --*/
 
@@ -2674,13 +3030,6 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
 #endif
 
    if( minpatch > 0 ) Hngmin = minpatch ;  /* minimum patch size */
-
-   if( duplo && (nx < 3*Hngmin || ny < 3*Hngmin || nz < 3*Hngmin) ){
-     duplo = 0 ;
-       INFO_message("-duplo disabled since dataset is small: %d x %d x %d",nx,ny,nz) ;
-     ININFO_message(" smallest size allowed for -duplo is    %d x %d x %d",3*Hngmin,3*Hngmin,3*Hngmin) ;
-     ININFO_message(" ['small' is relative to the minimum patch size you set = %d]",Hngmin) ;
-   }
 
    /*-------------------- create weight volume -------------------------------*/
 
@@ -2847,6 +3196,25 @@ STATUS("construct weight/mask volume") ;
    }
 #endif
 
+   /* create a dataset to be the warp's "adoption parent" */
+
+   if( !zeropad_warp )
+     adset = bset ;
+   else
+     adset = THD_zeropad( bset ,
+                          pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
+                          "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
+
+   if( do_allin ){ /* make warp adjustment matrix [13 Mar 2018] */
+     mat44 tmat,smat,qmat , cmat,imat ;
+     cmat = adset->daxes->ijk_to_dicom ;
+     imat = MAT44_INV(cmat) ;
+     qmat = allin_matrix ;                 /* convert matrix to */
+     tmat = MAT44_MUL(qmat,cmat) ;         /* index space from  */
+     smat = MAT44_MUL(imat,tmat) ;         /* coordinate space  */
+     allin_adjust_matrix = smat ;
+   }
+
    /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
    /*------------------------- do some actual work! --------------------------*/
 
@@ -2858,9 +3226,6 @@ STATUS("construct weight/mask volume") ;
 
    if( do_plusminus ){   /*--- special case of plusminus warp ----------------*/
 
-#ifndef ALLOW_PLUSMINUS
-     ERROR_exit("-plusminus: This message should never appear!") ;
-#else
      sbww = IW3D_warp_s2bim_plusminus( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
      oiw  = sbww[0] ;  /* plus warp and image */
      qiw  = sbww[1] ;  /* minus warp and image */
@@ -2876,15 +3241,11 @@ STATUS("construct weight/mask volume") ;
        IW3D_destroy(qwinv) ;
        if( Hverb ) fprintf(stderr,"\n") ;
      }
-#endif
 
    } else {              /*--- the standard case -----------------------------*/
 
      qiw = NULL ;
-     if( duplo )
-       oiw = IW3D_warp_s2bim_duplo( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
-     else
-       oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
+     oiw = IW3D_warp_s2bim( bim,wbim,sim, MRI_WSINC5, meth, flags ) ;
 
    }
 
@@ -2956,12 +3317,6 @@ STATUS("construct weight/mask volume") ;
    /*--- make the warps adopt a dataset to specify their extrinsic geometry --*/
 
    oim = oiw->im ; oww = oiw->warp ;
-   if( !zeropad_warp )
-     adset = bset ;      /* adset = adoption parent */
-   else
-     adset = THD_zeropad( bset ,
-                          pad_xm,pad_xp , pad_ym,pad_yp , pad_zm,pad_zp ,
-                          "BSET_zeropadded" , ZPAD_IJK | ZPAD_EMPTY ) ;
 
                              IW3D_adopt_dataset( oww        , adset ) ;
    if( qiw         != NULL ) IW3D_adopt_dataset( qiw->warp  , adset ) ;
@@ -2989,21 +3344,16 @@ STATUS("output awarp") ;
      /* (don't have to adjust plusminus warp since can't be run with -allin) */
 
      if( do_allin ){
-       mat44 tmat,smat,qmat ; IndexWarp3D *tarp ; int ii ;
+       IndexWarp3D *tarp ; int ii ;
 STATUS("adjust for 3dAllineate matrix") ;
-       qmat = allin_matrix ;                            /* convert matrix to */
-       tmat = MAT44_MUL(qmat,oiw->warp->cmat) ;         /* index space from  */
-       smat = MAT44_MUL(oiw->warp->imat,tmat) ;         /* coordinate space  */
-       tarp = IW3D_compose_w1m2(oiw->warp,smat,MRI_WSINC5) ;  /* adjust warp */
+       tarp = IW3D_compose_w1m2(oiw->warp,allin_adjust_matrix,MRI_WSINC5) ;  /* adjust warp */
        IW3D_destroy(oiw->warp) ; oww = oiw->warp = tarp ;
        IW3D_adopt_dataset(oww,adset) ;
 
        /** also adjust all intermediate saved warps [02 Jan 2015] **/
-
        for( ii=0 ; ii < Hsave_num ; ii++ ){
-         tarp = IW3D_compose_w1m2(Hsave_iwarp[ii],smat,MRI_WSINC5) ;
+         tarp = IW3D_compose_w1m2(Hsave_iwarp[ii],allin_adjust_matrix,MRI_WSINC5) ;
          IW3D_destroy(Hsave_iwarp[ii]) ; Hsave_iwarp[ii] = tarp ;
-         IW3D_adopt_dataset(Hsave_iwarp[ii],adset) ;
        }
      }
 
@@ -3109,6 +3459,13 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
      tross_Copy_History( bset , qset ) ;
      tross_Make_History( "3dQwarp" , argc,argv , qset ) ;
      MCW_strncpy( qset->atlas_space , bset->atlas_space , THD_MAX_NAME ) ;
+     if( do_allin ){  /* save copy of 3dAllineate matrix into header */
+       float qar[12] ;
+       UNLOAD_MAT44(allin_matrix,qar[0],qar[1],qar[ 2],qar[ 3],
+                                 qar[4],qar[5],qar[ 6],qar[ 7],
+                                 qar[8],qar[9],qar[10],qar[11] ) ;
+       THD_set_float_atr( qset->dblk , "QWARP_ALLIN_MATRIX" , 12 , qar ) ;
+     }
      DSET_write(qset) ; WROTE_DSET(qset) ; DSET_delete(qset) ; qset=NULL ;
 
      if( do_plusminus && qiw != NULL ){
@@ -3150,6 +3507,7 @@ INFO_message("warp dataset origin: %g %g %g",DSET_XORG(qset),DSET_YORG(qset),DSE
    if( Hsave_allwarps && Hsave_num > 0 ){
      char suffix[64] , *qprefix ; int ii ;
      for( ii=0 ; ii < Hsave_num ; ii++ ){
+       IW3D_adopt_dataset(Hsave_iwarp[ii],adset) ;
        sprintf(suffix,"_%s_WARP",Hsave_iname[ii]) ;
        qprefix = modify_afni_prefix(prefix,NULL,suffix) ;
        qset = IW3D_to_dataset( Hsave_iwarp[ii] , qprefix ) ;

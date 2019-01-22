@@ -151,10 +151,14 @@ static char * g_history[] =
     " 4.21 Sep  6, 2017 [rickr]:\n"
     "      - apply xim in realtime.c, so not sending short end of run\n"
     " 4.22 Dec 10, 2017 [rickr]: apply -gert_to3d_prefix for GEMS\n"
+    " 4.23 May 23, 2018 [rickr]: add -ushort2float\n",
+    " 4.24 Dec 11, 2018 [rickr]:\n"
+    "      - reconcile write_as_nifti and NIFTI prefix\n"
+    "      - add -p option to mkdir\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.22 (December 10, 2017)"
+#define DIMON_VERSION "version 4.24 (December 11, 2018)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -444,10 +448,12 @@ int main( int argc, char * argv[] )
     int        ret_val;
 
     mainENTRY("Dimon");
-    
+
     /* validate inputs and init options structure */
-    if ( (ret_val = init_options( p, ac, argc, argv )) != 0 )
-        return ret_val;
+    if ( (ret_val = init_options( p, ac, argc, argv )) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( (ret_val = init_extras( p, ac )) != 0 )
         return ret_val;
@@ -467,7 +473,7 @@ int main( int argc, char * argv[] )
  *
  * This function runs until either a volume is located, or an
  * error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -568,31 +574,31 @@ static int find_first_volume( vol_t * v, param_t * p, ART_comm * ac )
                 fprintf(stderr,"\n-- first volume found (%d slices)\n",v->nim);
                 if ( gD.level > 1 ) idisp_vol_t( "+d first volume : ", v );
             }
-    
+
             /* allow reading up to 4 volumes at a time */
             if( p->max2read > 0 && p->max2read < 4 * v->nim )
                update_max2read(p, 4*v->nim);
-    
+
             /* use this volume to complete the geh.orients string */
             if ( complete_orients_str( v, p ) < 0 )
                 return -1;
-    
+
             /* use this volume to note the byte order of image data */
             if ( check_im_byte_order( &ac->byte_order, v, p ) < 0 )
                 return -1;
-    
+
             v->seq_num = 1;
 
             /* if wanted, verify afni link, send image info and first volume */
             if ( ac->state == ART_STATE_TO_OPEN )
                 ART_open_afni_link( ac, 5, 0, gD.level );
-    
+
             if ( ac->state == ART_STATE_TO_SEND_CTRL )
                 ART_send_control_info( ac, v, gD.level );
-    
+
             if ( ac->state == ART_STATE_IN_USE )
                 ART_send_volume( ac, v, gD.level );
-    
+
             /* update status on included images, and set new search point */
             update_states(p, v->fs_1, v->fs_1+v->nim-1, IFM_FSTATE_DONE, 1);
             p->fim_start = v->fs_1+v->nim;
@@ -619,7 +625,7 @@ int update_max2read(param_t * p, int max)
    if( max <= 0 ) return 1;
 
    p->max2read = max;
-   
+
    return 0;
 }
 
@@ -628,7 +634,7 @@ int update_max2read(param_t * p, int max)
  * find_more_volumes:   given first volume, keep scanning for others
  *
  * This function runs until a fatal error occurs.
- * 
+ *
  * return:     0 : on success
  *          else : error
  *----------------------------------------------------------------------
@@ -830,11 +836,11 @@ int nap_for_ms(int ms)
  *
  *     - start should be at the expected beginning of a volume!
  *     - *fl_start may be returned as a new starting index into fnames
- * 
+ *
  * state:     0 :  < 2 slices found (in the past)
  *            1 : >= 2 slices (new 'bound')
  *            2 : >= 2 slices (repeated 'bound', may be one volume run)
- * 
+ *
  * return:   -2 : on programming error
  *           -1 : on data error
  *            0 : on success - no volume yet
@@ -1235,7 +1241,7 @@ static int num_slices_ok( int num_slices, int nfound, char * mesg )
  * volume_match:   scan p->fim_o for a matching volume
  *
  *     - start should be at the expected beginning of a volume!
- * 
+ *
  * return:   -4 : fatal error: die
  *           -3 : small error: no data check needed
  *           -2 : small error: want to nap
@@ -1430,7 +1436,7 @@ static int check_error( int * retry, float tr, char * note )
 
     /* so calling function should print error, but start over */
 
-    *retry = IFM_NUM_RETRIES; 
+    *retry = IFM_NUM_RETRIES;
 
     return 1;
 }
@@ -1450,7 +1456,7 @@ static int check_error( int * retry, float tr, char * note )
  *      (so a TR's worth could be accumulated, say)
  * - apply any sort based on image info: fim_o => fim->s
  * - process unprocessed images
- * 
+ *
  * return: < 0 : on error
  *           0 : nothing to process
  *           1 : something new happened
@@ -1531,7 +1537,7 @@ static int make_sorted_fim_list(param_t  * p)
     * fim_start should be incremented with completed volumes.
     * Sort the remaining pointers pulling any "completed" ones
     * down early (FAILED, SKIP, UNKNOWN, DONE (should not happen)).
-    * 
+    *
     * For now, warn about any images that are not TO_PROC or _READ.
     */
 
@@ -1605,7 +1611,7 @@ static int make_sorted_fim_list(param_t  * p)
             p->fim_start += index;
          }
          break;
-      } 
+      }
       if( gD.level > 0 )
         fprintf(stderr,
                 "** bad image state: ind %d, errs %d, state %d (%s), file %s\n",
@@ -1650,7 +1656,7 @@ static int finfo_order_as_zt(param_t * p, finfo_t * flist, int n2sort)
          fprintf(stderr,"** order_as_zt: (ns=%d*nt=%d = %d) != n2sort %d\n",
                  ns, nt, ns*nt, n2sort);
    }
-   
+
    /* noting to do? */
    if( nt < 2 ) return 0;
 
@@ -1946,7 +1952,7 @@ int geme_find_block_end(param_t * p, int start)
    memin = p->fim_o[start].gex.ge_me_index;
    memax = memin;
    imax  = start;
-   
+
    for( c = start+1; c < p->nfim; c++ ) {
       meind = p->fim_o[c].gex.ge_me_index;
 
@@ -2041,7 +2047,7 @@ int nfim2proc(param_t * p)
  * - if states differ, sort on state
  *   (state values are arranged to make sorting appropriate)
  * - if state != TO_PROC, sort on findex (i.e. leave as found)
- * - 
+ * -
  * state: FAILED, SKIP, DONE, UNKNOWN (should not happen) TO_PROC, TO_READ
  *
  * return < 0, 0, > 0, according to direction of p0 vs p1
@@ -2187,7 +2193,7 @@ int append_new_finfo_entry(param_t * p, char * fname)
    if( gD.level > 3 ) fprintf(stderr,"++ creating new finfo for %s\n", fname);
 
    /* might need to allocate space */
-   if( p->nfim >= p->nfalloc ) { 
+   if( p->nfim >= p->nfalloc ) {
       int step = 50;
       p->nfalloc += step;
       p->fim_o = (finfo_t *)realloc(p->fim_o, p->nfalloc*sizeof(finfo_t));
@@ -2463,7 +2469,7 @@ static int read_new_images( param_t * p )
          /* if( stat && gD.level && !(nread%stat) ) fputc('.', stderr); */
          if( stat && gD.level && !(nread%stat) )
             fprintf(stderr,"%s %3d%%", back5, (int)(100.0*nread/n2read));
-         
+
          if( p->max2read > 0 && nread >= p->max2read ) {
             if( gD.level > 2 )
                fprintf(stderr, "-- RNI: read max of %d images", nread);
@@ -2723,6 +2729,10 @@ static int init_param_t( param_t * p )
  *
  *     1. check usage: Imon -start_dir DIR
  *     2. do initial allocation of data structures
+ *
+ * return  0 on success, with continuation
+ *         1 on success, but terminate
+ *        -1 on error
  *----------------------------------------------------------------------
 */
 static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
@@ -2730,7 +2740,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     int ac, errors = 0;
 
     if ( p == NULL )
-        return 2;
+        return -1;
 
     if ( argc < 2 )
     {
@@ -2758,7 +2768,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -debug LEVEL\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.debug = atoi(argv[ac]);
@@ -2784,7 +2794,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -epsilon EPSILON\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.ep = atof(argv[ac]);
@@ -2813,7 +2823,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_filename FILENAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_filename = argv[ac];
@@ -2823,7 +2833,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_nz NZ\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_nz = atoi(argv[ac]);
@@ -2831,7 +2841,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             {
                 fprintf(stderr,"gert_nz error: NZ must be positive (have %d)\n",
                         p->opts.gert_nz);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-GERT_Reco", 7 ) )
@@ -2843,7 +2853,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_chan_prefix PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.chan_prefix = argv[ac];
@@ -2853,7 +2863,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_to3d_prefix PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_prefix = argv[ac];
@@ -2881,7 +2891,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_list FILE\n", stderr );
-                return 1;
+                return -1;
             }
             /* just append a '*' to the PREFIX */
             p->opts.infile_list = argv[ac];
@@ -2892,7 +2902,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_pattern FILE_PATTERN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.dicom_glob = argv[ac];
@@ -2902,7 +2912,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -infile_prefix FILE_PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
             /* just append a '*' to the PREFIX */
             p->opts.dicom_glob = calloc(strlen(argv[ac])+2, sizeof(char));
@@ -2914,7 +2924,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -max_images NUM_IMAGES\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.max_images = atoi(argv[ac]);
@@ -2924,7 +2934,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -max_quiet_trs NUM_TRs\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.max_quiet_trs = atoi(argv[ac]);
@@ -2934,7 +2944,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nice INCREMENT\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.nice = atoi(argv[ac]);
@@ -2956,7 +2966,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -nt VOLUMES_PER_RUN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.nt = atoi(argv[ac]);
@@ -2974,7 +2984,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -num_slices NUM_SLICES\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.num_slices = atoi(argv[ac]);
@@ -2985,7 +2995,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -gert_outdir OUTPUT_DIR\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.gert_outdir = argv[ac];
@@ -3000,7 +3010,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -pause milliseconds\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.pause = atoi(argv[ac]);
@@ -3041,7 +3051,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -save_details PREFIX\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.flist_details = argv[ac];
@@ -3051,7 +3061,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -save_file_list FILENAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.flist_file = argv[ac];
@@ -3065,7 +3075,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_vol TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_frac = atof(argv[ac]);
@@ -3075,7 +3085,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_init TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_init = atoi(argv[ac]);
@@ -3085,7 +3095,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sleep_vol TIME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sleep_vol = atoi(argv[ac]);
@@ -3103,13 +3113,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sort_method METHOD\n", stderr );
-                return 1;
+                return -1;
             }
             p->opts.sort_method = argv[ac];
             if( sort_method(p->opts.sort_method) == IFM_SORT_UNKNOWN ) {
                fprintf(stderr,"** invalid sort method: %s\n", argv[ac]);
                show_all_sort_methods("   valid methods: ", stderr);
-               return 1;
+               return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-sp", 3 ) )
@@ -3117,7 +3127,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -sp PATTERN\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.sp = argv[ac];
@@ -3127,7 +3137,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_dir DIRECTORY\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.start_dir = argv[ac];
@@ -3138,7 +3148,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -start_file DIR/FIRST_FILE\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.start_file = argv[ac];
@@ -3149,7 +3159,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -tr TR  (in seconds)\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.tr = atof(argv[ac]);
@@ -3157,7 +3167,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             {
                 fprintf(stderr,"bad value for -tr: %g (from '%s')\n",
                         p->opts.tr, argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-version", 2 ) )
@@ -3171,13 +3181,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -drive_afni COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.drive_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_list\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-drive_wait", 8 ) )
@@ -3185,13 +3195,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -drive_wait COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.wait_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to drive_wait\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-host", 4 ) )
@@ -3199,7 +3209,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -host HOSTNAME\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.host = argv[ac];    /* note and store the user option   */
@@ -3211,7 +3221,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -num_chan NUM_CHANNELS\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.num_chan = atoi(argv[ac]);
@@ -3225,13 +3235,13 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -rt_cmd COMMAND\n", stderr );
-                return 1;
+                return -1;
             }
 
             if ( add_to_string_list( &p->opts.rt_list, argv[ac], 0 ) <= 0 )
             {
                 fprintf(stderr,"** failed add '%s' to rt_list\n",argv[ac]);
-                return 1;
+                return -1;
             }
         }
         else if ( ! strncmp( argv[ac], "-rt", 3 ) )
@@ -3249,7 +3259,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -te_list TE1 TE2 ...\n", stderr );
-                return 1;
+                return -1;
             }
 
             p->opts.te_list = argv[ac];
@@ -3259,7 +3269,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -file_type TYPE\n", stderr );
-                return 1;
+                return -1;
             }
             p->opts.file_type = argv[ac];
         }
@@ -3286,21 +3296,26 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
             if ( ++ac >= argc )
             {
                 fputs( "option usage: -zorder ORDER\n", stderr );
-                return 1;
+                return -1;
             }
 
             A->zorder = argv[ac];
         }
+        else if ( ! strcmp( argv[ac], "-ushort2float" ) )
+        {
+            p->opts.ushort2float = 1;
+            want_ushort2float = 1;
+        }
         else
         {
             fprintf( stderr, "error: invalid option <%s>\n\n", argv[ac] );
-            return 1;
+            return -1;
         }
     }
 
     if( p->opts.save_errors && ! p->opts.flist_details ) {
        fputs("** -save_errors requires -save_details for file prefix\n",stderr);
-       return 1;
+       return -1;
     }
 
     /* apply read_all */
@@ -3309,19 +3324,19 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     if ( errors > 0 )          /* check for all minor errors before exiting */
     {
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     gD_epsilon = p->opts.ep;    /* store new epsilon globally, for dimon_afni */
 
     /* set the p->ftype parameter, based on any file_type option  22 Jan 2013 */
-    if ( set_ftype( p, p->opts.file_type ) ) return 1;
+    if ( set_ftype( p, p->opts.file_type ) ) return -1;
 
     if ( IM_IS_GEMS(p->ftype) && p->opts.start_dir == NULL )
     {
         fputs( "error: missing '-start_dir DIR' option\n", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( ! IM_IS_GEMS(p->ftype) &&   p->opts.show_sorted_list &&
@@ -3329,7 +3344,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     {
         fputs( "error: -dicom_org is required with -show_sorted_list", stderr );
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( p->opts.rev_bo && p->opts.swap )
@@ -3337,7 +3352,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         fprintf( stderr, "error: options '-rev_byte_order' and '-swap' "
                  "cannot both be used\n");
         usage( IFM_PROG_NAME, IFM_USE_SHORT );
-        return 1;
+        return -1;
     }
 
     if ( A->zorder )
@@ -3346,16 +3361,16 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
         {
             fprintf(stderr,"** order '%s' is invalid for '-zorder' option,\n"
                     "   must be either 'alt' or 'seq'\n", A->zorder);
-            return 1;
+            return -1;
         }
     }
 
     if ( ! IM_IS_GEMS(p->ftype) )
-    {   
+    {
         if( ! p->opts.dicom_glob && ! p->opts.infile_list )
         {
             fprintf(stderr,"** missing -infile_pattern option\n");
-            return 1;
+            return -1;
         }
     }
 
@@ -3372,7 +3387,7 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
     }
     else
     {
-        if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return 2;
+        if ( dir_expansion_form(p->opts.start_dir, &p->glob_dir) ) return -1;
     }
 
     /* if user gives a NIFTI prefix, forget write_as_nifti */
@@ -3469,7 +3484,7 @@ static int init_extras( param_t * p, ART_comm * ac )
         ac->mode = AFNI_OPEN_CONTROL_MODE;
         ART_open_afni_link( ac, 2, 1, gD.level );
     }
-    
+
     /* check directory depth of start_file against glob_dir */
     if ( p->opts.start_file != NULL )
     {
@@ -3712,7 +3727,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
     int              rv = 0, ind;
 
     /* now use mri_read_dicom() directly                     4 Jan 2011 */
-    /* im = r_mri_read_dicom( pathname, gD.level,    
+    /* im = r_mri_read_dicom( pathname, gD.level,
                               get_data ? &fp->image : NULL);            */
 
     /* init globals to be used in mri_read_dicom.c           4 Jan 2011 */
@@ -3738,7 +3753,8 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     im = imarr->imarr[0];       /* for convenience */
 
-    /* check whether short overflow to unsigned */
+    /* check whether short overflow to unsigned                           */
+    /* If the user requested it, it is already set.   23 May 2018 [rickr] */
     if( MRILIB_dicom_s16_overflow ) want_ushort2float = 1;
 
     /* process oblique info only once */
@@ -3750,7 +3766,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
 
     /* --------------------------------------------------------------- */
     /* process any siemens timing info only once           15 Apr 2011
-     *  
+     *
      * Process the times by calling populate_g_siemens_times() after
      * reading a single DICOM file.  If valid, g_siemens_timing_nused
      * and g_siemens_timing_times[] will be set.
@@ -3779,7 +3795,7 @@ static int read_dicom_image( char * pathname, finfo_t * fp, int get_data )
             pathname,
             g_image_info.study, g_image_info.series,
             g_image_info.image, g_image_info.image_index, g_image_info.acq_time,
-            g_image_info.is_obl, g_image_info.is_mosaic, 
+            g_image_info.is_obl, g_image_info.is_mosaic,
             g_image_info.mos_nx, g_image_info.mos_ny, g_image_info.mos_nslice
                );
         fprintf(stderr,"   GIPx, GIPy, GIPz (M_z) (%6.1f, %6.1f, %6.1f (%f))\n",
@@ -3998,7 +4014,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
 
    /* nuke mosaic structs */
    memset(&fp->minfo, 0, sizeof(mosaic_info));
-        
+
    if( gehp == NULL ) return -1;            /* bad */
    gehp->good = 0 ;                         /* not good yet */
    if( pathname    == NULL ||
@@ -4161,7 +4177,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         fread( &uv17 , 4, 1 , imfile ) ;
         if( swap ) swap_4(&uv17) ;
         /* printf ("%d ", (int)uv17);  */
-        gehp->uv17 = (int)uv17; 
+        gehp->uv17 = (int)uv17;
         /* printf ("\n"); */
 
         /* store the ge_extra info */
@@ -4175,7 +4191,7 @@ static int read_ge_image( char * pathname, finfo_t * fp,
         gexp->ge_nim_acq = -1;
 
         memcpy( gexp->xyz, xyz, sizeof(xyz) );
-        
+
         gehp->good = 1 ;                  /* this is a good file */
 
     } /* end of actually reading image header */
@@ -4303,6 +4319,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             "   use_last_elem      = %d\n"
             "   use_slice_loc      = %d\n"
             "   use_obl_origin     = %d\n"
+            "   ushort2float       = %d\n"
             "   show_sorted_list   = %d\n"
             "   gert_reco          = %d\n"
             "   gert_filename      = %s\n"
@@ -4343,7 +4360,7 @@ static int idisp_opts_t( char * info, opts_t * opt )
             opt->debug, opt->quit, opt->no_wait,
             opt->assume_dicom_mosaic,
             opt->use_last_elem, opt->use_slice_loc, opt->use_obl_origin,
-            opt->show_sorted_list, opt->gert_reco,
+            opt->ushort2float, opt->show_sorted_list, opt->gert_reco,
             CHECK_NULL_STR(opt->gert_filename),
             CHECK_NULL_STR(opt->gert_prefix),
             CHECK_NULL_STR(opt->chan_prefix),
@@ -4407,7 +4424,7 @@ static int disp_ftype( char * info, int ftype )
     if ( info ) fputs(info, stream);
 
     fprintf(stream, "%s (%d)\n", ftype_string(ftype), ftype);
-    
+
     fflush(stream);
 
     return 0;
@@ -4595,7 +4612,7 @@ static int idisp_mosaic_info( char * info, mosaic_info * I )
 }
 
 /*----------------------------------------------------------------------
- * usage 
+ * usage
  *----------------------------------------------------------------------
 */
 static int usage ( char * prog, int level )
@@ -4922,7 +4939,7 @@ prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
-    
+
 printf(
     "  notes:\n"
     "\n"
@@ -5596,6 +5613,22 @@ printf(
     "        \n"
     "        Use this option to set slice offsets according to SLoc.\n"
     "\n"
+    "    -ushort2float      : convert short datasets to float in to3d\n"
+    "\n"
+    "        By default, if short integer datasets appear to be unsigned\n"
+    "        shorts, Dimon will add a similar -ushort2float to the to3d\n"
+    "        command when creating AFNI datasets (via -gert_create_dataset).\n"
+    "\n"
+    "        But if some runs need conversion and others do not, one can\n"
+    "        have a mix of types across runs.  Then one basically needs to\n"
+    "        decide whether to use floats for all subjects, one subject at a\n"
+    "        time, or to perform some conversion that removes the large\n"
+    "        shorts.\n"
+    "\n"
+    "        Applying -ushort2float in Dimon will result in passing it to\n"
+    "        any to3d commands (if -gert_create_dataset is applied), which\n"
+    "        would have all short datasets converted to float32.\n"
+    "\n"
     "    -version           : show the version information\n"
     "\n",
     prog, prog, prog, prog, prog, prog, prog
@@ -5908,7 +5941,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
     /* If the user did not give a slice pattern string, use the default *
      * (default is "FROM_IMAGE" if siemens timing info).
      * Check that siemens timing info has correct nz.      15 Apr 2011  */
-    
+
     spat = (g_siemens_timing_nused > 0) ? "FROM_IMAGE" : IFM_SLICE_PAT;
     if ( opts->sp ) spat = opts->sp;
 
@@ -5959,7 +5992,7 @@ static int create_gert_dicom( stats_t * s, param_t * p )
              "set OutDir       = '%s'     # output directoy for datasets\n"
              "\n\n"
              "#---------- make sure output directory exists ----------\n"
-             "test -d $OutDir || mkdir $OutDir\n",
+             "test -d $OutDir || mkdir -p $OutDir\n",
              opts->gert_outdir );
 
     fprintf(fp, "\n\n");
@@ -6004,14 +6037,14 @@ static int create_gert_dicom( stats_t * s, param_t * p )
         }
 
         /* if gert_format = 1, write as NIfTI */
-        fprintf(fp, "%*sto3d%s%s -prefix %s%s%s%s  \\\n", 
+        fprintf(fp, "%*sto3d%s%s -prefix %s%s%s%s  \\\n",
                  indent, "",
                  opts->assume_dicom_mosaic==1 ? " -assume_dicom_mosaic" : "",
                  opts->gert_quiterr==1 ? " -quit_on_err" : "",
                  pname,
                  /* if multi-chan, use either prefix or _chan_, else "" */
-                 opts->num_chan > 1 ? 
-                    opts->chan_prefix ? opts->chan_prefix : "_chan_" 
+                 opts->num_chan > 1 ?
+                    opts->chan_prefix ? opts->chan_prefix : "_chan_"
                     : "",
                  opts->num_chan > 1 ? "$chan" : "",
                  opts->gert_format==1 ? ".nii" : "" );
@@ -6058,17 +6091,27 @@ static int create_gert_dicom( stats_t * s, param_t * p )
 
         /* and possibly move output datasets there */
         if( opts->gert_outdir ) {
-            fprintf(fp, "mv %s%s $OutDir\n\n", pname,
-                    opts->gert_format==1 ? ".nii" : "+orig.*");
+            char * suffix = "";
+            /* reconcile write_as_nifti and NIFTI prefix */
+            if( nifti_find_file_extension(pname) ) suffix = "";
+            else if( opts->gert_format == 1 )      suffix = ".nii";
+            else                                   suffix = "+orig.*";
+
+            fprintf(fp, "mv %s%s $OutDir\n\n", pname, suffix);
         }
     }
 
     fclose( fp );
 
     /* warn user about conversion to floats */
-    if( want_ushort2float )
+    if( want_ushort2float ) {
+      if( opts->ushort2float )
+        fprintf(stderr,"-- applying requested -ushort2float in GERT_Reco"
+                       " to3d command\n\n");
+      else
         fprintf(stderr,"** warning, have signed short overflow to unsigned,\n"
                 "   applying -ushort2float in GERT_Reco to3d command\n\n");
+    }
 
     /* now make it an executable */
     sprintf(command, "chmod u+x %s", sfile );
@@ -6162,7 +6205,7 @@ FILE * get_file_pointer(char * fname, char * mesg, int index)
          else     sprintf(fnew, "%s.%d.txt", fname, index);
          if(gD.level>0) fprintf(stderr,"-- writing details to %s...\n", fnew);
       } else fnew = fname;
- 
+
       fp = fopen(fnew, "w");
       if( !fp ) {
          fprintf(stderr,"** failed to open '%s' for writing\n",fnew);
@@ -6255,7 +6298,7 @@ static int create_file_list( param_t *p, char *fname, int details, char *mesg )
           fprintf(fp, "%s\n", p->fim_o[c].fname);
 
     if( fp != stderr && fp != stdout ) fclose(fp);
- 
+
 
     if( gD.level > 2 ) fprintf(stderr,"-- file list written for %s\n",
                                fname ? fname : "def=stderr");
@@ -6449,7 +6492,7 @@ static int show_run_stats( stats_t * s )
     }
 
     /* check image file type */
-    
+
     if ( s->mos_nslices > 1 ) {
        if      ( IM_IS_AFNI(gP.ftype)  ) tstr = "(AFNI volume)";
        else if ( IM_IS_DICOM(gP.ftype) ) tstr = "(DICOM mosaic)";
@@ -6483,7 +6526,8 @@ static int show_run_stats( stats_t * s )
     putchar( '\n' );
 
     if ( gP.opts.gert_reco )
-        (void)create_gert_script( s, &gP );
+        if ( create_gert_script( s, &gP ) )
+            fprintf(stderr,"** failed creating GERT script (and dataset)\n");
 
     if( gP.opts.flist_file )
        create_file_list(&gP, gP.opts.flist_file, 0, NULL);
@@ -6798,7 +6842,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                     v->geh.orients[5] = 'P';
                 }
                 break;
-                
+
             case 3:                                     /* IS */
                 if ( v->z_delta > 0 )
                 {
@@ -6811,7 +6855,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
                     v->geh.orients[5] = 'I';
                 }
                 break;
-                
+
             default:
             {
                 fprintf(stderr, "** COS failure: kk (%d) not in [1,3]\n", kk);
@@ -6821,7 +6865,7 @@ static int complete_orients_str( vol_t * v, param_t * p )
     }
 
     if ( gD.level > 2 ) fprintf(stderr,"'%s'\n", v->geh.orients);
-                                
+
     return 0;
 }
 
@@ -7004,4 +7048,3 @@ int disp_obl_info(char * mesg)
 
     return 0;
 }
-

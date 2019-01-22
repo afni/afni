@@ -33,7 +33,7 @@ def fitmodels_direct(catd,mmix,mask,t2s,tes,fout=None,reindex=False,mmixN=None,f
 	tsoc_dm = tsoc-tsoc_mean[:,np.newaxis]
 	
 	#Compute un-normalized weight dataset (features)
-	if mmixN == None: mmixN=mmix
+	if mmixN is None: mmixN=mmix
 	WTS = computefeats2(unmask(tsoc,mask),mmixN,mask,normalize=False)
 
 	#Compute PSC dataset - shouldn't have to refit data
@@ -215,7 +215,8 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 		if options.manacc:
 			acc = sorted([int(vv) for vv in options.manacc.split(',')])
 			midk = []
-			rej = sorted(np.setdiff1d(ncl,acc))
+                        # be sure we have ints
+			rej = sorted([int(vv) for vv in np.setdiff1d(ncl,acc)])
 			return acc,rej,midk #Add string for ign
 	except: 
 		pass
@@ -304,6 +305,9 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 		import ipdb
 		ipdb.set_trace()
 	if len(good_guess)==0:
+                # be sure we have ints
+                nc = [int(vv) for vv in nc]
+                rej = [int(vv) for vv in rej]
 		return [],sorted(rej),[],sorted(np.setdiff1d(nc,rej))
 	Kappa_rate = (max(Kappas[good_guess])-min(Kappas[good_guess]))/(max(varex[good_guess])-min(varex[good_guess]))
 	Kappa_ratios = Kappa_rate*varex/Kappas
@@ -350,14 +354,15 @@ def selcomps(seldict,debug=False,olevel=2,oversion=99,knobargs=''):
 		midkadd = np.union1d(midkadd,np.intersect1d(candartA,candartA[varex[candartA]>varex_ub*EXTEND_FACTOR]))
 		candartB = ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]*HIGH_PERC/100.]
 		midkadd = np.union1d(midkadd,np.intersect1d(candartB,candartB[varex[candartB]>varex_lb*EXTEND_FACTOR]))
-		midk = np.union1d(midk,midkadd)
+		midk = [int(vv) for vv in np.union1d(midk,midkadd)]
 		#Find comps to ignore
-		new_varex_lb = scoreatpercentile(varex[ncl[:num_acc_guess]],LOW_PERC)
+		new_varex_lb = scoreatpercentile(varex[ncl[:int(num_acc_guess)]],LOW_PERC)
 		candart = np.setdiff1d(ncl[d_table_score>num_acc_guess*d_table_rank.shape[1]],midk)
 		ignadd = np.intersect1d(candart,candart[varex[candart]>new_varex_lb])
 		ignadd = np.union1d(ignadd,np.intersect1d(ncl[Kappas[ncl]<=Kappas_elbow],ncl[varex[ncl]>new_varex_lb]))
-		ign = np.setdiff1d(np.union1d(ign,ignadd),midk)
-		ncl = np.setdiff1d(ncl,np.union1d(midk,ign))
+                # be sure we have ints
+		ign = [int(vv) for vv in np.setdiff1d(np.union1d(ign,ignadd),midk)]
+		ncl = [int(vv) for vv in np.setdiff1d(ncl,np.union1d(midk,ign))]
 
 	if debug:
 		import ipdb

@@ -300,13 +300,44 @@ shinyServer(function(input,output,session) {
   })   ## end MVM script
 
   ## download the script give run instructions
-  output$downloadScript <- downloadHandler(
-    filename = function() { input$script_name },
-    content = function(con) { writeLines(mvmScript(), con) },
-    contentType = "application/x-sh"
-  )
+  observeEvent(input$downloadScript,{
+
+    ## check if file has a path
+    if(!grepl('\\/',input$script_name)){
+      ScriptOut <- paste0(cur.dir,"/",input$script_name)
+    } else {
+      ScriptOut <- input$script_name
+    }
+
+    ## check for overwrite
+    if(file.exists(ScriptOut) & !input$OverwriteScript){
+      showModal(modalDialog(title="File Exists!",
+                            paste0(normalizePath(ScriptOut),
+                                   " is taken!! Choose a different name!")
+      ))
+    } else {
+      ## write out file and show confirmation
+      tryCatch(
+        {fileConn <- file(ScriptOut)
+        writeLines(mvmScript(),fileConn)
+        close(fileConn)},
+        error=function(e) NA)
+      if(file.exists(ScriptOut)){
+        showModal(modalDialog(title = "Script Downloaded",
+                              paste0("Script saved as ",
+                                     normalizePath(ScriptOut))
+        ))
+      } else {
+        showModal(modalDialog(title = "Script Download Failed!",
+                              paste0("Script NOT saved as ",
+                                     normalizePath(ScriptOut))
+        ))
+      }
+    }
+  })   ## end download script
+
   output$exec_script <- renderText({
-    paste('tcsh',input$script_name)
+    paste0('tcsh ',input$script_name)
   })
 
   ############################################

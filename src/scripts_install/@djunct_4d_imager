@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 set here      = $PWD
 set this_prog = "@djunct_4d_imager"
 
@@ -32,10 +34,13 @@ set this_prog = "@djunct_4d_imager"
 #set set version = "2.0";  set rev_dat = "Nov 24, 2017"
 #   + helpify this program
 #
-set set version = "2.1";  set rev_dat = "Nov 29, 2017"
+#set set version = "2.1";  set rev_dat = "Nov 29, 2017"
 #   + ~bug fix: voxel sizes got ignored, and for dsets with non-iso
 #     voxel dims, images could look squashed, etc.  Fixed now by
 #     putting a 3drefit command in.
+#
+set set version = "2.2";  set rev_dat = "Feb 20, 2018"
+#   + miiinor: modify output filename postfix
 #
 # ----------------- find AFNI and set viewer ---------------------
 
@@ -323,7 +328,7 @@ foreach ii ( `seq 1 1 3` )
         # movie of the unpadded file: each view is pretending to be axial
         $my_viewer                         \
             -ulay "$ovol"                  \
-            -prefix "${opref}_onescl_$ii"  \
+            -prefix "${opref}_qc_onescl_$ii"  \
             -olay_off                      \
             -save_ftype "$movie"           \
             -montx 1                       \
@@ -335,7 +340,7 @@ foreach ii ( `seq 1 1 3` )
 
         $my_viewer                         \
             -ulay "$ovol"                  \
-            -prefix "${opref}_sepscl_$ii"  \
+            -prefix "${opref}_qc_sepscl_$ii"  \
             -olay_off                      \
             -save_ftype "$movie"           \
             -montx 1                       \
@@ -363,7 +368,7 @@ foreach ii ( `seq 1 1 3` )
     # global range, almost all
     $my_viewer                         \
         -ulay "$ovol"                  \
-        -prefix "${opref}_onescl_$ii"  \
+        -prefix "${opref}_qc_onescl_$ii"  \
         -olay_off                      \
         -montx $Ncol                   \
         -monty $Nrow                   \
@@ -374,7 +379,7 @@ foreach ii ( `seq 1 1 3` )
     # slicewise ranges
     $my_viewer                         \
         -ulay "$ovol"                  \
-        -prefix "${opref}_sepscl_$ii"  \
+        -prefix "${opref}_qc_sepscl_$ii"  \
         -olay_off                      \
         -montx $Ncol                   \
         -monty $Nrow                   \

@@ -158,9 +158,9 @@ ENTRY("THD_fetch_1D") ;
    by URL -- the datasets are all fetched from the same place as the URL.
 --------------------------------------------------------------------------------*/
 
-XtPointer_array * THD_fetch_many_datasets( char * url )
+RwcPointer_array * THD_fetch_many_datasets( char * url )
 {
-   XtPointer_array * dsar ;
+   RwcPointer_array * dsar ;
    int nlist , i1,i2 , nh , ll , nx ;
    char * list ;
    char * tnam , * hnam , * dnam ;

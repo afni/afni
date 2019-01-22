@@ -208,9 +208,29 @@ void display_help_menu()
      "input AFNI 3d+time data set.  The nonlinear regression is calculated  \n"
      "by means of a least squares fit to the signal plus noise models which \n"
      "are specified by the user.                                            \n"
-     "                                                                      \n"
-     "Usage:                                                                \n"
-     "3dNLfim                                                               \n"
+     "\n"
+     "Usage with terminal options:\n"
+     "\n"
+     "3dNLfim\n"
+     "    -help                 show this help\n"
+     "    -help_models          show model help from any that have it\n"
+     "                          (can come via AFNI_MODEL_HELP_ALL)\n"
+     "\n"
+     "        One can get help for an individual model, *if* it exists, by\n"
+     "        setting a similar environment variable, and providing some\n"
+     "        non-trivial function option (like -load_models), e.g.,\n"
+     "\n"
+     "            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -load_models\n"
+     "\n"
+     "        Indifidual help should be available for any model with help\n"
+     "        via -help_models.\n"
+     "\n"
+     "    -load_models          simply load all models and exit\n"
+     "                          (this is for testing or getting model help)\n"
+     "\n"
+     "General usage:\n"
+     "\n"
+     "3dNLfim\n"
      "-input fname       fname = filename of 3d + time data file for input  \n"
      "[-mask mset]       Use the 0 sub-brick of dataset 'mset' as a mask    \n"
      "                     to indicate which voxels to analyze (a sub-brick \n"
@@ -396,13 +416,19 @@ void display_help_menu()
     "                             (t0, tf, k, alpha, beta)\n"
     "                             see model_beta.c\n"
     "\n"
-    "  ConvGamma2a              : Gamma Convolution with 2 Input Time Series\n"
-    "                             (t0, r, b)\n"
-    "                             see model_convgamma2a.c\n"
+    "\n"
+    "     * The following convolved functions are generally convolved with\n"
+    "       the time series in AFNI_CONVMODEL_REF, allowing one to specify\n"
+    "       multiple event onsets, varying durations and varying resopnse\n"
+    "       magnitudes.\n"
     "\n"
     "  ConvGamma                : Gamma Vairate Response Model\n"
     "                             (t0, amp, r, b)\n"
     "                             see model_convgamma.c\n"
+    "\n"
+    "  ConvGamma2a              : Gamma Convolution with 2 Input Time Series\n"
+    "                             (t0, r, b)\n"
+    "                             see model_convgamma2a.c\n"
     "\n"
     "  ConvDiffGam              : Difference of 2 Gamma Variates\n"
     "                             (A0, T0, E0, D0, A1, T1, E1, D1)\n"
@@ -681,6 +707,14 @@ void get_options
   /*----- add to program log -----*/
   AFNI_logger (PROGRAM_NAME,argc,argv);
 
+  /*----- to get help on all models, set general env var, load models -----*/
+  /*      and bail                                17 May 2018 [rickr]      */
+  if ( !strcmp(argv[1], "-help_models") || !strcmp(argv[1], "-load_models") ) {
+     if ( !strcmp(argv[1], "-help_models") )
+        AFNI_setenv("AFNI_MODEL_HELP_ALL YES");
+     model_array = NLFIT_get_many_MODELs ();
+     exit(0);
+  }
 
   /*----- initialize the model array -----*/
   model_array = NLFIT_get_many_MODELs ();
@@ -1570,9 +1604,9 @@ void check_one_output_file
 
   if( THD_is_file(new_dset->dblk->diskptr->header_name) )
     {
-      sprintf (message, "Output dataset file %s already exists",
-           new_dset->dblk->diskptr->header_name ) ;
-      NLfit_error (message);
+      fprintf(stderr, "** file already exists: %s\n",
+              new_dset->dblk->diskptr->header_name);
+      NLfit_error ("Output dataset file already exists");
     }
 
   /*----- deallocate memory -----*/
@@ -1949,7 +1983,7 @@ void proc_finalize_shm_volumes(void)
      proc_shmptr = shm_attach( proc_shmid ) ; /* thd_iochan.c */
      if( proc_shmptr == NULL ){
        fprintf(stderr,"\n** Can't attach to shared memory!?\n"
-                	"** This is bizarre.\n" ) ;
+                        "** This is bizarre.\n" ) ;
        shmctl( proc_shmid , IPC_RMID , NULL ) ;
        exit(1) ;
      }
@@ -2822,18 +2856,18 @@ void write_bucket_data
 
       /*----- allocate memory for output sub-brick -----*/
       if(output_datum==MRI_short) {
-	 bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-	 MTEST (bar[ib]);
-	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+         bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+         MTEST (bar[ib]);
+         factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
                               MRI_short, bar[ib]);
-	 imptr = bar[ib];
+         imptr = bar[ib];
       }
       else {
-	 far[ib]  = (float *) malloc (sizeof(float) * nxyz);
-	 MTEST (far[ib]);
-	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+         far[ib]  = (float *) malloc (sizeof(float) * nxyz);
+         MTEST (far[ib]);
+         factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
                               output_datum, far[ib]);
-	 imptr = far[ib];
+         imptr = far[ib];
       }
      if (factor < EPSILON)  factor = 0.0;
      else factor = 1.0 / factor;
@@ -2971,16 +3005,16 @@ void write_3dtime
       volume = vol_array[ib];
       nbad += thd_floatscan( nxyz , volume ) ;
       if(output_datum==MRI_short) {
-	 /*----- Allocate memory for output sub-brick -----*/
-	 bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
-	 MTEST (bar[ib]);
+         /*----- Allocate memory for output sub-brick -----*/
+         bar[ib]  = (short *) malloc (sizeof(short) * nxyz);
+         MTEST (bar[ib]);
 
-	 /*----- Convert data type to short for this sub-brick -----*/
-	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+         /*----- Convert data type to short for this sub-brick -----*/
+         factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
                               output_datum, bar[ib]);
-	 if (factor < EPSILON)  factor = 0.0;
-	 else factor = 1.0 / factor;
-	 fbuf[ib] = factor;
+         if (factor < EPSILON)  factor = 0.0;
+         else factor = 1.0 / factor;
+         fbuf[ib] = factor;
          /*----- attach bar[ib] to be sub-brick #ib -----*/
          mri_fix_data_pointer (bar[ib], DSET_BRICK(new_dset,ib));
 
@@ -2988,16 +3022,16 @@ void write_3dtime
                            nxyz , factor , bar[ib] , volume ) ;
       }
       else {
-	 /*----- Allocate memory for output sub-brick -----*/
-	 far[ib]  = (float *) malloc (sizeof(float) * nxyz);
-	 MTEST (far[ib]);
+         /*----- Allocate memory for output sub-brick -----*/
+         far[ib]  = (float *) malloc (sizeof(float) * nxyz);
+         MTEST (far[ib]);
 
-	 /*----- Convert data type to float for this sub-brick -----*/
-	 factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
+         /*----- Convert data type to float for this sub-brick -----*/
+         factor = EDIT_coerce_autoscale_new (nxyz, MRI_float, volume,
                               output_datum, far[ib]);
-	 if (factor < EPSILON)  factor = 0.0;
-	 else factor = 1.0 / factor;
-	 fbuf[ib] = factor;
+         if (factor < EPSILON)  factor = 0.0;
+         else factor = 1.0 / factor;
+         fbuf[ib] = factor;
          /*----- attach far[ib] to be sub-brick #ib -----*/
          mri_fix_data_pointer (far[ib], DSET_BRICK(new_dset,ib));
       }
@@ -3689,12 +3723,12 @@ STATUS("call analyze_results") ;
       if ((freg >= fdisp && proc_ind == 0 )
         && (iv % progress == 0))
        {
-	 report_results (nname, sname, r, p, npname, spname, ts_length,
+         report_results (nname, sname, r, p, npname, spname, ts_length,
                    par_rdcd, sse_rdcd, par_full, sse_full, tpar_full,
                    rmsreg, freg, rsqr, smax, tmax, pmax,
                    area, parea, &label);
-	 printf ("\n\nVoxel #%d\n", iv);
-	 printf ("%s \n", label);
+         printf ("\n\nVoxel #%d\n", iv);
+         printf ("%s \n", label);
        }
 
       /*----- save results for this voxel into volume data -----*/

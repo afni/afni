@@ -18,7 +18,7 @@
 THD_session * THD_init_session( char *sessname )
 {
    THD_session            *sess ;
-   XtPointer_array        *dblk_arrarr ;
+   RwcPointer_array        *dblk_arrarr ;
    THD_datablock_array    *dblk_arr ;
    THD_3dim_dataset       *dset=NULL , *temp_dset;
    THD_3dim_dataset_array *dset_arr ;
@@ -34,7 +34,7 @@ ENTRY("THD_init_session") ;
 
    /*-- initialize session --*/
 
-   sess         = myXtNew( THD_session ) ;
+   sess         = myRwcNew( THD_session ) ;
    sess->type   = SESSION_TYPE ;
    sess->parent = NULL ;
 #ifdef DEBUG_SESSIONS
@@ -127,7 +127,6 @@ fprintf(stderr, "blanking session\n");
 fprintf(stderr,"\nputting datasets into initial view \n");
 #endif
           SET_SESSION_DSET(dset, sess, nds, iview);  /* should always happen */
-/*        sess->dsset_xform_table[nds][iview] = dset ; */  /* should always happen */
         }
       }
 
@@ -147,6 +146,7 @@ fprintf(stderr,"\nputting datasets into initial view \n");
    }
    FREE_XTARR( dblk_arrarr ) ;
 
+#ifndef DONT_ALLOW_MINC
    /*-- 29 Oct 2001: try to read .mnc "datasets" --*/
 
    if( !AFNI_noenv("AFNI_MINC_DATASETS") ){
@@ -174,12 +174,12 @@ fprintf(stderr,"\nputting datasets into initial view \n");
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_minc , fn_minc ) ;
      } /* end of if we found MINC files */
    }
+#endif
 
    /*-- 06 Apr 2005: try to read NIfTI-1 files [KRH and RWC] --*/
 
@@ -211,7 +211,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_nifti , fn_nifti ) ;
@@ -256,7 +255,6 @@ fprintf(stderr,"\nputting datasets into initial view \n");
         }
         iview = dset->view_type ;
         SET_SESSION_DSET(dset, sess, nds, iview);
-/*      sess->dsset_xform_table[nds][iview] = dset ; */
         sess->num_dsset ++ ;
 #ifdef ALLOW_FSL_FEAT
              if( strcmp(DSET_PREFIX(dset),"example_func.hdr") == 0 ) feat_exf = nds;
@@ -410,7 +408,7 @@ printf("warp_exf_std BEFORE:") ; DUMP_LMAP(warp_exf_std->rig_bod.warp) ;
                to_std = AFNI_make_affwarp_mat( nnn ) ;
                AFNI_concatenate_warp( warp_exf_std , from_exf ) ;
                AFNI_concatenate_warp( to_std , warp_exf_std ) ;
-               myXtFree(warp_exf_std) ; myXtFree(from_exf) ;
+               myRwcFree(warp_exf_std) ; myRwcFree(from_exf) ;
                warp_exf_std = to_std ;
 
 #if 0
@@ -453,7 +451,7 @@ printf("warp_exf_hrs BEFORE:") ; DUMP_LMAP(warp_exf_hrs->rig_bod.warp) ;
              to_hrs = AFNI_make_affwarp_mat( nnn ) ;
              AFNI_concatenate_warp( warp_exf_hrs , from_exf ) ;
              AFNI_concatenate_warp( to_hrs , warp_exf_hrs ) ;
-             myXtFree(warp_exf_hrs) ; myXtFree(from_exf) ;
+             myRwcFree(warp_exf_hrs) ; myRwcFree(from_exf) ;
              warp_exf_hrs = to_hrs ;
 
 #if 0
@@ -494,7 +492,7 @@ printf("warp_std_hrs BEFORE:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
              to_hrs = AFNI_make_affwarp_mat( nnn ) ;
              AFNI_concatenate_warp( warp_std_hrs , from_std ) ;
              AFNI_concatenate_warp( to_hrs , warp_std_hrs ) ;
-             myXtFree(warp_std_hrs) ; myXtFree(from_std) ;
+             myRwcFree(warp_std_hrs) ; myRwcFree(from_std) ;
              warp_std_hrs = to_hrs ;
 
 #if 0
@@ -601,16 +599,57 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_ctf , fn_ctf ) ;
      } /* end of if we found CTF files */
    }
 
+   /*-- 02 Feb 2018: try to read .jpg and .png "datasets" --*/
+
+   if( !AFNI_noenv("AFNI_IMAGE_DATASETS") ){
+     char *ename[4] , **fn_img ;
+     int num_img , ii ;
+
+     STATUS("looking for JPG/PNG files") ;
+
+     ename[0] = AFMALL(char, THD_MAX_NAME) ;
+     ename[1] = AFMALL(char, THD_MAX_NAME) ;
+     ename[2] = AFMALL(char, THD_MAX_NAME) ;
+     ename[3] = AFMALL(char, THD_MAX_NAME) ;
+     strcpy(ename[0],sess->sessname) ; strcat(ename[0],"*.png") ;
+     strcpy(ename[1],sess->sessname) ; strcat(ename[1],"*.PNG") ;
+     strcpy(ename[2],sess->sessname) ; strcat(ename[2],"*.jpg") ;
+     strcpy(ename[3],sess->sessname) ; strcat(ename[3],"*.JPG") ;
+     MCW_file_expand( 4,ename , &num_img,&fn_img ) ;  /* find files */
+     free(ename[0]) ; free(ename[1]) ; free(ename[2]) ; free(ename[3]) ;
+
+     if( num_img > 0 ){                               /* got some files! */
+       STATUS("opening JPG/PNG files") ;
+       for( ii=0 ; ii < num_img ; ii++ ){             /* loop over files */
+
+         dset = THD_open_image( fn_img[ii] ) ;        /* try top read */
+
+         if( !ISVALID_DSET(dset) ) continue ;         /* doesn't read? */
+         nds = sess->num_dsset ;
+         if( nds >= THD_MAX_SESSION_SIZE ){
+           fprintf(stderr,
+            "\n*** Session %s table overflow with dataset %s ***\n",
+            sessname , fn_img[ii] ) ;
+           THD_delete_3dim_dataset( dset , False ) ;
+           break ; /* out of for(ii) loop */
+         }
+         iview = dset->view_type ;
+         SET_SESSION_DSET(dset, sess, nds, iview);
+         sess->num_dsset ++ ;
+       } /* end of loop over files */
+       MCW_free_expand( num_img , fn_img ) ;
+     } /* end of if we found JPG/PNG files */
+   }
+
    /*-- 03 Dec 2001: try to read MPEG "datasets" --*/
 
-   if( !AFNI_noenv("AFNI_MPEG_DATASETS") ){
+   if( AFNI_yesenv("AFNI_MPEG_DATASETS") ){
      char ename[4*THD_MAX_NAME+64] , **fn_mpeg ;
      int num_mpeg , ii ;
 
@@ -635,7 +674,6 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
          }
          iview = dset->view_type ;
          SET_SESSION_DSET(dset, sess, nds, iview);
-/*         sess->dsset_xform_table[nds][iview] = dset ;*/
          sess->num_dsset ++ ;
        } /* end of loop over files */
        MCW_free_expand( num_mpeg , fn_mpeg ) ;
@@ -645,7 +683,7 @@ printf("warp_std_hrs AFTER:") ; DUMP_LMAP(warp_std_hrs->rig_bod.warp) ;
    /*-- done! --*/
 
    if( sess->num_dsset == 0 ){
-      myXtFree( sess ) ; RETURN( NULL ) ;
+      myRwcFree( sess ) ; RETURN( NULL ) ;
    }
 
    /*-- 29 Jul 2003: order dataset rows --*/
@@ -713,8 +751,212 @@ ENTRY("THD_order_session") ;
 
    for( ids=0 ; ids < nds ; ids++ )
      for( iview=0 ; iview <= LAST_VIEW_TYPE ; iview++ )
-/*       sess->dsset_xform_table[ids][iview] = qset[ids][iview] ;*/
         SET_SESSION_DSET(qset[ids][iview], sess, ids, iview);
    sess->num_dsset = nds ;  /* shouldn't change */
    EXRETURN ;
+}
+
+/*---------------------------------------------------------------------*/
+/*! Append datasets in THD_session ssb to those in ssa.
+    \date 20 Dec 2001
+*/
+
+void THD_append_sessions( THD_session *ssa , THD_session *ssb )
+{
+   int qs, qd, vv ;
+   THD_3dim_dataset *temp_dset;
+
+ENTRY("THD_append_sessions") ;
+
+   if( !ISVALID_SESSION(ssa) || !ISVALID_SESSION(ssb)  ) EXRETURN ;
+   if( THD_equiv_files(ssa->sessname,ssb->sessname)==1 ) EXRETURN ;
+
+   qs = ssa->num_dsset ;
+   for( qd=0; qd < ssb->num_dsset && qd+qs < THD_MAX_SESSION_SIZE ; qd++ )
+     for( vv=0 ; vv <= LAST_VIEW_TYPE ; vv++ ) {
+       temp_dset = GET_SESSION_DSET(ssb, qd, vv);
+       SET_SESSION_DSET(temp_dset, ssa,qd+qs,vv);
+     }
+   ssa->num_dsset += qd ;
+
+   EXRETURN ;
+}
+
+/*---------------------------------------------------------------------*/
+/* read from the pipe into 1 big string [01 Feb 2018] */
+
+#undef  PSIZ
+#define PSIZ 8192
+
+char * THD_suck_pipe( char *cmd )
+{
+   char *flist=NULL ; FILE *fp=NULL ;
+
+   if( cmd == NULL || *cmd == '\0' ) return NULL ;
+
+   fp = popen( cmd , "r" ) ;
+   if( fp == NULL ){
+     ERROR_message("Unable to pipe command '%s'",cmd) ;
+     return NULL ;
+   }
+
+   flist = (char *)malloc(sizeof(char)*PSIZ) ; flist[0] = '\0' ;
+   while( fgets(flist+strlen(flist),PSIZ-2,fp) != NULL ){
+     flist = (char *)realloc(flist,sizeof(char)*(strlen(flist)+PSIZ)) ;
+   }
+
+   (void)pclose(fp) ;
+   if( *flist == '\0' ){ free(flist); flist=NULL; }
+
+   return flist ;
+}
+
+/*---------------------------------------------------------------------*/
+/* Find all sub-directories with BIDS name form sub-XXX [01 Feb 2018] */
+
+NI_str_array * THD_get_subdirs_bysub( char *dirname , char *subid )
+{
+   NI_str_array *qsar=NULL ;
+   char *cmd , *flist , *newsubid=NULL ; FILE *fp ;
+
+ENTRY("THD_get_subdirs_bysub") ;
+
+   if( ! THD_is_directory(dirname) || subid == NULL || strlen(subid) < 2 )
+     RETURN(NULL) ;
+
+   if( strncmp(subid,"sub-",4) != 0 ){
+     newsubid = (char *)malloc(sizeof(char)*(8+strlen(subid))) ;
+     sprintf(newsubid,"sub-%s",subid) ;
+   } else {
+     newsubid = strdup(subid) ;
+   }
+
+   /* get dirnames via piping from find */
+
+   cmd = (char *)malloc(sizeof(char)*(128+strlen(dirname)+strlen(newsubid))) ;
+   sprintf( cmd, "find %s -maxdepth 9 -type d -name '%s'", dirname , newsubid ) ;
+
+   flist = THD_suck_pipe( cmd ) ;
+
+   if( flist == NULL || strlen(flist) < 4 ){
+#if 0
+     ERROR_message("-bysub: Didn't find any '%s' under %s",newsubid,dirname) ;
+#endif
+     free(newsubid) ; free(cmd) ;
+     if( flist != NULL ) free(flist) ;
+     RETURN(NULL) ;
+   }
+
+   /* break output into discrete strings */
+
+   qsar = NI_decode_string_list( flist , ";" ) ;
+   if( qsar == NULL || qsar->num == 0 ){    /* should never happen */
+     ERROR_message("-bysub: Unable to decode output from command \"%s\"",cmd) ;
+     free(newsubid) ; free(cmd) ; free(flist) ; RETURN(NULL) ;
+   }
+
+#if 0
+  { int qq ;
+    INFO_message("-bysub: Found %d '%s' under %s",qsar->num,newsubid,dirname) ;
+    for( qq=0 ; qq < qsar->num ; qq++ ) ININFO_message(" %s",qsar->str[qq]) ;
+  }
+#endif
+
+   free(newsubid) ; free(cmd) ; free(flist) ; RETURN(qsar) ;
+}
+
+/*---------------------------------------------------------------------*/
+/* A recursive form of THD_init_session() [01 Feb 2018] */
+
+THD_session * THD_init_session_recursive( char *dirname )
+{
+   NI_str_array *qsar ;
+   THD_session *sess=NULL , *qss ;
+   char *cmd , *flist ;
+   int qq , nss=0 ;
+ENTRY("THD_init_session_recursive") ;
+
+   if( dirname == NULL || *dirname == '\0' ) RETURN(NULL) ;
+
+   /* get list of all subdir names */
+
+   cmd = (char *)malloc(sizeof(char)*(strlen(dirname)+128)) ;
+   sprintf( cmd, "find %s -type d -depth -9", dirname) ;
+   flist = THD_suck_pipe( cmd ) ;
+   if( flist == NULL || strlen(flist) < 1 ) RETURN(NULL) ;
+
+   /* break output into discrete strings */
+
+   qsar = NI_decode_string_list( flist , ";" ) ;
+   free(flist) ;
+   if( qsar == NULL || qsar->num == 0 ){    /* should never happen */
+     ERROR_message("Unable to decode output from command \"%s\"",cmd) ;
+     free(cmd) ; RETURN(NULL) ;
+   }
+
+   /* try to read each subdir as a session by itself */
+
+   for( qq=0 ; qq < qsar->num ; qq++ ){
+     if( qsar->str[qq] != NULL && qsar->str[qq][0] != '\0' ){
+       qss = THD_init_session( qsar->str[qq] ) ;
+       if( qss != NULL ){    /* got something */
+         if( sess == NULL ){ /* the first something */
+           sess = qss ;
+         } else {            /* a later something */
+           THD_append_sessions( sess , qss ) ;
+         }
+         nss++ ;
+       }
+     }
+   }
+
+   if( nss > 1 ){
+     THD_order_session( sess ) ;
+     sess->is_collection = 1 ;
+   }
+
+   free(cmd) ;
+   RETURN(sess) ;
+}
+
+/*---------------------------------------------------------------------*/
+/* Make a session from all subdirectories that match the subject ID */
+
+THD_session * THD_init_session_bysub( char *dirname , char *subid )
+{
+   NI_str_array *qsar ;
+   THD_session *sess=NULL , *qss ;
+   int qq , nss=0 ;
+
+ENTRY("THD_init_session_bysub") ;
+
+   qsar = THD_get_subdirs_bysub( dirname , subid ) ;
+   if( qsar == NULL ) RETURN(NULL) ;
+
+   for( qq=0 ; qq < qsar->num ; qq++ ){
+     if( qsar->str[qq] != NULL && qsar->str[qq][0] != '\0' ){
+       qss = THD_init_session_recursive( qsar->str[qq] ) ;
+       if( qss != NULL ){    /* got something */
+         if( sess == NULL ){ /* the first something */
+           sess = qss ;
+         } else {            /* a later something */
+           THD_append_sessions( sess , qss ) ;
+         }
+         nss++ ;
+       }
+     }
+   }
+
+   if( sess != NULL && nss > 1 ){
+     THD_order_session( sess ) ;
+     sess->is_collection = 1 ;
+   }
+   if( sess != NULL ){
+     char *env = my_getenv( "AFNI_SESSTRAIL" ) ; int tt = 0 ;
+     if( env != NULL ) tt = (int)strtol(env,NULL,10) ;
+     env = THD_trailname(dirname,tt) ;
+     sprintf( sess->lastname , "%.32s:%s",env,subid) ;
+   }
+
+   RETURN(sess) ;
 }

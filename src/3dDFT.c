@@ -9,9 +9,19 @@ void usage_3dDFT(int detail) {
 " * The input dataset can be complex-valued or float-valued.\n"
 "   If it is any other data type, it will be converted to floats\n"
 "   before processing.\n"
+" * [June 2018] The FFT length used is NOT rounded up to a convenient\n"
+"   FFT radix; instead, the FFT size is actual value supplied in option\n"
+"   '-nfft' or the number of time points (if '-nfft' isn't used).\n"
+" * However, if the FFT length has large prime factors (say > 97), the\n"
+"   Fast Fourier Transform algorithm will be relatively slow. This slowdown\n"
+"   is probably only noticeable for very long files, since reading and\n"
+"   writing datasets seems to take most of the elapsed time in 'normal' cases.\n"
 "\n"
 "OPTIONS:\n"
 "--------\n"
+"\n"
+" -prefix PP  == use 'PP' as the prefix of the output file\n"
+"\n"
 " -abs     == output float dataset = abs(DFT)\n"
 "            * Otherwise, the output file is complex-valued.\n"
 "              You can then use 3dcalc to extract the real part, the\n"
@@ -104,7 +114,7 @@ int main( int argc , char * argv[] )
         if( nfft <= 2 ){
           WARNING_message("Illegal -nfft value on command line") ;
           nfft = 0 ;
-        } else {
+        } else if( !csfft_allows_anything() ){
           ii = csfft_nextup_even(nfft) ;
           if( ii > nfft ){
             WARNING_message("Replacing -nfft=%d with next largest legal value=%d",
@@ -112,6 +122,7 @@ int main( int argc , char * argv[] )
             nfft = ii ;
           }
         }
+        if( nfft > 0 ) INFO_message("-nfft set to %d",nfft) ;
         iarg++ ; continue ;
       }
 
@@ -156,14 +167,10 @@ int main( int argc , char * argv[] )
 
    /* Calculate size for FFT */
 
-   ii = csfft_nextup_even(nvals);
-   if( nfft <= 2 ){
-     INFO_message("Data length = %d ; FFT length = %d",nvals,ii) ;
-   } else if( ii > nfft ){
-     WARNING_message("Data length = %d ; replacing -nfft=%d with %d",
-                     nvals,nfft,ii);
-   }
-   nfft = ii ;
+   ii = csfft_allows_anything() ? nvals : csfft_nextup_even(nvals) ;
+
+   if( nfft <= 2 || ii > nfft ) nfft = ii ;
+   INFO_message("Data length = %d ; FFT length = %d",nvals,nfft) ;
 
    if( ftap > 0.0f )
      xtap = mri_setup_taper( nvals , ftap ) ;  /* 27 Nov 2007 */

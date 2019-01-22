@@ -60,6 +60,10 @@ extern void MCW_set_widget_bg( Widget , char * , Pixel ) ;
 extern void MCW_set_widget_fg( Widget , char * ) ;
 extern void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc ) ;  /* 18 Feb 2014 */
 
+#define BLACK_AND_WHITE_WIDGET(www)                          \
+ do{ MCW_set_widget_bg( (www) , "black"   , 0 ) ;            \
+     MCW_set_widget_fg( (www) , "#ffddbb" ) ;     } while(0)
+
 #undef  LABELIZE
 #define LABELIZE(w)                                   \
  do{ char *eee ;                                      \
@@ -69,7 +73,7 @@ extern void MCW_scale_widget_bg( Widget w , float fac , MCW_DC *dc ) ;  /* 18 Fe
      if( eee != NULL ) MCW_set_widget_fg((w),eee) ;   \
  } while(0)
 
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 extern void MCW_flash_widget_list( int ntime , ... ) ;
 
 extern Colormap MCW_get_colormap( Widget ) ;            /* 01 Sep 1998 */
@@ -270,6 +274,7 @@ extern void RWC_XtPopdown( Widget ) ; /* 30 Jun 2003 */
 
 extern void AFNI_speak( char *string , int nofork ) ;   /* 24 Nov 2003 */
 extern void AFNI_speak_setvoice( char *vvv ) ;
+extern void AFNI_startup_sound(void) ;                  /* 17 Aug 2018 */
 
 #ifdef DONT_USE_XTDESTROY  /** bug fix for some stupid X11 distributions **/
 # undef  XtDestroyWidget

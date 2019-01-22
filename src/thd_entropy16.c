@@ -9,6 +9,10 @@
 static int64_t *scount=NULL ;  /* holds count of unsigned shorts */
 static int64_t  snum=0 ;       /* total number of unsigned shorts processed */
 
+static int do_zskip  = 0 ;     /* skip zero? */
+static int do_perbin = 0 ;
+static int do_permax = 0 ;
+
 /*-----------------------------------------------------------------------*/
 
 void ENTROPY_setup(void)
@@ -34,8 +38,14 @@ void ENTROPY_accumulate( int64_t nbytes , void * var )
 
    if( scount == NULL ) ENTROPY_setup() ;
 
-   for( ii=0 ; ii < nn ; ii++ ) scount[sar[ii]]++ ;
-   snum += nn ;
+   if( do_zskip )
+     for( ii=0 ; ii < nn ; ii++ ){
+       if( sar[ii] != 0 ){ scount[sar[ii]]++ ; snum++ ; }
+   } else {
+     for( ii=0 ; ii < nn ; ii++ ) scount[sar[ii]]++ ;
+     snum += nn ;
+   }
+   return ;
 }
 
 /*-----------------------------------------------------------------------
@@ -45,7 +55,7 @@ void ENTROPY_accumulate( int64_t nbytes , void * var )
 double ENTROPY_compute(void)
 {
    int64_t ii ;
-   double sum ;
+   double sum , bfac=1.0 ;
 
    if( scount == NULL || snum == 0 ) return 0.0 ;
 
@@ -53,7 +63,17 @@ double ENTROPY_compute(void)
    for( ii=0 ; ii < SNUM ; ii++ )
       if( scount[ii] > 0 ) sum += scount[ii] * log((double)scount[ii]) ;
 
-   sum = -(sum - snum*log((double)snum)) / ( log(2.0) * snum ) ;
+   if( do_perbin ){
+     int64_t nbin = 0 ;
+     for( ii=0 ; ii < SNUM ; ii++ ){ if( scount[ii] > 0 ) nbin++ ; }
+     if( nbin > 1 ) bfac = 1.0 / log((double)nbin) ;
+   } else if( do_permax ){
+     int64_t nmax = 0 ;
+     for( ii=0 ; ii < SNUM ; ii++ ){ if( scount[ii] > 0 ) nmax = ii ; }
+     if( nmax > 1 ) bfac = 1.0 / log((double)nmax) ;
+   }
+
+   sum = -bfac * (sum - snum*log((double)snum)) / ( log(2.0) * snum ) ;
    return sum ;
 }
 

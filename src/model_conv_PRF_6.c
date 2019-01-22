@@ -10,9 +10,9 @@
    Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and theta
    values that produce a best fit of the model to the data.  Here x0, y0 are
    taken to be the center of the population receptive field, sigma is the
-   basic width of it, R is the ratio of axis lengths (sigma_y / sigma_x), and
-   theta is the rotation from the y-direction major axis (so zero is in the
-   positive y-direction).
+   basic width of it, R is the ratio of axis lengths (sigma_x / sigma_y), and
+   theta is the rotation from the x-direction major axis (so zero is in the
+   positive x-direction).
 
    domains:
       x,y       : [-1,1], scaled by the mask, itself
@@ -23,12 +23,22 @@
    The model function of x0, y0, sigma, R and theta is constructed as follows:
 
         1. generate a 2-D Gaussian density function, centered at x0, y0,
-           with given sigma, R (=sigma_y/sigma_x), and theta:
+           with given sigma, R (=sigma_x/sigma_y), and theta:
 
-           -> pRF model g(x,y) = e^-(A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2)
+           -> pRF model g(x,y) = e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2)
 
-              where A = cos^2(theta)
-                        ------------
+           where,
+                       cos^2(theta) + R^2*sin^2(theta)
+                  A =  -------------------------------
+                             2 * R^2 * sigma^2
+                        
+                           (1-R^2) * sin(2theta)
+                  B =      ---------------------
+                             4 * R^2 * sigma^2
+                        
+                       sin^2(theta) + R^2*cos^2(theta)
+                  C =  -------------------------------
+                             2 * R^2 * sigma^2
                         
 
         2. integrate (dot product) over binary stimulus image per time point
@@ -62,7 +72,7 @@ static float * refts     = NULL;   /* reference time series */
 static int   * refin     = NULL;   /* indexes of nonzero pts */
 static int     g_iter    = -1;     /* iteration number */
 
-static char  * g_model_ver = "model_conv_PRF_6, version 1.1, 7 Aug, 2015";
+static char  * g_model_ver = "model_conv_PRF_6, version 1.2, 20 Jun, 2018";
 
 /* exp variables, parameters */
 static float g_exp_maxval  = 8.0;  /* max x in exp(-x) */
@@ -97,6 +107,8 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
 			    float sigma, float sigrat, float theta);
 
 static int   disp_floats(char * mesg, float * p, int len);
+static int   write_gauss_file(char * fname, float * curve,
+                              int nx, int ny, char *hist);
 static int   model_help(void);
 static int   convolve_by_ref(float *, int, float *, int, int, int);
 
@@ -116,6 +128,7 @@ static void conv_model( float *  gs      , int     ts_length ,
 /* interface to the environment */
 static char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 static char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
+static char * genv_gauss_file = NULL;  /* AFNI_MODEL_PRF_GAUSS_FILE */
 static int    genv_diter    = -1;      /* debug iteration */
 static int    genv_debug    = 0;       /* AFNI_MODEL_DEBUG */
 
@@ -142,8 +155,8 @@ static int set_env_vars(void)
    genv_debug = (int)AFNI_numenv_def("AFNI_MODEL_DEBUG", 0);
    fprintf(stderr,"-- PRF: debug %d, iter %d\n", genv_debug, genv_diter);
 
-   /* on grid - default to yes */
-   genv_on_grid  = 1-AFNI_noenv("AFNI_MODEL_PRF_ON_GRID"); /* flag */
+   /* on grid - default to no (yes->no 6 Jun 2013) */
+   genv_on_grid  = AFNI_yesenv("AFNI_MODEL_PRF_ON_GRID"); /* flag */
    fprintf(stderr,"-- PRF: results on grid: %s\n", genv_on_grid?"yes":"no");
 
    genv_sigma_max = AFNI_numenv_def("AFNI_MODEL_PRF_SIGMA_MAX", genv_sigma_max);
@@ -163,6 +176,9 @@ static int set_env_vars(void)
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF_6")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
+
+   /* write a Gaussian mask? */
+   genv_gauss_file = my_getenv("AFNI_MODEL_PRF_GAUSS_FILE");
 
    return 0;
 }
@@ -611,6 +627,16 @@ static void conv_model( float *  gs      , int     ts_length ,
 
    if( refnum <= 0 ) conv_set_ref( 0 , NULL ) ;
 
+   if ( genv_on_grid ) {
+      int pad = (g_iter % 76) - 38;
+      if ( pad < 0 ) pad = -pad;
+      fprintf(stderr,"%*s** not ready for AFNI_MODEL_PRF_ON_GRID **\n",
+              pad,"");
+      for ( ii=0; ii < ts_length; ii++ )
+         ts_array[ii] = 0;
+      return;
+   }
+
    /* create stim aperture dset */
    if( g_iter == 0 ) {
       (void)reset_stim_aperture_dset(ts_length); /* free and reload saset */
@@ -621,6 +647,14 @@ static void conv_model( float *  gs      , int     ts_length ,
    /*** initialize the output before possible early return ***/
 
    for( ii=0 ; ii < ts_length ; ii++ ) ts_array[ii] = 0.0 ;
+
+   /* if any inputs are invalid, return the zero array   14 Aug 2018 */
+   /* sigma <= 0 is invalid, and check sigrat, just to be sure       */
+   /* A == 0 implies a zero vector in any case ...                   */
+   if( gs[0] == 0 || gs[3] <= 0 || gs[4] <= 0 ) {
+      if( genv_debug > 1 ) disp_floats("** invalid input params: ", gs, 4);
+      return;
+   }
 
    /* if we had some failure, bail */
    if( !g_saset ) return;
@@ -769,7 +803,7 @@ MODEL_interface * initialize_model ()
 
   /*----- minimum and maximum parameter constraints -----*/
 
-  /* amplitude, x/y ranges, and sigma range */
+  /* amplitude, x/y ranges, sigma range, sigrat and theta ranges */
   mi->min_constr[0] =    -10.0;   mi->max_constr[0] =    10.0;
 
   mi->min_constr[1] =    -1.0;    mi->max_constr[1] =     1.0;
@@ -796,8 +830,8 @@ MODEL_interface * initialize_model ()
          gs[1] = x0     = x-coordinate of gaussian center
          gs[2] = y0     = y-coordinate of gaussian center
          gs[3] = sigma  = "width" of gaussian curve
-         gs[4] = sigrat = sigma ratio = sigma_y / sigma_x
-         gs[5] = theta  = angle from "due north"
+         gs[4] = sigrat = sigma ratio = sigma_x / sigma_y
+         gs[5] = theta  = angle from "due east"
 
   For each TR, integrate g(x,y) over stim aperture dset.
 
@@ -918,21 +952,23 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
    nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
 
    /* for i,j, map [-1,1] to [0, nx-1] */
-   i = (int)(0.5+nx*(x+1.0)/2.0);
+   /* note, (nx*(x+1.0)/2.0) is in [0,nx], with p(val=nx) very small,  */
+   /*       so it should be enough to just limit floor(result) to nx-1 */
+   i = (int)(nx*(x+1.0)/2.0);
    if     (i <  0 )   i = 0;
    else if(i >= nx )  i = nx-1;
 
-   j = (int)(0.5+ny*(y+1.0)/2.0);
+   j = (int)(ny*(y+1.0)/2.0);
    if     (j <  0 )   j = 0;
    else if(j >= ny )  j = ny-1;
 
    /* init to round(nsteps * fraction of max) */
-   k = (int)(0.5 + genv_sigma_nsteps * sigma / genv_sigma_max);
+   k = (int)(genv_sigma_nsteps * sigma / genv_sigma_max);
    if     ( k <  0 )  k = 0;
    else if( k >= nz ) k = nz-1;
 
    get_ABC(sigma, sigrat, theta, &A, &B, &C);  /* get exp coefficients */
-   eval = A*x*x + B*x*y + C*y*y;
+   eval = A*x*x + 2*B*x*y + C*y*y;
 
    fprintf(stderr,"-- fill_array from x=%f, y=%f, s=%f\n"
                   "   at i=%d, j=%d, k=%d\n",
@@ -969,7 +1005,7 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
          fprintf(stderr,"++ alloc egrid, snxy = %d, nxy = %d\n", snxy, nx*ny);
       snxy = nx*ny;
       if( sexpgrid ) free(sexpgrid);    /* nuke any old copy - maybe never */
-      sexpgrid = (float *)calloc(snxy, sizeof(float *));
+      sexpgrid = (float *)calloc(snxy, sizeof(float));
       if( !sexpgrid ) {
          fprintf(stderr,"** PRF egrid alloc failure, nxy = %d\n", snxy);
          return 1;
@@ -982,6 +1018,8 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       return 1;
    }
 
+
+   /* at each time point, take dot product of mask and gaussian grid */
    for( tind = 0; tind < tslen; tind++ ) {
       mptr = DBLK_ARRAY(dset->dblk, tind);
       eptr = sexpgrid;
@@ -1001,13 +1039,86 @@ static int fill_computed_farray(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
+   /* if requested, write this 2D gaussian image (one time only) */
+   if( genv_gauss_file ) {
+      char hist[256];
+      sprintf(hist, "\n   == %s\n   x = %g, y = %g, "
+                    "sigma = %g, sigrat = %g, theta = %g\n",
+                    g_model_ver, x0, y0, sigma, sigrat, theta);
+      fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
+              genv_gauss_file, hist);
+      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny, hist);
+
+      genv_gauss_file = NULL;  /* clear - no further writes */
+   }
+
    return 0;
 }
 
 /* ------------------------------------------------------------ */
-/* A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
- * B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
- * C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
+/* write_gauss_curve */
+static int write_gauss_file(char * fname, float * curve, int nx, int ny,
+                            char * hist)
+{
+   THD_3dim_dataset * dout;
+   THD_ivec3          inxyz;
+   THD_fvec3          origin, delta;
+   float            * mptr, * dptr;
+   byte             * bptr;
+   int                ind;
+
+   fprintf(stderr,"++ creating gauss dset (%dx%d)", nx, ny);
+   dout = EDIT_empty_copy(NULL);
+   LOAD_IVEC3(inxyz, nx, ny, 1);                               /* nxyz   */
+   origin.xyz[0] = origin.xyz[1] = -1.0;                       /* origin */
+   origin.xyz[2] = 0.0;
+   delta.xyz[0] = delta.xyz[1] = 2.0/(nx-1);                   /* delta */
+   delta.xyz[2] = 1.0;
+
+   EDIT_dset_items(dout, ADN_nxyz,      inxyz,
+                         ADN_xyzorg,    origin,
+                         ADN_xyzdel,    delta,
+                         ADN_prefix,    fname,
+                         ADN_nvals,     2,
+                         ADN_none);
+
+   /* first is gaussian, second is first mask (to compare orientations) */
+   /* use NULL to create space, then copy results */
+   EDIT_substitute_brick(dout, 0, MRI_float, NULL);
+   EDIT_substitute_brick(dout, 1, MRI_float, NULL);
+
+   /* first copy 'curve' to slice 0 */
+   mptr = DBLK_ARRAY(dout->dblk, 0);
+   dptr = curve;
+   for(ind = 0; ind < nx*ny; ind++)
+      *mptr++ = *dptr++;
+
+   /* now fill mask slice */
+   mptr = DBLK_ARRAY(dout->dblk, 1);
+   bptr = DBLK_ARRAY(g_saset->dblk, 0);
+   for(ind = 0; ind < nx*ny; ind++, bptr++)
+      *mptr++ = (float)*bptr;
+
+   dout->daxes->xxorient = ORI_L2R_TYPE;
+   dout->daxes->yyorient = ORI_P2A_TYPE;
+   dout->daxes->zzorient = ORI_I2S_TYPE;
+
+   if( hist ) tross_Append_History(dout, hist);
+
+   fprintf(stderr,", writing");
+   DSET_write(dout);
+
+   DSET_delete(dout);
+   fprintf(stderr,", done\n");
+
+   return 0;
+}
+
+
+/* ------------------------------------------------------------ */
+/* A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
+ * B = (1-R^2) * sin(2theta) / [4R^2sigma^2]
+ * C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  */
 static int get_ABC(float sigma, float sigrat, float theta,
             double * A, double * B, double * C)
@@ -1020,9 +1131,9 @@ static int get_ABC(float sigma, float sigrat, float theta,
    S2   = sin(theta)*sin(theta);
    So2  = sin(2*theta);
 
-   *A = (R2 * C2 + S2) / R2S2;
-   *B = -(R2 - 1.0) * So2 / (2.0 * R2S2);
-   *C = (R2 * S2 + C2) / R2S2;
+   *A = (C2 + R2 * S2)   / R2S2;
+   *B = (1.0 - R2) * So2 / (2.0 * R2S2);
+   *C = (S2 + R2 * C2)   / R2S2;
 
    return 0;
 }
@@ -1032,10 +1143,10 @@ static int get_ABC(float sigma, float sigrat, float theta,
  *   centered at x0, y0, with the given sigma, sigrat and theta
  *
  * old: fill with e^-[((x-x0)^2 + (y-y0)^2) / (2*sigma^2)]
- * new: e^-[A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2], where
- *      A = [R^2cos^2(theta) + sin^2(theta)] / [2R^2sigma^2]
- *      B = -(R^2-1) * sin(2theta) / [4R^2sigma^2]
- *      C = [R^2sin^2(theta) + cos^2(theta)] / [2R^2sigma^2]
+ * new: e^-[A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2], where
+ *      A = [cos^2(theta) + R^2*sin^2(theta)] / [2R^2sigma^2]
+ *      B = (1-R^2) * sin(2theta) / [4R^2sigma^2]
+ *      C = [sin^2(theta) + R^2*cos^2(theta)] / [2R^2sigma^2]
  *
  * We do not have to be too efficient in computing A,B,C, since those
  * are constant across the image.  Only x-x0 and y-y0 vary.
@@ -1066,7 +1177,7 @@ static int compute_e_x_grid(float * e, int nx, int ny, float x0, float y0,
          yoff = iy*wscale - 1.0f - y0;
 
          /* compute (positive) power of e, will scale by g_exp_ipieces */
-         eval = A*xoff*xoff + B*xoff*yoff + C*yoff*yoff;
+         eval = A*xoff*xoff + 2*B*xoff*yoff + C*yoff*yoff;
          if( eval > g_exp_maxval ) {
            *eptr++ = 0.0f;
            continue;
@@ -1101,20 +1212,37 @@ static int model_help(void)
 "----------------------------------------------------------------------\n"
 "PRF_6  - 6 parameter population receptive field (in visual cortex)\n"
 "\n"
+"      Revisions from 19 Jun, 2018\n"
+"\n"
+"         - A factor of 2 was missing on the 'B' term.  The help text\n"
+"           was accurate in terms of what the model did, but the equation\n"
+"           should have read and now does read '... + 2*B()() + ...\n"
+"\n"
+"         - Sigma has been changed to be sigma_x/sigma_y, making theta=0\n"
+"           wide along the x-axis.  Previously y/x had it along the y-axis.\n"
+"\n"
+"         - Rotations are now CCW.\n"
+"\n"
+"         - AFNI_MODEL_PRF_GAUSS_FILE can be used to specify a dataset\n"
+"           to write a Gassian curve image to.\n"
+"\n"
 "      Given stimulus images over time s(x,y,t), find x0, y0, sigma, R and\n"
 "      theta values that produce a best fit of the model to the data.  Here\n"
 "      x0, y0 are taken to be the center of the population receptive field,\n"
-"      sigma is the minor width of it (sigma_x, below), sigrat R is the ratio\n"
-"      (sigma_y / sigma_x), and theta is the rotation from the y-direction\n"
-"      major axis (so zero is in the positive y-direction).\n"
+"      sigma is the minor width of it (sigma_y, below), sigrat R is the ratio\n"
+"      (sigma_x / sigma_y), and theta is the counter clockwise rotation from\n"
+"      the x-direction major axis (so zero is in the positive x-direction).\n"
 "\n"
-"      We assume sigma_y >= sigma_x and refer to sigrat >= 1, since that\n"
+"      We assume sigma_x >= sigma_y and refer to sigrat >= 1, since that\n"
 "      sufficiently represents all possibilities.  The reciprocol would\n"
 "      come from the negative complimentary angle, and would therefore be a\n"
-"      redundant solution.\n"
+"      redundant solution (if we allowed sigrat < 1).\n"
+"\n"
+"      So theta represents the CCW rotation of the major axis from x+.\n"
 "\n"
 "      parameter domains:\n"
-"         x,y        : [-1,1], scaled by the mask, itself\n"
+"         x,y        : [-1,1] (x=-1 means left edge of mask, +1 means right)\n"
+"                             (similarly for y)\n"
 "         sigma      : (0,1], where 1 means the mask radius\n"
 "         R (sigrat) : [1,inf), since sigma defines the smaller size\n"
 "         theta      : [-PI/2, PI/2), since rotation by PI has no effect\n"
@@ -1123,38 +1251,38 @@ static int model_help(void)
 "      follows:\n"
 "\n"
 "         1. generate a 2-D elliptical Gaussian density function,\n"
-"            centered at x0, y0, with given sigma, R (=sigma_y/sigma_x),\n"
-"            and theta (rotation of major direction from positive y):\n"
+"            centered at x0, y0, with given sigma, R (=sigma_x/sigma_y),\n"
+"            and theta (CCW rotation of major direction from positive x):\n"
 "\n"
 "            -> pRF model g(x,y) = generalized 2-D Gaussian\n"
 "\n"
-"                e^-(A(x-x0)^2 + B(x-x0)(y-y0) + C(y-y0)^2), where\n"
+"                e^-(A(x-x0)^2 + 2*B(x-x0)(y-y0) + C(y-y0)^2), where\n"
 "\n"
 "                     cos^2(theta)     sin^2(theta)\n"
 "                 A = ------------  +  ------------\n"
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
 "                       sin(2theta)     sin(2theta)\n"
-"                 B = - -----------  +  -----------\n"
+"                 B =   -----------  -  -----------     (signs mean CCW rot)\n"
 "                       4sigma_x^2      4sigma_y^2\n"
 "\n"
 "                     sin^2(theta)     cox^2(theta)\n"
 "                 C = ------------  +  ------------\n"
 "                      2sigma_x^2       2sigma_y^2\n"
 "\n"
-"            Substituting sigma_x = sigma, sigma_y = Rsigma_x yields,\n"
-"                           \n"
-"                     R^2cos^2(theta) + sin^2(theta)\n"
-"                 A = ------------------------------\n"
-"                              2R^2sigma^2\n"
+"            Substituting sigma_x = R*sigma_y, sigma_y = sigma yields,\n"
 "\n"
-"                              sin(2theta)\n"
-"                 B = -(R^2-1) -----------\n"
-"                              4R^2sigma^2\n"
+"                     cos^2(theta) + R^2*sin^2(theta)\n"
+"                 A = -------------------------------\n"
+"                               2*R^2sigma^2\n"
 "\n"
-"                     R^2sin^2(theta) + cos^2(theta)\n"
-"                 C = ------------------------------\n"
-"                              2R^2sigma^2\n"
+"                               sin(2theta)\n"
+"                 B = (1-R^2) * -----------\n"
+"                               4*R^2sigma^2\n"
+"\n"
+"                     sin^2(theta) + R^2*cos^2(theta)\n"
+"                 C = -------------------------------\n"
+"                               2*R^2sigma^2\n"
 "\n"
 "--------------------------------------------------\n"
 "To use this model function:\n"
@@ -1169,6 +1297,11 @@ static int model_help(void)
 "      those X,Y results will come directly from this stimulus dataset.\n"
 "      It might be reasonable to have this be 100 or 200 (or 101 or 201)\n"
 "      voxels on a side.\n"
+"\n"
+"\n"
+"    **** Years have gone by, and I still have not implemented the speed-up\n"
+"         for AFNI_MODEL_PRF_ON_GRID.  Please leave it set to NO for now.\n"
+"\n"
 "\n"
 "    * The amount of memory used for the precomputation should be the size\n"
 "      of this dataset (in float format) times AFNI_MODEL_PRF_SIGMA_NSTEPS.\n"
@@ -1238,24 +1371,10 @@ static int model_help(void)
 "\n"
 "      AFNI_MODEL_PRF_ON_GRID      : Y/N - use pre-computed solutions\n"
 "\n"
-"         e.g. setenv AFNI_MODEL_PRF_ON_GRID NO\n"
-"         e.g. default YES\n"
 "\n"
-"         Recommended.\n"
+"         *** This has not been coded yet.  If there is strong interest,\n"
+"             please let me know, though no promises are being made.\n"
 "\n"
-"         When set, the model function will actually pre-compute all possible\n"
-"         (unscaled) fit solutions on the first pass.  Since all of these\n"
-"         parameters have a smooth effect on the result, this method should\n"
-"         be sufficient.\n"
-"\n"
-"         Note that the resolution of x0, y0 parameters comes directly from\n"
-"         the stimulus dataset (AFNI_MODEL_PRF_STIM_DSET), while the sigma\n"
-"         resolution comes from the maximum (AFNI_MODEL_PRF_SIGMA_MAX) and\n"
-"         the number of computed values (AFNI_MODEL_PRF_SIGMA_NSTEPS).\n"
-"\n"
-"         The more voxels to solve for in the input EPI, the more useful this\n"
-"         is.  For a single voxel, it is slow.  For a large dataset, it can\n"
-"         speed up the solution by a factor of 1000.\n"
 "\n"
 "      AFNI_MODEL_PRF_SIGMA_MAX    : specify maximum allowable sigma\n"
 "\n"
@@ -1293,7 +1412,7 @@ static int model_help(void)
 "\n"
 "         or more directly (without setenv):\n"
 "\n"
-"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6\n"
+"            3dNLfim -DAFNI_MODEL_HELP_CONV_PRF_6=Y -signal Conv_PRF_6 \n"
 "\n"
 "      AFNI_MODEL_DEBUG            : specify debug/verbosity level\n"
 "\n"
@@ -1306,6 +1425,14 @@ static int model_help(void)
 "         e.g. setenv AFNI_MODEL_DITER 999\n"
 "\n"
 "         Get extra debug info at some iteration.\n"
+"\n"
+"      AFNI_MODEL_PRF_GAUSS_FILE   : specify dataset prefix for Gauss curve\n"
+"\n"
+"         e.g. setenv AFNI_MODEL_PRF_GAUSS_FILE guass_curve\n"
+"\n"
+"         Write a 2-D image with the Gaussian curve, which is helpful\n"
+"         for checking the parameters.  This works best when used via\n"
+"         the get_afni_model_PRF_6 program.\n"
 "\n"
 "----------------------------------------------------------------------\n"
 "   Written for E Silson and C Baker.\n"

@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # written by PA Taylor (NIMH, NIH)
 # convert dicoms to nifti, while "niceifying" several properties.
@@ -45,8 +47,16 @@
 #set version = "3.1"; set rev_dat = "Apr 26, 2017"
 #   + important: fixed matT -> matA error
 #
-set version = "3.2"; set rev_dat = "Sep 04, 2017"
+#set version = "3.2"; set rev_dat = "Sep 04, 2017"
 #   + work with new @chauffeur*, '-prefix ...' only
+#
+#set version = "3.3"; set rev_dat = "Feb 20, 2018"
+#   + output QC dir for images
+#
+set version = "3.4"; set rev_dat = "Aug 15, 2018"
+#   + user can input nifti + bval + bvec;
+#     thanks to Dr. Bharath Holla for sorting out most of the 
+#     mechanics of this.
 #
 # ----------------------------------------------------------------
 
@@ -85,7 +95,7 @@ endif
 set idir  = ""
 set odir  = ""
 set opref    = ""          # default file output prefix
-set ori_new  = "RPI"       # default file output orientation
+set ori_new  = "RAI"       # default file output orientation
 set doflip   = ""          # default: no flip of grads
 set DO_REORI = 1
 set DO_CLEAN = "1"
@@ -93,7 +103,6 @@ set DO_VIEWER = "1"
 set output_cmd = 1               # def: output copy of this command
 set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
-set postfix    = "_"             # stick into name
 
 set movie     = ""
 
@@ -111,6 +120,14 @@ set npref    = "nnn"
 set DO_HAVE_ORIG = "0"  
 set iorig = ( 0 0 0 )
 
+# if inputting set of nii/bvec/bval files (i.e., like if
+# dcm2niix(_afni) has already been run; these MUST have same order--
+# caveat user!
+set DO_NII_INPUT = 0 
+set fNII          = ()         # if inputting converted files: NII
+set fBVEC         = ()         # if inputting converted files: bvec
+set fBVAL         = ()         # if inputting converted files: bval
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -126,10 +143,106 @@ while ( $ac <= $#argv )
     endif
 
     # ------------- input(s) ----------------
+    
+    ### --- option "A"
     if ( "$argv[$ac]" == "-indir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set idir = "$argv[$ac]"
+
+    ### --- option "B" (series of files)
+
+    # [PT: Aug 15, 2018] Input nifti (and associated files) instead of
+    # just directory to be converted
+    else if ( "$argv[$ac]" == "-innii" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fNII = ( $fNII "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fNII == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fNII nifti dsets"
+            endif
+        endif
+        @ DO_NII_INPUT += 1
+
+    else if ( "$argv[$ac]" == "-inbvec" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fBVEC = ( $fBVEC "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fBVEC == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fBVEC bvec sets"
+            endif
+        endif
+        @ DO_NII_INPUT += 2
+
+    else if ( "$argv[$ac]" == "-inbval" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set fBVAL = ( $fBVAL "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#fBVAL == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#fBVAL bval sets"
+            endif
+        endif
+        @ DO_NII_INPUT += 4
 
     # ------------- output(s) ----------------
         
@@ -221,40 +334,69 @@ end
 # ============================ ** SETUP ** ==============================
 # =======================================================================
 
-# ============================= dicom dir ===============================
+# ============================= checks of inputs ========================
 
 if ( "$idir" == "" ) then
-    echo "** ERROR: need to input a DICOM directory with '-indir ...'"
-    goto BAD_EXIT
-endif
+    if ( $#fNII == 0 ) then
+        # user apparently input nothing??
+        echo "** ERROR: need to input a DICOM directory with '-indir ...'"
+        echo "    *or*"
+        echo "   Files with '-innii ...', '-inbvec ...', '-inbval ...'"
+        goto BAD_EXIT
+    else
+        # --------- user input nifti/bvec/bval: check -------------
+        if ( ( $#fNII != $#fBVEC ) || ( $#fNII != $#fBVAL ) ) then
+            echo "** ERROR: need equal numbers of nifti/bvec/bval files."
+            echo "   You appear to have input:"
+            echo "      $#fNII nifti"
+            echo "      $#fBVEC bvec"
+            echo "      $#fBVAL bval"
+            echo "   Please check your input commands."
+            goto BAD_EXIT
+        endif
 
-if ( "$idir" != "" ) then
+        if ( $DO_NII_INPUT != 7 ) then
+            echo "** ERROR: user must have forgotten one of the"
+            echo "   nifti/bvec/bval argument flags?"
+            echo "   Please check your input commands."
+            goto BAD_EXIT
+        endif
+    endif
+else
+    # --------- user input dicom dirs: check -------------
     set idir = `\ls -d $idir`
     set Nap = $#idir
     echo "++ Found $Nap directories from '-indir $idir':"
     echo "\t $idir"
-endif
 
-# ============================= input dir ===============================
-
-# check for old relics
-
-foreach dd ( $idir ) 
-
-    cd $here
-    cd $dd
-
-    echo "++ Checking ${dd} for preexisting NIFTIs ... "
-
-    if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
-         (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
-        echo "\n** ERROR: already some nifti files in $dd !"
+    # can't have both types of inputs
+    if ( ( $#fNII != 0 ) || $DO_NII_INPUT ) then
+        echo "** ERROR: user can *either* input a DICOM dir with '-indir ...'"
+        echo "    *or*"
+        echo "   Files with '-innii ...', '-inbvec ...', '-inbval ...'"
+        echo "   Not both!"
         goto BAD_EXIT
     endif
-end
 
-cd $here
-echo "++ --> OK, good, no competing NIFTIs in any DICOM directory."
+    
+
+    # check for old relics
+    foreach dd ( $idir ) 
+        cd $here
+        cd $dd
+
+        echo "++ Checking ${dd} for preexisting NIFTIs ... "
+
+        if ( (`find . -maxdepth 1 -type f -name "*nii" | wc -l` > 0 ) || \
+             (`find . -maxdepth 1 -type f -name "*nii.gz" | wc -l` > 0 ) ) then
+            echo "\n** ERROR: already some nifti files in $dd !"
+            goto BAD_EXIT
+        endif
+    end
+
+    cd $here
+    echo "++ --> OK, good, no competing NIFTIs in any DICOM directory."
+endif
 
 # ========================= output/working dir ==========================
 
@@ -280,6 +422,14 @@ if ( ! -e "$odir" ) then
     echo "+* Output directory didn't exist.  Trying to make it now."
     mkdir "$odir"
 endif
+
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+set odirqc_wdir = "../QC" # loc from $wdir
 
 # and put working directory as subdirectory.
 if ( "$WDIR_EX" == "1" ) then
@@ -341,24 +491,45 @@ endif
 # list of temp dirs, in case there are several idirs
 set all_tdir = ()
 
-if ( "$idir" != "") then
-    foreach ii ( `seq 1 1 $#idir` )
+if ( "$idir" != "" ) then
+    set Nsets = $#idir
+else
+    set Nsets = $#fNII
+endif
+
+##!!!! HERE:
+foreach ii ( `seq 1 1 $Nsets` )
+
+    # tmp sub-wdirs for dumping dcm2niix output or input
+    # nifti/bvec/bval files
+    set iii   = `printf "%03d" $ii`
+    set tdir  = ${dpref}_$iii
+    if ( ! -e "$wdir/$tdir" ) then
+        \mkdir "$wdir/$tdir"
+    else
+        echo "\n** ERROR: already existing subdir $tdir in $wdir!"
+        echo "     Was there some previous badness in running this"
+        echo "     function?  Maybe get move/get rid of the working"
+        echo "     directory:  $wdir ?\n"
+        goto BAD_EXIT
+    endif 
+
+    if ( $DO_NII_INPUT ) then
+        ### ----------- nii/bvec/bval input ------------
+
+        set tmpre = "$wdir/$tdir/${npref}"
+        3dcalc                                  \
+            -a     "$fNII[$ii]"                 \
+            -expr  "a"                          \
+            -prefix "${tmpre}.nii.gz"
+
+        \cp "$fBVEC[$ii]" "${tmpre}.bvec"
+        \cp "$fBVAL[$ii]" "${tmpre}.bval"
+
+    else
+        ### ----------- dicom dirs input ------------
 
         set dd = $idir[$ii]
-
-        # tmp sub-wdirs for dumping dcm2niix output
-        set iii   = `printf "%03d" $ii`
-        set tdir  = ${dpref}_$iii
-        if ( ! -e "$wdir/$tdir" ) then
-            \mkdir "$wdir/$tdir"
-        else
-            echo "\n** ERROR: already existing subdir $tdir in $wdir!"
-            echo "     Was there some previous badness in running this"
-            echo "     function?  Maybe get move/get rid of the working"
-            echo "     directory:  $wdir ?\n"
-            goto BAD_EXIT
-        endif 
-
         echo "\n++ OK, now converting dicoms from: $dd"
         # place output into wdir, using gzipped files
         dcm2niix_afni  \
@@ -368,11 +539,11 @@ if ( "$idir" != "") then
                 -f $npref         \
                 -o "$wdir/$tdir"  \
                 $dd/
+    endif
 
-        # add it to the list of tdirs in wdir
-        set all_tdir = ( $all_tdir $tdir )
-    end
-endif
+    # add it to the list of tdirs in wdir
+    set all_tdir = ( $all_tdir $tdir )
+end
 
 # ============ do the major rearranging/sorting/combining ================
 
@@ -529,14 +700,14 @@ endif
 # Feb,2017: take images!
 if ( "$DO_VIEWER" == "1" ) then
 
-    $my_viewer_4d \
-        -inset  ../$fin_vols              \
-        -prefix "../${opref}"
+    $my_viewer_4d                              \
+        -inset  ../$fin_vols                   \
+        -prefix "${odirqc_wdir}/${opref}"
 
     if ( "$movie" != "" ) then
-        $my_viewer_4d \
-            -inset  ../$fin_vols          \
-            -prefix "../${opref}"         \
+        $my_viewer_4d                          \
+            -inset  ../$fin_vols               \
+            -prefix "${odirqc_wdir}/${opref}"  \
             $movie
     endif
 endif
@@ -566,6 +737,8 @@ SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
 
+  OVERVIEW ~1~
+
     The purpose of this function is to help convert one or more sets
     of DWIs in DICOM format into 'nicer' volume+grad format. If
     multiple directories of DICOMS exist for a given AP or PA set,
@@ -590,10 +763,11 @@ cat << EOF
 
 -------------------------------------------------------------------------
 
-  RUNNING: 
+  RUNNING ~1~
 
     $this_prog  \
       -indir   DIR                             \
+      {-innii NNN -inbvec CCC -inbval LLL}     \
       -prefix PPP                              \
       {-workdir   WWW}                         \
       {-orient    ORIENT}                      \
@@ -607,7 +781,7 @@ cat << EOF
       {-do_movie AGIF|MPEG}
 
   where:
-  -indir  DIR       :directory name(s) of (only) DICOM files of the
+    -indir  DIR     :directory name(s) of (only) DICOM files of the
                      DWI data,designated as having 'AP' phase
                      encoding.  DIR can actually contain a wildcard
                      expression for several directories, if, for
@@ -615,6 +789,25 @@ cat << EOF
                      together into one set.  NOTE: if specifying more
                      than one directory, put double quotes around your
                      entry, like: "file*".
+       *or* the user can input one or more sets of nifti+bvec+bval files;
+            the program will concatenate each set of files in the order
+            input using the following argument flags, so the user
+            must be careful that the ordering is correct!  These files
+            go through the same post-dicom-conversion processing (setting
+            the orientation, origin, flipping, etc.) as those of
+            the "-indir .." files -->           
+    -innii NNN      :one or more nifti files of DWIs; the '-inbvec .."
+                     and "-inbal .." arguments, below, must also be used
+                     to input the corresponding text files for each
+                     NIFTI NNN.
+    -inbvec CCC     :one or more row-wise, gradient (unit-magnitude)
+                     files, such as would be produced by
+                     dcm2niix(_afni).  If there are "N" NIFTI files
+                     input, there must be "N" CCC files in the same order.
+    -inbval LLL     :one or more bvalue files, such as would be
+                     produced by dcm2niix(_afni).  If there are "N"
+                     NIFTI files input, there must be "N" LLL files in
+                     the same order.
 
     -prefix   PPP   :set prefix (and path) for output data; will be prefix
                      for the *.nii.gz, *.bvec and *.bval files. Required.
@@ -670,7 +863,7 @@ cat << EOF
 
 -------------------------------------------------------------------------
 
-  OUTPUTS:
+  OUTPUTS ~1~
 
     For a given phase encoding set, the output files are:
 
@@ -691,16 +884,22 @@ cat << EOF
 
 -------------------------------------------------------------------------
 
-  EXAMPLE:
+  EXAMPLES ~1~
+
     $this_prog  \
         -indir  "DWI_DICOMS"                 \
         -prefix  DWI_UNFILT/dwi
         
-    or
-
     $this_prog  \
         -indir    dwi_ap                 \
         -prefix   DWI_UNFILT/dwi
+        -do_movie AGIF
+
+    $this_prog  \
+        -innii    study/subj-001/acq_piece_0*.nii.gz     \
+        -inbvec   study/subj-001/acq_piece_0*.bvec       \
+        -inbval   study/subj-001/acq_piece_0*.bval       \
+        -prefix   study/subj-001/dwi_all
         -do_movie AGIF
 
 -------------------------------------------------------------------------

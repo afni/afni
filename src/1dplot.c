@@ -31,7 +31,7 @@ static char *INIT_labovr[DEFAULT_NCOLOVR] = {
 static int nx,nts , sep=1, sepscl=0;
 static float **yar , *xar ;
 static MCW_DC *dc ;
-static char *title = NULL , *wintitle = NULL, *xlabel = NULL , *ylabel = NULL ;
+static char *title=NULL , *wintitle=NULL, *xlabel=NULL , *ylabel=NULL ;
 
 static char *dfile_nar[6] = {
          "Roll [\\degree]" , "Pitch [\\degree]" , "Yaw [\\degree]"    ,
@@ -192,6 +192,11 @@ void usage_1dplot(int detail)
      "             [before the program scans the command line for options]\n"
      #endif
      "\n"
+     " -naked     = Do NOT plot axes or labels, just the graph(s).\n"
+     "              You might want to use '-nopush' with '-naked'.\n"
+     " -aspect A  = Set the width-to-height ratio of the plot region to 'A'.\n"
+     "              Default value is 1.3. Larger 'A' means a wider graph.\n"
+     "\n"
      " -stdin     = Don't read from tsfile; instead, read from\n"
      "              stdin and plot it. You cannot combine input\n"
      "              from stdin and tsfile(s).  If you want to do so,\n"
@@ -279,6 +284,19 @@ void usage_1dplot(int detail)
      "                   can put a single '-' at the end of the label\n"
      "                   list to signal its end:\n"
      "                     1dplot -ynames a b c - file.1D\n"
+     "        TSV files: When plotting a TSV file, where the first row\n"
+     "                   is the set of column labels, you can use this\n"
+     "                   Unix trick to put the column labels here:\n"
+     "                     -ynames `head -1 file.tsv`\n"
+     "                   The 'head' command copies just the first line\n"
+     "                   of the file to stdout, and the backquotes `...`\n"
+     "                   capture stdout and put it onto the command line.\n"
+     "                 * You might need to put a single '-' after this\n"
+     "                   option to prevent the problem alluded to above.\n"
+     "                   In any case, it can't hurt to use '-' as an option\n"
+     "                   after '-ynames'.\n"
+     "                 * If any of the TSV labels start with the '-' character,\n"
+     "                   peculiar and unpleasant things might transpire.\n"
      "\n"
      " -volreg         = Makes the 'ynames' be the same as the\n"
      "                   6 labels used in plug_volreg for\n"
@@ -347,6 +365,8 @@ void usage_1dplot(int detail)
      " -plabel '\\Upsilon\\Phi\\Chi\\Psi\\Omega\\red\\leftrightarrow\\blue\\partial^{2}f/\\partial x^2'\n"
      "\n"
      TS_HELP_STRING
+     "\n"
+     TSV_HELP_STRING
    ) ;
 
    printf("\n"
@@ -569,6 +589,28 @@ int main( int argc , char *argv[] )
       }
 
       /*----------*/
+
+      if( strcmp(argv[iarg],"-aspect") == 0 ){         /* 03 May 2018 */
+        float asp = (float)strtod(argv[++iarg],NULL) ;
+        if( asp > 0.0f && asp < 666.0f )
+          plot_ts_set_aspect(asp) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-noaxes") == 0 ){         /* 03 May 2018 */
+        plot_ts_do_perim(0) ;
+        iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-naked") == 0 ){          /* 03 May 2018 */
+        plot_ts_do_naked(1) ;
+        plot_ts_setthik(0.003f) ;
+        iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-NAKED") == 0 ){          /* 09 May 2018 */
+        plot_ts_do_naked(2) ;
+        iarg++ ; continue ;
+      }
 
 #if 0
      if( strcmp(argv[iarg],"-vbox") == 0 ){   /* HIDDEN: just for testing */

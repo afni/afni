@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # written by PA Taylor (NIMH, NIH, USA)
 # started March, 2017
@@ -20,8 +22,13 @@
 #set version   = "1.4";    set rev_dat   = "Apr 28, 2017"
 #   + path stuff corrected, for arbitrary locations
 #
-set version   = "1.5";    set rev_dat   = "Sep 04, 2017"
+#set version   = "1.5";    set rev_dat   = "Sep 04, 2017"
 #   + update to use new @chauffeur* calling
+#
+set version   = "1.6";    set rev_dat   = "Jun 25, 2018"
+#   + switch from @djuct_dwi_selector.bash -> @djuct_dwi_selector.tcsh
+#     This change is necessary due to Mac 10.12.5+ not passing
+#     DYLD* variables to bash script
 #
 # ---------------------------------------------------------------
 
@@ -45,7 +52,7 @@ endif
 
 # default location of viewer: user could modify!
 set my_viewer    = "$adir/@chauffeur_afni"
-set my_selector  = "$adir/@djunct_dwi_selector.bash"
+set my_selector  = "$adir/@djunct_dwi_selector.tcsh" # [PT: Jun 25, 2018] tcsh
 set my_encoder   = "$adir/@djunct_select_str.py"
 set my_viewer_4d = "$adir/@djunct_4d_imager"
 
@@ -57,7 +64,7 @@ set obads      = ""              # NOT required input
 
 set odir       = ""
 set opref      = ""
-set DO_OUTVOL  = "0"               # don't apply to DWI by default
+set DO_OUTVOL  = "0"             # don't apply to DWI by default
 
 set DO_VIEWER  = "1"             # def: do viewing
 set DO_CLEAN   = 1
@@ -203,6 +210,13 @@ if ( ! -e "$odir" ) then
     mkdir "$odir"
 endif
 
+set odirqc = "$odir/QC"
+if ( "$DO_VIEWER" == "1" ) then
+    if ( ! -e "$odirqc" ) then
+        mkdir "$odirqc"
+    endif
+endif
+
 # ----> here, only need wdir if outputting imgs but no vol; see below
 
 # ========================= output fnames ==========================
@@ -297,12 +311,12 @@ if ( "$DO_OUTVOL" == "1" ) then
 
         $my_viewer_4d \
             -inset  $odir/$ovol               \
-            -prefix "$odir/$img_pref"   
+            -prefix "$odirqc/$img_pref"   
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
-                -inset  $odir/$ovol          \
-                -prefix "$odir/$img_pref"    \
+                -inset  $odir/$ovol            \
+                -prefix "$odirqc/$img_pref"    \
                 $movie
         endif
     endif
@@ -342,23 +356,14 @@ else
         set img_pref = `basename $fout     .gz`
         set img_pref = `basename $img_pref .nii`
 
-#        $my_viewer_4d \
-#            -inset  "$fout"        \
-#            -outdir "$odir"                   \
-#            -prefix "$img_pref"   
-        $my_viewer_4d \
+        $my_viewer_4d                    \
             -inset  "$fout"              \
-            -prefix "$odir/$img_pref"   
+            -prefix "$odirqc/$img_pref"   
 
         if ( "$movie" != "" ) then
-#            $my_viewer_4d \
-#                -inset  "$fout"        \
-#                -outdir "$odir"                   \
-#                -prefix "$img_pref"         \
-#                $movie
-            $my_viewer_4d \
+            $my_viewer_4d                    \
                 -inset  "$fout"              \
-                -prefix "$odir/$img_pref"    \
+                -prefix "$odirqc/$img_pref"  \
                 $movie
         endif
 
@@ -462,14 +467,14 @@ cat << EOF
 
     $this_prog    \
         -in_dwi DWI.nii.gz               \
-        -in_img DWI_sepscl.sag.png       \
+        -in_img QC/DWI_sepscl.sag.png    \
         -prefix DWI_trim
 
 
     $this_prog    \
-        -in_dwi DWI_ap.nii.gz            \
-        -in_img DWI_ap_sepscl.sag.png    \
-        -in_bads DWI_trim_bads.txt       \
+        -in_dwi DWI_ap.nii.gz             \
+        -in_img QC/DWI_ap_sepscl.sag.png  \
+        -in_bads DWI_trim_bads.txt        \
         -prefix DWI_trim_both 
 
 # -----------------------------------------------------------------------

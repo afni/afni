@@ -9,14 +9,17 @@
 
 int main( int argc , char * argv[] )
 {
-   THD_3dim_dataset * inset=NULL , * outset=NULL ;
+   THD_3dim_dataset * inset=NULL , * outset=NULL;
+   THD_3dim_dataset * weightset=NULL;   /* 22 Feb 2018 [rickr] */
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
+   int nweights=0;
    char * prefix = "mean" ;
    int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
    int do_union=0 , do_inter=0, non_zero=0, count_flag =0 ;
    int min_flag = 0, max_flag = 0;
    float ** sum=NULL , fsum=0.0;
    float ** sd=NULL;
+   float  * weights=NULL;  /* for current weight volume */
    int ** count=NULL;
    char *first_dset=NULL;
    int fscale=0 , gscale=0 , nscale=0 ;
@@ -56,6 +59,10 @@ int main( int argc , char * argv[] )
 "\n"
 "                The masks will be set by any non-zero voxels in\n"
 "                the input datasets.\n"
+"\n"
+"  -weightset WSET = Sum of N dsets will be weighted by N volume WSET.\n"
+"                    e.g. -weightset opt_comb_weights+tlrc\n"
+"                This weight dataset must be of type float.\n"
 "\n"
 "N.B.: All input datasets must have the same number of voxels along\n"
 "       each axis (x,y,z,t).\n"
@@ -177,6 +184,21 @@ int main( int argc , char * argv[] )
          nopt++ ; continue ;
       }
 
+      /* for weighted sum, e.g. for optimally combined   22 Feb 2018 [rickr] */
+      if( strcmp(argv[nopt],"-weightset") == 0 ){
+         if( ++nopt >= argc ){
+            fprintf(stderr,"** ERROR: need an argument after -weightset!\n");
+            exit(1);
+         }
+         /* try to open and load weight dataset */
+         weightset = THD_open_dataset( argv[nopt] ) ;
+         CHECK_OPEN_ERROR(weightset, argv[nopt]) ;
+         DSET_load(weightset) ; CHECK_LOAD_ERROR(weightset) ;
+
+         nweights = DSET_NVALS(weightset) ;
+         nopt++ ; continue ;
+      }
+
       fprintf(stderr,"** ERROR: unknown option %s\n",argv[nopt]) ;
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1) ;
@@ -200,20 +222,32 @@ int main( int argc , char * argv[] )
      }
    }
 
+   /* the do_* cases do not work with weightset       22 Feb 2018 [rickr] */
+   /* ***** but force do_sum *****                                        */
+   if( weightset ) {
+      if( do_union || do_inter || do_sqr || do_sd || count_flag || non_zero
+                   || min_flag || max_flag )
+         ERROR_exit("-weigthset cannot be used with other options, such as:\n"
+                    "   -sd/-sqr/-sum/-count/-non_zero/-mask_*/-min/-max");
+
+      /* set do_sum, so that we do not later divide by ndsets */
+      do_sum = 1;
+   }
+
    /*-- rest of command line should be datasets --*/
 
    if( nopt >= argc-1 ){
       if ( do_sd ) {
-         fprintf(stderr,"** ERROR: need at least 2 input datasets with -sd!\n") ;
-         exit(1) ;
+        fprintf(stderr,"** ERROR: need at least 2 input datasets with -sd!\n") ;
+        exit(1) ;
       } else {
-         /* distinguish ndsets      28 Oct 2010 [rickr] */
-         if( nopt == argc-1 )
-            fprintf(stderr,"++ WARNING: Have only 1 dset.\n");
-         else {
-            fprintf(stderr,"++ ERROR: No input datasets?\n");
-            exit(1);
-         }
+        /* distinguish ndsets      28 Oct 2010 [rickr] */
+        if( nopt == argc-1 )
+           fprintf(stderr,"++ WARNING: Have only 1 dset.\n");
+        else {
+           fprintf(stderr,"++ ERROR: No input datasets?\n");
+           exit(1);
+        }
       }
    }
 
@@ -236,6 +270,20 @@ int main( int argc , char * argv[] )
          nz   = DSET_NZ(inset) ; nxyz= nx*ny*nz;
          nval = DSET_NVALS(inset) ;
 
+         /* check that weightset seems acceptible so far */
+         if( weightset ) {
+            if( DSET_NX(weightset) != nx ||
+                DSET_NY(weightset) != ny ||
+                DSET_NZ(weightset) != nz )
+
+                ERROR_exit("-weightset does not match sizes of %s\n",
+                              first_dset) ;
+
+            if( DSET_BRICK_TYPE(weightset, 0) != MRI_float )
+                ERROR_exit("-weightset is not of type float, failing...");
+
+         }
+
          sum = (float **) malloc( sizeof(float *)*nval ) ;    /* array of sub-bricks */
          for( kk=0 ; kk < nval ; kk++ ){
            sum[kk] = (float *) malloc(sizeof(float)*nxyz) ;  /* kk-th sub-brick */
@@ -256,7 +304,7 @@ int main( int argc , char * argv[] )
             count = (int **) malloc( sizeof(int *)*nval ) ;    /* array of sub-bricks */
             for( kk=0 ; kk < nval ; kk++ ){
               count[kk] = (int *) malloc(sizeof(int)*nxyz) ;  /* kk-th sub-brick */
-              for( ii=0 ; ii < nxyz ; ii++ ) count[kk][ii] = 0.0f ;
+              for( ii=0 ; ii < nxyz ; ii++ ) count[kk][ii] = 0 ;
             }
          }
          outset = EDIT_empty_copy( inset ) ;
@@ -283,6 +331,8 @@ int main( int argc , char * argv[] )
 
       } else { /*-- later: check if dataset matches 1st one --*/
 
+         float ffac;
+
          if( DSET_NX(inset)    != nx ||
              DSET_NY(inset)    != ny ||
              DSET_NZ(inset)    != nz ||
@@ -293,7 +343,22 @@ int main( int argc , char * argv[] )
                      argv[nopt], first_dset) ;
              exit(1) ;
          }
+
+         /*-- more checks for a reasonable weight dataset --*/
+
+         /* also, be sure any weightset has sufficient volumes */
+         if( weightset ) {
+            if( nweights <= nsum )
+               ERROR_exit("-weightset has %d volumes, but there are more"
+                          " input datasets to sum", nweights);
+            ffac = DSET_BRICK_FACTOR(weightset,0);
+            if( ffac != 0.0 && ffac != 1.0 )
+               ERROR_exit("-weightset should not have BRIK factors");
+         }
       }
+
+      /* if weights, point to the current volume of them */
+      if( weightset ) weights = (float *) DSET_ARRAY(weightset, nsum) ;
 
       /*-- read data from disk --*/
 
@@ -354,8 +419,14 @@ int main( int argc , char * argv[] )
                    }
                   }
                else {
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                      sum[kk][ii] += fac * pp[ii] ;
+                  /* sum with or without weights   22 Feb 2018 */
+                  if( weights ) {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        sum[kk][ii] += fac * pp[ii] * weights[ii];
+                  } else {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                         sum[kk][ii] += fac * pp[ii] ;
+                  }
                   /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
                   if(non_zero) {
                      for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;
@@ -406,8 +477,14 @@ int main( int argc , char * argv[] )
                    }
                   }
                else {
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     sum[kk][ii] += fac * pp[ii] ;
+                  /* sum with or without weights   22 Feb 2018 */
+                  if( weights ) {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        sum[kk][ii] += fac * pp[ii] * weights[ii];
+                  } else {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                         sum[kk][ii] += fac * pp[ii] ;
+                  }
                   /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
                   if(non_zero) {
                      for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;
@@ -458,8 +535,14 @@ int main( int argc , char * argv[] )
                    }
                   }
                else {
-                  for( ii=0 ; ii < nxyz ; ii++ )
-                     sum[kk][ii] += fac * pp[ii] ;
+                  /* sum with or without weights   22 Feb 2018 */
+                  if( weights ) {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                        sum[kk][ii] += fac * pp[ii] * weights[ii];
+                  } else {
+                     for( ii=0 ; ii < nxyz ; ii++ )
+                         sum[kk][ii] += fac * pp[ii] ;
+                  }
                   /* separate to avoid optimizer error   6 Oct 2011 [rickr] */
                   if(non_zero) {
                      for( ii=0 ; ii < nxyz ; ii++ ) if(pp[ii]) count[kk][ii]++;

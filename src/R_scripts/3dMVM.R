@@ -29,16 +29,16 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
    intro <- 
 '
-          ================== Welcome to 3dMVM ==================          
+                      Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 3.9.4, Dec 21, 2016
+Version 4.0.0, Sept 5, 2018
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Usage:
+Usage: ~1~
 ------ 
  3dMVM is a group-analysis program that performs traditional ANOVA- and ANCOVA-
  style computations. In addition, it can run multivariate modeling in the sense
@@ -57,7 +57,8 @@ Usage:
  capability to correct for sphericity violations when within-subject variables
  with more than two levels are involved.
  
- If you want to cite the analysis approach for AN(C)OVA, use the following:
+ Please cite: ~1~
+ If you want to cite the analysis approach for AN(C)OVA, use the following:~2~
  
  Chen, G., Adleman, N.E., Saad, Z.S., Leibenluft, E., Cox, R.W. (2014). 
  Applications of Multivariate Modeling to Neuroimaging Group Analysis: A
@@ -65,13 +66,14 @@ Usage:
  571-588. 10.1016/j.neuroimage.2014.06.027
  https://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
-For group analyis with effect estimates from multiple basis funcitons, cite:
+ For group analyis with effect estimates from multiple basis funcitons, cite: ~2~
 
-Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015). 
+ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015). 
  Detecting the subtle shape differences in hemodynamic responses at the
  group level. Front. Neurosci., 26 October 2015.
  http://dx.doi.org/10.3389/fnins.2015.00375
 
+ Installation requirements: ~1~
  In addition to R installation, the following two R packages need to be acquired
  in R first before running 3dMVM: "afex" and "phia". In addition, the "snow" package
  is also needed if one wants to take advantage of parallel computing. To install
@@ -88,6 +90,7 @@ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015).
  More details about 3dMVM can be found at 
  https://afni.nimh.nih.gov/sscc/gangc/MVM.html
  
+ Running: ~1~
  Once the 3dMVM command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
  script as a text file, for example, called MVM.txt, and execute it with the 
@@ -108,8 +111,12 @@ Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015).
 
    ex1 <- 
 "\n--------------------------------
-Example 1 --- three between-subjects (genotype, sex, and scanner) and two 
-within-subject (condition and emotion) variables:
+Examples: ~1~
+
+Example 1 --- 3 between-subjects and 2 within-subject variables: ~2~
+   Three between-subjects (genotype, sex, and scanner) and two within-subject 
+   (condition and emotion) variables.
+
    3dMVM  -prefix Example1 -jobs 4            \\
           -bsVars  'genotype*sex+scanner'      \\
           -wsVars \"condition*emotion\"         \\
@@ -135,7 +142,8 @@ within-subject (condition and emotion) variables:
           s68   TN         female scan2   house       neg       s68+tlrc\'[face_neg_beta]\'                \\
           s68   TN         female scan2   house       neu       s68+tlrc\'[house_pos_beta]\'                    
 
-   NOTE:  1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
+   NOTE: ~3~
+          1) The 3rd GLT is for the 2-way 2 x 2 interaction between sex and condition, which
           is essentially a t-test (or one degree of freedom for the numerator of F-statistic).
           Multiple degrees of freedom for the numerator of F-statistic can be obtained through
           option -glfCode (see GLFs #1, #2, and #3).
@@ -148,8 +156,10 @@ within-subject (condition and emotion) variables:
       
    ex2 <-
 "--------------------------------
-Example 2 --- two between-subjects (genotype and sex), onewithin-subject
-(emotion) factor, plus two quantitative variables (age and IQ).
+Example 2 --- 2 between-subjects, 1 within-subject, 2 quantitative variables: ~2~
+
+   Two between-subjects (genotype and sex), one within-subject
+   (emotion) factor, plus two quantitative variables (age and IQ).
 
    3dMVM -prefix Example2 -jobs 24        \\
           -bsVars  \"genotype*sex+age+IQ\"  \\
@@ -173,7 +183,8 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
           s63   NN         female 29   110    neg       s63+tlrc\'[neg_beta]\'           \\
           s63   NN         female 29   110    neu       s63+tlrc\'[neu_beta]\'         
 
-   NOTE:  1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
+   NOTE: ~3~
+          1) The 2nd GLT shows the age effect (slope) while the 3rd GLT reveals the contrast
           between the emotions at the age of 30 (5 above the center). On the other hand,
           all the other GLTs (1st, 4th, and 5th) should be interpreted at the center Age
           value, 25 year old.
@@ -186,13 +197,15 @@ Example 2 --- two between-subjects (genotype and sex), onewithin-subject
      
    ex3 <-
 "---------------------------------
-Example 3 --- BOLD response was modeled with multiple basis functions at individual
-subject level. In addition, there are one between-subjects (Group) and one within-
-subject (Condition) variable. Furthermore, the variable corresponding to the number 
-of basis functions, Time, is also a within-subject variable. In the end, the F-
-statistics for the interactions of Group:Condition:Time, Group:Time, and 
-Condition:Time are of specific interest. And these interactions can be further
-explored with GLTs in 3dMVM.
+Example 3 --- Getting more complicated: ~2~
+
+   BOLD response was modeled with multiple basis functions at individual
+   subject level. In addition, there are one between-subjects (Group) and one within-
+   subject (Condition) variable. Furthermore, the variable corresponding to the number 
+   of basis functions, Time, is also a within-subject variable. In the end, the F-
+   statistics for the interactions of Group:Condition:Time, Group:Time, and 
+   Condition:Time are of specific interest. And these interactions can be further
+   explored with GLTs in 3dMVM.
 
    3dMVM -prefix Example3 -jobs 12   \\
          -bsVars Group               \\
@@ -224,8 +237,12 @@ explored with GLTs in 3dMVM.
          s40   yng    house     t2   s40+tlrc\'[house#2_beta]\'  \\
          s40   yng    house     t3   s40+tlrc\'[house#3_beta]\'      
 
-   NOTE:  The model for the analysis can also be set up as and is equivalent to 
-          'Group*Condition*Time'.\n"   
+   NOTE: ~3~
+          The model for the analysis can also be set up as and is equivalent to 
+          'Group*Condition*Time'.
+   
+   Options: ~1~
+   \n"   
    
    parnames <- names(params)
    ss <- vector('character')
@@ -257,6 +274,13 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         across factor levels at the center value of each covariate.\n", sep = '\n'
                      ) ),
 
+      '-resid' = apl(n = 1, d = NA,  h = paste(
+   "-resid PREFIX: Output file name for the residuals. For AFNI format, provide",
+   "         prefix only without view+suffix. Filename for NIfTI format should",
+   "         have .nii attached, while file name for surface data is expected",
+   "         to end with .niml.dset.\n", sep = '\n'
+                     ) ),       
+   
       '-mask' = apl(n=1,  d = NA, h = paste(
    "-mask MASK: Process voxels inside this mask only.\n",
    "         Default is no masking.\n"
@@ -266,6 +290,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-jobs NJOBS: On a multi-processor machine, parallel computing will speed ",
    "         up the program significantly.",
    "         Choose 1 for a single-processor computer.\n", sep = '\n'
+                     ) ),
+
+      '-verb' = apl(n = 1, d = 1, h = paste(
+   "-verb VERB: Speicify ver level.\n", sep = '\n'
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
@@ -499,9 +527,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "-gltCode k CODING: Specify the k-th general linear t-test (GLT) through a",
    "         weighted combination among factor levels. The symbolic coding has",
    "         to be within (single or double) quotes. For example, the following",
-   "         'Condition : 2*House -3*Face Emotion : 1*positive '",
-   "         requests for a test of comparing 2 times House condition",
-   "         with 3 times Face condition while Emotion is held at positive",
+   "         'Group : 1*A -1*B & 1*A -1*C' tests the main effect across the 3",
+   "         groups A, B, and C. Important Note: this option is only valid for",
+   "         a hypothesis that involves between-subjects variables. For an F-test",
+   "         involving a within-subject variable, use -glfCode with 3dLME instead.\n",
    "         valence.\n",
    "         NOTE:\n",
    "         1) The weights for a variable do not have to add up to 0.\n",   
@@ -576,6 +605,8 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
    "         4) The context of the table can be saved as a separate file, e.g.,",
    "         called table.txt. Do not forget to include a backslash at the end of",
    "         each row. In the script specify the data with '-dataTable @table.txt'.",
+   "         Do NOT put any quotes around the square brackets for each sub-brick!",
+   "         Otherwise, the program cannot properly read the files for some reason.",
    "         This option is useful: (a) when there are many input files so that",
    "         the program complains with an 'Arg list too long' error; (b) when",
    "         you want to try different models with the same dataset (see 3) above).\n",
@@ -647,8 +678,10 @@ read.MVM.opts.batch <- function (args=NULL, verb = 0) {
       opname <- opname[length(opname)];
       switch(opname,
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
+             resid  = lop$resid  <- pprefix.AFNI.name(ops[[i]]),
              mask = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
+             verb = lop$verb  <- ops[[i]],
              model  = lop$model  <- ops[[i]],
              bsVars = lop$model  <- ops[[i]],
              wsVars = lop$wsVars  <- ops[[i]],
@@ -787,6 +820,24 @@ process.MVM.opts <- function (lop, verb = 0) {
    if(an$type != 'BRIK' && lop$iometh != 'clib') 
       errex.AFNI(c('Must of use -cio option with any input/output ',
                    'format other than BRIK'))
+
+   if(!is.null(lop$resid)) {
+      an2 <- parse.AFNI.name(lop$resid)
+      if(an2$type == "NIML") {
+         if(file.exists(lop$resid)) errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      } else if(file.exists(paste(lop$resid,"+tlrc.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+tlrc.BRIK", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.HEAD", sep="")) || 
+        file.exists(paste(lop$resid,"+orig.BRIK", sep=""))) {
+        errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+        return(NULL)
+      }  
+      #Make sure new io must be used with anything but BRIK format
+      #an <- parse.AFNI.name(lop$resid)
+      if(an2$type != 'BRIK' && lop$iometh != 'clib') 
+          errex.AFNI(c('Must of use -cio option with any input/output ',
+                       'format other than BRIK'))   
+   }  
 
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
    if(!is.null(lop$vVars[1])) lop$vQV <- strsplit(lop$vVars, '\\,')[[1]]
@@ -940,8 +991,10 @@ process.MVM.opts <- function (lop, verb = 0) {
    #   }
    #}
  
-   if(lop$iometh == 'Rlib') 
-      lop$outFN <- paste(lop$outFN, "+tlrc", sep="") else {
+   if(lop$iometh == 'Rlib') {
+      lop$outFN <- paste(lop$outFN, "+tlrc", sep="")
+      if(!is.null(lop$resid)) lop$resid <- paste(lop$resid, "+tlrc", sep="") 
+   } else {
       an <- parse.AFNI.name(lop$outFN)
       if(an$type == "BRIK" && an$ext == "" && is.na(an$view))
          lop$outFN <- paste(lop$outFN, "+tlrc", sep="")      
@@ -949,6 +1002,13 @@ process.MVM.opts <- function (lop, verb = 0) {
             exists.AFNI.name(lop$outFN) || 
             exists.AFNI.name(modify.AFNI.name(lop$outFN,"view","+tlrc"))))
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
+      if(!is.null(lop$resid)) {  
+         if(an2$type == "BRIK" && an2$ext == "" && is.na(an2$view))
+            lop$resid <- paste(lop$resid, "+tlrc", sep="")      
+         if (exists.AFNI.name(lop$resid) || 
+             exists.AFNI.name(modify.AFNI.name(lop$resid,"view","+tlrc")))
+             errex.AFNI(c("File ", lop$resid, " exists! Try a different name.\n"))
+      }      
    }
 
    if(lop$nNodes < 1) lop$nNodes <- 1
@@ -1052,8 +1112,10 @@ mvCom5 <- function(fm, nF_mvE5) {
                                                 
 runAOV <- function(inData, dataframe, ModelForm) {
    out <- lop$outInit
+   # when a voxel-wise covariate is included, 2nd half of input data inData stores the covariate
+   if(!is.null(lop$resid)) if(is.na(lop$vQV)) residout <- rep(0, length(inData)) else residout <- rep(0, length(inData)/2)
    options(warn = -1)
-   if (!all(abs(inData) < 10e-8)) {       
+   if (!all(abs(inData) < 10e-8)) {  # not all 0s     
       dataframe$Beta<-inData[1:lop$NoFile]
       if(any(!is.na(lop$vQV))) {
          dataframe <- assVV(dataframe, lop$vQV, inData[(lop$NoFile+1):(lop$NoFile+lop$nSubj)], all(is.na(lop$vVarCenters)))
@@ -1186,9 +1248,10 @@ runAOV <- function(inData, dataframe, ModelForm) {
                out[lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii] <- glfRes$F[2] else
                tryCatch(out[lop$nF+lop$GES*lop$nFu+2*lop$num_glt+ii] <- maov(glfRes$SSPE, glfRes$SSPH, glfRes$df, glfRes$df.residual)[2], error=function(e) NULL)
          } #if(pars[[3]]>=1) for(ii in 1:pars[[3]])
-            
+         if(!is.null(lop$resid)) residout <- as.vector(t(unname(residuals(fm$lm))))  
       } # if(!is.null(fm))
    } # if (!all(abs(inData) < 10e-8))
+   if(!is.null(lop$resid)) out <- c(out, residout)
    return(out)
 }
 # covariates=pars[[6]][7], adjustment="none", idata = fm[["idata"]]), error=function(e) NULL) else
@@ -1753,7 +1816,7 @@ if(dimy == 1 & dimz == 1) {
    # pad with extra 0s
    inData <- rbind(inData, array(0, dim=c(fill, lop$NoFile)))
    # declare output receiver
-   out <- array(0, dim=c(dimx_n, nSeg, NoBrick))
+   out <- array(0, dim=c(dimx_n, nSeg, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
    # break input multiple segments for parrel computation
    # test runAOV(inData[ii,kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
    dim(inData) <- c(dimx_n, nSeg, lop$NoFile)
@@ -1785,13 +1848,13 @@ if(dimy == 1 & dimz == 1) {
    stopCluster(cl)
    }
    # convert to 4D
-   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick)
+   dim(out) <- c(dimx_n*nSeg, 1, 1, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr))
    # remove the trailers (padded 0s)
    out <- out[-c((dimx_n*nSeg-fill+1):(dimx_n*nSeg)), 1, 1,,drop=F]
 } else {
 
 # Initialization
-out <- array(0, dim=c(dimx, dimy, dimz, NoBrick))
+out <- array(0, dim=c(dimx, dimy, dimz, NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)))
 
 # set up a voxel @ ii jj kk to test
 #runAOV(inData[ii, jj, kk,], dataframe=lop$dataStr, ModelForm=ModelForm)
@@ -1866,6 +1929,10 @@ write.AFNI(lop$outFN, out, brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short',
    overwrite=lop$overwrite)
 
+if(!is.null(lop$resid))
+   write.AFNI(lop$resid, out[,,,(NoBrick+1):(NoBrick+(!is.null(lop$resid))*nrow(lop$dataStr)), drop=FALSE],
+      label=NULL, defhead=head, idcode=newid.AFNI(), com_hist=lop$com_history, type='MRI_short')    
+    
 cat("\nCongratulations! You have got an output ", lop$outFN, ".\n\n", sep='')
 
 } else { # if(is.numeric(lop$dataStr[, FileCol])): the last column is values instead of input file names

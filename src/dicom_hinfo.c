@@ -3,17 +3,19 @@
 int main(int argc, char **argv)
 {
    char *str ;
+   char *sepstr=NULL;           /* 11 Jan 2019 [rickr] */
    int ii, iarg=1 , nposn=-1 ;  /* default name position is first */
    int ntag=0 ; char **tag=NULL ;
+   int full_entry=0 ;
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: dicom_hinfo [options] fname [...]\n"
+     printf("Usage: dicom_hinfo [options] fname [...] ~1~\n"
             "Prints selected information from the DICOM file 'fname' to stdout.\n"
             "Multiple files can be given on the command line; see the examples\n"
             "below for useful ideas.\n"
             "\n"
             "--------\n"
-            "OPTIONS:\n"
+            "OPTIONS: ~2~\n"
             "--------\n"
             " -tag aaaa,bbbb = print the specified tag.\n"
             "                  -- multiple tags may follow the '-tag' option.\n"
@@ -28,6 +30,13 @@ int main(int argc, char **argv)
             "\n"
             " -no_name       = Omit any filename output.\n"
             "\n"
+            " -full_entry    = Output the full entry if it is more than\n"
+            "                  one word or contains white space. If the entry is\n"
+            "                  REALLY long, this may be truncated.\n"
+            "\n"
+            " -sepstr STR    = use STR to separate fields, rather than space\n"
+            "\n"
+            " ~4~\n"
             "* The purpose of this program is to be used in scripts to figure out\n"
             "  which DICOM files to process for various purposes -- see Example #2.\n"
             "\n"
@@ -58,7 +67,7 @@ int main(int argc, char **argv)
             "  experiment (using dicom_hdr) to find a good tag for this purpose.\n"
             "\n"
             "---------\n"
-            "EXAMPLES:\n"
+            "EXAMPLES: ~1~\n"
             "---------\n"
             "#1: The command below prints out the acquisition start time and the number\n"
             "    of rows for each valid DICOM file in the directories below the current one:\n"
@@ -165,7 +174,7 @@ int main(int argc, char **argv)
 
    mainENTRY("dicom_hinfo main") ; machdep() ;
 
-   while( argv[iarg][0] == '-' ){
+   while( iarg < argc && argv[iarg][0] == '-' ){
 
      if( strcasecmp(argv[iarg],"-last") == 0 || strcasecmp(argv[iarg],"-namelast") == 0 ){
        nposn = 1 ; iarg++ ; continue ;
@@ -173,6 +182,13 @@ int main(int argc, char **argv)
 
      if( strcasecmp(argv[iarg],"-no_name") == 0 ){
        nposn = 0 ; iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-sepstr") == 0 ){
+       if( ++iarg >= argc ) ERROR_exit("need argument after %s",argv[iarg-1]) ;
+       sepstr = argv[iarg] ;
+       iarg++ ;
+       continue ;
      }
 
      if( strcasecmp(argv[iarg],"-tag") == 0 ){
@@ -192,6 +208,10 @@ int main(int argc, char **argv)
        continue ;
      }
 
+     if( strcasecmp(argv[iarg],"-full_entry") == 0 ){
+       full_entry = 1 ; iarg++ ; continue ;
+     }
+
      ERROR_exit("Unknown option: %s",argv[iarg]) ;
    }
 
@@ -202,7 +222,11 @@ int main(int argc, char **argv)
      WARNING_message("No tags given -- just echoing names of DICOM files") ;
 
    for( ii=iarg ; ii < argc ; ii++ ){
-     str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , nposn ) ;
+     if( full_entry == 0 )
+        str = mri_dicom_hdrinfo( argv[ii] , ntag , tag , nposn , sepstr ) ;
+    else
+        str = mri_dicom_hdrinfo_full( argv[ii] , ntag , tag , nposn , sepstr ) ;
+
      if( str == NULL ) continue ;
      printf("%s\n",str) ;
      free(str) ;

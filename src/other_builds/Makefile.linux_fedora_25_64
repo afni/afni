@@ -11,6 +11,10 @@ LZLIB    = -lz
 USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat
 
+# -----------------------------------
+# use shared libriaries (libmri.so)?
+# MRI_SHARED = yes
+
 # ------------------------------
 # python from C
 IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
@@ -47,6 +51,12 @@ PLUGIN_SUFFIX = so
 PLUGIN_LFLAGS = -shared -fPIC
 PLUGIN_CC     = $(CC)
 PLFLAGS       = -rdynamic -L. -L/usr/lib64
+
+# possibly modify from above
+ifdef MRI_SHARED
+LFLAGS  = -L. -L/usr/lib64 -Wl,-rpath='$$ORIGIN'
+PLFLAGS = -rdynamic $(LFLAGS)
+endif
 
 SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
 

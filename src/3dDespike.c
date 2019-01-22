@@ -52,7 +52,7 @@ static INLINE float median9f(float *p)
 #undef  mead9
 #define mead9(j)                                               \
  { float qqq[9] ; int jj = (j)-4 ;                             \
-   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9;     \
+   if( jj < 0 ) jj = 0; else if( jj+9 > num ) jj = num-9;      \
    qqq[0] = vec[jj+0]; qqq[1] = vec[jj+1]; qqq[2] = vec[jj+2]; \
    qqq[3] = vec[jj+3]; qqq[4] = vec[jj+4]; qqq[5] = vec[jj+5]; \
    qqq[6] = vec[jj+6]; qqq[7] = vec[jj+7]; qqq[8] = vec[jj+8]; \
@@ -137,7 +137,7 @@ static INLINE float median25f(float *p)
 #undef  mead25
 #define mead25(j)                                              \
  { float qqq[25] ; int jj=(j)-12 ; register int pp;            \
-   if( jj < 0 ) jj = 0; else if( jj+24 >= num ) jj = num-24;   \
+   if( jj < 0 ) jj = 0; else if( jj+25 > num ) jj = num-25;    \
    for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = vec[jj+pp] ;         \
    med = median25f(qqq) ;                                      \
    for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = fabsf(qqq[pp]-med) ; \
@@ -485,7 +485,7 @@ int main( int argc , char *argv[] )
      INFO_message("Input dataset is in short format, but output will be in float format") ;
    }
 
-   nvals = DSET_NUM_TIMES(dset) ; nuse = nvals - ignore ;
+   nvals = DSET_NVALS(dset) ; nuse = nvals - ignore ;
    if( nuse < 15 )
      ERROR_exit("Can't use dataset with < 15 time points per voxel!") ;
 

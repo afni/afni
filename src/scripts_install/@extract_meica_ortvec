@@ -1,0 +1,267 @@
+#!/bin/tcsh
+
+# from MEICA results dir (TED.*), partition meica_mix.1D into
+# good and bad terms, then project good from bad to create
+# REALLY bad terms to later use for projection
+ 
+# ----------------------------------------------------------------------
+# program history
+goto POSTHIST
+HIST:
+cat << EOF
+modification history for $prog :
+
+   0.1   3 May 2018 : basic program
+   0.2   7 May 2018 : add -ver, -meica_dir, -work_dir, init history
+   0.3  24 May 2018 :
+           - remove entries that are duplicated across either
+             rejected/midk-rejected or accepted/ignored
+           - Thanks to L Dowdle for noting the problem.
+
+EOF
+exit
+POSTHIST:
+
+# ----------------------------------------------------------------------
+# init vars
+set VERSION = "0.3  May 24, 2018"
+set prog = `basename $0`
+
+# ----------------------------------------------------------------------
+# option variables
+set verb = 1
+set meicadir = .
+set workdir = regwork
+set prefix = meica_bad_ort.1D
+
+
+# ----------------------------------------------------------------------
+# process options
+
+if ( $#argv < 1 ) goto HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+   if ( "$argv[$ac]" == "-help" || "$argv[$ac]" == "-h" ) then
+      goto HELP
+   else if ( "$argv[$ac]" == "-hist" ) then
+      goto HIST
+   else if ( "$argv[$ac]" == "-ver" ) then
+      echo version $VERSION
+      exit 0
+
+   else if ( "$argv[$ac]" == "-meica_dir" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-meica_dir'"
+         exit 1
+      endif
+      set meicadir = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-prefix" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-prefix'"
+         exit 1
+      endif
+      set prefix = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-work_dir" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-work_dir'"
+         exit 1
+      endif
+      set workdir = $argv[$ac]
+
+   else if ( "$argv[$ac]" == "-verb" ) then
+      @ ac ++
+      if ( $ac > $#argv ) then
+         echo "** missing parameter for option '-verb'"
+         exit 1
+      endif
+      set verb = $argv[$ac]
+
+   else
+      echo "** bad option $ac : '$argv[$ac]'"
+      exit 1
+   endif
+
+   @ ac += 1
+end
+
+# ----------------------------------------------------------------------
+# meica vars
+
+# text files of terms
+set mfin_accept = $meicadir/accepted.txt
+set mfin_reject = $meicadir/rejected.txt
+set mfin_midrej = $meicadir/midk_rejected.txt
+set mfin_ignore = $meicadir/comp_table.txt
+
+# all meica components
+set meica_comp_file = $meicadir/meica_mix.1D
+
+# rejection preferences
+set rej_mid = 1         # reject midk reject
+set rej_ign = 0         # keep 'ignore'
+
+# ----------------------------------------------------------------------
+# check on the state of things, and try to make an echo list
+
+if ( $verb ) echo "-- computing projection terms from MEICA results"
+
+foreach file ( $mfin_accept $mfin_reject $mfin_midrej $mfin_ignore )
+   if ( ! -f $file ) then
+      echo "** missing input meica parameter file, $file"
+      exit 1
+   endif
+end
+
+# try to get a list of each set of terms
+set param_acc = `cat $mfin_accept`
+set param_rej = `cat $mfin_reject`
+set param_mid = `cat $mfin_midrej`
+set param_ign = `grep IGN $mfin_ignore | awk '{print $2}'`
+
+if ( $verb > 0 ) then
+   echo ++ have `echo $param_acc | tr , ' ' | wc -w` accept terms, $param_acc
+   echo ++ have `echo $param_rej | tr , ' ' | wc -w` reject terms, $param_rej
+   echo ++ have `echo $param_mid | tr , ' ' | wc -w` midrej terms, $param_mid
+   echo ++ have `echo $param_ign | tr , ' ' | wc -w` ignore terms, $param_ign
+   echo ""
+endif
+
+# ----------------------------------------------------------------------
+# partition components into good and bad
+
+# these are the main (fully partitioning) lists of components
+set pall_good = "$param_acc"
+set pall_bad = "$param_rej"
+
+# add midk reject to one of the lists
+if ( "$param_mid" != "" ) then
+   if ( $rej_mid ) then
+      if ( $verb ) echo "++ adding 'midk reject' to bad list"
+      set pall_bad = "$pall_bad,$param_mid"
+   else
+      if ( $verb ) echo "++ adding 'midk reject' to good list"
+      set pall_good = "$pall_good,$param_mid"
+   endif
+endif
+
+# add ignore to one of the lists
+if ( "$param_ign" != "" ) then
+   if ( $rej_ign ) then
+      if ( $verb ) echo "++ adding 'ignore' to bad list"
+      set pall_bad = "$pall_bad,$param_ign"
+   else
+      if ( $verb ) echo "++ adding 'ignore' to good list"
+      set pall_good = "$pall_good,$param_ign"
+   endif
+endif
+
+# -------------------------------------------------
+# remove any duplicates
+set set dupes = ( `echo $pall_good | tr , '\n' | sort | uniq -d` )
+if ( $#dupes > 0 ) then
+   echo "++ have $#dupes duplicate good entries: $dupes"
+   set pall_tmp = ( `echo $pall_good | tr , '\n' | sort | uniq` )
+   set pall_good = `echo $pall_tmp | tr ' ' ,`
+endif
+
+set set dupes = ( `echo $pall_bad | tr , '\n' | sort | uniq -d` )
+if ( $#dupes > 0 ) then
+   echo "++ have $#dupes duplicate bad entries: $dupes"
+   set pall_tmp = ( `echo $pall_bad | tr , '\n' | sort | uniq` )
+   set pall_bad = `echo $pall_tmp | tr ' ' ,`
+endif
+
+
+# chatter
+if ( $verb ) then
+   echo ""
+   echo "-- now have `echo $pall_bad | tr , ' ' | wc -w` bad terms"
+   echo "-- now have `echo $pall_good | tr , ' ' | wc -w` good terms"
+   echo ""
+endif
+
+
+# ----------------------------------------------------------------------
+# start main work (in subdir)
+
+if ( -d $workdir ) then
+   echo "** have existing work dir, $workdir, failing..."
+   exit 1
+endif
+mkdir $workdir
+
+1dcat $meica_comp_file"[$pall_good]" > $workdir/meica_good.1D
+1dcat $meica_comp_file"[$pall_bad]"  > $workdir/meica_bad.1D
+cd $workdir
+
+# and orthogonalize (project good from bad)
+if ( $verb ) echo "++ projecting good MEICA from bad, so bad is REALLY bad"
+
+# project and transpose result
+3dTproject -ort meica_good.1D -polort -1 -prefix tmp.tr.1D \
+           -input meica_bad.1D\'
+1dtranspose tmp.tr.1D > meica_bad_ort.1D
+
+# and put result back where it was asked for
+cd -
+if ( $verb ) echo "\n++ writing MEICA ortvec to $prefix"
+cp $workdir/meica_bad_ort.1D $prefix
+
+exit
+
+HELP:
+
+cat << EOF
+   $prog        - project good MEICA components out of bad ones
+
+   The MEICA process, via tedana.py, creates a set of components:
+
+        accepted        : components it things are good BOLD
+        ignored         : components it decides not to bother with
+        midk_rejected   : components it "borderline" rejects
+        rejected        : components it more strongly rejects
+
+   Together, this full matrix is fit to the data, and the fit of the
+   rejected components is subtracted from the data.  But the rejected
+   components are correlated with accepted ones.
+
+   To more conservatively keep the entirety of the accepted components,
+   projection components are created here by projecting the good ones
+   out of the bad ones, and taking the result as more strictly bad ones,
+   which can be projected later.
+
+   This script (currently) relies on being run from a tedana.py output
+   directory, probably of name TED.XXX.
+
+   sample commands:
+
+      $prog -prefix run_5_meica_orts.1D
+
+      @extract_meica_ortvec -meica_dir tedana_r01/TED.r01   \\
+            -work_dir tedana_r01/work.orts                  \\
+            -prefix tedana_r01/meica_orts.1D
+
+   options:
+
+      -prefix    PREFIX         : name for output 1D ortvec file
+      -meica_dir MDIR           : directory for meica files
+      -work_dir  WDIR           : sub-directory for work
+      -verb      VLEVEL         : set verbosity level
+
+   
+   More options will be added, but this is enough to get used by
+   afni_proc.py for now.
+
+   -------
+
+   Author: R Reynolds  May, 2018
+
+EOF
+
+exit

@@ -8,6 +8,7 @@ set log = /tmp/${RNS}.MLT.log
 set ds = `date '+%y%m%d_%H%M'`
 set centeropt = ""
 set skipnovoxopt = ""
+set lncol = ""
 
 if ("$1" == "" || "$1" == '-h' || "$1" == '-help') then
    goto HELP
@@ -56,9 +57,15 @@ endif
 if ($space != '') then
    3drefit -space $space $target_dset  >& /dev/null
 endif
+
 if ("$flab" != "IS_ATLAS") then
+   if($lncol) then
+      set lnarg = "-longnames $lncol"
+   else
+      set lnarg = ""
+   endif
    @MakeLabelTable -lab_file_delim "$delim"  \
-                   -lab_file $flab $iL $iV \
+                   -lab_file $flab $iL $iV $lnarg \
                    -atlas_pointlist keys_${RNS}_ \
                    -dset $target_dset  $replace $centeropt $skipnovoxopt\
                    -atlas_file $atlas_file $aname \
@@ -195,7 +202,18 @@ PARSE:
          endif
          goto CONTINUE
       endif
-      
+
+      if ("$argv[$cnt]" == "-longnames") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need to specify column index after -longnames"
+            goto BEND
+         endif
+         @ cnt ++
+         set lncol = $argv[$cnt]
+         goto CONTINUE
+      endif 
+
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
             if (! $quiet_death) \
@@ -332,6 +350,10 @@ echo "   -lab_file_delim COL_DELIM: Set column delimiter for -lab_file option"
 echo "                              Default is ' ' (space), but you can set"
 echo "                              your own. ';' for example. Note that the "
 echo "                              delimiter is passed directly to awk's -F" 
+echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
+echo "                names for regions, e.g. amygdala for AMY"
+echo "                cLONGNAME is the starting column for the longname continuing"
+echo "                to the last name of the output"
 echo "   -atlas_type TP: Set the atlas type where TP is 'S' for subject-based"
 echo "                and 'G' for group-based atlases, respectively."
 echo "                   A subject-based atlas will remain in the current"    

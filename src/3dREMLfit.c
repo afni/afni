@@ -655,8 +655,8 @@ int main( int argc , char *argv[] )
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
       "\n"
-      "             ** N.B.: Actually, you can omit the '-matrix' option, but\n"
-      "                       then the program will fabricate a matrix consisting\n"
+      "             ** N.B.: You can omit entirely defining the regression matrix,\n"
+      "                       but then the program will fabricate a matrix consisting\n"
       "                       of a single column with all 1s.  This option is\n"
       "                       mostly for the convenience of the author; for\n"
       "                       example, to have some fun with an AR(1) time series:\n"
@@ -667,21 +667,50 @@ int main( int argc , char *argv[] )
       "                        the '-GOFORIT' option. [Ides of March, MMX A.D.]\n"
      ) ;
 
-     if( AFNI_yesenv("AFNI_POMOC") )
      printf(
       "\n"
-      " Semi-Hidden Alternative Ways to Define the Matrix\n"
-      " -------------------------------------------------\n"
+      " More Primitive Alternative Ways to Define the Regression Matrix\n"
+      " --------------------------------------------------------------------------\n"
       " -polort P = If no -matrix option is given, AND no -matim option,\n"
       "               create a matrix with Legendre polynomial regressors\n"
       "               up to order 'P'.  The default value is P=0, which\n"
       "               produces a matrix with a single column of all ones.\n"
+      "               (That is the default matrix described above.)\n"
+      "\n"
       " -matim M  = Read a standard .1D file as the matrix.\n"
-      "           ** N.B.: You can use only 'Col' as a name in GLTs\n"
-      "                    with these nonstandard matrix input methods,\n"
-      "                    since the other names come from the '-matrix' file.\n"
+      "            * That is, an ASCII files of numbers layed out in a\n"
+      "              rectangular array. The number of rows must equal the\n"
+      "              number of time points in the input dataset. The number\n"
+      "              of columns is the number of regressors.\n"
+      "            * Advanced features, such as censoring, can only be implemented\n"
+      "              by providing a true .xmat.1D file via the '-matrix' option.\n"
+      "            * An advanced intelligence could reverse engineer the XML\n"
+      "              format used by the .xmat.1D files, to fully activate all the\n"
+      "              regression features of this software :-)\n"
+      "           ** N.B.: You can use only 'Col' as a name in GLTs ('-gltsym')\n"
+      "                    with these nonstandard matrix input methods, since\n"
+      "                    the other column names come from the '-matrix' file.\n"
       " ** These mutually exclusive options are ignored if -matrix is used.\n"
-      " -------------------------------------------------------------------\n"
+      " ----------------------------------------------------------------------------\n"
+      " The matrix supplied is the censored matrix, if any time points are marked\n"
+      " as to be removed from the analysis -- that is, if GoodList (infra) is NOT\n"
+      " the entire list of time points from 0..(nrow-1).\n"
+      "\n"
+      " Information supplied in the .xmat.1D format XML header's attributes\n"
+      " includes the following (but is not limited to):\n"
+      "  * ColumnLabels = a string label for each column in the matrix\n"
+      "  * ColumnGroups = groupings of columns into associated regressors\n"
+      "                   (e.g., motion, baseline, task)\n"
+      "  * RowTR        = TR in seconds\n"
+      "  * GoodList     = list of time points to use (inverse of censor list)\n"
+      "  * NRowFull     = size of full matrix (without censoring)\n"
+      "  * RunStart     = time point indexes of start of the runs\n"
+      "  * Nstim        = number of distinct stimuli\n"
+      "  * StimBots     = column indexes for beginning of each stimulus's regressors\n"
+      "  * StimTops     = column indexes for ending of each stimulus's regressors\n"
+      "  * StimLabels   = names for each stimulus\n"
+      "  * CommandLine  = string of command used to create the file\n"
+      " ----------------------------------------------------------------------------\n"
      ) ;
 
      printf(
@@ -771,11 +800,13 @@ int main( int argc , char *argv[] )
 #endif
       "               + The motivation for -dsort is to apply ANATICOR to task-based\n"
       "                   FMRI analyses.  You might be clever and have a better idea!?\n"
+      "                  http://www.ncbi.nlm.nih.gov/pmc/articles/PMC2897154/\n"
+      "                  https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
       "\n"
       " -dsort_nods = If '-dsort' is used, the output datasets reflect the impact of the\n"
       "                 voxel-wise regressor(s).  If you want to compare those results\n"
       "                 to the case where you did NOT give the '-dsort' option, then\n"
-      "                 also use the '-dsort_nods' (nods is short for 'no dsort').\n"
+      "                 also use '-dsort_nods' (nods is short for 'no dsort').\n"
       "                 The linear regressions will be repeated without the -dsort\n"
       "                 regressor(s) and the results put into datasets with the string\n"
       "                 '_nods' added to the prefix.\n"
@@ -795,9 +826,7 @@ int main( int argc , char *argv[] )
       "                     bb[3] --> slice #0 matrix\n"
       "                     bb[4] --> slice #1 matrix\n"
       "                     bb[5] --> slice #2 matrix\n"
-      "\n"
       "             ** If this order is not correct, consider -slibase_sm.\n"
-      "\n"
       "              * Intended to help model physiological noise in FMRI,\n"
       "                 or other effects you want to regress out that might\n"
       "                 change significantly in the inter-slice time intervals.\n"
@@ -812,8 +841,10 @@ int main( int argc , char *argv[] )
       "                 input file should be ordered in that direction as well.\n"
       "              * '-slibase' will slow the program down, and make it use\n"
       "                  a lot more memory (to hold all the matrix stuff).\n"
-      "            *** At this time, 3dSynthesize has no way of incorporating\n"
-      "                  the extra baseline timeseries from -addbase or -slibase.\n"
+      "            *** At this time, 3dSynthesize has no way of incorporating the\n"
+      "                  extra baseline timeseries from -addbase or -slibase or -dsort.\n"
+      "            *** Also see option '-dsort' for how to include voxel-dependent\n"
+      "                regressors into the analysis.\n"
       "\n"
       " -slibase_sm bb = Similar to -slibase above, BUT each .1D file 'bb'\n"
       "                 must be in slice major order (i.e. all slice0 columns\n"
@@ -826,7 +857,6 @@ int main( int argc , char *argv[] )
       "                     bb[3] --> slice #1 matrix, regressor 1\n"
       "                     bb[4] --> slice #2 matrix, regressor 0\n"
       "                     bb[5] --> slice #2 matrix, regressor 1\n"
-      "\n"
       "             ** If this order is not correct, consider -slibase.\n"
       "\n"
       " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
@@ -3262,7 +3292,7 @@ STATUS("setting up Rglt") ;
          dsortar_mean[dd][ii] /= nmask ;
          if( dsortar_mean[dd][ii] == 0.0f ) nzz++ ;
        }
-       if( nzz == ntime ){
+       if( nzz == ntime ){ /* this should not happen, I hope */
          WARNING_message("-dsort #%d mean timeseries is all zero -- randomizing :-(",dd) ;
          for( ii=0 ; ii < ntime ;ii++ ) dsortar_mean[dd][ii] = drand48()-0.5 ;
        }
@@ -3554,7 +3584,7 @@ STATUS("setting up Rglt") ;
        ININFO_message("GLSQ regression done: total CPU=%.2f Elapsed=%.2f",
                       COX_cpu_time(),COX_clock_time() ) ;
      if( nconst_dsort > 0 )
-       WARNING_message("%d voxels had constant -dsort vectors replaced",nconst_dsort) ;
+       WARNING_message("%d voxels had constant -dsort vectors replaced by -dsort mean vector",nconst_dsort) ;
      MEMORY_CHECK ;
    } /* end of if(do_Rstuff) */
 

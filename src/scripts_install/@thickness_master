@@ -1,0 +1,132 @@
+#!/bin/tcsh
+# @thickness_master
+# compute thickness different ways
+#   ball and box, erosion and in2out methods
+# use the same parameters for all methods
+
+set maskset = ""
+set surfset = ""
+set thickdir = ""
+
+set outdir  = "thick"
+# help
+
+if ($# < 1) then
+HELP:
+    echo "@thickness_master"
+    echo "usage:"
+    echo "@thickness_master -maskset maskset -surfset surfacedset.gii -outdir basethickdir"
+    echo
+    echo "where maskset is the dataset to find thickness"
+    echo " using the largest non-zero value in the mask." 
+    echo " If dataset has values -2,-1 and 1 for different regions, this script"
+    echo " calculates the thickness only for voxels with a value of 1"
+    echo "surfset is a surface to use to find normals into the volume"
+    echo "outdirbase is in directory thickdirbase_.... If not specified, the default is thick"
+    echo
+    echo "This script calls the three types of thickness scripts"
+    echo "  @measure_bb_thick - ball and box method"
+    echo "  @measure_erosion_thick - erosion method"
+    echo "  @measure_in2out_thick - in2out method"
+    echo
+    echo "Main options:"
+    echo "  -maskset mydset      mask dataset for input"
+    echo "  -surfset mydset.gii  surface dataset onto which to map thickness"
+    echo "                       (probably a pial/gray matter surface)"
+    echo "  -outdir thick_base output directory basename. The output will be placed"
+    echo "                 in a directory with thick_base in its name: "
+    echo "                    mmmm_bb, mmmm_erode, mmmm_in2out"
+    echo
+    echo "Other options:"
+    echo
+    echo "  takes all options from the three @measure_... scripts"
+    echo
+    echo "Output:"
+    echo "   see Output section of help for each of the method scripts"
+    echo "   This script produces a quick visualization script to see"
+    echo "   thickness maps in suma for all three methods"
+    echo "See related scripts and programs for computing thickness:"
+    echo "    @measure_erosion_thick, @measure_in2out, @measure_bb_thick and SurfMeasures"
+    exit
+endif
+
+
+# process user options
+#  most will just get passed to scripts as is without any checking here,
+#  but keep a few just for "show"
+set ac = 1
+while ( $ac <= $#argv )
+    # maybe just a desperate plea for help
+    if ( ( "$argv[$ac]" == "-help" ) || ( "$argv[$ac]" == "-HELP" )  || \
+       ( "$argv[$ac]" == "--help" ) || ( "$argv[$ac]" == "-h" ) ) then
+       goto HELP
+    # get the basics - input dataset, surface and output directory
+    # only the input is really required, but the other two are nice to have
+    else if ( "$argv[$ac]" == "-maskset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskset'"
+            exit 1
+        endif
+        set  maskset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfset'"
+            exit 1
+        endif
+        set  surfset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-outdir'"
+            exit 1
+        endif
+        set  thickdir = $argv[$ac]
+        @ ac ++; continue;
+    endif
+    @ ac ++
+end
+
+# do the one check for legitimacy. Do we have a dataset?
+if ("$maskset" == "") then
+   echo 'No input dataset. Please provide "-maskset mydset.nii" '
+   exit 1
+endif
+
+set bb_outdir = "${outdir}_bb"
+set erosion_outdir = "${outdir}_erosion"
+set in2out_outdir = "${outdir}_in2out"
+
+# call all three scripts
+# the "ignore" is called first, in case of unknown options for that method
+# the outdir is called last to replace the outdir of this script with its extended name
+@measure_bb_thick -ignore_unknown_options $argv[1-$#argv] -outdir $bb_outdir
+@measure_erosion_thick -ignore_unknown_options $argv[1-$#argv] -outdir $erosion_outdir
+@measure_in2out -ignore_unknown_options $argv[1-$#argv] -outdir $in2out_outdir
+
+# display the results on surface
+if ("$surfset" != "") then
+    echo "#\!/bin/tcsh" > @show_thick_master
+    echo "setenv SUMA_Sym_I_Range NO" >> @show_thick_master
+    echo "suma -i $surfset -drive_com \" >> @show_thick_master
+    echo '" -com surf_cont -view_surf_cont y \' >> @show_thick_master
+    echo " -com surf_cont  -load_dset ${bb_outdir}/bb_thick_smooth.niml.dset \" >> @show_thick_master
+    echo " -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \" >> @show_thick_master
+    echo " -com surf_cont -load_dset ${erosion_outdir}/erosion_thick_smooth.niml.dset \" >> @show_thick_master
+    echo " -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \" >> @show_thick_master
+    echo " -com surf_cont -load_dset ${in2out_outdir}/in2out_thick_smooth.niml.dset \" >> @show_thick_master
+    echo " -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \" >> @show_thick_master
+    echo '     -com viewer_cont -key b "' >> @show_thick_master
+    echo '' >> @show_thick_master
+    
+    chmod ug+x @show_thick_master
+    
+    echo "run @show_thick_master to show all datasets on surface"
+endif
+
+
+
+

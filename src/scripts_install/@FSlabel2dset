@@ -123,6 +123,8 @@ HELP:
    echo "Example:"
    echo "   `basename $0` -fs lh.FSFILE"
    echo ""
+
+   set stat = 0
    
    goto END
 BEND:

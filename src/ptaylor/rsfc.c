@@ -334,9 +334,10 @@ int WB_netw_corr(int Do_r,
                  OUT_indiv0, roilab, ftype);
 
          mri = mri_float_arrays_to_image(AVE_TS_fl,Dim[3],1);
+         // [PT: Jan 12, 2018] updated to follow rw cox
          OUT_CORR_MAP = THD_Tcorr1D(insetTIME, mskd2, Nmask,
                                     mri,
-                                    "pearson", OUT_indiv, 0);
+                                    "pearson", OUT_indiv, 0,0);
          if(Do_r){
             THD_load_statistics(OUT_CORR_MAP);
             tross_Copy_History( insetTIME , OUT_CORR_MAP ) ;

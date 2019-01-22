@@ -87,7 +87,9 @@ void Syntax(int detail)
     "                   * If '-master' is used, then 'rrr' is in mm.\n"
     "                   * If '-dimen' is used, then 'rrr' is in voxels.\n"
     "                 *** For example: '-srad 7' means put a sphere of\n"
-    "                     radius 7 mm about each input point.\n"
+    "                     radius 7 mm about each input point.\n\n"
+    "  -cubes       = Put cubes down instead of spheres. The \"radius\" then\n"
+    "                   is half the length of a side.\n"
     "\n"
     "  -orient code = Specifies the coordinate order used by -xyz.\n"
     "                   The code must be 3 letters, one each from the pairs\n"
@@ -250,6 +252,7 @@ int main( int argc , char * argv[] )
    byte                bv=0   ;
    char linbuf[NBUF] , *cp ;
 
+   byte cubes = 0;
    float xxdown,xxup , yydown,yyup , zzdown,zzup ;
 
    float srad=0.0f, vrad,rii,rjj,rkk,qii,qjj,qkk , dx,dy,dz ;  /* 19 Feb 2004 */
@@ -409,6 +412,13 @@ int main( int argc , char * argv[] )
         }
         have_srad++ ; iarg++ ; continue ;
       }
+
+      /*-----*/
+
+      if( strcmp(argv[iarg],"-cubes") == 0 ){   /* 19 Feb 2004 */
+        cubes = 1 ; iarg++ ; continue ;
+      }
+
 
       /*-----*/
 
@@ -848,6 +858,8 @@ int main( int argc , char * argv[] )
 
          if( rii >= 1.0 || rjj >= 1.0 || rkk >= 1.0 ){
            int aa,bb,cc , abot,atop,bbot,btop,cbot,ctop; float rr;
+           byte assign_vox;
+           assign_vox = 1;    /* assume assigning for cubes */
            abot = ii-(int)rint(rii) ; atop = ii+(int)rint(rii) ;
            if( abot < 0 ) abot = 0 ; if( atop >= nx ) atop = nx-1 ;
            bbot = jj-(int)rint(rjj) ; btop = jj+(int)rint(rjj) ;
@@ -857,9 +869,13 @@ int main( int argc , char * argv[] )
            for( cc=cbot ; cc <= ctop ; cc++ ){
              for( bb=bbot ; bb <= btop ; bb++ ){
                for( aa=abot ; aa <= atop ; aa++ ){
-                 rr =  (aa-ii)*(aa-ii)/qii
-                     + (bb-jj)*(bb-jj)/qjj + (cc-kk)*(cc-kk)/qkk ;
-                 if( rr <= 1.00001 ){
+                 if(!cubes) {    /* cubes or spheres*/
+                    rr =  (aa-ii)*(aa-ii)/qii
+                           + (bb-jj)*(bb-jj)/qjj + (cc-kk)*(cc-kk)/qkk ;
+                    if( rr <= 1.00001 ) assign_vox = 1;
+                    else assign_vox = 0;
+                 }
+                 if( assign_vox ){
                    ijk = aa + bb*nx + cc*nx*ny ;    /* (aa,bb,cc) in dataset */
                    if( mmask == NULL || mmask[ijk] ){
                      switch( datum ){

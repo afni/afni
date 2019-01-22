@@ -44,6 +44,295 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , JAN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
+   "Add DRG's erode-dilate trick to clip off some little stuff." ,
+   NULL } ,
+
+ { 8 , JAN , 2019 , RWC , "@SSwarper" , MINOR , TYPE_NEW_OPT ,
+   "Add '-nolite' option" , "For backwards compatibility and testing." } ,
+
+ { 8 , JAN , 2019 , RWC , "3dQwarp" , MINOR , TYPE_MODIFY ,
+   "-lite is now the default -- for speed" ,
+   "Based on using @SSwarper with and without -nolite on 31 datasets.\n"
+   "Results are very similar, and no systematic differences between\n"
+   "the -lite and -nolite groups observed in mean or stdev." } ,
+
+ { 7 , JAN , 2019 , RWC , "3dNwarpApply" , MICRO , TYPE_MODIFY ,
+   "Hopefully uses somewhat less memory now :)" ,
+   NULL } ,
+
+ { 4 , JAN , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Change way patch sizes are initialized for lev > 0" ,
+   "Old way: based on full grid size\n"
+   "New way: based on lev=0 patch size, from autobox\n"
+   "Advantage of new way: with lots of zero padding, first few levs may have\n"
+   "such large patches that they do nothing of value, but burn CPU time.\n"
+   "Stupidity: I don't know why I didn't think of this before - probably\n"
+   "because I never before ran a case with lots of zero padding (100+ voxels\n"
+   "on each face) and watched its snail-like progress with -verb." } ,
+
+ { 3 , JAN , 2019 , RWC , "@afni_refacer_XXX" , MINOR , TYPE_NEW_PROG ,
+   "Scripts to re-face a T1-weighted dataset" ,
+   "@afni_refacer_make_master = makes the 'shell' dataset used to replace\n"
+   "the face\n"
+   "@afni_refacer_run = runs re-facing on one input dataset" } ,
+
+ { 13 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_GENERAL ,
+   "Make -lite work with -plusminus" ,
+   "Also, remove the HLOADER code permanently and with extreme prejudice.\n"
+   "Ditto for DUPLO." } ,
+
+ { 11 , DEC , 2018 , RWC , "3dQwarp" , MICRO , TYPE_NEW_OPT ,
+   "Also add -Quint30 and -lite options" ,
+   "To run with reduced order polynomials, which are faster and appear to be\n"
+   "about as accurate (as they should be, in asymptotic approximation\n"
+   "theory)." } ,
+
+ { 10 , DEC , 2018 , RWC , "3dQwarp" , MINOR , TYPE_NEW_OPT ,
+   "-cubic12 = use 12 parameter cubics instead of 24" ,
+   "Faster, and probably just as accurate." } ,
+
+ { 28 , NOV , 2018 , RWC , "3dAllineate" , MINOR , TYPE_ENHANCE ,
+   "Add lpa+ cost functional" ,
+   "Like lpc+, with extra stuff added in for robustness. Per the suggestion\n"
+   "of Daniel Glen, the master of allineation and punulation." } ,
+
+ { 16 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add menu button to set func range = 1" ,
+   NULL } ,
+
+ { 13 , NOV , 2018 , RWC , "All" , MICRO , TYPE_MODIFY ,
+   "Baby steps towards removing use of XtMalloc etc" ,
+   "Replace XtPointer, XtMalloc, etc, with RwcPointer, RwcMalloc, etc,\n"
+   "everywhere in the code, using new header file replaceXt.h. Eventually\n"
+   "will try to eliminate the use of these functions entirely, in\n"
+   "mcw_malloc." } ,
+
+ { 6 , NOV , 2018 , RWC , "AFNI WhereAmI" , MICRO , TYPE_ENHANCE ,
+   "Make HTML window use bigger font if requested" ,
+   "If AFNI_TTATLAS_FONTSIZE is 'BIG'; if it isn't set, then if\n"
+   "AFNI_FONTSIZE is 'BIG'. Implemented by changing which header-style tags\n"
+   "are used." } ,
+
+ { 6 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "new environment variable AFNI_FONTSIZE" ,
+   "Can be 'MINUS' for small, 'PLUS' for bigger, and 'BIG' for\n"
+   "super-embiggened." } ,
+
+ { 5 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Alpha and Boxed now work with Clusterize" ,
+   NULL } ,
+
+ { 3 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Boxed now works with Clusterize" ,
+   "Next step: Alpha :) But that's harder :(" } ,
+
+ { 2 , NOV , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Add 'A' and 'B' buttons on top of threshold slider" ,
+   "To control Alpha and Boxed." } ,
+
+ { 2 , NOV , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Clusterize menu now remembers previous settings" ,
+   "Part of the forthcoming changes for func overlay display et cetera." } ,
+
+ { 30 , OCT , 2018 , RWC , "AFNI" , MICRO , TYPE_NEW_OPT ,
+   "-julian to print out the Julian date (who doesn't want this?)" ,
+   NULL } ,
+
+ { 29 , OCT , 2018 , RWC , "AFNI GUI Clusterize" , MICRO , TYPE_MODIFY ,
+   "Switch to use 3dClusterize as external prog, instead of 3dclust" ,
+   NULL } ,
+
+ { 25 , OCT , 2018 , RWC , "3dFWHMx" , MICRO , TYPE_MODIFY ,
+   "Small changes to improve processing of 2D images." ,
+   NULL } ,
+
+ { 19 , OCT , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "Add PBAR_SAVEIM command to the driver repertoire" ,
+   NULL } ,
+
+ { 18 , OCT , 2018 , RWC , "1dplot" , MICRO , TYPE_MODIFY ,
+   "Add help explaining how to include TSV labels in plot" ,
+   "Also, change the -ynames plot label sizes to better fit on the default\n"
+   "page." } ,
+
+ { 17 , OCT , 2018 , RWC , "TSV files" , MINOR , TYPE_MODIFY ,
+   "Replace 'N/A' 'NaN' and 'Inf' with mean of other column values" ,
+   "These strings will no longer stop a column from being marked as 'string'\n"
+   "vs. 'number'." } ,
+
+ { 17 , OCT , 2018 , RWC , "3dmerge blur" , MICRO , TYPE_MODIFY ,
+   "Make largest FIR filter have half-width of 35, up from 15" ,
+   "It's faster than FFT (at least on my computer)." } ,
+
+ { 20 , SEP , 2018 , RWC , "3dttest++ etc." , MAJOR , TYPE_ENHANCE ,
+   "ETAC now output global thresholds as well as local" ,
+   "Global thresholds are text tables of cluster-size (or cluster-FOM)\n"
+   "thresholds that apply to the whole volume in the multi-threshold way,\n"
+   "rather than dataset tables that apply voxelwise. Moderately extensive\n"
+   "hanges to programs\n"
+   "  3dMultiThresh  3dXClustSim  3dttest++\n"
+   "and to support files\n"
+   "  mri_threshX.c  thd_Xdataset.c\n"
+   "3dttest++ now has options to turn on/off global and local ETAC threshold\n"
+   "calculations." } ,
+
+ { 31 , AUG , 2018 , RWC , "1D file input" , MICRO , TYPE_ENHANCE ,
+   "mri_read_1D() now reads 3D: format files" ,
+   "This allows input of 'raw' data files into 1dplot, 1dcat, etc. Mostly\n"
+   "useful for converting raw binary data files to text via 1dcat." } ,
+
+ { 30 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_ENHANCE ,
+   "Default sound output is now 16-bit (less hiss than 8-bit)" ,
+   NULL } ,
+
+ { 27 , AUG , 2018 , RWC , "1dsound and AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "modify sound output" ,
+   "1dsound now can make sound from up to 4 columns from input file.\n"
+   "AFNI graph viewer GUI keypresses:\n"
+   " p = play sound from central sub-graph\n"
+   " P = play sound from central and average sub-graph (2 toned)\n"
+   " K = kill running sound player\n"
+   "Note that killing AFNI while sound is playing, or using K to kill sound,\n"
+   "will leave a file whose name is like AFNI_SOUND_TEMP.something.au on the\n"
+   "disk, and the user will have to clean it up." } ,
+
+ { 24 , AUG , 2018 , RWC , "1dsound" , MICRO , TYPE_NEW_OPT ,
+   "-notes option makes notes" ,
+   "This is the default. Pentatonic notes with triangle waveforms." } ,
+
+ { 23 , AUG , 2018 , RWC , "1dsound" , MINOR , TYPE_NEW_PROG ,
+   "program to generate .au sound file from a 1D file" ,
+   "Very primitive at this moment." } ,
+
+ { 20 , AUG , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_ENHANCE ,
+   "Play sound with 'p' or 'P' keypresses" ,
+   "p = sound from central graph.\n"
+   "P = sound from average of visible graphs.\n"
+   "Sound is played via sox program (not part of AFNI).\n"
+   "Environment variables:\n"
+   "  AFNI_SOUND_NOTE_TYPE sets type of note played\n"
+   "  AFNI_SOUND_GAIN sets loudness" } ,
+
+ { 15 , AUG , 2018 , RWC , "3dGrayplot" , MAJOR , TYPE_ENHANCE ,
+   "Total rewrite of resampling from time+space to X+Y grid" ,
+   "Grid refinement (time-X) is now cubic interpolation rather than linear\n"
+   "Grid coarsening (space-Y) is now minimum sidelobe taper averaging rather\n"
+   "than linear tapering" } ,
+
+ { 7 , AUG , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "-allsave now works with -plusminus" ,
+   "Plus tweaked the help to explain some things more better." } ,
+
+ { 30 , JUL , 2018 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_OPT ,
+   "-percent and -range options" ,
+   "For Cesar C-G.\n"
+   "'-range X' sets the values to be plotted over the range -X..X\n"
+   "(black..white).\n"
+   "'-percent' is for plotting non-zero mean files, by converting them to\n"
+   "percent of baseline (mean). Should be combined with '-range 4' (say)." } ,
+
+ { 26 , JUL , 2018 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Remove -duplo option (doesn't work that well)" ,
+   NULL } ,
+
+ { 23 , JUL , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "New command: SET_ULAY_RANGE" ,
+   "For example: SET_ULAY_RANGE A.axialimage 0 200" } ,
+
+ { 16 , JUL , 2018 , RWC , "@snapshot_volreg" , MICRO , TYPE_MODIFY ,
+   "Turn ALPHA on, and median smooth EPI dataset to improve edges" ,
+   NULL } ,
+
+ { 29 , MAY , 2018 , RWC , "3dTcorrelate" , MICRO , TYPE_MODIFY ,
+   "Replace DSET_NUM_TIMES with DSET_NVALS" ,
+   "To allow datasets that are not marked with a time axis to be used. Also\n"
+   "in a couple other programs (e.g., 3dDespike)." } ,
+
+ { 29 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_GRAPH_ALLOW_SHIFTN" ,
+   "Needs to be set to YES to enable the old FD-style N<digits><Enter>\n"
+   "method of changing the graph matrix. Some people just can't handle the\n"
+   "freedumb." } ,
+
+ { 25 , MAY , 2018 , RWC , "various" , MICRO , TYPE_MODIFY ,
+   "Replace DC_find_overlay_color with DC_find_closest_overlay_color" ,
+   "So that incorrect color names can get some sort of love." } ,
+
+ { 24 , MAY , 2018 , RWC , "AFNI driver" , MINOR , TYPE_ENHANCE ,
+   "Add SNAP_VIEWER command, for the Neon man." ,
+   NULL } ,
+
+ { 23 , MAY , 2018 , RWC , "3dTfilter" , MICRO , TYPE_NEW_OPT ,
+   "Updates to add capability" ,
+   "Now can set half-width for despike as well as adaptive filter.\n"
+   "Now can use adaptive detrending with new filter 'adetrend'." } ,
+
+ { 10 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "remove AFNI_ENFORCE_ASPECT from having any effect" ,
+   "This never did very much good, so it is now OFF." } ,
+
+ { 9 , MAY , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Fix 'too many redraws' problem in imseq.c" ,
+   "For some reason, could get many ConfigureNotify events for one image\n"
+   "resize, each event causing a redraw. Now if the redraw ordered by a\n"
+   "ConfigureNotify is exactly the same size as the previous one, it will be\n"
+   "skipped." } ,
+
+ { 7 , MAY , 2018 , RWC , "@grayplot" , MINOR , TYPE_NEW_PROG ,
+   "Script to drive 3dGrayplot in afni_proc.py output directory" ,
+   "Will grayplot errts* and all_runs datasets, with motion indicator graph\n"
+   "and (if available) sum_ideal.1D graph." } ,
+
+ { 9 , APR , 2018 , RWC , "3dGrayplot" , MINOR , TYPE_NEW_PROG ,
+   "A plot, a la JD Power, of time series intensities in a brain mask" ,
+   "For Cesar Caballero-Gaudes, and anyone else who actually cares about\n"
+   "data quality." } ,
+
+ { 28 , MAR , 2018 , RWC , "3dNwarpApply" , MAJOR , TYPE_ENHANCE ,
+   "Program now warps complex-valued datasets." ,
+   "Real and imaginary parts are extracted, warped, and combined.\n"
+   "No special option is needed." } ,
+
+ { 23 , MAR , 2018 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Add 3dTstat pseudo-plugin on the Insta-stuff menu" ,
+   "Calculate voxelwise statistics of 3D+time datasets. Works by running\n"
+   "3dTstat. A few changes to 3dTstat to make this easier, as well." } ,
+
+ { 19 , MAR , 2018 , RWC , "3dTstat" , MINOR , TYPE_NEW_OPT ,
+   "Add -MSSD and -MASD option" ,
+   "MSSD = mean successive squared differences (Von Neumann)\n"
+   "MASD = median absolute successive differences" } ,
+
+ { 13 , MAR , 2018 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "-saveall option now writes out as it progresses, not at end" ,
+   "So if 3dQwarp crashes or stalls, the latest saved warp could be used to\n"
+   "re-start the damn thing." } ,
+
+ { 16 , FEB , 2018 , RWC , "3dTcorr1D" , MICRO , TYPE_NEW_OPT ,
+   "New -dot option (dot product)" ,
+   NULL } ,
+
+ { 2 , FEB , 2018 , RWC , "AFNI GUI" , MINOR , TYPE_MODIFY ,
+   "Read .jpg and .png 'datasets' by default into sessions" ,
+   NULL } ,
+
+ { 1 , FEB , 2018 , RWC , "AFNI GUI" , MAJOR , TYPE_NEW_OPT ,
+   "-bysub option for reading from BIDS hierarchy" ,
+   "-bysub 10506 (for example) means to find all sub-directories with names\n"
+   "'sub-10506', and read all datasets find in them and in THEIR\n"
+   "sub-directories into a single session. The idea is to make it easy to\n"
+   "read all datasets corresponding to a single subject from a BID hierarchy\n"
+   "into a single session, for easy of viewing." } ,
+
+ { 6 , JAN , 2018 , RWC , "3dDeconvolve" , MINOR , TYPE_ENHANCE ,
+   "Add TWOGAM basis function" ,
+   "Arbitrary difference of two GAM functions." } ,
+
+ { 3 , JAN , 2018 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add startup tips (to stderr) to AFNI" ,
+   "Source is in afni.c. Search for TIP string." } ,
+
  { 20 , DEC , 2017 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Add driver command DATASET#N" ,
    "To let the user drive the graph viewer plugin from outside. A little\n"
@@ -2717,7 +3006,7 @@ afni_history_struct rwcox_history[] = {
    "with tiny random values." } ,
 
  { 20 , OCT , 2010 , RWC , "afni" , MICRO , TYPE_GENERAL ,
-   "Add 'INSTACORR SET' the the drive command list" ,
+   "Add 'INSTACORR SET' to the drive command list" ,
    NULL } ,
 
  { 20 , OCT , 2010 , RWC , "afni and 3dGroupInCorr" , MICRO , TYPE_GENERAL ,

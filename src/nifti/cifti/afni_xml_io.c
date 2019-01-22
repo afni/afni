@@ -10,6 +10,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <nifti2_io.h>
+#include <inttypes.h>
 #include "afni_xml_io.h"
 
 
@@ -32,13 +33,13 @@ static int64_t text_to_f64(double * result, const char * text, int64_t nvals);
 
 
 /* read a complete CIFTI dataset, returning nifti and and xml pieces
-   
+
    text data is converted to binary, when known
  */
 int axio_read_cifti_file(const char * fname, int get_ndata,
                          nifti_image ** nim_out, afni_xml_t ** ax_out)
 {
-   nifti_image      * nim;
+   nifti_image      * nim = NULL;
    afni_xml_t       * ax = NULL;
 
    if( !fname || !nim_out || !ax_out ) {
@@ -147,7 +148,7 @@ afni_xml_t * axio_cifti_from_ext(nifti_image * nim)
 
    /* just read until we have a CIFTI extension to process */
    ext = nim->ext_list;
-   for( ind = 0; ind < nim->num_ext; ind++ ) {
+   for( ind = 0; ind < nim->num_ext; ind++, ext++ ) {
       if( ext->ecode != NIFTI_ECODE_CIFTI ) continue;
       return axio_read_buf(ext->edata, ext->esize-8);
    }
@@ -211,7 +212,7 @@ int axio_show_cifti_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
 
 typedef void(*gen_disp_func_t)(FILE *, afni_xml_t *, int);
 #define AXIO_NMIM_KIDS 5
-static char * MIM_kids[AXIO_NMIM_KIDS+1] =
+static const char * MIM_kids[AXIO_NMIM_KIDS+1] =
    { "NamedMap", "Surface", "Parcel", "Volume", "BrainModel", "INVALID" };
 static gen_disp_func_t MIM_disp_funcs[AXIO_NMIM_KIDS] = {
    disp_namedmap_child, disp_surface_child, disp_parcel_child,
@@ -232,7 +233,7 @@ static int get_map_index(afni_xml_t * ax)
 }
 
 
-int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
+int axio_show_mim_summary(FILE * fp, const char * mesg, afni_xml_t * ax, int verb)
 {
    afni_xml_t * xm, * xt;
    FILE       * ofp = fp ? fp : stderr;
@@ -256,7 +257,7 @@ int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
    for( matkid = 0; matkid < xm->nchild; matkid++ ) {
       xt = xm->xchild[matkid];
       if( strcmp(xt->name, "MatrixIndicesMap") ) continue;
-      
+
       if( verb > 1 ) fprintf(ofp, "-- have %d MIMap children\n", xt->nchild);
 
       for( kid=0; kid<xt->nchild; kid++ ) {
@@ -273,7 +274,7 @@ int axio_show_mim_summary(FILE * fp, char * mesg, afni_xml_t * ax, int verb)
 /* depth first search for struct with given name
    if maxd >= 0, impose depth restriction
  */
-afni_xml_t * axio_find_map_name(afni_xml_t * ax, char * name, int maxd)
+afni_xml_t * axio_find_map_name(afni_xml_t * ax, const char * name, int maxd)
 {
    afni_xml_t * rv;
    int          ind;
@@ -312,7 +313,7 @@ static void disp_name_n_desc(FILE * fp, afni_xml_t * ax, int indent, int verb)
       else
          fprintf(fp, "\n%*s: %.*s ...\n", indent+3, "", max, ax->xtext);
       if( verb > 1 && ax->blen > 0 )
-         fprintf(fp, "%*s: %lld values of type %s\n", indent+3, "",
+         fprintf(fp, "%*s: %" PRId64 " values of type %s\n", indent+3, "",
                  ax->blen, nifti_datatype_string(ax->btype));
    } else
       fputc('\n', fp);
@@ -361,7 +362,7 @@ static void disp_parcel_child(FILE * fp, afni_xml_t * ax, int verb)
    disp_name_n_desc(fp, xc,  6, verb);
    disp_name_n_desc(fp, xc1, 9, verb);
    disp_name_n_desc(fp, xc2, 9, verb);
-   
+
 
    fputc('\n', fp);
 }
@@ -403,9 +404,10 @@ static void disp_brainmodel_child(FILE * fp, afni_xml_t * ax, int verb)
    (prototype matches first argument of axml_recur) */
 static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
 {
-   int64_t   ival;
+   int64_t   ival = 0 ;
    char    * cp;
 
+   (void)(depth); /* avoid warnings, depth is not used for this variant */
    if( ! ax ) return 1;
    if( ! ax->xtext || ax->xlen <= 0 ) return 0;  /* nothing to allocate */
 
@@ -416,7 +418,7 @@ static int axio_alloc_known_data(FILE * fp, afni_xml_t * ax, int depth)
       return 1;
    }
 
-   /* Vertices, TransformationMatrixVoxelIndicesIJKtoXYZ, 
+   /* Vertices, TransformationMatrixVoxelIndicesIJKtoXYZ,
       VertexIndices, VoxelIndicesIJK (convert to straight index?) */
 
    if( ! strcmp(ax->name, "TransformationMatrixVoxelIndicesIJKtoXYZ") )
@@ -471,7 +473,7 @@ static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
 
    ax->bdata = malloc(nbyper * ntok);
    if( ! ax->bdata ) {
-      fprintf(fp, "** axio_alloc: failed to allocate %lld vals of size %d\n",
+      fprintf(fp, "** axio_alloc: failed to allocate %" PRId64 " vals of size %d\n",
               ntok, nbyper);
       ax->blen = 0;
       return 1;
@@ -491,7 +493,7 @@ static int dalloc_as_nifti_type(FILE * fp, afni_xml_t * ax, int64_t nvals,
       if( nread == 0 ) { free(ax->bdata); ax->bdata = NULL; }
 
       ax->blen = nread;
-      fprintf(fp, "** axio_alloc: read only %lld of %lld f64\n", nread, ntok);
+      fprintf(fp, "** axio_alloc: read only %" PRId64 " of %" PRId64 " f64\n", nread, ntok);
       return 1;
    }
 
@@ -505,19 +507,21 @@ static int can_process_dtype(int dtype)
    if( dtype == NIFTI_TYPE_FLOAT64 )    return 1;
 
    /* warn if type is not even nifti */
-   if( ! is_valid_nifti_type(dtype) ) 
+   if( ! is_valid_nifti_type(dtype) )
       fprintf(stderr,"** DNT, %d is invalid as NIFTI type\n", dtype);
 
    return 0;
 }
 
-/* this is currently processed as "long long" */
+/* this is currently processed as "long long", the meaning of which
+ * varies, unfortunately */
 static int64_t text_to_i64(int64_t * result, const char * text, int64_t nvals)
 {
    char    * eptr, * sptr;
    int64_t * rptr, val;
    int64_t   nread;
 
+   *result = 0; /* Initialize to zero incase of failure */
    if( ! text || ! result) return 1;
    if( nvals <= 0 )        return 0;
 

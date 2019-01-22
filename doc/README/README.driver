@@ -90,6 +90,10 @@ the AFNI team has looked at this, as far as I know.)
 AFNI DRIVING COMMANDS (in no coherent order)
 --------------------------------------------
 
+DO_NOTHING
+  This command does ... NOTHING :) -- it can be used as a placeholder
+  in a script, for example.
+
 ADD_OVERLAY_COLOR colordef colorlab
   Adds the color defined by the string "colordef" to the list of overlay
   colors.  It will appear in the menus with the label "colordef".  Example:
@@ -160,6 +164,26 @@ PBAR_ROTATE [c.]{+|-}
   ++ You could use this to make fun movies, but otherwise it is hard to
      see what value this command has.
 
+PBAR_SAVEIM [c] filename [dim=dimstring]
+  Saves the current color pbar image into 'filename', which can end in
+  '.png', '.jpg', or '.ppm' for those 3 different formats. If you wish
+  to change the default size of the image (64 pixels wide, 512 tall),
+  you can add a 'dim=dimstring' value after the filename:
+  ++ This dimension changing string starts with 'dim='
+  ++ The 'dimstring' is of the format 'AxB', where
+       'A' is the number of pixels across the pbar
+       'B' is the number of pixels down the pbar
+     The default is '64x512'.
+  ++ If you append 'H' to the 'dimstring', then the image will be
+     flipped to be horizontal, so that the color scale runs from
+     left-to-right rather than bottom-to-top.
+  ++ To get the default 64x512 image but flipped to horizontal, you
+     can just use 'dim=H'.
+  ++ NOTE: once you change 'dimstring', that becomes the default for
+     future 'PBAR_SAVEIM' commands in the same AFNI run; in other words,
+     setting 'dimstring' once will affect any future pbar saves the
+     same way unless a new 'dimstring' is provided.
+
 DEFINE_COLORSCALE name number=color number=color ...
  or
 DEFINE_COLORSCALE name color color color
@@ -197,16 +221,23 @@ SET_FUNC_RESAM [c.]{NN|Li|Cu|Bk}[.{NN|Li|Cu|Bk}]
     SET_FUNC_RESAM A.Li.Li
   sets the func and threshold resampling modes both to Linear interpolation.
 
-SET_FUNC_ALPHA [c.]{Off|Linear|Quadratic} [floor]
-  Set the functional overlay Alpha mode, to Off, Linear, or Quadratic.
-  Optionally, you can include the floor value for Alpha after the mode.
+SET_FUNC_ALPHA [c.]{Off|On|No|Yes}
+  Set the functional overlay Alpha mode, to Off (or No), or On (or Yes).
   For example
-    SET_FUNC_ALPHA A.Linear 0.4
-  The floor value must be between 0.0 and 0.8 (inclusive).
-  If you do NOT want the black edges drawn around the supra-threshold
-  pixels (when Alpha mode is not Off), then you should also issue
-  the command
-    SETENV AFNI_EDGIZE_OVERLAY NO
+    SET_FUNC_ALPHA A.Yes
+  This command is equivalent to controlling Alpha with the 'A' button
+  on top of the threshold slider. You can also set the initial status
+  of Alpha by setting environment variable AFNI_FUNC_ALPHA to Yes or No.
+  Note that this command has changed [06 Nov 2018] from the previous
+  version.
+
+SET_FUNC_BOXED [c.]{Off|On|No|Yes}
+  Set the functional overlay Boxed mode, to Off (or No), or On (or Yes).
+  For example
+    SET_FUNC_BOXED A.Yes
+  This command is equivalent to controlling Boxed with the 'B' button
+  on top of the threshold slider. You can also set the initial status
+  of Boxed by setting environment variable AFNI_FUNC_BOXED to Yes or No.
 
 OPEN_PANEL [c.]Panel_Name
   Opens the specified controller panel, where 'Panel_Name' is one of
@@ -330,6 +361,14 @@ OPEN_WINDOW [c.]windowname [options]
      more sense if you are using this to apply some change to an already
      open viewer window.
 
+SET_ULAY_RANGE [c.]windowname bot top
+  This command sets the grayscale range for the given image viewer window
+  to be from 'bot' to 'top'. Examples:
+    SET_ULAY_RANGE A.axialimage 0 200
+    SET_ULAY_RANGE A.all        20 150
+  The second example shows that you can use 'all' to change all the open
+  image viewers (for a given controller) in one operation.
+
 CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image
   viewer windows this way, not plugin windows.
@@ -443,6 +482,20 @@ WRITE_OVERLAY [c] prefix
   the given image viewer to disk, using the given prefix.
      ** Note that these WRITE_ commands will over-write existing **
      ** datasets with the same name, so you must use care here!  **
+
+SNAP_CONT image.jpg
+  Take a snapshot of the main AFNI controller and save it into image.jpg.
+
+SNAP_VIEWER [c].windowname imagename
+  Take a snapshot of a graph or image viewer, including the buttons (etc.)
+  and save it into an image file. For example:
+    SNAP_VIEWER axialimage   Frodo.png
+    SNAP_VIEWER B.axialgraph Samwise.jpg
+  The snapshot does not include any windowing system additions, such as
+  the titlebar, resizing controls, etc. The main purpose of this command
+  is to help make documentation.
+  NOTE: This command requires the NETPBM package be installed, otherwise
+        the image saving won't work (except for .jpg files).
 
 SET_DICOM_XYZ [c] x y z
 SET_SPM_XYZ   [c] x y z
@@ -601,6 +654,9 @@ NOISY_PLUGOUTS
 
 TRACE {YES | NO}
   Turns debug tracing on or off.  Mostly for AFNI developers.
+
+WRITE_CONT_SPX_HELP filename
+   Write the help for the main controller GUI in SPHINX form to filename
 
 ==============================================================================
 Sample Script Using Xvfb
@@ -813,10 +869,3 @@ SET_GRAPH_GEOM gname geom=X-geometry-string
     300x100+50+90   = set window size and location at the same time
 
 --------------------------
-
-WRITE_CONT_SPX_HELP filename
-   Write the help for the main controller GUI in SPHINX form to filename
-
-SNAP_CONT image.jpg
-   Take a snapshot of the main controller and save into image.jpg
-

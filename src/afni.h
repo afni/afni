@@ -112,7 +112,11 @@ typedef struct {
 static char * UNDERLAY_typestr[] =
    { "bkgd:ULay" , "bkgd:OLay" , "ulay:O@Thr" } ;
 
+#if 0
 #define DEFAULT_FIM_SCALE 10000   /* change this and bad things will happen! */
+#else
+#define DEFAULT_FIM_SCALE 1       /* change this and bad things will happen! */
+#endif
 
 #define DMODE_BRICK      0
 #define DMODE_WOD        1
@@ -282,6 +286,7 @@ typedef struct {
       int        thr_sign ;                     /* 08 Aug 2007 */
       int        thr_use_alpha ;                /* 08 Dec 2014 */
       float      thr_alpha_floor ;              /* 09 Dec 2014 */
+      int        thr_use_boxed ;                /* 02 Nov 2018 */
 
       /* 3/24/95: range data for conversion of pbar
                   values to thresholding values in the data */
@@ -324,6 +329,8 @@ typedef struct {
       float *th_sort;  /* sorted values of overlay threshold */
       int N_th_sort; /* number of values stored in th_sort */
       char  th_sortid[256]; /* indentifier of provenance of th_sort */
+
+      int clusterize_nnlev , clusterize_size , clusterize_bisid ;
 } AFNI_view_info ;
 
 #define AXIAL    1       /* 20 Feb 2003: view_setter codes */
@@ -715,15 +722,20 @@ typedef struct {
       Widget thr_rowcol , thr_label , thr_scale , thr_pval_label ;
       MCW_arrowval *thr_top_av ;
 
+      Widget thrtop_rowcol , thrtop_alpha_pb , thrtop_boxed_pb ; /* 02 Nov 2018 */
+
       Widget thr_menu ;
       MCW_bbox *thr_onoff_bbox ;
       MCW_bbox *thr_olayx_bbox ;
       Widget thr_autothresh_pb ;
       Widget thr_setpval_pb ;      /* 03 Dec 2013 */
       Widget thr_setqval_pb ;      /* 26 Feb 2014 */
+      Widget thr_setpval_001_pb ;  /* 05 Nov 2018 */
       MCW_arrowval *thr_sign_av ;  /* 08 Aug 2007 */
+#if 0
       MCW_arrowval *thr_alpha_av;  /* 08 Dec 2014 */
       MCW_arrowval *thr_floor_av;  /* 09 Dec 2014 */
+#endif
       Widget thr_fdr_pb ;          /* 29 Jan 2008 */
       Widget thr_pvalue_pb ;       /* 06 Mar 2014 */
 
@@ -737,6 +749,7 @@ typedef struct {
       MCW_arrowval *pbar_palette_av ;
       Widget pbar_showtable_pb ;
       Widget pbar_environment_pb ; /* 10 Feb 2004 */
+      Widget pbar_setrange_1_pb ;  /* 16 Nov 2018 */
 
       Widget pbar_saveim_pb  ;                  /* 15 Jun 2000 */
       MCW_arrowval *pbar_transform0D_av ;
@@ -760,6 +773,8 @@ typedef struct {
       Widget icalc_rowcol , icalc_pb , icalc_label ; /* 18 Sep 2009 */
 
       Widget gicor_rowcol , gicor_pb , gicor_label ; /* 22 Dec 2009 */
+
+      Widget tstat_rowcol , tstat_pb , tstat_label ; /* 22 Mar 2018 */
 
       Widget        buck_frame , buck_rowcol ;
       MCW_arrowval *anat_buck_av , *fim_buck_av , *thr_buck_av ;  /* 30 Nov 1997 */
@@ -803,6 +818,8 @@ extern void AFNI_func_thrsign_CB( MCW_arrowval * , XtPointer ) ;  /* 08 Aug 2007
 extern void AFNI_func_alpha_CB  ( MCW_arrowval * , XtPointer ) ;  /* 08 Dec 2014 */
 extern void AFNI_func_floor_CB  ( MCW_arrowval * , XtPointer ) ;  /* 09 Dec 2014 */
 extern void AFNI_func_fdr_CB    (Widget,XtPointer,XtPointer) ;    /* 29 Jan 2008 */
+extern void AFNI_func_thrtop_CB (Widget,XtPointer,XtPointer) ;    /* 02 Nov 2018 */
+extern void AFNI_func_setpval_001_CB(Widget,XtPointer,XtPointer); /* 05 Nov 2018 */
 
 extern void AFNI_set_pval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
 extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014 */
@@ -950,6 +967,7 @@ typedef struct {
    Widget hidden_uscon_pb   ;  /* 30 Dec 2010 */
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
    Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
+   Widget hidden_sound_pb   ;  /* 20 Aug 2018 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
    Widget hidden_papers_pb  ;  /* 02 May 2014 */
 
@@ -1302,8 +1320,9 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
 
 #define VEDIT_INSTACORR  0
 #define VEDIT_INSTACALC  1
-#define VEDIT_GRINCORR   2
-#define VEDIT_LAST_VALUE 2
+#define VEDIT_TSTAT      2
+#define VEDIT_GRINCORR   3
+#define VEDIT_LAST_VALUE 3
 
 #define INSTACORR_LABEL_ON(iq)                                          \
  do{ MCW_set_widget_label((iq)->vwid->func->icor_label,"** Ready **") ; \
@@ -1437,6 +1456,24 @@ extern void CLU_setup_alpha_tables( Three_D_View * ) ; /* Jul 2010 */
        XtUnmapWidget((iq)->vwid->func->iwid->wtop) ;                     \
  } while(0)
 
+/** Tstat stuff [22 Mar 2018] **/
+
+#define TSTAT_LABEL_ON(iq)                                               \
+ do{ MCW_set_widget_label((iq)->vwid->func->tstat_label,"*Computed!*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->tstat_label,GO_COLOR,0   ) ; \
+ } while(0)
+
+#define TSTAT_LABEL_OFF(iq)                                              \
+ do{ MCW_set_widget_label((iq)->vwid->func->tstat_label,"*NOT Ready*") ; \
+     MCW_set_widget_bg   ((iq)->vwid->func->tstat_label,STOP_COLOR,0 ) ; \
+ } while(0)
+
+#define DISABLE_TSTAT(iq)                                                \
+ do{ TSTAT_LABEL_OFF(iq) ;                                               \
+     if( (iq)->vwid->func->iwid != NULL )                                \
+       XtUnmapWidget((iq)->vwid->func->iwid->wtop) ;                     \
+ } while(0)
+
 /*! Is any image viewer window open? */
 
 #define IM3D_IMAGIZED(iq) \
@@ -1503,6 +1540,8 @@ extern int    AFNI_compile_date_check      (void) ;
 extern char * AFNI_get_friend(void) ;      /* 26 Feb 2001 */
 extern char * AFNI_get_date_trivia(void) ; /* 25 Nov 2002 */
 extern int AFNI_get_todays_trivia( char *** ) ; /* 27 Nov 2007 */
+
+extern char * julian_date_string(void) ;   /* 29 Oct 2019 */
 
 #define OPEN_CONTROLLER(iq)                                  \
  do{ XtRealizeWidget((iq)->vwid->top_shell) ;                \
@@ -1575,6 +1614,7 @@ extern "C" {
    extern PLUGIN_interface * F1D_init(void) ;            /* 08 Aug 2001 */
    extern PLUGIN_interface * ICOR_init(char *);          /* 29 Apr 2009 */
    extern PLUGIN_interface * GICOR_init(char *);         /* 22 Dec 2009 */
+   extern PLUGIN_interface * TSTAT_init(char *);         /* 22 Mar 2018 */
 #endif
 
 extern void ENV_globalrange_view( char *vname );
@@ -1585,12 +1625,11 @@ extern void GICOR_process_dataset( NI_element *nel, int ct ) ; /* 23 Dec 2009 */
 extern void GICOR_process_message( NI_element *nel ) ;            /* Apr 2013 */
 extern void process_NIML_textmessage( NI_element * ) ;            /* Apr 2013 */
 
-
 extern void ICALC_make_widgets( Three_D_View *im3d ) ;   /* 18 Sep 2009 */
 
 typedef struct {                /* windows and widgets */
-   XtPointer_array *windows ;   /* allowed to interrupt */
-   XtPointer_array *widgets ;   /* 'real-time' functions */
+   RwcPointer_array *windows ;   /* allowed to interrupt */
+   RwcPointer_array *widgets ;   /* 'real-time' functions */
 } MCW_interruptables ;
 
 #ifndef MAX_CONTROLLERS
@@ -1668,6 +1707,10 @@ typedef struct {
    int dont_hear_suma ;     /* 1 = I can't hear you SUMA        */
 
    int pbar_fullrange ;                          /* 03 Jun 2014 */
+
+   int local_display ;                           /* 20 Aug 2018 */
+   int have_sox ;                                /* 20 Aug 2018 */
+   char *sound_player ;                          /* 27 Aug 2018 */
 
 } AFNI_library_type ;
 
@@ -1961,7 +2004,6 @@ extern void AFNI_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_finalize_read_1D_CB( Widget , XtPointer , XtPointer ) ;
 
 extern int  DSET_in_global_session( THD_3dim_dataset * ) ;       /* 20 Dec 2001 */
-extern void AFNI_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
 
 extern void AFNI_read_Web_CB( Widget, XtPointer, XtPointer );    /* 26 Mar 2001 */
 extern void AFNI_finalize_read_Web_CB( Widget, XtPointer, MCW_choose_cbs * );
@@ -1991,6 +2033,7 @@ extern void   AFNI_resam_av_CB     ( MCW_arrowval * , XtPointer ) ;
 
 extern void   AFNI_bucket_CB      ( MCW_arrowval * , XtPointer ) ; /* 30 Nov 1997 */
 extern char * AFNI_bucket_label_CB( MCW_arrowval * , XtPointer ) ;
+extern void AFNI_force_bucket_label_resize( int ) ;                /* 23 Mar 2018 */
 
 extern void   AFNI_vedit_CB       ( MCW_arrowval * , XtPointer ) ; /* 05 May 2009 */
 extern int    AFNI_icor_setref    ( Three_D_View *im3d ) ;
@@ -2144,7 +2187,7 @@ extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float,float ,  /* 30 Jan 2
                                          float,float, rgbyte *, int ) ;
 
 extern MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *, float,float ,  /* 08 Dec 2014 */
-                                         MRI_IMAGE *,
+                                         MRI_IMAGE *, MRI_IMAGE *,
                                          float,float, rgbyte *, int ,float,MCW_DC * ) ;
 
 extern void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im ) ;
@@ -2355,6 +2398,7 @@ extern void adpt_wt_mn19( int, double,double, float * ) ; /* 29 Sep 2016 */
 extern void adpt_wt_mnXX( int, double,double, float * ) ; /* 30 Sep 2016 */
 extern void despike7_func  (int, double,double, float *); /* 07 Oct 2010 */
 extern void despike9_func  (int, double,double, float *); /* 08 Oct 2010 */
+extern void DES_despike25  (int, double,double, float *); /* 18 May 2018 */
 extern void hrfdecon_func  (int, double,double, float *); /* 29 Oct 2010 */
 
 extern void L1normalize_func( int, double,double, float * ) ; /* 03 Sep 2009 */
@@ -2403,6 +2447,10 @@ extern void AFNI_register_nD_func_init( int nd , generic_func *fin ) ;
 extern void AFNI_store_dset_index(int,int) ;  /* 18 May 2000 */
 extern int  AFNI_needs_dset_ijk(void) ;
 extern int  AFNI_needs_dset_tin(void) ;
+
+extern int AFNI_gcd( int m , int n ) ;
+extern int AFNI_find_relprime_random( int n ) ;
+extern int AFNI_find_relprime_fixed( int n ) ;
 
 /*-----------------------------------------------------------*/
 /*-----------------  initializations  -----------------------*/

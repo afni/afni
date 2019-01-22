@@ -1,0 +1,324 @@
+#!/bin/csh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.0";  set rev_dat   = "Aug 16, 2018"
+#   + AP/QC imager:  volreg and enorm
+#
+#set version   = "0.1";  set rev_dat   = "Oct 08, 2018"
+#   + rename
+#
+#set version   = "0.2";  set rev_dat   = "Oct 12, 2018"
+#   + add sharpening to the ulay a bit
+#
+#set version   = "0.3";  set rev_dat   = "Oct 18, 2018"
+#   + flag to have ulay extents box, to tighten the window of slicing
+#
+#set version   = "0.4";  set rev_dat   = "Oct 18, 2018"
+#   + optionify
+#
+#set version   = "0.5";  set rev_dat   = "Oct 21, 2018"
+#   + single outline form only at the moment (non-alpha-line one)
+#   + new opt: -no_clean
+#
+set version   = "0.6";  set rev_dat   = "Nov 5, 2018"
+#   + keep up with new alpha/boxed parameters for driving afni
+#
+# ----------------------------------------------------------------
+
+set this_prog = "@djunct_edgy_align_check"
+set tpname    = "${this_prog:gas/@djunct_//}"
+set here      = $PWD
+
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?!)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# ----------------------- set defaults --------------------------
+
+set ulay    = ""
+set olay    = ""
+
+set odir           = "./QC"
+set opref          = "IMG_${tpname}"
+
+set tpref          = "__tmp"
+set olayE          = ${tpref}_olayE.nii.gz
+
+set Nx             = 7                    # num of mont wins, b/c Ny=1
+
+set refbox_add     = ( "-pass" "-pass" )
+
+set DO_CLEAN       = 1                    # default: do remove
+set allclean       = "-do_clean"          # apply cleaning to @chauff cmd
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set olay = "$argv[$ac]"
+
+    #  ---------- opts ---------------
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    # [PT: Oct 18, 2018] can get focus box, still centered on FOV
+    # center
+    else if ( "$argv[$ac]" == "-box_focus_slices" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set refbox_add[1] = "-box_focus_slices"
+        set refbox_add[2] = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        set allclean = "-pass"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+if ( "$ulay" == "" ) then
+    echo "** ERROR: missing motion censor file! Use '-ulay ..'"
+    goto BAD_EXIT
+endif
+
+if ( "$olay" == "" ) then
+    echo "** ERROR: missing motion censor file! Use '-olay ..'"
+    goto BAD_EXIT
+endif
+
+# ===================== output dir + wdir =======================
+ 
+# check output directory, use input one if nothing given
+
+if ( ! -e $odir ) then
+    echo "++ Making new output directory: $odir"
+    \mkdir -p $odir
+endif
+
+if ( 0 ) then # !!! off
+# make the working directory
+if ( ! -e $odir/$wdir ) then
+    echo "++ Making working directory: $odir/$wdir"
+    \mkdir -p $odir/$wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $odir/$wdir"
+endif
+endif
+
+# =========================== Actual Plots ==============================
+
+\mkdir -p $odir
+
+set idx  = 0
+
+set uin  = "$ulay"
+set uout = "${tpref}_${idx}_cp.nii"
+3dcalc                                      \
+    -a "$uin"                               \
+    -expr 'a'                               \
+    -prefix "$uout"
+@ idx += 1
+
+set uin  = "$uout"
+set uout = "${tpref}_${idx}_ulay_shrp.nii"
+3dSharpen \
+    -prefix "${uout}"                       \
+    -phi 0.6                                \
+    -input "${uin}"
+@ idx += 1
+
+set fin  = "$olay"
+set fout = "${tpref}_${idx}_res.nii"
+3dAllineate \
+    -input  "$fin"            \
+    -master "$ulay"           \
+    -prefix "$fout"           \
+    -1Dparam_apply IDENTITY   \
+    -final cubic
+@ idx += 1
+
+set mout = ${tpref}_${idx}_mask.nii
+3dAutomask                             \
+    -prefix ${mout}                    \
+    "$fout"
+@ idx += 1
+
+set fin  = "$fout"
+set fout = "${tpref}_${idx}_mfilt.nii"
+3dMedianFilter                       \
+    -irad 1.01                       \
+    -iter 1                          \
+    -prefix "$fout"                  \
+    "$fin"
+@ idx += 1
+
+set fin  = "$fout"
+set fout = "${tpref}_${idx}_edgy.nii"
+3dedge3 -overwrite -prefix "${fout}" -input "${fin}"
+@ idx += 1
+
+set fin  = "$fout"
+set fout = "${tpref}_${idx}_edge_mskd.nii"
+3dcalc -a $mout -b $fin -expr 'a*b' -prefix "${fout}" 
+@ idx += 1
+
+set vvv  = `3dBrickStat -non-zero -percentile 1 1 1 ${fout}`
+set ethr = $vvv[2]
+
+# Like snapshot volreg
+## set opacity = 9, because one can't really see under the lines
+## usefully, anyways
+# Ulay isn't so dark to see more contrast in stuff
+
+if ( 0 ) then
+# one set
+@chauffeur_afni                             \
+    -ulay  "${uout}"                        \
+    "${refbox_add[1]}"  "$refbox_add[2]"    \
+    -olay  "${fout}"                        \
+    -ulay_range 0% 120%                     \
+    -func_range_perc_nz 33                  \
+    -cbar "Reds_and_Blues_Inv"              \
+    -set_subbricks 0 0 0                    \
+    -olay_alpha Yes                         \
+    -olay_boxed Yes                         \
+    -thr_olay $ethr                         \
+    -opacity 9                              \
+    -prefix   "$odir/${opref}"              \
+    -montx $Nx -monty 1                     \
+    -save_ftype JPEG                        \
+    -set_xhairs OFF                         \
+    -label_mode 1 -label_size 3             \
+    $allclean
+endif
+
+# other type
+@chauffeur_afni                             \
+    -ulay  "${uout}"                        \
+    "${refbox_add[1]}"  "$refbox_add[2]"    \
+    -olay  "${fout}"                        \
+    -ulay_range 0% 120%                     \
+    -func_range_perc_nz 33                  \
+    -cbar "Reds_and_Blues_Inv"              \
+    -set_subbricks 0 0 0                    \
+    -olay_alpha No                          \
+    -olay_boxed No                          \
+    -thr_olay $ethr                         \
+    -opacity 9                              \
+    -prefix   "$odir/${opref}"              \
+    -montx $Nx -monty 1                     \
+    -save_ftype JPEG                        \
+    -set_xhairs OFF                         \
+    -label_mode 1 -label_size 3             \
+    $allclean
+
+# ---------------------------------------------------------------------
+
+if ( $DO_CLEAN == 1 ) then
+    echo "\n+* Removing temporary files '${tpref}*'\n"
+    \rm ${tpref}*
+else
+    echo "\n+* NOT removing temporary files '${tpref}*'\n"
+endif
+
+echo ""
+echo "++ DONE! Image output:"
+echo "       ${odir}/${opref}"
+echo ""
+
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+More helpful helpfile description coming (some day...)
+
+This is just a helper script for other things.
+
+written by PA Taylor, modelled heavily on RW Cox's '@snapshot_volreg'
+script
+
+# --------------------------------------------------------------------
+
+COMMAND OPTIONS ~1~
+
+-hview
+-help
+-ver
+-ulay
+-olay
+-prefix
+-box_focus_slices
+-no_clean
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

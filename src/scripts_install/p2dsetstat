@@ -1,0 +1,328 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set version   = "1.0";  set rev_dat   = "April 16, 2018"
+# + convert p value to a stat, using header info from a dset brick to
+#   get supplementary requirements like DOF, etc.
+#
+set version   = "1.1";  set rev_dat   = "May 21, 2018"
+# + allow "bisided" as a type of test (=2sided, for p-to-stat
+#   conversion)
+#
+# ---------------------------------------------------------------
+
+set this_prog = "p2dsetstat"
+set tpname    = "${this_prog:gas/fat_proc_//}"
+set here      = $PWD
+
+# ----------------------- set defaults --------------------------
+
+set here = $PWD
+
+set ibrick    = ""      # a single brick of a volume
+set ipval     = ""      # to be p-value
+set MULTFAC   = 0       # this MUST be set with: -1sided|-2sided|-bisided
+set NOQUIET   = 1
+
+# Get info stored in header about: what kind of stat is stored, what
+# params are known about it (e.g., degrees of freedom), and use that
+# to calculate a value corresponding to user's selected p-value.  This
+# involves "reading attributes" from the header with 3dAttribute. To
+# learn more about these numbers, see:
+# https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
+# Need 2 conditions here: a pval entered, and a subbrick index for the
+# thr dset specified
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+
+    # Should just be one specific brick (i.e., subbrick) here
+
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ibrick = "$argv[$ac]"
+
+    # a pvalue, 0 <= p <= 1
+
+    else if ( "$argv[$ac]" == "-pval" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ipval = $argv[$ac]
+
+    # And one, and only one, of the following is required to specify
+    # tailedness:
+
+    else if ( "$argv[$ac]" == "-1sided" ) then
+        set MULTFAC = 2
+    else if ( "$argv[$ac]" == "-2sided" ) then
+        set MULTFAC = 1
+    else if ( "$argv[$ac]" == "-bisided" ) then
+        set MULTFAC = 1
+
+    # can specify quietude
+    else if ( "$argv[$ac]" == "-quiet" ) then
+        set NOQUIET = 0
+
+   endif
+   @ ac += 1
+end
+
+# ========================= check inputs ==============================
+
+if ( "$ibrick" == "" ) then
+    echo "** ERROR: you forgot to input '-inset ...' !"
+    goto BAD_EXIT
+endif
+
+if ( "$ipval" == "" ) then
+    echo "** ERROR: you forgot to input '-pval ...' !"
+    goto BAD_EXIT
+endif
+
+
+# make sure we can read volumes OK
+set check = `3dinfo "$ibrick"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find/read input file:  $ibrick !"
+    goto BAD_EXIT
+else
+    set ibrick_nv = `3dinfo -nv "$ibrick"`
+
+    if ( `echo "$ibrick_nv > 1" | bc -l` ) then
+        echo "** ERROR: too many volumes selected via :  $ibrick !"
+        echo "          Select only *one* volume, please!"
+        goto BAD_EXIT
+    endif
+
+    if ( $NOQUIET ) then
+        echo "++ Found input file : $ibrick"
+    endif
+endif
+
+# Check p-value range
+set check2 = `echo "$ipval < 0 || $ipval > 1" | bc -l`
+
+if ( $check2 ) then
+    echo "** ERROR! Input p-value ($ipval) is outside bounds of [0, 1]."
+    goto BAD_EXIT
+endif
+
+if ( $MULTFAC == 0 ) then
+    echo "** ERROR! Specify one of: '-bisided', '-2sided' or '-1sided' testing."
+    goto BAD_EXIT
+endif
+
+# Apply p-value and check again!
+set tpval = `echo "$ipval * $MULTFAC" | bc -l`
+set check3 = `echo "$tpval < 0 || $tpval > 1" | bc -l`
+if ( $check3 ) then
+    echo "** ERROR! Tailed p-value ($tpval) is outside bounds of [0, 1]."
+    echo "   You can't have a p-value that large for that tailedness!"
+    goto BAD_EXIT
+endif
+
+# ======================== do calc ================================
+
+# Get info from header about stat of certain brick.
+set my_bstats = `3dAttribute BRICK_STATAUX "$ibrick"`
+
+if ( "$my_bstats" == "" ) then
+    echo ""
+    echo "** ERROR! ... which is to say, the selected subbrick does NOT appear to be a statistic!"
+    goto BAD_EXIT
+
+endif
+
+## Interval of allowed stats, by code number; basically, could be:
+## corr coef, t-stat, F-stat or z-score.
+set OK_STAT = "0"
+foreach i ( `seq 2 1 5` )
+    if ( "${my_bstats[2]}" == "$i" ) then
+        set OK_STAT = "1"
+    endif
+end
+
+# If we have a stat, interpret the numbers stored about it.
+if ( "$OK_STAT" == "1" ) then
+    set my_stype = `@statauxcode ${my_bstats[2]}`
+
+    set my_npars = ${my_bstats[3]}
+    set my_pars = ()
+    foreach i ( `seq 1 1 $my_npars` ) 
+        @ ii = 3 + $i
+        set my_pars = ( $my_pars "${my_bstats[$ii]}" )
+    end
+
+    # Calculate the stat value associated with the user's p-value,
+    # and store it in a variable for later user.
+    set my_cdf  = `cdf -p2t "$my_stype" "${tpval}" ${my_pars}`
+    # same name as thr val that could be put in directly
+    set thrnew  = "$my_cdf[3]"
+
+    if ( $NOQUIET ) then
+        echo "++ OK stat type     : $my_stype"
+        echo "++ BRICK_STATAUX    : $my_bstats"
+        echo "++        params    : $my_pars"
+        echo "++ Final stat val   : $my_cdf[3]"
+    else
+        echo "$my_cdf[3]"
+    endif
+
+    goto GOOD_EXIT
+
+else
+    echo "**ERROR: unworkable stat type!  Bad code: ${my_bstats[2]}"
+    goto BAD_EXIT
+endif
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+    This program converts a p-value to a statistic of choice, with
+    reference to a particular dataset.
+
+    Often to convert a p-value to a statistic, supplementary
+    information is needed, such as number of degrees of freedom.  AFNI
+    programs that write statistics do store that info in headers, and
+    this program is meant to be a useful to do conversions based on
+    that: the user provides the p-value and the specific [i]th brick
+    of the dataset in question, and a single number is output to
+    screen.
+
+    This program should give equivalent results to other AFNI programs
+    like ccalc and cdf, but with less work by the user.
+
+    **Note that the user will have to choose explicitly whether they
+      are doing one-sided or bi-sided/two-sided testing!** This is
+      equivalent to choosing "Pos&Neg" or just "Pos" (or just "Neg",
+      if the user multiplies the output by a negative) in the AFNI
+      GUI's clickable p-to-statistic calculator.
+
+    Ver. $version (PA Taylor, ${rev_dat})
+
+-------------------------------------------------------------------------
+
+  RUNNING:
+
+  $this_prog  \
+        -inset   DDD'[i]'                     \
+        -pval    P                            \
+        -bisided|-2sided|-1sided              \
+        {-quiet}
+
+  where:
+    -inset  DDD'[i]'
+               :specify a dataset DDD and, if it has multiple sub-bricks,
+                the [i]th subbrick with the statistic of interest MUST
+                be selected explicitly; note the use of quotation marks 
+                around the brick selector (because of the square-brackets).
+
+    -pval  P   :input p-value P, which MUST be in the interval [0,1].
+
+    -bisided
+       or
+    -2sided
+       or
+    -1sided    :one of these two options MUST be chosen, and it is up
+                to the researcher to choose which.
+
+    -quiet     :an optional flag so that output ONLY the final statistic
+                value output to standard output; this can be then be
+                viewed, redirected to a text file or saved as a shell
+                variable.  (Default: display supplementary text.)
+
+-------------------------------------------------------------------------
+
+  OUTPUTS: 
+
+    The types of statistic values that can be calculated are:
+        corr coef, t-stat, F-stat or z-score.
+
+    If "-quiet" is used, then basically just a single number (the
+    converted statistic value) is output.  See examples for saving
+    this in a file or variable. (A 3dinfo message shown is ignorable
+    and won't affect saving/writing the variable.)
+
+    Without the "-quiet" option, some descriptive text is also output
+    with the calculation, stating what kind of statistic is being
+    output, etc.  
+
+    If you want to know more about the cryptic outputs in the
+    non-quiet usage of this program, you may look upon "BRICK_STATAUX"
+    on this webpage:
+    https://afni.nimh.nih.gov/pub/dist/doc/program_help/README.attributes.html
+    and tremble.
+
+-------------------------------------------------------------------------
+
+  EXAMPLES:
+
+    In all cases note the use of the single quotes around the subbrick
+    selector-- these are necessary!
+
+    # 1) Do a calculation and display various informations to screen:
+    $this_prog  \
+        -inset stats.sub01+tlrc'[2]'            \
+        -pval 0.001                             \
+        -bisided
+    
+    # 2) Do a calculation and just display a single number:
+    $this_prog  \
+        -inset stats.sub01+tlrc'[2]'            \
+        -pval 0.0005                            \
+        -1sided                                 \
+        -quiet
+
+    # 3) Do a calculation and store the output number as a variable,
+    #    using tcsh syntax:
+    set my_stat = \`$this_prog  \
+                    -inset stats.sub02+tlrc'[8]'            \
+                    -pval 0.001                             \
+                    -bisided                                \
+                    -quiet\`
+
+    # 4) Do a calculation and store the output number into a text
+    #    file:
+    $this_prog  \
+        -inset stats.sub02+tlrc'[8]'            \
+        -pval 0.001                             \
+        -bisided                                \
+        -quiet > MY_STAT_FILE.txt
+
+-------------------------------------------------------------------------
+
+EOF
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+   exit 1
+
+GOOD_EXIT:
+   exit 0

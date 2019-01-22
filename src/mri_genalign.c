@@ -629,6 +629,31 @@ ENTRY("GA_scalar_costfun") ;
       }
     }
     break ;
+
+    /* 28 Nov 2018: combined method, but for lpa instead of lpc [RWC] */
+
+    case GA_MATCH_LPA_MICHO_SCALAR:{
+      val = (double)GA_pearson_local( gstup->npt_match, avm, bvm,wvm ) ;
+      val = 1.0 - fabs(val) ;
+
+      if( micho_hel != 0.0 || micho_mi  != 0.0 ||
+          micho_nmi != 0.0 || micho_crA != 0.0   ){
+        float_quad hmc ; float ovv ;
+        hmc = THD_helmicra_scl( gstup->npt_match ,
+                                gstup->ajbot , gstup->ajclip , avm ,
+                                gstup->bsbot , gstup->bsclip , bvm , wvm ) ;
+        val += -micho_hel * hmc.a - micho_mi  * hmc.b
+               +micho_nmi * hmc.c + micho_crA * (1.0-fabs(hmc.d)) ;
+
+        if( micho_ov != 0.0 && gstup->bsmask != NULL && gstup->ajmask != NULL ){
+          ovv = GA_get_warped_overlap_fraction() ;
+          ovv = MAX(0.0f,9.95f-10.0f*ovv) ;
+          val += micho_ov * ovv*ovv ;
+        }
+      }
+    }
+    break ;
+
   }
 
   if( !isfinite(val) ) val = BIGVAL ;
@@ -1476,7 +1501,7 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    twof = 1 << nfr ;  /* 2^nfr */
 
    if( mverb > 1 ) ININFO_message("- number of free params = %d",nfr) ;
-   if( mverb )     fprintf(stderr," + - Testing (%d+%d)*%d params:#",ngtot,nrand,twof) ;
+   if( mverb )     fprintf(stderr," + - Test (%d+%d)*%d params [top5=%s]:#",ngtot,nrand,twof,mrk) ;
 
    myunif_reset(3456789) ;  /* 27 Aug 2008 */
 
@@ -1545,13 +1570,16 @@ ENTRY("mri_genalign_scalar_ransetup") ;
    /* try a little optimization on each of these parameter sets */
 
    vbest = BIGVAL ; jj = 0 ; if( icod != MRI_NN ) stup->interp_code = MRI_LINEAR ;
+   if( mverb ) fprintf(stderr," + - A little optimization:") ;
    for( kk=0 ; kk < ngood ; kk++ ){
      if( kval[kk] >= BIGVAL ) continue ;  /* should not happen */
      (void)powell_newuoa( nfr , kpar[kk] ,
                           0.05 , 0.005 , 11*nfr+17 , GA_scalar_fitter ) ;
      kval[kk]  = GA_scalar_fitter( nfr , kpar[kk] ) ;
      if( kval[kk] < vbest ){ vbest = kval[kk]; jj = kk; }
+     if( mverb ) fprintf(stderr,".") ;
    }
+   if( mverb ) fprintf(stderr,"\n") ;
    stup->vbest = vbest ;  /* save for user's edification */
 
    for( kk=0 ; kk < ngood ; kk++ )  /* make sure are in 0..1 range */
@@ -2148,6 +2176,19 @@ static mat44 rot_matrix( int ax1, double th1,
    LOAD_ROT_MAT44( p , th3 , ax3 ) ; q = MAT44_MUL( p , q ) ;
 
    return q ;
+}
+
+/*--------------------------------------------------------------------------*/
+/* Net rotation given 3 perpendicular angles [02 Jan 2019] */
+
+float total_rotation_degrees( float ax, float ay, float az )
+{
+   mat44 rr ; double cth , th ;
+
+   rr  = rot_matrix( 0,D2R*ax , 1,D2R*ay , 2,D2R*az ) ;
+   cth = 0.5 * sqrt( 1.0 + rr.m[0][0] + rr.m[1][1] + rr.m[2][2] ) ;
+   th  = 360.0 / PI * acos(cth) ;
+   return (float)th ;
 }
 
 /*--------------------------------------------------------------------------*/

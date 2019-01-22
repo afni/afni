@@ -56,4 +56,3 @@ done
 # make list unique
 lst=`echo $lst2 | tr ' ' '\n' | sort -u`;
 echo $lst
-

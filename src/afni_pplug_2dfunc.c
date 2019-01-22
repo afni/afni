@@ -61,6 +61,15 @@ static void F2D_chainfunc( int , int , double , double , float * ) ;
 #define NUM_CHAIN 8
 static char alpha[27] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
 
+#undef  RR
+#undef  SS
+#undef  TT
+#undef  UU
+#undef  VV
+#undef  WW
+#undef  XX
+#undef  YY
+#undef  ZZ
 #define RR 17
 #define SS 18
 #define TT 19

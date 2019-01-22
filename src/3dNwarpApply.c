@@ -4,6 +4,7 @@
 #include <omp.h>
 #endif
 
+/* bodily include the relevant interpolation and warp functions, for speed */
 #include "mri_genalign_util.c"
 #include "mri_genalign.c"
 #include "mri_nwarp.c"
@@ -12,7 +13,7 @@
 
 void NWA_help(void)
 {
-     printf(
+     printf("\n"
       "Usage: 3dNwarpApply [options]\n"
       "\n"
       "Program to apply a nonlinear 3D warp saved from 3dQwarp (or 3dNwarpCat, etc.)\n"
@@ -32,8 +33,23 @@ void NWA_help(void)
       "    warped the same way at once.  This operation is more efficient than running\n"
       "    3dNwarpApply several times, since the auto-regridding and auto-catenation\n"
       "    in '-nwarp' will only have to be done once.\n"
-      "(3a) Specification of the output dataset names can be done via multiple\n"
+      "  *  Specification of the output dataset names can be done via multiple\n"
       "     arguments to the '-prefix' option, or via the new '-suffix' option.\n"
+      "\n"
+      "New Feature [28 Mar 2018]:\n"
+      "(4) If a source dataset contains complex numbers, then 3dNwarpApply will warp\n"
+      "    the real and imaginary parts separately, combine them, and produce a\n"
+      "    complex-valued dataset as output.\n"
+      "  *  Previously, the program would have warped the magnitude of the input\n"
+      "     dataset and written out a float-valued dataset.\n"
+      "  *  No special option is needed to warp complex-valued datasets.\n"
+      "  *  If you WANT to warp the magnitude of a complex-valued dataset, you will\n"
+      "     have to convert the dataset to a float dataset via 3dcalc, then use\n"
+      "     3dNwarpApply on THAT dataset instead.\n"
+      "  *  You cannot use option '-short' with complex-valued source datasets!\n"
+      "     More precisely, you can try to use this option, but it will be ignored.\n"
+      "  *  This ability is added for those of you who deal with complex-valued\n"
+      "     EPI datasets (I'm looking at YOU, O International Man of Mystery).\n"
       "\n"
       "OPTIONS:\n"
       "--------\n"
@@ -41,7 +57,11 @@ void NWA_help(void)
       "                (this is a mandatory option!)\n"
       "               ++ Multiple warps can be catenated here.\n"
       "             -->> Please see the lengthier discussion below on this feature!\n"
-      "    ++ NOTE WELL: The interpretation of this option has changed,\n"
+      "             -->> Also see the help for 3dNwarpCat for some more information\n"
+      "                  on the formats allowed for inputting warp fields; for\n"
+      "                  example, warping in one direction only (e.g., 'AP') is\n"
+      "                  possible.\n"
+      "    ++ NOTE WELL: The interpretation of this option has changed somewhat,\n"
       "                  as of 01 Dec 2014.  In particular, this option is\n"
       "                  generalized from the version in other programs, including\n"
       "                  3dNwarpCat, 3dNwarpFuncs, and 3dNwarpXYZ.  The major\n"
@@ -98,7 +118,8 @@ void NWA_help(void)
       "                ++ In particular, if the transformation includes a\n"
       "                   long-distance translation, then the source dataset\n"
       "                   grid may not have a lot of overlap with the source\n"
-      "                   dataset after it is transformed!\n"
+      "                   dataset after it is transformed -- in this case, you\n"
+      "                   really want to use this '-master' option.\n"
       "\n"
       " -newgrid dd  = 'dd' is the new grid spacing (cubical voxels, in mm)\n"
       "   *OR        = ++ This lets you resize the master dataset grid spacing.\n"
@@ -155,6 +176,8 @@ void NWA_help(void)
       "                   No scaling is performed.\n"
       "                ++ This option is intended for use with '-ainterp' and for\n"
       "                   source datasets that contain integral values.\n"
+      "                ++ If the source dataset is complex-valued, this option will\n"
+      "                   be ignored.\n"
       "\n"
       " -quiet       = Don't be verbose :-(\n"
       " -verb        = Be extra verbose :-)\n"
@@ -314,7 +337,7 @@ void NWA_help(void)
       "\n"
       "  ++ When you specify a nonlinear warp dataset, you can use the 'SQRT()' and\n"
       "     'INV()' and 'INVSQRT()' operators, as well as the various 1D-to-3D\n"
-      "     displacement prefixes ('AP:' 'RL:' 'IS:' 'VEC:' 'FAC:') -- \n"
+      "     displacement prefixes ('AP:' 'RL:' 'IS:' 'VEC:', as well as 'FAC:') -- \n"
       "     for example, the following is a legal (and even useful) definition of a\n"
       "     warp herein:\n"
       "        'SQRT(AP:epi_BU_yWARP+orig)'\n"
@@ -326,7 +349,18 @@ void NWA_help(void)
       "      warp them into the 'intermediate location' which should be better aligned\n"
       "      with the subject's anatomical datasets.\n"
       " -->+ However: see also the '-plusminus' option for 3dQwarp for another way to\n"
-      "      reach the same goal.\n"
+      "      reach the same goal, as well as the unWarpEPI.py script.\n"
+      "    + See the output of 3dNwarpCat -help for a little more information on the\n"
+      "      1D-to-3D warp prefixes ('AP:' 'RL:' 'IS:' 'VEC:').\n"
+      "\n"
+      "  ++ You can scale the displacements in a 3D warp file via the 'FAC:' prefix, as in\n"
+      "       FAC:0.6,0.4,-0.2:fred_WARP.nii\n"
+      "     which will scale the x-displacements by 0.6, the y-displacements by 0.4, and\n"
+      "     the z-displacments by -0.2.\n"
+      "   + So if you need to reverse the sign of x- and y-displacments, since in AFNI\n"
+      "     +x=Left and +y=Posterior while another package uses +x=Right and +y=Anterior,\n"
+      "     you could use 'FAC:-1,-1,1:Warpdatasetname' to apply a warp from that\n"
+      "     other software package.\n"
       "\n"
       "  ++ You can also use 'IDENT(dataset)' to define a \"nonlinear\" 3D warp whose\n"
       "     grid is defined by the dataset header -- nothing else from the dataset will\n"
@@ -340,6 +374,25 @@ void NWA_help(void)
       "  warp is already included in the output nonlinear warp from 3dQwarp, and so it\n"
       "  does NOT need to be applied again in 3dNwarpApply!  This mistake has been made\n"
       "  in the past, and the results were not good.\n"
+      "\n"
+      "* When using '-allineate' in 3dQwarp, and when there is a large coordinate shift\n"
+      "  between the base and source datasets, then the _WARP dataset output by 3dQwarp\n"
+      "  will cover a huge grid to encompass both the base and source. In turn, this\n"
+      "  can cause 3dNwarpApply to need a lot of memory when it applies that warp.\n"
+      "  ++ Some changes were made [Jan 2019] to reduce the size of this problem,\n"
+      "     but it still exists.\n"
+      "  ++ We have seen this most often in source datasets which have the (0,0,0)\n"
+      "     point not in the middle of the volume, but at a corner of the volume.\n"
+      "     Since template datasets (such as MNI152_2009_template_SSW.nii.gz) have\n"
+      "     (0,0,0) inside the brain, a dataset with (0,0,0) at a corner of the 3D\n"
+      "     volume will need a giant coordinate shift to match the template dataset.\n"
+      "     And in turn, the encompassing grid that overlaps the source and template\n"
+      "     (base) datasets will be huge.\n"
+      "  ++ The simplest way to fix this problem is to do something like\n"
+      "       @Align_Centers -base MNI152_2009_template_SSW.nii.gz -dset Fred.nii\n"
+      "     which will produce dataset Fred_shft.nii, that will have its grid\n"
+      "     center approximately lined up with the template (base) dataset.\n"
+      "     And from then on, use Fred_shft.nii as your input dataset.\n"
      ) ;
 
      PRINT_AFNI_OMP_USAGE("3dNwarpApply",NULL) ; PRINT_COMPILE_DATE ;
@@ -685,6 +738,10 @@ int main( int argc , char *argv[] )
    if( dset_srcar == NULL )
      ERROR_exit("No -source option?  What do you want to do? :-(") ;
 
+#ifdef USING_MCW_MALLOC
+   if( verb > 1 ){ enable_mcw_malloc() ; }
+#endif
+
    /*-- deal with extra or insufficient prefixes --*/
 
    if( nprefix > dset_srcar->num ){  /* extra */
@@ -716,16 +773,18 @@ int main( int argc , char *argv[] )
 
    if( ainter_code < 0 ) ainter_code = interp_code ;
 
-   verb_nww = verb ;  /* verb_nww used in warping functions in mri_nwarp.c */
+   /* verb_nww = global variable used in warping functions in mri_nwarp.c */
+
+   verb_nww = AFNI_yesenv("AFNI_DEBUG_WARP") ? 2 : verb ;
 
    /*--- read and setup the list of nonlinear warps ---*/
 
-   if( verb ) fprintf(stderr,"++ Processing -nwarp ") ;
+   if( verb || verb_nww ) fprintf(stderr,"++ Processing -nwarp ") ;
 
    /* read the list */
 
    nwc = IW3D_read_nwarp_catlist( nwc_string ) ;
-   if( verb ) fprintf(stderr,"\n") ;
+   if( verb && verb_nww < 2 ) fprintf(stderr,"\n") ;
 
    if( nwc == NULL )
      ERROR_exit("Cannot process warp string '%s'",nwc_string) ;
@@ -760,16 +819,20 @@ int main( int argc , char *argv[] )
    /* here is where geometry of nonlinear warps is harmonized (if needed) */
 
    if( nwc->actual_geomstring == NULL )
-     IW3D_set_geometry_nwarp_catlist( nwc , EDIT_get_geometry_string(dset_mast) ) ;
+     IW3D_set_geometry_nwarp_catlist( nwc, EDIT_get_geometry_string(dset_mast) ) ;
 
    /* combine warps (matrices and datasets) to the extent possible */
 
-   IW3D_reduce_nwarp_catlist( nwc ) ;  /* may already have been done */
+   IW3D_reduce_nwarp_catlist( nwc ) ;  /* IW3D_read_nwarp_catlist may do this */
+   NI_sleep(1) ;
 
    /*--------- the actual work of warping ---------*/
 
+   if( verb > 1 || verb_nww > 1 )
+     INFO_message(".......... Starting dataset warping ..........") ;
+
    dset_outar = THD_nwarp_dataset_array( nwc , dset_srcar , dset_mast , prefix ,
-                                     interp_code,ainter_code , 0.0f , wfac , 0 ) ;
+                                         interp_code,ainter_code , 0.0f , wfac , 0 ) ;
 
    if( dset_outar == NULL ) ERROR_exit("Warping failed for some reason :-(((") ;
 
@@ -781,10 +844,17 @@ int main( int argc , char *argv[] )
        dset_ooo = DSET_IN_3DARR(dset_outar,kk) ;
        nxyz = DSET_NVOX(dset_ooo) ;
        for( iv=0 ; iv < DSET_NVALS(dset_ooo) ; iv++ ){
-         far = (float *)DSET_ARRAY(dset_ooo,iv) ;
-         sar = (short *)malloc(sizeof(short)*nxyz) ;
-         EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
-         EDIT_substitute_brick( dset_ooo , iv , MRI_short,sar ) ;
+         if( DSET_BRICK_TYPE(dset_ooo,iv) == MRI_float ){
+           far = (float *)DSET_ARRAY(dset_ooo,iv) ;
+           sar = (short *)malloc(sizeof(short)*nxyz) ;
+           EDIT_coerce_type( nxyz , MRI_float,far , MRI_short,sar ) ;
+           EDIT_substitute_brick( dset_ooo , iv , MRI_short,sar ) ;
+           if( iv == 0 )
+             INFO_message("Converting %s to shorts",DSET_HEADNAME(dset_ooo)) ;
+         } else {
+           if( iv == 0 )
+             INFO_message("Cannot convert non-float %s to shorts",DSET_HEADNAME(dset_ooo)) ;
+         }
        }
      }
    }

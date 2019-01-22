@@ -786,15 +786,18 @@ void display_help_menu(int detail)
    "* Program 3dREMLfit can be used to do Generalized Least Squares (GLSQ)  \n"
    "  regression (AKA 'pre-whitened' least squares) combined with REML      \n"
    "  estimation of an ARMA(1,1) temporal correlation structure:            \n"
-   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   \n"
+   "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dREMLfit.html   \n"
    "* The input to 3dREMLfit is the .xmat.1D matrix file output by          \n"
    "  3dDeconvolve, which also writes a 3dREMLfit command line to a file    \n"
    "  to make it relatively easy to use the latter program.                 \n"
+   "* 3dREMLfit also allows for voxel-specific regressors, unlike           \n"
+   "  3dDeconvolve. This feature is used with the '-fanaticor' option       \n"
+   "  to afni_proc.py, for example.                                         \n"
    "* Nonlinear time series model fitting can be done with program 3dNLfim: \n"
-   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     \n"
+   "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dNLfim.html     \n"
    "* Preprocessing of the time series input can be done with various AFNI  \n"
    "  programs, or with the 'uber-script' afni_proc.py:                     \n"
-   "    https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
+   "   https://afni.nimh.nih.gov/pub/dist/doc/program_help/afni_proc.py.html\n"
    "------------------------------------------------------------------------\n"
    "------------------------------------------------------------------------\n"
    "****  The recommended way to use 3dDeconvolve is via afni_proc.py,  ****\n"
@@ -820,7 +823,7 @@ void display_help_menu(int detail)
    "a deconvolution problem (in either direction) with L1 or L2 regression, \n"
    "and with sign constraints on the computed values (e.g., requiring that  \n"
    "the output S(t) or K(t) be non-negative):                               \n"
-   "  https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
+   " https://afni.nimh.nih.gov/pub/dist/doc/program_help/3dTfitter.html     \n"
    "------------------------------------------------------------------------\n"
    "The 'baseline model' in 3dDeconvolve (and 3dREMLfit) does not mean just \n"
    "a constant (mean) level of the signal, or even just the slow drifts that\n"
@@ -843,7 +846,7 @@ void display_help_menu(int detail)
    "against the full model with just that set of regressors removed.  If    \n"
    "this explanation or its consequences are unclear, you need to consult   \n"
    "with a statistician, or with the AFNI message board guru entities       \n"
-   "(when they can be lured down from the peak of Mt Taniquetil).           \n"
+   "(when they can be lured down from the peak of Mt Taniquetil or Kailash).\n"
    "------------------------------------------------------------------------\n"
    "Regression Programs in the AFNI Package:                                \n"
    "* At its core, 3dDeconvolve solves a linear regression problem z = X b  \n"
@@ -855,13 +858,14 @@ void display_help_menu(int detail)
    "  Generalized Least Squares (GLSQ).                                     \n"
    "* If you want to solve a problem where some of the matrix columns in X  \n"
    "  (the regressors) are different in different voxels (spatially variable),\n"
-   "  then use program 3dTfitter, which uses OLSQ.                          \n"
+   "  then use program 3dTfitter, which uses OLSQ, or used 3dREMLfit.       \n"
    "* 3dTfitter can also use L1 and LASSO regression, instead of OLSQ; if you\n"
    "  want to use such 'robust' fitting methods, this program is your friend.\n"
    "  It can also impose sign constraints (positivity or negativity) on the \n"
    "  parameters b, and can (as mentioned above) do deconvolution.          \n"
-   "* 3dBandpass can do a sequence of 'time series cleanup' operations,     \n"
-   "  including regressing out (via OLSQ) a set of nuisance vectors.        \n"
+   "* 3dBandpass and 3dTproject can do a sequence of 'time series cleanup'  \n"
+   "  operations, including 'regressing out' (via OLSQ) a set of nuisance   \n"
+   "  vectors (columns).                                                    \n"
    "* 3dLSS can be used to solve -stim_times_IM systems using an alternative\n"
    "  linear technique that gives biased results, but with smaller variance.\n"
    "------------------------------------------------------------------------\n"
@@ -870,7 +874,8 @@ void display_help_menu(int detail)
     "Usage Details:                                                         \n"
     PROGRAM_NAME " command-line-arguments ...\n"
     "                                                                       \n"
-    "**** Input data and control options:                                   \n"
+    "**** Input data and control options ****                               \n"
+    "\n"
     "-input fname         fname = filename of 3D+time input dataset         \n"
     "                       [more than  one filename  can  be  given]       \n"
     "                       [here,   and  these  datasets  will   be]       \n"
@@ -893,6 +898,7 @@ void display_help_menu(int detail)
     "                   * You should use '-force_TR' to set the TR of       \n"
     "                     the 1D 'dataset' if you use '-input' rather       \n"
     "                     than '-input1D' [the default is 1.0 sec].         \n"
+    "\n"
     "-sat OR -trans     * 3dDeconvolve can check the dataset time series    \n"
     "                     for initial saturation transients, which should   \n"
     "                     normally have been excised before data analysis.  \n"
@@ -900,6 +906,7 @@ void display_help_menu(int detail)
     "                     consuming check, use the option '-sat'.           \n"
     "                   * Or set environment variable AFNI_SKIP_SATCHECK to NO.\n"
     "                   * Program 3dSatCheck does this check, also.         \n"
+    "\n"
     "[-noblock]           Normally, if you input multiple datasets with     \n"
     "                     '-input', then the separate datasets are taken to \n"
     "                     be separate image runs that get separate baseline \n"
@@ -909,21 +916,27 @@ void display_help_menu(int detail)
     "                     then this option is automatically invoked!        \n"
     "                   * If the auto-catenation feature isn't used, then   \n"
     "                     this option has no effect, no how, no way.        \n"
+    "\n"
     "[-force_TR TR]       Use this value of TR instead of the one in        \n"
     "                     the -input dataset.                               \n"
     "                     (It's better to fix the input using 3drefit.)     \n"
+    "\n"
     "[-input1D dname]     dname = filename of single (fMRI) .1D time series \n"
     "                             where time run downs the column.          \n"
+    "\n"
     "[-TR_1D tr1d]        tr1d = TR for .1D time series [default 1.0 sec].  \n"
     "                     This option has no effect without -input1D        \n"
+    "\n"
     "[-nodata [NT [TR]]   Evaluate experimental design only (no input data) \n"
     "                   * Optional, but highly recommended: follow the      \n"
     "                     '-nodata' with two numbers, NT=number of time     \n"
     "                     points, and TR=time spacing between points (sec)  \n"
+    "\n"
     "[-mask mname]        mname = filename of 3D mask dataset               \n"
     "                      Only data time series from within the mask       \n"
     "                      will be analyzed; results for voxels outside     \n"
     "                      the mask will be set to zero.                    \n"
+    "\n"
     "[-automask]          Build a mask automatically from input data        \n"
     "                      (will be slow for long time series datasets)     \n"
     "                  ** If you don't specify ANY mask, the program will   \n"
@@ -940,6 +953,7 @@ void display_help_menu(int detail)
     "                   * To be precise, the above default masking only     \n"
     "                      happens when you use '-input' to run the program \n"
     "                      with a 3D+time dataset; not with '-input1D'.     \n"
+    "\n"
     "[-STATmask sname]    Build a mask from file 'sname', and use this      \n"
     "                       mask for the purpose of reporting truncation-to \n"
     "                       float issues AND for computing the FDR curves.  \n"
@@ -950,12 +964,14 @@ void display_help_menu(int detail)
     "                         purposes.  If neither of those is given, then \n"
     "                         the automatically generated mask described    \n"
     "                         just above is used for these purposes.        \n"
+    "\n"
     "[-censor cname]      cname = filename of censor .1D time series        \n"
     "                   * This is a file of 1s and 0s, indicating which     \n"
     "                     time points are to be included (1) and which are  \n"
     "                     to be excluded (0).                               \n"
     "                   * Option '-censor' can only be used once!           \n"
     "                   * The option below may be simpler to use!           \n"
+    "\n"
     "[-CENSORTR clist]    clist = list of strings that specify time indexes \n"
     "                       to be removed from the analysis.  Each string is\n"
     "                       of one of the following forms:                  \n"
@@ -973,16 +989,20 @@ void display_help_menu(int detail)
     "                      +N.B.: 2:37,47 means index #37 in run #2 and     \n"
     "                        global time index 47; it does NOT mean         \n"
     "                        index #37 in run #2 AND index #47 in run #2.   \n"
+    "\n"
     "[-concat rname]      rname = filename for list of concatenated runs    \n"
     "                      * 'rname' can be in the format                   \n"
     "                          '1D: 0 100 200 300'                          \n"
     "                        which indicates 4 runs, the first of which     \n"
     "                        starts at time index=0, second at index=100,   \n"
     "                        and so on.                                     \n"
+    "\n"
     "[-nfirst fnum]       fnum = number of first dataset image to use in the\n"
     "                       deconvolution procedure. [default = max maxlag] \n"
+    "\n"
     "[-nlast  lnum]       lnum = number of last dataset image to use in the \n"
     "                       deconvolution procedure. [default = last point] \n"
+    "\n"
     "[-polort pnum]       pnum = degree of polynomial corresponding to the  \n"
     "                       null hypothesis  [default: pnum = 1]            \n"
     "                    ** For pnum > 2, this type of baseline detrending  \n"
@@ -999,24 +1019,32 @@ void display_help_menu(int detail)
     "                    ** Use '-1' for pnum to specifically NOT include   \n"
     "                       any polynomials in the baseline model.  Only    \n"
     "                       do this if you know what this means!            \n"
+    "\n"
     "[-legendre]          use Legendre polynomials for null hypothesis      \n"
     "                       (baseline model)                                \n"
+    "\n"
     "[-nolegendre]        use power polynomials for null hypotheses         \n"
     "                       [default is -legendre]                          \n"
     "                    ** Don't do this unless you are crazy!             \n"
+    "\n"
     "[-nodmbase]          don't de-mean baseline time series                \n"
     "                       (i.e., polort>0 and -stim_base inputs)          \n"
     "[-dmbase]            de-mean baseline time series [default if polort>=0]\n"
+    "\n"
     "[-svd]               Use SVD instead of Gaussian elimination [default] \n"
     "[-nosvd]             Use Gaussian elimination instead of SVD           \n"
     "                       (only use for testing + backwards compatibility)\n"
+    "\n"
     "[-rmsmin r]          r = minimum rms error to reject reduced model     \n"
     "                       (default = 0; don't use this option normally!)  \n"
+    "\n"
     "[-nocond]            DON'T calculate matrix condition number           \n"
     "                      ** This value is NOT the same as Matlab!         \n"
+    "\n"
     "[-singvals]          Print out the matrix singular values              \n"
     "                      (useful for some testing/debugging purposes)     \n"
     "                      Also see program 1dsvd.                          \n"
+    "\n"
     "[-GOFORIT [g]]       Use this to proceed even if the matrix has        \n"
     "                     bad problems (e.g., duplicate columns, large      \n"
     "                     condition number, etc.).                          \n"
@@ -1033,11 +1061,13 @@ void display_help_menu(int detail)
     "                      That is, if you use -GOFORIT 7 and 9 '!!'        \n"
     "                      matrix warnings appear, then the program will    \n"
     "                      not run.  If 'g' is not present, 1 is used.      \n"
+    "\n"
     "[-allzero_OK]        Don't consider all zero matrix columns to be      \n"
     "                      the type of error that -GOFORIT is needed to     \n"
     "                      ignore.                                          \n"
     "                     * Please know what you are doing when you use     \n"
     "                       this option!                                    \n"
+    "\n"
     "[-Dname=val]       = Set environment variable 'name' to 'val' for this \n"
     "                     run of the program only.                          \n"
     "                                                                       \n"
@@ -1154,18 +1184,20 @@ void display_help_menu(int detail)
     "   The response model is specified by the third argument after         \n"
     "   '-stim_times' ('Rmodel'), and can be one of the following:          \n"
     "    *** In the descriptions below, a '1 parameter' model has a fixed   \n"
-    "        shape, and only the amplitude varies.                          \n"
+    "        shape, and only the estimated amplitude ('Coef') varies:       \n"
+    "          BLOCK GAM TWOGAM SPMG1 WAV MION                              \n"
     "    *** Models with more than 1 parameter have multiple basis          \n"
-    "        functions, and the parameters are their amplitudes.  The       \n"
-    "        estimated shape of the response to a stimulus will be different\n"
-    "        in different voxels.                                           \n"
+    "        functions, and the estimated parameters ('Coef') are their     \n"
+    "        amplitudes. The estimated shape of the response to a stimulus  \n"
+    "        will be different in different voxels:                         \n"
+    "          TENT CSPLIN SPMG2 SPMG3 POLY SIN EXPR                        \n"
     "    *** Many models require the input of the start and stop times for  \n"
     "        the response, 'b' and 'c'.  Normally, 'b' would be zero, but   \n"
     "        in some cases, 'b' could be negative -- for example, if you    \n"
     "        are concerned about anticipatory effects.  The stop time 'c'   \n"
     "        should be based on how long you realistically expect the       \n"
     "        hemodynamic response to last after the onset of the stimulus;  \n"
-    "        e.g., the duration of the stimulus plus 14 seconds.            \n"
+    "        e.g., the duration of the stimulus plus 14 seconds for BOLD.   \n"
     "    *** If you use '-tout', each parameter will get a separate         \n"
     "        t-statistic.  As mentioned far above, this is a marginal       \n"
     "        statistic, measuring the impact of that model component on the \n"
@@ -1180,10 +1212,12 @@ void display_help_menu(int detail)
     "        duration is a parameter you give (duration is NOT a parameter  \n"
     "        that will be estimated).  Read the descriptions below carefully:\n"
     "        not all functions are (or can be) convolved in this way:       \n"
-    "        * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN           \n"
-    "        * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR      \n"
-    "        * OPTIONALLY convolved:  GAM    SPMGx    WAV                   \n"
-    "                                                                       \n"
+    "         * ALWAYS convolved:      BLOCK  dmBLOCK  MION  MIONN          \n"
+    "         * OPTIONALLY convolved:  GAM    TWOGAM   SPMGx WAV            \n"
+    "         * NEVER convolved:       TENT   CSPLIN   POLY  SIN   EXPR     \n"
+    "        Convolution is specified by providing the duration parameter   \n"
+    "        as described below for each particular model function.         \n"
+    "\n"
     "     'BLOCK(d,p)'  = 1 parameter block stimulus of duration 'd'        \n"
     "                    ** There are 2 variants of BLOCK:                  \n"
     "                         BLOCK4 [the default] and BLOCK5               \n"
@@ -1211,6 +1245,7 @@ void display_help_menu(int detail)
     "                       amplitude goes to 1 as the duration gets large. \n"
     "                       If p > 0, 'UBLOCK(d,p)' and 'BLOCK(d,p)' are    \n"
     "                       identical.                                      \n"
+    "\n"
     "     'TENT(b,c,n)' = n parameter tent function expansion from times    \n"
     "                       b..c after stimulus time [piecewise linear]     \n"
     "                       [n must be at least 2; time step is (c-b)/(n-1)]\n"
@@ -1239,16 +1274,67 @@ void display_help_menu(int detail)
     "                        be continuous, since they will now be unable   \n"
     "                        to suddenly rise up from 0 at t=b and/or drop  \n"
     "                        down to 0 at t=c.                              \n"
+    "\n"
     "     'GAM(p,q)'    = 1 parameter gamma variate                         \n"
     "                         (t/(p*q))^p * exp(p-t/q)                      \n"
     "                       Defaults: p=8.6 q=0.547 if only 'GAM' is used   \n"
     "                     ** The peak of 'GAM(p,q)' is at time p*q after    \n"
-    "                        the stimulus.  The FWHM is about 2.3*sqrt(p)*q.\n"
+    "                        the stimulus.  The FWHM is about 2.35*sqrt(p)*q;\n"
+    "                        this approximation is accurate for p > 0.3*q.  \n"
+    "                     ** To check this approximation, try the command   \n"
+    "               1deval -num 100 -del 0.02 -xzero 0.02   \\\n"
+    "                      -expr 'sqrt(gamp(x,1))/2.35/x' | \\\n"
+    "               1dplot -stdin -del 0.02 -xzero 0.02 -yaxis 1:1.4:4:10   \n"
+    "                        If the two functions gamp(x,1) and 2.35*x      \n"
+    "                        were equal, the plot would be constant y=1.    \n"
     "                 ==> ** If you add a third argument 'd', then the GAM  \n"
     "                        function is convolved with a square wave of    \n"
     "                        duration 'd' seconds; for example:             \n"
     "                          'GAM(8.6,.547,17)'                           \n"
     "                        for a 17 second stimulus.  [09 Aug 2010]       \n"
+    "     'GAMpw(K,W)'  = Same as 'GAM(p,q)' but where the shape parameters \n"
+    "                       are specified at time to peak 'K' and full      \n"
+    "                       width at half max (FWHM) 'W'. You can also      \n"
+    "                       add a third argument as the duration. The (K,W) \n"
+    "                       parameters are converted to (p,q) values for    \n"
+    "                       the actual computations; the (p,q) parameters   \n"
+    "                       are printed to the text (stderr) output.        \n"
+    "                     ** Note that if you give weird values for K and W,\n"
+    "                        weird things will happen: (tcsh syntax)        \n"
+    "                         set pp = `ccalc 'gamp(2,8)'`                  \n"
+    "                         set qq = `ccalc 'gamq(2,8)'`                  \n"
+    "                         1deval -p=$pp -q=$qq -num 200 -del 0.1  \\\n"
+    "                                -expr '(t/p/q)^p*exp(p-t/q)'   | \\\n"
+    "                                1dplot -stdin -del 0.1                 \n"
+    "                        Here, K is significantly smaller than W,       \n"
+    "                        so a gamma variate that fits peak=2 width=8    \n"
+    "                        must be weirdly shaped. [Also note use of the  \n"
+    "                        'calc' functions gamp(K,W) and gamq(K,W) to    \n"
+    "                        calculate p and q from K and W in the script.] \n"
+    "\n"
+    "     'TWOGAM(p1,q1,r,p2,q2)'                                           \n"
+    "                   = 1 parameter (amplitude) model:                    \n"
+    "                   = A combination of two 'GAM' functions:             \n"
+    "                         GAM(p1,q1) - r*GAM(p2,q2)                     \n"
+    "                       This model is intended to let you use a HRF     \n"
+    "                       similar to BrainVoyager (e.g.). You can         \n"
+    "                       add a sixth argument as the duration.           \n"
+    "                     ** Note that a positive 'r' parameter means to    \n"
+    "                        subtract the second GAM function (undershoot). \n"
+    "     'TWOGAMpw(K1,W1,r,K2,W2)'                                         \n"
+    "                   = Same as above, but where the peaks and widths     \n"
+    "                       of the 2 component gamma variates are given     \n"
+    "                       instead of the less intuitive p and q.          \n"
+    "                       For FMRI work, K2 > K1 is usual, as the         \n"
+    "                       second (subtracted) function is intended        \n"
+    "                       to model the 'undershoot' after the main        \n"
+    "                       positive part of the model. You can also        \n"
+    "                       add a sixth argument as the duration.           \n"
+    "                     ** Example (no duration given):                   \n"
+    "        3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
+    "                     -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
+    "                     -x1D stdout: | 1dplot -stdin -THICK -del 0.5      \n"
+    "\n"
     "     'SPMG1'       = 1 parameter SPM gamma variate basis function      \n"
     "                         exp(-t)*(A1*t^P1-A2*t^P2) where               \n"
     "                       A1 = 0.0083333333  P1 = 5  (main positive lobe) \n"
@@ -1267,12 +1353,15 @@ void display_help_menu(int detail)
     "                     ** Note that 'SPMG1(0)' will produce the usual    \n"
     "                        'SPMG1' wavefunction shape, but normalized to  \n"
     "                        have peak value = 1 (for example).             \n"
+    "\n"
     "     'POLY(b,c,n)' = n parameter Legendre polynomial expansion         \n"
     "                       from times b..c after stimulus time             \n"
     "                       [n can range from 1 (constant) to 20]           \n"
+    "\n"
     "     'SIN(b,c,n)'  = n parameter sine series expansion                 \n"
     "                       from times b..c after stimulus time             \n"
     "                       [n must be at least 1]                          \n"
+    "\n"
     "     'WAV(d)'      = 1 parameter block stimulus of duration 'd'.       \n"
     "                      * This is the '-WAV' function from program waver!\n"
     "                      * If you wish to set the shape parameters of the \n"
@@ -1290,6 +1379,7 @@ void display_help_menu(int detail)
     "                      * If d > 0, the WAV(0) function is convolved with\n"
     "                        a square wave of duration d to make the HRF,   \n"
     "                        and the amplitude is scaled back down to 1.    \n"
+    "\n"
     "     'EXPR(b,c) exp1 ... expn'                                         \n"
     "                   = n parameter; arbitrary expressions from times     \n"
     "                     b..c after stimulus time                          \n"
@@ -1310,6 +1400,7 @@ void display_help_menu(int detail)
     "                        sure of what your response model is, you should\n"
     "                        plot the relevant columns from the matrix      \n"
     "                        .xmat.1D output file.                          \n"
+    "\n"
     "     'MION(d)'     = 1 parameter block stimulus of duration 'd',       \n"
     "                     intended to model the response of MION.           \n"
     "                     The zero-duration impulse response 'MION(0)' is   \n"
@@ -1317,7 +1408,7 @@ void display_help_menu(int detail)
     "                                          +0.330/ 4.5 * exp(-t/ 4.5)   \n"
     "                                          +0.670/13.5 * exp(-t/13.5) ) \n"
     "                     which is adapted from the paper                   \n"
-    "                      FP Leite, et al.  NeuroImage 16:283-294 (2002)   \n"
+    "                      FP Leite, et al. NeuroImage 16:283-294 (2002)    \n"
     "                      http://dx.doi.org/10.1006/nimg.2002.1110         \n"
     "                  ** Note that this is a positive function, but MION   \n"
     "                     produces a negative response to activation, so the\n"
@@ -1348,18 +1439,25 @@ void display_help_menu(int detail)
     "   regression, where the shape of the impulse response function is     \n"
     "   fixed and only the magnitude/amplitude varies.  Models with more    \n"
     "   free parameters have 'variable' shape impulse response functions.   \n"
+    "\n"
+    " * LINEAR regression means that each data time series (thought of as   \n"
+    "   a single column of numbers = a vector) is fitted to a sum of the    \n"
+    "   matrix columns, each one multiplied by an amplitude parameter to    \n"
+    "   be calculated ('Coef'). The purpose of the various options          \n"
+    "     '-stim_times', '-polort', '-ortvec', and/or '-stim_file'          \n"
+    "   is to build the columns of the regression matrix.                   \n"
     "                                                                       \n"
     " * If you want NONLINEAR regression, see program 3dNLfim.              \n"
     "                                                                       \n"
     " * If you want LINEAR regression with allowance for non-white noise,   \n"
     "   use program 3dREMLfit, after using 3dDeconvolve to set up the       \n"
-    "   regression model.                                                   \n"
+    "   regression model (in the form of a matrix file).                    \n"
     "                                                                       \n"
     "** When in any doubt about the shape of the response model you are   **\n"
     "*  asking for, you should plot the relevant columns from the X matrix *\n"
     "*  to help develop some understanding of the analysis.  The 'MION'    *\n"
     "*  example above can be used as a starting point for how to easily    *\n"
-    "*  setup a quick command pipeline to graph response models.  In this  *\n"
+    "*  setup a quick command pipeline to graph response models.  In that  *\n"
     "*  example, '-polort -1' is used to suppress the usual baseline model *\n"
     "*  since graphing that part of the matrix would just be confusing.    *\n"
     "*  Another example, for example, comparing the similar models         *\n"
@@ -1409,6 +1507,7 @@ void display_help_menu(int detail)
     "          for a 2 run 'tname' file to be used with -stim_times_*.      \n"
     "       ** In such a case, you will also need the -allzero_OK option,   \n"
     "          and probably -GOFORIT as well.                               \n"
+    "\n"
     "[-stim_times_AM2 k tname Rmodel]                                       \n"
     "   Similar, but generates 2 response models: one with the mean         \n"
     "   amplitude and one with the differences from the mean.               \n"
@@ -1549,7 +1648,7 @@ void display_help_menu(int detail)
     "                         has no meaning.                               \n"
     "                                                                       \n"
     " I hope this clarifies things and makes your life simpler, happier,    \n"
-    " and more carefree.  (If not, please blame Gang Chen, not me.)         \n"
+    " and more carefree. (If not, please blame Gang Chen, not me.)          \n"
     "                                                                       \n"
     " An example to clarify the difference between these cases:             \n"
     "    3dDeconvolve -nodata 350 1 -polort -1 -num_stimts 3 \\\n"
@@ -4075,7 +4174,7 @@ ENTRY("read_input_data") ;
                      ttt) ;
       }
 
-      nt   = DSET_NUM_TIMES (*dset_time); lmax = nt ;
+      nt   = DSET_NVALS(*dset_time); lmax = nt ;
       nxyz = DSET_NVOX (*dset_time);
       nxd  = DSET_NX(*dset_time) ;
       nyd  = DSET_NY(*dset_time) ;
@@ -5308,9 +5407,13 @@ void check_for_valid_inputs
   ININFO_message("Number of parameters:  %d [%d baseline ; %d signal]",p,q,p-q) ;
 
   /*----- Check for sufficient data -----*/
-  if (N == 0)  DC_error ("No usable time points?");
+  if (N == 0)  DC_error ("No usable time points? :(");
   if (N <= p)
     {
+       if( nt > p )  /* Better grieving when death happens [13 Feb 2018] */
+         ERROR_message(" *** Censoring has made regression impossible :( ***") ;
+       else
+         ERROR_message("Regression model has too many parameters for dataset length :(") ;
        sprintf (message,  "Insufficient data (%d) for estimating %d parameters", N,p);
        DC_error (message);
    }
@@ -6128,7 +6231,7 @@ void extract_ts_array
 
 
   /*----- Now extract time series from MRI_IMAGE -----*/
-  ts_length = DSET_NUM_TIMES (dset_time);
+  ts_length = DSET_NVALS(dset_time);
   ar = MRI_FLOAT_PTR (im);
 #if 0
   for (it = 0;  it < ts_length;  it++)
@@ -6763,6 +6866,7 @@ ENTRY("calculate_results") ;
       FILE *fp ;
       int iadd=0 , ilen , oneline=AFNI_yesenv("AFNI_3dDeconvolve_oneline") ;
       char *lbreak ;
+      char *mod_prefix; /* non-AFNI?, for surface datasets  14 Nov 2018 [rickr] */
 
       if( option_data->input_filename != NULL ){
         iname = calloc( sizeof(char) , strlen(option_data->input_filename)+9 ) ;
@@ -6802,6 +6906,11 @@ ENTRY("calculate_results") ;
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->bucket_filename != NULL ){
+        /* handle non-AFNI dataset formats, like niml.dset for surface data */
+        mod_prefix = option_data->bucket_filename; /* init to current dset */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
         if( option_data->fout ) cname = THD_zzprintf( cname , " -fout") ;
@@ -6809,24 +6918,28 @@ ENTRY("calculate_results") ;
         if( option_data->rout ) cname = THD_zzprintf( cname , " -rout") ;
         iadd += strlen(cname)-ilen ; ilen = strlen(cname) ;
         if( iadd > 40 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
-        cname = THD_zzprintf( cname ,
-                              " -Rbuck %s_REML" , option_data->bucket_filename);
-        cname = THD_zzprintf( cname ,
-                              " -Rvar %s_REMLvar",option_data->bucket_filename);
+        cname = THD_zzprintf( cname , " -Rbuck %s_REML" ,  mod_prefix );
+        cname = THD_zzprintf( cname , " -Rvar %s_REMLvar", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->fitts_filename != NULL ){
+        mod_prefix = option_data->fitts_filename; /* handle non-AFNI formats */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
-        cname = THD_zzprintf( cname ,
-                              " -Rfitts %s_REML", option_data->fitts_filename );
+        cname = THD_zzprintf( cname , " -Rfitts %s_REML", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
       if( option_data->errts_filename != NULL ){
+        mod_prefix = option_data->errts_filename; /* handle non-AFNI formats */
+        if( has_known_non_afni_extension(mod_prefix) )
+           mod_prefix = without_afni_filename_extension(mod_prefix); /* no free */
+
         if( iadd > 50 && !oneline ){ cname = THD_zzprintf(cname," \\\n"); iadd=0; }
         ilen  = strlen(cname) ;
-        cname = THD_zzprintf( cname ,
-                              " -Rerrts %s_REML", option_data->errts_filename );
+        cname = THD_zzprintf( cname , " -Rerrts %s_REML", mod_prefix );
         iadd += strlen(cname)-ilen ;
       }
 #if 0
@@ -7968,7 +8081,7 @@ void write_bucket_data
   /*----- Initialize local variables -----*/
   nxyz = old_dset->daxes->nxx * old_dset->daxes->nyy * old_dset->daxes->nzz;
   num_stimts = option_data->num_stimts;
-  nt = DSET_NUM_TIMES (old_dset);
+  nt = DSET_NVALS(old_dset);
   num_glt = option_data->num_glt;
   glt_rows = option_data->glt_rows;
 
@@ -10471,6 +10584,43 @@ static float basis_gam( float x, float b, float c, float top, void *q )
    return (float)(pow(x/(b*c),b)*exp(b-x/c)) ;
 }
 
+/*---------- TWOGAM function; c is ignored [06 Jan 2018] ----------*/
+
+static float basis_twogam( float x , float b , float c , float top , void *q )
+{
+   float *fq = (float *)q ;
+   float p1,p2 , rr , q1,q2 , g1,g2 ;
+   if( x <= 0.0f || x > top || q == NULL ) return 0.0f ;
+   p1 = fq[0] ; q1=fq[1] ; rr = fq[2] ; p2 = fq[3] ; q2 = fq[4] ;
+   g1 = basis_gam( x , p1,q1 , top , NULL ) ;
+   g2 = basis_gam( x , p2,q2 , top , NULL ) ;
+   return b*(g1-rr*g2) ;  /* b is scale factor */
+}
+
+/*---------- convert peak and width to p and q for GAM [06 Jan 2018] ----------*/
+
+static float_pair gam_peak_fwhm_convert( float peak , float fwhm )
+{
+   float_pair result = {0.0f,0.0f} ;
+   double_pair pq ;
+   float p , q ;
+
+   if( peak <= 0.0f || fwhm <= 0.0f ) return result ;
+
+#if 1
+   pq = gam_find_pq( (double)peak , (double)fwhm ) ; /* cs_gamfit.c */
+   p = pq.a ; q = pq.b ;
+#else
+   p = (2.35f*peak/fwhm) ; p = p*p ; q = peak/p ;
+#endif
+
+   INFO_message("GAM conversion: peak=%g fwhm=%g -> p=%g q=%g",peak,fwhm,p,q) ;
+   if( p <= 0.0f || q <= 0.0f )
+     ERROR_exit("GAM conversion from peak+fwhm to p,q parameters fails :(") ;
+
+   result.a = p ; result.b = q ; return result ;
+}
+
 /*--------------------------------------------------------------------------*/
 /* MION basis function [12 Jul 2010] */
 
@@ -10551,6 +10701,12 @@ static float waveform_MIONN( float t ){ return basis_mionn(t,0.0f,0.0f,0.0f,NULL
 
 static float GAM_p , GAM_q , GAM_top ;
 static float waveform_GAM( float t ){ return basis_gam(t,GAM_p,GAM_q,GAM_top,NULL); }
+
+static float TWOGAM_parm[6] , TWOGAM_top ;
+static float waveform_TWOGAM( float t )
+{
+  return basis_twogam( t , 1.0f , 0.0f , TWOGAM_top , TWOGAM_parm ) ;
+}
 
 /*--------------------------------------------------------------------------*/
 /*  f(t,T) = int( h(t-s) , s=0..min(t,T) )
@@ -10933,6 +11089,7 @@ static float waveform_WAV( float t )
 }
 
 /*----------------------------------------------------------------*/
+/* WFUN convolution for various basis functions with durations. */
 
 #define WTYPE_SPMG1 1
 #define WTYPE_SPMG2 2
@@ -10942,6 +11099,8 @@ static float waveform_WAV( float t )
 #define WTYPE_MION  8
 #define WTYPE_WAV   9
 #define WTYPE_MIONN 10
+
+#define WTYPE_TWOGAM 17
 
 typedef struct {
   int wtype , nfun ;
@@ -10965,6 +11124,7 @@ typedef struct {
 static int          nWFUNS = 0    ;
 static WFUN_storage *WFUNS = NULL ;
 
+/* "micro time" resolution for this convolution */
 #undef  WFUNDT
 #define WFUNDT 0.01f
 
@@ -11051,6 +11211,18 @@ ENTRY("setup_WFUN_function") ;
        ws.parm[1] = GAM_q = parm[1] ;
        GAM_top = GAM_p*GAM_q + 5.0f*sqrtf(GAM_p)*GAM_q ;
        sprintf(msg,"waveform setup: GAM(p=%g,q=%g,dur=%g)",GAM_p,GAM_q,dur) ;
+     break ;
+
+     case WTYPE_TWOGAM:          /* 06 Jan 2018 */
+       wavfun = waveform_TWOGAM  ;
+       ws.parm[0] = TWOGAM_parm[0] = parm[0] ;
+       ws.parm[1] = TWOGAM_parm[1] = parm[1] ;
+       ws.parm[2] = TWOGAM_parm[2] = parm[2] ;
+       ws.parm[3] = TWOGAM_parm[3] = parm[3] ;
+       ws.parm[4] = TWOGAM_parm[4] = parm[4] ;
+       ws.parm[5] = TWOGAM_parm[5] = parm[5] ;
+       ws.parm[6] = TWOGAM_top     = parm[6] ;
+       sprintf(msg,"waveform setup: TWOGAM()") ;
      break ;
    }
 
@@ -11167,7 +11339,9 @@ ENTRY("basis_parser") ;
 
    /*--- GAM(b,c) ---*/
 
-   if( strcmp(scp,"GAM") == 0 ){
+   if( strcmp(scp,"GAM") == 0 || strcmp(scp,"GAMpw") == 0 ){
+
+     int do_pq = (strcmp(scp,"GAMpw") == 0) ;
 
      be->nfunc = 1 ;
      be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
@@ -11186,10 +11360,18 @@ ENTRY("basis_parser") ;
            " Correct format: 'GAM(b,c)' with b > 0 and c > 0.");
          free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
        }
+       if( do_pq ){  /* 06 Jan 2018 */
+         float_pair pq = gam_peak_fwhm_convert(bot,top) ;
+         if( pq.a <= 0.0f || pq.b <= 0.0f ){
+           ERROR_message("'GAMpw(%s' is illegal",cpt) ;
+           free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+         }
+         bot = pq.a ; top = pq.b ;
+       }
        if( dur < 0.0f ){   /* the olden way: no duration given */
          be->bfunc[0].a = bot ;    /* t_peak = bot*top */
-         be->bfunc[0].b = top ;    /* FWHM   = 2.3*sqrt(bot)*top */
-         be->bfunc[0].c = bot*top + 5.0f*sqrtf(bot)*top ;  /* long enough */
+         be->bfunc[0].b = top ;    /* FWHM   = 2.35*sqrt(bot)*top */
+         be->bfunc[0].c = bot*top + 9.9f*sqrtf(bot)*top ;  /* long enough */
          be->bfunc[0].f = basis_gam ;
          be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
        } else {            /* duration given ==> integrate it */
@@ -11209,6 +11391,66 @@ ENTRY("basis_parser") ;
          be->bfunc[0].b = 0.0f ;
          be->bfunc[0].c = 0.0f ;
        }
+     }
+
+   /*--- TWOGAM(p1,q1,r,p2,q2[,dur]) [06 Jan 2018] ---*/
+
+   } else if( strcmp(scp,"TWOGAM") == 0 || strcmp(scp,"TWOGAMpw") == 0 ){
+     float dur=0.0f,p1=0.0f,q1=0.0f,rr=0.0f,p2=0.0f,q2=0.0f , b1,b2 ;
+     float *fq=NULL ;
+     int do_pq = (strcmp(scp,"TWOGAMpw") == 0) ;
+
+     be->nfunc = 1 ;
+     be->bfunc = (basis_func *)calloc(sizeof(basis_func),be->nfunc) ;
+     if( cpt == NULL ){
+       ERROR_message("TWOGAM format is incorrect") ;
+       free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+     }
+     sscanf(cpt,"%f,%f,%f,%f,%f,%f",&p1,&q1,&rr,&p2,&q2,&dur) ;
+     if( p1 <= 0.0f || q1 <= 0.0f || p2 <= 0.0f || q2 <= 0.0f || dur < 0.0f || fabsf(rr) > 1.0f ){
+       ERROR_message("'TWOGAM(%s' is illegal",cpt) ;
+       free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+     }
+     if( do_pq ){
+       float_pair pq1 = gam_peak_fwhm_convert(p1,q1) ;
+       float_pair pq2 = gam_peak_fwhm_convert(p2,q2) ;
+       if( pq1.a <= 0.0f || pq1.b <= 0.0f || pq2.a <= 0.0f || pq2.b <= 0.0f ){
+         ERROR_message("'TWOGAMpw(%s' is illegal",cpt) ;
+         free((void *)be->bfunc); free((void *)be); free(scp); RETURN(NULL);
+       }
+       p1 = pq1.a ; q1 = pq1.b ; p2 = pq2.a ; q2 = pq2.b ;
+     }
+     fq = (float *)malloc(sizeof(float)*7) ;
+     fq[0] = p1 ; fq[1] = q1 ; fq[2] = rr ;
+     fq[3] = p2 ; fq[4] = q2 ; fq[5] = dur ;
+     b1 = p1*q1+9.9f*sqrtf(p1)*q1 ;
+     b2 = p2*q2+9.9f*sqrtf(p2)*q2 ; fq[6] = MAX(b1,b2) ;
+     if( dur == 0.0f ){
+       float mx=0.0f , tt,vv ;
+       be->bfunc[0].a = 1.0f ;        /* scale factor */
+       be->bfunc[0].b = 0.0f ;        /* ignored */
+       be->bfunc[0].c = fq[6] ;       /* impulse duration */
+       be->bfunc[0].f = basis_twogam ;
+       be->bfunc[0].q = (void *)fq ;  /* all params */
+       be->tbot = 0.0f ; be->ttop = be->bfunc[0].c ;
+       /* find max value, to get scale factor */
+       for( tt=WFUNDT ; tt < be->ttop ; tt+=WFUNDT ){
+         vv = basis_twogam( tt , 1.0f , 0.0f , be->ttop , (void *)fq ) ;
+         vv = fabsf(vv) ; if( mx < vv ) mx = vv ;
+       }
+       be->bfunc[0].a = 1.0f / mx ;
+     } else {            /* duration given ==> integrate it */
+       int iwav ;
+       iwav = setup_WFUN_function( WTYPE_TWOGAM , dur , fq ) ;
+       if( iwav < 0 ){
+         ERROR_message("Can't setup TWOGAM(%s for some reason?!",cpt) ;
+         free((void *)be); free(scp); RETURN(NULL);
+       }
+       be->tbot = 0.0f ; be->ttop = WFUNDT * WFUNS[iwav].nfun ;
+       be->bfunc[0].f = basis_WFUN ;
+       be->bfunc[0].a = (float)iwav ;
+       be->bfunc[0].b = 0.0f ;
+       be->bfunc[0].c = 0.0f ;
      }
 
    /*--- TENT(bot,top,order) ---*/  /*-- add TENTzero 23 Jul 2010 --*/
@@ -11581,7 +11823,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11592,7 +11834,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,
@@ -11652,7 +11894,7 @@ ENTRY("basis_parser") ;
        if( num_block == 0 ){
          first_block_peakval = bot ;
          first_block_peaksym = strdup(sym) ;
-       } else if( FLDIF(bot,first_block_peakval) ){
+       } else if( FLDIF(bot,first_block_peakval) > 0.002f ){
          WARNING_message(
           "%s has different peak value than first %s\n"
           "            We hope you know what you are doing!" ,
@@ -11663,7 +11905,7 @@ ENTRY("basis_parser") ;
          if( first_len_pkzero == 0.0f ){
            first_len_pkzero = top ;
            first_sym_pkzero = strdup(sym) ;
-         } else if( FLDIF(top,first_len_pkzero) ){
+         } else if( FLDIF(top,first_len_pkzero) > 0.002f ){
            WARNING_message(
             "%s has different duration than first %s\n"
             "       ==> Amplitudes will differ.  We hope you know what you are doing!" ,

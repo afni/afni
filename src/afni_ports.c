@@ -1,7 +1,7 @@
 #include "mrilib.h"
 #include <stdio.h>
 #include <string.h>
-#include <afni_environ.h>
+#include "afni_environ.h"
 #include <stdlib.h>
 
 /*************************************************************************/
@@ -43,7 +43,7 @@ char *get_np_help() {
 "           be sure the PORT_OFFSETS you use differ by about 50 or you may\n"
 "           still have port conflicts. A BETTER approach is to use -npb below.\n"
 "   -npq PORT_OFFSET: Like -np, but more quiet in the face of adversity.\n"
-"   -npb PORT_OFFSET_BLOC: Simliar to -np, except it is easier to use.\n"
+"   -npb PORT_OFFSET_BLOC: Similar to -np, except it is easier to use.\n"
 "                          PORT_OFFSET_BLOC is an integer between 0 and\n"
 "                          MAX_BLOC. MAX_BLOC is around 4000 for now, but\n"
 "                          it might decrease as we use up more ports in AFNI.\n"

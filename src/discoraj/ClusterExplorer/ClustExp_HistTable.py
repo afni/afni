@@ -54,16 +54,21 @@ parser = argparse.ArgumentParser(prog=str(sys.argv[0]),
                                  formatter_class=argparse.RawDescriptionHelpFormatter,
                                  description=textwrap.dedent('''\
 ------------------------------------------------------------------------------
-The purpose of this script is to extract the data table from history of
-datasets from 3dttest++, 3dMVM, or 3dLME.
+## Overview ~1~
 
-Caveats:
+The purpose of this script is to extract the data table from history of
+datasets from 3dttest++, 3dMVM, or 3dLME. This program is mostly called from
+within ClustExp_StatParse.py
+
+## Caveats ~1~
 Statistics dataset must be DIRECTLY from 3dttest++, 3dMVM or 3dLME.
 If you did 3dcopy or anything that wipes the history of the dataset after
 running the stats, this program has nothing to extract.
 3dttest++ must have been run with no covariates.
 
 ------------------------------------------------------------------------------
+
+## Outputs ~1~
 
 Outputs files named with your -prefix and "_GroupTable.csv":
 (as example -prefix disco)
@@ -73,6 +78,8 @@ disco_GroupTable.csv:
     May include subject ID, any group or other variables, and input datasets.
 
 ------------------------------------------------------------------------------
+
+## Options ~1~
 
                                  '''),epilog=textwrap.dedent('''\
 ------------------------------------------
@@ -99,6 +106,8 @@ optional.add_argument('-session',type=str,default="./",
                             "current working directory. [./]"))
 optional.add_argument('-overwrite',action="store_true", default=False,
                       help="Remove previous folder with same PREFIX")
+parser.add_argument('-help',action='help',help='Show this help.')
+
 
 ## if nothing, show help
 if len(sys.argv) == 1:

@@ -7,6 +7,9 @@ set RNS = `3dnewid -fun`
 set log = /tmp/${RNS}.MLT.log
 set COG = ""
 set SKIPNOVOX = ""
+set lncol = ""
+set iL = 2
+set iV = 1
 
 if ("$1" == "") then
    goto HELP
@@ -158,13 +161,31 @@ MAKE_TABLE:
    set cnt = 1
    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
+      # get the label from the temporary file parsed above
       set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
+      # get the value index
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
+      # get the longname if there is one
+      if($lncol) then
+         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+      else
+         set ln =  ""
+      endif
+
+      # not sure how this is more than one at a time
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
-            printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
+            # check for long names here and add these on if they exist
+            if ("$ln" != "") then
+               printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
                >> /tmp/${RNS}.___lt.txt
+            # the more usual case of no long names - just name and number
+            else
+               printf '"%d" "%s%02d"\n' $ind "$ll" $ci \
+               >> /tmp/${RNS}.___lt.txt
+
+            endif
             if ($status) then
                echo "Error:"
                echo "printf command failed at: $ind $ll"
@@ -176,8 +197,15 @@ MAKE_TABLE:
             @ ci ++
          end
       else
-         printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
+         # add long name if it exists to entry
+         if ("$ln" != "") then
+            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
                >> /tmp/${RNS}.___lt.txt
+        else
+            # the more usual case of no long names - just name and number
+             printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
+               >> /tmp/${RNS}.___lt.txt
+          endif
             if ($status) then
                echo "Error:"
                echo "printf command failed at: $llistmin[$cnt] $ll"
@@ -218,7 +246,7 @@ MAKE_TABLE:
       printf 'pbar_name="%s">\n' $pbar >> $labeltable
       uniq /tmp/${RNS}.___lt.txt >> $labeltable
       printf '</VALUE_LABEL_DTABLE>\n' >> $labeltable
-   
+
 PUT_TABLE:
    if ($target_dset != '') then
       3drefit -labeltable $labeltable $target_dset
@@ -246,11 +274,25 @@ MAKE_ATLAS_TABLE:
    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
    while ($cnt <= $N_llist)
       set ll = `sed -n "${cnt}p" TMPLIST_${RNS}_`
+
+      # get the longname if there is one
+      if($lncol) then
+         set ln = `sed -n "${cnt}p" TMPLIST_${RNS}_ln_`
+      else
+         set ln =  ""
+      endif
+
+      # index of region
+      # odd \r incomplete conversion with printf %d below unless convert 
+      #  these to integers here
+      set lli = `ccalc -int -expr "$llistmin[$cnt]"`
+      set llistmin[$cnt] = $lli
+
       set inds = `count -digits 1 $llistmin[$cnt] $llistmax[$cnt]`
       if ($#inds > 1) then
          set ci = 1
          foreach ind ($inds)
-            printf '"%d" "%s%02d"\n' $ind "$ll" $ci  \
+            printf '"%d" "%s%02d %s"\n' $ind "$ll" $ci "$ln" \
                >> /tmp/${RNS}.___lt.txt
             if ($status) then
                echo "Error:"
@@ -263,11 +305,18 @@ MAKE_ATLAS_TABLE:
             @ ci ++
          end
       else
-         printf '"%d" "%s"\n' $llistmin[$cnt] "$ll" \
+         set ln_len = `echo $ln |wc -c`
+         if ("$ln_len" == "1") then
+             printf '"%d" "%s" ""\n' $llistmin[$cnt] "$ll" \
                >> /tmp/${RNS}.___lt.txt
+         else             
+            printf '"%d" "%s" "%s"\n' $llistmin[$cnt] "$ll" "$ln" \
+               >> /tmp/${RNS}.___lt.txt
+         endif
          if ($status) then
             echo "Error:"
             echo "printf command failed at: $llistmin[$cnt] $ll"
+            echo "longname is $ln"
             echo ""
             goto BEND
          endif   
@@ -314,8 +363,21 @@ MAKE_ATLAS_TABLE:
             endif
          endif
          printf '<ATLAS_POINT\n data_type="atlas_point"\n' >> $labeltable
-         printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
+         # might have a long name in the last column
+         if($lncol) then
+            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2]`" $lln[1] \
                               >> $labeltable
+            # remove tabs, carriage returns, line feeds
+            # these show up here if no long name 
+            set lln[3] =  `echo $lln[3] | \tr -d \"|tr -d '\011\012\015'`
+            set ln_len = `echo $lln[3] |wc -c`
+            if ("$ln_len" != "1") then
+               printf ' LONGNAME="%s"\n' "$lln[3-]"  >> $labeltable
+            endif
+         else 
+            printf ' STRUCT="%s"\n VAL=%s\n' "`echo $lln[2-]`" $lln[1] \
+                              >> $labeltable
+         endif
          printf ' OKEY=%s\n' $lln[1] >> $labeltable
          if ($COG) then
             # restricting range to a single value for this label line without quotes
@@ -421,6 +483,7 @@ PARSE:
    set flab = ''
    set mode = 0
    set autolab = 0
+   set LONGNAMES = 0
    if ( -f TMPLIST_${RNS}_) \rm -f TMPLIST_${RNS}_
 	set cnt = 1
    while ($cnt <= $Narg)
@@ -804,44 +867,20 @@ PARSE:
             set iL = `ccalc -i $argv[$cnt]+1`
             @ cnt ++
             set iV = `ccalc -i $argv[$cnt]+1`
-            set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
-            awk -F "$delim" '{print $'$iL'}' $flab | \
-                     sed 's/^ *//g' | sed 's/ *$//g' | \
-                     sed '/^ *$/d' > TMPLIST_${RNS}_
-            set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
-            set llistmax = ($llistmin)
-            if ($N_llist < 1 || $#llistmin < 1) then
-               set jj = '$'
-               echo "Error:"
-               echo "Failed to parse label or key columns in $flab"
-               echo "Make sure column index and delimiters are correct"
-               echo ""
-               echo "When -lab_file, and -lab_file_delim are properly set,"
-               echo "this command should give you all the keys:"
-               echo "   awk -F '$delim' '{print $jj$iL}' $flab"
-               echo "and this command should give you all the labels:"
-               echo "   awk -F '$delim' '{print $jj$iV}' $flab"
-               echo ""
-               goto BEND
-            endif
-            if ($#llistmin != $N_llist) then
-               echo "Error:"
-               echo "Have $N_llist labels, but $#llistmin keys"
-               echo ""
-               goto BEND
-            endif
-            #More test for goodness
-            1dcat "1D:$llistmax" >& /dev/null
-            if ( $status ) then
-               echo "Failed to parse $flab columns make sure column"
-               echo "selectors and delimiters are OK."
-   echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
-               echo ""
-               goto BEND
-            endif
-         endif
+          endif
          goto CONTINUE
       endif
+
+      if ("$argv[$cnt]" == "-longnames") then
+         if ($cnt > $Narg) then
+            if (! $quiet_death) \
+               echo "Need to specify column index after -longnames"
+            goto BEND
+         endif
+         @ cnt ++
+         set lncol = `ccalc -i $argv[$cnt]+1`
+         goto CONTINUE
+      endif 
       
       if ("$argv[$cnt]" == "-dset") then
          if ($cnt > $Narg) then
@@ -899,7 +938,64 @@ PARSE:
 		@ cnt ++
 	end
 
- 
+# was above in parsing of options
+# parse the labels here
+#   add longname parsing
+PARSE_LABEL_FILE:
+    if ($flab != "") then
+	    # get value indices from label file
+	    set llistmin = (`awk -F "$delim" '{print $'$iV'}' $flab`)
+	
+	    # get labels from label file
+	    awk -F "$delim" '{print $'$iL'}' $flab | \
+	             sed 's/^ *//g' | sed 's/ *$//g' | \
+	             sed '/^ *$/d' > TMPLIST_${RNS}_
+	    set N_llist = `\wc -l TMPLIST_${RNS}_` ; set N_llist = $N_llist[1]
+	    set llistmax = ($llistmin)
+	
+	    # get long names from label file
+	    if($lncol) then
+	#old way        awk -F "$delim" '{print $'$lncol'}' $flab | \
+	#          sed 's/^ *//g' | sed 's/ *$//g' | \
+	#          sed '/^ *$/d' > TMPLIST_${RNS}_ln_
+	# new way gets all columns after longname column to handle extra spaces
+	       awk -v N=$lncol \
+	          '{sep=""; for (i=N; i<=NF; i++) {printf("%s%s",sep,$i); sep=OFS}; printf("\n")}' $flab \
+	          > TMPLIST_${RNS}_ln_ 
+	        set N_lnlist = `\wc -l TMPLIST_${RNS}_ln_` ; set N_lnlist = $N_lnlist[1]
+	    endif
+	
+	    set llistmax = ($llistmin)
+	    if ($N_llist < 1 || $#llistmin < 1) then
+	       set jj = '$'
+	       echo "Error:"
+	       echo "Failed to parse label or key columns in $flab"
+	       echo "Make sure column index and delimiters are correct"
+	       echo ""
+	       echo "When -lab_file, and -lab_file_delim are properly set,"
+	       echo "this command should give you all the keys:"
+	       echo "   awk -F '$delim' '{print $jj$iL}' $flab"
+	       echo "and this command should give you all the labels:"
+	       echo "   awk -F '$delim' '{print $jj$iV}' $flab"
+	       echo ""
+	       goto BEND
+	    endif
+	    if ($#llistmin != $N_llist) then
+	       echo "Error:"
+	       echo "Have $N_llist labels, but $#llistmin keys"
+	       echo ""
+	       goto BEND
+	    endif
+	    #More test for goodness
+	    1dcat "1D:$llistmax" >& /dev/null
+	    if ( $status ) then
+	       echo "Failed to parse $flab columns make sure column"
+	       echo "selectors and delimiters are OK."
+	echo "Got '`sed -n $1p TMPLIST_${RNS}_`' for 1st label and '$llistmax[1]' for 1st key"
+	       echo ""
+	       goto BEND
+	    endif
+   endif
    
    if (0) then
       echo "Have:"
@@ -932,16 +1028,20 @@ HELP:
    echo "   -lab_v LAB KEY: Define a label LAB and its value KEY"
    echo "              For example: -lab_v  WM 8 generates in the labeltable:"
    echo '                           "8" "WM"'
-   echo "   -lab_file FILE cLAB cVAL: Labels and keys are in text file FILE."
-   echo "                          cLAB is the index of column containing labels"
-   echo "                          vVAL is the index of column containing keys"
-   echo "                          (1st column is indexed at 0)"
    echo "   -lab_file_delim COL_DELIM: Set column delimiter for -lab_file option"
    echo "                              Default is ' ' (space), but you can set"
    echo "                              your own. ';' for example. Note that the "
    echo "                              delimiter is passed directly to awk's -F" 
    echo "                 Note: This option must be set BEFORE -lab_file option"
    echo "                       on the command line."
+   echo "   -lab_file FILE cLAB cVAL: Labels and keys are in text file FILE."
+   echo "                          cLAB is the index of column containing labels"
+   echo "                          vVAL is the index of column containing keys"
+   echo "                          (1st column is indexed at 0)"
+   echo "   -longnames cLONGNAME: Additionally, allow for another column of long"
+   echo "                names for regions, e.g. amygdala for AMY"
+   echo "                cLONGNAME is the starting column for the longname continuing"
+   echo "                to the last name of the output"
    echo "   -dset DSET: Attach the label table (or atlas point list) to "
    echo "               dataset DSET"
 #   echo "   -dset_autolab DSET SUFFIX: Create a labeltable from the unique"

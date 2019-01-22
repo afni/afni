@@ -1,4 +1,4 @@
-//this minimal set of nifti routines is based on nifti1_io with the dependencies (zlib) and a few extra functions
+//this minimal set of nifti routines is based on nifti1_io without the dependencies (zlib) and a few extra functions
 // http://nifti.nimh.nih.gov/pub/dist/src/niftilib/nifti1_io.h
 // http://niftilib.sourceforge.net
 #ifndef _NIFTI_IO_CORE_HEADER_
@@ -13,7 +13,8 @@
 extern "C" {
 #endif
 
-#include <stdbool.h>
+#include <stdbool.h> //requires VS 2015 or later
+
 #include <string.h>
 
 #ifndef HAVE_R
@@ -50,6 +51,8 @@ AA.m[3][0]=AA.m[3][1]=AA.m[3][2]=0.0f , AA.m[3][3]=1.0f            )
 float dotProduct(vec3 u, vec3 v);
 float nifti_mat33_determ( mat33 R ) ;
 int isSameFloat (float a, float b) ;
+int isSameDouble (double a, double b) ;
+
 mat33 nifti_mat33_inverse( mat33 R );
 mat33 nifti_mat33_mul( mat33 A , mat33 B );
 mat33 nifti_mat33_transpose( mat33 A ) ;

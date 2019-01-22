@@ -13,7 +13,7 @@ SCRIPTS = remove_ext fsloutputtype imtest imglob imcp imln imrm immv
 
 
 
-depend:	
+depend:
 	$(RM) -f depend.mk
 	$(MAKE) depend.mk
 

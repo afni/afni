@@ -48,7 +48,7 @@ typedef struct {
    int           len;
    afni_xml_t ** xlist;
 } afni_xml_list;
-   
+
 typedef struct {
    /* general control */
    int     verb;        /* verbose level (0=quiet, 1=default) */
@@ -75,8 +75,8 @@ typedef struct {
 afni_xml_list axml_read_buf (const char * buf_in, int64_t bin_len);
 afni_xml_list axml_read_file(const char * fname, int read_data);
 
-int axml_disp_xlist(char * mesg, afni_xml_list * axlist, int verb);
-int axml_disp_xml_t(char * mesg, afni_xml_t * ax, int indent, int verb);
+int axml_disp_xlist( const char *mesg, afni_xml_list * axlist, int verb);
+int axml_disp_xml_t( const char *mesg, afni_xml_t * ax, int indent, int verb);
 
 
 /* create/free */

@@ -15,11 +15,11 @@
 /*****  incidental or otherwise, caused by any use of this document.     *****/
 /*****===================================================================*****/
 
+#include <stdbool.h> //requires VS 2015 or later
 #include "nifti1_io_core.h"
 #include <math.h>
 #include <stdlib.h>
 #include <sys/stat.h>
-#include <stdbool.h>
 #include <ctype.h>
 #include <string.h>
 #include <stddef.h>
@@ -84,21 +84,25 @@ int isSameFloat (float a, float b) {
     return (fabs (a - b) <= FLT_EPSILON);
 }
 
+int isSameDouble (double a, double b) {
+    return (fabs (a - b) <= DBL_EPSILON);
+}
+
 ivec3 setiVec3(int x, int y, int z)
 {
-    ivec3 v = {x, y, z};
+    ivec3 v = {{x, y, z}};
     return v;
 }
 
 vec3 setVec3(float x, float y, float z)
 {
-    vec3 v = {x, y, z};
+    vec3 v = {{x, y, z}};
     return v;
 }
 
 vec4 setVec4(float x, float y, float z)
 {
-    vec4 v= {x, y, z, 1};
+    vec4 v= {{x, y, z, 1}};
     return v;
 }
 

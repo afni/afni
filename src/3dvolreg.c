@@ -1102,8 +1102,11 @@ int main( int argc , char *argv[] )
 
      if( VL_matrix_save_1D != NULL ){             /* 24 Jul 2007 */
        VL_msfp = fopen(VL_matrix_save_1D,"w") ;
-       fprintf(VL_msfp,
-               "# 3dvolreg matrices (DICOM-to-DICOM, row-by-row):\n") ;
+       if( VL_msfp != NULL )
+         fprintf(VL_msfp,
+                 "# 3dvolreg matrices (DICOM-to-DICOM, row-by-row):\n") ;
+       else
+         ERROR_message("Cannot open '%s' for output :(",VL_matrix_save_1D) ;
      }
 
 #undef  SDAPP
@@ -1249,26 +1252,36 @@ int main( int argc , char *argv[] )
          if( strcmp(VL_dmaxfile,"-") != 0 ){
            if( THD_is_file(VL_dmaxfile) ) WARNING_message("Overwriting file %s",VL_dmaxfile);
            fp = fopen( VL_dmaxfile , "w" ) ;
+           if( fp == NULL ){
+             ERROR_message("Cannot open '%s' for output :(",VL_dmaxfile) ;
+           }
          } else {
            fp = stdout ;
          }
-         fprintf(fp,"# %s\n",VL_commandline) ;
-         fprintf(fp,"# max displacement (mm) for each volume\n") ;
-         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_dmaxar[kim]) ;
-         if( fp != stdout ) fclose(fp) ;
+         if( fp != NULL ){
+           fprintf(fp,"# %s\n",VL_commandline) ;
+           fprintf(fp,"# max displacement (mm) for each volume\n") ;
+           for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_dmaxar[kim]) ;
+           if( fp != stdout ) fclose(fp) ;
+         }
        }
        if( *VL_emaxfile != '\0' && VL_emaxar != NULL ){
          FILE *fp ;
          if( strcmp(VL_emaxfile,"-") != 0 ){
            if( THD_is_file(VL_emaxfile) ) WARNING_message("Overwriting file %s",VL_emaxfile);
            fp = fopen( VL_emaxfile , "w" ) ;
+           if( fp == NULL ){
+             ERROR_message("Cannot open '%s' for output :(",VL_emaxfile) ;
+           }
          } else {
            fp = stdout ;
          }
-         fprintf(fp,"# %s\n",VL_commandline) ;
-         fprintf(fp,"# max delta displ (mm) for each volume\n") ;
-         for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_emaxar[kim]) ;
-         if( fp != stdout ) fclose(fp) ;
+         if( fp != NULL ){
+           fprintf(fp,"# %s\n",VL_commandline) ;
+           fprintf(fp,"# max delta displ (mm) for each volume\n") ;
+           for( kim=0 ; kim < imcount ; kim++ ) fprintf(fp," %.3f\n",VL_emaxar[kim]) ;
+           if( fp != stdout ) fclose(fp) ;
+         }
        }
      }
    }
@@ -1342,12 +1355,16 @@ int main( int argc , char *argv[] )
        fprintf(stderr,"** Warning: overwriting file %s\n",VL_dfile) ;
 
      fp = fopen( VL_dfile , "w" ) ;
-     for( kim=0 ; kim < imcount ; kim++ )
-       fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
-               kim , roll[kim], pitch[kim], yaw[kim],
-                     dx[kim], dy[kim], dz[kim],
-                     rmsold[kim] , rmsnew[kim]  ) ;
-     fclose(fp) ;
+     if( fp == NULL ){
+       ERROR_message("Cannot open '%s' for output",VL_dfile) ;
+     } else {
+       for( kim=0 ; kim < imcount ; kim++ )
+         fprintf(fp , "%4d %8.4f %8.4f %8.4f %8.4f %8.4f %8.4f  %11.4g %11.4g\n" ,
+                 kim , roll[kim], pitch[kim], yaw[kim],
+                       dx[kim], dy[kim], dz[kim],
+                       rmsold[kim] , rmsnew[kim]  ) ;
+       fclose(fp) ;
+     }
    }
 
    if( VL_1Dfile[0] != '\0' ){  /* 14 Apr 2000 */
@@ -1357,11 +1374,15 @@ int main( int argc , char *argv[] )
          fprintf(stderr,"** Warning: overwriting file %s\n",VL_1Dfile) ;
 
       fp = fopen( VL_1Dfile , "w" ) ;
-      for( kim=0 ; kim < imcount ; kim++ )
-         fprintf(fp , "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n" ,
-                 roll[kim], pitch[kim], yaw[kim],
-                 dx[kim]  , dy[kim]   , dz[kim]  ) ;
-      fclose(fp) ;
+      if( fp == NULL ){
+        ERROR_message("Cannot open '%s' for output",VL_1Dfile) ;
+      } else {
+        for( kim=0 ; kim < imcount ; kim++ )
+           fprintf(fp , "%8.4f %8.4f %8.4f %8.4f %8.4f %8.4f\n" ,
+                   roll[kim], pitch[kim], yaw[kim],
+                   dx[kim]  , dy[kim]   , dz[kim]  ) ;
+        fclose(fp) ;
+      }
    }
 
    if( VL_rotcom ){ /* 04 Sep 2000 */
@@ -1391,14 +1412,19 @@ void VL_syntax(void)
 {
    printf(
     "Usage: 3dvolreg [options] dataset\n"
-    "Registers each 3D sub-brick from the input dataset to the base brick.\n"
-    "'dataset' may contain a sub-brick selector list.\n"
+    "\n"
+    "* Registers each 3D sub-brick from the input dataset to the base brick.\n"
+    "  'dataset' may contain a sub-brick selector list.\n"
+    "\n"
+    "* This program is written to be fast, and is limited to rigid body\n"
+    "  (6 parameter) transformations.\n"
     "\n"
     "-->> Also see the script align_epi_anat.py for a more general\n"
     "     alignment procedure, which does not require that the base\n"
     "     and source datasets be defined on the same 3D grid.\n"
-    "-->> Program 3dAllineate can do nonlinear (polynomial) warping in 3D\n"
-    "     to align 2 datasets.  Script @2dwarper.Allin can do nonlinear\n"
+    "-->> Program 3dQwarp can do nonlinear warping of one dataset\n"
+    "     to match another.\n"
+    "-->> datasets.  Script @2dwarper.Allin can do nonlinear\n"
     "     warping in 2D to align 2 datasets on a slice-wise basis\n"
     "     (no out-of-slice movements; each slice registered separately).\n"
     "\n"
@@ -1440,7 +1466,7 @@ void VL_syntax(void)
     "                    from the dataset specified by 'bset', as in\n"
     "                       -base 'elvis+orig[4]'\n"
     "                    The quotes are needed because the '[]' characters\n"
-    "                    are special to the shell.\n"
+    "                    are special to the command line shell.\n"
     "\n"
     "  -dfile dname    Save the motion parameters in file 'dname'.\n"
     "                    The output is in 9 ASCII formatted columns:\n"
@@ -1461,6 +1487,9 @@ void VL_syntax(void)
     "             back into alignment with the base.  In 3drotate, it is as if\n"
     "             the following options were applied to each input sub-brick:\n"
     "              -rotate 'roll'I 'pitch'R 'yaw'A  -ashift 'dS'S 'dL'L 'dP'P\n"
+    "       ** roll  = shaking head 'no' left-right\n"
+    "       ** pitch = nodding head 'yes' up-down\n"
+    "       ** yaw   = wobbling head sideways (ear toward shoulder)\n"
     "\n"
     "  -1Dfile ename   Save the motion parameters ONLY in file 'ename'.\n"
     "                    The output is in 6 ASCII formatted columns:\n"

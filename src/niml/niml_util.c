@@ -496,3 +496,32 @@ char * trailname( char *fname , int lev )
 
    return (fname+fpos) ;
 }
+
+/*--------------------------------------------------------------------------*/
+/*! Given an array of strings, determine how many are numbers [11 Sep 2018] */
+/*  (After conversion to floats, thd_floatscan() can be used to for fixups) */
+/*--------------------------------------------------------------------------*/
+
+#undef  FBAD
+#define FBAD(sss)                       \
+ ( strcasecmp ((sss),"N/A"  ) == 0 ||   \
+   strncasecmp((sss),"NAN",3) == 0 ||   \
+   strncasecmp((sss),"INF",3) == 0   )
+
+int NI_count_numbers( int nstr , char **str )
+{
+   int nnum=0 , ii ; double val ; char *cpt ;
+
+   if( nstr < 1 || str == NULL ) return nnum ;
+
+   for( ii=0 ; ii < nstr ; ii++ ){
+     if( str[ii] != NULL ){
+       if( FBAD(str[ii]) ) nnum++ ;  /* 17 Oct 2018 */
+       else {
+         val = strtod(str[ii],&cpt) ;
+         if( *cpt == '\0' || isspace(*cpt) ) nnum++ ;
+       }
+     }
+   }
+   return nnum ;
+}

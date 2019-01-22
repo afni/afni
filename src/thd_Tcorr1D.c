@@ -8,15 +8,27 @@
 #define QUADRANT 2
 #define PEARSON  3
 #define KTAUB    4
+#define DOT      5
 
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
+/*-------------------------------------------------------------*/
+float THD_dotprod( int nx , float *xx , float *yy ){
+  int jj ; float sum=0.0f ;
+  for( jj=0 ; jj < nx ; jj++ ) sum += xx[jj]*yy[jj] ;
+  return sum ;
+}
+/*-------------------------------------------------------------*/
 
 THD_3dim_dataset *THD_Tcorr1D(THD_3dim_dataset *xset, byte *mask, int nmask,
                               MRI_IMAGE *ysim,
-                              char *smethod, char *prefix, int do_short )
+                              char *smethod, char *prefix, int do_short , int do_atanh )
 {
    THD_3dim_dataset *cset = NULL;
    int method=PEARSON ;
-   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f ;
+   int ny, kk, datum=MRI_float ; char str[32], fmt[32] ; float cfac=0.0f,sfac=0.0f ;
    float (*corfun)(int,float *,float *) = NULL ;  /* ptr to corr function */
    int nvox , nvals , ii;
    int nconst=0 ;
@@ -26,26 +38,29 @@ ENTRY("THD_Tcorr1D");
    if( do_short ) datum = MRI_short ;  /* 30 Jan 2017 */
 
    if (!smethod || smethod[0] == '\0') {
-    method = PEARSON;
+     method = PEARSON;
    } else if (!strcmp(smethod,"pearson")) {
-    method = PEARSON;
+     method = PEARSON;
    } else if (!strcmp(smethod,"spearman")) {
-    method = SPEARMAN;
+     method = SPEARMAN;
    } else if (!strcmp(smethod,"quadrant")) {
-    method = QUADRANT;
+     method = QUADRANT;
    } else if (!strcmp(smethod,"ktaub")) {
-    method = KTAUB;
+     method = KTAUB;
+   } else if (!strcmp(smethod,"dot")) {
+     method = DOT;
    } else {
-    ERROR_message("Bad value %s for correlation method", smethod);
-    RETURN(NULL);
+     ERROR_message("Bad value %s for correlation method", smethod);
+     RETURN(NULL);
    }
 
    if (!prefix) prefix = "Tcorr1D";
 
    nvals = DSET_NVALS(xset) ;  /* number of time points */
 
-   if( nvals < 3 )
-     ERROR_exit("Input dataset length (%d) is less than 3?!", nvals) ;
+   ii = (method==DOT) ? 2 : 3 ;
+   if( nvals < ii )
+     ERROR_exit("Input dataset length (%d) is less than %d?!", nvals,ii) ;
 
    if( ysim->nx < nvals )
      ERROR_exit("ysim has %d time points, but dataset has %d values",
@@ -93,8 +108,12 @@ ENTRY("THD_Tcorr1D");
      case SPEARMAN: sprintf(fmt,"SpmnCorr#%%0%dd",kk) ; break ;
      case QUADRANT: sprintf(fmt,"QuadCorr#%%0%dd",kk) ; break ;
      case KTAUB:    sprintf(fmt,"TaubCorr#%%0%dd",kk) ; break ;
+     case DOT:      sprintf(fmt, "DotProd#%%0%dd",kk) ; break ;
    }
-   if( datum == MRI_short ) cfac = 0.0001f ;  /* scale factor for -short */
+   if( datum == MRI_short ){
+      cfac = (do_atanh) ? 0.000125f : 0.0001f ;  /* scale factor for -short */
+      sfac = 1.0f/cfac + 0.111f ;
+   }
 
    /* for each sub-brick in output file */
 
@@ -112,6 +131,7 @@ ENTRY("THD_Tcorr1D");
      case SPEARMAN: corfun = THD_spearman_corr ; break ;
      case QUADRANT: corfun = THD_quadrant_corr ; break ;
      case KTAUB:    corfun = THD_ktaub_corr    ; break ;
+     case DOT:      corfun = THD_dotprod       ; break ;
    }
 
    /* 27 Jun 2010: OpenMP-ize over columns in ysim */
@@ -158,8 +178,9 @@ ENTRY("THD_Tcorr1D");
        for( jj=0 ; jj < nvals ; jj++ ) ydar[jj] = ysar[jj] ; /* 1D data */
 
        val = corfun( nvals , xsar , ydar ) ;         /* !! correlate !! */
+       if( do_atanh ) val = MYatanh(val) ;
 
-       if( datum == MRI_short ) scar[ii] = (short)(10000.4f*val) ;
+       if( datum == MRI_short ) scar[ii] = (short)(sfac*val) ;
        else                     fcar[ii] = val ;
 
      } /* end of loop over voxels */

@@ -5,7 +5,7 @@
 #include <stddef.h>
 #include <stdlib.h>
 #include <stdio.h>
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 #include <assert.h>
 #include <string.h>
 #include <sys/time.h>

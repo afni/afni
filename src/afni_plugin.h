@@ -158,15 +158,11 @@ extern "C" {
 /* dimensions of various arrays */
 
 #define PLUGIN_LABEL_SIZE           32  /* for buttons and menus */
-#define PLUGIN_STRING_SIZE          64  /* longer things */
+#define PLUGIN_STRING_SIZE         333  /* longer things [shorter than THD_MAX_NAME] */
 
-#if 1
-#define PLUGIN_MAX_STRING_RANGE     99  /* isn't this enough? */
-#else
-#define PLUGIN_MAX_STRING_RANGE     34  /* isn't this enough? */
-#endif
+#define PLUGIN_MAX_STRING_RANGE    199  /* isn't this enough? */
 
-#define PLUGIN_MAX_SUBVALUES         7  /* isn't this enough? */
+#define PLUGIN_MAX_SUBVALUES         9  /* isn't this enough? */
                                         /*  -- Nope --  03 May 2002 [BDWard] */
 
 /* data type codes (not all are implemented yet!) */

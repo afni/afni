@@ -137,7 +137,7 @@ afni_roi <- function(master,srad,ijk.x,ijk.y,ijk.z){
                 ' > ',coord.file))
 
   system(paste0(afni.path,'/3dUndump -ijk -prefix ',mask.img,
-                ' -master ',master,' -srad ',srad,' ',coord.file))
+                ' -master ',out.dir,'/',master,' -srad ',srad,' ',coord.file))
 
   ## remove file
   file.remove(coord.file,showWarnings=FALSE)

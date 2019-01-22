@@ -1,0 +1,366 @@
+#!/bin/tcsh
+
+# Help the pitiful luser?
+
+set do_help = 0
+if( $#argv == 0 ) set do_help = 1
+if( $do_help == 0 )then
+  if( "$argv[1]" == "-help" ) set do_help = 1
+endif
+if( $do_help )then
+  echo "Usage: @grayplot [OPTIONS] dirname"
+  echo
+  echo "Script to read files from an afni_proc.py results directory"
+  echo "and produce a grayplot from the errts dataset(s), combined with"
+  echo "a motion magnitude indicator graph."
+  echo
+  echo "* NOTE: This script requires various programs from the NETPBM packege"
+  echo "        to run. If those programs are not found, this script will fail."
+  echo
+  echo "Will produce a plot for each dataset whose name fits the wildcard"
+  echo "  errts.*+tlrc.HEAD"
+  echo "including errts.SUBJECT+tlrc and errts.SUBJECT_REML+tlrc,"
+  echo "if both datasets were computed. Dataset errts.SUBJECT_REMLwh+tlrc"
+  echo "will also be plotted, if option"
+  echo "  '-regress_opts_reml -Rwherr errts.SUBJECT_REMLwh'"
+  echo "was given to afni_proc.py -- this is the 'pre-whitened' residuals"
+  echo "dataset, which is the noise examplar from which the 3dREMLfit"
+  echo "statistics are computed."
+  echo "* NOTE: dataset all_runs.*+tlrc.HEAD will also be"
+  echo "        grayplotted if it is found in the results directory."
+  echo "* NOTE: this script will now work with +orig datasets if the"
+  echo "        +tlrc datasets are not available [11 Aug 2018]."
+  echo
+  echo "The output images are grayscale, stored in .png format, and"
+  echo "have names like 'Grayplot.errts.WHATEVER.ORDERMETH.png'."
+  echo "* See the OPTIONS section below for the ordering methods"
+  echo "  of the voxels in the output."
+  echo
+  echo "Note that time points which were censored out will have errts=0"
+  echo "(and thus look flat), and the motion magnitude graph will be"
+  echo "set to 0 at these points as well -- to avoid having large motions"
+  echo "dominate the graph and make it hard to see other movements."
+  echo "Censored time points are also overlaid with a gray band in the"
+  echo "graph above the dataset grayplot. (Gray so that the resulting"
+  echo "png file is pure grayscale -- without color.)"
+  echo
+  echo "Segments the anatomy (or uses an existing segmentation, if"
+  echo "it was run by afni_proc.py), and grayplots the GM, WM, and CSF"
+  echo "voxels separately from top to bottom, with dashed lines dividing"
+  echo "the partitions."
+  echo
+  echo "COMMAND LINE ARGUMENTS:"
+  echo "* The last argument is the afni_proc.py results directory."
+  echo "  To use the current working directory, use '.' as the last argument."
+  echo "* The only OPTIONS at this time control the ordering of the voxel"
+  echo "  (time series)graphs inside each mask partition in the grayplot,"
+  echo "  downward in the image:"
+  echo "    -pvorder ="
+  echo "      Within each partition, voxels are ordered by a simple similarity"
+  echo "      measure, so the top of each partition will echo have voxel time"
+  echo "      series that are more similar than the bottom of the partition."
+  echo "      This ordering helps make it clear if there are many time series"
+  echo "      with similar temporal patterns, which will show up as vertical"
+  echo "      bands in the grayplot."
+  echo "      * Note that '-pvorder' is based on the data, so the voxel"
+  echo "        order in the grayplot will differ between datasets in the"
+  echo "        same directory, unlike the geometrically-based orderings"
+  echo "        '-peelorder' and '-ijkorder'."
+  echo "      * I personally like '-pvorder' for the clarity provided by"
+  echo "        having similar voxel time series clustered together."
+  echo "    -peelorder ="
+  echo "      Within each partition, voxels are ordered by how many 'peel'"
+  echo "      operations are needed to reach a given voxel; that is, how"
+  echo "      far a voxel is from the partition's boundary. Voxels at the"
+  echo "      edge of the partition are first, etc."
+  echo "    -ijkorder ="
+  echo "      Within each partition, voxels are just ordered by the 3D index"
+  echo "      in which they appear in the dataset. Possibly not exciting."
+  echo "      This order will primarily be from Inferior to Superior in the"
+  echo "      brain (top to bottom in the grayplot image), using AFNI's"
+  echo "      convention for storing +tlrc datasets."
+  echo "    -ALLorder ="
+  echo "      Create grayplots for all ordering methods. Can be useful for"
+  echo "      comparisons, but of course will take a little longer to run."
+  echo "   **** Only one of these options can be given; if you give more"
+  echo "        options, then the script will become confused and not work."
+  echo "   **** The default (no option given) order is '-ijkorder'."
+  echo
+  echo "NOTA BENE:"
+  echo "* Also see '3dGrayplot -help', since the actual grayplot is created"
+  echo "   by that program."
+  echo "* Since the vertical (spatial) dimension of the output grayplot image"
+  echo "   is only 1200 pixels, each horizontal (time) row in the plot will be"
+  echo "   the combination of multiple voxels, in whatever order they appear."
+  echo "* Since the horizontal dimension of the output grayplot image is"
+  echo "   1800 pixels, unless the time series has more than 1800 points, each"
+  echo "   time point will be stretched (interpolated) to fill more than one pixel."
+  echo "* I personally find '-pvorder' to be the most useful, but the"
+  echo "   other orderings can also be interesting to compare."
+  echo "* I like to use the AFNI 'aiv' program to view the images, rather than"
+  echo "   a standard image viewer program, since aiv's default settings show"
+  echo "   more contrast, which helps me see more structure in the grayplots."
+  echo "* Note that 'structure' in the grayplots of the errts datasets is"
+  echo "   in some sense BAD, since individual-subject statistics are computed"
+  echo "   from the errts dataset assuming it is just noise."
+  echo "* I prefer using 3dREMLfit and so the most relevant grayplot is from"
+  echo "   errts.SUBJECT_REMLwh+tlrc (the pre-whitened errts.SUBJECT_REML+tlrc)."
+  echo "   The voxelwise pre-whitening tends to removes a little of the visible"
+  echo "   structure in the grayplot."
+  echo "* Author: RWCox -- May 2018"
+  echo "* Notice: Subject to horrific and drastic change at any instant."
+  echo "* Changes since original version:"
+  echo "  a) Revised 3dGrayplot and @grayplot to plot data with a fixed range,"
+  echo "     so the images from different datasets can be compared."
+  echo "  b) Revised to use +orig datasets if +tlrc datasets aren't found."
+  exit 0
+endif
+
+# check for pnmtopng
+
+which pnmtopng > /dev/null
+if( $status != 0 )then
+  echo "** ERROR: program pnmtopng not found - to use @grayplot you need the NETPBM package"
+  exit 1
+endif
+
+# set defaults
+
+set ddir       = "."
+set iarg       = 0
+set order_list = ( "-ijkorder"    )
+set osuff_list = ( "IJKORDER.png" )
+
+# check command line args
+
+if( $#argv > 0 )then
+  set iarg = 1
+  if( "$argv[$iarg]" == "-peelorder" )then
+    set order_list = ( "-peelorder"    )
+    set osuff_list = ( "PEELORDER.png" )
+    @ iarg ++
+  else if( "$argv[$iarg]" == "-pvorder" )then
+    set order_list = ( "-pvorder"    )
+    set osuff_list = ( "PVORDER.png" )
+    @ iarg ++
+  else if( "$argv[$iarg]" == "-ijkorder" )then
+    set order_list = ( "-ijkorder"    )
+    set osuff_list = ( "IJKORDER.png" )
+    @ iarg ++
+  else if( "$argv[$iarg]" == "-ALLorder" )then
+    set order_list = ( "-ijkorder"    "-peelorder"    "-pvorder"    )
+    set osuff_list = ( "IJKORDER.png" "PEELORDER.png" "PVORDER.png" )
+    @ iarg ++
+  endif
+  if( $#argv >= $iarg )then
+    set ddir = $argv[$iarg] ; @ iarg ++
+  endif
+endif
+
+set clobber
+
+# number of order cases to run
+
+set num_order = $#order_list
+
+# switch to input/output directory
+
+pushd $ddir
+
+# find anat file, extract subj name from it
+
+set spac = "NADA"
+set aa   = ( `find . -name anat_final.\*+tlrc.HEAD` )
+if( $#aa == 1 )then
+  echo "++ Found anatomical dataset $aa[1]"
+  set subj = `basename $aa[1] | sed -e 's/+tlrc.HEAD//' -e 's/anat_final.//'`
+  set spac = tlrc
+else
+  set aa = ( `find . -name anat_final.\*+orig.HEAD` )
+  if( $#aa == 1 )then
+    echo "++ Found anatomical dataset $aa[1]"
+    set subj = `basename $aa[1] | sed -e 's/+orig.HEAD//' -e 's/anat_final.//'`
+    set spac = orig
+  endif
+endif
+
+if( $spac == "NADA" )then
+  echo "** ERROR @grayplot: Can't find anat_final.*+{tlrc|orig}.HEAD" ; exit 1
+endif
+
+echo "++ Subject ID = $subj    Processing +$spac datasets"
+
+# find EPI mask file
+
+set dmask = mask_epi_anat.${subj}+${spac}.HEAD
+if( ! -f $dmask )then
+  set dmask = full_mask.${subj}+${spac}.HEAD
+  if( ! -f $dmask )then
+    echo "** ERROR @grayplot: Can't find EPI mask :(" ; exit 1
+  endif
+endif
+
+# compute enorm from each run's dfile
+
+set dlist = ( dfile.r*.1D )
+set nrun  = $#dlist
+if( $nrun == 0 )then
+  echo "** ERROR @grayplot: Can't find motion parameters files" ; exit 1
+endif
+
+foreach ddd ( $dlist )
+  if( -f enorm.$ddd ) \rm enorm.$ddd
+  1d_tool.py -infile $ddd -derivative -collapse_cols euclidean_norm \
+             -write enorm.$ddd
+end
+
+# glue results together into one file
+
+cat enorm.dfile.r*.1D > enorm.dfile.allU.1D
+\rm enorm.dfile.r*.1D
+
+# find the censoring file
+
+set ccc = censor_${subj}_combined_2.1D
+if( ! -f $ccc )then
+  set ccc = motion_${subj}_censor.1D
+  if( ! -f $ccc )then
+    set ccc = outcount_${subj}_censor.1D
+    if( ! -f $ccc )then
+      unset ccc
+    endif
+  endif
+endif
+
+# setup to make the naked enorm plots (motion magnitude)
+
+setenv AFNI_1DPLOT_COLOR_01   'black'
+set    cencol               = '#dddddd'
+set    Ufile                = enorm.dfile.allU.1D
+set    Cfile                = $Ufile
+
+# censored version
+
+if( $?ccc )then
+  1deval -a $Ufile -b $ccc -expr 'a*b' > enorm.dfile.allC.1D
+  set Cfile = enorm.dfile.allC.1D
+endif
+
+# plotting command
+
+if( $?ccc )then
+  set Gplot = \
+   "1dplot -nopush -naked -pnms 1800 Gplot.ppm -aspect 10 -censor_RGB $cencol -censor $ccc"
+else
+  set Gplot = \
+   "1dplot -nopush -naked -pnms 1800 Gplot.ppm -aspect 10"
+endif
+
+# numeric range of enorm plot
+
+set Urange = `3dTstat -prefix stdout: -max ${Ufile}\'`
+set Crange = `3dTstat -prefix stdout: -max ${Cfile}\'`
+
+set Ustrin = `ccalc -form '%.2f' $Urange`
+set Cstrin = `ccalc -form '%.2f' $Crange`
+
+# make a mask of GM, WM, and CSF (in that order), if needed
+
+if( -f Classes+${spac}.HEAD )then
+  echo "----- Using existing segmentation"
+else
+  echo "----- Segmenting $aa[1]"
+  3dSeg -anat $aa[1] -mask AUTO -blur_meth BIM -classes 'CSF; GM; WM'
+  if( -f Segsy/Classes+${spac}.HEAD ) mv Segsy/Classes+${spac}.* .
+  if( -d Segsy ) \rm -rf Segsy
+endif
+
+if( -f Classes+${spac}.HEAD )then
+# convert CSF=1 to CSF=4 (so GM=2 WM=3 CSF=4 is the grayplot order)
+  if( -f GmaskA.nii ) \rm GmaskA.nii
+  3dcalc -a Classes+${spac}.HEAD -expr 'ifelse(equals(a,1),4,a)' \
+         -datum byte -nscale -prefix GmaskA.nii
+# convert from anat resolution to EPI resolution
+  if( -f GmaskB.nii ) \rm GmaskB.nii
+  3dfractionize -template $dmask \
+                -input GmaskA.nii -prefix GmaskB.nii -vote
+# intersect with EPI mask
+  if( -f GmaskC.nii ) \rm GmaskC.nii
+  3dcalc -a GmaskB.nii -b $dmask -expr 'a*b' -prefix GmaskC.nii
+  set ggg = GmaskC.nii
+  \rm -rf GmaskA.nii GmaskB.nii
+else
+# if segmentation failed for some reason
+  set ggg = $dmask
+endif
+
+# grayplot diverse errts files
+
+set elist = ( errts.*+${spac}.HEAD )
+
+foreach iii ( `count -dig 1 1 $num_order` )
+  set order = $order_list[$iii]
+  set osuff = $osuff_list[$iii]
+
+  foreach eee ( $elist )
+    if( -f $eee )then
+      echo "----- Grayplot $eee"
+      set ppp = `basename $eee +${spac}.HEAD`
+      set fff = Grayplot.${ppp}.${osuff}
+      set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
+      3dGrayplot -dimen 1800 1200     \
+                 $order               \
+                 -polort -1 -fwhm 0   \
+                 -range 3.89          \
+                 -mask $ggg           \
+                 -input $eee          \
+                 -prefix G.errts.pgm
+# make graph image
+  #    $Gplot -plabel "\small\small _{\noesc  $lll\esc}   _{\uparrow\small\ $Cstrin}" $Cfile
+      $Gplot -plabel "\small\small _{\uparrow\small\ $Cstrin} _{\large\noesc  $lll\esc}" $Cfile
+# merge with graph image
+      pnmcat -tb Gplot.ppm G.errts.pgm | pnmtopng - > $fff
+      echo " ---- Result in $cwd/$fff"
+      \rm G.errts.pgm Gplot.ppm
+    endif
+  end
+end
+
+# grayplot the all_runs file for giggles
+
+@ port = 3 * $nrun
+
+foreach iii ( `count -dig 1 1 $num_order` )
+  set order = $order_list[$iii]
+  set osuff = $osuff_list[$iii]
+
+  foreach eee ( all_runs.*+${spac}.HEAD )
+    if( -f $eee )then
+      echo "----- Grayplot $eee"
+      set ppp = `basename $eee +${spac}.HEAD`
+      set fff = Grayplot.${ppp}.${osuff}
+      set lll = `echo $fff | sed -e 's/.png//' -e 's/Grayplot.//'`
+      3dGrayplot -dimen 1800 1200      \
+                 $order                \
+                 -polort $port -fwhm 0 \
+                 -percent -range 3.89  \
+                 -mask $ggg            \
+                 -input $eee           \
+                 -prefix G.errts.pgm
+# make graph image
+ #     $Gplot -plabel "\small\small _{\noesc  $lll\esc}  _{\uparrow\small\ $Ustrin}" $Ufile
+      $Gplot -plabel "\small\small _{\uparrow\small\ $Ustrin}  _{\large\noesc  $lll\esc}" $Ufile
+# merge with graph image
+      pnmcat -tb Gplot.ppm G.errts.pgm | pnmtopng - > $fff
+      echo " ---- Result in $cwd/$fff"
+      \rm G.errts.pgm Gplot.ppm
+    endif
+  end
+end
+
+# remove the trash
+
+\rm enorm.dfile.all*
+if( -f GmaskC.nii ) \rm GmaskC.nii
+
+exit 0

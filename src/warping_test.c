@@ -19,6 +19,8 @@
 #define DB(p,q) (p.b-q.b)
 #define DC(p,q) (p.c-q.c)
 
+static double hcfac = 1.0 ;
+
 static INLINE double hexahedron_volume( double_triple x0 , double_triple x1 ,
                                         double_triple x2 , double_triple x3 ,
                                         double_triple x4 , double_triple x5 ,
@@ -57,8 +59,8 @@ static INLINE double_pair HCwarp_eval_basis( double x )
      ee.a = ee.b = 0.0 ;
    } else {
      bb = 1.0 - aa ; bb = bb*bb ;
-     ee.a = bb * (1.0+2.0*aa) ;  /* f(0)  = 1 ; */
-     ee.b = bb * x * 6.75 ;      /* f'(0) = 1 * 6.75 */
+     ee.a = bb * (1.0+2.0*aa) ;      /* f(0)  = 1 ; */
+     ee.b = bb * x * 6.75 * hcfac ;  /* f'(0) = 1 * 6.75 * hcfac */
    }
    return ee ;
 }
@@ -228,34 +230,66 @@ double HCwarp_minhexvol( int npar , double *par )
    double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    MRI_IMAGE *him ; float *har=NULL ;
 
-   if( npar < 24 ) return 0.0 ;         /* something bad */
-
    if( nb < 9 ) HCwarp_setup_warp_basis(51) ;
-
    ddd = del*del*del ;
 
-   for( hh=kk=0 ; kk < nb ; kk++ ){
-    for( jj=0 ; jj < nb ; jj++ ){
-     for( ii=0 ; ii < nb ; ii++,hh++ ){
-      xx[hh] = cc[ii]
-                +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
-                                              +b0[kk]*b1[jj]*b0[ii]*xpar[2]
-                +b1[kk]*b1[jj]*b0[ii]*xpar[3] +b0[kk]*b0[jj]*b1[ii]*xpar[4]
-                +b1[kk]*b0[jj]*b1[ii]*xpar[5]
-                +b0[kk]*b1[jj]*b1[ii]*xpar[6] +b1[kk]*b1[jj]*b1[ii]*xpar[7] ;
-      yy[hh] = cc[jj]
-                +b0[kk]*b0[jj]*b0[ii]*ypar[0] +b1[kk]*b0[jj]*b0[ii]*ypar[1]
-                                              +b0[kk]*b1[jj]*b0[ii]*ypar[2]
-                +b1[kk]*b1[jj]*b0[ii]*ypar[3] +b0[kk]*b0[jj]*b1[ii]*ypar[4]
-                +b1[kk]*b0[jj]*b1[ii]*ypar[5]
-                +b0[kk]*b1[jj]*b1[ii]*ypar[6] +b1[kk]*b1[jj]*b1[ii]*ypar[7] ;
-      zz[hh] = cc[kk]
-                +b0[kk]*b0[jj]*b0[ii]*zpar[0] +b1[kk]*b0[jj]*b0[ii]*zpar[1]
-                                              +b0[kk]*b1[jj]*b0[ii]*zpar[2]
-                +b1[kk]*b1[jj]*b0[ii]*zpar[3] +b0[kk]*b0[jj]*b1[ii]*zpar[4]
-                +b1[kk]*b0[jj]*b1[ii]*zpar[5]
-                +b0[kk]*b1[jj]*b1[ii]*zpar[6] +b1[kk]*b1[jj]*b1[ii]*zpar[7] ;
-   }}}
+   if( npar !=3 && npar != 12 && npar != 24 ) return 0.0 ; /* something bad */
+
+   if( npar == 3 ){  /* special case [03 Dec 2018] */
+
+     xpar = par ; ypar = par+1 ; zpar = par+2 ;
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii] +b0[kk]*b0[jj]*b0[ii]*xpar[0];
+        yy[hh] = cc[jj] +b0[kk]*b0[jj]*b0[ii]*ypar[0];
+        zz[hh] = cc[kk] +b0[kk]*b0[jj]*b0[ii]*zpar[0];
+     }}}
+
+   } else if( npar == 12 ){  /* special case [06 Dec 2018] */
+
+     xpar = par ; ypar = par+4 ; zpar = par+8 ;
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii] +b0[kk]*b0[jj]*b0[ii]*xpar[0]
+                        +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                        +b0[kk]*b1[jj]*b0[ii]*xpar[2]
+                        +b0[kk]*b0[jj]*b1[ii]*xpar[3] ;
+        yy[hh] = cc[jj] +b0[kk]*b0[jj]*b0[ii]*ypar[0]
+                        +b1[kk]*b0[jj]*b0[ii]*ypar[1]
+                        +b0[kk]*b1[jj]*b0[ii]*ypar[2]
+                        +b0[kk]*b0[jj]*b1[ii]*ypar[3] ;
+        zz[hh] = cc[kk] +b0[kk]*b0[jj]*b0[ii]*zpar[0]
+                        +b1[kk]*b0[jj]*b0[ii]*zpar[1]
+                        +b0[kk]*b1[jj]*b0[ii]*zpar[2]
+                        +b0[kk]*b0[jj]*b1[ii]*zpar[3] ;
+     }}}
+
+   } else {
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                                                +b0[kk]*b1[jj]*b0[ii]*xpar[2]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[3] +b0[kk]*b0[jj]*b1[ii]*xpar[4]
+                  +b1[kk]*b0[jj]*b1[ii]*xpar[5]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[6] +b1[kk]*b1[jj]*b1[ii]*xpar[7] ;
+        yy[hh] = cc[jj]
+                  +b0[kk]*b0[jj]*b0[ii]*ypar[0] +b1[kk]*b0[jj]*b0[ii]*ypar[1]
+                                                +b0[kk]*b1[jj]*b0[ii]*ypar[2]
+                  +b1[kk]*b1[jj]*b0[ii]*ypar[3] +b0[kk]*b0[jj]*b1[ii]*ypar[4]
+                  +b1[kk]*b0[jj]*b1[ii]*ypar[5]
+                  +b0[kk]*b1[jj]*b1[ii]*ypar[6] +b1[kk]*b1[jj]*b1[ii]*ypar[7] ;
+        zz[hh] = cc[kk]
+                  +b0[kk]*b0[jj]*b0[ii]*zpar[0] +b1[kk]*b0[jj]*b0[ii]*zpar[1]
+                                                +b0[kk]*b1[jj]*b0[ii]*zpar[2]
+                  +b1[kk]*b1[jj]*b0[ii]*zpar[3] +b0[kk]*b0[jj]*b1[ii]*zpar[4]
+                  +b1[kk]*b0[jj]*b1[ii]*zpar[5]
+                  +b0[kk]*b1[jj]*b1[ii]*zpar[6] +b1[kk]*b1[jj]*b1[ii]*zpar[7] ;
+     }}}
+   }
 
 #undef  IJK
 #undef  TOT
@@ -326,61 +360,90 @@ double HQwarp_minhexvol( int npar , double *par )
    double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    MRI_IMAGE *him ; float *har=NULL ;
 
-   if( npar < 81 ) return 0.0 ;         /* something bad */
+   if( npar != 81 && npar != 30 ) return 0.0 ;         /* something bad */
 
    if( nb < 9 ) HQwarp_setup_warp_basis(51) ;
 
    ddd = del*del*del ;
 
-   for( hh=kk=0 ; kk < nb ; kk++ ){
-    for( jj=0 ; jj < nb ; jj++ ){
-     for( ii=0 ; ii < nb ; ii++,hh++ ){
-      xx[hh] = cc[ii]
-                +b0[kk]*b0[jj]*b0[ii]*xpar[ 0] +b1[kk]*b0[jj]*b0[ii]*xpar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*xpar[ 2] +b0[kk]*b1[jj]*b0[ii]*xpar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*xpar[ 4] +b2[kk]*b1[jj]*b0[ii]*xpar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*xpar[ 6] +b1[kk]*b2[jj]*b0[ii]*xpar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*xpar[ 8] +b0[kk]*b0[jj]*b1[ii]*xpar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*xpar[10] +b2[kk]*b0[jj]*b1[ii]*xpar[11]
-                +b0[kk]*b1[jj]*b1[ii]*xpar[12] +b1[kk]*b1[jj]*b1[ii]*xpar[13]
-                +b2[kk]*b1[jj]*b1[ii]*xpar[14] +b0[kk]*b2[jj]*b1[ii]*xpar[15]
-                +b1[kk]*b2[jj]*b1[ii]*xpar[16] +b2[kk]*b2[jj]*b1[ii]*xpar[17]
-                +b0[kk]*b0[jj]*b2[ii]*xpar[18] +b1[kk]*b0[jj]*b2[ii]*xpar[19]
-                +b2[kk]*b0[jj]*b2[ii]*xpar[20] +b0[kk]*b1[jj]*b2[ii]*xpar[21]
-                +b1[kk]*b1[jj]*b2[ii]*xpar[22] +b2[kk]*b1[jj]*b2[ii]*xpar[23]
-                +b0[kk]*b2[jj]*b2[ii]*xpar[24] +b1[kk]*b2[jj]*b2[ii]*xpar[25]
-                +b2[kk]*b2[jj]*b2[ii]*xpar[26] ;
-      yy[hh] = cc[jj]
-                +b0[kk]*b0[jj]*b0[ii]*ypar[ 0] +b1[kk]*b0[jj]*b0[ii]*ypar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*ypar[ 2] +b0[kk]*b1[jj]*b0[ii]*ypar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*ypar[ 4] +b2[kk]*b1[jj]*b0[ii]*ypar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*ypar[ 6] +b1[kk]*b2[jj]*b0[ii]*ypar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*ypar[ 8] +b0[kk]*b0[jj]*b1[ii]*ypar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*ypar[10] +b2[kk]*b0[jj]*b1[ii]*ypar[11]
-                +b0[kk]*b1[jj]*b1[ii]*ypar[12] +b1[kk]*b1[jj]*b1[ii]*ypar[13]
-                +b2[kk]*b1[jj]*b1[ii]*ypar[14] +b0[kk]*b2[jj]*b1[ii]*ypar[15]
-                +b1[kk]*b2[jj]*b1[ii]*ypar[16] +b2[kk]*b2[jj]*b1[ii]*ypar[17]
-                +b0[kk]*b0[jj]*b2[ii]*ypar[18] +b1[kk]*b0[jj]*b2[ii]*ypar[19]
-                +b2[kk]*b0[jj]*b2[ii]*ypar[20] +b0[kk]*b1[jj]*b2[ii]*ypar[21]
-                +b1[kk]*b1[jj]*b2[ii]*ypar[22] +b2[kk]*b1[jj]*b2[ii]*ypar[23]
-                +b0[kk]*b2[jj]*b2[ii]*ypar[24] +b1[kk]*b2[jj]*b2[ii]*ypar[25]
-                +b2[kk]*b2[jj]*b2[ii]*ypar[26] ;
-      zz[hh] = cc[kk]
-                +b0[kk]*b0[jj]*b0[ii]*zpar[ 0] +b1[kk]*b0[jj]*b0[ii]*zpar[ 1]
-                +b2[kk]*b0[jj]*b0[ii]*zpar[ 2] +b0[kk]*b1[jj]*b0[ii]*zpar[ 3]
-                +b1[kk]*b1[jj]*b0[ii]*zpar[ 4] +b2[kk]*b1[jj]*b0[ii]*zpar[ 5]
-                +b0[kk]*b2[jj]*b0[ii]*zpar[ 6] +b1[kk]*b2[jj]*b0[ii]*zpar[ 7]
-                +b2[kk]*b2[jj]*b0[ii]*zpar[ 8] +b0[kk]*b0[jj]*b1[ii]*zpar[ 9]
-                +b1[kk]*b0[jj]*b1[ii]*zpar[10] +b2[kk]*b0[jj]*b1[ii]*zpar[11]
-                +b0[kk]*b1[jj]*b1[ii]*zpar[12] +b1[kk]*b1[jj]*b1[ii]*zpar[13]
-                +b2[kk]*b1[jj]*b1[ii]*zpar[14] +b0[kk]*b2[jj]*b1[ii]*zpar[15]
-                +b1[kk]*b2[jj]*b1[ii]*zpar[16] +b2[kk]*b2[jj]*b1[ii]*zpar[17]
-                +b0[kk]*b0[jj]*b2[ii]*zpar[18] +b1[kk]*b0[jj]*b2[ii]*zpar[19]
-                +b2[kk]*b0[jj]*b2[ii]*zpar[20] +b0[kk]*b1[jj]*b2[ii]*zpar[21]
-                +b1[kk]*b1[jj]*b2[ii]*zpar[22] +b2[kk]*b1[jj]*b2[ii]*zpar[23]
-                +b0[kk]*b2[jj]*b2[ii]*zpar[24] +b1[kk]*b2[jj]*b2[ii]*zpar[25]
-                +b2[kk]*b2[jj]*b2[ii]*zpar[26] ;
-   }}}
+   if( npar == 30 ){  /* special case [11 Dec 2018] */
+
+     xpar = par ; ypar = par+10 ; zpar = par+20 ;
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+        yy[hh] = cc[jj]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+        zz[hh] = cc[kk]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[0] +b1[kk]*b0[jj]*b0[ii]*xpar[1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[2] +b0[kk]*b1[jj]*b0[ii]*xpar[3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[4] +b0[kk]*b2[jj]*b0[ii]*xpar[5]
+                  +b0[kk]*b0[jj]*b1[ii]*xpar[6] +b1[kk]*b0[jj]*b1[ii]*xpar[7]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[8] +b0[kk]*b0[jj]*b2[ii]*xpar[9] ;
+     }}}
+
+   } else { /* npar == 81 */
+
+     for( hh=kk=0 ; kk < nb ; kk++ ){
+      for( jj=0 ; jj < nb ; jj++ ){
+       for( ii=0 ; ii < nb ; ii++,hh++ ){
+        xx[hh] = cc[ii]
+                  +b0[kk]*b0[jj]*b0[ii]*xpar[ 0] +b1[kk]*b0[jj]*b0[ii]*xpar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*xpar[ 2] +b0[kk]*b1[jj]*b0[ii]*xpar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*xpar[ 4] +b2[kk]*b1[jj]*b0[ii]*xpar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*xpar[ 6] +b1[kk]*b2[jj]*b0[ii]*xpar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*xpar[ 8] +b0[kk]*b0[jj]*b1[ii]*xpar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*xpar[10] +b2[kk]*b0[jj]*b1[ii]*xpar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*xpar[12] +b1[kk]*b1[jj]*b1[ii]*xpar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*xpar[14] +b0[kk]*b2[jj]*b1[ii]*xpar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*xpar[16] +b2[kk]*b2[jj]*b1[ii]*xpar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*xpar[18] +b1[kk]*b0[jj]*b2[ii]*xpar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*xpar[20] +b0[kk]*b1[jj]*b2[ii]*xpar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*xpar[22] +b2[kk]*b1[jj]*b2[ii]*xpar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*xpar[24] +b1[kk]*b2[jj]*b2[ii]*xpar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*xpar[26] ;
+        yy[hh] = cc[jj]
+                  +b0[kk]*b0[jj]*b0[ii]*ypar[ 0] +b1[kk]*b0[jj]*b0[ii]*ypar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*ypar[ 2] +b0[kk]*b1[jj]*b0[ii]*ypar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*ypar[ 4] +b2[kk]*b1[jj]*b0[ii]*ypar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*ypar[ 6] +b1[kk]*b2[jj]*b0[ii]*ypar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*ypar[ 8] +b0[kk]*b0[jj]*b1[ii]*ypar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*ypar[10] +b2[kk]*b0[jj]*b1[ii]*ypar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*ypar[12] +b1[kk]*b1[jj]*b1[ii]*ypar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*ypar[14] +b0[kk]*b2[jj]*b1[ii]*ypar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*ypar[16] +b2[kk]*b2[jj]*b1[ii]*ypar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*ypar[18] +b1[kk]*b0[jj]*b2[ii]*ypar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*ypar[20] +b0[kk]*b1[jj]*b2[ii]*ypar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*ypar[22] +b2[kk]*b1[jj]*b2[ii]*ypar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*ypar[24] +b1[kk]*b2[jj]*b2[ii]*ypar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*ypar[26] ;
+        zz[hh] = cc[kk]
+                  +b0[kk]*b0[jj]*b0[ii]*zpar[ 0] +b1[kk]*b0[jj]*b0[ii]*zpar[ 1]
+                  +b2[kk]*b0[jj]*b0[ii]*zpar[ 2] +b0[kk]*b1[jj]*b0[ii]*zpar[ 3]
+                  +b1[kk]*b1[jj]*b0[ii]*zpar[ 4] +b2[kk]*b1[jj]*b0[ii]*zpar[ 5]
+                  +b0[kk]*b2[jj]*b0[ii]*zpar[ 6] +b1[kk]*b2[jj]*b0[ii]*zpar[ 7]
+                  +b2[kk]*b2[jj]*b0[ii]*zpar[ 8] +b0[kk]*b0[jj]*b1[ii]*zpar[ 9]
+                  +b1[kk]*b0[jj]*b1[ii]*zpar[10] +b2[kk]*b0[jj]*b1[ii]*zpar[11]
+                  +b0[kk]*b1[jj]*b1[ii]*zpar[12] +b1[kk]*b1[jj]*b1[ii]*zpar[13]
+                  +b2[kk]*b1[jj]*b1[ii]*zpar[14] +b0[kk]*b2[jj]*b1[ii]*zpar[15]
+                  +b1[kk]*b2[jj]*b1[ii]*zpar[16] +b2[kk]*b2[jj]*b1[ii]*zpar[17]
+                  +b0[kk]*b0[jj]*b2[ii]*zpar[18] +b1[kk]*b0[jj]*b2[ii]*zpar[19]
+                  +b2[kk]*b0[jj]*b2[ii]*zpar[20] +b0[kk]*b1[jj]*b2[ii]*zpar[21]
+                  +b1[kk]*b1[jj]*b2[ii]*zpar[22] +b2[kk]*b1[jj]*b2[ii]*zpar[23]
+                  +b0[kk]*b2[jj]*b2[ii]*zpar[24] +b1[kk]*b2[jj]*b2[ii]*zpar[25]
+                  +b2[kk]*b2[jj]*b2[ii]*zpar[26] ;
+     }}}
+   }
 
 #undef  IJK
 #undef  TOT
@@ -442,8 +505,9 @@ double HQwarp_minhexvol( int npar , double *par )
 
 /*----------------------------------------------------------------------------*/
 static int nb5 = 3 ;  /* should be 2 or 3 or 4 or 5 */
+static int np5 = 0 ;  /* should be 10 or 20 or 35 */
 /*----------------------------------------------------------------------------*/
-/* npar is 3*nb5*nb5*nb5 = 24 or 81 or 192 or 375 */
+/* npar is 3*np5 = 30 or 60 or 105 */
 
 double HCwarp_minhexvol5( int npar , double *par )
 {
@@ -452,27 +516,41 @@ double HCwarp_minhexvol5( int npar , double *par )
    int ii,jj,kk,hh , nbq , pp,qq,rr,ss ;
    double_triple x0,x1,x2,x3,x4,x5,x6,x7 ;
    MRI_IMAGE *him ; float *har=NULL ;
-   int mpar = nb5*nb5*nb5 ;
+   int mpar ;
 
-   if( npar < 3*mpar ) return 0.0 ;         /* something bad */
+   if( np5 == 0 ){
+     /* count number of parameters (for each spatial dimension) */
+     for( ss=rr=0 ; rr < nb5 ; rr++ ){ /* 3 loops over basis func order */
+      for( qq=0 ; qq < nb5 ; qq++ ){
+       for( pp=0 ; pp < nb5 ; pp++ ){
+         if( rr+qq+pp < nb5 ) ss++ ;
+     }}}
+     np5 = ss ;
+     INFO_message("basis5 np5 (per x,y,z) = %d",np5) ;
+   }
+
+   if( par == NULL || npar < 3*np5 ) return 0.0 ;         /* something bad */
 
    if( nb < 9 ) HCwarp_setup_warp_basis5(51) ;
 
+   mpar = np5 ;
    ddd  = del*del*del ;
    xpar = par ;
    ypar = par + mpar ;
    zpar = par + 2*mpar ;
-
    for( hh=kk=0 ; kk < nb ; kk++ ){
     for( jj=0 ; jj < nb ; jj++ ){
      for( ii=0 ; ii < nb ; ii++,hh++ ){
       xx[hh] = cc[ii] ; yy[hh] = cc[jj] ; zz[hh] = cc[kk] ;
       for( ss=rr=0 ; rr < nb5 ; rr++ ){
        for( qq=0 ; qq < nb5 ; qq++ ){
-        for( pp=0 ; pp < nb5 ; pp++,ss++ ){
-          xx[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * xpar[ss] ;
-          yy[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * ypar[ss] ;
-          zz[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * zpar[ss] ;
+        for( pp=0 ; pp < nb5 ; pp++ ){
+          if( rr+qq+pp < nb5 ){
+            xx[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * xpar[ss] ;
+            yy[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * ypar[ss] ;
+            zz[hh] += bar[pp][kk] * bar[qq][jj] * bar[rr][ii] * zpar[ss] ;
+            ss++ ;
+          }
       }}}
    }}}
 
@@ -540,58 +618,108 @@ double HCwarp_minhexvol5( int npar , double *par )
 
 int main( int argc , char *argv[] )
 {
-   int ngrid=51 , ii , nfunc , npar, nord , nopt=1 ;
+   int ngrid=51 , ii , nfunc , npar, nord , nopt=1 , verb=2 ;
    double btop , cost , bmin[MPAR], bmax[MPAR], beta[MPAR] ;
 
    void (*setup_warp_basis)(int) ;
    double (*minhexvol)(int,double *) ;
 
    if( argc < 3 ){
-     printf("Usage: warping_test order btop [ngrid] [fname]\n") ;
+     printf("Usage: [option] warping_test order btop [ngrid] [fname]\n") ;
      printf("\n"
             "Program to test warping functions and find maximum volume distortions.\n"
+            "Running this program several times was how the values for\n"
+            "Hbasis_parmax=btop in mri_nwarp.c were picked (minhexvol about 0.5).\n"
             "For use by Emperor Zhark only!!\n"
             "  order = 3 or 5 [cubic or quintic] or -3,-4,-5 [expanded cubic]\n"
+            "          or -2 [cubic lite] or -30 [quintic lite]\n"
             "  btop  = max value for warp coefficient\n"
             "  ngrid = grid size (default=51)\n"
             "  fname = prefix for output dataset (default=no output)\n"
+            "Options:\n"
+            "  -boxopt  } Chooses method for constraining\n"
+            "  -ballopt } parameter searches\n"
+            "  -hcfac h = higher cubic factor, in [0.1,1]\n"
+            "  -quiet\n"
      ) ;
      exit(0) ;
    }
+
+   while( nopt < argc && argv[nopt][0] == '-' && !isdigit(argv[nopt][1]) ){
+
+     if( strcmp(argv[nopt],"-ballopt") == 0 ){
+       powell_newuoa_set_con_ball() ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-boxopt") == 0 ){
+       powell_newuoa_set_con_box() ; nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-hcfac") == 0 ){
+       hcfac = strtod(argv[++nopt],NULL) ;
+       if( hcfac < 0.1 || hcfac > 1.0 )
+         ERROR_exit("illegal hcfac %g",hcfac) ;
+       nopt++ ; continue ;
+     }
+     if( strcmp(argv[nopt],"-quiet") == 0 ){
+       verb-- ; if( verb < 0 ) verb = 0 ;
+       nopt++ ; continue ;
+     }
+
+     ERROR_exit("Unknown option '%s'",argv[nopt]) ;
+   }
+
+   if( nopt >= argc ) ERROR_exit("Not enough args :(") ;
 
    nord = (int)strtod( argv[nopt++] , NULL ) ;
    if( nord == 3 ){
      npar = 24 ;
      setup_warp_basis = HCwarp_setup_warp_basis ;
      minhexvol        = HCwarp_minhexvol ;
+   } else if( nord == -1 ){ /* simplest cubic [03 Dec 2018] */
+     npar = 3 ;
+     setup_warp_basis = HCwarp_setup_warp_basis ;
+     minhexvol        = HCwarp_minhexvol ;
+   } else if( nord == -2 ){ /* next simplest cubic [06 Dec 2018] */
+     npar = 12 ;
+     setup_warp_basis = HCwarp_setup_warp_basis ;
+     minhexvol        = HCwarp_minhexvol ;
    } else if( nord == 5 ){
      npar = 81 ;
      setup_warp_basis = HQwarp_setup_warp_basis ;
      minhexvol        = HQwarp_minhexvol ;
-   } else if( nord == -2 ){
-     npar = 24 ; nb5 = 2 ;
-     setup_warp_basis = HCwarp_setup_warp_basis5 ;
-     minhexvol        = HCwarp_minhexvol5 ;
+   } else if( nord == -30 ){
+     npar = 30 ;
+     setup_warp_basis = HQwarp_setup_warp_basis ;
+     minhexvol        = HQwarp_minhexvol ;
    } else if( nord == -3 ){
-     npar = 81 ; nb5 = 3 ;
+     nb5 = 3 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else if( nord == -4 ){
-     npar = 192 ; nb5 = 4 ;
+     nb5 = 4 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else if( nord == -5 ){
-     npar = 375 ; nb5 = 5 ;
+     nb5 = 5 ;
      setup_warp_basis = HCwarp_setup_warp_basis5 ;
      minhexvol        = HCwarp_minhexvol5 ;
+     (void)HCwarp_minhexvol5(0,NULL) ;
+     npar = 3*np5 ;
    } else {
      ERROR_exit("Illegal order value %d -- must be 3 or 5",nord) ;
    }
 
+   if( verb > 1 ) INFO_message("npar=%d",npar) ;
+
    btop = strtod( argv[nopt++] , NULL ) ;
    if( btop <= 0.0 ) ERROR_exit("btop must be positive") ;
 
-   if( argc > 3 ){
+   if( verb > 1 ) INFO_message("btop=%g",btop) ;
+
+   if( nopt < argc-1 ){
      ngrid = (int)strtod( argv[nopt++] , NULL ) ;
      if( ngrid < 9 ) ERROR_exit("ngrid must be >= 9") ;
    }
@@ -603,10 +731,12 @@ int main( int argc , char *argv[] )
    }
 
    cost = minhexvol( npar , beta ) ;
-   INFO_message("minhexvol(0) = %g",cost) ;
+   if( verb > 1 ) INFO_message("minhexvol(0) = %g",cost) ;
 
-   powell_set_verbose(2) ;
-   if( AFNI_yesenv("POWELL_BALL") ) powell_newuoa_set_con_ball() ;
+   powell_set_verbose(verb) ;
+   ii = powell_newuoa_get_con() ;
+   if( verb > 1 ) INFO_message("powell opt con = %s",
+                               (ii==1) ? "BOX" : "BALL" ) ;
 
    nfunc = powell_newuoa_constrained( npar , beta , &cost , bmin,bmax ,
                                       999  , 33   , 7     ,
@@ -627,7 +757,7 @@ int main( int argc , char *argv[] )
    }
 #endif
 
-   if( argc > 4 ){
+   if( nopt < argc-1 ){
      fname = argv[nopt++] ; (void)minhexvol( npar , beta ) ;
    }
 

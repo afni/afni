@@ -6,7 +6,7 @@
 #define ASSIF(p,v) if( p!= NULL ) *p = v
 
 /* local prototypes */
-static int find_connected_set(byte *, int, int, int, int, 
+static int find_connected_set(byte *, int, int, int, int,
                               THD_ivec3 *, int_list *);
 static int set_mask_vals     (byte *, int_list *, byte);
 
@@ -597,7 +597,7 @@ ENTRY("THD_mask_fillin_completely") ;
 
 /*----------------------------------------------------------------------*/
 /*! Fill any holes in a byte mask.                   26 Apr 2012 [rickr]
- 
+
     A hole is defined as a connected set of zero voxels that does not
     reach a volume edge.
 
@@ -615,7 +615,7 @@ ENTRY("THD_mask_fillin_completely") ;
     return -1 on error, else number of voxels filled
 ------------------------------------------------------------------------*/
 
-int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm, 
+int THD_mask_fill_holes( int nx, int ny, int nz, byte *mmm,
                          THD_ivec3 * dirs, int verb )
 {
    int_list   Cset; /* current connected set of voxels */
@@ -764,7 +764,7 @@ static int find_connected_set(byte * bmask, int nx, int ny, int nz, int voxel,
               if     ( doi && ( i==0 || i == nx-1 ) ) has_edge = 1;
               else if( doj && ( j==0 || j == ny-1 ) ) has_edge = 1;
               else if( dok && ( k==0 || k == nz-1 ) ) has_edge = 1;
-           } else if( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 ) 
+           } else if( i==0 || j==0 || k==0 || i == nx-1 || j==ny-1 || k==nz-1 )
               has_edge = 1;
          }
 
@@ -929,8 +929,8 @@ ENTRY("THD_mask_clust") ;
 
 /*--------------------------------------------------------------------------*/
 /*! Erode away nonzero voxels that aren't neighbored by mostly other
-    nonzero voxels.  Then restore those that were eroded that are
-    neighbors of survivors.  The neighbors are the 18 voxels closest
+    nonzero voxels.  Then (maybe) restore those that were eroded that
+    are neighbors of survivors.  The neighbors are the 18 voxels closest
     in 3D (nearest and next-nearest neighbors).
 ----------------------------------------------------------------------------*/
 
@@ -1059,8 +1059,9 @@ ENTRY("THD_mask_erode") ;
    nnn = (byte *)calloc(sizeof(byte),nxyz) ;  /* mask of eroded voxels */
    if( nnn == NULL ) EXRETURN ;               /* WTF? */
 
-   /* mark interior voxels that don't have 17 out of 18 nonzero nbhrs */
-
+   /* mark for erosion interior voxels that do not have sufficient nonzero  */
+   /* nbhrs (the default case would erode if even 1 neighbor is not masked, */
+   /* i.e., if <= 17 neighbors are masked)                                  */
    STATUS("marking to erode") ;
    for( kk=0 ; kk < nz ; kk++ ){
     kz = kk*nxy ; km = kz-nxy ; kp = kz+nxy ;
@@ -1077,12 +1078,18 @@ ENTRY("THD_mask_erode") ;
          im = ii-1 ; ip = ii+1 ;
          if( ii == 0    ) im = 0 ;
          if( ii == nx-1 ) ip = ii ;
+         /* NN1 count of 18 neighbors */
+              /* in plane below (km), include shared face and 4 shared edges,
+               * which means im and ip @ jy, plus jm,jy,jp @ ii */
          num =  mmm[im+jy+km]
               + mmm[ii+jm+km] + mmm[ii+jy+km] + mmm[ii+jp+km]
               + mmm[ip+jy+km]
+              /* in main plane (kz), include all 8 neighbors in 3x3 grid, which
+               * means all i and j pairs (9), except for ii,jy (center) */
               + mmm[im+jm+kz] + mmm[im+jy+kz] + mmm[im+jp+kz]
               + mmm[ii+jm+kz]                 + mmm[ii+jp+kz]
               + mmm[ip+jm+kz] + mmm[ip+jy+kz] + mmm[ip+jp+kz]
+              /* plane above (kp), should match km, in section above */
               + mmm[im+jy+kp]
               + mmm[ii+jm+kp] + mmm[ii+jy+kp] + mmm[ii+jp+kp]
               + mmm[ip+jy+kp] ;
@@ -1258,20 +1265,29 @@ int THD_mask_dilate( int nx, int ny, int nz, byte *mmm , int ndil )
 /*---------------------------------------------------------------------*/
 /* clip in autobox by default but allow turning it off */
 /* thanks Judd */
+
 static int bbox_clip=1 ;
 void THD_autobbox_clip( int c ){ bbox_clip = c; }
+
+/* extra padding? (should be non-negative) */
+
 static int bbox_npad=0 ;
 void THD_autobbox_npad( int c ){ bbox_npad = c; }
+
+/* don't allow padding to enlarge dataset? [08 Jan 2019] */
+
+static int bbox_noexpand=0 ;
+void THD_autobbox_noexpand( int c ){ bbox_noexpand = c; }
 
 /*---------------------------------------------------------------------*/
 /*! Find a bounding box for the main cluster of large-ish voxels.
     [xm..xp] will be box for x index, etc.
     Send in a prefix and you shall get a cropped volume back. Else
-    you get NULL and you like it!
+    you get NULL and you will like it!
 -----------------------------------------------------------------------*/
 
 THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
-                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp, 
+                   int *xm, int *xp , int *ym, int *yp , int *zm, int *zp,
                    char *prefix)
 {
    MRI_IMAGE *medim ;
@@ -1280,8 +1296,10 @@ THD_3dim_dataset * THD_autobbox( THD_3dim_dataset *dset ,
    int nvox , ii ;
 
 ENTRY("THD_autobbox") ;
-   
-   medim = THD_median_brick(dset) ; if( medim == NULL ) RETURN(NULL) ;
+
+   /* get brick of max absolute value at each voxel */
+
+   medim = THD_maxabs_brick(dset) ; if( medim == NULL ) RETURN(NULL) ;
 
    mar  = MRI_FLOAT_PTR(medim) ;
    nvox = medim->nvox ;
@@ -1293,22 +1311,31 @@ ENTRY("THD_autobbox") ;
    }
 
    MRI_autobbox( medim , xm,xp , ym,yp , zm,zp ) ;
+   mri_free(medim) ;
 
    if (prefix) {
       int nx=DSET_NX(dset), ny=DSET_NY(dset), nz=DSET_NZ(dset) ;
-      /* INFO_message("Auto bbox: x=%d..%d  y=%d..%d  z=%d..%d\n",
-                   *xm, *xp, *ym, *yp, *zm, *zp ) ; */
+      int xb,xt , yb,yt , zb,zt ;
 
-      cropped = THD_zeropad( dset ,
-                         -*xm+bbox_npad, *xp-nx+1+bbox_npad,
-                         -*ym+bbox_npad, *yp-ny+1+bbox_npad,
-                         -*zm+bbox_npad, *zp-nz+1+bbox_npad,
-                         prefix , ZPAD_IJK ) ;
-      if( cropped == NULL ) {
-         ERROR_message("Could not create cropped volume!") ;
+      xb = *xm - bbox_npad ; if( bbox_noexpand && xb <  0  ) xb = 0 ;
+      xt = *xp + bbox_npad ; if( bbox_noexpand && xt >= nx ) xt = nx-1 ;
+      yb = *ym - bbox_npad ; if( bbox_noexpand && yb <  0  ) yb = 0 ;
+      yt = *yp + bbox_npad ; if( bbox_noexpand && yt >= ny ) yt = ny-1 ;
+      zb = *zm - bbox_npad ; if( bbox_noexpand && zb <  0  ) zb = 0 ;
+      zt = *zp + bbox_npad ; if( bbox_noexpand && zt >= nz ) zt = nz-1 ;
+
+      if( ! (bbox_noexpand &&
+             xb == 0 && xt == nx-1 &&
+             yb == 0 && yt == ny-1 && zb == 0 && zt == nz-1) ){
+        cropped = THD_zeropad( dset ,
+                                 -xb , xt-(nx-1) ,
+                                 -yb , yt-(ny-1) ,
+                                 -zb , zt-(nz-1) ,
+                               prefix , ZPAD_IJK ) ;
+        if( cropped == NULL ) /* should not transpire */
+          ERROR_message("THD_autobbox: could not create cropped volume :(") ;
       }
    }
-   mri_free(medim) ; 
    RETURN(cropped) ;
 }
 
@@ -1526,7 +1553,7 @@ short *THD_mask_depth ( int nx, int ny, int nz, byte *mask,
       ncpmask -= np;
       ++niter;
       if (!np && ncpmask) {
-         WARNING_message("Nothing left to peel, after %d interations.\n"
+         WARNING_message("Nothing left to peel, after %d iterations.\n"
                          " however %d voxels remain in cpmask!\n"
                          " Jumping ship.\n",
                          niter, ncpmask);

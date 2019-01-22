@@ -1,0 +1,451 @@
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set here      = $PWD
+set this_prog = @djunct_4d_slices_to_3d_vol
+
+# --------------------- revision history -------------------------
+#
+#set rev_dat = "July 8, 2018"
+#set version = "1.0"
+#   + birth
+#
+#set rev_dat = "July 11, 2018"
+#set version = "1.1"
+#   + work in better way with 3dZeropad
+#
+#set rev_dat = "July 12, 2018"
+#set version = "1.2"
+#   + work in much better way with 3dXYZcat!
+#
+#set rev_dat = "July 25, 2018"; set version = "1.21"
+#   + rename to this!
+#   + use "-pass" to avoid null arguments
+#
+set rev_dat = "Aug 28, 2018"; set version = "1.3"
+#   + use update xyz -> ijk prog!
+#
+# ----------------- find AFNI and set viewer ---------------------
+
+# find AFNI binaries directory and viewer location
+set adir      = ""
+set my_viewer = ""
+which afni >& /dev/null
+if ( $status ) then
+    echo "** Cannot find 'afni' (?)."
+    goto BAD_EXIT
+else
+    set aa   = `which afni`
+    set adir = $aa:h
+endif
+
+# default location of viewer: user could modify!
+set my_viewer    = "$adir/@chauffeur_afni"
+set my_calc_func = "$adir/@djunct_calc_mont_dims.py"
+
+set tmp_code = `3dnewid -fun11`    # should be essentially unique hash
+set wdir      = "__WORK_4dslicer_${tmp_code}"    # working directory
+set DO_CLEAN    = 1
+
+set isetu   = ""                    # (req) ulay set
+set iseto   = ""                    # (opt) if input, use isetu as master grid
+set odir   = ""
+
+set res_mode = NN                   # default resample mode
+
+set opref  = "FOURD_IMAGES"
+set iprefu = "tmpu"  
+set iprefo = "tmpo"  
+set ifileu0 = "${iprefu}_1.nii"
+set ifileo0 = "${iprefo}_1.nii"
+
+set USER_COORS = 0
+set coors = ( 0 0 0 )
+
+# final order based on how we currently resample
+set imgview  = ( "sag"      "cor"     "axi"   )
+set mview    = ( "sagittal" "coronal" "axial" )
+set catord   = ( "X"        "Y"       "Z"     )
+set zpadord  = ( "R"        "P"       "S"     )
+
+set movie = ""                        # not on by default, at the moment
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+    if ( "$argv[$ac]" == "-ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set isetu = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set iseto = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    # ----------------- control opts ---------------------
+
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_DICOM_XYZ"
+        set coors[1] = "$argv[$ac]"
+        @ ac += 1
+        set coors[2] = "$argv[$ac]"
+        @ ac += 1
+        set coors[3] = "$argv[$ac]"
+        set USER_COORS = 1
+
+    ## how resampling is done for olay to match ulay, if entered;
+    ## matches "3dresample -rmode .."
+    else if ( "$argv[$ac]" == "-rmode" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set res_mode = `basename "$argv[$ac]"`
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+
+    else if ( "$argv[$ac]" == "-pass" ) then
+        echo "++ ----> just passing on empty string"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+echo "++ Start imager script version: $version"
+echo ""
+echo "++ My command:"
+echo "   $this_prog $argv"
+
+# -------------------------------------------------------------------
+
+# Need iset input
+if ( "$isetu" == "" ) then
+    echo "** ERROR: no file input??!"
+    goto BAD_EXIT
+endif
+
+# make sure we can read inset OK
+set check = `3dinfo "$isetu"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find inset file:  $isetu !"
+    goto BAD_EXIT
+else
+    echo "++ Found inset file:   $isetu"
+endif
+
+set Nvu = `3dinfo -nv "$isetu"`   # *will* have ulay
+set Nvfinal = $Nvu                # might be reset in next "if" condition
+
+# check if olay input
+if ( "$iseto" != "" ) then
+    set check = `3dinfo "$iseto"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find inset file:  $iseto !"
+        goto BAD_EXIT
+    else
+        echo "++ Found inset file:   $iseto"
+    endif
+
+    set Nvo = `3dinfo -nv "$iseto"`
+
+    if ( ( $Nvo == 1 ) && ( $Nvu == 1 ) ) then
+        echo "** ERROR: both inputs are single vols?"
+        echo "   This should not be happening here!"
+        goto BAD_EXIT
+    else if ( ( $Nvo == 1 ) || ( $Nvu == 1 ) ) then
+        echo "++ OK numbers of vols ($Nvo and $Nvu)"
+        if ( $Nvo > $Nvu ) then
+            set Nvfinal = $Nvo
+        else
+            set Nvfinal = $Nvu
+        endif
+    else if ( $Nvo == $Nvu ) then
+        echo "++ OK numbers of vols ($Nvo and $Nvu)"
+        set Nvfinal = $Nvo
+    else
+        echo "** ERROR: badly mismatched numbers of input vols:"
+        echo "          $Nvo and $Nvu"
+        goto BAD_EXIT
+    endif
+endif
+
+if ( $Nvfinal == 1 ) then
+    echo "** ERROR: Only have a single volume?"
+    echo "   This should not be happening here!"
+    goto BAD_EXIT
+endif
+
+# ===================== output dir + wdir =======================
+ 
+# check output directory, use input one if nothing given
+
+if ( "$odir" == "" ) then
+    # default output dir, if nothing input; it must exist already,
+    # because a file is in it
+
+    set odir = `dirname "$iset"`
+    echo "\n++ No output directory specificied by the user."
+    echo "++ Using the input file's directory by default:"
+    echo "\t$odir"
+else
+    if ( ! -e $odir ) then
+        echo "++ Making new output directory: $odir"
+        \mkdir -p $odir
+    endif
+endif
+
+# make the working directory
+if ( ! -e $odir/$wdir ) then
+    echo "++ Making working directory: $odir/$wdir"
+    \mkdir -p $odir/$wdir
+else
+    echo "+* WARNING: Somehow found a premade working directory (?):"
+    echo "      $odir/$wdir"
+endif
+
+# ====================================================================
+
+echo "\n-----> STARTING imager ---->"
+
+# --------------- copy inset(s) ------------------------
+
+3dresample                  \
+    -overwrite              \
+    -inset "$isetu"         \
+    -orient LAI             \
+    -prefix "$odir/$wdir/${ifileu0}"
+if ( "$iseto" != "" ) then
+    3dresample                  \
+        -overwrite              \
+        -inset  "$iseto"        \
+        -master "$odir/$wdir/${ifileu0}"        \
+        -rmode  "$res_mode"     \
+        -prefix "$odir/$wdir/${ifileo0}"
+    # ! At this point, the input and master sets should have the same
+    # ! grid.
+endif
+
+# ---------------------- what slice to grab ---------------------------
+
+if ( $USER_COORS == 1 ) then
+    if ( "$coor_type" == "SET_IJK" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+        set svals = ( 0 0 0 )
+        foreach jj ( `seq 1 1 3` )
+            svals[$jj] = $coors[$jj]
+        end
+    else if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+        echo "++ Will have user's chosen: $coor_type $coors"
+        set svals = `@xyz_to_ijk -inset "$odir/$wdir/${ifileu0}" -xyz $coors`
+        echo "   leads to ijk ---> $svals"
+
+    else
+        echo "** ERROR: unknown coor_type somehow?: $coor_type"
+        goto BAD_EXIT
+    endif
+else
+    # the order matters here: 
+    # ii == 1 ---> sag
+    # ii == 2 ---> cor
+    # ii == 3 ---> axi
+    set dim = `3dinfo -n4 "$odir/$wdir/${ifileu0}"`
+    set svals = ( )
+    foreach jj ( 1 2 3 )
+        @ slnum     = ( $dim[$jj] / 2 ) + 3
+        set svals   = ( $svals $slnum )
+    end
+    #echo "++ Going to view slice [${slnum}]"
+endif
+
+# --------------- go to wdir and actually process ---------------
+
+cd $odir/$wdir
+
+# ---------------- proc ---------------------
+
+# set prefixes for each: just inputs and outputs
+set allfile = ( "$ifileu0" )
+if ( "$iseto" != "" ) then
+    set allfile = ( $allfile "$ifileo0" )
+endif
+
+set Nff = $#allfile
+foreach jj ( `seq 1 1 $Nff` ) 
+
+    if ( $jj == 1 ) then
+        set ll = "u"
+    else if ( $jj == 2 ) then
+        set ll = "o"
+    else
+        echo "** ERROR! Too many files looped?  How??"
+        goto BAD_EXIT
+    endif
+
+    # input vol and output vslice pref
+    set ff0   = "${allfile[$jj]}"
+    set vsli  = vsli_${ll}
+
+    echo "++ Make a single slice in each plane"
+    echo "   $ff0 ---> ${vsli}*"
+
+    @djunct_vol_3slice_select               \
+        -inset   $ff0                       \
+        -set_ijk $svals                     \
+        -prefix  $vsli
+
+    foreach ii ( `seq 1 1 3` ) 
+
+        # here: 
+        # ii == 1 ---> sag
+        # ii == 2 ---> cor
+        # ii == 3 ---> axi
+
+        # ----------- slice apart ---------------
+
+        # i/o set of slices
+        set sin   = ${vsli}_{$ii}.nii.gz
+        set soutp = allsli_${ll}_${ii}
+        # "burst" each time series of slices into separate files...
+        set nvol   = `3dinfo -nv  "${sin}"`
+        set maxind = `3dinfo -nvi "${sin}"`
+
+        if ( $nvol == $Nvfinal ) then 
+            foreach idx ( `seq 0 1 $maxind` ) 
+                set idxpad = `printf "%05d" $idx`
+                3dcalc \
+                    -a "${sin}[$idx]"      \
+                    -expr 'a'              \
+                    -prefix ${soutp}_${idxpad}.nii
+            end
+        else if ( $nvol == 1 ) then
+            # numbering doesn't really matter here-- just need enough
+            # slices made/copied
+            foreach idx ( `seq 1 1 $Nvfinal` ) 
+                set idxpad = `printf "%05d" $idx`
+                3dcalc \
+                    -a "${sin}"            \
+                    -expr 'a'              \
+                    -prefix ${soutp}_${idxpad}.nii
+            end
+        else
+            echo "** ERROR! The number of volumes is somehow wrong??"
+            goto BAD_EXIT
+        endif
+
+        # ------------- glue together ---------------
+
+        set vout   = vol_glued_${ll}_${ii}.nii
+        # ... then concatenate those individual slices
+        3dXYZcat                        \
+            -echo_edu                   \
+            -dir $catord[$ii]           \
+            -prefix $vout               \
+            ${soutp}_*.nii
+
+        # ------------- calculate dims for any zeropadding ----------
+
+        # Changing how this is done, because now the Nvu and Nvo might
+        # be different (one could be unity), so we take the max of
+        # them to calc ratio: $Nvfinal
+        set calc_pad     = "pad_${ll}_${ii}.dat"
+        $my_calc_func $Nvfinal $calc_pad
+        set padpars = `grep -v "#" $calc_pad`
+        set Npad    = $padpars[2]
+        set Ncol    = $padpars[3]
+        set Nrow    = $padpars[4]
+
+        # --------------- combine slices and pad, if nec ------------
+
+        set vin   = $vout
+        set voutp = ../${opref}_${ll}_${ii}
+        set vout  = ${voutp}.nii.gz
+
+        if ( $Npad > 0 ) then
+            printf "++ Padding by $Npad, to make output image "
+            printf "   $Ncol x $Nrow\n"
+
+            3dZeropad                          \
+                -overwrite                     \
+                -prefix $vout                  \
+                -${zpadord[$ii]} $Npad         \
+                "$vin"
+        else
+            3dcalc                             \
+                -a "$vin"                      \
+                -expr 'a'                      \
+                -prefix $vout 
+        endif
+
+        #### do we need to reset origin???
+        #    3drefit                          \
+        #        -duporigin ${ifileu0}        \
+        #        ../${vout}
+        
+
+        # and copy this info up
+        \cp $calc_pad  ${voutp}.dat
+
+    end
+end 
+
+# --------------- finish and clean (if desired) ---------------
+
+# out of the $wdir, and think about cleaning it
+cd ..
+
+if ( $DO_CLEAN == 1 ) then
+    \rm    $wdir/*
+    \rmdir $wdir
+endif
+
+#@ vvx = $dim0[1] - ${svals[3]}
+#@ vvy = $dim0[2] - ${svals[2]}
+#
+## have to put slice values in (i,j,k) order.
+#echo ""
+#echo "++ DONE. RPI slice values:  (${svals[3]}, ${svals[2]}, ${svals[1]})."
+#echo "++ In AFNI GUI slide vals:  (${vvx}, ${vvy}, ${svals[1]})."
+#echo "\n"
+
+
+exit 0
+
+
+SHOW_HELP:
+cat << EOF
+   $this_prog           - do something really useful
+
+EOF
+
+exit 0
+

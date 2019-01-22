@@ -329,7 +329,7 @@ int main (int argc,char *argv[])
     if (triangle->N_hits ==0) {
       distance[i] = -1;
       // fprintf(SUMA_STDERR, 
-         "Could not find hit for node %d in either direction.\n", i);
+      //   "Could not find hit for node %d in either direction.\n", i);
     }
     else {
       distance[i] = sqrtf( pow(triangle->P[0]-P0[0],2)+
@@ -419,7 +419,7 @@ void cmp_surf_usage ()
     printf ("\n\t[-dev]: This option will give access to options that are not well polished for consumption.\n");
     printf ("\n\t        \n");
   */
-  printf ("\n\n\tFor more help: https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm\n");
+  printf ("\n\n\tFor more help: https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/SUMA/main_toc.html\n");
   printf ("\n\n\tIf you can't get help here, please get help somewhere.\n");
   SUMA_Version(NULL);
   

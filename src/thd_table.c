@@ -526,9 +526,12 @@ ENTRY("THD_mixed_table_read") ;
 
 /*------------------------------------------------------------------------*/
 /* This table has only strings, and no header labels.
+   Bit flags:
+     1 = read as tsv (tab separated values)
+     2 = skip column selectors
 *//*----------------------------------------------------------------------*/
 
-NI_element * THD_string_table_read( char *fname )
+NI_element * THD_string_table_read( char *fname , int flags )
 {
    NI_str_array *sar ;
    char *dname , *cpt , *dpt , *qpt , lbuf[NLL] ;
@@ -537,6 +540,8 @@ NI_element * THD_string_table_read( char *fname )
    FILE *fts ;
    float val ;
    int verb = AFNI_yesenv("AFNI_DEBUG_TABLE") ;
+   int do_tsv   = (flags & 1) != 0 ;
+   int skip_sel = (flags & 2) != 0 ;
 
 ENTRY("THD_string_table_read") ;
 
@@ -573,7 +578,7 @@ ENTRY("THD_string_table_read") ;
 
    /* 21 Jul 2011 -- get column list, if present */
 
-   if( cpt != NULL ){
+   if( cpt != NULL && !skip_sel ){
      if( verb ) ININFO_message("  processing column selector '%s'",cpt) ;
      ivlist = MCW_get_intlist( 6666 , cpt ) ;
      if( ivlist != NULL ){
@@ -613,7 +618,10 @@ ENTRY("THD_string_table_read") ;
      TRBUF(lbuf) ;
      if( verb ) ININFO_message("  processing row #%d = '%s'",row,lbuf+ibot) ;
 
-     sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
+     if( do_tsv )
+       sar = NI_strict_decode_string_list( lbuf+ibot, "\t" ) ; /* 08 Feb 2018 */
+     else
+       sar = NI_decode_string_list( lbuf+ibot , ";" ) ;
      if( sar == NULL ) continue ;                      /* nuthin ==> loopback */
 
      if( row == 0 ){   /* first row ==> format element */
@@ -627,7 +635,6 @@ ENTRY("THD_string_table_read") ;
 
      /* put values from this line into this row of the table */
 
-     NI_insert_string( nel , row , 0 , sar->str[0] ) ;
      if( niv <= 0 ){
        for( ii=0 ; ii < ncol ; ii++ ){
          if( ii < sar->num ) dpt = sar->str[ii] ;
@@ -664,4 +671,260 @@ ENTRY("THD_string_table_read") ;
    }
 
    free(dname) ; RETURN(nel) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Read a tab-separated file, and convert to a NI_element with
+   vector labels (vec_lab) and with numeric columns where possible.
+*//*--------------------------------------------------------------------------*/
+
+NI_element * THD_read_tsv( char *fname )
+{
+   NI_element *tnel , *fnel=NULL ;
+   int ii,jj , vnum,vlen , nbad ;
+   char **vec_lab , **cpt , *dpt ;
+
+ENTRY("THD_read_tsv") ;
+
+   /* try to read as a table of strings */
+
+   tnel = THD_string_table_read( fname , 3 ) ;
+   if( tnel == NULL )                           RETURN(NULL) ;
+
+   vnum = tnel->vec_num ;     /* number of columns */
+   vlen = tnel->vec_len - 1 ; /* first row is labels */
+   if( vnum < 1 && vlen < 2 )                   RETURN(NULL) ;
+
+   /* extract labels from first string of each column vector */
+
+/* INFO_message("TSV data from %s - %d cols %d rows",fname,vnum,vlen) ; */
+   vec_lab = NI_malloc( char* , sizeof(char *)*vnum ) ;
+   for( ii=0 ; ii < vnum ; ii++ ){
+     cpt = (char **)tnel->vec[ii] ;
+     vec_lab[ii] = NI_strdup( cpt[0] ) ;
+/* ININFO_message(" vec_lab[%d] = %s",ii,vec_lab[ii]) ; */
+   }
+
+   fnel = NI_new_data_element( "tsv" , vlen ) ;
+
+#undef  FBAD
+#define FBAD(sss)                       \
+ ( strcasecmp ((sss),"N/A"  ) == 0 ||   \
+   strncasecmp((sss),"NAN",3) == 0 ||   \
+   strncasecmp((sss),"INF",3) == 0   )
+
+/* ININFO_message("---columns---")  ; */
+   for( ii=0 ; ii < vnum ; ii++ ){
+     cpt = (char **)tnel->vec[ii] ;
+     jj  = NI_count_numbers( vlen , cpt+1 ) ;
+     if( jj == vlen ){  /* pure numbers */
+       float *far = (float *)malloc(sizeof(float)*vlen) ;
+       for( jj=0 ; jj < vlen ; jj++ ){
+         far[jj] = (float)strtod(cpt[jj+1],NULL) ;
+       }
+       nbad = thd_floatscan( vlen , far ) ;
+
+       /* repair bad things [17 Oct 2018] */
+       { int ngood=0 ; float sgood=0.0f ;
+         for( jj=0 ; jj < vlen ; jj++ ){
+           if( !FBAD(cpt[jj+1]) ){ ngood++ ; sgood += far[jj]; }
+         }
+         if( ngood < vlen ){
+           if( ngood > 0 ) sgood /= ngood ;
+           for( jj=0 ; jj < vlen ; jj++ ){
+             if( FBAD(cpt[jj+1]) ) far[jj] = sgood ;
+           }
+         }
+       }
+
+       NI_add_column( fnel , NI_FLOAT , far ) ;
+       NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
+       free(far) ;
+/* ININFO_message(" column %s: floats with %d errors",vec_lab[ii],nbad) ; */
+     } else {           /* strings */
+       NI_add_column( fnel , NI_STRING , cpt+1 ) ;
+       NI_set_column_label( fnel , ii , vec_lab[ii] ) ;
+/* ININFO_message(" column %s: strings",vec_lab[ii]) ; */
+     }
+   }
+
+   NI_free_element(tnel) ; /* old stuff gets thrown out */
+
+   /* see if we have to deal with column selectors */
+
+   dpt = strstr(fname,"[") ;
+   if( dpt != NULL ){
+     int *ivlist ;
+     ivlist = MCW_get_labels_intlist( fnel->vec_lab , vnum , dpt ) ;
+     if( ivlist != NULL && ivlist[0] > 0 ){ /* extract subset of columns */
+       NI_element *qnel = NI_extract_columns( fnel , ivlist[0] , ivlist+1 ) ;
+       if( qnel != NULL ){ NI_free_element(fnel) ; fnel = qnel ; }
+     }
+   }
+
+/*   NI_write_element_tofile( "stderr:" , fnel , NI_TEXT_MODE ) ; */
+
+#if 0 /* debug */
+INFO_message("=========== tsv dump ==========") ;
+   THD_write_tsv( "stdout:" , fnel ) ;
+INFO_message("===============================") ;
+#endif
+
+   RETURN(fnel) ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_write_tsv( char *fname , NI_element *nel )
+{
+   char ssep[2] ; int notfirst,ii,kk ;
+   FILE *fp ;
+
+ENTRY("THD_write_tsv") ;
+
+   if( fname == NULL || NI_element_type(nel) != NI_ELEMENT_TYPE ) EXRETURN ;
+   if( nel->vec_lab == NULL || nel->vec_num == 0 )                EXRETURN ;
+
+   fp = fopen_maybe(fname) ; if( fp == NULL ) EXRETURN ;
+
+#undef  SET_SEPCHAR
+#define SET_SEPCHAR  do{ ssep[0] = ( (notfirst++) ? '\t' : '\0' ) ; } while(0)
+   ssep[1] = '\0' ;
+
+   /* header row */
+
+   for( notfirst=kk=0 ; kk < nel->vec_num ; kk++ ){
+     SET_SEPCHAR ;
+     fprintf(fp,"%s%s",ssep,nel->vec_lab[kk]) ;
+   }
+   fprintf(fp,"\n") ;
+
+   /* data rows */
+
+   for( ii=0 ; ii < nel->vec_len ; ii++ ){
+     for( notfirst=kk=0 ; kk < nel->vec_num ; kk++ ){
+       SET_SEPCHAR ;
+       if( nel->vec_typ[kk] == NI_FLOAT ){
+         float *far = (float *)nel->vec[kk] ;
+         fprintf(fp,"%s%g",ssep,far[ii]) ;
+       } else if( nel->vec_typ[kk] == NI_STRING ){
+         char **cpt = (char **)nel->vec[kk] ;
+         fprintf(fp,"%s%s" , ssep , (cpt[ii] != NULL) ? cpt[ii] : "(null)" ) ;
+       }
+     }
+     fprintf(fp,"\n") ;
+   }
+
+   fclose_maybe(fp) ;
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+
+void THD_set_tsv_column_labels( NI_element *fnel , char **clab )
+{
+   int jj ;
+
+ENTRY("THD_set_tsv_column_labels") ;
+
+   if( NI_element_type(fnel) != NI_ELEMENT_TYPE ||
+       fnel->vec_num         == 0               ||
+       clab                  == NULL              ) EXRETURN ;
+
+   for( jj=0 ; jj < fnel->vec_num ; jj++ )
+      NI_set_column_label( fnel , jj , clab[jj] ) ;
+
+   EXRETURN ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* convert 1D or 2D MRI_IMAGE to a TSV NI_element */
+
+NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab )
+{
+   MRI_IMAGE *qim ;
+   int nx,ny , jj ;
+   float *far ;
+   NI_element *fnel ;
+   char qlab[32] ;
+
+ENTRY("THD_mri_to_tsv_element") ;
+
+   if( imin == NULL || imin->nz > 1 ) RETURN(NULL) ;
+
+   nx = imin->nx ; ny = imin->ny ;
+   if( nx < 1 || ny < 1 )             RETURN(NULL) ;
+
+   if( imin->kind != MRI_float ) qim = mri_to_float(imin) ;
+   else                          qim = imin ;
+
+   far = MRI_FLOAT_PTR(qim) ;
+
+   fnel = NI_new_data_element( "tsv" , nx ) ;
+
+   for( jj=0 ; jj < ny ; jj++ ){
+     NI_add_column( fnel , NI_FLOAT , far+jj*nx ) ;
+     if( clab != NULL ){
+       NI_set_column_label( fnel , jj , clab[jj] ) ;
+     } else {
+       sprintf(qlab,"Col#%d",jj) ;
+       NI_set_column_label( fnel , jj , qlab ) ;
+     }
+   }
+
+   if( qim != imin ) mri_free(qim) ;
+
+   RETURN(fnel) ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* convert NIML data element to an MRI_IMAGE;
+   only numeric columns are included in the output;
+   if none are found, NULL is returned.
+*//*--------------------------------------------------------------------------*/
+
+MRI_IMAGE * THD_niml_to_mri( NI_element *nel )
+{
+   int ncol , *icol , ii,jj , nx ;
+   MRI_IMAGE *outim=NULL ;
+   float *outar , *far ;
+   char *comlab=NULL ;
+
+ENTRY("THD_niml_to_mri") ;
+
+   if( NI_element_type(nel) != NI_ELEMENT_TYPE ) RETURN(NULL) ;
+   if( nel->vec_num < 1 || nel->vec_len < 1 )    RETURN(NULL) ;
+
+   /* find numeric columns */
+
+   icol = (int *)malloc(sizeof(int)*nel->vec_num) ;
+   for( ncol=jj=0 ; jj < nel->vec_num ; jj++ ){
+     if( NI_IS_NUMERIC_TYPE(nel->vec_typ[jj]) ) icol[ncol++] = jj ;
+   }
+   if( ncol == 0 ){ free(icol) ; RETURN(NULL) ; } /* nothing */
+
+   nx    = nel->vec_len ;
+   outim = mri_new( nx , ncol , MRI_float ) ;
+   outar = MRI_FLOAT_PTR(outim) ;
+   for( jj=0 ; jj < ncol ; jj++ ){
+     far = outar + jj*nx ;
+     for( ii=0 ; ii < nx ; ii++ )
+       far[ii] = NI_extract_float_value(nel,ii,icol[jj]) ;
+     /* extract label */
+     if( nel->vec_lab != NULL ){
+       char *ccc = nel->vec_lab[icol[jj]] ;
+       if( ccc == NULL || *ccc == '\0' ) ccc = "Fred" ;
+       if( comlab == NULL ){
+         comlab = (char *)calloc(16,sizeof(char)) ;
+         strcpy(comlab,"LABELS:\t") ;
+       }
+       comlab = (char *)realloc( comlab , sizeof(char)*(strlen(comlab)+strlen(ccc)+4) ) ;
+       if( jj > 0 ) strcat(comlab,"\t") ;
+       strcat(comlab,ccc) ;
+     }
+   }
+
+   free(icol) ;
+   if( comlab != NULL ) outim->comments = comlab ;
+   RETURN(outim) ;
 }

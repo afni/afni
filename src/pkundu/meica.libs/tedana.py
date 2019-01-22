@@ -29,6 +29,7 @@ from sys import stdout,argv
 import scipy.stats as stats
 import time
 import datetime
+
 if __name__=='__main__':
 	selfuncfile='%s/select_model.py' % os.path.dirname(argv[0])
 	execfile(selfuncfile)
@@ -45,6 +46,16 @@ def _interpolate(a, b, fraction):
     """
     return a + (b - a)*fraction;
 
+
+# for reproducibility           15 May 2018 [rickr]
+def init_random_seeds(seed):
+    import random
+    from scipy import random as numx_rand
+    print '-- initializing random seed to %s' % seed
+    random.seed(seed)
+    numx_rand.seed(seed)
+
+
 def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
     """
     This function is grabbed from scipy
@@ -56,7 +67,7 @@ def scoreatpercentile(a, per, limit=(), interpolation_method='lower'):
 
     idx = per /100. * (values.shape[0] - 1)
     if (idx % 1 == 0):
-        score = values[idx]
+        score = values[int(idx)]
     else:
         if interpolation_method == 'fraction':
             score = _interpolate(values[int(idx)], values[int(idx) + 1],
@@ -89,7 +100,7 @@ def spatclust(data,mask,csize,thr,header,aff,infile=None,dindex=0,tindex=0):
 		niwrite(unmask(data,mask),aff,'__clin.nii.gz',header)
 		infile='__clin.nii.gz'
 	addopts=""
-	if data!=None and len(np.squeeze(data).shape)>1 and dindex+tindex==0: addopts="-doall"
+	if data is not None and len(np.squeeze(data).shape)>1 and dindex+tindex==0: addopts="-doall"
 	else: addopts="-1dindex %s -1tindex %s" % (str(dindex),str(tindex))
 	os.system('3dmerge -overwrite %s -dxyz=1  -1clust 1 %i -1thresh %.02f -prefix __clout.nii.gz %s' % (addopts,int(csize),float(thr),infile))
 	clustered = fmask(nib.load('__clout.nii.gz').get_data(),mask)!=0
@@ -472,6 +483,7 @@ def write_split_ts(data,comptable,mmix,suffix=''):
 	dmdata = mdata.T-mdata.T.mean(0)
 	varexpl = (1-((dmdata.T-betas.dot(mmix.T))**2.).sum()/(dmdata**2.).sum())*100
 	print 'Variance explained: ', varexpl , '%'
+
 	midkts = betas[:,midk].dot(mmix.T[midk,:])
 	lowkts = betas[:,rej].dot(mmix.T[rej,:])
 	if len(acc)!=0:
@@ -603,6 +615,7 @@ if __name__=='__main__':
 	parser.add_option('',"--denoiseTE",dest='e2d',help="TE to denoise. Default middle",default=None)	
 	parser.add_option('',"--initcost",dest='initcost',help="Initial cost func. for ICA: pow3,tanh(default),gaus,skew",default='tanh')
 	parser.add_option('',"--finalcost",dest='finalcost',help="Final cost func, same opts. as initial",default='tanh')	
+	parser.add_option('',"--seed",dest='seed',help="Init random number seeds",default=None)
 	parser.add_option('',"--stabilize",dest='stabilize',action='store_true',help="Stabilize convergence by reducing dimensionality, for low quality data",default=False)
 	parser.add_option('',"--fout",dest='fout',help="Output TE-dependence Kappa/Rho SPMs",action="store_true",default=False)
 	parser.add_option('',"--label",dest='label',help="Label for output directory.",default=None)
@@ -614,6 +627,10 @@ if __name__=='__main__':
 	if options.tes==None or options.data==None: 
 		print "*+ Need at least data and TEs, use -h for help."		
 		sys.exit()
+
+        # maybe init seeds
+        if options.seed is not None:
+                init_random_seeds(int(options.seed))
 
 	print "++ Loading Data"
 	tes = np.fromstring(options.tes,sep=',',dtype=np.float32)

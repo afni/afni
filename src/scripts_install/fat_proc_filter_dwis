@@ -1,4 +1,6 @@
-#!/bin/tcsh -e
+#!/bin/tcsh
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # !!! comment about movie/mpeg stuff! gifsicle, etc.
 
@@ -45,9 +47,35 @@
 #set version = "3.0"; set rev_dat = "July 27, 2017"
 #   + fixed some I/O issues with rowvecs and separate bvals
 #
-set version = "3.1"; set rev_dat = "Sep 04, 2017"
+#set version = "3.1"; set rev_dat = "Sep 04, 2017"
 #   + work with new @chauffeur*, -prefix only
 #   + update help file format for more autoprompting of opts
+#
+#set version = "3.2"; set rev_dat = "Jan 09, 2018"
+#   + new -select_file option
+#   + whine if *no* selection string entered
+#
+#set version = "3.3"; set rev_dat = "Feb 13, 2018"
+#   + allow for *multiple* input files or strings after "-select ..."
+#     or "-select_file"
+#
+#set version = "3.3b"; set rev_dat = "Feb 15, 2018"
+#   + fixed output path for $ogoods
+#
+#set version = "3.4"; set rev_dat = "Feb 20, 2018"
+#   + update QC snapshotting and output dir; file names/locs
+#
+#set version = "3.5"; set rev_dat = "Mar 5, 2018"
+#   + update QC snapshotting and output dir; file names/locs
+#
+#set version = "3.6"; set rev_dat = "Mar 14, 2018"
+#   + bug fix: program would crash if bval was used, because the
+#     selector wasn't being copied in the correct location; thanks for
+#     finding, G. Cabras!
+#
+set version = "3.7"; set rev_dat = "May 22, 2018"
+#   + bug fix: was doing union, not intersection, of lists of string
+#     selectors.  NOW intersecting.
 #
 # ----------------------------------------------------------------
  
@@ -94,6 +122,9 @@ set cmd_file   = ""              # def: same name as viewer
 set qc_prefix  = ""              # def: autoname; user can enter
 set postfix    = "_"             # stick into name
 
+set keepsel    = ()              # one or more strings of keepers
+
+
 # ------------------- process options, a la rr ----------------------
 
 if ( $#argv == 0 ) goto SHOW_HELP
@@ -115,11 +146,78 @@ while ( $ac <= $#argv )
         @ ac += 1
         set idwi = "$argv[$ac]"
 
+#    else if ( "$argv[$ac]" == "-select" ) then
+#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+#        @ ac += 1
+#        set KEEP = "$argv[$ac]"
+#
+#    # [PT: Jan 09, 2018] well, just take in a file directly
+#    else if ( "$argv[$ac]" == "-select_file" ) then
+#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+#        @ ac += 1
+#        set KEEPfile = "$argv[$ac]"
+
+    # [PT: Feb 13, 2018] new input: can have multiple good lists to
+    # merge
     else if ( "$argv[$ac]" == "-select" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set KEEP = "$argv[$ac]"
-        echo $KEEP
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set keepsel = ( $keepsel "$argv[$i0]" )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#keepsel == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#keepsel followers_NN dsets"
+            endif
+        endif
+
+    # [PT: Feb 13, 2018] new input: can have multiple good lists to
+    # merge; this is the file input version, just cat the file names
+    else if ( "$argv[$ac]" == "-select_file" ) then
+        set i0 = $ac
+        # check that this ain't the end of argv[] entries
+        if ( $i0 == $#argv ) then
+            echo "** ERROR: need at least one dset after $argv[$ac]!"
+            goto BAD_EXIT
+        else 
+            # check that next argv[] member isn't a new option: shd be
+            # a dset
+            @ i0 += 1
+            set c0 = ""
+            while ( ( $i0 <= $#argv ) && ( "$c0" != "-" )  )
+                set keepsel = ( $keepsel `cat "$argv[$i0]"` )
+                @ ac += 1
+
+                @ i0 += 1
+                if ( $i0 <= $#argv ) then
+                    set c0 = `echo $argv[$i0] | awk '{print substr($0,1,1)}'`
+                endif
+            end
+
+            if ( $#keepsel == 0 ) then
+                echo "** ERROR: need at least one dset after $argv[$ac]!"
+                goto BAD_EXIT
+            else
+                echo "++ User has listed $#keepsel followers_NN dsets"
+            endif
+        endif
 
     # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
@@ -248,6 +346,9 @@ else
     echo "++ Found inset DWI file:   $idwi"
 endif
 
+# use this to combine string selector of "goods"
+set Ndwi = `3dinfo -nvi "$idwi"`
+
 # check for vec/mat file ???????????????/
 if ( 0 ) then
 if ( -f "$invecmat[2]" ) then
@@ -259,6 +360,12 @@ endif
 endif
 
 # -------------------------------
+
+if ( ( "$keepsel" == "" ) ) then
+    echo "** ERROR: need SOME selection string!"
+    echo "          Use either '-select ...' or '-select_file ...'"
+    goto BAD_EXIT
+endif
 
 # ========================= output/working dir ==========================
 
@@ -304,12 +411,13 @@ endif
 endif
 
 # file names for lots of outputs
-set ocmd   = "${opref}_cmd.txt"      # name for output command
-set omata  = "${opref}_bmatA.dat"    # name for full afni bmatrix
-set omatt  = "${opref}_bmatT.dat"    # name for full afni bmatrix
-set obvec  = "${opref}_bvec.dat"     # name for full afni grads
-set obval  = "${opref}_bval.dat"     # name for full afni bvals
-set odwi   = "${opref}_dwi.nii.gz"   # name for dwis
+set ocmd   = "${opref}_cmd.txt"         # name for output command
+set omata  = "${opref}_bmatA.dat"       # name for full afni bmatrix
+set omatt  = "${opref}_bmatT.dat"       # name for full afni bmatrix
+set obvec  = "${opref}_bvec.dat"        # name for full afni grads
+set obval  = "${opref}_bval.dat"        # name for full afni bvals
+set odwi   = "${opref}_dwi.nii.gz"      # name for dwis
+set ogoods = "${opref}_goodfinal.txt"   # name for output good list
 
 # file *types* for output (grad/matrix stuff); [2,4] are filled above
 set outvecmat[1] = ${invecmat[1]:gas/in/out/}
@@ -319,10 +427,6 @@ set outvecmat[2] = "$odir/${opref}$outvecmat[2]"
 
 if ( "$outvecmat[4]" != "" ) then
     set outvecmat[4] = "$odir/${opref}$outvecmat[4]"
-endif
-
-if ( "$invecmat[4]" != "" ) then
-    set KEEP3 = $KEEP
 endif
 
 # in case someone wants just unit-mag vec|mat, we don't want to lose
@@ -353,7 +457,7 @@ endif
 # dump copy of command into workdir/..
 if ( $output_cmd == 1 ) then
     echo "++ Echoing the command to: $cmd_file"
-
+ 
     set rec_afni_ver = `afni -ver`
     echo "### AFNI version:"  > $cmd_file
     echo "# $rec_afni_ver\n"            >> $cmd_file
@@ -363,6 +467,25 @@ if ( $output_cmd == 1 ) then
     echo "### The command was:" >> $cmd_file
     echo "# $this_prog $argv"   >> $cmd_file
     echo "\n"                   >> $cmd_file
+endif
+ 
+# =================== Combine all good lists ============================
+
+echo "++ User input $#keepsel selector strings to merge:"
+foreach ii ( `seq 1 1 $#keepsel` )
+    echo "       $keepsel[$ii]"
+end
+
+# Combine all good lists
+@djunct_combine_str.py $odir/$ogoods $Ndwi $keepsel
+
+set KEEP = `cat "$odir/$ogoods"`
+echo "++ String selectors merged:\n\t $KEEP"
+echo "   and then saved into file:\n\t $odir/$ogoods"
+
+# and use it again
+if ( "$invecmat[4]" != "" ) then
+    set KEEP3 = "$KEEP"
 endif
 
 # ======================== convert dicoms ===============================
@@ -392,14 +515,18 @@ if ( 1 ) then
         echo "++ Make AP images."
         set img_pref = "${opref}"
 
+        if ( ! -e "$odir/QC" ) then
+            mkdir "$odir/QC"
+        endif
+
         $my_viewer_4d  \
             -inset  $odir/${opref}.nii.gz      \
-            -prefix "$odir/$img_pref" 
+            -prefix "$odir/QC/$img_pref" 
 
         if ( "$movie" != "" ) then
             $my_viewer_4d \
                 -inset  $odir/${opref}.nii.gz  \
-                -prefix "$odir/$img_pref"      \
+                -prefix "$odir/QC/$img_pref"      \
                 $movie
         endif
     endif
@@ -455,6 +582,7 @@ cat << EOF
     $this_prog  \
         -in_dwi    DDD                     \
         -select   'SSS'                    \
+        {-select_file SF}                  \
         -prefix   PPP                      \
         {-in_col_matA|-in_col_matT|        \
          -in_col_vec|-in_row_vec} FFF      \
@@ -487,11 +615,23 @@ cat << EOF
                      volumes in a data set: 
                         '0..3,5,7..\$' 
                      This string gets applied to the volume, bval|bvec|bmat
-                     files for an input set. Required.
+                     files for an input set. Either this or '-select_file ..',
+                     below, is required.
                      NB: there are neither square nor curly brackets used
                      here!
-                     NB2: Always use the single quotes around the
+                     NB2: Always use single or double quotes around the
                      selector expression. 
+                     NB3: User can enter a list of strings here, such as:
+                       '0..3,5,7..\$' '1..3,6..\$' 
+                     which then get joined by intersection.
+       or
+  -select_file SF   :where SF is a file name whose only contents are a nice 
+                     string of indices and index ranges for selecting which
+                     volumes/grads/bvals to *keep*.  Like, literally just
+                        0..3,5,7..\$
+                     sitting alone in a file-- no apostrophes needed/wanted.
+                     User can enter more than one file here, to be joined
+                     by intersection.
 
   -prefix    PPP    :output prefix for all the volumes and text files.
                      Required.
@@ -519,13 +659,26 @@ cat << EOF
 
 # -----------------------------------------------------------------------
 
-  EXAMPLE (again, note the single apostrophes around the selector!):
+  EXAMPLES:
 
-    $this_prog  \
-        -in_dwi       UNFILT_AP/AP.nii.gz       \
-        -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
-        -select       '0..5,8,20..\$'           \
-        -prefix       FILT_AP/AP 
+    1) ... with selector via the command line (again, note the single
+       apostrophes around the selector!):
+
+        $this_prog  \
+            -in_dwi       UNFILT_AP/AP.nii.gz       \
+            -in_col_matT  UNFILT_AP/AP_bmatT.dat    \
+            -select       '0..5,8,20..\$'           \
+            -prefix       FILT_AP/AP 
+
+    
+    2) ... with selector via file contents (where there would *not* be
+       apostrophes in the string sitting in the file):
+
+        $this_prog  \
+            -in_dwi       UNFILT_AP/AP.nii.gz           \
+            -in_col_matT  UNFILT_AP/AP_bmatT.dat        \
+            -select_file  UNFILT_AP/dwi_sel_goods.txt   \
+            -prefix       FILT_AP/AP 
 
 # -----------------------------------------------------------------------
 

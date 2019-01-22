@@ -2745,10 +2745,12 @@ read.AFNI <- function(filename, verb = 0, ApplyScale = 1, PercMask=0.0,
   if (meth == 'AUTO') {
    if (have_R_io()) meth <- 'clib' else meth <- 'Rlib'
   }
-  
+
   an <- parse.AFNI.name(filename);
   
+  
   if (verb > 1) {
+   cat('-- read.AFNI via', meth, an$type, '\n');
    show.AFNI.name(an);
   }
   

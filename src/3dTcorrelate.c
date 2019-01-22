@@ -7,6 +7,10 @@
 #define COVAR    5
 #define YCOEF    6
 
+#undef  MYatanh
+#define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
+                    :((x)>+0.999329f) ? +4.0f : atanhf(x) )
+
 /*----------------------------------------------------------------------------*/
 
 void usage_3dTcorrelate(int detail)
@@ -18,21 +22,27 @@ void usage_3dTcorrelate(int detail)
 "stores the output in a new 1 sub-brick dataset.\n"
 "\n"
 "Options:\n"
-"  -pearson  = Correlation is the normal Pearson (product moment)\n"
+"  -pearson    = Correlation is the normal Pearson (product moment)\n"
 "                correlation coefficient [this is the default method].\n"
-"  -spearman = Correlation is the Spearman (rank) correlation\n"
+"  -spearman   = Correlation is the Spearman (rank) correlation\n"
 "                coefficient.\n"
-"  -quadrant = Correlation is the quadrant correlation coefficient.\n"
-"  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
-"              ++ For 'continuous' or finely-discretized data, tau_b\n"
-"                 and rank correlation are nearly equivalent.\n"
+"  -quadrant   = Correlation is the quadrant correlation coefficient.\n"
+"  -ktaub      = Correlation is Kendall's tau_b coefficient.\n"
+"                ++ For 'continuous' or finely-discretized data, tau_b\n"
+"                   and rank correlation are nearly equivalent.\n"
 "  -covariance = Covariance instead of correlation. That would be \n"
-"                the pearson correlation without scaling by the product\n"
+"                the Pearson correlation without scaling by the product\n"
 "                of the standard deviations.\n"
 "  -ycoef      = Least squares coefficient that best fits y(t) to x(t),\n"
 "                after detrending.  That is, if yd(t) is the detrended\n"
 "                y(t) and xd(t) is the detrended x(t), then the ycoef\n"
 "                value is from the OLSQ fit to xd(t) = ycoef * y(t) + error.\n"
+"\n"
+"  -Fisher     = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
+"                to (correlation) results.\n"
+"                ++ It does not make sense to use this with '-ktaub', but if\n"
+"                    you want to do it, the program will not stop you.\n"
+"                ++ This option does not apply to '-covariance' or '-ycoef'.\n"
 "\n"
 "  -polort m = Remove polynomical trend of order 'm', for m=-1..9.\n"
 "                [default is m=1; removal is by least squares].\n"
@@ -94,6 +104,7 @@ int main( int argc , char *argv[] )
    byte *mmm=NULL ;
    MRI_IMAGE *im_ort=NULL ;            /* 13 Mar 2003 */
    int nort=0 ; float **fort=NULL ;
+   int do_atanh = 0 ;                  /* 12 Jan 2018 */
 
    /*----*/
 
@@ -156,6 +167,10 @@ int main( int argc , char *argv[] )
          method = KTAUB ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-fisher") == 0 ){ /* 12 Jan 2018 */
+         do_atanh = 1 ; nopt++ ; continue ;
+      }
+
       if( strcmp(argv[nopt],"-prefix") == 0 ){
          prefix = argv[++nopt] ;
          if( !THD_filename_ok(prefix) ){
@@ -184,6 +199,11 @@ int main( int argc , char *argv[] )
       exit(1);
    }
 
+   if( do_atanh && (method == COVAR || method == YCOEF) ){ /* 12 Jan 2018 */
+     WARNING_message("-Fisher doesn't apply to your chosen method") ;
+     do_atanh = 0 ;
+   }
+
    /*-- open datasets, check for legality --*/
 
    if( nopt+1 >= argc ){
@@ -194,7 +214,7 @@ int main( int argc , char *argv[] )
    if( xset == NULL ){
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-   if( DSET_NUM_TIMES(xset) < 2 ){
+   if( DSET_NVALS(xset) < 2 ){
       fprintf(stderr,"** Input dataset %s is not 3D+time\n",argv[nopt]);
       exit(1);
    }
@@ -202,7 +222,7 @@ int main( int argc , char *argv[] )
    if( yset == NULL ){
       fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
    }
-   if( DSET_NUM_TIMES(yset) != DSET_NUM_TIMES(xset) ){
+   if( DSET_NVALS(yset) != DSET_NVALS(xset) ){
       fprintf(stderr,"** Input dataset %s is different length than %s\n",
               argv[nopt],argv[nopt-1]) ;
       exit(1) ;
@@ -212,7 +232,7 @@ int main( int argc , char *argv[] )
               argv[nopt],argv[nopt-1]) ;
       exit(1) ;
    }
-   if( im_ort != NULL && im_ort->nx < DSET_NUM_TIMES(xset) ){
+   if( im_ort != NULL && im_ort->nx < DSET_NVALS(xset) ){
       fprintf(stderr,"** Input datsets are longer than -ort file!\n"); exit(1);
    }
    if( !EQUIV_GRIDS(xset,yset) )
@@ -289,12 +309,15 @@ int main( int argc , char *argv[] )
       (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
       (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
 
+#undef  DAT
+#define DAT if(do_atanh)car[ii]=MYatanh(car[ii])
+
       switch( method ){                    /* correlate */
          default:
-         case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); break;
-         case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ysar ); break;
-         case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); break;
-         case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); break;
+         case PEARSON:  car[ii] = THD_pearson_corr ( nvals,xsar,ysar ); DAT; break;
+         case SPEARMAN: car[ii] = THD_spearman_corr( nvals,xsar,ysar ); DAT; break;
+         case QUADRANT: car[ii] = THD_quadrant_corr( nvals,xsar,ysar ); DAT; break;
+         case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); DAT; break;
          case COVAR:    car[ii] = THD_covariance   ( nvals,xsar,ysar ); break;
          case YCOEF:    car[ii] = THD_ycoef        ( nvals,xsar,ysar ); break;
       }

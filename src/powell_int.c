@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <cs.h>
+#include "cs.h"
 #include "mrilib.h"
 #include "f2c.h"
 #include <time.h>

@@ -1,0 +1,166 @@
+#!/bin/tcsh 
+
+#@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "1.1";   set rev_dat   = "July 10, 2018"
+#     + birth
+# 
+set version = "1.2"; set rev_dat = "Aug 28, 2018"
+#   + use update xyz -> ijk prog!
+#
+# =====================================================================
+
+# -------------------------------------------------------------
+
+set opref   = ""
+
+set arr1 = ( "L" "R" "A" "P" "I" "S" )
+set arr2 = ( "R" "L" "P" "A" "S" "I" )
+
+# -------------------------------------------------------------
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- input dset(s) ----------------
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set dset = "$argv[$ac]"
+
+    # ----------------- outputs ---------------------
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set opref = `basename "$argv[$ac]"`
+        set odir  = `dirname  "$argv[$ac]"`
+
+    # takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_ijk" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_IJK"
+        set coords = ( 0 0 0 )
+        set coords[1] = "$argv[$ac]"
+        @ ac += 1
+        set coords[2] = "$argv[$ac]"
+        @ ac += 1
+        set coords[3] = "$argv[$ac]"
+
+    # takes 3 numbers!!!
+    else if ( "$argv[$ac]" == "-set_dicom_xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set coor_type = "SET_DICOM_XYZ"
+        set coorxyz = ( 0 0 0 )
+        set coorxyz[1] = "$argv[$ac]"
+        @ ac += 1
+        set coorxyz[2] = "$argv[$ac]"
+        @ ac += 1
+        set coorxyz[3] = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        goto BAD_EXIT
+
+    endif
+    @ ac += 1
+end
+
+# =======================================================================
+# ============================ ** SETUP ** ==============================
+# =======================================================================
+
+if ( "$coor_type" == "SET_DICOM_XYZ" ) then
+    set coords = `@xyz_to_ijk -inset $dset -xyz $coorxyz`
+    echo "++ Translated xyz coords (${coorxyz}) to ijk: ${coords}"
+endif
+
+# ------- check that we have allowed indices
+
+set dset_fov = `3dinfo -n4 "$dset"`
+
+foreach ii ( `seq 1 1 3` )
+    @ maxind = $dset_fov[$ii] - 1 # bc of zero-based counting
+    if ( $coords[$ii] > $maxind ) then
+        @ iii = $ii - 1
+        echo "** ERROR! [$iii]th coor is outside FOV:" \
+             "          $coords[$ii] > $maxind"
+        goto BAD_EXIT
+    endif
+end
+
+# ------------------------------------------------------------------
+
+# silly stuff to deal with orientation
+set ori  = `3dinfo -orient "$dset"`
+set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
+set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
+set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
+set all_ori = ( $ori0 $ori1 $ori2 )
+
+foreach ii ( `seq 1 1 3` )
+    set p1 = $all_ori[$ii]
+    set p2 = ""
+    foreach jj ( `seq 1 1 $#arr1` ) 
+        if ( "$p1" == "$arr1[$jj]" ) then
+            set p2 = $arr2[$jj]
+        endif
+    end
+    if ( "$p2" == "" ) then
+        echo "** ERROR! How did I not find a partner for orient ind: $p1?"
+        goto BAD_EXIT
+    endif
+
+    @ r1 = $coords[$ii] 
+    @ r2 = $dset_fov[$ii] - $coords[$ii] - 1
+
+    3dZeropad                                  \
+        -$p1 -$r1                              \
+        -$p2 -$r2                              \
+        -prefix $odir/${opref}_${ii}.nii.gz    \
+        "$dset"
+end
+
+goto GOOD_EXIT
+
+# ---------------------------------- 
+
+SHOW_HELP:
+
+cat <<EOF
+
+Basic helper script to convert a set of (x, y, z) coordinates to (i,
+j, k) indices for a dset.  Essentially stealing sage advice written by
+DR Glen in a helpful Message Board post.
+
+Run this program by entering exactly 4, space-separated arguments:
+    the name of a file, and then 3 coordinates (x, y, z).
+
+Program returns 3 indices: 
+    i j k
+(which can be redirected into a variable or file, for example).
+
+If any of 'i j k' are outside the dset's matrix, return an error.
+
+EOF
+
+goto GOOD_EXIT
+
+# ---------------------------------- 
+
+BAD_EXIT:
+    exit 1
+
+# ---------------------------------- 
+
+GOOD_EXIT:
+    exit 0
+

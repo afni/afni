@@ -40,8 +40,21 @@ afni.path <- dirname(system('which afni',intern=TRUE))
 data.df <- fread(table.file,stringsAsFactors=TRUE,data.table=FALSE)
 data.str <- fread(table.file,stringsAsFactors=FALSE)
 
+## fix the quotes for the InputFile
+data.df$InputFile <- gsub("'","",data.df$InputFile)
+data.df$InputFile <- gsub('"',"",data.df$InputFile)
+data.df$InputFile <- gsub('\\[','"[',data.df$InputFile)
+data.df$InputFile <- gsub('\\]',']"',data.df$InputFile)
+data.df$InputFile <- factor(data.df$InputFile)
+
+data.str$InputFile <- gsub("'","",data.str$InputFile)
+data.str$InputFile <- gsub('"',"",data.str$InputFile)
+data.str$InputFile <- gsub('\\[','"[',data.str$InputFile)
+data.str$InputFile <- gsub('\\]',']"',data.str$InputFile)
+
 ## get the number of subjects
 n.subj <- length(levels(data.df$Subj))
+
 
 ## get categorical variables (first and last are Subj and InputFile)
 catVar <- c(names(data.df)[sapply(data.df,is.factor)])
@@ -79,10 +92,10 @@ allVars <- c(catVar,qntVar)
 InputFile.str <- paste(data.df$InputFile,collapse=' ')
 
 ## copy one dataset to temp folder for the master
-master.dset <- paste0(out.dir,'/',basename(as.character(data.df$InputFile[1])))
+master.dset <- 'BassMaster.nii.gz'
 system(paste0('cd ',cur.dir,' ; ',
-              afni.path,'/3dcopy ',as.character(data.df$InputFile[1]),' ',
-              master.dset) )
+              afni.path,'/3dbucket -prefix ',master.dset,' -session ',
+              out.dir,' ',as.character(data.df$InputFile[1])) )
 
 ## launch afni
-afni_launch(master.dset,out.dir)
+afni_launch(paste0(out.dir,'/',master.dset),out.dir)

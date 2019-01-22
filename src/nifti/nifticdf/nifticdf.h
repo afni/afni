@@ -56,7 +56,7 @@
      NIFTI_INTENT_LOG10PVAL  = -log10(p)
 *****************************************************************************/
 
-extern char *inam[];
+extern char const * const inam[];
 
 int nifti_intent_code( char *name );
 double nifti_stat2cdf( double val, int code, double p1,double p2,double p3 );
@@ -169,8 +169,7 @@ double fifdmin1(double,double);
 double fifdsign(double,double);
 long fifidint(double);
 long fifmod(long,long);
-void ftnstop(char*);
+void ftnstop(const char*);
 int ipmpar(int*);
 
 /** end: prototypes for cdflib functions **/
-

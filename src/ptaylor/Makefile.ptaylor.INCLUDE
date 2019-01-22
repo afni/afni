@@ -203,7 +203,26 @@ map_TrackID:map_TrackID.o ${AFNI_3dOBJS} ${PTAYLORLIB}
 		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
       -lgsl -lgslcblas -lm
 
+3dZipperZapper: 3dZipperZapper.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dZipperZapper 3dZipperZapper.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
 
+3dSliceNDice: 3dSliceNDice.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dSliceNDice 3dSliceNDice.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
+
+3dClusterize: 3dClusterize.o ${AFNI_3dOBJS} ${PTAYLORLIB}
+	$(RM) $@
+	$(CC) -o 3dClusterize 3dClusterize.o  ${AFNI_3dOBJS} \
+		${PTAYLOR_INCLUDE_PATH} ${PTAYLOR_LINK_PATH}  \
+		$(LFLAGS) ${PTAYLORLIB} $(LLIBS) \
+      -lgsl -lgslcblas -lm
 
 #### -------------------- OMP building -----------------------
 
@@ -228,7 +247,8 @@ FC_PROGRAMS = 3dTrackID 3dProbTrackID 3dDWUncert 3dReHo 3dRSFC map_TrackID \
        3dROIMaker 3dMatch 3dNetCorr 1dDW_Grad_o_Mat 1dDW_Grad_o_Mat++ \
        3dEigsToDT \
        3dDTtoNoisyDWI 3dTORTOISEtoHere 3dVecRGB_to_HSL 3ddot_beta \
-       3dLombScargle 3dAmpToRSFC 3dSpaceTimeCorr
+       3dLombScargle 3dAmpToRSFC 3dSpaceTimeCorr 3dZipperZapper \
+       3dSliceNDice 3dClusterize
 
 progs: $(FC_PROGRAMS)
 
@@ -263,6 +283,9 @@ install:
 	@if [ -f  3dLombScargle ]; then mv 3dLombScargle ${INSTALLDIR}; fi; 
 	@if [ -f  3dAmpToRSFC ]; then mv 3dAmpToRSFC ${INSTALLDIR}; fi; 
 	@if [ -f  3dSpaceTimeCorr ]; then mv 3dSpaceTimeCorr ${INSTALLDIR}; fi; 
+	@if [ -f  3dZipperZapper ]; then mv 3dZipperZapper ${INSTALLDIR}; fi;
+	@if [ -f  3dSliceNDice ]; then mv 3dSliceNDice ${INSTALLDIR}; fi;
+	@if [ -f  3dClusterize ]; then mv 3dClusterize ${INSTALLDIR}; fi;
 
 afni_install:
 	@echo Installing Binaries...
@@ -286,3 +309,6 @@ afni_install:
 	@if [ -f  3dLombScargle ]; then mv 3dLombScargle ${INSTALLDIR}; fi; 
 	@if [ -f  3dAmpToRSFC ]; then mv 3dAmpToRSFC ${INSTALLDIR}; fi; 
 	@if [ -f  3dSpaceTimeCorr ]; then mv 3dSpaceTimeCorr ${INSTALLDIR}; fi; 
+	@if [ -f  3dZipperZapper ]; then mv 3dZipperZapper ${INSTALLDIR}; fi;
+	@if [ -f  3dSliceNDice ]; then mv 3dSliceNDice ${INSTALLDIR}; fi;
+	@if [ -f  3dClusterize ]; then mv 3dClusterize ${INSTALLDIR}; fi;

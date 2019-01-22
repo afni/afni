@@ -822,7 +822,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN , AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE , LNCOSH , ACFWXM
+      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ
 C
 C  External library functions
 C
@@ -1021,6 +1021,14 @@ C.......................................................................
             NEVAL = NEVAL - 3
             R8_EVAL(NEVAL) = ACFWXM( R8_EVAL(NEVAL)  ,R8_EVAL(NEVAL+1),
      X                               R8_EVAL(NEVAL+2),R8_EVAL(NEVAL+3))
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'GAMP')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = GAMP( R8_EVAL(NEVAL)  ,R8_EVAL(NEVAL+1) )
+C.......................................................................
+         ELSEIF( CNCODE .EQ. 'GAMQ')THEN
+            NEVAL = NEVAL - 1
+            R8_EVAL(NEVAL) = GAMQ( R8_EVAL(NEVAL)  ,R8_EVAL(NEVAL+1) )
 C.......................................................................
          ELSEIF( CNCODE .EQ. 'TANH' )THEN
             R8_EVAL(NEVAL) = TANH( R8_EVAL(NEVAL) )
@@ -1400,7 +1408,7 @@ C
      X       MEAN , STDEV , SEM , POSVAL , ZZMOD
       REAL*8 ARGMAX,ARGNUM , PAIRMX,PAIRMN, AMONGF, WITHINF
       REAL*8 MINABOVE , MAXBELOW, EXTREME, ABSEXTREME
-      REAL*8 CHOOSE , LNCOSH , ACFWXM
+      REAL*8 CHOOSE , LNCOSH , ACFWXM , GAMP,GAMQ
 C
 C  External library functions
 C

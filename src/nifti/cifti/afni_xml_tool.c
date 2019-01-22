@@ -48,7 +48,7 @@ int main(int argc, char * argv[])
 
 /* ----------------------------------------------------------------- */
 int process_args(int argc, char * argv[], opts_t * opts)
-{ 
+{
    int ac;
 
    if( argc < 2 ) return show_help();   /* typing '-help' is sooo much work */
@@ -135,4 +135,3 @@ int show_help( void )
       "\n");
    return 1;
 }
-

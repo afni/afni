@@ -112,6 +112,9 @@ void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
 void print_affine_xform_data(float *xfptr);
 
+ATLAS_POINT *atlas_point_named(ATLAS_POINT_LIST *apl, char *name);
+char *atlas_point_long_name_named(ATLAS_POINT_LIST *apl, char *name);
+
 ATLAS_XFORM *calc_xf(ATLAS_XFORM *xf, ATLAS_XFORM *xf2);
 int affine_mult(ATLAS_XFORM *xf, ATLAS_XFORM *xf2, ATLAS_XFORM *xf3);
 int affine_2piece_mult(ATLAS_XFORM *xf,
@@ -154,7 +157,6 @@ void AFNI_atlas_list_to_niml(void);
 void atlas_list_to_niml(ATLAS_POINT_LIST *atp, char *atlas_file);
 NI_element *atlas_point_to_niml_element(ATLAS_POINT *at_pt);
 char *atlas_point_to_niml_string(ATLAS_POINT *at_pt);
-int genx_load_atlas_dset(ATLAS *atlas);
 int atlas_dup_atlas(ATLAS *srcatlas, ATLAS *destatlas);
 int atlas_max_label_length(ATLAS_POINT *ap, int n_points);
 int atlas_level(ATLAS_POINT *ap, int n_points);

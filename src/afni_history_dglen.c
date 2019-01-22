@@ -50,6 +50,51 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, OCT, 2018, DRG, "auto_warp.py", MICRO, TYPE_NEW_OPT,
+    "at_opts for @auto_tlrc options"
+},
+{ 12, OCT, 2018, DRG, "whereami", MINOR, TYPE_NEW_ENV,
+    "Longname support in AFNI atlases",
+    "Environment variable AFNI_ATLAS_NAME_TYPE to control"
+},
+{ 29, APR, 2018, DRG, "First space xform bug",
+	MICRO, TYPE_BUG_FIX,
+	"Fixed bug where first space in AFNI_atlas_spaces.niml had to have xform "
+},
+{ 26, APR, 2018, DRG, "ORIG space",
+	MINOR, TYPE_GENERAL,
+	"ORIG space formally defined in AFNI_atlas_spaces.niml",
+    "Should allow for FreeSurfer segmentation to be used\n"
+    "with the SessionAtlases.niml created by @SUMA_MakeSpecFS\n"
+    "This change currently applies only to the whereami command\n"
+    "line. The afni GUI still requires a +tlrc or equivalent view."
+},
+{ 26, APR, 2018, DRG, "@surf_to_vol_spackle",
+	MINOR, TYPE_NEW_PROG,
+	"propagate surface to volume and fill holes"
+},
+{ 23, APR, 2018, DRG, "align_epi_anat.py python3",
+	MICRO, TYPE_MODIFY,
+	"Makes align_epi_anat.py python3 compatible"
+},
+{ 28, JAN, 2018, DRG, "@measure_xxx surface object controllers",
+	MICRO, TYPE_BUG_FIX,
+	"keep surface object controllers open in the output suma scripts",
+	"Mac OS bug makes closing and reopening controllers crash"
+},
+{ 18, JAN, 2018, DRG, "3dUndump cubes",
+	MICRO, TYPE_NEW_OPT,
+	"-cubes makes cubes instead of spheres"
+},
+
+{ 18, JAN, 2018, DRG, "thickness scripts",
+	SUPER, TYPE_NEW_PROG,
+	"Scripts to compute thickness of a mask 3 ways",
+	"@measure_bb_thick, @measure_erosion_thick, @measure_in2out\n"
+	"Suite of thickness scripts to compute thickness in volume\n"
+    "and map to surface. Master script, @thickness_master, to\n"
+    "call others with option for FreeSurfer input data"
+},
 { 9, NOV, 2017, DRG, "whereami report changes",
 	MICRO, TYPE_MODIFY,
 	"linkrbrain, sumsdb no longer working, so turned off",

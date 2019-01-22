@@ -8,15 +8,15 @@
 #include "thd_Tcorr1D.c"
 #endif
 
-
 int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *xset=NULL , *cset ;
-   int nopt=1, datum=MRI_float, nvals;
+   int nopt=1, datum=MRI_float, nvals, ii;
    MRI_IMAGE *ysim=NULL ;
    char *prefix = "Tcorr1D", *smethod="pearson";
    char *xnam=NULL , *ynam=NULL ;
    byte *mask=NULL ; int mask_nx,mask_ny,mask_nz , nmask=0 ;
+   int do_atanh = 0 ; /* 12 Jan 2018 */
 
    /*----*/
 
@@ -37,6 +37,15 @@ int main( int argc , char *argv[] )
              "  -ktaub    = Correlation is Kendall's tau_b coefficient.\n"
              "              ++ For 'continuous' or finely-discretized data, tau_b and\n"
              "                 rank correlation are nearly equivalent (but not equal).\n"
+             "  -dot      = Doesn't actually compute a correlation coefficient; just\n"
+             "                calculates the dot product between the y1D vector(s)\n"
+             "                and the dataset time series.\n"
+             "\n"
+             "  -Fisher   = Apply the 'Fisher' (inverse hyperbolic tangent) transformation\n"
+             "                to the results.\n"
+             "              ++ It does not make sense to use this with '-ktaub', but if\n"
+             "                 you want to do it, the program will not stop you.\n"
+             "              ++ Cannot be used with '-dot'!\n"
              "\n"
              "  -prefix p = Save output into dataset with prefix 'p'\n"
              "               [default prefix is 'Tcorr1D'].\n"
@@ -47,15 +56,20 @@ int main( int argc , char *argv[] )
              "\n"
              "  -float    = Save results in float format [the default format].\n"
              "  -short    = Save results in scaled short format [to save disk space].\n"
+             "              ++ Cannot be used with '-dot'!\n"
              "\n"
              "NOTES:\n"
              "* The output dataset is functional bucket type, with one sub-brick\n"
              "   per column of the input y1D file.\n"
              "* No detrending, blurring, or other pre-processing options are available;\n"
-             "   if you want these things, see 3dDetrend or 3dBandpass or 3dcalc.\n"
+             "   if you want these things, see 3dDetrend or 3dTproject or 3dcalc.\n"
              "   [In other words, this program presumes you know what you are doing!]\n"
              "* Also see 3dTcorrelate to do voxel-by-voxel correlation of TWO\n"
              "   3D+time datasets' time series, with similar options.\n"
+             "* You can extract the time series from a single voxel with given\n"
+             "   spatial indexes using 3dmaskave, and then run it with 3dTcorr1D:\n"
+             "    3dmaskave -quiet -ibox 40 30 20 epi_r1+orig > r1_40_30_20.1D\n"
+             "    3dTcorr1D -pearson -Fisher -prefix c_40_30_20 epi_r1+orig r1_40_30_20.1D\n"
              "* http://en.wikipedia.org/wiki/Correlation\n"
              "* http://en.wikipedia.org/wiki/Pearson_product-moment_correlation_coefficient\n"
              "* http://en.wikipedia.org/wiki/Spearman%%27s_rank_correlation_coefficient\n"
@@ -102,6 +116,11 @@ int main( int argc , char *argv[] )
         smethod = "pearson" ; nopt++ ; continue ;
       }
 
+      if( strcasecmp(argv[nopt],"-dot") == 0 ){
+        smethod = "dot" ; nopt++ ; continue ;
+      }
+
+
       if( strcasecmp(argv[nopt],"-spearman") == 0 || strcasecmp(argv[nopt],"-rank") == 0 ){
         smethod = "spearman" ; nopt++ ; continue ;
       }
@@ -112,6 +131,10 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-ktaub") == 0 || strcasecmp(argv[nopt],"-taub") == 0 ){
         smethod = "ktaub" ; nopt++ ; continue ;
+      }
+
+      if( strcasecmp(argv[nopt],"-fisher") == 0 ){ /* 12 Jan 2018 */
+        do_atanh = 1 ; nopt++ ; continue ;
       }
 
       if( strcmp(argv[nopt],"-prefix") == 0 ){
@@ -154,9 +177,9 @@ int main( int argc , char *argv[] )
    }
 
    nvals = DSET_NVALS(xset) ;  /* number of time points */
-
-   if( nvals < 3 )
-     ERROR_exit("Input dataset %s length is less than 3?!",xnam) ;
+   ii    = (strcmp(smethod,"dot")==0) ? 2 : 3 ;
+   if( nvals < ii )
+     ERROR_exit("Input dataset %s length is less than ii?!",xnam,ii) ;
 
    if( ysim->nx < nvals )
      ERROR_exit("1D file %s has %d time points, but dataset has %d values",
@@ -172,7 +195,15 @@ int main( int argc , char *argv[] )
      INFO_message("1D file %s has %d columns: correlating with ALL of them!",
                    ynam,ysim->ny) ;
 
-   cset = THD_Tcorr1D(xset, mask, nmask, ysim, smethod, prefix, (datum==MRI_short) );
+   if( strcmp(smethod,"dot") == 0 && do_atanh ){
+     WARNING_message("'-dot' turns off '-Fisher'") ; do_atanh = 0 ;
+   }
+   if( strcmp(smethod,"dot") == 0 && datum == MRI_short ){
+     WARNING_message("'-dot' turns off '-short'") ; datum = MRI_float ;
+   }
+
+   cset = THD_Tcorr1D( xset, mask, nmask, ysim, smethod,
+                       prefix, (datum==MRI_short) , do_atanh );
    tross_Make_History( "3dTcorr1D" , argc,argv , cset ) ;
 
    DSET_unload(xset) ;  /* no longer needful */

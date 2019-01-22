@@ -15,19 +15,12 @@
 
 #include <sys/types.h>      /* to fix a bug in gcc */
 #include <stddef.h>
-#include <X11/Intrinsic.h>  /* only for XtFree, etc */
-#include <stdarg.h>         /* for variable number of arguments processing */
+/** #include <stdarg.h> **/        /* for variable number of arguments processing */
+
+#include "replaceXt.h"  /* 09 Nov 2018 */
 
 #include "mrilib.h"
 #include "afni_warp.h"
-
-#ifndef myXtFree
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
-#ifndef myXtNew
-#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
-#endif
 
 #define INC_CLUSTER 32
 
@@ -61,7 +54,7 @@ typedef struct {
 /*! Initialize a MCW_cluster. */
 
 #define INIT_CLUSTER(cc)               \
-  ( (cc) = XtNew(MCW_cluster) ,        \
+  ( (cc) = RwcNew(MCW_cluster) ,        \
     (cc)->num_pt = (cc)->num_all = 0 , \
     (cc)->i = NULL , (cc)->j = NULL , (cc)->k = NULL ,(cc)->mag = NULL )
 
@@ -69,11 +62,11 @@ typedef struct {
 
 #define KILL_CLUSTER(cc)       \
   do{ if( cc != NULL ){        \
-         myXtFree((cc)->i) ;   \
-         myXtFree((cc)->j) ;   \
-         myXtFree((cc)->k) ;   \
-         myXtFree((cc)->mag) ; \
-         myXtFree((cc)) ;      \
+         myRwcFree((cc)->i) ;   \
+         myRwcFree((cc)->j) ;   \
+         myRwcFree((cc)->k) ;   \
+         myRwcFree((cc)->mag) ; \
+         myRwcFree((cc)) ;      \
          (cc) = NULL ;         \
       }} while(0)
 
@@ -88,10 +81,10 @@ typedef struct {
 #define COPY_CLUSTER(dd,cc)                              \
  do{ int nn ; INIT_CLUSTER(dd) ;                         \
      (dd)->num_pt = (dd)->num_all = nn = (cc)->num_pt ;  \
-     (dd)->i   = (short *)XtMalloc(sizeof(short)*nn);    \
-     (dd)->j   = (short *)XtMalloc(sizeof(short)*nn);    \
-     (dd)->k   = (short *)XtMalloc(sizeof(short)*nn);    \
-     (dd)->mag = (float *)XtMalloc(sizeof(float)*nn);    \
+     (dd)->i   = (short *)RwcMalloc(sizeof(short)*nn);    \
+     (dd)->j   = (short *)RwcMalloc(sizeof(short)*nn);    \
+     (dd)->k   = (short *)RwcMalloc(sizeof(short)*nn);    \
+     (dd)->mag = (float *)RwcMalloc(sizeof(float)*nn);    \
      memcpy((dd)->i  ,(cc)->i  ,sizeof(short)*nn);       \
      memcpy((dd)->j  ,(cc)->j  ,sizeof(short)*nn);       \
      memcpy((dd)->k  ,(cc)->k  ,sizeof(short)*nn);       \
@@ -114,10 +107,10 @@ typedef struct {
       if( (cc)->num_pt == (cc)->num_all ){                                  \
          (cc)->num_all = 2*(cc)->num_all + INC_CLUSTER ;                    \
          nn = (cc)->num_all ;                                               \
-         (cc)->i=(short *)   XtRealloc((char *)(cc)->i,sizeof(short)*nn  ); \
-         (cc)->j=(short *)   XtRealloc((char *)(cc)->j,sizeof(short)*nn  ); \
-         (cc)->k=(short *)   XtRealloc((char *)(cc)->k,sizeof(short)*nn  ); \
-         (cc)->mag=(float *) XtRealloc((char *)(cc)->mag,sizeof(float)*nn); \
+         (cc)->i=(short *)   RwcRealloc((char *)(cc)->i,sizeof(short)*nn  ); \
+         (cc)->j=(short *)   RwcRealloc((char *)(cc)->j,sizeof(short)*nn  ); \
+         (cc)->k=(short *)   RwcRealloc((char *)(cc)->k,sizeof(short)*nn  ); \
+         (cc)->mag=(float *) RwcRealloc((char *)(cc)->mag,sizeof(float)*nn); \
          DBMALL(nn) ; }                                                     \
       nn = (cc)->num_pt ; ((cc)->num_pt)++ ;                                \
       (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ;        \
@@ -130,9 +123,9 @@ typedef struct {
       if( (cc)->num_pt == (cc)->num_all ){                             \
          (cc)->num_all = 2*(cc)->num_all + INC_CLUSTER ;               \
          nn = (cc)->num_all ;                                          \
-         (cc)->i=(short *)XtRealloc((char *)(cc)->i,sizeof(short)*nn); \
-         (cc)->j=(short *)XtRealloc((char *)(cc)->j,sizeof(short)*nn); \
-         (cc)->k=(short *)XtRealloc((char *)(cc)->k,sizeof(short)*nn); \
+         (cc)->i=(short *)RwcRealloc((char *)(cc)->i,sizeof(short)*nn); \
+         (cc)->j=(short *)RwcRealloc((char *)(cc)->j,sizeof(short)*nn); \
+         (cc)->k=(short *)RwcRealloc((char *)(cc)->k,sizeof(short)*nn); \
       }                                                                \
       nn = (cc)->num_pt ; ((cc)->num_pt)++ ;                           \
       (cc)->i[nn] = (ii) ; (cc)->j[nn] = (jj) ; (cc)->k[nn] = (kk) ;   \
@@ -154,7 +147,7 @@ typedef struct {
 /*! Initialize a MCW_cluster_array. */
 
 #define INIT_CLARR(cl)                \
-  ( (cl) = XtNew(MCW_cluster_array) , \
+  ( (cl) = RwcNew(MCW_cluster_array) , \
     (cl)->num_clu = (cl)->num_all = 0 , (cl)->clar = NULL, \
     (cl)->grid_nz = 0, (cl)->grid_ny = 0, (cl)->grid_nz = 0)
 
@@ -164,7 +157,7 @@ typedef struct {
   do{ int nn ;                                                                 \
       if( (cl)->num_clu == (cl)->num_all ){                                    \
          (cl)->num_all += INC_CLUSTER+(cl)->num_all/2 ; nn = (cl)->num_all ;   \
-         (cl)->clar = (MCW_cluster **) XtRealloc( (char *)(cl)->clar ,         \
+         (cl)->clar = (MCW_cluster **) RwcRealloc( (char *)(cl)->clar ,         \
                                                  sizeof(MCW_cluster *) * nn ); \
       }                                                                        \
       (cl)->clar[((cl)->num_clu)++] = (cc) ; break ; } while(0)
@@ -175,7 +168,7 @@ typedef struct {
   do{ int ii ; if( cl != NULL ){                    \
          for( ii=0 ; ii < (cl)->num_clu ; ii++ )    \
             KILL_CLUSTER( (cl)->clar[ii] ) ;        \
-         myXtFree((cl)->clar) ; (cl) = NULL ; \
+         myRwcFree((cl)->clar) ; (cl) = NULL ; \
       } break ; } while(0)
 
 /*! Determine if 2 MCW_cluster are ordered. */

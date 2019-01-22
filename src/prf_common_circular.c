@@ -86,6 +86,8 @@ static int insert_reorg_slice(THD_3dim_dataset * rset, float * slice,
                               int din_nxy, int din_zind, int din_tind);
 
 static int   disp_floats(char * mesg, float * p, int len);
+static int   write_gauss_file(char * fname, float * curve,
+                              int nx, int ny, char * hist);
 static int   write_dset(THD_3dim_dataset * dset, char * name);
 static int   convolve_by_ref(float *, int, float *, int, int, int);
 
@@ -105,6 +107,8 @@ static void conv_model( float *  gs      , int     ts_length ,
 /* interface to the environment */
 static char * genv_conv_ref = NULL;    /* AFNI_CONVMODEL_REF */
 static char * genv_prf_stim = NULL;    /* AFNI_MODEL_PRF_STIM_DSET */
+static char * genv_gauss_file = NULL;  /* AFNI_MODEL_PRF_GAUSS_FILE */
+
 static int    genv_diter    = -1;      /* debug iteration */
 static int    genv_debug    = 1;       /* AFNI_MODEL_DEBUG */
 static int    genv_ram_stats= 0;       /* AFNI_MODEL_PRF_RAM_STATS */
@@ -178,6 +182,11 @@ static int set_env_vars(void)
    /* help */
    genv_get_help = AFNI_yesenv("AFNI_MODEL_HELP_CONV_PRF")
                 || AFNI_yesenv("AFNI_MODEL_HELP_ALL");
+
+   /* write a Gaussian mask? */
+   genv_gauss_file = my_getenv("AFNI_MODEL_PRF_GAUSS_FILE");
+   if( genv_gauss_file && genv_debug )
+      fprintf(stderr, "-- plan to write gauss file %s\n", genv_gauss_file);
 
    return 0;
 }
@@ -296,7 +305,7 @@ static int write_dset(THD_3dim_dataset * dset, char * name)
    return 0;
 }
 
-/* for monitoring the the RAM usage */
+/* for monitoring the RAM usage */
 static int show_malloc_stats(char * mesg)
 {
    int show_stats, show_ps, get_char;
@@ -1017,16 +1026,18 @@ static int inputs_to_coords(THD_3dim_dataset * dset, float x, float y,
    nx = DSET_NX(dset);  ny = DSET_NY(dset);  nz = DSET_NZ(dset);
 
    /* for i,j, map [-1,1] to [0, nx-1] */
-   i = (int)(0.5+nx*(x+1.0)/2.0);
+   /* note, (nx*(x+1.0)/2.0) is in [0,nx], with p(val=nx) very small,  */
+   /*       so it should be enough to just limit floor(result) to nx-1 */
+   i = (int)(nx*(x+1.0)/2.0);
    if     (i <  0 )   i = 0;
    else if(i >= nx )  i = nx-1;
 
-   j = (int)(0.5+ny*(y+1.0)/2.0);
+   j = (int)(ny*(y+1.0)/2.0);
    if     (j <  0 )   j = 0;
    else if(j >= ny )  j = ny-1;
 
    /* init to round(nsteps * fraction of max) */
-   k = (int)(0.5 + genv_sigma_nsteps * sigma / genv_sigma_max);
+   k = (int)(genv_sigma_nsteps * sigma / genv_sigma_max);
    if     ( k <  0 )  k = 0;
    else if( k >= nz ) k = nz-1;
 
@@ -1063,7 +1074,7 @@ static int get_signal_computed(float * ts, int tslen, THD_3dim_dataset * dset,
          fprintf(stderr,"++ alloc egrid, snxy = %d, nxy = %d\n", snxy, nx*ny);
       snxy = nx*ny;
       if( sexpgrid ) free(sexpgrid);    /* nuke any old copy - maybe never */
-      sexpgrid = (float *)calloc(snxy, sizeof(float *));
+      sexpgrid = (float *)calloc(snxy, sizeof(float));
       if( !sexpgrid ) {
          fprintf(stderr,"** PRF egrid alloc failure, nxy = %d\n", snxy);
          return 1;
@@ -1095,8 +1106,80 @@ static int get_signal_computed(float * ts, int tslen, THD_3dim_dataset * dset,
       ts[tind] = A * sum;
    }
 
+   /* if requested, write this 2D image (one time only) */
+   if( genv_gauss_file ) {
+      char hist[256];
+      sprintf(hist, "\n   == %s\n   x = %g, y = %g, sigma = %g\n",
+                    g_model_ver, x0, y0, sigma);
+      fprintf(stderr, "++ writing PRF model curve to %s\n%s\n",
+              genv_gauss_file, hist);
+      write_gauss_file(genv_gauss_file, sexpgrid, nx, ny, hist);
+
+      genv_gauss_file = NULL;  /* clear - no further writes */
+   }
+
    return 0;
 }
+
+/* ------------------------------------------------------------ */
+/* write_gauss_curve */
+static int write_gauss_file(char * fname, float * curve, int nx, int ny,
+                            char * hist)
+{
+   THD_3dim_dataset * dout;
+   THD_ivec3          inxyz;
+   THD_fvec3          origin, delta;
+   float            * mptr, * dptr;
+   byte             * bptr;
+   int                ind;
+
+   fprintf(stderr,"++ creating gauss dset (%dx%d)", nx, ny);
+   dout = EDIT_empty_copy(NULL);
+   LOAD_IVEC3(inxyz, nx, ny, 1);                               /* nxyz   */
+   origin.xyz[0] = origin.xyz[1] = -1.0;                       /* origin */
+   origin.xyz[2] = 0.0;
+   delta.xyz[0] = delta.xyz[1] = 2.0/(nx-1);                   /* delta */
+   delta.xyz[2] = 1.0;
+
+   EDIT_dset_items(dout, ADN_nxyz,      inxyz,
+                         ADN_xyzorg,    origin,
+                         ADN_xyzdel,    delta,
+                         ADN_prefix,    fname,
+                         ADN_nvals,     2,
+                         ADN_none);
+
+   /* first is gaussian, second is first mask (to compare orientations) */
+   /* use NULL to create space, then copy results */
+   EDIT_substitute_brick(dout, 0, MRI_float, NULL);
+   EDIT_substitute_brick(dout, 1, MRI_float, NULL);
+
+   /* first copy 'curve' to slice 0 */
+   mptr = DBLK_ARRAY(dout->dblk, 0);
+   dptr = curve;
+   for(ind = 0; ind < nx*ny; ind++)
+      *mptr++ = *dptr++;
+
+   /* now fill mask slice */
+   mptr = DBLK_ARRAY(dout->dblk, 1);
+   bptr = DBLK_ARRAY(g_saset->dblk, 0);
+   for(ind = 0; ind < nx*ny; ind++, bptr++)
+      *mptr++ = (float)*bptr;
+
+   dout->daxes->xxorient = ORI_L2R_TYPE;
+   dout->daxes->yyorient = ORI_P2A_TYPE;
+   dout->daxes->zzorient = ORI_I2S_TYPE;
+
+   if( hist ) tross_Append_History(dout, hist);
+
+   fprintf(stderr,", writing");
+   DSET_write(dout);
+
+   DSET_delete(dout);
+   fprintf(stderr,", done\n");
+
+   return 0;
+}
+
 
 /* - compute a Gaussian curve over the current grid, centered at x0, y0,
  *   and with the given sigma (unless x0,y0,sigma are the same as previous)

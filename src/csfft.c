@@ -36,6 +36,7 @@
 #  define FFT_NODOUBLE    /* use only the float version */
 #  include "fftn.c"
 static int force_fftn=0 ;
+static int internal_check=0 ; /* Jun 2018 */
 #else
 # define force_fftn 0
 #endif
@@ -253,7 +254,9 @@ void csfft_cox( int mode , int idim , complex *xc )
 #ifdef USE_FFTN
    { static int last_idim=-1 , last_fftn=0 ;
      if( idim != last_idim ){
+       internal_check = 1 ;
        m = csfft_nextup_even(idim) ; last_idim = idim ;
+       internal_check = 0 ;
        last_fftn = (force_fftn || idim != m || idim > 32768 ) ;
 #if 0
        INFO_message("csfft_cox(%d) %s replaced by fftn",
@@ -2257,10 +2260,27 @@ int csfft_nextup_one35( int idim )
 int csfft_nextup_even( int idim )
 {
    int jj = idim ;
+#ifdef USE_FFTN             /* Jun 2018 */
+   if( !internal_check ){
+     if( jj%2 == 1 ) jj++ ;
+     return jj ;
+   }
+#endif
    do{
       jj = csfft_nextup(jj) ;
       if( jj%2 == 1 ) jj++ ;
       else            return jj ;
    } while(1) ;
    return 0 ; /* cannot be reached */
+}
+
+/*------------------------------------------------------------------------*/
+
+int csfft_allows_anything(void)             /* Jun 2018 */
+{
+#ifdef USE_FFTN
+   return 1 ;
+#else
+   return 0 ;
+#endif
 }

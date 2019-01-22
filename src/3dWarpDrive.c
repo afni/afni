@@ -395,15 +395,23 @@ int main( int argc , char * argv[] )
             "Usage: 3dWarpDrive [options] dataset\n"
             "Warp a dataset to match another one (the base).\n"
             "\n"
-            "This program is a generalization of 3dvolreg.  It tries to find\n"
-            "a spatial transformation that warps a given dataset to match an\n"
-            "input dataset (given by the -base option).  It will be slow.\n"
+            "* This program is a generalization of 3dvolreg.  It tries to find\n"
+            "  a spatial transformation that warps a given dataset to match an\n"
+            "  input dataset (given by the -base option).  It will be slow.\n"
+            "* Here, the spatical transformation is defined by a matrix; thus,\n"
+            "  it is an affine warp.\n"
+            "* Program 3dAllineate can also compute such an affine transformation,\n"
+            "  and it has more options for how the base and input (source) datasets\n"
+            "  are to be matched. Thus, the usefulness of the older 3dWarpDrive\n"
+            "  program is now limited. For future work, consider using 3dAllineate.\n"
+            "*****\n"
+            "***** For nonlinear spatial warping, see program 3dQwarp. *****\n"
+            "*****\n"
             "\n"
             " *** Also see the script align_epi_anat.py for a more general ***\n"
             " **  alignment procedure, which does not require that the two  **\n"
             " **  datasets be defined on the same 3D grid.                  **\n"
-            " **  align_epi_anat.py uses program 3dAllineate, which can     **\n"
-            " *** also do nonlinear (polynomial) warping for registration. ***\n"
+            " **  align_epi_anat.py uses program 3dAllineate.               **\n"
             "\n"
             "--------------------------\n"
             "Transform Defining Options: [exactly one of these must be used]\n"
@@ -417,6 +425,7 @@ int main( int argc , char * argv[] )
             "  N.B.: At this time, the image intensity is NOT \n"
             "         adjusted for the Jacobian of the transformation.\n"
             "  N.B.: -bilinear_general is not yet implemented.\n"
+            "        AND WILL NEVER BE.\n"
             "\n"
             "-------------\n"
             "Other Options:\n"
@@ -806,12 +815,12 @@ int main( int argc , char * argv[] )
 
      /*-----*/
 
-     if( strcmp(argv[nopt],"-input") == 0 ){
+     if( strcmp(argv[nopt],"-input") == 0 || strcmp(argv[nopt],"-source") == 0 ){
        if( ++nopt >= argc )
-         ERROR_exit("Need an argument after -input!\n");
+         ERROR_exit("Need an argument after %s!",argv[nopt-1]);
        inset = THD_open_dataset( argv[nopt] ) ;
        if( inset == NULL )
-         ERROR_exit("Can't open -input dataset %s\n",argv[nopt]);
+         ERROR_exit("Can't open %s dataset %s\n",argv[nopt-1],argv[nopt]);
        nopt++ ; continue ;
      }
 
@@ -1138,9 +1147,10 @@ int main( int argc , char * argv[] )
    /*-- more checks --*/
 
    /* the following aren't fatal errors, but merit a warning slap in the face */
+   /* [modified to be less stringent [11 Feb 2018] -- RWC */
 
-   if( FLDIF(DSET_DX(baset),dx) ||
-       FLDIF(DSET_DY(baset),dy) || FLDIF(DSET_DZ(baset),dz) ){
+   if( FLDIF(DSET_DX(baset),dx) > 0.002f ||
+       FLDIF(DSET_DY(baset),dy) > 0.002f || FLDIF(DSET_DZ(baset),dz) > 0.002f ){
      WARNING_message("base and input grid spacings don't match!\n"
                      /*"If this is not by design or if registration\n"
                      "fails, use 3dresample with -master option:\n"
@@ -1149,15 +1159,15 @@ int main( int argc , char * argv[] )
                      "             -prefix RS\n"
                      "to sesample the input data and rerun the\n"
                      "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
-     WARNING_message("base  grid = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("base  grid = %.6f X %.6f X %.6f mm\n",
                      DSET_DX(baset),DSET_DY(baset),DSET_DZ(baset) ) ;
-     WARNING_message("input grid = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("input grid = %.6f X %.6f X %.6f mm\n",
                      DSET_DX(inset),DSET_DY(inset),DSET_DZ(inset) ) ;
    }
 
-   if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) ||
-       FLDIF(DSET_YORG(baset),DSET_YORG(inset)) ||
-       FLDIF(DSET_ZORG(baset),DSET_ZORG(inset))   ){
+   if( FLDIF(DSET_XORG(baset),DSET_XORG(inset)) > 0.02f ||
+       FLDIF(DSET_YORG(baset),DSET_YORG(inset)) > 0.02f ||
+       FLDIF(DSET_ZORG(baset),DSET_ZORG(inset)) > 0.02f   ){
      WARNING_message("base and input grid offsets don't match!\n"
                      /*"If this is not by design or if registration\n"
                      "fails, use 3dresample with -master option:\n"
@@ -1166,9 +1176,9 @@ int main( int argc , char * argv[] )
                      "             -prefix RS\n"
                      "to sesample the input data and rerun the\n"
                      "registration with RS as the input.\n", DSET_BRIKNAME(baset), DSET_BRIKNAME(inset) */) ;
-     WARNING_message("base  offsets = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("base  offsets = %.6f X %.6f X %.6f mm\n",
                      DSET_XORG(baset),DSET_YORG(baset),DSET_ZORG(baset) ) ;
-     WARNING_message("input offsets = %.5f X %.5f X %.5f mm\n",
+     WARNING_message("input offsets = %.6f X %.6f X %.6f mm\n",
                      DSET_XORG(inset),DSET_YORG(inset),DSET_ZORG(inset) ) ;
    }
 

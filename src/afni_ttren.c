@@ -402,10 +402,10 @@ ENTRY("TTRR_setup_widgets") ;
            if( tto_list[ii].tdlev == 2 ) strcpy(lbuf,"[G] ") ;
       else if( tto_list[ii].tdlev == 4 ) strcpy(lbuf,"[A] ") ;
       if((tto_list[ii].tdlev == 2)||(tto_list[ii].tdlev == 4)) {
-          strcat(lbuf,tto_list[ii].name) ;
+          strcat(lbuf,Atlas_name_choice(&tto_list[ii]));
       }
       else {
-          strcpy(lbuf,tto_list[ii].name) ;
+          strcpy(lbuf,Atlas_name_choice(&tto_list[ii]));
       }
 
       fill_str(lbuf,'.', maxlength);   /* add periods up to a length of maxlength*/
@@ -686,7 +686,7 @@ static void TTRR_load_file( char * fname )  /* 08 Aug 2002 */
       name = stok[0] ;                             /* region name */
       if( ns == 2 ) color = stok[1] ;       /* overlay color name */
       else          color = stok[2] ;
-      ic = DC_find_overlay_color( ttc->dc , color ) ;
+      ic = DC_find_closest_overlay_color( ttc->dc , color ) ;
       if( ic < 0 ){ freeup_strings(ns,stok); continue; } /* skip */
 
       /* find region name in list; assign color to menu */

@@ -5,6 +5,31 @@
 
 //#define ALLOWED_NROI (150)   // buffer size for array of refset...
 
+typedef struct {
+   int   d[3];      // N along each axis
+   int   maxd;      // max dim for len of arrays
+   int   **sizeA;   // Nvox per slice in A
+   int   **sizeB;   // Nvox per slice in B
+   float **dice;    // Dice per slice
+   float **coors;   // Coors per slice
+} slidice;
+
+slidice *Create_slidice( int *Dim, 
+                         THD_3dim_dataset *A,
+                         THD_3dim_dataset *B );
+slidice *Free_slidice(slidice *ss, int n);
+
+// calculate output lengths along FOV
+int Find_slidice_orange( slidice *ss, 
+                         int FOV_TYPE,
+                         byte **orange);
+
+
+
+// actual dice calcs
+int Dice_em_up_calcs( slidice *ss, 
+                      byte ***ma,
+                      byte ***mb);
 
 
 int Color_RGB_to_HSL( float *RGB,           // N by 3 array

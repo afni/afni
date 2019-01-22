@@ -1,6 +1,8 @@
 #include "mrilib.h"
 #include <signal.h>
 
+#ifndef DONT_ALLOW_MINC
+
 /*******************************************************************/
 /*!  Write an AFNI dataset as a MINC file.
      - fname = MINC filename
@@ -263,3 +265,12 @@ ENTRY("THD_write_minc") ;
 
    free(cmd) ; RETURN(good) ;
 }
+
+#else
+
+int THD_write_minc( char *fname, THD_3dim_dataset *dset, int flags )
+{
+   ERROR_message("MINC-1 dataset output disabled") ; return 0 ;
+}
+
+#endif

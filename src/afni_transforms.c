@@ -189,7 +189,7 @@ void median3_func( int num , double to,double dt, float *vec )
 #undef  mmm7
 #define mmm7(j)                                            \
  { float qqq[7] ; int jj = (j)-3 ;                         \
-   if( jj < 0 ) jj = 0; else if( jj+6 >= num ) jj = num-7; \
+   if( jj < 0 ) jj = 0; else if( jj+7 > num ) jj = num-7;  \
    memcpy(qqq,vec+jj,sizeof(float)*7) ;                    \
    med    = qmed_float(7,qqq); qqq[0] = fabsf(qqq[0]-med); \
    qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
@@ -241,7 +241,7 @@ void despike7pp_func( int num , double to,double dt , float *vec )
 #undef  mmm9
 #define mmm9(j)                                            \
  { float qqq[9] ; int jj = (j)-4 ;                         \
-   if( jj < 0 ) jj = 0; else if( jj+8 >= num ) jj = num-9; \
+   if( jj < 0 ) jj = 0; else if( jj+9 > num ) jj = num-9;  \
    memcpy(qqq,vec+jj,sizeof(float)*9) ;                    \
    med    = qmed_float(9,qqq); qqq[0] = fabsf(qqq[0]-med); \
    qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med); \
@@ -271,6 +271,96 @@ void despike9_func( int num , double to,double dt , float *vec )
    free(zme) ; return ;
 }
 #undef mmm9
+
+/*----------------------------------------------------------------------------*/
+/* Despiking-25 filter */
+
+#undef  SWAP
+#define SWAP(x,y) (temp=x,x=y,y=temp)
+#undef  SORT2
+#define SORT2(a,b) if(a>b) SWAP(a,b)
+
+static INLINE float median25f(float *p)
+{
+    register float temp ;
+    SORT2(p[0], p[1]) ;   SORT2(p[3], p[4]) ;   SORT2(p[2], p[4]) ;
+    SORT2(p[2], p[3]) ;   SORT2(p[6], p[7]) ;   SORT2(p[5], p[7]) ;
+    SORT2(p[5], p[6]) ;   SORT2(p[9], p[10]) ;  SORT2(p[8], p[10]) ;
+    SORT2(p[8], p[9]) ;   SORT2(p[12], p[13]) ; SORT2(p[11], p[13]) ;
+    SORT2(p[11], p[12]) ; SORT2(p[15], p[16]) ; SORT2(p[14], p[16]) ;
+    SORT2(p[14], p[15]) ; SORT2(p[18], p[19]) ; SORT2(p[17], p[19]) ;
+    SORT2(p[17], p[18]) ; SORT2(p[21], p[22]) ; SORT2(p[20], p[22]) ;
+    SORT2(p[20], p[21]) ; SORT2(p[23], p[24]) ; SORT2(p[2], p[5]) ;
+    SORT2(p[3], p[6]) ;   SORT2(p[0], p[6]) ;   SORT2(p[0], p[3]) ;
+    SORT2(p[4], p[7]) ;   SORT2(p[1], p[7]) ;   SORT2(p[1], p[4]) ;
+    SORT2(p[11], p[14]) ; SORT2(p[8], p[14]) ;  SORT2(p[8], p[11]) ;
+    SORT2(p[12], p[15]) ; SORT2(p[9], p[15]) ;  SORT2(p[9], p[12]) ;
+    SORT2(p[13], p[16]) ; SORT2(p[10], p[16]) ; SORT2(p[10], p[13]) ;
+    SORT2(p[20], p[23]) ; SORT2(p[17], p[23]) ; SORT2(p[17], p[20]) ;
+    SORT2(p[21], p[24]) ; SORT2(p[18], p[24]) ; SORT2(p[18], p[21]) ;
+    SORT2(p[19], p[22]) ; SORT2(p[8], p[17]) ;  SORT2(p[9], p[18]) ;
+    SORT2(p[0], p[18]) ;  SORT2(p[0], p[9]) ;   SORT2(p[10], p[19]) ;
+    SORT2(p[1], p[19]) ;  SORT2(p[1], p[10]) ;  SORT2(p[11], p[20]) ;
+    SORT2(p[2], p[20]) ;  SORT2(p[2], p[11]) ;  SORT2(p[12], p[21]) ;
+    SORT2(p[3], p[21]) ;  SORT2(p[3], p[12]) ;  SORT2(p[13], p[22]) ;
+    SORT2(p[4], p[22]) ;  SORT2(p[4], p[13]) ;  SORT2(p[14], p[23]) ;
+    SORT2(p[5], p[23]) ;  SORT2(p[5], p[14]) ;  SORT2(p[15], p[24]) ;
+    SORT2(p[6], p[24]) ;  SORT2(p[6], p[15]) ;  SORT2(p[7], p[16]) ;
+    SORT2(p[7], p[19]) ;  SORT2(p[13], p[21]) ; SORT2(p[15], p[23]) ;
+    SORT2(p[7], p[13]) ;  SORT2(p[7], p[15]) ;  SORT2(p[1], p[9]) ;
+    SORT2(p[3], p[11]) ;  SORT2(p[5], p[17]) ;  SORT2(p[11], p[17]) ;
+    SORT2(p[9], p[17]) ;  SORT2(p[4], p[10]) ;  SORT2(p[6], p[12]) ;
+    SORT2(p[7], p[14]) ;  SORT2(p[4], p[6]) ;   SORT2(p[4], p[7]) ;
+    SORT2(p[12], p[14]) ; SORT2(p[10], p[14]) ; SORT2(p[6], p[7]) ;
+    SORT2(p[10], p[12]) ; SORT2(p[6], p[10]) ;  SORT2(p[6], p[17]) ;
+    SORT2(p[12], p[17]) ; SORT2(p[7], p[17]) ;  SORT2(p[7], p[10]) ;
+    SORT2(p[12], p[18]) ; SORT2(p[7], p[12]) ;  SORT2(p[10], p[18]) ;
+    SORT2(p[12], p[20]) ; SORT2(p[10], p[20]) ; SORT2(p[10], p[12]) ;
+    return (p[12]);
+}
+
+/*--- get the local median and MAD of values vec[j-12 .. j+12] ---*/
+
+#undef  mead25
+#define mead25(j)                                              \
+ { float qqq[25] ; int jj=(j)-12 ; register int pp;            \
+   if( jj < 0 ) jj = 0; else if( jj+25 > num ) jj = num-25;    \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = vec[jj+pp] ;         \
+   med = median25f(qqq) ;                                      \
+   for( pp=0 ; pp < 25 ; pp++ ) qqq[pp] = fabsf(qqq[pp]-med) ; \
+   mad = median25f(qqq); }
+
+void DES_despike25( int num , double to,double dt , float *vec )
+{
+   int ii , nsp ; float *zma,*zme , med,mad,val ;
+   static float *deswks = NULL ;
+   static int   ndeswks = 0 ;
+
+   if( vec == NULL ) return ;
+   if( num <  25 ) { despike9_func( num , to,dt , vec ) ; return ; }
+
+   if( ndeswks < num ){
+      deswks = (float *)realloc(deswks,sizeof(float)*(4*num)) ;
+     ndeswks = num ;
+   }
+
+   zme = deswks ; zma = zme + num ;
+
+   for( ii=0 ; ii < num ; ii++ ){
+     mead25(ii) ; zme[ii] = med ; zma[ii] = mad ;
+   }
+   mad = qmed_float(num,zma) ;
+   if( mad <= 0.0f ) return ;
+   mad *= 6.1234f ;  /* threshold value */
+
+   for( nsp=ii=0 ; ii < num ; ii++ )
+     if( fabsf(vec[ii]-zme[ii]) > mad ){ vec[ii] = zme[ii]; nsp++; }
+
+   return ;
+}
+#undef mead25
+#undef SORT2
+#undef SWAP
 
 /*-------------- Sample 1D function: HRF Decon [29 Oct 2010] ---------------*/
 

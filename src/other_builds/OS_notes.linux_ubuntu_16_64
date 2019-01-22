@@ -4,7 +4,7 @@
 
 sudo apt-get update ; sudo apt-get upgrade
 
-sudo apt-get install -y tcsh vi
+sudo apt-get install -y tcsh vim
 sudo apt-get install -y libxmu-dev libxt-dev libmotif-dev
 sudo apt-get install -y libxpm-dev libxi-dev libxmhtml-dev
 sudo apt-get install -y libglw1-mesa-dev libglu1-mesa-dev

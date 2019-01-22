@@ -6,6 +6,12 @@
 # new spaces should be added to this file or to a local directory version
 # for subject-specific datasets
 <TEMPLATE_SPACE
+  space_name="ORIG"
+  generic_space="ORIG"
+  comment="Typically the native space of the subject"
+></TEMPLATE_SPACE>
+
+<TEMPLATE_SPACE
   space_name="TT_N27"
   generic_space="TLRC"
   comment="The TLRC templates made from MNI group templates were\n"
@@ -553,7 +559,8 @@
  dset_name="HaskinsPeds_aff_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas.
+     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 <ATLAS
@@ -561,7 +568,8 @@
  dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
  template_space="HaskinsPeds"
  description="Version 1.0"
- comment="Haskins Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+ comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas. 
+     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
 ></ATLAS>
 
 #*******Template datasets ************************
@@ -668,13 +676,17 @@
 <TEMPLATE
    template_name="HaskinsPeds_NL_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas. Poster session presented at the 
+     Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 <TEMPLATE
    template_name="HaskinsPeds_aff_template1.0+tlrc"
    template_space="HaskinsPeds"
-   comment="Haskins Pediatric Atlas 1.0.  REF: Molfese, Glen, Mesite, Pugh... (In Prep.)"
+   comment="Haskins Pediatric Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). 
+     The Haskins Pediatric Brain Atlas Poster session presented at the 
+     Organization for Human Brain Mapping, Honolulu, HI"
 ></TEMPLATE>
 
 #**********************************************

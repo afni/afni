@@ -1,0 +1,278 @@
+#!/bin/tcsh
+# fill a volume with values from a surface dataset (.niml.dset)
+
+# h_view help instead of regular help (opens editor with -help output)
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# set some defaults
+# number of steps on line segment to apply surface data
+set nsteps = 10
+# size of smoothing radius (not gaussian smooth - just round)
+set meanrad = 2
+# size of normal vector
+set f_pn_mm = 2
+# maximum number of smoothing/filling iterations
+set maxiters = 4
+# looping variable for number of holes
+set lastnvox = 0
+# remove temporary files
+set keep_temp_files = ""
+# don't ignore unknown options and exit with an error
+set ignore_unknown_options = ""
+# no surfB to start
+set surfB = ""
+# set stat type nzmedian (non-zero median) / mode
+set stat = "nzmedian"
+# surface volume defaults to mask volume below
+set svset = ""
+
+# help
+if ($# < 1) then
+HELP:
+echo "@surf_to_vol_spackle.csh"
+echo "usage:"
+echo "   @surf_to_vol_spackle -maskset mymask.nii.gz -spec mysurfs.spec \\"
+echo "      -surfA smoothwm -surfB pial -surfset thickness.niml.dset    \\"
+echo "      -prefix vol_thick"
+echo
+echo "Project data from a surface dataset into a volume primarily using"
+echo " 3dSurf2Vol but then filling any holes with an iterative smoothing"
+echo " procedure. If two surfaces are provided, then the dataset is filled"
+echo " between corresponding nodes. The filling is done by smoothing the"
+echo " holes with a local non-zero mean (or mode) in a spherical neighborhood."
+echo " Holes come about because the lines from surfaces can miss some voxels."
+echo " These are more likely with sparse surfaces, but can still happen"
+echo " even with high-resolution surfaces."
+echo
+echo "Required (mostly) options:"
+echo "   -maskset mymask.nii     mask dataset in which to project surface measures"
+echo "   -spec mysurfs.spec      Surface specification file with list of surfaces"
+echo "   -surfA mysurf1          nameof first surface, e.g. smoothwm, pial,...."
+echo "   -surfB mysurf2          name of second surface."
+echo "                           If not included, computes using normal vector"
+echo "   -surfset data.niml.dset dataset of surface measures"
+echo "   -prefix mmmm            basename of output. Final name used is prefix.nii.gz"
+echo
+echo "Other options:"
+echo "   -f_pn_mm mm.m           normal vector length if only using a single surface"
+echo "                           (default 2 mm) (only applies if no surfB used)"
+echo "   -meanrad mm.m           radius for search for mean to fill holes"
+echo "                           (default 2 mm)"
+echo "   -nsteps nn              number of steps on line segments (default 10)"
+echo "   -keep_temp_files        do not remove any of the temporary files"
+echo "                           (default is to remove them)"
+echo "   -maxiters nn            maximum number of smoothing and filling iterations"
+echo "                           (default is 4)"
+echo "   -mode                   use mode instead of non-zero median (appropriate for ROIs)"
+echo "   -ignore_unknown_options ignore additional options that are not needed"
+echo
+echo " Example usage:"
+echo "    @surf_to_vol_spackle -maskset leftmask_1mm.nii.gz -spec quick.spec \\"
+echo "       -surfA anat.gii -surfset v2s_inout_max_smooth2mm.niml.dset      \\"
+echo "       -prefix vol_thick_ave -maxiters 10"
+echo
+echo " See related scripts and programs:"
+echo "    3dSurf2Vol,3dVol2Surf,@measure_in2out,@measure_erosion_thick,SurfMeasures"
+exit 0
+endif
+
+# process user options
+set ac = 1
+while ( $ac <= $#argv )
+    # maybe just a desperate plea for help
+    if ( ( "$argv[$ac]" == "-help" ) || ( "$argv[$ac]" == "-HELP" )  || \
+       ( "$argv[$ac]" == "--help" ) || ( "$argv[$ac]" == "-h" ) ) then
+       goto HELP
+    # get the basics - input dataset, surface and output directory
+    # only the input is really required, but the other two are nice to have
+    else if ( "$argv[$ac]" == "-maskset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskset'"
+            exit 1
+        endif
+        set  maskset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfset'"
+            exit 1
+        endif
+        set  surfset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-spec" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-spec'"
+            exit 1
+        endif
+        set  spec = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfA" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfA'"
+            exit 1
+        endif
+        set  surfA = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfB" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfB'"
+            exit 1
+        endif
+        set  surfB = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-prefix'"
+            exit 1
+        endif
+        set outpref = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-meanrad" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-meanrad'"
+            exit 1
+        endif
+        set  meanrad = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-maxiters" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxiters'"
+            exit 1
+        endif
+        set  maxiters = $argv[$ac]
+        @ ac ++; continue;
+
+    else if ( "$argv[$ac]" == "-keep_temp_files" ) then
+        set keep_temp_files = "keep"
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-mode" ) then
+        set stat = "mode"
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-sv" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-sv'"
+            exit 1
+        endif
+        set svset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-ignore_unknown_options" ) then
+        set ignore_unknown_options = "yes"
+        @ ac ++; continue;
+
+    # unknown options - exit
+    else 
+        if ("$ignore_unknown_options" != "yes") then
+          echo "** unknown option $argv[$ac]"
+          exit 1
+        endif
+    endif
+    @ ac ++
+end
+
+if ("$maskset" == "") then
+   echo 'No input dataset. Please provide "-maskset mydset.nii"'
+   exit 1
+endif
+
+set nvox = `3dBrickStat -count -non-zero $maskset`
+if ("$status" != "0") then
+   echo "Could not read $maskset"
+   exit 1
+endif
+
+if ("$nvox" == "0" ) then
+   echo "Dataset has no mask in it"
+   exit 1
+endif
+
+if ("$surfset" != "") then
+	if ( ! -e $surfset) then
+		echo "Surface dataset $surfset does not exist"
+		exit 1
+	endif 
+endif
+
+rm temp_${outpref}_*.nii.gz
+
+# either use two surfaces to project
+if ($surfB != "") then
+   set surfB_arg = "-surf_B $surfB"
+else
+#   or use just one surface and normal vector of some length
+   set surfB_arg = "-f_pn_mm $f_pn_mm"
+endif
+set f_inout_frac = "-f_p1_fr -0.1 -f_pn_fr 0.1"
+
+# if there is a separate aligned surface volume, use it
+if ($svset != "") then
+    set sv_arg = "-sv $svset"
+else
+    set sv_arg = "-sv $maskset"
+endif
+ 
+# project from surface to volume
+# fill in line segment connecting surfaces with maximum value
+# using new "stop_gap" option to stop when reaching gap in mask
+3dSurf2Vol -spec $spec $surfB_arg -surf_A $surfA $f_inout_frac \
+   -grid_parent $maskset -sdata $surfset  -stop_gap \
+   -map_func $stat -prefix temp_${outpref}_f00.nii.gz $sv_arg \
+   -f_steps $nsteps -stop_gap -overwrite
+
+# resulting dataset has holes
+# iteratively smooth each dataset to replace holes
+
+# first "refilled_set" is the one from 3dSurf2Vol
+set refilled_set = temp_${outpref}_f00.nii.gz
+set fillset = temp_${outpref}_f00.nii.gz
+
+# try up to 4 (maxiters default) times to smooth and fill
+# smooth "fillset" each time, replacing zeros
+# in original dataset
+foreach ii (`count -digits 2 1 $maxiters`)
+   set smoothset =  temp_${outpref}_sm${ii}.nii.gz
+   if ($stat == "mode") then
+       # smooth with non-zero mode value in neighborhood
+       3dLocalstat -mask $maskset -nbhd "SPHERE(${meanrad})" \
+        -stat nzmode -prefix $smoothset -overwrite $refilled_set
+   else
+       # smooth with non-zero mean filter
+       3dmerge -1fmask $maskset -1filter_nzmean $meanrad \
+        -prefix $smoothset -overwrite $refilled_set
+   endif
+
+   # fill in only the non-filled in data
+   set fillset = temp_${outpref}_f${ii}.nii.gz
+   3dcalc -a $refilled_set -b $smoothset -c $maskset \
+      -expr '(a*step(abs(a))+b*not(abs(a)))*step(c)' -prefix $fillset -overwrite
+   # refilled set is latest iteration
+   set refilled_set = $fillset
+   # count how many zeros left in the mask 
+   set nvox = `3dBrickStat -count -zero -mask $maskset $fillset`
+   echo "found $nvox holes this time"
+   if ("$nvox" == "0") then
+      goto finishup
+   endif
+   if ($nvox == $lastnvox) then
+      echo "*******************************************************************"
+      echo "$nvox voxels left unfilled - Did not converge but may still be good"
+      echo "  Look to see if mask is non-contiguous"
+      goto finishup
+   endif
+   set lastnvox = $nvox
+end
+
+finishup:
+mv $fillset ${outpref}.nii.gz
+if ($keep_temp_files == "") then
+   rm temp_${outpref}_*.nii.gz
+endif
+echo "finished spackling holes with $ii iterations"

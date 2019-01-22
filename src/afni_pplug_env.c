@@ -79,7 +79,9 @@ static char *env_fixed[] = {
     "AFNI_DEFAULT_IMSAVE"       , "AFNI_IMAGE_ZEROCOLOR"  ,
     "AFNI_IMAGE_LABEL_MODE"     , "AFNI_IMAGE_LABEL_SIZE" ,
     "AFNI_GRAPH_BASELINE"       , "AFNI_GRAPH_GLOBALBASE" ,
+#ifndef DONT_ALLOW_MINC
     "AFNI_MINC_DATASETS"        , "AFNI_MINC_FLOATIZE"    , "AFNI_MINC_SLICESCALE"  ,
+#endif
     "AFNI_ANALYZE_DATASETS"     , "AFNI_ANALYZE_SCALE"    , "AFNI_ANALYZE_FLOATIZE" ,
     "AFNI_ANALYZE_ORIENT"       , "AFNI_ANALYZE_AUTOCENTER" ,
     "AFNI_MPEG_DATASETS"        , "AFNI_MPEG_GRAYIZE"     ,
@@ -223,9 +225,11 @@ PLUGIN_interface * ENV_init(void)
      }
    }
 
+#if 0
    ENV_add_string( "AFNI_ENFORCE_ASPECT" ,
                    "To make AFNI enforce image window aspect ratio?" ,
                    NUM_yesno_list , yesno_list , NULL  ) ;
+#endif
 
    ENV_add_numeric( "AFNI_FIM_PERCENT_LIMIT" ,
                     "Upper limit on % Change in FIM" ,
@@ -456,14 +460,16 @@ PLUGIN_interface * ENV_init(void)
                    "Use 'label2' field for window titles?" ,
                    NUM_yesno_list , yesno_list , ENV_redraw_titles ) ;
 
+#if 0
    /* 21 Mar 2005 [RWCox] */
    ENV_add_string( "AFNI_EDGIZE_OVERLAY" ,
                    "Display color overlay as edges?" ,
                    NUM_yesno_list , yesno_list , ENV_redisplay ) ;
+#endif
 
    /* 11 Dec 2014 [RWCox] */
-   ENV_add_string( "AFNI_EDGIZE_COLOR" ,
-                   "Name of color for EDGIZE+Alpha overlays." , /* 21 Sep 2001 */
+   ENV_add_string( "AFNI_FUNC_BOXED_COLOR" ,
+                   "Name of color for Alpha+Boxed overlays." , /* 21 Sep 2001 */
                    0,NULL , NULL ) ;
 
    /* 08 Apr 2005 [rickr] */

@@ -625,6 +625,8 @@ ENTRY("new_PLUGIN_interface_1999") ;
    plint->run_label[0]  = '\0' ;  /* 04 Nov 2003 */
    plint->doit_label[0] = '\0' ;
 
+   plint->wid           = NULL ;
+
    RETURN(plint) ;
 }
 
@@ -910,6 +912,8 @@ ENTRY("add_string_to_PLUGIN_interface") ;
 
    if( num_str > 0 ){
       sv->string_range_count = num_str ;
+      if( num_str > PLUGIN_MAX_STRING_RANGE )
+        ERROR_message("num_str=%d > %d :(",num_str,PLUGIN_MAX_STRING_RANGE) ;
       for( ii=0 ; ii < num_str ; ii++ ){
          sv->string_range[ii] = (char*)XtMalloc( PLUGIN_STRING_SIZE ) ;
          MCW_strncpy( sv->string_range[ii] , strlist[ii] , PLUGIN_STRING_SIZE ) ;
@@ -1267,11 +1271,16 @@ ENTRY("PLUG_setup_widgets") ;
 
    /**** sanity checks ****/
 
-   if( plint == NULL || plint->wid != NULL ||
-       plint->call_method == PLUGIN_CALL_IMMEDIATELY ) EXRETURN ;
+STATUS("check plint") ;
+   if( plint      == NULL ) EXRETURN ;
+STATUS("check plint->wid") ;
+   if( plint->wid != NULL ) EXRETURN ;
+STATUS("check plint->call_method") ;
+   if( plint->call_method == PLUGIN_CALL_IMMEDIATELY ) EXRETURN ;
 
    /**** create widgets structure ****/
 
+STATUS("create widget structure") ;
    plint->wid = wid = myXtNew(PLUGIN_widgets) ;
 
    /**** create Shell that can be opened up later ****/
@@ -1286,6 +1295,7 @@ ENTRY("PLUG_setup_widgets") ;
       out which of them was necessary for fixing the problem.
                   12 Feb 2009 9Lesstif patrol]
    */
+STATUS("create shell") ;
    wid->shell =
       XtVaAppCreateShell(
            "AFNI" , "AFNI" , topLevelShellWidgetClass , dc->display ,
@@ -1318,8 +1328,9 @@ ENTRY("PLUG_setup_widgets") ;
            XmInternAtom( dc->display , "WM_DELETE_WINDOW" , False ) ,
            PLUG_delete_window_CB , (XtPointer) plint ) ;
 
-   /**** create RowColumn to hold all widgets ****/
+   /**** create Form to hold all widgets ****/
 
+STATUS("create Form") ;
    wid->form = XtVaCreateWidget(
                  "AFNI" , xmFormWidgetClass , wid->shell ,
                      XmNborderWidth , 0 ,
@@ -1337,6 +1348,7 @@ ENTRY("PLUG_setup_widgets") ;
    else
      strcpy( str , plint->toplabel ) ;  /* 13 May 2010 */
 
+STATUS("Create Label") ;
    xstr = XmStringCreateLtoR( str , XmFONTLIST_DEFAULT_TAG ) ;
    wid->label =
       XtVaCreateManagedWidget(
@@ -1391,6 +1403,7 @@ ENTRY("PLUG_setup_widgets") ;
          the user input option widgets, if they will be needed ****/
 
    if( plint->option_count > 0 ){
+STATUS("create ScrolledWindow") ;
       wid->scrollw =
          XtVaCreateWidget(
            "AFNI" , xmScrolledWindowWidgetClass ,  wid->form ,
@@ -1491,6 +1504,7 @@ ENTRY("PLUG_setup_widgets") ;
 
       /** create ToggleButton to indicate whether this is used **/
 
+STATUS("create ToggleButton for row") ;
       ow->toggle =
          XtVaCreateManagedWidget(
            "AFNI" , xmToggleButtonWidgetClass , wid->workwin ,
@@ -1547,6 +1561,7 @@ ENTRY("PLUG_setup_widgets") ;
 fprintf(stderr,"Option setup %s\n",opt->label) ;
 #endif
 
+STATUS("create Label for row") ;
       zlen = (PLUG_nonblank_len(opt->label) == 0) ;
       xstr = XmStringCreateLtoR( opt->label , XmFONTLIST_DEFAULT_TAG ) ;
       ow->label =
@@ -1607,6 +1622,7 @@ fprintf(stderr,"Option setup %s\n",opt->label) ;
 
             case PLUGIN_OVERLAY_COLOR_TYPE:{
                MCW_arrowval *av ; int iv=sv->value_default ;
+STATUS("create PLUGIN_OVERLAY_COLOR_TYPE") ;
 #if 0
 fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 #endif
@@ -1643,6 +1659,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                int num_choice , use_optmenu ;
                MCW_arrowval * av ;
 
+STATUS("create PLUGIN_NUMBER_TYPE") ;
                num_choice  = abs(sv->int_range_top - sv->int_range_bot) + 1 ;
                use_optmenu = (num_choice < OP_OPTMENU_LIMIT) && !sv->editable ;
 
@@ -1693,6 +1710,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
                   int num_choice , use_optmenu ;
                   MCW_arrowval * av ;
 
+STATUS("create PLUGIN_STRING_TYPE (fixed)") ;
                   num_choice  = sv->string_range_count ;
                   use_optmenu = (num_choice < OP_OPTMENU_LIMIT) ;
 
@@ -1748,6 +1766,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
                   PLUGIN_strval * av = myXtNew(PLUGIN_strval) ;
 
+STATUS("create PLUGIN_STRING_TYPE (free)") ;
                   av->rowcol =
                      XtVaCreateWidget(
                        "AFNI" , xmRowColumnWidgetClass , wid->workwin ,
@@ -1806,6 +1825,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
             case PLUGIN_DATASET_LIST_TYPE:
             case PLUGIN_DATASET_TYPE:{
                PLUGIN_dsetval * av = myXtNew(PLUGIN_dsetval) ;
+
+STATUS("create PLUGIN_DATASET_TYPE") ;
 
                av->sv = sv ;  /* what this is linked to */
 
@@ -1883,6 +1904,8 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
             case PLUGIN_TIMESERIES_TYPE:{
                PLUGIN_tsval * av = myXtNew(PLUGIN_tsval) ;
+
+STATUS("create PLUGIN_TIMESERIES_TYPE") ;
 
                av->sv        = sv ;                        /* a friend in need  */
                av->tsimar    = GLOBAL_library.timeseries ; /* to choose amongst */
@@ -1979,6 +2002,7 @@ fprintf(stderr,"colormenu setup %s; opt->tag=%s.\n",sv->label,opt->tag) ;
 
       /** separator between option rows **/
 
+STATUS("create row Separator") ;
       separator = XtVaCreateManagedWidget(
                     "AFNI" , xmSeparatorWidgetClass , wid->workwin ,
                        XmNseparatorType  , XmSHADOW_ETCHED_OUT ,
@@ -2021,6 +2045,7 @@ fprintf(stderr,"Widget separators\n") ;
    /**** Create a vertical separator to the left of each column ****/
 
    if( plint->option_count > 0 ){
+STATUS("create vertical Separators") ;
       for( ib=0 ; ib < PLUGIN_MAX_SUBVALUES && widest_width[ib] > 0 ; ib++ ){
          separator = XtVaCreateManagedWidget(
                        "AFNI" , xmSeparatorWidgetClass , wid->workwin ,
@@ -2043,6 +2068,7 @@ fprintf(stderr,"Widget management\n") ;
    /**** Manage the managers, and go home ****/
 
    if( plint->option_count > 0 ){
+STATUS("management") ;
       XtManageChild( wid->workwin ) ;
       XtManageChild( wframe ) ;
       XtManageChild( wid->scrollw ) ;
@@ -2053,6 +2079,7 @@ fprintf(stderr,"Widget management\n") ;
 fprintf(stderr,"Widget realization\n") ;
 #endif
 
+STATUS("realization") ;
    XtRealizeWidget( wid->shell ) ;  /* will not be mapped */
    NI_sleep(1) ;
 
@@ -2070,6 +2097,7 @@ fprintf(stderr,"Widget realization\n") ;
 fprintf(stderr,"Widget geometrization\n") ;
 #endif
 
+STATUS("geometrization") ;
       MCW_widget_geom( wid->label   , &ww , &hh , NULL, NULL ) ;  /* get dimensions */
       MCW_widget_geom( wframe       , &fww, &fhh, NULL, NULL ) ;  /* of various */
       MCW_widget_geom( wid->scrollw , NULL, NULL, NULL, &fyy ) ;  /* pieces-parts */
@@ -2793,7 +2821,7 @@ void PLUG_choose_dataset_CB( Widget w , XtPointer cd , XtPointer cbs )
    static char ** strlist = NULL ;
    char label[64] ;
    int llen , ltop ;
-   char qnam[THD_MAX_NAME] ;
+   char qnam[THD_MAX_NAME+2048] ;
 
    int          num_old = 0 , qold ;  /* multi-choice stuff */
    MCW_idcode * old_chosen = NULL ;
@@ -3042,7 +3070,7 @@ ENTRY("PLUG_finalize_dataset_CB") ;
 void make_PLUGIN_dataset_link( THD_3dim_dataset * dset ,
                                PLUGIN_dataset_link * dsl )
 {
-   char nam[THD_MAX_NAME] ;
+   char nam[THD_MAX_NAME+2048] ;
    char * tnam ;
 
 ENTRY("make_PLUGIN_dataset_link") ;
@@ -3051,8 +3079,8 @@ ENTRY("make_PLUGIN_dataset_link") ;
 
    if( dsl == NULL ) EXRETURN ;
 
-   if( ! ISVALID_3DIM_DATASET(dset) ){
-      strcpy( dsl->title , "* garbage *" ) ;
+   if( ! ISVALID_3DIM_DATASET(dset) ){  /* should not happen */
+      strcpy( dsl->title , "* garbage :( *" ) ;
       ZERO_IDCODE( dsl->idcode ) ;
       EXRETURN ;
    }

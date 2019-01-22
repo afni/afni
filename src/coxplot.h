@@ -207,6 +207,7 @@ extern void           plotball_memplot( float,float,float ) ;
 extern int            create_memplot_surely( char *, float ) ;      /* 20 Sep 2001 */
 extern void           set_opacity_memplot( float ) ;                /* 22 Jul 2004 */
 extern float          get_opacity_memplot(void) ;
+extern void           plot_ts_do_naked  (int) ;                     /* 14 Sep 2018 */
 
 extern MEM_plotdata * copy_memplot( MEM_plotdata * ) ; /*-- 26 Feb 2001 --*/
 extern void           append_to_memplot( MEM_plotdata *,MEM_plotdata * ) ;
@@ -308,6 +309,9 @@ extern void plot_ts_xypush( int , int ) ;
 extern void plot_ts_dobox ( float ) ;
 extern void plot_ts_xfix( int,int , float,float ) ;                /* 22 Jul 2003 */
 extern void plot_ts_yfix( int,int , float,float ) ;
+
+extern void plot_ts_set_aspect( float asp ) ;                      /* 03 May 2018 */
+extern void plot_ts_do_perim  ( int   dp  ) ;
 
 extern void plot_ts_add_vbox( int,float,float,float,float,float ); /* 24 Apr 2012 */
 
@@ -468,6 +472,7 @@ extern void plotpak_point( float x1 , float y1 ) ;
 extern void plotpak_points( float *x , float *y , int n , int ipen ) ;
 extern void plotpak_pwrit( float x , float y , char * ch , int isiz , int ior , int icent ) ;
 extern void plotpak_pwritf( float x , float y , char * ch , int isiz , int ior , int icent ) ;
+extern void plotpak_pwritf_phys( float x , float y , char * ch , int isiz , int ior , int icent ) ;
 extern void plotpak_set( float xo1,float xo2 , float yo1,float yo2 ,
                          float xs1,float xs2 , float ys1,float ys2 , int code ) ;
 extern void plotpak_setdsh( int nd , float * xd ) ;
@@ -499,27 +504,33 @@ extern int find_color_name( char *cnam, float *rr, float *gg, float *bb ) ;
 #  define EXT extern
 #endif
 
-EXT struct {
+typedef struct {
     real xpgmin, ypgmin, xpgmax, ypgmax, xclbot, yclbot, xcltop, ycltop, xbot,
              ybot, xtop, ytop, xmin, ymin, xmax, ymax;
     integer ixcoor, iycoor;
     real alphxx, betaxx, alphyy, betayy, tmajx, tminx, tmajy, tminy;
     integer majrx, minrx, majry, minry, isizx, isizy;
     real xphold, yphold;
-} zzzplt_;
+} zzzplt_type ;
 
-EXT struct {
+EXT zzzplt_type zzzplt_ ;
+
+typedef struct {
     real xphmax, yphmax;
     integer ixpmax, iypmax;
     real xpscal, ypscal;
     integer iflip, nplotr;
     char cfile[64];
-} zzpltr_;
+} zzpltr_type ;
 
-EXT struct {
+EXT zzpltr_type zzpltr_ ;
+
+typedef struct {
     integer ndash;
     real xldash[8], xid;
-} zzdash_;
+} zzdash_type ;
+
+EXT zzdash_type zzdash_ ;
 
 #ifdef  __cplusplus
 }

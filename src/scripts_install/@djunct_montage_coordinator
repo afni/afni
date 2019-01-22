@@ -1,0 +1,293 @@
+#!/bin/tcsh
+
+# ===================================================================
+# This program calculates where to put the focal point in a montaged
+# image so that the slice-viewing planes are evenly spread out across
+# the volume (well, approximately so).
+#
+# auth: PA Taylor (NIMH, NIH, USA)
+# ===================================================================
+#
+#set set version = "2.0";  set rev_dat = "Dec 19, 2018"
+#   + [PT] fix the focal point conditions.
+#
+set set version = "2.1";  set rev_dat = "Dec 21, 2018"
+#   + [PT] re-fix the focal point conditions.
+#
+# ===================================================================
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+#set version   = "0.0";  set rev_dat   = "Nov 20, 2018"
+#   + this used to be part of @chauffeur_afni, but now is separated
+#     into its own separate @djunct_* program
+#
+# ================================================================
+
+set ulay = ""     # dset in question
+set mx   = ""     # mont dims, x
+set my   = ""     # mont dims, y
+set OUT_TYPE = "" # do we output ijk or xyz
+
+set coors = ( 0 0 0 )
+
+# ------------------- process options, a la rr ----------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    #  ---------- inputs: required ---------------
+
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-montx" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        @ mx = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-monty" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        @ my = "$argv[$ac]"
+
+    # set type of output: ijk or xyz
+    else if ( "$argv[$ac]" == "-out_ijk" ) then
+        set OUT_TYPE = "IJK"
+    else if ( "$argv[$ac]" == "-out_xyz" ) then
+        set OUT_TYPE = "XYZ"
+
+    else
+        echo "\n\n** ERROR: unexpected option #$ac = '$argv[$ac]'\n\n"
+        goto BAD_EXIT
+        
+    endif
+    @ ac += 1
+end
+
+# --------------------------- inputs -------------------------------
+
+if ( $ulay == "" ) then
+    echo "** ERROR: missing input dset! Use '-inset ..'"
+    goto BAD_EXIT
+endif
+
+if ( $mx == "" ) then
+    echo "** ERROR: missing montage dimension!"
+    echo "          Use '-montx ..'"
+    goto BAD_EXIT
+endif
+
+if ( $my == "" ) then
+    echo "** ERROR: missing montage dimension!"
+    echo "          Use '-monty ..'"
+    goto BAD_EXIT
+endif
+
+if ( $OUT_TYPE == "" ) then
+    echo "** ERROR: missing output type!"
+    echo "          Use '-out_ijk' or '-out_xyz'"
+    goto BAD_EXIT
+endif
+
+# ----------------------------- ugh ---------------------------------
+
+# needed to deal with orientation permutability : AIL, LAI, PSR, etc.
+
+set listori = ( 'R' 'L' 'A' 'P' 'I' 'S' )
+set listind = (  1   1   2   2   3   3  )
+
+# just the initializing value
+#set gapord = ( 0 0 0 )
+
+# ---------------------------- calcs --------------------------------
+
+# always determine dim from ulay, because that's how montaging works!
+set Dim  = `3dinfo -n4 "$ulay"`
+
+# silly stuff to deal with orientation
+set ori  = `3dinfo -orient "$ulay"`
+set ori0 = `echo $ori | awk '{print substr($0,1,1)}'`
+set ori1 = `echo $ori | awk '{print substr($0,2,1)}'`
+set ori2 = `echo $ori | awk '{print substr($0,3,1)}'`
+set all_ori = ( $ori0 $ori1 $ori2 )
+set order  = ()
+foreach oo ( $all_ori )
+    foreach i ( `seq 1 1 ${#listori}` )
+        if ( $oo == "$listori[${i}]" ) then
+            set order  = ( $order ${listind[$i]} )
+            break
+        endif
+    end
+end
+
+# ----------------- quantities related to mont dims ------------------
+
+# get ceilings of 'montage number + 1', in each direction
+#set xo2 = `echo "scale=2; ( $mx + 1 ) / 2." | bc`
+#set cmx = `echo $xo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+#set yo2 = `echo "scale=2; ( $my + 1 ) / 2." | bc`
+#set cmy = `echo $yo2 | perl -nl -MPOSIX -e 'print ceil($_);'`
+
+# ------- 1) find zero-based index of montage slices to focus on
+
+# It isn't always just the "middle" one, because in a matrix-like
+# montage, the choice is a bit more complicated.  Basically, it is a
+# central slice, in each dimension rounded up.  
+#
+# This is also complicated by going back and forth between 0-based and
+# 1-based index numbers.  
+
+## [PT: Dec 19, 2018] fix these values, and how they get used just
+## below to find the focal coors in terms of ijk values, which is a
+## little odd, to be honest.
+# zero-based numbers representing the row or col to jump to for the
+# focal slice in the montage.
+if ( `echo "( $mx % 2 )" | bc` == 1 ) then
+    set cmx = `echo "( ( $mx - 1) / 2 )" | bc`
+else
+    set cmx = `echo "( $mx / 2 )" | bc`
+endif
+
+if ( `echo "( $my % 2 )" | bc` == 1 ) then
+    set cmy = `echo "( ( $my - 1) / 2 )" | bc`
+else
+    set cmy = `echo "( $my / 2 )" | bc`
+endif
+
+# total number of panels
+@ tot     = $mx * $my 
+# which panel is the "focal" one in the montage: 0-based counting for tcsh
+@ hpan    = ( ( $cmy ) * $mx ) + $cmx    
+#echo "$mx $my $tot"
+#echo "$cmx $cmy  $hpan"
+
+# where we go just depends on this
+set gapord = `@djunct_slice_space -nwin $tot -inset "$ulay"`
+
+#set pfrac = `echo "scale=5; ( ( $hpan + 1 ) / ( $tot + 1 ) ) " | bc` # ????
+#echo "++ pfrac = $pfrac"
+
+# ## [PT: Dec 19, 2018] admittedly, this is an *odd* set of conditions
+# to reposition the centerpoint for the montage.  This depends very
+# much on how hpan is defined, above
+foreach i ( `seq 1 1 3` )
+    set offset = `echo "scale=5; ( $Dim[$i] - ( ( $tot - 1 ) * $gapord[$i] ) ) / 2" | bc`
+    set ccc0   = `echo "scale=5; $offset + ( $hpan * $gapord[$i] ) " | bc`
+    set ccc1   = `echo $ccc0 | perl -nl -MPOSIX -e 'print floor($_);'`
+    #echo OCC $offset $ccc0  $ccc1 $hpan
+    
+    # somehow, R&L are just a little bit different
+    if ( ( $all_ori[$i] == 'R' ) ) then 
+        set ccc2 = `echo "scale=0; $Dim[$i] - $ccc1 " | bc`
+    else if ( ( $all_ori[$i] == 'L' ) ) then
+        set ccc2 = `echo "scale=0; $ccc1 - 1 " | bc`
+    else if ( ( $all_ori[$i] == 'P' ) || ( $all_ori[$i] == 'S' ) ) then
+        set ccc2 = `echo "scale=0; $Dim[$i] - 1 - $ccc1 " | bc`
+    else
+        set ccc2 = `echo "scale=0; $ccc1 " | bc`
+    endif
+
+    set coors[$i] = `echo $ccc2 | perl -nl -MPOSIX -e 'print floor($_);'`
+end
+
+# ----------------- convert IJK to XYZ -----------------------------
+
+# Convert ijk -> xyz: the first three elements of $mdumpout are xyz
+set mdumpout = `3dmaskdump -ibox $coors -noijk -xyz "${ulay}"`
+
+if ( "$OUT_TYPE" == "IJK" ) then
+    echo $coors
+else if ( "$OUT_TYPE" == "XYZ" )  then
+    echo $mdumpout[1] $mdumpout[2] $mdumpout[3]
+else
+    echo "** ERROR: bad output type!"
+    echo "          This is not an option: '$OUT_TYPE'"
+    goto BAD_EXIT
+endif
+
+goto GOOD_EXIT
+
+# ========================================================================
+# ========================================================================
+
+SHOW_HELP:
+cat << EOF
+-------------------------------------------------------------------------
+
+OVERVIEW ~1~
+
+Just a tiny adjunct program for @chauffeur_afni.
+
+Small program to calculate how to evenly space a certain number of
+slices within each view plane of a dset.  Returns three numbers: the
+'delta slices' in the three view planes (in the order of the input
+dset's orientation).
+
+++ constructed by PA Taylor (NIMH, NIH, USA).
+
+# =========================================================================
+
+RUNNING ~1~
+
+Inputs ~2~
+
+  + a volume dset (to have a grid/dimensions)
+  + the montage's x- and y-dimensions
+  + the choice of either IJK or XYZ coordinates to be output
+
+Outputs ~2~
+
+  + three numbers: either 'i j k' or 'x y z' values.  These numbers
+    represent where to tell AFNI to set its crosshairs for a montage.
+    These can be redirected to a file, if so desired for scripting 
+    (likely!).
+
+# =========================================================================
+
+COMMAND OPTIONS ~1~
+
+-help, -h          :see helpfile (here!)
+-ver               :see version number
+
+-inset   UUU       :(req) name of input dset.
+
+-montx   MX        :(req) montage dimension: number of panels along x-axis 
+                    (i.e., number of cols)
+
+-monty   MY        :(req) montage dimension: number of panels along y-axis 
+                    (i.e., number of rows)
+
+-out_ijk           :make program output 'I J K' values.
+-out_xyz           :make program output 'X Y Z' values.
+
+EOF
+
+# ----------------------------------------------------------------------
+
+    goto GOOD_EXIT
+
+SHOW_VERSION:
+   echo "version  $version (${rev_dat})"
+   goto GOOD_EXIT
+
+FAIL_MISSING_ARG:
+    echo "** ERROR! Missing an argument after option flag: '$argv[$ac]'"
+    goto BAD_EXIT
+
+BAD_EXIT:
+    exit 1
+
+GOOD_EXIT:
+    exit 0

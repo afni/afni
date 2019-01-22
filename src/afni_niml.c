@@ -35,6 +35,9 @@
  *     allow new <VOLUME_DATA_SPARSE> elements.
  * 01 Feb 2008 [RWCox]
  *   - make AFNI_process_NIML_data() visible to the world!
+ * 11 Feb 2018 [PT]
+ *   - update line color opts, a la RWC. User can set 'default' across
+ *     all cases easily
  *----------------------------------------------------------------------*/
 
 /**************************************/
@@ -549,7 +552,7 @@ void AFNI_process_NIML_data( int chan, void *nini, int ct_start )
 {
    int tt=NI_element_type(nini) ;
    NI_element *nel ;
-   char msg[256] ;
+   char msg[512] ;
 
 ENTRY("AFNI_process_NIML_data") ;
 
@@ -722,15 +725,20 @@ ENTRY("AFNI_niml_redisplay_CB") ;
         rdata = NULL;   /* if we want these values, send them to A_vol2surf */
         rthresh = 0.0;
 
-        if( ldp_list.list[kldp].use_v2s ){        /* vol2surf was requested */
+        /* if vol2surf was specifically requested */
+        if( ldp_list.list[kldp].use_v2s ){
+
+          /* if map_all, reset last_node */
+          if( gv2s_plug_opts.map_all ) gv2s_plug_opts.sopt.last_node = 0;
+
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB,
                                             0, NULL, &rthresh);
-        } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defaults */
+        } else if ( ldp_list.list[kldp].nsurf > 1 ){  /* use v2s with defs    */
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA,sB,
                                             1, NULL, &rthresh);
         } else {  /* one surface, no request: use vnlist */
-          /* okay, no more vnlist...  :(                   25 Oct 2004 [rickr] */
-          /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;       */
+          /* okay, no more vnlist...  :(                  25 Oct 2004 [rickr] */
+          /* nmap = AFNI_vnlist_func_overlay( im3d, sA, &map,&nvused ) ;      */
           nmap = AFNI_vol2surf_func_overlay(im3d, &map, sA, -1,
                                             1, NULL, &rthresh);
         }
@@ -1077,13 +1085,21 @@ static int slist_check_user_surfs( ldp_surf_list * lsurf, int * surfs,
                                    v2s_plugin_opts * po )
 {
    int done = 0, posn;
+   int mapall = 0;
    ENTRY("slist_check_user_surfs");
 
    /* the easiest check */
    if ( ! po->ready ) RETURN(0);
    if ( ! po->use0 && ! po->use1 ) RETURN(0);
 
-   if ( po->use0 ) {
+   /* if mapping all surfaces, do not do anything but set use_v2s */
+   if ( po->map_all ) {
+      if ( po->sopt.debug>2 ) fprintf(stderr,"++ v2s: mapping all surfaces\n");
+      lsurf->use_v2s = 1;                            /* ready for v2s   */
+      RETURN(0);
+   }
+
+   if ( !done && po->use0 ) {
       posn = int_list_posn(surfs, lsurf->nsurf, po->s0A);
       if ( posn >= 0 ) {
          done = 1;
@@ -1637,6 +1653,7 @@ static int process_NIML_SUMA_ixyz( NI_element * nel, int ct_start )
    int ct_read = 0, ct_tot = 0 ;
    char msg[1024] ;
    char *scon_tog, *scon_box, *scon_lin, *scon_plm, *scon_wid, *vname;
+   char ename[64] , *etemp ;
 
    SUMA_mask *msk=NULL ;                /* added 04 Apr 2014 */
    char *parent_idcode , *parent_type ;
@@ -1850,6 +1867,40 @@ ENTRY("process_NIML_SUMA_ixyz");
    scon_tog = NI_get_attribute( nel , "afni_surface_controls_toggle"    ) ;
    scon_plm = NI_get_attribute( nel , "afni_surface_controls_plusminus" ) ;
 #endif
+
+   /* get stuff from environment, if not set by Ziad [09 May 2018] */
+   
+   // [PT: 11 May 2018] Check #1: is there a new default for all set?
+   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_DEF");
+   etemp = my_getenv(ename);
+   if( etemp != NULL ) scon_lin = strdup(etemp);
+
+   // Check #2: is there something set for just this? If so, reset it
+   sprintf(ename,"AFNI_SUMA_LINECOLOR_FORCE_%03d",surf_num+1) ;
+   etemp = my_getenv(ename) ;
+   if( etemp != NULL ) scon_lin = strdup(etemp) ;
+   if( scon_lin == NULL ){
+
+      // [PT: 11 May 2018] Check #3: if no line color is *still* set
+      // (by either above or SUMA), then check for new default
+      sprintf(ename,"AFNI_SUMA_LINECOLOR_DEF");
+      etemp = my_getenv(ename);
+      if( etemp != NULL ) scon_lin = strdup(etemp);
+
+      // Check #4: check and see if a specific value is set here
+      sprintf(ename,"AFNI_SUMA_LINECOLOR_%03d",surf_num+1) ;
+      scon_lin = my_getenv(ename) ;
+   }
+
+   if( scon_box == NULL ){
+     sprintf(ename,"AFNI_SUMA_BOXCOLOR_%03d",surf_num+1) ;
+     scon_box = my_getenv(ename) ;
+   }
+
+   if( scon_wid == NULL ){
+     sprintf(ename,"AFNI_SUMA_LINEWIDTH_%03d",surf_num+1) ;
+     scon_wid = my_getenv(ename) ;
+   }
 
    if( msk == NULL && (scon_box != NULL || scon_lin != NULL) )  /* and init */
      AFNI_init_suma_color( surf_num , scon_box , scon_lin ) ;   /* widgets */

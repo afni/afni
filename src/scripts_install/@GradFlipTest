@@ -1,4 +1,6 @@
-#!/bin/tcsh -f
+#!/bin/tcsh -ef
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
 
 ########################################################################
 #
@@ -48,9 +50,16 @@
 #   + one case of needing to:  $out_ff -> $odir/$out_ff
 #   + update using '-prefix ...' better, no more separate 'outdir'
 #
-set version   = "2.93";    set rev_dat   = "Oct 12, 2017"
+#set version   = "2.93";    set rev_dat   = "Oct 12, 2017"
 #   + update rules of:  $out_ff -> $odir/$out_ff
 #   + better line alignment of text dumping
+#
+#set version   = "2.94";    set rev_dat   = "Feb 1 2018"
+#   + internal change in format of input/vars to allow subbrick
+#     selection in bval/bvecs
+#
+set version   = "3.0";  set rev_dat   = "July 31, 2018"
+#   + add in 1dDW_Grad_o_Mat++'s "-check_abs_min .." opt
 #
 ########################################################################
 
@@ -77,10 +86,11 @@ set my_viewer = "$adir/@chauffeur_afni"
 # ----------------------- set defaults --------------------------
 
 set in_DSET = ""               # DWI set
-set in_CMD  = ""               # inputting grads/matr
-set in_BVAL = ""               # inputting bval, a la 1dDW*++
+#set in_CMD  = ""               # inputting grads/matr
+#set in_BVAL = ""               # inputting bval, a la 1dDW*++
 set in_MASK = ""               # inputting bval, a la 1dDW*++
 set odir    = "."
+set invecmat = ( "" "" "" "" )    # switches+names for bvecs and bvals
 
 set out_ff  = ""
 
@@ -96,6 +106,8 @@ set FNOMS = ( "F0" "FX" "FY" "FZ" )
 set tmpdir = "_tmp_TESTFLIP"
 set ALL_ARR =  ( )
 set SUMA_CALL = ""
+
+set ca_min_arg = ( )              # for '-check_abs_min  ..'
 
 # ------------------- process options, a la rr ----------------------
 
@@ -122,31 +134,37 @@ while ( $ac <= $#argv )
         @ ac += 1
         set in_MASK = "$argv[$ac]"
 
-    # ------ inputs from 1dDW_Grad_o_Mat++ --------
-    else if ( "$argv[$ac]" == "-in_row_vec" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set in_CMD = "-in_row_vec $argv[$ac]"
-
-    else if ( "$argv[$ac]" == "-in_col_vec" ) then
-        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-        @ ac += 1
-        set in_CMD = "-in_col_vec $argv[$ac]"
-
+    # ------------- input vecmat and bval --------------
     else if ( "$argv[$ac]" == "-in_col_matA" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set in_CMD = "-in_col_matA $argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-in_col_matT" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
         @ ac += 1
-        set in_CMD = "-in_col_matT $argv[$ac]"
+        set invecmat[2]  = "$argv[$ac]"
 
+    else if ( "$argv[$ac]" == "-in_col_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    else if ( "$argv[$ac]" == "-in_row_vec" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[1]  = $argv[$ac] 
+        @ ac += 1
+        set invecmat[2]  = "$argv[$ac]"
+
+    # not necessary; default is just empty
     else if ( "$argv[$ac]" == "-in_bvals" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        set invecmat[3]  = $argv[$ac] 
         @ ac += 1
-        set in_BVAL = "-in_bvals $argv[$ac]"
+        set invecmat[4]  = "$argv[$ac]"
 
     # --- control tracking, i.e., for infants, non-humans, etc. ---
     else if ( "$argv[$ac]" == "-alg_Thresh_FA" ) then
@@ -161,11 +179,13 @@ while ( $ac <= $#argv )
 
     # ---------- other opts -----------------
 
-# [PT: Oct 04, 2017] Don't need separate, just get from '-prefix ...' part
-#    else if ( "$argv[$ac]" == "-outdir" ) then
-#        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
-#        @ ac += 1
-#        set odir = "$argv[$ac]"
+    # [PT: July 31, 2018] add in for 1dDW_Grad*++; pass both opt flag
+    # and argvalue along.
+    else if ( "$argv[$ac]" == "-check_abs_min" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ca_min_arg = ( "-check_abs_min" $argv[$ac] )
+
     else if ( "$argv[$ac]" == "-outdir" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         echo "** ERROR: this option no longer exists-- just specify output"
@@ -223,16 +243,10 @@ if ( "$in_MASK" != "" ) then
     endif
 endif
 
-echo $in_CMD
-if ( "$in_CMD" == "" ) then
-    echo "** ERROR: can't load vector/matrix with $in_CMD !"
+# [PT: Feb 1, 2018] New format of this
+if ( "$invecmat[2]" == "" ) then
+    echo "** ERROR: no gradient/matrix file input?!"
     goto BAD_EXIT
-endif
-
-# add bval, if necessary
-if ( "$in_BVAL" != "" ) then
-    set in_CMD = ( $in_CMD $in_BVAL )
-    echo "++ Full gradient info input: '$in_CMD' !"
 endif
 
 # default output dir, if nothing input.
@@ -296,15 +310,17 @@ printf "\n\n++ Grad_o_Matting (just needed once).\n\n\n"
 
 # -------------- copy over grads and data sets -----------------------
 1dDW_Grad_o_Mat++                        \
+    -overwrite                           \
     -echo_edu                            \
-    $in_CMD                              \
     -out_col_matA  $out_MATA             \
-    -overwrite
+    $ca_min_arg                          \
+    "$invecmat[1]" "$invecmat[2]"        \
+    "$invecmat[3]" "$invecmat[4]"
 3dcalc                                   \
     -echo_edu                            \
-    -a $in_DSET                          \
+    -a "$in_DSET"                        \
     -expr "a"                            \
-    -prefix $out_DSET                    \
+    -prefix "$out_DSET"                  \
     -overwrite
 
 # check that grad and vol numbers match
@@ -589,6 +605,17 @@ cat << EOF
             was '-outdir OUT', but this no longer is used;  the path of an
             output directory is specified by taking the path-part of the 
             '-prefix PPP' input.
+
+  -check_abs_min VVV :briefly, this can help the program push through
+                      finding tiny negative values (that miiiight be
+                      due to rounding errors or small numerical
+                      things) in columns that should only contain
+                      numbers >=0. 'VVV' is basically a tolerance for
+                      the magnitude of negative values you are willing
+                      to allow: anything between [-VVV, 0) gets zeroed
+                      for further calcs.  See 1dDW_Grad_o_Mat++'s help
+                      for more information on this option (of the same
+                      name).
 
     -scale_out_1000 :as in 3dDWItoDT.  Probably not necessary, since we 
                      are just checking out trackability

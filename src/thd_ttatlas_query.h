@@ -1,13 +1,16 @@
 #ifndef _TTATLAS_QUERY_HEADER_
 #define _TTATLAS_QUERY_HEADER_
 
+/* for putting strings into strings with #defines */
+#define STRINGIFY2( x) #x
+#define STRINGIFY(x) STRINGIFY2(x)
 
 /*-----------------------------------------------------------*/
 /*----------------- data for Talairach To -------------------*/
 /*----------------- Some of that stuff used -----------------*/
 /*----------------- be in afni.h. ZSS Feb. 06----------------*/
 #define TTO_LMAX    (ATLAS_CMAX+16)
-#define TTO_FORMAT  "%s [%3.0f,%3.0f,%3.0f]"
+#define TTO_FORMAT  "%." STRINGIFY(ATLAS_CMAX) "s [%3.0f,%3.0f,%3.0f]"
 #define IS_BLANK(c) ( ( (c) == ' '  || (c) == '\t' || \
                         (c) == '\n' || (c) == '\v' || \
                         (c) == '\f' || (c) == '\r') ? 1 : 0 )
@@ -63,6 +66,7 @@ extern char *GLOBAL_browser ;   /* moved from afni.h  22 Feb 2012 [rickr] */
 typedef struct {
    char side; /*!< u, b, l, or r for: Unknown/Left/Right/Bi */
    char *orig_label;  /*!< label string as provided by atlas */
+   char *longname; /*!<  possible long name for region */
    int id; /*!< integer identifier in atlas */
    int N_chnks; /*!< Number of chunks in label, as interpreted by afni */
    char **chnks; /*!< label chunks, as interpreted by afni*/
@@ -114,13 +118,13 @@ typedef struct {
    int   *code;  /*!< Integer code of zone in atlas */
    char  **atname; /*!< Integer code of atlas */
    float *prob; /*!< probability, if applicable, of being of a particular label */
-   float *radius;   /*!< distance, search distance for reported label.*/ 
+   float *radius;   /*!< distance, search distance for reported label.*/
+   char **longname; /*!< long name for label/atlas region */
    char **webpage; /*!< webpages for a web-atlas for whereami location */
    char **connpage; /*!< connection info webpages for a web-atlas for whereami location */
 } ATLAS_ZONE;
 
 typedef struct {
-   
    int N_zone;      /*!< number of zones found */
    ATLAS_ZONE **zone; /*!< the zones */
 } ATLAS_QUERY;
@@ -321,7 +325,7 @@ int *z_dqsort (int *x , int nx );
 int *z_istrqsort (char **x , int nx );
 void Show_Atlas_Region (AFNI_ATLAS_REGION *aar);
 AFNI_ATLAS_REGION * Free_Atlas_Region (AFNI_ATLAS_REGION *aar);
-AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *aname);
+AFNI_ATLAS_REGION * Atlas_Chunk_Label(char *lbli, int id, char *aname, char *longname);
 AFNI_ATLAS *Build_Atlas (char *aname, ATLAS_LIST *atlas_list) ;
 void Show_Atlas (AFNI_ATLAS *aa);
 AFNI_ATLAS *Free_Atlas(AFNI_ATLAS *aa) ;
@@ -423,6 +427,7 @@ int whereami_in_atlas(  char *aname,
                         ATLAS_COORD ac, 
                         ATLAS_QUERY **wamip);
 char *atlas_key_label(ATLAS *atlas, int key, ATLAS_COORD *ac);
+char *Atlas_name_choice(ATLAS_POINT *atp);
 char *prob_atlas_sb_to_label(ATLAS *atlas, int sb, int *key);
 byte is_probabilistic_atlas(ATLAS *atlas);
 byte is_integral_atlas(ATLAS *atlas);
@@ -449,6 +454,9 @@ int transform_atlas_coords(ATLAS_COORD ac, char **out_spaces,
 int wami_xform_xyz(float xi,float yi,float zi,
    float *xout, float *yout, float *zout,
    char *srcspace, char *destspace);
+int wami_xform_coords_print(float *coords, int ncoords,
+   char *srcspace, char *destspace, char *outfile);
+void set_atlas_name_code(int code);
 
 void set_wami_verb(int lev);
 int wami_verb(void);

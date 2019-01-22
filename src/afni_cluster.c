@@ -5,9 +5,15 @@ static void AFNI_cluster_widgkill( Three_D_View *im3d ) ;
 static void AFNI_cluster_widgize( Three_D_View *im3d , int force ) ;
 static MRI_IMARR * AFNI_cluster_timeseries( Three_D_View *im3d , int ncl , int ids ) ;
 static void AFNI_clus_viewpoint_CB( int why, int np, void *vp, void *cd ) ;
-static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
 static char * AFNI_cluster_write_coord_table(Three_D_View *im3d);
 static void AFNI_linkrbrain_av_CB( MCW_arrowval *av , XtPointer cd );
+
+/*---------------*/
+
+static int use_old_3dclust = 0 ;         /* 29 Oct 2019 */
+static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
+
+/*---------------*/
 
 #undef  SET_INDEX_LAB
 #define SET_INDEX_LAB(iq) \
@@ -197,6 +203,10 @@ ENTRY("AFNI_cluster_choose_CB") ;
 
    im3d->vwid->func->clu_nnlev = (int)(-rmm) ;
 
+   im3d->vinfo->clusterize_nnlev  = -rmm ;  /* 02 Nov 2018 */
+   im3d->vinfo->clusterize_size   = vmul ;  /* save for re-use */
+   im3d->vinfo->clusterize_bisid  = bsid ;
+
    IM3D_CLEAR_TMASK(im3d) ;      /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ; /* 12 Jun 2014 */
    if( im3d->vinfo->func_visible ) AFNI_redisplay_func( im3d ) ;
@@ -250,7 +260,9 @@ ENTRY("AFNI_clu_CB") ;
 
    if( w == im3d->vwid->func->clu_cluster_pb ){
      char *lvec[2] = { "NN level " , "Voxels   " } ;
-     int nnlev=1 , ccsiz=20 ;
+     int nnlev=im3d->vinfo->clusterize_nnlev ;
+     int ccsiz=im3d->vinfo->clusterize_size ;
+     int bisid=im3d->vinfo->clusterize_bisid ;
      MCW_arrowval **vav ; int nav ;
 
 #if 0
@@ -267,7 +279,7 @@ ENTRY("AFNI_clu_CB") ;
 
      if( im3d->vedset.code == VEDIT_CLUST ){
        nnlev = -im3d->vedset.param[2];
-       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 20 ;
+       ccsiz =  im3d->vedset.param[3]; if( ccsiz < 2 ) ccsiz = 40 ;
      }
      MCW_choose_stuff( im3d->vwid->func->thr_label ,
                         "------ Set Clusterize Parameters ------\n"
@@ -288,7 +300,7 @@ ENTRY("AFNI_clu_CB") ;
                       AFNI_cluster_choose_CB , (XtPointer)im3d ,
                         MSTUF_INT     , "NN level " , 1 ,     3 , nnlev ,
                         MSTUF_INT     , "Voxels   " , 2 , 99999 , ccsiz ,
-                        MSTUF_STRLIST , "Bi-sided?" , 2 ,     0 , yesno ,
+                        MSTUF_STRLIST , "Bi-sided?" , 2 , bisid , yesno ,
                       MSTUF_END ) ;
      EXRETURN ;
    }
@@ -904,16 +916,17 @@ ENTRY("AFNI_clus_make_widgets") ;
          NULL ) ;
    XmStringFree(xstr) ;
    XtAddCallback( cwid->clust3d_pb, XmNactivateCallback, AFNI_clus_action_CB, im3d );
-   MCW_register_hint( cwid->clust3d_pb , "Output equivalent 3dclust command" ) ;
+   MCW_register_hint( cwid->clust3d_pb , "Output equivalent clustering command") ;
    MCW_register_help( cwid->clust3d_pb ,
-                       "Writes the equivalent 3dclust\n"
-                       "command to the terminal (stdout).\n"
-                       "\n"
-                       "If you hold down the keyboard Shift\n"
-                       "key while you click this button, then\n"
-                       "AFNI will execute the 3dclust command\n"
-                       "as well as write it to the screen."
-                    ) ;
+                      "Writes the equivalent clustering\n"
+                      "command line to the terminal (stdout).\n"
+                      "\n"
+                      "If you hold down the keyboard Shift\n"
+                      "key while you click this button, then\n"
+                      "AFNI will execute this command\n"
+                      "as well as write it to the screen." ) ;
+
+   if( AFNI_yesenv("AFNI_CLUSTERIZE_OLD") ) use_old_3dclust = 1 ;
 
    /* row #1: SaveTabl button */
 
@@ -1879,7 +1892,10 @@ ENTRY("AFNI_clus_action_CB") ;
      ppp = XmTextFieldGetString( cwid->prefix_tf ) ;
      if( !THD_filename_pure(ppp) || strcmp(ppp,"-") == 0 ) ppp = "Clust" ;
      sprintf(pref,"%s_mask",ppp) ;
-     sprintf(exopt,"-savemask %s",pref) ;
+     if( use_old_3dclust )
+       sprintf(exopt,"-savemask %s",pref) ;
+     else
+       sprintf(exopt,"-pref_map %s",pref) ;
      cmd = AFNI_clus_3dclust(im3d,exopt) ;  /* get the 3dclust command */
 
      mset = EDIT_empty_copy(fset) ;
@@ -1956,9 +1972,9 @@ ENTRY("AFNI_clus_action_CB") ;
      XmPushButtonCallbackStruct *pbcbs = (XmPushButtonCallbackStruct *)cbs ;
      char *cmd = AFNI_clus_3dclust(im3d,NULL) ;  /* get the 3dclust command */
      if( cmd != NULL ){
-       INFO_message("3dclust command:\n %s",cmd) ;
+       INFO_message("clustering command:\n %s",cmd) ;
      } else {
-       ERROR_message("Can't generate 3dclust command!") ; /* shouldn't happen */
+       ERROR_message("Can't generate clustering command :(") ; /* shouldn't happen */
      }
 
      if( cmd != NULL && pbcbs != NULL &&               /* 01 Aug 2011: run it */
@@ -2986,7 +3002,7 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts )
    static char cmd[3333] ;
    VEDIT_settings vednew ;
    float thr,rmm,vmul,thb,tht ;
-   int thrsign,posfunc,ithr , ival ;
+   int thrsign,posfunc,ithr , ival , bsid ;
 
 ENTRY("AFNI_clus_3dclust") ;
 
@@ -3001,38 +3017,73 @@ ENTRY("AFNI_clus_3dclust") ;
    vmul    =      vednew.param[3] ;
    thrsign = (int)vednew.param[4] ;
    posfunc = (int)vednew.param[5] ;
+   bsid    = (int)vednew.param[6] ; /* 29 Oct 2018 */
 
    thb = THBOT(thr) ; tht = THTOP(thr) ;
 
-   sprintf(cmd,"3dclust -1Dformat -nosum -1dindex %d -1tindex %d",ival,ithr) ;
+   if( AFNI_yesenv("AFNI_CLUSTERIZE_OLD") ) use_old_3dclust = 1 ;
 
-   if( posfunc )
-     strcat(cmd," -1noneg") ;
+   if( use_old_3dclust ){ /*-- [the olden way] -------------------------------*/
 
-   if( thb < tht )
-     sprintf(cmd+strlen(cmd)," -2thresh %g %g",thb,tht) ;
+     sprintf(cmd,"3dclust -1Dformat -nosum -1dindex %d -1tindex %d",ival,ithr) ;
 
-   if( im3d->vwid->func->clu_mask != NULL ){  /* 02 Aug 2011 */
-     if( im3d->vednomask ) sprintf(cmd+strlen(cmd)," -no_inmask") ;
-     else                  sprintf(cmd+strlen(cmd)," -inmask") ;
-   }
+     if( posfunc )
+       strcat(cmd," -1noneg") ;
 
-   if( rmm <= 0.0f ){
-     strcat(cmd," -dxyz=1") ;
-     rmm = rintf(rmm) ;
-          if( rmm >= -1.0f ) rmm = 1.01f ;
-     else if( rmm >= -2.0f ) rmm = 1.44f ;
-     else                    rmm = 1.75f ;
-     if( vmul < 2.0f ) vmul = 2.0f ;
-   } else {
-     float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
-     vmul = MAX(vmin,vmul) ;
-   }
+     if( thb < tht )
+       sprintf(cmd+strlen(cmd)," -2thresh %g %g",thb,tht) ;
 
-   if( extraopts != NULL ) sprintf(cmd+strlen(cmd)," %s",extraopts) ;
+     if( im3d->vwid->func->clu_mask != NULL ){  /* 02 Aug 2011 */
+       if( im3d->vednomask ) sprintf(cmd+strlen(cmd)," -no_inmask") ;
+       else                  sprintf(cmd+strlen(cmd)," -inmask") ;
+     }
 
-   sprintf(cmd+strlen(cmd)," %g %g %s",
-           rmm , vmul , DSET_HEADNAME(im3d->fim_now) ) ;
+     if( rmm <= 0.0f ){
+       strcat(cmd," -dxyz=1") ;
+       rmm = rintf(rmm) ;
+            if( rmm >= -1.0f ) rmm = 1.01f ;
+       else if( rmm >= -2.0f ) rmm = 1.44f ;
+       else                    rmm = 1.75f ;
+       if( vmul < 2.0f ) vmul = 2.0f ;
+     } else {
+       float vmin=2.0f*DSET_VOXVOL(im3d->fim_now) ;
+       vmul = MAX(vmin,vmul) ;
+     }
+
+     if( extraopts != NULL ) sprintf(cmd+strlen(cmd)," %s",extraopts) ;
+
+     sprintf(cmd+strlen(cmd)," %g %g %s",
+             rmm , vmul , DSET_HEADNAME(im3d->fim_now) ) ;
+
+   } else { /*-- [29 Oct 2018] -----------------------------------------------*/
+
+     sprintf(cmd,"3dClusterize -nosum -1Dformat") ;
+
+     sprintf(cmd+strlen(cmd)," -inset %s -idat %d -ithr %d",
+                             DSET_HEADNAME(im3d->fim_now) , ival , ithr ) ;
+
+     sprintf(cmd+strlen(cmd)," -NN %d",im3d->vwid->func->clu_nnlev) ;
+
+     sprintf(cmd+strlen(cmd)," -clust_nvox %d",(int)vmul) ;
+
+     if( thb < tht ){
+       if( bsid )
+         sprintf(cmd+strlen(cmd)," -bisided %g %g",thb,tht) ;
+       else
+         sprintf(cmd+strlen(cmd)," -2sided %g %g",thb,tht) ;
+     }
+
+     if( im3d->vwid->func->clu_mask != NULL && !im3d->vednomask )
+       sprintf(cmd+strlen(cmd)," -mask_from_hdr") ;
+
+#if 0
+     if( posfunc )
+       strcat(cmd," -1noneg") ;  /* not available in 3dClusterize? */
+#endif
+
+     if( extraopts != NULL ) sprintf(cmd+strlen(cmd)," %s",extraopts) ;
+
+   } /*-----------------------------------------------------------------------*/
 
    RETURN(cmd) ;
 }

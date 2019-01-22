@@ -2,6 +2,8 @@
 
 # @snapshot_volreg3 is no more, and is now @snapshot_volreg
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
 set wwww = `which @snapshot_volreg`
 if( $status != 0 )then
   echo

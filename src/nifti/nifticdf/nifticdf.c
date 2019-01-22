@@ -6142,7 +6142,7 @@ void E0000(int IENTRY,int *status,double *x,double *fx,
 static double absstp,abstol,big,fbig,fsmall,relstp,reltol,small,step,stpmul,xhi,
     xlb,xlo,xsave,xub,yy;
 static int i99999;
-static unsigned long qbdd,qcond,qdum1,qdum2,qincr,qlim,qok,qup;
+static unsigned long qbdd,qcond,qdum1,qdum2,qincr,qlim,/*qok,*/qup;
     switch(IENTRY){case 0: goto DINVR; case 1: goto DSTINV;}
 DINVR:
     if(*status > 0) goto S310;
@@ -6207,7 +6207,7 @@ S90:
     yy = *fx;
     if(!(yy == 0.0e0)) goto S100;
     *status = 0;
-    qok = 1;
+    /* qok = 1; result never used */
     return;
 S100:
     qup = ( qincr && yy < 0.0e0 ) || ( !qincr  &&  yy > 0.0e0 );
@@ -9397,7 +9397,7 @@ returns the modulo of a and b
 } /* END */
 
 /***=====================================================================***/
-void ftnstop(char* msg)
+void ftnstop(const char* msg)
 /************************************************************************
 FTNSTOP:
 Prints msg to standard error and then exits
@@ -10864,9 +10864,9 @@ static pqpair stat2pq( double val, int code, double p1,double p2,double p3 )
                         if( val >= 0.0 && val <= 1.0 ) pq.q = val ;
                                                        pq.p = 1.0-pq.q; break;
      case NIFTI_INTENT_LOGPVAL:
-                            pq.q = exp(-abs(val))    ; pq.p = 1.0-pq.q; break;
+                           pq.q = exp(-fabs(val))    ; pq.p = 1.0-pq.q; break;
      case NIFTI_INTENT_LOG10PVAL:
-                            pq.q = pow(10.,-abs(val)); pq.p = 1.0-pq.q; break;
+                           pq.q = pow(10.,-fabs(val)); pq.p = 1.0-pq.q; break;
    }
 
    return pq ;
@@ -10973,7 +10973,7 @@ static double pq2stat( pqpair pq, int code, double p1,double p2,double p3 )
      NIFTI_INTENT_LOG10PVAL  = -log10(p)
 *****************************************************************************/
 
-char *inam[]={ NULL , NULL ,
+char const * const inam[]={ NULL , NULL ,
                        "CORREL"   , "TTEST"   , "FTEST"      , "ZSCORE"     ,
                        "CHISQ"    , "BETA"    , "BINOM"      , "GAMMA"      ,
                        "POISSON"  , "NORMAL"  , "FTEST_NONC" , "CHISQ_NONC" ,
@@ -11104,4 +11104,3 @@ double nifti_stat2hzscore( double val, int code, double p1,double p2,double p3 )
    pq.q = 0.5*(1.0-pq.p) ; pq.p = 0.5*(1.0+pq.p) ;          /* mangle it */
    return normal_pq2s( pq ) ;                               /* find z  */
 }
-

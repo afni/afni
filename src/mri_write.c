@@ -11,7 +11,7 @@
 /*-------------------------------------------------------------------------*/
 /*! Open a file for writing, if practicable.  Use fclose_maybe() to close. */
 
-static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
+FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
 {
    FILE *imfile ;
    char *tname = NULL;
@@ -50,13 +50,16 @@ static FILE * fopen_maybe( char *fname )  /* 05 Feb 2008 */
    }
 
    imfile = fopen(fname,"w") ;
+   if( imfile == NULL ){ NI_sleep(33) ; imfile = fopen(fname,"w") ; }
+   if( imfile == NULL ){ NI_sleep(66) ; imfile = fopen(fname,"w") ; }
+   if( imfile == NULL ){ NI_sleep(99) ; imfile = fopen(fname,"w") ; }
    if( imfile == NULL ) ERROR_message("Can't open for output: %s",fname) ;
    return imfile ;
 }
 
 /*---------------------------------------------------------------------------*/
 
-static void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
+void fclose_maybe( FILE *fp )  /* 05 Feb 2008 */
 {
         if( fp == NULL   ) return ;
         if( fp == stdout ) fflush(fp) ;
@@ -265,6 +268,15 @@ ENTRY("mri_write_1D") ;
 
    if( im == NULL || im->nz > 1 ) RETURN( 0 ) ; /* stoopid user */
 
+   if( STRING_HAS_SUFFIX_CASE(fname,".tsv") ){  /* 14 Sep 2018 */
+     NI_element *nel ;
+     nel = THD_mri_to_tsv_element(im,NULL) ;
+     if( nel == NULL ) RETURN( 0 ) ;
+     THD_write_tsv( fname , nel ) ;
+     NI_free_element( nel ) ;
+     RETURN( 1 ) ;
+   }
+
    fim = mri_transpose( im ) ;
    jj  = mri_write_ascii( fname , fim ) ;
    mri_free(fim) ;
@@ -402,6 +414,11 @@ int mri_write_jpg( char *fname , MRI_IMAGE *im )  /* 15 Apr 2005 */
    if( STRING_HAS_SUFFIX_CASE(fname,".png") ){  /* 07 Dec 2007 */
      RETURN( mri_write_png(fname,im) ) ;
    }
+   if( STRING_HAS_SUFFIX_CASE(fname,".ppm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pgm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pnm")   ){
+     RETURN( mri_write_pnm(fname,im) ) ;
+   }
 
    pg = THD_find_executable( "cjpeg" ) ;
    if( pg == NULL ) return 0 ;
@@ -443,6 +460,11 @@ int mri_write_png( char *fname , MRI_IMAGE *im )  /* 11 Dec 2006 */
 
    if( STRING_HAS_SUFFIX_CASE(fname,".jpg") ){  /* 07 Dec 2007 */
      RETURN( mri_write_jpg(fname,im) ) ;
+   }
+   if( STRING_HAS_SUFFIX_CASE(fname,".ppm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pgm") ||
+       STRING_HAS_SUFFIX_CASE(fname,".pnm")   ){
+     RETURN( mri_write_pnm(fname,im) ) ;
    }
 
    pg = THD_find_executable( "pnmtopng" ) ; if( pg == NULL ) return 0 ;

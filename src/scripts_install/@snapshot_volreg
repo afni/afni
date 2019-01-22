@@ -1,5 +1,10 @@
 #!/bin/tcsh
 
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# [PT: July 2, 2018] 
+# + Edited to allow for inclusion of path when naming output JPGs
+
 # help?
 
 if( $#argv < 2 )then
@@ -43,6 +48,8 @@ if( $#argv < 2 )then
   echo 'file -- if it does not end in ".jpg", that suffix will be added.'
   echo 'If you do NOT supply a 3rd argument, the script will invent a name:'
   echo 'it is probably better for you to supply a 3rd argument.'
+  echo 'It is now permitted to include an output path as part of the third'
+  echo 'argument.'
   echo
   echo 'The fourth (and very optional) argument is the display number'
   echo 'of an ALREADY RUNNING copy of Xvfb, as in'
@@ -165,12 +172,16 @@ set anat  = `basename $anat  +acpc.`
 # set output image prefix
 
 if( $#argv > 2 )then
+  # [PT: July 2, 2018] Include output path with filename
+  set jdir = `dirname $argv[3]`
+
   set jnam = $argv[3]
   set jnam = `basename "$jnam" .jpg`
   set jnam = `basename "$jnam" .JPG`
   set jnam = `basename "$jnam" .jpeg`
   set jnam = `basename "$jnam" .JPEG`
 else
+  set jdir = "."
   set jnam = $anat.$epi
 endif
 
@@ -218,14 +229,15 @@ if( $?xdisplay == 0 )then
     if( -e /tmp/.X${xdisplay}-lock ) continue
     echo " -- trying to start Xvfb :${xdisplay}"
     Xvfb :${xdisplay} -screen 0 1024x768x24 >& /dev/null &
-    sleep 1
+    sleep 2
     jobs > zzerm.$ranval.txt
     grep -q Xvfb zzerm.$ranval.txt
     set Xnotfound = $status
     \rm -f zzerm.$ranval.txt
     if( $Xnotfound == 0 )break ;
+    killall Xvfb ; sleep 1
     @ ntry++
-    if( $ntry > 99 )then
+    if( $ntry > 9 )then
       echo "** ERROR: can't start Xvfb -- exiting"
       exit 1
     endif
@@ -252,13 +264,25 @@ set cdset = ${zpref}.acrop.nii
             -1Dparam_apply IDENTITY   \
             -final cubic
 
+set Rnam = ${zpref}.epiR.nii
+
+# aniso- or median-smooth the resampled EPI
+
+if( 0 )then
+  3danisosmooth -iters 2 -prefix ${zpref}.epiRS.nii ${zpref}.epiR.nii
+  set Rnam = ${zpref}.epiRS.nii
+else
+  3dMedianFilter -irad 1.01 -iter 1 -prefix ${zpref}.epiRS.nii ${zpref}.epiR.nii
+  set Rnam = ${zpref}.epiRS.nii
+endif
+
 # find edges in the EPI
 
-3dedge3 -input ${zpref}.epiR.nii -prefix ${zpref}.epiE.nii
+3dedge3 -input $Rnam -prefix ${zpref}.epiE.nii
 
 # get the EPI automask and apply it to the edgized EPI
 
-3dAutomask -q -prefix ${zpref}.epiM.nii -clfrac 0.333 -dilate 5 ${zpref}.epiR.nii
+3dAutomask -q -prefix ${zpref}.epiM.nii -clfrac 0.333 -dilate 5 $Rnam
 3dcalc -a ${zpref}.epiE.nii -b ${zpref}.epiM.nii -expr 'a*b' -prefix ${zpref}.epiEM.nii
 
 # get the lower and upper thresholds for the edgized EPI
@@ -278,6 +302,8 @@ set astep = `ccalc -int "cbrt($anatNN)/6.111"`
 if( $astep < 2 ) set astep = 2
 
 afni -noplugins -no_detach                                       \
+     -DAFNI_DEFAULT_OPACITY=9                                    \
+     -DAFNI_FUNC_ALPHA=Linear                                    \
      -com "SWITCH_UNDERLAY ${cdset}"                             \
      -com "SWITCH_OVERLAY ${zpref}.epiEM.nii"                    \
      -com "SET_DICOM_XYZ $anatCM"                                \
@@ -307,13 +333,13 @@ pnmcat -tb -jcenter -black ${zpref}.sag.pnm ${zpref}.axi.pnm ${zpref}.cor.pnm   
 pbmtext -builtin fixed "$jnam"   | pnmcrop | pbmtopgm 1 1 | pnmscale 2                  > ${zpref}.t1.pgm
 pbmtext -builtin fixed "<- Left"           | pbmtopgm 1 1                               > ${zpref}.t2.pgm
 $pcprog -align=right -valign=bottom ${zpref}.t1.pgm ${zpref}.pnm                        > ${zpref}.t3.pnm
-$pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jnam.jpg"
+$pcprog -align=right -valign=top    ${zpref}.t2.pgm ${zpref}.t3.pnm | cjpeg -quality 95 > "$jdir/$jnam.jpg"
 
 # delete the trash data
 
 \rm -f ${zpref}.*
 
-echo "@snapshot_volreg output image = $jnam.jpg"
+echo "@snapshot_volreg output image = $jdir/$jnam.jpg"
 
 # stop Xvfb if we started it ourselves
 

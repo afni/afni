@@ -118,10 +118,14 @@ char * GetAfniWebBrowser(void)
    if( awb == NULL ) awb = "open" ;  /* for Mac OS X */
 #endif
    if( awb == NULL ) awb = THD_find_executable( "chrome" )   ;
+   if( awb == NULL ) awb = THD_find_executable( "google-chrome" ) ;
    if( awb == NULL ) awb = THD_find_executable( "firefox" )  ;
    if( awb == NULL ) awb = THD_find_executable( "mozilla" )  ;
    if( awb == NULL ) awb = THD_find_executable( "netscape" ) ;
    if( awb == NULL ) awb = THD_find_executable( "opera" )    ;
+   if( awb == NULL ) awb = THD_find_executable( "epiphany" ) ;
+   if( awb == NULL ) awb = THD_find_executable( "midori" )   ;
+   if( awb == NULL ) awb = THD_find_executable( "google-chrome-unstable" ) ;
    return(awb);
 }
 

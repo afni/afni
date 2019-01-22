@@ -40,7 +40,7 @@ help.rPkgsInstall.opts <- function (params, alpha = TRUE, itspace='   ', adieu=F
           ================== Welcome to rPkgsInstall ==================          
                      Install/update/remove R packages for AFNI
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Nov 3, 2014
+Version 0.0.2, April 18, 2018
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -57,14 +57,14 @@ Usage:
 Example 1 --- Install all the R packages that are currently required in 
 AFNI programs:
    rPkgsInstall -pkgs ALL
-   rPkgsInstall -pkgs ALL -site 'http://cran.case.edu/'\n"
+   rPkgsInstall -pkgs ALL -site 'http://cran.us.r-project.org'\n"
 
    ex2 <- 
 "\n--------------------------------
 Example 2 --- Install user-specified R packages:
    rPkgsInstall -pkgs 'gsl'
    rPkgsInstall -pkgs 'afex,phia,paran'
-   rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.revolutionanalytics.com'\n"
+   rPkgsInstall -pkgs 'snow,nlme,psych' -site 'http://cran.us.r-project.org'\n"
 
    ex3 <- 
 "\n--------------------------------
@@ -140,7 +140,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "-site download_website: You can specify the package repository website within",
    "        single/double quotes. The current sites can be found at\n",
    "        http://cran.r-project.org/mirrors.html\n",
-   "        The default is 'http://cran.mtu.edu/' at Michigan Technological",
+   "        The default is 'http://cran.us.r-project.org'",
    "        University, Houghton, MI.\n",sep = '\n' 
                      ) ),
                                       
@@ -165,7 +165,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    lop$update <- 0
    lop$check <- 0
    lop$remove  <- 0
-   lop$site   <- 'http://cran.mtu.edu/'
+   lop$site   <- 'http://cran.us.r-project.org'
    lop$verb   <- 0
 
    #Get user's input
@@ -190,12 +190,12 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lme4','paran', 'psych') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lme4','paran', 'psych', 'brms') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }
 
-getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.mtu.edu/') {    
+getPkgs <- function(PKGS, check=0, update=0, remove=0, site='http://cran.us.r-project.org') {    
    pkgs_miss <- PKGS[which(!PKGS %in% installed.packages()[, 1])]
    if(check) {
       if(length(pkgs_miss) > 0) warn.AFNI(paste("These packages are not installed on the computer: ", pkgs_miss, '!\n', sep='')) else 

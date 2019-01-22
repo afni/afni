@@ -31,6 +31,13 @@
 
 */
 
+/* apply regardless of ALLOW_PROGRAM   31 Oct 2018 [rickr] */
+#include "mrilib.h"
+
+#undef ALLOW_PROGRAM
+
+#ifdef ALLOW_PROGRAM
+
 /*---------------------------------------------------------------------------*/
 
 #define PROGRAM_NAME    "3dConvolve"                 /* name of this program */
@@ -44,7 +51,6 @@
 
 /*---------------------------------------------------------------------------*/
 
-#include "mrilib.h"
 #include "matrix.h"
 
 #include "Deconvolve.c"
@@ -296,11 +302,6 @@ void get_options
 
   /*----- does user request help menu? -----*/
   if (argc < 2 || strcmp(argv[1], "-help") == 0)  display_help_menu();  
-
-  
-  /*----- add to program log -----*/
-  mainENTRY("3dConvolve"); machdep(); PRINT_VERSION("3dConvolve");
-  AFNI_logger (PROGRAM_NAME,argc,argv); 
 
   
   /*----- initialize the input options -----*/
@@ -860,7 +861,7 @@ void read_input_data
 	  DC_error (message);
 	}  
       DSET_load(*dset_time) ; CHECK_LOAD_ERROR(*dset_time) ;
-      nt = DSET_NUM_TIMES (*dset_time);
+      nt = DSET_NVALS (*dset_time);
       nxyz = DSET_NVOX (*dset_time);
 
       /*----- Read the input mask dataset -----*/
@@ -2005,6 +2006,7 @@ void terminate_program
 
 }
 
+#endif /* ALLOW_PROGRAM */
 
 /*---------------------------------------------------------------------------*/
 
@@ -2015,6 +2017,17 @@ int main
 )
 
 {
+#ifndef ALLOW_PROGRAM
+  ERROR_message("\n"
+    "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
+    "**                                                          **\n"
+    "** This program, 3dConvolve, is no longer supported in AFNI **\n"
+    "**                                                          **\n"
+    "** :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( :( **\n"
+  ) ;
+  fprintf(stderr,"** Program compile date = %s\n",__DATE__) ;
+  exit(0) ;
+#else
   DC_options * option_data;             /* deconvolution algorithm options */
   THD_3dim_dataset * dset_time = NULL;  /* input 3d+time template data set */
   THD_3dim_dataset * mask_dset = NULL;  /* input mask data set */
@@ -2100,6 +2113,7 @@ int main
 		     &stimulus, &stim_length, &errts_data, &predts_vol);
 
   exit(0);
+#endif /* ALLOW_PROGRAM */
 }
 
 

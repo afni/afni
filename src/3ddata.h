@@ -26,7 +26,9 @@
 #include <time.h>
 #include <sys/types.h>
 
-#include <X11/Intrinsic.h>
+#include "replaceXt.h"  /* 09 Nov 2018 */
+
+/*----------------------------------------------------------------------------*/
 
 #include "mcw_malloc.h"
 
@@ -39,16 +41,6 @@
 #include "thd_compress.h"
 
 #include "nifti2_io.h"   /* 06 Dec 2005 */
-
-#ifndef myXtFree
-/*! Macro to free a pointer and NULL-ize it as well. */
-#define myXtFree(xp) (XtFree((char *)(xp)) , (xp)=NULL)
-#endif
-
-#ifndef myXtNew
-/*! Macro to allocate memory and zero-ize it. */
-#define myXtNew(type) ((type *) XtCalloc(1,(unsigned) sizeof(type)))
-#endif
 
 /* cast int to pointer and vice-versa without warning messages */
 
@@ -68,10 +60,6 @@ struct THD_3dim_dataset ;  /* incomplete definition */
 #ifdef  __cplusplus
 extern "C" {
 #endif
-
-/*! Enables compilation of the MINC dataset code. */
-
-#define ALLOW_MINC   /* 29 Oct 2001 */
 
 /*! Macro to check if string ss ends in string suf. */
 
@@ -237,7 +225,7 @@ typedef struct {
 /*! Copy n units of the given type "type * ptr", into a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
-         off is most easily computed with XtOffsetOf       */
+         off is most easily computed with RwcOffsetOf       */
 
 #define COPY_INTO_STRUCT(str,off,type,ptr,n) \
    AAmemcpy( (char *)(&(str))+(off), (char *)(ptr), (n)*sizeof(type) )
@@ -245,7 +233,7 @@ typedef struct {
 /*! Copy n units of the given type "type * ptr", from a structure "str",
      starting at byte offset "off";
    N.B.: str is the structure itself, not a pointer to it
-         off is most easily computed with XtOffsetOf       */
+         off is most easily computed with RwcOffsetOf       */
 
 #define COPY_FROM_STRUCT(str,off,type,ptr,n) \
    AAmemcpy( (char *)(ptr), (char *)(&(str))+(off), (n)*sizeof(type) )
@@ -262,69 +250,69 @@ typedef struct {
    ( (void) strncpy( (dest) , (src) , (n)-1 ) , (dest)[(n)-1] = '\0' )
 #endif
 
-/*********************** dynamic array of XtPointers **********************/
+/*********************** dynamic array of RwcPointers **********************/
 
 #define IC_DSET 44301
 #define IC_FLIM 55402
 
-/*! Dynamically extendable array of XtPointer. */
+/*! Dynamically extendable array of RwcPointer. */
 
 typedef struct {
       int num ;         /*!< Number currently in use */
       int nall ;        /*!< Number currently allocated */
-      XtPointer *ar ;   /*!< Array of pointers: [0..num-1] are valid */
+      RwcPointer *ar ;   /*!< Array of pointers: [0..num-1] are valid */
       int *ic ;         /*!< added 26 Mar 2001 */
-} XtPointer_array ;
+} RwcPointer_array ;
 
-/*! Increment for extending XtPointer_array allocation */
+/*! Increment for extending RwcPointer_array allocation */
 
 #define INC_XTARR 8
 
-/*! Initialize dynamic XtPointer array named "name".
+/*! Initialize dynamic RwcPointer array named "name".
 
-    You must declare "XtPointer_array *name;".
+    You must declare "RwcPointer_array *name;".
 */
 #define INIT_XTARR(name)               \
-   ( (name) = XtNew(XtPointer_array) , \
+   ( (name) = RwcNew(RwcPointer_array) , \
      (name)->num = (name)->nall = 0 ,  \
      (name)->ar  = NULL ,              \
      (name)->ic  = NULL   )
 
-/*! Add a pointer to a dynamic XtPointer array. */
+/*! Add a pointer to a dynamic RwcPointer array. */
 
 #define ADDTO_XTARR(name,bblk)                                 \
  do{ if( (name)->num == (name)->nall ){                        \
       (name)->nall += INC_XTARR + (name)->nall/8 ;             \
-      (name)->ar    = (XtPointer *)                            \
-                       XtRealloc( (char *) (name)->ar ,        \
-                          sizeof(XtPointer) * (name)->nall ) ; \
-      (name)->ic    = (int *) XtRealloc( (char *) (name)->ic , \
+      (name)->ar    = (RwcPointer *)                            \
+                       RwcRealloc( (char *) (name)->ar ,        \
+                          sizeof(RwcPointer) * (name)->nall ) ; \
+      (name)->ic    = (int *) RwcRealloc( (char *) (name)->ic , \
                           sizeof(int) * (name)->nall ) ;       \
      }                                                         \
-     (name)->ar[(name)->num] = (XtPointer)(bblk) ;             \
+     (name)->ar[(name)->num] = (RwcPointer)(bblk) ;             \
      (name)->ic[(name)->num] = 0 ;                             \
      ((name)->num)++ ;                                         \
    } while(0)
 
-/*! Number of good entries in a dynamic XtPointer array. */
+/*! Number of good entries in a dynamic RwcPointer array. */
 
 #define XTARR_NUM(name)  ((name)->num)
 
-/*! i-th entry in a dynamic XtPointer array. */
+/*! i-th entry in a dynamic RwcPointer array. */
 
 #define XTARR_XT(name,i) ((name)->ar[i])
 
 #define XTARR_IC(name,i) ((name)->ic[i])
 
-/*! Free a dynamic XtPointer array.
+/*! Free a dynamic RwcPointer array.
     But not what the pointers point to - that is a completely separate matter.
 */
 
 #define FREE_XTARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name)->ic ) ; \
-     myXtFree( (name) ) ;     \
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name)->ic ) ; \
+     myRwcFree( (name) ) ;     \
      (name) = NULL ; }
 
 /*! Duplicate definition for FREE_XTARR */
@@ -378,7 +366,7 @@ typedef struct {
 */
 
 #define INIT_SARR(name)                 \
-   ( (name) = XtNew(THD_string_array) , \
+   ( (name) = RwcNew(THD_string_array) , \
      (name)->num = (name)->nall = 0 ,   \
      (name)->ar  = NULL ,               \
      INIT_KILL((name)->kl) )
@@ -388,11 +376,11 @@ typedef struct {
 #define ADDTO_SARR(name,str)                                          \
  do{ if( (name)->num == (name)->nall ){                               \
       (name)->nall += INC_SARR + (name)->nall/8 ;                     \
-      (name)->ar    = (char **) XtRealloc( (char *) (name)->ar ,      \
+      (name)->ar    = (char **) RwcRealloc( (char *) (name)->ar ,      \
                                  sizeof(char *) * (name)->nall ) ;    \
      }                                                                \
      if( (str) != NULL ){                                             \
-      (name)->ar[(name)->num] = (char *) XtMalloc( strlen((str))+1 ); \
+      (name)->ar[(name)->num] = (char *) RwcMalloc( strlen((str))+1 ); \
       strcpy( (name)->ar[(name)->num] , (str) ) ;                     \
       ADDTO_KILL((name)->kl,(name)->ar[(name)->num]) ;                \
       ((name)->num)++ ;                                               \
@@ -402,7 +390,6 @@ typedef struct {
 #define ADDUTO_SARR(name,str)                                          \
  do{ if (SARR_find_string(name, str, 0)<0) ADDTO_SARR(name,str);   \
    } while(0)
-
 
 /*! Remove the ijk-th string from dynamic string array "name". */
 
@@ -415,8 +402,8 @@ typedef struct {
 #define DESTROY_SARR(name)    \
  do{ if( (name) != NULL ){    \
      KILL_KILL((name)->kl) ;  \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; } } while(0)
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; } } while(0)
 
 /*! Print all entries in a dynamic string array */
 
@@ -462,7 +449,7 @@ typedef struct {
 /*! Initialize a dynamic array of xyz points, attached to datset ddd. */
 
 #define INIT_VLIST(name,ddd) \
-   ( (name) = XtNew(THD_vector_list) ,  \
+   ( (name) = RwcNew(THD_vector_list) ,  \
      (name)->num = (name)->nall = 0 ,   \
      (name)->xyz = NULL , (name)->ijk = NULL , \
      (name)->parent = (ddd) )
@@ -476,9 +463,9 @@ typedef struct {
 #define ADD_FVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
       (name)->nall += INC_VLIST ;                                          \
-      (name)->xyz   = (THD_fvec3 * ) XtRealloc( (char *) (name)->xyz ,     \
+      (name)->xyz   = (THD_fvec3 * ) RwcRealloc( (char *) (name)->xyz ,     \
                                       sizeof(THD_fvec3) * (name)->nall ) ; \
-      (name)->ijk   = (THD_ivec3 * ) XtRealloc( (char *) (name)->ijk ,     \
+      (name)->ijk   = (THD_ivec3 * ) RwcRealloc( (char *) (name)->ijk ,     \
                                       sizeof(THD_ivec3) * (name)->nall ) ; \
      }                                                                     \
      (name)->xyz[(name)->num] = (vec);                                     \
@@ -494,9 +481,9 @@ typedef struct {
 #define ADD_IVEC_TO_VLIST(name,vec) \
    { if( (name)->num == (name)->nall ){                                    \
       (name)->nall += INC_VLIST ;                                          \
-      (name)->xyz   = (THD_fvec3 * ) XtRealloc( (char *) (name)->xyz ,     \
+      (name)->xyz   = (THD_fvec3 * ) RwcRealloc( (char *) (name)->xyz ,     \
                                       sizeof(THD_fvec3) * (name)->nall ) ; \
-      (name)->ijk   = (THD_ivec3 * ) XtRealloc( (char *) (name)->ijk ,     \
+      (name)->ijk   = (THD_ivec3 * ) RwcRealloc( (char *) (name)->ijk ,     \
                                       sizeof(THD_ivec3) * (name)->nall ) ; \
      }                                                                     \
      (name)->ijk[(name)->num] = (vec);                                     \
@@ -507,9 +494,9 @@ typedef struct {
 
 #define DESTROY_VLIST(name)      \
    { if( (name) != NULL ){       \
-       myXtFree( (name)->xyz ) ; \
-       myXtFree( (name)->ijk ) ; \
-       myXtFree( (name) ) ; } }
+       myRwcFree( (name)->xyz ) ; \
+       myRwcFree( (name)->ijk ) ; \
+       myRwcFree( (name) ) ; } }
 
 #endif /* ALLOW_DATASET_VLIST */
 
@@ -620,8 +607,8 @@ typedef struct {
      (map).svec = MATVEC((map).mbac,(map).bvec) ,\
      NEGATE_FVEC3((map).svec) )
 
-#define MAPPING_LINEAR_FSTART XtOffsetOf(THD_linear_mapping,mfor)
-#define MAPPING_LINEAR_FEND   (XtOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
+#define MAPPING_LINEAR_FSTART RwcOffsetOf(THD_linear_mapping,mfor)
+#define MAPPING_LINEAR_FEND   (RwcOffsetOf(THD_linear_mapping,top)+sizeof(THD_fvec3))
 #define MAPPING_LINEAR_FSIZE  ((MAPPING_LINEAR_FEND-MAPPING_LINEAR_FSTART)/sizeof(float))
 
 /*! Debugging printout of a THD_linear_mapping struct. */
@@ -680,16 +667,16 @@ typedef struct {
 } THD_marker_set ;
 
 #define MARKS_FSIZE  (MARKS_MAXNUM*3)
-#define MARKS_FSTART XtOffsetOf(THD_marker_set,xyz)
+#define MARKS_FSTART RwcOffsetOf(THD_marker_set,xyz)
 
 #define MARKS_LSIZE  (MARKS_MAXNUM*MARKS_MAXLAB)
-#define MARKS_LSTART XtOffsetOf(THD_marker_set,label)
+#define MARKS_LSTART RwcOffsetOf(THD_marker_set,label)
 
 #define MARKS_HSIZE  (MARKS_MAXNUM*MARKS_MAXHELP)
-#define MARKS_HSTART XtOffsetOf(THD_marker_set,help)
+#define MARKS_HSTART RwcOffsetOf(THD_marker_set,help)
 
 #define MARKS_ASIZE  MARKS_MAXFLAG
-#define MARKS_ASTART XtOffsetOf(THD_marker_set,aflags)
+#define MARKS_ASTART RwcOffsetOf(THD_marker_set,aflags)
 
 /*--------------- definitions for markers I know about now ---------------*/
 
@@ -1232,7 +1219,7 @@ typedef struct {
    /* pointers to other stuff */
 
       KILL_list kl ;          /*!< Stuff to delete if this struct is deleted */
-      XtPointer parent ;      /*!< Somebody who "owns" me */
+      RwcPointer parent ;      /*!< Somebody who "owns" me */
 
       char shm_idcode[32] ;   /*!< Idcode for shared memory buffer, if any [02 May 2003]. */
       int  shm_idint ;        /*!< Integer id for shared memory buffer. */
@@ -1345,7 +1332,7 @@ typedef struct {
 /*! Initialize a THD_datablock_array. */
 
 #define INIT_DBARR(name)                  \
-   ( (name) = XtNew(THD_datablock_array) ,\
+   ( (name) = RwcNew(THD_datablock_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
 
@@ -1355,7 +1342,7 @@ typedef struct {
    { if( (name)->num == (name)->nall ){                            \
       (name)->nall += INC_DBARR + (name)->nall/8 ;                 \
       (name)->ar    = (THD_datablock **)                           \
-                       XtRealloc( (char *) (name)->ar ,            \
+                       RwcRealloc( (char *) (name)->ar ,            \
                         sizeof(THD_datablock *) * (name)->nall ) ; \
      }                                                             \
      if( (bblk) != NULL ){               \
@@ -1367,8 +1354,8 @@ typedef struct {
 
 #define FREE_DBARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; }
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; }
 
 /*--------------------------------------------------------------------*/
 /*---------- stuff to hold axes information for 3D dataset -----------*/
@@ -1476,7 +1463,7 @@ typedef struct {
       mat44 ijk_to_dicom_real ;  /* matrix to convert ijk to DICOM for obliquity*/
    /* pointers to other stuff */
 
-      XtPointer parent ;    /*!< Dataset that "owns" this struct */
+      RwcPointer parent ;    /*!< Dataset that "owns" this struct */
 } THD_dataxes ;
 
 #define DAXES_CMAT(dax,rrr)                               \
@@ -1954,9 +1941,9 @@ extern mat44 MAT44_to_rotation( mat44 amat ) ;
 #undef  DUMP_MAT44
 #define DUMP_MAT44(SS,AA)                              \
      printf("# mat44 %s:\n"                            \
-            " %13.6f %13.6f %13.6f  %13.6f\n"         \
-            " %13.6f %13.6f %13.6f  %13.6f\n"         \
-            " %13.6f %13.6f %13.6f  %13.6f\n" ,       \
+            " %13.6f %13.6f %13.6f  %13.6f\n"          \
+            " %13.6f %13.6f %13.6f  %13.6f\n"          \
+            " %13.6f %13.6f %13.6f  %13.6f\n" ,        \
   SS, AA.m[0][0], AA.m[0][1], AA.m[0][2], AA.m[0][3],  \
       AA.m[1][0], AA.m[1][1], AA.m[1][2], AA.m[1][3],  \
       AA.m[2][0], AA.m[2][1], AA.m[2][2], AA.m[2][3] )
@@ -2279,7 +2266,7 @@ typedef struct {
    int type ;                    /*!< STATISTICS_TYPE */
    int             nbstat ;      /*!< Number of entries below */
    THD_brick_stats *bstat ;      /*!< Array of entries for all sub-bricks */
-   XtPointer parent ;            /*!< Owner of this object */
+   RwcPointer parent ;            /*!< Owner of this object */
 } THD_statistics ;
 
 /*! Check if st is a valid THD_statistics struct. */
@@ -2298,7 +2285,7 @@ typedef struct {
 
 #define KILL_STATISTIC(st)          \
   do{ if( ISVALID_STATISTIC(st) ){  \
-        XtFree((char *)(st)->bstat) ; XtFree((char *)(st)) ; } } while(0)
+        RwcFree((char *)(st)->bstat) ; RwcFree((char *)(st)) ; } } while(0)
 
 /*--------------------------------------------------------------------*/
 
@@ -2313,7 +2300,7 @@ typedef struct {
   int type ;
   int           nbhist ;
   THD_histogram *bhist ;
-  XtPointer parent ;
+  RwcPointer parent ;
 } THD_histogram_set ;
 
 /*--------------------------------------------------------------------*/
@@ -2890,7 +2877,7 @@ typedef struct THD_3dim_dataset {
    /* pointers to other stuff */
 
       KILL_list kl ;              /*!< Stuff to delete if this dataset is deleted (see killer.h) */
-      XtPointer parent ;          /*!< Somebody that "owns" this dataset */
+      RwcPointer parent ;          /*!< Somebody that "owns" this dataset */
 
    /* 26 Aug 2002: self warp (for w-o-d) */
 
@@ -3809,7 +3796,8 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 
     Won't do anything if the dataset is locked into memory
 */
-#define DSET_unload(ds) THD_purge_datablock( (ds)->dblk , DATABLOCK_MEM_ANY )
+#define DSET_unload(ds) THD_purge_datablock( (ds)?(ds)->dblk:NULL , DATABLOCK_MEM_ANY )
+
 
 /*! Unload sub-brick iv in dataset ds from memory.
 
@@ -3824,7 +3812,7 @@ extern float THD_fdrcurve_zqtot( THD_3dim_dataset *dset , int iv , float zval ) 
 #define DSET_delete(ds) THD_delete_3dim_dataset((ds),False)
 
 #define DSET_deletepp(ds) \
-  do{ THD_delete_3dim_dataset((ds),False); myXtFree((ds)); } while(0)
+  do{ THD_delete_3dim_dataset((ds),False); myRwcFree((ds)); } while(0)
 
 /*! Write dataset ds to disk.
     Also loads the sub-brick statistics
@@ -3989,7 +3977,7 @@ typedef struct THD_3dim_dataset_array {
     You should declare "THD_3dim_dataset_array *name;".
 */
 #define INIT_3DARR(name)                  \
-   ( (name) = XtNew(THD_3dim_dataset_array) ,\
+   ( (name) = RwcNew(THD_3dim_dataset_array) ,\
      (name)->num = (name)->nall = 0 ,     \
      (name)->ar  = NULL )
 
@@ -3999,7 +3987,7 @@ typedef struct THD_3dim_dataset_array {
    { if( (name)->num == (name)->nall ){                               \
       (name)->nall += INC_3DARR + (name)->nall/8 ;                    \
       (name)->ar    = (THD_3dim_dataset **)                           \
-                       XtRealloc( (char *) (name)->ar ,               \
+                       RwcRealloc( (char *) (name)->ar ,               \
                         sizeof(THD_3dim_dataset *) * (name)->nall ) ; \
      }                                                             \
      if( (ddset) != NULL ){               \
@@ -4015,8 +4003,8 @@ typedef struct THD_3dim_dataset_array {
 
 #define FREE_3DARR(name)      \
    if( (name) != NULL ){      \
-     myXtFree( (name)->ar ) ; \
-     myXtFree( (name) ) ; }
+     myRwcFree( (name)->ar ) ; \
+     myRwcFree( (name) ) ; }
 
 /*! Macro to access the nn-th dataset in AFNI dataset array name */
 
@@ -4089,7 +4077,9 @@ typedef struct {
       int su_nummask ;          /*!< Number of SUMA masks (moveable surfaces) */
       SUMA_mask **su_mask ;     /*!< array of pointers to SUMA masks */
 
-      XtPointer parent ;        /*!< generic pointer to "owner" of session */
+      int is_collection ;       /*!< If a collection rather than a directory */
+
+      RwcPointer parent ;        /*!< generic pointer to "owner" of session */
 } THD_session ;
 
 extern char * THD_get_space(THD_3dim_dataset *dset);
@@ -4124,6 +4114,8 @@ extern int get_nspaces(void);
 
 #define ISVALID_SESSION(ss) ( (ss) != NULL && (ss)->type == SESSION_TYPE )
 
+#define IS_COLLECTION(ss) ( ISVALID_SESSION(ss) && (ss)->is_collection != 0 )
+
 /*! Initialize THD_session ss to hold nothing at all. */
 
 #define BLANK_SESSION(ss)                                                     \
@@ -4133,6 +4125,7 @@ extern int get_nspaces(void);
       (ss)->su_num    = 0 ; (ss)->su_surf = NULL ;                            \
       (ss)->su_nummask= 0 ; (ss)->su_mask = NULL ;                            \
       (ss)->su_numgroup = 0 ; (ss)->su_surfgroup = NULL ;                     \
+      (ss)->is_collection = 0 ;                                               \
       (ss)->warptable = NULL ; (ss)->dsrow = NULL;                            \
       for( id=0 ; id < THD_MAX_SESSION_SIZE ; id++ )                          \
         for( vv=0 ; vv < get_nspaces() ; vv++ )                               \
@@ -4156,7 +4149,7 @@ extern int get_nspaces(void);
 typedef struct {
       int type , num_sess ;
       THD_session *ssar[THD_MAX_NUM_SESSION] ;
-      XtPointer parent ;
+      RwcPointer parent ;
 } THD_sessionlist ;
 
 /*! Determine if sl is a valid THD_sessionlist */
@@ -4332,7 +4325,7 @@ typedef struct {
 /************************************************************************/
 /******************* rest of prototypes *********************************/
 
-#include <stdarg.h>
+/** #include <stdarg.h> **/
 #ifdef  __cplusplus
 extern "C" {
 #endif
@@ -4417,9 +4410,21 @@ char *find_readme_file(char *str);
 extern int THD_is_dataset( char * , char * , int ) ; /* 17 Mar 2000 */
 extern char * THD_dataset_headname( char * , char * , int ) ;
 
+/*--------------------- functions for reading tables -------------------------*/
+
 extern NI_element * THD_simple_table_read( char *fname ) ; /* 19 May 2010 */
 extern NI_element * THD_mixed_table_read ( char *fname ) ; /* 26 Jul 2010 */
-extern NI_element * THD_string_table_read( char *fname ) ;    /* Apr 2013 */
+extern NI_element * THD_string_table_read( char *fname , int flags ) ;
+
+/*--------------------- functions for TSV (.tsv) files -----------------------*/
+
+extern NI_element * THD_read_tsv(char *fname) ;            /* 12 Sep 2018 */
+extern void THD_write_tsv( char *fname , NI_element *nel ) ;
+extern void THD_set_tsv_column_labels( NI_element *fnel , char **clab ) ;
+extern NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab ) ;
+extern MRI_IMAGE * THD_niml_to_mri( NI_element *nel ) ;
+
+/*---------------------------------------------------------------------------*/
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;
 extern MRI_IMARR * THD_get_many_timeseries( THD_string_array * ) ;
@@ -4465,7 +4470,6 @@ extern float THD_dset_extent(THD_3dim_dataset *dset, char ret,float *RL_AP_IS);
 extern void THD_show_dataset_names( THD_3dim_dataset *dset,
                                     char *head, FILE *out);
 extern const char * storage_mode_str(int);
-extern char * THD_zzprintf( char * sss , char * fmt , ... ) ;
 extern int dset_obliquity(THD_3dim_dataset *dset , float *anglep);
 double dset_obliquity_angle_diff(THD_3dim_dataset *dset1,
                                  THD_3dim_dataset *dset2,
@@ -4487,10 +4491,16 @@ extern void THD_init_diskptr_names( THD_diskptr *, char *,char *,char * ,
 extern THD_datablock *       THD_init_one_datablock( char *,char * ) ;
 extern THD_datablock_array * THD_init_prefix_datablocks( char *, THD_string_array * ) ;
 
-extern XtPointer_array * THD_init_alldir_datablocks( char * ) ;
+extern RwcPointer_array * THD_init_alldir_datablocks( char * ) ;
 
 extern THD_session * THD_init_session( char * ) ;
 extern void          THD_order_session( THD_session * ) ;   /* 29 Jul 2003 */
+extern void THD_append_sessions( THD_session *, THD_session *); /* 20 Dec 2001 */
+
+extern char * THD_suck_pipe( char *cmd ) ;                  /* 01 Feb 2018 */
+extern NI_str_array * THD_get_subdirs_bysub( char *dirname , char *subid ) ;
+extern THD_session * THD_init_session_bysub( char *dirname , char *subid ) ;
+extern THD_session * THD_init_session_recursive( char *dirname ) ;
 
 extern char * Add_plausible_path(char *fname);              /* ZSS:Aug. 08 */
 extern THD_3dim_dataset * THD_open_one_dataset( char * ) ;
@@ -4535,7 +4545,7 @@ char * without_afni_filename_view_and_extension( char * fname );
 extern void THD_datablock_apply_atr( THD_3dim_dataset * ) ; /* 09 May 2005 */
 
 extern THD_3dim_dataset * THD_fetch_dataset      (char *) ; /* 23 Mar 2001 */
-extern XtPointer_array *  THD_fetch_many_datasets(char *) ;
+extern RwcPointer_array *  THD_fetch_many_datasets(char *) ;
 extern MRI_IMAGE *        THD_fetch_1D           (char *) ; /* 26 Mar 2001 */
 
 extern void THD_set_storage_mode( THD_3dim_dataset *,int ); /* 21 Mar 2003 */
@@ -4710,9 +4720,9 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "  'fred.1D[5,9,17]'       ==> use columns #5, #9, and #17\n"              \
    "  'fred.1D[5..8]'         ==> use columns #5, #6, #7, and #8\n"           \
    "  'fred.1D[5..13(2)]'     ==> use columns #5, #7, #9, #11, and #13\n"     \
-   "Column indices start at 0.  You can use the character '$'\n"           \
-   "to indicate the last column in a 1D file; for example, you\n"          \
-   "can select every third column in a 1D file by using the selection list\n"           \
+   "Column indices start at 0.  You can use the character '$'\n"              \
+   "to indicate the last column in a 1D file; for example, you\n"             \
+   "can select every third column in a 1D file by using the selection list\n" \
    "  'fred.1D[0..$(3)]'      ==> use columns #0, #3, #6, #9, ....\n"         \
    "\n"                                                                       \
    "** ROW SELECTION WITH {} **\n"                                            \
@@ -4745,6 +4755,59 @@ extern THD_3dim_dataset * THD_copy_one_sub  ( THD_3dim_dataset * , int ) ;
    "When you have reached this level of understanding, you are ready to\n"    \
    "take the AFNI Jedi Master test.  I won't insult you by telling you\n"     \
    "where to find this examination.\n"
+
+/*---------------------------- TSV (.tsv) file help  -------------------------*/
+
+#undef  TSV_HELP_STRING
+#define TSV_HELP_STRING                                                          \
+   "TAB SEPARATED VALUE (.tsv) FILES [Sep 2018]\n"                               \
+   "-------------------------------------------\n"                               \
+   "These files are used in BIDS http://bids.neuroimaging.io and AFNI\n"         \
+   "programs can read these in a few places.\n"                                  \
+   "\n"                                                                          \
+   "The format of a .tsv file is a set of columns, where the values in\n"        \
+   "each row are separated by tab characters -- spaces are NOT separators.\n"    \
+   "Each element is string, some of which are numeric (e.g. 3.1416).\n"          \
+   "The first row of a .tsv file is a set of strings which are column\n"         \
+   "desciptors (separated by tabs, of course). For the most part, the\n"         \
+   "following data in each column are exclusively numeric or exclusively\n"      \
+   "strings. Strings can contain blanks/spaces since only tabs are used\n"       \
+   "to separate values.\n"                                                       \
+   "\n"                                                                          \
+   "A .tsv file can be read in most places where a .1D file is read.\n"          \
+   "However, columns (after the header row) that are not purely numeric\n"       \
+   "will be ignored, since the internal usage of .1D data in AFNI is numeric.\n" \
+   "Thus, you can do something like\n"                                           \
+   "  1dplot -nopush -sepscl sub-10506_task-pamenc_events.tsv\n"                 \
+   "and you will get a plot of all the numeric columns in this BIDS file.\n"     \
+   "Column selection '[]' can be done, using numbers to specify columns\n"       \
+   "or using the column labels in the .tsv file.\n"                              \
+   "\n"                                                                          \
+   "N.B.: The string 'N/A' or 'n/a' in a column that is otherwise numeric\n"     \
+   "      will be considered to be a number, and will be replaced on input\n"    \
+   "      with the mean of the \"true\" numbers in the column -- there is\n"     \
+   "      no concept of missing data in an AFNI .1D file.\n"                     \
+   "    ++ If you don't like this, well ... too bad for you.\n"                  \
+   "\n"                                                                          \
+   "Program 1dcat has special knowledge of .tsv files, and will cat\n"           \
+   "(sideways - along rows) .tsv and .1D files together. It also has an\n"       \
+   "option to write the output in .tsv format.\n"                                \
+   "\n"                                                                          \
+   "For example, to get the 'onset', 'duration', and 'trial_type' columns\n"     \
+   "out of a BIDS task .tsv file, a command like this could be used:\n"          \
+   "  1dcat sub-10506_task-pamenc_events.tsv'[onset,duration,trial_type]'\n"     \
+   "Note that the column headers are lost in this output, but could be kept\n"   \
+   "if the 1dcat '-tsvout' option were used. In reverse, a numeric .1D file\n"   \
+   "can be converted to .tsv format by a command like:\n"                        \
+   "  1dcat -tsvout Fred.1D\n"                                                   \
+   "In this case, since a the data for .1D file doesn't have headers for its\n"  \
+   "columns, 1dcat will invent some column names.\n"                             \
+   "\n"                                                                          \
+   "At this time, other programs don't 'know' much about .tsv files, and will\n" \
+   "ignore the header row and non-numeric columns when reading a .tsv file.\n"   \
+   "in place of a .1D file.\n"
+
+/*----------------------------------------------------------------------------*/
 
 extern void THD_delete_3dim_dataset( THD_3dim_dataset * , Boolean ) ;
 extern void *DSET_Label_Dtable(THD_3dim_dataset *dset);
@@ -4932,8 +4995,8 @@ typedef struct FD_brick {
    int       ntmask ;           /*!< Mar 2013 */
    MRI_IMAGE *tmask ;           /*!< Mar 2013 */
 
-   XtPointer parent ;           /*!< struct owner */
-   XtPointer brother;
+   RwcPointer parent ;           /*!< struct owner */
+   RwcPointer brother;
 } FD_brick ;
 
 #define TMASK_INDEX(fdb) ((fdb)->ntmask)
@@ -4948,7 +5011,7 @@ typedef struct FD_brick {
 
 #define DESTROY_FD_BRICK(fdb)       \
  do{ FD_brick *_jj=(FD_brick *)fdb; \
-     if( _jj != NULL ){ mri_free(_jj->tmask); myXtFree(_jj); fdb=NULL; } } while(0)
+     if( _jj != NULL ){ mri_free(_jj->tmask); myRwcFree(_jj); fdb=NULL; } } while(0)
 
 /*! rotate the three numbers (a,b,c) to (b,c,a) into (na,nb,nc) */
 
@@ -5072,6 +5135,9 @@ extern void THD_vectim_vectim_dot( MRI_vectim *arv, MRI_vectim *brv, float *dp )
 extern MRI_vectim * THD_vectim_copy( MRI_vectim *mrv ) ;      /* 08 Apr 2010 */
 extern MRI_vectim * THD_tcat_vectims( int , MRI_vectim ** ) ; /* 26 Jul 2010 */
 extern MRI_vectim * THD_dset_list_to_vectim( int, THD_3dim_dataset **, byte * );
+
+extern MRI_vectim * THD_xyzcat_vectims( int nvim , MRI_vectim **vim ) ; /* 09 Apr 2018 */
+
 
 #define ICOR_MAX_FTOP 99999  /* 26 Feb 2010 */
 
@@ -5309,6 +5375,8 @@ extern void MRI_autobbox( MRI_IMAGE * ,
                           int *, int * , int *, int * , int *, int * ) ;
 extern void MRI_autobbox_clust( int ) ;                    /* 20 Sep 2006 */
 extern void THD_autobbox_clip( int ) ;                     /* 06 Aug 2007 */
+extern void THD_autobbox_npad(int) ;
+extern void THD_autobbox_noexpand(int) ;                   /* 08 Jan 2019 */
 
 extern void THD_automask_set_clipfrac( float f ) ;         /* 20 Mar 2006 */
 extern void THD_automask_set_peelcounts( int,int ) ;       /* 24 Oct 2006 */
@@ -5344,6 +5412,7 @@ extern MRI_IMAGE * THD_mad_brick   ( THD_3dim_dataset * ) ;  /* 07 Dec 2006 */
 extern MRI_IMAGE * THD_mean_brick  ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_rms_brick   ( THD_3dim_dataset * ) ;  /* 15 Apr 2005 */
 extern MRI_IMAGE * THD_aveabs_brick( THD_3dim_dataset * ) ;  /* 11 May 2009 */
+extern MRI_IMAGE * THD_maxabs_brick( THD_3dim_dataset * ) ;  /* 08 Jan 2019 */
 
 extern MRI_IMARR * THD_medmad_bricks   (THD_3dim_dataset *); /* 07 Dec 2006 */
 extern MRI_IMARR * THD_meansigma_bricks(THD_3dim_dataset *); /* 07 Dec 2006 */
@@ -5744,29 +5813,8 @@ extern char * tross_breakup_string( char *, int , int ) ;
 
 void tross_multi_Append_History( THD_3dim_dataset * , ... ) ;
 
-/*-----------------------------------------------------------------------*/
-
-extern void B64_to_binary( int, byte *, int *, byte ** ) ; /* thd_base64.c */
-extern void B64_to_base64( int, byte *, int *, byte ** ) ;
-extern void B64_set_linelen( int ) ;
-extern void B64_set_crlf( int ) ;
-
-extern char * MD5_static_array ( int , char * ) ;          /* thd_md5.c */
-extern char * MD5_malloc_array ( int , char * ) ;
-extern char * MD5_static_string(char *) ;
-extern char * MD5_malloc_string(char *) ;
-extern char * MD5_static_file  (char *) ;
-extern char * MD5_malloc_file  (char *) ;
-
-extern char * MD5_B64_array ( int , char * ) ;
-extern char * MD5_B64_string( char * ) ;
-extern char * MD5_B64_file  (char * ) ;
-extern char * UNIQ_idcode(void) ;            /* 27 Sep 2001 */
-extern void   UNIQ_idcode_fill(char *) ;
-
-/*------------------------------------------------------------------------*/
 #define ATLAS_CMAX    64   /* If you change this parameter,edit constant in
-                              CA_EZ_Prep.m (MaxLbl* checks) */
+                              CA_EZ_Prep.m (MaxLbl* checks), thd_ttatlas_query.h TTO_FORMAT */
 
 typedef enum { UNKNOWN_SPC=0, /*!< Dunno */
                AFNI_TLRC_SPC, /*!< The Classic */
@@ -5794,13 +5842,12 @@ typedef struct {
                                   The only time this is used is for
                                   linking an atlas point to the probability
                                   map volume. */
+   char longname[ATLAS_CMAX] ;  /* Leave this one to be the second element */
 } ATLAS_POINT ;
 
 
 extern int atlas_n_points(char *atname);
 extern ATLAS_POINT *atlas_points(char *atname);
-extern char **atlas_reference_string_list(char *atname, int *N_refs);
-extern char *atlas_version_string(char *atname);
 
 extern char * TT_whereami( float , float , float,
                            char *, void *) ;
@@ -5838,9 +5885,9 @@ extern double THD_eta_squared_masked(int,float *,float *,byte *);/* 16 Jun'11 */
 extern float THD_dice_coef_f_masked(int,float *,float *,byte *);/* 28 Jul'15 */
 // orig- Apr. 2014;  updated- Jan. 2017, as part of some attempted saBobtage:
 extern THD_3dim_dataset * THD_Tcorr1D(THD_3dim_dataset *xset,
-                              byte *mask, int nmask,
-                              MRI_IMAGE *ysim,
-                              char *smethod, char *prefix,int do_short);
+               byte *mask, int nmask, MRI_IMAGE *ysim,
+               char *smethod, char *prefix,int do_short,int do_atanh);
+
 extern float THD_quantile_corr( int,float *,float *) ;  /* 10 May 2012 */
 extern float quantile_corr( int n , float *x , float rv , float *r ) ;
 extern void THD_quantile_corr_setup( int ) ;

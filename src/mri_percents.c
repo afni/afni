@@ -15,10 +15,15 @@
      array of floats, with an integer array carried along in the swaps */
 
 void qsrec_short( int , short * , int ) ;
-void qsrec_int  ( int , int   * , int ) ;
 void qsrec_float( int , float * , int ) ;
 void qsrec_pair ( int , float * , int * , int ) ;
 
+static void qsrec_int  ( int , int   * , int ) ;
+
+#undef  QS_CUTOFF
+#undef  QS_SWAP
+#undef  QS_SWAPI
+#undef  QS_SMALL
 #define QS_CUTOFF     40       /* cutoff to switch from qsort to isort */
 #define QS_SMALL      21
 #define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
@@ -179,7 +184,7 @@ void qsort_short( int n , short *a )
 /*----------------------------------------------------------------------------*/
 /*------------- insertion sort : sort an array of int in-place ---------------*/
 
-void isort_int( int n , int *ar )
+static void isort_int( int n , int *ar )
 {
    register int  j , p ;  /* array indices */
    register int temp ;    /* a[j] holding place */
@@ -204,7 +209,7 @@ void isort_int( int n , int *ar )
 
 /*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
 
-void qsrec_int( int n , int *ar , int cutoff )
+static void qsrec_int( int n , int *ar , int cutoff )
 {
    register int i , j ;         /* scanning indices */
    register int temp , pivot ;  /* holding places */

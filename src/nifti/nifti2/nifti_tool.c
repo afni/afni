@@ -66,13 +66,14 @@
  *   nifti_tool -rm_ext ext_index -infiles f1 ...
  *
  *   nifti_tool -mod_hdr  [-mod_field fieldname new_val] [...] -infiles f1 ...
+ *   nifti_tool -mod_hdr2 [-mod_field fieldname new_val] [...] -infiles f1 ...
  *   nifti_tool -mod_nim  [-mod_field fieldname new_val] [...] -infiles f1 ...
  *
  * </pre> */
 /*-------------------------------------------------------------------------*/
 
 /*! module history */
-static char * g_history[] =
+static const char * g_history[] =
 {
   "----------------------------------------------------------------------\n"
   "nifti_tool modification history:\n"
@@ -177,9 +178,12 @@ static char * g_history[] =
   "2.05 24 Jul 2017 [rickr]\n"
   "   - display ANALYZE header via appropriate NIFTI-1\n"
   "   - apply more PRId64 for 64-bit int I/O\n"
+  "2.06 04 Jan 2019 [rickr]\n",
+  "   - add -mod_hdr2 option, to explicitly modify NIFTI-2 headers\n"
+  "   - mod_hdr and swap_as_nifti fail on valid NIFTI-2 headers\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.05 (July 24, 2017)";
+static char g_version[] = "version 2.06 (January 3, 2019)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -189,7 +193,7 @@ static int  g_debug = 1;
 /* local prototypes */
 static int free_opts_mem(nt_opts * nopt);
 static int num_volumes(nifti_image * nim);
-static char * read_file_text(char * filename, int * length);
+static char * read_file_text(const char * filename, int * length);
 
 #define NTL_FERR(func,msg,file)                                      \
             fprintf(stderr,"** ERROR (%s): %s '%s'\n",func,msg,file)
@@ -252,6 +256,7 @@ int main( int argc, char * argv[] )
    if( opts.rm_exts   && ((rv = act_rm_ext   (&opts)) != 0) ) FREE_RETURN(rv);
 
    if( opts.mod_hdr   && ((rv = act_mod_hdrs (&opts)) != 0) ) FREE_RETURN(rv);
+   if( opts.mod_hdr2  && ((rv = act_mod_hdr2s(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.mod_nim   && ((rv = act_mod_nims (&opts)) != 0) ) FREE_RETURN(rv);
 
    if((opts.swap_hdr  || opts.swap_ana || opts.swap_old )
@@ -333,6 +338,7 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       else if( ! strcmp(argv[ac], "-nifti_hist") )
       {
          nifti_disp_lib_hist(1);
+         nifti_disp_lib_hist(2);
          return 1;
       }
       else if( ! strcmp(argv[ac], "-nifti_ver") )
@@ -513,11 +519,13 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       }
       else if( ! strcmp(argv[ac], "-mod_hdr") )
          opts->mod_hdr = 1;
+      else if( ! strcmp(argv[ac], "-mod_hdr2") )            /* 3 Jan 2019 */
+         opts->mod_hdr2 = 1;
       else if( ! strcmp(argv[ac], "-mod_nim") )
          opts->mod_nim = 1;
       else if( ! strcmp(argv[ac], "-keep_hist") )
          opts->keep_hist = 1;
-      else if( ! strcmp(argv[ac], "-new_dim") )
+      else if( ! strncmp(argv[ac], "-new_dim", 8) )
       {
          /* we need to read in the 8 dimension values */
          int index;
@@ -628,11 +636,14 @@ int verify_opts( nt_opts * opts, char * prog )
    ac += (opts->diff_hdr  || opts->diff_hdr1 || opts->diff_hdr2
                           || opts->diff_nim                    ) ? 1 : 0;
    ac += (opts->disp_hdr  || opts->disp_hdr1 || opts->disp_hdr2
-                          || opts->disp_nim  || opts->disp_ana  
+                          || opts->disp_nim  || opts->disp_ana
                           || opts->disp_exts || opts->disp_cext) ? 1 : 0;
-   ac += (opts->mod_hdr   || opts->mod_nim                     ) ? 1 : 0;
+   ac +=  opts->mod_hdr;
+   ac +=  opts->mod_hdr2;
+   ac +=  opts->mod_nim;
    ac += (opts->swap_hdr  || opts->swap_ana  || opts->swap_old ) ? 1 : 0;
-   ac += (opts->add_exts  || opts->rm_exts                     ) ? 1 : 0;
+   ac +=  opts->add_exts;
+   ac +=  opts->rm_exts;
    ac += (opts->strip                                          ) ? 1 : 0;
    ac += (opts->cbl                                            ) ? 1 : 0;
    ac += (opts->cci                                            ) ? 1 : 0;
@@ -656,19 +667,6 @@ int verify_opts( nt_opts * opts, char * prog )
       return 1;
    }
 
-   /* can modify nifti_1_header or nifti_image, but not both */
-   if( opts->mod_hdr && opts->mod_nim )
-   {
-      fprintf(stderr,"** cannot use both '-mod_hdr' and '-mod_nim'\n");
-      return 1;
-   }
-
-   /* can add or remove extensions, but not both */
-   if( opts->add_exts && opts->rm_exts )
-   {
-      fprintf(stderr,"** cannot use both '-add_*_ext' and '-rm_ext'\n");
-      return 1;
-   }
    if( (opts->add_exts || opts->rm_exts) && opts->elist.len <= 0 )
    {
       fprintf(stderr,"** missing extensions to add or remove\n");
@@ -676,7 +674,7 @@ int verify_opts( nt_opts * opts, char * prog )
    }
 
    /* if modify, then we need fields and corresponding values */
-   if( opts->mod_hdr || opts->mod_nim )
+   if( opts->mod_hdr || opts->mod_hdr2 || opts->mod_nim )
    {
       if( opts->flist.len <= 0 )
       {
@@ -703,7 +701,8 @@ int verify_opts( nt_opts * opts, char * prog )
      }
    }
    /* if we are making changes, but not overwriting... */
-   else if( (opts->elist.len > 0 || opts->mod_hdr || opts->mod_nim ||
+   else if( (opts->elist.len > 0 ||
+             opts->mod_hdr  || opts->mod_hdr2 || opts->mod_nim ||
              opts->swap_hdr || opts->swap_ana || opts->swap_old ) &&
             !opts->overwrite )
    {
@@ -831,11 +830,11 @@ int add_int(int_list * ilist, int val)
  * - only bother to alloc one pointer at a time (don't need efficiency here)
  * - return 0 on success
  *----------------------------------------------------------------------*/
-int add_string(str_list * slist, char * str)
+int add_string(str_list * slist, const char * str)
 {
    if( slist->len == 0 ) slist->list = NULL;  /* just to be safe */
    slist->len++;
-   slist->list = (char **)realloc(slist->list,slist->len*sizeof(char *));
+   slist->list = (const char **)realloc(slist->list,slist->len*sizeof(char *));
    if( ! slist->list ){
       fprintf(stderr,"** failed to alloc %d (char *) elements\n",slist->len);
       return -1;
@@ -1031,6 +1030,7 @@ int use_full()
    "\n");
    printf(
    "    nifti_tool -mod_hdr  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1\n"
+   "    nifti_tool -mod_hdr2 [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1\n"
    "    nifti_tool -mod_nim  [-mod_field FIELDNAME NEW_VAL] [...] -infiles f1\n"
    "\n"
    "    nifti_tool -swap_as_nifti   -overwrite -infiles f1\n"
@@ -1115,7 +1115,9 @@ int use_full()
    "\n"
    "      1. nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
    "                    -mod_field dim '4 64 64 20 30 1 1 1 1'\n"
-   "      2. nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
+   "      2. nifti_tool -mod_hdr2 -prefix dnew -infiles dset2.nii  \\\n"
+   "                    -mod_field dim '4 64 64 20 30 1 1 1 1'\n"
+   "      3. nifti_tool -mod_hdr -prefix dnew -infiles dset0.nii  \\\n"
    "                    -mod_field descrip 'beer, brats and cheese, mmmmm...'\n"
    );
    printf(
@@ -1497,6 +1499,15 @@ int use_full()
    "       e.g. to modify the contents of multiple files (must overwrite):\n"
    "       nifti_tool -mod_hdr -overwrite -mod_field qoffset_x -17.325   \\\n"
    "                  -infiles dset0.nii dset1.nii\n"
+   "\n");
+   printf(
+   "    -mod_hdr2          : modify nifti_2_header fields for datasets\n"
+   "\n"
+   "       This action option is like -mod_hdr, except that this -mod_hdr2\n"
+   "       option applies to NIFTI-2 datasets, while -mod_hdr applies to\n"
+   "       NIFTI-1 datasets.\n"
+   "\n"
+   "       The same -mod_field options are then applied to specify changes.\n"
    "\n");
    printf(
    "    -mod_nim          : modify nifti_image fields for datasets\n"
@@ -1895,7 +1906,7 @@ int use_full()
 /*----------------------------------------------------------------------
  * display the contents of the struct and all lists
  *----------------------------------------------------------------------*/
-int disp_nt_opts(char * mesg, nt_opts * opts)
+int disp_nt_opts( const char *mesg, nt_opts * opts)
 {
    int c;
 
@@ -1915,7 +1926,8 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
                   "   disp_ana, disp_exts  = %d, %d\n"
                   "   disp_cext            = %d\n"
                   "   add_exts, rm_exts    = %d, %d\n"
-                  "   mod_hdr,  mod_nim    = %d, %d\n"
+                  "   mod_hdr,  mod_hdr2   = %d, %d\n"
+                  "   mod_nim              = %d\n"
                   "   swap_hdr, swap_ana   = %d, %d\n"
                   "   swap_old             = %d\n"
                   "   cbl, cci             = %d, %d\n"
@@ -1928,7 +1940,7 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
             opts->disp_hdr1, opts->disp_hdr2, opts->disp_hdr, opts->disp_nim,
             opts->disp_ana, opts->disp_exts, opts->disp_cext,
             opts->add_exts, opts->rm_exts,
-            opts->mod_hdr, opts->mod_nim,
+            opts->mod_hdr, opts->mod_hdr2, opts->mod_nim,
             opts->swap_hdr, opts->swap_ana, opts->swap_old,
             opts->cbl, opts->cci,
             opts->dts, opts->dci_lines, opts->make_im );
@@ -1979,7 +1991,8 @@ int disp_nt_opts(char * mesg, nt_opts * opts)
 int act_add_exts( nt_opts * opts )
 {
    nifti_image      * nim;
-   char             * ext, * edata = NULL;
+   const char       * ext;
+   char             * edata = NULL;
    int                fc, ec, elen;
 
    if( g_debug > 2 ){
@@ -2057,7 +2070,7 @@ int act_add_exts( nt_opts * opts )
 /*----------------------------------------------------------------------
  * Return the allocated file contents.
  *----------------------------------------------------------------------*/
-static char * read_file_text(char * filename, int * length)
+static char * read_file_text(const char * filename, int * length)
 {
    FILE * fp;
    char * text;
@@ -2246,7 +2259,7 @@ int act_rm_ext( nt_opts * opts )
  *
  * return: 0 on success, -1 on failure
  *----------------------------------------------------------------------*/
-int remove_ext_list( nifti_image * nim, char ** elist, int len )
+int remove_ext_list( nifti_image * nim, const char ** elist, int len )
 {
    int * marks;
    int   c, ec, extval;
@@ -2384,7 +2397,8 @@ int act_diff_hdrs( nt_opts * opts )
    /* a difference is fatal */
    if( nva != nvb ) {
       fprintf(stderr,"** %s is NIFTI-%d, while %s is NIFTI-%d\n"
-                     "   they must match\n", opts->infiles.list[0], nva,
+                     "   they must match to compare headers\n",
+                     opts->infiles.list[0], nva,
                      opts->infiles.list[1], nvb);
       free(nhdr0);  free(nhdr1);  return 1;
    }
@@ -2697,7 +2711,7 @@ int act_disp_cext( nt_opts * opts )
       {
          if( nim->ext_list[ec].ecode != NIFTI_ECODE_CIFTI ) continue;
          found++;
-         
+
          if( found == 1 && g_debug > 1 )
             fprintf(stdout,"header file '%s', ext %d of %d is CIFTI\n",
                     nim->fname, ec, nim->num_ext);
@@ -2720,10 +2734,10 @@ int act_disp_cext( nt_opts * opts )
  *----------------------------------------------------------------------*/
 int act_disp_hdr( nt_opts * opts )
 {
-   void     * nhdr;
-   field_s  * fnhdr;
-   char    ** sptr;
-   int        nfields, filenum, fc, nver=0;
+   void        * nhdr;
+   field_s     * fnhdr;
+   const char ** sptr;
+   int           nfields, filenum, fc, nver=0;
 
    if( g_debug > 2 )
       fprintf(stderr,"-d displaying %d fields for %d nifti datasets...\n",
@@ -2743,7 +2757,7 @@ int act_disp_hdr( nt_opts * opts )
       }
 
       /* set the number of fields to display */
-      nfields = opts->flist.len > 0 ? opts->flist.len : 
+      nfields = opts->flist.len > 0 ? opts->flist.len :
                    nver <= 1 ? NT_HDR1_NUM_FIELDS : NT_HDR2_NUM_FIELDS;
 
       if( g_debug > 0 )
@@ -2788,7 +2802,7 @@ int act_disp_hdr1( nt_opts * opts )
 {
    nifti_1_header *  nhdr;
    field_s        *  fnhdr;
-   char           ** sptr;
+   const char     ** sptr;
    int               nfields, filenum, fc, nver=-1;
 
    /* set the number of fields to display */
@@ -2840,7 +2854,7 @@ int act_disp_hdr2( nt_opts * opts )
 {
    nifti_2_header *  nhdr;
    field_s        *  fnhdr;
-   char           ** sptr;
+   const char     ** sptr;
    int               nfields, filenum, fc, nver=-2;
 
    /* set the number of fields to display */
@@ -2895,7 +2909,7 @@ int act_disp_anas( nt_opts * opts )
 {
    nifti_analyze75  * nhdr;
    field_s          * fnhdr;
-   char            ** sptr;
+   const char      ** sptr;
    int                nfields, filenum, fc, nver=1;
 
    /* set the number of fields to display */
@@ -2948,7 +2962,7 @@ int act_disp_nims( nt_opts * opts )
 {
    nifti_image *  nim;
    field_s     *  fnim;
-   char        ** sptr;
+   const char  ** sptr;
    int            nfields, filenum, fc;
 
    /* set the number of fields to display */
@@ -2990,7 +3004,7 @@ int act_disp_nims( nt_opts * opts )
 
 /*----------------------------------------------------------------------
  * - read header
- * - modify header
+ * - modify header (assuming nifti-1 format)
  * - if -prefix duplicate file
  * - else if swapped, swap back
  * - overwrite file header      (allows (danger-of) no evaluation of data)
@@ -3000,7 +3014,8 @@ int act_mod_hdrs( nt_opts * opts )
    nifti_1_header * nhdr;
    nifti_image    * nim;         /* for reading/writing entire datasets */
    int              filec, swap, nver=1;
-   char           * fname, * dupname;
+   const char     * fname;
+   char           * dupname;
    char             func[] = { "act_mod_hdrs" };
 
    if( g_debug > 2 )
@@ -3017,12 +3032,26 @@ int act_mod_hdrs( nt_opts * opts )
          continue;
       }
 
-/* rcr - this should be mod_hdr1s */
-
       /* do not validate the header structure */
       nhdr = nt_read_header(fname, &nver, &swap, 0,
                              opts->new_datatype, opts->new_dim);
       if( !nhdr ) return 1;
+
+      /* if this is a valid NIFTI-2 header, fail */
+      if( ! nifti_hdr1_looks_good(nhdr) ) {
+         nifti_2_header * n2hdr;
+         int              n2ver=2;
+         n2hdr = nt_read_header(fname, &n2ver, NULL, 0, 0, 0);
+         if( nifti_hdr2_looks_good(n2hdr) ) {
+            if( g_debug > 0 )
+               fprintf(stderr,"** refusing to modify NIFTI-2 header "
+                              "as NIFTI-1 in %s\n", fname);
+            free(nhdr);
+            free(n2hdr);
+            return 1;
+         }
+         free(n2hdr);
+      }
 
       if( g_debug > 1 )
       {
@@ -3082,8 +3111,118 @@ int act_mod_hdrs( nt_opts * opts )
 
 
 /*----------------------------------------------------------------------
+ * This is the same as act_mod_hdrs, but applies to NIFTI-2.
+ *
  * - read header
- * - swap header
+ * - modify header (assuming nifti-2 format, fails on valid nifti-1)
+ * - if -prefix duplicate file
+ * - else if swapped, swap back
+ * - overwrite file header      (allows (danger-of) no evaluation of data)
+ *----------------------------------------------------------------------*/
+int act_mod_hdr2s( nt_opts * opts )
+{
+   nifti_2_header * nhdr;
+   nifti_image    * nim;         /* for reading/writing entire datasets */
+   int              filec, swap, nver=2;
+   const char     * fname;
+   char           * dupname;
+   char             func[] = { "act_mod_hdr2s" };
+
+   if( g_debug > 2 )
+      fprintf(stderr,"-d modifying %d fields for %d nifti-2 headers...\n",
+              opts->flist.len, opts->infiles.len);
+   if( opts->flist.len <= 0 || opts->infiles.len <= 0 ) return 0;
+
+   for( filec = 0; filec < opts->infiles.len; filec++ )
+   {
+      fname = opts->infiles.list[filec];  /* for convenience and mod file */
+
+      if( nifti_is_gzfile(fname) ){
+         fprintf(stderr,"** sorry, cannot modify a gzipped file: %s\n", fname);
+         continue;
+      }
+
+      /* do not validate the header structure */
+      nhdr = nt_read_header(fname, &nver, &swap, 0,
+                             opts->new_datatype, opts->new_dim);
+      if( !nhdr ) return 1;
+
+      /* but if this is a valid NIFTI-1 header, fail */
+      if( ! nifti_hdr2_looks_good(nhdr) ) {
+         nifti_1_header * n1hdr;
+         int              n1ver=1;
+         n1hdr = nt_read_header(fname, &n1ver, NULL, 0, 0, 0);
+         if( nifti_hdr1_looks_good(n1hdr) ) {
+            if( g_debug > 0 )
+               fprintf(stderr,"** refusing to modify NIFTI-1 header "
+                              "as NIFTI-2 in %s\n", fname);
+            free(nhdr);
+            free(n1hdr);
+            return 1;
+         }
+         free(n1hdr);
+      }
+
+      if( g_debug > 1 )
+      {
+         fprintf(stderr,"-d modifying %d fields of '%s' header\n",
+                 opts->flist.len, fname);
+         fprintf(stderr,"-d header is: %s\n",
+                 nifti_hdr2_looks_good(nhdr) ? "valid" : "invalid");
+      }
+
+      /* okay, let's actually trash the data fields */
+      if( modify_all_fields(nhdr, opts, g_hdr2_fields, NT_HDR2_NUM_FIELDS) )
+      {
+         free(nhdr);
+         return 1;
+      }
+
+      dupname = NULL;                     /* unless we duplicate file   */
+
+      /* possibly duplicate the current dataset before writing new header */
+      if( opts->prefix )
+      {
+         nim = nt_image_read(opts, fname, 1); /* get data */
+         if( !nim ) {
+            fprintf(stderr,"** failed to dup file '%s' before modifying\n",
+                    fname);
+            return 1;
+         }
+         if( opts->keep_hist && nifti_add_extension(nim, opts->command,
+                                strlen(opts->command), NIFTI_ECODE_COMMENT) )
+               fprintf(stderr,"** failed to add command to image as exten\n");
+         if( nifti_set_filenames(nim, opts->prefix, 1, 1) )
+         {
+            NTL_FERR(func,"failed to set prefix for new file: ",opts->prefix);
+            nifti_image_free(nim);
+            return 1;
+         }
+         dupname = nifti_strdup(nim->fname);  /* so we know to free it */
+         fname = dupname;
+         nifti_image_write(nim);  /* create the duplicate file */
+         /* if we added a history note, get the new offset into the header */
+         /* mod: if the new offset is valid, use it    31 Jan 2006 [rickr] */
+         if( nim->iname_offset >= 540 ) nhdr->vox_offset = nim->iname_offset;
+         nifti_image_free(nim);
+      }
+      else if ( swap )
+         swap_nifti_header(nhdr, NIFTI_VERSION(*nhdr));
+
+      /* if all is well, overwrite header in fname dataset */
+      (void)write_hdr2_to_file(nhdr, fname); /* errors printed in function */
+
+      if( dupname ) free(dupname);
+      free(nhdr);
+   }
+
+   return 0;
+}
+
+
+/*----------------------------------------------------------------------
+ * - read header
+ * - swap header (fail on nifti2)
  * - if -prefix duplicate file
  * - overwrite file header      (allows (danger-of) no evaluation of data)
  *----------------------------------------------------------------------*/
@@ -3092,8 +3231,9 @@ int act_swap_hdrs( nt_opts * opts )
    nifti_1_header * nhdr;
    nifti_image    * nim;         /* for reading/writing entire datasets */
    int              filec, swap, nver=1;
-   char           * fname, * dupname;
-   char             func[] = { "act_mod_hdrs" };
+   const char     * fname;
+   char           * dupname;
+   char             func[] = { "act_swap_hdrs" };
 
    /* count requested operations: "there can be only one", and not Sean */
    swap = opts->swap_hdr + opts->swap_ana + opts->swap_old;
@@ -3115,15 +3255,29 @@ int act_swap_hdrs( nt_opts * opts )
          continue;
       }
 
-/* rcr - this should be swap_hdr1s */
-
       /* do not validate the header structure */
       nhdr = nt_read_header(fname, &nver, &swap, 0, opts->new_datatype,
                                                     opts->new_dim);
       if( !nhdr ) return 1;
 
+      /* but if this is a valid NIFTI-2 header, fail */
+      if( ! nifti_hdr1_looks_good(nhdr) ) {
+         nifti_2_header * n2hdr;
+         int              n2ver=2;
+         n2hdr = nt_read_header(fname, &n2ver, NULL, 0, 0, 0);
+         if( nifti_hdr2_looks_good(n2hdr) ) {
+            if( g_debug > 0 )
+               fprintf(stderr,"** refusing to swap NIFTI-2 header "
+                              "as NIFTI-1 in %s\n", fname);
+            free(nhdr);
+            free(n2hdr);
+            return 1;
+         }
+         free(n2hdr);
+      }
+
       if( g_debug > 1 ) {
-         char * str = "NIfTI";
+         const char * str = "NIfTI";
          if( opts->swap_ana || (opts->swap_old && !NIFTI_VERSION(*nhdr)) )
             str = "ANALYZE";
          fprintf(stderr,"-d %sswapping %s header of file %s\n",
@@ -3250,7 +3404,7 @@ int act_mod_nims( nt_opts * opts )
 /*----------------------------------------------------------------------
  * overwrite nifti_1_header in the given file
  *----------------------------------------------------------------------*/
-int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
+int write_hdr_to_file( nifti_1_header * nhdr, const char * fname )
 {
    znzFile fp;
    size_t  bytes;
@@ -3273,6 +3427,39 @@ int write_hdr_to_file( nifti_1_header * nhdr, char * fname )
 
    if( g_debug > 3 )
       disp_nifti_1_header("+d writing new header to file : ", nhdr);
+
+   znzclose(fp);
+
+   return rv;
+}
+
+
+/*----------------------------------------------------------------------
+ * overwrite nifti_2_header in the given file
+ *----------------------------------------------------------------------*/
+int write_hdr2_to_file( nifti_2_header * nhdr, const char * fname )
+{
+   znzFile fp;
+   size_t  bytes;
+   char    func[] = { "write_hdr2_to_file" };
+   int     rv = 0;
+
+   fp = znzopen(fname,"r+b",nifti_is_gzfile(fname));
+   if( znz_isnull(fp) ){
+      NTL_FERR(func, "failed to re-open mod file", fname);
+      return 1;
+   }
+
+   bytes = znzwrite(nhdr, 1, sizeof(nifti_2_header), fp);
+   if( bytes != sizeof(nifti_2_header)){
+      NTL_FERR(func, "failed to write N-2 header to file",fname);
+      fprintf(stderr,"  - wrote %d of %d bytes\n",
+              (int)bytes,(int)sizeof(nifti_2_header));
+      rv = 1;
+   }
+
+   if( g_debug > 3 )
+      disp_nifti_2_header("+d writing new N2 header to file : ", nhdr);
 
    znzclose(fp);
 
@@ -3322,10 +3509,10 @@ int modify_all_fields( void * basep, nt_opts * opts, field_s * fields, int flen)
  *
  * pointer fields are not allowed here
  *----------------------------------------------------------------------*/
-int modify_field(void * basep, field_s * field, char * data)
+int modify_field(void * basep, field_s * field, const char * data)
 {
    float   fval;
-   char  * posn = data;
+   const char  * posn = data;
    int     val, max, fc, nchars;
 
    if( g_debug > 1 )
@@ -3944,7 +4131,7 @@ int fill_ana_field_array( field_s * ah_fields )
 /*----------------------------------------------------------------------
  * compare sizes to offset, including total
  *----------------------------------------------------------------------*/
-int check_total_size( char * mesg, field_s * fields, int nfields, int tot_size )
+int check_total_size( const char *mesg, field_s * fields, int nfields, int tot_size )
 {
    field_s * fp;
    int       c, total;
@@ -3983,7 +4170,7 @@ int check_total_size( char * mesg, field_s * fields, int nfields, int tot_size )
 /*----------------------------------------------------------------------
  * fill the field structure with the given data
  *----------------------------------------------------------------------*/
-int fill_field( field_s * fp, int type, int offset, int num, char * name )
+int fill_field( field_s * fp, int type, int offset, int num, const char * name )
 {
    fp->type   = type;
    fp->offset = offset;
@@ -4033,7 +4220,7 @@ int fill_field( field_s * fp, int type, int offset, int num, char * name )
 /*----------------------------------------------------------------------
  * return a string matching the type
  *----------------------------------------------------------------------*/
-char * field_type_str( int type )
+const char * field_type_str( int type )
 {
 
 
@@ -4068,7 +4255,7 @@ char * field_type_str( int type )
 /*----------------------------------------------------------------------
  * display the contents of all of the field structures
  *----------------------------------------------------------------------*/
-int disp_field_s_list( char * mesg, field_s * fp, int nfields )
+int disp_field_s_list( const char *mesg, field_s * fp, int nfields )
 {
    int c, total=0;
 
@@ -4095,7 +4282,7 @@ int disp_field_s_list( char * mesg, field_s * fp, int nfields )
 /*----------------------------------------------------------------------
  * display the contents of all of the field structures
  *----------------------------------------------------------------------*/
-int disp_field(char *mesg, field_s *fieldp, void * str, int nfields, int header)
+int disp_field(const char *mesg, field_s *fieldp, void * str, int nfields, int header)
 {
    field_s * fp;
    int       c;
@@ -4249,7 +4436,7 @@ int diff_field(field_s *fieldp, void * str0, void * str1, int nfields)
 /*----------------------------------------------------------------------
  * display a single extension
  *----------------------------------------------------------------------*/
-int disp_cifti_extension(char *mesg, nifti1_extension * ext, int maxlen)
+int disp_cifti_extension( const char *mesg, nifti1_extension * ext, int maxlen)
 {
    FILE * outfp = stdout;
    int    len;
@@ -4285,7 +4472,7 @@ int disp_cifti_extension(char *mesg, nifti1_extension * ext, int maxlen)
 /*----------------------------------------------------------------------
  * display a single extension
  *----------------------------------------------------------------------*/
-int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
+int disp_nifti1_extension( const char *mesg, nifti1_extension * ext, int maxlen)
 {
    FILE * outfp = stdout;
    int    len;
@@ -4322,7 +4509,7 @@ int disp_nifti1_extension(char *mesg, nifti1_extension * ext, int maxlen)
 /*----------------------------------------------------------------------
  * return the appropritate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
-field_s * get_hdr1_field( char * fname, int show_fail )
+field_s * get_hdr1_field( const char * fname, int show_fail )
 {
    field_s * fp;
    int       c;
@@ -4346,7 +4533,7 @@ field_s * get_hdr1_field( char * fname, int show_fail )
 /*----------------------------------------------------------------------
  * return the appropritate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
-field_s * get_hdr2_field( char * fname, int show_fail )
+field_s * get_hdr2_field( const char * fname, int show_fail )
 {
    field_s * fp;
    int       c;
@@ -4371,7 +4558,7 @@ field_s * get_hdr2_field( char * fname, int show_fail )
 /*----------------------------------------------------------------------
  * return the appropritate pointer into the g_hdr1_fields struct
  *----------------------------------------------------------------------*/
-field_s * get_nim_field( char * fname, int show_fail )
+field_s * get_nim_field( const char * fname, int show_fail )
 {
    field_s * fp;
    int       c;
@@ -4460,7 +4647,7 @@ int diff_hdr1s_list( nifti_1_header * s0, nifti_1_header * s1, str_list * slist,
                      int display )
 {
    field_s  * fp;
-   char    ** sptr;
+   const char    ** sptr;
    int        c, ndiff = 0;
 
    sptr = slist->list;
@@ -4487,7 +4674,7 @@ int diff_hdr2s_list( nifti_2_header * s0, nifti_2_header * s1, str_list * slist,
                      int display )
 {
    field_s  * fp;
-   char    ** sptr;
+   const char    ** sptr;
    int        c, ndiff = 0;
 
    sptr = slist->list;
@@ -4514,7 +4701,7 @@ int diff_nims_list( nifti_image * s0, nifti_image * s1, str_list * slist,
                     int display )
 {
    field_s  * fp;
-   char    ** sptr;
+   const char    ** sptr;
    int        c, ndiff = 0;
 
    sptr = slist->list;
@@ -4594,7 +4781,7 @@ int act_disp_ci( nt_opts * opts )
       if( len < 0 || !data )
       {
          fprintf(stderr,"** FAILURE for dataset '%s'\n", nim->fname);
-         if( data ) free(data);
+         if( data ) { free(data); data = NULL; }
          err++;
       }
 
@@ -4884,7 +5071,7 @@ static int free_opts_mem( nt_opts * nopt )
  * this adds the option to generage an empty image, if the
  * filename starts with "MAKE_IM"
  *----------------------------------------------------------------------*/
-nifti_image * nt_image_read( nt_opts * opts, char * fname, int doread )
+nifti_image * nt_image_read( nt_opts * opts, const char * fname, int doread )
 {
     if( !opts || !fname  ) {
         fprintf(stderr,"** nt_image_read: bad params (%p,%p)\n",
@@ -4921,7 +5108,7 @@ nifti_image * nt_image_read( nt_opts * opts, char * fname, int doread )
  * this adds the option to generage an empty image, if the
  * filename starts with "MAKE_IM"
  *----------------------------------------------------------------------*/
-void * nt_read_header(char * fname, int * nver, int * swapped, int check, 
+void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
                       int new_datatype, int64_t new_dim[8])
 {
     nifti_image * nim = NULL;
@@ -4957,11 +5144,14 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
         if( !nptr ) return NULL;
         if( g_debug > 1 ) fprintf(stderr,"-d have NIFTI-%d header, %s\n",
                                   nv, fname);
-            
+
         /* negative means convert, if necessary */
         if( *nver == -1 ) {
            nifti_1_header * hdr=NULL;
            if( nv <= 1 ) return nptr;
+
+           if(g_debug > 1)
+              fprintf(stderr,"+d nifti_tool: convert n2hdr -> n1hdr\n");
 
            /* else assume 2: convert headers via nim? */
            hdr = (nifti_1_header *)malloc(sizeof(nifti_1_header));
@@ -4987,6 +5177,9 @@ void * nt_read_header(char * fname, int * nver, int * swapped, int check,
            if( nv == 2 ) return nptr;
 
            /* else assume 2: convert headers via nim? */
+           if(g_debug > 1)
+              fprintf(stderr,"+d nifti_tool: convert n1hdr -> n2hdr\n");
+
            hdr = (nifti_2_header *)malloc(sizeof(nifti_2_header));
            if( !hdr ) {
               fprintf(stderr,"** %s: failed to alloc nifti_2_header\n", func);
@@ -5109,4 +5302,3 @@ nifti_image * nt_read_bricks(nt_opts * opts, char * fname, int len,
 
     return nim;
 }
-

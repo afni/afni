@@ -1,0 +1,25 @@
+version: 2
+jobs:
+  build:
+    machine: true
+    steps:
+      - checkout
+      - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} --build-arg AFNI_WITH_COVERAGE=1 .
+      - run:
+          no_output_timeout: 2h
+          command: |
+            ci_env=`bash <(curl -s https://codecov.io/env)`
+            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} /opt/afni/tests/run_tests.sh
+
+      - run:
+          command: |
+            set +o pipefail
+            if [ $DOCKER_USER == 'afni' ]
+            then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} .
+              docker tag afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni_dev:latest
+              docker push afni/afni_dev
+              docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
+              docker push afni/afni
+            fi

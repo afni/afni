@@ -1,0 +1,410 @@
+#!/bin/tcsh
+# @measure_erosion_thick
+# erode a dataset repeatedly to separate datasets until nothing left
+# add up all the erosions at the end to get erosion_levels depth dataset
+# and normalize to get erosionnorm dataset
+
+# h_view help instead of regular help (opens editor with -help output)
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# initializations
+set maskset = ""
+set surfset = ""
+set thickdir = "erosion_thickdir"
+set maxthick = "6"
+set resample = "auto"
+set surfsmooth = "8"
+set smoothmm = ""
+set depthsearch = "3"
+set inval = ""
+set outval = ""
+set maskval = ""
+set keep_temp_files = ""
+set balls_only = ""
+set heat_method = "HEAT_07"
+
+if ($# < 1) then
+# help
+HELP:
+    echo "@measure_erosion_thick - compute thickness of mask using erosion method"
+    echo "usage:"
+    echo "@measure_erosion_thick -maskset maskset -surfset surfacedset.gii -outdir thickdir"
+    echo
+    echo "where maskset is the dataset to find thickness"
+    echo " using the largest non-zero value in the mask."
+    echo " If dataset has values -2,-1 and 1 for different regions, this script"
+    echo " calculates the thickness only for voxels with a value of 1"
+    echo "surfset is a surface to use to find normals into the volume"
+    echo "output is in directory thickdir. If not specified, erosion_thickdir is used"
+    echo
+    echo "This script finds thickness by eroding voxels away, using facing voxels"
+    echo "a layer at a time."
+    echo
+    echo "Because of limitations in the growth of the spheres used in this method,"
+    echo "it is recommended to use oversampled data, particularly when using 1mm data"
+    echo "See -resample option below"
+    echo
+    echo "Main options:"
+    echo "  -maskset mydset      mask dataset for input"
+    echo "  -surfset mydset.gii  surface dataset onto which to map thickness"
+    echo "                       (probably a pial/gray matter surface)"
+    echo "  -outdir thickdir     output directory"
+    echo
+    echo "Other options:"
+    echo
+    echo "  -resample mm   resample input to mm in millimeters (put a number here)"
+    echo '                 set this to half a voxel or \"auto\".'
+    echo "                 No resampling is done by default"
+    echo "                 Resampling is highly recommended for most 1mm data"
+    echo "  -surfsmooth mm smooth surface map of thickness by mm millimeters"
+    echo "                 default is 8 mm"
+    echo "  -smoothmm mm  smooth volume by mm FWHM in mask"
+    echo "                 default is 2*voxelsize of mask or resampled mask"
+    echo "  -maxthick mm   search for maximum thickness value of mm millimeters"
+    echo "                 default is 6 mm"
+    echo "  -depthsearch mm map to surface by looking for max along mm millimeter"
+    echo "                 normal vectors. default is 3 mm"
+    echo "  -keep_temp_files do not delete the intermediate files (for testing)"
+    echo "  -surfsmooth_method heattype heat method used for smoothing surfaces"
+    echo "                 default is HEAT_07 but HEAT_05 is also useful for models"
+    echo
+    echo "Output:"
+    echo "   erosion_depth.nii.gz - depth dataset"
+    echo "   erosion_thick.nii.gz - volumetric thickness dataset"
+    echo "   erosion_thick_smooth.nii.gz - smoothed volumetric thickness dataset"
+    echo "   erosion_thick.niml.dset - unsmoothed thickness mapped to surface nodes"
+    echo "   erosion_thick_smooth_nn_mm.niml.dset - smoothed thickness mapped to surface nodes"
+    echo
+    echo "   Other datasets included in output:"
+    echo "   maskset.nii.gz, maskset_rs.nii.gz - mask and optional resampled mask"
+    echo "   anat.gii - surface representation of mask volume"
+    echo "   quick.spec - simple specification file for surface to use with suma commands"
+    echo
+    echo "See related scripts and programs for computing thickness:"
+    echo "    @measure_in2out, @measure_bb_thick and SurfMeasures"
+    exit
+endif
+
+
+# process user options
+set ac = 1
+while ( $ac <= $#argv )
+    # maybe just a desperate plea for help
+    if ( ( "$argv[$ac]" == "-help" ) || ( "$argv[$ac]" == "-HELP" )  || \
+       ( "$argv[$ac]" == "--help" ) || ( "$argv[$ac]" == "-h" ) ) then
+       goto HELP
+    # get the basics - input dataset, surface and output directory
+    # only the input is really required, but the other two are nice to have
+    else if ( "$argv[$ac]" == "-maskset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskset'"
+            exit 1
+        endif
+        set  maskset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfset'"
+            exit 1
+        endif
+        set  surfset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-outdir'"
+            exit 1
+        endif
+        set  thickdir = $argv[$ac]
+        @ ac ++; continue;
+
+    # now tweak the options
+    else if ( "$argv[$ac]" == "-resample" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-resample'"
+            exit 1
+        endif
+        set resample = $argv[$ac]
+        if ("$resample" == "auto") then
+           echo "resampling set to auto"
+        else
+           set resample = `ccalc -expr "$resample"`
+           if ("$status" != "0") then
+              echo "resample set to $argv[$ac] is not valid"
+              exit 1
+           endif
+           echo "resample voxel size to $resample mm"
+        endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-maxthick" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxthick'"
+            exit 1
+        endif
+        set  maxthick = $argv[$ac]
+       set maxthick = `ccalc -expr "$maxthick"`
+       if ("$status" != "0") then
+         echo "maxthick set to $argv[$ac] is not valid"
+         exit 1
+       endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfsmooth" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfsmooth'"
+            exit 1
+        endif
+        set surfsmooth = $argv[$ac]
+       set surfsmooth = `ccalc -expr "$surfsmooth"`
+       if ("$status" != "0") then
+         echo "surfsmooth set to $argv[$ac] is not valid"
+         exit 1
+       endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfsmooth_method" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfsmooth'"
+            exit 1
+        endif
+        set heat_method = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-smoothmm" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-smoothmm'"
+            exit 1
+        endif
+        set smoothmm = $argv[$ac]
+       set smoothmm = `ccalc -expr "$smoothmm"`
+       if ("$status" != "0") then
+         echo "smoothmm set to $argv[$ac] is not valid"
+         exit 1
+       endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-depthsearch" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-depthsearch'"
+            exit 1
+        endif
+        set depthsearch = $argv[$ac]
+       set depthsearch = `ccalc -expr "$depthsearch"`
+       if ("$status" != "0") then
+         echo "depthsearch set to $argv[$ac] is not valid"
+         exit 1
+       endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-keep_temp_files" ) then
+        set keep_temp_files = "keep"
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-ignore_unknown_options" ) then
+        set ignore_unknown_options = "yes"
+        @ ac ++; continue;
+
+    # unknown options - exit
+    else
+        if ("$ignore_unknown_options" != "yes") then
+          echo "** unknown option $argv[$ac]"
+          exit 1
+        endif
+    endif
+    @ ac ++
+end
+
+if ("$maskset" == "") then
+   echo 'No input dataset. Please provide "-maskset mydset.nii" '
+   exit 1
+endif
+
+# get voxel size - minimum of 2D square at least in-plane (should use cubic voxels though)
+# but this could potentially work for 2D images too ("thick" 2D images)
+set v3 = `3dinfo -d3 $maskset`
+set voxsize = `ccalc "min(abs($v3[1]),abs($v3[2]))"`
+# starting radius in mm
+set inirad = $voxsize
+
+# maximum radius in mm (not absolutely necessary for this method)
+if ("$maxthick" == "") then
+   set maxrad = 4
+else
+   set maxrad = `ccalc -expr "$maxthick/2+0.01"`
+endif
+
+# do everything in a new directory for simplicity
+mkdir $thickdir
+
+# put original dataset into output directory with specific name
+#  this is easier and allows for mask range selectors, sub-brick selectors, and NIFTI
+3dTcat -prefix $thickdir/allmaskset.nii.gz -overwrite $maskset
+if ($surfset != "") then
+    ConvertSurface -i $surfset -o $thickdir/anat.gii
+endif
+
+cd $thickdir
+
+# get rid of any previous results if directory already exists
+rm -f __tt_*_erode_*
+
+set maskset = maskset.nii.gz
+# if there are multiple values in the mask dataset
+# then assume the lower values are inside and outside masks for now
+set vrange = `3dBrickStat -non-zero -min -max allmaskset.nii.gz`
+if ($vrange[1] != $vrange[2]) then
+   # can do in-out, but use a simpler mask for the other methods
+   3dTcat -overwrite -prefix maskset.nii.gz allmaskset.nii.gz"<${vrange[2]}>"
+else
+   # just a single value mask - can't do in-out calculation
+   rm maskset.nii.gz
+   3dcopy allmaskset.nii.gz maskset.nii.gz
+endif
+
+# check if resampling is desired
+if ("$resample" != "") then
+   # for the "auto" way, use 1/2 voxel size
+   if ("$resample" == "auto") then
+      set voxsize = `ccalc -expr "${voxsize}/2"`
+   else
+      set voxsize = $resample
+   endif
+   3dresample -rmode NN -prefix maskset_rs.nii.gz -overwrite \
+      -bound_type SLAB -dxyz $voxsize $voxsize $voxsize -input $maskset
+   set maskset = maskset_rs.nii.gz
+endif
+
+set iter = `printf "%2.2d" 0`
+set iterp1 = `printf "%2.2d" 1`
+
+# put copy of original dset in 1st iteration as mask and for easier bookkeeping
+3dcalc -a $maskset -prefix __tt_erode_$iter.nii.gz -overwrite -expr 'step(a)'
+
+# get voxel size - minimum of 2D square at least in-plane (should use cubic voxels though)
+# but this will for 2D images too (maybe)
+set v3 = `3dinfo -d3 $maskset`
+set voxsize = `ccalc "min(abs($v3[1]),abs($v3[2]))"`
+set nvox = 1
+
+# iterate until no more voxels in mask
+while ( $nvox != 0 )
+   # erode facing voxels with 3dcalc
+   3dcalc -a __tt_erode_${iter}.nii.gz \
+   -b a+i -c a-i -d a+j -e a-j -f a+k -g a-k \
+   -expr 'and(a,b,c,d,e,f,g)' \
+   -prefix __tt_erode_${iterp1}.nii.gz -overwrite
+
+   set iter = $iterp1
+   set iterp1 = `ccalc -form "%2.2d" "$iterp1+1"`
+
+# @ operator is weird with 08, that is converted octal and doesn't know what to do...
+#   so used ccalc instead to add 1 above
+#   @ iterp1++
+#   set iterp1 = `printf "%2.2d" $iterp1`
+
+   # check for maximum thickness
+   set too_thick = `ccalc "step($iterp1*$voxsize-$maxthick)"`
+   if ($too_thick == "1") then
+      set nvox = 0
+   else
+      # count the voxels left
+      set nvox = `3dBrickStat -count -non-zero __tt_erode_${iter}.nii.gz`
+   endif
+end
+rm -rf erosion_depth_vox.nii.gz erosion_depth.nii.gz erosion_thick.nii.gz erosion_norm.nii.gz
+# add all the erosions together for a continuous map of the erosion
+#  each iteration left masks always with a value of 1, so how many 1's across
+#  erosion iterations is the level. Inside values get more 1's
+# up to 99 erosions allowed here with the ??
+3dMean -sum -overwrite -prefix erosion_depth_vox.nii.gz __tt_erode_??.nii.gz
+
+# compute normalized erosion, to range from 0-1
+3dcalc -a erosion_depth_vox.nii.gz -expr "a / ($iterp1-1)" \
+  -overwrite -prefix erosion_norm.nii.gz
+
+# convert erosion level to thickness by voxelsize
+# unfortunately there's a problem converting depth to thickness
+# for every layer there can be two possible thicknesses
+# that will give rise to that depth.
+# These examples are 1D versions with x's for each voxel
+# and a number for the maximum depth
+# x - 1
+# xx - 1
+# xxx - 2
+# xxxx - 2
+# xxxxx - 3
+# xxxxxx - 3
+# xxxxxxx - 4
+# xxxxxxxx - 4
+# 1->1.5v, 2->3.5v, 3->5.5v, 4-> 7.5
+3dcalc -a erosion_depth_vox.nii.gz -expr "step(a)*max((2*a-0.5)*$voxsize, $voxsize)" \
+  -overwrite -prefix erosion_depth.nii.gz
+
+# Convert depth to thickness by putting balls down (same as in ball and box method)
+
+# now put spheres back down at each coordinate starting at the maximum radius
+# write out all the coordinates in the mask with the current thickness
+3dmaskdump -mask $maskset -nozero erosion_depth.nii.gz > sphere_centers_pre.1D
+
+# sort coordinates from smallest to largest thickness
+sort -n -k 4 sphere_centers_pre.1D > sphere_centers_sorted.1D
+# calculate radius again - need this for 3dUndump
+1deval -a sphere_centers_sorted.1D'[3]' -expr "(a-${voxsize})/2" > radii.1D
+# 1D file is "i j k thickness radius" sorted by radius
+1dcat sphere_centers_sorted.1D radii.1D > sphere_centers.1D
+
+# fill spheres around centers with 1/2 thickness radii and values of the thickness
+# minimum value in mask should be voxsize
+3dUndump -master $maskset -overwrite -prefix erosion_thick.nii.gz \
+    -datum float -mask $maskset \
+    -srad 1.0 -dval $voxsize -ijk sphere_centers.1D
+
+# smooth volume in mask
+if ("$smoothmm" == "") then
+   set smoothmm = `ccalc "$voxsize*2"`
+endif
+3dBlurInMask -overwrite -FWHM $smoothmm -prefix erosion_thick_smooth.nii.gz \
+   -mask $maskset -input erosion_thick.nii.gz
+
+# map the thickness to a surface if we have one
+if($surfset != "") then
+   quickspec -tn gii anat.gii -spec quick.spec
+   # how many steps along normal vector for surface mapping
+   set norm_step_size = `ccalc -int "1.5*$depthsearch/$voxsize"`
+
+   # use the erosionlevels dset and search for the max going along a normal
+   #  from the surface. This requires looking a little deeper, and maybe too deep
+   3dVol2Surf -spec quick.spec -surf_A anat.gii -sv $maskset \
+     -grid_parent erosion_depth.nii.gz -map_func max \
+     -f_steps $norm_step_size -f_index nodes \
+     -use_norms -norm_len -$depthsearch \
+     -cmask "-a $maskset -expr astep(a,0.000000)" \
+     -oob_value $voxsize -oom_value $voxsize \
+     -out_niml erosion_thick.niml.dset -overwrite
+
+   # smooth data on surface
+   # (HEAT_05 method is more robust from quick tests than HEAT_07 method
+   #  recommended in help for SurfSmooth, but HEAT_07 gives smoother
+   #  results that look reasonable)
+   SurfSmooth -spec quick.spec -surf_A anat.gii -met HEAT_07  \
+     -input erosion_thick.niml.dset -fwhm $surfsmooth \
+     -output erosion_thick_smooth.niml.dset -overwrite
+endif
+
+# unless the user is a hoarder, trash the intermediate files
+if ("$keep_temp_files" != "keep") then
+# cleanup all the erosion iterations and the voxel level erosions
+   rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec
+endif
+
+echo "#\!/bin/tcsh" > @show_thick
+echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
+echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
+echo '     -com surf_cont -load_dset erosion_thick_smooth.niml.dset \' >> @show_thick
+echo '     -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \' >> @show_thick
+echo '     -com viewer_cont -key b" &' >> @show_thick
+echo "To show surface with thickness map, use this command:"
+echo "   cd $thickdir; tcsh @show_thick"
+echo "To see volume datasets of thickness, view erosion_thick_smooth.nii.gz in the afni GUI"

@@ -18,6 +18,32 @@ float qmean_float( int n , float *ar )
    sum /= n ; return sum ;
 }
 
+
+/*------------------------------------------------------------------------
+    Compute non-zero mean of an array of floats 
+-------------------------------------------------------------------------*/
+float qnzmean_float( int n , float *ar )
+{
+   int ii ; float sum=0.0f, v ;
+   int ngood = 0;
+
+   if( n <= 0 || ar == NULL ) return sum ;
+
+   for( ii=0 ; ii < n ; ii++ ){
+	    v = ar[ii];
+	    if(v!=0.0) {
+			sum += ar[ii] ;
+			ngood++;
+	    }
+   }
+   /* might have no non-zero voxels, so just return 0*/
+   if(ngood<=0) sum = 0.0;
+   /* otherwise return average */
+   else sum /= ngood ; 
+   return sum ;
+}
+
+
 /*------------------------------------------------------------------------
    Compute the median of an array of floats.  Will rearrange (partially
    sort) the array in the process.  The algorithm is based on Quicksort,
@@ -434,7 +460,7 @@ static float median_float9(float *p)
  * conventions (array indices begin at zero).
  *------- Code mildly adapted from Al Paeth's Median.c --------*
  *//*----------------------------------------------------------*/
-
+#undef  S2
 #define S2(i,j) if(A[i-1]>A[j-1]){temp=A[i-1];A[i-1]=A[j-1];A[j-1]=temp;}
 
 static float median_float25( float *A )
@@ -1122,4 +1148,41 @@ INFO_message("qfrac(%g): fmid=%g mid=%d a[mid]=%g temp=%g",frac,fmid,mid,a[mid],
 #endif
 
    return (fb*a[mid]+ft*temp) ;
+}
+
+/*-------------------------------------------------------------------------*/
+/* The Mean Square Successive Difference
+   J von Neumann, RH Kent, HR Bellinson and BI Hart.
+   The Annals of Mathematical Statistics 12:153-162 (1941).
+*//*-----------------------------------------------------------------------*/
+
+float cs_mean_square_sd( int npt , float *x )
+{
+   float sum=0.0f , val ; int ii ;
+
+   if( npt < 2 || x == NULL ) return sum ;
+
+   for( ii=1 ; ii < npt ; ii++ ){
+     val = x[ii] - x[ii-1] ; sum += val*val ;
+   }
+   return (sum/(npt-1.0f)) ;
+}
+
+/*--- similar thing, but median absolute value of successive differences ---*/
+
+float cs_median_abs_sd( int npt , float *x , float *wks )
+{
+   float *dd=wks , val ; int ii ;
+
+   if( npt < 2 || x == NULL ) return 0.0f ;
+
+   if( dd == NULL ) dd = (float *)malloc(sizeof(float)*npt) ;
+
+   for( ii=1 ; ii < npt ; ii++ ){
+     dd[ii-1] = fabsf( x[ii] - x[ii-1] ) ;
+   }
+
+   val = qmed_float( npt-1 , dd ) ;
+   if( dd != wks ) free(dd) ;
+   return val ;
 }

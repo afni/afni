@@ -1,0 +1,479 @@
+#!/bin/tcsh
+
+# h_view help instead of regular help (opens editor with -help output)
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# initializations
+set maskset = ""
+set surfset = ""
+set thickdir = "in2out_thickdir"
+set increment = ""
+set maxthick = ""
+set resample = ""
+set surfsmooth = "6"
+set depthsearch = "3"
+set inval = ""
+set outval = ""
+set maskval = ""
+set keep_temp_files = ""
+set heat_method = "HEAT_07"
+set fs_dir = ""
+
+# help
+if ($# < 1) then
+HELP:
+    echo "@measure_in2out - compute thickness of mask using in2out method"
+    echo "usage:"
+    echo "@measure_in2out -maskset maskset -surfset surfacedset.gii -outdir thickdir"
+    echo
+    echo "where maskset is the dataset to find thickness"
+    echo " with value of 1 for the mask value to find the thickness"
+    echo " values of -1 and -2 for the inner and outer boundary values"
+    echo " (inside and outside masks are treated equivalently)"
+    echo "surfset is a surface to use to find normals into the volume"
+    echo "output is in directory thickdir. If not specified, in2out_thickdir is used"
+    echo
+    echo 'This script finds thickness by finding the shortest distance to "inside"'
+    echo 'and "outside" voxels for every voxel in a mask. The distance to the "inside"'
+    echo 'and the distance to the "outside" are added together to be "thickness".'
+
+    echo "For example, cortical/gray matter thickness can be found using a mask dataset"
+    echo "with white matter defined as an inside value and all other voxels"
+    echo "assigned to be outside voxels."
+    echo
+    echo "Because of limitations in the growth of the spheres used in this method,"
+    echo "it is recommended to use oversampled data, particularly when using 1mm data"
+    echo "See -resample option below"
+    echo
+    echo "The maskset must contain three distinct non-zero values"
+    echo " the highest value is assumed the mask value, the lowest value is"
+    echo " the outside value, and the inside value is that value+1."
+    echo ' One example use might be "GM=1,WM=-1,Outside=-2"'
+    echo
+    echo "Main options:"
+    echo "  -maskset mydset      mask dataset for input"
+    echo "  -surfset mydset.gii  surface dataset onto which to map thickness"
+    echo "                       (probably a pial/gray matter surface)"
+    echo "  -outdir thickdir     output directory"
+    echo
+    echo "Other options:"
+    echo
+    echo "  -resample mm   resample input to mm in millimeters (put a number here)"
+    echo '                 set this to half a voxel or \"auto\".'
+    echo "                 No resampling is done by default"
+    echo "                 Resampling is highly recommended for most 1mm data"
+    echo "  -increment mm  test thickness at increments of sub-voxel distance"
+    echo "                 default is 1/4 voxel minimum distance (in-plane)"
+    echo "  -surfsmooth mm smooth surface map of thickness by mm millimeters"
+    echo "                 default is 6 mm"
+    echo "  -maxthick mm   search for maximum thickness value of mm millimeters"
+    echo "                 default is 6 mm"
+    echo "  -depthsearch mm map to surface by looking for max along mm millimeter"
+    echo "                 normal vectors. default is 3 mm"
+    echo "  -maskinoutvals v1 v2 v3  use v1 for value of mask, v2 and v3 for inside"
+    echo '                 and outside mask values, e.g. "1 -2 -1"'
+    echo "  -keep_temp_files do not delete the intermediate files (for testing)"
+    echo "  -surfsmooth_method heattype heat method used for smoothing surfaces"
+    echo "                 default is HEAT_07 but HEAT_05 is also useful for some models"
+    echo "  -fs_cort_dir dirname use FreeSurfer SUMA directory from @SUMA_Make_Spec_FS"
+    echo "                 for processing"
+    echo
+    echo "Output:"
+    echo "   inout_dist.nii.gz - volumetric thickness/distance from in to out"
+    echo "   in_and_out.nii.gz - volumetric distance to inside and outside in 2 volumes"
+    echo "   inout_thick.niml.dset - unsmoothed thickness mapped to surface nodes"
+    echo "   inout_thick_smooth.niml.dset - smoothed thickness mapped to surface nodes"
+    echo
+    echo "   Other datasets included in output:"
+    echo "   maskset.nii.gz, maskset_rs.nii.gz - mask and optional resampled mask"
+    echo "   anat.gii - surface representation of mask volume"
+    echo "   quick.spec - simple specification file for surface to use with suma commands"
+    echo
+    echo "See related scripts and programs for computing thickness:"
+    echo "    @measure_bb_thick, @measure_erosion_thick and SurfMeasures"
+    exit
+endif
+echo here
+# process user options
+set ac = 1
+while ( $ac <= $#argv )
+    # maybe just a desperate plea for help
+    if ( ( "$argv[$ac]" == "-help" ) || ( "$argv[$ac]" == "-HELP" )  || \
+       ( "$argv[$ac]" == "--help" ) || ( "$argv[$ac]" == "-h" ) ) then
+       goto HELP
+    # get the basics - input dataset, surface and output directory
+    # only the input is really required, but the other two are nice to have
+    else if ( "$argv[$ac]" == "-maskset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskset'"
+            exit 1
+        endif
+        set  maskset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfset" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfset'"
+            exit 1
+        endif
+        set  surfset = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-outdir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-outdir'"
+            exit 1
+        endif
+        set  thickdir = $argv[$ac]
+        @ ac ++; continue;
+        
+    # now tweak the options    
+    else if ( "$argv[$ac]" == "-resample" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-resample'"
+            exit 1
+        endif
+        set resample = $argv[$ac]
+        if ("$resample" == "auto") then
+           echo "resampling set to auto"
+        else
+           set resample = `ccalc -expr "$resample"`
+           if ("$status" != "0") then
+              echo "resample set to $argv[$ac] is not valid"
+              exit 1
+           endif 
+           echo "resample voxel size to $resample mm"       
+        endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-increment" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-increment'"
+            exit 1
+        endif
+        set  increment = $argv[$ac]
+	    set increment = `ccalc -expr "$increment"`
+	    if ("$status" != "0") then
+	  	   echo "increment set to $argv[$ac] is not valid"
+		   exit 1
+	    endif        
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-maxthick" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxthick'"
+            exit 1
+        endif
+        set  maxthick = $argv[$ac]
+	    set maxthick = `ccalc -expr "$maxthick"`
+	    if ("$status" != "0") then
+	  	   echo "maxthick set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfsmooth" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfsmooth'"
+            exit 1
+        endif
+        set surfsmooth = $argv[$ac]
+	    set surfsmooth = `ccalc -expr "$surfsmooth"`
+	    if ("$status" != "0") then
+	  	   echo "surfsmooth set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-surfsmooth_method" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surfsmooth'"
+            exit 1
+        endif
+        set heat_method = $argv[$ac]
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-depthsearch" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-depthsearch'"
+            exit 1
+        endif
+        set depthsearch = $argv[$ac]
+	    set depthsearch = `ccalc -expr "$depthsearch"`
+	    if ("$status" != "0") then
+	  	   echo "depthsearch set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-maskinoutvals" ) then
+        # set maskval for actual mask
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskinoutvals'"
+            exit 1
+        endif
+        set maskval = $argv[$ac]
+	    set maskval = `ccalc -expr "$maskval"`
+	    if ("$status" != "0") then
+	  	   echo "maskval set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+        # now checkout the inside value
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskinoutvals'"
+            exit 1
+        endif
+        set inval = $argv[$ac]
+	    set inval = `ccalc -expr "$inval"`
+	    if ("$status" != "0") then
+	  	   echo "inval set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maskinoutvals'"
+            exit 1
+        endif
+        set outval = $argv[$ac]
+	    set outval = `ccalc -expr "$outval"`
+	    if ("$status" != "0") then
+	  	   echo "outval set to $argv[$ac] is not valid"
+		   exit 1
+	    endif
+	    
+        @ ac ++; continue;
+    else if ( "$argv[$ac]" == "-keep_temp_files" ) then
+        set keep_temp_files = "keep"
+        @ ac ++; continue;
+
+    else if ( "$argv[$ac]" == "-ignore_unknown_options" ) then
+        set ignore_unknown_options = "yes"
+        @ ac ++; continue;
+
+    else if ( "$argv[$ac]" == "-fs_cortical_dir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-fs_cortical_dir'"
+            exit 1
+        endif
+        set fs_dir = $argv[$ac]
+        @ ac ++; continue;
+
+    # unknown options - exit
+    else 
+        if ("$ignore_unknown_options" != "yes") then
+          echo "** unknown option $argv[$ac]"
+          exit 1
+        endif
+    endif
+    @ ac ++
+end
+
+if (("$maskset" == "") && ("$fs_dir" == "")) then
+   echo 'No input dataset. Please provide "-maskset mydset.nii"'
+   echo '   or -fs_cort_dir suma_dir'
+   exit 1
+endif
+
+set nvox = `3dBrickStat -count -non-zero $maskset`
+if ("$status" != "0") then
+   echo "Could not read $maskset"
+   exit 1
+endif
+
+if ("$nvox" == "0" ) then
+   echo "Dataset has no mask in it"
+   exit 1
+endif
+
+if ("$surfset" != "") then
+	if ( ! -e $surfset) then
+		echo "Surface dataset $surfset does not exist"
+		exit 1
+	endif 
+endif
+
+# do everything in a new directory for simplicity
+mkdir $thickdir
+
+if (! -d $thickdir ) then
+   echo "Could not create output directory. Check permissions."
+   exit 1
+endif
+
+# for FreeSurfer cortical thickness, can get specific names to make in-out masks
+#  and surface
+if ("$fs_dir" != "") then
+	if (( ! -e $fs_dir/std.141.lh.pial.gii) || \
+        (! -e $fs_dir/aparc.a2009s+aseg_REN_gm.nii.gz) || \
+        (! -e $fs_dir/aparc+aseg.nii))   then
+		echo "Surface dataset $surfset does not exist"
+		exit 1
+	endif
+    set surfset = $fs_dir/std.141.lh.pial.gii
+    3dcalc -a $fs_dir/aparc.a2009s+aseg_REN_gm.nii.gz -datum byte \
+       -expr 'step(a)' -prefix $thickdir/gm.nii.gz -overwrite
+    3dcalc -a $fs_dir/aparc+aseg.nii -datum short \
+       -expr 'amongst(a,2,7,41,46,251,252,253,254,255)' -prefix $thickdir/wm.nii.gz \
+       -overwrite
+    3dcalc -a $thickdir/gm.nii.gz -b $thickdir/wm.nii.gz \
+       -expr 'step(a)-step(b)*not(a)-2*not(a)*not(b)' \
+       -prefix $thickdir/maskset.nii.gz -datum short -overwrite
+    set maskset = maskset.nii.gz
+endif
+
+# check if useful values of masks in dataset
+if ("$inval" == "" ) then
+   set vrange = `3dBrickStat -non-zero -min -max $maskset`
+
+   # need mask defined for inside, outside and mask itself
+   if ($vrange[1] != $vrange[2]) then
+      set outval = $vrange[1]
+      set inval = `ccalc -expr "$outval+1"`
+      set maskval = $vrange[2]
+   else
+      echo "The in-out method needs a 3 value dataset to calculate thickness"
+      exit 1
+   endif
+endif
+
+
+# put original dataset into output directory with specific name 
+#  this is easier and allows for mask range selectors, sub-brick selectors, and NIFTI
+if("$fs_dir" == "") then
+   3dTcat -prefix $thickdir/maskset.nii.gz -overwrite $maskset
+endif
+
+# simplifying naming output to just maskset something
+set base = "maskset"
+set maskset = maskset.nii.gz
+
+if ($surfset != "") then
+    ConvertSurface -i $surfset -o $thickdir/anat.gii -overwrite
+endif
+
+cd $thickdir
+rm in*.nii.gz out*.nii.gz dist*.nii.gz
+
+# loop distance to inside and distance to outside
+
+# get voxel size - minimum of 2D square at least in-plane (should use cubic voxels though)
+# but this will work for 2D images too (maybe)
+set v3 = `3dinfo -d3 $maskset`
+set voxsize = `ccalc "min(abs($v3[1]),abs($v3[2]))"`
+
+# check if resampling is desired
+if ("$resample" != "") then
+   # for the "auto" way, use 1/2 voxel size
+   if ("$resample" == "auto") then
+      set voxsize = `ccalc -expr "${voxsize}/2"`
+   else
+      set voxsize = $resample         
+   endif
+   3dresample -rmode NN -prefix maskset_rs.nii.gz -overwrite -dxyz $voxsize $voxsize $voxsize -input $maskset
+   set maskset = maskset_rs.nii.gz
+endif
+
+# starting radius in mm
+set inirad = $voxsize
+
+# maximum radius in mm (must be set for this method)
+if ("$maxthick" == "") then
+   set maxrad = 3
+else
+   set maxrad = `ccalc -expr "$maxthick/2+0.01"`
+endif
+
+# increment radial search in mm
+#  if nothing set, use 1/4 voxels
+if ("$increment" == "") then
+   set radinc = $voxsize
+
+   set r1 = `ccalc "0.25*$voxsize"`
+   set r2 = `ccalc "0.5*$voxsize"`
+   set r3 = `ccalc "0.75*$voxsize"`
+   #set radoffs = ( 0.00 $edge_r $corner_r )
+   set radoffs = ( 0.00 $r1 $r2 $r3 )
+else
+   set radinc = $increment
+   set radoffs = ( 0.00 )
+endif
+
+# make a 1 voxel dilated version of the mask to catch only the necessary inside and outside voxels
+3dmask_tool -inputs $maskset"<$maskval>" -dilate_inputs 1 -prefix masksetd1.nii.gz -overwrite
+set rad = $inirad
+set radi = 0
+set donext = 1
+
+# put spheres down at different sizes to find distance to inside and outside
+while ( $donext == "1" )
+ foreach radoff ($radoffs)
+	set rad = `ccalc -expr "$inirad + $radinc * $radi + $radoff"`
+	set donext = `ccalc -int "step($maxrad -$rad)"`
+	if ($donext != "0") then
+	   set rthick = `ccalc "max($voxsize,$rad-$voxsize/2)"`
+	   # this command is the key step for this method **************************
+	   #  for every voxel, find minimum spheres that reach inside and outside masks
+	   3dLocalstat -nbhd "SPHERE($rad)" -stat has_mask -stat has_mask2 -mask masksetd1.nii.gz \
+				   -maskvalue $inval -maskvalue2 $outval -unfillvalue $rthick \
+				   -prefix dist_in_out$rad.nii.gz -overwrite $maskset         
+	endif
+ end
+ @ radi ++
+end
+
+# find the minimum distance to the inside and the minimum distance to the outside
+3dMean -prefix in_and_out_p.nii.gz -overwrite -min -non_zero dist_in_out*.nii.gz
+# mask to just the target mask
+3dcalc -a in_and_out_p.nii.gz -b $maskset"<$maskval>" -expr 'step(b)*a' -prefix in_and_out.nii.gz -overwrite
+
+# add the minimum distance to inside and outside together to get a kind of thickness
+# this should come out somewhat banded and consistent through the object (cortex)
+3dTstat -sum -prefix inout_dist.nii.gz -overwrite in_and_out.nii.gz
+
+# do some surface stuff if we have a surface to work with
+#  could make one with IsoSurface, but if it's already done, we can use that instead
+if($surfset != "") then
+   quickspec -tn gii anat.gii -spec quick.spec
+   # look inside to find the maximum of the minimum distances
+   # because the distance should be somewhat consistent through
+   # it should be less sensitive to the choice of how deep
+   3dVol2Surf -spec quick.spec -surf_A anat.gii -sv $maskset \
+     -grid_parent inout_dist.nii.gz -gp_index 0 -map_func max \
+     -f_steps 10 -f_index nodes \
+     -cmask "-a $maskset<$maskval> -expr astep(a,0.000000)" \
+     -oob_value $voxsize -oom_value $voxsize \
+     -use_norms -norm_len -$depthsearch \
+     -dnode -1 -out_niml inout_thick.niml.dset -overwrite
+
+#   SurfSmooth -spec quick.spec -surf_A anat.gii -met HEAT_07  \
+#     -input inout_max.niml.dset -fwhm 2 \
+#     -output inout_max_smooth2mm.niml.dset -overwrite
+
+   # smooth data on surface 
+   # (HEAT_05 method is more robust from quick tests than HEAT_07 method
+   #  recommended in help for SurfSmooth but HEAT_07 gives smoother
+   #  results that look reasonable)
+   SurfSmooth -spec quick.spec -surf_A anat.gii -met $heat_method  \
+     -input inout_thick.niml.dset -fwhm $surfsmooth \
+     -output inout_thick_smooth.niml.dset -overwrite
+endif
+
+# unless the user is a hoarder, trash the intermediate files
+if ("$keep_temp_files" != "keep") then
+   rm dist_in_out*.nii.gz *.smrec masksetd1.nii.gz in_and_out_p.nii.gz 
+endif
+
+echo "#\!/bin/tcsh" > @show_thick
+echo "setenv SUMA_Sym_I_Range NO" >> @show_thick
+echo "suma -i anat.gii -drive_com " '"-com surf_cont -view_surf_cont y \' >> @show_thick
+echo '     -com surf_cont -load_dset inout_thick_smooth.niml.dset \' >> @show_thick
+echo '     -com surf_cont -Dim 0.4 -com surf_cont -I_range 0 5 \' >> @show_thick
+echo '     -com viewer_cont -key b" &' >> @show_thick
+echo "To show surface with thickness map, use this command:"
+echo "   cd $thickdir; tcsh @show_thick"
+echo "To see volume datasets of thickness, view inout_dist.nii.gz in the afni GUI"

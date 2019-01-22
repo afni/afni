@@ -51,6 +51,28 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 18 , MAY , 2018 , JKR , "abids_lib.py" , SUPER , TYPE_NEW_PROG ,
+   "New library to handle data from json files. Useful for BIDS data."
+ } ,
+ { 18 , MAY , 2018 , JKR , "abids_tool.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to modify BIDS datasets."
+ } ,
+ { 18 , MAY , 2018 , JKR , "abids_json_info.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to extract data from json files. Useful for BIDS data."
+ } ,
+ { 04 , MAY , 2018 , JKR , "BayesianGroupAna.py" , SUPER , TYPE_NEW_PROG ,
+   "New program to preform Bayesian group analysis on ROI level data."
+ } ,
+ { 23 , MAR , 2018 , JKR , "tedana_wrapper.py" , SUPER , TYPE_NEW_PROG ,
+   "add wrapper for tedana.py that will be run from afni_proc.py"
+ } ,
+ { 5 , MAR , 2018 , JKR , "FATCAT_matplot" , MINOR , TYPE_GENERAL ,
+   "changed name of @FATCAT_heatmap_shiny to FATCAT_matplot"
+ } ,
+ { 26 , JAN , 2018 , JKR , "dicom_hinfo" , MINOR , TYPE_GENERAL ,
+   "add -full_entry" ,
+   "prints out the full entry of a tag if there are more than one word"
+ } ,
  { 25 , OCT , 2017 , JKR , "@afni_R_package_install" , SUPER , TYPE_NEW_PROG ,
    "add new program @afni_R_package_install" ,
    "Will install R libraries to run shiny apps"

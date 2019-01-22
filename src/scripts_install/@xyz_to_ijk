@@ -1,0 +1,233 @@
+#!/bin/tcsh 
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+# =====================================================================
+#
+#set version   = "1.1";   set rev_dat   = "May 29, 2018"
+#     + birth
+# 
+#set version   = "1.2";   set rev_dat   = "Aug 28, 2018"
+#     + optionify
+# 
+set version   = "1.3";   set rev_dat   = "Oct 18, 2018"
+#     + fix help file so '-prefix ...' appears correctly
+# 
+# =====================================================================
+
+set BIGNEG = -100000001
+@ BIGNEGp1 = $BIGNEG + 1
+
+set dset   = "" 
+set xyz    = ( $BIGNEG $BIGNEG $BIGNEG ) 
+set NO_XYZ = 1
+set otxt   = ""
+
+set coords = ( 0 0 0 )
+
+set ijkmat = __tmp_ZXC_ijkmat.1D
+
+# -------------------------------------------------------------
+
+if ( $#argv == 0 ) goto SHOW_HELP
+
+set ac = 1
+while ( $ac <= $#argv )
+    # terminal options
+    if ( ("$argv[$ac]" == "-h" ) || ("$argv[$ac]" == "-help" )) then
+        goto SHOW_HELP
+    endif
+    if ( "$argv[$ac]" == "-ver" ) then
+        goto SHOW_VERSION
+    endif
+
+    # --------------- req inputs ----------------
+
+    if ( "$argv[$ac]" == "-inset" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set dset = "$argv[$ac]"
+        
+    else if ( "$argv[$ac]" == "-xyz" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set xyz[1] = "$argv[$ac]"
+        @ ac += 1
+        set xyz[2] = "$argv[$ac]"
+        @ ac += 1
+        set xyz[3] = "$argv[$ac]"
+        set NO_XYZ = 0
+
+    else if ( "$argv[$ac]" == "-prefix" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set otxt = "$argv[$ac]"
+
+    else
+        echo "** unexpected option #$ac = '$argv[$ac]'"
+        exit 2
+
+    endif
+    @ ac += 1
+end
+
+# -------------------------------------------------------------------
+# -------------------------- check inputs ---------------------------
+
+if ( "$dset" == "" ) then
+    echo "** ERROR: need to have an input dset with '-inset ..'!"
+    goto BAD_EXIT
+endif
+
+set check = `3dinfo "$dset"`
+if ( "$#check" == "0" ) then
+    echo "** ERROR: can't find input file:  $dset !"
+    goto BAD_EXIT
+endif
+
+# check for having 3 coords entered by user
+if ( $NO_XYZ ) then
+    echo "** ERROR: need to input xyz coords with '-xyz ..'!"
+    goto BAD_EXIT
+else
+    foreach ii ( `seq 1 1 3` )
+        if ( `echo " $BIGNEGp1 > ${xyz[$ii]} " | bc` ) then
+            echo "** ERROR!  Need 3 values for '-xyz ..' opt"
+            goto BAD_EXIT
+        endif
+    end
+endif
+
+# ------------------------ calc -------------------------------
+
+cat_matvec ${dset}::IJK_TO_DICOM_REAL > $ijkmat
+# get the ijk coordinates in floating point
+set fcoords = `echo $xyz | Vecwarp -matvec $ijkmat -backward -output - `
+foreach ii ( `seq 1 1 3` )
+    # round off to integer
+    set coords[$ii] = `ccalc -i "int($fcoords[${ii}]+.5)"`
+end
+
+set dset_fov = `3dinfo -n4 $dset`
+
+foreach ii ( `seq 1 1 3` )
+    @ maxind = $dset_fov[$ii] - 1 # bc of zero-based counting
+    if ( $coords[$ii] > $maxind ) then
+        @ iii = $ii - 1
+        echo "** ERROR! [$iii]th coor ($xyz[$ii]) is outside FOV:" \
+             "          $coords[$ii] > $maxind"
+        goto BAD_EXIT
+    endif
+end
+
+# ------------------------ finish -------------------------------
+
+# output to screen (can be redirected)
+echo $coords 
+
+# optional: write output to txt file
+if ( "$otxt" != "" ) then
+    echo "$coords" > $otxt
+endif
+
+# clean
+\rm $ijkmat
+
+goto GOOD_EXIT
+
+# -------------------------------------------------------------
+# -------------------------------------------------------------
+
+SHOW_HELP:
+
+cat <<EOF
+
+OVERVIEW ~1~
+
+Basic helper script to convert a set of (x, y, z) coordinates to (i,
+j, k) indices for a dset.  
+
+Essentially, this was created by stealing sage advice written by DR
+Glen in a helpful Message Board post.
+
+Ver. $version (PA Taylor, ${rev_dat})
+
+# ========================================================================
+
+USAGE ~1~
+
+Inputs:
+    + the name of a volumetric file
+    + 3 coordinates: x y z
+
+Outputs:
+    + 3 indices: i j k
+
+The IJK output is output to screen and can be saved directly to a
+variable in a script or redirected to a file with ">" or ">>".  There
+is also a '-prefix ...' option to write to a text file directly
+(screen output is still produced).
+
+If any of 'i j k' are outside the dset's matrix, an error is returned.
+
+If you just get an error message "argv: Subscript out of range.",
+then you have probably provided too few coordinates.  The user is
+required to put in all three (and only three).
+
+Make sure you are interpreting your input xyz and output ijk trios as
+you wish, if you are using a dset with non-xyz-like orientation (such
+as AIL, SPR, etc.).
+
+# =========================================================================
+
+COMMAND OPTIONS ~1~
+
+  -inset VV  :(req) volume VV whose header information sets the FOV and
+              coordinates
+
+  -xyz X Y Z :(req) three coordinates (in units of the dset, like mm),
+              that will be translated to 'i j k' values by the
+              program.
+
+  -prefix PP :(opt) file name, which can include path, to output the
+              three indices
+
+# ========================================================================
+
+EXAMPLES ~1~
+
+    ### Output to screen.
+    @xyz_to_ijk                 \
+        -inset FILE.nii.gz      \
+        -xyz 30 -10.5 0
+
+    ### Script example, save result to a variable: tcsh syntax.
+    set IJK = \`@xyz_to_ijk                 \
+                   -inset FILE.nii.gz      \
+                   -xyz 30 -10.5 0\`
+
+    ### Redirect result to a file.
+    @xyz_to_ijk                 \
+        -inset FILE.nii.gz      \
+        -xyz 30 -10.5 0         > ../saved_ijk.txt
+
+    ### Another way to write to a file.
+    @xyz_to_ijk                 \
+        -inset FILE.nii.gz      \
+        -xyz 30 -10.5 0         \
+        -prefix ../saved_ijk.txt
+
+EOF
+
+goto GOOD_EXIT
+
+# ---------------------------------- 
+
+BAD_EXIT:
+    exit 1
+
+# ---------------------------------- 
+
+GOOD_EXIT:
+    exit 0
+

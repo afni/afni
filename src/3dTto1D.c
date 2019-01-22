@@ -15,9 +15,10 @@ static char * g_history[] =
   "     -initial version\n"
   "1.0  19 Jul 2017: initial release\n"
   "1.1  18 Aug 2017: modify help\n"
+  "1.2  01 Feb 2018: added -4095_count/frac/warn\n"
 };
 
-static char g_version[] = "3dTto1D version 1.1, 18 August 2017";
+static char g_version[] = "3dTto1D version 1.2, 1 February 2018";
 
 #include "mrilib.h"
 
@@ -30,6 +31,9 @@ static char g_version[] = "3dTto1D version 1.1, 18 August 2017";
 #define T21_METH_S_SRMS         4       /* shift_srms */
 #define T21_METH_MDIFF          5       /* mdiff      */
 #define T21_METH_SMDIFF         6       /* smdiff     */
+#define T21_METH_4095_COUNT     7       /* 4095_count */
+#define T21_METH_4095_FRAC      8       /* 4095_frac  */
+#define T21_METH_4095_WARN      9       /* 4095_warn  */
 
 /*--------------- global options struct ---------------*/
 typedef struct
@@ -54,6 +58,7 @@ options_t g_opts;
 int    show_help           (void);
 int    check_dims          (options_t *);
 int    compute_results     (options_t *);
+int    compute_4095        (options_t *, int);
 int    compute_enorm       (options_t *, int);
 int    compute_meandiff    (options_t *, int);
 int    fill_mask           (options_t *);
@@ -78,7 +83,14 @@ int main( int argc, char *argv[] )
 
    if( check_dims(opts) ) RETURN(1);
 
-   if( compute_results(opts) ) RETURN(1);
+   /* evaluation of rv now depends on the method, usually non-zero is bad */
+   rv = compute_results(opts);
+
+   /* for 4095_warn, return now, regardless */
+   if( opts->method == T21_METH_4095_WARN ) RETURN(rv);
+
+   /* otherwise, any non-zero return is a failure */
+   if ( rv ) RETURN(1);
 
    if( write_results(opts) ) RETURN(1);
 
@@ -172,6 +184,10 @@ int compute_results(options_t * opts)
    if( method == T21_METH_MDIFF ||
        method == T21_METH_SMDIFF ) RETURN(compute_meandiff(opts, method));
    
+   if( method == T21_METH_4095_COUNT ||
+       method == T21_METH_4095_FRAC  ||
+       method == T21_METH_4095_WARN ) RETURN(compute_4095(opts, method));
+   
    ERROR_message("unknown method index %d", method);
 
    RETURN(1);
@@ -264,6 +280,103 @@ int compute_meandiff(options_t * opts, int method)
    free(fdata);
   
    if( opts->verb > 1 ) INFO_message("successfully computed mean diff");
+
+   RETURN(0);
+}
+
+
+/* count voxels or mask fraction that hits a global maximum of 4095
+ *
+ * method = 4095_count  : return masked counts
+ *          4095_frac   : return masked fractions
+ *          4095_warn   : return limit warning
+ *
+ * return 1 on error, 0 otherwise
+ */
+int compute_4095(options_t * opts, int method)
+{
+   double * dwork;
+   float  * fdata, gmax, fval;
+   byte   * mask = opts->mask;  /* save 6 characters... */
+   int      nt, nvox, vind, tind, nmask, found, nlocal;
+
+   ENTRY("compute_4095");
+
+   nt = DSET_NVALS(opts->inset);
+   nvox = DSET_NVOX(opts->inset);
+
+   /* note how many voxels this is over */
+   if( opts->mask ) nmask = THD_countmask( nvox, opts->mask );
+   else             nmask = nvox;
+
+   if( opts->verb )
+      INFO_message("computing %s, nvox = %d, nmask = %d, nt = %d",
+                   meth_index_to_name(method), nvox, nmask, nt);
+
+   /* allocate result early, in case there is nothing to do */
+   opts->result = calloc(nt, sizeof(float));
+
+   if( nmask == 0 ) {
+      ERROR_message("empty mask");
+      RETURN(0);
+   }
+
+   /* check_dims() has been called, so we have sufficient data */
+   fdata = calloc(nt, sizeof(float));
+
+   /* do the work */
+   gmax = 0.0;
+   found = 0;
+   for( vind=0; vind < nvox; vind++ ) {
+      if( opts->mask && ! opts->mask[vind] ) continue;
+
+      if( THD_extract_array(vind, opts->inset, 0, fdata) ) {
+         ERROR_message("failed to exract data at index %d\n", vind);
+         free(fdata);  RETURN(1);
+      }
+
+      /* start counting */
+      for( tind=0; tind < nt; tind++ ) {
+         fval = fdata[tind];
+
+         /* track global max */
+         if( fval > gmax ) gmax = fval;
+
+         /* if we pass the limit, quit working */
+         if( gmax > 4095.0 ) break;
+
+         /* track hits */
+         if( fval == 4095.0 ) opts->result[tind]++;
+      }
+   }
+
+   /* no longer needed */
+   free(fdata);
+  
+   /* babble to user */
+   if( opts->verb )
+      INFO_message("global max = %f", gmax);
+
+   /* if warning, decide and return */
+   if( method == T21_METH_4095_WARN ) {
+      if( gmax != 4095 ) {
+        if( opts->verb ) INFO_message("max of %g is okay", gmax);
+        else             { printf("0\n");  fflush(stdout); }
+        RETURN(0);
+      }
+
+      if( opts->verb ) WARNING_message("suspicious max of exactly 4095");
+      else             { printf("1\n"); fflush(stdout); }
+
+      RETURN(0);
+   }
+
+   /* if frac, scale */
+   if( method == T21_METH_4095_FRAC ) {
+      for( tind=0; tind < nt; tind++ ) opts->result[tind] /= nmask;
+   }
+
+   if( opts->verb > 1 ) INFO_message("successfully ran 4095 test");
 
    RETURN(0);
 }
@@ -450,6 +563,10 @@ int meth_name_to_index(char * name)
 
    if( ! strcasecmp(name, "smdiff") )  return T21_METH_SMDIFF;
 
+   if( ! strcasecmp(name, "4095_count") ) return T21_METH_4095_COUNT;
+   if( ! strcasecmp(name, "4095_frac") )  return T21_METH_4095_FRAC;
+   if( ! strcasecmp(name, "4095_warn") )  return T21_METH_4095_WARN;
+
    /* be explicit, since we have a case for this */
    if( ! strcmp(name, "undefined") ) return T21_METH_UNDEF;
 
@@ -464,6 +581,9 @@ char * meth_index_to_name(int method)
    if( method == T21_METH_S_SRMS )  return "shift_srms";
    if( method == T21_METH_MDIFF )   return "mdiff";
    if( method == T21_METH_SMDIFF )  return "smdiff";
+   if( method == T21_METH_4095_COUNT ) return "4095_count";
+   if( method == T21_METH_4095_FRAC )  return "4095_frac";
+   if( method == T21_METH_4095_WARN )  return "4095_warn";
 
    return "undefined";
 }
@@ -487,6 +607,9 @@ int show_help(void)
    "    shift_srms      : srms shifted by the global mean\n"
    "    mdiff           : mean abs(diff)\n"
    "    smdiff          : mdiff scaled down by global mean\n"
+   "    4095_count      : count voxels with max of exactly 4095\n"
+   "    4095_frac       : fraction of masked voxels with max of exactly 4095\n"
+   "    4095_warn       : warn if short datum and max of exactly 4095\n"
    "\n"
    "More details are provided after the examples.\n"
    "\n"
@@ -512,6 +635,10 @@ int show_help(void)
    "    applied by appending an escaped ' to the -input dataset.\n"
    "\n"
    "       3dTto1D -input dfile.r01.1D\\' -method enorm -prefix enorm.r01.1D\n"
+   "\n"
+   "E4. warn if short data and max is 4095\n"
+   "\n"
+   "       3dTto1D -input epi+orig -method 4095_warn\n"
    "\n"
    "--------------------------------------------------\n"
    "methods:\n"
@@ -587,6 +714,20 @@ int show_help(void)
    "\n"
    "      This is the mean diff scaled by the global mean.\n"
    "\n"
+   "   method 4095_count\n"
+   "\n"
+   "      At each time point, output the number of (masked) voxels that are\n"
+   "      exactly 4095.\n"
+   "\n"
+   "   method 4095_frac\n"
+   "\n"
+   "      At each time point, output the fraction of (masked) voxels that\n"
+   "      are exactly 4095.\n"
+   "\n"
+   "   method 4095_warn\n"
+   "\n"
+   "      Simply warn whether the maximum is exactly 4095 (so no -prefix).\n"
+   "\n"
    "--------------------------------------------------\n"
    "informational command arguments:\n"
    "\n"
@@ -635,6 +776,14 @@ int show_help(void)
    "\n"
    "         smdiff     : mdiff scaled by grand mean\n"
    "                      = mdiff/mean\n"
+   "\n"
+   "         4095_count : count of voxels that are exactly 4095\n"
+   "\n"
+   "         4095_frac  : fraction of voxels that are exactly 4095\n"
+   "                      = 4095_count/(mask size)\n"
+   "\n"
+   "         4095_warn  : state whether global max is exactly 4095\n"
+   "                      (no 1D output)\n"
    "\n"
    "--------------------------------------------------\n"
    "optional command arguments:\n"
@@ -704,6 +853,7 @@ int process_opts(options_t * opts, int argc, char * argv[] )
          if( ++ac >= argc ) ERROR_exit("need argument after '-input'");
 
          opts->inset = THD_open_dataset( argv[ac] );
+         opts->nt = DSET_NVALS(opts->inset);
          if( ! opts->inset ) ERROR_exit("cannot open dset '%s'", argv[ac]);
 
          DSET_load(opts->inset); CHECK_LOAD_ERROR(opts->inset);

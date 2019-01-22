@@ -264,12 +264,12 @@ if(PRINT_TRACING)
                     icol = (jj < INIT_ncolovr) ? jj+1 : PAL_IIGNORE ;
                  }
                } else if( mode == SETUP_LATER_MODE ){
-                  icol = DC_find_overlay_color( dc , right ) ;
+                  icol = DC_find_closest_overlay_color( dc , right ) ;
                   if( icol < 0 ) icol = PAL_IIGNORE ;
 
 if(PRINT_TRACING)
 { char str[256] ;
-  sprintf(str,"  DC_find_overlay_color(%s) returns %d\n",right,icol) ;
+  sprintf(str,"  DC_find_closest_overlay_color(%s) returns %d\n",right,icol) ;
   STATUS(str) ; }
 
                }
@@ -615,6 +615,15 @@ ENTRY("AFNI_pbar_CB") ;
       HIDE_SCALE(im3d) ;
       alter_MCW_pbar( pbar , 0 , pval ) ;
       FIX_SCALE_SIZE(im3d) ;
+   }
+
+   /*--- Set range = 1 ---*/
+
+   else if( w == im3d->vwid->func->pbar_setrange_1_pb ){
+     static char clabel[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ" ;
+     char cmd[128] ;
+     sprintf(cmd,"SET_FUNC_RANGE %c.1.0",clabel[AFNI_controller_index(im3d)]) ;
+     (void)AFNI_driver(cmd) ;
    }
 
    /*--- Set top value ---*/
@@ -1017,7 +1026,7 @@ ENTRY("AFNI_finalize_saveim_CB") ;
    ptr = getenv( "AFNI_PBAR_IMXY" );
    if( ptr != NULL ){
      ll = sscanf( ptr , "%dx%d" , &nx , &ny ) ;
-     if( ll < 2 || nx < 4 || ny < 32 ){ nx=40; ny=256; }
+     if( ll < 2 || nx < 4 || ny < 32 ){ nx=64; ny=512; }
      flip = (strcasestr(ptr,"F")!=NULL) || (strcasestr(ptr,"H")!=NULL) ;
    }
 

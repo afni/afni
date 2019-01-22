@@ -22,6 +22,7 @@
 #include <fcntl.h>
 #include <sys/times.h>
 #include <limits.h>
+#include <math.h>     /* 14 Sep 2018 */
 
 #ifdef  __cplusplus
 extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
@@ -211,6 +212,7 @@ typedef struct {
    int    vec_filled ; /*!< Length that each one was filled up. */
    int   *vec_typ ;    /*!< Type code for each vector. */
    void **vec ;        /*!< Pointer to each vector. */
+   char **vec_lab ;    /*!< Ptr to label string for each vector [optional] */
 
    int    vec_rank ;        /*!< Number of dimensions, from ni_dimen. */
    int   *vec_axis_len ;    /*!< Array of dimensions, from ni_dimen. */
@@ -594,13 +596,15 @@ extern char * NI_element_name( void * ) ;  /* 18 Apr 2005 */
 
 extern NI_element * NI_new_data_element( char *, int ) ;
 extern void NI_add_column( NI_element *, int, void * ) ;
+extern void NI_set_column_label( NI_element *nel, int cc, char *lab ) ; /* 11 Sep 2018 */
 extern void NI_move_column(NI_element *nel, int ibefore, int iafter);
 extern void NI_insert_column( NI_element *nel , int typ , void *arr, int icol );
+extern float NI_extract_float_value( NI_element *nel , int row , int col ) ; /* 14 Sep 2018 */
 extern void NI_remove_column(NI_element *nel, int irm);
 extern void NI_copy_all_attributes( void *nisrc , void *nitrg );
 void *NI_duplicate(void *vel, byte with_data);
 void *NI_duplicate_element (void *vel, byte with_data);
-void *NI_duplicate_group (void *vel, byte with_data); 
+void *NI_duplicate_group (void *vel, byte with_data);
 extern void   NI_kill_attribute( void *, char * ) ;
 extern void   NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
@@ -611,6 +615,9 @@ extern void NI_fill_column_stride( NI_element *,int,void *,int,int);/* 23 Mar 20
 extern void NI_insert_string( NI_element *, int,int, char *);       /* 19 Apr 2005 */
 extern void NI_alter_veclen( NI_element * , int ) ;                 /* 19 Apr 2005 */
 extern void NI_set_ni_type_atr( NI_element * ) ;       /* 14 Jul 2006 [rickr] */
+
+extern NI_element * NI_extract_columns( NI_element *nel, int nc, int *cc ) ; /* 13 Sep 2018 */
+
 
 extern NI_group * NI_new_group_element(void) ;
 extern void NI_add_to_group( NI_group *, void * ) ;
@@ -627,8 +634,7 @@ extern void NI_swap_vector( int, int, void * ) ;
 #undef  NI_set_attribute_int
 #define NI_set_attribute_int(el,nm,vv)  \
  do{ char ib[16]; sprintf(ib,"%d",(vv)); NI_set_attribute((el),(nm),ib); } while(0)
- 
- 
+
 /* port assignment functions from afni_ports.c */
 extern int init_ports_list();
 extern void set_ports_list_reinit(void);
@@ -680,8 +686,6 @@ extern int NI_base64_to_val( NI_stream_type *, NI_rowtype *, void *, int );
 extern int NI_stream_setb64( NI_stream_type * , int ) ;   /* 20 Apr 2005 */
 
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
-
-extern void NI_binary_threshold( NI_stream_type *, int ) ;
 
 extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
@@ -1231,7 +1235,7 @@ extern void NI_register_doer( char *, NI_voidfunc * ) ;
 /*-------------------------------------------------------------------------*/
 /*! An array of strings, each allocated with NI_malloc(). */
 
-typedef struct { int num; char **str;} NI_str_array ;
+typedef struct { int num; char **str; } NI_str_array ;
 
 #define NI_delete_str_array(sar)             \
   do{ int pp ;                               \
@@ -1245,6 +1249,8 @@ extern NI_str_array * NI_strict_decode_string_list( char *ss , char *sep );
 #define NI_decode_str_array NI_decode_string_list
 
 extern int NI_str_array_find( char *, NI_str_array *) ; /* 20 May 2010 */
+
+extern int NI_count_numbers( int nstr , char **str ) ;  /* 11 Sep 2018 */
 
 /*-------------------------------------------------------------------------*/
 /*! An array of floats. */

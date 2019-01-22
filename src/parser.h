@@ -114,6 +114,7 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "    gran , uran , iran , eran  , lran  , orstat, mod  ,       \n"           \
   "    mean , stdev, sem  , Pleg  , cbrt  , rhddc2, hrfbk4,hrfbk5\n"           \
   "    minabove, maxbelow, extreme, absextreme    , acfwxm\n"                  \
+  "    gamp , gampq\n"                                                         \
   "\n"                                                                         \
   " where some of the less obvious funcions are:\n"                            \
   " * qg(x)    = reversed cdf of a standard normal distribution\n"             \
@@ -165,6 +166,11 @@ extern "C" {                    /* care of Greg Balls    7 Aug 2006 [rickr] */
   "     f(r) = a*expr(-r*r/(2*b*b))+(1-a)*exp(-r/c)\n"                         \
   "   for X between 0 and 1 (not inclusive).  This is the model function\n"    \
   "   estimated in program 3dFWHMx.\n"                                         \
+  " * gamp(peak,fwhm) returns the parameter p in the formula\n"                \
+  "      g(t) = (t/(p*q))^p * exp(p-t/q)\n"                                    \
+  "   that gives the peak value of g(t) occuring at t=peak when the\n"         \
+  "   FWHM of g(t) is given by fwhm; gamq(peak,fwhm) gives the q parameter.\n" \
+  "   These functions are largely used for creating FMRI hemodynamic shapes.\n"\
   "\n"                                                                         \
   " You may use the symbol 'PI' to refer to the constant of that name.\n"      \
   " This is the only 2 letter symbol defined; all variables are\n"             \

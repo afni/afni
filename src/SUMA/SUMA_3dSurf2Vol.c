@@ -49,13 +49,13 @@
  * examples:
  *
  *    3dSurf2Vol -spec        SubjectA.spec                              \
- *               -sv          SubjectA_spgr+orig                         \ 
+ *               -sv          SubjectA_spgr+orig                         \
  *               -grid_parent SubjA_EPI+orig                             \
  *               -map_func    mask2                                      \
  *               -prefix      SubjA_mask
  *
  *    3dSurf2Vol -spec        SubjectA.spec                              \
- *               -sv          SubjectA_spgr+orig                         \ 
+ *               -sv          SubjectA_spgr+orig                         \
  *               -cmask       '-a SubjA.func+orig[2] -expr step(a-0.6)'  \
  *               -grid_parent SubjA_EPI+orig                             \
  *               -map_func    mask2                                      \
@@ -128,9 +128,17 @@ static char g_history[] =
  "  - 6.5 years since the last change?  really??\n"
  "  - added 'mode' mapping function\n"
  "  - for R Mruczek and Z Puckett\n"
+ "\n"
+ "3.8  April 28, 2018  [rickr]\n"
+ "  - 7.5 years since the last change, again??  done until late 2024?\n"
+ "  - added -stop_gap option\n"
+ "  - added mapping functions: nzave, nzmode, median, nzmedian\n"
+ "\n"
+ "3.9  September 13, 2018  [rickr]\n"
+ "  - return 0 on terminal options\n"
  "----------------------------------------------------------------------\n";
- 
-#define VERSION "version  3.7 (November 4, 2011)"
+
+#define VERSION "version  3.9 (September 13, 2018)"
 
 
 /*----------------------------------------------------------------------
@@ -152,8 +160,9 @@ int                  SUMAg_N_DOv = 0;   /* length of DOv array          */
 SUMA_CommonFields  * SUMAg_CF = NULL;   /* info common to all viewers   */
 
 /* this must match s2v_map_num enum */
-char * gs2v_map_names[] = { "none", "mask", "mask2", "ave", "count",
-                            "min", "max", "max_abs", "mode" };
+char * gs2v_map_names[] = { "none", "mask", "mask2", "ave", "nzave", "count",
+                            "min", "max", "max_abs", "mode", "nzmode",
+                            "median", "nzmedian" };
 
 /* AFNI prototype */
 extern void machdep( void );
@@ -170,14 +179,16 @@ int main( int argc , char * argv[] )
     s2v_opts_t         sopt;
     opts_t             opts;
     int                ret_val;
-    
+
     mainENTRY("3dSurf2Vol main");
     machdep();
     AFNI_logger("3dSurf2Vol",argc,argv);
 
     /* validate inputs and init options structure */
-    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 )
-        return ret_val;
+    if ( ( ret_val = init_options(&opts, argc, argv) ) != 0 ) {
+        if( ret_val > 0 ) return 0;
+        else              return 1;
+    }
 
     if ( ( ret_val = validate_options(&opts, &params) ) != 0 )
         return ret_val;
@@ -190,7 +201,7 @@ int main( int argc , char * argv[] )
        fprintf( stderr, "** failed to initialize spec\n" );
        return(-1);
     }
-    
+
     /* read surface files */
     ret_val = read_surf_files(&opts, &params, &spec, &sopt, &node_list);
 
@@ -199,13 +210,13 @@ int main( int argc , char * argv[] )
 
     /* free memory */
     final_clean_up( &node_list );
-    
+
     /* free the spec ZSS Jan 9 06*/
     if (!SUMA_FreeSpecFields(&spec)) {
        fprintf( stderr, "** failed to free spec\n" );
        return(-1);
     }
-    
+
     return ret_val;
 }
 
@@ -312,7 +323,7 @@ ENTRY("s2v_nodes2volume");
         DSET_delete( dout );
         RETURN(NULL);
     }
-    
+
     /* allocate an array of ints for functional counting */
     if ( (cdata = (int *)malloc(nvox * sizeof(int))) == NULL )
     {
@@ -345,7 +356,7 @@ ENTRY("s2v_nodes2volume");
                 RETURN(NULL);
             }
     }
-    
+
     dsize = mri_datum_size(sopt->datum);
     /* create the sub-brick data for output */
     for ( sub = 0; sub < p->nsubs; sub++ )
@@ -566,16 +577,68 @@ ENTRY("final_computations");
             RETURN(-1);
 
         case E_SMAP_AVE:
+        case E_SMAP_NZ_AVE:
             /* we have sum, divide for average */
             for ( index = 0; index < nvox; index++ )
                 if ( cdata[index] > 0 )
                     ddata[index] /= cdata[index];
             break;
 
-        case E_SMAP_MODE: {
+        case E_SMAP_NZ_MEDIAN:
+        case E_SMAP_MEDIAN:
+        {
+            int mind;
+            float mval;
+            /* for each voxel, sort list and aggregate */
+            for ( index = 0, flp = aggr->vlist; index < nvox; index++, flp++ ) {
+                /* handle empty or single element list separately */
+                if( flp->num == 0 ) {
+                    ddata[index] = 0.0;
+                    if( sopt->debug > 1 && sopt->dvox == index )
+                        fprintf(stderr, "\n-- voxel %d, nothing to aggregate\n",
+                                index);
+                    continue;
+                } else if ( flp->num == 1 ) {
+                    ddata[index] = flp->list[0];
+                    if( sopt->debug > 1 && sopt->dvox == index ) {
+                        fprintf(stderr, "\n-- voxel %d, one val to aggregate\n",
+                                index);
+                        fprintf(stderr, "++ final median %g\n", ddata[index]);
+                    }
+                    continue;
+                }
+
+                /* at least 2, sort and assign */
+                qsort(flp->list, flp->num, sizeof(float), fcomp);
+
+                /* mid index = floor of length/2 */
+                /* (correct (as floor) if odd, higher of pair if even) */
+                mind = flp->num/2;
+
+                /* assign median as value or average of middle two */
+                if( flp->num % 2 )
+                    ddata[index] = flp->list[mind];
+                else
+                    ddata[index] = (flp->list[mind-1] + flp->list[mind])/2.0;
+
+                /* announce the glorious action to the world */
+                if( sopt->debug > 1 && sopt->dvox == index ) {
+                    fprintf(stderr, "\n-- aggregating voxel %d, %d vals "
+                                    "from %g to %g\n",
+                                    index, flp->num, flp->list[0],
+                                    flp->list[flp->num-1]);
+                    fprintf(stderr, "++ final median %g\n", ddata[index]);
+                }
+            }
+            break;
+        }
+
+        case E_SMAP_NZ_MODE:
+        case E_SMAP_MODE:
+        {
             int mcount, ncount, find;
             float mval, nval;
-            /* for each voxel, sort list and aggrigate */
+            /* for each voxel, sort list and aggregate */
             for ( index = 0, flp = aggr->vlist; index < nvox; index++, flp++ ) {
                 /* if nothing here, set to 0 and continue */
                 if( flp->num == 0 ) {
@@ -657,6 +720,8 @@ int insert_list( node_list_t * N, param_t * p, s2v_opts_t * sopt,
     int       vindex, prev_vind;
     int       step, node;
     int       nx, ny, debug;
+    int       pre_gap = 0;  /* for stop_gap, along segment, signal seeing */
+                            /* non-zero mask */
 
 ENTRY("insert_list");
 
@@ -693,8 +758,12 @@ ENTRY("insert_list");
         if ( sopt->cmask && !sopt->cmask[vindex] )
         {
             if ( debug ) fprintf(stderr, " : skip (mask)\n");
+            /* if stop_gap, out of mask after in mask, so bail */
+            if( sopt->stop_gap && pre_gap ) break;
             continue;
         }
+        /* only applies to stop_gap */
+        if( ! pre_gap ) pre_gap = 1;
 
         if ( (vindex == prev_vind) && (sopt->f_index == S2V_F_INDEX_VOXEL) )
         {
@@ -722,12 +791,19 @@ ENTRY("insert_list");
 
 /* aggregate types are ones for which:                  3 Nov 2011 [rickr]
  *    for each voxel
- *        - accumuate all node values
+ *        - accumulate all node values
  *        - aggregate into final voxel value (e.g. mode, median, rand)
  */
 int is_aggregate_type(int map_func)
 {
-    if( map_func == E_SMAP_MODE ) return 1;
+    switch( map_func ) {
+       case E_SMAP_MODE:
+       case E_SMAP_NZ_MODE:
+       case E_SMAP_MEDIAN:
+       case E_SMAP_NZ_MEDIAN:
+          return 1;
+    }
+
     return 0;
 }
 
@@ -766,11 +842,42 @@ ENTRY("insert_value");
             dv[vox] = value;      /* useless, but lets us track via debug */
             break;
 
+        case E_SMAP_NZ_MODE:
+            /* return, to avoid cv increment (pretend we were never here) */
+            if( !value ) RETURN(0);
+
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
+            break;
+
         case E_SMAP_AVE:
             if ( cv[vox] == 0 )
                 dv[vox] = value;
             else
                 dv[vox] += value;               /* divide by count later */
+            break;
+
+        case E_SMAP_NZ_AVE:
+            /* return, to avoid cv increment (pretend we were never here) */
+            if( !value ) RETURN(0);
+
+            if ( cv[vox] == 0 )
+                dv[vox] = value;
+            else
+                dv[vox] += value;               /* divide by count later */
+            break;
+
+        case E_SMAP_MEDIAN:
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
+            break;
+
+        case E_SMAP_NZ_MEDIAN:
+            /* return, to avoid cv increment (pretend we were never here) */
+            if( !value ) RETURN(0);
+
+            add_to_float_list(aggr->vlist+vox, value, 4);
+            dv[vox] = value;      /* useless, but lets us track via debug */
             break;
 
         case E_SMAP_COUNT:
@@ -826,7 +933,7 @@ ENTRY("insert_value");
  *        < 0 on error
  *----------------------------------------------------------------------
 */
-int make_point_list( THD_fvec3 * list, THD_fvec3 * p1, THD_fvec3 * pn, 
+int make_point_list( THD_fvec3 * list, THD_fvec3 * p1, THD_fvec3 * pn,
                      s2v_opts_t * sopt )
 {
     float rat1, ratn;
@@ -907,6 +1014,8 @@ ENTRY("adjust_endpts");
         pn->xyz[2] += factor * f3_diff.xyz[2];
     }
 
+    /* let's be efficient and less AR and not do this here ... */
+    #if 0
     switch ( sopt->map )
     {
         default:
@@ -914,6 +1023,7 @@ ENTRY("adjust_endpts");
             RETURN(-1);
 
         case E_SMAP_AVE:
+        case E_SMAP_NZ_AVE:
         case E_SMAP_COUNT:
         case E_SMAP_MAX_ABS:
         case E_SMAP_MAX:
@@ -921,8 +1031,12 @@ ENTRY("adjust_endpts");
         case E_SMAP_MASK:
         case E_SMAP_MASK2:
         case E_SMAP_MODE:
+        case E_SMAP_NZ_MODE:
+        case E_SMAP_MEDIAN:
+        case E_SMAP_NZ_MEDIAN:
             break;
     }
+    #endif
 
     RETURN(0);
 }
@@ -968,7 +1082,7 @@ ENTRY("set_node_list_data");
 
         RETURN(0);
     } else if ( p->sdata_im ) {
-    
+
        /* else sdata exists: check column, and copy data from sdata_im */
        if ( col > (p->sdata_im->nx - 2) && !p->parser.pcode )
        {
@@ -989,7 +1103,7 @@ ENTRY("set_node_list_data");
        }
        else if ( p->parser.pcode && col != 0 )             /* let's be safe */
        {
-           fprintf(stderr,"** snld error: cannot use parser with col = %d\n", 
+           fprintf(stderr,"** snld error: cannot use parser with col = %d\n",
                           col);
            RETURN(-1);
        }
@@ -997,7 +1111,7 @@ ENTRY("set_node_list_data");
        /* hmmmm, we're still missing something...  oh yes, data! */
 
        fp = MRI_FLOAT_PTR( p->sdata_im ) + col+1;  /* offset by column number */
-   
+
        for ( c = 0; c < N->ilen; c++ )
          {
         if ( p->parser.pcode )
@@ -1018,7 +1132,7 @@ ENTRY("set_node_list_data");
          fprintf(stderr,"** snld error: Failed to get col %d from dset\n",
                         col);
          RETURN(-1);
-      } 
+      }
        for ( c = 0; c < N->ilen; c++ )
        {
            if ( p->parser.pcode )
@@ -1028,7 +1142,7 @@ ENTRY("set_node_list_data");
                    p->parser.atoz[lposn] = (float)
                         SUMA_GetDsetValInCol2(p->dset,
                                               lposn, c);
-               N->fdata[c] = PARSER_evaluate_one(p->parser.pcode, 
+               N->fdata[c] = PARSER_evaluate_one(p->parser.pcode,
                                  p->parser.atoz);
            }
            else
@@ -1039,8 +1153,8 @@ ENTRY("set_node_list_data");
       fprintf(stderr,"** snld error: This NULLity should not be.\n");
       RETURN(-1);
    }
-    
-    
+
+
     RETURN(0);
 }
 
@@ -1364,6 +1478,7 @@ ENTRY("set_smap_opts");
     sopt->debug         = opts->debug;  /* for output in library functions */
     sopt->dnode         = opts->dnode;
     sopt->dvox          = opts->dvox;
+    sopt->stop_gap      = opts->stop_gap;
     sopt->sxyz_ori_gpar = opts->sxyz_ori_gpar;
     sopt->cmask         = p->cmask;
 
@@ -1449,7 +1564,7 @@ ENTRY("final_clean_up");
 
 
 /*----------------------------------------------------------------------
- * 
+ *
  *----------------------------------------------------------------------
 */
 int read_surf_files ( opts_t * opts, param_t * p, SUMA_SurfSpecFile * spec,
@@ -1598,12 +1713,12 @@ ENTRY("verify_parser_expr");
         fprintf(stderr,"** vpe: invalid params (%p,%p)\n", opts, p);
         RETURN(-1);
     }
-    
+
     /* if no parser code, there is nothing to do */
     if ( ! p->parser.pcode )
         RETURN(0);
 
-    
+
     for ( max_used = 25; max_used >= 0; max_used-- )
         if ( p->parser.has_sym[max_used] )
             break;
@@ -1611,14 +1726,14 @@ ENTRY("verify_parser_expr");
     p->parser.max_sym = max_used;
 
     /* if the expression is not constant, we need some data */
-    if ( !p->sdata_im && !p->dset) 
+    if ( !p->sdata_im && !p->dset)
     {
          fprintf(stderr, "** parser expression requires surface data\n"
                          "   (see '-sdata_1D' or '-sdata')\n");
          RETURN(-1);
     }
-    if (p->sdata_im) 
-    { 
+    if (p->sdata_im)
+    {
        if ( max_used > 0 )
        {
            if ( max_used > p->sdata_im->nx - 1 )
@@ -1634,8 +1749,8 @@ ENTRY("verify_parser_expr");
        if ( opts->debug > 1 )
            fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
                    p->sdata_im ? (p->sdata_im->nx - 1) : 0, max_used);
-   } else if (p->dset) 
-   { 
+   } else if (p->dset)
+   {
       if ( max_used > 0 )
        {
            if ( max_used > SDSET_VECNUM(p->dset) )
@@ -1652,7 +1767,7 @@ ENTRY("verify_parser_expr");
            fprintf(stderr,"-- surf_vals = %d, expr_vals = %d\n",
                    p->dset ? SDSET_VECNUM(p->dset) : 0, max_used);
    }
-   
+
    RETURN(0);
 }
 
@@ -1807,18 +1922,18 @@ ENTRY("sdata_from_niml");
     if ( !opts || !N || !p )
         RETURN(-1);
 
-    if ( !(p->dset = SUMA_LoadDset_s(opts->sdata_file_niml, 
+    if ( !(p->dset = SUMA_LoadDset_s(opts->sdata_file_niml,
                                      &form, 0)) )     {
         fprintf(stderr,"** failed to read file '%s'\n", opts->sdata_file_niml);
         RETURN(-2);
     }
     if (!(SUMA_PopulateDsetNodeIndexNel(p->dset,1))) {
-        fprintf(stderr,"** failed to populate node indices in '%s'\n", 
+        fprintf(stderr,"** failed to populate node indices in '%s'\n",
                 opts->sdata_file_niml);
         RETURN(-2);
     }
     if (!(nind = SDSET_NODE_INDEX_COL(p->dset))) {
-         fprintf(stderr,"** No node index column in '%s'\n", 
+         fprintf(stderr,"** No node index column in '%s'\n",
                   opts->sdata_file_niml);
         RETURN(-2);
     }
@@ -1827,7 +1942,7 @@ ENTRY("sdata_from_niml");
     if ( opts->debug > 0 )
         fprintf(stderr,"++ read surface dset file '%s' (nx = %d, ny = %d)\n",
                 opts->sdata_file_niml, SDSET_VECNUM(p->dset), N->ilen );
-    
+
     /* only allocate space ilist */
     if ( (N->ilist = (int *)malloc(N->ilen*sizeof(int))) == NULL )
     {
@@ -1845,7 +1960,7 @@ ENTRY("sdata_from_niml");
 
 /*----------------------------------------------------------------------
  * read surfaces (much stolen from SUMA_suma.c - thanks Ziad!)
- * 
+ *
  * return 0 on success
  *----------------------------------------------------------------------
 */
@@ -1951,7 +2066,7 @@ ENTRY("init_options");
     if ( argc < 2 )
     {
         usage( PROG_NAME, S2V_USE_LONG );
-        RETURN(-1);
+        RETURN(1);
     }
 
     /* clear out the options structure, pointers get explicit NULL */
@@ -2126,12 +2241,12 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-help", 5) )
         {
             usage( PROG_NAME, S2V_USE_LONG );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-hist", 5) )
         {
             usage( PROG_NAME, S2V_USE_HIST );
-            RETURN(-1);
+            RETURN(1);
         }
         else if ( ! strncmp(argv[ac], "-map_func", 4) )  /* mapping function */
         {
@@ -2232,6 +2347,10 @@ ENTRY("init_options");
 
             opts->sv_file = argv[++ac];
         }
+        else if ( ! strcmp(argv[ac], "-stop_gap") )
+        {
+            opts->stop_gap = 1;
+        }
         else if ( ! strncmp(argv[ac], "-sxyz_orient_as_gpar", 20) )
         {
             opts->sxyz_ori_gpar = 1;
@@ -2239,7 +2358,7 @@ ENTRY("init_options");
         else if ( ! strncmp(argv[ac], "-version", 2) )
         {
             usage( PROG_NAME, S2V_USE_VERSION );
-            RETURN(-1);
+            RETURN(1);
         }
         else     /* invalid option */
         {
@@ -2318,7 +2437,7 @@ ENTRY("validate_options");
 int check_datum_type ( char * datum_str, int default_type )
 {
     int c, dt = -1;
-    
+
 ENTRY("check_datum_type");
 
     if ( datum_str )
@@ -2938,6 +3057,8 @@ ENTRY("usage");
             "\n"
             "          ave    : average all values\n"
             "\n"
+            "          nzave  : ave, but ignorning any zero values\n"
+            "\n"
             "          count  : count the number of mapped data points\n"
             "\n"
             "          min    : find the minimum value from all mapped points\n"
@@ -2947,8 +3068,14 @@ ENTRY("usage");
             "          max_abs: find the number with maximum absolute value\n"
             "                   (the resulting value will retain its sign)\n"
             "\n"
+            "          median : median of all mapped values\n"
+            "\n"
+            "          nzmedian: median, but ignoring any zero values\n"
+            "\n"
             "          mode   : apply the most common value per voxel\n"
             "                   (appropriate where surf ROIs overlap)\n"
+            "\n"
+            "          nzmode : mode, but ignoring any zero values\n"
             "\n"
             "    -prefix OUTPUT_PREFIX  : prefix for the output dataset\n"
             "\n"
@@ -3067,6 +3194,14 @@ ENTRY("usage");
             "\n"
             "        In the example, pn is moved 1 millimeter farther from\n"
             "        p1, extending the segment by that distance.\n"
+            "\n"
+            "    -stop_gap              : stop when a zero gap has been hit\n"
+            "\n"
+            "        This limits segment processing such that once a non-zero\n"
+            "        mask value has been encountered, the segment will be\n"
+            "        terminated on any subsequent zero mask value.\n"
+            "        \n"
+            "        The goal is to prevent mixing masked cortex regions.\n"
             "\n"
             "  ------------------------------\n"
             "  GENERAL OPTIONS:\n"
@@ -3225,6 +3360,7 @@ ENTRY("disp_opts_t");
             "    map_str            = %s\n"
             "    datum_str          = %s\n"
             "    f_index_str        = %s\n"
+            "    stop_gap           = %d\n"
             "    sxyz_ori_gpar      = %d\n"
             "    debug, dnode, dvox = %d, %d, %d\n"
             "    noscale, f_steps   = %d, %d\n"
@@ -3238,7 +3374,8 @@ ENTRY("disp_opts_t");
             CHECK_NULL_STR(opts->sdata_file_niml),
             CHECK_NULL_STR(opts->cmask_cmd), CHECK_NULL_STR(opts->data_expr),
             CHECK_NULL_STR(opts->map_str), CHECK_NULL_STR(opts->datum_str),
-            CHECK_NULL_STR(opts->f_index_str), opts->sxyz_ori_gpar,
+            CHECK_NULL_STR(opts->f_index_str),
+            opts->sxyz_ori_gpar, opts->stop_gap,
             opts->debug, opts->dnode, opts->dvox, opts->noscale, opts->f_steps,
             opts->f_p1_fr, opts->f_pn_fr, opts->f_p1_mm, opts->f_pn_mm
             );
@@ -3278,7 +3415,7 @@ ENTRY("disp_param_t");
             , p,
             p->gpar, ISVALID_DSET(p->gpar) ? "valid" : "invalid",
             p->oset, ISVALID_DSET(p->oset) ? "valid" : "invalid",
-            p->sxyz_im, p->sdata_im, 
+            p->sxyz_im, p->sdata_im,
             p->dset,
             p->f3mm_min.xyz[0], p->f3mm_min.xyz[1], p->f3mm_min.xyz[2],
             p->f3mm_max.xyz[0], p->f3mm_max.xyz[1], p->f3mm_max.xyz[2],
@@ -3342,6 +3479,7 @@ ENTRY("disp_s2v_opts_t");
             "s2v_opts_t struct at %p :\n"
             "    map, datum, noscale = %d, %d, %d\n"
             "    debug, dnode, dvox  = %d, %d, %d\n"
+            "    stop_gap            = %d\n"
             "    sxyz_ori_gpar       = %d\n"
             "    cmask               = %p\n"
             "    f_steps, f_index    = %d, %d\n"
@@ -3349,9 +3487,10 @@ ENTRY("disp_s2v_opts_t");
             "    f_p1_mm, f_pn_mm    = %f, %f\n"
             , sopt,
             sopt->map, sopt->datum, sopt->noscale,
-            sopt->debug, sopt->dnode, sopt->dvox, sopt->sxyz_ori_gpar,
+            sopt->debug, sopt->dnode, sopt->dvox,
+            sopt->stop_gap, sopt->sxyz_ori_gpar,
             sopt->cmask, sopt->f_steps, sopt->f_index,
-            sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm 
+            sopt->f_p1_fr, sopt->f_pn_fr, sopt->f_p1_mm, sopt->f_pn_mm
             );
 
     RETURN(0);
@@ -3509,4 +3648,3 @@ ENTRY("integral_doubles");
 
     RETURN(1);
 }
-

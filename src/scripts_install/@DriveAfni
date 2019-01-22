@@ -84,6 +84,8 @@ if ( $l == '0') goto STEND
 
 aiv SavedAxiale.jpg &
 
+sleep 2
+
 set l = `prompt_user -pause  "Close image then hit OK to examine time series."`
 if ( $l == '0') goto STEND
 
@@ -104,6 +106,7 @@ set l = `prompt_user -pause  \
       "Hit OK to pause movie and show sub-brick manipulation"`
 if ( $l == '0') goto STEND
 plugout_drive  $NPB                                               \
+               -com 'SWITCH_OVERLAY B.func_slim'                  \
                -com 'OPEN_WINDOW B.sagittalgraph keypress=space'  \
                -com 'SET_SUBBRICKS B 13 5 6'                      \
                -com 'OPEN_WINDOW B.sagittalimage'                 \

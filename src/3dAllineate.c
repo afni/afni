@@ -7,6 +7,12 @@
 
 /****** N.B.: See the note about coordinates at the end of this file! ******/
 
+/*
+  [PT: Nov 5, 2018] Don't know why this is only happening *now*, but
+  am moving the lpa/lpc cost functions into the main list under '-cost
+  ccc' in the help; they are no longer classified as "experimental"
+ */
+
 /*----------------------------------------------------------------------------*/
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
@@ -98,18 +104,18 @@ MRI_IMAGE * mri_identity_params(void);                           /* prototype */
 #define NMETH GA_MATCH_METHNUM_SCALAR  /* cf. mrilib.h */
 
 static int meth_visible[NMETH] =       /* 1 = show in -help; 0 = don't show */
-  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0  , 0 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ ncd */
+  { 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 1 , 1 , 1  , 1 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ lpa+ */
 
 static int meth_noweight[NMETH] =      /* 1 = don't allow weights, just masks */
-  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 0  , 1 } ;
-/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ ncd */
+  { 0 , 1 , 1 , 0 , 1 , 1 , 1 , 0 , 0 , 0 , 0 , 0 , 0  , 0 } ;
+/* ls  sp  mi  crM nmi je  hel crA crU lss lpc lpa lpc+ lpa+ */
 
 static int visible_noweights ;
 
 static char *meth_shortname[NMETH] =   /* short names for terse cryptic users */
   { "ls" , "sp" , "mi" , "crM", "nmi", "je"   , "hel",
-    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "ncd"  } ;
+    "crA", "crU", "lss", "lpc", "lpa", "lpc+" , "lpa+"  } ;
 
 static char *meth_longname[NMETH] =    /* long names for prolix users */
   { "leastsq"         , "spearman"     ,
@@ -117,7 +123,7 @@ static char *meth_longname[NMETH] =    /* long names for prolix users */
     "norm_mutualinfo" , "jointentropy" ,
     "hellinger"       ,
     "corratio_add"    , "corratio_uns" , "signedPcor" ,
-    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , "NormCompDist" } ;
+    "localPcorSigned" , "localPcorAbs" , "localPcor+Others" , "localPcorAbs+Others" } ;
 
 static char *meth_username[NMETH] =    /* descriptive names */
   { "Least Squares [Pearson Correlation]"   ,
@@ -133,7 +139,7 @@ static char *meth_username[NMETH] =    /* descriptive names */
     "Local Pearson Correlation Signed"      ,  /* hidden */
     "Local Pearson Correlation Abs"         ,  /* hidden */
     "Local Pearson Signed + Others"         ,  /* hidden */
-    "Normalized Compression Distance"     } ;  /* hidden */
+    "Local Pearson Abs + Others"          } ;  /* hidden */
 
 static char *meth_costfunctional[NMETH] =  /* describe cost functional */
   { "1 - abs(Pearson correlation coefficient)"                 ,
@@ -149,7 +155,7 @@ static char *meth_costfunctional[NMETH] =  /* describe cost functional */
     "nonlinear average of Pearson cc over local neighborhoods" ,
     "1 - abs(lpc)"                                             ,
     "lpc + hel + mi + nmi + crA + overlap"                     ,
-    "mutual compressibility (via zlib) -- doesn't work yet"
+    "lpa + hel + mi + nmi + crA + overlap"
   } ;
 
 /*---------------------------------------------------------------------------*/
@@ -308,6 +314,27 @@ char * INTERP_methname( int iii )
      case MRI_WSINC5:  return "wsinc5"  ;
    }
    return "MYSTERIOUS" ; /* unreachable */
+}
+
+int INTERP_code( char *name )
+{
+   if( name == NULL ) return -1 ;
+   if( strcmp(name,"NN") == 0 || strncmp(name,"nearest",5) == 0 )
+     return MRI_NN ;
+   else
+   if( strncmp(name,"linear",3) == 0 || strncmp(name,"trilinear",5) == 0 )
+     return MRI_LINEAR ;
+   else
+   if( strncmp(name,"cubic",3) == 0 || strncmp(name,"tricubic",5) == 0 )
+     return MRI_CUBIC ;
+   else
+   if( strncmp(name,"quintic",3)==0 || strncmp(name,"triquintic",5)==0 )
+     return MRI_QUINTIC ;
+   else
+   if( strncasecmp(name,"WSINC",5)==0 )
+     return MRI_WSINC5 ;
+
+   return -1 ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -494,14 +521,20 @@ int main( int argc , char *argv[] )
      printf(
 "Usage: 3dAllineate [options] sourcedataset\n"
 "\n"
-"Program to align one dataset (the 'source') to a base dataset.\n"
-"Options are available to control:\n"
+"Program to align one dataset (the 'source') to a base dataset,\n"
+"using an affine (matrix) transformation of space.\n"
+"* Options are available to control:\n"
 " ++ How the matching between the source and the base is computed\n"
 "    (i.e., the 'cost functional' measuring image mismatch).\n"
 " ++ How the resliced source is interpolated to the base space.\n"
 " ++ The complexity of the spatial transformation ('warp') used.\n"
 " ++ And many many technical options to control the process in detail,\n"
 "    if you know what you are doing (or just like to fool around).\n"
+"\n"
+"* This program is a generalization of and improvement on the older\n"
+"    software 3dWarpDrive.\n"
+"\n"
+"* For nonlinear transformations, see progam 3dQwarp.\n"
 "\n"
 "=====----------------------------------------------------------------------\n"
 "NOTES: For most 3D image registration purposes, we now recommend that you\n"
@@ -707,6 +740,11 @@ int main( int argc , char *argv[] )
 "               of the form '-mi' rather than '-cost mi', if you like\n"
 "               to keep things terse and cryptic (as I do).\n"
 "               [Default == '-hel' (for no good reason, but it sounds nice).]\n"
+"               **NB** See more below about lpa and lpc, which are typically\n"
+"                      what we would recommend as first-choice cost functions\n"
+"                      now:\n"
+"                        lpa if you have similar contrast vols to align;\n"
+"                        lpc if you have *non*similar contrast vols to align!\n"
 "\n"
 " -interp iii = Defines interpolation method to use during matching\n"
 "               process, where 'iii' is one of\n"
@@ -777,6 +815,7 @@ int main( int argc , char *argv[] )
 " -verb       = Print out verbose progress reports.\n"
 "               [Using '-VERB' will give even more prolix reports.]\n"
 " -quiet      = Don't print out verbose stuff.\n"
+"\n"
 " -usetemp    = Write intermediate stuff to disk, to economize on RAM.\n"
 "               Using this will slow the program down, but may make it\n"
 "               possible to register datasets that need lots of space.\n"
@@ -791,6 +830,7 @@ int main( int argc , char *argv[] )
 "       **N.B.: If you use '-verb', then memory usage is printed out\n"
 "               at various points along the way.\n"
 #endif
+"\n"
 " -nousetemp  = Don't use temporary workspace on disk [the default].\n"
 "\n"
 #ifdef ALLOW_METH_CHECK
@@ -822,20 +862,43 @@ int main( int argc , char *argv[] )
 #endif
 "\n"
 " ** PARAMETERS THAT AFFECT THE COST OPTIMIZATION STRATEGY **\n"
+"\n"
 " -onepass    = Use only the refining pass -- do not try a coarse\n"
 "               resolution pass first.  Useful if you know that only\n"
 "               small amounts of image alignment are needed.\n"
 "               [The default is to use both passes.]\n"
+"\n"
 " -twopass    = Use a two pass alignment strategy, first searching for\n"
 "               a large rotation+shift and then refining the alignment.\n"
 "               [Two passes are used by default for the first sub-brick]\n"
 "               [in the source dataset, and then one pass for the others.]\n"
 "               ['-twopass' will do two passes for ALL source sub-bricks.]\n"
+"            *** The first (coarse) pass is relatively slow, as it tries\n"
+"                 to search a large volume of parameter (rotations+shifts)\n"
+"                 space for initial guesses at the alignment transformation.\n"
+"              * A lot of these initial guesses are kept and checked to\n"
+"                 see which ones lead to good starting points for the\n"
+"                 further refinement.\n"
+"              * The winners of this competition are then passed to the\n"
+"                 '-twobest' (infra) successive optimization passes.\n"
+"              * The ultimate winner of THAT stage is what starts\n"
+"                 the second (fine) pass alignment. Usually, this starting\n"
+"                 point is so good that the fine pass optimization does\n"
+"                 not provide a lot of improvement.\n"
+"              * All of these stages are intended to help the program avoid\n"
+"                 stopping at a 'false' minimum in the cost functional.\n"
+"                 They were added to the software as we gathered experience\n"
+"                 with difficult 3D alignment problems. The combination of\n"
+"                 multiple stages of partial optimization of multiple\n"
+"                 parameter candidates makes the coarse pass slow, but also\n"
+"                 makes it (usually) work well.\n"
+"\n"
 " -twoblur rr = Set the blurring radius for the first pass to 'rr'\n"
 "               millimeters.  [Default == 11 mm]\n"
 "       **N.B.: You may want to change this from the default if\n"
 "               your voxels are unusually small or unusually large\n"
 "               (e.g., outside the range 1-4 mm along each axis).\n"
+"\n"
 " -twofirst   = Use -twopass on the first image to be registered, and\n"
 "               then on all subsequent images from the source dataset,\n"
 "               use results from the first image's coarse pass to start\n"
@@ -845,17 +908,20 @@ int main( int argc , char *argv[] )
 "               (the source dataset itself; since the coarse pass can )\n"
 "               (be slow, doing it only once makes sense in this case.)\n"
 "       **N.B.: [-twofirst is on by default; '-twopass' turns it off.]\n"
+"\n"
 " -twobest bb = In the coarse pass, use the best 'bb' set of initial\n"
 "               points to search for the starting point for the fine\n"
 "               pass.  If bb==0, then no search is made for the best\n"
 "               starting point, and the identity transformation is\n"
 "               used as the starting point.  [Default=%d; min=0 max=%d]\n"
 "       **N.B.: Setting bb=0 will make things run faster, but less reliably.\n"
+"\n"
 " -fineblur x = Set the blurring radius to use in the fine resolution\n"
 "               pass to 'x' mm.  A small amount (1-2 mm?) of blurring at\n"
 "               the fine step may help with convergence, if there is\n"
 "               some problem, especially if the base volume is very noisy.\n"
 "               [Default == 0 mm = no blurring at the final alignment pass]\n"
+"\n"
 "   **NOTES ON\n"
 "   **STRATEGY: * If you expect only small-ish (< 2 voxels?) image movement,\n"
 "                 then using '-onepass' or '-twobest 0' makes sense.\n"
@@ -886,10 +952,12 @@ int main( int argc , char *argv[] )
 "                 If given in the form '-cmass+xy' (for example), means to\n"
 "                 do the CoM calculation in the x- and y-directions, but\n"
 "                 not the z-direction.\n"
+"\n"
 " -nocmass      = Don't use the center-of-mass calculation. [The default]\n"
 "                  (You would not want to use the C-o-M calculation if the  )\n"
 "                  (source sub-bricks have very different spatial locations,)\n"
 "                  (since the source C-o-M is calculated from all sub-bricks)\n"
+"\n"
 " **EXAMPLE: You have a limited coverage set of axial EPI slices you want to\n"
 "            register into a larger head volume (after 3dSkullStrip, of course).\n"
 "            In this case, '-cmass+xy' makes sense, allowing CoM adjustment\n"
@@ -909,7 +977,7 @@ int main( int argc , char *argv[] )
 "                 increase the weight of high-intensity regions).\n"
 "               These two processing steps can be combined, as in\n"
 "                 '-autoweight+100**1.5'\n"
-"               ** Note that that '**' must be enclosed in quotes;\n"
+"               ** Note that '**' must be enclosed in quotes;\n"
 "                  otherwise, the shell will treat it as a wildcard\n"
 "                  and you will get an error message before 3dAllineate\n"
 "                  even starts!!\n"
@@ -926,20 +994,24 @@ int main( int argc , char *argv[] )
          ) ;
       }
       printf(
+"\n"
 " -automask   = Compute a mask function, which is like -autoweight,\n"
 "               but the weight for a voxel is set to either 0 or 1.\n"
 "       **N.B.: '-automask+3' means to compute the mask function, and\n"
 "               then dilate it outwards by 3 voxels (e.g.).\n"
 "               ** Note that '+' means something very different\n"
 "                  for '-automask' and '-autoweight'!!\n"
+"\n"
 " -autobox    = Expand the -automask function to enclose a rectangular\n"
 "               box that holds the irregular mask.\n"
 "       **N.B.: This is the default mode of operation!\n"
 "               For intra-modality registration, '-autoweight' may be better!\n"
 "             * If the cost functional is 'ls', then '-autoweight' will be\n"
 "               the default, instead of '-autobox'.\n"
+"\n"
 " -nomask     = Don't compute the autoweight/mask; if -weight is not\n"
 "               also used, then every voxel will be counted equally.\n"
+"\n"
 " -weight www = Set the weighting for each voxel in the base dataset;\n"
 "               larger weights mean that voxel counts more in the cost\n"
 "               function.\n"
@@ -948,9 +1020,11 @@ int main( int argc , char *argv[] )
 "       **N.B.: Even if a method does not allow -autoweight, you CAN\n"
 "               use a weight dataset that is not 0/1 valued.  The\n"
 "               risk is yours, of course (!*! as always in AFNI !*!).\n"
+"\n"
 " -wtprefix p = Write the weight volume to disk as a dataset with\n"
 "               prefix name 'p'.  Used with '-autoweight/mask', this option\n"
 "               lets you see what voxels were important in the algorithm.\n"
+"\n"
 " -emask ee   = This option lets you specify a mask of voxels to EXCLUDE from\n"
 "               the analysis. The voxels where the dataset 'ee' is nonzero\n"
 "               will not be included (i.e., their weights will be set to zero).\n"
@@ -1027,8 +1101,10 @@ int main( int argc , char *argv[] )
        "               '-EPI' on the command line if you do not want these options used.\n"
        "\n"
        " -parfix n v   = Fix parameter #n to be exactly at value 'v'.\n"
+"\n"
        " -parang n b t = Allow parameter #n to range only between 'b' and 't'.\n"
        "                 If not given, default ranges are used.\n"
+"\n"
        " -parini n v   = Initialize parameter #n to value 'v', but then\n"
        "                 allow the algorithm to adjust it.\n"
        "         **N.B.: Multiple '-par...' options can be used, to constrain\n"
@@ -1040,14 +1116,17 @@ int main( int argc , char *argv[] )
        " -maxrot dd    = Allow maximum rotation of 'dd' degrees.  Equivalent\n"
        "                 to '-parang 4 -dd dd -parang 5 -dd dd -parang 6 -dd dd'\n"
        "                 [Default=30 degrees]\n"
+"\n"
        " -maxshf dd    = Allow maximum shift of 'dd' millimeters.  Equivalent\n"
        "                 to '-parang 1 -dd dd -parang 2 -dd dd -parang 3 -dd dd'\n"
        "                 [Default=32%% of the size of the base image]\n"
        "         **N.B.: This max shift setting is relative to the center-of-mass\n"
        "                 shift, if the '-cmass' option is used.\n"
+"\n"
        " -maxscl dd    = Allow maximum scaling factor to be 'dd'.  Equivalent\n"
        "                 to '-parang 7 1/dd dd -parang 8 1/dd dd -paran2 9 1/dd dd'\n"
        "                 [Default=1.2=image can go up or down 20%% in size]\n"
+"\n"
        " -maxshr dd    = Allow maximum shearing factor to be 'dd'. Equivalent\n"
        "                 to '-parang 10 -dd dd -parang 11 -dd dd -parang 12 -dd dd'\n"
        "                 [Default=0.1111 for no good reason]\n"
@@ -1150,6 +1229,7 @@ int main( int argc , char *argv[] )
      printf(
       "\n"
       "*********** CHANGING THE ORDER OF MATRIX APPLICATION ***********\n"
+      "   {{{ There is no good reason to ever use these options! }}}\n"
       "\n"
       "  -SDU or -SUD }= Set the order of the matrix multiplication\n"
       "  -DSU or -DUS }= for the affine transformations:\n"
@@ -1208,10 +1288,12 @@ int main( int argc , char *argv[] )
         "               case is starting with the identity transformation, which\n"
         "               helps insure against the chance that the coarse pass\n"
         "               optimizations ran totally amok.\n"
+        "\n"
         " -nocast     = By default, parameter vectors that are too close to the\n"
         "               best one are cast out at the end of the coarse pass\n"
         "               refinement process. Use this option if you want to keep\n"
         "               them all for the fine resolution pass.\n"
+        "\n"
         " -norefinal  = Do NOT re-start the fine iteration step after it\n"
         "               has converged.  The default is to re-start it, which\n"
         "               usually results in a small improvement to the result\n"
@@ -1237,6 +1319,7 @@ int main( int argc , char *argv[] )
 #endif
         " -median       = Smooth with median filter instead of Gaussian blur.\n"
         "                 (Somewhat slower, and not obviously useful.)\n"
+        "\n"
         " -powell m a   = Set the Powell NEWUOA dimensional parameters to\n"
         "                 'm' and 'a' (cf. source code in powell_int.c).\n"
         "                 The number of points used for approximating the\n"
@@ -1245,6 +1328,7 @@ int main( int argc , char *argv[] )
         "                 are m=2 and a=3.  Larger values will probably slow\n"
         "                 the program down for no good reason.  The smallest\n"
         "                 allowed values are 1.\n"
+        "\n"
         " -target ttt   = Same as '-source ttt'.  In the earliest versions,\n"
         "                 what I now call the 'source' dataset was called the\n"
         "                 'target' dataset:\n"
@@ -1260,6 +1344,7 @@ int main( int argc , char *argv[] )
         " -Ywarp       =} axis is stretched & sheared.  Useful for EPI, where 'X',\n"
         " -Zwarp       =} 'Y', or 'Z' corresponds to the phase encoding direction.\n"
         " -FPS fps      = Generalizes -EPI to arbitrary permutation of directions.\n"
+        "\n"
         " -histpow pp   = By default, the number of bins in the histogram used\n"
         "                 for calculating the Hellinger, Mutual Information, and\n"
         "                 Correlation Ratio statistics is n^(1/3), where n is\n"
@@ -1277,6 +1362,7 @@ int main( int argc , char *argv[] )
         "                         non-negative; any negative voxels in either\n"
         "                         the input or source volumes will force a switch\n"
         "                         to all equal-spaced bins.\n"
+        "\n"
         " -wtmrad  mm   = Set autoweight/mask median filter radius to 'mm' voxels.\n"
         " -wtgrad  gg   = Set autoweight/mask Gaussian filter radius to 'gg' voxels.\n"
         " -nmsetup nn   = Use 'nn' points for the setup matching [default=98756]\n"
@@ -1393,27 +1479,36 @@ int main( int argc , char *argv[] )
               "      functionals also available as standalone options.\n"
               "   ++ 'ov' is a measure of the overlap of the automasks of the base and\n"
               "      source volumes; ov is not available as a standalone option.\n"
+              "\n"
               " * The purpose of lpc+ is to avoid situations where the pure lpc cost\n"
               "   goes wild; this especially happens if '-source_automask' isn't used.\n"
               "   ++ Even with lpc+, you should use '-source_automask+2' (say) to be safe.\n"
+              "\n"
               " * You can alter the weighting of the extra functionals by giving the\n"
               "   option in the form (for example)\n"
               "     '-lpc+hel*0.5+nmi*0+mi*0+crA*1.0+ov*0.5'\n"
+              "\n"
               " * The quotes are needed to prevent the shell from wild-card expanding\n"
               "   the '*' character.\n"
               "   --> You can now use ':' in place of '*' to avoid this wildcard problem:\n"
               "         -lpc+hel:0.5+nmi:0+mi:0+crA:1+ov:0.5+ZZ\n"
+              "\n"
               " * Notice the weight factors FOLLOW the name of the extra functionals.\n"
               "   ++ If you want a weight to be 0 or 1, you have to provide for that\n"
               "      explicitly -- if you leave a weight off, then it will get its\n"
               "      default value!\n"
               "   ++ The order of the weight factor names is unimportant here:\n"
               "        '-lpc+hel*0.5+nmi*0.8' == '-lpc+nmi*0.8+hel*0.5'\n"
+              "\n"
               " * Only the 5 functionals listed (hel,crA,nmi,mi,ov) can be used in '-lpc+'.\n"
+              "\n"
               " * In addition, if you want the initial alignments to be with '-lpc+' and\n"
               "   then finish the Final alignment with pure '-lpc', you can indicate this\n"
               "   by putting 'ZZ' somewhere in the option string, as in '-lpc+ZZ'.\n"
-              " * This stuff should be considered really experimental at this moment!\n"
+              "\n"
+              " * [28 Nov 2018]\n"
+              "   All of the above now applies to the 'lpa+' cost functional,\n"
+              "   which can be used as a robust method for like-to-like alignment.\n"
              , micho_hel , micho_crA , micho_nmi , micho_mi , micho_ov
              ) ;
 
@@ -1687,6 +1782,11 @@ int main( int argc , char *argv[] )
    THD_check_AFNI_version("3dAllineate");
    (void)COX_clock_time() ;
 
+   /*-- initialize -final interp from environment? [25 Nov 2018] --*/
+
+   ii = INTERP_code(my_getenv("AFNI_3dAllineate_final")) ;
+   if( ii >= 0 ){ final_interp = ii ; got_final = 1 ; }
+
    /**--- process command line options ---**/
 
    iarg = 1 ;
@@ -1846,7 +1946,7 @@ int main( int argc , char *argv[] )
           qim = mri_read_1D( argv[iarg] ) ;
           if( qim == NULL )
             ERROR_exit("Can't read -allcostX1D '%s' :-(",argv[iarg]) ;
-            allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
+          allcostX1D = mri_transpose(qim) ; mri_free(qim) ;
        }
        if( allcostX1D->nx < 12 )
          ERROR_exit("-allcostX1D '%s' has only %d values per row :-(" ,
@@ -2177,7 +2277,9 @@ int main( int argc , char *argv[] )
 
        /* fail here, UNLESS the method is 'lpc+something' */
 
-       if( ! (strlen(argv[iarg]) > 5 && strncasecmp(argv[iarg],"lpc+",4) == 0) )
+       if( ! (strlen(argv[iarg]) > 5 &&
+               (   strncasecmp(argv[iarg],"lpc+",4) == 0
+                || strncasecmp(argv[iarg],"lpa+",4) == 0 ) ) )
          ERROR_exit("Unknown code '%s' after -cost :-(",argv[iarg]) ;
 
        /* fall through to lpc+ code */
@@ -2185,13 +2287,16 @@ int main( int argc , char *argv[] )
        micho_fallthru = 1 ;
      }
 
-     /* 24 Feb 2010: special option for -lpc+stuff */
+     /* 24 Feb 2010: special option for -lpc+stuff or -lpa+stuff */
 
      if( micho_fallthru ||
-         (strlen(argv[iarg]) > 6 && strncasecmp(argv[iarg],"-lpc+",5) == 0) ){
+         (strlen(argv[iarg]) > 6 &&
+           (   strncasecmp(argv[iarg],"-lpc+",5) == 0
+            || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
+       meth_code = (toupper(argv[iarg][3])=='C') ? GA_MATCH_LPC_MICHO_SCALAR
+                                                 : GA_MATCH_LPA_MICHO_SCALAR ;
        micho_fallthru = 0 ;
-       meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+mi*" ); if( cpt != NULL ) micho_mi  = strtod(cpt+4,NULL);
@@ -2204,7 +2309,8 @@ int main( int argc , char *argv[] )
        cpt = strcasestr(argv[iarg],"+ov:" ); if( cpt != NULL ) micho_ov  = strtod(cpt+4,NULL);
        cpt = strcasestr(argv[iarg],"ZZ")   ; micho_zfinal = (cpt != NULL) ;
 
-       INFO_message("lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+       INFO_message("%s parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    meth_shortname[meth_code-1] ,
                     micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
                     micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
        iarg++ ; continue ;
@@ -2456,9 +2562,6 @@ int main( int argc , char *argv[] )
        interp_code = MRI_QUINTIC ; iarg++ ; got_interp = 1 ;continue ;
      }
 #if 0
-     if( strcasecmp(argv[iarg],"-VARP1") == 0 ){
-       interp_code = MRI_VARP1 ; iarg++ ; got_interp = 1 ;continue ;
-     }
      if( strncasecmp(argv[iarg],"-WSINC") == 0 ){
        interp_code = MRI_WSINC5 ; iarg++ ; got_interp = 1 ;continue ;
      }
@@ -2477,9 +2580,6 @@ int main( int argc , char *argv[] )
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          interp_code = MRI_QUINTIC ;
 #if 0
-       else
-       if( strcasecmp(argv[iarg],"VARP1")==0 )
-         interp_code = MRI_VARP1 ;
        else
        if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          interp_code = MRI_WSINC5 ;
@@ -2502,11 +2602,6 @@ int main( int argc , char *argv[] )
        else
        if( strncmp(argv[iarg],"quintic",3)==0 || strncmp(argv[iarg],"triquintic",5)==0 )
          final_interp = MRI_QUINTIC ;
-#if 0
-       else
-       if( strcasecmp(argv[iarg],"VARP1")==0 )
-         final_interp = MRI_VARP1 ;
-#endif
        else
        if( strncasecmp(argv[iarg],"WSINC",5)==0 )
          final_interp = MRI_WSINC5 ;
@@ -2961,10 +3056,11 @@ int main( int argc , char *argv[] )
    /* [changed from pure warning to current status 23 Jan 2017] */
 
    if( !wtspecified &&
-       ( meth_code == GA_MATCH_PEARSON_SCALAR  ||
-         meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+       ( meth_code == GA_MATCH_PEARSON_SCALAR   ||
+         meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) ){
      auto_weight = 1 ;
      WARNING_message(
        "Cost 'ls' or 'lpc' or 'lpa' ==> turning '-autoweight' on\n"
@@ -2973,9 +3069,10 @@ int main( int argc , char *argv[] )
    }
 
    if( im_tmask == NULL && !auto_tmask &&
-       ( meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) ){
+       ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) ){
        WARNING_message(
         "'-source_automask' is strongly recommended when using -lpc or -lpa") ;
    }
@@ -3621,6 +3718,7 @@ STATUS("zeropad weight dataset") ;
    stup.blokset = NULL ;
    if( meth_code == GA_MATCH_PEARSON_LOCALS   ||
        meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+       meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
        meth_code == GA_MATCH_PEARSON_LOCALA   || do_allcost  ){
      float mr = 1.23f * ( MAT44_COLNORM(stup.base_cmat,0)
                          +MAT44_COLNORM(stup.base_cmat,1)
@@ -3631,9 +3729,11 @@ STATUS("zeropad weight dataset") ;
                              GA_BLOK_STRING(bloktype) , blokrad        ) ;
    }
 
-   if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ){
+   if( meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+       meth_code == GA_MATCH_LPA_MICHO_SCALAR   ){
      if( verb )
-       INFO_message("-lpc+ parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+       INFO_message("%s parameters: hel=%.2f mi=%.2f nmi=%.2f crA=%.2f ov=%.2f %s",
+                    meth_shortname[meth_code-1] ,
                     micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ,
                     micho_zfinal ? "[to be zeroed at Final iteration]" : "\0" ) ;
      GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
@@ -3991,17 +4091,17 @@ STATUS("zeropad weight dataset") ;
                         ADN_datum_all , MRI_float ,
                       ADN_none ) ;
        if( DSET_NUM_TIMES(dset_targ) > 1 )
-       EDIT_dset_items( dset_out ,
-                          ADN_ntt   , DSET_NVALS(dset_targ) ,
-                          ADN_ttdel , DSET_TR(dset_targ) ,
-                          ADN_tunits, UNITS_SEC_TYPE ,
-                          ADN_nsl   , 0 ,
-                        ADN_none ) ;
-     else
-       EDIT_dset_items( dset_out ,
-                          ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
-                                                           : FUNC_BUCK_TYPE ,
-                        ADN_none ) ;
+         EDIT_dset_items( dset_out ,
+                            ADN_ntt   , DSET_NVALS(dset_targ) ,
+                            ADN_ttdel , DSET_TR(dset_targ) ,
+                            ADN_tunits, UNITS_SEC_TYPE ,
+                            ADN_nsl   , 0 ,
+                          ADN_none ) ;
+       else
+         EDIT_dset_items( dset_out ,
+                            ADN_func_type , ISANAT(dset_out) ? ANAT_BUCK_TYPE
+                                                             : FUNC_BUCK_TYPE ,
+                          ADN_none ) ;
 
      /* copy brick info into output */
 
@@ -4079,8 +4179,23 @@ STATUS("zeropad weight dataset") ;
   do{ fprintf(stderr," + %s Parameters:\n    ",ss) ;        \
       for( jj=0 ; jj < stup.wfunc_numpar ; jj++ ){          \
         if( jj > 0 && jj%3 == 0 ) fprintf(stderr,"\n    "); \
-        fprintf(stderr," %9s=%7.4f",                        \
+        fprintf(stderr," %9s=%8.4f",                        \
      stup.wfunc_param[jj].name,stup.wfunc_param[jj].xxx) ;  \
+        if( jj == 2 )                                              \
+         fprintf(stderr,"  ...  enorm=%8.4f mm",                   \
+          sqrt( stup.wfunc_param[0].xxx*stup.wfunc_param[0].xxx    \
+               +stup.wfunc_param[1].xxx*stup.wfunc_param[1].xxx    \
+               +stup.wfunc_param[2].xxx*stup.wfunc_param[2].xxx)); \
+        else if( jj == 5 )                                  \
+         fprintf(stderr,"  ...  total=%8.4f deg",           \
+          total_rotation_degrees(stup.wfunc_param[3].xxx,   \
+                                 stup.wfunc_param[4].xxx,   \
+                                 stup.wfunc_param[5].xxx)); \
+        else if( jj == 8 )                                  \
+         fprintf(stderr,"  ...  vol3D=%8.4f",               \
+           stup.wfunc_param[6].xxx                          \
+          *stup.wfunc_param[7].xxx                          \
+          *stup.wfunc_param[8].xxx ) ;                      \
       }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)
@@ -4209,6 +4324,7 @@ STATUS("zeropad weight dataset") ;
    if( sm_rad == 0.0f &&
        ( meth_code == GA_MATCH_PEARSON_LOCALS   ||
          meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR ||
          meth_code == GA_MATCH_PEARSON_LOCALA     ) ) sm_rad = MAX(2.222f,dxyz_top) ;
 
    for( kk=0 ; kk < DSET_NVALS(dset_targ) ; kk++ ){  /** the sub-brick loop **/
@@ -4242,7 +4358,7 @@ STATUS("zeropad weight dataset") ;
      if( verb > 1 )
        INFO_message("========== sub-brick #%d ========== [total CPU to here=%.1f s]",
                     kk , COX_cpu_time() ) ;
-     else if ( verb ) {
+     else if ( verb && DSET_NVALS(dset_targ) > 1 ) {
        if( kk == 0 ) fprintf(stderr,"volume 0");
        else          fprintf(stderr,"..%d", kk);
        if( kk == DSET_NVALS(dset_targ)-1 ) fputc('\n', stderr);
@@ -4579,7 +4695,8 @@ STATUS("zeropad weight dataset") ;
      /*-----------------------------------------------------------------------*/
      /*----------------------- do final resolution pass ----------------------*/
 
-     if( verb ) INFO_message("*** Fine pass begins ***") ;
+     if( verb > 1 || (verb && kk == 0) ) /* 7 Jan 2019 [rickr] */
+        INFO_message("*** Fine pass begins ***") ;
      ctim = COX_cpu_time() ;
 
      stup.interp_code = interp_code ;  /* set interpolation   */
@@ -4756,10 +4873,12 @@ STATUS("zeropad weight dataset") ;
        for( jj=0 ; jj < stup.wfunc_numpar ; jj++ )
          stup.wfunc_param[jj].val_init = stup.wfunc_param[jj].val_out;
        stup.need_hist_setup = 1 ;
-       if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal ){
+       if( (meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+            meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal ){
          GA_setup_micho( 0.0 , 0.0 , 0.0 , 0.0 , 0.0 ) ;
          if( verb > 1 )
-           ININFO_message(" - Set lpc+ parameters back to pure lpc before Final") ;
+           ININFO_message(" - Set %s parameters back to purity before Final iterations",
+                          meth_shortname[meth_code-1] ) ;
          rad *= 1.666f ;
        } else {
          rad *= 0.666f ;
@@ -4778,7 +4897,8 @@ STATUS("zeropad weight dataset") ;
 
      if( save_hist != NULL ) SAVEHIST("final",1) ;
 
-     if( meth_code == GA_MATCH_LPC_MICHO_SCALAR && micho_zfinal )  /* set them back */
+     if( (meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+          meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) && micho_zfinal )  /* set them back */
        GA_setup_micho( micho_hel , micho_mi , micho_nmi , micho_crA , micho_ov ) ;
 
      if( do_allcost != 0 ){  /*-- all costs at final affine solution? --*/
@@ -5584,9 +5704,10 @@ mri_genalign_set_pgmat(1) ;
     INFO_message(  "###########################################################");
     INFO_message(  "#   Please check results visually for alignment quality   #");
 
-    if( (meth_code == GA_MATCH_PEARSON_LOCALS  ||
-         meth_code == GA_MATCH_PEARSON_LOCALA  ||
-         meth_code == GA_MATCH_LPC_MICHO_SCALAR  ) &&
+    if( (meth_code == GA_MATCH_PEARSON_LOCALS   ||
+         meth_code == GA_MATCH_PEARSON_LOCALA   ||
+         meth_code == GA_MATCH_LPC_MICHO_SCALAR ||
+         meth_code == GA_MATCH_LPA_MICHO_SCALAR   ) &&
         auto_weight != 1                              ){
       INFO_message("###########################################################");
       INFO_message("#   '-autoweight' is recommended when using -lpc or -lpa  #");

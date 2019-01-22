@@ -13,17 +13,18 @@
 
 int main( int argc , char * argv[] )
 {
-   MRI_IMAGE * inim , * outim ;
+   MRI_IMAGE *inim , *outim ;
    int ii , jj , nx,nfft=0,ny , nopt,nby2 , ignore=0,nxi , use=0 ;
-   complex * cxar ;
-   float * iar , * oar , * far ;
+   complex *cxar ;
+   float *iar , *oar , *far ;
    int nodetrend=0 , cxop=0 ;     /* 29 Nov 1999 */
    int hilbert=0 ;                /* 09 Dec 1999 */
 
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-     printf("Usage: 1dfft [options] infile outfile\n"
+     printf("\n"
+            "Usage: 1dfft [options] infile outfile\n"
             "where infile is an AFNI *.1D file (ASCII list of numbers arranged\n"
             "in columns); outfile will be a similar file, with the absolute\n"
             "value of the FFT of the input columns.  The length of the file\n"
@@ -39,6 +40,8 @@ int main( int argc , char * argv[] )
             "  -tocx       = Save Re and Im parts of transform in 2 columns.\n"
             "  -fromcx     = Convert 2 column complex input into 1 column\n"
             "                  real output.\n"
+            "                [-fromcx will not work if the original]\n"
+            "                [data FFT length was an odd number! :(]\n"
             "  -hilbert    = When -fromcx is used, the inverse FFT will\n"
             "                  do the Hilbert transform instead.\n"
             "  -nodetrend  = Skip the detrending of the input.\n"
@@ -47,14 +50,22 @@ int main( int argc , char * argv[] )
             " * Each input time series has any quadratic trend of the\n"
             "     form 'a+b*t+c*t*t' removed before the FFT, where 't'\n"
             "     is the line number.\n"
+#if 0
             " * The FFT length will be a power-of-2 times at most one\n"
             "     factor of 3 and one factor of 5.  The smallest such\n"
             "     length >= to the specified FFT length will be used.\n"
+#else
+            " * The FFT length can be any positive even integer, but\n"
+            "   the Fast Fourier Transform algorithm will be slower if\n"
+            "   any prime factors of the FFT length are large (say > 997)\n"
+            "   Unless you are applying this program to VERY long files,\n"
+            "   this slowdown will probably not be appreciable.\n"
+#endif
             " * If the FFT length is longer than the file length, the\n"
             "     data is zero-padded to make up the difference.\n"
             " * Do NOT call the output of this program the Power Spectrum!\n"
             "     That is something else entirely.\n"
-            " * If 'outfile' is '-', the output appears on stdout.\n"
+            " * If 'outfile' is '-' (or missing), the output appears on stdout.\n"
            ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -190,7 +201,7 @@ int main( int argc , char * argv[] )
 
    if( cxop != FROMCX ){                     /* real input */
       if( nfft < nxi ) nfft = nxi ;
-      nfft = csfft_nextup_even(nfft) ;
+      /* nfft = csfft_nextup_even(nfft) ; */
       fprintf(stderr,"++ 1dfft length = %d\n",nfft) ;
       nby2 = nfft/2 ;
 
