@@ -1644,22 +1644,22 @@ GARP_BREAKOUT: ; /*nada*/
 
              if( do_local_etac ){  /* Possibly reduce local min thresholds [23 Jan 2019] */
                gval = 0.222f * fthar0[qcase][qpthr] ;
-               if( gval < gthresh0[ifarp][qcase][qpthr] ){
+               if( do_hpow0 && gval < gthresh0[ifarp][qcase][qpthr] ){
+                 ININFO_message("deltamin threshold %.1f (%.1f):: Case %s pthr=%.5f h=0 fgoal=%.1f%%",
+                                gval,gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                  gthresh0[ifarp][qcase][qpthr] = gval ;
-                 ININFO_message("deltamin threshold %.1f :: Case %s pthr=%.5f h=0 fgoal=%.1f%%",
-                                gthresh0[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                }
                gval = 0.222f * fthar1[qcase][qpthr] ;
-               if( gval < gthresh1[ifarp][qcase][qpthr] ){
+               if( do_hpow1 && gval < gthresh1[ifarp][qcase][qpthr] ){
+                 ININFO_message("deltamin threshold %.1f (%.1f):: Case %s pthr=%.5f h=1 fgoal=%.1f%%",
+                                gval,gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                  gthresh1[ifarp][qcase][qpthr] = gval ;
-                 ININFO_message("deltamin threshold %.1f :: Case %s pthr=%.5f h=1 fgoal=%.1f%%",
-                                gthresh1[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                }
                gval = 0.222f * fthar2[qcase][qpthr] ;
-               if( gval < gthresh2[ifarp][qcase][qpthr] ){
+               if( do_hpow2 && gval < gthresh2[ifarp][qcase][qpthr] ){
+                 ININFO_message("deltamin threshold %.1f (%.1f):: Case %s pthr=%.5f h=2 fgoal=%.1f%%",
+                                gval,gthresh2[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                  gthresh2[ifarp][qcase][qpthr] = gval ;
-                 ININFO_message("deltamin threshold %.1f :: Case %s pthr=%.5f h=2 fgoal=%.1f%%",
-                                gthresh2[ifarp][qcase][qpthr],lcase[qcase],pthr[qpthr],farp_goal) ;
                }
              }
 
