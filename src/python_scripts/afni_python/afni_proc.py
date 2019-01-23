@@ -1237,6 +1237,9 @@ class SubjProcSream:
                         helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
+        self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='do cross-run allin after within-run volreg')
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
