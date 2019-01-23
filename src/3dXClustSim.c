@@ -1399,9 +1399,9 @@ int main( int argc , char *argv[] )
 #if 0
 ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,qcase,qpthr,nclust_tot[qcase][qpthr]) ;
 #endif
-         if( do_hpow0 ) qsort_float_rev( nfom , fomglob0[qcase][qpthr] ) ;
-         if( do_hpow1 ) qsort_float_rev( nfom , fomglob1[qcase][qpthr] ) ;
-         if( do_hpow2 ) qsort_float_rev( nfom , fomglob2[qcase][qpthr] ) ;
+         qsort_float_rev( nfom , fomglob0[qcase][qpthr] ) ;
+         qsort_float_rev( nfom , fomglob1[qcase][qpthr] ) ;
+         qsort_float_rev( nfom , fomglob2[qcase][qpthr] ) ;
          if( nfom > nfomkeep ){
            fomglob0[qcase][qpthr] = (float *)realloc( fomglob0[qcase][qpthr],
                                                       sizeof(float)*nfomkeep ) ;
@@ -1499,21 +1499,15 @@ GARP_LOOPBACK:
            }
            a0 = ((float)jthresh+0.666f)*nit33 ;
            a1 = a0 + nit33 ;
-           fthar0[qcase][qpthr] =
-            fthar1[qcase][qpthr] =
-             fthar2[qcase][qpthr] = 0.0f ;
-           if( do_hpow0 )
-             fthar0[qcase][qpthr] = inverse_interp_extreme(
+           fthar0[qcase][qpthr] = inverse_interp_extreme(
                                       a0,a1,tfrac,
                                       fomglob0[qcase][qpthr][jthresh],
                                       fomglob0[qcase][qpthr][jthresh+1] ) ;
-           if( do_hpow1 )
-             fthar1[qcase][qpthr] = inverse_interp_extreme(
+           fthar1[qcase][qpthr] = inverse_interp_extreme(
                                       a0,a1,tfrac,
                                       fomglob1[qcase][qpthr][jthresh],
                                       fomglob1[qcase][qpthr][jthresh+1] ) ;
-           if( do_hpow2 )
-             fthar2[qcase][qpthr] = inverse_interp_extreme(
+           fthar2[qcase][qpthr] = inverse_interp_extreme(
                                       a0,a1,tfrac,
                                       fomglob2[qcase][qpthr][jthresh],
                                       fomglob2[qcase][qpthr][jthresh+1] ) ;
@@ -1620,7 +1614,7 @@ GARP_BREAKOUT: ; /*nada*/
 
        { char *qpref , *cpt , *qax[2] ;
          NI_element *qel ;
-         float *qar ; int nqq , qdim[2] , iqq ;
+         float *qar ; int nqq , qdim[2] , iqq ; float gval ;
 
          /* constants for the NIML element to be created for each case */
 
@@ -1647,6 +1641,14 @@ GARP_BREAKOUT: ; /*nada*/
              if( do_hpow0 ) qar[iqq++] = fthar0[qcase][qpthr] ;
              if( do_hpow1 ) qar[iqq++] = fthar1[qcase][qpthr] ;
              if( do_hpow2 ) qar[iqq++] = fthar2[qcase][qpthr] ;
+             if( do_local_etac ){  /* Possibly reduce local min thresholds [23 Jan 2019] */
+               gval = 0.222f * fthar0[qcase][qpthr] ;
+               if( gval < gthresh0[ifarp][qcase][qpthr] ) gthresh0[ifarp][qcase][qpthr] = gval ;
+               gval = 0.222f * fthar1[qcase][qpthr] ;
+               if( gval < gthresh1[ifarp][qcase][qpthr] ) gthresh1[ifarp][qcase][qpthr] = gval ;
+               gval = 0.222f * fthar2[qcase][qpthr] ;
+               if( gval < gthresh2[ifarp][qcase][qpthr] ) gthresh2[ifarp][qcase][qpthr] = gval ;
+             }
            }
 
            /* store them into the element */
