@@ -2002,13 +2002,21 @@ def db_cmd_volreg(proc, block):
 
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
+    # ------------------------------
+    # start foreach run loop
+    cmd = cmd + "foreach run ( $runs )\n"
+
+    # possibly include a comment about multi-echo registration basis
     if proc.use_me:
        mestr =  '    # (registration is driven by %s)\n' % proc.regecho_var
     else:
        mestr = ''
 
     # ------------------------------
-    # generate volreg command
+    # include main volreg command
+    cmd = cmd + "    # register each volume to the base image\n"  \
+                "%s" % (mestr)
+
     vrmeth = '3dvolreg'
     vv, rv = block.opts.get_string_opt('-volreg_method')
     if vv and not rv:
@@ -2019,56 +2027,19 @@ def db_cmd_volreg(proc, block):
        vrmeth = vv
     
     if vrmeth == '3dAllineate':
-       allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
-                                                  default='lpa')
-       if rv:
-          print("** failed to parse -volreg_allin_cost")
-          return
-
-       # changes: no zpad, need cost, automask, source_automask
-       #          1Dfile to m12, change padding
-       # extract first 6 from dfile.m12.r$run.1D to make dfile.r$run.1D
-       if matstr: matstr = '%*s%s \\\n' % (8, ' ', matstr)
-       if other_opts: other_opts = '%*s%s \\\n' % (8, ' ', other_opts)
-
-       # let the user override the -auto options
-       autostuff = "-automask -source_automask -autoweight "
-       alist, rv = block.opts.get_string_list('-volreg_allin_auto_stuff')
-       if alist and len(alist) > 0:
-          if alist[0] == 'NONE': autostuff = ''
-          else:                  autostuff = '%s ' % ' '.join(alist)
-
-       vrcmd = "    3dAllineate %s\\\n"                     \
-               "        -base %s \\\n"                      \
-               "        -source %s \\\n"                    \
-               "        -prefix %s \\\n"                    \
-               "        -1Dfile dfile.m12.r$run.1D \\\n"    \
-               "%s"                                         \
-               "%s"                                         \
-               "        -cost %s %s\n\n" %                  \
-               (autostuff, bstr, prev_prefix, prefix,
-                matstr, other_opts, allin_cost, resam)
-
-       vrcmd += "    # and extract the 6 rigid-body params\n"   \
-                "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
+       vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
+                    bstr, matstr, other_opts=other_opts, resam=resam)
+       if not vrcmd: return
 
     else: # '3dvolreg'
-       if matstr: matstr = '%*s%s \\\n' % (13, ' ', matstr)
-       if other_opts: other_opts = '%*s%s \\\n' % (13, ' ', other_opts)
-       vrcmd = "    3dvolreg -verbose -zpad %d -base %s \\\n"        \
-               "             -1Dfile dfile.r$run.1D -prefix %s \\\n" \
-               "             %s \\\n"                                \
-               "%s"                                                  \
-               "%s"                                                  \
-               "             %s\n" %                                 \
-               (zpad, bstr, prefix, resam, other_opts, matstr, prev_prefix)
+       vrcmd = make_volreg_command(block, prev_prefix, prefix, bstr, matstr,
+                    zpad, other_opts=other_opts, resam=resam)
+       if not vrcmd: return
+
+    cmd = cmd + vrcmd
 
     # ------------------------------
-    # and insert volreg command
-    cmd = cmd + "foreach run ( $runs )\n"                                     \
-                "    # register each volume to the base image\n"              \
-                "%s%s" % (mestr, vrcmd)
-
+    # include extents
     if do_extents:
        all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
        cmd = cmd + '\n' \
@@ -2402,6 +2373,61 @@ def db_cmd_volreg(proc, block):
     proc.mot_labs = ['roll', 'pitch', 'yaw', 'dS', 'dL', 'dP']
 
     return cmd
+
+def make_volreg_command(block, prev_prefix, prefix, basestr, matstr,
+                        zpad, other_opts="", resam="Cu"):
+    """return the main 3dvolreg command string"""
+
+    if matstr: matstr = '%*s%s \\\n' % (13, ' ', matstr)
+    if other_opts: other_opts = '%*s%s \\\n' % (13, ' ', other_opts)
+    vrcmd = "    3dvolreg -verbose -zpad %d -base %s \\\n"        \
+            "             -1Dfile dfile.r$run.1D -prefix %s \\\n" \
+            "             %s \\\n"                                \
+            "%s"                                                  \
+            "%s"                                                  \
+            "             %s\n" %                                 \
+            (zpad, basestr, prefix, resam, other_opts, matstr, prev_prefix)
+
+    return vrcmd
+
+def make_volreg_command_allin(block, prev_prefix, prefix, basestr, matstr,
+                              other_opts="", resam="Cu"):
+    """return the main volreg command string, but using 3dAllineate"""
+
+    allin_cost, rv = block.opts.get_string_opt('-volreg_allin_cost',
+                                               default='lpa')
+    if rv:
+       print("** failed to parse -volreg_allin_cost")
+       return
+
+    # changes: no zpad, need cost, automask, source_automask
+    #          1Dfile to m12, change padding
+    # extract first 6 from dfile.m12.r$run.1D to make dfile.r$run.1D
+    if matstr: matstr = '%*s%s \\\n' % (8, ' ', matstr)
+    if other_opts: other_opts = '%*s%s \\\n' % (8, ' ', other_opts)
+
+    # let the user override the -auto options
+    autostuff = "-automask -source_automask -autoweight "
+    alist, rv = block.opts.get_string_list('-volreg_allin_auto_stuff')
+    if alist and len(alist) > 0:
+       if alist[0] == 'NONE': autostuff = ''
+       else:                  autostuff = '%s ' % ' '.join(alist)
+
+    vrcmd = "    3dAllineate %s\\\n"                     \
+            "        -base %s \\\n"                      \
+            "        -source %s \\\n"                    \
+            "        -prefix %s \\\n"                    \
+            "        -1Dfile dfile.m12.r$run.1D \\\n"    \
+            "%s"                                         \
+            "%s"                                         \
+            "        -cost %s %s\n\n" %                  \
+            (autostuff, basestr, prev_prefix, prefix,
+             matstr, other_opts, allin_cost, resam)
+
+    vrcmd += "    # and extract the 6 rigid-body params\n"   \
+             "    1dcat dfile.m12.r$run.1D'[3..5,0..2]' > dfile.r$run.1D\n"
+
+    return vrcmd
 
 def create_volreg_base_warp(proc, ewarps, matvec_list):
    """if matvec_list is non-empty, apply all warps
