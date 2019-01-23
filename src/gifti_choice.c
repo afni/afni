@@ -14,8 +14,13 @@
     
     #include "mcw_malloc.h"     /* Need this to use same allocation functions */
     
+/* set LINK_AGAINST_GIFTI_LIB in Cmake (temporary) 23 Jan 2019 [rickr/jlee3] */
+/* o  remove HAVE_GIFTI from build at some point                             */
+/* o  when HAVE_GIFTI is removed, reconcile static GP used in suma_gifti.c   */
+#ifndef LINK_AGAINST_GIFTI_LIB
     #include "gifti_io.c"       /* library */
     #include "gifti_xml.c"
+#endif
 
     #include "thd_gifti.c"      /* afni interface */
     #include "suma_gifti.c"     /* suma interface */
