@@ -1158,6 +1158,7 @@ static char *gby[] = {
 
      /* Longer quotes */
 
+     "Despite what FMRI says, tears come from the heart not from the brain"           ,
      "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
      "Do not go where the path leads; go instead where there is no path"              ,
      "Be yourself, in a world that is always trying to make you something else"       ,
@@ -1284,6 +1285,7 @@ static char *gby[] = {
      "May it be a light to you in dark places, when all other lights go out"          ,
      "No in elenath hilar nan had gin -- May the stars shine upon your path"          ,
      "There is a time for departure even when there is no place to go"                ,
+     "Not all those who wander are lost - but most of them are"                       ,
      "Sometimes you've got to let go to see if there was anything worth holding onto" ,
      "Remember me and smile, for it's better to forget than remember me and cry"      ,
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
@@ -1309,6 +1311,7 @@ static char *gby[] = {
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
+     "When all you have is a computer, every problem looks like it needs machine learning"    ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -1317,11 +1320,12 @@ static char *gby[] = {
      "You must accept finite disappointments, but never lose your infinite hopes"             ,
      "We may all have come on different ships, but we're all in the same boat now"            ,
      "You can always find me out on the Long Line -- I hang out by the Church-Kleene ordinal" ,
-     "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "I've narrowed the answer to your hypothesis down to two possibilities: right and wrong" ,
      "If there was closed-book test on how to be YOU, would you get a passing grade?"         ,
      "An alternative fact: truth isn't truth"                                                 ,
      "Our time together has passed away like swift drafts of nectar in the high halls"        ,
+     "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
+     "Those are my statistics, and if you don't like them... well, I have others"             ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1359,7 +1363,7 @@ static char *gby[] = {
      "  Lilac blooming perennial, drooping star in the West,\n"
      "  And thought of him I love"                                                            ,
 
-     "\nIn the words of H Beam Piper:\n"
+     "\n In the words of H Beam Piper:\n"
      "   If you don't like the facts, ignore them.\n"
      "   And if you need facts, dream up some you DO like"                                    ,
 
@@ -1374,18 +1378,23 @@ static char *gby[] = {
 
      "Remember: Don't light the fire while you are standing in the gasoline"                  ,
 
+     "Remember: A small sample is representative only of itself"                              ,
+
      "Remember the Manager's Mantra:\n"
      "  * Work Harder.\n"
      "  * Work Smarter.\n"
      "  * Work Faster.\n"
      "  * Do More with Less.\n"
-     "  * You're screwed (this part isn't spoken aloud)"                                      ,
+     "  * You're screwed (this part isn't usually spoken aloud)"                              ,
 
      "\n  I don't want any 'downs' in my life:\n"
      "  I just want 'ups', and then 'upper ups'"                                              ,
 
      "\n  It is a truth universally acknowledged, that a single scientist\n"
      "  in possession of a large FMRI data collection, is in need of an AFNI"                 ,
+
+     "\n  It is a truth universally acknowledged, that once you collect 30\n"
+     "  subjects of FMRI data, you will be able to find SOMETHING publishable"                ,
 
      "\n  The great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
@@ -1424,26 +1433,27 @@ static char *gby[] = {
      "  ... especially if you are working on a Saturday!"                                     ,
 
      "\n xkcd's translation of p-values into words:\n"
-     "     0.001  = Highly significant\n"
-     "     0.01   = Highly significant\n"
-     "     0.02   = Highly significant\n"
-     "     0.03   = Highly significant\n"
-     "     0.04   = Significant\n"
-     "     0.049  = Significant\n"
-     "     0.050  = Oh cr*p, redo calculations\n"
-     "     0.051  = On the edge of significance\n"
-     "     0.06   = On the edge of significance\n"
-     "     0.07   = Highly suggestive\n"
-     "     0.08   = Highly suggestive\n"
-     "     0.09   = Significant at the p < 0.1 level\n"
-     "     0.099  = Significant at the p < 0.1 level\n"
-     "     > 0.1  = Hey! Look at this interesting subgroup analysis"   ,
+     "     0.001 = Highly significant\n"
+     "     0.01  = Highly significant\n"
+     "     0.02  = Highly significant\n"
+     "     0.03  = Highly significant\n"
+     "     0.04  = Significant\n"
+     "     0.049 = Significant\n"
+     "     0.050 = Oh cr*p, redo calculations\n"
+     "     0.051 = On the edge of significance\n"
+     "     0.06  = On the cusp of significance\n"
+     "     0.07  = Highly suggestive\n"
+     "     0.08  = Very suggestive\n"
+     "     0.09  = Significant at the p < 0.1 level (send more funding)\n"
+     "     > 0.1 = Hey! Look at this interesting subgroup analysis"   ,
 
      "\n Possible answers to a binary question:\n"
      "     Yes\n"
      "     No\n"
+     "     Hell NO\n"
      "     Maybe\n"
      "     I don't know\n"
+     "     I forget\n"
      "     I know but I'm not telling you\n"
      "     I need to talk to my lawyer\n"
      "     I need to talk to my dentist\n"
