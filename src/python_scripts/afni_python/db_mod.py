@@ -1795,6 +1795,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_method', user_opts, block)
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
     apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
+    apply_uopt_to_block('-volreg_post_vr_allin', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
     apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
@@ -2013,6 +2014,55 @@ def db_cmd_volreg(proc, block):
        mestr = ''
 
     # ------------------------------
+    # maybe run post-vr allineate, if so:
+    #    - extract vr base per run
+    #    - align to overall base (get xform mat)
+    #    - include xform matrix in cat_matvec
+    #
+    # ***** what if only volreg, and no cat_matvec?
+    #
+    #       ==> maybe do it by setting do_cat_matvec (search for this term)
+    #           no, use do_pvr_allin, so we can comment post_vr_allin
+    #
+    do_pvr_allin = block.opts.have_yes_opt('-volreg_post_vr_allin',default=0)
+    pvr_bstr_orig = ''
+    pvr_matrix = ''
+    pvr_autostuff = ''
+    if do_pvr_allin:
+       istr = '    '
+       nistr = '\n' + istr
+       plist = ['# extract volreg base for this run']
+       # rcr - add options for this
+       localindstr = '0'
+       pvr_prefix = 'vr_base_rigid_r$run'
+       plist.append("3dbucket -prefix %s %s'[%s]'" \
+                        % (pvr_prefix, prev_prefix, localindstr))
+       plist.append('')
+
+       pvr_matrix = 'mat.vr_xrun_allin.r$run.aff12.1D'
+       pvr_autostuff = '-autoweight -source_automask'
+       pvr_cost = '-lpa'
+       pvr_resam = '-cubic'
+
+       # register to main base
+       plist.append('# and compute xforms to cross-run allin to vr_base')
+       plist.append('3dAllineate -base %s \\' % bstr)
+       plist.append('            -source %s%s \\'%(pvr_prefix, proc.view))
+       plist.append('            -1Dfile vr_xrun_allin_dfile.m12.r$run.1D \\')
+       plist.append('            -1Dmatrix_save %s \\' % pvr_matrix)
+       if pvr_autostuff:
+          plist.append('            %s \\' % pvr_autostuff)
+       plist.append('            %s %s' % (pvr_cost, pvr_resam))
+
+       pvr_cmd = istr + nistr.join(plist) + '\n\n'
+
+       # keep the old -base string, and replace it in the vr command
+       pvr_bstr_orig = bstr
+       bstr = pvr_prefix + proc.view
+
+       cmd += pvr_cmd
+
+    # ------------------------------
     # include main volreg command
     cmd = cmd + "    # register each volume to the base image\n"  \
                 "%s" % (mestr)
@@ -2068,13 +2118,19 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
-    if dowarp or doe2a or doblip or proc.use_me:
+    do_cat_matvec = 0
+    if dowarp or doe2a or doblip or proc.use_me or do_pvr_allin:
+        do_cat_matvec = 1
+
+    if do_cat_matvec:
         # warn the user of output grid change
         pstr = '++ volreg: applying '
         cary = []
         cstr = ''
         if doblip: cary.append('blip')
         cary.append('volreg')
+
+        if do_pvr_allin: cary.append('post_vr_allin')
 
         if doe2a: cary.append('epi2anat')
         if dowarp: cary.append('tlrc')
