@@ -7,7 +7,12 @@
 #undef MAIN
 #include "afni.h"
 
+#define DONT_USE_VOLPACK  /* 23 Jan 2019 */
+
+#ifndef DONT_USE_VOLPACK
 #include "mri_render.h"
+#endif
+
 #include "mcw_graf.h"
 #include "parser.h"
 
@@ -81,6 +86,9 @@ if(PRINT_TRACING)
    for( ir=0 ; ir < rlist->num ; ir++ ){
       fname = rlist->ar[ir] ; if( fname == NULL ) continue ;
       if( strstr(fname,"plug") == NULL ) continue ;
+#ifndef DONT_USE_VOLPACK
+      if( strstr(fname,"plug_render.") != NULL ) continue
+#endif
 
       suff = strstr(fname,DYNAMIC_suffix) ;
       if( suff != NULL && strlen(suff) == strlen(DYNAMIC_suffix) ){
