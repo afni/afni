@@ -8,6 +8,11 @@
 CCOMP   = $(CCFAST) $(OMPFLAG)
 EXINCOM = echo '..... Extra install commands (if any) .....' ; $(EXTRA_INSTALL_COMMANDS)
 
+# EXLIBS  = libvolpack.a
+# LEXLIBS = -lvolpack
+EXLIBS  = 
+LEXLIBS = 
+
 F2C = f2c -A
 
 ## 07 Dec 2005: modify the include flags here
@@ -234,16 +239,16 @@ R_DIR = R_scripts
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
 
-LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h            \
-             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h    \
-             thd_compress.h afni_warp.h coxplot.h f2c.h volpack.h mcw_malloc.h\
-             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h\
-             AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h    \
-             mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h        \
-             nifti/nifti2/nifti2_io.h nifti/nifticdf/nifticdf.h               \
-             nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                 \
-             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h          \
-             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h              \
+LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
+             editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h     \
+             thd_compress.h afni_warp.h coxplot.h f2c.h           mcw_malloc.h \
+             multivector.h afni_environ.h niml.h cs_sort_template.h vol2surf.h \
+             AFNI_label.h Amalloc.h afni_suma.h debugtrace.h list_struct.h     \
+             mri_dicom_stuff.h mri_warpfield.h nifti/niftilib/nifti1.h         \
+             nifti/nifti2/nifti2_io.h nifti/nifticdf/nifticdf.h                \
+             nifti/znzlib/znzlib.h Aomp.h rcmat.h misc_math.h                  \
+             rickr/r_new_resam_dset.h rickr/r_idisp.h rickr/r_misc.h           \
+             thd_atlas.h thd_ttatlas_query.h thd_ttatlas_CA_EZ.h               \
              cs_qsort_small.h
 
 ### Make everything, install it too, and cleanup
@@ -256,12 +261,12 @@ vastness:all plugins install install_plugins install_lib
 
 ### Make many things
 
-all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libvolpack.a libtracktools.a \
+all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libtracktools.a $(EXLIBS) \
              R_io.so programs ptaylor_all AFNI_version
 
 ### Make afni binaries
 
-afobj:$(AFOBJS) libf2c.a libcoxplot.a libvolpack.a libmrix.a libjpeg.a libXmHTML.a
+afobj:$(AFOBJS) libf2c.a libcoxplot.a libmrix.a libjpeg.a libXmHTML.a $(EXLIBS)
 
 afobjs: afobj
 
@@ -342,7 +347,7 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 programs_exe:$(PROGRAMS_EXE)
 
-libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a libvolpack.a libf2c.a
+libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a $(EXLIBS)
 
 ### rules for individual programs
 
@@ -1685,9 +1690,9 @@ afni_version.o:afni_version.c
 	$(RM) $@
 	$(CC) -c afni_version.c $(INFLAGS) $(SHOWOFF)
 
-afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a libvolpack.a libjpeg.a libXmHTML.a volpack.h coxplot.h niml.h $(AFOBJS)
+afni: $(LIBMRI_OBJ) libcoxplot.a libmrix.a $(EXLIBS) libjpeg.a libXmHTML.a coxplot.h niml.h $(AFOBJS)
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
+	$(CC) -o afni $(AFOBJS) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) libXmHTML.a libjpeg.a $(LLIBS) -lm -lc
 
 afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
@@ -1695,13 +1700,13 @@ afni+:$(AFOBJS) libcoxplot.a $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 
 motiftoy: afni motiftoy.c
 	$(RM) $@
-	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri -lvolpack $(LLIBS) -lm -lc
+	$(CC) -o motiftoy motiftoy.c $(INFLAGS) $(SHOWOFF) $(PLFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS) -lm -lc
 
 # CYGWIN: must compile afni.exe with fixed plugins (see PLUGIN_FIXED, far below)
 
-afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a libvolpack.a $(LIBMRI_OBJ) libmrix.a volpack.h coxplot.h niml.h
+afni.exe:$(AFOBJS) plugin_fixed libcoxplot.a $(EXLIBS) $(LIBMRI_OBJ) libmrix.a coxplot.h niml.h
 	$(RM) $@
-	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri -lvolpack $(LLIBS)
+	$(CC) -o afni $(AFOBJS) $(PLUGIN_FIXED) $(LFLAGS) -lmrix -lcoxplot -lmri $(LEXLIBS) $(LLIBS)
 
 ### If you have Purify
 
@@ -2022,7 +2027,7 @@ backup:
 afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
-	$(CP) -pr coxplot volpack moveup moveAFNI* eispack                       ./afni_src
+	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
 	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj                   ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
@@ -2084,7 +2089,7 @@ install_noplug: $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
-	$(CP) $(LIBMRI_OBJ) libmrix.a libf2c.a libcoxplot.a libvolpack.a $(LIBHEADERS) $(LIBDIR)
+	$(CP) $(LIBMRI_OBJ) libmrix.a libf2c.a libcoxplot.a $(EXLIBS) $(LIBHEADERS) $(LIBDIR)
 
 # CYGWIN: must put the .exe suffix on the "mv" command for some reason
 
@@ -2552,15 +2557,15 @@ libmri.so: mrilib.h                                                          \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
-          libf2c.a libvolpack.a libmrix.a libcoxplot.a
+          libf2c.a libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
-	$(CC) -shared -fPIC -o libmri.so                                     \
-                -L. $(LZLIB) $(LGIFTI) -lf2c -lvolpack -lmrix -lcoxplot      \
-                -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib       \
-                $(XROOT_L) $(XLIBS) -lXm -lXt                                \
+	$(CC) -shared -fPIC -o libmri.so                                            \
+                -L. $(LZLIB) $(LGIFTI) -lf2c $(LEXLIBS) -lmrix -lcoxplot       \
+                -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib         \
+                $(XROOT_L) $(XLIBS) -lXm -lXt                                  \
                 -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 \
-                $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                          \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
+                $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                            \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)                       \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o
 	$(RM) netcdf_attr.o
 
@@ -2576,14 +2581,14 @@ libmri.so.r: mrilib.h                                                        \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
-          libf2c.a libvolpack.a libmrix.a libcoxplot.a
+          libf2c.a libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so                                     \
                 $(LFLAGS)                                                    \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                          \
                 $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
-                -lmrix -lcoxplot -lvolpack
+                -lmrix -lcoxplot $(LEXLIBS)
 	$(RM) netcdf_attr.o
 
 # remake netcdf objects with PIC
@@ -2613,7 +2618,7 @@ plugins:plug_clust.$(SO)    plug_copy.$(SO)     plug_rename.$(SO)      \
         plug_nlfit.$(SO)    plug_realtime.$(SO) plug_3ddot.$(SO)       \
         plug_coorder.$(SO)  plug_compress.$(SO) plug_volreg.$(SO)      \
         plug_drawdset.$(SO) plug_maskave.$(SO)  plug_deconvolve.$(SO)  \
-        plug_render.$(SO)   plug_notes.$(SO)    plug_histog.$(SO)      \
+                            plug_notes.$(SO)    plug_histog.$(SO)      \
         plug_scatplot.$(SO) plug_nudge.$(SO)    plug_wavelets.$(SO)    \
         plug_second_dataset.$(SO)               plug_betafit.$(SO)     \
         plug_zeropad.$(SO)  plug_nth_dataset.$(SO)                     \
@@ -2730,7 +2735,7 @@ PLUGIN_FIXED = plug_clust.fixed    plug_copy.fixed     plug_rename.fixed     \
                                    plug_realtime.fixed plug_3ddot.fixed      \
                plug_coorder.fixed  plug_compress.fixed plug_volreg.fixed     \
                plug_drawdset.fixed plug_maskave.fixed  plug_deconvolve.fixed \
-               plug_render.fixed   plug_notes.fixed    plug_histog.fixed     \
+                                   plug_notes.fixed    plug_histog.fixed     \
                plug_scatplot.fixed plug_nudge.fixed                          \
                plug_zeropad.fixed  plug_3Ddump_V2.fixed                      \
                plug_4Ddump.fixed   plug_delay_V2.fixed plug_extract.fixed    \
