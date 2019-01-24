@@ -270,26 +270,19 @@ fprintf(stderr,"\n") ;
 
       } else {  /* standard read of 1D file */
         inim[jj] = mri_read_1D( fname ) ; inel[jj] = NULL ;
-        if( inim[jj] == NULL )
-          ERROR_exit("Can't read input file '%s'",fname) ;
+        if( inim[jj] == NULL ) {
+            if ( ! okempty || stat(qname, &buf)) {
+               ERROR_exit("Can't read input file '%s'",fname) ;
+            }
+            /* continuing will cause trouble, exit politely now */
+            exit(0);
+        }
         if( jj == 0 ) first_nx = inim[jj]->nx ;
         else if( inim[jj]->nx != first_nx )
           ERROR_exit("Input file %s doesn't match first file %s in length!",
                      fname,argv[narg]) ;
         ncol += inim[jj]->ny ; num_inim++ ;
       }
-
-      inim[jj] = mri_read_1D( fname ) ;
-      if( inim[jj] == NULL) {
-        if ( ! okempty || stat(fname, &buf)) {
-          ERROR_exit("Can't read input file '%s'",fname) ;
-        }
-        /* continuing will cause trouble, exit politely now */
-        exit(0);
-      }
-      if( jj > 0 && inim[jj]->nx != inim[0]->nx )
-        ERROR_exit("Input file %s doesn't match first file %s in length!",
-                   fname,argv[1]) ;
 
       if( ncv != NULL && inim[jj] != NULL ){  /* check for constant columns [04 Dec 2010] */
         RESIZE_intvec(ncv,ncol) ;
