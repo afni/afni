@@ -63,8 +63,19 @@ static float dx ;
 static float dy ;
 static float dz ;
 
-static int   niter=0 ;  /* number of iterations (realizations per case) */
-static float nit33=0.0f ;
+static int   niter       = 0 ;  /* number of iterations (realizations per case) */
+static float nit33       = 0.0f ;
+
+static int   nsplit      = 0 ; /* 24 Jan 2019 */
+static float split_frac  = 0.0f ;
+static int   niter_clust = 0 ;
+static int   niter_tbot  = 0 ;
+static int   niter_ttop  = 0 ;
+static int   niter_test  = 0 ;
+
+static int    ncase      = 1 ;     /* number of cases (e.g., blurs) */
+static char **lcase      = NULL ;  /* labels for cases */
+static int   nsim        = 0 ;     /* ncase * niter_clust = number of sim volumes */
 
 /*-- stuff for extra outputs (don't enable this without good reason) --*/
 
@@ -96,15 +107,6 @@ static int    do_hpow0 = 0 ;  /* 1 or 0 */
 static int    do_hpow1 = 0 ;
 static int    do_hpow2 = 1 ;
 static int    nhpow    = 1 ;  /* sum of the above */
-
-/* cases (e.g., blurs) */
-
-static int    ncase = 1 ;
-static char **lcase = NULL ;
-
-/* number of simulation volumes needed */
-
-static int nsim  = 0 ;  /* ncase * niter = number of sim volumes */
 
 /** athr would be for computing threshold for more than one goal **/
 
@@ -239,20 +241,6 @@ ENTRY("get_options") ;
       dilate_fac = (float)strtod(argv[nopt],NULL) ;
       nopt++ ; continue ;
     }
-
-#if 0
-    /*-----  -niter NNN  -----*/
-
-    if( strcasecmp(argv[nopt],"-niter") == 0 ){
-      if( ++nopt >= argc )
-        ERROR_exit("You need 1 argument after option '-niter'") ;
-      niter = (int)strtod(argv[nopt],NULL) ;
-      if( niter < min_nvol )
-        WARNING_message("running with -niter %d less than %d is STRONGLY deprecated!",
-                        niter , min_nvol ) ;
-      nopt++ ; continue ;
-    }
-#endif
 
     /*----- -NN 1 or 2 or 3 -----*/
 
@@ -481,6 +469,14 @@ ENTRY("get_options") ;
       do_local_etac = 1 ; nopt++ ; continue ;
     }
 
+    /*-----  split fraction [24 Jan 2019] -----*/
+
+    if( strcasecmp(argv[nopt],"-splitfrac") == 0 ){
+      nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
+      split_frac = (float)strtod(argv[nopt],NULL) ;
+      nopt++ ; continue ;
+    }
+
     /*----- unknown option -----*/
 
     ERROR_exit("3dXClustSim -- unknown option '%s' :(",argv[nopt]) ;
@@ -542,16 +538,37 @@ ENTRY("get_options") ;
       if( verb > 1 ){
           INFO_message("number of input volumes = %d",xinset->nvtot) ;
         ININFO_message("number of cases         = %d",ncase) ;
-        ININFO_message("number of iterations    = %d / %d = %d",xinset->nvtot,ncase,niter) ;
+        ININFO_message("number of vols/case     = %d / %d = %d",xinset->nvtot,ncase,niter) ;
       }
     }
   } else {
     niter = xinset->nvtot ;
     if( verb > 1 )
-      INFO_message("number of input volumes = number of iterations = %d",niter) ;
+      INFO_message("number of input volumes = %d",niter) ;
   }
 
-  nsim = niter * ncase ;  /* number of simulation volumes */
+  if( split_frac == 0.0f )
+    split_frac = AFNI_numenv("AFNI_XCLUSTSIM_SPLITFRAC") ;
+
+  if( split_frac >= 0.2f && split_frac <= 0.8f )
+    nsplit = (int)rintf(niter*split_frac) ;
+
+  if( nsplit > 0 ){           /* split clustering and testing [24 Jan 2019] */
+     niter_clust = nsplit ;   /* how many to use for clustering */
+     niter_tbot  = nsplit ;   /* bot and top indexes to use for testing */
+     niter_ttop  = niter ;
+     if( verb > 1 )
+        ININFO_message("split testing at volume = %d",nsplit) ;
+  } else {                    /* the olden way */
+     niter_clust = niter ;
+     niter_tbot  = 0 ;
+     niter_ttop  = niter ;
+     if( verb > 1 )
+        ININFO_message("split testing           = OFF") ;
+  }
+  niter_test = niter_ttop - niter_tbot ;  /* number used for testing */
+
+  nsim = niter_clust * ncase ;  /* number of simulation volumes */
 
 #if 0
   if( athr == NULL ){
@@ -1047,6 +1064,8 @@ int main( int argc , char *argv[] )
        " -nolocal     don't do the 'local'\n"
        " -noglobal    don't do the 'global'\n"
        "\n"
+       " -splitfrac F split simulations into pieces ( 0.2 < F < 0.8 )\n"
+       "\n"
        " -prefix      something useful\n"
        " -verb        be more verbose\n"
        " -quiet       silentium est aureum\n"
@@ -1121,7 +1140,7 @@ int main( int argc , char *argv[] )
    for( qcase=0 ; qcase < ncase ; qcase++ ){
      Xclustar_g[qcase] = (Xcluster_array ***)malloc(sizeof(Xcluster_array **)*npthr) ;
      for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-       Xclustar_g[qcase][qpthr] = (Xcluster_array **)malloc(sizeof(Xcluster_array *)*niter) ;
+       Xclustar_g[qcase][qpthr] = (Xcluster_array **)malloc(sizeof(Xcluster_array *)*niter_clust) ;
      }
    }
 
@@ -1154,9 +1173,9 @@ int main( int argc , char *argv[] )
 /* #pragma omp for schedule(dynamic,500) */
 #pragma omp for
    for( isim=0; isim < nsim ; isim++ ){ /* loop over realizations */
-     generate_image( far , isim ) ;
-     icase = isim / niter ; iter = isim % niter ;
-     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* over thresholds */
+     icase = isim / niter_clust ; iter = isim % niter_clust ;
+     generate_image( far , iter+icase*niter ) ; /* get image to cluster */
+     for( ipthr=0 ; ipthr < npthr ; ipthr++ ){  /* loop over thresholds */
        /* creates Xclustar_g[icase][ipthr][iter] */
        gather_clusters( icase, ipthr , far, tfim, nnlev,nnsid, iter ) ;
      }
@@ -1206,7 +1225,7 @@ int main( int argc , char *argv[] )
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
          nclust_tot[qcase][qpthr] = 0 ;
-         for( qter=0 ; qter < niter ; qter++ ){   /* count total clusters */
+         for( qter=0 ; qter < niter_clust ; qter++ ){   /* count total clusters */
            xcar = Xclustar_g[qcase][qpthr][qter] ;
            if( xcar != NULL ) nclust_tot[qcase][qpthr] += xcar->nclu ;
          }
@@ -1220,7 +1239,7 @@ int main( int argc , char *argv[] )
 
          Xclust_tot[qcase][qpthr] = (Xcluster **)malloc(sizeof(Xcluster *)*nclust_tot[qcase][qpthr]) ;
 
-         for( pp=qter=0 ; qter < niter ; qter++ ){           /* loop over realizations */
+         for( pp=qter=0 ; qter < niter_clust ; qter++ ){           /* loop over realizations */
            xcar = Xclustar_g[qcase][qpthr][qter] ;
            if( xcar == NULL ) continue ;
            for( qq=0 ; qq < xcar->nclu ; qq++ ){        /* over clusts frm realization */
@@ -1292,7 +1311,7 @@ int main( int argc , char *argv[] )
            }
          }
          if( nfom < 50 ) continue ;      /* should never happen */
-         nfff = niter ;
+         nfff = niter_clust ;
          if( nfff > nfom ) nfff = nfom ; /* very very unlikely */
 
          fmax = AFNI_numenv("AFNI_XCLUSTSIM_FMAX") ;
@@ -1366,7 +1385,7 @@ int main( int argc , char *argv[] )
 
      /*--- create vectors to hold all FOMs ---*/
 
-     nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep */
+     nfomkeep = (int)(TOPFRAC*niter_clust) ; /* max number of FOMs to keep */
 
      fomglob0 = (float ***)malloc(sizeof(float **)*ncase) ;
      fomglob1 = (float ***)malloc(sizeof(float **)*ncase) ;
@@ -1419,7 +1438,7 @@ ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qca
 
      /*--- multithreshold simulations for global ETAC ---*/
 
-     nit33 = 1.0f/(niter+0.333f) ;
+     nit33 = 1.0f/(niter_clust+0.333f) ;
 
      ntfp = 0 ; ntfp_all = 128 ;
      tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
@@ -1460,7 +1479,7 @@ ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qca
 GARP_LOOPBACK:
      {
        float min_tfrac,a0,a1 ; int nedge,nmin,ntest,npt,jthresh ;
-       min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
+       min_tfrac = 6.0f / niter_clust ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
        itrac++ ;                                      /* number of iterations */
        nfar = 0 ;                                          /* total FAR count */
@@ -1468,9 +1487,9 @@ GARP_LOOPBACK:
 
          /* we take ithresh-th largest FOM for each case as the threshold */
 #if 0
-       ithresh = (int)(tfrac*niter) ;                  /* FOM count threshold */
+       ithresh = (int)(tfrac*niter_clust) ;                  /* FOM count threshold */
 #else
-       ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
+       ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
 #endif
 
          /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
@@ -1531,10 +1550,10 @@ GARP_LOOPBACK:
         each realization, and create count of total FA and in each voxel */
 
 /* #pragma omp for schedule(dynamic,333) */
-#pragma omp for                                      /* parallelized */
-     for( iter=0 ; iter < niter ; iter++ ){          /* loop over iterations */
-       for( icase=0 ; icase < ncase ; icase++ ){     /* over cases */
-         generate_image( far , iter+icase*niter ) ;  /* get the image */
+#pragma omp for                                            /* parallelized */
+     for( iter=niter_tbot ; iter < niter_ttop ; iter++ ){  /* loop over iterations */
+       for( icase=0 ; icase < ncase ; icase++ ){           /* over cases */
+         generate_image( far , iter+icase*niter ) ;        /* get image to test */
 
          /* multi-threshold this image with global FOM thresholds */
 
@@ -1559,9 +1578,9 @@ GARP_LOOPBACK:
 
      /* compute the FAR percentage at this tfrac */
 
-     farpercold = farperc ;               /* save what we got last time */
-     farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
-     farlast    = farperc ;           /* save for next FPR goal, if any */
+     farpercold = farperc ;                         /* save last time result */
+     farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
+     farlast    = farperc ;                         /* save for next FPR goal */
 
      /* save results for later re-use */
      if( ntfp == ntfp_all ){
@@ -1814,7 +1833,7 @@ GARP_BREAKOUT: ; /*nada*/
 
    /* target counts for voxel "hits" */
 
-   count_targ100 = (int)rintf(dilate_fac*niter) ;
+   count_targ100 = (int)rintf(dilate_fac*niter_clust) ;
    if( count_targ100 > 333 )  /* why 333? It's reasonably sized */
      count_targ100 = (int)rintf(sqrtf(333.0f*count_targ100)) ;
    count_targ80  = (int)rintf(0.80f*count_targ100) ;
@@ -1905,7 +1924,7 @@ GARP_BREAKOUT: ; /*nada*/
 
        /* if not very many, then we are done with this p-value thresh */
 
-       if( ndilstep < NDILMAX-1 && ndilsum < niter/50 ) break ;
+       if( ndilstep < NDILMAX-1 && ndilsum < niter_clust/50 ) break ;
      } /* end of loop over dilation steps */
      if( verb > 1 )
        ININFO_message("     %d dilation loops; %d total cluster dilations :: Case %s pthr=%.5f",
@@ -1943,7 +1962,7 @@ GARP_BREAKOUT: ; /*nada*/
      }
    }
 
-   nfomkeep = (int)(TOPFRAC*niter) ; /* max number of FOMs to keep at 1 voxel */
+   nfomkeep = (int)(TOPFRAC*niter_clust) ; /* max number of FOMs to keep at 1 voxel */
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){ /* loop over cases */
     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){ /* loop over p-value thresh */
@@ -2167,7 +2186,7 @@ GARP_BREAKOUT: ; /*nada*/
 
    /*--- loop over different FPR (farp) goals ---*/
 
-   nit33 = 1.0f/(niter+0.333f) ;
+   nit33 = 1.0f/(niter_clust+0.333f) ;
 
    if( ntfp_all == 0 ){
      ntfp_all = 128 ;
@@ -2211,7 +2230,7 @@ GARP_BREAKOUT: ; /*nada*/
 FARP_LOOPBACK:
      {
        float min_tfrac ; int nedge,nmin,ntest ;
-       min_tfrac = 6.0f / niter ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
+       min_tfrac = 6.0f / niter_clust ; if( min_tfrac > 0.0001f ) min_tfrac = 0.0001f ;
 
        itrac++ ;                                      /* number of iterations */
        nfar = 0 ;                                          /* total FAR count */
@@ -2219,9 +2238,9 @@ FARP_LOOPBACK:
 
          /* we take ithresh-th largest FOM at each voxel as its FOM threshold */
 #if 0
-       ithresh = (int)(tfrac*niter) ;                  /* FOM count threshold */
+       ithresh = (int)(tfrac*niter_clust) ;                  /* FOM count threshold */
 #else
-       ithresh = (int)rintf(tfrac*(niter-0.666f)+0.333f) ;
+       ithresh = (int)rintf(tfrac*(niter_clust-0.666f)+0.333f) ;
 #endif
 
          /* Check if trying to re-litigate previous case [Cinco de Mayo 2017] */
@@ -2293,8 +2312,8 @@ FARP_LOOPBACK:
            }
            /* extract this FOM thresh by interpolation */
 #if 0
-           a0 = ((float)jthresh)/((float)niter) ;
-           a1 = a0        + 1.0f/((float)niter) ;
+           a0 = ((float)jthresh)/((float)niter_clust) ;
+           a1 = a0        + 1.0f/((float)niter_clust) ;
 #else
            a0 = ((float)jthresh+0.666f)*nit33 ;
            a1 = a0 + nit33 ;
@@ -2322,10 +2341,10 @@ FARP_LOOPBACK:
         each realization, and create count of total FA and in each voxel */
 
 /* #pragma omp for schedule(dynamic,333) */
-#pragma omp for                                      /* parallelized */
-     for( iter=0 ; iter < niter ; iter++ ){          /* loop over iterations */
-       for( icase=0 ; icase < ncase ; icase++ ){     /* over cases */
-         generate_image( far , iter+icase*niter ) ;  /* get the image */
+#pragma omp for                                           /* parallelized */
+     for( iter=niter_tbot ; iter < niter_ttop ; iter++ ){ /* loop over iterations */
+       for( icase=0 ; icase < ncase ; icase++ ){          /* over cases */
+         generate_image( far , iter+icase*niter ) ;       /* get image to test */
 
          /* threshold this image */
 
@@ -2358,9 +2377,9 @@ FARP_LOOPBACK:
 
      /* compute the FAR percentage at this tfrac */
 
-     farpercold = farperc ;               /* save what we got last time */
-     farperc    = (100.0f*nfar)/(float)niter ; /* what we got this time */
-     farlast    = farperc ;           /* save for next FPR goal, if any */
+     farpercold = farperc ;                    /* save what we got last time */
+     farperc    = (100.0f*nfar)/(float)niter_test ; /* what we got this time */
+     farlast    = farperc ;                /* save for next FPR goal, if any */
 
      /* save results for later re-use [22 Feb 2018] */
      if( ntfp == ntfp_all ){
