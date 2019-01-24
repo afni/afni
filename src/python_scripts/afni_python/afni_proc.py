@@ -882,6 +882,7 @@ class SubjProcSream:
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
+        self.pvr_allin_mat = ''         # affine, cross-run volreg base xform
         self.regress_inset = None       # afni_name: first input to regression
         self.anaticor   = 0             # 0/1/2 = no/slow/fast
         self.aic_lset   = None          # ANATICOR local WM time series dataset
@@ -1237,6 +1238,9 @@ class SubjProcSream:
                         helpstr="specify -*auto* options for 3dAllineate")
         self.valid_opts.add_opt('-volreg_allin_cost', 1, [],
                         helpstr="specify -cost for 3dAllineate in volreg [lpa]")
+        self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='do cross-run allin after within-run volreg')
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
