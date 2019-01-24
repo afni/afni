@@ -882,6 +882,7 @@ class SubjProcSream:
         self.a2e_mat    = None          # anat2epi transform matrix file
         self.e2final_mv = []            # matvec list takes epi base to final
         self.e2final    = ''            # aff12.1D file for e2final_mv
+        self.pvr_allin_mat = ''         # affine, cross-run volreg base xform
         self.regress_inset = None       # afni_name: first input to regression
         self.anaticor   = 0             # 0/1/2 = no/slow/fast
         self.aic_lset   = None          # ANATICOR local WM time series dataset
