@@ -1936,6 +1936,7 @@ def db_cmd_volreg(proc, block):
     dowarp = block.opts.find_opt('-volreg_tlrc_warp') != None
     doe2a = block.opts.find_opt('-volreg_align_e2a') != None
     doblip = isinstance(proc.blip_dset_warp, BASE.afni_name)
+    do_pvr_allin = block.opts.have_yes_opt('-volreg_post_vr_allin',default=0)
 
     if proc.nlw_aff_mat and not dowarp:
        print('** have NL warp to standard space, but not applying to EPI\n' \
@@ -1957,7 +1958,7 @@ def db_cmd_volreg(proc, block):
     cur_prefix_me = proc.prefix_form_run(block, eind=0)
     proc.volreg_prefix = cur_prefix
     cstr   = '' # appended to comment string
-    if dowarp or doe2a or doblip or proc.use_me:
+    if dowarp or doe2a or doblip or proc.use_me or do_pvr_allin:
         # verify that we have someplace to warp to
         if dowarp and not proc.tlrcanat:
             print('** cannot warp, need -tlrc_anat or -copy_anat with tlrc')
@@ -1973,9 +1974,10 @@ def db_cmd_volreg(proc, block):
         prefix = 'rm.epi.volreg.r$run%s' % estr
         proc.have_rm = 1            # rm.* files exist
         matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D'
-        if doblip: cstr = cstr + ', blip warp'
-        if doe2a:  cstr = cstr + ', align to anat'
-        if dowarp: cstr = cstr + ', warp to tlrc space'
+        if doblip:        cstr = cstr + ', blip warp'
+        if do_pvr_allin:  cstr = cstr + ', post_vr_allin'
+        if doe2a:         cstr = cstr + ', align to anat'
+        if dowarp:        cstr = cstr + ', warp to tlrc space'
     else:
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
         prefix = cur_prefix
@@ -2024,7 +2026,6 @@ def db_cmd_volreg(proc, block):
     #       ==> maybe do it by setting do_cat_matvec (search for this term)
     #           no, use do_pvr_allin, so we can comment post_vr_allin
     #
-    do_pvr_allin = block.opts.have_yes_opt('-volreg_post_vr_allin',default=0)
     pvr_bstr_orig = ''
     pvr_matrix = ''
     pvr_autostuff = ''
