@@ -2054,6 +2054,12 @@ def db_cmd_volreg(proc, block):
           plist.append('            %s \\' % pvr_autostuff)
        plist.append('            %s %s' % (pvr_cost, pvr_resam))
 
+       # and save the final matrix for posterity
+       proc.pvr_allin_mat = pvr_matrix
+
+       if proc.verb > 1:
+          print("++ have post_vr_allin commands and xmat %s" % pvr_matrix)
+
        pvr_cmd = istr + nistr.join(plist) + '\n\n'
 
        # keep the old -base string, and replace it in the vr command
@@ -2062,7 +2068,7 @@ def db_cmd_volreg(proc, block):
 
        cmd += pvr_cmd
 
-    # ------------------------------
+    # ============================================================
     # include main volreg command
     cmd = cmd + "    # register each volume to the base image\n"  \
                 "%s" % (mestr)
@@ -2088,7 +2094,11 @@ def db_cmd_volreg(proc, block):
 
     cmd = cmd + vrcmd
 
-    # ------------------------------
+    # if pvr_allin, reset the volreg base to the global one, not local per run
+    if do_pvr_allin:
+       bstr = pvr_bstr_orig
+
+    # ============================================================
     # include extents
     if do_extents:
        all1_input = BASE.afni_name('rm.epi.all1'+proc.view)
@@ -2118,16 +2128,22 @@ def db_cmd_volreg(proc, block):
 
     # if warping, multiply matrices and apply
     # (store cat_matvec entries in case of later use)
-    do_cat_matvec = 0
     if dowarp or doe2a or doblip or proc.use_me or do_pvr_allin:
         do_cat_matvec = 1
+    else:
+        do_cat_matvec = 0
 
     if do_cat_matvec:
+        # ============================================================
+        # start by creating a comment string
+
         # warn the user of output grid change
         pstr = '++ volreg: applying '
-        cary = []
+        cary = []       # list used to create comment string, cstr
         cstr = ''
         if doblip: cary.append('blip')
+
+        # always
         cary.append('volreg')
 
         if do_pvr_allin: cary.append('post_vr_allin')
@@ -2142,13 +2158,17 @@ def db_cmd_volreg(proc, block):
         if dowarp: pstr += ' tlrc'
         if dowarp or doe2a: pstr += ' voxels'
 
+        # ============================================================
+        # next create cat_matvec command, and track affine transformations
+        # in e2final_mv (xforms from volreg base to final affine space)
+
         cmd = cmd + '\n'                        \
             '    # catenate %s xforms\n'        \
             '    cat_matvec -ONELINE \\\n' % cstr
         print('%s' % pstr)
 
         if dowarp:
-            # either non-linear or affing warp
+            # either non-linear or affine warp
             if proc.nlw_aff_mat: wstr = proc.nlw_aff_mat
             else:                wstr = '%s::WARP_DATA -I' % proc.tlrcanat.pv()
             cmd = cmd + '               %s \\\n' % wstr
@@ -2158,6 +2178,12 @@ def db_cmd_volreg(proc, block):
             wstr = '%s -I ' % proc.a2e_mat
             cmd = cmd + '               %s \\\n' % wstr
             proc.e2final_mv.append(wstr)
+
+        if do_pvr_allin:
+            cmd = cmd + '               %s \\\n' % proc.pvr_allin_mat
+            # proc.e2final_mv is not affected by pvr_allin
+
+        # ============================================================
 
         # if ME, alter prev_prefix before applying catendated warp
         if proc.use_me:
@@ -2181,7 +2207,10 @@ def db_cmd_volreg(proc, block):
         else:
             allinbase = ''
 
+        # resulting affine xform of orig EPI, per run
         runwarpmat = 'mat.r$run.warp.aff12.1D'
+
+        # final affine xmat is from volreg step
         cmd += '               mat.r$run.vr.aff12.1D > %s\n' % runwarpmat
 
         if do_extents:
@@ -2195,6 +2224,10 @@ def db_cmd_volreg(proc, block):
            else:
               wprefix = cur_prefix
 
+        # ============================================================
+        # create catenated set of EPI warps (epi_warps, all1_warps)
+        # - these should take EPI data from orig space to final space
+
         # first outer is any NL std space warp
         if dowarp and proc.nlw_aff_mat != '':
            epi_warps.append(warp_item('NL std space', 'NL', proc.nlw_NL_mat))
@@ -2207,6 +2240,10 @@ def db_cmd_volreg(proc, block):
         if doblip:
            blipinput = proc.blip_dset_warp.shortinput()
            epi_warps.append(warp_item('blip', 'NL', blipinput))
+
+        # finished with catenated EPI warps
+
+        # ============================================================
 
         if dowarp and proc.nlw_NL_mat:
            cstr += '/NLtlrc'
@@ -2500,7 +2537,7 @@ def create_volreg_base_warp(proc, ewarps, matvec_list):
    if len(matvec_list) == 0: return 0, '', None
 
    # make sure there is no blip warp
-   wapply = [w for w in ewarps if w.desc != 'blip']
+   wapply = [w for w in ewarps if (w.desc != 'blip' and w.desc != 'pvr_allin')]
 
    # find affine warp to replace with that from matvec_list
    affine_ind = -1
