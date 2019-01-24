@@ -1,3 +1,42 @@
+AFNI Digest, week of 2019/01/24.
+
+00) Registration for next AFNI Bootcamp at NIH now open.
+The next AFNI Bootcamp at NIH (Bethesda, Maryland, USA) will be held
+March 25-29, 2019.  Registration is now open, and information such as
+the registration form, a preliminary schedule (for both the main AFNI
+lectures and the DTI Breakout day, which is on a *Wednesday* this
+year), campus map and practical information for attending are all
+conveniently located here:
+https://afni.nimh.nih.gov/bootcamp/
+There is no charge to attend the Bootcamp, but attendees must pay all
+of their own expenses if traveling, sleeping indoors, eating, etc.
+
+**Please read the above website carefully for information.  If you
+  register now and later decide not to attend, please have the
+  courtesy to let us know.**
+
+01) afni_proc.py now applies motion regressors using -ort in
+3dDeconvolve, which cleans up the commands.  It should not have any
+effect on the results.  Please use "-regress_mot_as_ort no" to revert
+to the old style.
+
+02) afni_proc.py now has the ability to use 3dAllineate for motion
+correction (in place of 3dvolreg).  This is probably for special cases
+only, and is not recommended for general use.
+
+03) 3dQwarp speedup.
+There is some new speedupability of 3dQwarp, by using the "-lite"
+option (~30-40.0001% speedup).  By using this option, you use slightly
+less filling mathematically (12 parameter cubics and 30 parameter
+quintics instead of 24 parameter cubics and 81 parameter quitics), but
+the results should still taste great.  Technical aspects are discussed
+in 3dQwarp's help.  This "-lite" option is now the default setting in
+the omni-useful @SSwarper (but you can still use the older version
+with "-nolite").
+
+
+========================================================================
+
 AFNI Digest, week of 2018/08/29.
 
 00) New examples of scripting images, montages and matrices of images.
