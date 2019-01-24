@@ -624,6 +624,36 @@ PARSE:
 			endif
          goto CONTINUE
       endif
+      
+      if ("$argv[$cnt]" == "-LT_to_CSV") then
+         set SubLoc = $cnt    
+         if ($SubLoc == $Narg) then
+            if (! $quiet_death) echo "Need labeltable after -LT_to_CSV"
+            goto BEND
+         else
+            @ cnt ++
+            if ( ! -f $argv[$cnt] ) then
+               echo "Label table $argv[$cnt] not found"
+               goto BEND
+            endif
+            set labeltablecsv = `@NoExt "$argv[$cnt]" .niml .niml.lt .niml.alt`
+            set labeltablecsv = ${labeltablecsv}.csv
+            if ( -f $labeltablecsv ) then
+               echo "Output csv $labeltablecsv already exists"
+               echo "Delete it if you want to recreate it"
+               goto BEND
+            endif
+            echo 'key,label' > $labeltablecsv
+            niccc -quiet '-#' -stdout "file:$argv[$cnt]" | \
+                  \sed '/^#/d' | \sed 's/^ //g' | \sed 's/ *$//g' | \
+                  \sed 's/"//g' | sed '/^[[:blank:]]*$/d' | \
+                  \tr ' ' ',' >> $labeltablecsv
+            echo "Labeltable now in $labeltablecsv"
+            goto END
+         endif
+         goto CONTINUE
+      endif
+
       if ("$argv[$cnt]" == "-LT_to_atlas_PL") then
          set SubLoc = $cnt		
 		   if ($SubLoc == $Narg) then
@@ -1077,14 +1107,17 @@ HELP:
    echo "    -quiet_death: Do not give error messages when failing"
    echo "   Options in usage 2 are mutually exclusive"
    echo ""
-   echo "Usage mode 3: Transform Label Tables to Atlas Point Lists and exit"
+   echo "Usage mode 3: Transform Label Tables to Atlas Point Lists or CSV and exit"
    echo "    `basename $0` [<-LT_to_atlas_PL LABELTABLE>] "
    echo "                  [<-dset_LT_to_atlas_PL DSET POINTLIST]"
+   echo "                  [<-LT_to_CSV LABELTABLE>"
+   echo ""
    echo "    -LT_to_atlas_PL LABELTABLE: Transform Label Table LABELTABLE to "
    echo "                                Atlas Point List"
    echo "    -dset_LT_to_atlas_PL DSET POINTLIST: Get Label Table in"
    echo "                                DSET and write it out as an"
    echo "                                Atlas Point List to POINTLIST" 
+   echo "    -LT_to_CSV LABELTABLE: Transform Label Table LABELTABLE to a CSV format"
    echo ""
    echo "   Example:"
    echo "      @MakeLabelTable -LT_to_atlas_PL aparc.a2009s+aseg_rank.niml.lt"
