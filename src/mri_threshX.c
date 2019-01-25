@@ -194,7 +194,7 @@ static int   *ncthar2 = NULL ;
 static int   *kcthar2 = NULL ;
 
 static int   cth_mode = 2 ;    /* 0 = mean , 1 = median, 2 = cth_perc% */
-static float cth_perc = 90.0f ;
+static float cth_perc = 95.0f ;
 
 #define ADDTO_CTHAR0(val,ith)                                                  \
  do{ if( kcthar0[ith] >= ncthar0[ith] ){                                       \
