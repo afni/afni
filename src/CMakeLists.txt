@@ -18,9 +18,6 @@ target_include_directories(libheaders
 
 # XXX remove dlcompat
 # XXX remove jpeg-6b
-add_subdirectory(scripts_install)
-add_subdirectory(python_scripts)
-add_subdirectory(R_scripts)
 add_subdirectory(niml)
 add_subdirectory(XmHTML)
 add_subdirectory(coxplot)
@@ -297,6 +294,9 @@ add_executable(3dTSgen 3dTSgen.c)
 target_link_libraries(3dTSgen mri  AFNI::coxplot NIFTI::nifti2 ${CMAKE_DL_LIBS})
 
 
+# Install scripts
+add_subdirectory(scripts_install)
+
 
 # export(TARGETS afni SUMA NAMESPACE AFNI:: FILE AFNITargets.cmake)
 # export(PACKAGE AFNI)
@@ -317,12 +317,13 @@ include(CMakeLists_apps.txt)
 # Install makefile programs that are built by this project.
 execute_process(
     WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-     COMMAND bash "-c" "make -s -f Makefile.INCLUDE prog_list")
-file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list.txt ALL_PROGRAMS)
+     COMMAND bash "-c" "make -s -f Makefile.INCLUDE prog_list_bin")
+file(READ ${CMAKE_CURRENT_SOURCE_DIR}/prog_list_bin.txt ALL_PROGRAMS)
 string(STRIP ${ALL_PROGRAMS} ALL_PROGRAMS)
 string(REPLACE "\n" " "  ALL_PROGRAMS ${ALL_PROGRAMS})
 separate_arguments(ALL_PROGRAMS)
 set(PROGRAMS_BUILT "")
+set(NOT_BUILT "")
 # message(all_progs:"${ALL_PROGRAMS}")
 if(MRIX_BROKEN)
   set(installable_targets ${ALL_PROGRAMS} mri)
@@ -331,10 +332,13 @@ else()
 endif()
 foreach(program ${installable_targets})
   if(TARGET ${program})
-  list(APPEND PROGRAMS_BUILT ${program})
+    list(APPEND PROGRAMS_BUILT ${program})
+  else()
+    list(APPEND NOT_BUILT ${program})
   endif()
 endforeach()
-message("progs_built:'${PROGRAMS_BUILT}'")
+# message("progs_built:'${PROGRAMS_BUILT}'")
+message("programs not yet built:'${NOT_BUILT}'")
 install(TARGETS ${PROGRAMS_BUILT}
        RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
        LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
