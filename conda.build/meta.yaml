@@ -1,0 +1,40 @@
+package:
+    name: afni
+    version: {{ GIT_DESCRIBE_TAG }}
+
+source:
+    rev: {{ GIT_DESCRIBE_TAG }}
+    git_url: ../
+
+requirements:
+  build:
+    - cmake         # [unix]
+  run:
+    - expat
+    - zlib
+    - r-base
+    # - r-afex
+    # - r-phia
+    # - r-snow
+    # - r-nlme
+    # - r-lme4
+    # - r-paran
+    # - r-psych
+    # - r-brms
+
+
+build:
+    number: 1
+    skip: True  # [win]
+
+test:
+    commands:
+
+about:
+    home: https://github.com/afni/afni
+    license: GPL-3
+    summary: 'AFNI is a suite of programs for looking at and analyzing 3D brain images.'
+
+extra:
+    recipe-maintainers:
+        - leej3
