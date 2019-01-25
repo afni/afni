@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, Jan , 2019 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
+   "Couldn't deal with volumes that had subbrick selectors from @chauffeur*.",
+   "Has been fixed now.\n"
+},
+
 { 25, Jan , 2019 , PT , "@djunct_slice_space" , MINOR , TYPE_BUG_FIX,
    "Couldn't deal with volumes that had subbrick selectors from @chauffeur*.",
    "Has been fixed now.\n"
