@@ -1,0 +1,18 @@
+add_executable(afni afni.c afni_cluster.c afni_driver.c afni_environ.c
+afni_filer.c afni_fimfunc.c afni_fimmer.c afni_friends.c afni_func.c
+afni_graph.c afni_lock.c afni_logger.c afni_niml.c afni_pcor.c afni_plugin.c
+afni_plugout.c afni_ports.c afni_pplug_1dfunc.c afni_pplug_2dfunc.c
+afni_pplug_env.c afni_pplug_instacalc.c afni_pplug_instacorr.c
+afni_pplug_tstat.c afni_receive.c afni_setup.c afni_splash.c afni_suma.c
+afni_sumafunc.c afni_transforms.c afni_ttren.c afni_vedit.c afni_version.c
+afni_vol2surf.c afni_warp.c afni_whelp.c afni_widg.c pbar.c mcw_graf.c
+$<TARGET_OBJECTS:parser> $<TARGET_OBJECTS:afsliceobjs>)
+target_include_directories(afni
+  PUBLIC
+   $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+  $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES> 
+  )
+target_link_libraries(afni PUBLIC mrix AFNI::coxplot  libheaders ${X11_Xt_LIB} ${CMAKE_DL_LIBS})
+
+
+# target_include_directories(SUMA PUBLIC  ${3DEDGE_INCLUDE_DIRS})

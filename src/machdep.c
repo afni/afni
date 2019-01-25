@@ -1,7 +1,7 @@
 #define _MCW_MALLOC_HEADER_
 #include "mrilib.h"
 
-#if defined(LINUX)
+#ifndef DARWIN
 # include <malloc.h>
 #endif
 
