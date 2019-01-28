@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Jan , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Well, new functionality to existing opt: make focus box from ulay or olay.",
+   "Keywords AMASK_FOCUS{O,U}LAY can be given to -box_focus_slices.\n"
+},
+
 { 25, Jan , 2019 , PT , "@djunct_montage_coordinator" , MINOR , TYPE_BUG_FIX,
    "Couldn't deal with volumes that had subbrick selectors from @chauffeur*.",
    "Has been fixed now.\n"
