@@ -1975,8 +1975,8 @@ def db_cmd_volreg(proc, block):
         proc.have_rm = 1            # rm.* files exist
         matstr = '-1Dmatrix_save mat.r$run.vr.aff12.1D'
         if doblip:        cstr = cstr + ', blip warp'
-        if do_pvr_allin:  cstr = cstr + ', post_vr_allin'
-        if doe2a:         cstr = cstr + ', align to anat'
+        if do_pvr_allin:  cstr = cstr + ', across runs'
+        if doe2a:         cstr = cstr + ', to anat'
         if dowarp:        cstr = cstr + ', warp to tlrc space'
     else:
         if doadwarp: cstr = cstr + ', adwarp to tlrc space'
@@ -2046,7 +2046,7 @@ def db_cmd_volreg(proc, block):
        pvr_resam = '-cubic'
 
        # register to main base
-       plist.append('# and compute xforms to cross-run allin to vr_base')
+       plist.append('# and compute xforms for cross-run allin to vr_base')
        plist.append('3dAllineate -base %s \\' % bstr)
        plist.append('            -source %s%s \\'%(pvr_prefix, proc.view))
        plist.append('            -1Dfile vr_xrun_allin_dfile.m12.r$run.1D \\')
