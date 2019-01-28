@@ -295,15 +295,15 @@ endif
 3dmask_tool                           \
     -dilate_inputs -3 3               \
     -prefix ${pref}de3.nii            \
-    -input  anatSS."${SubID}".nii
+    -input  "$odir/anatSS.${SubID}.nii"
 3dcalc                                \
-    -a anatSS."${SubID}".nii          \
+    -a "$odir/anatSS.${SubID}.nii"    \
     -b ${pref}de3.nii                 \
     -expr 'a*step(b)'                 \
-    -prefix anatSSc."${SubID}".nii
+    -prefix "$odir/anatSSc.${SubID}.nii"
 
-\rm -f ${pref}de3.nii anatSS."${SubID}".nii
-\mv -f anatSSc."${SubID}".nii anatSS."${SubID}".nii
+\rm -f ${pref}de3.nii "$odir/anatSS.${SubID}.nii"
+\mv -f "$odir/anatSSc.${SubID}.nii" "$odir/anatSS.${SubID}.nii"
 
 # don't do any more if skipping the final (precision) warp
 
@@ -378,15 +378,15 @@ endif
 3dmask_tool                             \
     -dilate_inputs -1 1                 \
     -prefix ${pref}de3.nii              \
-    -input  anatQQ."${SubID}".nii
+    -input  $odir/anatQQ."${SubID}".nii
 3dcalc                                  \
-    -a anatQQ."${SubID}".nii            \
+    -a $odir/anatQQ."${SubID}".nii            \
     -b ${pref}de3.nii                   \
     -expr 'a*step(b)'                   \
-    -prefix anatQQc."${SubID}".nii
+    -prefix $odir/anatQQc."${SubID}".nii
 
 \rm -f ${pref}de3.nii anatQQ."${SubID}".nii
-\mv -f anatQQc."${SubID}".nii anatQQ."${SubID}".nii
+\mv -f $odir/anatQQc."${SubID}".nii $odir/anatQQ."${SubID}".nii
 
 ## Step #7: Make two pretty pictures, and scram
 
