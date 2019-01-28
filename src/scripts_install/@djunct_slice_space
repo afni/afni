@@ -2,13 +2,17 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "0.0";  set rev_dat   = "Oct 18, 2018"
-#   + this used to be part of @chauffeur_afni, but now is separated
-#     into its own separate @djunct_* program
+#set version   = "0.0";  set rev_dat   = "Oct 18, 2018"
+#  + this used to be part of @chauffeur_afni, but now is separated
+#    into its own separate @djunct_* program
 #
-set version   = "0.1";  set rev_dat   = "Oct 18, 2018"
-#   + optionify 
+#set version   = "0.1";  set rev_dat   = "Oct 18, 2018"
+#  + optionify 
 #
+set version   = "0.2";  set rev_dat   = "Jan 25, 2019"
+#  + [PT] bug fix for when subbrick selection is used on an inset;
+#         shoutout to, C. Cunningham for spotting the trouble.
+# 
 # ================================================================
 
 set Nwin = ""    # number of slices to divide each viewplane into
@@ -50,7 +54,7 @@ end
 
 # --------------------------- inputs -------------------------------
 
-if ( $ulay == "" ) then
+if ( "$ulay" == "" ) then
     echo "** ERROR: missing input dset! Use '-inset ..'"
     goto BAD_EXIT
 endif
