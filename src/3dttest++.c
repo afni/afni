@@ -3033,6 +3033,8 @@ int main( int argc , char *argv[] )
           name_BBB = nams ; labl_BBB = labs ; dset_BBB = dset ;
        }
 
+       INFO_message("have %d volumes corresponding to option '%s'", nv, onam);
+
        continue ;  /* nopt already points to next option */
 
      } /*----- end of '-set' -----*/
