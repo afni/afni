@@ -3425,6 +3425,7 @@ if __name__ == '__main__':
       ps.ciao(1)
    
    e = ps.epi_ns
+   ps.epi_alnd_tlrc = None
       
    #Create a weight for final pass
    if(not(ps.edge)):
