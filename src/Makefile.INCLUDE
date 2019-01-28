@@ -232,12 +232,21 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              slow_surf_clustsim.py timing_tool.py                            \
              uber_align_test.py uber_proc.py uber_skel.py uber_subject.py    \
              uber_ttest.py xmat_tool.py read_matlab_files.py afni_skeleton.py\
-	     parse_fs_lt_log.py RetroTS.py
+	     parse_fs_lt_log.py RetroTS.py 1dplot.py                         \
+             @DoPerRoi.py @djunct_calc_mont_dims.py @djunct_combine_str.py   \
+             @djunct_select_str.py BayesianGroupAna.py                       \
+             abids_json_info.py abids_json_tool.py abids_tool.py             \
+             afni_util.py apqc_make_html.py apqc_make_tcsh.py                \
+             lpc_align.py tedana_wrapper.py unWarpEPI.py
 
 R_DIR = R_scripts
 
 DISCO_DIR = discoraj
 SHINY_DIR = shiny
+
+DISCO_SCRIPTS = ClustExp_HistTable.py ClustExp_StatParse.py                 \
+                @ClustExp_CatLab @ClustExp_run_shiny FATCAT_matplot         \
+                3dMVM_validator
 
 LIBHEADERS = mrilib.h mcw_glob.h 3ddata.h thd_maker.h thd_iochan.h             \
              editvol.h cs.h eispack.h killer.h vecmat.h machdep.h tagset.h     \
@@ -284,21 +293,25 @@ all_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug
 totality_noplug:$(LIBMRI_OBJ) libmrix.a libcoxplot.a programs_noplug install_noplug clean
 
 # Create program list
+# (keep this as a simplified form of prog_list, or just depend on prog_list?)
 echo_progs:
-	echo "$(PROGRAMS) `\ls $(SCRIPTS_DIR)` $(SUMA_PROGS) $(SUMA_GTS_PROGS)   \
-             $(PY_SCRIPTS)" | tr ' ' '\n' | LC_COLLATE=C sort | uniq
+	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)       \
+             `\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`     \
+             $(PY_SCRIPTS) $(DISCO_SCRIPTS)"                    \
+             | tr ' ' '\n' | LC_COLLATE=C sort | uniq
 
 prog_list_bin:
-	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)" \
+	echo "$(PROGRAMS) $(SUMA_PROGS) $(SUMA_GTS_PROGS)"      \
 	        | tr ' ' '\n' > ___plist_bin.txt
-	make -s -f ptaylor/Makefile.ptaylor.INCLUDE echo_progs \
+	make -s -f ptaylor/Makefile.ptaylor.INCLUDE echo_progs  \
 	        | tr ' ' '\n' >> ___plist_bin.txt
 	cat ___plist_bin.txt | LC_COLLATE=C sort | uniq > prog_list_bin.txt
 	\rm -f ___plist_bin.txt
 
 prog_list_scripts:
-	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt` $(PY_SCRIPTS)" \
-                | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
+	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt`    \
+                $(PY_SCRIPTS) $(DISCO_SCRIPTS)"                 \
+                | tr ' ' '\n' | LC_COLLATE=C sort | uniq        \
 	        > prog_list_scripts.txt
 
 prog_list: prog_list_bin prog_list_scripts
