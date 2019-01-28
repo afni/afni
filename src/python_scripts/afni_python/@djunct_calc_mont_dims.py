@@ -36,6 +36,9 @@ def get_arg(aa):
     if Narg < 2:
         print(help_string)
         sys.exit(0)
+    elif aa[1] == '-help':
+        print(help_string)
+        sys.exit(0)
     elif Narg == 2:
         sys.exit("** ERROR: too few args! Need exactly one integer\n"
                  "   and an output filename (and one optional integer\n"

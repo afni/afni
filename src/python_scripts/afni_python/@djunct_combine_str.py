@@ -57,7 +57,7 @@ selector (with ',' and '..'  notation) to the output file.
 def get_arg(aa):
     Narg = len(aa)
     
-    if Narg == 0:
+    if Narg < 2:
         print(help_string)
         sys.exit(0)
     elif Narg < MIN_NUM_ARGS:
