@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Jan, 2019, RCR, "3dttest++", MICRO, TYPE_ENHANCE,
+   "output volume counts for -set options",
+   NULL
+ } ,
+
  { 28, Jan, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "updates to make target, prog_list",
    "   - grep out CMakeLists.txt\n"
