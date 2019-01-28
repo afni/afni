@@ -297,7 +297,7 @@ prog_list_bin:
 	\rm -f ___plist_bin.txt
 
 prog_list_scripts:
-	echo "`\ls $(SCRIPTS_DIR)` $(PY_SCRIPTS)" \
+	echo "`\ls $(SCRIPTS_DIR) | \grep -v CMakeLists.txt` $(PY_SCRIPTS)" \
                 | tr ' ' '\n' | LC_COLLATE=C sort | uniq \
 	        > prog_list_scripts.txt
 
