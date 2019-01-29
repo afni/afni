@@ -166,6 +166,11 @@ set version   = "4.71";   set rev_dat   = "Dec 5, 2018"
 #     + [PT] fewer dependencies actually needed than listed-- at the
 #            moment, just xvfb
 #        
+set version   = "4.8";   set rev_dat   = "Jan 28, 2019"
+#     + [PT] can now make a focus box based on automask of ulay or olay
+#            --> uses special keywords after standard opt name:
+#                AMASK_FOCUS_ULAY, AMASK_FOCUS_OLAY
+#        
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -692,9 +697,17 @@ endif
 echo "\n------------------ start of optionizing ------------------\n" 
 
 # need more cowbell
-if ( ("$ulay" == "") ) then
+if ( "$ulay" == "" ) then
     echo "** ERROR: need to have an underlay, at least!"
     goto BAD_EXIT
+else
+    set check = `3dinfo "$ulay"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $ulay !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $ulay"
+    endif
 endif
 
 # need more cowbell, but will proceed anyways
@@ -704,6 +717,41 @@ if (( "$olay" == "" ) && ( "$see_olay" == "+" )) then
     echo "       --> so I assume you just want to view the underlay." 
     set see_olay = "-"
 endif
+
+# if olay is called for, make sure it can be found OK; it is not used,
+# then make sure there aren't other options trying to call for its use
+if ( "$olay" != "" ) then
+    set check = `3dinfo "$olay"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $olay !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $olay"
+    endif
+else
+    # [PT: Jan 28, 2019] check about impossibility of option request: make
+    # refbox with olay when no olay is given.
+    if ( "$refbox" == "AMASK_FOCUS_OLAY" ) then
+        echo "** ERROR: No 'olay', but you want a refbox 'AMASK_FOCUS_OLAY'?"
+        echo "   ---> that's impossible-- did you want 'AMASK_FOCUS_ULAY'?\n\n"
+        goto BAD_EXIT
+    endif
+endif
+
+if ( "$refbox" != "" ) then
+    if ( ("$refbox" != "AMASK_FOCUS_ULAY") && ("$refbox" != "AMASK_FOCUS_OLAY") ) then    
+    set check = `3dinfo "$refbox"`
+    if ( "$#check" == "0" ) then
+        echo "** ERROR: can't find input file:  $refbox !"
+        goto BAD_EXIT
+    else
+        echo "++ Found input file:   $refbox"
+    endif
+
+    
+
+endif
+
 
 # check blowup factor
 set check_list = ( `seq 1 1 4` )
@@ -1198,6 +1246,29 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
             goto BAD_EXIT
         endif
     else if ( $USER_COORS == 2 ) then
+
+        # [PT: Jan 28, 2019] special keywords, to flag using mask of
+        # ulay or olay as refbox
+        if ( "$refbox" == "AMASK_FOCUS_ULAY" ) then
+            # henceforth, the value of this variable is that of the
+            # newly made mask, and it behaves like normal refbox input
+            set refbox = "${read_dir}/AMASK_FOCUS_ULAY.nii"
+            3dAutomask                      \
+                -q                          \
+                -clfrac 0.2                 \
+                -prefix ${refbox}           \
+                "$ulay"
+
+        else if ( "$refbox" == "AMASK_FOCUS_OLAY" ) then
+            # henceforth, the value of this variable is that of the
+            # newly made mask, and it behaves like normal refbox input
+            set refbox = "${read_dir}/AMASK_FOCUS_OLAY.nii"
+            3dAutomask                      \
+                -q                          \
+                -clfrac 0.2                 \
+                -prefix ${refbox}           \
+                "$olay"
+        endif
 
         # [PT: Nov 20, 2018] Still make a box and get the coors from
         # its center, but don't clusterize at all (in case vals are
@@ -1792,6 +1863,15 @@ COMMAND OPTIONS ~1~
                     slices and such. If the ulay is a template dset,
                     you might make REF that template.  Just for '3D'
                     dset viewing
+                    NEW: enter a keyword for the argument REF,
+                    instructing the program to make a focus box from
+                    the ulay or olay: AMASK_FOCUS_ULAY or
+                    AMASK_FOCUS_OLAY, respectively.  Mask is just made
+                    using default 3dAutomask (with '-clfrac 0.2', to
+                    err on the side of inclusivity)-- may not be
+                    perfect, but provide some useful focus while
+                    hopefully not cutting off regions that should
+                    still be included.
 
 -montx  MX         :in creating montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the

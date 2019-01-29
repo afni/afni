@@ -1421,9 +1421,7 @@ void display_help_menu(void)
       "\n"
       " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
       "                        3D datasets with voxelwise cluster multi-threshold.\n"
-      "                       ++ At the present time, the default is to do only global\n"
-      "                          ETAC calculations, but in the future this default may\n"
-      "                          change unpredictably or erratically!\n"
+      "                       ++ The default is to do only global ETAC calculations.\n"
       "\n"
       " -noETAC_global       = Turn off the 'global' ETAC calculations.\n"
       " -noETAC_local        = Turn off the 'local' ETAC calculations.\n"
@@ -3032,6 +3030,8 @@ int main( int argc , char *argv[] )
          ndset_BBB = nds  ; snam_BBB = snam ; nval_BBB = nv ;
           name_BBB = nams ; labl_BBB = labs ; dset_BBB = dset ;
        }
+
+       INFO_message("have %d volumes corresponding to option '%s'", nv, onam);
 
        continue ;  /* nopt already points to next option */
 

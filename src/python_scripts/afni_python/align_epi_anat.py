@@ -2303,7 +2303,8 @@ class RegWrap:
    def align_epi2anat(  self, e=None, a=None, \
         alopt="",\
         suf = "_alnd_anat"):
-
+      # tlrc space output null by default 
+      t = []
       self.info_msg(" Applying alignment for %s to %s" % (ps.dset2_generic_name, ps.dset1_generic_name))
  
       o = e.new("%s%s%s" % (ps.output_dir,self.epi_afniformat.out_prefix(), suf))
@@ -2399,13 +2400,13 @@ class RegWrap:
                if(com.status != 0) :
                   self.error_msg("Warp type not defined for this dataset: %s" % \
                             ps.tlrc_apar.input())
-                  return o
+                  return o,t
 
                tlrc_type = int(com.val(0,0))
                if(tlrc_type != 0) :
                   self.error_msg("Can not compute transformations for manually"
                             " talairached data")
-                  return o
+                  return o,t
 
                anat_tlrc_mat = "%s::WARP_DATA" % (ps.tlrc_apar.input())
                epi_mat = "%s%s%s_tlrc_mat.aff12.1D" % (o.p(),self.epi_afniformat.out_prefix(), suf)
@@ -2418,8 +2419,7 @@ class RegWrap:
             com.run();
 
             if(ps.tlrc_apar!=""):
-               tlrc_dset = afni_name("%s%s_tlrc%s+tlrc" % (o.p(), self.epi_afniformat.out_prefix(), suf))
-               print("tlrc_dset input %s view %s" % (tlrc_dset.input(), tlrc_dset.view));
+               tlrc_dset = afni_name("%s%s_tlrc%s+tlrc" % (o.p(), self.epi_afniformat.prefix, suf))
                # tlrc_dset.view = ps.tlrc_apar.view  '+tlrc'
                if(self.master_tlrc_dset=='SOURCE'):
                    tlrc_dset.view = e.view
@@ -2436,10 +2436,11 @@ class RegWrap:
                self.info_msg(  \
                   "Applying transformation of %s to %s tlrc parent" % \
                    (ps.dset2_generic_name, ps.dset1_generic_name ))
+
                com = shell_com( \
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
                  "-prefix %s -input %s -verb %s %s " % \
-                 ( ps.tlrc_apar.input(), epi_mat, atlrcpost.input(),e.input(),\
+                 ( ps.tlrc_apar.input(), epi_mat, atlrcpost.prefix,e.input(),\
                    ps.master_tlrc_option, alopt), ps.oexec)
 
             else:
@@ -2475,13 +2476,14 @@ class RegWrap:
               # force +tlrc output for master SOURCE option - 3dAllineate saves this as +orig
               if((ps.master_tlrc_dset=="SOURCE") and (ps.tlrc_apar!="")):
                  com = shell_com ("3drefit -deoblique -view tlrc %s%s+orig" %     \
-                        (o.p(), atlrcpost.out_prefix()), ps.oexec)
+                        (o.p(), atlrcpost.prefix), ps.oexec)
                  com.run()
               else:
                  if(oblique_mat!=""):
                     com = shell_com ("3drefit -deoblique %s+tlrc" %  \
-                      (atlrcpost.input()), ps.oexec)
-                    com.run()               
+                      (atlrcpost.prefix), ps.oexec)
+                    com.run()
+            t = atlrcpost
       else:
          self.exists_msg(o.input())
             
@@ -2490,7 +2492,7 @@ class RegWrap:
 #             return None
 
 
-      return o
+      return o,t
 
    # reduce EPI dataset to a single representative sub-brick
    def tstat_epi(self, e=None, tstat_opt="", prefix = "temp_ts"  ):
@@ -3226,7 +3228,7 @@ class RegWrap:
       return 1
 
    # create final output files (non-temporary names)
-   def create_output(self, aae, w, eaa, suf, epi_in=None, anat_in=None):
+   def create_output(self, aae, w, eaa, eaat, suf, epi_in=None, anat_in=None):
 
       #Create a properly named version of anatomy aligned to  EPI
       opt = ps.user_opts.find_opt('-anat')
@@ -3319,6 +3321,11 @@ class RegWrap:
           "Creating final output: %s data aligned to %s" % \
                    (self.dset2_generic_name, self.dset1_generic_name), ps.oexec)
          self.save_history(o,ps.oexec)
+      #And a version of the epi that is aligned to the anatomy in standard space
+      if (eaat):
+         #save the epi aligned to anat in standard space
+         #put note in header with command line
+         self.save_history(eaat,ps.oexec)
        
       return
 
@@ -3418,6 +3425,7 @@ if __name__ == '__main__':
       ps.ciao(1)
    
    e = ps.epi_ns
+   ps.epi_alnd_tlrc = None
       
    #Create a weight for final pass
    if(not(ps.edge)):
@@ -3445,7 +3453,7 @@ if __name__ == '__main__':
       if (ps.epi2anat) :   # does the user want the epi aligned to the anat
          # compute transformation just from applying inverse
          a = ps.anat0_master      # especially important for oblique datasets
-         ps.epi_alnd = \
+         ps.epi_alnd, ps.epi_alnd_tlrc = \
             ps.align_epi2anat(ps.epi_ts, a, ps.AlOpt, suf=suff)
          if (not ps.epi_alnd):
             ps.ciao(1)
@@ -3532,7 +3540,7 @@ if __name__ == '__main__':
 
 
       #Create final results
-      ps.create_output(ps.anat_alnd, ps.anat_alndwt, ps.epi_alnd, \
+      ps.create_output(ps.anat_alnd, ps.anat_alndwt, ps.epi_alnd, ps.epi_alnd_tlrc, \
            "%s" % suff, e, a)
 
       # process the children
