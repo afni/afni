@@ -852,6 +852,7 @@ class SubjProcSream:
         self.out_ss_lim = 0.4           # outlier pre-steady state warn limit
         self.out_wfile  = ''            # warnings file, for pre-SS
                                         # (set upon "creation")
+        self.outl_rfile = ''            # outlier run file (outcount.r$run.1D)
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -1241,6 +1242,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
+        self.valid_opts.add_opt('-volreg_pvra_base_index', 1, [],
+                        helpstr='specify base index or MIN_OUTLIER for align')
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],

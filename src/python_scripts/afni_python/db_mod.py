@@ -652,6 +652,7 @@ def make_outlier_commands(proc, block):
     ofile = 'outcount.r$run.1D'
     warn  = '** TR #0 outliers: possible pre-steady state TRs in run $run'
     proc.out_wfile = 'out.pre_ss_warn.txt'
+    proc.outl_rfile = ofile    # per run outlier file
 
     cmd  = '# %s\n'                                                       \
            '# data check: compute outlier fraction for each volume\n'     \
@@ -1796,6 +1797,7 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_allin_cost', user_opts, block)
     apply_uopt_to_block('-volreg_allin_auto_stuff', user_opts, block)
     apply_uopt_to_block('-volreg_post_vr_allin', user_opts, block)
+    apply_uopt_to_block('-volreg_pvra_base_index', user_opts, block)
     apply_uopt_to_block('-volreg_interp', user_opts, block)
     apply_uopt_to_block('-volreg_warp_final_interp', user_opts, block)
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
@@ -1927,8 +1929,8 @@ def db_cmd_volreg(proc, block):
     if not opt or not opt.parlist: other_opts = ''
     else: other_opts = ' '.join(opt.parlist)
 
-    if basevol: bstr = basevol
-    else:       bstr = "%s'[%d]'" % (base,sub)
+    if basevol: vr_base_str = basevol
+    else:       vr_base_str = "%s'[%d]'" % (base,sub)
 
     # ---------------
     # note whether we warp to tlrc, and set the prefix and flags accordingly
@@ -2006,6 +2008,31 @@ def db_cmd_volreg(proc, block):
         if dowarp or do_extents: cmd = cmd + '# register and warp\n'
 
     # ------------------------------
+    # maybe we need MIN_OUTLIER indices across runs (for pvra)
+    # set pvra_bind_str, an integer run-based vr base index
+    # (or 'MIN_OUTLIER' or '$')
+    pvra_bind_str = '0'
+    if do_pvr_allin:
+       pvra_bind_str, rv = block.opts.get_string_opt('-volreg_pvra_base_index',
+                                                     default='0')
+       if rv: return
+
+       if pvra_bind_str != 'MIN_OUTLIER' and pvra_bind_str != '$':
+          # see if we have an int
+          try:
+             bind_val = int(pvra_bind_str)
+          except:
+             print("** illegal value for -volreg_pvra_base_index : '%s'" \
+                   % pvra_bind_str)
+             print("   should be 'MIN_OUTLIER' or integral run index")
+             return
+
+          if bind_val < 0 or bind_val >= min(proc.reps_all):
+             print("** -volreg_pvra_base_index out of range for run lengths:" \
+                   " %s" % pvra_bind_str)
+             return
+
+    # ------------------------------
     # start foreach run loop
     cmd = cmd + "foreach run ( $runs )\n"
 
@@ -2033,11 +2060,20 @@ def db_cmd_volreg(proc, block):
        istr = '    '
        nistr = '\n' + istr
        plist = ['# extract volreg base for this run']
+
+       # first choose volume index, either an index or MIN_OUTLIER
+       if pvra_bind_str == 'MIN_OUTLIER':
+          if not proc.outl_rfile:
+             print("** AP: missing outcount file for pvra MIN_OUTILER")
+             return
+          print("** rcr - todo: pvra MIN_OUTLIER")
+          pvra_bind_str = '$min_outlier_index'
+          return
+
        # rcr - add options for this
-       localindstr = '0'
        pvr_prefix = 'vr_base_rigid_r$run'
        plist.append("3dbucket -prefix %s %s'[%s]'" \
-                        % (pvr_prefix, prev_prefix, localindstr))
+                        % (pvr_prefix, prev_prefix, pvra_bind_str))
        plist.append('')
 
        pvr_matrix = 'mat.vr_xrun_allin.r$run.aff12.1D'
@@ -2047,7 +2083,7 @@ def db_cmd_volreg(proc, block):
 
        # register to main base
        plist.append('# and compute xforms for cross-run allin to vr_base')
-       plist.append('3dAllineate -base %s \\' % bstr)
+       plist.append('3dAllineate -base %s \\' % vr_base_str)
        plist.append('            -source %s%s \\'%(pvr_prefix, proc.view))
        plist.append('            -1Dfile vr_xrun_allin_dfile.m12.r$run.1D \\')
        plist.append('            -1Dmatrix_save %s \\' % pvr_matrix)
@@ -2064,8 +2100,8 @@ def db_cmd_volreg(proc, block):
        pvr_cmd = istr + nistr.join(plist) + '\n\n'
 
        # keep the old -base string, and replace it in the vr command
-       pvr_bstr_orig = bstr
-       bstr = pvr_prefix + proc.view
+       pvr_bstr_orig = vr_base_str
+       vr_base_str = pvr_prefix + proc.view
 
        cmd += pvr_cmd
 
@@ -2085,19 +2121,19 @@ def db_cmd_volreg(proc, block):
     
     if vrmeth == '3dAllineate':
        vrcmd = make_volreg_command_allin(block, prev_prefix, prefix,
-                    bstr, matstr, other_opts=other_opts, resam=resam)
+                    vr_base_str, matstr, other_opts=other_opts, resam=resam)
        if not vrcmd: return
 
     else: # '3dvolreg'
-       vrcmd = make_volreg_command(block, prev_prefix, prefix, bstr, matstr,
-                    zpad, other_opts=other_opts, resam=resam)
+       vrcmd = make_volreg_command(block, prev_prefix, prefix, vr_base_str,
+                    matstr, zpad, other_opts=other_opts, resam=resam)
        if not vrcmd: return
 
     cmd = cmd + vrcmd
 
     # if pvr_allin, reset the volreg base to the global one, not local per run
     if do_pvr_allin:
-       bstr = pvr_bstr_orig
+       vr_base_str = pvr_bstr_orig
 
     # ============================================================
     # include extents
@@ -2449,10 +2485,10 @@ def db_cmd_volreg(proc, block):
         if proc.surf_anat:
             print('** -volreg_motsim not valid with surface analysis')
             return
-        # mot base: if external, use 0[0], else use bstr
+        # mot base: if external, use 0[0], else use vr_base_str
         if basevol: bvol = '%s"[0]"' % proc.prev_prefix_form(1, block, view=1)
-        else:       bvol = bstr
-        rv, tcmd = db_cmd_volreg_motsim(proc, block, bstr)
+        else:       bvol = vr_base_str
+        rv, tcmd = db_cmd_volreg_motsim(proc, block, vr_base_str)
         if rv: return
         cmd += tcmd
 
