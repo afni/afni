@@ -327,8 +327,12 @@ OPEN_WINDOW [c.]windowname [options]
                         setting this to exactly 1 will turn off the
                         image viewer 'widgets' in the same way that
                         the 'Image display' GUI menu item does
-    mont=PxQ:R       -> montage P across, Q down, every R'th slice
-    opacity=X        -> where X is from 0..9
+    mont=PxQ:R       -> montage P across, Q down, every R'th slice;
+                        * optionally, after the 'R' you can add
+                          :G:C where G=gap between sub-images in pixels,
+                               and C=color name to fill the gaps;
+                          Example: mont=5x3:7:2:hotpink
+    opacity=X        -> where X is from 0..9 (larger makes overlay more opaque)
     crop=x1:x2,y1:y2 -> crop images from voxels x1 to x2, and y1 to y2
                         (inclusive) -- mostly for use in .afni.startup_script;
                         use x1=x2=0 and y1=y2=0 to turn cropping off.

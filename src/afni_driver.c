@@ -148,8 +148,10 @@ static AFNI_driver_pair dpair[] = {
 
  { "PURGE_MEMORY"     , AFNI_drive_purge_memory      } ,
 
- { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,
+ { "OPEN_WINDOW"      , AFNI_drive_open_window       } ,  /* synonyms */
  { "ALTER_WINDOW"     , AFNI_drive_open_window       } ,
+ { "SET_WINDOW"       , AFNI_drive_open_window       } ,
+
  { "CLOSE_WINDOW"     , AFNI_drive_close_window      } ,
 
  { "SAVE_JPEG"        , AFNI_drive_save_jpeg         } ,
