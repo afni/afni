@@ -204,7 +204,7 @@ g_history = """
         - 3dToutcount detrending now defaults to Legendre polynomials and
           can so exceed polort 3 (limit found by I Mukai and K Bahadur)
         - added options -outlier_legendre and -outlier_polort
-    2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
+    2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnings
     2.32 Jul 19 2010 : added -check_afni_version and -requires_afni_version
     2.33 Jul 22 2010 : added -regress_run_clustsim and -regress_opts_CS
     2.34 Aug 02 2010 :
@@ -632,9 +632,10 @@ g_history = """
     6.29 Jan 18, 2019:
         - run 1d_tool.py -show_df_info, unless -regress_show_df_info no
     6.30 Jan 22, 2019: added -regress_est_blur_detrend yes/no
+    6.31 Jan 30, 2019: added -volreg_post_vr_allin and -volreg_pvra_base_index
 """
 
-g_version = "version 6.30, January 22, 2019"
+g_version = "version 6.31, January 22, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -664,7 +665,9 @@ Miscellaneous older changes:
       - require data at every time point
       - reproduce with: -volreg_no_extent_mask
 
-    ... add ACF ...
+   17 Aug 2016 : blur estimates change from FWHM to ACF
+      - FWHM values are now zero, to discourage use
+
 
 More detailed changes, starting May, 2018.
 
@@ -852,6 +855,7 @@ class SubjProcSream:
         self.out_ss_lim = 0.4           # outlier pre-steady state warn limit
         self.out_wfile  = ''            # warnings file, for pre-SS
                                         # (set upon "creation")
+        self.outl_rfile = ''            # outlier run file (outcount.r$run.1D)
         self.opt_src    = 'cmd'         # option source
         self.subj_id    = 'SUBJ'        # hopefully user will replace this
         self.subj_label = '$subj'       # replace this for execution
@@ -1241,6 +1245,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-volreg_post_vr_allin', 1, [],
                         acplist=['yes','no'],
                         helpstr='do cross-run allin after within-run volreg')
+        self.valid_opts.add_opt('-volreg_pvra_base_index', 1, [],
+                        helpstr='specify base index or MIN_OUTLIER for align')
         self.valid_opts.add_opt('-volreg_base_dset', 1, [],
                         helpstr='external dataset to use as volreg base')
         self.valid_opts.add_opt('-volreg_base_ind', 2, [],
@@ -1385,7 +1391,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
-        self.valid_opts.add_opt('-regress_cormat_warnigns', 1, [],
+        self.valid_opts.add_opt('-regress_cormat_warnings', 1, [],
                         acplist=['yes','no'],
                         helpstr='show any correl warns from Xmat (def=yes)')
         self.valid_opts.add_opt('-regress_show_df_info', 1, [],

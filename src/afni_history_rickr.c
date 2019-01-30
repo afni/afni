@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_post_vr_allin and -volreg_pvra_base_index",
+   "These are to run 3dvolreg (or 3dAllineate) to a base within\n"
+   "each run, before concatenating a transformation from each\n"
+   "per-run base to the global EPI registration base."
+ } ,
+
  { 28, Jan, 2019, RCR, "3dttest++", MICRO, TYPE_ENHANCE,
    "output volume counts for -set options",
    NULL
