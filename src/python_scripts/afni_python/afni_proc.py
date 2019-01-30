@@ -632,9 +632,10 @@ g_history = """
     6.29 Jan 18, 2019:
         - run 1d_tool.py -show_df_info, unless -regress_show_df_info no
     6.30 Jan 22, 2019: added -regress_est_blur_detrend yes/no
+    6.31 Jan 30, 2019: added -volreg_post_vr_allin and -volreg_pvra_base_index
 """
 
-g_version = "version 6.30, January 22, 2019"
+g_version = "version 6.31, January 22, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -664,7 +665,9 @@ Miscellaneous older changes:
       - require data at every time point
       - reproduce with: -volreg_no_extent_mask
 
-    ... add ACF ...
+   17 Aug 2016 : blur estimates change from FWHM to ACF
+      - FWHM values are now zero, to discourage use
+
 
 More detailed changes, starting May, 2018.
 

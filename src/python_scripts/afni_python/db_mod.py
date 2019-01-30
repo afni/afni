@@ -2076,7 +2076,7 @@ def db_cmd_volreg(proc, block):
           pvra_bind_str = '$min_outlier_index'
 
        # then extract vr_base volume
-       pvr_prefix = 'vr_base_rigid_r$run'
+       pvr_prefix = 'vr_base_per_run_r$run'
        plist.append('# extract volreg base for this run')
        plist.append("3dbucket -prefix %s %s%s[%s]%s" \
             % (pvr_prefix, prev_prefix, subb_quote, pvra_bind_str, subb_quote))
@@ -11334,7 +11334,7 @@ g_help_options = """
           * All 3 options will be replaced, so if -autoweight is still wanted,
             for example, please include it with -volreg_allin_auto_stuff.
 
-             Please see '3dAllineate -help' for more details.
+            Please see '3dAllineate -help' for more details.
 
         -volreg_allin_cost COST : specify the cost function used in 3dAllineate
 
@@ -11343,10 +11343,39 @@ g_help_options = """
             When using 3dAllineate to do EPI motion correction, the default
             cost function is lpa.  Use this option to specify another.
 
-             Please see '3dAllineate -help' for more details, including a list
-             of cost functions.
+            Please see '3dAllineate -help' for more details, including a list
+            of cost functions.
 
-        
+        -volreg_post_vr_allin yes/no : do cross-run alignment of reg bases
+
+                e.g. -volreg_post_vr_allin yes
+
+            Using this option, time series registration will be done per run,
+            with an additional cross-run registration of each within-run base
+            to what would otherwise be the overall EPI registration base.
+
+            3dAllineate is used for cross-run vr_base registration (to the
+            global vr_base, say, which may or may not be one of the per-run
+            vr_base datasets).
+
+            See also -volreg_pvra_base_index.
+
+        -volreg_pvra_base_index INDEX : specify per run INDEX for post_vr_allin
+
+                e.g.     -volreg_pvra_base_index 3
+                e.g.     -volreg_pvra_base_index $
+                e.g.     -volreg_pvra_base_index MIN_OUTLIER
+                default: -volreg_pvra_base_index 0
+
+            Use this option to specify the within-run volreg base for use with
+            '-volreg_post_vr_allin yes'.  INDEX can be one of:
+
+                0             : the default (the first time point per run)
+                VAL           : an integer index, between 0 and the last
+                $             : AFNI syntax to mean the last volume
+                MIN_OUTLIER   : compute the MIN_OUTLIER per run, and use it
+
+            See also -volreg_post_vr_allin.
 
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
