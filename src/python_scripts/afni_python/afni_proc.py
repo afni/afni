@@ -635,7 +635,7 @@ g_history = """
     6.31 Jan 30, 2019: added -volreg_post_vr_allin and -volreg_pvra_base_index
 """
 
-g_version = "version 6.31, January 22, 2019"
+g_version = "version 6.31, January 30, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
