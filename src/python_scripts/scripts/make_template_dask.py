@@ -144,9 +144,8 @@ if (daskmode != "None"):
         print("starting %d workers!" % n_workers)
         cluster.start_workers(n_workers)
         client = Client(cluster)
-        print(client.scheduler)
 
-        min_workers = 0.5 * n_threads
+        min_workers = 0.5 * n_workers
         while ((client.status == "running") and (len(client.scheduler_info()["workers"]) < min_workers)):
             current_pool_size = len(client.scheduler_info()["workers"])
             print("Waiting for a sufficient number of workers. Currently have {current_pool_size}, waiting for {min_workers}")
@@ -154,6 +153,8 @@ if (daskmode != "None"):
 
         using_cluster = True
 
+    # Display dashboard address for both local and cluster clients
+    print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)
     else:
     # LocalCluster - use multiple workers on largish computer
         from dask.distributed import Client, LocalCluster
