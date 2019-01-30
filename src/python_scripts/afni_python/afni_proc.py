@@ -204,7 +204,7 @@ g_history = """
         - 3dToutcount detrending now defaults to Legendre polynomials and
           can so exceed polort 3 (limit found by I Mukai and K Bahadur)
         - added options -outlier_legendre and -outlier_polort
-    2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnigns
+    2.31 Jul 14 2010 : added -mask_test_overlap and -regress_cormat_warnings
     2.32 Jul 19 2010 : added -check_afni_version and -requires_afni_version
     2.33 Jul 22 2010 : added -regress_run_clustsim and -regress_opts_CS
     2.34 Aug 02 2010 :
@@ -1388,7 +1388,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_compute_tsnr', 1, [],
                         acplist=['yes','no'],
                         helpstr='compute TSNR datasets (yes/no) after regress')
-        self.valid_opts.add_opt('-regress_cormat_warnigns', 1, [],
+        self.valid_opts.add_opt('-regress_cormat_warnings', 1, [],
                         acplist=['yes','no'],
                         helpstr='show any correl warns from Xmat (def=yes)')
         self.valid_opts.add_opt('-regress_show_df_info', 1, [],

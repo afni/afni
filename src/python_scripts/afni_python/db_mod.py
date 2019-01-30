@@ -2059,21 +2059,27 @@ def db_cmd_volreg(proc, block):
     if do_pvr_allin:
        istr = '    '
        nistr = '\n' + istr
-       plist = ['# extract volreg base for this run']
+       # use a list of script lines, for global indentation
+       plist = []
 
        # first choose volume index, either an index or MIN_OUTLIER
+       subb_quote = "'" # depends on variable or possible '$'
        if pvra_bind_str == 'MIN_OUTLIER':
           if not proc.outl_rfile:
              print("** AP: missing outcount file for pvra MIN_OUTILER")
              return
-          print("** rcr - todo: pvra MIN_OUTLIER")
+          plist.append('# extract MIN_OUTLIER index for current run')
+          plist.append("set min_outlier_index = `3dTstat -argmin" \
+                       " -prefix - %s\\'`" % proc.outl_rfile)
+          plist.append('')
+          subb_quote = '"'
           pvra_bind_str = '$min_outlier_index'
-          return
 
-       # rcr - add options for this
+       # then extract vr_base volume
        pvr_prefix = 'vr_base_rigid_r$run'
-       plist.append("3dbucket -prefix %s %s'[%s]'" \
-                        % (pvr_prefix, prev_prefix, pvra_bind_str))
+       plist.append('# extract volreg base for this run')
+       plist.append("3dbucket -prefix %s %s%s[%s]%s" \
+            % (pvr_prefix, prev_prefix, subb_quote, pvra_bind_str, subb_quote))
        plist.append('')
 
        pvr_matrix = 'mat.vr_xrun_allin.r$run.aff12.1D'
@@ -4830,11 +4836,11 @@ def db_mod_regress(block, proc, user_opts):
                                  uopt.parlist, setpar=1)
 
     # maybe we do not want cormat warnings
-    uopt = user_opts.find_opt('-regress_cormat_warnigns')
+    uopt = user_opts.find_opt('-regress_cormat_warnings')
     if uopt:
-        bopt = block.opts.find_opt('-regress_cormat_warnigns')
+        bopt = block.opts.find_opt('-regress_cormat_warnings')
         if bopt: bopt.parlist = uopt.parlist
-        else: block.opts.add_opt('-regress_cormat_warnigns', 1,
+        else: block.opts.add_opt('-regress_cormat_warnings', 1,
                                  uopt.parlist, setpar=1)
 
     # maybe we do not want the -fout option
@@ -5545,7 +5551,7 @@ def db_cmd_regress(proc, block):
                 "endif\n\n\n"
 
     # check the X-matrix for high pairwise correlations
-    opt = block.opts.find_opt('-regress_cormat_warnigns')
+    opt = block.opts.find_opt('-regress_cormat_warnings')
     if not opt or OL.opt_is_yes(opt):  # so default to 'yes'
         rcmd = "# display any large pairwise correlations from the X-matrix\n"\
                "1d_tool.py -show_cormat_warnings -infile %s"                  \
@@ -11339,6 +11345,8 @@ g_help_options = """
 
              Please see '3dAllineate -help' for more details, including a list
              of cost functions.
+
+        
 
         -volreg_base_dset DSET  : specify dset/sub-brick for volreg base
 
