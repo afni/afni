@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 30 , JAN , 2019 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
+   "Soft cap on large intensities" ,
+   NULL } ,
+
  { 17 , JAN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
    "Add DRG's erode-dilate trick to clip off some little stuff." ,
    NULL } ,

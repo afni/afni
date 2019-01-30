@@ -22,6 +22,8 @@ static float Uprad = 18.3f ;  /* sphere radius */
 
 #define PKVAL 1000.0f
 #define PKMID  666.0f
+#define WMCUT 1300.0f         /* 30 Jan 2019 */
+#define WMSCL  200.0f
 
 static MRI_IMAGE *sclim = NULL ;     /* 25 Jun 2013 */
 static char     *sspref = NULL ;
@@ -565,6 +567,8 @@ ENTRY("mri_WMunifize") ;
    for( ii=0 ; ii < gim->nvox ; ii++ ){
      pval = par[ii] = (par[ii] <= 0.0f) ? 0.0f : PKVAL / par[ii] ;
      gar[ii] = gar[ii] * pval ;
+     if( gar[ii] > WMCUT )  /* top clipping [30 Jan 2019] */
+       gar[ii] = WMCUT + WMSCL*tanhf((gar[ii]-WMCUT)/WMSCL) ;
    }
 
    if( verb ) fprintf(stderr,"W") ;
