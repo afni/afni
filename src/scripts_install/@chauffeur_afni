@@ -162,14 +162,17 @@
 #     + [PT] fixed delta_slices problem (were ignored)
 #            --> Grazie, S. Torrisi!
 #
-set version   = "4.71";   set rev_dat   = "Dec 5, 2018"
+#set version   = "4.71";   set rev_dat   = "Dec 5, 2018"
 #     + [PT] fewer dependencies actually needed than listed-- at the
 #            moment, just xvfb
 #        
-set version   = "4.8";   set rev_dat   = "Jan 28, 2019"
+#set version   = "4.8";   set rev_dat   = "Jan 28, 2019"
 #     + [PT] can now make a focus box based on automask of ulay or olay
 #            --> uses special keywords after standard opt name:
 #                AMASK_FOCUS_ULAY, AMASK_FOCUS_OLAY
+#        
+set version   = "4.9";   set rev_dat   = "Jan 30, 2019"
+#     + [PT] add in -montgap and -montcolor options
 #        
 # =====================================================================
 
@@ -216,6 +219,8 @@ set opac   =  6                  # opacity of overlay
 
 set mx     =  3                  # 'x' dim of montage
 set my     =  3                  # 'y' dim of montage
+set mgap   =  0                  # gapsize (in px) bt montage slices
+set mcolor = 'black'             # color of montage gap
 set delsag = -1                  # (int) slice space in sag orient
 set delaxi = -1                  # (int) slice space in axi orient
 set delcor = -1                  # (int) slice space in cor orient
@@ -252,7 +257,8 @@ set Nreps   = 1                  # default:  for if we *don't* have -mode_4D
 set ppord   = ( "sagittal" "coronal" "axial" )
 set pord    = ( "sag"      "cor"     "axi"   )
 
-set subbb = ( -1 -1 -1 )
+set subbb   = ( -1 -1 -1 )
+set refbox  = ""
 
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
@@ -408,12 +414,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         set func_resam = "$argv[$ac]"
         if ( ( "$func_resam" != "NN" ) || \
-            ( "$func_resam" != "Li" ) || \
-            ( "$func_resam" != "Cu" ) || \
-            ( "$func_resam" != "Bk" ) ) then
-                echo "** Error! '-func_resam ...' input"
-                echo "   needs to be one of {NN|Li|Cu|Bk}."
-                goto BAD_EXIT
+             ( "$func_resam" != "Li" ) || \
+             ( "$func_resam" != "Cu" ) || \
+             ( "$func_resam" != "Bk" ) ) then
+            echo "** ERROR: '-func_resam ...' input"
+            echo "   needs to be one of {NN|Li|Cu|Bk}."
+            goto BAD_EXIT
         endif
 
     # refers to olay
@@ -499,6 +505,18 @@ while ( $ac <= $#argv )
         @ ac += 1
         set my = "$argv[$ac]"
        
+    # [PT: Jan 30, 2019] extra montage feature: gap
+    else if ( "$argv[$ac]" == "-montgap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mgap = "$argv[$ac]"
+
+    # [PT: Jan 30, 2019] extra montage feature: gap color
+    else if ( "$argv[$ac]" == "-montcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor = "$argv[$ac]"
+
     else if ( "$argv[$ac]" == "-crop_axi_x" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
@@ -698,12 +716,12 @@ echo "\n------------------ start of optionizing ------------------\n"
 
 # need more cowbell
 if ( "$ulay" == "" ) then
-    echo "** ERROR: need to have an underlay, at least!"
+    echo "** ERROR: need to have an underlay, at least"
     goto BAD_EXIT
 else
     set check = `3dinfo "$ulay"`
     if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input file:  $ulay !"
+        echo "** ERROR: can't find input file:  $ulay"
         goto BAD_EXIT
     else
         echo "++ Found input file:   $ulay"
@@ -723,7 +741,7 @@ endif
 if ( "$olay" != "" ) then
     set check = `3dinfo "$olay"`
     if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input file:  $olay !"
+        echo "** ERROR: can't find input file:  $olay"
         goto BAD_EXIT
     else
         echo "++ Found input file:   $olay"
@@ -739,17 +757,18 @@ else
 endif
 
 if ( "$refbox" != "" ) then
-    if ( ("$refbox" != "AMASK_FOCUS_ULAY") && ("$refbox" != "AMASK_FOCUS_OLAY") ) then    
-    set check = `3dinfo "$refbox"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input file:  $refbox !"
-        goto BAD_EXIT
-    else
-        echo "++ Found input file:   $refbox"
+    if ( ("$refbox" != "AMASK_FOCUS_ULAY") && \
+         ("$refbox" != "AMASK_FOCUS_OLAY") ) then
+        # in this scenario, the user must have entered in some dset
+        # from which to make the refbox: check it exists.
+        set check = `3dinfo "$refbox"`
+        if ( "$#check" == "0" ) then
+            echo "** ERROR: can't find focus refbox file:  $refbox"
+            goto BAD_EXIT
+        else
+            echo "++ Found focus refbox file:   $refbox"
+        endif
     endif
-
-    
-
 endif
 
 
@@ -764,7 +783,7 @@ foreach i ( $check_list )
     endif
 end
 if ( $innit == 0 ) then
-    echo "+* BAD blowup factor:  $bufac!"
+    echo "** ERROR: bad blowup factor:  $bufac"
     echo "   ---> needs to be (exactly) one of:  $check_list\n\n"
     goto BAD_EXIT
 endif
@@ -780,7 +799,7 @@ foreach i ( $check_list )
     endif
 end
 if ( $innit == 0 ) then
-    echo "+* BAD opacity:  $opac!"
+    echo "** ERROR: bad opacity:  $opac"
     echo "   ---> needs to be (exactly) one of:  $check_list\n\n"
     goto BAD_EXIT
 endif
@@ -862,8 +881,8 @@ else
     set statthr = "0"
 
     if ( "${p_thr_val}" != "" && "${p_thr_side}" == "" ) then
-        echo "** ERROR!"
-        echo "   You specified a p-value to convert, but not the sidedness!"
+        echo "** ERROR:"
+        echo "   You specified a p-value to convert, but not the sidedness."
         echo "   Select the sidedness and enter it with '-thr_olay_pside ..'"
         goto BAD_EXIT
     endif
@@ -998,7 +1017,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                     end
                     # and check
                     if ( `echo " $BIGNEGp1 > $amax " | bc` ) then
-                        echo "** ERROR! Badness in make 4D percentile table!"
+                        echo "** ERROR: Badness in make 4D percentile table."
                         echo "   Does ulay have very large, negative values?"
                         goto BAD_EXIT
                     endif
@@ -1015,7 +1034,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                     end
                     # and check
                     if ( `echo " $amin > $amax " | bc` ) then
-                        echo "** ERROR! Badness in make 4D percentile table!"
+                        echo "** ERROR: Badness in make 4D percentile table."
                         echo "   ulay min > ulay max??"
                         goto BAD_EXIT
                     endif
@@ -1096,7 +1115,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 -prefix $read_dir/$read_ulay
         endif
     else 
-        echo "** Var 'urange' not set somehow-- bad!"
+        echo "** ERROR: Var 'urange' not set somehow-- bad."
         goto BAD_EXIT
     endif
 
@@ -1135,8 +1154,8 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 # is in an OK range
                 if ( ( `echo " $frange_perc < 0   " | bc` ) || \
                      ( `echo " $frange_perc > 100 " | bc` ) ) then
-                    echo "**ERROR! bad olay percentile: $frange_perc."
-                    echo "  Must be [0, 100]."
+                    echo "** ERROR: bad olay percentile: $frange_perc."
+                    echo "   Must be [0, 100]."
                     goto BAD_EXIT
                 endif
             endif
@@ -1155,7 +1174,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 end
                 # and check
                 if ( `echo " $BIGNEGp1 > $frange " | bc` ) then
-                    echo "** ERROR! Badness in make 4D percentile table!"
+                    echo "** ERROR: Badness in make 4D percentile table."
                     echo "   Does olay have very large, negative values?"
                     goto BAD_EXIT
                 endif
@@ -1391,6 +1410,12 @@ echo "set olay_boxed   = "\""${olay_boxed}"\"""  >> $oechocmd
 echo "set func_resam   = "\""${func_resam}"\"""  >> $oechocmd
 echo "set crossh       = "\""${crossh}"\"""  >> $oechocmd
 echo "set OW           = "\""${OW}"\"""  >> $oechocmd
+echo "set opac         = "\""${opac}"\"""  >> $oechocmd
+echo "set mx           = "\""${mx}"\"""  >> $oechocmd
+echo "set my           = "\""${my}"\"""  >> $oechocmd
+echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
+echo "set mcolor       = "\""${mcolor}"\"""  >> $oechocmd
+echo "set gapord       = ( ${gapord} )"  >> $oechocmd
 echo "set ppord        = ( ${ppord} )"  >> $oechocmd
 echo "set pord         = ( ${pord} )"  >> $oechocmd
 echo "set acropx       = ( ${acropx} )"  >> $oechocmd
@@ -1421,7 +1446,7 @@ afni -noplugins -no_detach  -echo_edu                                 \\\
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
      -com "SET_XHAIRS  ${crossh}"                                     \\\
      -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
-            mont=${mx}x${my}:${gapord[3]}                             \\\
+            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
             crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "$coor_type $coors"                                         \\\
      -com "SAVE_${ftype} ${ppord[$rrr]}image                          \\\
@@ -1448,7 +1473,7 @@ endif
              -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
              -com "SET_XHAIRS  ${crossh}"                                   \
              -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
-                    mont=${mx}x${my}:${gapord[3]}                           \
+                    mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
                     crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "$coor_type $coors"                                       \
              -com "SAVE_${ftype} ${ppord[$rrr]}image                        \
@@ -1486,6 +1511,8 @@ echo "set OW           = "\""${OW}"\"""  >> $oechocmd
 echo "set opac         = "\""${opac}"\"""  >> $oechocmd
 echo "set mx           = "\""${mx}"\"""  >> $oechocmd
 echo "set my           = "\""${my}"\"""  >> $oechocmd
+echo "set mgap         = "\""${mgap}"\"""  >> $oechocmd
+echo "set mcolor       = "\""${mcolor}"\"""  >> $oechocmd
 echo "set gapord       = ( ${gapord} )"  >> $oechocmd
 echo "set scropx       = ( ${scropx} )"  >> $oechocmd
 echo "set scropy       = ( ${scropy} )"  >> $oechocmd
@@ -1519,13 +1546,13 @@ afni -noplugins -no_detach  -echo_edu                                \\\
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
     -com "SET_XHAIRS  ${crossh}"                                     \\\
     -com "$OW sagittalimage opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[1]}                             \\\
+           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
            crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
     -com "$OW coronalimage  opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[2]}                             \\\
+           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
            crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
     -com "$OW axialimage    opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[3]}                             \\\
+           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "$coor_type $coors"                                         \\\
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
@@ -1554,9 +1581,9 @@ afni -noplugins -no_detach  -echo_edu                                \
     -com "SET_FUNC_BOXED  $olay_boxed"                             \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
     -com "SET_XHAIRS  ${crossh}"                                     \
-    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
     -com "$coor_type $coors"                                         \
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
     -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
@@ -1644,7 +1671,8 @@ for ulays).
 
 COMMAND OPTIONS ~1~
 
--help, -h          :see helpfile (here!)
+-help, -h          :see helpfile (here, in fact)
+-hview             :popup help
 -ver               :see version number
 
 -ulay    UUU       :name of underlay dset (required); can be 3D or 4D
@@ -1725,7 +1753,7 @@ COMMAND OPTIONS ~1~
 
 -func_resam  RES   :set the resampling mode for dsets; valid values
                     are:   NN  Li  Cu  Bk
-                    (def: NN; hey, voxels are voxels!). 
+                    (def: NN; hey, voxels are voxels). 
                     (See DR: SET_FUNC_RESAM)
 
 -thr_olay THR      :threshold the olay dset at THR (def: 0, or
@@ -1857,7 +1885,7 @@ COMMAND OPTIONS ~1~
                     using the midpoint of the box's FOV as the new
                     center; also, the montage slices are chosen to be
                     evenly spread within the box FOV, though they
-                    *still* show the unboxed dataset!  This is
+                    *still* show the unboxed dataset.  This is
                     different than cropping (see '-crop*' below for
                     that); this is only to try to avoid showing empty
                     slices and such. If the ulay is a template dset,
@@ -1873,17 +1901,30 @@ COMMAND OPTIONS ~1~
                     hopefully not cutting off regions that should
                     still be included.
 
--montx  MX         :in creating montage, the number of image panels in
+-montx  MX         :in creating a montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
                     total number of panels per axis is: MX*MY (see
                     below "-monty ...").  (See DR: "mont=PxQ:R";
                     basically, MX is the 'P' value).
 
--monty  MY         :in creating montage, the number of image panels in
+-monty  MY         :in creating a montage, the number of image panels in
                     a column, i.e., the number of rows (def: 3); the
                     total number of panels per axis is: MX*MY (see
                     above "-montx ...").  (See DR: "mont=PxQ:R";
                     basically, MY is the 'Q' value).
+
+-montgap  MG       :in creating a montage, one can put a border (or "gap")
+                    between the image panels.  This is specified as a
+                    number of pixels with which to insert between images
+                    (def: 0).  (See DR: "mont=PxQ:R" additional option 
+                    ":G:C";  basically, MG is the 'G' value).
+
+-montcolor  MC     :in creating a montage, one can put a border (or "gap")
+                    between the image panels (see "-montgap", above);
+                    one can also specify a color for this gap, using
+                    the present option (def: 'black').  (See DR:
+                    "mont=PxQ:R" additional option ":G:C"; basically,
+                    MC is the 'C' value).
 
 -olay_alpha {Yes|No} :In addition to representing olay values as colors
                     with a threshold, one also apply opacity
@@ -1935,7 +1976,7 @@ COMMAND OPTIONS ~1~
 
 -image_label_ijk   :If this option is used, then the image label will
                     be based on the slice index rather than the
-                    spatial (mm) coordinate; thanks, Bob!
+                    spatial (mm) coordinate; thanks, Bob.
                     (see ENV: AFNI_IMAGE_LABEL_IJK)
 
 -pass              :does nothing (no, really).

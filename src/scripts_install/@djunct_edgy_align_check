@@ -21,8 +21,12 @@
 #   + single outline form only at the moment (non-alpha-line one)
 #   + new opt: -no_clean
 #
-set version   = "0.6";  set rev_dat   = "Nov 5, 2018"
+#set version   = "0.6";  set rev_dat   = "Nov 5, 2018"
 #   + keep up with new alpha/boxed parameters for driving afni
+#
+set version   = "1.0";  set rev_dat   = "Jan 30, 2019"
+#   + [PT] add in the montgap and montcolor opts (useful for macaque
+#          data!)
 #
 # ----------------------------------------------------------------
 
@@ -55,7 +59,9 @@ set opref          = "IMG_${tpname}"
 set tpref          = "__tmp"
 set olayE          = ${tpref}_olayE.nii.gz
 
-set Nx             = 7                    # num of mont wins, b/c Ny=1
+set Nx             = 7                   # num of mont wins, b/c Ny=1
+set mgap           = 0                   # gapsize (in px) bt montage slices
+set mcolor         = 'black'             # color of montage gap
 
 set refbox_add     = ( "-pass" "-pass" )
 
@@ -103,6 +109,18 @@ while ( $ac <= $#argv )
         @ ac += 1
         set refbox_add[1] = "-box_focus_slices"
         set refbox_add[2] = "$argv[$ac]"
+
+    # [PT: Jan 30, 2019] extra montage feature: gap
+    else if ( "$argv[$ac]" == "-montgap" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mgap = "$argv[$ac]"
+
+    # [PT: Jan 30, 2019] extra montage feature: gap color
+    else if ( "$argv[$ac]" == "-montcolor" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set mcolor = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
@@ -231,6 +249,7 @@ if ( 0 ) then
     -opacity 9                              \
     -prefix   "$odir/${opref}"              \
     -montx $Nx -monty 1                     \
+    -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
     -label_mode 1 -label_size 3             \
@@ -252,6 +271,7 @@ endif
     -opacity 9                              \
     -prefix   "$odir/${opref}"              \
     -montx $Nx -monty 1                     \
+    -montgap $mgap -montcolor $mcolor       \
     -save_ftype JPEG                        \
     -set_xhairs OFF                         \
     -label_mode 1 -label_size 3             \
@@ -301,6 +321,8 @@ COMMAND OPTIONS ~1~
 -olay
 -prefix
 -box_focus_slices
+-montgap
+-montcol
 -no_clean
 
 EOF

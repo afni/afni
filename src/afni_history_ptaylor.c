@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Jan , 2019 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
+   "Added '-montgap' and '-montcolor', for montage functionality.",
+   "Users can now control montage borders (i.e., gaps) and color.\n"
+},
+
+{ 30, Jan , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Added '-montgap' and '-montcolor', for montage functionality.",
+   "Users can now control montage borders (i.e., gaps) and color.\n"
+},
+
 { 28, Jan , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Well, new functionality to existing opt: make focus box from ulay or olay.",
    "Keywords AMASK_FOCUS{O,U}LAY can be given to -box_focus_slices.\n"
