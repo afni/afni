@@ -984,6 +984,7 @@ static char *gby[] = {
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
      "You look familiar - Do you come here often?"                   ,
+     "Men are quick to believe that which they wish to be true"      ,
 
      /* bastardizations of Shakespeare */
 
@@ -1147,6 +1148,9 @@ static char *gby[] = {
      "Never love anyone who treats you like you're ordinary"                    ,
      "The smallest act of kindness is worth more than the grandest intention"   ,
      "I can believe anything, provided that it is quite incredible"             ,
+     "With freedom, books, flowers, and AFNI, who could not be happy?"          ,
+     "When a truth becomes a fact, it loses all intellectual value"             ,
+     "I can resist anything but temptation"                                     ,
 
      "\n In this world there are only two tragedies:\n"
      "   One is not getting what one wants, and the other is getting it"        ,
