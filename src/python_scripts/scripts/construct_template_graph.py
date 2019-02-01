@@ -667,6 +667,15 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     input_name = dset.pv()
     out_prefix = o.out_prefix()
     base_in = base.input()
+    # add check for saving a warp from a previous trial of the *same* Qwarp
+    # that was aborted either by the cluster or by a "nanny" process
+    # previous output has the form 
+    #   {o.out_prefix}_Lev0.0193x0232x0200_WARPsave+tlrc.HEAD
+    #   {o.out_prefix}_Lev1.0145x0173x0149_WARPsave+tlrc.HEAD
+    # look for last {o.out_prefix}_Levn.*_WARPsave+tlrc.HEAD
+    #  if it exists, make it iniwarpset instead of existing iniwarpset
+    # and set -inilev to start with 1 more than that level
+
     # if warp dataset provided here, use it
     if iniwarpset:
         iniwarp = "-iniwarp %s" % iniwarpset.input()
@@ -687,17 +696,21 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
         rewrite = " -overwrite "
     else:
         rewrite = ""
-	
+
+    # call AFNI's nonlinear alignment and then delete the intermediate results
+    # those will be used on system errors and nanny restarts	
     cmd_str = """\
     3dQwarp -base {base_in} -source {input_name} \
-    -prefix {out_prefix} {qw_opts} \
-    {iniwarp} {rewrite}
+    -prefix {out_prefix} {qw_opts} -saveall \
+    {iniwarp} {rewrite}; \
+    \\rm -f {out_prefix}*_WARPsave+tlrc.*
     """
     cmd_str = cmd_str.format(**locals())
 
     # check if output dataset was created
     o = run_check_afni_cmd(cmd_str, ps, o, "Could not nonlinearly align using")
 
+ 
     return {'aa_brain' : o,'warp': warpset}
 
 def resize_warp(ps, warp, rsz_brain, suffix="_rsz"):
