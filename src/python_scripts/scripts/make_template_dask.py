@@ -153,8 +153,8 @@ if (daskmode != "None"):
 
         using_cluster = True
 
-    # Display dashboard address for both local and cluster clients
-    print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)
+        # Display dashboard address for both local and cluster clients
+        print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)
     else:
     # LocalCluster - use multiple workers on largish computer
         from dask.distributed import Client, LocalCluster
