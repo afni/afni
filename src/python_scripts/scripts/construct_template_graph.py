@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import afni_python.afni_base as ab
-from glob import glob
+import glob
 import os
 import time
 from collections import OrderedDict
@@ -647,7 +647,14 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     with x as a digit string here (0,1,2,3)
     returns warped dataset and WARP dataset of deformation distances
     """
+    # parse the keyword arguments
     suffix=kwargs['suffix']
+    # the initial level of warp neighborhoods
+    inilev = kwargs['inilev']
+
+    # an index for initial warps in previously saved datasets (0-4)
+    # these aren't the same as the intermediate level datasets below
+    # and the level will not match the "inilev" below. J
     try:
        iniwarplevel = kwargs['iniwarplevel']
     except:
@@ -667,7 +674,8 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     input_name = dset.pv()
     out_prefix = o.out_prefix()
     base_in = base.input()
-    # add check for saving a warp from a previous trial of the *same* Qwarp
+
+    # add check for reusing a warp from a previous trial of the *same* Qwarp
     # that was aborted either by the cluster or by a "nanny" process
     # previous output has the form 
     #   {o.out_prefix}_Lev0.0193x0232x0200_WARPsave+tlrc.HEAD
@@ -675,8 +683,33 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # look for last {o.out_prefix}_Levn.*_WARPsave+tlrc.HEAD
     #  if it exists, make it iniwarpset instead of existing iniwarpset
     # and set -inilev to start with 1 more than that level
+    wll = ("11","10","9","8","7","6","5","4","3","2","1","0")
+    # check warps from last to first to see if any already exist
+    #  use existing warps to restart interrupted warp
+    iwset = None
+    ilev_opt = None
+    # see if there are any intermediate warps saved on the disk 
+    wlg = glob.glob("%s_Lev*.*_WARPsave+tlrc.HEAD" % o.pp())
+    # search for highest Level number warp
+    for wl in wlg:
+       print("Found warp named %s" % wl)
+       for iwl in wll:
+          if (iwl in wl):
+             print("%s matches file %s" % (iwl, wl))
+             iwset = prepare_afni_output(ps, dset,suffix, master=base)
+             iwset.prefix = str.split(os.path.splitext(os.path.basename(wl))[0],"+tlrc")[0]
+             inilev = int(iwl)+1
+             break
+       if(iwset): # found one, so stop looking and use this warp
+          iniwarpset = iwset
+          break
 
-    # if warp dataset provided here, use it
+    # initial neighborhood level of warping to start with
+    # determined either by kwargs or by previous intermediate warps
+    # on restart+1
+    ilev_opt = "-inilev %s" % inilev
+
+    # if warp dataset provided here (either passed through or from previous intermediate save), use it
     if iniwarpset:
         iniwarp = "-iniwarp %s" % iniwarpset.input()
     else:
@@ -701,10 +734,11 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # those will be used on system errors and nanny restarts	
     cmd_str = """\
     3dQwarp -base {base_in} -source {input_name} \
-    -prefix {out_prefix} {qw_opts} -saveall \
+    -prefix {out_prefix} {ilev_opt} {qw_opts} -saveall \
     {iniwarp} {rewrite}; \
     \\rm -f {out_prefix}*_WARPsave+tlrc.*
     """
+
     cmd_str = cmd_str.format(**locals())
 
     # check if output dataset was created
@@ -911,6 +945,9 @@ def find_typical_subject(ps, delayed, aa_brains,
 
      
 def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist,resize_brain, **kwargs):
+    """
+    find mean brain through nonlinear warping to an initial template (the previous mean brain)
+    """
 
     if not warpsetlist:
         warpsetlist = [''] * len(aa_brains)
@@ -985,20 +1022,20 @@ def get_nl_mean(ps, delayed, basedset, aa_brains, warpsetlist, resize_brain):
     nl_mean_brain = basedset
     upsample_dict = get_upsample_val(ps.upsample_level)
     kwargs_dict = {
-        0: {'qw_opts': '-blur 0 9 -minpatch 101 -lite',
+        0: {'qw_opts': '-blur 0 9 -minpatch 101 -lite', 'inilev':0,
             'suffix': '_nl0', 'upsample': upsample_dict[0], 'nl_level':0},
-        1: {'qw_opts': '-blur 1 6 -inilev 2  -minpatch 49 -lite',
+        1: {'qw_opts': '-blur 1 6 -minpatch 49 -lite', 'inilev':2,
             'suffix': '_nl1', 'iniwarplevel': '0', 
-	    'upsample': upsample_dict[1], 'nl_level':1},
-        2: {'qw_opts': '-blur 0 4 -inilev 5  -minpatch 23 -lite',
+            'upsample': upsample_dict[1], 'nl_level':1},
+        2: {'qw_opts': '-blur 0 4 -minpatch 23 -lite', 'inilev':5,
             'suffix': '_nl2', 'iniwarplevel': '1', 
-	    'upsample': upsample_dict[2], 'nl_level':2},
-        3: {'qw_opts': '-blur 0 -2 -inilev 7  -minpatch 13  -lite',
+            'upsample': upsample_dict[2], 'nl_level':2},
+        3: {'qw_opts': '-blur 0 -2 -minpatch 13 -lite', 'inilev':7,
             'suffix': '_nl3', 'iniwarplevel': '2', 
-	    'upsample': upsample_dict[3], 'nl_level':3},
-        4: {'qw_opts': '-blur 0 -2 -inilev 9  -minpatch 9  -lite',
+            'upsample': upsample_dict[3], 'nl_level':3},
+        4: {'qw_opts': '-blur 0 -2 -minpatch 9  -lite', 'inilev':9,
             'suffix': '_nl4', 'iniwarplevel': '3', 
-	    'upsample': upsample_dict[4], 'nl_level':4}
+            'upsample': upsample_dict[4], 'nl_level':4}
     }
 
     if ps.nl_level_only == -1:

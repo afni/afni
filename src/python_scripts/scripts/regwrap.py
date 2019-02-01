@@ -512,7 +512,7 @@ class RegWrap():
                 self.ciao(1)
 
         # find typical subject at a specified nonlinear level
-        opt = self.user_opts.find_opt('-findtypical=_level')
+        opt = self.user_opts.find_opt('-findtypical_level')
         if opt != None:
             try:
                 self.findtypical_level = int(opt.parlist[0])
