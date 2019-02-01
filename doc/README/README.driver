@@ -455,7 +455,7 @@ SAVE_AGIF    [c].imagewindowname filename
   *** The above SAVE_xxx commands also take an optional string of ***
   *** the form 'blowup=4', indicating that the image(s) should be ***
   *** blown up by the given factor before being saved.  The legal ***
-  *** values of this factor are 1..8 (inclusive).  For example:   ***
+  *** values of this factor = 1..8 (integral,inclusive). Example: ***
   ***   SAVE_JPEG axialimage FredAxial blowup=4                   ***
   *** Exceptions to the use of 'blowup=':                         ***
   ***   Image view montages are not blown up                      ***
