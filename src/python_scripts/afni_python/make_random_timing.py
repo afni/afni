@@ -420,16 +420,16 @@ NOTE: distribution of ISI ~2~
     ==> The overall distribution of ISI rest looks like an exponential decay
         curve, with a peak at r=0 (no rest) and probability close to T/R.
 
-    Note that the average ISI should be approximately equal to
-    total rest time / # task events
-    (e.g. 100s / 50 stimuli = 2s (per stim)).
-    So the cumulative distribution function would hit 0.5 where r corresponds
-    to this ratio, e.g. r = 20, where each rest event is 0.1s.
+    Note that the average ISI should be approximately equal to:
+        total rest time / # task events
+    (e.g. 100s / 50 stimuli = 2s (per stim)), depending on how pre-/post-stim
+    rest is viewed.  If pre-/post-stim rest are included, treat it as if there
+    is one more event (e.g. 100s/51 =~ 1.96s).
 
     Test this:
 
     Create a histogram of all ISI durations based on 100 2-second events in a
-    single run of length 300 (so 200 s for task, 100 s for rest), with rest
+    single run of duration 300 s (so 200 s for task, 100 s for rest), with rest
     distributed randomly on a 0.1 s time grid.  Note that what matters is the
     number of stim events (100) and the number of rest events (1000), not their
     respective durations (unless there are user-imposed limits).
@@ -441,7 +441,8 @@ NOTE: distribution of ISI ~2~
     plot of histogram of all ISI duration counts.
 
     Since rest is on a 0.1 s grid, we will scale by 10 and make an integer
-    histogram.
+    histogram of rest event counts.  Or we could not scale and leave it as a
+    histogram of rest durations.
 
        echo -n "" > isis_all.1D
        foreach rep ( `count 1 100` )
@@ -462,7 +463,7 @@ NOTE: distribution of ISI ~2~
     Basically, we are looking for something like a exponential decay curve
     in the frequency histogram (the lower plot).
 
-    Include plot of probabilities, computed incrementally (no factorials).
+    Include a plot of probabilities, computed incrementally (no factorials).
     Use the same event counts, 100 task and 1000 rest events.  Truncate this
     histogram to plot them together.
 
