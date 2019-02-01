@@ -11,8 +11,13 @@
 #set set version = "2.0";  set rev_dat = "Dec 19, 2018"
 #   + [PT] fix the focal point conditions.
 #
-set set version = "2.1";  set rev_dat = "Dec 21, 2018"
+#set set version = "2.1";  set rev_dat = "Dec 21, 2018"
 #   + [PT] re-fix the focal point conditions.
+#
+set set version = "2.2";  set rev_dat = "Jan 25, 2019"
+#   + [PT] bux fig: deal with subbrick selectors on inset;
+#          thanks again, C. Cunningham for continued patience in 
+#          bug squashing!
 #
 # ===================================================================
 
@@ -78,7 +83,7 @@ end
 
 # --------------------------- inputs -------------------------------
 
-if ( $ulay == "" ) then
+if ( "$ulay" == "" ) then
     echo "** ERROR: missing input dset! Use '-inset ..'"
     goto BAD_EXIT
 endif
