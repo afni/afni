@@ -497,6 +497,50 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
 
     return o
 
+def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
+    """
+    compute typical subjects from across a group of datasets given
+    tuple list of distances and subject brains
+    distances calculated before, in another function
+    """
+    assert(dists_brains[0][0] is not None)
+
+    # sort the distances with their corresponding subject brain datasets
+    sdist = sorted(dists_brains, key=itemgetter(0))
+    typ_brain = sdist[0][1]
+    typ_brain_input = typ_brain.ppv()
+    print("typical brain is %s with distance %f" % (typ_brain.prefix, sdist[0][0]))
+
+    print("cd %s" % ps.odir)
+    if(not ps.dry_run()):
+        os.chdir(ps.odir)
+
+    o = ab.afni_name("%ssubject%s" % (preprefix, suffix))
+    o.path = ps.odir
+    o.view = typ_brain.view
+    output_prefix = o.ppv()
+
+    cmd_str = """\
+    3dcopy {typ_brain_input} {output_prefix}
+    """
+    cmd_str = cmd_str.format(**locals())
+    print("executing:\n %s" % cmd_str)
+
+    if ps.ok_to_exist and o.exist():
+        print("Output already exists. That's okay")
+    elif (not o.exist() or ps.rewrite or ps.dry_run()):
+        o.delete(ps.oexec)
+        com = ab.shell_com(cmd_str, ps.oexec, trim_length=2000)
+        com.run(chdir="%s" % o.path)
+        if (not o.exist() and not ps.dry_run()):
+            assert(False)
+            print("** ERROR: Could not copy typical subject to mean template directory using %s" % cmd_str)
+            return None
+    else:
+        ps.exists_msg(o.input())
+
+    return o
+
 def change_dirs(dset_list, ps, path="."):
     """
     change directory here
@@ -529,6 +573,9 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
     for dset_name in dsetlist:
 
         start_dset = ab.afni_name(dset_name)
+        # in case input datasets are specified without path, use relative path from start 
+        if(start_dset.path == None):
+           start_dset.path = cwd
 
         # start off just aligning the centers of the datasets
         aname = delayed(align_centers)(ps, dset=start_dset, base=basedset)
@@ -674,7 +721,13 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     input_name = dset.pv()
     out_prefix = o.out_prefix()
     base_in = base.input()
+    input_in = dset.input()
+    # may want to check for typical subject processing here
+    #  if(base_in == dset.input
+    # but we may also want to keep a copy of the subject as the typical subject
+    # in the parent directory for reference or both
 
+    
     # add check for reusing a warp from a previous trial of the *same* Qwarp
     # that was aborted either by the cluster or by a "nanny" process
     # previous output has the form 
@@ -831,7 +884,7 @@ def upsample_subjects_bases(ps, delayed, target_brain, aa_brains,
             'aa_brains_us' : aa_brains_out, 
             'warpsetlist_us': warpsetlist_out}
 
-def compute_deformation_dist(ps, delayed, aa_brain, warp, suffix="_defdist"):
+def compute_deformation_dist(ps, aa_brain, warp, suffix="_defdist"):
     """
     find mean deformation distance in deformation maps masked by original brain
     """
@@ -852,7 +905,7 @@ def compute_deformation_dist(ps, delayed, aa_brain, warp, suffix="_defdist"):
         rewrite = ""
 	
     cmd_str = """\
-    3dNwarpCat -warp1 INV({warp_name}) -prefix {inv_warp_prefix} \
+    3dNwarpCat -warp1 \'INV({warp_name})\' -prefix {inv_warp_prefix} \
     {rewrite}
     """
     cmd_str = cmd_str.format(**locals())
@@ -868,7 +921,7 @@ def compute_deformation_dist(ps, delayed, aa_brain, warp, suffix="_defdist"):
     # fill holes to account for ventricles and such
     cmd_str = """\
     3dmask_tool -fill_holes  \
-    -prefix {filled_brain_prefix} -inputs {input_name} \ 
+    -prefix {filled_brain_prefix} -inputs {input_name} \
     {rewrite}
     """
 
@@ -877,13 +930,30 @@ def compute_deformation_dist(ps, delayed, aa_brain, warp, suffix="_defdist"):
     # check if output dataset was created
     filled_brain = run_check_afni_cmd(cmd_str, ps, filled_brain, "Could not fill holes using")
 
-    dist_prefix = o.pv()
+    zp_inv_warp = prepare_afni_output(ps, warp, "_inv_zp")
+    zp_inv_warp_prefix = zp_inv_warp.out_prefix()
+    zp_inv_warp_name = zp_inv_warp.pv()
+
+    if ps.rewrite:
+        rewrite = " -overwrite "
+    else:
+        rewrite = ""
+	
+    cmd_str = """\
+    3dZeropad -master {filled_brain_name} -prefix {zp_inv_warp_prefix} \
+    {rewrite} {inv_warp_name}
+    """
+    cmd_str = cmd_str.format(**locals())
+    # check if inverse warp output dataset was created
+    zp_inv_warp = run_check_afni_cmd(cmd_str, ps, zp_inv_warp, "Could not zeropad inverse warp using")
+
+
     # compute deformation distance at every voxel (3dcalc is another way,
     #   but with mask option especially,this should be a little faster)
     cmd_str = """\
     3dTstat -mask {filled_brain_name} -l2norm  \
-    -prefix {out_prefix} {inv_warp_name} \ 
-    {rewrite}
+    -prefix {out_prefix} \
+    {rewrite}  {zp_inv_warp_name}
     """
 
     cmd_str = cmd_str.format(**locals())
@@ -898,16 +968,28 @@ def compute_deformation_dist(ps, delayed, aa_brain, warp, suffix="_defdist"):
     cmd_str = """\
     3dBrickStat -mask {input_name} -mean {dist_prefix}
     """
+    cmd_str = cmd_str.format(**locals())
+    print("Running :\n%s" % cmd_str)
     if(not ps.dry_run()):
-       com = shell_com( cmd_str, ps.oexec, capture=1)
+       com = ab.shell_com( cmd_str, ps.oexec, capture=1)
        com.run()
        dist = float(com.val(0,0))
     else:
-       com = shell_com( cmd_str, "dry_run")
+       com = ab.shell_com( cmd_str, "dry_run")
        com.run()
        dist = 1.0
 
     return(dist)
+
+def itemgetter(*items):
+    if len(items) == 1:
+        item = items[0]
+        def g(obj):
+            return obj[item]
+    else:
+        def g(obj):
+            return tuple(obj[item] for item in items)
+    return g
 
 def find_typical_subject(ps, delayed, aa_brains,
                     warpsetlist, **kwargs):
@@ -933,11 +1015,10 @@ def find_typical_subject(ps, delayed, aa_brains,
 
         # add the outputs to the list as a list of tuples of distance and brains
         dists_brains.append((aa_dist,aa_brain))
-
-    # sort the distances with their corresponding subject brains
-    sdist = sorted(dists_brains, key=itemgetter(0))
-    typ_brain = sdist[0][1]
-    print("typical brain is %s with distance %d" % typ_brain.prefix, sdist[0][0])
+    # sort distances to find typical brain and make copy
+    typ_brain = delayed(get_typical_brain)(
+        dists_brains,
+        ps)
 
     # return subject brain with shortest distance
     return(typ_brain)
@@ -1054,7 +1135,7 @@ def get_nl_mean(ps, delayed, basedset, aa_brains, warpsetlist, resize_brain):
         # may want to find a "typical" brain as intermediate restart
         # this subject has least deformation to current mean brain 
         if(level == ps.findtypical_level):
-            typical_brain = find_typical(ps, delayed, nl_mean_brain, aa_brains, warpsetlist)
+            typical_brain = find_typical_subject(ps, delayed, aa_brains, warpsetlist)
             nl_mean_brain = typical_brain
         # do the nonlinear level of warping toward the current mean
         # with the latest parameters for that level

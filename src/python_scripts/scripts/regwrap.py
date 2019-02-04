@@ -16,7 +16,7 @@ from afni_python.option_list import OptionList, read_options
 class RegWrap():
     def __init__(self, label):
         # software version (update for changes)
-        self.make_template_version = "0.04"
+        self.make_template_version = "0.05"
         # user assigned path for output (not used yet)
         self.output_dir = 'iterative_template_dir'
         self.ok_to_exist = 0 #Fail if weight data exists
