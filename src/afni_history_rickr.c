@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Feb, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "use abs in dims check for -mask_import",
+   NULL
+ } ,
+
  { 30, Jan, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -volreg_post_vr_allin and -volreg_pvra_base_index",
    "These are to run 3dvolreg (or 3dAllineate) to a base within\n"
