@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Feb, 2019, RCR, "3dinfo", MINOR, TYPE_BUG_FIX,
+   "allow -extent to vary across datasets",
+   NULL
+ } ,
+
  {  5, Feb, 2019, RCR, "demoExpt.py", MICRO, TYPE_GENERAL,
    "add roopchansinghv to afni_src.tgz targe",
    "Also, set demoExpt.py mode as 755."

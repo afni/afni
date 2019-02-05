@@ -646,6 +646,9 @@ int main( int argc , char *argv[] )
          ERROR_exit("Should not get here");
      }
 
+     /* we should re-capture this per dataset   5 Feb 2019 [rickr] */
+     extinit = 0;
+
      for (iis = 0; iis < N_sing; ++iis) {
         if (!dset) {
          if (sing[iis] == CLASSIC) {
