@@ -589,6 +589,9 @@ class RegWrap():
                     self.info_msg(
                         "Found FreeSurfer segmentation dset %s\n" % check_dset.input())
 
-    def __repr__(self):
+    def __str__(self):
         return pformat(self.__dict__)
+
+    def __repr__(self):
+        return  "not implemented"
 

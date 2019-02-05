@@ -3,6 +3,7 @@
 # python3 status: started
 
 import os, sys, glob, operator, string, re
+from pprint import pformat
 
 valid_afni_views = ['+orig', '+acpc', '+tlrc']
 valid_new_views  = ['+orig', '+acpc', '+tlrc', '']
@@ -270,9 +271,10 @@ class afni_name(object):
             return 1
          else: return 0
       else:
-         if (     os.path.isfile(locppv) ):
-            return 1
-         else: return 0
+         err_str = ("The afni dataset object needs to be of type "
+            "NIFTI, BRIK, or NIML. Instead received type {self.type}")
+         err_str = err_str.format(**locals()) 
+         raise ValueError(err_str) 
    
    def locate(self, oexec=""):
       """Attempt to locate the file and if found, update its info"""
@@ -445,7 +447,17 @@ class afni_name(object):
       self.type = 'BRIK'
       self.extension = ''  # clear 
       return
-               
+
+   def __repr__(self):
+      return '<%s %s name=%r>' % (
+         self.__class__.__name__, hex(id(self)), self.initname)
+
+   def __str__(self):
+      dict_out = self.__dict__.copy()
+      dict_out.update({'exist': self.exist()})
+      return pformat(dict_out)
+
+
 class comopt(object):
    def __init__(self, name, npar, defpar, acplist=[], helpstr=""):
       self.name = name
@@ -660,6 +672,14 @@ class shell_com(object):
       else:
          # return self.so[i].decode()
          return self.so[i]
+
+   def __repr__(self):
+      return '<%s %s name=%r, eo="%r">' % (
+         self.__class__.__name__, hex(id(self)), self.initname,self.eo)
+
+   def __str__(self):
+      return pformat(self.__dict__)
+ 
 
 # return the attribute list for the given dataset and attribute
 def read_attribute(dset, atr, verb=1):

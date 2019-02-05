@@ -637,28 +637,19 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
 
 
 
-def prepare_afni_output(ps, dset, suffix, master=[],path=""):
+def prepare_afni_output(dset, suffix, view=None,path=None):
     """
     prepare the output for an afni function make AFNI dataset structure based
     on input name, additional suffix and master dataset could
     have list of outputs with list of suffixes
     """
-    if not path:
-       try:
-           # path of AFNI dataset structure
-           os.chdir(dset.path)
-       except:
-           # path from name using absolute pathname conversion
-           os.chdir(os.path.abspath(os.path.dirname(dset.ppv())))
-    else:
-       os.chdir(path)
-       
     assert(dset is not None)
-    o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-    o.path = dset.path
-    if master:
-        if master.view == '':
-            o.view = '+tlrc'
+    if not view:
+        view = dset.view
+    
+    o = dset.new("%s%s%s%s" % (dset.out_prefix(), suffix, view, dset.extension))
+    if path:
+        o.path = path
     return o
 
 
@@ -714,7 +705,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     ps.report_omp()
 
     # create output dataset structure
-    o = prepare_afni_output(ps, dset, suffix, master=base)
+    o = prepare_afni_output( dset, suffix, master=base)
 
     # make warp dataset structure too
     warpset = dset.new("%s%s_WARP" % (dset.out_prefix(), suffix))
@@ -749,7 +740,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
        for iwl in wll:
           if (iwl in wl):
              print("%s matches file %s" % (iwl, wl))
-             iwset = prepare_afni_output(ps, dset,suffix, master=base)
+             iwset = prepare_afni_output( dset,suffix, view=base.view)
              iwset.prefix = str.split(os.path.splitext(os.path.basename(wl))[0],"+tlrc")[0]
              inilev = int(iwl)+1
              break
@@ -818,7 +809,7 @@ def resize_warp(ps, warp, rsz_brain, suffix="_rsz"):
 
     # Use 3dNwarpApply for distant warps
     # create output dataset structure
-    rsz_warp = prepare_afni_output(ps, warp, suffix)
+    rsz_warp = prepare_afni_output( warp, suffix)
     
     aff_matrix =  "%s.Xaff12.1D" % rsz_brain.out_prefix()
 
@@ -890,12 +881,12 @@ def compute_deformation_dist(ps, aa_brain, warp, suffix="_defdist"):
     """
 
     # create output dataset structure
-    o = prepare_afni_output(ps, aa_brain, suffix)
+    o = prepare_afni_output( aa_brain, suffix)
 
     warp_name = warp.pv()
     out_prefix = o.out_prefix()
     # inverse warp to compute distance in affine space (before nonlinear warp)
-    inv_warp = prepare_afni_output(ps, warp, "_inv")
+    inv_warp = prepare_afni_output( warp, "_inv")
     inv_warp_prefix = inv_warp.out_prefix()
     inv_warp_name = inv_warp.pv()
 
@@ -913,7 +904,7 @@ def compute_deformation_dist(ps, aa_brain, warp, suffix="_defdist"):
     inv_warp = run_check_afni_cmd(cmd_str, ps, inv_warp, "Could not compute inverse warp using")
 
     # fill holes in brain
-    filled_brain = prepare_afni_output(ps, aa_brain, "_filled")
+    filled_brain = prepare_afni_output( aa_brain, "_filled")
     input_name = aa_brain.pv()
     filled_brain_name = filled_brain.pv()
     filled_brain_prefix = filled_brain.out_prefix()
@@ -930,7 +921,7 @@ def compute_deformation_dist(ps, aa_brain, warp, suffix="_defdist"):
     # check if output dataset was created
     filled_brain = run_check_afni_cmd(cmd_str, ps, filled_brain, "Could not fill holes using")
 
-    zp_inv_warp = prepare_afni_output(ps, warp, "_inv_zp")
+    zp_inv_warp = prepare_afni_output( warp, "_inv_zp")
     zp_inv_warp_prefix = zp_inv_warp.out_prefix()
     zp_inv_warp_name = zp_inv_warp.pv()
 
@@ -1160,7 +1151,8 @@ def get_nl_mean(ps, delayed, basedset, aa_brains, warpsetlist, resize_brain):
 
 
 def warp_fs_seg(ps, fs_seg, aa_brain, warp, suffix="_warped"):
-    fs_seg_out = prepare_afni_output(ps, fs_seg, suffix, path=aa_brain.path)
+    raise ValueError("Need to fix this because path now can't be passed through")
+    fs_seg_out = prepare_afni_output( fs_seg, suffix)
     """
     warp FreeSurfer segmentation to template space
     using affine warp and nonlinear warp
