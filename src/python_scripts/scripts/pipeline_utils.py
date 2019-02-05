@@ -594,4 +594,36 @@ class RegWrap():
 
     def __repr__(self):
         return  "not implemented"
+# End of Pipeline_opt class
+
+
+def check_for_valid_pipeline_dset(dset):
+    """
+    Check that the dset conforms to constraints dictated by pipelines.
+    These constraints represent a subset of AFNI's command line functionality
+    but prove useful for chaining together tools into pipelines when work with
+    Python. An error is raised if 
+    + the dset object is not of type NIFTI or BRIK, as defined by afni_name.
+    + no file format extension is provided with the filename
+    + if the type is BRIK and the .HEAD extension is not used or if the view
+      is not specified.
+
+    Parameters
+    ----------
+    dset : output of afni_python.afni_base.afni_name
+    """
+    if dset.extension == '':
+        raise ValueError(
+            "Extensions must be defined for datasets"
+            "in pipelines. No extension was found for "
+            "%s"% dset.ppve())
+    if dset.type == 'BRIK':
+        if dset.extension != '.HEAD':
+            raise ValueError(
+                "Pipelines must use the .HEAD extension to refer to AFNI"
+                "datasets. This was violated for %s."% dset.ppve())
+        if dset.view == '':
+            raise ValueError(
+                "Invalid dataset object for pipelines. The dataset is of "
+                "type BRIK, and the view is not set.")
 
