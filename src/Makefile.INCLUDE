@@ -2041,7 +2041,7 @@ afni_src.tgz:
 	$(MKDIR) afni_src
 	$(CP) -p *.c *.f *.inc *.h *.hhh Makefile.* *.xbm $(MINDOCS) $(MISC)     ./afni_src
 	$(CP) -pr coxplot         moveup moveAFNI* eispack                       ./afni_src
-	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj                   ./afni_src
+	$(CP) -pr avovk ptaylor pkundu jzosky crorden discoraj roopchansinghv    ./afni_src
 	$(CP) -pr $(SCRIPTS_DIR) $(SCRIPTS_SRC) $(TEXT_DIR) ./afni_src
 	$(CP) -pr $(PY_ROOT) $(R_DIR) $(SHINY_DIR) ./afni_src
 	$(CP) -pr gifsicledir qhulldir f2cdir mpeg_encodedir                     ./afni_src

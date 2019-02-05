@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Feb, 2019, RCR, "demoExpt.py", MICRO, TYPE_GENERAL,
+   "add roopchansinghv to afni_src.tgz targe",
+   "Also, set demoExpt.py mode as 755."
+ } ,
+
  {  4, Feb, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "use abs in dims check for -mask_import",
    NULL
