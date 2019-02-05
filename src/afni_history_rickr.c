@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Feb, 2019, RCR, "Dimon", MINOR, TYPE_MODIFY,
+   "-infile_list now implies -no_wait",
+   NULL
+ } ,
+
  {  5, Feb, 2019, RCR, "3dinfo", MINOR, TYPE_BUG_FIX,
    "allow -extent to vary across datasets",
    NULL

@@ -155,10 +155,11 @@ static char * g_history[] =
     " 4.24 Dec 11, 2018 [rickr]:\n"
     "      - reconcile write_as_nifti and NIFTI prefix\n"
     "      - add -p option to mkdir\n"
+    " 4.25 Feb  5, 2019 [rickr]: -infile_list implies -no_wait\n"
     "----------------------------------------------------------------------\n"
 };
 
-#define DIMON_VERSION "version 4.24 (December 11, 2018)"
+#define DIMON_VERSION "version 4.25 (February 5, 2019)"
 
 /*----------------------------------------------------------------------
  * Dimon - monitor real-time aquisition of Dicom or I-files
@@ -2893,8 +2894,10 @@ static int init_options( param_t * p, ART_comm * A, int argc, char * argv[] )
                 fputs( "option usage: -infile_list FILE\n", stderr );
                 return -1;
             }
-            /* just append a '*' to the PREFIX */
             p->opts.infile_list = argv[ac];
+            /* don't wait for inputs */
+            p->opts.no_wait = 1;
+            p->opts.quit = 1;
         }
         else if ( ! strncmp( argv[ac], "-infile_pattern", 11 ) ||
                   ! strncmp( argv[ac], "-dicom_glob", 9 ) )
@@ -4717,8 +4720,8 @@ printf(
 "\n"
 "  A. no real-time options:\n"
 "\n"
-"    %s -infile_prefix   s8912345/i\n"
-"    %s -infile_pattern 's8912345/i*'\n"
+"    %s -infile_prefix   s8912345/i -no_wait\n"
+"    %s -infile_pattern 's8912345/i*' -no_wait\n"
 "    %s -infile_list     my_files.txt\n"
 "    %s -help\n"
 "    %s -infile_prefix   s8912345/i  -quit\n"
@@ -4999,6 +5002,9 @@ printf(
     "        If the user would rather specify a list of DICOM files to\n"
     "        read, those files can be enumerated in a text file, the\n"
     "        name of which would be passed to the program.\n"
+    "\n"
+    "        This option implies -no_wait, making the assumption that\n"
+    "        all input files exist.\n"
     "\n"
     "  ---------------------------------------------------------------\n"
     "  real-time options:\n"
