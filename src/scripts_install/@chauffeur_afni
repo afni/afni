@@ -174,9 +174,13 @@
 #set version   = "4.9";   set rev_dat   = "Jan 30, 2019"
 #     + [PT] add in -montgap and -montcolor options
 #        
-set version   = "5.0";   set rev_dat   = "Feb 2, 2019"
+#set version   = "5.0";   set rev_dat   = "Feb 2, 2019"
 #     + [PT] if refbox has >1 slice, automatically choose to use [0]th
 #            --> e.g., useful for correct behavior with *SSW* refs
+#        
+set version   = "5.01";   set rev_dat   = "Feb 5, 2019"
+#     + [PT] fixed a lonely "if" that was missing its "endif" in life.
+#            --> Thanks (again) to S. Torrisi for pointing it out.
 #        
 # =====================================================================
 
@@ -780,6 +784,7 @@ if ( "$refbox" != "" ) then
             echo "+* NB: focus box vol has >1 slice, so we select [0]th."
             set refbox = "${refbox}[0]"
         endif
+    endif
 endif
 
 
