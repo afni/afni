@@ -2,12 +2,12 @@ from pathlib import Path
 import pytest
 import collections
 import afni_python.afni_base as ab
-from afni_python.pipeline_utils import (
-    check_for_valid_pipeline_dset, TemplateConfig, prepare_afni_output, get_test_data)
 
-from afni_python.construct_template_graph import run_check_afni_cmd
+from afni_python.pipeline_utils import ( check_for_valid_pipeline_dset,
+    TemplateConfig, prepare_afni_output, get_test_data, run_check_afni_cmd,
+    get_dict_diffs)
 
- 
+import pprint 
 import pickle
 
 
@@ -17,8 +17,6 @@ TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH, *_ = get_test_data()
 # with PICKLE_PATH.open('wb') as f:
 #     usr_conf = TemplateConfig("dask_template")
 #     pickle.dump(usr_conf, f)
-
-
 
 def test_prepare_afni_output():
     """
@@ -82,6 +80,7 @@ def test_mock_run_check_afni_cmd():
     # Should run and return a valid output dset
     dset = ab.afni_name(anat_scan)
     o = prepare_afni_output( dset, "_morphed")
+    o.delete()
     filepath = Path(o.path) / o.out_prefix()
     cmd_str =  "touch {p}".format(p=filepath)
     run_check_afni_cmd(cmd_str, ps, o, message)
@@ -107,6 +106,11 @@ def test_mock_run_check_afni_cmd():
 def test_TemplateConfig():
     usr_conf_standard = pickle.load(PICKLE_PATH.open('rb'))
     usr_conf = TemplateConfig("dask_template")
+
+    # add in fields that were taken out:
+    usr_conf.do_center = 1
+
+    print(pprint.pformat( get_dict_diffs(vars(usr_conf_standard), vars(usr_conf))))
     assert(usr_conf_standard == usr_conf)
 
 

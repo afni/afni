@@ -50,6 +50,17 @@ def setup_exceptionhook():
     sys.excepthook = _pdb_excepthook
 
 
+def get_dict_diffs(a,b):
+
+    b_not_in_a: Dict[str, Any] = {k: b[k] for k in set(b) - set(a)}
+    a_not_in_b: Dict[str, Any] = {k: a[k] for k in set(a) - set(b)}
+    # b_not_in_a: Dict[str, Any] = {k: b[k] for k in set(b) - set(a)}
+    # a_not_in_b: Dict[str, Any] = {k: a[k] for k in set(a) - set(b)}
+    common_dict_a: Dict[str, Any] = {k: a[k] for k in set(a) & set(b)}
+    common_dict_b: Dict[str, Any] = {k: b[k] for k in set(a) & set(b)}
+    return b_not_in_a, a_not_in_b
+
+
 def prepare_afni_output(dset, suffix, view=None,path=None):
     """
     prepare the output for an afni function make AFNI dataset structure based
@@ -374,7 +385,10 @@ class PipelineConfig():
         print("** Dataset: %s already exists" % dsetname)
         print("** Not overwriting.")
         if(not self.dry_run()):
-            self.ciao(1)
+            self.ciao(1)    
+    def exists_msg_python(self, dsetname=""):
+        raise ValueError(
+            "** Dataset: %s already exists ** Not overwriting." % dsetname)
 
     def ciao(self, i):
         if i > 0:
@@ -645,8 +659,8 @@ class PipelineConfig():
     def __eq__(self, other):
         obj_dict = {k:v for k,v in self.__dict__.items() if k != 'odir'}
         other_dict = {k:v for k,v in other.__dict__.items() if k != 'odir'}
-
-        return obj_dict == other_dict
+        diffs = get_dict_diffs(obj_dict, other_dict)
+        return not(bool(diffs[0]) or bool(diffs[0]))
         # End of Pipeline_opt class
 
 
@@ -703,16 +717,16 @@ def check_for_valid_pipeline_dset(dset):
             "Extensions must be defined for datasets"
             "in pipelines. No extension was found for "
             "%s"% dset.ppve())
-    # will not use this for now. 
-    # if dset.type == 'BRIK':
-    #     if dset.extension != '.HEAD':
-    #         raise ValueError(
-    #             "Pipelines must use the .HEAD extension to refer to AFNI"
-    #             "datasets. This was violated for %s."% dset.ppve())
+    if dset.type == 'BRIK':
         if dset.view == '':
             raise ValueError(
                 "Invalid dataset object for pipelines. The dataset is of "
                 "type BRIK, and the view is not set.")
+    # will not use this for now. 
+    #     if dset.extension != '.HEAD':
+    #         raise ValueError(
+    #             "Pipelines must use the .HEAD extension to refer to AFNI"
+    #             "datasets. This was violated for %s."% dset.ppve())
     if dset.type == 'NIFTI':
         if dset.view != '':
             raise ValueError(
@@ -738,7 +752,7 @@ def run_check_afni_cmd(cmd_str, ps, o, message):
             # print error message from com
             raise RuntimeError("No output found after command... \n %s \n  %s\n" % (message, cmd_str))
     else:
-        ps.exists_msg(o.input())
+        ps.exists_msg_python(o.ppve()) 
     return o
 
 
