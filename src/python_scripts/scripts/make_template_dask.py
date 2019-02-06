@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-
+assert(False)
 # way to run script example
 # make_template_dask.py  -ok_to_exist \
 # -dsets [space_separated_list_of_datasets] \
