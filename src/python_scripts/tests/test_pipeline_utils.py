@@ -18,6 +18,18 @@ TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH, *_ = get_test_data()
 #     usr_conf = TemplateConfig("dask_template")
 #     pickle.dump(usr_conf, f)
 
+def make_old_comparison(in_class,args,**kwargs):
+    class_name = str(in_class.__class__).split("'")[-2]
+    out_pickle = PICKLE_PATH.with_name(class_name + '.pklz')
+    if not out_pickle.exists():
+        class_instance = in_class(*args,**kwargs)
+        with out_pickle.open('wb') as f:
+            pickle.dump(class_instance, f)
+    else:
+        class_instance = pickle.load(out_pickle.open('rb'))
+    return class_instance
+    
+
 def test_prepare_afni_output():
     """
     Should return an object that is identical to one from afni_name with the
