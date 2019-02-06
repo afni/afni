@@ -88,7 +88,7 @@ foreach ddd ( $argv )
   set ppp = `basename $ppp .gz`
   set ppp = `basename $ppp .nii`
   if ( ! -f $ppp.bigA12.nii ) then
-    tcsh @afni_refacer_make_onebigA12 $ddd
+    @afni_refacer_make_onebigA12 $ddd
   endif
 end
 
