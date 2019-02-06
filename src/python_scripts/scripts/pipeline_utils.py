@@ -1,3 +1,4 @@
+from pathlib import Path
 import sys
 import os
 from pprint import pformat
@@ -9,16 +10,76 @@ import afni_python.afni_util as au
 from afni_python.option_list import OptionList, read_options
 # from align_epi_anat import RegWrap
 
+def get_test_data():
+    """
+    Eventually should use caches and workspace storage on ci servers could
+    just mount it to this target dir"""
+    TEST_DIR = Path('/tmp/afni_testdata')
+    TEST_ANAT_FILE = TEST_DIR / "anat.nii.gz"
+    if not TEST_ANAT_FILE.exists():
+        TEST_ANAT_FILE.parent.mkdir()
+        import urllib.request
+        print('Beginning file download with urllib2...')
+        url = 'https://s3.amazonaws.com/fcp-indi/data/Projects/CORR/RawData/HNU_1/0025427/session_1/anat_1/anat.nii.gz'  
+        urllib.request.urlretrieve(url, TEST_ANAT_FILE)  
+
+    PICKLE_PATH = TEST_DIR / "template_config.pklz"
+
+    return (TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH)
+
+
+
+def setup_exceptionhook():
+    """
+    Overloads default sys.excepthook with our exceptionhook handler.
+
+    If interactive, our exceptionhook handler will invoke pdb.post_mortem;
+    if not interactive, then invokes default handler.
+    """
+    def _pdb_excepthook(type, value, tb):
+        if sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
+            import traceback
+            import pdb
+            traceback.print_exception(type, value, tb)
+            # print()
+            pdb.post_mortem(tb)
+        else:
+            print(
+                "We cannot setup exception hook since not in interactive mode")
+
+    sys.excepthook = _pdb_excepthook
+
+
+def prepare_afni_output(dset, suffix, view=None,path=None):
+    """
+    prepare the output for an afni function make AFNI dataset structure based
+    on input name, additional suffix and master dataset could
+    have list of outputs with list of suffixes
+    """
+    assert(dset is not None)
+    check_for_valid_pipeline_dset(dset)
+
+    if not view:
+        view = dset.view
+    if not suffix.startswith('_'):
+        suffix = '_' + suffix
+    new_prefix = dset.prefix + suffix
+    o = dset.new("%s" % (new_prefix),new_view = view)
+    o.initname = new_prefix + view + dset.extension
+    if path:
+        o.path = path
+    check_for_valid_pipeline_dset(o)
+    return o
+
 # class TemplateWrap(RegWrap):
 #     def __init__(self, label):
 #         super().__init__(self, label)
+# ps = TemplateOpts(label)
 
-class RegWrap():
+
+class PipelineConfig():
     def __init__(self, label):
-        # software version (update for changes)
-        self.make_template_version = "0.05"
-        # user assigned path for output (not used yet)
-        self.output_dir = 'iterative_template_dir'
+        self.output_dir = ''
         self.ok_to_exist = 0 #Fail if weight data exists
         self.label = label
         self.valid_opts = None
@@ -31,34 +92,15 @@ class RegWrap():
         self.prep_only = 0  # do preprocessing only
         self.odir = os.getcwd()
         self.bokeh_port = 8787 # default port to show graphical Bokeh debugging info with Dasks
-        self.daskmode = "None" # which kind of Dask parallelization, none by default
+        
         self.resizebase = [] # dataset to resize nonlinear means to
-
-        self.do_skullstrip = 1  # steps to do
-        self.do_unifize = 1
-        self.do_center = 1
-        self.do_rigid = 1
-        self.do_affine = 1
-        self.do_nonlinear = 1
-        self.do_anisosmooth = 0
-        self.do_unifize_template = 0
-        self.do_freesurf_mpm = 0
-	
-        self.do_rigid_only = 0   # major stages to do when doing just one
-        self.do_affine_only = 0
-        self.do_nl_only = 0
-        self.nl_level_only = -1  # do only one level of nonlinear alignment
 
         self.max_workers = 0   # user sets maximum number of workers
         self.max_threads = 0   # user sets maximum number of threads
-        self.warpsets = []
         self.cluster_queue = []
         self.cluster_memory = []
         self.cluster_constraint = []
         self.cluster_walltime = []
-        self.aniso_iters = "1"
-        self.upsample_level = [] # no upsampling by default
-        self.findtypical_level =[] # no typical subject intermediates by default in nonlinear
         return
 
     def init_opts(self):
@@ -323,6 +365,10 @@ class RegWrap():
 
     def error_msg(self, mesg=""):
         print("#**ERROR %s" % mesg)
+    
+    def error_ex(self, mesg=""):
+        print("#**ERROR %s" % mesg)
+        self.ciao(1)
 
     def exists_msg(self, dsetname=""):
         print("** Dataset: %s already exists" % dsetname)
@@ -593,8 +639,47 @@ class RegWrap():
         return pformat(self.__dict__)
 
     def __repr__(self):
-        return  "not implemented"
-# End of Pipeline_opt class
+        return '<%s %s label=%r>' % (
+            self.__class__.__name__, hex(id(self)), self.label)
+
+    def __eq__(self, other):
+        obj_dict = {k:v for k,v in self.__dict__.items() if k != 'odir'}
+        other_dict = {k:v for k,v in other.__dict__.items() if k != 'odir'}
+
+        return obj_dict == other_dict
+        # End of Pipeline_opt class
+
+
+
+class TemplateConfig(PipelineConfig):
+    def __init__(self, label):
+        # software version (update for changes)
+        self.make_template_version = "0.05"
+        self.daskmode = "None" # which kind of Dask parallelization, none by default
+
+        self.do_skullstrip = 1  # steps to do
+        self.do_unifize = 1
+        self.do_rigid = 1
+        self.do_affine = 1
+        self.do_nonlinear = 1
+        self.do_anisosmooth = 0
+        self.do_unifize_template = 0
+        self.do_freesurf_mpm = 0
+
+    
+        self.do_rigid_only = 0   # major stages to do when doing just one
+        self.do_affine_only = 0
+        self.do_nl_only = 0
+        self.nl_level_only = -1  # do only one level of nonlinear alignment
+
+        self.warpsets = []
+        self.aniso_iters = "1"
+        self.upsample_level = [] # no upsampling by default
+        self.findtypical_level =[] # no typical subject intermediates by default in nonlinear
+
+        super().__init__(label = label)
+    
+
 
 
 def check_for_valid_pipeline_dset(dset):
@@ -607,6 +692,7 @@ def check_for_valid_pipeline_dset(dset):
     + no file format extension is provided with the filename
     + if the type is BRIK and the .HEAD extension is not used or if the view
       is not specified.
+    + if the type is NIFTI and the view is specified.
 
     Parameters
     ----------
@@ -617,13 +703,42 @@ def check_for_valid_pipeline_dset(dset):
             "Extensions must be defined for datasets"
             "in pipelines. No extension was found for "
             "%s"% dset.ppve())
-    if dset.type == 'BRIK':
-        if dset.extension != '.HEAD':
-            raise ValueError(
-                "Pipelines must use the .HEAD extension to refer to AFNI"
-                "datasets. This was violated for %s."% dset.ppve())
+    # will not use this for now. 
+    # if dset.type == 'BRIK':
+    #     if dset.extension != '.HEAD':
+    #         raise ValueError(
+    #             "Pipelines must use the .HEAD extension to refer to AFNI"
+    #             "datasets. This was violated for %s."% dset.ppve())
         if dset.view == '':
             raise ValueError(
                 "Invalid dataset object for pipelines. The dataset is of "
                 "type BRIK, and the view is not set.")
+    if dset.type == 'NIFTI':
+        if dset.view != '':
+            raise ValueError(
+                "Pipelines must use nifti files that do not have a view "
+                "extension. This was violated for %s."% dset.ppve())
+
+
+def run_check_afni_cmd(cmd_str, ps, o, message):
+    """
+    run afni command and check if afni output dataset exists
+    return the same output dataset if it exists, otherwise return None
+    could have list of outputs
+    """
+    print("command:\n %s" % cmd_str)
+    if ps.ok_to_exist and o.exist():
+        print("Output already exists. That's okay")
+    elif (not (o.exist()) or ps.rewrite or ps.dry_run()):
+        o.delete(ps.oexec)
+        com = ab.shell_com(cmd_str, ps.oexec, trim_length=2000, capture=1)
+        print("Running in %s" % o.path)
+        com.run(chdir="%s" % o.path)
+        if (not o.exist() and not ps.dry_run()):
+            # print error message from com
+            raise RuntimeError("No output found after command... \n %s \n  %s\n" % (message, cmd_str))
+    else:
+        ps.exists_msg(o.input())
+    return o
+
 

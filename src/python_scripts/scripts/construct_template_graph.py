@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import afni_python.afni_base as ab
+from afni_python.pipeline_utils import check_for_valid_pipeline_dset
 import glob
 import os
 import time
@@ -634,47 +635,6 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
     # return the rigid mean brain template and the rigidly aligned_brains
     # Dask can't return two separate objects, so combine into a single tuple
     return (affine_mean_brain, aligned_brains)
-
-
-
-def prepare_afni_output(dset, suffix, view=None,path=None):
-    """
-    prepare the output for an afni function make AFNI dataset structure based
-    on input name, additional suffix and master dataset could
-    have list of outputs with list of suffixes
-    """
-    assert(dset is not None)
-    if not view:
-        view = dset.view
-    
-    o = dset.new("%s%s%s%s" % (dset.out_prefix(), suffix, view, dset.extension))
-    if path:
-        o.path = path
-    return o
-
-
-
-def run_check_afni_cmd(cmd_str, ps, o, message):
-    """
-    run afni command and check if afni output dataset exists
-    return the same output dataset if it exists, otherwise return None
-    could have list of outputs
-    """
-    print("command:\n %s" % cmd_str)
-    if ps.ok_to_exist and o.exist():
-        print("Output already exists. That's okay")
-    elif (not (o.exist()) or ps.rewrite or ps.dry_run()):
-        o.delete(ps.oexec)
-        com = ab.shell_com(cmd_str, ps.oexec, trim_length=2000, capture=1)
-        print("Running in %s" % o.path)
-        com.run(chdir="%s" % o.path)
-        if (not o.exist() and not ps.dry_run()):
-            # print error message from com
-            raise ValueError("** ERROR: %s \n  %s\n" % (message, cmd_str))
-    else:
-        ps.exists_msg(o.input())
-    return o
-
 
 
 def nl_align(ps, dset, base, iniwarpset, **kwargs):

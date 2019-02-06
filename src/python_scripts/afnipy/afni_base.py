@@ -454,7 +454,9 @@ class afni_name(object):
 
    def __str__(self):
       dict_out = self.__dict__.copy()
-      dict_out.update({'exist': self.exist()})
+      dict_out.update({
+        'exist': self.exist(),
+        'input': self.input()})
       return pformat(dict_out)
 
 
