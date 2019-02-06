@@ -1,3 +1,4 @@
+import importlib
 from pathlib import Path
 import pytest
 import collections
@@ -18,17 +19,21 @@ TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH, *_ = get_test_data()
 #     usr_conf = TemplateConfig("dask_template")
 #     pickle.dump(usr_conf, f)
 
-def make_old_comparison(in_class,args,**kwargs):
-    class_name = str(in_class.__class__).split("'")[-2]
+
+def make_old_comparison(fully_qualified_path,*args,**kwargs):
+    class_parts = fully_qualified_path.split('.')
+    class_name = class_parts[-1]
+    module = importlib.import_module('.'.join(class_parts[:-1]))
+    class_ = getattr(module, class_name)
     out_pickle = PICKLE_PATH.with_name(class_name + '.pklz')
     if not out_pickle.exists():
-        class_instance = in_class(*args,**kwargs)
+        class_instance = class_(*args,**kwargs)
         with out_pickle.open('wb') as f:
             pickle.dump(class_instance, f)
     else:
         class_instance = pickle.load(out_pickle.open('rb'))
     return class_instance
-    
+
 
 def test_prepare_afni_output():
     """
@@ -116,11 +121,12 @@ def test_mock_run_check_afni_cmd():
 
 
 def test_TemplateConfig():
-    usr_conf_standard = pickle.load(PICKLE_PATH.open('rb'))
-    usr_conf = TemplateConfig("dask_template")
+    instantiation = ["dask_template"]
+    usr_conf_standard = make_old_comparison("afni_python.pipeline_utils.TemplateConfig",*instantiation)
+    usr_conf = TemplateConfig(*instantiation)
 
     # add in fields that were taken out:
-    usr_conf.do_center = 1
+    # usr_conf.do_center = 1
 
     print(pprint.pformat( get_dict_diffs(vars(usr_conf_standard), vars(usr_conf))))
     assert(usr_conf_standard == usr_conf)
