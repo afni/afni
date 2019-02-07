@@ -1,3 +1,4 @@
+
 #!/usr/bin/env python
 
 # This is a reimplementation of the default real-time feedback experiment
@@ -20,7 +21,12 @@ import numpy as np
 
 import afniInterfaceRT as nf
 
-from   psychopy import visual, core # , sound
+try:
+   from   psychopy import visual, core # , sound
+   psychopyInstalled = 1
+except ImportError:
+   psychopyInstalled = 0
+
 
 
 
@@ -254,7 +260,14 @@ def main():
 
    opts, args = processExperimentOptions(sys.argv)
 
-   # print ("Options are " + str(opts))
+   if (psychopyInstalled == 0):
+      print("")
+      print("  *** This program requires the PsychoPy module.")
+      print("  *** PsychoPy was not found in the PYTHONPATH.")
+      print("  *** Please install PsychoPy before trying to use")
+      print("      this module.")
+      print("")
+      return -1
 
    if opts.verbose and not opts.debug:
       nf.add_stderr_logger(level=logging.INFO)
