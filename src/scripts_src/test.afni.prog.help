@@ -101,7 +101,7 @@ set good_stats = ()
 set bad_stats = ()
 foreach prog ( $progs )
 
-  printf "%-30s" $prog
+  printf "%-30s " $prog
   $bin_dir/$prog -help >& $out_dir/$prog.help
 
   if ( $status ) then
