@@ -237,7 +237,7 @@ PY_SCRIPTS = 1d_tool.py afni_proc.py afni_restproc.py afni_system_check.py   \
              @djunct_select_str.py BayesianGroupAna.py                       \
              abids_json_info.py abids_json_tool.py abids_tool.py             \
              afni_util.py apqc_make_html.py apqc_make_tcsh.py                \
-             lpc_align.py tedana_wrapper.py unWarpEPI.py
+             lpc_align.py tedana_wrapper.py unWarpEPI.py demoExpt.py
 
 R_DIR = R_scripts
 
@@ -2075,7 +2075,8 @@ afni_doc.tgz:
 
 ### Put things in their places
 
-install_devs: ptaylor_install pkundu_install jzosky_install
+install_devs: ptaylor_install pkundu_install jzosky_install \
+              roopchansinghv_install
 
 install: $(INSTALLDIR) $(INSTALL_PREREQ) install_devs
 	$(CP) $(SCRIPTS_DIR)/* $(INSTALLDIR)
@@ -3548,6 +3549,14 @@ pkundu_install:
 
 jzosky_install:
 	$(CP) -r jzosky/RetroTS.py jzosky/lib_RetroTS $(INSTALLDIR)
+
+#############
+# roopchansinghv directory
+
+roopchansinghv_install:
+	$(CP) -r roopchansinghv/PsychoPy-NeuroFeedback-Demo/demoExpt.py     \
+                 roopchansinghv/PsychoPy-NeuroFeedback-Demo/afniInterfaceRT \
+                 $(INSTALLDIR)
 
 #############
 #SUMA

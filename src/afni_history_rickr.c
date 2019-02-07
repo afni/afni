@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Feb, 2019, RCR, "demoExpt.py", MINOR, TYPE_NEW_PROG,
+   "will now actually distribute Vinai's demoExpt.py and afniInterfaceRT",
+   NULL
+ } ,
+
  {  5, Feb, 2019, RCR, "Dimon", MINOR, TYPE_MODIFY,
    "-infile_list now implies -no_wait",
    NULL
