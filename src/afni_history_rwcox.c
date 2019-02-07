@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , FEB , 2019 , RWC , "@afni_refacer" , MICRO , TYPE_ENHANCE ,
+   "Replace the substitute face with a better one." ,
+   "Made by 3dQwarp-ing the 10 MSB faces together, to make the result more\n"
+   "face-like." } ,
+
  { 30 , JAN , 2019 , RWC , "3dUnifize" , MICRO , TYPE_MODIFY ,
    "Soft cap on large intensities" ,
    NULL } ,
