@@ -1803,6 +1803,11 @@ def db_mod_volreg(block, proc, user_opts):
     apply_uopt_to_block('-volreg_motsim', user_opts, block)
     apply_uopt_to_block('-volreg_get_allcostX', user_opts, block)
 
+    if block.opts.find_opt('-volreg_pvra_base_index') and not \
+       block.opts.find_opt('-volreg_post_vr_allin'):
+       print("** -volreg_pvra_base_index requires -volreg_post_vr_allin")
+       return 1
+
     zopt = user_opts.find_opt('-volreg_zpad')
     if zopt:
         bopt = block.opts.find_opt('-volreg_zpad')
