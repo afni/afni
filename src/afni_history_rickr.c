@@ -265,7 +265,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 17, Oct, 2018, RCR, "gen_ss_review_scritps.py", MICRO, TYPE_ENHANCE,
+ { 17, Oct, 2018, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
    "add uvar xmat_stim",
    NULL
  } ,
@@ -287,7 +287,7 @@ afni_history_struct rickr_history[] = {
    "   pre_ss_warn_dset, decon_err_dset, tent_warn_dset."
  } ,
 
- { 16, Oct, 2018, RCR, "@update_afni_binaries", MICRO, TYPE_ENHANCE,
+ { 16, Oct, 2018, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "darwin defaults to 10.12; newline before dotfile appends",
    NULL
  } ,
@@ -4335,7 +4335,7 @@ afni_history_struct rickr_history[] = {
    "The 'file' type would imply -stim_file in 3dDeconvolve, not timing."
  } ,
 
- { 26, SEP, 2012, RCR, "@update_afni_binaries", MINOR, TYPE_NEW_OPT,
+ { 26, SEP, 2012, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "added -apsearch; verify download for recursive step",
    NULL
  } ,
