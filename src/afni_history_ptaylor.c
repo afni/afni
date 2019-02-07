@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 5, Feb , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Had been missing an endif.",
+   "Now new and improved-- with endif!\n"
+},
+
 { 30, Jan , 2019 , PT , "@djunct_edgy_align_check" , MINOR , TYPE_NEW_OPT,
    "Added '-montgap' and '-montcolor', for montage functionality.",
    "Users can now control montage borders (i.e., gaps) and color.\n"
