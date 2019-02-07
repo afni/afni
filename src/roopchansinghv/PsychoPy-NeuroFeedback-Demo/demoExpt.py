@@ -1,4 +1,3 @@
-
 #!/usr/bin/env python
 
 # This is a reimplementation of the default real-time feedback experiment
