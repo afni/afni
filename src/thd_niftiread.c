@@ -9,6 +9,12 @@ static int NIFTI_code_to_view(int code);
 static int NIFTI_default_view();
 extern char *THD_get_space(THD_3dim_dataset *dset);
 
+#undef  KILL_pathnew
+#define KILL_pathnew if( pathnew != NULL && pathnew != pathname ) free(pathnew)
+
+#undef  NULLRET
+#define NULLRET      do{ KILL_pathnew ; RETURN(NULL) ; } while(0)
+
 /*******************************************************************/
 /********** 26 Aug 2003: read a NIFTI-1 file as a dataset **********/
 /*******************************************************************/
@@ -29,6 +35,7 @@ THD_3dim_dataset * THD_open_nifti( char *pathname )
    char *ppp , prefix[THD_MAX_PREFIX] ;
    char form_priority = 'S' ;             /* 23 Mar 2006 */
    static int n_xform_warn=0;
+   char *pathnew = NULL ;
    
 ENTRY("THD_open_nifti") ;
 
@@ -40,16 +47,35 @@ ENTRY("THD_open_nifti") ;
    }
 
    nifti_set_alter_cifti(1) ;  /* if CIFTI, shift dims   23 Jul 2015 [rickr] */
-   nim = nifti_image_read( pathname, 0 ) ;
 
-   if( nim == NULL || nim->nifti_type == 0 ) RETURN(NULL) ;
+   /* pathname munge by RWC [07 Feb 2019] */
+
+   if( pathname == NULL || *pathname == '\0' ) NULLRET ;
+   if( THD_is_file(pathname) ){
+     pathnew = pathname ;
+   } else if( strstr(pathname,".gz") == NULL ){
+     pathnew = (char *)malloc(sizeof(char)*(strlen(pathname)+16)) ;
+     sprintf(pathnew,"%s.gz",pathname) ;
+     if( ! THD_is_file(pathnew) ) NULLRET ;
+   } else {
+     NULLRET ;
+   }
+
+   /*-- Read read read --*/
+
+   nim = nifti_image_read( pathnew, 0 ) ;
+
+   if( nim == NULL || nim->nifti_type == 0 ) NULLRET ;
+
+   if( pathname != pathnew )
+     ININFO_message("reading %s instead of non-existing %s",pathnew,pathname) ;
 
    /*-- extract some useful AFNI-ish information from the nim struct --*/
 
    /* we must have at least 2 spatial dimensions */
 
    /* this should be okay                 11 Jun 2007 */
-   /* if( nim->nx < 2 || nim->ny < 2 ) RETURN(NULL) ; */
+   /* if( nim->nx < 2 || nim->ny < 2 ) NULLRET ;      */
 
    /* 4th dimension = time; 5th dimension = bucket:
       these are mutually exclusive in AFNI at present */
@@ -67,8 +93,8 @@ ENTRY("THD_open_nifti") ;
    if( ntt > 1 && nbuc > 1 ){
      fprintf(stderr,
              "** AFNI can't deal with 5 dimensional NIfTI(%s)\n",
-             pathname ) ;
-     RETURN(NULL) ;
+             pathnew ) ;
+     NULLRET ;
    }
 
    nvals = MAX(ntt,nbuc) ;
@@ -100,8 +126,8 @@ ENTRY("THD_open_nifti") ;
      default:
        fprintf(stderr,
                "** AFNI can't handle NIFTI datatype=%d (%s) in file %s\n",
-               nim->datatype, nifti_datatype_string(nim->datatype), pathname );
-       RETURN(NULL) ;
+               nim->datatype, nifti_datatype_string(nim->datatype), pathnew );
+       NULLRET ;
      break ;
 
      case DT_UINT8:     datum = scale_data ? MRI_float : MRI_byte  ;
@@ -124,7 +150,7 @@ ENTRY("THD_open_nifti") ;
      case DT_COMPLEX128:  /* this case would be too much like real work */
        fprintf(stderr,
                "** AFNI convert NIFTI_datatype=%d (%s) in file %s to COMPLEX64\n",
-               nim->datatype, nifti_datatype_string(nim->datatype), pathname );
+               nim->datatype, nifti_datatype_string(nim->datatype), pathnew );
        datum = MRI_complex ;
      break ;
 #endif
@@ -134,7 +160,7 @@ ENTRY("THD_open_nifti") ;
       if (!n_xform_warn || AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {/* ZSS 04/11 */
          fprintf(stderr,
              "** AFNI converts NIFTI_datatype=%d (%s) in file %s to FLOAT32\n",
-             nim->datatype, nifti_datatype_string(nim->datatype), pathname );
+             nim->datatype, nifti_datatype_string(nim->datatype), pathnew );
          if (!AFNI_yesenv("AFNI_NIFTI_TYPE_WARN")) {
             fprintf(stderr,
                "     Warnings of this type will be muted for this session.\n"
@@ -151,13 +177,13 @@ ENTRY("THD_open_nifti") ;
      if( nim->intent_code > FUNC_PT_TYPE ){
        fprintf(stderr,
                "** AFNI doesn't understand NIFTI statistic type %d (%s) in file %s\n",
-               nim->intent_code , nifti_intent_string(nim->intent_code) , pathname ) ;
+               nim->intent_code , nifti_intent_string(nim->intent_code) , pathnew ) ;
      } else {
        statcode = nim->intent_code ;
        if( nbuc > 1 ){
          fprintf(stderr,
                  "** AFNI doesn't support NIFTI voxel-dependent statistic parameters"
-                 " in file %s\n" , pathname ) ;
+                 " in file %s\n" , pathnew ) ;
          statcode = 0 ;
        }
      }
@@ -202,7 +228,7 @@ ENTRY("THD_open_nifti") ;
 
      if( qdet*sdet < 0.0f )
        WARNING_message("NIfTI('%s'): Qform/Sform handedness differ; %c wins!",
-                       pathname , form_priority ) ;
+                       pathnew , form_priority ) ;
    }
 
    /* KRH 07/11/05 -- adding ability to choose spatial transform
@@ -229,7 +255,7 @@ ENTRY("THD_open_nifti") ;
                                     use_qform = 0 ; use_sform = 0 ;
      WARNING_message(
       "NO spatial transform (neither qform nor sform), in NIfTI file '%s'" ,
-      pathname ) ;
+      pathnew ) ;
    }
 
    /** now take NIfTI-1.1 coords and transform to AFNI codes **/
@@ -407,7 +433,7 @@ ENTRY("THD_open_nifti") ;
          "  you should consider running: \n"
          "     3dWarp -deoblique \n"
          "  on this and  other oblique datasets in the same session.\n"
-         ,pathname, ang_merit ) ;
+         ,pathnew, ang_merit ) ;
      }
 #endif
 
@@ -482,7 +508,7 @@ ENTRY("THD_open_nifti") ;
 
    dset = EDIT_empty_copy(NULL) ;
 
-   ppp  = THD_trailname(pathname,0) ;               /* strip directory */
+   ppp  = THD_trailname(pathnew,0) ;               /* strip directory */
    MCW_strncpy( prefix , ppp , THD_MAX_PREFIX ) ;   /* to make prefix */
    
    /* You need to set the path too
@@ -490,7 +516,7 @@ ENTRY("THD_open_nifti") ;
       to be ./joe.nii, troubling in multiple instances.
                                                       ZSS Dec 2011 */
    THD_init_diskptr_names( dset->dblk->diskptr ,
-                           THD_filepath(pathname) ,
+                           THD_filepath(pathnew) ,
                            NULL , prefix ,
                            dset->view_type , True );
                            
@@ -502,7 +528,7 @@ ENTRY("THD_open_nifti") ;
    dset->idcode.str[1] = 'I' ;
    dset->idcode.str[2] = 'I' ;
 
-   MCW_hash_idcode( pathname , dset ) ;  /* 06 May 2005 */
+   MCW_hash_idcode( pathnew , dset ) ;  /* 06 May 2005 */
 
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
@@ -648,7 +674,7 @@ ENTRY("THD_open_nifti") ;
    /*-- flag to read data from disk using NIFTI functions --*/
 
    dset->dblk->diskptr->storage_mode = STORAGE_BY_NIFTI ;
-   strcpy( dset->dblk->diskptr->brick_name , pathname ) ;
+   strcpy( dset->dblk->diskptr->brick_name , pathnew ) ;
    dset->dblk->diskptr->byte_order = nim->byteorder ;
 
 #if 0
@@ -717,7 +743,7 @@ ENTRY("THD_open_nifti") ;
                    if(nnn==0){fprintf(stderr,"\n"); nnn=1;}
                    fprintf(stderr,
                      "** WARNING: NIfTI file %s dimensions altered since "
-                                 "AFNI extension was added\n",pathname ) ;
+                                 "AFNI extension was added\n",pathnew ) ;
                  }
                }
                THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
@@ -733,7 +759,7 @@ ENTRY("THD_open_nifti") ;
 
    /* return unpopulated dataset */
 
-   nifti_image_free(nim) ; RETURN(dset) ;
+   nifti_image_free(nim) ; KILL_pathnew ; RETURN(dset) ;
 }
 
 
