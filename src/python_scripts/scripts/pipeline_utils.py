@@ -20,8 +20,8 @@ def get_test_data():
         TEST_ANAT_FILE.parent.mkdir()
         import urllib.request
         print('Beginning file download with urllib2...')
-        url = 'https://s3.amazonaws.com/fcp-indi/data/Projects/CORR/RawData/HNU_1/0025427/session_1/anat_1/anat.nii.gz'  
-        urllib.request.urlretrieve(url, TEST_ANAT_FILE)  
+        url = 'https://s3.amazonaws.com/fcp-indi/data/Projects/CORR/RawData/HNU_1/0025427/session_1/anat_1/anat.nii.gz'
+        urllib.request.urlretrieve(url, TEST_ANAT_FILE)
 
     PICKLE_PATH = TEST_DIR / "template_config.pklz"
 
@@ -81,11 +81,177 @@ def prepare_afni_output(dset, suffix, view=None,path=None):
         o.path = path
     check_for_valid_pipeline_dset(o)
     return o
+    
 
-# class TemplateWrap(RegWrap):
-#     def __init__(self, label):
-#         super().__init__(self, label)
-# ps = TemplateOpts(label)
+def check_for_valid_pipeline_dset(dset):
+    """
+    Check that the dset conforms to constraints dictated by pipelines.
+    These constraints represent a subset of AFNI's command line functionality
+    but prove useful for chaining together tools into pipelines when work with
+    Python. An error is raised if
+    + the dset object is not of type NIFTI or BRIK, as defined by afni_name.
+    + no file format extension is provided with the filename
+    + if the type is BRIK and the .HEAD extension is not used or if the view
+      is not specified.
+    + if the type is NIFTI and the view is specified.
+
+    Parameters
+    ----------
+    dset : output of afni_python.afni_base.afni_name
+    """
+    if dset.extension == '':
+        raise ValueError(
+            "Extensions must be defined for datasets"
+            "in pipelines. No extension was found for "
+            "%s"% dset.ppve())
+    if dset.type == 'BRIK':
+        if dset.view == '':
+            raise ValueError(
+                "Invalid dataset object for pipelines. The dataset is of "
+                "type BRIK, and the view is not set.")
+    # will not use this for now.
+    #     if dset.extension != '.HEAD':
+    #         raise ValueError(
+    #             "Pipelines must use the .HEAD extension to refer to AFNI"
+    #             "datasets. This was violated for %s."% dset.ppve())
+    if dset.type == 'NIFTI':
+        if dset.view != '':
+            raise ValueError(
+                "Pipelines must use nifti files that do not have a view "
+                "extension. This was violated for %s."% dset.ppve())
+
+def run_check_afni_cmd(cmd_str, ps, in_dict, message):
+    """
+    run afni command and check if afni output dataset exists
+    return the same output dataset if it exists, otherwise return None
+    could have list of outputs
+    """
+    print("command:\n %s" % cmd_str)
+    keys = in_dict.keys()
+
+    # Get a list of expected output files and their existence. Each value in
+    # the dict should have an exist, delete, path, and ppve methods like
+    # afni_base.afni_name objects. With that satisfied, any object could be
+    # added to the expect_files list here
+    expected_files = {k:v for k,v in in_dict.items() if k.startswith('dset_')}
+    files_status = {k:v.exist() for k,v in expected_files.items()}
+
+    # Set work directory for command execution if provided
+    possible_chdirs = [v.path for k,v in expected_files.items()]
+    if "chdir" in keys:
+        chdir = in_dict["chdir"]
+    elif len(possible_chdirs) == 1:
+        chdir = possible_chdirs.pop()
+    else:
+        raise ValueError("chdir (the directory for the command execution) is "
+        "ambiguous. If all output files are not in the same directory chdir "
+        "must be explicitly specified")
+
+    # if stdout from cmd_str exec is parsed, result is stored in shell_obj.
+    # Providing a shell object in the in_dict triggers the behavior. Without it
+    #  the shell object is not stored in the output dictionary and command
+    #  rerun criteria is altered (no longer always rerun)
+    if "shell_obj" in keys:
+        shell_obj = in_dict["shell_obj"]
+        need_stdout = True
+        # Check that our specified execution mode is unambiguous
+        if shell_obj.eo != ps.oexec:
+            raise ValueError("shell_obj was defined in the calling function."
+            "It's value for execution mode (the eo attribute) does not match "
+            "the user option defined by ps.oexec. This should never happen "
+            "and leads to an ambiguous execution mode.")
+
+    else:
+        # generate the shell_com object that executes the command:
+        shell_obj = ShellComFuture(cmd_str, eo=ps.oexec)
+        need_stdout = False
+
+    # Set the criteria for "executing" the command:
+     # (dry-run only reports it doesn't really execute).
+    run_criteria = (
+        ps.rewrite or
+        ps.dry_run() or
+        need_stdout or
+         not (all(files_status.values())))
+
+    # Execution of the command is required:
+    if run_criteria:
+        if len(expected_files) > 0:
+            for f in expected_files.values():
+                f.delete(ps.oexec)
+
+        # Run the command string:
+        print("Running in %s" % chdir)
+        shell_obj.run(chdir=chdir)
+
+        # Expected files should now exist:
+        if len(expected_files) > 0:
+            files_status = {k:v.exist() for k,v in expected_files.items()}
+        if not (ps.dry_run() or all(files_status.values())) :
+            missing_files = [
+            v.ppve() for k,v in expected_files.items() if not files_status[k]]
+            raise RuntimeError(
+                "%s \n After running the above command the following "
+                "expected files were not found: \n %s" %
+                 (cmd_str, '\n'.join(missing_files)))
+    # Command was run and outputs exist. All is good.
+    elif ps.ok_to_exist  and all(files_status.values()):
+        print(
+            "The following output files exist. That's ok:\n",
+            '\n'.join([v.ppve() for k,v in expected_files.items()]))
+    # Files exist and this was not expected or allowed:
+    else:
+        raise RuntimeError(
+            "The following output files exist. Remove them or allow rewrite:\n",
+            '\n'.join([v.ppve() for k,v in expected_files.items()]))
+
+    #return the outputs as a dict
+    out_dict = {k:v for k,v in expected_files.items()}
+    if need_stdout:\
+        out_dict.update({'shell_obj':shell_obj})
+    return out_dict
+
+
+
+
+class ShellComFuture(ab.shell_com):
+    """
+    eo sets execution setting dry_run or ""
+    """
+
+    def __init__(self, com, eo="", capture=1, default_text="Text from future",trim_length=2000):
+        if eo not in ['', 'dry_run']:
+            raise ValueError(
+                'The only options for eo (execution type) in pipelines are "dry_run" or ""')
+        self.default_text = default_text
+        super().__init__(
+            com,
+            eo=eo,
+            capture = capture,
+            save_hist=0,
+            trim_length=trim_length
+        )
+
+    def future_text(self, i, j=-1):
+        """return the jth string from the ith line of output. if j=-1, return all
+        ith line
+        """
+        if self.eo == "dry_run":
+            out_text = self.default_text
+        elif self.exc == 1:
+            out_text = self.val(i, j)
+        else:
+            self.run()
+            out_text = self.val(i,j)
+
+        # if not out_text: dont think there is any way to know what this is?
+        #     raise ValueError(
+        #         "Incorrect output text was received for the following "
+        #         "command: %s: \n %s" % (self.com, out_text))
+        return out_text
+
+    def exist(self):
+        return self.exc
 
 
 class PipelineConfig():
@@ -103,7 +269,7 @@ class PipelineConfig():
         self.prep_only = 0  # do preprocessing only
         self.odir = os.getcwd()
         self.bokeh_port = 8787 # default port to show graphical Bokeh debugging info with Dasks
-        
+
         self.resizebase = [] # dataset to resize nonlinear means to
 
         self.max_workers = 0   # user sets maximum number of workers
@@ -119,7 +285,7 @@ class PipelineConfig():
 
         # input datasets
         self.valid_opts.add_opt('-ok_to_exist', 0, [],
-        helpstr="For running make_template_dask in parallel. This\n" 
+        helpstr="For running make_template_dask in parallel. This\n"
                "flag allows a previous output of the weight dataset \n"
                "to be used.")
         self.valid_opts.add_opt('-dsets', -1, [],
@@ -376,7 +542,7 @@ class PipelineConfig():
 
     def error_msg(self, mesg=""):
         print("#**ERROR %s" % mesg)
-    
+
     def error_ex(self, mesg=""):
         print("#**ERROR %s" % mesg)
         self.ciao(1)
@@ -385,7 +551,7 @@ class PipelineConfig():
         print("** Dataset: %s already exists" % dsetname)
         print("** Not overwriting.")
         if(not self.dry_run()):
-            self.ciao(1)    
+            self.ciao(1)
     def exists_msg_python(self, dsetname=""):
         raise ValueError(
             "** Dataset: %s already exists ** Not overwriting." % dsetname)
@@ -582,7 +748,7 @@ class PipelineConfig():
             if((self.findtypical_level<1) or (self.findtypical_level>4)):
                 self.error_msg("Must provide a number from 1 to 4 for a specific nonlinear level for findtypical_level")
                 self.ciao(1)
- 
+
         opt = self.user_opts.find_opt('-dsets')
         if opt == None:
             print("** ERROR: Must use -dsets option to specify input datasets\n")
@@ -680,7 +846,7 @@ class TemplateConfig(PipelineConfig):
         self.do_unifize_template = 0
         self.do_freesurf_mpm = 0
 
-    
+
         self.do_rigid_only = 0   # major stages to do when doing just one
         self.do_affine_only = 0
         self.do_nl_only = 0
@@ -692,67 +858,4 @@ class TemplateConfig(PipelineConfig):
         self.findtypical_level =[] # no typical subject intermediates by default in nonlinear
 
         super().__init__(label = label)
-    
-
-
-
-def check_for_valid_pipeline_dset(dset):
-    """
-    Check that the dset conforms to constraints dictated by pipelines.
-    These constraints represent a subset of AFNI's command line functionality
-    but prove useful for chaining together tools into pipelines when work with
-    Python. An error is raised if 
-    + the dset object is not of type NIFTI or BRIK, as defined by afni_name.
-    + no file format extension is provided with the filename
-    + if the type is BRIK and the .HEAD extension is not used or if the view
-      is not specified.
-    + if the type is NIFTI and the view is specified.
-
-    Parameters
-    ----------
-    dset : output of afni_python.afni_base.afni_name
-    """
-    if dset.extension == '':
-        raise ValueError(
-            "Extensions must be defined for datasets"
-            "in pipelines. No extension was found for "
-            "%s"% dset.ppve())
-    if dset.type == 'BRIK':
-        if dset.view == '':
-            raise ValueError(
-                "Invalid dataset object for pipelines. The dataset is of "
-                "type BRIK, and the view is not set.")
-    # will not use this for now. 
-    #     if dset.extension != '.HEAD':
-    #         raise ValueError(
-    #             "Pipelines must use the .HEAD extension to refer to AFNI"
-    #             "datasets. This was violated for %s."% dset.ppve())
-    if dset.type == 'NIFTI':
-        if dset.view != '':
-            raise ValueError(
-                "Pipelines must use nifti files that do not have a view "
-                "extension. This was violated for %s."% dset.ppve())
-
-
-def run_check_afni_cmd(cmd_str, ps, o, message):
-    """
-    run afni command and check if afni output dataset exists
-    return the same output dataset if it exists, otherwise return None
-    could have list of outputs
-    """
-    print("command:\n %s" % cmd_str)
-    if ps.ok_to_exist and o.exist():
-        print("Output already exists. That's okay")
-    elif (not (o.exist()) or ps.rewrite or ps.dry_run()):
-        o.delete(ps.oexec)
-        com = ab.shell_com(cmd_str, ps.oexec, trim_length=2000, capture=1)
-        print("Running in %s" % o.path)
-        com.run(chdir="%s" % o.path)
-        if (not o.exist() and not ps.dry_run()):
-            # print error message from com
-            raise RuntimeError("No output found after command... \n %s \n  %s\n" % (message, cmd_str))
-    else:
-        ps.exists_msg_python(o.ppve()) 
-    return o
-
 
