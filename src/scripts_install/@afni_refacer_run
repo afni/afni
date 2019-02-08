@@ -25,7 +25,7 @@ endif
 if ( $dohelp ) then
   echo
   echo "Usage:"
-  echo "  @afni_refacer_run T1w-dataset-name"
+  echo "  @afni_refacer_run [-deface] T1w-dataset-name"
   echo
   echo "* This script re-faces one input dataset, using a master shell dataset to"
   echo "   write over the subject's 'face' region."
@@ -36,6 +36,13 @@ if ( $dohelp ) then
   echo "    MNI152_2009_template_SSW.nii.gz = MNI skull strip/warp template"
   echo "    afni_refacer_shell.nii.gz       = dataset to replace face region"
   echo "  The latter dataset was made with the script @afni_refacer_make_master."
+  echo "* NOTE: Here 'face' also includes part of the skull,"
+  echo "        so the head will be reshaped and the ears replaced."
+  echo
+  echo "OPTION:"
+  echo "-------"
+  echo " -deface   = Replace the computed 'face' voxels with all zeros instead"
+  echo "             of the artificial face."
   echo
   echo "Author - The Face of Imperial Zhark, Who is Terrible to Behold!"
   echo
@@ -48,9 +55,19 @@ if ( $#argv < 1 ) then
   echo "@afni_refacer_run needs an input dataset name" ; exit 0
 endif
 
+# --------- check for option ----------
+
+set iarg   = 1
+set deface = 0
+
+if ( "$argv[$iarg]" == "-deface" ) then
+  set deface = 1
+  @ iarg ++
+endif
+
 # ---------- name of input dataset ----------
 
-set iset  = $argv[1]
+set iset  = $argv[$iarg]
 if ( ! -f $iset ) then
    echo "** @afni_refacer_run -- Failed to find input $iset -- exiting :(" ; exit 1
 endif
@@ -128,29 +145,42 @@ cat_matvec -ONELINE junk_refacer.A12.1D -I > junk_refacer.I12.1D
             -final linear -prefix junk_refacer.MM.nii -master $jset -float
 3drefit -space ORIG junk_refacer.MM.nii
 
-# scale factor for refacer shell to be about the same intensity as the input:
-#  ibar = mean of input over refacer shell
-#  mbar = mean of refacer shell
-#  ifac = scale factor for refacer shell to match input (sort of)
-# This method doesn't allow for duplicating shading artifacts in the input
-# dataset, but that would be somewhat more work.
+# Just remove the 'face' rather than replace it [08 Jan 2019]
 
-set ibar = `3dBrickStat -non-zero -mean \
-             "3dcalc( -a junk_refacer.MM.nii -b $jset -expr step(a)*b )"`
-set mbar = `3dBrickStat -non-zero -mean \
-             "3dcalc( -a junk_refacer.MM.nii          -expr step(a)*a )"`
-set ifac = `ccalc "1.222*${ibar}/${mbar}"`
+if ( $deface == 1 ) then
+  3dcalc -a $jset                        -c junk_refacer.MM.nii  \
+         -expr "iszero(c)*a"                                     \
+         -prefix $ppp.refacer.RESULT.nii -datum float
 
-# plop the scaled refacer shell 'c' on top of the input 'a':
-# -- where the shell is positive = step(c)*c
-# -- zero out anything where the shell is negative = iszero(c)*a
-# -- since the master shell is negative in the outer volume,
-#    is zero in the 'brain' region, and is positive in the
-#    parts of the volume to be replaced.
+# the re-facing code of yore
 
-3dcalc -a $jset                        -c junk_refacer.MM.nii  \
-       -expr "step(c)*c*${ifac}+iszero(c)*a"                   \
-       -prefix $ppp.refacer.RESULT.nii -datum float
+else
+
+#   scale factor for refacer shell to be about the same intensity as the input:
+#    ibar = mean of input over refacer shell
+#    mbar = mean of refacer shell
+#    ifac = scale factor for refacer shell to match input (sort of)
+#   This method doesn't allow for duplicating shading artifacts in the input
+#   dataset, but that would be somewhat more work.
+
+  set ibar = `3dBrickStat -non-zero -mean \
+               "3dcalc( -a junk_refacer.MM.nii -b $jset -expr step(a)*b )"`
+  set mbar = `3dBrickStat -non-zero -mean \
+               "3dcalc( -a junk_refacer.MM.nii          -expr step(a)*a )"`
+  set ifac = `ccalc "1.222*${ibar}/${mbar}"`
+
+#   plop the scaled refacer shell 'c' on top of the input 'a':
+#   -- where the shell is positive = step(c)*c
+#   -- zero out anything where the shell is negative = iszero(c)*a
+#   -- since the master shell is negative in the outer volume,
+#      is zero in the 'brain' region, and is positive in the
+#      parts of the volume to be replaced.
+
+  3dcalc -a $jset                        -c junk_refacer.MM.nii  \
+         -expr "step(c)*c*${ifac}+iszero(c)*a"                   \
+         -prefix $ppp.refacer.RESULT.nii -datum float
+
+endif
 
 # also make a short-valued copy of the result, if practicable
 
