@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Feb, 2019, RCR, "3dWarp", MICRO, TYPE_NEW_OPT,
+   "add -wsinc5",
+   NULL
+ } ,
+
  {  7, Feb, 2019, RCR, "demoExpt.py", MINOR, TYPE_NEW_PROG,
    "will now actually distribute Vinai's demoExpt.py and afniInterfaceRT",
    NULL

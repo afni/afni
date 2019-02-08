@@ -166,6 +166,7 @@ int main( int argc , char * argv[] )
             "  -cubic      } = Chooses spatial interpolation method.\n"
             "  -NN         } =   [default = linear]\n"
             "  -quintic    }\n"
+            "  -wsinc5     }\n"
             "\n"
             "  -fsl_matvec   = Indicates that the matrix file 'mmm' uses FSL\n"
             "                    ordered coordinates ('LPI').  For use with\n"
@@ -349,6 +350,11 @@ int main( int argc , char * argv[] )
      }
      if( strcmp(argv[nopt],"-quintic") == 0 ){
        mri_warp3D_method( MRI_QUINTIC ); nopt++ ; continue ;  /* 06 Aug 2003 */
+     }
+
+     /* rcr - todo: move e.g. INTERP_methname to libmri and apply as generic */
+     if( strcmp(argv[nopt],"-wsinc5") == 0 ){  /* 8 Feb 2019 [rickr] */
+       mri_warp3D_method( MRI_WSINC5 ); nopt++ ; continue ;
      }
 
      /*-----*/
