@@ -676,8 +676,8 @@ class shell_com(object):
          return self.so[i]
 
    def __repr__(self):
-      return '<%s %s name=%r, eo="%r">' % (
-         self.__class__.__name__, hex(id(self)), self.initname,self.eo)
+      return '<%s %s name=%r, eo=%r>' % (
+         self.__class__.__name__, hex(id(self)),self.com, self.eo)
 
    def __str__(self):
       return pformat(self.__dict__)
