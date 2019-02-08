@@ -153,8 +153,6 @@ if (daskmode != "None"):
 
         using_cluster = True
 
-        # Display dashboard address for both local and cluster clients
-        print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)
     else:
     # LocalCluster - use multiple workers on largish computer
         from dask.distributed import Client, LocalCluster
@@ -195,6 +193,8 @@ if __name__ == '__main__':
         # Commented out code allows one to update worker environment on the fly.
         # from afni_python import dask_job_wrapper
         # task_graph = dask_job_wrapper.run(ps,delayed,client) # useful for reloading modules
+        # Display dashboard address for both local and cluster clients
+        print("The dashboard can be opened on this host at: %s" % client.cluster.dashboard_link)
 
         # The following command executes the task graph and returns futures 
         if(daskmode == "SLURM"):
