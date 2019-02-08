@@ -234,7 +234,8 @@ class ShellComFuture(ab.shell_com):
 
     def future_text(self, i, j=-1):
         """return the jth string from the ith line of output. if j=-1, return all
-        ith line
+        ith line.
+        If default text is being used the typical val indexing does not apply.
         """
         if self.eo == "dry_run":
             out_text = self.default_text
