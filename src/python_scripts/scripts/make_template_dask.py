@@ -13,7 +13,7 @@ daskmode = "None"  # by default, don't use dask. Just use single computer linear
 
 import os
 from time import sleep
-from afni_python.regwrap import RegWrap
+from afni_python.pipeline_utils import TemplateConfig
 from dask import delayed
 # AFNI modules
 
@@ -62,7 +62,7 @@ g_help_string = """
     ---------------------------------------------
 """
 
-ps = RegWrap('make_template_dask.py')
+ps = TemplateConfig('make_template_dask.py')
 ps.init_opts()
 ps.version()
 rv = ps.get_user_opts(g_help_string)
