@@ -4,7 +4,7 @@ set stat = 0
 set sdir = $PWD
 
 set demo = D99_macaque
-set demo_download = macaqueatlas_1.2a
+set demo_download = macaqueatlas_1.2b
 
 goto PARSE
 RET_PARSE:

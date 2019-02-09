@@ -4,7 +4,7 @@ set stat = 0
 set sdir = $PWD
 
 set demo = NIH_Marmoset
-set demo_download = NIH_Marmoset_0.02
+set demo_download = NIH_Marmoset_v2.0
 
 goto PARSE
 RET_PARSE:
@@ -47,7 +47,7 @@ cd $demo
 set atlas_dir = `pwd`
 @AfniEnv -set AFNI_SUPP_ATLAS_DIR $atlas_dir
 @AfniEnv -set AFNI_WHEREAMI_DEC_PLACES 2
-@AfniEnv -set AFNI_ATLAS_COLORS NIH_Marmoset_0.02_v5H
+@AfniEnv -set AFNI_ATLAS_COLORS NIH_Marmoset_2.0_v5H
 @AfniEnv -set AFNI_TEMPLATE_SPACE_LIST "NIH_Marmoset,NIH_Marmoset_stereotaxic"
 cd -
 goto END
