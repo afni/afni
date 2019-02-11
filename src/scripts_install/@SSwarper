@@ -19,8 +19,12 @@
 #   + set check if OMP_NUM_THREADS is explicitly set, so echoing don't
 #     break it -- thanks P. Molfese et al.!
 #
-set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
+#set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
 #   + [PT] bug fix-- 3danisosmooth cmd was missing ${odir} on I/O
+#
+set version   = "1.4"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] new opt: turn unifize off (e.g., it 'twere already done
+#     before)
 #
 # ----------------------------------------------------------------
 
@@ -58,6 +62,8 @@ set tightness = 0
 set doclean   = 1
 set verbopt   = ""
 set skipwarp  = 0
+
+set DO_UNIFIZE = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -116,6 +122,10 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-skipwarp" ) then
         set skipwarp = 1
+
+    # [PT: Feb 11, 2019] 
+    else if ( "$argv[$ac]" == "-unifize_off" ) then
+        set DO_UNIFIZE = 0
 
     # [Jan 2019 - RWC]
 
@@ -208,12 +218,19 @@ endif
 
 ## Step #1: Unifize the input T1
 
+# [PT: Feb 11, 2019] now allows for option *not* to unifize
 if( ! -f $odir/anatU."${SubID}".nii ) then
-  3dUnifize                           \
-    -GM                               \
-    -clfrac 0.4                       \
-    -prefix $odir/anatU."$SubID".nii  \
-    -input "$Adataset" 
+    if ( ${DO_UNIFIZE} ) then
+        3dUnifize                             \
+            -GM                               \
+            -clfrac 0.4                       \
+            -prefix $odir/anatU."$SubID".nii  \
+            -input "$Adataset" 
+    else
+        3dcopy                                \
+            "$Adataset"                       \
+            $odir/anatU."$SubID".nii
+    endif
 endif
 
 if( ! -f $odir/anatUA."${SubID}".nii ) then
@@ -475,6 +492,11 @@ where:
               option with 3dQwarp to speed up the calculations.
               (def: use '-lite' for faster calculations).
 
+  -unifize_off :(opt) don't start with a 3dUnifize command to try reduce
+              effects of brightness inhomogeneities.  Probably only 
+              useful if unifizing has been previously performed on the 
+              input dset.
+
   -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
               verbose progress information - mostly used for debugging.
 
@@ -513,6 +535,7 @@ Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
 Then the outputs from this script will be"
 
   anatU.sub007.nii        = intensity uniform-ized original dataset;
+                            (or, if '-unifize_off' used, a copy of orig dset)
   anatUA.sub007.nii       = anisotropically smoothed version of the above
   anatS.sub007.nii        = first pass skull-stripped original dataset;
   anatSS.sub007.nii       = second pass skull-stripped original dataset;

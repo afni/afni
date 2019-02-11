@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 11, Feb , 2019 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "Can turn off initial unifizing with -unifize_off.",
+   "Useful if unifizing has been done to dset before using this cmd.\n"
+},
+
 { 5, Feb , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
    "Had been missing an endif.",
    "Now new and improved-- with endif!\n"
