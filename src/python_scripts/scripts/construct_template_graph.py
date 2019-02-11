@@ -3,7 +3,7 @@
 
 import afni_python.afni_base as ab
 
-from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd)
+from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd, prepare_afni_output)
 
 import glob
 import os
