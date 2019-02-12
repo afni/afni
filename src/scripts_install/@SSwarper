@@ -26,6 +26,10 @@ set version   = "1.4"; set rev_dat   = "Feb 11, 2019"
 #   + [PT] new opt: turn unifize off (e.g., it 'twere already done
 #     before)
 #
+set version   = "1.41"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] new opt: can turn skullstrip and/or anisosmooth off (e.g.,
+#     it 'twere already done before)
+#
 # ----------------------------------------------------------------
 
 ### This is not fully adapted yet -- Zhark
@@ -64,6 +68,8 @@ set verbopt   = ""
 set skipwarp  = 0
 
 set DO_UNIFIZE = 1
+set DO_SKULLST = 1
+set DO_ANISO   = 1
 
 # ------------------- process options, a la rr ----------------------
 
@@ -126,6 +132,14 @@ while ( $ac <= $#argv )
     # [PT: Feb 11, 2019] 
     else if ( "$argv[$ac]" == "-unifize_off" ) then
         set DO_UNIFIZE = 0
+
+    # [PT: Feb 11, 2019] 
+    else if ( "$argv[$ac]" == "-skullstrip_off" ) then
+        set DO_SKULLST = 0
+
+    # [PT: Feb 11, 2019] 
+    else if ( "$argv[$ac]" == "-aniso_off" ) then
+        set DO_ANISO = 0
 
     # [Jan 2019 - RWC]
 
@@ -227,31 +241,49 @@ if( ! -f $odir/anatU."${SubID}".nii ) then
             -prefix $odir/anatU."$SubID".nii  \
             -input "$Adataset" 
     else
+        echo "++ NOT unifizing dset."
         3dcopy                                \
             "$Adataset"                       \
             $odir/anatU."$SubID".nii
     endif
 endif
 
+# [PT: Feb 11, 2019] now allows for option *not* to anismoothize
 if( ! -f $odir/anatUA."${SubID}".nii ) then
-  3danisosmooth                         \
-    -iters 1                            \
-    -3D                                 \
-    -automask                           \
-    -noneg                              \
-    -prefix $odir/anatUA."${SubID}".nii \
-    $odir/anatU."${SubID}".nii
+    if ( ${DO_ANISO} ) then
+        3danisosmooth                           \
+            -iters 1                            \
+            -3D                                 \
+            -automask                           \
+            -noneg                              \
+            -prefix $odir/anatUA."${SubID}".nii \
+            $odir/anatU."${SubID}".nii
+    else
+        echo "++ NOT anisosmoothing dset."
+        3dcopy                                  \
+            $odir/anatU."$SubID".nii            \
+            $odir/anatUA."$SubID".nii
+    endif
 endif
 
 # Step #2: Strip Skull (Ziad's way)
 
+# [PT: Feb 11, 2019] now allows for option *not* to skullstrip (e.g.,
+# for macaque data)
 if( ! -f $odir/anatS."${SubID}".nii ) then
-    3dSkullStrip \
-    -input  $odir/anatUA."$SubID".nii \
-    -prefix $odir/anatS."$SubID".nii  \
-    -debug 1 -ld 33 -niter 777        \
-    -shrink_fac_bot_lim 0.777         \
-    -exp_frac 0.0666 -orig_vol
+    if ( ${DO_SKULLST} ) then
+        3dSkullStrip \
+            -input  $odir/anatUA."$SubID".nii \
+            -prefix $odir/anatS."$SubID".nii  \
+            -debug 1 -ld 33 -niter 777        \
+            -shrink_fac_bot_lim 0.777         \
+            -exp_frac 0.0666 -orig_vol
+    else
+        echo "++ NOT pre-skullstripping dset."
+        3dcopy                                \
+            $odir/anatUA."$SubID".nii         \
+            $odir/anatS."$SubID".nii
+    endif
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
@@ -397,7 +429,7 @@ endif
     -prefix ${pref}de3.nii              \
     -input  $odir/anatQQ."${SubID}".nii
 3dcalc                                  \
-    -a $odir/anatQQ."${SubID}".nii            \
+    -a $odir/anatQQ."${SubID}".nii      \
     -b ${pref}de3.nii                   \
     -expr 'a*step(b)'                   \
     -prefix $odir/anatQQc."${SubID}".nii
@@ -456,9 +488,15 @@ USAGE ~1~
         -input  AA        \
         -base   BB        \
         -subid  SS        \
-       {-odir OD}         \
-       {-minp MP}         \
-       {-nolite}
+       {-odir   OD}       \
+       {-minp   MP}       \
+       {-nolite}          \
+       {-skipwarp}        \
+       {-unifize_off}     \
+       {-skullstrip_off}  \
+       {-aniso_off}       \
+       {-verb}            \
+       {-noclean}
 
 where:
 
@@ -480,6 +518,7 @@ where:
 
   -subid  SS :(req) name code for output datasets (e.g., 'sub007').
 
+
   -odir   OD :(opt) output directory for all files from this program
               (def: directory of the '-input AA').
 
@@ -492,21 +531,31 @@ where:
               option with 3dQwarp to speed up the calculations.
               (def: use '-lite' for faster calculations).
 
+  -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
+              This option is used if you just want the skull-stripped
+              result in original coordinates, without the warping
+              to the template space (anatQQ). The script will run faster.
+
   -unifize_off :(opt) don't start with a 3dUnifize command to try reduce
               effects of brightness inhomogeneities.  Probably only 
               useful if unifizing has been previously performed on the 
               input dset.
+
+  -aniso_off :(opt) don't preprocess with a 3danisosmooth command to
+              try reduce effects of weird things (in a technical
+              sense).  Possible that this will never be used in the
+              history of running this program.
+
+  -skullstrip_off :(opt) don't preprocess with a 3dSkullstrip command
+              to roughly isolated brain in the beginning.  This might
+              be useful with macaque dsets.
+
 
   -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
               verbose progress information - mostly used for debugging.
 
   -noclean   :(opt) Do not delete the 'junk' files at the end of
               computations - mostly used for debugging and testing.
-
-  -skipwarp  :(opt) Do not compute past the output of anatSS.{subid}.nii.
-              This option is used if you just want the skull-stripped
-              result in original coordinates, without the warping
-              to the template space (anatQQ). The script will run faster.
 
 # -----------------------------------------------------------------
 
@@ -537,7 +586,10 @@ Then the outputs from this script will be"
   anatU.sub007.nii        = intensity uniform-ized original dataset;
                             (or, if '-unifize_off' used, a copy of orig dset)
   anatUA.sub007.nii       = anisotropically smoothed version of the above
+                            (or, if '-aniso_off' used, a copy of anatU.*.nii)
   anatS.sub007.nii        = first pass skull-stripped original dataset;
+                            (or, if '-skullstrip_off' used, a copy of 
+                            anatUA.*.nii)
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
                             the base template space;

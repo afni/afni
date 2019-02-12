@@ -67,6 +67,11 @@ afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
 { 11, Feb , 2019 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
+   "... and can also turn off initial skullstripping and/or anisosmoothing.",
+   "Options cleverly named: -skullstrip_off and -aniso_off.\n"
+},
+
+{ 11, Feb , 2019 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "Can turn off initial unifizing with -unifize_off.",
    "Useful if unifizing has been done to dset before using this cmd.\n"
 },
