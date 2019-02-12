@@ -40,9 +40,13 @@
 #   + output QC dir for images
 #   + default orientation RAI
 #
-set version = "3.4"; set rev_dat = "June 26, 2018"
+#set version = "3.4"; set rev_dat = "June 26, 2018"
 #   + allow a NIFTI anatomical to be input, and then do rest of 
 #     niceifying steps
+#
+set version   = "3.5";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #
 # ----------------------------------------------------------------
 
@@ -212,9 +216,9 @@ endif
 # ---------- if input nifti, check existence
 if ( "$inii" != "" ) then
     set ff    = "$inii"
-    set check = `3dinfo "$ff"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input file:  $ff !"
+    set check = `3dinfo -prefix "$ff"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find input file:  $ff"
         goto BAD_EXIT
     else
         echo "++ Found input file:   $ff"
@@ -388,17 +392,16 @@ endif
 
 cd $here 
 
-set check = `3dinfo "$odir/$ofile"`
-#echo "$#check"
-if ( "$#check" >= "0" ) then
+set check = `3dinfo -prefix "$odir/$ofile"`
+if ( "$check" == "NO-DSET" ) then
+    echo "Whoa, badness outputting: $odir/$ofile"
+    goto BAD_EXIT
+else
     echo "\nAll done!"
     cd $odir
     echo "\nYour output anatomical is:\n\t$PWD/$ofile\n"
     cd $here
-else 
-    echo "Whoa, badness outputting: $odir/$ofile"
-    goto BAD_EXIT
-endif
+endif 
 
 # ---------------- imager -------------------
 

@@ -150,14 +150,14 @@ echo "   $this_prog $argv"
 
 # Need iset input
 if ( "$isetu" == "" ) then
-    echo "** ERROR: no file input??!"
+    echo "** ERROR: no file input??"
     goto BAD_EXIT
 endif
 
 # make sure we can read inset OK
-set check = `3dinfo "$isetu"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file:  $isetu !"
+set check = `3dinfo -prefix "$isetu"`
+if ( "$check" == "NO-DSET" ) then
+    echo "** ERROR: can't find inset file:  $isetu"
     goto BAD_EXIT
 else
     echo "++ Found inset file:   $isetu"
@@ -168,9 +168,9 @@ set Nvfinal = $Nvu                # might be reset in next "if" condition
 
 # check if olay input
 if ( "$iseto" != "" ) then
-    set check = `3dinfo "$iseto"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find inset file:  $iseto !"
+    set check = `3dinfo -prefix "$iseto"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find inset file:  $iseto"
         goto BAD_EXIT
     else
         echo "++ Found inset file:   $iseto"

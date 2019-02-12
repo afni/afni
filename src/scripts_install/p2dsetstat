@@ -2,13 +2,17 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-set version   = "1.0";  set rev_dat   = "April 16, 2018"
+#set version   = "1.0";  set rev_dat   = "April 16, 2018"
 # + convert p value to a stat, using header info from a dset brick to
 #   get supplementary requirements like DOF, etc.
 #
-set version   = "1.1";  set rev_dat   = "May 21, 2018"
+#set version   = "1.1";  set rev_dat   = "May 21, 2018"
 # + allow "bisided" as a type of test (=2sided, for p-to-stat
 #   conversion)
+#
+set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #
 # ---------------------------------------------------------------
 
@@ -85,26 +89,26 @@ end
 # ========================= check inputs ==============================
 
 if ( "$ibrick" == "" ) then
-    echo "** ERROR: you forgot to input '-inset ...' !"
+    echo "** ERROR: you forgot to input '-inset ...'"
     goto BAD_EXIT
 endif
 
 if ( "$ipval" == "" ) then
-    echo "** ERROR: you forgot to input '-pval ...' !"
+    echo "** ERROR: you forgot to input '-pval ...'"
     goto BAD_EXIT
 endif
 
 
 # make sure we can read volumes OK
-set check = `3dinfo "$ibrick"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find/read input file:  $ibrick !"
+set check = `3dinfo -prefix "$ibrick"`
+if ( "$check" == "NO-DSET" ) then
+    echo "** ERROR: can't find/read input file:  $ibrick"
     goto BAD_EXIT
 else
     set ibrick_nv = `3dinfo -nv "$ibrick"`
 
     if ( `echo "$ibrick_nv > 1" | bc -l` ) then
-        echo "** ERROR: too many volumes selected via :  $ibrick !"
+        echo "** ERROR: too many volumes selected via :  $ibrick"
         echo "          Select only *one* volume, please!"
         goto BAD_EXIT
     endif
@@ -118,12 +122,12 @@ endif
 set check2 = `echo "$ipval < 0 || $ipval > 1" | bc -l`
 
 if ( $check2 ) then
-    echo "** ERROR! Input p-value ($ipval) is outside bounds of [0, 1]."
+    echo "** ERROR. Input p-value ($ipval) is outside bounds of [0, 1]."
     goto BAD_EXIT
 endif
 
 if ( $MULTFAC == 0 ) then
-    echo "** ERROR! Specify one of: '-bisided', '-2sided' or '-1sided' testing."
+    echo "** ERROR. Specify one of: '-bisided', '-2sided' or '-1sided' testing."
     goto BAD_EXIT
 endif
 
@@ -143,7 +147,7 @@ set my_bstats = `3dAttribute BRICK_STATAUX "$ibrick"`
 
 if ( "$my_bstats" == "" ) then
     echo ""
-    echo "** ERROR! ... which is to say, the selected subbrick does NOT appear to be a statistic!"
+    echo "** ERROR... which is to say, the selected subbrick does NOT appear to be a statistic."
     goto BAD_EXIT
 
 endif

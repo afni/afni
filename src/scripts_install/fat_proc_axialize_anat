@@ -91,8 +91,12 @@
 #     a not-so-great-but-still-reasonable mask should be find for
 #     this purpose. Opt name:  '-focus_by_ss'.
 #
-set version   = "4.2";  set rev_dat   = "July 25, 2018"
+#set version   = "4.2";  set rev_dat   = "July 25, 2018"
 #   + match func_range_nz to updated @chauffeur
+#
+set version   = "4.3";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #
 # ----------------------------------------------------------------
 
@@ -310,23 +314,16 @@ end
 echo "++ Start script version: $version"
 
 if ( "$MODESET" == "" ) then
-    echo "** ERROR: need to select one of the '-mode_*' options !"
+    echo "** ERROR: need to select one of the '-mode_*' options"
     echo "   -> see the help file for more details."
-    goto BAD_EXIT
-endif
-
-set check = `3dinfo "$ifile"`
-echo "$#check"
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file $ifile !"
     goto BAD_EXIT
 endif
 
 # make sure we can read volumes OK: anat and final mask, if inpu
 foreach ff ( "$ifile" "$iref" $final_al_wtmask $imask )
-    set check = `3dinfo "$ff"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input file:  $ff !"
+    set check = `3dinfo -prefix "$ff"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find input file:  $ff"
         goto BAD_EXIT
     else
         echo "++ Found input file:   $ff"

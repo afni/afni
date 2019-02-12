@@ -66,6 +66,41 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Feb , 2019 , PT , "@djunct_4d_slices_to_3d_vol" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "@djunct_4d_imager" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "@GradFlipTest" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "@xyz_to_ijk" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "p2dsetstat" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
+{ 12, Feb , 2019 , PT , "fat_procs" , MICRO , TYPE_GENERAL,
+   "Change under the hood: new way to check for validity of input dset.",
+   "Should be boring an have no effect on output; just more stable check.\n"
+},
+
 { 11, Feb , 2019 , PT , "@SSwarper" , MINOR , TYPE_NEW_OPT,
    "... and can also turn off initial skullstripping and/or anisosmoothing.",
    "Options cleverly named: -skullstrip_off and -aniso_off.\n"

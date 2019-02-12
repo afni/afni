@@ -73,9 +73,13 @@
 #     selector wasn't being copied in the correct location; thanks for
 #     finding, G. Cabras!
 #
-set version = "3.7"; set rev_dat = "May 22, 2018"
+#set version = "3.7"; set rev_dat = "May 22, 2018"
 #   + bug fix: was doing union, not intersection, of lists of string
 #     selectors.  NOW intersecting.
+#
+set version   = "3.8";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #
 # ----------------------------------------------------------------
  
@@ -330,17 +334,17 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$idwi" == "" ) then
-    echo "** ERROR: no DWI file input?!"
+    echo "** ERROR: no DWI file input?"
     goto BAD_EXIT
 else if ( "$invecmat[2]" == "" ) then
-    echo "** ERROR: no gradient/matrix file input?!"
+    echo "** ERROR: no gradient/matrix file input?"
     goto BAD_EXIT
 endif
 
 # make sure we can read DWI OK
-set check = `3dinfo "$idwi"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file:  $idwi !"
+set check = `3dinfo -prefix "$idwi"`
+if ( "$check" == "NO-DSET" ) then
+    echo "** ERROR: can't find inset file:  $idwi"
     goto BAD_EXIT
 else
     echo "++ Found inset DWI file:   $idwi"
@@ -354,7 +358,7 @@ if ( 0 ) then
 if ( -f "$invecmat[2]" ) then
     echo "++ Found input vec/mat file:  $invecmat[2]"
 else
-    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
+    echo "** ERROR: can't find entered vec/mat file $invecmat[2]"
     goto BAD_EXIT
 endif
 endif

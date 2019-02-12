@@ -178,9 +178,13 @@
 #     + [PT] if refbox has >1 slice, automatically choose to use [0]th
 #            --> e.g., useful for correct behavior with *SSW* refs
 #        
-set version   = "5.01";   set rev_dat   = "Feb 5, 2019"
+#set version   = "5.01";   set rev_dat   = "Feb 5, 2019"
 #     + [PT] fixed a lonely "if" that was missing its "endif" in life.
 #            --> Thanks (again) to S. Torrisi for pointing it out.
+#        
+set version   = "5.1";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #        
 # =====================================================================
 
@@ -727,8 +731,8 @@ if ( "$ulay" == "" ) then
     echo "** ERROR: need to have an underlay, at least"
     goto BAD_EXIT
 else
-    set check = `3dinfo "$ulay"`
-    if ( "$#check" == "0" ) then
+    set check = `3dinfo -prefix "$ulay"`
+    if ( "$check" == "NO-DSET" ) then
         echo "** ERROR: can't find input file:  $ulay"
         goto BAD_EXIT
     else
@@ -747,8 +751,8 @@ endif
 # if olay is called for, make sure it can be found OK; it is not used,
 # then make sure there aren't other options trying to call for its use
 if ( "$olay" != "" ) then
-    set check = `3dinfo "$olay"`
-    if ( "$#check" == "0" ) then
+    set check = `3dinfo -prefix "$olay"`
+    if ( "$check" == "NO-DSET" ) then
         echo "** ERROR: can't find input file:  $olay"
         goto BAD_EXIT
     else
@@ -769,8 +773,8 @@ if ( "$refbox" != "" ) then
          ("$refbox" != "AMASK_FOCUS_OLAY") ) then
         # in this scenario, the user must have entered in some dset
         # from which to make the refbox: check it exists.
-        set check = `3dinfo "$refbox"`
-        if ( "$#check" == "0" ) then
+        set check = `3dinfo -prefix "$refbox"`
+        if ( "$check" == "NO-DSET" ) then
             echo "** ERROR: can't find focus refbox file:  ${refbox}"
             goto BAD_EXIT
         else

@@ -10,9 +10,13 @@
 #set version   = "1.2";   set rev_dat   = "Aug 28, 2018"
 #     + optionify
 # 
-set version   = "1.3";   set rev_dat   = "Oct 18, 2018"
+#set version   = "1.3";   set rev_dat   = "Oct 18, 2018"
 #     + fix help file so '-prefix ...' appears correctly
 # 
+set version   = "1.4";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
+#
 # =====================================================================
 
 set BIGNEG = -100000001
@@ -75,19 +79,19 @@ end
 # -------------------------- check inputs ---------------------------
 
 if ( "$dset" == "" ) then
-    echo "** ERROR: need to have an input dset with '-inset ..'!"
+    echo "** ERROR: need to have an input dset with '-inset ..'"
     goto BAD_EXIT
 endif
 
-set check = `3dinfo "$dset"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find input file:  $dset !"
+set check = `3dinfo -prefix "$dset"`
+if ( "$check" == "NO-DSET" ) then
+    echo "** ERROR: can't find input file:  $dset"
     goto BAD_EXIT
 endif
 
 # check for having 3 coords entered by user
 if ( $NO_XYZ ) then
-    echo "** ERROR: need to input xyz coords with '-xyz ..'!"
+    echo "** ERROR: need to input xyz coords with '-xyz ..'"
     goto BAD_EXIT
 else
     foreach ii ( `seq 1 1 3` )

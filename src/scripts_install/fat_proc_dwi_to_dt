@@ -78,8 +78,12 @@
 #set version   = "2.9";  set rev_dat   = "July 25, 2018"
 #   + match func_range_nz to updated @chauffeur
 #
-set version   = "3.0";  set rev_dat   = "July 31, 2018"
+#set version   = "3.0";  set rev_dat   = "July 31, 2018"
 #   + add in 1dDW_Grad_o_Mat++'s "-check_abs_min .." opt
+#
+set version   = "3.1";   set rev_dat   = "Feb 12, 2019"
+#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
+#            methodology
 #
 # ----------------------------------------------------------------
 
@@ -325,17 +329,17 @@ echo "++ Start script version: $version"
 
 # NEED these two inputs
 if ( "$idwi" == "" ) then
-    echo "** ERROR: no DWI file input?!"
+    echo "** ERROR: no DWI file input?"
     goto BAD_EXIT
 else if ( "$invecmat[2]" == "" ) then
-    echo "** ERROR: no gradient/matrix file input?!"
+    echo "** ERROR: no gradient/matrix file input?"
     goto BAD_EXIT
 endif
 
 # make sure we can read DWI OK
-set check = `3dinfo "$idwi"`
-if ( "$#check" == "0" ) then
-    echo "** ERROR: can't find inset file:  $idwi !"
+set check = `3dinfo -prefix "$idwi"`
+if ( "$check" == "NO-DSET" ) then
+    echo "** ERROR: can't find inset file:  $idwi"
     goto BAD_EXIT
 else
     echo "++ Found inset DWI file:   $idwi"
@@ -346,7 +350,7 @@ if ( 0 ) then
 if ( -f "$invecmat[2]" ) then
     echo "++ Found input vec/mat file:  $invecmat[2]"
 else
-    echo "** ERROR: can't find entered vec/mat file $invecmat[2] !"
+    echo "** ERROR: can't find entered vec/mat file $invecmat[2]"
     goto BAD_EXIT
 endif
 endif
@@ -355,9 +359,9 @@ endif
 
 # check if MASK was input, then if can be read
 if ( "$imask" != "" ) then
-    set check = `3dinfo "$imask"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input mask file:  $imask !"
+    set check = `3dinfo -prefix "$imask"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find input mask file:  $imask"
         goto BAD_EXIT
     else
         echo "++ Found inset input file:   $imask"
@@ -366,9 +370,9 @@ endif
 
 # check if ANAT was input, then if can be read
 if ( "$istrc" != "" ) then
-    set check = `3dinfo "$istrc"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input anatomical file:  $istrc !"
+    set check = `3dinfo -prefix "$istrc"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find input anatomical file:  $istrc"
         goto BAD_EXIT
     else
         echo "++ Found inset input file:   $istrc"
@@ -377,9 +381,9 @@ endif
 
 # check if REF was input, then if can be read
 if ( "$iref" != "" ) then
-    set check = `3dinfo "$iref"`
-    if ( "$#check" == "0" ) then
-        echo "** ERROR: can't find input ref file:  $iref !"
+    set check = `3dinfo -prefix "$iref"`
+    if ( "$check" == "NO-DSET" ) then
+        echo "** ERROR: can't find input ref file:  $iref"
         goto BAD_EXIT
     else
         echo "++ Found input ref file:   $iref"
