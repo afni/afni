@@ -29,6 +29,16 @@ def get_test_data():
 
 
 
+@contextlib.contextmanager
+def working_directory(path):
+    """Changes working directory and returns to previous on exit."""
+    prev_cwd = Path.cwd()
+    os.chdir(path)
+    try:
+        yield
+    finally:
+        os.chdir(prev_cwd)
+
 def setup_exceptionhook():
     """
     Overloads default sys.excepthook with our exceptionhook handler.
@@ -64,63 +74,35 @@ def get_dict_diffs(a,b):
 def prepare_afni_output(dset, suffix, view=None,path=None):
     """
     prepare the output for an afni function make AFNI dataset structure based
-    on input name, additional suffix and master dataset could
-    have list of outputs with list of suffixes
+    on input name.
     """
     assert(dset is not None)
-    check_for_valid_pipeline_dset(dset)
+    if not dset.is_strict:
+        raise ValueError("Inputs to prepare_afni_output must be strict"
+        " datasets. This is created using "
+        "afni_python.afni_base.afni_name(<name>,strict=True).% s is not."
+        % dset.rel_input())
+
+    if path and not Path(path).exists():
+        # raise ValueError("Directories must exist to run the pipeline in any mode.")
+        os.makedirs(Path(dset.initpath, path))
+        
 
     if not view:
         view = dset.view
     if not suffix.startswith('_'):
         suffix = '_' + suffix
-    new_prefix = dset.prefix + suffix
-    o = dset.new("%s" % (new_prefix),new_view = view)
-    o.initname = new_prefix + view + dset.extension
-    if path:
-        o.path = path
-    check_for_valid_pipeline_dset(o)
+    if not path:
+        path = dset.rel_dir()
+    filename = Path(path) / (dset.bn + suffix + view + dset.extension)
+    o = dset.new(str(filename), strict=True)
+    assert(o.is_strict)
     return o
     
 
-def check_for_valid_pipeline_dset(dset):
-    """
-    Check that the dset conforms to constraints dictated by pipelines.
-    These constraints represent a subset of AFNI's command line functionality
-    but prove useful for chaining together tools into pipelines when work with
-    Python. An error is raised if
-    + the dset object is not of type NIFTI or BRIK, as defined by afni_name.
-    + no file format extension is provided with the filename
-    + if the type is BRIK and the .HEAD extension is not used or if the view
-      is not specified.
-    + if the type is NIFTI and the view is specified.
 
-    Parameters
-    ----------
-    dset : output of afni_python.afni_base.afni_name
-    """
-    if dset.extension == '':
-        raise ValueError(
-            "Extensions must be defined for datasets"
-            "in pipelines. No extension was found for "
-            "%s"% dset.ppve())
-    if dset.type == 'BRIK':
-        if dset.view == '':
-            raise ValueError(
-                "Invalid dataset object for pipelines. The dataset is of "
-                "type BRIK, and the view is not set.")
-    # will not use this for now.
-    #     if dset.extension != '.HEAD':
-    #         raise ValueError(
-    #             "Pipelines must use the .HEAD extension to refer to AFNI"
-    #             "datasets. This was violated for %s."% dset.ppve())
-    if dset.type == 'NIFTI':
-        if dset.view != '':
-            raise ValueError(
-                "Pipelines must use nifti files that do not have a view "
-                "extension. This was violated for %s."% dset.ppve())
 
-def run_check_afni_cmd(cmd_str, ps, in_dict, message):
+def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
     """
     run afni command and check if afni output dataset exists
     return the same output dataset if it exists, otherwise return None
@@ -137,7 +119,7 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message):
     files_status = {k:v.exist() for k,v in expected_files.items()}
 
     # Set work directory for command execution if provided
-    possible_chdirs = [v.path for k,v in expected_files.items()]
+    possible_chdirs = [v.initpath for k,v in expected_files.items()]
     if "chdir" in keys:
         chdir = in_dict["chdir"]
     elif len(possible_chdirs) == 1:
