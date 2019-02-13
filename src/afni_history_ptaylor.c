@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, Feb , 2019 , PT , "@SSwarper" , MICRO , TYPE_NEW_OPT,
+   "Renaming the non-pre-skullstripping option to -init_skullstr_off.",
+   "Otherwise, might falsely seem like NO skullstripping would be done.\n"
+},
+
 { 12, Feb , 2019 , PT , "@djunct_4d_slices_to_3d_vol" , MICRO , TYPE_GENERAL,
    "Change under the hood: new way to check for validity of input dset.",
    "Should be boring an have no effect on output; just more stable check.\n"

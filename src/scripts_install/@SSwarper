@@ -22,13 +22,18 @@
 #set version   = "1.3"; set rev_dat   = "Jan 17, 2019"
 #   + [PT] bug fix-- 3danisosmooth cmd was missing ${odir} on I/O
 #
-set version   = "1.4"; set rev_dat   = "Feb 11, 2019"
+#set version   = "1.4"; set rev_dat   = "Feb 11, 2019"
 #   + [PT] new opt: turn unifize off (e.g., it 'twere already done
 #     before)
 #
-set version   = "1.41"; set rev_dat   = "Feb 11, 2019"
+#set version   = "1.41"; set rev_dat   = "Feb 11, 2019"
 #   + [PT] new opt: can turn skullstrip and/or anisosmooth off (e.g.,
 #     it 'twere already done before)
+#
+set version   = "1.42"; set rev_dat   = "Feb 11, 2019"
+#   + [PT] rename the 'turn off skull strip' to a less potentially
+#     confusing name: '-init_skullstr_off'.  (So it doesn't falsely
+#     seem like *no* skullstripping at all would be done.)
 #
 # ----------------------------------------------------------------
 
@@ -134,7 +139,7 @@ while ( $ac <= $#argv )
         set DO_UNIFIZE = 0
 
     # [PT: Feb 11, 2019] 
-    else if ( "$argv[$ac]" == "-skullstrip_off" ) then
+    else if ( "$argv[$ac]" == "-init_skullstr_off" ) then
         set DO_SKULLST = 0
 
     # [PT: Feb 11, 2019] 
@@ -493,7 +498,7 @@ USAGE ~1~
        {-nolite}          \
        {-skipwarp}        \
        {-unifize_off}     \
-       {-skullstrip_off}  \
+       {-init_skullstr_off}  \
        {-aniso_off}       \
        {-verb}            \
        {-noclean}
@@ -546,7 +551,7 @@ where:
               sense).  Possible that this will never be used in the
               history of running this program.
 
-  -skullstrip_off :(opt) don't preprocess with a 3dSkullstrip command
+  -init_skullstr_off :(opt) don't preprocess with a 3dSkullstrip command
               to roughly isolated brain in the beginning.  This might
               be useful with macaque dsets.
 
@@ -588,7 +593,7 @@ Then the outputs from this script will be"
   anatUA.sub007.nii       = anisotropically smoothed version of the above
                             (or, if '-aniso_off' used, a copy of anatU.*.nii)
   anatS.sub007.nii        = first pass skull-stripped original dataset;
-                            (or, if '-skullstrip_off' used, a copy of 
+                            (or, if '-init_skullstr_off' used, a copy of 
                             anatUA.*.nii)
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
