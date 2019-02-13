@@ -7815,6 +7815,7 @@ g_help_string = """
         despike     : truncate spikes in each voxel's time series
         empty       : placeholder for some user command (uses 3dTcat as sample)
         ricor       : RETROICOR - removal of cardiac/respiratory regressors
+        combine     : combine echoes into one, per run
         surf        : project volumetric data into the surface domain
         tlrc        : warp anat to standard space
 
@@ -7860,6 +7861,8 @@ g_help_string = """
                   - apply motion params as regressors across all runs at once
                   - do not align EPI to anat
                   - do not warp to standard space
+
+        combine:  - combine methods using OC (optimally combined)
 
     D   blur:     - blur data using a 4 mm FWHM filter with 3dmerge
                         (option: -blur_filter -1blur_fwhm)
@@ -8069,7 +8072,8 @@ g_help_examples = """
         Example 6. A modern example.  GOOD TO CONSIDER. ~2~
 
            Align the EPI to the anatomy.  Also, process in MNI space, using
-           the 2009c non-linear template.
+           the 2009c non-linear template, and use non-linear registration to
+           align to it.
 
            For alignment in either direction, add the 'align' block, which
            aligns the anatomy to the EPI.  To then align the EPI to the anat
@@ -8078,11 +8082,12 @@ g_help_examples = """
            with the motion alignment.
 
            On top of that, complete the processing in standard space by running
-           @auto_tlrc on the anat (via the 'tlrc' block) and applying the same
-           transformation to the EPI via -volreg_tlrc_warp.  Again, the EPI
-           transformation is applied along with the motion alignment, using
-           the volume with the minimum outlier fraction as the alignment base
-           (option '-volreg_align_to MIN_OUTLIER').
+           auto_warp.py to perform non-linear registration of the anat to the
+           template (via the 'tlrc' block) and apply the same transformation
+           to the EPI via -volreg_tlrc_warp.  Again, the EPI transformation is
+           applied along with the motion alignment, using the volume with the
+           minimum outlier fraction as the alignment base (via option
+           '-volreg_align_to MIN_OUTLIER').
 
            So use the given -blocks option, plus 2 extra volreg warps to #3 via
            '-volreg_align_e2a', '-volreg_tlrc_warp'.
@@ -8099,6 +8104,7 @@ g_help_examples = """
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
                         -tlrc_base MNI152_T1_2009c+tlrc                    \\
+                        -tlrc_NL_warp                                      \\
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
@@ -8115,8 +8121,8 @@ g_help_examples = """
                         -regress_est_blur_epits                            \\
                         -regress_est_blur_errts
 
-           To process in orig space, remove -volreg_tlrc_warp.
-           To apply manual tlrc transformation, use -volreg_tlrc_adwarp.
+           To process in orig space, remove -volreg_tlrc_warp, and probably the
+           -tlrc options.
            To process as anat aligned to EPI, remove -volreg_align_e2a.
 
          * Also, one can use ANATICOR with task (-regress_anaticor_fast, say)
@@ -8174,6 +8180,8 @@ g_help_examples = """
                         -copy_anat sb23/sb23_mpra+orig                     \\
                         -tcat_remove_first_trs 3                           \\
                         -align_opts_aea -cost lpc+ZZ                       \\
+                        -tlrc_base MNI152_T1_2009c+tlrc                    \\
+                        -tlrc_NL_warp                                      \\
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
@@ -8317,8 +8325,11 @@ g_help_examples = """
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -blocks despike tshift align tlrc volreg blur mask         \\
+                          scale regress                                      \\
                   -tcat_remove_first_trs 3                                   \\
+                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
+                  -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_censor_motion 0.2                                 \\
@@ -8340,8 +8351,11 @@ g_help_examples = """
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -blocks despike tshift align tlrc volreg blur mask         \\
+                          scale regress                                      \\
                   -tcat_remove_first_trs 3                                   \\
+                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
+                  -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
                   -regress_anaticor                                          \\
@@ -8375,9 +8389,12 @@ g_help_examples = """
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -blocks despike tshift align tlrc volreg blur mask         \\
+                          scale regress                                      \\
                   -tcat_remove_first_trs 3                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
+                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
+                  -tlrc_NL_warp                                              \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
@@ -8408,7 +8425,7 @@ g_help_examples = """
                 afni_proc.py -subj_id subj123                                \\
                   -dsets epi_run1+orig.HEAD                                  \\
                   -copy_anat anat+orig                                       \\
-                  -blocks despike tshift align volreg blur mask regress      \\
+                  -blocks despike tshift align volreg blur mask scale regress \\
                   -tcat_remove_first_trs 3                                   \\
                   -volreg_align_e2a                                          \\
                   -blur_size 6.0                                             \\
@@ -8459,7 +8476,8 @@ g_help_examples = """
 
 
                 afni_proc.py -subj_id FT.11.rest                             \\
-                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -blocks despike tshift align tlrc volreg blur mask         \\
+                          scale regress                                      \\
                   -copy_anat FT_SurfVol.nii                                  \\
                   -anat_follower_ROI aaseg anat aparc.a2009s+aseg.nii        \\
                   -anat_follower_ROI aeseg epi  aparc.a2009s+aseg.nii        \\
@@ -8511,7 +8529,8 @@ g_help_examples = """
          o Run the cluster simulation.
 
                 afni_proc.py -subj_id FT.11b.rest                            \\
-                  -blocks despike tshift align tlrc volreg blur mask regress \\
+                  -blocks despike tshift align tlrc volreg blur mask         \\
+                          scale regress                                      \\
                   -copy_anat FT_anat+orig                                    \\
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
@@ -8589,6 +8608,8 @@ g_help_examples = """
                   -volreg_tlrc_warp
 
        Example 12b. Multi-echo data processing - OC resting state. ~2~
+                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
+                  -tlrc_NL_warp                                              \\
 
          Still keep this simple, mostly focusing on ME options, plus standard
          ones for resting state.
@@ -9279,14 +9300,14 @@ g_help_notes = """
                 volreg  (align anat and EPI together, and to standard template)
                 blur    (apply desired FWHM blur to EPI data)
                 scale   (optional, e.g. before seed averaging)
-                regress (polort, motion, mot deriv, bandpass, censor)
+                regress (polort, motion, mot deriv, bandpass, censor,
+                         ANATICOR/WMeLocal, tedana)
                         (depending on chosen options)
-                        soon: ANATICOR/WMeLocal
-                              extra motion regressors (via motion simulation)
+                        soon: extra motion regressors (via motion simulation)
 
                 ==> "result" is errts dataset, "cleaned" of known noise sources
 
-        step 2: correlation analysis, hopefully with 3dGroupInCorr
+        step 2: correlation analysis, perhaps with 3dGroupInCorr
 
             The inputs to this stage are the single subject errts datasets.
 
