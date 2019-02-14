@@ -191,13 +191,9 @@ def test_afni_name_strict():
         assert(dset_wd.fn  == dset_wd.prefix + dset_wd.view + dset_wd.extension )
         assert(dset_wd_brik.fn  == dset_wd_brik.prefix + dset_wd_brik.view + dset_wd_brik.extension )
 
-        # A new object instance will inherit initpath and strictness
-        with working_directory('/tmp'):
-            dset_spawned = dset_wd.new("test/test/test.nii.gz")
-            assert(dset_wd.initpath == dset_spawned.initpath)
-            assert(dset_wd.is_strict == dset_spawned.is_strict)
-
-
+        # Relative directory behavior
+        assert(dset_wd.rel_dir() + dset_wd.prefix == init_basename_wd)
+        assert(dset_wd_brik.rel_dir() + dset_wd.prefix == init_basename_wd)
 
         # initname preserves relpath for strict dataset: not yet implemented
         # dset = ab.afni_name("test/test/test.nii.gz")

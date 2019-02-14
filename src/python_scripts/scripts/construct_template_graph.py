@@ -333,13 +333,11 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     3dMean -stdev -prefix {preprefix}stdev{suffix} {dset_glob}
     """
     cmd_str = cmd_str.format(**locals())
-    print("executing:\n %s" % cmd_str)
 
     out_dict = run_check_afni_cmd(
         cmd_str, ps, {'dset_1': o}, "** ERROR: Could not compute mean using")
-    o = out_dict['dset_1']
 
-    return o
+    return out_dict['dset_1']
 
 
 def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
@@ -402,9 +400,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
 
     aligned_brains = []
 
-    cwd = os.path.abspath(os.curdir)
-    if cwd != '/':
-        cwd += '/'
+
 
     #  these functions are delayed using the function wrapper "delayed" from
     #  dask to help with parallel execution
@@ -439,9 +435,6 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
     """
     aligned_brains = []
 
-    cwd = os.path.abspath(os.curdir)
-    if cwd != '/':
-        cwd += '/'
 
     # this time, we don't need to do all the other steps again
     #  if we're using the stripped, unifized
@@ -969,7 +962,7 @@ def warp_fs_seg(ps, fs_seg, aa_brain, warp, suffix="_warped"):
     # this method costs a little disk space for the extra copy of FreeSurfer
     # segmentation
     fs_seg = align_centers(ps, dset=fs_seg, base=aa_brain,
-                           suffix="_ac", new_dir=0)
+                           suffix="_ac")
 
     # affine matrix named similarly as affine dataset
     aff_matrix = "%s.Xaff12.1D" % aa_brain.out_prefix()
