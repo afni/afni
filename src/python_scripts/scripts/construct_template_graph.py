@@ -3,7 +3,8 @@
 
 import afni_python.afni_base as ab
 
-from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd, prepare_afni_output, make_nii_compatible)
+from afni_python.pipeline_utils import (
+    ShellComFuture, run_check_afni_cmd, prepare_afni_output, make_nii_compatible)
 from pathlib import Path
 import glob
 import os
@@ -12,12 +13,12 @@ import shutil
 from collections import OrderedDict
 
 
-def align_centers(ps, dset=None, base=None, suffix="_ac",output_path="output_data"):
+def align_centers(ps, dset=None, base=None, suffix="_ac", output_path="output_data"):
     """
     align the center of a dataset to the center of another
     dataset like a template
     """
-    o = prepare_afni_output(dset, suffix, path = output_path)
+    o = prepare_afni_output(dset, suffix, path=output_path)
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
     base_path = base.ppve()
@@ -72,8 +73,9 @@ def unifize(ps, dset=None, suffix="_un"):
         cmd_str, ps, {'dset_1': o})
     return out_dict['dset_1']
 
+
 @make_nii_compatible(
-        mod_params={'args_in': [0,1],'ret_vals': [0]},config_name='ps')
+    mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
 def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     if dset.type == "NIFTI":
         err = "Function requires BRIK file. Try using make_nii_compatible."
@@ -84,7 +86,7 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
         o = prepare_afni_output(dset, suffix, view='+orig')
     else:
         o = prepare_afni_output(dset, suffix, view=base.view)
-    
+
     # This step is challenging because auto_tlrc fails silently if it is not
     # provided with an input dataset in the "current directory" This means fn
     # and bn are used without a relative dir spec. Also the chdir key value
@@ -93,8 +95,8 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     outname = o.fn
     base_in = base.ppve()
     # remove temp
-    outaff_glob = "{f}.HEAD {f}.BRIK* {f}.nii*" 
-    outaff_glob = outaff_glob.format(f = o.bn + o.view)
+    outaff_glob = "{f}.HEAD {f}.BRIK* {f}.nii*"
+    outaff_glob = outaff_glob.format(f=o.bn + o.view)
     out_prefix = o.bn
     if ps.rewrite:
         rewrite = " -overwrite "
@@ -127,9 +129,8 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
 #    -input {input_name} {rewrite}
 #    """
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o,'chdir' : o.path})
+        cmd_str, ps, {'dset_1': o, 'chdir': o.path})
     return out_dict['dset_1']
-
 
 
 def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
@@ -400,8 +401,6 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
 
     aligned_brains = []
 
-
-
     #  these functions are delayed using the function wrapper "delayed" from
     #  dask to help with parallel execution
     for dset in dsetlist:
@@ -409,7 +408,8 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         aname = delayed(align_centers)(ps, dset=dset, base=basedset)
         amname = delayed(skullstrip)(ps, dset=aname)
         dname = delayed(unifize)(ps, dset=amname)
-        af_aligned = delayed(rigid_align)(dname, basedset, ps=ps, suffix="_4rigid")
+        af_aligned = delayed(rigid_align)(
+            dname, basedset, ps=ps, suffix="_4rigid")
         # change back to original directory
         # af_aligned_cd = delayed(change_dirs)(af_aligned,ps, path=cwd)
 
@@ -434,7 +434,6 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
     2nd iteration - compute affine mean across all subjects
     """
     aligned_brains = []
-
 
     # this time, we don't need to do all the other steps again
     #  if we're using the stripped, unifized
@@ -1054,21 +1053,18 @@ def make_freesurf_mpm(ps,
     mpm = compute_mpm(ps, delayed, fs_segs_out)
 
 
-
 def get_indata(dsetlist, outdir, delayed):
-    # Get list of datasets and check we have no duplicate filenames    
+    # Get list of datasets and check we have no duplicate filenames
     dsetlist = [Path(p).absolute() for p in dsetlist]
     if len(dsetlist) != len({p.name for p in dsetlist}):
         raise ValueError("Some filenames (this does not exclude the directory"
-        " in the file path) are not unique. This cannot occur.")
-    
+                         " in the file path) are not unique. This cannot occur.")
 
     # Change current work directory to the output directory
     outdir = Path(outdir).absolute()
     if not outdir.exists():
         outdir.mkdir()
     os.chdir(outdir)
-
 
     # Copy the input dset paths into the output directory and make dataset
     # objects for use in the pipeline
@@ -1082,7 +1078,6 @@ def get_indata(dsetlist, outdir, delayed):
         shutil.copy(str(d), data_in_outdir)
         dsets.append(ab.afni_name(data_in_outdir, strict=True))
     return dsets
-
 
     # dsetlist = [os.path.relpath(p,outdir) for p in dsetlist]
 

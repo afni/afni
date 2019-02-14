@@ -5,10 +5,10 @@ import pytest
 import collections
 import afni_python.afni_base as ab
 
-from afni_python.pipeline_utils import ( TemplateConfig, prepare_afni_output,
+from afni_python.pipeline_utils import (TemplateConfig, prepare_afni_output,
                                         get_test_data, run_check_afni_cmd,
                                         get_dict_diffs, ShellComFuture, working_directory,
-                                        change_to_afni, change_to_nifti, make_nii_compatible )
+                                        change_to_afni, change_to_nifti, make_nii_compatible)
 
 import pprint
 import pickle
@@ -22,49 +22,42 @@ def test_change_to_afni():
     anat_scan, ps, message, dset, o = setup_for_run_check_afni_cmd()
 
 
-
 def test_make_nii_compatible():
     anat_scan, ps, message, dset, o = setup_for_run_check_afni_cmd()
     ps.ok_to_exist = True
-    @make_nii_compatible(mod_params={'args_in': [0,],'ret_vals': [0]},config_name='ps')
-    def fail_if_not_brik(dset,arg_arb,x=None,ps=None):
+
+    @make_nii_compatible(mod_params={'args_in': [0, ], 'ret_vals': [0]}, config_name='ps')
+    def fail_if_not_brik(dset, arg_arb, x=None, ps=None):
         assert dset.type == "BRIK"
         assert dset.exist()
         return dset
 
-
-    @make_nii_compatible(mod_params={'args_in': [0,],'ret_vals': [0]},config_name='ps')
-    def add_suffix_to_brik(dset,ps=None,x=None):
+    @make_nii_compatible(mod_params={'args_in': [0, ], 'ret_vals': [0]}, config_name='ps')
+    def add_suffix_to_brik(dset, ps=None, x=None):
         assert dset.type == "BRIK"
         assert dset.exist()
-        o = prepare_afni_output(dset,suffix="a_suffix")
-        cmd_str = "3dcopy %s %s"% (dset.initname,o.initname)
-        run_check_afni_cmd(cmd_str,ps,{'dset_1':o})
+        o = prepare_afni_output(dset, suffix="a_suffix")
+        cmd_str = "3dcopy %s %s" % (dset.initname, o.initname)
+        run_check_afni_cmd(cmd_str, ps, {'dset_1': o})
         return dset
-
-
 
     # Check BRIK is passed in and has been appropriately copied
     print(dset)
-    ret_val = fail_if_not_brik(dset,"",x = "tree",ps=ps)
+    ret_val = fail_if_not_brik(dset, "", x="tree", ps=ps)
 
     # ps must be passed as a keyword object
     with pytest.raises(ValueError):
-        ret_val = fail_if_not_brik(dset,"",x = "tree")        
+        ret_val = fail_if_not_brik(dset, "", x="tree")
 
     # wrapper checks call signature and makes sure there are n positional args
     # specified
     # with pytest.raises(ValueError):
-    #     ret_val = fail_if_not_brik(dset,arg_arb = "",x = "tree",ps=ps)        
-
-
+    #     ret_val = fail_if_not_brik(dset,arg_arb = "",x = "tree",ps=ps)
 
     # Check that when an output is made that the nifti extension exists
-    out_dset = add_suffix_to_brik(dset,ps=ps,x = "tree")
+    out_dset = add_suffix_to_brik(dset, ps=ps, x="tree")
     assert(out_dset.extension == ".nii.gz")
     assert(out_dset.exist())
-
-
 
 
 def test_check_for_strict_name():
@@ -72,12 +65,12 @@ def test_check_for_strict_name():
     with pytest.raises(ValueError):
         ab.check_for_strict_name("test+tlrc.nii.gz")
     with pytest.raises(ValueError):
-    # dset extension must be supplied
+        # dset extension must be supplied
         ab.check_for_strict_name("test")
     with pytest.raises(ValueError):
         ab.check_for_strict_name("test.HEAD")
     with pytest.raises(ValueError):
-    # Fails for BRIK without a view
+        # Fails for BRIK without a view
         ab.check_for_strict_name("test.BRIK")
     with pytest.raises(ValueError):
         ab.check_for_strict_name("/Users/rodgersleejg/test+tlrc.BRIK")
@@ -90,116 +83,117 @@ def test_check_for_strict_name():
     ab.check_for_strict_name("test+tlrc.BRIK")
 
 
-
 def test_afni_name():
-        dset = ab.afni_name("test.nii.gz")
-        assert(dset.initname == 'test.nii.gz')
-        assert(dset.path == str(Path.cwd()) + '/')
-        assert(dset.prefix == 'test')
-        assert(dset.view == '')
+    dset = ab.afni_name("test.nii.gz")
+    assert(dset.initname == 'test.nii.gz')
+    assert(dset.path == str(Path.cwd()) + '/')
+    assert(dset.prefix == 'test')
+    assert(dset.view == '')
 
-        # view/prefix/extension behaves puzzlingly on nifti. Use bn, fn,
-        # initpath, and initname with strict=True
-        dset = ab.afni_name("test+tlrc.nii.gz")
-        assert(dset.view == '')
-        assert(dset.prefix == 'test+tlrc')
-        assert(dset.rpve() == "test+tlrc.nii.gz")
-        assert(dset.rpv() == "test+tlrc.nii.gz")
-        with pytest.raises(ValueError):
-            dset = ab.afni_name("test+tlrc.nii.gz",strict=True)
+    # view/prefix/extension behaves puzzlingly on nifti. Use bn, fn,
+    # initpath, and initname with strict=True
+    dset = ab.afni_name("test+tlrc.nii.gz")
+    assert(dset.view == '')
+    assert(dset.prefix == 'test+tlrc')
+    assert(dset.rpve() == "test+tlrc.nii.gz")
+    assert(dset.rpv() == "test+tlrc.nii.gz")
+    with pytest.raises(ValueError):
+        dset = ab.afni_name("test+tlrc.nii.gz", strict=True)
 
-        # Can change initname
-        dset.initname = "booga.nii.gz"
+    # Can change initname
+    dset.initname = "booga.nii.gz"
 
-        # filename attributes with a relative directory
-        init_basename_wd = "test/test/test"
-        dset_wd = ab.afni_name(init_basename_wd + ".nii.gz")
-        dset_wd_brik = ab.afni_name(init_basename_wd + "+tlrc.BRIK")
-        assert(dset_wd.initpath == os.getcwd())
-        assert(dset_wd_brik.initpath == os.getcwd())
-        with working_directory('/tmp'):
-            assert(dset_wd.initpath != os.getcwd())
-            assert(dset_wd_brik.initpath != os.getcwd())
-        assert(dset_wd.initname == init_basename_wd + '.nii.gz')
-        assert(dset_wd_brik.initname == init_basename_wd + '+tlrc.BRIK')
-        assert(dset_wd.prefix == 'test')
-        assert(dset_wd_brik.prefix == 'test')
+    # filename attributes with a relative directory
+    init_basename_wd = "test/test/test"
+    dset_wd = ab.afni_name(init_basename_wd + ".nii.gz")
+    dset_wd_brik = ab.afni_name(init_basename_wd + "+tlrc.BRIK")
+    assert(dset_wd.initpath == os.getcwd())
+    assert(dset_wd_brik.initpath == os.getcwd())
+    with working_directory('/tmp'):
+        assert(dset_wd.initpath != os.getcwd())
+        assert(dset_wd_brik.initpath != os.getcwd())
+    assert(dset_wd.initname == init_basename_wd + '.nii.gz')
+    assert(dset_wd_brik.initname == init_basename_wd + '+tlrc.BRIK')
+    assert(dset_wd.prefix == 'test')
+    assert(dset_wd_brik.prefix == 'test')
 
-        # Test effects of moving around directory
-        with working_directory('/'):
-            dset_old = ab.afni_name(TEST_ANAT_FILE.relative_to('/'))
-            assert(dset_old.initname == str(TEST_ANAT_FILE.relative_to('/')))
-            assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent / dset_old.pve()))
-            assert(dset_old.initpath + dset_old.initname == str(TEST_ANAT_FILE))
-            assert(dset_old.ppve() == dset_old.p() + dset_old.prefix + dset_old.view + dset_old.extension)
+    # Test effects of moving around directory
+    with working_directory('/'):
+        dset_old = ab.afni_name(TEST_ANAT_FILE.relative_to('/'))
         assert(dset_old.initname == str(TEST_ANAT_FILE.relative_to('/')))
-        assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent.resolve() / dset_old.pve()))
-        assert(dset_old.ppve() == dset_old.p() + dset_old.prefix + dset_old.view + dset_old.extension)
-        assert(dset_old.initpath == '/')
+        assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent / dset_old.pve()))
+        assert(dset_old.initpath + dset_old.initname == str(TEST_ANAT_FILE))
+        assert(dset_old.ppve() == dset_old.p() +
+               dset_old.prefix + dset_old.view + dset_old.extension)
+    assert(dset_old.initname == str(TEST_ANAT_FILE.relative_to('/')))
+    assert(dset_old.ppve() == str(TEST_ANAT_FILE.parent.resolve() / dset_old.pve()))
+    assert(dset_old.ppve() == dset_old.p() +
+           dset_old.prefix + dset_old.view + dset_old.extension)
+    assert(dset_old.initpath == '/')
 
-        # ppve robust
-        with working_directory('/'):
-            assert(dset_old.ppve() == str(TEST_ANAT_FILE)) 
-        assert(dset_old.ppve() == str(TEST_ANAT_FILE.resolve())) 
+    # ppve robust
+    with working_directory('/'):
+        assert(dset_old.ppve() == str(TEST_ANAT_FILE))
+    assert(dset_old.ppve() == str(TEST_ANAT_FILE.resolve()))
 
-
-        # A new object instance will inherit path but not initpath
-        with working_directory('/tmp'):
-            dset_spawned = dset.new("test.nii.gz")
-            assert(dset.initpath != dset_spawned.initpath)
-            assert(dset.path == dset_spawned.path)
+    # A new object instance will inherit path but not initpath
+    with working_directory('/tmp'):
+        dset_spawned = dset.new("test.nii.gz")
+        assert(dset.initpath != dset_spawned.initpath)
+        assert(dset.path == dset_spawned.path)
 
 
 def test_afni_name_strict():
-        # Preserving pre-existing behavior
-        dset = ab.afni_name("test.nii.gz",strict=True)
-        assert(dset.view == '')
-        assert(dset.prefix == 'test')
-        assert(dset.rpve() == "test.nii.gz")
-        assert(dset.rpv() == "test.nii.gz")
-        
-        # Desired behavior
-        # Cannot modify initname
-        with pytest.raises(ValueError):
-            dset.initname = "booga.nii.gz"
+    # Preserving pre-existing behavior
+    dset = ab.afni_name("test.nii.gz", strict=True)
+    assert(dset.view == '')
+    assert(dset.prefix == 'test')
+    assert(dset.rpve() == "test.nii.gz")
+    assert(dset.rpv() == "test.nii.gz")
 
-        # For nifti:
-        assert(dset.initname == "test.nii.gz")
-        assert(dset.view == '')
-        assert(dset.bn == "test")
-        assert(dset.fn == "test.nii.gz")
-        # For BRIK
-        with pytest.raises(ValueError):
-            dset = ab.afni_name("test.BRIK",strict=True)
-        dset_brik = dset.new("test+tlrc.BRIK",strict=True)
-        assert(dset_brik.initname == "test+tlrc.BRIK")
-        assert(dset_brik.view == '+tlrc')
-        assert(dset_brik.bn == "test")
-        assert(dset_brik.fn == "test+tlrc.BRIK")
+    # Desired behavior
+    # Cannot modify initname
+    with pytest.raises(ValueError):
+        dset.initname = "booga.nii.gz"
 
+    # For nifti:
+    assert(dset.initname == "test.nii.gz")
+    assert(dset.view == '')
+    assert(dset.bn == "test")
+    assert(dset.fn == "test.nii.gz")
+    # For BRIK
+    with pytest.raises(ValueError):
+        dset = ab.afni_name("test.BRIK", strict=True)
+    dset_brik = dset.new("test+tlrc.BRIK", strict=True)
+    assert(dset_brik.initname == "test+tlrc.BRIK")
+    assert(dset_brik.view == '+tlrc')
+    assert(dset_brik.bn == "test")
+    assert(dset_brik.fn == "test+tlrc.BRIK")
 
-        # filename attributes with a relative directory
-        init_basename_wd = "test/test/test"
-        dset_wd = ab.afni_name(init_basename_wd + ".nii.gz",strict=True)
-        dset_wd_brik = ab.afni_name(init_basename_wd + "+tlrc.BRIK",strict=True)
-        assert(dset_wd.initname == init_basename_wd + '.nii.gz')
-        assert(dset_wd_brik.initname == init_basename_wd + '+tlrc.BRIK')
-        assert(dset_wd.prefix == 'test')
-        assert(dset_wd_brik.prefix == 'test')
-        assert(dset_wd.bn  == dset_wd.prefix) # for unedited objects
-        assert(dset_wd_brik.bn  == dset_wd.prefix)
-        assert(dset_wd.fn  == dset_wd.prefix + dset_wd.view + dset_wd.extension )
-        assert(dset_wd_brik.fn  == dset_wd_brik.prefix + dset_wd_brik.view + dset_wd_brik.extension )
+    # filename attributes with a relative directory
+    init_basename_wd = "test/test/test"
+    dset_wd = ab.afni_name(init_basename_wd + ".nii.gz", strict=True)
+    dset_wd_brik = ab.afni_name(init_basename_wd + "+tlrc.BRIK", strict=True)
+    assert(dset_wd.initname == init_basename_wd + '.nii.gz')
+    assert(dset_wd_brik.initname == init_basename_wd + '+tlrc.BRIK')
+    assert(dset_wd.prefix == 'test')
+    assert(dset_wd_brik.prefix == 'test')
+    assert(dset_wd.bn == dset_wd.prefix)  # for unedited objects
+    assert(dset_wd_brik.bn == dset_wd.prefix)
+    assert(dset_wd.fn == dset_wd.prefix + dset_wd.view + dset_wd.extension)
+    assert(dset_wd_brik.fn == dset_wd_brik.prefix +
+           dset_wd_brik.view + dset_wd_brik.extension)
 
-        # Relative directory behavior
-        assert(dset_wd.rel_dir() + dset_wd.prefix == init_basename_wd)
-        assert(dset_wd_brik.rel_dir() + dset_wd.prefix == init_basename_wd)
+    # Relative directory behavior
+    assert(dset_wd.rel_dir() + dset_wd.prefix == init_basename_wd)
+    assert(dset_wd_brik.rel_dir() + dset_wd.prefix == init_basename_wd)
 
-        # initname preserves relpath for strict dataset: not yet implemented
-        # dset = ab.afni_name("test/test/test.nii.gz")
-        # assert(dset.initname == 'test/test/test.nii.gz')
-        # # and reldir works, nope this will be kept the same:
-        # assert(dset.initname == 'test/test/test.nii.gz')
+    # initname preserves relpath for strict dataset: not yet implemented
+    # dset = ab.afni_name("test/test/test.nii.gz")
+    # assert(dset.initname == 'test/test/test.nii.gz')
+    # # and reldir works, nope this will be kept the same:
+    # assert(dset.initname == 'test/test/test.nii.gz')
+
 
 def get_class_obj(fully_qualified_path, *args, **kwargs):
     class_parts = fully_qualified_path.split('.')
@@ -230,7 +224,7 @@ def test_prepare_afni_output():
     """
     with working_directory(TEST_DIR):
         # Basic expectation of output object attributes
-        dset = ab.afni_name("test.nii.gz",strict=True)
+        dset = ab.afni_name("test.nii.gz", strict=True)
         o = prepare_afni_output(dset, suffix="_morphed")
         assert(o.path == dset.path)
         assert(o.prefix == dset.prefix + "_morphed")
@@ -239,7 +233,7 @@ def test_prepare_afni_output():
         assert(o.input() != dset.input())
 
         # Changing the view should work.
-        dset_afni = ab.afni_name("test+orig.BRIK",strict=True)
+        dset_afni = ab.afni_name("test+orig.BRIK", strict=True)
         o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
         assert(o.path == dset_afni.path)
         assert(o.prefix == dset_afni.prefix + "_morphed")
@@ -247,10 +241,9 @@ def test_prepare_afni_output():
         assert(o.out_prefix() != dset_afni.out_prefix())
 
         # Changing the path should work
-        dset_afni = ab.afni_name("first_dir/test+orig.BRIK",strict=True)
-        o = prepare_afni_output(dset_afni, suffix="_morphed", path='second_dir' )
-        assert(o.path == str(TEST_DIR.resolve() /"second_dir") + '/') 
-        
+        dset_afni = ab.afni_name("first_dir/test+orig.BRIK", strict=True)
+        o = prepare_afni_output(dset_afni, suffix="_morphed", path='second_dir')
+        assert(o.path == str(TEST_DIR.resolve() / "second_dir") + '/')
 
         # nifti filename is forbidden the luxury of a view in strict datasets.
         dset_afni = ab.afni_name("test+orig.nii.gz")
@@ -258,9 +251,10 @@ def test_prepare_afni_output():
             o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
 
         # o should be identical to afni_object (but with a different prefix etc.)
-        output_mimic = ab.afni_name("test_morphed.nii.gz",strict=True)
+        output_mimic = ab.afni_name("test_morphed.nii.gz", strict=True)
         o = prepare_afni_output(dset, suffix="_morphed")
-        mimic_dict = {k: v for k, v in vars(output_mimic).items() if k != 'odir'}
+        mimic_dict = {k: v for k, v in vars(
+            output_mimic).items() if k != 'odir'}
         o_dict = {k: v for k, v in vars(o).items() if k != 'odir'}
 
         assert(mimic_dict == o_dict)
@@ -268,10 +262,10 @@ def test_prepare_afni_output():
 
 def setup_for_run_check_afni_cmd():
     # Setup objects for testing
-    anat_scan = Path(TEST_ANAT_FILE).relative_to(TEST_DIR)   
+    anat_scan = Path(TEST_ANAT_FILE).relative_to(TEST_DIR)
     ps = TemplateConfig(anat_scan)
     message = "A default error message"
-    dset = ab.afni_name(str(anat_scan),strict=True)
+    dset = ab.afni_name(str(anat_scan), strict=True)
     o = prepare_afni_output(dset, "_morphed")
     o.delete()
     return anat_scan, ps, message, dset, o
@@ -364,8 +358,6 @@ def test_TemplateConfig():
 
     print(pprint.pformat(get_dict_diffs(vars(usr_conf_standard), vars(usr_conf))))
     assert(usr_conf_standard == usr_conf)
-
-
 
 
 # Test shell_com and ShellComFuture classes for some basic commands
