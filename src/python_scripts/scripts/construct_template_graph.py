@@ -1072,8 +1072,9 @@ def get_indata(dsetlist, outdir, delayed):
         indir.mkdir()
     for d in dsetlist:
         dpath = indir / d.name
-        data_in_outdir = delayed(shutil.copy)(str(d), dpath)
-        dsets.append(ab.afni_name(data_in_outdir, strict=True))
+        shutil.copy(str(d), dpath)
+        
+        dsets.append(ab.afni_name(dpath, strict=True))
     return dsets
 
     # dsetlist = [os.path.relpath(p,outdir) for p in dsetlist]
