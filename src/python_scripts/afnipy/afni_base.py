@@ -66,7 +66,7 @@ def check_for_strict_name(initname):
 class afni_name(object):
    def __init__(self, name="", do_sel=1, view=None,strict=False):
       """do_sel : apply selectors (col, row, range)"""
-      self.initname = str(name)
+      self._initname = str(name)
       self.do_sel = do_sel
       res = parse_afni_name(name, do_sel=self.do_sel)
       self._initpath = str(Path.cwd()) # is absolute
@@ -535,10 +535,21 @@ class afni_name(object):
    def fp(self):
       return self._fp
 
+
    @property
    def is_strict(self):
       return self._is_strict
 
+   @property
+   def initname(self):
+       return self._initname
+
+   @initname.setter
+   def initname(self, initname):
+      if self._is_strict:
+         raise ValueError("Cannot modify initname on strict afni_name objects.")
+      else:
+         self._initname = initname
 
    @property
    def initpath(self):
