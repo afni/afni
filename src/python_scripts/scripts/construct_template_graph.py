@@ -3,7 +3,7 @@
 
 import afni_python.afni_base as ab
 
-from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd, prepare_afni_output)
+from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd, prepare_afni_output, make_nii_compatible)
 from pathlib import Path
 import glob
 import os
@@ -72,26 +72,30 @@ def unifize(ps, dset=None, suffix="_un"):
         cmd_str, ps, {'dset_1': o})
     return out_dict['dset_1']
 
-
-
-def rigid_align(ps, dset, base, suffix="_4rigid"):
+@make_nii_compatible(
+        mod_params={'args_in': [0,1],'ret_vals': [0]},config_name='ps')
+def rigid_align(dset, base, ps=None, suffix="_4rigid"):
+    if dset.type == "NIFTI":
+        err = "Function requires BRIK file. Try using make_nii_compatible."
+        raise ValueError(err)
     if(ps.do_rigid == 0):
         return dset
-    os.chdir(dset.path)
-    assert(dset is not None)
-    o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-    o.path = dset.path
     if base.view == '':
-        o.view = '+tlrc'
+        o = prepare_afni_output(dset, suffix, view='+orig')
     else:
-        o.view = base.view
-    input_name = dset.pv()
-    out_prefix = o.out_prefix()
-    mat_exists = os.path.exists("%s_mat.aff12.1D" % out_prefix)
-    base_in = base.input()
+        o = prepare_afni_output(dset, suffix, view=base.view)
+    
+    # This step is challenging because auto_tlrc fails silently if it is not
+    # provided with an input dataset in the "current directory" This means fn
+    # and bn are used without a relative dir spec. Also the chdir key value
+    # pair is used for the dictionary passed to run_check_afni_cmd
+    input_name = dset.fn
+    outname = o.fn
+    base_in = base.ppve()
     # remove temp
-    outaff_prefix = "%s_temp%s" % (dset.out_prefix(), suffix)
-    outaff_name = "%s.HEAD %s.BRIK*" % (o.ppv(), o.ppv())
+    outaff_glob = "{f}.HEAD {f}.BRIK* {f}.nii*" 
+    outaff_glob = outaff_glob.format(f = o.bn + o.view)
+    out_prefix = o.bn
     if ps.rewrite:
         rewrite = " -overwrite "
     else:
@@ -103,31 +107,29 @@ def rigid_align(ps, dset, base, suffix="_4rigid"):
     @auto_tlrc -base {base_in} -input {input_name} -no_ss \
     -rigid_equiv -suffix {suffix} -pad_input 15 -OK_maxite -maxite 50 \
     {rewrite} && \
-    rm {outaff_name}; \
+    rm {outaff_glob}; \
     3dAllineate -1Dmatrix_apply {out_prefix}.Xat.rigid.1D \
-    -master {base_in} -prefix {out_prefix}  \
+    -master {base_in} -prefix {outname}  \
     -input {input_name} {rewrite}
     """
+    cmd_str = cmd_str.format(**locals())
 
+    # mat_exists = os.path.exists("%s_mat.aff12.1D" % (o.initpath + o.bn))
+    # outaff_prefix = "%s_temp%s" % (dset.out_prefix(), suffix)
 #    cmd_str = """\
 #    align_epi_anat.py -dset1 {input_name} -dset2 {base_in} \
 #    -dset1_strip None -dset2_strip None \
 #    -giant_move -ok_to_exist -suffix _temp{suffix} {rewrite} && \
-#    cat_matvec {outaff_prefix}_mat.aff12.1D \
 #    -P > {out_prefix}_mat.aff12.1D && \
+#    cat_matvec {outaff_prefix}_mat.aff12.1D \
 #    3dAllineate -1Dmatrix_apply {out_prefix}_mat.aff12.1D \
 #    -master {base_in} -prefix {out_prefix}  \
 #    -input {input_name} {rewrite}
 #    """
-    cmd_str = cmd_str.format(**locals())
-    print(cmd_str)
-    print('this is running')
-    print("executing:\n %s" % cmd_str)
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not align rigidly using")
-    o = out_dict['dset_1']
+        cmd_str, ps, {'dset_1': o,'chdir' : o.path})
+    return out_dict['dset_1']
 
-    return o
 
 
 def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
@@ -411,9 +413,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         aname = delayed(align_centers)(ps, dset=dset, base=basedset)
         amname = delayed(skullstrip)(ps, dset=aname)
         dname = delayed(unifize)(ps, dset=amname)
-        af_aligned = delayed(rigid_align)(ps, dset=dname,
-                                          base=basedset, suffix="_4rigid")
-
+        af_aligned = delayed(rigid_align)(dname, basedset, ps=ps, suffix="_4rigid")
         # change back to original directory
         # af_aligned_cd = delayed(change_dirs)(af_aligned,ps, path=cwd)
 

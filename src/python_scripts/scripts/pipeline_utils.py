@@ -3,6 +3,8 @@ from pathlib import Path
 import sys
 import os
 from pprint import pformat
+from functools import wraps
+import inspect
 # sys.path.append('/data/NIMH_SSCC/template_making/scripts')
 
 # AFNI modules
@@ -28,6 +30,191 @@ def get_test_data():
 
     return (TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH)
 
+
+def change_to_afni(dset,ps):
+    """Converts a dataset object from a nifti to a BRIK and copies the file on disk.
+    
+    Args:
+        dset (afni_python.afni_name(strict=True)): Dataset object to be converted
+        ps (TemplateConfig): Contains user specified options.
+    
+    Returns:
+        dset_afni (afni_python.afni_name(strict=True)): Converted dataset object.
+    """
+
+    # strict afni_name objects always have a relative initname
+    with working_directory(dset.initpath):
+        if dset.is_strict:
+            d = Path(dset.initname).parent
+            pref = (d / (dset.bn + '+tlrc.BRIK.gz')).as_posix()
+            dset_afni = dset.new(new_pref=pref)
+        # for non strict datasets use relative for datasets with relative initnames
+        else:
+            if Path(dset.initname).is_absolute():
+                pref = dset.pp() + '+tlrc.BRIK.gz'        
+            else:
+                pref = dset.rel_dir() + dset.prefix + '+tlrc.BRIK.gz'
+            dset_afni = ab.afni_name(pref)
+    
+    cmd_str = "3dcopy %s %s"% (dset.ppve(),dset_afni.ppve())
+    run_check_afni_cmd(cmd_str, ps, {'dset_1':dset_afni})
+    return dset_afni
+
+
+def change_to_nifti(dset_afni,ps,out_ext):
+    """Converts a dataset object from aBRIK to a nifti and copies the file on disk.
+    
+    Args:
+        dset_afni (afni_python.afni_name(strict=True)): Dataset object to be converted
+        ps (TemplateConfig): Contains user specified options.
+        out_ext (str): Extension defined by get_out_ext.
+    
+    Returns:
+        dset (afni_python.afni_name(strict=True)): Converted dataset object.
+    """
+    with working_directory(dset_afni.initpath):
+        if dset_afni.is_strict:
+            d = Path(dset_afni.initname).parent
+            pref = (d / (dset_afni.bn + out_ext)).as_posix()
+            dset = dset_afni.new(new_pref=pref)
+        else:
+            if Path(dset_afni.initname).is_absolute():
+                pref = dset_afni.pp() + out_ext
+            else:
+                pref = dset_afni.rel_dir() + dset_afni.prefix + out_ext
+            dset = ab.afni_name(new_pref=pref)
+
+    cmd_str = "3dcopy %s %s"% (dset_afni.ppve(),dset.ppve())
+    run_check_afni_cmd(cmd_str, ps, {'dset_1':dset})
+    return dset
+
+
+def get_out_ext(dsets):
+    """Decide on output extension. With a mix of .nii and .nii.gz and others,
+    default to .nii.gz
+    
+    Args:
+        dsets (list of afni_python.afni_name objects): Datasets serving as
+        input to make_nii_compatible function.
+    
+    Returns:
+        string: An extension, e.g. '.nii'
+    """
+    ext_vals = set()
+
+    for dset in dsets:
+        # parse initname for robust extension prediction. The extension
+        # attribute can be changed after object instantiation which can lead
+        # to confusion
+        ext = ab.parse_afni_name(dset.initname)['extension']
+        ext_vals.add(ext)
+    if len(ext_vals) == 1:
+        return ext_vals.pop()
+    else:
+        return ".nii.gz"
+
+def check_wrapped_func_usage(func,args,kwargs,config_name):
+    sig_args = str(inspect.signature(func))[1:-1].split(',')
+    expected_kws =  [a for a in sig_args if a.find('=')>-1]
+    expected_nargs = len(sig_args) - len(expected_kws)
+    
+    err = (
+    "Function '%s' has been wrapped with the make_nii_compatible "
+    "function. There are certain constraints on this process. "
+    "Specifically, when using the function, positional arguments must be "
+    "called without keywords, arguments specified as a keyword in the "
+    "function signature should be called with that form, and a config "
+    "object must be included as a keyword argument in the function's "
+    "signature.")%func.__name__
+    
+    if len(args) != expected_nargs:
+        raise ValueError(err)
+
+    if config_name not in kwargs.keys():
+        raise ValueError(err)
+
+
+def make_nii_compatible(mod_params,config_name='ps'):
+
+    """Wraps a function that needs BRIK input. The function signature must
+    contain a config object as a keyword object. Relevant inputs and outputs
+    are modified and copied on disk from and to nifti respectively.
+    
+    Args:
+        mod_params (dict): Dictionary containing the keys 'args_in',
+        'ret_vals', 'kwargs_in', and 'keys_out' that specify arguments or
+        returned values that require conversion. args and ret_vals are
+        specified with a list of integers (using 0-based indexing), kwargs and
+        keys with a list argument names/output dictionary keys.
+        ps (TemplateConfig): Contains user specified options.
+    
+    Returns:
+        function: The returned function behaves similarly but with 3dcopy
+        executed pre and post to provide BRIK input to the wrapped function
+        and nifti output.
+    """
+    def convert_pre_and_post(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            fn_name = func.__name__
+            
+            check_wrapped_func_usage(func,args,kwargs,config_name)
+
+
+            print("Fixing input format for %s" %fn_name)
+            args_in = mod_params.get('args_in',[])
+            arg_dsets = [args[i] for i in args_in]
+
+            kwargs_in = mod_params.get('kwargs_in',[])
+            kwarg_dsets = [v for k,v in kwargs.items() if k in kwargs_in]
+
+            # Get config object from the called function
+            ps  = kwargs[config_name]
+
+            # Decide on extension given the inputs:
+            out_ext = get_out_ext([*arg_dsets,*kwarg_dsets])
+            
+            # Modify the positional arguments
+            for args_index in args_in:
+                args = tuple(
+                    [*args[:args_index], # args until current index
+                    change_to_afni(args[args_index],ps), # modified arg
+                    *args[args_index+1:]]) # the rest of the args
+
+            
+            # Modify the positional arguments
+            for k in kwargs_in:
+                kwargs.update = {k:change_to_afni(kwargs[k])}
+
+            # Run the actual function that is nii incompatible
+            retval = func(*args, **kwargs)
+            
+            # Make sure niftis are returned...
+            print("Fixing output for %s where required."%func.__name__)
+            # among other types this could be dset,shell_obj,list of
+            # keys/indices:
+            rv_indices = mod_params.get('ret_vals',None)
+            if rv_indices: 
+                if isinstance(retval,ab.afni_name):
+                    retval = change_to_nifti(retval, ps, out_ext)
+                elif isinstance(retval,shell_obj):
+                    raise NotImplementedError
+                else:
+                    for retval_index in rv_indices:
+                        retval = tuple(
+                            [*retval[:retval_index], # retval until current index
+                            change_to_nifti(retval[retval_index], ps, out_ext), # modified arg
+                            *retval[retval_index+1:]]) # the rest of the retval
+
+            # Keys in output dict
+            rv_keys = mod_params.get('keys_out',None)
+            if rv_keys: # indices are keys for a dictionary
+                    for k in rv_keys:
+                        retval[k] = change_to_nifti(retval[k], ps, out_ext)
+            
+            return retval
+        return wrapper
+    return convert_pre_and_post
 
 
 @contextlib.contextmanager

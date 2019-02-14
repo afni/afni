@@ -480,7 +480,11 @@ class afni_name(object):
             raise ValueError(strict_error)
          
          check_for_strict_name(new_pref)
-         return afni_name(new_pref,strict=True)
+         cwd = os.getcwd()
+         os.chdir(self.initpath)
+         new = afni_name(new_pref,strict=True)
+         os.chdir(cwd)
+         return new 
       else:
          an = afni_name()
          an.path = self.path
