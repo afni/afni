@@ -4,145 +4,74 @@
 import afni_python.afni_base as ab
 
 from afni_python.pipeline_utils import (ShellComFuture, run_check_afni_cmd, prepare_afni_output)
-
+from pathlib import Path
 import glob
 import os
 import time
+import shutil
 from collections import OrderedDict
 
 
-def align_centers(ps, dset=None, base=None, suffix="_ac", new_dir=1):
+def align_centers(ps, dset=None, base=None, suffix="_ac",output_path="output_data"):
     """
     align the center of a dataset to the center of another
     dataset like a template
     """
-    print("align centers of %s to %s" %
-          (dset.out_prefix(), base.out_prefix()))
-
-    if(dset.type == 'NIFTI'):
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), ['.nii', 'nii.gz'])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-        ndir = ab.afni_name("%s%s" % (aao.out_prefix(), aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-        ndir = o
-
-    if(new_dir == 1):
-        # end with a slash
-        output_dir = "%s/" % os.path.realpath("%s/%s" %
-                                              (ps.odir, ndir.out_prefix()))
-        print("# User has selected a new output directory %s" % output_dir)
-        # should we run this through run_afni_cmd?
-        com = ab.shell_com(("mkdir -p %s" % output_dir),
-                           ps.oexec, trim_length=2000)
-        com.run()
-        # give the OS and filesystems a couple seconds
-        time.sleep(2)
-        print("cd %s" % output_dir)
-        if(not ps.dry_run()):
-            os.chdir(output_dir)
-        o.path = output_dir
-
+    o = prepare_afni_output(dset, suffix, path = output_path)
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
-    copy_cmd = "3dcopy %s %s" % (dset.ppv(), o.ppv())
-    # may not actual need to do the centering, but still copy to new directory
-    if(ps.do_center == 0):
-        cmd_str = copy_cmd
+    base_path = base.ppve()
+
+    if ps.do_center == 0:
+        raise ValueError("This part of the pipeline needs to be checked")
+        cmd_str = "@Align_Centers -base {base_path} -dset {dset.initname} -no_cp"
     else:
-        cmd_str = "%s; @Align_Centers -base %s -dset %s -no_cp" %     \
-            (copy_cmd, base.input(), o.input())
-    print("executing:\n %s" % cmd_str)
+        cmd_str = "3dcopy %s %s" % (dset.initname, o.initname)
+    cmd_str = cmd_str.format(**locals())
+
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not align centers using")
-    o = out_dict['dset_1']
-    return o
+        cmd_str, ps, {'dset_1': o})
+    return out_dict['dset_1']
 
 
 def automask(ps, dset=None, suffix="_am"):
     """
     automask - make simple mask
     """
-    print("automask %s" % dset.out_prefix())
-
-    if(dset.type == 'NIFTI'):
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), ['.nii', 'nii.gz'])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-    o.path = dset.path
+    o = prepare_afni_output(dset, suffix)
     cmd_str = "3dAutomask -dilate 3 -apply_prefix %s %s" %     \
-        (o.out_prefix(), dset.input())
-    print("executing:\n %s" % cmd_str)
-
+        (o.initname, dset.initname)
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not automask using")
-    o = out_dict['dset_1']
+        cmd_str, ps, {'dset_1': o})
 
-    return o
+    return out_dict['dset_1']
 
 
 def skullstrip(ps, dset=None, suffix="_ns"):
-    print("skullstrip %s" % dset.out_prefix())
     if(ps.do_skullstrip == 0):
         return dset
 
-    if(dset.type == 'NIFTI'):
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), ['.nii', 'nii.gz'])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-    o.path = dset.path
+    o = prepare_afni_output(dset, suffix)
     cmd_str = "3dSkullStrip -prefix %s -input %s -push_to_edge" %     \
-        (o.out_prefix(), dset.input())
-    print("executing:\n %s" % cmd_str)
+        (o.initname, dset.initname)
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not skullstrip using")
-    o = out_dict['dset_1']
-
-    return o
+        cmd_str, ps, {'dset_1': o})
+    return out_dict['dset_1']
 
 
 def unifize(ps, dset=None, suffix="_un"):
     """
     unifize - bias-correct a dataset
     """
-    print("unifize %s" % dset.out_prefix())
     if(ps.do_unifize == 0):
         return dset
-    if(dset.type == 'NIFTI'):
-        # copy original to a temporary file
-        print("dataset input name is %s" % dset.input())
-        ao = ab.strip_extension(dset.input(), ['.nii', 'nii.gz'])
-        print("new AFNI name is %s" % ao[0])
-        aao = ab.afni_name("%s" % (ao[0]))
-        aao.to_afni(new_view="+orig")
-        o = ab.afni_name("%s%s%s" % (aao.out_prefix(), suffix, aao.view))
-    else:
-        o = dset.new("%s%s" % (dset.out_prefix(), suffix))
+    o = prepare_afni_output(dset, suffix)
     cmd_str = "3dUnifize -gm -clfrac 0.4 -Urad 30 -prefix %s -input %s" %     \
-        (o.out_prefix(), dset.input())
-    print("executing:\n %s" % cmd_str)
+        (o.initname, dset.initname)
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not unifize using")
-    o = out_dict['dset_1']
+        cmd_str, ps, {'dset_1': o})
+    return out_dict['dset_1']
 
-    return o
 
 
 def rigid_align(ps, dset, base, suffix="_4rigid"):
@@ -477,15 +406,9 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
 
     #  these functions are delayed using the function wrapper "delayed" from
     #  dask to help with parallel execution
-    for dset_name in dsetlist:
-
-        start_dset = ab.afni_name(dset_name)
-        # in case input datasets are specified without path, use relative path from start
-        if(start_dset.path == None):
-            start_dset.path = cwd
-
+    for dset in dsetlist:
         # start off just aligning the centers of the datasets
-        aname = delayed(align_centers)(ps, dset=start_dset, base=basedset)
+        aname = delayed(align_centers)(ps, dset=dset, base=basedset)
         amname = delayed(skullstrip)(ps, dset=aname)
         dname = delayed(unifize)(ps, dset=amname)
         af_aligned = delayed(rigid_align)(ps, dset=dname,
@@ -1138,18 +1061,51 @@ def make_freesurf_mpm(ps,
     mpm = compute_mpm(ps, delayed, fs_segs_out)
 
 
+
+def get_indata(dsetlist, outdir, delayed):
+    # Get list of datasets and check we have no duplicate filenames    
+    dsetlist = [Path(p).absolute() for p in dsetlist]
+    if len(dsetlist) != len({p.name for p in dsetlist}):
+        raise ValueError("Some filenames (this does not exclude the directory"
+        " in the file path) are not unique. This cannot occur.")
+    
+
+    # Change current work directory to the output directory
+    outdir = Path(outdir).absolute()
+    if not outdir.exists():
+        outdir.mkdir()
+    os.chdir(outdir)
+
+
+    # Copy the input dset paths into the output directory and make dataset
+    # objects for use in the pipeline
+    dsets = []
+    indir = Path("input_data")
+    if not indir.exists():
+        indir.mkdir()
+    for d in dsetlist:
+        dpath = indir / d.name
+        data_in_outdir = delayed(Path.as_posix)(dpath)
+        shutil.copy(str(d), data_in_outdir)
+        dsets.append(ab.afni_name(data_in_outdir, strict=True))
+    return dsets
+
+
+    # dsetlist = [os.path.relpath(p,outdir) for p in dsetlist]
+
+
 def get_task_graph(ps, delayed):
     """
     main computations here - create graph of processes
     """
     dsetlist = ps.dsets.parlist
-    if ps.warpsets:
+    dsets = get_indata(dsetlist, ps.odir, delayed)
         warpsetlist = ps.warpsets.parlist
     else:
         warpsetlist = []
 
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
-        ps, ps.basedset, dsetlist, delayed)
+        ps, ps.basedset, dsets, delayed)
     (affine_mean_brain, aligned_brains) = get_affine_mean(
         ps, rigid_mean_brain, aligned_brains, delayed)
 
