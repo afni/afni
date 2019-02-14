@@ -1,21 +1,132 @@
 import importlib
+import os
 from pathlib import Path
 import pytest
 import collections
 import afni_python.afni_base as ab
 
-from afni_python.pipeline_utils import (check_for_valid_pipeline_dset,
-                                        TemplateConfig, prepare_afni_output,
+from afni_python.pipeline_utils import ( TemplateConfig, prepare_afni_output,
                                         get_test_data, run_check_afni_cmd,
-                                        get_dict_diffs, ShellComFuture
-                                        )
+                                        get_dict_diffs, ShellComFuture, working_directory,
+                                        change_to_afni, change_to_nifti, make_nii_compatible )
 
 import pprint
 import pickle
 
 
 TEST_DIR, TEST_ANAT_FILE, PICKLE_PATH, *_ = get_test_data()
+os.chdir(TEST_DIR)
 
+
+# def test_make_nii_compatible():
+#     anat_scan, ps, message, dset, o = setup_for_run_check_afni_cmd()
+    
+#     @make_nii_compatible(mod_params={'args_in': [0,1,],'ret_vals': [0]},ps=ps)
+#     def fail_if_not_brik(dset,arg_arb,x=None):
+#         assert dset.type == "BRIK"
+#         assert dset.exist()
+#         return dset
+
+#     print(dset)
+#     ret_val = fail_if_not_brik(dset,"",x = "tree")
+#     assert ret_val.type == NIFTI
+
+
+def test_check_for_strict_name():
+    # Fails for NIFTI *with* a view
+    with pytest.raises(ValueError):
+        ab.check_for_strict_name("test+tlrc.nii.gz")
+    with pytest.raises(ValueError):
+    # dset extension must be supplied
+        ab.check_for_strict_name("test")
+    with pytest.raises(ValueError):
+        ab.check_for_strict_name("test.HEAD")
+    with pytest.raises(ValueError):
+    # Fails for BRIK without a view
+        ab.check_for_strict_name("test.BRIK")
+    with pytest.raises(ValueError):
+        ab.check_for_strict_name("/Users/rodgersleejg/test+tlrc.BRIK")
+    # # If not HEAD or NIFTI it should fail
+    # dset = ab.afni_name('output_path.1d')
+    # with pytest.raises(ValueError):
+    #     check_for_strict_name(dset)
+    # Working examples
+    ab.check_for_strict_name("test.nii.gz")
+    ab.check_for_strict_name("test+tlrc.BRIK")
+
+
+
+def test_afni_name():
+        dset = ab.afni_name("test.nii.gz")
+        assert(dset.initname == 'test.nii.gz')
+        assert(dset.path == str(Path.cwd()) + '/')
+        assert(dset.prefix == 'test')
+        assert(dset.view == '')
+
+        # view/prefix/extension behaves puzzlingly on nifti. Use bn, fn,
+        # initpath, and initname with strict=True
+        dset = ab.afni_name("test+tlrc.nii.gz")
+        assert(dset.view == '')
+        assert(dset.prefix == 'test+tlrc')
+        assert(dset.rpve() == "test+tlrc.nii.gz")
+        assert(dset.rpv() == "test+tlrc.nii.gz")
+        with pytest.raises(ValueError):
+            dset = ab.afni_name("test+tlrc.nii.gz",strict=True)
+
+        # Can change initname
+        dset.initname = "booga.nii.gz"
+
+def test_afni_name_strict():
+        # Preserving pre-existing behavior
+        dset = ab.afni_name("test.nii.gz",strict=True)
+        assert(dset.view == '')
+        assert(dset.prefix == 'test')
+        assert(dset.rpve() == "test.nii.gz")
+        assert(dset.rpv() == "test.nii.gz")
+        
+        # Desired behavior
+        # Cannot modify initname
+        with pytest.raises(ValueError):
+            dset.initname = "booga.nii.gz"
+
+        # For nifti:
+        assert(dset.initname == "test.nii.gz")
+        assert(dset.view == '')
+        assert(dset.bn == "test")
+        assert(dset.fn == "test.nii.gz")
+        # For BRIK
+        with pytest.raises(ValueError):
+            dset = ab.afni_name("test.BRIK",strict=True)
+        dset_brik = dset.new("test+tlrc.BRIK",strict=True)
+        assert(dset_brik.initname == "test+tlrc.BRIK")
+        assert(dset_brik.view == '+tlrc')
+        assert(dset_brik.bn == "test")
+        assert(dset_brik.fn == "test+tlrc.BRIK")
+
+
+        # filename attributes with a relative directory
+        init_basename_wd = "test/test/test"
+        dset_wd = ab.afni_name(init_basename_wd + ".nii.gz",strict=True)
+        dset_wd_brik = ab.afni_name(init_basename_wd + "+tlrc.BRIK",strict=True)
+        assert(dset_wd.initname == init_basename_wd + '.nii.gz')
+        assert(dset_wd_brik.initname == init_basename_wd + '+tlrc.BRIK')
+        assert(dset_wd.prefix == 'test')
+        assert(dset_wd_brik.prefix == 'test')
+        assert(dset_wd.bn  == dset_wd.prefix) # for unedited objects
+        assert(dset_wd_brik.bn  == dset_wd.prefix)
+        assert(dset_wd.fn  == dset_wd.prefix + dset_wd.view + dset_wd.extension )
+        assert(dset_wd_brik.fn  == dset_wd_brik.prefix + dset_wd_brik.view + dset_wd_brik.extension )
+
+        # Relative directory behavior even with moving directories
+        assert(dset_wd.rel_dir() + dset_wd.prefix == init_basename_wd)
+        assert(dset_wd_brik.rel_dir() + dset_wd.prefix == init_basename_wd)
+
+
+        # initname preserves relpath for strict dataset
+        # dset = ab.afni_name("test/test/test.nii.gz")
+        # assert(dset.initname == 'test/test/test.nii.gz')
+        # # and reldir works:
+        # assert(dset.initname == 'test/test/test.nii.gz')
 
 def get_class_obj(fully_qualified_path, *args, **kwargs):
     class_parts = fully_qualified_path.split('.')
@@ -39,49 +150,55 @@ def make_old_comparison(fully_qualified_path, *args, **kwargs):
 
 def test_prepare_afni_output():
     """
-    Should return an object that is identical to one from afni_name with the
+    Should return an object that is identical to one from ab.afni_name with the
     same prefix, with the important difference that the latter MUST have an
     extension identical. The view may be changed. The prefix should be
     changed. The prefix should not have extensions or view placed after it.
     """
+    with working_directory(TEST_DIR):
+        # Basic expectation of output object attributes
+        dset = ab.afni_name("test.nii.gz",strict=True)
+        o = prepare_afni_output(dset, suffix="_morphed")
+        assert(o.path == dset.path)
+        assert(o.prefix == dset.prefix + "_morphed")
+        assert(o.view == dset.view)
+        assert(o.out_prefix() != dset.out_prefix())
+        assert(o.input() != dset.input())
 
-    # Basic expectation of output object attributes
-    dset = ab.afni_name("test.nii.gz")
-    o = prepare_afni_output(dset, suffix="_morphed")
-    assert(o.path == dset.path)
-    assert(o.prefix == dset.prefix + "_morphed")
-    assert(o.view == dset.view)
-    assert(o.out_prefix() != dset.out_prefix())
-    assert(o.input() != dset.input())
-
-    # Changing the view should work.
-    dset_afni = ab.afni_name("test+orig.HEAD")
-    o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
-    assert(o.path == dset_afni.path)
-    assert(o.prefix == dset_afni.prefix + "_morphed")
-    assert(o.view == '+tlrc')
-    assert(o.out_prefix() != dset_afni.out_prefix())
-
-    # Although a nifti filename is forbidden the luxury of a view in pipelines.
-    dset_afni = ab.afni_name("test+orig.nii.gz")
-    with pytest.raises(ValueError):
+        # Changing the view should work.
+        dset_afni = ab.afni_name("test+orig.BRIK",strict=True)
         o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
+        assert(o.path == dset_afni.path)
+        assert(o.prefix == dset_afni.prefix + "_morphed")
+        assert(o.view == '+tlrc')
+        assert(o.out_prefix() != dset_afni.out_prefix())
 
-    # o should be identical to afni_object (but with a different prefix etc.)
-    output_mimic = ab.afni_name("test_morphed.nii.gz")
-    o = prepare_afni_output(dset, suffix="_morphed")
-    mimic_dict = {k: v for k, v in vars(output_mimic).items() if k != 'odir'}
-    o_dict = {k: v for k, v in vars(o).items() if k != 'odir'}
+        # Changing the path should work
+        dset_afni = ab.afni_name("first_dir/test+orig.BRIK",strict=True)
+        o = prepare_afni_output(dset_afni, suffix="_morphed", path='second_dir' )
+        assert(o.path == str(TEST_DIR.resolve() /"second_dir") + '/') 
+        
 
-    assert(mimic_dict == o_dict)
+        # nifti filename is forbidden the luxury of a view in strict datasets.
+        dset_afni = ab.afni_name("test+orig.nii.gz")
+        with pytest.raises(ValueError):
+            o = prepare_afni_output(dset_afni, suffix="_morphed", view="+tlrc")
+
+        # o should be identical to afni_object (but with a different prefix etc.)
+        output_mimic = ab.afni_name("test_morphed.nii.gz",strict=True)
+        o = prepare_afni_output(dset, suffix="_morphed")
+        mimic_dict = {k: v for k, v in vars(output_mimic).items() if k != 'odir'}
+        o_dict = {k: v for k, v in vars(o).items() if k != 'odir'}
+
+        assert(mimic_dict == o_dict)
 
 
 def setup_for_run_check_afni_cmd():
     # Setup objects for testing
-    anat_scan = TEST_ANAT_FILE
+    anat_scan = Path(TEST_ANAT_FILE).relative_to(TEST_DIR)   
     ps = TemplateConfig(anat_scan)
     message = "A default error message"
-    dset = ab.afni_name(anat_scan)
+    dset = ab.afni_name(anat_scan,strict=True)
     o = prepare_afni_output(dset, "_morphed")
     o.delete()
     return anat_scan, ps, message, dset, o
@@ -92,32 +209,32 @@ def setup_for_run_check_afni_cmd():
 def test_run_check_afni_cmd():
     # Setup objects for testing
     anat_scan, ps, message, dset, o = setup_for_run_check_afni_cmd()
+    with Path(TEST_DIR):
+        # raises error because this cannot be a dataset
+        # as in datasets have certain file types...
+        with pytest.raises(ValueError):
+            bad_out_fname = anat_scan.with_name("output_path")
+            bad_dset = ab.afni_name(bad_out_fname)
+            o = prepare_afni_output(bad_dset, "_morphed")
 
-    # raises error because this cannot be a dataset
-    # as in datasets have certain file types...
-    with pytest.raises(ValueError):
-        bad_out_fname = anat_scan.with_name("output_path")
-        bad_dset = ab.afni_name(bad_out_fname)
-        o = prepare_afni_output(bad_dset, "_morphed")
+        # Fails with cmd doing nothing useful
+        with pytest.raises(RuntimeError):
+            cmd_str_hello = "echo hello"
+            run_check_afni_cmd(cmd_str_hello, ps, {'dset_1': o}, message)
 
-    # Fails with cmd doing nothing useful
-    with pytest.raises(RuntimeError):
-        cmd_str_hello = "echo hello"
-        run_check_afni_cmd(cmd_str_hello, ps, {'dset_1': o}, message)
+        # Should run and return a valid output dset
+        filepath = Path(o.path) / o.out_prefix()
+        cmd_str = "touch {p}".format(p=filepath)
+        out_dict = run_check_afni_cmd(cmd_str, ps, {'dset_1': o}, message)
+        out_dict['dset_1'].is_strict
 
-    # Should run and return a valid output dset
-    filepath = Path(o.path) / o.out_prefix()
-    cmd_str = "touch {p}".format(p=filepath)
-    out_dict = run_check_afni_cmd(cmd_str, ps, {'dset_1': o}, message)
-    check_for_valid_pipeline_dset(out_dict['dset_1'])
+        # Fails with pre-existing output
+        with pytest.raises(RuntimeError):
+            run_check_afni_cmd(cmd_str, ps, {'dset_1': o}, message)
 
-    # Fails with pre-existing output
-    with pytest.raises(RuntimeError):
+        # Doesn't fail with ok_to_exist set
+        ps.ok_to_exist = 1
         run_check_afni_cmd(cmd_str, ps, {'dset_1': o}, message)
-
-    # Doesn't fail with ok_to_exist set
-    ps.ok_to_exist = 1
-    run_check_afni_cmd(cmd_str, ps, {'dset_1': o}, message)
 
 
 def test_run_check_afni_cmd_with_stdout():
@@ -176,47 +293,6 @@ def test_TemplateConfig():
     assert(usr_conf_standard == usr_conf)
 
 
-def test_check_for_valid_pipeline_dset():
-
-    # dset suffix must be supplied
-    dset = ab.afni_name('output_path')
-    with pytest.raises(ValueError):
-        check_for_valid_pipeline_dset(dset)
-
-    # BRIK extension should not be used.
-    # not using this for now
-    # dset = ab.afni_name('output_path.BRIK')
-    # with pytest.raises(ValueError):
-    #     check_for_valid_pipeline_dset(dset)
-
-    # # If not HEAD or NIFTI it should fail
-    # dset = ab.afni_name('output_path.1d')
-    # with pytest.raises(ValueError):
-    #     check_for_valid_pipeline_dset(dset)
-
-    # example use for nifti:
-    dset = ab.afni_name('output_path.nii')
-    check_for_valid_pipeline_dset(dset)
-
-    dset = ab.afni_name('output_path.nii.gz')
-    check_for_valid_pipeline_dset(dset)
-
-    dset = ab.afni_name('output_path+tlrc.BRIK')
-    check_for_valid_pipeline_dset(dset)
-
-    # Fails for BRIK without a view
-    dset = ab.afni_name('output_path.BRIK')
-    with pytest.raises(ValueError):
-        check_for_valid_pipeline_dset(dset)
-
-    # Fails for NIFTI *with* a view
-    dset = ab.afni_name('output_path+tlrc.nii')
-    check_for_valid_pipeline_dset(dset)
-
-    # Passes for HEAD with a view set manually
-    dset = ab.afni_name('output_path.HEAD')
-    dset.view = '+tlrc'
-    check_for_valid_pipeline_dset(dset)
 
 
 # Test shell_com and ShellComFuture classes for some basic commands
