@@ -321,17 +321,11 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     compute mean and standard deviation across a group of datasets
     """
     assert(dset_list[0] is not None)
-    # end with a slash
-    print("cd %s" % ps.odir)
-    if(not ps.dry_run()):
-        os.chdir(ps.odir)
-
-    o = dset_list[0].new("%smean%s" % (preprefix, suffix))
-    o.path = ps.odir
-
+    file_ending = dset_list[0].view + dset_list[0].extension
+    o = dset_list[0].new("%smean%s%s" % (preprefix, suffix, file_ending))
     cmd_str = """\
-    3dMean -prefix {preprefix}mean{suffix}  {dset_glob}; \
-    3dMean -stdev -prefix {preprefix}stdev{suffix} {dset_glob}
+    3dMean -prefix {o.initname}  {dset_glob}; \
+    3dMean -stdev -prefix {preprefix}stdev{suffix}{file_ending} {dset_glob}
     """
     cmd_str = cmd_str.format(**locals())
 
@@ -417,10 +411,11 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         # object we will be informed of its status.
         aligned_brains.append(af_aligned)
 
+    file_ending = dsetlist[0].view + dsetlist[0].extension
     rigid_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
-        dset_glob="*/*_4rigid+tlrc.HEAD",
+        dset_glob="*_4rigid" + file_ending,
         suffix="_rigid", preprefix="tp0_")
 
     print("Configured first processing loop")
@@ -446,10 +441,11 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
         aligned_brains.append(af_aligned)
 
     print(aligned_brains)
+    file_ending = + dsetlist[0].view + dsetlist[0].extension
     affine_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
-        dset_glob="*/*_affx+tlrc.HEAD",
+        dset_glob="*/*_affx" + file_ending,
         suffix="_affx", preprefix="tp1_")
 
     print("Configured first processing loop")
@@ -821,10 +817,12 @@ def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist, resize_brai
         aa_brains_out.append(brain_and_warp['aa_brain'])
         warpsetlist_out.append(brain_and_warp['warp'])
 
+    file_ending = + dsetlist[0].view + dsetlist[0].extension
+    glob_pattern = "*/*%s" % (kwargs['suffix'], file_ending)
     nl_mean_brain = delayed(get_mean_brain)(
         aa_brains_out,
         ps,
-        dset_glob=("*/*%s+tlrc.HEAD" % kwargs['suffix']),
+        dset_glob=glob_pattern,
         suffix=kwargs['suffix'], preprefix=preprefix)
 
     # adjust size to avoid dilation and to match group
@@ -1088,9 +1086,6 @@ def get_task_graph(ps, delayed):
     """
     dsetlist = ps.dsets.parlist
     dsets = get_indata(dsetlist, ps.odir, delayed)
-        warpsetlist = ps.warpsets.parlist
-    else:
-        warpsetlist = []
 
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
         ps, ps.basedset, dsets, delayed)
