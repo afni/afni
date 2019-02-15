@@ -536,8 +536,22 @@ class afni_name(object):
       return self._fn
    
    @property
-   def fp(self):
-      return self._fp
+   def rbn(self):
+      """Uneditable attribute that returns relative basename for an object
+      
+      Returns
+      -------
+      TYPE
+          Description
+      """
+      if self.is_strict:
+         rp = str(Path(self.initname).parent)
+         if rp == '.':
+            rp = ''
+         return  rp + self.bn
+      else:
+         raise NotImplementedError
+         # return Path(self.pp()).relative_to(self.initpath)
 
 
    @property
