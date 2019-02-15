@@ -1,3 +1,57 @@
+AFNI Digest, week of 2019/02/15.
+
+00) New SUMA tutorial: spherical ROIs.
+There is a new demo example of no less than 5 ways to make+view
+spheres in SUMA:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/rois_corr_vis/suma_spheres.html
+This can be usefully combined with the "driving" aspects of SUMA to
+setup+take snapshots of the surfaces, as well; for example, see here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/rois_corr_vis/cat_netcorr.html#drive-suma-to-save-snapshots-of-the-surface-view-along-some-major-planes
+
+01) AFNI Bootcamp at NIH (March, 2019).
+The next AFNI Bootcamp at NIH (Bethesda, Maryland, USA) will be held
+March 25-29, 2019.  Information such as the registration form, a
+preliminary schedule (for both the main AFNI lectures and the DTI
+Breakout day, which is on a *Wednesday* this year), campus map and
+practical information for attending are all conveniently located here:
+https://afni.nimh.nih.gov/bootcamp/
+There is no charge to attend the Bootcamp, but attendees must pay all
+of their own expenses if traveling, sleeping indoors, eating, etc.
+
+02) More Bootcamp recordings available online.
+We have some new recordings of AFNI Bootcamps available online for
+your home entertainment (hey, it's almost the weekend!).  These
+lectures were recorded at MIT in May, 2018, and kindly made available
+by the good folks at the CBMM there:
+https://cbmm.mit.edu/afni
+Those are also available through the "Educational resources" page of
+the AFNI documentation, along with other outside lectures:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/main_toc.html
+such as recordings (with subtitles) from an AFNI Bootcamp at NIH in
+October, 2017:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/bootcamp_recordings.html
+
+03) Free MBA certification with AFNI!
+A new program for matrix-based analysis (MBA) is available in the most
+recent AFNI release (19.0.13). MBA performs analysis on matrix data
+from each subject with correlation-type values ("connectivity" matrix)
+or white-matter properties (e.g., fractional anisotropy, mean
+diffusivity, radial diffusivity, axial diffusivity, etc.) among brain
+regions.  A description of the theory+practice is provided here:
+https://www.biorxiv.org/content/10.1101/459545v1
+
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+ https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+ https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+
+========================================================================
+
 AFNI Digest, week of 2019/01/24.
 
 00) Registration for next AFNI Bootcamp at NIH now open.
