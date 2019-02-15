@@ -77,7 +77,7 @@ def unifize(ps, dset=None, suffix="_un"):
 @make_nii_compatible(
     mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
 def rigid_align(dset, base, ps=None, suffix="_4rigid"):
-    if dset.type == "NIFTI":
+    if any("NIFTI" == d.type for d in [dset, base]):
         err = "Function requires BRIK file. Try using make_nii_compatible."
         raise ValueError(err)
     if(ps.do_rigid == 0):
@@ -87,6 +87,7 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     else:
         o = prepare_afni_output(dset, suffix, view=base.view)
 
+    chdir = str(Path(o.ppve()).parent)
     # This step is challenging because auto_tlrc fails silently if it is not
     # provided with an input dataset in the "current directory" This means fn
     # and bn are used without a relative dir spec. Also the chdir key value
@@ -98,21 +99,17 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     outaff_glob = "{f}.HEAD {f}.BRIK* {f}.nii*"
     outaff_glob = outaff_glob.format(f=o.bn + o.view)
     out_prefix = o.bn
-    if ps.rewrite:
-        rewrite = " -overwrite "
-    else:
-        rewrite = ""
     # compute registration alignment to the base template
     # but apply only the rigid component and put into
     # grid of base template
     cmd_str = """\
     @auto_tlrc -base {base_in} -input {input_name} -no_ss \
     -rigid_equiv -suffix {suffix} -pad_input 15 -OK_maxite -maxite 50 \
-    {rewrite} && \
+     && \
     rm {outaff_glob}; \
     3dAllineate -1Dmatrix_apply {out_prefix}.Xat.rigid.1D \
     -master {base_in} -prefix {outname}  \
-    -input {input_name} {rewrite}
+    -input {input_name}
     """
     cmd_str = cmd_str.format(**locals())
 
@@ -129,31 +126,31 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
 #    -input {input_name} {rewrite}
 #    """
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o, 'chdir': o.path})
+        cmd_str, ps, {'dset_1': o, 'chdir': chdir})
     return out_dict['dset_1']
 
 
-def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
-    try:
-        os.chdir(dset.path)
-    except:
-        os.chdir(os.path.abspath(os.path.dirname(dset)))
+@make_nii_compatible(
+    mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
+def affine_align(dset, base, suffix="_aff", aff_type="affine", ps=None):
     assert(dset is not None)
-    o = dset.new("%s%s" % (dset.out_prefix(), suffix))
-    o.path = dset.path
+    if any("NIFTI" == d.type for d in [dset, base]):
+        err = "Function requires BRIK file. Try using make_nii_compatible."
+        raise ValueError(err)
+
     if base.view == '':
-        o.view = '+tlrc'
-    input_name = dset.pv()
-    out_prefix = o.out_prefix()
-    mat_exists = os.path.exists("%s_mat.aff12.1D" % out_prefix)
-    base_in = base.input()
-    # won't use affine output if rigid only is requested
-    outaff_prefix = "%s_temp%s" % (dset.out_prefix(), suffix)
-    outaff_name = "%s.HEAD %s.BRIK*" % (o.ppv(), o.ppv())
-    if ps.rewrite:
-        rewrite = " -overwrite "
+        o = prepare_afni_output(dset, suffix, view='+orig')
     else:
-        rewrite = ""
+        o = prepare_afni_output(dset, suffix, view=base.view)
+
+    chdir = str(Path(o.ppve()).parent)
+    input_name = dset.fn
+    out_prefix = o.bn
+    mat_exists = os.path.exists("%s_mat.aff12.1D" % out_prefix)
+    base_in = base.ppve()
+    # won't use affine output if rigid only is requested
+    outaff_prefix = "%s_temp%s" % (dset.bn, suffix)
+    outaff_name = "{p}".format(p=o.bn + o.view)
     # compute registration alignment to the base template
     # but apply only the rigid component and put into
     # grid of base template
@@ -165,7 +162,6 @@ def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
     cmd_str = """\
     @auto_tlrc -base {base_in} -input {input_name} -no_ss -onewarp\
     {rigid_opt} -suffix {suffix} -pad_input 15 -OK_maxite -maxite 50 \
-    {rewrite}
     """
 
 #    cmd_str = """\
@@ -180,10 +176,9 @@ def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
 #    """
     cmd_str = cmd_str.format(**locals())
 
-    print("executing:\n %s" % cmd_str)
-
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not align using")
+        cmd_str, ps, {'dset_1': o, 'chdir': chdir},
+        "** ERROR: Could not align using")
     o = out_dict['dset_1']
 
     # may only want just rigid, so just apply warp and delete the affine
@@ -193,10 +188,11 @@ def affine_align(ps, dset, base, suffix="_aff", aff_type="affine"):
            rm {outaff_name}; \
            3dAllineate -1Dmatrix_apply {out_prefix}.Xat.rigid.1D \
            -master {base_in} -prefix {out_prefix}  \
-           -input {input_name} {rewrite}
+           -input {input_name}
            """
         out_dict = run_check_afni_cmd(
-            cmd_str, ps, {'dset_1': o}, "** ERROR: Could not align rigidly using")
+            cmd_str, ps, {'dset_1': o, 'chdir': chdir},
+            "** ERROR: Could not align rigidly using")
         o = out_dict[dset]
 
     return o
@@ -433,8 +429,9 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
     # this time, we don't need to do all the other steps again
     #  if we're using the stripped, unifized
     for dset in dsetlist:
-        af_aligned = delayed(affine_align)(
-            ps, dset, base=basedset, suffix="_affx")
+
+        af_aligned = delayed(affine_align)(dset, basedset, suffix="_affx",
+                                           ps=ps)
 
         #  We can continue our python session. Whenever we query the affine
         # object we will be informed of its status.
@@ -828,8 +825,9 @@ def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist, resize_brai
     # adjust size to avoid dilation and to match group
     # trying this out, Bob's 3dNwarpAdjust mostly works too. Could do affine at just last step.
     # may want more specialized function here instead - no shears,...
-    nl_mean_brain = delayed(affine_align)(ps, nl_mean_brain, resize_brain,
-                                          suffix="_rsz", aff_type="affine")
+    nl_mean_brain = delayed(affine_align)(nl_mean_brain, resize_brain,
+                                          suffix="_rsz", aff_type="affine",
+                                          ps=ps)
 
     # resize the warps too by concatenating resize affine transformation to warp
     warpsetlist_out2 = []
@@ -1073,7 +1071,7 @@ def get_indata(dsetlist, outdir, delayed):
     for d in dsetlist:
         dpath = indir / d.name
         shutil.copy(str(d), dpath)
-        
+
         dsets.append(ab.afni_name(dpath, strict=True))
     return dsets
 
