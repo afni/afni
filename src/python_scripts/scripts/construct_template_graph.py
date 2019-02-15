@@ -429,16 +429,13 @@ def get_affine_mean(ps, basedset, dsetlist, delayed):
     # this time, we don't need to do all the other steps again
     #  if we're using the stripped, unifized
     for dset in dsetlist:
-
         af_aligned = delayed(affine_align)(dset, basedset, suffix="_affx",
                                            ps=ps)
-
         #  We can continue our python session. Whenever we query the affine
         # object we will be informed of its status.
         aligned_brains.append(af_aligned)
 
-    print(aligned_brains)
-    file_ending = + dsetlist[0].view + dsetlist[0].extension
+    file_ending = dsetlist[0].view + dsetlist[0].extension
     affine_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
@@ -467,10 +464,8 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # an index for initial warps in previously saved datasets (0-4)
     # these aren't the same as the intermediate level datasets below
     # and the level will not match the "inilev" below. J
-    try:
-        iniwarplevel = kwargs['iniwarplevel']
-    except:
-        iniwarplevel = []
+    
+    iniwarplevel = kwargs.get('iniwarplevel',[])
     upsample = kwargs['upsample']
     qw_opts = kwargs['qw_opts']
 
@@ -480,13 +475,13 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
 
     # create output dataset structure
     o = prepare_afni_output(dset, suffix)
-
+    o.rps = str(Path(o.initname).parent)
     # make warp dataset structure too
-    warpset = dset.new("%s%s_WARP" % (dset.out_prefix(), suffix))
-    input_name = dset.pv()
-    out_prefix = o.out_prefix()
-    base_in = base.input()
-    input_in = dset.input()
+    warpset = prepare_afni_output(o, "WARP")
+    input_name = dset.initname
+    out_prefix = str(Path(o.rps) / o.bn)
+    out_file = str(Path(o.rps) / o.fn)
+    base_in = base.ppve()
     # may want to check for typical subject processing here
     #  if(base_in == dset.input
     # but we may also want to keep a copy of the subject as the typical subject
@@ -506,7 +501,8 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     iwset = None
     ilev_opt = None
     # see if there are any intermediate warps saved on the disk
-    wlg = glob.glob("%s_Lev*.*_WARPsave+tlrc.HEAD" % o.pp())
+    file_ending = o.view + o.extension
+    wlg = glob.glob("%s_Lev*.*_WARPsave" % o.pp() + file_ending)
     # search for highest Level number warp
     for wl in wlg:
         print("Found warp named %s" % wl)
@@ -543,17 +539,13 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
         else:
             iniwarp = ""
 
-    if ps.rewrite:
-        rewrite = " -overwrite "
-    else:
-        rewrite = ""
 
     # call AFNI's nonlinear alignment and then delete the intermediate results
     # those will be used on system errors and nanny restarts
     cmd_str = """\
     3dQwarp -base {base_in} -source {input_name} \
-    -prefix {out_prefix} {ilev_opt} {qw_opts} -saveall \
-    {iniwarp} {rewrite}; \
+    -prefix {out_file} {ilev_opt} {qw_opts} -saveall \
+    {iniwarp}; \
     \\rm -f {out_prefix}*_WARPsave+tlrc.*
     """
 
@@ -585,18 +577,13 @@ def resize_warp(ps, warp, rsz_brain, suffix="_rsz"):
     # create output dataset structure
     rsz_warp = prepare_afni_output(warp, suffix)
 
-    aff_matrix = "%s.Xaff12.1D" % rsz_brain.out_prefix()
+    aff_matrix = "%s.Xaff12.1D" % rsz_brain.rbn
 
-    input_name = warp.pv()
-    out_prefix = rsz_warp.out_prefix()
-    if ps.rewrite:
-        rewrite = " -overwrite "
-    else:
-        rewrite = ""
+    input_name = warp.initname
+    out_file = rsz_warp.initname
 
     cmd_str = """\
-    3dNwarpCat -prefix {out_prefix} -warp2 {input_name} -warp1 {aff_matrix} \
-    {rewrite}
+    3dNwarpCat -prefix {out_file} -warp2 {input_name} -warp1 {aff_matrix}
     """
     cmd_str = cmd_str.format(**locals())
 
@@ -814,8 +801,9 @@ def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist, resize_brai
         aa_brains_out.append(brain_and_warp['aa_brain'])
         warpsetlist_out.append(brain_and_warp['warp'])
 
-    file_ending = + dsetlist[0].view + dsetlist[0].extension
-    glob_pattern = "*/*%s" % (kwargs['suffix'], file_ending)
+    file_ending = aa_brains[0].view + aa_brains[0].extension
+    rps = str(Path(aa_brains[0].initname).parent / ("*%s"% kwargs['suffix']))
+    glob_pattern = rps + file_ending
     nl_mean_brain = delayed(get_mean_brain)(
         aa_brains_out,
         ps,
@@ -1084,6 +1072,7 @@ def get_task_graph(ps, delayed):
     """
     dsetlist = ps.dsets.parlist
     dsets = get_indata(dsetlist, ps.odir, delayed)
+    warpsetlist = []
 
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
         ps, ps.basedset, dsets, delayed)
