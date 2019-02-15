@@ -196,7 +196,10 @@ def test_afni_name_strict():
         assert(dset.initpath == dset_spawned.initpath)
         assert(dset.path == dset_spawned.path)
 
-
+    # rbn returns relative path and the base name
+    assert(dset.rbn == str(Path(dset.initname).parent / dset.bn))
+    with working_directory('/tmp'):
+        assert(dset.rbn == str(Path(dset.initname).parent / dset.bn))
 
     # initname preserves relpath for strict dataset: not yet implemented
     # dset = ab.afni_name("test/test/test.nii.gz")
