@@ -60,7 +60,10 @@ Usage: ~1~
  S2     BNST   MPFC  0.3762
  ...
 
- 0) Be proud of yourself because you are performing Bayesian analysis!!!
+ 0) Be proud of yourself: you are performing Bayesian analysis!!! You directly
+    get the probability of an effect being positive or negative with your data,
+    not the straw man of p-value (weirdness of your data when pretending
+    absolutely nothing exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter, but the names of the four variables above
@@ -71,10 +74,10 @@ Usage: ~1~
 
  3) Simple analysis can be done in a few minutes, but computational cost can be
     very high (e.g., weeks or even months) when the number of regions or subjects
-    is large or when a few explanatory variables are involvd. Be patient: there
+    is large or when a few explanatory variables are involved. Be patient: there
     is hope in the near future that further parallelization can be implemented.
 
- 4) Add more columns if explanatory varibles are considered in the model. Currently
+ 4) Add more columns if explanatory variables are considered in the model. Currently
     only between-subjects variables (e.g., sex, patients vs. controls, age) are
     allowed. Each label in a between-subjects factor (categorical variable)
     should be coded with at least 1 character (labeling with pure numbers is fine
@@ -137,16 +140,16 @@ Usage: ~1~
 "\n--------------------------------
 Examples: ~1~
 
-Example 1 --- Simplest scenarion. Values from region pairs are the input from
+Example 1 --- Simplest scenario. Values from region pairs are the input from
           each subject. No explanatory variables are considered. Research
-	  interst is about the population effect at each region pair plus
+	  interest is about the population effect at each region pair plus
 	  the relative strength of each region.
 
    MBA -prefix myWonderfulResult -r2z -dataTable myData.txt  \\
 
    The above script is equivalent to
 
-   MBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
+   MBA -prefix myWonderfulResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
    -r2z -dataTable myData.txt  \\
 
    The 2nd version is recommended because of its explicit specifications.
@@ -178,7 +181,7 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    S1 DMNLAG DMNRHC 0.265 F  patient
    ...
 
-   Notice that the interaction between 'sex' and 'group' is not modeled.
+   Notice that the interaction between 'sex' and 'group' is not modeled in this case.
 \n"
      
    ex3 <-
@@ -195,8 +198,8 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    Subj ROI1  ROI2    Y   sex  age    SA
    S1 DMNLAG DMNLHC 0.274  1  1.73  1.73
    S1 DMNLAG DMNPCC 0.443  1  1.73  1.73
-   S2 DMNLAG DMNRAG 0.455 -1 -2.52 -2.52
-   S2 DMNLAG DMNRHC 0.265 -1 -2.52 -2.52
+   S2 DMNLAG DMNRAG 0.455 -1 -0.52 -0.52
+   S2 DMNLAG DMNRHC 0.265 -1 -0.52 -0.52
    ...
 
    Notice
@@ -238,7 +241,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        a text with prefix appended with .txt and stores inference information ",
    "        for effects of interest in a tabulated format depending on selected ",
    "        options. The prefix will also be used for other output files such as ",
-   "        visualation plots such as histogram and matrix plot, and saved R data in",
+   "        visualization plots such as histogram and matrix plot, and saved R data in",
    "        binary mode. The .RData can be used for post hoc processing such as",
    "        customized processing and plotting. Remove the .RData file to save disk",
    "        space once you feel such a file is no longer useful.\n", sep = '\n'
@@ -255,7 +258,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       '-iterations' = apl(n = 1, d = 1, h = paste(
    "-iterations N: Specify the number of iterations per Markov chain. Choose 1000 (default)",
    "         for simple models (e.g., one or no explanatory variables). If convergence",
-   "         problem occurs as indicated by Rhat being great than 1.1, increase the numnber of",
+   "         problem occurs as indicated by Rhat being great than 1.1, increase the number of",
    "         iterations (e.g., 2000) for complex models, which will lengthen the runtime.",
    "         Unfortunately there is no way to predict the optimum iterations ahead of time.\n", sep = '\n'
                      ) ),
@@ -291,7 +294,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         not correlation coefficient.\n", sep='\n')),
 
       '-cVars' = apl(n=c(1,100), d=NA, h = paste(
-   "-cVars variable_list: Identify categorical (quatitative) variables (or",
+   "-cVars variable_list: Identify categorical (qualitive) variables (or",
    "         factors) with this option. The list with more than one variable",
    "         has to be separated with comma (,) without any other characters such",
    "         as spaces and should be surrounded within (single or double) quotes.",
@@ -326,8 +329,8 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "-EOI variable_list: Identify effects of interest in the output by specifying the",
    "         variable names separated with comma (,). For example, -EOI \"sex,age\".",
    "         By default the Intercept is considered to be an effect of interest.",
-   "         Currently only variables, not their interactions, can be direclty",
-   "         requested for output. However, most interction effects can be obtained by",
+   "         Currently only variables, not their interactions, can be directly",
+   "         requested for output. However, most interaction effects can be obtained by",
    "         either properly coding the variables (see example 3) or post processing.\n",
              sep = '\n'
              ) ),
@@ -343,21 +346,21 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         (or between-subjects) explanatory variables are allowed at the moment. The ",
    "         columns of 'Subj', 'ROI1' and 'ROI2' code each subject and the two regions ",
    "         associated with each region pair, and these labels that can be any identifiable",
-   "         characters including numerics. The column 'Y' can be correlation value, ",
+   "         characters including numbers. The column 'Y' can be correlation value, ",
    "         Fisher-transformed correlation value, or white-matter property between ",
    "         grey-matter regions (e.g., mean diffusivity, fractional anisotropy, radial",
    "         diffusivity and axial diffusivity).",
    "         2) Each row is associated with one and only one 'Y' value, which is the",
    "         response variable in the table of long format (cf. wide format) as",
    "         defined in R. In the case of correlation matrix or white-matter property",
-   "         matrix, provide only half of the off-diagnonals. With n regions, there",
+   "         matrix, provide only half of the off-diagonals. With n regions, there",
    "         should have n(n-1)/2 rows per subject, assuming no missing data. ",
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not used in the current analysis.",
    "         4) The context of the table can be saved as a separate file, e.g., called",
    "         table.txt. In the script specify the data with '-dataTable @table.txt'.",
    "         This option is useful when: (a) there are many rows in the table so that",
-   "         the program complains with an 'Arg list too long' error; (b) your want",
+   "         the program complains with an 'Arg list too long' error; (b) you want to",
    "         try different models with the same dataset.\n",
              sep = '\n'
                      ) ),
@@ -503,8 +506,11 @@ if(length(terms) > 1) {
    }
 }
 
+# number of ROIs
+nR <- length(union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2)))
+
 cat('===== Summary of variable information =====', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-cat(sprintf('Total number of ROIs: %i', length(union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2)))), 
+cat(sprintf('Total number of ROIs: %i', nR), 
    file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat(sprintf('Response variable Y - mean: %f; SD: %f', mean(lop$dataTable$Y), sd(lop$dataTable$Y)), 
    file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -534,10 +540,12 @@ if(lop$r2z) lop$dataTable$Y <- fisher(lop$dataTable$Y)
 #levels(lop$dataTable$ROI2) <- union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
 
 # standardization
-sl <- strsplit(lop$stdz, '\\,')[[1]]
-for(ii in 1:length(sl)) if(is.numeric(lop$dataTable[[sl[ii]]])) 
+if(!is.na(lop$stdz)) {
+   sl <- strsplit(lop$stdz, '\\,')[[1]]
+   for(ii in 1:length(sl)) if(is.numeric(lop$dataTable[[sl[ii]]])) 
       lop$dataTable[[sl[ii]]] <- scale(lop$dataTable[[sl[ii]]], center = TRUE, scale = TRUE) else
-    stop(sprintf('The column %s is categorical, not numerical! Why are you asking me to standardize it?', sl[ii]))
+   stop(sprintf('The column %s is categorical, not numerical! Why are you asking me to standardize it?', sl[ii]))
+}
 
 set.seed(1234)
 lop$dataTable$w <- 1
@@ -577,7 +585,16 @@ cat('\n***** End of model information *****\n')
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
 cat('\n***** Summary information of model results *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-cat(capture.output(summary(fm)), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+rs <- summary(fm)
+
+#  Rhat checking #
+dd <- function(ll) any(ll[,'Rhat'] > 1.2)
+if(any(sapply(c(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars), rs$random), dd))) {
+   cat('\n***** Warning: convergence issue!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('Consider increasing the number of iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+
+cat(capture.output(rs), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)   
 
 #union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
@@ -593,7 +610,8 @@ ns <- lop$iterations*lop$chains/2
 #nR <- nlevels(lop$dataTable$ROI1)
 aa <- fixef(fm, summary = FALSE) # Population-Level Estimates
 bb <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
-nR <- length(dimnames(bb$mmROI1ROI2)[[2]])
+if(nR != length(dimnames(bb$mmROI1ROI2)[[2]])) 
+   cat('\n***** Warning: something strange about the ROIs! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 # compute P+
 cnt <- function(x, ns) return(sum(x>0)/ns)
@@ -663,7 +681,7 @@ prnt <- function(pct, side, dat, fl, entity) {
 
 ########## region pair effects #############
 # for intercept or quantitative variable
-if(!is.na(lop$EOIq)) for(ii in 1:length(lop$EOIq)) {
+if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    xx <- vv(ww(aa, bb, lop$EOIq[ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIq[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
@@ -673,7 +691,7 @@ if(!is.na(lop$EOIq)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for factor
-if(!is.na(lop$EOIc)) for(ii in 1:length(lop$EOIc)) {
+if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR, nR)) # posterior samples
@@ -733,7 +751,7 @@ sumROI <- function(R0, ns, nd) {
 #gg <- sumROI(gg, ns, 3)
 
 # for Intercept and quantitative variables
-if(!is.na(lop$EOIq)) for(ii in 1:length(lop$EOIq)) {
+if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumROI(psROI(aa, bb, lop$EOIq[ii], nR), ns, 3)
@@ -742,7 +760,7 @@ if(!is.na(lop$EOIq)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for factor
-if(!is.na(lop$EOIc)) for(ii in 1:length(lop$EOIc)) {
+if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
