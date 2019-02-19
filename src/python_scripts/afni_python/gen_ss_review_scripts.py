@@ -292,12 +292,14 @@ def update_field_help():
       '     to censoring.'])
    add_field_help('num regs of interest', 'num regressors formed from -stim_*')
    add_field_help('num TRs per stim', 'num non-zero TRs in orig regressors',
-     ['This is the number of TRs each regressor is non-zero, no censoring.'])
+     ['This is the number of TRs each regressor is non-zero, no censoring.',
+      'It is the number of time points covered by expected BOLD responses.'])
    add_field_help('num TRs censored per stim', 'num non-zero TRs censored',
-     ['This is the number of non-zero TRs censored, per regressor.'])
+     ['This is the number of non-zero TRs censored, per regressor.',
+      "It is like 'num TRs per stim', but is limited to censored time points."])
    add_field_help('fraction TRs censored', 'num TRs censored / num TRs',
      ['For each regressor (of interest), this is the fraction of non-zero TRs',
-      'that were censored.',
+      "that were censored.  It is akin to 'num TRs censored per stim'.",
       'SO - This field is worth considering for subject omission.',
       '     A high value for an important regressor suggest that it is',
       '     under-powered.'])
@@ -311,12 +313,13 @@ def update_field_help():
       'This gives an idea of motion per stim class after censoring.'])
 
    add_field_help('TSNR average', 'average temporal signal-to-noise ratio',
-     ['This is the TSNR volume averaged over the full_mask.'])
+     ['This is the TSNR volume averaged over a brain mask.  It is computed',
+      'from the output of the regression, not from the original data.'])
    add_field_help('global correlation (GCOR)', 'average corr over voxel pairs',
      ['This shows the average correlation across all pairs of voxels (within',
-      'the brain mask: full_mask).',
+      'the EPI brain mask).',
       'A larger number suggests more coherence, which is likely artifactual.'])
-   add_field_help('anat/EPI mask Dice coef', 'Dice coef(mask_anat, full_mask)',
+   add_field_help('anat/EPI mask Dice coef', 'Dice coef(mask_anat, EPI mask)',
      ['This is the Sorenson-Dice coefficient (twice intersection over sum of',
       'regions) between the anat mask (mask_anat) and EPI mask (full_mask).',
       'A low value (closer to 0 than 1, say) might flag alignment failure.'])
