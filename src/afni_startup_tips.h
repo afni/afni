@@ -944,6 +944,7 @@ static char *gby[] = {
      "After every tempest comes the calm"                            ,
      "I've got MY story about the brain; what's yours?"              ,
      "I came, I saw, I got confused"                                 ,
+     "Inconceivable!"                                                ,
      "Computers are useless -- they can only give you answers"       ,
      "If nothing else, this software is a great toy"                 ,
      "Remember to take your brain out and polish it"                 ,
@@ -984,6 +985,7 @@ static char *gby[] = {
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
      "You look familiar - Do you come here often?"                   ,
+     "After all, tomorrow is another day."                           ,
      "Men are quick to believe that which they wish to be true"      ,
 
      /* bastardizations of Shakespeare */
