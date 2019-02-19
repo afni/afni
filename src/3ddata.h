@@ -5877,6 +5877,7 @@ extern char **atlas_chooser_formatted_labels(char *atname,int flipxy);
 extern float THD_spearman_corr( int,float *,float *) ;  /* 23 Aug 2001 */
 extern float THD_quadrant_corr( int,float *,float *) ;
 extern float THD_pearson_corr ( int,float *,float *) ;
+extern float THD_pearson_partial_corr( int, float *, float *, float *);
 extern double THD_pearson_corrd ( int, double *, double *) ;
 extern float THD_covariance( int n, float *x , float *y );
 extern float THD_ktaub_corr   ( int,float *,float *) ;  /* 29 Apr 2010 */

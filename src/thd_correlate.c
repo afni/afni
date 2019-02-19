@@ -403,6 +403,42 @@ double THD_pearson_corrd( int n, double *x , double *y )
    return xy/sqrt(xv*yv) ;
 }
 
+/*-----------------------------------------------------------------------*/
+/* Partial Correlation of A & B, adjusting for C.             */
+
+float THD_pearson_partial_corr( int n, float *a, float *b, float *c )
+{
+    float AB, AC, BC;
+    //calculate correlation AB
+    AB = THD_pearson_corr(n, a, b);
+    
+    //calculate correlation AC
+    AC = THD_pearson_corr(n, a, c);
+    
+    //calculate correlation BC
+    BC = THD_pearson_corr(n, b, c);
+    
+    return (AB - (AC*BC)) / sqrt( (1-(AC*AC)) * (1-(BC*BC)) );
+}
+
+/*-----------------------------------------------------------------------*/
+/* Double Partial Correlation of A & B, adjusting for C.             */
+
+double THD_pearson_partial_corrd( int n, double *a, double *b, double *c )
+{
+    double AB, AC, BC;
+    //calculate correlation AB
+    AB = THD_pearson_corrd(n, a, b);
+    
+    //calculate correlation AC
+    AC = THD_pearson_corrd(n, a, c);
+    
+    //calculate correlation BC
+    BC = THD_pearson_corrd(n, b, c);
+    
+    return (AB - (AC*BC)) / sqrt( (1-(AC*AC)) * (1-(BC*BC)) );
+}
+
 /*--------------------------------------------------------------------------*/
 /*! Covariance of x[] and y[] (x and y are NOT modified).    ZSS May 18 2012*/
 
