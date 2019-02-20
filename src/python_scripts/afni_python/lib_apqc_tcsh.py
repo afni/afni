@@ -23,24 +23,38 @@ auth = 'PA Taylor'
 #ver = '1.51' ; date = 'Nov 19, 2018'
 # + update 1dplot string labels (add in "enorm" and "outliers")
 #
-ver = '1.6' ; date = 'Dec 2, 2018'
+#ver = '1.6' ; date = 'Dec 2, 2018'
 # + check_dep() now has more conditions, because of some specific
 #   vars+values that may or may not be there
 #   - first one: for stats_dsets, check about "NO_STATS" value
 #
+#ver = '1.7' ; date = 'Dec 23, 2018'
+# + [PT] put the censoring vertical color bars into the reg* 1D plots,
+#        for both basic and pythonic styles
+# + [PT] rename "run_mode" -> "run_style" (more specific/correct)
+#
+ver = '1.8' ; date = 'Jan 2, 2019'
+# + [PT] add media_info
+# + [PT] change order of enorm and outlier
+# + [PT] add in EPI in orig space viewing
+# + [PT] copy gen_ss JSON file into QC_*/media_info/
+#
 #########################################################################
 
 import sys
-import lib_ss_review as lssr
+import collections         as coll
+import lib_apqc_html_helps as lahh
+import lib_ss_review       as lssr
 
 # ----------------------------------------------------------------------
 
 scriptname = '@ss_review_html'
 qcbase     = 'QC'                    # full odir has subj ID concatenated
-dir_img    = 'media_img'
-dir_dat    = 'media_dat'
+dir_img    = 'media'
+dir_info   = 'extra_info'            # for gen_ss- and AP-JSONs, and more
 
-page_title_json = '_page_title'
+page_title_json = '__page_title'
+
 
 # ----------------------------------------------------------------------
 
@@ -49,12 +63,16 @@ def check_dep(D, lcheck):
 
     HAS_ALL = 1
     for x in lcheck:
+
         # general check: based on existence
         if not(D.__contains__(x)) :
             HAS_ALL = 0
             break
 
-        # specific check(s), based on known values:
+        # ---- specific check(s), based on known values:
+
+        # in this case, the $stats_dset var can contain essentially a
+        # NULL value, NO_STATS, and that is reflected here
         elif x == "stats_dset" :
             if D[x] == "NO_STATS" :
                 HAS_ALL = 0
@@ -420,12 +438,14 @@ fixed names, basically.  Should be run near start of prog.
     pre = '''
     set odir_qc = {}_${{subj}}
     set odir_img = ${{odir_qc}}/{}
-    set odir_dat = ${{odir_qc}}/{}
-    '''.format( qcbase, dir_img, dir_dat )
+    set odir_img = ${{odir_qc}}/{}
+    set odir_info = ${{odir_qc}}/{}
+    '''.format( qcbase, dir_img, dir_img, dir_info )
 
     cmd = '''
     \\mkdir -p ${odir_img}
-    \\mkdir -p ${odir_dat}
+    \\mkdir -p ${odir_img}
+    \\mkdir -p ${odir_info}
     '''
 
     comm = commentize( comm )
@@ -473,7 +493,9 @@ endif
 # ========================== 1D files/plots ==============================
 
 # ['motion_dset', 'nt_orig']
-def apqc_1D_volreg(jpgsize, opref, run_mode):
+def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = ''' review plots: 3dvolreg motion regressors'''
 
@@ -483,42 +505,50 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
     '''.format(jpgsize, opref)
     
-    otxt  = "${odir_img}/${opref}" + ".txt"
+    STR_plot_title = '''Estimated motion parameters (volreg)'''
+    STR_json_text  = '''6 volume registration motion parameters (in ${motion_dset})'''
 
-    if run_mode == 'basic' :
+    if run_style == 'basic' :
         cmd = '''
         1dplot                                                     
         -sepscl 
         -volreg 
         -xlabel   "vol"
-        -title    "Estimated motion parameters (volreg)"
-        -jpgs     ${jpgsize} "${odir_img}/${opref}" 
-        "${motion_dset}" 
-        '''
-    elif run_mode == 'pythonic' :
+        -title    "{}"
+        -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}" 
+        "${{motion_dset}}" 
+        '''.format( STR_plot_title )
+
+    elif run_style == 'pythonic' :
         cmd = '''
         1dplot.py                                                     
         -sepscl 
         -boxplot_on    
+        -patches ${{pats}}
         -reverse_order 
-        -infiles  "${motion_dset}"
+        -infiles  "${{motion_dset}}"
         -ylabels   VOLREG
         -xlabel   "vol index"
-        -title    "Estimated motion parameters (volreg)" 
-        -prefix   "${odir_img}/${opref}.jpg" 
-        '''
+        -title    "{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg" 
+        '''.format( STR_plot_title )
 
     # text shown above image in the final HTML
     jsontxt = '''
-    cat << EOF >! ${tjson}
-    title ::  Check: volume registration motion parameters
-    text  ::  ""
-    linkid :: VR6
-    linkid_hov :: volume registration motion parameters
+    cat << EOF >! ${{tjson}}
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "{}"
     EOF
-    '''
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                STR_json_text )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -543,24 +573,41 @@ def apqc_1D_volreg(jpgsize, opref, run_mode):
 # ----------------------------------------------------------------------
 
 # **NB**: it is likely that any changes in this function should mirror
-# those of apqc_1D_motenorm_cen
+# those of apqc_mot_enorm() and apqc_mot_enormoutlr
 
 # ['outlier_dset', 'nt_orig'], also use 'censor_dset' and 'out_limit'
-def apqc_1D_cen_out( jpgsize, opref, run_mode,
-                     has_cen_dset=False,
-                     has_lim=False ):
+def apqc_mot_outlr( obase, qcb, qci, run_style, jpgsize,
+                    has_cen_dset=False,
+                    has_lim=False ):
 
-    STR_CEN_pre   = '''set cstr = "(no censoring applied)"'''
-    STR_CL_title  = ''
-    STR_CEN_json2 = ''
+    # [PT] A note about the multiplicative factor in ${ytop}:
+    # visually, a factor of 3 seems to be a good balance for this
+    # scaling.  The plot is clear, and sub-threshold motion seems
+    # "small" quickly: with a smaller factor like 2, even some
+    # subthreshold motion appears "large"; larger factors waste space.
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = 'Outlier frac (black)'
+    STR_json_text  = 'Volumetric fraction of outliers'
+    STR_json_subt  = ''
     if has_cen_dset : 
+        STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
         set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
-        STR_CEN_json2+= ''' (${Pcstr}%)'''
         if has_lim : 
-            STR_CL_title+= ''' (with limit)'''
-        STR_CL_title+= ''' and all censored points'''
+            STR_plot_title+= ''', with limit (cyan)'''
+            STR_json_text+=  ''', with limit'''
+            STR_CEN_pre+= '''\n set ytop = `echo "3 * ${out_limit}" | bc`'''
+        STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
+        STR_json_text+=  ''' and combined censoring'''
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     fraction limit'''
@@ -571,24 +618,25 @@ def apqc_1D_cen_out( jpgsize, opref, run_mode,
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
     {}
     '''.format(jpgsize, opref, STR_CEN_pre)
 
-    if run_mode == 'basic' :
+    if run_style == 'basic' :
 
         # extra uvars may or may not be used
+        # [PT: Dec 23, 2018] also include yaxis scaling by censor
+        # levels, if given
         STR_CEN_cmd = ''
         STR_LIM_cmd = ''
-        STR_CEN_json = ''
-        STR_LIM_json = ''
         if has_cen_dset : 
             STR_CEN_cmd+= '''-censor_RGB green 
                              -censor   ${censor_dset}'''
-            STR_CEN_json+=''', total censoring (green)'''
             # think one only has a censor limit if one has a censor file??
             if has_lim : 
                 STR_LIM_cmd+= '''"1D: ${nt_orig}@${out_limit}"'''
-                STR_LIM_json+=''', limit (red)'''
+                STR_CEN_cmd+= '''\n -yaxis    0:${ytop}:6:2'''
 
         cmd = '''
         1dplot
@@ -597,50 +645,51 @@ def apqc_1D_cen_out( jpgsize, opref, run_mode,
         -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
-        -title    "Outlier frac{}"
+        -title    "{}"
         ${{outlier_dset}}
         {}
-        '''.format( STR_CEN_cmd, STR_CL_title, STR_LIM_cmd )
+        '''.format( STR_CEN_cmd, STR_plot_title, STR_LIM_cmd )
 
-    elif run_mode == 'pythonic' :
+    elif run_style == 'pythonic' :
 
         # extra uvars may or may not be used
         STR_CEN_cmd  = ''
         STR_LIM_cmd  = ''
-        STR_CEN_json = ''
-        STR_LIM_json = ''
         if has_cen_dset : 
             STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
-            STR_CEN_json+=''', total censoring (red)'''
             # think one only has a censor limit if one has a censor file??
             if has_lim : 
                 STR_LIM_cmd+= '''-censor_hline ${out_limit}'''
-                STR_LIM_json+=''', limit (cyan)'''
+                STR_CEN_cmd+= '''\n -yaxis    0:${ytop}'''
 
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
+        -patches ${{pats}}
         -reverse_order 
         -infiles  "${{outlier_dset}}"
         -ylabels   "frac"
         {}
         {}
         -xlabel   "vol index"
-        -title    "Outlier frac{}"
+        -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg" 
-        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_CL_title)
+        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_plot_title)
 
     # text shown above image in the final HTML; same for basic and
     # pythonic, b/c just the format strings hold differences now
     jsontxt = '''
     cat << EOF >! ${{tjson}}
-    title ::  Check: outliers
-    text  ::  volume fraction (black){}{}
-    subtext :: "censored vols{}: ${{cstr}}"
-    linkid :: out
-    linkid_hov :: outliers 
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "{}"
+    subtext     :: "{}"
     EOF
-    '''.format( STR_LIM_json, STR_CEN_json, STR_CEN_json2 )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+                STR_json_text, STR_json_subt )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -665,24 +714,39 @@ def apqc_1D_cen_out( jpgsize, opref, run_mode,
 # ----------------------------------------------------------------------
 
 # **NB**: it is likely that any changes in this function should mirror
-# those of apqc_1D_cen_out
+# those of apqc_mot_outlr and apqc_mot_enormoutlr
 
 # ['censor_dset', 'enorm_dset', 'mot_limit', 'nt_orig']
-def apqc_1D_motenorm_cen( jpgsize, opref, run_mode,
-                          has_cen_dset=False,
-                          has_lim=False ):
+def apqc_mot_enorm( obase, qcb, qci, run_style, jpgsize, 
+                    has_cen_dset=False,
+                    has_lim=False ):
 
-    STR_CEN_pre   = '''set cstr = "(no censoring applied)"'''
-    STR_CL_title  = ''
-    STR_CEN_json2 = ''
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = 'Mot enorm (black)'
+    STR_json_text  = 'Motion Euclidean norm (enorm)'
+    STR_json_text2  = ''             # stuff to go on second line
+    STR_json_subt  = ''
     if has_cen_dset : 
+        STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
         set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
-        STR_CEN_json2+= ''' (${Pcstr}%)'''
         if has_lim : 
-            STR_CL_title+= ''' (with limit)'''
-        STR_CL_title+= ''' and all censored points'''
+            STR_plot_title+= ''', with limit (cyan)'''
+            STR_json_text2+=  '''with limit'''
+            STR_CEN_pre+= '''\n set ytop = `echo "3 * ${mot_limit}" | bc`'''
+        STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
+        STR_json_text2+= ''' and combined censoring'''
+
+    if STR_json_text2:
+        STR_json_text+= ' ,, ' + STR_json_text2
 
     comm  = ''' review plots (colored TRs are censored); outliers with 
     enorm motion limit'''
@@ -693,27 +757,23 @@ def apqc_1D_motenorm_cen( jpgsize, opref, run_mode,
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
     {}
     '''.format( jpgsize, opref, STR_CEN_pre )
 
-    otxt     = "${odir_img}/${opref}" + ".txt"
-    osubtxt  = "${odir_img}/${opref}" + "_SUB.txt"
-
-    if run_mode == 'basic' :
+    if run_style == 'basic' :
 
         # extra uvars may or may not be used
         STR_CEN_cmd  = ''
         STR_LIM_cmd  = ''
-        STR_CEN_json = ''
-        STR_LIM_json = ''
         if has_cen_dset : 
             STR_CEN_cmd+= '''-censor_RGB green 
                              -censor   ${censor_dset}'''
-            STR_CEN_json+=''', total censoring (green)'''
             # think one only has a censor limit if one has a censor file??
             if has_lim : 
                 STR_LIM_cmd+= '''"1D: ${nt_orig}@${mot_limit}"'''
-                STR_LIM_json+=''', mot limit (red)'''
+                STR_CEN_cmd+= '''\n -yaxis    0:${ytop}:6:2'''
 
         cmd = '''
         1dplot 
@@ -722,48 +782,281 @@ def apqc_1D_motenorm_cen( jpgsize, opref, run_mode,
         -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
-        -title    "Mot enorm{}"
+        -title    "{}"
         ${{enorm_dset}}
         {}
-        '''.format( STR_CEN_cmd, STR_CL_title, STR_LIM_cmd )
+        '''.format( STR_CEN_cmd, STR_plot_title, STR_LIM_cmd )
 
-    elif run_mode == 'pythonic' :
+    elif run_style == 'pythonic' :
 
         # extra uvars may or may not be used
         STR_CEN_cmd = ''
         STR_LIM_cmd = ''
-        STR_CEN_json = ''
-        STR_LIM_json = ''
         if has_cen_dset : 
             STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
-            STR_CEN_json+=''', total censoring (red)'''
             # think one only has a censor limit if one has a censor file??
             if has_lim : 
                 STR_LIM_cmd+= '''-censor_hline ${mot_limit}'''
-                STR_LIM_json+=''', mot limit (cyan)'''
+                STR_CEN_cmd+= '''\n -yaxis    0:${ytop}'''
 
         cmd = '''
         1dplot.py                                                     
         -boxplot_on    
-        -reverse_order 
+        -patches ${{pats}}
         -infiles  "${{enorm_dset}}"
-        -ylabels   "enorm"
+        -ylabels   "enorm (~mm)"
         {}
         {}
         -xlabel   "vol index"
-        -title    "Mot enorm{}"
+        -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg" 
-        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_CL_title)
+        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_plot_title)
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
-    title ::  Check: motion
-    text  ::  "enorm (black){}{}"
-    subtext :: "censored vols{}: ${{cstr}}"
-    linkid :: mot
-    linkid_hov :: motion (enorm)
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    subtext     :: "{}"
     EOF
-    '''.format( STR_LIM_json, STR_CEN_json, STR_CEN_json2 )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+                STR_json_text, STR_json_subt )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd, REP_TIL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+# ---------------------------------------------------------------------
+# [PT: Jan 13, 2019] combo img when both motion and outliers are calc'ed
+
+# ['outlier_dset', 'out_limit', 'enorm_dset', 'mot_limit',
+# 'censor_dset', 'nt_orig']
+def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize, 
+                         has_cen_dset=False,
+                         has_lim_mot=False,
+                         has_lim_out=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    # Strings for titles, text and subtext, as well as other calcs
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = 'Mot enorm and outlier frac (black)'
+    STR_json_text  = 'Motion Euclidean norm (enorm) and outlier fraction'
+    STR_json_text2  = ''             # stuff to go on second line
+    STR_json_subt  = ''
+    if has_cen_dset : 
+        STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        if has_lim_mot or has_lim_out : 
+            STR_plot_title+= ''', with limit (cyan)'''
+            STR_json_text2+=  '''with limit'''
+            if has_lim_mot :
+                STR_CEN_pre+= '''\n set ytop_mot = `echo "3 * ${mot_limit}" | bc`'''
+            if has_lim_out :
+                STR_CEN_pre+= '''\n set ytop_out = `echo "3 * ${out_limit}" | bc`'''
+        STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
+        STR_json_text2+= ''' and combined censoring'''
+
+    if STR_json_text2:
+        STR_json_text+= ' ,, ' + STR_json_text2
+
+    comm  = ''' review plots (colored TRs are censored); outliers with 
+    enorm motion limit'''
+
+    pre = '''
+    set jpgsize = {} 
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
+    {}
+    '''.format( jpgsize, opref, STR_CEN_pre )
+    
+    # A truism for this plot, at the moment
+    if run_style == 'pythonic' :
+
+        # stuff for 1dplot.py command
+        STR_CEN_cmd = ''
+        STR_LIM_cmd = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+            # think one only has a censor limit if one has a censor file??
+            if has_lim_mot or has_lim_out : 
+                STR_LIM_cmd+= '''-censor_hline '''
+                STR_CEN_cmd+= '''\n -yaxis '''
+                if has_lim_mot :
+                    STR_LIM_cmd+= ''' ${mot_limit}'''
+                    STR_CEN_cmd+= ''' 0:${ytop_mot} '''
+                if has_lim_out :
+                    STR_LIM_cmd+= ''' ${out_limit}'''
+                    STR_CEN_cmd+= ''' 0:${ytop_out} '''
+
+        cmd = '''
+        1dplot.py                                                     
+        -boxplot_on    
+        -patches ${{pats}}
+        -colors black
+        -infiles  "${{enorm_dset}}" "${{outlier_dset}}"
+        -ylabels   "enorm (~mm)" "outlier frac"
+        {}
+        {}
+        -xlabel   "vol index"
+        -title    "{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg" 
+        '''.format( STR_CEN_cmd, STR_LIM_cmd, STR_plot_title)
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    subtext     :: "{}"
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+                STR_json_text, STR_json_subt )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd, REP_TIL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+
+# ---------------------------------------------------------------------
+# [PT: Dec 23, 2018] add in viewing censor dset, if present
+
+# !!! need to get stim file labels for each!
+
+# ['xmat_stim']
+def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize, 
+                     has_cen_dset=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    # censoring, but no limit shown here
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = 'Regressors of interest in the X-matrix'
+    STR_json_text  = 'regressors of interest (per stim, in ${xmat_stim})'
+    STR_json_subt  = ''
+    if has_cen_dset : 
+        STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
+        STR_json_text+=  ''' and combined censoring'''
+        STR_json_subt+=  '''censored vols (${Pcstr}%): ${cstr}'''
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+
+    comm  = ''' view xmatrix (${xmat_stim}), made from (${xmat_uncensored})'''
+
+    pre = '''
+    set jpgsize = {} 
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
+    '''.format(jpgsize, opref)
+
+    if run_style == 'basic' :
+
+        STR_CEN_cmd = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_RGB green 
+                             -censor   ${censor_dset}'''
+
+        cmd = '''
+        1dplot 
+        -sepscl 
+        {}
+        -jpgs     $jpgsize "${{odir_img}}/${{opref}}"
+        -aspect   2
+        -xlabel   "vol"
+        -title    "{}"
+        ${{xmat_stim}}
+        '''.format( STR_CEN_cmd, STR_plot_title )
+
+    elif run_style == 'pythonic' :
+
+        STR_CEN_cmd = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+
+        cmd = '''
+        1dplot.py 
+        -sepscl 
+        -boxplot_on
+        -patches ${{pats}}
+        -reverse_order 
+        -infiles  ${{xmat_stim}}
+        -xlabel   "vol"
+        {}
+        -title    "{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg"
+        '''.format( STR_CEN_cmd, STR_plot_title )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "{}"
+    subtext     :: "{}"
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+                STR_json_text, STR_json_subt )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -785,73 +1078,31 @@ def apqc_1D_motenorm_cen( jpgsize, opref, run_mode,
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
-# ['xmat_stim']
-def apqc_1D_xmat_stim(jpgsize, opref, run_mode ):
-
-    comm  = ''' view xmatrix'''
-
-    pre = '''
-    set jpgsize = {} 
-    set opref = {}
-    set tjson  = _tmp.txt
-    set ojson  = ${{odir_img}}/${{opref}}.json
-    #@ imax = ${{nt_orig}} - 1
-    '''.format(jpgsize, opref)
-
-    if run_mode == 'basic' :
-        cmd = '''
-        1dplot 
-        -sepscl 
-        -jpgs     $jpgsize "${odir_img}/${opref}"
-        -aspect   2
-        -xlabel   "vol"
-        -title    "Non-baseline regressors in X-matrix"
-        ${xmat_stim}
-        '''
-    elif run_mode == 'pythonic' :
-        cmd = '''
-        1dplot.py 
-        -sepscl 
-        -boxplot_on
-        -reverse_order 
-        -infiles  ${xmat_stim}
-        -xlabel   "vol"
-        -title    "Non-baseline regressors in X-matrix"
-        -prefix   "${odir_img}/${opref}.jpg"
-        '''
-
-    jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: regressors (per stimulus)
-    text  ::  "non-baseline regressors (in ${xmat_regress})"
-    linkid :: regps
-    linkid_hov :: regressors (per stimulus)
-EOF
-'''
-
-    jsontxt_cmd = '''
-abids_json_tool.py   
-    -overwrite       
-    -txt2json              
-    -delimiter_major '::'    
-    -delimiter_minor ',,'     
-    -input  ${tjson}
-    -prefix ${ojson}
-'''
-
-    comm = commentize( comm )
-    pre  = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
-    cmd  = commandize( cmd )
-    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
-    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2  )
-
-    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
-    return '\n\n'.join(lout)
-
+# ------------------------------------------------------------------
 
 # ['sum_ideal']
-def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
+def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize, 
+                     has_cen_dset=False ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    # censoring, but no limit shown here
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = 'Sum of regressors of interest in the X-matrix'
+    STR_json_text  = 'sum of regressors of interest (in ${sum_ideal})'
+    STR_json_subt  = ''
+    if has_cen_dset : 
+        STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
+        STR_json_text+=  ''' and combined censoring'''
+        STR_json_subt+=  '''censored vols (${Pcstr}%): ${cstr}'''
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
 
     comm  = ''' view xmatrix'''
 
@@ -860,52 +1111,73 @@ def apqc_1D_sum_ideal(jpgsize, opref, run_mode):
     set opref = {}
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
-    #@ imax = ${{nt_orig}} - 1
+    @ imax = ${{nt_orig}} - 1
+    set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
+    set pats = "${{ssrev_ln[6-]}}"
     '''.format(jpgsize, opref)
 
-    #otxt  = "${odir_img}/${opref}" + ".txt"
+    if run_style == 'basic' :
 
-    if run_mode == 'basic' :
+        # extra uvars may or may not be used
+        STR_CEN_cmd  = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_RGB green 
+                             -censor   ${censor_dset}'''
+
         cmd = '''
         1dplot 
-        -sepscl 
-        -jpgs     $jpgsize "${odir_img}/${opref}"
+        -sepscl
+        {}
+        -jpgs     $jpgsize "${{odir_img}}/${{opref}}"
         -aspect   2
         -xlabel   "vol"
-        -title    "Sum of non-baseline regressors in X-matrix"
-        ${sum_ideal}
-        '''
-    elif run_mode == 'pythonic' :
+        -title    "{}"
+        ${{sum_ideal}}
+        '''.format( STR_CEN_cmd, STR_plot_title )
+
+    elif run_style == 'pythonic' :
+
+        # extra uvars may or may not be used; censoring, but no limit
+        STR_CEN_cmd = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+
         cmd = '''
         1dplot.py 
         -boxplot_on
+        -patches ${{pats}}
+        -colors black
         -sepscl 
         -boxplot_on
-        -reverse_order 
-        -infiles  ${sum_ideal}
+        -infiles  ${{sum_ideal}}
         -xlabel   "vol"
-        -title    "Sum of non-baseline regressors in X-matrix"
-        -prefix   "${odir_img}/${opref}.jpg"
-        '''
+        {}
+        -title    "{}"
+        -prefix   "${{odir_img}}/${{opref}}.jpg"
+        '''.format( STR_CEN_cmd, STR_plot_title)
 
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: regressors (combined stimulus)
-    text  ::  "sum of non-baseline regressors (in ${sum_ideal})"
-    linkid :: regcs
-    linkid_hov :: regressors (combined stimulus)
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: "{}"
+    subtext     :: "{}"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1], 
+               STR_json_text, STR_json_subt )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
@@ -920,10 +1192,358 @@ abids_json_tool.py
 
 # ========================== images ================================
 
+# ----------------------------------------------------------------------
+
+# ['vr_base'] OR ['anat_orig']
+def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
+    # Here, qci has additional roles of a string label, because we use
+    # this same function to plot all ORIG vols (EPI or anat, at the
+    # moment)
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    perc_olay_top = 98                    # %ile for top of pbar for olay
+
+    # what will minval of pbar be? 0, or -max?
+    if olay_posonly :
+        olay_minval_str = "-pbar_posonly"
+        pbar_min        = "0"
+
+    comm  = '''Check the quality of acquired {} in orig space (ulay)
+            {} %ile topval for pbar'''.format( qci, perc_olay_top )
+
+    # minor tweaks/formatting/expanding
+    epi_comm = ''
+    if qci == "EPI":
+        epi_comm =  ' (volreg base)'
+    qci_comm = qci
+    if qci == "anat":
+        qci_comm = 'Anatomical'
+
+    STR_json_text = '''"{} in original space{}"'''.format( qci_comm, epi_comm )
+    STR_json_text+= ''' ,, '''   # separator for 2-line text in JSON
+    STR_json_text+= '''"ulay: ${{ulay_name}} ({})"'''.format( qci )
+
+    pre = '''
+    set opref = {0}
+    set ulay = "${{{1}}}"
+    set ulay_name = `3dinfo -prefix ${{{1}}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    set tpbarjson  = _tmppbar.txt
+    set opbarjson  = ${{odir_img}}/${{opref}}.pbar.json
+    '''.format( opref, ulay_name )
+
+    # get min/max for informational purposes
+    cmd1 = '''
+    set minmax = `3dBrickStat 
+    -slow 
+    -min -max
+    ${{ulay}}`
+    '''.format( perc_olay_top )
+
+    # top value for colorbar of olay, from %ile in VOL; should just be
+    # single brick, so don't need a selector
+    cmd2 = '''
+    set pp = `3dBrickStat 
+    -slow 
+    -percentile {0} 1 {0}
+    ${{ulay}}`
+    '''.format( perc_olay_top )
+
+    cmd3 = '''
+    set olay_topval = ${{pp[2]}}
+    set olay_botval = {}
+    '''.format( pbar_min )
+
+    cmd4 = '''
+    @chauffeur_afni
+    -ulay    ${{ulay}}
+    -olay    ${{ulay}}
+    -ulay_range_nz 0 ${{olay_topval}}
+    -func_range ${{olay_topval}}
+    -box_focus_slices AMASK_FOCUS_ULAY
+    -cbar gray_scale 
+    {}
+    -pbar_saveim "${{odir_img}}/${{opref}}.pbar.jpg"
+    -prefix      "${{odir_img}}/${{opref}}"
+    -save_ftype JPEG
+    -blowup 4
+    -opacity 9  
+    -montx 7 -monty 1  
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 3  
+    -do_clean
+    '''.format( olay_minval_str )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                STR_json_text )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+
+    # Here, we cheat a bit by calling the volume a 'ulay'.  The reason
+    # we do this is that it seems more compatible with general AFNI
+    # viewing of having a grayscale ulay and a colored olay.
+    pbarjsontxt = '''
+    cat << EOF >! ${{tpbarjson}}
+    pbar_bot :: ${{olay_botval}}
+    pbar_top :: ${{olay_topval}}
+    pbar_reason :: {}{}
+    pbar_vol :: " ulay"
+    pbar_comm :: "range: ${{minmax[1]}}, ${{minmax[2]}}"
+    EOF
+    '''.format( perc_olay_top, '''%ile in vol''' )
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tpbarjson}
+    -prefix ${opbarjson}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd1  = commandize( cmd1 )
+    cmd2  = commandize( cmd2 )
+    cmd3  = commandize( cmd3, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
+    cmd4  = commandize( cmd4 )
+
+    # NB: for commandizing the *jsontxt commands, one NEEDS
+    # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+    pbarjsontxt = commandize( pbarjsontxt, cmdindent=0, ALLEOL=False )
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd1, cmd2, cmd3, cmd4, 
+            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+# ----------------------------------------------------------------------
+
+
+# ['final_anat', 'final_epi_dset']
+def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''Compare the quality of alignment between the anatomical 
+    (ulay) and edge-ified EPI (olay): || look at gross alignment || 
+    follow ventricles and gyral patterns'''
+
+    pre = '''
+    set opref = {}
+    set focus_box = {}
+    set ulay_name = `3dinfo -prefix ${{final_anat}}`
+    set olay_name = `3dinfo -prefix ${{final_epi_dset}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    '''.format( opref, focusbox )
+
+    cmd = '''
+    @djunct_edgy_align_check
+    -ulay    ${final_anat}
+    -box_focus_slices ${focus_box}
+    -olay    ${final_epi_dset}
+    -prefix  ${odir_img}/${opref}
+
+    '''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "ulay: ${{ulay_name}} (anat)",, "olay: ${{olay_name}} (EPI edges)"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+# ----------------------------------------------------------------------
+
+# ['final_anat', 'template']
+def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''Compare the quality of alignment between the template 
+    (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
+    follow ventricles and gyral patterns'''
+
+    pre = '''
+    set opref = {}
+    set focus_box = {}
+    set ulay_name = `3dinfo -prefix ${{templ_vol}}`
+    set olay_name = `3dinfo -prefix ${{final_anat}}`
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
+    '''.format( opref, focusbox )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "ulay: ${{ulay_name}} (template)",, "olay: ${{olay_name}} (anat edges)"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    # !!!! ? need '[0]' selector here because (multibrick) SSW reference
+    # templates could be reference template 
+    cmd = '''
+    @djunct_edgy_align_check
+    -ulay    ${templ_vol}
+    -box_focus_slices ${focus_box}
+    -olay    ${final_anat}
+    -prefix  ${odir_img}/${opref}
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd  = commandize( cmd )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
-def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr, 
-                               olay_posonly=True ):
+def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr, 
+                      olay_posonly=True ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
 
     perc_thr_thr  = 90                    # %ile for thresholding thr vol
     perc_olay_top = 99                    # %ile for top of pbar for olay
@@ -931,10 +1551,10 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     # what will minval of pbar be? 0, or -max?
     if olay_posonly :
         olay_minval_str = "-pbar_posonly"
-        pbar_min = "0"
+        pbar_min        = "0"
     else:
         olay_minval_str = "-pass"
-        pbar_min = "-${olay_topval}" # $olay_topval gets defined below
+        pbar_min        = "-${olay_topval}" # $olay_topval is defined below
 
     comm  = '''peruse statistical results: 
     {} %ile threshold of thr vol [{}]
@@ -948,14 +1568,16 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     pre = '''
     set opref = {}
     set focus_box = {}
-    set ulay_name = `3dinfo -prefix_noext ${{final_anat}}`
-    set olay_name = `3dinfo -prefix_noext ${{stats_dset}}`
+    set ulay_name = `3dinfo -prefix ${{final_anat}}`
+    set olay_name = `3dinfo -prefix ${{stats_dset}}`
     set olaybrick = {}
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
     set thrbrick = {}
     set thrlabel = `3dinfo -label ${{stats_dset}}"[${{thrbrick}}]"`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     set tpbarjson  = _tmppbar.txt
     set opbarjson  = ${{odir_img}}/${{opref}}.pbar.json
     '''.format( opref, focusbox, iolay, ithr )
@@ -1015,44 +1637,66 @@ def apqc_vol_check_stats_anat( opref, focusbox, iolay, ithr,
     # NB: because we want the single apostrophe to appear as a text
     # character, we have to wrap this with the double quotes
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: statistics vol
-    text  ::  "olay: ${olay_name} (stat '${olaylabel}')",, "thr : ${olay_name} (stat '${thrlabel}')"
-    linkid :: vstat
-    linkid_hov :: statistics vol
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "olay: ${{olay_name}} (stat '${{olaylabel}}')",, "thr : ${{olay_name}} (stat '${{thrlabel}}')"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
 
     pbarjsontxt = '''
-cat << EOF >! ${{tpbarjson}}
+    cat << EOF >! ${{tpbarjson}}
     pbar_bot :: ${{olay_botval}}
     pbar_top :: ${{olay_topval}}
     pbar_reason :: {}{}
     vthr :: ${{thr_thresh}}
     vthr_reason :: {}{}
-EOF
-'''.format( perc_olay_top, '''%ile in mask''', 
-            perc_thr_thr,  '''%ile in mask''' )
+    EOF
+    '''.format( perc_olay_top, '''%ile in mask''', 
+                perc_thr_thr,  '''%ile in mask''' )
 
     pbarjsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tpbarjson}
     -prefix ${opbarjson}
-'''
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
@@ -1070,166 +1714,61 @@ abids_json_tool.py
     pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
 
     lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, 
-            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd]
+            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd, 
+            jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
 
-# ----------------------------------------------------------------------
-
-# ['final_anat', 'final_epi_dset']
-def apqc_vol_align_epi_anat( opref, focusbox ):
-
-    comm  = '''Compare the quality of alignment between the anatomical 
-    (ulay) and edge-ified EPI (olay): || look at gross alignment || 
-    follow ventricles and gyral patterns'''
-
-    pre = '''
-    set opref = {}
-    set focus_box = {}
-    set ulay_name = `3dinfo -prefix_noext ${{final_anat}}`
-    set olay_name = `3dinfo -prefix_noext ${{final_epi_dset}}`
-    set tjson  = _tmp.txt
-    set ojson  = ${{odir_img}}/${{opref}}.axi.json
-    '''.format( opref, focusbox )
-
-    cmd = '''
-    @djunct_edgy_align_check
-    -ulay    ${final_anat}
-    -box_focus_slices ${focus_box}
-    -olay    ${final_epi_dset}
-    -prefix  ${odir_img}/${opref}
-
-    '''
-
-    jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: vol alignment (EPI-anat)
-    text  ::  "ulay: ${ulay_name} (anat)",, "olay: ${olay_name} (EPI edges)"
-    linkid :: ve2a
-    linkid_hov :: vol alignment (EPI-anat)
-EOF
-'''
-
-    jsontxt_cmd = '''
-abids_json_tool.py   
-    -overwrite       
-    -txt2json              
-    -delimiter_major '::'    
-    -delimiter_minor ',,'     
-    -input  ${tjson}
-    -prefix ${ojson}
-'''
-
-    comm = commentize( comm )
-    pre  = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
-    cmd  = commandize( cmd )
-    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
-    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
-
-    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
-    return '\n\n'.join(lout)
-
-# ----------------------------------------------------------------------
-
-# ['final_anat', 'template']
-def apqc_vol_align_anat_tlrc( opref, focusbox ):
-
-    comm  = '''Compare the quality of alignment between the template 
-    (ulay) and edge-ified anatomical (olay): || look at gross alignment || 
-    follow ventricles and gyral patterns'''
-
-    pre = '''
-    set opref = {}
-    set focus_box = {}
-    set ulay_name = `3dinfo -prefix_noext ${{templ_vol}}`
-    set olay_name = `3dinfo -prefix_noext ${{final_anat}}`
-    set tjson  = _tmp.txt
-    set ojson  = ${{odir_img}}/${{opref}}.axi.json
-    '''.format( opref, focusbox )
-
-    jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: vol alignment (anat-template) 
-    text  ::  "ulay: ${ulay_name} (template)",, "olay: ${olay_name} (anat edges)"
-    linkid :: va2t
-    linkid_hov :: vol alignment (anat-template) 
-EOF
-'''
-
-    jsontxt_cmd = '''
-abids_json_tool.py   
-    -overwrite       
-    -txt2json              
-    -delimiter_major '::'    
-    -delimiter_minor ',,'     
-    -input  ${tjson}
-    -prefix ${ojson}
-'''
-
-    # !!!! ? need '[0]' selector here because (multibrick) SSW reference
-    # templates could be reference template 
-    cmd = '''
-    @djunct_edgy_align_check
-    -ulay    ${templ_vol}
-    -box_focus_slices ${focus_box}
-    -olay    ${final_anat}
-    -prefix  ${odir_img}/${opref}
-
-    '''
-
-    comm = commentize( comm )
-    pre  = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
-    cmd  = commandize( cmd )
-    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
-    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
-
-    lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
-    return '\n\n'.join(lout)
 
 # ========================== dat/txt ================================
 
-# @ss_review_basic dumped to text file
-# 1
-def apqc_dat_ss_review_basic( opref ):
 
-    comm  = '''basic information from processing'''
+# summary quantities from 1d_tool.py degree-o-freedom check
+# ['xmat_regress']
+def apqc_regr_df( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''df check for processing'''
 
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_dat}}/${{opref}}.json
+    set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
     cmd0 = '''
-    cat out.ss_review.${subj}.txt
-    > ${odir_dat}/${opref}.dat
+    1d_tool.py -show_df_info -infile ${xmat_regress}
+    > ${odir_img}/${opref}.dat
     '''
 
     cmd1 = '''
-echo "++ Check basic proc info in: ${odir_dat}/${opref}.dat"
+    echo "++ Check summary of degrees of freedom in: ${odir_img}/${opref}.dat"
     '''
-
+    
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: basic processing information
-    text  ::  ""
-    linkid :: info
-    linkid_hov :: basic processing information
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: DAT
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "Summary of degrees of freedom (DF) usage from processing"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
+    '''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
@@ -1242,57 +1781,117 @@ abids_json_tool.py
     lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
+# ---------------------------------------------------------------------
+
+# summary quantities from @ss_review_basic dumped to text file
+# 1
+def apqc_qsumm_ssrev( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''summary quantities from processing'''
+
+    pre = '''
+    set opref = {}
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    cmd0 = '''
+    cat out.ss_review.${subj}.txt
+    > ${odir_img}/${opref}.dat
+    '''
+
+    cmd1 = '''
+    echo "++ Check basic summary quants from proc in: ${odir_img}/${opref}.dat"
+    '''
+    
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: DAT
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "basic summary quantities from processing"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+    cmd1  = commandize( cmd1, ALLEOL=False )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+
 # ========================== warn/txt ================================
 
-# Text warning, goes to dir_dat output
+# Text warning, goes to dir_img output
 # ['xmat_regress']
-def apqc_dat_cormat_warn( opref ):
+def apqc_warns_xmat( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''review: check for correlation matrix warnings'''
 
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_dat}}/${{opref}}.json
+    set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
     cmd0 = '''
     1d_tool.py 
     -show_cormat_warnings 
     -infile ${xmat_regress}
-    > ${odir_dat}/${opref}.dat
+    > ${odir_img}/${opref}.dat
     '''
 
     cmd1 = '''
-echo "++ Check for corr matrix warnings in: ${odir_dat}/${opref}.dat"
+    echo "++ Check for corr matrix warnings in: ${odir_img}/${opref}.dat"
     '''
 
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: regression matrix correlation warnings
-    text  ::  ""
-    linkid :: wmat
-    linkid_hov :: reg matrix corr warnings
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "regression matrix correlation warnings"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
-
+    '''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
+                        ALIGNASSIGN=True, ALLEOL=False )
     cmd0  = commandize( cmd0 )
     cmd1  = commandize( cmd1, ALLEOL=False )
-    #imtxt = echoize(imtxt, efile=otxt, padpost=2)
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
@@ -1301,44 +1900,48 @@ abids_json_tool.py
 
 # ----------------------------------------------------------------------
 
-# Text warning, goes to dir_dat output
+# Text warning, goes to dir_img output
 # ['pre_ss_warn_dset']
-def apqc_dat_pre_ss_warn( opref ):
+def apqc_warns_press( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''review: check for pre-steady state warnings'''
 
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_dat}}/${{opref}}.json
+    set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
     cmd = '''
-if ( -f ${pre_ss_warn_dset} && ! -z ${pre_ss_warn_dset} ) then
-~~~~cat ${pre_ss_warn_dset} > ${odir_dat}/${opref}.dat
-else
-~~~~echo " none "  > ${odir_dat}/${opref}.dat
-endif
+    if ( -f ${pre_ss_warn_dset} && ! -z ${pre_ss_warn_dset} ) then
+    ~~~~cat ${pre_ss_warn_dset} > ${odir_img}/${opref}.dat
+    else
+    ~~~~echo " none "  > ${odir_img}/${opref}.dat
+    endif
     '''
 
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: pre-steady state warnings
-    text  ::  ""
-    linkid :: wpss
-    linkid_hov :: pre-steady state warnings
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "pre-steady state warnings"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
@@ -1352,54 +1955,90 @@ abids_json_tool.py
 
 # ----------------------------------------------------------------------
 
-# Text warning, goes to dir_dat output
+# Text warning, goes to dir_img output
 # ['tent_warn_dset']
-def apqc_dat_tent_warn( opref ):
+def apqc_warns_TENT( obase, qcb, qci ):
+
+    opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''show any TENT warnings from timing_tool.py'''
 
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_dat}}/${{opref}}.json
+    set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
     cmd = '''
-if ( -f ${tent_warn_dset} ) then
-~~~~cat ${tent_warn_dset} > ${odir_dat}/${opref}.dat
-else
-~~~~echo " none "  > ${odir_dat}/${opref}.dat
-endif
+    if ( -f ${tent_warn_dset} ) then
+    ~~~~cat ${tent_warn_dset} > ${odir_img}/${opref}.dat
+    else
+    ~~~~echo " none "  > ${odir_img}/${opref}.dat
+    endif
     '''
 
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title ::  Check: TENT warnings from timing_tool.py
-    text  ::  ""
-    linkid :: wTENT
-    linkid_hov :: TENT warnings from timing_tool.py
-EOF
-'''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text  ::  "TENT warnings from timing_tool.py"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
+    '''
 
     comm = commentize( comm )
     pre  = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
     cmd  = commandize( cmd, cmdindent=0, ALLEOL=False )
-    #imtxt = echoize(imtxt, efile=otxt, padpost=2)
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
+
+
+# ========================== cp jsons ==============================
+
+# cp json(s) to QC_*/ dir
+# 1
+def apqc_DO_cp_subj_jsons( all_json ):
+
+    comm  = '''preserve subj jsons'''
+
+    pre = '''
+    set all_jsons = ( '''
+
+    # When this script is *run* from the AP results directory, all the
+    # JSONs should be *in* it, so we just get the tail of whatever
+    # path was entered.
+    for x in all_json :
+        y = x.split('/')
+        pre+= y[-1] + ' \n'
+    pre+= ' )'
+
+    cmd = '''
+    foreach ff ( ${all_jsons} ) 
+    ~~~~\cp ${ff} ${odir_info}/.
+    end
+    '''
+
+    comm = commentize( comm )
+    pre  = commandize( pre )
+    cmd  = commandize( cmd, cmdindent=0, ALLEOL=False  )
+
+    lout = [comm, pre, cmd]
     return '\n\n'.join(lout)
 
 
@@ -1407,7 +2046,7 @@ abids_json_tool.py
 
 # @ss_review_basic dumped to text file
 # 1
-def apqc_term_ss_review_basic( opref ):
+def apqc_DO_term_ss_review_basic( ):
 
     comm  = '''basic information from processing'''
 
@@ -1425,7 +2064,7 @@ def apqc_term_ss_review_basic( opref ):
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
-    cmd0  = commandize( cmd0 )
+    cmd0  = commandize( cmd0, padpost=2 )
 
     lout = [comm, pre, cmd0]
     return '\n\n'.join(lout)
@@ -1433,55 +2072,52 @@ def apqc_term_ss_review_basic( opref ):
 
 # ======================== html page title ============================
 
-def apqc_dat_html_title( opref, task_name = '' ):
+def apqc_Top_pagetop( opref, qcb, qci, task_name = '' ):
 
     comm  = '''subject ID for html page title'''
 
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
-    set ojson  = ${{odir_dat}}/${{opref}}.json
+    set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
-    #otxt  = "${odir_dat}/${opref}" + ".txt"
     jsontxt = '''
-cat << EOF >! ${tjson}
-    title  ::  "afni_proc.py single subject report"
-    subj   ::  "${subj}"
-    linkid :: "${subj}"
-    linkid_hov :: top of page
-EOF
-'''
-## !! to be added at some point, from new uvar:
-##    taskname  ::  task
+    cat << EOF >! ${{tjson}}
+    itemtype    :: TITLE
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subj        :: "${{subj}}"
+    EOF
+    '''.format(qci, qcb, lahh.qc_title[qcb][0], lahh.qc_title[qcb][1] )
+
+    ## !!!!! to be added at some point, from new uvar:
+    ##    taskname  ::  task
 
     jsontxt_cmd = '''
-abids_json_tool.py   
+    abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
     -input  ${tjson}
     -prefix ${ojson}
-'''
-
-
-#    cmd = '''
-#echo "afni_proc.py single subject report" > ${odir_dat}/${opref}.dat
-#echo "${subj}" >> ${odir_dat}/${opref}.dat
-#    '''
+    '''
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
                        ALIGNASSIGN=True, ALLEOL=False )
-    #cmd  = commandize( cmd, ALLEOL=False )
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
     lout = [comm, pre, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
-
+# =========================================================================
+# =========================================================================
 
 if __name__ == "__main__":
+    # Whee.
     print('Done.')

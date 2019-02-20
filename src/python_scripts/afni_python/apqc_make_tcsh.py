@@ -29,7 +29,7 @@ auth = 'PA Taylor'
 # + 'exit 0' added
 #
 #ver = '1.6' ; date = 'Nov 20, 2018' 
-# + [PT] RUN_MODE now formalized through input name; default 'basic'
+# + [PT] RUN_STYLE now formalized through input name; default 'basic'
 # + [PT] end with @ss_review_basic echoed to terminal
 #
 #ver = '1.7' ; date = 'Nov 23, 2018' 
@@ -42,7 +42,7 @@ auth = 'PA Taylor'
 # ver = '1.8' ; date = 'Nov 27, 2018' 
 # + [RCR] fixed py 2/3 compatability
 #
-ver = '1.9' ; date = 'Nov 27, 2018' 
+#ver = '1.9' ; date = 'Nov 27, 2018' 
 # + [PT] changed the conditions for 1dplotting programs
 #        -> now can still have enorm and outlier plots even without 
 #           censor_dset being in uvar json
@@ -52,7 +52,18 @@ ver = '1.9' ; date = 'Nov 27, 2018'
 #        showing the 6 volreg params without enorm and outlier frac
 # + [PT] output %age of vols censored with the enorm and outlier plots
 #
+#ver = '1.91' ; date = 'Dec 23, 2018' 
+# + [PT] rename "run_mode" -> "run_style" (more specific/correct)
+#
+ver = '2.0' ; date = 'Jan 2, 2019' 
+# + [PT] changed order of enorm and outlier (have former just after VR6)
+# + [PT] label on enorm, "~mm"
+# + [PT] fix name of per stimulus regressors file: X.stim.xmat.1D
+# + [PT] add in EPI in orig space volume, using volreg base vol
+#
 #########################################################################
+
+# !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
 
 import sys
 import os
@@ -78,11 +89,11 @@ if __name__ == "__main__":
     otcsh = iopts.subjdir + '/' + lat.scriptname
 
     # determines what functions/images are used.
-    RUN_MODE = iopts.revstyle
+    RUN_STYLE = iopts.revstyle
 
     # get dictionary form of json
     with open(iopts.json, 'r') as fff:
-        ap_ssdict = json.load(fff)
+        ap_ssdict = json.load(fff)    
 
     # -------------------------------------------------------------------
     # -------------------- start + header -------------------------------
@@ -140,10 +151,13 @@ if __name__ == "__main__":
     str_FULL+= ban
     str_FULL+= cmd
 
+    # --------------------------------------------------------------------
+
     # Top level: see if template can be found, *if* a template was used.
     # We always have to look, because even the EPI-anat alignment check
     # will be influenced by this-- if there *is* a template, then use its
     # box to define view slices; else, just try to "box in" the final anat.
+
     ldep = ['template']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('Top level: find a template')
@@ -157,16 +171,99 @@ if __name__ == "__main__":
     ldep  = ['subj']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('title of html page: subj')
-        opref    = lat.page_title_json
-        cmd      = lat.apqc_dat_html_title( opref )
+        opref    = lat.page_title_json  # here, just the title page name
+        cmd      = lat.apqc_Top_pagetop( opref, "Top", "pagetop" )
 
         str_FULL+= ban
         str_FULL+= cmd
 
     # --------------------------------------------------------------------
     # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
 
-    idx  = 0     # will see if this is desirable, in reality, for ordering...
+    # --------------------------------------------------------------------
+    #
+    # The following is a list of images that MAY be made as part of
+    # the QC.  These are now organized as QC blocks (see
+    # lahh.qc_blocks).  The order that these are listed here are
+    # basically the order in which they might occur there, and their
+    # file names will also reflect their QC block.  
+    # 
+    # Conventions for naming things:
+    #
+    # QC block names are short-ish (<= 5 chars) in order to keep small
+    # but constantly sized label sections at the top of the APQC HTML.
+    # 
+    # "obase" format for file names:
+    #   [prefix 'qc'] _ [index]
+    #
+    # final "opref" format for file names:
+    #   [prefix 'qc'] _ [index] _ [block abbrev] _ [specific file in block]
+    #
+    # functions in lib_apqc_tcsh:
+    #   [prefix 'apqc'] _ [block abbrev] _ [specific file in block]
+    # 
+    # To add a new QC thing to an existing QC block, just follow the
+    # above conventions in both this file and lib_apqc_tcsh.  These
+    # names are also used in the JSON files created for each
+    # image. There are examples of programs dealing with: vols, 1D
+    # files, text warnings, and other 'data'.
+    #
+    # If adding a new QC block, probably just do so by following the
+    # above conventions once one decides on the QC block name and
+    # specific part sub-name, and in the JSON files.
+    #
+    # --------------------------------------------------------------------
+
+    idx  = 0
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : EPI in orig
+
+    ### [PT: Dec 21, 2018] will come back to this with a uvars for the
+    ### vr_base set
+    ldep  = ['vr_base']
+    if lat.check_dep(ap_ssdict, ldep) :
+        volitem  = "EPI" # because we use same func to plot for both
+                         # EPI and anat vols
+         # no focus_box necessary here
+        ban      = lat.bannerize('{} in orig space'.format(volitem))
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
+                                       ulay_name=ldep[0] )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "vorig"
+    # item    : anat in orig
+
+    ### [PT: Dec 21, 2018] will come back to this with a uvars for the
+    ### vr_base set
+    ldep  = ['anat_orig']
+    if lat.check_dep(ap_ssdict, ldep) :
+        volitem  = "anat" # because we use same func to plot for both
+                         # EPI and anat vols
+        # no focus_box necessary here
+        ban      = lat.bannerize('{} in orig space'.format(volitem))
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_vorig_all( obase, "vorig", volitem, 
+                                       ulay_name=ldep[0] )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+
+    # --------------------------------------------------------------------
+
+    # QC block: "ve2a"
+    # item    : EPI to anat align
 
     ldep  = ['final_anat', 'final_epi_dset']
     ldep2 = ['template'] # secondary consideration
@@ -177,26 +274,35 @@ if __name__ == "__main__":
             focusbox = '${final_anat}'
 
         ban      = lat.bannerize('EPI and anatomical alignment')
-        opref    = 'IMG_{:02d}_vol_align_epi_anat'.format(idx)
-        cmd      = lat.apqc_vol_align_epi_anat( opref, focusbox )
+        obase    = 'qc_{:02d}'.format(idx) # will get appended to
+        cmd      = lat.apqc_ve2a_epi2anat( obase, "ve2a", "epi2anat", focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "va2t"
+    # item    : anat to template align
 
     ldep = ['final_anat', 'template']
     if lat.check_dep(ap_ssdict, ldep) :
         focusbox = '${templ_vol}'
 
         ban      = lat.bannerize('anatomical and template alignment')
-        opref    = 'IMG_{:02d}_vol_align_anat_tlrc'.format(idx)
-        cmd      = lat.apqc_vol_align_anat_tlrc( opref, focusbox )
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_va2t_anat2temp( obase, "va2t", "anat2temp", 
+                                            focusbox )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "vstat"
+    # item    : stats in vol: F-stat (def) and other stim/contrasts
 
     ldep  = ['stats_dset', 'mask_dset', 'final_anat']
     ldep2 = ['template'] # secondary consideration
@@ -207,147 +313,259 @@ if __name__ == "__main__":
             focusbox = '${final_anat}'
 
         ban      = lat.bannerize('view some stats results')
-        opref    = 'IMG_{:02d}_vol_check_stats_anat'.format(idx)
+        obase    = 'qc_{:02d}'.format(idx)
         # in this case, we also specify the indices of the ulay and
         # thr volumes in the stats dset-- we intend that this will
         # generalize to viewing not just the F-stat (the default)
-        cmd      = lat.apqc_vol_check_stats_anat( opref, focusbox, 0, 0 )
+        cmd      = lat.apqc_vstat_fstat( obase, "vstat", "fstat", 
+                                         focusbox, 0, 0 )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "mot"
+    # item    : motion (enorm) + outlier fraction
+
+    # first, check if BOTH enorm and outlier dsets are present-- if
+    # so, make a combined plot (for space considerations); otherwise,
+    # check for the others. An additional constraint-- think only
+    # 1dplot.py can do this, so run_style must be 'pythonic'.
+    BOTH_ENORM_OUTLIER = 0
+    ldep = ['enorm_dset', 'outlier_dset', 'nt_orig']
+    if lat.check_dep(ap_ssdict, ldep) and RUN_STYLE == 'pythonic' :
+        # additional checks here for possible other uvars to use
+        BOTH_ENORM_OUTLIER = 1
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
+        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+        ban      = lat.bannerize('mot enorm plus outlier frac, and censoring')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_mot_enormoutlr( obase, "mot", "enormoutlr", 
+                                            RUN_STYLE, 
+                                            1600, 
+                                            has_cen_dset=HAS_censor_dset,
+                                            has_lim_mot=HAS_mot_limit,
+                                            has_lim_out=HAS_out_limit )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mot"
+    # item    : motion (enorm), only
+
+    ldep = ['enorm_dset', 'nt_orig']
+    if lat.check_dep(ap_ssdict, ldep) and not(BOTH_ENORM_OUTLIER) :
+        # additional checks here for possible other uvars to use
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
+        ban      = lat.bannerize('mot enorm and censoring')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_mot_enorm( obase, "mot", "enorm", RUN_STYLE, 
+                                       1600, 
+                                       has_cen_dset=HAS_censor_dset,
+                                       has_lim=HAS_mot_limit )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mot"
+    # item    : outlier frac, only
+
+    # [PT] no longer checks for 'censor_dset' or 'out_limit' *here*,
+    #just later
+    ldep = ['outlier_dset', 'nt_orig']
+    if lat.check_dep(ap_ssdict, ldep) and not(BOTH_ENORM_OUTLIER) :
+        # additional checks here for possible other uvars to use
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+        ban      = lat.bannerize('outlier fraction and censoring')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_mot_outlr( obase, "mot", "outlr", RUN_STYLE, 
+                                       1600, 
+                                       has_cen_dset=HAS_censor_dset,
+                                       has_lim=HAS_out_limit )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "mot"
+    # item    : motion (VR6)
 
     # [PT: Nov 1, 2018] update list in ldep var-- much shorter now
     ldep = ['motion_dset', 'nt_orig']  
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize(' volreg motion pars')
-        opref    = 'IMG_{:02d}_1D_volreg'.format(idx)
-        cmd      = lat.apqc_1D_volreg( 1600, opref, RUN_MODE )
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_mot_VR6( obase, "mot", "VR6", RUN_STYLE, 
+                                     1600 )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
 
-    # [PT] no longer checks for 'censor_dset' or 'out_limit' *here*,
-    #just later
-    ldep = ['outlier_dset', 'nt_orig']
+    # QC block: "regr"
+    # item    : sum of stims (regressors of interest)
+
+    # [PT: Jan 14, 2019] Stats dset now included in ldep here, because
+    # if there is no stats dset or its value is NO_STATS, then there
+    # *are no* regressors of interest, so we won't try to plot them.
+    # At some point, we will add in different info to put here, though.
+    ldep = ['sum_ideal', 'stats_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        ban      = lat.bannerize('sum of regressors of interest in X-matrix')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_ideal( obase, "regr", "ideal", RUN_STYLE, 
+                                        1600, 
+                                        has_cen_dset=HAS_censor_dset )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "regr"
+    # item    : indiv stims (regressors of interest)
+
+    # [PT: Jan 14, 2019] Stats dset now included in ldep here, because
+    # if there is no stats dset or its value is NO_STATS, then there
+    # *are no* regressors of interest, so we won't try to plot them.
+    # At some point, we will add in different info to put here, though.
+    ldep = ['xmat_stim', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         # additional checks here for possible other uvars to use
         HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
-        ban      = lat.bannerize('outlier fraction and censoring')
-        opref    = 'IMG_{:02d}_1D_cen_out'.format(idx)
-        cmd      = lat.apqc_1D_cen_out( 1600, opref, RUN_MODE,
-                                        has_cen_dset=HAS_censor_dset,
-                                        has_lim=HAS_out_limit )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
-
-    # [PT] no longer checking for 'censor_dset' or 'mot_limit' *here*,
-    # just later
-    ldep = ['enorm_dset', 'nt_orig']
-    if lat.check_dep(ap_ssdict, ldep) :
-        # additional checks here for possible other uvars to use
-        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
-        HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
-        ban      = lat.bannerize('mot enorm and censoring')
-        opref    = 'IMG_{:02d}_1D_enorm_mot'.format(idx)
-        cmd      = lat.apqc_1D_motenorm_cen( 1600, opref, RUN_MODE,
-                                        has_cen_dset=HAS_censor_dset,
-                                        has_lim=HAS_mot_limit )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
-
-    ldep = ['xmat_stim']
-    if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('plot X-matrix, but without '
                                  'baseline and motion')
-        opref    = 'IMG_{:02d}_1D_xmat_stim'.format(idx)
-        cmd      = lat.apqc_1D_xmat_stim(1600, opref, RUN_MODE)
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_stims( obase, "regr", "stims", RUN_STYLE, 
+                                        1600, 
+                                        has_cen_dset=HAS_censor_dset )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
 
-    ldep = ['sum_ideal']
+    # QC block: "regr"
+    # item    : degrees of freedom (DF) check-- simple text output
+
+    ldep  = ['xmat_regress']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('sum of non-baseline regressors in X-matrix')
-        opref    = 'IMG_{:02d}_1D_sum_ideal'.format(idx)
-        cmd      = lat.apqc_1D_sum_ideal(1600, opref, RUN_MODE)
+
+        ban      = lat.bannerize('check degrees of freedom')
+        obase    = 'qc_{:02d}'.format(idx)
+        # in this case, we also specify the indices of the ulay and
+        # thr volumes in the stats dset-- we intend that this will
+        # generalize to viewing not just the F-stat (the default)
+        cmd      = lat.apqc_regr_df( obase, "regr", "df" )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
 
-    # ------- out review basic info
-    if 1 :
-        ban      = lat.bannerize('ss review basic info')
-        opref    = 'TXT_{:02d}_dat_ss_review_basic'.format(idx)
-        cmd      = lat.apqc_dat_ss_review_basic( opref )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
-
-    # ------- string warning: keep last in HTML converter because of
-    # ------- expected variable length per subject
+    # QC block: "warns"
+    # item    : correlation warnings in X.xmat.1D
 
     ldep = ['xmat_regress']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('correlation warnings')
-        opref    = 'WARN_{:02d}_dat_cormat_warn'.format(idx)
-        cmd      = lat.apqc_dat_cormat_warn( opref )
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_xmat( obase, "warns", "xmat" )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : pre-steady state warnings
 
     ldep = ['pre_ss_warn_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('pre-steady state warnings')
-        opref    = 'WARN_{:02d}_dat_pre_ss_warn'.format(idx)
-        cmd      = lat.apqc_dat_pre_ss_warn( opref )
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_press( obase, "warns", "press" )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : TENT warnings from timing tool
 
     ldep = ['tent_warn_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('TENT warnings')
-        opref    = 'WARN_{:02d}_dat_tent_warn'.format(idx)
-        cmd      = lat.apqc_dat_tent_warn( opref )
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_warns_TENT( obase, "warns", "TENT" )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
 
-    # -------------------- final steps -------------
+    # QC block: "qsumm"
+    # item    : quant output of @ss_review_basic
+
+    # ------- out review basic info
+    if 1 :
+        ban      = lat.bannerize('ss review basic info')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_qsumm_ssrev( obase, "qsumm", "ssrev" )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+    # --------------------------------------------------------------------
+
+    # FINAL STEPS
+    ## Not generating a QC block, but other supplementary+useful things
+
+    # cp JSON(s) over to QC_* subdir
+    if 1:
+        ban      = lat.bannerize('copy JSONs over to QC dir')
+        all_json = [iopts.json] # only one at the moment...
+        cmd      = lat.apqc_DO_cp_subj_jsons( all_json )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
 
     # echo @ss_review_basic *to terminal*, and then exit with 0
     if 1:
         ban      = lat.bannerize('ss review basic info *to terminal*')
-        opref    = 'TXT_{:02d}_dat_ss_review_basic'.format(idx)
-        cmd      = lat.apqc_term_ss_review_basic( opref )
+        cmd      = lat.apqc_DO_term_ss_review_basic( )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
 
+    # --------------------------------------------------------------------
 
     if 1:
         ban      = lat.bannerize('Finish gracefully, if possible')
@@ -357,6 +575,7 @@ if __name__ == "__main__":
         str_FULL+= cmd
         idx     += 1
 
+    # ======================================================================
     # ======================================================================
 
     # write, chmod and finish

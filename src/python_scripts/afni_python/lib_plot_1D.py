@@ -9,9 +9,12 @@ author    = "PA Taylor (NIMH, NIH)"
 # + [PT] fixed censor_hline stuff- now is list of floats, except
 #        at single plot level, when is just a float
 #
-version   = "1.31"; date  = "Dec 5, 2018"
+#version   = "1.31"; date  = "Dec 5, 2018"
 # + [PT] at the moment, numpy isn't actually used here, so removing
 #        that import-- I would expect it to return *someday*, though.
+#
+version   = "1.4"; date  = "Jan 14, 2019"
+# + [PT] calc 1D-plot LW from Npts
 #
 # =================================================================
 
@@ -28,13 +31,22 @@ import afni_util          as au
 MAXLEN = 10**7     # can adjust if that is ever necessary!
 EPS    = 10**(-14)
 
+MULTIRUN_SHADE = '0.95'
+
 # =====================================================================
 # =====================================================================
 
 # Note: current size limit of plots is 10**6 values in a column, if
 # using create_xarrs via "-xvals ..."
 
+# 'bf' stands for 'bigfig' (figplobj); 'ss' for single subject
+# (subplobj).
 def make_1dplot_figure(bf):
+    '''Input 'bf' is an instance of the figplobj object.  It is made up of
+lots of individual subject 'ss' instances of the subplobj object.
+
+    '''
+
     fff = plt.figure(bf.title, figsize=bf.figsize)
 
     rcParams['font.family'] = bf.fontfamily
@@ -74,15 +86,29 @@ def make_1dplot_figure(bf):
 
         # ----------------- Main plot: time series ---------------------
 
+        if bf.npatch :
+            rsum = ss.x[0]
+            for vv in range(0, bf.npatch-1, 2):
+                rsum+= bf.patch_arr[vv]
+                pp.add_patch(
+                    matpat.Rectangle( ( rsum, 
+                                        ss.ylim[0] ),
+                                      width=bf.patch_arr[vv+1],
+                                      height=(ss.ylim[1] - ss.ylim[0]),
+                                      facecolor=laio.DEF_patch_alt_RGB,
+                                      lw=0, edgecolor=None, alpha=None) ) 
+                rsum+= bf.patch_arr[vv+1]
+
         if bf.ncensor : 
             xoffset = 0.5 * bf.censor_width
             for cc in range(bf.ncensor):
-                pp.add_patch(matpat.Rectangle( (bf.censor_arr[cc] - xoffset, 
-                                                ss.ylim[0]),
-                    width=bf.censor_width,
-                    height=(ss.ylim[1] - ss.ylim[0]),
-                    facecolor=bf.censor_RGB,
-                    lw=0, edgecolor=None, alpha=None) )
+                pp.add_patch(
+                    matpat.Rectangle( (bf.censor_arr[cc] - xoffset, 
+                                       ss.ylim[0]),
+                                      width=bf.censor_width,
+                                      height=(ss.ylim[1] - ss.ylim[0]),
+                                      facecolor=bf.censor_RGB,
+                                      lw=0, edgecolor=None, alpha=None) )
 
         if ss.censor_hline : 
             pp.axhline( y=ss.censor_hline, 
@@ -91,12 +117,13 @@ def make_1dplot_figure(bf):
 
         if bf.see_xax : 
             pp.axhline(y=0, c='0.6', ls='-', lw=0.5)
-            #plt.axhline(y=0, c='0.5', ls=':', lw=0.75)
 
-        # the actual plot
+        ## the actual plot. 
+        # [PT: Jan 14, 2019] now get line width as a function of the
+        # number of points.
         sp = pp.plot( ss.x, ss.y, 
                       color = ss.color,
-                      lw=2 )
+                      lw=calc_lw_from_npts(ss.npts) )
 
         pp.set_xlim(ss.xlim)
         pp.set_ylim(ss.ylim)
@@ -144,14 +171,53 @@ def make_1dplot_figure(bf):
 
             if bf.see_xax : 
                 qq.axhline(y=0, c='0.6', ls='-', lw=0.5)
-                #plt.axhline(y=0, c='0.5', ls=':', lw=0.75)
 
-            # actual boxplot
-            sq = qq.boxplot( ss.y,
-                             widths=0.1,
-                             sym='.',
-                             notch=0, 
-                             patch_artist=True)
+            # ------------ actual boxplot ------------------
+
+            ## [PT: Jan 15, 2019] Add functionality to see boxplot of
+            ## censored data, too, if not turned off *when* censoring
+            ## and asking for a boxplot
+            if bf.bplot_view == "BC_AC" :
+                W = 0.15
+                sq = qq.boxplot( [ss.y, ss.ycen],
+                                 widths=W,
+                                 positions=[0.25, 0.75],
+                                 sym='.',
+                                 notch=0, 
+                                 patch_artist=True )
+                ''' # unfortunately, this may not be workable to distinguish
+                W3 = 3*W
+                qq.add_patch(
+                    matpat.Rectangle( ( 0.25 - W3/2.0, 
+                                        ss.ylim[0] ),
+                                      width=W3,
+                                      height=(ss.ylim[1] - ss.ylim[0]),
+                                      facecolor=bf.censor_RGB,
+                                      lw=0, edgecolor=None, alpha=None) )
+                '''
+                if not(i):
+                    # cheating with title because tight layout doesn't
+                    # know about suptitle: BC='before censoring', and
+                    # AC='after censoring'
+                    qq.set_title( "BC AC", fontsize=bf.fontsize )
+
+            elif bf.bplot_view == "BC_ONLY" :
+                sq = qq.boxplot( ss.y,
+                                 widths=0.1,
+                                 sym='.',
+                                 notch=0, 
+                                 patch_artist=True )
+            elif bf.bplot_view == "AC_ONLY" :
+                sq = qq.boxplot( ss.ycen,
+                                 widths=0.1,
+                                 sym='.',
+                                 notch=0, 
+                                 patch_artist=True )
+                if not(i):
+                    qq.set_title( "AC", fontsize=bf.fontsize )
+                
+
+
             # fun parameter-setting for boxplot
             SETLW = 1.
             MARKSIZE1 = 8
@@ -167,8 +233,8 @@ def make_1dplot_figure(bf):
             boxlines = sq['boxes']
             for line in boxlines:
                 line.set_color(ss.color)
-            plt.setp(sq['fliers'],   marker='.', mew=0.3, mec='k', mfc=ss.color, 
-                                     color=ss.color, ms=MARKSIZE2)
+            plt.setp(sq['fliers'], marker='.', mew=0.3, mec='k', mfc=ss.color, 
+                     color=ss.color, ms=MARKSIZE2)
             plt.setp(sq['whiskers'], color=ss.color, linestyle='-', lw=SETLW )
             plt.setp(sq['caps'],     color=ss.color, linestyle='-', lw=SETLW )
 
@@ -178,15 +244,18 @@ def make_1dplot_figure(bf):
 
             # stuff for y-axis ticks (on) and labels (off)
             qq.yaxis.set_minor_locator(AutoMinorLocator(2))
-            qq.tick_params( axis='y', which='minor', direction='in', color='0.5',
+            qq.tick_params( axis='y', which='minor', direction='in', 
+                            color='0.5',
                             bottom=True, left=True, right=True ) #, top=True )
-            qq.tick_params( axis='y', which='major', direction='in', color='0.5',
+            qq.tick_params( axis='y', which='major', direction='in', 
+                            color='0.5',
                             bottom=True, left=True, right=True,
                             labelleft=False) #, top=True )
-            pp.spines['bottom'].set_color('0.5')
-            pp.spines['top'   ].set_color('0.5')
+            qq.spines['bottom'].set_color('0.5')
+            qq.spines['top'   ].set_color('0.5')
             qq.spines['left'  ].set_color('0.5')
             qq.spines['right' ].set_color('0.5')
+
 
 
     # finishing touches
@@ -202,10 +271,26 @@ def make_1dplot_figure(bf):
 
     return 0
 
-# --------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
 
+def calc_lw_from_npts(N):
+    if N < 450:
+        return 1.5
+    elif N < 1200:
+        return 1.0
+    elif N < 2550:
+        return 0.75
+    else:
+        return 0.5
+
+# ---------------------------------------------------------------------------
+
+# make the 'bigfig' object (type: figplobj) from lots of individual
+# 'ss' subjects (type: subplobj).
 def populate_1dplot_fig(iopts):
 
+    # The order of setting things here matters in some cases, so don't
+    # rearrange without mega-testing.
     bigfig = laio.figplobj()
     bigfig.set_dpi( iopts.dpi )
     bigfig.set_layout( iopts.layout )
@@ -217,8 +302,11 @@ def populate_1dplot_fig(iopts):
     bigfig.set_censor_arr( iopts.censor_arr )
     bigfig.set_censor_width( iopts.censor_width )
     bigfig.set_censor_RGB( iopts.censor_RGB )
+    bigfig.set_censor_on( iopts.censor_on )
     bigfig.set_censor_hline( iopts.censor_hline )
+    bigfig.set_patch_arr( iopts.patch_arr )
     bigfig.set_boxplot( iopts.boxplot_on )
+    bigfig.set_bplot_view( iopts.bplot_view )
 
     for i in range(iopts.ndsets):
 
@@ -242,17 +330,24 @@ def populate_1dplot_fig(iopts):
 
         ss.set_y( iopts.all_y[ii] )
 
+        # if not a null set, then there is one for each subj; for
+        # plotting in "after censoring" boxplot, if selected at the
+        # moment, only a single censor list gets applied to whole
+        # plot.  This gets calculated, even if not applied.
+        if bigfig.boxplot_ycen : 
+            ycen = make_censored_sublist( ss.y, bigfig.censor_arr )
+            ss.set_ycen( ycen )
+
         # if not a null set, then there is one for each subj
         if iopts.censor_hline : 
             ss.set_censor_hline(iopts.censor_hline[ii] )
 
         if iopts.onescl :
-            delta = iopts.all_ymax - iopts.all_ymin
-            bb = iopts.all_ymin - 0.1 * delta
-            tt = iopts.all_ymax + 0.1 * delta
-            ss.set_ylim([bb, tt])
+            ss.set_ylim( laio.rangeize_plots( iopts.all_ymin, 
+                                              iopts.all_ymax,
+                                              firm_lim = iopts.yaxran[ii]) )
         else:
-            ss.set_ylim()
+            ss.set_ylim( ext_ylim=iopts.yaxran[ii] )
         ss.set_ylabel( iopts.ylabels[ii] )
 
         bigfig.add_sub(ss)
@@ -262,7 +357,22 @@ def populate_1dplot_fig(iopts):
 
     return bigfig
 
-# --------------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+
+# Apply censoring to a time series, to generate a list of censored
+# values (for boxplotting, mainly)
+def make_censored_sublist( y, cen_arr ):
+
+    Ny    = len(y)
+    olist = []
+
+    for i in range(Ny):
+        if not(cen_arr.__contains__(i)) :
+            olist.append( y[i] )
+
+    return olist
+
+# ---------------------------------------------------------------------------
 
 def populate_1dplot_arrays(iopts):
 
@@ -284,6 +394,8 @@ def populate_1dplot_arrays(iopts):
     # good: it must be either 0 (no lines added), 1 (same line added
     # to all) and/or match the number of input yfiles
     iopts.check_censor_hlines()
+    # ... and check this in the same way: optional user entry for ylims
+    iopts.check_yaxran()
 
     return 0
 

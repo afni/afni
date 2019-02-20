@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Feb , 2019 , PT , "apqc_make_html.py" , SUPERDUPER , TYPE_GENERAL,
+   "Much functionality changed/improved (hopefully).",
+   "More output, better formats, help and HTML framework.\n"
+},
+
+{ 19, Feb , 2019 , PT , "apqc_make_tcsh.py" , SUPERDUPER , TYPE_GENERAL,
+   "Much functionality changed/improved (hopefully).",
+   "More output, better formats, help and HTML framework.\n"
+},
+
+{ 19, Feb , 2019 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Line thickness of plots now adjusts with number of points.",
+   "Useful as the number of time points increases (hopefully).\n"
+},
+
 { 13, Feb , 2019 , PT , "@SSwarper" , MICRO , TYPE_NEW_OPT,
    "Renaming the non-pre-skullstripping option to -init_skullstr_off.",
    "Otherwise, might falsely seem like NO skullstripping would be done.\n"

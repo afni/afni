@@ -18,11 +18,22 @@
 #ver = '1.3b' ; date = 'Dec 19, 2018' 
 # + [PT] make 1dplot.py show correct help
 #
+#ver = '1.4' ; date = 'Dec 23, 2018' 
+# + [PT] change condition for how to check for all args after option
+#   flag-- should be more stable for larger range of options; 
+# + [PT] have added '-yaxis ...' stuff to pythonic style
+#
+ver = '1.5' ; date = 'Jan 15, 2019' 
+# + [PT] add in new plotting functionality: when one has both boxplot
+#   on *and* censoring, data BC and AC.
+# + [PT] ... and have a new option to go back to just having only BC
+#   data, via '-bplot_view BC_ONLY'
+#
 #########################################################################
 
 # Supplementary stuff and I/O functions for the AP QC tcsh script
 
-import sys
+import sys, copy
 import lib_afni1D as LAD
 import afni_util  as au
 
@@ -36,31 +47,34 @@ ok_ftypes      = [ '.jpg', '.png', '.tif' ]
 # determine what kind of images get made
 ok_review_styles = ["none", "basic", "pythonic", "java"]
 
-DEF_dpi        = 150
-DEF_prefix     = "PREFIX"
-DEF_figsize    = [10, 0.75]
-DEF_fontsize   = 10
-DEF_fontfamily = "monospace"
-DEF_fontstyles = [] # empty by default, so comp would go through list
-DEF_layout     = "tight"  # good for single plots; 'nospace' good for multiplot
-DEF_censor_RGB = [1, 0.7, 0.7] #'red' #'green'
-DEF_censor_hline_RGB = 'c'
-DEF_bkgd_color = '0.93'
-DEF_boxplot_on = False
+DEF_dpi           = 150
+DEF_prefix        = "PREFIX"
+DEF_figsize       = [10, 0.75]
+DEF_fontsize      = 10
+DEF_fontfamily    = "monospace"
+DEF_fontstyles    = [] # empty by default, so comp would go through list
+DEF_layout        = "tight"  # good for single plots; 'nospace' for multiplot
+DEF_censor_RGB    = [1, 0.7, 0.7] #'red' #'green'
+DEF_censor_hline_RGB = 'cyan'
+DEF_patch_alt_RGB = '0.95'
+DEF_bkgd_color    = '0.9'
+DEF_boxplot_on    = False
+DEF_bplot_view    = ""  # vals: ["BC_ONLY", "BC_AC"]
+DEF_boxplot_ycen  = False
+DEF_censor_on     = False
 
 # mostly from: plt.cm.get_cmap('Set1') and plt.cm.get_cmap('tab10')
 DEF_color_table = [
-    [0.215, 0.494, 0.721, 1.0],
-    [0.894, 0.102, 0.110, 1.0],
-    [0.172, 0.627, 0.172, 1.0],
-    [1.0,   0.498, 0.0,   1.0],
-    [0.586, 0.296, 0.629, 1.0],
-    [ 0.1,  0.8,   0.8,   1.0],
-    [0.968, 0.506, 0.749, 1.0],
-    [0.651, 0.337, 0.157, 1.0],
-    [0.6,   0.6,   0.6,   1.0],
-    [0.737, 0.741, 0.133, 1.0],
-    [0.6,   0.6,   0.6,   1.0]]
+    [0.215, 0.494, 0.721, 1.0], # blue
+    [0.894, 0.102, 0.110, 1.0], # red
+    [0.172, 0.627, 0.172, 1.0], # green
+    [1.0,   0.498, 0.0,   1.0], # orange
+    [0.586, 0.296, 0.629, 1.0], # purple
+    [ 0.1,  0.8,   0.8,   1.0], # cyan
+    [0.968, 0.506, 0.749, 1.0], # pink
+    [0.651, 0.337, 0.157, 1.0], # brown
+    [0.6,   0.6,   0.6,   1.0], # gray
+    [0.737, 0.741, 0.133, 1.0]] # dark yellow
 
 # -------------------------------------------------------------------
 # -------------------------------------------------------------------
@@ -118,12 +132,23 @@ COMMAND OPTIONS ~1~
                limited by packages (or lack thereof) installed on your
                computer.  Default output image type is {def_ext}
 
--boxplot_on :a fun feature to show an small, additional boxplot
+-boxplot_on   :a fun feature to show an small, additional boxplot
                adjacent to each time series.  The plot is a standard
                Python boxplot of that times series's values.  The box
                shows the 25-75%ile range (interquartile range, IQR);
                the median value highlighted by a white line; whiskers
                stretch to 1.5*IQR; circles show outliers.
+               When using this option and censoring, by default both a
+               boxplot of data "before censoring" (BC) and "after
+               censoring (AC) will be added after.  See '-bplot_view ...'
+               about current opts to change that, if desired.
+
+-bplot_view BC_ONLY | AC_ONLY
+              :when using '-boxplot_on' and censoring, by default the
+               plotter will put one boxplot of data "before censoring"
+               (BC) and after censoring (AC). To show *only* the
+               uncensored one, use this option and keyword.
+
 
 -xfile   XX   :one way to input x-values explicitly: as a "1D" file XX, a
                containing a single file of numbers.  If no xfile is 
@@ -136,6 +161,18 @@ COMMAND OPTIONS ~1~
                the stop (exclusive) and the steps to take, following
                Python conventions-- that is, numbers are generated
                [START,STOP) in stepsizes of STEP.
+
+-yaxis YMIN1:YMAX1 YMIN2:YMAX2 YMIN3:YMAX3 ...
+              :optional range for each "infile" y-axis; note the use
+              of a colon to designate the min/max of the range.  One
+              can also specify just the min (e.g., "YMIN:") or just
+              the max (e.g., ":YMAX"). The final number of y-axis
+              values or pairs *must* match the total number of columns
+              of data from infiles; a placeholder could just be
+              ":". Without specifying a range, one is calculated
+              automatically from the min and max of the dsets
+              themselves. The order of ylabels should match the order
+              of infiles.
 
 -ylabels YL1 YL2 YL3 ...
               :optional text labels for each "infile" column; the
@@ -195,6 +232,17 @@ COMMAND OPTIONS ~1~
                 infile column is given, a default palette of {def_num_col}
                 colors, chosen for their mutual-distinguishable-ness,
                 will be cycled through.
+
+-patches RL1 RL2 RL3 ...
+               :when viewing data from multiple runs that have been
+                processing+concatenated, knowing where they start/stop
+                can be useful. This option helps with that, by
+                alternating patches of the background slightly between
+                white and light gray.  The user enters any appropriate
+                number of run lengths, and the background patch for
+                the duration of the first is white, then light gray,
+                etc. (to *start* with light gray, one can have '0' be
+                the first RL value).
 
 -censor_trs CS1 CS2 CS3 ...
                :specify time points where censoring has occured (e.g.,
@@ -288,38 +336,61 @@ def ARG_missing_arg(arg):
 # object for each figure
 class figplobj:
 
-    title    = ""
-    dpi      = DEF_dpi
-    all_subs = []     # will be a list of subplots
-    nsub     = 0
-    fname    = DEF_prefix
-    figsize  = []
-    fontsize = DEF_fontsize
-    fontfamily = DEF_fontfamily
-    fontstyles = DEF_fontstyles
-    layout     = DEF_layout
-    see_xax  = True
-    color_table = []
-    censor_RGB = DEF_censor_RGB
+    title        = ""
+    dpi          = DEF_dpi
+    all_subs     = []     # will be a list of subplots
+    nsub         = 0
+    fname        = DEF_prefix
+    figsize      = []
+    fontsize     = DEF_fontsize
+    fontfamily   = DEF_fontfamily
+    fontstyles   = DEF_fontstyles
+    layout       = DEF_layout
+    see_xax      = True
+    color_table  = []
+    censor_RGB   = DEF_censor_RGB
     censor_width = 0
-    censor_arr = []              # NB: really stays a list
+    censor_arr   = []              # NB: really stays a list
+    censor_on    = DEF_censor_on
     censor_hline = []
-    ncensor = 0
-    bkgd_color = DEF_bkgd_color
-    boxplot_on = DEF_boxplot_on
-
+    ncensor      = 0
+    patch_arr    = []
+    npatch       = 0
+    bkgd_color   = DEF_bkgd_color
+    boxplot_on   = DEF_boxplot_on
+    bplot_view   = ''
+    boxplot_ycen = DEF_boxplot_ycen
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
 
+    def set_censor_on(self, c):
+        self.censor_on = c
+
     def set_boxplot(self, c):
         self.boxplot_on = c
+
+    def set_boxplot_ycen(self, c):
+        self.boxplot_ycen = c
+
+    def set_bplot_view(self, c):
+        if not(self.censor_on) :
+            self.bplot_view = "BC_ONLY"
+        else:
+            if not(c) or c == "BC_AC":
+                self.bplot_view = "BC_AC"
+            elif c == 'BC_ONLY' or c == 'AC_ONLY':
+                self.bplot_view = c
+            else:
+                sys.exit("**ERROR: no bplot_view option {}".format(c))
+
+        # And then flag to calc ycen
+        if self.bplot_view.__contains__("AC"):
+            self.set_boxplot_ycen(True)
 
     def set_bkgd_color(self, c):
         self.bkgd_color = c
 
-#    def set_censor_hline(self, hh):
-#        self.censor_hline = float(hh)
     def set_censor_hline(self, listhh):
         for hh in listhh:
             self.censor_hline.append(hh)
@@ -330,6 +401,10 @@ class figplobj:
     def set_censor_arr(self, ll):
         self.censor_arr = ll
         self.ncensor = len(self.censor_arr)
+
+    def set_patch_arr(self, ll):
+        self.patch_arr = ll
+        self.npatch = len(self.patch_arr)
 
     def set_title(self, title):
         self.title = title
@@ -390,6 +465,7 @@ class subplobj:
 
     x      = []
     y      = []
+    ycen   = []    # will be a list of points after censoring
     xlabel = ""
     ylabel = ""
     xlim   = []
@@ -398,7 +474,7 @@ class subplobj:
     color  = ""
     ymin   = 0.
     ymax   = 0.
-    censor_hline  = [] # will just be a single number
+    censor_hline  = [] # will just be a single number for the subj
 
     def set_x(self, x):
         self.x = x
@@ -411,6 +487,16 @@ class subplobj:
         self.ymin = ymin
         self.ymax = ymax
         self.npts = len(y)
+
+    # [PT: Jan 15, 2019] put these properties for each single subj now
+    def set_ycen(self, y):
+        ymin, ymean, ymax, ystdev = au.min_mean_max_stdev(y)
+        self.ycen = y
+        #self.ymin = np.min(self.y)
+        #self.ymax = np.max(self.y)
+        self.ycenmin = ymin
+        self.ycenmax = ymax
+        self.ycennpts = len(y)
 
     def set_xlabel(self, xlabel):
         self.xlabel = xlabel
@@ -432,16 +518,14 @@ class subplobj:
             #self.xlim = [ np.min(self.x) - 0.5*deltax, 
             #              np.max(self.x) + 0.5*deltax ]
 
-    def set_ylim(self, ylim=[]):
+    # [PT] add in additional check in case user input ranges
+    def set_ylim(self, ylim=[], ext_ylim=[]):
         if ylim :
             self.ylim = ylim
         else:
-            deltay = self.ymax - self.ymin
-            # polish 'em
-            bb2 = self.ymin - 0.1*deltay
-            tt2 = self.ymax + 0.1*deltay
-            self.ylim = [ bb2, 
-                          tt2 ]
+            bb = self.ymin
+            tt = self.ymax
+            self.ylim = rangeize_plots( bb, tt, firm_lim=ext_ylim )
 
     def check_len_xy(self):
         MISS = 0
@@ -480,6 +564,7 @@ class apqc_1dplot_opts:
     reverse_order = False
     xfile   = ""    # 1D file of xaxis vals
     xvals   = []    # alt. xaxis def: "start stop step"
+    yaxran  = []    # yaxis range [MIN, MAX]; maybe later include more
 
     dpi     = DEF_dpi
     title   = ""
@@ -492,10 +577,16 @@ class apqc_1dplot_opts:
     ncolors = 0
     bkgd_color = DEF_bkgd_color
     boxplot_on = DEF_boxplot_on
-    
+    bplot_view = DEF_bplot_view
+
     # input catchers for censoring
     censor_in_trs   = []
     censor_in_files = []
+    censor_on       = DEF_censor_on # if user asks for censoring, this
+                                    # will go to True, and then if
+                                    # boxplotting, the BC_AC will be
+                                    # default, EVEN IF no points were
+                                    # censored for a subj
 
     # derived values from censoring
     censor_arr   = []     # the final list; this is used
@@ -503,6 +594,8 @@ class apqc_1dplot_opts:
     censor_width = 0
     censor_RGB   = DEF_censor_RGB
     censor_hline = []
+
+    patch_arr   = [] # list of run lengths, for alternating patches of plot
 
     # derived vals
     all_x  = []
@@ -541,14 +634,29 @@ class apqc_1dplot_opts:
     def set_boxplot(self, c):
         self.boxplot_on = c
 
+    # [PT: Jan 15, 2019] 
+    def set_bplot_view(self, c):
+        self.bplot_view = c
+
     def set_bkgd_color(self, c):
         self.bkgd_color = c
 
+    # [PT: Jan 15, 2019] e.g., for multiple dsets, concatenated runs;
+    # just a list that must be in correct order
+    def add_patch(self, ss):
+        if ss.__contains__('.') :
+            x = float(ss)
+        else : 
+            x = int(ss)
+        self.patch_arr.append(x)
+
     def add_censor_in_trs(self, ss):
         self.censor_in_trs.append(ss)
+        self.censor_on = True
 
     def add_censor_in_files(self, ff):
         self.censor_in_files.append(ff)
+        self.censor_on = True
 
     def set_censor_RGB(self, c):
         self.censor_RGB = c
@@ -568,8 +676,8 @@ class apqc_1dplot_opts:
             pass # fine
         elif nhline == 1:
             print("++ Will apply same hline {} to "
-                  "all dsets".format(censor_hline[0]))
-            for i in range(1,ndsets):
+                  "all dsets".format(self.censor_hline[0]))
+            for i in range(1,self.ndsets):
                 hh = self.censor_hline[0]
                 self.add_censor_hline(hh)
         else:
@@ -577,6 +685,52 @@ class apqc_1dplot_opts:
                      "must be either 0, 1, or match the "
                      "number of infiles {}".format(nhline, self.ndsets))
   
+    # [PT: Dec 23, 2018] 'hh' can be any of the following:
+    ###   bot:top --> full range specified
+    ###   :top    --> only top val specified, lower filled in 
+    ###   bot:    --> only bot val specified, upper filled in
+    ###   bot     --> only bot val specified, upper filled in
+    ###   :       --> no val specified, just place holder, default up/down
+    def add_yaxran(self, hh):
+        if type(hh) == str :
+            tmp = hh.split(":")
+        elif type(hh) == list :
+            tmp = copy.deepcopy(hh)
+        Ntmp = len(tmp)
+        if Ntmp > 2:
+            sys.exit("** ERROR: bad format of y-axis range!: {}".format(hh))
+        llhh = []
+        for i in range(Ntmp):
+            try:    vv = float(tmp[i])
+            except: vv = ''
+            llhh.append(vv)
+        self.yaxran.append(llhh)
+
+    def count_yaxran(self):
+        return len(self.yaxran)
+
+    def check_yaxran(self):
+        nyaxran = self.count_yaxran()
+        
+        if nyaxran == 0:
+            # enter a set of "nulls" to check against
+            hh = ":"
+            for i in range(self.ndsets):
+                self.add_yaxran(hh)
+            # pass # fine
+        elif nyaxran == self.ndsets:
+            pass # fine
+        elif nyaxran == 1:
+            print("++ Will apply same y-axis range '{}' to "
+                  "all dsets".format(self.yaxran[0]))
+            for i in range(1,self.ndsets):
+                hh = self.yaxran[0]
+                self.add_yaxran(hh)
+        else:
+            sys.exit("** ERROR: number of y-axis range values {} "
+                     "must be either 0, 1, or match the "
+                     "number of infiles {}".format(nyaxran, self.ndsets))
+
     # [PT: Dec 5, 2018] Much updated, removing numpy and
     # simultaneously simplifying in parts (Munch-scream emoji!)
     def set_censor_arr(self):
@@ -613,43 +767,6 @@ class apqc_1dplot_opts:
             for i in range(self.npts):
                 if cen_arr[i]:
                     self.censor_arr.append(self.all_x[i])
-
-    '''
-    def set_censor_arr(self):
-        self.censor_width = self.all_x[1] - self.all_x[0]
-
-        # add to this in different forms, where True values mean
-        # censoring is flagged to have occured
-        cen_arr = np.zeros(self.npts, dtype=bool)
-
-        # combine all strings of censor lists:
-        # ... from user-entered strings
-        if self.censor_in_trs:
-            maxind = self.npts - 1
-            for ttt in self.censor_in_trs:
-                ll = au.decode_1D_ints(ttt, imax=maxind)
-                cen_arr[ll] += True
-        # ... from user-entered files
-        if self.censor_in_files:
-            for fff in self.censor_in_files:
-                x = LAD.Afni1D(fff)
-                if x.nt != self.npts :
-                    sys.exit("** ERROR: len of censor file {} ({}) does not "
-                             "match Npts={}".format(fff, x.nt, self.npts))
-                q = []
-                for i in range(self.npts):
-                    val = x.mat[0][i]
-                    if not(val):
-                        q.append(i)
-                q = np.array(q)
-                cen_arr[q] += True
-
-        # And finally store
-        self.ncensor = np.sum(cen_arr)
-        if self.ncensor :
-            xarr = np.array(self.all_x)
-            self.censor_arr = xarr[cen_arr]
-'''
                 
     def add_ylabel(self, ylabel):
         self.ylabels.append(ylabel)
@@ -838,6 +955,9 @@ Else:
 
 # -------------------------------------------------------------------
 
+
+# !!! If adding an option to this 1dplot.py program, make sure you
+# !!! update the "all_opts' list here!!
 def parse_1dplot_args(argv):
 
     '''Parse arguments for Pythony 1dplotter.
@@ -852,6 +972,21 @@ def parse_1dplot_args(argv):
     iopts : an object with the argument values stored, including a
         self-"check_req()" method, as well.
     '''
+
+    ### [PT: Dec 23, 2018] Important for adding to this program!!! 
+    ### One MUST include the option flag in this list, because some
+    ### options can take multiple arguments of unspecified length--
+    ### therefore, an argv is checked against this list to see if the
+    ### list continues or not in some cases.
+    all_opts = [ '-ver', '-h', '-help', "-infiles", "-yfiles",
+                 "-prefix", "-ylabels", "-xlabel", "-xvals", "-xfile",
+                 "-figsize", "-bkgd_color", "-fontsize",
+                 "-fontfamily", "-fontstyles", "-censor_trs",
+                 "-censor_files", "-censor_RGB", "-censor_hline",
+                 "-title", "-dpi", "-colors", "-sepscl",
+                 "-reverse_order", "-boxplot_on", "-bplot_view", 
+                 "-yaxis", "-patches" ]
+
 
     Narg = len(argv)
 
@@ -869,7 +1004,7 @@ def parse_1dplot_args(argv):
             print(ver)
             sys.exit(0)
 
-        elif argv[i] == "-help" or argv[i] == "-h" or argv[i] == "-hview":
+        elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_1dplot)
             sys.exit(0)
 
@@ -882,7 +1017,7 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     iopts.add_infile(argv[i])
                     count+=1
                     i+=1
@@ -906,8 +1041,8 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                aaa = argv[i][0]
-                if aaa != "-":
+                #aaa = argv[i][0]
+                if not(all_opts.__contains__(argv[i])): #aaa != "-":
                     if argv[i] == "VOLREG" :
                         for name in lvolreg:
                             iopts.add_ylabel(name)
@@ -982,7 +1117,7 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     fsty.append((argv[i]))
                     count+=1
                     i+=1
@@ -993,13 +1128,29 @@ def parse_1dplot_args(argv):
             if not(count):
                 ARG_missing_arg(argv[i])
 
+        elif argv[i] == "-patches":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])): 
+                    iopts.add_patch((argv[i]))
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
         elif argv[i] == "-censor_trs":
             count = 0
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     iopts.add_censor_in_trs((argv[i]))
                     count+=1
                     i+=1
@@ -1015,7 +1166,7 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     iopts.add_censor_in_files((argv[i]))
                     count+=1
                     i+=1
@@ -1038,8 +1189,24 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     iopts.add_censor_hline((argv[i]))
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-yaxis":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])): 
+                    iopts.add_yaxran((argv[i]))
                     count+=1
                     i+=1
                 else:
@@ -1066,7 +1233,7 @@ def parse_1dplot_args(argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             while i < Narg:
-                if argv[i][0] != "-":
+                if not(all_opts.__contains__(argv[i])): 
                     iopts.add_tablecolor(argv[i])
                     count+=1
                     i+=1
@@ -1084,6 +1251,13 @@ def parse_1dplot_args(argv):
 
         elif argv[i] == "-boxplot_on":
             iopts.set_boxplot(True)
+
+        elif argv[i] == "-bplot_view":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_bplot_view(argv[i])
+
 
         else:
             print("** ERROR: unknown opt: '{}'".format(argv[i]))
@@ -1178,7 +1352,7 @@ def parse_tcsh_args(argv):
             print(ver)
             sys.exit(0)
 
-        elif argv[i] == "-help" or argv[i] == "-h" or argv[i] == "-hview":
+        elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_tcsh)
             sys.exit(0)
 
@@ -1273,7 +1447,7 @@ def parse_html_args(argv):
             print(ver)
             sys.exit(0)
 
-        elif argv[i] == "-help" or argv[i] == "-h" or argv[i] == "-hview":
+        elif argv[i] == "-help" or argv[i] == "-h":
             print(help_string_apqc_make_html)
             sys.exit(0)
 
@@ -1296,3 +1470,28 @@ def parse_html_args(argv):
         
     return iopts
 
+# ----------------------------------------------------------------------------
+
+# Useful function for this process, which occurs many times throughout
+# these progs.  Estimate the min/max with a bit of padding, based on
+# the difference between the values.  Sets a nice range for plotting
+def rangeize_plots(A, B, scale=0.1, firm_lim = ['', '']):
+
+    bot = A
+    top = B
+
+    # give precedence to *firm* limits
+    if firm_lim[0] != '':
+        bot = firm_lim[0]
+    if firm_lim[1] != '':
+        top = firm_lim[1]
+
+    delta = (top - bot) * scale
+
+    # only use delta if not a *firm* limit
+    if firm_lim[0] == '' :
+        bot-= delta
+    if firm_lim[1] == '' :
+        top+= delta
+
+    return [bot, top] 
