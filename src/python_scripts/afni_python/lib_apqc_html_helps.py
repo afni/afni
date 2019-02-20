@@ -5,6 +5,9 @@
 # + This includes things like hover text of functional buttons, the help
 #   description of the page overall, etc.
 #
+# ver = 1.1 ; date = 'Feb 20, 2019' 
+# + [PT] update couple of help notes
+#
 #########################################################################
 
 import sys
@@ -213,7 +216,7 @@ just use filler buttons to save yourself click time, and then just
 click any individual buttons that are different.  '''],
 ['''COMMENT''',
 '''
-Use ctrl+click on a QC button to open a comment window.  
+Use ctrl+click on a QC button to open (or close) a comment window.  
 
 Save a comment with the green (left) button, or hit Enter at any point.
 Remove a comment with the pink (right) button, or hit Esc at any point.
@@ -258,7 +261,8 @@ Click the QC button below it to record your rating, toggling through:
     X  :  bad,
     ?  :  other/revisit,
     +  :  good.
-Double click the QC button to provide a comment.
+Use ctrl+click on a QC button to provide a comment.  Close the comment 
+panel with ctrl+click or its buttons.
 
 SPEEDIFY
 There are 'filler buttons' for each rating: |A+|, |Ax|, |A?|.
