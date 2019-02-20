@@ -153,10 +153,10 @@ int main( int argc , char *argv[] )
       
       if( strcasecmp(argv[nopt],"-partial") == 0 )
       {
-         INFO_message("Performing Partial Correlation!\n");
          method = PARTIAL ; nopt++ ; 
          //name the covariate dataset
          psetFile = argv[nopt];
+         INFO_message("Performing Partial Correlation with: %s\n", psetFile);
          pset = THD_open_dataset( argv[nopt++] ) ;
          if( pset == NULL )
          {
