@@ -32,7 +32,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Feb 15, 2019
+Version 0.0.2, Feb 21, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -40,20 +40,34 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 
 Usage: ~1~
 ------ 
- MBA performs matrix-based analysis (MBA) as theoretically discussed in
- https://www.biorxiv.org/content/10.1101/459545v1
- MBA is run with a simple script (as shown in the examples below) with input
- data formulated in a table that codes the regions and variables. The response
- variable is usually correlation values (with or without Fisher-transformation)
- or white-matter properties (e.g., fractional anisotropy, mean diffusivity,
- radial diffusivity, axial diffusivity, etc.). 
- 
+ MBA performs matrix-based analysis (MBA) as theoretically elaborated in the
+ manuscript: https://www.biorxiv.org/content/10.1101/459545v1
+ MBA is performed with a shell script (as shown in the examples below). The
+ input data should be formulated in a pure-text table that codes the regions
+ and variables. The response variable is usually correlation values (with or
+ without Fisher-transformation) or white-matter properties (e.g., fractional
+ anisotropy, mean diffusivity, radial diffusivity, axial diffusivity, etc.),
+ but it can also be any values from a symmetric matrix (e.g., coherence,
+ mutual information, entropy) including diagonals.
+
+ Thanks to Zhihao Li for motivating me to start the MBA work, and to 
+ Paul-Christian Bürkner and the Stan/R communities for the strong support.
+
+ Citation: ~1~
+ If you want to cite the approach for MBA, consider the following:~2~
+
+ Chen, G., Bürkner, P.-C., Taylor, P.A., Li, Z., Yin, L., Glen, D.R., Kinnison, J.,
+ Cox, R.W., Pessoa, L., 2019. An Integrative Approach to Matrix-Based Analyses in
+ Neuroimaging. https://doi.org/10.1101/459545
+
+ =============================== 
  Read the following carefully!!!
  ===============================
  A data table in pure text format is needed as input for an MBA script. The
  data table should contain at least 4 columns that specify the information
  about subjects, each region pairs and the response variable values with the
- following fixed header (they are case-sensitive)
+ following fixed header. The header lables are case-sensitive, and their order
+ does not matter.
 
  Subj   ROI1   ROI2   Y
  S1     Amyg   SMA   0.2643
@@ -62,8 +76,8 @@ Usage: ~1~
 
  0) Be proud of yourself: you are performing Bayesian analysis!!! You directly
     get the probability of an effect being positive or negative with your data,
-    not the straw man of p-value (weirdness of your data when pretending
-    absolutely nothing exists).
+    instead of witch hunt-hunting the straw man of p-value (weirdness of your
+    data when pretending that absolutely nothing exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter, but the names of the four variables above
@@ -81,34 +95,32 @@ Usage: ~1~
     only between-subjects variables (e.g., sex, patients vs. controls, age) are
     allowed. Each label in a between-subjects factor (categorical variable)
     should be coded with at least 1 character (labeling with pure numbers is fine
-    but not recommended). If preferred, you can code the levels of a factor
-    yourself by creating k-1 columns for a factor with k levels. However, be careful
-    with your coding strategy because it would impact how to interpret the results.
-    Here is a good reference about factor coding:
+    but not recommended). If preferred, you can quantitatively code the levels of a
+    factor yourself by creating k-1 columns for a factor with k levels. However, be
+    careful with your coding strategy because it would impact how to interpret the
+    results. Here is a good reference about factor coding strategies:
     https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
  5) It is strongly suggested that a quantitative explanatory variable be
     standardized with option -stdz; that is, remove the mean and scale by
     the standard deviation. This will improve the chance of convergence
     with each Markov chain. If a between-subjects factor (e.g., sex) is
-    involved, it may be better to standardize the quantitative variable
+    involved, it may be better to standardize a quantitative variable
     within each group in terms of interpretability if the mean value differs
-    substantially.    
+    substantially. However, do not standardize a between-subjects factor if
+    you quantitatively code it. And do not standardize the response variable
+    if the intercept is of interest!
 
  6) With within-subject variables, try to formulate the data as a contrast
-    between two factor levels or as a linear combination of multiple effects.
+    between two factor levels or as a linear combination of multiple levels.
 
- The results from MBA are effect estimates for each region pair and at each ROI.
- They can be slightly different across different computers and R package
- versions due to the nature of randomness involved in Monte Carlo simulations.
+ The results from MBA are effect estimates for each region pair and at each
+ region. They can be slightly different across different runs or different
+ computers and R package versions due to the nature of randomness involved
+ in Monte Carlo simulations.
+
+ =========================
  
- Please cite: ~1~
- If you want to cite the analysis approach for MBA, use the following:~2~
-
- Chen, G., Bürkner, P.-C., Taylor, P.A., Li, Z., Yin, L., Glen, D.R., Kinnison, J.,
- Cox, R.W., Pessoa, L., 2019. An Integrative Approach to Matrix-Based Analyses in
- Neuroimaging. https://doi.org/10.1101/459545
-
  Installation requirements: ~1~
  In addition to R installation, the R package brms is acquired for MBA. To install
  brms, run the following command at the terminal:
@@ -122,20 +134,17 @@ Usage: ~1~
  Running: ~1~
  Once the MBA command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
- script as a text file, for example, called MVM.txt, and execute it with the 
- following  (assuming on tc shell),
+ script as a text file, for example, called myMBA.txt, and execute it with the 
+ following  (assuming on tcsh shell),
  
- nohup tcsh -x MVM.txt > diary.txt &
- nohup tcsh -x MVM.txt |& tee diary.txt &
+ nohup tcsh -x myMBA.txt > diary.txt &
+ nohup tcsh -x myMBA.txt |& tee diary.txt &
 
- The advantage of the latter command is that the progression is saved into
+ The advantage of the commands above is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
  The \'nohup\' command allows the analysis running in the background even if
- the terminal is killed.
+ the terminal is killed.'
  
- Thanks to Paul-Christian Bürkner and the Stan and R communities for the 
- strong support.'
-
    ex1 <- 
 "\n--------------------------------
 Examples: ~1~
@@ -177,8 +186,8 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    Subj ROI1  ROI2    Y  sex group
    S1 DMNLAG DMNLHC 0.274 F  patient
    S1 DMNLAG DMNPCC 0.443 F  patient
-   S1 DMNLAG DMNRAG 0.455 F  patient
-   S1 DMNLAG DMNRHC 0.265 F  patient
+   S2 DMNLAG DMNRAG 0.455 M  contorl
+   S2 DMNLAG DMNRHC 0.265 M  control
    ...
 
    Notice that the interaction between 'sex' and 'group' is not modeled in this case.
@@ -244,7 +253,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        visualization plots such as histogram and matrix plot, and saved R data in",
    "        binary mode. The .RData can be used for post hoc processing such as",
    "        customized processing and plotting. Remove the .RData file to save disk",
-   "        space once you feel such a file is no longer useful.\n", sep = '\n'
+   "        space once you deem such a file is no longer useful.\n", sep = '\n'
                      ) ),
 
       '-chains' = apl(n = 1, d = 1, h = paste(
@@ -264,7 +273,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-verb' = apl(n = 1, d = 1, h = paste(
-   "-verb VERB: Speicify ver level.\n", sep = '\n'
+   "-verb VERB: Speicify verbose level.\n", sep = '\n'
                      ) ),
 
       '-model' = apl(n = 1, d = 1, h = paste(
@@ -283,9 +292,9 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              ) ),
 
       '-dbgArgs' = apl(n=0, h = paste(
-   "-dbgArgs: This option will enable R to save the parameters in a",
-   "         file called .MBA.dbg.AFNI.args in the current directory",
-   "         so that debugging can be performed.\n", sep='\n')),
+   "-dbgArgs: This option will enable R to save the parameters in a file called",
+   "         .MBA.dbg.AFNI.args in the current directory so that debugging can be",
+   "         performed.\n", sep='\n')),
 
       '-r2z' = apl(n=0, h = paste(
    "-r2z: This option performs Fisher transformation on the response variable",
@@ -332,6 +341,19 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         Currently only variables, not their interactions, can be directly",
    "         requested for output. However, most interaction effects can be obtained by",
    "         either properly coding the variables (see example 3) or post processing.\n",
+             sep = '\n'
+             ) ),
+
+      '-qContr' = apl(n=c(1,100), d=NA, h = paste(
+   "-qContr contrast_list: Identify comparisons of interest between quantitative",
+   "         variables in the output separated with comma (,). It only allows for",
+   "         pair-wise comparisons between two quantitative variables. For example,",
+   "         -qContr \"age vs IQ, age vs weight, IQ vs weight\", where V1, V2, and V3 are three",
+   "         quantitative variables and three comparisons, V1 - V2, V1 - V3 and V2 - V3",
+   "         will be provided in the output. Make sure that such comparisons are",
+   "         meaningful (e.g., with the same scale and unit. This can be used to",
+   "         formulate comparisons among factor levels if the user quantitatively",
+   "         code the factor levels.\n",
              sep = '\n'
              ) ),
 
@@ -383,8 +405,9 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$model  <- 1
       lop$cVars  <- NA
       lop$qVars  <- 'Intercept'
-      lop$stdz <- NA
-      lop$EOI <- 'Intercept'
+      lop$stdz   <- NA
+      lop$EOI    <- 'Intercept'
+      lopqContr  <- NA
 
       lop$dbgArgs <- FALSE # for debugging purpose 
       lop$r2z     <- FALSE # Fisher transformation
@@ -403,7 +426,8 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              cVars  = lop$cVars <- ops[[i]],
              qVars  = lop$qVars <- ops[[i]],
              stdz   = lop$stdz  <- ops[[i]],
-             EOI    = lop$EOI   <- ops[[i]],            
+             EOI    = lop$EOI   <- ops[[i]],
+             qContr = lop$qContr <- ops[[i]],       
              help    = help.MBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              r2z     = lop$r2z     <- TRUE,
@@ -420,9 +444,9 @@ process.MBA.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(!lop$overwrite && (
-                file.exists(paste0(lop$outFN,".txt")) ||
-                file.exists(paste0(lop$outFN,".RData")) ||
-                file.exists(paste0(lop$outFN,".pdf"))) ) {
+            file.exists(paste0(lop$outFN,".txt")) ||
+            file.exists(paste0(lop$outFN,".RData")) ||
+            file.exists(paste0(lop$outFN,".pdf"))) ) {
          errex.AFNI(c("File ", lop$outFN, " exists! Try a different name.\n"))
          return(NULL)
    }      
@@ -525,6 +549,22 @@ outDF(summary(lop$dataTable$ROI1), lop$outFN)
 outDF(summary(lop$dataTable$ROI2), lop$outFN)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
+lop$EOIq <- strsplit(lop$qVars, '\\,')[[1]]
+if(!('Intercept' %in% lop$EOIq)) lop$EOIq <- c('Intercept', lop$EOIq)
+lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
+if(is.na(lop$cVars)) lop$EOIc <- NA else 
+   lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
+
+qContrL <- unlist(strsplit(lop$qContr, '\\,'))
+# verify 'vs' in alternating location
+ll <- which(qContrL %in% 'vs')
+if(!all(ll == seq(2,300,3)[1:length(ll)]))
+   stop(sprintf('Quantitative contrast specification -qContr is incorrect!'))
+lop$qContrL <- qContrL[!qContrL %in% 'vs']
+# verify that variable names are correct
+if(!all(lop$qContrL %in% c(lop$qVars, 'Intercept'))) 
+   stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
+
 # deviation coding: -1/0/1 - the intercept is associated with the mean across the levels of the factor
 # each coding variable corresponds to the level relative to the mean: alphabetically last level is
 # is baseline or reference level
@@ -535,7 +575,7 @@ options(mc.cores = parallel::detectCores())
 fisher <- function(r) ifelse(abs(r) < .995, 0.5*(log(1+r)-log(1-r)), stop('Are you sure that you have correlation values so close to 1 or -1?'))
 if(lop$r2z) lop$dataTable$Y <- fisher(lop$dataTable$Y)
 
-# combine the levels between the two region lists
+# combine the levels between the two region lists: NO! It seems to mess up the modeling wih brm
 #levels(lop$dataTable$ROI1) <- union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
 #levels(lop$dataTable$ROI2) <- union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
 
@@ -552,6 +592,11 @@ lop$dataTable$w <- 1
 
 # Start the clock!
 ptm <- proc.time()
+
+## for testing only: remove this soon ####
+#lop$dataTable$V1 <- rnorm(nrow(lop$dataTable))
+#lop$dataTable$V2 <- rnorm(nrow(lop$dataTable), mean=0.5, sd=1)
+#lop$model <- '1+V1+V2'
 
 ##################### MCMC ####################
 if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI1:ROI2) + 
@@ -580,12 +625,11 @@ cat(capture.output(proc.time() - ptm), file = paste0(lop$outFN, '.txt'), sep = '
 
 cat('\n++++++++++++++++++++++++++++++++++++++++++++++++++++\n')
 cat('***** Summary information of model information *****\n')
-summary(fm)
+(rs <- summary(fm))
 cat('\n***** End of model information *****\n')   
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
 cat('\n***** Summary information of model results *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-rs <- summary(fm)
 
 #  Rhat checking #
 dd <- function(ll) any(ll[,'Rhat'] > 1.2)
@@ -601,10 +645,6 @@ cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 #lop <- list(outFN='Tara', EOI=c('Intercept', 'e4', 'site'), EOIc=c('e4', 'site'), EOIq='Intercept')
 #lop[['EOIq']] <- 'Intercept'
-
-lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$qVars, '\\,')[[1]])
-if(is.na(lop$cVars)) lop$EOIc <- NA else 
-   lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
 ns <- lop$iterations*lop$chains/2
 #nR <- nlevels(lop$dataTable$ROI1)
@@ -690,6 +730,16 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
 
+# for contrasts among quantitative variables
+if(any(!is.na(lop$qContrL) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+   xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
+   cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
+   prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
+   prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+
 # for factor
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
@@ -755,6 +805,15 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumROI(psROI(aa, bb, lop$EOIq[ii], nR), ns, 3)
+   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+
+# for contrasts among quantitative variables
+if(any(!is.na(lop$qContrL) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+   cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1], nR) - psROI(aa, bb, lop$qContrL[2*ii], nR), ns, 3)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
