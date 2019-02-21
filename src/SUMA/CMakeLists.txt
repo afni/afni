@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 2.6)
-project(SUMA)
-
 add_subdirectory(gts)
 add_subdirectory(PLY)
 

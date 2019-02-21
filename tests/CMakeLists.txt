@@ -14,7 +14,7 @@ find_package(xvfb REQUIRED)
 #      this solution with tests/ directory
 #
 install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/xvfb-driver
-  DESTINATION ${CMAKE_INSTALL_BINDIR})
+  DESTINATION ${AFNI_INSTALL_RUNTIME_DIR})
 
 ADD_TEST(afni:start xvfb-driver --
 	"afni" -com "OPEN_WINDOW axialimage; SAVE_JPEG axialimage test1; QUIT")

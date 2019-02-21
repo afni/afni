@@ -305,14 +305,15 @@ add_subdirectory(scripts_install)
 # check the AFNITargets file and make sure you don't have the include directory included twice if you want clean cmake files : https://cliutils.gitlab.io/modern-cmake/chapters/install/installing.html
 # install(TARGETS afni afobj
 #         EXPORT AFNITargets
-#         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-#         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-#         INCLUDES DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+#         LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+#         ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+#         RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+#         INCLUDES DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
 #         )
 
 # TODO: /afni/afni_codebase/src/Audio/@sound_to_header.csh;
 include(CMakeLists_apps.txt)
+
 
 # Install makefile programs that are built by this project.
 execute_process(

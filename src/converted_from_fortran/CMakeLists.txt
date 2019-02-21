@@ -36,9 +36,9 @@ set_target_properties(converted_from_fortran PROPERTIES PUBLIC_HEADER converted_
 target_link_libraries(converted_from_fortran NIFTI::nifticdf)
 install(TARGETS converted_from_fortran
        EXPORT AFNITargets
-       RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-       LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-       ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-       PUBLIC_HEADER DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+       RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+       LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+       ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+       PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
 ) 
 add_library(AFNI::converted_from_fortran ALIAS converted_from_fortran)

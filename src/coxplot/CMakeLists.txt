@@ -1,11 +1,4 @@
-project(coxplot)
-cmake_minimum_required(VERSION 3.2)
 include(FindMotif)
-
-set(COXPLOT_INSTALL_BIN_DIR "${CMAKE_INSTALL_PREFIX}/bin/${project}")
-set(COXPLOT_INSTALL_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib/${project}")
-set(COXPLOT_INSTALL_STA_DIR "${CMAKE_INSTALL_PREFIX}/static/${project}")
-set(COXPLOT_INSTALL_INCLUDE_DIR "${CMAKE_INSTALL_PREFIX}/include/${project}")
 
 set(COXPLOT_SRCS  color.c curve.c find_color_name.c frame.c frstpt.c labmod.c
 line.c memplt.c perim.c periml.c phdot.c phline.c plot_cox.c plot_motif.c
@@ -29,10 +22,10 @@ target_link_libraries(coxplot m AFNI::converted_from_fortran ${MOTIF_LIBRARIES} 
 
 install(TARGETS coxplot
 	EXPORT AFNITargets
-	RUNTIME DESTINATION "${COXPLOT_INSTALL_BIN_DIR}" COMPONENT bin
-	LIBRARY DESTINATION "${COXPLOT_INSTALL_LIB_DIR}" COMPONENT shlib
-	ARCHIVE DESTINATION "${COXPLOT_INSTALL_STA_DIR}"
-	PUBLIC_HEADER DESTINATION "${COXPLOT_INSTALL_INCLUDE_DIR}"
+	RUNTIME DESTINATION "${AFNI_INSTALL_RUNTIME_DIR}" COMPONENT bin
+	LIBRARY DESTINATION "${AFNI_INSTALL_LIBRARY_DIR}" COMPONENT shlib
+	ARCHIVE DESTINATION "${AFNI_INSTALL_LIBRARY_DIR}"
+	PUBLIC_HEADER DESTINATION "${AFNI_INSTALL_INCLUDE_DIR}"
 	COMPONENT dev
 )
 add_library(AFNI::coxplot ALIAS coxplot)

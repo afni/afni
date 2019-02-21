@@ -1,5 +1,3 @@
-cmake_minimum_required(VERSION 3.1...3.12)
-
 # not using niml_fileread.c
 add_library(niml OBJECT niml_b64.c niml_byteorder.c niml_dataset.c niml_do.c niml_dtable.c
 niml_element.c niml_elemio.c niml_header.c niml_htable.c niml_malloc.c

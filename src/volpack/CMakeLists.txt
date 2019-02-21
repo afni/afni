@@ -1,6 +1,3 @@
-cmake_minimum_required(VERSION 2.6)
-project(volpack)
-
 add_library(volpack makeopts.c vp_check.c vp_compAC00G.c vp_compAC11B.c
 vp_compAC1NB.c vp_compAC1NS.c vp_compAC1PB.c vp_compAC31B.c vp_compAC32B.c
 vp_compAC3NB.c vp_compAC3NS.c vp_compAC3PB.c vp_compAR00G.c vp_compAR11B.c
