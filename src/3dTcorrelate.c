@@ -6,6 +6,7 @@
 #define KTAUB    4
 #define COVAR    5
 #define YCOEF    6
+#define PARTIAL  7
 
 #undef  MYatanh
 #define MYatanh(x) ( ((x)<-0.999329f) ? -4.0f                \
@@ -33,6 +34,8 @@ void usage_3dTcorrelate(int detail)
 "  -covariance = Covariance instead of correlation. That would be \n"
 "                the Pearson correlation without scaling by the product\n"
 "                of the standard deviations.\n"
+"  -partial z   = Partial Pearson's Correlation of X & Y, adjusting for Z \n"
+"                Supply dataset z to be taken into account. *EXPERIMENTAL* \n"
 "  -ycoef      = Least squares coefficient that best fits y(t) to x(t),\n"
 "                after detrending.  That is, if yd(t) is the detrended\n"
 "                y(t) and xd(t) is the detrended x(t), then the ycoef\n"
@@ -95,12 +98,13 @@ float THD_ycoef( int npt , float *xx , float *yy )  /* 20 Feb 2014 */
 
 int main( int argc , char *argv[] )
 {
-   THD_3dim_dataset *xset , *yset , *cset ;
+   THD_3dim_dataset *xset , *yset , *cset, *pset ;
    int nopt=1 , method=PEARSON , do_autoclip=0 ;
    int nvox , nvals , ii , polort=1 ;
-   MRI_IMAGE *xsim , *ysim ;
-   float     *xsar , *ysar , *car ;
+   MRI_IMAGE *xsim , *ysim , *psim;
+   float     *xsar , *ysar , *car , *psar;
    char *prefix = "Tcorr" ;
+   char *psetFile = NULL ;
    byte *mmm=NULL ;
    MRI_IMAGE *im_ort=NULL ;            /* 13 Mar 2003 */
    int nort=0 ; float **fort=NULL ;
@@ -145,6 +149,20 @@ int main( int argc , char *argv[] )
 
       if( strcasecmp(argv[nopt],"-pearson") == 0 ){
          method = PEARSON ; nopt++ ; continue ;
+      }
+      
+      if( strcasecmp(argv[nopt],"-partial") == 0 )
+      {
+         method = PARTIAL ; nopt++ ; 
+         //name the covariate dataset
+         psetFile = argv[nopt];
+         INFO_message("Performing Partial Correlation with: %s\n", psetFile);
+         pset = THD_open_dataset( argv[nopt++] ) ;
+         if( pset == NULL )
+         {
+             fprintf(stderr,"** Can't open dataset %s\n",argv[nopt]); exit(1);
+         }
+         continue ;
       }
 
       if( strcasecmp(argv[nopt],"-covariance") == 0 ){
@@ -240,6 +258,20 @@ int main( int argc , char *argv[] )
    DSET_load(xset) ; CHECK_LOAD_ERROR(xset) ;
    DSET_load(yset) ; CHECK_LOAD_ERROR(yset) ;
 
+    if ( method == PARTIAL ) {
+        //pset
+        if( DSET_NVALS(pset) != DSET_NVALS(xset) )
+        {
+            //assume that if it doesn't match xset, then it doesn't match yset
+            fprintf(stderr,"** Input dataset %s is different length than %s\n",
+            psetFile,argv[nopt-1]) ;
+            exit(1) ;
+        }
+        if( !EQUIV_GRIDS(xset,pset) )
+            WARNING_message("Grid mismatch between input datasets & partial dataset!") ;
+        DSET_load(pset) ; CHECK_LOAD_ERROR(pset) ;
+    }
+
    /*-- compute mask array, if desired --*/
 
    nvox = DSET_NVOX(xset) ; nvals = DSET_NVALS(xset) ;
@@ -280,12 +312,13 @@ int main( int argc , char *argv[] )
       default:
       case PEARSON:  EDIT_BRICK_LABEL(cset,0,"Pear.Corr.") ;
           EDIT_BRICK_TO_FICO(cset,0,nvals,1,polort+1+nort) ;  /* stat params */
-                                                             break ;
-      case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr.") ; break ;
-      case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr.") ; break ;
-      case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr.") ; break ;
-      case COVAR:    EDIT_BRICK_LABEL(cset,0,"Covariance") ; break ;
-      case YCOEF:    EDIT_BRICK_LABEL(cset,0,"Ycoef"     ) ; break ;
+                                                               break ;
+      case SPEARMAN: EDIT_BRICK_LABEL(cset,0,"Spmn.Corr."  ) ; break ;
+      case QUADRANT: EDIT_BRICK_LABEL(cset,0,"Quad.Corr."  ) ; break ;
+      case KTAUB:    EDIT_BRICK_LABEL(cset,0,"Taub.Corr."  ) ; break ;
+      case COVAR:    EDIT_BRICK_LABEL(cset,0,"Covariance"  ) ; break ;
+      case YCOEF:    EDIT_BRICK_LABEL(cset,0,"Ycoef"       ) ; break ;
+      case PARTIAL:  EDIT_BRICK_LABEL(cset,0,"Partial.Corr") ; break ;
    }
 
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
@@ -305,6 +338,10 @@ int main( int argc , char *argv[] )
 
       xsim = THD_extract_series(ii,xset,0) ; xsar = MRI_FLOAT_PTR(xsim) ;
       ysim = THD_extract_series(ii,yset,0) ; ysar = MRI_FLOAT_PTR(ysim) ;
+      
+      if ( method == PARTIAL ) {
+        psim = THD_extract_series(ii,pset,0); psar = MRI_FLOAT_PTR(psim);
+      }
 
       (void)THD_generic_detrend_LSQ( nvals,xsar, polort, nort,fort,NULL ) ;  /* 13 Mar 2003 */
       (void)THD_generic_detrend_LSQ( nvals,ysar, polort, nort,fort,NULL ) ;
@@ -320,6 +357,7 @@ int main( int argc , char *argv[] )
          case KTAUB:    car[ii] = THD_ktaub_corr   ( nvals,xsar,ysar ); DAT; break;
          case COVAR:    car[ii] = THD_covariance   ( nvals,xsar,ysar ); break;
          case YCOEF:    car[ii] = THD_ycoef        ( nvals,xsar,ysar ); break;
+         case PARTIAL:  car[ii] = THD_pearson_partial_corr( nvals,xsar,ysar, psar ); DAT; break;
       }
 
       mri_free(xsim) ; mri_free(ysim) ;    /* toss time series */
