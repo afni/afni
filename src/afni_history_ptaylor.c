@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Feb , 2019 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
+   "Include '-Urad 30' in 3dUnifize step.",
+   "Maybe slightly prettier/more unifized output.\n"
+},
+
 { 19, Feb , 2019 , PT , "apqc_make_html.py" , SUPERDUPER , TYPE_GENERAL,
    "Much functionality changed/improved (hopefully).",
    "More output, better formats, help and HTML framework.\n"
