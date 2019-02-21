@@ -11,6 +11,9 @@
 # + [PT] Making py3 compatible: 
 #        from 2to3, updating DICT.has_key(x) -> x in DICT
 #
+# ver : 1.5 || date: Feb 21, 2019
+# + [PT] adding comment to empty button sets it to "?", not "X"
+#
 #########################################################################
 
 
@@ -697,11 +700,11 @@ function thisButtonGetsAComment(bid, comm) {
     document.getElementById(bid).dataset.txtcomm = comm;
 
     // and don't allow a null state anymore if it has a comment:
-    // update it to "other"
+    // update it to "other"/"?"
     if ( comm == "" || comm == "null" ) {
     } else {
        if ( isBtn1InNullState(bid) ) {
-           setThisButtonRating(bid, 2);
+           setThisButtonRating(bid, 0);
        }
     }
 
