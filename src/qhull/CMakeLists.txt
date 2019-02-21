@@ -4,6 +4,7 @@ add_library(qhull geom.c geom2.c global.c io.c libqhull.c mem.c merge.c poly.c p
 add_afni_target_properties(qhull)
 foreach(target unix qdelaun rbox)
   add_executable(${target} ${target}.c)
+  add_afni_target_properties(${target})
   target_link_libraries(${target} qhull m)
 endforeach(target)
 

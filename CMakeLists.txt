@@ -1,6 +1,4 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
-set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-
 
 execute_process(COMMAND git "describe" "--tags"
   OUTPUT_VARIABLE GIT_REPO_VERSION_UNCLEANED
@@ -11,11 +9,9 @@ string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+(\\.g[0-9a-f]+)?)?"
 project(AFNI
         VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "A package for the analysis of functional neuroimaging.")
-set( AFNI_LIBRARY_PROPERTIES 
-  BUILD_SHARED_LIBS TRUE
-  POSITION_INDEPENDENT_CODE TRUE
-)
 
+set(CMAKE_POSITION_INDEPENDENT_CODE ON)
+set(BUILD_SHARED_LIBS ON)
 
 ### Require out-of-source builds
 file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
@@ -33,30 +29,50 @@ elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
 endif()
 
 
+macro(get_afni_rpath)
+  ## Needed for correct linking when installing.
+  ## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
+  get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
+  get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
+  get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
+  get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
+  if(TARGET_TYPE MATCHES "LIBRARY")
+    set(INSTALL_PATH ${AFNI_INSTALL_LIBRARY_DIR})
+  else()  
+    set(INSTALL_PATH ${AFNI_INSTALL_RUNTIME_DIR})
+  endif()
+  # Prepare RPATH
+  file(RELATIVE_PATH _rel_afni ${INSTALL_PATH} ${AFNI_INSTALL_LIBRARY_DIR})
+  file(RELATIVE_PATH _rel_nifti ${INSTALL_PATH} ${_nifti_libraries})
+  file(RELATIVE_PATH _rel_gifti ${INSTALL_PATH} ${_gifti_libraries})
+  if(APPLE)
+    set(message_RPATH 
+      "@loader_path/${_rel_afni}"
+      "@loader_path/${_rel_nifti}"
+      "@loader_path/${_rel_gifti}")
+  else()
+    set(message_RPATH 
+      "\$ORIGIN/${_rel_afni}"
+      "\$ORIGIN/${_rel_nifti}"
+      "\$ORIGIN/${_rel_gifti}")
+  endif()
+  # file(TO_NATIVE_PATH "${_rpath}" message_RPATH)
+endmacro()
 
 macro(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
-  # get_nifti_rpath()
+  get_afni_rpath()
   # define installation prefix
-  # get_target_property(TARGET_TYPE ${target} TYPE)
-  # if (INCLUDE_PREFIX_IN_EXPORT)
-  #   set(TARGET_EXPORT_NAME ${NIFTI_PACKAGE_PREFIX}${target})
-  # else()
-  #   set(TARGET_EXPORT_NAME ${target})
-  # endif()
-
+  get_target_property(TARGET_TYPE ${target} TYPE)
   # Set the target properties
   # Currently this includes setting up post-install linking, prefixing target names with NIFTI_PACKAGE_PREFIX if requests
   set_target_properties(${target} PROPERTIES
-    # MACOSX_RPATH ON
+    MACOSX_RPATH ON
+    INSTALL_RPATH "${message_RPATH}"
+    )
+    # INSTALL_RPATH_USE_LINK_PATH ON
     # SKIP_BUILD_RPATH OFF
     # BUILD_WITH_INSTALL_RPATH OFF
-    # INSTALL_RPATH "${message_RPATH}"
-    # INSTALL_RPATH_USE_LINK_PATH ON
-    # OUTPUT_NAME "${NIFTI_PACKAGE_PREFIX}${target}"
-    # EXPORT_NAME "${TARGET_EXPORT_NAME}"
-    ${AFNI_LIBRARY_PROPERTIES}
-    )
 endmacro()
 
 
@@ -156,23 +172,6 @@ endif()
 
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h" @ONLY)
-
-
-
-
-## Needed for correct linking when installing.
-## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
-# Set rpath for .so loading
-get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
-get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
-get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
-get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
-
-set(CMAKE_INSTALL_RPATH 
-  ${AFNI_INSTALL_LIBRARY_DIR}
-   ${_nifti_libraries}
-   ${_gifti_libraries}
-   )
 
 # Add the source code to build
 add_subdirectory(src)
