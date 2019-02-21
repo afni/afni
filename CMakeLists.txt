@@ -75,16 +75,17 @@ endmacro()
 
 set(INSTALL_TO_ABIN 0)
 if(${INSTALL_TO_ABIN})
-  set(AFNI_INSTALL_RUNTIME_DIR $ENV{HOME}/abin)
-  set(AFNI_INSTALL_LIBRARY_DIR $ENV{HOME}/abin)
-  set(AFNI_INSTALL_INCLUDE_DIR $ENV{HOME}/abin)
-  set(AFNI_INSTALL_ARCHIVE_DIR $ENV{HOME}/abin)
+  set(BASE_INSTALL_DIR $ENV{HOME}/abin)
+  set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib)
+  set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR})
+  set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
 else()
-  set(AFNI_INSTALL_RUNTIME_DIR ${CMAKE_INSTALL_PREFIX}/bin)
-  set(AFNI_INSTALL_LIBRARY_DIR ${CMAKE_INSTALL_PREFIX}/lib/AFNI)
-  set(AFNI_INSTALL_INCLUDE_DIR ${CMAKE_INSTALL_PREFIX}/include/AFNI)
-  set(AFNI_INSTALL_ARCHIVE_DIR ${CMAKE_INSTALL_PREFIX}/lib/AFNI)
+set(BASE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
+set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib/AFNI)
+set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR}/bin)
+set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include/AFNI)
 endif()
+
 # Read in the line containing the version
 # file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/include/My/Version.hpp"
 #     VERSION_STRING REGEX ${VERSION_REGEX})
@@ -256,7 +257,19 @@ configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURREN
 
 
 
+## Needed for correct linking when installing.
+## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
+# Set rpath for .so loading
+get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
+get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
+get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
+get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
 
+set(CMAKE_INSTALL_RPATH 
+  ${AFNI_INSTALL_LIBRARY_DIR}
+   ${_nifti_libraries}
+   ${_gifti_libraries}
+   )
 
 # Add the source code to build
 add_subdirectory(src)
