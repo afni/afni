@@ -30,10 +30,14 @@
 #   + [PT] new opt: can turn skullstrip and/or anisosmooth off (e.g.,
 #     it 'twere already done before)
 #
-set version   = "1.42"; set rev_dat   = "Feb 11, 2019"
+#set version   = "1.42"; set rev_dat   = "Feb 11, 2019"
 #   + [PT] rename the 'turn off skull strip' to a less potentially
 #     confusing name: '-init_skullstr_off'.  (So it doesn't falsely
 #     seem like *no* skullstripping at all would be done.)
+#
+set version   = "1.43"; set rev_dat   = "Feb 21, 2019"
+#   + [PT] include '-Urad 30' in unifizing part, for improving
+#     final output-- thanks for careful code reading, Yoichi!
 #
 # ----------------------------------------------------------------
 
@@ -238,11 +242,13 @@ endif
 ## Step #1: Unifize the input T1
 
 # [PT: Feb 11, 2019] now allows for option *not* to unifize
+# [PT: Feb 21, 2019] use Urad=30 when unifizing (better for final output)
 if( ! -f $odir/anatU."${SubID}".nii ) then
     if ( ${DO_UNIFIZE} ) then
         3dUnifize                             \
             -GM                               \
             -clfrac 0.4                       \
+            -Urad 30                          \
             -prefix $odir/anatU."$SubID".nii  \
             -input "$Adataset" 
     else

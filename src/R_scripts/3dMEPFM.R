@@ -57,7 +57,7 @@ help.RprogDemo.opts <- function (params, alpha = TRUE,
 
         C Caballero-Gaudes, S Moia, P. Panwar, PA Bandettini, J Gonzalez-Castillo
         A deconvolution algorithm for multiecho functional MRI: Multiecho Sparse Paradigm Free Mapping
-        (submitted)
+        (submitted to Neuroimage)
 
    - For a model that considers both fluctuations in the net magnetization (DS0) and R2*,
      but only imposes a regularization term on DR2* (setting -rho 0 and without -R2only), 
