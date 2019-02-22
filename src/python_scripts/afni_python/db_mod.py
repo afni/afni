@@ -7122,6 +7122,7 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_force_view', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
     apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
@@ -7322,11 +7323,21 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     proc.anat_warps.append(proc.nlw_NL_mat)
 
     pstr = '# move results up out of the awpy directory\n'  \
-           '# (NL-warped anat, affine warp, NL warp)\n'     \
-           '# (use typical standard space name for anat)\n' \
-           '# (wildcard is a cheap way to go after any .gz)\n' \
-           '3dbucket -prefix %s awpy/%s.aw.nii*\n'          \
-           % (proc.tlrcanat.prefix, apre+suf)
+           '# - NL-warped anat, affine warp, NL warp\n'     \
+           '# - use typical standard space name for anat\n' \
+           '# - wildcard is a cheap way to go after any .gz\n'
+
+    # do we force view to tlrc?  default to yes
+    if block.opts.have_no_opt('-tlrc_NL_force_view'):
+       vstr = ''
+    else:
+       pstr += '# - be sure NIFTI sform_code=2 means standard space\n'
+       # include next indent
+       vstr = '-DAFNI_NIFTI_VIEW=tlrc \\\n' \
+              '         '
+
+    pstr += '3dbucket %s-prefix %s awpy/%s.aw.nii*\n'          \
+            % (vstr, proc.tlrcanat.prefix, apre+suf)
 
     pstr += 'mv awpy/%s .\n'   % proc.nlw_aff_mat
     pstr += 'mv awpy/%s .\n\n' % proc.nlw_NL_mat
@@ -11150,6 +11161,19 @@ g_help_options = """
             running auto_warp_py from the proc script.
 
             When using this option, the 'tlrc' block will be empty of actions.
+
+        -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
+
+                e.g.     -tlrc_NL_force_view no
+                default: -tlrc_NL_force_view yes
+
+            The auto_warp.py program writes results using NIFTI format.  If the
+            alignment template is in a standard space that is not part of the
+            NIFTI standard (TLRC and MNI are okay), then currently the only
+            sform_code available is 2 ("aligned to something").  But that code
+            is ambiguous, so users often set it to mean orig view (by setting
+            AFNI_NIFTI_VIEW=orig).  This option (defaulting to yes) forces
+            sform_code=2 to mean standard space, using +tlrc view.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 

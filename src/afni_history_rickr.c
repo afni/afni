@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Feb, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -tlrc_NL_force_view, to handle sform_code=2 in auto_warp.py result",
+   "Done for I Berteletti."
+ } ,
+
  { 22, Feb, 2019, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "handle shells with paths in get_current/login_shell()",
    NULL
