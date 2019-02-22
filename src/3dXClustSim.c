@@ -152,8 +152,11 @@ static float farp_goal = FARP_GOAL ;
 
 /* lines directly below are also in 3dttest++.c
    only change them here if you change them there as well! */
-#define NFARP 8
-static float farplist[NFARP] = { 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+#define NFARP 9
+static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+static float min_fgoal = 1.0f ;
+static float max_fgoal = 9.0f ;
+
 static int do_multifarp = 0 ;
 static int numfarp = 1 ;
 
@@ -162,8 +165,8 @@ static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
 #define FG_GOAL  (farp_goal*fgfac)
 #define MAXITE   11
 
-static int do_global_etac=1 ; /* Sep 2018 */
-static int do_local_etac =1 ;
+static int do_global_etac = 1 ; /* Sep 2018 */
+static int do_local_etac  = 0 ;
 
 #define TOPFRAC 0.2468f
 
@@ -443,12 +446,12 @@ ENTRY("get_options") ;
       nopt++; if( nopt >= argc ) ERROR_exit("need argument after %s",argv[nopt-1]);
       do_multifarp = 0 ;
       fgoal = (float)rint(strtod(argv[nopt],NULL)) ;
-      if( fgoal < 2.0f ){
-        WARNING_message("fpr=%.1f%% too small : setting fpr=2",fgoal) ;
-        fgoal = 2.0f ;
-      } else if( fgoal > 9.0f ){
-        WARNING_message("fpr=%.1f%% too large : setting fpr=9",fgoal) ;
-        fgoal = 9.0f ;
+      if( fgoal < min_fgoal ){
+        WARNING_message("fpr=%.1f%% too small : setting fpr=%.1f%%",fgoal,min_fgoal) ;
+        fgoal = min_fgoal ;
+      } else if( fgoal > max_fgoal ){
+        WARNING_message("fpr=%.1f%% too large : setting fpr=%.1f%%",fgoal,max_fgoal) ;
+        fgoal = max_fgoal ;
       }
       farp_goal = fgoal ;
       nopt++ ; continue ;
@@ -484,7 +487,7 @@ ENTRY("get_options") ;
   } /* end loop over command line args */
 
   if( !do_global_etac && !do_local_etac )
-    ERROR_exit("3dXClustSim: global and local calculations both turned off! :(") ;
+    ERROR_exit("3dXClustSim: global and local calculations both turned off?! :(") ;
 
   /*-- sneaky way to change default parameters --*/
 
