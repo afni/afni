@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Feb, 2019, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "handle shells with paths in get_current/login_shell()",
+   NULL
+ } ,
+
  {  8, Feb, 2019, RCR, "3dWarp", MICRO, TYPE_NEW_OPT,
    "add -wsinc5",
    NULL
