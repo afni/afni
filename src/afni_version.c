@@ -133,7 +133,7 @@ void AFNI_start_fetching_url( char *urlstring )
 
    /*-- decide if we are to do anything --*/
 
-   if( AFNI_noenv("AFNI_VERSION_CHECK") ){    /* never check */
+   if( ! AFNI_yesenv("AFNI_VERSION_CHECK") ){    /* never check */
      FAIL_MESSAGE("AFNI_VERSION_CHECK forbids") ;
      return ;
    }
