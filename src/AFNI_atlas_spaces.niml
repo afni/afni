@@ -379,14 +379,6 @@
 # that associates a position with an anatomical structure
 ##atlas_datasets
 
-<ATLAS
-   atlas_name="TT_Daemon"   
-   dset_name="TTatlas+tlrc"
-   template_space="TLRC"
-   description="Talairach-Tournoux Atlas"
-   comment="The standard talaraich atlas"
-></ATLAS>
-
 #Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
 <ATLAS
    atlas_name="CA_N27_ML"   
@@ -458,13 +450,39 @@
    comment="Simple left, right hemisphere segmentation"
 ></ATLAS>
 
+#Cytoarchitectonic atlases shifted to MNI space
+<ATLAS
+   atlas_name="CA_ML_18_MNI"   
+   dset_name="MNI_caez_ml_18+tlrc"
+   template_space="MNI"
+   description="Macro Labels (N27-MNI)"
+   comment="Eickhoff-Zilles macro labels from N27 (MNI space)"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_MPM_18_MNI"   
+   dset_name="MNI_caez_mpm_18+tlrc"
+   template_space="MNI"
+   description="Cytoarch. Max. Prob. Maps (MNI)"
+   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis (MNI space)"
+></ATLAS>
+
+<ATLAS
+   atlas_name="CA_LR_18_MNI"
+   dset_name="MNI_caez_lr_18+tlrc"
+   template_space="MNI"
+   description="Left/Right (N27-MNI)"
+   comment="Simple left, right hemisphere segmentation (MNI space)"
+></ATLAS>
+
+
 #Cytoarchitectonic atlases in original MNI_ANAT space
 <ATLAS
    atlas_name="CA_ML_18_MNIA"   
    dset_name="MNIa_caez_ml_18+tlrc"
    template_space="MNI_ANAT"
    description="Macro Labels (N27)"
-   comment="Eickhoff-Zilles macro labels from N27"
+   comment="Eickhoff-Zilles macro labels from N27 (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS
@@ -472,7 +490,7 @@
    dset_name="MNIa_caez_mpm_18+tlrc"
    template_space="MNI_ANAT"
    description="Cytoarch. Max. Prob. Maps"
-   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis"
+   comment="Eickhoff-Zilles maximum probability map on MNI-152 from post-mortem analysis (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS
@@ -480,7 +498,7 @@
    dset_name="MNIa_caez_pmaps_18+tlrc"
    template_space="MNI_ANAT"
    description="Cytoarch. Probabilistic Maps"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS
@@ -488,7 +506,7 @@
    dset_name="MNIa_caez_gw_18+tlrc"
    template_space="MNI_ANAT"
    description="Cytoarch. Prob. Maps for gray/white matter"
-   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis"
+   comment="Eickhoff-Zilles probablity maps on MNI-152 from post-mortem analysis (MNI_ANAT space)"
 ></ATLAS>
 
 <ATLAS
@@ -496,9 +514,11 @@
    dset_name="MNIa_caez_lr_18+tlrc"
    template_space="MNI_ANAT"
    description="Left/Right (N27)"
-   comment="Simple left, right hemisphere segmentation"
+   comment="Simple left, right hemisphere segmentation (MNI_ANAT space)"
 ></ATLAS>
 
+
+#Desai atlases - based on @auto_tlrc alignment of FreeSurfer parcellation
 <ATLAS
    atlas_name="DKD_Desai_PM"
    dset_name="TT_desai_dkpmaps+tlrc"
@@ -544,6 +564,7 @@
    comment="Smoothed maximum maps masked by unsmoothed maximum map"
 ></ATLAS>
 
+# Ventromedial prefrontal cortex
 <ATLAS
  atlas_name="MNI_VmPFC"
  dset_name="MNI_VmPFC+tlrc"
@@ -554,15 +575,16 @@
      of Neuroscience, 40: 2777-796. doi: 10.1111/ejn.12654"
 ></ATLAS>
 
+# Classic and deeply flawed Talairach Daemon (moved down to avoid being shown early in whereami output)
 <ATLAS
- atlas_name="Haskins_Pediatric_Affine_1.0"
- dset_name="HaskinsPeds_aff_atlas1.0+tlrc.HEAD"
- template_space="HaskinsPeds"
- description="Version 1.0"
- comment="Haskins Atlas 1.0. Ref: Molfese, Glen, Mesite, Pugh, & Cox (2015, June). The Haskins Pediatric Brain Atlas.
-     Poster session presented at the Organization for Human Brain Mapping, Honolulu, HI"
+   atlas_name="TT_Daemon"   
+   dset_name="TTatlas+tlrc"
+   template_space="TLRC"
+   description="Talairach-Tournoux Atlas"
+   comment="The standard talaraich atlas"
 ></ATLAS>
 
+# Haskins Pediatric atlas (nonlinear version only)
 <ATLAS
  atlas_name="Haskins_Pediatric_Nonlinear_1.0"
  dset_name="HaskinsPeds_NL_atlas1.0+tlrc.HEAD"
@@ -671,6 +693,11 @@
 <TEMPLATE
    template_name="MNIa_caez_N27+tlrc"
    template_space="MNI_ANAT"
+></TEMPLATE>
+
+<TEMPLATE
+   template_name="MNI_caez_N27+tlrc"
+   template_space="MNI"
 ></TEMPLATE>
 
 <TEMPLATE
