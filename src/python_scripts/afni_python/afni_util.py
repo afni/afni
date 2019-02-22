@@ -17,6 +17,7 @@ basis_known_resp_l = ['GAM', 'BLOCK', 'dmBLOCK', 'dmUBLOCK', 'SPMG1',
 basis_one_regr_l   = basis_known_resp_l[:]
 basis_one_regr_l.append('MION')
 stim_types_one_reg = ['file', 'AM1', 'times']
+g_valid_shells = ['csh','tcsh','sh','bash','zsh']
 
 # this file contains various afni utilities   17 Nov 2006 [rickr]
 
@@ -505,8 +506,6 @@ def get_login_shell():
    """return the apparent login shell
       from get_process_stack(), search down s[3] until a shell is found
    """
-   shells = ['csh','tcsh','sh','bash','zsh']
-   dshells = ['-%s' % s for s in shells]
 
    pstack = get_process_stack()
    if len(pstack) == 0:
@@ -515,10 +514,8 @@ def get_login_shell():
 
    # start from init and work down to find first valid shell
    for pline in pstack:
-      if pline[3] not in shells and pline[3] not in dshells: continue
-      shell = pline[3]
-      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
-      return shell
+      shell = shell_name_strip(pline[3])
+      if shell: return shell
 
    return 'SHELL_NOT_DETECTED'
 
@@ -526,8 +523,6 @@ def get_current_shell():
    """return the apparent login shell
       from get_process_stack(), search down s[3] until a shell is found
    """
-   shells = ['csh','tcsh','sh','bash','zsh']
-   dshells = ['-%s' % s for s in shells]
 
    pstack = get_process_stack()
    if len(pstack) == 0:
@@ -537,12 +532,23 @@ def get_current_shell():
 
    # start from init and work down to find first valid shell
    for pline in pstack:
-      if pline[3] not in shells and pline[3] not in dshells: continue
-      shell = pline[3]
-      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
-      return shell
+      shell = shell_name_strip(pline[3])
+      if shell: return shell
 
    return 'SHELL_NOT_DETECTED'
+
+def shell_name_strip(name):
+   """remove any leading dash or path, then return if valid shell, else ''"""
+   global g_valid_shells
+   if len(name) < 2: return ''
+
+   # strip any leading '-' or path
+   if name[0] == '-': name = name[1:]
+   if name[0] == '/': name = name.split('/')[-1]
+
+   if name in g_valid_shells: return name
+
+   return ''    # not a shell
 
 def show_login_shell(verb=0):
    """print the apparent login shell
@@ -550,7 +556,6 @@ def show_login_shell(verb=0):
       from get_process_stack(), search down s[3] until a shell is found
    """
    shells = ['csh','tcsh','sh','bash','zsh']
-   dshells = ['-%s' % s for s in shells]
 
    pstack = get_process_stack()
    if len(pstack) == 0:
@@ -560,9 +565,8 @@ def show_login_shell(verb=0):
    # start from init and work down to find first valid shell
    shell = ''
    for pline in pstack:
-      if pline[3] not in shells and pline[3] not in dshells: continue
-      shell = pline[3]
-      if shell[0] == '-': shell = shell[1:]      # strip any leading '-'
+      shell = shell_name_strip(pline[3])
+      if not shell: continue
       if verb: print('apparent login shell: %s' % shell)
       else: print('%s' % shell)
       break
@@ -577,9 +581,9 @@ def show_login_shell(verb=0):
    if verb:
       pstack.reverse()
       for pline in pstack:
-         if pline[3] not in shells and pline[3] not in dshells: continue
-         sh = pline[3]
-         if sh[0] == '-': sh = sh[1:]      # strip any leading '-'
+         sh = shell_name_strip(pline[3])
+         if not sh: continue
+
          if sh != shell: print('differs from current shell: %s' % sh)
          break
 
