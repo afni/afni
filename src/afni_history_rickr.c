@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Feb, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "add modulators to -multi_timing_to_event_list output",
+   "Done for D Jangraw."
+ } ,
+
  { 22, Feb, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -tlrc_NL_force_view, to handle sform_code=2 in auto_warp.py result",
    "Done for I Berteletti."
