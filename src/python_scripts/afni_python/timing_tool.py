@@ -1243,9 +1243,10 @@ g_history = """
    3.03 Sep 25, 2018 - fixed first timediff in -multi_timing_to_event_list
    3.04 Sep 27, 2018 - handle weakly formatted FSL timing files (fewer columns)
    3.05 Oct  5, 2018 - directly go after expected column headers in TSV files
+   3.06 Feb 25, 2019 - added modulators to -multi_timing_to_event_list output
 """
 
-g_version = "timing_tool.py version 3.05, October 5, 2018"
+g_version = "timing_tool.py version 3.06, February 25, 2019"
 
 
 
@@ -1256,7 +1257,7 @@ class ATInterface:
       self.status          = 0                       # exit value
       self.valid_opts      = None
       self.user_opts       = None
-      self.all_edtypes     = ['i', 'p', 't', 'o', 'd', 'f']
+      self.all_edtypes     = ['i', 'p', 't', 'o', 'd', 'm', 'f']
 
       # user options
       self.nplaces         = -1         # num decimal places for writing
@@ -2167,7 +2168,7 @@ class ATInterface:
             if s1d_type != '':
                etlist.append(self.make_s1d_estr_list(s1d_type,cind,cprev=cprev,
                                    etime=event[0], tprev=tprev, dur=event[2],
-                                   pdur=dprev))
+                                   pdur=dprev, amods=event[1]))
             elif style == 'index': fp.write('%d ' % cind)
             elif style == 'part':
                if cind != 1: continue # only write predecessors of class 1
@@ -2213,7 +2214,7 @@ class ATInterface:
 
    def make_s1d_estr_list(self, stypes, cind=0, cprev=0,
                              etime=0.0, tprev=0.0, dur=0.0, pdur=0.0,
-                             maxfilelen=10):
+                             amods=[], maxfilelen=10):
       tlist = self.m_timing
 
       # apply special case of ALL for types
@@ -2234,6 +2235,8 @@ class ATInterface:
                          astr = '   0    '
             else:        astr = '%8.3f' % offset
          elif st == 't': astr = '%8.3f' % etime
+         elif st == 'm':
+            astr = '*'.join(['%s'%mm for mm in amods])
          else:
             print('** invalid GE: style %s' % style)
             return []
@@ -2255,6 +2258,7 @@ class ATInterface:
          elif st == 'd': astr = 'duration'
          elif st == 'o': astr = 'timediff'
          elif st == 't': astr = 'event_time'
+         elif st == 'm': astr = 'amp_mods'
          else:
             print('** invalid GE: style %s' % style)
             return []
