@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "try to get mask_dset from TSNR output",
+   NULL
+ } ,
+
  { 25, Feb, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "add modulators to -multi_timing_to_event_list output",
    "Done for D Jangraw."
