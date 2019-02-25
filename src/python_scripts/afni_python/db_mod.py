@@ -8119,6 +8119,7 @@ g_help_examples = """
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -mask_epi_anat yes                                 \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
@@ -8196,6 +8197,7 @@ g_help_examples = """
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -mask_epi_anat yes                                 \\
                         -blur_in_automask                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_types times times times              \\
@@ -8343,6 +8345,7 @@ g_help_examples = """
                   -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
                   -regress_bandpass 0.01 0.1                                 \\
@@ -8369,6 +8372,7 @@ g_help_examples = """
                   -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_anaticor                                          \\
                   -regress_censor_motion 0.2                                 \\
                   -regress_censor_outliers 0.1                               \\
@@ -8409,6 +8413,7 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
                   -regress_censor_motion 0.2                                 \\
@@ -8503,6 +8508,7 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC FSvent 3                                   \\
                   -regress_make_corr_vols aeseg FSvent                       \\
@@ -8556,6 +8562,7 @@ g_help_examples = """
                   -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
                   -mask_intersect Svent CSFe Tvent                           \\
+                  -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC Svent 3                                    \\
                   -regress_ROI_PC_per_run Svent                              \\
