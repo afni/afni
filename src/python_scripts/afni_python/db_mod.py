@@ -8315,7 +8315,8 @@ g_help_examples = """
 
                  So the typical suggestion of motion censoring at 0.3 for task
                  based analysis has been changed to 0.2 for this resting state
-                 example, and censoring of outliers has also been added.
+                 example, and censoring of outliers has also been added, at a
+                 value of 5% of the brain mask.
 
                  Outliers are typically due to motion, and may capture motion
                  in some cases where the motion parameters do not, because
@@ -8347,7 +8348,7 @@ g_help_examples = """
                   -volreg_tlrc_warp                                          \\
                   -mask_epi_anat yes                                         \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
@@ -8375,7 +8376,7 @@ g_help_examples = """
                   -mask_epi_anat yes                                         \\
                   -regress_anaticor                                          \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
@@ -8417,7 +8418,7 @@ g_help_examples = """
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
@@ -8515,7 +8516,7 @@ g_help_examples = """
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
@@ -8569,7 +8570,7 @@ g_help_examples = """
                   -regress_make_corr_vols WMe Svent                          \\
                   -regress_anaticor_fast                                     \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
@@ -8657,7 +8658,7 @@ g_help_examples = """
                   -combine_method OC                            \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.1                  \\
+                  -regress_censor_outliers 0.05                 \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
@@ -8689,7 +8690,7 @@ g_help_examples = """
                   -blur_in_mask yes                             \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.1                  \\
+                  -regress_censor_outliers 0.05                 \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
