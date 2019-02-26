@@ -160,6 +160,21 @@ examples (by program)
                                  -subs_betas 'Vrel#0_Coef'
 
 
+      7. For BIDS, adjust subject IDs and get group lists from text files,
+         group1_subjects.txt and group2_subjects.txt.
+
+            gen_group_command.py                                \\
+                -command 3dttest++                              \\
+                -write_script cmd.tt++.7                        \\
+                -prefix tt++.7_F-M                              \\
+                -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+                -dset_sid_list `cat group1_subjects.txt`        \\
+                -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+                -dset_sid_list `cat group2_subjects.txt`        \\
+                -set_labels horses rabbits                      \\
+                -subs_betas 'carrots#0_Coef'
+
+
    See "3dttest++ -help" for details on its options.
 
    --------------------
@@ -415,6 +430,29 @@ required parameters:
 
 other options:
 
+   -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list
+
+        In some cases it is easy to use a wildcard to specify all datasets via
+        -dsets, but where subject groups would not be partitioned that way.
+        For example, you have a list of subjects to apply, per group, but no
+        way to separate them with a wildcard (e.g. in a BIDS tree, with no
+        group directories).
+
+        Consider this example:
+
+           -subj_prefix sub-                               \\
+           -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+           -dset_sid_list sub-0*
+
+        or make 2 subject lists, each starting with all subjects, but with
+        group lists contained in text files:
+
+           -subj_prefix sub-                               \\
+           -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+           -dset_sid_list `cat group1_subjects.txt`        \\
+           -dsets sub-*/*.results/stats.sub*REML+tlrc.HEAD \\
+           -dset_sid_list `cat group2_subjects.txt`        \\
+
    -dset_index0_list values...  : restrict -dsets datasets to this 0-based list
    -dset_index1_list values...  : restrict -dsets datasets to this 1-based list
 
@@ -615,6 +653,7 @@ g_history = """
    0.13 Mar 29, 2016 - 3dMEMA now requires paired test to be via input contrast
    1.0  Dec 27, 2017 - python3 compatible
    1.1  Feb 26, 2019
+        - added -dset_sid_list to specify subject list, like -dset_index0_list
         - added -hpad and -tpad opts
         - use less indentation to tighten 3dttest++ command (do others?)
 """
@@ -656,6 +695,7 @@ class CmdInterface:
       self.dsets           = []         # list of lists of filenames
       self.index0_list     = []         # 0-based sub-list of 'dsets'
       self.index1_list     = []         # 1-based sub-list of 'dsets'
+      self.sid_apply       = []         # lists of subject IDs to apply
 
       # initialize valid_opts
       self.init_options()
@@ -713,6 +753,8 @@ class CmdInterface:
                       helpstr='restrict dsets to 0-based index list')
       self.valid_opts.add_opt('-dset_index1_list', -1, [], okdash=0,
                       helpstr='restrict dsets to 1-based index list')
+      self.valid_opts.add_opt('-dset_sid_list', -1, [], okdash=0,
+                      helpstr='restrict dsets to these subject IDs')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
@@ -817,6 +859,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.index1_list.append(val)      # allow multiple such options
+            continue
+
+         if opt.name == '-dset_sid_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.sid_apply.append(val)        # allow multiple such options
             continue
 
          if opt.name == '-factors':
@@ -965,6 +1013,10 @@ class CmdInterface:
                % (self.command, len(self.dsets), 
                   ', '.join([str(len(dlist)) for dlist in self.dsets]) ))
 
+      n_sid_apply = len(self.sid_apply)
+      if n_sid_apply > 1 and not (n_sid_apply == len(self.dsets)):
+         print("** num -dset_sid_list opts should be 0, 1 or match -dsets")
+
       # might deal with subject IDs and attributes later
       for ind, dlist in enumerate(self.dsets):
          slist = SUBJ.SubjectList(dset_l=dlist, verb=self.verb)
@@ -976,6 +1028,16 @@ class CmdInterface:
                                      dpre=self.dent_pre):
             print('** cannot set subject IDs from datasets')
             return 1
+         
+         # possibly restrict subject lists, now that we have ids
+         if n_sid_apply == 1:
+            if slist.restrict_ids_for_dsets(self.sid_apply[0]):
+               return 1
+         elif n_sid_apply > 1:
+            if slist.restrict_ids_for_dsets(self.sid_apply[ind]):
+               return 1
+
+         # and store the list
          self.slist.append(slist)
          if self.verb > 2: slist.show("slist %d" % ind)
 
