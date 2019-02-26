@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , FEB , 2019 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
+   "Option to save spatial fit coefficients" ,
+   "Plus a little general cleanup of the code and help" } ,
+
  { 22 , FEB , 2019 , RWC , "3dXClustSim" , MICRO , TYPE_MODIFY ,
    "Allow FPR of 1 percent" ,
    NULL } ,
