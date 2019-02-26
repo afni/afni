@@ -18,15 +18,17 @@ int main( int argc , char * argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
       printf("\n"
-             "Usage: 3dPolyfit [options] dataset\n"
+             "Usage: 3dPolyfit [options] dataset   ~1~\n"
              "\n"
-             "Fits a polynomial in space to the input dataset and outputs that fitted dataset.\n"
+             "* Fits a polynomial in space to the input dataset and outputs that fitted dataset.\n"
              "\n"
-             "You can also add your own basis datasets to the fitting mix, using the\n"
-             "'-base' option.\n"
+             "* You can also add your own basis datasets to the fitting mix, using the\n"
+             "  '-base' option.\n"
+             "\n"
+             "* You can get the fit coefficients using the '-1Dcoef' option.\n"
              "\n"
              "--------\n"
-             "Options:\n"
+             "Options:   ~1~\n"
              "--------\n"
              "\n"
              "  -nord n    = Maximum polynomial order (0..9) [default order=3]\n"
@@ -46,7 +48,7 @@ int main( int argc , char * argv[] )
              "  -resid  rr = Use 'rr' for the prefix of the residual dataset.\n"
              "                [default is not to output residuals]\n"
              "\n"
-             "  -1Dcoef cc = Save coefficients of fit into text file 'cc'.\n"
+             "  -1Dcoef cc = Save coefficients of fit into text file cc.1D.\n"
              "                [default is not to save these coefficients]\n"
              "\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
@@ -71,24 +73,40 @@ int main( int argc , char * argv[] )
              "  -verb      = Print fun and useful progress reports :-)\n"
              "\n"
              "------\n"
-             "Notes:\n"
+             "Notes:   ~1~\n"
              "------\n"
              "* Output dataset is always stored in float format.\n"
              "\n"
              "* If the input dataset has more than 1 sub-brick, only sub-brick #0\n"
              "  is processed. To fit more than one volume, you'll have to use a script\n"
              "  to loop over the input sub-bricks, and then glue (3dTcat) the results\n"
-             "  together to get a final result.\n"
+             "  together to get a final result. A simple example:\n"
+             "     #!/bin/tcsh\n"
+             "     set base = model.nii\n"
+             "     set dset = errts.nii\n"
+             "     set nval = `3dnvals $dset`\n"
+             "     @ vtop = $nval - 1\n"
+             "     foreach vv ( `count 0 $vtop` )\n"
+             "       3dPolyfit -base \"$base\" -nord 0 -mask \"$base\" -1Dcoef QQ.$vv -prefix QQ.$vv.nii $dset\"[$vv]\"\n"
+             "     end\n"
+             "     3dTcat -prefix QQall.nii QQ.0*.nii\n"
+             "     1dcat  QQ.0*.1D > QQall.1D\n"
+             "     \rm QQ.0*\n"
+             "     exit 0\n"
              "\n"
              "* If the '-base' dataset has multiple sub-bricks, all of them are used.\n"
              "\n"
-             "* You can use the '-base' option more than once.\n"
+             "* You can use the '-base' option more than once, if desired or needed.\n"
              "\n"
              "* The original motivation for this program was to fit a spatial model\n"
              "  to a field map MRI, but that didn't turn out to be useful. Nevertheless,\n"
              "  I make this program available to someone who might find it beguiling.\n"
              "\n"
-             "-- Dec 2010 - RWCox\n"
+             "* If you really want, I could allow you to put sign constraints on the\n"
+             "  fit coefficients (e.g., say that the coefficient for a given base volume\n"
+             "  should be non-negative). But you'll have to beg for this.\n"
+             "\n"
+             "-- Emitted by RWCox\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
@@ -151,14 +169,14 @@ int main( int argc , char * argv[] )
      if( strcasecmp(argv[iarg],"-nord") == 0 ){
        nord = (int)strtol( argv[++iarg], NULL , 10 ) ;
        if( nord < -1 || nord > 9 )
-         ERROR_exit("Illegal value after -nord!") ;
+         ERROR_exit("Illegal value after -nord :(") ;
        iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-meth") == 0 ){
        meth = (int)strtol( argv[++iarg], NULL , 10 ) ;
        if( meth < 1 || meth > 2 )
-         ERROR_exit("Illegal value after -meth!") ;
+         ERROR_exit("Illegal value after -meth :(") ;
        iarg++ ; continue ;
      }
 
@@ -186,7 +204,7 @@ int main( int argc , char * argv[] )
      if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) )
-         ERROR_exit("Illegal value after -prefix!\n");
+         ERROR_exit("Illegal value after -prefix :(");
        if( strcasecmp(prefix,"NULL") == 0 ) prefix = NULL ;
        iarg++ ; continue ;
      }
@@ -194,7 +212,7 @@ int main( int argc , char * argv[] )
      if( strcasecmp(argv[iarg],"-resid") == 0 ){
        resid = argv[++iarg] ;
        if( !THD_filename_ok(resid) )
-         ERROR_exit("Illegal value after -resid!\n");
+         ERROR_exit("Illegal value after -resid :(");
        if( strcasecmp(resid,"NULL") == 0 ) resid = NULL ;
        iarg++ ; continue ;
      }
@@ -202,7 +220,7 @@ int main( int argc , char * argv[] )
      if( strcasecmp(argv[iarg],"-1Dcoef") == 0 ){  /* 26 Feb 2019 */
        cfnam = argv[++iarg] ;
        if( !THD_filename_ok(cfnam) )
-         ERROR_exit("Illegal value after -1Dcoef!\n");
+         ERROR_exit("Illegal value after -1Dcoef :(");
        if( strcasecmp(cfnam,"NULL") == 0 ) cfnam = NULL ;
        iarg++ ; continue ;
      }
@@ -420,7 +438,9 @@ int main( int argc , char * argv[] )
    }
 
    if( cfnam != NULL && fvit != NULL ){ /* won't work with '-byslice' */
-     mri_write_floatvec( modify_afni_prefix(cfnam,NULL,".1D") , fvit ) ;
+     char *qn ;
+     qn = STRING_HAS_SUFFIX(cfnam,".1D") ? cfnam : modify_afni_prefix(cfnam,NULL,".1D") ;
+     mri_write_floatvec( qn , fvit ) ;
    }
 
    exit(0) ;
