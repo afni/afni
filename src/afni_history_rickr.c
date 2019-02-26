@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Feb, 2019, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "add -dset_sid_list, -hpad, -tpad",
+   "Add -dset_sid_list to specify subject IDs explicitly.\n"
+   "Also, add -hpad/-tpad; less indentation for 3dttest++."
+ } ,
+
  { 25, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "try to get mask_dset from TSNR output",
    NULL

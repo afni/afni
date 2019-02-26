@@ -318,7 +318,7 @@ class SubjectList(object):
       if sid_l == None and dset_l == None and atr_l == None: return
 
       # set the length, and check for consistency
-      llen = - 1
+      llen = -1
       errs = 0
       for ilist in [sid_l, dset_l, atr_l]:
          if ilist == None: continue
@@ -462,6 +462,48 @@ class SubjectList(object):
 
       for ind, subj in enumerate(self.subjects):
          subj.sid = '%s%s%s' % (prefix, slist[ind], suffix)
+
+      return 0
+
+   def restrict_ids_for_dsets(self, valid_ids=[]):
+      """restrict subject IDs to those in valid_ids list
+         require all valid_ids to exist, or fail
+
+         return 0 on success
+      """
+      # bail if either list is empty
+      if len(self.subjects) == 0: return 0
+      if len(valid_ids) == 0: return 0
+
+      # check that valid_ids are unique
+      if not UTIL.vals_are_unique(valid_ids):
+         print('** restrict_ids: ids are not unique')
+         return 1
+
+      # check that all valid_ids exist, and generate new subject list
+      all_ids = [subj.sid for subj in self.subjects]
+
+      new_subjs = []
+      missing = 0
+      missed_id = ''    # example of missing ID
+      for sid in valid_ids:
+         if sid in all_ids:
+            old_index = all_ids.index(sid)
+            new_subjs.append(self.subjects[old_index])
+         else:
+            if self.verb > 1:
+               print("** restrict_ids: cannot restrict to missing ID '%s'"%sid)
+            missed_id = sid
+            missing += 1
+      if missing:
+         print("** restrict_ids: missing %d of %d IDs" \
+               % (missing,len(valid_ids)))
+         print("   IDs look like: %s" % ' '.join(all_ids[:3]))
+         print("   missing IDs look like: %s" % missed_id)
+         return 1
+
+      # apply restricted list
+      self.subjects = new_subjs
 
       return 0
 
