@@ -1169,8 +1169,8 @@ extern double * startup_lsqfit( int , float * , int , float *ref[] ) ;
 extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
 extern void mri_polyfit_verb( int ) ;
-MRI_IMAGE * mri_polyfit( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
-MRI_IMAGE * mri_polyfit_byslice( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
+extern MRI_IMAGE * mri_polyfit( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
+extern MRI_IMAGE * mri_polyfit_byslice( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
 
 extern MRI_IMAGE * mri_pcvector  ( MRI_IMARR *imar , int,int ) ;
 extern MRI_IMAGE * mri_meanvector( MRI_IMARR *imar , int,int ) ;
@@ -1452,6 +1452,10 @@ extern void mri_write_floatvec( char *fname , floatvec *fv ) ; /* 21 Jan 2016 */
 extern float interp_inverse_floatvec( floatvec *fv , float y ) ;
 
 typedef struct { int nvec ; floatvec *fvar ; } floatvecvec ;
+
+/*-----------------------------------------------------*/
+
+extern floatvec * mri_polyfit_get_fitvec(void) ; /* 26 Feb 2019 */
 
 /*-----------------------------------------------------*/
 

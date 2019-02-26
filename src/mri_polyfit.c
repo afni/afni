@@ -169,6 +169,12 @@ void mri_polyfit_set_basis( char *str )
 }
 
 /*----------------------------------------------------------------------------*/
+/* for getting the fit coefficients [26 Feb 2019] */
+
+static floatvec *pfit_vec = NULL ;
+floatvec * mri_polyfit_get_fitvec(void){ return pfit_vec ; }
+
+/*----------------------------------------------------------------------------*/
 /* Fit a polynomial to a 3D image and return the fitted image:
      nord = maximum order of polynomial (0..9)
      mask = optional mask of voxels to actually use
@@ -187,6 +193,8 @@ MRI_IMAGE * mri_polyfit( MRI_IMAGE *imin, int nord, MRI_IMARR *exar, byte *mask,
    int nex=0 ;
 
 ENTRY("mri_polyfit") ;
+
+   KILL_floatvec(pfit_vec) ;
 
    if( imin == NULL || (nord < 0 && exar == NULL) || nord > 9 ) RETURN(NULL) ;
 
@@ -322,6 +330,8 @@ ENTRY("mri_polyfit") ;
      RETURN(NULL) ;
    }
 
+   COPY_floatvec(pfit_vec,fvit) ; /* save coefficients */
+
    memset( far , 0 , sizeof(float)*nxyz ) ;
 
    if( nord >= 0 ){
@@ -355,7 +365,7 @@ ENTRY("mri_polyfit") ;
      }
    }
 
-   KILL_floatvec(fvit);
+   KILL_floatvec(fvit) ;
 
    RETURN(fim) ;
 }

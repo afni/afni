@@ -8,48 +8,92 @@ int main( int argc , char * argv[] )
    int nrep=1 ;
    char *prefix = "Polyfit" ;
    char *resid  = NULL ;
+   char *cfnam  = NULL ;
    int iarg , verb=0 , do_automask=0 , nord=3 , meth=2 , do_mclip=0 ;
    THD_3dim_dataset *inset ;
    MRI_IMAGE *imout , *imin ;
    byte *mask=NULL ; int nvmask=0 , nmask=0 , do_mone=0 , do_byslice=0 ;
    MRI_IMARR *exar=NULL ;
+   floatvec *fvit=NULL ;   /* 26 Feb 2019 */
 
-   if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
-      printf("Usage: 3dPolyfit [options] dataset\n"
-             "Fits a polynomial in space to the dataset and outputs that.\n"
+   if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
+      printf("\n"
+             "Usage: 3dPolyfit [options] dataset\n"
              "\n"
+             "Fits a polynomial in space to the input dataset and outputs that fitted dataset.\n"
+             "\n"
+             "You can also add your own basis datasets to the fitting mix, using the\n"
+             "'-base' option.\n"
+             "\n"
+             "--------\n"
              "Options:\n"
+             "--------\n"
+             "\n"
              "  -nord n    = Maximum polynomial order (0..9) [default order=3]\n"
-             "  -blur f    = Gaussian blur (inside mask) with FWHM='f' (mm)\n"
-             "  -mrad r    = Radius (voxels) of preliminary median filter\n"
+             "                [n=0 is the constant 1]\n"
+             "                [n=-1 means only use volumes from '-base']\n"
+             "\n"
+             "  -blur f    = Gaussian blur input dataset (inside mask) with FWHM='f' (mm)\n"
+             "\n"
+             "  -mrad r    = Radius (voxels) of preliminary median filter of input\n"
              "                [default is no blurring of either type; you can]\n"
              "                [do both types (Gaussian and median), but why??]\n"
-             "                [N.B.: median blur is much slower than Gaussian]\n"
+             "                [N.B.: median blur is slower than Gaussian]\n"
+             "\n"
              "  -prefix pp = Use 'pp' for prefix of output dataset (the fit).\n"
+             "                [default prefix is 'Polyfit'; use NULL to skip this output]\n"
+             "\n"
              "  -resid  rr = Use 'rr' for the prefix of the residual dataset.\n"
+             "                [default is not to output residuals]\n"
+             "\n"
+             "  -1Dcoef cc = Save coefficients of fit into text file 'cc'.\n"
+             "                [default is not to save these coefficients]\n"
+             "\n"
              "  -automask  = Create a mask (a la 3dAutomask)\n"
              "  -mask mset = Create a mask from nonzero voxels in 'mset'.\n"
+             "                [default is not to use a mask, which is probably a bad idea]\n"
+             "\n"
              "  -mone      = Scale the mean value of the fit (inside the mask) to 1.\n"
-             "  -mclip     = Clip values outside the box containing the mask\n"
-             "               to the edge of the box, to avoid weird artifacts.\n"
+             "                [probably this option is not useful for anything]\n"
+             "\n"
+             "  -mclip     = Clip fit values outside the rectilinear box containing the\n"
+             "               mask to the edge of that box, to avoid weird artifacts.\n"
+             "\n"
              "  -meth mm   = Set 'mm' to 2 for least squares fit;\n"
              "               set it to 1 for L1 fit [default method=2]\n"
-             "                [Note that L1 fitting is much slower than L2 fitting!]\n"
+             "                [Note that L1 fitting is slower than L2 fitting!]\n"
+             "\n"
              "  -base bb   = In addition to the polynomial fit, also use\n"
              "               the volumes in dataset 'bb' as extra basis functions.\n"
-             "                [If you use a base dataset, then you can set]\n"
-             "                [nord to -1, to skip using a polynomial fit.]\n"
+             "                [If you use a base dataset, then you can set nord]\n"
+             "                [to -1, to skip using any spatial polynomial fit.]\n"
+             "\n"
              "  -verb      = Print fun and useful progress reports :-)\n"
              "\n"
+             "------\n"
+             "Notes:\n"
+             "------\n"
              "* Output dataset is always stored in float format.\n"
-             "* If the input dataset has more than 1 sub-brick, only sub-brick #0\n"
-             "  is processed.\n"
-             "* If the -base dataset has multiple sub-bricks, all of them are used.\n"
              "\n"
-             "-- Dec 2010 - RWCox - beats workin' for a living\n"
+             "* If the input dataset has more than 1 sub-brick, only sub-brick #0\n"
+             "  is processed. To fit more than one volume, you'll have to use a script\n"
+             "  to loop over the input sub-bricks, and then glue (3dTcat) the results\n"
+             "  together to get a final result.\n"
+             "\n"
+             "* If the '-base' dataset has multiple sub-bricks, all of them are used.\n"
+             "\n"
+             "* You can use the '-base' option more than once.\n"
+             "\n"
+             "* The original motivation for this program was to fit a spatial model\n"
+             "  to a field map MRI, but that didn't turn out to be useful. Nevertheless,\n"
+             "  I make this program available to someone who might find it beguiling.\n"
+             "\n"
+             "-- Dec 2010 - RWCox\n"
             ) ;
       PRINT_COMPILE_DATE ; exit(0) ;
    }
+
+   /*-- startup paperwork --*/
 
    mainENTRY("3dPolyfit main"); machdep(); AFNI_logger("3dPolyfit",argc,argv);
    PRINT_VERSION("3dPolyfit") ;
@@ -59,7 +103,7 @@ int main( int argc , char * argv[] )
    iarg = 1 ;
    while( iarg < argc && argv[iarg][0] == '-' ){
 
-     if( strcmp(argv[iarg],"-base") == 0 ){
+     if( strcasecmp(argv[iarg],"-base") == 0 ){
        THD_3dim_dataset *bset ; int kk ; MRI_IMAGE *bim ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-base'") ;
        bset = THD_open_dataset(argv[iarg]) ;
@@ -75,20 +119,20 @@ int main( int argc , char * argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-verb") == 0 ){
+     if( strcasecmp(argv[iarg],"-verb") == 0 ){
        verb++ ; iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-hermite") == 0 ){ /* 25 Mar 2013 [New Year's Day] */
-       mri_polyfit_set_basis("hermite") ;
+       mri_polyfit_set_basis("hermite") ;          /* HIDDEN */
        iarg++ ; continue ;
      }
 
      if( strcasecmp(argv[iarg],"-byslice") == 0 ){ /* 25 Mar 2013 [New Year's Day] */
-       do_byslice++ ; iarg++ ; continue ;
+       do_byslice++ ; iarg++ ; continue ;          /* HIDDEN */
      }
 
-     if( strcmp(argv[iarg],"-mask") == 0 ){
+     if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
        if( mask != NULL || do_automask ) ERROR_exit("Can't have two mask inputs") ;
@@ -104,14 +148,14 @@ int main( int argc , char * argv[] )
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-nord") == 0 ){
+     if( strcasecmp(argv[iarg],"-nord") == 0 ){
        nord = (int)strtol( argv[++iarg], NULL , 10 ) ;
        if( nord < -1 || nord > 9 )
          ERROR_exit("Illegal value after -nord!") ;
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-meth") == 0 ){
+     if( strcasecmp(argv[iarg],"-meth") == 0 ){
        meth = (int)strtol( argv[++iarg], NULL , 10 ) ;
        if( meth < 1 || meth > 2 )
          ERROR_exit("Illegal value after -meth!") ;
@@ -131,44 +175,56 @@ int main( int argc , char * argv[] )
        do_mone++ ; iarg++ ; continue ;
      }
 
-     if( strncmp(argv[iarg],"-verb",5) == 0 ){
-       verb++ ; iarg++ ; continue ;
-     }
-
-     if( strcmp(argv[iarg],"-mrad") == 0 ){
+     if( strcasecmp(argv[iarg],"-mrad") == 0 ){
        mrad = strtod( argv[++iarg] , NULL ) ; iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-blur") == 0 ){
+     if( strcasecmp(argv[iarg],"-blur") == 0 ){
        fwhm = strtod( argv[++iarg] , NULL ) ; iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-prefix") == 0 ){
+     if( strcasecmp(argv[iarg],"-prefix") == 0 ){
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) )
          ERROR_exit("Illegal value after -prefix!\n");
-       if( strcmp(prefix,"NULL") == 0 ) prefix = NULL ;
+       if( strcasecmp(prefix,"NULL") == 0 ) prefix = NULL ;
        iarg++ ; continue ;
      }
 
-     if( strcmp(argv[iarg],"-resid") == 0 ){
+     if( strcasecmp(argv[iarg],"-resid") == 0 ){
        resid = argv[++iarg] ;
        if( !THD_filename_ok(resid) )
          ERROR_exit("Illegal value after -resid!\n");
-       if( strcmp(resid,"NULL") == 0 ) resid = NULL ;
+       if( strcasecmp(resid,"NULL") == 0 ) resid = NULL ;
+       iarg++ ; continue ;
+     }
+
+     if( strcasecmp(argv[iarg],"-1Dcoef") == 0 ){  /* 26 Feb 2019 */
+       cfnam = argv[++iarg] ;
+       if( !THD_filename_ok(cfnam) )
+         ERROR_exit("Illegal value after -1Dcoef!\n");
+       if( strcasecmp(cfnam,"NULL") == 0 ) cfnam = NULL ;
        iarg++ ; continue ;
      }
 
      ERROR_exit("Unknown option: %s\n",argv[iarg]);
    }
 
-   /*--- check for errors ---*/
+   /*--- check for blatant errors ---*/
 
    if( iarg >= argc )
-     ERROR_exit("No dataset name on command line?");
+     ERROR_exit("No input dataset name on command line?");
 
-   if( prefix == NULL && resid == NULL )
-     ERROR_exit("-prefix and -resid are both NULL?!") ;
+   if( prefix == NULL && resid == NULL && cfnam == NULL )
+     ERROR_exit("-prefix and -resid and -1Dcoef are all NULL?!") ;
+
+   if( do_byslice && cfnam != NULL ){
+     WARNING_message("-byslice does not work with -1Dcoef option :(") ;
+     cfnam = NULL ;
+   }
+
+   if( nord < 0 && exar == NULL )
+     ERROR_exit("no polynomial fit AND no -base option ==> nothing to compute :(") ;
 
    /*-- read input --*/
 
@@ -178,7 +234,9 @@ int main( int argc , char * argv[] )
    CHECK_OPEN_ERROR(inset,argv[iarg]) ;
    DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
    if( DSET_NVALS(inset) > 1 )
-     WARNING_message("Only processing sub-brick #0 !!");
+     WARNING_message( "Only processing sub-brick #0 (out of %d)" , DSET_NVALS(inset) );
+
+   /* check input mask or create automask */
 
    if( mask != NULL ){
      if( nvmask != DSET_NVOX(inset) )
@@ -190,10 +248,14 @@ int main( int argc , char * argv[] )
      nmask = THD_countmask( nvmask , mask ) ;
      if( nmask < 99 ) ERROR_exit("Too few voxels in automask (%d)",nmask) ;
      if( verb ) ININFO_message("Number of voxels in automask = %d",nmask) ;
+   } else {
+     WARNING_message("3dPolyfit is running without a mask") ;
    }
 
 #undef  GOOD
 #define GOOD(i) (mask == NULL || mask[i])
+
+   /* check -base input datasets */
 
    if( exar != NULL ){
      int ii,kk , nvbad=0 , nvox=DSET_NVOX(inset),nm ; float *ex , exb ;
@@ -208,7 +270,10 @@ int main( int argc , char * argv[] )
      }
      if( nvbad != 0 ) ERROR_exit("Cannot continue :-(") ;
 
+     /* subtract mean from each base input, if is a constant polynomial in the fit */
+
      if( nord >= 0 ){
+       if( verb ) INFO_message("subtracting spatial mean from '-base'") ;
        for( kk=0 ; kk < IMARR_COUNT(exar) ; kk++ ){
          exb = 0.0f ; ex = MRI_FLOAT_PTR(IMARR_SUBIM(exar,kk)) ;
          for( nm=ii=0 ; ii < nvox ; ii++ ){ if( GOOD(ii) ){ exb += ex[ii]; nm++; } }
@@ -217,6 +282,8 @@ int main( int argc , char * argv[] )
        }
      }
    }
+
+   /* if blurring, edit mask a little */
 
    if( mask != NULL && (fwhm > 0.0f || mrad > 0.0f) ){
      int ii ;
@@ -239,6 +306,8 @@ int main( int argc , char * argv[] )
 
    if( verb ) INFO_message("Start fitting process") ;
 
+   /* do the Gaussian blurring */
+
    if( fwhm > 0.0f ){
      if( verb ) ININFO_message("Gaussian blur: FWHM=%g mm",fwhm) ;
      imin->dx = fabsf(DSET_DX(inset)) ;
@@ -247,15 +316,24 @@ int main( int argc , char * argv[] )
      mri_blur3D_addfwhm( imin , mask , fwhm ) ;
    }
 
+   /* do the fitting */
+
    mri_polyfit_verb(verb) ;
    if( do_byslice )
      imout = mri_polyfit_byslice( imin , nord , exar , mask , mrad , meth ) ;
    else
      imout = mri_polyfit        ( imin , nord , exar , mask , mrad , meth ) ;
 
+   /* WTF? */
+
    if( imout == NULL )
      ERROR_exit("Can't compute polynomial fit :-( !?") ;
    if( resid == NULL ) mri_free(imin) ;
+
+   if( ! do_byslice )
+     fvit = mri_polyfit_get_fitvec() ; /* get coefficients of fit [26 Feb 2019] */
+
+   /* scale the fit dataset? */
 
    if( do_mone ){
      float sum=0.0f ; int nsum=0 , ii,nvox ; float *par=MRI_FLOAT_PTR(imout) ;
@@ -271,7 +349,7 @@ int main( int argc , char * argv[] )
      }
    }
 
-   /* if there's a mask, clip values outside of it */
+   /* if there's a mask, clip values outside of its box */
 
 #undef  PF
 #define PF(i,j,k) par[(i)+(j)*nx+(k)*nxy]
@@ -306,6 +384,8 @@ int main( int argc , char * argv[] )
 
    if( mask != NULL ) free(mask) ;
 
+   /* write outputs */
+
    if( prefix != NULL ){
      THD_3dim_dataset *outset = EDIT_empty_copy( inset )  ;
      EDIT_dset_items( outset ,
@@ -338,5 +418,10 @@ int main( int argc , char * argv[] )
      DSET_write(outset) ;
      WROTE_DSET(outset) ;
    }
+
+   if( cfnam != NULL && fvit != NULL ){ /* won't work with '-byslice' */
+     mri_write_floatvec( modify_afni_prefix(cfnam,NULL,".1D") , fvit ) ;
+   }
+
    exit(0) ;
 }
