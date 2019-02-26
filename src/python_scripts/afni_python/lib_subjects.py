@@ -789,7 +789,7 @@ class SubjectList(object):
          if verb > 2: print('-- tt++_cmd: adding default set labels')
       if bsubs == None: bsubs, tsubs = ['0'], ['1']
 
-      indent = 10  # minimum indent: spaces to following -set option
+      indent = 3  # minimum indent: spaces to following -set option
 
       # want any '-AminusB' option at top of command
       if len(set_labs) > 1: copt = '%*s%s \\\n' % (indent, '', comp_dir)
@@ -821,10 +821,13 @@ class SubjectList(object):
          cmd += '\n'
 
       # command and first set of subject files
-      cmd += '3dttest++ -prefix %s \\\n'    \
-             '%s'                           \
-             '          -setA %s \\\n%s' %  (prefix, copt, set_labs[0],
-                                self.make_ttpp_set_list(bsubs[0], indent+3))
+      cmd += '3dttest++ \\\n'           \
+             '%*s-prefix %s \\\n'       \
+             '%s'                       \
+             '%*s-setA %s \\\n%s'       \
+             % (indent, ' ', prefix, copt, 
+                indent, ' ', set_labs[0],
+                self.make_ttpp_set_list(bsubs[0], indent+3))
 
       # maybe add second set of subject files
       if len(set_labs) > 1:

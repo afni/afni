@@ -524,6 +524,20 @@ other options:
            Note that these IDs come at the dataset level, since the dataset
            names vary.
 
+   -hpad PAD                    : pad subject prefix by PAD chars toward header
+
+        Akin to -subj_prefix and -tpad, this flag expands the subject prefix
+        list to include PAD extra characters toward the beginning.
+
+        See also -tpad.
+
+   -tpad PAD                    : pad subject prefix by PAD chars toward tail
+
+        Akin to -subj_prefix and -hpad, this flag expands the subject prefix
+        list to include PAD extra characters toward the beginning.
+
+        See also -hpad.
+
    -options OPT1 OPT2 ...       : list of options to pass along to result
 
         The given options will be passed directly to the resulting command.  If
@@ -600,9 +614,12 @@ g_history = """
    0.12 Aug 12, 2015 - allow generic (unknown) commands (via -command)
    0.13 Mar 29, 2016 - 3dMEMA now requires paired test to be via input contrast
    1.0  Dec 27, 2017 - python3 compatible
+   1.1  Feb 26, 2019
+        - added -hpad and -tpad opts
+        - use less indentation to tighten 3dttest++ command (do others?)
 """
 
-g_version = "gen_group_command.py version 1.00, December 27, 2017"
+g_version = "gen_group_command.py version 1.1 February 26, 2019"
 
 
 class CmdInterface:
@@ -625,6 +642,8 @@ class CmdInterface:
       self.tstatsubs       = None       # list of t-stat sub-brick indices
       self.lablist         = None       # list of set labels
       self.factors         = []         # list of factors of each type
+      self.hpad            = 0          # hpad for list_minus_glob_form
+      self.tpad            = 0          # tpad for list_minus_glob_form
 
       self.subj_prefix     = ''         # prefix for each subject ID
       self.subj_suffix     = ''         # suffix for each subject ID
@@ -696,6 +715,10 @@ class CmdInterface:
                       helpstr='restrict dsets to 1-based index list')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
+      self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
+                      helpstr='pad header by this length in subj IDs')
+      self.valid_opts.add_opt('-tpad', 1, [], okdash=0,
+                      helpstr='pad tail by this length in subj IDs')
       self.valid_opts.add_opt('-keep_dirent_pre', 0, [], 
                       helpstr='keep directory entry prefix')
       self.valid_opts.add_opt('-options', -1, [], 
@@ -800,6 +823,18 @@ class CmdInterface:
             val, err = uopts.get_type_list(int, '', opt=opt)
             if val == None or err: return 1
             self.factors = val
+            continue
+
+         if opt.name == '-hpad':
+            val, err = uopts.get_type_opt(int, opt=opt)
+            if val == None or err: return 1
+            self.hpad = val
+            continue
+
+         if opt.name == '-tpad':
+            val, err = uopts.get_type_opt(int, opt=opt)
+            if val == None or err: return 1
+            self.tpad = val
             continue
 
          if opt.name == '-keep_dirent_pre':
@@ -936,6 +971,8 @@ class CmdInterface:
          if slist.status: return 1
          if slist.set_ids_from_dsets(prefix=self.subj_prefix,
                                      suffix=self.subj_suffix,
+                                     hpad=self.hpad,
+                                     tpad=self.tpad,
                                      dpre=self.dent_pre):
             print('** cannot set subject IDs from datasets')
             return 1
