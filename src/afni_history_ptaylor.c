@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Feb , 2019 , PT , "1dplot.py" , MINOR , TYPE_GENERAL,
+   "Put a try/except at start, to set MPLBACKEND env if running w/o DISPLAY.",
+   "Useful for current settings on Biowulf (and possibly elsewhere).\n"
+},
+
 { 27, Feb , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Include grayplots in the APQC HTML file.",
    "Should add some extra info about residuals/modeling/the meaning of life.\n"
