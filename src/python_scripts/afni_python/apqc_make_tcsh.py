@@ -55,15 +55,22 @@ auth = 'PA Taylor'
 #ver = '1.91' ; date = 'Dec 23, 2018' 
 # + [PT] rename "run_mode" -> "run_style" (more specific/correct)
 #
-ver = '2.0' ; date = 'Jan 2, 2019' 
+#ver = '2.0' ; date = 'Jan 2, 2019' 
 # + [PT] changed order of enorm and outlier (have former just after VR6)
 # + [PT] label on enorm, "~mm"
 # + [PT] fix name of per stimulus regressors file: X.stim.xmat.1D
 # + [PT] add in EPI in orig space volume, using volreg base vol
 #
+ver = '2.1' ; date = 'Feb 26, 2019' 
+# + [PT] new plot in regr: grayplot
+#
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
+#  uvars to add in officially still:
+#    "anat_orig": "copy_af_anat_w_skull+orig.HEAD",
+#    "vr_base": "...."
+
 
 import sys
 import os
@@ -475,6 +482,22 @@ if __name__ == "__main__":
         # thr volumes in the stats dset-- we intend that this will
         # generalize to viewing not just the F-stat (the default)
         cmd      = lat.apqc_regr_df( obase, "regr", "df" )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "regr"
+    # item    : grayplot of errts (task, rest, naturalistic, etc.)
+
+    # [PT: Feb 25, 2019] 
+    ldep = ['errts_dset', 'mask_dset']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('make grayplot of residuals')
+        obase    = 'qc_{:02d}'.format(idx)
+        cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot" )
 
         str_FULL+= ban
         str_FULL+= cmd

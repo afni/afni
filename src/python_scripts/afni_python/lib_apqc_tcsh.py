@@ -33,11 +33,14 @@ auth = 'PA Taylor'
 #        for both basic and pythonic styles
 # + [PT] rename "run_mode" -> "run_style" (more specific/correct)
 #
-ver = '1.8' ; date = 'Jan 2, 2019'
+#ver = '1.8' ; date = 'Jan 2, 2019'
 # + [PT] add media_info
 # + [PT] change order of enorm and outlier
 # + [PT] add in EPI in orig space viewing
 # + [PT] copy gen_ss JSON file into QC_*/media_info/
+#
+ver = '2.1' ; date = 'Feb 26, 2019' 
+# + [PT] new plot in regr: grayplot
 #
 #########################################################################
 
@@ -1722,6 +1725,105 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
             jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
 
+# -----------------------------------------------------------------
+
+# ['errts_dset', 'mask_dset']
+def apqc_regr_grayplot( obase, qcb, qci ):
+
+    perc_max_o_max = 50                 # %ile for time series
+
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    comm  = '''grayplot of residuals'''
+
+    pre = '''
+    set opref = {}
+    set errts_name = `3dinfo -prefix ${{errts_dset}}`
+    set mask_name  = `3dinfo -prefix ${{mask_dset}}`
+    set ttstat = __tmp_tstat_max.nii
+    set tjson  = _tmp.txt
+    set ojson  = ${{odir_img}}/${{opref}}.json
+    '''.format( opref )
+
+    # To get range for grayplot, need to collapse time series to
+    # single value per voxel-- we choose max of abs values.  I guess
+    # the absmax is most appropriate here?
+    cmd0 = '''
+    3dTstat 
+    -overwrite
+    -mask ${mask_dset}
+    -absmax
+    -prefix ${ttstat}
+    ${errts_dset}
+    '''
+
+    # Now get actual range-- percentile of max of maxes.
+    cmd1 = '''
+    set upper_ran = `3dBrickStat 
+    -non-zero
+    -slow 
+    -percentile {0} 1 {0}
+    ${{ttstat}}`
+    '''.format( perc_max_o_max )
+
+    # FINALLY, the grayplot itself
+    cmd2 = '''
+    3dGrayplot 
+    -polort -1 
+    -peelorder 
+    -dimen  1800 500 
+    -range  ${upper_ran[2]}
+    -input  ${errts_dset}
+    -mask   ${mask_dset}
+    -prefix ${odir_img}/${opref}.jpg
+    '''
+
+    # clean up a bit \rm (note use of double \\ in the python string)
+    cmd3 = '''
+    \\rm ${ttstat}
+    '''
+
+    str_TEXT  = '''"Grayplot ('-peelorder') of residuals dset: ${errts_name}",,'''
+    str_TEXT += '''"Rows ordered by approx voxel geom in mask: ${mask_name}"'''
+
+    str_SUBTEXT = '''range: ${upper_ran[2]} '''
+    str_SUBTEXT+= '''({}%ile of time series |max| vals in mask)'''.format( perc_max_o_max )
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: 1D
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        :: {}
+    subtext     :: "{}"
+    EOF
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                str_TEXT, str_SUBTEXT )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    comm  = commentize( comm )
+    pre   = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    cmd0  = commandize( cmd0 )
+    cmd1  = commandize( cmd1 )
+    cmd2  = commandize( cmd2 )
+    cmd3  = commandize( cmd3 )
+    jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+
+    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, jsontxt, jsontxt_cmd]
+    return '\n\n'.join(lout)
 
 # ========================== dat/txt ================================
 

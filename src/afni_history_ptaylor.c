@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Feb , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Include grayplots in the APQC HTML file.",
+   "Should add some extra info about residuals/modeling/the meaning of life.\n"
+},
+
 { 21, Feb , 2019 , PT , "@SSwarper" , MICRO , TYPE_GENERAL,
    "Include '-Urad 30' in 3dUnifize step.",
    "Maybe slightly prettier/more unifized output.\n"
