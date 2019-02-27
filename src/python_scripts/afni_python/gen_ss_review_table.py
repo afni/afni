@@ -140,12 +140,24 @@ class MyInterface:
       self.user_opts       = None
       self.showlabs        = 0          # flag - print labels at end
       self.show_missing    = 0          # flag - print missing keys
+      self.review_table    = []         # full subject review table
 
       # control
       self.separator       = ':'        # field separator (only first applies)
       self.seplen          = 1          # length, to avoid recomputing
       self.overwrite       = 0
       self.verb            = 1
+
+      # outlier table
+      self.report_outliers = 0
+      self.ro_list         = []         # list of [LABEL, COMPARE, VAL,...]
+      self.ro_valid_comps  = ['LT', 'GT', 'LE', 'GE', 'EQ', 'NE', 'EX']
+      self.ro_valid_fills  = ['blank', 'na', 'value']
+      self.ro_valid_heads  = ['label', 'index', 'acronym']
+      self.ro_valid_seps   = ['space', 'comma', 'tab']
+      self.ro_fill_type    = 'blank'    # blank, na, value
+      self.ro_head_type    = 'acronym'  # label, index, acronym
+      self.ro_sep_type     = 'space'    # space, comma, tab
 
       # infile name parsing
       self.infiles         = []
@@ -176,6 +188,17 @@ class MyInterface:
                     helpstr='input text files (from @ss_review_basic)')
       vopts.add_opt('-overwrite', 0, [],
                     helpstr='allow overwrite for output table file')
+      vopts.add_opt('-report_outliers', -3, [],
+                    helpstr='report outlier subjects for test')
+      #vopts.add_opt('-report_outliers_fill', 1, [],
+      #              acplist=self.ro_valid_fills,
+      #              helpstr='what to fill empty entries with')
+      #vopts.add_opt('-report_outliers_header', 1, [],
+      #              acplist=self.ro_valid_heads,
+      #              helpstr='how to format column headers')
+      #vopts.add_opt('-report_outliers_sep', 1, [],
+      #              acplist=self.ro_valid_seps,
+      #              helpstr='outlier report field separator type')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
       vopts.add_opt('-showlabs', 0, [],
@@ -259,6 +282,29 @@ class MyInterface:
             if   self.separator == 'tab': self.separator = '\t'
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
+
+         # ------------------------------
+         # report outliers
+         elif opt.name == '-report_outliers':
+            params, err = uopts.get_string_list('', opt=opt)
+            if self.params == None or err:
+               print('** failed to parse -report_outliers %s' % params)
+               errs +=1
+               continue
+
+            if self.add_test_to_outlier_report(params):
+               errs +=1
+               continue
+
+            self.report_outliers = 1
+
+         elif opt.name == '-report_outliers_fill':
+            self.ro_fill_type, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_fill_type is None or err:
+               print("** bad opt: -report_outliers_fill %s"%self.ro_fill_type)
+               errs += 1
+
+         # ------------------------------ outliers end
 
          elif opt.name == '-showlabs':
             self.showlabs = 1
@@ -539,6 +585,85 @@ class MyInterface:
       if self.verb > 1: print("++ have GIDs from infiles")
       self.gnames = glist
 
+   def add_test_to_outlier_report(self, test_params):
+      """add a comparison test to the outlier report
+         --> this adds a column (or set of them) to the report
+      """
+      # first be sure there are enough entries to test
+      nvals = len(test_params) - 2
+      if nvals < 1:
+         print("** incomplete outlier test: %s" % ' '.join(test_params))
+         return 1
+      # this check could go away
+      if nvals > 1:
+         print("** too many vals in outlier test: %s" % ' '.join(test_params))
+         return 1
+
+      self.ro_list.append(test_params)
+
+      return 0
+
+   def make_outlier_report(self):
+      """make a table of subject outliers
+
+         subject labelV1 labelV2 ...
+         limit   LIMIT   LIMIT
+         subj    val     val
+         subj            val
+
+         return 0 on success
+      """
+
+      # make internal table before finishing this...
+      return 0
+
+      if not self.outlier_tests_are_valid():
+         return 1
+
+      # report will be an array of printable rows
+      report = []
+
+   def outlier_tests_are_valid(self):
+      """validate outlier tests in ro_list
+         - test all before returning
+
+         - labels must be known
+         - comparison must be valid
+         - just require 1 operand for now?
+            
+            - what if they do not completely match?
+            - some subject does not have enough; ALL subjects?
+      """
+
+      # accumulate errors and messages
+      emessages = []
+      for otest in self.ro_list:
+         label = otest[0]
+         check = otest[1]
+         tval  = otest[2]
+         nop   = len(otest) - 2
+
+         estr = ''
+
+         if label not in self.labels:
+            estr = "** bad label, '%s'" % label
+         if check not in self.ro_valid_comps:
+            estr  = "** invalid comparison, '%s'" % check
+            estr += "   should be in: %s" % ', '.join(self.ro_valid_comps)
+         if nop < 1:
+            estr = ("** outlier test: missing parameter")
+
+         if estr:
+            emessages.append('== outlier test: %s' % ' '.join(otest))
+            emessages.append(estr)
+
+      # if there are errors, report and fail
+      if len(emessages) > 0:
+         print("%s\n\n" % '\n'.join(emessages))
+         return 1
+
+      return 0
+
    def display_labels(self):
       """display the final labels list"""
 
@@ -556,6 +681,94 @@ class MyInterface:
          if nv < nsubj: short = '  (short)'
          else:          short = ''
          print('%-30s : %-10s : %-10s%s' % (label, cstr, sstr, short))
+
+   def fill_table(self):
+      """create an internal copy of the full table to be printed
+      """
+      if len(self.labels) < 1:
+         print('** fill_table: no labels')
+         return 1
+
+      if len(self.ldict) < 1:
+         print('** fill_table: no label dictionaries')
+         return 1
+
+      if self.fill_header_lines(): return 1
+      if self.fill_value_lines(): return 1
+
+   def fill_header_lines(self):
+      """fill 2 header lines in table:
+            - the field labels
+            - the list of corresponding values
+
+         start with either group name (if they exist) or infile name
+         next is subject name, if they exist
+
+         Each field label should take as many columns as its values.
+      """
+      if len(self.labels) < 1: return 1
+      
+      # labels, starting with input files
+      self.review_table = []
+      tline = []
+
+      # start with group or infile string, along with subject, if possible
+      if len(self.gnames) == len(self.infiles): tline.append('group')
+      else:                                     tline.append('infile')
+
+      for label in self.labels:
+         nf = self.maxcounts[label]-1
+         tline.append('%s'%label)
+         tline.extend(['']*nf)
+      self.review_table.append(tline)
+      tline = []
+
+      # next line: group and subject, if possible
+      tline.append('value') # this is for group/infile
+
+      for label in self.labels:
+         nf = self.maxcounts[label]
+         for ind in range(nf): tline.append('value_%d' % (ind+1))
+      self.review_table.append(tline)
+
+   def fill_value_lines(self):
+      """fill value lines
+
+         for each infile
+            for each label
+               if dict[label]: append values
+               append any needed empty spaces
+      """
+      if len(self.labels) < 1: return 1
+
+      nfiles = len(self.infiles)
+
+      # labels, starting with input files
+
+      # start with subject, if possible
+      dosubj = len(self.snames) == len(self.infiles)
+      dogrp  = len(self.gnames) == len(self.infiles)
+
+      for ind, infile in enumerate(self.infiles):
+         tline = []  # current line to add to table
+
+         # first is group or infile
+         if dogrp:  tline.append('%s' % self.gnames[ind])
+         else: # infile instead of group
+            if infile == '-': tline.append('stdin')
+            else:             tline.append('%s' % infile)
+
+         for label in self.labels:
+            nf = self.maxcounts[label]
+            try: vals = self.ldict[ind][label]
+            except:
+               if self.verb > 2:
+                  print('** infile %s missing key %s'%(infile,label))
+               vals = []
+            nv = len(vals)
+            if nv > 0: tline.extend(vals)
+            if nf > nv: tline.extend(['']*(nf-nv))
+         self.review_table.append(tline)
 
    def write_table(self):
 
@@ -584,87 +797,13 @@ class MyInterface:
             print("** failed to open table '%s' for writing" % self.tablefile)
             return 1
 
-      if self.write_header_lines(fp): return 1
-      if self.write_value_lines(fp): return 1
+      for tline in self.review_table:
+         fp.write('\t'.join(tline))
+         fp.write('\n')
 
       if fp != sys.stdout: fp.close()
 
       return 0
-
-   def write_header_lines(self, fp):
-      """write 2 header lines:
-            - the field labels
-            - the list of corresponding values
-
-         start with either group name (if they exist) or infile name
-         next is subject name, if they exist
-
-         Each field label should take as many columns as its values.
-      """
-      if len(self.labels) < 1: return 1
-
-      
-      # labels, starting with input files
-
-      # start with group or infile string, along with subject, if possible
-      if len(self.gnames) == len(self.infiles): fp.write('group')
-      else:                                     fp.write('infile')
-
-      # if len(self.snames) == len(self.infiles): fp.write('\tsubject')
-
-      for label in self.labels:
-         nf = self.maxcounts[label]-1
-         fp.write('\t%s'%label)
-         fp.write('\t'*nf)
-      fp.write('\n')
-
-      # next line: group and subject, if possible
-      fp.write('value') # this is for group/infile
-      # if len(self.snames) == len(self.infiles): fp.write('\tvalue')
-
-      for label in self.labels:
-         nf = self.maxcounts[label]
-         for ind in range(nf): fp.write('\tvalue_%d' % (ind+1))
-      fp.write('\n')
-
-   def write_value_lines(self, fp):
-      """write value lines, "left justified" to maxcount fields
-
-         for each infile
-            for each label
-               if dict[label]: print values
-               print any needed tabs
-      """
-      if len(self.labels) < 1: return 1
-
-      nfiles = len(self.infiles)
-
-      # labels, starting with input files
-
-      # start with subject, if possible
-      dosubj = len(self.snames) == len(self.infiles)
-      dogrp  = len(self.gnames) == len(self.infiles)
-
-      for ind, infile in enumerate(self.infiles):
-         # first is group or infile
-         if dogrp:  fp.write('%s' % self.gnames[ind])
-         else: # infile instead of group
-            if infile == '-': fp.write('stdin')
-            else:             fp.write('%s' % infile)
-
-         # subject, if possible (repeat?)
-         # if dosubj: fp.write('\t%s' % self.snames[ind])
-
-         for label in self.labels:
-            nf = self.maxcounts[label]
-            try: vals = self.ldict[ind][label]
-            except:
-               if self.verb>2:print('** infile %s missing key %s'%(infile,label))
-               vals = []
-            nv = len(vals)
-            if nv > 0: fp.write('\t'+'\t'.join(vals))
-            if nf > nv: fp.write('\t'*(nf-nv))
-         fp.write('\n')
 
    def display_missing(self):
       """show files where keys are missing
@@ -726,12 +865,25 @@ def main():
       print('** failed to process options...')
       return 1
 
+   # make subject dictionaries
    if me.parse_infiles():
       return 1
 
-   if me.write_table():
+   # make internal copy of table
+   if me.fill_table():
       return 1
 
+   # possibly make external copy of table
+   if me.tablefile:
+      if me.write_table():
+         return 1
+
+   # possibly make a table of concerning subjects and values
+   if me.report_outliers:
+      if me.make_outlier_report():
+         return 1
+
+   # possibly show all found labels
    if me.showlabs: me.display_labels()
 
    if me.show_missing: me.display_missing()
