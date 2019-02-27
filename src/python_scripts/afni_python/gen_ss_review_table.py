@@ -113,6 +113,7 @@ g_todo = """
    todo list:
 
       - add tests for new options
+      - add help
 """
 
 g_history = """
@@ -129,12 +130,14 @@ g_history = """
    0.8  Aug 17, 2016   - 'blur estimates (FWHM)' is parent of 'blur estimates'
    1.0  Dec 28, 2017   - python3 compatible
    1.1  Feb 27, 2019
-            - make internal review table, -
-            - added -out_sep, and include 'space' to make aligned table
-            - added -show_infiles, to explicitly include input files
+        - added -report_outliers, to flag concerning subjects and columns
+        - make internal review table, -
+        - added -out_sep, and include 'space' to make aligned table
+        - added -show_infiles, to explicitly include input files
+        - synchronize group/subj/infile in table
 """
 
-g_version = "gen_ss_review_table.py version 1.0, December 28, 2017"
+g_version = "gen_ss_review_table.py version 1.1, February 27, 2019"
 
 
 class MyInterface:
@@ -160,7 +163,7 @@ class MyInterface:
       # outlier table
       self.report_outliers = 0
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
-      self.ro_valid_comps  = ['LT', 'GT', 'LE', 'GE', 'EQ', 'NE', 'EX']
+      self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
       self.ro_valid_heads  = ['label', 'index', 'acronym']
       self.ro_fill_type    = 'blank'    # blank, na, value
@@ -197,7 +200,7 @@ class MyInterface:
                     helpstr='input text files (from @ss_review_basic)')
       vopts.add_opt('-overwrite', 0, [],
                     helpstr='allow overwrite for output table file')
-      vopts.add_opt('-report_outliers', -3, [],
+      vopts.add_opt('-report_outliers', -2, [],
                     helpstr='report outlier subjects for test')
       #vopts.add_opt('-report_outliers_fill', 1, [],
       #              acplist=self.ro_valid_fills,
@@ -310,7 +313,7 @@ class MyInterface:
          # report outliers
          elif opt.name == '-report_outliers':
             params, err = uopts.get_string_list('', opt=opt)
-            if self.params == None or err:
+            if params == None or err:
                print('** failed to parse -report_outliers %s' % params)
                errs +=1
                continue
@@ -617,10 +620,10 @@ class MyInterface:
       """
       # first be sure there are enough entries to test
       nvals = len(test_params) - 2
-      if nvals < 1:
+      if nvals < 0:
          print("** incomplete outlier test: %s" % ' '.join(test_params))
          return 1
-      # this check could go away
+      # this check might go away
       if nvals > 1:
          print("** too many vals in outlier test: %s" % ' '.join(test_params))
          return 1
@@ -640,14 +643,178 @@ class MyInterface:
          return 0 on success
       """
 
-      # make internal table before finishing this...
-      return 0
-
+      # verify labels, operators and nvals
       if not self.outlier_tests_are_valid():
          return 1
 
-      # report will be an array of printable rows
-      report = []
+      # make a complete table for the tested labels
+      rev_labels = [otest[0] for otest in self.ro_list]
+      rv, test_report = self.create_review_table(labels=rev_labels)
+      if rv: return 1
+
+      if self.ro_insert_test_labels(test_report, self.ro_list):
+         return 1
+
+      # clear any elements that are not considered failures
+      rv, test_report = self.ro_apply_tests(test_report, self.ro_list)
+      if rv: return 1
+
+      self.write_table(otable=test_report, ofile='-')
+
+      return 0
+
+   def ro_apply_tests(self, table, test_list):
+      """for any non-SHOW columns, apply tests
+         (run per subject so we can note which to keep)
+      """
+
+      nrows = len(table)
+      rev_labels = [otest[0] for otest in test_list]
+      firstind = table[0].index(rev_labels[0])
+      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+
+      # list of "failure" rows to keep in table (start with 2 header rows)
+      faillist = [0, 1]
+      for rind, row in enumerate(table):
+         # skip header rows
+         if rind < 2: continue
+
+         # for each subject, do they  pass all tests
+         all_passed = 1 
+
+         # remaining columns as needed, offset by firstind
+         posn = firstind
+         for otest in test_list:
+            label = otest[0]
+            check = otest[1]
+            nchecks = self.maxcounts[label]
+
+            # if SHOW, just move along, and keep table entries
+            if check == 'SHOW':
+               posn += nchecks
+               continue
+
+            # the main purpose: look for errors
+            for repind in range(nchecks):
+               baseval = otest[2]
+               testval = table[rind][posn]
+               outlier = self.ro_val_is_outlier(testval, check, baseval)
+               # failure to run test
+               if outlier < 0: return 1, []
+
+               # outliers are kept but tracked, else values are cleared
+               if outlier: all_passed = 0
+               else:       table[rind][posn] = ''
+               posn += 1
+
+         if not all_passed:
+            faillist.append(rind)
+
+      # if faillist is empty (len==2), what to do?
+      failtable = [table[failind] for failind in faillist]
+
+      return 0, failtable
+
+   def ro_val_is_outlier(self, tval, comp, bval):
+      """return whether "tval comp bval" seems true, e.g.
+                         0.82 GE   1.0
+         comp_list: ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+
+         all numerical tests are as floats
+
+         return 1 if true
+                0 if false
+               -1 on error
+      """
+      # handle non-numeric first
+      if comp == 'SHOW': return 0
+
+      # get float directional comparison, if possible
+      # (-1, 0, 1, or -2 on error)
+      fcomp = self.ro_float_compare(tval, bval)
+
+      # perform string comparison
+      scomp = (tval == bval)
+
+      # equality tests can be initially tested as strings
+      #   - equality test would imply for floats, but is more general
+      if comp == 'EQ':
+         if scomp:       return 1 # equal strings
+         if fcomp == -2: return 0 # cannot tell, call failure
+         # float result
+         if fcomp == 0:  return 1
+         else:           return 0
+         
+      if comp == 'NE':
+         if scomp:       return 0 # equal strings, this must fail
+         if fcomp == -2: return 0 # cannot tell, call failure
+         # float result
+         if fcomp == 0:  return 0
+         else:           return 1
+         
+      # continue with pure numerical tests (forget scomp)
+      if comp == 'LT':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp < 0)
+         
+      if comp == 'LE':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp <= 0)
+         
+      if comp == 'GT':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp > 0)
+         
+      if comp == 'GE':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp >= 0)
+         
+      print("** ro_val_is_outlier: unknown comp: %s" % comp)
+      return 0
+
+   def ro_float_compare(self, v1, v2):
+      """try to compare as floats -1, 0, 1
+         return -2 on "failure to convert"
+      """
+      try:
+         f1 = float(v1)
+         f2 = float(v2)
+         if f1 < f2: return -1
+         # handle 0 or 1
+         return (f1 > f2)
+      except:
+         return -2
+
+   def ro_insert_test_labels(self, table, test_list):
+      """replace table[1] value entries with test info
+      """
+      rev_labels = [otest[0] for otest in test_list]
+      firstind = table[0].index(rev_labels[0])
+      # note how many test columns there are
+      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+
+      # just verify what we have
+      if len(table[0]) != firstind + ntestcols:
+         print("** insert_test_labels: inconsistent lengths")
+         return 1
+
+      # first columns all get show
+      for ind in range(firstind):
+         table[1][ind] = 'SHOW'
+
+      # remaining columns as needed, offset by firstind
+      posn = firstind
+      for otest in test_list:
+         label = otest[0]
+         check = otest[1]
+         if check == 'SHOW': newlab = check
+         else:               newlab = '%s:%s' % (check, otest[2])
+
+         for repind in range(self.maxcounts[label]):
+            table[1][posn] = newlab
+            posn += 1
+
+      return 0
 
    def outlier_tests_are_valid(self):
       """validate outlier tests in ro_list
@@ -666,7 +833,6 @@ class MyInterface:
       for otest in self.ro_list:
          label = otest[0]
          check = otest[1]
-         tval  = otest[2]
          nop   = len(otest) - 2
 
          estr = ''
@@ -676,7 +842,7 @@ class MyInterface:
          if check not in self.ro_valid_comps:
             estr  = "** invalid comparison, '%s'" % check
             estr += "   should be in: %s" % ', '.join(self.ro_valid_comps)
-         if nop < 1:
+         if check != 'SHOW' and nop < 1:
             estr = ("** outlier test: missing parameter")
 
          if estr:
@@ -686,9 +852,9 @@ class MyInterface:
       # if there are errors, report and fail
       if len(emessages) > 0:
          print("%s\n\n" % '\n'.join(emessages))
-         return 1
+         return 0
 
-      return 0
+      return 1
 
    def display_labels(self):
       """display the final labels list"""
@@ -719,8 +885,11 @@ class MyInterface:
          print('** fill_table: no label dictionaries')
          return 1
 
-      if self.fill_value_lines(): return 1
-      if not self.table_is_rectangular(self.review_table): return 1
+      rv, self.review_table = self.create_review_table()
+      if rv: return 1
+
+      if not self.table_is_rectangular(self.review_table):
+         return 1
 
       return 0
 
@@ -738,7 +907,7 @@ class MyInterface:
 
       return 1
 
-   def fill_value_lines(self):
+   def create_review_table(self, labels=[]):
       """fill value lines
 
          for each infile
@@ -746,10 +915,22 @@ class MyInterface:
                if dict[label]: append values
                append any needed empty spaces
       """
-      if len(self.labels) < 1: return 1
+
+      passed_labels = 0
+      if labels == []:
+         labels = self.labels
+      else:
+         passed_labels = 1
+         # be sure each label is in proper list
+         for label in labels:
+            if not label in self.labels:
+               print("** review_table: given label '%s' not in list" % label)
+               return 1, []
+        
+      if len(labels) < 1: return 1, []
 
       # labels, starting with input files
-      self.review_table = []
+      RT = []
       tline = []
 
       nfiles = len(self.infiles)
@@ -764,9 +945,9 @@ class MyInterface:
 
       # if "subject ID" is label[0], and they are unique,
       # then clear dosubj and doinfiles
-      if self.labels[0] == 'subject ID':
+      if labels[0] == 'subject ID':
          # if subject IDs are uniq and fir
-         label = self.labels[0]
+         label = labels[0]
          sid_list = [self.ldict[ind][label] for ind in range(nfiles)]
          if UTIL.vals_are_unique(sid_list):
             dosubj = 0
@@ -787,12 +968,12 @@ class MyInterface:
       if dosubj:    tline.append('subject')
 
       # add value positions
-      for label in self.labels:
+      for label in labels:
          nf = self.maxcounts[label]-1
          tline.append('%s'%label)
          tline.extend(['']*nf)
 
-      self.review_table.append(tline)
+      RT.append(tline)
       tline = []
 
       # --------------------
@@ -801,10 +982,10 @@ class MyInterface:
       if dogrp:     tline.append('value')
       if dosubj:    tline.append('value')
 
-      for label in self.labels:
+      for label in labels:
          nf = self.maxcounts[label]
          for ind in range(nf): tline.append('value_%d' % (ind+1))
-      self.review_table.append(tline)
+      RT.append(tline)
 
       # ------------------------------------------------------------
       # add value lines, one per input file
@@ -822,7 +1003,7 @@ class MyInterface:
          # then possibly subject
          if dosubj: tline.append('%s' % self.snames[ind])
 
-         for label in self.labels:
+         for label in labels:
             nf = self.maxcounts[label]
             try: vals = self.ldict[ind][label]
             except:
@@ -832,40 +1013,45 @@ class MyInterface:
             nv = len(vals)
             if nv > 0: tline.extend(vals)
             if nf > nv: tline.extend(['']*(nf-nv))
-         self.review_table.append(tline)
+         RT.append(tline)
 
-   def write_table(self):
+      return 0, RT
 
-      if not self.tablefile:
+   def write_table(self, otable=None, ofile=''):
+
+      # do we use inputs or defaults?
+      if ofile: outfile = ofile
+      else:     outfile = self.tablefile
+
+      if otable: outtable = otable
+      else:      outtable = self.review_table
+
+      if not outfile:
          if self.verb: print('-- no tablefile to write')
          return 0
 
-      if len(self.labels) < 1:
-         print('** no labels for output table')
-         return 1
-
-      if len(self.ldict) < 1:
-         print('** no label dictionaries')
+      if len(outtable) < 1:
+         print('** no review_table for output')
          return 1
 
       # open output file
-      if self.tablefile in ['-', 'stdout']:
+      if outfile in ['-', 'stdout']:
          fp = sys.stdout
-      elif os.path.exists(self.tablefile) and not self.overwrite:
+      elif os.path.exists(outfile) and not self.overwrite:
          print('** output table file %s exists, and no overwrite given' \
-               % self.tablefile)
+               % outfile)
          return 1
       else:
-         try: fp = open(self.tablefile, 'w')
+         try: fp = open(outfile, 'w')
          except:
-            print("** failed to open table '%s' for writing" % self.tablefile)
+            print("** failed to open table '%s' for writing" % outfile)
             return 1
 
       # handle space as a special case
       if self.out_sep == 'space':
-         return self.write_spaced_table(self.review_table, fp)
+         return self.write_spaced_table(outtable, fp)
 
-      for tline in self.review_table:
+      for tline in outtable:
          fp.write(self.out_sep.join(tline))
          fp.write('\n')
 
@@ -878,7 +1064,6 @@ class MyInterface:
 
          compute the maximum column widths, then use for printing
       """
-      table = self.review_table
       if not self.table_is_rectangular(table):
          return 1
 
