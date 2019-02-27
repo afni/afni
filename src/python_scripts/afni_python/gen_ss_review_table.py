@@ -125,6 +125,9 @@ g_history = """
    0.7  Oct 28, 2015   - make 'a/E mask Dice coef' parent of 'mask correlation'
    0.8  Aug 17, 2016   - 'blur estimates (FWHM)' is parent of 'blur estimates'
    1.0  Dec 28, 2017   - python3 compatible
+   1.1  Feb 27, 2019
+            - make internal review table, -
+            - added -out_sep, and include 'space' to make aligned table
 """
 
 g_version = "gen_ss_review_table.py version 1.0, December 28, 2017"
@@ -138,23 +141,23 @@ class MyInterface:
       # main variables
       self.valid_opts      = None
       self.user_opts       = None
-      self.showlabs        = 0          # flag - print labels at end
-      self.show_missing    = 0          # flag - print missing keys
-      self.review_table    = []         # full subject review table
+      self.showlabs        = 0  # flag - print labels at end
+      self.show_missing    = 0  # flag - print missing keys
 
       # control
-      self.separator       = ':'        # field separator (only first applies)
-      self.seplen          = 1          # length, to avoid recomputing
+      self.valid_out_seps  = ['space', 'comma', 'tab']
+      self.separator       = ':'# input field separator (only first applies)
+      self.seplen          = 1  # length, to avoid recomputing
+      self.out_sep         = '\t'# output field separator
       self.overwrite       = 0
       self.verb            = 1
 
       # outlier table
       self.report_outliers = 0
-      self.ro_list         = []         # list of [LABEL, COMPARE, VAL,...]
+      self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
       self.ro_valid_comps  = ['LT', 'GT', 'LE', 'GE', 'EQ', 'NE', 'EX']
       self.ro_valid_fills  = ['blank', 'na', 'value']
       self.ro_valid_heads  = ['label', 'index', 'acronym']
-      self.ro_valid_seps   = ['space', 'comma', 'tab']
       self.ro_fill_type    = 'blank'    # blank, na, value
       self.ro_head_type    = 'acronym'  # label, index, acronym
       self.ro_sep_type     = 'space'    # space, comma, tab
@@ -166,6 +169,7 @@ class MyInterface:
       self.tablefile       = ''
 
       # result variables
+      self.review_table    = [] # full subject review table
       self.labels          = [] # list of input labels
       self.parents         = [] # list of input label parents
       self.ldict           = [] # corresponding list of infile dictionaries
@@ -197,10 +201,13 @@ class MyInterface:
       #              acplist=self.ro_valid_heads,
       #              helpstr='how to format column headers')
       #vopts.add_opt('-report_outliers_sep', 1, [],
-      #              acplist=self.ro_valid_seps,
+      #              -- do not require a named separator
+      #              acplist=self.valid_out_seps,
       #              helpstr='outlier report field separator type')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
+      vopts.add_opt('-out_sep', 1, [],
+                    helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
       vopts.add_opt('-show_missing', 0, [],
@@ -277,11 +284,20 @@ class MyInterface:
          elif opt.name == '-separator':
             self.separator, err = uopts.get_string_opt('', opt=opt)
             if self.separator == None or err:
-               print("** bad -tablefile option")
+               print("** bad -separator option")
                errs += 1
             if   self.separator == 'tab': self.separator = '\t'
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
+
+         elif opt.name == '-out_sep':
+            self.out_sep, err = uopts.get_string_opt('', opt=opt)
+            if self.out_sep == None or err:
+               print("** bad -out_sep option")
+               errs += 1
+            if   self.out_sep == 'tab': self.out_sep = '\t'
+            elif self.out_sep == 'comma': self.out_sep = ','
+            # 'space' is handled as a special case
 
          # ------------------------------
          # report outliers
@@ -695,6 +711,23 @@ class MyInterface:
 
       if self.fill_header_lines(): return 1
       if self.fill_value_lines(): return 1
+      if not self.table_is_rectangular(self.review_table): return 1
+
+      return 0
+
+   def table_is_rectangular(self, table):
+      """check that review_table is rectangular
+      """
+      if len(table) == 0: return 1
+
+      ncols = len(table[0])
+      for row in table:
+         if len(row) != ncols:
+            print("** review table is not rectangular starting on row:\n" \
+                  "   %s" % ' '.join(row))
+            return 0
+
+      return 1
 
    def fill_header_lines(self):
       """fill 2 header lines in table:
@@ -797,11 +830,42 @@ class MyInterface:
             print("** failed to open table '%s' for writing" % self.tablefile)
             return 1
 
+      # handle space as a special case
+      if self.out_sep == 'space':
+         return self.write_spaced_table(self.review_table, fp)
+
       for tline in self.review_table:
-         fp.write('\t'.join(tline))
+         fp.write(self.out_sep.join(tline))
          fp.write('\n')
 
       if fp != sys.stdout: fp.close()
+
+      return 0
+
+   def write_spaced_table(self, table, fp, pad=3):
+      """write space separated table to file pointer
+
+         compute the maximum column widths, then use for printing
+      """
+      table = self.review_table
+      if not self.table_is_rectangular(table):
+         return 1
+
+      ncols = len(table[0])
+
+      # make a list of max column widths
+      max_lens = [0] * ncols
+      for row in table:
+         rlens = [len(v) for v in row]
+         for cind in range(ncols):
+            if rlens[cind] > max_lens[cind]:
+               max_lens[cind] = rlens[cind]
+
+      # and print, but do not wait for __future__
+      joinstr = ' '*pad
+      for row in table:
+         svals = ["%-*s" % (max_lens[vind], row[vind]) for vind in range(ncols)]
+         print(joinstr.join(svals))
 
       return 0
 
