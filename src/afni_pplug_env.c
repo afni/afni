@@ -90,7 +90,6 @@ static char *env_fixed[] = {
     "AFNI_GLOBAL_SESSION"       , "AFNI_NIML_START"       ,
     "AFNI_TTRR_SETUP"           , "AFNI_LOAD_PRINTSIZE"   ,
     "AFNI_VALUE_LABEL_DTABLE"   ,
-    "AFNI_VERSION_CHECK"        ,
     "AFNI_AGIF_DELAY"           , "AFNI_MPEG_FRAMERATE"   ,
     "AFNI_STARTUP_SCRIPT"       , "AFNI_STARTUP_WARNINGS" ,
     "AFNI_VERSION_CHECK"        , "AFNI_LOGO16"           ,

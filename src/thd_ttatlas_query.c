@@ -61,10 +61,12 @@ THD_string_array *recreate_working_atlas_name_list(void) {
    return(get_working_atlas_name_list());
 }
 
+/* moved TT_Daemon down the road to the end and switched
+ *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
-   char *min_atlas_list[] = {"TT_Daemon", "CA_ML_18_MNIA", "CA_MPM_18_MNIA",
-      "CA_PM_18_MNIA", "CA_LR_18_MNIA", "CA_GW_18_MNIA", "CA_N27_LR",
-      "DD_Desai_MPM", "DKD_Desai_MPM", NULL};
+   char *min_atlas_list[] = {"CA_ML_18_MNI", "CA_MPM_18_MNI",
+      "CA_LR_18_MNI", "CA_GW_18_MNIA", "CA_PM_18_MNIA", "CA_N27_LR",
+      "DD_Desai_MPM", "DKD_Desai_MPM", "TT_Daemon", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {

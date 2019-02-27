@@ -26,8 +26,8 @@ void AFNI_serverlog( char *str )
    int nbuf=0 , jj ;
    char *sbuf , *rbuf , *ss ;
 
-   if( str == NULL || *str == '\0'      ) return ;
-   if( AFNI_noenv("AFNI_VERSION_CHECK") ) return ;
+   if( str == NULL || *str == '\0'         ) return ;
+   if( ! AFNI_yesenv("AFNI_VERSION_CHECK") ) return ;
 
    /*-- start the child process --*/
 

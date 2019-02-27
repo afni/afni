@@ -62,8 +62,10 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     if wrap: tdata = add_line_wrappers(tdata, wrapstr)
     
-    if fname == 'stdout':   fp = sys.stdout
-    elif fname == 'stderr': fp = sys.stderr
+    if fname == 'stdout' or fname == '-':
+       fp = sys.stdout
+    elif fname == 'stderr':
+       fp = sys.stderr
     else:
        try:
            fp = open(fname, mode)
@@ -73,7 +75,7 @@ def write_text_to_file(fname, tdata, mode='w', wrap=0, wrapstr='\\\n', exe=0):
 
     fp.write(tdata)
 
-    if fname != 'stdout' and fname != 'stderr':
+    if fp != sys.stdout and fp != sys.stderr:
        fp.close()
        if exe:
            try: code = eval('0o755')

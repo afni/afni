@@ -7609,11 +7609,12 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
      MCW_melt_widget( im3d->vwid->top_form ) ;
-     NI_sleep(333) ;
+     NI_sleep(111) ;
      MCW_melt_widget( im3d->vwid->top_form ) ;
-     NI_sleep(333) ;
+     NI_sleep(111) ;
      if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
        AFNI_startup_sound() ;
+     MCW_set_widget_label(w,"Omega-13 is one use") ;
      SENSITIZE(w,0) ;
    }
 

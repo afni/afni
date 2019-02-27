@@ -858,6 +858,7 @@ g_history = """
           pre_ss_warn_dset, decon_err_dset, tent_warn_dset
    1.4  Nov 21, 2018: look for and parse 3dQwarp template name
    1.5  Jan 18, 2019: added df_info processing
+   1.6  Feb 25, 2019: try to get mask dset from TSNR
 """
 
 g_version = "gen_ss_review_scripts.py version 1.5, January 18, 2019"
@@ -1155,8 +1156,8 @@ class MyInterface:
       if self.guess_align_anat():       return -1
       if self.guess_final_epi_dset():   return -1
       if self.guess_template():         return -1
-      if self.guess_mask_dset():        return -1
       if self.guess_tsnr_dset():        return -1
+      if self.guess_mask_dset():        return -1
       if self.guess_errts_dset():       return -1
       if self.guess_gcor_dset():        return -1
       if self.guess_mask_corr_dset():   return -1
@@ -2002,8 +2003,24 @@ class MyInterface:
       # check if already set
       if self.uvar_already_set('mask_dset'): return 0
 
+      # see whether we can get the mask dataset from the TSNR dset
+      if not self.dsets.is_empty('tsnr_dset'):
+         cmd = UTIL.get_last_history_command(self.dsets.tsnr_dset.shortinput(),
+                                             '3dcalc')
+         clist = UTIL.find_opt_and_params(cmd, '-c', 1)
+         if len(clist) == 2:
+            mask_dset = BASE.afni_name(clist[1])
+            # if this exists, use it
+            if mask_dset.exist():
+               self.uvars.mask_dset = clist[1]
+               self.dsets.mask_dset = mask_dset
+               return 0
+
       gstr = 'full_mask?%s+%s.HEAD' % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gstr)
+      if len(glist) == 0:
+         gstr = 'mask_epi_anat.*.HEAD'
+         glist = glob.glob(gstr)
       if len(glist) == 0:
          print('** failed to find mask dset, continuing...')
          return 0 # failure is not terminal

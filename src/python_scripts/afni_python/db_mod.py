@@ -7122,6 +7122,7 @@ def db_mod_tlrc(block, proc, user_opts):
     apply_uopt_to_block('-tlrc_opts_at', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warp', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_warped_dsets', user_opts, block)
+    apply_uopt_to_block('-tlrc_NL_force_view', user_opts, block)
     apply_uopt_to_block('-tlrc_NL_awpy_rm', user_opts, block)
     apply_uopt_to_block('-tlrc_no_ss', user_opts, block)
     apply_uopt_to_block('-tlrc_rmode', user_opts, block)
@@ -7322,11 +7323,21 @@ def tlrc_cmd_nlwarp (proc, block, aset, base, strip=1, suffix='', exopts=[]):
     proc.anat_warps.append(proc.nlw_NL_mat)
 
     pstr = '# move results up out of the awpy directory\n'  \
-           '# (NL-warped anat, affine warp, NL warp)\n'     \
-           '# (use typical standard space name for anat)\n' \
-           '# (wildcard is a cheap way to go after any .gz)\n' \
-           '3dbucket -prefix %s awpy/%s.aw.nii*\n'          \
-           % (proc.tlrcanat.prefix, apre+suf)
+           '# - NL-warped anat, affine warp, NL warp\n'     \
+           '# - use typical standard space name for anat\n' \
+           '# - wildcard is a cheap way to go after any .gz\n'
+
+    # do we force view to tlrc?  default to yes
+    if block.opts.have_no_opt('-tlrc_NL_force_view'):
+       vstr = ''
+    else:
+       pstr += '# - be sure NIFTI sform_code=2 means standard space\n'
+       # include next indent
+       vstr = '-DAFNI_NIFTI_VIEW=tlrc \\\n' \
+              '         '
+
+    pstr += '3dbucket %s-prefix %s awpy/%s.aw.nii*\n'          \
+            % (vstr, proc.tlrcanat.prefix, apre+suf)
 
     pstr += 'mv awpy/%s .\n'   % proc.nlw_aff_mat
     pstr += 'mv awpy/%s .\n\n' % proc.nlw_NL_mat
@@ -8108,6 +8119,7 @@ g_help_examples = """
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -mask_epi_anat yes                                 \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_labels tneg tpos tneu eneg epos      \\
                                              eneu fneg fpos fneu           \\
@@ -8185,6 +8197,7 @@ g_help_examples = """
                         -volreg_align_to MIN_OUTLIER                       \\
                         -volreg_align_e2a                                  \\
                         -volreg_tlrc_warp                                  \\
+                        -mask_epi_anat yes                                 \\
                         -blur_in_automask                                  \\
                         -regress_stim_times sb23/stim_files/blk_times.*.1D \\
                         -regress_stim_types times times times              \\
@@ -8302,7 +8315,8 @@ g_help_examples = """
 
                  So the typical suggestion of motion censoring at 0.3 for task
                  based analysis has been changed to 0.2 for this resting state
-                 example, and censoring of outliers has also been added.
+                 example, and censoring of outliers has also been added, at a
+                 value of 5% of the brain mask.
 
                  Outliers are typically due to motion, and may capture motion
                  in some cases where the motion parameters do not, because
@@ -8332,8 +8346,9 @@ g_help_examples = """
                   -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
@@ -8358,9 +8373,10 @@ g_help_examples = """
                   -tlrc_NL_warp                                              \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_anaticor                                          \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
@@ -8398,10 +8414,11 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -mask_segment_anat yes                                     \\
                   -mask_segment_erode yes                                    \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_bandpass 0.01 0.1                                 \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_ROI WMe                                           \\
@@ -8492,13 +8509,14 @@ g_help_examples = """
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
+                  -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC FSvent 3                                   \\
                   -regress_make_corr_vols aeseg FSvent                       \\
                   -regress_anaticor_fast                                     \\
                   -regress_anaticor_label FSWe                               \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts
@@ -8545,13 +8563,14 @@ g_help_examples = """
                   -mask_segment_erode yes                                    \\
                   -mask_import Tvent template_ventricle_2.5mm+tlrc           \\
                   -mask_intersect Svent CSFe Tvent                           \\
+                  -mask_epi_anat yes                                         \\
                   -regress_motion_per_run                                    \\
                   -regress_ROI_PC Svent 3                                    \\
                   -regress_ROI_PC_per_run Svent                              \\
                   -regress_make_corr_vols WMe Svent                          \\
                   -regress_anaticor_fast                                     \\
                   -regress_censor_motion 0.2                                 \\
-                  -regress_censor_outliers 0.1                               \\
+                  -regress_censor_outliers 0.05                              \\
                   -regress_apply_mot_types demean deriv                      \\
                   -regress_est_blur_epits                                    \\
                   -regress_est_blur_errts                                    \\
@@ -8639,7 +8658,7 @@ g_help_examples = """
                   -combine_method OC                            \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.1                  \\
+                  -regress_censor_outliers 0.05                 \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
@@ -8671,7 +8690,7 @@ g_help_examples = """
                   -blur_in_mask yes                             \\
                   -regress_motion_per_run                       \\
                   -regress_censor_motion 0.2                    \\
-                  -regress_censor_outliers 0.1                  \\
+                  -regress_censor_outliers 0.05                 \\
                   -regress_apply_mot_types demean deriv         \\
                   -regress_est_blur_epits
 
@@ -11150,6 +11169,19 @@ g_help_options = """
             running auto_warp_py from the proc script.
 
             When using this option, the 'tlrc' block will be empty of actions.
+
+        -tlrc_NL_force_view Y/N : force view when copying auto_warp.py result
+
+                e.g.     -tlrc_NL_force_view no
+                default: -tlrc_NL_force_view yes
+
+            The auto_warp.py program writes results using NIFTI format.  If the
+            alignment template is in a standard space that is not part of the
+            NIFTI standard (TLRC and MNI are okay), then currently the only
+            sform_code available is 2 ("aligned to something").  But that code
+            is ambiguous, so users often set it to mean orig view (by setting
+            AFNI_NIFTI_VIEW=orig).  This option (defaulting to yes) forces
+            sform_code=2 to mean standard space, using +tlrc view.
 
         -tlrc_NL_awpy_rm Y/N    : specify whether to remove awpy directory
 

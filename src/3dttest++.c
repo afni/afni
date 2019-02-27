@@ -205,8 +205,10 @@ typedef struct {
 
 /* lines directly below copied from 3dXClustSim.c:
    only change these if you change them there as well! */
-#define NFARP 8
-static float farplist[NFARP] = { 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+#define NFARP 9
+static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+static float min_fgoal = 1.f ;
+static float max_fgoal = 9.f ;
 
 static int    do_Xclustsim = 0 ;    /* 30 Aug 2016 */
 static int    do_ETACmem   = 0 ;    /* 22 Aug 2017 */
@@ -1422,6 +1424,8 @@ void display_help_menu(void)
       " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
       "                        3D datasets with voxelwise cluster multi-threshold.\n"
       "                       ++ The default is to do only global ETAC calculations.\n"
+      "                 ******++ At this time [Feb 2019] local ETAC is *not* recommended.\n"
+      "                          It is very time consuming and doesn't make anything better.\n"
       "\n"
       " -noETAC_global       = Turn off the 'global' ETAC calculations.\n"
       " -noETAC_local        = Turn off the 'local' ETAC calculations.\n"
@@ -1467,10 +1471,10 @@ void display_help_menu(void)
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
       "                    hpow=h1,h2,...       } list of H powers (0, 1, and/or 2)\n"
-      "                    fpr=value            } FPR goal, between 2 and 9 (percent)\n"
+      "                    fpr=value            } FPR goal, between 1 and 9 (percent)\n"
       "                                         } - must be an integer\n"
       "                                         } - or the word 'ALL' to output\n"
-      "                                         }   results for 2, 3, 4, ..., 9.\n"
+      "                                         }   results for 1, 2, 3, 4, ..., 9.\n"
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
@@ -2467,21 +2471,25 @@ int main( int argc , char *argv[] )
        char *cpt , *acp , *thisopt=argv[nopt] ; int qq,nbad=0 ; Xclu_opt *opx ;
        if( ++nopt >= argc ) ERROR_exit("need 1 argument after '%s'",thisopt) ;
 
+       /* create a struct with the ETAC options, and set defaults */
+
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
        opx->nnlev     = 0 ;
        opx->sid       = 0 ;
        opx->npthr     = 0 ;
        opx->pthr      = NULL ;
-       opx->farp_goal = 5.0f ;
+       opx->farp_goal = 5.0f ;  /* because this is what everyone likes, right? */
        opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
        opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
-       acp = strdup(argv[nopt]) ;  /* change colons to blanks */
+       acp = strdup(argv[nopt]) ;  /* change colons to blanks in option string */
        for( cpt=acp ; *cpt != '\0' ; cpt++ ){
          if( *cpt == ':' ) *cpt = ' ' ;
        }
+
+       /* change the defaults based on the option string */
 
        cpt = strcasestr(acp,"NN1") ; if( cpt != NULL ) opx->nnlev = 1 ;
        cpt = strcasestr(acp,"NN2") ; if( cpt != NULL ) opx->nnlev = 2 ;
@@ -2582,13 +2590,13 @@ int main( int argc , char *argv[] )
            fgoal = -666.0f ;
          } else {
            fgoal = (float)rint(strtod(cpt+4,NULL)) ;
-           if( fgoal < 2.0f ){
-             WARNING_message("fpr=%.1f%% too small in -ETAC_opt name=%s: setting fpr=2",
-                             opx->name,fgoal) ;
-             fgoal = 2.0f ;
-           } else if( fgoal > 9.0f ){
-             WARNING_message("fpr=%.9f%% too large in -ETAC_opt name=%s: setting fpr=9",
-                             opx->name,fgoal) ;
+           if( fgoal < min_fgoal ){
+             WARNING_message("fpr=%.1f%% too small in -ETAC_opt name=%s: setting fpr=%.1f%%",
+                             fgoal , opx->name , min_fgoal ) ;
+             fgoal = min_fgoal ;
+           } else if( fgoal > max_fgoal ){
+             WARNING_message("fpr=%.1f%% too large in -ETAC_opt name=%s: setting fpr=%.1f%%",
+                             fgoal , opx->name , max_fgoal ) ;
              fgoal = 9.0f ;
            }
          }
@@ -3563,7 +3571,7 @@ int main( int argc , char *argv[] )
 
    if( do_Xclustsim ){
      int64_t nsdat , nsysmem ;
-     int ncsim , ncase , ncmin = (do_local_etac) ? 40000 : 10000 ;
+     int ncsim , ncase , ncmin = (do_local_etac) ? 30000 : 10000 ;
 
      ncsim = (int)AFNI_numenv("AFNI_TTEST_NUMCSIM") ;
           if( ncsim <     1000 ) ncsim =  ncmin ;

@@ -87,6 +87,10 @@ process options:
 
       This is mainly to help create a list of labels and parent labels.
 
+   -show_infiles        : include input files in reviewtable result
+
+      Force the first output column to be the input files.
+
    -show_missing        : display all missing keys
 
       Show all missing keys from all infiles.
@@ -108,8 +112,8 @@ R Reynolds    April 2014
 g_todo = """
    todo list:
 
-      - when an unknown label is found, have user inform rick?
-      - execute @ss_review_basic scripts for text output?
+      - add tests for new options
+      - add help
 """
 
 g_history = """
@@ -125,9 +129,15 @@ g_history = """
    0.7  Oct 28, 2015   - make 'a/E mask Dice coef' parent of 'mask correlation'
    0.8  Aug 17, 2016   - 'blur estimates (FWHM)' is parent of 'blur estimates'
    1.0  Dec 28, 2017   - python3 compatible
+   1.1  Feb 27, 2019
+        - added -report_outliers, to flag concerning subjects and columns
+        - make internal review table, -
+        - added -out_sep, and include 'space' to make aligned table
+        - added -show_infiles, to explicitly include input files
+        - synchronize group/subj/infile in table
 """
 
-g_version = "gen_ss_review_table.py version 1.0, December 28, 2017"
+g_version = "gen_ss_review_table.py version 1.1, February 27, 2019"
 
 
 class MyInterface:
@@ -138,14 +148,27 @@ class MyInterface:
       # main variables
       self.valid_opts      = None
       self.user_opts       = None
-      self.showlabs        = 0          # flag - print labels at end
-      self.show_missing    = 0          # flag - print missing keys
+      self.showlabs        = 0  # flag - print labels at end
+      self.show_infiles    = 0  # flag - include input file in table
+      self.show_missing    = 0  # flag - print missing keys
 
       # control
-      self.separator       = ':'        # field separator (only first applies)
-      self.seplen          = 1          # length, to avoid recomputing
+      self.valid_out_seps  = ['space', 'comma', 'tab']
+      self.separator       = ':'# input field separator (only first applies)
+      self.seplen          = 1  # length, to avoid recomputing
+      self.out_sep         = '\t'# output field separator
       self.overwrite       = 0
       self.verb            = 1
+
+      # outlier table
+      self.report_outliers = 0
+      self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
+      self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+      self.ro_valid_fills  = ['blank', 'na', 'value']
+      self.ro_valid_heads  = ['label', 'index', 'acronym']
+      self.ro_fill_type    = 'blank'    # blank, na, value
+      self.ro_head_type    = 'acronym'  # label, index, acronym
+      self.ro_sep_type     = 'space'    # space, comma, tab
 
       # infile name parsing
       self.infiles         = []
@@ -154,6 +177,7 @@ class MyInterface:
       self.tablefile       = ''
 
       # result variables
+      self.review_table    = [] # full subject review table
       self.labels          = [] # list of input labels
       self.parents         = [] # list of input label parents
       self.ldict           = [] # corresponding list of infile dictionaries
@@ -176,10 +200,26 @@ class MyInterface:
                     helpstr='input text files (from @ss_review_basic)')
       vopts.add_opt('-overwrite', 0, [],
                     helpstr='allow overwrite for output table file')
+      vopts.add_opt('-report_outliers', -2, [],
+                    helpstr='report outlier subjects for test')
+      #vopts.add_opt('-report_outliers_fill', 1, [],
+      #              acplist=self.ro_valid_fills,
+      #              helpstr='what to fill empty entries with')
+      #vopts.add_opt('-report_outliers_header', 1, [],
+      #              acplist=self.ro_valid_heads,
+      #              helpstr='how to format column headers')
+      #vopts.add_opt('-report_outliers_sep', 1, [],
+      #              -- do not require a named separator
+      #              acplist=self.valid_out_seps,
+      #              helpstr='outlier report field separator type')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
+      vopts.add_opt('-out_sep', 1, [],
+                    helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
+      vopts.add_opt('-show_infiles', 0, [],
+                    helpstr='make tablefile output start with input files')
       vopts.add_opt('-show_missing', 0, [],
                     helpstr='show all missing keys')
       vopts.add_opt('-tablefile', 1, [],
@@ -254,14 +294,49 @@ class MyInterface:
          elif opt.name == '-separator':
             self.separator, err = uopts.get_string_opt('', opt=opt)
             if self.separator == None or err:
-               print("** bad -tablefile option")
+               print("** bad -separator option")
                errs += 1
             if   self.separator == 'tab': self.separator = '\t'
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
 
+         elif opt.name == '-out_sep':
+            self.out_sep, err = uopts.get_string_opt('', opt=opt)
+            if self.out_sep == None or err:
+               print("** bad -out_sep option")
+               errs += 1
+            if   self.out_sep == 'tab': self.out_sep = '\t'
+            elif self.out_sep == 'comma': self.out_sep = ','
+            # 'space' is handled as a special case
+
+         # ------------------------------
+         # report outliers
+         elif opt.name == '-report_outliers':
+            params, err = uopts.get_string_list('', opt=opt)
+            if params == None or err:
+               print('** failed to parse -report_outliers %s' % params)
+               errs +=1
+               continue
+
+            if self.add_test_to_outlier_report(params):
+               errs +=1
+               continue
+
+            self.report_outliers = 1
+
+         elif opt.name == '-report_outliers_fill':
+            self.ro_fill_type, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_fill_type is None or err:
+               print("** bad opt: -report_outliers_fill %s"%self.ro_fill_type)
+               errs += 1
+
+         # ------------------------------ outliers end
+
          elif opt.name == '-showlabs':
             self.showlabs = 1
+
+         elif opt.name == '-show_infiles':
+            self.show_infiles = 1
 
          elif opt.name == '-show_missing':
             self.show_missing = 1
@@ -539,6 +614,248 @@ class MyInterface:
       if self.verb > 1: print("++ have GIDs from infiles")
       self.gnames = glist
 
+   def add_test_to_outlier_report(self, test_params):
+      """add a comparison test to the outlier report
+         --> this adds a column (or set of them) to the report
+      """
+      # first be sure there are enough entries to test
+      nvals = len(test_params) - 2
+      if nvals < 0:
+         print("** incomplete outlier test: %s" % ' '.join(test_params))
+         return 1
+      # this check might go away
+      if nvals > 1:
+         print("** too many vals in outlier test: %s" % ' '.join(test_params))
+         return 1
+
+      self.ro_list.append(test_params)
+
+      return 0
+
+   def make_outlier_report(self):
+      """make a table of subject outliers
+
+         subject labelV1 labelV2 ...
+         limit   LIMIT   LIMIT
+         subj    val     val
+         subj            val
+
+         return 0 on success
+      """
+
+      # verify labels, operators and nvals
+      if not self.outlier_tests_are_valid():
+         return 1
+
+      # make a complete table for the tested labels
+      rev_labels = [otest[0] for otest in self.ro_list]
+      rv, test_report = self.create_review_table(labels=rev_labels)
+      if rv: return 1
+
+      if self.ro_insert_test_labels(test_report, self.ro_list):
+         return 1
+
+      # clear any elements that are not considered failures
+      rv, test_report = self.ro_apply_tests(test_report, self.ro_list)
+      if rv: return 1
+
+      self.write_table(otable=test_report, ofile='-')
+
+      return 0
+
+   def ro_apply_tests(self, table, test_list):
+      """for any non-SHOW columns, apply tests
+         (run per subject so we can note which to keep)
+      """
+
+      nrows = len(table)
+      rev_labels = [otest[0] for otest in test_list]
+      firstind = table[0].index(rev_labels[0])
+      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+
+      # list of "failure" rows to keep in table (start with 2 header rows)
+      faillist = [0, 1]
+      for rind, row in enumerate(table):
+         # skip header rows
+         if rind < 2: continue
+
+         # for each subject, do they  pass all tests
+         all_passed = 1 
+
+         # remaining columns as needed, offset by firstind
+         posn = firstind
+         for otest in test_list:
+            label = otest[0]
+            check = otest[1]
+            nchecks = self.maxcounts[label]
+
+            # if SHOW, just move along, and keep table entries
+            if check == 'SHOW':
+               posn += nchecks
+               continue
+
+            # the main purpose: look for errors
+            for repind in range(nchecks):
+               baseval = otest[2]
+               testval = table[rind][posn]
+               outlier = self.ro_val_is_outlier(testval, check, baseval)
+               # failure to run test
+               if outlier < 0: return 1, []
+
+               # outliers are kept but tracked, else values are cleared
+               if outlier: all_passed = 0
+               else:       table[rind][posn] = ''
+               posn += 1
+
+         if not all_passed:
+            faillist.append(rind)
+
+      # if faillist is empty (len==2), what to do?
+      failtable = [table[failind] for failind in faillist]
+
+      return 0, failtable
+
+   def ro_val_is_outlier(self, tval, comp, bval):
+      """return whether "tval comp bval" seems true, e.g.
+                         0.82 GE   1.0
+         comp_list: ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+
+         all numerical tests are as floats
+
+         return 1 if true
+                0 if false
+               -1 on error
+      """
+      # handle non-numeric first
+      if comp == 'SHOW': return 0
+
+      # get float directional comparison, if possible
+      # (-1, 0, 1, or -2 on error)
+      fcomp = self.ro_float_compare(tval, bval)
+
+      # perform string comparison
+      scomp = (tval == bval)
+
+      # equality tests can be initially tested as strings
+      #   - equality test would imply for floats, but is more general
+      if comp == 'EQ':
+         if scomp:       return 1 # equal strings
+         if fcomp == -2: return 0 # cannot tell, call failure
+         # float result
+         if fcomp == 0:  return 1
+         else:           return 0
+         
+      if comp == 'NE':
+         if scomp:       return 0 # equal strings, this must fail
+         if fcomp == -2: return 0 # cannot tell, call failure
+         # float result
+         if fcomp == 0:  return 0
+         else:           return 1
+         
+      # continue with pure numerical tests (forget scomp)
+      if comp == 'LT':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp < 0)
+         
+      if comp == 'LE':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp <= 0)
+         
+      if comp == 'GT':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp > 0)
+         
+      if comp == 'GE':
+         if fcomp == -2: return 0 # cannot tell, call failure
+         return (fcomp >= 0)
+         
+      print("** ro_val_is_outlier: unknown comp: %s" % comp)
+      return 0
+
+   def ro_float_compare(self, v1, v2):
+      """try to compare as floats -1, 0, 1
+         return -2 on "failure to convert"
+      """
+      try:
+         f1 = float(v1)
+         f2 = float(v2)
+         if f1 < f2: return -1
+         # handle 0 or 1
+         return (f1 > f2)
+      except:
+         return -2
+
+   def ro_insert_test_labels(self, table, test_list):
+      """replace table[1] value entries with test info
+      """
+      rev_labels = [otest[0] for otest in test_list]
+      firstind = table[0].index(rev_labels[0])
+      # note how many test columns there are
+      ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+
+      # just verify what we have
+      if len(table[0]) != firstind + ntestcols:
+         print("** insert_test_labels: inconsistent lengths")
+         return 1
+
+      # first columns all get show
+      for ind in range(firstind):
+         table[1][ind] = 'SHOW'
+
+      # remaining columns as needed, offset by firstind
+      posn = firstind
+      for otest in test_list:
+         label = otest[0]
+         check = otest[1]
+         if check == 'SHOW': newlab = check
+         else:               newlab = '%s:%s' % (check, otest[2])
+
+         for repind in range(self.maxcounts[label]):
+            table[1][posn] = newlab
+            posn += 1
+
+      return 0
+
+   def outlier_tests_are_valid(self):
+      """validate outlier tests in ro_list
+         - test all before returning
+
+         - labels must be known
+         - comparison must be valid
+         - just require 1 operand for now?
+            
+            - what if they do not completely match?
+            - some subject does not have enough; ALL subjects?
+      """
+
+      # accumulate errors and messages
+      emessages = []
+      for otest in self.ro_list:
+         label = otest[0]
+         check = otest[1]
+         nop   = len(otest) - 2
+
+         estr = ''
+
+         if label not in self.labels:
+            estr = "** bad label, '%s'" % label
+         if check not in self.ro_valid_comps:
+            estr  = "** invalid comparison, '%s'" % check
+            estr += "   should be in: %s" % ', '.join(self.ro_valid_comps)
+         if check != 'SHOW' and nop < 1:
+            estr = ("** outlier test: missing parameter")
+
+         if estr:
+            emessages.append('== outlier test: %s' % ' '.join(otest))
+            emessages.append(estr)
+
+      # if there are errors, report and fail
+      if len(emessages) > 0:
+         print("%s\n\n" % '\n'.join(emessages))
+         return 0
+
+      return 1
+
    def display_labels(self):
       """display the final labels list"""
 
@@ -557,114 +874,216 @@ class MyInterface:
          else:          short = ''
          print('%-30s : %-10s : %-10s%s' % (label, cstr, sstr, short))
 
-   def write_table(self):
-
-      if not self.tablefile:
-         if self.verb: print('-- no tablefile to write')
-         return 0
-
+   def fill_table(self):
+      """create an internal copy of the full table to be printed
+      """
       if len(self.labels) < 1:
-         print('** no labels for output table')
+         print('** fill_table: no labels')
          return 1
 
       if len(self.ldict) < 1:
-         print('** no label dictionaries')
+         print('** fill_table: no label dictionaries')
          return 1
 
-      # open output file
-      if self.tablefile in ['-', 'stdout']:
-         fp = sys.stdout
-      elif os.path.exists(self.tablefile) and not self.overwrite:
-         print('** output table file %s exists, and no overwrite given' \
-               % self.tablefile)
+      rv, self.review_table = self.create_review_table()
+      if rv: return 1
+
+      if not self.table_is_rectangular(self.review_table):
          return 1
-      else:
-         try: fp = open(self.tablefile, 'w')
-         except:
-            print("** failed to open table '%s' for writing" % self.tablefile)
-            return 1
-
-      if self.write_header_lines(fp): return 1
-      if self.write_value_lines(fp): return 1
-
-      if fp != sys.stdout: fp.close()
 
       return 0
 
-   def write_header_lines(self, fp):
-      """write 2 header lines:
-            - the field labels
-            - the list of corresponding values
-
-         start with either group name (if they exist) or infile name
-         next is subject name, if they exist
-
-         Each field label should take as many columns as its values.
+   def table_is_rectangular(self, table):
+      """check that review_table is rectangular
       """
-      if len(self.labels) < 1: return 1
+      if len(table) == 0: return 1
 
-      
-      # labels, starting with input files
+      ncols = len(table[0])
+      for row in table:
+         if len(row) != ncols:
+            print("** review table is not rectangular starting on row:\n" \
+                  "   %s" % ' '.join(row))
+            return 0
 
-      # start with group or infile string, along with subject, if possible
-      if len(self.gnames) == len(self.infiles): fp.write('group')
-      else:                                     fp.write('infile')
+      return 1
 
-      # if len(self.snames) == len(self.infiles): fp.write('\tsubject')
-
-      for label in self.labels:
-         nf = self.maxcounts[label]-1
-         fp.write('\t%s'%label)
-         fp.write('\t'*nf)
-      fp.write('\n')
-
-      # next line: group and subject, if possible
-      fp.write('value') # this is for group/infile
-      # if len(self.snames) == len(self.infiles): fp.write('\tvalue')
-
-      for label in self.labels:
-         nf = self.maxcounts[label]
-         for ind in range(nf): fp.write('\tvalue_%d' % (ind+1))
-      fp.write('\n')
-
-   def write_value_lines(self, fp):
-      """write value lines, "left justified" to maxcount fields
+   def create_review_table(self, labels=[]):
+      """fill value lines
 
          for each infile
             for each label
-               if dict[label]: print values
-               print any needed tabs
+               if dict[label]: append values
+               append any needed empty spaces
       """
-      if len(self.labels) < 1: return 1
+
+      passed_labels = 0
+      if labels == []:
+         labels = self.labels
+      else:
+         passed_labels = 1
+         # be sure each label is in proper list
+         for label in labels:
+            if not label in self.labels:
+               print("** review_table: given label '%s' not in list" % label)
+               return 1, []
+        
+      if len(labels) < 1: return 1, []
+
+      # labels, starting with input files
+      RT = []
+      tline = []
 
       nfiles = len(self.infiles)
 
+      # --------------------
       # labels, starting with input files
 
       # start with subject, if possible
       dosubj = len(self.snames) == len(self.infiles)
       dogrp  = len(self.gnames) == len(self.infiles)
+      doinfiles = (not dogrp and not dosubj)
 
+      # if "subject ID" is label[0], and they are unique,
+      # then clear dosubj and doinfiles
+      if labels[0] == 'subject ID':
+         # if subject IDs are uniq and fir
+         label = labels[0]
+         sid_list = [self.ldict[ind][label] for ind in range(nfiles)]
+         if UTIL.vals_are_unique(sid_list):
+            dosubj = 0
+            doinfiles = 0
+
+      # allow user to force inclusion
+      if self.show_infiles:
+         doinfiles = 1
+
+      # ------------------------------------------------------------
+      # first 2 lines, fill header lines
+
+      # --------------------
+      # main header of labels
+      tline = []
+      if doinfiles: tline.append('infile')
+      if dogrp:     tline.append('group')
+      if dosubj:    tline.append('subject')
+
+      # add value positions
+      for label in labels:
+         nf = self.maxcounts[label]-1
+         tline.append('%s'%label)
+         tline.extend(['']*nf)
+
+      RT.append(tline)
+      tline = []
+
+      # --------------------
+      # and value labels
+      if doinfiles: tline.append('value')
+      if dogrp:     tline.append('value')
+      if dosubj:    tline.append('value')
+
+      for label in labels:
+         nf = self.maxcounts[label]
+         for ind in range(nf): tline.append('value_%d' % (ind+1))
+      RT.append(tline)
+
+      # ------------------------------------------------------------
+      # add value lines, one per input file
       for ind, infile in enumerate(self.infiles):
-         # first is group or infile
-         if dogrp:  fp.write('%s' % self.gnames[ind])
-         else: # infile instead of group
-            if infile == '-': fp.write('stdin')
-            else:             fp.write('%s' % infile)
+         tline = []  # current line to add to table
 
-         # subject, if possible (repeat?)
-         # if dosubj: fp.write('\t%s' % self.snames[ind])
+         # first is infile, if requested or nothing else to show
+         if doinfiles:
+            if infile == '-': tline.append('stdin')
+            else:             tline.append('%s' % infile)
 
-         for label in self.labels:
+         # then possibly group
+         if dogrp: tline.append('%s' % self.gnames[ind])
+
+         # then possibly subject
+         if dosubj: tline.append('%s' % self.snames[ind])
+
+         for label in labels:
             nf = self.maxcounts[label]
             try: vals = self.ldict[ind][label]
             except:
-               if self.verb>2:print('** infile %s missing key %s'%(infile,label))
+               if self.verb > 2:
+                  print('** infile %s missing key %s'%(infile,label))
                vals = []
             nv = len(vals)
-            if nv > 0: fp.write('\t'+'\t'.join(vals))
-            if nf > nv: fp.write('\t'*(nf-nv))
+            if nv > 0: tline.extend(vals)
+            if nf > nv: tline.extend(['']*(nf-nv))
+         RT.append(tline)
+
+      return 0, RT
+
+   def write_table(self, otable=None, ofile=''):
+
+      # do we use inputs or defaults?
+      if ofile: outfile = ofile
+      else:     outfile = self.tablefile
+
+      if otable: outtable = otable
+      else:      outtable = self.review_table
+
+      if not outfile:
+         if self.verb: print('-- no tablefile to write')
+         return 0
+
+      if len(outtable) < 1:
+         print('** no review_table for output')
+         return 1
+
+      # open output file
+      if outfile in ['-', 'stdout']:
+         fp = sys.stdout
+      elif os.path.exists(outfile) and not self.overwrite:
+         print('** output table file %s exists, and no overwrite given' \
+               % outfile)
+         return 1
+      else:
+         try: fp = open(outfile, 'w')
+         except:
+            print("** failed to open table '%s' for writing" % outfile)
+            return 1
+
+      # handle space as a special case
+      if self.out_sep == 'space':
+         return self.write_spaced_table(outtable, fp)
+
+      for tline in outtable:
+         fp.write(self.out_sep.join(tline))
          fp.write('\n')
+
+      if fp != sys.stdout: fp.close()
+
+      return 0
+
+   def write_spaced_table(self, table, fp, pad=3):
+      """write space separated table to file pointer
+
+         compute the maximum column widths, then use for printing
+      """
+      if not self.table_is_rectangular(table):
+         return 1
+
+      ncols = len(table[0])
+
+      # make a list of max column widths
+      max_lens = [0] * ncols
+      for row in table:
+         rlens = [len(v) for v in row]
+         for cind in range(ncols):
+            if rlens[cind] > max_lens[cind]:
+               max_lens[cind] = rlens[cind]
+
+      # and print, but do not wait for __future__
+      joinstr = ' '*pad
+      for row in table:
+         svals = ["%-*s" % (max_lens[vind], row[vind]) for vind in range(ncols)]
+         print(joinstr.join(svals))
+
+      return 0
 
    def display_missing(self):
       """show files where keys are missing
@@ -726,12 +1145,25 @@ def main():
       print('** failed to process options...')
       return 1
 
+   # make subject dictionaries
    if me.parse_infiles():
       return 1
 
-   if me.write_table():
+   # make internal copy of table
+   if me.fill_table():
       return 1
 
+   # possibly make external copy of table
+   if me.tablefile:
+      if me.write_table():
+         return 1
+
+   # possibly make a table of concerning subjects and values
+   if me.report_outliers:
+      if me.make_outlier_report():
+         return 1
+
+   # possibly show all found labels
    if me.showlabs: me.display_labels()
 
    if me.show_missing: me.display_missing()

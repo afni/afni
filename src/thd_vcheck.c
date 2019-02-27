@@ -70,7 +70,7 @@ void THD_check_AFNI_version( char *pname )
 
 
 
-   if( AFNI_noenv("AFNI_VERSION_CHECK") || machdep_be_quiet() ) return ;
+   if( ! AFNI_yesenv("AFNI_VERSION_CHECK") || machdep_be_quiet() ) return ;
 
    /* get time of last check -- do nothing if was very recent */
 

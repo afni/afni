@@ -1337,6 +1337,12 @@ static char *gby[] = {
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
      "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
 
+     "If you torture the data long enough, it will confess to anything"                 ,
+     "To purify the earth, one should purify the heart first"                           ,
+     "The key to everything is to focus on one thing at a time"                         ,
+     "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
+     "The essence of mathematics lies in its freedom"                                   ,
+
      /* Grateful Dead (mostly) */
 
      "Once in a while you get shown the light in the strangest of places, if you look at it right"      ,

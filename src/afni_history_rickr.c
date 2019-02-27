@@ -49,6 +49,27 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Feb, 2019, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
+   "add -dset_sid_list, -hpad, -tpad",
+   "Add -dset_sid_list to specify subject IDs explicitly.\n"
+   "Also, add -hpad/-tpad; less indentation for 3dttest++."
+ } ,
+
+ { 25, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "try to get mask_dset from TSNR output",
+   NULL
+ } ,
+
+ { 25, Feb, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "add modulators to -multi_timing_to_event_list output",
+   "Done for D Jangraw."
+ } ,
+
+ { 22, Feb, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -tlrc_NL_force_view, to handle sform_code=2 in auto_warp.py result",
+   "Done for I Berteletti."
+ } ,
+
  { 22, Feb, 2019, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
    "handle shells with paths in get_current/login_shell()",
    NULL
