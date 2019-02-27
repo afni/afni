@@ -87,6 +87,10 @@ process options:
 
       This is mainly to help create a list of labels and parent labels.
 
+   -show_infiles        : include input files in reviewtable result
+
+      Force the first output column to be the input files.
+
    -show_missing        : display all missing keys
 
       Show all missing keys from all infiles.
@@ -108,8 +112,7 @@ R Reynolds    April 2014
 g_todo = """
    todo list:
 
-      - when an unknown label is found, have user inform rick?
-      - execute @ss_review_basic scripts for text output?
+      - add tests for new options
 """
 
 g_history = """
@@ -128,6 +131,7 @@ g_history = """
    1.1  Feb 27, 2019
             - make internal review table, -
             - added -out_sep, and include 'space' to make aligned table
+            - added -show_infiles, to explicitly include input files
 """
 
 g_version = "gen_ss_review_table.py version 1.0, December 28, 2017"
@@ -142,6 +146,7 @@ class MyInterface:
       self.valid_opts      = None
       self.user_opts       = None
       self.showlabs        = 0  # flag - print labels at end
+      self.show_infiles    = 0  # flag - include input file in table
       self.show_missing    = 0  # flag - print missing keys
 
       # control
@@ -210,6 +215,8 @@ class MyInterface:
                     helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
+      vopts.add_opt('-show_infiles', 0, [],
+                    helpstr='make tablefile output start with input files')
       vopts.add_opt('-show_missing', 0, [],
                     helpstr='show all missing keys')
       vopts.add_opt('-tablefile', 1, [],
@@ -324,6 +331,9 @@ class MyInterface:
 
          elif opt.name == '-showlabs':
             self.showlabs = 1
+
+         elif opt.name == '-show_infiles':
+            self.show_infiles = 1
 
          elif opt.name == '-show_missing':
             self.show_missing = 1
@@ -709,7 +719,6 @@ class MyInterface:
          print('** fill_table: no label dictionaries')
          return 1
 
-      if self.fill_header_lines(): return 1
       if self.fill_value_lines(): return 1
       if not self.table_is_rectangular(self.review_table): return 1
 
@@ -729,41 +738,6 @@ class MyInterface:
 
       return 1
 
-   def fill_header_lines(self):
-      """fill 2 header lines in table:
-            - the field labels
-            - the list of corresponding values
-
-         start with either group name (if they exist) or infile name
-         next is subject name, if they exist
-
-         Each field label should take as many columns as its values.
-      """
-      if len(self.labels) < 1: return 1
-      
-      # labels, starting with input files
-      self.review_table = []
-      tline = []
-
-      # start with group or infile string, along with subject, if possible
-      if len(self.gnames) == len(self.infiles): tline.append('group')
-      else:                                     tline.append('infile')
-
-      for label in self.labels:
-         nf = self.maxcounts[label]-1
-         tline.append('%s'%label)
-         tline.extend(['']*nf)
-      self.review_table.append(tline)
-      tline = []
-
-      # next line: group and subject, if possible
-      tline.append('value') # this is for group/infile
-
-      for label in self.labels:
-         nf = self.maxcounts[label]
-         for ind in range(nf): tline.append('value_%d' % (ind+1))
-      self.review_table.append(tline)
-
    def fill_value_lines(self):
       """fill value lines
 
@@ -774,22 +748,79 @@ class MyInterface:
       """
       if len(self.labels) < 1: return 1
 
+      # labels, starting with input files
+      self.review_table = []
+      tline = []
+
       nfiles = len(self.infiles)
 
+      # --------------------
       # labels, starting with input files
 
       # start with subject, if possible
       dosubj = len(self.snames) == len(self.infiles)
       dogrp  = len(self.gnames) == len(self.infiles)
+      doinfiles = (not dogrp and not dosubj)
 
+      # if "subject ID" is label[0], and they are unique,
+      # then clear dosubj and doinfiles
+      if self.labels[0] == 'subject ID':
+         # if subject IDs are uniq and fir
+         label = self.labels[0]
+         sid_list = [self.ldict[ind][label] for ind in range(nfiles)]
+         if UTIL.vals_are_unique(sid_list):
+            dosubj = 0
+            doinfiles = 0
+
+      # allow user to force inclusion
+      if self.show_infiles:
+         doinfiles = 1
+
+      # ------------------------------------------------------------
+      # first 2 lines, fill header lines
+
+      # --------------------
+      # main header of labels
+      tline = []
+      if doinfiles: tline.append('infile')
+      if dogrp:     tline.append('group')
+      if dosubj:    tline.append('subject')
+
+      # add value positions
+      for label in self.labels:
+         nf = self.maxcounts[label]-1
+         tline.append('%s'%label)
+         tline.extend(['']*nf)
+
+      self.review_table.append(tline)
+      tline = []
+
+      # --------------------
+      # and value labels
+      if doinfiles: tline.append('value')
+      if dogrp:     tline.append('value')
+      if dosubj:    tline.append('value')
+
+      for label in self.labels:
+         nf = self.maxcounts[label]
+         for ind in range(nf): tline.append('value_%d' % (ind+1))
+      self.review_table.append(tline)
+
+      # ------------------------------------------------------------
+      # add value lines, one per input file
       for ind, infile in enumerate(self.infiles):
          tline = []  # current line to add to table
 
-         # first is group or infile
-         if dogrp:  tline.append('%s' % self.gnames[ind])
-         else: # infile instead of group
+         # first is infile, if requested or nothing else to show
+         if doinfiles:
             if infile == '-': tline.append('stdin')
             else:             tline.append('%s' % infile)
+
+         # then possibly group
+         if dogrp: tline.append('%s' % self.gnames[ind])
+
+         # then possibly subject
+         if dosubj: tline.append('%s' % self.snames[ind])
 
          for label in self.labels:
             nf = self.maxcounts[label]
