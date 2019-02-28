@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "mask dset must include extension",
+   NULL
+ } ,
+
  { 26, Feb, 2019, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "add -dset_sid_list, -hpad, -tpad",
    "Add -dset_sid_list to specify subject IDs explicitly.\n"

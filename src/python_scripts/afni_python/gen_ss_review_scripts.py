@@ -859,9 +859,10 @@ g_history = """
    1.4  Nov 21, 2018: look for and parse 3dQwarp template name
    1.5  Jan 18, 2019: added df_info processing
    1.6  Feb 25, 2019: try to get mask dset from TSNR
+   1.7  Feb 28, 2019: mask_dset needs to include extension
 """
 
-g_version = "gen_ss_review_scripts.py version 1.5, January 18, 2019"
+g_version = "gen_ss_review_scripts.py version 1.7, February 28, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2012,7 +2013,7 @@ class MyInterface:
             mask_dset = BASE.afni_name(clist[1])
             # if this exists, use it
             if mask_dset.exist():
-               self.uvars.mask_dset = clist[1]
+               self.uvars.mask_dset = mask_dset.shortinput(head=1)
                self.dsets.mask_dset = mask_dset
                return 0
 
