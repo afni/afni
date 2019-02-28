@@ -135,9 +135,11 @@ g_history = """
         - added -out_sep, and include 'space' to make aligned table
         - added -show_infiles, to explicitly include input files
         - synchronize group/subj/infile in table
+   1.2  Feb 28, 2019:
+        - added -report_outliers_fill_style (for Paul)
 """
 
-g_version = "gen_ss_review_table.py version 1.1, February 27, 2019"
+g_version = "gen_ss_review_table.py version 1.2, February 28, 2019"
 
 
 class MyInterface:
@@ -165,7 +167,7 @@ class MyInterface:
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
       self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
-      self.ro_valid_heads  = ['label', 'index', 'acronym']
+      self.ro_valid_heads  = ['label', 'acronym', 'blank']
       self.ro_fill_type    = 'blank'    # blank, na, value
       self.ro_head_type    = 'acronym'  # label, index, acronym
       self.ro_sep_type     = 'space'    # space, comma, tab
@@ -202,16 +204,12 @@ class MyInterface:
                     helpstr='allow overwrite for output table file')
       vopts.add_opt('-report_outliers', -2, [],
                     helpstr='report outlier subjects for test')
-      #vopts.add_opt('-report_outliers_fill', 1, [],
-      #              acplist=self.ro_valid_fills,
-      #              helpstr='what to fill empty entries with')
-      #vopts.add_opt('-report_outliers_header', 1, [],
-      #              acplist=self.ro_valid_heads,
-      #              helpstr='how to format column headers')
-      #vopts.add_opt('-report_outliers_sep', 1, [],
-      #              -- do not require a named separator
-      #              acplist=self.valid_out_seps,
-      #              helpstr='outlier report field separator type')
+      vopts.add_opt('-report_outliers_fill_style', 1, [],
+                    acplist=self.ro_valid_fills,
+                    helpstr='how to fill empty (non-outlier) entries')
+      vopts.add_opt('-report_outliers_header_style', 1, [],
+                    acplist=self.ro_valid_heads,
+                    helpstr='how to format column headers')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
       vopts.add_opt('-out_sep', 1, [],
@@ -324,10 +322,18 @@ class MyInterface:
 
             self.report_outliers = 1
 
-         elif opt.name == '-report_outliers_fill':
+         elif opt.name == '-report_outliers_fill_style':
             self.ro_fill_type, err = uopts.get_string_opt('', opt=opt)
             if self.ro_fill_type is None or err:
-               print("** bad opt: -report_outliers_fill %s"%self.ro_fill_type)
+               print("** bad opt: -report_outliers_fill_style %s" \
+                     % self.ro_fill_type)
+               errs += 1
+
+         elif opt.name == '-report_outliers_header_style':
+            self.ro_head_type, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_head_type is None or err:
+               print("** bad opt: -report_outliers_header_style %s" \
+                     % self.ro_head_type)
                errs += 1
 
          # ------------------------------ outliers end
@@ -571,7 +577,7 @@ class MyInterface:
          if self.verb > 1: print('++ trying to get SID from glob form')
          slist = UTIL.list_minus_glob_form(self.infiles, strip='dir')
       else:
-         if self.verb > 1: print("++ have SIDs from 'out.ss_reiview' form")
+         if self.verb > 1: print("++ have SIDs from 'out.ss_review' form")
 
       if len(slist) == 0:
          if self.verb > 1: print("-- empty SID list")
@@ -593,7 +599,7 @@ class MyInterface:
       newfiles = [fname.replace(slist[ind], 'SUBJ') for ind, fname in
                         enumerate(self.infiles)]
 
-      if UTIL.vals_are_constant(newfiles):
+      if UTIL.vals_are_constant(newfiles) and self.verb > 1:
          print('-- no groups detected from filenames')
          return
 
@@ -659,7 +665,12 @@ class MyInterface:
       rv, test_report = self.ro_apply_tests(test_report, self.ro_list)
       if rv: return 1
 
-      self.write_table(otable=test_report, ofile='-')
+      have_outliers = (len(test_report) > 2)
+
+      if have_outliers or (self.verb > 1):
+         self.write_table(otable=test_report, ofile='-')
+      if not have_outliers and self.verb > 0:
+         print("-- no outlier subjects to list")
 
       return 0
 
@@ -703,8 +714,15 @@ class MyInterface:
                if outlier < 0: return 1, []
 
                # outliers are kept but tracked, else values are cleared
-               if outlier: all_passed = 0
-               else:       table[rind][posn] = ''
+               if outlier:
+                  all_passed = 0
+               else:
+                  # fill the position based on type
+                  if self.ro_fill_type == 'blank':
+                     table[rind][posn] = ''
+                  elif self.ro_fill_type == 'na':
+                     table[rind][posn] = 'na'
+                  # else leave as value
                posn += 1
 
          if not all_passed:
