@@ -32,7 +32,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Feb 21, 2019
+Version 0.0.3, Feb 28, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -555,15 +555,17 @@ lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
 if(is.na(lop$cVars)) lop$EOIc <- NA else 
    lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
-qContrL <- unlist(strsplit(lop$qContr, '\\,'))
-# verify 'vs' in alternating location
-ll <- which(qContrL %in% 'vs')
-if(!all(ll == seq(2,300,3)[1:length(ll)]))
-   stop(sprintf('Quantitative contrast specification -qContr is incorrect!'))
-lop$qContrL <- qContrL[!qContrL %in% 'vs']
-# verify that variable names are correct
-if(!all(lop$qContrL %in% c(lop$qVars, 'Intercept'))) 
-   stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
+if(!is.null(lop$qContr)) {
+   qContrL <- unlist(strsplit(lop$qContr, '\\,'))
+   # verify 'vs' in alternating location
+   ll <- which(qContrL %in% 'vs')
+   if(!all(ll == seq(2,300,3)[1:length(ll)]))
+      stop(sprintf('Quantitative contrast specification -qContr is incorrect!'))
+   lop$qContrL <- qContrL[!qContrL %in% 'vs']
+   # verify that variable names are correct
+   if(!all(lop$qContrL %in% c(lop$qVars, 'Intercept'))) 
+      stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
+}
 
 # deviation coding: -1/0/1 - the intercept is associated with the mean across the levels of the factor
 # each coding variable corresponds to the level relative to the mean: alphabetically last level is
@@ -731,7 +733,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for contrasts among quantitative variables
-if(any(!is.na(lop$qContrL) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
@@ -810,7 +812,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for contrasts among quantitative variables
-if(any(!is.na(lop$qContrL) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1], nR) - psROI(aa, bb, lop$qContrL[2*ii], nR), ns, 3)
