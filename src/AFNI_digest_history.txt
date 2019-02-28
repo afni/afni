@@ -1,3 +1,46 @@
+AFNI Digest, week of 2019/02/28.
+
+00) APQC HTML updates/online docs.
+Some new functionality has been added to afni_proc.py's existing
+arsenal of QC tools.  Now, afni_proc.py will automatically create an
+HTML combining the features of @ss_review_basic and @ss_reviewer
+driver into one, with some fun extras.  A brief tutorial description
+of this is here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html
+This is a still-developing tool, with more functionality coming.  But
+as it is, we think this is a useful+efficient way to check out a lot
+of aspects of your processing.
+
+01) Un annuncio riguardante il nuovo AFNI Bootcamp in Italia.
+There will be an AFNI Bootcamp held at the IMT in Lucca, Italy, from
+June 3-7.  If you are interested in attending, please see the IMT
+website here: 
+https://afni.imtlucca.it/ 
+for more information, a contact email and a preliminary schedule.
+
+02) MNI Atlases.
+The Eickhoff-Zilles atlases (still the 1.8 version) have now been
+moved into the standard AFNI distribution, so you won't have to
+download these separately. Previously, only the original version (in
+their native MNI_ANAT format, used in the SPM Anatomy Toolbox) had
+been included. Along with this, the Talairach daemon atlas has been
+demoted in the default order for whereami reports. The new default
+order of the atlases shows the atlas names with those that include
+"MNI" as those in MNI space, and those with "MNIA" in MNI_ANAT space:
+CA_ML_18_MNI,CA_MPM_18_MNI,CA_LR_18_MNI,CA_GW_18_MNIA,
+CA_PM_18_MNIA,CA_N27_LR,DD_Desai_MPM,DKD_Desai_MPM,TT_Daemon.
+
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
 AFNI Digest, week of 2019/02/15.
 
 00) New SUMA tutorial: spherical ROIs.
