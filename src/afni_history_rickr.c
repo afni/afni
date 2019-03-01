@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Feb, 2019, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
+   "add -report_outliers and support options",
+   "Add -report_outliers_{fill,header}_style, -write_outlier, and\n"
+   "    -outlier_sep for controlling the table presentation.\n"
+   "Will use -write_table instead of -tablefile going forward."
+ } ,
+
  { 28, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "mask dset must include extension",
    NULL

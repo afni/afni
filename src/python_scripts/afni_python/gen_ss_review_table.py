@@ -74,6 +74,19 @@ process options:
 
       Without this option, an existing -write_table will not be overwritten.
 
+   -outlier_sep SEP     : use SEP for the outlier table separator
+
+         e.g.     -outlier_sep tab
+         default. -outlier_sep space
+
+      Use this option to specify how the fields in the outlier table are
+      separated.  SEP can be basically anything, with some special cases:
+
+         space  : (default) make the columns spatially aligned
+         comma  : use commas ',' for field separators
+         tab    : use tabs '\\t' for field separators
+         ...    : otherwise, use the SEP string as it is provided
+
    -separator SEP       : use SEP for the label/vals separator (default = ':')
 
          e.g. -separator :
@@ -91,12 +104,29 @@ process options:
 
       Force the first output column to be the input files.
 
+   -report_outliers_fill_style STYLE : how to fill non-outliers in table
+
+        e.g. -report_outliers_fill_style na
+        default: -report_outliers_fill_style blank
+
+      Aside from the comparison operator of 'SHOW', by default, the outlier
+      table will be sparse, with empty positions where values are not
+      outliers.  This option specifies how to fill non-outlier positions.
+
+            blank   : (default) leave position blank
+            na      : show the text, 'na'
+            value   : show the original data value
+
    -show_missing        : display all missing keys
 
       Show all missing keys from all infiles.
 
-   -write_table OUT_NAME : write final table to the given file
-   -tablefile   OUT_NAME : (same)
+   -write_outliers FNAME : write outlier table to given file, FNAME
+
+      If FNAME is '-' 'stdout', write to stdout.
+
+   -write_table FNAME    : write final table to the given file
+   -tablefile   FNAME    : (same)
 
       Write the full spreadsheet to the given file.
 
@@ -114,9 +144,7 @@ R Reynolds    April 2014
 
 g_todo = """
    todo list:
-
-      - add tests for new options
-      - add help
+      - add help for -report_outliers
 """
 
 g_history = """
@@ -135,16 +163,17 @@ g_history = """
    1.1  Feb 27, 2019
         - added -report_outliers, to flag concerning subjects and columns
         - make internal review table, -
-        - added -out_sep, and include 'space' to make aligned table
+        - added -outlier_sep, and include 'space' to make aligned table
         - added -show_infiles, to explicitly include input files
         - synchronize group/subj/infile in table
    1.2  Mar  1, 2019:
         - added -report_outliers_fill_style (for Paul)
         - added -write_outliers
         - added -write_table to replace -tablefile (though it still works)
+        - added -report_outliers_fill_style
 """
 
-g_version = "gen_ss_review_table.py version 1.2, February 28, 2019"
+g_version = "gen_ss_review_table.py version 1.2, March 1, 2019"
 
 
 class MyInterface:
@@ -218,7 +247,7 @@ class MyInterface:
                     helpstr='how to format column headers')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
-      vopts.add_opt('-out_sep', 1, [],
+      vopts.add_opt('-outlier_sep', 1, [],
                     helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
@@ -308,10 +337,10 @@ class MyInterface:
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
 
-         elif opt.name == '-out_sep':
+         elif opt.name == '-outlier_sep':
             self.out_sep, err = uopts.get_string_opt('', opt=opt)
             if self.out_sep == None or err:
-               print("** bad -out_sep option")
+               print("** bad -outlier_sep option")
                errs += 1
             if   self.out_sep == 'tab': self.out_sep = '\t'
             elif self.out_sep == 'comma': self.out_sep = ','
