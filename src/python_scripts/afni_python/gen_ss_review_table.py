@@ -43,7 +43,7 @@ examples:
 
    1. typical usage: input all out.ss_review files across groups and subjects
 
-      gen_ss_review_table.py -tablefile review_table.xls        \\
+      gen_ss_review_table.py -write_table review_table.xls        \\
                 -infiles group.*/subj.*/*.results/out.ss_review.*
 
    2. just show label table
@@ -70,9 +70,9 @@ process options:
       This program can be used as a pipe for input and output, using '-'
       or file stream names.
 
-   -overwrite           : overwrite the output -tablefile, if it exists
+   -overwrite           : overwrite the output -write_table, if it exists
 
-      Without this option, an existing -tablefile will not be overwritten.
+      Without this option, an existing -write_table will not be overwritten.
 
    -separator SEP       : use SEP for the label/vals separator (default = ':')
 
@@ -95,7 +95,10 @@ process options:
 
       Show all missing keys from all infiles.
 
-   -tablefile OUT_NAME  : write final table to the given file
+   -write_table OUT_NAME : write final table to the given file
+   -tablefile   OUT_NAME : (same)
+
+      Write the full spreadsheet to the given file.
 
       If the specified file already exists, it will not be overwritten
       unless the -overwrite option is specified.
@@ -135,8 +138,10 @@ g_history = """
         - added -out_sep, and include 'space' to make aligned table
         - added -show_infiles, to explicitly include input files
         - synchronize group/subj/infile in table
-   1.2  Feb 28, 2019:
+   1.2  Mar  1, 2019:
         - added -report_outliers_fill_style (for Paul)
+        - added -write_outliers
+        - added -write_table to replace -tablefile (though it still works)
 """
 
 g_version = "gen_ss_review_table.py version 1.2, February 28, 2019"
@@ -164,6 +169,7 @@ class MyInterface:
 
       # outlier table
       self.report_outliers = 0
+      self.ro_tablefile    = '-'
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
       self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
@@ -220,6 +226,10 @@ class MyInterface:
                     helpstr='make tablefile output start with input files')
       vopts.add_opt('-show_missing', 0, [],
                     helpstr='show all missing keys')
+      vopts.add_opt('-write_outliers', 1, [],
+                    helpstr='file name for outlier table (default=stdout)')
+      vopts.add_opt('-write_table', 1, [],
+                    helpstr='file name for output table (dupe for -tablefile)')
       vopts.add_opt('-tablefile', 1, [],
                     helpstr='file name for output table')
       vopts.add_opt('-verb', 1, [], helpstr='set the verbose level (def=1)')
@@ -347,10 +357,17 @@ class MyInterface:
          elif opt.name == '-show_missing':
             self.show_missing = 1
 
-         elif opt.name == '-tablefile':
+         # try to replace -tablefile with -write_table
+         elif opt.name == '-write_table' or opt.name == '-tablefile':
             self.tablefile, err = uopts.get_string_opt('', opt=opt)
             if self.tablefile == None or err:
-               print("** bad -tablefile option")
+               print("** bad %s option" % opt.name)
+               errs +=1
+
+         elif opt.name == '-write_outliers':
+            self.ro_tablefile, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_tablefile == None or err:
+               print("** bad -write_outliers option")
                errs +=1
 
          else:
@@ -668,7 +685,7 @@ class MyInterface:
       have_outliers = (len(test_report) > 2)
 
       if have_outliers or (self.verb > 1):
-         self.write_table(otable=test_report, ofile='-')
+         self.write_table(otable=test_report, ofile=self.ro_tablefile)
       if not have_outliers and self.verb > 0:
          print("-- no outlier subjects to list")
 
@@ -1095,11 +1112,12 @@ class MyInterface:
             if rlens[cind] > max_lens[cind]:
                max_lens[cind] = rlens[cind]
 
-      # and print, but do not wait for __future__
+      # and write
       joinstr = ' '*pad
       for row in table:
          svals = ["%-*s" % (max_lens[vind], row[vind]) for vind in range(ncols)]
-         print(joinstr.join(svals))
+         fp.write(joinstr.join(svals))
+         fp.write('\n')
 
       return 0
 
