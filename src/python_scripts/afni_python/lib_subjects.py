@@ -465,7 +465,7 @@ class SubjectList(object):
 
       return 0
 
-   def restrict_ids_for_dsets(self, valid_ids=[]):
+   def restrict_ids_to_dsets(self, valid_ids=[]):
       """restrict subject IDs to those in valid_ids list
          require all valid_ids to exist, or fail
 
@@ -503,6 +503,50 @@ class SubjectList(object):
          return 1
 
       # apply restricted list
+      self.subjects = new_subjs
+
+      return 0
+
+   def remove_ids_from_dsets(self, remove_ids=[], require=1):
+      """restrict subject IDs to those not in remove_ids list
+         if require: require all remove_ids to exist, or fail
+
+         return 0 on success
+      """
+      # bail if either list is empty
+      if len(self.subjects) == 0: return 0
+      if len(remove_ids) == 0: return 0
+
+      # check that remove_ids are unique
+      if not UTIL.vals_are_unique(remove_ids):
+         print('** remove_ids: ids are not unique')
+         return 1
+
+      # check that all remove_ids exist, and fail if not
+      all_ids = [subj.sid for subj in self.subjects]
+      missing = 0
+      for sid in remove_ids:
+         if sid not in all_ids:
+            if self.verb > 1:
+               print("** remove_ids: cannot remove missing ID '%s'"%sid)
+            missed_id = sid
+            missing += 1
+      if missing and (require or self.verb > 1):
+         print("** remove_ids: missing %d of %d IDs" \
+               % (missing,len(remove_ids)))
+         print("   IDs look like: %s" % ' '.join(all_ids[:3]))
+         print("   missing IDs look like: %s" % missed_id)
+         # if required, this is fatal
+         if require:
+            return 1
+
+      # generate a new subject list
+      new_subjs = []
+      for sindex, sid in enumerate(all_ids):
+         if sid not in remove_ids:
+            new_subjs.append(self.subjects[sindex])
+
+      # apply remove list
       self.subjects = new_subjs
 
       return 0

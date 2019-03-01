@@ -696,6 +696,7 @@ class CmdInterface:
       self.index0_list     = []         # 0-based sub-list of 'dsets'
       self.index1_list     = []         # 1-based sub-list of 'dsets'
       self.sid_apply       = []         # lists of subject IDs to apply
+      self.sid_omit        = []         # lists of subject IDs to omit
 
       # initialize valid_opts
       self.init_options()
@@ -755,6 +756,8 @@ class CmdInterface:
                       helpstr='restrict dsets to 1-based index list')
       self.valid_opts.add_opt('-dset_sid_list', -1, [], okdash=0,
                       helpstr='restrict dsets to these subject IDs')
+      self.valid_opts.add_opt('-dset_sid_omit_list', -1, [], okdash=0,
+                      helpstr='remove these subject IDs from dsets')
       self.valid_opts.add_opt('-factors', -1, [], okdash=0,
                       helpstr='num factors, per condition (probably 2 ints)')
       self.valid_opts.add_opt('-hpad', 1, [], okdash=0,
@@ -865,6 +868,12 @@ class CmdInterface:
             val, err = uopts.get_string_list('', opt=opt)
             if val == None or err: return 1
             self.sid_apply.append(val)        # allow multiple such options
+            continue
+
+         if opt.name == '-dset_sid_omit_list':
+            val, err = uopts.get_string_list('', opt=opt)
+            if val == None or err: return 1
+            self.sid_omit.append(val)        # allow multiple such options
             continue
 
          if opt.name == '-factors':
@@ -1014,8 +1023,14 @@ class CmdInterface:
                   ', '.join([str(len(dlist)) for dlist in self.dsets]) ))
 
       n_sid_apply = len(self.sid_apply)
-      if n_sid_apply > 1 and not (n_sid_apply == len(self.dsets)):
-         print("** num -dset_sid_list opts should be 0, 1 or match -dsets")
+      if n_sid_apply > 0 and not (n_sid_apply == len(self.dsets)):
+         print("** num -dset_sid_list opts should match -dsets")
+         return 1
+
+      n_sid_omit = len(self.sid_omit)
+      if n_sid_omit > 0 and not (n_sid_omit == len(self.dsets)):
+         print("** num -dset_sid_omit_list opts should match -dsets")
+         return 1
 
       # might deal with subject IDs and attributes later
       for ind, dlist in enumerate(self.dsets):
@@ -1029,12 +1044,14 @@ class CmdInterface:
             print('** cannot set subject IDs from datasets')
             return 1
          
-         # possibly restrict subject lists, now that we have ids
-         if n_sid_apply == 1:
-            if slist.restrict_ids_for_dsets(self.sid_apply[0]):
+         # possibly restrict subject lists to those chosen
+         if n_sid_apply > 0:
+            if slist.restrict_ids_to_dsets(self.sid_apply[ind]):
                return 1
-         elif n_sid_apply > 1:
-            if slist.restrict_ids_for_dsets(self.sid_apply[ind]):
+
+         # and possibly remove the undesirables
+         if n_sid_omit > 0:
+            if slist.remove_ids_from_dsets(self.sid_omit[ind], require=0):
                return 1
 
          # and store the list
@@ -1063,11 +1080,12 @@ class CmdInterface:
 
       # either write to file or print
       if self.write_script:
-         if UTIL.write_text_to_file(self.write_script, cmd):
-            print("** failed to write command to file '%s'" % self.write_script)
+         ofile = self.write_script
+         if UTIL.write_text_to_file(ofile, cmd):
+            print("** failed to write command to file '%s'" % ofile)
             return 1
-         if self.verb > 0:
-            print('++ command written to file %s' % self.write_script)
+         if self.verb > 0 and ofile != '-' and ofile != 'stdout':
+            print('++ command written to file %s' % ofile)
       else: print(cmd)
 
    def get_mema_command(self):
