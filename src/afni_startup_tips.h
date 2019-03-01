@@ -1314,10 +1314,11 @@ static char *gby[] = {
      "Those who say it can't be done are usually interrupted by those doing it"       ,
      "Spending any mental energy looking back cannot help you move forward"           ,
      "The supra-ultracrepidarian-est software you'll ever need"                       ,
+     "People driving slower than me are idiots. People driving faster are maniacs"    ,
 
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
-     "When all you have is a computer, every problem looks like it needs machine learning"    ,
+     "When all you have is a GPU, every problem looks like it needs machine learning"         ,
      "You know you're in trouble when it takes a 64 bit integer to count your unread emails"  ,
      "Once you've done what you have to do, no one will let you do what you want to do"       ,
      "My name is AFNImandias, Brain of Brains; Look on my Statistics, ye Clever, and Despair" ,
@@ -1513,7 +1514,7 @@ static char *gby[] = {
      "... Remember that what has once been done may be done again"                      ,
 
      "\n In the shipwreck of life, for life is an eternal shipwreck of our hopes,\n"
-     "    I cast into the sea my useless encumbrances, and I remain with my own will"    ,
+     "    I cast into the sea my useless encumbrances, and I remain with my own will"   ,
 
      /* from Crooked Timber */
 
