@@ -2433,9 +2433,13 @@ int main( int argc , char *argv[] )
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
+#if 0
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
          sprintf(prefix_clustsim,"TT.%s",uuu) ;
+#else
+         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
+#endif
          ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
        }
 
