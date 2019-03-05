@@ -656,9 +656,13 @@ g_history = """
         - added -dset_sid_list to specify subject list, like -dset_index0_list
         - added -hpad and -tpad opts
         - use less indentation to tighten 3dttest++ command (do others?)
+   1.2  Mar  5, 2019
+        - show subject counts
+        - change max line len and whether data dir vars are used
+        - no require on restricted subjects
 """
 
-g_version = "gen_group_command.py version 1.1 February 26, 2019"
+g_version = "gen_group_command.py version 1.2 March 5, 2019"
 
 
 class CmdInterface:
@@ -1032,6 +1036,8 @@ class CmdInterface:
          print("** num -dset_sid_omit_list opts should match -dsets")
          return 1
 
+      # array of [total, post-restricted, post-removed], per list
+      subj_count = []
       # might deal with subject IDs and attributes later
       for ind, dlist in enumerate(self.dsets):
          slist = SUBJ.SubjectList(dset_l=dlist, verb=self.verb)
@@ -1043,20 +1049,36 @@ class CmdInterface:
                                      dpre=self.dent_pre):
             print('** cannot set subject IDs from datasets')
             return 1
+         scount = [len(slist.subjects)]     # total
          
          # possibly restrict subject lists to those chosen
          if n_sid_apply > 0:
-            if slist.restrict_ids_to_dsets(self.sid_apply[ind]):
+            if slist.restrict_ids_to_dsets(self.sid_apply[ind], require=0):
                return 1
+         scount.append(len(slist.subjects)) # restricted
 
          # and possibly remove the undesirables
          if n_sid_omit > 0:
             if slist.remove_ids_from_dsets(self.sid_omit[ind], require=0):
                return 1
+         scount.append(len(slist.subjects)) # restricted
+         subj_count.append(scount)          # and append current counts
 
          # and store the list
          self.slist.append(slist)
          if self.verb > 2: slist.show("slist %d" % ind)
+
+      if self.verb > 1:
+         print("subject counts:")
+         print("  %-16s %-16s %-16s %-16s" \
+               % ('label', 'init nsubj', 'after restrict', 'after omit'))
+         for scind, sc in enumerate(subj_count):
+            if self.lablist and (len(self.lablist) == len(subj_count)):
+               slab = self.lablist[scind]
+            else:
+               slab = 'slist_%d' % scind
+            print("  %-16s %-16s %-16s %-16s" % (slab, sc[0], sc[1], sc[2]))
+         print("")
 
       cmd = None
       if self.command == '3dMEMA':
@@ -1076,7 +1098,7 @@ class CmdInterface:
       if cmd == None:
          print('** failed making %s command' % self.command)
          return 1
-      cmd = UTIL.add_line_wrappers(cmd)
+      cmd = UTIL.add_line_wrappers(cmd, maxlen=100)
 
       # either write to file or print
       if self.write_script:

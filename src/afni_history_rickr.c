@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Mar, 2019, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "show subject counts; change line len and ddirs; no require on restricted",
+   NULL
+ } ,
+
  { 28, Feb, 2019, RCR, "gen_ss_review_table.py", MINOR, TYPE_NEW_OPT,
    "add -report_outliers and support options",
    "Add -report_outliers_{fill,header}_style, -write_outlier, and\n"
