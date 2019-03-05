@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 4 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "-superhard did not imply -workhard :( -- now it does :)" ,
+   NULL } ,
+
  { 26 , FEB , 2019 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
    "Option to save spatial fit coefficients" ,
    "Plus a little general cleanup of the code and help" } ,

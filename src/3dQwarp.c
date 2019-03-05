@@ -378,7 +378,7 @@ void Qhelp(void)
     " ** If you use '-lpc' or '-lpa', then '-maxlev 0' is automatically set. \n"
     "    If you want to go to more refined levels, you can set '-maxlev' \n"
     "    AFTER '-lpc' on thecommand line. Using maxlev > 1 is not recommended \n"
-    "    for EPI-T1 alignment.\n" 
+    "    for EPI-T1 alignment.\n"
     " ** For aligning EPI to T1, the '-lpc' option can be used; my advice\n"
     "    would be to do something like the following:\n"
     "      3dSkullStrip -input SUBJ_anat+orig -prefix SUBJ_anatSS\n"
@@ -2546,6 +2546,10 @@ STATUS("check for errors") ;
      H5final = 0 ; Hqfinal = 1 ;
    }
 #endif
+
+   if( Hsuperhard2 >= Hsuperhard1 ){ /* fix so superhard => workhard (oops) */
+     Hworkhard1 = Hsuperhard1 ; Hworkhard2 = Hsuperhard2 ;
+   }
 
    /*----------- get the input datasets, check them for errors -----------*/
 
