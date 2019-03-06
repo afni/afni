@@ -124,12 +124,12 @@ Usage: ~1~
     It is possible to force the same range for all plots through fine-tuning
     within R using the output of .RData. The criteria of color coding for the
     strength of evidence in matrix plots in the output is as follows:
-     Green - two-tailed 95% quantile interval (or probability of effect being
-             positive >= 0.975 or <= 0.025)
-     Blue  - one-tailed 95% quantile interval (or probability of effect being
-             positive >= 0.95 or <= 0.05)
-     Yellow- one-tailed 90% quantile interval (or probability of effect being
-             positive >= 0.90 or <= 0.10)
+     Green - two-tailed 95% compatible/quantile interval (or probability of effect
+             being positive >= 0.975 or <= 0.025)
+     Blue  - one-tailed 95% compatible/quantile interval (or probability of effect
+             being positive >= 0.95 or <= 0.05)
+     Yellow- one-tailed 90% compatible/quantile interval (or probability of effect
+             being positive >= 0.90 or <= 0.10)
      white - anything else
 
  =========================
