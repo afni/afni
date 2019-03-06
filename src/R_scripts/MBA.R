@@ -16,9 +16,6 @@ source(first.in.path('AFNIio.R'))
 ExecName <- 'MBA'
 
 # Global variables
-iterPar <- 'matrPar'
-respVar <- c('InputFile', 'Inputfile', 'inputFile', 'inputfile', 'Ausgang_val', 'ausgang_val')
-tolL <- 1e-16 # bottom tolerance for avoiding division by 0 and for avioding analyzing data with most 0's
 
 #################################################################################
 ##################### Begin MBA Input functions ################################
@@ -32,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Feb 28, 2019
+Version 0.0.4, March 6, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -42,13 +39,15 @@ Usage: ~1~
 ------ 
  MBA performs matrix-based analysis (MBA) as theoretically elaborated in the
  manuscript: https://www.biorxiv.org/content/10.1101/459545v1
- MBA is performed with a shell script (as shown in the examples below). The
+ MBA is conducted with a shell script (as shown in the examples below). The
  input data should be formulated in a pure-text table that codes the regions
  and variables. The response variable is usually correlation values (with or
  without Fisher-transformation) or white-matter properties (e.g., fractional
  anisotropy, mean diffusivity, radial diffusivity, axial diffusivity, etc.),
  but it can also be any values from a symmetric matrix (e.g., coherence,
- mutual information, entropy) including diagonals.
+ mutual information, entropy). In other words, the effects are assumed to be
+ non-directional or non-causal. Diagonals can be included in the input if
+ sensible.
 
  Thanks to Zhihao Li for motivating me to start the MBA work, and to 
  Paul-Christian Bürkner and the Stan/R communities for the strong support.
@@ -81,7 +80,9 @@ Usage: ~1~
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
     column order does not matter, but the names of the four variables above
-    in the header are reserved and fixed (case sensitive).
+    in the header are reserved and fixed (case sensitive). The column labels
+    ROI1 and ROI2 are meant to indicate the two regions associated with
+    each response value, and they do not mean any sequence or directionality.
 
  2) Only provide half of the off-diagonals in the table (no duplicates allowed).
     Missing data are fine (e.g., white-matter property deemed nonexistent).
@@ -114,16 +115,29 @@ Usage: ~1~
  6) With within-subject variables, try to formulate the data as a contrast
     between two factor levels or as a linear combination of multiple levels.
 
- The results from MBA are effect estimates for each region pair and at each
- region. They can be slightly different across different runs or different
- computers and R package versions due to the nature of randomness involved
- in Monte Carlo simulations.
+ 7) The results from MBA are effect estimates for each region pair and at each
+    region. They can be slightly different across different runs or different
+    computers and R package versions due to the nature of randomness involved
+    in Monte Carlo simulations.
+
+ 8) The range in matrix plot may vary across different effects within an analysis.
+    It is possible to force the same range for all plots through fine-tuning
+    within R using the output of .RData. The criteria of color coding for the
+    strength of evidence in matrix plots in the output is as follows:
+     Green - two-tailed 95% compatible/quantile interval (or probability of effect
+             being positive >= 0.975 or <= 0.025)
+     Blue  - one-tailed 95% compatible/quantile interval (or probability of effect
+             being positive >= 0.95 or <= 0.05)
+     Yellow- one-tailed 90% compatible/quantile interval (or probability of effect
+             being positive >= 0.90 or <= 0.10)
+     white - anything else
 
  =========================
  
  Installation requirements: ~1~
- In addition to R installation, the R package brms is acquired for MBA. To install
- brms, run the following command at the terminal:
+ In addition to R installation, the R package "brms" is required for MBA. Make
+ sure you have the most recent version of R. To install "brms", run the following
+ command at the terminal:
 
  rPkgsInstall -pkgs "brms" -site http://cran.us.r-project.org"
 
@@ -250,10 +264,10 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        a text with prefix appended with .txt and stores inference information ",
    "        for effects of interest in a tabulated format depending on selected ",
    "        options. The prefix will also be used for other output files such as ",
-   "        visualization plots such as histogram and matrix plot, and saved R data in",
-   "        binary mode. The .RData can be used for post hoc processing such as",
-   "        customized processing and plotting. Remove the .RData file to save disk",
-   "        space once you deem such a file is no longer useful.\n", sep = '\n'
+   "        visualization plots such as matrix plot, and saved R data in binary",
+   "        mode. The .RData can be used for post hoc processing such as customized",
+   "        processing and plotting. Remove the .RData file to save disk space once",
+   "        you deem such a file is no longer useful.\n", sep = '\n'
                      ) ),
 
       '-chains' = apl(n = 1, d = 1, h = paste(
@@ -295,6 +309,12 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "-dbgArgs: This option will enable R to save the parameters in a file called",
    "         .MBA.dbg.AFNI.args in the current directory so that debugging can be",
    "         performed.\n", sep='\n')),
+
+      '-MD' = apl(n=0, h = paste(
+   "-MD: This option indicates that there are missing data in the input. With n",
+   "         regions, at least n(n-1)/2 values are assumed from each subject in the",
+   "         input with no missing data (default). When missing data are present,",
+   "         invoke this option so that the program will handle it properly.\n", sep='\n')),
 
       '-r2z' = apl(n=0, h = paste(
    "-r2z: This option performs Fisher transformation on the response variable",
@@ -363,8 +383,12 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         NOTE:\n",
    "         1) There should have at least four columns in the table. These minimum",
    "         four columns can be in any order but with fixed and reserved with labels:",
-   "         'Subj', 'ROI1', 'ROI2', and 'Y'. More columns can be added in the table for",
-   "         explanatory variables (e.g., groups, age) if applicable. Only subject-level",
+   "         'Subj', 'ROI1', 'ROI2', and 'Y'. The two columns 'ROI1' and 'ROI2' are",
+   "         meant to code the two regions that are associated with each value uner the",
+   "         column Y, and they do not connotate any indication of directionality other",
+   "         than you may want to keep track of a consistent order, for example, in the",
+   "         correlation matrix. More columns can be added in the table for explanatory",
+   "         variables (e.g., groups, age, site) if applicable. Only subject-level",
    "         (or between-subjects) explanatory variables are allowed at the moment. The ",
    "         columns of 'Subj', 'ROI1' and 'ROI2' code each subject and the two regions ",
    "         associated with each region pair, and these labels that can be any identifiable",
@@ -376,11 +400,11 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         response variable in the table of long format (cf. wide format) as",
    "         defined in R. In the case of correlation matrix or white-matter property",
    "         matrix, provide only half of the off-diagonals. With n regions, there",
-   "         should have n(n-1)/2 rows per subject, assuming no missing data. ",
+   "         should have at least n(n-1)/2 rows per subject, assuming no missing data. ",
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not used in the current analysis.",
    "         4) The context of the table can be saved as a separate file, e.g., called",
-   "         table.txt. In the script specify the data with '-dataTable @table.txt'.",
+   "         table.txt. In the script specify the data with '-dataTable table.txt'.",
    "         This option is useful when: (a) there are many rows in the table so that",
    "         the program complains with an 'Arg list too long' error; (b) you want to",
    "         try different models with the same dataset.\n",
@@ -409,7 +433,8 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$EOI    <- 'Intercept'
       lopqContr  <- NA
 
-      lop$dbgArgs <- FALSE # for debugging purpose 
+      lop$dbgArgs <- FALSE # for debugging purpose
+      lop$MD      <- FALSE # for missing data 
       lop$r2z     <- FALSE # Fisher transformation
       lop$verb    <- 0
 
@@ -430,6 +455,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              qContr = lop$qContr <- ops[[i]],       
              help    = help.MBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
+             MD      = lop$MD      <- TRUE,
              r2z     = lop$r2z     <- TRUE,
              dataTable  = lop$dataTable <- read.table(ops[[i]], header=T),
              )
@@ -548,6 +574,9 @@ cat('ROIs:', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 outDF(summary(lop$dataTable$ROI1), lop$outFN)
 outDF(summary(lop$dataTable$ROI2), lop$outFN)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+
+if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR*(nR-1)/2 < nrow(lop$dataTable))
+   stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to toally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR*(nR-1)/2, nlevels(lop$dataTable$Subj)*nR*(nR-1)/2, nrow(lop$dataTable)))
 
 lop$EOIq <- strsplit(lop$qVars, '\\,')[[1]]
 if(!('Intercept' %in% lop$EOIq)) lop$EOIq <- c('Intercept', lop$EOIq)
@@ -714,11 +743,37 @@ res <- function(bb, xx, pp, nd) {
    return(tmp)
 }
 
+# standardize the output
 prnt <- function(pct, side, dat, fl, entity) {
    cat(sprintf('***** %i %s based on %i-sided %i quantile interval *****', 
       nrow(dat), entity, side, pct), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
    if(nrow(dat) > 0) cat(capture.output(dat), file = paste0(fl, '.txt'), sep = '\n', append=TRUE) else
       cat('NULL', file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
+}
+
+# matrix plot for RPs: assuming no diagonals for now
+require(corrplot)
+mPlot <- function(xx, fn) {
+   mm <- xx[,,6]  # median
+   pp <- xx[,,3]  # P+
+   BC1 <- ((pp >= 0.975 ) | (pp <= 0.025))   # background color
+   BC  <- ((pp >= 0.95 ) | (pp <= 0.05))   # background color
+   BC2 <- (((pp > 0.9) & (pp < 0.95)) | ((pp < 0.1) & (pp > 0.05)))
+   BC[BC  == T] <- "blue"
+   BC[BC1 == T] <- "green"
+   BC[BC  == F] <- "white"
+   BC[BC2 == T] <- 'yellow'
+   rng <- range(mm)
+   diag(mm) <- NA  # diagonals are meaningful in the case of correlation matrix
+   diag(BC) <- "white" # if the diagonal values shall be white
+   ii <- !kronecker(diag(1, nrow(BC)), matrix(1, ncol=1, nrow=1))
+   BC <- matrix(BC[ii], ncol = ncol(BC)-1)
+   col2 <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582",
+                                "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE",
+                                "#4393C3", "#2166AC", "#053061"))
+   pdf(paste0(fn, ".pdf"), width=8, height=8)
+   corrplot(mm, method="circle", type = "full", is.corr = FALSE, bg=BC, tl.pos='lt', tl.col='black', col=rev(col2(200)), cl.pos='r', na.label = "square", na.label.col='white')
+   dev.off()
 }
 
 ########## region pair effects #############
@@ -730,6 +785,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   mPlot(xx, lop$EOIq[ii])
 }
 
 # for contrasts among quantitative variables
@@ -740,6 +796,7 @@ if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii]))
 }
 
 # for factor
@@ -756,8 +813,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    }
    psa[nl,,,] <- ps[nl,,,] - psa[nl,,,]  # reference level
    
-   oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
-   dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
+   #oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
+   #dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
    
    cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:nl) {
@@ -767,6 +824,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) 
    }
    
    cat(sprintf('===== Summary of region pair effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -777,6 +835,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       prnt(95, 1, res(bb, oo, 0.05),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025), lop$outFN, 'region pairs')
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) 
    }
 }
 
@@ -797,7 +856,7 @@ psROI <- function(aa, bb, tm, nR) {
 sumROI <- function(R0, ns, nd) {
   hubs <- data.frame(cbind(apply(R0, 2, mean), apply(R0, 2, sd), apply(R0, 2, cnt, ns), t(apply(R0, 2, quantile, 
       probs=c(0.025, 0.05, 0.5, 0.95, 0.975)))))
-  names(hubs) <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
+  names(hubs) <- c('mean', 'SD', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
   return(round(hubs,nd))
 }
 #gg <- sumROI(gg, ns, 3)

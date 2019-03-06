@@ -520,7 +520,7 @@ void mri_multi_threshold_setup(void)
        }
      }
    }
-#if 1
+#if 0
    switch( cth_mode ){
      default:
        INFO_message("MultiThresh cluster FOM local threshold method = MEAN"); break;
