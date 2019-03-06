@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Simpler specification of pthr=RANGE" ,
+   "pthr=0.01/0.001/10 is the same as\n"
+   "pthr=0.01,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
+   "Implemented via NIML's NI_decode_float_list(), so also availble in some\n"
+   "other places -- which I can't be bothered to look for at this moment." } ,
+
  { 4 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
    "-superhard did not imply -workhard :( -- now it does :)" ,
    NULL } ,
