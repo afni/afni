@@ -200,7 +200,8 @@ class MyInterface:
       self.report_outliers = 0
       self.ro_tablefile    = '-'
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
-      self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+      self.ro_valid_comps  = ['SHOW', 'VARY', 'EQ', 'NE',
+                              'LT', 'LE', 'GT', 'GE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
       self.ro_valid_heads  = ['label', 'acronym', 'blank']
       self.ro_fill_type    = 'blank'    # blank, na, value
@@ -729,6 +730,8 @@ class MyInterface:
       rev_labels = [otest[0] for otest in test_list]
       firstind = table[0].index(rev_labels[0])
       ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+      # copy original row 2 for VARY comparison
+      varyrow = table[2][:]
 
       # list of "failure" rows to keep in table (start with 2 header rows)
       faillist = [0, 1]
@@ -745,17 +748,29 @@ class MyInterface:
             label = otest[0]
             check = otest[1]
             nchecks = self.maxcounts[label]
+            # might differ from given one
+            test_check = check
 
             # if SHOW, just move along, and keep table entries
             if check == 'SHOW':
                posn += nchecks
                continue
 
+            # avoid 'SHOW' and 'VARY', to be sure [2] exists
+            if check != 'VARY':
+               baseval = otest[2]
+
             # the main purpose: look for errors
             for repind in range(nchecks):
-               baseval = otest[2]
+               if check == 'VARY':
+                  # convert 'VARY' to 'NE' initial_value
+                  usecheck = 'NE'
+                  baseval = varyrow[posn]
+               else:
+                  usecheck = check
+
                testval = table[rind][posn]
-               outlier = self.ro_val_is_outlier(testval, check, baseval)
+               outlier = self.ro_val_is_outlier(testval, usecheck, baseval)
                # failure to run test
                if outlier < 0: return 1, []
 
@@ -782,7 +797,7 @@ class MyInterface:
    def ro_val_is_outlier(self, tval, comp, bval):
       """return whether "tval comp bval" seems true, e.g.
                          0.82 GE   1.0
-         comp_list: ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+         comp_list: ['SHOW', 'VARY', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
 
          all numerical tests are as floats
 
@@ -792,6 +807,9 @@ class MyInterface:
       """
       # handle non-numeric first
       if comp == 'SHOW': return 0
+
+      # handle non-numeric first
+      if comp == 'VARY': return 0
 
       # get float directional comparison, if possible
       # (-1, 0, 1, or -2 on error)
@@ -804,33 +822,33 @@ class MyInterface:
       #   - equality test would imply for floats, but is more general
       if comp == 'EQ':
          if scomp:       return 1 # equal strings
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 0 # cannot tell as floats, call different
          # float result
          if fcomp == 0:  return 1
          else:           return 0
          
       if comp == 'NE':
-         if scomp:       return 0 # equal strings, this must fail
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if scomp:       return 0 # equal strings, this is an outlier
+         if fcomp == -2: return 1 # cannot tell as floats, call different
          # float result
          if fcomp == 0:  return 0
          else:           return 1
          
       # continue with pure numerical tests (forget scomp)
       if comp == 'LT':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp < 0)
          
       if comp == 'LE':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp <= 0)
          
       if comp == 'GT':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp > 0)
          
       if comp == 'GE':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp >= 0)
          
       print("** ro_val_is_outlier: unknown comp: %s" % comp)
@@ -844,8 +862,8 @@ class MyInterface:
          f1 = float(v1)
          f2 = float(v2)
          if f1 < f2: return -1
-         # handle 0 or 1
-         return (f1 > f2)
+         if f1 > f2: return  1
+         return 0
       except:
          return -2
 
@@ -871,8 +889,10 @@ class MyInterface:
       for otest in test_list:
          label = otest[0]
          check = otest[1]
-         if check == 'SHOW': newlab = check
-         else:               newlab = '%s:%s' % (check, otest[2])
+         if check == 'SHOW' or check == 'VARY':
+            newlab = check
+         else:
+            newlab = '%s:%s' % (check, otest[2])
 
          for repind in range(self.maxcounts[label]):
             table[1][posn] = newlab
@@ -906,7 +926,7 @@ class MyInterface:
          if check not in self.ro_valid_comps:
             estr  = "** invalid comparison, '%s'" % check
             estr += "   should be in: %s" % ', '.join(self.ro_valid_comps)
-         if check != 'SHOW' and nop < 1:
+         if check != 'SHOW' and check != 'VARY' and nop < 1:
             estr = ("** outlier test: missing parameter")
 
          if estr:
