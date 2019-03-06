@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  6, Mar, 2019, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "if VR mismatch warning, specify whether AFNI uses the field",
+   "Done for B Benson."
+ } ,
+
  {  5, Mar, 2019, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
    "show subject counts; change line len and ddirs; no require on restricted",
    NULL
