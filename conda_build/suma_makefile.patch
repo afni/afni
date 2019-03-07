@@ -1,0 +1,11 @@
+--- src/SUMA/SUMA_Makefile_NoDev	2018-07-31 20:49:30.000000000 +0000
++++ src/SUMA/SUMA_Makefile_NoDev.new	2018-08-09 18:21:16.229036239 +0000
+@@ -687,7 +687,7 @@
+ 
+ libgts.a:
+ 	( cd gts ;	\
+-	  ./configure --includedir /usr/include/netpbm ;	\
++	  CC=$(GCC) CXX=$(GXX) ./configure --includedir $(PREFIX)/include/netpbm ;	\
+ 	  $(MAKE) clean ; \
+ 	  $(MAKE) ; \
+ 	  $(RANLIB) src/.libs/$@ ;	\
