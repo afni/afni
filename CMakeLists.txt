@@ -136,20 +136,24 @@ set(NIFTI_LIBRARY_PROPERTIES ${AFNI_LIBRARY_PROPERTIES} CACHE STRING "Set the ni
 find_package(${NIFTI_PACKAGE_PREFIX}NIFTI 3 QUIET)
 if (NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}")
   include(FetchContent)
-  FetchContent_Declare( nifti_repo
+  FetchContent_Declare( nifti_clib
           # GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib
           GIT_REPOSITORY /afni/nifti_clib
+          # GIT_REPOSITORY https://github.com/leej3/nifti_clib.git
           # GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
-          GIT_TAG        update_installation # or git <HASH> or git <branch>
+          GIT_TAG        v3.0.8 # or git <HASH> or git <branch>
           )
-  FetchContent_GetProperties(nifti_repo)
-  if(NOT nifti_repo_POPULATED)
+  FetchContent_GetProperties(nifti_clib)
+  if(NOT nifti_clib_POPULATED)
       set(FETCHCONTENT_QUIET OFF)
       message(STATUS "Downloading nifti_clib from github ... please wait")
-      FetchContent_Populate( nifti_repo )
+      FetchContent_Populate( nifti_clib )
       message(STATUS "download complete.")
-      add_subdirectory(${nifti_repo_SOURCE_DIR} ${nifti_repo_BINARY_DIR})
+      add_subdirectory(${nifti_clib_SOURCE_DIR} ${nifti_clib_BINARY_DIR})
   endif()
+endif()
+if((NOT nifti_clib_POPULATED) AND (NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}"))
+  message(FATAL_ERROR "Nifti dependency retrieval failed")
 endif()
 
 
@@ -159,25 +163,23 @@ endif()
 # the nifti libraries. The same prefix will be used for gifti The prefix can
 # be prepended to the exported targets in the cases where projects use target
 # names with the prefixes in them. The nifti setting applies to gifti too
-find_package(${NIFTI_PACKAGE_PREFIX}GIFTI 0 REQUIRED)
+find_package(${NIFTI_PACKAGE_PREFIX}GIFTI 0 QUIET)
 if (NOT "${${NIFTI_PACKAGE_PREFIX}GIFTI_FOUND}")
-  message("fix gifti")
-  # TODO: add fetch functionality
-  # include(FetchContent)
-  # FetchContent_Declare( gifti_repo
-  #         # GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib
-  #         GIT_REPOSITORY /afni/gifti_clib
-  #         # GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
-  #         GIT_TAG        master # or git <HASH> or git <branch>
-  #         )
-  # FetchContent_GetProperties(gifti_repo)
-  # if(NOT gifti_repo_POPULATED)
-  #     set(FETCHCONTENT_QUIET OFF)
-  #     message(STATUS "Downloading gifti_clib from github ... please wait")
-  #     FetchContent_Populate( gifti_repo )
-  #     message(STATUS "download complete.")
-  #     add_subdirectory(${gifti_repo_SOURCE_DIR} ${gifti_repo_BINARY_DIR})
-  # endif()
+  include(FetchContent)
+  FetchContent_Declare( gifti_clib
+          # GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib
+          GIT_REPOSITORY https://github.com/leej3/gifti_clib.git
+          # GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
+          GIT_TAG        v0.0.11 # or git <HASH> or git <branch>
+          )
+  FetchContent_GetProperties(gifti_clib)
+  if(NOT gifti_clib_POPULATED)
+      set(FETCHCONTENT_QUIET OFF)
+      message(STATUS "Downloading gifti_clib from github ... please wait")
+      FetchContent_Populate( gifti_clib )
+      message(STATUS "download complete.")
+      add_subdirectory(${gifti_clib_SOURCE_DIR} ${gifti_clib_BINARY_DIR})
+  endif()
 endif()
 
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
