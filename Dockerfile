@@ -56,7 +56,8 @@ RUN apt-get update && \
     python-matplotlib \
     python-rpy2 \
     python-tk \
-    python-numpy
+    python-numpy \
+    ninja-build
 
 
 RUN \
@@ -81,7 +82,7 @@ ADD Dockerfile $AFNI_ROOT/
 RUN  mkdir -p /build
 WORKDIR /build
 
-RUN  cmake $AFNI_ROOT
-RUN make -j 20 install
+RUN  cmake -GNinja $AFNI_ROOT
+RUN ninja 
 # RUN apsearch -update_all_afni_help
 
