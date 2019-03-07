@@ -341,6 +341,10 @@ foreach(program ${installable_targets})
 endforeach()
 # message("progs_built:'${PROGRAMS_BUILT}'")
 message("programs not yet built:'${NOT_BUILT}'")
+
+# remove some programs that should not be here
+list(REMOVE_ITEM PROGRAMS_BUILT gifti_tool)
+message("programs  built:'${PROGRAMS_BUILT}'")
 install(TARGETS ${PROGRAMS_BUILT}
        RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
        LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
