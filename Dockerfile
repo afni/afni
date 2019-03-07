@@ -73,6 +73,14 @@ RUN \
     fi 
 
 
+RUN mkdir /gbuild;cd /gbuild \
+&& git clone https://github.com/leej3/gifti_clib.git /gifti_src\
+&& cd /gifti_src \
+&& git checkout v0.0.11 \
+&& cd /gbuild \
+&& cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON /gifti_src \
+&& ninja install
+
 ENV AFNI_ROOT=/afni
 # Copy AFNI source code. This can invalidate the build cache.
 ADD . $AFNI_ROOT/
