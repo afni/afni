@@ -17,6 +17,7 @@ target_include_directories(coxplot
 set_target_properties(coxplot PROPERTIES
 	PUBLIC_HEADER "coxplot.h;../machdep.h"
 )
+add_afni_target_properties(coxplot)
 target_link_libraries(coxplot m AFNI::converted_from_fortran ${MOTIF_LIBRARIES} ${X11_LIBRARIES} libheaders)
 
 

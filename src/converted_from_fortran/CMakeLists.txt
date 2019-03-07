@@ -33,6 +33,7 @@ add_library(converted_from_fortran ${OBJ} ${MISC} ${POW} ${CX} ${DCX} ${REAL} ${
 
 target_include_directories(converted_from_fortran PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 set_target_properties(converted_from_fortran PROPERTIES PUBLIC_HEADER converted_from_fortran.h)
+add_afni_target_properties(converted_from_fortran)
 target_link_libraries(converted_from_fortran NIFTI::nifticdf)
 install(TARGETS converted_from_fortran
        EXPORT AFNITargets

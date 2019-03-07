@@ -4,6 +4,7 @@ add_library(3DEdge 3dedge.c convert.c iopnm.c recline.c
  zcross.c )
 set_target_properties(3DEdge PROPERTIES
 PUBLIC_HEADER "connexe.h;extrema.h;recbuffer.h;zcross.h;convert.h;iopnm.h;recline.h;typedefs.h")
+add_afni_target_properties(3DEdge)
 target_include_directories(3DEdge 
   PUBLIC
     ${CMAKE_CURRENT_SOURCE_DIR}

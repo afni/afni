@@ -14,6 +14,7 @@ eis_rsg.c eis_rsgab.c eis_rsgba.c eis_rsm.c eis_rsp.c eis_rst.c eis_rt.c
 eis_svd.c eis_tinvit.c eis_tql1.c eis_tql2.c eis_tqlrat.c eis_trbak1.c
 eis_trbak3.c eis_tred1.c eis_tred2.c eis_tred3.c eis_tridib.c eis_tsturm.c
 eis_svd.c ${SVD_SLOW})
+add_afni_target_properties(eispack)
 target_link_libraries(eispack AFNI::converted_from_fortran)
 
 install(TARGETS eispack
