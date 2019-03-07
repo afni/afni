@@ -75,14 +75,19 @@ macro(add_afni_target_properties target)
   # define installation prefix
   get_target_property(TARGET_TYPE ${target} TYPE)
   # Set the target properties
-  # Currently this includes setting up post-install linking, prefixing target names with NIFTI_PACKAGE_PREFIX if requests
+  # Currently this includes setting up post-install linking
+
+  if(NOT DEFINED ENV{CONDA_BUILD})
+    set_target_properties(${target} PROPERTIES
+      SKIP_BUILD_RPATH OFF
+      BUILD_WITH_INSTALL_RPATH OFF
+      INSTALL_RPATH "${message_RPATH}"
+      INSTALL_RPATH_USE_LINK_PATH ON
+      )
+  endif()
   set_target_properties(${target} PROPERTIES
     MACOSX_RPATH ON
-    INSTALL_RPATH "${message_RPATH}"
     )
-    # INSTALL_RPATH_USE_LINK_PATH ON
-    # SKIP_BUILD_RPATH OFF
-    # BUILD_WITH_INSTALL_RPATH OFF
 endmacro()
 
 
@@ -94,9 +99,9 @@ if(${INSTALL_TO_ABIN})
   set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
 else()
 set(BASE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
-set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib/AFNI)
+set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib)
 set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR}/bin)
-set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include/AFNI)
+set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
 endif()
 
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
