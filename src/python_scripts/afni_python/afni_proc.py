@@ -3017,7 +3017,7 @@ class SubjProcSream:
               '%s# (akin to static images from running @ss_review_driver)\n'  \
               '%sapqc_make_tcsh.py -review_style %s -subj_dir . \\\n'         \
               '%s    -uvar_json %s\n'                                         \
-              '%stcsh @ss_review_html\n'                                      \
+              '%stcsh @ss_review_html |& tee out.review_html\n'               \
               '%sapqc_make_html.py -qc_dir QC_$subj\n\n'                      \
               % (istr, istr,
                  istr, self.html_rev_style,

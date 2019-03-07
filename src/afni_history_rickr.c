@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Mar, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "tee output from @ss_review_html to a text file",
+   "Done for P Taylor."
+ } ,
+
  {  6, Mar, 2019, RCR, "Dimon", MINOR, TYPE_ENHANCE,
    "if VR mismatch warning, specify whether AFNI uses the field",
    "Done for B Benson."
