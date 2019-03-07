@@ -1,6 +1,7 @@
 # TODO: install prefix should be used to distinguish from external library
 cmake_minimum_required(VERSION 3.13)
 project(XmHTML)
+set(CMAKE_BUILD_TYPE "Release")
 
 set(XMHTML_VERSION "1107")
 set(XMHTML_ARCHIVE "1.1.7")
