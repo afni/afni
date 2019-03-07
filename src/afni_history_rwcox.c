@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 7 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Change ETAC default pthr list" ,
+   "From 5 values to 10.\n"
+   "Also, fix naming of output ETACmask files when user doesn't specify\n"
+   "sideness with the ETAC_opt option." } ,
+
  { 6 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
    "Simpler specification of pthr=RANGE" ,
    "pthr=0.01/0.001/10 is the same as\n"

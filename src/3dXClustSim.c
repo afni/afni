@@ -93,9 +93,9 @@ static int   nsim        = 0 ;     /* ncase * niter_clust = number of sim volume
 
 #define PMAX 0.5
 
-static int    npthr = 5 ;
+static int    npthr = 10 ;
 static double *pthr = NULL ;
-static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
+static double pthr_init[10] = { 0.010, 0.009, 0.008, 0.007, 0.006, 0.005, 0.004, 0.003, 0.002, 0.001 } ;
 
 static float  *zthr_1sid = NULL ;
 static float  *zthr_2sid = NULL ;
@@ -154,13 +154,12 @@ static float farp_goal = FARP_GOAL ;
    only change them here if you change them there as well! */
 #define NFARP 9
 static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h", "i" } ;
 static float min_fgoal = 1.0f ;
 static float max_fgoal = 9.0f ;
 
 static int do_multifarp = 0 ;
 static int numfarp = 1 ;
-
-static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
 
 #define FG_GOAL  (farp_goal*fgfac)
 #define MAXITE   11
@@ -1153,8 +1152,7 @@ int main( int argc , char *argv[] )
    /*--- STEP 1a: loop over realizations to load up Xclustar_g[][][] ---*/
 
    if( verb )
-     INFO_message("STEP 1a: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 1a: start %d-sided clustering with NN=%d and %d p-thresholds",nnsid,nnlev,npthr) ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -1222,8 +1220,7 @@ int main( int argc , char *argv[] )
      nclust_max = 0 ;  /* keep track of the largest situation */
 
      if( verb )
-       ININFO_message("STEP 1b: merge cluster lists") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1b: merge cluster lists (%.1fs elapsed)",COX_clock_time()) ;
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
@@ -1282,8 +1279,7 @@ int main( int argc , char *argv[] )
      fomg2 = calloc(sizeof(float),nclust_max) ; /* section  */
 
      if( verb )
-       ININFO_message("STEP 1c: compute minimum thresholds") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1c: compute minimum thresholds (%.1fs)",COX_clock_time()) ;
 
      /* arrays for global threshold:
           [ifarp=FPR goal][qcase=blurring][ipthr=p-value] */
@@ -1376,6 +1372,7 @@ int main( int argc , char *argv[] )
    /*==========================================================================*/
    /*--- STEP 1d: do ETAC globally [Sep 2018] ---------------------------------*/
    /*:::::::::::: much of this code is a rehash of the voxelwise STEP 4, infra */
+   /*:::::::::::: (which, ironically, is no longer default or recommended)     */
 
    if( do_global_etac ){
      float ***fomglob0, ***fomglob1, ***fomglob2 ;
@@ -1383,8 +1380,7 @@ int main( int argc , char *argv[] )
      float **fthar0 , **fthar1 , **fthar2 ;
 
      if( verb )
-       ININFO_message("STEP 1d: compute global ETAC thresholds") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1d: compute global ETAC thresholds (%.1fs)",COX_clock_time()) ;
 
      /*--- create vectors to hold all FOMs ---*/
 
@@ -1453,15 +1449,14 @@ ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qca
        farp_goal = farplist[ifarp] ;
 
        if( verb )
-         INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
-                      abcd[ifarp] , farp_goal) ;
-       if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+         INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
+                      abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
        /* tfrac = FOM count fractional threshold;
                   will be adjusted to find the farp_goal FPR goal */
 
        if( ifarp == 0 ){                                     /* first time thru */
-         tfrac = (4.0f+farp_goal)*0.00066f ;
+         tfrac = (4.0f+farp_goal)*0.000777f ;
        } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
          tfrac *= 1.0777f * farp_goal / farlast ;     /* adjust previous result */
        } else {
@@ -1598,7 +1593,7 @@ GARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
 
      if( verb )
-       ININFO_message("         global FPR=%.2f%% at %.1f s", farperc,COX_clock_time() ) ;
+       ININFO_message("         global FPR=%.2f%% (%.1fs)", farperc,COX_clock_time() ) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -1615,8 +1610,8 @@ GARP_LOOPBACK:
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.1f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
-         dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
+         dtt = (fff-1.0f)*tfrac ;        /* tfrac step */
+         if( itrac > 2 ) dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
          ttemp = tfrac ; tfrac += dtt ;
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
@@ -1766,7 +1761,7 @@ GARP_BREAKOUT: ; /*nada*/
      free(fthar0)  ; free(fthar1)  ; free(fthar2)  ;
 
      if( !do_local_etac ){
-       INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
+       INFO_message("=== 3dXClustSim ends: Elapsed time = %.1fs",COX_clock_time()) ;
        exit(0) ;
      }
 
@@ -1843,8 +1838,7 @@ GARP_BREAKOUT: ; /*nada*/
    count_targ60  = (int)rintf(0.60f*count_targ100) ;
 
    if( verb )
-     INFO_message("STEP 2: start cluster dilations") ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 2: start cluster dilations (%.1fs)",COX_clock_time()) ;
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){  /* loop over cases */
     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
@@ -1946,8 +1940,7 @@ GARP_BREAKOUT: ; /*nada*/
    /*--- STEP 3: create sorted and truncated FOM vectors ---*/
 
    if( verb )
-     INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations") ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations (%.1fs)",COX_clock_time()) ;
 
    /*--- initialize the final sorted FOM vector array for each voxel ---*/
 
@@ -2191,7 +2184,7 @@ GARP_BREAKOUT: ; /*nada*/
 
    nit33 = 1.0f/(niter_clust+0.333f) ;
 
-   if( ntfp_all == 0 ){
+   if( ntfp_all == 0 ){ /* only needed if global ETAC was skipped earlier */
      ntfp_all = 128 ;
      tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
      fps  = (float *)malloc(sizeof(float)*ntfp_all) ;
@@ -2204,9 +2197,8 @@ GARP_BREAKOUT: ; /*nada*/
      farp_goal = farplist[ifarp] ;
 
      if( verb )
-       INFO_message("STEP 4.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
-                    abcd[ifarp] , farp_goal) ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       INFO_message("STEP 4.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
+                    abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
      /* tfrac = FOM count fractional threshold;
                 will be adjusted to find the farp_goal FPR goal */
@@ -2397,7 +2389,7 @@ FARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
 
      if( verb )
-       ININFO_message("         local FPR=%.2f%% at %.1f s", farperc,COX_clock_time()) ;
+       ININFO_message("         local FPR=%.2f%% (%.1fs)", farperc,COX_clock_time()) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -2519,7 +2511,7 @@ FARP_BREAKOUT: ; /*nada*/
 
    /* It's the end of the world, Calvin */
 
-   INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
+   INFO_message("=== 3dXClustSim ends: Elapsed time = %.1fs",COX_clock_time()) ;
    MEMORY_CHECK("THE END") ;
    exit(0) ;
 }

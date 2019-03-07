@@ -1460,6 +1460,8 @@ void display_help_menu(void)
       "                          number of blur cases rises.\n"
       "                       ++ You can use '0' for one of the blur parameters here,\n"
       "                          meaning to not apply any extra blurring for that case.\n"
+      "                       ++ We recommend blurring no more than 3 times the original\n"
+      "                          EPI voxel dimension.\n"
       "                       ++ You can only use '-ETAC_blur' once.\n"
       "                       ++ '-ETAC_blur' is implemented via '-exblur', and the blurring\n"
       "                          is done only inside the analysis mask (cf. 3dBlurInMask).\n"
@@ -1496,17 +1498,24 @@ void display_help_menu(void)
       "                       ++ It is important to use distinct names for each\n"
       "                          different '-ETAC_opt' case, so that the output\n"
       "                          file names will be distinct (see below).\n"
-      "                       ++ There is no built in upper limit on the number of 'pthr'\n"
-      "                          levels allowed. If you wish to use an arithmetically\n"
-      "                          evenly spaced set of thresholds, you can do something\n"
-      "                          like 'pthr=0.01/0.001/19' to get 19 thresholds evenly\n"
-      "                          spaced from 0.01 to 0.001.\n"
+      "                       ++ There is no built in upper limit on the number of\n"
+      "                          'pthr' levels allowed. If you wish to use an\n"
+      "                          arithmetically evenly spaced set of p thresholds,\n"
+      "                          you can do something like 'pthr=0.01/0.001/19' to\n"
+      "                          use 19 thresholds evenly spaced from 0.01 to 0.001,\n"
+      "                          with step size (0.01-0.001)/(10-1)=0.001.\n"
+      "                          Of course, the program gets slower for larger\n"
+      "                          numbers of pthr levels and will use more memory.\n"
+      "                          A practical upper bound for the number of pthr\n"
+      "                          levels is about 20. I have run it (experimentally)\n"
+      "                          with 100 pthr levels, which made very little\n"
+      "                          difference in the results from 20 levels, and took\n"
+      "                          much longer to run.\n"
       "                   -->>++ If you do not use '-ETAC_opt' at all, a built-in set\n"
       "                          of parameters will be used. These are\n"
       "                            NN=2 sid=2 hpow=2 name=default\n"
-      "                            pthr=0.01,0.0056,0.0031,0.0018,0.0010\n"
-      "                                =0.01 * 0.1^(i/4) for i=0..4\n"
-      "                                =geometrically distributed from 0.001 to 0.01\n"
+      "                            pthr=0.01/0.001/10\n"
+      "                                =0.010,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
       "                            fpr=5\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
@@ -1562,7 +1571,7 @@ void display_help_menu(void)
       "                                      with pthr=0.01.\n"
       "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
       "  'ETAC' will have the '5perc' component changed to that value (e.g., '4perc').\n"
-      "* If 'fpr=ALL', there would be outputs for '2perc', '3perc', ... '9perc'.\n"
+      "* If 'fpr=ALL', there would be outputs for '1perc', '2perc', ... '9perc'.\n"
       "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
       "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
@@ -2486,12 +2495,12 @@ int main( int argc , char *argv[] )
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
-       opx->nnlev     = 0 ;
-       opx->sid       = 0 ;
+       opx->nnlev     = 2 ;
+       opx->sid       = 2 ;
        opx->npthr     = 0 ;
        opx->pthr      = NULL ;
        opx->farp_goal = 5.0f ;  /* because this is what everyone likes, right? */
-       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
+       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 1 ;
        opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
@@ -2534,11 +2543,12 @@ int main( int argc , char *argv[] )
          char *qstr=strdup(cpt+5) , *qpt ;
          NI_float_array *nfar ;
          qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
-         nfar = NI_decode_float_list(qstr,",") ;
+         nfar = NI_decode_float_list(qstr,",") ;  /* where the a/b/N construct is expanded */
          if( nfar != NULL && nfar->num > 0 ){
            for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
              if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ){
                ERROR_message("Illegal value after pthr= in '%s %s'",thisopt,argv[nopt]);  nbad++ ;
+               if( nbad == 1 ) ERROR_message("  pthr values must be between 0.0001 and 0.1") ;
              }
            }
            opx->npthr = nfar->num ; opx->pthr = nfar->ar ;
@@ -2554,13 +2564,14 @@ int main( int argc , char *argv[] )
          qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
          nfar = NI_decode_float_list(qstr,",") ;
          if( nfar != NULL && nfar->num > 0 ){
+           opx->do_hpow0 = opx->do_hpow1 = opx->do_hpow2 = 0 ;
            for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
              switch( (int)nfar->ar[qq] ){
                case 0: opx->do_hpow0 = 1 ; break ;
                case 1: opx->do_hpow1 = 1 ; break ;
                case 2: opx->do_hpow2 = 1 ; break ;
                default:
-                 ERROR_message("Illegal value after hpow= in '%s %s'",thisopt,argv[nopt]);
+                 ERROR_message("Illegal value (not 0, 1, or 2) after hpow= in '%s %s'",thisopt,argv[nopt]);
                  nbad++ ; break ;
              }
            }
@@ -5008,7 +5019,8 @@ LABELS_ARE_DONE:  /* target for goto above */
            do_hpow1 = opx->do_hpow1 ;
            do_hpow2 = opx->do_hpow2 ;
          } else {
-           nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
+           nnlev = 2 ; sid = 2 ;
+           npthr = 0 ; pthr = NULL ; nam="default" ;
            do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
            fgoal = 5.0f ; mod = "\0" ;
          }
