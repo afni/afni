@@ -28,6 +28,10 @@
 #undef calloc
 #undef free
 #undef strdup
+#undef XtMalloc
+#undef XtRealloc
+#undef XtFree
+#undef XtCalloc
 #undef mcw_malloc
 #undef mcw_realloc
 #undef mcw_calloc
