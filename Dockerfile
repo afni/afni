@@ -72,6 +72,17 @@ RUN \
             pandas; \
     fi 
 
+RUN wget https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh && \
+    bash Miniconda3-4.5.11-Linux-x86_64.sh -b -p /usr/local/miniconda && \
+    rm Miniconda3-4.5.11-Linux-x86_64.sh; conda config --add channels conda-forge
+
+ENV PATH="/usr/local/miniconda/bin:$PATH" \
+    CPATH="/usr/local/miniconda/include/:$CPATH" \
+    LANG="C.UTF-8" \
+    LC_ALL="C.UTF-8" \
+    PYTHONNOUSERSITE=1
+# conda install -c conda-forge awscli 
+RUN conda install conda-build
 
 RUN mkdir /gbuild;cd /gbuild \
 && git clone https://github.com/leej3/gifti_clib.git /gifti_src\
