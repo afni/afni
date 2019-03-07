@@ -50,6 +50,33 @@ examples:
 
       gen_ss_review_table.py -showlabs -infiles gr*/sub*/*.res*/out.ss_rev*
 
+   3. report outliers: subjects with "outlier" table values
+      (include all 'degrees of freedom left' values in the table)
+
+      gen_ss_review_table.py                                          \\
+              -outlier_sep space                                      \\
+              -report_outliers 'censor fraction' GE 0.1               \\
+              -report_outliers 'average censored motion' GE 0.1       \\
+              -report_outliers 'max censored displacement' GE 8       \\
+              -report_outliers 'TSNR average' LT 300                  \\
+              -report_outliers 'degrees of freedom left' SHOW         \\
+              -infiles sub*/s*.results/out.ss*.txt                    \\
+              -write_outliers outliers.values.txt
+
+   4. report outliers: subjects with varying columns, where they should not
+
+      gen_ss_review_table.py                                          \\
+              -outlier_sep space                                      \\
+              -report_outliers 'AFNI version' VARY                    \\
+              -report_outliers 'num regs of interest' VARY            \\
+              -report_outliers 'final voxel resolution' VARY          \\
+              -report_outliers 'num TRs per run' VARY                 \\
+              -infiles sub*/s*.results/out.ss*.txt                    \\
+              -write_outliers outliers.vary.txt
+
+      * Note that examples 3 and 4 could be put together, but it might make
+        processing easier to keep them separate.
+
 ------------------------------------------
 terminal options:
 
@@ -85,7 +112,7 @@ process options:
          space  : (default) make the columns spatially aligned
          comma  : use commas ',' for field separators
          tab    : use tabs '\\t' for field separators
-         ...    : otherwise, use the SEP string as it is provided
+         STRING : otherwise, use the given STRING as it is provided
 
    -separator SEP       : use SEP for the label/vals separator (default = ':')
 
@@ -103,6 +130,68 @@ process options:
    -show_infiles        : include input files in reviewtable result
 
       Force the first output column to be the input files.
+
+   -report_outliers LABEL COMP [VAL] : report outliers, where comparison holds
+
+        e.g. -report_outliers 'censor fraction' GE 0.1
+        e.g. -report_outliers 'average censored motion' GE 0.1
+        e.g. -report_outliers 'TSNR average' LT 100
+        e.g. -report_outliers 'AFNI version' VARY
+        e.g. -report_outliers 'global correlation (GCOR)' SHOW
+
+      This option is used to make a table of outlier subjects.  If any
+      comparison function is true for a subject (other than SHOW), that subject
+      will be included in the output table.  By default, only the values seen
+      as outliers will be shown (see -report_outliers_fill_style).
+
+      The outlier table will be spatially aligned by default, though the
+      option -outlier_sep can be used to control the field separator.
+
+      In general, the comparison will be an outlier if it is true, meaning
+      "LABEL COMP VAL" defines what is an outlier (as opposed to defining what
+      is okay).  The parameters include:
+
+        LABEL   : the (probably quoted) label from the input out.ss files
+                  (it should be quoted to be applied as a single parameter,
+                  including spaces, parentheses or other special characters)
+
+        COMP    : a comparison operator, one of:
+                  SHOW  : (no VAL) show the value, for any output subject
+                  VARY  : (no VAL) show any value that varies from first subj
+                  EQ    : equals (outlier if subject value equals VAL)
+                  LT    : less than
+                  LE    : less than or equal to
+                  GT    : greater than
+                  GE    : greater than or equal to
+                  
+        VAL     : a comparison value (if needed, based on COMP)
+
+      RO example 1.
+
+            -report_outliers 'censor fraction' GE 0.1
+
+         Any subject with a 'censor fraction' that is greater than or equal to
+         0.1 will be considered an outlier, with that subject line shown, and
+         with that field value shown.
+
+      RO example 2.
+
+            -report_outliers 'AFNI version' VARY
+
+         In determining whether 'AFNI version' varies across subjects, each
+         subject is simply compared with the first.  If they differ, that
+         subject is considered an outlier, with the version shown.
+
+      RO example 3.
+
+            -report_outliers 'global correlation (GCOR)' SHOW
+
+         SHOW is not actually an outlier comparison, it simply means to show
+         the given field value in any output.  This will not affect which
+         subject lines are displayed.  But for those that are, the GCOR column
+         (in this example) and values will be included.
+
+        See also -report_outliers_fill_style and -outlier_sep.
 
    -report_outliers_fill_style STYLE : how to fill non-outliers in table
 
@@ -166,14 +255,13 @@ g_history = """
         - added -outlier_sep, and include 'space' to make aligned table
         - added -show_infiles, to explicitly include input files
         - synchronize group/subj/infile in table
-   1.2  Mar  1, 2019:
+   1.2  Mar  7, 2019:
         - added -report_outliers_fill_style (for Paul)
         - added -write_outliers
         - added -write_table to replace -tablefile (though it still works)
-        - added -report_outliers_fill_style
 """
 
-g_version = "gen_ss_review_table.py version 1.2, March 1, 2019"
+g_version = "gen_ss_review_table.py version 1.2, March 7, 2019"
 
 
 class MyInterface:
