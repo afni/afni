@@ -95,13 +95,11 @@ RUN mkdir /gbuild;cd /gbuild \
 ENV AFNI_ROOT=/afni
 # Copy AFNI source code. This can invalidate the build cache.
 ADD . $AFNI_ROOT/
-ADD cmake $AFNI_ROOT/cmake/
-ADD CMakeLists.txt $AFNI_ROOT/
-ADD Dockerfile $AFNI_ROOT/
 RUN  mkdir -p /build
 WORKDIR /build
 
 RUN  cmake -GNinja $AFNI_ROOT
 RUN ninja 
+# RUN ninja install
 # RUN apsearch -update_all_afni_help
 
