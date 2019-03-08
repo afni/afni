@@ -119,6 +119,9 @@ static double athr_init[5] = { 0.05 , 0.04 , 0.03 , 0.02 , 0.01 } ;
 static int verb = 1 ;
 static int nthr = 1 ;  /* default number of threads */
 
+/* These defaults are also set in 3dttest++.c and
+   if changed in one program, must be changed in the other! */
+
 static int nnlev = 2 ; /* NN                = 1 or 2 or 3 */
 static int nnsid = 2 ; /* sidedness of test = 1 or 2      */
 
@@ -169,6 +172,8 @@ static int do_local_etac  = 0 ;
 
 #define TOPFRAC 0.2468f
 
+#undef USE_INDX  /* [08 Mar 2019] eliminate multiple clusters from same indx */
+
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
 
@@ -201,7 +206,7 @@ static void vstep_print(void)
 
 void get_options( int argc , char **argv )
 {
-  char *ep;
+  char *ep , msg[1024] ;
   int nopt=1 , ii ;
 
 ENTRY("get_options") ;
@@ -497,15 +502,12 @@ ENTRY("get_options") ;
     numfarp = 1 ; farplist[0] = farp_goal ;
     INFO_message("Single FPR goal: %.1f%%",farp_goal) ;
   } else {
-    char msg[256] ;
     numfarp = NFARP ;
     strcpy(msg,"Multiple FPR goals:") ;
-    for( ii=0 ; ii < numfarp ; ii++ )
+    for( ii=0 ; ii < numfarp ; ii++ )  /* quadruple % reduced to double % below */
       sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
-    INFO_message(msg) ;
+    INFO_message(msg) ;                  /* and then to single % in this output */
   }
-
-  INFO_message("minimum cluster size = %d voxels",min_clust) ; /* 21 Sep 2017 */
 
   /*------- finalize some simple setup stuff --------*/
 
@@ -519,6 +521,19 @@ ENTRY("get_options") ;
     if( verb > 1 )
       INFO_message("Using default %d p-value thresholds",npthr) ;
   }
+
+  /* Show the p-value thresholds [08 Mar 2019] */
+
+  strcpy(msg,"p-value thresholds:") ;
+  for( ii=0 ; ii < npthr ; ii++ )
+    sprintf( msg+strlen(msg) , " %.4f" , pthr[ii] ) ;
+  INFO_message(msg) ;
+  if( npthr == 1 )  /* should not happen, but you never know about users */
+    WARNING_message("only 1 p-value threshold?!") ;
+
+  /* another tidbit of info */
+
+  INFO_message("min cluster size  : %d voxels",min_clust) ; /* 21 Sep 2017 */
 
   /* create the default label for ncase=1 */
 
@@ -686,23 +701,23 @@ void gather_clusters( int icase, int ipthr,
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
   }
-  Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+  Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
 
 #else              /** new code: 1-sided uses both pos and neg [doesn't work] **/
   if( ss == 1 ){
     Xcluster_array *pcar , *ncar ;
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
-    pcar = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    pcar = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fim[ii] <= -thr) ? fim[ii] : 0.0f ;
-    ncar = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    ncar = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
     MERGE_Xcluster_arrays(pcar,ncar) ; /* ncar is deleted */
     Xclustar_g[icase][ipthr][iter] = pcar ;
   } else {
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
-    Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
   }
 #endif
 
@@ -1378,6 +1393,9 @@ int main( int argc , char *argv[] )
      float ***fomglob0, ***fomglob1, ***fomglob2 ;
      Xcluster **xcc ; int nfom , **nfomglob ;
      float **fthar0 , **fthar1 , **fthar2 ;
+#ifdef USE_INDX
+     int *indx0 , *indx1 , *indx2 ;          /* 08 Mar 2019 */
+#endif
 
      if( verb )
        ININFO_message("STEP 1d: compute global ETAC thresholds (%.1fs)",COX_clock_time()) ;
@@ -1393,6 +1411,11 @@ int main( int argc , char *argv[] )
      fthar0   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar1   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar2   = (float **) malloc(sizeof(float *) *ncase) ;
+#ifdef USE_INDX
+     indx0    = (int *)    malloc(sizeof(int)     *nclust_max) ;
+     indx1    = (int *)    malloc(sizeof(int)     *nclust_max) ;
+     indx2    = (int *)    malloc(sizeof(int)     *nclust_max) ;
+#endif
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        fomglob0[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
        fomglob1[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
@@ -1409,6 +1432,9 @@ int main( int argc , char *argv[] )
          xcc = Xclust_tot[qcase][qpthr] ;
          for( nfom=ii=0 ; ii < nclust_tot[qcase][qpthr] ; ii++ ){
            if( xcc[ii] != NULL ){
+#ifdef USE_INDX
+             indx0[nfom] = indx1[nfom] = indx2[nfom] = xcc[ii]->indx ;
+#endif
              fomglob0[qcase][qpthr][nfom] = xcc[ii]->fomh[0] ;
              fomglob1[qcase][qpthr][nfom] = xcc[ii]->fomh[1] ;
              fomglob2[qcase][qpthr][nfom] = xcc[ii]->fomh[2] ; nfom++ ;
@@ -1417,9 +1443,14 @@ int main( int argc , char *argv[] )
 #if 0
 ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,qcase,qpthr,nclust_tot[qcase][qpthr]) ;
 #endif
+
+#ifdef USE_INDX   /* eliminate multiple results from same iteration index */
+         qsort_pair_ithenf( nfom , fomglob0[qcase][qpthr] , indx0 ) ;
+#else             /* old code -- multiple results in same iteration are OK */
          qsort_float_rev( nfom , fomglob0[qcase][qpthr] ) ;
          qsort_float_rev( nfom , fomglob1[qcase][qpthr] ) ;
          qsort_float_rev( nfom , fomglob2[qcase][qpthr] ) ;
+#endif
          if( nfom > nfomkeep ){
            fomglob0[qcase][qpthr] = (float *)realloc( fomglob0[qcase][qpthr],
                                                       sizeof(float)*nfomkeep ) ;
@@ -1746,6 +1777,10 @@ GARP_BREAKOUT: ; /*nada*/
      /*::: it's NOT the end of the world (yet) :::*/
 
      /*--- delete vectors ---*/
+
+#ifdef USE_INDX
+     free(indx0) ; free(indx1) ; free(indx2) ;
+#endif
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){

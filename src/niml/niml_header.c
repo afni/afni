@@ -482,8 +482,8 @@ NI_float_array * NI_decode_float_list( char *ss , char *sep )
      } else if( sl != NULL ){                               /* 06 Mar 2019 */
        v1 = v2 = 0.0f ;
        (void)sscanf(cc,"%f/%f/%d",&v1,&v2,&nv) ;
-       if( nv <= 2 ) continue ;      /* bad */
-       dv = (v2-v1)/(nv-1.0f) ;
+       if( nv < 2 ){ nv = 0 ; nadd = 1 ; val = v1 ; }
+       else        { dv = (v2-v1)/(nv-1.0f) ; }
      } else {
        val = (float)strtod(cc,NULL) ; nadd = 1 ;
      }

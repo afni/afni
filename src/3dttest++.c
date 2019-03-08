@@ -1504,13 +1504,17 @@ void display_help_menu(void)
       "                          you can do something like 'pthr=0.01/0.001/19' to\n"
       "                          use 19 thresholds evenly spaced from 0.01 to 0.001,\n"
       "                          with step size (0.01-0.001)/(10-1)=0.001.\n"
-      "                          Of course, the program gets slower for larger\n"
-      "                          numbers of pthr levels and will use more memory.\n"
-      "                          A practical upper bound for the number of pthr\n"
-      "                          levels is about 20. I have run it (experimentally)\n"
-      "                          with 100 pthr levels, which made very little\n"
-      "                          difference in the results from 20 levels, and took\n"
-      "                          much longer to run.\n"
+      "                         + In the form 'pthr=A/B/N', the count N must be at\n"
+      "                           least 2, or only the value of A will be used.\n"
+      "                         + pthr values must be in the range 0.1 .. 0.0001\n"
+      "                           (inclusive), or this program will be unhappy.\n"
+      "                         + Of course, the program gets slower for larger\n"
+      "                           numbers of pthr levels and will use more memory.\n"
+      "                           A practical upper bound for the number of pthr\n"
+      "                           levels is about 20. I have run it (experimentally)\n"
+      "                           with 91 pthr levels, which made very little\n"
+      "                           difference in the results from 10 levels, and\n"
+      "                           took much longer to run.\n"
       "                   -->>++ If you do not use '-ETAC_opt' at all, a built-in set\n"
       "                          of parameters will be used. These are\n"
       "                            NN=2 sid=2 hpow=2 name=default\n"
@@ -2495,16 +2499,16 @@ int main( int argc , char *argv[] )
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
-       opx->nnlev     = 2 ;
-       opx->sid       = 2 ;
+       opx->nnlev     = 2 ;   /* these defaults are also set in 3dXClustSim.c */
+       opx->sid       = 2 ;    /* if changed here, must also be changed there */
        opx->npthr     = 0 ;
        opx->pthr      = NULL ;
-       opx->farp_goal = 5.0f ;  /* because this is what everyone likes, right? */
+       opx->farp_goal = 5.0f ; /* because this is what everyone likes, right? */
        opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 1 ;
        opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
-       acp = strdup(argv[nopt]) ;  /* change colons to blanks in option string */
+       acp = strdup(argv[nopt]) ; /* change colons to blanks in option string */
        for( cpt=acp ; *cpt != '\0' ; cpt++ ){
          if( *cpt == ':' ) *cpt = ' ' ;
        }
@@ -3609,9 +3613,12 @@ int main( int argc , char *argv[] )
                    approximate_number_string((double)nsdat) ) ;
      ININFO_message("  = It is best to store these files on a solid-state disk (SSD)") ;
      ININFO_message("  = using the '-tempdir' option.") ;
+     ININFO_message("=== ETAC will also use additional memory for the cluster tables") ;
+     ININFO_message("  = which is hard to predict, but can be as much as the amount") ;
+     ININFO_message("  = listed above.") ;
      nsysmem = AFNI_get_memsize() ;
      if( nsysmem > 0 ){
-       ININFO_message("  = There are %s (%s) bytes of memory on your system.",
+       ININFO_message("=== There are %s (%s) bytes of memory on your system.",
                       commaized_integer_string(nsysmem) ,
                       approximate_number_string((double)nsysmem) ) ;
        if( (double)nsdat > 0.666f*(double)nsysmem )

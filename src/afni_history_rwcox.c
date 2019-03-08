@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAR , 2019 , RWC , "InstaCorr" , MINOR , TYPE_BUG_FIX ,
+   "Bandpass error found by the wandering Spaniard" ,
+   "Problem: very long time series (over 2000) analyzed *without* Bandpass\n"
+   "would give error message and then give useless results.\n"
+   "Solution: if Bandpass is turned off, that is signaled by setting the\n"
+   "upper freq cutoff to a large value. Then the FFT cutoff index is\n"
+   "computed from that as jtop = ftop/df where df = 1/N*dt, so we have\n"
+   "jtop = ftop*N/dt. For large N and large ftop, this is integer overflow.\n"
+   "Therefore, compute jtop in float, not int, then check it first. D'oh." } ,
+
  { 7 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
    "Change ETAC default pthr list" ,
    "From 5 values to 10.\n"

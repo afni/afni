@@ -126,6 +126,8 @@ ENTRY("THD_instacorr_tsprep") ;
      }
    }
 
+   /* despite the 'bandpass' name, this is the filtering step */
+
    (void)THD_bandpass_OK( ntime , mv->dt , iset->fbot,iset->ftop , 1 ) ;
 
    iset->ndet = THD_bandpass_vectors( ntime, nmmm, dvec, mv->dt,

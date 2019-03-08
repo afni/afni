@@ -579,6 +579,16 @@ void qsort_pair( int n , float *a , int *ia )
    return ;
 }
 
+void qsort_pair_rev( int n , float *a , int *ia )  /* 08 Mar 2019 */
+{
+   register int ii ;
+   if( n < 2 || a == NULL ) return ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
+   qsort_pair(n,a,ia) ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
+   return ;
+}
+
 /*******************************************************************************
   Compute the "percentage points" of the histogram of an image.
   "per" should be a pre-allocated array of "nper+1" floats; per[i] will be set
