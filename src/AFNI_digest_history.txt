@@ -1,3 +1,64 @@
+
+AFNI Digest, week of 2019/03/08.
+
+00) AFNI Bootcamp announcement: KUMC Bootcamp (April 1-3).
+The Hoglund Brain Imaging Center at the University of Kansas Medical
+Center in Kansas City will be hosting an AFNI Bootcamp, April 1-3,
+2019.  Please see here for the Bootcamp website and contact details:
+https://afni.nimh.nih.gov/afni/community/board/read.php?1,160656,160656#msg-160656
+And as a reminder, there is an AFNI bootcamp at NIH in just over 2
+weeks, starting March 25, 2019.
+
+01) A new program for analysis of multi-echo fMRI data: 3dMEPFM.
+3dMEPFM is available in the current AFNI distribution (thanks,
+Cesar!).  The program provides estimates of the changes in the
+transverse relaxation parameter (R2*), and also changes in the net
+magnetization (S0) as an option, based on a monoexponential decay
+model of the ME-fMRI signal, i.e. assuming dependence of the BOLD
+signal on the echo time (TE).  To estimate these variables, the
+program solves a deconvolution problem by means of regularized
+estimation in a similar fashion to 3dPFM and 3dTfitter, when the
+latter is used for PPI analyses. A description of the algorithm and
+results are provided here:
+https://www.biorxiv.org/content/10.1101/558288v1
+and in the program's help:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/3dMEPFM_sphx.html#ahelp-3dmepfm
+
+02) Educational note:  AFNI handouts easier to find.
+There is now a direct link to the most current AFNI handouts directory
+in the online documentation:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/educational/handouts.html
+This might make it easier to search for slides and lecture
+information.  Note that the afni_handouts directory is also
+distributed as part of the Bootcamp data, per usual.
+
+03) Container/Dockerfile instructions.
+For folks who use containers, we have some new instructions for
+working with containerized AFNI:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/background_install/container.html
+(Thanks to Dylan and Jakub for that!)
+
+04) Removing outlier subjects during FMRI processing.
+gen_ss_review_table.py has a new -report_outliers option, to help
+specify subjects that should be dropped from a group analysis (for
+example, those with excessive head motion or a high censor fraction).
+gen_group_command.py has corresponding new -dset_sid_list and
+-dset_sid_omit_list options to help select applied and omitted
+subjects when generating group commands.  Please see the help for
+those programs:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/gen_ss_review_table.py_sphx.html
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/gen_group_command.py_sphx.html
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
 AFNI Digest, week of 2019/02/28.
 
 00) APQC HTML updates/online docs.
