@@ -5,7 +5,7 @@
 #endif
 #include "nifti2_io.h"   /** will include nifti1.h **/
 static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset);
-static int NIFTI_code_to_view(int code);
+static int NIFTI_code_to_view(int code, char *atlas_space);
 static int NIFTI_default_view();
 extern char *THD_get_space(THD_3dim_dataset *dset);
 
@@ -18,6 +18,8 @@ extern char *THD_get_space(THD_3dim_dataset *dset);
 /*******************************************************************/
 /********** 26 Aug 2003: read a NIFTI-1 file as a dataset **********/
 /*******************************************************************/
+
+// [PT,DRG: Mar 8, 2019] Updated to include [qs]form_code = 5 
 
 THD_3dim_dataset * THD_open_nifti( char *pathname )
 {
@@ -295,7 +297,8 @@ ENTRY("THD_open_nifti") ;
 
      orixyz = THD_matrix_to_orientation( R ) ;   /* compute orientation codes */
 
-     iview = NIFTI_code_to_view(nim->qform_code);
+     // [PT,DRG: Mar 8, 2019] Done below.
+     //iview = NIFTI_code_to_view(nim->qform_code, NULL);
 
      /* load the offsets and the grid spacings */
 
@@ -363,7 +366,8 @@ ENTRY("THD_open_nifti") ;
                           orimap[oritmp[2]] ) ;
 
      /* assume original view if there's no talairach id present */
-     iview = NIFTI_code_to_view(nim->sform_code);
+     // [PT,DRG: Mar 8, 2019] Done below.
+     //iview = NIFTI_code_to_view(nim->sform_code, NULL);
 
      /* load the offsets and the grid spacings */
 
@@ -489,7 +493,8 @@ ENTRY("THD_open_nifti") ;
 
      /* no qform/sform should default to orig */
      /* use VIEW_ORIGINAL_TYPE, not NIFTI_default_view()  5 Feb 2016 [rickr] */
-     iview = VIEW_ORIGINAL_TYPE;
+     // [PT,DRG: Mar 8, 2019] Done below.
+     //iview = VIEW_ORIGINAL_TYPE;
 
      /* set origin to 0,0,0   */
 
@@ -538,10 +543,11 @@ ENTRY("THD_open_nifti") ;
                       ADN_xyzorg      , orgxyz ,
                       ADN_xyzorient   , orixyz ,
                       ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
-                      ADN_view_type   , iview ,
                       ADN_type        , (statcode != 0) ? HEAD_FUNC_TYPE
                                                         : HEAD_ANAT_TYPE ,
                     ADN_none ) ;
+   // [PT,DRG: Mar 8, 2019] Done below.
+   //ADN_view_type   , iview ,
 
    /* copy transformation matrix to dataset structure */
    /* moved after setting grid     4 Apr 2014 [rickr,drg] */
@@ -758,6 +764,28 @@ ENTRY("THD_open_nifti") ;
    } /* end of processing extensions */
 
    /* return unpopulated dataset */
+
+   // [PT,DRG: Mar 8, 2019] We assume that the SPACE, whether it
+   // existed upon dset read or not, has been set correctly by this
+   // point.
+   // Also note, using the *generic space*, so TT_N27 and TLRC are
+   // both considered TLRC.
+   if (use_qform) {
+      iview = NIFTI_code_to_view(nim->qform_code, 
+                                 THD_get_generic_space(dset));
+   }
+   else if (use_sform) {
+      iview = NIFTI_code_to_view(nim->sform_code, 
+                                 THD_get_generic_space(dset));
+   }
+   else{ /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
+      iview = VIEW_ORIGINAL_TYPE;
+   }
+   // And set it in the dset header
+   //EDIT_dset_items( dset ,
+   //                 ADN_view_type   , iview ,
+   //                 ADN_none ) ;
+   dset->view_type = iview ;
 
    nifti_image_free(nim) ; KILL_pathnew ; RETURN(dset) ;
 }
@@ -989,26 +1017,63 @@ static void NIFTI_code_to_space(int code,THD_3dim_dataset *dset)
 
 /* return dataset view code based on NIFTI sform/qform code */
 /* code for +tlrc, +orig */
-static int NIFTI_code_to_view(int code)
+static int NIFTI_code_to_view(int code, char *atlas_space)
 {
    int iview;
 
+   /*
+     SFORM     SPACE    VIEW     
+     -----     -----    ----     
+     1 (or 0)  ORIG     orig     
+     4         MNI      tlrc     
+     3         TLRC     tlrc     
+     ?2 (->1)  ACPC     acpc     
+     5         A_TEMP   tlrc     
+
+    */
+
    ENTRY("NIFTI_code_to_view");
+
+   //INFO_message("atlas_space = %s", atlas_space);
+   //INFO_message("code = %d", code);
+
    /* only two standard templates now defined */
    switch(code) {
-       case NIFTI_XFORM_TALAIRACH:       /* TLRC space -> tlrc view */
-           iview = VIEW_TALAIRACH_TYPE;
-           break;
-       case NIFTI_XFORM_MNI_152:         /* MNI space -> tlrc 'view' */
-           iview = VIEW_TALAIRACH_TYPE;
-           break;
-       case NIFTI_XFORM_SCANNER_ANAT:    /* no code set or scanner -> orig 'view' */
-       case NIFTI_XFORM_UNKNOWN:
-           iview = VIEW_ORIGINAL_TYPE;
-           break;
-       case NIFTI_XFORM_ALIGNED_ANAT:    /* aligned to something... */
-       default:                          /* or something else we don't know about yet (higher form codes)*/
-           iview = NIFTI_default_view();
+   case NIFTI_XFORM_TALAIRACH:       /* TLRC space -> tlrc view */
+      // sform_code = 3
+      iview = VIEW_TALAIRACH_TYPE;
+      break;
+   case NIFTI_XFORM_MNI_152:         /* MNI space -> tlrc 'view' */
+      // sform_code = 4
+      iview = VIEW_TALAIRACH_TYPE;
+      break;
+   case NIFTI_XFORM_SCANNER_ANAT:    /* no code set or scanner -> orig 'view' */
+      // sform_code = 1
+   case NIFTI_XFORM_UNKNOWN:
+      // sform_code = 0
+      iview = VIEW_ORIGINAL_TYPE;
+      break;
+   case NIFTI_XFORM_TEMPLATE_OTHER:  // [PT,DRG: Mar 8, 2019] For sform_code=5
+      // sform_code = 5 !!
+      iview = VIEW_TALAIRACH_TYPE;
+      break;
+   case NIFTI_XFORM_ALIGNED_ANAT:    /* aligned to something... */
+      // sform_code = 2 (booo)
+      if ( !strcmp(atlas_space, "ORIG") )
+         iview = VIEW_ORIGINAL_TYPE;
+      else if ( !strcmp(atlas_space, "ACPC") )
+         iview = VIEW_ACPCALIGNED_TYPE;
+      else if ( strlen(atlas_space) )
+         iview = VIEW_TALAIRACH_TYPE;
+      else { // no space!
+         WARNING_message("Hmm, {s,q}form_code = 2, but no space set??\n"
+                         "-> rollin' the dice here!");
+         iview = VIEW_ORIGINAL_TYPE;
+      }
+      break;
+   default:                     /* or something else we don't know
+                                   about yet (higher form codes)*/
+      iview = NIFTI_default_view();
    }
    RETURN(iview);
 }

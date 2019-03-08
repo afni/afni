@@ -20,6 +20,8 @@ extern int THD_space_code(char *space);
    Return value is 1 if went OK, 0 if not.
 -------------------------------------------------------------------*/
 
+// [PT,DRG: Mar 8, 2019] Updated to include [qs]form_code = 5 
+
 int THD_write_nifti( THD_3dim_dataset *din, niftiwr_opts_t options )
 {
   THD_3dim_dataset * dset=NULL;
@@ -552,7 +554,7 @@ ENTRY("populate_nifti_image") ;
          if( tmin > 0.0 ) nim->toffset = tmin ;
       }
     }
-
+  
     nim->time_units = NIFTI_UNITS_SEC ;
 
   } else { /* if time axis not exists */
@@ -568,13 +570,15 @@ ENTRY("populate_nifti_image") ;
 
   nim->qform_code = space_to_NIFTI_code(dset);
 
-#if 0
+  // NB: this is commented out.  If ever brought back into the fold
+  // (unlikely!), take care with [qs]form changes.  Probably delete.
+  /*#if 0
   if ( dset->view_type == VIEW_TALAIRACH_TYPE ) {
     nim->qform_code = NIFTI_XFORM_TALAIRACH ;
   } else {
     nim->qform_code = NIFTI_XFORM_SCANNER_ANAT ;
   }
-#endif
+  #endif*/
 
   nim->sform_code = nim->qform_code ; /* KRH 7/6/05 - using */
            /* sform to duplicate qform for interoperability with FSL */
@@ -808,23 +812,28 @@ static int space_to_NIFTI_code(THD_3dim_dataset *dset)
     /* use generic space or space of dataset to choose xform code */
     genspc = THD_get_generic_space(dset);
     if(genspc == NULL)
-       return(NIFTI_XFORM_SCANNER_ANAT);
+       return(NIFTI_XFORM_SCANNER_ANAT); // sform=1
 
-    if (strcmp(genspc,"TLRC") == 0) {
-      return(NIFTI_XFORM_TALAIRACH);
+    if (strcmp(genspc,"TLRC") == 0) {    // sform=3
+      return(NIFTI_XFORM_TALAIRACH); 
     }
-    if (strcmp(genspc,"MNI") == 0) {
+    if (strcmp(genspc,"MNI") == 0) {     // sform=4
       return(NIFTI_XFORM_MNI_152);
     }
     /* call MNI_ANAT as aligned to something else*/
-    if (strcmp(genspc,"MNI_ANAT") == 0) {
-      return(NIFTI_XFORM_ALIGNED_ANAT);
-    }
+    /* [PT,DRG: Mar 8, 2019] CHANGE: MNI_ANAT will now go to sform=5.
+       NOTE that the SPM Anatomy Toolbox is distributed with sform=2.
+       This may cause issues with migrations across soft(be)wares. */
+    //if (strcmp(genspc,"MNI_ANAT") == 0) { // sform=2???!?!
+    //  return(NIFTI_XFORM_ALIGNED_ANAT);
+    // }
     if((strcmp(genspc,"ORIG") == 0) ||
        (strcmp(genspc,"ACPC") == 0)){
-      return(NIFTI_XFORM_SCANNER_ANAT);
+      return(NIFTI_XFORM_SCANNER_ANAT); // sform=1
     }
     /* make catch-all for other spaces as an aligned space
        alternative is use SCANNER_ANAT again or UNKNOWN */
-    return(NIFTI_XFORM_ALIGNED_ANAT);
+    //return(NIFTI_XFORM_ALIGNED_ANAT);
+    // [PT,DRG: Mar 8, 2019]
+    return(NIFTI_XFORM_TEMPLATE_OTHER); // sform=5
 }
