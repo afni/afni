@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 10, MAR , 2019 , RWC , "3dXClustSim (ETAC)" , MINOR , TYPE_GENERAL ,
+   "Sort FOM results to cast out duplicates from same iteration" ,
+   "Should make Global ETAC slightly less conservative." } ,
+
  { 8 , MAR , 2019 , RWC , "InstaCorr" , MINOR , TYPE_BUG_FIX ,
    "Bandpass error found by the wandering Spaniard" ,
    "Problem: very long time series (over 2000) analyzed *without* Bandpass\n"

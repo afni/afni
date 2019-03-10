@@ -172,7 +172,12 @@ static int do_local_etac  = 0 ;
 
 #define TOPFRAC 0.2468f
 
-#undef USE_INDX  /* [08 Mar 2019] eliminate multiple clusters from same indx */
+/* [08 Mar 2019] eliminate multiple clusters from same indx by sorting */
+static int use_indx = 1 ;
+
+void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar ) ;
+int  ixmax_IFFF( int n, int *iar, float *xar, float *yar, float *zar,
+                                  float *xout, float *yout, float *zout ) ;
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
@@ -332,6 +337,16 @@ ENTRY("get_options") ;
 
     if( strcasecmp(argv[nopt],"-verb") == 0 ){   /* more fun fun fun! */
       verb++ ; nopt++ ; continue ;
+    }
+
+    /*-----   -sorter and -nosorter  [HIDDEN] -----*/
+
+    if( strcasecmp(argv[nopt],"-sorter") == 0 ){
+      use_indx = 1 ; nopt++ ; continue ;
+    }
+
+    if( strcasecmp(argv[nopt],"-nosorter") == 0 ){
+      use_indx = 0 ; nopt++ ; continue ;
     }
 
 #ifdef ALLOW_EXTRAS
@@ -1391,11 +1406,13 @@ int main( int argc , char *argv[] )
 
    if( do_global_etac ){
      float ***fomglob0, ***fomglob1, ***fomglob2 ;
-     Xcluster **xcc ; int nfom , **nfomglob ;
+     Xcluster **xcc ; int nfom,nfom_indx , **nfomglob ;
      float **fthar0 , **fthar1 , **fthar2 ;
-#ifdef USE_INDX
-     int *indx0 , *indx1 , *indx2 ;          /* 08 Mar 2019 */
-#endif
+     float *fgar0=NULL,*fgar1=NULL,*fgar2=NULL ,
+           *tpar0=NULL,*tpar1=NULL,*tpar2=NULL ; /* for use_indx [08 Mar 2019] */
+     int *indx=NULL ;
+
+     if( AFNI_noenv("AFNI_XCLUSTSIM_SORTER") ) use_indx = 0 ; /* 10 Mar 2019 */
 
      if( verb )
        ININFO_message("STEP 1d: compute global ETAC thresholds (%.1fs)",COX_clock_time()) ;
@@ -1411,11 +1428,16 @@ int main( int argc , char *argv[] )
      fthar0   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar1   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar2   = (float **) malloc(sizeof(float *) *ncase) ;
-#ifdef USE_INDX
-     indx0    = (int *)    malloc(sizeof(int)     *nclust_max) ;
-     indx1    = (int *)    malloc(sizeof(int)     *nclust_max) ;
-     indx2    = (int *)    malloc(sizeof(int)     *nclust_max) ;
-#endif
+     if( use_indx ){ /* temp arrays for sorting */
+       indx   = (int *)    malloc(sizeof(int)     *nclust_max) ;
+       tpar0  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+       tpar1  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+       tpar2  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+     }
+
+     /* loops over diffusion cases, then over p-thresholds */
+     /* extract arrays of FOM values for each case, for each p */
+
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        fomglob0[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
        fomglob1[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
@@ -1425,33 +1447,53 @@ int main( int argc , char *argv[] )
        fthar1[qcase]   = (float *) malloc(sizeof(float)  *npthr) ;
        fthar2[qcase]   = (float *) malloc(sizeof(float)  *npthr) ;
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-         fomglob0[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-         fomglob1[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-         fomglob2[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-
-         xcc = Xclust_tot[qcase][qpthr] ;
+         fgar0 = fomglob0[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         fgar1 = fomglob1[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         fgar2 = fomglob2[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         xcc   = Xclust_tot[qcase][qpthr] ;
          for( nfom=ii=0 ; ii < nclust_tot[qcase][qpthr] ; ii++ ){
            if( xcc[ii] != NULL ){
-#ifdef USE_INDX
-             indx0[nfom] = indx1[nfom] = indx2[nfom] = xcc[ii]->indx ;
-#endif
-             fomglob0[qcase][qpthr][nfom] = xcc[ii]->fomh[0] ;
-             fomglob1[qcase][qpthr][nfom] = xcc[ii]->fomh[1] ;
-             fomglob2[qcase][qpthr][nfom] = xcc[ii]->fomh[2] ; nfom++ ;
+             if( use_indx ) indx[nfom] = xcc[ii]->indx ; /* for sorting below */
+             fgar0[nfom] = xcc[ii]->fomh[0] ;
+             fgar1[nfom] = xcc[ii]->fomh[1] ;
+             fgar2[nfom] = xcc[ii]->fomh[2] ; nfom++ ;
            }
          }
 #if 0
 ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,qcase,qpthr,nclust_tot[qcase][qpthr]) ;
 #endif
 
-#ifdef USE_INDX   /* eliminate multiple results from same iteration index */
-         qsort_pair_ithenf( nfom , fomglob0[qcase][qpthr] , indx0 ) ;
-#else             /* old code -- multiple results in same iteration are OK */
-         qsort_float_rev( nfom , fomglob0[qcase][qpthr] ) ;
-         qsort_float_rev( nfom , fomglob1[qcase][qpthr] ) ;
-         qsort_float_rev( nfom , fomglob2[qcase][qpthr] ) ;
-#endif
-         if( nfom > nfomkeep ){
+         /*- Order the results, biggest first, for cluster-threshold finding -*/
+
+         if( use_indx ){ /* eliminate multiple results from same iteration index */
+
+           /* step A = sort on indx to bring all results from same
+                       iteration together, if they aren't already. */
+
+           AAmemcpy(tpar0,fgar0,sizeof(float)*nfom) ; /* temp copies of */
+           AAmemcpy(tpar1,fgar1,sizeof(float)*nfom) ; /* FOM values */
+           AAmemcpy(tpar2,fgar2,sizeof(float)*nfom) ;
+
+           qsort_IFFF( nfom , indx , tpar0,tpar1,tpar2 ) ; /* sort on indx */
+
+           /* step B = for each separate value in indx, find the largest FOM,
+                       save into the original arrays, return number vals found */
+
+           nfom_indx = ixmax_IFFF( nfom , indx , tpar0,tpar1,tpar2 ,
+                                                 fgar0,fgar1,fgar2  ) ;
+           if( verb > 1 )
+             INFO_message("  ETAC sort @ p=%f: nfom before = %d  after = %d",
+                          pthr[qpthr],nfom,nfom_indx) ;
+           nfom = nfom_indx ;
+         }
+
+         /* actual sorting of extract FOM arrays now */
+
+         qsort_float_rev( nfom , fgar0 ) ; /* sort, largest first */
+         qsort_float_rev( nfom , fgar1 ) ;
+         qsort_float_rev( nfom , fgar2 ) ;
+
+         if( nfom > nfomkeep ){ /* trim the storage for frugality */
            fomglob0[qcase][qpthr] = (float *)realloc( fomglob0[qcase][qpthr],
                                                       sizeof(float)*nfomkeep ) ;
            fomglob1[qcase][qpthr] = (float *)realloc( fomglob1[qcase][qpthr],
@@ -1460,13 +1502,14 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
                                                       sizeof(float)*nfomkeep ) ;
          }
          nfomglob[qcase][qpthr] = MIN(nfom,nfomkeep) ; /* how many we have */
-#if 0
-ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qcase,qpthr) ;
-#endif
-       }
-     }
+         if( verb > 1 )
+           ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",
+                          nfomglob[qcase][qpthr],qcase,qpthr) ;
+       } /* end of loop over pthr values */
+     } /* end of loop over blurring cases */
 
-     /*--- multithreshold simulations for global ETAC ---*/
+     /*--- now run the multithreshold simulations for global ETAC ---*/
+     /*--- that is to say, this is where the results are computed ---*/
 
      nit33 = 1.0f/(niter_clust+0.333f) ;
 
@@ -1778,9 +1821,9 @@ GARP_BREAKOUT: ; /*nada*/
 
      /*--- delete vectors ---*/
 
-#ifdef USE_INDX
-     free(indx0) ; free(indx1) ; free(indx2) ;
-#endif
+     if( use_indx ){
+       free(indx) ; free(tpar0) ; free(tpar1) ; free(tpar2) ;
+     }
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
@@ -2550,3 +2593,177 @@ FARP_BREAKOUT: ; /*nada*/
    MEMORY_CHECK("THE END") ;
    exit(0) ;
 }
+
+/*============================================================================*/
+/*======= Functions to extract the largest FOM found for       ===============*/
+/*======= each input iteration volume -- used for Global ETAC  ===============*/
+/*============================================================================*/
+
+/*----------------------------------------------------------------------------*/
+/*------- Sorting function for ETAC: int and 3 floats sorted together --------*/
+/*------- with the floats going along for the ride driven by the int. --------*/
+
+#undef  QS_CUTOFF
+#undef  QS_SWAP
+#undef  QS_ISWAP
+#define QS_CUTOFF     20       /* cutoff to switch from qsort to isort */
+#define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
+#define QS_ISWAP(x,y) (itemp=(x),(x)=(y),(y)=itemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
+
+/*------------------------------------------------------------------------------*/
+
+void isort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
+{
+   int  j , p ;  /* array indices */
+   float xtemp,ytemp,ztemp ;
+   int  itemp ;
+   float *xa = xar ;
+   float *ya = yar ;
+   float *za = zar ;
+   int   *ia = iar ;
+
+   if( n < 2 ) return ;
+
+   for( j=1 ; j < n ; j++ ){
+
+     if( ia[j] < ia[j-1] ){  /* out of order */
+        p    = j ;
+        xtemp = xa[j] ; ytemp = ya[j] ; ztemp = za[j] ; itemp = ia[j] ;
+        do{
+          xa[p] = xa[p-1]; ya[p] = ya[p-1]; za[p] = za[p-1]; ia[p] = ia[p-1];
+          p-- ;
+        } while( p > 0 && itemp < ia[p-1] ) ;
+        xa[p] = xtemp ; ya[p] = ytemp ; za[p] = ztemp ; ia[p] = itemp ;
+     }
+   }
+   return ;
+}
+
+/*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
+
+void qsrec_IFFF( int n, int *iar, float *xar, float *yar, float *zar, int cutoff )
+{
+   int i , j ;           /* scanning indices */
+   float temp, xpivot, ypivot, zpivot ;  /* holding places */
+   int   itemp, ipivot ;
+   float *xa = xar ;
+   float *ya = yar ;
+   float *za = zar ;
+   int   *ia = iar ;
+
+   int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
+
+   /* return if too short (insertion sort will clean up) */
+
+   if( cutoff < 3 ) cutoff = 3 ;
+   if( n < cutoff ) return ;
+
+   /* initialize stack to start with whole array */
+
+   stack[0] = 0   ;
+   stack[1] = n-1 ;
+   mst      = 2   ;
+
+   /* loop while the stack is nonempty */
+
+   while( mst > 0 ){
+      right = stack[--mst] ;  /* work on subarray from left -> right */
+      left  = stack[--mst] ;
+
+      i = ( left + right ) / 2 ;           /* middle of subarray */
+
+      /*----- sort the left, middle, and right a[]'s -----*/
+
+      if( ia[left] > ia[i]     ){ QS_SWAP (xa[left]  ,xa[i]     ) ;
+                                  QS_SWAP (ya[left]  ,ya[i]     ) ;
+                                  QS_SWAP (za[left]  ,za[i]     ) ;
+                                  QS_ISWAP(ia[left]  ,ia[i]     ) ; }
+      if( ia[left] > ia[right] ){ QS_SWAP (xa[left]  ,xa[right] ) ;
+                                  QS_SWAP (ya[left]  ,ya[right] ) ;
+                                  QS_SWAP (za[left]  ,za[right] ) ;
+                                  QS_ISWAP(ia[left]  ,ia[right] ) ; }
+      if( ia[i] > ia[right]    ){ QS_SWAP (xa[right] ,xa[i]     ) ;
+                                  QS_SWAP (ya[right] ,ya[i]     ) ;
+                                  QS_SWAP (za[right] ,za[i]     ) ;
+                                  QS_ISWAP(ia[right] ,ia[i]     ) ; }
+
+      xpivot = xa[i] ; xa[i] = xa[right] ;
+      ypivot = ya[i] ; ya[i] = ya[right] ;
+      zpivot = za[i] ; za[i] = za[right] ;
+      ipivot = ia[i] ; ia[i] = ia[right] ;
+
+      i = left ; j = right ;               /* initialize scanning */
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; ia[++i] < ipivot ; ) ;  /* scan i up,   until ia[i] >= ipivot */
+        for( ; ia[--j] > ipivot ; ) ;  /* scan j down, until ia[j] <= ipivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit this loop */
+
+        QS_SWAP (xa[i] ,xa[j] ) ;
+        QS_SWAP (ya[i] ,ya[j] ) ;
+        QS_SWAP (za[i] ,za[j] ) ;
+        QS_ISWAP(ia[i] ,ia[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned at the pivot -----*/
+
+      xa[right] = xa[i] ; xa[i] = xpivot ;  /* restore the pivot */
+      ya[right] = ya[i] ; ya[i] = ypivot ;
+      za[right] = za[i] ; za[i] = zpivot ;
+      ia[right] = ia[i] ; ia[i] = ipivot ;
+
+      /*----- signal the subarrays that need further work -----*/
+
+      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; }
+      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; }
+
+   }  /* end of while stack is non-empty */
+   return ;
+}
+
+/* quick_sort :  sort an array partially recursively, and partially insertion */
+
+void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
+{
+   if( n < 2 || iar == NULL || xar == NULL || yar == NULL || zar == NULL ) return ;
+   qsrec_IFFF( n , iar , xar,yar,zar , QS_CUTOFF ) ;
+   isort_IFFF( n , iar , xar,yar,zar ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Find the max FOM value that occured in any given iteration (iar).
+   * inputs are the sorted-by-iar [xyz]ar arrays;
+   * outputs [xyz]out are the largest [xyz]ar values for each
+     distinct value of iar;
+   * return value is the number of such distinct values found
+     == number of values loaded into [xyz]out arrays.
+*//*--------------------------------------------------------------------------*/
+
+int ixmax_IFFF( int n, int *iar, float *xar, float *yar, float *zar,
+                                 float *xout, float *yout, float *zout )
+{
+   int nfound , ival , jj,kk ;
+   float xtop, ytop, ztop ;
+
+   for( nfound=jj=0 ; jj < n ; ){
+     ival = iar[jj] ; xtop = xar[jj] ; ytop = yar[jj] ; ztop = zar[jj] ;
+     for( ++jj ; jj < n && iar[jj] == ival ; jj++ ){
+       if( xar[jj] > xtop ) xtop = xar[jj] ;
+       if( yar[jj] > ytop ) ytop = yar[jj] ;
+       if( zar[jj] > ztop ) ztop = zar[jj] ;
+     }
+     xout[nfound] = xtop; yout[nfound] = ytop; zout[nfound] = ztop; nfound++;
+   }
+
+   return nfound ;
+}
+/*============================================================================*/
