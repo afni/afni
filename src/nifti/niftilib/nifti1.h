@@ -7,6 +7,10 @@
            - added DT_RGBA32 and NIFTI_TYPE_RGBA32
            - added NIFTI_INTENT codes:
                 TIME_SERIES, NODE_INDEX, RGB_VECTOR, RGBA_VECTOR, SHAPE
+
+        08 Mar 2019 [PT,DRG]
+           - Updated to include [qs]form_code = 5 
+
  */
 
 #ifndef _NIFTI_HEADER_
@@ -1231,6 +1235,13 @@ typedef struct { unsigned char r,g,b; } rgb_byte ;
                                     /*! MNI 152 normalized coordinates. */
 
 #define NIFTI_XFORM_MNI_152      4
+
+                                    /*!  Normalized coordinates (for
+                                         any general standard template
+                                         space). Added March 8, 2019. */
+
+#define NIFTI_XFORM_TEMPLATE_OTHER  5
+
 /* @} */
 
 /*---------------------------------------------------------------------------*/
