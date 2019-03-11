@@ -197,6 +197,7 @@ static int dryrun = 0 ;
 typedef struct {
   int nnlev , sid , npthr ;
   int do_hpow0 , do_hpow1 , do_hpow2 ;
+  int do_sorter ; /* 11 Mar 2019 */
   float *pthr ;
   float farp_goal ;
   char name[32] ;
@@ -2505,6 +2506,7 @@ int main( int argc , char *argv[] )
        opx->pthr      = NULL ;
        opx->farp_goal = 5.0f ; /* because this is what everyone likes, right? */
        opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 1 ;
+       opx->do_sorter = 1 ;
        opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
@@ -2587,10 +2589,13 @@ int main( int argc , char *argv[] )
          }
        }
 
-       cpt = strcasestr(acp,"name=") ;
-       if( cpt != NULL && cpt[5] != '\0' ){
+       qq = 0 ; cpt = strcasestr(acp,"name=") ; if( cpt != NULL ) qq = 5 ;
+       if( cpt == NULL ){
+         cpt = strcasestr(acp,"nam=") ; if( cpt != NULL ) qq = 4 ; /* 11 Mar 2019 */
+       }
+       if( cpt != NULL && cpt[qq] != '\0' ){
          char nam[128] ; nam[0] = '\0' ;
-         sscanf(cpt+5," %s",nam) ;
+         sscanf(cpt+qq," %127s",nam) ;
          if( strlen(nam) == 0 || strlen(nam) > 31 || !THD_filename_pure(nam) ){
            ERROR_message("Illegal string after name= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
          } else {
@@ -2628,6 +2633,9 @@ int main( int argc , char *argv[] )
          }
          opx->farp_goal = fgoal ;
        }
+
+       cpt = strcasestr(acp,"nosorter") ;      /* 11 Mar 2019 */
+       if( cpt != NULL ) opx->do_sorter = 0 ;  /* HIDDEN from user */
 
        if( nbad > 0 )
          ERROR_exit("Can't continue after such errors in option %s /:(",thisopt) ;
@@ -5008,7 +5016,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
-       int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
+       int do_hpow0, do_hpow1, do_hpow2, do_sorter ; float fgoal ;
        int numfarp=1 ; float *flist=NULL ;
        char gprefix[1024] ;
 
@@ -5025,10 +5033,11 @@ LABELS_ARE_DONE:  /* target for goto above */
            do_hpow0 = opx->do_hpow0 ;
            do_hpow1 = opx->do_hpow1 ;
            do_hpow2 = opx->do_hpow2 ;
+           do_sorter = opx->do_sorter ; /* 11 Mar 2019 */
          } else {
            nnlev = 2 ; sid = 2 ;
            npthr = 0 ; pthr = NULL ; nam="default" ;
-           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
+           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ; do_sorter = 1 ;
            fgoal = 5.0f ; mod = "\0" ;
          }
 
@@ -5083,6 +5092,9 @@ LABELS_ARE_DONE:  /* target for goto above */
            if( do_hpow1 ) sprintf( cmd+strlen(cmd) , " 1" ) ;
            if( do_hpow2 ) sprintf( cmd+strlen(cmd) , " 2" ) ;
          }
+
+         if( do_sorter ) sprintf( cmd+strlen(cmd) , " -sorter") ;
+         else            sprintf( cmd+strlen(cmd) , " -nosorter") ;
 
          if( nnlev > 0 )
            sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;
