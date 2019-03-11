@@ -1299,7 +1299,8 @@ int main( int argc , char *argv[] )
 # define GTHRESH_THB 0.044444f /* how far into clust table: method 2 (per %) */
 #endif
 
-   if( do_local_etac ){                  /* not needed for global ETAC */
+   /*------------------------------------------------------------------------*/
+   if( do_local_etac ){              /*----- not needed for global ETAC -----*/
      int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
      float *fomg0, *fomg1, *fomg2 ;
@@ -1395,9 +1396,9 @@ int main( int argc , char *argv[] )
      } /* end of loop over cases */
 
      free(fomg0) ; free(fomg1) ; free(fomg2) ;
+     MEMORY_CHECK("after globalizing") ;
    }
-
-   MEMORY_CHECK("after globalizing") ;
+   /*------------------------------------------------------------------------*/
 
    /*==========================================================================*/
    /*--- STEP 1d: do ETAC globally [Sep 2018] ---------------------------------*/
@@ -1487,7 +1488,7 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
            nfom = nfom_indx ;
          }
 
-         /* actual sorting of extract FOM arrays now */
+         /* actual sorting of extracted FOM arrays now */
 
          qsort_float_rev( nfom , fgar0 ) ; /* sort, largest first */
          qsort_float_rev( nfom , fgar1 ) ;
@@ -1582,11 +1583,10 @@ GARP_LOOPBACK:
        for( qcase=0 ; qcase < ncase ; qcase++ ){
          for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
            npt = nfomglob[qcase][qpthr] ; /* how many FOM values here */
-           jthresh = ithresh ;          /* default index of FOM thresh */
+           jthresh = ithresh ;         /* default index of FOM thresh */
 
-           if( jthresh > (int)(0.777f*npt) ){  /* edge case: */
-             jthresh = (int)(0.777f*npt) ;     /* not many FOM values here */
-             nedge++ ;
+           if( jthresh+1 >= npt ){   /* edge case: too few FOM values */
+             jthresh = npt-2 ; nedge++ ;         /* should not happen */
            }
            a0 = ((float)jthresh+0.666f)*nit33 ;
            a1 = a0 + nit33 ;
@@ -1838,20 +1838,28 @@ GARP_BREAKOUT: ; /*nada*/
      free(fomglob0); free(fomglob1); free(fomglob2); free(nfomglob);
      free(fthar0)  ; free(fthar1)  ; free(fthar2)  ;
 
+     /*-------- can exit NOW NOW NOW unless local ETAC is on the menu --------*/
+
      if( !do_local_etac ){
-       INFO_message("=== 3dXClustSim ends: Elapsed time = %.1fs",COX_clock_time()) ;
+       INFO_message("=== 3dXClustSim ends: Elapsed time %.1fs",COX_clock_time()) ;
        exit(0) ;
      }
 
-     /* can unmap simulations now, until needed later */
+     /* otherwise, can unmap simulations now, until needed later */
+
      if( verb > 1 ) ININFO_message("un-mapping input datasets") ;
      unmap_Xdataset(xinset) ;
 
    } /*--------------- end of global ETAC-ization ---------------*/
 
-   /***************************************************/
-   /***** From here is is local (voxel-wise) ETAC *****/
-   /***************************************************/
+   /*------------------------------------------------------------------------*/
+   /*-------- At this time [March 2019] local ETAC should be regarded -------*/
+   /*-------- as both highly experimental and uncertainly accurate :( -------*/
+   /*------------------------------------------------------------------------*/
+
+           /***************************************************/
+           /***** From here on is local (voxel-wise) ETAC *****/
+           /***************************************************/
 
    /*==========================================================================*/
    /*--- STEP 2: dilate the clusters ------------------------------------------*/
