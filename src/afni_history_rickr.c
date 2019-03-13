@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Mar, 2019, RCR, "tedana.py", MICRO, TYPE_MODIFY,
+   "default to system nibabel over local",
+   "Need to ponder what to do with local nibabel.  This will move us towards\n"
+   "omitting it, though we plan to move away from AFNI's tedana.py, too."
+ } ,
+
  {  7, Mar, 2019, RCR, "gen_ss_review_table.py", MAJOR, TYPE_NEW_OPT,
    "add -report_outliers and support options",
    "Add -report_outliers_{fill,header}_style, -write_outlier, and\n"

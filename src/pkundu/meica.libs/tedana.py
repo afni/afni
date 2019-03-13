@@ -21,10 +21,20 @@ welcome_block="""
 #    specified by input (includes MELODIC FastICA mixing matrix)
 """ % (__version__)
 
-import os
+import os, sys
 from optparse import OptionParser
 import numpy as np
+
+# try to import global nibabel, before that in path[0]
+p0 = sys.path.pop(0)
+try:
+   import nibabel as nib
+   print("-- have system nibabel")
+except:
+   print("-- importing nibabel from meica.libs")
+sys.path.insert(0, p0)
 import nibabel as nib
+
 from sys import stdout,argv
 import scipy.stats as stats
 import time
