@@ -19,7 +19,13 @@ extern char *THD_get_space(THD_3dim_dataset *dset);
 /********** 26 Aug 2003: read a NIFTI-1 file as a dataset **********/
 /*******************************************************************/
 
-// [PT,DRG: Mar 8, 2019] Updated to include [qs]form_code = 5 
+/*
+ [PT,DRG: Mar 8, 2019] Updated to include [qs]form_code = 5 
+
+ [PT,DRG: Mar 12, 2019] some fixes for [qs]form behavior.  Still need
+ to look at [qs]form=2 case, changing space/views.
+
+*/
 
 THD_3dim_dataset * THD_open_nifti( char *pathname )
 {
@@ -535,12 +541,29 @@ ENTRY("THD_open_nifti") ;
 
    MCW_hash_idcode( pathnew , dset ) ;  /* 06 May 2005 */
 
+   // [PT,DRG: Mar 8, 2019] We assume that the SPACE, whether it
+   // existed upon dset read or not, has been set correctly by this
+   // point.
+   // Also note, using the *generic space*, so TT_N27 and TLRC are
+   // both considered TLRC.
+   if (use_qform) {
+      iview = NIFTI_code_to_view(nim->qform_code, NULL);
+   }
+   else if (use_sform) {
+      iview = NIFTI_code_to_view(nim->sform_code, NULL);
+   }
+   else{ /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
+      iview = VIEW_ORIGINAL_TYPE;
+   }
+   
+   // And set the dset header
    EDIT_dset_items( dset ,
                       ADN_prefix      , prefix ,
                       ADN_datum_all   , datum ,
                       ADN_nxyz        , nxyz ,
                       ADN_xyzdel      , dxyz ,
                       ADN_xyzorg      , orgxyz ,
+                      ADN_view_type   , iview ,
                       ADN_xyzorient   , orixyz ,
                       ADN_malloc_type , DATABLOCK_MEM_MALLOC ,
                       ADN_type        , (statcode != 0) ? HEAD_FUNC_TYPE
@@ -765,27 +788,21 @@ ENTRY("THD_open_nifti") ;
 
    /* return unpopulated dataset */
 
-   // [PT,DRG: Mar 8, 2019] We assume that the SPACE, whether it
-   // existed upon dset read or not, has been set correctly by this
-   // point.
-   // Also note, using the *generic space*, so TT_N27 and TLRC are
-   // both considered TLRC.
-   if (use_qform) {
-      iview = NIFTI_code_to_view(nim->qform_code, 
+   
+   // [PT,DRG: Mar 8, 2019] ... go back and fix case of sform_code==2
+   // from above: The fix is in!
+   if (form_code==2) {
+      iview = NIFTI_code_to_view(form_code, 
                                  THD_get_generic_space(dset));
+   
+      INFO_message("HEY! formcode %d.... iview %d ... gen space %s",form_code, iview,
+                                 THD_get_generic_space(dset) );
+      // And set it in the dset header
+      //EDIT_dset_items( dset ,
+      //                 ADN_view_type   , iview ,
+      //                 ADN_none ) ;
+      //dset->view_type = iview ;
    }
-   else if (use_sform) {
-      iview = NIFTI_code_to_view(nim->sform_code, 
-                                 THD_get_generic_space(dset));
-   }
-   else{ /* NO SPATIAL XFORM. BAD BAD BAD BAD BAD BAD. */
-      iview = VIEW_ORIGINAL_TYPE;
-   }
-   // And set it in the dset header
-   //EDIT_dset_items( dset ,
-   //                 ADN_view_type   , iview ,
-   //                 ADN_none ) ;
-   dset->view_type = iview ;
 
    nifti_image_free(nim) ; KILL_pathnew ; RETURN(dset) ;
 }
@@ -1059,7 +1076,15 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
       break;
    case NIFTI_XFORM_ALIGNED_ANAT:    /* aligned to something... */
       // sform_code = 2 (booo)
-      if ( !strcmp(atlas_space, "ORIG") )
+      if( !atlas_space ) {
+         // *this* special scenario is to allow use of this function
+         // before checking for AFNI extension; it can be called with
+         // a 'NULL' atlas_space, which won't affect any
+         // sform_code!=2, but will allow a dummy value for
+         // sform_code=2 to exist until it is set "properly"
+         iview = VIEW_ORIGINAL_TYPE; // shoudl just be a dummy case
+      }
+      else if ( !strcmp(atlas_space, "ORIG") )
          iview = VIEW_ORIGINAL_TYPE;
       else if ( !strcmp(atlas_space, "ACPC") )
          iview = VIEW_ACPCALIGNED_TYPE;
@@ -1073,6 +1098,8 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
       break;
    default:                     /* or something else we don't know
                                    about yet (higher form codes)*/
+      // sform_code > 5 or sform_code<0
+      WARNING_message("I don't think this sform code '%d' is allowed!", code);
       iview = NIFTI_default_view();
    }
    RETURN(iview);
