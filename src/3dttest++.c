@@ -413,7 +413,8 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 void display_help_menu(void)
 {
    printf(
-      "Gosset (Student) t-test of sets of 3D datasets.\n"
+      "\n"
+      "Gosset (Student) t-test of sets of 3D datasets.  ~1~\n"
       "\n"
       "      [* Also consider program 3dMEMA, which can carry out a  *]\n"
       "      [* more sophisticated type of 't-test' that also takes  *]\n"
@@ -493,7 +494,7 @@ void display_help_menu(void)
       "\n"
 
       "------------------\n"
-      "SET INPUT OPTIONS\n"
+      "SET INPUT OPTIONS   ~1~\n"
       "------------------\n"
       "\n"
       "* At least the '-setA' option must be given.\n"
@@ -586,7 +587,7 @@ void display_help_menu(void)
       "  *****            specify the standard subtraction order.          *****\n"
       "\n"
       "---------------------------------------------------------------\n"
-      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS\n"
+      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS   ~1~\n"
       "---------------------------------------------------------------\n"
       "\n"
       "This new [Mar 2015] option allows you to test a single value versus\n"
@@ -676,7 +677,7 @@ void display_help_menu(void)
       "  '-setA' option.\n"
       "\n"
       "--------------------------------------\n"
-      "COVARIATES - per dataset and per voxel\n"
+      "COVARIATES - per dataset and per voxel   ~1~\n"
       "--------------------------------------\n"
       "\n"
       " -covariates COVAR_FILE\n"
@@ -892,7 +893,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------\n"
-      "OTHER OPTIONS\n"
+      "OTHER OPTIONS   ~1~\n"
       "-------------\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
@@ -1123,7 +1124,7 @@ void display_help_menu(void)
       "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
       "-----------------------------------------------------------------------------\n"
-      "ClustSim Options -- for global cluster-level thresholding and FPR control\n"
+      "ClustSim Options -- for global cluster-level thresholding and FPR control   ~1~\n"
       "-----------------------------------------------------------------------------\n"
       "\n"
       "The following options are for using randomization/permutation to simulate\n"
@@ -1344,7 +1345,7 @@ void display_help_menu(void)
       "                for completeness of the Galactic Chronosynclastic Infundibulum.\n"
       "\n"
       "------------\n"
-      "ETAC Options -- [promulgated May 2017 == still experimental!]\n"
+      "ETAC Options -- [promulgated May 2017]   ~1~\n"
       "------------\n"
       "\n"
       "The following options use the ETAC (Equitable Thresholding And Clustering)\n"
@@ -1599,7 +1600,7 @@ void display_help_menu(void)
 
       "\n"
       "-------------------------------\n"
-      "STRUCTURE OF THE OUTPUT DATASET\n"
+      "STRUCTURE OF THE OUTPUT DATASET   ~1~\n"
       "-------------------------------\n"
       "\n"
       "* The output dataset is stored in float format; there is no option\n"
@@ -1659,7 +1660,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------------\n"
-      "HOW COVARIATES WORK\n"
+      "HOW COVARIATES WORK   ~1~\n"
       "-------------------\n"
       "\n"
       "Covariates work by forming a regression problem for each voxel, to\n"
@@ -1776,7 +1777,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------------------------------------\n"
-      "HOW SINGLETON TESTING WORKS WITH COVARIATES\n"
+      "HOW SINGLETON TESTING WORKS WITH COVARIATES   ~1~\n"
       "-------------------------------------------\n"
       "\n"
       "(1) For setB, the standard regression is carried out to give the\n"
@@ -1883,7 +1884,7 @@ void display_help_menu(void)
       "                     Subject age\n"
       "\n"
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES (everyone's favorite subject :)\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject :)   ~1~\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -1977,7 +1978,7 @@ void display_help_menu(void)
 
       "\n"
       "--------------------\n"
-      "TESTING THIS PROGRAM\n"
+      "TESTING THIS PROGRAM   ~1~\n"
       "--------------------\n"
       "\n"
       "A simple 2-sample test of this program is given by the script below,\n"
@@ -2005,7 +2006,7 @@ void display_help_menu(void)
 
       "\n"
       "-------------------------\n"
-      "VARIOUS LINKS OF INTEREST\n"
+      "VARIOUS LINKS OF INTEREST   ~1~\n"
       "-------------------------\n"
       "\n"
       "* http://en.wikipedia.org/wiki/T_test\n"
