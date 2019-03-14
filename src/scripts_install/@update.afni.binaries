@@ -1226,7 +1226,6 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          endif
       else if ( $sysname == Darwin ) then
          echo "++ will source .bashrc from newly created .bash_profile"
-         echo '' >> $brcfile
          echo '. $HOME/.bashrc' > $brcfile
       endif
 
