@@ -511,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, Jan 19, 2018
+Version 1.0.3, March 14, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
