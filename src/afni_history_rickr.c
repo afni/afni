@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Mar, 2019, RCR, "GIFTI", MINOR, TYPE_ENHANCE,
+   "add gifti/regress_tests tree",
+   "This was also added to https://github.com/NIFTI-Imaging/gifti_clib repo."
+ } ,
+
  { 13, Mar, 2019, RCR, "tedana.py", MICRO, TYPE_MODIFY,
    "default to system nibabel over local",
    "Need to ponder what to do with local nibabel.  This will move us towards\n"
