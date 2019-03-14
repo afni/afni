@@ -85,6 +85,8 @@ static float             wmask_f   = 0.0f ;
 
 static int do_plusminus = 0 ;  /* doing plusminus warping? */
 
+static char *wset_name  = NULL ; /* 13 Mar 2019 */
+
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
       If acod == 2, then make a binary mask at the end.
@@ -776,10 +778,10 @@ void Qhelp(void)
     "                better in a specific part of the brain.\n"
     "               * Example:  -wball 0 14 6 30 40\n"
     "                 to emphasize the thalamic area (in MNI/Talairach space).\n"
-    "               * The 'r' parameter must be positive!\n"
+    "               * The 'r' parameter must be positive (in mm)!\n"
     "               * The 'f' parameter must be between 1 and 100 (inclusive).\n"
     "               * '-wball' does nothing if you input your own weight\n"
-    "                 with the '-weight' option.\n"
+    "                 with the '-weight' option :(\n"
     "               * '-wball' does change the binary weight created by\n"
     "                 the '-noweight' option.\n"
     "               * You can only use '-wball' once in a run of 3dQwarp.\n"
@@ -1437,6 +1439,9 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
      case 2: strcat(cmd," -verb" ) ; break ;
    }
 
+   if( wset_name != NULL )                    /* match 3dQwarp's weight */
+     sprintf( cmd+strlen(cmd) , " -weight %s",wset_name) ;
+
    if( emkname != NULL )                      /* match 3dQwarp's -emask */
      sprintf( cmd+strlen(cmd) , " -emask %s" , emkname) ;
 
@@ -1922,6 +1927,7 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[nopt],"-weight") == 0 ){  /* 17 Oct 2013 - Open Up Day */
        if( wbim != NULL )   ERROR_exit("Cannot use -weight twice :-(") ;
        if( ++nopt >= argc ) ERROR_exit("need arg after %s",argv[nopt-1]) ;
+       wset_name = strdup(argv[nopt]) ;
        qset = THD_open_dataset(argv[nopt]) ;
        if( qset == NULL )   ERROR_exit("Cannot open -weight dataset :-(") ;
        DSET_load(qset) ; CHECK_LOAD_ERROR(qset) ;

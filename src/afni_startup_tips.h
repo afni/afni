@@ -243,7 +243,7 @@ static char *tip[] = {
  ,
    "Set environment variable AFNI_CREEPTO to YES, and then the 'Jump to' button\n"
    "will move the crosshairs to the chosen location incrementally, rather than\n"
-   "in one big jump.  The reasons for using this feature are (a) to help\n"
+   "in one big jump. The reasons for using this feature are (a) to help\n"
    "get a feel for the transit, and (b) just plain fun."
  ,
    "Right-click on the color bar in Define Overlay, and you can change the color\n"
@@ -629,7 +629,7 @@ static char *tip[] = {
 static char *gby[] = {
 
      "Farewell, my friend"                                           ,
-     "Farewell?  A long farewell to all my greatness"                ,
+     "Farewell? A long farewell to all my greatness"                 ,
      "Sweet is the memory of distant friends"                        ,
      "A memory lasts forever, never does it die - Adieu"             ,
      "Fate ordains that dearest friends must part"                   ,
@@ -1316,6 +1316,10 @@ static char *gby[] = {
      "The supra-ultracrepidarian-est software you'll ever need"                       ,
      "People driving slower than me are idiots. People driving faster are maniacs"    ,
 
+     "Better than a thousand hollow words, is one word that brings peace"             ,
+     "People with opinions just go around bothering each other"                       ,
+     "Nothing can harm you as much as your own thoughts unguarded"                    ,
+
      "The problem with science: answering 1 question creates 20 new (and harder) ones"        ,
      "When all you have is a computer, every problem looks like it needs linear algebra"      ,
      "When all you have is a GPU, every problem looks like it needs machine learning"         ,
@@ -1385,13 +1389,22 @@ static char *gby[] = {
      "  Will be to arrive where we started\n"
      "  And know the place for the first time"                                                ,
 
-     "Remember:\n"
+     "Remember --\n"
      "  To argue with those who have renounced the use and authority\n"
      "  of reason is as futile as to administer medicine to the dead"                         ,
 
-     "Remember: Don't light the fire while you are standing in the gasoline"                  ,
+     "Remember --\n"
+     "  An idea that is developed and put into action is more\n"
+     "  important than an idea that exists only as an idea"                                   ,
 
-     "Remember: A small sample is representative only of itself"                              ,
+     "Remember --\n"
+     "  Totally new concepts are very rare;\n"
+     "  Merging two old concepts into one fruitful idea is easier and still useful\n"         ,
+
+     "Remember -- Don't light the fire while you are standing in the gasoline"                ,
+     "Remember -- A small sample is representative only of itself"                            ,
+     "Remember -- Don't be the winter that gives no thought to the spring"                    ,
+     "Remember -- It's Loot, Pillage, and *then* Burn"                                        ,
 
      "Remember the Manager's Mantra:\n"
      "  * Work Harder.\n"
@@ -1458,7 +1471,8 @@ static char *gby[] = {
      "     0.07  = Highly suggestive\n"
      "     0.08  = Very suggestive\n"
      "     0.09  = Significant at the p < 0.1 level (send more funding)\n"
-     "     > 0.1 = Hey! Look at this interesting subgroup analysis"   ,
+     "     > 0.1 = Hey! Look at this interesting subgroup analysis\n"
+     "     > 0.2 = Significant in an alternate reality"                     ,
 
      "\n Possible answers to a binary question:\n"
      "     Yes\n"
@@ -1475,6 +1489,7 @@ static char *gby[] = {
      "     Quantum indeterminacy makes any answer uncertain\n"
      "     That depends on the truth of the Riemann Hypothesis\n"
      "     Is there an odd perfect number?\n"
+     "     Forty seven\n"
      "     Go Fish\n"
      "     I like eggs\n"
      "     Look, a squirrel" ,
@@ -1519,22 +1534,33 @@ static char *gby[] = {
      /* from Crooked Timber */
 
      "\n The following contradictory statements are all DEEP and PROFOUND:\n"
-     "    Forget about the afterlife, about the Elsewhere, seize the day, enjoy life\n"
+     "   * Forget about the afterlife, about the Elsewhere, seize the day, enjoy life\n"
      "      fully here and now, it's the only life you've got!\n"
-     "    Do not get trapped in the illusory and vain pleasures of earthly life;\n"
+     "   * Do not get trapped in the illusory and vain pleasures of earthly life;\n"
      "      money, power, and passions are all destined to vanish into thin air\n"
      "      -- think about eternity!\n"
-     "    Bring eternity into your everyday life, live your life on this earth as\n"
+     "   * Bring eternity into your everyday life, live your life on this earth as\n"
      "      if it is already permeated by Eternity!\n"
-     "    Do not try in vain to bring together eternity and your terrestrial life,\n"
+     "   * Do not try in vain to bring together eternity and your terrestrial life,\n"
      "      accept humbly that you are forever split between Heaven and Earth!\n"
-     "    Life is an enigma, do not try to penetrate its secrets, accept the\n"
+     "   * Life is an enigma, do not try to penetrate its secrets, accept the\n"
      "      beauty of its unfathomable mystery!\n"
-     "    Do not allow yourself to be distracted by false mysteries that just\n"
+     "   * Do not allow yourself to be distracted by false mysteries that just\n"
      "      dissimulate the fact that, ultimately, life is very simple - it is\n"
      "      what it is, it is simply here without reason and rhyme!\n"
-     "    The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
-     "    in the simple fact that there is life.\n"
+     "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
+     "      in the simple fact that there is life.\n"
+
+     /* John 5:2-4 (KJV) */
+
+     "Remember -- the NIH is in Bethesda (John 5:2-4 KJV):\n"
+     "  Now there is at Jerusalem by the sheep market a pool, which is called in\n"
+     "  the Hebrew tongue Bethesda, having five porches. In these lay a great\n"
+     "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
+     "  moving of the water. For an angel went down at a certain season into the\n"
+     "  pool, and troubled the water: whosoever then first after the troubling\n"
+     "  of the water stepped in was made whole of whatsoever disease he had.\n"
+
 } ;
 
 #endif

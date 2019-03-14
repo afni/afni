@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Propagate -weight from 3dQwarp to 3dAllineate" ,
+   "Don't know why I didn't do this before. Probably a sign of incipient\n"
+   "dementia." } ,
+
  { 10, MAR , 2019 , RWC , "3dXClustSim (ETAC)" , MINOR , TYPE_GENERAL ,
    "Sort FOM results to cast out duplicates from same iteration" ,
    "Should make Global ETAC slightly less conservative." } ,
