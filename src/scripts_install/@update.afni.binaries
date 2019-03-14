@@ -1221,6 +1221,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          if ( $status ) then
             # $abin not found, so append to file
             echo "++ adding $abin to PATH in $brcfile ..."
+            echo ''                        >> $brcfile
             echo 'export PATH=$PATH:'$abin >> $brcfile
          endif
       else if ( $sysname == Darwin ) then
