@@ -1,0 +1,15 @@
+#!/bin/tcsh
+
+set f1 = LT.Index.gii
+set f2 = LT.Key.gii
+
+# read Index and write Key
+gifti_tool -infile LT.Index.gii -no_updates -write_gifti LT.Key.gii -verb 4
+
+echo ''
+echo '------- compare_gifti -------'
+gifti_tool -compare_gifti -compare_data -compare_verb 3 -infiles $f1 $f2
+
+echo ''
+echo '------- diff -------'
+diff $f1 $f2

@@ -1,0 +1,7 @@
+
+set max_verb = 7
+
+foreach level ( `count -digits 1 0 $max_verb` )
+    gifti_tool -infile ascii.misc.gii -no_updates -verb $level >& out.misc.verb.$level
+end
+

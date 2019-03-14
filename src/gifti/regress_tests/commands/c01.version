@@ -1,0 +1,16 @@
+
+# display versions and histories of gifti_tool and of the GIFTI I/O library
+
+gifti_tool -gifti_ver
+gifti_tool -ver
+gifti_tool -gifti_dtd_url
+gifti_tool -gifti_zlib
+
+echo "----------------------------------------------------------------------"
+
+gifti_tool -gifti_hist
+
+echo "----------------------------------------------------------------------"
+
+gifti_tool -hist
+

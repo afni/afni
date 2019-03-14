@@ -1,0 +1,6 @@
+
+foreach size ( 42 43 1000 12345 66666 )
+    gifti_tool -infile b64gz.ts.3.gii -no_updates -buf_size $size -write_gifti new.gii
+    cmp b64gz.ts.3.gii new.gii
+end
+

@@ -1,0 +1,6 @@
+
+foreach type ( ASCII BASE64 BASE64GZIP )
+    gifti_tool -infile b64gz.ts.3.gii -encoding $type   \
+               -no_updates -write_gifti new.$type.gii
+end
+

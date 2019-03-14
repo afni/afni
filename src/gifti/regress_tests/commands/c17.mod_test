@@ -1,0 +1,29 @@
+
+# create a new dataset, and modify some things
+gifti_tool -infile MAKE_IM -new_numDA 3 -new_intent NIFTI_INTENT_TTEST    \
+           -new_dtype NIFTI_TYPE_INT16 -new_ndim 1 -new_dims 11 0 0 0 0 0 \
+           -mod_add_data                                                  \
+           -mod_DA_atr  Dim0 17                                           \
+           -mod_DA_atr  Intent NIFTI_INTENT_FTEST                         \
+           -mod_DA_meta  Name 'sub-brick #42 from pickle dataset'         \
+           -mod_gim_atr Version 0.0.11                                    \
+           -mod_gim_meta Date "`date`"                                    \
+           -mod_gim_meta Description "gifti_tool test surface"            \
+           -write_gifti mt0.gii
+
+# fix descriptions for indices 1 and 2 (leave 0)
+gifti_tool -mod_DAs 1 -infile mt0.gii                                     \
+           -mod_DA_meta Name 'sub-brick #43 from pickle dataset'          \
+           -write_gifti mt1.gii
+
+gifti_tool -mod_DAs 2 -infile mt1.gii                                     \
+           -mod_DA_meta Name 'sub-brick #44 from pickle dataset'          \
+           -write_gifti mod_test_3.gii
+
+# show some output
+gifti_tool -verb 2 -infile mod_test_3.gii -show_gifti
+gifti_tool -verb 2 -infile mod_test_3.gii -write_1D mod_test.1D
+
+# try converting some dataset to type float
+gifti_tool -infile copy.misc.gii -mod_to_float -write_gifti float.gii -verb 4
+grep DataType float.gii

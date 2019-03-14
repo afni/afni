@@ -1,0 +1,52 @@
+#!/bin/tcsh
+
+set pref = t26
+
+# compare unconverted
+echo ===== comparing 1: unconverted =====
+gifti_tool -compare_gifti -compare_data -compare_verb 3 \
+           -infile small.???.maj.3.gii
+# compare converted
+echo ===== comparing 1: converted =====
+gifti_tool -compare_gifti -compare_data -compare_verb 3 -perm_by_iord 1 \
+           -infile small.???.maj.3.gii
+echo ""
+
+
+# read cm, convert to rm (auto), compare to orig rm
+gifti_tool -infile small.col.maj.3.gii -write_gifti $pref.2.rm.3.gii
+echo ===== compare 2: new rm to orig rm =====
+gifti_tool -compare_gifti -compare_data -compare_verb 4 \
+           -infiles small.row.maj.3.gii $pref.2.rm.3.gii
+echo ""
+
+
+# read cm, convert to rm (auto), convert back (mod_ind_ord), compare to orig
+gifti_tool -infile small.col.maj.3.gii -mod_ind_ord 2 \
+           -write_gifti $pref.3.cm.3.gii
+echo ===== compare 3: new cm to orig cm =====
+gifti_tool -compare_gifti -compare_data -compare_verb 4 \
+           -infiles small.col.maj.3.gii $pref.3.cm.3.gii
+echo ""
+echo ""
+
+
+
+echo ===== compare 3x10 1: unconverted =====
+gifti_tool -compare_gifti -compare_data -compare_verb 4 \
+           -infiles small.3.10.cm.gii small.3.10.rm.gii 
+echo ""
+
+echo ===== compare 3x10 2: converted =====
+gifti_tool -compare_gifti -compare_data -compare_verb 4 -perm_by_iord 1 \
+           -infiles small.3.10.cm.gii small.3.10.rm.gii 
+echo ""
+
+echo ===== compare 3x10 3: 3dcalc =====
+3dcalc -a small.3.10.cm.gii -b small.3.10.rm.gii \
+       -expr a-b -prefix $pref.4.diff.3.10.gii
+3dBrickStat -min -max -slow $pref.4.diff.3.10.gii 
+echo ""
+
+
+

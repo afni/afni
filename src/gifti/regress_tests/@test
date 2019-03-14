@@ -1,0 +1,86 @@
+#! /usr/bin/env tcsh
+
+set ddir = data.test
+set prog = gifti_tool
+
+set grind = 0           # do we run with valgrind?
+set suppress = 1        # suppress zlib errors
+
+if ( $#argv > 0 ) then
+    if ( "$argv[1]" == "-grind" ) then
+        set grind = 1
+    else
+        echo "usage: `basename $0` [-grind]"
+        exit
+    endif
+endif
+
+if ( $grind && $suppress ) then
+    set supfile = /home/rickr/r/save/vg.suppress
+    set sup = --suppressions=$supfile
+else
+    set sup = ""
+endif
+
+# set date and output dir (based on grind)
+set date = `date +%Y_%m_%d_%H%M`
+if ( $grind ) then
+    set odir = vg.results.$date
+else
+    set odir = results.$date
+endif
+
+# note command files (in commands dir)
+if ( ! -d commands ) then
+    echo "** failure: missing commands directory"
+    exit
+endif
+
+cd commands ; set cfiles = ( c* ) ; cd ..
+
+if ( $#cfiles < 1 ) then
+    echo "** failure: no command files found in 'commands'"
+    exit
+endif
+
+# create the output directory
+if ( -e $odir ) then
+    echo "** failure: output directory '$odir' already exists"
+    exit
+endif
+
+mkdir $odir
+
+if ( $status ) then
+    echo "** failure: output directory '$odir' already exists"
+    exit
+endif
+
+# copy data files into output dir
+cp $ddir/* $odir
+
+cd $odir
+
+# now begin the work
+
+echo "++ using `which $prog` ..."
+
+if ( $grind ) then
+    alias $prog "valgrind -v --leak-resolution=high $sup $prog"
+    echo "   `which $prog` ..."
+endif
+
+
+foreach cfile ( $cfiles )
+    echo -n $cfile ...
+    echo "--------------------------------------------------------" > e.$cfile
+    cat ../commands/$cfile >> e.$cfile
+    echo "" >> e.$cfile
+    echo "--------------------------" >> e.$cfile
+    echo "" >> e.$cfile
+    source ../commands/$cfile >>& e.$cfile   # to keep alias
+    echo done
+end
+
+echo ""
+

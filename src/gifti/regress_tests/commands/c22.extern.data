@@ -1,0 +1,26 @@
+
+# make a copy of b64gz.ts.3.gii, but set the data to point to
+# external files (and let the write create them)
+
+gifti_tool -infiles b64gz.ts.3.gii -no_updates                  \
+           -set_extern_filelist ext_data.ts3.{1,2,3}.bin        \
+           -write_gifti ts3.ext.gii
+
+# test a new copy, with no data (and no errors)
+
+gifti_tool -infiles b64gz.ts.3.gii -no_updates                  \
+           -set_extern_filelist ext_data.ts3.{1,2,3}.bin        \
+           -no_data -write_gifti ts3.ext0.gii
+
+# test the differences in data
+gifti_tool -compare_data -compare_verb 3 -infiles b64gz.ts.3.gii ts3.ext.gii
+
+# now copy data back into dataset
+
+gifti_tool -infiles ts3.ext.gii -no_updates                  \
+           -encoding BASE64GZIP -write_gifti ts3.int.gii
+
+# test all differences
+gifti_tool -compare_gifti -compare_data -compare_verb 3 \
+           -infiles b64gz.ts.3.gii ts3.int.gii
+

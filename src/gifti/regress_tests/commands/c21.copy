@@ -1,0 +1,37 @@
+
+# copy Caret's dataset with 3dcopy, and update the metadata
+
+set carets = Human.colin.R.FUNCTIONAL.71723.func.gii
+
+3dcopy $carets caret.copy.gii
+
+# note differences
+
+gifti_tool -compare_data -compare_verb 3 -infiles $carets caret.copy.gii
+
+printf "\n------------------------------------------------------\n"
+
+gifti_tool -compare_gifti -compare_data -compare_verb 3        \
+           -infiles $carets caret.copy.gii
+
+# copy some metadata
+
+printf "\n------------------------------------------------------\n"
+
+gifti_tool -copy_gifti_meta ALL -infiles $carets caret.copy.gii \
+           -copy_DA_meta Caret-Version -copy_DA_meta UniqueID   \
+           -encoding BASE64GZIP                                 \
+           -write_gifti caret.part.md.gii
+
+gifti_tool -compare_gifti -compare_data -compare_verb 3        \
+           -infiles $carets caret.part.md.gii
+
+printf "\n------------------------------------------------------\n"
+
+gifti_tool -copy_gifti_meta ALL -infiles $carets caret.copy.gii \
+           -copy_DA_meta ALL -encoding BASE64GZIP               \
+           -write_gifti caret.all.md.gii
+
+gifti_tool -compare_gifti -compare_data -compare_verb 3        \
+           -infiles $carets caret.all.md.gii
+

@@ -1,0 +1,2 @@
+
+gifti_tool -infile ascii.pial.short.gii -verb 7

@@ -1,0 +1,20 @@
+
+# run a comparison test
+# note that in c17, a basic dataset was created and modified
+
+# make very simple dataset
+gifti_tool -infile MAKE_IM -new_numDA 3 -new_intent NIFTI_INTENT_TTEST     \
+           -new_dtype NIFTI_TYPE_INT16 -new_ndim 1 -new_dims 17 0 0 0 0 0  \
+           -write_gifti comp_test0.gii
+
+echo "------------------------------"
+
+# compare it to more complex one
+gifti_tool -compare_gifti -compare_data -compare_verb 3         \
+           -infiles comp_test0.gii mt0.gii
+
+echo "------------------------------"
+
+# other comparison
+gifti_tool -compare_gifti -compare_data -compare_verb 3         \
+           -infiles mt0.gii mod_test_3.gii

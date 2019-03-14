@@ -1,0 +1,10 @@
+
+gifti_tool -infile ts3.fixed.gii -no_updates -write_gifti update.none.ts3.gii
+gifti_tool -infile ts3.fixed.gii -write_gifti update.ts3.gii
+
+echo diffs with update.none.ts3.gii...
+diff ts3.fixed.gii update.none.ts3.gii
+echo ""
+echo diffs with update.ts3.gii...
+diff ts3.fixed.gii update.ts3.gii
+

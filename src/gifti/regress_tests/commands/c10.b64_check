@@ -1,0 +1,12 @@
+
+foreach check ( NONE DETECT COUNT SKIP SKIPnCOUNT )
+    gifti_tool -infile b64gz.ts.3.errors.gii -b64_check $check  \
+               -no_updates -write_gifti errs.gii
+end
+
+echo ""
+
+cmp b64gz.ts.3.gii errs.gii
+if ( ! $status ) then
+    echo "++ bad b64 chars were successfully removed"
+endif
