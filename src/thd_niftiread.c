@@ -794,14 +794,11 @@ ENTRY("THD_open_nifti") ;
    if (form_code==2) {
       iview = NIFTI_code_to_view(form_code, 
                                  THD_get_generic_space(dset));
-   
-      INFO_message("HEY! formcode %d.... iview %d ... gen space %s",form_code, iview,
-                                 THD_get_generic_space(dset) );
-      // And set it in the dset header
-      //EDIT_dset_items( dset ,
-      //                 ADN_view_type   , iview ,
-      //                 ADN_none ) ;
-      //dset->view_type = iview ;
+  
+      /* duplicating here how Rick did this in 3drefit */ 
+      dset->view_type = iview ;
+      THD_init_diskptr_names( dset->dblk->diskptr ,
+                              NULL , NULL , NULL , iview , True ) ;
    }
 
    nifti_image_free(nim) ; KILL_pathnew ; RETURN(dset) ;
@@ -1082,7 +1079,7 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
          // a 'NULL' atlas_space, which won't affect any
          // sform_code!=2, but will allow a dummy value for
          // sform_code=2 to exist until it is set "properly"
-         iview = VIEW_ORIGINAL_TYPE; // shoudl just be a dummy case
+         iview = NIFTI_default_view(); // should just be a dummy case
       }
       else if ( !strcmp(atlas_space, "ORIG") )
          iview = VIEW_ORIGINAL_TYPE;
@@ -1093,7 +1090,7 @@ static int NIFTI_code_to_view(int code, char *atlas_space)
       else { // no space!
          WARNING_message("Hmm, {s,q}form_code = 2, but no space set??\n"
                          "-> rollin' the dice here!");
-         iview = VIEW_ORIGINAL_TYPE;
+         iview = NIFTI_default_view();
       }
       break;
    default:                     /* or something else we don't know
