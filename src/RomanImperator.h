@@ -31,7 +31,38 @@ static char *RomanImperator[] = {
     "Majorian" , "Libius Severus" , "Anthemius" ,
     "Olybrius" , "Glycerius" , "Julius Nepos" ,
     "Romulus Augustulus" , "Leo I" , "Leo II" , "Zeno"
-  } ;
+    "Basiliscus" , "Anastasius I" , "Justin I" ,
+    "Justinian I the Great" , "Justin II" , "Tiberius II Constantine" ,
+    "Maurice" , "Phocas" , "Heraclius" ,
+    "Constantine III" , "Heraklonas" , "Constans II" ,
+    "Mezezius" , "Constantine IV" , "Justinian II the Slit-nosed" ,
+    "Leontios" , "Tiberios III" , "Philippikos Bardanes" ,
+    "Anastasios II" , "Theodosios III" , "Leo III the Isaurian" ,
+    "Constantine V Kopronymos" , "Artabasdus the Icon-lover" , "Constantine V Kopronymos" ,
+    "Leo IV the Khazar" , "Constantine VI the Blinded" , "Irene the Athenian" ,
+    "Nikephoros I" , "Staurakios" , "Michael I Rangabe" ,
+    "Leo V the Armenian" , "Michael II the Stammerer" , "Theophilos" ,
+    "Theodora" , "Michael III the Drunkard" , "Basil I the Macedonian" ,
+    "Leo VI the Wise" , "Alexander" , "Constantine VII the Purple-born" ,
+    "Romanos I Lekapenos" , "Romanos II the Purple-born" , "Nikephoros II Phokas" ,
+    "John I Tzimiskes" , "Basil II the Bulgar-slayer" , "Constantine VIII" ,
+    "Zoe" , "Romanos III Argyros" , "Michael IV the Paphlagonian" ,
+    "Michael V the Caulker" , "Theodora" , "Constantine IX Monomachos" ,
+    "Theodora" , "Michael VI the General" , "Isaac I Komnenos" ,
+    "Constantine X Doukas" , "Michael VII Doukas Quarter-short" , "Romanos IV Diogenes" ,
+    "Nikephoros III Botaneiates" , "Alexios I Komnenos" , "John II Komnenos the Handsome" ,
+    "Manuel I Komnenos the Great" , "Alexios II Komnenos" , "Andronikos I Komnenos" ,
+    "Isaac II Angelos" , "Alexios III Angelos" , "Isaac II Angelos" ,
+    "Alexios IV Angelos" , "Nikolaos Kanabos" ,
+    "Alexios V Doukas the Bushy-eyebrowed" , "Constantine Laskaris" ,
+    "Theodore I Laskaris" , "John III Doukas Vatatzes" , "Theodore II Doukas Laskaris" ,
+    "John IV Doukas Laskaris" , "Michael VIII Palaiologos" ,
+    "Andronikos II Palaiologos the Elder" , "Andronikos III Palaiologos the Younger" ,
+    "John V Palaiologos" , "John VI Kantakouzenos" , "John V Palaiologos" ,
+    "Andronikos IV Palaiologos" , "John V Palaiologos" , "John VII Palaiologos" ,
+    "John V Palaiologos" , "Manuel II Palaiologos" , "John VII Palaiologos" ,
+    "John VIII Palaiologos" , "Constantine XI"
+} ;
 
 #define NUM_RomanImperator (sizeof(RomanImperator)/sizeof(char *))
 
