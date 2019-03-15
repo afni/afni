@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2019, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "in any dotfile update: note that it was done by @uab",
+   NULL
+ } ,
+
  { 14, Mar, 2019, RCR, "GIFTI", MINOR, TYPE_ENHANCE,
    "add gifti/regress_tests tree",
    "This was also added to https://github.com/NIFTI-Imaging/gifti_clib repo."
