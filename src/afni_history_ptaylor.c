@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, Mar , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
+   "Better behavioring of -box_focux_slices when ulay and refbox grids differ.",
+   "Now checking grid similarity and resampling refbox if needbe.\n"
+},
+
 { 6, Mar , 2019 , PT , "3dDWUncert" , MICRO , TYPE_GENERAL,
    "Change \% to %% in printf() function. No change to functionality.",
    "Amazingly spotted in stream of build messages by RWC.\n"
