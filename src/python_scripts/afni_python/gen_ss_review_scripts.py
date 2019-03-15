@@ -234,6 +234,7 @@ def update_field_help():
    add_field_help('subject ID', 'subject identifier, used in file names')
    add_field_help('AFNI version', 'AFNI software version used in analysis')
    add_field_help('AFNI package', 'AFNI software package used in analysis')
+   add_field_help('TR', 'time between volumes')
    add_field_help('TRs removed (per run)',
       'num TRs removed at the start of each run',
       ['This is currently just for the case of a constant number across runs.'])
@@ -377,6 +378,13 @@ endif
 if ( $?afni_package ) then
    echo "AFNI package              : $afni_package"
 endif
+
+if ( $?tr ) then
+   set value = $tr
+else
+   set value = UNKNOWN
+endif
+echo "TR                        : $value"
 
 if ( $?rm_trs ) then
    set value = $rm_trs
@@ -860,9 +868,10 @@ g_history = """
    1.5  Jan 18, 2019: added df_info processing
    1.6  Feb 25, 2019: try to get mask dset from TSNR
    1.7  Feb 28, 2019: mask_dset needs to include extension
+   1.8  Mar 15, 2019: added tr field and TR value in basic output
 """
 
-g_version = "gen_ss_review_scripts.py version 1.7, February 28, 2019"
+g_version = "gen_ss_review_scripts.py version 1.8, March 15, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1138,6 +1147,7 @@ class MyInterface:
       if self.find_x_mat():             return -1
 
       if self.guess_subject_id():       return -1
+      if self.guess_tr():               return -1
       if self.guess_xmat_nocen():       return -1
       if self.guess_xmat_stim():        return -1
       if self.guess_nt():               return -1
@@ -1318,6 +1328,27 @@ class MyInterface:
          if self.cvars.verb > 1: print('++ guessing xmat_uncensored = %s'%xname)
 
       return 0
+
+   def guess_tr(self):
+      """set tr (if possible)"""
+
+      # check if already set
+      if self.uvar_already_set('tr'): return 0
+
+      # now try to set uncensored dset (cvar and dset)
+      ax = self.dsets.val('xmat_ad')
+      if ax == None:
+         print('** no xmat_ad to set tr from')
+         return 1
+
+      try:
+         self.uvars.tr = ax.tr
+      except:
+         self.uvars.tr = -1 # unknown
+
+      if self.cvars.verb > 2: print('-- setting TR = %s' % self.uvars.tr)
+
+      return 0  # success
 
    def guess_xmat_nocen(self):
       """set uvars,dsets.xmat_uncensored (if possible)"""
@@ -2436,7 +2467,7 @@ class MyInterface:
       errs   = 0
       # some cases with matching var names
       # rcr - add final_anat
-      for var in ['subj', 'afni_ver', 'afni_package', 'rm_trs',
+      for var in ['subj', 'afni_ver', 'afni_package', 'tr', 'rm_trs',
                   'num_stim', 'mot_limit', 'out_limit', 'final_view']:
          if uvars.valid(var):
             txt += form % (var,self.uvars.val(var))

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Mar, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "include tr field in uvars, and report it as TR in basic",
+   NULL
+ } ,
+
  { 15, Mar, 2019, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
    "in any dotfile update: note that it was done by @uab",
    NULL

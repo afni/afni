@@ -23,6 +23,7 @@ g_ss_uvar_fields = [ \
    ['afni_package',    'set AFNI package', 'macos_10.12_local'],
    ['nt_orig',         'orig num time points (all runs)', 300],
    ['nt_applied',      'num time points after censoring', 280],
+   ['tr',              'time between EPI volumes', 2],
    ['rm_trs',          'set number of TRs removed per run', 2],
    ['num_stim',        'set number of main stimulus classes', 2],
    ['tcat_dset',       'set first tcat dataset','pb00.FT.r01.tcat+orig.HEAD'],
