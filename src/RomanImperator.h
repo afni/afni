@@ -1,7 +1,7 @@
 #ifndef _RomanImperator_Header_
 #define _RomanImperator_Header_
 #ifdef AFNI_VERSION_LABEL
-static char *RomanImperator[] = {
+static char *RomanImperator[] = {      /* 175 of them, good thru 2062 or so */
     "Augustus" , "Tiberius" , "Caligula" ,
     "Claudius" , "Nero" , "Galba" ,
     "Otho" , "Aulus Vitellius" , "Vespasian" ,
