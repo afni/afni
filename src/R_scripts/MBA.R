@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, March 6, 2019
+Version 0.0.5, March 18, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -427,7 +427,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$chains <- 1
       lop$iterations <- 1000
       lop$model  <- 1
-      lop$cVars  <- NA
+      lop$cVars  <- NULL
       lop$qVars  <- 'Intercept'
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
@@ -477,7 +477,7 @@ process.MBA.opts <- function (lop, verb = 0) {
          return(NULL)
    }      
 
-   if(!is.na(lop$cVars[1])) lop$CV <- strsplit(lop$cVars, '\\,')[[1]]   
+   if(!is.null(lop$cVars[1])) lop$CV <- strsplit(lop$cVars, '\\,')[[1]]   
    if(!is.na(lop$qVars[1])) lop$QV <- strsplit(lop$qVars, '\\,')[[1]]
 
  
@@ -540,16 +540,17 @@ library("brms")
 # write data.frame to a file
 outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
 
-# make sure ROI1 and ROI2 are treated as factors
+# make sure ROI1, ROI2 and Subj are treated as factors
 if(!is.factor(lop$dataTable$ROI1)) lop$dataTable$ROI1 <- as.factor(lop$dataTable$ROI1)
 if(!is.factor(lop$dataTable$ROI2)) lop$dataTable$ROI2 <- as.factor(lop$dataTable$ROI2)
+if(!is.factor(lop$dataTable$Subj)) lop$dataTable$Subj <- as.factor(lop$dataTable$Subj)
 
 # verify variable types
 if(lop$model==1) terms <- 1 else terms <- strsplit(lop$model, '\\+')[[1]]
 if(length(terms) > 1) {
    #terms <- terms[terms!='1']
    for(ii in 1:length(terms)) {
-      if(terms[ii] %in% strsplit(lop$cVars, '\\,')[[1]] & !is.factor(lop$dataTable[[terms[ii]]])) # declared factor with quantitative levels
+       if(!is.null(lop$cVars[1])) if(terms[ii] %in% strsplit(lop$cVars, '\\,')[[1]] & !is.factor(lop$dataTable[[terms[ii]]])) # declared factor with quantitative levels
          lop$dataTable[[terms[ii]]] <- as.factor(lop$dataTable[[terms[ii]]])
       if(terms[ii] %in% strsplit(lop$qVars, '\\,')[[1]] & is.factor(lop$dataTable[[terms[ii]]])) # declared numerical variable contains characters
          stop(sprintf('Column %s in the data table is declared as numerical, but contains characters!', terms[ii]))
@@ -581,7 +582,7 @@ if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR*(nR-1)/2 < nrow(lop$dataTable))
 lop$EOIq <- strsplit(lop$qVars, '\\,')[[1]]
 if(!('Intercept' %in% lop$EOIq)) lop$EOIq <- c('Intercept', lop$EOIq)
 lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
-if(is.na(lop$cVars)) lop$EOIc <- NA else 
+if(is.null(lop$cVars)) lop$EOIc <- NA else 
    lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
 if(!is.null(lop$qContr)) {
