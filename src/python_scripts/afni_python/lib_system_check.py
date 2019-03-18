@@ -942,15 +942,15 @@ class SysInfo:
 
       # add to comments
       if self.afni_dir:
-         ccc = 'running: cp %s/AFNI.afnirc ~/.afnirc' % self.afni_dir
+         ccc = 'run: cp %s/AFNI.afnirc ~/.afnirc' % self.afni_dir
       else:
-         ccc = 'copying AFNI.afnirc to ~/.afnirc'
-      self.add_file_comment(None, '.afnirc', 'consider %s' % ccc)
+         ccc = 'copy AFNI.afnirc to ~/.afnirc'
+      self.add_file_comment(None, '.afnirc', 'please %s' % ccc)
 
       self.add_file_comment(None, '.sumarc',
-                            'consider running "suma -update_env" for .sumarc')
+                            'please run: "suma -update_env" for .sumarc')
       self.add_file_comment(None, '.afni/help/all_progs.COMP',
-                            'consider running: apsearch -update_all_afni_help')
+                            'please run: apsearch -update_all_afni_help')
 
       print('')
 
