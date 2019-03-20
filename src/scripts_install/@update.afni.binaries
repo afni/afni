@@ -1218,25 +1218,25 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       endif
 
       # ---------------------------
-      # and .bash_profile, but only if it exists
-      set brcfile = ~/.bash_profile
-      if ( -f $brcfile ) then
-         \grep $abin:t $brcfile >& /dev/null
-         if ( $status ) then
-            # $abin not found, so append to file
-            echo "++ adding $abin to PATH in $brcfile ..."
-            echo ''                                           >> $brcfile
-            echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
-            echo 'export PATH=$PATH:'$abin                    >> $brcfile
+      # and .bash_profile, but only if it exists (unless on a mac, sigh)
+      # (same for .profile, since many now use sh)
+      foreach brcfile ( ~/.bash_profile ~/.profile )
+         if ( -f $brcfile ) then
+            \grep $abin:t $brcfile >& /dev/null
+            if ( $status ) then
+               # $abin not found, so append to file
+               echo "++ adding $abin to PATH in $brcfile ..."
+               echo ''                                           >> $brcfile
+               echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+               echo 'export PATH=$PATH:'$abin                    >> $brcfile
+            endif
+         else if ( $sysname == Darwin ) then
+            echo "++ will source .bashrc from newly created $brcfile"
+            echo ''                                              >  $brcfile
+            echo '# auto-inserted by @update.afni.binaries :'    >> $brcfile
+            echo '. $HOME/.bashrc'                               >> $brcfile
          endif
-      else if ( $sysname == Darwin ) then
-         echo "++ will source .bashrc from newly created .bash_profile"
-         echo ''                                              >  $brcfile
-         echo '# auto-inserted by @update.afni.binaries :'    >> $brcfile
-         echo '. $HOME/.bashrc'                               >> $brcfile
-      endif
-
-      # so... what about .profile?
+      end
 
    endif
 endif
