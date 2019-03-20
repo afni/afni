@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Mar, 2019, RCR, "dcm2niix_afni", MINOR, TYPE_BUG_FIX,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20181125",
+   "This is possibly to correct a bug with -m and partial brain coverage."
+ } ,
+
  { 15, Mar, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "include tr field in uvars, and report it as TR in basic",
    NULL

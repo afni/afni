@@ -85,7 +85,7 @@ void showHelp(const char * argv[], struct TDCMopts opts) {
     #else
      #define kQstr ""
     #endif
-    printf("  -f : filename (%%a=antenna  (coil) number, %%b=basename, %%c=comments, %%d=description, %%e=echo number, %%f=folder name, %%i=ID of patient, %%j=seriesInstanceUID, %%k=studyInstanceUID, %%m=manufacturer, %%n=name of patient, %%p=protocol,%s %%r=instance number, %%s=series number, %%t=time, %%u=acquisition number, %%v=vendor, %%x=study ID; %%z=sequence name; default '%s')\n", kQstr, opts.filename);
+    printf("  -f : filename (%%a=antenna (coil) name, %%b=basename, %%c=comments, %%d=description, %%e=echo number, %%f=folder name, %%i=ID of patient, %%j=seriesInstanceUID, %%k=studyInstanceUID, %%m=manufacturer, %%n=name of patient, %%p=protocol,%s %%r=instance number, %%s=series number, %%t=time, %%u=acquisition number, %%v=vendor, %%x=study ID; %%z=sequence name; default '%s')\n", kQstr, opts.filename);
     printf("  -g : generate defaults file (y/n/o/i [o=only: reset and write defaults; i=ignore: reset defaults], default n)\n");
     printf("  -h : show help\n");
     printf("  -i : ignore derived, localizer and 2D images (y/n, default n)\n");
@@ -274,7 +274,7 @@ int main(int argc, const char * argv[])
                     isSaveIni = true;
                 if (((argv[i][0] == 'i') || (argv[i][0] == 'I')) && (!isResetDefaults)) {
                     isResetDefaults = true;
-                    printf("Defaults reset\n");
+                    printf("Defaults ignored\n");
                     setDefaultOpts(&opts, argv);
                     i = 0; //re-read all settings for this pass, e.g. "dcm2niix -f %p_%s -d o" should save filename as "%p_%s"
                 }
