@@ -1383,7 +1383,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  (strcmp(wami->zone[iq]->webpage[il],"")!=0))
                               {
                                  sprintf(lbuf,
-                                 "%s      Focus point: %s <a href=\"%s\">%s</a>  %s%s",
+                               "%s   Focus point: %s <a href=\"%s\">%s</a>  %s%s",
                                     histart,nsp,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
@@ -1427,7 +1427,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                            {
                               sprintf(lbuf,
                               "%s%s      -AND-%s <a href=\"%s\">%s</a>  %s%s",
-                                 histart,nspp,
+                                 histart,nspp,nsp,
                                  wami->zone[iq]->webpage[il],
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                  connbuf,
