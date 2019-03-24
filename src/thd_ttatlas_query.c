@@ -65,8 +65,9 @@ THD_string_array *recreate_working_atlas_name_list(void) {
  *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
    char *min_atlas_list[] = {"CA_ML_18_MNI", "CA_MPM_18_MNI",
-      "CA_LR_18_MNI", "CA_GW_18_MNIA", "CA_PM_18_MNIA", "CA_N27_LR",
-      "DD_Desai_MPM", "DKD_Desai_MPM", "TT_Daemon", NULL};
+      "DD_Desai_MPM", "DKD_Desai_MPM",  "CA_PM_18_MNIA", 
+      "CA_GW_18_MNIA", "CA_N27_LR",
+       "TT_Daemon", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -1161,7 +1162,11 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
    int biggg=0 ;                          /* HTML flourishes by RWCox */
    const char *nbsp  = " &nbsp; " ;
    const char *nbspp = " &nbsp;&nbsp; " ;
-
+   const char *sp = " ";
+   const char *spp = "  ";
+   char *nsp = NULL;
+   char *nspp = NULL;
+   
    ENTRY("genx_Atlas_Query_to_String") ;
    if (!wami) {
       ERROR_message("NULL wami");
@@ -1176,6 +1181,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
 
    /* indent with HTML encoding for web output */
    if(AFNI_wami_output_mode()){
+      nsp = nbsp;    /* use html hard spaces */
+      nspp = nbspp;
       if( biggg ){
         sprintf(hmarkstart,"     <h2><b>");
         sprintf(histart,"      <h3>");
@@ -1188,6 +1195,8 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       sprintf(hmarkend, "</b><br>");
   }
    else{
+      nsp = sp;    /* use a regular space. do not use html hard spaces */	   
+      nspp = spp;
       histart[0] = '\0';
       hiend[0] = '\0';
       hmarkstart[0] = '\0';
@@ -1266,11 +1275,11 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
           neurosynth_link_str[0] = '\0';
           if(show_sumsdb_link()){
               sprintf(sumsdb_link_str, "%s <a href=\"%s\">SumsDB</a>",
-                   nbsp,sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+                   nsp,sumsdb_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
           }
           if(show_neurosynth_link())
               sprintf(neurosynth_link_str, "%s <a href=\"%s\">NeuroSynth</a>",
-                   nbsp,neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
+                   nsp,neurosynth_coords_link(-acl[i].x, -acl[i].y, acl[i].z));
 
           sprintf(clab[i],"{MNI} %s %s", neurosynth_link_str, sumsdb_link_str);
       }
@@ -1354,7 +1363,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                      if((wami->zone[iq]->connpage[il]) &&
                         (strcmp(wami->zone[iq]->connpage[il],"")!=0))
                         sprintf(connbuf, "%s <a href=\"%s\">connections</a>",
-                            nbsp,wami->zone[iq]->connpage[il]);
+                            nsp,wami->zone[iq]->connpage[il]);
                      else
                         sprintf(connbuf," ");
 
@@ -1375,7 +1384,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               {
                                  sprintf(lbuf,
                                  "%s      Focus point: %s <a href=\"%s\">%s</a>  %s%s",
-                                    histart,nbsp,
+                                    histart,nsp,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     connbuf,
@@ -1384,7 +1393,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                               else
                                  sprintf(lbuf,
                                 "%s   Focus point: %s%s%s",
-                                    histart,nbsp,
+                                    histart,nsp,
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     hiend);
                            } else {
@@ -1396,16 +1405,16 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                                  sprintf(lbuf,
                                  "%s * Within %1d mm: %s <a href=\"%s\">%s</a>  %s%s",
                                     histart,
-                                    (int)wami->zone[iq]->radius[il], nbsp,
+                                    (int)wami->zone[iq]->radius[il], nsp,
                                     wami->zone[iq]->webpage[il],
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     connbuf,
                                     hiend);
                               }
                               else
-                                 sprintf(lbuf, "%s * Within %1d mm: %s%s%s",
+                                 sprintf(lbuf, "%s * Within %1d mm: %s%s",
                                     histart,
-                                    (int)wami->zone[iq]->radius[il], nbsp,
+                                    (int)wami->zone[iq]->radius[il], 
                                     Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                     hiend);
                            }
@@ -1418,14 +1427,14 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                            {
                               sprintf(lbuf,
                               "%s%s      -AND-%s <a href=\"%s\">%s</a>  %s%s",
-                                 histart,nbspp,
+                                 histart,nspp,
                                  wami->zone[iq]->webpage[il],
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]),
                                  connbuf,
                                  hiend);
                            }
                            else
-                              sprintf(lbuf, "%s%s          -AND-%s %s%s", histart,nbspp,nbsp,
+                              sprintf(lbuf, "%s%s          -AND-%s %s%s", histart,nspp,nsp,
                                  Clean_Atlas_Label(wami->zone[iq]->label[il]), hiend);
                         }
 
@@ -1459,7 +1468,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
                   SS('w');sprintf(lbuf, "%sFocus point:%s", histart, hiend);
                } else {
                   SS('x');sprintf(lbuf, "%s * Within %1d mm:%s%s",histart,
-                                 (int)wami->zone[iq]->level,nbsp, hiend);
+                                 (int)wami->zone[iq]->level,nsp, hiend);
                }
                ADDTO_SARR(sar,lbuf);
                for (il=0; il<wami->zone[iq]->N_label; ++il) { /* il */
@@ -7169,7 +7178,9 @@ ATLAS *Atlas_With_Trimming(char *atname, int LoadLRMask,
 
    /* Get the atlas structure from the list */
    if (!(atlas = get_Atlas_Named(atname, atlas_list))) {
-      ERROR_message("Cannot find atlas %s", atname);
+      if (wami_verb()) {
+         ERROR_message("Cannot find atlas %s", atname);
+      }
       RETURN(NULL);
    }
 
