@@ -1,0 +1,10 @@
+
+gifti_tool -gifti_test -infile b64gz.ts.3.gii
+
+# write is not necessary, but for the diff
+gifti_tool -infile b64gz.ts.3.gii -gifti_test                           \
+           -mod_DA_meta tagStudyMetaDataLinkSet SOME_STUDY_METADATA     \
+           -no_updates -write_gifti ts3.fixed.gii
+
+diff b64gz.ts.3.gii ts3.fixed.gii
+

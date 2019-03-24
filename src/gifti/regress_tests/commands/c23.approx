@@ -1,0 +1,45 @@
+#!/bin/tcsh
+
+set f1 = good.color.gii
+set f2 = good.2.gii
+
+echo "\n==== test: missing DA"
+head -121 $f1 | sed 's/NumberOfDataArrays=\"3/NumberOfDataArrays=\"2/' > $f2
+echo '</GIFTI>' >> $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+
+echo "\n==== test: different endian"
+sed 's/LittleEndian/BigEndian/' $f1 > $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+
+echo "\n==== test: remove second label"
+head -24 $f1 > $f2
+tail -126 $f1 >> $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+
+echo "\n==== test: modify label 0, key 1, green 2"
+sed 's/PickleCenter/Pickles/' $f1 | sed 's/\"23/\"24/'  \
+    | sed 's/Green=\"0\"/Green=\"0.1\"/' > $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+
+echo "\n==== test: modify Transform and space"
+sed 's/NIFTI_XFORM_TALAIRACH/NIFTI_XFORM_MNI_152/' $f1  \
+    | sed 's/0 0.000000 0/0 1.010000 0/' > $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+
+echo "\n==== test: modify POINTSET and TRIANGE data"
+sed 's/-65.592651/-65.6/' $f1 | sed 's/141604/141605/' > $f2
+gifti_tool -approx_gifti -infiles $f1 $f2
+echo ""
+gifti_tool -approx_gifti -infiles $f1 $f2 -compare_verb 3
+

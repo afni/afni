@@ -391,6 +391,7 @@ Input
     :param -demo: Run demonstration of RetroTS
             (default is 0)
     :param -show_graphs:
+            (default is unset; set with any parameter to view)
     ============================================================================
     :param -slice_offset: Vector of slice acquisition time offsets in seconds.
             (default is equivalent of alt+z)

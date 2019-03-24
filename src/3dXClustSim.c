@@ -93,9 +93,9 @@ static int   nsim        = 0 ;     /* ncase * niter_clust = number of sim volume
 
 #define PMAX 0.5
 
-static int    npthr = 5 ;
+static int    npthr = 10 ;
 static double *pthr = NULL ;
-static double pthr_init[5] = { 0.0100, 0.0056, 0.0031, 0.0018, 0.0010 } ;
+static double pthr_init[10] = { 0.010, 0.009, 0.008, 0.007, 0.006, 0.005, 0.004, 0.003, 0.002, 0.001 } ;
 
 static float  *zthr_1sid = NULL ;
 static float  *zthr_2sid = NULL ;
@@ -118,6 +118,9 @@ static double athr_init[5] = { 0.05 , 0.04 , 0.03 , 0.02 , 0.01 } ;
 
 static int verb = 1 ;
 static int nthr = 1 ;  /* default number of threads */
+
+/* These defaults are also set in 3dttest++.c and
+   if changed in one program, must be changed in the other! */
 
 static int nnlev = 2 ; /* NN                = 1 or 2 or 3 */
 static int nnsid = 2 ; /* sidedness of test = 1 or 2      */
@@ -154,13 +157,12 @@ static float farp_goal = FARP_GOAL ;
    only change them here if you change them there as well! */
 #define NFARP 9
 static float farplist[NFARP] = { 1.f, 2.f, 3.f, 4.f, 5.f, 6.f, 7.f, 8.f, 9.f } ;
+static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h", "i" } ;
 static float min_fgoal = 1.0f ;
 static float max_fgoal = 9.0f ;
 
 static int do_multifarp = 0 ;
 static int numfarp = 1 ;
-
-static char *abcd[NFARP]     = { "a", "b", "c", "d", "e", "f", "g", "h" } ;
 
 #define FG_GOAL  (farp_goal*fgfac)
 #define MAXITE   11
@@ -169,6 +171,13 @@ static int do_global_etac = 1 ; /* Sep 2018 */
 static int do_local_etac  = 0 ;
 
 #define TOPFRAC 0.2468f
+
+/* [08 Mar 2019] eliminate multiple clusters from same indx by sorting */
+static int use_indx = 1 ;
+
+void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar ) ;
+int  ixmax_IFFF( int n, int *iar, float *xar, float *yar, float *zar,
+                                  float *xout, float *yout, float *zout ) ;
 
 /*----------------------------------------------------------------------------*/
 /*! Threshold for upper tail probability of N(0,1) = 1-inverseCDF(pval) */
@@ -202,7 +211,7 @@ static void vstep_print(void)
 
 void get_options( int argc , char **argv )
 {
-  char *ep;
+  char *ep , msg[1024] ;
   int nopt=1 , ii ;
 
 ENTRY("get_options") ;
@@ -328,6 +337,16 @@ ENTRY("get_options") ;
 
     if( strcasecmp(argv[nopt],"-verb") == 0 ){   /* more fun fun fun! */
       verb++ ; nopt++ ; continue ;
+    }
+
+    /*-----   -sorter and -nosorter  [HIDDEN] -----*/
+
+    if( strcasecmp(argv[nopt],"-sorter") == 0 ){
+      use_indx = 1 ; nopt++ ; continue ;
+    }
+
+    if( strcasecmp(argv[nopt],"-nosorter") == 0 ){
+      use_indx = 0 ; nopt++ ; continue ;
     }
 
 #ifdef ALLOW_EXTRAS
@@ -498,15 +517,12 @@ ENTRY("get_options") ;
     numfarp = 1 ; farplist[0] = farp_goal ;
     INFO_message("Single FPR goal: %.1f%%",farp_goal) ;
   } else {
-    char msg[256] ;
     numfarp = NFARP ;
     strcpy(msg,"Multiple FPR goals:") ;
-    for( ii=0 ; ii < numfarp ; ii++ )
+    for( ii=0 ; ii < numfarp ; ii++ )  /* quadruple % reduced to double % below */
       sprintf( msg+strlen(msg) , " %.1f%%%%" , farplist[ii] ) ;
-    INFO_message(msg) ;
+    INFO_message(msg) ;                  /* and then to single % in this output */
   }
-
-  INFO_message("minimum cluster size = %d voxels",min_clust) ; /* 21 Sep 2017 */
 
   /*------- finalize some simple setup stuff --------*/
 
@@ -520,6 +536,19 @@ ENTRY("get_options") ;
     if( verb > 1 )
       INFO_message("Using default %d p-value thresholds",npthr) ;
   }
+
+  /* Show the p-value thresholds [08 Mar 2019] */
+
+  strcpy(msg,"p-value thresholds:") ;
+  for( ii=0 ; ii < npthr ; ii++ )
+    sprintf( msg+strlen(msg) , " %.4f" , pthr[ii] ) ;
+  INFO_message(msg) ;
+  if( npthr == 1 )  /* should not happen, but you never know about users */
+    WARNING_message("only 1 p-value threshold?!") ;
+
+  /* another tidbit of info */
+
+  INFO_message("min cluster size  : %d voxels",min_clust) ; /* 21 Sep 2017 */
 
   /* create the default label for ncase=1 */
 
@@ -687,23 +716,23 @@ void gather_clusters( int icase, int ipthr,
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
   }
-  Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+  Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
 
 #else              /** new code: 1-sided uses both pos and neg [doesn't work] **/
   if( ss == 1 ){
     Xcluster_array *pcar , *ncar ;
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fim[ii] >= thr) ? fim[ii] : 0.0f ;
-    pcar = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    pcar = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fim[ii] <= -thr) ? fim[ii] : 0.0f ;
-    ncar = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    ncar = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
     MERGE_Xcluster_arrays(pcar,ncar) ; /* ncar is deleted */
     Xclustar_g[icase][ipthr][iter] = pcar ;
   } else {
     for( ii=0 ; ii < nxyz ; ii++ )
       tfar[ii] = (fabsf(fim[ii]) >= thr) ? fim[ii] : 0.0f ;
-    Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn, 0,NULL,NULL,NULL ) ;
+    Xclustar_g[icase][ipthr][iter] = find_Xcluster_array( tfim,nn,iter, 0,NULL,NULL,NULL ) ;
   }
 #endif
 
@@ -1153,8 +1182,7 @@ int main( int argc , char *argv[] )
    /*--- STEP 1a: loop over realizations to load up Xclustar_g[][][] ---*/
 
    if( verb )
-     INFO_message("STEP 1a: start %d-sided clustering with NN=%d",nnsid,nnlev) ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 1a: start %d-sided clustering with NN=%d and %d p-thresholds",nnsid,nnlev,npthr) ;
 
  AFNI_OMP_START ;      /*------------ start parallel section ----------*/
 #pragma omp parallel
@@ -1222,8 +1250,7 @@ int main( int argc , char *argv[] )
      nclust_max = 0 ;  /* keep track of the largest situation */
 
      if( verb )
-       ININFO_message("STEP 1b: merge cluster lists") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1b: merge cluster lists (%.1fs elapsed)",COX_clock_time()) ;
 
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
@@ -1272,7 +1299,8 @@ int main( int argc , char *argv[] )
 # define GTHRESH_THB 0.044444f /* how far into clust table: method 2 (per %) */
 #endif
 
-   if( do_local_etac ){                  /* not needed for global ETAC */
+   /*------------------------------------------------------------------------*/
+   if( do_local_etac ){              /*----- not needed for global ETAC -----*/
      int nfom,jj,nfff; Xcluster **xcc;
      float a0,a1,f0,f1,fta,ftb , fmax , fg ;
      float *fomg0, *fomg1, *fomg2 ;
@@ -1282,8 +1310,7 @@ int main( int argc , char *argv[] )
      fomg2 = calloc(sizeof(float),nclust_max) ; /* section  */
 
      if( verb )
-       ININFO_message("STEP 1c: compute minimum thresholds") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1c: compute minimum thresholds (%.1fs)",COX_clock_time()) ;
 
      /* arrays for global threshold:
           [ifarp=FPR goal][qcase=blurring][ipthr=p-value] */
@@ -1369,22 +1396,27 @@ int main( int argc , char *argv[] )
      } /* end of loop over cases */
 
      free(fomg0) ; free(fomg1) ; free(fomg2) ;
+     MEMORY_CHECK("after globalizing") ;
    }
-
-   MEMORY_CHECK("after globalizing") ;
+   /*------------------------------------------------------------------------*/
 
    /*==========================================================================*/
    /*--- STEP 1d: do ETAC globally [Sep 2018] ---------------------------------*/
    /*:::::::::::: much of this code is a rehash of the voxelwise STEP 4, infra */
+   /*:::::::::::: (which, ironically, is no longer default or recommended)     */
 
    if( do_global_etac ){
      float ***fomglob0, ***fomglob1, ***fomglob2 ;
-     Xcluster **xcc ; int nfom , **nfomglob ;
+     Xcluster **xcc ; int nfom,nfom_indx , **nfomglob ;
      float **fthar0 , **fthar1 , **fthar2 ;
+     float *fgar0=NULL,*fgar1=NULL,*fgar2=NULL ,
+           *tpar0=NULL,*tpar1=NULL,*tpar2=NULL ; /* for use_indx [08 Mar 2019] */
+     int *indx=NULL ;
+
+     if( AFNI_noenv("AFNI_XCLUSTSIM_SORTER") ) use_indx = 0 ; /* 10 Mar 2019 */
 
      if( verb )
-       ININFO_message("STEP 1d: compute global ETAC thresholds") ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       ININFO_message("STEP 1d: compute global ETAC thresholds (%.1fs)",COX_clock_time()) ;
 
      /*--- create vectors to hold all FOMs ---*/
 
@@ -1397,6 +1429,16 @@ int main( int argc , char *argv[] )
      fthar0   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar1   = (float **) malloc(sizeof(float *) *ncase) ;
      fthar2   = (float **) malloc(sizeof(float *) *ncase) ;
+     if( use_indx ){ /* temp arrays for sorting */
+       indx   = (int *)    malloc(sizeof(int)     *nclust_max) ;
+       tpar0  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+       tpar1  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+       tpar2  = (float *)  malloc(sizeof(float)   *nclust_max) ;
+     }
+
+     /* loops over diffusion cases, then over p-thresholds */
+     /* extract arrays of FOM values for each case, for each p */
+
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        fomglob0[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
        fomglob1[qcase] = (float **)malloc(sizeof(float *)*npthr) ;
@@ -1406,25 +1448,53 @@ int main( int argc , char *argv[] )
        fthar1[qcase]   = (float *) malloc(sizeof(float)  *npthr) ;
        fthar2[qcase]   = (float *) malloc(sizeof(float)  *npthr) ;
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
-         fomglob0[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-         fomglob1[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-         fomglob2[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max) ;
-
-         xcc = Xclust_tot[qcase][qpthr] ;
+         fgar0 = fomglob0[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         fgar1 = fomglob1[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         fgar2 = fomglob2[qcase][qpthr] = (float *)malloc(sizeof(float)*nclust_max);
+         xcc   = Xclust_tot[qcase][qpthr] ;
          for( nfom=ii=0 ; ii < nclust_tot[qcase][qpthr] ; ii++ ){
            if( xcc[ii] != NULL ){
-             fomglob0[qcase][qpthr][nfom] = xcc[ii]->fomh[0] ;
-             fomglob1[qcase][qpthr][nfom] = xcc[ii]->fomh[1] ;
-             fomglob2[qcase][qpthr][nfom] = xcc[ii]->fomh[2] ; nfom++ ;
+             if( use_indx ) indx[nfom] = xcc[ii]->indx ; /* for sorting below */
+             fgar0[nfom] = xcc[ii]->fomh[0] ;
+             fgar1[nfom] = xcc[ii]->fomh[1] ;
+             fgar2[nfom] = xcc[ii]->fomh[2] ; nfom++ ;
            }
          }
 #if 0
 ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,qcase,qpthr,nclust_tot[qcase][qpthr]) ;
 #endif
-         qsort_float_rev( nfom , fomglob0[qcase][qpthr] ) ;
-         qsort_float_rev( nfom , fomglob1[qcase][qpthr] ) ;
-         qsort_float_rev( nfom , fomglob2[qcase][qpthr] ) ;
-         if( nfom > nfomkeep ){
+
+         /*- Order the results, biggest first, for cluster-threshold finding -*/
+
+         if( use_indx ){ /* eliminate multiple results from same iteration index */
+
+           /* step A = sort on indx to bring all results from same
+                       iteration together, if they aren't already. */
+
+           AAmemcpy(tpar0,fgar0,sizeof(float)*nfom) ; /* temp copies of */
+           AAmemcpy(tpar1,fgar1,sizeof(float)*nfom) ; /* FOM values */
+           AAmemcpy(tpar2,fgar2,sizeof(float)*nfom) ;
+
+           qsort_IFFF( nfom , indx , tpar0,tpar1,tpar2 ) ; /* sort on indx */
+
+           /* step B = for each separate value in indx, find the largest FOM,
+                       save into the original arrays, return number vals found */
+
+           nfom_indx = ixmax_IFFF( nfom , indx , tpar0,tpar1,tpar2 ,
+                                                 fgar0,fgar1,fgar2  ) ;
+           if( verb > 1 )
+             INFO_message("  ETAC sort @ p=%f: nfom before = %d  after = %d",
+                          pthr[qpthr],nfom,nfom_indx) ;
+           nfom = nfom_indx ;
+         }
+
+         /* actual sorting of extracted FOM arrays now */
+
+         qsort_float_rev( nfom , fgar0 ) ; /* sort, largest first */
+         qsort_float_rev( nfom , fgar1 ) ;
+         qsort_float_rev( nfom , fgar2 ) ;
+
+         if( nfom > nfomkeep ){ /* trim the storage for frugality */
            fomglob0[qcase][qpthr] = (float *)realloc( fomglob0[qcase][qpthr],
                                                       sizeof(float)*nfomkeep ) ;
            fomglob1[qcase][qpthr] = (float *)realloc( fomglob1[qcase][qpthr],
@@ -1433,13 +1503,14 @@ ININFO_message("-- found %d FOMs for qcase=%d qpthr=%d out of %d clusters",nfom,
                                                       sizeof(float)*nfomkeep ) ;
          }
          nfomglob[qcase][qpthr] = MIN(nfom,nfomkeep) ; /* how many we have */
-#if 0
-ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qcase,qpthr) ;
-#endif
-       }
-     }
+         if( verb > 1 )
+           ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",
+                          nfomglob[qcase][qpthr],qcase,qpthr) ;
+       } /* end of loop over pthr values */
+     } /* end of loop over blurring cases */
 
-     /*--- multithreshold simulations for global ETAC ---*/
+     /*--- now run the multithreshold simulations for global ETAC ---*/
+     /*--- that is to say, this is where the results are computed ---*/
 
      nit33 = 1.0f/(niter_clust+0.333f) ;
 
@@ -1453,15 +1524,14 @@ ININFO_message("  kept %d FOMs for qcase=%d qpthr=%d",nfomglob[qcase][qpthr],qca
        farp_goal = farplist[ifarp] ;
 
        if( verb )
-         INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
-                      abcd[ifarp] , farp_goal) ;
-       if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+         INFO_message("STEP 1d.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
+                      abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
        /* tfrac = FOM count fractional threshold;
                   will be adjusted to find the farp_goal FPR goal */
 
        if( ifarp == 0 ){                                     /* first time thru */
-         tfrac = (4.0f+farp_goal)*0.00066f ;
+         tfrac = (4.0f+farp_goal)*0.000777f ;
        } else if( ntfp < 2 ){                  /* if only 1 earlier calculation */
          tfrac *= 1.0777f * farp_goal / farlast ;     /* adjust previous result */
        } else {
@@ -1513,11 +1583,10 @@ GARP_LOOPBACK:
        for( qcase=0 ; qcase < ncase ; qcase++ ){
          for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
            npt = nfomglob[qcase][qpthr] ; /* how many FOM values here */
-           jthresh = ithresh ;          /* default index of FOM thresh */
+           jthresh = ithresh ;         /* default index of FOM thresh */
 
-           if( jthresh > (int)(0.777f*npt) ){  /* edge case: */
-             jthresh = (int)(0.777f*npt) ;     /* not many FOM values here */
-             nedge++ ;
+           if( jthresh+1 >= npt ){   /* edge case: too few FOM values */
+             jthresh = npt-2 ; nedge++ ;         /* should not happen */
            }
            a0 = ((float)jthresh+0.666f)*nit33 ;
            a1 = a0 + nit33 ;
@@ -1598,7 +1667,7 @@ GARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
 
      if( verb )
-       ININFO_message("         global FPR=%.2f%% at %.1f s", farperc,COX_clock_time() ) ;
+       ININFO_message("         global FPR=%.2f%% (%.1fs)", farperc,COX_clock_time() ) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -1615,8 +1684,8 @@ GARP_LOOPBACK:
        if( itrac == 1 || (farperc-FG_GOAL)*(farpercold-FG_GOAL) > 0.1f ){ /* scale */
          fff = FG_GOAL/farperc ;
          if( fff > 2.222f ) fff = 2.222f ; else if( fff < 0.450f ) fff = 0.450f ;
-         dtt  = (fff-1.0f)*tfrac ;        /* tfrac step */
-         dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
+         dtt = (fff-1.0f)*tfrac ;        /* tfrac step */
+         if( itrac > 2 ) dtt *= (0.8666f+0.2222f*itrac) ; /* accelerate it */
          ttemp = tfrac ; tfrac += dtt ;
        } else {                                      /* linear inverse interpolate */
          fff = (farperc-farpercold)/(tfrac-tfracold) ;
@@ -1752,6 +1821,10 @@ GARP_BREAKOUT: ; /*nada*/
 
      /*--- delete vectors ---*/
 
+     if( use_indx ){
+       free(indx) ; free(tpar0) ; free(tpar1) ; free(tpar2) ;
+     }
+
      for( qcase=0 ; qcase < ncase ; qcase++ ){
        for( qpthr=0 ; qpthr < npthr ; qpthr++ ){
          free(fomglob0[qcase][qpthr]) ;
@@ -1765,20 +1838,28 @@ GARP_BREAKOUT: ; /*nada*/
      free(fomglob0); free(fomglob1); free(fomglob2); free(nfomglob);
      free(fthar0)  ; free(fthar1)  ; free(fthar2)  ;
 
+     /*-------- can exit NOW NOW NOW unless local ETAC is on the menu --------*/
+
      if( !do_local_etac ){
-       INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
+       INFO_message("=== 3dXClustSim ends: Elapsed time %.1fs",COX_clock_time()) ;
        exit(0) ;
      }
 
-     /* can unmap simulations now, until needed later */
+     /* otherwise, can unmap simulations now, until needed later */
+
      if( verb > 1 ) ININFO_message("un-mapping input datasets") ;
      unmap_Xdataset(xinset) ;
 
    } /*--------------- end of global ETAC-ization ---------------*/
 
-   /***************************************************/
-   /***** From here is is local (voxel-wise) ETAC *****/
-   /***************************************************/
+   /*------------------------------------------------------------------------*/
+   /*-------- At this time [March 2019] local ETAC should be regarded -------*/
+   /*-------- as both highly experimental and uncertainly accurate :( -------*/
+   /*------------------------------------------------------------------------*/
+
+           /***************************************************/
+           /***** From here on is local (voxel-wise) ETAC *****/
+           /***************************************************/
 
    /*==========================================================================*/
    /*--- STEP 2: dilate the clusters ------------------------------------------*/
@@ -1843,8 +1924,7 @@ GARP_BREAKOUT: ; /*nada*/
    count_targ60  = (int)rintf(0.60f*count_targ100) ;
 
    if( verb )
-     INFO_message("STEP 2: start cluster dilations") ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 2: start cluster dilations (%.1fs)",COX_clock_time()) ;
 
    for( qcase=0 ; qcase < ncase ; qcase++ ){  /* loop over cases */
     for( qpthr=0 ; qpthr < npthr ; qpthr++ ){  /* loop over p-value thresh */
@@ -1946,8 +2026,7 @@ GARP_BREAKOUT: ; /*nada*/
    /*--- STEP 3: create sorted and truncated FOM vectors ---*/
 
    if( verb )
-     INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations") ;
-   if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+     INFO_message("STEP 3: re-loading & sorting FOM vectors after dilations (%.1fs)",COX_clock_time()) ;
 
    /*--- initialize the final sorted FOM vector array for each voxel ---*/
 
@@ -2191,7 +2270,7 @@ GARP_BREAKOUT: ; /*nada*/
 
    nit33 = 1.0f/(niter_clust+0.333f) ;
 
-   if( ntfp_all == 0 ){
+   if( ntfp_all == 0 ){ /* only needed if global ETAC was skipped earlier */
      ntfp_all = 128 ;
      tfs  = (float *)malloc(sizeof(float)*ntfp_all) ;
      fps  = (float *)malloc(sizeof(float)*ntfp_all) ;
@@ -2204,9 +2283,8 @@ GARP_BREAKOUT: ; /*nada*/
      farp_goal = farplist[ifarp] ;
 
      if( verb )
-       INFO_message("STEP 4.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%%",
-                    abcd[ifarp] , farp_goal) ;
-     if( verb > 1 ) ININFO_message("  Elapsed time = %.1f s",COX_clock_time()) ;
+       INFO_message("STEP 4.%s: adjusting per-voxel FOM thresholds to reach FPR=%.2f%% (%.1fs)",
+                    abcd[ifarp] , farp_goal , COX_clock_time() ) ;
 
      /* tfrac = FOM count fractional threshold;
                 will be adjusted to find the farp_goal FPR goal */
@@ -2397,7 +2475,7 @@ FARP_LOOPBACK:
      if( itrac > 2 ) farcut += (itrac-2)*0.0321f ;
 
      if( verb )
-       ININFO_message("         local FPR=%.2f%% at %.1f s", farperc,COX_clock_time()) ;
+       ININFO_message("         local FPR=%.2f%% (%.1fs)", farperc,COX_clock_time()) ;
      MEMORY_CHECK(" ") ;
 
      /* if no substantial progress, quit */
@@ -2519,7 +2597,181 @@ FARP_BREAKOUT: ; /*nada*/
 
    /* It's the end of the world, Calvin */
 
-   INFO_message("=== 3dXClustSim ends: Elapsed time = %.1f s",COX_clock_time()) ;
+   INFO_message("=== 3dXClustSim ends: Elapsed time = %.1fs",COX_clock_time()) ;
    MEMORY_CHECK("THE END") ;
    exit(0) ;
 }
+
+/*============================================================================*/
+/*======= Functions to extract the largest FOM found for       ===============*/
+/*======= each input iteration volume -- used for Global ETAC  ===============*/
+/*============================================================================*/
+
+/*----------------------------------------------------------------------------*/
+/*------- Sorting function for ETAC: int and 3 floats sorted together --------*/
+/*------- with the floats going along for the ride driven by the int. --------*/
+
+#undef  QS_CUTOFF
+#undef  QS_SWAP
+#undef  QS_ISWAP
+#define QS_CUTOFF     20       /* cutoff to switch from qsort to isort */
+#define QS_SWAP(x,y)  (temp=(x), (x)=(y),(y)=temp)
+#define QS_ISWAP(x,y) (itemp=(x),(x)=(y),(y)=itemp)
+#ifndef QS_STACK
+# define QS_STACK 9999
+#endif
+
+/*------------------------------------------------------------------------------*/
+
+void isort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
+{
+   int  j , p ;  /* array indices */
+   float xtemp,ytemp,ztemp ;
+   int  itemp ;
+   float *xa = xar ;
+   float *ya = yar ;
+   float *za = zar ;
+   int   *ia = iar ;
+
+   if( n < 2 ) return ;
+
+   for( j=1 ; j < n ; j++ ){
+
+     if( ia[j] < ia[j-1] ){  /* out of order */
+        p    = j ;
+        xtemp = xa[j] ; ytemp = ya[j] ; ztemp = za[j] ; itemp = ia[j] ;
+        do{
+          xa[p] = xa[p-1]; ya[p] = ya[p-1]; za[p] = za[p-1]; ia[p] = ia[p-1];
+          p-- ;
+        } while( p > 0 && itemp < ia[p-1] ) ;
+        xa[p] = xtemp ; ya[p] = ytemp ; za[p] = ztemp ; ia[p] = itemp ;
+     }
+   }
+   return ;
+}
+
+/*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
+
+void qsrec_IFFF( int n, int *iar, float *xar, float *yar, float *zar, int cutoff )
+{
+   int i , j ;           /* scanning indices */
+   float temp, xpivot, ypivot, zpivot ;  /* holding places */
+   int   itemp, ipivot ;
+   float *xa = xar ;
+   float *ya = yar ;
+   float *za = zar ;
+   int   *ia = iar ;
+
+   int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
+
+   /* return if too short (insertion sort will clean up) */
+
+   if( cutoff < 3 ) cutoff = 3 ;
+   if( n < cutoff ) return ;
+
+   /* initialize stack to start with whole array */
+
+   stack[0] = 0   ;
+   stack[1] = n-1 ;
+   mst      = 2   ;
+
+   /* loop while the stack is nonempty */
+
+   while( mst > 0 ){
+      right = stack[--mst] ;  /* work on subarray from left -> right */
+      left  = stack[--mst] ;
+
+      i = ( left + right ) / 2 ;           /* middle of subarray */
+
+      /*----- sort the left, middle, and right a[]'s -----*/
+
+      if( ia[left] > ia[i]     ){ QS_SWAP (xa[left]  ,xa[i]     ) ;
+                                  QS_SWAP (ya[left]  ,ya[i]     ) ;
+                                  QS_SWAP (za[left]  ,za[i]     ) ;
+                                  QS_ISWAP(ia[left]  ,ia[i]     ) ; }
+      if( ia[left] > ia[right] ){ QS_SWAP (xa[left]  ,xa[right] ) ;
+                                  QS_SWAP (ya[left]  ,ya[right] ) ;
+                                  QS_SWAP (za[left]  ,za[right] ) ;
+                                  QS_ISWAP(ia[left]  ,ia[right] ) ; }
+      if( ia[i] > ia[right]    ){ QS_SWAP (xa[right] ,xa[i]     ) ;
+                                  QS_SWAP (ya[right] ,ya[i]     ) ;
+                                  QS_SWAP (za[right] ,za[i]     ) ;
+                                  QS_ISWAP(ia[right] ,ia[i]     ) ; }
+
+      xpivot = xa[i] ; xa[i] = xa[right] ;
+      ypivot = ya[i] ; ya[i] = ya[right] ;
+      zpivot = za[i] ; za[i] = za[right] ;
+      ipivot = ia[i] ; ia[i] = ia[right] ;
+
+      i = left ; j = right ;               /* initialize scanning */
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; ia[++i] < ipivot ; ) ;  /* scan i up,   until ia[i] >= ipivot */
+        for( ; ia[--j] > ipivot ; ) ;  /* scan j down, until ia[j] <= ipivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit this loop */
+
+        QS_SWAP (xa[i] ,xa[j] ) ;
+        QS_SWAP (ya[i] ,ya[j] ) ;
+        QS_SWAP (za[i] ,za[j] ) ;
+        QS_ISWAP(ia[i] ,ia[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned at the pivot -----*/
+
+      xa[right] = xa[i] ; xa[i] = xpivot ;  /* restore the pivot */
+      ya[right] = ya[i] ; ya[i] = ypivot ;
+      za[right] = za[i] ; za[i] = zpivot ;
+      ia[right] = ia[i] ; ia[i] = ipivot ;
+
+      /*----- signal the subarrays that need further work -----*/
+
+      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; }
+      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; }
+
+   }  /* end of while stack is non-empty */
+   return ;
+}
+
+/* quick_sort :  sort an array partially recursively, and partially insertion */
+
+void qsort_IFFF( int n, int *iar, float *xar, float *yar, float *zar )
+{
+   if( n < 2 || iar == NULL || xar == NULL || yar == NULL || zar == NULL ) return ;
+   qsrec_IFFF( n , iar , xar,yar,zar , QS_CUTOFF ) ;
+   isort_IFFF( n , iar , xar,yar,zar ) ;
+   return ;
+}
+
+/*----------------------------------------------------------------------------*/
+/* Find the max FOM value that occured in any given iteration (iar).
+   * inputs are the sorted-by-iar [xyz]ar arrays;
+   * outputs [xyz]out are the largest [xyz]ar values for each
+     distinct value of iar;
+   * return value is the number of such distinct values found
+     == number of values loaded into [xyz]out arrays.
+*//*--------------------------------------------------------------------------*/
+
+int ixmax_IFFF( int n, int *iar, float *xar, float *yar, float *zar,
+                                 float *xout, float *yout, float *zout )
+{
+   int nfound , ival , jj,kk ;
+   float xtop, ytop, ztop ;
+
+   for( nfound=jj=0 ; jj < n ; ){
+     ival = iar[jj] ; xtop = xar[jj] ; ytop = yar[jj] ; ztop = zar[jj] ;
+     for( ++jj ; jj < n && iar[jj] == ival ; jj++ ){
+       if( xar[jj] > xtop ) xtop = xar[jj] ;
+       if( yar[jj] > ytop ) ytop = yar[jj] ;
+       if( zar[jj] > ztop ) ztop = zar[jj] ;
+     }
+     xout[nfound] = xtop; yout[nfound] = ytop; zout[nfound] = ztop; nfound++;
+   }
+
+   return nfound ;
+}
+/*============================================================================*/

@@ -70,6 +70,7 @@ history for $prog :
   3.7  22 Jan 2019 : check for obsolete packages
                    - add -show_obsoletes, -show_obsoletes_grep
                      and -show_system_progs
+  3.8  15 Mar 2019 : comment that dotfile updates were done by @uab
 
 -------------------------------------------------------------------------------
 EOF
@@ -78,7 +79,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.7, January 22, 2019"
+set aub_version = "3.8, March 15, 2019"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -1184,9 +1185,11 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          # finally, update .csrhc and our current path
          echo "++ adding $abin to path in $rcfile ..."
          # newline, in case they are missing one?
-         echo ''                                >> $rcfile
-         echo 'set path = ( $path ' $abin ' ) ' >> $rcfile
+         echo ''                                           >> $rcfile
+         echo '# auto-inserted by @update.afni.binaries :' >> $rcfile
+         echo 'set path = ( $path ' $abin ' ) '            >> $rcfile
          set path = ( $path $abin )
+         rehash
       endif
 
       # if cur_afni_does not point to abin, reset it
@@ -1209,27 +1212,31 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          # not found, so append to file
          echo "++ adding $abin to PATH in $brcfile ..."
          # add a newline, just in case
-         echo ''                        >> $brcfile
-         echo 'export PATH=$PATH:'$abin >> $brcfile
+         echo ''                                           >> $brcfile
+         echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+         echo 'export PATH=$PATH:'$abin                    >> $brcfile
       endif
 
       # ---------------------------
-      # and .bash_profile, but only if it exists
-      set brcfile = ~/.bash_profile
-      if ( -f $brcfile ) then
-         \grep $abin:t $brcfile >& /dev/null
-         if ( $status ) then
-            # $abin not found, so append to file
-            echo "++ adding $abin to PATH in $brcfile ..."
-            echo 'export PATH=$PATH:'$abin >> $brcfile
+      # and .bash_profile, but only if it exists (unless on a mac, sigh)
+      # (same for .profile, since many now use sh)
+      foreach brcfile ( ~/.bash_profile ~/.profile )
+         if ( -f $brcfile ) then
+            \grep $abin:t $brcfile >& /dev/null
+            if ( $status ) then
+               # $abin not found, so append to file
+               echo "++ adding $abin to PATH in $brcfile ..."
+               echo ''                                           >> $brcfile
+               echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+               echo 'export PATH=$PATH:'$abin                    >> $brcfile
+            endif
+         else if ( $sysname == Darwin ) then
+            echo "++ will source .bashrc from newly created $brcfile"
+            echo ''                                              >  $brcfile
+            echo '# auto-inserted by @update.afni.binaries :'    >> $brcfile
+            echo '. $HOME/.bashrc'                               >> $brcfile
          endif
-      else if ( $sysname == Darwin ) then
-         echo "++ will source .bashrc from newly created .bash_profile"
-         echo '' >> $brcfile
-         echo '. $HOME/.bashrc' > $brcfile
-      endif
-
-      # so... what about .profile?
+      end
 
    endif
 endif

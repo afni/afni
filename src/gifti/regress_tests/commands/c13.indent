@@ -1,0 +1,6 @@
+
+foreach level ( 0 3 8 )
+    gifti_tool -infile b64gz.ts.3.gii -no_data -indent $level  \
+               -no_updates -write_gifti new.indent.$level.gii
+end
+

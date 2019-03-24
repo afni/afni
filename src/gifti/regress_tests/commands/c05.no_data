@@ -1,0 +1,4 @@
+
+gifti_tool -infile ascii.pial.short.gii -no_data -no_updates -write_gifti new.gii
+echo ""
+cmp ascii.pial.no_data.gii new.gii

@@ -275,6 +275,8 @@ class Subject(object):
 
       self.ddir  = '.'          # split dset name into directory and file
       self.dfile = ''
+      self.maxlinelen = 0       # if set, maximum line len for subj in command
+                                # rcr - todo
 
       dir, file = os.path.split(dset)   # and update them
       if dir: self.ddir = dir
@@ -407,7 +409,7 @@ class SubjectList(object):
    def set_common_data_dir(self, cname='data_dir'):
       """return the directory common to all subject ddir names"""
       cdir = UTIL.common_dir([s.dset for s in self.subjects])
-      if UTIL.is_trivial_dir(cdir):
+      if UTIL.is_trivial_dir(cdir) or (len(cdir) < len(cname)):
          self.common_dir   = ''
          self.common_dname = ''
       else:
@@ -465,7 +467,7 @@ class SubjectList(object):
 
       return 0
 
-   def restrict_ids_for_dsets(self, valid_ids=[]):
+   def restrict_ids_to_dsets(self, valid_ids=[], require=1):
       """restrict subject IDs to those in valid_ids list
          require all valid_ids to exist, or fail
 
@@ -500,9 +502,58 @@ class SubjectList(object):
                % (missing,len(valid_ids)))
          print("   IDs look like: %s" % ' '.join(all_ids[:3]))
          print("   missing IDs look like: %s" % missed_id)
-         return 1
+         if require:
+            return 1
+         else:
+            print("-- restrict_ids: allowing %d missing IDs..." % missing)
 
       # apply restricted list
+      self.subjects = new_subjs
+
+      return 0
+
+   def remove_ids_from_dsets(self, remove_ids=[], require=1):
+      """restrict subject IDs to those not in remove_ids list
+         if require: require all remove_ids to exist, or fail
+
+         return 0 on success
+      """
+      # bail if either list is empty
+      if len(self.subjects) == 0: return 0
+      if len(remove_ids) == 0: return 0
+
+      # check that remove_ids are unique
+      if not UTIL.vals_are_unique(remove_ids):
+         print('** remove_ids: ids are not unique')
+         return 1
+
+      # check that all remove_ids exist, and fail if not
+      all_ids = [subj.sid for subj in self.subjects]
+      missing = 0
+      for sid in remove_ids:
+         if sid not in all_ids:
+            if self.verb > 1:
+               print("** remove_ids: cannot remove missing ID '%s'"%sid)
+            missed_id = sid
+            missing += 1
+      if missing and (require or self.verb > 1):
+         print("** remove_ids: missing %d of %d IDs" \
+               % (missing,len(remove_ids)))
+         print("   IDs look like: %s" % ' '.join(all_ids[:3]))
+         print("   missing IDs look like: %s" % missed_id)
+         # if required, this is fatal
+         if require:
+            return 1
+         else:
+            print("-- remove_ids: allowing %d missing IDs..." % missing)
+
+      # generate a new subject list
+      new_subjs = []
+      for sindex, sid in enumerate(all_ids):
+         if sid not in remove_ids:
+            new_subjs.append(self.subjects[sindex])
+
+      # apply remove list
       self.subjects = new_subjs
 
       return 0

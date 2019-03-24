@@ -73,6 +73,7 @@ static AFNI_friend afni_friends[] = {
   { "G Fong"         , (                 16 |           128             ) } ,
   { "LR Frank"       , (             8 | 16                             ) } ,
   { "R Desimone"     , (     2                                          ) } ,
+  { "S Amara"        , ( 1 | 2                                          ) } ,
   { "L Ungerleider"  , (     2                                          ) } ,
   { "KR Hammett"     , (             8 |           64                   ) } ,
   { "A Clark"        , (                           64 |       512       ) } ,
@@ -98,7 +99,7 @@ static AFNI_friend afni_friends[] = {
   { "W Gaggl"        , (         4 | 8                                  ) } ,
   { "V Hradil"       , (         4 | 8 | 16                             ) } ,
   { "D Handwerker"   , (         4 | 8                                  ) } ,
-  { "J Gonzalez-Castillo" , (    4 | 8                | 128             ) } ,
+  { "J Gonzalez-Castillo" , (    4 | 8                | 128             ) } , /* name is too long :( */
   { "J Evans"        ,      (    4 | 8                | 128             ) } ,
   { "S Inati"        ,      (    4 | 8                                  ) } ,
   { "P Taylor"       ,      (                      64 | 128 | 512       ) } ,

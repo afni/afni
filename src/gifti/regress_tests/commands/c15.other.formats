@@ -1,0 +1,5 @@
+
+# create FS type asc file from pial, and 1D file from ts.3
+
+gifti_tool -infiles ascii.pial.short.gii -verb 3 -write_asc pial.short.asc
+gifti_tool -infiles b64gz.ts.3.gii -verb 3 -write_1D ts3.1D

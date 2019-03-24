@@ -67,6 +67,7 @@
 #include <ctype.h>
 
 #include "mri_dicom_hdr.h"
+#include "mri_dicom_elist.h"  /* for whining  [6 Mar 2019 rickr] */
 
 /* pass private(!) Siemens slice times back, if found 
  * nused : number of slice times read                    8 Apr 2011 [rickr] */
@@ -6466,6 +6467,18 @@ readGroupElement(const char *name, unsigned char **ptr, int fd, U32 * size,
     return DCM_NORMAL;
 }
 
+static int tagstr_in_elist(const char * tagstr)
+{
+   int index;
+   for( index=0; index < NUM_ELIST; index++ ) {
+      /* if found, return 1 */
+      if( ! strcmp(tagstr, elist[index]) )
+         return 1;
+   }
+   /* not found */
+   return 0;
+}
+
 static CONDITION
 readVRLength(const char *name, unsigned char **ptr, int fd, U32 * size,
 	     off_t * fileOffset,
@@ -6583,8 +6596,19 @@ ENTRY("readVRLength") ;
                 }
 #else
                if( rwc_err ){
+                /* be explicit about fields that are used in AFNI 
+                 * for B Benson [6 Mar 2019 rickr] */
+                char tagstr[16] = "";
+                int  used_in_afni = 0;
+                sprintf(tagstr, "%04x %04x",
+                        DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag));
+                
                 fprintf(stderr,"++ DICOM WARNING: VR mismatch in element (%04x,%04x)\n",  /* RWC */
                         DCM_TAG_GROUP(e->tag), DCM_TAG_ELEMENT(e->tag) ) ; rwc_err-- ;
+                if( tagstr_in_elist(tagstr) )
+                  fprintf(stderr,"   (danger: this field is used by AFNI)\n");
+                else
+                  fprintf(stderr,"   (okay: this field is not used by AFNI)\n");
                }
                e->representation = vrPtr->representation;
 #endif

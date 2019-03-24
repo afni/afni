@@ -43,12 +43,39 @@ examples:
 
    1. typical usage: input all out.ss_review files across groups and subjects
 
-      gen_ss_review_table.py -tablefile review_table.xls        \\
+      gen_ss_review_table.py -write_table review_table.xls        \\
                 -infiles group.*/subj.*/*.results/out.ss_review.*
 
    2. just show label table
 
       gen_ss_review_table.py -showlabs -infiles gr*/sub*/*.res*/out.ss_rev*
+
+   3. report outliers: subjects with "outlier" table values
+      (include all 'degrees of freedom left' values in the table)
+
+      gen_ss_review_table.py                                          \\
+              -outlier_sep space                                      \\
+              -report_outliers 'censor fraction' GE 0.1               \\
+              -report_outliers 'average censored motion' GE 0.1       \\
+              -report_outliers 'max censored displacement' GE 8       \\
+              -report_outliers 'TSNR average' LT 300                  \\
+              -report_outliers 'degrees of freedom left' SHOW         \\
+              -infiles sub*/s*.results/out.ss*.txt                    \\
+              -write_outliers outliers.values.txt
+
+   4. report outliers: subjects with varying columns, where they should not
+
+      gen_ss_review_table.py                                          \\
+              -outlier_sep space                                      \\
+              -report_outliers 'AFNI version' VARY                    \\
+              -report_outliers 'num regs of interest' VARY            \\
+              -report_outliers 'final voxel resolution' VARY          \\
+              -report_outliers 'num TRs per run' VARY                 \\
+              -infiles sub*/s*.results/out.ss*.txt                    \\
+              -write_outliers outliers.vary.txt
+
+      * Note that examples 3 and 4 could be put together, but it might make
+        processing easier to keep them separate.
 
 ------------------------------------------
 terminal options:
@@ -70,9 +97,22 @@ process options:
       This program can be used as a pipe for input and output, using '-'
       or file stream names.
 
-   -overwrite           : overwrite the output -tablefile, if it exists
+   -overwrite           : overwrite the output -write_table, if it exists
 
-      Without this option, an existing -tablefile will not be overwritten.
+      Without this option, an existing -write_table will not be overwritten.
+
+   -outlier_sep SEP     : use SEP for the outlier table separator
+
+         e.g.     -outlier_sep tab
+         default. -outlier_sep space
+
+      Use this option to specify how the fields in the outlier table are
+      separated.  SEP can be basically anything, with some special cases:
+
+         space  : (default) make the columns spatially aligned
+         comma  : use commas ',' for field separators
+         tab    : use tabs '\\t' for field separators
+         STRING : otherwise, use the given STRING as it is provided
 
    -separator SEP       : use SEP for the label/vals separator (default = ':')
 
@@ -91,11 +131,93 @@ process options:
 
       Force the first output column to be the input files.
 
+   -report_outliers LABEL COMP [VAL] : report outliers, where comparison holds
+
+        e.g. -report_outliers 'censor fraction' GE 0.1
+        e.g. -report_outliers 'average censored motion' GE 0.1
+        e.g. -report_outliers 'TSNR average' LT 100
+        e.g. -report_outliers 'AFNI version' VARY
+        e.g. -report_outliers 'global correlation (GCOR)' SHOW
+
+      This option is used to make a table of outlier subjects.  If any
+      comparison function is true for a subject (other than SHOW), that subject
+      will be included in the output table.  By default, only the values seen
+      as outliers will be shown (see -report_outliers_fill_style).
+
+      The outlier table will be spatially aligned by default, though the
+      option -outlier_sep can be used to control the field separator.
+
+      In general, the comparison will be an outlier if it is true, meaning
+      "LABEL COMP VAL" defines what is an outlier (as opposed to defining what
+      is okay).  The parameters include:
+
+        LABEL   : the (probably quoted) label from the input out.ss files
+                  (it should be quoted to be applied as a single parameter,
+                  including spaces, parentheses or other special characters)
+
+        COMP    : a comparison operator, one of:
+                  SHOW  : (no VAL) show the value, for any output subject
+                  VARY  : (no VAL) show any value that varies from first subj
+                  EQ    : equals (outlier if subject value equals VAL)
+                  LT    : less than
+                  LE    : less than or equal to
+                  GT    : greater than
+                  GE    : greater than or equal to
+                  
+        VAL     : a comparison value (if needed, based on COMP)
+
+      RO example 1.
+
+            -report_outliers 'censor fraction' GE 0.1
+
+         Any subject with a 'censor fraction' that is greater than or equal to
+         0.1 will be considered an outlier, with that subject line shown, and
+         with that field value shown.
+
+      RO example 2.
+
+            -report_outliers 'AFNI version' VARY
+
+         In determining whether 'AFNI version' varies across subjects, each
+         subject is simply compared with the first.  If they differ, that
+         subject is considered an outlier, with the version shown.
+
+      RO example 3.
+
+            -report_outliers 'global correlation (GCOR)' SHOW
+
+         SHOW is not actually an outlier comparison, it simply means to show
+         the given field value in any output.  This will not affect which
+         subject lines are displayed.  But for those that are, the GCOR column
+         (in this example) and values will be included.
+
+        See also -report_outliers_fill_style and -outlier_sep.
+
+   -report_outliers_fill_style STYLE : how to fill non-outliers in table
+
+        e.g. -report_outliers_fill_style na
+        default: -report_outliers_fill_style blank
+
+      Aside from the comparison operator of 'SHOW', by default, the outlier
+      table will be sparse, with empty positions where values are not
+      outliers.  This option specifies how to fill non-outlier positions.
+
+            blank   : (default) leave position blank
+            na      : show the text, 'na'
+            value   : show the original data value
+
    -show_missing        : display all missing keys
 
       Show all missing keys from all infiles.
 
-   -tablefile OUT_NAME  : write final table to the given file
+   -write_outliers FNAME : write outlier table to given file, FNAME
+
+      If FNAME is '-' 'stdout', write to stdout.
+
+   -write_table FNAME    : write final table to the given file
+   -tablefile   FNAME    : (same)
+
+      Write the full spreadsheet to the given file.
 
       If the specified file already exists, it will not be overwritten
       unless the -overwrite option is specified.
@@ -111,9 +233,7 @@ R Reynolds    April 2014
 
 g_todo = """
    todo list:
-
-      - add tests for new options
-      - add help
+      - add help for -report_outliers
 """
 
 g_history = """
@@ -132,12 +252,16 @@ g_history = """
    1.1  Feb 27, 2019
         - added -report_outliers, to flag concerning subjects and columns
         - make internal review table, -
-        - added -out_sep, and include 'space' to make aligned table
+        - added -outlier_sep, and include 'space' to make aligned table
         - added -show_infiles, to explicitly include input files
         - synchronize group/subj/infile in table
+   1.2  Mar  7, 2019:
+        - added -report_outliers_fill_style (for Paul)
+        - added -write_outliers
+        - added -write_table to replace -tablefile (though it still works)
 """
 
-g_version = "gen_ss_review_table.py version 1.1, February 27, 2019"
+g_version = "gen_ss_review_table.py version 1.2, March 7, 2019"
 
 
 class MyInterface:
@@ -162,10 +286,12 @@ class MyInterface:
 
       # outlier table
       self.report_outliers = 0
+      self.ro_tablefile    = '-'
       self.ro_list         = [] # list of [LABEL, COMPARE, VAL,...]
-      self.ro_valid_comps  = ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+      self.ro_valid_comps  = ['SHOW', 'VARY', 'EQ', 'NE',
+                              'LT', 'LE', 'GT', 'GE']
       self.ro_valid_fills  = ['blank', 'na', 'value']
-      self.ro_valid_heads  = ['label', 'index', 'acronym']
+      self.ro_valid_heads  = ['label', 'acronym', 'blank']
       self.ro_fill_type    = 'blank'    # blank, na, value
       self.ro_head_type    = 'acronym'  # label, index, acronym
       self.ro_sep_type     = 'space'    # space, comma, tab
@@ -202,19 +328,15 @@ class MyInterface:
                     helpstr='allow overwrite for output table file')
       vopts.add_opt('-report_outliers', -2, [],
                     helpstr='report outlier subjects for test')
-      #vopts.add_opt('-report_outliers_fill', 1, [],
-      #              acplist=self.ro_valid_fills,
-      #              helpstr='what to fill empty entries with')
-      #vopts.add_opt('-report_outliers_header', 1, [],
-      #              acplist=self.ro_valid_heads,
-      #              helpstr='how to format column headers')
-      #vopts.add_opt('-report_outliers_sep', 1, [],
-      #              -- do not require a named separator
-      #              acplist=self.valid_out_seps,
-      #              helpstr='outlier report field separator type')
+      vopts.add_opt('-report_outliers_fill_style', 1, [],
+                    acplist=self.ro_valid_fills,
+                    helpstr='how to fill empty (non-outlier) entries')
+      vopts.add_opt('-report_outliers_header_style', 1, [],
+                    acplist=self.ro_valid_heads,
+                    helpstr='how to format column headers')
       vopts.add_opt('-separator', 1, [],
                     helpstr="specify field separator (default=':')")
-      vopts.add_opt('-out_sep', 1, [],
+      vopts.add_opt('-outlier_sep', 1, [],
                     helpstr="output field separator (default=tab)")
       vopts.add_opt('-showlabs', 0, [],
                     helpstr='show list of labels found')
@@ -222,6 +344,10 @@ class MyInterface:
                     helpstr='make tablefile output start with input files')
       vopts.add_opt('-show_missing', 0, [],
                     helpstr='show all missing keys')
+      vopts.add_opt('-write_outliers', 1, [],
+                    helpstr='file name for outlier table (default=stdout)')
+      vopts.add_opt('-write_table', 1, [],
+                    helpstr='file name for output table (dupe for -tablefile)')
       vopts.add_opt('-tablefile', 1, [],
                     helpstr='file name for output table')
       vopts.add_opt('-verb', 1, [], helpstr='set the verbose level (def=1)')
@@ -300,10 +426,10 @@ class MyInterface:
             elif self.separator == 'whitespace': self.separator = 'ws'
             self.seplen = len(self.separator)
 
-         elif opt.name == '-out_sep':
+         elif opt.name == '-outlier_sep':
             self.out_sep, err = uopts.get_string_opt('', opt=opt)
             if self.out_sep == None or err:
-               print("** bad -out_sep option")
+               print("** bad -outlier_sep option")
                errs += 1
             if   self.out_sep == 'tab': self.out_sep = '\t'
             elif self.out_sep == 'comma': self.out_sep = ','
@@ -324,10 +450,18 @@ class MyInterface:
 
             self.report_outliers = 1
 
-         elif opt.name == '-report_outliers_fill':
+         elif opt.name == '-report_outliers_fill_style':
             self.ro_fill_type, err = uopts.get_string_opt('', opt=opt)
             if self.ro_fill_type is None or err:
-               print("** bad opt: -report_outliers_fill %s"%self.ro_fill_type)
+               print("** bad opt: -report_outliers_fill_style %s" \
+                     % self.ro_fill_type)
+               errs += 1
+
+         elif opt.name == '-report_outliers_header_style':
+            self.ro_head_type, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_head_type is None or err:
+               print("** bad opt: -report_outliers_header_style %s" \
+                     % self.ro_head_type)
                errs += 1
 
          # ------------------------------ outliers end
@@ -341,10 +475,17 @@ class MyInterface:
          elif opt.name == '-show_missing':
             self.show_missing = 1
 
-         elif opt.name == '-tablefile':
+         # try to replace -tablefile with -write_table
+         elif opt.name == '-write_table' or opt.name == '-tablefile':
             self.tablefile, err = uopts.get_string_opt('', opt=opt)
             if self.tablefile == None or err:
-               print("** bad -tablefile option")
+               print("** bad %s option" % opt.name)
+               errs +=1
+
+         elif opt.name == '-write_outliers':
+            self.ro_tablefile, err = uopts.get_string_opt('', opt=opt)
+            if self.ro_tablefile == None or err:
+               print("** bad -write_outliers option")
                errs +=1
 
          else:
@@ -571,7 +712,7 @@ class MyInterface:
          if self.verb > 1: print('++ trying to get SID from glob form')
          slist = UTIL.list_minus_glob_form(self.infiles, strip='dir')
       else:
-         if self.verb > 1: print("++ have SIDs from 'out.ss_reiview' form")
+         if self.verb > 1: print("++ have SIDs from 'out.ss_review' form")
 
       if len(slist) == 0:
          if self.verb > 1: print("-- empty SID list")
@@ -593,7 +734,7 @@ class MyInterface:
       newfiles = [fname.replace(slist[ind], 'SUBJ') for ind, fname in
                         enumerate(self.infiles)]
 
-      if UTIL.vals_are_constant(newfiles):
+      if UTIL.vals_are_constant(newfiles) and self.verb > 1:
          print('-- no groups detected from filenames')
          return
 
@@ -659,7 +800,12 @@ class MyInterface:
       rv, test_report = self.ro_apply_tests(test_report, self.ro_list)
       if rv: return 1
 
-      self.write_table(otable=test_report, ofile='-')
+      have_outliers = (len(test_report) > 2)
+
+      if have_outliers or (self.verb > 1):
+         self.write_table(otable=test_report, ofile=self.ro_tablefile)
+      if not have_outliers and self.verb > 0:
+         print("-- no outlier subjects to list")
 
       return 0
 
@@ -672,6 +818,8 @@ class MyInterface:
       rev_labels = [otest[0] for otest in test_list]
       firstind = table[0].index(rev_labels[0])
       ntestcols = sum([self.maxcounts[label] for label in rev_labels])
+      # copy original row 2 for VARY comparison
+      varyrow = table[2][:]
 
       # list of "failure" rows to keep in table (start with 2 header rows)
       faillist = [0, 1]
@@ -688,23 +836,42 @@ class MyInterface:
             label = otest[0]
             check = otest[1]
             nchecks = self.maxcounts[label]
+            # might differ from given one
+            test_check = check
 
             # if SHOW, just move along, and keep table entries
             if check == 'SHOW':
                posn += nchecks
                continue
 
+            # avoid 'SHOW' and 'VARY', to be sure [2] exists
+            if check != 'VARY':
+               baseval = otest[2]
+
             # the main purpose: look for errors
             for repind in range(nchecks):
-               baseval = otest[2]
+               if check == 'VARY':
+                  # convert 'VARY' to 'NE' initial_value
+                  usecheck = 'NE'
+                  baseval = varyrow[posn]
+               else:
+                  usecheck = check
+
                testval = table[rind][posn]
-               outlier = self.ro_val_is_outlier(testval, check, baseval)
+               outlier = self.ro_val_is_outlier(testval, usecheck, baseval)
                # failure to run test
                if outlier < 0: return 1, []
 
                # outliers are kept but tracked, else values are cleared
-               if outlier: all_passed = 0
-               else:       table[rind][posn] = ''
+               if outlier:
+                  all_passed = 0
+               else:
+                  # fill the position based on type
+                  if self.ro_fill_type == 'blank':
+                     table[rind][posn] = ''
+                  elif self.ro_fill_type == 'na':
+                     table[rind][posn] = 'na'
+                  # else leave as value
                posn += 1
 
          if not all_passed:
@@ -718,7 +885,7 @@ class MyInterface:
    def ro_val_is_outlier(self, tval, comp, bval):
       """return whether "tval comp bval" seems true, e.g.
                          0.82 GE   1.0
-         comp_list: ['SHOW', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
+         comp_list: ['SHOW', 'VARY', 'EQ', 'NE', 'LT', 'LE', 'GT', 'GE']
 
          all numerical tests are as floats
 
@@ -728,6 +895,9 @@ class MyInterface:
       """
       # handle non-numeric first
       if comp == 'SHOW': return 0
+
+      # handle non-numeric first
+      if comp == 'VARY': return 0
 
       # get float directional comparison, if possible
       # (-1, 0, 1, or -2 on error)
@@ -740,33 +910,33 @@ class MyInterface:
       #   - equality test would imply for floats, but is more general
       if comp == 'EQ':
          if scomp:       return 1 # equal strings
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 0 # cannot tell as floats, call different
          # float result
          if fcomp == 0:  return 1
          else:           return 0
          
       if comp == 'NE':
-         if scomp:       return 0 # equal strings, this must fail
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if scomp:       return 0 # equal strings, this is an outlier
+         if fcomp == -2: return 1 # cannot tell as floats, call different
          # float result
          if fcomp == 0:  return 0
          else:           return 1
          
       # continue with pure numerical tests (forget scomp)
       if comp == 'LT':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp < 0)
          
       if comp == 'LE':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp <= 0)
          
       if comp == 'GT':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp > 0)
          
       if comp == 'GE':
-         if fcomp == -2: return 0 # cannot tell, call failure
+         if fcomp == -2: return 1 # cannot tell, call outlier
          return (fcomp >= 0)
          
       print("** ro_val_is_outlier: unknown comp: %s" % comp)
@@ -780,8 +950,8 @@ class MyInterface:
          f1 = float(v1)
          f2 = float(v2)
          if f1 < f2: return -1
-         # handle 0 or 1
-         return (f1 > f2)
+         if f1 > f2: return  1
+         return 0
       except:
          return -2
 
@@ -807,8 +977,10 @@ class MyInterface:
       for otest in test_list:
          label = otest[0]
          check = otest[1]
-         if check == 'SHOW': newlab = check
-         else:               newlab = '%s:%s' % (check, otest[2])
+         if check == 'SHOW' or check == 'VARY':
+            newlab = check
+         else:
+            newlab = '%s:%s' % (check, otest[2])
 
          for repind in range(self.maxcounts[label]):
             table[1][posn] = newlab
@@ -842,7 +1014,7 @@ class MyInterface:
          if check not in self.ro_valid_comps:
             estr  = "** invalid comparison, '%s'" % check
             estr += "   should be in: %s" % ', '.join(self.ro_valid_comps)
-         if check != 'SHOW' and nop < 1:
+         if check != 'SHOW' and check != 'VARY' and nop < 1:
             estr = ("** outlier test: missing parameter")
 
          if estr:
@@ -1077,11 +1249,12 @@ class MyInterface:
             if rlens[cind] > max_lens[cind]:
                max_lens[cind] = rlens[cind]
 
-      # and print, but do not wait for __future__
+      # and write
       joinstr = ' '*pad
       for row in table:
          svals = ["%-*s" % (max_lens[vind], row[vind]) for vind in range(ncols)]
-         print(joinstr.join(svals))
+         fp.write(joinstr.join(svals))
+         fp.write('\n')
 
       return 0
 

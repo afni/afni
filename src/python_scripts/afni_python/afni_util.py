@@ -1671,24 +1671,25 @@ def replace_n_squeeze(instr, oldstr, newstr):
 # line wrapper functions
 
 # add line wrappers ('\'), and align them all
-def add_line_wrappers(commands, wrapstr='\\\n', verb=1):
+def add_line_wrappers(commands, wrapstr='\\\n', maxlen=78, verb=1):
     """wrap long lines with 'wrapstr' (probably '\\\n' or just '\n')
        if '\\\n', align all wrapstr strings"""
     new_cmd = ''
     posn = 0
 
-    while needs_wrapper(commands, 78, posn):
+    while needs_wrapper(commands, maxlen, posn):
             
         end = find_command_end(commands, posn)
 
-        if not needs_wrapper(commands, 78, posn, end): # command is okay
+        if not needs_wrapper(commands, maxlen, posn, end): # command is okay
             if end < 0: new_cmd = new_cmd + commands[posn:]
             else      : new_cmd = new_cmd + commands[posn:end+1]
             posn = end+1
             continue
 
         # command needs wrapping
-        new_cmd += insert_wrappers(commands,posn,end,wstring=wrapstr,verb=verb)
+        new_cmd += insert_wrappers(commands, posn, end, wstring=wrapstr,
+                                   maxlen=maxlen, verb=verb)
 
         posn = end + 1     # else, update posn and continue
 
@@ -1736,7 +1737,8 @@ def align_wrappers(command):
 
     return new_cmd
 
-def insert_wrappers(command, start=0, end=-1, wstring='\\\n', verb=1):
+def insert_wrappers(command, start=0, end=-1, wstring='\\\n',
+                    maxlen=78, verb=1):
     """insert any '\\' chars for the given command
          - insert between start and end positions
          - apply specified wrap string wstring
@@ -1750,7 +1752,6 @@ def insert_wrappers(command, start=0, end=-1, wstring='\\\n', verb=1):
     prefix = get_next_indentation(command,start,end)
     sskip  = nfirst             # number of init spaces expected
     plen   = len(prefix)
-    maxlen = 78
     newcmd = ''
     cur    = start
 

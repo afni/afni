@@ -511,7 +511,7 @@ greeting.MEMA <- function ()
           ================== Welcome to 3dMEMA.R ==================          
              Mixed-Effects Multilevel-Analysis Modeling!
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 1.0.2, Jan 19, 2018
+Version 1.0.3, March 14, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/MEMA
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -2514,7 +2514,12 @@ tTop <- 100   # upper bound for t-statistic
       grpDFList[[ii]] <- lop$nSubj[ii] - grpDFList[[ii]] - 1
    
    # convert each t with specific DFs to one with full DFs
-   tConvert <- function(tval, DF, fullDF) ifelse(DF>=1, qt(pt(tval, DF), fullDF), 0)
+   tConvert <- function(tval, DF, fullDF) {
+      if(DF >= 1) {
+         if(DF==fullDF) return(tval) else return(qt(pt(tval, DF), fullDF))
+      } else return(0) 
+   }
+   #   ifelse(DF>=1, qt(pt(tval, DF), fullDF), 0)
    #tConvert <- function(tval, DF, fullDF) qt(pt(tval, ifelse(DF>=1, DF, NA)), fullDF)
    #browser()
    if(lop$anaType!=4) for(m in seq(2,(2+4*(lop$nGrp==2)+2*lop$nCov),2)) 

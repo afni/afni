@@ -1,0 +1,12 @@
+#!/bin/tcsh
+
+./@test
+./@show.diffs
+
+echo "\n-------------------- restricted diffs --------------------"
+cat diffs/* | grep -v 'rickr@manwe' | grep -v 'CDATA.AFN_' | grep -v 'EST 201'\
+  | grep -v 'gifti library version' | grep -v ' EDT '
+
+echo ""
+date > last.check
+echo ""

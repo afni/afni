@@ -1,0 +1,9 @@
+
+
+gifti_tool -infile MAKE_IM -write_gifti defaults.gii
+gifti_tool -infile MAKE_IM -new_numDA 3 -new_intent NIFTI_INTENT_TTEST    \
+           -new_dtype NIFTI_TYPE_INT16 -new_ndim 1 -new_dims 11 0 0 0 0 0 \
+           -new_data -write_gifti create.gii
+gifti_tool -infile MAKE_IM -new_numDA 3 -new_intent NIFTI_INTENT_TTEST    \
+           -new_dtype NIFTI_TYPE_INT16 -new_ndim 1 -new_dims 11 0 0 0 0 0 \
+           -new_data -write_1D create.1D

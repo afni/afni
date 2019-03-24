@@ -197,6 +197,7 @@ static int dryrun = 0 ;
 typedef struct {
   int nnlev , sid , npthr ;
   int do_hpow0 , do_hpow1 , do_hpow2 ;
+  int do_sorter ; /* 11 Mar 2019 */
   float *pthr ;
   float farp_goal ;
   char name[32] ;
@@ -412,7 +413,8 @@ static void permute_arrays( int nx , float *x , int ny , float *y )
 void display_help_menu(void)
 {
    printf(
-      "Gosset (Student) t-test of sets of 3D datasets.\n"
+      "\n"
+      "Gosset (Student) t-test of sets of 3D datasets.  ~1~\n"
       "\n"
       "      [* Also consider program 3dMEMA, which can carry out a  *]\n"
       "      [* more sophisticated type of 't-test' that also takes  *]\n"
@@ -492,7 +494,7 @@ void display_help_menu(void)
       "\n"
 
       "------------------\n"
-      "SET INPUT OPTIONS\n"
+      "SET INPUT OPTIONS   ~1~\n"
       "------------------\n"
       "\n"
       "* At least the '-setA' option must be given.\n"
@@ -585,7 +587,7 @@ void display_help_menu(void)
       "  *****            specify the standard subtraction order.          *****\n"
       "\n"
       "---------------------------------------------------------------\n"
-      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS\n"
+      "TESTING A SINGLE DATASET VERSUS THE MEAN OF A GROUP OF DATASETS   ~1~\n"
       "---------------------------------------------------------------\n"
       "\n"
       "This new [Mar 2015] option allows you to test a single value versus\n"
@@ -675,7 +677,7 @@ void display_help_menu(void)
       "  '-setA' option.\n"
       "\n"
       "--------------------------------------\n"
-      "COVARIATES - per dataset and per voxel\n"
+      "COVARIATES - per dataset and per voxel   ~1~\n"
       "--------------------------------------\n"
       "\n"
       " -covariates COVAR_FILE\n"
@@ -891,7 +893,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------\n"
-      "OTHER OPTIONS\n"
+      "OTHER OPTIONS   ~1~\n"
       "-------------\n"
       "\n"
       " -paired   = Specifies the use of a paired-sample t-test to\n"
@@ -1122,7 +1124,7 @@ void display_help_menu(void)
       "             ++ Two copies of '-debug' will give even MORE output!\n"
       "\n"
       "-----------------------------------------------------------------------------\n"
-      "ClustSim Options -- for global cluster-level thresholding and FPR control\n"
+      "ClustSim Options -- for global cluster-level thresholding and FPR control   ~1~\n"
       "-----------------------------------------------------------------------------\n"
       "\n"
       "The following options are for using randomization/permutation to simulate\n"
@@ -1343,7 +1345,7 @@ void display_help_menu(void)
       "                for completeness of the Galactic Chronosynclastic Infundibulum.\n"
       "\n"
       "------------\n"
-      "ETAC Options -- [promulgated May 2017 == still experimental!]\n"
+      "ETAC Options -- [promulgated May 2017]   ~1~\n"
       "------------\n"
       "\n"
       "The following options use the ETAC (Equitable Thresholding And Clustering)\n"
@@ -1411,15 +1413,45 @@ void display_help_menu(void)
       " -ETAC_global         = Do the ETAC calculations 'globally' - that is, produce\n"
       "                        multi-threshold values to apply to the entire volume\n"
       "                        rather than voxelwise.\n"
+      "                  --->>++ This is the default mode of operation for ETAC.\n"
       "                       ++ These global calculations are kind of like '-Clustsim'\n"
       "                          in that they produce a set of cluster thresholds to\n"
       "                          apply everywhere in the brain - a small set of numbers.\n"
       "                          The difference from '-Clustsim' is that for a given FPR,\n"
       "                          the set of cluster threshold values are intended to\n"
       "                          be applied simultaneously.\n"
-      "                       ++ These output thresholds are stored in text files\n"
-      "                          (using an XML format) with a name like\n"
-      "                            globalETAC.mthresh.{PREFIX}.{CASE}.{FPR}.niml\n"
+      "     Output files -->>>++ The output from global ETAC is a binary mask file indicating\n"
+      "      binary mask         which voxels survived the multi-thresholding process.\n"
+      "      (main result)       The name of such a file follows the format\n"
+      "                            {PREFIX}.{NAME}.ETACmask.global.{SIDE}.{FPR}.nii.gz\n"
+      "                          where {PREFIX} is from'-prefix' or '-prefix_clustsim',\n"
+      "                                {NAME} is the name given in '-ETAC_opt',\n"
+      "                                {SIDE} is '1pos' and '1neg' if 1-sided testing\n"
+      "                                       was ordered in '-ETAC_opt',\n"
+      "                                       or is '2sid' if 2-sided testing was ordered.\n"
+      "                                {FPR} is the false positive rate (e.g., '7perc')\n"
+      "                       -> It is very possible that this output mask will be all\n"
+      "                          zero, indicating that nothing survived. A quick way\n"
+      "                          to see how many voxels made it through the ETAC process:\n"
+      "                            3dBrickStat -non-zero -count MaskDatasetName.nii.gz\n"
+      "                          This command will print (to stdout) a single integer\n"
+      "                          of the count of non-zero voxels in this mask dataset.\n"
+      "     Output files --->>++ A similarly named file, with '.ETACmaskALL.' replacing\n"
+      "      which tests         '.ETACmask.' is also output, which has 1 binary volume for\n"
+      "      'passed' in         each thresholding sub-test (i.e., number of p-thresholds\n"
+      "      each voxel          times number of blur levels); this dataset marks each\n"
+      "                          voxel with the set of tests that were passed there.\n"
+      "     Output files --->>++ The actual output thresholds are stored in text files\n"
+      "      the thresholds      (using an XML format) with a name like\n"
+      "                            globalETAC.mthresh.{PREFIX}.{NAME}.ETAC.{LEVEL}.{FPR}.niml\n"
+      "                          where {PREFIX} is from'-prefix' or '-prefix_clustsim',\n"
+      "                                {NAME} is the name given in '-ETAC_opt',\n"
+      "                                {LEVEL} is the blur level name (e.g., 'B8.0')\n"
+      "                                {FPR} is the false positive rate (e.g., '7perc')\n"
+      "                          The multiple thresholds are available as a column of\n"
+      "                          numbers in the single XML element in this file.\n"
+      "                          If multiple blur levels are used, there will be one\n"
+      "                          such file for each blur level.\n"
       "\n"
       " -ETAC_local          = Do the ETAC calculations 'locally' - that is, produce\n"
       "                        3D datasets with voxelwise cluster multi-threshold.\n"
@@ -1428,6 +1460,8 @@ void display_help_menu(void)
       "                          It is very time consuming and doesn't make anything better.\n"
       "\n"
       " -noETAC_global       = Turn off the 'global' ETAC calculations.\n"
+      "                       ++ Doing this is NOT recommended.\n"
+      "\n"
       " -noETAC_local        = Turn off the 'local' ETAC calculations.\n"
       "                       ++ If you turn them both off, then you are not doing ETAC!\n"
       "                       ++ You can also control these local/global settings by\n"
@@ -1436,7 +1470,7 @@ void display_help_menu(void)
       "\n"
       " -ETAC_mem            = This option tells the program to print out the\n"
       "                        estimate of how much memory is required by the ETAC\n"
-      "                        run ordered, and then stop.\n"
+      "                        run as ordered, and then stop.\n"
       "                       ++ No data analysis of any kind will be performed.\n"
       "                       ++ You have to give all the options (-setA, -ETAC, etc.)\n"
       "                          that you would use to run the analysis.\n"
@@ -1460,13 +1494,21 @@ void display_help_menu(void)
       "                          number of blur cases rises.\n"
       "                       ++ You can use '0' for one of the blur parameters here,\n"
       "                          meaning to not apply any extra blurring for that case.\n"
+      "                       ++ We recommend blurring no more than 3 times the original\n"
+      "                          EPI voxel dimension.\n"
       "                       ++ You can only use '-ETAC_blur' once.\n"
+      "                       ++ '-ETAC_blur' is implemented via '-exblur', and the blurring\n"
+      "                          is done only inside the analysis mask (cf. 3dBlurInMask).\n"
       "\n"
       " -ETAC_opt params     = This option lets you choose the non-blurring parameters\n"
       "                        for ETAC. You can use this option more than once, to\n"
-      "                        have different thresholding cases computed. The 'params'\n"
-      "                        string is one argument, with different parts separated\n"
-      "                        by colon ':' characters. The parts are\n"
+      "                        have different thresholding cases computed from the\n"
+      "                        same set of permutations -- since the permutations are\n"
+      "                        slow, this multiple cases ability is here to help\n"
+      "                        you speed things up when you are trying out different\n"
+      "                        possibilities.\n"
+      "                        The 'params' string is one argument, with different\n"
+      "                        parts separated by colon ':' characters. The parts are\n"
       "                    NN=1 or NN=2 or NN=3 } spatial connectivity for clustering\n"
       "                    sid=1 or sid=2       } 1-sided or 2-sided t-tests\n"
       "                    pthr=p1,p2,...       } list of p-values to use\n"
@@ -1478,29 +1520,82 @@ void display_help_menu(void)
       "                    name=Something       } a label to distinguish this case\n"
       "                        For example:\n"
       "             -ETAC_opt NN=2:sid=2:hpow=0,2:pthr=0.01,0.005,0.002,0.01:name=Fred\n"
-      "                        The H powers ('hpow') allowed are 0, 1, and/or 2;\n"
-      "                        the clustering figure of merit (FOM) is defined as the\n"
-      "                        sum over voxels in a cluster of the voxel absolute\n"
-      "                        z-scores raised to the H power; H=0 is the number of\n"
-      "                        voxels in a cluster (what 3dClustSim uses).\n"
       "                       ++ You can use '-ETAC_opt' more than once, to make\n"
       "                          efficient re-use of the randomized/permuted cases.\n"
       "                     -->> Just give each use within the same 3dttest++ run a\n"
       "                          different label after 'name='.\n"
+      "                         + It is important to use distinct names for each\n"
+      "                           different '-ETAC_opt' case, so that the output\n"
+      "                           file names will be distinct.\n"
       "                       ++ There's no built-in upper limit to the number of\n"
       "                          '-ETAC_opt' cases you can run.\n"
-      "                          Each time you use '-ETAC_opt', 3dXClustSim will be\n"
-      "                          run (using the same set of randomizations).\n"
-      "                       ++ It is important to use distinct names for each\n"
-      "                          different '-ETAC_opt' case, so that the output\n"
-      "                          file names will be distinct (see below).\n"
-      "                       ++ If you do not use '-ETAC_opt' at all, a built-in set\n"
+      "                          Each time you use '-ETAC_opt', 3dXClustSim will be run\n"
+      "                          (using the same set of permutations/randomizations).\n"
+      "                       ++ The H powers ('hpow') allowed are 0, 1, and/or 2;\n"
+      "                          the clustering figure of merit (FOM) is defined as the\n"
+      "                          sum over voxels in a cluster of the voxel absolute\n"
+      "                          z-scores raised to the H power; H=0 is the number of\n"
+      "                          voxels in a cluster (what 3dClustSim uses).\n"
+      "                         + Although ETAC allows you to multi-threshold across\n"
+      "                           multiple hpow values, there is little reason to\n"
+      "                           actually do this. My recommendation:\n"
+      "                             Choose hpow=0 for cluster-size, if you want\n"
+      "                              to make it easier to explain your methods.\n"
+      "                             Choose hpow=2 to weight voxelwise z-statistic\n"
+      "                              more, which will make detection of small\n"
+      "                              high intensity clusters somewhat more likely.\n"
+      "                       ++ There is no built in upper limit on the number of\n"
+      "                          'pthr' levels allowed. If you wish to use an\n"
+      "                          arithmetically evenly spaced set of p thresholds,\n"
+      "                          you can do something like 'pthr=0.01/0.001/19' to\n"
+      "                          use 19 thresholds evenly spaced from 0.01 to 0.001,\n"
+      "                          with step size (0.01-0.001)/(10-1)=0.001.\n"
+      "                         + In the form 'pthr=A/B/N', the count N must be at\n"
+      "                           least 2, or only the value of A will be used.\n"
+      "                         + pthr values must be in the range 0.1 .. 0.0001\n"
+      "                           (inclusive), or this program will be unhappy.\n"
+      "                         + pthr values are interpreted in the context of\n"
+      "                           1-sided or 2-sided testing when the actual\n"
+      "                           statistic values for thresholding are computed.\n"
+      "                         + Of course, the program gets slower for larger\n"
+      "                           numbers of pthr levels and will use more memory.\n"
+      "                           A practical upper bound for the number of pthr\n"
+      "                           levels is about 20. I have run it (experimentally)\n"
+      "                           with 91 pthr levels, which made very little\n"
+      "                           difference in the results from 10 levels, and\n"
+      "                           took much longer to run.\n"
+      "                       ++ NN=1 means clustering using the 6 nearest neighbors;\n"
+      "                          NN=2 means clustering using 18 neighboring voxels\n"
+      "                               (NN=1 plus the 12 second nearest neighbors);\n"
+      "                          NN=3 means clustering using 26 neighboring voxels\n"
+      "                               (NN=2 plus the 8 third nearest neighbors).\n"
+      "                       ++ sid=1 means to carry out voxelwise 1-sided t-tests,\n"
+      "                                which will result in output masks labeled\n"
+      "                                '1pos' for the set of voxels that survive the\n"
+      "                                positive side of the t-tests (at the given\n"
+      "                                1-sided p-thresholds) plus ETAC clustering, and\n"
+      "                                '1neg' for the corresponding negative side\n"
+      "                                of the t-tests.\n"
+      "                          sid=2 means to carry out voxelwise 2-sided t-tests,\n"
+      "                                which will result in an output mask labeled\n"
+      "                                '2sid'.\n"
+      "                       ++ Do not confuse the '1-sided' and '2-sided' testing\n"
+      "                          choice with the '1-sample' or '2-sample' analysis\n"
+      "                          being carried out by 3dttest++. Although these\n"
+      "                          concepts are completely distinct, the naming\n"
+      "                          with numerals can be a source of distraction.\n"
+      "                   -->>++ If you do not use '-ETAC_opt' at all, a built-in set\n"
       "                          of parameters will be used. These are\n"
       "                            NN=2 sid=2 hpow=2 name=default\n"
-      "                            pthr=0.01,0.0056,0.0031,0.0018,0.0010\n"
-      "                                =0.01 * 0.1^(i/4) for i=0..4\n"
-      "                                =geometrically distributed from 0.001 to 0.01\n"
+      "                            pthr=0.01/0.001/10\n"
+      "                                =0.010,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
       "                            fpr=5\n"
+      "                   -->>++ Note that using 'fpr=ALL' will make the ETAC calculations\n"
+      "                          slower, as the software has to compute results for 9 different\n"
+      "                          FPR goals, each of which requires thrashing through all\n"
+      "                          the pseudo-random simulations at least once.\n"
+      "                         + On the other hand, seeing how the results mask varies\n"
+      "                           as the FPR goal changes can be illuminating.\n"
       "\n"
       " -ETAC_arg something  = This option is used to pass extra options to the\n"
       "                        3dXClustSim program (which is what implements ETAC).\n"
@@ -1509,6 +1604,7 @@ void display_help_menu(void)
       "                          -ETAC_arg -verb\n"
       "                        which will cause 3dXClustSim to print more fun fun fun\n"
       "                        information as it progresses through the ETAC stages.\n"
+#if 0
       "\n"
       "-----------------\n"
       "ETAC Output Files\n"
@@ -1536,6 +1632,7 @@ void display_help_menu(void)
       "P.B7.0.nii                            (4 and 7 mm, respectively)\n"
       "Px.B4.0.5percent.txt                voxel-wise threshold list for a variety\n"
       "Px.B7.0.5percent.txt                  of global FPRs, for blurs 4 and 7\n"
+      "                                      (not computed if '-no5percent' is given)\n"
       "Px.N.ETAC.mthresh.B4.0.5perc.nii    Multi-threshold datasets for blur=4 and =7,\n"
       "Px.N.ETAC.mthresh.B7.0.5perc.nii      for overall 5%% global false positive rate\n"
       "Px.N.ETACmask.2sid.5perc.nii.gz     Binary (0 or 1) mask of 'active voxels'\n"
@@ -1555,13 +1652,14 @@ void display_help_menu(void)
       "                                      with pthr=0.01.\n"
       "* If a different 'fpr' value was given (say 2), then the filenames containing\n"
       "  'ETAC' will have the '5perc' component changed to that value (e.g., '4perc').\n"
-      "* If 'fpr=ALL', there would be outputs for '2perc', '3perc', ... '9perc'.\n"
+      "* If 'fpr=ALL', there would be outputs for '1perc', '2perc', ... '9perc'.\n"
       "* If 'sid=1' were given in '-ETAC_opt', then each mask filename containing\n"
       "  '2sid' will instead be replaced by TWO files, one with '1neg' and one\n"
       "  with '1pos', indicating the results of 1-sided t-test thresholding with\n"
       "  the negative and positive sides, respectively.\n"
       "* It is quite possible that the various ETACmask files are all zero,\n"
       "  indicating that nothing survived the multi-thresholding operations.\n"
+#endif
       "-----------\n"
       "*** WARNING: ETAC consumes a lot of CPU time, and a lot of memory  ***\n"
       "***         (especially with many -ETAC_blur cases, or 'fpr=ALL')! ***\n"
@@ -1578,7 +1676,7 @@ void display_help_menu(void)
 
       "\n"
       "-------------------------------\n"
-      "STRUCTURE OF THE OUTPUT DATASET\n"
+      "STRUCTURE OF THE OUTPUT DATASET   ~1~\n"
       "-------------------------------\n"
       "\n"
       "* The output dataset is stored in float format; there is no option\n"
@@ -1638,7 +1736,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------------\n"
-      "HOW COVARIATES WORK\n"
+      "HOW COVARIATES WORK   ~1~\n"
       "-------------------\n"
       "\n"
       "Covariates work by forming a regression problem for each voxel, to\n"
@@ -1755,7 +1853,7 @@ void display_help_menu(void)
       "\n"
 
       "-------------------------------------------\n"
-      "HOW SINGLETON TESTING WORKS WITH COVARIATES\n"
+      "HOW SINGLETON TESTING WORKS WITH COVARIATES   ~1~\n"
       "-------------------------------------------\n"
       "\n"
       "(1) For setB, the standard regression is carried out to give the\n"
@@ -1862,7 +1960,7 @@ void display_help_menu(void)
       "                     Subject age\n"
       "\n"
       "---------------------\n"
-      "A NOTE ABOUT p-VALUES (everyone's favorite subject :)\n"
+      "A NOTE ABOUT p-VALUES (everyone's favorite subject :)   ~1~\n"
       "---------------------\n"
       "\n"
       "The 2-sided p-value of a t-statistic value T is the likelihood (probability)\n"
@@ -1956,7 +2054,7 @@ void display_help_menu(void)
 
       "\n"
       "--------------------\n"
-      "TESTING THIS PROGRAM\n"
+      "TESTING THIS PROGRAM   ~1~\n"
       "--------------------\n"
       "\n"
       "A simple 2-sample test of this program is given by the script below,\n"
@@ -1984,7 +2082,7 @@ void display_help_menu(void)
 
       "\n"
       "-------------------------\n"
-      "VARIOUS LINKS OF INTEREST\n"
+      "VARIOUS LINKS OF INTEREST   ~1~\n"
       "-------------------------\n"
       "\n"
       "* http://en.wikipedia.org/wiki/T_test\n"
@@ -2433,9 +2531,13 @@ int main( int argc , char *argv[] )
          ININFO_message("   where you replace the 'N' with the number of CPUs.") ;
        }
        if( prefix_clustsim == NULL ){
+#if 0
          uuu = UNIQ_idcode_11() ;
          prefix_clustsim = (char *)malloc(sizeof(char)*32) ;
          sprintf(prefix_clustsim,"TT.%s",uuu) ;
+#else
+         prefix_clustsim = strdup(prefix) ; /* 22 Feb 2018 */
+#endif
          ININFO_message("Default %s prefix set to '%s'",clustsim_opt,prefix_clustsim) ;
        }
 
@@ -2475,16 +2577,17 @@ int main( int argc , char *argv[] )
 
        opt_Xclu = (Xclu_opt **)realloc( opt_Xclu , sizeof(Xclu_opt *)*(nnopt_Xclu+1)) ;
        opx = opt_Xclu[nnopt_Xclu]  = malloc(sizeof(Xclu_opt)) ;
-       opx->nnlev     = 0 ;
-       opx->sid       = 0 ;
+       opx->nnlev     = 2 ;   /* these defaults are also set in 3dXClustSim.c */
+       opx->sid       = 2 ;    /* if changed here, must also be changed there */
        opx->npthr     = 0 ;
        opx->pthr      = NULL ;
-       opx->farp_goal = 5.0f ;  /* because this is what everyone likes, right? */
-       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 0 ;
+       opx->farp_goal = 5.0f ; /* because this is what everyone likes, right? */
+       opx->do_hpow0  = 0 ; opx->do_hpow1 = 0 ; opx->do_hpow2 = 1 ;
+       opx->do_sorter = 1 ;
        opx->mode[0]   = '\0' ; /* 10 Jan 2018 */
        sprintf(opx->name,"Case%d",nnopt_Xclu+1) ;
 
-       acp = strdup(argv[nopt]) ;  /* change colons to blanks in option string */
+       acp = strdup(argv[nopt]) ; /* change colons to blanks in option string */
        for( cpt=acp ; *cpt != '\0' ; cpt++ ){
          if( *cpt == ':' ) *cpt = ' ' ;
        }
@@ -2523,11 +2626,12 @@ int main( int argc , char *argv[] )
          char *qstr=strdup(cpt+5) , *qpt ;
          NI_float_array *nfar ;
          qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
-         nfar = NI_decode_float_list(qstr,",") ;
+         nfar = NI_decode_float_list(qstr,",") ;  /* where the a/b/N construct is expanded */
          if( nfar != NULL && nfar->num > 0 ){
            for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
              if( nfar->ar[qq] < 0.0001f || nfar->ar[qq] > 0.1f ){
                ERROR_message("Illegal value after pthr= in '%s %s'",thisopt,argv[nopt]);  nbad++ ;
+               if( nbad == 1 ) ERROR_message("  pthr values must be between 0.0001 and 0.1") ;
              }
            }
            opx->npthr = nfar->num ; opx->pthr = nfar->ar ;
@@ -2543,13 +2647,14 @@ int main( int argc , char *argv[] )
          qpt = strchr(qstr,' ') ; if( qpt != NULL ) *qpt = '\0' ;
          nfar = NI_decode_float_list(qstr,",") ;
          if( nfar != NULL && nfar->num > 0 ){
+           opx->do_hpow0 = opx->do_hpow1 = opx->do_hpow2 = 0 ;
            for( nbad=qq=0 ; qq < nfar->num ; qq++ ){
              switch( (int)nfar->ar[qq] ){
                case 0: opx->do_hpow0 = 1 ; break ;
                case 1: opx->do_hpow1 = 1 ; break ;
                case 2: opx->do_hpow2 = 1 ; break ;
                default:
-                 ERROR_message("Illegal value after hpow= in '%s %s'",thisopt,argv[nopt]);
+                 ERROR_message("Illegal value (not 0, 1, or 2) after hpow= in '%s %s'",thisopt,argv[nopt]);
                  nbad++ ; break ;
              }
            }
@@ -2561,10 +2666,13 @@ int main( int argc , char *argv[] )
          }
        }
 
-       cpt = strcasestr(acp,"name=") ;
-       if( cpt != NULL && cpt[5] != '\0' ){
+       qq = 0 ; cpt = strcasestr(acp,"name=") ; if( cpt != NULL ) qq = 5 ;
+       if( cpt == NULL ){
+         cpt = strcasestr(acp,"nam=") ; if( cpt != NULL ) qq = 4 ; /* 11 Mar 2019 */
+       }
+       if( cpt != NULL && cpt[qq] != '\0' ){
          char nam[128] ; nam[0] = '\0' ;
-         sscanf(cpt+5," %s",nam) ;
+         sscanf(cpt+qq," %127s",nam) ;
          if( strlen(nam) == 0 || strlen(nam) > 31 || !THD_filename_pure(nam) ){
            ERROR_message("Illegal string after name= in '%s %s'",thisopt,argv[nopt]); nbad++ ;
          } else {
@@ -2602,6 +2710,9 @@ int main( int argc , char *argv[] )
          }
          opx->farp_goal = fgoal ;
        }
+
+       cpt = strcasestr(acp,"nosorter") ;      /* 11 Mar 2019 */
+       if( cpt != NULL ) opx->do_sorter = 0 ;  /* HIDDEN from user */
 
        if( nbad > 0 )
          ERROR_exit("Can't continue after such errors in option %s /:(",thisopt) ;
@@ -3278,6 +3389,11 @@ int main( int argc , char *argv[] )
      do_Xclustsim = 0 ;
    }
 
+   if( do_local_etac && !do_global_etac ){                     /* Mar 2019 */
+     WARNING_message("global ETAC is turned off and local ETAC is turned on!") ;
+     WARNING_message("  -- are you SURE you want to do this???") ;
+   }
+
    if( nnopt_Xclu > 0 && !do_Xclustsim )
      ERROR_exit("You can't use -ETAC_opt/-Xclu_opt without -ETAC/-Xclustsim /:( !!") ;
 
@@ -3587,9 +3703,12 @@ int main( int argc , char *argv[] )
                    approximate_number_string((double)nsdat) ) ;
      ININFO_message("  = It is best to store these files on a solid-state disk (SSD)") ;
      ININFO_message("  = using the '-tempdir' option.") ;
+     ININFO_message("=== ETAC will also use additional memory for the cluster tables") ;
+     ININFO_message("  = which is hard to predict, but can be as much as the amount") ;
+     ININFO_message("  = listed above.") ;
      nsysmem = AFNI_get_memsize() ;
      if( nsysmem > 0 ){
-       ININFO_message("  = There are %s (%s) bytes of memory on your system.",
+       ININFO_message("=== There are %s (%s) bytes of memory on your system.",
                       commaized_integer_string(nsysmem) ,
                       approximate_number_string((double)nsysmem) ) ;
        if( (double)nsdat > 0.666f*(double)nsysmem )
@@ -4979,7 +5098,7 @@ LABELS_ARE_DONE:  /* target for goto above */
 
        int ixx , nxx=MAX(nnopt_Xclu,1) ; Xclu_opt *opx ;
        int nnlev, sid, npthr ; float *pthr ; char *nam , *mod=NULL ;
-       int do_hpow0, do_hpow1, do_hpow2 ; float fgoal ;
+       int do_hpow0, do_hpow1, do_hpow2, do_sorter ; float fgoal ;
        int numfarp=1 ; float *flist=NULL ;
        char gprefix[1024] ;
 
@@ -4996,9 +5115,11 @@ LABELS_ARE_DONE:  /* target for goto above */
            do_hpow0 = opx->do_hpow0 ;
            do_hpow1 = opx->do_hpow1 ;
            do_hpow2 = opx->do_hpow2 ;
+           do_sorter = opx->do_sorter ; /* 11 Mar 2019 */
          } else {
-           nnlev = sid = npthr = 0 ; pthr = NULL ; nam="default" ;
-           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ;
+           nnlev = 2 ; sid = 2 ;
+           npthr = 0 ; pthr = NULL ; nam="default" ;
+           do_hpow0 = 0 ; do_hpow1 = 0 ; do_hpow2 = 1 ; do_sorter = 1 ;
            fgoal = 5.0f ; mod = "\0" ;
          }
 
@@ -5053,6 +5174,9 @@ LABELS_ARE_DONE:  /* target for goto above */
            if( do_hpow1 ) sprintf( cmd+strlen(cmd) , " 1" ) ;
            if( do_hpow2 ) sprintf( cmd+strlen(cmd) , " 2" ) ;
          }
+
+         if( do_sorter ) sprintf( cmd+strlen(cmd) , " -sorter") ;
+         else            sprintf( cmd+strlen(cmd) , " -nosorter") ;
 
          if( nnlev > 0 )
            sprintf( cmd+strlen(cmd) , " -NN%d" , nnlev ) ;

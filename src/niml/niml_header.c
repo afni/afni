@@ -453,12 +453,15 @@ int NI_str_array_find( char *targ , NI_str_array *sar )
 }
 
 /*--------------------------------------------------------------------*/
-/*! Decode a string that gives a list of floats [10 Jun 2007]. */
+/*! Decode a string that gives a list of floats [10 Jun 2007].
+    * Modified to allow ranges specified by a/b/c [06 Mar 2019].
+*//*------------------------------------------------------------------*/
 
 NI_float_array * NI_decode_float_list( char *ss , char *sep )
 {
    NI_float_array *far ; float *ar,val ; int num , ii,jj , nadd ;
-   NI_str_array *sar ; char *cc, *dd ;
+   NI_str_array *sar ; char *cc, *dd , *sl=NULL ;
+   int allow_slash=0 , nv=0 ; float v1,v2,dv ;
 
    sar = NI_decode_string_list( ss , sep ) ;
    if( sar == NULL ) return NULL ;
@@ -467,16 +470,30 @@ NI_float_array * NI_decode_float_list( char *ss , char *sep )
    ar  = NULL ;
    num = 0 ;
 
+   allow_slash = (sep == NULL || strstr(sep,"/") == NULL) ; /* 06 Mar 2019 */
+
    for( jj=0 ; jj < sar->num ; jj++ ){
      cc = sar->str[jj] ; dd = strstr(cc,"@") ;
-     if( dd == NULL ){
-       val = (float)strtod(cc,NULL) ; nadd = 1 ;
-     } else {
+     if( allow_slash ) sl = strstr(cc,"/") ;
+     nadd = nv = 0 ;
+     if( dd != NULL ){
        (void)sscanf(cc,"%d@%f",&nadd,&val) ;
        if( nadd <= 0 ) continue ;    /* bad */
+     } else if( sl != NULL ){                               /* 06 Mar 2019 */
+       v1 = v2 = 0.0f ;
+       (void)sscanf(cc,"%f/%f/%d",&v1,&v2,&nv) ;
+       if( nv < 2 ){ nv = 0 ; nadd = 1 ; val = v1 ; }
+       else        { dv = (v2-v1)/(nv-1.0f) ; }
+     } else {
+       val = (float)strtod(cc,NULL) ; nadd = 1 ;
      }
-     ar = NI_realloc( ar , float , sizeof(float)*(num+nadd) ) ;
-     for( ii=0 ; ii < nadd ; ii++ ) ar[num++] = val ;
+     if( nv <= 0 ){
+       ar = NI_realloc( ar , float , sizeof(float)*(num+nadd) ) ;
+       for( ii=0 ; ii < nadd ; ii++ ) ar[num++] = val ;
+     } else {                                              /* 06 Mar 2019 */
+       ar = NI_realloc( ar , float , sizeof(float)*(num+nv) ) ;
+       for( ii=0 ; ii < nv ; ii++ ) ar[num++] = v1+ii*dv ;
+     }
    }
 
    NI_delete_str_array(sar) ;

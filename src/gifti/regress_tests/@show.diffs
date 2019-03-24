@@ -1,0 +1,55 @@
+#! /usr/bin/env tcsh
+
+set ddir = diffs
+set topdir = `pwd`
+
+# either get the 2 dirs from the command line, or compare
+# the oldest against the newest
+if ( $#argv == 2 ) then
+    set r1 = $argv[1]
+    set r2 = $argv[2]
+else
+    set rdirs = ( results.* )
+
+    # verify that there are differences to view
+    if ( $#rdirs < 2 ) then
+        echo cannot proceed, we need at least 2 result directories
+        exit
+    endif
+
+    # make sure the output directory exists
+    if ( -d $ddir ) then
+        echo removing old diffs
+        \rm -f $ddir/* >& /dev/null
+    else
+        mkdir $ddir
+        if ( ! -d $ddir ) then
+            echo failed to make output directory, $ddir
+            exit
+        endif
+    endif
+
+    set r1 = $rdirs[1]
+    set r2 = $rdirs[$#rdirs]
+endif
+
+echo "comparing : $r1"
+echo "against   : $r2"
+echo ""
+
+cd $r2
+
+foreach file (*)
+    echo $file...
+    if ( $file == caret.copy.gii ) continue
+    diff $topdir/$r1/$file $file >& $topdir/$ddir/d.$file
+end
+
+echo ""
+echo "----------------------------------------------------"
+echo "differing files..."
+foreach file (*)
+    cmp -s $topdir/$r1/$file $file
+    if ( $status ) echo $file
+end
+

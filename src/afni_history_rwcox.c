@@ -44,6 +44,42 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 14 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
+   "Propagate -weight from 3dQwarp to 3dAllineate" ,
+   "Don't know why I didn't do this before. Probably a sign of incipient\n"
+   "dementia." } ,
+
+ { 10, MAR , 2019 , RWC , "3dXClustSim (ETAC)" , MINOR , TYPE_GENERAL ,
+   "Sort FOM results to cast out duplicates from same iteration" ,
+   "Should make Global ETAC slightly less conservative." } ,
+
+ { 8 , MAR , 2019 , RWC , "InstaCorr" , MINOR , TYPE_BUG_FIX ,
+   "Bandpass error found by the wandering Spaniard" ,
+   "Problem: very long time series (over 2000) analyzed *without* Bandpass\n"
+   "would give error message and then give useless results.\n"
+   "Solution: if Bandpass is turned off, that is signaled by setting the\n"
+   "upper freq cutoff to a large value. Then the FFT cutoff index is\n"
+   "computed from that as jtop = ftop/df where df = 1/N*dt, so we have\n"
+   "jtop = ftop*N/dt. For large N and large ftop, this is integer overflow.\n"
+   "Therefore, compute jtop in float, not int, then check it first. D'oh." } ,
+
+ { 7 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_GENERAL ,
+   "Change ETAC default pthr list" ,
+   "From 5 values to 10.\n"
+   "Also, fix naming of output ETACmask files when user doesn't specify\n"
+   "sideness with the ETAC_opt option." } ,
+
+ { 6 , MAR , 2019 , RWC , "3dttest++" , MICRO , TYPE_ENHANCE ,
+   "Simpler specification of pthr=RANGE" ,
+   "pthr=0.01/0.001/10 is the same as\n"
+   "pthr=0.01,0.009,0.008,0.007,0.006,0.005,0.004,0.003,0.002,0.001\n"
+   "Implemented via NIML's NI_decode_float_list(), so also availble in some\n"
+   "other places -- which I can't be bothered to look for at this moment." } ,
+
+ { 4 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_BUG_FIX ,
+   "-superhard did not imply -workhard :( -- now it does :)" ,
+   NULL } ,
+
  { 26 , FEB , 2019 , RWC , "3dPolyfit" , MICRO , TYPE_NEW_OPT ,
    "Option to save spatial fit coefficients" ,
    "Plus a little general cleanup of the code and help" } ,

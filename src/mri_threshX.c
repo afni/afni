@@ -55,6 +55,7 @@ typedef struct {
   ind_t *ip , *jp , *kp ;   /* 3D indexes for each point */
   int   *ijk ;              /* 1D index for each point */
   int   ijkmin,ijkmax ;     /* smallest and largest ijk[] values */
+  int   indx ;              /* some code for 3dXClustSim */
 } Xcluster ;
 
 #define MIN_CLUST 5  /* smallest cluster size allowed (voxels) */
@@ -116,7 +117,7 @@ typedef struct {
      xc->jp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->kp  = (ind_t *)malloc(sizeof(ind_t)*(siz)) ;                  \
      xc->ijk = (int *)  malloc(sizeof(int)  *(siz)) ;                  \
-     xc->ijkmin = xc->ijkmax = -666 ;                                  \
+     xc->ijkmin = xc->ijkmax = xc->indx = -666 ;                       \
  } while(0)
 
 #define DESTROY_Xcluster(xc)                                           \
@@ -158,6 +159,7 @@ void copyover_Xcluster( Xcluster *xcin , Xcluster *xcout )
    xcout->nbcount = xcin->nbcount ;
    xcout->ijkmin  = xcin->ijkmin ;
    xcout->ijkmax  = xcin->ijkmax ;
+   xcout->indx    = xcin->indx ;
    return ;
 }
 
@@ -252,7 +254,7 @@ static float cth_perc = 95.0f ;
      thptrX = pointer to threshold (a single float, or an image)
 *//*--------------------------------------------------------------------------*/
 
-Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
+Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev, int indx ,
                                       int thtype ,
                                       void *thptr0 , void *thptr1 , void *thptr2 )
 {
@@ -314,10 +316,10 @@ Xcluster_array * find_Xcluster_array( MRI_IMAGE *fim, int nnlev,
      /* build a new cluster starting with this 1 point */
 
      if( xcc == NULL )
-       CREATE_Xcluster(xcc,16) ;  /* initialize to have just 16 points */
+       CREATE_Xcluster(xcc,16) ;  /* initialize to have just 16 potential points */
 
      xcc->ip[0]   = (ind_t)ii; xcc->jp[0] = (ind_t)jj; xcc->kp[0] = (ind_t)kk;
-     xcc->ijk[0]  = xcc->ijkmin = xcc->ijkmax = ijk;
+     xcc->ijk[0]  = xcc->ijkmin = xcc->ijkmax = ijk; xcc->indx = indx ;
      xcc->npt     = xcc->norig = 1 ;
      xcc->hmask   = 0 ;
      xcc->fomh[0] = 1.0f ;
@@ -520,7 +522,7 @@ void mri_multi_threshold_setup(void)
        }
      }
    }
-#if 1
+#if 0
    switch( cth_mode ){
      default:
        INFO_message("MultiThresh cluster FOM local threshold method = MEAN"); break;
@@ -641,7 +643,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster_cimar( MRI_IMAGE *fim ,
 
      /* clusterize and keep "good" clusters (relative to cim) */
 
-     xcar = find_Xcluster_array( tfim , nnlev , 1,cim0,cim1,cim2 ) ;
+     xcar = find_Xcluster_array( tfim , nnlev , 0 , 1,cim0,cim1,cim2 ) ;
 
      mri_free(tfim) ;
 
@@ -807,7 +809,7 @@ MRI_IMAGE * mri_multi_threshold_Xcluster_fomth( MRI_IMAGE *fim ,
 
      /* clusterize and keep "good" clusters (relative to fth) */
 
-     xcar = find_Xcluster_array( tfim , nnlev , 0,&fth0,&fth1,&fth2 ) ;
+     xcar = find_Xcluster_array( tfim , nnlev , 0 , 0,&fth0,&fth1,&fth2 ) ;
 
      mri_free(tfim) ;
 

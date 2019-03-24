@@ -1,0 +1,10 @@
+
+gifti_tool -infile ascii.misc.gii -no_updates -write_gifti copy.misc.gii
+
+echo ""
+
+diff ascii.misc.gii copy.misc.gii
+
+echo ======================================================================
+
+gifti_tool -show_gifti -infile color.table.gii

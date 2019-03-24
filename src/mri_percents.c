@@ -469,6 +469,7 @@ void qsort_float_rev( int n , float *a )
 
 /*------------------------------------------------------------------------------*/
 /*--------------- insertion sort of a float-int pair of arrays -----------------*/
+/* IN THIS CASE: the floats determine the order */
 
 void isort_pair( int n , float *ar , int *iar )
 {
@@ -576,6 +577,127 @@ void qsort_pair( int n , float *a , int *ia )
 {
    qsrec_pair( n , a , ia , QS_CUTOFF ) ;
    isort_pair( n , a , ia ) ;
+   return ;
+}
+
+void qsort_pair_rev( int n , float *a , int *ia )  /* 08 Mar 2019 */
+{
+   register int ii ;
+   if( n < 2 || a == NULL ) return ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
+   qsort_pair(n,a,ia) ;
+   for( ii=0 ; ii < n ; ii++ ) a[ii] = -a[ii] ;
+   return ;
+}
+
+/*------------------------------------------------------------------------------*/
+/*--------------- insertion sort of a float-int pair of arrays -----------------*/
+/* IN THIS CASE: the ints determine the order [08 Mar 2019] */
+
+void isort_pairX( int n , float *ar , int *iar )
+{
+   register int  j , p ;  /* array indices */
+   register float temp ;  /* a[j] holding place */
+   register int  itemp ;
+   register float * a = ar ;
+   register int   *ia = iar ;
+
+   if( n < 2 || ar == NULL || iar == NULL ) return ;
+
+   for( j=1 ; j < n ; j++ ){
+
+     if( ia[j] < ia[j-1] ){  /* out of order */
+        p    = j ;
+        temp = a[j] ; itemp = ia[j] ;
+        do{
+          a[p] = a[p-1] ; ia[p] = ia[p-1] ;
+          p-- ;
+        } while( p > 0 && itemp < ia[p-1] ) ;
+        a[p] = temp ; ia[p] = itemp ;
+     }
+   }
+   return ;
+}
+
+/*--------- qsrec : recursive part of quicksort (stack implementation) ----------*/
+
+void qsrec_pairX( int n , float *ar , int *iar , int cutoff )
+{
+   register int i , j ;           /* scanning indices */
+   register float temp , pivot ;  /* holding places */
+   register int  itemp ,ipivot ;
+   register float *a = ar ;
+   register int   *ia = iar ;
+
+   int left , right , mst ;
+   int stack[QS_STACK] ;  /* stack for qsort "recursion" */
+
+   /* return if too short (insertion sort will clean up) */
+
+   if( cutoff < 3 ) cutoff = 3 ;
+   if( n < cutoff || ar == NULL || iar == NULL ) return ;
+
+   /* initialize stack to start with whole array */
+
+   stack[0] = 0   ;
+   stack[1] = n-1 ;
+   mst      = 2   ;
+
+   /* loop while the stack is nonempty */
+
+   while( mst > 0 ){
+      right = stack[--mst] ;  /* work on subarray from left -> right */
+      left  = stack[--mst] ;
+
+      i = ( left + right ) / 2 ;           /* middle of subarray */
+
+      /*----- sort the left, middle, and right a[]'s -----*/
+
+      if( ia[left] > ia[i]     ){ QS_SWAP ( a[left]  , a[i]     ) ;
+                                  QS_ISWAP(ia[left]  ,ia[i]     ) ; }
+      if( ia[left] > ia[right] ){ QS_SWAP ( a[left]  , a[right] ) ;
+                                  QS_ISWAP(ia[left]  ,ia[right] ) ; }
+      if( ia[i] > ia[right]    ){ QS_SWAP ( a[right] , a[i]     ) ;
+                                  QS_ISWAP(ia[right] ,ia[i]     ) ; }
+
+       pivot = a[i] ;  a[i] = a[right] ;
+      ipivot =ia[i] ; ia[i] =ia[right] ;
+
+      i = left ; j = right ;               /* initialize scanning */
+
+      /*----- partition:  move elements bigger than pivot up and elements
+                          smaller than pivot down, scanning in from ends -----*/
+
+      do{
+        for( ; ia[++i] < ipivot ; ) ;  /* scan i up,   until a[i] >= pivot */
+        for( ; ia[--j] > ipivot ; ) ;  /* scan j down, until a[j] <= pivot */
+
+        if( j <= i ) break ;         /* if j meets i, quit */
+
+        QS_SWAP ( a[i] , a[j] ) ;
+        QS_ISWAP(ia[i] ,ia[j] ) ;
+      } while( 1 ) ;
+
+      /*----- at this point, the array is partitioned -----*/
+
+      a[right] = a[i] ; a[i] = pivot ;  /* restore the pivot */
+      ia[right]=ia[i] ;ia[i] =ipivot ;
+
+      /*----- signal the subarrays that need further work -----*/
+
+      if( (i-left)  > cutoff ){ stack[mst++] = left ; stack[mst++] = i-1   ; }
+      if( (right-i) > cutoff ){ stack[mst++] = i+1  ; stack[mst++] = right ; }
+
+   }  /* end of while stack is non-empty */
+   return ;
+}
+
+/* quick_sort :  sort an array partially recursively, and partially insertion */
+
+void qsort_pairX( int n , float *a , int *ia )
+{
+   qsrec_pairX( n , a , ia , QS_CUTOFF ) ;
+   isort_pairX( n , a , ia ) ;
    return ;
 }
 

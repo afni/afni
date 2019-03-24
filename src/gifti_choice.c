@@ -86,7 +86,7 @@
     {
         fprintf(stderr,"** cannot write '%s', no compiled GIFTI support\n",
                 fname ? fname : "NULL");
-        return NULL;
+        return 1;
     }
 
 

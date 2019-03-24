@@ -1,0 +1,9 @@
+
+gifti_tool -infile b64gz.ts.3.gii -read_DAs 2 0 0 1  \
+           -write_gifti b64gz.ts.4.gii              \
+           -verb 2 -no_updates
+
+gifti_tool -infile b64gz.ts.3.gii'[2,0,0,1]'        \
+           -write_gifti b64gz.ts.4.2.gii            \
+           -verb 2 -no_updates
+

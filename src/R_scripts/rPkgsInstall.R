@@ -109,7 +109,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
    "         within single/double quotes. For example, -pkgs \"afex,phia\". If",
    "         package_list is set as ALL, all the following packages required for",
    "         AFNI programs will be installed, updated, or removed:\n",
-   "         'afex', 'phia', 'snow', 'nlme', 'lme4', 'paran', 'psych'.\n",
+   "         'afex', 'phia', 'snow', 'nlme', 'lme4', 'paran', 'psych', 'brms', 'corrplot'.\n",
    "         You can use rPkgsInstall to install, update, or remove any R packages,",
    "         and they do not have to be in the list above. \n", sep = '\n'
              ) ),
@@ -190,7 +190,7 @@ read.rPkgsInstall.opts.batch <- function (args=NULL, verb = 0) {
 process.rPkgsInstall.opts <- function (lop, verb = 0) {
    #browser()
    if(is.na(lop$pkgs[1])) errex.AFNI(paste("Option '-pkgs' not specified!", sep=''))
-   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lme4','paran', 'psych', 'brms') else
+   if(lop$pkgs[1]=='ALL') lop$PKGS <- c('afex', 'phia', 'snow', 'nlme', 'lme4', 'paran', 'psych', 'brms', 'corrplot') else
    if(!is.na(lop$pkgs[1])) lop$PKGS <- strsplit(lop$pkgs, '\\,')[[1]]
    return(lop)
 }

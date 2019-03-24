@@ -1,0 +1,3 @@
+
+gifti_tool -infile b64gz.ts.3.gii -show_gifti
+

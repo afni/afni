@@ -49,6 +49,59 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, Mar, 2019, RCR, "dcm2niix_afni", MINOR, TYPE_BUG_FIX,
+   "sync crorden/dcm2niix_console with repo, version v1.0.20181125",
+   "This is possibly to correct a bug with -m and partial brain coverage."
+ } ,
+
+ { 15, Mar, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "include tr field in uvars, and report it as TR in basic",
+   NULL
+ } ,
+
+ { 15, Mar, 2019, RCR, "@update.afni.binaries", MICRO, TYPE_ENHANCE,
+   "in any dotfile update: note that it was done by @uab",
+   NULL
+ } ,
+
+ { 14, Mar, 2019, RCR, "GIFTI", MINOR, TYPE_ENHANCE,
+   "add gifti/regress_tests tree",
+   "This was also added to https://github.com/NIFTI-Imaging/gifti_clib repo."
+ } ,
+
+ { 13, Mar, 2019, RCR, "tedana.py", MICRO, TYPE_MODIFY,
+   "default to system nibabel over local",
+   "Need to ponder what to do with local nibabel.  This will move us towards\n"
+   "omitting it, though we plan to move away from AFNI's tedana.py, too."
+ } ,
+
+ {  7, Mar, 2019, RCR, "gen_ss_review_table.py", MAJOR, TYPE_NEW_OPT,
+   "add -report_outliers and support options",
+   "Add -report_outliers_{fill,header}_style, -write_outlier, and\n"
+   "    -outlier_sep for controlling the table presentation.\n"
+   "Will use -write_table instead of -tablefile going forward."
+ } ,
+
+ {  7, Mar, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "tee output from @ss_review_html to a text file",
+   "Done for P Taylor."
+ } ,
+
+ {  6, Mar, 2019, RCR, "Dimon", MINOR, TYPE_ENHANCE,
+   "if VR mismatch warning, specify whether AFNI uses the field",
+   "Done for B Benson."
+ } ,
+
+ {  5, Mar, 2019, RCR, "gen_group_command.py", MINOR, TYPE_ENHANCE,
+   "show subject counts; change line len and ddirs; no require on restricted",
+   NULL
+ } ,
+
+ { 28, Feb, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "mask dset must include extension",
+   NULL
+ } ,
+
  { 26, Feb, 2019, RCR, "gen_group_command.py", MINOR, TYPE_NEW_OPT,
    "add -dset_sid_list, -hpad, -tpad",
    "Add -dset_sid_list to specify subject IDs explicitly.\n"

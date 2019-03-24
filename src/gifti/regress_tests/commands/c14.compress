@@ -1,0 +1,6 @@
+
+foreach level ( -1 0 6 9 )
+    gifti_tool -infile b64gz.ts.3.gii -zlevel $level  \
+               -no_updates -write_gifti new.zlevel.$level.gii
+end
+

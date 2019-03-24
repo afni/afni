@@ -1098,6 +1098,8 @@ descriptions of various basis functions, as applied by 3dDeconvolve
   ---------------------------------------------------------------------------
 
   BLOCK                 : INVALID
+                        : BLOCK is an integrated gamma variate function
+
   BLOCK(d)              : stimulus duration d (convolve with d-second boxcar)
                    peak : peak of 1.0 (for d=1) @ t=4.5, max peak of ~5.1
                duration : approx. 15+d seconds

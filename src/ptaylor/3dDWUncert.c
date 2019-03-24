@@ -38,7 +38,10 @@
        + output name no longer automatically attaches "_UNC" to
          user prefix.
        + fixed listname usage.
-   
+
+  Mar, 2019:
+       + \% -> %% in text output-- thanks, Emperor Bob the Debugger!
+
 */
 
 
@@ -475,7 +478,7 @@ int main(int argc, char *argv[]) {
 				ERROR_exit("Need integer argument after '-pt_conf'");
 			CI_val = atoi(argv[iarg]);
          INFO_message("(PT) Internal option: "
-                      "confidence intervaling at level: %d\%.",CI_val);
+                      "confidence intervaling at level: %d%%.",CI_val);
 
          if( (CI_val > 100 ) || (CI_val <=0 ) )
 				ERROR_exit("Confidence interval percent must be (0, 100], not %d.",

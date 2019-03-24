@@ -11,8 +11,13 @@ endif()
 cmake_policy(VERSION ${NIFTI_CMAKE_POLICY_VERSION})
 
 set(NIFTI_HOMEPAGE_URL "https://nifti-imaging.github.io")
+execute_process(COMMAND git "describe" "--tags"
+  OUTPUT_VARIABLE GIT_REPO_VERSION_UNCLEANED
+  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR})
+string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+(\\.g[0-9a-f]+)?)?"
+ GIT_REPO_VERSION  "${GIT_REPO_VERSION_UNCLEANED}")
 project(NIFTI
-        VERSION 2.1.0
+        VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "Niftilib is a set of i/o libraries for reading and writing files in the nifti-1 data format. nifti-1 is a binary file format for storing medical image data, e.g. magnetic resonance image (MRI) and functional MRI (fMRI) brain images."
         LANGUAGES C)
 
@@ -61,11 +66,10 @@ set_if_not_defined(NIFTI_PACKAGE_PREFIX "")
 # Set default shared library version
 # This library version will be applied to all libraries in the package
 # unless it is not explicitely for a certain lib.
-set(NIFTI_SHAREDLIB_VERSION ${NIFTI_VERSION_MAJOR}.${NIFTI_VERSION_MINOR}.${NIFTI_VERSION_PATCH} )
-string( REGEX MATCH "^[0-9]+" NIFTI_SHAREDLIB_SOVERSION ${NIFTI_SHAREDLIB_VERSION})
+set(NIFTI_SHAREDLIB_VERSION ${GIT_REPO_VERSION} )
 if(BUILD_SHARED_LIBS AND NOT NIFTI_LIBRARY_PROPERTIES)
   set(NIFTI_LIBRARY_PROPERTIES ${DEFAULT_SHARED_LIBS}
-    BUILD_SHARED_LIBS TRUE POSITION_INDEPENDENT_CODE TRUE VERSION ${NIFTI_SHAREDLIB_VERSION} SOVERSION ${NIFTI_SHAREDLIB_SOVERSION}
+    BUILD_SHARED_LIBS TRUE POSITION_INDEPENDENT_CODE TRUE VERSION ${GIT_REPO_VERSION} SOVERSION ${GIT_REPO_VERSION}
   )
 endif()
 
@@ -164,7 +168,7 @@ if(NIFTI_INSTALL_EXPORT_NAME EQUAL "NIFTITargets")
 
   write_basic_package_version_file(
         "${CMAKE_CURRENT_BINARY_DIR}/NIFTI/NIFTIConfigVersion.cmake"
-        VERSION ${NIFTI_VERSION}
+        VERSION ${GIT_REPO_VERSION}
         COMPATIBILITY AnyNewerVersion
   )
 

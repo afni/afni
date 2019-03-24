@@ -182,10 +182,15 @@
 #     + [PT] fixed a lonely "if" that was missing its "endif" in life.
 #            --> Thanks (again) to S. Torrisi for pointing it out.
 #        
-set version   = "5.1";   set rev_dat   = "Feb 12, 2019"
+#set version   = "5.1";   set rev_dat   = "Feb 12, 2019"
 #     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
 #            methodology
-#        
+#               
+set version   = "5.2";   set rev_dat   = "Mar 15, 2019"
+#     + [PT] improve behavior of refbox: if the grids of the refbox
+#            and ulay are different, need to resample refbox to match
+#            grid of ulay.
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -1299,6 +1304,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 "$ulay"
 
         else if ( "$refbox" == "AMASK_FOCUS_OLAY" ) then
+
             # henceforth, the value of this variable is that of the
             # newly made mask, and it behaves like normal refbox input
             set refbox = "${read_dir}/AMASK_FOCUS_OLAY.nii"
@@ -1307,6 +1313,21 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
                 -clfrac 0.2                 \
                 -prefix ${refbox}           \
                 "$olay"
+        endif
+
+        # [PT: Mar 15, 2019] if the grids of the refbox and ulay are
+        # different, then we need to resample the refbox to match with
+        # ulay for purposes of spacing slices.
+        set samegrid_ulay_refbox = `3dinfo -same_grid "$ulay" "$refbox"`
+        if ( "${samegrid_ulay_refbox[1]}" == "0" ) then
+            echo "++ Resample refbox to match ulay"
+            set refbox_res = "${read_dir}/refbox_res.nii"
+            3dresample                   \
+                -prefix "${refbox_res}"  \
+                -master "${ulay}"        \
+                -input  "${refbox}"      \
+                -rmode  NN
+            set refbox = "${refbox_res}"
         endif
 
         # [PT: Nov 20, 2018] Still make a box and get the coors from

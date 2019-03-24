@@ -21,14 +21,14 @@ int THD_bandpass_set_nfft( int n )
 
 int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 {
-   int nfft , jbot,jtop ; float df ;
+   int nfft,nhalf , jbot,jtop ; float df , qbot,qtop ;
 
    if( ftop > ICOR_MAX_FTOP ) return 1 ;  /* 26 Feb 2010 */
 
    if( nx   <  9    ) return 0 ;
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){ ERROR_message("bad bandpass frequencies?"); return 0; }
+   if( ftop <= fbot || ftop > ICOR_MAX_FTOP ) ftop = ICOR_MAX_FTOP ;
    if( bpwrn && dt > 60.0f ){
      WARNING_message("Your bandpass timestep (%f) is high.\n"
                      "   Make sure units are 'sec', not 'msec'.\n"
@@ -37,16 +37,19 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
      bpwrn = 0;
    }
 
-   nfft = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_even(nx) ;
-   df   = 1.0f / (nfft * dt) ;  /* freq step */
-   jbot = (int)rint(fbot/df) ;  /* band bot index */
-   jtop = (int)rint(ftop/df) ;  /* band top index */
-   if( jtop >= nfft/2 ) jtop = nfft/2-1 ;
+   nfft  = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_even(nx) ;
+   nhalf = nfft/2 - 1 ;
+   df    = 1.0f / (nfft * dt) ;  /* freq step */
+   qbot  = rintf(fbot/df) ;
+   qtop  = rintf(ftop/df) ;
+   jbot  = ( qbot < nhalf ) ? (int)qbot : 0 ;     /* band bot index */
+   jtop  = ( qtop < nhalf ) ? (int)qtop : nhalf ; /* band top index */
    if( jbot+1 >= jtop ){
-     ERROR_message(
+     WARNING_message(
        "bandpass: fbot=%g and ftop=%g too close ==> jbot=%d jtop=%d [nfft=%d dt=%g]",
        fbot,ftop,jbot,jtop,nfft,dt) ;
-     return 0 ;
+     WARNING_message( " -- ignoring bandpass filter" ) ;
+     jbot = 0 ; jtop = nhalf ;
    }
 
    if( verb )
@@ -59,7 +62,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 
 /*--------------------------------------------------------------------------*/
 /*! Return the number of degrees of freedom that would remain after
-    bandpassing (the dimension of the subspace the data will be 
+    bandpassing (the dimension of the subspace the data will be
     projected into).
 
     Returns twice the length of the passband index range.
@@ -70,7 +73,7 @@ int THD_bandpass_OK( int nx , float dt , float fbot , float ftop , int verb )
 
 int THD_bandpass_remain_dim(int nx, float dt, float fbot, float ftop, int verb)
 {
-   int nfft , jbot,jtop ; float df ;
+   int nfft,nhalf , jbot,jtop , dim ; float df , qbot,qtop ;
 
    if( nx   <  9    ) {
       if( verb ) WARNING_message("length %d too short for bandpassing", nx);
@@ -78,9 +81,7 @@ int THD_bandpass_remain_dim(int nx, float dt, float fbot, float ftop, int verb)
 
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){
-      if( verb ) WARNING_message("bad bandpass frequencies (ftop<=fbot)");
-      return 0; }
+   if( ftop <= fbot || ftop > ICOR_MAX_FTOP ) ftop = ICOR_MAX_FTOP ;
    if( verb && dt > 60.0f ){
      WARNING_message("Your bandpass timestep (%f) is high.\n"
                      "   Make sure units are 'sec', not 'msec'.\n"
@@ -88,20 +89,23 @@ int THD_bandpass_remain_dim(int nx, float dt, float fbot, float ftop, int verb)
                      dt);
    }
 
-   nfft = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_even(nx) ;
-   df   = 1.0f / (nfft * dt) ;  /* freq step */
-   jbot = (int)rint(fbot/df) ;  /* band bot index */
-   jtop = (int)rint(ftop/df) ;  /* band top index */
-   if( jtop >= nfft/2 ) jtop = nfft/2-1 ;
+   nfft  = (nfft_fixed >= nx) ? nfft_fixed : csfft_nextup_even(nx) ;
+   nhalf = nfft/2 - 1 ;
+   df    = 1.0f / (nfft * dt) ;  /* freq step */
+   qbot  = rintf(fbot/df) ;
+   qtop  = rintf(ftop/df) ;
+   jbot  = ( qbot < nhalf ) ? (int)qbot : 0 ;     /* band bot index */
+   jtop  = ( qtop < nhalf ) ? (int)qtop : nhalf ; /* band top index */
    if( jbot+1 >= jtop ){
-     if( verb )
-        WARNING_message("bandpass: fbot=%g and ftop=%g too close"
-                        " ==> jbot=%d jtop=%d [nfft=%d dt=%g]",
-                        fbot,ftop,jbot,jtop,nfft,dt) ;
-     return 0 ;
+     WARNING_message(
+       "bandpass: fbot=%g and ftop=%g too close ==> jbot=%d jtop=%d [nfft=%d dt=%g]",
+       fbot,ftop,jbot,jtop,nfft,dt) ;
+     WARNING_message( " -- ignoring bandpass filter" ) ;
+     jbot = 0 ; jtop = nhalf ;
    }
 
-   return 2*(jtop-jbot+1);
+   dim = 2*(jtop-jbot+1); if( dim > nx ) dim = nx ;
+   return dim ;
 }
 
 /*--------------------------------------------------------------------------*/
@@ -118,20 +122,24 @@ int THD_bandpass_vectors( int nlen , int nvec   , float **vec ,
                           float dt , float fbot , float ftop  ,
                           int qdet , int nort   , float **ort  )
 {
-   int nfft,nby2 , iv, jbot,jtop , ndof=0 ; register int jj ;
-   float df , tapr ;
+   int nfft,nby2,nhalf , iv, jbot,jtop , ndof=0 ; register int jj ;
+   float df , tapr , qbot,qtop ;
    register float *xar, *yar=NULL ;
    register complex *zar ; complex Zero={0.0f,0.0f} ;
 
 ENTRY("THD_bandpass_vectors") ;
 
-   if( ftop > ICOR_MAX_FTOP && qdet < 0 && (nort <= 0 || ort == NULL) )
+   if( (ftop <= fbot || ftop > ICOR_MAX_FTOP) && qdet < 0 && (nort <= 0 || ort == NULL) )
      RETURN(ndof) ;   /* 26 Feb 2010: do nothing at all? */
 
-   if( nlen < 9 || nvec < 1 || vec == NULL ){
-     ERROR_message("bad bandpass data?");
-     RETURN(ndof);
+   if( nlen < 9 || nvec < 1 || vec == NULL ){  /* should not happen */
+     ERROR_message("bad filtering/bandpass data?"); RETURN(ndof);
    }
+
+   if( nort >= nlen ){
+     ERROR_message("Too many bandpass orts?") ; RETURN(ndof);
+   }
+
    if( bpwrn && dt > 60.0f ) {
      WARNING_message("Your bandpass timestep (%f) is high.\n"
                      "   Make sure units are 'sec', not 'msec'.\n"
@@ -139,29 +147,27 @@ ENTRY("THD_bandpass_vectors") ;
                      dt);
      bpwrn = 0;
    }
+
    if( dt   <= 0.0f ) dt   = 1.0f ;
    if( fbot <  0.0f ) fbot = 0.0f ;
-   if( ftop <= fbot ){
-     ERROR_message("Bad bandpass frequencies?"); RETURN(ndof);
-   }
-   if( nort >= nlen ){
-     ERROR_message("Too many bandpass orts?")  ; RETURN(ndof);
-   }
+   if( ftop <= fbot ) fbot = ICOR_MAX_FTOP ;
 
    /** setup for FFT **/
 
    nfft = (nfft_fixed >= nlen) ? nfft_fixed : csfft_nextup_even(nlen) ;
-   nby2 = nfft/2 ;
+   nby2 = nfft/2 ; nhalf = nby2-1 ;
 
-   df   = 1.0f / (nfft * dt) ;           /* frequency resolution */
-   jbot = (int)rint(fbot/df) ;           /* closest freq index to fbot */
-   jtop = (int)rint(ftop/df) ;           /* and to ftop */
-   if( jtop >= nby2   ) jtop = nby2-1 ;  /* can't go past Nyquist! */
+   df    = 1.0f / (nfft * dt) ;           /* frequency resolution */
+   qbot  = rintf(fbot/df) ;
+   qtop  = rintf(ftop/df) ;
+   jbot  = ( qbot < nhalf ) ? (int)qbot : 0 ;     /* band bot index */
+   jtop  = ( qtop < nhalf ) ? (int)qtop : nhalf ; /* band top index */
+
+   if( ftop >= ICOR_MAX_FTOP ) jtop = nhalf ;
+
+   if( jtop >= nby2   ) jtop = nhalf ;  /* can't go past Nyquist! */
    if( jbot >= jtop+1 ){
-     ERROR_message("bandpass: fbot and ftop too close ==> "
-                   "jbot=%d jtop=%d (df=%f)",
-                   jbot,jtop, df) ;
-     RETURN(ndof) ;
+     jbot = 0 ; jtop = nhalf ;
    }
 
    /** quadratic detrending first? (should normally be used) **/
@@ -169,23 +175,26 @@ ENTRY("THD_bandpass_vectors") ;
    switch( qdet ){
      case 2:
        ndof += 2 ;
+ININFO_message("  -- quadratic detrend") ;
        for( iv=0 ; iv < nvec ; iv++ )
          THD_quadratic_detrend( nlen, vec[iv], NULL,NULL,NULL ) ;
      break ;
 
      case 1:
        ndof += 1 ;
+ININFO_message("  -- linear detrend") ;
        for( iv=0 ; iv < nvec ; iv++ )
          THD_linear_detrend( nlen, vec[iv], NULL,NULL ) ;
      break ;
 
      case 0:
+ININFO_message("  -- remove mean") ;
        for( iv=0 ; iv < nvec ; iv++ )
          THD_const_detrend( nlen, vec[iv], NULL ) ;
      break ;
    }
 
-   if( qdet > 0 || jbot > 0 || jtop < nby2-1 ){  /* 26 Feb 2010: do the FFTs */
+   if( jbot > 0 || jtop < nhalf ){  /* 26 Feb 2010: do the FFTs */
 
      zar = (complex *)malloc(sizeof(complex)*nfft) ;  /* work array */
      csfft_scale_inverse(1) ;                         /* scale inverse FFT by 1/nfft */
@@ -197,6 +206,7 @@ ENTRY("THD_bandpass_vectors") ;
      if( jbot >= 1 ) ndof += 2*jbot - 1 ;  /* DOF for low freq */
      ndof += 2*(nby2-jtop) - 1 ;           /* DOF for high freq */
 
+ININFO_message("  -- FFTs") ;
      for( iv=0 ; iv < nvec ; iv+=2 ){
 
        /* load a pair of vectors into zar to double up on FFTs of real data */
