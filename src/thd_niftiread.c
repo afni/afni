@@ -242,7 +242,7 @@ ENTRY("THD_open_nifti") ;
    /* KRH 07/11/05 -- adding ability to choose spatial transform
       from the options of qform, sform, bothform, or noform.
 
-      If qform is present, it will be used.
+      If sform is present, it will be used.
 
       If qform is absent, but sform present, then the sform
         will be modified to be an orthogonal rotation and used.
