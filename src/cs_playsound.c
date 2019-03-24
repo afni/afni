@@ -128,7 +128,7 @@ void kill_sound_players(void)
 {
   char cmd[1024] ;
   if( pprog_name != NULL ){
-    sprintf(cmd,"killall %s >& /dev/null",pprog_name) ;
+    sprintf(cmd,"tcsh -c 'killall %s >& /dev/null' &",pprog_name) ;
     system(cmd) ;
   }
   return ;
@@ -184,8 +184,9 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
      strcat(extras," reverb 33") ;
-   sprintf(cmd,"%s %s %s >& /dev/null",pprog,fname,extras) ;
+   sprintf(cmd,"tcsh -c '%s %s %s >& /dev/null' &",pprog,fname,extras) ;
    system(cmd) ;
+   sleep(1);
    unlink(fname) ;
    _exit(0) ;
 }
