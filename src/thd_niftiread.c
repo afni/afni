@@ -199,15 +199,11 @@ ENTRY("THD_open_nifti") ;
 
    /* 23 Mar 2006: set qform or sform as having priority -- RWCox */
 
-   ppp = my_getenv("NIFTI_FORM_PRIORITY") ;
-   if( ppp == NULL ) ppp = getenv("AFNI_FORM_PRIORITY") ;
-   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_PRIORITY") ;
-   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_FORM") ;
-   if( ppp == NULL ) ppp = getenv("AFNI_NIFTI_FORM_PRIORITY") ;
+   ppp = my_getenv("AFNI_NIFTI_PRIORITY") ;
    if( ppp != NULL ){
      char fp = toupper(*ppp) ;
      if( fp == 'S' || fp == 'Q' ) form_priority = fp ;
-     else WARNING_message("Illegal NIFTI_FORM_PRIORITY='%s'",ppp) ;
+     else WARNING_message("Illegal AFNI_NIFTI_PRIORITY='%s'",ppp) ;
    }
 
    /** 24 Mar 2006: check determs of qform and sform, if have both **/
