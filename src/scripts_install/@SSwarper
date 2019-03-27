@@ -35,10 +35,13 @@
 #     confusing name: '-init_skullstr_off'.  (So it doesn't falsely
 #     seem like *no* skullstripping at all would be done.)
 #
-set version   = "1.43"; set rev_dat   = "Feb 21, 2019"
+#set version   = "1.43"; set rev_dat   = "Feb 21, 2019"
 #   + [PT] include '-Urad 30' in unifizing part, for improving
 #     final output-- thanks for careful code reading, Yoichi!
 #
+set version   = "1.44"; set rev_dat    = "Mar 27, 2019"
+#   + [RWC] add '-SSopt' option for adding options to 3dSkullStrip
+#           (per the request of Allison Nugent)
 # ----------------------------------------------------------------
 
 ### This is not fully adapted yet -- Zhark
@@ -79,6 +82,8 @@ set skipwarp  = 0
 set DO_UNIFIZE = 1
 set DO_SKULLST = 1
 set DO_ANISO   = 1
+
+set SSopt      = " "
 
 # ------------------- process options, a la rr ----------------------
 
@@ -138,15 +143,15 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-skipwarp" ) then
         set skipwarp = 1
 
-    # [PT: Feb 11, 2019] 
+    # [PT: Feb 11, 2019]
     else if ( "$argv[$ac]" == "-unifize_off" ) then
         set DO_UNIFIZE = 0
 
-    # [PT: Feb 11, 2019] 
+    # [PT: Feb 11, 2019]
     else if ( "$argv[$ac]" == "-init_skullstr_off" ) then
         set DO_SKULLST = 0
 
-    # [PT: Feb 11, 2019] 
+    # [PT: Feb 11, 2019]
     else if ( "$argv[$ac]" == "-aniso_off" ) then
         set DO_ANISO = 0
 
@@ -160,6 +165,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set odir = "$argv[$ac]"
+
+    # 3dSkullStrip options for Allison [RWC: 27 Mar 2019]
+    else if ( "$argv[$ac]" == "-SSopt" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set SSopt = "$argv[$ac]"
 
     # ---------- fin ------------------
 
@@ -250,7 +261,7 @@ if( ! -f $odir/anatU."${SubID}".nii ) then
             -clfrac 0.4                       \
             -Urad 30                          \
             -prefix $odir/anatU."$SubID".nii  \
-            -input "$Adataset" 
+            -input "$Adataset"
     else
         echo "++ NOT unifizing dset."
         3dcopy                                \
@@ -288,7 +299,8 @@ if( ! -f $odir/anatS."${SubID}".nii ) then
             -prefix $odir/anatS."$SubID".nii  \
             -debug 1 -ld 33 -niter 777        \
             -shrink_fac_bot_lim 0.777         \
-            -exp_frac 0.0666 -orig_vol
+            -exp_frac 0.0666 -orig_vol        \
+            $SSopt
     else
         echo "++ NOT pre-skullstripping dset."
         3dcopy                                \
@@ -505,6 +517,7 @@ USAGE ~1~
        {-skipwarp}        \
        {-unifize_off}     \
        {-init_skullstr_off}  \
+       {-SSopt 'strings'  \
        {-aniso_off}       \
        {-verb}            \
        {-noclean}
@@ -548,8 +561,8 @@ where:
               to the template space (anatQQ). The script will run faster.
 
   -unifize_off :(opt) don't start with a 3dUnifize command to try reduce
-              effects of brightness inhomogeneities.  Probably only 
-              useful if unifizing has been previously performed on the 
+              effects of brightness inhomogeneities.  Probably only
+              useful if unifizing has been previously performed on the
               input dset.
 
   -aniso_off :(opt) don't preprocess with a 3danisosmooth command to
@@ -561,6 +574,12 @@ where:
               to roughly isolated brain in the beginning.  This might
               be useful with macaque dsets.
 
+  -SSopt 'strings' :(opt) The content of 'strings' (which should be
+              in quotes if there are any blanks) is copied to the
+              end of the 3dSkullStrip command line. Example:
+                -SSopt '-o_ply Fred.Is.Wonderful'
+              to have 3dSkullStrip produce a .ply surface file
+              as an additional output.
 
   -verb      :(opt) Apply the '-verb' option to 3dQwarp, to get more
               verbose progress information - mostly used for debugging.
@@ -599,7 +618,7 @@ Then the outputs from this script will be"
   anatUA.sub007.nii       = anisotropically smoothed version of the above
                             (or, if '-aniso_off' used, a copy of anatU.*.nii)
   anatS.sub007.nii        = first pass skull-stripped original dataset;
-                            (or, if '-init_skullstr_off' used, a copy of 
+                            (or, if '-init_skullstr_off' used, a copy of
                             anatUA.*.nii)
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to

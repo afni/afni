@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , MAR , 2019 , RWC , "@SSwarper" , MICRO , TYPE_NEW_OPT ,
+   "-SSopt to add options to 3dSkullStrip" ,
+   "For example:\n"
+   "   -SSopt '-o_ply Zhark.rules'\n"
+   "to produce a brain surface in .ply format.\n"
+   "[Per the request of Allison Nugent]" } ,
+
  { 14 , MAR , 2019 , RWC , "3dQwarp" , MICRO , TYPE_ENHANCE ,
    "Propagate -weight from 3dQwarp to 3dAllineate" ,
    "Don't know why I didn't do this before. Probably a sign of incipient\n"
