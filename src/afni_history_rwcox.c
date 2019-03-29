@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , MAR , 2019 , RWC , "afni_check_omp" , MICRO , TYPE_NEW_PROG ,
+   "Prints to stdout the number of OpenMP threads it detects" ,
+   "For use in scripts, such as @SSwarper. This is a very short program." } ,
+
+ { 29 , MAR , 2019 , RWC , "@SSwarper" , MICRO , TYPE_BUG_FIX ,
+   "Strip dataset suffixes from -subid input" ,
+   "Otherwise, using '-subid Fred+orig' will cause trouble, for example. Or\n"
+   "'-subid Fred.nii' will work, but produce output files with names ending\n"
+   "in '.nii.nii' which is confusing." } ,
+
  { 27 , MAR , 2019 , RWC , "@SSwarper" , MICRO , TYPE_NEW_OPT ,
    "-SSopt to add options to 3dSkullStrip" ,
    "For example:\n"

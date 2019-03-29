@@ -39,9 +39,13 @@
 #   + [PT] include '-Urad 30' in unifizing part, for improving
 #     final output-- thanks for careful code reading, Yoichi!
 #
-set version   = "1.44"; set rev_dat    = "Mar 27, 2019"
+#set version   = "1.44"; set rev_dat   = "Mar 27, 2019"
 #   + [RWC] add '-SSopt' option for adding options to 3dSkullStrip
 #           (per the request of Allison Nugent)
+#
+set version   = "1.45"; set rev_dat   = "Mar 29, 2019"
+#   + [RWC] if SubID is a dataset name, funny things happened;
+#           so edit out suffixes like '.nii', '.HEAD', etc.`
 # ----------------------------------------------------------------
 
 ### This is not fully adapted yet -- Zhark
@@ -184,15 +188,28 @@ end
 
 # ====================================================================
 
-echo "++ Starting: $this_prog."
+echo "++ Starting: $this_prog v$version"
 if ( ! $?OMP_NUM_THREADS ) then
-    echo "++ OMP_NUM_THREADS is: not set by user, "
-    echo "   so probably just using one CPU :("
+    set sss = `dirname $0`
+    if ( -e $sss/afni_check_omp ) then
+      set nnn = `$sss/afni_check_omp`
+      echo "++ Default OMP_NUM_THREADS is $nnn"
+      unset nnn
+    else
+      echo "++ OMP_NUM_THREADS is: not set by user, "
+      echo "   so possibly just using one CPU, depending on system config"
+    endif
+    unset sss
 else
-    echo "++ OMP_NUM_THREADS is: $OMP_NUM_THREADS"
+    echo "++ OMP_NUM_THREADS set to $OMP_NUM_THREADS"
 endif
 
-if( ! -f "$Adataset" )then
+if ( "$Adataset" == "" ) then
+  echo "***** No -input option? :("
+  goto BAD_EXIT
+endif
+
+if ( ! -f "$Adataset" ) then
   set chad = `@CheckForAfniDset "$Adataset"`
   if( "$chad" == "0" || "$chad" == "1" )then
     echo "***** ${this_prog} -- Not finding dset $Adataset -- exiting :(("
@@ -201,9 +218,25 @@ if( ! -f "$Adataset" )then
 endif
 
 if( "$SubID" == "" )then
-  echo "***** ${this_prog} -- no subject ID entered? :("
+  echo "***** ${this_prog} -- no subject ID entered with -subid? :("
   goto BAD_EXIT
 endif
+
+# edit SubID to remove any dataset suffixes [29 Mar 2019]
+set sss = `basename "$SubID" .nii.gz`
+set sss = `basename "$sss"   .nii`
+set sss = `basename "$sss"   .`
+set sss = `basename "$sss"   .HEAD`
+set sss = `basename "$sss"   .BRIK.gz`
+set sss = `basename "$sss"   .BRIK`
+set sss = `basename "$sss"   +orig`
+set sss = `basename "$sss"   +tlrc`
+
+if ( "$sss" != "$SubID" ) then
+  echo "++ Editing subject ID (-subid) $SubID to $sss"
+  set SubID = "$sss"
+endif
+unset sss
 
 # output dir from $Adataset, if not set by user
 if ( "$odir" == "" ) then
