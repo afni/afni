@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.5, March 18, 2019
+Version 0.0.6, March 31, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -593,7 +593,7 @@ if(!is.null(lop$qContr)) {
       stop(sprintf('Quantitative contrast specification -qContr is incorrect!'))
    lop$qContrL <- qContrL[!qContrL %in% 'vs']
    # verify that variable names are correct
-   if(!all(lop$qContrL %in% c(lop$qVars, 'Intercept'))) 
+   if(!all(lop$qContrL %in% c(lop$QV, 'Intercept'))) 
       stop(sprintf('At least one of the variable labels in quantitative contrast specification -qContr is incorrect!'))
 }
 
