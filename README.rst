@@ -6,6 +6,11 @@ What the H*** is AFNI?
     
 .. image:: https://circleci.com/gh/afni/afni/tree/master.svg?style=shield
     :target: https://circleci.com/gh/afni/afni/tree/master
+
+.. image:: https://codecov.io/gh/afni/afni/branch/master/graph/badge.svg
+    :target: https://codecov.io/gh/afni/afni
+
+
     
 AFNI is a suite of programs for looking at and analyzing 3D brain
 images.  The emphasis is on FMRI, but AFNI can be used for other
