@@ -379,6 +379,19 @@
 # that associates a position with an anatomical structure
 ##atlas_datasets
 
+<ATLAS
+ atlas_name="MNI_Glasser_HCP_v1.0"
+ dset_name="MNI_Glasser_HCP_v1.0.nii.gz"
+ template_space="MNI"
+ description="Glasser HCP atlas 2016 surface-based parcellation"
+ comment="Glasser, et al,A multi-modal parcellation of human cerebral cortex,
+    Nature,2016. 
+    Atlas was constructed from surface analysis in Contee grayordinates.
+    Use with caution on volumetric analysis. Transformed to MNI space
+    via FreeSurfer and then to a standard mesh in AFNI.
+    More details on this implementation in Atlas_notes.txt and here:
+    https://openwetware.org/wiki/Beauchamp:CorticalSurfaceHCP"
+></ATLAS>
 #Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
 <ATLAS
    atlas_name="CA_N27_ML"   

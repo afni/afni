@@ -64,10 +64,11 @@ THD_string_array *recreate_working_atlas_name_list(void) {
 /* moved TT_Daemon down the road to the end and switched
  *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
-   char *min_atlas_list[] = {"CA_ML_18_MNI", "CA_MPM_18_MNI",
-      "DD_Desai_MPM", "DKD_Desai_MPM",  "CA_PM_18_MNIA", 
-      "CA_GW_18_MNIA", "CA_N27_LR",
-       "TT_Daemon", NULL};
+   char *min_atlas_list[] = {"MNI_Glasser_HCP_v1.0", 
+	  "CA_ML_18_MNI", "CA_MPM_18_MNI",
+      "DD_Desai_MPM", "DKD_Desai_MPM", 
+      "CA_GW_18_MNIA", "CA_N27_LR", 
+      "TT_Daemon", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
