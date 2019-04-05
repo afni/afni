@@ -50,6 +50,15 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 5, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "HCP Glasser atlas in AFNI atlases",
+    "Mike Beauchamp and Meghan Robinson contributed atlas\n"
+    "Now included and first in default list too\n"
+    "This atlas is in MNI space (not in its original Contee\n"
+    "grayordinate surface space.\n"
+    "Additionally, all the pmaps (probability maps) have been\n"
+    "removed from the standard distribution and default list"
+},
 { 12, OCT, 2018, DRG, "auto_warp.py", MICRO, TYPE_NEW_OPT,
     "at_opts for @auto_tlrc options"
 },
