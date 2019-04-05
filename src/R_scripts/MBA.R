@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, March 31, 2019
+Version 0.0.6, April 5, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -64,7 +64,7 @@ Usage: ~1~
  ===============================
  A data table in pure text format is needed as input for an MBA script. The
  data table should contain at least 4 columns that specify the information
- about subjects, each region pairs and the response variable values with the
+ about subjects, region pairs and the response variable values with the
  following fixed header. The header lables are case-sensitive, and their order
  does not matter.
 
@@ -124,11 +124,11 @@ Usage: ~1~
     It is possible to force the same range for all plots through fine-tuning
     within R using the output of .RData. The criteria of color coding for the
     strength of evidence in matrix plots in the output is as follows:
-     Green - two-tailed 95% compatible/quantile interval (or probability of effect
+     Green - two-tailed 95% compatible/uncertainty interval (or probability of effect
              being positive >= 0.975 or <= 0.025)
-     Blue  - one-tailed 95% compatible/quantile interval (or probability of effect
+     Blue  - one-tailed 95% compatible/uncertainty interval (or probability of effect
              being positive >= 0.95 or <= 0.05)
-     Yellow- one-tailed 90% compatible/quantile interval (or probability of effect
+     Yellow- one-tailed 90% compatible/uncertainty interval (or probability of effect
              being positive >= 0.90 or <= 0.10)
      white - anything else
 
@@ -272,7 +272,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
 
       '-chains' = apl(n = 1, d = 1, h = paste(
    "-chains N: Specify the number of Markov chains. Make sure there are enough",
-   "         processors available on the computer. Most of time 4 cores are good",
+   "         processors available on the computer. Most of the time 4 cores are good",
    "         enough. However, a larger number of chains (e.g., 8, 12) may help achieve",
    "         higher accuracy for posterior distribution. Choose 1 for a single-processor",
    "         computer, which is only practical only for simple models.\n", sep = '\n'
@@ -373,7 +373,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         will be provided in the output. Make sure that such comparisons are",
    "         meaningful (e.g., with the same scale and unit. This can be used to",
    "         formulate comparisons among factor levels if the user quantitatively",
-   "         code the factor levels.\n",
+   "         codes the factor levels.\n",
              sep = '\n'
              ) ),
 
@@ -384,7 +384,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         1) There should have at least four columns in the table. These minimum",
    "         four columns can be in any order but with fixed and reserved with labels:",
    "         'Subj', 'ROI1', 'ROI2', and 'Y'. The two columns 'ROI1' and 'ROI2' are",
-   "         meant to code the two regions that are associated with each value uner the",
+   "         meant to code the two regions that are associated with each value under the",
    "         column Y, and they do not connotate any indication of directionality other",
    "         than you may want to keep track of a consistent order, for example, in the",
    "         correlation matrix. More columns can be added in the table for explanatory",
@@ -746,7 +746,7 @@ res <- function(bb, xx, pp, nd) {
 
 # standardize the output
 prnt <- function(pct, side, dat, fl, entity) {
-   cat(sprintf('***** %i %s based on %i-sided %i quantile interval *****', 
+   cat(sprintf('***** %i %s based on %i-sided %i uncertainty interval *****', 
       nrow(dat), entity, side, pct), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
    if(nrow(dat) > 0) cat(capture.output(dat), file = paste0(fl, '.txt'), sep = '\n', append=TRUE) else
       cat('NULL', file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
