@@ -9,13 +9,14 @@ import shutil
 import subprocess
 
 here = os.path.abspath(os.path.dirname(__file__))
-AFNI_TEST_DATA_PATH = os.path.join(here, 'afni_test_data')
+AFNI_TEST_DATA_PATH = os.path.join(here, "afni_test_data")
 FT_PATH = os.path.join(AFNI_TEST_DATA_PATH, "AFNI_data6", "FT_analysis", "FT")
 
 _subj = "FT"
 
+
 def _get_afni_proc_path():
-    loc = shutil.which('afni_proc.py')
+    loc = shutil.which("afni_proc.py")
     if loc is None:
         raise Exception("Cannot find afni_proc.py")
     return loc
@@ -53,10 +54,7 @@ def test_handout_realcase2():
         -regress_est_blur_epits \
         -regress_est_blur_errts \
         -regress_run_clustsim yes"""
-    cmd = cmd.format(
-        afni_proc=_get_afni_proc_path(),
-        subj=_subj,
-        data=FT_PATH)
+    cmd = cmd.format(afni_proc=_get_afni_proc_path(), subj=_subj, data=FT_PATH)
     # Raises error on failure.
     subprocess.run(cmd.split(), check=True)
 
@@ -77,13 +75,9 @@ def test_handout_realcase3():
         -volreg_align_e2a \
         -volreg_tlrc_warp \
         -blur_size 4.0"""
-    cmd = cmd.format(
-        afni_proc=_get_afni_proc_path(),
-        subj=_subj,
-        data=FT_PATH)
+    cmd = cmd.format(afni_proc=_get_afni_proc_path(), subj=_subj, data=FT_PATH)
     # Raises error on failure.
     subprocess.run(cmd.split(), check=True)
-
     procfile = "proc.{}".format(_subj)
     assert os.path.isfile(procfile)
 
@@ -93,5 +87,5 @@ def main():
     test_handout_realcase3()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()
