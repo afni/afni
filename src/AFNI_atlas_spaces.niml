@@ -392,6 +392,56 @@
     More details on this implementation in Atlas_notes.txt and here:
     https://openwetware.org/wiki/Beauchamp:CorticalSurfaceHCP"
 ></ATLAS>
+
+<ATLAS
+  atlas_name="CA_MPM_22_MNI"
+  dset_name="MNI_caez_mpm_22+tlrc"
+  template_space="MNI"
+  description="Eickhoff-Zilles MPM atlas"
+  comment="Eickhoff-Zilles maximum probability map from cytoarchitectonic probabilistic atlas
+   SPM ANATOMY TOOLBOX  v2.2
+   For full list of references, 
+   http://www.fz-juelich.de/inm/inm-1/EN/Forschung/_docs/SPMAnatomyToolbox/SPMAnatomyToolbox_node.html
+   Primary references:
+   Contact: Simon Eickhoff  (s.eickhoff@fz-juelich.de)
+      Eickhoff SB et al.:  A new SPM toolbox... (2005) NeuroImage 25(4): 1325-1335
+      Eickhoff SB et al.:  Testing anatomically specified hypotheses...  (2006) NeuroImage 32(2): 570-82
+      Eickhoff SB et al.:  Assignment of functional activations...  (2007) NeuroImage 36(3): 511-521
+   Publications describing included probabilistic maps:
+       TE 1.0, TE 1.1, TE 1.2------------------------------------------ Morosan et al., NeuroImage 2001
+       BA 44, BA 45---------------------------------------------------- Amunts et al., J Comp Neurol 1999
+       BA 4a, BA 4p BA 6----------------------------------------------- Geyer et al., Nature 1996 S. Geyer,
+                                                                        Springer press 2003
+       BA 3a, BA 3b, BA 1 BA 2----------------------------------------- Geyer et al., NeuroImage, 1999, 2000
+                                                                        Grefkes et al., NeuroImage 2001
+       OP 1, OP 2, OP 3, OP 4------------------------------------------ Eickhoff et al., Cerebral Cortex 2006a,b
+       PFt, PF, PFm, PFcm, PFop, PGa, PGp 5Ci, 5L, 5M, 7A, 7M, 7P, 7PC- Caspers et al., Neuroimage 2007, BSF 2008
+                                                                        Scheperjans et al., Cerebral Cortex 2008a,b
+       hIP1, hIP2 hIP3------------------------------------------------- Choi et al., J Comp Neurol 2006
+                                                                        Scheperjans et al., Cerebral Cortex 2008a,b
+       Ig1, Ig2, Id1--------------------------------------------------- Kurth et al., Cerebral Cortex 2010
+       CM/LB/SF FD/CA/SUB/EC/HATA-------------------------------------- Amunts et al., Anat Embryol 2005
+                                                                        Amunts et al., Anat Embryol 2005
+       BA 17, BA 18 hOC5 hOC3v / hOC4v--------------------------------- Amunts et al., NeuroImage 2000
+                                                                        Malikovic et al., Cerebral Cortex 2006
+                                                                        Rottschy et al., Hum Brain Mapp 2007
+       13 structures--------------------------------------------------- Burgel et al., NeuroImage 1999, 2006
+       18 structures--------------------------------------------------- Diedrichsen et al., NeuroImage 2009
+       Dorsal extrastriate cortex (hOC3d / hOC4d)---------------------- Kujovic et al., Brain Struct Funct 2012
+       Gyrus fusiformis (FG1, FG2)------------------------------------- Caspers et al., Brain Struct Funct 2012
+       Frontal pole (Fp1, Fp2)----------------------------------------- Bludau et al., Neuroimage, 2014
+   Other areas may only be used with authors' permission !
+
+   AFNI adaptation by
+    Ziad S. Saad and Daniel Glen (SSCC/NIMH/NIH)"
+></ATLAS>
+<ATLAS
+  atlas_name="CA_MPM_22_TT"
+  dset_name="TT_caez_mpm_22+tlrc"
+  template_space="TT_N27"
+  description="Eickhoff-Zilles MPM atlas - Talairach space"
+></ATLAS>
+
 #Cytoarchitectonic atlases transformed to TT_N27 space with 12-piece transform
 <ATLAS
    atlas_name="CA_N27_ML"   

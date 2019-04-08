@@ -50,6 +50,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 7, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "Eickhoff-Zilles 2.2 MPM atlas",
+    "This atlas is the newer 2.2 version of the MPM atlas\n"
+    "This atlas replaced the 1.8 version in the list, but both\n"
+    "are kept in the binary distribution"
+},
 { 5, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
     "HCP Glasser atlas in AFNI atlases",
     "Mike Beauchamp and Meghan Robinson contributed atlas\n"
