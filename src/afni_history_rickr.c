@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Apr, 2019, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_OPT,
+   "add options -reject_midk and -reject_ignored",
+   "It seems likely that '-reject_midk 0' should be the default."
+ } ,
+
  { 20, Mar, 2019, RCR, "dcm2niix_afni", MINOR, TYPE_BUG_FIX,
    "sync crorden/dcm2niix_console with repo, version v1.0.20181125",
    "This is possibly to correct a bug with -m and partial brain coverage."
