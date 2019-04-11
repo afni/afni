@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -combine_tedort_reject_midk",
+   "It might be a good idea to set this to 'no', so less gets rejected."
+ } ,
+
  { 11, Apr, 2019, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
    "add functions gaussian_at_fwhm, gaussian_at_hwhm_frac",
    NULL
