@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Apr, 2019, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add functions gaussian_at_fwhm, gaussian_at_hwhm_frac",
+   NULL
+ } ,
+
  {  8, Apr, 2019, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_OPT,
    "add options -reject_midk and -reject_ignored",
    "It seems likely that '-reject_midk 0' should be the default."
