@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 11, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "Brainnetome atlas",
+    "This atlas is now included in the standard distribution\n"
+    "This also is in the default list of atlases"
+},
 { 7, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
     "Eickhoff-Zilles 2.2 MPM atlas",
     "This atlas is the newer 2.2 version of the MPM atlas\n"

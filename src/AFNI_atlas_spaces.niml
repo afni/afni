@@ -394,6 +394,16 @@
 ></ATLAS>
 
 <ATLAS
+ atlas_name="Brainnetome_1.0"
+ dset_name="BN_Atlas_246_1mm.nii.gz"
+ template_space="MNI"
+ description="Brainnetome MPM"
+ comment="Please cite Fan, L. et al., The Human Brainnetome Atlas:
+     A New Brain Atlas Based on Connectional Architecture.
+     Cerebral Cortex, 26 (8): 3508-3526,(2016)."
+></ATLAS>
+
+<ATLAS
   atlas_name="CA_MPM_22_MNI"
   dset_name="MNI_caez_mpm_22+tlrc"
   template_space="MNI"
