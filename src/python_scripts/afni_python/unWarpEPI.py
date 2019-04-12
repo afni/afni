@@ -52,7 +52,7 @@ class unWarpWithBlipUpBlipDownEPI:
 
    def __init__ (self, options,parser):
 
-      print "Unwarp function initialized"
+      print("Unwarp function initialized")
 
       ### Define the subject prefix for all datasets
       if options.subjID:
@@ -86,36 +86,36 @@ class unWarpWithBlipUpBlipDownEPI:
 
       # Get data sets required to do unwarping
       if not options.forward:
-         print "!!! Required forward calibration data missing - exiting !!!"
+         print("!!! Required forward calibration data missing - exiting !!!")
          parser.print_usage()
          sys.exit (-1)
       else:
          self.forwardCalibrationData = options.forward
-         print "Forward calibration data is " + self.forwardCalibrationData
+         print("Forward calibration data is %s" % self.forwardCalibrationData)
 
       if not options.reverse:
-         print "!!! Required reverse calibration data missing - exiting !!!"
+         print("!!! Required reverse calibration data missing - exiting !!!")
          parser.print_usage()
          sys.exit (-1)
       else:
          self.reverseCalibrationData = options.reverse
-         print "Reverse calibration data is " + self.reverseCalibrationData
+         print("Reverse calibration data is %s" % self.reverseCalibrationData)
 
       if not options.data:
-         print "!!! Required data to be corrected missing - exiting !!!"
+         print("!!! Required data to be corrected missing - exiting !!!")
          parser.print_usage()
          sys.exit (-1)
       else:
-         self.dataToCorrect = list(dataSet for dataSet in string.split (options.data, ','))
+         self.dataToCorrect = list(dataSet for dataSet in options.data.split(','))
 
-         print "Data set(s) to be corrected is(are) %s" % self.dataToCorrect
+         print("Data set(s) to be corrected is(are) %s" % self.dataToCorrect)
 
       if not options.anat4warp:
          self.dataAnat = 'NONE'
-         print "Anatomical data not provided - continuing without it."
+         print("Anatomical data not provided - continuing without it.")
       else:
          self.dataAnat = options.anat4warp
-         print "Anatomical data set is " + self.dataAnat
+         print("Anatomical data set is %s" % self.dataAnat)
 
       if options.giant_move:
          self.giant_move = True
@@ -131,10 +131,10 @@ class unWarpWithBlipUpBlipDownEPI:
       outputDir = "unWarpOutput_" + self.subjectID
 
       if os.path.isdir (outputDir):
-         print "!!! Output directory " + outputDir + " already exists !!!  Script ends now !!!"
+         print("!!! Output directory %s already exists !!!  Script ends now !!!" % outputDir)
 #         sys.exit (-1)
       else:
-         os.mkdir (outputDir, 0755)
+         os.mkdir (outputDir, mode=0o755)
 
       # Use subprocess.call instead of Popen to wait for this data set
       # to be finished copying before proceeding.
