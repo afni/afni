@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , APR , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Make -bysub option work with directory names" ,
+   "A command like\n"
+   "   afni -bysub ~/data/UCLA_pamenc20\n"
+   "will find all 'sub-*' subdirectories in the given directory, and process\n"
+   "those individually via the older '-bysub' operation. This makes it\n"
+   "simple to read in an entire BIDS hierarchy. Note that the recursive\n"
+   "descent for each 'sub-XXX' name will include derivatives (if found)." } ,
+
+ { 15 , APR , 2019 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Turn AFNI_PBAR_FULLRANGE on by default" ,
+   NULL } ,
+
  { 29 , MAR , 2019 , RWC , "afni_check_omp" , MICRO , TYPE_NEW_PROG ,
    "Prints to stdout the number of OpenMP threads it detects" ,
    "For use in scripts, such as @SSwarper. This is a very short program." } ,

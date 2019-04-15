@@ -1160,7 +1160,7 @@ static char *gby[] = {
      "\n The world is divided into two classes:\n"
      "   Those who believe the incredible, and those who do the improbable"     ,
 
-     "Whenever a man does a thoroughly stupid thing, it is always from the noblest motives" ,
+     "Whenever a person does a thoroughly stupid thing, it is always from the noblest motives" ,
 
      /* Longer quotes */
 

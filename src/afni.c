@@ -132,8 +132,10 @@ void AFNI_print_startup_tip(int) ;
 
 #include "afni_startup_tips.h"  /* where the tips and goodbye messages live */
 
-int num_bysub = 0 ;    /* 01 Feb 2018 */
-char **bysub  = NULL ;
+int num_bysub     = 0 ;     /* 01 Feb 2018 */
+char **bysub      = NULL ;
+int num_bysub_dir = 0 ;     /* 15 Apr 2019 */
+char **bysub_dir  = NULL ;
 
 /*-----------------------------------------------------------------------
    Fallback resources for AFNI.  May be overridden by the user's
@@ -494,23 +496,29 @@ void AFNI_syntax(void)
      "                  The purpose of this option is to gather all the datasets\n"
      "                  corresponding to a single subject identifier, as is done\n"
      "                  in the BIDS file hierarchy -- http://bids.neuroimaging.io/\n"
-     "               ** After '-bysub' you put one or more subject identifiers,\n"
+     "             **** There are two methods for using this option.\n"
+     "               ** In the first method, you put one or more subject identifiers,\n"
      "                  which are of the form 'sub-XXX' where 'XXX' is some\n"
      "                  subject code (it does not have to be exactly 3 characters).\n"
-     "               ** If an identifier does NOT start with 'sub-', then that\n"
-     "                  4 letter string will be added to the front. This allows\n"
-     "                  you to specify your subjects by their numbers 'XXX' alone.\n"
-     "               ** The list of subject identifiers ends when an argument\n"
-     "                  on the command line starts with the '-' character.\n"
-     "                  That would be another option, or the '-' character\n"
-     "                  by itself if the next things on the command line\n"
-     "                  are the list of directories to scan for datasets.\n"
-     "               ** Each directory on the command line (after all options)\n"
+     "                 ++ If an identifier does NOT start with 'sub-', then that\n"
+     "                    4 letter string will be added to the front. This allows\n"
+     "                    you to specify your subjects by their numbers 'XXX' alone.\n"
+     "               ** In the second method, you put one or more directory names,\n"
+     "                  and all sub-directories whose name starts with 'sub-' will\n"
+     "                  be included. With this method, you can end up reading in\n"
+     "                  an entire BIDS hierarchy of datasets, which might take\n"
+     "                  a significant amount of time.\n"
+     "               ** In either method, the list of names ends with any argument\n"
+     "                  that starts with '-' (or with the end of all arguments).\n"
+     "               ** Each directory on the command line (after all options, and\n"
+     "                  including any directories directly after the '-bysub' option)\n"
      "                  will be scanned recursively (down the file tree) for\n"
-     "                  subdirectories whose name matches the 'sub-XXX' identifier\n"
+     "                  subdirectories whose name matches each 'sub-XXX' identifier\n"
      "                  exactly. All such subdirectories will have all their\n"
      "                  datasets read in (recursively down the file tree) and\n"
      "                  put into a single session for viewing in AFNI.\n"
+     "                 + In addition, all datasets from all subjects will be\n"
+     "                   available in the 'All_Datasets' session in the GUI.\n"
      "               ** Remember: if no directories are given on the command\n"
      "                  line after the various options, then the current working\n"
      "                  directory ('.' or 'echo $cwd') is used.\n"
@@ -522,7 +530,7 @@ void AFNI_syntax(void)
      "               ** Please note that '-bysub' sessions will NOT be rescanned\n"
      "                  for new datasets that might get placed there after the\n"
      "                  AFNI GUI starts, unlike normal (single directory) sessions.\n"
-     "               ** Example:\n"
+     "               ** Example (method 1):\n"
      "                    afni -bysub 10506 50073 - ~/data/OpenFMRI/ds000030\n"
      "                  This will open the data for subjects 10506 and 50073 from\n"
      "                  the data at the specified directory -- presumably the\n"
@@ -531,11 +539,12 @@ void AFNI_syntax(void)
      "                    anat beh dwi func\n"
      "                  all AFNI-readable datasets from these sub-directories will\n"
      "                  be input and collected into one session, to be easily\n"
-     "                  viewed together. In addition, if a sub-directory named\n"
-     "                    derivatives/sub-10506\n"
-     "                  is found underneath ~/data/OpenFMRI/ds000030, all the\n"
-     "                  datasets found underneath that will also be put into the\n"
-     "                  same session, so they can be viewed with the 'raw' data.\n"
+     "                  viewed together.\n"
+     "             ++++++ Because of the recursive search, if a directory named (e.g.)\n"
+     "                      derivatives/sub-10506\n"
+     "                    is found underneath ~/data/OpenFMRI/ds000030, all the\n"
+     "                    datasets found underneath that will also be put into the\n"
+     "                    same session, so they can be viewed with the 'raw' data.\n"
      "               ** In this context, 'dataset' also means .png and .jpg files\n"
      "                  found in the sub-XXX directories. These images can be\n"
      "                  opened in the AFNI GUI using the Axial image viewer.\n"
@@ -545,7 +554,13 @@ void AFNI_syntax(void)
      "               ** You can put multiple subject IDs after '-bysub', as\n"
      "                  in the example above. You can also use the '-bysub' option\n"
      "                  more than once, if you like. Each distinct subect ID will\n"
-     "                  get a distinct AFNI session.\n"
+     "                  get a distinct AFNI session in the GUI.\n"
+     "               ** Example (method 2):\n"
+     "                    afni -bysub ~/data/OpenFMRI/ds000030\n"
+     "                  This will read in all datasets from all subjects. In this\n"
+     "                  particular example, there are hundreds of subjects, so this\n"
+     "                  command may not actually be a good idea (unless you want to\n"
+     "                  go get a cup of chai or coffee).\n"
      "\n"
 #if MMAP_THRESHOLD > 0
      "   -purge       Conserve memory by purging data to disk.\n"
@@ -1170,25 +1185,57 @@ ENTRY("AFNI_parse_args") ;
       }
 #endif
 
+      /*-----   -bysub   -----*/
+
       if( strcmp(argv[narg],"-bysub") == 0 ){  /* 01 Feb 2018 */
         int bb ;
         if( ++narg >= argc ) ERROR_exit("need an argument after -bysub!") ;
-        for( ; narg < argc         &&
-              argv[narg][0] != '-' &&
-              argv[narg][0] != '.' &&
-              argv[narg][0] != '/'    ; narg++ ){
-          bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
-          if( strncmp(argv[narg],"sub-",4) == 0 ){
-            bysub[num_bysub] = strdup(argv[narg]) ;
-          } else {
-            bysub[num_bysub] = (char *)malloc(sizeof(char)*(strlen(argv[narg])+8)) ;
-            sprintf( bysub[num_bysub] , "sub-%s" , argv[narg] ) ;
+        for( ; narg < argc && argv[narg][0] != '-' ; narg++ ){
+
+          if( THD_is_directory(argv[narg]) ){  /* check for all sub- names [15 Apr 2019] */
+
+            char *cmd=NULL , *flist=NULL , *qmd=NULL ; NI_str_array *qsar=NULL ; int qq ;
+            cmd = (char *)malloc(sizeof(char)*(128+strlen(argv[narg]))) ;
+            sprintf( cmd, "find %s -maxdepth 1 -type d -name 'sub-*'", argv[narg] ) ;
+            flist = THD_suck_pipe( cmd ) ; free(cmd) ;
+            if( flist == NULL || strlen(flist) < 4 ){
+              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",argv[narg]) ;
+              continue ;
+            }
+            qsar = NI_decode_string_list( flist , ";" ) ;
+            if( qsar == NULL || qsar->num == 0 ){    /* should never happen */
+              WARNING_message("-bysub: Didn't find any 'sub-*' under %s",argv[narg]) ;
+              free(flist) ; continue ;
+            }
+            for( qq=0 ; qq < qsar->num ; qq++ ){
+              cmd = qsar->str[qq] ; if( cmd == NULL ) continue ;
+              bb  = strlen(cmd) ;   if( bb  <  2    ) continue ;
+              if( cmd[bb-1] == '/' ) cmd[bb-1] = '\0' ;
+              qmd = strrchr(cmd,'/') ;
+              if( qmd != NULL ){ qmd++ ; } else { cmd = qmd ; }
+              bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
+              bysub[num_bysub++] = strdup(qmd) ;
+              bysub_dir = (char **)realloc(bysub_dir,sizeof(char *)*(num_bysub_dir+1)) ;
+              bysub_dir[num_bysub_dir++] = strdup(argv[narg]) ;
+            }
+
+          } else {                             /* the old way: a sub-XXX name */
+
+            bysub = (char **)realloc(bysub,sizeof(char *)*(num_bysub+1)) ;
+            if( strncmp(argv[narg],"sub-",4) == 0 ){
+              bysub[num_bysub] = strdup(argv[narg]) ;
+            } else {
+              bysub[num_bysub] = (char *)malloc(sizeof(char)*(strlen(argv[narg])+8)) ;
+              sprintf( bysub[num_bysub] , "sub-%s" , argv[narg] ) ;
+            }
+            bb = strlen(bysub[num_bysub]) ;
+            if( bb > 1 && bysub[num_bysub][bb-1] == '/' )
+              bysub[num_bysub][bb-1] = '\0' ;
+            num_bysub++ ;
           }
-          bb = strlen(bysub[num_bysub]) ;
-          if( bb > 1 && bysub[num_bysub][bb-1] == '/' )
-            bysub[num_bysub][bb-1] = '\0' ;
-          num_bysub++ ;
-        }
+
+        } /* end of loop over -bysub args */
+
         if( narg < argc && strcmp(argv[narg],"-") == 0 ) narg++ ;
         continue ;
       }
@@ -2360,15 +2407,13 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_DECONFLICT","OVERWRITE") ; /* 24 Sep 2007 */
    PUTENV("AFNI_X11_REDECORATE","NO") ;
    PUTENV("AFNI_RESCAN_AT_SWITCH","YES") ; /* 16 Nov 2007 */
-   PUTENV("AFNI_VIDEO_DELAY","66") ;       /* 20 Aug 2009 */
+   PUTENV("AFNI_VIDEO_DELAY","33") ;       /* 20 Aug 2009 */
    PUTENV("AFNI_GRAPH_FADE","YES") ;          /* Apr 2013 */
    PUTENV("AFNI_MPEG_DATASETS","NO") ;        /* Feb 2015 */
    PUTENV("AFNI_FLASH_VIEWSWITCH","NO") ;  /* 14 Apr 2016 */
    PUTENV("AFNI_DATASET_BROWSE","YES") ;   /* 07 Nov 2018 */
    PUTENV("AFNI_VERSION_CHECK","NO") ;     /* 04 Jan 2019 */
-#if 0
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
-#endif
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
@@ -5917,7 +5962,12 @@ ENTRY("AFNI_read_inputs") ;
       no_args = (num_ss < 1) ;
 
       INIT_SARR(dlist) ;
-      if( no_args ){
+
+      /** 15 Apr 2018: put in any bysub dirs **/
+
+      for( id=0; id < num_bysub_dir; id++ ){ ADDTO_SARR(dlist,bysub_dir[id]); }
+
+      if( no_args && num_bysub_dir <= 0 ){
          if( GLOBAL_argopt.recurse > 0 ){
 STATUS("no args: recursion on ./") ;
             flist = THD_get_all_subdirs( GLOBAL_argopt.recurse , "./" ) ;
@@ -5990,6 +6040,7 @@ if(PRINT_TRACING)
                new_ssar = (THD_session **)realloc( new_ssar ,
                                                    sizeof(THD_session *)*(num_ssar+1) ) ;
                new_ssar[num_ssar++] = new_ss ;
+               fprintf(stderr,"+b") ;
              }
            }
            if( num_ssar == 0 ){                  /* bysub failed, try again */
@@ -5997,6 +6048,7 @@ if(PRINT_TRACING)
              if( new_ss != NULL ){
                new_ssar = (THD_session **)malloc(sizeof(THD_session *)) ;
                new_ssar[0] = new_ss ; num_ssar = 1 ;
+               fprintf(stderr,"+d") ;
              }
            }
          }
