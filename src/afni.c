@@ -6040,15 +6040,15 @@ if(PRINT_TRACING)
                new_ssar = (THD_session **)realloc( new_ssar ,
                                                    sizeof(THD_session *)*(num_ssar+1) ) ;
                new_ssar[num_ssar++] = new_ss ;
-               fprintf(stderr,"+b") ;
+               fprintf(stderr,"+%s",bysub[qss]) ;
              }
            }
-           if( num_ssar == 0 ){                  /* bysub failed, try again */
+           if( num_ssar == 0 ){                  /* bysub did nothing, try again */
              new_ss = THD_init_session(dname) ;
              if( new_ss != NULL ){
                new_ssar = (THD_session **)malloc(sizeof(THD_session *)) ;
                new_ssar[0] = new_ss ; num_ssar = 1 ;
-               fprintf(stderr,"+d") ;
+               fprintf(stderr,"+%s",dname) ;
              }
            }
          }
