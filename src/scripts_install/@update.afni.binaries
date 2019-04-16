@@ -1250,6 +1250,8 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
    
    \grep all_progs.COMP $rcfile >& /dev/null
    if ( $status && -f $rcfile ) then
+      echo "++ adding source of all_progs.COMP to $rcfile"
+
       cat << EOF >> $rcfile
 
 if ( -f \$HOME/.afni/help/all_progs.COMP ) then
@@ -1258,6 +1260,20 @@ endif
 
 EOF
    endif
+
+   set brcfile = ~/.bashrc
+   \grep all_progs.COMP.bash $brcfile >& /dev/null
+   if ( $status && -f $brcfile ) then
+      echo "++ adding source of all_progs.COMP.bash to $brcfile"
+
+      cat << EOF >> $brcfile
+
+if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
+then
+   . \$HOME/.afni/help/all_progs.COMP.bash ]
+fi
+
+EOF
 
 endif
 

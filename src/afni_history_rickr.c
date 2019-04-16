@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Apr, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "if do_apearch, update .bashrc to source all_progs.COMP.bash",
+   "Done to appease the mighty P Taylor."
+ } ,
+
  { 11, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -combine_tedort_reject_midk",
    "It might be a good idea to set this to 'no', so less gets rejected."
