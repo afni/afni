@@ -253,6 +253,7 @@ ENTRY("new_MCW_grapher") ;
                        "P      = play sound from average graph\n"
                        "         and central graph (polyphony)\n"
                        "K      = kill any running sound player\n"
+                       "C      = change overall color scheme\n"
                        "F5     = Meltdown!\n"
                        "\n"
                        "See the 'Opt' menu for other keypress actions\n"
@@ -653,6 +654,8 @@ ENTRY("new_MCW_grapher") ;
 
         gr_setup_default = 0 ;
      }
+
+     grapher->fixed_colors_setting = 0 ;  /* 16 Apr 2019 */
 
      for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
 
@@ -4083,8 +4086,40 @@ STATUS(str); }
       }
       break ;
 
+      case 'C':{   /* Change colors all at once [16 Apr 2019] */
+        int fc = (grapher->fixed_colors_setting+1) % NUM_FIXED_COLORS_SETTING ;
+        int newcol[NUM_COLOR_ITEMS] , ii,jj ; MCW_arrowval *av ;
+        switch( fc ){  /* which color set to use */
+          default:
+          case 0:
+            newcol[0] = DEFAULT_GR_BOXES_COLOR  ; newcol[1] = DEFAULT_GR_BACKG_COLOR  ;
+            newcol[2] = DEFAULT_GR_GRID_COLOR   ; newcol[3] = DEFAULT_GR_TEXT_COLOR   ;
+            newcol[4] = DEFAULT_GR_DATA_COLOR   ; newcol[5] = DEFAULT_GR_IDEAL_COLOR  ;
+            newcol[6] = DEFAULT_GR_ORT_COLOR    ; newcol[7] = DEFAULT_GR_IGNORE_COLOR ;
+            newcol[8] = DEFAULT_GR_DPLOT_COLOR  ;
+          break ;
+
+          case 1:
+            newcol[0] = INVERTT_GR_BOXES_COLOR  ; newcol[1] = INVERTT_GR_BACKG_COLOR  ;
+            newcol[2] = INVERTT_GR_GRID_COLOR   ; newcol[3] = INVERTT_GR_TEXT_COLOR   ;
+            newcol[4] = INVERTT_GR_DATA_COLOR   ; newcol[5] = INVERTT_GR_IDEAL_COLOR  ;
+            newcol[6] = INVERTT_GR_ORT_COLOR    ; newcol[7] = INVERTT_GR_IGNORE_COLOR ;
+            newcol[8] = INVERTT_GR_DPLOT_COLOR  ;
+          break ;
+        }
+        for( ii=0 ; ii < NUM_COLOR_ITEMS ; ii++ ){
+          jj = GRA_COLOR(newcol[ii]) ;        /* actual color index */
+          grapher->color_index[ii] = jj ;
+          av = grapher->opt_color_av[ii] ;    /* the color menu */
+          AV_assign_ival(av,jj) ;             /* change the menu */
+        }
+        grapher->fixed_colors_setting = fc ;  /* for the next time through */
+        redraw_graph(grapher,0) ;             /* show the new beauty */
+      }
+      break ;
+
       /*--- At this point, have a key not handled here.
-            Call the creator to see if it wishes to deal with it. ---*/
+            Call the creator to see if ze wishes to deal with it. ---*/
 
       default:
         if( grapher->status->send_CB != NULL ){

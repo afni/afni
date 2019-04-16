@@ -235,6 +235,16 @@ typedef struct {
 #define DEFAULT_GR_IGNORE_COLOR   BLUEST_COLOR
 #define DEFAULT_GR_DPLOT_COLOR    REDDEST_COLOR
 
+#define INVERTT_GR_BOXES_COLOR    BRIGHTEST_COLOR
+#define INVERTT_GR_BACKG_COLOR    DARKEST_COLOR
+#define INVERTT_GR_GRID_COLOR     8
+#define INVERTT_GR_TEXT_COLOR     BRIGHTEST_COLOR
+#define INVERTT_GR_DATA_COLOR     BRIGHTEST_COLOR
+#define INVERTT_GR_IDEAL_COLOR    REDDEST_COLOR
+#define INVERTT_GR_ORT_COLOR      GREENEST_COLOR
+#define INVERTT_GR_IGNORE_COLOR   BLUEST_COLOR
+#define INVERTT_GR_DPLOT_COLOR    REDDEST_COLOR
+
 #ifdef MAIN
 int INIT_GR_boxes_color  = DEFAULT_GR_BOXES_COLOR  ,
     INIT_GR_backg_color  = DEFAULT_GR_BACKG_COLOR  ,
@@ -325,11 +335,11 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
 static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 
 #define GRA_COLOR(cd)                                              \
-   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest)  \
+   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest) \
     :((cd) == DARKEST_COLOR  )  ? (grapher->dc->ovc->ov_darkest)   \
-    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ovc->ov_reddest)  \
-    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ovc->ov_greenest)\
-    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest) \
+    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ovc->ov_reddest)   \
+    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ovc->ov_greenest)  \
+    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest)    \
     :(cd) )
 
 #define FG_THICK(gr)     ((gr)->thick_index[0] * (gr)->gthick)
@@ -382,6 +392,8 @@ extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
 /**************************************************************/
 
 #define PLOTCODE_AUTOSCALE 1
+
+#define NUM_FIXED_COLORS_SETTING 2
 
 typedef struct {
    int type , valid ;
@@ -465,6 +477,7 @@ typedef struct {
    int color_index[NUM_COLOR_ITEMS] ;
    int thick_index[NUM_COLOR_ITEMS] ;
    int points_index[NUM_COLOR_ITEMS] ;
+   int fixed_colors_setting ;
 
    MCW_arrowval *opt_ggap_av ; /* 12 Jan 1998 */
    int ggap ;

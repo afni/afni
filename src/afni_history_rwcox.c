@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 16 , APR , 2019 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
+   "C keystroke shortcut in graph viewer - switches color scheme" ,
+   NULL } ,
+
  { 15 , APR , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Make -bysub option work with directory names" ,
    "A command like\n"
