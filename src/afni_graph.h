@@ -219,6 +219,11 @@ typedef struct {
 
 /******** 16 June 1997:  Stuff for choosing colors in the graph ******/
 
+#include "pbar_color_defs.h"
+
+#define NUM_FIXED_COLORS_SETTING 3
+#define NUM_COLOR_ITEMS          9
+
 #define BRIGHTEST_COLOR   -1
 #define DARKEST_COLOR     -2
 #define REDDEST_COLOR     -3
@@ -227,7 +232,7 @@ typedef struct {
 
 #define DEFAULT_GR_BOXES_COLOR    DARKEST_COLOR
 #define DEFAULT_GR_BACKG_COLOR    BRIGHTEST_COLOR
-#define DEFAULT_GR_GRID_COLOR     2
+#define DEFAULT_GR_GRID_COLOR     COL_yell_oran
 #define DEFAULT_GR_TEXT_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_DATA_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_IDEAL_COLOR    REDDEST_COLOR
@@ -237,7 +242,7 @@ typedef struct {
 
 #define INVERTT_GR_BOXES_COLOR    BRIGHTEST_COLOR
 #define INVERTT_GR_BACKG_COLOR    DARKEST_COLOR
-#define INVERTT_GR_GRID_COLOR     8
+#define INVERTT_GR_GRID_COLOR     COL_gry_bb
 #define INVERTT_GR_TEXT_COLOR     BRIGHTEST_COLOR
 #define INVERTT_GR_DATA_COLOR     BRIGHTEST_COLOR
 #define INVERTT_GR_IDEAL_COLOR    REDDEST_COLOR
@@ -266,6 +271,37 @@ int INIT_GR_boxes_thick  = 0 ,
 int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
 int INIT_GR_gthick       = 2 ;  /* 06 Oct 2004 */
 int INIT_GR_gmat         = 3 ;  /* 10 Feb 2003 */
+
+int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
+     {
+       { DEFAULT_GR_BOXES_COLOR,
+         DEFAULT_GR_BACKG_COLOR,
+         DEFAULT_GR_GRID_COLOR,
+         DEFAULT_GR_TEXT_COLOR,
+         DEFAULT_GR_DATA_COLOR,
+         DEFAULT_GR_IDEAL_COLOR,
+         DEFAULT_GR_ORT_COLOR,
+         DEFAULT_GR_IGNORE_COLOR,
+         DEFAULT_GR_DPLOT_COLOR   } ,
+       { INVERTT_GR_BOXES_COLOR,
+         INVERTT_GR_BACKG_COLOR,
+         INVERTT_GR_GRID_COLOR,
+         INVERTT_GR_TEXT_COLOR,
+         INVERTT_GR_DATA_COLOR,
+         INVERTT_GR_IDEAL_COLOR,
+         INVERTT_GR_ORT_COLOR,
+         INVERTT_GR_IGNORE_COLOR,
+         INVERTT_GR_DPLOT_COLOR   } ,
+       { COL_dk_blue ,
+         COL_yellow ,
+         COL_blue_cyan ,
+         COL_dk_blue ,
+         COL_dk_blue ,
+         DEFAULT_GR_IDEAL_COLOR,
+         COL_rbgyr20_07 ,
+         DEFAULT_GR_IGNORE_COLOR,
+         DEFAULT_GR_DPLOT_COLOR   }
+     } ;
 #else
 extern int INIT_GR_boxes_color  ,
            INIT_GR_backg_color  ,
@@ -287,9 +323,8 @@ extern int INIT_GR_boxes_thick ,
 extern int INIT_GR_ggap ;
 extern int INIT_GR_gthick ;  /* 06 Oct 2004 */
 extern int INIT_GR_gmat ;
+extern int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] ;
 #endif /* MAIN */
-
-#define NUM_COLOR_ITEMS 9
 
 #define FG_COLOR(gr)     ((gr)->color_index[0])
 #define BG_COLOR(gr)     ((gr)->color_index[1])
@@ -392,8 +427,6 @@ extern void GRA_thick_CB( Widget , XtPointer , XtPointer ) ;
 /**************************************************************/
 
 #define PLOTCODE_AUTOSCALE 1
-
-#define NUM_FIXED_COLORS_SETTING 2
 
 typedef struct {
    int type , valid ;
