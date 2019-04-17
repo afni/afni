@@ -221,7 +221,7 @@ typedef struct {
 
 #include "pbar_color_defs.h"
 
-#define NUM_FIXED_COLORS_SETTING 3
+#define NUM_FIXED_COLORS_SETTING 4
 #define NUM_COLOR_ITEMS          9
 
 #define BRIGHTEST_COLOR   -1
@@ -300,7 +300,16 @@ int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
          DEFAULT_GR_IDEAL_COLOR,
          COL_rbgyr20_07 ,
          DEFAULT_GR_IGNORE_COLOR,
-         DEFAULT_GR_DPLOT_COLOR   }
+         DEFAULT_GR_DPLOT_COLOR   } ,
+       { COL_yell_oran ,
+         COL_dk_blue ,
+         COL_lt_blue2 ,
+         COL_yellow ,
+         COL_yellow ,
+         COL_hotpink ,
+         COL_green ,
+         COL_blue_cyan ,
+         COL_red                  } ,
      } ;
 #else
 extern int INIT_GR_boxes_color  ,
