@@ -50,7 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
-	
+{ 18, APR, 2019, DRG, "whereami GUI with wrong atlas", MICRO, TYPE_BUG_FIX,
+    "whereami would crash afni GUI if atlas was not found",
+    "Also more descriptive message when no available atlases"
+},	
 { 17, APR, 2019, DRG, "whereami minimum space", MICRO, TYPE_MODIFY,
     "Should have at least the space of the dataset coordinate"
 },	

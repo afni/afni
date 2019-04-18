@@ -6673,7 +6673,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
 {
    char *fstr,*epath ;
    char atpref[256];
-   char filestr[256];
+   char filestr[RPMAX];
    THD_3dim_dataset *dset=NULL;
    int LocalHead = wami_lh();
 
@@ -6703,15 +6703,19 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
       if(dset) RETURN(dset);
    }
 
+
    /* okay that didn't work, try the AFNI plugin directory */
    epath = get_env_atlas_path();
    if( epath != NULL ) {
       if(epath[strlen(epath)-1]!='/') {
-         sprintf(filestr, "%s/", epath);
-         dset = get_atlas(filestr, dsetname);
+         if(strlen(epath)<RPMAX){
+             sprintf(filestr, "%s/", epath);
+             dset = get_atlas(filestr, dsetname);
+         }
       }
       else
           dset = get_atlas( epath, dsetname);
+
       if(dset) RETURN(dset);
    }
 
@@ -6732,6 +6736,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
                        dsetname);
    }
    RETURN(dset) ;
+
 }
 
 
@@ -8074,6 +8079,10 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
    }
    if (N_iatl<1) {
       ERROR_message("No reachable atlases from %s\n", aci.space_name);
+      ERROR_message("Set AFNI_ATLAS_LIST and/or AFNI_TEMPLATE_SPACE_LIST "
+                    "to include atlases and spaces for this dataset");
+      ERROR_message("Alternatively, make sure dataset has space associated "
+                    "with a known space");
       RETURN(0);
    }
 

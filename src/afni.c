@@ -11082,7 +11082,9 @@ void AFNI_alter_wami_text(Three_D_View *im3d, char *utlab)
 
    if (!im3d || !im3d->vwid || !im3d->vwid->imag) EXRETURN;
 
-   if (!utlab) tlab = "\n** Can't compute Talairach coordinates now **\n";
+   if (!utlab) tlab = "\n** Can not use whereami functionality with this dataset**<br>\n"
+   "Please set AFNI_ATLAS_LIST and AFNI_TEMPLATE_SPACE_LIST appropriately<br>\n"
+   "Also set the space of the dataset to a corresponding space<br>\n" ;
    else tlab = utlab;
 
    if (AFNI_wami_output_mode() == 0) {
