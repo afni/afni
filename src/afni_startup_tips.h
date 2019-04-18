@@ -885,6 +885,7 @@ static char *gby[] = {
      "Even if you a minority of one, the truth is still the truth"   ,
      "Money talks, but usually just to say 'Goodbye'"                ,
      "Are you a Bayesian Heretic or a Frequentist True Believer?"    ,
+     "Are you a lowly emacs user or an exalted vim user?"            ,
      "Please tell me you don't believe in Fuzzy Logic"               ,
      "Are you ready for the Big Rip?"                                ,
      "I hereby declare the Null Hypothesis to be ..... Falsified"    ,
@@ -918,7 +919,7 @@ static char *gby[] = {
      "Coming REAL soon: the 'Write Science Paper' interface"         ,
      "And flights of angels sing thee to thy rest"                   ,
      "Hast seen the White Whale?"                                    ,
-     "Our sweetest songs are those that tell of saddest thought"     ,
+     "Our sweetest songs are those that tell of saddest thoughts"    ,
      "The more we study, the more we discover our ignorance"         ,
      "Nothing wilts faster than laurels that have been rested upon"  ,
      "Fear not for the future; weep not for the past"                ,
@@ -1160,10 +1161,11 @@ static char *gby[] = {
      "\n The world is divided into two classes:\n"
      "   Those who believe the incredible, and those who do the improbable"     ,
 
-     "Whenever a man does a thoroughly stupid thing, it is always from the noblest motives" ,
+     "Whenever a person does a thoroughly stupid thing, it is always from the noblest motives" ,
 
      /* Longer quotes */
 
+     "80% of our problems would go away if we'd just sit down and wait"               ,
      "Despite what FMRI says, tears come from the heart not from the brain"           ,
      "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
      "Do not go where the path leads; go instead where there is no path"              ,
@@ -1177,6 +1179,7 @@ static char *gby[] = {
      "Keep your face to the sunshine, and the shadows will fall behind you"           ,
      "Be curious, but not judgmental"                                                 ,
      "And my very code shall be a great poem"                                         ,
+     "And my very comments shall be as Shakespeare's would have been"                 ,
      "Either define the moment, or the moment will define you"                        ,
      "Let your soul stand cool and composed before a million universes"               ,
      "I cannot travel the road for you; you must travel it by yourself"               ,

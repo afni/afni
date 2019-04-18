@@ -2566,8 +2566,10 @@ STATUS("check for errors") ;
      do_awarp = 0 ;
    }
 
+#if 0
    if( meth_is_lpc && mlev > 0 )
      WARNING_message("Use of '-maxlev 0' is recommended with '-lpc' or 'lpa'") ;
+#endif
 
    if( !do_plusminus && do_pmbase ){  /* 12 Aug 2014 */
      WARNING_message("-pmBASE without -plusminus: are you daft, mate?") ;

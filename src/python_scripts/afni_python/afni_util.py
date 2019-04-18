@@ -3606,6 +3606,71 @@ def argmin(vlist, absval=0):
 
    return mind
 
+def gaussian_at_hwhm_frac(frac):
+   """gaussian_at_hwhm_frac(frac):
+
+      return the magnitude of a (unit, 0-centered) Gaussian curve at a
+      fractional offset of the HWHM (half width at half maximum) = FWHM/2
+
+         return h(f) = 2^[-f^2]
+
+      HWHM is a logical input, as it is a radius
+      FWHM is not, as it is a diameter.
+
+      So gaussian_at_hwhm_frac(1) = 0.5, by definition.
+
+        - the return value should be in (0,1], and == 1 @ 0
+        - the return value should be 0.5 @ 0.5 (half max @ FWHM radius)
+          (i.e. since FWHM is a diameter, FWHM/2 is the radius)
+        - if frac < 0, whine and return 0 (it is undefined)
+
+      Gaussian curves have the form: G(x) = a*e^-[ (x-b)^2 / (2*c^2) ]
+
+      A unit, zero-centered curve has a=1, b=0: g(x) = e^-[x^2 / (2*c^2)]
+
+      To find (the radius) where g(x) = 1/2, solve: g(w) = 1/2 for w.
+
+         w = sqrt(c^2 * 2*ln(2))    {just use positive}
+
+      Rewrite g(x) in terms of w, by solving the above for c:
+
+        c = w / sqrt(2 * ln2)
+
+      and substitute back into g(x).  g(x) = e^-[x^2 * ln2 / w^2]
+
+      and finally write in terms of f, where f is a fraction of w.
+
+      Define h(f) = g(fw) = e^-[f^2*w^2 * ln2 / w^2]  =  e^-[f^2 * ln2]
+
+      Now we can cancel the 2 and ln:
+
+        h(f) = e^-ln[2^(f^2)] = e^ln[2^(-f^2)] = 2^(-f^2)
+
+      return h(f) = 2^(-f^2)
+   """
+   if frac < 0:
+      print("** gaussian_at_hwhm_frac: illegal frac < 0 of %s", frac)
+      return 0
+
+   return 2 ** -(frac*frac)
+
+def gaussian_at_fwhm(x, fwhm):
+   """gaussian_at_fwhm(x, fwhm):
+
+      return the magnitude of unit, zero-centered Gaussian curve at the given x
+
+      The Gaussian curve is defined by the given FWHM value, e.g.
+
+         g(x) = e^-[x^2 * ln2 / FWHM^2]
+
+      This actually returns gaussian_at_hwhm_frac(x/(fwhm/2)), or of 2x/fwhm.
+   """
+   if fwhm <= 0:
+      print("** gaussian_at_fwhm: illegal fwhm <= 0 of %s", fwhm)
+      return 0
+
+   return gaussian_at_hwhm_frac(2.0*x/fwhm)
+
 # ----------------------------------------------------------------------
 # random list routines: shuffle, merge, swap, extreme checking
 # ----------------------------------------------------------------------
@@ -3911,6 +3976,8 @@ afni_util.py: not really intended as a main program
 
             afni_util.py -print "get_last_history_ver_pack('DSET+tlrc')"
             afni_util.py -print "get_last_history_version('DSET+tlrc')"
+            afni_util.py -print 'gaussian_at_fwhm(3,5)'
+            afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
 
       -lprint STRING    : line print: print result list, one element per line
 

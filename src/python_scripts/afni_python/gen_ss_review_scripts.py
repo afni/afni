@@ -869,9 +869,10 @@ g_history = """
    1.6  Feb 25, 2019: try to get mask dset from TSNR
    1.7  Feb 28, 2019: mask_dset needs to include extension
    1.8  Mar 15, 2019: added tr field and TR value in basic output
+   1.9  Apr 16, 2019: watch for non-tlrc anat_final datasets
 """
 
-g_version = "gen_ss_review_scripts.py version 1.8, March 15, 2019"
+g_version = "gen_ss_review_scripts.py version 1.9, March 16, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1822,10 +1823,13 @@ class MyInterface:
       return 0
 
    def get_template_from_final_anat(self):
-      if not self.uvar_already_set('final_anat'): return 1
+      if not self.uvar_already_set('final_anat'): return 0
 
       afinal = self.uvars.val('final_anat')
-      if not os.path.isfile(afinal): return 1
+      if not os.path.isfile(afinal): return 0
+      # apparently, some people have 3dQwarp commands in non-tlrc final anats
+      # (but it would be wrong to mention Peter Molfese by name)
+      if UTIL.dset_view(afinal) != '+tlrc': return 0
 
       prog = 'auto_warp.py'
       warp_cmd = UTIL.get_last_history_command(afinal, prog)

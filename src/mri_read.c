@@ -3011,6 +3011,19 @@ ENTRY("mri_read_1D") ;
      } /* if it falls thru to here, read or conversion failed */
    }
 
+   /*-- 15 Apr 2019: read CSV? --*/
+
+   cpt = strcasestr(fname,".csv") ;
+   if( cpt != NULL && ( cpt[4] == '\0' || cpt[4] == '[' ) ){
+     NI_element *nel ;
+     nel = THD_read_csv(fname) ;            /* cf. thd_table.c */
+     if( nel != NULL ){
+       outim = THD_niml_to_mri(nel) ;  /* only numeric columns */
+       NI_free_element(nel) ;
+       if( outim != NULL ) RETURN(outim) ;
+     } /* if it falls thru to here, read or conversion failed */
+   }
+
    /*-- 25 Jan 2008: read from stdin? --*/
 
    ii = strlen(fname) ;

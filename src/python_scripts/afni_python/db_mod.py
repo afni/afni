@@ -2907,6 +2907,7 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
    apply_uopt_to_block('-combine_opts_tedwrap', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
+   apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
@@ -3144,10 +3145,18 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
    if getorts:
+      # for now, keep default of rejecting midk
+      # - be explicit about the option, so people see it
+      if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=1):
+         midk_opt = '1'
+      else:
+         midk_opt = '0'
+
       ocmd = '# create orthogonalized projection terms\n'  \
              'mkdir meica_orts\n'                          \
              'foreach run ( $runs )\n'                     \
              '   @extract_meica_ortvec -meica_dir tedana_r$run/TED.r$run \\\n'\
+             '                         -reject_midk %s \\\n'                  \
              '                         -work_dir tedana_r$run/work.orts \\\n' \
              '                         -prefix tedana_r$run/meica_orts.1D\n\n'\
              '   # pad single run terms across all runs\n' \
@@ -3156,7 +3165,7 @@ def cmd_combine_tedana(proc, block, method='tedana'):
              '              -pad_into_many_runs $run %d        \\\n' \
              '              -write meica_orts/morts_r$run.1D\n'      \
              'end\n\n'                                               \
-             % (proc.runs)
+             % (midk_opt, proc.runs)
 
       # now make note of the files for the regress block
       for rind in range(proc.runs):
