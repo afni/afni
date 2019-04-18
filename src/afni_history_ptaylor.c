@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, Apr , 2019 , PT , "@SSwarper" , MAJOR , TYPE_NEW_OPT,
+   "Include -deoblique and -giant_move opts.",
+   "For oblique data, and/or heavily rotated, shifted, etc.\n"
+},
+
 { 15, Mar , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
    "Better behavioring of -box_focux_slices when ulay and refbox grids differ.",
    "Now checking grid similarity and resampling refbox if needbe.\n"
