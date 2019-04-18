@@ -13,7 +13,7 @@ int main( int argc , char *argv[] )
    MRI_IMAGE *pvim ;
    MRI_IMAGE *uvim ;
 
-   if( argc < 2 ){
+   if( argc < 2 || ! strncmp(argv[1],"-h",2) ){
      printf("\n"
             "3dPVmap [-prefix XXX] [-mask MMM] [-automask] inputdataset\n"
             "\n"
