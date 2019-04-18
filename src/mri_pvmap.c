@@ -23,12 +23,29 @@ static float r2D( int n , float *a , float *b , float *x )
 
 /*----------------------------------------------------------------*/
 
+static int    nvec=0 ;
+static float *uvec=NULL , *vvec=NULL ;
+
+MRI_IMAGE * mri_pvmap_get_vecpair(void)
+{
+  MRI_IMAGE *uvim ;
+
+  if( nvec == 0 || uvec == NULL || vvec == NULL ) return NULL ;
+
+  uvim = mri_new( nvec , 2 , MRI_float ) ;
+  memcpy( MRI_FLOAT_PTR(uvim)      , uvec , sizeof(float)*nvec ) ;
+  memcpy( MRI_FLOAT_PTR(uvim)+nvec , vvec , sizeof(float)*nvec ) ;
+  return uvim ;
+}
+
+/*----------------------------------------------------------------*/
+
 MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
 {
    int nx , ny , ii ;
    float_pair svals ;
    MRI_IMAGE *outim ;
-   float *uvec , *vvec , *outar , *iar ;
+   float     *outar , *iar ;
    unsigned short xran[3] ;
    static int ncall=0 ;
 
@@ -37,8 +54,11 @@ MRI_IMAGE * mri_vec_to_pvmap( MRI_IMAGE *inim )
    nx = inim->nx ; if( nx < 9 ) return NULL ;
    ny = inim->ny ; if( ny < 9 ) return NULL ;
 
-   uvec = (float *)malloc(sizeof(float)*nx) ;
-   vvec = (float *)malloc(sizeof(float)*nx) ;
+   if( nx != nvec || uvec == NULL || vvec == NULL ){
+     uvec = (float *)realloc(uvec,sizeof(float)*nx) ;
+     vvec = (float *)realloc(vvec,sizeof(float)*nx) ;
+   }
+   nvec = nx ;
 
    xran[0] = (unsigned short)(nx+ny+73) ;
    xran[1] = (unsigned short)(nx-ny+473+ncall) ; ncall++ ;
@@ -55,9 +75,7 @@ for( ii=0 ; ii < nx ; ii++ ){
 }
 #endif
 
-   if( svals.a < 0.0f || svals.b < 0.0f ){
-     free(uvec) ; free(vvec) ; return NULL ;
-   }
+   if( svals.a < 0.0f || svals.b < 0.0f ) return NULL ;
 
    outim = mri_new( ny , 1 , MRI_float ) ;
    outar = MRI_FLOAT_PTR(outim) ;
@@ -75,7 +93,7 @@ for( ii=0 ; ii < nx ; ii++ )
      outar[ii] = r2D( nx , uvec , vvec , iar+ii*nx ) ;
    }
 
-   free(uvec) ; free(vvec) ; return outim ;
+   return outim ;
 }
 
 /*-----------------------------------------------------------------*/

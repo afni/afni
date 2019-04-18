@@ -6,11 +6,12 @@
 
 int main( int argc , char *argv[] )
 {
-   char *prefix = "PVmap" ;
+   char *prefix = "PVmap" , *uvpref=NULL , *cpt ;
    THD_3dim_dataset *inset=NULL , *outset=NULL , *mset=NULL ;
    char *maskname=NULL ; byte *mask=NULL ; int nmask ;
    int nopt ;
    MRI_IMAGE *pvim ;
+   MRI_IMAGE *uvim ;
 
    if( argc < 2 ){
      printf("\n"
@@ -99,6 +100,16 @@ int main( int argc , char *argv[] )
    tross_Make_History( "3dPVmap", argc,argv, outset ) ;
    DSET_write(outset) ;
    WROTE_DSET(outset) ;
+
+   uvim = mri_pvmap_get_vecpair() ;
+
+   uvpref = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
+   strcpy(uvpref,prefix) ;
+   cpt = strstr(uvpref,".nii" ) ; if( cpt != NULL ) *cpt = '\0' ;
+   cpt = strstr(uvpref,".HEAD") ; if( cpt != NULL ) *cpt = '\0' ;
+   cpt = strrchr(uvpref,'+'   ) ; if( cpt != NULL ) *cpt = '\0' ;
+   strcat(uvpref,".1D") ;
+   mri_write_1D( uvpref , uvim ) ;
 
    exit(0) ;
 }
