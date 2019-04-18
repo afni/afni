@@ -14,7 +14,15 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 ){
      printf("\n"
-            "3dPVmap -prefix XXX -mask MMM inputdataset\n"
+            "3dPVmap [-prefix XXX] [-mask MMM] [-automask] inputdataset\n"
+            "\n"
+            "Computes the first 2 principal component vectors of a\n"
+            "time series datasets, then outputs the R-squared coefficient\n"
+            "of each voxel time series with these first 2 components.\n"
+            "\n"
+            "The goal is to visualize any widespread time series artifacts.\n"
+            "\n"
+            "Author: Zhark the Unprincipaled.\n\n"
            ) ;
      exit(0) ;
    }
@@ -33,6 +41,11 @@ int main( int argc , char *argv[] )
      if( strcmp(argv[nopt],"-mask") == 0 ){
        if( ++nopt >= argc ) ERROR_exit("-mask needs an argument!");
        maskname = strdup(argv[nopt]) ;
+       nopt++ ; continue ;
+     }
+
+     if( strcmp(argv[nopt],"-automask") == 0 ){  /* 18 Apr 2019 */
+       maskname = strdup("AUTO") ;
        nopt++ ; continue ;
      }
 
@@ -62,6 +75,8 @@ int main( int argc , char *argv[] )
      }
      INFO_message("mask has %d voxels",nmask) ;
      if( nmask < 9 ) ERROR_exit("mask is too small") ;
+   } else {
+     INFO_message("No mask == using all voxels") ;
    }
 
    pvim = THD_dataset_to_pvmap( inset , mask ) ;
