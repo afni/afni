@@ -1219,6 +1219,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
    }
 
+   out_spaces = add_to_names_list(out_spaces, &N_out_spaces, ac.space_name);
    if (N_out_spaces > max_spaces) {
       ERROR_message("Too many spaces for fixed allocation variables");
       RETURN(rbuf);

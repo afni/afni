@@ -50,6 +50,13 @@
 
 
 afni_history_struct dglen_history[] = {
+	
+{ 17, APR, 2019, DRG, "whereami minimum space", MICRO, TYPE_MODIFY,
+    "Should have at least the space of the dataset coordinate"
+},	
+{ 12, APR, 2019, DRG, "unWarpEPI.py python3", MINOR, TYPE_MODIFY,
+    "unWarpEPI.py python3 compatible"
+},	
 { 12, APR, 2019, DRG, "unWarpEPI.py python3", MINOR, TYPE_MODIFY,
     "unWarpEPI.py python3 compatible"
 },
