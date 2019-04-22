@@ -31,3 +31,16 @@ apt-get remove -y r-base r-base-core r-base-dev
 apt-get update
 apt-get install -y r-base-dev 
 apt-get -f install
+
+# update any pre-existing R packages
+echo '' > @update_rcran.R
+echo 'print("++ Start updating R packages if necessary...")' >> @update_rcran.R
+echo 'update.packages(installed.packages(priority="NA"), checkBuilt=TRUE, ask=FALSE)' >> @update_rcran.R
+echo 'print("++ ... done updating R packages, if it were necessary.")' >> @update_rcran.R
+
+Rscript @update_rcran.R
+
+echo "++ DONE updating R.  Have installed this version:"
+echo "--------------------------------------------------------------------"
+R --version
+echo "--------------------------------------------------------------------"
