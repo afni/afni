@@ -1246,9 +1246,10 @@ g_history = """
    3.04 Sep 27, 2018 - handle weakly formatted FSL timing files (fewer columns)
    3.05 Oct  5, 2018 - directly go after expected column headers in TSV files
    3.06 Feb 25, 2019 - added modulators to -multi_timing_to_event_list output
+   3.07 Apr 22, 2019 - added -tsv_labels
 """
 
-g_version = "timing_tool.py version 3.06, February 25, 2019"
+g_version = "timing_tool.py version 3.07, April 22, 2019"
 
 
 
@@ -1278,6 +1279,7 @@ class ATInterface:
       self.fname           = 'no file selected'
       self.all_rest_file   = ''         # for -write_all_rest_times
       self.stim_dur        = -1         # apply on read
+      self.tsv_labels      = None       # labels to convert TSV to timing with
 
       # user options - multi var
       self.m_timing        = []
@@ -1408,7 +1410,8 @@ class ATInterface:
 
       if len(flist) < 1: return 0
 
-      rv, timing_list = LT.read_multi_3col_tsv(flist, self.verb)
+      rv, timing_list = LT.read_multi_3col_tsv(flist, hlabels=self.tsv_labels,
+                                               verb=self.verb)
       if rv: return 1
 
       self.m_timing = timing_list
@@ -1629,6 +1632,8 @@ class ATInterface:
                          helpstr='warn about bad fractional TR stats')
       self.valid_opts.add_opt('-tr', 1, [], 
                          helpstr='specify output timing resolution (seconds)')
+      self.valid_opts.add_opt('-tsv_labels', -1, [], 
+                         helpstr='specify labels for conversion from TSV')
       self.valid_opts.add_opt('-verb', 1, [], 
                          helpstr='set the verbose level (default is 1)')
       self.valid_opts.add_opt('-write_all_rest_times', 1, [], 
@@ -1736,6 +1741,15 @@ class ATInterface:
             if self.tr <= 0.0:
                print('** invalid (non-positive) -tr = %g' % self.tr)
                return 1
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-tsv_labels')
+      if oind >= 0:
+         val, err = uopts.get_string_list('-tsv_labels')
+         if type(val) == type([]) and not err:
+            if self.verb > 2: print("-- setting labels as %s" % ', '.join(val))
+            self.tsv_labels = val
+         else: return 1
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-run_len')

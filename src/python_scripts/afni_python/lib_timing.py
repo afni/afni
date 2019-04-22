@@ -1022,7 +1022,7 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return str
 
-def read_multi_3col_tsv(flist, verb=1):
+def read_multi_3col_tsv(flist, hlabels=None, verb=1):
    """Read a set of 3 column tsv (tab separated value) files
          - one file per run
          - each with a list of events for all classes
@@ -1041,12 +1041,16 @@ def read_multi_3col_tsv(flist, verb=1):
 
    tlist = []   # all AfniTiming instances to return
 
+   # if nothing passed, set default labels
+   if hlabels == None:
+      hlabels=['onset', 'duration', 'trial_type']
+
    h0 = []      # original header, once set
    cdict = {}   # dictionary of events per class type
                 #   - array of event lists, per run
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
-      nvals, header, elist = parse_Ncol_tsv(fname, verb=verb)
+      nvals, header, elist = parse_Ncol_tsv(fname, hlabels=hlabels, verb=verb)
       if nvals <= 0: return 1, tlist
 
       # store original header, else check for consistency
@@ -1091,7 +1095,7 @@ def read_multi_3col_tsv(flist, verb=1):
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, verb=1, hlabels=['onset', 'duration', 'trial_type']):
+def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
         - header list (length ncol)

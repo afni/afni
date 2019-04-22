@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Apr, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -tsv_labels",
+   "This can be used to specify column labels to be used for\n"
+   "onset time, duration, trial type, and optional modulators."
+ } ,
+
  { 16, Apr, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "verify av_space == +tlrc before setting template",
    "Thanks to P Molfese and P Taylor for noting the problem."
