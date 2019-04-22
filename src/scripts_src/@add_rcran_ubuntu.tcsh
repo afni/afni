@@ -1,5 +1,7 @@
 #!/bin/tcsh
 
+# [PT: Apr 21, 2019] Updated to get to R version 3.5.*
+
 # Check your ubuntu system name for its codename (e.g., 'trusty',
 # 'utopic', 'vivid', 'wily') with the following command: 
 set ubuntu_code = `awk -F= '/CODENAME/ {print $2}' /etc/lsb-release`
@@ -9,7 +11,9 @@ printf "\n\n++ Linux codename is: ${ubuntu_code}\n\n"
 # your system's `codename` is different than 'trusty', then use that in
 # the place of 'trusty' in the following command):
 printf "++ Adding R-cran mirror to repository list.\n"
-echo "deb http://cran.cnr.berkeley.edu/bin/linux/ubuntu/ ${ubuntu_code}/" \
+#echo "deb http://cran.cnr.berkeley.edu/bin/linux/ubuntu/ ${ubuntu_code}/" \
+#       | sudo tee --append /etc/apt/sources.list > /dev/null
+echo "deb https://cloud.r-project.org/bin/linux/ubuntu/ ${ubuntu_code}-cran35/" \
        | sudo tee --append /etc/apt/sources.list > /dev/null
 
 apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
@@ -25,5 +29,5 @@ apt-key adv --keyserver keyserver.ubuntu.com --recv-keys E084DAB9
 printf "++ Going to install new R now, removing any old one first.\n"
 apt-get remove -y r-base r-base-core r-base-dev
 apt-get update
-apt-get install -y r-base-dev r-cran-rmpi
+apt-get install -y r-base-dev 
 apt-get -f install
