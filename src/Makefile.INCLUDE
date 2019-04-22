@@ -102,7 +102,7 @@ PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         
            nifti_tool 3dAllineate whereami plugout_drive 3dLSS                  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest 3dPval stimband 1dNLfit                          \
+           3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat               \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -707,6 +707,10 @@ dsetdup:dsetdup.o
 1dBport:1dBport.o
 	$(RM) $@
 	$(CC) -o 1dBport 1dBport.o $(LFLAGS) $(LLIBS)
+
+1dApar2mat:1dApar2mat.o
+	$(RM) $@
+	$(CC) -o 1dApar2mat 1dApar2mat.o $(LFLAGS) $(LLIBS)
 
 3dLocalBistat:3dLocalBistat.o
 	$(RM) $@

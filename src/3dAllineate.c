@@ -5456,7 +5456,7 @@ mri_genalign_set_pgmat(1) ;
 #endif
        mri_genalign_affine( stup.wfunc_numpar , par , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
        mri_genalign_affine_get_gammaijk( &qmat ) ;
-       wmat = MAT44_MUL(targ_cmat,qmat) ;
+       wmat = MAT44_MUL(targ_cmat,qmat) ;    /* matrix multiplies to undo the befafter stuff */
        aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
      }
 

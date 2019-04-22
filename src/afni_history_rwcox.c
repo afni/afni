@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , APR , 2019 , RWC , "1dApar2mat" , MICRO , TYPE_NEW_PROG ,
+   "Compute the affine matrix from the parameters from 3dAllineate" ,
+   NULL } ,
+
  { 16 , APR , 2019 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "C keystroke shortcut in graph viewer - switches color scheme" ,
    NULL } ,
