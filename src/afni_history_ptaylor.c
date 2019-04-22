@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 19, Apr , 2019 , PT , "@Spharm.examples" , MINOR , TYPE_GENERAL,
+   "Just updated paths/names: tarball getting used no longer exists.",
+   "No change in functionality (j'espere).\n"
+},
+
 { 18, Apr , 2019 , PT , "@SSwarper" , MAJOR , TYPE_NEW_OPT,
    "Include -deoblique and -giant_move opts.",
    "For oblique data, and/or heavily rotated, shifted, etc.\n"
