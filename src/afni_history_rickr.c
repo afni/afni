@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Apr, 2019, RCR, "3dAllineate", MICRO, TYPE_ENHANCE,
+   "Allow '^' to denote a power in -autoweight, in addition to '**'\n",
+   "This is to avoid protecting the string in quotes, making it easy\n"
+   "to pass from afni_proc.py to align_epi_anat.py to 3dAllineate."
+ } ,
+
  { 22, Apr, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -tsv_labels",
    "This can be used to specify column labels to be used for\n"

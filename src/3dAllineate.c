@@ -981,6 +981,8 @@ int main( int argc , char *argv[] )
 "                  otherwise, the shell will treat it as a wildcard\n"
 "                  and you will get an error message before 3dAllineate\n"
 "                  even starts!!\n"
+"               ** UPDATE: one can now use '^' for power notation, to \n"
+"                  avoid needing to enclose the string in quotes.\n"
       ) ;
       if( visible_noweights ){
          printf(
@@ -2092,14 +2094,21 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-autoweight",11) == 0 ){
        char *cpt ;
+       int   cpt_offset = 2; /* offset for exponent str [rickr 23 Apr 2019] */
+                             /* allow ** or ^ (to avoid shell protection)   */
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight :-(") ;
        auto_weight = 1 ; auto_string = argv[iarg] ;
        cpt = strstr(auto_string,"+") ;
        if( cpt != NULL && *(cpt+1) != '\0' )      /* 31 Jul 2007 */
          auto_wclip = (float)strtod(cpt+1,NULL) ;
        cpt = strstr(auto_string,"**") ;
-       if( cpt != NULL && *(cpt+2) != '\0' )      /* 10 Sep 2007 */
-         auto_wpow = (float)strtod(cpt+2,NULL) ;
+       if( cpt == NULL ) {
+          /* allow ** or ^ (to avoid shell protection) [rickr 23 Apr 2019] */
+          cpt = strstr(auto_string,"^") ;
+          cpt_offset = 1;
+       }
+       if( cpt != NULL && *(cpt+cpt_offset) != '\0' )      /* 10 Sep 2007 */
+         auto_wpow = (float)strtod(cpt+cpt_offset,NULL) ;
        wtspecified = 1 ; iarg++ ; continue ;
      }
 
