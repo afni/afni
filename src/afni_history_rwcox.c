@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , APR , 2019 , RWC , "3dPVmap" , MICRO , TYPE_ENHANCE ,
+   "Two changes" ,
+   "1) Add singular value fractional variance-explained output\n"
+   "2) Change fixed cubic detrending to polort=N/50 detrending" } ,
+
  { 22 , APR , 2019 , RWC , "1dApar2mat" , MICRO , TYPE_NEW_PROG ,
    "Compute the affine matrix from the parameters from 3dAllineate" ,
    NULL } ,

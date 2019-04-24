@@ -11,7 +11,7 @@ int main( int argc , char *argv[] )
    char *maskname=NULL ; byte *mask=NULL ; int nmask ;
    int nopt ;
    MRI_IMAGE *pvim ;
-   MRI_IMAGE *uvim ;
+   MRI_IMAGE *uvim ; float_pair uvlam ; float ulam , vlam ;
 
    if( argc < 2 || ! strncmp(argv[1],"-h",2) ){
      printf("\n"
@@ -24,13 +24,22 @@ int main( int argc , char *argv[] )
             "Each voxel times series from the input dataset is minimally pre-processed\n"
             "before the PCA is computed:\n"
             "  Despiking\n"
-            "  Cubic polynomial detrending\n"
+            "  Legendre polynomial detrending\n"
             "  L2 normalizing (sum-of-squares = 1)\n"
             "If you want more impressive pre-processing, you'll have to do that\n"
             "before running 3dPVmap (e.g., use the errts dataset from afni_proc.py).\n"
             "\n"
             "Program also outputs the first 2 principal component time series\n"
             "vectors into a 1D file, for fun and profit.\n"
+            "\n"
+            "The fractions of total-sum-of-squares allocable to the first 2\n"
+            "principals are written to stdout at the end of the program.\n"
+            "These values can be captured into a file by Unix shell redirection\n"
+            "or into a shell variable by assigment:\n"
+            "  3dPVmap -mask AUTO Fred.nii > Fred.sval.1D\n"
+            "  set sval = ( `3dPVmap -mask AUTO Fred.nii` )  # csh syntax\n"
+            "If the first value is very large, for example, this might indicate\n"
+            "the widespread presence of some artifact in the dataset.\n"
             "\n"
             "The goal is to visualize any widespread time series artifacts.\n"
             "For example, if a 'significant' part of the brain shows R-squared > 0.25,\n"
@@ -90,7 +99,8 @@ int main( int argc , char *argv[] )
      INFO_message("mask has %d voxels",nmask) ;
      if( nmask < 9 ) ERROR_exit("mask is too small") ;
    } else {
-     INFO_message("No mask == using all voxels") ;
+     nmask = DSET_NVOX(inset) ;
+     INFO_message("No mask == using all %d voxels",nmask) ;
    }
 
    pvim = THD_dataset_to_pvmap( inset , mask ) ;
@@ -115,6 +125,7 @@ int main( int argc , char *argv[] )
    WROTE_DSET(outset) ;
 
    uvim = mri_pvmap_get_vecpair() ;
+   uvlam = mri_pvmap_get_lampair() ;
 
    uvpref = (char *)malloc(sizeof(char)*(strlen(prefix)+32)) ;
    strcpy(uvpref,prefix) ;
@@ -123,6 +134,10 @@ int main( int argc , char *argv[] )
    cpt = strrchr(uvpref,'+'   ) ; if( cpt != NULL ) *cpt = '\0' ;
    strcat(uvpref,".1D") ;
    mri_write_1D( uvpref , uvim ) ;
+
+   ulam = uvlam.a*uvlam.a / nmask ;
+   vlam = uvlam.b*uvlam.b / nmask ;
+   printf("%.6f %.6f\n",ulam,vlam) ;
 
    exit(0) ;
 }

@@ -25,6 +25,7 @@ static float r2D( int n , float *a , float *b , float *x )
 
 static int    nvec=0 ;
 static float *uvec=NULL , *vvec=NULL ;
+static float  ulam=0.0f ,  vlam=0.0f ;
 
 MRI_IMAGE * mri_pvmap_get_vecpair(void)
 {
@@ -36,6 +37,12 @@ MRI_IMAGE * mri_pvmap_get_vecpair(void)
   memcpy( MRI_FLOAT_PTR(uvim)      , uvec , sizeof(float)*nvec ) ;
   memcpy( MRI_FLOAT_PTR(uvim)+nvec , vvec , sizeof(float)*nvec ) ;
   return uvim ;
+}
+
+float_pair mri_pvmap_get_lampair(void)
+{
+   float_pair uvlam ;
+   uvlam.a = ulam ; uvlam.b = vlam ; return uvlam ;
 }
 
 /*----------------------------------------------------------------*/
@@ -75,6 +82,8 @@ for( ii=0 ; ii < nx ; ii++ ){
 }
 #endif
 
+   ulam = svals.a ; vlam = svals.b ;
+
    if( svals.a < 0.0f || svals.b < 0.0f ) return NULL ;
 
    outim = mri_new( ny , 1 , MRI_float ) ;
@@ -100,7 +109,7 @@ for( ii=0 ; ii < nx ; ii++ )
 
 MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
 {
-   int nvox, npt, nmask, ii,jj ;
+   int nvox, npt, nmask, ii,jj , polort ;
    MRI_IMAGE *inim, *tim, *outim ;
    float *inar, *tar, *outar, *dar ;
 
@@ -124,12 +133,20 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
 
    DSET_load(dset) ;
 
+   polort = npt / 50 ;                   /* 24 Apr 2019 */
+        if( polort <  2 ) polort = 2 ;   /* change detrending */
+   else if( polort > 20 ) polort = 20 ;
+
    for( jj=ii=0 ; ii < nvox ; ii++ ){
      if( mask == NULL || mask[ii] != 0 ){
        THD_extract_array( ii , dset , 0 , dar ) ;
-       DES_despike25( npt , dar , tar ) ;
-       THD_cubic_detrend( npt , dar ) ;
-       THD_normalize( npt , dar ) ;
+       DES_despike25( npt , dar , tar ) ;    /* despiking */
+#if 0
+       THD_cubic_detrend( npt , dar ) ;      /* detrending */
+#else
+       THD_generic_detrend_LSQ( npt , dar , polort , 0,NULL,NULL ) ;
+#endif
+       THD_normalize( npt , dar ) ;          /* L2 normalize */
        memcpy( inar+jj*npt , dar , sizeof(float)*npt ) ;
        jj++ ;
      }
