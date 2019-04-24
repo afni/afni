@@ -170,5 +170,6 @@ MRI_IMAGE * THD_dataset_to_pvmap( THD_3dim_dataset *dset , byte *mask )
    }
 
    mri_free(tim) ;
+
    return outim ;
 }

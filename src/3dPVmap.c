@@ -1,6 +1,6 @@
 #include "mrilib.h"
-
 #include "mri_pvmap.c"
+#include "mri_spatconcen.c" /* 24 Apr 2019 */
 
 /*----------------------------------------------------------------------*/
 
@@ -11,7 +11,7 @@ int main( int argc , char *argv[] )
    char *maskname=NULL ; byte *mask=NULL ; int nmask ;
    int nopt ;
    MRI_IMAGE *pvim ;
-   MRI_IMAGE *uvim ; float_pair uvlam ; float ulam , vlam ;
+   MRI_IMAGE *uvim ; float_pair uvlam ; float ulam , vlam , scon ;
 
    if( argc < 2 || ! strncmp(argv[1],"-h",2) ){
      printf("\n"
@@ -33,13 +33,32 @@ int main( int argc , char *argv[] )
             "vectors into a 1D file, for fun and profit.\n"
             "\n"
             "The fractions of total-sum-of-squares allocable to the first 2\n"
-            "principals are written to stdout at the end of the program.\n"
+            "principal components are written to stdout at the end of the program.\n"
+            "along with a 3rd number that is a measure of the spatial concentration\n"
+            "or dispersion of the PVmap.\n"
+            "\n"
             "These values can be captured into a file by Unix shell redirection\n"
             "or into a shell variable by assigment:\n"
             "  3dPVmap -mask AUTO Fred.nii > Fred.sval.1D\n"
             "  set sval = ( `3dPVmap -mask AUTO Fred.nii` )  # csh syntax\n"
             "If the first value is very large, for example, this might indicate\n"
             "the widespread presence of some artifact in the dataset.\n"
+            "\n"
+            "If the 3rd number is bigger than 1, it indicates that the PVmap\n"
+            "is more concentrated in space; if it is less than one, it indicates\n"
+            "that it is more dispersed in space (relative to a uniform density).\n"
+            "  3dPVmap -mask AUTO Zork.nii\n"
+            "  ++ mask has 21300 voxels\n"
+            "  ++ Output dataset ./PVmap+orig.BRIK\n"
+            "  0.095960 0.074847 1.356635\n"
+            "The first principal component accounted for 9.6%% of the total sum-of-squares,\n"
+            "the second component for 7.5%%, and the PVmap is fairly concentrated in space.\n"
+            "These %% values are not very unusual, but the concentration is fairly high\n"
+            "and the dataset should be further investigated.\n"
+            "\n"
+            "A concentration value below 1 indicates the PVmap is fairly dispersed; this\n"
+            "often means the larger PVmap values are found near the edges of the brain\n"
+            "and can be caused by motion or respiration artifacts.\n"
             "\n"
             "The goal is to visualize any widespread time series artifacts.\n"
             "For example, if a 'significant' part of the brain shows R-squared > 0.25,\n"
@@ -137,7 +156,8 @@ int main( int argc , char *argv[] )
 
    ulam = uvlam.a*uvlam.a / nmask ;
    vlam = uvlam.b*uvlam.b / nmask ;
-   printf("%.6f %.6f\n",ulam,vlam) ;
+   scon = mri_spatial_concentration(pvim) ;
+   printf("%.6f %.6f %.6f\n",ulam,vlam,scon) ;
 
    exit(0) ;
 }
