@@ -635,9 +635,10 @@ g_history = """
     6.31 Jan 30, 2019: added -volreg_post_vr_allin and -volreg_pvra_base_index
     6.32 Feb 22, 2019: added -tlrc_NL_force_view
     6.33 Apr 11, 2019: added -combine_tedort_reject_midk
+    6.34 Apr 25, 2019: -regress_bandpass takes any even number of frequencies
 """
 
-g_version = "version 6.33, April 11, 2019"
+g_version = "version 6.34, April 25, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1385,7 +1386,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply ricor regs in regression (def no)")
-        self.valid_opts.add_opt('-regress_bandpass', 2, [],
+        self.valid_opts.add_opt('-regress_bandpass', -2, [],
                         helpstr="bandpass in this range during regression")
         self.valid_opts.add_opt('-regress_basis', 1, [],
                         helpstr="basis function to use in regression")

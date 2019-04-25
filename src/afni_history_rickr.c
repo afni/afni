@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "-regress_bandpass now takes any positive number of frequencies pairs",
+   "Done to appease the mighty P Taylor."
+ } ,
+
  { 23, Apr, 2019, RCR, "3dAllineate", MICRO, TYPE_ENHANCE,
    "Allow '^' to denote a power in -autoweight, in addition to '**'\n",
    "This is to avoid protecting the string in quotes, making it easy\n"
