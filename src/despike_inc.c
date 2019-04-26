@@ -36,6 +36,17 @@ static INLINE float median9f(float *p)
    qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med);     \
    mad    = median9f(qqq); }
 
+#undef  DES9_init
+#define DES9_init                                              \
+ { float qqq[9] ; memcpy(qqq,vec,sizeof(float)*9) ;            \
+   med    = median9f(qqq);     qqq[0] = fabsf(qqq[0]-med);     \
+   qqq[1] = fabsf(qqq[1]-med); qqq[2] = fabsf(qqq[2]-med);     \
+   qqq[3] = fabsf(qqq[3]-med); qqq[4] = fabsf(qqq[4]-med);     \
+   qqq[5] = fabsf(qqq[5]-med); qqq[6] = fabsf(qqq[6]-med);     \
+   qqq[7] = fabsf(qqq[7]-med); qqq[8] = fabsf(qqq[8]-med);     \
+   mad    = median9f(qqq);                                     \
+   if( mad > 0.0f && fabsf(vec[0]-med) > 4.321f*mad ) vec[0] = med ; }
+
 /*-------------------------------------------------------------------------*/
 /*! Remove spikes from a time series, in a very simplistic way.
     Return value is the number of spikes that were squashed [RWCox].
@@ -50,6 +61,8 @@ static int DES_despike9( int num , float *vec , float *wks )
    if( wks != NULL ) zme = wks ;
    else              zme = (float *)malloc(sizeof(float)*(2*num)) ;
    zma = zme + num ;
+
+   DES9_init ; /* 18 Apr 2019 */
 
    for( ii=0 ; ii < num ; ii++ ){
      mead9(ii) ; zme[ii] = med ; zma[ii] = mad ;
@@ -129,6 +142,8 @@ static int DES_despike25( int num , float *vec , float *wks )
    if( wks != NULL ) zme = wks ;
    else              zme = (float *)malloc(sizeof(float)*(2*num)) ;
    zma = zme + num ;
+
+   DES9_init ; /* 18 Apr 2019 */
 
    for( ii=0 ; ii < num ; ii++ ){
      mead25(ii) ; zme[ii] = med ; zma[ii] = mad ;

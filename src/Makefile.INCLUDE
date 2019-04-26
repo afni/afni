@@ -102,7 +102,7 @@ PROGS_3  = 3dDeconvolve_f 3dAnhist 3dAFNIto3D 3dUniformize 3dWarp nicat         
            nifti_tool 3dAllineate whereami plugout_drive 3dLSS                  \
            3dMedianFilter 3dretroicor 3dAFNItoNIML 3dAFNItoRaw im2niml 3dedge3  \
            DTIStudioFibertoSegments Dimon1 Dimon 3dLocalstat 3danisosmooth      \
-           3dmaxima GLTsymtest 3dPval stimband 1dNLfit                          \
+           3dmaxima GLTsymtest 3dPval stimband 1dNLfit 1dApar2mat               \
            3dTwotoComplex 3dInvFMRI 3dmatcalc 3dAcost 3dLocalBistat 3dFWHMx     \
            3dBlurToFWHM 1dSEM 3dDFT 3dSynthesize 1dMarry 3dEmpty 3dsvm          \
            1dFlagMotion 3dTsort 1dTsort 3dTfitter afni_history 1dUpsample       \
@@ -121,7 +121,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
            3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
-           3dBrainSync 3dGrayplot 1dsound afni_check_omp                        \
+           3dBrainSync 3dGrayplot 1dsound afni_check_omp 3dPVmap                \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD     \
            $(EXTRAS)
 
@@ -707,6 +707,10 @@ dsetdup:dsetdup.o
 1dBport:1dBport.o
 	$(RM) $@
 	$(CC) -o 1dBport 1dBport.o $(LFLAGS) $(LLIBS)
+
+1dApar2mat:1dApar2mat.o
+	$(RM) $@
+	$(CC) -o 1dApar2mat 1dApar2mat.o $(LFLAGS) $(LLIBS)
 
 3dLocalBistat:3dLocalBistat.o
 	$(RM) $@

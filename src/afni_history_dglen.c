@@ -50,6 +50,39 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 18, APR, 2019, DRG, "whereami GUI with wrong atlas", MICRO, TYPE_BUG_FIX,
+    "whereami would crash afni GUI if atlas was not found",
+    "Also more descriptive message when no available atlases"
+},	
+{ 17, APR, 2019, DRG, "whereami minimum space", MICRO, TYPE_MODIFY,
+    "Should have at least the space of the dataset coordinate"
+},	
+{ 12, APR, 2019, DRG, "unWarpEPI.py python3", MINOR, TYPE_MODIFY,
+    "unWarpEPI.py python3 compatible"
+},	
+{ 12, APR, 2019, DRG, "unWarpEPI.py python3", MINOR, TYPE_MODIFY,
+    "unWarpEPI.py python3 compatible"
+},
+{ 11, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "Brainnetome atlas",
+    "This atlas is now included in the standard distribution\n"
+    "This also is in the default list of atlases"
+},
+{ 7, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "Eickhoff-Zilles 2.2 MPM atlas",
+    "This atlas is the newer 2.2 version of the MPM atlas\n"
+    "This atlas replaced the 1.8 version in the list, but both\n"
+    "are kept in the binary distribution"
+},
+{ 5, APR, 2019, DRG, "whereami", MAJOR, TYPE_NEW_ENV,
+    "HCP Glasser atlas in AFNI atlases",
+    "Mike Beauchamp and Meghan Robinson contributed atlas\n"
+    "Now included and first in default list too\n"
+    "This atlas is in MNI space (not in its original Contee\n"
+    "grayordinate surface space.\n"
+    "Additionally, all the pmaps (probability maps) have been\n"
+    "removed from the standard distribution and default list"
+},
 { 12, OCT, 2018, DRG, "auto_warp.py", MICRO, TYPE_NEW_OPT,
     "at_opts for @auto_tlrc options"
 },

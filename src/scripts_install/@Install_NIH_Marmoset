@@ -34,7 +34,7 @@ if ($use_curl == 0) then
 else
    curl -O https://afni.nimh.nih.gov/pub/dist/atlases/marmoset/NIH_Marmoset/$demo_download.tgz
 endif
-tar xvzf $demo_download.tgz
+tar --warning=no-unknown-keyword -xvzf $demo_download.tgz
 # change name to simpler one here
 mv $demo_download $demo
 cd $demo

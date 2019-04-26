@@ -219,6 +219,11 @@ typedef struct {
 
 /******** 16 June 1997:  Stuff for choosing colors in the graph ******/
 
+#include "pbar_color_defs.h"
+
+#define NUM_FIXED_COLORS_SETTING 4
+#define NUM_COLOR_ITEMS          9
+
 #define BRIGHTEST_COLOR   -1
 #define DARKEST_COLOR     -2
 #define REDDEST_COLOR     -3
@@ -227,13 +232,23 @@ typedef struct {
 
 #define DEFAULT_GR_BOXES_COLOR    DARKEST_COLOR
 #define DEFAULT_GR_BACKG_COLOR    BRIGHTEST_COLOR
-#define DEFAULT_GR_GRID_COLOR     2
+#define DEFAULT_GR_GRID_COLOR     COL_yell_oran
 #define DEFAULT_GR_TEXT_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_DATA_COLOR     DARKEST_COLOR
 #define DEFAULT_GR_IDEAL_COLOR    REDDEST_COLOR
 #define DEFAULT_GR_ORT_COLOR      GREENEST_COLOR
 #define DEFAULT_GR_IGNORE_COLOR   BLUEST_COLOR
 #define DEFAULT_GR_DPLOT_COLOR    REDDEST_COLOR
+
+#define INVERTT_GR_BOXES_COLOR    BRIGHTEST_COLOR
+#define INVERTT_GR_BACKG_COLOR    DARKEST_COLOR
+#define INVERTT_GR_GRID_COLOR     COL_gry_bb
+#define INVERTT_GR_TEXT_COLOR     BRIGHTEST_COLOR
+#define INVERTT_GR_DATA_COLOR     BRIGHTEST_COLOR
+#define INVERTT_GR_IDEAL_COLOR    REDDEST_COLOR
+#define INVERTT_GR_ORT_COLOR      GREENEST_COLOR
+#define INVERTT_GR_IGNORE_COLOR   BLUEST_COLOR
+#define INVERTT_GR_DPLOT_COLOR    REDDEST_COLOR
 
 #ifdef MAIN
 int INIT_GR_boxes_color  = DEFAULT_GR_BOXES_COLOR  ,
@@ -256,6 +271,46 @@ int INIT_GR_boxes_thick  = 0 ,
 int INIT_GR_ggap         = 4 ;  /* 27 May 1999 */
 int INIT_GR_gthick       = 2 ;  /* 06 Oct 2004 */
 int INIT_GR_gmat         = 3 ;  /* 10 Feb 2003 */
+
+int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] =
+     {
+       { DEFAULT_GR_BOXES_COLOR,
+         DEFAULT_GR_BACKG_COLOR,
+         DEFAULT_GR_GRID_COLOR,
+         DEFAULT_GR_TEXT_COLOR,
+         DEFAULT_GR_DATA_COLOR,
+         DEFAULT_GR_IDEAL_COLOR,
+         DEFAULT_GR_ORT_COLOR,
+         DEFAULT_GR_IGNORE_COLOR,
+         DEFAULT_GR_DPLOT_COLOR   } ,
+       { INVERTT_GR_BOXES_COLOR,
+         INVERTT_GR_BACKG_COLOR,
+         INVERTT_GR_GRID_COLOR,
+         INVERTT_GR_TEXT_COLOR,
+         INVERTT_GR_DATA_COLOR,
+         INVERTT_GR_IDEAL_COLOR,
+         INVERTT_GR_ORT_COLOR,
+         INVERTT_GR_IGNORE_COLOR,
+         INVERTT_GR_DPLOT_COLOR   } ,
+       { COL_dk_blue ,
+         COL_yellow ,
+         COL_blue_cyan ,
+         COL_dk_blue ,
+         COL_dk_blue ,
+         DEFAULT_GR_IDEAL_COLOR,
+         COL_rbgyr20_07 ,
+         DEFAULT_GR_IGNORE_COLOR,
+         DEFAULT_GR_DPLOT_COLOR   } ,
+       { COL_yell_oran ,
+         COL_dk_blue ,
+         COL_lt_blue2 ,
+         COL_yellow ,
+         COL_yellow ,
+         COL_hotpink ,
+         COL_green ,
+         COL_blue_cyan ,
+         COL_red                  } ,
+     } ;
 #else
 extern int INIT_GR_boxes_color  ,
            INIT_GR_backg_color  ,
@@ -277,9 +332,8 @@ extern int INIT_GR_boxes_thick ,
 extern int INIT_GR_ggap ;
 extern int INIT_GR_gthick ;  /* 06 Oct 2004 */
 extern int INIT_GR_gmat ;
+extern int fixed_colors[NUM_FIXED_COLORS_SETTING][NUM_COLOR_ITEMS] ;
 #endif /* MAIN */
-
-#define NUM_COLOR_ITEMS 9
 
 #define FG_COLOR(gr)     ((gr)->color_index[0])
 #define BG_COLOR(gr)     ((gr)->color_index[1])
@@ -325,11 +379,11 @@ static int gr_color_start[NUM_COLOR_ITEMS] = {
 static int gr_unfim[NUM_COLOR_ITEMS] = { 0,0,0,0,0,1,1,1,0 } ;  /* Oct 1999 */
 
 #define GRA_COLOR(cd)                                              \
-   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest)  \
+   ( ((cd) == BRIGHTEST_COLOR)  ? (grapher->dc->ovc->ov_brightest) \
     :((cd) == DARKEST_COLOR  )  ? (grapher->dc->ovc->ov_darkest)   \
-    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ovc->ov_reddest)  \
-    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ovc->ov_greenest)\
-    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest) \
+    :((cd) == REDDEST_COLOR   ) ? (grapher->dc->ovc->ov_reddest)   \
+    :((cd) == GREENEST_COLOR )  ? (grapher->dc->ovc->ov_greenest)  \
+    :((cd) == BLUEST_COLOR  )   ? (grapher->dc->ovc->ov_bluest)    \
     :(cd) )
 
 #define FG_THICK(gr)     ((gr)->thick_index[0] * (gr)->gthick)
@@ -465,6 +519,7 @@ typedef struct {
    int color_index[NUM_COLOR_ITEMS] ;
    int thick_index[NUM_COLOR_ITEMS] ;
    int points_index[NUM_COLOR_ITEMS] ;
+   int fixed_colors_setting ;
 
    MCW_arrowval *opt_ggap_av ; /* 12 Jan 1998 */
    int ggap ;

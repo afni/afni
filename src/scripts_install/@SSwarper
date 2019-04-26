@@ -43,9 +43,15 @@
 #   + [RWC] add '-SSopt' option for adding options to 3dSkullStrip
 #           (per the request of Allison Nugent)
 #
-set version   = "1.45"; set rev_dat   = "Mar 29, 2019"
+#set version   = "1.45"; set rev_dat   = "Mar 29, 2019"
 #   + [RWC] if SubID is a dataset name, funny things happened;
 #           so edit out suffixes like '.nii', '.HEAD', etc.`
+#
+set version   = "1.5"; set rev_dat   = "April 15, 2019"
+#   + [PT] add in a couple new opts
+#          "-giant_move": larger opening angle, etc.
+#          "-deoblique":  can deoblique
+# 
 # ----------------------------------------------------------------
 
 ### This is not fully adapted yet -- Zhark
@@ -86,6 +92,8 @@ set skipwarp  = 0
 set DO_UNIFIZE = 1
 set DO_SKULLST = 1
 set DO_ANISO   = 1
+set DO_GIANT   = 0
+set DO_DEOB    = 0
 
 set SSopt      = " "
 
@@ -141,6 +149,14 @@ while ( $ac <= $#argv )
 
     else if ( "$argv[$ac]" == "-noclean" ) then
         set doclean = 0
+
+    # [PT: April 15, 2019]
+    else if ( "$argv[$ac]" == "-giant_move" ) then
+        set DO_GIANT = 1
+
+    # [PT: April 15, 2019]
+    else if ( "$argv[$ac]" == "-deoblique" ) then
+        set DO_DEOB = 1
 
     # [Jan 2019 - RWC]
 
@@ -283,6 +299,18 @@ endif
 
 ## start the work
 
+## Step #0: Deoblique
+if ( ${DO_DEOB} ) then
+    set dset_do = $odir/anatDO."${SubID}".nii
+    3dWarp                        \
+        -deoblique                \
+        -wsinc5                   \
+        -prefix "${dset_do}"      \
+        "$Adataset"
+    # ... and this will be new "input" dset
+    set Adataset = "${dset_do}"
+endif
+
 ## Step #1: Unifize the input T1
 
 # [PT: Feb 11, 2019] now allows for option *not* to unifize
@@ -343,14 +371,26 @@ if( ! -f $odir/anatS."${SubID}".nii ) then
 endif
 
 ## Step #3: run 3dQwarp first time to a moderate level (skull on)
-
-3dQwarp $liteopt $verbopt                             \
-    -base   "${Basedset}[1]"                          \
-    -source $odir/anatUA."$SubID".nii                 \
-    -weight "${Basedset}[2]"                          \
-    -allineate -noneg -maxlev 5 -iwarp -awarp         \
-    -workhard:3:5                                     \
-    -prefix "${pref}TAL5.nii"
+if ( ${DO_GIANT} ) then
+    3dQwarp -echo_edu                                     \
+        $liteopt $verbopt                                 \
+        -base   "${Basedset}[1]"                          \
+        -source $odir/anatUA."$SubID".nii                 \
+        -weight "${Basedset}[2]"                          \
+        -allineate -noneg -maxlev 5 -iwarp -awarp         \
+        -workhard:3:5                                     \
+        -prefix "${pref}TAL5.nii"                         \
+        -allopt '-twobest 11 -twopass -maxrot 45 -maxshf 40 -source_automask+2 -cmass'
+else
+    3dQwarp -echo_edu                                     \
+        $liteopt $verbopt                                 \
+        -base   "${Basedset}[1]"                          \
+        -source $odir/anatUA."$SubID".nii                 \
+        -weight "${Basedset}[2]"                          \
+        -allineate -noneg -maxlev 5 -iwarp -awarp         \
+        -workhard:3:5                                     \
+        -prefix "${pref}TAL5.nii"
+endif
 
 ## Step #4: mask off the skull using the template (second skull-strip)
 
@@ -575,7 +615,6 @@ where:
 
   -subid  SS :(req) name code for output datasets (e.g., 'sub007').
 
-
   -odir   OD :(opt) output directory for all files from this program
               (def: directory of the '-input AA').
 
@@ -592,6 +631,16 @@ where:
               This option is used if you just want the skull-stripped
               result in original coordinates, without the warping
               to the template space (anatQQ). The script will run faster.
+
+  -deoblique :apply obliquity information to deoblique the input
+              volume ('3dWarp -deoblique -wsinc5 ...'), as an initial step.
+              This might help when data sets are very... oblique.
+
+  -giant_move :when starting the initial alignment to the template,
+              apply the same parameter expansions to 3dAllineate that
+              align_epi_anat.py does with the same option flag.  This
+              might be useful if the brain has a very large angle away
+              from "typical" ones, etc.
 
   -unifize_off :(opt) don't start with a 3dUnifize command to try reduce
               effects of brightness inhomogeneities.  Probably only
@@ -646,6 +695,8 @@ OUTPUTS ~1~
 Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
 Then the outputs from this script will be"
 
+  anatDO.sub007.nii       = deobliqued version of original dataset;
+                            (*only if* using '-deoblique' opt)
   anatU.sub007.nii        = intensity uniform-ized original dataset;
                             (or, if '-unifize_off' used, a copy of orig dset)
   anatUA.sub007.nii       = anisotropically smoothed version of the above

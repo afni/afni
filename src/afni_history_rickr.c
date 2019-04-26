@@ -49,6 +49,48 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "-regress_bandpass now takes any positive number of frequencies pairs",
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 23, Apr, 2019, RCR, "3dAllineate", MICRO, TYPE_ENHANCE,
+   "Allow '^' to denote a power in -autoweight, in addition to '**'\n",
+   "This is to avoid protecting the string in quotes, making it easy\n"
+   "to pass from afni_proc.py to align_epi_anat.py to 3dAllineate."
+ } ,
+
+ { 22, Apr, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -tsv_labels",
+   "This can be used to specify column labels to be used for\n"
+   "onset time, duration, trial type, and optional modulators."
+ } ,
+
+ { 16, Apr, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
+   "verify av_space == +tlrc before setting template",
+   "Thanks to P Molfese and P Taylor for noting the problem."
+ } ,
+
+ { 16, Apr, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_ENHANCE,
+   "if do_apearch, update .bashrc to source all_progs.COMP.bash",
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 11, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -combine_tedort_reject_midk",
+   "It might be a good idea to set this to 'no', so less gets rejected."
+ } ,
+
+ { 11, Apr, 2019, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add functions gaussian_at_fwhm, gaussian_at_hwhm_frac",
+   NULL
+ } ,
+
+ {  8, Apr, 2019, RCR, "@extract_meica_ortvec", MINOR, TYPE_NEW_OPT,
+   "add options -reject_midk and -reject_ignored",
+   "It seems likely that '-reject_midk 0' should be the default."
+ } ,
+
  { 20, Mar, 2019, RCR, "dcm2niix_afni", MINOR, TYPE_BUG_FIX,
    "sync crorden/dcm2niix_console with repo, version v1.0.20181125",
    "This is possibly to correct a bug with -m and partial brain coverage."

@@ -19,9 +19,10 @@ int main( int argc , char * argv[] )
    int nonconst=0 , ncol,ncold , cc , nonfixed=0 , stack=0, okempty=0;
    intvec *ncv=NULL ;
    char *hline=NULL ;
-   int do_tsvout = 0 ;
+   int do_tsvout = 0 , do_csvout = 0 ;
    static struct stat buf;
 
+   /*-- paperwork --*/
 
    mainENTRY("1dcat:main");
 
@@ -96,12 +97,19 @@ int main( int argc , char * argv[] )
 "             no concept of missing data in an AFNI .1D file.\n"
 "           ++ If you don't like this, well ... too bad for you.\n"
 "\n"
+"* NOTE WELL: 1dcat now also allows comma separated value (.csv) files. These\n"
+"             are treated the same as .tsv files, with a header line, et cetera.\n"
+"\n"
 "--------\n"
 "OPTIONS:\n"
 "--------\n"
 "  -tsvout   = Output in a TSV (.tsv) format, where the values in each row\n"
 "              are separated by tabs, not blanks. Also, a header line will\n"
 "              be provided, as TSV files require.\n"
+"\n"
+"  -csvout   = Output in a CSV (.csv) format, where the values in each row\n"
+"              are separated by commas, not blanks. Also, a header line will\n"
+"              be provided, as CSV files require.\n"
 "\n"
 "  -nonconst = Columns that are identically constant should be omitted\n"
 "              from the output.\n"
@@ -110,9 +118,9 @@ int main( int argc , char * argv[] )
 "              3dAllineate header from '-1Dparam_save'.\n"
 "              If there is no such header, all columns are kept.\n"
 "           * NOTE: -nconst and -nonfixed don't have any effect on\n"
-"                   .tsv files, and the use of these options\n"
+"                   .tsv/.csv files, and the use of these options\n"
 "                   has NOT been tested at all when the inputs\n"
-"                   are mixture of .tsv and .1D files.\n"
+"                   are mixture of .tsv/.csv and .1D files.\n"
 "\n"
 "  -form FORM = Format of the numbers to be output.\n"
 "               You can also substitute -form FORM with shortcuts such \n"
@@ -121,7 +129,7 @@ int main( int argc , char * argv[] )
 "               see ccalc's help for the option of the same name. \n"
 "\n"
 "  -stack = Stack the columns of the resultant matrix in the output.\n"
-"             You can't use '-stack' with .tsv files :(\n"
+"             You can't use '-stack' with .tsv/.csv files :(\n"
 "\n"
 "  -sel SEL = Apply the same column/row selection string to all filenames\n"
 "             on the command line.\n"
@@ -159,7 +167,11 @@ int main( int argc , char * argv[] )
    while (narg < argc && argv[narg][0] == '-') {
 
       if( strcmp(argv[narg],"-tsvout") == 0 ){  /* 13 Sep 2018 */
-        do_tsvout = 1 ; narg++ ; continue ;
+        do_tsvout = 1 ; do_csvout = 0 ; narg++ ; continue ;
+      }
+
+      if( strcmp(argv[narg],"-csvout") == 0 ){  /* 15 Apr 2019 */
+        do_csvout = 1 ; do_tsvout = 0 ; narg++ ; continue ;
       }
 
       if( strncmp(argv[narg],"-nonconst",7) == 0 ){  /* 04 Dec 2010 */
@@ -261,6 +273,16 @@ int main( int argc , char * argv[] )
                      fname,argv[narg]) ;
         ncol += inel[jj]->vec_num ; num_inel++ ;
 
+      } else if( STRING_HAS_SUFFIX(qname,".csv") ){  /* Apr 2019 */
+        inel[jj] = THD_read_csv(fname) ; inim[jj] = NULL ;
+        if( inel[jj] == NULL )
+          ERROR_exit("Can't read input file '%s'",fname) ;
+        if( jj == 0 ) first_nx = inel[jj]->vec_len ;
+        else if( inel[jj]->vec_len != first_nx )
+          ERROR_exit("Input file %s doesn't match first file %s in length!",
+                     fname,argv[narg]) ;
+        ncol += inel[jj]->vec_num ; num_inel++ ;
+
 #if 0
 fprintf(stderr,"%s : ",fname) ;
 for( kk=0; kk < inel[jj]->vec_num ; kk++ )
@@ -325,9 +347,11 @@ fprintf(stderr,"\n") ;
    } /* end of input loop */
 
    if( stack && num_inel > 0 )
-     ERROR_exit("-stack and .tsv inputs are not compatible at this time :(") ;
+     ERROR_exit("-stack and .tsv/.csv inputs are not compatible at this time :(") ;
    if( stack && do_tsvout )
      ERROR_exit("-stack and -tsvout are not compatible at this time :(") ;
+   if( stack && do_csvout )
+     ERROR_exit("-stack and -csvout are not compatible at this time :(") ;
 
    /* now do the output */
 
@@ -359,17 +383,20 @@ fprintf(stderr,"\n") ;
          }
       }
    } else {  /* not stacked, might have TSV files */
-      char sep = (do_tsvout) ? '\t' : ' ' ; char ssep[2] ; int notfirst ;
+      char sep ; char ssep[2] ; int notfirst ;
+      sep =  (do_tsvout) ? '\t'
+           : (do_csvout) ? ','
+           :               ' ' ;
       ssep[1] = '\0' ;
 #define SEPCHAR ( (notfirst++) ? sep : '\0' )
-      if( do_tsvout ){  /* write a header line */
+      if( do_tsvout || do_csvout ){  /* write a header line */
         for( notfirst=cc=jj=0 ; jj < nim ; jj++ ){
           if( inim[jj] != NULL ){  /* make up .1D header */
             for( kk=0 ; kk < inim[jj]->ny ; kk++,cc++ ){
               ssep[0] = SEPCHAR ;
               printf("%sCol#%d",ssep,cc) ;
             }
-          } else {                 /* TSV file header */
+          } else {                 /* TSV/CSV file header */
             for( kk=0 ; kk < inel[jj]->vec_num ; kk++,cc++ ){
               ssep[0] = SEPCHAR ;
               printf("%s%s",ssep,inel[jj]->vec_lab[kk]) ;

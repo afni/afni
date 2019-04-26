@@ -2907,6 +2907,7 @@ def db_mod_combine(block, proc, user_opts):
    apply_uopt_to_block('-combine_opts_tedana', user_opts, block)
    apply_uopt_to_block('-combine_opts_tedwrap', user_opts, block)
    apply_uopt_to_block('-combine_tedana_path', user_opts, block)
+   apply_uopt_to_block('-combine_tedort_reject_midk', user_opts, block)
 
    # if using tedana for data and later blurring, suggest -blur_in_mask
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
@@ -3144,10 +3145,18 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
    if getorts:
+      # for now, keep default of rejecting midk
+      # - be explicit about the option, so people see it
+      if block.opts.have_yes_opt('-combine_tedort_reject_midk', default=1):
+         midk_opt = '1'
+      else:
+         midk_opt = '0'
+
       ocmd = '# create orthogonalized projection terms\n'  \
              'mkdir meica_orts\n'                          \
              'foreach run ( $runs )\n'                     \
              '   @extract_meica_ortvec -meica_dir tedana_r$run/TED.r$run \\\n'\
+             '                         -reject_midk %s \\\n'                  \
              '                         -work_dir tedana_r$run/work.orts \\\n' \
              '                         -prefix tedana_r$run/meica_orts.1D\n\n'\
              '   # pad single run terms across all runs\n' \
@@ -3156,7 +3165,7 @@ def cmd_combine_tedana(proc, block, method='tedana'):
              '              -pad_into_many_runs $run %d        \\\n' \
              '              -write meica_orts/morts_r$run.1D\n'      \
              'end\n\n'                                               \
-             % (proc.runs)
+             % (midk_opt, proc.runs)
 
       # now make note of the files for the regress block
       for rind in range(proc.runs):
@@ -6086,8 +6095,12 @@ def db_cmd_regress_rsfc(proc, block):
        print("** RSFC not yet ready for surface data, please pester rick")
        return 1, ''
 
-    if len(proc.bandpass) != 2:
+    # must have exactly 2 bands
+    if len(proc.bandpass) < 2:
        print("** RSFC: missing -regress_bandpass option")
+       return 1, ''
+    elif len(proc.bandpass) > 2:
+       print("** RSFC: -regress_bandpass must have exatly 2 frequencies")
        return 1, ''
 
     if proc.mask and proc.regmask:
@@ -6827,12 +6840,19 @@ def db_cmd_regress_bandpass(proc, block):
     # otherwise, note the frequency band limits
     proc.bandpass, err = block.opts.get_type_list(float, opt=opt)
     freq = proc.bandpass # for ease
-    if len(freq) != 2:
-        print('** %s requires 2 parameters, low and high frequencies' % oname)
+    nfpairs = len(freq) // 2
+    if len(freq) < 2 or (len(freq) % 2) == 1:
+        print('** %s requires 2+ parameters, low and high freq pairs' % oname)
         return 1, ''
-    if freq[0] >= freq[1]:
-        print('** %s: must have low freq < high freq' % oname)
-        return 1, ''
+    # generate -band options
+    bpopts = []
+    for bind in range(nfpairs):
+       bbase = 2*bind
+       if freq[bbase] >= freq[bbase+1]:
+           print('** %s: must have low freq < high freq' % oname)
+           return 1, ''
+       bpopts.append('-band %g %g' % (freq[bbase], freq[bbase+1]))
+    bpopt_str = ' '.join(bpopts)
 
     # if doing RSFC, then do not bandpass in 3dDeconvolve
     # (so we are done here)
@@ -6849,14 +6869,14 @@ def db_cmd_regress_bandpass(proc, block):
         cmd += '# (make separate regressors per run, with all in one file)\n'
 
     if proc.runs == 1: # simple case
-        cmd += '1dBport -nodata %s %s -band %g %g -invert -nozero' \
-               ' > %s\n\n' % (proc.reps, proc.tr, freq[0], freq[1], bfile)
+        cmd += '1dBport -nodata %s %s %s -invert -nozero' \
+               ' > %s\n\n' % (proc.reps, proc.tr, bpopt_str, bfile)
     else: # loop over 1dBport and 1d_tool.py
         cmd += 'foreach index ( `count -digits 1 1 $#runs` )\n'               \
                '    set nt = $tr_counts[$index]\n'                            \
                '    set run = $runs[$index]\n'                                \
-               '    1dBport -nodata $nt %g -band %g %g -invert -nozero >! %s\n'\
-               % (proc.tr, freq[0], freq[1], tfile)
+               '    1dBport -nodata $nt %g %s -invert -nozero >! %s\n'\
+               % (proc.tr, bpopt_str, tfile)
         cmd += '    1d_tool.py -infile %s -pad_into_many_runs $run $#runs \\\n'\
                '               -set_run_lengths $tr_counts \\\n'              \
                '               -write bpass%sr$run.1D\n'                      \

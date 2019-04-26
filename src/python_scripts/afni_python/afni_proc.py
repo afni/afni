@@ -634,9 +634,11 @@ g_history = """
     6.30 Jan 22, 2019: added -regress_est_blur_detrend yes/no
     6.31 Jan 30, 2019: added -volreg_post_vr_allin and -volreg_pvra_base_index
     6.32 Feb 22, 2019: added -tlrc_NL_force_view
+    6.33 Apr 11, 2019: added -combine_tedort_reject_midk
+    6.34 Apr 25, 2019: -regress_bandpass takes any even number of frequencies
 """
 
-g_version = "version 6.32, February 22, 2019"
+g_version = "version 6.34, April 25, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1308,6 +1310,9 @@ class SubjProcSream:
         self.valid_opts.add_opt('-combine_tedana_save_all', 1, [],
                         acplist=['yes','no'],
                         helpstr='save tedana preproc data (stack): yes/no')
+        self.valid_opts.add_opt('-combine_tedort_reject_midk', 1, [],
+                        acplist=['yes','no'],
+                        helpstr='reject mid components: yes/no (def: yes)')
 
         self.valid_opts.add_opt('-blur_filter', 1, [],
                         helpstr='blurring filter option (def: -1blur_fwhm)')
@@ -1381,7 +1386,7 @@ class SubjProcSream:
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
                         acplist=['yes','no'],
                         helpstr="apply ricor regs in regression (def no)")
-        self.valid_opts.add_opt('-regress_bandpass', 2, [],
+        self.valid_opts.add_opt('-regress_bandpass', -2, [],
                         helpstr="bandpass in this range during regression")
         self.valid_opts.add_opt('-regress_basis', 1, [],
                         helpstr="basis function to use in regression")

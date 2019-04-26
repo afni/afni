@@ -946,6 +946,7 @@ ENTRY("THD_init_session_bysub") ;
        }
      }
    }
+   NI_delete_str_array(qsar) ;  /* oops [15 Apr 2019] */
 
    if( sess != NULL && nss > 1 ){
      THD_order_session( sess ) ;

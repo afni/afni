@@ -4424,6 +4424,11 @@ extern void THD_set_tsv_column_labels( NI_element *fnel , char **clab ) ;
 extern NI_element * THD_mri_to_tsv_element( MRI_IMAGE *imin , char **clab ) ;
 extern MRI_IMAGE * THD_niml_to_mri( NI_element *nel ) ;
 
+extern NI_element * THD_read_csv(char *fname) ;            /* 15 Apr 2019 */
+extern void THD_write_csv( char *fname , NI_element *nel ) ;
+extern void THD_set_csv_column_labels( NI_element *fnel , char **clab ) ;
+extern NI_element * THD_mri_to_csv_element( MRI_IMAGE *imin , char **clab ) ;
+
 /*---------------------------------------------------------------------------*/
 
 extern MRI_IMARR * THD_get_all_timeseries( char * ) ;

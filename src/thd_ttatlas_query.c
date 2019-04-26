@@ -64,10 +64,12 @@ THD_string_array *recreate_working_atlas_name_list(void) {
 /* moved TT_Daemon down the road to the end and switched
  *  some Eickhoff-Zilles atlases to the MNI version instead of MNI_ANAT */
 THD_string_array *get_working_atlas_name_list(void) {
-   char *min_atlas_list[] = {"CA_ML_18_MNI", "CA_MPM_18_MNI",
-      "DD_Desai_MPM", "DKD_Desai_MPM",  "CA_PM_18_MNIA", 
-      "CA_GW_18_MNIA", "CA_N27_LR",
-       "TT_Daemon", NULL};
+   char *min_atlas_list[] = {
+	  "MNI_Glasser_HCP_v1.0","Brainnetome_1.0", 
+	  "CA_ML_18_MNI", "CA_MPM_22_MNI",
+      "DD_Desai_MPM", "DKD_Desai_MPM", 
+      "CA_GW_18_MNIA", "CA_N27_LR", 
+      "TT_Daemon", NULL};
    int i;
 
    if (!working_atlas_name_list || working_atlas_name_list->num==0) {
@@ -1217,6 +1219,7 @@ char * genx_Atlas_Query_to_String (ATLAS_QUERY *wami,
       out_spaces =  add_to_names_list(out_spaces, &N_out_spaces, "MNI_ANAT");
    }
 
+   out_spaces = add_to_names_list(out_spaces, &N_out_spaces, ac.space_name);
    if (N_out_spaces > max_spaces) {
       ERROR_message("Too many spaces for fixed allocation variables");
       RETURN(rbuf);
@@ -6670,7 +6673,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
 {
    char *fstr,*epath ;
    char atpref[256];
-   char filestr[256];
+   char filestr[RPMAX];
    THD_3dim_dataset *dset=NULL;
    int LocalHead = wami_lh();
 
@@ -6700,15 +6703,19 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
       if(dset) RETURN(dset);
    }
 
+
    /* okay that didn't work, try the AFNI plugin directory */
    epath = get_env_atlas_path();
    if( epath != NULL ) {
       if(epath[strlen(epath)-1]!='/') {
-         sprintf(filestr, "%s/", epath);
-         dset = get_atlas(filestr, dsetname);
+         if(strlen(epath)<RPMAX){
+             sprintf(filestr, "%s/", epath);
+             dset = get_atlas(filestr, dsetname);
+         }
       }
       else
           dset = get_atlas( epath, dsetname);
+
       if(dset) RETURN(dset);
    }
 
@@ -6729,6 +6736,7 @@ THD_3dim_dataset *load_atlas_dset(char *dsetname)
                        dsetname);
    }
    RETURN(dset) ;
+
 }
 
 
@@ -8071,6 +8079,10 @@ int whereami_3rdBase( ATLAS_COORD aci, ATLAS_QUERY **wamip,
    }
    if (N_iatl<1) {
       ERROR_message("No reachable atlases from %s\n", aci.space_name);
+      ERROR_message("Set AFNI_ATLAS_LIST and/or AFNI_TEMPLATE_SPACE_LIST "
+                    "to include atlases and spaces for this dataset");
+      ERROR_message("Alternatively, make sure dataset has space associated "
+                    "with a known space");
       RETURN(0);
    }
 
