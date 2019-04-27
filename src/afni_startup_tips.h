@@ -1340,6 +1340,7 @@ static char *gby[] = {
      "Our time together has passed away like swift drafts of nectar in the high halls"        ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "Those are my statistics, and if you don't like them... well, I have others"             ,
+     "When you come to a fork in the road -- take it"                                         ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1350,6 +1351,11 @@ static char *gby[] = {
      "The key to everything is to focus on one thing at a time"                         ,
      "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
      "The essence of mathematics lies in its freedom"                                   ,
+
+     "Every person can become the sculptor of their own brain"                 , /* Cajal (sort of) */
+     "As long as the brain is a mystery, the universe will also be a mystery"  ,
+     "The brain is a world with unexplored continents and unknown territories" ,
+     "Science is built on the ruins of theories thought to be indestructible"  ,
 
      /* Grateful Dead (mostly) */
 
