@@ -4318,7 +4318,7 @@ ENTRY("ISQ_saver_CB") ;
          if( DO_BLOWUP(seq) ){
            int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
            if( dbg ) fprintf(stderr,"  zoom zoom zoom\n") ;
-           // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+           // [PT: Dec 19, 2018] Change default behavior to be NN interp
            if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
            tim = mri_dup2D(zf,flim) ;
            mri_dup2D_mode(7) ;
@@ -5951,7 +5951,7 @@ fprintf(stderr,"KeySym=%04x nbuf=%d state=%u\n",(unsigned int)ks,nbuf,event->sta
            /* XBell(seq->dc->display,100); */ busy=0; EXRETURN;
          }
 
-         /* otherwise, notify the master, if we have one */
+         /* un-handled as yet? notify the master, if we have one */
 
          if( w == seq->wimage && seq->status->send_CB != NULL ){
            cbs.reason = isqCR_keypress ;
@@ -13392,7 +13392,7 @@ ENTRY("ISQ_save_image") ;
 
    if( DO_BLOWUP(seq) ){
      int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-     // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+     // [PT: Dec 19, 2018] Change default behavior to be NN interp
      if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
      flim = mri_dup2D(zf,tim) ;
      mri_dup2D_mode(7) ;
@@ -13739,7 +13739,7 @@ ENTRY("ISQ_save_anim") ;
 
       if( DO_BLOWUP(seq) ){
         int zf = MAX(seq->zoom_fac,seq->saver_blowup) ;
-        // [PT: Dec 19, 2018] Change default behavior to be NN interp 
+        // [PT: Dec 19, 2018] Change default behavior to be NN interp
         if( AFNI_noenv("AFNI_IMAGE_ZOOM_NN") ) mri_dup2D_mode(-7) ;
         tim = mri_dup2D(zf,flim) ;
         mri_dup2D_mode(7) ;

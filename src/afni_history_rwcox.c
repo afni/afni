@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , APR , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Keystrokes for cluster jumping"
+   "n jumps to the next cluster's peak/cmass\n"
+   "N jumps to the previous cluster's peak/cmass\n"
+   "If focus is NOT in a cluster, then goes to the nearest\n"
+   "cluster in space instead. [For John Butman, NIH/CC - happy NOW?]"
+ } ,
+
  { 24 , APR , 2019 , RWC , "3dPVmap" , MICRO , TYPE_ENHANCE ,
    "Two changes" ,
    "1) Add singular value fractional variance-explained output\n"

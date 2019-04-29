@@ -451,7 +451,7 @@ static int recursed_ondot = 0 ;  /* 18 Feb 2007 */
 void show_AFNI_version(void)
 {
   char *rimp = AFNI_VERSION_RomanImperator ;
-  char vvvv[512] ;
+  char vvvv[1024] ;
 
   if( rimp != NULL && *rimp != '\0' ){ sprintf(vvvv,"%s '%s'",AVERZHN,rimp); }
   else                               { strcpy(vvvv,AVERZHN) ; }
@@ -1643,7 +1643,7 @@ ENTRY("AFNI_parse_args") ;
          } else if( strcmp(argv[narg],"byte") == 0 ){
             GLOBAL_argopt.datum= MRI_byte ;
          } else {
-            char buf[256] ;
+            char buf[1024] ;
             sprintf(buf,"-datum of type '%s' is not supported in AFNI!",
                    argv[narg] ) ;
             ERROR_exit(buf) ;
@@ -1825,7 +1825,7 @@ void AFNI_handler(char *msg){
 
 int AFNI_xerrhandler( Display *d , XErrorEvent *x ){
   if( GLOBAL_argopt.xtwarns > 0 ){
-    char buf[256] = "(null)" ;
+    char buf[1024] = "(null)" ;
     if( x != NULL && d != NULL ) XGetErrorText( d,x->error_code , buf,255 ) ;
     ERROR_message( "Intercepted fatal X11 error: %s\n",buf) ;
     TRACEBACK ;
@@ -2358,7 +2358,7 @@ int main( int argc , char *argv[] )
 
 #if 1
    { Display *dpy = XtDisplay(MAIN_shell) ;
-     char msg[256] , *xsv ; int xvr ;
+     char msg[1024] , *xsv ; int xvr ;
      xsv = XServerVendor(dpy) ; xvr = XVendorRelease(dpy) ;
      if( xsv != NULL ){ sprintf(msg,"[%s v %d]",xsv,xvr); REPORT_PROGRESS(msg); }
    }
@@ -2462,7 +2462,7 @@ int main( int argc , char *argv[] )
    AFNI_load_defaults( MAIN_shell ) ;
 
    if( ! GLOBAL_argopt.skip_afnirc ){          /* this line added 14 Jul 1998 */
-      char *home = getenv("HOME") ; char fname[256] ;
+      char *home = getenv("HOME") ; char fname[1024] ;
       char *sysenv = getenv("AFNI_SYSTEM_AFNIRC") ;       /* 12 Apr 2000 */
 
       GPT = NULL ;  /* 19 Dec 1997 */
@@ -2723,7 +2723,7 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
 
         { int nad = AFNI_numenv("AFNI_AdptMeanWidth1D") ;              /* 30 Sep 2016 */
-          char lab[16] ;                                      /* user specified width */
+          char lab[32] ;                                      /* user specified width */
           if( nad > 9 && nad != 19 && nad < 100 ){
             if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
             sprintf(lab,"AdptMean%d",nad) ;
@@ -2781,7 +2781,7 @@ STATUS("call 13") ;
 #ifdef ALLOW_PLUGINS
         if( MAIN_im3d->type == AFNI_3DDATA_VIEW ){
           int nplug = 0 ;
-          char str[128] ;
+          char str[1024] ;
 
           if( ! GLOBAL_argopt.noplugins ){
 STATUS("initialize plugins") ;
@@ -2865,7 +2865,7 @@ STATUS("initialize compression mode (if any)") ;
 
         ii = THD_enviro_write_compression() ;
         if( ii >= 0 && ii <= COMPRESS_LASTCODE ){
-          char str[64] ;
+          char str[256] ;
           sprintf(str,"\n write compress= %s", COMPRESS_enviro[ii]) ;
           REPORT_PROGRESS(str) ;
         }
@@ -2947,7 +2947,7 @@ STATUS("start startup timeout") ;
 
         { long long lfs = AFNI_logfilesize(); /* 17 Oct 2007 */
           if( lfs > 10000000 ){
-            char msg[256] ;
+            char msg[1024] ;
             sprintf(msg,"\n++ WARNING: ~/.afni.log is now %s (%s) bytes long!"
                         "\n +          (Is that you, Kevin?)\n" ,
                     commaized_integer_string(lfs) ,
@@ -3565,7 +3565,7 @@ XtPointer AFNI_brick_to_mri( int n , int type , FD_brick *br )
 
 ENTRY("AFNI_brick_to_mri") ;
 
-if(PRINT_TRACING){ char str[256] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
+if(PRINT_TRACING){ char str[1024] ; sprintf(str,"n=%d type=%d",n,type) ; STATUS(str) ; }
 
    if( br == NULL ){  /* should never happen */
      ERROR_message("AFNI_brick_to_mri: bad FD_brick :-(") ; RETURN(NULL) ;
@@ -3754,7 +3754,7 @@ STATUS("creating memplot for image overlay") ;
       float rr_box=1.0,gg_box=0.0,bb_box=0.0 ;   /* white */
       float rr_lin=0.4,gg_lin=0.0,bb_lin=0.7 ;   /* dark blue */
       float rr_led=1.0,gg_led=0.0,bb_led=0.0 ;
-      char str[32] , *eee ;
+      char str[128] , *eee ;
       float rx=RX ;         /* default rectangle halfsize */
       int   kkk=0 ;
       float xyz=0.0,xyzp=0.0,xyzm=0.0 , rxm,rxp ;
@@ -4930,11 +4930,39 @@ void AFNI_jumpto_clus( Three_D_View *im3d )  /* 19 Oct 2012 */
   int ic ; float px,py,pz , xx,yy,zz ;
   AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
   mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
-  if( cwid == NULL || cld == NULL ){ BEEPIT ; return ; }
-  ic = AFNI_clus_find_xyz( im3d ,
-                           im3d->vinfo->xi , im3d->vinfo->yj , im3d->vinfo->zk ) ;
-  if( ic < 0 ){ BEEPIT ; return ; }
+  if( cwid == NULL || cld == NULL ) return ;
+  ic = AFNI_clus_find_xyz_nearest( im3d,
+                           im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
+  if( ic < 0 ) return ;
   AFNI_clus_action_CB( cwid->clu_jump_pb[ic] , (XtPointer)im3d , (XtPointer)666 ) ;
+  return ;
+}
+
+/*----------------------------------------------------------------------*/
+/* Jumpto nearby cluster peak */
+
+void AFNI_jumpto_clus_nearby( Three_D_View *im3d , int dci ) /* 29 Apr 2019 */
+{
+  int ic,nic,nclu ; float px,py,pz , xx,yy,zz ;
+  AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
+  mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
+  MCW_cluster_array *clar ; MCW_cluster *cl ;
+
+  if( cwid == NULL || cld == NULL ) return ;
+  clar = im3d->vwid->func->clu_list ; if( clar == NULL ) return ;
+  nclu = clar->num_clu ;              if( nclu == 0    ) return ;
+  ic = AFNI_clus_find_xyz( im3d,
+                           im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
+  if( ic >= 0 ){
+    nic = ic + dci ;
+    if( nic >= nclu  ) nic = nic % nclu ;
+    else if( nic < 0 ) nic = (nic + 99*nclu) % nclu ;
+  } else {
+    nic = AFNI_clus_find_xyz_nearest( im3d,
+                           im3d->vinfo->xi, im3d->vinfo->yj, im3d->vinfo->zk ) ;
+  }
+  if( nic < 0 ) return ;
+  AFNI_clus_action_CB( cwid->clu_jump_pb[nic], (XtPointer)im3d, (XtPointer)666 ) ;
   return ;
 }
 
@@ -5278,11 +5306,18 @@ if(PRINT_TRACING)
           }
           break ;
 
-          case 'j':        /* jump to cluster peak -- for Dale [17 Oct 2012] */
+          case 'j':   /* jump to cluster peak -- for Dale [17 Oct 2012] */
             AFNI_jumpto_clus(im3d) ;
           break ;
 
-          case 'f':{       /* flash cluster [17 Oct 2012] */
+          case 'N':   /* jump to nearby cluster [29 Apr 2019] */
+          case 'n':{                     /* (for John Butman) */
+            int dci = (cbs->key == 'n') ? 1 : -1 ;
+            AFNI_jumpto_clus_nearby(im3d,dci) ;
+          }
+          break ;
+
+          case 'f':{  /* flash cluster [17 Oct 2012] */
             int ic ; float px,py,pz , xx,yy,zz ;
             AFNI_clu_widgets *cwid = im3d->vwid->func->cwid ;
             mri_cluster_detail *cld = im3d->vwid->func->clu_det ;
@@ -7062,8 +7097,9 @@ static char * AFNI_image_help =
  "Ctrl+keyboard arrow keys  = expand/shrink crop region\n"
  "Shift+Home = center crop region on current crosshairs\n"
  "--- THESE NEXT KEYSTROKES OPERATE WITH CLUSTERIZE ---\n"
- "j = Jump to current cluster's peak (or cmass)\n"
+ "j = Jump to nearest cluster's peak (or cmass)\n"
  "f = Flash current cluster\n"
+ "n/N = Jump to next/previous cluster's peak/cmass\n"
 ;
 
 static char * AFNI_arrowpad_help =

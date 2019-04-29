@@ -1448,6 +1448,37 @@ ENTRY("AFNI_clus_find_xyz") ;
 }
 
 /*---------------------------------------------------------------------------*/
+/* Get the nearest cluster index of the DICOM coords, if it exists. */
+
+int AFNI_clus_find_xyz_nearest( Three_D_View *im3d , float x,float y,float z )
+{
+   float xf,yf,zf ; int xi,yi,zi , ii,jj,npt,nclu ;
+   MCW_cluster_array *clar ; MCW_cluster *cl ;
+   int ibest; int64_t dbest,di,dj,dk,ddd ;
+
+ENTRY("AFNI_clus_find_xyz_nearest") ;
+
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) RETURN(-1) ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) RETURN(-1) ;
+   nclu = clar->num_clu ;              if( nclu == 0    ) RETURN(-1) ;
+
+   MAT44_VEC( im3d->fim_now->daxes->dicom_to_ijk , x,y,z , xf,yf,zf ) ;
+   xi = rint(xf) ; yi = rint(yf) ; zi = rint(zf) ;
+   dbest = 9111111111111111111 ; /* not quite the biggest 64 bit int */
+   ibest = -1 ;
+   for( ii=0 ; ii < nclu ; ii++ ){
+     cl = clar->clar[ii] ; npt = cl->num_pt ;
+     for( jj=0 ; jj < npt ; jj++ ){
+       if( xi == cl->i[jj] && yi == cl->j[jj] && zi == cl->k[jj] ) RETURN(ii);
+       di = xi - cl->i[jj]; dj = yi - cl->j[jj]; dk = zi - cl->k[jj];
+       ddd = di*di + dj*dj + dk*dk ;
+       if( ddd < dbest ){ dbest = ddd ; ibest = ii ; }
+     }
+   }
+   RETURN(ibest) ;
+}
+
+/*---------------------------------------------------------------------------*/
 /* A 'receive' function for when the viewpoint changes;
    used to report which cluster the crosshairs are in (if any) */
 
