@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, May , 2019 , PT , "@djunct_is_label.py" , MICRO , TYPE_GENERAL,
+   "Tiny program to see if input is an integer (-> index) or str (-> label).",
+   "Just used by @chauffeur_afni for -set_subbricks reading.\n"
+},
+
+{ 1, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Allow -set_subbricks to take string labels for subbricks as usable args.",
+   "Excellent idea, Rasmus!\n"
+},
+
 { 19, Apr , 2019 , PT , "@Spharm.examples" , MINOR , TYPE_GENERAL,
    "Just updated paths/names: tarball getting used no longer exists.",
    "No change in functionality (j'espere).\n"
