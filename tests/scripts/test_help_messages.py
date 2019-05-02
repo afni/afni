@@ -1,14 +1,8 @@
-"""Show the help messages of all AFNI programs. Fail test if showing help
-message fails or if program is not found.
-
-To run:
-    python3 test_help_messages.py
-"""
-
 import os
 import pathlib
 import shutil
 import subprocess
+import pytest
 
 here = os.path.realpath(os.path.dirname(__file__))
 
@@ -40,6 +34,8 @@ def _get_programs(afni_root):
     return [j for j in progs if j and not j.startswith("#")]
 
 
+@pytest.mark.slow
+@pytest.mark.xfail
 def test_prog_list_helps():
     programs = _get_programs(AFNI_ROOT)
     not_found = []
@@ -71,12 +67,4 @@ def test_prog_list_helps():
         print("    " + "\n    ".join(no_success))
 
     if not_found or no_success:
-        assert False
-
-
-def main():
-    test_prog_list_helps()
-
-
-if __name__ == "__main__":
-    main()
+        raise ValueError("Not all help messages are running correctly")

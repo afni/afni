@@ -1,7 +1,7 @@
 from pathlib import Path
 import subprocess
 
-PYTESTS_DIR = [p for p in Path(__file__).parents if p.name == "pytest_tests"][0]
+PYTESTS_DIR = [p for p in Path(__file__).parents if p.name == "scripts"][0]
 TEST_MODS = [str(p) for p in PYTESTS_DIR.glob("**/*.py")]
 
 STYLE_TXT = (
