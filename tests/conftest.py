@@ -11,6 +11,7 @@ import atexit
 from scripts.utils import misc
 import scripts.utils.tools as tools
 
+
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
     "curl is required. Datalad is recommended to restrict the amount of "
@@ -27,7 +28,11 @@ CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 
 def get_output_dir():
-    return Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
+    if hasattr(pytest, "config"):
+        outdir = (
+            Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
+        )
+        return outdir
 
 
 def get_test_dir_path():
@@ -118,6 +123,7 @@ def data(request):
             "test_name": test_name,
         }
     )
+
     return namedtuple("DataTuple", out_dict.keys())(**out_dict)
 
 
