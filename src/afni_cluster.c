@@ -895,10 +895,13 @@ ENTRY("AFNI_clus_make_widgets") ;
                             "Choose whether to show the Peak, or\n"
                             "Center-of-Mass, or Internal Center\n"
                             "X Y Z coordinates, for each cluster.\n"
+                            "* Unlike CMass, ICent is a weighted\n"
+                            "   location that is always inside its\n"
+                            "   cluster.\n"
                             "* The weights that define these\n"
                             "   locations are taken from the\n"
                             "   'OLay' sub-brick of the Overlay\n"
-                            "   dataset.\n"
+                            "   dataset - NOT the 'Thr' sub-brick.\n"
                             "* The coordinate signs (DICOM or\n"
                             "   SPM order) can be chosen in the\n"
                             "   main AFNI controller window by\n"
@@ -1305,7 +1308,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
                            "See or Hide this cluster" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
-                        "Coordinates of cluster (Peak or CMass)" ) ;
+                        "Coordinates of cluster (Peak or CMass or ICent)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
                         "Set crosshairs to these XYZ coordinates" ) ;
      MCW_register_hint( cwid->clu_plot_pb[ii] ,

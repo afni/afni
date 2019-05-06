@@ -289,8 +289,8 @@ ENTRY("mri_clusterize_detailize") ;
        xqq = cl->i[kk] ; yqq = cl->j[kk] ; zqq = cl->k[kk] ;
        for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
          vvv = fabsf(cl->mag[ii]) ; vsum += vvv ;
-         vsum += vvv * ( fabsf(xqq-cl->i[ii])
-                        +fabsf(yqq-cl->j[ii])+fabsf(zqq-cl->k[ii]) ) ;
+         vsum += vvv * sqrtf( SQR(xqq-cl->i[ii])
+                             +SQR(yqq-cl->j[ii])+SQR(zqq-cl->k[ii]) ) ;
        }
        if( vsum < wbest ){ wbest = vsum; xmi = xqq; ymi = yqq; zmi = zqq; }
      }
