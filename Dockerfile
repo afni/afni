@@ -36,7 +36,15 @@ RUN apt-get update -y -qq \
     && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python - --no-cache-dir \
     && pip install --no-cache-dir \
           scipy \
-          rpy2 
+          rpy2 \
+    && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
+    # Add some dependencies for testing and coverage calculation
+    && pip3 install --no-cache-dir \
+            codecov \
+            pytest \
+            pytest-cov \
+            numpy \
+            pandas
 
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
@@ -50,16 +58,7 @@ RUN \
     if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
       echo "Adding testing and coverage components" \
       && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX \
-      && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
-      && pip3 install --no-cache-dir \
-            codecov \
-            pytest \
-            pytest-cov \
-            numpy \
-            pandas; \
-    fi \
-    \
-    # Clean AFNI src directory (*.o files can cause build to fail).
+      fi \
     && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
     && mv afni_src.tgz .. \
     && cd .. \
@@ -72,7 +71,9 @@ RUN \
     # Build AFNI.
     && cd src \
     && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
-    && make itall \
+    # Clean in case there are some stray object files
+    && make cleanest \
+    && make itall  | tee /build_log.txt \
     && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
 
 ENV PATH="$AFNI_ROOT/abin:$PATH"
