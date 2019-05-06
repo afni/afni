@@ -44,6 +44,13 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 6 , MAY , 2019 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add 'ICent' (Internal Center) to coordinate option" ,
+   "In addition to Peak and Cmass. The problem with Peak is that it can be\n"
+   "way off on an edge. The problem with Cmass is that it can be outside the\n"
+   "actual cluster. ICent is sort of like Cmass but will be inside the\n"
+   "cluster." } ,
+
  { 29 , APR , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "Keystrokes for cluster jumping"
    "n jumps to the next cluster's peak/cmass\n"
