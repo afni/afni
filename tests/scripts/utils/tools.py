@@ -1,24 +1,26 @@
 import filecmp
 from pathlib import Path
-import nibabel as nib
+import nibabel as nib  # type: ignore
 import difflib
 from . import misc
 import tempfile
 import itertools as IT
 import os
 
-from numpy.testing import assert_allclose
+from numpy.testing import assert_allclose  # type: ignore
+
+from typing import Dict, List, NamedTuple
 
 
 def assert_all_files_equal(
-    data,
-    ignore_file_patterns=[],
-    text_file_patterns=[],
-    kwargs_1d={},
-    kwargs_log={},
-    kwargs_text_files={},
-    kwargs_scans={"header_kwargs": {}, "data_kwargs": {}},
-    kwargs_byte={},
+    data: NamedTuple,
+    ignore_file_patterns: List = [],
+    text_file_patterns: List = [],
+    kwargs_1d: Dict = {},
+    kwargs_log: Dict = {},
+    kwargs_text_files: Dict = {},
+    kwargs_scans: Dict = {"header_kwargs": {}, "data_kwargs": {}},
+    kwargs_byte: Dict = {},
 ):
     """A convenience wrapping function to compare the output files of a test
     command. 1D files, log files, and files sppecified as text files are
@@ -27,15 +29,15 @@ def assert_all_files_equal(
     contents of the files are compared.
 
     Args:
-        data (conftest.DataTuple): Fixture object used in tests
+        data: Fixture object used in tests
 
-        ignore_file_patterns (list, optional): List of substrings that if
+        ignore_file_patterns: List of substrings that if
         found in a filename marks it for exclusion
 
-        text_file_patterns (list, optional): List of substrings that if
+        text_file_patterns: List of substrings that if
         found in a filename marks it comparison using string diffing of its contents
 
-        kwargs_... (dict, optional): Keyword arguments passed to
+        kwargs_...: Keyword arguments passed to
         the corresponding assert function.
     """
     comparison_dir = data.comparison_dir
@@ -63,7 +65,9 @@ def assert_all_files_equal(
                 assert_files_by_byte_equal(comparison_dir, [fname], **kwargs_byte)
 
 
-def assert_scans_equal(comparison_dir, scans, header_kwargs={}, data_kwargs={}):
+def assert_scans_equal(
+    comparison_dir: Path, scans: List, header_kwargs: Dict = {}, data_kwargs: Dict = {}
+):
     for fname in scans:
         equivalent_file = get_equivalent_file(comparison_dir, fname)
         image = nib.load(str(fname))
@@ -74,13 +78,13 @@ def assert_scans_equal(comparison_dir, scans, header_kwargs={}, data_kwargs={}):
         )
 
 
-def assert_files_by_byte_equal(comparison_dir, file_list):
+def assert_files_by_byte_equal(comparison_dir: Path, file_list: List, **kwargs):
     """Compare list of files written as part of a test output with a
     pre-existing output directory
 
     Args:
-        file_list (TYPE): Description
-        comparison_dir (TYPE): Description
+        file_list : Description
+        comparison_dir : Description
     """
     for fname in file_list:
         equivalent_file = get_equivalent_file(comparison_dir, fname)
