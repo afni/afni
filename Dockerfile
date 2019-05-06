@@ -57,7 +57,7 @@ WORKDIR "$AFNI_ROOT/src"
 RUN \
     if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
       echo "Adding testing and coverage components" \
-      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX \
+      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX ;\
       fi \
     && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
     && mv afni_src.tgz .. \
