@@ -4,7 +4,7 @@ import sys
 
 # Until python dependencies are importable in the typical way use the
 # following to make them importable instead:
-afni_binary = shutil.which("afni")
+afni_binary: str = shutil.which("afni")  # type: ignore
 AFNI_ROOT = str(Path(afni_binary).parent)
 sys.path.append(AFNI_ROOT)
 
