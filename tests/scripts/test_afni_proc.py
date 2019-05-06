@@ -1,8 +1,5 @@
-import os
-import shutil
-import subprocess
-import pytest
 from pathlib import Path
+from .utils import tools
 
 ft_dir = Path("AFNI_data6/FT_analysis/FT")
 data_paths = {
@@ -52,7 +49,12 @@ def test_handout_realcase2(data, run_cmd):
     """
     run_cmd(cmd, locals(), workdir=data.outdir)
 
-    assert Path(f"{data.outdir}/proc.{subj}").exists()
+    # test outputs if above commands ran
+    tools.assert_all_files_equal(
+        data,
+        text_file_patterns=[".FT"],
+        kwargs_text_files={"ignore_patterns": ["auto-gener"]},
+    )
 
 
 def test_handout_realcase3(data, run_cmd):
@@ -72,4 +74,10 @@ def test_handout_realcase3(data, run_cmd):
     """
     run_cmd(cmd, locals(), workdir=data.outdir)
 
-    assert Path(f"{data.outdir}/proc.{subj}").exists()
+    # test outputs if above commands ran
+
+    tools.assert_all_files_equal(
+        data,
+        text_file_patterns=[".FT"],
+        kwargs_text_files={"ignore_patterns": ["auto-gener"]},
+    )

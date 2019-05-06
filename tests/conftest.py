@@ -9,7 +9,7 @@ import functools
 import datetime as dt
 import atexit
 from scripts.utils import misc
-
+import scripts.utils.tools as tools
 
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
@@ -27,7 +27,7 @@ CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 
 def get_output_dir():
-    return Path(pytest.config.rootdir) / ("output_" + CURRENT_TIME)
+    return Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
 
 
 def get_test_dir_path():
@@ -68,85 +68,111 @@ def get_test_dir():
     return test_data_dir
 
 
-@pytest.fixture(scope="module")
-def data(request):
-    test_data_dir = get_test_dir()
+def get_current_test_name():
+    return os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
 
-    # Read values from calling module:
-    data_paths = request.module.data_paths
-    test_outdir = get_output_dir() / Path(request.module.__file__).stem.replace(
+
+@pytest.fixture(scope="function")
+def data(request):
+    """A function-scoped test fixture used for AFNI's testing. The fixture
+    sets up output directories as required and provides the named tuple "data"
+    to the calling function. The data object contains some fields convenient
+    for writing tests like the output directory. Finally the data fixture
+    handles test input data.files  listed in a data_paths dictionary (if
+    defined within the test module) the fixture will download them to a local
+    datalad repository as required. Paths should be listed relative to the
+    repository base-directory.
+
+    Args: request (pytest.fixture): A function level pytest request object
+        providing information about the calling test function.
+
+    Returns:
+        collections.NameTuple: A data object for conveniently handling the specification
+    """
+    test_name = get_current_test_name()
+    module_data_dir = get_test_dir()
+
+    # Set module specific values:
+    try:
+        data_paths = request.module.data_paths
+    except AttributeError:
+        data_paths = {}
+
+    module_outdir = get_output_dir() / Path(request.module.__file__).stem.replace(
         "test_", ""
     )
+    test_logdir = module_outdir / get_current_test_name() / "captured_output"
+    if not test_logdir.exists():
+        os.makedirs(test_logdir, exist_ok=True)
 
-    # Make appropriate directories if they don't already exist
-    if not test_outdir.parent.exists():
-        test_outdir.parent.mkdir(exist_ok=True)
-    if not test_outdir.exists():
-        test_outdir.mkdir(exist_ok=True)
-
-    # Define output for calling module and get data as required:
     out_dict = {
-        k: misc.process_path_obj(v, test_data_dir) for k, v in data_paths.items()
+        k: misc.process_path_obj(v, module_data_dir) for k, v in data_paths.items()
     }
-
+    # Define output for calling module and get data as required:
     out_dict.update(
         {
-            "test_data_dir": test_data_dir,
-            "outdir": test_outdir,
+            "module_data_dir": module_data_dir,
+            "outdir": module_outdir / get_current_test_name(),
+            "logdir": test_logdir,
             "comparison_dir": get_comparison_dir_path(),
+            "test_name": test_name,
         }
     )
     return namedtuple("DataTuple", out_dict.keys())(**out_dict)
 
 
-@pytest.fixture(scope="module")
+@pytest.fixture(scope="function")
 def run_cmd():
     def command_runner(
-        cmd,
-        current_vars={},
-        add_env_vars={},
-        merge_error_with_output=False,
-        workdir=None,
+        cmd, current_vars, add_env_vars={}, merge_error_with_output=False, workdir=None
     ):
         """run_cmd is initialized for all test functions that list it as an
-        argument. It is used as a callable function to run command line arguments.
-        The cmd string may require a formatting step where the values contained in
+        argument. It is used as a callable function to run command line
+        arguments. In conjunction with the data fixture defined in this file
+        it handles the test output logging in a consistent way. The cmd string
+        may require a formatting step where the values contained in
         'current_vars' are injected into the command string.
 
-        Technical note: check_cmd is not a standard function. It is a
-        module-scoped pytest fixture that returns a callable function
+        Technical note: run_cmd is not a standard function. It is a
+        function-scoped pytest fixture that returns a callable function
         (command_runner) that takes the arguments from the user writing a test.
         Args:
             cmd (str): A string that requires execution and error checking.
             Variables will be substituted into the string as required. Following
             python's f-strings syntax, variables are wrapped in braces.
 
-            current_vars (dict, optional):  If variable substitution is required,
-            the user must provide a dictionary of variables for this substitution
-            process. Passing the dictionary from 'locals()' is the most convenient
-            method of doing this.
+            current_vars (dict):  The current variables (one of which must be
+            the data fixture) in the test function scope (accessed by getting
+            the values returned by 'locals()') must be provided to this
+            callable. Among other things, this uses the data fixture to
+            perform variable substitution for the command string
 
         Returns:
             subprocess.CompletedProcess: An object that among other useful
             attributes contains stdout, stderror of the executed command
         """
+        # Get the data object created by the data test fixture
+        data = current_vars.get("data", None)
+        if not data:
+            raise ValueError(
+                "When using run_cmd you should use the data fixture for "
+                "the test and pass the local variables accessed by "
+                "calling 'locals' to the run_cmd callable using the "
+                "'current_vars' argument "
+            )
 
         # Set working directory for command execution if not set explicitly
         if not workdir:
             workdir = Path.cwd()
 
-        base_outdir = get_output_dir()
-        # try to extract the name of the calling function to label captured
-        # sys output from the command execution.
-        calling_function = inspect.stack()[1].function
-        if not calling_function.startswith("test_"):
-            calling_function = "unknown"
-        log_file_path = (
-            base_outdir
-            / "captured_output"
-            / (calling_function + "_" + cmd.split()[0] + ".log")
-        )
-        log_file_path.parent.mkdir(exist_ok=True)
+        # Define log file paths
+        stdout_log = data.logdir / (data.test_name + "_stdout.log")
+        # Make the appropriate output directories
+        os.makedirs(stdout_log.parent, exist_ok=True)
+
+        # Confirm that the file does not exist, otherwise append a number:
+        stdout_log = tools.uniquify(stdout_log)
+        stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
 
         # Set environment variables for the command execution
         os.environ["OMP_NUM_THREADS"] = "1"
@@ -156,6 +182,7 @@ def run_cmd():
         # Tidy whitespace and sub variables into command
         cmd = " ".join(cmd.format(**current_vars).split())
         print(cmd)
+
         with misc.remember_cwd():
             os.chdir(workdir)
             # Execute the command and log output
@@ -163,17 +190,15 @@ def run_cmd():
                 proc = subprocess.run(
                     cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
                 )
-                log_file_path.write_text(proc.stdout.decode("utf-8"))
             else:
                 proc = subprocess.run(
                     cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
                 )
-                log_file_path.with_suffix(".out.log").write_text(
-                    proc.stdout.decode("utf-8")
-                )
-                log_file_path.with_suffix(".err.log").write_text(
-                    proc.stderr.decode("utf-8")
-                )
+            # log the output
+            stdout_log.write_text(proc.stdout.decode("utf-8"))
+            err_text = proc.stderr.decode("utf-8")
+            if err_text:
+                stderr_log.write_text(err_text)
 
             # Raise error if there was a non-zero exit code.
             proc.check_returncode()

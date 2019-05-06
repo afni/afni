@@ -1,3 +1,4 @@
+from .utils import tools
 import filecmp
 
 # Define Data
@@ -11,3 +12,5 @@ def test_3dcopy_basic(data, run_cmd):
     """
 
     proc = run_cmd(cmd, current_vars=locals())
+
+    tools.assert_all_files_equal(data, kwargs_scans={"data_kwargs": {"atol": 1e-6}})

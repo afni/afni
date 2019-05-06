@@ -1,6 +1,6 @@
 from pathlib import Path
 import shutil
-
+from .utils import tools
 
 base_path = Path("old_test_data_repo") / "3dttest++"
 data_paths = {
@@ -20,13 +20,18 @@ def test_3dttest__plus____plus___basic(data, run_cmd):
     copied_Zovar = data.outdir / data.Zovar
     set_a = " ".join([str(f) for f in data.set_a])
     set_b = " ".join([str(f) for f in data.set_b])
+    zov_out = data.outdir / "TTest_zov.nii.gz"
+    tov_out = data.outdir / "TTest_tov.nii.gz"
 
     cmd = """
-    3dttest++ -setA {set_a} -setB {set_b} -prefix TTest_zov -covariates {copied_Zovar}
+    3dttest++ -setA {set_a} -setB {set_b} -prefix {zov_out} -covariates {copied_Zovar}
     """
-    run_cmd(cmd, locals(), workdir=data.Tovar.parent)
+    proc_1 = run_cmd(cmd, locals(), workdir=data.Tovar.parent)
 
     cmd = """
-    3dttest++ -setA {set_a} -setB {set_b} -prefix TTest_tov -covariates {copied_Tovar}
+    3dttest++ -setA {set_a} -setB {set_b} -prefix {tov_out} -covariates {copied_Tovar}
     """
-    run_cmd(cmd, locals(), workdir=data.Tovar.parent)
+    proc_2 = run_cmd(cmd, locals(), workdir=data.Tovar.parent)
+
+    # test outputs if above commands ran
+    tools.assert_scans_equal(data.comparison_dir, [zov_out, tov_out])

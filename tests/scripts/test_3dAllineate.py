@@ -1,5 +1,6 @@
 from .utils.misc import is_omp
 import pytest
+from .utils import tools
 
 # check for omp compilation
 OMP = is_omp("3dAllineate")
@@ -36,3 +37,14 @@ def test_3dAllineate_basic(data, run_cmd):
     """
 
     run_cmd(cmd, current_vars=locals())
+
+    tools.assert_all_files_equal(
+        data,
+        kwargs_log={
+            "append_to_ignored": [
+                "Output dataset",
+                "++ Wrote -1Dparam_save",
+                "total CPU time",
+            ]
+        },
+    )
