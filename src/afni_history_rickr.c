@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, May, 2019, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "add deg2chordlen() to return distance traveled due to a rotation",
+   NULL
+ } ,
+
  { 25, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "-regress_bandpass now takes any positive number of frequencies pairs",
    "Done to appease the mighty P Taylor."

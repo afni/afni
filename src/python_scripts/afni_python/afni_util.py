@@ -3098,6 +3098,43 @@ def mean(vec, ibot=-1, itop=-1):
 
     return tot/(itop-ibot+1)
 
+
+# convert from degrees to chord length
+def deg2chordlen(theta, radius=1.0):
+   """deg2chord_length(theta, radius=1.0):
+
+      Given theta in degrees (0<=theta<=180) and a radius (>=0), return the
+      length of the chord with an arc that subtends central angle theta.
+      (So the chord corresponds with an arc of a circle, and the arc subtends
+      central angle theta.)
+      This might help estimate motion distance due to a rotation.
+
+      For a circle of radius R and a central angle T in degrees, compute the
+      resulting chord length (distance between points on the circle for the
+      corresponding arc).  If the chord has endpoints A and B, we are looking
+      for the length of the segment (AB).
+
+      Note that if a perpendicular is dropped from the circle's center to AB,
+      cutting it in half (call the length h), then we have:
+
+        sin(T/2) = h/R, so      h = R * sin(T/2)
+
+      return 2*h (to get the entire chord length)
+   """
+
+   # put theta in [0,180]
+   if theta < 0.0: theta = abs(theta)
+   if theta > 360: theta = theta % 360
+   if theta > 180: theta = 180 - theta
+
+   # ignore a negative radius
+   if radius <= 0.0: return 0.0
+
+   # math.tan takes input in radians
+   theta = theta * math.pi / 180.0
+
+   return 2.0 * radius * math.sin(theta/2.0)
+
 # ----------------------------------------------------------------------
 # vector manipulation functions
 # ----------------------------------------------------------------------
