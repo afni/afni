@@ -1,5 +1,5 @@
-FROM ubuntu:bionic-20180526@sha256:c8c275751219dadad8fa56b3ac41ca6cb22219ff117ca98fe82b42f24e1ba64e
-
+# FROM ubuntu:bionic-20180526@sha256:c8c275751219dadad8fa56b3ac41ca6cb22219ff117ca98fe82b42f24e1ba64e
+FROM neurodebian:bionic
 ARG DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update -y -qq \
@@ -33,10 +33,6 @@ RUN apt-get update -y -qq \
           vim \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python - --no-cache-dir \
-    && pip install --no-cache-dir \
-          scipy \
-          rpy2 \
     && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
     # Add some dependencies for testing and coverage calculation
     && pip3 install --no-cache-dir \
@@ -45,6 +41,12 @@ RUN apt-get update -y -qq \
             pytest-cov \
             numpy \
             pandas
+
+
+RUN pip3 install --no-cache-dir \
+            nibabel \
+            datalad \
+            pdbpp
 
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
