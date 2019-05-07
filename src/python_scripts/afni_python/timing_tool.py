@@ -129,6 +129,8 @@ examples:
                          -tr 0.5 -stim_dur 2.5 -min_frac 0.3            \\
                          -run_len 360 360 400
 
+      ** consider option -timing_to_1D_warn_ok
+
     Example 6b. Evaluate the results.  Use waver to convolve sfile.1D with GAM
        and use 3dDeconvolve to convolve the timing file with BLOCK(2.5).
 
@@ -790,9 +792,19 @@ action options (apply to single timing element, only):
         time series (maybe on a fine grid) with 1D files that are 1 when the
         given stimulus is on and 0 otherwise.
 
+            Consider -timing_to_1D_warn_ok.
             Consider -tr, -stim_dur, -min_frac, -run_len, -per_run_file.
 
             Consider example 6a or 6c.
+
+   -timing_to_1D_warn_ok        : make some conversion issues non-fatal
+
+        Conditions from -timing_to_1D that this makes non-fatal:
+
+           o  stimuli ending after the end of a run
+           o  stimuli overlapping
+
+        This only applies to -timing_to_1D.
 
    -transpose                   : transpose the data (only if rectangular)
 
@@ -1247,9 +1259,10 @@ g_history = """
    3.05 Oct  5, 2018 - directly go after expected column headers in TSV files
    3.06 Feb 25, 2019 - added modulators to -multi_timing_to_event_list output
    3.07 Apr 22, 2019 - added -tsv_labels
+   3.08 May 07, 2019 - added -timing_to_1D_warn_ok
 """
 
-g_version = "timing_tool.py version 3.07, April 22, 2019"
+g_version = "timing_tool.py version 3.08, May 7, 2019"
 
 
 
@@ -1272,6 +1285,7 @@ class ATInterface:
       self.tr              = 0          # applies to some output
       self.per_run         = 0          # conversions done per run
       self.part_init       = 'INIT'     # default for -part_init
+      self.t21D_warn_ok    = 0          # some timing_to_1D issues are non-fatal
       self.write_married   = 0          # for -write_as_married
 
       # user options - single var
@@ -1563,6 +1577,9 @@ class ATInterface:
       self.valid_opts.add_opt('-timing_to_1D', 1, [], 
                          helpstr='convert stim_times to 0/1 stim_file')
 
+      self.valid_opts.add_opt('-timing_to_1D_warn_ok', 0, [], 
+                         helpstr='make some conversion issues non-fatal')
+
       self.valid_opts.add_opt('-transpose', 0, [], 
                          helpstr='transpose timing data (must be rectangular)')
 
@@ -1757,6 +1774,11 @@ class ATInterface:
          val, err = uopts.get_type_list(float, '-run_len')
          if type(val) == type([]) and not err:
             self.run_len = val
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-timing_to_1D_warn_ok')
+      if oind >= 0:
+         if uopts.find_opt('-timing_to_1D_warn_ok'): self.t21D_warn_ok = 1
          uopts.olist.pop(oind)
 
       # main timing options
@@ -2461,7 +2483,8 @@ class ATInterface:
          return 1
 
       errstr, result = self.timing.timing_to_1D(self.run_len, self.tr,
-                                                self.min_frac, self.per_run)
+                            self.min_frac, self.per_run,
+                            allow_warns=self.t21D_warn_ok)
       if errstr:
          print(errstr)
          return 1

@@ -492,7 +492,7 @@ class AfniTiming(LD.AfniData):
 
       return 0
 
-   def timing_to_1D(self, run_len, tr, min_frac, per_run=0):
+   def timing_to_1D(self, run_len, tr, min_frac, per_run=0, allow_warns=0):
       """return a 0/1 array of trs surviving min_frac cutoff
 
                 run_len   : list of run durations, in seconds
@@ -511,7 +511,8 @@ class AfniTiming(LD.AfniData):
       if self.nrows > 0 and len(run_len) == 1:
          run_len = [run_len[0]] * self.nrows
 
-      errstr, result = self.timing_to_tr_frac(run_len, tr, per_run)
+      errstr, result = self.timing_to_tr_frac(run_len, tr, per_run,
+                                              allow_warns=allow_warns)
 
       if errstr != '' or len(result) < 1: return errstr, result
 
@@ -533,7 +534,7 @@ class AfniTiming(LD.AfniData):
          if val >= min_val: result[ind] = 1
       return result
 
-   def timing_to_tr_frac(self, run_len, tr, per_run=0):
+   def timing_to_tr_frac(self, run_len, tr, per_run=0, allow_warns=0):
       """return an array of stim fractions, where is value is the fraction
          of the current TR occupied by stimulus
 
@@ -554,6 +555,8 @@ class AfniTiming(LD.AfniData):
                 run_len         : list of run durations, in seconds
                                   (each must encompass the last TR, of course)
                 tr              : time resolution of output 1D file
+                per_run         : make a list of results (else all one)
+                allow_warns     : make some issues non-fatal
 
          On success, the error string should be empty and stim_list should not.
 
@@ -596,7 +599,18 @@ class AfniTiming(LD.AfniData):
       for ind, data in enumerate(tdata):
           if len(data) < 1: continue
           if data[-1][1] > run_len[ind] or run_len[ind] < 0:
-              return '** run %d, stim ends after end of run' % (ind+1), []
+             entry = data[-1]
+             if entry[0] > run_len[ind] or run_len[ind] < 0:
+                return '** run %d, stim starts after end of run' % (ind+1), []
+             elif not allow_warns:
+                return '** run %d, stim ends after end of run' % (ind+1), []
+             else:
+                # entry[1] > run_len[ind]
+                print('** WARNING: run %d stim ends after end of run'%(ind+1))
+                print('            onset %g, offset %g, end of run %g' \
+                      % (entry[0], entry[1], run_len[ind]))
+                print('        --> truncating end time')
+                entry[1] = entry[0] + 0.99*(run_len[ind]-entry[0])
           
       result = []
       # process one run at a time, first converting to TR indices
@@ -610,8 +624,12 @@ class AfniTiming(LD.AfniData):
             data[tind][1] = round(data[tind][1]/float(tr),3)
 
             if tind > 0 and data[tind][0] < data[tind-1][1]:
-                return '** run %d, index %d, stimulus overlap with next' \
-                       % (rind, tind), []
+               if allow_warns:
+                  print('** run %d, index %d, stimulus overlap with next' \
+                         % (rind, tind))
+               else:
+                  return '** run %d, index %d, stimulus overlap with next' \
+                         % (rind, tind), []
          if self.verb > 4:
             print('++ stimulus on/off TR times, run %d :' % (rind+1))
             print(data)
