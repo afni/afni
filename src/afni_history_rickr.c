@@ -49,6 +49,20 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, May, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "allow AFNI_BLUR_FIRFAC to get near zero",
+   "This can be abused for a 'fast ANATICOR', for example.\n"
+   "Since sigma = 0.4246609 * fwhm, consider using: \n"
+   "   sfac = 1/(2*.0.4246609) = 1.17741\n"
+   "That number of sigmas should match the half width at half max,\n"
+   "which should terminate the blur just after a half height.\n"
+   "\n"
+   "Or use 2*FWHM and sfac = 1.17741/2 = 0.588705 to make it more flat,\n"
+   "with a min contribution of ~0.84, rather than 0.5, yet limiting\n"
+   "the output to the same HWHM radius (e.g. FWHM=80mm with sfac=0.589\n"
+   "results in a fairly flat blur out to a radius of ~20 mm)."
+ } ,
+
  {  8, May, 2019, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
    "add -module_dir",
    NULL

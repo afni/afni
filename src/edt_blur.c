@@ -82,7 +82,19 @@ void EDIT_blur_volume_3d( int   nx, int   ny, int   nz,
    int dtype = ftype ;  /* processing datatype (ftype, if no conversion)       */
 
    double sfac = AFNI_numenv("AFNI_BLUR_FIRFAC") ;
-   if( sfac < 2.0 ) sfac = 2.5 ;
+   /* <2 -> <=0 to allow for truncated blurs          [8 May 2019 rickr] */
+   /*                                                                    */
+   /* This can be abused for a "fast ANATICOR", for example.             */
+   /* Since sigma = 0.4246609 * fwhm, consider using:                    */
+   /*    sfac = 1/(2*.0.4246609) = 1.17741                               */
+   /* That number of sigmas should match the half width at half max,     */
+   /* which should terminate the blur just after a half height.          */
+   /*                                                                    */
+   /* Or use 2*FWHM and sfac = 1.17741/2 = 0.588705 to make it more flat,*/
+   /* with a min contribution of ~0.84, rather than 0.5, yet limiting    */
+   /* the output to the same HWHM radius (e.g. FWHM=80mm with sfac=0.589 */
+   /* results in a fairly flat blur out to a radius of ~20 mm).          */
+   if( sfac <= 0.0 ) sfac = 2.5 ;
 
    /***---------- initialize ----------***/
 
