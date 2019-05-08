@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, May, 2019, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add -module_dir",
+   NULL
+ } ,
+
  {  7, May, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -timing_to_1D_warn_ok to make some conversion issues non-fatal",
    "Done for J Wiggins and M Liuzzi."

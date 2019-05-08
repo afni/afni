@@ -3651,8 +3651,7 @@ def gaussian_at_hwhm_frac(frac):
 
          return h(f) = 2^[-f^2]
 
-      HWHM is a logical input, as it is a radius
-      FWHM is not, as it is a diameter.
+      HWHM is a logical input, as it is a radius, while FWHM is a diameter.
 
       So gaussian_at_hwhm_frac(1) = 0.5, by definition.
 
@@ -3700,7 +3699,7 @@ def gaussian_at_fwhm(x, fwhm):
 
          g(x) = e^-[x^2 * ln2 / FWHM^2]
 
-      This actually returns gaussian_at_hwhm_frac(x/(fwhm/2)), or of 2x/fwhm.
+      This actually returns gaussian_at_hwhm_frac(x/(fwhm/2)), or of (2x/fwhm).
    """
    if fwhm <= 0:
       print("** gaussian_at_fwhm: illegal fwhm <= 0 of %s", fwhm)
@@ -3975,6 +3974,10 @@ afni_util.py: not really intended as a main program
 
       -help             : show this help
 
+      -module_dir       : show the elements returned by dir()
+
+         This option is useful to get a list of all module functions.
+
       -eval STRING      : evaluate STRING in the context of afni_util.py
                           (i.e. STRING can be function calls or other)
 
@@ -4156,6 +4159,10 @@ def main():
    argv = sys.argv
    if '-help' in argv:
       print(_g_main_help)
+      return 0
+   if '-module_dir' in argv:
+      import afni_util
+      print('dir(afni_util):\n   %s' % '\n   '.join(dir(afni_util)))
       return 0
    if len(argv) > 2:
       if argv[1] == '-eval':
