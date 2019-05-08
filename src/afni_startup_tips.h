@@ -398,7 +398,7 @@ static char *tip[] = {
   " - To find out if sox is on your system, type the command 'which sox'."
  ,
   "Want bigger fonts in AFNI, for a high resolution screen? Set environment\n"
-  "variable AFNI_FONTSIZE to BIG (preferably in your .afnirc setup file)."
+  "variable AFNI_FONTSIZE to PLUS or BIG (preferably in your .afnirc setup file)."
 
 /*-- tips below here are for non-GUI programs --*/
  ,
@@ -1318,6 +1318,7 @@ static char *gby[] = {
      "Spending any mental energy looking back cannot help you move forward"           ,
      "The supra-ultracrepidarian-est software you'll ever need"                       ,
      "People driving slower than me are idiots. People driving faster are maniacs"    ,
+     "The worst kind of lie: one that matches your desire"                            ,
 
      "Better than a thousand hollow words, is one word that brings peace"             ,
      "People with opinions just go around bothering each other"                       ,

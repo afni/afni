@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Expand (somewhat) max displacement of component warps" ,
+   NULL } ,
+
  { 6 , MAY , 2019 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
    "Add 'ICent' (Internal Center) to coordinate option" ,
    "In addition to Peak and Cmass. The problem with Peak is that it can be\n"
