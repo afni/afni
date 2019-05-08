@@ -4200,11 +4200,16 @@ STATUS("zeropad weight dataset") ;
           total_rotation_degrees(stup.wfunc_param[3].xxx,   \
                                  stup.wfunc_param[4].xxx,   \
                                  stup.wfunc_param[5].xxx)); \
-        else if( jj == 8 )                                  \
-         fprintf(stderr,"  ...  vol3D=%8.4f",               \
-           stup.wfunc_param[6].xxx                          \
-          *stup.wfunc_param[7].xxx                          \
-          *stup.wfunc_param[8].xxx ) ;                      \
+        else if( jj == 8 ){                                 \
+         float fff = stup.wfunc_param[6].xxx                \
+                    *stup.wfunc_param[7].xxx                \
+                    *stup.wfunc_param[8].xxx ;              \
+         fprintf(stderr,"  ...  vol3D=%8.4f %s",            \
+           fff ,                                            \
+           (fff < 1.0f )                                    \
+            ? "= base bigger than source"                   \
+            : "= base smaller than source" ) ;              \
+        }                                                   \
       }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)

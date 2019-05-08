@@ -3,22 +3,29 @@
 /***    Generally, this set of functions is designed to be #include-d      ***/
 /***    and compiled with OpenMP enabled (USE_OMP #define-d), for speed    ***/
 /*****************************************************************************/
+/***    These functions are AFNI's implementation of nonlinear spatial     ***/
+/***    warping, and are used by (at least) these programs:                ***/
+/***      3dQwarp     3dNwarpAdjust  3dNwarpApply                          ***/
+/***      3dNwarpCat  3dNwarpFuncs   3dNwarpXYZ    3dNwarpCalc             ***/
+/*****************************************************************************/
 
        /*** Search forward for TOC to find the Table of Contents ***/
 
-/***
+/***-----------------------------------------------------------------------
    Potential housecleaning chores:           [Dec 2018]
     DONE * remove the USE_HLOADER code forever
-    DONE * remove the ALLOW_DUPLO code forever (ALLOW_HDUPLO is set in 3dQwarp.c)
+    DONE * remove the ALLOW_DUPLO code forever
     DONE * don't need ALLOW_QMODE #define - that is, make this permanent;
     DONE   and same for ALLOW_PLUSMINUS
 
-         * don't remove/alter ALLOW_BASIS5 and ALLOW_INEDGE yet;
+    BUT  * don't remove/alter ALLOW_BASIS5 and ALLOW_INEDGE yet;
            still on the fence about these, and the former is a lot
            of complex code that shouldn't be cast aside just yet
-***/
+         * these options aren't useful in general, but there may
+           be some cases where they make a difference (maybe)
+---------------------------------------------------------------------------***/
 
-/*--- include some needed headers ---*/
+/*--- include some vitally needed headers ---*/
 
 #include "mrilib.h"
 #include "r_new_resam_dset.h"
@@ -75,7 +82,7 @@ static char * wans(void)
 #endif
 
 /*..........................................................................*/
-/** Note that the functions needed just for 3dQwarp (4000+ lines of code)
+/** Note that the functions needed only in 3dQwarp (4000+ lines of code)
     are only compiled if macro ALLOW_QWARP is #define-d -- see 3dQwarp.c.
     Search ahead for string Q1 for the table of contents for this code.
 *//*........................................................................*/
@@ -100,7 +107,7 @@ static char * wans(void)
 #undef  NGMIN_Q
 #define NGMIN_Q 7        /* smallest grid allowed for quintic warp */
 
-/* Note the basis[345] warps are not used by ordinary mortals */
+/*--- Note the basis[345] warps are not used by ordinary mortals ---*/
 
 #undef  NGMIN_PLUS_3     /* smallest grid for basis5 warp */
 #define NGMIN_PLUS_3 11
@@ -123,7 +130,7 @@ static char * wans(void)
 #undef  NVOXMAX_PLUS
 #define NVOXMAX_PLUS 12168 /* 23^3+1 */
 
-/* for 3dQwarp -verb, strings to print describing the warps being worked on */
+/*- for 3dQwarp -verb, strings to print describing the warps being worked on -*/
 
 #define WARP_CODE_STRING(wc)                         \
           (  (wc == MRI_QUINTIC)       ? "quint81"   \
@@ -141,12 +148,12 @@ static char * wans(void)
 static int Huse_cubic_lite   = 1 ; /* Dec 2018 */
 static int Huse_quintic_lite = 1 ; /* set these for the LITE warp functions */
 
-/* control verbosity of mri_nwarp functions */
+/*----- control verbosity of mri_nwarp functions -----*/
 
 static int verb_nww = 0 ;
 void NwarpCalcRPN_verb(int i){ verb_nww = i; }
 
-/* other verbosity (mostly for Qwarp, far far below) */
+/*----- other verbosity (mostly for Qwarp, far far below) -----*/
 
 static int Hverb = 1 ;
 
@@ -217,7 +224,7 @@ static int Hverb = 1 ;
    program, although it is also compiled into the AFNI libmri.  The 3dQwarp
    functions are only compiled if macro ALLOW_QWARP is #define-d before this
    file is #include-d, since they are only used in the 3dQwarp.c program and
-   they comprise about half of this file.
+   they comprise about a lot of this file.
 
 --------------- Definition of an Index Warp Struct ---------------------------
 
@@ -8008,8 +8015,8 @@ static float        Hpblur_s    = 0.0f ; /* progressive blur fraction: source */
 static int          Hforce      = 0    ; /* force an iterative warp update? */
 static int          Hzeasy      = 0    ; /* take it easy at the zero level? */
 static int          Hznoq       = 0    ; /* don't do quintic warp at the zero level? */
-static float        Hfactor     = 0.44f; /* fraction of maximum warp size allowed */
-static float        Hfactor_q   = 1.0f ; /* used in 3dQwarp */
+static float        Hfactor     = 1.0f ; /* fraction of maximum warp size allowed */
+static float        Hfactor_q   = 1.0f ; /* set in 3dQwarp for reassigning Hfactor */
 static float        Hshrink     = 0.749999f ; /* shrink factor for patches between levels */
 static int          Hngmin      = 25 ;   /* min patch size allowed in current run */
 static IndexWarp3D *Haawarp     = NULL ; /* global warp we are improving = A(x) */
@@ -10413,8 +10420,8 @@ ENTRY("IW3D_improve_warp") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0777*Hfactor ;          /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0311*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10422,8 +10429,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_CUBIC_LITE:                                         /* Dec 2018 */
        Hbasis_code   = MRI_CUBIC_LITE  ;             /* 3rd order polynomials */
-       Hbasis_parmax = 0.0266         ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0599 ;
+       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
        Hnpar         = 12 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10440,8 +10447,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0166         ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0500 ;
+       Hbasis_parmax = 0.0246*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0753*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10460,7 +10467,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_2:  /* basis4 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
-       Hbasis_parmax = 0.0222 ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 2 ) ;
        Hnpar         = 3*H5nparm ;
@@ -10469,7 +10476,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0222 ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
@@ -10785,31 +10792,36 @@ ENTRY("IW3D_warpomatic") ;
      if( Hverb == 1 ) fprintf(stderr,"lev=0 %d..%d %d..%d %d..%d: ",ibbb,ittt,jbbb,jttt,kbbb,kttt) ;
      /* always start with cubic steps (lite then heavy) */
      BOXOPT ;
+     /* step A = lite cubic */
      (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-     if( nlevr ){
+     if( nlevr ){  /* maybe again? */
        BALLOPT ;
        (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      }
+     /* step B: heavy cubic */
      BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      if( nlevr ){
+       /* step C: lite quintic */
        BALLOPT ;
        (void)IW3D_improve_warp( MRI_QUINTIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
-#if 0 && defined(ALLOW_BASIS5)
+       /* step D: heavy quintic */
+       BALLOPT ;
+       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+#if defined(ALLOW_BASIS5)
        if( H5zero ){
+         /* step E: superheavy cubic */
          BALLOPT ;
-         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_2, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+         (void)IW3D_improve_warp( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
          HCwarp_setup_basis345(0,0,0,0,0) ; /* cleanup */
          if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        }
 #endif
-       BALLOPT ;
-       (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
-       if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      }
      if( Hsave_allwarps ){           /* 02 Jan 2015 */
        sprintf(warplab,"Lev0.%04dx%04dx%04d",ittt-ibbb+1,jttt-jbbb+1,kttt-kbbb+1) ;
@@ -11594,8 +11606,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.044*Hfactor ;    /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.077*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0311*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11603,8 +11615,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_CUBIC_LITE:                                         /* Dec 2018 */
        Hbasis_code   = MRI_CUBIC_LITE  ;             /* 3rd order polynomials */
-       Hbasis_parmax = 0.0266         ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0599 ;
+       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
        Hnpar         = 12 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11621,8 +11633,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0166         ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0500 ;
+       Hbasis_parmax = 0.0246*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0753*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11641,7 +11653,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_2:  /* basis4 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_2 ;
-       Hbasis_parmax = 0.0222 ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 2 ) ;
        Hnpar         = 3*H5nparm ;
@@ -11650,7 +11662,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0222 ;
+       Hbasis_parmax = 0.0444 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
@@ -12144,6 +12156,14 @@ ENTRY("IW3D_warpomatic_plusminus") ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
        (void)IW3D_improve_warp_plusminus( MRI_QUINTIC     , ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+#if defined(ALLOW_BASIS5)
+       if( H5zero ){
+         BALLOPT ;
+         (void)IW3D_improve_warp_plusminus( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
+         HCwarp_setup_basis345(0,0,0,0,0) ; /* cleanup */
+         if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+       }
+#endif
      }
      if( Hverb == 1 ) fprintf(stderr," done [cost=%.5f]\n",Hcost) ;
      if( Hsave_allwarps ){
