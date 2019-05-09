@@ -1,16 +1,16 @@
 import subprocess
 import os
 from pathlib import Path
+from typing import Union
 import pytest
 import shutil
-from collections import namedtuple
 import inspect
 import functools
 import datetime as dt
 import atexit
 from scripts.utils import misc
 import scripts.utils.tools as tools
-
+import attr
 
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
@@ -35,13 +35,35 @@ def get_output_dir():
         return outdir
 
 
-def get_test_dir_path():
+def get_test_data_path():
     return Path(pytest.config.rootdir) / "afni_ci_test_data"
+
+
+def get_test_comparison_dir(current_test_module: Union[str or Path]):
+    """Apart from returning the directory for compariing the test output
+    (user-specified or a default), this fetches the annex files for the
+    appropriate paths in the comparison directory if required. This would be
+    needed for the default output that is stored in the test data directory.
+
+    Args: test_name str: The name of the test in the test_module. This is
+        used to fetch the appropriate directory in the sample output if
+        required
+
+    Returns:
+        pathlib.Path:
+    """
+    test_name = get_current_test_name()
+    cmpr_path = get_comparison_dir_path()
+    test_compare_dir = cmpr_path / current_test_module / test_name
+    if cmpr_path.name == "sample_test_output":
+        datalad.api.get(str(test_compare_dir))
+
+    return test_compare_dir
 
 
 def get_comparison_dir_path():
     comparison_dir = pytest.config.getoption("--diff_with_outdir") or (
-        get_test_dir_path() / "sample_test_output"
+        get_test_data_path() / "sample_test_output"
     )
     comparison_dir = Path(comparison_dir).absolute()
     if not comparison_dir.exists():
@@ -51,7 +73,7 @@ def get_comparison_dir_path():
 
 def get_test_dir():
     # Define hard-coded paths for now
-    test_data_dir = get_test_dir_path()
+    test_data_dir = get_test_data_path()
     race_error_msg = (
         "A failed attempt and datalad download occurred. Running the "
         "tests sequentially once may help "
@@ -110,21 +132,29 @@ def data(request):
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
 
+    # start creating output dict, downloading test data as required
     out_dict = {
         k: misc.process_path_obj(v, module_data_dir) for k, v in data_paths.items()
     }
+
+    # Get the comparison directory and check if it needs to be downloaded
+    comparison_dir = get_test_comparison_dir(module_outdir)
+
     # Define output for calling module and get data as required:
     out_dict.update(
         {
             "module_data_dir": module_data_dir,
             "outdir": module_outdir / get_current_test_name(),
             "logdir": test_logdir,
-            "comparison_dir": get_comparison_dir_path(),
+            "comparison_dir": comparison_dir,
             "test_name": test_name,
         }
     )
 
-    return namedtuple("DataTuple", out_dict.keys())(**out_dict)
+    DataClass = attr.make_class(
+        test_name + "_data", [k for k in out_dict.keys()], slots=True
+    )
+    return DataClass(*[v for v in out_dict.values()])
 
 
 @pytest.fixture(scope="function")
