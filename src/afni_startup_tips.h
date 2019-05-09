@@ -986,8 +986,10 @@ static char *gby[] = {
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
      "You look familiar - Do you come here often?"                   ,
-     "After all, tomorrow is another day."                           ,
+     "After all, tomorrow is another day"                            ,
      "Men are quick to believe that which they wish to be true"      ,
+     "The worst kind of lie: one that matches your desire"           ,
+     "Truly, there is nothing more to be said"                       ,
 
      /* bastardizations of Shakespeare */
 
@@ -1146,7 +1148,7 @@ static char *gby[] = {
      "An idea that is not dangerous is unworthy of being called an idea at all" ,
      "The world is a stage, but the play is badly cast"                         ,
      "The only true necessities are totally useless things"                     ,
-     "The soul is born old but grows young."                                    ,
+     "The soul is born old but grows young"                                     ,
      "When given the choice of two evils, the pessimist chooses both"           ,
      "Never love anyone who treats you like you're ordinary"                    ,
      "The smallest act of kindness is worth more than the grandest intention"   ,
@@ -1186,7 +1188,7 @@ static char *gby[] = {
      "The truth is simple. If it was complicated, everyone would understand it"       ,
      "I hate, commas, in the wrong, place"                                            ,
      "The only true wisdom is in knowing you know nothing"                            ,
-     "There is no harm in repeating a good thing! There is no harm in ...."           ,
+     "There is no harm in repeating a good thing! There is no harm in ..."            ,
      "It is in our darkest moments that we must focus to see the light"               ,
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
@@ -1300,7 +1302,7 @@ static char *gby[] = {
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
      "If you're anything like me, you're both smart and incredibly good looking"      ,
      "In battle we may yet meet again, though all the hosts of Mordor stand between"  ,
-     "Repeat after me: Om Mani Padme Hum, Om Mani Padme Hum, Om Mani Padme Hum ...."  ,
+     "Repeat after me: Om Mani Padme Hum, Om Mani Padme Hum, Om Mani Padme Hum ..."   ,
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
@@ -1318,7 +1320,6 @@ static char *gby[] = {
      "Spending any mental energy looking back cannot help you move forward"           ,
      "The supra-ultracrepidarian-est software you'll ever need"                       ,
      "People driving slower than me are idiots. People driving faster are maniacs"    ,
-     "The worst kind of lie: one that matches your desire"                            ,
 
      "Better than a thousand hollow words, is one word that brings peace"             ,
      "People with opinions just go around bothering each other"                       ,
