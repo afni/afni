@@ -46,6 +46,9 @@ RUN apt-get update -y -qq \
 RUN pip3 install --no-cache-dir \
             nibabel \
             datalad \
+            pytest-parallel \
+            autopep8 \
+            black \
             pdbpp
 
 # Copy AFNI source code. This can invalidate the build cache.
