@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_NEW_OPT,
+   "replace 3dLocalstat with 3dmerge for locally ~averaged time series",
+   "One can choose between the methods, but 3dmerge is much faster.\n"
+   "Included options are -use_3dmerge, -corr_mask and -merge_nrad."
+ } ,
+
  {  8, May, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "allow AFNI_BLUR_FIRFAC to get near zero",
    "This can be abused for a 'fast ANATICOR', for example.\n"
