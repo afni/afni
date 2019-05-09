@@ -44,5 +44,5 @@ def test_3dClustSim_basic(data, run_cmd):
     tools.assert_all_files_equal(
         data,
         kwargs_1d={"rtol": 0.15},
-        kwargs_log={"ignore_patterns": ["Clock time", "but max simulated alpha="]},
+        kwargs_log={"append_to_ignored": ["Clock time", "but max simulated alpha="]},
     )
