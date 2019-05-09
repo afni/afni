@@ -12,10 +12,11 @@ sys.path.append(AFNI_ROOT)
 def test_script_imports():
     binary_dir = Path(shutil.which("afni")).parent
 
-    py_scripts = list(binary_dir.glob("*.py"))
+    py_files = list(binary_dir.glob("*.py"))
+    possible_pymods = [f for f in py_files if not f.name.startswith("@")]
 
+    # "@DoPerRoi.py",
     known_py2 = [
-        "@DoPerRoi.py",
         "afni_restproc.py",
         "afni_skeleton.py",
         "afni_xmat.py",
@@ -77,7 +78,7 @@ def test_script_imports():
         "gui_uber_ttest.py",
     ]
 
-    for script in py_scripts:
+    for script in possible_pymods:
         print(script)
         if script.name not in (known_py2 + not_importable + other_problems):
             __import__(script.stem)
