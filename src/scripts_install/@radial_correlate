@@ -143,7 +143,7 @@ endif
 # enough TRs for computation (require at least $nfirst + 2)
 @ nneeded = $nfirst + 2
 set dset_list = ()
-set prefix_list = ()
+set prefix_list = ()    # in case we name output based on input
 foreach dset ( $din_list )
    set nvals = `3dinfo -nt $dset`
    if ( $status || "$nvals" == "NO-DSET" ) then
@@ -247,14 +247,14 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set ind02 = `ccalc -form '%02d' $index`
 
    # resulting variables
-   set prefix = radcor.$ind02
+   set prefix = radcor.$ind02.$sphere_rad
 
    set dset = $dset_list[$index]
    set eset = epi.$ind02
    set mpre = $prefix.automask
    set mset = $mpre$view
    set sset = $prefix.scaled
-   set cset = $prefix.corr.$prefix_list[$index]
+   set cset = $prefix.corr
 
    if ( $mask_in != "" ) then
       set mset = $mask_in
@@ -729,7 +729,6 @@ echo "          - add -do_corr and -do_clust"
 echo "   0.3  : Aug 12, 2015: add -mask option"
 echo "   0.4  : May  9, 2019: 3dLocalstat -> 3dmerge (much faster)"
 echo "          - by default, use 3dmerge for local averaging"
-echo "          - have resulting dataset names depend on inputs"
 echo "          - add -use_3dmerge, -corr_mask and -merge_nrad"
 echo "          - add -do_clean and -verb"
 echo ""
