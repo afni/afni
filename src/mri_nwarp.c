@@ -16,13 +16,13 @@
     DONE * remove the USE_HLOADER code forever
     DONE * remove the ALLOW_DUPLO code forever
     DONE * don't need ALLOW_QMODE #define - that is, make this permanent;
-    DONE   and same for ALLOW_PLUSMINUS
+    DONE    and same for ALLOW_PLUSMINUS
 
     BUT  * don't remove/alter ALLOW_BASIS5 and ALLOW_INEDGE yet;
-           still on the fence about these, and the former is a lot
-           of complex code that shouldn't be cast aside just yet
-         * these options aren't useful in general, but there may
-           be some cases where they make a difference (maybe)
+            still on the fence about these, and the former is a lot
+            of complex code that shouldn't be cast aside just yet
+         * these options aren't useful in general, but there may be
+            some cases where they make a difference (or maybe not)
 ---------------------------------------------------------------------------***/
 
 /*--- include some vitally needed headers ---*/
@@ -59,13 +59,16 @@
 
 #define DEBUG_MEMORY
 #undef  MEMORY_CHECK
+
 #if defined(DEBUG_MEMORY) && defined(USING_MCW_MALLOC)
+
 # define MEMORY_CHECK(mm)                                              \
    do{ long long nb = mcw_malloc_total() ;                             \
        if( nb > 0 ) ININFO_message("Memory = %s (%s): %s" ,            \
                       commaized_integer_string(nb) ,                   \
                       approximate_number_string((double)nb) , (mm) ) ; \
    } while(0)
+
 static char * wans(void)
 { static char sss[256] ;
   long long nb = mcw_malloc_total() ;
@@ -75,10 +78,14 @@ static char * wans(void)
     strcpy( sss , "\0" ) ;
   return sss ;
 }
+
 # define MEMORY_SHORT wans()
-#else
+
+#else  /*--- don't do anything for memory checking ---*/
+
 # define MEMORY_CHECK(mm) /*nada*/
 # define MEMORY_SHORT     "\0"
+
 #endif
 
 /*..........................................................................*/
@@ -108,6 +115,9 @@ static char * wans(void)
 #define NGMIN_Q 7        /* smallest grid allowed for quintic warp */
 
 /*--- Note the basis[345] warps are not used by ordinary mortals ---*/
+/*--- and are only enabled if ALLOW_BASIS5 is #define-d, below   ---*/
+
+#undef  ALLOW_BASIS5     /*--- (dis)allow use of the 'basis5' functions ---*/
 
 #undef  NGMIN_PLUS_3     /* smallest grid for basis5 warp */
 #define NGMIN_PLUS_3 11
@@ -143,7 +153,7 @@ static char * wans(void)
 #define WARP_IS_QUINTIC(wc) ( (wc == MRI_QUINTIC) || (wc == MRI_QUINTIC_LITE) )
 #define WARP_IS_CUBIC(wc)   ( !WARP_IS_QUINTIC(wc) )
 
-/* 'lite' warps are the default now */
+/*--- 'lite' warps are the default now ---*/
 
 static int Huse_cubic_lite   = 1 ; /* Dec 2018 */
 static int Huse_quintic_lite = 1 ; /* set these for the LITE warp functions */
@@ -7959,8 +7969,6 @@ static int Hibot,Hitop , Hjbot,Hjtop , Hkbot,Hktop ;
 static int Hmatch_code  = 0 ;  /* how 'correlation' is computed (INCOR_) */
 static int Hbasis_code  = 0 ;  /* quintic or cubic patches? */
 
-#undef  ALLOW_BASIS5            /* (dis)allow use of the 'basis5' functions */
-
 #define MRI_CUBIC_PLUS_1  301  /* 05 Nov 2015 -- extra basis function codes */
 #define MRI_CUBIC_PLUS_2  302                    /* for the BASIS5 methods  */
 #define MRI_CUBIC_PLUS_3  303
@@ -10406,11 +10414,12 @@ ENTRY("IW3D_improve_warp") ;
      Hskipped++ ; RETURN(0) ;
    }
 
-   /*-- setup the basis functions for Hwarp-ing --*/
+   /*-- setup the choice and scale of basis functions for Hwarp-ing --*/
 
-   /*-- The max displacment scales (0.033 for cubic, 0.007 for quintic)
-        are set from the combination of parameters that gave non-singular
-        patch warps with "OK" levels of distortion (delta-volume about 50%).
+   /*-- The max displacment scales are set from the combination of parameters
+        that gave non-singular patch warps with "OK" distortion levels. These
+        scales were selected by running program warping_test a number of times.
+
         Hfactor allows the iteration to scale these down at finer levels,
         but that wasn't needed after the introduction of the warp penalty. --*/
 
@@ -10420,8 +10429,8 @@ ENTRY("IW3D_improve_warp") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.0311*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;          /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0280*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0790*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10429,8 +10438,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_CUBIC_LITE:                                         /* Dec 2018 */
        Hbasis_code   = MRI_CUBIC_LITE  ;             /* 3rd order polynomials */
-       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
+       Hbasis_parmax = 0.0421*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1141*Hfactor ;
        Hnpar         = 12 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10438,8 +10447,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.0088*Hfactor ;
-       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0099*Hfactor ;
+       if( ballopt ) Hbasis_parmax = 0.0611*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
@@ -10447,8 +10456,8 @@ ENTRY("IW3D_improve_warp") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0246*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0753*Hfactor ;
+       Hbasis_parmax = 0.0257*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -10476,7 +10485,7 @@ ENTRY("IW3D_improve_warp") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0444 ;
+       Hbasis_parmax = 0.0432 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
@@ -11606,8 +11615,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      default:
      case MRI_CUBIC:
        Hbasis_code   = MRI_CUBIC ;                   /* 3rd order polynomials */
-       Hbasis_parmax = 0.0311*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;          /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0280*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0790*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 24 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11615,8 +11624,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_CUBIC_LITE:                                         /* Dec 2018 */
        Hbasis_code   = MRI_CUBIC_LITE  ;             /* 3rd order polynomials */
-       Hbasis_parmax = 0.0444*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.1111*Hfactor ;
+       Hbasis_parmax = 0.0421*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.1141*Hfactor ;
        Hnpar         = 12 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HCwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11624,8 +11633,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_QUINTIC:
        Hbasis_code   = MRI_QUINTIC ;                 /* 5th order polynomials */
-       Hbasis_parmax = 0.0088*Hfactor ;
-       if( ballopt ) Hbasis_parmax = 0.066*Hfactor ;           /* 13 Jan 2015 */
+       Hbasis_parmax = 0.0099*Hfactor ;
+       if( ballopt ) Hbasis_parmax = 0.0611*Hfactor ;          /* 13 Jan 2015 */
        Hnpar         = 81 ;
        prad          = 0.333 ;
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;
@@ -11633,8 +11642,8 @@ ENTRY("IW3D_improve_warp_plusminus") ;
 
      case MRI_QUINTIC_LITE:                                       /* Dec 2018 */
        Hbasis_code   = MRI_QUINTIC_LITE  ;           /* 5th order polynomials */
-       Hbasis_parmax = 0.0246*Hfactor ;   /* max displacement from 1 function */
-       if( ballopt ) Hbasis_parmax = 0.0753*Hfactor ;
+       Hbasis_parmax = 0.0257*Hfactor ;   /* max displacement from 1 function */
+       if( ballopt ) Hbasis_parmax = 0.0789*Hfactor ;
        Hnpar         = 30 ;                /* number of params for local warp */
        prad          = 0.333 ;                       /* NEWUOA initial radius */
        HQwarp_setup_basis( nxh,nyh,nzh, Hgflags ) ;      /* setup HCwarp_load */
@@ -11662,7 +11671,7 @@ ENTRY("IW3D_improve_warp_plusminus") ;
      case MRI_CUBIC_PLUS_3:  /* basis5 */
        BALLOPT ; ballopt = 1 ;
        Hbasis_code = MRI_CUBIC_PLUS_3 ;
-       Hbasis_parmax = 0.0444 ;
+       Hbasis_parmax = 0.0432 ;
        prad          = 0.333 ;
        HCwarp_setup_basis345( nxh,nyh,nzh, Hgflags , 3 ) ;
        Hnpar         = 3*H5nparm ;
