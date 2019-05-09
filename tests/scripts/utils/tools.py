@@ -9,11 +9,11 @@ import os
 
 from numpy.testing import assert_allclose  # type: ignore
 
-from typing import Dict, List, NamedTuple
+from typing import Dict, List, Any
 
 
 def assert_all_files_equal(
-    data: NamedTuple,
+    data: Any,
     ignore_file_patterns: List = [],
     text_file_patterns: List = [],
     kwargs_1d: Dict = {},
@@ -69,7 +69,7 @@ def assert_scans_equal(
     comparison_dir: Path, scans: List, header_kwargs: Dict = {}, data_kwargs: Dict = {}
 ):
     for fname in scans:
-        equivalent_file = get_equivalent_file(comparison_dir, fname)
+        equivalent_file = comparison_dir / fname
         image = nib.load(str(fname))
         equiv_image = nib.load(str(equivalent_file))
         _assert_scan_headers_equal(image.header, equiv_image.header, **header_kwargs)
@@ -87,22 +87,35 @@ def assert_files_by_byte_equal(comparison_dir: Path, file_list: List, **kwargs):
         comparison_dir : Description
     """
     for fname in file_list:
-        equivalent_file = get_equivalent_file(comparison_dir, fname)
+        equivalent_file = comparison_dir / fname
         assert filecmp.cmp(fname, equivalent_file)
 
 
 def assert_logs_equal(
-    comparison_dir, flist, append_to_ignored=[], ignore_patterns=["AFNI version="]
+    comparison_dir: Path,
+    flist: List,
+    append_to_ignored: List = [],
+    ignore_patterns: List = ["AFNI version="],
 ):
-    ignore_patterns = append_to_ignored + ignore_patterns
+    ignore_patterns = (
+        append_to_ignored
+        + ignore_patterns
+        + [str(comparison_dir)]
+        + [str(f) for f in flist]
+    )
+
     assert_textfiles_equal(comparison_dir, flist, ignore_patterns=ignore_patterns)
 
 
 def assert_textfiles_equal(
-    comparison_dir, textfiles, old_has=None, new_has=None, ignore_patterns=[]
+    comparison_dir: Path,
+    textfiles: List,
+    old_has: List = [],
+    new_has: List = [],
+    ignore_patterns: List = [],
 ):
     for fname in textfiles:
-        equivalent_file = get_equivalent_file(comparison_dir, fname)
+        equivalent_file = comparison_dir / fname
         text_old = [
             x
             for x in Path(equivalent_file).read_text().splitlines()
@@ -142,7 +155,7 @@ def assert_1dfiles_equal(comparison_dir, file_list, fields=None, **all_close_kwa
 
     for fname in file_list:
         tool_1d = misc.try_to_import_afni_module("1d_tool")
-        equivalent_file = get_equivalent_file(comparison_dir, fname)
+        equivalent_file = comparison_dir / fname
         if not equivalent_file.exists():
             raise FileNotFoundError
 
@@ -158,14 +171,6 @@ def assert_1dfiles_equal(comparison_dir, file_list, fields=None, **all_close_kwa
 
         # Test the data is equal
         assert_allclose(data, data_equiv, **all_close_kwargs)
-
-
-def get_equivalent_file(comparison_dir, fname):
-    fname = Path(fname)
-    equivalent_file = comparison_dir / fname.relative_to(
-        [p for p in fname.parents if p.name.startswith("output_2")][-1]
-    )
-    return equivalent_file
 
 
 def _assert_scan_headers_equal(header_a, header_b, **kwargs):
