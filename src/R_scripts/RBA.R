@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, April 5, 2019
+Version 0.0.2, May 9, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -61,29 +61,30 @@ Usage: ~1~
  fixed header. The header lables are case-sensitive, and their order does not
  matter.
 
- Subj   ROI     Y
- S1     Amyg    0.2643
- S2     BNST    0.3762
+ Subj   ROI        Y      Age
+ S1     Amyg    0.2643    11
+ S2     BNST    0.3762    16
  ...
 
- 0) Be proud of yourself: you are performing Bayesian analysis!!! You directly
-    get the probability of an effect being positive or negative with your data,
+ 0) You are performing Bayesian analysis!!! So, you will directly obtain
+    the probability of an effect being positive or negative with your data,
     instead of witch hunt-hunting the straw man of p-value (weirdness of your
     data when pretending that absolutely nothing exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
-    column order does not matter, but the names of the four variables above
-    in the header are reserved and fixed (case sensitive). The column label
-    ROI is meant to indicate the regions associated with each response value.
+    column order does not matter. You can specify those column names as you
+    prefer, but it saves a little bit scripting if you adopt the default naming
+    for subjects (\'Subj\'), regions (\'ROI\') and response variable (\'Y\').
 
  2) Add more columns if explanatory variables are considered in the model. Currently
     only between-subjects variables (e.g., sex, patients vs. controls, age) are
-    allowed. Each label in a between-subjects factor (categorical variable)
-    should be coded with at least 1 character (labeling with pure numbers is fine
-    but not recommended). If preferred, you can quantitatively code the levels of a
-    factor yourself by creating k-1 columns for a factor with k levels. However, be
-    careful with your coding strategy because it would impact how to interpret the
-    results. Here is a good reference about factor coding strategies:
+    allowed. Capability of modeling within-subject or repeated-measures variables
+    may be added in the future. Each label in a between-subjects factor (categorical
+    variable) should be coded with at least 1 character (labeling with pure numbers
+    is fine but not recommended). If preferred, you can quantitatively code the
+    levels of a factor yourself by creating k-1 columns for a factor with k levels.
+    However, be careful with your coding strategy because it would impact how to
+    interpret the results. Here is a good reference about factor coding strategies:
     https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
  3) It is strongly suggested that a quantitative explanatory variable be
@@ -96,7 +97,7 @@ Usage: ~1~
     you quantitatively code it. And do not standardize the response variable
     if the intercept is of interest!
 
- 4) With within-subject variables, try to formulate the data as a contrast
+ 4) For within-subject variables, try to formulate the data as a contrast
     between two factor levels or as a linear combination of multiple levels.
 
  5) The results from RBA are effect estimates for each region. They can be
@@ -148,7 +149,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
           each subject. No explanatory variables are considered. Research
 	  interest is about the population effect at each region.
 
-   RBA -prefix myWonderfulResult -dataTable myData.txt  \\
+   RBA -prefix output -dataTable myData.txt  \\
 
    The above script is equivalent to
 
@@ -171,17 +172,18 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   RBA -prefix giveMeGreatResult -chains 4 -iterations 1000 -model '1+sex+group' \\
+   RBA -prefix output -Subj subject -ROI region -Y zscore \\
+   -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
 
    The input file 'myData.txt' is formatted as below:
    
-   Subj ROI     Y  sex group
-   S1 DMNLAG  0.274 F  patient
-   S1 DMNLHC  0.443 F  patient
-   S2 DMNRAG  0.455 M  contorl
-   S2 DMNRHC  0.265 M  control
+   subject region  zscore  sex group
+   S1      DMNLAG  0.274    F  patient
+   S1      DMNLHC  0.443    F  patient
+   S2      DMNRAG  0.455    M  contorl
+   S2      DMNRHC  0.265    M  control
    ...
 
    Notice that the interaction between 'sex' and 'group' is not modeled in this case.
@@ -193,7 +195,7 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    conditions), one between-subjects covariate (age), and one quantitative
    variable: ~2~
     
-   RBA -prefix iLoveMyResult -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
+   RBA -prefix result -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
    -qVars 'sex,age,SA' -EOI 'Intercept,sex,age,SA' \\
    -dataTable myData.txt
 
@@ -356,6 +358,24 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
+      '-Y' = apl(n = 1, d = NA,  h = paste(
+   "-Y var_name: var_name is used to specify the column name that is designated as",
+   "        as the response/outcome variable. The default (when this option is not",
+   "        invoked) is 'Y'.\n", sep = '\n'
+                     ) ),
+
+      '-Subj' = apl(n = 1, d = NA,  h = paste(
+   "-Subj var_name: var_name is used to specify the column name that is designated as",
+   "        as the measuring unit variable (usually subject). The default (when this",
+   "        option is not invoked) is 'Subj'.\n", sep = '\n'
+                     ) ),
+
+      '-ROI' = apl(n = 1, d = NA,  h = paste(
+   "-ROI var_name: var_name is used to specify the column name that is designated as",
+   "        as the region variable. The default (when this option is not invoked) is",
+   "        'ROI'.\n", sep = '\n'
+                     ) ),
+
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
@@ -402,7 +422,10 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVars  <- 'Intercept'
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
-      lopqContr  <- NA
+      lop$qContr <- NA
+      lop$Y      <- 'Y'
+      lop$Subj   <- 'Subj'
+      lop$ROI    <- 'ROI'
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -417,13 +440,16 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
-             verb   = lop$verb  <- ops[[i]],
-             model  = lop$model <- ops[[i]],
-             cVars  = lop$cVars <- ops[[i]],
-             qVars  = lop$qVars <- ops[[i]],
-             stdz   = lop$stdz  <- ops[[i]],
-             EOI    = lop$EOI   <- ops[[i]],
-             qContr = lop$qContr <- ops[[i]],       
+             verb   = lop$verb   <- ops[[i]],
+             model  = lop$model  <- ops[[i]],
+             cVars  = lop$cVars  <- ops[[i]],
+             qVars  = lop$qVars  <- ops[[i]],
+             stdz   = lop$stdz   <- ops[[i]],
+             EOI    = lop$EOI    <- ops[[i]],
+             qContr = lop$qContr <- ops[[i]],
+             Y      = lop$Y      <- ops[[i]],
+             Subj   = lop$Subj   <- ops[[i]],
+             ROI    = lop$ROI    <- ops[[i]],
              help    = help.RBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
@@ -511,6 +537,11 @@ library("brms")
 # write data.frame to a file
 outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
 
+# standardize the names for Y and subject
+names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
+names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
+names(lop$dataTable)[names(lop$dataTable)==lop$ROI] <- 'ROI'
+
 # make sure ROI and Subj are treated as factors
 if(!is.factor(lop$dataTable$ROI)) lop$dataTable$ROI <- as.factor(lop$dataTable$ROI)
 if(!is.factor(lop$dataTable$Subj)) lop$dataTable$Subj <- as.factor(lop$dataTable$Subj)
@@ -555,7 +586,7 @@ lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
 if(is.null(lop$cVars)) lop$EOIc <- NA else 
    lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
-if(!is.null(lop$qContr)) {
+if(!is.na(lop$qContr)) {
    qContrL <- unlist(strsplit(lop$qContr, '\\,'))
    # verify 'vs' in alternating location
    ll <- which(qContrL %in% 'vs')
@@ -671,7 +702,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for contrasts among quantitative variables
-if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1]) - psROI(aa, bb, lop$qContrL[2*ii]), ns, 4)
@@ -710,6 +741,76 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    }
 }
+
+##################### conventional GLM #####################
+mm <- list()
+GLM <- as.formula(paste('Y ~', lop$model))
+for(ii in levels(lop$dat$ROI)) mm[[ii]] = lm(GLM, data=lop$dat[lop$dat$ROI==ii,])
+nn <- lapply(mm, summary)
+ll <- lapply(nn, `[`, 'coefficients')
+
+sumGLM <- function(ll, tm, nR, DF, nd) {
+   th <- qt(c(0.025, 0.05, 0.5, 0.95, 0.975), DF)
+   rr <- matrix(, nrow = nR, ncol = 8, dimnames=list(levels(lop$dat$ROI), c('mean', 'SD', '2-sided-p', '2.5%', '5%', '50%', '95%', '97.5%')))
+   rownames(rr) <- levels(lop$dat$ROI)
+   for(ii in 1:nR) {
+     u1 <- ll[[ii]]$coefficients[tm,1] # mean
+     u2 <- ll[[ii]]$coefficients[tm,2] # sd
+     u3 <- ll[[ii]]$coefficients[tm,4] # 2-sided p
+     rr[ii,] <- round(c(u1, u2, u3, u1+u2*th),nd)
+   } 
+   return(rr)
+}
+
+# for Intercept and quantitative variables
+if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
+   cat(sprintf('===== Summary of region effects under GLM for %s: no adjustment for multiplicity =====', lop$EOIq[ii]), 
+      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df, 4)
+   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+
+# for contrasts among quantitative variables
+if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+   cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+
+# for factor
+if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
+   lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
+   nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
+   ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
+   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
+   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
+   psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
+   for(jj in 1:(nl-1)) {
+      psa[jj,,] <- ps[nl,,]  + ps[jj,,]
+      psa[nl,,] <- psa[nl,,] + ps[jj,,] 
+   }
+   psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   
+   oo <- apply(psa, 1, sumROI, ns, 4)
+   
+   cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   for(jj in 1:nl) {
+      cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   }
+   
+   cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
+      cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
+      cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   }
+}
+################
 
 # save it again
 save.image(file=paste0(lop$outFN, ".RData"))
