@@ -1,1 +1,4 @@
-Dockerfile
+*/__pycache__/**
+*/afni_ci_test_data/**
+*/output_of_tests/**
+.git/*
