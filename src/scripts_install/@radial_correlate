@@ -38,12 +38,12 @@ set use_3dmerge = yes   # new default, as of 9 May, 2019
 set merge_nrad = 0.5    # go out to 0.5 of the half with at half max
                         # (make this distance correspond to $sphere_rad, so
                         # radius = $sphere_rad / $merge_nrad)
-set corr_mask = yes     # should we automask before correlation blurring?
+set corr_mask = no      # should we automask before correlation blurring?
 
 
 set prog = @radial_correlate
 
-set version = "0.4, 9 May, 2019"
+set version = "0.5, 10 May, 2019"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -247,7 +247,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set ind02 = `ccalc -form '%02d' $index`
 
    # resulting variables
-   set prefix = radcor.$ind02.$sphere_rad
+   set prefix = radcor.$sphere_rad.$ind02
 
    set dset = $dset_list[$index]
    set eset = epi.$ind02
