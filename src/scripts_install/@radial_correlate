@@ -212,7 +212,7 @@ if( $do_corr == 'yes' ) then
 
       set inset = $dset_list[$index]
 
-      3dTcat -prefix $rdir/epi.$ind02 $inset\[$nfirst..\$]
+      3dTcat -prefix $rdir/epi.r$ind02 $inset\[$nfirst..\$]
 
       if ( $status ) then
           echo "** failed to copy EPI dataset $inset, exiting..."
@@ -247,11 +247,11 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    set ind02 = `ccalc -form '%02d' $index`
 
    # resulting variables
-   set prefix = radcor.$sphere_rad.$ind02
+   set prefix = radcor.$sphere_rad.r$ind02
 
    set dset = $dset_list[$index]
-   set eset = epi.$ind02
-   set ulay = epi.ulay.$ind02           # save underlay dataset if clean?
+   set eset = epi.r$ind02
+   set ulay = epi.ulay.r$ind02          # save underlay dataset if clean?
    set mpre = $prefix.automask
    set mset = $mpre$view
    set sset = $prefix.scaled
@@ -294,18 +294,18 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
             # mask before blur?
             if ( $corr_mask == yes ) then
-               set enew = rm.emasked.$ind02
+               set enew = rm.emasked.r$ind02
                3dcalc -a $eset$view -b $mset -expr "a*b" -prefix $enew
                set eset = $enew
             endif
 
             3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 \
-                    -doall -prefix sphere.mean.$rad.$ind02 $eset$view
+                    -doall -prefix sphere.mean.$rad.r$ind02 $eset$view
          else
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
-               -stat mean -prefix sphere.mean.$rad.$ind02 $eset$view
+               -stat mean -prefix sphere.mean.$rad.r$ind02 $eset$view
          endif
-         3dTcorrelate -prefix $cset sphere.mean.$rad.$ind02$view $eset$view
+         3dTcorrelate -prefix $cset sphere.mean.$rad.r$ind02$view $eset$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
          3dTstat -mean -datum float -prefix $prefix.mean $eset$view
