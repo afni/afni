@@ -35,9 +35,9 @@ set mask_in = ''
 
 # 3dmerge/localstat options
 set use_3dmerge = yes   # new default, as of 9 May, 2019
-set merge_nrad = 0.5    # go out to 0.5 of the half with at half max
+set merge_frad = 0.5    # go out to 0.5 of the half with at half max
                         # (make this distance correspond to $sphere_rad, so
-                        # radius = $sphere_rad / $merge_nrad)
+                        # radius = $sphere_rad / $merge_frad)
 set corr_mask = no      # should we automask before correlation blurring?
 
 
@@ -86,9 +86,9 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-nfirst" ) then
       @ ac += 1
       set nfirst = $argv[$ac]
-   else if ( "$argv[$ac]" == "-merge_nrad" ) then
+   else if ( "$argv[$ac]" == "-merge_frad" ) then
       @ ac += 1
-      set merge_nrad = $argv[$ac]
+      set merge_frad = $argv[$ac]
    else if ( "$argv[$ac]" == "-min_thr" ) then
       @ ac += 1
       set min_thr = $argv[$ac]
@@ -251,6 +251,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
    set dset = $dset_list[$index]
    set eset = epi.$ind02
+   set ulay = epi.ulay.$ind02           # save underlay dataset if clean?
    set mpre = $prefix.automask
    set mset = $mpre$view
    set sset = $prefix.scaled
@@ -286,9 +287,9 @@ foreach index ( `count -digits 1 1 $#dset_list` )
          set rad = $sphere_rad
          if ( $use_3dmerge == yes ) then
             # scale rad by frac number of HWHM, and to FWHM
-            set rad2 = `ccalc -n "2*$sphere_rad/$merge_nrad"`
+            set rad2 = `ccalc -n "2*$sphere_rad/$merge_frad"`
             # FIRFAC = 1.17741 when nhwhm=1, so scale
-            set firfac = `ccalc "1.17741*$merge_nrad"`
+            set firfac = `ccalc "1.17741*$merge_frad"`
             echo "++ merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
 
             # mask before blur?
@@ -320,8 +321,10 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                  $sset$view $prefix.mean_signal.1D
       endif
 
-      # if cleaning, make a nicer named backup set so we can delete all else later
+      # if cleaning, hide what we want to easily delete the rest
       if ( $do_clean == yes ) then
+          3dbucket -prefix $ulay $eset$view'[0]'
+          \mv $ulay* $clean_dir
           \cp $cset$view* $clean_dir
       endif
    endif
@@ -655,7 +658,7 @@ echo "                       For computing a local average, 3dmerge can do"
 echo "                       basically the same operation as 3dLocalstat, but"
 echo "                       250 times as fast (divided by OpenMP speedup)."
 echo ""
-echo "                       One can make -merge_nrad smaller to make the"
+echo "                       One can make -merge_frad smaller to make the"
 echo "                       results more similar, if desirable."
 echo ""
 echo "   -ver              : show version number"
@@ -685,18 +688,24 @@ echo "   -mask MASK_DSET   : specify a mask dataset to replace automask"
 echo "                       default = automask"
 echo "                       This mask is expected to cover the brain."
 echo ""
-echo "   -merge_nrad NRAD  : specify a radius ratio for 3dmerge blurring"
-echo "                       default = $merge_nrad"
+echo "   -merge_frad FRAD  : specify a radius fraction for 3dmerge blurring"
+echo "                       default = $merge_frad"
 echo ""
-echo "                       If NRAD is 1, the Gaussian blur kernel will"
+echo "                       If FRAD is 1, the Gaussian blur kernel will"
 echo "                       be applied with a shape out to the normal HWHM"
 echo "                       (half width at half max).  That is to say the"
 echo "                       the farthest neighbors would contribute 0.5 (half"
 echo "                       max) of that of the central voxel."
 echo ""
-echo "                       As this gets lower, the curve gets flatter."
-echo "                       For example, NRAD=0.5 yeilds a 0.84 relative"
-echo "                       contribution at the radial distance."
+echo "                       FRAC is an inverse scalar on the blur size,"
+echo "                       and a proportional scalar fraction on the size"
+echo "                       where the blurring ends.  So sphere_rad is always"
+echo "                       the applied blur size."
+echo ""
+echo "                       A smaller fraction will yield a flatter curve."
+echo "                       For example, FRAD=0.5 yeilds a 0.84 relative"
+echo "                       contribution at the radial distance, while."
+echo "                       doubling the requested blur."
 echo ""
 echo "   -nfirst NFIRST    : number of initial TRs to remove"
 echo "                       default = $nfirst"
@@ -708,6 +717,7 @@ echo "   -percentile PERC  : percentile to use as threshold"
 echo "                       default = $percentile"
 echo ""
 echo "   -sphere_rad RAD   : generate correlations within voxel spheres"
+echo "                       (or Gaussian weighted versions)"
 echo "                       (if 0, go against average time series)"
 echo "                       default = $sphere_rad"
 echo ""
@@ -718,19 +728,23 @@ exit
 
 SHOW_HIST:
 
-echo "-----------------------------------------------------------------"
-echo "$prog modification history:"
-echo ""
-echo "   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)"
-echo "   0.2  : Sep  1, 2011: now $prog"
-echo "          - new default: just create correlation volumes"
-echo "          - add to AFNI distribution"
-echo "          - add -do_corr and -do_clust"
-echo "   0.3  : Aug 12, 2015: add -mask option"
-echo "   0.4  : May  9, 2019: 3dLocalstat -> 3dmerge (much faster)"
-echo "          - by default, use 3dmerge for local averaging"
-echo "          - add -use_3dmerge, -corr_mask and -merge_nrad"
-echo "          - add -do_clean and -verb"
-echo ""
+cat << EOF
+
+-----------------------------------------------------------------
+$prog modification history:
+
+   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)
+   0.2  : Sep  1, 2011: now $prog
+          - new default: just create correlation volumes
+          - add to AFNI distribution
+          - add -do_corr and -do_clust
+   0.3  : Aug 12, 2015: add -mask option
+   0.4  : May 10, 2019: 3dLocalstat -> 3dmerge (much faster)
+          - by default, use 3dmerge for local averaging
+          - add -use_3dmerge, -corr_mask and -merge_frad
+          - add -do_clean and -verb
+          - on clean, save epi.ulay datasets
+
+EOF
 
 exit
