@@ -1,0 +1,32 @@
+package:
+    name: nifti_clib
+    version: {{ GIT_DESCRIBE_TAG }}
+
+source:
+    rev: {{ GIT_DESCRIBE_TAG }}
+    git_url: ../
+
+requirements:
+  build:
+    - cmake
+  run:
+    - expat
+    - zlib
+
+
+build:
+    number: 1
+    skip: True  # [win]
+
+test:
+    commands:
+
+about:
+    home: https://github.com/NIFTI-Imaging/nifti_clib
+    license: See github repository
+    summary: 'C library for IO with the nifti file format.'
+
+extra:
+    recipe-maintainers:
+        - leej3
+        

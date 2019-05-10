@@ -1,0 +1,126 @@
+dist: xenial
+language: cpp # sets both CXX and CC envirionmental variables
+# Use the faster container-based infrastructure.
+#sudo: false
+# https://github.com/travis-ci/travis-ci/issues/9033
+sudo: true
+env:
+  global:
+
+addons:
+  apt:
+    packages: cmake
+    packages: valgrind
+  homebrew:
+    packages: cmake
+    packages: sed
+
+# -m32 is not supported 
+# no poppler, openjpeg, uuid, json
+# no swig
+matrix:
+  fast_finish: true
+  include:
+    - compiler: gcc
+      os: linux
+      env:
+        - PARALLEL_LEVEL=3
+        - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
+        - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
+        - SYSTEM_PULLREQUEST_SOURCEBRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_SOURCEBRANCHNAME=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_BUILDID=${TRAVIS_BUILD_ID}
+        - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
+        - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
+        - CXXFLAGS="-g -O0 -Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings -fprofile-arcs -ftest-coverage"
+        - CFLAGS="-g -O0 -Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings -fprofile-arcs -ftest-coverage"
+        - LDFLAGS="-fprofile-arcs -ftest-coverage -lgcov"
+        - INTERPROCEDURAL_OPTIMIZATION="ON"
+        - B_NAME=system_gcc
+        - WITH_COVERAGE="ON"
+        - WITH_MEMCHECK="OFF"
+        - NIFTI_SHELL_SCRIPT_TESTS="ON"
+        - SCANBUILD_EXE=""
+    - compiler: gcc
+      os: linux
+      env:
+        - PARALLEL_LEVEL=3
+        - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
+        - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
+        - SYSTEM_PULLREQUEST_SOURCEBRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_SOURCEBRANCHNAME=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_BUILDID=${TRAVIS_BUILD_ID}
+        - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
+        - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
+        - CXXFLAGS="-g -O0 -Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Woverloaded-virtual -Wwrite-strings"
+        - CFLAGS="-g -O0 -Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings"
+        - LDFLAGS=""
+        - INTERPROCEDURAL_OPTIMIZATION="OFF"
+        - B_NAME=system_gcc-valgrind
+        - WITH_COVERAGE="OFF"
+        - WITH_MEMCHECK="ON"
+        - NIFTI_SHELL_SCRIPT_TESTS="OFF"
+        - SCANBUILD_EXE=""
+    - compiler: clang
+      os: linux
+      env:
+        - PARALLEL_LEVEL=3
+        - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
+        - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
+        - SYSTEM_PULLREQUEST_SOURCEBRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_SOURCEBRANCHNAME=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_BUILDID=${TRAVIS_BUILD_ID}
+        - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
+        - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
+        - ASAN_OPTIONS=verbosity=1:log_threads=1
+        - CFLAGS="-Wall -Wextra -m64 -W -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings -fsanitize=address,undefined"
+        - CXXFLAGS="-g -Wall -Wextra -m64 -fsanitize=address,undefined"
+        - INTERPROCEDURAL_OPTIMIZATION="OFF"
+        - B_NAME=fsanitize_clang
+        - WITH_COVERAGE="OFF"
+        - WITH_MEMCHECK="OFF"
+        - NIFTI_SHELL_SCRIPT_TESTS="ON"
+        - SCANBUILD_EXE="scan-build -v --status-bugs"
+        - CCC_CC=clang
+        - CCC_CXX=clang++
+    - compiler: clang
+      os: osx
+      env:
+        - PARALLEL_LEVEL=3
+        - AGENT_BUILDDIRECTORY=${TRAVIS_BUILD_DIR}/NIFTIworkspace
+        - BUILD_SOURCESDIRECTORY=${TRAVIS_BUILD_DIR}
+        - BUILD_BUILDID=${TRAVIS_BUILD_ID}
+        - SYSTEM_PULLREQUEST_SOURCEBRANCH=${TRAVIS_PULL_REQUEST_BRANCH}
+        - BUILD_SOURCEBRANCHNAME=${TRAVIS_PULL_REQUEST_BRANCH}
+        - SYSTEM_PULLREQUEST_PULLREQUESTNUMBER=${TRAVIS_PULL_REQUEST}
+        - CTEST_SCRIPT_DIRECTORY=${TRAVIS_BUILD_DIR}/cmake
+ # -m64 -fsanitize=address,undefined
+        - CFLAGS="-O3 -Wall -Wextra -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings"
+        - CXXFLAGS="-O3 -Wall -Wextra -Wshadow -Wunused-variable -Wunused-parameter -Wunused-function -Wunused -Wno-system-headers -Wno-deprecated -Wwrite-strings"
+        - INTERPROCEDURAL_OPTIMIZATION="ON"
+        - B_NAME=osx_clang
+        - WITH_COVERAGE="OFF"
+        - WITH_MEMCHECK="OFF"
+        - NIFTI_SHELL_SCRIPT_TESTS="ON"
+        - SCANBUILD_EXE=""
+        - CCC_CC=clang
+        - CCC_CXX=clang++
+
+before_install:
+  #- env
+  - cd ${TRAVIS_BUILD_DIR}
+  
+install: true
+before_script: true
+script:
+  - which $CXX && $CXX --version || true
+  - which $CC && $CC --version || true
+  - which scan-build || true
+  - which gcov && gcov --version || true
+  - which valgrind && valgrind --version || true
+  - which cmake && cmake --version || true
+  - ${SCANBUILD_EXE} ctest -S ${CTEST_SCRIPT_DIRECTORY}/travis_dashboard.cmake -V -j 4
+
+after_success: true
+after_failure: true
+after_script: true
