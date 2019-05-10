@@ -160,7 +160,12 @@ def data(request):
 @pytest.fixture(scope="function")
 def run_cmd():
     def command_runner(
-        cmd, current_vars, add_env_vars={}, merge_error_with_output=False, workdir=None
+        cmd,
+        current_vars,
+        add_env_vars={},
+        merge_error_with_output=False,
+        workdir=None,
+        force_python2=False,
     ):
         """run_cmd is initialized for all test functions that list it as an
         argument. It is used as a callable function to run command line
@@ -223,22 +228,19 @@ def run_cmd():
             os.chdir(workdir)
             # Execute the command and log output
             if merge_error_with_output:
-                proc = subprocess.run(
-                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
-                )
+                error = subprocess.STDOUT
             else:
-                proc = subprocess.run(
-                    cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE
-                )
+                error = subprocess.PIPE
+
+            proc = subprocess.run(cmd, shell=True, stdout=subprocess.PIPE, stderr=error)
             # log the output
             stdout_log.write_text(proc.stdout.decode("utf-8"))
-            err_text = proc.stderr.decode("utf-8")
-            if err_text:
+            if proc.stderr:
+                err_text = proc.stderr.decode("utf-8")
                 stderr_log.write_text(err_text)
 
             # Raise error if there was a non-zero exit code.
             proc.check_returncode()
-
         return proc
 
     return command_runner
