@@ -9,18 +9,17 @@ AFNI_ROOT = str(Path(afni_binary).parent)
 sys.path.append(AFNI_ROOT)
 
 
-def test_script_imports():
+def test_script_imports(data, run_cmd):
     binary_dir = Path(shutil.which("afni")).parent
 
     py_files = list(binary_dir.glob("*.py"))
-    possible_pymods = [f for f in py_files if not f.name.startswith("@")]
+    possible_pymods = [f for f in py_files if not f.name[0] in "@ 1 2 3".split()]
 
     # "@DoPerRoi.py",
     known_py2 = [
         "afni_restproc.py",
         "afni_skeleton.py",
         "afni_xmat.py",
-        "ClustExp_StatParse.py",
         "eg_main_chrono.py",
         "fat_lat_csv.py",
         "fat_mat_sel.py",
@@ -36,12 +35,9 @@ def test_script_imports():
         "lib_fat_funcs.py",
         "lib_fat_plot_sel.py",
         "lib_fat_Rfactor.py",
-        "lib_matplot.py",
-        "lib_RR_plot.py",
         "lib_surf_clustsim.py",
         "lib_uber_align.py",
         "lib_uber_skel.py",
-        "lib_wx.py",
         "lpc_align.py",
         "make_pq_script.py",
         "make_stim_times.py",
@@ -69,6 +65,7 @@ def test_script_imports():
         "tedana_wrapper.py",
         "BayesianGroupAna.py",
         "abids_tool.py",
+        "ClustExp_StatParse.py",
     ]
 
     other_problems = [
@@ -76,12 +73,31 @@ def test_script_imports():
         "gui_uber_subj.py",
         "demoExpt.py",
         "gui_uber_ttest.py",
+        # wx required
+        "gui_xmat.py",
+        "lib_matplot.py",
+        "lib_RR_plot.py",
+        "lib_wx.py",
     ]
 
+    # for script in possible_pymods:
+    #     print(script)
+    #     if script.name not in (known_py2 + not_importable + other_problems):
+    #         __import__(script.stem)
+    # Goal here is to import all python modules (not scripts meant as
+    # executables) in both python2 and python3. For now all imports are forced
+    # to happen in python2 until such a state is achieved
     for script in possible_pymods:
+        if script.name in other_problems + not_importable:
+            continue
         print(script)
-        if script.name not in (known_py2 + not_importable + other_problems):
-            __import__(script.stem)
+        module_name = script.stem
+        run_cmd(
+            """python -c 'import {module_name}'""",
+            locals(),
+            force_python2=True,
+            workdir=binary_dir,
+        )
 
 
 if __name__ == "__main__":
