@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.6, April 5, 2019
+Version 0.0.7, May 9, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -68,21 +68,23 @@ Usage: ~1~
  following fixed header. The header lables are case-sensitive, and their order
  does not matter.
 
- Subj   ROI1   ROI2   Y
- S1     Amyg   SMA   0.2643
- S2     BNST   MPFC  0.3762
+ Subj   ROI1   ROI2   Y      Age 
+ S1     Amyg   SMA   0.2643  11
+ S2     BNST   MPFC  0.3762  16 
  ...
 
- 0) Be proud of yourself: you are performing Bayesian analysis!!! You directly
-    get the probability of an effect being positive or negative with your data,
-    instead of witch hunt-hunting the straw man of p-value (weirdness of your
+ 0) You are performing Bayesian analysis!!! So, you will directly obtain
+    the probability of an effect being positive or negative with your data,
+    instead of witch hunt - hunting the straw man of p-value (weirdness of your
     data when pretending that absolutely nothing exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
-    column order does not matter, but the names of the four variables above
-    in the header are reserved and fixed (case sensitive). The column labels
-    ROI1 and ROI2 are meant to indicate the two regions associated with
-    each response value, and they do not mean any sequence or directionality.
+    column order does not matter. . You can specify those column names as you
+    prefer, but it saves a little bit scripting if you adopt the default naming
+    for subjects (\'Subj\'), regions (\'ROI1\' and \'ROI2\') and response variable (\'Y\'). 
+    The column labels ROI1 and ROI2 are meant to indicate the two regions
+    associated with each response value, and they do not mean any sequence or
+    directionality.
 
  2) Only provide half of the off-diagonals in the table (no duplicates allowed).
     Missing data are fine (e.g., white-matter property deemed nonexistent).
@@ -168,7 +170,7 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
 	  interest is about the population effect at each region pair plus
 	  the relative strength of each region.
 
-   MBA -prefix myWonderfulResult -r2z -dataTable myData.txt  \\
+   MBA -prefix output -r2z -dataTable myData.txt  \\
 
    The above script is equivalent to
 
@@ -191,17 +193,18 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   MBA -prefix giveMeGreatResult -chains 4 -iterations 1000 -model '1+sex+group' \\
+   MBA -prefix output -Subj subject -ROI1 region1 -ROI2 region2 -Y zscore\\
+   -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -r2z -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
 
    The input file 'myData.txt' is formatted as below:
    
-   Subj ROI1  ROI2    Y  sex group
-   S1 DMNLAG DMNLHC 0.274 F  patient
-   S1 DMNLAG DMNPCC 0.443 F  patient
-   S2 DMNLAG DMNRAG 0.455 M  contorl
-   S2 DMNLAG DMNRHC 0.265 M  control
+   subject region1 region2  zscore  sex group
+   S1      DMNLAG  DMNLHC 0.274   F  patient
+   S1      DMNLAG  DMNPCC 0.443   F  patient
+   S2      DMNLAG  DMNRAG 0.455   M  contorl
+   S2      DMNLAG  DMNRHC 0.265   M  control
    ...
 
    Notice that the interaction between 'sex' and 'group' is not modeled in this case.
@@ -212,7 +215,7 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
 Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    conditions), and one quantitative variable: ~2~
     
-   MBA -prefix iLoveMyResult -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
+   MBA -prefix result -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
    -qVars 'sex,age,SA' -r2z -EOI 'Intercept,sex,age,SA' \\
    -dataTable myData.txt
 
@@ -377,6 +380,30 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              sep = '\n'
              ) ),
 
+      '-Y' = apl(n = 1, d = NA,  h = paste(
+   "-Y var_name: var_name is used to specify the column name that is designated as",
+   "        as the response/outcome variable. The default (when this option is not",
+   "        invoked) is 'Y'.\n", sep = '\n'
+                     ) ),
+
+      '-Subj' = apl(n = 1, d = NA,  h = paste(
+   "-Subj var_name: var_name is used to specify the column name that is designated as",
+   "        as the measuring unit variable (usually subject). The default (when this",
+   "        option is not invoked) is 'Subj'.\n", sep = '\n'
+                     ) ),
+
+      '-ROI1' = apl(n = 1, d = NA,  h = paste(
+   "-ROI1 var_name: var_name is used to specify the column name that is designated as",
+   "        as the region variable for the first set of each region pair. The default",
+   "        (when this option is not invoked) is 'ROI1'.\n", sep = '\n'
+                     ) ),
+
+      '-ROI2' = apl(n = 1, d = NA,  h = paste(
+   "-ROI2 var_name: var_name is used to specify the column name that is designated as",
+   "        as the region variable for the second set of each region pair. The default",
+   "        (when this option is not invoked) is 'ROI2'.\n", sep = '\n'
+                     ) ),
+
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
@@ -431,7 +458,11 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVars  <- 'Intercept'
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
-      lopqContr  <- NA
+      lop$qContr  <- NA
+      lop$Y      <- 'Y'
+      lop$Subj   <- 'Subj'
+      lop$ROI1   <- 'ROI1'
+      lop$ROI2   <- 'ROI2'
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -453,6 +484,10 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              stdz   = lop$stdz  <- ops[[i]],
              EOI    = lop$EOI   <- ops[[i]],
              qContr = lop$qContr <- ops[[i]],       
+             Y      = lop$Y      <- ops[[i]],
+             Subj   = lop$Subj   <- ops[[i]],
+             ROI1   = lop$ROI1   <- ops[[i]],
+             ROI2   = lop$ROI2   <- ops[[i]],
              help    = help.MBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
@@ -540,6 +575,12 @@ library("brms")
 # write data.frame to a file
 outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
 
+# standardize the names for Y, ROI and subject
+names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
+names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
+names(lop$dataTable)[names(lop$dataTable)==lop$ROI1] <- 'ROI1'
+names(lop$dataTable)[names(lop$dataTable)==lop$ROI2] <- 'ROI2'
+
 # make sure ROI1, ROI2 and Subj are treated as factors
 if(!is.factor(lop$dataTable$ROI1)) lop$dataTable$ROI1 <- as.factor(lop$dataTable$ROI1)
 if(!is.factor(lop$dataTable$ROI2)) lop$dataTable$ROI2 <- as.factor(lop$dataTable$ROI2)
@@ -585,7 +626,7 @@ lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
 if(is.null(lop$cVars)) lop$EOIc <- NA else 
    lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
-if(!is.null(lop$qContr)) {
+if(any(!is.na(lop$qContr))) {
    qContrL <- unlist(strsplit(lop$qContr, '\\,'))
    # verify 'vs' in alternating location
    ll <- which(qContrL %in% 'vs')
@@ -790,7 +831,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for contrasts among quantitative variables
-if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
@@ -872,7 +913,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 }
 
 # for contrasts among quantitative variables
-if(any(!is.null(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1], nR) - psROI(aa, bb, lop$qContrL[2*ii], nR), ns, 3)
