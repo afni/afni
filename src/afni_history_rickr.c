@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2019, RCR, "NIFTI", MICRO, TYPE_ENHANCE,
+   "add NIFTI_ECODE_QUANTIPHYSE",
+   NULL
+ } ,
+
  {  9, May, 2019, RCR, "3dTcorrelate", MICRO, TYPE_ENHANCE,
    "include old history of xset",
    NULL
