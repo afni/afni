@@ -29,6 +29,7 @@ RUN apt-get update -y -qq \
           python-tk \
           python-mpltoolkits.basemap \
           r-base \
+          git-annex-standalone \
           tcsh \
           vim \
     && apt-get clean \
