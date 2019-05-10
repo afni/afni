@@ -191,9 +191,14 @@
 #            and ulay are different, need to resample refbox to match
 #            grid of ulay.
 #
-set version   = "5.3";   set rev_dat   = "Apr 30, 2019"
+#set version   = "5.3";   set rev_dat   = "Apr 30, 2019"
 #     + [PT] for the -set_subbricks option, one can now input string
 #            labels -- thanks for the suggestion, Rasmus!
+#
+set version   = "5.4";   set rev_dat   = "May 8, 2019"
+#     + [PT] for cbar output, output a file that can be json-ized.
+#            Will be more clear for labels/values/usage, and will allow
+#            for commenting on the meaning of the output
 #
 # =====================================================================
 
@@ -256,9 +261,11 @@ set pbar_sign = "-"              # + is pos. only, - is both (switch for both)
 set ncolors   = "99"             # default number of colors
 set topval    = 1                # upper scale value in colorbar
 
-set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar 
 set com_pbar_str_dim = "dim=64x512H" # [PT: Oct 21, 2018] default size+orient
-set SAVE_PBAR = 0                # [PT: Oct 21, 2018] flag for assorted stuff
+set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar 
+set SAVE_PBAR    = 0             # [PT: Oct 21, 2018] flag for assorted stuff
+set pbar_comm  = ""            # [PT: May 8, 2019] pbar json output
+set vthr_comm  = ""            # [PT: May 8, 2019] pbar json output
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
@@ -611,6 +618,18 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set com_pbar_str_dim = "dim=$argv[$ac]"
+
+    # [PT: May 8, 2019] save reason for cbar olay range
+    else if ( "$argv[$ac]" == "-pbar_comm_range" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pbar_comm = "$argv[$ac]"
+
+    # [PT: May 8, 2019] save reason for cbar thr val
+    else if ( "$argv[$ac]" == "-pbar_comm_thr" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set vthr_comm = "$argv[$ac]"
 
     # AFNI_IMAGE_LABEL_MODE    = 1     // draw labels in UL of Image windows
     # AFNI_IMAGE_LABEL_SIZE    = 3     // size of labels in Image windows
@@ -1425,7 +1444,21 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         else
             set bot_frange = "-$frange"
         endif
-        echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
+        
+        ## [PT: May 8, 2019] older pbar info format, byeeeeeee.
+        #echo "$bot_frange    $frange    $thrnew" > "${opbar_file}"
+
+# [PT: May 8, 2019] newer pbar info format, more info [will add ulay/gen info]
+cat << EOF >! "${opbar_file}"
+itemtype     :: CBAR
+cbar         :: "${my_cbar}"
+pbar_bot     :: "${bot_frange}"
+pbar_top     :: "${frange}"
+pbar_comm    :: "${pbar_comm}"
+vthr         :: "${thrnew}"
+vthr_comm    :: "${vthr_comm}"
+EOF
+
     endif
 
     echo "\n------------------- end of optionizing -------------------\n" 
@@ -1884,14 +1917,28 @@ COMMAND OPTIONS ~1~
 -pbar_saveim PBS   :if an olay is used, then you can save the color pbar
                     (=colorbar) that is used in plotting.  PBS is the
                     name of the file (including path), with allowed
-                    extensions jpg, png, or ppm.  
-                    When this option is used, a text file of the same
-                    name as PBS but with extension 'txt' will also be
-                    saved, containing three values: the bottom and top
-                    values of the functional range (i.e., of the
-                    colorbar), and the threshold value (if no thr is
-                    specified, then it is 0).  See also '-pbar_dim ..'
-                    for relation pbar optioning.  (See DR: PBAR_SAVEIM)
+                    extensions jpg, png, or ppm.  When this option is
+                    used, a text file of the same name as PBS but with
+                    extension 'txt' will also be saved, which is now
+                    (>May 8, 2019) a dictionary-like file of relevant
+                    information: min/max range, threshold value (0, if
+                    no thr is specified), as well as the ability to
+                    store comments on what those values mean (see
+                    -pbar_comm_* options, below).  See also '-pbar_dim
+                    ..'  for relation pbar optioning.  (See DR:
+                    PBAR_SAVEIM)
+
+-pbar_comm_range PBR :if using '-pbar_saveim ..', one can save a
+                    text/string comment on why the pbar range was
+                    chosen.  For example, '99%ile in mask'.  This will
+                    be output in the PBS.txt file (the value of the
+                    key 'pbar_comm').  Use quotes around on command
+                    line.
+
+-pbar_comm_thr PBR :same as '-pbar_comm_range ..', but for storing a
+                    comment about the selected threshold value. It
+                    will also be stored in the PBS.txt file (the value
+                    of the key 'vthr_comm').
 
 -pbar_dim PBD      :if '-pbar_saveim ..' is used to save the color pbar
                     of the olay, then this option can specify the

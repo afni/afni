@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Allow for comments about pbar ranges to be stored when saving pbar.",
+   "Also, the pbar text info will now be stored in dict/JSON-able form.\n"
+},
+
 { 1, May , 2019 , PT , "@djunct_is_label.py" , MICRO , TYPE_GENERAL,
    "Tiny program to see if input is an integer (-> index) or str (-> label).",
    "Just used by @chauffeur_afni for -set_subbricks reading.\n"
