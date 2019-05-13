@@ -6,6 +6,7 @@ from . import misc
 import tempfile
 import itertools as IT
 import os
+import pytest
 
 from numpy.testing import assert_allclose  # type: ignore
 
@@ -47,6 +48,7 @@ def assert_all_files_equal(
         if f.is_file() and not any(pat in str(f) for pat in ignore_file_patterns)
     ]
     for fname in file_list:
+
         fname = Path(fname)
         # compare 1D files
         if fname.suffix == ".1D":
@@ -68,6 +70,12 @@ def assert_all_files_equal(
 def assert_scans_equal(
     comparison_dir: Path, scans: List, header_kwargs: Dict = {}, data_kwargs: Dict = {}
 ):
+    # If no useful comparison is expected then just return
+    if pytest.config.getoption("--create_sample_output") or pytest.config.getoption(
+        "--save_sample_output"
+    ):
+        return
+
     for fname in scans:
         equivalent_file = comparison_dir / fname
         image = nib.load(str(fname))
@@ -86,6 +94,12 @@ def assert_files_by_byte_equal(comparison_dir: Path, file_list: List, **kwargs):
         file_list : Description
         comparison_dir : Description
     """
+    # If no useful comparison is expected then just return
+    if pytest.config.getoption("--create_sample_output") or pytest.config.getoption(
+        "--save_sample_output"
+    ):
+        return
+
     for fname in file_list:
         equivalent_file = comparison_dir / fname
         assert filecmp.cmp(fname, equivalent_file)
@@ -97,6 +111,12 @@ def assert_logs_equal(
     append_to_ignored: List = [],
     ignore_patterns: List = ["AFNI version="],
 ):
+    # If no useful comparison is expected then just return
+    if pytest.config.getoption("--create_sample_output") or pytest.config.getoption(
+        "--save_sample_output"
+    ):
+        return
+
     ignore_patterns = (
         append_to_ignored
         + ignore_patterns
@@ -114,6 +134,12 @@ def assert_textfiles_equal(
     new_has: List = [],
     ignore_patterns: List = [],
 ):
+    # If no useful comparison is expected then just return
+    if pytest.config.getoption("--create_sample_output") or pytest.config.getoption(
+        "--save_sample_output"
+    ):
+        return
+
     for fname in textfiles:
         equivalent_file = comparison_dir / fname
         text_old = [
@@ -150,6 +176,12 @@ def assert_1dfiles_equal(comparison_dir, file_list, fields=None, **all_close_kwa
         rtol (float, optional): Used to set tolerance of matrix comparison
         atol (float, optional): Used to set tolerance of matrix comparison
     """
+    # If no useful comparison is expected then just return
+    if pytest.config.getoption("--create_sample_output") or pytest.config.getoption(
+        "--save_sample_output"
+    ):
+        return
+
     if fields:
         raise NotImplementedError
 

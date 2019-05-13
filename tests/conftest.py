@@ -54,8 +54,23 @@ def get_test_comparison_dir(current_test_module: Union[str or Path]):
     """
     test_name = get_current_test_name()
     cmpr_path = get_comparison_dir_path()
-    test_compare_dir = cmpr_path / current_test_module / test_name
-    if cmpr_path.name == "sample_test_output":
+    test_compare_dir = cmpr_path / current_test_module.name / test_name
+
+    # Aside from two user-defined conditions the comparison directory should exist
+    comparison_data_needs_to_exist = not (
+        pytest.config.getoption("--create_sample_output")
+        or pytest.config.getoption("--save_sample_output")
+    )
+
+    if not test_compare_dir.exists() and comparison_data_needs_to_exist:
+        raise ValueError(
+            f"The appropriate output for the test {test_name} does not "
+            f"exist in the comparison directory {test_compare_dir}. You "
+            "may wish to run the test with the --create_sample_output "
+            "flag. "
+        )
+
+    if cmpr_path.name == "sample_test_output" and comparison_data_needs_to_exist:
         datalad.api.get(str(test_compare_dir))
 
     return test_compare_dir
@@ -264,8 +279,32 @@ def pytest_addoption(parser):
     parser.addoption(
         "--diff_with_outdir",
         default=None,
-        help="Specify a previous output directory with which the output "
+        help="Specify a previous tests output directory with which the output "
         "of this test session is compared.",
+    )
+    parser.addoption(
+        "--create_sample_output",
+        action="store_true",
+        default=False,
+        help=(
+            "During many of the tests, sample output is required to "
+            "assess changes in the output files. With this flag the "
+            "fact that the comparison data is missing is ignored so "
+            "that a test will run to completion and create all of the "
+            "required files for future comparison. "
+        ),
+    )
+    parser.addoption(
+        "--save_sample_output",
+        action="store_true",
+        default=False,
+        help=(
+            "Tests that required the output of a previous test- session "
+            "to compare against will search in the sample_test_output "
+            "directory of the afni_ci_test_data repository by default. "
+            "This flag runs the tests and updates the 'sample output' "
+            "for each respective test. "
+        ),
     )
 
 
@@ -289,8 +328,32 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
+def update_sample_output(odir, sample_test_output):
+
+    if not shutil.which("rsync"):
+        raise EnvironmentError(
+            "Updating sample output requires  a working rsync installation."
+        )
+    cmd = f"rsync -a {odir}/ {sample_test_output}/"
+    with misc.remember_cwd():
+        os.chdir(Path(pytest.config.rootdir))
+
+        subprocess.check_call(cmd, shell=True)
+        update_msg = "Update data with test run at %s" % odir.name.replace(
+            "output_", ""
+        )
+        result = datalad.api.rev_save(sample_test_output, update_msg, on_failure="stop")
+        if not result[0]["status"] == "notneeded":
+            print(f"Updating sample data in {sample_test_output}")
+
+
 def report():
-    print("Test output is written to: ", get_output_dir().absolute())
+    output_directory = get_output_dir().absolute()
+    sample_test_output = get_test_data_path() / "sample_test_output"
+    if pytest.config.getoption("--save_sample_output"):
+        update_sample_output(output_directory, sample_test_output)
+
+    print("Test output is written to: ", output_directory)
 
 
 atexit.register(report)
