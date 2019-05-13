@@ -50,10 +50,14 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13, MAY, 2019, DRG, "3dExchange", MINOR, TYPE_NEW_PROG,
+    "Exchange specified values in a dataset",
+    "Takes two columns of numbers to map input to output"
+},
 { 18, APR, 2019, DRG, "whereami GUI with wrong atlas", MICRO, TYPE_BUG_FIX,
     "whereami would crash afni GUI if atlas was not found",
     "Also more descriptive message when no available atlases"
-},	
+},		
 { 17, APR, 2019, DRG, "whereami minimum space", MICRO, TYPE_MODIFY,
     "Should have at least the space of the dataset coordinate"
 },	
