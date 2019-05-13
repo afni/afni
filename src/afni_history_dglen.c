@@ -50,7 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
-	
+{ 13, MAY, 2019, DRG, "3dExchange", MINOR, TYPE_NEW_PROG,
+    "Exchange specified values in a dataset",
+    "Takes two columns of numbers to map input to output"
+},	
 { 17, APR, 2019, DRG, "whereami minimum space", MICRO, TYPE_MODIFY,
     "Should have at least the space of the dataset coordinate"
 },	
