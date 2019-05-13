@@ -45,7 +45,7 @@ DBG = 1;
 ans = 0;
 
 %make sure you have no HEAD or BRIK as an extension
-[Prefix, Ext] = RemoveExtension(Prefix, '.HEAD|.BRIK'));
+[Prefix, Ext] = RemoveExtension(Prefix, '.HEAD|.BRIK');
 
 %make sure you have no view
 [Prefix, ViewName] = RemoveExtension(Prefix, '+orig|+acpc|+tlrc');
@@ -57,7 +57,7 @@ if (~isempty(Ext) & isempty(ViewName)),
 	return;
 end
 
-if (~isempty(ViewName), View = ViewName; else View = '+orig'; end
+if (~isempty(ViewName)), View = ViewName; else View = '+orig'; end
 
 %look for various files
 if (exist(sprintf('%s%s.HEAD', Prefix, View)) == 2), return; end

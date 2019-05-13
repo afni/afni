@@ -21,8 +21,10 @@ static char * AFNI_clus_3dclust( Three_D_View *im3d , char *extraopts ) ;
 
 #undef  PEAK_MODE
 #undef  CMASS_MODE
+#undef  ICENT_MODE
 #define PEAK_MODE  0
 #define CMASS_MODE 1
+#define ICENT_MODE 2
 
 #undef  MAX_INDEX
 #define MAX_INDEX 99999
@@ -602,7 +604,7 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    im3d->vwid->func->cwid = cwid = myXtNew( AFNI_clu_widgets ) ;
    CLU_CLEAR_AUXDSET(cwid) ;
-   cwid->coord_mode = 0 ;
+   cwid->coord_mode = PEAK_MODE ;
 
    /* shell to hold it all */
 
@@ -885,18 +887,21 @@ ENTRY("AFNI_clus_make_widgets") ;
 
    /* row #1: coord_mode chooser */
 
-   { static char *clab[2] = { "Peak" , "CMass" } ;
-     cwid->cmode_av = new_MCW_optmenu( rc , "XYZ" , 0,1,0,0 ,
+   { static char *clab[3] = { "Peak" , "CMass" , "ICent" } ;
+     cwid->cmode_av = new_MCW_optmenu( rc , "XYZ" , 0,2,0,0 ,
                         AFNI_clus_av_CB,im3d , MCW_av_substring_CB,clab ) ;
      MCW_reghint_children( cwid->cmode_av->wrowcol , "Coordinate display type" ) ;
      MCW_reghelp_children( cwid->cmode_av->wrowcol ,
-                            "Choose whether to show the Peak or\n"
-                            "Center-of-Mass X,Y,Z coordinates\n"
-                            "for each cluster.\n"
+                            "Choose whether to show the Peak, or\n"
+                            "Center-of-Mass, or Internal Center\n"
+                            "X Y Z coordinates, for each cluster.\n"
+                            "* Unlike CMass, ICent is a weighted\n"
+                            "   location that is always inside its\n"
+                            "   cluster.\n"
                             "* The weights that define these\n"
                             "   locations are taken from the\n"
                             "   'OLay' sub-brick of the Overlay\n"
-                            "   dataset.\n"
+                            "   dataset - NOT the 'Thr' sub-brick.\n"
                             "* The coordinate signs (DICOM or\n"
                             "   SPM order) can be chosen in the\n"
                             "   main AFNI controller window by\n"
@@ -1303,7 +1308,7 @@ ENTRY("AFNI_clus_make_widgets") ;
      MCW_reghint_children( cwid->clu_see_bbox[ii]->wrowcol ,
                            "See or Hide this cluster" ) ;
      MCW_register_hint( cwid->clu_lab[ii]     ,
-                        "Coordinates of cluster (Peak or CMass)" ) ;
+                        "Coordinates of cluster (Peak or CMass or ICent)" ) ;
      MCW_register_hint( cwid->clu_jump_pb[ii] ,
                         "Set crosshairs to these XYZ coordinates" ) ;
      MCW_register_hint( cwid->clu_plot_pb[ii] ,
@@ -1445,6 +1450,37 @@ ENTRY("AFNI_clus_find_xyz") ;
      }
    }
    RETURN(-1) ;
+}
+
+/*---------------------------------------------------------------------------*/
+/* Get the nearest cluster index of the DICOM coords, if it exists. */
+
+int AFNI_clus_find_xyz_nearest( Three_D_View *im3d , float x,float y,float z )
+{
+   float xf,yf,zf ; int xi,yi,zi , ii,jj,npt,nclu ;
+   MCW_cluster_array *clar ; MCW_cluster *cl ;
+   int ibest; int64_t dbest,di,dj,dk,ddd ;
+
+ENTRY("AFNI_clus_find_xyz_nearest") ;
+
+   if( !IM3D_OPEN(im3d) || !ISVALID_DSET(im3d->fim_now) ) RETURN(-1) ;
+   clar = im3d->vwid->func->clu_list ; if( clar == NULL ) RETURN(-1) ;
+   nclu = clar->num_clu ;              if( nclu == 0    ) RETURN(-1) ;
+
+   MAT44_VEC( im3d->fim_now->daxes->dicom_to_ijk , x,y,z , xf,yf,zf ) ;
+   xi = rint(xf) ; yi = rint(yf) ; zi = rint(zf) ;
+   dbest = 9111111111111111111 ; /* not quite the biggest 64 bit int */
+   ibest = -1 ;
+   for( ii=0 ; ii < nclu ; ii++ ){
+     cl = clar->clar[ii] ; npt = cl->num_pt ;
+     for( jj=0 ; jj < npt ; jj++ ){
+       if( xi == cl->i[jj] && yi == cl->j[jj] && zi == cl->k[jj] ) RETURN(ii);
+       di = xi - cl->i[jj]; dj = yi - cl->j[jj]; dk = zi - cl->k[jj];
+       ddd = di*di + dj*dj + dk*dk ;
+       if( ddd < dbest ){ dbest = ddd ; ibest = ii ; }
+     }
+   }
+   RETURN(ibest) ;
 }
 
 /*---------------------------------------------------------------------------*/
@@ -1675,6 +1711,7 @@ ENTRY("AFNI_clus_update_widgets") ;
        default:
        case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
        case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
+       case ICENT_MODE: xx=cld[ii].xmi; yy=cld[ii].ymi; zz=cld[ii].zmi; break;
      }
      MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
      px *= GLOBAL_library.cord.xxsign ;
@@ -2024,7 +2061,7 @@ ENTRY("AFNI_clus_action_CB") ;
     nss = ss ;
     if( nss == 0 ){ free(slist) ; EXRETURN ; }  /* nothing to do */
 
-    /* write out the coordinates to file first as in SaveTabl function*/
+    /* write out the coordinates to file first as in SaveTabl function */
     lb_fnam = AFNI_cluster_write_coord_table(im3d);
     if(lb_fnam == NULL){ free(slist); EXRETURN; }  /* couldn't create coordinate table */
 #undef  WSIZ
@@ -2161,6 +2198,7 @@ printf("wrote cluster table to %s\n", lb_fnam);
          default:
          case PEAK_MODE:  xx=cld[ii].xpk; yy=cld[ii].ypk; zz=cld[ii].zpk; break;
          case CMASS_MODE: xx=cld[ii].xcm; yy=cld[ii].ycm; zz=cld[ii].zcm; break;
+         case ICENT_MODE: xx=cld[ii].xmi; yy=cld[ii].ymi; zz=cld[ii].zmi; break;
        }
        MAT44_VEC( im3d->fim_now->daxes->ijk_to_dicom , xx,yy,zz , px,py,pz ) ;
        if( (intptr_t)666 == (intptr_t)cbs ) AFNI_creepto_dicom( im3d , px,py,pz ) ;

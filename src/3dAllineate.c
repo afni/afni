@@ -536,6 +536,12 @@ int main( int argc , char *argv[] )
 "\n"
 "* For nonlinear transformations, see progam 3dQwarp.\n"
 "\n"
+"* 3dAllineate can also be used to apply a pre-computed matrix to a dataset\n"
+"  to produce the transformed output. In this mode of operation, it just\n"
+"  skips the alignment process, whose function is to compute the matrix,\n"
+"  and instead it reads the matrix in, computes the output dataset,\n"
+"  writes it out, and stops.\n"
+"\n"
 "=====----------------------------------------------------------------------\n"
 "NOTES: For most 3D image registration purposes, we now recommend that you\n"
 "=====  use Daniel Glen's script align_epi_anat.py (which, despite its name,\n"
@@ -580,11 +586,20 @@ int main( int argc , char *argv[] )
 "               If no -base option is given, then the base volume is\n"
 "               taken to be the #0 sub-brick of the source dataset.\n"
 "               (Base must be stored as floats, shorts, or bytes.)\n"
+"            ** -base is not needed if you are just applying a given\n"
+"               transformation to the -source dataset to produce\n"
+"               the output, using -1Dmatrix_apply or -1Dparam_apply\n"
+"            ** Unless you use the -master option, the aligned\n"
+"               output dataset will be stored on the same 3D grid\n"
+"               as the -base dataset.\n"
 "\n"
 " -source ttt = Read the source dataset from 'ttt'.  If no -source\n"
 "   *OR*        (or -input) option is given, then the source dataset\n"
 " -input ttt    is the last argument on the command line.\n"
 "               (Source must be stored as floats, shorts, or bytes.)\n"
+"            ** This is the dataset to be transformed, to match the\n"
+"               -base dataset, or directly with one of the options\n"
+"               -1Dmatrix_apply or -1Dparam_apply\n"
 "            ** 3dAllineate can register 2D datasets (single slice),\n"
 "               but both the base and source must be 2D -- you cannot\n"
 "               use this program to register a 2D slice into a 3D volume!\n"
@@ -651,7 +666,7 @@ int main( int argc , char *argv[] )
 "                      (In this mode of operation, there is no optimization of)\n"
 "                      (the cost functional by changing the warp parameters;  )\n"
 "                      (previously computed parameters are applied directly.  )\n"
-"               *N.B.: A historical synonym for this is '-1Dapply'.\n"
+/** "               *N.B.: A historical synonym for this is '-1Dapply'.\n" **/
 "               *N.B.: If you use -1Dparam_apply, you may also want to use\n"
 "                       -master to control the grid on which the new\n"
 "                       dataset is written -- the base dataset from the\n"
@@ -719,7 +734,8 @@ int main( int argc , char *argv[] )
 "  * The -1Dmatrix_* options can be used to save and re-use the transformation *\n"
 "  * matrices.  In combination with the program cat_matvec, which can multiply *\n"
 "  * saved transformation matrices, you can also adjust these matrices to      *\n"
-"  * other alignments.                                                         *\n"
+"  * other alignments. These matrices can also be combined with nonlinear      *\n"
+"  * warps (from 3dQwarp) using programs 3dNwarpApply or 3dNwarpCat.           *\n"
 "\n"
 "  * The script 'align_epi_anat.py' uses 3dAllineate and 3dvolreg to align EPI *\n"
 "  * datasets to T1-weighted anatomical datasets, using saved matrices between *\n"
@@ -768,6 +784,10 @@ int main( int argc , char *argv[] )
 "\n"
 " -final iii  = Defines the interpolation mode used to create the\n"
 "               output dataset.  [Default == 'cubic']\n"
+"            ** N.B.: If you are applying a transformation to an\n"
+"                       integer-valued dataset (such as an atlas),\n"
+"                       then you should use '-final NN' to avoid\n"
+"                       interpolation of the integer labels.\n"
 "            ** N.B.: For '-final' ONLY, you can use 'wsinc5' to specify\n"
 "                       that the final interpolation be done using a\n"
 "                       weighted sinc interpolation method.  This method\n"
@@ -981,6 +1001,8 @@ int main( int argc , char *argv[] )
 "                  otherwise, the shell will treat it as a wildcard\n"
 "                  and you will get an error message before 3dAllineate\n"
 "                  even starts!!\n"
+"               ** UPDATE: one can now use '^' for power notation, to \n"
+"                  avoid needing to enclose the string in quotes.\n"
       ) ;
       if( visible_noweights ){
          printf(
@@ -2092,14 +2114,21 @@ int main( int argc , char *argv[] )
 
      if( strncmp(argv[iarg],"-autoweight",11) == 0 ){
        char *cpt ;
+       int   cpt_offset = 2; /* offset for exponent str [rickr 23 Apr 2019] */
+                             /* allow ** or ^ (to avoid shell protection)   */
        if( dset_weig != NULL ) ERROR_exit("Can't use -autoweight AND -weight :-(") ;
        auto_weight = 1 ; auto_string = argv[iarg] ;
        cpt = strstr(auto_string,"+") ;
        if( cpt != NULL && *(cpt+1) != '\0' )      /* 31 Jul 2007 */
          auto_wclip = (float)strtod(cpt+1,NULL) ;
        cpt = strstr(auto_string,"**") ;
-       if( cpt != NULL && *(cpt+2) != '\0' )      /* 10 Sep 2007 */
-         auto_wpow = (float)strtod(cpt+2,NULL) ;
+       if( cpt == NULL ) {
+          /* allow ** or ^ (to avoid shell protection) [rickr 23 Apr 2019] */
+          cpt = strstr(auto_string,"^") ;
+          cpt_offset = 1;
+       }
+       if( cpt != NULL && *(cpt+cpt_offset) != '\0' )      /* 10 Sep 2007 */
+         auto_wpow = (float)strtod(cpt+cpt_offset,NULL) ;
        wtspecified = 1 ; iarg++ ; continue ;
      }
 
@@ -3696,9 +3725,9 @@ STATUS("zeropad weight dataset") ;
 
      /** check if handedness is the same **/
 
-     bdet = MAT44_DET(stup.base_cmat) ;
-     tdet = MAT44_DET(stup.targ_cmat) ;
-     if( bdet * tdet < 0.0f ){
+     bdet = MAT44_DET(stup.base_cmat) ; /* sign of determinant */
+     tdet = MAT44_DET(stup.targ_cmat) ; /* determines handedness */
+     if( bdet * tdet < 0.0f ){          /* AHA - opposite signs! */
        INFO_message("NOTE: base and source coordinate systems have different handedness") ;
        ININFO_message(
          "      Orientations: base=%s handed (%c%c%c); source=%s handed (%c%c%c)" ,
@@ -3710,6 +3739,10 @@ STATUS("zeropad weight dataset") ;
            ORIENT_typestr[dset_targ->daxes->xxorient][0] ,
            ORIENT_typestr[dset_targ->daxes->yyorient][0] ,
            ORIENT_typestr[dset_targ->daxes->zzorient][0]  ) ;
+       ININFO_message(
+         "    - It is nothing to worry about: 3dAllineate aligns based on coordinates." ) ;
+       ININFO_message(
+         "    - But it is always important to check the alignment visually to be sure." ) ;
      }
    } else {
      stup.base_cmat = stup.targ_cmat ;
@@ -4191,11 +4224,16 @@ STATUS("zeropad weight dataset") ;
           total_rotation_degrees(stup.wfunc_param[3].xxx,   \
                                  stup.wfunc_param[4].xxx,   \
                                  stup.wfunc_param[5].xxx)); \
-        else if( jj == 8 )                                  \
-         fprintf(stderr,"  ...  vol3D=%8.4f",               \
-           stup.wfunc_param[6].xxx                          \
-          *stup.wfunc_param[7].xxx                          \
-          *stup.wfunc_param[8].xxx ) ;                      \
+        else if( jj == 8 ){                                 \
+         float fff = stup.wfunc_param[6].xxx                \
+                    *stup.wfunc_param[7].xxx                \
+                    *stup.wfunc_param[8].xxx ;              \
+         fprintf(stderr,"  ...  vol3D=%8.4f %s",            \
+           fff ,                                            \
+           (fff < 1.0f )                                    \
+            ? "= base bigger than source"                   \
+            : "= base smaller than source" ) ;              \
+        }                                                   \
       }                                                     \
       fprintf(stderr,"\n") ;                                \
   } while(0)
@@ -5456,7 +5494,7 @@ mri_genalign_set_pgmat(1) ;
 #endif
        mri_genalign_affine( stup.wfunc_numpar , par , 0,NULL,NULL,NULL , NULL,NULL,NULL ) ;
        mri_genalign_affine_get_gammaijk( &qmat ) ;
-       wmat = MAT44_MUL(targ_cmat,qmat) ;
+       wmat = MAT44_MUL(targ_cmat,qmat) ;    /* matrix multiplies to undo the befafter stuff */
        aff12_xyz = MAT44_MUL(wmat,base_cmat_inv) ;  /* DICOM coord matrix */
      }
 

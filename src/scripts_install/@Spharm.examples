@@ -1,13 +1,20 @@
 #!/bin/tcsh -f
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
+# [PT: Apr 19, 2019] Updated some INIT_VARS and then names of some
+# places where they are used, because the demoarch no longer existed
+# (!) online, and we now mostly use *.gii files, anyways.  Appears to
+# work...
+
 INIT_VARS:
 set stat = 0
-set demoarch = https://afni.nimh.nih.gov/pub/dist/tgz/suma_tlrc.tgz
-set surf1 = lh.pial.tlrc.ply
-set sph1 = lh.sphere.asc
-set surf2 = lh.smoothwm.tlrc.ply
-set spec = N27_lh_tlrc.spec
+set demo_name = suma_TT_N27
+set demo_tgz  = ${demo_name}.tgz
+set demoarch = https://afni.nimh.nih.gov/pub/dist/tgz/${demo_tgz} 
+set surf1 = lh.pial.gii   
+set sph1 = lh.sphere.gii  
+set surf2 = lh.smoothwm.gii 
+set spec = TT_N27_lh.spec 
 set ld = 35
 set spec_std = ld${ld}.$spec
 set order = 15
@@ -39,8 +46,10 @@ PARSE:
       
 CHECKS:
 if ( ! -f $spec || ! -f $surf2 ) then
+   echo ""
    echo "Missing $spec or other related files. Perhaps you are not running"
    echo "the script from a directory containing the sample surfaces."
+   echo ""
    echo "Do you want to download and install the demo surfaces from:"
    echo "   $demoarch"
    printf "[Y|n]: "
@@ -51,15 +60,15 @@ if ( ! -f $spec || ! -f $surf2 ) then
          echo "Failed to download"
          goto BEND
       endif
-      tar xvzf suma_tlrc.tgz
+      tar xvzf ${demo_tgz}
       if ($status) then
          echo "Failed to untar"
          goto BEND
       endif
       mkdir SpharmDemo
-      cp -p suma_tlrc/*lh* SpharmDemo/
+      cp -p ${demo_name}/*lh* SpharmDemo/
       echo ""
-      echo "Have needed data in directrory SpharmDemo/"
+      echo "Have needed data in directory SpharmDemo/"
       echo "Now cd into that directory and rerun the script"
       echo ""
       echo "cd SpharmDemo/"

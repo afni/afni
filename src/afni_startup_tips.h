@@ -398,7 +398,7 @@ static char *tip[] = {
   " - To find out if sox is on your system, type the command 'which sox'."
  ,
   "Want bigger fonts in AFNI, for a high resolution screen? Set environment\n"
-  "variable AFNI_FONTSIZE to BIG (preferably in your .afnirc setup file)."
+  "variable AFNI_FONTSIZE to PLUS or BIG (preferably in your .afnirc setup file)."
 
 /*-- tips below here are for non-GUI programs --*/
  ,
@@ -826,13 +826,14 @@ static char *gby[] = {
      "Remember -- He who laughs, lasts"                              ,
      "Remember -- The innocent have everything to fear"              ,
      "Remember -- Memory is long but time is tricky"                 ,
-     "Remember -- Men are always willing to believe what they wish"  ,
      "Remember -- What I tell you three times is true"               ,
      "Remember -- A monad is the same as an endofunctor"             ,
      "Remember -- Things aren't always what they seem"               ,
      "Remember -- eggs cannot be unscrambled"                        ,
      "Remember -- a closed mouth gathers no feet"                    ,
-     "Fools give you reasons, wise men never try"                    ,
+     "Remember -- People are willing to believe what they wish"      ,
+
+     "Fools give you reasons, wise people never try"                 ,
      "People willingly trust the statistics they wish to believe"    ,
      "Heaven's last best gift, my ever new delight"                  ,
      "Long is the way and hard, that out of Data leads to Light"     ,
@@ -848,7 +849,7 @@ static char *gby[] = {
      "Whatever is begun in anger ends in shame"                      ,
      "Life's tragedy is that we get old too soon and wise too late"  ,
      "I didn't fail the test, I just found 100 ways to do it wrong"  ,
-     "Wise men don't need advice; fools won't take it"               ,
+     "Wise people don't need advice; fools won't take it"            ,
      "Half a truth is often a great lie"                             ,
      "Will you help 'Make AFNI Great Again'?"                        ,
      "If I can find the man calling me ruthless, I'll destroy him"   ,
@@ -986,8 +987,10 @@ static char *gby[] = {
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
      "You look familiar - Do you come here often?"                   ,
-     "After all, tomorrow is another day."                           ,
-     "Men are quick to believe that which they wish to be true"      ,
+     "After all, tomorrow is another day"                            ,
+     "People are quick to believe that which they wish to be true"   ,
+     "The worst kind of lie: one that matches your desire"           ,
+     "Truly, there is nothing more to be said"                       ,
 
      /* bastardizations of Shakespeare */
 
@@ -1134,7 +1137,7 @@ static char *gby[] = {
 
      "We are all in the gutter, but some of us are looking at the stars"        ,
      "Always forgive your enemies - nothing annoys them so much"                ,
-     "Experience is the name men give to their mistakes"                        ,
+     "Experience is the name people give to their mistakes"                     ,
      "The truth is rarely pure and never simple"                                ,
      "Be yourself; everyone else is already taken"                              ,
      "I have simple tastes: I am easily satisfied with the best"                ,
@@ -1146,7 +1149,7 @@ static char *gby[] = {
      "An idea that is not dangerous is unworthy of being called an idea at all" ,
      "The world is a stage, but the play is badly cast"                         ,
      "The only true necessities are totally useless things"                     ,
-     "The soul is born old but grows young."                                    ,
+     "The soul is born old but grows young"                                     ,
      "When given the choice of two evils, the pessimist chooses both"           ,
      "Never love anyone who treats you like you're ordinary"                    ,
      "The smallest act of kindness is worth more than the grandest intention"   ,
@@ -1165,6 +1168,7 @@ static char *gby[] = {
 
      /* Longer quotes */
 
+     "Never pay attention to criticism from someone you wouldn't take advice from"    ,
      "80% of our problems would go away if we'd just sit down and wait"               ,
      "Despite what FMRI says, tears come from the heart not from the brain"           ,
      "It is a poem in our eyes, its ample analyses dazzle the imagination"            ,
@@ -1186,7 +1190,7 @@ static char *gby[] = {
      "The truth is simple. If it was complicated, everyone would understand it"       ,
      "I hate, commas, in the wrong, place"                                            ,
      "The only true wisdom is in knowing you know nothing"                            ,
-     "There is no harm in repeating a good thing! There is no harm in ...."           ,
+     "There is no harm in repeating a good thing! There is no harm in ..."            ,
      "It is in our darkest moments that we must focus to see the light"               ,
      "Dignity does not consist of possessing honors, but in deserving them"           ,
      "What is a billion years, when compared to the lifespan of AFNI?"                ,
@@ -1236,6 +1240,7 @@ static char *gby[] = {
      "Next time, just for fun, I'll toss in some extra blobs in air just for you"     ,
      "What do you mean, you don't believe all those clusters in white matter?"        ,
      "What do you mean, you don't believe all those clusters in empty space?"         ,
+     "What do you mean, you don't believe all those clusters in the dead salmon?"     ,
      "Those results scream 'ARTIFACT' to me, but what do I know?"                     ,
      "For an extra pumpernickel bagel, I'll put a blob wherever you want it"          ,
      "For a Torcik Wedlowski, I'll colorize TWO extra regions for you -- anywhere"    ,
@@ -1243,7 +1248,7 @@ static char *gby[] = {
      "My hippocampus stopped working years ago -- what did you say?"                  ,
      "Will all great Neptune's ocean wash this modeling error from my regression?"    ,
      "Data which passes through so many steps can hardly have much truth left"        ,
-     "One man's way may be as good as another's, but we all like our own best"        ,
+     "One person's way may be as good as another's, but we all like our own best"     ,
      "Some ideas are so wrong that only an intelligent person could believe them"     ,
      "Life's a lot more fun when you aren't responsible for your actions"             ,
      "I'm not dumb. I just have command of thoroughly useless algorithms"             ,
@@ -1300,14 +1305,14 @@ static char *gby[] = {
      "So now I say goodbye, but I feel sure we will meet again sometime"              ,
      "If you're anything like me, you're both smart and incredibly good looking"      ,
      "In battle we may yet meet again, though all the hosts of Mordor stand between"  ,
-     "Repeat after me: Om Mani Padme Hum, Om Mani Padme Hum, Om Mani Padme Hum ...."  ,
+     "Repeat after me: Om Mani Padme Hum, Om Mani Padme Hum, Om Mani Padme Hum ..."   ,
      "Let us therefore study the incidents of this as philosophy to learn wisdom from",
      "Analyze your data rigorously -- you can fake the conclusions all you want later",
      "O wad some Pow'r the giftie gie us, To see oursels as ithers see us"            ,
      "One half the world cannot understand the statistics of the other"               ,
      "It is better to create than to learn. Creating is the essence of life"          ,
      "Events of importance are often the result of trivial causes"                    ,
-     "Men worry more about what they can't see than about what they can"              ,
+     "People worry more about what they can't see than about what they can"           ,
      "The best revenge is to be unlike him who performed the injury"                  ,
      "The art of living is more like wrestling than dancing"                          ,
      "If the genome is the source code, it should have come with comments"            ,
@@ -1340,6 +1345,7 @@ static char *gby[] = {
      "Our time together has passed away like swift drafts of nectar in the high halls"        ,
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "Those are my statistics, and if you don't like them... well, I have others"             ,
+     "When you come to a fork in the road -- take it"                                         ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
@@ -1350,6 +1356,11 @@ static char *gby[] = {
      "The key to everything is to focus on one thing at a time"                         ,
      "Mathematics is the most beautiful and most powerful creation of the human spirit" ,
      "The essence of mathematics lies in its freedom"                                   ,
+
+     "Every person can become the sculptor of their own brain"                 , /* Cajal (sort of) */
+     "As long as the brain is a mystery, the universe will also be a mystery"  ,
+     "The brain is a world with unexplored continents and unknown territories" ,
+     "Science is built on the ruins of theories thought to be indestructible"  ,
 
      /* Grateful Dead (mostly) */
 

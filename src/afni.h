@@ -1876,6 +1876,8 @@ extern void AFNI_clus_update_widgets( Three_D_View *im3d ) ;
 extern void AFNI_clus_popdown( Three_D_View *im3d ) ;
 extern int AFNI_clus_find_xyz( Three_D_View *im3d , float x,float y,float z ) ;
 extern void AFNI_clus_action_CB( Widget w , XtPointer cd , XtPointer cbs ) ;
+extern int AFNI_clus_find_xyz_nearest(
+                               Three_D_View *im3d , float x,float y,float z ) ;
 
 extern void AFNI_time_index_EV( Widget, XtPointer, XEvent *, Boolean * ) ; /* 24 Feb 2014 */
 extern void AFNI_time_index_set_fstep( Three_D_View *im3d , int istep ) ;

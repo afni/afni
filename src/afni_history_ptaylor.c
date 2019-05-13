@@ -66,6 +66,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Allow for comments about pbar ranges to be stored when saving pbar.",
+   "Also, the pbar text info will now be stored in dict/JSON-able form.\n"
+},
+
+{ 1, May , 2019 , PT , "@djunct_is_label.py" , MICRO , TYPE_GENERAL,
+   "Tiny program to see if input is an integer (-> index) or str (-> label).",
+   "Just used by @chauffeur_afni for -set_subbricks reading.\n"
+},
+
+{ 1, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "Allow -set_subbricks to take string labels for subbricks as usable args.",
+   "Excellent idea, Rasmus!\n"
+},
+
+{ 19, Apr , 2019 , PT , "@Spharm.examples" , MINOR , TYPE_GENERAL,
+   "Just updated paths/names: tarball getting used no longer exists.",
+   "No change in functionality (j'espere).\n"
+},
+
+{ 18, Apr , 2019 , PT , "@SSwarper" , MAJOR , TYPE_NEW_OPT,
+   "Include -deoblique and -giant_move opts.",
+   "For oblique data, and/or heavily rotated, shifted, etc.\n"
+},
+
 { 15, Mar , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_BUG_FIX,
    "Better behavioring of -box_focux_slices when ulay and refbox grids differ.",
    "Now checking grid similarity and resampling refbox if needbe.\n"

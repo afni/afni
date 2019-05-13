@@ -337,6 +337,7 @@ static char const * const gni1_history[] =
   "   - changed nifti_swap_* routines/calls to take size_t (6)\n"
   "1.43 07 Jul 2010 [rickr]: fixed znzR/W to again return nmembers\n",
   "1.44 19 Jul 2013 [rickr]: ITK compatibility updates from H Johnson\n",
+  "1.45 10 May 2019 [rickr]: added NIFTI_ECODE_QUANTIPHYSE\n",
   "----------------------------------------------------------------------\n"
 };
 
@@ -381,7 +382,7 @@ static char const * const gni2_history[] =
   "   - print int64_t using PRId64 macro, (ugly, but no warnings)\n"
   "2.06 01 Oct, 2018 [rickr]\n"
   "   - errors should all mention NIFTI, slight additional clarity\n"
-  "2.07 18 Dec, 2018 [hmjohnson]\n"
+  "2.07 18 Dec, 2018 [hmjohnson]\n",
   "   - added some const qualifiers\n"
   "   - removed register keywords\n"
   "   - fixed potential memory leaks in error conditions\n"
@@ -390,11 +391,12 @@ static char const * const gni2_history[] =
   "2.08 02 Jan, 2019 [rickr]\n"
   "   - fixed CIFTI extension reading if not first\n"
   "   - re-allow reading of ASCII headers (not part of standard)\n"
-  "   - nifti_set_iname_offset() now takes nifti_ver, to adjust for size\n"
+  "   - nifti_set_iname_offset() now takes nifti_ver, to adjust for size\n",
+  "2.09 10 May, 2019 [rickr]: added NIFTI_ECODE_QUANTIPHYSE\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.08 (3 January, 2019)";
+        = "nifti-2 library version 2.09 (10 May, 2019)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */

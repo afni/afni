@@ -29,12 +29,21 @@ set rdir = corr_test.results
 set din_list = ( )
 set do_corr = yes       # use no for testing only
 set do_clust = no       # use no to just create correlation volumes
+set do_clean = no       # remove everything but the correlation datasets?
+set clean_dir = .clean
 set mask_in = ''
+
+# 3dmerge/localstat options
+set use_3dmerge = yes   # new default, as of 9 May, 2019
+set merge_frad = 0.5    # go out to 0.5 of the half with at half max
+                        # (make this distance correspond to $sphere_rad, so
+                        # radius = $sphere_rad / $merge_frad)
+set corr_mask = no      # should we automask before correlation blurring?
 
 
 set prog = @radial_correlate
 
-set version = "0.2, 1 Sep, 2011"
+set version = "0.5, 10 May, 2019"
 
 if ( $#argv < 1 ) goto SHOW_HELP
 
@@ -43,24 +52,50 @@ while ( $ac <= $#argv )
    if ( "$argv[$ac]" == "-cthresh" ) then
       @ ac += 1
       set cthresh = $argv[$ac]
+   else if ( "$argv[$ac]" == "-corr_mask" ) then
+      @ ac += 1
+      set corr_mask = $argv[$ac]
+      if ( "$corr_mask" != 'yes' && "$corr_mask" != 'no' ) then
+         echo "** -corr_mask requies either 'yes' or 'no'"
+         exit 1
+      endif
+   else if ( "$argv[$ac]" == "-do_clean" ) then
+      @ ac += 1
+      set do_clean = $argv[$ac]
+      if ( "$do_clean" != 'yes' && "$do_clean" != 'no' ) then
+         echo "** -do_clean requies either 'yes' or 'no'"
+         exit 1
+      endif
    else if ( "$argv[$ac]" == "-do_clust" ) then
       @ ac += 1
       set do_clust = $argv[$ac]
+      if ( "$do_clust" != 'yes' && "$do_clust" != 'no' ) then
+         echo "** -do_clust requies either 'yes' or 'no'"
+         exit 1
+      endif
    else if ( "$argv[$ac]" == "-do_corr" ) then
       @ ac += 1
       set do_corr = $argv[$ac]
+      if ( "$do_corr" != 'yes' && "$do_corr" != 'no' ) then
+         echo "** -do_corr requies either 'yes' or 'no'"
+         exit 1
+      endif
    else if ( "$argv[$ac]" == "-frac_limit" ) then
       @ ac += 1
       set frac_limit = $argv[$ac]
    else if ( "$argv[$ac]" == "-nfirst" ) then
       @ ac += 1
       set nfirst = $argv[$ac]
+   else if ( "$argv[$ac]" == "-merge_frad" ) then
+      @ ac += 1
+      set merge_frad = $argv[$ac]
    else if ( "$argv[$ac]" == "-min_thr" ) then
       @ ac += 1
       set min_thr = $argv[$ac]
    else if ( "$argv[$ac]" == "-mask" ) then
       @ ac += 1
       set mask_in = $argv[$ac]
+      set corr_mask = yes
    else if ( "$argv[$ac]" == "-percentile" ) then
       @ ac += 1
       set percentile = $argv[$ac]
@@ -70,6 +105,17 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-sphere_rad" ) then
       @ ac += 1
       set sphere_rad = $argv[$ac]
+   else if ( "$argv[$ac]" == "-use_3dmerge" ) then
+      @ ac += 1
+      set use_3dmerge = $argv[$ac]
+      if ( "$use_3dmerge" != 'yes' && "$use_3dmerge" != 'no' ) then
+         echo "** -use_3dmerge requies either 'yes' or 'no'"
+         exit 1
+      endif
+      # use a mask with 3dLocalstat
+      if ( "$use_3dmerge" != 'no' ) then
+         set corr_mask = yes
+      endif
    else if ( "$argv[$ac]" == "-help" ) then
       goto SHOW_HELP
    else if ( "$argv[$ac]" == "-hist" ) then
@@ -77,6 +123,8 @@ while ( $ac <= $#argv )
    else if ( "$argv[$ac]" == "-ver" ) then
       echo "version $version"
       exit
+   else if ( "$argv[$ac]" == "-verb" ) then
+      set echo
    else
       # the rest are assumed to be input datasets
       set din_list = ( $argv[$ac-] )
@@ -85,14 +133,20 @@ while ( $ac <= $#argv )
    @ ac += 1
 end
 
+if ( $do_clean == yes && $do_corr != yes ) then
+   echo '** "-do_clean yes" requires "-do_corr yes"'
+   exit 1
+endif
+
 # ----------------------------------------------------------------------
 # create dset_list from din_list, and make sure input datasets have
 # enough TRs for computation (require at least $nfirst + 2)
 @ nneeded = $nfirst + 2
 set dset_list = ()
+set prefix_list = ()    # in case we name output based on input
 foreach dset ( $din_list )
    set nvals = `3dinfo -nt $dset`
-   if ( $status ) then
+   if ( $status || "$nvals" == "NO-DSET" ) then
       echo ""
       echo "** failed to get NT from dset $dset, skipping..."
       echo ""
@@ -104,8 +158,11 @@ foreach dset ( $din_list )
       continue
    endif
 
+   set prefix = `3dinfo -prefix_noext $dset`
+
    # otherwise, dataset looks good, add to list
    set dset_list = ( $dset_list $dset )
+   set prefix_list = ( $prefix_list $prefix )
 end
 
 # if there are no remaining datasets, bail
@@ -123,7 +180,7 @@ if ( $status ) then
 endif
 
 # ----------------------------------------------------------------------
-# make results dir, enter it and nuke old results
+# make results dir, enter it and remove old results
 
 if ( $do_corr == 'yes' ) then
    if ( -d $rdir ) then
@@ -136,6 +193,10 @@ if ( $do_corr == 'yes' ) then
       echo "** failed to create results directory, $rdir"
       exit
    endif
+
+   # if cleaning, make a temporary dir for storage
+   if ( $do_clean == yes ) mkdir $rdir/$clean_dir
+
 else if ( ! -d $rdir ) then
    echo "** error, missing results dir : $rdir"
    exit
@@ -147,10 +208,11 @@ endif
 
 if( $do_corr == 'yes' ) then
    foreach index ( `count -digits 1 1 $#dset_list` )
+      set ind02 = `ccalc -form '%02d' $index`
 
       set inset = $dset_list[$index]
 
-      3dTcat -prefix $rdir/epi.$index $inset\[$nfirst..\$]
+      3dTcat -prefix $rdir/epi.r$ind02 $inset\[$nfirst..\$]
 
       if ( $status ) then
           echo "** failed to copy EPI dataset $inset, exiting..."
@@ -182,16 +244,14 @@ touch $name_file
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
 foreach index ( `count -digits 1 1 $#dset_list` )
+   set ind02 = `ccalc -form '%02d' $index`
 
    # resulting variables
-   if ( $sphere_rad != 0 ) then
-      set prefix = res.$sphere_rad.$index
-   else
-      set prefix = res.$index
-   endif
+   set prefix = radcor.$sphere_rad.r$ind02
 
    set dset = $dset_list[$index]
-   set eset = epi.$index
+   set eset = epi.r$ind02
+   set ulay = epi.ulay.r$ind02          # save underlay dataset if clean?
    set mpre = $prefix.automask
    set mset = $mpre$view
    set sset = $prefix.scaled
@@ -204,7 +264,7 @@ foreach index ( `count -digits 1 1 $#dset_list` )
    echo "$prefix    <---    $dset" >> $name_file
 
    # ----------------------------------------
-   # nuke pre-SS TRs and generate a mask
+   # remove pre-SS TRs and generate a mask
    if ( $do_corr == 'yes' && $mask_in == "" ) then
       3dAutomask -q -prefix $mpre $eset$view
    endif
@@ -223,10 +283,29 @@ foreach index ( `count -digits 1 1 $#dset_list` )
       echo ""
 
       if ( $sphere_rad != 0 ) then
-           set rad = $sphere_rad
-           3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
-                  -stat mean -prefix sphere.mean.$rad.$index $eset$view
-           3dTcorrelate -prefix $cset $eset$view sphere.mean.$rad.$index$view
+         
+         set rad = $sphere_rad
+         if ( $use_3dmerge == yes ) then
+            # scale rad by frac number of HWHM, and to FWHM
+            set rad2 = `ccalc -n "2*$sphere_rad/$merge_frad"`
+            # FIRFAC = 1.17741 when nhwhm=1, so scale
+            set firfac = `ccalc "1.17741*$merge_frad"`
+            echo "++ merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
+
+            # mask before blur?
+            if ( $corr_mask == yes ) then
+               set enew = rm.emasked.r$ind02
+               3dcalc -a $eset$view -b $mset -expr "a*b" -prefix $enew
+               set eset = $enew
+            endif
+
+            3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 \
+                    -doall -prefix sphere.mean.$rad.r$ind02 $eset$view
+         else
+            3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
+               -stat mean -prefix sphere.mean.$rad.r$ind02 $eset$view
+         endif
+         3dTcorrelate -prefix $cset sphere.mean.$rad.r$ind02$view $eset$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
          3dTstat -mean -datum float -prefix $prefix.mean $eset$view
@@ -240,6 +319,13 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
          3dTcorr1D -mask $mset -pearson -prefix $cset \
                  $sset$view $prefix.mean_signal.1D
+      endif
+
+      # if cleaning, hide what we want to easily delete the rest
+      if ( $do_clean == yes ) then
+          3dbucket -prefix $ulay $eset$view'[0]'
+          \mv $ulay* $clean_dir
+          \cp $cset$view* $clean_dir
       endif
    endif
 
@@ -345,23 +431,41 @@ if ( $do_clust == 'yes' ) then
    echo "============================================================"
 endif  # $do_clust
 
-# be sure to provide some threshold
-if ( ! $?thr   ) set thr = 0.5
-if ( $thr == 0 ) set thr = 0.9
+# ----------------------------------------------------------------------
+# if do_clean, clean up and run away
+if ( $do_clean == yes ) then
+   echo "++ have do_clean, cleaning up..."
+   echo ""
 
-echo ""
-echo "   ___________________________________________________________________"
-echo ""
-echo "   - to review, consider looking at correlations over epi time series"
-echo "        run command: afni $rdir"
-echo "        then set:    Underlay  = epi.SOMETHING"
-echo "                     Overlay   = res.SOMETHING.corr"
-echo "                     maybe threshold = $thr, maybe clusterize"
-echo ""
-echo "   -  processed $#dset_list of $#din_list dataset(s)"
-echo "   -  for name correspondence, see: $rdir/$name_file"
-echo "   ___________________________________________________________________"
-echo ""
+   \rm -f *
+   \mv $clean_dir/* .
+   \rmdir $clean_dir
+
+   exit 0
+endif
+
+
+# ----------------------------------------------------------------------
+# maybe suggest how the user could look at the results
+
+# be sure to provide some threshold
+set thr = 0.5
+
+cat << EOF
+
+   ___________________________________________________________________
+
+   - to review, consider looking at correlations over epi time series
+        run command: afni $rdir
+        then set:    Underlay  = epi.SOMETHING
+                     Overlay   = radcor.SOMETHING.corr
+                     maybe threshold = $thr, maybe clusterize
+
+   -  processed $#dset_list of $#din_list dataset(s)
+   -  for name correspondence, see: $rdir/$name_file
+   ___________________________________________________________________
+
+EOF
 
 # ----------------------------------------------------------------------
 # DONE
@@ -523,6 +627,13 @@ echo "   -help             : show this help"
 echo ""
 echo "   -hist             : show modification history"
 echo ""
+echo "   -do_clean yes/no  : clean up at end, leaving only correlations"
+echo "                       default = $do_clean"
+echo ""
+echo "                       In the case of computing correlations, this"
+echo "                       option can be used to remove everything but those"
+echo "                       correlation datasets, to save disk space."
+echo ""
 echo "   -do_clust yes/no  : clust correlation volumes? (yes or no)"
 echo "                       default = $do_clust"
 echo ""
@@ -540,7 +651,19 @@ echo ""
 echo "   -rdir RESULTS_DIR : directory to do computations in"
 echo "                       default = $rdir"
 echo ""
+echo "   -use_3dmerge yes/no: use 3dmerge rather than 3dLocalstat"
+echo "                       default = $use_3dmerge"
+echo ""
+echo "                       For computing a local average, 3dmerge can do"
+echo "                       basically the same operation as 3dLocalstat, but"
+echo "                       250 times as fast (divided by OpenMP speedup)."
+echo ""
+echo "                       One can make -merge_frad smaller to make the"
+echo "                       results more similar, if desirable."
+echo ""
 echo "   -ver              : show version number"
+echo ""
+echo "   -verb             : make verbose: set echo"
 echo ""
 echo "---------------------------------------------"
 echo ""
@@ -550,12 +673,39 @@ echo "   -cthesh THRESH    : threshold on correlation values"
 echo "                       (if 0, use percentile, else use this)"
 echo "                       default = $cthresh"
 echo ""
+echo "   -corr_mask yes/no : mask time series before corrlation blurring"
+echo "                       default = $corr_mask"
+echo ""
+echo "                       This defines whether 3dmerge blurring is applied"
+echo "                       to a masked dataset."
+echo ""
+echo "   -mask MASK_DSET   : specify a mask dataset to replace automask"
+echo ""
 echo "   -frac_limit LIMIT : min mask fraction surviving cluster"
 echo "                       default = $frac_limit"
 echo ""
 echo "   -mask MASK_DSET   : specify a mask dataset to replace automask"
 echo "                       default = automask"
 echo "                       This mask is expected to cover the brain."
+echo ""
+echo "   -merge_frad FRAD  : specify a radius fraction for 3dmerge blurring"
+echo "                       default = $merge_frad"
+echo ""
+echo "                       If FRAD is 1, the Gaussian blur kernel will"
+echo "                       be applied with a shape out to the normal HWHM"
+echo "                       (half width at half max).  That is to say the"
+echo "                       the farthest neighbors would contribute 0.5 (half"
+echo "                       max) of that of the central voxel."
+echo ""
+echo "                       FRAC is an inverse scalar on the blur size,"
+echo "                       and a proportional scalar fraction on the size"
+echo "                       where the blurring ends.  So sphere_rad is always"
+echo "                       the applied blur size."
+echo ""
+echo "                       A smaller fraction will yield a flatter curve."
+echo "                       For example, FRAD=0.5 yeilds a 0.84 relative"
+echo "                       contribution at the radial distance, while."
+echo "                       doubling the requested blur."
 echo ""
 echo "   -nfirst NFIRST    : number of initial TRs to remove"
 echo "                       default = $nfirst"
@@ -567,6 +717,7 @@ echo "   -percentile PERC  : percentile to use as threshold"
 echo "                       default = $percentile"
 echo ""
 echo "   -sphere_rad RAD   : generate correlations within voxel spheres"
+echo "                       (or Gaussian weighted versions)"
 echo "                       (if 0, go against average time series)"
 echo "                       default = $sphere_rad"
 echo ""
@@ -577,15 +728,23 @@ exit
 
 SHOW_HIST:
 
-echo "-----------------------------------------------------------------"
-echo "$prog modification history:"
-echo ""
-echo "   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)"
-echo "   0.2  : Sep  1, 2011: now $prog"
-echo "          - new default: just create correlation volumes"
-echo "          - add to AFNI distribution"
-echo "          - add -do_corr and -do_clust"
-echo "   0.3  : Aug 12, 2015: add -mask option"
-echo ""
+cat << EOF
+
+-----------------------------------------------------------------
+$prog modification history:
+
+   0.1  : Aug 16, 2011: initial version (was @check_corr_artifact)
+   0.2  : Sep  1, 2011: now $prog
+          - new default: just create correlation volumes
+          - add to AFNI distribution
+          - add -do_corr and -do_clust
+   0.3  : Aug 12, 2015: add -mask option
+   0.4  : May 10, 2019: 3dLocalstat -> 3dmerge (much faster)
+          - by default, use 3dmerge for local averaging
+          - add -use_3dmerge, -corr_mask and -merge_frad
+          - add -do_clean and -verb
+          - on clean, save epi.ulay datasets
+
+EOF
 
 exit

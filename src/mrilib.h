@@ -1661,6 +1661,7 @@ typedef struct {
   int nvox ;
   float volume , xcm , ycm , zcm ;
   float          xpk , ypk , zpk ;
+  float          xmi , ymi , zmi ;  /* 08 May 2019 */
 } mri_cluster_detail ;
 
 extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE * ,

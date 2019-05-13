@@ -44,6 +44,34 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 8 , MAY , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
+   "Expand (somewhat) max displacement of component warps" ,
+   NULL } ,
+
+ { 6 , MAY , 2019 , RWC , "Clusterize" , MICRO , TYPE_ENHANCE ,
+   "Add 'ICent' (Internal Center) to coordinate option" ,
+   "In addition to Peak and Cmass. The problem with Peak is that it can be\n"
+   "way off on an edge. The problem with Cmass is that it can be outside the\n"
+   "actual cluster. ICent is sort of like Cmass but will be inside the\n"
+   "cluster." } ,
+
+ { 29 , APR , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "Keystrokes for cluster jumping"
+   "n jumps to the next cluster's peak/cmass\n"
+   "N jumps to the previous cluster's peak/cmass\n"
+   "If focus is NOT in a cluster, then goes to the nearest\n"
+   "cluster in space instead. [For John Butman, NIH/CC - happy NOW?]"
+ } ,
+
+ { 24 , APR , 2019 , RWC , "3dPVmap" , MICRO , TYPE_ENHANCE ,
+   "Two changes" ,
+   "1) Add singular value fractional variance-explained output\n"
+   "2) Change fixed cubic detrending to polort=N/50 detrending" } ,
+
+ { 22 , APR , 2019 , RWC , "1dApar2mat" , MICRO , TYPE_NEW_PROG ,
+   "Compute the affine matrix from the parameters from 3dAllineate" ,
+   NULL } ,
+
  { 16 , APR , 2019 , RWC , "afni GUI" , MICRO , TYPE_ENHANCE ,
    "C keystroke shortcut in graph viewer - switches color scheme" ,
    NULL } ,

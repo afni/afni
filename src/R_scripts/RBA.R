@@ -2,7 +2,7 @@
 
 ##!/usr/bin/env afni_run_R
 
-# Command line to run this script: MBA.R dataStr.txt diary.txt &
+# Command line to run this script: RBA.R dataStr.txt diary.txt &
 # (Output is a file in which the running progress including 
 # error messages will be stored)
 
@@ -13,23 +13,23 @@ first.in.path <- function(file) {
    return(gsub('//','/',ff[1], fixed=TRUE)) 
 }
 source(first.in.path('AFNIio.R'))
-ExecName <- 'MBA'
+ExecName <- 'RBA'
 
 # Global variables
 
 #################################################################################
-##################### Begin MBA Input functions ################################
+##################### Begin RBA Input functions ################################
 #################################################################################
 
-#The help function for MBA batch (AFNI-style script mode)
-help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
+#The help function for RBA batch (AFNI-style script mode)
+help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
 
    intro <- 
 '
-                      Welcome to MBA ~1~
-    Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
+                      Welcome to RBA ~1~
+    Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, May 9, 2019
+Version 0.0.2, May 13, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -37,74 +37,57 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 
 Usage: ~1~
 ------ 
- MBA performs matrix-based analysis (MBA) as theoretically elaborated in the
- manuscript: https://www.biorxiv.org/content/10.1101/459545v1
- MBA is conducted with a shell script (as shown in the examples below). The
- input data should be formulated in a pure-text table that codes the regions
- and variables. The response variable is usually correlation values (with or
- without Fisher-transformation) or white-matter properties (e.g., fractional
- anisotropy, mean diffusivity, radial diffusivity, axial diffusivity, etc.),
- but it can also be any values from a symmetric matrix (e.g., coherence,
- mutual information, entropy). In other words, the effects are assumed to be
- non-directional or non-causal. Diagonals can be included in the input if
- sensible.
+ RBA performs region-based analysis (RBA) as theoretically elaborated in the
+ manuscript: https://rdcu.be/bhhJp and is conducted with a shell script (as
+ shown in the examples below). The input data should be formulated in a
+ pure-text table that codes the regions and variables. The response variable
+ is some effect at the individual subject level.
 
- Thanks to Zhihao Li for motivating me to start the MBA work, and to 
- Paul-Christian Bürkner and the Stan/R communities for the strong support.
+ Thanks to Paul-Christian Bürkner and the Stan/R communities for the strong support.
 
  Citation: ~1~
- If you want to cite the approach for MBA, consider the following:~2~
+ If you want to cite the approach for RBA, consider the following:~2~
 
- Chen, G., Bürkner, P.-C., Taylor, P.A., Li, Z., Yin, L., Glen, D.R., Kinnison, J.,
- Cox, R.W., Pessoa, L., 2019. An Integrative Approach to Matrix-Based Analyses in
- Neuroimaging. https://doi.org/10.1101/459545
+ Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E, 2019. Handling Multiplicity
+ in Neuroimaging through Bayesian Lenses with Multilevel Modeling. Neuroinformatics.
+ https://rdcu.be/bhhJp
 
  =============================== 
  Read the following carefully!!!
  ===============================
- A data table in pure text format is needed as input for an MBA script. The
- data table should contain at least 4 columns that specify the information
- about subjects, region pairs and the response variable values with the
- following fixed header. The header lables are case-sensitive, and their order
- does not matter.
+ A data table in pure text format is needed as input for an RBA script. The
+ data table should contain at least 3 columns that specify the information
+ about subjects, regions and the response variable values with the following
+ fixed header. The header lables are case-sensitive, and their order does not
+ matter.
 
- Subj   ROI1   ROI2   Y      Age 
- S1     Amyg   SMA   0.2643  11
- S2     BNST   MPFC  0.3762  16 
+ Subj   ROI        Y      Age
+ S1     Amyg    0.2643    11
+ S2     BNST    0.3762    16
  ...
 
  0) You are performing Bayesian analysis!!! So, you will directly obtain
     the probability of an effect being positive or negative with your data,
-    instead of witch hunt - hunting the straw man of p-value (weirdness of your
+    instead of witch hunt-hunting the straw man of p-value (weirdness of your
     data when pretending that absolutely nothing exists).
 
  1) Avoid using pure numbers to code the labels for categorical variables. The
-    column order does not matter. . You can specify those column names as you
+    column order does not matter. You can specify those column names as you
     prefer, but it saves a little bit scripting if you adopt the default naming
-    for subjects (\'Subj\'), regions (\'ROI1\' and \'ROI2\') and response variable (\'Y\'). 
-    The column labels ROI1 and ROI2 are meant to indicate the two regions
-    associated with each response value, and they do not mean any sequence or
-    directionality.
+    for subjects (\'Subj\'), regions (\'ROI\') and response variable (\'Y\').
 
- 2) Only provide half of the off-diagonals in the table (no duplicates allowed).
-    Missing data are fine (e.g., white-matter property deemed nonexistent).
-
- 3) Simple analysis can be done in a few minutes, but computational cost can be
-    very high (e.g., weeks or even months) when the number of regions or subjects
-    is large or when a few explanatory variables are involved. Be patient: there
-    is hope in the near future that further parallelization can be implemented.
-
- 4) Add more columns if explanatory variables are considered in the model. Currently
+ 2) Add more columns if explanatory variables are considered in the model. Currently
     only between-subjects variables (e.g., sex, patients vs. controls, age) are
-    allowed. Each label in a between-subjects factor (categorical variable)
-    should be coded with at least 1 character (labeling with pure numbers is fine
-    but not recommended). If preferred, you can quantitatively code the levels of a
-    factor yourself by creating k-1 columns for a factor with k levels. However, be
-    careful with your coding strategy because it would impact how to interpret the
-    results. Here is a good reference about factor coding strategies:
+    allowed. Capability of modeling within-subject or repeated-measures variables
+    may be added in the future. Each label in a between-subjects factor (categorical
+    variable) should be coded with at least 1 character (labeling with pure numbers
+    is fine but not recommended). If preferred, you can quantitatively code the
+    levels of a factor yourself by creating k-1 columns for a factor with k levels.
+    However, be careful with your coding strategy because it would impact how to
+    interpret the results. Here is a good reference about factor coding strategies:
     https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
- 5) It is strongly suggested that a quantitative explanatory variable be
+ 3) It is strongly suggested that a quantitative explanatory variable be
     standardized with option -stdz; that is, remove the mean and scale by
     the standard deviation. This will improve the chance of convergence
     with each Markov chain. If a between-subjects factor (e.g., sex) is
@@ -114,30 +97,34 @@ Usage: ~1~
     you quantitatively code it. And do not standardize the response variable
     if the intercept is of interest!
 
- 6) With within-subject variables, try to formulate the data as a contrast
+ 4) For within-subject variables, try to formulate the data as a contrast
     between two factor levels or as a linear combination of multiple levels.
 
- 7) The results from MBA are effect estimates for each region pair and at each
-    region. They can be slightly different across different runs or different
-    computers and R package versions due to the nature of randomness involved
-    in Monte Carlo simulations.
+ 5) The results from RBA are effect estimates for each region. They can be
+    slightly different across different runs or different computers and R
+    package versions due to the nature of randomness involved in Monte Carlo
+    simulations.
 
- 8) The range in matrix plot may vary across different effects within an analysis.
-    It is possible to force the same range for all plots through fine-tuning
-    within R using the output of .RData. The criteria of color coding for the
-    strength of evidence in matrix plots in the output is as follows:
-     Green - two-tailed 95% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.975 or <= 0.025)
-     Blue  - one-tailed 95% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.95 or <= 0.05)
-     Yellow- one-tailed 90% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.90 or <= 0.10)
-     white - anything else
+ 6) The evidence for region effects in the output can be assessed through P+,
+    the probability that the effect is postive conditional on the current
+    dataset. The following criterion for highlighting the results is only
+    suggestive:
+     P+ >= 0.975 or <= 0.025 - very strong evidence
+     P+ >= 0.95 or <= 0.05   - strong evidence
+     P+ >= 0.90 or <= 0.10   - moderate evidence
+     else                    - little evidence
+
+    The same criterion is applied to the color coding in the posterior
+    distribution plots generated with the option -PDP:
+     P+ >= 0.975 or <= 0.025 - green:    very strong evidence
+     P+ >= 0.95 or <= 0.05   - yellow:   strong evidence
+     P+ >= 0.90 or <= 0.10   - gray:     moderate evidence
+     else                    - no color: little evidence
 
  =========================
  
  Installation requirements: ~1~
- In addition to R installation, the R package "brms" is required for MBA. Make
+ In addition to R installation, the R package "brms" is required for RBA. Make
  sure you have the most recent version of R. To install "brms", run the following
  command at the terminal:
 
@@ -148,13 +135,13 @@ Usage: ~1~
  install.packages("brms")
  
  Running: ~1~
- Once the MBA command script is constructed, it can be run by copying and
+ Once the RBA command script is constructed, it can be run by copying and
  pasting to the terminal. Alternatively (and probably better) you save the 
- script as a text file, for example, called myMBA.txt, and execute it with the 
+ script as a text file, for example, called myRBA.txt, and execute it with the 
  following  (assuming on tcsh shell),
  
- nohup tcsh -x myMBA.txt > diary.txt &
- nohup tcsh -x myMBA.txt |& tee diary.txt &
+ nohup tcsh -x myRBA.txt > diary.txt &
+ nohup tcsh -x myRBA.txt |& tee diary.txt &
 
  The advantage of the commands above is that the progression is saved into
  the text file diary.txt and, if anything goes awry, can be examined later.
@@ -165,27 +152,26 @@ Usage: ~1~
 "\n--------------------------------
 Examples: ~1~
 
-Example 1 --- Simplest scenario. Values from region pairs are the input from
+Example 1 --- Simplest scenario. Values from regions are the input from
           each subject. No explanatory variables are considered. Research
-	  interest is about the population effect at each region pair plus
-	  the relative strength of each region.
+	  interest is about the population effect at each region.
 
-   MBA -prefix output -r2z -dataTable myData.txt  \\
+   RBA -prefix output -dataTable myData.txt  \\
 
    The above script is equivalent to
 
-   MBA -prefix myWonderfulResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
+   RBA -prefix myWonderfulResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
    -r2z -dataTable myData.txt  \\
 
-   The 2nd version is recommended because of its explicit specifications.
+   The 2nd version above is recommended because of its explicit specifications.
 
    The input file 'myData.txt' is a data table in pure text format as below: 
                                                              
-     Subj  ROI1   ROI2      Y
-     S01   lFFA lAmygdala  0.162
-     S02   lFFA lAmygdala -0.598
-     S03   lFFA lAmygdala  0.249
-     S04   lFFA lAmygdala  0.568
+     Subj  ROI          Y
+     S01   lFFA       0.162
+     S02   lAmygdala -0.598
+     S03   DMNLAG     0.249
+     S04   DMNPCC     0.568
      ...
  \n"         
      
@@ -193,39 +179,42 @@ Example 1 --- Simplest scenario. Values from region pairs are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   MBA -prefix output -Subj subject -ROI1 region1 -ROI2 region2 -Y zscore\\
+   RBA -prefix output -Subj subject -ROI region -Y zscore -PDP 4 4 \\
    -chains 4 -iterations 1000 -model '1+sex+group' \\
-   -cVars 'sex,group' -r2z -EOI 'Intercept,sex,group' \\
+   -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
 
    The input file 'myData.txt' is formatted as below:
    
-   subject region1 region2  zscore  sex group
-   S1      DMNLAG  DMNLHC 0.274   F  patient
-   S1      DMNLAG  DMNPCC 0.443   F  patient
-   S2      DMNLAG  DMNRAG 0.455   M  contorl
-   S2      DMNLAG  DMNRHC 0.265   M  control
+   subject region  zscore  sex group
+   S1      DMNLAG  0.274    F  patient
+   S1      DMNLHC  0.443    F  patient
+   S2      DMNRAG  0.455    M  contorl
+   S2      DMNRHC  0.265    M  control
    ...
 
-   Notice that the interaction between 'sex' and 'group' is not modeled in this case.
+   Notice that the interaction between 'sex' and 'group' is not modeled in
+   this case. The option -PDP 4 4 allows the program to generate a 4 x 4
+   posterior distribution plots for the 16 regions.
 \n"
      
    ex3 <-
 "---------------------------------
 Example 3 --- one between-subjects factor (sex), one within-subject factor (two
-   conditions), and one quantitative variable: ~2~
+   conditions), one between-subjects covariate (age), and one quantitative
+   variable: ~2~
     
-   MBA -prefix result -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
-   -qVars 'sex,age,SA' -r2z -EOI 'Intercept,sex,age,SA' \\
-   -dataTable myData.txt
+   RBA -prefix result -PDP 4 4 -Subj Subj -ROI region -Y value \\
+   -chains 4 -iterations 1000 -model '1+sex+age+SA' -qVars 'sex,age,SA' \\
+   -EOI 'Intercept,sex,age,SA' -dataTable myData.txt
 
    The input file 'myData.txt' is formatted as below:
    
-   Subj ROI1  ROI2    Y   sex  age    SA
-   S1 DMNLAG DMNLHC 0.274  1  1.73  1.73
-   S1 DMNLAG DMNPCC 0.443  1  1.73  1.73
-   S2 DMNLAG DMNRAG 0.455 -1 -0.52 -0.52
-   S2 DMNLAG DMNRHC 0.265 -1 -0.52 -0.52
+   Subj   region   value sex  age   SA
+   S1    DMNLAG    0.274  1  1.73  1.73
+   S1    DMNLHC    0.443  1  1.73  1.73
+   S2    DMNRAG    0.455 -1 -0.52 -0.52
+   S2    DMNRHC    0.265 -1 -0.52 -0.52
    ...
 
    Notice
@@ -260,17 +249,17 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
 }
    
 # options list 
-read.MBA.opts.batch <- function (args=NULL, verb = 0) {
+read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    params <- list (
       '-prefix' = apl(n = 1, d = NA,  h = paste(
    "-prefix PREFIX: Prefix is used to specify output file names. The main output is",
    "        a text with prefix appended with .txt and stores inference information ",
    "        for effects of interest in a tabulated format depending on selected ",
    "        options. The prefix will also be used for other output files such as ",
-   "        visualization plots such as matrix plot, and saved R data in binary",
-   "        mode. The .RData can be used for post hoc processing such as customized",
-   "        processing and plotting. Remove the .RData file to save disk space once",
-   "        you deem such a file is no longer useful.\n", sep = '\n'
+   "        visualization plots, and saved R data in binary format. The .RData can",
+   "        be used for post hoc processing such as customized processing and plotting.",
+   "        Remove the .RData file to save disk space once you deem such a file is no",
+   "        longer useful.\n", sep = '\n'
                      ) ),
 
       '-chains' = apl(n = 1, d = 1, h = paste(
@@ -310,7 +299,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
 
       '-dbgArgs' = apl(n=0, h = paste(
    "-dbgArgs: This option will enable R to save the parameters in a file called",
-   "         .MBA.dbg.AFNI.args in the current directory so that debugging can be",
+   "         .RBA.dbg.AFNI.args in the current directory so that debugging can be",
    "         performed.\n", sep='\n')),
 
       '-MD' = apl(n=0, h = paste(
@@ -321,9 +310,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
 
       '-r2z' = apl(n=0, h = paste(
    "-r2z: This option performs Fisher transformation on the response variable",
-   "         (column Y) if it is correlation coefficient. Do not invoke the option",
-   "         if the transformation has already been applied or the variable is",
-   "         not correlation coefficient.\n", sep='\n')),
+   "         (column Y) if it is correlation coefficient.\n", sep='\n')),
 
       '-cVars' = apl(n=c(1,100), d=NA, h = paste(
    "-cVars variable_list: Identify categorical (qualitive) variables (or",
@@ -352,7 +339,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "         factors. For example, -stdz \"Age,IQ\". If the mean of a quantitative",
    "         variables varies substantially between groups, it may make sense to",
    "         standardize the variable within each group before plugging the values",
-   "         into the data table. Currently MBA does not offer the option to perform",
+   "         into the data table. Currently RBA does not offer the option to perform",
    "         within-group standardization.\n",
              sep = '\n'
              ) ),
@@ -392,44 +379,37 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        option is not invoked) is 'Subj'.\n", sep = '\n'
                      ) ),
 
-      '-ROI1' = apl(n = 1, d = NA,  h = paste(
-   "-ROI1 var_name: var_name is used to specify the column name that is designated as",
-   "        as the region variable for the first set of each region pair. The default",
-   "        (when this option is not invoked) is 'ROI1'.\n", sep = '\n'
+      '-ROI' = apl(n = 1, d = NA,  h = paste(
+   "-ROI var_name: var_name is used to specify the column name that is designated as",
+   "        as the region variable. The default (when this option is not invoked) is",
+   "        'ROI'.\n", sep = '\n'
                      ) ),
 
-      '-ROI2' = apl(n = 1, d = NA,  h = paste(
-   "-ROI2 var_name: var_name is used to specify the column name that is designated as",
-   "        as the region variable for the second set of each region pair. The default",
-   "        (when this option is not invoked) is 'ROI2'.\n", sep = '\n'
+      '-PDP' = apl(n = 2, d = NA, h = paste(
+   "-PDP nr nc: Specify the layout of posterior distribution plot (PDP) with nr rows",
+   "         and nc columns among the number of plots. For example, with 16 regions,",
+   "         you can set nr = 4 and nc = 4. The region names will be shown in each plot.",
+   "         So label the regions concisely.\n", sep = '\n'
                      ) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
    "         NOTE:\n",
-   "         1) There should have at least four columns in the table. These minimum",
-   "         four columns can be in any order but with fixed and reserved with labels:",
-   "         'Subj', 'ROI1', 'ROI2', and 'Y'. The two columns 'ROI1' and 'ROI2' are",
-   "         meant to code the two regions that are associated with each value under the",
-   "         column Y, and they do not connotate any indication of directionality other",
-   "         than you may want to keep track of a consistent order, for example, in the",
-   "         correlation matrix. More columns can be added in the table for explanatory",
-   "         variables (e.g., groups, age, site) if applicable. Only subject-level",
-   "         (or between-subjects) explanatory variables are allowed at the moment. The ",
-   "         columns of 'Subj', 'ROI1' and 'ROI2' code each subject and the two regions ",
-   "         associated with each region pair, and these labels that can be any identifiable",
-   "         characters including numbers. The column 'Y' can be correlation value, ",
-   "         Fisher-transformed correlation value, or white-matter property between ",
-   "         grey-matter regions (e.g., mean diffusivity, fractional anisotropy, radial",
-   "         diffusivity and axial diffusivity).",
+   "         1) There should have at least three columns in the table. These minimum",
+   "         three columns can be in any order but with fixed and reserved with labels:",
+   "         'Subj', 'ROI', and 'Y'. The column 'ROI' is meant to code the regions",
+   "         that are associated with each value under the column Y. More columns can",
+   "         be added in the table for explanatory variables (e.g., groups, age, site)",
+   "         if applicable. Only subject-level (or between-subjects) explanatory variables",
+   "         are allowed at the moment. The labels for the columns of 'Subj' and 'ROI'",
+   "         can be any identifiable characters including numbers.",
    "         2) Each row is associated with one and only one 'Y' value, which is the",
    "         response variable in the table of long format (cf. wide format) as",
-   "         defined in R. In the case of correlation matrix or white-matter property",
-   "         matrix, provide only half of the off-diagonals. With n regions, there",
-   "         should have at least n(n-1)/2 rows per subject, assuming no missing data. ",
-   "         3) It is fine to have variables (or columns) in the table that are",
-   "         not used in the current analysis.",
+   "         defined in R. With n subjects and m regions, there should have totally mn",
+   "         rows, assuming no missing data. ",
+   "         3) It is fine to have variables (or columns) in the table that are not used",
+   "         in the current analysis.",
    "         4) The context of the table can be saved as a separate file, e.g., called",
    "         table.txt. In the script specify the data with '-dataTable table.txt'.",
    "         This option is useful when: (a) there are many rows in the table so that",
@@ -446,7 +426,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    ops <- parse.AFNI.args(args, params, other_ok=FALSE)
    if (verb) show.AFNI.args(ops, verb=0, hstr='')
    if (is.null(ops)) 
-      errex.AFNI('Error parsing arguments. See MBA -help for details.')
+      errex.AFNI('Error parsing arguments. See RBA -help for details.')
 
    #Parse dems options
    #initialize with defaults
@@ -458,11 +438,11 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$qVars  <- 'Intercept'
       lop$stdz   <- NA
       lop$EOI    <- 'Intercept'
-      lop$qContr  <- NA
+      lop$qContr <- NA
       lop$Y      <- 'Y'
       lop$Subj   <- 'Subj'
-      lop$ROI1   <- 'ROI1'
-      lop$ROI2   <- 'ROI2'
+      lop$ROI    <- 'ROI'
+      lop$PDP    <- NA
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -477,18 +457,18 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              prefix = lop$outFN  <- pprefix.AFNI.name(ops[[i]]),
              chains   = lop$chains <- ops[[i]],
              iterations = lop$iterations <- ops[[i]],
-             verb   = lop$verb  <- ops[[i]],
-             model  = lop$model <- ops[[i]],
-             cVars  = lop$cVars <- ops[[i]],
-             qVars  = lop$qVars <- ops[[i]],
-             stdz   = lop$stdz  <- ops[[i]],
-             EOI    = lop$EOI   <- ops[[i]],
-             qContr = lop$qContr <- ops[[i]],       
+             verb   = lop$verb   <- ops[[i]],
+             model  = lop$model  <- ops[[i]],
+             cVars  = lop$cVars  <- ops[[i]],
+             qVars  = lop$qVars  <- ops[[i]],
+             stdz   = lop$stdz   <- ops[[i]],
+             EOI    = lop$EOI    <- ops[[i]],
+             qContr = lop$qContr <- ops[[i]],
              Y      = lop$Y      <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
-             ROI1   = lop$ROI1   <- ops[[i]],
-             ROI2   = lop$ROI2   <- ops[[i]],
-             help    = help.MBA.opts(params, adieu=TRUE),
+             ROI    = lop$ROI    <- ops[[i]],
+             PDP    = lop$PDP    <- ops[[i]],
+             help    = help.RBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
              r2z     = lop$r2z     <- TRUE,
@@ -497,11 +477,11 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    }
 
    return(lop)
-}# end of read.MBA.opts.batch
+}# end of read.RBA.opts.batch
                                                
                                                
-#Change options list to MBA variable list 
-process.MBA.opts <- function (lop, verb = 0) {
+#Change options list to RBA variable list 
+process.RBA.opts <- function (lop, verb = 0) {
    if(is.null(lop$outFN)) errex.AFNI(c("Output filename not specified! Add filename with -prefix.\n"))
    an <- parse.AFNI.name(lop$outFN)
    if(!lop$overwrite && (
@@ -520,29 +500,29 @@ process.MBA.opts <- function (lop, verb = 0) {
 
    return(lop)
 }
-# process.MBA.opts(lop, verb = lop$verb)                                               
+# process.RBA.opts(lop, verb = lop$verb)                                               
 
 #################################################################################
-########################## Begin MBA main ######################################
+########################## Begin RBA main ######################################
 #################################################################################
 
    if(!exists('.DBG_args')) { 
       args = (commandArgs(TRUE))  
       rfile <- first.in.path(sprintf('%s.R',ExecName))
        # save only on -dbgArgs          28 Apr 2016 [rickr]
-       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".MBA.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
+       if ('-dbgArgs' %in% args) try(save(args, rfile, file=".RBA.dbg.AFNI.args", ascii = TRUE), silent=TRUE) 
    } else {
       note.AFNI("Using .DBG_args resident in workspace")
       args <- .DBG_args
    }
    if(!length(args)) {
       BATCH_MODE <<- 0
-      cat(greeting.MBA(),
+      cat(greeting.RBA(),
       "Use CNTL-C on Unix or ESC on GUI version of R to stop at any moment.\n", 
       sep='\n')
       #browser()
       if(length(args)<6) modFile <- "model.txt" else modFile <- args[6]
-      if (is.null(lop <- read.MBA.opts.from.file(modFile, verb=0))) {
+      if (is.null(lop <- read.RBA.opts.from.file(modFile, verb=0))) {
          stop('Error parsing input from file!');
       }
 
@@ -554,11 +534,11 @@ process.MBA.opts <- function (lop, verb = 0) {
       } else {
          BATCH_MODE <<- 0
       }
-      if(is.null(lop <- read.MBA.opts.batch(args, verb = 0)))
+      if(is.null(lop <- read.RBA.opts.batch(args, verb = 0)))
          stop('Error parsing input')                
       
       #str(lop);
-      if(is.null(lop <- process.MBA.opts(lop, verb = lop$verb))) 
+      if(is.null(lop <- process.RBA.opts(lop, verb = lop$verb))) 
          stop('Error processing input')
       
    }
@@ -578,12 +558,10 @@ outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep
 # standardize the names for Y, ROI and subject
 names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
 names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
-names(lop$dataTable)[names(lop$dataTable)==lop$ROI1] <- 'ROI1'
-names(lop$dataTable)[names(lop$dataTable)==lop$ROI2] <- 'ROI2'
+names(lop$dataTable)[names(lop$dataTable)==lop$ROI] <- 'ROI'
 
-# make sure ROI1, ROI2 and Subj are treated as factors
-if(!is.factor(lop$dataTable$ROI1)) lop$dataTable$ROI1 <- as.factor(lop$dataTable$ROI1)
-if(!is.factor(lop$dataTable$ROI2)) lop$dataTable$ROI2 <- as.factor(lop$dataTable$ROI2)
+# make sure ROI and Subj are treated as factors
+if(!is.factor(lop$dataTable$ROI)) lop$dataTable$ROI <- as.factor(lop$dataTable$ROI)
 if(!is.factor(lop$dataTable$Subj)) lop$dataTable$Subj <- as.factor(lop$dataTable$Subj)
 
 # verify variable types
@@ -599,7 +577,7 @@ if(length(terms) > 1) {
 }
 
 # number of ROIs
-nR <- length(union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2)))
+nR <- nlevels(lop$dataTable$ROI)
 
 cat('===== Summary of variable information =====', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat(sprintf('Total number of ROIs: %i', nR), 
@@ -613,12 +591,12 @@ outDF(str(lop$dataTable), lop$outFN)
 cat('Subjects:', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 outDF(summary(lop$dataTable$Subj), lop$outFN)
 cat('ROIs:', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-outDF(summary(lop$dataTable$ROI1), lop$outFN)
-outDF(summary(lop$dataTable$ROI2), lop$outFN)
+outDF(summary(lop$dataTable$ROI), lop$outFN)
+
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
-if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR*(nR-1)/2 < nrow(lop$dataTable))
-   stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to toally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR*(nR-1)/2, nlevels(lop$dataTable$Subj)*nR*(nR-1)/2, nrow(lop$dataTable)))
+if(!lop$MD) if(nlevels(lop$dataTable$Subj)*nR < nrow(lop$dataTable))
+   stop(sprintf('Error: with %d regions and %d subjects, it is expected to have %d rows per subject, leading to toally %d rows in the input data table. However, there are only %d rows. If you have missing data, use option -MD', nR, nlevels(lop$dataTable$Subj), nR, nlevels(lop$dataTable$Subj)*nR, nrow(lop$dataTable)))
 
 lop$EOIq <- strsplit(lop$qVars, '\\,')[[1]]
 if(!('Intercept' %in% lop$EOIq)) lop$EOIq <- c('Intercept', lop$EOIq)
@@ -626,7 +604,7 @@ lop$EOIq <- intersect(strsplit(lop$EOI, '\\,')[[1]], lop$EOIq)
 if(is.null(lop$cVars)) lop$EOIc <- NA else 
    lop$EOIc <- intersect(strsplit(lop$EOI, '\\,')[[1]], strsplit(lop$cVars, '\\,')[[1]])
 
-if(any(!is.na(lop$qContr))) {
+if(!is.na(lop$qContr)) {
    qContrL <- unlist(strsplit(lop$qContr, '\\,'))
    # verify 'vs' in alternating location
    ll <- which(qContrL %in% 'vs')
@@ -648,10 +626,6 @@ options(mc.cores = parallel::detectCores())
 fisher <- function(r) ifelse(abs(r) < .995, 0.5*(log(1+r)-log(1-r)), stop('Are you sure that you have correlation values so close to 1 or -1?'))
 if(lop$r2z) lop$dataTable$Y <- fisher(lop$dataTable$Y)
 
-# combine the levels between the two region lists: NO! It seems to mess up the modeling wih brm
-#levels(lop$dataTable$ROI1) <- union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
-#levels(lop$dataTable$ROI2) <- union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
-
 # standardization
 if(!is.na(lop$stdz)) {
    sl <- strsplit(lop$stdz, '\\,')[[1]]
@@ -672,11 +646,8 @@ ptm <- proc.time()
 #lop$model <- '1+V1+V2'
 
 ##################### MCMC ####################
-if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI1:ROI2) + 
-      (1|mm(ROI1, ROI2, weights = cbind(w, w), scale=FALSE)) + 
-      (1|mm(ROI1:Subj, ROI2:Subj, weights = cbind(w, w), scale=FALSE))')) else
-   modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI1:ROI2)+(', 
-      lop$model, '|mm(ROI1, ROI2, weights = cbind(w, w), scale=FALSE))'))
+if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
+   modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
 
 if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
       iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
@@ -714,185 +685,20 @@ if(any(sapply(c(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_par
 cat(capture.output(rs), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)   
 
-#union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2))
-
-#lop <- list(outFN='Tara', EOI=c('Intercept', 'e4', 'site'), EOIc=c('e4', 'site'), EOIq='Intercept')
-#lop[['EOIq']] <- 'Intercept'
-
 ns <- lop$iterations*lop$chains/2
-#nR <- nlevels(lop$dataTable$ROI1)
 aa <- fixef(fm, summary = FALSE) # Population-Level Estimates
 bb <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
-if(nR != length(dimnames(bb$mmROI1ROI2)[[2]])) 
-   cat('\n***** Warning: something strange about the ROIs! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 # compute P+
 cnt <- function(x, ns) return(sum(x>0)/ns)
 
-# extract region-pair posterior samples for an effect 'tm'
-ww <- function(aa, bb, tm, nR) {
-  ps0 <- array(apply(bb[['mmROI1ROI2']][,,tm], 2, "+", bb[['mmROI1ROI2']][,,tm]), c(ns, nR, nR))
-  ps <- apply(ps0, c(2,3), '+', aa[,tm])
-  
-  dimnames(ps) <- list(1:ns, dimnames(bb$mmROI1ROI2)[[2]], dimnames(bb$mmROI1ROI2)[[2]])
-  tmp <- ps
-  
-  sel1 <- match(dimnames(bb$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(x,y,sep="_")))
-  sel2 <- match(dimnames(bb$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(y,x,sep="_")))
-  
-  ad <- function(tt,bb,s1,s2) {tt[s1] <- tt[s1] + bb; tt[s2] <- tt[s2] + bb; return(tt)}
-  for(ii in 1:ns) tmp[ii,,] <- ad(tmp[ii,,], bb$`ROI1:ROI2`[ii,,tm], sel1, sel2)
-  ps <- tmp
+########## region effects #############
+# posterior samples at ROIs for a term
+psROI <- function(aa, bb, tm) {
+  ps <- apply(bb[['ROI']][,,tm], 2, '+', aa[,tm])
   return(ps)
 }
 # ps <- ww(aa, bb, 'Intercept', nR)
-
-# obtain summary informatin of posterior samples for RPs
-vv <- function(ps, ns, nR) {
-  mm <- apply(ps, c(2,3), mean)
-  for(ii in 1:nR) for(jj in 1:nR) ps[,ii,jj] <- sqrt(2)*(ps[,ii,jj] - mm[ii,jj]) + mm[ii,jj]
-  RP <- array(NA, dim=c(nR, nR, 8))
-  RP[,,1] <- apply(ps, c(2,3), mean)
-  RP[,,2] <- apply(ps, c(2,3), sd)
-  RP[,,3] <- apply(ps, c(2,3), cnt, ns)
-  RP[,,4:8] <- aperm(apply(ps, c(2,3), quantile, probs=c(0.025, 0.05, 0.5, 0.95, 0.975)), dim=c(2,3,1))
-  dimnames(RP)[[1]] <- dimnames(ps)[[2]]
-  dimnames(RP)[[2]] <- dimnames(ps)[[3]] 
-  dimnames(RP)[[3]] <- c('mean', 'SD', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
-  return(RP)
-}
-
-# full region pair result without thresholding
-#xx <- vv(ww(aa, bb, 'Intercept', nR), ns, nR)
-#subset(xx[,,c(1,8)], xx[,,'P+'] >= 0.975 | xx[,,'P+'] <= 0.025)
-
-# graded thresholding
-res <- function(bb, xx, pp, nd) {
-   RP <- which(xx[,,'P+'] >= 1-pp | xx[,,'P+'] <= pp, arr.ind = T)
-   RP <- RP[RP[,1] < RP[,2],]
-   tmp <- data.frame(ROI1=factor(), ROI2=factor(), mean=factor(), SD=factor(), `P+`=factor(), check.names = FALSE)
-   if(length(RP) > 2) {
-      tmp <- cbind(dimnames(bb$mmROI1ROI2)[[2]][RP[,1]], dimnames(bb$mmROI1ROI2)[[2]][RP[,2]], 
-         round(t(mapply(function(i, j) xx[i, j, 1:3], RP[,1], RP[,2])), nd)) 
-      colnames(tmp)[1:2] <- c('ROI1', 'ROI2') 
-      tmp <- data.frame(tmp, row.names = NULL, check.names = FALSE) } else
-      if(length(RP)==2) {
-         tmp <- c(dimnames(bb$mmROI1ROI2)[[2]][RP[1]], dimnames(bb$mmROI1ROI2)[[2]][RP[2]], round(xx[RP[1], RP[2], 1:3],3))
-         #tmp <- paste(RP[1], RP[2], round(xx[RP[1], RP[2], 1:3], nd))
-         #names(tmp)[1:2] <- c('ROI1', 'ROI2')
-         tmp <- data.frame(t(tmp), row.names = NULL, check.names = FALSE) 
-      }
-   return(tmp)
-}
-
-# standardize the output
-prnt <- function(pct, side, dat, fl, entity) {
-   cat(sprintf('***** %i %s based on %i-sided %i uncertainty interval *****', 
-      nrow(dat), entity, side, pct), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
-   if(nrow(dat) > 0) cat(capture.output(dat), file = paste0(fl, '.txt'), sep = '\n', append=TRUE) else
-      cat('NULL', file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
-}
-
-# matrix plot for RPs: assuming no diagonals for now
-require(corrplot)
-mPlot <- function(xx, fn) {
-   mm <- xx[,,6]  # median
-   pp <- xx[,,3]  # P+
-   BC1 <- ((pp >= 0.975 ) | (pp <= 0.025))   # background color
-   BC  <- ((pp >= 0.95 ) | (pp <= 0.05))   # background color
-   BC2 <- (((pp > 0.9) & (pp < 0.95)) | ((pp < 0.1) & (pp > 0.05)))
-   BC[BC  == T] <- "blue"
-   BC[BC1 == T] <- "green"
-   BC[BC  == F] <- "white"
-   BC[BC2 == T] <- 'yellow'
-   rng <- range(mm)
-   diag(mm) <- NA  # diagonals are meaningful in the case of correlation matrix
-   diag(BC) <- "white" # if the diagonal values shall be white
-   ii <- !kronecker(diag(1, nrow(BC)), matrix(1, ncol=1, nrow=1))
-   BC <- matrix(BC[ii], ncol = ncol(BC)-1)
-   col2 <- colorRampPalette(c("#67001F", "#B2182B", "#D6604D", "#F4A582",
-                                "#FDDBC7", "#FFFFFF", "#D1E5F0", "#92C5DE",
-                                "#4393C3", "#2166AC", "#053061"))
-   pdf(paste0(fn, ".pdf"), width=8, height=8)
-   corrplot(mm, method="circle", type = "full", is.corr = FALSE, bg=BC, tl.pos='lt', tl.col='black', col=rev(col2(200)), cl.pos='r', na.label = "square", na.label.col='white')
-   dev.off()
-}
-
-########## region pair effects #############
-# for intercept or quantitative variable
-if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
-   xx <- vv(ww(aa, bb, lop$EOIq[ii], nR), ns, nR)   
-   cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIq[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
-   prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
-   prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
-   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   mPlot(xx, lop$EOIq[ii])
-}
-
-# for contrasts among quantitative variables
-if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
-   xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
-   cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
-   prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
-   prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
-   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii]))
-}
-
-# for factor
-if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
-   lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
-   nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
-   ps <- array(0, dim=c(nl, ns, nR, nR)) # posterior samples
-   for(jj in 1:(nl-1)) ps[jj,,,] <- ww(aa, bb, paste0(lop$EOIc[ii],jj), nR)
-   ps[nl,,,] <- ww(aa, bb, 'Intercept', nR)
-   psa <- array(0, dim=c(nl, ns, nR, nR)) # posterior samples adjusted
-   for(jj in 1:(nl-1)) {
-      psa[jj,,,] <- ps[nl,,,] + ps[jj,,,]
-      psa[nl,,,] <- psa[nl,,,] + ps[jj,,,]
-   }
-   psa[nl,,,] <- ps[nl,,,] - psa[nl,,,]  # reference level
-   
-   #oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
-   #dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
-   
-   cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   for(jj in 1:nl) {
-      cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- vv(psa[jj,,,], ns, nR)
-      prnt(90, 1, res(bb, oo, 0.1, 3),  lop$outFN, 'region pairs')
-      prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
-      prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
-      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) 
-   }
-   
-   cat(sprintf('===== Summary of region pair effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
-      cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- vv(psa[jj,,,] - psa[kk,,,], ns, nR)
-      prnt(90, 1, res(bb, oo, 0.1),   lop$outFN, 'region pairs')
-      prnt(95, 1, res(bb, oo, 0.05),  lop$outFN, 'region pairs')
-      prnt(95, 2, res(bb, oo, 0.025), lop$outFN, 'region pairs')
-      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) 
-   }
-}
-
-########## region effects #############
-# posterior samples at ROIs for a term
-psROI <- function(aa, bb, tm, nR) {
-  R0 <- apply(bb$mmROI1ROI2[,,tm], 2, '+', 0.5*aa[,tm])
-  for(jj in 1:nR) {
-      mm <-quantile(R0[,jj], probs=.5)
-      R0[,jj] <- sqrt(2)*(R0[,jj] - mm)+mm
-  }
-  return(R0)  
-}  
-
-#gg <- psROI(aa, bb, 'Intercept', nR)
 
 # summary for ROIs: nd - number of digits to output
 sumROI <- function(R0, ns, nd) {
@@ -903,11 +709,131 @@ sumROI <- function(R0, ns, nd) {
 }
 #gg <- sumROI(gg, ns, 3)
 
+#is.even <- function(x) x %% 2 == 0
+
+plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
+   h <- ceiling(8*nr/(nc*2))  # plot window height
+   pdf(paste0(fn, ".pdf"), width=w, height=h)
+   #dev.new(width=w, height=h)
+   par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
+   qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
+   kk <- 0
+   for(ii in 1:nR) {
+      kk <- kk+1
+      #x <- quantile(ps[,ii], probs = c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975))
+      dens <- density(ps[,ii])
+      #par(mar=c(1.85,0.2,0.0,0.8))
+      plot(dens, main='', axes=F, bty="n", xlab='', ylab='')
+      axis(side = 1)
+      abline(v=0, col='blue')
+      #if(is.even(kk)) mtext(dimnames(ps)[[2]][ii], side = 1, line=-7, las=0) else
+      mtext(dimnames(ps)[[2]][ii], side = 1, line=-6, las=0)
+      x1 <- min(which(dens$x >= qq[6,ii]))  # 97.5% 
+      x2 <- max(which(dens$x <  4e10))         # infinity
+      x3 <- min(which(dens$x >= -4e10))        # -infinity
+      x4 <- max(which(dens$x <  qq[1,ii]))  # 2.5%
+      x5 <- min(which(dens$x >= qq[5,ii]))  # 95%
+      x6 <- max(which(dens$x <  qq[2,ii]))  # 5%
+      x7 <- min(which(dens$x >= qq[4,ii]))  # 90%
+      x8 <- max(which(dens$x <  qq[3,ii]))  # 10%
+      with(dens, polygon(x=c(x[c(x1,x1:x2,x2)]), y= c(0, y[x1:x2], 0), col="green")) # right tail
+      with(dens, polygon(x=c(x[c(x3,x3:x4,x4)]), y= c(0, y[x3:x4], 0), col="green")) # left tail
+      with(dens, polygon(x=c(x[c(x5,x5:x1,x1)]), y= c(0, y[x5:x1], 0), col="orange"))
+      with(dens, polygon(x=c(x[c(x4,x4:x6,x6)]), y= c(0, y[x4:x6], 0), col="orange"))
+      with(dens, polygon(x=c(x[c(x7,x7:x5,x5)]), y= c(0, y[x7:x5], 0), col="gray"))
+      with(dens, polygon(x=c(x[c(x6,x6:x8,x8)]), y= c(0, y[x6:x8], 0), col="gray"))
+   #   if(ii==6) mtext('density', side = 2, line=0, las=0, cex=1.2) # y label
+   #   if(ii==4) mtext('ToMI effect', side = 1, line=3, las=0, cex=1.2) # x label
+      if(qq[1,ii] > 0 | qq[6,ii] < 0) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'green', lwd=3)
+      if((qq[1,ii] < 0 & qq[2,ii] > 0) | (qq[5,ii] < 0 &  qq[6,ii] > 0)) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'orange', lwd=3)
+      if((qq[2,ii] < 0 & qq[3,ii] > 0) | (qq[4,ii] < 0 &  qq[5,ii] > 0)) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'gray', lwd=3)
+   }
+   dev.off()
+}
+
 # for Intercept and quantitative variables
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$EOIq[ii], nR), ns, 3)
+   ps0 <- psROI(aa, bb, lop$EOIq[ii])
+   gg <- sumROI(ps0, ns, 4)
+   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+}
+
+# for contrasts among quantitative variables
+if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
+   cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   ps0 <- psROI(aa, bb, lop$qContrL[2*ii-1]) - psROI(aa, bb, lop$qContrL[2*ii])
+   gg <- sumROI(ps0, ns, 4)
+   cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(paste0(lop$qContrL[2*ii-1], '-', lop$qContrL[2*ii]), ps0, nR, lop$PDP[1], lop$PDP[2], 8)
+}
+
+# for factor
+if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
+   lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
+   nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
+   ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
+   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
+   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
+   psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
+   for(jj in 1:(nl-1)) {
+      psa[jj,,] <- ps[nl,,]  + ps[jj,,]
+      psa[nl,,] <- psa[nl,,] + ps[jj,,] 
+   }
+   psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   
+   oo <- apply(psa, 1, sumROI, ns, 4)
+   
+   cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   for(jj in 1:nl) {
+      cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   }
+
+   if(any(!is.na(lop$PDP) == TRUE)) for(jj in 1:nl)
+      plotPDP(lop$EOIc[ii], psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
+   
+   cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
+      cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
+      cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      if(any(!is.na(lop$PDP) == TRUE))  plotPDP(paste0(lvl[jj], '-', lvl[kk]), psa[jj,,] - psa[kk,,], nR, lop$PDP[1], lop$PDP[2], 8)
+   }
+}
+
+##################### conventional GLM #####################
+mm <- list()
+GLM <- as.formula(paste('Y ~', lop$model))
+for(ii in levels(lop$dat$ROI)) mm[[ii]] = lm(GLM, data=lop$dat[lop$dat$ROI==ii,])
+nn <- lapply(mm, summary)
+ll <- lapply(nn, `[`, 'coefficients')
+
+sumGLM <- function(ll, tm, nR, DF, nd) {
+   th <- qt(c(0.025, 0.05, 0.5, 0.95, 0.975), DF)
+   rr <- matrix(, nrow = nR, ncol = 8, dimnames=list(levels(lop$dat$ROI), c('mean', 'SD', '2-sided-p', '2.5%', '5%', '50%', '95%', '97.5%')))
+   rownames(rr) <- levels(lop$dat$ROI)
+   for(ii in 1:nR) {
+     u1 <- ll[[ii]]$coefficients[tm,1] # mean
+     u2 <- ll[[ii]]$coefficients[tm,2] # sd
+     u3 <- ll[[ii]]$coefficients[tm,4] # 2-sided p
+     rr[ii,] <- round(c(u1, u2, u3, u1+u2*th),nd)
+   } 
+   return(rr)
+}
+
+# for Intercept and quantitative variables
+if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
+   cat(sprintf('===== Summary of region effects under GLM for %s: no adjustment for multiplicity =====', lop$EOIq[ii]), 
+      file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df, 4)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
@@ -916,7 +842,6 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1], nR) - psROI(aa, bb, lop$qContrL[2*ii], nR), ns, 3)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
@@ -926,8 +851,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
    ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
-   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj), nR)
-   ps[nl,,] <- psROI(aa, bb, 'Intercept', nR) # Intercept: averge effect 
+   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
+   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
    psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
    for(jj in 1:(nl-1)) {
       psa[jj,,] <- ps[nl,,]  + ps[jj,,]
@@ -935,7 +860,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
    
-   oo <- apply(psa, 1, sumROI, ns, 3)
+   oo <- apply(psa, 1, sumROI, ns, 4)
    
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:nl) {
@@ -947,11 +872,12 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 3)
+      oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
       cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    }
 }
+################
 
 # save it again
 save.image(file=paste0(lop$outFN, ".RData"))

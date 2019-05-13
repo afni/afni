@@ -334,6 +334,8 @@ int main( int argc , char *argv[] )
    EDIT_substitute_brick( cset , 0 , MRI_float , NULL ) ; /* make array  */
    car = DSET_ARRAY(cset,0) ;                             /* get array   */
 
+   /* include prior history  [9 May 2019 rickr] */
+   tross_Copy_History( xset , cset );
    tross_Make_History( "3dTcorrelate" , argc,argv , cset ) ;
 
    /* loop over voxels, correlate */

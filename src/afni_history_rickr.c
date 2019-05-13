@@ -49,6 +49,69 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, May, 2019, RCR, "NIFTI", MICRO, TYPE_ENHANCE,
+   "add NIFTI_ECODE_QUANTIPHYSE",
+   NULL
+ } ,
+
+ {  9, May, 2019, RCR, "3dTcorrelate", MICRO, TYPE_ENHANCE,
+   "include old history of xset",
+   NULL
+ } ,
+
+ {  9, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_NEW_OPT,
+   "replace 3dLocalstat with 3dmerge for locally ~averaged time series",
+   "One can choose between the methods, but 3dmerge is much faster.\n"
+   "Included options are -use_3dmerge, -corr_mask and -merge_nrad,\n"
+   "as well as -do_clean and -verb."
+ } ,
+
+ {  8, May, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "allow AFNI_BLUR_FIRFAC to get near zero",
+   "This can be abused for a 'fast ANATICOR', for example.\n"
+   "Since sigma = 0.4246609 * fwhm, consider using: \n"
+   "   sfac = 1/(2*.0.4246609) = 1.17741\n"
+   "That number of sigmas should match the half width at half max,\n"
+   "which should terminate the blur just after a half height.\n"
+   "\n"
+   "Or use 2*FWHM and sfac = 1.17741/2 = 0.588705 to make it more flat,\n"
+   "with a min contribution of ~0.84, rather than 0.5, yet limiting\n"
+   "the output to the same HWHM radius (e.g. FWHM=80mm with sfac=0.589\n"
+   "results in a fairly flat blur out to a radius of ~20 mm)."
+ } ,
+
+ {  8, May, 2019, RCR, "afni_util.py", MICRO, TYPE_NEW_OPT,
+   "add -module_dir",
+   NULL
+ } ,
+
+ {  7, May, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -timing_to_1D_warn_ok to make some conversion issues non-fatal",
+   "Done for J Wiggins and M Liuzzi."
+ } ,
+
+ {  7, May, 2019, RCR, "afni_util.py", MINOR, TYPE_ENHANCE,
+   "add deg2chordlen() to return distance traveled due to a rotation",
+   NULL
+ } ,
+
+ { 25, Apr, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "-regress_bandpass now takes any positive number of frequencies pairs",
+   "Done to appease the mighty P Taylor."
+ } ,
+
+ { 23, Apr, 2019, RCR, "3dAllineate", MICRO, TYPE_ENHANCE,
+   "Allow '^' to denote a power in -autoweight, in addition to '**'\n",
+   "This is to avoid protecting the string in quotes, making it easy\n"
+   "to pass from afni_proc.py to align_epi_anat.py to 3dAllineate."
+ } ,
+
+ { 22, Apr, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -tsv_labels",
+   "This can be used to specify column labels to be used for\n"
+   "onset time, duration, trial type, and optional modulators."
+ } ,
+
  { 16, Apr, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_BUG_FIX,
    "verify av_space == +tlrc before setting template",
    "Thanks to P Molfese and P Taylor for noting the problem."

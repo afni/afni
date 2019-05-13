@@ -1275,6 +1275,9 @@ fi
 
 EOF
 
+
+   endif
+
 endif
 
 # maybe they need to set the DYLD_F_L_P
