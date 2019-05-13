@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, May 9, 2019
+Version 0.0.2, May 13, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -114,6 +114,13 @@ Usage: ~1~
      P+ >= 0.90 or <= 0.10   - moderate evidence
      else                    - little evidence
 
+    The same criterion is applied to the color coding in the posterior
+    distribution plots generated with the option -PDP:
+     P+ >= 0.975 or <= 0.025 - green:    very strong evidence
+     P+ >= 0.95 or <= 0.05   - yellow:   strong evidence
+     P+ >= 0.90 or <= 0.10   - gray:     moderate evidence
+     else                    - no color: little evidence
+
  =========================
  
  Installation requirements: ~1~
@@ -172,7 +179,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 "--------------------------------
 Example 2 --- 2 between-subjects factors (sex and group): ~2~
 
-   RBA -prefix output -Subj subject -ROI region -Y zscore \\
+   RBA -prefix output -Subj subject -ROI region -Y zscore -PDP 4 4 \\
    -chains 4 -iterations 1000 -model '1+sex+group' \\
    -cVars 'sex,group' -EOI 'Intercept,sex,group' \\
    -dataTable myData.txt
@@ -186,7 +193,9 @@ Example 2 --- 2 between-subjects factors (sex and group): ~2~
    S2      DMNRHC  0.265    M  control
    ...
 
-   Notice that the interaction between 'sex' and 'group' is not modeled in this case.
+   Notice that the interaction between 'sex' and 'group' is not modeled in
+   this case. The option -PDP 4 4 allows the program to generate a 4 x 4
+   posterior distribution plots for the 16 regions.
 \n"
      
    ex3 <-
@@ -195,17 +204,17 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    conditions), one between-subjects covariate (age), and one quantitative
    variable: ~2~
     
-   RBA -prefix result -chains 4 -iterations 1000 -model '1+sex+age+SA' \\
-   -qVars 'sex,age,SA' -EOI 'Intercept,sex,age,SA' \\
-   -dataTable myData.txt
+   RBA -prefix result -PDP 4 4 -Subj Subj -ROI region -Y value \\
+   -chains 4 -iterations 1000 -model '1+sex+age+SA' -qVars 'sex,age,SA' \\
+   -EOI 'Intercept,sex,age,SA' -dataTable myData.txt
 
    The input file 'myData.txt' is formatted as below:
    
-   Subj ROI     Y   sex  age    SA
-   S1  DMNLAG 0.274  1  1.73  1.73
-   S1  DMNLHC 0.443  1  1.73  1.73
-   S2  DMNRAG 0.455 -1 -0.52 -0.52
-   S2  DMNRHC 0.265 -1 -0.52 -0.52
+   Subj   region   value sex  age   SA
+   S1    DMNLAG    0.274  1  1.73  1.73
+   S1    DMNLHC    0.443  1  1.73  1.73
+   S2    DMNRAG    0.455 -1 -0.52 -0.52
+   S2    DMNRHC    0.265 -1 -0.52 -0.52
    ...
 
    Notice
@@ -376,6 +385,13 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
    "        'ROI'.\n", sep = '\n'
                      ) ),
 
+      '-PDP' = apl(n = 2, d = NA, h = paste(
+   "-PDP nr nc: Specify the layout of posterior distribution plot (PDP) with nr rows",
+   "         and nc columns among the number of plots. For example, with 16 regions,",
+   "         you can set nr = 4 and nc = 4. The region names will be shown in each plot.",
+   "         So label the regions concisely.\n", sep = '\n'
+                     ) ),
+
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
@@ -426,6 +442,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$Y      <- 'Y'
       lop$Subj   <- 'Subj'
       lop$ROI    <- 'ROI'
+      lop$PDP    <- NA
 
       lop$dbgArgs <- FALSE # for debugging purpose
       lop$MD      <- FALSE # for missing data 
@@ -450,6 +467,7 @@ read.RBA.opts.batch <- function (args=NULL, verb = 0) {
              Y      = lop$Y      <- ops[[i]],
              Subj   = lop$Subj   <- ops[[i]],
              ROI    = lop$ROI    <- ops[[i]],
+             PDP    = lop$PDP    <- ops[[i]],
              help    = help.RBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
@@ -537,7 +555,7 @@ library("brms")
 # write data.frame to a file
 outDF <- function(DF, fl) cat(capture.output(DF), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
 
-# standardize the names for Y and subject
+# standardize the names for Y, ROI and subject
 names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
 names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
 names(lop$dataTable)[names(lop$dataTable)==lop$ROI] <- 'ROI'
@@ -682,7 +700,6 @@ psROI <- function(aa, bb, tm) {
 }
 # ps <- ww(aa, bb, 'Intercept', nR)
 
-
 # summary for ROIs: nd - number of digits to output
 sumROI <- function(R0, ns, nd) {
   hubs <- data.frame(cbind(apply(R0, 2, mean), apply(R0, 2, sd), apply(R0, 2, cnt, ns), t(apply(R0, 2, quantile, 
@@ -692,22 +709,68 @@ sumROI <- function(R0, ns, nd) {
 }
 #gg <- sumROI(gg, ns, 3)
 
+#is.even <- function(x) x %% 2 == 0
+
+plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
+   h <- ceiling(8*nr/(nc*2))  # plot window height
+   pdf(paste0(fn, ".pdf"), width=w, height=h)
+   #dev.new(width=w, height=h)
+   par(mfrow=c(lop$PDP[1], nc), mar=c(2.5,0,0.0,0.8), oma=c(0,0,0,0))
+   qq <- apply(ps, 2, quantile, c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975)) # 95% central interval
+   kk <- 0
+   for(ii in 1:nR) {
+      kk <- kk+1
+      #x <- quantile(ps[,ii], probs = c(0.025, 0.05, 0.1, 0.9, 0.95, 0.975))
+      dens <- density(ps[,ii])
+      #par(mar=c(1.85,0.2,0.0,0.8))
+      plot(dens, main='', axes=F, bty="n", xlab='', ylab='')
+      axis(side = 1)
+      abline(v=0, col='blue')
+      #if(is.even(kk)) mtext(dimnames(ps)[[2]][ii], side = 1, line=-7, las=0) else
+      mtext(dimnames(ps)[[2]][ii], side = 1, line=-6, las=0)
+      x1 <- min(which(dens$x >= qq[6,ii]))  # 97.5% 
+      x2 <- max(which(dens$x <  4e10))         # infinity
+      x3 <- min(which(dens$x >= -4e10))        # -infinity
+      x4 <- max(which(dens$x <  qq[1,ii]))  # 2.5%
+      x5 <- min(which(dens$x >= qq[5,ii]))  # 95%
+      x6 <- max(which(dens$x <  qq[2,ii]))  # 5%
+      x7 <- min(which(dens$x >= qq[4,ii]))  # 90%
+      x8 <- max(which(dens$x <  qq[3,ii]))  # 10%
+      with(dens, polygon(x=c(x[c(x1,x1:x2,x2)]), y= c(0, y[x1:x2], 0), col="green")) # right tail
+      with(dens, polygon(x=c(x[c(x3,x3:x4,x4)]), y= c(0, y[x3:x4], 0), col="green")) # left tail
+      with(dens, polygon(x=c(x[c(x5,x5:x1,x1)]), y= c(0, y[x5:x1], 0), col="orange"))
+      with(dens, polygon(x=c(x[c(x4,x4:x6,x6)]), y= c(0, y[x4:x6], 0), col="orange"))
+      with(dens, polygon(x=c(x[c(x7,x7:x5,x5)]), y= c(0, y[x7:x5], 0), col="gray"))
+      with(dens, polygon(x=c(x[c(x6,x6:x8,x8)]), y= c(0, y[x6:x8], 0), col="gray"))
+   #   if(ii==6) mtext('density', side = 2, line=0, las=0, cex=1.2) # y label
+   #   if(ii==4) mtext('ToMI effect', side = 1, line=3, las=0, cex=1.2) # x label
+      if(qq[1,ii] > 0 | qq[6,ii] < 0) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'green', lwd=3)
+      if((qq[1,ii] < 0 & qq[2,ii] > 0) | (qq[5,ii] < 0 &  qq[6,ii] > 0)) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'orange', lwd=3)
+      if((qq[2,ii] < 0 & qq[3,ii] > 0) | (qq[4,ii] < 0 &  qq[5,ii] > 0)) rect(range(dens$x)[1], range(dens$y)[1], range(dens$x)[2], range(dens$y)[2], lty = '1373', border = 'gray', lwd=3)
+   }
+   dev.off()
+}
+
 # for Intercept and quantitative variables
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$EOIq[ii]), ns, 4)
+   ps0 <- psROI(aa, bb, lop$EOIq[ii])
+   gg <- sumROI(ps0, ns, 4)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(lop$EOIq[ii], ps0, nR, lop$PDP[1], lop$PDP[2], 8)
 }
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   gg <- sumROI(psROI(aa, bb, lop$qContrL[2*ii-1]) - psROI(aa, bb, lop$qContrL[2*ii]), ns, 4)
+   ps0 <- psROI(aa, bb, lop$qContrL[2*ii-1]) - psROI(aa, bb, lop$qContrL[2*ii])
+   gg <- sumROI(ps0, ns, 4)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(any(!is.na(lop$PDP) == TRUE)) plotPDP(paste0(lop$qContrL[2*ii-1], '-', lop$qContrL[2*ii]), ps0, nR, lop$PDP[1], lop$PDP[2], 8)
 }
 
 # for factor
@@ -732,6 +795,9 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    }
+
+   if(any(!is.na(lop$PDP) == TRUE)) for(jj in 1:nl)
+      plotPDP(lop$EOIc[ii], psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
    
    cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
@@ -739,6 +805,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
       cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      if(any(!is.na(lop$PDP) == TRUE))  plotPDP(paste0(lvl[jj], '-', lvl[kk]), psa[jj,,] - psa[kk,,], nR, lop$PDP[1], lop$PDP[2], 8)
    }
 }
 
