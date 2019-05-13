@@ -485,18 +485,28 @@ def db_cmd_postdata(proc, block):
        cmd = cmd + oc
 
     # probaby get outlier fractions
-    if proc.user_opts.have_yes_opt('-outlier_count', default=1) and \
-            proc.reps_all[0] > 5:
-        rv, oc = make_outlier_commands(proc, block)
-        if rv: return   # failure (error has been printed)
-        cmd = cmd + oc
+    if proc.user_opts.have_yes_opt('-outlier_count', default=1):
+       if min(proc.reps_all) >= 5:
+          rv, oc = make_outlier_commands(proc, block)
+          if rv: return   # failure (error has been printed)
+          cmd = cmd + oc
+       else:
+          print('** warning: 3dToutcount requires at least 5 time points\n' \
+                '   (are all -dsets parameters actually time series?)')
+          if proc.vr_base_MO:
+             print('** cannot align to MIN_OUTLIER')
+             return
 
     # possibly get @radial_correlate command
-    if proc.user_opts.have_yes_opt('-radial_correlate', default=0) and \
-            proc.reps_all[0] > 5:
-        rv, oc = run_radial_correlate(proc, block)
-        if rv: return   # failure (error has been printed)
-        cmd = cmd + oc
+    if proc.user_opts.have_yes_opt('-radial_correlate', default=0):
+       if min(proc.reps_all) >= 5:
+          rv, oc = run_radial_correlate(proc, block)
+          if rv: return   # failure (error has been printed)
+          cmd = cmd + oc
+       else:
+          print('** warning: @radial_correlate requires 5+ time points\n' \
+                '   (are all -dsets parameters actually time series?)\n')
+          return
 
     # add anat to anat followers?
     if proc.anat_has_skull:
@@ -681,8 +691,7 @@ def make_outlier_commands(proc, block):
     return 0, cmd
 
 def run_radial_correlate(proc, block):
-    # ----------------------------------------
-    # check for any censoring
+
     if not proc.user_opts.have_yes_opt('-radial_correlate', default=0):
        return 0, ''
 
@@ -1651,10 +1660,14 @@ def db_cmd_tshift(proc, block):
     return cmd
 
 def vr_do_min_outlier(block, proc, user_opts):
-   # set up use of min outlier volume as volreg base
-   # 1. if not computing outliers, whine and return
-   # 2. after outlier command: set $minoutrun, $minouttr
-   # this volume will now be extracted elsewhere  26 Apr 2016
+   """ set up use of min outlier volume as volreg base
+   1. if not computing outliers, whine and return
+   2. after outlier command: set $minoutrun, $minouttr
+
+   this volume will now be extracted elsewhere  26 Apr 2016
+
+   ** note: this function is run *before* any  db_cmd_ function
+   """
 
    # 1. are we computing outliers?
    if not proc.user_opts.have_yes_opt('outlier_count', default=1):
@@ -1683,6 +1696,8 @@ def vr_do_min_outlier(block, proc, user_opts):
       "set minouttr  = $ovals[2]\n"                                     \
       'echo "min outlier: run $minoutrun, TR $minouttr" | tee %s\n\n'   \
       % (proc.vr_ext_pre, outtxt)
+
+   proc.vr_base_MO = 1  # note that vr_base is MIN_OUTILER
 
 def set_vr_int_name(block, proc, prefix='', inset='', runstr='', trstr=''):
    """common usage: svin(b,p, 'vr_base_min_outlier',

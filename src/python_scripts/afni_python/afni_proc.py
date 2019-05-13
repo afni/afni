@@ -832,6 +832,7 @@ class SubjProcSream:
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
         self.vr_warp_fint = ''          # final interpolation for warped dsets
+        self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
         self.epi_final  = None          # vr_base_dset or warped version of it
         self.volreg_prefix = ''         # prefix for volreg dataset ($run)
                                         #   (using $subj and $run)

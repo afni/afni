@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, May, 2019, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
+   "fail if using MIN_OUTLIER, but not enough time points",
+   "Thanks to H Mandelkow for noting this."
+ } ,
+
  { 10, May, 2019, RCR, "NIFTI", MICRO, TYPE_ENHANCE,
    "add NIFTI_ECODE_QUANTIPHYSE",
    NULL
