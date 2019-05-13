@@ -1,6 +1,7 @@
 import shutil
 from pathlib import Path
 import sys
+import subprocess
 
 # Until python dependencies are importable in the typical way use the
 # following to make them importable instead:
@@ -21,20 +22,17 @@ def test_script_imports(data, run_cmd):
         "afni_skeleton.py",
         "afni_xmat.py",
         "eg_main_chrono.py",
-        "fat_lat_csv.py",
         "fat_mat_sel.py",
         "fat_mvm_gridconv.py",
         "fat_mvm_prep.py",
         "fat_mvm_review.py",
         "fat_mvm_scripter.py",
         "fat_roi_row.py",
-        "gui_uber_align_test.py",
         "gui_uber_skel.py",
         "gui_xmat.py",
         "lib_dti_sundry.py",
         "lib_fat_funcs.py",
         "lib_fat_plot_sel.py",
-        "lib_fat_Rfactor.py",
         "lib_surf_clustsim.py",
         "lib_uber_align.py",
         "lib_uber_skel.py",
@@ -47,7 +45,7 @@ def test_script_imports(data, run_cmd):
         "python_module_test.py",
         "quick.alpha.vals.py",
         "read_matlab_files.py",
-        "RetroTS.py",
+        "RetroTS.py",  # requires scipy
         "slow_surf_clustsim.py",
         "uber_align_test.py",
         "uber_proc.py",
@@ -55,6 +53,15 @@ def test_script_imports(data, run_cmd):
         "ui_xmat.py",
         "unWarpEPI.py",
         "xmat_tool.py",
+        "gui_uber_ttest.py",
+        "gui_uber_align_test.py",
+        "lib_qt_gui.py",
+        "gui_uber_subj.py",
+        "demoExpt.py",
+        "gui_xmat.py",  # wx required
+        "lib_matplot.py",  # wx required
+        "lib_RR_plot.py",  # wx required
+        "lib_wx.py",  # wx required
     ]
 
     not_importable = [
@@ -69,15 +76,9 @@ def test_script_imports(data, run_cmd):
     ]
 
     other_problems = [
-        "lib_qt_gui.py",
-        "gui_uber_subj.py",
-        "demoExpt.py",
-        "gui_uber_ttest.py",
-        # wx required
-        "gui_xmat.py",
-        "lib_matplot.py",
-        "lib_RR_plot.py",
-        "lib_wx.py",
+        # requires rpy2 with py2. need a rewrite
+        "lib_fat_Rfactor.py",
+        "fat_lat_csv.py",
     ]
 
     # for script in possible_pymods:
@@ -87,16 +88,23 @@ def test_script_imports(data, run_cmd):
     # Goal here is to import all python modules (not scripts meant as
     # executables) in both python2 and python3. For now all imports are forced
     # to happen in python2 until such a state is achieved
+    broken_imports = {}
     for script in possible_pymods:
         if script.name in other_problems + not_importable:
             continue
         print(script)
         module_name = script.stem
-        run_cmd(
-            """python -c 'import {module_name}'""",
-            locals(),
-            force_python2=True,
-            workdir=binary_dir,
+        try:
+            run_cmd(
+                """python2 -c 'import {module_name}'""", locals(), workdir=binary_dir
+            )
+        except subprocess.CalledProcessError as e:
+            broken_imports[script.name] = e
+
+    if broken_imports:
+        failed_scripts = ", ".join([p for p in broken_imports.keys()])
+        raise ValueError(
+            "The following scripts could not be imported: {failed_scripts}"
         )
 
 
