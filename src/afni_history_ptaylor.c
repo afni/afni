@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, May , 2019 , PT , "3dRprogDemo.R" , MICRO , TYPE_GENERAL,
+   "Some help output has non-UTF8 chars in it;  default help now *won't*.",
+   "'MICRO' might be too strong a designation for this change...\n"
+},
+
 { 10, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "Allow for comments about pbar ranges to be stored when saving pbar.",
    "Also, the pbar text info will now be stored in dict/JSON-able form.\n"
