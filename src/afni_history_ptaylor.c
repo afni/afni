@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, May , 2019 , PT , "@DriveSuma" , MICRO , TYPE_GENERAL,
+   "Some help output has non-UTF8 chars in it;  default help now *won't*.",
+   "'MICRO' might be too strong a designation for this change...\n"
+},
+
 { 13, May , 2019 , PT , "3dRprogDemo.R" , MICRO , TYPE_GENERAL,
    "Some help output has non-UTF8 chars in it;  default help now *won't*.",
    "'MICRO' might be too strong a designation for this change...\n"
