@@ -25,6 +25,7 @@ RUN apt-get update -y -qq \
           python-numpy \
           python-scipy \
           python-qt4 \
+          python-wxgtk3.0 \
           python-rpy2 \
           python-tk \
           python-mpltoolkits.basemap \
