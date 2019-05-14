@@ -47,10 +47,14 @@
 #   + [RWC] if SubID is a dataset name, funny things happened;
 #           so edit out suffixes like '.nii', '.HEAD', etc.`
 #
-set version   = "1.5"; set rev_dat   = "April 15, 2019"
+#set version   = "1.5"; set rev_dat   = "April 15, 2019"
 #   + [PT] add in a couple new opts
 #          "-giant_move": larger opening angle, etc.
 #          "-deoblique":  can deoblique
+# 
+set version   = "1.51"; set rev_dat   = "May 13, 2019"
+#   + [PT] fixed help file for sphinxification: got rid of some
+#          wandering "+" symbols in subheading titles
 # 
 # ----------------------------------------------------------------
 
@@ -755,7 +759,7 @@ Then the outputs from this script will be"
 
 NOTES ~1~
 
-+ The Template dataset ~2~
+The Template dataset ~2~
 
   Any reference base template dataset, such as
   MNI152_2009_template_SSW.nii.gz, must have the first *4* volumes here
@@ -778,7 +782,7 @@ NOTES ~1~
   the Interweb:
     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/template_atlas/sswarper_base.html
 
-+ You Know My Methods, Watson ~2~
+You Know My Methods, Watson ~2~
 
   #1: Uniform-ize the input dataset's intensity via 3dUnifize.
        ==> anatU.sub007.nii
@@ -799,7 +803,7 @@ NOTES ~1~
   #7  Use @snapshot_volreg3 to make the pretty pictures.
        ==> AMsub007.jpg and MAsub007.jpg
 
-+ Temporary files
+Temporary files ~2~
 
   If the script crashes for some reason, it might leave behind files
   whose names start with 'junk.SSwarper' -- you should delete these

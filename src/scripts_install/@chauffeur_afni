@@ -195,11 +195,15 @@
 #     + [PT] for the -set_subbricks option, one can now input string
 #            labels -- thanks for the suggestion, Rasmus!
 #
-set version   = "5.4";   set rev_dat   = "May 8, 2019"
+#set version   = "5.4";   set rev_dat   = "May 8, 2019"
 #     + [PT] for cbar output, output a file that can be json-ized.
 #            Will be more clear for labels/values/usage, and will allow
 #            for commenting on the meaning of the output
 #
+set version   = "5.41"; set rev_dat   = "May 13, 2019"
+#   + [PT] fixed help file for sphinxification: got rid of some
+#          wandering "+" symbols in subheading titles
+# 
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -2124,7 +2128,7 @@ COMMAND OPTIONS ~1~
 
 NOTES ~1~
 
-+ Description of "4D mode" ~2~
+Description of "4D mode" ~2~
 
     In this case the assumption/requirement is that you have at least
     one 4D data set to look at; for each viewing plane, one slice is
@@ -2144,7 +2148,7 @@ NOTES ~1~
     basically just repeated in a given plane.
 
 
-+ Combining %ile values "-mode_4D" for olay and/or ulay ~2~
+Combining %ile values "-mode_4D" for olay and/or ulay ~2~
 
     When using a percentile to set a range in 4D mode for either ulay
     (e.g., "-ulay_range* ..") or olay (e.g., "-func_range_perc_nz*
@@ -2158,7 +2162,7 @@ NOTES ~1~
     and then apply those.
 
 
-+ Special Ulay Range ~2~
+Special Ulay Range ~2~
 
     If UMAX is a percentile >100%, then what happens is this:
         the ${umax_magic}%ile value in the dset is calculated, and the
