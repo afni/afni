@@ -1346,6 +1346,7 @@ static char *gby[] = {
      "Outside of a dog, a book is Man's best friend; inside of a dog, it's too dark to read"  ,
      "Those are my statistics, and if you don't like them... well, I have others"             ,
      "When you come to a fork in the road -- take it"                                         ,
+     "Remember: computers do what you *tell* them to do, not what you *want* them to do."     ,
 
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
