@@ -1,0 +1,3 @@
+[submodule "tests/afni_ci_test_data"]
+	path = tests/afni_ci_test_data
+	url = https://github.com/afni/afni_ci_test_data.git
