@@ -34,18 +34,17 @@ RUN apt-get update -y -qq \
           tcsh \
           vim \
     && apt-get clean \
-    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/* \
-    && curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
+    && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+
+# Install some dependencies for python 3 (including testing dependencies)
+RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
     # Add some dependencies for testing and coverage calculation
     && pip3 install --no-cache-dir \
             codecov \
             pytest \
             pytest-cov \
             numpy \
-            pandas
-
-
-RUN pip3 install --no-cache-dir \
+            pandas \
             nibabel \
             datalad \
             pytest-parallel \
