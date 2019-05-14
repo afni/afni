@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -radial_correlate_blocks and -radial_correlate_opts",
+   "Run @raidal_correlate at the end of each specified block, creating one\n"
+   "correlation volume per run.  Each voxel gets the correlation of its time\n"
+   "series with a local (slighly Gaussian weighted) average."
+ } ,
+
  { 13, May, 2019, RCR, "afni_proc.py", MICRO, TYPE_GENERAL,
    "fail if using MIN_OUTLIER, but not enough time points",
    "Thanks to H Mandelkow for noting this."

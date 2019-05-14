@@ -384,7 +384,7 @@ def set_proc_polort(proc):
     return 0
 
 def tcat_extract_vr_base(proc):
-    """find volreb block
+    """find volreg block
        get block.opts.find_opt('-volreg_base_ind') and indices
        if necessary,
     """
@@ -499,14 +499,9 @@ def db_cmd_postdata(proc, block):
 
     # possibly get @radial_correlate command
     if proc.user_opts.have_yes_opt('-radial_correlate', default=0):
-       if min(proc.reps_all) >= 5:
-          rv, oc = run_radial_correlate(proc, block)
-          if rv: return   # failure (error has been printed)
-          cmd = cmd + oc
-       else:
-          print('** warning: @radial_correlate requires 5+ time points\n' \
-                '   (are all -dsets parameters actually time series?)\n')
-          return
+       rv, oc = run_radial_correlate(proc, block, full=1)
+       if rv: return   # failure (error has been printed)
+       cmd = cmd + oc
 
     # add anat to anat followers?
     if proc.anat_has_skull:
@@ -690,25 +685,41 @@ def make_outlier_commands(proc, block):
 
     return 0, cmd
 
-def run_radial_correlate(proc, block):
+def run_radial_correlate(proc, block, full=0):
+    """
+    """
 
-    if not proc.user_opts.have_yes_opt('-radial_correlate', default=0):
-       return 0, ''
+    if min(proc.reps_all) < 5:
+       print('** warning: @radial_correlate requires 5+ time points\n' \
+             '   (are all -dsets parameters actually time series?)\n')
+       return 1, ''
 
     olist, rv = proc.user_opts.get_string_list('-radial_correlate_opts')
     if olist and len(olist) > 0:
-        other_opts = '%8s%s \\\n' % (' ', ' '.join(olist))
+        other_opts = '%18s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
-    prev_dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
-    rdir = 'corr_test.results.%s' % block.label
+    # if doing the full form, include a header, clust, etc.
+    if full:
+       dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
+       rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
+       # rdir = 'corr_test.results.%s' % block.label
 
-    cmd  = '# %s\n'                                                       \
-           '# data check: compute correlations with spherical averages\n' \
-           % block_header('@radial_correlate (%s)' % block.label)
+       cmd  = '# %s\n'                                                       \
+              '# data check: compute correlations with spherical averages\n' \
+              % block_header('@radial_correlate (%s)' % block.label)
 
-    cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
-           '                  %s\n\n' % (rdir, prev_dsets)
+       cmd += '@radial_correlate -do_clust yes -nfirst 0 -rdir %s \\\n' \
+              '%s'                                                      \
+              '                  %s\n\n' % (rdir, other_opts, dsets)
+    else:
+       dsets = proc.dset_form_wild(block.label, eind=-1)
+       rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
+       cmd  = '# ---------------------------------------------------------\n' \
+              '# data check: compute correlations with spherical ~averages\n' \
+              '@radial_correlate -nfirst 0 -do_clean yes -rdir %s \\\n'       \
+              '%s'                                                            \
+              '                  %s\n\n' % (rdir, other_opts, dsets)
 
     return 0, cmd
 
@@ -1748,7 +1759,7 @@ def db_mod_volreg(block, proc, user_opts):
 
     # Option -volreg_base_dset sets vr_ext_base dset, which will be copied
     # locally as vr_ext_pre.
-    # MIN_OUTLIERS will be extracted via vr_int_name into vr_ext_pre.
+    # MIN_OUTLIER will be extracted via vr_int_name into vr_ext_pre.
     if baseopt:
         if uopt or aopt:
             print("** cannot use -volreg_base_ind or _align_to with _base_dset")
@@ -10640,6 +10651,8 @@ g_help_options = """
                 e.g. -radial_correlate yes
                 default: no
 
+         ** Consider using -radial_correlate_blocks, instead.
+
             With this option set, @radial_correlate will be run on the
             initial EPI time series datasets.  That creates a 'corr_test'
             directory that one can review, plus potential warnings (in text)
@@ -10661,7 +10674,48 @@ g_help_options = """
                              Overlay   = res.SOMETHING.corr
                              maybe threshold = 0.9, maybe clusterize
 
+            See also -radial_correlate_blocks.
             See "@radial_correlate -help" for details and a list of options.
+
+        -radial_correlate_blocks B0 B1 ... : specify blocks for correlations
+
+                e.g. -radial_correlate_blocks tcat volreg
+
+            With this option set, @radial_correlate will be run at the end of
+            each listed block.  It computes, for each voxel, the correlation
+            with a local spherical average (def = 20mm radius).  By default,
+            this uses a fast technique to compute an approximate average that
+            is slightly Gaussian weighted (relative weight 0.84 at the radius)
+            via 3dmerge, but far faster than a flat average via 3dLocalstat.
+
+            Valid blocks include:
+
+                tcat, tshift, volreg, blur, scale
+
+            The @radial_correlate command will produce an output directory of
+            the form radcor.pbAA.BBBB, where 'AA' is the processing block index
+            (e.g. 02), and BBBB is the block label (e.g. volreg).
+
+            Those 'radcor.*' directories will contain one epi.ulay.rRUN dataset
+            and a corresponding radcor.BLUR.rRUN.corr dataset for that run,
+            e.g.,
+
+                radcor.pb02.volreg/epi.ulay.r01+tlrc.BRIK
+                                   epi.ulay.r01+tlrc.HEAD
+                                   radcor.20.r01.corr+tlrc.BRIK
+                                   radcor.20.r01.corr+tlrc.HEAD
+
+            See also -radial_correlate_opts.
+            See '@radial_correlate -help' for more details.
+
+        -radial_correlate_opts OPTS...: specify options for @radial_correlate
+
+                e.g. -radial_correlate_opts -corr_mask yes -merge_frad 0.25
+
+            Use this to pass additional options to all @radial_correlate
+            commands in the proc script.
+
+            See also -radial_correlate_blocks.
 
         -reg_echo ECHO_NUM  : specify 1-based echo for registration
 

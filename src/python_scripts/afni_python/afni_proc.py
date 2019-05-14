@@ -636,12 +636,14 @@ g_history = """
     6.32 Feb 22, 2019: added -tlrc_NL_force_view
     6.33 Apr 11, 2019: added -combine_tedort_reject_midk
     6.34 Apr 25, 2019: -regress_bandpass takes any even number of frequencies
+    6.35 May 14, 2019: added -radial_correlate_blocks and _opts
 """
 
-g_version = "version 6.34, April 25, 2019"
+g_version = "version 6.35, May 14, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "10 May 2019",  "@radial_correlate -do_clean" ],
       [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
       [ "19 Nov 2018",  "apqc_make_tcsh.py" ],
       [ " 3 May 2018",  "@extract_meica_ortvec" ],
@@ -1139,6 +1141,10 @@ class SubjProcSream:
         self.valid_opts.add_opt('-radial_correlate', 1, [],
                         acplist=['yes','no'],
                         helpstr="compute correlations with spherical averages")
+        self.valid_opts.add_opt('-radial_correlate_blocks', -1, [],
+                        helpstr="run @radial_correlate after the given blocks")
+        self.valid_opts.add_opt('-radial_correlate_opts', -1, [],
+                        helpstr="extra options for any @rad_cor command")
         self.valid_opts.add_opt('-reg_echo', 1, [],
                         helpstr='specify echo to use for registration')
         self.valid_opts.add_opt('-remove_preproc_files', 0, [],
@@ -2023,6 +2029,7 @@ class SubjProcSream:
         self.bindex = 0
         self.pblabels = []
         for label in blocks:
+            # create ProcessBlock instance, calling BlockModFunc
             rv = self.add_block(label)
             if rv != None: return rv
             if label not in EPInomodLabs:
@@ -2047,6 +2054,10 @@ class SubjProcSream:
             print('** not ready to update options from %s' % str(uopt.parlist))
             return 1
 
+        # process any options that fill block.post_funcs, to modify post_cmd
+        # (e.g. -radial_correlate_blocks)
+        if self.set_post_funcs(): return 1
+
         # do some final error checking
         if len(self.dsets) == 0:
             print('error: dsets have not been specified (consider -dsets)')
@@ -2055,6 +2066,34 @@ class SubjProcSream:
         # no errors, just warn the user (for J Britton)   25 May 2011
         uniq_list_as_dsets(self.dsets, 1)
         self.check_block_order()
+
+    def set_post_funcs(self):
+        """process any options that should set post_funcs for some blocks
+           return 0 on success
+        """
+        
+        oname = '-radial_correlate_blocks'
+        rcblocks, rv = self.user_opts.get_string_list(oname)
+        if rv: return 1
+        # was this option used?
+        if rcblocks != None:
+           valid_blocks = ['tcat', 'tshift', 'volreg', 'blur', 'scale']
+           for blabel in rcblocks:
+               block = self.find_block(blabel)
+               if not block:
+                  print("** no '%s' block for option %s" % (blabel, oname))
+                  return 1
+               if not blabel in valid_blocks:
+                  print("** block '%s' is not valid for %s" % (blabel, oname))
+                  print("   (valid blocks are %s)" % ', '.join(valid_blocks))
+                  return 1
+
+               if self.verb > 3:
+                  print('++ appending %s to block.post_funcs in block %s' \
+                        % ('run_radial_correlate', blabel))
+               block.post_funcs.append(run_radial_correlate)
+
+        return 0
 
     def need_motsim_block(self, blocks):
         """want motsim if there are any -volreg_motsim_create options
@@ -2245,6 +2284,14 @@ class SubjProcSream:
 
             # allow for early termination
             if cmd_str == 'DONE': return None
+
+            # run any post_funcs for this block
+            for post_func in block.post_funcs:
+               rv, cstr = post_func(self, block)
+               if rv:
+                  print('** failed block.post_funcs for block %s' % block.label)
+                  return None
+               block.post_cstr += cstr
 
             if block.post_cstr != '':
                if self.verb > 2:
@@ -3705,7 +3752,9 @@ class ProcessBlock:
         self.valid = 0          # block is not yet valid
         self.index = proc.bindex
         self.verb  = proc.verb  # verbose level
-        self.post_cstr = ''     # extra commands to run at the end of the block
+        self.post_cstr  = ''    # extra commands to run at the end of the block
+        self.post_funcs = []    # post cmd functions to modify post_cstr
+                                # (they should pass proc and block)
         if not label in BlockModFunc: return
 
         self.opts = OptionList(label)                   # init option list
