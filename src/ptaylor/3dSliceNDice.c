@@ -19,7 +19,7 @@
 void usage_SliceNDice(int detail) 
 {
    printf(
-" # ----------------------------------------------------------------------\n"
+" OVERVIEW ~1~\n"
 " \n"
 " This program is for calculating the Dice coefficient between two\n"
 " volumes on a slice-by-slice basis.  The user enters two volumes on the\n"
@@ -48,7 +48,6 @@ void usage_SliceNDice(int detail)
 " \n"
 " written by PA Taylor (NIMH, NIH).\n"
 " \n"
-" * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "   \n"
 " USAGE ~1~\n"
 " \n"

@@ -1,5 +1,10 @@
 #!/usr/bin/env AFNI_Batch_R
 
+# [PT: May 13, 2019] Fix the default help options to only have "RAW"
+# text output, because the fancier stuff has non-UTF-8 chars in it.
+# Default help is "raw" unless asked for (-h_txt, -h_spx, etc.)--
+# caveat emptor!
+
 #Clean up
 rm(list = ls())
 
@@ -34,7 +39,7 @@ SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
 
 #The help function for 3dRprogDemo batch (command line mode)
 help.RprogDemo.opts <- function (params, alpha = TRUE, 
-                                 itspace='   ', adieu=FALSE, targ ='TXT') {
+                                 itspace='   ', adieu=FALSE, targ ='RAW') {
 
    intro <- 
 '
@@ -206,14 +211,15 @@ read.RprogDemo.opts.batch <- function (args=NULL, verb = 0) {
              scale = lop$scale <- ops[[i]],
              mask = lop$mask <- ops[[i]],
              verb = lop$verb <- ops[[i]],
-             help = help.RprogDemo.opts(params, adieu=TRUE),
+             #help = help.RprogDemo.opts(params, adieu=TRUE),
+             help = help.RprogDemo.opts(params, adieu=TRUE, targ='RAW'),
              h_raw = help.RprogDemo.opts(params, adieu=TRUE, targ='RAW'),
              h_spx = help.RprogDemo.opts(params, adieu=TRUE, targ='SPX'),
              h_aspx = help.RprogDemo.opts(params, adieu=TRUE, targ='ASPX'),
              h_txt = help.RprogDemo.opts(params, adieu=TRUE, targ='TXT'),
              show_allowed_options = show.AFNI.args(ops, verb=0, 
                                               hstr="3dRprogDemo's",adieu=TRUE)
-             )
+             ) 
    }
 
    if (length(lop$input) < 1) {

@@ -1,5 +1,10 @@
 #!/bin/tcsh
 
+# [PT: May 13, 2019] Fix the default help options to only have "RAW"
+# text output, because the fancier stuff has non-UTF-8 chars in it.
+# Default help is "raw" unless asked for (-h_txt, -h_spx, etc.)--
+# caveat emptor!
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 #Example commands for running DriveSuma
@@ -272,9 +277,11 @@ HELP:
      if ("$HelpOpt" == "-h_raw") then
    goto HRAW
 else if ("$HelpOpt" == "-h") then
-   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+   goto HRAW
+   #`basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
 else if ("$HelpOpt" == "-help") then
-   `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
+   goto HRAW
+   #`basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
 else if ("$HelpOpt" == "-h_txt") then
    `basename $0` -h_raw | apsearch -hdoc_2_txt `basename $0` -
 else if ("$HelpOpt" == "-h_spx") then
