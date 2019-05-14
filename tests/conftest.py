@@ -86,7 +86,7 @@ def get_comparison_dir_path():
     return comparison_dir
 
 
-def get_test_dir():
+def get_test_data_dir():
     # Define hard-coded paths for now
     test_data_dir = get_test_data_path()
     race_error_msg = (
@@ -95,7 +95,7 @@ def get_test_dir():
     )
 
     # datalad is required and the datalad repository is used for data.
-    if not test_data_dir.exists():
+    if not (test_data_dir / ".datalad").exists():
         try:
             datalad.api.install(
                 str(test_data_dir), "https://github.com/afni/afni_ci_test_data.git"
@@ -132,7 +132,7 @@ def data(request):
         collections.NameTuple: A data object for conveniently handling the specification
     """
     test_name = get_current_test_name()
-    module_data_dir = get_test_dir()
+    module_data_dir = get_test_data_dir()
 
     # Set module specific values:
     try:
