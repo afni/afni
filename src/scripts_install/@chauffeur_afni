@@ -200,9 +200,12 @@
 #            Will be more clear for labels/values/usage, and will allow
 #            for commenting on the meaning of the output
 #
-set version   = "5.41"; set rev_dat   = "May 13, 2019"
+#set version   = "5.41"; set rev_dat   = "May 13, 2019"
 #   + [PT] fixed help file for sphinxification: got rid of some
 #          wandering "+" symbols in subheading titles
+# 
+set version   = "5.5"; set rev_dat   = "May 14, 2019"
+#   + [PT] added in "-XXXnpane P" behavior
 # 
 # =====================================================================
 
@@ -316,6 +319,8 @@ set umax_magic = "98"
 
 set BIGNEG = -100000001
 @ BIGNEGp1 = $BIGNEG + 1
+
+set XXX_NPANE = ""               # [PT: May 14, 2019] -XXXnpane functionality
 
 # -------------------------------------------------------------------
 # ----------------------------- ugh ---------------------------------
@@ -676,6 +681,12 @@ while ( $ac <= $#argv )
         @ ac += 1
         setenv AFNI_IMAGE_GLOBALRANGE  "$argv[$ac]"
         set USER_ULAY_RANGE = 1  # also use this here
+
+    # [PT: May 14, 2019] direct opt from 'afni'
+    else if ( "$argv[$ac]" == "-XXXnpane" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set XXX_NPANE = "-XXXnpane $argv[$ac]"
 
     else if ( "$argv[$ac]" == "-ulay_range" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
@@ -1524,6 +1535,7 @@ echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
 echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
 echo "set topval       = "\""${topval}"\"""  >> $oechocmd
 echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set XXX_NPANE    = "\""${XXX_NPANE}"\"""  >> $oechocmd
 echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
 echo "set subbb        = ( ${subbb} )"  >> $oechocmd
 echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
@@ -1556,7 +1568,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -noplugins -no_detach  -echo_edu                                 \\\
+afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1583,7 +1595,7 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
-        afni -noplugins -no_detach  -echo_edu                               \
+        afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                  \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
@@ -1622,6 +1634,7 @@ echo "set pbar_sign    = "\""${pbar_sign}"\"""  >> $oechocmd
 echo "set ncolors      = "\""${ncolors}"\"""  >> $oechocmd
 echo "set topval       = "\""${topval}"\"""  >> $oechocmd
 echo "set my_cbar      = "\""${my_cbar}"\"""  >> $oechocmd
+echo "set XXX_NPANE    = "\""${XXX_NPANE}"\"""  >> $oechocmd
 echo "set com_pbar_str = "\""${com_pbar_str}"\"""  >> $oechocmd
 echo "set subbb        = ( ${subbb} )"  >> $oechocmd
 echo "set com_ulay_str = "\""${com_ulay_str}"\"""  >> $oechocmd
@@ -1656,7 +1669,7 @@ echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
-afni -noplugins -no_detach  -echo_edu                                \\\
+afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
@@ -1692,7 +1705,7 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
-afni -noplugins -no_detach  -echo_edu                                \
+afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
@@ -1702,8 +1715,8 @@ afni -noplugins -no_detach  -echo_edu                                \
     -com "$com_ulay_str"                                             \
     -com "SET_FUNC_RANGE  ${frange}"                                 \
     -com "SET_THRESHNEW   $thrnew $thrflag"                          \
-    -com "SET_FUNC_ALPHA  $olay_alpha"                             \
-    -com "SET_FUNC_BOXED  $olay_boxed"                             \
+    -com "SET_FUNC_ALPHA  $olay_alpha"                               \
+    -com "SET_FUNC_BOXED  $olay_boxed"                               \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
     -com "SET_XHAIRS  ${crossh}"                                     \
     -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
@@ -1954,6 +1967,16 @@ COMMAND OPTIONS ~1~
                     pixels wide and 512 pixels tall which is then
                     tipped horizontally on its side; to leave it vertical
                     just don't put an 'H' at the end. 
+
+-XXXnpane P        :same option as in 'afni', for colorbar control: 
+                    << set the number of 'panes' in the continuous
+                    colorscale to the value 'P', where P is an even
+                    integer between 256 and 2048 (inclusive).
+                    Probably will work best if P is an integral
+                    multiple of 256 (e.g., 256, 512, 1024, 2048).
+                    [This option is for the mysterious Dr ZXu.] >>
+                    One use of this option: for ROI atlases with integer
+                    values >255.
 
 -cbar_ncolors NC   :set colorscale mode (def: 99) (See DR:
                     SET_PBAR_ALL, the 2nd usage case, description

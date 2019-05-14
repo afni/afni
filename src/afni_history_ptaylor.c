@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "More pbar control: put in afni's '-XXXnpane P' behavior.",
+   "Same option name used in this prog.\n"
+},
+
 { 13, May , 2019 , PT , "@DriveSuma" , MICRO , TYPE_GENERAL,
    "Some help output has non-UTF8 chars in it;  default help now *won't*.",
    "'MICRO' might be too strong a designation for this change...\n"
