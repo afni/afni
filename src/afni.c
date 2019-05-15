@@ -6699,6 +6699,7 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
 
       SHIFT_TIPS( im3d , TIPS_TOTAL_SHIFT ) ;
+      SHIFT_NEWS( im3d , TIPS_TOTAL_SHIFT ) ;
 
    } else {  /** open the view frame (but not its children) **/
 
@@ -6709,6 +6710,8 @@ ENTRY("AFNI_controller_panel_CB") ;
       }
 
       SHIFT_TIPS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
+                                                           : TIPS_PLUS_SHIFT ) ;
+      SHIFT_NEWS( im3d , (im3d->vwid->view->marks_enabled) ? TIPS_MINUS_SHIFT
                                                            : TIPS_PLUS_SHIFT ) ;
    }
 

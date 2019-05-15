@@ -5581,6 +5581,7 @@ STATUS("making prog->rowcol") ;
    vwid->picture       = NULL ;  /* default ==> no picture */
    vwid->picture_index = 0 ;
    vwid->tips_pb       = NULL ;  /* not always created */
+   vwid->news_pb       = NULL ;  /* 15 May 2019 */
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -5628,6 +5629,29 @@ STATUS("making prog->rowcol") ;
                        AFNI_tips_CB , im3d ) ;
         MCW_set_widget_bg( vwid->tips_pb , "#000044" , 0 ) ;
         MCW_set_widget_fg( vwid->tips_pb , "#ffddaa" ) ;
+
+        vwid->news_pb =                /* 15 May 2019 */
+           XtVaCreateManagedWidget(
+              "dialog" , xmPushButtonWidgetClass , vwid->top_form ,
+                 LABEL_ARG("AFNI News") ,
+                 XmNleftAttachment   , XmATTACH_WIDGET ,
+                 XmNleftWidget       , vwid->picture ,
+                 XmNleftOffset       , TIPS_PLUS_SHIFT ,
+                 XmNbottomAttachment , XmATTACH_WIDGET ,
+                 XmNbottomWidget     , vwid->tips_pb ,
+                 XmNbottomOffset     , 2 ,
+                 XmNshadowThickness  , 3 ,
+                 XmNtraversalOn      , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+        MCW_register_help( vwid->news_pb , "Opens a web browser\n"
+                                           "with the latest news\n"
+                                           "about the AFNI package" ) ;
+        MCW_register_hint( vwid->news_pb , "News about AFNI" ) ;
+        XtAddCallback( vwid->news_pb , XmNactivateCallback ,
+                       AFNI_news_CB , im3d ) ;
+        MCW_set_widget_bg( vwid->news_pb , "#003300" , 0 ) ;
+        MCW_set_widget_fg( vwid->news_pb , "#ffffaa" ) ;
       }
    }
 #else
@@ -6572,8 +6596,10 @@ ENTRY("AFNI_initialize_controller") ;
    POPUP_cursorize( im3d->vwid->func->thr_label ) ;
    POPUP_cursorize( im3d->vwid->imag->time_index_av->wlabel ) ;
 
-   if( im3d->vwid->view->marks_enabled )
+   if( im3d->vwid->view->marks_enabled ){
      SHIFT_TIPS( im3d , TIPS_MINUS_SHIFT ) ;
+     SHIFT_NEWS( im3d , TIPS_MINUS_SHIFT ) ;
+   }
 
    /* Set index step from environment [26 Feb 2014] */
 
@@ -7840,6 +7866,8 @@ ENTRY("AFNI_sesslab_EV") ;
          XWarpPointer( XtDisplay(w) , None , XtWindow(w) , 0,0,0,0,30,10 ) ;
 
          SHIFT_TIPS( im3d ,
+                     (view->marks_enabled) ? TIPS_MINUS_SHIFT : TIPS_PLUS_SHIFT ) ;
+         SHIFT_NEWS( im3d ,
                      (view->marks_enabled) ? TIPS_MINUS_SHIFT : TIPS_PLUS_SHIFT ) ;
 
        } else if( event->button == Button2 ){
