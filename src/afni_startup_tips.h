@@ -782,7 +782,7 @@ static char *gby[] = {
      "The wheel is come full circle"                                 ,
      "Brains and AFNI make the hours seem short"                     ,
      "I am not bound to please thee with my statistics"              ,
-     "I will praise any man that will praise me"                     ,
+     "I will praise any person that will praise me"                  ,
      "If you have tears, prepare to shed them now"                   ,
      "Man, those solar neutrinos are killing me"                     ,
      "Are you ready for the explosion of Eta Carinae?"               ,
@@ -893,7 +893,7 @@ static char *gby[] = {
      "I'm sick of thinking about p-values -- how about you?"         ,
      "To (mis)quote Han Solo: Never tell me the p-value!"            ,
      "Did you fail to negate the opposite of the null hypothesis?"   ,
-     "I'd like to live as a poor man with lots of money"             ,
+     "I'd like to live as a poor person with lots of money"          ,
      "Wine is proof that God loves us and wants to see us happy"     ,
      "If two wrongs don't make a right, then try three; then four"   ,
      "Life is hard; after all, it kills you"                         ,
@@ -928,7 +928,7 @@ static char *gby[] = {
      "Nothing ever becomes real until it is experienced"             ,
      "No bird soars too high if he soars with his own wings"         ,
      "Great things are done when men and mountains meet"             ,
-     "A fool sees not the same tree that a wise man sees"            ,
+     "A fool sees not the same tree that a wise person sees"         ,
      "What is now proved was once only imagined"                     ,
      "It is easier to forgive an enemy than to forgive a friend"     ,
      "The true method of knowledge is experiment"                    ,
@@ -991,6 +991,7 @@ static char *gby[] = {
      "People are quick to believe that which they wish to be true"   ,
      "The worst kind of lie: one that matches your desire"           ,
      "Truly, there is nothing more to be said"                       ,
+     "The only thing to know is that no one knows anything"          ,
 
      /* bastardizations of Shakespeare */
 
@@ -1213,7 +1214,7 @@ static char *gby[] = {
      "I like the word 'indolence': it makes my laziness seem classy"                  ,
      "Laziness is just the habit of resting before you get tired"                     ,
      "Laziness takes work and it isn't easy, but look at the rewards!"                ,
-     "A practical truth: no man has eaten an entire elephant in one day"              ,
+     "A practical truth: no person has eaten an entire elephant in one day"           ,
      "From now on, let's just reject the null hypothesis, and then have a beer"       ,
      "Home is the sailor, home from the sea; And the hunter home from the hill"       ,
      "Glad did I run, and gladly end, and I turn me off with a will"                  ,
