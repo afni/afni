@@ -2077,7 +2077,8 @@ class SubjProcSream:
         if rv: return 1
         # was this option used?
         if rcblocks != None:
-           valid_blocks = ['tcat', 'tshift', 'volreg', 'blur', 'scale']
+           valid_blocks = ['tcat', 'tshift', 'volreg', 'blur',
+                           'scale', 'regress']
            for blabel in rcblocks:
                block = self.find_block(blabel)
                if not block:
