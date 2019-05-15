@@ -2124,12 +2124,23 @@ class RegWrap:
             print("No flip cost is %f for %s cost function" % (noflipcost, costfunction))
             flipcost = self.get_cost("__tt_lr_flipcosts.1D",costfunction)
             print("Flip cost is %f for %s cost function" % (flipcost, costfunction))
-            if(flipcost < noflipcost):
-               print("WARNING: ************ flipped data aligns better than original data\n" \
-                     "Check for left - right flipping in the GUI ************************")
-            else:
-               print("Data does not need flipping")
-          
+            outname = 'aea_checkflip_results.txt'
+            try: 
+                f = open(outname, 'w')
+                f.write("flip_cost_orig : %f\n" % noflipcost)
+                f.write("flip_cost_flipped : %f\n" % flipcost)
+                f.write("flip_cost_orig : %s\n" % costfunction)
+                if(flipcost < noflipcost):
+                   print("WARNING: ************ flipped data aligns better than original data\n" \
+                         "Check for left - right flipping in the GUI ************************")
+                   f.write("flip_guess : FLIPPED\n")
+                else:
+                   f.write("flip_guess : OKAY\n")
+                   print("Data does not need flipping")
+                f.close()
+            except:
+                print("WARNING: Could not write to flip text file")
+
          # if not doing alignment for anat2epi, just return now,
          # and use the xform matrix computed later
          if (not(ps.anat2epi)):
