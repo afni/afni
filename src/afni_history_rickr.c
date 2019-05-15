@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
+   "try to set have_radcor_dirs",
+   NULL
+ } ,
+
  { 15, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_ENHANCE,
    "modify output file names to handle special cases of all_runs and errts",
    NULL

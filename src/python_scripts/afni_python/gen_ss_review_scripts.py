@@ -194,7 +194,8 @@ R Reynolds    July 2011
 
 # howto: if adding a new (input dict) field:
 #   - add field hint and example in init_globals()
-#        update g_eg_uvar (example uvar) and g_uvar_dict (dict of field help)
+#        now: add line in lib_ss_review.py
+#        was: update g_eg_uvar (example uvar) and g_uvar_dict (field help)
 #   - possibly add guess func   : e.g. guess_final_anat()
 #   - possibly set var in basic_init()
 #
@@ -870,9 +871,10 @@ g_history = """
    1.7  Feb 28, 2019: mask_dset needs to include extension
    1.8  Mar 15, 2019: added tr field and TR value in basic output
    1.9  Apr 16, 2019: watch for non-tlrc anat_final datasets
+   1.10 May 15, 2019: try to set new uvar have_radcor_dirs
 """
 
-g_version = "gen_ss_review_scripts.py version 1.9, March 16, 2019"
+g_version = "gen_ss_review_scripts.py version 1.10, May 15, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1175,6 +1177,7 @@ class MyInterface:
       if self.guess_mask_corr_dset():   return -1
 
       if self.find_censor_file():       return -1
+      if self.find_radcor_files():      return -1
       if self.guess_warn_files():       return -1
       if self.guess_ss_review_dset():   return -1
 
@@ -2306,6 +2309,40 @@ class MyInterface:
       self.dsets.stats_dset = sb
       if self.cvars.verb > 1:
          print('-- setting stats_dset = %s' % (sb.pv() + '.HEAD'))
+
+      return 0
+
+   def find_radcor_files(self):
+      """try to set have_radcor_dirs
+
+         look for directories of the form: radcor.pb*.*, containing files
+         of the form radcor.*.corr+*.HEAD
+      """
+
+      uvar_label = 'have_radcor_dirs'
+
+      # check if censor dset already set
+      if self.uvar_already_set(uvar_label): return 0
+
+      # count both datasets and files, for potential verbosity and future needs
+
+      # directories, first
+      gform = 'radcor.pb*.*'
+      dlist = glob.glob(gform)
+      if self.cvars.verb > 1:
+         print('-- found %d radcor directories (form %s)' % (len(dlist),gform))
+      
+      # if nothing found, we are outta here
+      if len(dlist) == 0: return 0
+
+      # go after correlation datasts in subdirs
+      gform = '%s/*.corr+*.HEAD' % gform
+      dlist = glob.glob(gform)
+      if self.cvars.verb > 1:
+         print('-- found %d radcor corr files (form %s)' % (len(dlist),gform))
+
+      if len(dlist) > 0:
+         self.uvars.set_var(uvar_label, 'yes')
 
       return 0
 
