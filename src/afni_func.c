@@ -6738,6 +6738,16 @@ ENTRY("AFNI_tips_CB") ;
 
 /*---------------------------------------------------------------*/
 
+void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   (void)  MCW_popup_message( w , " \n"
+                                  " Not implemented yet :( \n\n"
+                                  " -- Real Soon Now??? -- \n" ,
+                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+}
+
+/*---------------------------------------------------------------*/
+
 #include "PvalueStuff.h"
 
 void AFNI_pvalue_CB( Widget w , XtPointer cd , XtPointer cbd )

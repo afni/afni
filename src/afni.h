@@ -1007,6 +1007,7 @@ typedef struct {
       Widget picture ;
       int    picture_index ;
       Widget tips_pb ;                    /* 27 Jun 2011 */
+      Widget news_pb ;                    /* 15 May 2019 */
 
       Widget file_dialog , file_sbox ;
       XtCallbackProc file_cb ;
@@ -1043,6 +1044,13 @@ typedef struct {
        XtVaSetValues( (iq)->vwid->tips_pb, XmNleftOffset, (xx), NULL ) ;  \
        XMapRaised( XtDisplay( (iq)->vwid->tips_pb) ,                      \
                     XtWindow( (iq)->vwid->tips_pb)  ) ;                   \
+     } } while(0)
+
+#define SHIFT_NEWS(iq,xx)                                                 \
+ do{ if( (iq)->vwid->news_pb != NULL ){                                   \
+       XtVaSetValues( (iq)->vwid->news_pb, XmNleftOffset, (xx), NULL ) ;  \
+       XMapRaised( XtDisplay( (iq)->vwid->news_pb) ,                      \
+                    XtWindow( (iq)->vwid->news_pb)  ) ;                   \
      } } while(0)
 
 /** picture controls **/
@@ -1797,6 +1805,7 @@ extern void AFNI_quit_timeout_CB   ( XtPointer , XtIntervalId * ) ;
 extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 extern void AFNI_vcheck_flasher    ( Three_D_View * ) ;
 extern void AFNI_tips_CB           ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_news_CB           ( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ;    /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
