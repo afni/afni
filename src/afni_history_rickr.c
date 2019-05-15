@@ -49,7 +49,17 @@
 
 afni_history_struct rickr_history[] = {
 
- { 15, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+ { 15, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
+   "try to set have_radcor_dirs",
+   NULL
+ } ,
+
+ { 15, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_ENHANCE,
+   "modify output file names to handle special cases of all_runs and errts",
+   NULL
+ } ,
+
+ { 14, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add options -radial_correlate_blocks and -radial_correlate_opts",
    "Run @raidal_correlate at the end of each specified block, creating one\n"
    "correlation volume per run.  Each voxel gets the correlation of its time\n"

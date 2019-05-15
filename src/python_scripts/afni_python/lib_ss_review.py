@@ -49,6 +49,7 @@ g_ss_uvar_fields = [ \
    ['final_view',      'set final view of data (orig/tlrc)', 'tlrc'],
    ['template',        'anatomical template', 'TT_N27+tlrc'],
    ['template_warp',   'affine or nonlinear', 'affine'],
+   ['have_radcor_dirs','are there any (yes/no)', 'yes'],
    ['mask_dset',       'set EPI mask', 'full_mask.FT+tlrc.HEAD'],
    ['tsnr_dset', 'set temporal signal to noise dataset', 'TSNR.FT+tlrc.HEAD'],
    ['errts_dset',      'set residual dataset','errts.FT.fanaticor+tlrc.HEAD'],

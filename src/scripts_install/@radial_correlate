@@ -207,12 +207,23 @@ endif
 # copy inputs (minus pre-ss trs) to results dir
 
 if( $do_corr == 'yes' ) then
+   set rind = 1
+   set dind = 1
    foreach index ( `count -digits 1 1 $#dset_list` )
-      set ind02 = `ccalc -form '%02d' $index`
-
       set inset = $dset_list[$index]
 
-      3dTcat -prefix $rdir/epi.r$ind02 $inset\[$nfirst..\$]
+      # special known datasets will get 'd'
+      if ( $inset =~ errts* || $inset =~ all_runs* ) then
+         set ichr  = d
+         set ind02 = `ccalc -form '%02d' $dind`
+         @ dind += 1
+      else
+         set ichr  = r     # r or d, for run or dset
+         set ind02 = `ccalc -form '%02d' $rind`
+         @ rind += 1
+      endif
+
+      3dTcat -prefix $rdir/epi.$ichr$ind02 $inset\[$nfirst..\$]
 
       if ( $status ) then
           echo "** failed to copy EPI dataset $inset, exiting..."
@@ -243,15 +254,34 @@ touch $name_file
 
 # ----------------------------------------------------------------------
 # main work: compute correlation datasets and surviving threshold fractions
+set rind = 1
+set dind = 1
 foreach index ( `count -digits 1 1 $#dset_list` )
-   set ind02 = `ccalc -form '%02d' $index`
 
    # resulting variables
-   set prefix = radcor.$sphere_rad.r$ind02
 
+   # ** cases of special datasets: errts, all_runs
+   #    (any more and we make a list)
    set dset = $dset_list[$index]
-   set eset = epi.r$ind02
-   set ulay = epi.ulay.r$ind02          # save underlay dataset if clean?
+   if ( $dset =~ errts* ) then
+      set ichr = d
+      set ind02 = `ccalc -form '%02d' $dind`
+      set prefix = radcor.$sphere_rad.$ichr$ind02.errts
+      @ dind += 1
+   else if ( $dset =~ all_runs* ) then
+      set ichr = d
+      set ind02 = `ccalc -form '%02d' $dind`
+      set prefix = radcor.$sphere_rad.$ichr$ind02.all_runs
+      @ dind += 1
+   else
+      set ichr  = r     # r or d, for run or dset
+      set ind02 = `ccalc -form '%02d' $rind`
+      set prefix = radcor.$sphere_rad.$ichr$ind02
+      @ rind += 1
+   endif
+
+   set eset = epi.$ichr$ind02
+   set ulay = epi.ulay.$ichr$ind02      # save underlay dataset if clean?
    set mpre = $prefix.automask
    set mset = $mpre$view
    set sset = $prefix.scaled
@@ -294,18 +324,18 @@ foreach index ( `count -digits 1 1 $#dset_list` )
 
             # mask before blur?
             if ( $corr_mask == yes ) then
-               set enew = rm.emasked.r$ind02
+               set enew = rm.emasked.$ichr$ind02
                3dcalc -a $eset$view -b $mset -expr "a*b" -prefix $enew
                set eset = $enew
             endif
 
             3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 \
-                    -doall -prefix sphere.mean.$rad.r$ind02 $eset$view
+                    -doall -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          else
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
-               -stat mean -prefix sphere.mean.$rad.r$ind02 $eset$view
+               -stat mean -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          endif
-         3dTcorrelate -prefix $cset sphere.mean.$rad.r$ind02$view $eset$view
+         3dTcorrelate -prefix $cset sphere.mean.$rad.$ichr$ind02$view $eset$view
       else
          # get a demeaned and scaled dataset (so sumsq = 1)
          3dTstat -mean -datum float -prefix $prefix.mean $eset$view
@@ -744,6 +774,9 @@ $prog modification history:
           - add -use_3dmerge, -corr_mask and -merge_frad
           - add -do_clean and -verb
           - on clean, save epi.ulay datasets
+   0.5  : May 15, 2019:
+          - handle special cases of errts and all_runs
+          - do this by partitioning results into r* and d* dataset names
 
 EOF
 

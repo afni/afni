@@ -699,9 +699,21 @@ def run_radial_correlate(proc, block, full=0):
         other_opts = '%18s%s \\\n' % (' ', ' '.join(olist))
     else: other_opts = ''
 
+    # note the dsets that will be applied
+    # in the regress case, go after errts as a single time series
+    if block.label == 'regress':
+       if proc.errts_final == '':
+          print("** missing errts dataset for @radial_correlate in regress")
+          return 1, ''
+       dsets = '%s%s.HEAD %s%s.HEAD' % (proc.all_runs, proc.view,
+                                        proc.errts_final, proc.view)
+    elif full:
+       dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
+    else:
+       dsets = proc.dset_form_wild(block.label, eind=-1)
+
     # if doing the full form, include a header, clust, etc.
     if full:
-       dsets = proc.prev_dset_form_wild(block, view=1, eind=-1)
        rdir = 'radcor.pb%02d.%s.full' % (block.index, block.label)
        # rdir = 'corr_test.results.%s' % block.label
 
@@ -713,7 +725,6 @@ def run_radial_correlate(proc, block, full=0):
               '%s'                                                      \
               '                  %s\n\n' % (rdir, other_opts, dsets)
     else:
-       dsets = proc.dset_form_wild(block.label, eind=-1)
        rdir = 'radcor.pb%02d.%s' % (block.index, block.label)
        cmd  = '# ---------------------------------------------------------\n' \
               '# data check: compute correlations with spherical ~averages\n' \
