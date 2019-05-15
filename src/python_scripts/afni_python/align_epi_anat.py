@@ -2130,6 +2130,8 @@ class RegWrap:
                 f.write("flip_cost_orig : %f\n" % noflipcost)
                 f.write("flip_cost_flipped : %f\n" % flipcost)
                 f.write("flip_cost_orig : %s\n" % costfunction)
+                f.write("flip_dset_orig : %s\n" % o.ppv())
+                f.write("flip_dset_flipped : %s\n" % of.ppv())
                 if(flipcost < noflipcost):
                    print("WARNING: ************ flipped data aligns better than original data\n" \
                          "Check for left - right flipping in the GUI ************************")
