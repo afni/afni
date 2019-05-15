@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 14, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
+   "Change some fields in pbar json, for greater utility.",
+   "Also make new default ftype for output cbar (jpg).\n"
+},
+
 { 14, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "More pbar control: put in afni's '-XXXnpane P' behavior.",
    "Same option name used in this prog.\n"

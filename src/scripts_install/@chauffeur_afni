@@ -204,8 +204,12 @@
 #   + [PT] fixed help file for sphinxification: got rid of some
 #          wandering "+" symbols in subheading titles
 # 
-set version   = "5.5"; set rev_dat   = "May 14, 2019"
+#set version   = "5.5"; set rev_dat   = "May 14, 2019"
 #   + [PT] added in "-XXXnpane P" behavior
+# 
+set version   = "5.51"; set rev_dat   = "May 14, 2019"
+#   + [PT] include pbar_fname as a key in save_pbar jpg
+#   + [PT] also, control pbar image output file name: jpg by default
 # 
 # =====================================================================
 
@@ -618,8 +622,21 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-pbar_saveim" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set com_pbar_str = "PBAR_SAVEIM $argv[$ac]"
         set pbar_fname = "$argv[$ac]"
+        
+        # control only valid extensions, so we 1) know it's valid, and
+        # 2) can use it later in JSON-ish file.
+        set pbext = "${pbar_fname:e}"
+        if ( ( "$pbext" == "png" ) || \
+             ( "$pbext" == "jpg" ) || \
+             ( "$pbext" == "ppm" ) ) then
+            echo "++ pbar name has known extension: $pbext"
+        else
+            echo "*+ Setting pbar file extension: jpg"
+            set pbar_fname = "${pbar_fname}.jpg"
+        endif
+
+        set com_pbar_str = "PBAR_SAVEIM $pbar_fname"
         set SAVE_PBAR = 1
 
     # [PT: Oct 21, 2018] save colorbar (and range to text file)
@@ -1467,6 +1484,7 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
 cat << EOF >! "${opbar_file}"
 itemtype     :: CBAR
 cbar         :: "${my_cbar}"
+pbar_fname   :: "${pbar_fname:t}"
 pbar_bot     :: "${bot_frange}"
 pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
@@ -1934,13 +1952,14 @@ COMMAND OPTIONS ~1~
 -pbar_saveim PBS   :if an olay is used, then you can save the color pbar
                     (=colorbar) that is used in plotting.  PBS is the
                     name of the file (including path), with allowed
-                    extensions jpg, png, or ppm.  When this option is
-                    used, a text file of the same name as PBS but with
-                    extension 'txt' will also be saved, which is now
-                    (>May 8, 2019) a dictionary-like file of relevant
-                    information: min/max range, threshold value (0, if
-                    no thr is specified), as well as the ability to
-                    store comments on what those values mean (see
+                    extensions jpg, png, or ppm (def: jpg).  
+                    When this option is used, a text file of the same
+                    name as PBS but with extension 'txt' will also be
+                    saved, which is now (>May 8, 2019) a
+                    dictionary-like file of relevant information:
+                    min/max range, threshold value (0, if no thr is
+                    specified), as well as the ability to store
+                    comments on what those values mean (see
                     -pbar_comm_* options, below).  See also '-pbar_dim
                     ..'  for relation pbar optioning.  (See DR:
                     PBAR_SAVEIM)
