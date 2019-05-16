@@ -335,6 +335,9 @@ ENTRY("AFNI_make_widgets") ;
    if( ! IM3D_VALID(im3d) )   /* should never happen! */
      ERROR_exit("illegal call to AFNI_make_widgets") ;
 
+   if( num_entry == 0 && GLOBAL_browser == NULL ) /* 16 May 2019 */
+     GLOBAL_browser = GetAfniWebBrowser();
+
    num_entry++ ;
 
    last_color = im3d->dc->ovc->ncol_ov - 1 ;
@@ -6101,7 +6104,6 @@ STATUS("making prog->rowcol") ;
 
       /*---------- modified 30 Dec 2005 ----------*/
 
-      GLOBAL_browser = GetAfniWebBrowser();
       if( GLOBAL_browser != NULL ){
         prog->hidden_browser_pb =
               XtVaCreateManagedWidget(

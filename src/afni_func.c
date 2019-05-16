@@ -6737,13 +6737,34 @@ ENTRY("AFNI_tips_CB") ;
 }
 
 /*---------------------------------------------------------------*/
+/* For the 'AFNI news' button [15 May 2019] */
+
+#undef  NEWS_LINK
+#define NEWS_LINK \
+ "https://docs.google.com/document/d/1RzC9UDhmVuDgV3LeqlWf77i_uSq4InknvHzahtS6e2w/"
 
 void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
-   (void)  MCW_popup_message( w , " \n"
-                                  " Not implemented yet :( \n\n"
-                                  " -- Real Soon Now??? -- \n" ,
-                                  MCW_USER_KILL | MCW_TIMER_KILL ) ;
+   int first=1 ;
+   if( GLOBAL_browser != NULL ){
+     if( first ){
+       (void) MCW_popup_message( w , " \n"
+                                     " * At this time, the news page is *\n"
+                                     " * very limited. We plan to make  *\n"
+                                     " * it much better REAL SOON NOW   *\n" ,
+                                MCW_USER_KILL | MCW_TIMER_KILL ) ;
+       first = 0 ; AFNI_sleep(666) ;
+     }
+     whereami_browser(NEWS_LINK) ;
+   } else {
+     (void) MCW_popup_message( w , " \n"
+                                   " ** Can't find a Web browser :( **\n"
+                                   " Try setting environment variable\n"
+                                   "      AFNI_WEB_BROWSER\n"
+                                   " to be the path to a browser\n"
+                                   " command line path\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+  }
 }
 
 /*---------------------------------------------------------------*/

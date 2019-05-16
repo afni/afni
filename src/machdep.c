@@ -113,6 +113,9 @@ int64_t AFNI_get_memsize(void)  /* in bytes -- 02 Aug 2016 */
 char * GetAfniWebBrowser(void)
 {
    static char *awb=NULL;
+
+   if( awb != NULL ) return(awb) ;
+
    awb = getenv("AFNI_WEB_BROWSER") ;
 #ifdef DARWIN
    if( awb == NULL ) awb = "open" ;  /* for Mac OS X */
@@ -134,9 +137,11 @@ char * GetAfniWebBrowser(void)
 char * GetAfniTextEditor(void)
 {
    static char *ate=NULL;
-   ate = getenv("AFNI_GUI_EDITOR");
 
-   if( ate ) return ate;
+   if( ate != NULL ) return(ate) ;
+
+   ate = getenv("AFNI_GUI_EDITOR");
+   if( ate != NULL ) return(ate);
 
    /* else, hunt */
    if( ate == NULL ) ate = THD_find_executable( "nedit" )   ;
@@ -156,9 +161,11 @@ char * GetAfniTextEditor(void)
 char * GetAfniWebDownloader(void)
 {
    static char *ate=NULL;
-   ate = getenv("AFNI_WEB_DOWNLOADER");
 
-   if( ate ) return ate;
+   if( ate != NULL ) return(ate) ;
+
+   ate = getenv("AFNI_WEB_DOWNLOADER");
+   if( ate != NULL ) return(ate);
 
    /* else, hunt */
    if( ate == NULL ) if (THD_find_executable( "curl" )) ate = "curl -O -f" ;
