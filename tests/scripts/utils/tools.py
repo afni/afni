@@ -141,7 +141,16 @@ class OutputDiffer:
         self.workdir = workdir or Path.cwd()
         self.force_python2 = force_python2
 
+        # Tune output saving behavior
+        self.create_sample_output = create_sample_output or pytest.config.getoption(
+            "--create_sample_output"
+        )
+        self.save_sample_output = save_sample_output or pytest.config.getoption(
+            "--save_sample_output"
+        )
+
         # Tune the output comparison
+        self.fail_for_error = not (self.create_sample_output or self.save_sample_output)
         self._ignore_file_patterns = ignore_file_patterns
         self._comparison_dir = data.comparison_dir
         self._text_file_patterns = text_file_patterns
@@ -155,14 +164,6 @@ class OutputDiffer:
         self.file_list = file_list
         # If saving output data as future comparison this is modified:
         self.files_with_diff = {}
-
-        # Tune output sav ing behavior
-        self.create_sample_output = create_sample_output or pytest.config.getoption(
-            "--create_sample_output"
-        )
-        self.save_sample_output = save_sample_output or pytest.config.getoption(
-            "--save_sample_output"
-        )
 
     def run(self):
         proc = self.__run_cmd()
@@ -191,24 +192,33 @@ class OutputDiffer:
         return proc
 
     def update_sample_output(self):
-        # be clear on exactly what files should be updated, and don't fail
-        # files for not having an existing counterpart
-        sample_test_output = self.data.comparison_dir / "sample_test_output"
-        updated_files = ",".join(self.data.files_with_diff)
+        outdir = self.data.outdir
+        # Create rsync pattern for all files that need to be synced
+        files_pattern = " ".join(
+            [
+                '-f"+ %s"' % Path(fname).relative_to(outdir)
+                for fname in self.files_with_diff
+            ]
+        )
+
         if not shutil.which("rsync"):
             raise EnvironmentError(
-                "Updating sample output requires  a working rsync installation."
+                "Updating sample output requires a working rsync "
+                "installation, which cannot currently be found. "
             )
-        cmd = f"rsync -a {self.data.outdir}/ {sample_test_output}/"
 
-        subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
-        update_msg = "Update data with test run at %s" % self.data.outdir.name.replace(
-            "output_", ""
-        )
-        result = datalad.rev_save(sample_test_output, update_msg, on_failure="stop")
-        if not result[0]["status"] == "notneeded":
-            print(f"Updating sample data in {sample_test_output}")
-            print(f"The follwing files were updated:\n {updated_files}")
+        cmd = """
+                rsync
+                    -a
+                    --delete
+                    -f "+ */"
+                    {files_pattern}
+                    -f "- *"
+                    {outdir}/
+                    {self.data.comparison_dir}/
+                """
+        cmd = " ".join(cmd.format(**locals()).split())
+        proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
 
     def assert_all_files_equal(self):
         """A convenience wrapping function to compare the output files of a test
@@ -231,6 +241,7 @@ class OutputDiffer:
         """
         file_list = self.file_list
         for fname in file_list:
+            assert fname.exists()
             try:
                 fname = Path(fname)
                 # compare 1D files
@@ -249,18 +260,26 @@ class OutputDiffer:
                         # Not sure how to treat this file so just do a byte comparison
                         self.assert_files_by_byte_equal([fname])
             except AssertionError as error:
-                # if True:
-                if self.save_sample_output:
+                if not self.fail_for_error:
                     self.files_with_diff[str(fname)] = error
                     continue
                 else:
                     raise error
+            except FileNotFoundError as error:
+                if not self.fail_for_error:
+                    self.files_with_diff[str(fname)] = error
+                else:
+                    raise error
+
+    def get_equivalent_name(self, fname):
+        equivalent_file = self.comparison_dir / fname.name
+        if not equivalent_file.exists():
+            raise FileNotFoundError
+        return equivalent_file
 
     def assert_scans_equal(self, files_scans: List):
-        comparison_dir = self.comparison_dir
-
         for fname in files_scans:
-            equivalent_file = comparison_dir / fname
+            equivalent_file = self.get_equivalent_name(fname)
             image = nib.load(str(fname))
             equiv_image = nib.load(str(equivalent_file))
             self.assert_scan_headers_equal(image.header, equiv_image.header)
@@ -276,7 +295,7 @@ class OutputDiffer:
         """
 
         for fname in files_bytes:
-            equivalent_file = self.comparison_dir / fname
+            equivalent_file = self.get_equivalent_name(fname)
             assert filecmp.cmp(fname, equivalent_file)
 
     def assert_logs_equal(self, files_logs):
@@ -292,7 +311,7 @@ class OutputDiffer:
     ):
 
         for fname in textfiles:
-            equivalent_file = self.comparison_dir / fname
+            equivalent_file = self.get_equivalent_name(fname)
             text_old = [
                 x
                 for x in Path(equivalent_file).read_text().splitlines()
@@ -335,9 +354,7 @@ class OutputDiffer:
 
         for fname in files_1d:
             tool_1d = misc.try_to_import_afni_module("1d_tool")
-            equivalent_file = self.comparison_dir / fname
-            if not equivalent_file.exists():
-                raise FileNotFoundError
+            equivalent_file = self.get_equivalent_name(fname)
 
             # Load 1D file data
             obj_1d = tool_1d.A1DInterface()
