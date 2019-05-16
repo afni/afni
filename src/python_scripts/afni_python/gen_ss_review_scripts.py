@@ -871,10 +871,11 @@ g_history = """
    1.7  Feb 28, 2019: mask_dset needs to include extension
    1.8  Mar 15, 2019: added tr field and TR value in basic output
    1.9  Apr 16, 2019: watch for non-tlrc anat_final datasets
-   1.10 May 15, 2019: try to set new uvar have_radcor_dirs
+   1.10 May 15, 2019: added uvar have_radcor_dirs
+   1.11 May 16, 2019: added uvars flip_check_dset and flip_guess
 """
 
-g_version = "gen_ss_review_scripts.py version 1.10, May 15, 2019"
+g_version = "gen_ss_review_scripts.py version 1.11, May 16, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1178,6 +1179,7 @@ class MyInterface:
 
       if self.find_censor_file():       return -1
       if self.find_radcor_files():      return -1
+      if self.find_flip_check_files():  return -1
       if self.guess_warn_files():       return -1
       if self.guess_ss_review_dset():   return -1
 
@@ -2310,6 +2312,47 @@ class MyInterface:
       if self.cvars.verb > 1:
          print('-- setting stats_dset = %s' % (sb.pv() + '.HEAD'))
 
+      return 0
+
+   def find_flip_check_files(self):
+      """try to set flip_check_dset and flip_guess
+
+         look for directories of the form: radcor.pb*.*, containing files
+         of the form radcor.*.corr+*.HEAD
+      """
+
+      uvar_label = 'flip_check_dset'
+      uvar_field = 'flip_guess'
+      fname = 'aea_checkflip_results.txt'
+      guess = 'HORSE'
+
+      # check if censor dset already set
+      if self.uvar_already_set(uvar_label): return 0
+
+      # does it exist
+      if not os.path.isfile(fname): return 0
+
+      # and can we read it
+      rv, flip_dict = UTIL.read_text_dictionary(fname, compact=1)
+      if rv:
+         if self.cvars.verb > 1:
+            print("** GSSR: have %s, but cannot read as dict" % fname)
+            return 0
+      try: guess = flip_dict[uvar_field]
+      except:
+         if self.cvars.verb > 1:
+            print("** GSSR: have %s, but cannot extract '%s'" \
+                  % (fname, uvar_field))
+            return 0
+
+      # everything looks okay
+
+      self.uvars.set_var(uvar_label, fname)
+      self.uvars.set_var(uvar_field, guess)
+
+      if self.cvars.verb > 1:
+         print('-- found %s=%s in %s' % (uvar_field, guess, fname))
+      
       return 0
 
    def find_radcor_files(self):
