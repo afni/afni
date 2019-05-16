@@ -201,6 +201,8 @@ R Reynolds    July 2011
 #
 # if new output field:
 #   - add add_field_help() to update_field_help()
+#   - probably add new variable to script (e.g. in basic_init())
+#      - maybe under derived variables
 #   - apply to script           : basic and/or drive
 #                                 drive: self.text_drive, self.commands_drive
 # 
@@ -268,6 +270,7 @@ def update_field_help():
    add_field_help('average outlier frac (TR)',
       'average outlier fraction among all TRs')
    add_field_help('num TRs above out limit','TR count above outlier frac limit')
+   add_field_help('flip guess','do EPI and anat seem relatively flipped')
 
    add_field_help('num runs found', 'should be number of -dsets provided')
    add_field_help('num TRs per run', 'list of run lengths, in TRs')
@@ -433,6 +436,7 @@ endif
 
 # ------------------------------------------------------------
 # report outlier limit, average and number of TRs exceeding limit
+# also, report any flip guess
 
 echo "outlier limit             : $out_limit"
 
@@ -443,6 +447,9 @@ set mcount = `1deval -a $outlier_dset -expr "step(a-$out_limit)"      \\
                         | awk '$1 != 0 {print}' | wc -l`
 echo "num TRs above out limit   : $mcount"
 
+if ( $?flip_guess ) then
+   echo "flip guess                : $flip_guess"
+endif
 
 echo ""
 
@@ -872,7 +879,9 @@ g_history = """
    1.8  Mar 15, 2019: added tr field and TR value in basic output
    1.9  Apr 16, 2019: watch for non-tlrc anat_final datasets
    1.10 May 15, 2019: added uvar have_radcor_dirs
-   1.11 May 16, 2019: added uvars flip_check_dset and flip_guess
+   1.11 May 16, 2019:
+        - added uvars flip_check_dset and flip_guess
+        - apply them and show flip_guess in review_basic
 """
 
 g_version = "gen_ss_review_scripts.py version 1.11, May 16, 2019"
@@ -2599,6 +2608,10 @@ class MyInterface:
          print('** basic script: missing variable %s' % var)
          errs += 1
 
+      var = 'flip_check_dset'
+      if uvars.is_not_empty(var):
+         txt += form % (var, uvars.val(var))
+
       var = 'xmat_regress'
       if uvars.is_not_empty(var):
          txt += form % ('xmat_regress', uvars.val(var))
@@ -2640,6 +2653,11 @@ class MyInterface:
       if self.uvars.is_not_empty(var):
          txt += form % (var, self.uvars.val(var))
       # not required
+
+      txt += '\n# derived variables\n'
+      var = 'flip_guess'
+      if uvars.is_not_empty(var):
+         txt += form % (var, uvars.val(var))
 
       if errs > 0: return 1
 

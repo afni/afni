@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  { 16, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
    "add uvars flip_check_dset and flip_guess",
-   NULL
+   "Add 'flip guess' to review_basic output."
  } ,
 
  { 16, May, 2019, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
