@@ -1,6 +1,7 @@
 from pathlib import Path
 import shutil
 from .utils import tools
+import pytest
 
 base_path = Path("old_test_data_repo") / "3dttest++"
 data_paths = {
@@ -13,25 +14,21 @@ data_paths = {
 }
 
 
-def test_3dttest__plus____plus___basic(data, run_cmd):
-    for file in [data.Zovar, data.Tovar] + data.cov_files_G + data.cov_files_u:
+@pytest.mark.parametrize("covariance", ["Tovar", "Zovar"])
+def test_3dttest__plus____plus___basic(data, covariance):
+    covar = getattr(data, covariance)
+    for file in [covar] + data.cov_files_G + data.cov_files_u:
         shutil.copy(file, data.outdir / file.name)
-    copied_Tovar = data.outdir / data.Tovar
-    copied_Zovar = data.outdir / data.Zovar
+    copied_var_file = data.outdir / covar.name
     set_a = " ".join([str(f) for f in data.set_a])
     set_b = " ".join([str(f) for f in data.set_b])
-    zov_out = data.outdir / "TTest_zov.nii.gz"
-    tov_out = data.outdir / "TTest_tov.nii.gz"
+    outfile = data.outdir / ("TTest_" + covar.name + ".nii.gz")
 
     cmd = """
-    3dttest++ -setA {set_a} -setB {set_b} -prefix {zov_out} -covariates {copied_Zovar}
+    3dttest++ -setA {set_a} -setB {set_b} -prefix {outfile} -covariates {copied_var_file}
     """
-    proc_1 = run_cmd(cmd, locals(), workdir=data.Tovar.parent)
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    cmd = """
-    3dttest++ -setA {set_a} -setB {set_b} -prefix {tov_out} -covariates {copied_Tovar}
-    """
-    proc_2 = run_cmd(cmd, locals(), workdir=data.Tovar.parent)
-
-    # test outputs if above commands ran
-    tools.assert_scans_equal(data.comparison_dir, [zov_out, tov_out])
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd, workdir=covar.parent, file_list=[outfile])
+    differ.run()

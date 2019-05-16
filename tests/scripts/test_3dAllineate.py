@@ -16,7 +16,7 @@ data_paths = {
 
 # TESTS:
 @pytest.mark.slow
-def test_3dAllineate_basic(data, run_cmd):
+def test_3dAllineate_basic(data):
     outname = "aligned"
     if OMP:
         outname += "_with_omp"
@@ -35,11 +35,12 @@ def test_3dAllineate_basic(data, run_cmd):
         -conv 2
         -cost lpc
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    run_cmd(cmd, current_vars=locals())
-
-    tools.assert_all_files_equal(
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(
         data,
+        cmd,
         kwargs_log={
             "append_to_ignored": [
                 "Output dataset",
@@ -48,3 +49,4 @@ def test_3dAllineate_basic(data, run_cmd):
             ]
         },
     )
+    differ.run()

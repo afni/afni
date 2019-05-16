@@ -7,7 +7,7 @@ data_paths = {
 }
 
 
-def test_3dmaskdump_basic(data, run_cmd):
+def test_3dmaskdump_basic(data):
 
     outfile_path = data.outdir / ("Vrel_tstats.txt")
     cmd = """
@@ -16,7 +16,8 @@ def test_3dmaskdump_basic(data, run_cmd):
         -mask {data.mask} {data.epi}
         > {outfile_path}
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, locals())
-    # Test all outputs match
-    tools.assert_all_files_equal(data)
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()

@@ -8,14 +8,15 @@ data_paths = {
 }
 
 
-def test_3dcalc_basic(data, run_cmd):
+def test_3dcalc_basic(data):
     outfile = data.outdir / "outside_brain.nii.gz"
     cmd = """
     3dcalc -a {data.anatomical} -b {data.no_skull} -expr 'a*not(b)' -prefix {outfile}
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, current_vars=locals())
-
-    tools.assert_all_files_equal(
-        data, kwargs_log={"append_to_ignored": ["Output dataset"]}
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(
+        data, cmd, kwargs_log={"append_to_ignored": ["Output dataset"]}
     )
+    differ.run()

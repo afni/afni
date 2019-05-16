@@ -1,16 +1,16 @@
 from .utils import tools
-import filecmp
 
 # Define Data
 data_paths = {"anatomical": "mini_data/anat_3mm.nii.gz"}
 
 
-def test_3dcopy_basic(data, run_cmd):
+def test_3dcopy_basic(data):
     outfile = data.outdir / "copied.nii.gz"
     cmd = """
     3dcopy {data.anatomical} {outfile}
     """
-
-    proc = run_cmd(cmd, current_vars=locals())
-
-    tools.assert_all_files_equal(data, kwargs_scans={"data_kwargs": {"atol": 1e-6}})
+    cmd = " ".join(cmd.format(**locals()).split())
+    # assert cmd == "bamboozle"
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()

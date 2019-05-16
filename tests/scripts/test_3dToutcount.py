@@ -4,7 +4,7 @@ from .utils import tools
 data_paths = {"epi": "AFNI_data6/roi_demo/func_slim+orig.HEAD"}
 
 
-def test_3dToutcount_basic(data, run_cmd):
+def test_3dToutcount_basic(data):
 
     outfile = data.outdir / "outcount_1D"
 
@@ -15,8 +15,10 @@ def test_3dToutcount_basic(data, run_cmd):
         -polort 3
         -legendre {data.epi}
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, locals())
-    tools.assert_all_files_equal(
-        data, kwargs_log={"append_to_ignored": ["3dToutcount: AFNI version="]}
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(
+        data, cmd, kwargs_log={"append_to_ignored": ["3dToutcount: AFNI version="]}
     )
+    differ.run()

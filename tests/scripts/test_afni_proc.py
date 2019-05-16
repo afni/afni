@@ -12,7 +12,7 @@ data_paths = {
 }
 
 
-def test_handout_realcase2(data, run_cmd):
+def test_handout_realcase2(data):
     """Test the command in the afni_proc.py handout (real case 2)."""
     subj = "FT"
 
@@ -47,17 +47,20 @@ def test_handout_realcase2(data, run_cmd):
         -regress_est_blur_errts
         -regress_run_clustsim yes
     """
-    run_cmd(cmd, locals(), workdir=data.outdir)
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    # test outputs if above commands ran
-    tools.assert_all_files_equal(
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(
         data,
+        cmd,
+        workdir=data.outdir,
         text_file_patterns=[".FT"],
         kwargs_text_files={"ignore_patterns": ["auto-gener"]},
     )
+    differ.run()
 
 
-def test_handout_realcase3(data, run_cmd):
+def test_handout_realcase3(data):
     subj = "FT"
     cmd = """
     afni_proc.py
@@ -72,12 +75,14 @@ def test_handout_realcase3(data, run_cmd):
         -volreg_tlrc_warp
         -blur_size 4.0
     """
-    run_cmd(cmd, locals(), workdir=data.outdir)
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    # test outputs if above commands ran
-
-    tools.assert_all_files_equal(
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(
         data,
+        cmd,
+        workdir=data.outdir,
         text_file_patterns=[".FT"],
         kwargs_text_files={"ignore_patterns": ["auto-gener"]},
     )
+    differ.run()

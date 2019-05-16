@@ -2,6 +2,7 @@ import shutil
 from pathlib import Path
 import sys
 import subprocess
+from .utils.tools import run_cmd
 
 # Until python dependencies are importable in the typical way use the
 # following to make them importable instead:
@@ -10,7 +11,7 @@ AFNI_ROOT = str(Path(afni_binary).parent)
 sys.path.append(AFNI_ROOT)
 
 
-def test_script_imports(data, run_cmd):
+def test_script_imports(data):
     binary_dir = Path(shutil.which("afni")).parent
 
     py_files = list(binary_dir.glob("*.py"))
@@ -95,9 +96,7 @@ def test_script_imports(data, run_cmd):
         print(script)
         module_name = script.stem
         try:
-            run_cmd(
-                """python2 -c 'import {module_name}'""", locals(), workdir=binary_dir
-            )
+            run_cmd("python2 -c 'import %s'" % module_name, data, workdir=binary_dir)
         except subprocess.CalledProcessError as e:
             broken_imports[script.name] = e
 
@@ -106,7 +105,3 @@ def test_script_imports(data, run_cmd):
         raise ValueError(
             "The following scripts could not be imported: {failed_scripts}"
         )
-
-
-if __name__ == "__main__":
-    test_script_imports()

@@ -5,11 +5,12 @@ import filecmp
 data_paths = {"anatomical": "mini_data/anat_3mm.nii.gz"}
 
 
-def test_3dinfo_basic(data, run_cmd):
+def test_3dinfo_basic(data):
     cmd = """
     3dinfo {data.anatomical}
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, current_vars=locals())
-
-    tools.assert_all_files_equal(data)
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()

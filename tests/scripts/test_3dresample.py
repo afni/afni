@@ -7,7 +7,7 @@ data_paths = {
 }
 
 
-def test_3dresample_basic(data, run_cmd):
+def test_3dresample_basic(data):
 
     outfile_prefix = data.outdir / ("anat_roi_resam.nii.gz")
     cmd = """
@@ -18,7 +18,8 @@ def test_3dresample_basic(data, run_cmd):
         -rmode NN
         -verbose
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, locals())
-    # Test all outputs match
-    tools.assert_all_files_equal(data)
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()

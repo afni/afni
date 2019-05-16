@@ -7,7 +7,7 @@ data_paths = {
 }
 
 
-def test_3dmaskave_basic(data, run_cmd):
+def test_3dmaskave_basic(data):
 
     outfile_prefix = data.outdir / ("anat_roi_resam.nii.gz")
     out_1d = data.outdir / ("epi_avg.1D")
@@ -17,7 +17,8 @@ def test_3dmaskave_basic(data, run_cmd):
         -quiet {data.epi}
         > {out_1d}
     """
+    cmd = " ".join(cmd.format(**locals()).split())
 
-    proc = run_cmd(cmd, locals())
-    # Test all outputs match
-    tools.assert_all_files_equal(data)
+    # Run command and test all outputs match
+    differ = tools.OutputDiffer(data, cmd)
+    differ.run()
