@@ -6745,7 +6745,7 @@ ENTRY("AFNI_tips_CB") ;
 
 void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
-   int first=1 ;
+   static int first=1 ;
    if( GLOBAL_browser != NULL ){
      if( first ){
        (void) MCW_popup_message( w , " \n"
