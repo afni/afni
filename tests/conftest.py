@@ -11,6 +11,7 @@ import atexit
 from scripts.utils import misc
 import scripts.utils.tools as tools
 import attr
+import re
 
 missing_dependencies = (
     "In order to download data an installation of datalad, wget, or "
@@ -111,7 +112,8 @@ def get_test_data_dir():
 
 
 def get_current_test_name():
-    return os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    return re.sub(r"[\[\]\(\)\*]", "_", name_str)
 
 
 @pytest.fixture(scope="function")
@@ -239,32 +241,15 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-def update_sample_output(odir, sample_test_output):
-
-    if not shutil.which("rsync"):
-        raise EnvironmentError(
-            "Updating sample output requires  a working rsync installation."
-        )
-    cmd = f"rsync -a {odir}/ {sample_test_output}/"
-    with misc.remember_cwd():
-        os.chdir(Path(pytest.config.rootdir))
-
-        subprocess.check_call(cmd, shell=True)
-        update_msg = "Update data with test run at %s" % odir.name.replace(
-            "output_", ""
-        )
-        result = datalad.api.rev_save(sample_test_output, update_msg, on_failure="stop")
-        if not result[0]["status"] == "notneeded":
-            print(f"Updating sample data in {sample_test_output}")
-
-
-def report():
+def pytest_sessionfinish(session, exitstatus):
     output_directory = get_output_dir().absolute()
-    sample_test_output = get_test_data_path() / "sample_test_output"
-    if pytest.config.getoption("--save_sample_output"):
-        update_sample_output(output_directory, sample_test_output)
-
-    print("Test output is written to: ", output_directory)
-
-
-atexit.register(report)
+    print("\nTest output is written to: ", output_directory)
+    # When configured to save output and test session was successful...
+    if pytest.config.getoption("--save_sample_output") and not bool(exitstatus):
+        sample_test_output = get_test_data_path() / "sample_test_output"
+        data_message = (
+            "New sample output was saved to {sample_test_output} for "
+            "future comparisons. Consider publishing this new data to "
+            "the publicly accessible servers.. "
+        )
+        print(data_message.format(**locals()))
