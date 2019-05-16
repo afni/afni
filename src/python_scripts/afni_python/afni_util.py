@@ -103,7 +103,7 @@ def wrap_file_text(infile='stdin', outfile='stdout'):
    if tdata != '': write_text_to_file(outfile, tdata, wrap=1)
    
 
-def read_text_file(fname='stdin', lines=1, strip=1, verb=1):
+def read_text_file(fname='stdin', lines=1, strip=1, noblank=0, verb=1):
    """return the text text from the given file as either one string
       or as an array of lines"""
 
@@ -118,6 +118,7 @@ def read_text_file(fname='stdin', lines=1, strip=1, verb=1):
    if lines:
       tdata = fp.readlines()
       if strip: tdata = [td.strip() for td in tdata]
+      if noblank: tdata = [td for td in tdata if td != '']
    else:
       tdata = fp.read()
       if strip: tdata.strip()
@@ -132,10 +133,147 @@ def read_top_lines(fname='stdin', nlines=1, strip=0, verb=1):
    if nlines != 0: tdata = tdata[0:nlines]
    return tdata
 
-def write_data_as_json(data, fname='stdout', indent=3, sort=1, newline=1):
+def read_text_dictionary(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
+   """this is the same as read_text_dict_list(), but it returns a dictionary
+
+      if compact, collapse single entry lists
+   """
+   rv, ttable = read_text_dict_list(fname, verb=verb, mjdiv=mjdiv, mndiv=mndiv,
+                                    compact=compact)
+   if rv: return rv, {}
+   
+   rdict = {}
+   for row in ttable:
+      if len(row) != 2:
+         print("** RT_dict: table '%s' has bad row length %d" \
+               % (fname, len(row)))
+         return 1, {}
+      rdict[row[0]] = row[1]
+
+   return 0, rdict
+
+def read_text_dict_list(fname, verb=1, mjdiv=None, mndiv=None, compact=0):
+   """read file as if in a plain dictionary format (e.g. LABEL : VAL VAL ...)
+
+         mjdiv : major divider can be a single string (':') or a list of them
+                 to try, in order
+                 (if None, partitioning will be attempted over a few cases)
+         mkdiv : minor divider should be a single string ('SPACE', ',,')
+
+            if either divider is 'SPACE', the natural .split() will be used
+
+         compact: collapse any single entry lists to return
+                  DLIST enties of form [LABEL, VAL] or [LABEL, [V0, V1...]]
+
+      return status, DLIST
+             where status == 0 on success
+                   DLIST is a list of [LABEL, [VAL,VAL...]]
+
+      The list is to keep the original order.
+   """
+   tlines = read_text_file(fname, lines=1, strip=1, noblank=1, verb=verb)
+   nrows = len(tlines)
+   if nrows == 0: return 0, []
+
+   # note the major divider
+   if mjdiv == None:
+      major_list = [':', '=', 'SPACE', '::']
+   elif type(mjdiv) == list:
+      major_list = mjdiv
+   else:
+      major_list = [mjdiv]
+
+   # see if we have a major partitioning
+   for mdiv in major_list:
+      ttable = [] # keep the sorting
+      good = 1
+      for line in tlines:
+         if mdiv == 'SPACE': entries = line.split()
+         else:               entries = line.split(mdiv)
+         if len(entries) == 2:
+            entries = [e.strip() for e in entries]
+            ttable.append(entries)
+         else:
+            good = 0
+            break
+      if good:
+         if verb > 1: print("text_dict_list: using major delim '%s'" % mdiv)
+         break
+
+   # did we find a major partitioning?
+   if not good:
+      if verb:
+         print("** failed read_text_dictionary('%s')" % fname)
+         return 1, []
+
+   # try to guess the minor divider
+   if mndiv == None:
+      has_cc = 0
+      has_c  = 0
+      has_s  = 0
+      for tline in ttable:
+         if ',,' in tline:
+            has_cc += 1
+            mndiv = ',,'
+            # give double comma priority, since it should be uncommon
+            break
+         if ',' in tline:
+            has_c += 1
+   if mndiv == None:
+      if has_cc: mndiv = ','
+      else:      mndiv = 'SPACE'
+
+   # now actually make a dictionary
+   outtable = []
+   for tline in ttable:
+      if mndiv == 'SPACE': entries = tline[1].split()
+      else:                entries = tline[1].split(mndiv)
+      if compact and len(entries) == 1:
+         entries = entries[0]
+      outtable.append([tline[0], entries])
+
+   return 0, outtable
+
+def convert_table2dict(dlist):
+   """try to convert a table to a dictionary
+      each list entry must have exactly 2 elements
+
+      return status, dictionary
+   """
+   if type(dlist) == dict:
+      return 0, dlist
+   if not type(dlist) == list:
+      print("** convert_table2dict: unknown input of type %s" % type(dlist))
+      return 1, None
+
+   rdict = {}
+   for dentry in dlist:
+      if not type(dentry) == list:
+         print("** convert_table2dict: unknown entry type %s" % type(dentry))
+         return 1, None
+      if len(dentry) != 2:
+         print("** convert_table2dict: invalid entry length %d" % len(dentry))
+         return 1, None
+
+      # finally, the useful instruction
+      rdict[dentry[0]] = dentry[1]
+
+   return 0, rdict
+
+def write_data_as_json(data, fname='stdout', indent=3, sort=1, newline=1,
+                       table2dict=0):
    """dump to json file; check for stdout or stderr
+      table2dict: if set, convert table Nx2 table into a dictionary
       return 0 on success
    """
+   # possibly convert data to a dictionary
+   if table2dict:
+      rv, dtable = convert_table2dict(data)
+      if rv:
+         print("** write_data_as_json: failed to create file '%s'" % fname)
+         return 1
+      data = dtable
+
    # import locally, unless it is needed in at least a few functions
    # (will make default in afni_proc.py, so be safe)
    try:
@@ -3989,6 +4127,9 @@ afni_util.py: not really intended as a main program
             afni_util.py -eval "show_process_stack(verb=2)"
             afni_util.py -eval "show_process_stack(pid=1000)"
 
+            # display out.ss_review.FT.txt as a json dictionary
+            afni_util.py -eval 'write_data_as_json(read_text_dictionary("out.ss_review.FT.txt")[1])'
+            afni_util.py -eval 'write_data_as_json(read_text_dictionary("out.ss_review.FT.txt", compact=1)[1])'
 
       -exec STRING      : execute STRING in the context of afni_util.py
 

@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, May, 2019, RCR, "afni_util.py", MINOR, TYPE_NEW_OPT,
+   "add read_text_dictionary, read_text_dict_list, convert_table2dict",
+   "Also, allow table2dict in write_data_as_json.  This allows for easy I/O\n"
+   "of tables, and the ability to convert them to json form."
+ } ,
+
  { 15, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
    "try to set have_radcor_dirs",
    NULL
