@@ -6,8 +6,8 @@ import pytest
 import shutil
 import inspect
 import functools
+import datetime
 import datetime as dt
-import atexit
 from scripts.utils import misc
 import scripts.utils.tools as tools
 import attr
@@ -34,6 +34,11 @@ def get_output_dir():
             Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
         )
         return outdir
+
+
+def get_sample_output_dir():
+    samp_dir = str(get_output_dir).replace("output_", "sample_output_")
+    return samp_dir
 
 
 def get_test_data_path():
@@ -68,7 +73,8 @@ def get_test_comparison_dir(current_test_module: Union[str or Path]):
             f"The appropriate output for the test {test_name} does not "
             f"exist in the comparison directory {test_compare_dir}. You "
             "may wish to run the test with the --create_sample_output "
-            "flag. "
+            "flag or generate output for future test sessions with "
+            "--save_sample_output. "
         )
 
     if cmpr_path.name == "sample_test_output" and comparison_data_needs_to_exist:
@@ -149,6 +155,14 @@ def data(request):
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
 
+    # add a test sample  directory at this point. this should only be made if
+    # the user has requested it with the create_sample output_flag. the differ
+    # class can then use the path to sync all files that are diffed perhaps
+    # want to cleanup sample and output directories at the end of a session if
+    # a failure occurs.
+    # add sample dirs to gitignore.
+
+    assert False
     # start creating output dict, downloading test data as required
     out_dict = {
         k: misc.process_path_obj(v, module_data_dir) for k, v in data_paths.items()
@@ -162,6 +176,7 @@ def data(request):
         {
             "module_data_dir": module_data_dir,
             "outdir": module_outdir / get_current_test_name(),
+            "sampdir": samp_dir,
             "logdir": test_logdir,
             "comparison_dir": comparison_dir,
             "test_name": test_name,
@@ -201,10 +216,9 @@ def pytest_addoption(parser):
         default=False,
         help=(
             "During many of the tests, sample output is required to "
-            "assess changes in the output files. With this flag the "
-            "fact that the comparison data is missing is ignored so "
-            "that a test will run to completion and create all of the "
-            "required files for future comparison. "
+            "assess changes in the output files. This flag creates all "
+            "of the required files for a future comparison and no "
+            "comparison is made during the test session. "
         ),
     )
     parser.addoption(
@@ -212,11 +226,16 @@ def pytest_addoption(parser):
         action="store_true",
         default=False,
         help=(
-            "Tests that required the output of a previous test- session "
-            "to compare against will search in the sample_test_output "
-            "directory of the afni_ci_test_data repository by default. "
-            "This flag runs the tests and updates the 'sample output' "
-            "for each respective test. "
+            "By default, the afni_ci_test_data repository is used for "
+            "all output data comparisons during testing. This flag "
+            "updates the 'sample output' for each test run. Note that "
+            "the output that is saved may be different from the output "
+            "typically created because only files tested for "
+            "differences are included though, by default, this is all "
+            "files generated. If previous output exists, only the files "
+            "that have differences, as defined by the tests, will be "
+            "updated. Uploading updates to the publicly available "
+            "repository must be done separately. "
         ),
     )
 
@@ -244,8 +263,21 @@ def pytest_collection_modifyitems(config, items):
 def pytest_sessionfinish(session, exitstatus):
     output_directory = get_output_dir().absolute()
     print("\nTest output is written to: ", output_directory)
+
+    if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
+        print("\n Sample output is written to:", get_sample_output_dir())
+
     # When configured to save output and test session was successful...
     if pytest.config.getoption("--save_sample_output") and not bool(exitstatus):
+
+        update_msg = "Update data with test run on {d}".format(
+            datetime.datetime.today().strftime("%Y-%m-%d")
+        )
+
+        result = datalad.rev_save(
+            get_comparison_dir_path(), update_msg, on_failure="stop"
+        )
+
         sample_test_output = get_test_data_path() / "sample_test_output"
         data_message = (
             "New sample output was saved to {sample_test_output} for "
