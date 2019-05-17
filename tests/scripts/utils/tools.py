@@ -150,7 +150,9 @@ class OutputDiffer:
         )
 
         # Tune the output comparison
-        self.fail_for_error = not (self.create_sample_output or self.save_sample_output)
+        self.require_sample_output = (
+            self.create_sample_output or self.save_sample_output
+        )
         self._ignore_file_patterns = ignore_file_patterns
         self._comparison_dir = data.comparison_dir
         self._text_file_patterns = text_file_patterns
@@ -168,7 +170,7 @@ class OutputDiffer:
     def run(self):
         proc = self.__run_cmd()
         self.assert_all_files_equal()
-        if self.save_sample_output:
+        if self.require_sample_output:
             self.update_sample_output()
 
     def __run_cmd(self):
@@ -192,7 +194,22 @@ class OutputDiffer:
         return proc
 
     def update_sample_output(self):
+
+        # Get the directory to be used for the sample output
+        if self.create_sample_output:
+            savedir = self.data.sampdir
+
+        elif self.save_sample_output:
+            savedir = self.data.comparison_dir
+        else:
+            raise ValueError
+
+        if not savedir.exists():
+            os.makedirs(savedir, exist_ok=True)
+
+        # The results directory
         outdir = self.data.outdir
+
         # Create rsync pattern for all files that need to be synced
         files_pattern = " ".join(
             [
@@ -206,7 +223,6 @@ class OutputDiffer:
                 "Updating sample output requires a working rsync "
                 "installation, which cannot currently be found. "
             )
-
         cmd = """
                 rsync
                     -a
@@ -215,7 +231,7 @@ class OutputDiffer:
                     {files_pattern}
                     -f "- *"
                     {outdir}/
-                    {self.data.comparison_dir}/
+                    {savedir}/
                 """
         cmd = " ".join(cmd.format(**locals()).split())
         proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
@@ -260,19 +276,27 @@ class OutputDiffer:
                         # Not sure how to treat this file so just do a byte comparison
                         self.assert_files_by_byte_equal([fname])
             except AssertionError as error:
-                if not self.fail_for_error:
+                if self.require_sample_output:
                     self.files_with_diff[str(fname)] = error
                     continue
                 else:
                     raise error
             except FileNotFoundError as error:
-                if not self.fail_for_error:
+                if self.require_sample_output:
                     self.files_with_diff[str(fname)] = error
                 else:
                     raise error
 
+    # def test_get_equivalent_name():
+    #     test = 'a_path'
+
+    #     with pytest.raises('FileNotFoundError'):
+
     def get_equivalent_name(self, fname):
-        equivalent_file = self.comparison_dir / fname.name
+        # Given  a file in the output directory, returns a path to the file in
+        # the comparison directory
+        orig = Path(fname).relative_to(self.data.outdir)
+        equivalent_file = self.comparison_dir / orig
         if not equivalent_file.exists():
             raise FileNotFoundError
         return equivalent_file
@@ -309,6 +333,8 @@ class OutputDiffer:
         append_to_ignored: List = [],
         ignore_patterns: List = [],
     ):
+        if append_to_ignored:
+            ignore_patterns += append_to_ignored
 
         for fname in textfiles:
             equivalent_file = self.get_equivalent_name(fname)
@@ -328,10 +354,9 @@ class OutputDiffer:
             diff_str = "\n".join(diff)
 
             # Check for a difference for the text file
-
             assert diff_str == ""
 
-    def assert_1dfiles_equal(self, files_1d, fields=None, **kwargs_1d):
+    def assert_1dfiles_equal(self, files_1d, fields=None):
         """Summary
 
         Args:
@@ -348,7 +373,11 @@ class OutputDiffer:
             rtol (float, optional): Used to set tolerance of matrix comparison
             atol (float, optional): Used to set tolerance of matrix comparison
         """
-
+        kwargs_1d = self.kwargs_1d.copy()
+        if "all_close_kwargs" in kwargs_1d:
+            all_close_kwargs = kwargs_1d.pop("all_close_kwargs")
+        else:
+            all_close_kwargs = {}
         if fields:
             raise NotImplementedError
 
@@ -367,7 +396,7 @@ class OutputDiffer:
             data_equiv = obj_1d_equiv.adata.__dict__["mat"]
 
             # Test the data is equal
-            assert_allclose(data, data_equiv, **kwargs_1d)
+            assert_allclose(data, data_equiv, **all_close_kwargs)
 
     def assert_scan_headers_equal(self, header_a, header_b):
         # assert_image_headers_equal(
@@ -468,7 +497,17 @@ def set_default_kwargs_log_as_required(kwargs_log):
         # Concatenate ignore patterns together taking care not to include
         # empty strings or None
         kwargs_log["ignore_patterns"] = [
-            x for x in ([os.environ.get("USER")] + ["AFNI version="]) if x
+            x
+            for x in (
+                [os.environ.get("USER")]
+                + [
+                    "AFNI version=",
+                    "Clock time now",
+                    "elapsed time",
+                    "auto-generated by",
+                ]
+            )
+            if x
         ]
 
     return kwargs_log
