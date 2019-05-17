@@ -34,7 +34,7 @@ def _get_programs(afni_root):
     return [j for j in progs if j and not j.startswith("#")]
 
 
-@pytest.mark.slow
+@pytest.mark.veryslow
 @pytest.mark.xfail
 def test_prog_list_helps():
     programs = _get_programs(AFNI_ROOT)
