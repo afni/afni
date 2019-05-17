@@ -303,5 +303,6 @@ def pytest_sessionfinish(session, exitstatus):
     elif pytest.config.getoption("--save_sample_output"):
         print(
             "Sample output not saved because the test failed. You may "
-            "want to hard reset to HEAD in the test data repository. "
+            "want to clean this up with 'cd afni_ci_test_data;git reset "
+            "--hard HEAD; git clean -df' \n Use this with caution though!"
         )
