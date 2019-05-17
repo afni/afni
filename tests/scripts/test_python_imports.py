@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 import subprocess
 from .utils.tools import run_cmd
+import pytest
 
 # Until python dependencies are importable in the typical way use the
 # following to make them importable instead:
@@ -11,6 +12,7 @@ AFNI_ROOT = str(Path(afni_binary).parent)
 sys.path.append(AFNI_ROOT)
 
 
+@pytest.mark.skip(reason="need to implement data save for run_cmd")
 def test_script_imports(data):
     binary_dir = Path(shutil.which("afni")).parent
 
