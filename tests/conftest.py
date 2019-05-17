@@ -28,6 +28,16 @@ except ImportError:
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 
+def pytest_generate_tests(metafunc):
+    if "python_interpreter" in metafunc.fixturenames:
+        pythons = ["python3", "python2"]
+        if metafunc.config.option.testpython2:
+            last_python = 1
+        else:
+            last_python = 0
+        metafunc.parametrize("python_interpreter", pythons[: last_python + 1])
+
+
 def get_output_dir():
     if hasattr(pytest, "config"):
         outdir = (
@@ -134,7 +144,8 @@ def get_tests_data_dir():
 
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
-    return re.sub(r"[\[\]\(\)\*]", "_", name_str)
+    name_str = re.sub("python[23]", "", name_str)
+    return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
 
 
 @pytest.fixture(scope="function")
@@ -249,6 +260,12 @@ def pytest_addoption(parser):
             "updated. Uploading updates to the publicly available "
             "repository must be done separately. "
         ),
+    )
+
+    parser.addoption(
+        "--testpython2",
+        action="store_true",
+        help="For tests that use the python_interpreter fixture they are tested in both python 3 and python 2",
     )
 
 

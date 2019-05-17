@@ -12,8 +12,8 @@ AFNI_ROOT = str(Path(afni_binary).parent)
 sys.path.append(AFNI_ROOT)
 
 
-@pytest.mark.skip(reason="need to implement data save for run_cmd")
-def test_script_imports(data):
+# @pytest.mark.skip(reason="need to implement data save for run_cmd")
+def test_script_imports(data, python_interpreter):
     binary_dir = Path(shutil.which("afni")).parent
 
     py_files = list(binary_dir.glob("*.py"))
@@ -98,12 +98,16 @@ def test_script_imports(data):
         print(script)
         module_name = script.stem
         try:
-            run_cmd("python2 -c 'import %s'" % module_name, data, workdir=binary_dir)
+            run_cmd(
+                "%s -c 'import %s'" % (python_interpreter, module_name),
+                data,
+                workdir=binary_dir,
+            )
         except subprocess.CalledProcessError as e:
             broken_imports[script.name] = e
 
     if broken_imports:
         failed_scripts = ", ".join([p for p in broken_imports.keys()])
         raise ValueError(
-            "The following scripts could not be imported: {failed_scripts}"
+            "The following scripts could not be imported: %s" % failed_scripts
         )
