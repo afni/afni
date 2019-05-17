@@ -23,7 +23,7 @@ data_paths = {
 @pytest.mark.parametrize("add_env_vars", [({}), ({"OMP_NUM_THREADS": "2"})])
 def test_3dClustSim_basic(data, add_env_vars):
     seedval = 31416
-    kwargs_1d = {"rtol": 0.15}
+
     kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
 
     outfile_prefix = data.outdir / "clust_sim_out"
@@ -41,6 +41,10 @@ def test_3dClustSim_basic(data, add_env_vars):
 
     # Run command and test all outputs match
     differ = tools.OutputDiffer(
-        data, cmd, kwargs_1d=kwargs_1d, kwargs_log=kwargs_log, add_env_vars=add_env_vars
+        data,
+        cmd,
+        kwargs_1d={"all_close_kwargs": {"rtol": 0.15}},
+        kwargs_log=kwargs_log,
+        add_env_vars=add_env_vars,
     )
     differ.run()
