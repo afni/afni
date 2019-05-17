@@ -6750,8 +6750,8 @@ void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
      if( first ){
        (void) MCW_popup_message( w , " \n"
                                      " * At this time, the news page is *\n"
-                                     " * very limited. We plan to make  *\n"
-                                     " * it much better REAL SOON NOW   *\n" ,
+                                     " * very limited.  We plan to make *\n"
+                                     " * it much better REAL SOON NOW!! *\n" ,
                                 MCW_USER_KILL | MCW_TIMER_KILL ) ;
        first = 0 ; AFNI_sleep(666) ;
      }
