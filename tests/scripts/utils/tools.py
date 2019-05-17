@@ -98,6 +98,9 @@ def run_cmd(
     else:
         error = subprocess.PIPE
 
+    cmd.replace(str(workdir), ".")
+    rel_data_path = os.path.relpath(data.base_outdir, workdir)
+    cmd.replace(str(data.base_outdir), rel_data_path)
     proc = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=error, cwd=workdir
     )
