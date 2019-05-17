@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , MAY , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Also add 'AFNI Forum' and 'Prog Helps' buttons" ,
+   NULL } ,
+
+ { 17 , MAY , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add 'AFNI News' button, above 'AFNI Tips'" ,
+   NULL } ,
+
  { 8 , MAY , 2019 , RWC , "3dQwarp" , MICRO , TYPE_MODIFY ,
    "Expand (somewhat) max displacement of component warps" ,
    NULL } ,

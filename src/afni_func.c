@@ -6768,6 +6768,50 @@ void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 }
 
 /*---------------------------------------------------------------*/
+/* For the 'AFNI Forum' button [17 May 2019] */
+
+#undef  FORUM_LINK
+#define FORUM_LINK \
+ "https://afni.nimh.nih.gov/afni/community/board/"
+
+void AFNI_forum_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   if( GLOBAL_browser != NULL ){
+     whereami_browser(FORUM_LINK) ;
+   } else {
+     (void) MCW_popup_message( w , " \n"
+                                   " ** Can't find a Web browser :( **\n"
+                                   " Try setting environment variable\n"
+                                   "      AFNI_WEB_BROWSER\n"
+                                   " to be the path to a browser\n"
+                                   " command line path\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+  }
+}
+
+/*---------------------------------------------------------------*/
+/* For the 'Prog Helps' button [17 May 2019] */
+
+#undef  PHELP_LINK
+#define PHELP_LINK \
+ "https://afni.nimh.nih.gov/afni/doc/program_help/index.html"
+
+void AFNI_phelp_CB( Widget w , XtPointer cd , XtPointer cbd )
+{
+   if( GLOBAL_browser != NULL ){
+     whereami_browser(PHELP_LINK) ;
+   } else {
+     (void) MCW_popup_message( w , " \n"
+                                   " ** Can't find a Web browser :( **\n"
+                                   " Try setting environment variable\n"
+                                   "      AFNI_WEB_BROWSER\n"
+                                   " to be the path to a browser\n"
+                                   " command line path\n" ,
+                              MCW_USER_KILL | MCW_TIMER_KILL ) ;
+  }
+}
+
+/*---------------------------------------------------------------*/
 
 #include "PvalueStuff.h"
 

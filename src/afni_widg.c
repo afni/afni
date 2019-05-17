@@ -5585,6 +5585,7 @@ STATUS("making prog->rowcol") ;
    vwid->picture_index = 0 ;
    vwid->tips_pb       = NULL ;  /* not always created */
    vwid->news_pb       = NULL ;  /* 15 May 2019 */
+   vwid->forum_pb      = NULL ;  /* 17 May 2019 */
 
 #ifdef WANT_LOGO_BITMAP
    if( im3d->type == AFNI_3DDATA_VIEW ){
@@ -5612,7 +5613,7 @@ STATUS("making prog->rowcol") ;
       if( num_entry == 1 && !ALLOW_realtime ){
         vwid->tips_pb =
            XtVaCreateManagedWidget(
-              "dialog" , xmPushButtonWidgetClass , vwid->top_form ,
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
                  LABEL_ARG("AFNI Tips") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
@@ -5635,7 +5636,7 @@ STATUS("making prog->rowcol") ;
 
         vwid->news_pb =                /* 15 May 2019 */
            XtVaCreateManagedWidget(
-              "dialog" , xmPushButtonWidgetClass , vwid->top_form ,
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
                  LABEL_ARG("AFNI News") ,
                  XmNleftAttachment   , XmATTACH_WIDGET ,
                  XmNleftWidget       , vwid->picture ,
@@ -5650,11 +5651,54 @@ STATUS("making prog->rowcol") ;
         MCW_register_help( vwid->news_pb , "Opens a web browser\n"
                                            "with the latest news\n"
                                            "about the AFNI package" ) ;
-        MCW_register_hint( vwid->news_pb , "News about AFNI" ) ;
+        MCW_register_hint( vwid->news_pb , "Web: News about AFNI" ) ;
         XtAddCallback( vwid->news_pb , XmNactivateCallback ,
                        AFNI_news_CB , im3d ) ;
         MCW_set_widget_bg( vwid->news_pb , "#003300" , 0 ) ;
         MCW_set_widget_fg( vwid->news_pb , "#ffffaa" ) ;
+
+        vwid->forum_pb =                /* 17 May 2019 */
+           XtVaCreateManagedWidget(
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
+                 LABEL_ARG("AFNI Forum") ,
+                 XmNleftAttachment   , XmATTACH_WIDGET ,
+                 XmNleftWidget       , vwid->news_pb ,
+                 XmNbottomAttachment , XmATTACH_WIDGET ,
+                 XmNbottomWidget     , vwid->tips_pb ,
+                 XmNbottomOffset     , 2 ,
+                 XmNshadowThickness  , 3 ,
+                 XmNtraversalOn      , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+        MCW_register_help( vwid->forum_pb , "Opens a web browser\n"
+                                            "with the AFNI Forum\n"
+                                            "(Message Board)" ) ;
+        MCW_register_hint( vwid->forum_pb , "Web: AFNI Message Board" ) ;
+        XtAddCallback( vwid->forum_pb , XmNactivateCallback ,
+                       AFNI_forum_CB , im3d ) ;
+        MCW_set_widget_bg( vwid->forum_pb , "#003300" , 0 ) ;
+        MCW_set_widget_fg( vwid->forum_pb , "#ffffaa" ) ;
+
+        vwid->phelp_pb =                /* 17 May 2019 */
+           XtVaCreateManagedWidget(
+              "font8" , xmPushButtonWidgetClass , vwid->top_form ,
+                 LABEL_ARG("Prog Helps") ,
+                 XmNleftAttachment   , XmATTACH_WIDGET ,
+                 XmNleftWidget       , vwid->tips_pb ,
+                 XmNbottomAttachment , XmATTACH_OPPOSITE_WIDGET ,
+                 XmNbottomWidget     , vwid->picture ,
+                 XmNbottomOffset     , 2 ,
+                 XmNshadowThickness  , 3 ,
+                 XmNtraversalOn      , True  ,
+                 XmNinitialResourcesPersistent , False ,
+              NULL ) ;
+        MCW_register_help( vwid->phelp_pb , "Opens a web browser\n"
+                                            "with Program Helps"   ) ;
+        MCW_register_hint( vwid->phelp_pb , "Web: AFNI Program Helps" ) ;
+        XtAddCallback( vwid->phelp_pb , XmNactivateCallback ,
+                       AFNI_phelp_CB , im3d ) ;
+        MCW_set_widget_bg( vwid->phelp_pb , "#003300" , 0 ) ;
+        MCW_set_widget_fg( vwid->phelp_pb , "#ffffaa" ) ;
       }
    }
 #else

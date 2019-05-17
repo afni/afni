@@ -1008,6 +1008,8 @@ typedef struct {
       int    picture_index ;
       Widget tips_pb ;                    /* 27 Jun 2011 */
       Widget news_pb ;                    /* 15 May 2019 */
+      Widget forum_pb ;                   /* 17 May 2019 */
+      Widget phelp_pb ;
 
       Widget file_dialog , file_sbox ;
       XtCallbackProc file_cb ;
@@ -1806,6 +1808,8 @@ extern void AFNI_startup_timeout_CB( XtPointer , XtIntervalId * ) ;
 extern void AFNI_vcheck_flasher    ( Three_D_View * ) ;
 extern void AFNI_tips_CB           ( Widget , XtPointer , XtPointer ) ;
 extern void AFNI_news_CB           ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_forum_CB          ( Widget , XtPointer , XtPointer ) ;
+extern void AFNI_phelp_CB          ( Widget , XtPointer , XtPointer ) ;
 
 extern void AFNI_startup_layout_CB  ( XtPointer, XtIntervalId * ) ;    /* 23 Sep 2000 */
 extern void AFNI_save_layout_CB     ( Widget, XtPointer, XtPointer ) ;
