@@ -42,3 +42,4 @@ __pycache__
 .pytest_cache
 .coverage
 output_of_tests
+sample_output_of_tests
