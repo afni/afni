@@ -9,6 +9,8 @@ import functools
 import datetime
 import datetime as dt
 from scripts.utils import misc
+
+pytest.register_assert_rewrite("scripts.utils.tools")
 import scripts.utils.tools as tools
 import attr
 import re
