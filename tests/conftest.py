@@ -20,7 +20,7 @@ missing_dependencies = (
 )
 
 try:
-    import datalad.api
+    import datalad.api as datalad
 
 except ImportError:
     raise NotImplementedError("Currently datalad is a dependency for testing.")
@@ -36,37 +36,52 @@ def get_output_dir():
         return outdir
 
 
-def get_sample_output_dir():
-    samp_dir = str(get_output_dir).replace("output_", "sample_output_")
-    return samp_dir
+def convert_to_sample_dir_path(output_dir):
+    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
+    return sampdir
 
 
 def get_test_data_path():
     return Path(pytest.config.rootdir) / "afni_ci_test_data"
 
 
-def get_test_comparison_dir(current_test_module: Union[str or Path]):
+# cache result for each module that calls it:
+@functools.lru_cache(maxsize=128)
+def get_tests_comparison_dir(
+    cmpr_path, current_test_module: Union[str or Path], comparison_data_needs_to_exist
+):
     """Apart from returning the directory for compariing the test output
     (user-specified or a default), this fetches the annex files for the
-    appropriate paths in the comparison directory if required. This would be
-    needed for the default output that is stored in the test data directory.
+    appropriate paths in the current test modules  directory if required. This
+    would be needed for the default data that is used for comparison, stored
+    in the test data directory.
 
-    Args: test_name str: The name of the test in the test_module. This is
-        used to fetch the appropriate directory in the sample output if
-        required
+    Args: current_test_module str: The path of the output of the current test_module.
 
     Returns:
         pathlib.Path:
     """
-    test_name = get_current_test_name()
-    cmpr_path = get_comparison_dir_path()
-    test_compare_dir = cmpr_path / current_test_module.name / test_name
 
+    if cmpr_path.name == "sample_test_output" and comparison_data_needs_to_exist:
+        module_cmpr_dir = cmpr_path / current_test_module.name
+        if not module_cmpr_dir.exists():
+            raise FileNotFoundError
+        datalad.get(str(module_cmpr_dir))
+
+
+def get_test_comparison_dir(current_test_module: Union[str or Path]):
     # Aside from two user-defined conditions the comparison directory should exist
     comparison_data_needs_to_exist = not (
         pytest.config.getoption("--create_sample_output")
         or pytest.config.getoption("--save_sample_output")
     )
+
+    # Get path to full comparison directory and download as required
+    cmpr_path = get_base_comparison_dir_path()
+
+    # Construct the path for this specific test
+    test_name = get_current_test_name()
+    test_compare_dir = cmpr_path / current_test_module.name / test_name
 
     if not test_compare_dir.exists() and comparison_data_needs_to_exist:
         raise ValueError(
@@ -77,13 +92,13 @@ def get_test_comparison_dir(current_test_module: Union[str or Path]):
             "--save_sample_output. "
         )
 
-    if cmpr_path.name == "sample_test_output" and comparison_data_needs_to_exist:
-        datalad.api.get(str(test_compare_dir))
-
+    get_tests_comparison_dir(
+        cmpr_path, current_test_module, comparison_data_needs_to_exist
+    )
     return test_compare_dir
 
 
-def get_comparison_dir_path():
+def get_base_comparison_dir_path():
     comparison_dir = pytest.config.getoption("--diff_with_outdir") or (
         get_test_data_path() / "sample_test_output"
     )
@@ -93,19 +108,19 @@ def get_comparison_dir_path():
     return comparison_dir
 
 
-def get_test_data_dir():
+def get_tests_data_dir():
     # Define hard-coded paths for now
-    test_data_dir = get_test_data_path()
+    tests_data_dir = get_test_data_path()
     race_error_msg = (
         "A failed attempt and datalad download occurred. Running the "
         "tests sequentially once may help "
     )
 
     # datalad is required and the datalad repository is used for data.
-    if not (test_data_dir / ".datalad").exists():
+    if not (tests_data_dir / ".datalad").exists():
         try:
-            datalad.api.install(
-                str(test_data_dir), "https://github.com/afni/afni_ci_test_data.git"
+            datalad.install(
+                str(tests_data_dir), "https://github.com/afni/afni_ci_test_data.git"
             )
         except FileExistsError as e:
             # likely a race condition
@@ -114,7 +129,7 @@ def get_test_data_dir():
         except FileNotFoundError:
             raise FileNotFoundError(race_error_msg)
 
-    return test_data_dir
+    return tests_data_dir
 
 
 def get_current_test_name():
@@ -140,7 +155,7 @@ def data(request):
         collections.NameTuple: A data object for conveniently handling the specification
     """
     test_name = get_current_test_name()
-    module_data_dir = get_test_data_dir()
+    tests_data_dir = get_tests_data_dir()
 
     # Set module specific values:
     try:
@@ -155,17 +170,12 @@ def data(request):
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
 
-    # add a test sample  directory at this point. this should only be made if
-    # the user has requested it with the create_sample output_flag. the differ
-    # class can then use the path to sync all files that are diffed perhaps
-    # want to cleanup sample and output directories at the end of a session if
-    # a failure occurs.
-    # add sample dirs to gitignore.
+    # This will be created as required later
+    sampdir = convert_to_sample_dir_path(test_logdir.parent)
 
-    assert False
     # start creating output dict, downloading test data as required
     out_dict = {
-        k: misc.process_path_obj(v, module_data_dir) for k, v in data_paths.items()
+        k: misc.process_path_obj(v, tests_data_dir) for k, v in data_paths.items()
     }
 
     # Get the comparison directory and check if it needs to be downloaded
@@ -174,11 +184,13 @@ def data(request):
     # Define output for calling module and get data as required:
     out_dict.update(
         {
-            "module_data_dir": module_data_dir,
+            "module_outdir": module_outdir,
             "outdir": module_outdir / get_current_test_name(),
-            "sampdir": samp_dir,
+            "sampdir": sampdir,
             "logdir": test_logdir,
             "comparison_dir": comparison_dir,
+            "base_comparison_dir": get_base_comparison_dir_path(),
+            "base_outdir": get_output_dir(),
             "test_name": test_name,
         }
     )
@@ -265,17 +277,20 @@ def pytest_sessionfinish(session, exitstatus):
     print("\nTest output is written to: ", output_directory)
 
     if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
-        print("\n Sample output is written to:", get_sample_output_dir())
+        print(
+            "\n Sample output is written to:",
+            convert_to_sample_dir_path(get_output_dir()),
+        )
 
     # When configured to save output and test session was successful...
     if pytest.config.getoption("--save_sample_output") and not bool(exitstatus):
 
         update_msg = "Update data with test run on {d}".format(
-            datetime.datetime.today().strftime("%Y-%m-%d")
+            d=datetime.datetime.today().strftime("%Y-%m-%d")
         )
 
         result = datalad.rev_save(
-            get_comparison_dir_path(), update_msg, on_failure="stop"
+            get_base_comparison_dir_path(), update_msg, on_failure="stop"
         )
 
         sample_test_output = get_test_data_path() / "sample_test_output"
@@ -285,3 +300,8 @@ def pytest_sessionfinish(session, exitstatus):
             "the publicly accessible servers.. "
         )
         print(data_message.format(**locals()))
+    elif pytest.config.getoption("--save_sample_output"):
+        print(
+            "Sample output not saved because the test failed. You may "
+            "want to hard reset to HEAD in the test data repository. "
+        )
