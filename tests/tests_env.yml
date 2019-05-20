@@ -1,0 +1,15 @@
+name: afni_testing
+channels:
+  - anaconda
+  - conda-forge
+dependencies:
+  - attrs=19
+  - autopep8=1.4
+  - numpy=1.16
+  - pytest=4.5
+  - python>=3.6
+  - black>=19
+  - nibabel>=2.4
+  - git-annex # [linux]
+  - pip:
+    - pytest-parallel>=0.0.9
