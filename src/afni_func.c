@@ -6741,7 +6741,7 @@ ENTRY("AFNI_tips_CB") ;
 
 #undef  NEWS_LINK
 #define NEWS_LINK \
- "https://docs.google.com/document/d/1RzC9UDhmVuDgV3LeqlWf77i_uSq4InknvHzahtS6e2w/"
+ "https://afni.nimh.nih.gov/pub/dist/src/AFNI_digest_history.txt"
 
 void AFNI_news_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
@@ -6794,7 +6794,7 @@ void AFNI_forum_CB( Widget w , XtPointer cd , XtPointer cbd )
 
 #undef  PHELP_LINK
 #define PHELP_LINK \
- "https://afni.nimh.nih.gov/afni/doc/program_help/index.html"
+ "https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/main_toc.html"
 
 void AFNI_phelp_CB( Widget w , XtPointer cd , XtPointer cbd )
 {
