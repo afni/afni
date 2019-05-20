@@ -275,9 +275,14 @@ ENTRY("map_v2s_results");
 
     pbar       = im3d->vwid->func->inten_pbar;
     npanes     = pbar->num_panes;
-    pane_scale = im3d->vinfo->fim_range;
-    if ( pane_scale == 0.0 ) pane_scale = im3d->vinfo->fim_autorange;
-    if ( pane_scale == 0.0 ) pane_scale = 1.0;
+
+    /* with AFNI_PBAR_FULLRANGE, pane_scale = 1.0  [20 May 2019 rickr] */
+    /*
+       pane_scale = im3d->vinfo->fim_range;
+       if ( pane_scale == 0.0 ) pane_scale = im3d->vinfo->fim_autorange;
+       if ( pane_scale == 0.0 ) pane_scale = 1.0;
+    */
+    pane_scale = 1.0;
 
     if ( debug > 1 )
 	fprintf(stderr,"+d mvr: npanes = %d, pane_scale = %f\n",
@@ -295,9 +300,12 @@ ENTRY("map_v2s_results");
 	cmap = pbar->bigcolor;
 	zbot = (bbot == 0.0);
 
-	if ( debug > 1 )
+	if ( debug > 1 ) {
 	    fprintf(stderr,"+d bigmode: bbot,btop,fac, zbot = %f,%f,%f, %d\n",
 		    bbot, btop, fac, zbot);
+            fprintf(stderr,"   NPANE_BIG = %d, BIGGEST = %d\n",
+                            NPANE_BIG, NPANE_BIGGEST);
+        }
 
 	for ( nindex = 0; nindex < res->nused; nindex++ )
 	{
@@ -315,7 +323,8 @@ ENTRY("map_v2s_results");
 	    /* note the color panel index, and bound it in [0,NPANE_BIG-1] */
             if( fval >= btop ) ival = 0;        /* guard against overflow */
             else if ( fval <= bbot ) ival = NPANE_BIG - 1;
-            else ival = (int)(fac * (btop - fval) + 0.49);
+            /* trunc: matching afni_func.c    [20 May 2019 rickr] */
+            else ival = (int)(fac * (btop - fval));
 
 	    if ( ival < 0 ) ival = 0;
 	    if ( ival >= NPANE_BIG ) ival = NPANE_BIG - 1;
@@ -324,7 +333,7 @@ ENTRY("map_v2s_results");
 	    r = cmap[ival].r;  g = cmap[ival].g;  b = cmap[ival].b;
 
 	    if ( debug > 1 && node == dnode )
-		fprintf(stderr, "+d pane, r,g,b = %d, %d,%d,%d\n",ival,r,g,b);
+		fprintf(stderr, "+d pane, r,g,b : %d, %d,%d,%d\n",ival,r,g,b);
 
 	    if ( r == 0 && g == 0 && b == 0 ) continue;
 

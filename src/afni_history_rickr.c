@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 20, May, 2019, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
+   "modify pane_scale to match updates for AFNI_PBAR_FULLRANGE",
+   NULL
+ } ,
+
  { 16, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
    "add uvars flip_check_dset and flip_guess",
    "Add 'flip guess' to review_basic output."
