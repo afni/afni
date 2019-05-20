@@ -41,8 +41,8 @@ def uniquify(path, sep="_"):
 
 
 def run_cmd(
-    cmd,
     data,
+    cmd,
     add_env_vars={},
     merge_error_with_output=False,
     workdir=None,

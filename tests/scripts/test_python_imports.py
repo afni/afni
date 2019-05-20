@@ -99,8 +99,8 @@ def test_script_imports(data, python_interpreter):
         module_name = script.stem
         try:
             run_cmd(
-                "%s -c 'import %s'" % (python_interpreter, module_name),
                 data,
+                "%s -c 'import %s'" % (python_interpreter, module_name),
                 workdir=binary_dir,
             )
         except subprocess.CalledProcessError as e:
