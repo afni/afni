@@ -1115,6 +1115,7 @@ class RegWrap:
       opt = opt_list.find_opt('-check_flip')       # check for left/right flipping
       if opt != None: 
          self.flip = 1
+         self.save_epi_ns = 1                      # save EPI for QC, even if anat to epi 
 
       # optional data to save
       opt = opt_list.find_opt('-save_Al_in')       # save 3dAllineate input datasets
@@ -2130,6 +2131,7 @@ class RegWrap:
                 f.write("flip_cost_orig : %f\n" % noflipcost)
                 f.write("flip_cost_flipped : %f\n" % flipcost)
                 f.write("flip_cost_func : %s\n" % costfunction)
+                f.write("flip_base: %s\n" %  e.pv())
                 f.write("flip_dset_orig : %s\n" % o.pv())
                 f.write("flip_dset_flipped : %s\n" % of.pv())
                 if(flipcost < noflipcost):
