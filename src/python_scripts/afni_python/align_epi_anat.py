@@ -1999,7 +1999,7 @@ class RegWrap:
       else:
          # save transformation matrix with original anatomical name,suf,...
          self.anat_mat = "%s%s%s_mat.aff12.1D" %  (a.p(), ps.anat0.out_prefix(),suf)
-         if (ps.anat2epi):
+         if (ps.anat2epi) or (ps.flip):
             o = a.new("%s%s" % (ps.anat0.out_prefix(), suf)) # save the permanent data
          else:
             o = a.new("__tt_%s%s" % (ps.anat0.out_prefix(), suf)) # save temporary copy
