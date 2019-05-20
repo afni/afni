@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, May 9, 2019
+Version 0.0.8, May 20, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -126,13 +126,13 @@ Usage: ~1~
     It is possible to force the same range for all plots through fine-tuning
     within R using the output of .RData. The criteria of color coding for the
     strength of evidence in matrix plots in the output is as follows:
-     Green - two-tailed 95% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.975 or <= 0.025)
-     Blue  - one-tailed 95% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.95 or <= 0.05)
-     Yellow- one-tailed 90% compatible/uncertainty interval (or probability of effect
-             being positive >= 0.90 or <= 0.10)
-     white - anything else
+     Green  - two-tailed 95% compatible/uncertainty interval (or probability of effect
+              being positive >= 0.975 or <= 0.025)
+     Yellow - one-tailed 95% compatible/uncertainty interval (or probability of effect
+              being positive >= 0.95 or <= 0.05)
+     Gray   - one-tailed 90% compatible/uncertainty interval (or probability of effect
+              being positive >= 0.90 or <= 0.10)
+     white  - anything else
 
  =========================
  
@@ -795,16 +795,43 @@ prnt <- function(pct, side, dat, fl, entity) {
 
 # matrix plot for RPs: assuming no diagonals for now
 require(corrplot)
+
+addTrans <- function(color,trans)
+{
+  # This function adds transparancy to a color.
+  # Define transparancy with an integer between 0 and 255
+  # 0 being fully transparant and 255 being fully visable
+  # Works with either color and trans a vector of equal length,
+  # or one of the two of length 1.
+
+  if (length(color)!=length(trans)&!any(c(length(color),length(trans))==1)) stop("Vector lengths not correct")
+  if (length(color)==1 & length(trans)>1) color <- rep(color,length(trans))
+  if (length(trans)==1 & length(color)>1) trans <- rep(trans,length(color))
+
+  num2hex <- function(x)
+  {
+    hex <- unlist(strsplit("0123456789ABCDEF",split=""))
+    return(paste(hex[(x-x%%16)/16+1],hex[x%%16+1],sep=""))
+  }
+  rgb <- rbind(col2rgb(color),trans)
+  res <- paste("#",apply(apply(rgb,2,num2hex),2,paste,collapse=""),sep="")
+  return(res)
+}
+
 mPlot <- function(xx, fn) {
    mm <- xx[,,6]  # median
    pp <- xx[,,3]  # P+
    BC1 <- ((pp >= 0.975 ) | (pp <= 0.025))   # background color
    BC  <- ((pp >= 0.95 ) | (pp <= 0.05))   # background color
    BC2 <- (((pp > 0.9) & (pp < 0.95)) | ((pp < 0.1) & (pp > 0.05)))
-   BC[BC  == T] <- "blue"
-   BC[BC1 == T] <- "green"
+   BC[BC  == T] <- addTrans('yellow',150)
+   BC[BC1 == T] <- addTrans('green',175)
    BC[BC  == F] <- "white"
-   BC[BC2 == T] <- 'yellow'
+   BC[BC2 == T] <- addTrans('gray',125)
+   #BC[BC  == T] <- "blue"
+   #BC[BC1 == T] <- "green"
+   #BC[BC  == F] <- "white"
+   #BC[BC2 == T] <- 'yellow'
    rng <- range(mm)
    diag(mm) <- NA  # diagonals are meaningful in the case of correlation matrix
    diag(BC) <- "white" # if the diagonal values shall be white
