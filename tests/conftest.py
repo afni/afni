@@ -146,7 +146,6 @@ def get_tests_data_dir():
 
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
-    name_str = re.sub("python[23]", "", name_str)
     return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
 
 
@@ -267,7 +266,13 @@ def pytest_addoption(parser):
     parser.addoption(
         "--testpython2",
         action="store_true",
-        help="For tests that use the python_interpreter fixture they are tested in both python 3 and python 2",
+        help=(
+            "For tests that use the python_interpreter fixture they are "
+            "tested in both python 3 and python 2 "
+            )
+,
+
+,
     )
 
 
