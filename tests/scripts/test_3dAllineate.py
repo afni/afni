@@ -16,7 +16,7 @@ data_paths = {
 
 # TESTS:
 @pytest.mark.slow
-def test_3dAllineate_basic(data):
+def test_3dAllineate_basic(data, python_interpreter):
     outname = "aligned"
     if OMP:
         outname += "_with_omp"
@@ -41,6 +41,7 @@ def test_3dAllineate_basic(data):
     differ = tools.OutputDiffer(
         data,
         cmd,
+        python_interpreter=python_interpreter,
         kwargs_log={
             "append_to_ignored": [
                 "Output dataset",
