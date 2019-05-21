@@ -4,6 +4,7 @@ import nibabel as nib  # type: ignore
 import difflib
 import subprocess
 import shutil
+import sys
 
 # import misc
 
@@ -46,7 +47,7 @@ def run_cmd(
     add_env_vars={},
     merge_error_with_output=False,
     workdir=None,
-    force_python2=False,
+    python_interpreter="python3",
 ):
     """run_cmd is initialized for all test functions that list it as an
     argument. It is used as a callable function to run command line
@@ -92,6 +93,17 @@ def run_cmd(
     for k, v in add_env_vars.items():
         os.environ[k] = v
 
+    # If linux and interpreter is python2 alter env. This is a bit of a hack
+    # but will allow python3 to run the test suite while allowing CI to check
+    # the output of afni tools when they are run in python2. Test code will
+    # not be back-ported to python 2 but once it is no longer supported we can
+    # eliminate this hack, or figure out a cleaner way of doing it.
+    if python_interpreter == "python2":
+        if "linux" in sys.platform:
+            os.environ["_"] = shutil.which("python2")
+        else:
+            pytest.skip("unsupported configuration")
+
     # Execute the command and log output
     if merge_error_with_output:
         error = subprocess.STDOUT
@@ -123,7 +135,7 @@ class OutputDiffer:
         add_env_vars: Dict = {},
         merge_error_with_output: bool = False,
         workdir: Union[str or Path] = None,
-        force_python2: bool = False,
+        python_interpreter: str = "python3",
         ignore_file_patterns: List = [],
         text_file_patterns: List = [],
         kwargs_1d: Dict = {},
@@ -142,7 +154,7 @@ class OutputDiffer:
         self.add_env_vars = add_env_vars
         self.merge_error_with_output = merge_error_with_output
         self.workdir = workdir or Path.cwd()
-        self.force_python2 = force_python2
+        self.python_interpreter = python_interpreter
 
         # Tune output saving behavior
         self.create_sample_output = create_sample_output or pytest.config.getoption(
@@ -171,19 +183,20 @@ class OutputDiffer:
         self.files_with_diff = {}
 
     def run(self):
-        proc = self.__run_cmd()
+        proc = self.run_cmd()
         self.assert_all_files_equal()
         if self.require_sample_output:
             self.update_sample_output()
 
-    def __run_cmd(self):
+    def run_cmd(self):
+        # Call run_cmd defined in module scope.
         proc = run_cmd(
-            self.cmd,
             self.data,
+            self.cmd,
             add_env_vars=self.add_env_vars,
             merge_error_with_output=self.merge_error_with_output,
             workdir=self.workdir,
-            force_python2=self.force_python2,
+            python_interpreter=self.python_interpreter,
         )
 
         if not self.file_list:
@@ -489,7 +502,7 @@ class OutputDiffer:
             add_env_vars = {self.add_env_vars},
             merge_error_with_output = {self.merge_error_with_output},
             workdir = {self.workdir},
-            force_python2 = {self.force_python2},
+            force_python2 = {self.python_interpreter},
             ignore_file_patterns = {self.ignore_file_patterns},
             text_file_patterns = {self.text_file_patterns},
             kwargs_1d = {self.kwargs_1d},
