@@ -364,13 +364,15 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset - 1 %s\n",argv[nopt]) ;
+      if( verb )
+        fprintf(stderr,"  ++ read in dataset %d/%d - %s\n",
+                       nsum+1 , nopt-firstds+1 , argv[nopt]) ;
 
       /*-- sum dataset values --*/
 
       for( kk=0 ; kk < nval ; kk++ ){
 
-         if( verb )
+         if( verb > 1 )
             fprintf(stderr,"   + sub-brick %d [%s]\n",
                     kk,MRI_TYPE_name[DSET_BRICK_TYPE(inset,kk)] ) ;
 
@@ -610,13 +612,15 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset - 2 %s\n",argv[nopt]) ;
+      if( verb )
+        fprintf(stderr,"  ++ read in dataset %d/%d - %s\n",
+                       nsum+1 , nopt-firstds+1 , argv[nopt]) ;
 
       /*-- sum dataset values into sd --*/
 
       for( kk=0 ; kk < nval ; kk++ ){
 
-         if( verb )
+         if( verb > 1 )
            fprintf(stderr,"   + sub-brick %d [%s]\n",
                    kk,MRI_TYPE_name[DSET_BRICK_TYPE(inset,kk)] ) ;
 
