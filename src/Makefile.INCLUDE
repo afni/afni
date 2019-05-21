@@ -121,7 +121,7 @@ PROGS_4  = 3dBlurInMask 3dRank 3dFFT 1dgenARMA11 3dPeriodogram 1dAstrip         
            uniq_images tokens 3dLocalACF 3dXClustSim 3dtoXdataset 3dMultiThresh \
            3dLFCD 3dDegreeCentrality 3dECM 3dMSE 3dsvm_linpredict 3dTfilter     \
            3dTsplit4D 3dSharpen 3dExtractGroupInCorr dcm2niix_afni 3dTto1D      \
-           3dBrainSync 3dGrayplot 1dsound afni_check_omp 3dExchange             \
+           3dBrainSync 3dGrayplot 1dsound afni_check_omp 3dPVmap 3dExchange     \
            get_afni_model_PRF get_afni_model_PRF_6 get_afni_model_PRF_6_BAD     \
            $(EXTRAS)
 
