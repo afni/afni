@@ -282,11 +282,22 @@ ENTRY("map_v2s_results");
        if ( pane_scale == 0.0 ) pane_scale = im3d->vinfo->fim_autorange;
        if ( pane_scale == 0.0 ) pane_scale = 1.0;
     */
-    pane_scale = 1.0;
+    if( PBAR_FULLRANGE ) {
+       pane_scale = 1.0;
+       if( debug > 2 )
+          fprintf(stderr,"+d mvr: have PBAR_FULLRANGE, resetting pane_scale\n");
+    } else {
+       pane_scale = FIM_RANGE(im3d);
+       if( debug > 2 )
+          fprintf(stderr,"+d mvr: no PBAR_FULLRANGE, pane_scale = FIM_RANGE\n");
+    }
 
-    if ( debug > 1 )
+    if ( debug > 1 ) {
 	fprintf(stderr,"+d mvr: npanes = %d, pane_scale = %f\n",
 		pbar->bigmode ? NPANE_BIG : npanes, pane_scale);
+        fprintf(stderr,"   fim_range = %f, fim_autorange = %f\n",
+                im3d->vinfo->fim_range, im3d->vinfo->fim_autorange);
+    }
 
     result_vals = res->vals[0];	/* for typing and potential speed */
 
