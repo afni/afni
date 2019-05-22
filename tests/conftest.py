@@ -72,9 +72,6 @@ def get_test_comparison_dir(current_test_module: Union[str or Path]):
     test_name = get_current_test_name()
     test_compare_dir = cmpr_path / current_test_module.name / test_name
 
-    get_session_comparison_dir(
-        cmpr_path, current_test_module, comparison_data_needs_to_exist
-    )
     return test_compare_dir
 
 

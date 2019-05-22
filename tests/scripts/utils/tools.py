@@ -20,6 +20,12 @@ from numpy.testing import assert_allclose  # type: ignore
 from typing import Dict, List, Any, Union
 import re
 import stat
+import datetime as dt
+
+
+def get_output_name():
+    CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
+    return "output_" + CURRENT_TIME
 
 
 def convert_to_sample_dir_path(output_dir):
@@ -29,13 +35,12 @@ def convert_to_sample_dir_path(output_dir):
 
 def remove_w_perms(dirname):
 
+    os.chmod(dirname, stat.S_IREAD + stat.S_IEXEC)
     for root, dirs, files in os.walk(dirname):
-        os.chmod(root, stat.S_IREAD + stat.S_IEXEC)
         for momo in dirs:
-            os.chmod(momo, stat.S_IREAD + stat.S_IEXEC)
+            os.chmod(Path(root, momo), stat.S_IREAD + stat.S_IEXEC)
         for file in files:
-            fname = os.path.join(root, file)
-            os.chmod(fname, stat.S_IREAD)
+            os.chmod(Path(root, file), stat.S_IREAD)
 
 
 def get_current_test_name():
@@ -178,6 +183,7 @@ class OutputDiffer:
         self.merge_error_with_output = merge_error_with_output
         self.workdir = workdir or Path.cwd()
         self.python_interpreter = python_interpreter
+        self.executed = False
 
         # Tune output saving behavior
         self.create_sample_output = create_sample_output or pytest.config.getoption(
@@ -212,6 +218,12 @@ class OutputDiffer:
             self.update_sample_output()
 
     def run_cmd(self):
+        if self.executed:
+            raise ValueError(
+                "The differ class has already been run as defined by "
+                "the 'executed' attribute. "
+            )
+
         # Call run_cmd defined in module scope.
         proc = run_cmd(
             self.data,
@@ -222,6 +234,11 @@ class OutputDiffer:
             python_interpreter=self.python_interpreter,
         )
 
+        self.get_file_list()
+        self.executed = True
+        return proc
+
+    def get_file_list(self):
         if not self.file_list:
             self.file_list = [
                 f
@@ -229,8 +246,6 @@ class OutputDiffer:
                 if f.is_file()
                 and not any(pat in str(f) for pat in self.ignore_file_patterns)
             ]
-
-        return proc
 
     def update_sample_output(self):
 
@@ -533,6 +548,7 @@ class OutputDiffer:
             kwargs_scans = {self.kwargs_scans},
             kwargs_byte = {self.kwargs_byte},
             file_list = {self.file_list},
+            executed = {self.executed},
         )
         Hex_id: {hex(id(self))}\
         """
