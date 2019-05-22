@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, May, 2019, RCR, "Makefile.INCLUDE", MICRO, TYPE_GENERAL,
+   "start with 'MAKE ?= make', and use MAKE exclusively",
+   "Thanks to J Bacon for the suggestion."
+ } ,
+
  { 20, May, 2019, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
    "modify pane_scale to match updates for AFNI_PBAR_FULLRANGE",
    NULL
