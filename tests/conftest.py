@@ -12,6 +12,7 @@ from scripts.utils import misc
 
 pytest.register_assert_rewrite("scripts.utils.tools")
 import scripts.utils.tools as tools
+from scripts.utils.tools import get_current_test_name
 import attr
 import re
 
@@ -29,6 +30,8 @@ except ImportError:
 
 CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
+os.environ["PYTHONDONTWRITEBYTECODE"] = "1"
+
 
 def pytest_generate_tests(metafunc):
     if "python_interpreter" in metafunc.fixturenames:
@@ -39,44 +42,14 @@ def pytest_generate_tests(metafunc):
 
 
 def get_output_dir():
-    if hasattr(pytest, "config"):
-        outdir = (
-            Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
-        )
-        return outdir
-
-
-def convert_to_sample_dir_path(output_dir):
-    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
-    return sampdir
+    outdir = (
+        Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
+    )
+    return outdir
 
 
 def get_test_data_path():
     return Path(pytest.config.rootdir) / "afni_ci_test_data"
-
-
-# cache result for each module that calls it:
-@functools.lru_cache(maxsize=128)
-def get_tests_comparison_dir(
-    cmpr_path, current_test_module: Union[str or Path], comparison_data_needs_to_exist
-):
-    """Apart from returning the directory for compariing the test output
-    (user-specified or a default), this fetches the annex files for the
-    appropriate paths in the current test modules  directory if required. This
-    would be needed for the default data that is used for comparison, stored
-    in the test data directory.
-
-    Args: current_test_module str: The path of the output of the current test_module.
-
-    Returns:
-        pathlib.Path:
-    """
-
-    if cmpr_path.name == "sample_test_output" and comparison_data_needs_to_exist:
-        module_cmpr_dir = cmpr_path / current_test_module.name
-        if not module_cmpr_dir.exists():
-            raise FileNotFoundError
-        datalad.get(str(module_cmpr_dir))
 
 
 def get_test_comparison_dir(current_test_module: Union[str or Path]):
@@ -88,21 +61,18 @@ def get_test_comparison_dir(current_test_module: Union[str or Path]):
 
     # Get path to full comparison directory and download as required
     cmpr_path = get_base_comparison_dir_path()
+    if not cmpr_path.exists() and comparison_data_needs_to_exist:
+        raise ValueError(
+            "You may wish to run tests with the --create_sample_output "
+            "flag or generate output for future test sessions with "
+            "--save_sample_output. "
+        )
 
     # Construct the path for this specific test
     test_name = get_current_test_name()
     test_compare_dir = cmpr_path / current_test_module.name / test_name
 
-    if not test_compare_dir.exists() and comparison_data_needs_to_exist:
-        raise ValueError(
-            f"The appropriate output for the test {test_name} does not "
-            f"exist in the comparison directory {test_compare_dir}. You "
-            "may wish to run the test with the --create_sample_output "
-            "flag or generate output for future test sessions with "
-            "--save_sample_output. "
-        )
-
-    get_tests_comparison_dir(
+    get_session_comparison_dir(
         cmpr_path, current_test_module, comparison_data_needs_to_exist
     )
     return test_compare_dir
@@ -113,8 +83,6 @@ def get_base_comparison_dir_path():
         get_test_data_path() / "sample_test_output"
     )
     comparison_dir = Path(comparison_dir).absolute()
-    if not comparison_dir.exists():
-        raise ValueError(f"The test output directory: {comparison_dir} does not exist")
     return comparison_dir
 
 
@@ -140,11 +108,6 @@ def get_tests_data_dir():
             raise FileNotFoundError(race_error_msg)
 
     return tests_data_dir
-
-
-def get_current_test_name():
-    name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
-    return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
 
 
 @pytest.fixture(scope="function")
@@ -181,7 +144,7 @@ def data(request):
         os.makedirs(test_logdir, exist_ok=True)
 
     # This will be created as required later
-    sampdir = convert_to_sample_dir_path(test_logdir.parent)
+    sampdir = tools.convert_to_sample_dir_path(test_logdir.parent)
 
     # start creating output dict, downloading test data as required
     out_dict = {
@@ -267,10 +230,7 @@ def pytest_addoption(parser):
         help=(
             "For tests that use the python_interpreter fixture they are "
             "tested in both python 3 and python 2 "
-            )
-,
-
-,
+        ),
     )
 
 
@@ -301,7 +261,7 @@ def pytest_sessionfinish(session, exitstatus):
     if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
         print(
             "\n Sample output is written to:",
-            convert_to_sample_dir_path(get_output_dir()),
+            tools.convert_to_sample_dir_path(get_output_dir()),
         )
 
     # When configured to save output and test session was successful...

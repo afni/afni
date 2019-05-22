@@ -18,6 +18,29 @@ import datalad.api as datalad
 from numpy.testing import assert_allclose  # type: ignore
 
 from typing import Dict, List, Any, Union
+import re
+import stat
+
+
+def convert_to_sample_dir_path(output_dir):
+    sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
+    return sampdir
+
+
+def remove_w_perms(dirname):
+
+    for root, dirs, files in os.walk(dirname):
+        os.chmod(root, stat.S_IREAD + stat.S_IEXEC)
+        for momo in dirs:
+            os.chmod(momo, stat.S_IREAD + stat.S_IEXEC)
+        for file in files:
+            fname = os.path.join(root, file)
+            os.chmod(fname, stat.S_IREAD)
+
+
+def get_current_test_name():
+    name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
 
 
 def uniquify(path, sep="_"):
@@ -214,24 +237,23 @@ class OutputDiffer:
         # Get the directory to be used for the sample output
         if self.create_sample_output:
             savedir = self.data.sampdir
+            sync_files = self.file_list
 
         elif self.save_sample_output:
             savedir = self.data.comparison_dir
+            # Create rsync pattern for all files that need to be synced
+            sync_files = self.files_with_diff
         else:
             raise ValueError
-
-        if not savedir.exists():
-            os.makedirs(savedir, exist_ok=True)
 
         # The results directory
         outdir = self.data.outdir
 
-        # Create rsync pattern for all files that need to be synced
+        if not savedir.exists():
+            os.makedirs(savedir, exist_ok=True)
+
         files_pattern = " ".join(
-            [
-                '-f"+ %s"' % Path(fname).relative_to(outdir)
-                for fname in self.files_with_diff
-            ]
+            ['-f"+ %s"' % Path(fname).relative_to(outdir) for fname in sync_files]
         )
 
         if not shutil.which("rsync"):
@@ -502,7 +524,7 @@ class OutputDiffer:
             add_env_vars = {self.add_env_vars},
             merge_error_with_output = {self.merge_error_with_output},
             workdir = {self.workdir},
-            force_python2 = {self.python_interpreter},
+            python_interpreter = {self.python_interpreter},
             ignore_file_patterns = {self.ignore_file_patterns},
             text_file_patterns = {self.text_file_patterns},
             kwargs_1d = {self.kwargs_1d},
