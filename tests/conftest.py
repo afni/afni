@@ -32,12 +32,10 @@ CURRENT_TIME = dt.datetime.strftime(dt.datetime.today(), "%Y_%m_%d_%H%M%S")
 
 def pytest_generate_tests(metafunc):
     if "python_interpreter" in metafunc.fixturenames:
-        pythons = ["python3", "python2"]
         if metafunc.config.option.testpython2:
-            last_python = 1
+            metafunc.parametrize("python_interpreter", ["python3", "python2"])
         else:
-            last_python = 0
-        metafunc.parametrize("python_interpreter", pythons[: last_python + 1])
+            metafunc.parametrize("python_interpreter", ["python3"])
 
 
 def get_output_dir():
