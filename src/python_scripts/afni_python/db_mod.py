@@ -4651,6 +4651,8 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_full_gaussian', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_term_frac', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
@@ -6048,9 +6050,52 @@ def db_cmd_regress_anaticor(proc, block):
               '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
               % (vall, mset.shortinput(), vmask)
 
-       cmd += '# generate ANATICOR voxelwise regressors via blur\n'  \
-              '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
-              % (rad, rset.out_prefix(), vmask, proc.view)
+       # note the radius fraction to terminate blur at
+       # (match method in @radial_correlate, defaul=0.5)
+       oname = '-regress_anaticor_full_gaussian'
+       merge_frad, err = block.opts.get_type_opt(float, oname, default=0.5)
+       if err:
+          print('** error: option %s requires a float argument' % oname)
+          return 1, ''
+       if merge_frad <= 0:
+          print('** error: %s must be positive' % oname)
+          return 1, ''
+
+       # leave users opt to go full Gaussian, as with old _fast method
+       if block.opts.have_yes_opt('-regress_anaticor_full_gaussian', default=0):
+          # convert from radius back to diameter (FWHM)
+          rad = 2.0 * rad
+          viastr = 'blur'
+          ffstr = ''
+       else:
+          # scale radius by fraction of HWHM to stop at, then up to FWHM
+          # (3dmerge takes a fwhm measure)
+          rold = rad
+          rad = 2.0 * rad / merge_frad
+
+          # in Gaussian 1 HWHM = sqrt(2*ln(2)) sigmas = 1.17741 sigmas
+          # (then scale by the 3dmerge fractional radius)
+          ffscale = 1.17741
+          firfac = ffscale * merge_frad
+
+          viastr = 'truncated blur\n'                                   \
+                   '# (scale radius %g by %g and convert to diameter '  \
+                   '(so FWHM=%d),\n'                                    \
+                   '# then truncate at %g sigmas (%g HWHM * %g S/HWHM)' \
+                    % (rold, 1.0/merge_frad, rad, firfac, merge_frad, ffscale)
+          ffstr = '-DAFNI_BLUR_FIRFAC=%g ' % firfac
+
+       cmd += '# generate ANATICOR voxelwise regressors via %s\n'   \
+              '3dmerge %s-1blur_fwhm %g -doall' % (viastr, ffstr, rad)
+
+       # and avoid strange line wrapping
+       if ffstr == '':
+          cmd += '-prefix %s \\\n'     \
+                 '        %s%s\n\n'    \
+                 % (rset.out_prefix(), vmask, proc.view)
+       else:
+          cmd += ' \\\n        -prefix %s %s%s\n\n'    \
+                 % (rset.out_prefix(), vmask, proc.view)
     else:
        cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
               "            -mask %s -use_nonmask \\\n"                    \
@@ -6089,18 +6134,26 @@ def get_keep_trs_cmd(proc):
 
 # get radius for anaticor (fast or slow)
 def get_anaticor_radius(proc, block):
-   # if fast anaticor, default to 30 mm FWHM
-   if proc.anaticor == 2:
-      oname = '-regress_anaticor_fwhm'
-      rad = 30.0
+
+   # make 30 mm the default in either case, from 45 for slow  [22 May 2019]
+   rad = 30.0   
+
+   # default option is radius
+   ofwhm = '-regress_anaticor_fwhm'
+   orad  = '-regress_anaticor_radius'
+   if block.opts.find_opt(ofwhm):
+      oname = ofwhm
    else:
-      oname = '-regress_anaticor_radius'
-      rad = 45.0
+      oname = orad
 
    val, err = block.opts.get_type_opt(float, oname, default=rad)
    if err:
-      print('** error: %s requires float argument' % oname)
+      print('** error: option %s requires float argument' % oname)
       return -1.0
+
+   # doing away with fwhm, convert to radius
+   if oname == ofwhm:
+      val /= 2.0
 
    return val
 

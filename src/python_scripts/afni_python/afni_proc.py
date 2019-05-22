@@ -679,6 +679,12 @@ More detailed changes, starting May, 2018.
    07 May 2018 : EPI full_mask: dilation is no longer the default
       - since mask is not (generally) applied to data, make more accurate
       - reproduce with: -mask_dilate 1
+
+   22 May 2019 : ANATICOR changes (see -regress_anaticor*)
+      - changed default radius from 45 to 30 in slow case (matches fast)
+      - fast case will now use a flatter part of the Gaussian curve, and
+        will terminate the curve at the blur radius
+        (unless -regress_anaticor_full_gaussian is applied)
 """
 
 g_todo_str = """todo:
@@ -1386,8 +1392,13 @@ class SubjProcSream:
                         helpstr="specify FWHM for fast WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
                         helpstr="specify radius for WMeLocal extraction")
+        self.valid_opts.add_opt('-regress_anaticor_term_frac', 1, [],
+                        helpstr="specify termination fraction for blur radius")
         self.valid_opts.add_opt('-regress_anaticor_label', 1, [],
                         helpstr="specify ROI label for anaticor (default=WMe)")
+        self.valid_opts.add_opt('-regress_anaticor_full_gaussian', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="specify whether to truncate to flat Gaussian")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],
