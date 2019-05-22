@@ -7,6 +7,8 @@
 #
 # ver = 1.1 ; date = 'Feb 20, 2019' 
 # + [PT] update couple of help notes
+# ver = 1.2 ; date = 'May 22, 2019' 
+# + [PT] update help a lot
 #
 #########################################################################
 
@@ -15,11 +17,14 @@ import os
 import json
 import collections         as coll
 import lib_apqc_html       as lah
+import lib_apqc_html_css   as lahc
 
 # -----------------------------------------------------------------------
 # -----------------------------------------------------------------------
 
 # ----------------------------------------------------------------------
+
+PBAR_FLAG  = 'SHOW_PBAR'
 
 # For single subj QC, we now identify major groupings/categories to
 # look at: QC blocks.  Those will determine general organization
@@ -38,26 +43,113 @@ qc_title["Top"]    = [ "Top of page for:&#10${subj}",
                        "afni_proc.py single subject report" ]
 
 qc_blocks          = coll.OrderedDict()
-qc_blocks["vorig"] = [ "vols in orig space", 
-                       "Check: vols in orig space" ]
-qc_blocks["ve2a" ] = [ "vol alignment (EPI-anat)", 
-                       "Check: vol alignment (EPI-anat)" ]
-qc_blocks["va2t" ] = [ "vol alignment (anat-template)", 
-                       "Check: vol alignment (anat-template)" ]
-qc_blocks["vstat"] = [ "statistics vols", 
-                       "Check: statistics vols" ]
-qc_blocks["mot"  ] = [ "motion and outliers", 
-                       "Check: motion and outliers" ] 
-qc_blocks["regr" ] = [ "regressors", 
-                       "Check: regressors (combined and individual)" ]
-qc_blocks["warns"] = [ "all warnings from processing", 
-                       "Check: all warnings from processing" ]
-qc_blocks["qsumm"] = [ "summary quantities from @ss_review_basic", 
-                       "Check: summary quantities from @ss_review_basic" ]
+qc_blocks["vorig"]  = [ "vols in orig space", 
+                        "Check: vols in orig space" ]
+qc_blocks["ve2a" ]  = [ "vol alignment (EPI-anat)", 
+                        "Check: vol alignment (EPI-anat)" ]
+qc_blocks["va2t" ]  = [ "vol alignment (anat-template)", 
+                        "Check: vol alignment (anat-template)" ]
+qc_blocks["vstat"]  = [ "statistics vols", 
+                        "Check: statistics vols" ]
+qc_blocks["mot"  ]  = [ "motion and outliers", 
+                        "Check: motion and outliers" ] 
+qc_blocks["regr" ]  = [ "regressors", 
+                        "Check: regressors (combined and individual)" ]
+qc_blocks["warns"]  = [ "all warnings from processing", 
+                        "Check: all warnings from processing" ]
+qc_blocks["radcor"] = [ "@radial_correlate vols", 
+                        "Check: extent of local correlation" ]
+qc_blocks["qsumm"]  = [ "summary quantities from @ss_review_basic", 
+                        "Check: summary quantities from @ss_review_basic" ]
 
-qc_link_final      = [ "FINAL", 
+qc_link_final       = [ "FINAL", 
                        "overall subject rating" ] 
 
+# ------------------------------
+
+# a brief help string for online help
+qcb_helps           = coll.OrderedDict()
+qcb_helps["vorig"]  = '''
+Volumetric mages of data (EPI and anat) in original/native space.
+*Coming soon*.
+'''
+
+qcb_helps["ve2a" ]  = '''
+Volumetric images of the alignment of the subject's anat
+(underlay/grayscale) and EPI (overlay/hot color edges) volumes. Likely
+these will be shown in the template space, if using the tlrc block.
+'''
+
+qcb_helps["va2t" ]  = '''
+Volumetric images of the alignment of the standard space template
+(underlay/grayscale) and subject's anat (overlay/hot color edges)
+volumes.
+'''
+
+qcb_helps["vstat"]  = '''
+Volumetric images of (full) F-stat of an overall regression
+model. These images are only created for task data sets, i.e., where
+GLTs or stimuli are specified (so not for resting state data).
+'''
+
+qcb_helps["mot"  ]  = '''
+Summary of motion and outlier information, which may each/both be
+used as censoring criteria.
+
+The 6 rigid body motion parameters (3 rotation + 3 translation) are
+combined into a single quantity: the Euclidean norm (enorm), which has
+approx. units of 'mm'.  Large changes in the enorm time series show
+moments of subject motion.
+
+Separate runs are shown with the background alternating between white
+and light gray.
+
+Boxplots summarize parameter values, both before censoring (BC) and
+after censoring (AC).
+'''
+
+qcb_helps["regr" ]  = '''
+When processing with stimulus time series, both individual and
+combined stimulus plots are generated (with any censoring also shown).
+
+The degrees of freedom (DF) summary is also provided, so one can check
+if too many get used up during processing (careful with bandpassing!).
+
+And a grayplot of residuals is provided.
+'''
+
+qcb_helps["warns"]  = '''
+Several AFNI programs carry out consistency checks while
+processing (e.g., pre-steady state check, regression matrix corr
+warnings, left-right flip checks).  Warnings are conglomerated here.
+
+Each warning has one of the following levels:
+    {}
+
+The warning level is written, with color coding, at the top of each
+warning's text box.  The QC block label 'warns' at the top of the page
+is also colored according to the maximum warning level present.  
+'''.format( lahc.wlevel_str )
+
+qcb_helps["radcor"] = '''
+@radial_correlate plots (per run, per block). These can show
+scanner coil artifacts, as well as large subject motion; both factors
+can lead to large areas of very high correlation, which would be
+highlighted here.  
+'''
+
+qcb_helps["qsumm"]  = '''
+This is the output of @ss_review_basic, which contains a loooot of
+useful information about your single subject processing.
+'''
+
+qcbh = ''
+for x in qcb_helps.keys():
+    y    = qcb_helps[x]
+    yspl = y.split('\n')
+    yind = '\n    '.join(yspl)
+    qcbh+= '\n' + x 
+    qcbh+= yind
 
 # -----------------------------------------------------------------------------
 
@@ -150,7 +242,13 @@ Saving
     for the subject in group analysis.  (NB: This action is treated
     the same as downloading a file from online, and is subject to
     standard limitations on simplicity due to browser security
-    settings.)'''
+    settings.)
+
+See also
+    The online web tutorial:
+    https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html
+    It's more verbose and pictorial, if that's useful.
+'''
 ],
 ['''DEFINITIONS''', 
 '''QC block 
@@ -247,7 +345,12 @@ erase, respectively.
 On the filler buttons |A+|, |Ax| and |A?|, use Enter to fill empty
 QC buttons and ctrl+Enter to fill *all* buttons. 
 On |clr|, ctrl+Enter clears all rating and comment values.  
-''']]
+'''],
+['''QC BLOCKS''',
+qcbh ]
+]
+
+
 
 # ---------------------------------------------------------------------
 

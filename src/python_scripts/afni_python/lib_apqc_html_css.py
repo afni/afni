@@ -1,5 +1,19 @@
 
 # Define and write the CSS
+# --------------------------------------------------------------------
+# --------------------------------------------------------------------
+#
+#
+# 
+ver = '2.21' ; date = 'May 22, 2019' 
+# + [PT] fix pbar width
+# + [PT] sectionize the CSS for putting in vars easier to parts
+# + [PT] warning level color specification
+#
+# --------------------------------------------------------------------
+
+
+
 
 # --------------------------------------------------------------------
 # Notes on CSS choices:
@@ -34,6 +48,29 @@
 #
 # --------------------------------------------------------------------
 
+# [PT: May 22, 2019] new param to keep track of max warn level and
+# display something based on it.
+# rank of warning levels
+wlevel_ranks = {
+    ''          : 0,
+    'none'      : 1,
+    'undecided' : 2,
+    'mild'      : 3,
+    'medium'    : 4,
+    'severe'    : 5
+    }
+wlevel_colors = {
+    ''          : "#CCCCCC",
+    'none'      : "#CCFFCC",
+    'undecided' : "#EAEA99",
+    'mild'      : "#FFC3C4",
+    'medium'    : "#FF7F7F",
+    'severe'    : "#FF0000"
+    }
+
+wlevel_str = ' '.join(list(wlevel_ranks.keys())) 
+
+# --------------------------------------------------------------------
 
 # The CSS!
 css_text = '''
@@ -69,6 +106,9 @@ h3 {
     font-size: 26px;
     font-family: "courier new", courier, monospace;
 }
+'''
+
+css_text+= '''
 
 /* have padding at top and bottom of each main section*/ 
 .div_pad_class{
@@ -112,27 +152,56 @@ body {
     margin: 0px;
     text-decoration: underline;
 }
+'''
 
-.bordered {
+css_text+= '''
+
+.bordered {{
     padding: 0px;
     margin:  0px;
     border:  2px solid black;
-}
+}}
 
-.warnbord {
+.warnbord {{
     padding: 0px;
     border:  2px solid black;
     color: #000000;
-    background-color: #FFC3C4;
+    background-color: #FFFFFF; /*#FFC3C4; */
     padding-left: 20px;
+    padding-right: 20px;
     margin-top: 0px;
     margin-bottom: 10px;
     margin-left: auto;
     margin-right: auto;
-    width:90%; 
-}
+    width: 90%; 
+}}
 
-.datbord {
+.wcol_none {{
+    text-align: center;
+    background-color: {none};
+}}
+
+.wcol_undecided {{
+    text-align: center;
+    background-color: {undecided};
+}}
+
+.wcol_mild {{
+    text-align: center;
+    background-color: {mild};
+}}
+
+.wcol_medium {{
+    text-align: center;
+    background-color: {medium};
+}}
+
+.wcol_severe {{
+    text-align: center;
+    background-color: {severe};
+}}
+
+.datbord {{
     padding: 0px;
     border:  2px solid black;
     color: #000000;
@@ -142,8 +211,10 @@ body {
     margin-left: auto;
     margin-right: auto;
     width:90%; 
-}
+}}
+'''.format(**wlevel_colors)
 
+css_text+= '''
 .container {
     text-align: center;
     padding-top: 0px;
@@ -178,11 +249,16 @@ body {
     font-size: 20px;
     color: #ccc;
 }
+'''
 
+css_text+= '''
 img.pbar {
-    width: 20rem;
+    width: 200px;  /* 20rem; */
+/*    border:  2px solid black; */
     height: 14px;
     text-align: middle;
+/*    margin: 0px; */
+/* padding: 0px; */
     padding: 4px;
 }
 
@@ -241,6 +317,9 @@ td a:active {
     background-color: #4CAF50;
     color: green;
 }
+'''
+
+css_text+= '''
 
 /* Applies to all buttons */
 .button-generic {
@@ -291,7 +370,9 @@ td a:active {
     font-size: 21px;
     font-weight: normal; //bold;
 }
+'''
 
+css_text+= '''
 
 // see: https://fvsch.com/styling-buttons/
 /* Firefox: removes the inner border shown on focus */
@@ -337,7 +418,6 @@ td a:active {
     padding: 0px 0px;
 }
 
-
 .btn3save, .btn3help {
     background-color: #F0F0F0;
     float: left;
@@ -347,7 +427,6 @@ td a:active {
     height: 28px;
     padding: 2px 2px;
 }
-
 
 button:hover:not(.active) {
     background-color: #333;
@@ -380,6 +459,9 @@ button:active {
   //border: 3px solid #f1f1f1;
   //z-index: 9;    
 }
+'''
+
+css_text+= '''
 
 /* Add styles to the form container */
 .form-container {

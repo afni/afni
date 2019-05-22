@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, May , 2019 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "Improved help file (lists blocks, line to online help).",
+   "Better formatting of a couple things; warn level coloring added.\n"
+},
+
+{ 22, May , 2019 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Somewhat big changes: warns block updated and radcor block added.",
+   "Left-right flip and @radial_correlate checks now in; other tweaks.\n"
+},
+
+{ 22, May , 2019 , PT , "@djunct_json_value.py" , MINOR , TYPE_NEW_PROG,
+   "Tiny program to extract values from JSONs.",
+   "Just used by apqc_make_tcsh.py.\n"
+},
+
 { 14, May , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_GENERAL,
    "Change some fields in pbar json, for greater utility.",
    "Also make new default ftype for output cbar (jpg).\n"
