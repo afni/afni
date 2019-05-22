@@ -14,6 +14,8 @@ sys.path.append(AFNI_ROOT)
 
 # @pytest.mark.skip(reason="need to implement data save for run_cmd")
 def test_script_imports(data, python_interpreter):
+    if python_interpreter == "python3":
+        pytest.xfail("Not all modules are python3 compatible")
     binary_dir = Path(shutil.which("afni")).parent
 
     py_files = list(binary_dir.glob("*.py"))

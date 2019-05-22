@@ -12,7 +12,7 @@ data_paths = {
 }
 
 
-def test_handout_realcase2(data):
+def test_handout_realcase2(data, python_interpreter):
     """Test the command in the afni_proc.py handout (real case 2)."""
     subj = "FT"
 
@@ -54,13 +54,14 @@ def test_handout_realcase2(data):
         data,
         cmd,
         workdir=data.outdir,
+        python_interpreter=python_interpreter,
         text_file_patterns=[".FT"],
         kwargs_text_files={"ignore_patterns": ["auto-gener"]},
     )
     differ.run()
 
 
-def test_handout_realcase3(data):
+def test_handout_realcase3(data, python_interpreter):
     subj = "FT"
     cmd = """
     afni_proc.py
@@ -82,6 +83,7 @@ def test_handout_realcase3(data):
         data,
         cmd,
         workdir=data.outdir,
+        python_interpreter=python_interpreter,
         text_file_patterns=[".FT"],
         kwargs_text_files={"ignore_patterns": ["auto-gener"]},
     )
