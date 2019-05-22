@@ -3424,12 +3424,19 @@ int main( int argc , char *argv[] )
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
-#define MPAD 4     /* max #slices to zeropad */
+#define MPAD 6
    if( zeropad ){
-     float cv , *qar  ;
+     float cv , *qar  ; int xpad,ypad,zpad,mpad ;
      cv = 0.33f * THD_cliplevel(im_base,0.33f) ;       /* set threshold */
      qim = mri_copy(im_base); qar = MRI_FLOAT_PTR(qim);
      for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+
+     /* make padding depend on dataset size [22 May 2019] */
+
+     xpad = nx_base/8; ypad = ny_base/8; zpad = nz_base/8; mpad = MPAD;
+     if( mpad < xpad ) mpad = xpad ;
+     if( mpad < ypad ) mpad = ypad ;
+     if( mpad < zpad ) mpad = zpad ;
 
      /* find edges of box that contain supra-threshold contents */
 
@@ -3446,12 +3453,12 @@ int main( int argc , char *argv[] )
 
      /* compute padding so that at least MPAD all-zero slices on each face */
 
-     pad_xm = MPAD - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
-     pad_ym = MPAD - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
-     pad_zm = MPAD - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
-     pad_xp = MPAD - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
-     pad_yp = MPAD - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
-     pad_zp = MPAD - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
+     pad_xm = mpad - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
+     pad_ym = mpad - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
+     pad_zm = mpad - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
+     pad_xp = mpad - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
+     pad_yp = mpad - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
+     pad_zp = mpad - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
      if( nz_base == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
