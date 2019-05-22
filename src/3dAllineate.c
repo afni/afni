@@ -420,7 +420,7 @@ int main( int argc , char *argv[] )
    param_opt paropt[MAXPAR] ;
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
-   float conv_mm               = 0.05 ;         /* millimeters */
+   float conv_mm               = 0.001f ;       /* millimeters */
    float nmask_frac            = -1.0;          /* use default for voxel fraction */
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
@@ -830,7 +830,7 @@ int main( int argc , char *argv[] )
 "               to 'mmm' millimeters!  It just means that the program\n"
 "               stops trying to improve the alignment when the optimizer\n"
 "               (NEWUOA) reports it has narrowed the search radius\n"
-"               down to this level.  [Default == 0.05 mm]\n"
+"               down to this level.\n"
 "\n"
 " -verb       = Print out verbose progress reports.\n"
 "               [Using '-VERB' will give even more prolix reports.]\n"
@@ -2323,8 +2323,14 @@ int main( int argc , char *argv[] )
            (   strncasecmp(argv[iarg],"-lpc+",5) == 0
             || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
-       meth_code = (toupper(argv[iarg][3])=='C') ? GA_MATCH_LPC_MICHO_SCALAR
-                                                 : GA_MATCH_LPA_MICHO_SCALAR ;
+       if( strcasestr(argv[iarg],"lpc") != NULL )
+         meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
+       else if( strcasestr(argv[iarg],"lpa") != NULL )
+         meth_code = GA_MATCH_LPA_MICHO_SCALAR ;
+       else {
+         WARNING_message("How did this happen? argv[%d] = %s",iarg,argv[iarg]) ;
+         meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
+       }
        micho_fallthru = 0 ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
@@ -2645,10 +2651,8 @@ int main( int argc , char *argv[] )
        float vv ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
-       if( vv <= 0.001f || vv > 6.66f ){
-         vv = 0.05f ;
-         WARNING_message("-conv '%s' is out of range",argv[iarg]) ;
-       }
+            if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("limited %s to 0.0001",argv[iarg]); }
+       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("limited %s to 0.666" ,argv[iarg]); }
        conv_mm = vv ; iarg++ ; continue ;
      }
 
@@ -4069,9 +4073,9 @@ STATUS("zeropad weight dataset") ;
      else              yyy = conv_mm / (xxx*siz) ;         /* scale */
      zzz = MIN(zzz,yyy) ;
    }
-   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.00001f) ;
+   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.000005f) ;
    if( verb > 1 && apply_mode == 0 )
-     INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
+     INFO_message("Normalized convergence radius = %.7f",conv_rad) ;
 
    /*-- special case: 04 Apr 2008 --*/
 
