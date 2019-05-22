@@ -681,7 +681,7 @@ More detailed changes, starting May, 2018.
       - reproduce with: -mask_dilate 1
 
    22 May 2019 : ANATICOR changes (see -regress_anaticor*)
-      - changed default radius from 45 to 30 in slow case (matches fast)
+      - changed default radius from 45 to 30 mm
       - fast case will now use a flatter part of the Gaussian curve, and
         will terminate the curve at the blur radius
         (unless -regress_anaticor_full_gaussian is applied)

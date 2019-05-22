@@ -12403,11 +12403,13 @@ g_help_options = """
             See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
                 -anat_follower_ROI.
 
-        -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
+        -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
-            To go with -regress_anaticor, use this option to specify the radius
-            of spheres within which local white matter is averaged.  A small
-            radius means the white matter is more local.  It is also faster.
+            To go with -regress_anaticor or -regress_anaticor_fast, use this
+            option to specify the radius.  In the non-fast case that applies
+            to spheres within which local white matter is averaged.  In the
+            fast case, the radius is applied as the HWHM (half width at half
+            max).  A small radius means the white matter is more local.
 
             If no white matter is found within the specified distance of some
             voxel, the effect is that ANATICOR will simply not happen at that
@@ -12415,7 +12417,7 @@ g_help_options = """
             is simply no white matter close enough to regress out (again, at
             the given voxel).
 
-            See also -regress_anaticor.
+            See also -regress_anaticor or -regress_anaticor_fast.
 
         -regress_anaticor_fast  : generate errts using fast ANATICOR method
 
@@ -12452,6 +12454,12 @@ g_help_options = """
                 e.g.     -regress_anaticor_fwhm 20
                 default: -regress_anaticor_fwhm 30
 
+
+         ** This option is no longer preferable.  The newer application of
+            -regress_anaticor_fast "thinks" in terms of a radius, like HWHM.
+            So consider -regress_anaticor_radius for all cases.
+
+
             This option applies to -regress_anaticor_fast.
 
             The 'fast' ANATICOR method blurs the time series of desired white
@@ -12465,6 +12473,29 @@ g_help_options = """
             half as much as a voxel at the center of the kernel.
 
             See also -regress_anaticor_fast.
+
+        -regress_anaticor_term_frac FRAC : specify termination fraction
+
+                e.g.     -regress_anaticor_term_frac .25
+                default: -regress_anaticor_term_frac .5
+
+            In the typical case of -regress_anaticor_fast, to make it behave
+            very similarly to -regress_anaticor, blurring is applied with a
+            Gaussian kernel out to the radius specified by the user, say 30 mm.
+
+            To make this kernel more flat, it is terminated at a fraction of
+            the HWHM (half width at half max, say 0.5), while the blur radius
+            is scaled by the recipricol (to keep the overall distance fixed).
+
+            If the fraction were 1.0, the relative contribution at the radius 
+            would be 0.5 of the central voxel (by definition of FWHM/HWHM).
+            At a fraction of 0.5 (default), the relative contribution is 0.84.
+            At a fraction of 0.25, the relative contribution is 0.958.
+
+            These are applied to make the blur kernel more flat.
+
+            Please see "@radial_correlate -help" for more information.
+            See also -regrss_anaticor_fast.
 
         -regress_apply_mask     : apply the mask during scaling and regression
 
