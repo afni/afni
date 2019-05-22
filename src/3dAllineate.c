@@ -818,6 +818,7 @@ int main( int argc , char *argv[] )
 "               [Default == 47%% of voxels in the weight mask]\n"
 "\n"
 " -nopad      = Do not use zero-padding on the base image.\n"
+"               (I cannot think of a good reason to use this option.)\n"
 "               [Default == zero-pad, if needed; -verb shows how much]\n"
 "\n"
 " -zclip      = Replace negative values in the input datasets (source & base)\n"
@@ -3424,7 +3425,7 @@ int main( int argc , char *argv[] )
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
-#define MPAD 6
+#define MPAD 8
    if( zeropad ){
      float cv , *qar  ; int xpad,ypad,zpad,mpad ;
      cv = 0.33f * THD_cliplevel(im_base,0.33f) ;       /* set threshold */
@@ -3451,7 +3452,7 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     /* compute padding so that at least MPAD all-zero slices on each face */
+     /* compute padding so that at least mpad all-zero slices on each face */
 
      pad_xm = mpad - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
      pad_ym = mpad - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
@@ -3473,7 +3474,7 @@ int main( int argc , char *argv[] )
          if( pad_zm > 0 || pad_zp > 0 )
            INFO_message("Zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
        } else {
-         INFO_message("Zero-pad: not needed") ;
+         INFO_message("Zero-pad: not needed (plenty of internal padding)") ;
        }
      }
 
