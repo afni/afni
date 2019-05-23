@@ -55,6 +55,10 @@ ver = '2.4' ; date = 'May 20, 2019'
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
 #
+ver = '2.5' ; date = 'May 23, 2019' 
+# + [PT] switched to using afni_base functions for executing on
+#        commandline
+#
 #########################################################################
 
 import sys
@@ -62,6 +66,7 @@ import glob
 import subprocess
 import json
 import collections         as coll
+import afni_base           as ab
 import lib_apqc_html       as lah
 import lib_apqc_html_helps as lahh
 import lib_ss_review       as lssr
@@ -2173,25 +2178,27 @@ def apqc_warns_TENT( obase, qcb, qci,
 # -------------------------------------------------------------------
 
 def aea_checkflip_to_json( fff ):
-
+    # [PT: May 23, 2019] switched to using afni_base functions for
+    # executing on commandline
+    
     ojson = "__tmp_checkflip_parse_ZXCV.json"
     
-    subp = subprocess.run( ["abids_json_tool.py",
-                            "-overwrite",
-                            "-txt2json",
-                            "-delimiter_major", ":",
-                            "-delimiter_minor", ",,",
-                            "-input", fff,
-                            "-prefix", ojson],
-                           stdout=subprocess.PIPE)
+    cmd_abid = ["abids_json_tool.py",
+                "-overwrite",
+                "-txt2json",
+                "-delimiter_major", ":",
+                "-delimiter_minor", ",,",
+                "-input", fff,
+                "-prefix", ojson]
+    
+    cmd_abid_str = ' '.join( cmd_abid )
+
+    stat, so, se = ab.simple_shell_exec(cmd_abid_str, capture=1)
 
     with open(ojson, 'r') as fff:
         cf_json = json.load(fff) 
 
-    # clean up temp file; !!!!!!!!! do use double slash here: \\rm?
-    subp2 = subprocess.run( ["rm",
-                             ojson],
-                            stdout=subprocess.PIPE)
+    stat2, so2, se2 = ab.simple_shell_exec("\\rm" + ojson, capture=1)
 
     return cf_json
 

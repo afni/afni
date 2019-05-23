@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, May , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Would not run in python2, because of subprocess.run() call (only py3).",
+   "Now updated to using afni_base.py functions to execute shell cmds.\n"
+},
+
 { 22, May , 2019 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
    "Improved help file (lists blocks, line to online help).",
    "Better formatting of a couple things; warn level coloring added.\n"

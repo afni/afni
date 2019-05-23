@@ -70,9 +70,13 @@ auth = 'PA Taylor'
 #ver = '2.3' ; date = 'May 19, 2019' 
 # + [PT] start aea_checkflip stuff
 #
-ver = '2.4' ; date = 'May 22, 2019' 
+#ver = '2.4' ; date = 'May 22, 2019' 
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
+#
+ver = '2.5' ; date = 'May 23, 2019' 
+# + [PT] switched to using afni_base functions for executing on
+#        commandline
 #
 #########################################################################
 
