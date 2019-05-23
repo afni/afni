@@ -12485,17 +12485,60 @@ g_help_options = """
 
             To make this kernel more flat, it is terminated at a fraction of
             the HWHM (half width at half max, say 0.5), while the blur radius
-            is scaled by the recipricol (to keep the overall distance fixed).
+            is extended by the reciprocal (to keep the overall distance fixed).
+            So that means blurring with a wider Gaussian kernel, but truncating
+            it to stay fixed at the given radius.
 
-            If the fraction were 1.0, the relative contribution at the radius 
+            If the fraction were 1.0, the relative contribution at the radius
             would be 0.5 of the central voxel (by definition of FWHM/HWHM).
             At a fraction of 0.5 (default), the relative contribution is 0.84.
-            At a fraction of 0.25, the relative contribution is 0.958.
+            At a fraction of 0.25, the relative contribution is 0.958, seen by:
 
-            These are applied to make the blur kernel more flat.
+               afni_util.py -print 'gaussian_at_hwhm_frac(.25)'
+
+            Consider the default fraction of 0.5.  That means we want the
+            "radius" of the blur to terminate at 0.5 * HWHM, making it more
+            flat, such that the relative contribution at the edge is ~0.84.
+            If the specified blur radius is 30 mm, that mean the HWHM should
+            actually be 60 mm, and we stop computing at HWHM/2 = 30 mm.  Note
+            that the blur in 3dmerge is applied not as a radius (HWHM), but as
+            a diameter (FWHM), so these numbers are always then doubled.  In
+            this example, it would use FWHM = 120 mm, to achieve a flattened
+            30 mm radius Gaussian blur.
+
+            In general, the HWHM widening (by 1/FRAC) makes the inner part of
+            the kernel more flat, and then the truncation at FRAC*HWHM makes
+            the blur computations still stop at the radius.  Clearly one can
+            make a flatter curve with a smaller FRAC.
+
+            To make the curve a "pure Gaussian", with no truncation, consider
+            the option -regress_anaticor_full_gaussian.
 
             Please see "@radial_correlate -help" for more information.
-            See also -regrss_anaticor_fast.
+            Please also see:
+               afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
+            See also -regress_anaticor_fast, -regress_anaticor_radius,
+            -regress_anaticor_full_gaussian.
+
+        -regress_anaticor_full_gaussian yes/no: use full Gaussian blur
+
+                e.g.     -regress_anaticor_full_gaussian yes
+                default: -regress_anaticor_full_gaussian no
+
+            When using -regress_anaticor_fast to apply ANATICOR via a Gaussian
+            blur, the blur kernel is extended and truncated to stop at the
+            -regress_anaticor_radius HWHM of the Gaussian curve, allowing the
+            shape to be arbitrarily close to the flat curve applied in the
+            original ANATICOR method via -regress_anaticor.
+
+            Use this option to prevent the truncation, so that a full Gaussian
+            blur is applied at the specified HWHM radius (FWHM = 2*HWHM).
+
+          * Note that prior to 22 May 2019, the full Gaussian was always
+            applied with -regress_anaticor_fast.  This marks an actual change
+            in processing.
+
+            See also -regress_anaticor_fast, -regress_anaticor_radius.
 
         -regress_apply_mask     : apply the mask during scaling and regression
 
