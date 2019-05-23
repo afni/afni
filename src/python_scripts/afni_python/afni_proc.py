@@ -637,9 +637,14 @@ g_history = """
     6.33 Apr 11, 2019: added -combine_tedort_reject_midk
     6.34 Apr 25, 2019: -regress_bandpass takes any even number of frequencies
     6.35 May 14, 2019: added -radial_correlate_blocks and _opts
+    6.36 May 22, 2019: modified -regress_anaticor_fast method
+        - blurs are now truncated Gaussians by default, making them flat
+          and very similar to original ANATICOR method
+        - added -regress_anaticor_full_gaussian and -regress_anaticor_term_frac
+    6.37 May 23, 2019: QC: save fanaticor_mask_coverage dataset
 """
 
-g_version = "version 6.35, May 14, 2019"
+g_version = "version 6.37, May 23, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

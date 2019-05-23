@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -regress_anaticor_full_gaussian, -regress_anaticor_term_frac",
+   "Also, save fanaticor_mask_coverage dataset."
+ } ,
+
+ { 22, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "blurs are now truncated Gaussians by default, making them flat",
+   NULL
+ } ,
+
  { 22, May, 2019, RCR, "Makefile.INCLUDE", MICRO, TYPE_GENERAL,
    "start with 'MAKE ?= make', and use MAKE exclusively",
    "Thanks to J Bacon for the suggestion."

@@ -6052,7 +6052,7 @@ def db_cmd_regress_anaticor(proc, block):
 
        # note the radius fraction to terminate blur at
        # (match method in @radial_correlate, defaul=0.5)
-       oname = '-regress_anaticor_full_gaussian'
+       oname = '-regress_anaticor_term_frac'
        merge_frad, err = block.opts.get_type_opt(float, oname, default=0.5)
        if err:
           print('** error: option %s requires a float argument' % oname)
@@ -6065,7 +6065,7 @@ def db_cmd_regress_anaticor(proc, block):
        if block.opts.have_yes_opt('-regress_anaticor_full_gaussian', default=0):
           # convert from radius back to diameter (FWHM)
           rad = 2.0 * rad
-          viastr = 'blur'
+          viastr = 'full Gaussian blur'
           ffstr = ''
        else:
           # scale radius by fraction of HWHM to stop at, then up to FWHM
@@ -6078,24 +6078,33 @@ def db_cmd_regress_anaticor(proc, block):
           ffscale = 1.17741
           firfac = ffscale * merge_frad
 
-          viastr = 'truncated blur\n'                                   \
-                   '# (scale radius %g by %g and convert to diameter '  \
-                   '(so FWHM=%d),\n'                                    \
-                   '# then truncate at %g sigmas (%g HWHM * %g S/HWHM)' \
+          viastr = 'truncated blur\n'                                       \
+                   '# - scale radius %g by %g (1/_term_frac), so FWHM=%d\n' \
+                   '# - then truncate at %g sigmas (%g HWHM * %g S/HWHM)'   \
                     % (rold, 1.0/merge_frad, rad, firfac, merge_frad, ffscale)
           ffstr = '-DAFNI_BLUR_FIRFAC=%g ' % firfac
 
-       cmd += '# generate ANATICOR voxelwise regressors via %s\n'   \
-              '3dmerge %s-1blur_fwhm %g -doall' % (viastr, ffstr, rad)
+       # QC: store the actual 3dmerge command to make a blurred mask
+       merge_cmd = '3dmerge %s-1blur_fwhm %g -doall' % (ffstr, rad)
+       cmd += '# generate ANATICOR voxelwise regressors via %s\n' % viastr
 
-       # and avoid strange line wrapping
+       # avoid strange line wrapping, and similarly store the prefix form
+       # (we *could* just put -prefix on the next line, as in the 2nd case)
        if ffstr == '':
-          cmd += '-prefix %s \\\n'     \
-                 '        %s%s\n\n'    \
-                 % (rset.out_prefix(), vmask, proc.view)
+          prefix_form = '-prefix %s \\\n        %s\n\n'
        else:
-          cmd += ' \\\n        -prefix %s %s%s\n\n'    \
-                 % (rset.out_prefix(), vmask, proc.view)
+          prefix_form = ' \\\n        -prefix %s %s\n\n'
+
+       # finally, make a well-formatted 3dmerge command
+       instr = '%s%s' % (vmask, proc.view)
+       cmd += merge_cmd + prefix_form % (rset.out_prefix(), instr)
+
+       # additionally,  make a corresponding blur of the mask dataset, for QC
+       cmd += '# QC: similarly blur the mask to get an idea of the coverage\n'
+       cmd += merge_cmd + \
+               prefix_form % ('fanaticor_mask_coverage', mset.shortinput())
+
+    # handle non-blur method, as in original ANATICOR
     else:
        cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
               "            -mask %s -use_nonmask \\\n"                    \
