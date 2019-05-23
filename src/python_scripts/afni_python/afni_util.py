@@ -3798,14 +3798,18 @@ def gaussian_at_hwhm_frac(frac):
           (i.e. since FWHM is a diameter, FWHM/2 is the radius)
         - if frac < 0, whine and return 0 (it is undefined)
 
-      Gaussian curves have the form: G(x) = a*e^-[ (x-b)^2 / (2*c^2) ]
+      Gaussian curves have the form: G(x) = a*e^-[ (x-b)^2 / (2*c^2) ],
+      where     a = scalar, maybe 1/(c*sqrt(2*PI)), to be unit integral
+                b = expected value, the central point of symmetry
+                c = standard deviation
 
-      A unit, zero-centered curve has a=1, b=0: g(x) = e^-[x^2 / (2*c^2)]
+      A unit height, zero-centered curve has a=1, b=0: g(x)=e^-[x^2 / (2*c^2)]
 
-      To find (the radius) where g(x) = 1/2, solve: g(w) = 1/2 for w.
+      To find (the HWHM) where g(x) = 1/2, solve: g(w) = 1/2 for w.
 
          w = sqrt(c^2 * 2*ln(2))    {just use positive}
 
+      We want an equation for g(x), but where x is a fraction of the HWHM.
       Rewrite g(x) in terms of w, by solving the above for c:
 
         c = w / sqrt(2 * ln2)
@@ -3826,7 +3830,7 @@ def gaussian_at_hwhm_frac(frac):
       print("** gaussian_at_hwhm_frac: illegal frac < 0 of %s", frac)
       return 0
 
-   return 2 ** -(frac*frac)
+   return 2.0 ** -(frac*frac)
 
 def gaussian_at_fwhm(x, fwhm):
    """gaussian_at_fwhm(x, fwhm):
