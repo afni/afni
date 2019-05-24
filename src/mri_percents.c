@@ -770,6 +770,54 @@ void mri_percents( MRI_IMAGE *im , int nper , float per[] )
    return ;
 }
 
+/******************************************************************************/
+/* Get one percentile point of nonzero absolute values only. [24 May 2019]    */
+/******************************************************************************/
+
+float percentile_nzabs( int nvox , float *far , float per )
+{
+   int pp , ii ;
+   float fi , frac , val ;
+   int nqq ; float *qar ;
+
+   if( nvox < 9 || far == NULL ) return 0.0f ;
+
+        if( per < 0.0f ) per  = 0.0f  ;  /* min */
+   else if( per > 1.0f ) per *= 0.01f ;  /* 37% -> 0.37 */
+        if( per > 1.0f ) per  = 1.0f  ;  /* max */
+
+   qar = (float *)malloc(sizeof(float)*(nvox+1)) ;
+   for( nqq=ii=0 ; ii < nvox ; ii++ ){
+     val = fabsf(far[ii]) ; if( val == 0.0f ) continue ;
+     qar[nqq++] = val ;
+   }
+
+   /* special cases of very small values of nonzero voxels */
+
+   if( nqq == 0 ){ free(qar) ; return 0.0f ; }
+   if( nqq == 1 ){ val = qar[0] ; free(qar) ; return val ; }
+   if( nqq == 2 ){
+     val = qar[ (per < 0.5f) ? 0 : 1 ] ;
+     free(qar) ; return val ;
+   }
+
+   /* general case */
+
+   qsort_float( nqq , qar ) ;
+
+   if( per <= 0.0f ){ val = qar[0] ; free(qar) ; return val ; }
+
+   qar[nqq] = qar[nqq-1] ;
+   fi = nqq * per ; ii = (int)fi ; fi = fi - ii ;
+   val = (1.0f-fi) * qar[ii] + fi * qar[ii+1] ;
+
+#if 0
+INFO_message("percentile_nzabs: nvox=%d nqq=%d per=%.4f ii=%d fi=%.4f val=%g",nvox,nqq,per,ii,fi,val ) ;
+#endif
+
+   free(qar) ; return val ;
+}
+
 /****************************************************************************
    Produce a "histogram flattened" version of the input image.  That is, the
    output value at each pixel will be proportional to its place in the

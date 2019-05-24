@@ -720,6 +720,7 @@ static char *gby[] = {
      "I am so clever I don't understand a word of what I'm saying"   ,
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
+     "A man hears what he wants to hear and disregards the rest"     ,
      "Whenever people agree with me, I think I must be wrong"        ,
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
