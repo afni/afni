@@ -30,6 +30,11 @@ ENTRY("AFNI_see_func_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    old_val = (im3d->vinfo->func_visible) ? 1 : 0 ;
    new_val = MCW_val_bbox( im3d->vwid->view->see_func_bbox ) ;
 
@@ -532,6 +537,11 @@ ENTRY("AFNI_thr_scale_drag CB") ;
   Set the top value used on the threshold slider.
   (Should be followed by a function redisplay if needed.)
 -------------------------------------------------------------------------*/
+
+void AFNI_set_thresh_itop( Three_D_View *im3d , int itop )
+{
+   AFNI_set_thresh_top( im3d, Thval[itop] ) ;
+}
 
 void AFNI_set_thresh_top( Three_D_View *im3d , float tval )
 {
@@ -1789,9 +1799,14 @@ ENTRY("AFNI_func_overlay") ;
 
    /* 29 Mar 2005: make sure statistics of overlay dataset are ready */
 
-   DSET_load( im3d->fim_now ) ;
-   if( !im3d->vinfo->stats_func_ok || (!im3d->vinfo->stats_thresh_ok && need_thr) )
+   if( !DSET_LOADED(im3d->fim_now) ){
+     DSET_load( im3d->fim_now ) ;
+     im3d->vinfo->stats_func_ok = im3d->vinfo->arang_func_ok = 0 ;
+   }
+   if( !im3d->vinfo->stats_func_ok || !im3d->vinfo->arang_func_ok
+                                   || (!im3d->vinfo->stats_thresh_ok && need_thr) ){
      AFNI_reset_func_range( im3d ) ;
+   }
 
    /* get the threshold image? */
 
@@ -2795,6 +2810,11 @@ ENTRY("AFNI_assign_ulay_bricks") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    switch( im3d->vinfo->underlay_type ){
      default:
      case UNDERLAY_ANAT:                    /* set underlay to anat */
@@ -2846,6 +2866,11 @@ void AFNI_underlay_CB( Widget w , XtPointer cd , XtPointer cb )
 ENTRY("AFNI_underlay_CB") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
 
 #ifdef USE_UNDERLAY_BBOX
    if( w != NULL ) bval = AFNI_first_tog( LAST_UNDERLAY_TYPE+1 ,
@@ -3176,6 +3201,11 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    if( ! IM3D_VALID(im3d) || w == (Widget)NULL ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    if( GLOBAL_library.have_dummy_dataset ){  /* 26 Feb 2007: read session? */
      if( w == im3d->vwid->view->choose_sess_pb ||
          w == im3d->vwid->view->popchoose_sess_pb ){
@@ -3489,6 +3519,11 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    old_anat = im3d->vinfo->anat_num ;
    old_func = im3d->vinfo->func_num ;
    old_view = im3d->vinfo->view_type ;
+
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
 
 #if 0
    STATUS_IM3D_TMASK(im3d) ;
@@ -5101,6 +5136,11 @@ ENTRY("AFNI_anatmode_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    old_val = 1 << im3d->vinfo->force_anat_wod ;
    new_val = MCW_val_bbox( im3d->vwid->dmode->anatmode_bbox ) ;
 
@@ -5135,6 +5175,11 @@ ENTRY("AFNI_funcmode_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    old_val = 1 << im3d->vinfo->force_func_wod ;
    new_val = MCW_val_bbox( im3d->vwid->dmode->funcmode_bbox ) ;
 
@@ -5167,6 +5212,11 @@ void AFNI_modify_viewing( Three_D_View *im3d , Boolean rescaled )
 ENTRY("AFNI_modify_viewing") ;
 
    if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
 
    /* set up datasets for new imaging */
 
@@ -6143,7 +6193,8 @@ ENTRY("AFNI_range_label") ;
    if( im3d != NULL && im3d->vinfo != NULL ){  /* 30 Mar 2005 */
      im3d->vinfo->stats_anat_ok =
       im3d->vinfo->stats_func_ok =
-       im3d->vinfo->stats_thresh_ok = 0 ;
+       im3d->vinfo->arang_func_ok =
+        im3d->vinfo->stats_thresh_ok = 0 ;
    }
 
    /*** anat statistics ***/
@@ -6236,6 +6287,8 @@ XmString AFNI_autorange_label( Three_D_View *im3d )
 
 ENTRY("AFNI_autorange_label") ;
 
+/* INFO_message("---------- AFNI_autorange_label") ; */
+
    if( ! ISVALID_3DIM_DATASET(im3d->fim_now) ){  /* no function */
      rrr = DEFAULT_FIM_SCALE ;
    } else {
@@ -6256,10 +6309,38 @@ ENTRY("AFNI_autorange_label") ;
        rrr = DEFAULT_FIM_SCALE ;                        /* don't have brick stats */
      }
    }
+#if 0
    if( rrr > 1.0f && rrr < DEFAULT_FIM_SCALE ){
      float ppp = AFNI_numenv("AFNI_AUTORANGE_POWER") ;
      if( ppp > 0.0f && ppp < 1.0f ) rrr = powf(rrr,ppp) ;
    }
+#endif
+
+/* ININFO_message("  old style rrr = %g",rrr) ; */
+
+   /* Get the autorange as a percentage point of the nonzero values */
+
+   if( AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 && DSET_LOADED(im3d->fim_now) ){
+     MRI_IMAGE *qim ; float qval ;
+/* ININFO_message("   extract float brick") ; */
+     qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
+     if( qim != NULL ){
+/* ININFO_message("   get %.1f%% nzabs",AUTORANGE_PERC) ; */
+       qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;
+       mri_free(qim) ;
+/* ININFO_message("   qval = %g",qval) ; */
+       if( qval > 0.0f ) rrr = qval ;
+       im3d->vinfo->arang_func_ok = 1 ;
+/* ININFO_message("  new style rrr = %g",rrr) ; */
+     } else {
+/* ININFO_message("  can't extract float brick!?") ; */
+     }
+   } else {
+/* ININFO_message("AUTORANGE_PERC=%g DSET_LOADED(%s)=%d",AUTORANGE_PERC,DSET_BRICKNAME(im3d->fim_now),DSET_LOADED(im3d->fim_now)) ; */
+   }
+
+   if( rrr == 0.0f ) rrr = DEFAULT_FIM_SCALE ;
+
    im3d->vinfo->fim_autorange = rrr ;
    AV_fval_to_char( rrr , qbuf ) ;
    sprintf( buf , "autoRange:%s" , qbuf ) ;
@@ -6353,6 +6434,11 @@ void AFNI_range_av_CB( MCW_arrowval *av , XtPointer cd )
 ENTRY("AFNI_range_av_CB") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
+
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
 
    im3d->vinfo->fim_range = av->fval ;
 
@@ -6459,6 +6545,11 @@ ENTRY("AFNI_reset_func_range") ;
 
    if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
+
    if( PBAR_FULLRANGE && !IM3D_ULAY_COHERENT(im3d) ){ /* 10 Jun 2014 */
      STATUS("incoherent ulay -- patching") ;
      ERROR_message("AFNI_reset_func_range: incoherent ulay -- patching") ;
@@ -6532,6 +6623,11 @@ ENTRY("AFNI_bucket_CB") ;
 #endif
    IM3D_CLEAR_TMASK(im3d) ;                                /* Mar 2013 */
    IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
+
+   im3d->vinfo->stats_anat_ok =
+    im3d->vinfo->stats_func_ok =
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 24 May 2019 */
 
    /** Anat sub-brick [29 Jul 2003: lock to time_index controller as well] **/
 

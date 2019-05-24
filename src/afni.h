@@ -321,7 +321,8 @@ typedef struct {
 
       int stats_anat_ok,     /* 29 Mar 2005: set in AFNI_range_label() */
           stats_func_ok,     /*   to indicate if the sub-brick range  */
-          stats_thresh_ok ;  /*   statistics are loaded properly     */
+          arang_func_ok,     /*   statistics are loaded properly     */
+          stats_thresh_ok ;  
 
       int   i1_icor , j2_icor , k3_icor;  /* for InstaCorr -- 08 May 2009 */
       float xi_icor , yj_icor , zk_icor ; /* DICOM coords -- 17 Mar 2010 */
@@ -809,6 +810,8 @@ typedef struct {
       int clu_nnlev ;
 
       ICALC_widget_set   *iwid ;       /* 17 Sep 2009 */
+
+      int do_setup ;                   /* 24 May 2019 */
 } AFNI_function_widgets ;
 
 extern void AFNI_func_autothresh_CB(Widget,XtPointer,XtPointer) ; /* 25 Jul 2007 */
@@ -1722,6 +1725,8 @@ typedef struct {
    int have_sox ;                                /* 20 Aug 2018 */
    char *sound_player ;                          /* 27 Aug 2018 */
 
+   float autorange_perc ;                        /* 24 May 2019 */
+
 } AFNI_library_type ;
 
 #define BROWN_COLOR "#553319"
@@ -1776,6 +1781,7 @@ extern void AFNI_display_hist( Widget w ) ;       /* 05 Mar 2008 */
 #define DOING_REALTIME_WORK (GLOBAL_library.interruptables.windows != NULL)
 
 #define PBAR_FULLRANGE  GLOBAL_library.pbar_fullrange
+#define AUTORANGE_PERC  GLOBAL_library.autorange_perc
 
 #define UNDUMMYIZE                                                              \
  do { GLOBAL_library.have_dummy_dataset = 0 ;                                   \
@@ -2154,6 +2160,7 @@ extern void AFNI_inten_av_CB( MCW_arrowval * , XtPointer ) ;
 extern char * AFNI_inten_av_texter ( MCW_arrowval *, XtPointer ) ; /* 30 Jan 2003 */
 
 extern void   AFNI_set_thresh_top( Three_D_View * , float ) ;
+extern void   AFNI_set_thresh_itop( Three_D_View * , int ) ;
 extern char * AFNI_thresh_tlabel_CB( MCW_arrowval * , XtPointer ) ;
 extern void   AFNI_thresh_top_CB( MCW_arrowval * , XtPointer ) ;
 

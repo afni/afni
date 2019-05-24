@@ -2458,9 +2458,16 @@ new dataset. [This is for Ziad!]
 -------------------------------
 Variable: AFNI_THRESH_TOP_EXPON
 -------------------------------
-This variable defines the top value for the '**' setting underneath
-the Overlay threshold slider. By default, this value is 4, but you
-can change that to 5 or 6 with this variable. [This is for Phil Kohn]
+This variable defines the maximum value for the '**' setting underneath
+the Overlay threshold slider. By default, this value is 5, but you
+can change that to 4 or 6 with this variable. [This is for Phil Kohn]
+
+--------------------------------
+Variable: AFNI_THRESH_INIT_EXPON
+--------------------------------
+This variable defines the initial power-of-ten scale for the '**'
+setting. By default, this value is 1 (thresholds run from 0 to 10),
+but you can change this to a value from 0 to 'TOP_EXPON'.
 
 -------------------------------
 Variable: AFNI_OLD_SHORT_THRESH
@@ -2475,7 +2482,8 @@ probably not what the user meant. Again, this would happen in 3dmerge
 and Clusterize, but NOT in the AFNI GUI without Clusterize. This
 inconsistency has been fixed, and both sets of places now threshold
 using floats. However, IF you want to stick with the old method for
-some un-imaginable reason, you need to set this variable to YES.
+some grotesquely un-imaginable reason, you need to set this variable
+to YES.
 
 ------------------------------
 Variable: AFNI_SNAPFILE_PREFIX
@@ -3681,12 +3689,31 @@ that is, it is opened in "w" mode.
 This feature may be referred to as the Jen Evans special.
 
 ------------------------------
-Variable: AFNI_AUTORANGE_POWER
+Variable: AFNI_AUTORANGE_POWER -- this variable is now obsolete
 ------------------------------
 If this variable is set to a value between 0 and 1 (exclusive),
 then the functional overlay 'autoRange' value will be set to
 the largest value in the dataset raised to this power. By default,
 the autoRange value is computed as if this power is 1.
+
+-----------------------------
+Variable: AFNI_AUTORANGE_PERC - experimental at this moment
+-----------------------------
+If this variable is set to a value P between 2 and 99 (inclusive),
+then it indicates that the functional overlay 'autoRange' value
+will be set the P-th percentile point on the cumulative histogram
+of the absolute values of the nonzero entries in the Overlay
+dataset sub-brick being viewed. To be less confusing, if P=95
+(for example), then the nonzero absolute values are tabulated
+into histogram bins from smallest (percentile=0) to largest
+(percentile=100), and the value at the 95th percentile will
+be chosen -- so that only 5 percent of the values in the
+dataset are larger than this autoRange value. The reason for
+doing this is to avoid allowing a few large values to distort
+the overlay color scale. HOWEVER, at this moment this feature
+does not work with purely warp-on-demand datasets and so
+peculiar things can happen, as in those cases it switches back
+to the default 'maximum absolute value' for the autoRange.
 
 ---------------------------
 Variable: AFNI_IDEAL_COLORS (editable)

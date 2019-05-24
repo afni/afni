@@ -2415,6 +2415,11 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_VERSION_CHECK","NO") ;     /* 04 Jan 2019 */
    PUTENV("AFNI_PBAR_FULLRANGE","YES") ;   /* 03 Jun 2014 */
 
+   PUTENV("AFNI_COLORSCALE_DEFAULT","Reds_and_Blues_Inv") ; /* 24 May 2019 */
+   PUTENV("AFNI_THRESH_TOP_EXPON"  , "5" ) ;
+   PUTENV("AFNI_THRESH_INIT_EXPON" , "1" ) ;
+   PUTENV("AFNI_AUTORANGE_PERC"    , "0") ;
+
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
    PUTENV("AFNI_IMAGE_LABEL_SIZE","2") ;
@@ -2458,6 +2463,8 @@ int main( int argc , char *argv[] )
    }
 
    PBAR_FULLRANGE = AFNI_yesenv("AFNI_PBAR_FULLRANGE") ; /* 03 Jun 2014 */
+
+   AUTORANGE_PERC = (float)AFNI_numenv("AFNI_AUTORANGE_PERC") ; /* 24 May 2019 */
 
    AFNI_load_defaults( MAIN_shell ) ;
 
@@ -9777,8 +9784,8 @@ STATUS(" -- function widgets ON") ;
 
       XtManageChild( im3d->vwid->func->thr_rowcol ) ;
       qq = AFNI_controller_index(im3d) ;
-      if( zfim[qq] && ISVALID_DSET(im3d->fim_now) && im3d->fim_now->func_type == FUNC_FIM_TYPE ){
-STATUS(" -- set threshold to zero for FIM (once only)") ;
+      if( zfim[qq] && ISVALID_DSET(im3d->fim_now) ){
+STATUS(" -- set threshold to zero (startup)") ;
         XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
         im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
       }
@@ -10375,6 +10382,16 @@ STATUS("remanaging children") ;
          im3d->vwid->func->inten_pbar->update_me = 2 ;
          update_MCW_pbar( im3d->vwid->func->inten_pbar ) ;
          FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
+
+        /* first time open? do some setup finalization [24 May 2019] */
+        if( im3d->vwid->func->do_setup ){
+          int ii ;
+
+          ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+          if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(im3d,ii) ;
+
+          im3d->vwid->func->do_setup = 0 ;
+        }
 
 #ifdef FIX_SCALE_SIZE_LATER
         (void) XtAppAddTimeOut( MAIN_app,50,fixscale,im3d ) ; /* 09 May 2001 */

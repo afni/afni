@@ -1135,13 +1135,14 @@ extern void mri_histogram( MRI_IMAGE * , float,float ,
                                          int,int, int h[] ) ;
 
 extern void mri_histobyte        ( MRI_IMAGE * , int * ) ;
-extern void mri_histoshort_all   ( MRI_IMAGE * , int * ) ;  /* 25 Jul 2001 */
+extern void mri_histoshort_all   ( MRI_IMAGE * , int * ) ;    /* 25 Jul 2001 */
 extern void mri_histoshort_nonneg( MRI_IMAGE * , int * ) ;
 
 extern void mri_percents( MRI_IMAGE * , int nper , float per[] ) ;
 extern MRI_IMAGE * mri_flatten( MRI_IMAGE * ) ;
-extern void mri_flatten_set_bfac(float b) ;  /* 16 Mar 2017 */
+extern void mri_flatten_set_bfac(float b) ;                   /* 16 Mar 2017 */
 extern float mri_quantile( MRI_IMAGE * im , float alpha ) ;
+float percentile_nzabs( int nvox , float *far , float per ) ; /* 24 May 2019 */
 
 extern float_pair mri_twoquantiles( MRI_IMAGE * im, float alpha, float beta ) ;
 

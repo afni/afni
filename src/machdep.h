@@ -59,7 +59,7 @@ extern void machdep() ;
 
     FIX_SCALE_SIZE_LATER   = if this is ALSO defined, then the
                              FIX_SCALE_SIZE_PROBLEM is applied after a
-                             time delay
+                             time delay when panel is opened
 
     SCANDIR_WANT_CONST = if #define-d, says that the "scandir" library
                           routine wants "const" arguments -- setting this
@@ -190,6 +190,8 @@ extern void machdep() ;
 
 #define DONT_USE_SCANDIR
 #define DONT_UNROLL_FFTS  /* off by default */
+#define FIX_SCALE_SIZE_PROBLEM
+#define FIX_SCALE_SIZE_LATER
 
 #ifdef DT_UNKNOWN                 /** 07 Mar 2006: niftilib problem fix **/
 # define QQDT_UNK DT_UNKNOWN
@@ -206,7 +208,6 @@ extern void machdep() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
 # define BOXUP_SCALE
-# define FIX_SCALE_SIZE_PROBLEM
 # define DYNAMIC_LOADING_VIA_SHL
 # undef  DONT_UNROLL_FFTS    /* FFTs are faster, but csfft.c compiles slowly */
 # define USE_LOCKF
@@ -220,7 +221,6 @@ extern void machdep() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define BOXUP_SCALE
 # define DYNAMIC_LOADING_VIA_DL
-# define FIX_SCALE_SIZE_PROBLEM
 # ifndef DONT_USE_SCANDIR
     extern int alphasort(struct dirent **, struct dirent **) ;
 # endif
@@ -236,7 +236,6 @@ extern void machdep() ;
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define DONT_INSTALL_ICONS
 # define NO_FRIVOLITIES
-# define FIX_SCALE_SIZE_PROBLEM
 # ifndef DONT_USE_SCANDIR
     extern int alphasort(struct dirent **, struct dirent **) ;
 # endif
@@ -263,8 +262,6 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  (MAP_SHARED | MAP_NORESERVE)
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define dirent direct
-# define FIX_SCALE_SIZE_PROBLEM
-# define FIX_SCALE_SIZE_LATER
 # define DONT_INSTALL_ICONS
 # define DYNAMIC_LOADING_VIA_DL
 # define USE_LOCKF
@@ -302,7 +299,6 @@ extern long   strtol() ;
 # include <dirent.h>
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
-# define FIX_SCALE_SIZE_PROBLEM
 # ifndef DONT_USE_SCANDIR
     extern int alphasort(struct dirent **, struct dirent **) ;
 # endif
@@ -322,7 +318,6 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
-# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 /* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 # define BOXUP_SCALE              /* looks nicer */
@@ -336,7 +331,6 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
-# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 # define MMAP_THRESHOLD -1        /* no mmap-ing */
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 /**# define BOXUP_SCALE**/              /* looks nicer */
@@ -345,7 +339,6 @@ extern long   strtol() ;
 # define DONT_USE_STRPTIME
 # define NO_FRIVOLITIES
 # define USING_LESSTIF            /* try to avoid some bugs */
-# define FIX_SCALE_SIZE_PROBLEM
 #endif
 
 /* SCO UDK under Unixware 7 -- contributed by Jason Bacon */
@@ -354,7 +347,6 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
-# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 /* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */
 # define BOXUP_SCALE              /* looks nicer */
@@ -368,7 +360,6 @@ extern long   strtol() ;
 # define THD_MMAP_FLAG  MAP_SHARED
 # define THD_MKDIR_MODE (S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IXGRP|S_IROTH|S_IXOTH)
 # define SCANDIR_WANTS_CONST
-# define FIX_SCALE_SIZE_PROBLEM   /* Motif 2.0 bug? */
 /* # define MMAP_THRESHOLD -1 */       /* no mmap-ing */
 #if 0
 # define DONT_CHECK_FOR_MWM       /* assume Motif WM functionality is present */

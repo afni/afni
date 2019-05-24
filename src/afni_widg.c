@@ -2856,6 +2856,8 @@ STATUS("making marks->rowcol") ;
 
    sel_height = view_height - 19 ;
 
+   func->do_setup = 1 ;   /* 24 May 2019 */
+
 STATUS("making func->rowcol") ;
 
    func->rowcol =
@@ -3957,7 +3959,7 @@ STATUS("making func->rowcol") ;
    func->clu_tabNN1_bsid = func->clu_tabNN2_bsid = func->clu_tabNN3_bsid = NULL;
    func->clu_mask = NULL ;
 
-   func->iwid = NULL ;  /* 17 Sep 2009 */
+   func->iwid = NULL ;    /* 17 Sep 2009 */
 
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 
@@ -6361,7 +6363,8 @@ ENTRY("new_AFNI_controller") ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
-     im3d->vinfo->stats_thresh_ok = 0 ; /* 29 Mar 2005 */
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 29 Mar 2005 */
 
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */
