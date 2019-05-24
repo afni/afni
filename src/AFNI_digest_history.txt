@@ -1,3 +1,95 @@
+AFNI Digest, week of 2019/05/24.
+
+00) New article on clustering in AFNI: 
+Equitable Thresholding and Clustering (ETAC): A novel method for FMRI
+clustering in AFNI, by RW Cox.
+https://www.biorxiv.org/content/10.1101/295931v2
+Users can read it and take a quiz afterward (possibly with extra
+credit if you can relate the method to the Riemann Zeta
+function). This article has just been accepted to Brain Connectivity.
+
+01) Updates in afni_proc.py's automatic QC document.
+There are new items in the afni_proc.py QC HMTL file.  One is for the
+output of the left-right flip check (which has plagued many data sets
+in public repositories).  Another is for @radial_correlate output,
+which helps detect some scanner coil issues, as well as large motion
+in subjects.
+   If you still haven't checked out the automatically-generated HTML QC
+from afni_proc.py (huh?!?!?), please update your AFNI and check here:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/tutorials/apqc_html/main_toc.html
+
+02) Opening dsets in directories+subdirectories from the GUI.
+The AFNI interface "-bysub" option now accepts a directory name as an
+argument. For example:
+    afni -bysub ~/data/BIDS_directory
+This command will find all sub-directories of ~/data/BIDS_directory
+with names of the form "sub-*", and then recursively search
+~/data/BIDS_directory for all corresponding files. All datasets
+belonging to each distinct subject (e.g., sub-007) will be collected
+into distinct sessions in the AFNI GUI. All datasets found in this
+search will also be collected into the "All_Datasets" mega-session.
+    The purpose of this enhancement is to make it easy to read in an
+entire BIDS collection. However, since there can be 1000+ datasets in
+such a collection, you should be aware of the amount of data that
+could be loaded. It might take some time to scan through a lot of
+directories and set up the sessions. For this reason, the older form
+    afni -bysub sub-007 sub-008 - ~/data/BIDS_directory
+can still be used, indicating to read only the two named subjects from
+the input directory.
+
+03) Colorbar/pbar updates in the GUI.
+The color "pbar" scale in Define Overlay now shows the actual min and
+max values alongside-- i.e., the values that get mapped to top/bottom
+of the colorbar. These values can be set interactively by clicking
+"autoRange" off and entering a value in the numeric field directly
+below.
+    On the subject of the pbar, the Unix environment variable
+AFNI_PBAR_THREE, when set to YES, provides a way to control
+colorization for overlay values larger than the max and smaller than
+the min. This option is mostly useful if you want to turn off
+colorization for these extreme values; that is, have voxels with
+values above the max or below the min not be colored in. You must set
+this environment variable before starting AFNI (usually in your
+~/.afnirc file).
+
+04) The AFNI GUI has 3 new buttons.
+These help you get help: "AFNI News", "AFNI Forum", and "Prog
+Helps". These buttons open up web pages on the AFNI website, and are
+provided for your convenience. They are located near the older "AFNI
+Tips" button, at the bottom of the main AFNI controller window.
+
+05) 3dAllineate was modified (slightly).
+3dAllineate is now more strict in its convergence criterion, when
+searching for the "optimal" alignment parameters between the base and
+source datasets. The results from running this program will now be
+slightly different than before (a few tenths of mm at most). These
+changes were made to make the registration results more similar when
+running the program on different computers, where the difference in
+compilers can produce varying floating point roundoff issues that in
+turn produce different pathways through the optimization software– the
+goal is to get them to the same final point, and that is aided by
+making the optimizer work harder.
+
+06) A small change to afni_proc.py -regress_anaticor_fast.  
+This is now applied via a truncated Gaussian curve (unless otherwise
+requested), to make the result very similar to the original ANATICOR
+method in -regress_anaticor.  The original method uses a flat average
+of neighboring white matter voxels, while the new version uses a close
+approximation (arbitrarily so) via the truncated central part of a
+Gaussian curve.  This change will have a small effect on the results.
+Please see "afni_proc.py -help" for details:
+https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/programs/afni_proc.py_sphx.html
+
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
 
 AFNI Digest, week of 2019/03/08.
 
