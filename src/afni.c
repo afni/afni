@@ -2912,6 +2912,12 @@ STATUS("start script timeout") ;
                                   AFNI_startup_script_CB , GLOBAL_argopt.script_fname ) ;
         }
 
+        if( MAIN_im3d->vwid->func->do_setup ){
+          int ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+          if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(MAIN_im3d,ii) ;
+          MAIN_im3d->vwid->func->do_setup = 0 ;
+        }
+
         /* this function will be called 1.666 seconds from now to finalize
            anything else that needs fixing up once AFNI is fully started   */
 
@@ -10385,11 +10391,8 @@ STATUS("remanaging children") ;
 
         /* first time open? do some setup finalization [24 May 2019] */
         if( im3d->vwid->func->do_setup ){
-          int ii ;
-
-          ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+          int ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
           if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(im3d,ii) ;
-
           im3d->vwid->func->do_setup = 0 ;
         }
 
