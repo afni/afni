@@ -3712,10 +3712,7 @@ static char *readme_env[] = {
    "be chosen -- so that only 5 percent of the values in the\n" ,
    "dataset are larger than this autoRange value. The reason for\n" ,
    "doing this is to avoid allowing a few large values to distort\n" ,
-   "the overlay color scale. HOWEVER, at this moment this feature\n" ,
-   "does not work with purely warp-on-demand datasets and so\n" ,
-   "peculiar things can happen, as in those cases it switches back\n" ,
-   "to the default 'maximum absolute value' for the autoRange.\n" ,
+   "the overlay color scale.\n" ,
    "\n" ,
    "---------------------------\n" ,
    "Variable: AFNI_IDEAL_COLORS (editable)\n" ,
@@ -4381,4 +4378,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4380
+#define NUM_readme_env 4377

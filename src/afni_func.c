@@ -1801,6 +1801,8 @@ ENTRY("AFNI_func_overlay") ;
 
    if( !DSET_LOADED(im3d->fim_now) ){
      DSET_load( im3d->fim_now ) ;
+     if( !DSET_LOADED(im3d->fim_now) && im3d->fim_now->warp_parent != NULL )
+       DSET_load( im3d->fim_now->warp_parent ) ;
      im3d->vinfo->stats_func_ok = im3d->vinfo->arang_func_ok = 0 ;
    }
    if( !im3d->vinfo->stats_func_ok || !im3d->vinfo->arang_func_ok
@@ -6320,10 +6322,14 @@ ENTRY("AFNI_autorange_label") ;
 
    /* Get the autorange as a percentage point of the nonzero values */
 
-   if( AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 && DSET_LOADED(im3d->fim_now) ){
-     MRI_IMAGE *qim ; float qval ;
-/* ININFO_message("   extract float brick") ; */
-     qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
+   if( AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
+     MRI_IMAGE *qim=NULL ; float qval ;
+     if( DSET_LOADED(im3d->fim_now) ){
+       qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
+     } else if( im3d->fim_now->warp_parent != NULL &&
+                DSET_LOADED(im3d->fim_now->warp_parent) ){
+       qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now->warp_parent) ;
+     }
      if( qim != NULL ){
 /* ININFO_message("   get %.1f%% nzabs",AUTORANGE_PERC) ; */
        qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;

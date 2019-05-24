@@ -3710,10 +3710,7 @@ into histogram bins from smallest (percentile=0) to largest
 be chosen -- so that only 5 percent of the values in the
 dataset are larger than this autoRange value. The reason for
 doing this is to avoid allowing a few large values to distort
-the overlay color scale. HOWEVER, at this moment this feature
-does not work with purely warp-on-demand datasets and so
-peculiar things can happen, as in those cases it switches back
-to the default 'maximum absolute value' for the autoRange.
+the overlay color scale.
 
 ---------------------------
 Variable: AFNI_IDEAL_COLORS (editable)
