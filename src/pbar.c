@@ -329,7 +329,7 @@ STATUS("init pval_save") ;
 
    /* ZSS: Jan 13 Now add some funky ones */
 
-   PBAR_define_bigmap( R_AND_B_INV_256_CMD ); // [PT: Aug 17, 2017]
+   PBAR_define_bigmap( R_AND_B_INV_256_CMD );  // [PT: Aug 17, 2017]
    PBAR_define_bigmap( CB_CS_35 );
    PBAR_define_bigmap( CB_CS );
    PBAR_define_bigmap( CYTOARCH_ROI_256_CMD );
@@ -348,6 +348,10 @@ STATUS("init pval_save") ;
    PBAR_define_bigmap( ROI_64_256_CMD );
    PBAR_define_bigmap( ROI_128_256_CMD );
    PBAR_define_bigmap( ROI_256_CMD );
+   PBAR_define_bigmap( ROI_glasbey_256_CMD );  // [PT: May 28, 2019]
+   PBAR_define_bigmap( ROI_glasbey_512_CMD );  // [PT: May 28, 2019]
+   PBAR_define_bigmap( ROI_glasbey_1024_CMD ); // [PT: May 28, 2019]
+   PBAR_define_bigmap( ROI_glasbey_2048_CMD ); // [PT: May 28, 2019]
    PBAR_define_bigmap( AMBER_REDTOP_BLUEBOT_CS );
    PBAR_define_bigmap( ADD_EDGE );
    PBAR_define_bigmap( RedBlueGreen_CMD);
