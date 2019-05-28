@@ -3743,6 +3743,11 @@ ENTRY("AFNI_finalize_dataset_CB") ;
       if( !im3d->vinfo->func_visible && im3d->vinfo->func_visible_count == 0 ){
         AFNI_SEE_FUNC_ON(im3d) ; OPEN_PANEL(im3d,func) ;
         im3d->vinfo->func_init_subbricks = 1 ;  /* 12 Jan 2017 */
+        if( im3d->vwid->func->do_setup ){
+          int ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+          if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(im3d,ii) ;
+          im3d->vwid->func->do_setup = 0 ;
+        }
       }
 
    /*--- switch to Hell? ---*/

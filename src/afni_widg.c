@@ -6770,6 +6770,12 @@ ENTRY("AFNI_clone_controller_CB") ;
      AFNI_all_locks_carryout( caller_im3d ) ;
    }
 
+   if( im3d->vwid->func->do_setup ){ /* 24 May 2019 */
+     int ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+     if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(im3d,ii) ;
+     im3d->vwid->func->do_setup = 0 ;
+   }
+
    PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;
 }
 
