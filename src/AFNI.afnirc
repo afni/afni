@@ -204,3 +204,4 @@
 AFNI_ONE_OBLIQUE_WARNING      = YES // In AFNI interface, mention oblique warnings just once
 
 AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time they are redrawn
+AFNI_AUTORANGE_PERC           = 95  // autorange for non-ROI olays, from data
