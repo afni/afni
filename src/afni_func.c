@@ -6327,7 +6327,7 @@ ENTRY("AFNI_autorange_label") ;
 
    /* Get the autorange as a percentage point of the nonzero values */
 
-   if( AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
+   if( im3d->fim_now->int_cmap == CONT_CMAP && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
      if( DSET_LOADED(im3d->fim_now) ){
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
