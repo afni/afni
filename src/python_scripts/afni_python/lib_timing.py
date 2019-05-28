@@ -1040,7 +1040,7 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return str
 
-def read_multi_3col_tsv(flist, hlabels=None, verb=1):
+def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
    """Read a set of 3 column tsv (tab separated value) files
          - one file per run
          - each with a list of events for all classes
@@ -1068,7 +1068,8 @@ def read_multi_3col_tsv(flist, hlabels=None, verb=1):
                 #   - array of event lists, per run
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
-      nvals, header, elist = parse_Ncol_tsv(fname, hlabels=hlabels, verb=verb)
+      nvals, header, elist = parse_Ncol_tsv(fname, hlabels=hlabels,
+                                            def_dur_lab=def_dur_lab, verb=verb)
       if nvals <= 0: return 1, tlist
 
       # store original header, else check for consistency
@@ -1113,7 +1114,8 @@ def read_multi_3col_tsv(flist, hlabels=None, verb=1):
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], verb=1):
+def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], 
+                   def_dur_lab=None, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
         - header list (length ncol)
@@ -1125,6 +1127,10 @@ def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], verb=1):
          onset, duration, type and amplitudes, if any:
 
          onset time, duration, trial type, amp1, amp2, ... ampA
+
+      def_dur_lab  None     : use default = 'missed'
+                   'missed' : add event as "missed_LABEL" class
+                   LABEL    : alternate column label for missed events
 
       An N column tsv file should have an optional header line,
       followed by rows of VAL VAL LABEL, separated by tabs.
@@ -1172,6 +1178,27 @@ def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], verb=1):
       print("** failed to make tsv column index list in %s" % fname)
       return -1, [], []
 
+   # ----------------------------------------
+   # decide how to handle n/a duration
+    
+   # default to 'missed'
+   if def_dur_lab == None: def_dur_lab = 'missed'
+
+   if def_dur_lab == 'missed':
+      col_dur_alt = -1
+   else:
+      # replace duration label with alt, and see if it works
+      h_alt = hlabels[:]
+      h_alt[1] = def_dur_lab
+      cols_alt = tsv_hlabels_to_col_list(h_alt, lines, verb=verb)
+      if verb > 2: print("++ have cols_alt: %s" % cols_alt)
+      if len(cols_alt) < 3:
+         print("** could not find tsv column '%s' in %s" % (def_dur_lab,fname))
+         return -1, [], []
+      col_dur_alt = cols_alt[1]
+      
+
+   # ----------------------------------------
    # set header list, if a header exists
    header = []
    l0 = lines[0]
@@ -1185,32 +1212,46 @@ def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], verb=1):
 
    # decide whether there are amplitudes
    ainds = col_inds[3:]
-   #if len(lines) > 0 and norig > 3:
-   #   line = lines[0]
-   #   # find all columns that look like floats
-   #   for ind in range(3, len(line)):
-   #      try:
-   #         amp = float(line[ind])
-   #         ainds.append(ind)
-   #      except: pass
 
+   # ----------------------------------------
    # now lines should be all: onset, duration, label and possibly amplitudes
    slist = []
    oind = col_inds[0]
    dind = col_inds[1]
    lind = col_inds[2]
-   for line in lines:
+   for line_no, line in enumerate(lines):
+
+      # allow for alternate duration, another column or as a MISSING event
+      missing_event = 0
+      dur_txt = line[dind]
+      if dur_txt in ['na', 'n/a', '']:
+         if col_dur_alt >= 0:
+            dur_txt = line[col_dur_alt]
+         else: # then code as MISSING
+            missing_event = 1
+            dur_txt = '0'
+         if verb > 2:
+           print("-- line %d, swap dur txt [col %d] '%s' with [col %d] '%s'"\
+                 % (line_no, dind, line[dind], col_dur_alt, dur_txt))
+
       try:
          onset = float(line[oind])
-         dur   = float(line[dind])
-         lab   = line[lind].replace(' ', '_')   # convert spaces to underscores
+         dur = float(dur_txt)
+         lab = line[lind].replace(' ', '_')   # convert spaces to underscores
          if len(ainds) > 0:
              amps = [float(line[aind]) for aind in ainds]
       except:
-         print('** bad line Ncol tsv file %s: %s' % (fname, ' '.join(line)))
+         print('** bad line Ncol tsv file %s:\n   %s'%(fname, ' '.join(line)))
+         print("   dur_txt = '%s'" % dur_txt)
          return -1, [], []
-      if len(ainds) > 0: slist.append([onset, dur, lab, amps])
-      else:              slist.append([onset, dur, lab])
+
+      # append new event, possibly with a 'MISSED' label
+      if missing_event:
+         use_lab = 'MISSED_%s' % lab
+      else:
+         use_lab = lab
+      if len(ainds) > 0: slist.append([onset, dur, use_lab, amps])
+      else:              slist.append([onset, dur, use_lab])
 
    nuse = len(col_inds)
 

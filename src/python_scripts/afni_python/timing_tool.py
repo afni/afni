@@ -1294,6 +1294,7 @@ class ATInterface:
       self.all_rest_file   = ''         # for -write_all_rest_times
       self.stim_dur        = -1         # apply on read
       self.tsv_labels      = None       # labels to convert TSV to timing with
+      self.tsv_def_dur_lab = None       # label for dur col if n/a
 
       # user options - multi var
       self.m_timing        = []
@@ -1425,7 +1426,7 @@ class ATInterface:
       if len(flist) < 1: return 0
 
       rv, timing_list = LT.read_multi_3col_tsv(flist, hlabels=self.tsv_labels,
-                                               verb=self.verb)
+                             def_dur_lab=self.tsv_def_dur_lab, verb=self.verb)
       if rv: return 1
 
       self.m_timing = timing_list
@@ -1649,6 +1650,8 @@ class ATInterface:
                          helpstr='warn about bad fractional TR stats')
       self.valid_opts.add_opt('-tr', 1, [], 
                          helpstr='specify output timing resolution (seconds)')
+      self.valid_opts.add_opt('-tsv_def_dur_label', 1, [], 
+                         helpstr='specify label for duration column if d=n/a')
       self.valid_opts.add_opt('-tsv_labels', -1, [], 
                          helpstr='specify labels for conversion from TSV')
       self.valid_opts.add_opt('-verb', 1, [], 
@@ -1758,6 +1761,13 @@ class ATInterface:
             if self.tr <= 0.0:
                print('** invalid (non-positive) -tr = %g' % self.tr)
                return 1
+         uopts.olist.pop(oind)
+
+      oind = uopts.find_opt_index('-tsv_def_dur_label')
+      if oind >= 0:
+         val, err = uopts.get_string_opt('-tsv_def_dur_label')
+         if val and not err:
+            self.tsv_def_dur_lab = val
          uopts.olist.pop(oind)
 
       oind = uopts.find_opt_index('-tsv_labels')
@@ -2133,8 +2143,9 @@ class ATInterface:
       """
 
       tlist = self.m_timing     # convenience
+      ncond = len(tlist)
 
-      if len(tlist) < 1:
+      if ncond < 1:
          print('** no multi_timing, cannot convert')
          return 1
       if style not in ['index', 'part'] and style[0:3] != 'GE:':
@@ -2142,7 +2153,7 @@ class ATInterface:
          return 1
 
       # check for partition styles
-      if style == 'part' and len(tlist) < 2:
+      if style == 'part' and ncond < 2:
          print('** event_list partition requires at least 2 timing inputs')
          return 1
 
@@ -2186,7 +2197,8 @@ class ATInterface:
          allevents.sort() # sort by times, which are the first elements
 
          if s1d_type and self.verb > 0:
-            fp.write('# have %d events in run %d\n' % (len(allevents),rind+1))
+            fp.write('# have %d events across %d conditions in run %d\n' \
+                     % (len(allevents), ncond, rind+1))
             etlist.append(self.make_s1d_ehdr_list(s1d_type))
 
          # and output
