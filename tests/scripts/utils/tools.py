@@ -5,10 +5,16 @@ import difflib
 import subprocess
 import shutil
 import sys
+import numpy as np
+import socket
+import getpass
 
-# import misc
+try:
+    import misc
+except ImportError:
+    from . import misc
 
-from . import misc
+
 import tempfile
 import itertools as IT
 import os
@@ -111,26 +117,22 @@ def run_cmd(
     workdir=None,
     python_interpreter="python3",
 ):
-    """run_cmd is initialized for all test functions that list it as an
-    argument. It is used as a callable function to run command line
-    arguments. In conjunction with the data fixture defined in this file
-    it handles the test output logging in a consistent way. The cmd string
-    may require a formatting step where the values contained in
-    'current_vars' are injected into the command string.
+    """Run the provided command and check it's output. In conjunction with the data
+    fixture this function handles the test output logging in a consistent way.
 
-    Technical note: run_cmd is not a standard function. It is a
-    function-scoped pytest fixture that returns a callable function
-    (command_runner) that takes the arguments from the user writing a test.
     Args:
+        data : An object created by the data fixture that is used in test
+        functions.
         cmd (str): A string that requires execution and error checking.
-        Variables will be substituted into the string as required. Following
-        python's f-strings syntax, variables are wrapped in braces.
-
-        current_vars (dict):  The current variables (one of which must be
-        the data fixture) in the test function scope (accessed by getting
-        the values returned by 'locals()') must be provided to this
-        callable. Among other things, this uses the data fixture to
-        perform variable substitution for the command string
+        add_env_vars (dict):  Variable/value pairs with which to modify the
+        environment for the executed command
+        workdir (pathlib.Path or str): Working directory to execute the
+        command. Should be the root directory for tests (default) unless
+        otherwise required
+        python_interpreter (str): If set to 'python2', the command will be
+        executed using the python 2 interpretter. This only has relevance to
+        commands that use a python executable and it currently only works on
+        Linux. This argument will be removed once all code is ported to python3.
 
     Returns:
         subprocess.CompletedProcess: An object that among other useful
@@ -141,19 +143,19 @@ def run_cmd(
     if not workdir:
         workdir = Path.cwd()
 
-    # Define log file paths
-    stdout_log = data.logdir / (data.test_name + "_stdout.log")
-    # Make the appropriate output directories
-    os.makedirs(stdout_log.parent, exist_ok=True)
+    # If requested merge stderr and stdout
+    if merge_error_with_output:
+        error = subprocess.STDOUT
+    else:
+        error = subprocess.PIPE
 
-    # Confirm that the file does not exist, otherwise append a number:
+    # Define log file paths, make the appropriate directories and check that
+    # the log files do not exist, otherwise (using uniquize) append a number:
+    stdout_log = data.logdir / (data.test_name + "_stdout.log")
+    os.makedirs(stdout_log.parent, exist_ok=True)
     stdout_log = uniquify(stdout_log)
     stderr_log = Path(str(stdout_log).replace("_stdout", "_stderr"))
-
-    # Set environment variables for the command execution
-    os.environ["OMP_NUM_THREADS"] = "1"
-    for k, v in add_env_vars.items():
-        os.environ[k] = v
+    cmd_log = Path(str(stdout_log).replace("_stdout", "_cmd"))
 
     # If linux and interpreter is python2 alter env. This is a bit of a hack
     # but will allow python3 to run the test suite while allowing CI to check
@@ -162,31 +164,89 @@ def run_cmd(
     # eliminate this hack, or figure out a cleaner way of doing it.
     if python_interpreter == "python2":
         if "linux" in sys.platform:
-            os.environ["_"] = shutil.which("python2")
+            add_env_vars["_"] = shutil.which("python2")
         else:
             pytest.skip("unsupported configuration")
 
-    # Execute the command and log output
-    if merge_error_with_output:
-        error = subprocess.STDOUT
-    else:
-        error = subprocess.PIPE
+    # If not defined, set number of threads used.
+    if "OMP_NUM_THREADS" not in add_env_vars:
+        add_env_vars["OMP_NUM_THREADS"] = "1"
 
+    # Set environment variables for the command execution
+    for k, v in add_env_vars.items():
+        os.environ[k] = v
+
+    # Make substitutions in the command string  to remove unnecessary absolute
+    # paths:
     cmd.replace(str(workdir), ".")
     rel_data_path = os.path.relpath(data.base_outdir, workdir)
     cmd.replace(str(data.base_outdir), rel_data_path)
+
+    # Print and execute the command and log output
+    print("cd {workdir};{cmd}")
     proc = subprocess.run(
         cmd, shell=True, stdout=subprocess.PIPE, stderr=error, cwd=workdir
     )
-    # log the output
     stdout_log.write_text(proc.stdout.decode("utf-8"))
     if proc.stderr:
         err_text = proc.stderr.decode("utf-8")
         stderr_log.write_text(err_text)
-
+    # cmd execution report
+    hostname = socket.gethostname()
+    user = getpass.getuser()
+    cmd_record = f"{hostname}: {user} executed in {workdir} \n{cmd}"
+    cmd_log.write_text(cmd_record)
     # Raise error if there was a non-zero exit code.
     proc.check_returncode()
     return proc
+
+    def update_sample_output(
+        data,
+        create_sample_output=None,
+        save_sample_output=None,
+        file_list=None,
+        files_with_diff=None,
+    ):
+
+        # Get the directory to be used for the sample output
+        if create_sample_output:
+            savedir = data.sampdir
+            sync_files = file_list
+
+        elif save_sample_output:
+            savedir = data.comparison_dir
+            # Create rsync pattern for all files that need to be synced
+            sync_files = files_with_diff
+        else:
+            raise ValueError
+
+        # The results directory
+        outdir = data.outdir
+
+        if not savedir.exists():
+            os.makedirs(savedir, exist_ok=True)
+
+        files_pattern = " ".join(
+            ['-f"+ %s"' % Path(fname).relative_to(outdir) for fname in sync_files]
+        )
+
+        if not shutil.which("rsync"):
+            raise EnvironmentError(
+                "Updating sample output requires a working rsync "
+                "installation, which cannot currently be found. "
+            )
+        cmd = """
+                rsync
+                    -a
+                    --delete
+                    -f "+ */"
+                    {files_pattern}
+                    -f "- *"
+                    {outdir}/
+                    {savedir}/
+                """
+        cmd = " ".join(cmd.format(**locals()).split())
+        proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
 
 
 class OutputDiffer:
@@ -249,7 +309,7 @@ class OutputDiffer:
         proc = self.run_cmd()
         self.assert_all_files_equal()
         if self.require_sample_output:
-            self.update_sample_output()
+            self.__update_sample_output()
 
     def run_cmd(self):
         if self.executed:
@@ -281,47 +341,14 @@ class OutputDiffer:
                 and not any(pat in str(f) for pat in self.ignore_file_patterns)
             ]
 
-    def update_sample_output(self):
-
-        # Get the directory to be used for the sample output
-        if self.create_sample_output:
-            savedir = self.data.sampdir
-            sync_files = self.file_list
-
-        elif self.save_sample_output:
-            savedir = self.data.comparison_dir
-            # Create rsync pattern for all files that need to be synced
-            sync_files = self.files_with_diff
-        else:
-            raise ValueError
-
-        # The results directory
-        outdir = self.data.outdir
-
-        if not savedir.exists():
-            os.makedirs(savedir, exist_ok=True)
-
-        files_pattern = " ".join(
-            ['-f"+ %s"' % Path(fname).relative_to(outdir) for fname in sync_files]
+    def __update_sample_output(self):
+        update_sample_output(
+            self.data,
+            create_sample_output=self.create_sample_output,
+            save_sample_output=self.save_sample_output,
+            file_list=self.file_list,
+            files_with_diff=self.files_with_diff,
         )
-
-        if not shutil.which("rsync"):
-            raise EnvironmentError(
-                "Updating sample output requires a working rsync "
-                "installation, which cannot currently be found. "
-            )
-        cmd = """
-                rsync
-                    -a
-                    --delete
-                    -f "+ */"
-                    {files_pattern}
-                    -f "- *"
-                    {outdir}/
-                    {savedir}/
-                """
-        cmd = " ".join(cmd.format(**locals()).split())
-        proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
 
     def assert_all_files_equal(self):
         """A convenience wrapping function to compare the output files of a test
