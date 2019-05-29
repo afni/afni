@@ -15,7 +15,7 @@
 
    IDCODE_PREFIX            = AFN  // 3 letter prefix for dataset ID codes
 
-// AFNI_graph_boxes_thick   =  0   // 0=thin lines, 1=thick lines, for graph boxes
+// AFNI_graph_boxes_thick   =  0   // for graph box lines: 0=thin, 1=thick
 // AFNI_graph_grid_thick    =  0   // ditto for the graph vertical grid lines
    AFNI_graph_data_thick    =  1   // ditto for the data graphs
    AFNI_graph_ideal_thick   =  1   // ditto for the ideal graphs
@@ -25,54 +25,54 @@
    AFNI_graph_width         = 512  // initial width of graph window
    AFNI_graph_height        = 384  // initial height of graph window
 // AFNI_graph_matrix        =  3   // initial number of sub-graphs
-   AFNI_GRAPH_TEXTLIMIT     = 20         // max number of rows shown in Graph popup
-// AFNI_GRAPH_BASELINE      = Individual // type of baseline to set in Graph windows
-// AFNI_GRAPH_GLOBALBASE    = 0          // value for Global baselines in Graph windows
+   AFNI_GRAPH_TEXTLIMIT     = 20   // max number of rows shown in Graph popup
+// AFNI_GRAPH_BASELINE      = Individual // baseline type set in Graph windows
+// AFNI_GRAPH_GLOBALBASE    = 0    // Global baseline value in Graph windows
 
 // AFNI_montage_periodic    = True // allows periodic montage wraparound
 // AFNI_purge               = True // allows automatic dataset memory purge
 
-// AFNI_resam_vox           = 1.0  // dimension of voxel (mm) for resampled datasets
-// AFNI_resam_anat          = Li   // One of NN, Li, Cu, Bk for Anat resampling mode
+// AFNI_resam_vox           = 1.0  // voxel dimension (mm) for resampled dsets
+// AFNI_resam_anat          = Li   // {NN|Li|Cu|Bk} for Anat resampling mode
 // AFNI_resam_func          = NN   // ditto for Func resampling mode
 // AFNI_resam_thr           = NN   // for Threshold resampling mode
 
 // AFNI_pbar_posfunc        = True   // will start color pbar as all positive
-// AFNI_pbar_sgn_pane_count = 8      // # of panes to start signed color pbar with
-// AFNI_pbar_pos_pane_count = 8      // # of panes to start positive color pbar with
+// AFNI_pbar_sgn_pane_count = 8      // init # of panes for signed color pbar
+// AFNI_pbar_pos_pane_count = 8      // init # of panes for positive color pbar
 // AFNI_pbar_hide           = True   // hide color pbar when it is being altered
 // AFNI_PBAR_IMXY           = 200x20 // size of saved pbar color image
 // AFNI_PBAR_LOCK           = YES    // lock color pbars together
-// AFNI_OVERLAY_ZERO        = NO     // YES==colorize zero values in Overlay dataset
+// AFNI_OVERLAY_ZERO        = NO     // YES==colorize zeros in Overlay dset
 
 // AFNI_THRESH_LOCK         = YES    // lock threshold sliders together
 // AFNI_THRESH_AUTO         = YES    // YES==AFNI guesses a threshold
-// AFNI_SLAVE_FUNCTIME      = NO     // YES==time index changes overlay AND underlay
+// AFNI_SLAVE_FUNCTIME      = NO     // YES==time index changes olay AND ulay
 // AFNI_SLAVE_THRTIME       = NO     // YES==time index changes threshold, too
 
-// AFNI_COLORSCALE_DEFAULT  = Spectrum:red_to_blue // initial colorscale for pbar
+// AFNI_COLORSCALE_DEFAULT  = Spectrum:red_to_blue // init colorscale for pbar
 
-// AFNI_chooser_listmax     = 20  // max items in a chooser before scrollbars appear
+// AFNI_chooser_listmax     = 20  // max items in chooser before scrollbars used
 // AFNI_MAX_OPTMENU         = 999 // max # items in an 'option menu'
 // AFNI_DONT_MOVE_MENUS     = YES // don't try to move popup menu windows
-// AFNI_MENU_COLSIZE        = 30  // max number of entries in a popup menu column
+// AFNI_MENU_COLSIZE        = 30  // max number of entries in a popup menu col
 // AFNI_DISABLE_TEAROFF     = NO  // YES==disable the menu 'tearoff' capability
 
 // AFNI_DONT_SORT_ENVIRONMENT = NO   // YES==disable sorting Edit Environment
 // AFNI_ORIENT                = RAI  // coordinate order
 // AFNI_NOPLUGINS             = NO   // YES==disable plugins
 // AFNI_YESPLUGOUTS           = NO   // YES==enable plugouts (POs)
-// AFNI_PLUGOUT_TCP_BASE      = 6666 // overrides default TCP/IP socket for plugouts
+// AFNI_PLUGOUT_TCP_BASE      = 6666 // overrides def TCP/IP socket for plugouts
 
-// AFNI_PLUGINPATH          = /home/rwcox/abin  // directory for plugins
-// AFNI_TSPATH              = /home/rwcox/stuff // directory for .1D files
-// AFNI_MODELPATH           = /home/rwcox/abin  // directory for NLfim models
-// TMPDIR                   = /tmp              // directory for temporary files
-// AFNI_GLOBAL_SESSION      = /data/junk        // directory w/datasets you always see
+// AFNI_PLUGINPATH          = /home/rwcox/abin  // dir for plugins
+// AFNI_TSPATH              = /home/rwcox/stuff // dir for .1D files
+// AFNI_MODELPATH           = /home/rwcox/abin  // dir for NLfim models
+// TMPDIR                   = /tmp              // dir for temporary files
+// AFNI_GLOBAL_SESSION      = /data/junk        // dir w/ dsets you always see
 
 // AFNI_BYTEORDER             = LSB_FIRST // to force .BRIK byte order on output
 // AFNI_BYTEORDER_INPUT       = LSB_FIRST // when .HEAD file fails to specify
-// AFNI_NO_BYTEORDER_WARNING  = YES       // do NOT print out byte-ordering warning
+// AFNI_NO_BYTEORDER_WARNING  = YES       // do NOT print byte-ordering warning
 
    AFNI_SESSTRAIL           = 1    // # of directory levels to show in filenames
    AFNI_HINTS               = YES  // YES==turns on popup hints
@@ -93,37 +93,37 @@
 
 // AFNI_NOTES_DLINES        = 11   // # of text entry lines in the Notes plugin
 // AFNI_MARKERS_NOQUAL      = NO   // YES==AFNI won't do 'quality' for markers
-   AFNI_NO_ADOPTION_WARNING = YES  // YES==AFNI won't show dataset 'adoption' warnings
+   AFNI_NO_ADOPTION_WARNING = YES  // YES==don't show dset 'adoption' warnings
    AFNI_VIEW_ANAT_BRICK     = YES  // try to view data without warp-on-demand
    AFNI_VIEW_FUNC_BRICK     = YES  // try to view data without warp-on-demand
    AFNI_tsplotgeom          = 512x384 // size of time series plot windows
    AFNI_PLUGINS_ALPHABETIZE = YES  // whether to alphabetize Plugins menu
-// AFNI_VOLREG_EDGING       = 5    // size of edge region to mask out in 3dvolreg
+// AFNI_VOLREG_EDGING       = 5    // size of edge region masked out in 3dvolreg
 // AFNI_ROTA_ZPAD           = 5    // size of zero padding to use in 3dvolreg
 
-   AFNI_ncolors               =  80   // number of gray levels to use in underlay
-   AFNI_gamma                 =  1.7  // gamma correction for underlay intensities
-   AFNI_GRAYSCALE_BOT         = 25    // minimum image intensity graylevel (0-255)
+   AFNI_ncolors               =  80   // # of gray levels to use in underlay
+   AFNI_gamma                 =  1.7  // gamma correction for ulay intensities
+   AFNI_GRAYSCALE_BOT         = 25    // min image intensity graylevel (0-255)
    AFNI_IMAGE_MINFRAC         = 0.04  // minimum size of AFNI image window
    AFNI_IMAGE_MAXFRAC         = 0.88  // maximum size of AFNI image window
-// AFNI_IMAGE_MINTOMAX        = NO    // YES=start Image window in Min-to-Max mode
-// AFNI_IMAGE_CLIPPED         = NO    // YES=start Image window in Clipped mode
+// AFNI_IMAGE_MINTOMAX        = NO    // YES=start Image win in Min-to-Max mode
+// AFNI_IMAGE_CLIPPED         = NO    // YES=start Image win in Clipped mode
 // AFNI_IMAGE_CLIPBOT         = 0.25  // bottom level scaling for Clipped mode
 // AFNI_IMAGE_CLIPTOP         = 1.0   // top level scaling for Clipped mode
 // AFNI_IMAGE_GLOBALRANGE     = NO    // YES=scale Image grayleves in 3D
-   AFNI_KEEP_PANNING          = YES   // keep Pan mode turned on in Image windows
-// AFNI_IMAGE_LABEL_MODE      = 1     // draw labels in upper left of Image windows
+   AFNI_KEEP_PANNING          = YES   // keep Pan mode on in Image windows
+// AFNI_IMAGE_LABEL_MODE      = 1     // draw labels in upper left of Image wins
 // AFNI_IMAGE_LABEL_SIZE      = 2     // size of labels in Image windows
 // AFNI_IMAGE_LABEL_COLOR     = white // color of labels in Image windows
 // AFNI_IMAGE_LABEL_SETBACK   = 0.01  // distance from edges for labels
 // AFNI_CROSSHAIR_LINES       = YES   // draw crosshairs with lines, not voxels
 // AFNI_CROP_ZOOMSAVE         = NO    // how to save zoomed Image windows
-// AFNI_IMAGE_ZEROCOLOR       = white // color to show for 0 voxels in Image window
-// AFNI_IMAGE_ENTROPY         = 0.2   // image entropy at which to disable 2%-to-98%
-// AFNI_IMAGE_ZOOM_NN         = NO    // YES==don't linearly interpolate zoomed images
-// AFNI_IMAGE_SAVESQUARE      = NO    // YES==always save images with square pixels
-// AFNI_IMAGE_TICK_DIV_IN_MM  = NO    // YES==image tick mark spacings are in mm
-// AFNI_IMAGRA_CLOSER         = NO    // YES==Image/Graph button second clicks closes
+// AFNI_IMAGE_ZEROCOLOR       = white // color of 0 voxels in Image window
+// AFNI_IMAGE_ENTROPY         = 0.2   // image entropy for disabling 2%-to-98%
+// AFNI_IMAGE_ZOOM_NN         = NO    // YES=don't linearly interp zoomed imgs
+// AFNI_IMAGE_SAVESQUARE      = NO    // YES=always save images with sq pixels
+// AFNI_IMAGE_TICK_DIV_IN_MM  = NO    // YES=image tick mark spacings are in mm
+// AFNI_IMAGRA_CLOSER         = NO    // YES=Image/Graph button 2nd click closes
    AFNI_DEFAULT_OPACITY       = 8     // default opacity level for Image windows
    AFNI_DEFAULT_IMSAVE        = jpg   // default Image window Save format
 // AFNI_OLD_PPMTOBMP          = NO    // YES==color quantize BMP output images
@@ -152,13 +152,13 @@
 // AFNI_SUMA_LINESIZE       = 2      // thickness of lines from SUMA
 // AFNI_SUMA_BOXSIZE        = 3      // size of node boxes from SUMA
 // AFNI_SUMA_BOXCOLOR       = yellow // color for node boxes from SUMA
-// AFNI_SHOW_SURF_POPUPS    = NO     // YES==see info windows from SUMA data transfers
-// AFNI_KILL_SURF_POPUPS    = NO     // YES==don't see any info from SUMA data xfers
+// AFNI_SHOW_SURF_POPUPS    = NO     // YES=see info wins of SUMA data xfers
+// AFNI_KILL_SURF_POPUPS    = NO     // YES=don't see info from SUMA data xfers
 
-// AFNI_LOAD_PRINTSIZE      = 100M   // print warning that large file is being loaded
-// AFNI_VERSION_CHECK       = YES    // NO==disable weekly version check over Web
-// AFNI_MOTD_CHECK          = YES    // NO==disable display of Message-of-the-Day
-// AFNI_AGIF_DELAY          = 10     // centi-seconds between animated GIF frames
+// AFNI_LOAD_PRINTSIZE      = 100M   // print warning when large file is loaded
+// AFNI_VERSION_CHECK       = YES    // NO=disable weekly version check over Web
+// AFNI_MOTD_CHECK          = YES    // NO=disable display of Message-of-the-Day
+// AFNI_AGIF_DELAY          = 10     // centi-seconds b/t animated GIF frames
 // AFNI_MPEG_FRAMERATE      = 24     // MPEG-1 frame rate for saved movies
 
 // AFNI_SLICE_SPACING_IS_GAP = NO   // YES==fix GE DICOM error
@@ -166,27 +166,27 @@
 // AFNI_DICOM_WINDOW         = NO   // YES==use DICOM window tags
 
 // AFNI_RESCAN_METHOD       = Add    // add new datasets, don't replace old ones
-// AFNI_STARTUP_WARNINGS    = YES    // NO==turn off some warning message at startup
+// AFNI_STARTUP_WARNINGS    = YES    // NO==turn off some warning msg at startup
 // AFNI_1D_TIME             = NO     // YES==.1D files columns are the time axis
 // AFNI_1D_TIME_TR          = 1.0    // value for TR of a .1D time file
 // AFNI_3D_BINARY           = YES    // YES==save .3D files in binary format
 // AFNI_DRAW_UNDOSIZE       = 4      // # Mbytes for Draw Dataset undo buffer
 
 // AFNI_DISABLE_CURSORS     = NO     // YES==don't try to change X11 cursors
-// AFNI_CLICK_MESSAGE       = NO     // YES==see stupid 'click here to pop down' message
-// AFNI_X11_REDECORATE      = YES    // NO==don't try to change X11 window controls
-// AFNI_MAX_1DSIZE          = 66666  // max size of .1D files to automatically read
-// AFNI_TITLE_LABEL2        = NO     // YES==use dataset 'label2' field in titlebar
-// AFNI_EDGIZE_OVERLAY      = NO     // YES==show only edges of color overlay blobs
-// AFNI_DONT_LOGFILE        = NO     // YES==don't log AFNI programs to ~/.afni.log
+// AFNI_CLICK_MESSAGE       = NO     // YES=see 'click here to pop down' msg
+// AFNI_X11_REDECORATE      = YES    // NO==don't try to change X11 win controls
+// AFNI_MAX_1DSIZE          = 66666  // max size of .1D files to auto-read
+// AFNI_TITLE_LABEL2        = NO     // YES==use dset 'label2' field in titlebar
+// AFNI_EDGIZE_OVERLAY      = NO     // YES==show only edges of color olay blobs
+// AFNI_DONT_LOGFILE        = NO     // YES==don't log AFNI progs to ~/.afni.log
 // AFNI_WRITE_NIML          = NO     // YES==write .HEAD files in NIML format
 // AFNI_TTATLAS_CAUTION     = YES    // NO==disable warning message in 'wherami'
-// AFNI_RESCAN_AT_SWITCH    = YES    // YES==rescan directory for new datasets
-// AFNI_DATASET_BROWSE      = YES    // YES==dataset item selection acts immediately
-// AFNI_OVERLAY_ONTOP       = YES    // YES==put 'Overlay' button above 'Underlay'
+// AFNI_RESCAN_AT_SWITCH    = YES    // YES=rescan directory for new datasets
+// AFNI_DATASET_BROWSE      = YES    // YES=dset item selection acts immediately
+// AFNI_OVERLAY_ONTOP       = YES    // YES='Overlay' button above 'Underlay'
 
-// AFNI_NIML_START          = YES         // start NIML listening when AFNI starts
-// NIML_TRUSTHOST_01        = 192.168.0.1 // IP address of host to trust for NIML
+// AFNI_NIML_START          = YES    // start NIML listening when AFNI starts
+// NIML_TRUSTHOST_01        = 192.168.0.1 // IP address of trusted host for NIML
 
    AFNI_plug_drawdset_butcolor = #992066  // For the Plugins menu.
 // AFNI_plug_histog_butcolor   = #663199  // Colors are drawn from
@@ -194,14 +194,14 @@
 
 // AFNI_hotcolor               = navyblue // color for 'Done', 'Set', etc.
 
-// AFNI_NO_NEGATIVES_WARNING  = NO   // YES==to3d won't warn about negative values
-// AFNI_TO3D_ZPAD             = 0    // # of zero padding slices to add in to3d
-// AFNI_TRY_DICOM_LAST        = NO   // YES==DICOM is last image format tried in to3d
-// AFNI_ALLOW_MILLISECONDS    = NO   // YES==allow 'ms' time units in to3d
+// AFNI_NO_NEGATIVES_WARNING  = NO // YES==to3d won't warn about negative vals
+// AFNI_TO3D_ZPAD             = 0  // # of zero padding slices to add in to3d
+// AFNI_TRY_DICOM_LAST        = NO // YES=DICOM is last img format tried in to3d
+// AFNI_ALLOW_MILLISECONDS    = NO // YES==allow 'ms' time units in to3d
 
-// AFNI_STARTUP_SCRIPT        = /home/rwcox/.afni_script // script to run at AFNI start
+// AFNI_STARTUP_SCRIPT    = /home/rwcox/.afni_script // script run at AFNI start
 
-AFNI_ONE_OBLIQUE_WARNING      = YES // In AFNI interface, mention oblique warnings just once
+AFNI_ONE_OBLIQUE_WARNING      = YES // In afni GUI, just one oblique warning
 
-AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time they are redrawn
+AFNI_GRAPH_FORCE_AUTO_SCALE   = YES // Autoscale graphs each time redrawn
 AFNI_AUTORANGE_PERC           = 95  // autorange for non-ROI olays, from data
