@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 29, MAY, 2019, DRG, "@auto_tlrc", MINOR, TYPE_MODIFY,
+    "auto_tlrc changes",
+    "NIFTI in and out fixes, prefix option, 3dAllineate option\n"
+    "Default interpolation changes, one pass combination default too"
+},
 { 13, MAY, 2019, DRG, "3dExchange", MINOR, TYPE_NEW_PROG,
     "Exchange specified values in a dataset",
     "Takes two columns of numbers to map input to output"

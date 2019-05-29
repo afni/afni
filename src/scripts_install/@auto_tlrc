@@ -17,10 +17,15 @@ PARSE:
    #exit status
    set estat = 0
    
+   set nonomatch
    set Narg = $#
    
    set ok_notice = 0
-   set pd_default = 40
+   # reduced default padding to 15 slices on all sides
+   # 40 is excessive and takes up a lot of memory particularly for
+   # high resolution datasets (24 May 2019 [drg])
+   set pd_default = 15
+#  set pd_default = 40
    set cnt = 1
    set tmppref = '__ats_tmp_'
    set cropt = '-coarserot'
@@ -35,26 +40,33 @@ PARSE:
    set KeepTmp = 0
    set verb = 0
    set pd = $pd_default
-   #set suf = "_at"
+   #set suf = "_at"	
    set suf = ""
+   set prefix = ""
+   set gz = ""
    set rmode = 'default'
    set xform_type = 'affine_general'
    set ss_opt = ''
    set user_res = 0
    set dxyz_list = ( 1 1 1 )
    set clpbelow = ''
-   set maxite = ''
-   set accept_maxite = 0
+#  default number of iterations in 3dWarpDrive (formerly not set)
+#  mod drg 5/24/2019
+   set maxite = "-maxite 50"
+#   set maxite = ''
+   set accept_maxite = 1
    set acpciate = 0
    set npass = -twopass
    set prexform = ""
    set cen_opt = ""
-   set OneWarp = 0
+   set OneWarp = 1
    set copy_base = ""
    set out_space = ""
    set delete_pre = 0
    set over = 0
    set OW = ' '
+   set warpdrive_method = "3dWarpDrive"
+   set alcost = "lpa+ZZ"
    
    if ("$1" == '') goto HELP
 
@@ -76,8 +88,14 @@ PARSE:
          set donext = 0   
       endif
 
+      # onewarp now default, here just to avoid breaking older scripts
       if ($donext && "$argv[$cnt]" == "-onewarp") then
-         set OneWarp = 1
+         set OneWarp = 1  
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-twowarp") then
+         set OneWarp = 0
          set donext = 0   
       endif
       
@@ -217,6 +235,19 @@ PARSE:
             set donext = 0   
          endif   
       endif
+
+      if ($donext && "$argv[$cnt]" == "-prefix") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a string after -prefix"
+            goto END
+         else
+            @ cnt ++
+            set prefix = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
       if ($donext && "$argv[$cnt]" == "-base") then
          set pLoc = $cnt      
          if ($pLoc == $Narg) then
@@ -293,10 +324,17 @@ PARSE:
          endif   
       endif
       
+      # now default, here for old scripts
       if ($donext && "$argv[$cnt]" == "-OK_maxite") then
          set accept_maxite = 1
          set donext = 0		
       endif
+
+      if ($donext && "$argv[$cnt]" == "-not_OK_maxite") then
+         set accept_maxite = 0
+         set donext = 0		
+      endif
+
       if ($donext && "$argv[$cnt]" == "-onepass") then
          set npass = ''
          set donext = 0		
@@ -330,11 +368,11 @@ PARSE:
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-keep_tmp") then
-         set KeepTmp = 1;      
+         set KeepTmp = 1      
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-rigid_equiv") then
-         set acpciate = 1;      
+         set acpciate = 1      
          set donext = 0      
       endif
       if ($donext && "$argv[$cnt]" == "-clean") then
@@ -342,6 +380,23 @@ PARSE:
          set Ret_Clean = END
          goto CLEANUP      
          set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-3dAllineate") then
+         set warpdrive_method = "3dAllineate"      
+         set donext = 0
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-3dAlcost") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need method name after -3dAlcost"
+            goto END
+         else
+            @ cnt ++
+            set alcost = "$argv[$cnt]"
+            set warpdrive_method = "3dAllineate"      
+            set donext = 0   
+         endif   
       endif
       
       if ($donext && "$argv[$cnt]" == "-no_pre") then
@@ -382,6 +437,11 @@ PARSE:
    
    if ("$anat_in" == "" || "$ref_in" == "") then
       echo "Error: Need both -base and -input parameters"
+      goto END
+   endif
+
+   if ("$prefix" != "" && "$suf" != "") then
+      echo "Can not set both prefix and suffix."
       goto END
    endif
    
@@ -489,7 +549,8 @@ PARSE:
       echo "Error: input dataset must be in the current directory"
       echo "Current path for input dataset is $anat_path"
       echo "Sorry."
-      goto END
+# checking why this is here!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+#      goto END
    endif
    
    #if in apar mode, no need for skull strippin 
@@ -500,9 +561,9 @@ PARSE:
    #set default rmode
    if ("$rmode" == "default") then
       if ($apar_mode == 1) then
-         set rmode = "quintic"
+         set rmode = "cubic"
       else
-         set rmode = "linear"
+         set rmode = "cubic"
       endif
    endif
    
@@ -541,10 +602,31 @@ PARSE:
          echo "ERROR: ${out_pref}.nii exists already"
          goto BEND
       endif
+      if($RemoveSkull != 1) then
+         3dcopy $anat_in $ns_pref 
+      endif
    else
       set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
    endif
-    
+
+   if ("$prefix" != "") then
+      set out_pref = `echo "$prefix" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
+      set gz = `echo $prefix|grep '.gz$'`
+      if ("$gz" != "") then
+         set gz = ".gz"
+      else
+         set gz = ""
+      endif
+      set niigz = `echo $prefix|grep '.nii.gz$'`
+      set nii = `echo $prefix|grep '.nii$'`
+      if ("$nii" != "" || "$niigz" != "") then
+          set isNIFTI = 1
+          set NIpref = `echo "$out_pref" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
+      else
+          set isNIFTI = 0
+      endif
+   endif
+   
    set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
    set ref_view = `3dinfo -av_space ${ref_in}`
    if (`3dinfo -is_nifti $ref_in` == 1) then
@@ -599,36 +681,36 @@ if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
    goto END
 endif 
 
-if ($KeepView == 1) then
-   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 && ${over} == 0) then
-      echo "Error: Output dset ${tt_pref}${anat_view} exists"
-      set estat = 1
-      goto END
-   endif
-   if ($acpciate == 1) then
-      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 \
-           && ${over} == 0) then
-         echo "Error: Output dset ${tt_pref}.Xat.rigid${anat_view} exists"
-         set estat = 1
-         goto END
-      endif
-   endif
-else
-   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 \
-        && ${over} == 0 ) then
-      echo "Error: Output dset ${tt_pref}${ref_view} exists"
-      set estat = 1
-      goto END
-   endif
-   if ($acpciate == 1) then
-      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0  \
-            && ${over} == 0) then
-         echo "Error: Output dset ${tt_pref}.Xat.rigid${ref_view} exists"
-         set estat = 1
-         goto END
-      endif
-   endif
-endif
+#if ($KeepView == 1) then
+#   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 && ${over} == 0) then
+#      echo "Error: Output dset ${tt_pref}${anat_view} exists"
+#      set estat = 1
+#      goto END
+#   endif
+#   if ($acpciate == 1) then
+#      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 \
+#           && ${over} == 0) then
+#         echo "Error: Output dset ${tt_pref}.Xat.rigid${anat_view} exists"
+#         set estat = 1
+#         goto END
+#      endif
+#   endif
+#else
+#   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 \
+#        && ${over} == 0 ) then
+#      echo "Error: Output dset ${tt_pref}${ref_view} exists"
+#      set estat = 1
+#      goto END
+#   endif
+#   if ($acpciate == 1) then
+#      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0  \
+#            && ${over} == 0) then
+#         echo "Error: Output dset ${tt_pref}.Xat.rigid${ref_view} exists"
+#         set estat = 1
+#         goto END
+#      endif
+#   endif
+#endif
 
 if ($apar_mode == 1) then
    goto APAR_MODE
@@ -742,10 +824,11 @@ AUTO_TLRC_MODE:
    if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
       echo "Resampling ..."
       \rm -f ${tmppref}_resamp* >& /dev/null
-      #Use cubic for somoothness of result 
+      #Use cubic for smoothness of result 
       #  since it will be used in registration.
       #But that causes edge artifacts from interpolation. 
       #  Use a resampled mask to cleanup
+# may want - -rmode ${resam} 
       3dresample ${OW} -rmode Cu -master ${ref_pref_pad}${ref_view} \
                   -inset ${ns_pref}${anat_view} \
                   -prefix ./${tmppref}_resamp_edge_art
@@ -756,6 +839,7 @@ AUTO_TLRC_MODE:
       3dcalc   ${OW} -a "${ns_pref}${anat_view}" \
                -expr "step(a)*10000" \
                -prefix ./${tmppref}_resamp_step
+# not sure why this is called NN with Linear interpolation
       3dresample  ${OW} -rmode Linear -master ${ref_pref_pad}${ref_view} \
                   -inset ${tmppref}_resamp_step${anat_view} \
                   -prefix ./${tmppref}_resamp_NN
@@ -818,141 +902,165 @@ AUTO_TLRC_MODE:
    set Converged = 0
    while ($Converged == 0 && $pass < 3)
       \rm -f ${ns_pref}_WarpDrive.log >& /dev/null
-      3dWarpDrive ${OW} ${maxite} ${spopt}  ${npass} \
-                  -${xform_type} -cubic  \
+      if ($warpdrive_method == "3dWarpDrive") then
+        3dWarpDrive ${OW} ${maxite} ${spopt}  ${npass} \
+                  -${xform_type} -${rmode}  \
                   -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
                   -base ${ref_pref_pad}${ref_view} \
                   -summ ${ns_pref}_WarpDrive.log \
                   -prefix ./${tmppref}_reg_warpdriveout \
                   -input ${rs_pref}${anat_view}
+      else
+        3dAllineate ${OW} ${npass} -source_automask \
+                  -warp ${xform_type} -${rmode} -cost $alcost \
+                  -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
+                  -base ${ref_pref_pad}${ref_view} \
+                  -prefix ./${tmppref}_reg_warpdriveout \
+                  -input ${rs_pref}${anat_view} 
+                  # >&  ${ns_pref}_WarpDrive.log 
+        set Converged = 1 
+      endif      
       if ($status) then
             echo "Bad exit status from 3dWarpDrive"
             goto BEND  
-      endif            
-      if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
-         echo "Error: Failed in 3dWarpDrive "
-         set estat = 1
-         goto END
       endif
-      #check for convergence
-      # this one fails when there is a # in the name! 
-          #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
-      # this should do it:
-         cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
-         set res = "`grep 'RMS\[0\]' ___cat.tmp`"
-         \rm -f ___cat.tmp >& /dev/null 
 
-      echo "$res"
-      set rms_i = `echo "$res" | cut -d ' ' -f3`
-      echo $rms_i
-      set rms_f = `echo "$res" | cut -d ' ' -f4`
-      set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
-      set rms_ratio = `ccalc -form int -eval "($rms_i - $rms_f) / $rms_i * 100"`
-      set rat = `echo "$res" | cut -d ' ' -f9` 
-      set niter = `echo "$rat" | cut -d '/' -f1`
-      set nitermax = `echo "$rat" | cut -d '/' -f2`
-      set Converged = 1
-      if ($rms_diff_pos) then
-         if ($pass == 1) then
-            if ("$xform_type" == "affine_general") then
-               echo ""
-               echo "Warning:*****************************"
-               echo "Registration did not converge, trying "
-               echo "registration without shearing."
-               echo ""
-               set xform_type = 'shift_rotate_scale'
-               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
-                        ${tmppref}_reg_warpdriveout_NoConvergence
-               set Converged = 0
-               set pass = 2
-            else 
-               echo ""
-               echo "Warning:**************************"
-               echo "Registration did not converge, not "
-               echo "much else to try automatically. "
-               echo "Check your results, the -help tips"
-               echo "and report persisting problems to "
-               echo "progam authors."
-               echo ""
-               echo "Script will stop ..."
-               echo ""
-               set pass = 3
-               set Converged = 0
-               goto END
-            endif
-         else 
-            if ($pass == 2) then
-               echo ""
-               echo "Warning:***************************"
-               echo "Registration did not converge, even "
-               echo "without shear operation."
-               echo "Check your results, the -help tips"
-               echo "and report persisting problems to "
-               echo "progam authors."
-               echo ""
-               echo "Script will stop ..."
-               echo ""
-               set pass = 3
-               set Converged = 0
-               goto END
-            endif
+      
+      if($warpdrive_method == "3dAllineate") then
+         # 3dAllineate matches base dataset as master 
+         if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${ref_view}` != 2) then
+            echo "Error: Failed in $warpdrive_method "
+            set estat = 1
+            goto END
          endif
+         # resetting out view to match rest of script
+         3drefit -view ${anat_view} ${tmppref}_reg_warpdriveout${ref_view}
       else
-         #looks OK, but did we reach the limit?
-         if ($niter < $nitermax) then
-            echo ""
-            echo "Warping has converged."
-            echo ""
-         else
+         if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
+            echo "Error: Failed in $warpdrive_method "
+            set estat = 1
+            goto END
+         endif
+         #check for convergence
+         # this one fails when there is a # in the name! 
+             #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
+         # this should do it:
+            cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
+            set res = "`grep 'RMS\[0\]' ___cat.tmp`"
+            \rm -f ___cat.tmp >& /dev/null 
+   
+         echo "$res"
+         set rms_i = `echo "$res" | cut -d ' ' -f3`
+         echo $rms_i
+         set rms_f = `echo "$res" | cut -d ' ' -f4`
+         set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
+         set rms_ratio = `ccalc -form int -eval "($rms_i - $rms_f) / $rms_i * 100"`
+         set rat = `echo "$res" | cut -d ' ' -f9` 
+         set niter = `echo "$rat" | cut -d '/' -f1`
+         set nitermax = `echo "$rat" | cut -d '/' -f2`
+         set Converged = 1
+         if ($rms_diff_pos) then
             if ($pass == 1) then
+               if ("$xform_type" == "affine_general") then
+                  echo ""
+                  echo "Warning:*****************************"
+                  echo "Registration did not converge, trying "
+                  echo "registration without shearing."
+                  echo ""
+                  set xform_type = 'shift_rotate_scale'
+                  3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
+                           ${tmppref}_reg_warpdriveout_NoConvergence
+                  set Converged = 0
+                  set pass = 2
+               else 
+                  echo ""
+                  echo "Warning:**************************"
+                  echo "Registration did not converge, not "
+                  echo "much else to try automatically. "
+                  echo "Check your results, the -help tips"
+                  echo "and report persisting problems to "
+                  echo "progam authors."
+                  echo ""
+                  echo "Script will stop ..."
+                  echo ""
+                  set pass = 3
+                  set Converged = 0
+                  goto END
+               endif
+            else 
+               if ($pass == 2) then
+                  echo ""
+                  echo "Warning:***************************"
+                  echo "Registration did not converge, even "
+                  echo "without shear operation."
+                  echo "Check your results, the -help tips"
+                  echo "and report persisting problems to "
+                  echo "progam authors."
+                  echo ""
+                  echo "Script will stop ..."
+                  echo ""
+                  set pass = 3
+                  set Converged = 0
+                  goto END
+               endif
+            endif
+         else
+            #looks OK, but did we reach the limit?
+            if ($niter < $nitermax) then
                echo ""
-               echo "Warping used up maximum iterations of $nitermax"
-               echo "Convergence might not have"
-               echo "been reached. "
-               echo "Doubling number of iterations"
+               echo "Warping has converged."
                echo ""
-               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
-                        ${tmppref}_reg_warpdriveout_maxed_iters
-               set ans = `ccalc -form int "2 * $nitermax"`
-               set maxite = "-maxite $ans"
-               set Converged = 0
-               set pass = 2
             else
-               if ($rms_ratio > 30) then 
+               if ($pass == 1) then
                   echo ""
-                  echo "Warping used up maximum iterations even after "
-                  echo "doubling number of iterations to $nitermax."
-                  echo "However, convergence is possible, given an RMS"
-                  echo "improvement of $rms_ratio%"
-                  echo "Check results at the end"
+                  echo "Warping used up maximum iterations of $nitermax"
+                  echo "Convergence might not have"
+                  echo "been reached. "
+                  echo "Doubling number of iterations"
                   echo ""
-                  set pass = 3
+                  3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
+                           ${tmppref}_reg_warpdriveout_maxed_iters
+                  set ans = `ccalc -form int "2 * $nitermax"`
+                  set maxite = "-maxite $ans"
+                  set Converged = 0
+                  set pass = 2
                else
-                  echo ""
-                  echo "Warping used up maximum iterations"
-                  echo "even after doubling number of iterations to $nitermax."
-                  echo "Convergence might not have been reached."
-                  echo ""
-                  echo "If you find the alignment poor, try"
-                  echo "rerunning the script with a transform"
-                  echo "type of fewer parameters (-xform) or by using "
-                  echo "an even higher number of iterations (-maxite)."
-                  echo "You can also choose to continue with the"
-                  echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
-                  echo "by using the option: -OK_maxite"
-                  echo ""
-                  set pass = 3
-                  if ($accept_maxite == 1) then
-                     #doing nothing will proceed
-                     echo "Accepting result per user's choice."
+                  if ($rms_ratio > 30) then 
                      echo ""
+                     echo "Warping used up maximum iterations even after "
+                     echo "doubling number of iterations to $nitermax."
+                     echo "However, convergence is possible, given an RMS"
+                     echo "improvement of $rms_ratio%"
+                     echo "Check results at the end"
+                     echo ""
+                     set pass = 3
                   else
-                     echo "Script will stop ..."
                      echo ""
-                     set Converged = 0
-                     goto END
-                  endif
-               endif   
+                     echo "Warping used up maximum iterations"
+                     echo "even after doubling number of iterations to $nitermax."
+                     echo "Convergence might not have been reached."
+                     echo ""
+                     echo "If you find the alignment poor, try"
+                     echo "rerunning the script with a transform"
+                     echo "type of fewer parameters (-xform) or by using "
+                     echo "an even higher number of iterations (-maxite)."
+                     echo "You can also choose to continue with the"
+                     echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
+                     echo "by using the option: -OK_maxite"
+                     echo ""
+                     set pass = 3
+                     if ($accept_maxite == 1) then
+                        #doing nothing will proceed
+                        echo "Accepting result per user's choice."
+                        echo ""
+                     else
+                        echo "Script will stop ..."
+                        echo ""
+                        set Converged = 0
+                        goto END
+                     endif
+                  endif   
+               endif
             endif
          endif
       endif
@@ -962,9 +1070,9 @@ AUTO_TLRC_MODE:
    FINAL_XFORM:
    set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
    if ($prexform != '') then
-      if (0) then
+      if ($warpdrive_method == "3dAllineate") then
          #That's in ONELINE format, 3dWarp does not like it
-         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.l2.1D
+         cat_matvec ${ns_pref}.Xaff12.1D > ${tt_prefpad}.Xat.l2.1D
       else
          #another way to do the same
          cat_matvec \
@@ -976,9 +1084,9 @@ AUTO_TLRC_MODE:
          > ${tt_prefpad}.Xat.1D 
    else
       #This is the same as ${ns_pref}.Xaff12.1D
-      if (0) then
+      if ($warpdrive_method == "3dAllineate") then
          #That's in ONELINE format, 3dWarp does not like it
-         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.1D
+         cat_matvec ${ns_pref}.Xaff12.1D > ${tt_prefpad}.Xat.1D
       else
          #another way to get the same
          cat_matvec \
@@ -988,12 +1096,18 @@ AUTO_TLRC_MODE:
    endif
    cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
    
+   # move the temporary one line affine transformation matrix to
+   #  a permanent output file name
    if ("$isNIFTI" == 1) then
       if ( -f ${ns_pref}_WarpDrive.log) \
          mv ${ns_pref}_WarpDrive.log ${out_pref}.nii_WarpDrive.log
       if ( -f ${ns_pref}.Xaff12.1D) \
          mv ${ns_pref}.Xaff12.1D ${out_pref}.nii.Xaff12.1D
+   else
+      if ( -f ${ns_pref}.Xaff12.1D) \
+         mv ${ns_pref}.Xaff12.1D ${out_pref}.Xaff12.1D   
    endif
+  
 
    OUTPUT_GRID:
    if ($user_res) then
@@ -1020,18 +1134,24 @@ AUTO_TLRC_MODE:
                ${nopre_anat_in}
                
    if ($warp_orig_vol == 0) then
+      set warpmatrix = ${out_pref}.Xat.1D
+      set gridset = ${tmppref}_gridout${anat_view}  
       set ttvolpref = ${tt_prefpad}
+      set headset = ${ttvolpref}${anat_view} 
       set mskvol =  ${rs_pref}${anat_view}
       set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
       set nomskpref = .skl
+      set warpnii = 0
       set RET_apply_mask = BMW
       goto APPLY_MASK
       BMW:
       #copy fields
-         set FromVol = ${tt_prefpad}.skl${anat_view}
-         set ToVol = ${tt_prefpad}${anat_view}
-         set RET_copy_fields = BM
-         goto COPY_FIELDS
+         if($warpdrive_method == "3dWarpDrive") then
+            set FromVol = ${tt_prefpad}.skl${anat_view}
+            set ToVol = ${tt_prefpad}${anat_view}
+            set RET_copy_fields = BM
+            goto COPY_FIELDS
+         endif
          BM:       
    endif
    
@@ -1049,10 +1169,12 @@ AUTO_TLRC_MODE:
    3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
                -prefix ./${tt_prefupad} ${tt_prefpad}${anat_view}
    #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+   if($warpdrive_method == "3dWarpDrive") then   
       set FromVol = ${tt_prefpad}${anat_view}
       set ToVol = ${tt_prefupad}${anat_view}
       set RET_copy_fields = UP
       goto COPY_FIELDS
+   endif
       UP:       
 
    # set the space of the output to match the template space
@@ -1070,21 +1192,27 @@ AUTO_TLRC_MODE:
       endif
       3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
       if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
-         #Now add a 3drefit line to specify the warp parent
-         echo "Setting parent with 3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}"
-         3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
+        if($warpdrive_method == "3dWarpDrive") then   
+           #Now add a 3drefit line to specify the warp parent
+           echo "Setting parent with 3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}"
+           3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
+        endif
       endif
       #finally, rename the damned thing
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
-      else
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii${gz} ${tt_prefupad}${ref_view} 
+         set outset = ${out_pref}.nii${gz}
+       else
          3drename ${OW} ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
+         set outset = ${out_pref}${ref_view}
       endif
    else
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii${gz} ${tt_prefupad}${anat_view}
+         set outset =  ${out_pref}.nii${gz}
       else
          3drename ${OW} ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
+         set outset = ${out_pref}${anat_view}
       endif
    endif
    
@@ -1093,13 +1221,40 @@ AUTO_TLRC_MODE:
    if ($acpciate == 1) then
       echo "Doing the MSB thing..."
       #create a version witout scaling
-      cat_matvec  ${out_pref}${ref_view}::WARPDRIVE_MATVEC_FOR_000000 -P \
+      if ($warpdrive_method == "3dAllineate") then
+         cat_matvec  ${out_pref}.Xat.1D -P \
                   > ${out_pref}.Xat.rigid.1D
+      else
+         cat_matvec  ${outset}::WARPDRIVE_MATVEC_FOR_000000 -P \
+                  > ${out_pref}.Xat.rigid.1D
+      endif
+
+      if ($KeepView == 0) then
+ 	     set rigid_outview =  ${ref_view}
+	  else
+	     set rigid_outview =  ${anat_view}
+      endif
+       
+      if ("$isNIFTI" == 1) then
+         set rigid_outprefix =  $NIpref.Xat.rigid.nii${gz}
+         set rigid_inprefix = $rigid_outprefix
+         set headset = $rigid_inprefix
+         set skl_outprefix = $NIpref.Xat.rigid.skl.nii${gz}
+         set warpnii = 1
+      else
+         set rigid_outprefix =  ${out_pref}.Xat.rigid
+         set rigid_inprefix = "${out_pref}.Xat.rigid${rigid_outview}"
+         set headset = "${out_pref}.Xat.rigid${anat_view}"         
+         set skl_outprefix = ${out_pref}.Xat.rigid.skl
+      endif
+                  
       3dWarp   ${OW} -matvec_out2in ${out_pref}.Xat.rigid.1D \
-               -gridset ${out_pref}${ref_view} \
-               -${rmode} -prefix ${out_pref}.Xat.rigid \
-               ${nopre_anat_in}
+                 -gridset ${outset} \
+                 -${rmode} -prefix ${rigid_outprefix} \
+                 ${nopre_anat_in}
       if ($warp_orig_vol == 0) then
+         set warpmatrix = ${out_pref}.Xat.rigid.1D
+         set gridset = ${outset}
          set ttvolpref = ${out_pref}.Xat.rigid
          set mskvol =  ${rs_pref}${anat_view}
          set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
@@ -1109,33 +1264,39 @@ AUTO_TLRC_MODE:
          BMR:
       endif
 
-      # reset the space of the output to be ACPC
-      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
+      if ($KeepView == 0 && $isNIFTI == 0) then
+         3drefit -space "ACPC" -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
+      else
+         # reset the space of the output to be ACPC
+         3drefit  -space "ACPC" ${rigid_inprefix}
+      endif
+#      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
 
       3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
                -h "Dataset created via: `basename $0` $argv[*]" \
-               ${out_pref}.Xat.rigid${anat_view}
-      if ($KeepView == 0) then
-         echo "Changing view of rigid_equiv anatomy"
-         if ( -f ${out_pref}.Xat.rigid${ref_view}.HEAD && $over == 1 \
-            && "${anat_view}" != "${ref_view}") then
-            \rm -f ${out_pref}.Xat.rigid${ref_view}.HEAD \
-                   ${out_pref}.Xat.rigid${ref_view}.BRIK*
-         endif
-         3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
-         if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
-                     ${out_pref}.Xat.rigid${ref_view}.HEAD 
-            \rm -f ${out_pref}.Xat.rigid${ref_view}.*
-         endif
-      else
-         if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
-                          ${out_pref}.Xat.rigid${anat_view}.HEAD 
-            \rm -f ${out_pref}.Xat.rigid${anat_view}.*
-         endif
-      endif      
-   endif
+               ${rigid_inprefix}
+#               ${out_pref}.Xat.rigid${anat_view}
+#      if ($KeepView == 0) then
+#         echo "Changing view of rigid_equiv anatomy"
+#         if ( -f ${out_pref}.Xat.rigid${ref_view}.HEAD && $over == 1 \
+#            && "${anat_view}" != "${ref_view}") then
+#            \rm -f ${out_pref}.Xat.rigid${ref_view}.HEAD \
+#                   ${out_pref}.Xat.rigid${ref_view}.BRIK*
+#         endif
+#         3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
+#         if ("$isNIFTI" == 1) then
+#            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii${gz} \
+#                     ${out_pref}.Xat.rigid${ref_view}.HEAD 
+#            \rm -f ${out_pref}.Xat.rigid${ref_view}.*
+#         endif
+#      else
+#         if ("$isNIFTI" == 1) then
+#            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii${gz} \
+#                          ${out_pref}.Xat.rigid${anat_view}.HEAD 
+#            \rm -f ${out_pref}.Xat.rigid${anat_view}.*
+#         endif
+#      endif      
+   endif  # end of AC-PCiate -rigid equiv.
    
    goto WRAP_UP
 #######################
@@ -1181,7 +1342,7 @@ APAR_MODE:
       endif
    else
       #Keep old way involving two interpolations for backward
-      #compatibility
+      #compatibility - now only on request
       echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
       3dWarp ${OW} -matparent ${ref_nopad} \
             -prefix ./${tmp_out_pref} -${rmode} \
@@ -1224,13 +1385,15 @@ APAR_MODE:
       # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
       #
       #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      if($warpdrive_method == "3dWarpDrive") then   
          set FromVol = ${ref_nopad}
          set ToVol = ${tmp_out_pref}${anat_view}
          set RET_copy_fields = APCW
          goto COPY_FIELDS
+      endif
          APCW:    
-      
-      3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
+      if($warpdrive_method == "3dWarpDrive") then   
+         3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
    endif
    
    # reset the space of the output to match the template space
@@ -1257,7 +1420,7 @@ APAR_MODE:
       endif
       3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
       if ("$isNIFTI" == 1) then
-            3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii \
+            3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii${gz} \
                           ${tmp_out_pref}${ref_view} 
       else
          if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1 || \
@@ -1273,7 +1436,7 @@ APAR_MODE:
       endif
    else
       if ("$isNIFTI" == 1) then
-         3dAFNItoNIFTI $OW -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
+         3dAFNItoNIFTI $OW -prefix ${out_pref}.nii${gz} ${tmp_out_pref}${anat_view}
       else
          if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1 || \
               $over == 1) then
@@ -1308,7 +1471,7 @@ if ($KeepTmp != 1) then
          if ( -f "$ff") \rm -f "$ff" >& /dev/null 
       end
    endif
-   if ("${RNS}" != '') then
+   if (("${RNS}" != '') && ("$isNIFTI" != 1)) then
       set kl = (`\ls *_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD`)
       foreach kk ($kl)
          set k = `echo $kk | sed "s/_${RNS}//"`
@@ -1524,9 +1687,12 @@ echo "                       When the maximum number of iterations is reached"
 echo "                       without meeting the convergence criteria,"
 echo "                       the script will double the number of iterations"
 echo "                       and try again. If the second pass still fails,"
-echo "                       the script will stop unless the user specifies the"
-echo "                       -OK_maxite option."
-echo "      -OK_maxite     : See -maxite option."
+echo "                       the script will continue unless the user specifies the"
+echo "                       -not_OK_maxite option."
+echo "                       The default number of iterations is 50 for first"
+echo "                       pass and then doubled to 100 in second pass."
+echo "                       To reset to former default, set maxite to 0"
+echo "      -not_OK_maxite : See -maxite option."
 echo "      -inweight      : Apply -weight INPUT (in 3dWarpDrive)."
 echo "                       By default, 3dWarpDrive uses the BASE dataset to"
 echo "                       weight the alignment cost.  Use this option to"
@@ -1579,9 +1745,13 @@ echo "      -no_pre: Delete temporary dataset created by -init_xform"
 echo ""  
 echo "      -out_space spacename: Set output to a particular space"
 echo "                       Usually, output space is determined by the space"
-echo "                       of the input template and does not need to set"
+echo "                       of the input template and does not need to be set"
 echo "                       explicitly here"
 echo ""
+echo "      -3dAllineate: Use 3dAllineate with the lpa+ZZ cost function"
+echo "                    instead of 3dWarpDrive"
+echo "      -3dAlcost costfunction : use another cost function, like nmi,"
+echo "                    for instance"
 echo "      -overwrite: Overwrite existing output. "
 echo "                  With this option, 3dSkullstrip will get rerun even"
 echo "                  if skull stripped volume is found on disk, unless of"
@@ -1641,11 +1811,13 @@ echo "                        MM to `ccalc -eval $pd_default+10` or "
 echo "                              `ccalc -eval $pd_default+20`."
 echo "                        If that does not help, report the"
 echo "                        problem to the script's authors."
-echo "      -onewarp          : Create follower data with one interpolation"
-echo "                          step, instead of two. "
+echo "      -onewarp          : Create follower data (-apar use) with one interpolation"
+echo "                          step, instead of two. - Now default "
 echo "                          This option reduces blurring of the output data."
-echo "                          It is not used by default for backward"
-echo "                          compatibility."
+echo "      -twowarp          : Create follower data (-apar use) with two interpolations"
+echo "                          step, instead of one. "
+echo "                          This option is for backward compatibility."
+
 echo "" 
 echo "   Example:"
 echo "   `basename $0`  -apar SubjectHighRes+tlrc. \\"
@@ -1655,15 +1827,9 @@ echo ""
 echo "Common Optional parameters:"
 echo "   -rmode     MODE:  Resampling mode. Choose from:"
 echo "                     linear, cubic, NN or quintic ."
-echo "                     Default for 'Usage 1' is Linear."
-echo "               Notice: Prior to 07/2010 -help output incorrecly stated"
-echo "                     that rmode controlled interpolation in usage 1"
-echo "                     and that it was 'quintic' by default. "
-echo "                     In fact, until this version, rmode did not affect"
-echo "                     'Usage 1', and interpolation was linear"
-echo "                     Default for 'Usage 2' is quintic for 3dWarp,"
+echo "                     Default for 'Usage 1' is cubic."
+echo "                     Default for 'Usage 2' is cubic for 3dWarp,"
 echo "                      followed by Bk for the 3dresample step."
-echo "                     See option -onewarp for avoiding two interpolations"
 echo "   -suffix    SUF :  Name the output dataset by append SUF "
 echo "                     to the prefix of the input data for the output."
 echo "                     Default for SUF is NONE (see below)"
@@ -1805,15 +1971,37 @@ APPLY_MASK:
    echo "Applying brain mask"
    3dcalc   ${OW} -a "${mskvol}" -overwrite \
             -expr "step(a)*10000" -prefix ./${tmppref}_reg_braintlrcstep
-   3dWarp   ${OW} -matparent ${mskwrppar} -overwrite \
-            -gridset ${ttvolpref}${anat_view}   \
+   
+#   set gridset = ${ttvolpref}${anat_view}
+   3dWarp   ${OW} -matvec_out2in ${warpmatrix} -overwrite \
+            -gridset $gridset   \
             -linear -prefix ./${tmppref}_reg_braintlrcmask \
             ${tmppref}_reg_braintlrcstep${anat_view}    
-   3drename ${OW} ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
+
+#   3dWarp   ${OW} -matparent ${mskwrppar} -overwrite \
+#            -gridset $gridset   \
+#            -linear -prefix ./${tmppref}_reg_braintlrcmask \
+#            ${tmppref}_reg_braintlrcstep${anat_view}    
+
+#   3drename ${OW} ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
+   if($isNIFTI == 1 && $warpnii == 1) then
+       mv $headset $skl_outprefix
+#      3dcopy ${OW} $headset ${ttvolpref}${nomskpref}
    3dcalc   ${OW} -a "${tmppref}_reg_braintlrcmask${anat_view}" \
-            -b "${ttvolpref}${nomskpref}${anat_view}" \
+            -b $skl_outprefix            \
             -expr "step(a-5000)*b" \
-            -prefix ./${ttvolpref}${anat_view}
+            -prefix $headset
+  else   
+      set headview = `@GetAfniView $headset`
+      # rename the warped original dataset with skull to be .skl 
+      3drename ${OW} $headset ${ttvolpref}${nomskpref}
+      3dcalc   ${OW} -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+            -b "${ttvolpref}${nomskpref}${headview}" \
+            -expr "step(a-5000)*b" \
+            -prefix ./${ttvolpref}
+#            ${anat_view}
+   endif
+   
    goto $RET_apply_mask 
 
 goto END
