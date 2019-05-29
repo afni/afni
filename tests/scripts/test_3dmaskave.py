@@ -1,10 +1,7 @@
 from .utils import tools
 
 # Define Data
-data_paths = {
-    "mask": "mini_data/mask_3mm.nii.gz",
-    "epi": "sample_test_output/3dAllineate/test_3dAllineate_basic/aligned_with_omp.nii.gz",
-}
+data_paths = {"mask": "mini_data/mask_3mm.nii.gz", "epi": "mini_data/aligned.nii.gz"}
 
 
 def test_3dmaskave_basic(data):
