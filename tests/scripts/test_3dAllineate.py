@@ -16,9 +16,9 @@ data_paths = {
 
 # TESTS:
 @pytest.mark.slow
-@pytest.mark.skip(
-    reason="Not sure how to handle difference in output between osx and linux."
-)
+# @pytest.mark.skip(
+#     reason="Not sure how to handle difference in output between osx and linux."
+# )
 def test_3dAllineate_basic(data, python_interpreter):
     outname = "aligned"
     if OMP:
