@@ -48,6 +48,40 @@ def get_current_test_name():
     return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
 
 
+def compute_expected_euclidean_distance_for_affine(affine):
+    """
+    Computes a metric of how far an affine matrix deviates from the identity
+    matrix (no shear,rotation,translation). In order to do this it computes
+    the expected value of the norm of the distance between a point X, drawn from
+    a 3 dimensional distribution, the location of X after the affine has been
+    applied:
+    E || (AX + b ) - X || ^ 2
+
+        where A and B are the linear map and translation components of the
+        affine map.
+
+    This can be reformulated as:
+    tr((A - I)^2) + norm(b) ^ 2
+    """
+    return np.matrix.trace(affine[:3, :3] - np.eye(3)) + np.linalg.norm(affine[:3, 3])
+
+
+def test_compute_expected_euclidean_distance_for_affine():
+    identity = np.eye(4)
+    assert 0 == compute_expected_euclidean_distance_for_affine(identity)
+    assert 3 == compute_expected_euclidean_distance_for_affine(identity * 2)
+
+
+def assert_affines_equal(affine_a, affine_b, distance_tolerance=5):
+    """
+    Checks that affine_a and affine_b transforms an image approximately
+    equally
+    """
+    merged_affines = np.linalg.inv(affine_a) @ affine_b
+    diff_effect = compute_expected_euclidean_distance_for_affine(merged_affines)
+    return diff_effect
+
+
 def uniquify(path, sep="_"):
     # SO: questions/13852700/python-create-file-but-if-name-exists-add-number
     def name_sequence():
