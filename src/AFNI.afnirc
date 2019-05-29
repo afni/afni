@@ -120,7 +120,7 @@
 // AFNI_CROP_ZOOMSAVE         = NO    // how to save zoomed Image windows
 // AFNI_IMAGE_ZEROCOLOR       = white // color of 0 voxels in Image window
 // AFNI_IMAGE_ENTROPY         = 0.2   // image entropy for disabling 2%-to-98%
-// AFNI_IMAGE_ZOOM_NN         = NO    // YES=don't linearly interp zoomed imgs
+   AFNI_IMAGE_ZOOM_NN         = YES   // NO=linearly interpolate zoomed imgs
 // AFNI_IMAGE_SAVESQUARE      = NO    // YES=always save images with sq pixels
 // AFNI_IMAGE_TICK_DIV_IN_MM  = NO    // YES=image tick mark spacings are in mm
 // AFNI_IMAGRA_CLOSER         = NO    // YES=Image/Graph button 2nd click closes
