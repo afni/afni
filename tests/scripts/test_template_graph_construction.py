@@ -20,7 +20,7 @@ import sys
 import pytest
 
 base_path = Path("ds000002")
-subjects = [f"sub-{x:02d}" for x in range(10)]
+subjects = [f"sub-{x:02d}" for x in range(1, 11)]
 data_paths = {
     "scans": [(base_path / s / "anat" / (s + "_T1w.nii.gz")) for s in subjects]
 }
@@ -46,7 +46,7 @@ def test_construct_template_graph(data):
         Path(ab.__file__).with_name("make_template_dask.py"),
         "-ok_to_exist",
         "-dsets",
-        data.scans,
+        *[str(f) for f in data.scans],
         "-init_base",
         afni_dir / "MNI152_2009_template.nii.gz",
         "-ex_mode",
