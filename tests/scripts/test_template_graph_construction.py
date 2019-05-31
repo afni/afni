@@ -59,7 +59,14 @@ def test_construct_template_graph(data):
 
     ps = TemplateConfig("make_template_dask.py")
     ps.init_opts()
-    rv = ps.get_user_opts("help")
+    if ps.get_user_opts("help"):
+        raise ValueError
     ps.process_input()
-    task_graph = construct_template_graph.get_task_graph(ps, delayed)
-    assert task_graph == None
+    task_graph_dict = construct_template_graph.get_task_graph(ps, delayed)
+    task_graph_dict['nl_mean_brain'].visualize(str(data.outdir / 'compute_graph.svg'))
+    graph_output_key = list(task_graph_dict.keys())[-1]
+
+    template_futures = client.compute(task_graph_dict[graph_output_key])
+    result = client.gather(template_futures)
+    print("Really finished making template")
+
