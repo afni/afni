@@ -13,20 +13,20 @@ import shutil
 from collections import OrderedDict
 
 
-def align_centers(ps, dset=None, base=None, suffix="_ac"):
+def align_centers(ps, dset=None, basedset=None, suffix="_ac"):
     """
     align the center of a dataset to the center of another
     dataset like a template
     """
 
-    o = prepare_afni_output(dset, suffix)
+    o = prepare_afni_output(dset, suffix,basepath='')
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
-    base_path = base.ppve()
+    basedset_path = basedset.ppve()
 
     if ps.do_center == 0:
         raise ValueError("This part of the pipeline needs to be checked")
-        cmd_str = "@Align_Centers -base {base_path} -dset {dset.initname} -no_cp"
+        cmd_str = "@Align_Centers -base {basedset_path} -dset {dset.initname} -no_cp"
     else:
         cmd_str = "3dcopy %s %s" % (dset.initname, o.initname)
     cmd_str = cmd_str.format(**locals())
@@ -380,7 +380,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
     #  dask to help with parallel execution
     for dset in dsetlist:
         # start off just aligning the centers of the datasets
-        aname = delayed(align_centers)(ps, dset=dset, base=basedset)
+        aname = delayed(align_centers)(ps, dset=dset, basedset=basedset)
         amname = delayed(skullstrip)(ps, dset=aname)
         dname = delayed(unifize)(ps, dset=amname)
         af_aligned = delayed(rigid_align)(
@@ -449,7 +449,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # an index for initial warps in previously saved datasets (0-4)
     # these aren't the same as the intermediate level datasets below
     # and the level will not match the "inilev" below. J
-    
+
     iniwarplevel = kwargs.get('iniwarplevel',[])
     upsample = kwargs['upsample']
     qw_opts = kwargs['qw_opts']
@@ -934,7 +934,7 @@ def warp_fs_seg(ps, fs_seg, aa_brain, warp, suffix="_warped"):
     # replace segmentation with recentered version
     # this method costs a little disk space for the extra copy of FreeSurfer
     # segmentation
-    fs_seg = align_centers(ps, dset=fs_seg, base=aa_brain,
+    fs_seg = align_centers(ps, dset=fs_seg, basedset=aa_brain,
                            suffix="_ac")
 
     # affine matrix named similarly as affine dataset
@@ -1062,8 +1062,8 @@ def get_task_graph(ps, delayed):
     """
     dsetlist = ps.dsets.parlist
     dsets = get_indata(dsetlist, ps.odir, delayed)
-    warpsetlist = []
 
+    warpsetlist = []
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
         ps, ps.basedset, dsets, delayed)
     (affine_mean_brain, aligned_brains) = get_affine_mean(
