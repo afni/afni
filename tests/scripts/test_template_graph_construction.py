@@ -45,6 +45,8 @@ def test_construct_template_graph(data):
     sys.argv = [
         Path(ab.__file__).with_name("make_template_dask.py"),
         "-ok_to_exist",
+        "-outdir",
+        data.outdir,
         "-dsets",
         *[str(f) for f in data.scans],
         "-init_base",
