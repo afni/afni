@@ -88,14 +88,16 @@ class afni_name(object):
          check_for_strict_name(name)
          self._bn = res['prefix']
          self._fn = res['prefix'] + res['view'] + res['extension']
+         self._ffn = str(Path(self.initpath) / self.initname)
          self._is_strict = True
       else:
          self._is_strict = False
          self._bn = NotImplementedError
          self._fn = NotImplementedError
+         self._ffn = NotImplementedError
       return
 
-   def p(self):   #Full path 
+   def p(self):   #Full path
       """show path only, no dataset name"""
       pp = "%s/" % os.path.abspath('./')  #full path at this location
       fn = pp.find(self.path)      #is path at end of abspath?
@@ -534,7 +536,13 @@ class afni_name(object):
       "Returns 'filename' regardless of file format: includes  view and extension"
       " but no directory."
       return self._fn
-   
+
+   @property
+   def ffn(self):
+      """Returns the full 'filename' regardless of file format:
+      includes view and extension and full path. """
+      return self._ffn
+
    @property
    def rbn(self):
       """Uneditable attribute that returns relative basename for an object
@@ -581,7 +589,15 @@ class afni_name(object):
       dict_out = self.__dict__.copy()
       dict_out.update({
         'exist': self.exist(),
-        'input': self.input()})
+        })
+      if self.is_strict:
+         dict_out = {k:v for k,v in dict_out.items() if not k.startswith('_')}
+         dict_out.update({
+          'bn':self.bn,
+          'fn':self.fn,
+          'ffn':self.ffn,
+          'initpath':self.initpath,
+          })
       return pformat(dict_out)
 
 
