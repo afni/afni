@@ -289,15 +289,21 @@ def prepare_afni_output(dset, suffix, view=None, basepath=None):
         # raise ValueError("Directories must exist to run the pipeline in any mode.")
         os.makedirs(Path(dset.initpath, basepath),exist_ok=True)
 
+
     if not view:
         view = dset.view
+
     if not suffix.startswith('_'):
         suffix = '_' + suffix
-    if basepath:
+    if basepath is not None:
         rbn = str(Path(basepath) /  dset.bn)
     else:
         rbn = dset.rbn
-    filename = Path(rbn + suffix + view + dset.extension)
+    if dset.type in ['NIFTI']:
+        view_str = ""
+    else:
+        view_str = view
+    filename = Path(rbn + suffix + view_str + dset.extension)
     o = dset.new(str(filename), strict=True)
     assert(o.is_strict)
     return o
@@ -366,6 +372,8 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
         # Run the command string:
         print("Running in %s" % chdir)
         shell_obj.run(chdir=chdir)
+        if shell_obj.status:
+            raise RuntimeError('\n'.join(shell_obj.se))
 
         # Expected files should now exist:
         if len(expected_files) > 0:
