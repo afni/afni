@@ -260,7 +260,7 @@ def get_dict_diffs(a, b):
     return b_not_in_a, a_not_in_b
 
 
-def prepare_afni_output(dset, suffix, view=None, path=None):
+def prepare_afni_output(dset, suffix, view=None, basepath=None):
     """
     prepare the output for an afni function make AFNI dataset structure based
     on input name.
@@ -272,17 +272,17 @@ def prepare_afni_output(dset, suffix, view=None, path=None):
                          "afni_python.afni_base.afni_name(<name>,strict=True).% s is not."
                          % dset.rel_input())
 
-    if path and not Path(path).exists():
+    if basepath and not Path(basepath).exists():
         # raise ValueError("Directories must exist to run the pipeline in any mode.")
-        os.makedirs(Path(dset.initpath, path),exist_ok=True)
+        os.makedirs(Path(dset.initpath, basepath),exist_ok=True)
 
     if not view:
         view = dset.view
     if not suffix.startswith('_'):
         suffix = '_' + suffix
-    if not path:
-        path = dset.rel_dir()
-    filename = Path(path) / (dset.bn + suffix + view + dset.extension)
+    if not basepath:
+        basepath = dset.rel_dir()
+    filename = Path(basepath) / (dset.bn + suffix + view + dset.extension)
     o = dset.new(str(filename), strict=True)
     assert(o.is_strict)
     return o

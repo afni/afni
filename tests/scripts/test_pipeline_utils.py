@@ -255,7 +255,7 @@ def test_prepare_afni_output():
 
         # Changing the path should work
         dset_afni = ab.afni_name("first_dir/test+orig.BRIK", strict=True)
-        o = prepare_afni_output(dset_afni, suffix="_morphed", path='second_dir')
+        o = prepare_afni_output(dset_afni, suffix="_morphed", basepath='second_dir')
         assert(o.path == str(TEST_DIR.resolve() / "second_dir") + '/')
 
         # nifti filename is forbidden the luxury of a view in strict datasets.
