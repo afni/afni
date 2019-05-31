@@ -48,7 +48,7 @@ def test_construct_template_graph(data):
         "-outdir",
         data.outdir,
         "-dsets",
-        *[str(f) for f in data.scans],
+        *[str(f) for f in data.scans][:2],
         "-init_base",
         afni_dir / "MNI152_2009_template.nii.gz",
         "-ex_mode",
@@ -66,7 +66,7 @@ def test_construct_template_graph(data):
     task_graph_dict['nl_mean_brain'].visualize(str(data.outdir / 'compute_graph.svg'))
     graph_output_key = list(task_graph_dict.keys())[-1]
 
-    template_futures = client.compute(task_graph_dict[graph_output_key])
+    template_futures = client.compute(task_graph_dict['nl_mean_brain'])
     result = client.gather(template_futures)
     print("Really finished making template")
 
