@@ -368,22 +368,6 @@ def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
     return o
 
 
-def change_dirs(dset_list, ps, path="."):
-    """
-    change directory here
-    separate function just for dask delay
-    but this doesn't work because it could
-    be executed on a different worker from
-    the subsequent task
-    """
-    print("cd %s" % path)
-    if(not ps.dry_run()):
-        os.chdir(self.path)
-
-    # just return this for dask
-    return dset_list
-
-
 def get_rigid_mean(ps, basedset, dsetlist, delayed):
     """
     first iteration - compute rigid mean across all subjects
