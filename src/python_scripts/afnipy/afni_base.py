@@ -545,14 +545,12 @@ class afni_name(object):
           Description
       """
       if self.is_strict:
-         rp = str(Path(self.initname).parent)
-         if rp == '.':
-            rp = ''
-         return  rp + self.bn
+         rp = Path(self.initname).parent
+         rbn = rp / self.bn
       else:
          raise NotImplementedError
          # return Path(self.pp()).relative_to(self.initpath)
-
+      return str(rbn)
 
    @property
    def is_strict(self):

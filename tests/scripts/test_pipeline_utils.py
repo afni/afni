@@ -201,6 +201,13 @@ def test_afni_name_strict():
     with working_directory('/tmp'):
         assert(dset.rbn == str(Path(dset.initname).parent / dset.bn))
 
+    # With a relative path containing multiple directories rbn will contain
+    # them appropriately
+    with working_directory('/tmp'):
+        dset_spawned = dset.new("many/directories/test.nii.gz")
+        assert(dset_spawned.rbn == str(Path(dset_spawned.initname).parent / dset_spawned.bn))
+
+
     # initname preserves relpath for strict dataset: not yet implemented
     # dset = ab.afni_name("test/test/test.nii.gz")
     # assert(dset.initname == 'test/test/test.nii.gz')
