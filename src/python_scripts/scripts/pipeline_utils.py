@@ -262,8 +262,21 @@ def get_dict_diffs(a, b):
 
 def prepare_afni_output(dset, suffix, view=None, basepath=None):
     """
-    prepare the output for an afni function make AFNI dataset structure based
-    on input name.
+    Used for chaining together afni tools in python, this produces an output
+    afni_name object. This object will preserve much of the properties of the
+    the original object. A suffix is appended to create a different filename though.
+
+    Args:
+        dset (afni_base.afni_name): An instance of afni_python.afni_base
+        created with strict=True
+        suffix (str): A string to add to the filename (after the basename and
+        before view or extension). If '_' is not at the start it is prepended.
+        view (None, optional): By default the same view as dset is used.
+        basepath (None, optional): A relative path to the directory of the new
+        dset. The path is relative to the initpath of the original dset.
+
+    Returns:
+        afni_base.afni_name: An object that points to an unwritten file on disk.
     """
     assert(dset is not None)
     if not dset.is_strict:
@@ -280,9 +293,11 @@ def prepare_afni_output(dset, suffix, view=None, basepath=None):
         view = dset.view
     if not suffix.startswith('_'):
         suffix = '_' + suffix
-    if not basepath:
-        basepath = dset.rel_dir()
-    filename = Path(basepath) / (dset.bn + suffix + view + dset.extension)
+    if basepath:
+        rbn = str(Path(basepath) /  dset.bn)
+    else:
+        rbn = dset.rbn
+    filename = Path(rbn + suffix + view + dset.extension)
     o = dset.new(str(filename), strict=True)
     assert(o.is_strict)
     return o
