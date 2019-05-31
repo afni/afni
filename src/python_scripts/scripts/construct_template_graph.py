@@ -75,12 +75,12 @@ def unifize(ps, dset=None, suffix="_un"):
     return out_dict['dset_1']
 
 
-@make_nii_compatible(
-    mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
+# @make_nii_compatible(
+#     mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
 def rigid_align(dset, base, ps=None, suffix="_4rigid"):
-    if any("NIFTI" == d.type for d in [dset, base]):
-        err = "Function requires BRIK file. Try using make_nii_compatible."
-        raise ValueError(err)
+    # if any("NIFTI" == d.type for d in [dset, base]):
+    #     err = "Function requires BRIK file. Try using make_nii_compatible."
+    #     raise ValueError(err)
     if(ps.do_rigid == 0):
         return dset
     if base.view == '':
@@ -131,13 +131,13 @@ def rigid_align(dset, base, ps=None, suffix="_4rigid"):
     return out_dict['dset_1']
 
 
-@make_nii_compatible(
-    mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
+# @make_nii_compatible(
+#     mod_params={'args_in': [0, 1], 'ret_vals': [0]}, config_name='ps')
 def affine_align(dset, base, suffix="_aff", aff_type="affine", ps=None):
     assert(dset is not None)
-    if any("NIFTI" == d.type for d in [dset, base]):
-        err = "Function requires BRIK file. Try using make_nii_compatible."
-        raise ValueError(err)
+    # if any("NIFTI" == d.type for d in [dset, base]):
+    #     err = "Function requires BRIK file. Try using make_nii_compatible."
+    #     raise ValueError(err)
 
     if base.view == '':
         o = prepare_afni_output(dset, suffix, view='+orig')
