@@ -274,7 +274,7 @@ def prepare_afni_output(dset, suffix, view=None, path=None):
 
     if path and not Path(path).exists():
         # raise ValueError("Directories must exist to run the pipeline in any mode.")
-        os.makedirs(Path(dset.initpath, path))
+        os.makedirs(Path(dset.initpath, path),exist_ok=True)
 
     if not view:
         view = dset.view
