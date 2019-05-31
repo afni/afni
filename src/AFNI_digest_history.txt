@@ -1,3 +1,56 @@
+AFNI Digest, week of 2019/05/31.
+
+00) AFNI Bootcamp announcement: at NIH campus, November 4-8, 2019.
+Please note the dates of the next AFNI Bootcamp here in Bethesda.  The
+main session runs Nov. 4-8, and there is an optional/alternative DTI
+session on Nov. 8 (*note that it is Friday this time*). There is no
+registration fee for the Bootcamp, but attendees must pay all their
+own expenses (e.g., lodging, travel, food, fancy coffees). The
+registration page is here:
+https://afni.nimh.nih.gov/bootcamp/
+along with preliminary schedules and logistic information.
+
+01) Paper on matrix-based analysis (MBA) has been accepted in HBM.
+This work, describing a new approach for matrix-based analysis by Gang
+Chen, has been accepted for publication; its freely available bioRxiv
+version is located here:
+https://www.biorxiv.org/content/10.1101/459545v1
+
+02) *More* statistical methods from Gang.
+... he has been busy!  Here is a new draft of an article describing a
+useful approach to intersubject correlation: "Untangling the
+Relatedness among Correlations, Part III: Inter-Subject Correlation
+Analysis through Bayesian Multilevel Modeling for Naturalistic
+Scanning", by G Chen et al.:
+https://www.biorxiv.org/content/10.1101/655738v1
+
+03) whereami changes.
+whereami is a little different. Defaults have changed and new atlases
+have been integrated. The HCP Glasser, the Brainnetome and the 2.2
+version of the Eickhoff-Zilles MPM atlases are now in the default list
+of atlases searched in the whereami GUI. The Talairach daemon has been
+moved down the search list for now. The Haskins Pediatric atlas and
+the Eickhoff-Zilles probabilistic atlases are no longer searched by
+default. You can make whereami search the list of atlases you want by
+setting AFNI_ATLAS_LIST to have the atlases you want (comma
+separated). If you want all the atlases searched, set that variable to
+ALL, but it will use up memory and make whereami a little slower.
+
+04) New program for ROI work:  3dExchange.
+This can be used to give voxels new values-- for example, to renumber
+ROIs in atlases.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+
 AFNI Digest, week of 2019/05/24.
 
 00) New article on clustering in AFNI: 
