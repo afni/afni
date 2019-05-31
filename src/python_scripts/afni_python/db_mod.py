@@ -6062,10 +6062,10 @@ def db_cmd_regress_anaticor(proc, block):
           return 1, ''
 
        # leave users opt to go full Gaussian, as with old _fast method
-       if block.opts.have_yes_opt('-regress_anaticor_full_gaussian', default=0):
+       if block.opts.have_yes_opt('-regress_anaticor_full_gaussian', default=1):
+          viastr = '# via full Gaussian blur (radius = %g mm)\n' % rad
           # convert from radius back to diameter (FWHM)
           rad = 2.0 * rad
-          viastr = 'full Gaussian blur'
           ffstr = ''
        else:
           # scale radius by fraction of HWHM to stop at, then up to FWHM
@@ -6078,20 +6078,20 @@ def db_cmd_regress_anaticor(proc, block):
           ffscale = 1.17741
           firfac = ffscale * merge_frad
 
-          viastr = 'truncated blur\n'                                       \
+          viastr = '# via truncated blur\n'                                 \
                    '# - scale radius %g by %g (1/_term_frac), so FWHM=%d\n' \
-                   '# - then truncate at %g sigmas (%g HWHM * %g S/HWHM)'   \
+                   '# - then truncate at %g sigmas (%g HWHM * %g S/HWHM)\n' \
                     % (rold, 1.0/merge_frad, rad, firfac, merge_frad, ffscale)
           ffstr = '-DAFNI_BLUR_FIRFAC=%g ' % firfac
 
        # QC: store the actual 3dmerge command to make a blurred mask
        merge_cmd = '3dmerge %s-1blur_fwhm %g -doall' % (ffstr, rad)
-       cmd += '# generate ANATICOR voxelwise regressors via %s\n' % viastr
+       cmd += '# generate ANATICOR voxelwise regressors\n' + viastr
 
        # avoid strange line wrapping, and similarly store the prefix form
        # (we *could* just put -prefix on the next line, as in the 2nd case)
        if ffstr == '':
-          prefix_form = '-prefix %s \\\n        %s\n\n'
+          prefix_form = ' -prefix %s \\\n        %s\n\n'
        else:
           prefix_form = ' \\\n        -prefix %s %s\n\n'
 
@@ -6100,9 +6100,15 @@ def db_cmd_regress_anaticor(proc, block):
        cmd += merge_cmd + prefix_form % (rset.out_prefix(), instr)
 
        # additionally,  make a corresponding blur of the mask dataset, for QC
-       cmd += '# QC: similarly blur the mask to get an idea of the coverage\n'
+       # (use a temporary float
+       mtmp = mset.new(new_pref='rm.mask.anaticor.float')
+       cmd += '# QC: similarly blur the mask to get an idea of the coverage\n'\
+              '#     (use a float version of the mask for blurring)\n'
+       cmd += '3dcalc -a %s -expr a -datum float \\\n' \
+              '       -prefix %s\n'                    \
+              % (mset.shortinput(), mtmp.prefix)
        cmd += merge_cmd + \
-               prefix_form % ('fanaticor_mask_coverage', mset.shortinput())
+               prefix_form % ('fanaticor_mask_coverage', mtmp.shortinput())
 
     # handle non-blur method, as in original ANATICOR
     else:

@@ -642,9 +642,13 @@ g_history = """
           and very similar to original ANATICOR method
         - added -regress_anaticor_full_gaussian and -regress_anaticor_term_frac
     6.37 May 23, 2019: QC: save fanaticor_mask_coverage dataset
+    6.38 May 30, 2019: 
+        - have -regress_anaticor_full_gaussian default to yes
+          (so one would now have to ask for a truncated Gaussian)
+        - generate fanaticor_mask_coverage as float
 """
 
-g_version = "version 6.37, May 23, 2019"
+g_version = "version 6.38, May 30, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -687,9 +691,6 @@ More detailed changes, starting May, 2018.
 
    22 May 2019 : ANATICOR changes (see -regress_anaticor*)
       - changed default radius from 45 to 30 mm
-      - fast case will now use a flatter part of the Gaussian curve, and
-        will terminate the curve at the blur radius
-        (unless -regress_anaticor_full_gaussian is applied)
 """
 
 g_todo_str = """todo:
