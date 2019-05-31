@@ -326,7 +326,7 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
     files_status = {k: v.exist() for k, v in expected_files.items()}
 
     # Set work directory for command execution if provided
-    possible_chdirs = [v.initpath for k, v in expected_files.items()]
+    possible_chdirs = {v.initpath for k, v in expected_files.items()}
     if "chdir" in keys:
         chdir = in_dict["chdir"]
     elif len(possible_chdirs) == 1:
@@ -513,6 +513,10 @@ class PipelineConfig():
                                 helpstr="Unifize mean templates")
         self.valid_opts.add_opt('-anisosmooth', 0, [],
                                 helpstr="anisotropically smooth mean templates")
+        self.valid_opts.add_opt('-findtypical_final', 0, [],
+                                helpstr="Find subject closest to final template")
+        self.valid_opts.add_opt('-final_space', 1, [],
+                                helpstr="Provide name of '-space ..' field")
 
         self.valid_opts.add_opt('-no_rigid', 0, [],
                                 helpstr="Do not do rigid alignment step,\n"
@@ -536,9 +540,6 @@ class PipelineConfig():
         self.valid_opts.add_opt('-upsample_level', 1, [],
                                 helpstr="Upsample base and warp starting at a single\n"
                                         "nonlinear alignment level providing a level from 0 to 4")
-        self.valid_opts.add_opt('-findtypical_level', 1, [],
-                                helpstr="Search for a typical subject as intermediate target\n"
-                                        "at a single nonlinear alignment level [1 to 4]")
 
         self.valid_opts.add_opt('-overwrite', 0, [],
                                 helpstr="Overwrite existing files")
@@ -548,6 +549,9 @@ class PipelineConfig():
                                 helpstr="port for Bokeh visual debugging info with Dask")
         self.valid_opts.add_opt('-max_workers', 1, [],
                                 helpstr="maximum number of cpus used for this Dask process")
+        # [PT: Mar 1, 2019]
+        self.valid_opts.add_opt('-aff_vol_rsz', 1, [],
+                                helpstr="Rescale the affine step's mean to this value (>0).")
         self.valid_opts.add_opt('-max_threads', 1, [],
                                 helpstr="maximum number of threads used for this Dask process")
         self.valid_opts.add_opt('-cluster_queue', 1, [],
@@ -643,6 +647,14 @@ class PipelineConfig():
                 self.error_msg("Must provide a port number for bokeh port")
                 self.ciao(1)
 
+        # [PT: Mar 1, 2019]
+        opt = opt_list.find_opt('-aff_vol_rsz')
+        if opt != None:
+            self.aff_vol_rsz = float(opt.parlist[0])
+            if((opt == "") or (opt == " ") or (self.aff_vol_rsz <= 0)):
+                self.error_msg("Must provide a volume value (>0 mm^3) for resizing")
+                self.ciao(1)
+
         opt = opt_list.find_opt('-max_workers')
         if opt != None:
             self.max_workers = int(opt.parlist[0])
@@ -709,7 +721,8 @@ class PipelineConfig():
                     "Must provide an integer for number of Dask worker CPUs")
                 self.ciao(1)
 
-    def get_user_opts(self, help_str):
+
+    def get_user_opts(self,help_str):
         self.valid_opts.check_special_opts(sys.argv)  # ZSS March 2014
         self.user_opts = read_options(sys.argv, self.valid_opts)
         self.help_str = help_str
@@ -885,6 +898,16 @@ class PipelineConfig():
         opt = self.user_opts.find_opt('-unifize_template')
         if opt != None:
             self.do_unifize_template = 1
+
+        # findtypical_final off by default
+        opt = self.user_opts.find_opt('-findtypical_final')
+        if opt != None:
+            self.findtypical_final = 1
+
+        # final_space name: off by default
+        opt = self.user_opts.find_opt('-final_space')
+        if opt != None:
+            self.final_space = opt.parlist[0]
 
         # rigid alignment is on by default
         opt = self.user_opts.find_opt('-no_rigid')
@@ -1063,6 +1086,7 @@ class TemplateConfig(PipelineConfig):
         self.do_freesurf_mpm = 0
         self.do_center = 1
 
+        self.aff_vol_rsz = -1.0
         self.do_rigid_only = 0   # major stages to do when doing just one
         self.do_affine_only = 0
         self.do_nl_only = 0
@@ -1072,5 +1096,7 @@ class TemplateConfig(PipelineConfig):
         self.aniso_iters = "1"
         self.upsample_level = []  # no upsampling by default
         self.findtypical_level = []  # no typical subject intermediates by default in nonlinear
+        self.findtypical_final = None
+        self.final_space = None
 
         super().__init__(label=label)

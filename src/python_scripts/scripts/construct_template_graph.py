@@ -28,7 +28,7 @@ def align_centers(ps, dset=None, basedset=None, suffix="_ac"):
     dataset like a template
     """
 
-    o = prepare_afni_output(dset, suffix,basepath='')
+    o = prepare_afni_output(dset, suffix,basepath=dset.bn)
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
     basedset_path = basedset.ppve()
@@ -434,12 +434,15 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     compute mean and standard deviation across a group of datasets
     """
     assert(dset_list[0] is not None)
-    file_ending = dset_list[0].view + dset_list[0].extension
-    o = dset_list[0].new("%smean%s%s" % (preprefix, suffix, file_ending))
-    if o.type == 'NIFTI':
-        oview = ''
+    if dset_list[0].type == 'NIFTI':
+        view_str = ''
     else:
-        oview = o.view
+        view_str = dset_list[0].view
+    file_ending = view_str + dset_list[0].extension
+    
+    os.chdir(ps.odir)
+    mean_out = dset_list[0].new("%smean%s%s" % (preprefix, suffix, file_ending),strict=True)
+    std_out = dset_list[0].new("%sstdev%s%s" % (preprefix, suffix, file_ending),strict=True)
 
     # add in *here* to do the "final space" update on first average
     # dset, because then it should propagate everywhere
@@ -449,17 +452,17 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
         new_space = ''
 
     cmd_str = """
-    3dMean -prefix {o.initname}  {dset_glob}; 
-    3dMean -stdev -prefix {preprefix}stdev{suffix}{file_ending} {dset_glob};
-    3drefit -denote {new_space} {preprefix}mean{suffix}{oview}; 
-    3drefit -denote {new_space} {preprefix}stdev{suffix}{oview}
+    3dMean -prefix {mean_out.initname}  {dset_glob}; 
+    3dMean -stdev -prefix {std_out.initname} {dset_glob};
+    3drefit -denote {new_space} {mean_out.initname}; 
+    3drefit -denote {new_space} {std_out.initname}
     """
     cmd_str = cmd_str.format(**locals())
 
     out_dict = run_check_afni_cmd(
-        cmd_str, ps, {'dset_1': o}, "** ERROR: Could not compute mean using")
+        cmd_str, ps, {'dset_mean': mean_out,'dset_stdev':std_out}, "** ERROR: Could not compute mean using")
 
-    return out_dict['dset_1']
+    return out_dict['dset_mean']
 
 
 def get_typical_brain(dists_brains, ps, suffix="_nl", preprefix="typical_"):
@@ -1582,14 +1585,19 @@ def get_task_graph(ps, delayed):
                                                                      resize_brain
                                                                      )
 
+    task_graph_dict = OrderedDict([
+        ('nl_mean_brain', nl_mean_brain),
+        ('nl_warpsetlist', nl_warpsetlist),
+        ('nl_aligned_brains', nl_aligned_brains)
+    ])
     # final request for a typical subject
     if(ps.findtypical_final):
         # we want the nl_aligned_brains set here-- ones that should
         # overlay the mean template well, that have been aligned to make it
         typical_brain = find_typical_subject(ps, delayed, nl_aligned_brains, 
                                              nl_mean_brain, nl_warpsetlist)
-    else:
-        typical_brain = None
+        task_graph_dict['typical_brain'] = typical_brain
+
 
     # transform maximum probability map (MPM) atlas from 
     # FreeSurfer segmentation
@@ -1601,13 +1609,6 @@ def get_task_graph(ps, delayed):
                                          delayed, fs_segs, aligned_brains, nl_warpsetlist,
                                          suffix="_FS_MPM")
 
-    else:
-        task_graph_dict = OrderedDict([
-            ('nl_mean_brain', nl_mean_brain),
-            ('nl_warpsetlist', nl_warpsetlist),
-            ('nl_aligned_brains', nl_aligned_brains)
-            ('typical_brain',typical_brain)
-        ])
 
     # nl_mean_brain template and MPM atlas are our final output
     # This is non-blocking. We can continue
