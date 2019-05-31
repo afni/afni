@@ -13,12 +13,13 @@ import shutil
 from collections import OrderedDict
 
 
-def align_centers(ps, dset=None, base=None, suffix="_ac", output_path="output_data"):
+def align_centers(ps, dset=None, base=None, suffix="_ac"):
     """
     align the center of a dataset to the center of another
     dataset like a template
     """
-    o = prepare_afni_output(dset, suffix, path=output_path)
+
+    o = prepare_afni_output(dset, suffix)
     # use shift transformation of centers between grids as initial
     # transformation. @Align_Centers (3drefit)
     base_path = base.ppve()
@@ -509,7 +510,7 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
 
     # if warp dataset provided here (either passed through or from previous intermediate save), use it
     if iniwarpset:
-        iniwarp = "-iniwarp %s" % iniwarpset['dset_1'].input()
+        iniwarp = "-iniwarp %s" % iniwarpset.input()
     else:
         # if just a level is provided for the initial warp, compose the name here
         if(iniwarplevel):
@@ -810,7 +811,7 @@ def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist, resize_brai
     warpsetlist_out2 = []
     for warp in (warpsetlist_out):
         warp_out = delayed(resize_warp)(ps, warp, nl_mean_brain, suffix="_rsz")
-        warpsetlist_out2.append(warp_out)
+        warpsetlist_out2.append(warp_out['dset_1'])
 
     # unifize the template
     if(ps.do_unifize_template):
