@@ -457,7 +457,7 @@ def get_mean_brain(dset_list, ps, dset_glob, suffix="_rigid", preprefix=""):
     3drefit -denote {new_space} {mean_out.initname}; 
     3drefit -denote {new_space} {std_out.initname}
     """
-    cmd_str = cmd_str.format(**locals())
+    cmd_str = ' '.join(cmd_str.format(**locals()).split())
 
     out_dict = run_check_afni_cmd(
         cmd_str, ps, {'dset_mean': mean_out,'dset_stdev':std_out}, "** ERROR: Could not compute mean using")
@@ -538,7 +538,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
     rigid_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
-        dset_glob="*_4rigid" + file_ending,
+        dset_glob="*/*_4rigid" + file_ending,
         suffix="_rigid", preprefix="tp0_")
 
     print("Configured first processing loop")
