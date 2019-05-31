@@ -556,8 +556,8 @@ class PipelineConfig():
                                 helpstr="Names of FreeSurfer segmentation datasets")
         self.valid_opts.add_opt('-aniso_iters', 1, [],
                                 helpstr="Number of iterations for anisotropical smoothing")
-        self.valid_opts.add_opt('-ex_mode', 1, ['script'],
-            ['quiet', 'echo', 'dry_run', 'script'],
+        self.valid_opts.add_opt('-ex_mode', 1, [''],
+            ['dry_run',''],
             helpstr=(
                 "Command execution mode.\nquiet: execute commands "
                 "quietly\necho: echo commands executed\ndry_run: only "
