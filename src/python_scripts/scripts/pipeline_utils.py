@@ -423,7 +423,6 @@ class ShellComFuture(ab.shell_com):
 
 class PipelineConfig():
     def __init__(self, label):
-        self.output_dir = ''
         self.ok_to_exist = 0  # Fail if weight data exists
         self.label = label
         self.valid_opts = None
@@ -549,6 +548,8 @@ class PipelineConfig():
                 "quietly\necho: echo commands executed\ndry_run: only "
                 "echo commands\n "
                 ))
+        self.valid_opts.add_opt('-outdir', 1, os.getcwd(),[],
+            helpstr="Specify the directory to write the output to.")
 
 
 
@@ -1002,6 +1003,11 @@ class PipelineConfig():
                 else:
                     self.info_msg(
                         "Found FreeSurfer segmentation dset %s\n" % check_dset.input())
+
+        opt = self.user_opts.find_opt('-outdir')
+        if(opt):
+            self.odir = opt.parlist[0]
+
 
     def __str__(self):
         return pformat(self.__dict__)
