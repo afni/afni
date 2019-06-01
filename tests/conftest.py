@@ -40,11 +40,15 @@ def pytest_generate_tests(metafunc):
         else:
             metafunc.parametrize("python_interpreter", ["python3"])
 
-
-def get_output_dir():
-    outdir = (
-        Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
-    )
+@pytest.fixture(scope="session")
+def output_dir():
+    user_choice = pytest.config.getoption('--overwrite_outdir')
+    if user_choice:
+        outdir = Path(user_choice)
+    else:
+        outdir = (
+            Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
+        )
     return outdir
 
 
@@ -108,7 +112,7 @@ def get_tests_data_dir():
 
 
 @pytest.fixture(scope="function")
-def data(request):
+def data(request,output_dir):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -133,7 +137,7 @@ def data(request):
     except AttributeError:
         data_paths = {}
 
-    module_outdir = get_output_dir() / Path(request.module.__file__).stem.replace(
+    module_outdir = output_dir / Path(request.module.__file__).stem.replace(
         "test_", ""
     )
     test_logdir = module_outdir / get_current_test_name() / "captured_output"
@@ -160,7 +164,7 @@ def data(request):
             "logdir": test_logdir,
             "comparison_dir": comparison_dir,
             "base_comparison_dir": get_base_comparison_dir_path(),
-            "base_outdir": get_output_dir(),
+            "base_outdir": output_dir,
             "test_name": test_name,
         }
     )
@@ -229,6 +233,16 @@ def pytest_addoption(parser):
             "tested in both python 3 and python 2 "
         ),
     )
+    parser.addoption(
+        "--overwrite_outdir",
+        default="",
+        help=(
+            "Specify a path to an output directory to write to. This is "
+            "not required for a typical run of the test-suite. It can "
+            "be useful to restart tests that are executing resumable "
+            "pipelines though. tested in both python 3 and python 2 "
+            ),
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -252,13 +266,16 @@ def pytest_collection_modifyitems(config, items):
 
 
 def pytest_sessionfinish(session, exitstatus):
-    output_directory = get_output_dir().absolute()
-    print("\nTest output is written to: ", output_directory)
+    try:
+        output_directory = output_dir.absolute()
+        print("\nTest output is written to: ", output_directory)
+    except AttributeError:
+        pass
 
     if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
         print(
             "\n Sample output is written to:",
-            tools.convert_to_sample_dir_path(get_output_dir()),
+            tools.convert_to_sample_dir_path(output_dir),
         )
 
     # When configured to save output and test session was successful...
