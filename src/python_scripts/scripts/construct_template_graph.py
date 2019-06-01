@@ -517,7 +517,7 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
     """
 
     aligned_brains = []
-
+    rigid_suffix = "_4rigid"
     #  these functions are delayed using the function wrapper "delayed" from
     #  dask to help with parallel execution
     for dset in dsetlist:
@@ -525,8 +525,8 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         aname = delayed(align_centers)(ps, dset=dset, basedset=basedset)
         amname = delayed(skullstrip)(ps, dset=aname)
         dname = delayed(unifize)(ps, dset=amname)
-        af_aligned = delayed(rigid_align)(
-            dname, basedset, ps=ps, suffix="_4rigid")
+        af_aligned  = delayed(rigid_align)(
+            dname, basedset, ps=ps, suffix=rigid_suffix)
         # change back to original directory
         # af_aligned_cd = delayed(change_dirs)(af_aligned,ps, path=cwd)
 
@@ -534,12 +534,13 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         # object we will be informed of its status.
         aligned_brains.append(af_aligned)
 
-    file_ending = dsetlist[0].view + dsetlist[0].extension
+    glob_pattern = delayed(get_glob_pattern)(aligned_brains[0], rigid_suffix)
+    assert False
     rigid_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
-        dset_glob="*/*_4rigid" + file_ending,
-        suffix="_rigid", preprefix="tp0_")
+        dset_glob=glob_pattern,
+        suffix=rigid_suffix, preprefix="tp0_")
 
     print("Configured first processing loop")
 
@@ -1270,10 +1271,35 @@ def find_typical_subject(ps, delayed, aa_brains,
     return(typ_brain)
 
 
-def get_glob_pattern(dset,suffix):
+def get_glob_pattern(dset,suffix,dirs_pattern = ''):
+    """Returns a glob pattern of the form */*/*{suffix}{file_ending} where the
+    number of levels of directories is provided or computed base on the dsets
+    name used for initialization
+
+    Args: dset (TYPE): The dset used for computing the pattern. Specifically,
+        the 0+ directories in the initname, the view (an empty string for
+        nifti), the extension (i.e. '.nii')
+
+        suffix (TYPE): The suffix that determines the files matched by the
+        pattern
+
+        dirs_pattern (str, optional): To overwrite the automated behavior of
+        calculating the directory nesting structure.
+    
+    Returns: str: A glob pattern for matching scans when called from
+        dset.initpath
+    """
     file_ending = dset.view + dset.extension
-    rps = Path(dset.initname).parent / ("*%s"%suffix)
-    return str(rps) + file_ending
+    if not dirs_pattern:
+        dir_hierarchy = Path(dset.initname).parent
+        dirs_pattern = ['*' for p in dir_hierarchy.parts if p != '.']
+    basename = "*%s"%suffix
+    return Path(*dirs_pattern) / (basename + file_ending)
+
+
+
+
+
 
 def get_nl_leveln(ps, delayed, target_brain, aa_brains, warpsetlist, resize_brain, **kwargs):
     """
