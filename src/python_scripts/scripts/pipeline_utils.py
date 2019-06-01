@@ -580,14 +580,13 @@ class PipelineConfig():
         self.valid_opts.add_opt('-ex_mode', 1, [''],
             ['dry_run',''],
             helpstr=(
-                "Command execution mode.\nquiet: execute commands "
-                "quietly\necho: echo commands executed\ndry_run: only "
-                "echo commands\n "
+                "Command execution mode.\n"
+                "dry_run: do not execute commands, only echo commands\n"
+                "default - run commands and echo to stdout"
                 ))
-        self.valid_opts.add_opt('-outdir', 1, os.getcwd(),[],
-            helpstr="Specify the directory to write the output to.")
-
-
+        self.valid_opts.add_opt('-outdir', 1,["%s"%os.getcwd()],
+            helpstr="Specify the directory to write the output to.\n"
+                    "Current directory is default.")
 
     def dry_run(self):
         if self.oexec != "dry_run":
