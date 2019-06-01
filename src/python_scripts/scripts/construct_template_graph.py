@@ -1530,7 +1530,7 @@ def make_freesurf_mpm(ps,
     mpm = compute_mpm(ps, delayed, fs_segs_out)
 
 
-def get_indata(dsetlist, outdir, delayed):
+def get_indata(ps, dsetlist, outdir, delayed):
     # Get list of datasets and check we have no duplicate filenames
     dsetlist = [Path(p).absolute() for p in dsetlist]
     if len(dsetlist) != len({p.name for p in dsetlist}):
@@ -1551,9 +1551,15 @@ def get_indata(dsetlist, outdir, delayed):
         indir.mkdir()
     for d in dsetlist:
         dpath = indir / d.name
-        shutil.copy(str(d), dpath)
-
         dsets.append(ab.afni_name(dpath, strict=True))
+        try:
+            shutil.copy(str(d), dpath)
+        except PermissionError as e:
+            if ps.ok_to_exist or ps.dry_run:
+                continue
+            else:
+                raise e
+
     return dsets
 
     # dsetlist = [os.path.relpath(p,outdir) for p in dsetlist]
@@ -1564,7 +1570,7 @@ def get_task_graph(ps, delayed):
     main computations here - create graph of processes
     """
     dsetlist = ps.dsets.parlist
-    dsets = get_indata(dsetlist, ps.odir, delayed)
+    dsets = get_indata(ps,dsetlist, ps.odir, delayed)
 
     warpsetlist = []
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
