@@ -14,7 +14,7 @@ def test_1dDW_Grad_o_Mat__plus____plus___basic(data):
     -flip_y  
     -out_col_vec {outfile}
     """
-    
+
     cmd = " ".join(cmd.format(**locals()).split())
 
     # Run command and test all outputs match
