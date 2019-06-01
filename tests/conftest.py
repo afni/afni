@@ -42,6 +42,9 @@ def pytest_generate_tests(metafunc):
 
 @pytest.fixture(scope="session")
 def output_dir():
+    return get_output_dir()
+
+def get_output_dir():
     user_choice = pytest.config.getoption('--overwrite_outdir')
     if user_choice:
         outdir = Path(user_choice)
@@ -267,7 +270,7 @@ def pytest_collection_modifyitems(config, items):
 
 def pytest_sessionfinish(session, exitstatus):
     try:
-        output_directory = output_dir.absolute()
+        output_directory = get_output_dir().absolute()
         print("\nTest output is written to: ", output_directory)
     except AttributeError:
         pass
@@ -275,7 +278,7 @@ def pytest_sessionfinish(session, exitstatus):
     if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
         print(
             "\n Sample output is written to:",
-            tools.convert_to_sample_dir_path(output_dir),
+            tools.convert_to_sample_dir_path(get_output_dir()),
         )
 
     # When configured to save output and test session was successful...
