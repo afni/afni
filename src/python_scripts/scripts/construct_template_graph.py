@@ -535,7 +535,6 @@ def get_rigid_mean(ps, basedset, dsetlist, delayed):
         aligned_brains.append(af_aligned)
 
     glob_pattern = delayed(get_glob_pattern)(aligned_brains[0], rigid_suffix)
-    assert False
     rigid_mean_brain = delayed(get_mean_brain)(
         aligned_brains,
         ps,
