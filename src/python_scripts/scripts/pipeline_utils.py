@@ -378,7 +378,16 @@ def run_check_afni_cmd(cmd_str, ps, in_dict, message=""):
         # Expected files should now exist:
         if len(expected_files) > 0:
             files_status = {k: v.exist() for k, v in expected_files.items()}
-        if not (ps.dry_run() or all(files_status.values())):
+        if all(files_status.values()):
+            # All files were created successfully
+            pass
+        elif ps.dry_run():
+            for varname, p in expected_files.items():
+                if not p.exist():
+                    full_path = Path(p.ffn)
+                    os.makedirs(full_path.parent,exist_ok=True)
+                    full_path.touch()
+        else:
             missing_files = [
                 v.ppve() for k, v in expected_files.items() if not files_status[k]]
             raise RuntimeError(
