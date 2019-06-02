@@ -467,7 +467,8 @@ class PipelineConfig():
         self.prep_only = 0  # do preprocessing only
         self.odir = os.getcwd()
         self.bokeh_port = 8787  # default port to show graphical Bokeh debugging info with Dasks
-
+        self.visualize_graph = 0 # do not visualize task graph by default
+        
         self.resizebase = []  # dataset to resize nonlinear means to
 
         self.max_workers = 0   # user sets maximum number of workers
@@ -587,6 +588,8 @@ class PipelineConfig():
         self.valid_opts.add_opt('-outdir', 1,["%s"%os.getcwd()],
             helpstr="Specify the directory to write the output to.\n"
                     "Current directory is default.")
+        self.valid_opts.add_opt('-viz_only', 0, [],
+                                helpstr="Visualize graph only")
 
     def dry_run(self):
         if self.oexec != "dry_run":
@@ -613,6 +616,12 @@ class PipelineConfig():
         if opt != None:
             print("setting option to rewrite")
             self.rewrite = 1
+
+        # create visualization graph only and exit
+        opt = self.user_opts.find_opt('-viz_only')
+        if opt != None:
+            print("setting option to create visualize graph")
+            self.visualize_graph = 1         
 
         opt = opt_list.find_opt('-ex_mode')    # set execute mode
         if opt != None:
