@@ -19,13 +19,15 @@ from afni_python.pipeline_utils import TemplateConfig
 import sys
 import pytest
 
-base_path = Path("ds000002")
-subjects = [f"sub-{x:02d}" for x in range(1, 11)]
+base_path = Path("ds000117_subset")
+subjects = [f"sub-{x:02d}" for x in range(1, 5)]
 data_paths = {
-    "scans": [(base_path / s / "anat" / (s + "_T1w.nii.gz")) for s in subjects]
+    "t1ws": [base_path / f"{s}_T1.nii.gz" for s in subjects],
+    "asegs": [base_path / f"{s}_aseg.nii.gz" for s in subjects],
 }
 
-@pytest.fixture(scope='function')
+
+@pytest.fixture(scope="function")
 def afni_dir():
     ## Setup for troubleshooting AFNI pipeline
 
@@ -39,7 +41,8 @@ def afni_dir():
 
     return afni_dir
 
-def test_construct_template_graph(afni_dir,data):
+
+def test_construct_template_graph(afni_dir, data):
     # This is a hack because the AFNI TemplateConfig class parses
     # input from a system call as part of its initialization
     sys.argv = [
@@ -48,7 +51,7 @@ def test_construct_template_graph(afni_dir,data):
         "-outdir",
         data.outdir,
         "-dsets",
-        *[str(f) for f in data.scans][:2],
+        *[str(f) for f in data.t1ws][:2],
         "-init_base",
         afni_dir / "MNI152_2009_template.nii.gz",
         "-ex_mode",
@@ -57,10 +60,8 @@ def test_construct_template_graph(afni_dir,data):
         "8791",
     ]
 
-
     ## Setup dask cluster
     client = Client(processes=False, n_workers=1, threads_per_worker=2)
-
 
     ps = TemplateConfig("make_template_dask.py")
     ps.init_opts()
@@ -68,14 +69,52 @@ def test_construct_template_graph(afni_dir,data):
         raise ValueError
     ps.process_input()
     task_graph_dict = construct_template_graph.get_task_graph(ps, delayed)
-    task_graph_dict['nl_mean_brain'].visualize(str(data.outdir / 'compute_graph.svg'))
-    template_futures = client.compute(task_graph_dict['nl_mean_brain'])
+    task_graph_dict["nl_mean_brain"].visualize(str(data.outdir / "compute_graph.svg"))
+    template_futures = client.compute(task_graph_dict["nl_mean_brain"])
+    result = client.gather(template_futures)
+    print("Really finished making template")
+
+
+def test_construct_fpm_graph(afni_dir, data):
+    # This is a hack because the AFNI TemplateConfig class parses
+    # input from a system call as part of its initialization
+    sys.argv = [
+        Path(ab.__file__).with_name("make_dask_template.py"),
+        "-ok_to_exist",
+        "-outdir",
+        data.outdir,
+        "-dsets",
+        *[str(f) for f in data.t1ws][:2],
+        "-fs_seg_sets",
+        *[str(f) for f in data.asegs][:2],
+        "-init_base",
+        afni_dir / "MNI152_2009_template.nii.gz",
+        "-ex_mode",
+        "dry_run",
+        "-do_freesurf_mpm",
+        "-findtypical_final",
+        "-bokeh_port",
+        "8791",
+    ]
+
+    ## Setup dask cluster
+    client = Client(processes=False, n_workers=1, threads_per_worker=2)
+
+    ps = TemplateConfig("make_template_dask.py")
+    ps.init_opts()
+    if ps.get_user_opts("help"):
+        raise ValueError
+    ps.process_input()
+    task_graph_dict = construct_template_graph.get_task_graph(ps, delayed)
+    val = task_graph_dict["freesurf_mpm"]["fs_segs_out"]["fs_segs_out"][0]
+    val.visualize(str(data.outdir / "compute_graph.svg"))
+    template_futures = client.compute(val.compute())
     result = client.gather(template_futures)
     print("Really finished making template")
 
 
 @pytest.mark.veryslow
-def test_template_graph_execution(afni_dir,data):
+def test_template_graph_execution(afni_dir, data):
     # This is a hack because the AFNI TemplateConfig class parses
     # input from a system call as part of its initialization
     sys.argv = [
@@ -100,8 +139,8 @@ def test_template_graph_execution(afni_dir,data):
         raise ValueError
     ps.process_input()
     task_graph_dict = construct_template_graph.get_task_graph(ps, delayed)
-    task_graph_dict['nl_mean_brain'].visualize(str(data.outdir / 'compute_graph.svg'))
+    task_graph_dict["nl_mean_brain"].visualize(str(data.outdir / "compute_graph.svg"))
 
-    template_futures = client.compute(task_graph_dict['nl_mean_brain'])
+    template_futures = client.compute(task_graph_dict["nl_mean_brain"])
     result = client.gather(template_futures)
     print("Really finished making template")
