@@ -1596,7 +1596,7 @@ def get_task_graph(ps, delayed):
     """
     dsetlist = ps.dsets.parlist
     dsets = get_indata(ps,dsetlist, ps.odir, delayed)
-
+ 
     warpsetlist = []
     (rigid_mean_brain, aligned_brains) = get_rigid_mean(
         ps, ps.basedset, dsets, delayed)
@@ -1633,13 +1633,15 @@ def get_task_graph(ps, delayed):
     # transform maximum probability map (MPM) atlas from 
     # FreeSurfer segmentation
     if ps.do_freesurf_mpm:
-        raise ValueError(
-            'Using do_freesurf_mpm is not yet implemented because fs_segs has not been defined.')
         # this also needs to generate a task_graph_dict
-        freesurf_mpm = make_freesurf_mpm(ps,
+        fs_segs = get_indata(ps,fseglist, ps.odir, delayed)
+        if(len(fs_segs) !=  len(align_brains)):
+            print("Can't compute MPM atlas unless all datasets have matching segmentations")
+        else:
+            freesurf_mpm = make_freesurf_mpm(ps,
                                          delayed, fs_segs, aligned_brains, nl_warpsetlist,
                                          suffix="_FS_MPM")
-
+            task_graph_dict['freesurf_mpm'] = freesurf_mpm
 
     # nl_mean_brain template and MPM atlas are our final output
     # This is non-blocking. We can continue
