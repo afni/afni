@@ -123,7 +123,7 @@ def test_template_graph_execution(afni_dir, data):
         "-outdir",
         data.outdir,
         "-dsets",
-        *[str(f) for f in data.scans][:4],
+        *[str(f) for f in data.t1ws][:4],
         "-init_base",
         afni_dir / "MNI152_2009_template.nii.gz",
         "-bokeh_port",
