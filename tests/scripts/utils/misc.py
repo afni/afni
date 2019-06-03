@@ -72,8 +72,10 @@ def check_file_exists(file_path, test_data_dir):
     if not (full_path.exists() or full_path.is_symlink()):
         if "sample_test_output" in full_path.parts:
             raise ValueError(
-                "Cannot specify input data that is located in the sample_test_output directory."
+                "Cannot specify input data that is located in the "
+                "sample_test_output directory. "
             )
+
         else:
             raise ValueError(no_file_error)
 
