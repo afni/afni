@@ -173,7 +173,7 @@ def affine_align(dset, base, suffix="_aff", aff_type="affine", ps=None):
 
     cmd_str = """\
     @auto_tlrc -base {base_in} -input {input_name} -no_ss -onewarp\
-    {rigid_opt} -suffix {suffix} -pad_input 15 -OK_maxite -maxite 50 \
+    {rigid_opt} -prefix {out_prefix}.nii.gz -pad_input 15 -OK_maxite -maxite 50 ;\
     """
 
     #    cmd_str = """\
