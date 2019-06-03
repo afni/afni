@@ -60,6 +60,7 @@ ENTRY("AFNI_see_func_CB") ;
      }
    }
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    RESET_AFNI_QUIT(im3d) ;
    EXRETURN ;
 }
@@ -3854,6 +3855,7 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    }
    CLU_setup_alpha_tables(im3d) ;
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 

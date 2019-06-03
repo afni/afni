@@ -3152,6 +3152,8 @@ ENTRY("AFNI_thr_EV") ;
            AFNI_func_setpval_CB(w,cd,NULL) ;  /* special case */
          } else if( event->button == Button5 ){
            AFNI_func_setqval_CB(w,cd,NULL) ;  /* special case */
+         } else if( event->button == Button1 ){
+           AFNI_fix_scale_size_direct( im3d ) ;  /* 03 Jun 2019 (Lucca) */
          } else {
            im3d->vwid->butx = event->x_root ;
            im3d->vwid->buty = event->y_root ;

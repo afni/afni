@@ -2902,6 +2902,10 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->thr_label) ;
+   MCW_set_widget_bg( func->thr_label , "#080808" , 0 ) ;
+   MCW_set_widget_fg( func->thr_label , "#ffeedd" ) ;
+   MCW_register_hint( func->thr_label ,
+                      "Left click = fix slider size ; Right click = popup menu" ) ;
 
    /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] ---*/
 

@@ -2420,6 +2420,9 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_THRESH_INIT_EXPON" , "1" ) ;
    PUTENV("AFNI_AUTORANGE_PERC"    , "0") ;
 
+   PUTENV("AFNI_HIDE_FIX_SCALE"    , "YES" ) ;  /* 03 Jun 2019 */
+   PUTENV("AFNI_DONT_FIX_SCALE"    , "NO"  ) ;  /* (from Lucca) */
+
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
    PUTENV("AFNI_IMAGE_LABEL_SIZE","2") ;
@@ -10216,8 +10219,7 @@ THD_fvec3 AFNI_transform_vector( THD_3dim_dataset *old_dset ,
 static void fixscale( XtPointer client_data , XtIntervalId *id )
 {
    Three_D_View *im3d = (Three_D_View *) client_data ;
-   FIX_SCALE_SIZE(im3d) ;
-
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
 #if 0
    XtVaSetValues( im3d->vwid->func->thr_scale , XmNscaleWidth,24 , NULL ) ;
 #endif
@@ -10398,6 +10400,8 @@ STATUS("remanaging children") ;
 
 #ifdef FIX_SCALE_SIZE_LATER
         (void) XtAppAddTimeOut( MAIN_app,50,fixscale,im3d ) ; /* 09 May 2001 */
+#else
+         AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
 #endif
 
 /***     XtManageChild( im3d->vwid->func->inten_bbox->wrowcol ) ; ***/
@@ -13414,3 +13418,103 @@ ENTRY("AFNI_replace_timeseries") ;
    EXRETURN ;
 }
 
+/*------------------------------------------------------------------------*/
+/*** New fix for scale size problem
+     - via a timeout, to avoid excessive flashing of the scale widget
+     - 03 Jun 2019 [RWC in Lucca]
+***/
+/*------------------------------------------------------------------------*/
+
+static int ssfix_waiting[MAX_CONTROLLERS] ; /* is it waiting to be fixed? */
+
+void AFNI_fix_scale_size_direct( Three_D_View *im3d )
+{
+   int iqqq = AFNI_controller_index(im3d) ;
+   int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
+
+   if( iqqq < 0 ) return ;
+
+   XtVaGetValues( im3d->vwid->func->thr_scale ,
+                  XmNuserData , &sel_ptr , NULL ) ;
+   sel_height = PTOI(sel_ptr) ;
+
+   XtVaGetValues( im3d->vwid->func->thr_scale ,
+                  XmNheight , &sel_actual , NULL ) ;
+
+   if( sel_actual == sel_height ) return ;
+
+   /* do the work */
+
+   XtUnmanageChild(im3d->vwid->func->thr_scale) ; AFNI_sleep(11) ;
+
+   XtVaSetValues( im3d->vwid->func->thr_scale ,
+                  XmNheight , sel_height , NULL ) ;
+
+   XtManageChild(im3d->vwid->func->thr_scale) ;
+
+   return ;
+}
+
+#define KILL_MASK                \
+    KeyPressMask               | \
+    KeyReleaseMask             | \
+    ButtonPressMask            | \
+    ButtonReleaseMask          | \
+    PointerMotionMask          | \
+    PointerMotionHintMask      | \
+    Button1MotionMask          | \
+    Button2MotionMask          | \
+    Button3MotionMask          | \
+    Button4MotionMask          | \
+    Button5MotionMask          | \
+    ButtonMotionMask
+
+void AFNI_fix_scale_size_CB( XtPointer client_data , XtIntervalId *id )
+{
+   Three_D_View *im3d = (Three_D_View *)client_data ;
+   int iqqq = AFNI_controller_index(im3d) ;
+   int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
+
+   if( iqqq < 0 || ssfix_waiting[iqqq] == 0 ) return ;
+
+   if( ssfix_waiting[iqqq] > 1 ){
+     (void) XtAppAddTimeOut( MAIN_app , 123 ,
+                             AFNI_fix_scale_size_CB , im3d ) ;
+     ssfix_waiting[iqqq] = 1 ;
+   }
+
+   AFNI_fix_scale_size_direct( im3d ) ;
+
+#if 0
+   MCW_discard_events( im3d->vwid->func->thr_scale , -1 ) ;
+#endif
+
+   ssfix_waiting[iqqq] = 0 ; return ;
+}
+
+/*------------------------------------------------------------------------*/
+/* This is called to start the scale size fix timeout [03 Jun 2019] */
+
+void AFNI_set_scale_size_fix_timer( Three_D_View *im3d )
+{
+   int iqqq = AFNI_controller_index(im3d) ;
+   int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
+
+   if( AFNI_yesenv("AFNI_DONT_FIX_SCALE") ) return ;
+
+   if( iqqq < 0 || ssfix_waiting[iqqq] ) return ;
+
+   XtVaGetValues( im3d->vwid->func->thr_scale ,
+                  XmNuserData , &sel_ptr , NULL ) ;
+   sel_height = PTOI(sel_ptr) ; /* desired */
+
+   XtVaGetValues( im3d->vwid->func->thr_scale ,
+                  XmNheight , &sel_actual , NULL ) ;
+
+   if( sel_actual == sel_height ) return ;
+
+   (void) XtAppAddTimeOut( MAIN_app , 123 ,
+                           AFNI_fix_scale_size_CB , im3d ) ;
+
+   ssfix_waiting[iqqq]++ ; return ;
+}

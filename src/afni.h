@@ -89,6 +89,21 @@ typedef struct {
 #endif
 
 /*-----------------------------------------------------------*/
+/** Fixing scale size removed to a function [03 Jun 2019] **/
+
+struct Three_D_View ;  /* incomplete type definition */
+extern void AFNI_set_scale_size_fix_timer( struct Three_D_View *im3d ) ;
+extern void AFNI_fix_scale_size_direct( struct Three_D_View *im3d ) ;
+
+#if 1
+# define FIX_SCALE_SIZE(iqqq) /*nada*/
+#else
+# define FIX_SCALE_SIZE(iqqq) AFNI_set_scale_size_fix_timer(iqqq)
+#endif
+
+#define HIDE_SCALE(iqqq) /*nada*/
+
+/*-----------------------------------------------------------*/
 
 /* define this to put "chooser" controls on the popup menu */
 #undef POPUP_CHOOSERS
@@ -453,8 +468,6 @@ typedef struct {
 } AFNI_surface_widgets ;
 
 /*---*/
-
-struct Three_D_View ;  /* incomplete type definition */
 
 #define MAX_CLU_AUXDSET 4   /* 19 Oct 2015 */
 
@@ -838,20 +851,8 @@ extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014
 /** On Motif 2.0 on Linux, resized pbar pieces causes the
     threshold scale to behave bizarrely.  This macro is a fixup **/
 
-#ifdef FIX_SCALE_SIZE_PROBLEM
-#  define FIX_SCALE_SIZE(iqqq)                                    \
-     do{ int sel_height ;  XtPointer sel_ptr=NULL ;               \
-         XtVaGetValues( (iqqq)->vwid->func->thr_scale ,           \
-                        XmNuserData , &sel_ptr , NULL ) ;         \
-         sel_height = PTOI(sel_ptr) ;                             \
-         XtVaSetValues( (iqqq)->vwid->func->thr_scale ,           \
-                        XmNheight , sel_height , NULL ) ;         \
-         XtManageChild((iqqq)->vwid->func->thr_scale) ;           \
-       } while(0)
-#  define HIDE_SCALE(iqqq) XtUnmanageChild((iqqq)->vwid->func->thr_scale)
-#else
-#  define FIX_SCALE_SIZE(iqqq) /* nada */
-#  define HIDE_SCALE(iqqq)     /* nada */
+#ifndef FIX_SCALE_SIZE
+# define FIX_SCALE_SIZE(iqqq) /*nada*/
 #endif
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
