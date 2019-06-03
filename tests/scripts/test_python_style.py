@@ -1,5 +1,6 @@
 from pathlib import Path
 import subprocess
+import pytest
 
 PYTESTS_DIR = [p for p in Path(__file__).parents if p.name == "scripts"][0]
 TEST_MODS = [str(p) for p in PYTESTS_DIR.glob("**/*.py")]
@@ -14,6 +15,7 @@ STYLE_TXT = (
 )
 
 
+@pytest.mark.slow
 def test_for_unblackened():
     for test_module in TEST_MODS:
         cmd = f"black --check {test_module}"
@@ -24,6 +26,7 @@ def test_for_unblackened():
             raise ValueError(STYLE_TXT)
 
 
+@pytest.mark.slow
 def test_pep8():
     for test_module in TEST_MODS:
 
@@ -38,8 +41,3 @@ def test_pep8():
         if proc.returncode == 2:
             raise ValueError(STYLE_TXT)
         proc.check_returncode()
-
-
-if __name__ == "__main__":
-    test_for_unblackened()
-    test_pep8()
