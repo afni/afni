@@ -37,12 +37,17 @@ def align_centers(ps, dset=None, basedset=None, suffix="_ac"):
     # transformation. @Align_Centers (3drefit)
     basedset_path = basedset.ppve()
 
-    if ps.do_center == 0:
-        raise ValueError("This part of the pipeline needs to be checked")
-        cmd_str = "@Align_Centers -base {basedset_path} -dset {dset.initname} -no_cp"
+    if ps.do_center == 1:
+        cmd_str = """
+        3dcopy {dset.initname} {o.initname} &&
+        @Align_Centers
+            -base {basedset_path}
+            -dset {o.initname}
+            -no_cp
+        """
+        cmd_str = " ".join(cmd_str.format(**locals()).split())
     else:
         cmd_str = "3dcopy %s %s" % (dset.initname, o.initname)
-    cmd_str = cmd_str.format(**locals())
 
     out_dict = run_check_afni_cmd(cmd_str, ps, {"dset_1": o})
     return out_dict["dset_1"]
@@ -1683,7 +1688,7 @@ def make_freesurf_mpm(
         ps, delayed, fs_segs, aligned_brains, nl_warpsetlist
     )
     mpm = compute_mpm(ps, delayed, fs_segs_out)
-    
+
     return mpm
 
 
@@ -1778,7 +1783,7 @@ def get_task_graph(ps, delayed):
             freesurf_mpm = make_freesurf_mpm(
                 ps, delayed, fs_segs, aligned_brains, nl_warpsetlist, suffix="_FS_MPM"
             )
-            
+
             task_graph_dict["freesurf_mpm"] = freesurf_mpm
 
     # nl_mean_brain template and MPM atlas are our final output
