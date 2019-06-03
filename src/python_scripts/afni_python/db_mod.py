@@ -1568,9 +1568,11 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     if proc.use_me:
        indent = '   '
        prev_x = proc.prev_prefix_form_run(block, view=1, eind=-1)
+       eistr = '.e$eind'
     else:
-       prev_x = prev_prefix
        indent = ''
+       prev_x = prev_prefix
+       eistr = ''
 
     cmd = cmd +                                                   \
         "    # create (polort) X-matrix to apply in 3dREMLfit\n"\
@@ -1579,24 +1581,25 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         (polort, prev_x, matrix)
 
     if proc.use_me:
-       cmd += '    foreach eind ( $echo_list )\n'
+       cmd += '    # project out from each echo\n' \
+              '    foreach eind ( $echo_list )\n'
 
     cmd = cmd +                                                   \
         "%s    # regress out the detrended RETROICOR regressors\n"\
         "%s    3dREMLfit -input %s \\\n"                          \
         "%s        -matrix %s \\\n"                               \
-        "%s        -%sbeta %s.betas.r$run \\\n"                   \
-        "%s        -%serrts %s.errts.r$run \\\n"                  \
+        "%s        -%sbeta %s.betas.r$run%s \\\n"                 \
+        "%s        -%serrts %s.errts.r$run%s \\\n"                \
         "%s        -slibase_sm stimuli/ricor_det_r$run.1D\n\n"    \
         % (indent, indent, prev_prefix, indent, matrix,
-           indent, solver, prefix, indent, solver, prefix, indent)
+           indent, solver, prefix, eistr, indent, solver, prefix, eistr, indent)
     cmd = cmd +                                                   \
         "%s    # re-create polynomial baseline\n"                 \
         "%s    3dSynthesize -matrix %s \\\n"                      \
-        "%s        -cbucket %s.betas.r$run%s'[0..%d]' \\\n"       \
-        "%s        -select polort -prefix %s.polort.r$run\n\n"    \
-        % (indent, indent, matrix, indent, prefix, proc.view, polort,
-           indent, prefix)
+        "%s        -cbucket %s.betas.r$run%s%s'[0..%d]' \\\n"     \
+        "%s        -select polort -prefix %s.polort.r$run%s\n\n"  \
+        % (indent, indent, matrix, indent, prefix, eistr, proc.view, polort,
+           indent, prefix, eistr)
 
     # short data is unscaled, float is the default, else convert to rdatum
     if rdatum == 'short':
@@ -1606,13 +1609,15 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     else:
        dstr = '%s          -datum %s \\\n' % (indent, rdatum)
 
-    cmd = cmd +                                                 \
-        "%s    # final result: add REML errts to polynomial baseline\n"   \
-        "%s    3dcalc -a %s.errts.r$run%s \\\n"                   \
-        "%s           -b %s.polort.r$run%s \\\n"                  \
-        '%s'                                                    \
-        "%s           -expr a+b -prefix %s\n"                     \
-        % (indent, indent, prefix, proc.view, indent, prefix, proc.view,
+    cmd = cmd +                                                         \
+        "%s    # final result: add REML errts to polynomial baseline\n" \
+        "%s    3dcalc -a %s.errts.r$run%s%s \\\n"                       \
+        "%s           -b %s.polort.r$run%s%s \\\n"                      \
+        '%s'                                                            \
+        "%s           -expr a+b -prefix %s\n"                           \
+        % (indent,
+           indent, prefix, eistr, proc.view,
+           indent, prefix, eistr, proc.view,
            dstr, indent, cur_prefix)
 
     if proc.use_me:
