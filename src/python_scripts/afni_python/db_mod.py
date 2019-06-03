@@ -1324,10 +1324,7 @@ def db_cmd_ricor(proc, block):
         return
 
     # ME: implement multi-echo once someone wants it...
-    if proc.use_me and 0:
-       print("** ricor block is not yet allowed on ME data")
-       print("   (please request on AFNI message board)")
-       return
+    # hopefully ready now   3 Jun 2019
 
     # get datum, if set
     rdatum, err = block.opts.get_string_opt('-ricor_datum')
@@ -1439,8 +1436,12 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     prev_dsets = proc.prev_dset_form_wild(block, view=1)
     cur_prefix = proc.prefix_form_run(block)
-    prefix     = 'pb%02d.ricor' % block.index
-    matrix     = '%s.xmat.1D' % prefix
+    prebase    = 'pb%02d.ricor' % block.index
+    matrix     = '%s.xmat.1D' % prebase
+    # do not save these files by default, except for the matrices
+    prefix      = 'rm.' + prebase
+
+    prev_x = proc.prev_dset_form_wild(block, view=1, eind=-1)
 
     # we have a regressor file to pass to the regress processing block
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
@@ -1475,52 +1476,78 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "# create (polort) X-matrix to apply in 3dREMLfit\n"    \
         "3dDeconvolve -polort %d -input %s \\\n"                \
         "    -x1D_stop -x1D %s\n\n"                             \
-        % (polort, prev_dsets, matrix)
+        % (polort, prev_x, matrix)
 
     # process 3D+time data
+    if proc.use_me:
+       eprefix = prefix + '.e$eind'
+       indent = '   '
+       eiter = '.e$eind'
+       cmd += "# process one echo at a time, across runs\n" \
+              "foreach eind ( $echo_list )\n"
+    else:
+       eprefix = prefix
+       indent = ''
+       eiter = ''
 
-    cmd = cmd +                                                         \
-        "# 3dREMLfit does not currently catenate a dataset list\n"      \
-        "set dsets = ( %s )\n\n" % prev_dsets
+    cmd = cmd +                                                      \
+        "%s# 3dREMLfit does not currently catenate a dataset list\n" \
+        "%sset dsets = ( %s )\n\n" % (indent, indent, prev_dsets)
 
-    cmd = cmd +                                                 \
-        "# regress out the detrended RETROICOR regressors\n"    \
-        "# (matrix from 3dD does not have slibase regressors)\n"\
-        '3dREMLfit -input "$dsets" \\\n'                        \
-        "    -matrix %s \\\n"                                   \
-        "    -%sbeta %s.betas \\\n"                             \
-        "    -%serrts %s.errts \\\n"                            \
-        "    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
-        % (matrix, solver, prefix, solver, prefix)
+    cmd = cmd +                                                   \
+        "%s# regress out the detrended RETROICOR regressors\n"    \
+        "%s# (matrix from 3dD does not have slibase regressors)\n"\
+        '%s3dREMLfit -input "$dsets" \\\n'                        \
+        "%s    -matrix %s \\\n"                                   \
+        "%s    -%sbeta %s.betas \\\n"                             \
+        "%s    -%serrts %s.errts \\\n"                            \
+        "%s    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
+        % (indent, indent, indent, indent, matrix,
+           indent, solver, eprefix,
+           indent, solver, eprefix, indent)
 
-    cmd = cmd +                                                 \
-        "# re-create polynomial baseline\n"                     \
-        "3dSynthesize -matrix %s \\\n"                          \
-        "    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
-        "    -select polort -prefix %s.polort\n\n"              \
-        % (matrix, prefix, proc.view, (polort+1)*proc.runs-1, prefix)
+    cmd = cmd +                                                   \
+        "%s# re-create polynomial baseline\n"                     \
+        "%s3dSynthesize -matrix %s \\\n"                          \
+        "%s    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
+        "%s    -select polort -prefix %s.polort\n\n"              \
+        % (indent, indent, matrix,
+           indent, eprefix, proc.view, (polort+1)*proc.runs-1,
+           indent, eprefix)
 
     # short data is unscaled, float is the default, else convert to short
-    if   rdatum == 'short':  dstr = '           -datum short -nscale \\\n'
-    elif rdatum == 'float':  dstr = ''
-    else:                    dstr = '           -datum %s \\\n' % rdatum
+    if   rdatum == 'short':
+       dstr = '%s           -datum short -nscale \\\n' % indent
+    elif rdatum == 'float':
+       dstr = ''
+    else:
+       dstr = '%s           -datum %s \\\n' % (indent, rdatum)
 
-    cmd = cmd +                                                 \
-        "# final result: add REML errts to polynomial baseline\n" \
-        "# (and separate back into individual runs)\n"          \
-        "set startind = 0\n"                                    \
-        "foreach rind ( `count -digits 1 1 $#runs` )\n"         \
-        "    set run = $runs[$rind]\n"                          \
-        "    set runlen = $tr_counts[$rind]\n"                  \
-        "    @ endind = $startind + $runlen - 1\n"              \
-        "\n"                                                    \
-        '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
-        '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
-        '%s'                                                    \
-        '           -expr a+b -prefix %s\n'                     \
-        "    @ startind = $endind + 1\n"                        \
-        'end\n\n'                                               \
-        % (prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+    cmd = cmd +                                                     \
+        "%s# final result: add REML errts to polynomial baseline\n" \
+        "%s# (and separate back into individual runs)\n"            \
+        "%sset startind = 0\n"                                      \
+        "%sforeach rind ( `count -digits 1 1 $#runs` )\n"           \
+        "%s    set run = $runs[$rind]\n"                            \
+        "%s    set runlen = $tr_counts[$rind]\n"                    \
+        "%s    @ endind = $startind + $runlen - 1\n"                \
+        "\n" % (indent, indent, indent, indent, indent, indent, indent)
+
+    cmd = cmd +                                                     \
+        '%s    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'     \
+        '%s           -b %s.polort%s"[$startind..$endind]" \\\n'    \
+        '%s'                                                        \
+        '%s           -expr a+b -prefix %s\n'                       \
+        "%s    @ startind = $endind + 1\n"                          \
+        '%send\n'                                                   \
+        % (indent, eprefix, proc.view,
+           indent, eprefix, proc.view, dstr,
+           indent, cur_prefix, indent, indent)
+
+    if proc.use_me:
+       cmd = cmd + 'end\n'
+
+    cmd = cmd + '\n'
 
     return cmd
 
@@ -1539,6 +1566,8 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     cur_prefix  = proc.prefix_form_run(block)
     prefix      = 'pb%02d.ricor' % block.index
     matrix      = '%s.r$run.xmat.1D' % prefix
+    # do not save these files by default, except for the matrices
+    prefix      = 'rm.' + prefix
 
     # we have a regressor file to pass to the regress processing block
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
@@ -1565,13 +1594,12 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     # process 3D+time data
 
     # if ME, prev_prefix should be fave_echo
+    prev_x = proc.prev_prefix_form_run(block, view=1, eind=-1)
     if proc.use_me:
        indent = '   '
-       prev_x = proc.prev_prefix_form_run(block, view=1, eind=-1)
        eistr = '.e$eind'
     else:
        indent = ''
-       prev_x = prev_prefix
        eistr = ''
 
     cmd = cmd +                                                   \

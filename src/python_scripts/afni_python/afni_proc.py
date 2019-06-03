@@ -646,9 +646,10 @@ g_history = """
         - have -regress_anaticor_full_gaussian default to yes
           (so one would now have to ask for a truncated Gaussian)
         - generate fanaticor_mask_coverage as float
+    6.39 Jun  3, 2019: allow ricor in case of ME data
 """
 
-g_version = "version 6.38, May 30, 2019"
+g_version = "version 6.30, June 3, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
