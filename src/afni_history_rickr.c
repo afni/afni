@@ -49,9 +49,9 @@
 
 afni_history_struct rickr_history[] = {
 
- { 30, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
-   "apply full Gaussian blur for fast anaticor",
-   "Truncated blur is okay, but has cubical extents, rather than spherical."
+ {  3, Jun, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow ricor processing in case of multi-echo data",
+   "Done for K Dembny."
  } ,
 
  { 30, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_MODIFY,
