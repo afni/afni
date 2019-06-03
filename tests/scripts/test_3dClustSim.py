@@ -20,6 +20,7 @@ data_paths = {
 # from test_utils.diff import diff_parser
 
 
+@pytest.mark.slow
 @pytest.mark.parametrize("add_env_vars", [({}), ({"OMP_NUM_THREADS": "2"})])
 def test_3dClustSim_basic(data, add_env_vars):
     seedval = 31416
