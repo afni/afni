@@ -93,6 +93,7 @@ ENTRY("AFNI_thrtop_CB") ;
    IM3D_CLEAR_THRSTAT(im3d) ;
    AFNI_redisplay_func(im3d) ;
    AFNI_set_window_titles(im3d) ;
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
 
    EXRETURN ;
 }
@@ -150,6 +151,7 @@ ENTRY("AFNI_func_autothresh_CB") ;
    IM3D_CLEAR_THRSTAT(im3d) ;                           /* 12 Jun 2014 */
    new_thresh = AFNI_get_autothresh(im3d) ;
    if( new_thresh > 0.0f ) AFNI_set_threshold(im3d,new_thresh) ;
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -213,6 +215,7 @@ ENTRY("AFNI_func_setpval_final_CB") ;
    im3d->vinfo->fixed_qval = 0.0f ;
 
    AFNI_set_pval(im3d,pval) ;
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -362,6 +365,7 @@ ENTRY("AFNI_func_thrsign_CB") ;
    AFNI_set_thr_pval( im3d ) ;                             /* Jan 2015 */
    AFNI_redisplay_func( im3d ) ;
    AFNI_set_window_titles( im3d ) ;
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -611,6 +615,7 @@ ENTRY("AFNI_thresh_top_CB") ;
      AFNI_thresh_lock_carryout(im3d) ;  /* 06 Feb 2004 */
    }
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -845,6 +850,10 @@ INFO_message("AFNI_inten_pbar_CB(%d)",AFNI_controller_index(im3d)) ;
    FIX_SCALE_SIZE(im3d) ;
 
    AFNI_pbar_lock_carryout(im3d) ; /* 07 Feb 2004 */
+
+#if 0
+   AFNI_set_scale_size_fix_timer(im3d) ;  /* 03 Jun 2019 */
+#endif
    EXRETURN ;
 }
 
@@ -1042,6 +1051,7 @@ void AFNI_inten_av_CB( MCW_arrowval *av , XtPointer cd )
    if( PBAR_FULLRANGE ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
    else                 HINTIZE_pbar(im3d) ;
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    return ;
 }
 
@@ -6410,6 +6420,7 @@ ENTRY("AFNI_range_bbox_CB") ;
       AFNI_range_lock_carryout(im3d) ;  /* 23 Feb 2004 */
    }
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -6472,6 +6483,7 @@ ENTRY("AFNI_range_av_CB") ;
 
    AFNI_range_lock_carryout(im3d) ;  /* 23 Feb 2004 */
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -6542,6 +6554,7 @@ ENTRY("AFNI_inten_bbox_CB") ;
         AFNI_redisplay_func_all( im3d ) ;
    }
 
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 
@@ -6705,6 +6718,7 @@ ENTRY("AFNI_bucket_CB") ;
 
 
    FIX_SCALE_SIZE(im3d) ;
+   AFNI_fix_scale_size_direct(im3d) ;  /* 03 Jun 2019 */
    EXRETURN ;
 }
 

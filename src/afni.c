@@ -13478,7 +13478,7 @@ void AFNI_fix_scale_size_CB( XtPointer client_data , XtIntervalId *id )
    if( iqqq < 0 || ssfix_waiting[iqqq] == 0 ) return ;
 
    if( ssfix_waiting[iqqq] > 1 ){
-     (void) XtAppAddTimeOut( MAIN_app , 123 ,
+     (void) XtAppAddTimeOut( MAIN_app , 66 ,
                              AFNI_fix_scale_size_CB , im3d ) ;
      ssfix_waiting[iqqq] = 1 ;
    }
@@ -13502,7 +13502,7 @@ void AFNI_set_scale_size_fix_timer( Three_D_View *im3d )
 
    if( AFNI_yesenv("AFNI_DONT_FIX_SCALE") ) return ;
 
-   if( iqqq < 0 || ssfix_waiting[iqqq] ) return ;
+   if( iqqq < 0 ) return ;
 
    XtVaGetValues( im3d->vwid->func->thr_scale ,
                   XmNuserData , &sel_ptr , NULL ) ;
@@ -13513,8 +13513,9 @@ void AFNI_set_scale_size_fix_timer( Three_D_View *im3d )
 
    if( sel_actual == sel_height ) return ;
 
-   (void) XtAppAddTimeOut( MAIN_app , 123 ,
-                           AFNI_fix_scale_size_CB , im3d ) ;
+   if( ssfix_waiting[iqqq] == 0 )
+     (void) XtAppAddTimeOut( MAIN_app , 123 ,
+                             AFNI_fix_scale_size_CB , im3d ) ;
 
    ssfix_waiting[iqqq]++ ; return ;
 }

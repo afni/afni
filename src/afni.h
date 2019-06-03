@@ -97,7 +97,7 @@ extern void AFNI_fix_scale_size_direct( struct Three_D_View *im3d ) ;
 
 #if 1
 # define FIX_SCALE_SIZE(iqqq) /*nada*/
-#else
+#else  /* doesn't work well */
 # define FIX_SCALE_SIZE(iqqq) AFNI_set_scale_size_fix_timer(iqqq)
 #endif
 
