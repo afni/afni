@@ -462,6 +462,7 @@ class OutputDiffer:
     def run(self):
         proc = self.run_cmd()
         if not self.create_sample_output:
+            self.check_comparison_dir()
             self.assert_all_files_equal()
 
         if self.require_sample_output:
@@ -695,6 +696,35 @@ class OutputDiffer:
         """
         for substr in substrings:
             assert substr not in text
+
+    def check_comparison_dir(self):
+        cmpr_path = self.data.comparison_dir
+        if not cmpr_path.exists():
+            raise ValueError(
+                "The following path does not exist but is required to "
+                f"perform a test:{cmpr_path}.\n You may wish to run the "
+                "test with the --create_sample_output flag or generate "
+                "output for future test sessions with "
+                "--save_sample_output. "
+            )
+        cmpr_files = list(cmpr_path.glob("**/*"))
+        cmpr_files_rel = [f.relative_to(cmpr_path) for f in cmpr_files]
+
+        files_required = [f.relative_to(self.data.outdir) for f in self.file_list]
+        missing_files = []
+        for f in files_required:
+            if not f in cmpr_files_rel:
+                missing_files.append(str(cmpr_path / f))
+        if missing_files:
+            m_str = " ".join(missing_files)
+            raise ValueError(
+                "The following files are missing and are required to "
+                f"fully complete the test: {m_str} "
+            )
+
+        need_data = any(p.is_symlink() and not p.exists() for p in cmpr_files)
+        if need_data:
+            datalad.get(str(cmpr_path))
 
     @property
     def data(self):
