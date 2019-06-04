@@ -40,12 +40,14 @@ def pytest_generate_tests(metafunc):
         else:
             metafunc.parametrize("python_interpreter", ["python3"])
 
+
 @pytest.fixture(scope="session")
 def output_dir():
     return get_output_dir()
 
+
 def get_output_dir():
-    user_choice = pytest.config.getoption('--overwrite_outdir')
+    user_choice = pytest.config.getoption("--overwrite_outdir")
     if user_choice:
         outdir = Path(user_choice)
     else:
@@ -59,30 +61,18 @@ def get_test_data_path():
     return Path(pytest.config.rootdir) / "afni_ci_test_data"
 
 
-def get_test_comparison_dir(current_test_module: Union[str or Path]):
-    # Aside from two user-defined conditions the comparison directory should exist
-    comparison_data_needs_to_exist = not (
-        pytest.config.getoption("--create_sample_output")
-        or pytest.config.getoption("--save_sample_output")
-    )
-
-    # Get path to full comparison directory and download as required
-    cmpr_path = get_base_comparison_dir_path()
-    if not cmpr_path.exists() and comparison_data_needs_to_exist:
-        raise ValueError(
-            "You may wish to run tests with the --create_sample_output "
-            "flag or generate output for future test sessions with "
-            "--save_sample_output. "
-        )
-
-    # Construct the path for this specific test
-    test_name = get_current_test_name()
-    test_compare_dir = cmpr_path / current_test_module.name / test_name
-
-    return test_compare_dir
+def get_test_comparison_dir_path(mod: Union[str or Path]):
+    """Get full path full comparison directory for a specific test
+    """
+    return get_base_comparison_dir_path() / mod.name / get_current_test_name()
 
 
 def get_base_comparison_dir_path():
+    """If the user does not provide a comparison directory a default in the
+    test data directory is used. The user can specify a directory containing
+    the output of a previous test run or the "sample" output that is created
+    by a previous test run when the "--create_sample_output" flag was provided.
+    """
     comparison_dir = pytest.config.getoption("--diff_with_outdir") or (
         get_test_data_path() / "sample_test_output"
     )
@@ -91,6 +81,9 @@ def get_base_comparison_dir_path():
 
 
 def get_tests_data_dir():
+    """Get the path to the test data directory. If the test data directory
+    does not exist or is not populated, install with datalad.
+    """
     # Define hard-coded paths for now
     tests_data_dir = get_test_data_path()
     race_error_msg = (
@@ -102,7 +95,9 @@ def get_tests_data_dir():
     if not (tests_data_dir / ".datalad").exists():
         try:
             datalad.install(
-                str(tests_data_dir), "https://github.com/afni/afni_ci_test_data.git"
+                str(tests_data_dir),
+                "https://github.com/afni/afni_ci_test_data.git",
+                recursive=True,
             )
         except FileExistsError as e:
             # likely a race condition
@@ -115,7 +110,7 @@ def get_tests_data_dir():
 
 
 @pytest.fixture(scope="function")
-def data(request,output_dir):
+def data(request, output_dir):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -140,9 +135,7 @@ def data(request,output_dir):
     except AttributeError:
         data_paths = {}
 
-    module_outdir = output_dir / Path(request.module.__file__).stem.replace(
-        "test_", ""
-    )
+    module_outdir = output_dir / Path(request.module.__file__).stem.replace("test_", "")
     test_logdir = module_outdir / get_current_test_name() / "captured_output"
     if not test_logdir.exists():
         os.makedirs(test_logdir, exist_ok=True)
@@ -156,7 +149,7 @@ def data(request,output_dir):
     }
 
     # Get the comparison directory and check if it needs to be downloaded
-    comparison_dir = get_test_comparison_dir(module_outdir)
+    comparison_dir = get_test_comparison_dir_path(module_outdir)
 
     # Define output for calling module and get data as required:
     out_dict.update(
@@ -168,6 +161,7 @@ def data(request,output_dir):
             "comparison_dir": comparison_dir,
             "base_comparison_dir": get_base_comparison_dir_path(),
             "base_outdir": output_dir,
+            "tests_data_dir": tests_data_dir,
             "test_name": test_name,
         }
     )
@@ -244,7 +238,7 @@ def pytest_addoption(parser):
             "not required for a typical run of the test-suite. It can "
             "be useful to restart tests that are executing resumable "
             "pipelines though. tested in both python 3 and python 2 "
-            ),
+        ),
     )
 
 
@@ -288,8 +282,8 @@ def pytest_sessionfinish(session, exitstatus):
             d=datetime.datetime.today().strftime("%Y-%m-%d")
         )
 
-        result = datalad.rev_save(
-            get_base_comparison_dir_path(), update_msg, on_failure="stop"
+        result = datalad.save(
+            update_msg, get_base_comparison_dir_path(), on_failure="stop"
         )
 
         sample_test_output = get_test_data_path() / "sample_test_output"
