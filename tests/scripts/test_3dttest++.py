@@ -46,24 +46,3 @@ def test_3dttest_pp_AD6_gr_s5_paired(data):
     cmd = " ".join(cmd.format(**locals()).split())
 
     rc = tools.OutputDiffer(data, cmd, merge_error_with_output=True)
-
-
-@pytest.mark.skip(reason="failing")
-@pytest.mark.parametrize("covariance", ["Tovar", "Zovar"])
-def test_3dttest__plus____plus___basic(data, covariance):
-    covar = getattr(data, covariance)
-    for file in [covar] + data.cov_files_G + data.cov_files_u:
-        shutil.copy(file, data.outdir / file.name)
-    copied_var_file = data.outdir / covar.name
-    set_a = " ".join([str(f) for f in data.set_a])
-    set_b = " ".join([str(f) for f in data.set_b])
-    outfile = data.outdir / ("TTest_" + covar.name + ".nii.gz")
-
-    cmd = """
-    3dttest++ -setA {set_a} -setB {set_b} -prefix {outfile} -covariates {copied_var_file}
-    """
-    cmd = " ".join(cmd.format(**locals()).split())
-
-    # Run command and test all outputs match
-    differ = tools.OutputDiffer(data, cmd, workdir=covar.parent, file_list=[outfile])
-    differ.run()
