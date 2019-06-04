@@ -8,6 +8,8 @@ import sys
 import numpy as np
 import socket
 import getpass
+import json
+import attr
 
 try:
     import misc
@@ -34,9 +36,26 @@ def get_output_name():
     return "output_" + CURRENT_TIME
 
 
+def get_command_info(outdir):
+    cmd_log = next((outdir / "captured_output").glob("*_cmd.log"))
+    return json.loads(cmd_log.read_text())
+
+
 def convert_to_sample_dir_path(output_dir):
     sampdir = Path(str(output_dir).replace("output_", "sample_output_"))
     return sampdir
+
+
+def get_lines(filename, ignore_patterns):
+    with open(filename) as f:
+        lines = [line.rstrip("\n \\") for line in f.readlines()]
+        lines = [
+            line
+            for line in lines
+            if not any(pat in line for pat in ignore_patterns)
+            and not line.replace(" ", "")
+        ]
+        return lines
 
 
 def remove_w_perms(dirname):
@@ -243,14 +262,148 @@ def run_cmd(
     # cmd execution report
     hostname = socket.gethostname()
     user = getpass.getuser()
-    cmd_record = f"{hostname}: {user} executed in {workdir} \n{cmd}"
-    cmd_log.write_text(cmd_record)
+    command_info = {
+        "hostname": hostname,
+        "user": user,
+        "workdir": workdir,
+        "cmd": cmd,
+        "add_env_vars": add_env_vars,
+        "rootdir": pytest.config.rootdir,
+    }
+    command_info.update(attr.asdict(data))
+
+    write_command_info(cmd_log, command_info)
     # Raise error if there was a non-zero exit code.
     proc.check_returncode()
     return proc
 
 
+def write_command_info(path, cmd_info):
+    out_dict = {}
+    for k, v in cmd_info.items():
+        v = str(v)
+        out_dict[k] = v
+    Path(path).write_text(json.dumps(out_dict))
+
+
+def get_workdir(data):
+    cmd_path = next(data.logdir.glob("*cmd.log"))
+
+
+def get_equivalent_name(data, fname):
+    # Given  a file in the output directory, returns a path to the file in
+    # the comparison directory
+    orig = Path(fname).relative_to(data.outdir)
+    equivalent_file = data.comparison_dir / orig
+    if not equivalent_file.exists():
+        raise FileNotFoundError
+    return equivalent_file
+
+
+def rewrite_paths_for_cleaner_diffs(data, text_list, create_sample_output=False):
+    """Given  a list of texts,  which are in turn lists, this function
+    attempts to normalize paths, user, hostname in order to  reduce the rate
+    of false positive diffs observed.
+    
+    This function should probably be rewritten to take a single text and
+    single data. The wdir check is not that important.
+    
+    Args:
+        data (TYPE): Description
+        
+        text_list (List): A list containing texts that have been broken into
+        their respective lines.
+        
+        create_sample_output (bool, optional): If true then no diff is required.
+    
+    Returns:
+        TYPE: Description
+    
+    Raises:
+        ValueError: Description
+    """
+    cmd_info = get_command_info(data.outdir)
+    wdir = cmd_info["workdir"]
+    if not create_sample_output:
+        cmd_info_orig = get_command_info(data.comparison_dir)
+        wdir_orig = cmd_info_orig["workdir"]
+        if wdir.split("/")[-1] != wdir_orig.split("/")[-1]:
+            raise ValueError(
+                "Comparison with previous test output cannot be performed "
+                "if a different working directory was used. "
+            )
+
+    outlist = []
+    for txt in text_list:
+        # make paths in the test data directory relative in reference to the outdir.
+        rel_testdata = os.path.relpath(data.tests_data_dir, data.outdir)
+        txt = [x.replace(str(data.tests_data_dir), rel_testdata) for x in txt]
+
+        # replace output directories so that they look the same
+        fake_outdir = str(Path(rel_testdata) / "sample_test_output")
+        txt = [x.replace(str(data.outdir), fake_outdir) for x in txt]
+        txt = [x.replace(str(data.outdir.relative_to(wdir)), fake_outdir) for x in txt]
+        # replace user and hostnames:
+        txt = [x.replace(cmd_info["host"], "hostname") for x in txt]
+        txt = [x.replace(cmd_info["user"], "user") for x in txt]
+        # make absolute references to workdir relative.
+        txt = [x.replace(wdir, ".") for x in txt]
+
+        # Do the same for previous files being compared against:
+        if not create_sample_output:
+            rel_orig = str(Path(cmd_info_orig["outdir"]).relative_to(wdir_orig))
+            txt = [x.replace(cmd_info_orig["outdir"], fake_outdir) for x in txt]
+            txt = [x.replace(wdir_orig, ".") for x in txt]
+            txt = [x.replace(rel_orig, fake_outdir) for x in txt]
+            # replace user and hostnames:
+            txt = [x.replace(cmd_info_orig["host"], "hostname") for x in txt]
+            txt = [x.replace(cmd_info_orig["user"], "user") for x in txt]
+
+        outlist.append(txt)
+
+    return outlist
+
+
+def set_default_kwargs_log_as_required(kwargs_log):
+
+    if "ignore_patterns" not in kwargs_log:
+        # Concatenate ignore patterns together taking care not to include
+        # empty strings or None
+        kwargs_log["ignore_patterns"] = [
+            x
+            for x in (
+                [os.environ.get("USER")]
+                + [
+                    "AFNI version=",
+                    "Clock time now",
+                    "clock time",
+                    "elapsed time",
+                    "auto-generated by",
+                    "CPU time =",
+                    "++ Output dataset",
+                ]
+            )
+            if x
+        ]
+
+    return kwargs_log
+
+
 class OutputDiffer:
+    """
+    Args:
+    data: Fixture object used in tests
+
+    ignore_file_patterns: List of substrings that if
+    found in a filename marks it for exclusion
+
+    text_file_patterns: List of substrings that if
+    found in a filename marks it comparison using string diffing of its contents
+
+    kwargs_...: Keyword arguments passed to
+    the corresponding assert function.
+    """
+
     def __init__(
         self,
         data: Any,
@@ -308,7 +461,9 @@ class OutputDiffer:
 
     def run(self):
         proc = self.run_cmd()
-        self.assert_all_files_equal()
+        if not self.create_sample_output:
+            self.assert_all_files_equal()
+
         if self.require_sample_output:
             self.__update_sample_output()
 
@@ -341,9 +496,6 @@ class OutputDiffer:
                 if f.is_file()
                 and not any(pat in str(f) for pat in self.ignore_file_patterns)
             ]
-        self.file_list = [
-            f for f in self.file_list if not Path(f).name.endswith("_cmd.log")
-        ]
 
     def __update_sample_output(self):
         update_sample_output(
@@ -360,18 +512,6 @@ class OutputDiffer:
         compared using custom assert logic. If nibabel can read other files as
         images their header data and numeric data is compared, otherwise the byte
         contents of the files are compared.
-
-        Args:
-            data: Fixture object used in tests
-
-            ignore_file_patterns: List of substrings that if
-            found in a filename marks it for exclusion
-
-            text_file_patterns: List of substrings that if
-            found in a filename marks it comparison using string diffing of its contents
-
-            kwargs_...: Keyword arguments passed to
-            the corresponding assert function.
         """
         file_list = self.file_list
         for fname in file_list:
@@ -382,7 +522,14 @@ class OutputDiffer:
                 if fname.suffix == ".1D":
                     self.assert_1dfiles_equal([fname])
                 elif fname.suffix == ".log":
-                    # compare logs
+                    # compare stdout and stderr logs
+                    if fname.name.endswith("_cmd.log"):
+                        # command log diff is expected but ignored. The file
+                        # should be included in sample output when created as
+                        # it is used to determine the working directory for
+                        # command execution.
+                        self.files_with_diff[str(fname)] = "command log"
+                        continue
                     self.assert_logs_equal([fname])
                 elif any(pat in fname.name for pat in self.text_file_patterns):
                     self.assert_textfiles_equal([fname])
@@ -410,18 +557,9 @@ class OutputDiffer:
 
     #     with pytest.raises('FileNotFoundError'):
 
-    def get_equivalent_name(self, fname):
-        # Given  a file in the output directory, returns a path to the file in
-        # the comparison directory
-        orig = Path(fname).relative_to(self.data.outdir)
-        equivalent_file = self.comparison_dir / orig
-        if not equivalent_file.exists():
-            raise FileNotFoundError
-        return equivalent_file
-
     def assert_scans_equal(self, files_scans: List):
         for fname in files_scans:
-            equivalent_file = self.get_equivalent_name(fname)
+            equivalent_file = get_equivalent_name(self.data, fname)
             image = nib.load(str(fname))
             equiv_image = nib.load(str(equivalent_file))
             self.assert_scan_headers_equal(image.header, equiv_image.header)
@@ -437,7 +575,7 @@ class OutputDiffer:
         """
 
         for fname in files_bytes:
-            equivalent_file = self.get_equivalent_name(fname)
+            equivalent_file = get_equivalent_name(self.data, fname)
             assert filecmp.cmp(fname, equivalent_file)
 
     def assert_logs_equal(self, files_logs):
@@ -451,34 +589,33 @@ class OutputDiffer:
         append_to_ignored: List = [],
         ignore_patterns: List = [],
     ):
-        if ignore_patterns:
+        if ignore_patterns or append_to_ignored:
             # This occurs if called from assert_logs_equal
-            if append_to_ignored:
-                ignore_patterns += append_to_ignored
+            ignore_patterns += append_to_ignored
         else:
             ignore_patterns = [
                 x
                 for x in (
-                    self.kwargs_text_files["ignore_patterns"]
-                    + [self.kwargs_text_files.get("append_to_ignored")]
+                    self.kwargs_text_files.get("ignore_patterns", [])
+                    + self.kwargs_text_files.get("append_to_ignored", [])
                 )
                 if x
             ]
 
         for fname in textfiles:
-            equivalent_file = self.get_equivalent_name(fname)
-            text_old = [
-                x
-                for x in Path(equivalent_file).read_text().splitlines()
-                if not any(pat in x for pat in ignore_patterns)
-            ]
 
-            text_new = [
-                x
-                for x in Path(fname).read_text().splitlines()
-                if not any(pat in x for pat in ignore_patterns)
-            ]
+            # load the old lines of text
+            equivalent_file = get_equivalent_name(self.data, fname)
+            text_old = get_lines(equivalent_file, ignore_patterns)
 
+            # load the current lines of text
+            text_new = get_lines(fname, ignore_patterns)
+
+            text_old, text_new = rewrite_paths_for_cleaner_diffs(
+                self.data, [text_old, text_new], self.create_sample_output
+            )
+
+            # Check for diffs (with paths normalized)
             diff = difflib.unified_diff(text_old, text_new)
             diff_str = "\n".join(diff)
 
@@ -512,7 +649,7 @@ class OutputDiffer:
 
         for fname in files_1d:
             tool_1d = misc.try_to_import_afni_module("1d_tool")
-            equivalent_file = self.get_equivalent_name(fname)
+            equivalent_file = get_equivalent_name(self.data, fname)
 
             # Load 1D file data
             obj_1d = tool_1d.A1DInterface()
@@ -619,27 +756,3 @@ class OutputDiffer:
         """
         except AttributeError:
             return "<%s %s>" % (self.__class__.__name__, hex(id(self)))
-
-
-def set_default_kwargs_log_as_required(kwargs_log):
-
-    if "ignore_patterns" not in kwargs_log:
-        # Concatenate ignore patterns together taking care not to include
-        # empty strings or None
-        kwargs_log["ignore_patterns"] = [
-            x
-            for x in (
-                [os.environ.get("USER")]
-                + [
-                    "AFNI version=",
-                    "Clock time now",
-                    "elapsed time",
-                    "auto-generated by",
-                    "CPU time =",
-                    "++ Output dataset",
-                ]
-            )
-            if x
-        ]
-
-    return kwargs_log

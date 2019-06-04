@@ -12,12 +12,12 @@ import json
 
 def make_pretend_repo(dirname):
     os.chdir(dirname)
-    datalad.create(Path.cwd(), force=True)
-    rev_log = datalad.save("add data", dirname)
+    datalad.create(str(dirname), force=True)
+    rev_log = datalad.save("add data", str(dirname))
     (dirname / "useless.txt").write_text("who me.")
-    datalad.save("add superfluous change", dirname)
+    datalad.save("add superfluous change", str(dirname))
     (dirname / "useless.txt").unlink()
-    datalad.save("make things better", dirname)
+    datalad.save("make things better", str(dirname))
 
 
 def get_outdir(dirname):
@@ -142,6 +142,7 @@ def test_diffs_detected(get_mock_data, mock_data_orig):
     output_mock, data = get_mock_data()
     differ = tools.OutputDiffer(data, "echo `pwd`")
     differ.get_file_list()
+    differ._text_file_patterns = [".txt"]
     differ.assert_all_files_equal()
 
 
