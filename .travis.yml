@@ -2,6 +2,8 @@ language: c
 cache:
     - apt
     - ccache
+git:
+  submodules: false
 env:
  global:
     - FLAVOR=linux_ubuntu_12_64

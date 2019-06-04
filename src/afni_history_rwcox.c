@@ -44,6 +44,19 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , MAY , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
+   "4+1 new features" ,
+   "1) Default threshold is now 0\n"
+   "2) Default threshold scale is now 0-10 instead of 0-1\n"
+   "3) Default max threshold scale exponent is now 5 instead of 4\n"
+   "4) Default colorscale is now Reds_and_Blues_Inv\n"
+   "PLUS\n"
+   "5) User can set AFNI_AUTORANGE_PERC to have the autoRange computed as\n"
+   "percentile point (from 2-99) of the nonzero absolute values in the OLay\n"
+   "brick. However, this doesn't work with warp-on-demand datasets now, so\n"
+   "it is confusing. Therefore, the default setting of this is 0, which\n"
+   "leaves the autoRange to be the maximum absolute value." } ,
+
  { 17 , MAY , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
    "Also add 'AFNI Forum' and 'Prog Helps' buttons" ,
    NULL } ,

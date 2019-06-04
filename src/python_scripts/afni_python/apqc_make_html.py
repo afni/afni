@@ -16,13 +16,20 @@
 # + fixed making the whole image line *not* being a link, while also
 #   having it be centered
 #
-ver = '1.7' ; date = 'Nov 23, 2018' ; auth = 'PA Taylor'
+#ver = '1.7' ; date = 'Nov 23, 2018' ; auth = 'PA Taylor'
 # + for each image/section, will now have json files that describe
 #   the contents of the title/text/subtext, etc.
 #   this will allow for easier button definition
 # + pages get jumped to correctly now
 # + hyperrefs have abbrevs and links to top of page, where a navigator
 #   menu sits (permanently) 
+#
+#ver = '1.7' ; date = 'May 17, 2019' 
+# + [PT] simplifying pbar behavior
+#
+ver = '1.8' ; date = 'May 22, 2019' 
+# + [PT] help updates
+# + [PT] warning level stuff
 #
 #########################################################################
 
@@ -45,7 +52,11 @@ tobetable = "IHAVEACUNNINGPLAN!"     # string to be replaced later
 ftypes    = [ 'jpg', 'dat', 'txt' ]  # types of data to populate HTML page
 allblocks = lahh.qc_blocks.keys()    # SHOULD be ordered list of QC blocks
 
+MAX_WLEVEL      = ''
+MAX_WLEVEL_RANK =  lahc.wlevel_ranks[MAX_WLEVEL]
+
 # =========================================================================
+
 if __name__ == "__main__":
 
     # parse inputs, and get current dir (to return to at end)
@@ -142,7 +153,7 @@ if __name__ == "__main__":
     list_use.sort()
 
     #print(list_use)
-
+    
     # for each QC block
     for qcb in allblocks:
 
@@ -168,7 +179,6 @@ if __name__ == "__main__":
             if list_jsonglob.__contains__(img_json) :
                 AAII = lah.read_descrip_json(img_json)
 
-
             # 1) Try to get title+text+blockid, only for first one in
             # list
             if AAII.title and not(ii):
@@ -178,7 +188,6 @@ if __name__ == "__main__":
                                            blockid=AAII.blockid,
                                            padmarg=PADMARG_VAL )
                 list_links.append( [AAII.blockid, AAII.blockid_hov] )
-
 
             # 2) Try to add text above it
             if AAII.text :
@@ -195,30 +204,18 @@ if __name__ == "__main__":
             elif AAII.itemtype == 'VOL':
                 ht+=lah.wrap_img( img, vpad=True )
 
-                # 3b) Check specifically about adding colorbar
-                if img.__contains__('sag.jpg'):
-                    imgpbar = img.replace('sag.jpg', 'pbar.jpg')
-                    if list_allglob.__contains__(imgpbar):
-                        # if that pbar image exists, it should have an
-                        # associated txt file of ranges that we can
-                        # get like this
-                        jsonpbar = imgpbar.replace('jpg', 'json')
-                        pbar_dict = lah.read_json_to_dict( jsonpbar )
-                        if pbar_dict:
-                            pbar_line = lah.make_pbar_line( pbar_dict, imgpbar,
-                                           addclassdiv=" class='container2' ",
-                                           addclassimg=" class='pbar' ",
-                                           dobold=True)
-                            ht+= pbar_line
-
             elif AAII.itemtype == 'WARN':
                 ht+=lah.wrap_dat( lah.read_dat(img),
-                                  addclass=" class='warnbord' ")
+                                  addclass=" class='warnbord' ",
+                                  warn_level = AAII.warn_level,
+                                  remove_top_empty = True)
+                if lahc.wlevel_ranks[AAII.warn_level] > MAX_WLEVEL_RANK :
+                    MAX_WLEVEL = AAII.warn_level
+                    MAX_WLEVEL_RANK = lahc.wlevel_ranks[MAX_WLEVEL]
 
             elif AAII.itemtype == 'DAT':
                 ht+=lah.wrap_dat( lah.read_dat(img),
                                   addclass=" class='datbord' ")
-
 
             # 4) Add in any 'subtext'
             if AAII.subtext :
@@ -235,7 +232,8 @@ if __name__ == "__main__":
 
     list_links.append( lahh.qc_link_final )
 
-    txt_for_navtable = lah.make_nav_table(list_links)
+    txt_for_navtable = lah.make_nav_table(list_links,
+                                          max_wlevel = MAX_WLEVEL)
     ht               = ht.replace(tobetable, txt_for_navtable)
 
     # -------------- done: wrap up and close body text ------------------

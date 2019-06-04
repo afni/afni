@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.8, May 20, 2019
+Version 0.0.9, May 22, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -881,6 +881,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       psa[nl,,,] <- psa[nl,,,] + ps[jj,,,]
    }
    psa[nl,,,] <- ps[nl,,,] - psa[nl,,,]  # reference level
+   dimnames(psa)[[3]] <- dimnames(bb$mmROI1ROI2)[[2]]
+   dimnames(psa)[[4]] <- dimnames(bb$mmROI1ROI2)[[2]]
    
    #oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
    #dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
@@ -961,6 +963,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       psa[nl,,] <- psa[nl,,] + ps[jj,,] 
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   dimnames(psa)[[3]] <- dimnames(bb$mmROI1ROI2)[[2]]
    
    oo <- apply(psa, 1, sumROI, ns, 3)
    

@@ -35,7 +35,9 @@ set mask_in = ''
 
 # 3dmerge/localstat options
 set use_3dmerge = yes   # new default, as of 9 May, 2019
-set merge_frad = 0.5    # go out to 0.5 of the half with at half max
+set merge_frad = 0.0    # 0 means to apply a full gaussian
+                        #
+                        # might go out to 0.5 of the half with at half max
                         # (make this distance correspond to $sphere_rad, so
                         # radius = $sphere_rad / $merge_frad)
 set corr_mask = no      # should we automask before correlation blurring?
@@ -313,15 +315,8 @@ foreach index ( `count -digits 1 1 $#dset_list` )
       echo ""
 
       if ( $sphere_rad != 0 ) then
-         
          set rad = $sphere_rad
          if ( $use_3dmerge == yes ) then
-            # scale rad by frac number of HWHM, and to FWHM
-            set rad2 = `ccalc -n "2*$sphere_rad/$merge_frad"`
-            # FIRFAC = 1.17741 when nhwhm=1, so scale
-            set firfac = `ccalc "1.17741*$merge_frad"`
-            echo "++ merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
-
             # mask before blur?
             if ( $corr_mask == yes ) then
                set enew = rm.emasked.$ichr$ind02
@@ -329,8 +324,22 @@ foreach index ( `count -digits 1 1 $#dset_list` )
                set eset = $enew
             endif
 
-            3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 \
-                    -doall -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
+            # if $merge_frad is non-zero, use truncation (cubical extents?)
+            if ( `ccalc -n "ispositive($merge_frad)"` ) then
+               # scale rad by frac number of HWHM, and to FWHM
+               set rad2 = `ccalc -n "2*$sphere_rad/$merge_frad"`
+               # FIRFAC = 1.17741 when nhwhm=1, so scale
+               set firfac = `ccalc "1.17741*$merge_frad"`
+               echo "++ merge blur: rad $sphere_rad, rad2 $rad2, firfac $firfac"
+
+               3dmerge -DAFNI_BLUR_FIRFAC=$firfac -1blur_fwhm $rad2 -doall \
+                       -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
+            else
+               # just convert to FWHM
+               set rad2 = `ccalc -n "2*$sphere_rad"`
+               echo "++ merge blur: rad $sphere_rad, FWHM $rad2"
+               3dmerge -1blur_fwhm $rad2 -doall                         \
+                       -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
          else
             3dLocalstat -quiet -nbhd "SPHERE($rad)" -mask $mset \
                -stat mean -prefix sphere.mean.$rad.$ichr$ind02 $eset$view
@@ -737,6 +746,13 @@ echo "                       For example, FRAD=0.5 yeilds a 0.84 relative"
 echo "                       contribution at the radial distance, while."
 echo "                       doubling the requested blur."
 echo ""
+echo "                    ** This leads to a cubical region of averaging,"
+echo "                       rather than an intended spherical one.  It is not"
+echo "                       a big deal, but is worth noting."
+echo ""
+echo "                       Use FRAD=0.0 to apply a full Gaussian, rather than"
+echo "                       the truncated form."
+echo ""
 echo "   -nfirst NFIRST    : number of initial TRs to remove"
 echo "                       default = $nfirst"
 echo ""
@@ -777,6 +793,7 @@ $prog modification history:
    0.5  : May 15, 2019:
           - handle special cases of errts and all_runs
           - do this by partitioning results into r* and d* dataset names
+   0.6  : May 30, 2019: full Gaussian by default, not truncated
 
 EOF
 

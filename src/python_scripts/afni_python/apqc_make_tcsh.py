@@ -61,8 +61,22 @@ auth = 'PA Taylor'
 # + [PT] fix name of per stimulus regressors file: X.stim.xmat.1D
 # + [PT] add in EPI in orig space volume, using volreg base vol
 #
-ver = '2.1' ; date = 'Feb 26, 2019' 
+#ver = '2.1' ; date = 'Feb 26, 2019' 
 # + [PT] new plot in regr: grayplot
+#
+#ver = '2.2' ; date = 'May 14, 2019' 
+# + [PT] radcor plots
+#
+#ver = '2.3' ; date = 'May 19, 2019' 
+# + [PT] start aea_checkflip stuff
+#
+#ver = '2.4' ; date = 'May 22, 2019' 
+# + [PT] more details of aea_checkflip
+# + [PT] radcor to own QC block
+#
+ver = '2.5' ; date = 'May 23, 2019' 
+# + [PT] switched to using afni_base functions for executing on
+#        commandline
 #
 #########################################################################
 
@@ -75,6 +89,7 @@ ver = '2.1' ; date = 'Feb 26, 2019'
 import sys
 import os
 import json
+import glob
 import lib_apqc_tcsh  as lat
 import lib_ss_review  as lssr
 import lib_apqc_io    as laio
@@ -512,7 +527,11 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('correlation warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_xmat( obase, "warns", "xmat" )
+        txtfile  = ''
+        if ap_ssdict.__contains__('cormat_warn_dset') :
+            txtfile = ap_ssdict['cormat_warn_dset']
+        cmd      = lat.apqc_warns_xmat( obase, "warns", "xmat",
+                                        fname = txtfile )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -527,7 +546,9 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('pre-steady state warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_press( obase, "warns", "press" )
+        txtfile  = ap_ssdict['pre_ss_warn_dset']
+        cmd      = lat.apqc_warns_press( obase, "warns", "press",
+                                         fname = txtfile)
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -542,11 +563,54 @@ if __name__ == "__main__":
     if lat.check_dep(ap_ssdict, ldep) :
         ban      = lat.bannerize('TENT warnings')
         obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_warns_TENT( obase, "warns", "TENT" )
+        txtfile  = ap_ssdict['tent_warn_dset']
+        cmd      = lat.apqc_warns_TENT( obase, "warns", "TENT",
+                                        fname = txtfile )
 
         str_FULL+= ban
         str_FULL+= cmd
         idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "warns"
+    # item    : flip check from aea
+
+    ldep = ['flip_check_dset', 'flip_guess']
+    if lat.check_dep(ap_ssdict, ldep) :
+        ban      = lat.bannerize('check_flip warnings')
+        obase    = 'qc_{:02d}'.format(idx)
+        txtfile  = ap_ssdict['flip_check_dset']
+        cmd      = lat.apqc_warns_flip( obase, "warns", "flip",
+                                        fname = txtfile )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    # --------------------------------------------------------------------
+
+    # QC block: "rcorr"
+    # item    : flag to make radial_correlate images
+
+    ldep = ['have_radcor_dirs'] # binary flag
+    if lat.check_dep(ap_ssdict, ldep) :
+        all_dir_radcor = sorted(glob.glob("radcor.pb*")) # can have many
+        for ii in range(len(all_dir_radcor)):
+
+            rcdir  = all_dir_radcor[ii]
+            aaa    = rcdir.split(".")
+            rcname = "rc_" + aaa[2] # to be the label
+        
+            ban      = lat.bannerize('@radial_correlate '
+                                     'images: {}'.format(rcname))
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
+                                              rcdir )
+
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
 
     # --------------------------------------------------------------------
 

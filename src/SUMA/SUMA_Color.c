@@ -852,6 +852,10 @@ SUMA_AFNI_COLORS *SUMA_Get_AFNI_Default_Color_Maps ()
    SUMA_PBARDEF_ADD(ROI_64_CMD);
    SUMA_PBARDEF_ADD(ROI_128_CMD);
    SUMA_PBARDEF_ADD(ROI_256_CMD);
+   SUMA_PBARDEF_ADD(ROI_glasbey_256_CMD);  // [PT: May 28, 2019]
+   SUMA_PBARDEF_ADD(ROI_glasbey_512_CMD);  // [PT: May 28, 2019]
+   SUMA_PBARDEF_ADD(ROI_glasbey_1024_CMD); // [PT: May 28, 2019]
+   SUMA_PBARDEF_ADD(ROI_glasbey_2048_CMD); // [PT: May 28, 2019]
    SUMA_PBARDEF_ADD(RedBlueGreen_CMD);
 
    /* now wrap it up */   

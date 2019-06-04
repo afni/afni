@@ -14,6 +14,9 @@
 # ver : 1.5 || date: Feb 21, 2019
 # + [PT] adding comment to empty button sets it to "?", not "X"
 #
+ver = '2.21' ; date = 'May 17, 2019' 
+# + [PT] simplifying radcor behavior
+#
 #########################################################################
 
 
@@ -21,6 +24,7 @@
 import sys
 import os
 import json
+import lib_apqc_tcsh       as lat
 import lib_apqc_html_helps as lahh
 import lib_apqc_html_css   as lahc
 
@@ -28,6 +32,79 @@ NULL_BTN1     = '' # empty space, used to keep button populated
 NULL_BTN0     = '|' # empty space, used to keep button populated
 
 json_cols = [ 'qcele', 'rating', 'comment' ]
+
+# -------------------------------------------------------------------
+
+def parse_apqc_text_fields(tt) :
+    '''Input: tt can be either a string or list of strings.
+
+    Output: a single string, concatenation of the list (if input as
+    such).  Special case parsing happens if one string contains a flag
+    to include a PBAR in the string.
+    '''
+
+    out = ""
+
+    # not all versions of python seem to have 'unicode' type
+    try:
+        if type(tt) == unicode :
+            tt = [str(tt)]
+    except:
+        if type(tt) == str :
+            tt = [tt]
+
+    Ntt = len(tt)
+
+    for ii in range(Ntt) :
+        ss = tt[ii]
+        #print(ss)
+        if ss.__contains__(lahh.PBAR_FLAG) :
+            sspbar = make_inline_pbar_str(ss)
+            out+= sspbar
+        else:
+            out+= ss 
+        if ii < (Ntt - 1) :
+            out+= "\n"
+
+    return out
+
+# -------------------------------------------------------------------
+
+def make_inline_pbar_str(ss) : 
+    '''Input: ss is single string of form:  {PBAR_FLAG}:{pbar.json}
+
+    Output: a single string, formatted to put pbar inline in text, and
+    possibly have a second line of thr info.
+
+    '''
+
+    add_indent = ss.find(lahh.PBAR_FLAG)
+    if add_indent >= 0 :
+        str_indent = add_indent * ' '
+    else:
+        sys.error("** ERROR: missing pbar flag in {}".format(ss))
+
+    # file name of JSON should be only thing after ":"
+    fname_json = lat.dir_img + "/"  + ss.split(":")[1]
+
+    # pbar dict keys given in @chauffeur_afni
+    with open(fname_json, 'r') as fff:
+        pbar_dict = json.load(fff)    
+
+    out = str_indent + '''olay: {pbar_bot} <img  class='pbar'  style="display: inline; margin: -5 -5px;" src="media/{pbar_fname}" > {pbar_top}'''.format(**pbar_dict)
+
+    if pbar_dict['pbar_comm'] :
+        out+= ''' ({pbar_comm})'''.format(**pbar_dict)
+
+    if pbar_dict['vthr'] :
+        out+= '''\n'''
+        out+= str_indent + '''thr : {vthr}'''.format(**pbar_dict)
+
+    if pbar_dict['vthr_comm'] :
+        out+= ''' ({vthr_comm})'''.format(**pbar_dict)
+
+    return out
+
 
 # -------------------------------------------------------------------
 
@@ -43,6 +120,7 @@ class apqc_item_info:
     itemid      = ""
     blockid     = ""
     blockid_hov = ""
+    warn_level  = ""   # [PT: May 21, 2019]
 
     def set_title(self, DICT):
         if 'title' in DICT :
@@ -63,22 +141,32 @@ class apqc_item_info:
     def set_blockid_hov(self, DICT):
         if 'blockid_hov' in DICT :
             self.blockid_hov = DICT['blockid_hov']
+            
+    def set_warn_level(self, DICT):
+        if 'warn_level' in DICT :
+            self.warn_level = DICT['warn_level']
 
+    # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_text(self, DICT):
         if 'text' in DICT :
-            if type(DICT['text']) == list :
-                xx = '\n'.join(DICT['text'])
-                self.text+= xx
-            else:
-                self.text+= DICT['text']
+            xx = parse_apqc_text_fields(DICT['text'])
+            self.text+= xx
+#            if type(DICT['text']) == list :
+#                xx = '\n'.join(DICT['text'])
+#                self.text+= xx
+#            else:
+#                self.text+= DICT['text']
 
+    # [PT: May 16, 2019] updated to deal with parsing of PBAR stuff here
     def add_subtext(self, DICT):
         if 'subtext' in DICT :
-            if type(DICT['subtext']) == list :
-                xx = '\n'.join(DICT['subtext'])
-                self.subtext+= xx
-            else:
-                self.subtext+= DICT['subtext']
+            xx = parse_apqc_text_fields(DICT['subtext'])
+            self.subtext+= xx
+#            if type(DICT['subtext']) == list :
+#                xx = '\n'.join(DICT['subtext'])
+#                self.subtext+= xx
+#            else:
+#                self.subtext+= DICT['subtext']
 
     # this just runs through all possible things above and fills in
     # what it can
@@ -90,6 +178,7 @@ class apqc_item_info:
         self.set_blockid_hov(DICT)
         self.add_text(DICT)
         self.add_subtext(DICT)
+        self.set_warn_level(DICT)
 
 # -------------------------------------------------------------------
 
@@ -178,7 +267,7 @@ def write_json_file( ll, fname ):
 
 # -------------------------------------------------------------------
 
-def make_nav_table(llinks):
+def make_nav_table(llinks, max_wlevel=''):
     # table form, not ul 
     N = len(llinks)
     idx = 0
@@ -222,12 +311,23 @@ def make_nav_table(llinks):
 
     for i in range(0, N):
         ll, hov = llinks[i][0], llinks[i][1]
+        #print(ll)
+
+        color_change = ''
+        
         # Put lines around "FINAL" element
         if i<N-1 : 
             finaltab = ''
+            if ll == 'warns' and max_wlevel :
+                wcol = lahc.wlevel_colors[max_wlevel]
+                if lahc.wlevel_ranks[max_wlevel] > lahc.wlevel_ranks['mild'] :
+                    finaltab = '''style="color: {}; '''.format("#000") 
+                    finaltab+= '''background-color: {};" '''.format(wcol)
+                else:
+                    finaltab = '''style="color: {};" '''.format(wcol) 
+
         else:
             finaltab = '''style="background-color: #ccc; color: #000;" '''
-            #finaltab = '''; border-left:2px solid cyan;" ''' # border-right:2px solid cyan;" '''
 
         # new table
         y+= '''<table style="float: left">\n'''
@@ -1142,12 +1242,29 @@ def wrap_img(x, wid=500, vpad=0, addclass=""):
 # -------------------------------------------------------------------
 
 # string literal
-def wrap_dat(x, wid=500, vpad=0, addclass=""):
+def wrap_dat(x, wid=500, vpad=0, addclass="", warn_level = "",
+             remove_top_empty=False):
+
+    # some formatting: get rid of unnecessary top empty lines
+    if remove_top_empty:
+        newx = x.split("\n")
+        if not(newx[0].strip()):
+            newx = '\n'.join(newx[1:])
+        else:
+            newx = '\n'.join(newx)
+    else:
+        newx = str(x)
+
+    top_line = ''
+    if warn_level:
+        top_line+= '''<p class="{}">{}</p>'''.format(
+            'wcol_'+warn_level, warn_level )
+    
     y = ''
     y+= vpad*'\n'
-    y+= '''<div>  
-    <pre {} ><left><b>{}</b></left></pre>
-</div>'''.format(addclass, x)
+    y+= '''<div> 
+    <pre {} ><left><b>{}{}</b></left></pre>
+</div>'''.format(addclass, top_line, newx)
     y+= vpad*'\n'
 
     return y
@@ -1180,14 +1297,17 @@ apqc_title_info() class.
 
 # ----------------------------------------------------------------------
 
-def read_dat(x):
+def read_dat(x, do_join=True):
 
     fff = open(x, 'r')
     txt = fff.readlines()
     fff.close()
 
-    out = ''.join(txt)
-    return out
+    if do_join :
+        out = ''.join(txt)
+        return out
+    else:
+        return txt
 
 # ----------------------------------------------------------------------
 
@@ -1223,12 +1343,12 @@ def make_pbar_line(d, imgpbar, vpad=0, addclassdiv="", addclassimg="",
     y+= '''<img {} '''.format(addclassimg)
     y+= '''style="display: inline; margin: -5 -5px;" '''
     y+= '''src="{}" > '''.format(imgpbar)
-    y+= '''{} ({})'''.format(d['pbar_top'], d['pbar_reason'])
+    y+= '''{} ({})'''.format(d['pbar_top'], d['pbar_comm'])
 
     if 'vthr' in d :
         y+= '''\nthr : {}'''.format(d['vthr'])
         if 'vthr_reason' in d :
-            y+= ''' ({})'''.format(d['vthr_reason'])
+            y+= ''' ({})'''.format(d['vthr_comm'])
 
     # [PT: Jan 2, 2019] can add in comments, too
     if 'pbar_comm' in d :

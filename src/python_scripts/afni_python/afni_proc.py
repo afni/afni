@@ -637,9 +637,19 @@ g_history = """
     6.33 Apr 11, 2019: added -combine_tedort_reject_midk
     6.34 Apr 25, 2019: -regress_bandpass takes any even number of frequencies
     6.35 May 14, 2019: added -radial_correlate_blocks and _opts
+    6.36 May 22, 2019: modified -regress_anaticor_fast method
+        - blurs are now truncated Gaussians by default, making them flat
+          and very similar to original ANATICOR method
+        - added -regress_anaticor_full_gaussian and -regress_anaticor_term_frac
+    6.37 May 23, 2019: QC: save fanaticor_mask_coverage dataset
+    6.38 May 30, 2019: 
+        - have -regress_anaticor_full_gaussian default to yes
+          (so one would now have to ask for a truncated Gaussian)
+        - generate fanaticor_mask_coverage as float
+    6.39 Jun  3, 2019: allow ricor in case of ME data
 """
 
-g_version = "version 6.35, May 14, 2019"
+g_version = "version 6.30, June 3, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -679,6 +689,9 @@ More detailed changes, starting May, 2018.
    07 May 2018 : EPI full_mask: dilation is no longer the default
       - since mask is not (generally) applied to data, make more accurate
       - reproduce with: -mask_dilate 1
+
+   22 May 2019 : ANATICOR changes (see -regress_anaticor*)
+      - changed default radius from 45 to 30 mm
 """
 
 g_todo_str = """todo:
@@ -1386,8 +1399,13 @@ class SubjProcSream:
                         helpstr="specify FWHM for fast WMeLocal extraction")
         self.valid_opts.add_opt('-regress_anaticor_radius', 1, [],
                         helpstr="specify radius for WMeLocal extraction")
+        self.valid_opts.add_opt('-regress_anaticor_term_frac', 1, [],
+                        helpstr="specify termination fraction for blur radius")
         self.valid_opts.add_opt('-regress_anaticor_label', 1, [],
                         helpstr="specify ROI label for anaticor (default=WMe)")
+        self.valid_opts.add_opt('-regress_anaticor_full_gaussian', 1, [],
+                        acplist=['yes','no'],
+                        helpstr="specify whether to truncate to flat Gaussian")
         self.valid_opts.add_opt('-regress_apply_mask', 0, [],
                         helpstr="apply the mask in regression")
         self.valid_opts.add_opt('-regress_apply_ricor', 1, [],

@@ -2856,6 +2856,8 @@ STATUS("making marks->rowcol") ;
 
    sel_height = view_height - 19 ;
 
+   func->do_setup = 1 ;   /* 24 May 2019 */
+
 STATUS("making func->rowcol") ;
 
    func->rowcol =
@@ -2900,6 +2902,10 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
    LABELIZE(func->thr_label) ;
+   MCW_set_widget_bg( func->thr_label , "#080808" , 0 ) ;
+   MCW_set_widget_fg( func->thr_label , "#ffeedd" ) ;
+   MCW_register_hint( func->thr_label ,
+                      "Left click = fix slider size ; Right click = popup menu" ) ;
 
    /*--- A(lpha) and B(oxed) buttons atop threshold slider [02 Nov 2018] ---*/
 
@@ -3957,7 +3963,7 @@ STATUS("making func->rowcol") ;
    func->clu_tabNN1_bsid = func->clu_tabNN2_bsid = func->clu_tabNN3_bsid = NULL;
    func->clu_mask = NULL ;
 
-   func->iwid = NULL ;  /* 17 Sep 2009 */
+   func->iwid = NULL ;    /* 17 Sep 2009 */
 
    /*-- 26 Mar 2007: rowcol for clustering stuff --*/
 
@@ -6361,7 +6367,8 @@ ENTRY("new_AFNI_controller") ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
-     im3d->vinfo->stats_thresh_ok = 0 ; /* 29 Mar 2005 */
+     im3d->vinfo->arang_func_ok =
+      im3d->vinfo->stats_thresh_ok = 0 ; /* 29 Mar 2005 */
 
    /* Feb 1998: receive stuff, including drawing */
    /* Mar 1999: modified to allow for multiple receivers */
@@ -6765,6 +6772,12 @@ ENTRY("AFNI_clone_controller_CB") ;
    if( caller_im3d != NULL ){     /* 03 Jul 2014 */
      ENABLE_LOCK ;
      AFNI_all_locks_carryout( caller_im3d ) ;
+   }
+
+   if( im3d->vwid->func->do_setup ){ /* 24 May 2019 */
+     int ii = (int)AFNI_numenv("AFNI_THRESH_INIT_EXPON") ;
+     if( ii > 0 && ii < THR_top_expon ) AFNI_set_thresh_itop(im3d,ii) ;
+     im3d->vwid->func->do_setup = 0 ;
    }
 
    PICTURE_OFF(im3d) ; SHOW_AFNI_READY ; EXRETURN ;

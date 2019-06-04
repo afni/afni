@@ -14,7 +14,7 @@ int main( int argc , char * argv[] )
    int nx,ny,nz,nxyz,nval , ii,kk , nopt=1, nsum=0 ;
    int nweights=0;
    char * prefix = "mean" ;
-   int datum=-1 , verb=0 , do_sd=0, do_sum=0 , do_sqr=0, firstds=0 ;
+   int datum=-1, verb=0, do_sd=0, do_sum=0, do_sqr=0, firstds=0,numds=0 ;
    int do_union=0 , do_inter=0, non_zero=0, count_flag =0 ;
    int min_flag = 0, max_flag = 0;
    float ** sum=NULL , fsum=0.0;
@@ -253,7 +253,7 @@ int main( int argc , char * argv[] )
 
    /*-- loop over datasets --*/
 
-   firstds = nopt;
+   firstds = nopt ; numds = argc-firstds ;
    for( ; nopt < argc ; nopt++,nsum++ ){
 
       /*-- input dataset header --*/
@@ -364,13 +364,15 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset - 1 %s\n",argv[nopt]) ;
+      if( verb )
+        fprintf(stderr,"  ++ read in dataset %d/%d - %s\n",
+                       nsum+1 , numds , argv[nopt]) ;
 
       /*-- sum dataset values --*/
 
       for( kk=0 ; kk < nval ; kk++ ){
 
-         if( verb )
+         if( verb > 1 )
             fprintf(stderr,"   + sub-brick %d [%s]\n",
                     kk,MRI_TYPE_name[DSET_BRICK_TYPE(inset,kk)] ) ;
 
@@ -610,13 +612,15 @@ int main( int argc , char * argv[] )
 
       DSET_load(inset) ; CHECK_LOAD_ERROR(inset) ;
 
-      if( verb ) fprintf(stderr,"  ++ read in dataset - 2 %s\n",argv[nopt]) ;
+      if( verb )
+        fprintf(stderr,"  ++ read in dataset %d/%d - %s\n",
+                       nsum+1 , numds , argv[nopt]) ;
 
       /*-- sum dataset values into sd --*/
 
       for( kk=0 ; kk < nval ; kk++ ){
 
-         if( verb )
+         if( verb > 1 )
            fprintf(stderr,"   + sub-brick %d [%s]\n",
                    kk,MRI_TYPE_name[DSET_BRICK_TYPE(inset,kk)] ) ;
 

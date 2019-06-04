@@ -379,7 +379,9 @@ ENTRY("THD_set_dataset_attributes") ;
       for( ii=0 ; ii < ntag ; ii++ )
         tlen += strlen( dset->tagset->tag[ii].label ) + 1; /* +1 for the '\0' */
 
-      ctag = (char *) malloc( sizeof(char) * tlen ) ;   /* to hold all labels */
+      /* malloc->calloc : uninitialized bytes sent to THD_set_char_atr can
+         put garbage in header and irritate A Nugent    [4 Jun 2019 rickr] */
+      ctag = (char *) calloc( tlen, sizeof(char) ) ;  /* to hold all labels */
       jj   = 0 ;
       for( ii=0 ; ii < ntag ; ii++ ){
          ilen = strlen( dset->tagset->tag[ii].label ) + 1 ;

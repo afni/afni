@@ -420,7 +420,7 @@ int main( int argc , char *argv[] )
    param_opt paropt[MAXPAR] ;
    float powell_mm             = 0.0f ;
    float powell_aa             = 0.0f ;
-   float conv_mm               = 0.05 ;         /* millimeters */
+   float conv_mm               = 0.001f ;       /* millimeters */
    float nmask_frac            = -1.0;          /* use default for voxel fraction */
    int matorder                = MATORDER_SDU ; /* matrix mult order */
    int smat                    = SMAT_LOWER ;   /* shear matrix triangle */
@@ -818,6 +818,7 @@ int main( int argc , char *argv[] )
 "               [Default == 47%% of voxels in the weight mask]\n"
 "\n"
 " -nopad      = Do not use zero-padding on the base image.\n"
+"               (I cannot think of a good reason to use this option.)\n"
 "               [Default == zero-pad, if needed; -verb shows how much]\n"
 "\n"
 " -zclip      = Replace negative values in the input datasets (source & base)\n"
@@ -830,7 +831,7 @@ int main( int argc , char *argv[] )
 "               to 'mmm' millimeters!  It just means that the program\n"
 "               stops trying to improve the alignment when the optimizer\n"
 "               (NEWUOA) reports it has narrowed the search radius\n"
-"               down to this level.  [Default == 0.05 mm]\n"
+"               down to this level.\n"
 "\n"
 " -verb       = Print out verbose progress reports.\n"
 "               [Using '-VERB' will give even more prolix reports.]\n"
@@ -2323,8 +2324,14 @@ int main( int argc , char *argv[] )
            (   strncasecmp(argv[iarg],"-lpc+",5) == 0
             || strncasecmp(argv[iarg],"-lpa+",5) == 0 ) ) ){
        char *cpt ;
-       meth_code = (toupper(argv[iarg][3])=='C') ? GA_MATCH_LPC_MICHO_SCALAR
-                                                 : GA_MATCH_LPA_MICHO_SCALAR ;
+       if( strcasestr(argv[iarg],"lpc") != NULL )
+         meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
+       else if( strcasestr(argv[iarg],"lpa") != NULL )
+         meth_code = GA_MATCH_LPA_MICHO_SCALAR ;
+       else {
+         WARNING_message("How did this happen? argv[%d] = %s",iarg,argv[iarg]) ;
+         meth_code = GA_MATCH_LPC_MICHO_SCALAR ;
+       }
        micho_fallthru = 0 ;
        cpt = strcasestr(argv[iarg],"+hel*"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
        cpt = strcasestr(argv[iarg],"+hel:"); if( cpt != NULL ) micho_hel = strtod(cpt+5,NULL);
@@ -2645,10 +2652,8 @@ int main( int argc , char *argv[] )
        float vv ;
        if( ++iarg >= argc ) ERROR_exit("no argument after '%s' :-(",argv[iarg-1]) ;
        vv = (float)strtod(argv[iarg],NULL) ;
-       if( vv <= 0.001f || vv > 6.66f ){
-         vv = 0.05f ;
-         WARNING_message("-conv '%s' is out of range",argv[iarg]) ;
-       }
+            if( vv < 0.0001f ){ vv = 0.0001f; WARNING_message("limited %s to 0.0001",argv[iarg]); }
+       else if( vv > 0.666f  ){ vv = 0.666f ; WARNING_message("limited %s to 0.666" ,argv[iarg]); }
        conv_mm = vv ; iarg++ ; continue ;
      }
 
@@ -3420,12 +3425,19 @@ int main( int argc , char *argv[] )
    /* find the autobbox, and setup zero-padding */
 
 #undef  MPAD
-#define MPAD 4     /* max #slices to zeropad */
+#define MPAD 8
    if( zeropad ){
-     float cv , *qar  ;
+     float cv , *qar  ; int xpad,ypad,zpad,mpad ;
      cv = 0.33f * THD_cliplevel(im_base,0.33f) ;       /* set threshold */
      qim = mri_copy(im_base); qar = MRI_FLOAT_PTR(qim);
      for( ii=0 ; ii < qim->nvox ; ii++ ) if( qar[ii] < cv ) qar[ii] = 0.0f ;
+
+     /* make padding depend on dataset size [22 May 2019] */
+
+     xpad = nx_base/8; ypad = ny_base/8; zpad = nz_base/8; mpad = MPAD;
+     if( mpad < xpad ) mpad = xpad ;
+     if( mpad < ypad ) mpad = ypad ;
+     if( mpad < zpad ) mpad = zpad ;
 
      /* find edges of box that contain supra-threshold contents */
 
@@ -3440,14 +3452,14 @@ int main( int argc , char *argv[] )
      }
 #endif
 
-     /* compute padding so that at least MPAD all-zero slices on each face */
+     /* compute padding so that at least mpad all-zero slices on each face */
 
-     pad_xm = MPAD - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
-     pad_ym = MPAD - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
-     pad_zm = MPAD - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
-     pad_xp = MPAD - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
-     pad_yp = MPAD - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
-     pad_zp = MPAD - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
+     pad_xm = mpad - pad_xm               ; if( pad_xm < 0 ) pad_xm = 0 ;
+     pad_ym = mpad - pad_ym               ; if( pad_ym < 0 ) pad_ym = 0 ;
+     pad_zm = mpad - pad_zm               ; if( pad_zm < 0 ) pad_zm = 0 ;
+     pad_xp = mpad - (nx_base-1 - pad_xp) ; if( pad_xp < 0 ) pad_xp = 0 ;
+     pad_yp = mpad - (ny_base-1 - pad_yp) ; if( pad_yp < 0 ) pad_yp = 0 ;
+     pad_zp = mpad - (nz_base-1 - pad_zp) ; if( pad_zp < 0 ) pad_zp = 0 ;
      if( nz_base == 1 ){ pad_zm = pad_zp = 0 ; }  /* don't z-pad 2D image! */
 
      zeropad = (pad_xm > 0 || pad_xp > 0 ||
@@ -3462,7 +3474,7 @@ int main( int argc , char *argv[] )
          if( pad_zm > 0 || pad_zp > 0 )
            INFO_message("Zero-pad: zbot=%d ztop=%d",pad_zm,pad_zp) ;
        } else {
-         INFO_message("Zero-pad: not needed") ;
+         INFO_message("Zero-pad: not needed (plenty of internal padding)") ;
        }
      }
 
@@ -4069,9 +4081,9 @@ STATUS("zeropad weight dataset") ;
      else              yyy = conv_mm / (xxx*siz) ;         /* scale */
      zzz = MIN(zzz,yyy) ;
    }
-   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.00001f) ;
+   conv_rad = MIN(zzz,0.001f) ; conv_rad = MAX(conv_rad,0.000005f) ;
    if( verb > 1 && apply_mode == 0 )
-     INFO_message("Normalized convergence radius = %.6f",conv_rad) ;
+     INFO_message("Normalized convergence radius = %.7f",conv_rad) ;
 
    /*-- special case: 04 Apr 2008 --*/
 

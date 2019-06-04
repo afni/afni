@@ -28,7 +28,7 @@ static MRI_IMAGE * VL_imbase = NULL ;
 static MRI_IMAGE * VL_imwt   = NULL ;
 static int         VL_wtinp  = 0 ;    /* 06 Jun 2002 */
 
-static int         VL_zpad   = 0 ;    /* 05 Feb 2001 */
+static int         VL_zpad   = 4 ;    /* 05 Feb 2001 */
 
 static int         VL_twopass= 0 ;    /* 11 Sep 2000 */
 static float       VL_twoblur= 2.0 ;
@@ -54,10 +54,10 @@ static int  VL_verbose     = 0 ;
 static char VL_dfile[256]  = "\0" ;
 static char VL_1Dfile[256] = "\0" ;  /* 14 Apr 2000 */
 
-static int VL_maxite = 19 ;
-static float VL_dxy  = 0.02;  /* voxels */
-static float VL_dph  = 0.03 ;  /* degrees */
-static float VL_del  = 0.70 ;  /* voxels */
+static int VL_maxite = 23  ;
+static float VL_dxy  = 0.01;  /* voxels */
+static float VL_dph  = 0.02;  /* degrees */
+static float VL_del  = 0.70;  /* voxels */
 
 static int VL_rotcom = 0 ;     /* 04 Sep 2000: print out 3drotate commands? */
 
@@ -1449,6 +1449,8 @@ void VL_syntax(void)
     "                     all directions.\n"
     "              N.B.: The environment variable AFNI_ROTA_ZPAD can be used\n"
     "                     to set a nonzero default value for this parameter.\n"
+    "              N.B.: [22 May 2019] The default value for zero padding\n"
+    "                    is now set to 4 voxels on each of the 6 planes.\n"
     "  -prefix fname   Use 'fname' for the output dataset prefix.\n"
     "                    The program tries not to overwrite an existing dataset.\n"
     "                    Default = 'volreg'.\n"
@@ -2444,6 +2446,7 @@ void VL_command_line(void)
 
    /*** done (we hope) ***/
 
+   THD_rota_setpad(VL_zpad,VL_zpad,VL_zpad) ;
    return ;
 }
 

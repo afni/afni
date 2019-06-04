@@ -49,6 +49,42 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Jun, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -dset_extension, -storage_mode",
+   NULL
+ } ,
+
+ {  4, Jun, 2019, RCR, "plug_tag", MINOR, TYPE_BUG_FIX,
+   "use calloc to init last 4 bytes of tag string in thd_dsetatr.c",
+   "This was leaving garbage in HEAD file.\n"
+   "Thanks to A Nugent for noting the problem."
+ } ,
+
+ {  3, Jun, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow ricor processing in case of multi-echo data",
+   "Done for K Dembny."
+ } ,
+
+ { 30, May, 2019, RCR, "@radial_correlate", MINOR, TYPE_MODIFY,
+   "apply full Gaussian for blur, rather than truncated",
+   "Truncated is okay, but has cubical extents, rather than spherical."
+ } ,
+
+ { 23, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add options -regress_anaticor_full_gaussian, -regress_anaticor_term_frac",
+   "Also, save fanaticor_mask_coverage dataset."
+ } ,
+
+ { 22, May, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "blurs are now truncated Gaussians by default, making them flat",
+   NULL
+ } ,
+
+ { 22, May, 2019, RCR, "Makefile.INCLUDE", MICRO, TYPE_GENERAL,
+   "start with 'MAKE ?= make', and use MAKE exclusively",
+   "Thanks to J Bacon for the suggestion."
+ } ,
+
  { 20, May, 2019, RCR, "plug_vol2surf", MINOR, TYPE_BUG_FIX,
    "modify pane_scale to match updates for AFNI_PBAR_FULLRANGE",
    NULL

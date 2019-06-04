@@ -1324,10 +1324,7 @@ def db_cmd_ricor(proc, block):
         return
 
     # ME: implement multi-echo once someone wants it...
-    if proc.use_me:
-       print("** ricor block is not yet allowed on ME data")
-       print("   (please request on AFNI message board)")
-       return
+    # hopefully ready now   3 Jun 2019
 
     # get datum, if set
     rdatum, err = block.opts.get_string_opt('-ricor_datum')
@@ -1439,8 +1436,12 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
 
     prev_dsets = proc.prev_dset_form_wild(block, view=1)
     cur_prefix = proc.prefix_form_run(block)
-    prefix     = 'pb%02d.ricor' % block.index
-    matrix     = '%s.xmat.1D' % prefix
+    prebase    = 'pb%02d.ricor' % block.index
+    matrix     = '%s.xmat.1D' % prebase
+    # do not save these files by default, except for the matrices
+    prefix      = 'rm.' + prebase
+
+    prev_x = proc.prev_dset_form_wild(block, view=1, eind=-1)
 
     # we have a regressor file to pass to the regress processing block
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
@@ -1475,50 +1476,78 @@ def ricor_process_across_runs(proc, block, polort, solver, nsliregs, rdatum):
         "# create (polort) X-matrix to apply in 3dREMLfit\n"    \
         "3dDeconvolve -polort %d -input %s \\\n"                \
         "    -x1D_stop -x1D %s\n\n"                             \
-        % (polort, prev_dsets, matrix)
+        % (polort, prev_x, matrix)
 
-    cmd = cmd +                                                         \
-        "# 3dREMLfit does not currently catenate a dataset list\n"      \
-        "set dsets = ( %s )\n\n" % prev_dsets
+    # process 3D+time data
+    if proc.use_me:
+       eprefix = prefix + '.e$eind'
+       indent = '   '
+       eiter = '.e$eind'
+       cmd += "# process one echo at a time, across runs\n" \
+              "foreach eind ( $echo_list )\n"
+    else:
+       eprefix = prefix
+       indent = ''
+       eiter = ''
 
-    cmd = cmd +                                                 \
-        "# regress out the detrended RETROICOR regressors\n"    \
-        "# (matrix from 3dD does not have slibase regressors)\n"\
-        '3dREMLfit -input "$dsets" \\\n'                        \
-        "    -matrix %s \\\n"                                   \
-        "    -%sbeta %s.betas \\\n"                             \
-        "    -%serrts %s.errts \\\n"                            \
-        "    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
-        % (matrix, solver, prefix, solver, prefix)
+    cmd = cmd +                                                      \
+        "%s# 3dREMLfit does not currently catenate a dataset list\n" \
+        "%sset dsets = ( %s )\n\n" % (indent, indent, prev_dsets)
 
-    cmd = cmd +                                                 \
-        "# re-create polynomial baseline\n"                     \
-        "3dSynthesize -matrix %s \\\n"                          \
-        "    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
-        "    -select polort -prefix %s.polort\n\n"              \
-        % (matrix, prefix, proc.view, (polort+1)*proc.runs-1, prefix)
+    cmd = cmd +                                                   \
+        "%s# regress out the detrended RETROICOR regressors\n"    \
+        "%s# (matrix from 3dD does not have slibase regressors)\n"\
+        '%s3dREMLfit -input "$dsets" \\\n'                        \
+        "%s    -matrix %s \\\n"                                   \
+        "%s    -%sbeta %s.betas \\\n"                             \
+        "%s    -%serrts %s.errts \\\n"                            \
+        "%s    -slibase_sm stimuli/ricor_det_rall.1D\n\n"         \
+        % (indent, indent, indent, indent, matrix,
+           indent, solver, eprefix,
+           indent, solver, eprefix, indent)
+
+    cmd = cmd +                                                   \
+        "%s# re-create polynomial baseline\n"                     \
+        "%s3dSynthesize -matrix %s \\\n"                          \
+        "%s    -cbucket %s.betas%s'[0..%d]' \\\n"                 \
+        "%s    -select polort -prefix %s.polort\n\n"              \
+        % (indent, indent, matrix,
+           indent, eprefix, proc.view, (polort+1)*proc.runs-1,
+           indent, eprefix)
 
     # short data is unscaled, float is the default, else convert to short
-    if   rdatum == 'short':  dstr = '           -datum short -nscale \\\n'
-    elif rdatum == 'float':  dstr = ''
-    else:                    dstr = '           -datum %s \\\n' % rdatum
+    if   rdatum == 'short':
+       dstr = '%s           -datum short -nscale \\\n' % indent
+    elif rdatum == 'float':
+       dstr = ''
+    else:
+       dstr = '%s           -datum %s \\\n' % (indent, rdatum)
 
-    cmd = cmd +                                                 \
-        "# final result: add REML errts to polynomial baseline\n" \
-        "# (and separate back into individual runs)\n"          \
-        "set startind = 0\n"                                    \
-        "foreach rind ( `count -digits 1 1 $#runs` )\n"         \
-        "    set run = $runs[$rind]\n"                          \
-        "    set runlen = $tr_counts[$rind]\n"                  \
-        "    @ endind = $startind + $runlen - 1\n"              \
-        "\n"                                                    \
-        '    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'   \
-        '           -b %s.polort%s"[$startind..$endind]" \\\n'  \
-        '%s'                                                    \
-        '           -expr a+b -prefix %s\n'                     \
-        "    @ startind = $endind + 1\n"                        \
-        'end\n\n'                                               \
-        % (prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+    cmd = cmd +                                                     \
+        "%s# final result: add REML errts to polynomial baseline\n" \
+        "%s# (and separate back into individual runs)\n"            \
+        "%sset startind = 0\n"                                      \
+        "%sforeach rind ( `count -digits 1 1 $#runs` )\n"           \
+        "%s    set run = $runs[$rind]\n"                            \
+        "%s    set runlen = $tr_counts[$rind]\n"                    \
+        "%s    @ endind = $startind + $runlen - 1\n"                \
+        "\n" % (indent, indent, indent, indent, indent, indent, indent)
+
+    cmd = cmd +                                                     \
+        '%s    3dcalc -a %s.errts%s"[$startind..$endind]" \\\n'     \
+        '%s           -b %s.polort%s"[$startind..$endind]" \\\n'    \
+        '%s'                                                        \
+        '%s           -expr a+b -prefix %s\n'                       \
+        "%s    @ startind = $endind + 1\n"                          \
+        '%send\n'                                                   \
+        % (indent, eprefix, proc.view,
+           indent, eprefix, proc.view, dstr,
+           indent, cur_prefix, indent, indent)
+
+    if proc.use_me:
+       cmd = cmd + 'end\n'
+
+    cmd = cmd + '\n'
 
     return cmd
 
@@ -1537,6 +1566,8 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
     cur_prefix  = proc.prefix_form_run(block)
     prefix      = 'pb%02d.ricor' % block.index
     matrix      = '%s.r$run.xmat.1D' % prefix
+    # do not save these files by default, except for the matrices
+    prefix      = 'rm.' + prefix
 
     # we have a regressor file to pass to the regress processing block
     proc.ricor_reg = 'stimuli/ricor_s0_rall.1D'
@@ -1560,38 +1591,65 @@ def ricor_process_per_run(proc, block, polort, solver, nsliregs, rdatum):
         (polort, nsliregs-1)
     proc.have_rm = 1            # rm.* files exist
 
-    cmd = cmd +                                                 \
+    # process 3D+time data
+
+    # if ME, prev_prefix should be fave_echo
+    prev_x = proc.prev_prefix_form_run(block, view=1, eind=-1)
+    if proc.use_me:
+       indent = '   '
+       eistr = '.e$eind'
+    else:
+       indent = ''
+       eistr = ''
+
+    cmd = cmd +                                                   \
         "    # create (polort) X-matrix to apply in 3dREMLfit\n"\
         "    3dDeconvolve -polort %d -input %s \\\n"            \
         "        -x1D_stop -x1D %s\n\n" %                       \
-        (polort, prev_prefix, matrix)
-    cmd = cmd +                                                 \
-        "    # regress out the detrended RETROICOR regressors\n"\
-        "    3dREMLfit -input %s \\\n"                          \
-        "        -matrix %s \\\n"                               \
-        "        -%sbeta %s.betas.r$run \\\n"                   \
-        "        -%serrts %s.errts.r$run \\\n"                  \
-        "        -slibase_sm stimuli/ricor_det_r$run.1D\n\n"    \
-        % (prev_prefix, matrix, solver, prefix, solver, prefix)
-    cmd = cmd +                                                 \
-        "    # re-create polynomial baseline\n"                 \
-        "    3dSynthesize -matrix %s \\\n"                      \
-        "        -cbucket %s.betas.r$run%s'[0..%d]' \\\n"       \
-        "        -select polort -prefix %s.polort.r$run\n\n"    \
-        % (matrix, prefix, proc.view, polort, prefix)
+        (polort, prev_x, matrix)
+
+    if proc.use_me:
+       cmd += '    # project out from each echo\n' \
+              '    foreach eind ( $echo_list )\n'
+
+    cmd = cmd +                                                   \
+        "%s    # regress out the detrended RETROICOR regressors\n"\
+        "%s    3dREMLfit -input %s \\\n"                          \
+        "%s        -matrix %s \\\n"                               \
+        "%s        -%sbeta %s.betas.r$run%s \\\n"                 \
+        "%s        -%serrts %s.errts.r$run%s \\\n"                \
+        "%s        -slibase_sm stimuli/ricor_det_r$run.1D\n\n"    \
+        % (indent, indent, prev_prefix, indent, matrix,
+           indent, solver, prefix, eistr, indent, solver, prefix, eistr, indent)
+    cmd = cmd +                                                   \
+        "%s    # re-create polynomial baseline\n"                 \
+        "%s    3dSynthesize -matrix %s \\\n"                      \
+        "%s        -cbucket %s.betas.r$run%s%s'[0..%d]' \\\n"     \
+        "%s        -select polort -prefix %s.polort.r$run%s\n\n"  \
+        % (indent, indent, matrix, indent, prefix, eistr, proc.view, polort,
+           indent, prefix, eistr)
 
     # short data is unscaled, float is the default, else convert to rdatum
-    if   rdatum == 'short':  dstr = '           -datum short -nscale \\\n'
-    elif rdatum == 'float':  dstr = ''
-    else:                    dstr = '           -datum %s \\\n' % rdatum
+    if rdatum == 'short':
+       dstr = '%s          -datum short -nscale \\\n' % indent
+    elif rdatum == 'float':
+       dstr = ''
+    else:
+       dstr = '%s          -datum %s \\\n' % (indent, rdatum)
 
-    cmd = cmd +                                                 \
-        "    # final result: add REML errts to polynomial baseline\n"   \
-        "    3dcalc -a %s.errts.r$run%s \\\n"                   \
-        "           -b %s.polort.r$run%s \\\n"                  \
-        '%s'                                                    \
-        "           -expr a+b -prefix %s\n"                     \
-        % (prefix, proc.view, prefix, proc.view, dstr, cur_prefix)
+    cmd = cmd +                                                         \
+        "%s    # final result: add REML errts to polynomial baseline\n" \
+        "%s    3dcalc -a %s.errts.r$run%s%s \\\n"                       \
+        "%s           -b %s.polort.r$run%s%s \\\n"                      \
+        '%s'                                                            \
+        "%s           -expr a+b -prefix %s\n"                           \
+        % (indent,
+           indent, prefix, eistr, proc.view,
+           indent, prefix, eistr, proc.view,
+           dstr, indent, cur_prefix)
+
+    if proc.use_me:
+       cmd = cmd + "    end\n\n"
 
     # end of foreach loop encompassing ricor block
     cmd = cmd + "end\n\n"
@@ -4651,6 +4709,8 @@ def db_mod_regress(block, proc, user_opts):
     apply_uopt_to_block('-regress_anaticor_radius', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fast', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_fwhm', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_full_gaussian', user_opts, block)
+    apply_uopt_to_block('-regress_anaticor_term_frac', user_opts, block)
     apply_uopt_to_block('-regress_anaticor_label', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_vols', user_opts, block)
     apply_uopt_to_block('-regress_make_corr_AIC', user_opts, block)
@@ -6048,9 +6108,67 @@ def db_cmd_regress_anaticor(proc, block):
               '       -expr "a*bool(b)" -datum float -prefix %s\n\n' \
               % (vall, mset.shortinput(), vmask)
 
-       cmd += '# generate ANATICOR voxelwise regressors via blur\n'  \
-              '3dmerge -1blur_fwhm %g -doall -prefix %s %s%s\n\n'    \
-              % (rad, rset.out_prefix(), vmask, proc.view)
+       # note the radius fraction to terminate blur at
+       # (match method in @radial_correlate, defaul=0.5)
+       oname = '-regress_anaticor_term_frac'
+       merge_frad, err = block.opts.get_type_opt(float, oname, default=0.5)
+       if err:
+          print('** error: option %s requires a float argument' % oname)
+          return 1, ''
+       if merge_frad <= 0:
+          print('** error: %s must be positive' % oname)
+          return 1, ''
+
+       # leave users opt to go full Gaussian, as with old _fast method
+       if block.opts.have_yes_opt('-regress_anaticor_full_gaussian', default=1):
+          viastr = '# via full Gaussian blur (radius = %g mm)\n' % rad
+          # convert from radius back to diameter (FWHM)
+          rad = 2.0 * rad
+          ffstr = ''
+       else:
+          # scale radius by fraction of HWHM to stop at, then up to FWHM
+          # (3dmerge takes a fwhm measure)
+          rold = rad
+          rad = 2.0 * rad / merge_frad
+
+          # in Gaussian 1 HWHM = sqrt(2*ln(2)) sigmas = 1.17741 sigmas
+          # (then scale by the 3dmerge fractional radius)
+          ffscale = 1.17741
+          firfac = ffscale * merge_frad
+
+          viastr = '# via truncated blur\n'                                 \
+                   '# - scale radius %g by %g (1/_term_frac), so FWHM=%d\n' \
+                   '# - then truncate at %g sigmas (%g HWHM * %g S/HWHM)\n' \
+                    % (rold, 1.0/merge_frad, rad, firfac, merge_frad, ffscale)
+          ffstr = '-DAFNI_BLUR_FIRFAC=%g ' % firfac
+
+       # QC: store the actual 3dmerge command to make a blurred mask
+       merge_cmd = '3dmerge %s-1blur_fwhm %g -doall' % (ffstr, rad)
+       cmd += '# generate ANATICOR voxelwise regressors\n' + viastr
+
+       # avoid strange line wrapping, and similarly store the prefix form
+       # (we *could* just put -prefix on the next line, as in the 2nd case)
+       if ffstr == '':
+          prefix_form = ' -prefix %s \\\n        %s\n\n'
+       else:
+          prefix_form = ' \\\n        -prefix %s %s\n\n'
+
+       # finally, make a well-formatted 3dmerge command
+       instr = '%s%s' % (vmask, proc.view)
+       cmd += merge_cmd + prefix_form % (rset.out_prefix(), instr)
+
+       # additionally,  make a corresponding blur of the mask dataset, for QC
+       # (use a temporary float
+       mtmp = mset.new(new_pref='rm.mask.anaticor.float')
+       cmd += '# QC: similarly blur the mask to get an idea of the coverage\n'\
+              '#     (use a float version of the mask for blurring)\n'
+       cmd += '3dcalc -a %s -expr a -datum float \\\n' \
+              '       -prefix %s\n'                    \
+              % (mset.shortinput(), mtmp.prefix)
+       cmd += merge_cmd + \
+               prefix_form % ('fanaticor_mask_coverage', mtmp.shortinput())
+
+    # handle non-blur method, as in original ANATICOR
     else:
        cmd += "3dLocalstat -stat mean -nbhd 'SPHERE(%g)' -prefix %s \\\n" \
               "            -mask %s -use_nonmask \\\n"                    \
@@ -6089,18 +6207,26 @@ def get_keep_trs_cmd(proc):
 
 # get radius for anaticor (fast or slow)
 def get_anaticor_radius(proc, block):
-   # if fast anaticor, default to 30 mm FWHM
-   if proc.anaticor == 2:
-      oname = '-regress_anaticor_fwhm'
-      rad = 30.0
+
+   # make 30 mm the default in either case, from 45 for slow  [22 May 2019]
+   rad = 30.0   
+
+   # default option is radius
+   ofwhm = '-regress_anaticor_fwhm'
+   orad  = '-regress_anaticor_radius'
+   if block.opts.find_opt(ofwhm):
+      oname = ofwhm
    else:
-      oname = '-regress_anaticor_radius'
-      rad = 45.0
+      oname = orad
 
    val, err = block.opts.get_type_opt(float, oname, default=rad)
    if err:
-      print('** error: %s requires float argument' % oname)
+      print('** error: option %s requires float argument' % oname)
       return -1.0
+
+   # doing away with fwhm, convert to radius
+   if oname == ofwhm:
+      val /= 2.0
 
    return val
 
@@ -12350,11 +12476,13 @@ g_help_options = """
             See also -mask_segment_anat, -mask_segment_erode, -regress_ROI_PC,
                 -anat_follower_ROI.
 
-        -regress_anaticor_radius RADIUS : specify RADIUS for 3dLocalstat
+        -regress_anaticor_radius RADIUS : specify RADIUS for local WM average
 
-            To go with -regress_anaticor, use this option to specify the radius
-            of spheres within which local white matter is averaged.  A small
-            radius means the white matter is more local.  It is also faster.
+            To go with -regress_anaticor or -regress_anaticor_fast, use this
+            option to specify the radius.  In the non-fast case that applies
+            to spheres within which local white matter is averaged.  In the
+            fast case, the radius is applied as the HWHM (half width at half
+            max).  A small radius means the white matter is more local.
 
             If no white matter is found within the specified distance of some
             voxel, the effect is that ANATICOR will simply not happen at that
@@ -12362,7 +12490,7 @@ g_help_options = """
             is simply no white matter close enough to regress out (again, at
             the given voxel).
 
-            See also -regress_anaticor.
+            See also -regress_anaticor or -regress_anaticor_fast.
 
         -regress_anaticor_fast  : generate errts using fast ANATICOR method
 
@@ -12399,6 +12527,12 @@ g_help_options = """
                 e.g.     -regress_anaticor_fwhm 20
                 default: -regress_anaticor_fwhm 30
 
+
+         ** This option is no longer preferable.  The newer application of
+            -regress_anaticor_fast "thinks" in terms of a radius, like HWHM.
+            So consider -regress_anaticor_radius for all cases.
+
+
             This option applies to -regress_anaticor_fast.
 
             The 'fast' ANATICOR method blurs the time series of desired white
@@ -12412,6 +12546,72 @@ g_help_options = """
             half as much as a voxel at the center of the kernel.
 
             See also -regress_anaticor_fast.
+
+        -regress_anaticor_term_frac FRAC : specify termination fraction
+
+                e.g.     -regress_anaticor_term_frac .25
+                default: -regress_anaticor_term_frac .5
+
+            In the typical case of -regress_anaticor_fast, to make it behave
+            very similarly to -regress_anaticor, blurring is applied with a
+            Gaussian kernel out to the radius specified by the user, say 30 mm.
+
+            To make this kernel more flat, it is terminated at a fraction of
+            the HWHM (half width at half max, say 0.5), while the blur radius
+            is extended by the reciprocal (to keep the overall distance fixed).
+            So that means blurring with a wider Gaussian kernel, but truncating
+            it to stay fixed at the given radius.
+
+            If the fraction were 1.0, the relative contribution at the radius
+            would be 0.5 of the central voxel (by definition of FWHM/HWHM).
+            At a fraction of 0.5 (default), the relative contribution is 0.84.
+            At a fraction of 0.25, the relative contribution is 0.958, seen by:
+
+               afni_util.py -print 'gaussian_at_hwhm_frac(.25)'
+
+            Consider the default fraction of 0.5.  That means we want the
+            "radius" of the blur to terminate at 0.5 * HWHM, making it more
+            flat, such that the relative contribution at the edge is ~0.84.
+            If the specified blur radius is 30 mm, that mean the HWHM should
+            actually be 60 mm, and we stop computing at HWHM/2 = 30 mm.  Note
+            that the blur in 3dmerge is applied not as a radius (HWHM), but as
+            a diameter (FWHM), so these numbers are always then doubled.  In
+            this example, it would use FWHM = 120 mm, to achieve a flattened
+            30 mm radius Gaussian blur.
+
+            In general, the HWHM widening (by 1/FRAC) makes the inner part of
+            the kernel more flat, and then the truncation at FRAC*HWHM makes
+            the blur computations still stop at the radius.  Clearly one can
+            make a flatter curve with a smaller FRAC.
+
+            To make the curve a "pure Gaussian", with no truncation, consider
+            the option -regress_anaticor_full_gaussian.
+
+            Please see "@radial_correlate -help" for more information.
+            Please also see:
+               afni_util.py -print 'gaussian_at_hwhm_frac.__doc__'
+            See also -regress_anaticor_fast, -regress_anaticor_radius,
+            -regress_anaticor_full_gaussian.
+
+        -regress_anaticor_full_gaussian yes/no: use full Gaussian blur
+
+                e.g.     -regress_anaticor_full_gaussian yes
+                default: -regress_anaticor_full_gaussian no
+
+            When using -regress_anaticor_fast to apply ANATICOR via a Gaussian
+            blur, the blur kernel is extended and truncated to stop at the
+            -regress_anaticor_radius HWHM of the Gaussian curve, allowing the
+            shape to be arbitrarily close to the flat curve applied in the
+            original ANATICOR method via -regress_anaticor.
+
+            Use this option to prevent the truncation, so that a full Gaussian
+            blur is applied at the specified HWHM radius (FWHM = 2*HWHM).
+
+          * Note that prior to 22 May 2019, the full Gaussian was always
+            applied with -regress_anaticor_fast.  This marks an actual change
+            in processing.
+
+            See also -regress_anaticor_fast, -regress_anaticor_radius.
 
         -regress_apply_mask     : apply the mask during scaling and regression
 

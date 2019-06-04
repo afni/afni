@@ -107,7 +107,7 @@ if '-list_fields' in arg_list and len(arg_list) > 1:
 for i in json_files:
 
     ## create the json_info object and a list to print
-    j = abids_lib.json_info_dset(i)
+    j = abids_lib.json_info(i)
     out_list = []
 
     ########################################################################

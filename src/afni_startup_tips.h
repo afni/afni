@@ -720,6 +720,7 @@ static char *gby[] = {
      "I am so clever I don't understand a word of what I'm saying"   ,
      "Some cause happiness wherever they go; others whenever they go",
      "A man who does not think for himself does not think at all"    ,
+     "A man hears what he wants to hear and disregards the rest"     ,
      "Whenever people agree with me, I think I must be wrong"        ,
      "We are each our own devil, and make this world our hell"       ,
      "I have nothing to declare except my genius"                    ,
@@ -1165,7 +1166,17 @@ static char *gby[] = {
      "\n The world is divided into two classes:\n"
      "   Those who believe the incredible, and those who do the improbable"     ,
 
-     "Whenever a person does a thoroughly stupid thing, it is always from the noblest motives" ,
+     "\n Whenever a person does a thoroughly stupid thing,\n"
+     "   it is always from the noblest motives"                                 ,
+
+     "\n Although education is a fine thing, we would be well to remind ourselves\n"
+     "   from time to time that nothing worth knowing can actually be taught."  ,
+
+     "\n Experience is an effective but cruel teacher,\n"
+     "   for it gives the test first and the lesson afterward."                 ,
+
+     "\n Good decisions come from experience ...\n"
+     "   and experience mostly comes from from bad decisions"                   ,
 
      /* Longer quotes */
 

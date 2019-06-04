@@ -39,13 +39,35 @@ auth = 'PA Taylor'
 # + [PT] add in EPI in orig space viewing
 # + [PT] copy gen_ss JSON file into QC_*/media_info/
 #
-ver = '2.1' ; date = 'Feb 26, 2019' 
+#ver = '2.1' ; date = 'Feb 26, 2019' 
 # + [PT] new plot in regr: grayplot
+#
+#ver = '2.2' ; date = 'May 14, 2019' 
+# + [PT] new images: radcor
+#
+#ver = '2.21' ; date = 'May 16, 2019' 
+# + [PT] correctifying radcor behavior
+#
+#ver = '2.21' ; date = 'May 17, 2019' 
+# + [PT] simplifying radcor behavior
+#
+ver = '2.4' ; date = 'May 20, 2019' 
+# + [PT] more details of aea_checkflip
+# + [PT] radcor to own QC block
+#
+ver = '2.5' ; date = 'May 23, 2019' 
+# + [PT] switched to using afni_base functions for executing on
+#        commandline
 #
 #########################################################################
 
 import sys
+import glob
+import subprocess
+import json
 import collections         as coll
+import afni_base           as ab
+import lib_apqc_html       as lah
 import lib_apqc_html_helps as lahh
 import lib_ss_review       as lssr
 
@@ -78,6 +100,11 @@ def check_dep(D, lcheck):
         # NULL value, NO_STATS, and that is reflected here
         elif x == "stats_dset" :
             if D[x] == "NO_STATS" :
+                HAS_ALL = 0
+                break
+
+        elif x == "have_radcor_dirs" :
+            if D[x] == "no" : 
                 HAS_ALL = 0
                 break
 
@@ -215,8 +242,10 @@ Returns
     for line in y:
         ll = line.strip()
         if ALIGNASSIGN :
-            if '=' in ll:
-                iassign = ll.index('=')
+            # [PT: May 19, 2019] Make this align " = " instead of "=",
+            # because of possible "==" usage that we *don't* want to align
+            if ' = ' in ll:
+                iassign = ll.index(' = ')
                 if iassign > maxia :
                     maxia = iassign
         z.append(ll)
@@ -441,12 +470,10 @@ fixed names, basically.  Should be run near start of prog.
     pre = '''
     set odir_qc = {}_${{subj}}
     set odir_img = ${{odir_qc}}/{}
-    set odir_img = ${{odir_qc}}/{}
     set odir_info = ${{odir_qc}}/{}
-    '''.format( qcbase, dir_img, dir_img, dir_info )
+    '''.format( qcbase, dir_img, dir_info )
 
     cmd = '''
-    \\mkdir -p ${odir_img}
     \\mkdir -p ${odir_img}
     \\mkdir -p ${odir_info}
     '''
@@ -604,7 +631,10 @@ def apqc_mot_outlr( obase, qcb, qci, run_style, jpgsize,
         STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
-        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
         if has_lim : 
             STR_plot_title+= ''', with limit (cyan)'''
             STR_json_text+=  ''', with limit'''
@@ -740,7 +770,10 @@ def apqc_mot_enorm( obase, qcb, qci, run_style, jpgsize,
         STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
-        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
         if has_lim : 
             STR_plot_title+= ''', with limit (cyan)'''
             STR_json_text2+=  '''with limit'''
@@ -875,7 +908,10 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
         STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
-        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
         if has_lim_mot or has_lim_out : 
             STR_plot_title+= ''', with limit (cyan)'''
             STR_json_text2+=  '''with limit'''
@@ -989,7 +1025,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
     # censoring, but no limit shown here
     STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
     STR_plot_title = 'Regressors of interest in the X-matrix'
-    STR_json_text  = 'regressors of interest (per stim, in ${xmat_stim})'
+    STR_json_text  = 'Regressors of interest (per stim, in ${xmat_stim})'
     STR_json_subt  = ''
     if has_cen_dset : 
         STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
@@ -997,7 +1033,10 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
         STR_json_subt+=  '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
-        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
 
     comm  = ''' view xmatrix (${xmat_stim}), made from (${xmat_uncensored})'''
 
@@ -1097,7 +1136,7 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
     # censoring, but no limit shown here
     STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
     STR_plot_title = 'Sum of regressors of interest in the X-matrix'
-    STR_json_text  = 'sum of regressors of interest (in ${sum_ideal})'
+    STR_json_text  = 'Sum of regressors of interest (in ${sum_ideal})'
     STR_json_subt  = ''
     if has_cen_dset : 
         STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
@@ -1105,7 +1144,10 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
         STR_json_subt+=  '''censored vols (${Pcstr}%): ${cstr}'''
         STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
         set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
-        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`'''
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
 
     comm  = ''' view xmatrix'''
 
@@ -1235,8 +1277,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
-    set tpbarjson  = _tmppbar.txt
-    set opbarjson  = ${{odir_img}}/${{opref}}.pbar.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
     '''.format( opref, ulay_name )
 
     # get min/max for informational purposes
@@ -1270,7 +1311,9 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -box_focus_slices AMASK_FOCUS_ULAY
     -cbar gray_scale 
     {}
-    -pbar_saveim "${{odir_img}}/${{opref}}.pbar.jpg"
+    -pbar_saveim "${{opbarrt}}.jpg"
+    -pbar_comm_range "{}{}"
+    -pbar_comm_thr   "range: ${{minmax[1]}}, ${{minmax[2]}}"
     -prefix      "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -blowup 4
@@ -1279,7 +1322,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
-    '''.format( olay_minval_str )
+    '''.format( olay_minval_str, perc_olay_top, '''%ile in vol''' )
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -1323,28 +1366,14 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -prefix ${ojson2}
     '''
 
-
-    # Here, we cheat a bit by calling the volume a 'ulay'.  The reason
-    # we do this is that it seems more compatible with general AFNI
-    # viewing of having a grayscale ulay and a colored olay.
-    pbarjsontxt = '''
-    cat << EOF >! ${{tpbarjson}}
-    pbar_bot :: ${{olay_botval}}
-    pbar_top :: ${{olay_topval}}
-    pbar_reason :: {}{}
-    pbar_vol :: " ulay"
-    pbar_comm :: "range: ${{minmax[1]}}, ${{minmax[2]}}"
-    EOF
-    '''.format( perc_olay_top, '''%ile in vol''' )
-
     pbarjsontxt_cmd = '''
     abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
-    -input  ${tpbarjson}
-    -prefix ${opbarjson}
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
     '''
 
     comm = commentize( comm )
@@ -1358,7 +1387,6 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
 
     # NB: for commandizing the *jsontxt commands, one NEEDS
     # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
-    pbarjsontxt = commandize( pbarjsontxt, cmdindent=0, ALLEOL=False )
     pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
@@ -1366,7 +1394,8 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
 
     lout = [comm, pre, cmd1, cmd2, cmd3, cmd4, 
-            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd, 
+            pbarjsontxt_cmd, 
+            jsontxt, jsontxt_cmd, 
             jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
 
@@ -1560,11 +1589,11 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
         pbar_min        = "-${olay_topval}" # $olay_topval is defined below
 
     comm  = '''peruse statistical results: 
-    {} %ile threshold of thr vol [{}]
-    {} %ile topval for olay vol [{}] for pbar'''.format( perc_thr_thr,
-                                                         ithr,
-                                                         perc_olay_top,
-                                                         iolay )
+    ||~~~{} %ile threshold of thr vol [{}]
+    ||~~~{} %ile topval for olay vol [{}] for pbar'''.format( perc_thr_thr,
+                                                              ithr,
+                                                              perc_olay_top,
+                                                              iolay )
 
     # NB: below, note the '.axi.json', because of how @chauffeur_afni
     # appends slice plane in the name of each output image
@@ -1581,8 +1610,7 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
-    set tpbarjson  = _tmppbar.txt
-    set opbarjson  = ${{odir_img}}/${{opref}}.pbar.json
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
     '''.format( opref, focusbox, iolay, ithr )
 
     # threshold for stat dset, from %ile in mask
@@ -1626,14 +1654,18 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     -olay_boxed Yes
     -set_subbricks -1 ${{olaybrick}} ${{thrbrick}}
     -opacity 9  
-    -pbar_saveim   "${{odir_img}}/${{opref}}.pbar.jpg"
+    -pbar_saveim   "${{opbarrt}}.jpg"
+    -pbar_comm_range "{}{}"
+    -pbar_comm_thr   "{}{}"
     -prefix        "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -montx 7 -monty 1  
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
-    '''.format( olay_minval_str )
+    '''.format( olay_minval_str,
+                perc_olay_top, '''%ile in mask''', 
+                perc_thr_thr,  '''%ile in mask, alpha+boxed on''' )
 
     # As default, use :: and ,, as major and minor delimiters,
     # respectively, because those should be useful in general.  
@@ -1660,15 +1692,18 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     -prefix ${ojson}
     '''
 
-    jsontxt2 = '''
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    jsontxt2  = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
     itemid      :: {}
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
+    subtext     :: {} 
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               osubtext2 )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -1680,25 +1715,14 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     -prefix ${ojson2}
     '''
 
-    pbarjsontxt = '''
-    cat << EOF >! ${{tpbarjson}}
-    pbar_bot :: ${{olay_botval}}
-    pbar_top :: ${{olay_topval}}
-    pbar_reason :: {}{}
-    vthr :: ${{thr_thresh}}
-    vthr_reason :: {}{}
-    EOF
-    '''.format( perc_olay_top, '''%ile in mask''', 
-                perc_thr_thr,  '''%ile in mask''' )
-
     pbarjsontxt_cmd = '''
     abids_json_tool.py   
     -overwrite       
     -txt2json              
     -delimiter_major '::'    
     -delimiter_minor ',,'     
-    -input  ${tpbarjson}
-    -prefix ${opbarjson}
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
     '''
 
     comm = commentize( comm )
@@ -1713,7 +1737,6 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
 
     # NB: for commandizing the *jsontxt commands, one NEEDS
     # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
-    pbarjsontxt = commandize( pbarjsontxt, cmdindent=0, ALLEOL=False )
     pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
@@ -1721,7 +1744,8 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
 
     lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, 
-            pbarjsontxt, pbarjsontxt_cmd, jsontxt, jsontxt_cmd, 
+            pbarjsontxt_cmd,
+            jsontxt, jsontxt_cmd, 
             jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
 
@@ -1915,7 +1939,7 @@ def apqc_qsumm_ssrev( obase, qcb, qci ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "basic summary quantities from processing"
+    text  ::  "Basic summary quantities from processing"
     EOF
     '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
@@ -1943,14 +1967,27 @@ def apqc_qsumm_ssrev( obase, qcb, qci ):
 
 # ========================== warn/txt ================================
 
+
 # Text warning, goes to dir_img output
 # ['xmat_regress']
-def apqc_warns_xmat( obase, qcb, qci ):
+def apqc_warns_xmat( obase, qcb, qci,
+                     fname = '' ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''review: check for correlation matrix warnings'''
 
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname : 
+        txt = lah.read_dat(fname)
+        if txt.__contains__("IDENTICAL:") or txt.__contains__("high:") :
+            warn_level = "severe"
+        elif txt.__contains__("medium:") :
+            warn_level = "mild"
+        elif txt.__contains__("no warnings") :
+            warn_level = "none"
+            
     pre = '''
     set opref = {}
     set tjson  = _tmp.txt
@@ -1975,9 +2012,11 @@ def apqc_warns_xmat( obase, qcb, qci ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "regression matrix correlation warnings"
+    text        :: "Regression matrix correlation warnings"
+    warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               warn_level)
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2004,11 +2043,21 @@ def apqc_warns_xmat( obase, qcb, qci ):
 
 # Text warning, goes to dir_img output
 # ['pre_ss_warn_dset']
-def apqc_warns_press( obase, qcb, qci ):
+def apqc_warns_press( obase, qcb, qci,
+                      fname = ''):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''review: check for pre-steady state warnings'''
+    
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname : 
+        txt = lah.read_dat(fname)
+        if txt.__contains__("possible pre-steady state TRs in run") :
+            warn_level = "severe"
+        else:
+            warn_level = "none"
 
     pre = '''
     set opref = {}
@@ -2020,7 +2069,7 @@ def apqc_warns_press( obase, qcb, qci ):
     if ( -f ${pre_ss_warn_dset} && ! -z ${pre_ss_warn_dset} ) then
     ~~~~cat ${pre_ss_warn_dset} > ${odir_img}/${opref}.dat
     else
-    ~~~~echo " none "  > ${odir_img}/${opref}.dat
+    ~~~~printf ""  > ${odir_img}/${opref}.dat
     endif
     '''
 
@@ -2031,9 +2080,11 @@ def apqc_warns_press( obase, qcb, qci ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "pre-steady state warnings"
+    text        :: "Pre-steady state warnings"
+    warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               warn_level)
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2059,11 +2110,22 @@ def apqc_warns_press( obase, qcb, qci ):
 
 # Text warning, goes to dir_img output
 # ['tent_warn_dset']
-def apqc_warns_TENT( obase, qcb, qci ):
+def apqc_warns_TENT( obase, qcb, qci,
+                     fname = '' ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = '''show any TENT warnings from timing_tool.py'''
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname : 
+        txt = lah.read_dat(fname)
+        if not(txt.strip()) :
+            # empty file means no warning
+            warn_level = "none"
+        else:
+            warn_level = "medium"
 
     pre = '''
     set opref = {}
@@ -2086,9 +2148,11 @@ def apqc_warns_TENT( obase, qcb, qci ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "TENT warnings from timing_tool.py"
+    text        :: "TENT warnings from timing_tool.py"
+    warn_level  :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               warn_level)
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -2110,6 +2174,393 @@ def apqc_warns_TENT( obase, qcb, qci ):
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
 
+# -------------------------------------------------------------------
+# -------------------------------------------------------------------
+
+def aea_checkflip_to_json( fff ):
+    # [PT: May 23, 2019] switched to using afni_base functions for
+    # executing on commandline
+    
+    ojson = "__tmp_checkflip_parse_ZXCV.json"
+    
+    cmd_abid = ["abids_json_tool.py",
+                "-overwrite",
+                "-txt2json",
+                "-delimiter_major", ":",
+                "-delimiter_minor", ",,",
+                "-input", fff,
+                "-prefix", ojson]
+    
+    cmd_abid_str = ' '.join( cmd_abid )
+
+    stat, so, se = ab.simple_shell_exec(cmd_abid_str, capture=1)
+
+    with open(ojson, 'r') as fff:
+        cf_json = json.load(fff) 
+
+    stat2, so2, se2 = ab.simple_shell_exec("\\rm" + ojson, capture=1)
+
+    return cf_json
+
+# -------------------------------------------------------------------
+
+def aea_checkflip_json_warn_level( cf_json ):
+
+    EPS_scale = 10.**-4
+    EPS_delta = 0.1        # percent diff change over scale of values
+
+    # Do some simple calcs with cost values, refining guess, possible.
+    # NB: these 'rules' might be highly in flux over time.
+    fc_orig = float(cf_json['flip_cost_orig'])
+    fc_flpd = float(cf_json['flip_cost_flipped'])
+
+    numer = abs(fc_orig - fc_flpd)
+    denom = 0.5 * (abs(fc_orig) + abs(fc_flpd))
+
+    if cf_json['flip_guess'] == "DO_FLIP" :
+        warn_level = 'severe'
+    else:
+        warn_level = 'none'
+
+    if denom < EPS_scale :
+        # scale of both cost functions is waaay tiny
+        warn_level = 'undecided'
+    else:
+        if numer/denom < EPS_delta :
+            # difference is tiny: hard to tell
+            warn_level = 'medium'
+
+    return warn_level    
+
+# -------------------------------------------------------------------
+
+def apqc_warns_flip( obase, qcb, qci,
+                     fname = '' ):
+    
+    opref = '_'.join([obase, qcb, qci]) # full name
+   
+    comm  = '''
+Use the quality of alignment between the flipped and unflipped anat
+vol with the EPI to check for the presence of a L-R flip problem.
+This program can only make recommendations that a relative flip
+between the EPI and anat has occurred-- and it can't say *which* of
+those might have been flipped.'''
+
+    # parse text file for warning severity
+    warn_level = "undecided"
+    if fname :
+        cf_json    = aea_checkflip_to_json( fname )
+        warn_level = aea_checkflip_json_warn_level( cf_json )
+    
+    pre_flip = '''
+    set opref = {}
+    set flip_json = ${{flip_check_dset:r}}.json
+    '''.format( opref )
+
+    jsontxt_flip_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major ':'    
+    -delimiter_minor ',,'     
+    -input  ${flip_check_dset}
+    -prefix ${flip_json}
+    '''
+
+    post_flip = '''
+    set olay_flip = `@djunct_json_value.py ${flip_json} flip_base`
+    set fcost_orig    = `@djunct_json_value.py ${flip_json} flip_cost_orig`
+    set fcost_flipped = `@djunct_json_value.py ${flip_json} flip_cost_flipped`
+    set fcost_func    = `@djunct_json_value.py ${flip_json} flip_cost_func`
+    set fdset_0_orig  = `@djunct_json_value.py ${flip_json} flip_dset_orig`
+    set fdset_1_flipped = `@djunct_json_value.py ${flip_json} flip_dset_flipped`
+    printf   "" > ${odir_img}/${opref}.dat
+
+    if ( "${flip_guess}" == "NO_FLIP" ) then
+    ~~~~set state_o = "better match"
+    ~~~~set state_f = "worse match"
+    else
+    ~~~~set state_o = "worse match"
+    ~~~~set state_f = "better match"
+    endif
+
+    printf " %10s  %9s  %12s  %11s \\n" "flip guess" "cost func" "original val" "flipped val"  >> ${odir_img}/${opref}.dat
+    printf " %10s  %9s  %12s  %11s \\n" "----------" "---------" "------------" "-----------"   >> ${odir_img}/${opref}.dat
+    printf " %10s  %9s  %12.5f  %11.5f \\n" "${flip_guess}" "${fcost_func}" "${fcost_orig}" "${fcost_flipped}" >> ${odir_img}/${opref}.dat
+    echo "" >> ${odir_img}/${opref}.dat
+
+    '''
+
+    # focus box has to be the orig dset, not the AMASK* keyword,
+    # because the automasking of the edgified dset might get rid of
+    # *everything*
+    pre = '''
+    set focus_box = ${olay_flip}
+    set ulay_name_o = `3dinfo -prefix ${fdset_0_orig}`
+    set opref_o = ${opref}_0
+    set ulay_name_f = `3dinfo -prefix ${fdset_1_flipped}`
+    set opref_f = ${opref}_1
+    set olay_name = `3dinfo -prefix ${olay_flip}`
+    set tjsonw  = _tmpw.txt
+    set ojsonw  = ${odir_img}/${opref}.json
+    set tjson  = _tmp.txt
+    set ojson  = ${odir_img}/${opref_o}.axi.json
+    set tjson2  = _tmp2.txt
+    set ojson2  = ${odir_img}/${opref_f}.axi.json
+    '''
+
+    jsontxt_warn = '''
+    cat << EOF >! ${{tjsonw}}
+    itemtype    :: WARN
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    text        ::  "Left-right flip check warnings" 
+    warn_level  :: {}
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+               warn_level)
+
+    jsontxt_warn_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjsonw}
+    -prefix ${ojsonw}
+    '''
+
+    # always 'orig' dset first
+    cmd0 = '''
+    @djunct_edgy_align_check
+    -ulay    ${fdset_0_orig}
+    -box_focus_slices ${focus_box}
+    -olay    ${olay_flip}
+    -prefix  ${odir_img}/${opref_o}
+    '''
+
+    # ... followed by "flipped" one
+    cmd1 = '''
+    @djunct_edgy_align_check
+    -ulay    ${fdset_1_flipped}
+    -box_focus_slices ${focus_box}
+    -olay    ${olay_flip}
+    -prefix  ${odir_img}/${opref_f}
+    '''
+
+    jsontxt = '''
+    cat << EOF >! ${{tjson}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: "ulay: ${{ulay_name_o}} (original anat, ${{state_o}})" ,, "olay: ${{olay_name}} (EPI edges)"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson}
+    -prefix ${ojson}
+    '''
+
+    jsontxt2 = '''
+    cat << EOF >! ${{tjson2}}
+    itemtype    :: VOL
+    itemid      :: {}
+    blockid     :: {}
+    blockid_hov :: {}
+    title       :: {}
+    subtext     :: "ulay: ${{ulay_name_f}} (flipped anat, ${{state_f}})" ,, "olay: ${{olay_name}} (EPI edges)"
+    EOF
+    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+
+    jsontxt2_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  ${tjson2}
+    -prefix ${ojson2}
+    '''
+
+    comm = commentize( comm )
+    pre_flip  = commandize( pre_flip, cmdindent=0, 
+                            ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt_flip_cmd = commandize( jsontxt_flip_cmd, padpost=2 )
+    post_flip        = commandize( post_flip, cmdindent=0, 
+                                   ALIGNASSIGN=True, ALLEOL=False )
+    pre  = commandize( pre, cmdindent=0, 
+                       ALIGNASSIGN=True, ALLEOL=False )
+    jsontxt_warn      = commandize( jsontxt_warn, cmdindent=0, ALLEOL=False )
+    jsontxt_warn_cmd  = commandize( jsontxt_warn_cmd, padpost=2 )
+    cmd0  = commandize( cmd0 )
+    cmd1  = commandize( cmd1 )
+    jsontxt       = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    jsontxt_cmd   = commandize( jsontxt_cmd, padpost=2 )
+    jsontxt2      = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
+    jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
+
+    lout = [comm, pre_flip, jsontxt_flip_cmd, post_flip,
+            pre, jsontxt_warn, jsontxt_warn_cmd,
+            cmd0, cmd1, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
+    return '\n\n'.join(lout)
+
+
+# -------------------------------------------------------------------
+
+# look for radcor*/ dirs, and the goodies therein
+def apqc_radcor_rcvol( obase, qcb, qci,
+                       rcdir):  
+
+    # start of string to contain all tcsh cmds, bc we can have several
+    # EPI runs per radcor dir
+    full_output = ''  
+    
+    opref = '_'.join([obase, qcb, qci]) # full name
+
+    # paired
+    all_ulay = sorted(glob.glob(rcdir + "/" + "epi.ulay*HEAD"))
+    all_olay = sorted(glob.glob(rcdir + "/" + "radcor.*.corr*HEAD"))
+
+    Nulay = len( all_ulay )
+    Nolay = len( all_olay )
+
+    rc_block = rcdir.split(".")[2]
+
+    if Nulay != Nolay :
+        sys.exit("** ERROR: radcor number of ulays ({}) "
+                 "doesn't match number of olays ({})".format(Nulay, Nolay))
+
+    # for radial correlate, these are main params
+    chauff_params             = {}
+    chauff_params['thr_val']  = 0.4
+    chauff_params['olay_top'] = 0.7
+    chauff_params['cbar']     = "Reds_and_Blues_Inv"
+    
+    comm  = '''peruse radcor results: 
+    ||~~~{}'''.format('\n||~~~ '.join(all_olay) )
+
+    for ii in range(Nolay):
+
+        chauff_params['ulay'] = all_ulay[ii]
+        chauff_params['olay'] = all_olay[ii]
+
+        aaa = chauff_params['olay'].split("/")
+        rnum  = aaa[1].split(".")[2]   # get run number
+        chauff_params['opref'] = opref + "_" + rnum  # + join it to opref
+        
+        # NB: below, note the '.axi.json', because of how @chauffeur_afni
+        # appends slice plane in the name of each output image
+        pre = '''
+        set opref = {opref}
+        set ulay = {ulay}
+        set olay = {olay}
+        set ulay_name = `3dinfo -prefix ${{ulay}}`
+        set olay_name = `3dinfo -prefix ${{olay}}`
+        set tjson  = _tmp.txt
+        set ojson  = ${{odir_img}}/${{opref}}.axi.json
+        set opbarrt  = ${{odir_img}}/${{opref}}.pbar
+        '''.format( **chauff_params )
+
+        cmd0 = '''
+        @chauffeur_afni    
+        -ulay  ${{ulay}}
+        -ulay_range 0% 110% 
+        -olay  ${{olay}}  
+        -box_focus_slices AMASK_FOCUS_OLAY
+        -cbar {cbar} 
+        -func_range {olay_top}
+        -thr_olay {thr_val}
+        -olay_alpha Yes
+        -olay_boxed No
+        -blowup 4
+        -set_subbricks 0 0 0
+        -opacity 9  
+        -pbar_saveim   "${{opbarrt}}.jpg"
+        -pbar_comm_thr "alpha on"
+        -prefix        "${{odir_img}}/${{opref}}"
+        -save_ftype JPEG
+        -montx 7 -monty 1  
+        -set_xhairs OFF 
+        -label_mode 1 -label_size 3  
+        -do_clean
+        '''.format( **chauff_params )
+
+        # only put text above image on first pass
+        otext = ""
+        if not(ii) :
+            otext = '''"@radial_correlate check for: {}" ,, '''.format( rcdir )
+            otext+= '''"   ulay: vol[0] of each EPI run" ,, '''
+            otext+= '''"   {}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
+
+        # [PT: May 16, 2019] new format for flagging/getting PBAR info
+        # can be passed as subtext or text or anything.
+        osubtext = " olay: ${olay_name}"
+
+        # As default, use :: and ,, as major and minor delimiters,
+        # respectively, because those should be useful in general.  
+        # NB: because we want the single apostrophe to appear as a text
+        # character, we have to wrap this with the double quotes
+        jsontxt = '''
+        cat << EOF >! ${{tjson}}
+        itemtype    :: VOL
+        itemid      :: {}
+        blockid     :: {}
+        blockid_hov :: {}
+        title       :: {}
+        text        :: {}
+        subtext     :: {}
+        EOF
+        '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                    otext, osubtext)
+
+        jsontxt_cmd = '''
+        abids_json_tool.py   
+        -overwrite       
+        -txt2json              
+        -delimiter_major '::'    
+        -delimiter_minor ',,'     
+        -input  ${tjson}
+        -prefix ${ojson}
+        '''
+
+        pbarjsontxt_cmd = '''
+        abids_json_tool.py   
+        -overwrite       
+        -txt2json              
+        -delimiter_major '::'    
+        -delimiter_minor ',,'  
+        -input  "${opbarrt}.txt"
+        -prefix "${opbarrt}.json"
+        '''
+
+        comm = commentize( comm )
+        pre  = commandize( pre, cmdindent=0, 
+                           ALIGNASSIGN=True, ALLEOL=False )
+        cmd0  = commandize( cmd0 )
+
+        # NB: for commandizing the *jsontxt commands, one NEEDS
+        # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
+        pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
+        jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+        jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
+        
+        lout = [comm, pre, cmd0, 
+                pbarjsontxt_cmd, 
+                jsontxt, jsontxt_cmd ]
+
+        full_output += '\n\n'.join(lout)
+        
+    return full_output
 
 # ========================== cp jsons ==============================
 
