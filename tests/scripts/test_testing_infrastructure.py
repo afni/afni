@@ -7,16 +7,22 @@ import shutil
 import datetime as dt
 from datalad import api as datalad
 import os
+import json
 
 
 def make_pretend_repo(dirname):
     os.chdir(dirname)
-    datalad.rev_create(Path.cwd(), force=True)
-    rev_log = datalad.rev_save(dirname, "add data")
+    datalad.create(Path.cwd(), force=True)
+    rev_log = datalad.save("add data", dirname)
     (dirname / "useless.txt").write_text("who me.")
-    datalad.rev_save(dirname, "add superfluous change")
+    datalad.save("add superfluous change", dirname)
     (dirname / "useless.txt").unlink()
-    datalad.rev_save(dirname, "make things better")
+    datalad.save("make things better", dirname)
+
+
+def get_outdir(dirname):
+    tname = "test_function_name"
+    return Path(dirname) / "toolname" / tname
 
 
 def create_data_dir(dirname):
@@ -26,6 +32,8 @@ def create_data_dir(dirname):
     testdir.mkdir()
     logdir = testdir / "captured_output"
     logdir.mkdir()
+    outdir = get_outdir(dirname)
+    test_comparison_dir = outdir
 
     sample_text = """
         The following lines should be part of a comparison for text files but not logs:
@@ -36,11 +44,38 @@ def create_data_dir(dirname):
         CPU time =
 
         Some more text in the file...
+        An absolute path:
+        /path/afni_code/tests/output_of_tests/output_date/module/testname/outputfile.txt
+
+        An absolute path to test data:
+        /path/afni_code/tests/afni_ci_test_data/mini_data/some_nii.gz
         """
+
+    cmd_info = {
+        "host": "hostname",
+        "user": "username",
+        "cmd": "a command",
+        "workdir": tooldir.parent.parent,
+    }
+
+    out_dict = {
+        "module_outdir": outdir.parent,
+        "sampdir": tools.convert_to_sample_dir_path(dirname),
+        "logdir": outdir / "captured_output",
+        "comparison_dir": test_comparison_dir,
+        "base_comparison_dir": mock_data_orig,
+        "base_outdir": dirname,
+        "tests_data_dir": dirname.parent.parent / "test_data_dir",
+        "outdir": outdir,
+        "test_name": outdir.name,
+    }
+    cmd_info.update(out_dict)
+
     # Write some logs and a text file
     stdout = logdir / (testdir.name + "_stdout.log")
     stdout.write_text(sample_text)
     Path(str(stdout).replace("stdout", "stderr")).write_text(sample_text)
+    tools.write_command_info(Path(str(stdout).replace("stdout", "cmd")), cmd_info)
     (testdir / "sample_text.txt").write_text(sample_text)
 
 
@@ -60,38 +95,34 @@ def get_mock_data(tmp_path_factory, mock_data_orig):
     def _get_mock_data():
 
         tmpdir = tmp_path_factory.mktemp(tools.get_output_name())
+
         create_data_dir(tmpdir)
         tmpdirs.append(tmpdir)
 
-        tname = "test_function_name"
-        test_comparison_dir = mock_data_orig / "toolname" / tname
-        outdir = tmpdir / "toolname" / tname
+        outdir = get_outdir(tmpdir)
+        data = tools.get_command_info(outdir)
+        cmd_exe_vals = ["username", "host", "cmd", "workdir"]
+        for k, v in data.items():
+            if "/" in v:
+                data[k] = Path(v)
 
-        out_dict = {}
-        out_dict.update(
-            {
-                "module_outdir": outdir.parent,
-                "outdir": outdir,
-                "sampdir": tools.convert_to_sample_dir_path(tmpdir),
-                "logdir": outdir / "captured_output",
-                "comparison_dir": test_comparison_dir,
-                "base_comparison_dir": mock_data_orig,
-                "base_outdir": tmpdir,
-                "test_name": tname,
-            }
-        )
+        for k in cmd_exe_vals:
+            data.pop(k, None)
 
         DataClass = attr.make_class(
-            tname + "_data", [k for k in out_dict.keys()], slots=True
+            data["test_name"] + "_data", [k for k in data.keys()], slots=True
         )
-        data = DataClass(*[v for v in out_dict.values()])
-
+        data = DataClass(*[v for v in data.values()])
         return tmpdir, data
 
     yield _get_mock_data
 
     for tmp_data_dir in tmpdirs:
         shutil.rmtree(tmp_data_dir)
+
+
+# def test_rewrite_paths_for_cleaner_diffs(get_mock_data,mock_data_orig):
+#     output_mock, data = get_mock_data()
 
 
 # @pytest.fixture(scope="function")
@@ -106,11 +137,10 @@ def get_mock_data(tmp_path_factory, mock_data_orig):
 #     return outdir
 
 
-@pytest.mark.slow
 def test_diffs_detected(get_mock_data, mock_data_orig):
 
     output_mock, data = get_mock_data()
-    differ = tools.OutputDiffer(data, "echo hello")
+    differ = tools.OutputDiffer(data, "echo `pwd`")
     differ.get_file_list()
     differ.assert_all_files_equal()
 
@@ -163,57 +193,3 @@ def test_diffs_detected(get_mock_data, mock_data_orig):
 #     )
 #     data_management.check_data_store("m_end", ["symbol"])
 #     assert False
-
-
-# # check for omp compilation
-# OMP = is_omp("3dAllineate")
-
-
-# # Define Data
-# data_paths = {
-#     "anat1": "mini_data/anat_3mm_no_skull.nii.gz",
-#     "epi": "AFNI_data6/afni/epi_r1+orig.BRIK",
-#     "epi_head": "AFNI_data6/afni/epi_r1+orig.HEAD",
-# }
-
-
-# # TESTS:
-# @pytest.mark.slow
-# @pytest.mark.skip(
-#     reason="Not sure how to handle difference in output between osx and linux."
-# )
-# def test_3dAllineate_basic(data, python_interpreter):
-#     outname = "aligned"
-#     if OMP:
-#         outname += "_with_omp"
-#     outfile = data.outdir / (outname + ".nii.gz")
-#     out_1d = outfile.parent / (outfile.stem.split(".")[0] + ".1D")
-
-#     cmd = """
-#     3dAllineate
-#         -base {data.anat1}
-#         -source {data.epi}'[0]'
-#         -prefix {outfile}
-#         -1Dparam_save {out_1d}
-#         -maxrot 2
-#         -maxshf 1
-#         -nmatch 20
-#         -conv 2
-#         -cost lpc
-#     """
-#     cmd = " ".join(cmd.format(**locals()).split())
-
-#     # Run command and test all outputs match
-#     differ = tools.OutputDiffer(
-#         data,
-#         cmd,
-#         python_interpreter=python_interpreter,
-#         kwargs_log={
-#             "append_to_ignored": [
-#                 "Output dataset",
-#                 "++ Wrote -1Dparam_save",
-#                 "total CPU time",
-#             ]
-#         },
-#     )
-#     differ.run()
