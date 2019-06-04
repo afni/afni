@@ -214,6 +214,7 @@ THD_3dim_dataset *load_3dinfo_dataset(char *name)
 
 typedef enum {
    CLASSIC=0, DSET_SPACE, AV_DSET_SPACE, DSET_GEN_SPACE, IS_NIFTI, DSET_EXISTS,
+   DSET_EXTENSION, STORAGE_MODE, /* 4 Jun 2019 [rickr] */
    IS_ATLAS, IS_OBLIQUE, OBLIQUITY, PREFIX , PREFIX_NOEXT,
    NI, NJ, NK, NT, NTI, NTIMES, MAX_NODE,
    NV, NVI, NIJK,
@@ -237,6 +238,7 @@ typedef enum {
 
 char Field_Names[][32]={
    {"-classic-"}, {"space"}, {"AV_spc"}, {"gen_spc"}, {"nifti?"}, {"exist?"},
+   {"exten"}, {"smode"},
    {"atlas?"}, {"oblq?"}, {"oblq"}, {"prefix"}, {"pref_nx"},
    {"Ni"}, {"Nj"}, {"Nk"}, {"Nt"}, {"Nti"}, {"Ntimes"}, {"MxNode"},
    {"Nv"}, {"Nvi"}, {"Nijk"},
@@ -359,6 +361,10 @@ int main( int argc , char *argv[] )
          sing[N_sing++] = DSET_GEN_SPACE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_nifti") == 0) {
          sing[N_sing++] = IS_NIFTI; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-dset_extension") == 0) {
+         sing[N_sing++] = DSET_EXTENSION; iarg++; continue;
+      } else if( strcasecmp(argv[iarg],"-storage_mode") == 0) {
+         sing[N_sing++] = STORAGE_MODE; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-is_atlas") == 0) {
          sing[N_sing++] = IS_ATLAS; iarg++; continue;
       } else if( strcasecmp(argv[iarg],"-exists") == 0) {
@@ -730,6 +736,23 @@ int main( int argc , char *argv[] )
                fprintf(stdout,"1");
             } else {
                fprintf(stdout,"0");
+            }
+            break;
+         case DSET_EXTENSION:
+            tempstr = find_filename_extension(argv[iarg]);
+            if ( tempstr ) {
+               fprintf(stdout,"%s", tempstr);
+            } else {
+               fprintf(stdout,"-----");
+            }
+            break;
+         case STORAGE_MODE:
+            tempstr = storage_mode_name(storage_mode_from_filename(argv[iarg]));
+            /* equate UNDEFINED with NULL case */
+            if ( tempstr && strcmp(tempstr, "UNDEFINED") ) {
+               fprintf(stdout,"%s", tempstr);
+            } else {
+               fprintf(stdout,"-----");
             }
             break;
          case IS_ATLAS:

@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Jun, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -dset_extension, -storage_mode",
+   NULL
+ } ,
+
  {  4, Jun, 2019, RCR, "plug_tag", MINOR, TYPE_BUG_FIX,
    "use calloc to init last 4 bytes of tag string in thd_dsetatr.c",
    "This was leaving garbage in HEAD file.\n"
