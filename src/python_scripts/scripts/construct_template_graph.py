@@ -681,6 +681,8 @@ def nl_align(ps, dset, base, iniwarpset, **kwargs):
     # look for last {o.out_prefix}_Levn.*_WARPsave+tlrc.HEAD
     #  if it exists, make it iniwarpset instead of existing iniwarpset
     # and set -inilev to start with 1 more than that level
+# This is not working for NIFTI datasets right now with ".nii.nii.gz" endings
+
     wll = ("11", "10", "9", "8", "7", "6", "5", "4", "3", "2", "1", "0")
     # check warps from last to first to see if any already exist
     #  use existing warps to restart interrupted warp
