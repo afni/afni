@@ -496,6 +496,7 @@ class OutputDiffer:
                 for f in self.data.outdir.glob("**/*")
                 if f.is_file()
                 and not any(pat in str(f) for pat in self.ignore_file_patterns)
+                and f.name not in ["gmon.out"]
             ]
 
     def __update_sample_output(self):
