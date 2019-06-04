@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Jun, 2019, RCR, "plug_tag", MINOR, TYPE_BUG_FIX,
+   "use calloc to init last 4 bytes of tag string in thd_dsetatr.c",
+   "This was leaving garbage in HEAD file.\n"
+   "Thanks to A Nugent for noting the problem."
+ } ,
+
  {  3, Jun, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow ricor processing in case of multi-echo data",
    "Done for K Dembny."
