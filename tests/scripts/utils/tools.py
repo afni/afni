@@ -263,7 +263,7 @@ def run_cmd(
     hostname = socket.gethostname()
     user = getpass.getuser()
     command_info = {
-        "hostname": hostname,
+        "host": hostname,
         "user": user,
         "workdir": workdir,
         "cmd": cmd,

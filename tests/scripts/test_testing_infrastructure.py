@@ -101,7 +101,7 @@ def get_mock_data(tmp_path_factory, mock_data_orig):
 
         outdir = get_outdir(tmpdir)
         data = tools.get_command_info(outdir)
-        cmd_exe_vals = ["username", "host", "cmd", "workdir"]
+        cmd_exe_vals = ["user", "host", "cmd", "workdir"]
         for k, v in data.items():
             if "/" in v:
                 data[k] = Path(v)
