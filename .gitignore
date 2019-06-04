@@ -41,3 +41,5 @@ __pycache__
 # Test and coverage artifacts
 .pytest_cache
 .coverage
+output_of_tests
+sample_output_of_tests
