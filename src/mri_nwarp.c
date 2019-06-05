@@ -10726,7 +10726,7 @@ IndexWarp3D * IW3D_warpomatic( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IMAGE *sim,
    int ibot,itop,idon , jbot,jtop,jdon , kbot,ktop,kdon , dox,doy,doz , iii ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f,Hcostbeg=999.9f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
-   int dkkk,djjj,diii , ngmin=0 , levdone=0 , pcon , do_qfinal=0 ;
+   int dkkk,djjj,diii , ngmin=NGMIN , levdone=0 , pcon , do_qfinal=0 ;
    int zmode=MRI_CUBIC , zmode2=MRI_CUBIC , zmodeX , nlevr , nsup,isup , itnum ;
    int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
    IndexWarp3D *OutWarp ;  /* the return value */
@@ -10851,13 +10851,11 @@ ENTRY("IW3D_warpomatic") ;
    Hcostmid = Hcostend = Hcostbeg = Hcost ;
 
    if( !HAVE_HGRID ){
-     if( Hngmin > 0 ){  /* is min patch size set from user? */
-       ngmin = Hngmin ; if( ngmin < 11 ) ngmin = 11 ;
+     if( Hngmin > 0 && Hlev_end > 99 ){
+       ngmin = Hngmin ; if( ngmin < NGMIN_Q ) ngmin = NGMIN_Q ;
      }
           if( ngmin   <  NGMIN ) ngmin = NGMIN ; /* can't go below this! */
      else if( ngmin%2 == 0     ) ngmin-- ;       /* must be odd */
-   } else {
-     ngmin = NGMIN ;   /* 31 Dec 2014 */
    }
 
    /** this should not happen, but if it does, then we're too small **/
@@ -10921,8 +10919,10 @@ ENTRY("IW3D_warpomatic") ;
      doz = (zwid >= ngmin) && !(Hgflags & NWARP_NOZDEP_FLAG) ;
 
      if( !dox && !doy && !doz ){  /* exit immediately if nothing to do (shrank too far) */
-       if( Hverb > 1 )
+       if( Hverb > 1 ){
          ININFO_message("  ---------  lev=%d xwid=%d ywid=%d zwid=%d -- BREAK",lev,xwid,ywid,zwid) ;
+         ININFO_message("  .........  xwid=%d ywid=%d zwid=%d ngmin=%d",xwid,ywid,zwid,ngmin) ;
+       }
        break ;
      }
 
@@ -12094,7 +12094,7 @@ IndexWarp3D * IW3D_warpomatic_plusminus( MRI_IMAGE *bim, MRI_IMAGE *wbim, MRI_IM
    IndexWarp3D *OutWarp ;
    float flev , glev , Hcostold , Hcostmid=0.0f,Hcostend=0.0f ;
    int imin,imax , jmin,jmax, kmin,kmax , ibbb,ittt , jbbb,jttt , kbbb,kttt ;
-   int dkkk,djjj,diii , ngmin=0 , levdone=0 , do_qfinal=0 ;
+   int dkkk,djjj,diii , ngmin=NGMIN , levdone=0 , do_qfinal=0 ;
    int zmode=MRI_CUBIC , nlevr , nsup,isup , leve ;
    int zmode2=MRI_CUBIC , zmodeX ; int cmode=MRI_CUBIC , qmode=MRI_QUINTIC ;
    char warplab[64] ;
@@ -12185,8 +12185,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    Hforce = 0 ; Hlev_final = 0 ; Hpen_use = (Hpen_fac > 0.0f) ;
    Hcostmid = Hcostend = Hcost ;
 
-   if( Hngmin > 0 ){
-     ngmin = Hngmin ; if( ngmin < 11 ) ngmin = 11 ;
+   if( Hngmin > 0 && Hlev_end > 99 ){
+     ngmin = Hngmin ; if( ngmin < NGMIN_Q ) ngmin = NGMIN_Q ;
    }
 
         if( ngmin   <  NGMIN ) ngmin = NGMIN ;
@@ -12229,8 +12229,10 @@ ENTRY("IW3D_warpomatic_plusminus") ;
      doz = (zwid >= ngmin) && !(Hgflags & NWARP_NOZDEP_FLAG) ;
 
      if( !dox && !doy && !doz ){  /* exit immediately if nothing to do (shrank too far) */
-       if( Hverb > 1 )
+       if( Hverb > 1 ){
          ININFO_message("  ---------  lev=%d xwid=%d ywid=%d zwid=%d -- BREAK",lev,xwid,ywid,zwid) ;
+         ININFO_message("  .........  xwid=%d ywid=%d zwid=%d ngmin=%d",xwid,ywid,zwid,ngmin) ;
+       }
        break ;
      }
 
