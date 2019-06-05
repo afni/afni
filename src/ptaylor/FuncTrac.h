@@ -53,6 +53,7 @@ typedef struct {
    int MINI_PROB_NM;              //  "-mini_num"
    int CHOOSE_SEED;               //  "-choose_seed"
    int OUTPUT_TRK;                //  "-do_trk_out"
+   int TRK_OPP_ORI;               //  "-trk_opp_orient"
    int OUT_INDIPAIR;              //  "-no_indipair_out"
    int THRESH_BUNDS;              //  "-bundle_thr"
    int TARG_SURF_STOP;            //  "-targ_surf_stop"

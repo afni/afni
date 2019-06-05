@@ -102,6 +102,12 @@
      appropriate-- previous condition would get 1D files and give 
      error
 
+   June 2019:
+
+   + new opt -trk_opp_orient: for TRK file output, one can oppositize
+     the voxel_order setting.  This is for using TRK files in other
+     software, such as DTK.
+
 */
 
 
@@ -416,6 +422,7 @@ void usage_TrackID(int detail)
 "         |                   |             |             | alg_Nmonte      |\n"
 "         | uncut_at_rois     |             |             |                 |\n"
 "         | do_trk_out        |             |             |                 |\n"
+"         | trk_opp_orient    |             |             |                 |\n"
 "         | dump_rois         |             |             |                 |\n"
 "         | dump_no_labtab    |             |             |                 |\n"
 "         | dump_lab_consec   |             |             |                 |\n"
@@ -696,6 +703,11 @@ void usage_TrackID(int detail)
 "    -do_trk_out     :Switch ON outputting *.trk files, which are mainly to\n"
 "                     be viewed in TrackVis (Wang et al., 2007). \n"
 "                     (Feb, 2015): Default is to NOT output *.trk files.\n"
+"    -trk_opp_orient :If outputting *.trk files, you can choose to oppositize\n"
+"                     the voxel_order parameter for the TRK file (only).\n"
+"                     Thus, when inputting AFNI files with orient RAI, the\n"
+"                     *.trk file would have voxel_order LPS; this is so that\n"
+"                     files viewed in some other software, such as DTK.\n"
 "    -nifti          :output the PAIRMAP, INDIMAP, and any '-dump_rois' in\n"
 "                     *.nii.gz format (default is BRIK/HEAD).\n"
 "  -no_indipair_out  :Switch off outputting *INDIMAP* and *PAIRMAP* volumes.\n"
@@ -1139,6 +1151,10 @@ int main(int argc, char *argv[])
       }
       if( strcmp(argv[iarg],"-do_trk_out") == 0) {
          InOpts.OUTPUT_TRK = 1;
+         iarg++ ; continue ;
+      }
+      if( strcmp(argv[iarg],"-trk_opp_orient") == 0) {
+         InOpts.TRK_OPP_ORI = 1;
          iarg++ ; continue ;
       }
 
@@ -2185,13 +2201,25 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       voxel_order[3]='\0';
       
       if( DEF_DTI ){
-         headerDTI.voxel_order[0] =
-            ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0];
-         headerDTI.voxel_order[1] =
-            ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
-         headerDTI.voxel_order[2] =
-            ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
-            
+
+         if ( opts.TRK_OPP_ORI ) { // [PT: June 5, 2019]
+            headerDTI.voxel_order[0] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[PARS_BOT]->daxes->xxorient)][0];
+            headerDTI.voxel_order[1] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[PARS_BOT]->daxes->yyorient)][0];
+            headerDTI.voxel_order[2] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[PARS_BOT]->daxes->zzorient)][0];
+            INFO_message("Have reverse orient for any TRK files: %s", headerDTI.voxel_order );
+         }
+         else {
+            headerDTI.voxel_order[0] =
+               ORIENT_typestr[insetPARS[PARS_BOT]->daxes->xxorient][0];
+            headerDTI.voxel_order[1] =
+               ORIENT_typestr[insetPARS[PARS_BOT]->daxes->yyorient][0];
+            headerDTI.voxel_order[2] =
+               ORIENT_typestr[insetPARS[PARS_BOT]->daxes->zzorient][0];
+         }
+
          for( i=0 ; i<3 ; i++) {
             headerDTI.dim[i] = Dim[i];
             headerDTI.voxel_size[i] = Ledge[i];
@@ -2202,13 +2230,24 @@ int RunTrackingMaestro( int comline, TRACK_RUN_PARAMS opts,
       else{ // HARDI
          sprintf(headerHAR.scal_n[0],"%s", wild_names[0]);
 
-         headerHAR.voxel_order[0] =
-            ORIENT_typestr[insetPARS[0]->daxes->xxorient][0]; 
-         headerHAR.voxel_order[1] =
-            ORIENT_typestr[insetPARS[0]->daxes->yyorient][0];
-         headerHAR.voxel_order[2] =
-            ORIENT_typestr[insetPARS[0]->daxes->zzorient][0];
-            
+         if ( opts.TRK_OPP_ORI ) { // [PT: June 5, 2019]
+            headerHAR.voxel_order[0] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[0]->daxes->xxorient)][0]; 
+            headerHAR.voxel_order[1] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[0]->daxes->yyorient)][0];
+            headerHAR.voxel_order[2] =
+               ORIENT_typestr[ORIENT_OPPOSITE(insetPARS[0]->daxes->zzorient)][0];
+            INFO_message("Have reverse orient for any TRK files: %s", headerHAR.voxel_order );
+         }
+         else {
+            headerHAR.voxel_order[0] =
+               ORIENT_typestr[insetPARS[0]->daxes->xxorient][0]; 
+            headerHAR.voxel_order[1] =
+               ORIENT_typestr[insetPARS[0]->daxes->yyorient][0];
+            headerHAR.voxel_order[2] =
+               ORIENT_typestr[insetPARS[0]->daxes->zzorient][0];
+            }
+
          for( i=0 ; i<3 ; i++) {
             headerHAR.dim[i] = Dim[i];
             headerHAR.voxel_size[i] = Ledge[i];
