@@ -3289,11 +3289,9 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-#ifdef FIX_SCALE_SIZE_PROBLEM
-   XtVaSetValues( func->thr_scale ,
-                    XmNuserData , (XtPointer)ITOP(sel_height) ,
-                  NULL ) ;
-#endif
+         XtVaSetValues( func->thr_scale ,
+                          XmNuserData , (XtPointer)ITOP(sel_height) ,
+                        NULL ) ;
 
 #ifdef USING_LESSTIF
    XtVaSetValues( func->thr_scale , XmNscaleWidth,24 , NULL ) ;

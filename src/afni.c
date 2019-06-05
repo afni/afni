@@ -2420,8 +2420,7 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_THRESH_INIT_EXPON" , "1" ) ;
    PUTENV("AFNI_AUTORANGE_PERC"    , "0") ;
 
-   PUTENV("AFNI_HIDE_FIX_SCALE"    , "YES" ) ;  /* 03 Jun 2019 */
-   PUTENV("AFNI_DONT_FIX_SCALE"    , "NO"  ) ;  /* (from Lucca) */
+   PUTENV("AFNI_FIX_SCALE_SIZE"   , "YES"  ) ;  /* (from Lucca) */
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
@@ -3404,6 +3403,10 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
      if( eee != NULL && strcmp(eee,"rwcox") == 0 ) atexit(clock_time_atexit) ;
 #endif
    }
+
+   /* Start timer to repeatedly fix threshold scale sizes [05 Jun 2019] */
+
+   AFNI_fix_scale_size_timer_CB(NULL,NULL) ;
 
    /*--- and AWAY WE GO (how sweet it is!) ---*/
 
@@ -9795,8 +9798,8 @@ STATUS(" -- function widgets ON") ;
       qq = AFNI_controller_index(im3d) ;
       if( zfim[qq] && ISVALID_DSET(im3d->fim_now) ){
 STATUS(" -- set threshold to zero (startup)") ;
-        XmScaleSetValue( im3d->vwid->func->thr_scale , 0 ) ;
-        im3d->vinfo->func_threshold = 0.0 ; zfim[qq] = 0 ;
+        XmScaleSetValue( im3d->vwid->func->thr_scale , 1 ) ;
+        im3d->vinfo->func_threshold = THR_factor ; zfim[qq] = 0 ;
       }
       FIX_SCALE_SIZE(im3d) ; FIX_SCALE_VALUE(im3d) ;
 
@@ -13422,30 +13425,31 @@ ENTRY("AFNI_replace_timeseries") ;
 /*** New fix for scale size problem
      - via a timeout, to avoid excessive flashing of the scale widget
      - 03 Jun 2019 [RWC in Lucca]
+     - 05 Jun 2019 - modified to a fixed timeout every so often
 ***/
 /*------------------------------------------------------------------------*/
-
-static int ssfix_waiting[MAX_CONTROLLERS] ; /* is it waiting to be fixed? */
 
 void AFNI_fix_scale_size_direct( Three_D_View *im3d )
 {
    int iqqq = AFNI_controller_index(im3d) ;
    int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
 
-   if( iqqq < 0 ) return ;
+   if( iqqq < 0 || ! IM3D_OPEN(im3d) ) return ; /* not valid */
+
+   /* check if height is correct */
 
    XtVaGetValues( im3d->vwid->func->thr_scale ,
                   XmNuserData , &sel_ptr , NULL ) ;
-   sel_height = PTOI(sel_ptr) ;
+   sel_height = PTOI(sel_ptr) ; /* stored in a pointer, convert to int */
 
    XtVaGetValues( im3d->vwid->func->thr_scale ,
                   XmNheight , &sel_actual , NULL ) ;
 
-   if( sel_actual == sel_height ) return ;
+   if( sel_actual == sel_height ) return ;  /* it's OK */
 
    /* do the work */
 
-   XtUnmanageChild(im3d->vwid->func->thr_scale) ; AFNI_sleep(11) ;
+   XtUnmanageChild(im3d->vwid->func->thr_scale) ; AFNI_sleep(1) ;
 
    XtVaSetValues( im3d->vwid->func->thr_scale ,
                   XmNheight , sel_height , NULL ) ;
@@ -13455,67 +13459,21 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
    return ;
 }
 
-#define KILL_MASK                \
-    KeyPressMask               | \
-    KeyReleaseMask             | \
-    ButtonPressMask            | \
-    ButtonReleaseMask          | \
-    PointerMotionMask          | \
-    PointerMotionHintMask      | \
-    Button1MotionMask          | \
-    Button2MotionMask          | \
-    Button3MotionMask          | \
-    Button4MotionMask          | \
-    Button5MotionMask          | \
-    ButtonMotionMask
+#undef  FIX_TIME
+#define FIX_TIME 1789  /* msec between calls */
 
-void AFNI_fix_scale_size_CB( XtPointer client_data , XtIntervalId *id )
+void AFNI_fix_scale_size_timer_CB( XtPointer client_data , XtIntervalId *id )
 {
-   Three_D_View *im3d = (Three_D_View *)client_data ;
-   int iqqq = AFNI_controller_index(im3d) ;
+   Three_D_View *im3d ;
+   int iqqq ;
    int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
 
-   if( iqqq < 0 || ssfix_waiting[iqqq] == 0 ) return ;
-
-   if( ssfix_waiting[iqqq] > 1 ){
-     (void) XtAppAddTimeOut( MAIN_app , 66 ,
-                             AFNI_fix_scale_size_CB , im3d ) ;
-     ssfix_waiting[iqqq] = 1 ;
+   for( iqqq=0 ; iqqq < MAX_CONTROLLERS ; iqqq++ ){
+     AFNI_fix_scale_size_direct(GLOBAL_library.controllers[iqqq]) ;
    }
 
-   AFNI_fix_scale_size_direct( im3d ) ;
+   (void) XtAppAddTimeOut( MAIN_app , FIX_TIME ,
+                           AFNI_fix_scale_size_timer_CB , NULL ) ;
 
-#if 0
-   MCW_discard_events( im3d->vwid->func->thr_scale , -1 ) ;
-#endif
-
-   ssfix_waiting[iqqq] = 0 ; return ;
-}
-
-/*------------------------------------------------------------------------*/
-/* This is called to start the scale size fix timeout [03 Jun 2019] */
-
-void AFNI_set_scale_size_fix_timer( Three_D_View *im3d )
-{
-   int iqqq = AFNI_controller_index(im3d) ;
-   int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
-
-   if( AFNI_yesenv("AFNI_DONT_FIX_SCALE") ) return ;
-
-   if( iqqq < 0 ) return ;
-
-   XtVaGetValues( im3d->vwid->func->thr_scale ,
-                  XmNuserData , &sel_ptr , NULL ) ;
-   sel_height = PTOI(sel_ptr) ; /* desired */
-
-   XtVaGetValues( im3d->vwid->func->thr_scale ,
-                  XmNheight , &sel_actual , NULL ) ;
-
-   if( sel_actual == sel_height ) return ;
-
-   if( ssfix_waiting[iqqq] == 0 )
-     (void) XtAppAddTimeOut( MAIN_app , 123 ,
-                             AFNI_fix_scale_size_CB , im3d ) ;
-
-   ssfix_waiting[iqqq]++ ; return ;
+   return ;
 }
