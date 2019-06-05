@@ -2117,6 +2117,15 @@ def db_cmd_volreg(proc, block):
                                                      default='0')
        if rv: return
 
+       # warnings, MO is probably the way to go
+       if pvra_bind_str != 'MIN_OUTLIER':
+          print("** consider '-volreg_pvra_base_index MIN_OUTLIER' " \
+                "for per-run registration")
+       else:
+          if not proc.vr_base_MO and proc.vr_ext_base is None:
+             print("** consider '-volreg_align_to MIN_OUTLIER' " \
+                   "for across-run registration")
+
        if pvra_bind_str != 'MIN_OUTLIER' and pvra_bind_str != '$':
           # see if we have an int
           try:
