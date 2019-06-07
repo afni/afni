@@ -8,5 +8,4 @@ pytest --runveryslow --cov=/opt/afni/abin
 cd ../src
 
 # Check code coverage
-gcov *.c
-codecov
+codecov -y /opt/afni/tests/codecov.yml
