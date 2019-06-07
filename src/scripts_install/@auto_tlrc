@@ -1082,6 +1082,7 @@ AUTO_TLRC_MODE:
       #Need to combine xforms
       cat_matvec ${tt_prefpad}.Xat.l2.1D  ${prexform} \
          > ${tt_prefpad}.Xat.1D 
+      set msktmp = ${tt_prefpad}.Xat.l2.1D
    else
       #This is the same as ${ns_pref}.Xaff12.1D
       if ($warpdrive_method == "3dAllineate") then
@@ -1093,8 +1094,13 @@ AUTO_TLRC_MODE:
            ${tmppref}_reg_warpdriveout${anat_view}::WARPDRIVE_MATVEC_FOR_000000 \
                      > ${tt_prefpad}.Xat.1D
       endif
+      set msktmp = ${tt_prefpad}.Xat.1D
    endif
    cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
+
+   # make a final version of the mask warp
+   set mskwarpmatrix = ${out_pref}.maskwarp.Xat.1D
+   cat_matvec $msktmp > $mskwarpmatrix
    
    # move the temporary one line affine transformation matrix to
    #  a permanent output file name
@@ -1975,7 +1981,7 @@ APPLY_MASK:
             -expr "step(a)*10000" -prefix ./${tmppref}_reg_braintlrcstep
    
 #   set gridset = ${ttvolpref}${anat_view}
-   3dWarp   ${OW} -matvec_out2in ${warpmatrix} -overwrite \
+   3dWarp   ${OW} -matvec_out2in ${mskwarpmatrix} -overwrite \
             -gridset $gridset   \
             -linear -prefix ./${tmppref}_reg_braintlrcmask \
             ${tmppref}_reg_braintlrcstep${anat_view}    
