@@ -51,7 +51,7 @@ afni_history_struct rickr_history[] = {
 
  {  6, Jun, 2019, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
    "back off recent updates - need to resolve -init_xform",
-   NULL
+   "Thanks to H Keren for letting us know of the problem."
  } ,
 
  {  4, Jun, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
