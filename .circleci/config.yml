@@ -4,12 +4,12 @@ jobs:
     machine: true
     steps:
       - checkout
-      # - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} --build-arg AFNI_WITH_COVERAGE=1 .
+      - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} --build-arg AFNI_WITH_COVERAGE=1 .
       - run:
           no_output_timeout: 2h
           command: |
             ci_env=`bash <(curl -s https://codecov.io/env)`
-            docker run $ci_env -v "$PWD/tests:/opt/afni/tests" afni/afni_dev:latest bash -c 'cd /opt/afni/tests; bash run_tests.sh'
+            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
 
       - run:
           command: |
