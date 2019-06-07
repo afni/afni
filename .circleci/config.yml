@@ -9,7 +9,7 @@ jobs:
           no_output_timeout: 2h
           command: |
             ci_env=`bash <(curl -s https://codecov.io/env)`
-            docker run $ci_env afni/afni_dev:latest bash -c 'cd /opt/afni/tests; bash run_tests.sh'
+            docker run $ci_env -v "$PWD/tests:/opt/afni/tests" afni/afni_dev:latest bash -c 'cd /opt/afni/tests; bash run_tests.sh'
 
       - run:
           command: |
