@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Jun, 2019, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "apply FreeBSD patches from J Bacon",
+   "  - afni_xml.h: include inttypes.h\n"
+   "  - prf_common_circular.c: use malloc_stats_print()\n"
+   "  - Makefile.ptaylor.INCLUDE: add -fopenmp for building 3dDWUncert"
+ } ,
+
  {  6, Jun, 2019, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
    "back off recent updates - need to resolve -init_xform",
    "Thanks to H Keren for letting us know of the problem."
