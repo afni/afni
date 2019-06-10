@@ -70,7 +70,7 @@ def remove_w_perms(dirname):
 
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
-    return re.sub(r"[\[\]\(\)\*]", "_", name_str).strip("_")
+    return re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
 
 
 def compute_expected_euclidean_distance_for_affine(affine):
