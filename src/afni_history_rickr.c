@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Jun, 2019, RCR, "3dBrickStat", MICRO, TYPE_BUG_FIX,
+   "better handling of empty masks (e.g. due to -positive)",
+   NULL
+ } ,
+
  { 10, Jun, 2019, RCR, "afni-general", MICRO, TYPE_MODIFY,
    "apply FreeBSD patches from J Bacon",
    "  - afni_xml.h: include inttypes.h\n"
