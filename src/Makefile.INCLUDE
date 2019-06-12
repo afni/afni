@@ -2379,7 +2379,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
-           mri_3dalign.o mri_render.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
+           mri_3dalign.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
            mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o          \
@@ -2622,7 +2622,7 @@ libmri.so.r: mrilib.h                                                        \
                 $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
                 -lmrix -lcoxplot $(LEXLIBS)
-	$(RM) netcdf_attr.o
+	# $(RM) netcdf_attr.o
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
@@ -2741,7 +2741,11 @@ plug_retroicor.$(SO):plug_retroicor.c retroicor.c
 	$(LD) $(PLUGIN_LFLAGS) -o plug_retroicor.$(SO) plug_retroicor.o \
       retroicor.o
 
-# nuke any existing renderer plugin
+# wipe out any existing renderer plugin
+# Note: mri_render.o has the MREN functions needed for this plugin,
+#       which were replaced by CREN functions in cox_render.c, used
+#       in the "newer" plug_crender.c.
+# If really compiling, depend on and link against mri_render.o.
 plug_render.$(SO):plug_null.o
 	$(LD) $(PLUGIN_LFLAGS) -o plug_render.$(SO) plug_null.o
 
@@ -3671,6 +3675,7 @@ suma_gts_progs: libgts.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) SurfMesh 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_LINK_PATH=$(SUMA_LINK_PATH)' \
 	'SUMA_LINK_LIB=$(SUMA_LINK_LIB)' \
