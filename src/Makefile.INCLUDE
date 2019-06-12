@@ -3094,7 +3094,7 @@ gifsicle:
 
 mpeg_encode:
 	( cd mpeg_encodedir ;                                                                   \
-	  $(MAKE) mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' ; \
+	  $(MAKE) mpeg_encode clean 'RM=$(RM)' 'CC=$(CC)' 'LFLAGS=$(LFLAGS)' 'LLIBS=$(LLIBS)' 'MRI_SHARED=$(MRI_SHARED)' ; \
 	  $(MV) mpeg_encode .. ; )
 
 #######
