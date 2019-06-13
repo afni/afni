@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Jun, 2019, RCR, "afni_base.py", MICRO, TYPE_ENHANCE,
+   "allow for enclosed variables in afni_name, e.g. '${subj}'",
+   NULL
+ } ,
+
  { 12, Jun, 2019, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "better prep for shared build, and fix shared build of suma_gts_progs",
    "Move mri_render.o out of libmri (corresponds with plug_render.so)."
