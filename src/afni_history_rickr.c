@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jun, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add -hostname and -distdir",
+   "This is to allow places to mirror some of the AFNI site."
+ } ,
+
  { 14, Jun, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "add Makefile.linux_fedora_28_shared, to distribute a shared lib package",
    "This uses libmri.so, though other libraries should be added (SUMA).\n"
