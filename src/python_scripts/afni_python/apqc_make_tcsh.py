@@ -74,9 +74,12 @@ auth = 'PA Taylor'
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
 #
-ver = '2.5' ; date = 'May 23, 2019' 
+#ver = '2.5' ; date = 'May 23, 2019' 
 # + [PT] switched to using afni_base functions for executing on
 #        commandline
+#
+ver = '2.51' ; date = 'June 14, 2019' 
+# + [PT] tiiiiny change, updating variable name to match 'omsg'
 #
 #########################################################################
 
@@ -678,7 +681,7 @@ if __name__ == "__main__":
         os.chmod(otcsh, code)
     except:
         omsg = "failed: chmod {} {}".format(code, otcsh)
-        print(osmg)
+        print(omsg)
 
     bye_msg = '''
     ++ Done making (executable) script to generate HTML QC:
