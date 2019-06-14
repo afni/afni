@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 14, Jun, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_fedora_28_shared, to distribute a shared lib package",
+   "This uses libmri.so, though other libraries should be added (SUMA).\n"
+   "R programs do not yet work, as linking for R_io.so needs to be fixed."
+ } ,
+
  { 13, Jun, 2019, RCR, "afni_base.py", MICRO, TYPE_ENHANCE,
    "allow for enclosed variables in afni_name, e.g. '${subj}'",
    NULL

@@ -2379,7 +2379,7 @@ MRI_OBJS = mri_cfft.o mri_complex_arith.o mri_fft_complex.o mri_free.o    \
            csfft.o mri_filt_fft.o mri_align.o mri_rota.o mri_thresh.o        \
            mri_to_mri.o mri_flippo.o mri_percents.o mri_stats.o mri_cat2D.o  \
            mri_transpose.o mri_shifter.o mcw_glob.o mri_2dalign.o mri_order.o \
-           mri_3dalign.o mri_to_rgb.o mcw_malloc.o mri_cut.o      \
+           mri_3dalign.o mri_to_rgb.o mcw_malloc.o mri_cut.o                   \
            mri_overlay.o mri_copy.o mri_uncat2D.o cox_render.o mri_histobyte.o \
            mri_aff2d.o debugtrace.o mri_zeropad.o mri_write_angif.o            \
            mri_histoshort.o mri_shift2D.o mri_drawing.o mri_coxplot.o          \
@@ -2585,31 +2585,30 @@ vol2surf.o:vol2surf.h
 # shared objects (go into the shared_lib directory)
 
 # same as .a, but build as a shared object
-libmri.so: mrilib.h                                                          \
+# to apply, make this target libmri.so and the below libmri.so.x, say
+libmri.so.b: mrilib.h                                                        \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
           libf2c.a libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
-	$(CC) -shared -fPIC -o libmri.so                                            \
+	$(CC) -shared -fPIC -o libmri.so                                       \
                 -L. $(LZLIB) $(LGIFTI) -lf2c $(LEXLIBS) -lmrix -lcoxplot       \
                 -L/usr/lib -L/usr/local/lib -L/usr/X11R6/lib -L/sw/lib         \
                 $(XROOT_L) $(XLIBS) -lXm -lXt                                  \
                 -lXft -lfontconfig -lpng -liconv -lXmu -lXp -lXpm -lXext -lX11 \
                 $(MRI_OBJS) $(THD_OBJS) $(EDT_OBJS)                            \
-		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)                       \
+		$(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)             \
 		$(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o
 	$(RM) netcdf_attr.o
 
-# a modified version of above, works with a full build on fedora 25
-#                                                4 Dec 2018 [rickr]
+# a modified version of above, but using LFLAGS
+# works with a full build on fedora 25/28            4 Dec 2018 [rickr]
 #
 # if MRI_SHARED, might not want 2 $(RM) netcdf_attr.o commands
 # (here and in shared_netcdf_attr)
-#
-# to apply, make this target libmri.so and the above libmri.so.x
-libmri.so.r: mrilib.h                                                        \
+libmri.so: mrilib.h                                                          \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
@@ -2622,7 +2621,6 @@ libmri.so.r: mrilib.h                                                        \
                 $(NIML_OBJS) $(CS_OBJS) $(EIS_OBJS) $(NETCDF_OBJS)           \
                 $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) thd_selenium_off.o   \
                 -lmrix -lcoxplot $(LEXLIBS)
-	# $(RM) netcdf_attr.o
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
