@@ -3,11 +3,18 @@ import sys
 import lib_apqc_tcsh as lat
 
 
+ver = '1.2'; date = 'Jne 14, 2019'
+# [PT] revamped: have new features like title and reflink
+#
+##########################################################################
+
 # default environment is CODE; this is a list of special
 # environments/lines, the start of which end a CODE line; we should
 # only need to find start of environ.  SPACE is also one now, because
 # it can follow sections of well-defined length
-OTHER_MODES = [ 'SECTION', 
+OTHER_MODES = [ 'TITLE', 
+                'REFLINK', 
+                'SECTION', 
                 'DESCRIPT',
                 'HID_CODE' ]
 
@@ -21,6 +28,12 @@ field; other, returns empty string'''
 
     if not(ss):
         return 'SPACE'
+
+    elif ss[0].__contains__("#:TITLE") :
+        return 'TITLE'
+
+    elif ss[0].__contains__("#:REFLINK") :
+        return 'REFLINK'
 
     elif ss[0].__contains__("#:SECTION") :
         return 'SECTION'
@@ -76,6 +89,30 @@ def find_mode_and_span(W, lstart, prev_mode=''):
             tspan = Nx
 
     elif start_mode == 'SECTION' :
+        tmode = start_mode
+
+        # we have to count empty spaces after this as part of the
+        # mode, for accounting purposes
+        tspan = 1
+        for jj in range(1, Nx):
+            tt = X[jj].split()
+            if tt :
+                tspan = jj
+                break
+
+    elif start_mode == 'TITLE' :
+        tmode = start_mode
+
+        # we have to count empty spaces after this as part of the
+        # mode, for accounting purposes
+        tspan = 1
+        for jj in range(1, Nx):
+            tt = X[jj].split()
+            if tt :
+                tspan = jj
+                break
+
+    elif start_mode == 'REFLINK' :
         tmode = start_mode
 
         # we have to count empty spaces after this as part of the
@@ -225,7 +262,7 @@ def add_in_section( X,
     oscript_txt += lat.bannerize( text )
     
     orst_txt    += text + "\n"
-    orst_txt    += (ltext  + 2 ) * '*' 
+    orst_txt    += (ltext  + 2 ) * '-' 
 
     # might have empty lines/padding
     for ii in range(1, tspan):
@@ -237,12 +274,82 @@ def add_in_section( X,
 
 # --------------------------------------------------------------------------
 
+def create_text_title( X, 
+                       tstart,
+                       tspan, 
+                       oscript_txt, 
+                       orst_txt ):
+    '''X should just be a list of a single string, but may generalize...'''
+
+    lline = X[tstart]
+    ss = lline.split()
+    
+    text  = ' '.join(ss[1:])
+    ltext = len(text)
+    
+    txt_for_oscript_txt  = '# TUTORIAL: '
+    txt_for_oscript_txt += text + '\n'
+    
+    txt_for_orst_txt     = (ltext  + 2 ) * '*'  + "\n" 
+    txt_for_orst_txt    += text + "\n"
+    txt_for_orst_txt    += (ltext  + 2 ) * '*' 
+
+    # might have empty lines/padding
+    for ii in range(1, tspan):
+        jj = tstart + ii
+        txt_for_oscript_txt += X[jj]
+        txt_for_orst_txt    += X[jj]
+
+    return txt_for_oscript_txt, txt_for_orst_txt
+
+# --------------------------------------------------------------------------
+
+def create_text_reflink( X, 
+                         tstart,
+                         tspan, 
+                         oscript_txt, 
+                         orst_txt ):
+    '''X should just be a list of a single string, but may generalize...'''
+
+    lline = X[tstart]
+    ss = lline.split()
+    
+    text  = '_'.join(ss[1:])
+    if text[0] != '_' :
+        text = '_' + text
+
+    ltext = len(text)
+        
+    txt_for_orst_txt    = '.. ' + text + ':\n'
+    txt_for_oscript_txt = ''
+
+    # might have empty lines/padding
+    for ii in range(1, tspan):
+        jj = tstart + ii
+        txt_for_oscript_txt += X[jj]
+        txt_for_orst_txt    += X[jj]
+
+    return txt_for_oscript_txt, txt_for_orst_txt
+
+# --------------------------------------------------------------------------
+
 def interpret_DCSTR_list( X, prefix ):
 
     N = len(X)
 
     oscript_txt = ''
     orst_txt    = ''
+
+    # header for RST
+    orst_txt+= '''TO_BE_THE_REFLINK
+
+TO_BE_THE_TITLE
+
+.. contents:: :local:
+
+|
+
+'''
 
     oscript     = prefix + '.tcsh'
     orst        = prefix + '.rst'
@@ -283,6 +390,37 @@ def interpret_DCSTR_list( X, prefix ):
                                                     orst_txt )
             ii+= tspan
 
+        elif tmode == 'TITLE' :
+            # TITLEs are one line of text, but can span several
+            # lines of whitespace
+            # NOTE the special output here
+            txt_for_oscript_txt, txt_for_orst_txt = \
+                                            create_text_title( X,
+                                                               ii,
+                                                               tspan,
+                                                               oscript_txt, 
+                                                               orst_txt )
+
+            oscript_txt+= txt_for_oscript_txt
+            orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", 
+                                            txt_for_orst_txt )
+            ii+= tspan
+
+        elif tmode == 'REFLINK' :
+            # TITLEs are one line of text, but can span several
+            # lines of whitespace
+            # NOTE the special output here
+            txt_for_oscript_txt, txt_for_orst_txt = \
+                                            create_text_reflink( X,
+                                                                 ii,
+                                                                 tspan,
+                                                                 oscript_txt, 
+                                                                 orst_txt )
+            
+            oscript_txt+= txt_for_oscript_txt
+            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", 
+                                            txt_for_orst_txt )
+            ii+= tspan
 
         elif tmode == 'DESCRIPT' :
             oscript_txt, orst_txt = add_in_descript( X,

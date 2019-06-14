@@ -9,6 +9,9 @@
 #
 #######################################################################
 
+#:TITLE: Combining multiple (linear and affine) alignments
+#:REFLINK: tut_combine_align_nl_aff
+
 #:SECTION: Define variables
 
 # --------- set input dsets/names ---------------------
