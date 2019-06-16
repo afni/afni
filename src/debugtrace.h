@@ -86,7 +86,7 @@ extern "C" {
 
    char *DBG_labels[3] = { "Trace=OFF " , "Trace=LOW " , "Trace=HIGH" } ;
 
-   char last_status[1024] = "\0" ;  /* 22 Apr 2002 */
+   char last_status[2048] = "\0" ;  /* 22 Apr 2002 */
 
    char **hist_status = NULL ;      /* 27 Apr 2015 */
    int   nhist_status = 0 ;         /* next place to be written */
@@ -191,7 +191,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 
    fprintf(stderr,"** Program Death **\n") ; fflush(stderr) ;
    if( sig != SIGINT && sig != SIGTERM ){  /* add crashlog [13 Apr 2015] */
-     FILE *dfp ; char *home , fname[1024] ;
+     FILE *dfp ; char *home , fname[2048] ;
      fprintf(stderr,"** If you report this crash to the AFNI message board,\n"
                     "** please copy the error messages EXACTLY, and give\n"
                     "** the command line you used to run the program, and\n"
@@ -285,7 +285,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
         static char *rrr=(rout) ; char *ooo=DBG_rout[DBG_num-1] ;                      \
         DBG_rout[DBG_num++] = rrr ;                                                    \
         if( TRACK_TRACING ){                                                           \
-          char sbuf[1024] ;                                                            \
+          char sbuf[2048] ;                                                            \
           if( DBG_fp == NULL ) DBG_fp = stdout ;                                       \
           sprintf(sbuf,                                                                \
                   "%*.*s%s [%d]: {ENTRY (file=%s line=%d) from %s",                    \
@@ -303,7 +303,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
 #define DBEXIT                                                                       \
   do{ if( !DBG_stoff ){                                                              \
       if( TRACK_TRACING ){                                                           \
-        char sbuf[1024] ;                                                            \
+        char sbuf[2048] ;                                                            \
         if( DBG_fp == NULL ) DBG_fp = stdout ;                                       \
         sprintf(sbuf,                                                                \
                 "%*.*s%s [%d]: EXIT} (file=%s line=%d) to %s",                       \
@@ -334,7 +334,7 @@ extern void clock_time_atexit(void) ;
 
 #define STATUS(str)                                                                  \
   do{ if(TRACK_TRACING){                                                             \
-        char sbuf[1024] ;                                                            \
+        char sbuf[2048] ;                                                            \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                            \
         sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,(str));              \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK; }  \
@@ -344,12 +344,12 @@ extern void clock_time_atexit(void) ;
   } while(0)
 
 #define STATUSp(str,p)                                                              \
-  do{ char qss[768] ;                                                               \
+  do{ char qss[2048] ;                                                              \
       sprintf(qss,"%s ptr=%p",(str),(p)) ;                                          \
       if( mcw_malloc_enabled() )                                                    \
         strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                       \
       if( TRACK_TRACING ){                                                          \
-        char sbuf[1024] ;                                                           \
+        char sbuf[2048] ;                                                           \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
         sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \
@@ -359,10 +359,10 @@ extern void clock_time_atexit(void) ;
   } while(0)
 
 #define STATUSi(str,i)                                                              \
-  do{ char qss[768] ;                                                               \
+  do{ char qss[2048] ;                                                              \
       sprintf(qss,"%s int=%d",(str),(i)) ;                                          \
       if( TRACK_TRACING ){                                                          \
-        char sbuf[1024] ;                                                           \
+        char sbuf[2048] ;                                                           \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                           \
         sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,qss);               \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK;}  \

@@ -1720,6 +1720,8 @@ typedef struct {
 
    float autorange_perc ;                        /* 24 May 2019 */
 
+   int opacity_setting ;                         /* 06 Jun 2019 */
+
 } AFNI_library_type ;
 
 #define BROWN_COLOR "#553319"

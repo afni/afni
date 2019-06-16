@@ -2898,6 +2898,14 @@ static char *readme_env[] = {
    "coordinated. Changes in one controller will be reflected in\n" ,
    "the others immediately.\n" ,
    "\n" ,
+   "---------------------------\n" ,
+   "Variable: AFNI_OPACITY_LOCK\n" ,
+   "---------------------------\n" ,
+   "This variable controls if changing the overlay opacity in one\n" ,
+   "image viewer window (the 1-9 arrows at the viewer right edge)\n" ,
+   "changes the opacity in all viewer windows. The default value\n" ,
+   "is YES, but you can set this to NO if you don't like it.\n" ,
+   "\n" ,
    "----------------------------\n" ,
    "Variable: AFNI_IMAGE_ZOOM_NN (editable)\n" ,
    "----------------------------\n" ,
@@ -4378,4 +4386,4 @@ static char *readme_env[] = {
    "If set to YES, enable distance measures that are not ready for prime\n" ,
    "time in the instacorr interface.\n" ,
    NULL } ;
-#define NUM_readme_env 4377
+#define NUM_readme_env 4385

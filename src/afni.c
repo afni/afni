@@ -2418,9 +2418,10 @@ int main( int argc , char *argv[] )
    PUTENV("AFNI_COLORSCALE_DEFAULT","Reds_and_Blues_Inv") ; /* 24 May 2019 */
    PUTENV("AFNI_THRESH_TOP_EXPON"  , "5" ) ;
    PUTENV("AFNI_THRESH_INIT_EXPON" , "1" ) ;
-   PUTENV("AFNI_AUTORANGE_PERC"    , "0") ;
+   PUTENV("AFNI_AUTORANGE_PERC"    , "0" ) ;
 
-   PUTENV("AFNI_FIX_SCALE_SIZE"   , "YES"  ) ;  /* (from Lucca) */
+   PUTENV("AFNI_FIX_SCALE_SIZE"  , "YES" ) ;  /* (from Lucca) */
+   PUTENV("AFNI_OPACITY_LOCK"    , "YES" ) ;
 
 #if 0
    PUTENV("AFNI_IMAGE_LABEL_MODE","1") ;
@@ -2522,6 +2523,15 @@ int main( int argc , char *argv[] )
 
    if( AFNI_yesenv("AFNI_TIME_LOCK") ){
        GLOBAL_library.time_lock = 1 ;
+   }
+
+   /* default opacity [06 Jun 2019] */
+
+   { int opval = (int)AFNI_numenv("AFNI_DEFAULT_OPACITY") ;
+     if( opval > 0 && opval <= 9 )
+       GLOBAL_library.opacity_setting = opval ;
+     else
+       GLOBAL_library.opacity_setting = 6 ;
    }
 
    /*-- now create first display context: MAIN_dc --*/
@@ -2731,7 +2741,7 @@ STATUS("call 13") ;
         AFNI_register_1D_function( "AdptMean9" , adpt_wt_mn9 ) ;       /* 04 Sep 2009 */
         AFNI_register_1D_function( "AdptMean19", adpt_wt_mn19 );       /* 29 Sep 2016 */
 
-        { int nad = AFNI_numenv("AFNI_AdptMeanWidth1D") ;              /* 30 Sep 2016 */
+        { int nad = (int)AFNI_numenv("AFNI_AdptMeanWidth1D") ;         /* 30 Sep 2016 */
           char lab[32] ;                                      /* user specified width */
           if( nad > 9 && nad != 19 && nad < 100 ){
             if( nad%2 == 0 ){ nad++; INFO_message("increased AFNI_AdptMeanWidth1D to %d",nad); }
@@ -3569,6 +3579,114 @@ int FD_brick_montized(FD_brick *br )
       return(4);  /* Coronal brick and in montage */
    }
    return(0);
+}
+
+/*----------------------------------------------------------------------
+   Fill the various possible string values used in an imseq getlabel.
+   Return value is 0 if things are good, 1 if things are bad.
+------------------------------------------------------------------------*/
+
+#define LPART_SLICE_INDEX 0  /* %i% */
+#define LPART_SLICE_COORD 1  /* %s% */
+#define LPART_TIME_INDEX  2  /* %l% */
+#define LPART_TIME_COORD  3  /* %t% */
+#define NUM_LPART         4
+
+int AFNI_brick_to_label_parts( int n , FD_brick *br , char **lpart )
+{
+   Three_D_View *im3d = (Three_D_View *)br->parent ;
+   char *lab , *dd , *eee=NULL , str[256] ;
+   THD_ivec3 iv,ivp,ivm ;
+   THD_fvec3 fv,fvp,fvm ;
+   float dxyz , cc ;
+   int ii, ival;
+   double dval;
+   THD_3dim_dataset *dset=br->dset ;
+   int nnn ; char *fmt ;
+
+   if( lpart == NULL || im3d->type != AFNI_3DDATA_VIEW ) return 1 ;
+
+   /* format slice index */
+
+   LOAD_IVEC3(iv,0,0,n) ;
+   ivp = THD_fdind_to_3dind( br , iv ) ;
+
+   if( n == 0 ) LOAD_IVEC3(iv,0,0,1) ;
+   else         LOAD_IVEC3(iv,0,0,n-1) ;
+   ivm = THD_fdind_to_3dind( br , iv ) ;
+
+   nnn = MAX(br->n1,br->n2) ; nnn = MAX(nnn,br->n3) ;
+   fmt =  (nnn < 10)    ? "#%1d"
+        : (nnn < 100)   ? "#%02d"
+        : (nnn < 1000)  ? "#%03d"
+        : (nnn < 10000) ? "#%04d"
+        : (nnn < 100000)? "#%05d"
+        :                 "#%06d" ;
+   if( ivm.ijk[0] != ivp.ijk[0] ){
+     sprintf(str,fmt,ivp.ijk[0]) ;
+   } else if( ivm.ijk[1] != ivp.ijk[1] ){
+     sprintf(str,fmt,ivp.ijk[1]) ;
+   } else if( ivm.ijk[2] != ivp.ijk[2] ){
+     sprintf(str,fmt,ivp.ijk[2]) ;
+   } else {
+     sprintf(str,fmt,nnn) ; /* should be impossible */
+   }
+   strcpy( lpart[LPART_SLICE_INDEX] , str ) ;
+
+   /* slice coordinate */
+
+   fvp = THD_3dind_to_3dmm ( dset , ivp ) ;
+   fvp = THD_3dmm_to_dicomm( dset , fvp ) ;
+
+   fvm = THD_3dind_to_3dmm ( dset , ivm ) ;
+   fvm = THD_3dmm_to_dicomm( dset , fvm ) ;
+
+   dxyz = MIN(br->del1,br->del2) ;
+   dxyz = MIN(dxyz    ,br->del3) ; dxyz *= 0.1f ;
+   if( dxyz <= 1.e-4f ) dxyz = 1.e-4f ;
+
+   if( fabs(fvm.xyz[0]-fvp.xyz[0]) > dxyz ){ /* +=R -=L */
+     cc = fvp.xyz[0] ;
+     dd = ( cc >= 0.0 ) ? "L" : "R" ;
+   } else if( fabs(fvm.xyz[1]-fvp.xyz[1]) > dxyz ){ /* +=P -=A */
+     cc = fvp.xyz[1] ;
+     dd = ( cc >= 0.0 ) ? "P" : "A" ;
+   } else if( fabs(fvm.xyz[2]-fvp.xyz[2]) > dxyz ){ /* +=S -=I */
+     cc = fvp.xyz[2] ;
+     dd = ( cc >= 0.0 ) ? "S" : "I" ;
+   } else {
+     cc = 0.0f ; dd = "" ; /* should be impossible */
+   }
+
+   sprintf(str,"%6.2f",fabs(cc)) ;
+   for( ii=strlen(str)-1 ; ii > 0 && str[ii] == '0' ; ii-- ) str[ii] = '\0' ;
+   if( str[ii] == '.' ) str[ii] = '\0' ;
+   strcat(str, dd) ;
+   strcpy( lpart[LPART_SLICE_COORD] , str ) ;
+
+   /* time index */
+
+   nnn = DSET_NVALS(dset) ;
+   fmt =  (nnn < 10)    ? "#%1d"
+        : (nnn < 100)   ? "#%02d"
+        : (nnn < 1000)  ? "#%03d"
+        : (nnn < 10000) ? "#%04d"
+        : (nnn < 100000)? "#%05d"
+        :                 "#%06d" ;
+   sprintf(str,fmt,im3d->vinfo->time_index) ;
+   strcpy( lpart[LPART_TIME_INDEX] , str ) ;
+
+   /* time coord */
+
+   cc = DSET_TIMEORIGIN(dset) + im3d->vinfo->time_index * DSET_TR(dset) ;
+
+   sprintf(str,"%-16.5f",cc) ; /* %- means will be left justified, not right */
+   for( ii=strlen(str)-1 ;
+        ii > 0 && (str[ii] == '0' || str[ii] == ' ') ; ii-- ) str[ii] = '\0' ;
+   if( str[ii] == '.' ) str[ii] = '\0' ;
+   strcpy( lpart[LPART_TIME_COORD] , str ) ;
+
+   return 0 ;
 }
 
 /*----------------------------------------------------------------------
@@ -5445,6 +5563,17 @@ if(PRINT_TRACING)
          PLUTO_force_rebar() ;      /* ditto [23 Aug 1998] */
       }
       break ; /* end of forced redisplay */
+
+      /*--- 06 Jun 2019: force opacity change ---*/
+
+      case isqCR_opacitychange:{
+        int opval = cbs->nim ;
+        if( opval > 0 && opval <= 9 && opval != GLOBAL_library.opacity_setting ){
+          GLOBAL_library.opacity_setting = opval ;
+          PLUTO_force_opacity_change() ;
+        }
+      }
+      break ; /* end of opacity change */
 
       /*--- 26 Apr 2007: time indexing ---*/
 
@@ -7326,16 +7455,6 @@ STATUS("setting image view to be L-R mirrored") ;
       }
 
 #if 0
-      /* 23 Jan 2003: set opacity? */
-
-      { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
-        if( eee != NULL ){
-          int opval = (int) strtod( eee , NULL ) ;
-          if( opval > 0 && opval <= 9 )
-            drive_MCW_imseq( *snew , isqDR_setopacity , (XtPointer)opval ) ;
-        }
-      }
-
       /* 23 Jan 2003: set default save? */
 
       drive_MCW_imseq( *snew , isqDR_setimsave ,
@@ -7410,6 +7529,10 @@ STATUS("setting image viewer 'sides'") ;
         if( ii >= 0 )
          drive_MCW_imseq( *snew, isqDR_bgicon, (XtPointer)afni16_pixmap[ii] ) ;
       }
+
+      if( AFNI_yesenv("AFNI_OPACITY_LOCK") )                 /* 06 Jun 2019 */
+        drive_MCW_imseq( *snew, isqDR_setopacity,
+                         (XtPointer)ITOP(GLOBAL_library.opacity_setting) );
 
       drive_MCW_imseq( *snew, isqDR_ignore_redraws, (XtPointer) 0 ) ; /* 16 Aug 2002 */
 

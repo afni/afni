@@ -737,6 +737,7 @@ extern void PLUTO_set_xypush( int a, int b ) ;
 
 extern void PLUTO_force_redisplay( void ) ;
 extern void PLUTO_force_rebar( void ) ;
+extern void PLUTO_force_opacity_change( void ) ; /* 06 Jun 2019 */
 
 extern void PLUTO_register_workproc( XtWorkProc , XtPointer ) ;
 extern void PLUTO_remove_workproc  ( XtWorkProc ) ;

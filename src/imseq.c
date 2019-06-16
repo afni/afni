@@ -2079,12 +2079,9 @@ STATUS("creation: widgets created") ;
 
    /* 23 Jan 2003: set opacity? */
 
-   { char *eee = getenv("AFNI_DEFAULT_OPACITY") ;
-     if( eee != NULL ){
-       int opval = (int) strtod( eee , NULL ) ;
-       if( opval > 0 && opval <= 9 )
-         drive_MCW_imseq( newseq , isqDR_setopacity , (XtPointer)ITOP(opval) ) ;
-     }
+   { int opval = (int)AFNI_numenv("AFNI_DEFAULT_OPACITY") ;
+     if( opval > 0 && opval <= 9 )
+       drive_MCW_imseq( newseq , isqDR_setopacity , (XtPointer)ITOP(opval) ) ;
    }
 
    newseq->parent = NULL ;
@@ -2316,6 +2313,10 @@ void ISQ_opacity_CB( MCW_arrowval *av , XtPointer cd ) /* 07 Mar 2001 */
 
    seq->ov_opacity = OPACITY_FAC * av->ival ;
    ISQ_redisplay( seq , -1 , isqDR_display ) ;
+
+   if( AFNI_yesenv("AFNI_OPACITY_LOCK") )  /* 06 Jun 2019 */
+     OPACITY_CHANGE(seq,av->ival) ;
+
    return ;
 }
 
@@ -8020,6 +8021,7 @@ static unsigned char record_bits[] = {
         int val = PTOI(drive_data) ;
         if( seq->ov_opacity_av == NULL ) RETURN( False ) ;
         if( val < OPACITY_BOT || val > OPACITY_TOP ) RETURN( False ) ;
+        if( val == seq->ov_opacity_av->ival ) RETURN( True ) ;
         AV_assign_ival( seq->ov_opacity_av , val ) ;
         ISQ_opacity_CB( seq->ov_opacity_av , seq ) ;
         RETURN( True ) ;

@@ -292,18 +292,35 @@ typedef struct {
 #define isqCR_button2_points 501  /* Feb 1998 */
 #define isqCR_button2_key    502  /* 20 Feb 2003 */
 
-#define isqCR_force_redisplay 601 /* 22 Aug 1998 */
-#define isqCR_setindex        602 /* 26 Apr 2007 */
-#define isqCR_deltival        603 /* 23 Feb 2011 */
-#define isqCR_raiseupthedead  604 /* 17 Jun 2011 */
-#define isqCR_globalrange     605 /* 03 Feb 2013 */
+#define isqCR_force_redisplay   601 /* 22 Aug 1998 */
+#define isqCR_setindex          602 /* 26 Apr 2007 */
+#define isqCR_deltival          603 /* 23 Feb 2011 */
+#define isqCR_raiseupthedead    604 /* 17 Jun 2011 */
+#define isqCR_globalrange       605 /* 03 Feb 2013 */
 #define isqCR_resetglobalrange  606
+#define isqCR_opacitychange     607 /* 06 Jun 2019 */
 
 #define COLORMAP_CHANGE(sq)                                          \
   do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
          if( (sq)->status->send_CB != NULL ){                        \
             ISQ_cbs cbs ;                                            \
             cbs.reason = isqCR_force_redisplay ;                     \
+            AFNI_CALL_VOID_3ARG( (sq)->status->send_CB      ,        \
+                                 MCW_imseq * , (sq)         ,        \
+                                 XtPointer   , (sq)->getaux ,        \
+                                 ISQ_cbs *   , &cbs          ) ;     \
+         } else {                                                    \
+            KILL_2XIM( (sq)->given_xbar , (sq)->sized_xbar ) ;       \
+            ISQ_redisplay( (sq) , -1 , isqDR_display ) ;             \
+         }                                                           \
+    } } while(0)
+
+#define OPACITY_CHANGE(sq,oval)                                      \
+  do{ if( ISQ_REALZ((sq)) && (sq)->dc->visual_class == TrueColor ){  \
+         if( (sq)->status->send_CB != NULL ){                        \
+            ISQ_cbs cbs ;                                            \
+            cbs.reason = isqCR_opacitychange ;                       \
+            cbs.nim    = (oval) ;                                    \
             AFNI_CALL_VOID_3ARG( (sq)->status->send_CB      ,        \
                                  MCW_imseq * , (sq)         ,        \
                                  XtPointer   , (sq)->getaux ,        \
