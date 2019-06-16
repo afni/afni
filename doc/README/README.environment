@@ -2896,6 +2896,14 @@ different AFNI controllers that are Lock-ed together will be
 coordinated. Changes in one controller will be reflected in
 the others immediately.
 
+---------------------------
+Variable: AFNI_OPACITY_LOCK
+---------------------------
+This variable controls if changing the overlay opacity in one
+image viewer window (the 1-9 arrows at the viewer right edge)
+changes the opacity in all viewer windows. The default value
+is YES, but you can set this to NO if you don't like it.
+
 ----------------------------
 Variable: AFNI_IMAGE_ZOOM_NN (editable)
 ----------------------------
