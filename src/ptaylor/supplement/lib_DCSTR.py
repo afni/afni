@@ -3,8 +3,11 @@ import sys
 import lib_apqc_tcsh as lat
 
 
-ver = '1.2'; date = 'Jne 14, 2019'
+#ver = '1.2'; date = 'Jne 14, 2019'
 # [PT] revamped: have new features like title and reflink
+#
+ver = '1.3'; date = 'Jne 17, 2019'
+# [PT] work on textblock and images therein
 #
 ##########################################################################
 
@@ -268,9 +271,10 @@ def add_in_textblock_image( X,
     Nheader   = 0
     imcaption = []
     imlist    = []
-
+    impath    = 'media'
+    
     if subdir :
-        subdir+= '/'
+        impath+= '/' + subdir
 
     # (opt) title is everything else include in this first line
     ss = X[tstart].split()
@@ -337,9 +341,9 @@ def add_in_textblock_image( X,
             elif imlist[rr][cc] == 'NULL':
                 trst+= '   {} -\n'.format(symb)
             else:
-                trst+= '''   {} - .. image:: media/{}{}
+                trst+= '''   {} - .. image:: {}/{}
           :width: 100%   
-          :align: center\n'''.format(symb, subdir, imlist[rr][cc])
+          :align: center\n'''.format(symb, impath, imlist[rr][cc])
                 
     return trst
 
