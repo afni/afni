@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , JUN , 2019 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "-1blur3D_fwhm" ,
+   "Restores the ability to order differential amounts of blurring along the\n"
+   "3D axes of the dataset." } ,
+
  { 06 , JUN , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
    "AFNI_OPACITY_LOCK" ,
    "YES = Locks the opacity (1-9) arrows between all image viewers.\n"

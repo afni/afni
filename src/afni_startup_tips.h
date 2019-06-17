@@ -1576,7 +1576,7 @@ static char *gby[] = {
      "      dissimulate the fact that, ultimately, life is very simple - it is\n"
      "      what it is, it is simply here without reason and rhyme!\n"
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
-     "      in the simple fact that there is life.\n"
+     "      in the simple fact that there is life.\n" ,
 
      /* John 5:2-4 (KJV) */
 
@@ -1586,7 +1586,19 @@ static char *gby[] = {
      "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
      "  moving of the water. For an angel went down at a certain season into the\n"
      "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had.\n"
+     "  of the water stepped in was made whole of whatsoever disease he had.\n" ,
+
+     /* From https://www.thesaurus.com/browse/wonderful */
+
+     "If anyone asks you about your experiences with AFNI,\n"
+     "  a multitude of the following words should appear in your response:\n"
+     "    admirable      amazing     astonishing  awesome     brilliant\n"
+     "    cool           enjoyable   excellent    fabulous    fantastic\n"
+     "    fine           incredible  magnificent  marvelous   outstanding\n"
+     "    phenomenal     pleasant    pleasing     remarkable  sensational\n"
+     "    superb         terrific    tremendous   wondrous    astounding\n"
+     "    awe-inspiring  divine      dynamite     groovy      miraculous\n"
+     "    primo          staggering  supercalifragilisticexpialidocious\n"
 
 } ;
 

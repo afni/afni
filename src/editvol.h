@@ -296,6 +296,8 @@ typedef struct EDIT_options {
    char rankmapname[THD_MAX_NAME+THD_MAX_PREFIX+1];
    
    int isomode;                  /*!< 03 March 2010, ZSS: Use value for clust */
+
+   float blurx,blury,blurz ;     /*!< 18 Jun 2019, RWC: aniso blurring */
 } EDIT_options ;
 
 /*--- cluster editing options ---*/   /* 10 Sept 1996 */
@@ -343,6 +345,9 @@ typedef struct EDIT_options {
         (edopt)->thrfilter_rmm = 0.0 , \
         (edopt)->thrfilter_opt = 0   , \
         (edopt)->blur          = 0.0 , \
+        (edopt)->blurx         = 0.0 , \
+        (edopt)->blury         = 0.0 , \
+        (edopt)->blurz         = 0.0 , \
         (edopt)->thrblur       = 0.0 , \
         (edopt)->scale         = 0   , \
         (edopt)->mult          = 0.0 , \
