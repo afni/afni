@@ -1159,6 +1159,7 @@ static char *gby[] = {
      "With freedom, books, flowers, and AFNI, who could not be happy?"          ,
      "When a truth becomes a fact, it loses all intellectual value"             ,
      "I can resist anything but temptation"                                     ,
+     "Only the shallow can know themselves"                                     ,
 
      "\n In this world there are only two tragedies:\n"
      "   One is not getting what one wants, and the other is getting it"        ,
@@ -1177,6 +1178,9 @@ static char *gby[] = {
 
      "\n Good decisions come from experience ...\n"
      "   and experience mostly comes from from bad decisions"                   ,
+
+     "\n Life is never fair, and perhaps it is a good thing\n"
+     "   for most of us that it is not"                                         ,
 
      /* Longer quotes */
 
@@ -1599,6 +1603,13 @@ static char *gby[] = {
      "    superb         terrific    tremendous   wondrous    astounding\n"
      "    awe-inspiring  divine      dynamite     groovy      miraculous\n"
      "    primo          staggering  supercalifragilisticexpialidocious\n"
+
+     /* from Babylon 5 */
+
+     "Understanding is a three edged sword: your side, their side, and the truth" ,
+
+     "All life is transitory, a dream… if I don’t see you again here,\n"
+     "  I will see you, in a little while, in a place where no shadows fall"
 
 } ;
 
