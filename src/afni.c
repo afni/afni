@@ -13556,6 +13556,7 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
 {
    int iqqq = AFNI_controller_index(im3d) ;
    int sel_height,sel_actual ;  XtPointer sel_ptr=NULL ;
+   Dimension sel_aaa ;
 
    if( iqqq < 0 || ! IM3D_OPEN(im3d) ) return ; /* not valid */
 
@@ -13566,7 +13567,10 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
    sel_height = PTOI(sel_ptr) ; /* stored in a pointer, convert to int */
 
    XtVaGetValues( im3d->vwid->func->thr_scale ,
-                  XmNheight , &sel_actual , NULL ) ;
+                  XmNheight , &sel_aaa , NULL ) ;
+   sel_actual = (int)sel_aaa ;
+
+   /**** INFO_message("actual = %d  nominal = %d",sel_actual,sel_height) ; ****/
 
    if( sel_actual == sel_height ) return ;  /* it's OK */
 
