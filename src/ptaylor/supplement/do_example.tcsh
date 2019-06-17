@@ -17,21 +17,21 @@
 # --------- set input dsets/names ---------------------
 
 set subj      = SUB-001
-set dat_topd  = ~/FATCAT_DEMO2/data_proc/SUBJ_001
+set dat_topd  = /data/FATCAT_DEMO2/data_proc/SUBJ_001
 set odir      = "${dat_topd}"
 
 set vol_t1w   = ${dat_topd}/anat_01/t1w.nii.gz
 set vol_b0    = ${dat_topd}/dwi_05/dwi_dwi.nii.gz  # [0]th vol selected below
-set template  = ~/abin/MNI152_2009_template_SSW.nii.gz
-set templ_roi = ~/abin/MNI_caez_ml_18+tlrc.HEAD
+set template  = /data/REF_TEMPLATES_AFNI/MNI152_2009_template_SSW.nii.gz
+set templ_roi = /data/REF_TEMPLATES_AFNI/MNI_caez_ml_18+tlrc.HEAD
 
 #:SECTION: Nonlinear warp T1w -> MNI (and T1w skullstrip)
 
-cat <<EOF
+cat <<TEXTBLOCK
 
-Use @SSwarper to make warps from T1w coord sys to standard/MNI one
+Use @SSwarper to make warps from T1w coord sys to standard/MNI one.
 
-EOF
+TEXTBLOCK
 
 # Align T1w to MNI (produces an affine transform and a warp data set),
 # and make a copy of T1w that is skull stripped
@@ -43,17 +43,28 @@ EOF
 
 ls *tcsh
 
-cat <<EOF
+@chauffeur_afni                                               \
+    -ulay       "$template"                                   \
+    -prefix     $odir/IMAGE                                   \
+    -montx 8 -monty 1                                         \
+    -set_subbricks   0 0 0                                    \
+    -set_dicom_xyz   5 18 18                                  \
+    -delta_slices   10 20 10                                  \
+    -set_xhairs     OFF                                       \
+    -label_mode 1 -label_size 3                               \
+    -do_clean
+
+cat <<TEXTBLOCK
 
 We will display these images, with ones in same line put into same
 line, and separate lines into separate lines.
 
-#:IMAGE: AMSUB-001.jpg MASUB-001.jpg
+#:IMAGE: Ooooptional title || || indeed
+    AMSUB-001.jpg MASUB-001.jpg
+    NULL OTHER_IMG.png NULL
+#:IMCAPTION: caption for any image(s)
 
-#:TITLE: caption
-#:CAPTION: caption for any image(s)
-
-EOF
+TEXTBLOCK
 
 # skullstripped t1w vol output by @SSwarper
 set t1w_ss = $odir/anatSS.${subj}.nii
@@ -109,11 +120,11 @@ JUMP4:
 
 #:SECTION: Apply warps, create new dsets
 
-cat <<EOF
+cat <<TEXTBLOCK
 
 Here is a text description of what we are doing
 
-EOF
+TEXTBLOCK
 
 goto JUMP3
 # finally, apply the full warp from MNI to b0:
