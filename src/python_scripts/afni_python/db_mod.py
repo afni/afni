@@ -6311,8 +6311,11 @@ def db_cmd_regress_rsfc(proc, block):
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
 
-    if proc.mask: mask_pre = proc.mask.prefix
-    else:         mask_pre = ''
+    # no mask for surface based analysis
+    if proc.mask and not proc.surf_anat:
+       mask_pre = proc.mask.prefix
+    else:
+       mask_pre = ''
 
     return db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \

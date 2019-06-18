@@ -647,9 +647,10 @@ g_history = """
           (so one would now have to ask for a truncated Gaussian)
         - generate fanaticor_mask_coverage as float
     6.39 Jun  3, 2019: allow ricor in case of ME data
+    6.40 Jun 18, 2019: no mask for TSNR on the surface
 """
 
-g_version = "version 6.30, June 3, 2019"
+g_version = "version 6.40, June 18, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
