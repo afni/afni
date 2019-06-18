@@ -3,20 +3,26 @@ import sys
 import lib_apqc_tcsh as lat
 
 
-ver = '1.2'; date = 'Jne 14, 2019'
+#ver = '1.2'; date = 'Jne 14, 2019'
 # [PT] revamped: have new features like title and reflink
+#
+ver = '1.3'; date = 'Jne 17, 2019'
+# [PT] work on textblock and images therein
 #
 ##########################################################################
 
-# default environment is CODE; this is a list of special
-# environments/lines, the start of which end a CODE line; we should
-# only need to find start of environ.  SPACE is also one now, because
-# it can follow sections of well-defined length
-OTHER_MODES = [ 'TITLE', 
-                'REFLINK', 
-                'SECTION', 
-                'DESCRIPT',
-                'HID_CODE' ]
+# Default "mode" (or environs) is CODE; this is a list of *other*
+# special modes, each of which is either a single line, or has a pair
+# of start/end keywords; we go through finding the start of each mode
+# based on keyword (or by being default CODE), and then know what to
+# look for for its ending mode.  SPACE is now also a mode, because it
+# is useful to have as filler.
+OTHER_MODES = [ 'TITLE',       # title of script/demo
+                'REFLINK',     # abbrev for RST hyperlink reference
+                'SECTION',     # can breakup demo into parts
+                'TEXTBLOCK',   # basic description, just for RST
+                'HCODE'        # script: normal code; RST: hidden+expandable
+               ]
 
 # --------------------------------------------------------------------------
 
@@ -40,11 +46,11 @@ field; other, returns empty string'''
 
     elif ss[0].__contains__('cat') and \
          x.__contains__('<<')  and \
-         x.__contains__('EOF') :
-        return 'DESCRIPT'
+         x.__contains__('TEXTBLOCK') :
+        return 'TEXTBLOCK'
 
     elif ss[0].__contains__('#:HIDE_ON') :
-        return 'HID_CODE'
+        return 'HCODE'
 
     else:
         return 'CODE'
@@ -124,24 +130,24 @@ def find_mode_and_span(W, lstart, prev_mode=''):
                 tspan = jj
                 break
 
-    elif start_mode == 'DESCRIPT' :
+    elif start_mode == 'TEXTBLOCK' :
         tmode = start_mode
 
         tspan = 0
         for jj in range(1, Nx):
             tt    = X[jj].split()
             if tt:
-                if tt[0] == 'EOF':
+                if tt[0] == 'TEXTBLOCK':
                     tspan = jj+1 # bc ends with keyword
                     break
         if not(tspan) :
-            print('''** Parsing error:  can't find end of "cat <<EOF"\n'''
+            print('''** Parse error:  can't find end of "cat <<TEXTBLOCK"\n'''
                   '''   started at line {}'''
-                  '''   Need a "EOF" somewhere.'''
+                  '''   Need a "TEXTBLOCK" somewhere.'''
                   ''.format(lstart))
             sys.exit(2)
 
-    elif start_mode == 'HID_CODE' :
+    elif start_mode == 'HCODE' :
         tmode = start_mode
 
         tspan = 0
@@ -152,7 +158,7 @@ def find_mode_and_span(W, lstart, prev_mode=''):
                     tspan = jj+1 # +1 bc of keyword ending
                     break
         if not(tspan) :
-            print('''** Parsing error:  can't find end of "#:HIDE_ON"\n'''
+            print('''** Parse error:  can't find end of "#:HIDE_ON"\n'''
                   '''   started at line {}.'''
                   '''   Need a "#:HIDE_OFF" somewhere.'''
                   ''.format(lstart))
@@ -167,47 +173,185 @@ def find_mode_and_span(W, lstart, prev_mode=''):
 
 def add_in_space( X, 
                   tstart,
-                  tspan, 
-                  oscript_txt, 
-                  orst_txt ):
+                  tspan ):
     '''X is a list of strings.
 
     '''
+
+    tscript = ''
+    trst    = ''
 
     # Note the '-1', because there is a closing keyword
     Nx = tstart + tspan - 1 
 
     for ii in range(tstart+1, Nx):
-        orst_txt    += X[ii]
-        oscript_txt += X[ii] 
+        trst    += X[ii]
+        tscript += X[ii] 
 
-    return oscript_txt, orst_txt
+    return tscript, trst
 
 # -----------------------------------------------------------------------
 
-def add_in_descript( X, 
-                     tstart,
-                     tspan, 
-                     oscript_txt, 
-                     orst_txt ):
+def add_in_textblock( X, 
+                      tstart,
+                      tspan,
+                      subdir = '' ):
     '''X is a list of strings.
 
-    This is only for RST, and we don't include the end stuff.
+    This is only for the RST file.
 
     '''
 
+    tscript = ''
+    trst    = ''
+    
     Nx = tstart + tspan - 1
+
+    ii = tstart+1
+    while ii < Nx :
+
+        x  = X[ii]
+        ss = x.split()
+
+        if not(ss):
+            # empty case: just add line.
+            trst += x
+            ii   += 1
+            
+        elif ss[0].__contains__("#:IMAGE") :
+            # IMAGE subblock must be contiguous-- empty line declares
+            # end of it
+            im_span = 1
+            for jj in range(ii+1, Nx): # search for end (next empty line)
+                y  = X[jj]
+                uu = y.split()
+                if not(uu) :
+                    break
+                else:
+                    im_span+= 1
+            imtxt = add_in_textblock_image( X,
+                                            ii,
+                                            im_span,
+                                            subdir=subdir )
+            print(imtxt)
+            trst+= imtxt
+            ii+= im_span
+                                    
+        else:
+            # simple case, just add line
+            trst += x
+            ii   += 1
+
+    return tscript, trst
+
+# -----------------------------------------------------------------------
+
+def add_in_textblock_image( X, 
+                            tstart,
+                            tspan,
+                            subdir = ''):
+    '''X is a list of strings.
+
+    This is only for the RST file.
+
+    The general format is:
+    
+    #:IMAGE:  Optional Title || and other col title!
+        IMAGE1 IMAGE2
+        IMAGE3 
+    #:IMCAPTION: optional caption for any image(s)
+
+    '''
+
+    trst    = ''
+    
+    Nx = tstart + tspan
+
+    imtitle   = []
+    Nheader   = 0
+    imcaption = []
+    imlist    = []
+    impath    = 'media'
+    
+    if subdir :
+        impath+= '/' + subdir
+
+    # (opt) title is everything else include in this first line
+    ss = X[tstart].split()
+    if len(ss) > 1 :
+        tt =  ' '.join(ss[1:])
+        imtitle = tt.split('||') # can have more than one title
+        Nheader = 1
+        Ntitle  = len(imtitle)
+
+    # Now check rest for images, and/or captions; by construct, no
+    # line can be empty.  We read everything as images until we get to
+    # the IMCAPTION keyword, after which all is CAPTION
+    lmode = 'IMAGES'
     for ii in range(tstart+1, Nx):
-        orst_txt    += X[ii]
-    return oscript_txt, orst_txt
+        ss = X[ii].split()
+
+        if ss[0].__contains__("#:IMCAPTION") :
+            lmode = 'CAPTION'
+            imcaption.append(ss[1:])
+        elif lmode == 'IMAGES' :
+            imlist.append(ss)
+        elif lmode == 'CAPTION' :
+            imcaption.append(ss[1:])
+
+    # Calc max dims of image matrix
+    Ncol = 0
+    Nrow = len( imlist )
+    for rr in imlist:
+        if len(rr) > Ncol:
+            Ncol = len(rr)
+    allwid = str(100 // Ncol) + ' '
+    
+    # Now build table;  some formatting necessary
+    
+    trst += '''
+.. list-table:: 
+   :header-rows: {}
+   :widths: {}
+
+'''.format(Nheader, Ncol * allwid)
+
+    if imtitle :
+        for cc in range(Ncol) :
+            if cc :
+                symb = ' '
+            else:
+                symb = '*'
+
+            if cc >= Ntitle :
+                trst+= '   {} - {}\n'.format(symb, ' ')
+            else:
+                
+                trst+= '   {} - {}\n'.format(symb, imtitle[cc].strip())
+            
+    for rr in range(Nrow):
+        for cc in range(Ncol) :
+            if cc :
+                symb = ' '
+            else:
+                symb = '*'
+
+            if cc >= len(imlist[rr]) :
+                trst+= '   {} -\n'.format(symb)
+            elif imlist[rr][cc] == 'NULL':
+                trst+= '   {} -\n'.format(symb)
+            else:
+                trst+= '''   {} - .. image:: {}/{}
+          :width: 100%   
+          :align: center\n'''.format(symb, impath, imlist[rr][cc])
+                
+    return trst
 
 # -----------------------------------------------------------------------
 
 def add_in_code ( X, 
                   tstart,
                   tspan, 
-                  oscript_txt, 
-                  orst_txt,
                   hide=False,
                   cmode='Tcsh' ):
     '''X is a list of strings.
@@ -216,6 +360,9 @@ def add_in_code ( X,
 
     '''
 
+    tscript = ''
+    trst    = ''
+
     Nx = tstart + tspan
     N0 = tstart 
 
@@ -223,7 +370,7 @@ def add_in_code ( X,
         Nx-= 1 # because there is a closing keyword
         N0+= 1 # because there is an opening keyword
 
-        orst_txt+= '''
+        trst+= '''
 
 .. hidden-code-block:: {}
    :starthidden: False
@@ -232,104 +379,111 @@ def add_in_code ( X,
 '''.format(cmode)
 
     else:
-        orst_txt+= '''
+        trst+= '''
 
 .. code-block:: {}
 
 '''.format(cmode)
 
     for ii in range(N0, Nx):
-        orst_txt    += 3*' ' + X[ii]
-        oscript_txt += X[ii]
 
-    return oscript_txt, orst_txt
+        # try to format ending \s nicely
+        text = X[ii]
+        if len(text) >= 2:
+            if text[-2:] == '\\\n' :
+                text = lineup_eol(text)
+        
+        trst    += 3*' ' + text
+        tscript += text
+
+    return tscript, trst
 
 # -----------------------------------------------------------------------
 
 def add_in_section( X, 
                     tstart,
-                    tspan, 
-                    oscript_txt, 
-                    orst_txt ):
+                    tspan ):
     '''X should just be a list of a single string, but may generalize...'''
 
+    tscript = ''
+    trst    = ''
+
     lline = X[tstart]
-    ss = lline.split()
-    
+    ss    = lline.split()
     text  = ' '.join(ss[1:])
     ltext = len(text)
     
-    oscript_txt += lat.bannerize( text )
+    tscript+= lat.bannerize( text )
     
-    orst_txt    += text + "\n"
-    orst_txt    += (ltext  + 2 ) * '-' 
+    trst   += text + "\n"
+    trst   += (ltext  + 2 ) * '-' 
 
     # might have empty lines/padding
     for ii in range(1, tspan):
         jj = tstart + ii
-        oscript_txt += X[jj]
-        orst_txt    += X[jj]
+        tscript += X[jj]
+        trst    += X[jj]
 
-    return oscript_txt, orst_txt
+    return tscript, trst 
 
 # --------------------------------------------------------------------------
 
 def create_text_title( X, 
                        tstart,
-                       tspan, 
-                       oscript_txt, 
-                       orst_txt ):
+                       tspan ):
     '''X should just be a list of a single string, but may generalize...'''
 
+    tscript = ''
+    trst    = ''
+
     lline = X[tstart]
-    ss = lline.split()
-    
+    ss    = lline.split()
     text  = ' '.join(ss[1:])
     ltext = len(text)
+
+    tscript += '# TUTORIAL: '
+    tscript += text + '\n'
     
-    txt_for_oscript_txt  = '# TUTORIAL: '
-    txt_for_oscript_txt += text + '\n'
-    
-    txt_for_orst_txt     = (ltext  + 2 ) * '*'  + "\n" 
-    txt_for_orst_txt    += text + "\n"
-    txt_for_orst_txt    += (ltext  + 2 ) * '*' 
+    trst    += (ltext  + 2 ) * '*'  + "\n" 
+    trst    += text + "\n"
+    trst    += (ltext  + 2 ) * '*' 
 
     # might have empty lines/padding
     for ii in range(1, tspan):
         jj = tstart + ii
-        txt_for_oscript_txt += X[jj]
-        txt_for_orst_txt    += X[jj]
+        tscript += X[jj]
+        trst    += X[jj]
 
-    return txt_for_oscript_txt, txt_for_orst_txt
+    return tscript, trst
 
 # --------------------------------------------------------------------------
 
 def create_text_reflink( X, 
                          tstart,
-                         tspan, 
-                         oscript_txt, 
-                         orst_txt ):
+                         tspan ):
     '''X should just be a list of a single string, but may generalize...'''
 
+    tscript = ''
+    trst    = ''
+    reflink = ''
+
     lline = X[tstart]
-    ss = lline.split()
-    
+    ss    = lline.split()
     text  = '_'.join(ss[1:])
     if text[0] != '_' :
         text = '_' + text
 
-    ltext = len(text)
+    reflink = text[1:]   # use this later as a subdir for any images
         
-    txt_for_orst_txt    = '.. ' + text + ':\n'
-    txt_for_oscript_txt = ''
+    trst+= '.. ' + text + ':\n'
 
     # might have empty lines/padding
     for ii in range(1, tspan):
         jj = tstart + ii
-        txt_for_oscript_txt += X[jj]
-        txt_for_orst_txt    += X[jj]
+        tscript += X[jj]
+        trst    += X[jj]
 
-    return txt_for_oscript_txt, txt_for_orst_txt
+    return tscript, trst, reflink
 
 # --------------------------------------------------------------------------
 
@@ -351,11 +505,12 @@ TO_BE_THE_TITLE
 
 '''
 
-    oscript     = prefix + '.tcsh'
-    orst        = prefix + '.rst'
+    oscript = prefix + '.tcsh'
+    orst    = prefix + '.rst'
 
-    ii = 0
-    tmode = ''
+    ii      = 0
+    tmode   = ''
+    reflink = '' # also used as subdir of images
 
     while ii < N :
 
@@ -363,103 +518,83 @@ TO_BE_THE_TITLE
         print("++ {:10s} range: [{:4d}, {:4d})".format(tmode,ii+1,ii+tspan+1))
 
         if tmode == 'CODE' :
-            oscript_txt, orst_txt = add_in_code( X,
-                                                 ii,
-                                                 tspan, 
-                                                 oscript_txt, 
-                                                 orst_txt,
-                                                 hide=False )
-            ii+= tspan
+            tscript, trst = add_in_code( X,
+                                         ii,
+                                         tspan,
+                                         hide=False )
+            oscript_txt+= tscript
+            orst_txt   += trst 
+            ii         += tspan
 
-        elif tmode == 'HID_CODE' :
-            oscript_txt, orst_txt = add_in_code( X,
-                                                 ii, 
-                                                 tspan, 
-                                                 oscript_txt, 
-                                                 orst_txt,
-                                                 hide=True )
-            ii+= tspan
+        elif tmode == 'HCODE' :
+            tscript, trst = add_in_code( X,
+                                         ii, 
+                                         tspan,
+                                         hide=True )
+            oscript_txt+= tscript
+            orst_txt   += trst 
+            ii         += tspan
 
         elif tmode == 'SECTION' :
             # SECTIONs are one line of text, but can span several
             # lines of whitespace
-            oscript_txt, orst_txt = add_in_section( X,
-                                                    ii,
-                                                    tspan,
-                                                    oscript_txt, 
-                                                    orst_txt )
-            ii+= tspan
+            tscript, trst = add_in_section( X,
+                                            ii,
+                                            tspan )
+            oscript_txt+= tscript
+            orst_txt   += trst 
+            ii         += tspan
 
         elif tmode == 'TITLE' :
             # TITLEs are one line of text, but can span several
             # lines of whitespace
             # NOTE the special output here
-            txt_for_oscript_txt, txt_for_orst_txt = \
-                                            create_text_title( X,
-                                                               ii,
-                                                               tspan,
-                                                               oscript_txt, 
-                                                               orst_txt )
-
-            oscript_txt+= txt_for_oscript_txt
-            orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", 
-                                            txt_for_orst_txt )
-            ii+= tspan
+            tscript, trst = create_text_title( X,
+                                               ii,
+                                               tspan )
+            
+            oscript_txt+= tscript
+            orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", trst )
+            ii         += tspan
 
         elif tmode == 'REFLINK' :
             # TITLEs are one line of text, but can span several
             # lines of whitespace
             # NOTE the special output here
-            txt_for_oscript_txt, txt_for_orst_txt = \
-                                            create_text_reflink( X,
-                                                                 ii,
-                                                                 tspan,
-                                                                 oscript_txt, 
-                                                                 orst_txt )
-            
-            oscript_txt+= txt_for_oscript_txt
-            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", 
-                                            txt_for_orst_txt )
-            ii+= tspan
+            tscript, trst, reflink = create_text_reflink( X,
+                                                          ii,
+                                                          tspan )
+            oscript_txt+= tscript
+            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", trst )
+            ii         += tspan
 
-        elif tmode == 'DESCRIPT' :
-            oscript_txt, orst_txt = add_in_descript( X,
-                                                     ii, 
-                                                     tspan, 
-                                                     oscript_txt, 
-                                                     orst_txt)
-            ii+= tspan
+        elif tmode == 'TEXTBLOCK' :
+            tscript, trst = add_in_textblock( X,
+                                              ii, 
+                                              tspan,
+                                              subdir = reflink)
+            oscript_txt+= tscript
+            orst_txt   += trst 
+            ii         += tspan
 
         elif tmode == 'SPACE' :
-            oscript_txt, orst_txt = add_in_space( X,
-                                                  ii, 
-                                                  tspan, 
-                                                  oscript_txt, 
-                                                  orst_txt)
-            ii+= tspan
+            tscript, trst = add_in_space( X,
+                                          ii, 
+                                          tspan )
+            oscript_txt+= tscript
+            orst_txt   += trst 
+            ii         += tspan
 
         else:
-            print("** UNRECOGNIZED")
+            print("** ERROR. Unrecognized:")
             print(X[ii])
-
-#        else:
-#
-#            text = lline
-#            if len(text) >= 2:
-#                if text[-2:] == '\\\n' :
-#                    text = lineup_eol(lline)
-#
-#            oscript_txt += text
-#
-#
-#            ii+= 1
-
+            sys.exit(2)
 
     return oscript_txt, orst_txt, oscript, orst
 
 # ----------------------------------------------------------------------
 
-def lineup_eol( x, llen = 70 ) :
+def lineup_eol( x, llen = 72 ) :
 
     Nx = len(x)
     diff = llen - Nx
@@ -521,6 +656,10 @@ class init_opts_DCSTR:
 
 
 # --------------------------------------------------------------------------
+
+help_string_DCSTR = '''
+Get help!
+'''
 
 def parse_DCSTR_args(argv):
 

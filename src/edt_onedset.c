@@ -595,10 +595,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ; /* 04 Oct 2005 */
 
-   blur3d = ( edit_blurx != edit_blury ||
-              edit_blurx != edit_blurz ||
-              edit_blury != edit_blurz   ) &&
-            ( edit_blurx > 0.0f || edit_blury > 0.0f || edit_blurz > 0.0f ) ;
+   blur3d = ( edit_blurx > 0.0f || edit_blury > 0.0f || edit_blurz > 0.0f ) ;
 
    if( blur3d ){  /* 17 Jun 2019 */
 

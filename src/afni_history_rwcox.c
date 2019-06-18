@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 18 , JUN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
+   "Add 3dAutomask step for an extra cleanup" ,
+   NULL } ,
+
  { 17 , JUN , 2019 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
    "-1blur3D_fwhm" ,
    "Restores the ability to order differential amounts of blurring along the\n"
