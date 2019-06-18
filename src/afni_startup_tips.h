@@ -14,8 +14,8 @@ static char *tip[] = {
    "If you set environment variable AFNI_GLOBAL_SESSION to the name\n"
    "of a directory with datasets, then those datasets will be visible\n"
    "in the UnderLay and OverLay choosers. For example, copy the MNI\n"
-   "template MNI152_2009_template.nii.gz to this directory, and then\n"
-   "you'll always be able to use it as an underlay dataset."
+   "template MNI152_2009_template_SSW.nii.gz to this directory, and\n"
+   "then you'll always be able to use it as an underlay dataset."
  ,
    "If the aspect ratio (width/height) of an image viewer window looks\n"
    "bad, you can fix it by typing the 'a' key into the image, or by\n"
