@@ -13588,7 +13588,7 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
 }
 
 #undef  FIX_TIME
-#define FIX_TIME 2718  /* msec between calls */
+#define FIX_TIME 1357  /* ms between calls */
 
 void AFNI_fix_scale_size_timer_CB( XtPointer client_data , XtIntervalId *id )
 {

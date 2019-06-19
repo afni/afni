@@ -6545,8 +6545,10 @@ ENTRY("AFNI_inten_bbox_CB") ;
       else
         AV_assign_ival( im3d->vwid->func->inten_av, pbar->npan_save[jm] ) ;
 
-      if( PBAR_FULLRANGE ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
-      else                 HINTIZE_pbar(im3d) ;
+      if( PBAR_FULLRANGE && !IM3D_IS_BIGTHREE(im3d) )
+        AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+      else
+        HINTIZE_pbar(im3d) ;
 
       AFNI_redisplay_func_ignore(0) ;
       AFNI_redisplay_func( im3d ) ;
@@ -6621,7 +6623,7 @@ ENTRY("AFNI_reset_func_range") ;
 
    if( PBAR_FULLRANGE ){
      AFNI_redisplay_func_ignore(1) ;
-     AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+     if( !IM3D_IS_BIGTHREE(im3d) ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
      AFNI_redisplay_func_ignore(0) ;
    }
    else HINTIZE_pbar(im3d) ;

@@ -1064,6 +1064,10 @@ ENTRY("PBAR_bigexpose_CB") ;
      PBAR_show_bigthree_panes(pbar) ;
    }
 
+#ifdef DISCARD_EXCESS_EXPOSES
+    MCW_discard_events( pbar->panes[bigthree] , ExposureMask ) ;
+#endif
+
    EXRETURN ;
 }
 
@@ -1580,7 +1584,7 @@ ENTRY("PBAR_resize_CB") ;
      if( h2 == pbar->bigh2 ) ab = pbar->bigbot ;
 
 #if 0
-INFO_message("Resize: h1=%d yy=%d bigbot=%g->%g bigtop=%g->%g",
+INFO_message("PBAR resize: h1=%d yy=%d bigbot=%g->%g bigtop=%g->%g",
 h1,yy,pbar->bigbot,ab,pbar->bigtop,at) ;
 #endif
 

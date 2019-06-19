@@ -32,6 +32,8 @@
 #  define TWO_TWO(x,y) TWO_ONE(x,y)
 #endif
 
+extern int NI_clock_time(void) ;  /* 19 Jun 2019 */
+
 /*********************************************************************/
 #ifdef USE_TRACING
 
@@ -288,9 +290,9 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
           char sbuf[2048] ;                                                            \
           if( DBG_fp == NULL ) DBG_fp = stdout ;                                       \
           sprintf(sbuf,                                                                \
-                  "%*.*s%s [%d]: {ENTRY (file=%s line=%d) from %s",                    \
+                  "%*.*s%s [%d]: {ENTRY (file=%s line=%d) from %s {%d ms}",            \
                   DBG_num,DBG_num,DBG_LEADER_IN,rrr,DBG_num,                           \
-                  __FILE__ , __LINE__ , ooo ) ;                                        \
+                  __FILE__ , __LINE__ , ooo , NI_clock_time() ) ;                      \
           if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK ;}  \
           DBG_set_hist_status(sbuf) ;                                                  \
         }                                                                              \
@@ -306,9 +308,9 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
         char sbuf[2048] ;                                                            \
         if( DBG_fp == NULL ) DBG_fp = stdout ;                                       \
         sprintf(sbuf,                                                                \
-                "%*.*s%s [%d]: EXIT} (file=%s line=%d) to %s",                       \
+                "%*.*s%s [%d]: EXIT} (file=%s line=%d) to %s {%d ms}",               \
                 DBG_num,DBG_num,DBG_LEADER_OUT,DBROUT,DBG_num,                       \
-                __FILE__ , __LINE__ , DBROLD ) ;                                     \
+                __FILE__ , __LINE__ , DBROLD , NI_clock_time() ) ;                   \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK ;}  \
         DBG_set_hist_status(sbuf) ;                                                  \
        }                                                                             \
@@ -336,7 +338,8 @@ extern void clock_time_atexit(void) ;
   do{ if(TRACK_TRACING){                                                             \
         char sbuf[2048] ;                                                            \
         if( DBG_fp==NULL ) DBG_fp=stdout;                                            \
-        sprintf(sbuf,"%*.*s%s -- %s",DBG_num,DBG_num," ",DBROUT,(str));              \
+        sprintf(sbuf,"%*.*s%s -- %s {%d ms}",DBG_num,DBG_num," ",                    \
+                DBROUT,(str),NI_clock_time());                                       \
         if( PRINT_TRACING ){ fprintf(DBG_fp,"%s\n",sbuf); fflush(DBG_fp); MCHECK; }  \
         DBG_set_hist_status(sbuf) ;                                                  \
       }                                                                              \

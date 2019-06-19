@@ -62,7 +62,6 @@ static Pixmap check_pixmap = XmUNSPECIFIED_PIXMAP ;
 
 #define PBAR_BIGTHREE_MASK  1
 
-
 typedef struct {
   Widget top , panew , panes[NPANE_MAX]   , labels[NPANE_MAX+1] ;
   int num_panes , panes_sum , panew_height , ov_index[NPANE_MAX] , renew_all ;
@@ -99,6 +98,9 @@ typedef struct {
   Widget big_menu, big_label, big_choose_pb, big_scaleup_pb, big_scaledn_pb ;
   Widget big_picktopbot_pb ;
 } MCW_pbar ;
+
+#define PBAR_IS_BIGMODE(pp)  ( (pp) != NULL && (pp)->bigmode )                  /* 19 Jun 2019 */
+#define PBAR_IS_BIGTHREE(pp) ( (pp) != NULL && (pp)->bigmode && (pp)->big31 )
 
 MCW_pbar * new_MCW_pbar( Widget , MCW_DC * ,
                          int,int, float,float, gen_func *, XtPointer, int ) ;

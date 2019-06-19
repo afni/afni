@@ -1238,6 +1238,8 @@ typedef struct Three_D_View {
       int   fim_thresh_max_ijk ;
 } Three_D_View ;
 
+#define IM3D_IS_BIGTHREE(iq) PBAR_IS_BIGTHREE( (iq)->vwid->func->inten_pbar ) /* 19 Jun 2019 */
+
 #define IM3D_CLEAR_THRSTAT(iq)                                       \
   do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f; \
       (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; \

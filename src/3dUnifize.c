@@ -730,7 +730,7 @@ int main( int argc , char *argv[] )
        "                 3dQwarp match the source dataset to the base dataset.  If you\n"
        "                 later want the original source dataset to be warped, you can\n"
        "                 do so using the 3dNwarpApply program.\n"
-       "              ++ In particular, the template dataset MNI152_2009_template.nii.gz\n"
+       "              ++ In particular, the template dataset MNI152_2009_template_SSW.nii.gz\n"
        "                 (supplied with AFNI) has been treated with '-GM'. This dataset\n"
        "                 is the one used by the @SSwarper script, so that script applies\n"
        "                 3dUnifize with this '-GM' option to help with the alignment.\n"
