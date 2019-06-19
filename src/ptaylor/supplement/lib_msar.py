@@ -202,7 +202,7 @@ def add_in_textblock( X,
 
     This is only for the RST file.
 
-    tmode can also be TEXTINTRO, which is the same accept for
+    tmode can also be TEXTINTRO, which is the same except for
     prepending a section heading for TEXTINTRO (and the output jumps
     to the top o' the queue in the RST page).
 
@@ -210,15 +210,6 @@ def add_in_textblock( X,
 
     tscript = ''
     trst    = ''
-
-    if tmode == 'TEXTINTRO' :
-        # Special case of TEXT: will be a top section in
-        # RST. Everything is usual TEXTBLOCK rules
-        trst += '''
-Introduction
--------------
-
-'''
     
     Nx = tstart + tspan - 1
 
@@ -413,16 +404,21 @@ def add_in_code ( X,
 
 '''.format(cmode)
 
-    else:
+    elif tmode == 'SHEBANG' :
+        trst+= '' 
+
+    else: # should just be code
         trst+= '''
 
 .. code-block:: {}
 
 '''.format(cmode)
 
+        
+
     if add_shebang :
         tscript += add_shebang[0]
-        trst    += 3*' ' + add_shebang[1]
+        trst    += add_shebang[1] # should already be indented
                 
     for ii in range(N0, Nx):
 
@@ -508,17 +504,23 @@ def interpret_MSAR_list( X, iopts ):
     orst_txt    = ''
     
     # header for RST
-    orst_txt+= '''.. _{}:
+    orst_txt+= '''.. _{reflink}:
 
 TO_BE_THE_TITLE
 
 .. contents:: :local:
 
+Introduction
+-------------
+
+**Download script:** :download:`{script} <{spath}/{script}>`
+
 TO_BE_THE_INTRO
 
 |
 
-'''.format(iopts.reflink)
+'''.format(reflink=iopts.reflink, script=iopts.oname_script,
+           spath=iopts.subdir_rst)
 
     ii      = 0
     tmode   = ''
@@ -529,8 +531,8 @@ TO_BE_THE_INTRO
         print("++ {:10s} range: [{:4d}, {:4d})".format(tmode,ii+1,ii+tspan+1))
 
         if tmode == 'SHEBANG' :
-            # special case: calculate, and prepend to first usage of
-            # CODE or HIDDEN CODE laterz
+            # special case: calculate and save to prepend later to
+            # the first usage of CODE or HIDDEN CODE laterz
             tscript_sheb, trst_sheb = add_in_code( X,
                                                    ii,
                                                    tspan,
@@ -650,6 +652,8 @@ def ARG_missing_arg(arg):
 
 class init_opts_MSAR:
 
+    script_type   = 'tcsh' # can generalize to other types later
+    
     # req input
     infile        = ""
     prefix_rst    = ""    # can/should include path (a/b/FILE.rst)
