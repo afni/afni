@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "actually fail for some inappropriate blur options with surface analysis",
+   NULL
+ } ,
+
  { 18, Jun, 2019, RCR, "3dGrayplot", MICRO, TYPE_ENHANCE,
    "allow grayplot of surface data if not -peelorder",
    NULL

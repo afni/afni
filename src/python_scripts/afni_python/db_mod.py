@@ -3893,6 +3893,16 @@ def mod_blur_surf(block, proc, user_opts):
     uopt = user_opts.find_opt('-surf_smooth_niter')
     if uopt: block.opts.add_opt('-surf_smooth_niter', 1, uopt.parlist, setpar=1)
 
+    # do not allow some options with surface-based analysis
+    non_surf_opts = ['-blur_in_mask', '-blur_in_automask', '-blur_opts_merge']
+    okay = 1
+    for opt in non_surf_opts:
+       if user_opts.find_opt(opt):
+          print("** cannot use option '%s' with surface-based analysis"%opt)
+          okay = 0
+    if not okay:
+       return
+
     block.valid = 1
 
 def cmd_blur_surf(proc, block):
@@ -6411,6 +6421,13 @@ def db_cmd_blur_est(proc, block):
     if not aopt and not eopt:
         if proc.verb > 0: print('-- no 3dClustSim (since no blur estimation)')
         return cmd
+
+    if proc.surf_anat:
+        print('** this blur estimation is volumetric, and is not appropriate\n'\
+              '   for surface-based analysis\n'                                \
+              '   (in surface analysis, a blur level is set, not added,\n'     \
+              '    so the estimation is the applied level)')
+        return
 
     # set the mask (if we don't have one, bail)
     if not proc.mask:
