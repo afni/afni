@@ -1,8 +1,9 @@
 #!/usr/bin/env python
 
-import sys
-import os
+import sys 
+import os 
 
+import afni_base as ab
 import lib_DCSTR as ldcstr
 
 # =============================================================================
@@ -13,16 +14,49 @@ if __name__ == "__main__" :
 
     text_list = ldcstr.read_text_to_list( iopts.infile )
 
-    oscript_txt, orst_txt, oscript, orst = \
-                ldcstr.interpret_DCSTR_list( text_list, iopts.prefix )
+    oscript_txt, orst_txt = \
+                ldcstr.interpret_DCSTR_list( text_list, iopts )
+    
+    # --------- write output files ---------
 
-    # write output files
+    # Make dir to hold script/any images
+    a, b, c = ab.simple_shell_exec("\mkdir -p {}".format(iopts.subdir))
+    if not(a) :
+        print("++ Wrote directory to hold scripts")
+    else:
+        print("** Badness writing dir to hold scripts {}".format(iopts.subdir))
 
-    fff = open(oscript, 'w')
+    # write script to local dir
+    fff = open(iopts.oname_script, 'w')
     fff.write(oscript_txt)
     fff.close()
 
-    fff = open(orst, 'w')
+    # execute script, if desired
+    if iopts.do_execute :
+        a, b, c = ab.simple_shell_exec("tcsh -ef {}".format(iopts.oname_script))
+        if not(a) :
+            print("++ Success running script {}".format(iopts.oname_script))
+        else:
+            print("** Badness running script {}".format(iopts.oname_script))
+
+    # copy images over, if any exist
+    if iopts.nmedia :
+        nfail, list_fail = ldcstr.copy_images_to_subdir(iopts)
+        if nfail :
+            print("*+ These {} images failed to copy:".format(nfail))
+            print("   {}".format(list_fail))
+        else:
+            print("*+ These {} images copied OK:".format(iopts.nmedia))
+            for x in iopts.list_media :
+                print("   {}".format(x))
+
+    # write script to final dir
+    fff = open(iopts.prefix_script, 'w')
+    fff.write(oscript_txt)
+    fff.close()
+
+    # write RST to final dir
+    fff = open(iopts.prefix_rst, 'w')
     fff.write(orst_txt)
     fff.close()
 
@@ -30,17 +64,21 @@ if __name__ == "__main__" :
     try:    code = eval('0o755')
     except: code = eval('0755')
     try:
-        os.chmod(oscript, code)
+        os.chmod(iopts.prefix_script, code)
+        os.chmod(iopts.oname_script, code)
     except:
-        omsg = "failed: chmod {} {}".format(code, oscript)
+        omsg = "failed: chmod {} {}".format(code, iopts.prefix_script)
+        omsg = "failed: chmod {} {}".format(code, iopts.oname_script)
         print(omsg)
 
-    # finish
+
+    # ------------ finish --------------
 
     bye_msg = '''
     ++ Done making (executable) script to generate HTML QC:
     {}
-    '''.format('SOME_FILE')
+    {}
+    '''.format(iopts.prefix_script, iopts.prefix_rst)
 
     print( bye_msg )
 

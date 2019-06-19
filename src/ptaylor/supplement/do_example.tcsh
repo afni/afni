@@ -10,7 +10,6 @@
 #######################################################################
 
 #:TITLE: Combining multiple (linear and affine) alignments
-#:REFLINK: tut_combine_align_nl_aff
 
 #:SECTION: Define variables
 
@@ -60,8 +59,8 @@ We will display these images, with ones in same line put into same
 line, and separate lines into separate lines.
 
 #:IMAGE: Ooooptional title || || indeed
-    AMSUB-001.jpg MASUB-001.jpg
-    NULL OTHER_IMG.png NULL
+    AAAA.sag.png AAAA.cor.png
+    NULL  AAAA.axi.png
 #:IMCAPTION: caption for any image(s)
 
 TEXTBLOCK

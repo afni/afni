@@ -1,6 +1,7 @@
 
-import sys
+import sys, os
 import lib_apqc_tcsh as lat
+import afni_base as ab
 
 
 #ver = '1.2'; date = 'Jne 14, 2019'
@@ -18,7 +19,7 @@ ver = '1.3'; date = 'Jne 17, 2019'
 # look for for its ending mode.  SPACE is now also a mode, because it
 # is useful to have as filler.
 OTHER_MODES = [ 'TITLE',       # title of script/demo
-                'REFLINK',     # abbrev for RST hyperlink reference
+#                'REFLINK',     # abbrev for RST hyperlink reference
                 'SECTION',     # can breakup demo into parts
                 'TEXTBLOCK',   # basic description, just for RST
                 'HCODE'        # script: normal code; RST: hidden+expandable
@@ -38,8 +39,8 @@ field; other, returns empty string'''
     elif ss[0].__contains__("#:TITLE") :
         return 'TITLE'
 
-    elif ss[0].__contains__("#:REFLINK") :
-        return 'REFLINK'
+#    elif ss[0].__contains__("#:REFLINK") :
+#        return 'REFLINK'
 
     elif ss[0].__contains__("#:SECTION") :
         return 'SECTION'
@@ -118,17 +119,17 @@ def find_mode_and_span(W, lstart, prev_mode=''):
                 tspan = jj
                 break
 
-    elif start_mode == 'REFLINK' :
-        tmode = start_mode
-
-        # we have to count empty spaces after this as part of the
-        # mode, for accounting purposes
-        tspan = 1
-        for jj in range(1, Nx):
-            tt = X[jj].split()
-            if tt :
-                tspan = jj
-                break
+#    elif start_mode == 'REFLINK' :
+#        tmode = start_mode
+#
+#        # we have to count empty spaces after this as part of the
+#        # mode, for accounting purposes
+#        tspan = 1
+#        for jj in range(1, Nx):
+#            tt = X[jj].split()
+#            if tt :
+#                tspan = jj
+#                break
 
     elif start_mode == 'TEXTBLOCK' :
         tmode = start_mode
@@ -195,7 +196,7 @@ def add_in_space( X,
 def add_in_textblock( X, 
                       tstart,
                       tspan,
-                      subdir = '' ):
+                      iopts ):
     '''X is a list of strings.
 
     This is only for the RST file.
@@ -232,8 +233,8 @@ def add_in_textblock( X,
             imtxt = add_in_textblock_image( X,
                                             ii,
                                             im_span,
-                                            subdir=subdir )
-            print(imtxt)
+                                            iopts )
+            #print(imtxt)
             trst+= imtxt
             ii+= im_span
                                     
@@ -249,7 +250,7 @@ def add_in_textblock( X,
 def add_in_textblock_image( X, 
                             tstart,
                             tspan,
-                            subdir = ''):
+                            iopts ):
     '''X is a list of strings.
 
     This is only for the RST file.
@@ -271,10 +272,6 @@ def add_in_textblock_image( X,
     Nheader   = 0
     imcaption = []
     imlist    = []
-    impath    = 'media'
-    
-    if subdir :
-        impath+= '/' + subdir
 
     # (opt) title is everything else include in this first line
     ss = X[tstart].split()
@@ -341,13 +338,36 @@ def add_in_textblock_image( X,
             elif imlist[rr][cc] == 'NULL':
                 trst+= '   {} -\n'.format(symb)
             else:
+                # have a list of these to copy later
+                iopts.add_media( imlist[rr][cc] )
+                # calc basename for RST, bc img name might include path
+                img_bname = os.path.basename( imlist[rr][cc] )
                 trst+= '''   {} - .. image:: {}/{}
           :width: 100%   
-          :align: center\n'''.format(symb, impath, imlist[rr][cc])
+          :align: center\n'''.format( symb, iopts.subdir_rst,
+                                      img_bname )
+                
                 
     return trst
 
 # -----------------------------------------------------------------------
+
+def copy_images_to_subdir(iopts):
+
+    count_fail = 0
+    list_fail = []
+    
+    for ii in range(iopts.nmedia):
+        iname = iopts.list_media[ii]
+        oname = iopts.subdir + '/' + os.path.basename(iopts.list_media[ii])
+        a, b, c = ab.simple_shell_exec("\cp {} {}".format(iname, oname))
+        if a :
+            count_fail+= 1
+            list_fail.append( iname )
+
+    return count_fail, list_fail
+
+# --------------------------------------------------------------------------
 
 def add_in_code ( X, 
                   tstart,
@@ -441,7 +461,7 @@ def create_text_title( X,
     text  = ' '.join(ss[1:])
     ltext = len(text)
 
-    tscript += '# TUTORIAL: '
+    tscript += '# '
     tscript += text + '\n'
     
     trst    += (ltext  + 2 ) * '*'  + "\n" 
@@ -487,15 +507,15 @@ def create_text_reflink( X,
 
 # --------------------------------------------------------------------------
 
-def interpret_DCSTR_list( X, prefix ):
+def interpret_DCSTR_list( X, iopts ):
 
     N = len(X)
 
     oscript_txt = ''
     orst_txt    = ''
-
+    
     # header for RST
-    orst_txt+= '''TO_BE_THE_REFLINK
+    orst_txt+= '''.. _{}:
 
 TO_BE_THE_TITLE
 
@@ -503,15 +523,11 @@ TO_BE_THE_TITLE
 
 |
 
-'''
-
-    oscript = prefix + '.tcsh'
-    orst    = prefix + '.rst'
+'''.format(iopts.reflink)
 
     ii      = 0
     tmode   = ''
-    reflink = '' # also used as subdir of images
-
+    
     while ii < N :
 
         tmode, tspan = find_mode_and_span(X, ii, prev_mode=tmode)
@@ -557,22 +573,22 @@ TO_BE_THE_TITLE
             orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", trst )
             ii         += tspan
 
-        elif tmode == 'REFLINK' :
-            # TITLEs are one line of text, but can span several
-            # lines of whitespace
-            # NOTE the special output here
-            tscript, trst, reflink = create_text_reflink( X,
-                                                          ii,
-                                                          tspan )
-            oscript_txt+= tscript
-            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", trst )
-            ii         += tspan
+#        elif tmode == 'REFLINK' :
+#            # TITLEs are one line of text, but can span several
+#            # lines of whitespace
+#            # NOTE the special output here
+#            tscript, trst, reflink = create_text_reflink( X,
+#                                                          ii,
+#                                                          tspan )
+#            oscript_txt+= tscript
+#            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", trst )
+#            ii         += tspan
 
         elif tmode == 'TEXTBLOCK' :
             tscript, trst = add_in_textblock( X,
                                               ii, 
                                               tspan,
-                                              subdir = reflink)
+                                              iopts )
             oscript_txt+= tscript
             orst_txt   += trst 
             ii         += tspan
@@ -590,7 +606,7 @@ TO_BE_THE_TITLE
             print(X[ii])
             sys.exit(2)
 
-    return oscript_txt, orst_txt, oscript, orst
+    return oscript_txt, orst_txt
 
 # ----------------------------------------------------------------------
 
@@ -605,7 +621,6 @@ def lineup_eol( x, llen = 72 ) :
         y = x
 
     return y
-
 
 # --------------------------------------------------------------------------
 
@@ -628,31 +643,90 @@ def ARG_missing_arg(arg):
 class init_opts_DCSTR:
 
     # req input
-    infile   = ""
-    prefix   = ""
+    infile        = ""
+    prefix_rst    = ""    # can/should include path (a/b/FILE.rst)
+    oname_script  = ""    # should just be name of file (SCRIPT.tcsh)
+    reflink       = ""    # name of subdir in media/, and RST link name
 
+    # opt input
+    do_execute    = 0     # opt to run created script (e.g., to gen imgs)
+    
+    # made by finish_defs()
+    outdir        = ""    # where everything will go
+    meddir        = ""    # inside outdir, where media/ dir is
+    subdir        = ""    # inside meddir, where images/script will go
+    prefix_script = ""    # full name for outputting script
+    subdir_rst    = ""    # local dir for RST path
+
+    # made later during parsing, potentially
+    list_media    = []    # list of images to copy into media/reflink/.
+    nmedia        = 0
+    
     # ----------- req -----------------
 
     def set_infile(self, fff):
         self.infile = fff
 
-    def set_prefix(self, prefix):
-        self.prefix = prefix
+    def set_prefix_rst(self, prefix):
+        self.prefix_rst = prefix
+        
+    def set_oname_script(self, oname):
+        self.oname_script = oname
+        
+    def set_reflink(self, reflink):
+        self.reflink = reflink
+
+    # ----------- opt -----------------
+    
+    def set_execute(self):
+        self.do_execute = 1 
+
+    def add_media(self, X):
+        self.list_media.append( X )
+        self.nmedia+= 1
+        
+    # ------- complete some var defs/names --------
+
+    def finish_defs(self):
+        pp = os.path.dirname(self.prefix_rst)
+        if not(pp) :  
+            pp = "."  # bc this means "here"
+
+        # these are all potentially full/relative paths
+        self.outdir = pp
+        self.meddir = '/'.join([self.outdir, 'media'])
+        self.subdir = '/'.join([self.meddir, self.reflink])
+        self.prefix_script = '/'.join([self.subdir, self.oname_script])
+        
+        # just local/partial path within RST dir
+        self.subdir_rst = '/'.join(['media', self.reflink])
 
     # ---------- check ----------------
 
     def check_req(self):
         MISS = 0
-        if self.infile == []:
-            print("missing: infiles")
+        if not(self.infile) :
+            print("** missing: infiles")
             MISS+=1
-        if self.prefix == "":
-            print("missing: prefix")
+        if self.prefix_rst == "" :
+            print("** missing: prefix_rst")
             MISS+=1
+            
+        if self.reflink == "" :
+            print("** missing: reflink")
+            MISS+=1
+        elif self.reflink[0] == "_" :
+            print("** don't start the reflink name with an underscore '_'!")
+            MISS+=1
+
+        if self.oname_script == "" :
+            print("** missing: prefix_script")
+            MISS+=1
+        elif self.oname_script.__contains__("/") :
+            print("** don't include path in the '-oname_script ..' entry")
+            MISS+=1
+
         return MISS
-
-
-
 
 
 # --------------------------------------------------------------------------
@@ -691,12 +765,29 @@ def parse_DCSTR_args(argv):
             i+= 1
             iopts.set_infile(argv[i])
         
-        elif argv[i] == "-prefix":
+        elif argv[i] == "-prefix_rst":
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_prefix(argv[i])
-        
+            iopts.set_prefix_rst(argv[i])
+            
+        elif argv[i] == "-prefix_script":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_oname_script(argv[i])
+
+        elif argv[i] == "-reflink":
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_reflink(argv[i])
+
+        # ---------- req ---------------
+
+        elif argv[i] == "-execute_script":
+            iopts.set_execute()
+
         # --------- finish -------------
 
         else:
@@ -704,9 +795,12 @@ def parse_DCSTR_args(argv):
             sys.exit(2)
         i+=1
 
+               
     if iopts.check_req():
         print("** ERROR: Missing input arguments")
         sys.exit(1)
-        
+
+    iopts.finish_defs()  # make some paths we need later
+
     return iopts
 
