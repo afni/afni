@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jun, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "add surf_vol uvar",
+   NULL
+ } ,
+
  { 19, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "actually fail for some inappropriate blur options with surface analysis",
    NULL
