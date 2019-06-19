@@ -3416,7 +3416,8 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
 
    /* Start timer to repeatedly fix threshold scale sizes [05 Jun 2019] */
 
-   AFNI_fix_scale_size_timer_CB(NULL,NULL) ;
+   if( ! AFNI_yesenv("AFNI_DONT_FIX_SCALE_SIZE") )
+     AFNI_fix_scale_size_timer_CB(NULL,NULL) ;
 
    /*--- and AWAY WE GO (how sweet it is!) ---*/
 
@@ -13587,7 +13588,7 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
 }
 
 #undef  FIX_TIME
-#define FIX_TIME 1789  /* msec between calls */
+#define FIX_TIME 2718  /* msec between calls */
 
 void AFNI_fix_scale_size_timer_CB( XtPointer client_data , XtIntervalId *id )
 {
