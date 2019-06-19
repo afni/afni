@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , JUN , 2019 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "AFNI_PBAR_THREE mode didn't allow proper change of the panes" ,
+   "Problem: code to put labels on the panes being invoked when it shouldn't\n"
+   "be. Ugh. Who wrote this code, anyway? They should be SHOT!!" } ,
+
  { 18 , JUN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
    "Add 3dAutomask step for an extra cleanup" ,
    NULL } ,
