@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jun, 2019, RCR, "3dGrayplot", MICRO, TYPE_ENHANCE,
+   "allow grayplot of surface data if not -peelorder",
+   NULL
+ } ,
+
+ { 18, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "no mask if TSNR on surface",
+   "Thanks to K Dembny for noting the problem."
+ } ,
+
  { 14, Jun, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add -hostname and -distdir",
    "This is to allow places to mirror some of the AFNI site."
