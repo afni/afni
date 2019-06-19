@@ -242,7 +242,26 @@ def add_in_textblock( X,
             #print(imtxt)
             trst+= imtxt
             ii+= im_span
-                                    
+
+        elif ss[0].__contains__("#:INCLUDE") :
+            # INCLUDE subblock must be contiguous-- empty line declares
+            # end of it
+            im_span = 1
+            for jj in range(ii+1, Nx): # search for end (next empty line)
+                y  = X[jj]
+                uu = y.split()
+                if not(uu) :
+                    break
+                else:
+                    im_span+= 1
+            imtxt = add_in_textblock_include( X,
+                                              ii,
+                                              im_span,
+                                              iopts )
+            print(imtxt)
+            trst+= imtxt
+            ii+= im_span
+            
         else:
             # simple case, just add line
             trst += x
@@ -250,6 +269,62 @@ def add_in_textblock( X,
 
     return tscript, trst
 
+# -----------------------------------------------------------------------
+
+def add_in_textblock_include( X, 
+                              tstart,
+                              tspan,
+                              iopts ):
+    '''X is a list of strings.
+
+    This is only for the RST file.  It can include any of the
+    "include" directive phrases (start line, end line, etc.) from here:
+    http://docutils.sourceforge.net/docs/ref/rst/directives.html#including-an-external-document-fragment
+
+    The general format is:
+    
+    #:INCLUDE:  filename
+        :start-line:  1
+        :end-line:   10
+
+    '''
+
+    trst    = ''
+    
+    Nx = tstart + tspan
+
+    fname     = ''
+    oplist    = []
+
+    # (opt) title is everything else include in this first line
+    ss = X[tstart].split()
+    if len(ss) == 2 :
+        fname = ss[1]
+    else:
+        print('''** ERROR in TEXTBLOCK_INCLUDE: wrong number ({}) '''
+              '''of entries'''.format(len(ss)))
+        print('''   Main line must look like this, with just 1 filename:'''
+              '''     #:INCLUDE:  filename''')
+        sys.exit(5)
+
+    for ii in range(tstart+1, Nx):
+        ss = X[ii].strip()
+        oplist.append( ss )
+
+    # Now build table; some formatting necessary-- calc basename for
+    # RST, bc name might include path
+    inc_bname = os.path.basename( fname )
+    trst += '''
+.. literalinclude:: {}/{}
+'''.format( iopts.subdir_rst, inc_bname )
+
+    for op in oplist:
+        trst+= 3*' ' + op + '\n'
+
+    iopts.add_media( fname )
+
+    return trst
+    
 # -----------------------------------------------------------------------
 
 def add_in_textblock_image( X, 
@@ -379,7 +454,7 @@ def add_in_code ( X,
                   tspan, 
                   tmode='CODE',
                   cmode='Tcsh',
-                  add_shebang=() ):
+                  add_shebang_rst='' ):
     '''X is a list of strings.
 
     At the moment, just these modes: cmode = {none|Tcsh}
@@ -399,7 +474,7 @@ def add_in_code ( X,
         trst+= '''
 
 .. hidden-code-block:: {}
-   :starthidden: False
+   :starthidden: True
    :label: - show code y/n -
 
 '''.format(cmode)
@@ -414,11 +489,8 @@ def add_in_code ( X,
 
 '''.format(cmode)
 
-        
-
-    if add_shebang :
-        tscript += add_shebang[0]
-        trst    += add_shebang[1] # should already be indented
+    if add_shebang_rst :
+        trst    += add_shebang_rst # should already be indented
                 
     for ii in range(N0, Nx):
 
@@ -522,6 +594,10 @@ TO_BE_THE_INTRO
 '''.format(reflink=iopts.reflink, script=iopts.oname_script,
            spath=iopts.subdir_rst)
 
+    # header for RST
+    oscript_txt+= '''TO_BE_THE_SHEBANG
+'''
+    
     ii      = 0
     tmode   = ''
     
@@ -537,6 +613,8 @@ TO_BE_THE_INTRO
                                                    ii,
                                                    tspan,
                                                    tmode=tmode )
+            oscript_txt = oscript_txt.replace( "TO_BE_THE_SHEBANG",
+                                               tscript_sheb )
             ii         += tspan
         
         elif (tmode == 'CODE') or (tmode == 'HCODE') :
@@ -544,16 +622,16 @@ TO_BE_THE_INTRO
             # This silliness is because we may have to prepend the
             # shebang to a code block, and the hidden-code-block has
             # some prepending+indenting of its own.
-            add_shebang = ()
+            add_shebang_rst = ''
             if not(USED_A_CODE_BLOCK) :
-                add_shebang = (tscript_sheb, trst_sheb)
+                add_shebang_rst = trst_sheb
                 USED_A_CODE_BLOCK = 1
                 
             tscript, trst = add_in_code( X,
                                          ii,
                                          tspan,
                                          tmode=tmode,
-                                         add_shebang=add_shebang )
+                                         add_shebang_rst=add_shebang_rst )
             oscript_txt+= tscript
             orst_txt   += trst 
             ii         += tspan

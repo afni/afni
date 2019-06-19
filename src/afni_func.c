@@ -6568,6 +6568,7 @@ void AFNI_reset_func_range( Three_D_View *im3d )
 {
    XmString xstr ;
    Boolean  same ;
+   static int first=1 ;  /* 19 Jun 2019 */
 
 ENTRY("AFNI_reset_func_range") ;
 
@@ -6621,10 +6622,10 @@ ENTRY("AFNI_reset_func_range") ;
       (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                    : (im3d->vwid->func->range_av->fval) ;
 
-   if( PBAR_FULLRANGE ){
+   if( PBAR_FULLRANGE && (first || !IM3D_IS_BIGTHREE(im3d)) ){
      AFNI_redisplay_func_ignore(1) ;
-     if( !IM3D_IS_BIGTHREE(im3d) ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
-     AFNI_redisplay_func_ignore(0) ;
+     AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+     AFNI_redisplay_func_ignore(0) ; first = 0 ;
    }
    else HINTIZE_pbar(im3d) ;
 
