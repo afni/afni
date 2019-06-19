@@ -1,17 +1,43 @@
 #!/bin/tcsh
 
-# Warp data from MNI space to subject DWI
+#:TITLE: Combining multiple (linear and affine) alignments
 
+cat <<TEXTINTRO
+
+This demo shows how to send ROIs from MNI space to DWI space, via the
+subject's T1w volume.  This script should be run in the *something*
+directory.
+
+MNI - T1w alignment: 
+   nonlinear: carried out with @SSwarper
+   same contrast
+   needs to be inverted after
+
+T1w - DWI alignment:
+   linear affine: carried out with 3dAllineate
+   opp contrasts (choose cost function!)
+   doesn't need to be inverted
+
+The transforms that have been calculated need to be concatenated.
+Whee.
+
+We then apply the final transform to both the MNI and send it to DWI
+(verify that alignment went well, see the bumps-and-wiggles of the
+brain line up), and to the volume of ROIS (make sure to use
+appropriate interpolation to leave integers as integers).
+
+TEXTINTRO
+
+#:SECTION: Define variables
+
+# Warp data from MNI space to subject DWI
+#
 # set ver  = 1.0 ; set date = 'June 12, 2019'
 #
 # set ver  = 1.1 ; set date = 'June 13, 2019'
 # + [PT] fixed some quotations and variable names 
 #
 #######################################################################
-
-#:TITLE: Combining multiple (linear and affine) alignments
-
-#:SECTION: Define variables
 
 # --------- set input dsets/names ---------------------
 

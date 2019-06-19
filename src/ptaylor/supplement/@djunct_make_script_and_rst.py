@@ -4,18 +4,18 @@ import sys
 import os 
 
 import afni_base as ab
-import lib_DCSTR as ldcstr
+import lib_msar as lmsar
 
 # =============================================================================
 
 if __name__ == "__main__" : 
 
-    iopts     = ldcstr.parse_DCSTR_args(sys.argv[1:])
+    iopts     = lmsar.parse_MSAR_args(sys.argv[1:])
 
-    text_list = ldcstr.read_text_to_list( iopts.infile )
+    text_list = lmsar.read_text_to_list( iopts.infile )
 
     oscript_txt, orst_txt = \
-                ldcstr.interpret_DCSTR_list( text_list, iopts )
+                lmsar.interpret_MSAR_list( text_list, iopts )
     
     # --------- write output files ---------
 
@@ -41,7 +41,7 @@ if __name__ == "__main__" :
 
     # copy images over, if any exist
     if iopts.nmedia :
-        nfail, list_fail = ldcstr.copy_images_to_subdir(iopts)
+        nfail, list_fail = lmsar.copy_images_to_subdir(iopts)
         if nfail :
             print("*+ These {} images failed to copy:".format(nfail))
             print("   {}".format(list_fail))

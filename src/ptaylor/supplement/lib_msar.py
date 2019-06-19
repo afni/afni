@@ -4,11 +4,16 @@ import lib_apqc_tcsh as lat
 import afni_base as ab
 
 
-#ver = '1.2'; date = 'Jne 14, 2019'
-# [PT] revamped: have new features like title and reflink
+#ver = '1.2'; date = 'June 14, 2019'
+# + [PT] revamped: have new features like title and reflink
 #
-ver = '1.3'; date = 'Jne 17, 2019'
-# [PT] work on textblock and images therein
+#ver = '1.3'; date = 'June 17, 2019'
+# + [PT] work on textblock and images therein
+#
+ver = '1.4'; date = 'June 19, 2019'
+# + [PT] no more REFLINK block, is just put in on command line
+# + [PT] also introducing a special case of SECTION+TEXTBLOCK called
+#        INTRO (bc the shebang is always at top of script)
 #
 ##########################################################################
 
@@ -19,9 +24,10 @@ ver = '1.3'; date = 'Jne 17, 2019'
 # look for for its ending mode.  SPACE is now also a mode, because it
 # is useful to have as filler.
 OTHER_MODES = [ 'TITLE',       # title of script/demo
-#                'REFLINK',     # abbrev for RST hyperlink reference
                 'SECTION',     # can breakup demo into parts
                 'TEXTBLOCK',   # basic description, just for RST
+                'TEXTINTRO',   # special case of SECTION+TEXTBLOCK
+                'SHEBANG',     # should always be first line of code
                 'HCODE'        # script: normal code; RST: hidden+expandable
                ]
 
@@ -39,9 +45,6 @@ field; other, returns empty string'''
     elif ss[0].__contains__("#:TITLE") :
         return 'TITLE'
 
-#    elif ss[0].__contains__("#:REFLINK") :
-#        return 'REFLINK'
-
     elif ss[0].__contains__("#:SECTION") :
         return 'SECTION'
 
@@ -49,7 +52,15 @@ field; other, returns empty string'''
          x.__contains__('<<')  and \
          x.__contains__('TEXTBLOCK') :
         return 'TEXTBLOCK'
+    
+    elif ss[0].__contains__('cat') and \
+         x.__contains__('<<')  and \
+         x.__contains__('TEXTINTRO') :
+        return 'TEXTINTRO'
 
+    elif ss[0].__contains__("#!") :
+        return 'SHEBANG'
+    
     elif ss[0].__contains__('#:HIDE_ON') :
         return 'HCODE'
 
@@ -80,7 +91,7 @@ def find_mode_and_span(W, lstart, prev_mode=''):
         tmode = start_mode
         tspan = 1
 
-    elif start_mode == 'CODE' :
+    elif (start_mode == 'CODE') or (start_mode == 'SHEBANG') :
         # empty lines not already in one of the OTHER_MODES should
         # just be code
         tmode = start_mode
@@ -119,33 +130,22 @@ def find_mode_and_span(W, lstart, prev_mode=''):
                 tspan = jj
                 break
 
-#    elif start_mode == 'REFLINK' :
-#        tmode = start_mode
-#
-#        # we have to count empty spaces after this as part of the
-#        # mode, for accounting purposes
-#        tspan = 1
-#        for jj in range(1, Nx):
-#            tt = X[jj].split()
-#            if tt :
-#                tspan = jj
-#                break
-
-    elif start_mode == 'TEXTBLOCK' :
+    elif (start_mode == 'TEXTBLOCK') or (start_mode == 'TEXTINTRO') :
+        # these basically obey the same rules
         tmode = start_mode
 
         tspan = 0
         for jj in range(1, Nx):
             tt    = X[jj].split()
             if tt:
-                if tt[0] == 'TEXTBLOCK':
+                if tt[0] == tmode :
                     tspan = jj+1 # bc ends with keyword
                     break
         if not(tspan) :
-            print('''** Parse error:  can't find end of "cat <<TEXTBLOCK"\n'''
-                  '''   started at line {}'''
-                  '''   Need a "TEXTBLOCK" somewhere.'''
-                  ''.format(lstart))
+            print('''** Parse error:  can't find end of "cat <<{kw}"\n'''
+                  '''   started at line {lnum}'''
+                  '''   Need a "{kw}" somewhere.'''
+                  ''.format(lnum=lstart, kw=tmode))
             sys.exit(2)
 
     elif start_mode == 'HCODE' :
@@ -196,10 +196,15 @@ def add_in_space( X,
 def add_in_textblock( X, 
                       tstart,
                       tspan,
-                      iopts ):
+                      iopts,
+                      tmode = 'TEXTBLOCK' ):
     '''X is a list of strings.
 
     This is only for the RST file.
+
+    tmode can also be TEXTINTRO, which is the same except for
+    prepending a section heading for TEXTINTRO (and the output jumps
+    to the top o' the queue in the RST page).
 
     '''
 
@@ -372,8 +377,9 @@ def copy_images_to_subdir(iopts):
 def add_in_code ( X, 
                   tstart,
                   tspan, 
-                  hide=False,
-                  cmode='Tcsh' ):
+                  tmode='CODE',
+                  cmode='Tcsh',
+                  add_shebang=() ):
     '''X is a list of strings.
 
     At the moment, just these modes: cmode = {none|Tcsh}
@@ -386,7 +392,7 @@ def add_in_code ( X,
     Nx = tstart + tspan
     N0 = tstart 
 
-    if hide:
+    if tmode == 'HCODE' :
         Nx-= 1 # because there is a closing keyword
         N0+= 1 # because there is an opening keyword
 
@@ -398,13 +404,22 @@ def add_in_code ( X,
 
 '''.format(cmode)
 
-    else:
+    elif tmode == 'SHEBANG' :
+        trst+= '' 
+
+    else: # should just be code
         trst+= '''
 
 .. code-block:: {}
 
 '''.format(cmode)
 
+        
+
+    if add_shebang :
+        tscript += add_shebang[0]
+        trst    += add_shebang[1] # should already be indented
+                
     for ii in range(N0, Nx):
 
         # try to format ending \s nicely
@@ -413,8 +428,8 @@ def add_in_code ( X,
             if text[-2:] == '\\\n' :
                 text = lineup_eol(text)
         
-        trst    += 3*' ' + text
         tscript += text
+        trst    += 3*' ' + text
 
     return tscript, trst
 
@@ -478,52 +493,34 @@ def create_text_title( X,
 
 # --------------------------------------------------------------------------
 
-def create_text_reflink( X, 
-                         tstart,
-                         tspan ):
-    '''X should just be a list of a single string, but may generalize...'''
-
-    tscript = ''
-    trst    = ''
-    reflink = ''
-
-    lline = X[tstart]
-    ss    = lline.split()
-    text  = '_'.join(ss[1:])
-    if text[0] != '_' :
-        text = '_' + text
-
-    reflink = text[1:]   # use this later as a subdir for any images
-        
-    trst+= '.. ' + text + ':\n'
-
-    # might have empty lines/padding
-    for ii in range(1, tspan):
-        jj = tstart + ii
-        tscript += X[jj]
-        trst    += X[jj]
-
-    return tscript, trst, reflink
-
-# --------------------------------------------------------------------------
-
-def interpret_DCSTR_list( X, iopts ):
+def interpret_MSAR_list( X, iopts ):
 
     N = len(X)
 
+    USED_A_CODE_BLOCK = 0 # this lets us know where the shebang/top of
+                          # orig code can be placed
+    
     oscript_txt = ''
     orst_txt    = ''
     
     # header for RST
-    orst_txt+= '''.. _{}:
+    orst_txt+= '''.. _{reflink}:
 
 TO_BE_THE_TITLE
 
 .. contents:: :local:
 
+Introduction
+-------------
+
+**Download script:** :download:`{script} <{spath}/{script}>`
+
+TO_BE_THE_INTRO
+
 |
 
-'''.format(iopts.reflink)
+'''.format(reflink=iopts.reflink, script=iopts.oname_script,
+           spath=iopts.subdir_rst)
 
     ii      = 0
     tmode   = ''
@@ -533,20 +530,30 @@ TO_BE_THE_TITLE
         tmode, tspan = find_mode_and_span(X, ii, prev_mode=tmode)
         print("++ {:10s} range: [{:4d}, {:4d})".format(tmode,ii+1,ii+tspan+1))
 
-        if tmode == 'CODE' :
+        if tmode == 'SHEBANG' :
+            # special case: calculate and save to prepend later to
+            # the first usage of CODE or HIDDEN CODE laterz
+            tscript_sheb, trst_sheb = add_in_code( X,
+                                                   ii,
+                                                   tspan,
+                                                   tmode=tmode )
+            ii         += tspan
+        
+        elif (tmode == 'CODE') or (tmode == 'HCODE') :
+
+            # This silliness is because we may have to prepend the
+            # shebang to a code block, and the hidden-code-block has
+            # some prepending+indenting of its own.
+            add_shebang = ()
+            if not(USED_A_CODE_BLOCK) :
+                add_shebang = (tscript_sheb, trst_sheb)
+                USED_A_CODE_BLOCK = 1
+                
             tscript, trst = add_in_code( X,
                                          ii,
                                          tspan,
-                                         hide=False )
-            oscript_txt+= tscript
-            orst_txt   += trst 
-            ii         += tspan
-
-        elif tmode == 'HCODE' :
-            tscript, trst = add_in_code( X,
-                                         ii, 
-                                         tspan,
-                                         hide=True )
+                                         tmode=tmode,
+                                         add_shebang=add_shebang )
             oscript_txt+= tscript
             orst_txt   += trst 
             ii         += tspan
@@ -573,26 +580,25 @@ TO_BE_THE_TITLE
             orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", trst )
             ii         += tspan
 
-#        elif tmode == 'REFLINK' :
-#            # TITLEs are one line of text, but can span several
-#            # lines of whitespace
-#            # NOTE the special output here
-#            tscript, trst, reflink = create_text_reflink( X,
-#                                                          ii,
-#                                                          tspan )
-#            oscript_txt+= tscript
-#            orst_txt    = orst_txt.replace( "TO_BE_THE_REFLINK", trst )
-#            ii         += tspan
-
         elif tmode == 'TEXTBLOCK' :
             tscript, trst = add_in_textblock( X,
                                               ii, 
                                               tspan,
                                               iopts )
-            oscript_txt+= tscript
+            #oscript_txt+= tscript
             orst_txt   += trst 
             ii         += tspan
 
+        elif tmode == 'TEXTINTRO' :
+            tscript, trst = add_in_textblock( X,
+                                              ii, 
+                                              tspan,
+                                              iopts,
+                                              tmode = 'TEXTINTRO' )
+            #oscript_txt+= tscript
+            orst_txt    = orst_txt.replace( "TO_BE_THE_INTRO", trst )
+            ii         += tspan
+            
         elif tmode == 'SPACE' :
             tscript, trst = add_in_space( X,
                                           ii, 
@@ -606,6 +612,10 @@ TO_BE_THE_TITLE
             print(X[ii])
             sys.exit(2)
 
+    # this goes here on the off chance that no Intro is provided--
+    # replace the place holder with emptiness.
+    orst_txt    = orst_txt.replace( "TO_BE_THE_INTRO", '' )
+            
     return oscript_txt, orst_txt
 
 # ----------------------------------------------------------------------
@@ -640,8 +650,10 @@ def ARG_missing_arg(arg):
 
 # --------------------------------------------------------------------------
 
-class init_opts_DCSTR:
+class init_opts_MSAR:
 
+    script_type   = 'tcsh' # can generalize to other types later
+    
     # req input
     infile        = ""
     prefix_rst    = ""    # can/should include path (a/b/FILE.rst)
@@ -708,8 +720,12 @@ class init_opts_DCSTR:
         if not(self.infile) :
             print("** missing: infiles")
             MISS+=1
+            
         if self.prefix_rst == "" :
             print("** missing: prefix_rst")
+            MISS+=1
+        elif self.prefix_rst[-4:] != '.rst' :
+            print("** '-prefix_rst ..' entry MUST end with '.rst'")
             MISS+=1
             
         if self.reflink == "" :
@@ -731,20 +747,69 @@ class init_opts_DCSTR:
 
 # --------------------------------------------------------------------------
 
-help_string_DCSTR = '''
-Get help!
+help_string_MSAR = '''
+
+Purpose ~1~ 
+
+Program to take a script with some special (~simple) markup and turn
+it into both an RST page and a script for the online Sphinx
+documentation.
+
+Inputs ~1~ 
+
+-prefix_rst AA    :(req) output filename, including any path, of the
+                   RST/Sphinx file.  AA must include file extension 
+                   '.rst'.  E.g.:  tutorial/fun_3dcalc.rst
+
+-prefix_script BB :(req) output filename, *without* any path, of the
+                   script file.  BB probably should include file extension, 
+                   such as '.tcsh'.  E.g.:  fun_3dcalc.tcsh
+
+
+-reflink       CC :(req) a string tag that will be 1) subdirectory name
+                   holding images for the given demo, and 2) the RST 
+                   internal reference label, as '.. _CC:'.  First character
+                   of CC must be alphabetic.
+
+-execute_script   :(req/opt) flag to not just create the RST+script, but
+                   to execute the script as well.  IF the script
+                   generates images that will be copied to the
+                   media/CC/. directory, then this flag should be used
+                   at least the first time the script is run (so the
+                   files can be copied); it may not be necessary to
+                   execute on later runs.
+ 
+Outputs ~1~ 
+
++ an RST file, which is basically a Sphinx-formatted page, that can be
+  placed in a separate directory
+
++ an output directory to put into the Sphinx tree, called
+  [rst-path]/media/CC, where [rst-path] is the location of the output
+  RST file and CC is the reflink name.
+
++ a script file, both locally (where the script is run, so that it can
+  be executed) and in [rst-path]/media/CC (which will be shown in the
+  RST pages).
+
++ images made by the script which are flagged to be show in the RST
+  pages will be copied to [rst-path]/media/CC/. 
+
+
+
+
 '''
 
-def parse_DCSTR_args(argv):
+def parse_MSAR_args(argv):
 
     Narg = len(argv)
 
     if not(Narg):
-        print(help_string_DCSTR)
+        print(help_string_MSAR)
         sys.exit(0)
 
     # initialize objs
-    iopts  = init_opts_DCSTR()    # input-specific
+    iopts  = init_opts_MSAR()    # input-specific
 
     # check through inputs
     i = 0
@@ -797,7 +862,7 @@ def parse_DCSTR_args(argv):
 
                
     if iopts.check_req():
-        print("** ERROR: Missing input arguments")
+        print("** ERROR with input arguments")
         sys.exit(1)
 
     iopts.finish_defs()  # make some paths we need later
