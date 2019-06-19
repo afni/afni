@@ -54,7 +54,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 18, Jun, 2019, RCR, "3dGrayplot", MICRO, TYPE_BUG_FIX,
+ { 18, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "no mask if TSNR on surface",
    "Thanks to K Dembny for noting the problem."
  } ,
