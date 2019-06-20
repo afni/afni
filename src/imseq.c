@@ -5903,6 +5903,10 @@ INFO_message("Expose") ;
             else if( w == seq->wbar )
                ISQ_show_bar( seq ) ;
 
+#ifdef DISCARD_EXCESS_EXPOSES
+            STATUS("discarding excess Expose events") ;
+            MCW_discard_events( w , ExposureMask ) ;
+#endif
          }
       }
       break ;  /*--- end of Expose ---*/

@@ -252,6 +252,10 @@ void GRAF_drawing_EV( Widget w , XtPointer client_data ,
 
          if( event->count == 0 ){
             if( w == gp->drawer ) drawGraf(gp,0) ;
+#ifdef DISCARD_EXCESS_EXPOSES
+            STATUS("discarding excess Expose events") ;
+            MCW_discard_events( w , ExposureMask ) ;
+#endif
          }
       }
       break ;  /* end of Expose */
