@@ -4032,6 +4032,15 @@ ENTRY("ISQ_saver_CB") ;
            if( flim != NULL ){ mri_free(tim); tim = flim; }
          }
 
+         /* Apply VG filter? [20 Jun 2019] */
+
+         { float vfac = VGFAC(seq) ;
+           if( vfac > 0.0f ){
+             vgize_sigfac = vfac ; flim = mri_vgize(tim) ;
+             if( flim != NULL ){ mri_free(tim); tim = flim; }
+           }
+         }
+
          /* 23 Mar 2002: zoom out, if ordered */
 
          if( DO_BLOWUP(seq) && tim != NULL && tim->kind == MRI_rgb ){
@@ -5339,7 +5348,7 @@ STATUS("copying from pixmap to image window") ;
 
    if( flash ) MCW_invert_widget( seq->zoom_val_av->wlabel ) ;
 
-#ifdef DISCARD_EXCESS_EXPOSES
+#if defined(DISCARD_EXCESS_EXPOSES)
 STATUS("discarding excess Expose events") ;
     MCW_discard_events( seq->wimage , ExposureMask ) ;
 #endif
@@ -5903,6 +5912,10 @@ INFO_message("Expose") ;
             else if( w == seq->wbar )
                ISQ_show_bar( seq ) ;
 
+#ifdef DISCARD_EXCESS_EXPOSES
+            STATUS("discarding excess Expose events") ;
+            MCW_discard_events( w , ExposureMask ) ;
+#endif
          }
       }
       break ;  /*--- end of Expose ---*/

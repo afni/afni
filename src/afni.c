@@ -2401,6 +2401,7 @@ int main( int argc , char *argv[] )
 
    /** set default values of some environment variables [22 Jun 2004] **/
 
+   PUTENV("AFNI_LEFT_IS_LEFT","YES") ;     /* 20 Jun 2019 */
    PUTENV("AFNI_CROSSHAIR_LINES","YES") ;
    PUTENV("AFNI_ALWAYS_LOCK","YES") ;
    PUTENV("AFNI_IMAGE_SAVESQUARE","YES") ;
@@ -7043,7 +7044,7 @@ void AFNI_time_index_set_fstep( Three_D_View *im3d , int istep )
 
 ENTRY("AFNI_time_index_set_fstep") ;
 
-   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
+   if( ! IM3D_VALID(im3d) ) EXRETURN ;
 
    if( istep < 1 ) istep = 1 ; else if( istep > 9 ) istep = 9 ;
 
@@ -7069,7 +7070,7 @@ void AFNI_time_index_step_CB( Widget w, XtPointer cd, int nval , void **val )
 
 ENTRY("AFNI_time_index_step_CB") ;
 
-   if( ! IM3D_OPEN(im3d) || nval != 3 || val == NULL ) EXRETURN ;
+   if( ! IM3D_VALID(im3d) || nval != 3 || val == NULL ) EXRETURN ;
 
    AFNI_time_index_set_fstep( im3d , (int)(intptr_t)val[0] ) ;
 
@@ -7157,7 +7158,7 @@ void AFNI_time_index_CB( MCW_arrowval *av ,  XtPointer client_data )
 
 ENTRY("AFNI_time_index_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    ipx = av->ival ;
    if( ipx >= im3d->vinfo->top_index )    /* don't let index be too big */
@@ -7292,7 +7293,7 @@ void AFNI_view_xyz_CB( Widget w ,
 
 ENTRY("AFNI_view_xyz_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( cbs != NULL ) event = (XButtonEvent *)cbs->event ;
 
@@ -7642,7 +7643,7 @@ void AFNI_viewbut_EV( Widget w , XtPointer cd ,
 
 ENTRY("AFNI_viewbut_EV") ;
 
-   if( ev->type != ButtonPress || !IM3D_VALID(im3d) ) EXRETURN ;
+   if( ev->type != ButtonPress || !IM3D_OPEN(im3d) ) EXRETURN ;
    if( event->button != Button3 ) EXRETURN ;
 
    sxyz = im3d->s123 ; gxyz = im3d->g123 ;  /* viewer structs */
@@ -7714,7 +7715,7 @@ void AFNI_do_bkgd_lab( Three_D_View *im3d )
 
 ENTRY("AFNI_do_bkgd_lab") ;
 
-   if( !IM3D_OPEN(im3d) || !im3d->vwid->imag->do_bkgd_lab ) EXRETURN ;
+   if( !IM3D_VALID(im3d) || !im3d->vwid->imag->do_bkgd_lab ) EXRETURN ;
 
    AFNI_get_dset_val_label(im3d->anat_now,         /* 26 Feb 2010 ZSS */
                            strtod(im3d->vinfo->anat_val, NULL), labstra);
@@ -7766,7 +7767,7 @@ void AFNI_range_setter( Three_D_View *im3d , MCW_imseq *seq )
 
 ENTRY("AFNI_range_setter") ;
 
-   if( !IM3D_OPEN(im3d) || !ISQ_VALID(seq) ) EXRETURN ;
+   if( !IM3D_VALID(im3d) || !ISQ_VALID(seq) ) EXRETURN ;
 
    if( !IM3D_ULAY_COHERENT(im3d) ){           /* 10 Jun 2014 */
      STATUS("AFNI_range_setter: incoherent ulay -- patching") ;
@@ -7854,7 +7855,7 @@ printf("setting env %s\n",sgr_str);
 
    for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
      im3d = GLOBAL_library.controllers[ii] ;
-     if( ! IM3D_OPEN(im3d) ) continue ;
+     if( ! IM3D_VALID(im3d) ) continue ;
      if( gbr ){
        AFNI_range_setter( im3d , im3d->s123 ) ;
        AFNI_range_setter( im3d , im3d->s231 ) ;
@@ -7902,7 +7903,7 @@ void AFNI_view_setter( Three_D_View *im3d , MCW_imseq *seq )
 
 ENTRY("AFNI_view_setter") ;
 
-   if( !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !IM3D_VALID(im3d) ) EXRETURN ;
 
    sxyz = im3d->s123 ; syzx = im3d->s231 ; szxy = im3d->s312 ;
 
@@ -7931,7 +7932,7 @@ void AFNI_set_index_viewpoint( Three_D_View *im3d ,
    int nij, ni, ii, jj, kk;
 
    if (  ijk<0 || !im3d ||
-         !IM3D_OPEN(im3d) ||
+         !IM3D_VALID(im3d) ||
          !ISVALID_3DIM_DATASET(im3d->anat_now)) return;
 
    if (ijk < DSET_NVOX(im3d->anat_now)) {
@@ -7959,7 +7960,7 @@ void AFNI_check_for_multiple_vedits( Three_D_View *im3d )
 
 ENTRY("AFNI_check_for_multiple_vedits") ;
 
-   if( !first || !IM3D_OPEN(im3d) ) EXRETURN ;
+   if( !first || !IM3D_VALID(im3d) ) EXRETURN ;
 
    for( qq=0 ; qq < MAX_CONTROLLERS ; qq++ ){
      qq3d = GLOBAL_library.controllers[qq] ;
@@ -8010,7 +8011,7 @@ if(PRINT_TRACING)
   sprintf(str,"input xx=%d yy=%d zz=%d",xx,yy,zz) ;
   STATUS(str) ; }
 
-   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRR ;
+   if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->anat_now) ) EXRR ;
 
    /** 02 Nov 1996:
          Attach view-specific dataxes and warps to the datasets **/
@@ -8328,7 +8329,7 @@ MRI_IMAGE * AFNI_overlay( int n , FD_brick *br )
 
 ENTRY("AFNI_overlay") ;
 
-   if( ! IM3D_VALID(im3d) ) RETURN(NULL) ;
+   if( ! IM3D_OPEN(im3d) ) RETURN(NULL) ;
 
    /*--- check if crosshairs, markers, or functions are visible ---*/
 
@@ -8871,7 +8872,7 @@ void AFNI_marktog_CB( Widget w ,
 
 ENTRY("AFNI_marktog_CB") ;
 
-   if( ! IM3D_VALID(im3d) || im3d->anat_now->markers == NULL ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->anat_now->markers == NULL ) EXRETURN ;
 
    switch( cbs->reason ){
 
@@ -8987,7 +8988,7 @@ ENTRY("AFNI_marks_action_CB") ;
 
    /* sanity check */
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    marks = im3d->vwid->marks ;
 
@@ -9153,7 +9154,7 @@ void AFNI_resam_vox_av_CB( MCW_arrowval *av , XtPointer cd )
 
 ENTRY("AFNI_resam_vox_av_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( av == im3d->vwid->dmode->resam_vox_av ){
       im3d->vinfo->resam_vox = av->fval ;
@@ -9178,7 +9179,7 @@ void AFNI_marks_disp_av_CB( MCW_arrowval *av , XtPointer client_data )
 
 ENTRY("AFNI_marks_disp_av_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
           if( av == im3d->vwid->marks->disp_pcolor_av ){
 
@@ -9276,7 +9277,7 @@ void AFNI_switchview_CB( Widget w ,
 
 ENTRY("AFNI_switchview_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    bval = AFNI_first_tog( LAST_VIEW_TYPE+1 ,
                           im3d->vwid->view->view_bbox->wbut ) ;
@@ -10362,7 +10363,7 @@ void AFNI_define_CB( Widget w , XtPointer client_data , XtPointer call_data )
 
 ENTRY("AFNI_define_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    /*-----  define marks panel -----*/
 
@@ -10574,7 +10575,7 @@ void AFNI_marks_edits_CB( Widget w ,
 
 ENTRY("AFNI_marks_edits_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    marks = im3d->vwid->marks ;
    bval  = MCW_val_bbox( marks->edits_bbox ) ;
@@ -10631,7 +10632,7 @@ void AFNI_see_marks_CB( Widget w ,
 
 ENTRY("AFNI_see_marks_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    view  = im3d->vwid->view ;
    marks = im3d->vwid->marks ;
@@ -10836,7 +10837,7 @@ void AFNI_imag_pop_CB( Widget w ,
 
 ENTRY("AFNI_imag_pop_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    XtVaGetValues( im3d->vwid->imag->popmenu, XmNuserData, &seq, NULL ) ;
    AFNI_view_setter(im3d,seq) ;
@@ -11155,7 +11156,7 @@ ENTRY("AFNI_talto_CB") ;
 
    /* check for errors */
 
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
    if( !CAN_TALTO(im3d)             ||
        cbs->reason != mcwCR_integer   ){
@@ -11374,7 +11375,7 @@ void AFNI_mnito_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_mnito_CB") ;
 
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
 
    if( !CAN_TALTO(im3d) || cbs->reason != mcwCR_string  ){   /* error */
       POPDOWN_string_chooser ;
@@ -11424,7 +11425,7 @@ void AFNI_jumpto_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_jumpto_CB") ;
 
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
 
    if( last_jumpto_xyz_string != NULL ) free(last_jumpto_xyz_string) ;
@@ -11647,7 +11648,7 @@ void AFNI_jumpto_ijk_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_jumpto_ijk_CB") ;
 
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
 
    if( last_jumpto_ijk_string != NULL ) free(last_jumpto_ijk_string) ;
@@ -11679,7 +11680,7 @@ void AFNI_jumpto_ijk_olay_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_jumpto_ijk_olay_CB") ;
 
-   if( ! IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
    if( cbs->reason != mcwCR_string ) EXRETURN ;  /* error */
 
    if( last_jumpto_ijk_olay_string != NULL ) free(last_jumpto_ijk_olay_string) ;
@@ -11711,9 +11712,9 @@ void AFNI_sumato_CB( Widget w , XtPointer cd , MCW_choose_cbs *cbs )
 
 ENTRY("AFNI_sumato_CB") ;
 
-   if( !IM3D_VALID(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
-   if( cbs->reason != mcwCR_string )                         EXRETURN ;
-   if( !SESSION_HAS_SUMA(im3d->ss_now) )                     EXRETURN ;
+   if( !IM3D_OPEN(im3d) || im3d->type != AFNI_3DDATA_VIEW ) EXRETURN ;
+   if( cbs->reason != mcwCR_string )                        EXRETURN ;
+   if( !SESSION_HAS_SUMA(im3d->ss_now) )                    EXRETURN ;
 
    if( last_sumato_string != NULL ) free(last_sumato_string) ;
    last_sumato_string = strdup(cbs->cval) ;
@@ -11754,7 +11755,7 @@ ENTRY("AFNI_marks_transform_CB") ;
 
    /*--- sanity checks ---*/
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    markers = im3d->anat_now->markers ;
    if(markers == NULL || markers->aflags[1] != MARKACTION_WARP) BEEP_AND_RETURN ;
@@ -13383,7 +13384,7 @@ void AFNI_sonnet_CB( Widget w , XtPointer client_data , XtPointer call_data )
    Three_D_View *im3d = (Three_D_View *) client_data ;
    MCW_choose_cbs *cbs ;
 
-   if( NO_frivolities || !IM3D_VALID(im3d) ) return ;
+   if( NO_frivolities || !IM3D_OPEN(im3d) ) return ;
 
    if( w == im3d->vwid->prog->hidden_sonnet_pb ){  /* start the process */
 
@@ -13560,6 +13561,8 @@ void AFNI_fix_scale_size_direct( Three_D_View *im3d )
    Dimension sel_aaa ;
 
    if( iqqq < 0 || ! IM3D_OPEN(im3d) ) return ; /* not valid */
+
+   if( AFNI_yesenv("AFNI_DONT_FIX_SCALE_SIZE") ) return ; /* obey orders */
 
    /* check if height is correct */
 

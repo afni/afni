@@ -3327,7 +3327,12 @@ STATUS(str) ; }
             } else {
                GRA_redraw_overlay( grapher ) ;
             }
+#if defined(DISCARD_EXCESS_EXPOSES)
+            STATUS("discarding excess Expose events") ;
+            MCW_discard_events( w , ExposureMask ) ;
+#endif
          }
+
       }
       break ;
 
