@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, June , 2019 , PT , "@djunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
+   "Use the CAPTION feature on image tables in text blocks.",
+   "Also fix help display.\n"
+},
+
 { 19, June , 2019 , PT , "@djunct_make_script_and_rst.py" , MICRO , TYPE_NEW_PROG,
    "New prog for Sphinx doc generation (well, assistance).",
    "Somewhat simple markup scheme used to generate RST, images and scripts.\n"

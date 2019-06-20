@@ -15,9 +15,12 @@ import afni_base as ab
 # + [PT] also introducing a special case of SECTION+TEXTBLOCK called
 #        INTRO (bc the shebang is always at top of script)
 #
-ver = '1.5'; date = 'June 19, 2019'
+#ver = '1.5'; date = 'June 19, 2019'
 # + [PT] lots of tiny things updated/fixed/added.  Now in pretty good
 #        working order
+#
+ver = '1.6'; date = 'June 20, 2019'
+# + [PT] Fix imcaption part of TEXTBLOCK->IMAGE, as well as help file disp
 #
 ##########################################################################
 
@@ -374,11 +377,13 @@ def add_in_textblock_image( X,
 
         if ss[0].__contains__("#:IMCAPTION") :
             lmode = 'CAPTION'
-            imcaption.append(ss[1:])
+            if len(ss) > 1:
+                imcaption.append(' '.join(ss[1:]))
         elif lmode == 'IMAGES' :
             imlist.append(ss)
         elif lmode == 'CAPTION' :
-            imcaption.append(ss[1:])
+            if len(ss) > 1:
+                imcaption.append((' '.join(ss[1:])))
 
     # Calc max dims of image matrix
     Ncol = 0
@@ -390,12 +395,16 @@ def add_in_textblock_image( X,
     
     # Now build table;  some formatting necessary
     
+    cap_text = ''
+    if imcaption :
+        cap_text = ' '.join(imcaption)
+
     trst += '''
-.. list-table:: 
+.. list-table:: {}
    :header-rows: {}
    :widths: {}
 
-'''.format(Nheader, Ncol * allwid)
+'''.format(cap_text, Nheader, Ncol * allwid)
 
     if imtitle :
         for cc in range(Ncol) :
@@ -430,7 +439,6 @@ def add_in_textblock_image( X,
           :width: 100%   
           :align: center\n'''.format( symb, iopts.subdir_rst,
                                       img_bname )
-                
                 
     return trst
 
@@ -882,18 +890,18 @@ OUTPUTS ~1~
 EXAMPLES ~1~
 
    1) First time through, execute script to make images:
-   @djunct_make_script_and_rst.py                                          \
-       -input          ex_afni11_roi_cmds.tcsh                             \
-       -reflink        afni11_roi_cmds                                     \
-       -prefix_script  afni11_roi_cmds.tcsh                                \
-       -prefix_rst ~/afni_doc/tutorials/rois_corr_vis/afni11_roi_cmds.rst  \
+   @djunct_make_script_and_rst.py                                          \\
+       -input          ex_afni11_roi_cmds.tcsh                             \\
+       -reflink        afni11_roi_cmds                                     \\
+       -prefix_script  afni11_roi_cmds.tcsh                                \\
+       -prefix_rst ~/afni_doc/tutorials/rois_corr_vis/afni11_roi_cmds.rst  \\
        -execute_script
 
    2) Second time through, if "only" text changes/formatting:
-   @djunct_make_script_and_rst.py                                          \
-       -input          ex_afni11_roi_cmds.tcsh                             \
-       -reflink        afni11_roi_cmds                                     \
-       -prefix_script  afni11_roi_cmds.tcsh                                \
+   @djunct_make_script_and_rst.py                                          \\
+       -input          ex_afni11_roi_cmds.tcsh                             \\
+       -reflink        afni11_roi_cmds                                     \\
+       -prefix_script  afni11_roi_cmds.tcsh                                \\
        -prefix_rst ~/afni_doc/tutorials/rois_corr_vis/afni11_roi_cmds.rst 
 
 '''
