@@ -413,6 +413,7 @@ static char *tip[] = {
   "  AFNI_OPACITY_LOCK       = lock 1-9 opacity arrows among image viewers  [YES]\n"
   "  AFNI_LEFT_IS_LEFT       = show subject left on screen left             [YES]\n"
   "  AFNI_NOSPLASH           = turn off the AFNI splash screen at startup    [NO]\n"
+  "  AFNI_STARTUP_SOUND      = turn on the AFNI startup sound!               [NO]\n"
   "  AFNI_NOPLUGINS          = don't load GUI plugins                        [NO]\n"
   "                            Setting AFNI_NOPLUGINS to YES can speed up\n"
   "                            scripts that externally drive the AFNI GUI,\n"
