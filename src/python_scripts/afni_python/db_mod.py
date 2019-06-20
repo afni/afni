@@ -5632,7 +5632,8 @@ def db_cmd_regress(proc, block):
         if errts: epre = proc.errts_pre
         else:     epre = 'errts.$subj'
         # getting ugly: alter prefix but save any extension (niml.dset?)
-        aset = proc.regress_inset.new('%s%s.tproject'%(tmp_prefix, epre))
+        aset = proc.regress_inset.new('%s%s'%(tmp_prefix, epre), parse_pref=1)
+        aset.new_prefix(aset.prefix + '.tproject')
 
         tpcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
                 maskstr=mask, censtr=censor_str, xmat=xmat,
