@@ -1573,12 +1573,13 @@ class Afni1D:
 
    # ----------------------------------------------------------------------
 
-   def write(self, fname, sep=" ", overwrite=0):
+   def write(self, fname, sep=" ", overwrite=0, add_header=0):
       """write the data to a new .1D file
 
             fname       : filename is required
             sep         : separator between elements
             overwrite   : whether to allow overwrite
+            add_header  : include NIML-ish header info
 
          return status"""
 
@@ -1603,6 +1604,13 @@ class Afni1D:
             print("** failed to open '%s' for writing" % fname)
             return 1
 
+      if add_header:
+         if len(self.labels) == self.nvec:
+            fp.write('# ColumnLabels = "%s"\n' % ' ; '.join(self.labels))
+         if len(self.groups) == self.nvec:
+            fp.write('# ColumnGroups = "%s"\n' \
+                     % self.val_list_to_at_str(self.groups))
+
       for row in range(self.nt):
          fp.write(sep.join(['%g' % self.mat[i][row] for i in range(self.nvec)]))
          fp.write('\n')
@@ -1610,6 +1618,24 @@ class Afni1D:
       fp.close()
 
       return 0
+
+   def val_list_to_at_str(self, vlist):
+      """convert a list like 2, 2, 2, 5, 9, 9, 11 to a string of the form
+            3@2,5,2@9,11
+         do not worry about types
+      """
+      # start by making a vcount array
+      vlen = len(vlist)
+      vstart = 0
+      slist = []
+      while vstart < vlen:
+         val = vlist[vstart]
+         vcur = vstart + 1
+         while vcur < vlen and val == vlist[vcur]:
+            vcur += 1
+         slist.append('%d@%s' % (vcur-vstart, val))
+         vstart = vcur
+      return ','.join(slist)
 
    def split_into_padded_runs(self, prefix, overwrite=0):
       """write one 1D file per run, where each is the same as the input, but
@@ -2927,7 +2953,7 @@ class Afni1D:
                   print("** matrix nt %d != %s rows %d" % \
                        (self.nt, label, nrows))
             elif label == 'ColumnLabels':
-               self.labels = [str.strip() for str in data.split(';')]
+               self.labels = [ss.strip() for ss in data.split(';')]
                if self.verb > verb_level:
                   print("-- label %s: labels = %s" % (label, self.labels))
                if self.nvec != len(self.labels):
