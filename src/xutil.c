@@ -336,7 +336,7 @@ void MCW_widget_geom( Widget w, int *wout, int *hout, int *xout, int *yout )
    Dimension nx=0 , ny=0 ;  /* don't try to make these ints! */
    Position  xx=0 , yy=0 ;
 
-   if( w == NULL ) return ;
+   if( w == NULL ) return ; /* user == loser */
    SYNC(w) ; RWC_sleep(1) ;
 
    if( XtIsRealized(w) ){

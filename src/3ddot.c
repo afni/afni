@@ -354,14 +354,12 @@ double DSET_eta2( THD_3dim_dataset *xset, THD_3dim_dataset *yset,
 
    nxyz = DSET_NVOX(xset) ;
 
-
    /* load bricks */
 
    fxar = get_float_dset_data_pointer(xset, 0, &fxar_new, 1);
    fyar = get_float_dset_data_pointer(yset, 0, &fyar_new, 1);
    if ( ! fxar || ! fyar ) ERROR_exit("Cannot get float pointers!") ;
    
-
    e2 = FPTR_eta2(fxar, fyar, nxyz, mmm, npt);
    
    if( fxar_new ) free(fxar) ;
