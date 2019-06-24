@@ -553,6 +553,13 @@ ENTRY("mri_3dalign_one") ;
    fitim      = basis->fitim ;
    chol_fitim = basis->chol_fitim ;
 
+   ASSIF(th1,0.0f) ;  /* initialize output params */
+   ASSIF(th2,0.0f) ;
+   ASSIF(th3,0.0f) ;
+   ASSIF(dx ,0.0f) ;
+   ASSIF(dy ,0.0f) ;
+   ASSIF(dz ,0.0f) ;
+
    /* use original image if possible */
 
    if( im->kind == MRI_float ) fim = im ;

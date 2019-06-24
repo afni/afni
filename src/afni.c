@@ -8133,6 +8133,7 @@ DUMP_IVEC3("  new_id",new_id) ;
    if( im3d->vinfo->func_visible ){
      float thr,thbot,thtop,fac ; MRI_IMAGE *thim , *ovim ; float_pair ovmm ;
      thr = get_3Dview_func_thresh(im3d,1) ; thbot = THBOT(thr) ; thtop = THTOP(thr) ;
+     DSET_load(im3d->fim_now) ; /* 24 Jun 2019 */
      if( FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
        ovim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->fim_index) ;
        thim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->thr_index) ;
@@ -8146,7 +8147,7 @@ DUMP_IVEC3("  new_id",new_id) ;
          fac = DSET_BRICK_FACTOR(im3d->fim_now,im3d->vinfo->fim_index) ;
          if( fac > 0.0f ){ im3d->fim_thresh_min *= fac ; im3d->fim_thresh_max *= fac ; }
        }
-       if( im3d->fim_thresh_min < im3d->fim_thresh_max ){
+       if( im3d->fim_thresh_min <= im3d->fim_thresh_max ){
          char str[256] ; int_pair mij = mri_threshold_minmax_indexes() ;
          sprintf(str,"OLay thresholded range: %f : %f",im3d->fim_thresh_min,im3d->fim_thresh_max ) ;
          MCW_register_hint( im3d->vwid->func->range_label , str ) ;
@@ -8156,7 +8157,9 @@ DUMP_IVEC3("  new_id",new_id) ;
          MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknown" ) ;
        }
        SENSITIZE(im3d->vwid->func->pbar_jumpto_thmax_pb,(im3d->fim_thresh_max_ijk > 0)) ;
-       SENSITIZE(im3d->vwid->func->pbar_jumpto_thmin_pb,(im3d->fim_thresh_min_ijk > 0)) ;
+       SENSITIZE(im3d->vwid->func->pbar_jumpto_thmin_pb,
+                   (im3d->fim_thresh_min_ijk > 0)
+                && (im3d->fim_thresh_min_ijk != im3d->fim_thresh_max_ijk) ) ;
      }
 #if 0
 else INFO_message("threshold unchanged") ;
