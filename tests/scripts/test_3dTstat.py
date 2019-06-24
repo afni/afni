@@ -3,8 +3,6 @@ from .utils import tools
 
 # Define Data
 data_paths = {"epi": "AFNI_data6/afni/epi_r1+orig.HEAD"}
-UNRELIABLE = ["bmv"]
-
 
 # Parametrize over different potential statistics; we will have a _lot_ of
 # tests here, however error messages will be a bit more interpretable and we'll
@@ -68,8 +66,6 @@ def test_3dTstat_basic(data, statistic):
 
     # If this is known to cause difficulties, reduce the rtol
     kwargs_scans = {"data_kwargs": {}, "header_kwargs": {}}
-    if statistic in UNRELIABLE:
-        kwargs_scans["data_kwargs"] = {"rtol": 0.11}
 
     # Run command and test all outputs match
     differ = tools.OutputDiffer(data, cmd, kwargs_scans=kwargs_scans)
