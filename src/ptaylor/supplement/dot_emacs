@@ -1,0 +1,45 @@
+(custom-set-variables
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(c-basic-offset 3)
+ '(inhibit-startup-screen t)
+ '(python-basic-offset 4)
+ '(python-continuation-offset 1)
+ '(python-guess-indent nil)
+ '(python-indent-tabs-mode nil)
+ '(python-tab-width 4)
+ '(show-paren-mode t)
+ '(standard-indent 3))
+(custom-set-faces
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
+ '(sh-heredoc ((t (:foreground "DeepSkyBlue4")))))
+(setq frame-title-format "%b")
+
+(delete-selection-mode 1)
+(setq tab-stop-list (number-sequence 4 200 4))
+(setq-default indent-tabs-mode nil) ; replace tabs with spaces
+(setq-default tab-width 3)          ; set tab width to 3 for all buffers
+(setq initial-scratch-message "")   ; empty scratch message at startup
+
+; set a backtab, though it's only for 4 spaces; guess I wouldn't need
+; in C, anyways
+(global-set-key (kbd "<backtab>") 'un-indent-by-removing-4-spaces)
+(defun un-indent-by-removing-4-spaces ()
+  "remove 4 spaces from beginning of of line"
+  (interactive)
+  (save-excursion
+    (save-match-data
+      (beginning-of-line)
+      ;; get rid of tabs at beginning of line
+      (when (looking-at "^\\s-+")
+        (untabify (match-beginning 0) (match-end 0)))
+      (when (looking-at "^    ")
+        (replace-match "")))))
+(setq column-number-mode t) ;; column number on
+(when (fboundp 'electric-indent-mode) (electric-indent-mode -1))
+
