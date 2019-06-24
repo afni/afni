@@ -61,6 +61,7 @@ TRACK_RUN_PARAMS SetInitialTrackingDefaults(void)
    defopt.MINI_PROB_NM=0;              //  "-mini_num"
    defopt.CHOOSE_SEED = 0;             //  "-choose_seed"
    defopt.OUTPUT_TRK = 0;              //  "-do_trk_out", Feb,2015:->0
+   defopt.TRK_OPP_ORI = 0;             //  "-trk_opp_orient", Jun,2019
    defopt.OUT_INDIPAIR = 1;            //  "-no_indipair_out"
    defopt.THRESH_BUNDS = 1;            //  "-bundle_thr", Feb,2015:NEW
    defopt.TARG_SURF_STOP = 0;          //  "-targ_surf_stop", Nov,2016

@@ -38,6 +38,9 @@ void EDIT_one_dataset( THD_3dim_dataset *dset , EDIT_options *edopt )
    int   thrfilter_opt = edopt->thrfilter_opt;   /* 1 Oct 1996 */
    float thrfilter_rmm = edopt->thrfilter_rmm;   /* 1 Oct 1996 */
    float edit_blur     = edopt->blur ;
+   float edit_blurx    = edopt->blurx ;          /* 17 Jun 2019 */
+   float edit_blury    = edopt->blury ;
+   float edit_blurz    = edopt->blurz ;
    float edit_thrblur  = edopt->thrblur;         /* 4 Oct 1996 */
    int   edit_scale    = edopt->scale ;
    float edit_mult     = edopt->mult ;
@@ -63,6 +66,7 @@ void EDIT_one_dataset( THD_3dim_dataset *dset , EDIT_options *edopt )
    MCW_cluster       *blur=NULL ;
    int fimtype , thrtype ;
    float fimfac=0.0, thrfac=0.0;
+   int blur3d=0 ; /* 17 Jun 2019 */
 
    /** get the data from this dataset **/
 
@@ -365,7 +369,7 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    if( edit_clip_bot < edit_clip_top ){
 
-      if( verbose ) 
+      if( verbose )
          fprintf(stderr,"--- EDIT_one_dataset: clip fim values %f %f\n",
                  edit_clip_bot, edit_clip_top) ;
 
@@ -589,13 +593,21 @@ STATUS("abs applied to meaningless type: will be ignored") ;
 
    /*----- blur? -----*/
 
-   if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ;  /* 04 Oct 2005 */
+   if( AFNI_yesenv("AFNI_BLUR_FFT") ) EDIT_blur_allow_fir(0) ; /* 04 Oct 2005 */
 
-   if( edit_blur > 0.0 ){
+   blur3d = ( edit_blurx > 0.0f || edit_blury > 0.0f || edit_blurz > 0.0f ) ;
+
+   if( blur3d ){  /* 17 Jun 2019 */
+
+      if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: blurring_3D fim\n") ;
+      EDIT_blur_volume_3d( nx,ny,nz, dx,dy,dz , fim_type,vfim ,
+                                           edit_blurx,edit_blury,edit_blurz ) ;
+
+   } else if( edit_blur > 0.0 ){
 
       if( verbose ) fprintf(stderr,"--- EDIT_one_dataset: blurring fim\n") ;
-
       EDIT_blur_volume( nx,ny,nz, dx,dy,dz , fim_type,vfim , edit_blur ) ;
+
    }
 
    /*----- threshold blur? -----*/   /* 4 Oct 1996 */
@@ -690,9 +702,9 @@ STATUS("clustering") ;
 
       vmul = MAX(1,ptmin) * dxyz ;  /* for use below */
 
-      /* ZSS March 03 2010, changed from MCW_find_clusters 
+      /* ZSS March 03 2010, changed from MCW_find_clusters
        to NIH_find_clusters to accommodate isomode */
-      clar  = NIH_find_clusters( nx,ny,nz , dx,dy,dz , 
+      clar  = NIH_find_clusters( nx,ny,nz , dx,dy,dz ,
                                  fim_type,vfim , rmm, edopt->isomode) ;
       nclu  = 0 ;
 
@@ -730,7 +742,7 @@ STATUS("no data left after cluster edit!") ;
       /*----- edit clusters? -----*/   /* 10 Sept 1996 */
       if (edit_clust > ECFLAG_SAME)
          EDIT_cluster_array (clar, edit_clust, dxyz, vmul);
-      if (edit_clust == ECFLAG_SIZE || 
+      if (edit_clust == ECFLAG_SIZE ||
           edit_clust == ECFLAG_ORDER ||
           edit_clust == ECFLAG_DEPTH )
          DSET_BRICK_FACTOR(dset,iv_fim) = 0.0;
@@ -740,13 +752,13 @@ STATUS("no data left after cluster edit!") ;
             MCW_cluster_to_vol( nx,ny,nz , fim_type, vfim , clar->clar[iclu] ) ;
          } else {
          }
-      
+
       /* now deal with ECFLAG_DEPTH */
-      
+
       if (edit_clust == ECFLAG_DEPTH) {
-         int iwarn=0; 
+         int iwarn=0;
          byte *mask=NULL;
-         short *depth=NULL; 
+         short *depth=NULL;
          for( iclu=0 ; iclu < clar->num_clu ; iclu++ ) {
             if ( clar->clar[iclu] && clar->clar[iclu]->num_pt > 0 ){
                /* allocate if 1st time */
@@ -763,43 +775,43 @@ STATUS("no data left after cluster edit!") ;
                #if 0
                switch( fim_type ){
                   case MRI_short:   /* fim datum is shorts */
-                     
+
                      for( ii=0 ; ii < nxyz ; ii++ ) {
-                        if( sfim[ii] == (short)clar->clar[iclu]->mag[0] ) 
-                           mask[ii] = 1 ;  
+                        if( sfim[ii] == (short)clar->clar[iclu]->mag[0] )
+                           mask[ii] = 1 ;
                      }
                      break ;
 
                  case MRI_byte:    /* fim datum is bytes */
                     for( ii=0 ; ii < nxyz ; ii++ ) {
-                        if( bfim[ii] == (byte)clar->clar[iclu]->mag[0] ) 
-                           mask[ii] = 1 ;  
-                    } 
+                        if( bfim[ii] == (byte)clar->clar[iclu]->mag[0] )
+                           mask[ii] = 1 ;
+                    }
                     break ;
 
                  case MRI_float:   /* fim datum is floats */
                     for( ii=0 ; ii < nxyz ; ii++ ) {
-                        if( ffim[ii] == (float)clar->clar[iclu]->mag[0] ) 
-                           mask[ii] = 1 ;  
-                    } 
+                        if( ffim[ii] == (float)clar->clar[iclu]->mag[0] )
+                           mask[ii] = 1 ;
+                    }
                     break ;
 
                  case MRI_complex: /* fim datum is complex */
                    for( ii=0 ; ii < nxyz ; ii++ ) {
-                        if( cfim[ii].r == (float)clar->clar[iclu]->mag[0] ) 
-                           mask[ii] = 1 ;  
-                   } 
+                        if( cfim[ii].r == (float)clar->clar[iclu]->mag[0] )
+                           mask[ii] = 1 ;
+                   }
                    break ;
-                 
+
                  default:
                    ERROR_message("Bad type");
                    break;
-               
+
                }/* end of switch */
                #endif
                for( icl=0 ; icl < clar->clar[iclu]->num_pt ; icl++ ) {
-                  ijk = THREE_TO_IJK (clar->clar[iclu]->i[icl], 
-                                      clar->clar[iclu]->j[icl], 
+                  ijk = THREE_TO_IJK (clar->clar[iclu]->i[icl],
+                                      clar->clar[iclu]->j[icl],
                                       clar->clar[iclu]->k[icl],
                                        nx, nxy);
                   mask[ijk] = 1 ;
@@ -825,7 +837,7 @@ STATUS("no data left after cluster edit!") ;
                               ++iwarn;
                            }
                            depth[ii] = MRI_maxbyte;
-                        }   
+                        }
                         bfim[ii] = (byte)depth[ii];
                      }
                   }
@@ -840,12 +852,12 @@ STATUS("no data left after cluster edit!") ;
                      if (mask[ii]) cfim[ii].r = cfim[ii].i =(float)depth[ii];
                   }
                   break;
-               } /* end of second switch */   
+               } /* end of second switch */
             } /* end of is non empty cluster */
         }/* end of loop over clusters */
        if (mask) free(mask);  mask=NULL;
        if (depth) free(depth); depth=NULL;
-     } /* end of ORDER trip */ 
+     } /* end of ORDER trip */
 
       DESTROY_CLARR(clar) ;
    }
@@ -968,7 +980,7 @@ fprintf(stderr," -1zscore: retyping\n") ;
 
    /* turn dset to rank */
    if ( edopt->rank) {
-      if( verbose ) 
+      if( verbose )
          fprintf(stderr,"--- EDIT_one_dataset: Converting to rank value.\n");
       if (!(THD_unique_rank_edit(dset ,
                               iv_fim,

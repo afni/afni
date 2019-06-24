@@ -5,6 +5,7 @@
 #define AXML_MAX_ELEN  128   /* maximum element length */
 
 #include <stdio.h>
+#include <inttypes.h>
 
 /* ----------------------------------------------------------------------
    This code is for generic reading of xml into structures.

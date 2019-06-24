@@ -2117,6 +2117,15 @@ def db_cmd_volreg(proc, block):
                                                      default='0')
        if rv: return
 
+       # warnings, MO is probably the way to go
+       if pvra_bind_str != 'MIN_OUTLIER':
+          print("** consider '-volreg_pvra_base_index MIN_OUTLIER' " \
+                "for per-run registration")
+       else:
+          if not proc.vr_base_MO and proc.vr_ext_base is None:
+             print("** consider '-volreg_align_to MIN_OUTLIER' " \
+                   "for across-run registration")
+
        if pvra_bind_str != 'MIN_OUTLIER' and pvra_bind_str != '$':
           # see if we have an int
           try:
@@ -3884,6 +3893,16 @@ def mod_blur_surf(block, proc, user_opts):
     uopt = user_opts.find_opt('-surf_smooth_niter')
     if uopt: block.opts.add_opt('-surf_smooth_niter', 1, uopt.parlist, setpar=1)
 
+    # do not allow some options with surface-based analysis
+    non_surf_opts = ['-blur_in_mask', '-blur_in_automask', '-blur_opts_merge']
+    okay = 1
+    for opt in non_surf_opts:
+       if user_opts.find_opt(opt):
+          print("** cannot use option '%s' with surface-based analysis"%opt)
+          okay = 0
+    if not okay:
+       return
+
     block.valid = 1
 
 def cmd_blur_surf(proc, block):
@@ -5613,7 +5632,8 @@ def db_cmd_regress(proc, block):
         if errts: epre = proc.errts_pre
         else:     epre = 'errts.$subj'
         # getting ugly: alter prefix but save any extension (niml.dset?)
-        aset = proc.regress_inset.new('%s%s.tproject'%(tmp_prefix, epre))
+        aset = proc.regress_inset.new('%s%s'%(tmp_prefix, epre), parse_pref=1)
+        aset.new_prefix(aset.prefix + '.tproject')
 
         tpcmd = db_cmd_tproject(proc, block, proc.prev_dset_form_wild(block),
                 maskstr=mask, censtr=censor_str, xmat=xmat,
@@ -6302,8 +6322,11 @@ def db_cmd_regress_rsfc(proc, block):
 def db_cmd_regress_tsnr(proc, block, all_runs, errts_pre):
     if not all_runs or not errts_pre: return ''
 
-    if proc.mask: mask_pre = proc.mask.prefix
-    else:         mask_pre = ''
+    # no mask for surface based analysis
+    if proc.mask and not proc.surf_anat:
+       mask_pre = proc.mask.prefix
+    else:
+       mask_pre = ''
 
     return db_cmd_tsnr(proc,
            '# --------------------------------------------------\n' \
@@ -6399,6 +6422,13 @@ def db_cmd_blur_est(proc, block):
     if not aopt and not eopt:
         if proc.verb > 0: print('-- no 3dClustSim (since no blur estimation)')
         return cmd
+
+    if proc.surf_anat:
+        print('** this blur estimation is volumetric, and is not appropriate\n'\
+              '   for surface-based analysis\n'                                \
+              '   (in surface analysis, a blur level is set, not added,\n'     \
+              '    so the estimation is the applied level)')
+        return
 
     # set the mask (if we don't have one, bail)
     if not proc.mask:

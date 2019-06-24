@@ -20,6 +20,11 @@
 
 # O2 Aug 2001: Modified by RWCox for inclusion into the AFNI scheme
 
+# for using libmri.so   12 Jun 2019 [rickr]
+ifdef MRI_SHARED
+R_SHARED_LOPTS = -Wl,-rpath='$$ORIGIN'
+endif
+
 .c.o:
 	$(CC) -c -Iheaders $<
 
@@ -44,7 +49,8 @@ MP_ALL_OBJS = $(MP_BASE_OBJS) $(MP_OTHER_OBJS) $(MP_ENCODE_OBJS) \
 ############
 
 mpeg_encode: $(MP_ALL_OBJS)
-	$(CC) $(CFLAGS) -o $@ $(MP_ALL_OBJS) -L.. $(LFLAGS) $(LLIBS)
+	$(CC) $(CFLAGS) -o $@ $(MP_ALL_OBJS) -L.. $(LFLAGS) $(R_SHARED_LOPTS) \
+              $(LLIBS)
 
 headers.o: headers.c
 	$(CC) $(CFLAGS) -c headers.c

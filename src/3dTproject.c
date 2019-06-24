@@ -1028,7 +1028,7 @@ STATUS("start projection work") ;
 AFNI_OMP_START ;
 #pragma omp parallel
 {  int vv , kk , nds=nort_dsort+1 ;
-   double *wsp ; float *dsar , *zar , *pdar ;
+   double *wsp ; float *dsar , *zar , *pdar , zsum ;
 
 #pragma omp critical
    { wsp  = (double *)get_psinv_wsp( ntuse , nds , ntuse*2 ) ;
@@ -1055,6 +1055,14 @@ AFNI_OMP_START ;
                         nort_fixed , ort_fixed , ort_fixed_psinv ,
                         nort_dsort , dsar      , pdar            ,
                                      zar       , (char *)wsp      ) ;
+
+     /* make sure mean is removed so users don't complain [06 Jun 2019] */
+
+     if( tp->polort >= 0 ){
+       for( zsum=0.0f  ,kk=0 ; kk < ntuse ; kk++ ) zsum    += zar[kk] ;
+       for( zsum/=ntuse,kk=0 ; kk < ntuse ; kk++ ) zar[kk] -= zsum ;
+     }
+
    }
 
 #pragma omp critical

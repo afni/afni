@@ -44,6 +44,38 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , JUN , 2019 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "AFNI_PBAR_THREE mode didn't allow proper change of the panes" ,
+   "Problem: code to put labels on the panes being invoked when it shouldn't\n"
+   "be. Ugh. Who wrote this code, anyway? They should be SHOT!!" } ,
+
+ { 18 , JUN , 2019 , RWC , "@SSwarper" , MICRO , TYPE_ENHANCE ,
+   "Add 3dAutomask step for an extra cleanup" ,
+   NULL } ,
+
+ { 17 , JUN , 2019 , RWC , "3dmerge" , MICRO , TYPE_NEW_OPT ,
+   "-1blur3D_fwhm" ,
+   "Restores the ability to order differential amounts of blurring along the\n"
+   "3D axes of the dataset." } ,
+
+ { 06 , JUN , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_OPACITY_LOCK" ,
+   "YES = Locks the opacity (1-9) arrows between all image viewers.\n"
+   "This is set to YES by default, and can be set to NO to get the\n"
+   "old (unlocked) behavior." } ,
+
+ { 06 , JUN , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "Change threshold scale upper limit selector from '**' to '10^'" ,
+   "For DRG, and he owes me now." } ,
+
+ { 06 , JUN , 2019 , RWC , "3dTproject" , MICRO , TYPE_ENHANCE ,
+   "Make sure time series mean is removed after projection" ,
+   "To keep unruly users quiet(er)." } ,
+
+ { 06 , JUN , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Different fix for the threshold scale size problem :(" ,
+   NULL } ,
+
  { 24 , MAY , 2019 , RWC , "afni GUI" , MINOR , TYPE_ENHANCE ,
    "4+1 new features" ,
    "1) Default threshold is now 0\n"

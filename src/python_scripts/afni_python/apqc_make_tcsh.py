@@ -74,9 +74,17 @@ auth = 'PA Taylor'
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
 #
-ver = '2.5' ; date = 'May 23, 2019' 
+#ver = '2.5' ; date = 'May 23, 2019' 
 # + [PT] switched to using afni_base functions for executing on
 #        commandline
+#
+#ver = '2.51' ; date = 'June 14, 2019' 
+# + [PT] tiiiiny change, updating variable name to match 'omsg'
+#
+ver = '2.6' ; date = 'June 18, 2019' 
+# + [PT] ephemeral change: when surf and mask blocks are *both* used,
+#        don't output grayplot; this will later be revisited when
+#        surface things are considered more carefully (i.e., at all)
 #
 #########################################################################
 
@@ -510,13 +518,15 @@ if __name__ == "__main__":
     # [PT: Feb 25, 2019] 
     ldep = ['errts_dset', 'mask_dset']
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize('make grayplot of residuals')
-        obase    = 'qc_{:02d}'.format(idx)
-        cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot" )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
+        # [PT: Jun 18, 2019] special case check-- 
+        if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+            ban      = lat.bannerize('make grayplot of residuals')
+            obase    = 'qc_{:02d}'.format(idx)
+            cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot" )
+            
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
 
     # --------------------------------------------------------------------
 
@@ -678,7 +688,7 @@ if __name__ == "__main__":
         os.chmod(otcsh, code)
     except:
         omsg = "failed: chmod {} {}".format(code, otcsh)
-        print(osmg)
+        print(omsg)
 
     bye_msg = '''
     ++ Done making (executable) script to generate HTML QC:

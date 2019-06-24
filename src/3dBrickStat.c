@@ -624,8 +624,14 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
 
    ENTRY("Max_func");
 
-   overallmin = 1E10;
-   overallmax = -1E10;
+   /* maybe the mask came up empty    [11 Jun 2019 rickr] */
+   if( mmvox > 0 ) {
+      overallmin = 1E10;
+      overallmax = -1E10;
+   } else {
+      overallmin = 0;
+      overallmax = 0;
+   }
    sum = 0.0;
    vr = 0.0;
    sum2 = 0.0;
@@ -729,7 +735,9 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
       printf("%-13.6g ", overallmax);
    if(Meanflag)
      {
-       overallmean = sum/npts;
+       /* 11 Jun 2019 */
+       if( npts > 0 ) overallmean = sum/npts;
+       else           overallmean = 0.0;
        printf("%-13.6g ", overallmean);
      }
    if(Countflag)
@@ -743,7 +751,10 @@ static void Max_func(int Minflag, int Maxflag, int Meanflag, int Countflag,
    if (Sumflag) 
       printf("%-13.6g ", sum);
    if (Varflag) {
-      vr = (sum2-sum*sum/(double)npts)/(double)(npts-1);
+      /* 11 Jun 2019 */
+      if( npts > 1 ) vr = (sum2-sum*sum/(double)npts)/(double)(npts-1);
+      else           vr = 0.0;
+
       if (Varflag == 2) printf("%-13.6g ", sqrt(vr)); 
       else  printf("%-13.6g ", vr);   
    }

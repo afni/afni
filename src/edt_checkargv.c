@@ -489,9 +489,6 @@ ENTRY("EDIT_check_argv") ;
       CHECK_DONE ;
    }
 
-
-
-
    /**** -1blur_sigma size ****/
 
    if( strncmp(argv[nopt],"-1blur_sigma",12) == 0 ){
@@ -521,18 +518,39 @@ ENTRY("EDIT_check_argv") ;
       CHECK_DONE ;
    }
 
+   /**** -1blur3D_fwhm xsize ysize zsize [17 Jun 2019] ****/
+
+   if( strncmp(argv[nopt],"-1blur3D_fwhm",13) == 0 ){
+      nopt++ ;
+      if( nopt+2 >= argc ){
+         fprintf(stderr,"need 3 arguments after -1blur3D_fwhm!\n") ; EXIT(1) ;
+      }
+      edopt->blurx = strtod( argv[nopt++] , NULL ) ;
+      edopt->blury = strtod( argv[nopt++] , NULL ) ;
+      edopt->blurz = strtod( argv[nopt++] , NULL ) ;
+      if( edopt->blurx <= 0.0f && edopt->blury <= 0.0f && edopt->blurz <= 0.0f ){
+        WARNING_message("-1blur3D_fwhm: all values are non-positive -- ignoring") ;
+      } else {
+        edopt->blurx = FWHM_TO_SIGMA(edopt->blurx) ;
+        edopt->blury = FWHM_TO_SIGMA(edopt->blury) ;
+        edopt->blurz = FWHM_TO_SIGMA(edopt->blurz) ;
+      }
+      CHECK_DONE ;
+   }
+
    /**** -1blur_fwhm size ****/
 
-   if( strncmp(argv[nopt],"-1blur_fwhm",12) == 0 ){
+   if( strncmp(argv[nopt],"-1blur_fwhm",11) == 0 ){
       nopt++ ;
       if( nopt >= argc ){
          fprintf(stderr,"need argument after -1blur_fwhm!\n") ; EXIT(1) ;
       }
       edopt->blur = strtod( argv[nopt++] , NULL ) ;
-      if( edopt->blur <= 0 ){
-         fprintf(stderr,"illegal value after -1blur_fwhm\n") ; EXIT(1) ;
+      if( edopt->blur <= 0.0 ){
+        WARNING_message("-1blur_fwhm: blur value is non-positive -- ignoring") ;
+      } else {
+        edopt->blur = FWHM_TO_SIGMA(edopt->blur) ;
       }
-      edopt->blur = FWHM_TO_SIGMA(edopt->blur) ;
       CHECK_DONE ;
    }
 

@@ -1,5 +1,11 @@
 import sys
 
+# ver = 1.1 ; date = April 2, 2019
+# + [PA Taylor] Fix enorm values, to be *derivatives* of mot pars.
+#   Yikes.
+#
+# ======================================================================
+
 RADtoDEG = 180./3.141592653589793 
 
 def read_tortoise_transformations(my_file):
@@ -40,13 +46,7 @@ def read_tortoise_transformations(my_file):
             aa.append( float(x[i]) )
         for i in range(3, 6):
             aa[i]*= RADtoDEG
-
-        enorm = 0.
-        for i in range(6):
-            enorm+= aa[i]**2
-        enorm = enorm**0.5 
-
-        data_list1.append(aa+[enorm])
+        data_list1.append(aa)
 
     return data_list1
 

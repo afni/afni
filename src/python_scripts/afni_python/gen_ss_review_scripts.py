@@ -882,9 +882,10 @@ g_history = """
    1.11 May 16, 2019:
         - added uvars flip_check_dset and flip_guess
         - apply them and show flip_guess in review_basic
+   1.12 Jun 19, 2019: added surf_vol
 """
 
-g_version = "gen_ss_review_scripts.py version 1.11, May 16, 2019"
+g_version = "gen_ss_review_scripts.py version 1.12, June 19, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1191,6 +1192,8 @@ class MyInterface:
       if self.find_flip_check_files():  return -1
       if self.guess_warn_files():       return -1
       if self.guess_ss_review_dset():   return -1
+
+      if self.guess_surf_vol_dset():    return -1
 
       if self.cvars.verb > 2:
          print('-' * 75)
@@ -2362,6 +2365,46 @@ class MyInterface:
       if self.cvars.verb > 1:
          print('-- found %s=%s in %s' % (uvar_field, guess, fname))
       
+      return 0
+
+   def guess_surf_vol_dset(self):
+      """set uvars.surf_vol"""
+
+      # check if already set
+      if self.uvar_already_set('surf_vol'): return 0
+
+      # first look for ${subj}_SurfVol_Alnd_Exp+orig.HEAD
+      if self.uvar_already_set('subj'):
+         # and use the view if we know it
+         if self.uvars.valid('final_view'):
+            vstr = self.uvars.val('final_view')
+         else:
+            vstr = '*'
+         gstr = '%s_SurfVol_Alnd_Exp+%s.HEAD' % (self.uvars.val('subj'), vstr)
+         glist = glob.glob(gstr)
+
+      # next try Alnd_Exp
+      if len(glist) == 0:
+         gstr = '*SurfVol_Alnd_Exp*.HEAD'
+         glist = glob.glob(gstr)
+      
+      # next try simple SurfVol
+      if len(glist) == 0:
+         gstr = '*SurfVol*.HEAD'
+         glist = glob.glob(gstr)
+
+      # if not found, give up
+      if len(glist) == 0:
+         return 0 # failure is most common
+
+      if len(glist) > 1:
+         print("** found more than 1 SurfVol dataset?")
+         print("   using first of:")
+         print("      " + "\n      ".join(glist))
+
+      # search for files containing 'out', but default to first
+      self.uvars.surf_vol = glist[0]
+
       return 0
 
    def find_radcor_files(self):

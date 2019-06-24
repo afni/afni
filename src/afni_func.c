@@ -15,6 +15,8 @@ static THD_3dim_dataset *atlas_ovdset = NULL;
 static float Thval[9] = { 1.0 , 10.0 , 100.0 , 1000.0 , 10000.0 ,
                          100000.0 , 1000000.0 , 10000000.0 , 100000000.0 } ;
 
+static int reset_func_range_ncall[MAX_CONTROLLERS] ; /* initialized to 0 by C */
+
 /*-------------------------------------------------------------------
    This routine is also used by the macros
       AFNI_SEE_FUNC_ON and AFNI_SEE_FUNC_OFF
@@ -28,7 +30,7 @@ void AFNI_see_func_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_see_func_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -482,7 +484,7 @@ void AFNI_thr_scale_CB( Widget w, XtPointer client_data, XtPointer call_data )
 
 ENTRY("AFNI_thr_scale_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( cbs != NULL ) ival = cbs->value ;
    else              XmScaleGetValue( w , &ival ) ;
@@ -663,7 +665,7 @@ void AFNI_set_thr_pval( Three_D_View *im3d )
 
 ENTRY("AFNI_set_thr_pval") ;
 
-   if( ! IM3D_VALID(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || ! ISVALID_3DIM_DATASET(im3d->fim_now) ) EXRETURN ;
 
    thresh = get_3Dview_func_thresh(im3d,1);
 
@@ -825,7 +827,7 @@ void AFNI_inten_pbar_CB( MCW_pbar *pbar , XtPointer cd , int reason )
 
 ENTRY("AFNI_inten_pbar_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( PBAR_FULLRANGE && !IM3D_ULAY_COHERENT(im3d) ){ /* 10 Jun 2014 */
      STATUS("incoherent ulay -- patching") ;
@@ -1818,6 +1820,9 @@ ENTRY("AFNI_func_overlay") ;
    }
    if( !im3d->vinfo->stats_func_ok || !im3d->vinfo->arang_func_ok
                                    || (!im3d->vinfo->stats_thresh_ok && need_thr) ){
+     DSET_load( im3d->fim_now ) ;
+     if( !DSET_LOADED(im3d->fim_now) && im3d->fim_now->warp_parent != NULL )
+       DSET_load( im3d->fim_now->warp_parent ) ;
      AFNI_reset_func_range( im3d ) ;
    }
 
@@ -2770,7 +2775,7 @@ ENTRY("AFNI_resam_av_CB") ;
 
    /* sanity check */
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    /* assign resampling type based on which arrowval, and redraw */
 
@@ -3212,7 +3217,7 @@ ENTRY("AFNI_choose_dataset_CB") ;
 
    /*--- initialize ---*/
 
-   if( ! IM3D_VALID(im3d) || w == (Widget)NULL ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || w == (Widget)NULL ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -3526,7 +3531,7 @@ void AFNI_finalize_dataset_CB( Widget wcall ,
 
 ENTRY("AFNI_finalize_dataset_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    old_sess = im3d->vinfo->sess_num ;     /* record current status */
    old_anat = im3d->vinfo->anat_num ;
@@ -3823,6 +3828,9 @@ ENTRY("AFNI_finalize_dataset_CB") ;
    im3d->vinfo->anat_num  = new_anat ;
    im3d->vinfo->func_num  = new_func ;
 
+   if( new_func != old_func && im3d->vinfo->fim_autorange )  /* 20 Jun 2019 */
+     reset_func_range_ncall[ AFNI_controller_index(im3d) ] = 0 ;
+
    SHOW_AFNI_PAUSE ;
    AFNI_initialize_view( im3d->anat_now , im3d ) ;
    SHOW_AFNI_READY ;
@@ -3964,7 +3972,7 @@ void AFNI_close_file_dialog_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_close_file_dialog") ;
 
-   if( IM3D_VALID(im3d) && im3d->vwid->file_dialog != NULL )
+   if( IM3D_OPEN(im3d) && im3d->vwid->file_dialog != NULL )
      RWC_XtPopdown( im3d->vwid->file_dialog ) ;
 
    EXRETURN ;
@@ -5153,7 +5161,7 @@ void AFNI_anatmode_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_anatmode_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -5192,7 +5200,7 @@ void AFNI_funcmode_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_funcmode_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -5522,8 +5530,8 @@ ENTRY("AFNI_saveas_dataset_CB") ;
 
    saveas_iset = NULL ;
 
-   if( ! IM3D_VALID(im3d) || w == NULL ||
-       ! XtIsWidget(w)    || ! XtIsRealized(w) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) || w == NULL ||
+       ! XtIsWidget(w)   || ! XtIsRealized(w) ) EXRETURN ;
    if( GLOBAL_library.have_dummy_dataset ){ EXRETURN ; }
 
    if( w == im3d->vwid->dmode->saveas_anat_pb ){
@@ -6174,7 +6182,7 @@ void AFNI_imseq_clearstat( Three_D_View *im3d )
 
 ENTRY("AFNI_imseq_clearstat") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    if( im3d->s123 != NULL )
       drive_MCW_imseq( im3d->s123 , isqDR_clearstat , NULL ) ;
@@ -6341,6 +6349,8 @@ ENTRY("AFNI_autorange_label") ;
 
    if( im3d->fim_now->int_cmap == CONT_CMAP && AUTORANGE_PERC > 1 && AUTORANGE_PERC < 100 ){
      MRI_IMAGE *qim=NULL ; float qval ;
+     if( !DSET_LOADED(im3d->fim_now) && DSET_TOTALBYTES(im3d->fim_now) < 66666666 )
+       DSET_load(im3d->fim_now) ;
      if( DSET_LOADED(im3d->fim_now) ){
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now) ;
      } else if( im3d->fim_now->warp_parent != NULL &&
@@ -6348,23 +6358,16 @@ ENTRY("AFNI_autorange_label") ;
        qim = THD_extract_float_brick(im3d->vinfo->fim_index,im3d->fim_now->warp_parent) ;
      }
      if( qim != NULL ){
-/* ININFO_message("   get %.1f%% nzabs",AUTORANGE_PERC) ; */
        qval = percentile_nzabs( qim->nvox, MRI_FLOAT_PTR(qim), AUTORANGE_PERC ) ;
        mri_free(qim) ;
-/* ININFO_message("   qval = %g",qval) ; */
        if( qval > 0.0f ) rrr = qval ;
-       im3d->vinfo->arang_func_ok = 1 ;
-/* ININFO_message("  new style rrr = %g",rrr) ; */
-     } else {
-/* ININFO_message("  can't extract float brick!?") ; */
      }
-   } else {
-/* ININFO_message("AUTORANGE_PERC=%g DSET_LOADED(%s)=%d",AUTORANGE_PERC,DSET_BRICKNAME(im3d->fim_now),DSET_LOADED(im3d->fim_now)) ; */
    }
 
    if( rrr == 0.0f ) rrr = DEFAULT_FIM_SCALE ;
 
    im3d->vinfo->fim_autorange = rrr ;
+   im3d->vinfo->arang_func_ok = 1 ;
    AV_fval_to_char( rrr , qbuf ) ;
    sprintf( buf , "autoRange:%s" , qbuf ) ;
    xstr = XmStringCreateLtoR( buf , XmFONTLIST_DEFAULT_TAG ) ;
@@ -6388,7 +6391,7 @@ void AFNI_range_bbox_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_range_bbox_CB") ;
 
-   if( ! IM3D_VALID(im3d) ||
+   if( ! IM3D_OPEN(im3d) ||
        w != im3d->vwid->func->range_bbox->wbut[RANGE_AUTOBUT] ) EXRETURN ;
 
    new_auto = (MCW_val_bbox(im3d->vwid->func->range_bbox) & RANGE_AUTOVAL) != 0 ;
@@ -6434,7 +6437,7 @@ void AFNI_perc_bbox_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_perc_bbox_CB") ;
 
-   if( ! IM3D_VALID(im3d) ||
+   if( ! IM3D_OPEN(im3d) ||
        w != im3d->vwid->func->perc_bbox->wbut[PERC_AUTOBUT] ) EXRETURN ;
 
    im3d->cont_perc_thr = MCW_val_bbox(im3d->vwid->func->perc_bbox);
@@ -6457,7 +6460,7 @@ void AFNI_range_av_CB( MCW_arrowval *av , XtPointer cd )
 
 ENTRY("AFNI_range_av_CB") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -6500,7 +6503,7 @@ void AFNI_inten_bbox_CB( Widget w, XtPointer cd, XtPointer cb )
 
 ENTRY("AFNI_inten_bbox_CB") ;
 
-   if( ! IM3D_VALID(im3d) ||
+   if( ! IM3D_OPEN(im3d) ||
        w != im3d->vwid->func->inten_bbox->wbut[PBAR_MODEBUT] ) EXRETURN ;
 
    new_pos = (MCW_val_bbox(im3d->vwid->func->inten_bbox) & PBAR_MODEPOS) != 0 ;
@@ -6545,8 +6548,10 @@ ENTRY("AFNI_inten_bbox_CB") ;
       else
         AV_assign_ival( im3d->vwid->func->inten_av, pbar->npan_save[jm] ) ;
 
-      if( PBAR_FULLRANGE ) AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
-      else                 HINTIZE_pbar(im3d) ;
+      if( PBAR_FULLRANGE && !IM3D_IS_BIGTHREE(im3d) )
+        AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
+      else
+        HINTIZE_pbar(im3d) ;
 
       AFNI_redisplay_func_ignore(0) ;
       AFNI_redisplay_func( im3d ) ;
@@ -6566,10 +6571,11 @@ void AFNI_reset_func_range( Three_D_View *im3d )
 {
    XmString xstr ;
    Boolean  same ;
+   int iqq = AFNI_controller_index(im3d) ;
 
 ENTRY("AFNI_reset_func_range") ;
 
-   if( ! IM3D_VALID(im3d) ) EXRETURN ;
+   if( ! IM3D_OPEN(im3d) ) EXRETURN ;
 
    im3d->vinfo->stats_anat_ok =
     im3d->vinfo->stats_func_ok =
@@ -6619,10 +6625,10 @@ ENTRY("AFNI_reset_func_range") ;
       (im3d->vinfo->use_autorange) ? (im3d->vinfo->fim_autorange)
                                    : (im3d->vwid->func->range_av->fval) ;
 
-   if( PBAR_FULLRANGE ){
+   if( PBAR_FULLRANGE && (reset_func_range_ncall[iqq]==0 || !IM3D_IS_BIGTHREE(im3d)) ){
      AFNI_redisplay_func_ignore(1) ;
      AFNI_pbar_topset(im3d,im3d->vinfo->fim_range) ;
-     AFNI_redisplay_func_ignore(0) ;
+     AFNI_redisplay_func_ignore(0) ; reset_func_range_ncall[iqq]++ ;
    }
    else HINTIZE_pbar(im3d) ;
 

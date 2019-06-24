@@ -318,8 +318,15 @@ static int show_malloc_stats(char * mesg)
 
    if( show_stats ) {
       fprintf(stderr,"\n----- malloc stats: %s\n", mesg);
-#ifndef DARWIN
+/* apply FreeBSD patch from J Bacon [10 Jun 2019 rickr] */
+#if defined(__linux__)
       malloc_stats();
+#elif defined(__FreeBSD__)
+      #include <stdlib.h>
+      #include <malloc_np.h>
+      malloc_stats_print(NULL, NULL, "g");
+#else
+      fprintf(stderr, "No malloc_stats() on this platform.\n");
 #endif
    }
 

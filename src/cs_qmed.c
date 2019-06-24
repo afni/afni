@@ -22,6 +22,7 @@ float qmean_float( int n , float *ar )
 /*------------------------------------------------------------------------
     Compute non-zero mean of an array of floats 
 -------------------------------------------------------------------------*/
+
 float qnzmean_float( int n , float *ar )
 {
    int ii ; float sum=0.0f, v ;
@@ -36,10 +37,8 @@ float qnzmean_float( int n , float *ar )
 			ngood++;
 	    }
    }
-   /* might have no non-zero voxels, so just return 0*/
-   if(ngood<=0) sum = 0.0;
-   /* otherwise return average */
-   else sum /= ngood ; 
+   if( ngood <=0 ) sum = 0.0f ;   /* might have no nonzero voxels */
+   else            sum /= ngood ; /* otherwise return average */
    return sum ;
 }
 
@@ -147,9 +146,11 @@ float qmed_float( int n , float *ar )
    return (nodd) ? a[mid] : 0.5*(a[mid]+a[mid-1]) ;
 }
 
+/*-------------------------------------------------------------------------*/
 /* find the modal value in a list of numbers
    mostly useful for integers, but not limiting here.
    doing this brute force for now */
+
 float qmode_float( int n , float *ar )
 {
    register int i , j ;           /* scanning indices */
@@ -158,7 +159,7 @@ float qmode_float( int n , float *ar )
    register int cnt, maxcnt ;
 
    /* no values, get out of here */
-   if (n==0) return(0.0);
+   if (n==0) return(0.0f);
 
 
    /* general case */
@@ -184,9 +185,11 @@ float qmode_float( int n , float *ar )
    return(mode) ;
 }
 
+/*-------------------------------------------------------------------------*/
 /* find the non-zero modal value in a list of numbers
    mostly useful for integers, but not limiting here.
    doing this brute force for now */
+
 float qnzmode_float( int n , float *ar )
 {
    register int i , j ;           /* scanning indices */
@@ -195,7 +198,7 @@ float qnzmode_float( int n , float *ar )
    register int cnt, maxcnt ;
 
    /* no values, get out of here */
-   if (n==0) return(0.0);
+   if (n==0) return(0.0f);
 
    /* general case */
    maxcnt = 0; mode = -9999;
@@ -218,7 +221,7 @@ float qnzmode_float( int n , float *ar )
    }
 
    /* if didn't find anything non-zero,return 0.0 */
-   if(maxcnt==0) return(0.0);
+   if(maxcnt==0) return(0.0f);
    /* normal case - return mode */
    return(mode) ;
 }
@@ -295,6 +298,10 @@ void qmedmadbmv_float( int n, float *ar, float *med, float *mad, float *bmv )
 
    if( n <= 0 || ar == NULL || (med==NULL && mad==NULL && bmv==NULL) ) return;
 
+   if( med != NULL ) *med = 0.0f ; /* initialize outputs [24 Jun 2019] */
+   if( mad != NULL ) *mad = 0.0f ;
+   if( bmv != NULL ) *bmv = 0.0f ;
+
    qmedmad_float( n , ar , &lmed , &lmad ) ;
    if( med != NULL ) *med = lmed ;
    if( mad != NULL ) *mad = lmad ;
@@ -325,6 +332,10 @@ void qmedmadmeanad_float( int n, float *ar, float *med, float *mad , float *mean
    register int ii ;
 
    if( (med == NULL && mad == NULL && meanad == NULL ) || n <= 0 || ar == NULL ) return ;
+
+   if( med    != NULL ) *med    = 0.0f ; /* initialize outputs [24 Jun 2019] */
+   if( mad    != NULL ) *mad    = 0.0f ;
+   if( meanad != NULL ) *meanad = 0.0f ;
 
 #pragma omp critical (MALLOC)
    q = (float *)malloc(sizeof(float)*n) ;  /* workspace */
@@ -1027,6 +1038,7 @@ void *Percentate (void *vec, byte *mm, int nxyz,
 }
 
 /*----------------------------------------------------------------------*/
+/* Implementation not finished :( */
 
 float wtmed_float( int n , float *x , float *w )
 {
@@ -1176,7 +1188,7 @@ float cs_median_abs_sd( int npt , float *x , float *wks )
 
    if( npt < 2 || x == NULL ) return 0.0f ;
 
-   if( dd == NULL ) dd = (float *)malloc(sizeof(float)*npt) ;
+   if( dd == NULL ) dd = (float *)malloc(sizeof(float)*npt) ; /* local wks */
 
    for( ii=1 ; ii < npt ; ii++ ){
      dd[ii-1] = fabsf( x[ii] - x[ii-1] ) ;

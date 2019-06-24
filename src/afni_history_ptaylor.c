@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 20, June , 2019 , PT , "@djunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
+   "Use the CAPTION feature on image tables in text blocks.",
+   "Also fix help display.\n"
+},
+
+{ 19, June , 2019 , PT , "@djunct_make_script_and_rst.py" , MICRO , TYPE_NEW_PROG,
+   "New prog for Sphinx doc generation (well, assistance).",
+   "Somewhat simple markup scheme used to generate RST, images and scripts.\n"
+},
+
+{ 5, June , 2019 , PT , "3dTrackID" , MICRO , TYPE_NEW_OPT,
+   "New opt (flag): -trk_opp_orient.  Applies only to TRK format output.",
+   "Will oppositize the voxel_order for the TRK file.\n"
+},
+
 { 23, May , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Would not run in python2, because of subprocess.run() call (only py3).",
    "Now updated to using afni_base.py functions to execute shell cmds.\n"

@@ -199,8 +199,9 @@ int main( int argc , char *argv[] )
      mask = (byte *)malloc(sizeof(byte)*mask_nvox) ;
      nx = DSET_NX(dset); ny = DSET_NY(dset); nz = DSET_NZ(dset); nxy = nx*ny;
      nx1 = nx-1 ; ny1 = ny-1 ; nz1 = nz-1 ;
-     if( nx1 == 0 || ny1 == 0 || nz1 == 0 )
-       ERROR_exit("Cannot use automask on dataset with only one slice :(") ;
+     /* allow surface datasets, if not peel ordering     [18 Jun 2019 rickr] */
+     if( grayplot_is_ordered_by_peels() && (nx1 == 0 || ny1 == 0 || nz1 == 0) )
+       ERROR_exit("Cannot peel automask on dataset with only one slice :(") ;
      for( vv=kk=0 ; kk < nz ; kk++ ){
       for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++,vv++){

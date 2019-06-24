@@ -906,10 +906,13 @@ def afni_selectors(names):
       sqsel = names[names.find('['):names.find(']')+1]
       namestr = namestr.replace(sqsel,'')
    
-   nse = names.count('{')
-   if (nse == 1 and nse == names.count('}')):
-      cusel = names[names.find('{'):names.find('}')+1]
-      namestr = namestr.replace(cusel,'')
+   # handle enclosed shell variables, like "${subj}"  13 Jun 2019 [rickr]
+   clist = find_all_non_var_curlys(names)
+   if len(clist) == 1:  # maybe > 0 is okay, should we really distinguish?
+      if names.count('}', clist[-1]) == 1:
+         cend = names.find('}',clist[-1])  # for clarity
+         cusel = names[clist[-1]:cend+1]
+         namestr = namestr.replace(cusel,'')
    
    nse = names.count('<')
    if (nse == 1 and nse == names.count('>')):
@@ -923,6 +926,22 @@ def afni_selectors(names):
       namestr = namestr.replace(pnsel,'')
    
    return sqsel, cusel, pnsel, ltsel, namestr
+
+def find_all_non_var_curlys(stext):
+   """return a 
+   """
+   clist = []
+   start = 0
+   cind = stext.find('{', start)
+   while cind >= start:
+      # if preceded by '$', just ignore (okay if cind-1 == -1)
+      if cind == 0 or stext[cind-1] != '$':
+         # have found '{', and not preceded by '$'
+         clist.append(cind)
+      # and look for next
+      start = cind + 1
+      cind = stext.find('{', start)
+   return clist
    
 #execute a shell command and when capture is 1 returns results in:
 # so (stdout) and se (stderr) and status

@@ -87,6 +87,8 @@ static int do_plusminus = 0 ;  /* doing plusminus warping? */
 
 static char *wset_name  = NULL ; /* 13 Mar 2019 */
 
+static int do_xflip_bset = 0 ; /* 18 Jun 2019 */
+
 /*---------------------------------------------------------------------------*/
 /*! Turn an input image into a weighting factor.
       If acod == 2, then make a binary mask at the end.
@@ -1523,6 +1525,9 @@ void Qallineate( char *basname , char *srcname , char *emkname , char *allopt )
    if( allopt == NULL || strstr(allopt,"-fineblur") == NULL )
      strcat(cmd," -fineblur 4.44") ;
 
+   if( do_xflip_bset )
+     strcat(cmd," -xflipbase") ;              /* 18 Jun 2019 */
+
 #if 0
    if( allopt == NULL || strstr(allopt,"-onepass") == NULL )
      strcat(cmd," -norefinal") ;
@@ -1785,6 +1790,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[nopt],"-nodset") == 0 ){
        nodset =  1 ; nopt++ ; continue ;
+     }
+
+     /*---------------*/
+
+     if( strcasecmp(argv[nopt],"-xflipbase") == 0 ){  /* 18 Jun 2019 [SECRET] */
+       do_xflip_bset = 1 ; nopt++ ; continue ;
      }
 
      /*---------------*/
@@ -2845,7 +2856,22 @@ STATUS("load datasets") ; /*--------------------------------------------------*/
    DSET_load(bset) ; CHECK_LOAD_ERROR(bset) ;
    bim = THD_extract_float_brick(0,bset) ; DSET_unload(bset) ;
    if( DSET_NVALS(bset) > 1 )
-     INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first") ;
+     INFO_message("base dataset has more than 1 sub-brick: ignoring all but the first [0]") ;
+
+   /* x flip base for mirror check? [18 Jun 2019] */
+
+   if( do_xflip_bset ){
+      int nbx=bim->nx, nby=bim->ny, nbz=bim->nz, nbyz = nby*nbz, ii,kk,koff,knnn ;
+      float *bimar = MRI_FLOAT_PTR(bim) , *tar ;
+      tar = (float *)malloc(sizeof(float)*nbx) ;
+      for( kk=0 ; kk < nbyz ; kk++ ){
+        koff = kk*nbx ; knnn = koff+nbx-1 ;
+        for( ii=0 ; ii < nbx ; ii++ ) tar[ii] = bimar[ii+koff] ;
+        for( ii=0 ; ii < nbx ; ii++ ) bimar[knnn-ii] = tar[ii] ;
+      }
+      free(tar) ;
+      INFO_message("3dQwarp: x-flipped base dataset") ;
+   }
 
    nnz = mri_nonzero_count(bim) ;  /* 13 Mar 2017 */
    if( nnz < 100 )

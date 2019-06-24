@@ -60,7 +60,8 @@ g_ss_uvar_fields = [ \
    ['cormat_warn_dset','correlation warns in Xmat', 'out.cormat_warn.txt'],
    ['pre_ss_warn_dset','pre-steady state warnings', 'out.pre_ss_warn.txt'],
    ['tent_warn_dset',  'tent truncation warnings', 'out.tent_warn.txt'],
-   ['decon_err_dset',  '3dDeconvolve warnings', '3dDeconvolve.err']
+   ['decon_err_dset',  '3dDeconvolve warnings', '3dDeconvolve.err'],
+   ['surf_vol',  'surface volume dset', 'FT.surf_SurfVol_Alnd_Exp+orig.HEAD']
    ]
 
 

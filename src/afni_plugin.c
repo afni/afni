@@ -5446,6 +5446,29 @@ ENTRY("PLUTO_force_rebar") ;
    EXRETURN ;
 }
 
+/*----------------------------------------------------------------------
+   Force the change of opacity in all open image viewers 
+   06 Jun 2019 -- RWCox.
+------------------------------------------------------------------------*/
+
+void PLUTO_force_opacity_change(void)
+{
+   Three_D_View *im3d ;
+   int ii , opval=GLOBAL_library.opacity_setting ;
+
+ENTRY("PLUTO_force_opacity_change") ;
+
+   for( ii=0 ; ii < MAX_CONTROLLERS ; ii++ ){
+      im3d = GLOBAL_library.controllers[ii] ;
+      if( IM3D_OPEN(im3d) ){
+         drive_MCW_imseq( im3d->s123, isqDR_setopacity, (XtPointer)ITOP(opval) );
+         drive_MCW_imseq( im3d->s231, isqDR_setopacity, (XtPointer)ITOP(opval) );
+         drive_MCW_imseq( im3d->s312, isqDR_setopacity, (XtPointer)ITOP(opval) );
+      }
+   }
+   EXRETURN ;
+}
+
 /*------------------------------------------------------------------------*/
 static int num_workp      = 0 ;
 static XtWorkProc * workp = NULL ;

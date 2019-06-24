@@ -3289,11 +3289,9 @@ STATUS("making func->rowcol") ;
             XmNinitialResourcesPersistent , False ,
          NULL ) ;
 
-#ifdef FIX_SCALE_SIZE_PROBLEM
-   XtVaSetValues( func->thr_scale ,
-                    XmNuserData , (XtPointer)ITOP(sel_height) ,
-                  NULL ) ;
-#endif
+         XtVaSetValues( func->thr_scale ,
+                          XmNuserData , (XtPointer)ITOP(sel_height) ,
+                        NULL ) ;
 
 #ifdef USING_LESSTIF
    XtVaSetValues( func->thr_scale , XmNscaleWidth,24 , NULL ) ;
@@ -3380,7 +3378,7 @@ STATUS("making func->rowcol") ;
 
    BBOX_set_wtype("font8") ;
    func->thr_top_av = new_MCW_arrowval( func->thr_rowcol ,
-                                        "**" ,
+                                        "10^" ,
                                         AVOPT_STYLE ,
                                         0,THR_top_expon,0 ,
                                         MCW_AV_notext , 0 ,

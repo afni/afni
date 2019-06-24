@@ -16,6 +16,7 @@ set prog = `basename $0`
 set hostname = afni.nimh.nih.gov
 set hostproto = https://
 set hostsite = $hostproto$hostname
+set distdir = pub/dist
 
 set sysname = `uname -s`
 if ( $status ) then
@@ -71,6 +72,7 @@ history for $prog :
                    - add -show_obsoletes, -show_obsoletes_grep
                      and -show_system_progs
   3.8  15 Mar 2019 : comment that dotfile updates were done by @uab
+  3.9  14 Jun 2019 : add -hostname and -distdir
 
 -------------------------------------------------------------------------------
 EOF
@@ -79,7 +81,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.8, March 15, 2019"
+set aub_version = "3.9, June 14, 2019"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -162,6 +164,13 @@ while ( $ac <= $#argv )
         set defaults = 1
         set do_apsearch = 1
         set do_dotfiles = 1
+    else if ( "$argv[$ac]" == "-distdir" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-distdir'"
+            exit 1
+        endif
+        set distdir = $argv[$ac]
     else if ( "$argv[$ac]" == "-do_dotfiles" ) then
         set do_dotfiles = 1
     else if ( "$argv[$ac]" == "-do_extras" ) then
@@ -177,6 +186,13 @@ while ( $ac <= $#argv )
         exit 0
     else if ( "$argv[$ac]" == "-hist" ) then
         goto SHOW_HIST
+    else if ( "$argv[$ac]" == "-hostname" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-hostname'"
+            exit 1
+        endif
+        set hostname = $argv[$ac]
     else if ( "$argv[$ac]" == "-local_package" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -751,7 +767,7 @@ if ( $do_recur ) then
    set temp_prog = tmp.$prog         # temp name to run with
    set retry = 0                     # use multiple attempts to get this
 
-   set bin_root = $hostsite/pub/dist/bin
+   set bin_root = $hostsite/$distdir/bin
    set get_package = $bin_root/$package/$prog
    echo "++ getting install prog: $get_prog $package/$prog ..."
    echo $get_prog $get_package
@@ -911,7 +927,7 @@ if ( $test_protos ) then
          set proto = ${pshort}://
       endif
       set tmpsite = $proto$hostname
-      set tmpprog = $tmpsite/pub/dist/bin/$package/$prog
+      set tmpprog = $tmpsite/$distdir/bin/$package/$prog
 
       echo $get_prog $tmpprog
       $get_prog $tmpprog
@@ -990,7 +1006,7 @@ if ( $local_package == "" ) then
    else
      set pp = afni
    endif
-   set get_package = $hostsite/pub/dist/bin/$package/$pp
+   set get_package = $hostsite/$distdir/bin/$package/$pp
    echo "++ downloading test file: $get_prog $package/$pp ..."
    $get_prog $get_package
    cmp -s $pp ../$pp
@@ -1046,7 +1062,7 @@ if ( $#prog_list == 0 ) then
    # if local, nothing to download
    if ( $local_package == "" ) then
       echo "++ downloading full package: $get_prog $package.tgz ..."
-      set get_package = $hostsite/pub/dist/tgz/$package.tgz
+      set get_package = $hostsite/$distdir/tgz/$package.tgz
       $get_prog $get_package
       if ( $status ) then
           echo "** failed to download package $get_package"
@@ -1058,7 +1074,7 @@ else
    if ( $#prog_list > 1 ) echo "++ downloading remaining files ..."
    foreach pp ( $prog_list[2-] )
       set prog = $pp:t
-      set get_package = $hostsite/pub/dist/bin/$package/$prog
+      set get_package = $hostsite/$distdir/bin/$package/$prog
       $get_prog $get_package
       set ss = $status
       if ( $ss ) then

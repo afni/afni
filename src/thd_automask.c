@@ -1354,6 +1354,10 @@ void MRI_autobbox( MRI_IMAGE *qim ,
 
 ENTRY("MRI_autobbox") ;
 
+   ASSIF(xm,0) ; ASSIF(xp,0) ;  /* initialize output params */
+   ASSIF(ym,0) ; ASSIF(yp,0) ;
+   ASSIF(zm,0) ; ASSIF(zp,0) ;
+
    /* find largest component as in first part of THD_automask() */
 
    if( qim->kind != MRI_float ) fim = mri_to_float(qim) ;

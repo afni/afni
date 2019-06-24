@@ -9,13 +9,13 @@
 #define NTIP ((int)(sizeof(tip)/sizeof(char *)))
 static char *tip[] = {
 
-/*-- Tips for the AFNI GUI --*/
+/*----------------- Tips for the AFNI GUI -----------------*/
 
    "If you set environment variable AFNI_GLOBAL_SESSION to the name\n"
    "of a directory with datasets, then those datasets will be visible\n"
    "in the UnderLay and OverLay choosers. For example, copy the MNI\n"
-   "template MNI152_2009_template.nii.gz to this directory, and then\n"
-   "you'll always be able to use it as an underlay dataset."
+   "template MNI152_2009_template_SSW.nii.gz to this directory, and\n"
+   "then you'll always be able to use it as an underlay dataset."
  ,
    "If the aspect ratio (width/height) of an image viewer window looks\n"
    "bad, you can fix it by typing the 'a' key into the image, or by\n"
@@ -399,16 +399,45 @@ static char *tip[] = {
  ,
   "Want bigger fonts in AFNI, for a high resolution screen? Set environment\n"
   "variable AFNI_FONTSIZE to PLUS or BIG (preferably in your .afnirc setup file)."
+ ,
+  "Some environment settings for the AFNI graphical user interface (GUI)\n"
+  "that you might want to change (in your ~/.afnirc file) are listed below.\n"
+  "The built-in values in the GUI program are shown here in [brackets]:\n"
+  "  AFNI_DETACH             = detach GUI from terminal window              [YES]\n"
+  "  AFNI_RESCAN_AT_SWITCH   = find new data when using UnderLay or OverLay [YES]\n"
+  "  AFNI_GRAPH_FADE         = 'fade out' below thresh voxels in graphs     [YES]\n"
+  "  AFNI_DATASET_BROWSE     = switch instantly in UnderLay/OverLay         [YES]\n"
+  "  AFNI_PBAR_FULLRANGE     = put value labels next to colorscale          [YES]\n"
+  "  AFNI_COLORSCALE_DEFAULT = name of startup colorscale    [Reds_and_Blues_Inv]\n"
+  "  AFNI_THRESH_INIT_EXPON  = initial power-of-ten for threshold             [1]\n"
+  "  AFNI_OPACITY_LOCK       = lock 1-9 opacity arrows among image viewers  [YES]\n"
+  "  AFNI_NOSPLASH           = turn off the AFNI splash screen at startup    [NO]\n"
+  "  AFNI_STARTUP_SOUND      = turn on the AFNI startup sound!               [NO]\n"
+  "  AFNI_LEFT_IS_LEFT       = show subject left on screen left             [YES]\n"
+  "                            (for Axial and Coronal viewers)\n"
+  "  AFNI_NOPLUGINS          = don't load any of the AFNI GUI plugins        [NO]\n"
+  "                            Setting AFNI_NOPLUGINS to YES can speed up\n"
+  "                            scripts that externally drive the AFNI GUI,\n"
+  "                            since such a script usually doesn't use a plugin.\n"
+  "* Some of these values are already set in the .afnirc file that is given out\n"
+  "   with the AFNI binaries. You can also set environment variables in a script\n"
+  "   before starting the AFNI GUI, which will take priority over values set in\n"
+  "   the ~/.afnirc file.\n"
+  "* All AFNI environment variables (including many that do not affect the GUI)\n"
+  "   are described in the README.environment file."
 
-/*-- tips below here are for non-GUI programs --*/
+/*----------------- tips below here are for non-GUI programs -----------------*/
  ,
    "Questions about AFNI? Problems with a program? Try our Message Board at\n"
    "  https://afni.nimh.nih.gov/afni/community/board/\n"
-   "Please be specific and focused, as generic questions without\n"
-   "details are very hard to answer well on a Web forum."
+   "* Please be specific and focused, as generic questions without\n"
+   "   details are very hard to answer well on a Web forum.\n"
+   "* If you have a problem with a particular program, give the exact\n"
+   "   command line you are using, and the exact WARNING or ERROR message\n"
+   "   that you are seeing."
  ,
    "If you are doing complicated twisted things with AFNI programs, ASK US\n"
-   "(on the message board). Often, there is an easier way to do a task!"
+   "(on the message board). Often, there is a much easier way to do a task!"
  ,
    "REMEMBER: afni_proc.py is your friend when doing time series analyses!\n"
    "In particular, if you are still using custom hand-written scripts for\n"
@@ -416,7 +445,7 @@ static char *tip[] = {
    "learn to use afni_proc.py (unless you are doing something unusual)."
  ,
    "Skull stripping T1-weighted datasets? Programs and scripts include:\n"
-   " * 3dSkullStrip     - surface expansion program (many options)\n"
+   " * 3dSkullStrip     - surface expansion program (many options; multi-species)\n"
    " * @NoisySkullStrip - when the dataset is very noisy\n"
    " * @SSwarper        - nonlinear warping to MNI space combined\n"
    "                      with skull stripping (and then the warp can be\n"
@@ -425,7 +454,9 @@ static char *tip[] = {
    "Program 3dUnifize can make the image intensity of a T1-weighted dataset\n"
    "more uniform in space. As a bonus, can also contrast-invert a dataset\n"
    "prior to the uniform-ization, which might be useful for T2-weighted\n"
-   "datasets. It also has an experimental option for processing EPI data."
+   "datasets. It also has an experimental option for processing EPI data.\n"
+   "      ** Please do NOT use the older program 3dUniformize **\n"
+   "      ** since it does not do as good a job as 3dUnifize! **"
  ,
    "Program 3dcalc does voxelwise calculations on datasets. Doesn't sound\n"
    "exciting to you? Once you get to know it, you will find that 3dcalc is\n"
@@ -447,11 +478,11 @@ static char *tip[] = {
  ,
    "Are you using 3dcalc to compute the average of a bunch of datasets?\n"
    "You should use program 3dMean instead! It is faster and doesn't\n"
-   "have the artificial limitation of 26 input datasets."
+   "have the artificial alphabetic limitation of 26 input datasets."
  ,
    "Want to calculate summary values (e.g., mean, standard deviation)\n"
    "at each voxel in a time series dataset? Program 3dTstat is the\n"
-   "tool you need."
+   "tool you need -- and there is an interactive version in the GUI."
  ,
    "Programs for extracting information from spatial ROIs:\n"
    " * 3dmaskave  = get average across the ROI, one value per time point\n"
@@ -534,15 +565,17 @@ static char *tip[] = {
    "of numbers (.1D files). An example, creating a response model\n"
    "function with 3dDeconvolve and sending the time series directly\n"
    "into 1dplot:\n"
-   " 3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
-   "              -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
-   "              -x1D stdout: | 1dplot -stdin -THICK -del 0.5"
+   "  3dDeconvolve -num_stimts 1 -polort -1 -nodata 81 0.5         \\\n"
+   "               -stim_times 1 '1D: 0' 'TWOGAMpw(3,6,0.2,10,12)' \\\n"
+   "               -x1D stdout: | 1dplot -stdin -THICK -del 0.5\n"
+   "There is also a more beautiful Python version of this program,\n"
+   "cleverly named 1dplot.py"
  ,
    "Program 1dNLfit does a nonlinear fit of an expression with free\n"
    "parameters to a column of numbers. For example:\n"
-   " 1dNLfit -depdata sc.1D -indvar x '1D: 100%0:0.1' \\\n"
-   "         -expr 'a*sin(b*x)+c*cos(b*x)'            \\\n"
-   "         -param a=-2:2 -param b=1:3 -param c=-2:2  > ff.1D\n"
+   "  1dNLfit -depdata sc.1D -indvar x '1D: 100%0:0.1' \\\n"
+   "          -expr 'a*sin(b*x)+c*cos(b*x)'            \\\n"
+   "          -param a=-2:2 -param b=1:3 -param c=-2:2  > ff.1D\n"
    "fits a sine+cosine model with 3 free parameters (a,b,c) to the\n"
    "data in file sc.1D, where the 'time' parameter is x."
  ,
@@ -581,7 +614,7 @@ static char *tip[] = {
  ,
    "Want to blur/smooth a dataset? Programs:\n"
    " * 3dmerge -1blur_fwhm = Gaussian smoothing across whole volume\n"
-   " * 3dBlurInMask        = smoothing only inside a mask\n"
+   " * 3dBlurInMask        = similar smoothing, but only inside a mask\n"
    " * 3dLocalPV           = 'smooth' a time series dataset by computing\n"
    "                         the local principal vector around each\n"
    "                         voxel, instead of the average vector (slow)"
@@ -597,9 +630,11 @@ static char *tip[] = {
    " * 3dTcat    = glue datasets together in the time direction"
  ,
    "Did someone give you a dataset with the spatial orientation 'flipped',\n"
-   "so that the subject's left is marked as being the right? Program\n"
-   "3dLRflip can flip the data rows to rearrange the data so the dataset\n"
-   "header information and the actual data match again."
+   "so that the subject's left is marked as being the right?\n"
+   " * Program 3dLRflip can flip the data rows to rearrange the data so the\n"
+   "   dataset header information and the actual data match again.\n"
+   "* Processing scripts afni_proc.py and align_epi_anat.py can check\n"
+   "   if the EPI and T1w anatomical datasets appear to be left-right flipped."
  ,
    "Want to write an AFNI '3d' program? If you know C, the code 3dToyProg.c\n"
    "is a good starting point. It shows how to read, calculate, and write\n"
@@ -993,6 +1028,9 @@ static char *gby[] = {
      "The worst kind of lie: one that matches your desire"           ,
      "Truly, there is nothing more to be said"                       ,
      "The only thing to know is that no one knows anything"          ,
+     "It is never too late to be wise"                               ,
+     "What one person can imagine, another can make real"            ,
+     "Ask me no questions, and I'll tell you no lies"                ,
 
      /* bastardizations of Shakespeare */
 
@@ -1159,6 +1197,7 @@ static char *gby[] = {
      "With freedom, books, flowers, and AFNI, who could not be happy?"          ,
      "When a truth becomes a fact, it loses all intellectual value"             ,
      "I can resist anything but temptation"                                     ,
+     "Only the shallow can know themselves"                                     ,
 
      "\n In this world there are only two tragedies:\n"
      "   One is not getting what one wants, and the other is getting it"        ,
@@ -1177,6 +1216,9 @@ static char *gby[] = {
 
      "\n Good decisions come from experience ...\n"
      "   and experience mostly comes from from bad decisions"                   ,
+
+     "\n Life is never fair, and perhaps it is a good thing\n"
+     "   for most of us that it is not"                                         ,
 
      /* Longer quotes */
 
@@ -1576,7 +1618,7 @@ static char *gby[] = {
      "      dissimulate the fact that, ultimately, life is very simple - it is\n"
      "      what it is, it is simply here without reason and rhyme!\n"
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
-     "      in the simple fact that there is life.\n"
+     "      in the simple fact that there is life.\n" ,
 
      /* John 5:2-4 (KJV) */
 
@@ -1586,7 +1628,26 @@ static char *gby[] = {
      "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
      "  moving of the water. For an angel went down at a certain season into the\n"
      "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had.\n"
+     "  of the water stepped in was made whole of whatsoever disease he had.\n" ,
+
+     /* From https://www.thesaurus.com/browse/wonderful */
+
+     "If anyone asks you about your experiences with AFNI,\n"
+     "  a multitude of the following words should appear in your response:\n"
+     "    admirable      amazing     astonishing  awesome     brilliant\n"
+     "    cool           enjoyable   excellent    fabulous    fantastic\n"
+     "    fine           incredible  magnificent  marvelous   outstanding\n"
+     "    phenomenal     pleasant    pleasing     remarkable  sensational\n"
+     "    superb         terrific    tremendous   wondrous    astounding\n"
+     "    awe-inspiring  divine      dynamite     groovy      miraculous\n"
+     "    primo          staggering  supercalifragilisticexpialidocious\n"
+
+     /* from Babylon 5 */
+
+     "Understanding is a three edged sword: your side, their side, and the truth" ,
+
+     "All life is transitory, a dream… if I don’t see you again here,\n"
+     "  I will see you, in a little while, in a place where no shadows fall"
 
 } ;
 

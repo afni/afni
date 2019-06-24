@@ -29,6 +29,13 @@ static void grayplot_order_by_ijk( int yesno ){
   ordering = 0 ;
 }
 
+static int grayplot_is_ordered_by_peels( void ){   /* [18 Jun 2019 rickr] */
+  return (ordering == ORDER_PEEL);
+}
+static int grayplot_is_ordered_by_pvmap( void ){
+  return (ordering == ORDER_PV);
+}
+
 /*----- how time series are normalized [30 Jul 2018] -----*/
 
 static int norming = 0 ;

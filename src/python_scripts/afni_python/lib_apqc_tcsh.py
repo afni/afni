@@ -51,7 +51,7 @@ auth = 'PA Taylor'
 #ver = '2.21' ; date = 'May 17, 2019' 
 # + [PT] simplifying radcor behavior
 #
-ver = '2.4' ; date = 'May 20, 2019' 
+#ver = '2.4' ; date = 'May 20, 2019' 
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
 #

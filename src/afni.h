@@ -89,19 +89,16 @@ typedef struct {
 #endif
 
 /*-----------------------------------------------------------*/
+/** On Motif 2.0 on Linux, resized pbar pieces causes the
+    threshold scale to behave bizarrely.                     */
 /** Fixing scale size removed to a function [03 Jun 2019] **/
 
 struct Three_D_View ;  /* incomplete type definition */
-extern void AFNI_set_scale_size_fix_timer( struct Three_D_View *im3d ) ;
 extern void AFNI_fix_scale_size_direct( struct Three_D_View *im3d ) ;
+extern void AFNI_fix_scale_size_timer_CB( XtPointer , XtIntervalId * ) ;
 
-#if 1
-# define FIX_SCALE_SIZE(iqqq) /*nada*/
-#else  /* doesn't work well */
-# define FIX_SCALE_SIZE(iqqq) AFNI_set_scale_size_fix_timer(iqqq)
-#endif
-
-#define HIDE_SCALE(iqqq) /*nada*/
+#define FIX_SCALE_SIZE(iqqq) /*nada*/
+#define HIDE_SCALE(iqqq)     /*nada*/
 
 /*-----------------------------------------------------------*/
 
@@ -848,12 +845,7 @@ extern void AFNI_set_qval( struct Three_D_View * , float ) ;      /* 27 Feb 2014
 
 #define PERC_AUTOBUT 0  /* ZSS: April 27 2012 */
 
-/** On Motif 2.0 on Linux, resized pbar pieces causes the
-    threshold scale to behave bizarrely.  This macro is a fixup **/
-
-#ifndef FIX_SCALE_SIZE
-# define FIX_SCALE_SIZE(iqqq) /*nada*/
-#endif
+/* fix for a bug on Solaris */
 
 #ifdef FIX_SCALE_VALUE_PROBLEM
 #  define BOXUP_SCALE
@@ -1246,10 +1238,12 @@ typedef struct Three_D_View {
       int   fim_thresh_max_ijk ;
 } Three_D_View ;
 
+#define IM3D_IS_BIGTHREE(iq) PBAR_IS_BIGTHREE( (iq)->vwid->func->inten_pbar ) /* 19 Jun 2019 */
+
 #define IM3D_CLEAR_THRSTAT(iq)                                       \
   do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f; \
       (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; \
-      (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -666   ; \
+      (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -777   ; \
   } while(0)
 
 #define IM3D_ULAY_COHERENT(iq)                                                    \
@@ -1727,6 +1721,8 @@ typedef struct {
    char *sound_player ;                          /* 27 Aug 2018 */
 
    float autorange_perc ;                        /* 24 May 2019 */
+
+   int opacity_setting ;                         /* 06 Jun 2019 */
 
 } AFNI_library_type ;
 

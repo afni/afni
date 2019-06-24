@@ -49,6 +49,60 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jun, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+   "add surf_vol uvar",
+   NULL
+ } ,
+
+ { 19, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "actually fail for some inappropriate blur options with surface analysis",
+   NULL
+ } ,
+
+ { 18, Jun, 2019, RCR, "3dGrayplot", MICRO, TYPE_ENHANCE,
+   "allow grayplot of surface data if not -peelorder",
+   NULL
+ } ,
+
+ { 18, Jun, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "no mask if TSNR on surface",
+   "Thanks to K Dembny for noting the problem."
+ } ,
+
+ { 14, Jun, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add -hostname and -distdir",
+   "This is to allow places to mirror some of the AFNI site."
+ } ,
+
+ { 14, Jun, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "add Makefile.linux_fedora_28_shared, to distribute a shared lib package",
+   "This uses libmri.so, though other libraries should be added (SUMA).\n"
+   "R programs do not yet work, as linking for R_io.so needs to be fixed."
+ } ,
+
+ { 13, Jun, 2019, RCR, "afni_base.py", MICRO, TYPE_ENHANCE,
+   "allow for enclosed variables in afni_name, e.g. '${subj}'",
+   NULL
+ } ,
+
+ { 12, Jun, 2019, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
+   "better prep for shared build, and fix shared build of suma_gts_progs",
+   "Move mri_render.o out of libmri (corresponds with plug_render.so)."
+   "Still need to fix mpeg_encode."
+ } ,
+
+ { 10, Jun, 2019, RCR, "afni-general", MICRO, TYPE_MODIFY,
+   "apply FreeBSD patches from J Bacon",
+   "  - afni_xml.h: include inttypes.h\n"
+   "  - prf_common_circular.c: use malloc_stats_print()\n"
+   "  - Makefile.ptaylor.INCLUDE: add -fopenmp for building 3dDWUncert"
+ } ,
+
+ {  6, Jun, 2019, RCR, "@auto_tlrc", MICRO, TYPE_MODIFY,
+   "back off recent updates - need to resolve -init_xform",
+   "Thanks to H Keren for letting us know of the problem."
+ } ,
+
  {  4, Jun, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "add -dset_extension, -storage_mode",
    NULL

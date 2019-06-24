@@ -496,6 +496,8 @@ int main( int argc , char *argv[] )
 
    bytevec *emask              = NULL ;          /* 14 Feb 2013 */
 
+   int do_xflip_bset           = 0 ;             /* 18 Jun 2019 */
+
 #undef ALLOW_UNIFIZE
 #ifdef ALLOW_UNIFIZE
    int do_unifize_base         = 0 ;             /* 23 Dec 2016 */
@@ -822,7 +824,7 @@ int main( int argc , char *argv[] )
 "               [Default == zero-pad, if needed; -verb shows how much]\n"
 "\n"
 " -zclip      = Replace negative values in the input datasets (source & base)\n"
-"               with zero.  The intent is to clip off a small set of negative\n"
+" -noneg        with zero.  The intent is to clip off a small set of negative\n"
 "               values that may arise when using 3dresample (say) with\n"
 "               cubic interpolation.\n"
 "\n"
@@ -1834,9 +1836,15 @@ int main( int argc , char *argv[] )
        use_realaxes++ ; iarg++ ; continue ;
      }
 
+     /*------*/
+
+     if( strcmp(argv[iarg],"-xflipbase") == 0 ){  /* 18 Jun 2019 [SECRET] */
+       do_xflip_bset = 1 ; iarg++ ; continue ;
+     }
+
      /*-----*/
 
-     if( strcmp(argv[iarg],"-zclip") == 0 ){     /* 29 Oct 2010 */
+     if( strcmp(argv[iarg],"-zclip") == 0 || strcmp(argv[iarg],"-noneg") == 0 ){     /* 29 Oct 2010 */
        do_zclip++ ; iarg++ ; continue ;
      }
 
@@ -3421,6 +3429,22 @@ int main( int argc , char *argv[] )
      float *bar = MRI_FLOAT_PTR(im_base) ;
      for( ii=0 ; ii < nvox_base ; ii++ ) if( bar[ii] < 0.0f ) bar[ii] = 0.0f ;
    }
+
+   /* x flip base for mirror check? [18 Jun 2019] */
+
+   if( do_xflip_bset ){
+      int nbx=im_base->nx, nby=im_base->ny, nbz=im_base->nz, nbyz = nby*nbz, ii,kk,koff,knnn ;
+      float *bimar = MRI_FLOAT_PTR(im_base) , *tar ;
+      tar = (float *)malloc(sizeof(float)*nbx) ;
+      for( kk=0 ; kk < nbyz ; kk++ ){
+        koff = kk*nbx ; knnn = koff+nbx-1 ;
+        for( ii=0 ; ii < nbx ; ii++ ) tar[ii] = bimar[ii+koff] ;
+        for( ii=0 ; ii < nbx ; ii++ ) bimar[knnn-ii] = tar[ii] ;
+      }
+      free(tar) ;
+      INFO_message("3dAllineate: x-flipped base dataset") ;
+   }
+
 
    /* find the autobbox, and setup zero-padding */
 

@@ -42,6 +42,8 @@ int Syntax(TFORM targ, int detail)
 "   -id: Idcodestring of dset\n"
 "   -is_atlas: 1 if dset is an atlas.\n"
 "   -is_nifti: 1 if dset is NIFTI format, 0 otherwise\n"
+"   -dset_extension: show filename extension for valid dataset (e.g. .nii.gz)\n"
+"   -storage_mode: show internal storage mode of dataset (e.g. NIFTI)\n"
 "   -space: dataset's space\n"
 "   -gen_space: datasets generic space\n"
 "   -av_space: AFNI format's view extension for the space\n"
