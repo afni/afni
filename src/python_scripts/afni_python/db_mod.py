@@ -6724,10 +6724,11 @@ def db_cmd_regress_pc_followers(proc, block):
     if vblock == None:
        print('** ROI_PC: failed to find corresponding %s block' % blabel)
        return 1, ''
-    vr_prefix = proc.prefix_form_run(vblock)
+
+    # this is from volreg block, so it should never have surf names
+    vr_prefix = proc.prefix_form_run(vblock, surf_names=0)
 
     proc.vr_vall_lab = blabel
-
 
 
     # if there is no volreg prefix, get a more recent one
