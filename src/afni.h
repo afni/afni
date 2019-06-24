@@ -1243,7 +1243,7 @@ typedef struct Three_D_View {
 #define IM3D_CLEAR_THRSTAT(iq)                                       \
   do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f; \
       (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; \
-      (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -666   ; \
+      (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -777   ; \
   } while(0)
 
 #define IM3D_ULAY_COHERENT(iq)                                                    \
