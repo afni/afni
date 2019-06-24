@@ -429,7 +429,7 @@ class OutputDiffer:
         self.cmd = cmd
         self.add_env_vars = add_env_vars
         self.merge_error_with_output = merge_error_with_output
-        self.workdir = workdir or Path.cwd()
+        self.workdir = workdir
         self.python_interpreter = python_interpreter
         self.executed = False
 

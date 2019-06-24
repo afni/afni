@@ -51,14 +51,19 @@ def get_output_dir():
     if user_choice:
         outdir = Path(user_choice)
     else:
-        outdir = (
-            Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
-        )
+        outdir = get_test_rootdir() / "output_of_tests" / ("output_" + CURRENT_TIME)
     return outdir
 
 
 def get_test_data_path():
-    return Path(pytest.config.rootdir) / "afni_ci_test_data"
+    return get_test_rootdir() / "afni_ci_test_data"
+
+
+def get_test_rootdir():
+    rootdir = Path(pytest.config.rootdir)
+    if Path.cwd() != "tests":
+        os.chdir(rootdir)
+    return rootdir
 
 
 def get_test_comparison_dir_path(mod: Union[str or Path]):
