@@ -43,3 +43,9 @@
 (setq column-number-mode t) ;; column number on
 (when (fboundp 'electric-indent-mode) (electric-indent-mode -1))
 
+(global-linum-mode t)  ;; show line numbers
+
+(defadvice text-scale-increase (around all-buffers (arg) activate)
+  (dolist (buffer (buffer-list))
+    (with-current-buffer buffer
+      ad-do-it)))
