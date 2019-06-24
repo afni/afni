@@ -1525,13 +1525,18 @@ directory read from the command line. In the "Switch" choosers, these
 datasets are marked with the character 'G' at the right, and they
 appear last in the list.
 
-It really only makes sense to put +tlrc datasets in the global session
-directory, since only they can be presumed to be aligned with other
-datasets. Also, it is probably best if you make sure each global
-anatomical dataset has itself as the anatomy parent; this can be
-enforced by issuing the command
-  3drefit -apar SELF *.HEAD
+It really only makes sense to put +tlrc (i.e., in a template
+space) datasets in the global session directory, since only they
+can be presumed to be aligned with other datasets. Also, it is probably
+best if you make sure each global anatomical dataset has itself
+as the anatomy parent; this can be enforced by issuing the command
+  3drefit -apar SELF *.HEAD *.nii *.nii.gz
 in the global session directory.
+
+In my [RWC's] global session directory, there is one file:
+  MNI152_2009_template_SSW.nii.gz
+which I copied there from the AFNI binaries download. In this way,
+I always have available the human template which I use most often.
 
 When you Switch Sessions and are viewing a global dataset, it is
 likely that you will NOT be viewing the same dataset after the Switch
@@ -1542,7 +1547,7 @@ If you start AFNI and there are no datasets in the sessions given on
 the command line, then the directory specified by this variable
 becomes the default session. If there are no datasets there, either,
 then AFNI makes up a dummy dataset (AFNI cannot operate without at
-least one dataset).
+least one dataset present).
 
 ------------------------------
 Variable: AFNI_DISP_SCROLLBARS (editable)
