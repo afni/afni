@@ -411,17 +411,20 @@ static char *tip[] = {
   "  AFNI_COLORSCALE_DEFAULT = name of startup colorscale    [Reds_and_Blues_Inv]\n"
   "  AFNI_THRESH_INIT_EXPON  = initial power-of-ten for threshold             [1]\n"
   "  AFNI_OPACITY_LOCK       = lock 1-9 opacity arrows among image viewers  [YES]\n"
-  "  AFNI_LEFT_IS_LEFT       = show subject left on screen left             [YES]\n"
   "  AFNI_NOSPLASH           = turn off the AFNI splash screen at startup    [NO]\n"
   "  AFNI_STARTUP_SOUND      = turn on the AFNI startup sound!               [NO]\n"
-  "  AFNI_NOPLUGINS          = don't load GUI plugins                        [NO]\n"
+  "  AFNI_LEFT_IS_LEFT       = show subject left on screen left             [YES]\n"
+  "                            (for Axial and Coronal viewers)\n"
+  "  AFNI_NOPLUGINS          = don't load any of the AFNI GUI plugins        [NO]\n"
   "                            Setting AFNI_NOPLUGINS to YES can speed up\n"
   "                            scripts that externally drive the AFNI GUI,\n"
   "                            since such a script usually doesn't use a plugin.\n"
-  "Some of these values may already be set in the .afnirc file that is given\n"
-  "out with the AFNI binaries. For use in scripts, you can also set environment\n"
-  "variables in the script before starting the AFNI GUI, which will take\n"
-  "priority over values set in the ~/.afnirc file."
+  "* Some of these values are already set in the .afnirc file that is given out\n"
+  "   with the AFNI binaries. You can also set environment variables in a script\n"
+  "   before starting the AFNI GUI, which will take priority over values set in\n"
+  "   the ~/.afnirc file.\n"
+  "* All AFNI environment variables (including many that do not affect the GUI)\n"
+  "   are described in the README.environment file."
 
 /*----------------- tips below here are for non-GUI programs -----------------*/
  ,
@@ -1025,6 +1028,9 @@ static char *gby[] = {
      "The worst kind of lie: one that matches your desire"           ,
      "Truly, there is nothing more to be said"                       ,
      "The only thing to know is that no one knows anything"          ,
+     "It is never too late to be wise"                               ,
+     "What one person can imagine, another can make real"            ,
+     "Ask me no questions, and I'll tell you no lies"                ,
 
      /* bastardizations of Shakespeare */
 
