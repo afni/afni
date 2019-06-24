@@ -16,6 +16,7 @@ rsync -av --exclude=".*" ~/AFNI/afni/src/ ~/BUILDNEW
 
 cd BUILDNEW
 cp other_builds/Makefile.linux_ubuntu_12_64_OMP Makefile
+make cleanest
 make vastness
 
 cd 
