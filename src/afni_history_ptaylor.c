@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, June , 2019 , PT , "3dSkullStrip" , MAJOR , TYPE_MODIFY,
+   "Dset orient should no longer affect results (b/c of var of init cond).",
+   "Intermediate resampling now reduces/removes var due to start.\n"
+},
+
 { 20, June , 2019 , PT , "@djunct_make_script_and_rst.py" , MICRO , TYPE_BUG_FIX,
    "Use the CAPTION feature on image tables in text blocks.",
    "Also fix help display.\n"

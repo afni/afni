@@ -2,6 +2,13 @@
 #include "../thd_brainormalize.h"
 
 /*
+  [PT: Apr/June, 2019] In order to have greater consistency of
+  starting conditions (and therefore output results), resample the
+  input dset to have a default orientation (RAI), then process it, and
+  then resample the output to be whatever orientation was input.
+*/
+ 
+/*
    Load mask from file mname and apply it to dataset iset
 */
 #define DSET_MASK(iset, mname) {\
@@ -21,6 +28,24 @@
          DSET_delete(mset);   \
       }  \
    }  \
+}
+
+int dset_get_orient( THD_3dim_dataset *ddd, 
+                     char *ori );
+
+// Give all dsets a consistent origin, and be able to change
+int dset_get_orient( THD_3dim_dataset *ddd, 
+                     char *ori )
+{
+   
+   // store original order
+   ori[0]=ORIENT_typestr[ddd->daxes->xxorient][0];
+   ori[1]=ORIENT_typestr[ddd->daxes->yyorient][0];
+   ori[2]=ORIENT_typestr[ddd->daxes->zzorient][0];
+   ori[3]='\0';
+
+   //INFO_message(" DSET orient:  %s", ori);
+   return 0;
 }
 
 
@@ -1294,7 +1319,7 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_BrainWrap_ParseInput (
    SUMA_RETURN(Opt);
 }
 
-
+ 
 
 int main (int argc,char *argv[])
 {/* Main */
@@ -1321,6 +1346,12 @@ int main (int argc,char *argv[])
    MRI_IMAGE *imin=NULL, *imout=NULL, *imout_orig=NULL  ;
 
    SUMA_Boolean LocalHead = NOPE;
+
+   char dset_orient_ref[4] = "RAI";  // internally resampling all to this
+	char dset_orient_inp[4] = "   ";  // [4]="---";
+	char dset_orient_ext[4] = "   ";  // [4]="---";
+   THD_3dim_dataset *tmpset = NULL;
+   char tmppref[THD_MAX_PREFIX];
 
    SUMA_STANDALONE_INIT;
 	SUMA_mainENTRY;
@@ -1433,11 +1464,32 @@ int main (int argc,char *argv[])
         SUMA_S_Errv("can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
+
+      // [PT: Apr 26, 2019] set ref orient for input; after
+      // resampling, the prefix has been changed, so make a not of it
+      // to be able to return it to its proper value later
+      //INFO_message("Processing for rad stats");
+      i = dset_get_orient( Opt->iset, dset_orient_inp);
+      MCW_strncpy( tmppref, DSET_PREFIX(Opt->iset), THD_MAX_PREFIX ) ;
+      tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_ref, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
+      EDIT_dset_items(  Opt->iset , ADN_prefix,  tmppref, ADN_none);
+
       SUMA_THD_Radial_HeadBoundary( Opt->iset, 0.0, NULL, NULL, &radset,
                                     1, 0.0, 0.0, 0, 0, NULL, NULL);
       EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
+
+      // [PT: Apr 26, 2019] unset ref orient for output
+      tmpset = r_new_resam_dset( radset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_inp, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(radset);  radset=tmpset;  tmpset=NULL;
+      EDIT_dset_items(  radset , ADN_prefix,  radprefix, ADN_none);
+
       tross_Make_History( FuncName , argc,argv , radset ) ;
-      if (Opt->debug) {
+      if (Opt->debug) { 
          SUMA_S_Note("Writing radset to %s", DSET_PREFIX(radset));
       }
       DSET_write(radset) ;
@@ -1472,6 +1524,17 @@ int main (int argc,char *argv[])
       }
 
       DSET_MASK(Opt->iset, Opt->dmask);
+
+      // [PT: Apr 26 2019] set ref orient for input.  For this branch,
+      // do so just after mask has been applied (if it was input)
+      //INFO_message("Processing for brain extraction");
+      i = dset_get_orient( Opt->iset, dset_orient_inp);
+      MCW_strncpy( tmppref, DSET_PREFIX(Opt->iset), THD_MAX_PREFIX ) ;
+      tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_ref, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
+      EDIT_dset_items( Opt->iset , ADN_prefix,  tmppref, ADN_none);
 
       if (Opt->PlEq[0] != 0.0f || Opt->PlEq[1] != 0.0f || Opt->PlEq[2] != 0.0f)
       {
@@ -1508,6 +1571,14 @@ int main (int argc,char *argv[])
          SUMA_VoxelDepth_Z(headset,NULL, NULL, Opt->flt1, NULL, 1, 1.0, NULL);
       }
 
+      // [PT: Apr 26, 2019] unset ref orient for output
+      MCW_strncpy( temppref , DSET_PREFIX(headset) , THD_MAX_PREFIX ) ;
+      tmpset = r_new_resam_dset( headset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_inp, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(headset);  headset=tmpset;  tmpset=NULL;
+      EDIT_dset_items( headset , ADN_prefix,  tmppref, ADN_none);
+
       tross_Make_History( FuncName , argc,argv , headset ) ;
       DSET_write(headset) ;
       DSET_delete(headset); headset=NULL;
@@ -1529,16 +1600,29 @@ int main (int argc,char *argv[])
          SUMA_SL_Note("Loading dset, performing Spatial Normalization");
       /* load the dset */
       Opt->iset = THD_open_dataset( Opt->in_name );
+      DSET_load(Opt->iset);
       if( !ISVALID_DSET(Opt->iset) ){
         fprintf(stderr,"**ERROR: can't open dataset %s\n",Opt->in_name) ;
         exit(1);
       }
       DSET_MASK(Opt->iset, Opt->dmask);
 
+      // [PT: Apr 26 2019] set ref orient for input.  *Note* for this
+      // branch, I think the data is going to get output to a special
+      // orientation/template, so I don't think it needs to be unset
+      //INFO_message("Processing for spatial norm");
+      i = dset_get_orient( Opt->iset, dset_orient_inp);
+      MCW_strncpy( temppref , DSET_PREFIX(Opt->iset) , THD_MAX_PREFIX ) ;
+      tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_ref, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(Opt->iset);  Opt->iset=tmpset;  tmpset=NULL;
+      EDIT_dset_items( Opt->iset, ADN_prefix,  tmppref, ADN_none);
+
       Opt->iset_hand = SUMA_THD_handedness( Opt->iset );
       if (LocalHead)
          fprintf(SUMA_STDERR,
-                  "%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
+                 "%s: Handedness of orig dset %d\n", FuncName, Opt->iset_hand);
 
       /* if have marmoset, scale coords by 2.5 and pretend tiz a monkey */
       if (Opt->specie == MARMOSET) {
@@ -1773,10 +1857,20 @@ int main (int argc,char *argv[])
 
       EDIT_substitute_brick(oset , 0 ,
                             imout->kind , mri_data_pointer(imout) ) ;
+
       if (Opt->WriteSpatNorm) {
          SUMA_LH("Writing SpatNormed dset");
          if (Opt->xyz_scale != 1.0f)
             THD_volDXYZscale(oset->daxes, 1.0/Opt->xyz_scale, 0);
+
+         // [PT: Apr 26, 2019] unset ref orient for output
+         MCW_strncpy( temppref , DSET_PREFIX(oset) , THD_MAX_PREFIX ) ;
+         tmpset = r_new_resam_dset( oset, NULL, 0.0, 0.0, 0.0,
+                                    dset_orient_inp, RESAM_NN_TYPE, 
+                                    NULL, 1, 0);   
+         DSET_delete(oset);  oset=tmpset;  tmpset=NULL;
+         EDIT_dset_items( oset , ADN_prefix,  tmppref, ADN_none);
+
          DSET_write(oset) ;
          /* and rescale back up for further usage */
          if (Opt->xyz_scale != 1.0f)
@@ -1811,6 +1905,16 @@ int main (int argc,char *argv[])
             DSET_NZ( Opt->in_vol ));
       /* load the dset */
       DSET_load(Opt->in_vol);
+
+      // [PT: Apr 26 2019] set ref orient for input
+      //INFO_message("Processing for non-spatial norm");
+      i = dset_get_orient( Opt->in_vol, dset_orient_inp);
+      MCW_strncpy( temppref , DSET_PREFIX(Opt->in_vol) , THD_MAX_PREFIX ) ;
+      tmpset = r_new_resam_dset( Opt->in_vol, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_ref, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(Opt->in_vol);  Opt->in_vol=tmpset;  tmpset=NULL;
+      EDIT_dset_items( Opt->in_vol, ADN_prefix,  tmppref, ADN_none );
 
       /* if have marmoset, scale coords by 2.5 and pretend tiz a monkey */
       if (Opt->specie == MARMOSET) {
@@ -2919,6 +3023,7 @@ int main (int argc,char *argv[])
                   FuncName, Opt->iset, Opt->OrigSpatNormedSet);
          if (Opt->iset) {
             DSET_load(Opt->iset);
+            // !!!!! Q: does this need to have orientation "fixed"?
             dout = Opt->iset;
          } else { /* They may have used -no_spatnorm and -orig_vol options */
             DSET_load(Opt->OrigSpatNormedSet);
@@ -2997,15 +3102,23 @@ int main (int argc,char *argv[])
       SUMA_free(edopt);
    }
 
-
+   
    if (!dset) {
       SUMA_SL_Err("Failed to create output dataset!");
    } else {
+      // [PT: Apr 26, 2019] unset ref orient for output: should be main final output
+      tmpset = r_new_resam_dset( dset, NULL, 0.0, 0.0, 0.0,
+                                 dset_orient_inp, RESAM_NN_TYPE, 
+                                 NULL, 1, 0);   
+      DSET_delete(dset);  dset=tmpset;  tmpset=NULL;
+      EDIT_dset_items( dset, ADN_prefix, Opt->out_vol_prefix, ADN_none ) ;
+
       tross_Make_History( FuncName , argc,argv , dset ) ;
       #if 1
       if (Opt->xyz_scale != 1.0f)
          THD_volDXYZscale(dset->daxes, 1.0/Opt->xyz_scale, 0);
       #endif
+
       DSET_write(dset) ;
       if (Opt->MaskMode != 2) {
          if (Opt->MaskMode == 0) {
