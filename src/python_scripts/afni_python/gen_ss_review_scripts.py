@@ -606,16 +606,6 @@ set nstim_found = `\ls stimuli | wc -w`
 echo "num stim files found      : $nstim_found"
 """
 
-g_basic_tsnr_str = """
-# ------------------------------------------------------------
-# get TSNR average
-if ( -f $tsnr_dset && -f $mask_dset ) then
-    eval 'set tsnr_ave = `3dmaskave -quiet -mask $mask_dset $tsnr_dset`' \
-         >& /dev/null
-    echo "TSNR average              : $tsnr_ave"
-endif
-"""
-
 g_basic_gcor_str = """
 # ------------------------------------------------------------
 # get global correlation
@@ -883,9 +873,10 @@ g_history = """
         - added uvars flip_check_dset and flip_guess
         - apply them and show flip_guess in review_basic
    1.12 Jun 19, 2019: added surf_vol
+   1.13 Jun 25, 2019: allow TSNR on surface
 """
 
-g_version = "gen_ss_review_scripts.py version 1.12, June 19, 2019"
+g_version = "gen_ss_review_scripts.py version 1.13, June 25, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2526,9 +2517,9 @@ class MyInterface:
       self.text_basic += g_reg_counts_str
       self.text_basic += g_ave_mot_sresp_str
 
-      if self.uvars.is_not_empty('mask_dset') and \
-         self.uvars.is_not_empty('tsnr_dset'):
-         self.text_basic += g_basic_tsnr_str
+      # tsnr promoted to function
+      if self.uvars.is_not_empty('tsnr_dset'):
+         self.text_basic += self.basic_tsnr_string()
 
       if self.uvars.is_not_empty('gcor_dset'):
          self.text_basic += g_basic_gcor_str
@@ -2589,6 +2580,36 @@ class MyInterface:
         'endif\n' % self.cvars.xstim
 
       self.text_basic += txt
+
+   def basic_tsnr_string(self):
+      if self.uvars.is_empty('tsnr_dset'): return ''
+
+      # on surface, use tsnr dset as mask
+      if self.uvars.is_not_empty('surf_vol'):
+         mask_set = 'tsnr_dset'
+         mask_comment = ' (no masking - use TSNR dset for mask)'
+         mask_check = ''
+      else:
+         if self.uvars.is_not_empty('mask_dset'):
+            mask_set = 'mask_dset'
+            # mask_comment = '(within mask)'
+            mask_comment = ''
+            mask_check = ' && -f $mask_dset'
+         # require a mask for volumetric data?
+         else:
+            return ''
+
+      cstr  =                                                             \
+       '\n'                                                               \
+       '# ------------------------------------------------------------\n' \
+       '# get TSNR average%s\n'                                           \
+       'if ( -f $tsnr_dset%s ) then\n'                                    \
+       "    eval 'set tsnr_ave = `3dmaskave -quiet -mask $%s $tsnr_dset`' \\\n"\
+       '         >& /dev/null\n'                                          \
+       '    echo "TSNR average              : $tsnr_ave"\n'               \
+       'endif\n' % (mask_comment, mask_check, mask_set)
+
+      return cstr
 
    def basic_init(self):
       """write header and set applied variables"""

@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 19, Jun, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_ENHANCE,
+ { 25, Jun, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "get TSNR on surface",
+   NULL
+ } ,
+
+ { 19, Jun, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add surf_vol uvar",
    NULL
  } ,
