@@ -400,7 +400,7 @@ void check_piece
 {
   FILE * far = NULL;                 /* pointer to temporary file */
   char sfilename[MAX_NAME_LENGTH];   /* name of temporary file */
-  char message[MAX_NAME_LENGTH];     /* error message */
+  char message[MAX_NAME_LENGTH+128]; /* error message: fname+message */
   
   
   /*-----  see if piece file already exists -----*/
@@ -430,7 +430,7 @@ void read_piece
 
 {
   char sfilename[MAX_NAME_LENGTH];   /* piece file name */
-  char message[MAX_NAME_LENGTH];     /* error message */
+  char message[MAX_NAME_LENGTH+128]; /* error message: fname + message */
   FILE * far = NULL;                 /* floating point input file */
   int count;                         /* number of data items read from disk */
   
@@ -475,7 +475,7 @@ void write_piece
 
 {
   char sfilename[MAX_NAME_LENGTH];   /* piece file name */ 
-  char message[MAX_NAME_LENGTH];     /* error message */
+  char message[MAX_NAME_LENGTH+128]; /* error message */
   FILE * far = NULL;                 /* floating point output file */
   int count;                         /* number of data items written to disk */
 
