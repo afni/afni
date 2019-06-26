@@ -3,10 +3,10 @@
 set -e
 
 # Run tests
-pytest --runveryslow --cov=/opt/afni/abin
+cd /opt/afni/tests
+pytest --runveryslow --cov=/opt/afni/abin --cov-report xml:/opt/afni/coverage.xml
 # pytest --testpython2 # add this for testing python 2
-cd ../src
 
 # Check code coverage
-gcov *.c
+cd /opt/afni
 codecov

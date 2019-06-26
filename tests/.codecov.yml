@@ -1,0 +1,3 @@
+fixes:
+  - "opt/afni/::src/"
+  - "opt/afni/abin::src/python_scripts/afni_python/"

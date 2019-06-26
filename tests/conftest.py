@@ -51,14 +51,19 @@ def get_output_dir():
     if user_choice:
         outdir = Path(user_choice)
     else:
-        outdir = (
-            Path(pytest.config.rootdir) / "output_of_tests" / ("output_" + CURRENT_TIME)
-        )
+        outdir = get_test_rootdir() / "output_of_tests" / ("output_" + CURRENT_TIME)
     return outdir
 
 
 def get_test_data_path():
-    return Path(pytest.config.rootdir) / "afni_ci_test_data"
+    return get_test_rootdir() / "afni_ci_test_data"
+
+
+def get_test_rootdir():
+    rootdir = Path(pytest.config.rootdir)
+    if Path.cwd() != "tests":
+        os.chdir(rootdir)
+    return rootdir
 
 
 def get_test_comparison_dir_path(mod: Union[str or Path]):
@@ -262,6 +267,25 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
+def save_output_to_repo():
+
+    update_msg = "Update data with test run on {d}".format(
+        d=datetime.datetime.today().strftime("%Y-%m-%d")
+    )
+    import pdb
+
+    pdb.set_trace()
+    result = datalad.save(update_msg, str(get_base_comparison_dir_path()), on_failure="stop")
+
+    sample_test_output = get_test_data_path() / "sample_test_output"
+    data_message = (
+        "New sample output was saved to {sample_test_output} for "
+        "future comparisons. Consider publishing this new data to "
+        "the publicly accessible servers.. "
+    )
+    print(data_message.format(**locals()))
+
+
 def pytest_sessionfinish(session, exitstatus):
     try:
         output_directory = get_output_dir().absolute()
@@ -276,24 +300,10 @@ def pytest_sessionfinish(session, exitstatus):
         )
 
     # When configured to save output and test session was successful...
-    if pytest.config.getoption("--save_sample_output") and not bool(exitstatus):
-
-        update_msg = "Update data with test run on {d}".format(
-            d=datetime.datetime.today().strftime("%Y-%m-%d")
-        )
-
-        result = datalad.save(
-            update_msg, get_base_comparison_dir_path(), on_failure="stop"
-        )
-
-        sample_test_output = get_test_data_path() / "sample_test_output"
-        data_message = (
-            "New sample output was saved to {sample_test_output} for "
-            "future comparisons. Consider publishing this new data to "
-            "the publicly accessible servers.. "
-        )
-        print(data_message.format(**locals()))
-    elif pytest.config.getoption("--save_sample_output"):
+    saving_desired = pytest.config.getoption("--save_sample_output")
+    if saving_desired and not bool(exitstatus):
+        save_output_to_repo()
+    elif saving_desired:
         print(
             "Sample output not saved because the test failed. You may "
             "want to clean this up with 'cd afni_ci_test_data;git reset "
