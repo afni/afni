@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, May 20, 2019
+Version 0.0.4, June 26, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -749,7 +749,7 @@ plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
       axis(side = 1)
       abline(v=0, col='blue')
       #if(is.even(kk)) mtext(dimnames(ps)[[2]][ii], side = 1, line=-7, las=0) else
-      mtext(dimnames(ps)[[2]][ii], side = 1, line=-6, las=0)
+      mtext(dimnames(ps)[[2]][ii], side = 3, line=-2, las=0)
       x1 <- min(which(dens$x >= qq[6,ii]))  # 97.5% 
       x2 <- max(which(dens$x <  4e10))         # infinity
       x3 <- min(which(dens$x >= -4e10))        # -infinity
@@ -849,6 +849,7 @@ sumGLM <- function(ll, tm, nR, DF, nd) {
    th <- qt(c(0.025, 0.05, 0.5, 0.95, 0.975), DF)
    rr <- matrix(, nrow = nR, ncol = 8, dimnames=list(levels(lop$dat$ROI), c('mean', 'SD', '2-sided-p', '2.5%', '5%', '50%', '95%', '97.5%')))
    rownames(rr) <- levels(lop$dat$ROI)
+   if(tm == 'Intercept') tm <- '(Intercept)'
    for(ii in 1:nR) {
      u1 <- ll[[ii]]$coefficients[tm,1] # mean
      u2 <- ll[[ii]]$coefficients[tm,2] # sd
