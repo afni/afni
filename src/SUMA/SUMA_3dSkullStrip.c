@@ -1572,7 +1572,7 @@ int main (int argc,char *argv[])
       }
 
       // [PT: Apr 26, 2019] unset ref orient for output
-      MCW_strncpy( temppref , DSET_PREFIX(headset) , THD_MAX_PREFIX ) ;
+      MCW_strncpy( tmppref , DSET_PREFIX(headset) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( headset, NULL, 0.0, 0.0, 0.0,
                                  dset_orient_inp, RESAM_NN_TYPE, 
                                  NULL, 1, 0);   
@@ -1612,7 +1612,7 @@ int main (int argc,char *argv[])
       // orientation/template, so I don't think it needs to be unset
       //INFO_message("Processing for spatial norm");
       i = dset_get_orient( Opt->iset, dset_orient_inp);
-      MCW_strncpy( temppref , DSET_PREFIX(Opt->iset) , THD_MAX_PREFIX ) ;
+      MCW_strncpy( tmppref , DSET_PREFIX(Opt->iset) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->iset, NULL, 0.0, 0.0, 0.0,
                                  dset_orient_ref, RESAM_NN_TYPE, 
                                  NULL, 1, 0);   
@@ -1864,7 +1864,7 @@ int main (int argc,char *argv[])
             THD_volDXYZscale(oset->daxes, 1.0/Opt->xyz_scale, 0);
 
          // [PT: Apr 26, 2019] unset ref orient for output
-         MCW_strncpy( temppref , DSET_PREFIX(oset) , THD_MAX_PREFIX ) ;
+         MCW_strncpy( tmppref , DSET_PREFIX(oset) , THD_MAX_PREFIX ) ;
          tmpset = r_new_resam_dset( oset, NULL, 0.0, 0.0, 0.0,
                                     dset_orient_inp, RESAM_NN_TYPE, 
                                     NULL, 1, 0);   
@@ -1909,7 +1909,7 @@ int main (int argc,char *argv[])
       // [PT: Apr 26 2019] set ref orient for input
       //INFO_message("Processing for non-spatial norm");
       i = dset_get_orient( Opt->in_vol, dset_orient_inp);
-      MCW_strncpy( temppref , DSET_PREFIX(Opt->in_vol) , THD_MAX_PREFIX ) ;
+      MCW_strncpy( tmppref , DSET_PREFIX(Opt->in_vol) , THD_MAX_PREFIX ) ;
       tmpset = r_new_resam_dset( Opt->in_vol, NULL, 0.0, 0.0, 0.0,
                                  dset_orient_ref, RESAM_NN_TYPE, 
                                  NULL, 1, 0);   
