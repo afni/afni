@@ -26,7 +26,7 @@ float FisherZ( double Rcorr)
 */
 
 int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T, 
-               int *DIM, int *Nv)
+               int *DIM, int *Nv, float *W)
 {
   int i,n;
   double *ts=NULL;
@@ -37,9 +37,13 @@ int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
     for( i=0 ; i<Nv[0] ; i++) // for each vox in TS
       ts[n] += THD_get_voxel(T,LIST[i],n);
   
-  for( n=0; n<DIM[3] ; n++)
-    RAT[n] = ts[n]/Nv[0];
-      
+  if ( W ) 
+     for( n=0; n<DIM[3] ; n++)
+        RAT[n] = (ts[n]*W[n])/Nv[0];
+  else
+     for( n=0; n<DIM[3] ; n++)
+        RAT[n] = ts[n]/Nv[0];
+
   free(ts);
   
   RETURN(1);

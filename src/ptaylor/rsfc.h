@@ -27,9 +27,11 @@ int CalcRanksForReHo(float *IND, int idx, THD_3dim_dataset *T, int *NTIE,
 
 /*
   average time series of an ROI
+
+  [PT: June 26, 2019] can now include a vec of weights W.
 */
 int CalcAveRTS(int *LIST, double *RAT, THD_3dim_dataset *T,
-              int *DIM, int *Nv);
+               int *DIM, int *Nv, float *W);
 
 /*
   takes neigbor radius, calcs int version, and number of vox therein,

@@ -35,6 +35,9 @@
    May 2017:
    + bug fix in checksum to find null time series
 
+   June 26, 2019:
+   + add in weight_ts option: weight is applied when averaging time series
+
 */
 
 
@@ -84,7 +87,7 @@ void usage_NetCorr(int detail)
 "                -inset FILE -in_rois INROIS {-ts_out} {-ts_label}         \\\n"
 "                {-ts_indiv} {-ts_wb_corr} {-ts_wb_Z} {-nifti}             \\\n"
 "                {-push_thru_many_zeros} {-ts_wb_strlabel}                 \\\n"
-"                {-output_mask_nonnull}\n"
+"                {-output_mask_nonnull} {-weight_ts WTS}\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -146,6 +149,7 @@ void usage_NetCorr(int detail)
 "    -in_rois INROIS  :can input a set of ROIs, each labelled with distinct\n"
 "                      integers. Multiple subbricks can be input, each will\n"
 "                      be treated as a separate network.\n"
+"\n"
 "    -fish_z          :switch to also output a matrix of Fisher Z-transform\n"
 "                      values for the corr coefs (r):\n"
 "                          Z = atanh(r) ,\n"
@@ -164,6 +168,7 @@ void usage_NetCorr(int detail)
 "                      b_{ij} = -M_{ij}/M_{ii}.\n"
 "                      Use as you wish.  For both PC and PCB, the diagonals\n"
 "                      should be uniformly (negative) unity.\n"
+"\n"
 "    -ts_out          :switch to output the mean time series of the ROIs that\n"
 "                      have been used to generate the correlation matrices.\n"
 "                      Output filenames mirror those of the correlation\n"
@@ -197,6 +202,15 @@ void usage_NetCorr(int detail)
 "                      are effectively capped at |r| = 0.999329 (where\n"
 "                      |Z| = 4.0;  hope that's good enough).\n"
 "                      Files are labelled WB_Z_ROI_001+orig, etc.\n"
+"    -weight_ts WTS   :input a 1D file WTS of weights that will be applied\n"
+"                      multiplicatively to each ROI's average time series.\n"
+"                      WTS can be a column- or row-file of values, but it\n"
+"                      must have the same length as the input time series\n"
+"                      volume.\n"
+"                      If the initial average time series was A[n] for \n"
+"                      n=0,..,(N-1) time points, then applying a set of \n"
+"                      weights w[n] of the same length from WTS would \n"
+"                      produce a new time series:  B[n] = A[n] * W[n].\n"
 "\n"
 "    -ts_wb_strlabel  :by default, '-ts_wb_{corr,Z}' output files are named\n"
 "                      using the int number of a given ROI, such as:\n"
@@ -327,6 +341,12 @@ int main(int argc, char *argv[]) {
    int Nmask = 0;
    FILE *fout1,*fin,*fout2;
 
+   // [PT: June 26, 2019] can have weight ts input now
+   float *weight_ts=NULL;
+   char  *fname_wts=NULL;
+   MRI_IMAGE *fwts0=NULL, *fwts=NULL;
+   float *vec_wts=NULL;
+
    AFNI_SETUP_OMP(0) ;  /* 24 Jun 2013 */
    mainENTRY("3dNetCorr"); machdep(); 
   
@@ -410,6 +430,15 @@ int main(int argc, char *argv[]) {
          FISH_OUT=1;
          iarg++ ; continue ;
       }
+
+      // [PT: June 26, 2019] new opt for (opt) weight time series
+      // input
+      if( strcmp(argv[iarg],"-weight_ts") == 0 ){
+			if( ++iarg >= argc ) 
+				ERROR_exit("Need argument after '-weight_ts'\n") ;
+         fname_wts = argv[iarg];
+         iarg++ ; continue ;
+		}
 
       // [Apr, 2017, PT]
       if( strcmp(argv[iarg],"-push_thru_many_zeros") == 0) {
@@ -613,6 +642,28 @@ int main(int argc, char *argv[]) {
                }
             idx+= 1; // skip, and mskd and KW are both still 0 from calloc
          }
+
+   // [PT: June 26, 2019]
+   if( fname_wts ) {
+      fwts0 = mri_read_1D (fname_wts);
+      if (fwts0 == NULL) {
+         ERROR_exit("Error reading weight-of-time series file");
+      }
+      if( fwts0->ny == 1)
+         fwts = mri_transpose(fwts0); // eff *undoes* autotransp
+      else
+         fwts = mri_copy(fwts0); 
+      mri_free(fwts0);
+      if( fwts->ny != Dim[3] ) {
+         ERROR_message("ERROR! Number of time points in volume (%d) "
+                       "doesn't match number of time points in \n"
+                       "\tweights ts  (%d)", Dim[3], fwts->ny);
+         mri_free(fwts);
+         exit(4);
+      }
+      vec_wts = MRI_FLOAT_PTR( fwts );
+      INFO_message("Read in weights file: %s", fname_wts);
+   }
    
    // [PT: Apr, 2017] output nonnull mask that we've calc'ed.  It is
    // the applied one *if* the user had not input a mask; otherwise,
@@ -957,9 +1008,9 @@ int main(int argc, char *argv[]) {
          Nlist[0]=ROI_COUNT[i][j];
          if ( Nlist[0] )    // otherwise, the ROI's ts is just 0s
             k = CalcAveRTS(ROI_LISTS[i][j], ROI_AVE_TS[i][j], 
-                           insetTIME, Dim, Nlist);
+                           insetTIME, Dim, Nlist, vec_wts);
       }
-  
+
    INFO_message("Calculating correlation matrix.");
    if(PART_CORR)
       INFO_message("... and calculating partial correlation matrix.");
@@ -1266,6 +1317,9 @@ int main(int argc, char *argv[]) {
 
    free(mskd2);
    free(Nlist);
+
+   if ( fwts )
+      mri_free(fwts);
 
    free(Dim); // need to free last because it's used for other arrays...
    free(prefix);

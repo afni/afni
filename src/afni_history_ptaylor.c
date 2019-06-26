@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 26, June , 2019 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
+   "New opt '-weight_ts WTS' to multiply ROI ave time series.",
+   "Input at the behest of Colm C.  May it pour forth wondrous results.\n"
+},
+
 { 25, June , 2019 , PT , "3dSkullStrip" , MAJOR , TYPE_MODIFY,
    "Dset orient should no longer affect results (b/c of var of init cond).",
    "Intermediate resampling now reduces/removes var due to start.\n"
