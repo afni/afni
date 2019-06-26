@@ -19,6 +19,9 @@
  * Code for -mask_f2short              R Reynolds  2/05 *
  *------------------------------------------------------*
  * More info in -help w/examples       R Reynolds 11/05 *
+*-------------------------------------------------------*
+ * Code for -longnames                 P Molfese   6/19 *
+ *------------------------------------------------------*
  ********************************************************/
 
 #include "mrilib.h"
@@ -105,6 +108,7 @@ void usage_3dROIstats(int detail) {
 "  -nomeanout    Do not print out the mean column. Default is \n"
 "                to always start with the mean value.\n"
 "                This option cannot be used with -summary\n"
+"  -longnames    Prints the entire name of the sub-bricks\n"
 "  -nobriklab    Do not print the sub-brick label next to its index\n"
 "  -1Dformat     Output results in a 1D format that includes \n"
 "                commented labels\n"
@@ -183,6 +187,7 @@ int main(int argc, char *argv[])
     int nfv = 0, perc = 0, nzperc = 0, mode = 0, nzmode=0, 
         pcxyz=0, nzpcxyz=0, key=0, *keys=NULL;
     int nobriklab=0 ;  /* 14 Mar 2008 */
+    int longnames = 0; /* PJM June 2019 */
     int disp1d=1;   /* ZSS May 2008 */
     byte *roisel=NULL;
     char sbuf[257]={""};
@@ -394,6 +399,11 @@ int main(int argc, char *argv[])
 	}
 	if (strncmp(argv[narg], "-debug", 5) == 0) {
 	    debug = 1;
+	    narg++;
+	    continue;
+	}
+	if (strncmp(argv[narg], "-longnames", 5) == 0) { /* 30 Jun 2019 */
+	    longnames = 1;
 	    narg++;
 	    continue;
 	}
@@ -1048,6 +1058,8 @@ int main(int argc, char *argv[])
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
            else if (disp1d == 2) fprintf(stdout, "%s_%d[%-.9s]\t\t",
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
+           else if (longnames == 1 ) fprintf(stdout, "%s\t%d[%-.50s]", 
+                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik)); 
            else fprintf(stdout, "%s\t%d[%-.9s]",   /* 14 Mar 2008 */
                            argv[narg],brik,DSET_BRICK_LABEL(input_dset,brik));
        }
