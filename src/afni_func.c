@@ -59,6 +59,8 @@ ENTRY("AFNI_see_func_CB") ;
      if( new_val == 0 ){                 /* 21 Jul 2014 */
        XtSetSensitive(im3d->vwid->func->pbar_jumpto_thmax_pb,False) ;
        XtSetSensitive(im3d->vwid->func->pbar_jumpto_thmin_pb,False) ;
+     } else {
+       AFNI_setup_thrstat(im3d,1) ;     /* 27 Jun 2019 */
      }
    }
 

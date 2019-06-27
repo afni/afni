@@ -2125,6 +2125,8 @@ extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 extern void AFNI_setup_viewing(  Three_D_View * , Boolean ) ;
 extern void AFNI_modify_viewing( Three_D_View * , Boolean ) ;
 
+extern void AFNI_setup_thrstat( Three_D_View *im3d , int force ) ; /* 27 Jun 2019 */
+
 extern THD_warp * AFNI_find_warp( THD_3dim_dataset * ,
                                   THD_3dim_dataset *  ) ; /* 28 Aug 2002 */
 
