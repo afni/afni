@@ -1236,6 +1236,7 @@ typedef struct Three_D_View {
       float fim_thresh_max ;
       int   fim_thresh_min_ijk ;
       int   fim_thresh_max_ijk ;
+      int   fim_thrindex ;
 } Three_D_View ;
 
 #define IM3D_IS_BIGTHREE(iq) PBAR_IS_BIGTHREE( (iq)->vwid->func->inten_pbar ) /* 19 Jun 2019 */
@@ -1244,6 +1245,7 @@ typedef struct Three_D_View {
   do{ (iq)->fim_thrbot     = 666.0f; (iq)->fim_thrtop     = -666.0f; \
       (iq)->fim_thresh_min = 666.0f; (iq)->fim_thresh_max = -666.0f; \
       (iq)->fim_thresh_min_ijk = (iq)->fim_thresh_max_ijk = -777   ; \
+      (iq)->fim_thrindex = -1 ;                                      \
   } while(0)
 
 #define IM3D_ULAY_COHERENT(iq)                                                    \
@@ -2124,6 +2126,8 @@ extern void AFNI_initialize_view( THD_3dim_dataset * , Three_D_View * ) ;
 
 extern void AFNI_setup_viewing(  Three_D_View * , Boolean ) ;
 extern void AFNI_modify_viewing( Three_D_View * , Boolean ) ;
+
+extern void AFNI_setup_thrstat( Three_D_View *im3d , int force ) ; /* 27 Jun 2019 */
 
 extern THD_warp * AFNI_find_warp( THD_3dim_dataset * ,
                                   THD_3dim_dataset *  ) ; /* 28 Aug 2002 */
