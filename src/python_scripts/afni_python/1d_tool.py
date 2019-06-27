@@ -81,6 +81,16 @@ examples (very basic for now): ~1~
 
          1d_tool.py -infile X.xmat.1D -select_groups POS 0, -1 -write order.1D
 
+        iv) Create stim-only X-matrix file: select non-baseline columns of
+            X-matrix and write with header comment.
+
+         1d_tool.py -infile X.xmat.1D -select_groups POS \\
+                    -write_with_header yes -write X.stim.xmat.1D
+
+            Or, using a convenience option:
+
+         1d_tool.py -infile X.xmat.1D -write_xstim X.stim.xmat.1D
+
    Example 2d. Select specific runs from the input. ~2~
 
         Note that X.xmat.1D may have runs defined automatically, but for an
@@ -1150,6 +1160,7 @@ g_history = """
    2.02 May 18, 2018 - handle '3dttest++ -Clustsim' files, with no blur
    2.03 Dec 14, 2018 - include mask and params in -csim_show_clustsize output
    2.04 Jan 17, 2019 - added -show_df_info and -show_df_protect
+   2.05 Jun 27, 2019 - added -write_with_header and -write_xstim
 """
 
 g_version = "1d_tool.py version 2.04, Jan 17, 2019"
@@ -1241,6 +1252,7 @@ class A1DInterface:
       self.censortr_file   = None       # output as CENSORTR string
       self.collapse_file   = None       # output as 1D collapse file
       self.write_file      = None       # output filename
+      self.write_header    = 0          # include header on write
 
       self.weight_vec      = None       # weight vector (for enorms?)
 
@@ -1284,7 +1296,8 @@ class A1DInterface:
       if not self.adata:
          print('** no 1D data to write')
          return 1
-      return self.adata.write(fname, overwrite=self.overwrite)
+      return self.adata.write(fname, overwrite=self.overwrite,
+                                     with_header=self.write_header)
 
    def write_as_timing(self, fname, invert=0):
       """write the current 1D data out as a timing file, where a time
@@ -1557,6 +1570,13 @@ class A1DInterface:
 
       self.valid_opts.add_opt('-write', 1, [], 
                       helpstr='write 1D data to the given file')
+
+      self.valid_opts.add_opt('-write_xstim', 1, [], 
+                      helpstr='write 1D stim matrix w/header to file')
+
+      self.valid_opts.add_opt('-write_with_header', 1, [], 
+                      acplist = ['yes', 'no'],
+                      helpstr='include header with 1D write (yes/no)')
 
       self.valid_opts.add_opt('-write_censor', 1, [], 
                       helpstr='write as 1D censor file')
@@ -2000,6 +2020,17 @@ class A1DInterface:
             if err: return 1
             self.write_file = val
 
+         elif opt.name == '-write_with_header':
+            self.write_header = OL.opt_is_yes(opt)
+
+         # convenience option
+         elif opt.name == '-write_xstim':
+            val, err = uopts.get_string_opt('', opt=opt)
+            if err: return 1
+            self.write_file = val
+            self.write_header = 1
+            self.select_groups = ['POS']
+
          elif opt.name == '-write_censor':
             val, err = uopts.get_string_opt('', opt=opt)
             if err: return 1
@@ -2275,7 +2306,8 @@ class A1DInterface:
          if self.write_split_into_pad_runs(self.split_into_pad_runs): return 1
 
       if self.write_file:
-         if self.write_1D(self.write_file): return 1
+         if self.write_1D(self.write_file):
+            return 1
 
       return
 

@@ -1573,17 +1573,18 @@ class Afni1D:
 
    # ----------------------------------------------------------------------
 
-   def write(self, fname, sep=" ", overwrite=0, add_header=0):
+   def write(self, fname, sep=" ", overwrite=0, with_header=0):
       """write the data to a new .1D file
 
             fname       : filename is required
             sep         : separator between elements
             overwrite   : whether to allow overwrite
-            add_header  : include NIML-ish header info
+            with_header : include comment-style header info
 
          return status"""
 
-      if self.verb > 2: print('-- Afni1D write to %s, o=%d'%(fname,overwrite))
+      if self.verb > 2: print('-- Afni1D write to %s, o=%s, h=%s' \
+                              %(fname, overwrite, with_header))
 
       if not self.ready:
          print("** Afni1D not ready for write to '%s'" % fname)
@@ -1604,12 +1605,9 @@ class Afni1D:
             print("** failed to open '%s' for writing" % fname)
             return 1
 
-      if add_header:
-         if len(self.labels) == self.nvec:
-            fp.write('# ColumnLabels = "%s"\n' % ' ; '.join(self.labels))
-         if len(self.groups) == self.nvec:
-            fp.write('# ColumnGroups = "%s"\n' \
-                     % self.val_list_to_at_str(self.groups))
+      if with_header:
+         hstr = self.make_xmat_header_string()
+         if hstr != '': fp.write(hstr+'\n#\n')
 
       for row in range(self.nt):
          fp.write(sep.join(['%g' % self.mat[i][row] for i in range(self.nvec)]))
@@ -1618,6 +1616,28 @@ class Afni1D:
       fp.close()
 
       return 0
+
+   def make_xmat_header_string(self):
+      """return of string with (a subset of) the header lines
+         (no terminal newline)
+      """
+      hlist = []
+      hlist.append('#  ni_dimen = "%s"' % self.nt)
+      if len(self.labels) == self.nvec:
+         hlist.append('#  ColumnLabels = "%s"' % ' ; '.join(self.labels))
+      if len(self.groups) == self.nvec:
+         hlist.append('#  ColumnGroups = "%s"' 
+                      % self.val_list_to_at_str(self.groups))
+      hlist.append('#  RowTR = "%s"' % self.tr)
+      if len(self.goodlist) > 0:
+         hlist.append('#  GoodList = "%s"' % UTIL.encode_1D_ints(self.goodlist))
+      if self.nrowfull > 0:
+         hlist.append('#  NRowFull = "%s"' % self.nrowfull)
+      if len(self.runstart) > 0:
+         hlist.append('#  RunStart = "%s"' \
+                      % UTIL.int_list_string(self.runstart, sepstr=','))
+
+      return '\n'.join(hlist)
 
    def val_list_to_at_str(self, vlist):
       """convert a list like 2, 2, 2, 5, 9, 9, 11 to a string of the form
@@ -1633,7 +1653,9 @@ class Afni1D:
          vcur = vstart + 1
          while vcur < vlen and val == vlist[vcur]:
             vcur += 1
-         slist.append('%d@%s' % (vcur-vstart, val))
+         nval = vcur-vstart
+         if nval == 1: slist.append('%s' % val)
+         else:         slist.append('%d@%s' % (nval, val))
          vstart = vcur
       return ','.join(slist)
 
@@ -1839,7 +1861,10 @@ class Afni1D:
          elif show_labs: print('%s' % self.labels[ind])
 
    def show_labels(self):
-      print('++ labels are:', self.labels)
+      if self.verb:
+         print('++ labels are:', self.labels)
+      else:
+         print(' '.join(self.labels))
 
    def show_major_order_of_labels(self):
       """be picky and verify that labels look like sSLICE.NAME, where
@@ -1864,7 +1889,8 @@ class Afni1D:
          if sorted: print('++ labels in row-major order: YES')
          else:      print('++ labels in row-major order: NO')
       except:
-         print('++ labels are not of expected format, cannot determine ordering')
+         print('++ labels are not of expected slice-based format, '\
+               'cannot determine ordering')
          self.show_labels()
 
    def clear_cormat(self):
