@@ -9604,7 +9604,8 @@ ENTRY("AFNI_setup_thrstat") ;
      thr   = get_3Dview_func_thresh(im3d,1) ;
      thbot = THBOT(thr) ; thtop = THTOP(thr) ;
      DSET_load(im3d->fim_now) ; /* 24 Jun 2019 */
-     if( force || FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
+     if( force || im3d->vinfo->fim_index != im3d->fim_thrindex ||
+                  FLDIF(thbot,im3d->fim_thrbot) || FLDIF(thtop,im3d->fim_thrtop) ){
        ovim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->fim_index) ;
        thim = AFNI_dataset_displayim(im3d->fim_now,im3d->vinfo->thr_index) ;
        IM3D_CLEAR_THRSTAT(im3d) ;
@@ -9623,8 +9624,10 @@ ENTRY("AFNI_setup_thrstat") ;
          MCW_register_hint( im3d->vwid->func->range_label , str ) ;
          im3d->fim_thresh_min_ijk = mij.i ;
          im3d->fim_thresh_max_ijk = mij.j ;
+         im3d->fim_thrindex = im3d->vinfo->fim_index ;
        } else {
          MCW_register_hint( im3d->vwid->func->range_label , "OLay thresholded range: unknown" ) ;
+         im3d->fim_thrindex = -1 ;
        }
        SENSITIZE(im3d->vwid->func->pbar_jumpto_thmax_pb,(im3d->fim_thresh_max_ijk > 0)) ;
        SENSITIZE(im3d->vwid->func->pbar_jumpto_thmin_pb,
@@ -11608,12 +11611,7 @@ ENTRY("AFNI_jumpto_thminmax_CB") ;
    else if( w == im3d->vwid->func->pbar_jumpto_thmin_pb )
           ijk = im3d->fim_thresh_min_ijk ;
 
-   if (ijk == -777) { /* Not sure when this can happen, but
-                         return if there is nothing to do
-                         without complaint   ZSS Aug. 2014 */
-      EXRETURN ;
-   }
-
+   if( ijk == -777 || im3d->fim_thrindex < 0 )  EXRETURN ;
    if( ijk < 0 ){ BEEPIT ; SENSITIZE(w,False) ; EXRETURN ; }
 
    ii = DSET_index_to_ix(im3d->fim_now,ijk) ;
