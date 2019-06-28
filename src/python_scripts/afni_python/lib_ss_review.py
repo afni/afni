@@ -44,6 +44,8 @@ g_ss_uvar_fields = [ \
    ['sum_ideal',       'set 1D file for ideal sum', 'sum_ideal.1D'],
    ['align_anat', 'anat aligned with orig EPI', 'FT_anat_al_junk+orig.HEAD'],
    ['final_anat','anat aligned with stats dataset','anat_final.FT+tlrc.HEAD'],
+   ['vr_base_dset',    'set EPI volreg base dataset',
+                       'vr_base_min_outlier+orig.HEAD'],
    ['final_epi_dset',  'set final EPI base dataset',
                        'final_epi_vr_base_min_outlier+tlrc.HEAD'],
    ['final_view',      'set final view of data (orig/tlrc)', 'tlrc'],

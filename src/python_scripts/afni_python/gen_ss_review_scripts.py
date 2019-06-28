@@ -874,9 +874,10 @@ g_history = """
         - apply them and show flip_guess in review_basic
    1.12 Jun 19, 2019: added surf_vol
    1.13 Jun 25, 2019: allow TSNR on surface
+   1.14 Jun 28, 2019: added vr_base_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.13, June 25, 2019"
+g_version = "gen_ss_review_scripts.py version 1.14, June 28, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1170,6 +1171,7 @@ class MyInterface:
       if self.guess_outlier_dset():     return -1
       if self.guess_final_anat():       return -1
       if self.guess_align_anat():       return -1
+      if self.guess_vr_base_dset():     return -1
       if self.guess_final_epi_dset():   return -1
       if self.guess_template():         return -1
       if self.guess_tsnr_dset():        return -1
@@ -1914,6 +1916,29 @@ class MyInterface:
             return 0
 
       print('** failed to guess align_anat (continuing)')
+
+      return 0
+
+   def guess_vr_base_dset(self):
+      """set uvars.vr_base_dset
+         return 0 on sucess
+         - look for vr_base*.HEAD
+      """
+
+      # check if already set
+      if self.uvar_already_set('vr_base_dset'): return 0
+
+      # see whether we find exactly one
+      glist = glob.glob('vr_base*.HEAD')
+      if self.cvars.verb > 2:
+         print('-- have %d vr_base files via wildcard: %s' \
+               % (len(glist), glist))
+
+      if len(glist) >= 1:
+         self.uvars.vr_base_dset = glist[-1]
+         return 0
+
+      print('** failed to guess volreg base dset (continuing)')
 
       return 0
 

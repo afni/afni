@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Jun, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "add vr_base_dset uvar",
+   NULL
+ } ,
+
  { 27, Jun, 2019, RCR, "1d_tool.py", MINOR, TYPE_NEW_OPT,
    "add -write_with_header and -write_xstim",
    NULL
