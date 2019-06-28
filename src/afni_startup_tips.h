@@ -1187,7 +1187,6 @@ static char *gby[] = {
      "Moderation is fatal - nothing succeeds like excess"                       ,
      "The world is a stage - but the play is badly cast"                        ,
      "An idea that is not dangerous is unworthy of being called an idea at all" ,
-     "The world is a stage, but the play is badly cast"                         ,
      "The only true necessities are totally useless things"                     ,
      "The soul is born old but grows young"                                     ,
      "When given the choice of two evils, the pessimist chooses both"           ,
@@ -1640,14 +1639,36 @@ static char *gby[] = {
      "    phenomenal     pleasant    pleasing     remarkable  sensational\n"
      "    superb         terrific    tremendous   wondrous    astounding\n"
      "    awe-inspiring  divine      dynamite     groovy      miraculous\n"
-     "    primo          staggering  supercalifragilisticexpialidocious\n"
+     "    primo          staggering  supercalifragilisticexpialidocious\n"  ,
 
      /* from Babylon 5 */
 
      "Understanding is a three edged sword: your side, their side, and the truth" ,
 
      "All life is transitory, a dream… if I don’t see you again here,\n"
-     "  I will see you, in a little while, in a place where no shadows fall"
+     "  I will see you, in a little while, in a place where no shadows fall"  ,
+
+     /* 28 Jun 2019 */
+
+     "Sooner or later, we have all to pay for what we do"                    ,
+     "When the gods wish to punish us, they answer our prayers"              ,
+     "There is no sin except stupidity"                                      ,
+     "The only way to get rid of a temptation is to yield to it"             ,
+     "I summed up the brain in a network, and all existence in a pie chart"  ,
+     "Science actually happens not in real space, but in PowerPoint space"   ,
+     "The next AFNI feature will be the Atomic Cerebral Enhance-o-tron"      ,
+     "The thing we are most afraid of is ourselves"                          ,
+     "Dreams are real as long as they last - can we say more of life?"       ,
+     "The nectar of life is sweet only when shared with others"              ,
+     "All things are hard; there is nothing easy"                            ,
+     "The true mystery of the world is the visible, not the invisible"       ,
+
+     "There is enough in the world for everyone’s need; there is not enough for everyone’s greed" ,
+
+     "\n  The good and the dear approach the man,\n"
+     "  The wise man, pondering over both, distinguishes them;\n"
+     "  The wise one chooses the good over the dear,\n"
+     "  The fool, acquisitive and craving, chooses the dear"
 
 } ;
 
