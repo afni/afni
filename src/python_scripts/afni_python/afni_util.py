@@ -1435,6 +1435,10 @@ def max_dim_1D(filename):
 def transpose(matrix):
     """transpose a 2D matrix, returning the new one"""
     rows = len(matrix)
+
+    # handle trivial case
+    if rows == 0: return []
+
     cols = len(matrix[0])
     newmat = []
     for c in range(cols):
