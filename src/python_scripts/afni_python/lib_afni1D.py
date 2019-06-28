@@ -189,13 +189,16 @@ class Afni1D:
       if not self.ready:
          print('** reduce_by_vec_list: Afni1D is not ready')
          return 1
-      if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1): return 1
       if len(vlist) < 1: return 1
+      if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1):
+            return 1
 
       self.mat = [self.mat[i] for i in vlist]
 
       self.nvec = len(vlist)
       self.nroi = self.nvec     # don't know, so assume all
+
+      if self.nvec == 0: self.nt = 0
 
       # update lists
       if self.labels: self.labels = [self.labels[i] for i in vlist]
@@ -1621,6 +1624,9 @@ class Afni1D:
       """return of string with (a subset of) the header lines
          (no terminal newline)
       """
+      # if no data, do not return a header
+      if self.nvec == 0 or self.nt == 0: return ''
+      
       hlist = []
       hlist.append('#  ni_dimen = "%s"' % self.nt)
       if len(self.labels) == self.nvec:
@@ -2146,6 +2152,7 @@ class Afni1D:
 
       self.run_len = [self.nt]  # init to 1 run
 
+      self.nroi = self.nvec     # init to all
       if self.groups:
          if self.nvec: self.set_nruns()
          if len(self.groups) > 0:
@@ -2935,7 +2942,7 @@ class Afni1D:
       if not TD.data_is_rect(tmat):
          print("** data is not rectangular in %s" % fname)
          return 1
-      if not tmat: return 1
+      # if not tmat: return 1
 
       # treat columns as across time
       mat = UTIL.transpose(tmat)
@@ -2943,7 +2950,8 @@ class Afni1D:
       
       self.mat   = mat
       self.nvec  = len(mat)
-      self.nt    = len(mat[0])
+      if self.nvec > 0: self.nt = len(mat[0])
+      else:             self.nt = 0
       self.ready = 1
 
       for line in clines:
@@ -2979,7 +2987,10 @@ class Afni1D:
                   print("** matrix nt %d != %s rows %d" % \
                        (self.nt, label, nrows))
             elif label == 'ColumnLabels':
-               self.labels = [ss.strip() for ss in data.split(';')]
+               if data == '':
+                  self.labels = []
+               else:
+                  self.labels = [ss.strip() for ss in data.split(';')]
                if self.verb > verb_level:
                   print("-- label %s: labels = %s" % (label, self.labels))
                if self.nvec != len(self.labels):
