@@ -2887,12 +2887,12 @@ def executable_dir(ename=''):
 
 def common_dir(flist):
    """return the directory name that is common to all files (unless trivial)"""
-   dir, junk = first_last_match_strs(flist)
-   if len(dir) > 0 and dir[-1] == '/': dir = dir[0:-1]
-   if not os.path.isdir(dir): dir = os.path.dirname(dir)
+   dname, junk = first_last_match_strs(flist)
+   if len(dname) > 0 and dname[-1] == '/': dname = dname[0:-1]
+   if not os.path.isdir(dname): dname = os.path.dirname(dname)
 
-   if is_trivial_dir(dir): return ''
-   return dir
+   if is_trivial_dir(dname): return ''
+   return dname
 
 def common_parent_dirs(flists):
    """return parent directories
