@@ -5860,7 +5860,7 @@ def db_cmd_regress(proc, block):
                "set reg_cols = `1d_tool.py -infile %s -show_%s`\n"         \
                '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n'               \
                '# also, create a stimulus-only X-matrix, for easy review\n'\
-               '1dcat %s"[$reg_cols]" > X.stim.xmat.1D\n\n'                \
+               '1d_tool.py -infile %s"[$reg_cols]" -write X.stim.xmat.1D\n\n' \
                 % (proc.xmat_nocen, "indices_interest", opt.parlist[0],
                    proc.xmat_nocen, proc.xmat_nocen)
 
