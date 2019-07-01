@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.9, May 22, 2019
+Version 0.0.10, Jul 1, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -50,14 +50,14 @@ Usage: ~1~
  sensible.
 
  Thanks to Zhihao Li for motivating me to start the MBA work, and to 
- Paul-Christian Bürkner and the Stan/R communities for the strong support.
+ Paul-Christian Bürkner and the Stan/R communities for their strong support.
 
  Citation: ~1~
  If you want to cite the approach for MBA, consider the following:~2~
 
  Chen, G., Bürkner, P.-C., Taylor, P.A., Li, Z., Yin, L., Glen, D.R., Kinnison, J.,
  Cox, R.W., Pessoa, L., 2019. An Integrative Approach to Matrix-Based Analyses in
- Neuroimaging. https://doi.org/10.1101/459545
+ Neuroimaging. Human Brain Mapping. In press. https://doi.org/10.1101/459545
 
  =============================== 
  Read the following carefully!!!
@@ -723,7 +723,11 @@ ns <- lop$iterations*lop$chains/2
 #nR <- nlevels(lop$dataTable$ROI1)
 aa <- fixef(fm, summary = FALSE) # Population-Level Estimates
 bb <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
-if(nR != length(dimnames(bb$mmROI1ROI2)[[2]])) 
+
+# region labels
+rL <- dimnames(bb$mmROI1ROI2)[[2]]
+
+if(nR != length(rL)) 
    cat('\n***** Warning: something strange about the ROIs! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 # compute P+
@@ -734,7 +738,7 @@ ww <- function(aa, bb, tm, nR) {
   ps0 <- array(apply(bb[['mmROI1ROI2']][,,tm], 2, "+", bb[['mmROI1ROI2']][,,tm]), c(ns, nR, nR))
   ps <- apply(ps0, c(2,3), '+', aa[,tm])
   
-  dimnames(ps) <- list(1:ns, dimnames(bb$mmROI1ROI2)[[2]], dimnames(bb$mmROI1ROI2)[[2]])
+  dimnames(ps) <- list(1:ns, rL, rL)
   tmp <- ps
   
   sel1 <- match(dimnames(bb$`ROI1:ROI2`)[[2]], outer(dimnames(ps)[[2]],dimnames(ps)[[3]], function(x,y) paste(x,y,sep="_")))
@@ -772,12 +776,12 @@ res <- function(bb, xx, pp, nd) {
    RP <- RP[RP[,1] < RP[,2],]
    tmp <- data.frame(ROI1=factor(), ROI2=factor(), mean=factor(), SD=factor(), `P+`=factor(), check.names = FALSE)
    if(length(RP) > 2) {
-      tmp <- cbind(dimnames(bb$mmROI1ROI2)[[2]][RP[,1]], dimnames(bb$mmROI1ROI2)[[2]][RP[,2]], 
+      tmp <- cbind(rL[RP[,1]], rL[RP[,2]], 
          round(t(mapply(function(i, j) xx[i, j, 1:3], RP[,1], RP[,2])), nd)) 
       colnames(tmp)[1:2] <- c('ROI1', 'ROI2') 
       tmp <- data.frame(tmp, row.names = NULL, check.names = FALSE) } else
       if(length(RP)==2) {
-         tmp <- c(dimnames(bb$mmROI1ROI2)[[2]][RP[1]], dimnames(bb$mmROI1ROI2)[[2]][RP[2]], round(xx[RP[1], RP[2], 1:3],3))
+         tmp <- c(rL[RP[1]], rL[RP[2]], round(xx[RP[1], RP[2], 1:3],3))
          #tmp <- paste(RP[1], RP[2], round(xx[RP[1], RP[2], 1:3], nd))
          #names(tmp)[1:2] <- c('ROI1', 'ROI2')
          tmp <- data.frame(t(tmp), row.names = NULL, check.names = FALSE) 
@@ -787,7 +791,7 @@ res <- function(bb, xx, pp, nd) {
 
 # standardize the output
 prnt <- function(pct, side, dat, fl, entity) {
-   cat(sprintf('***** %i %s based on %i-sided %i uncertainty interval *****', 
+   cat(sprintf('***** %i %s based on %i-sided %i%% uncertainty interval *****', 
       nrow(dat), entity, side, pct), file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
    if(nrow(dat) > 0) cat(capture.output(dat), file = paste0(fl, '.txt'), sep = '\n', append=TRUE) else
       cat('NULL', file = paste0(fl, '.txt'), sep = '\n', append=TRUE)
@@ -881,8 +885,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       psa[nl,,,] <- psa[nl,,,] + ps[jj,,,]
    }
    psa[nl,,,] <- ps[nl,,,] - psa[nl,,,]  # reference level
-   dimnames(psa)[[3]] <- dimnames(bb$mmROI1ROI2)[[2]]
-   dimnames(psa)[[4]] <- dimnames(bb$mmROI1ROI2)[[2]]
+   dimnames(psa)[[3]] <- rL
+   dimnames(psa)[[4]] <- rL
    
    #oo <- array(apply(psa, 1, vv, ns, nR), dim=c(nR, nR, 8, nl))
    #dimnames(oo)[[3]] <- c('mean', 'sd', 'P+', '2.5%', '5%', '50%', '95%', '97.5%')
@@ -963,7 +967,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       psa[nl,,] <- psa[nl,,] + ps[jj,,] 
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
-   dimnames(psa)[[3]] <- dimnames(bb$mmROI1ROI2)[[2]]
+   dimnames(psa)[[3]] <- rL
    
    oo <- apply(psa, 1, sumROI, ns, 3)
    
