@@ -2909,7 +2909,7 @@ def common_parent_dirs(flists):
    """
    if type(flists) != list:
       print('** common_parent_dirs: bad flists type')
-      return None
+      return None, None, None, None
    for ind in range(len(flists)):
       flist = flists[ind]
       if type(flist) != list:
