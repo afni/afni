@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, July , 2019 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
+   "Labels on stim regressors, vorig QC block added, grayplot pbvorder/enorm.",
+   "Help updated; output stats still if not align/tlrc blocks used.\n"
+},
+
+{ 1, July , 2019 , PT , "apqc_make_html.py" , MINOR , TYPE_GENERAL,
+   "Some minor tweaks to APQC HTML: better pbar size control, spacing.",
+   "Also can interpret pbar text more broadly.\n"
+},
+
+{ 1, July , 2019 , PT , "@djunct_glue_imgs_vert" , MICRO , TYPE_NEW_PROG,
+   "New prog for APQC HTML stuff.  Glue two images together vertically.",
+   "Used when pixel x-dimensions match (mainly for APQC HTML).\n"
+},
+
+{ 1, July , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "New option '-pbar_for ..', which is mainly for APQC HTML.",
+   "Can add a dict entry to txt file accompanying pbar output.\n"
+},
+
 { 26, June , 2019 , PT , "3dNetCorr" , MINOR , TYPE_NEW_OPT,
    "New opt '-weight_ts WTS' to multiply ROI ave time series.",
    "Input at the behest of Colm C.  May it pour forth wondrous results.\n"

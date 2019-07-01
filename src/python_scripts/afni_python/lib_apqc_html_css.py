@@ -253,13 +253,13 @@ css_text+= '''
 
 css_text+= '''
 img.pbar {
-    width: 200px;  /* 20rem; */
+    width: 16ch;  /* 200px; 20rem; */
 /*    border:  2px solid black; */
-    height: 14px;
+    height: 0.7em; /* 14px; */
     text-align: middle;
-/*    margin: 0px; */
-/* padding: 0px; */
-    padding: 4px;
+    margin: 0px;
+    border: 0px;
+    padding: 0px 0ch; /* 4px; */
 }
 
 .navbar {

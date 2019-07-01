@@ -59,6 +59,7 @@ DEF_censor_hline_RGB = 'cyan'
 DEF_patch_alt_RGB = '0.95'
 DEF_bkgd_color    = '0.9'
 DEF_boxplot_on    = False
+DEF_margin_on     = True
 DEF_bplot_view    = ""  # vals: ["BC_ONLY", "BC_AC"]
 DEF_boxplot_ycen  = False
 DEF_censor_on     = False
@@ -149,6 +150,34 @@ COMMAND OPTIONS ~1~
                (BC) and after censoring (AC). To show *only* the
                uncensored one, use this option and keyword.
 
+-margin_off   :use this option to have the plot frame fill the figure
+               window completely; thus, no labels, frame, titles or
+               other parts of the 'normal' image outside the plot
+               window will be visible.  Tick lines will still be
+               present, living their best lives.
+               This is probably only useful/recommended/tested for
+               plots with a single panel.
+
+-scale  SCA1 SCA2 SCA3 ...
+              :provide a list of scales to apply to the y-values.
+               These will be applied multiplicatively to the y-values;
+               there should either be 1 (applied to all time series)
+               or the same number as the time series (in the same
+               order as those were entered).  The scale values are
+               also applied to the censor_hline values, but *not* to
+               the "-yaxis ..." range(s). 
+               Note that there are a couple keywords that can be used
+               instead of SCA* values:
+                   SCALE_TO_HLINE: each input time series is
+                      vertically scaled so that its censor_hline -> 1.
+                      That is, each time point is divided by the
+                      censor_hline value.  When using this, a visually
+                      pleasing yaxis range might be 0:3.
+                   SCALE_TO_MAX: each input time series is
+                      vertically scaled so that its max value -> 1.
+                      That is, each time point is divided by the
+                      max value. When using this, a visually
+                      pleasing yaxis range might be 0:1.1.
 
 -xfile   XX   :one way to input x-values explicitly: as a "1D" file XX, a
                containing a single file of numbers.  If no xfile is 
@@ -340,6 +369,7 @@ class figplobj:
     dpi          = DEF_dpi
     all_subs     = []     # will be a list of subplots
     nsub         = 0
+    ngraph       = 0
     fname        = DEF_prefix
     figsize      = []
     fontsize     = DEF_fontsize
@@ -358,6 +388,7 @@ class figplobj:
     npatch       = 0
     bkgd_color   = DEF_bkgd_color
     boxplot_on   = DEF_boxplot_on
+    margin_on    = DEF_margin_on
     bplot_view   = ''
     boxplot_ycen = DEF_boxplot_ycen
 
@@ -370,8 +401,19 @@ class figplobj:
     def set_boxplot(self, c):
         self.boxplot_on = c
 
+    def set_margin(self, c):
+        self.margin_on = c
+
     def set_boxplot_ycen(self, c):
         self.boxplot_ycen = c
+
+    # assumes self.nsub has been set already; 'c' is T/F value of
+    # self.onegraph
+    def set_ngraph(self, c):
+        if c:
+            self.ngraph = 1
+        else:
+            self.ngraph = self.nsub
 
     def set_bplot_view(self, c):
         if not(self.censor_on) :
@@ -561,6 +603,7 @@ class apqc_1dplot_opts:
     nylabels = 0    
     xlabel  = ""
     onescl  = True
+    one_graph  = False
     reverse_order = False
     xfile   = ""    # 1D file of xaxis vals
     xvals   = []    # alt. xaxis def: "start stop step"
@@ -577,6 +620,7 @@ class apqc_1dplot_opts:
     ncolors = 0
     bkgd_color = DEF_bkgd_color
     boxplot_on = DEF_boxplot_on
+    margin_on  = DEF_margin_on
     bplot_view = DEF_bplot_view
 
     # input catchers for censoring
@@ -594,6 +638,9 @@ class apqc_1dplot_opts:
     censor_width = 0
     censor_RGB   = DEF_censor_RGB
     censor_hline = []
+
+    scale        = []  # [PT: June 28, 2019] vertical, y-scale possible
+    scale_type   = ''
 
     patch_arr   = [] # list of run lengths, for alternating patches of plot
 
@@ -626,6 +673,13 @@ class apqc_1dplot_opts:
             MISS+=1
         return MISS
 
+    def check_conflicts(self):
+        CONFLICTS = 0
+        if self.boxplot_on and self.one_graph :
+            print("conflict: using both '-boxplot_on' and '-onegraph'")
+            CONFLICTS+=1
+        return CONFLICTS
+
     # ----------- opt -----------------
 
     def set_layout(self, c):
@@ -633,6 +687,9 @@ class apqc_1dplot_opts:
 
     def set_boxplot(self, c):
         self.boxplot_on = c
+
+    def set_margin(self, c):
+        self.margin_on = c
 
     # [PT: Jan 15, 2019] 
     def set_bplot_view(self, c):
@@ -685,6 +742,87 @@ class apqc_1dplot_opts:
                      "must be either 0, 1, or match the "
                      "number of infiles {}".format(nhline, self.ndsets))
   
+    # [PT: June 28, 2019] modeled on importing censor values; can
+    # scale time series, e.g., changing units (or what will be
+    # internal scale)
+    def add_scale(self, hh):
+        # special case
+        if hh == 'SCALE_TO_HLINE':
+            self.set_scaletype(hh)
+        elif hh == 'SCALE_TO_MAX':
+            self.set_scaletype(hh)
+        else:
+            self.set_scaletype('user_val' )
+            self.scale.append(float(hh))
+
+    def set_scaletype(self, hh):
+        self.scale_type = hh
+        
+    def count_scale(self):
+        return len(self.scale)
+
+    def check_scales(self):
+        n = self.count_scale()
+        
+        if n == 0:
+            # fun special case
+            if self.scale_type == 'SCALE_TO_HLINE' :
+                print("++ Will scale each time series by censor_hline")
+                for i in range(self.ndsets):
+                    if self.censor_hline[i] :
+                        hh = 1.0/self.censor_hline[i]
+                        self.add_scale(hh)
+                    else:
+                        sys.exit("** ERROR: cannot use SCALE_TO_HLINE scaling "
+                                 " when a censor_hline has "
+                                 "{}-value".format(self.censor_hline[i]))
+            elif self.scale_type == 'SCALE_TO_MAX' :
+                print("++ Will scale each time series by time series max")
+                for i in range(self.ndsets):
+                    maxy = max(self.all_y[i])
+                    if maxy :
+                        hh = 1.0/maxy
+                        self.add_scale(hh)
+                    else:
+                        sys.exit("** ERROR: cannot use SCALE_TO_MAX scaling "
+                                 " when a censor_hline has "
+                                 "{}-value".format(maxy))
+            else:
+                pass # fine
+        elif n == self.ndsets:
+            pass # fine
+        elif n == 1:
+            print("++ Will apply same scale {} to "
+                  "all dsets".format(self.scale[0]))
+            for i in range(1, self.ndsets):
+                hh = self.scale[0]
+                self.add_scale(hh)
+        else:
+            sys.exit("** ERROR: number of scale values {} "
+                     "must be either 0, 1, or match the "
+                     "number of infiles {}".format(n, self.ndsets))
+
+    def apply_scales_all_y(self):
+        if not(self.count_scale()):
+            pass
+        else:
+            N = self.ndsets  # also number of scales, by def, here
+            for i in range(N):
+                print("++ Apply scale: {}".format(self.scale[i]))
+                Ly = len(self.all_y[i])
+                for j in range(Ly):
+                    self.all_y[i][j]*= self.scale[i]
+            # and reset min/max
+            self.set_y_minmax()
+
+    def apply_scales_censor_hlines(self):
+        if not(self.count_scale()) or not(self.count_censor_hline()):
+            pass
+        else:
+            N = self.ndsets  # also number of scales, by def, here
+            for i in range(N):
+                self.censor_hline[i]*= self.scale[i]
+
     # [PT: Dec 23, 2018] 'hh' can be any of the following:
     ###   bot:top --> full range specified
     ###   :top    --> only top val specified, lower filled in 
@@ -785,7 +923,7 @@ class apqc_1dplot_opts:
         self.dpi = int(dpi)
 
     def set_figsize(self, a, b):
-        self.figsize = [a, b]
+        self.figsize = [float(a), float(b)]
 
     def set_fontsize(self, a):
         self.fontsize = a
@@ -804,6 +942,9 @@ class apqc_1dplot_opts:
 
     def do_sepscl(self):
         self.onescl = False
+
+    def do_onegraph(self):
+        self.one_graph = True
 
     def set_reverse_order(self, tf):
         self.reverse_order = tf
@@ -985,7 +1126,7 @@ def parse_1dplot_args(argv):
                  "-censor_files", "-censor_RGB", "-censor_hline",
                  "-title", "-dpi", "-colors", "-sepscl",
                  "-reverse_order", "-boxplot_on", "-bplot_view", 
-                 "-yaxis", "-patches" ]
+                 "-yaxis", "-patches", "-margin_off", "-scale" ]
 
 
     Narg = len(argv)
@@ -1199,6 +1340,22 @@ def parse_1dplot_args(argv):
             if not(count):
                 ARG_missing_arg(argv[i])
 
+        elif argv[i] == "-scale":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                if not(all_opts.__contains__(argv[i])): 
+                    iopts.add_scale((argv[i]))
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
         elif argv[i] == "-yaxis":
             count = 0
             if i >= Narg:
@@ -1246,11 +1403,17 @@ def parse_1dplot_args(argv):
         elif argv[i] == "-sepscl":
             iopts.do_sepscl()
 
+        elif argv[i] == "-one_graph":
+            iopts.do_onegraph()
+
         elif argv[i] == "-reverse_order":
             iopts.set_reverse_order(True)
 
         elif argv[i] == "-boxplot_on":
             iopts.set_boxplot(True)
+
+        elif argv[i] == "-margin_off":
+            iopts.set_margin(False)
 
         elif argv[i] == "-bplot_view":
             if i >= Narg:
@@ -1267,7 +1430,10 @@ def parse_1dplot_args(argv):
     if iopts.check_req():
         print("** ERROR: Missing input arguments")
         sys.exit(1)
-        
+    if iopts.check_conflicts():
+        print("** ERROR: conflicting/bad opts usage")
+        sys.exit(2)
+
     return iopts
 
 

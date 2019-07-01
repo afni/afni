@@ -81,10 +81,14 @@ auth = 'PA Taylor'
 #ver = '2.51' ; date = 'June 14, 2019' 
 # + [PT] tiiiiny change, updating variable name to match 'omsg'
 #
-ver = '2.6' ; date = 'June 18, 2019' 
+#ver = '2.6' ; date = 'June 18, 2019' 
 # + [PT] ephemeral change: when surf and mask blocks are *both* used,
 #        don't output grayplot; this will later be revisited when
 #        surface things are considered more carefully (i.e., at all)
+#
+ver = '2.7' ; date = 'June 26, 2019' 
+# + [PT] elif for vstat: no anat or templ, use volreg as ulay; West
+#        Coast usage for S Torrisi.
 #
 #########################################################################
 
@@ -254,7 +258,7 @@ if __name__ == "__main__":
 
     ### [PT: Dec 21, 2018] will come back to this with a uvars for the
     ### vr_base set
-    ldep  = ['vr_base']
+    ldep  = ['vr_base_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         volitem  = "EPI" # because we use same func to plot for both
                          # EPI and anat vols
@@ -334,9 +338,11 @@ if __name__ == "__main__":
     # QC block: "vstat"
     # item    : stats in vol: F-stat (def) and other stim/contrasts
 
-    ldep  = ['stats_dset', 'mask_dset', 'final_anat']
-    ldep2 = ['template'] # secondary consideration
+    ldep    = ['stats_dset', 'mask_dset', 'final_anat']
+    ldep2   = ['template']                                # 2ary consideration
+    alt_ldep = ['stats_dset', 'mask_dset', 'vr_base_dset'] # elif to ldep
     if lat.check_dep(ap_ssdict, ldep) :
+        ulay = '${final_anat}'
         if lat.check_dep(ap_ssdict, ldep2) :
             focusbox = '${templ_vol}'
         else:
@@ -348,7 +354,23 @@ if __name__ == "__main__":
         # thr volumes in the stats dset-- we intend that this will
         # generalize to viewing not just the F-stat (the default)
         cmd      = lat.apqc_vstat_fstat( obase, "vstat", "fstat", 
-                                         focusbox, 0, 0 )
+                                         ulay, focusbox, 0, 0 )
+
+        str_FULL+= ban
+        str_FULL+= cmd
+        idx     += 1
+
+    elif lat.check_dep(ap_ssdict, alt_ldep) :
+        ulay     = '${vr_base_dset}'
+        focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
+
+        ban      = lat.bannerize('view some stats results')
+        obase    = 'qc_{:02d}'.format(idx)
+        # in this case, we also specify the indices of the ulay and
+        # thr volumes in the stats dset-- we intend that this will
+        # generalize to viewing not just the F-stat (the default)
+        cmd      = lat.apqc_vstat_fstat( obase, "vstat", "fstat", 
+                                         ulay, focusbox, 0, 0 )
 
         str_FULL+= ban
         str_FULL+= cmd
@@ -476,7 +498,7 @@ if __name__ == "__main__":
     # if there is no stats dset or its value is NO_STATS, then there
     # *are no* regressors of interest, so we won't try to plot them.
     # At some point, we will add in different info to put here, though.
-    ldep = ['xmat_stim', 'stats_dset']
+    ldep = ['xmat_stim', 'xmat_uncensored', 'stats_dset']
     if lat.check_dep(ap_ssdict, ldep) :
         # additional checks here for possible other uvars to use
         HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
@@ -515,15 +537,30 @@ if __name__ == "__main__":
     # QC block: "regr"
     # item    : grayplot of errts (task, rest, naturalistic, etc.)
 
+    # [PT: June 27, 2019] expanding to include enorm, if available and
+    # in Pythonic mode
+
     # [PT: Feb 25, 2019] 
     ldep = ['errts_dset', 'mask_dset']
+    ldep2 = ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
     if lat.check_dep(ap_ssdict, ldep) :
         # [PT: Jun 18, 2019] special case check-- 
         if not(ap_ssdict['errts_dset'].__contains__('.niml.dset')) :
+            HAS_mot_dset  = lat.check_dep(ap_ssdict, ldep2)
+            HAS_out_dset    = lat.check_dep(ap_ssdict, ['outlier_dset'])
+            HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+            HAS_mot_limit   = lat.check_dep(ap_ssdict, ['mot_limit'])
+            HAS_out_limit   = lat.check_dep(ap_ssdict, ['out_limit'])
+
             ban      = lat.bannerize('make grayplot of residuals')
             obase    = 'qc_{:02d}'.format(idx)
-            cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot" )
-            
+            cmd      = lat.apqc_regr_grayplot( obase, "regr", "grayplot",
+                                               RUN_STYLE,  
+                                               has_mot_dset=HAS_mot_dset,
+                                               has_out_dset=HAS_out_dset,
+                                               has_mot_lim=HAS_mot_limit,
+                                               has_out_lim=HAS_out_limit,
+                                               has_cen_dset=HAS_censor_dset )
             str_FULL+= ban
             str_FULL+= cmd
             idx     += 1

@@ -71,7 +71,8 @@ qc_link_final       = [ "FINAL",
 qcb_helps           = coll.OrderedDict()
 qcb_helps["vorig"]  = '''
 Volumetric mages of data (EPI and anat) in original/native space.
-*Coming soon*.
+
+(EPI should now be shown;  anat vol will be along shortly.)
 '''
 
 qcb_helps["ve2a" ]  = '''
@@ -115,7 +116,7 @@ combined stimulus plots are generated (with any censoring also shown).
 The degrees of freedom (DF) summary is also provided, so one can check
 if too many get used up during processing (careful with bandpassing!).
 
-And a grayplot of residuals is provided.
+And a grayplot of residuals (with motion/outliers/censoring) is provided.
 '''
 
 qcb_helps["warns"]  = '''

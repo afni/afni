@@ -54,6 +54,7 @@ lots of individual subject 'ss' instances of the subplobj object.
     #plt.xkcd() # ha!
 
     # we can add in one summary boxplot per subj 
+    # at the moment, can't have one_graph with boxplot
     if bf.boxplot_on :
         ncol = 2
         a, subpl = plt.subplots( bf.nsub, ncol, 
@@ -64,7 +65,7 @@ lots of individual subject 'ss' instances of the subplobj object.
                                  figsize=bf.figsize )
     else:
         ncol = 1
-        a, subpl = plt.subplots( bf.nsub, ncol, 
+        a, subpl = plt.subplots( bf.ngraph, ncol, 
                                  figsize=bf.figsize )
 
     for i in range(bf.nsub):
@@ -79,7 +80,7 @@ lots of individual subject 'ss' instances of the subplobj object.
             else:
                 pp = subpl[0]
         else:
-            if bf.nsub > 1:
+            if bf.ngraph > 1:
                 pp = subpl[i]
             else:
                 pp = subpl
@@ -118,13 +119,18 @@ lots of individual subject 'ss' instances of the subplobj object.
         if bf.see_xax : 
             pp.axhline(y=0, c='0.6', ls='-', lw=0.5)
 
+        if not(bf.margin_on) :
+            a.subplots_adjust(left=0.0, bottom=0.0, right=1, top=1)
+
         ## the actual plot. 
         # [PT: Jan 14, 2019] now get line width as a function of the
         # number of points.
+        #if not(bf.margin_on) :
+        #    pp.axis('off')
         sp = pp.plot( ss.x, ss.y, 
                       color = ss.color,
                       lw=calc_lw_from_npts(ss.npts) )
-
+        
         pp.set_xlim(ss.xlim)
         pp.set_ylim(ss.ylim)
 
@@ -141,13 +147,14 @@ lots of individual subject 'ss' instances of the subplobj object.
                         bottom=True, left=True, right=True ) #, top=True )
         pp.tick_params( axis='both', which='major', direction='in', color='0.5',
                         bottom=True, left=True, right=True ) #, top=True )
-        pp.spines['bottom'].set_color('0.5')
-        pp.spines['top'   ].set_color('0.5')
-        pp.spines['left'  ].set_color('0.5')
-        pp.spines['right' ].set_color('0.5')
+        if bf.margin_on :
+            pp.spines['bottom'].set_color('0.5')
+            pp.spines['top'   ].set_color('0.5')
+            pp.spines['left'  ].set_color('0.5')
+            pp.spines['right' ].set_color('0.5')
 
         # only show tick labels at very bottom
-        if i < bf.nsub-1 :
+        if i < bf.ngraph-1 :
             nlabs = len(pp.get_xticklabels())
             pp.set_xticklabels(['']*nlabs)
 
@@ -265,8 +272,11 @@ lots of individual subject 'ss' instances of the subplobj object.
     #elif bf.layout == 'tight':
     #    plt.tight_layout()
 
-    plt.savefig( bf.fname, dpi=bf.dpi, facecolor=bf.bkgd_color,
-                 bbox_inches='tight')
+    if not(bf.margin_on) :
+        plt.savefig( bf.fname, dpi=bf.dpi, facecolor=bf.bkgd_color)
+    else :
+        plt.savefig( bf.fname, dpi=bf.dpi, facecolor=bf.bkgd_color,
+                     bbox_inches='tight')
     print("++ Done! Figure created:\n\t {}".format(bf.fname))
 
     return 0
@@ -306,6 +316,7 @@ def populate_1dplot_fig(iopts):
     bigfig.set_censor_hline( iopts.censor_hline )
     bigfig.set_patch_arr( iopts.patch_arr )
     bigfig.set_boxplot( iopts.boxplot_on )
+    bigfig.set_margin( iopts.margin_on )
     bigfig.set_bplot_view( iopts.bplot_view )
 
     for i in range(iopts.ndsets):
@@ -354,6 +365,7 @@ def populate_1dplot_fig(iopts):
 
     # depends on final number of subjects
     bigfig.set_figsize( iopts.figsize )
+    bigfig.set_ngraph( iopts.one_graph )
 
     return bigfig
 
@@ -394,7 +406,15 @@ def populate_1dplot_arrays(iopts):
     # good: it must be either 0 (no lines added), 1 (same line added
     # to all) and/or match the number of input yfiles
     iopts.check_censor_hlines()
-    # ... and check this in the same way: optional user entry for ylims
+    # ... and check this in the same way: scales for y-axis stretch.
+    #     must be done *after* censor hlines are set, and *before* yrange
+    #     is assigned; censor hlines will be set to 1 here
+    iopts.check_scales()
+    if iopts.count_scale() :
+        iopts.apply_scales_all_y()
+        iopts.apply_scales_censor_hlines()
+    # ... and check this in the same way: optional user entry for
+    # ylims; this is *not* scaled-- user's value is used directly
     iopts.check_yaxran()
 
     return 0

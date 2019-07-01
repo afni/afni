@@ -55,9 +55,17 @@ auth = 'PA Taylor'
 # + [PT] more details of aea_checkflip
 # + [PT] radcor to own QC block
 #
-ver = '2.5' ; date = 'May 23, 2019' 
+#ver = '2.5' ; date = 'May 23, 2019' 
 # + [PT] switched to using afni_base functions for executing on
 #        commandline
+#
+#ver = '2.7' ; date = 'June 26, 2019' 
+# + [PT] elif for vstat: no anat or templ, use volreg as ulay; West
+#        Coast usage for S Torrisi.
+#
+ver = '2.8' ; date = 'June 28, 2019' 
+# + [PT] better grayplotting, more informative stuff happening
+# + [PT] PBAR size is now in terms of char width-- preserve verticality. Duh.
 #
 #########################################################################
 
@@ -1048,6 +1056,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
     @ imax = ${{nt_orig}} - 1
     set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
     set pats = "${{ssrev_ln[6-]}}"
+    set labels = `1d_tool.py -infile ${{xmat_uncensored}} -select_groups POS -show_labels -verb 0`
     '''.format(jpgsize, opref)
 
     if run_style == 'basic' :
@@ -1082,6 +1091,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
         -reverse_order 
         -infiles  ${{xmat_stim}}
         -xlabel   "vol"
+        -ylabels ${{labels}}
         {}
         -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg"
@@ -1159,6 +1169,7 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
     @ imax = ${{nt_orig}} - 1
     set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
     set pats = "${{ssrev_ln[6-]}}"
+    set labels = "regressor sum"
     '''.format(jpgsize, opref)
 
     if run_style == 'basic' :
@@ -1196,6 +1207,7 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
         -boxplot_on
         -infiles  ${{sum_ideal}}
         -xlabel   "vol"
+        -ylabels   "${{labels}}"
         {}
         -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg"
@@ -1239,7 +1251,7 @@ def apqc_regr_ideal( obase, qcb, qci, run_style, jpgsize,
 
 # ----------------------------------------------------------------------
 
-# ['vr_base'] OR ['anat_orig']
+# ['vr_base_dset'] OR ['anat_orig']
 def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     # Here, qci has additional roles of a string label, because we use
     # this same function to plot all ORIG vols (EPI or anat, at the
@@ -1267,7 +1279,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
 
     STR_json_text = '''"{} in original space{}"'''.format( qci_comm, epi_comm )
     STR_json_text+= ''' ,, '''   # separator for 2-line text in JSON
-    STR_json_text+= '''"ulay: ${{ulay_name}} ({})"'''.format( qci )
+    STR_json_text+= '''"dset: ${{ulay_name}} ({})"'''.format( qci )
 
     pre = '''
     set opref = {0}
@@ -1313,7 +1325,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     {}
     -pbar_saveim "${{opbarrt}}.jpg"
     -pbar_comm_range "{}{}"
-    -pbar_comm_thr   "range: ${{minmax[1]}}, ${{minmax[2]}}"
+    -pbar_for "dset"
     -prefix      "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -blowup 4
@@ -1346,6 +1358,10 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -prefix ${ojson}
     '''
 
+    osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
+    osubtext2+= ''' ,, '''
+    osubtext2+= '''"range: [${minmax[1]}, ${minmax[2]}]"'''
+
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
     itemtype    :: VOL
@@ -1353,8 +1369,10 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
+    subtext     :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                osubtext2 )
 
     jsontxt2_cmd = '''
     abids_json_tool.py   
@@ -1572,7 +1590,9 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
 
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
-def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr, 
+def apqc_vstat_fstat( obase, qcb, qci, 
+                      ulay, focusbox,     # bc some flexibility in usage
+                      iolay, ithr, 
                       olay_posonly=True ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
@@ -1599,8 +1619,9 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     # appends slice plane in the name of each output image
     pre = '''
     set opref = {}
+    set ulay_dset = {}
     set focus_box = {}
-    set ulay_name = `3dinfo -prefix ${{final_anat}}`
+    set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
     set olay_name = `3dinfo -prefix ${{stats_dset}}`
     set olaybrick = {}
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
@@ -1611,7 +1632,7 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     set opbarrt = ${{odir_img}}/${{opref}}.pbar
-    '''.format( opref, focusbox, iolay, ithr )
+    '''.format( opref, ulay, focusbox, iolay, ithr )
 
     # threshold for stat dset, from %ile in mask
     cmd0 = '''
@@ -1642,7 +1663,7 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
 
     cmd4 = '''
     @chauffeur_afni    
-    -ulay  ${{final_anat}}
+    -ulay  ${{ulay_dset}}
     -box_focus_slices ${{focus_box}}
     -olay  ${{stats_dset}}  
     -cbar Plasma 
@@ -1751,67 +1772,195 @@ def apqc_vstat_fstat( obase, qcb, qci, focusbox, iolay, ithr,
 
 # -----------------------------------------------------------------
 
-# ['errts_dset', 'mask_dset']
-def apqc_regr_grayplot( obase, qcb, qci ):
+# [PT: June 27, 2019] expanding to include enorm, if available and
+# in Pythonic mode
 
-    perc_max_o_max = 50                 # %ile for time series
+# ['errts_dset', 'mask_dset']
+# ['enorm_dset', 'nt_orig']    # [PT: June 27, 2019]
+def apqc_regr_grayplot( obase, qcb, qci,
+                        run_style, 
+                        has_mot_dset=False,
+                        has_out_dset=False,
+                        has_mot_lim=False,
+                        has_out_lim=False,
+                        has_cen_dset=False ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
+
+    grange = 3.29     # grayplot range value
 
     comm  = '''grayplot of residuals'''
 
     pre = '''
     set opref = {}
-    set errts_name = `3dinfo -prefix ${{errts_dset}}`
-    set mask_name  = `3dinfo -prefix ${{mask_dset}}`
-    set ttstat = __tmp_tstat_max.nii
+    set errts_name  = `3dinfo -prefix ${{errts_dset}}`
+    set mask_name   = `3dinfo -prefix ${{mask_dset}}`
+    set tmpvol_pref = __tmp_ZXCV_img
+    set tmp_gplot   = __tmp_ZXCV_gplot.jpg
+    set opbarrt = ${{odir_img}}/${{opref}}.pbar
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.json
     '''.format( opref )
 
-    # To get range for grayplot, need to collapse time series to
-    # single value per voxel-- we choose max of abs values.  I guess
-    # the absmax is most appropriate here?
-    cmd0 = '''
-    3dTstat 
-    -overwrite
-    -mask ${mask_dset}
-    -absmax
-    -prefix ${ttstat}
-    ${errts_dset}
-    '''
+    # [PT: June 28, 2019] No longer getting the range from time series--
+    # the values are basically normalized/Zscores, so just use
+    # relations for Norm(0,1); z=3.29 corresponds to two-sided p=0.001
 
-    # Now get actual range-- percentile of max of maxes.
+    # The grayplot itself: will be overwritten if using enorm
     cmd1 = '''
-    set upper_ran = `3dBrickStat 
-    -non-zero
-    -slow 
-    -percentile {0} 1 {0}
-    ${{ttstat}}`
-    '''.format( perc_max_o_max )
-
-    # FINALLY, the grayplot itself
-    cmd2 = '''
     3dGrayplot 
     -polort -1 
-    -peelorder 
+    -pvorder 
     -dimen  1800 500 
-    -range  ${upper_ran[2]}
-    -input  ${errts_dset}
-    -mask   ${mask_dset}
-    -prefix ${odir_img}/${opref}.jpg
+    -range  {}
+    -input  ${{errts_dset}}
+    -mask   ${{mask_dset}}
+    -prefix ${{tmp_gplot}}
+    '''.format( grange )
+
+    # cheating way to make a colorbar to use later
+    cmd2 = '''
+    @chauffeur_afni    
+    -ulay  ${{mask_dset}}
+    -olay  ${{mask_dset}}
+    -box_focus_slices AMASK_FOCUS_OLAY
+    -cbar gray_scale
+    -func_range {}
+    -blowup 1
+    -set_subbricks 0 0 0
+    -opacity 9  
+    -pbar_saveim   "${{opbarrt}}.jpg"
+    -pbar_comm_range "{}"
+    -prefix        "${{tmpvol_pref}}"
+    -save_ftype JPEG
+    -montx 1 -monty 1  
+    -set_xhairs OFF 
+    -label_mode 1 -label_size 3  
+    -do_clean
+    '''.format( grange, "for normal distr, bounds of 0.001 prob tail" )
+
+    pbarjsontxt_cmd = '''
+    abids_json_tool.py   
+    -overwrite       
+    -txt2json              
+    -delimiter_major '::'    
+    -delimiter_minor ',,'     
+    -input  "${opbarrt}.txt"
+    -prefix "${opbarrt}.json"
     '''
 
-    # clean up a bit \rm (note use of double \\ in the python string)
-    cmd3 = '''
-    \\rm ${ttstat}
+    # clean up a bit at end (note use of double \\ in the python string)
+    post = '''
+    \\rm ${tmpvol_pref}*jpg
+    \\rm ${tmp_gplot}
     '''
 
-    str_TEXT  = '''"Grayplot ('-peelorder') of residuals dset: ${errts_name}",,'''
-    str_TEXT += '''"Rows ordered by approx voxel geom in mask: ${mask_name}"'''
+    str_TEXT = '''"Grayplot ('-pvorder') of residuals dset: ${errts_name}"'''
 
-    str_SUBTEXT = '''range: ${upper_ran[2]} '''
-    str_SUBTEXT+= '''({}%ile of time series |max| vals in mask)'''.format( perc_max_o_max )
+
+    str_SUBTEXT = '''"{}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
+
+    # [PT: June 27, 2019] added if enorm calc'ed and in Pythonic mode
+    cmd3 = ''
+    cmd4 = ''
+    if (has_mot_dset or has_out_dset) and (run_style == 'pythonic') :
+        pset = {} # dictionary of plot settings here, filled in as we go
+
+        comm+= ''' ... with enorm plot'''
+
+        pre+= '''
+        @ imax = ${nt_orig} - 1
+        set ssrev_ln = `grep "num TRs per run" ${ss_review_dset} | grep -v "("`
+        set pats = "${ssrev_ln[6-]}"
+        set tmp_img = __tmp_img_enorm.jpg
+        '''
+        
+        scale_comm = ''
+        if has_mot_dset and has_out_dset :
+            has_lim = has_mot_lim and has_out_lim # either both lims or nothing
+            #scale_comm = ' unitless'  # descriptive, but possibly confusing
+        elif has_mot_dset :
+            has_lim = has_mot_dset and has_mot_lim
+        elif has_out_dset :
+            has_lim = has_out_dset and has_out_lim
+
+        if has_lim :
+            pset['scale'] = ' -scale SCALE_TO_HLINE '
+            pset['yaxis'] = ' -yaxis 0:3 '
+            pset['censor_hline'] = ' -censor_hline '
+        else:
+            pset['scale'] = ' -scale SCALE_TO_MAX '
+            pset['yaxis'] = ' -yaxis 0:1.1 '
+            pset['censor_hline'] = ''
+
+        pset['infiles']      = ' -infiles '
+        pset['colors']       = ' -colors '
+        pset['censor_files'] = ''
+
+        str_TEXT+= ''',,"top:{}'''.format(scale_comm)
+
+        if has_mot_dset :
+            lcol = 'blue'
+            pset['colors']+= ' {} '.format(lcol)
+            pset['infiles']+= ' "${enorm_dset}" '
+            if has_mot_lim :
+                pset['censor_hline']+= ' "${mot_limit}" '
+            str_TEXT+= ''' motion enorm ({})'''.format(lcol)
+
+        if has_out_dset :
+            lcol = 'green'
+            pset['colors']+= ' {} '.format(lcol)
+            pset['infiles']+= ' "${outlier_dset}" '
+            if has_out_lim :
+                pset['censor_hline']+= ' "${out_limit}" '
+            if has_mot_dset :
+                str_TEXT+= ''' and'''
+            str_TEXT+= ''' outlier frac ({})'''.format(lcol)
+
+        if has_cen_dset :
+            pset['censor_files']+= ''' -censor_files "${censor_dset}" '''
+            str_TEXT+= ''', with censoring (red)'''
+
+        str_TEXT+= '''"'''
+
+        # labels aren't used here: number of pixels in x-dim matches
+        # grayplot!
+        cmd3 = '''
+        1dplot.py      
+        -margin_off
+        -one_graph
+        -figsize 12 0.5
+        -dpi 150
+        -patches ${{pats}}
+        {infiles}
+        {scale}
+        {yaxis}
+        {censor_files}
+        {censor_hline}
+        {colors}
+        -prefix ${{tmp_img}}
+        '''.format( **pset )
+
+        cmd4 = '''
+        @djunct_glue_imgs_vert 
+        -imbot ${tmp_gplot}
+        -imtop ${tmp_img}
+        -prefix ${odir_img}/${opref}.jpg
+        '''
+        
+        # clean up a bit \rm (note use of double \\ in the python string)
+        post+= '''
+        \\rm ${tmp_img}
+        '''
+
+        str_SUBTEXT+= ''' ,, " rows: ordered by similarity to principal comp '''
+        str_SUBTEXT+='''in mask (${mask_name})"'''
+    else:
+        cmd3 = '''
+        \\cp ${tmp_gplot} ${odir_img}/${opref}.jpg
+        '''
+
+
 
     jsontxt = '''
     cat << EOF >! ${{tjson}}
@@ -1821,7 +1970,7 @@ def apqc_regr_grayplot( obase, qcb, qci ):
     blockid_hov :: {}
     title       :: {}
     text        :: {}
-    subtext     :: "{}"
+    subtext     :: {}
     EOF
     '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
                 str_TEXT, str_SUBTEXT )
@@ -1838,15 +1987,21 @@ def apqc_regr_grayplot( obase, qcb, qci ):
 
     comm  = commentize( comm )
     pre   = commandize( pre, cmdindent=0, 
-                       ALIGNASSIGN=True, ALLEOL=False )
-    cmd0  = commandize( cmd0 )
+                        ALIGNASSIGN=True, ALLEOL=False )
     cmd1  = commandize( cmd1 )
     cmd2  = commandize( cmd2 )
-    cmd3  = commandize( cmd3 )
+    if cmd3 :
+        cmd3  = commandize( cmd3 )
+    if cmd4 :
+        cmd4  = commandize( cmd4 )
+    post  = commandize( post, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
     jsontxt = commandize( jsontxt, cmdindent=0, ALLEOL=False )
+    pbarjsontxt_cmd  = commandize( pbarjsontxt_cmd )
     jsontxt_cmd  = commandize( jsontxt_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, jsontxt, jsontxt_cmd]
+    lout = [comm, pre, cmd1, cmd2, cmd3, cmd4, post, 
+            jsontxt, pbarjsontxt_cmd, jsontxt_cmd]
     return '\n\n'.join(lout)
 
 # ========================== dat/txt ================================
@@ -2499,7 +2654,7 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         otext = ""
         if not(ii) :
             otext = '''"@radial_correlate check for: {}" ,, '''.format( rcdir )
-            otext+= '''"   ulay: vol[0] of each EPI run" ,, '''
+            otext+= '''"    ulay: vol[0] of each EPI run" ,, '''
             otext+= '''"   {}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
 
         # [PT: May 16, 2019] new format for flagging/getting PBAR info

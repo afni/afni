@@ -207,9 +207,12 @@
 #set version   = "5.5"; set rev_dat   = "May 14, 2019"
 #   + [PT] added in "-XXXnpane P" behavior
 # 
-set version   = "5.51"; set rev_dat   = "May 14, 2019"
+#set version   = "5.51"; set rev_dat   = "May 14, 2019"
 #   + [PT] include pbar_fname as a key in save_pbar jpg
 #   + [PT] also, control pbar image output file name: jpg by default
+# 
+set version   = "5.52"; set rev_dat   = "July 1, 2019"
+#   + [PT] miniscule new option, '-pbar_for ..'
 # 
 # =====================================================================
 
@@ -277,6 +280,7 @@ set com_pbar_str = "DO_NOTHING"  # [PT: Oct 21, 2018] so we can save cbar
 set SAVE_PBAR    = 0             # [PT: Oct 21, 2018] flag for assorted stuff
 set pbar_comm  = ""            # [PT: May 8, 2019] pbar json output
 set vthr_comm  = ""            # [PT: May 8, 2019] pbar json output
+set pbar_for   = ""
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
@@ -650,6 +654,16 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set pbar_comm = "$argv[$ac]"
+
+    # [PT: July 1, 2019] silly extra option, basically for: when are
+    # using the grayscale colorbar for an overlay that really just
+    # looks like a plain underlay, and so we want the HTML text to
+    # refer to a "dset" or "ulay", instead of "olay" for the pbar
+    # range.  Cool.
+    else if ( "$argv[$ac]" == "-pbar_for" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set pbar_for = "pbar_for     :: $argv[$ac]"
 
     # [PT: May 8, 2019] save reason for cbar thr val
     else if ( "$argv[$ac]" == "-pbar_comm_thr" ) then
@@ -1490,6 +1504,7 @@ pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
+${pbar_for}
 EOF
 
     endif
@@ -1975,6 +1990,11 @@ COMMAND OPTIONS ~1~
                     comment about the selected threshold value. It
                     will also be stored in the PBS.txt file (the value
                     of the key 'vthr_comm').
+
+-pbar_for  PF      :tiny option, mainly for APQC purposes.  In the output
+                    txt file of info for the pbar, can state if the pbar
+                    refers to something other than the 'olay' (such as the
+                    'ulay' or 'dset').  (def: olay)
 
 -pbar_dim PBD      :if '-pbar_saveim ..' is used to save the color pbar
                     of the olay, then this option can specify the

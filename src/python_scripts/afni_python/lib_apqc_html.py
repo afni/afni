@@ -91,17 +91,24 @@ def make_inline_pbar_str(ss) :
     with open(fname_json, 'r') as fff:
         pbar_dict = json.load(fff)    
 
-    out = str_indent + '''olay: {pbar_bot} <img  class='pbar'  style="display: inline; margin: -5 -5px;" src="media/{pbar_fname}" > {pbar_top}'''.format(**pbar_dict)
+    if not(pbar_dict.__contains__('pbar_for')) :
+        pbar_dict['pbar_for'] = 'olay'
+    
+    out = str_indent + ''' {pbar_for}: {pbar_bot} <img  class='pbar'  style="display: inline;" src="media/{pbar_fname}" > {pbar_top}'''.format(**pbar_dict)
 
     if pbar_dict['pbar_comm'] :
         out+= ''' ({pbar_comm})'''.format(**pbar_dict)
 
     if pbar_dict['vthr'] :
         out+= '''\n'''
-        out+= str_indent + '''thr : {vthr}'''.format(**pbar_dict)
+        out+= str_indent + ''' thr : {vthr}'''.format(**pbar_dict)
 
-    if pbar_dict['vthr_comm'] :
-        out+= ''' ({vthr_comm})'''.format(**pbar_dict)
+        if pbar_dict['vthr_comm'] :
+            out+= ''' ({vthr_comm})'''.format(**pbar_dict)
+
+#    if pbar_dict['gen_comm'] :
+#        out+= '''\n'''
+#        out+= str_indent + '''{gen_comm}'''.format(**pbar_dict)
 
     return out
 

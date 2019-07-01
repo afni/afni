@@ -1,3 +1,135 @@
+AFNI Digest, week of 2019/06/27.
+
+AFNI GUI edition
+
+00) Fixes to GUI threshold slider
+
+Some bug in the OpenMotif graphics library (used to build the
+AFNI graphical user interface) has caused the Define Overlay
+threshold slider to resize itself unpleasantly when other
+interface elements nearby are altered. In the past, there were
+several attempts to detect these alterations and force the slider
+back to its correct size. Recently, on some computer systems,
+these attempts starting doing strange things, causing multiple
+rapid tiny resizes, making the threshold slider look like it was
+vibrating.
+   To patch this problem, the AFNI GUI now simply checks every
+second to see if the slider has the right size, and if not,
+pushes it back to the pre-ordained startup size. The result is
+that the visibility of the slider resizing operations is more
+apparent now than in the past, but less likely to be extremely
+annoying. (If I knew how to avoid this resizing problem in the
+first place, I would have done so 20+ years ago - RWC.)
+
+01) Threshold slider range: new default, and new way to control
+
+The range of the threshold slider is determined by specifying a
+power of 10.  The selector for the power is below threshold bar,
+in the current GUI written as "10^[value]" (used to
+be "**[value]", because of standard programming notation for
+exponentiation).
+   Recently, the default power-of-10 for the threshold slider was
+changed from 0 (so, the thr range was [0, 1]) to 1 (so, the thr
+range is now [0, 10]). This change was made to make the slider's
+initial range be more appropriate for t- and F-statistics, which
+are commonly used datasets for thresholding.
+   You can alter this startup setting in your ~/.afnirc file by
+setting the environment variable AFNI_THRESH_INIT_EXPON.  The
+normal allowable range for the power-of-10 chooser (below the
+threshold slider) is 0..5, but you can set environment variable
+AFNI_THRESH_TOP_EXPON to 6 if you need to use thresholds as large
+as 999999.
+
+02) "Jumpto Olay ..." buttons fix
+
+By right clicking on the OLay label atop the colorscale, a popup
+menu appears.  Two buttons there are Jumpto OLay Max @Thr and
+Jumpto OLay Min @Thr, and a bug was fixed so that each should
+work more reliably now.
+   These buttons will jump the crosshairs to the maximum/minimum
+value in the OLay volume after the volume is thresholded with the
+Thr volume. You can see these at-threshold maximum/minimum values
+in the popup hint that shows if you hover the mouse cursor over
+the dataset range values display just above the autoRange toggle
+button.
+
+03) Perc-y new environment variable to control colorbar range
+
+The environment variable AFNI_AUTORANGE_PERC lets you set a
+percentile value for the OLay autoRange value, which determines
+the default colorizing scale for the OLay volume (i.e., what
+number gets mapped to the top of the colorbar).
+   Until recently, this range value was set to the maximum
+absolute value in the OLay volume.  This meant that some outlier
+value could easily set the colorbar range, effectively washing
+out visualization of interesting contrasts/details.  The new
+default environment variable value is 95 (so that 95% of the
+values in the OLay volume are smaller than the top of the
+colorbar range).
+   If you set variable AFNI_AUTORANGE_PERC to a number between 2
+and 99, then this percentile point on the cumulative histogram of
+the absolute values of the OLay volume will be used as the
+autoRange value.  To make an "optimal" image for a particular
+dataset, you will usually have to deselect autoRange in the GUI
+and manually set the color range until it looks good to you.
+   AFNI_AUTORANGE_PERC will not have any effect if the OLay
+dataset is marked has having a discrete colormap (e.g., atlases
+supplied by AFNI, or datasets so marked with using 3drefit
+-cmap).
+
+04) New default colorbar
+
+The default colorscale is now Reds_and_Blues_Inv, which provides
+a more distinct transition between negative (bluish) and
+positive (reddish) colors than the previous default
+Spectrum:red_to_blue.  
+   You can change the colorscale interactively by right-clicking
+on the colorscale bar, or you can change the startup colorscale
+semi-permanently by setting the environment variable
+AFNI_COLORSCALE_DEFAULT.  
+   (Of course, you can also define your own colorscales --
+https://afni.nimh.nih.gov/pub/dist/doc/OLD/afni_colorscale.html)
+
+05) Opacity locking
+
+The opacity controls on the right side of the AFNI image
+viewers (the 1..9 arrows) are now locked across the different
+viewers. That is, if you click the arrow to alter the overlay
+opacity in one viewer, it will change in all viewers. To turn
+this feature off, set the environment variable AFNI_OPACITY_LOCK
+to NO.
+
+06) Summer reading list
+
+AFNI reads all 'datasets' in a directory when it starts up. By
+default, 'dataset' includes 2D images files (*.jpg and *.png). If
+you do not want such image files included in your list of
+datasets, set environment variable AFNI_IMAGE_DATASETS to NO.
+Such 2D files are viewable only as Axial images. The principal
+reason they are now made visible in the AFNI GUI is that they are
+present in some BIDS dataset collections.
+
+07) Anisotropic linear smoothing in 3dmerge
+
+Per the request of a loyal user in Alicante (España), the
+functionality of program 3dmerge to carry out Gaussian smoothing
+with different FWHM parameters along different spatial axes has
+been restored (it was removed from the user interface 20+ years
+ago as being too confusing for new users; now, we are all much
+more sophisticated). This capability is accessed with the
+-1blur3D_fwhm option.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+
 AFNI Digest, week of 2019/05/31.
 
 00) AFNI Bootcamp announcement: at NIH campus, November 4-8, 2019.
