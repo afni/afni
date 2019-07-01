@@ -875,9 +875,10 @@ g_history = """
    1.12 Jun 19, 2019: added surf_vol
    1.13 Jun 25, 2019: allow TSNR on surface
    1.14 Jun 28, 2019: added vr_base_dset
+   1.15 Jul  1, 2019: be picky about vr_base_dset: extras from aea.py
 """
 
-g_version = "gen_ss_review_scripts.py version 1.14, June 28, 2019"
+g_version = "gen_ss_review_scripts.py version 1.15, July 1, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1934,11 +1935,36 @@ class MyInterface:
          print('-- have %d vr_base files via wildcard: %s' \
                % (len(glist), glist))
 
-      if len(glist) >= 1:
-         self.uvars.vr_base_dset = glist[-1]
+      # failure
+      if len(glist) == 0:
+         print('** failed to guess volreg base dset (continuing)')
          return 0
 
-      print('** failed to guess volreg base dset (continuing)')
+      # unique would be great
+      if len(glist) == 1:
+         self.uvars.vr_base_dset = glist[0]
+         return 0
+
+      # there are multiple files, maybe something came from aea.py?
+      # try removing middle, or maybe taking the shortest
+      # (sorting seems less robust)
+
+      # try removing the mid-file text, if matching, keep it
+      first, last = UTIL.first_last_match_strs(glist)
+      if first != '' and last != '':
+         fname = first+last
+         if os.path.isfile(fname):
+            self.uvars.vr_base_dset = fname
+            if self.cvars.verb > 2:
+               print('++ setting vr_base to %s by removing mid-name text'%fname)
+            return 0
+
+      # if that didn't work, go after shortest
+      flens = [len(gname) for gname in glist]
+      minind = flens.index(min(flens))
+      self.uvars.vr_base_dset = glist[minind]
+      if self.cvars.verb > 2:
+         print('++ setting vr_base to %s by min length' % glist[minind])
 
       return 0
 
