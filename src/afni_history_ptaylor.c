@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, July , 2019 , PT , "dsetstat2p" , MICRO , TYPE_NEW_PROG,
+   "Complement of p2dsetstat.",
+   "Convenience tool for converting a dset's stat to a p-value.\n"
+},
+
 { 1, July , 2019 , PT , "apqc_make_tcsh.py" , MAJOR , TYPE_GENERAL,
    "Labels on stim regressors, vorig QC block added, grayplot pbvorder/enorm.",
    "Help updated; output stats still if not align/tlrc blocks used.\n"

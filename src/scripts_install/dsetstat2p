@@ -2,21 +2,12 @@
 
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
-#set version   = "1.0";  set rev_dat   = "April 16, 2018"
-# + convert p value to a stat, using header info from a dset brick to
-#   get supplementary requirements like DOF, etc.
-#
-#set version   = "1.1";  set rev_dat   = "May 21, 2018"
-# + allow "bisided" as a type of test (=2sided, for p-to-stat
-#   conversion)
-#
-set version   = "1.2";   set rev_dat   = "Feb 12, 2019"
-#     + [PT] change "checks" to use '3dinfo -prefix ...' as a better
-#            methodology
+set version   = "1.0";  set rev_dat   = "July 1, 2019"
+# + [PT] born, starting from p2dsetstat (its complementary partner)
 #
 # ---------------------------------------------------------------
 
-set this_prog = "p2dsetstat"
+set this_prog = "dsetstat2p"
 set tpname    = "${this_prog:gas/fat_proc_//}"
 set here      = $PWD
 
@@ -25,7 +16,7 @@ set here      = $PWD
 set here = $PWD
 
 set ibrick    = ""      # a single brick of a volume
-set ipval     = ""      # to be p-value
+set istat     = ""      # to be stat
 set MULTFAC   = 0       # this MUST be set with: -1sided|-2sided|-bisided
 set NOQUIET   = 1
 
@@ -63,20 +54,20 @@ while ( $ac <= $#argv )
 
     # a pvalue, 0 <= p <= 1
 
-    else if ( "$argv[$ac]" == "-pval" ) then
+    else if ( "$argv[$ac]" == "-statval" ) then
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
-        set ipval = $argv[$ac]
+        set istat = $argv[$ac]
 
     # And one, and only one, of the following is required to specify
     # tailedness:
 
     else if ( "$argv[$ac]" == "-1sided" ) then
-        set MULTFAC = 2
+        set MULTFAC = 0.5
     else if ( "$argv[$ac]" == "-2sided" ) then
-        set MULTFAC = 1
+        set MULTFAC = 1.0
     else if ( "$argv[$ac]" == "-bisided" ) then
-        set MULTFAC = 1
+        set MULTFAC = 1.0
 
     # can specify quietude
     else if ( "$argv[$ac]" == "-quiet" ) then
@@ -85,7 +76,7 @@ while ( $ac <= $#argv )
     else
         echo "** unexpected option #$ac = '$argv[$ac]'"
         goto BAD_EXIT
- 
+
     endif
     @ ac += 1
 end
@@ -97,8 +88,8 @@ if ( "$ibrick" == "" ) then
     goto BAD_EXIT
 endif
 
-if ( "$ipval" == "" ) then
-    echo "** ERROR: you forgot to input '-pval ...'"
+if ( "$istat" == "" ) then
+    echo "** ERROR: you forgot to input '-statval ...'"
     goto BAD_EXIT
 endif
 
@@ -123,10 +114,10 @@ else
 endif
 
 # Check p-value range
-set check2 = `echo "$ipval < 0 || $ipval > 1" | bc -l`
+set check2 = `echo "$istat < 0" | bc -l`
 
 if ( $check2 ) then
-    echo "** ERROR. Input p-value ($ipval) is outside bounds of [0, 1]."
+    echo "** ERROR. Input stat ($istat) is outside bounds of [0, infinity)."
     goto BAD_EXIT
 endif
 
@@ -135,14 +126,14 @@ if ( $MULTFAC == 0 ) then
     goto BAD_EXIT
 endif
 
-# Apply p-value and check again!
-set tpval = `echo "$ipval * $MULTFAC" | bc -l`
-set check3 = `echo "$tpval < 0 || $tpval > 1" | bc -l`
-if ( $check3 ) then
-    echo "** ERROR! Tailed p-value ($tpval) is outside bounds of [0, 1]."
-    echo "   You can't have a p-value that large for that tailedness!"
-    goto BAD_EXIT
-endif
+## Apply p-value and check again!
+#set tpval = `echo "$ipval * $MULTFAC" | bc -l`
+#set check3 = `echo "$tpval < 0 || $tpval > 1" | bc -l`
+#if ( $check3 ) then
+#    echo "** ERROR! Tailed p-value ($tpval) is outside bounds of [0, 1]."
+#    echo "   You can't have a p-value that large for that tailedness!"
+#    goto BAD_EXIT
+#endif
 
 # ======================== do calc ================================
 
@@ -178,17 +169,27 @@ if ( "$OK_STAT" == "1" ) then
 
     # Calculate the stat value associated with the user's p-value,
     # and store it in a variable for later user.
-    set my_cdf  = `cdf -p2t "$my_stype" "${tpval}" ${my_pars}`
-    # same name as thr val that could be put in directly
-    set thrnew  = "$my_cdf[3]"
+    set my_cdf  = `cdf -t2p "$my_stype" "${istat}" ${my_pars}`
+
+    set finalp  = `echo "scale=9; ( $my_cdf[3] * $MULTFAC ) / 1.0" | bc`
+
+    set check3 = `echo "$finalp < 0 || $finalp > 1" | bc -l`
+    if ( $check3 ) then
+        echo "** ERROR! Tailed p-value ($finalp) is outside bounds of [0, 1]."
+        echo "   You can't have a p-value that large for that tailedness!"
+        goto BAD_EXIT
+    endif
+
+
+
 
     if ( $NOQUIET ) then
         echo "++ OK stat type     : $my_stype"
         echo "++ BRICK_STATAUX    : $my_bstats"
         echo "++        params    : $my_pars"
-        echo "++ Final stat val   : $my_cdf[3]"
+        echo "++ Final p-val      : $finalp"
     else
-        echo "$my_cdf[3]"
+        echo "$finalp"
     endif
 
     goto GOOD_EXIT
@@ -205,16 +206,17 @@ SHOW_HELP:
 cat << EOF
 -------------------------------------------------------------------------
 
-    This program converts a p-value to a statistic of choice, with
-    reference to a particular dataset.
+    This program converts statistic of choice to a p-value with
+    reference to a particular dataset.  It is the complement of
+    'p2dsetstat'.
 
-    Often to convert a p-value to a statistic, supplementary
+    Often to convert a statistic to a p-value, supplementary
     information is needed, such as number of degrees of freedom.  AFNI
     programs that write statistics do store that info in headers, and
     this program is meant to be a useful to do conversions based on
-    that: the user provides the p-value and the specific [i]th brick
-    of the dataset in question, and a single number is output to
-    screen.
+    that: the user provides the stat value and the specific [i]th
+    brick of the dataset in question, and a single p-value can be
+    output to screen.
 
     This program should give equivalent results to other AFNI programs
     like ccalc and cdf, but with less work by the user.
@@ -233,7 +235,7 @@ cat << EOF
 
   $this_prog  \
         -inset   DDD'[i]'                     \
-        -pval    P                            \
+        -statval S                            \
         -bisided|-2sided|-1sided              \
         {-quiet}
 
@@ -246,7 +248,8 @@ cat << EOF
                 Note that 'i' can be either a number of a string label
                 selector.
 
-    -pval  P   :input p-value P, which MUST be in the interval [0,1].
+    -statval S :input stat-value S, which MUST be in the interval 
+                [0, infinity).
 
     -bisided
        or
@@ -291,32 +294,32 @@ cat << EOF
 
     # 1) Do a calculation and display various informations to screen:
     $this_prog  \
-        -inset stats.sub01+tlrc'[2]'            \
-        -pval 0.001                             \
+        -inset stats.sub01+tlrc'[2]'                        \
+        -statval 3.313                                      \
         -bisided
     
     # 2) Do a calculation and just display a single number:
     $this_prog  \
-        -inset stats.sub01+tlrc'[2]'            \
-        -pval 0.0005                            \
-        -1sided                                 \
+        -inset stats.sub01+tlrc'[2]'                        \
+        -statval 15                                         \
+        -1sided                                             \
         -quiet
 
     # 3) Do a calculation and store the output number as a variable,
     #    using tcsh syntax:
     set my_stat = \`$this_prog  \
                     -inset stats.sub02+tlrc'[8]'            \
-                    -pval 0.001                             \
+                    -statval 3.313                          \
                     -bisided                                \
                     -quiet\`
 
     # 4) Do a calculation and store the output number into a text
     #    file:
     $this_prog  \
-        -inset stats.sub02+tlrc'[8]'            \
-        -pval 0.001                             \
-        -bisided                                \
-        -quiet > MY_STAT_FILE.txt
+        -inset stats.sub02+tlrc'[8]'                        \
+        -statval 1.96                                       \
+        -bisided                                            \
+        -quiet > MY_PVAL_FILE.txt
 
 -------------------------------------------------------------------------
 
