@@ -8679,6 +8679,8 @@ g_help_examples = """
               fraction (so hopefully the least motion).
          o Use non-linear registration to MNI template (non-linear 2009c).
            * This adds a lot of processing time.
+           * Let @SSwarper align to template MNI152_2009_template_SSW.nii.gz
+             (just use the resulting datasets here via -tlrc_NL_warped_dsets).
          o No bandpassing.
          o Use fast ANATICOR method (slightly different from default ANATICOR).
          o Use FreeSurfer segmentation for:
@@ -8718,8 +8720,11 @@ g_help_examples = """
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base MNI152_T1_2009c+tlrc                            \\
+                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
                   -tlrc_NL_warp                                              \\
+                  -tlrc_NL_warped_dsets anatQQ.FT.nii                        \\
+                                        anatQQ.FT.aff12.1D                   \\
+                                        anatQQ.FT_WARP.nii                   \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
@@ -8767,8 +8772,10 @@ g_help_examples = """
                   -dsets FT_epi_r?+orig.HEAD                                 \\
                   -tcat_remove_first_trs 2                                   \\
                   -align_opts_aea -cost lpc+ZZ                               \\
-                  -tlrc_base TT_N27+tlrc                                     \\
+                  -tlrc_base MNI152_2009_template_SSW.nii.gz                 \\
                   -tlrc_NL_warp                                              \\
+                  -tlrc_NL_warped_dsets                                      \\
+                      anatQQ.FT.nii anatQQ.FT.aff12.1D anatQQ.FT_WARP.nii    \\
                   -volreg_align_to MIN_OUTLIER                               \\
                   -volreg_align_e2a                                          \\
                   -volreg_tlrc_warp                                          \\
@@ -8909,6 +8916,72 @@ g_help_examples = """
                   -regress_est_blur_epits
 
          Consider an alternative combine method, 'tedana_OC_tedort'.
+
+       Example 13. Complicated ME, surface-based resting state example. ~2~
+
+         Key aspects of this example:
+
+            - multi-echo data, using "optimally combined" echoes
+            - resting state analysis (without band passing)
+            - surface analysis
+            - blip up/blip down distortion correction
+            - slice-wise regression of physiological parameters (RETROICOR)
+            - ventricle principal component regression (3 PCs)
+            - EPI volreg to per-run MIN_OUTLIER, with across-runs allineate
+            - QC: @radial_correlate on tcat and volreg block results
+            - QC: pythonic html report
+
+         Note: lacking good sample data for this example, it is simply faked
+               for demonstration (echoes are identical, fake ricor parameters
+               are not part of this data tree).
+
+              # use data_dir variable for tracking inputs
+              set data_dir = FT
+              afni_proc.py -subj_id FT.complicated                          \\
+                 # == include ricor, mask/combine, and surf blocks          \\
+                 -blocks despike ricor tshift align volreg                  \\
+                         mask combine surf blur scale regress               \\
+                 # == QC: radial_correlate_blocks                           \\
+                 -radial_correlate_blocks tcat volreg                       \\
+                 # == reverse blip distortion correction                    \\
+                 -blip_forward_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
+                 -blip_reverse_dset $data_dir/FT_epi_r1+orig.HEAD'[0]'      \\
+                 # == anat and anat followers, vent PC regress              \\
+                 -copy_anat $data_dir/FT_anat+orig                          \\
+                 -anat_follower_ROI FSvent epi $data_dir/SUMA/FT_vent.nii   \\
+                 -anat_follower_erode FSvent                                \\
+                 -regress_ROI_PC FSvent 3                                   \\
+                 -regress_ROI_PC_per_run FSvent                             \\
+                 -regress_make_corr_vols FSvent                             \\
+                 # == multi-echo EPI, times, combine method                 \\
+                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+                 -dsets_me_echo $data_dir/FT_epi_r?+orig.HEAD               \\
+                 -echo_times 11 22.72 34.44                                 \\
+                 -combine_method OC                                         \\
+                 -tcat_remove_first_trs 2                                   \\
+                 -mask_epi_anat yes                                         \\
+                 # == RETROICOR per run                                     \\
+                 -ricor_regs_nfirst 2                                       \\
+                 -ricor_regs $data_dir/fake.slibase.FT.r?.1D                \\
+                 -ricor_regress_method per-run                              \\
+                 # == alignment opts, and post volreg allineate             \\
+                 -align_opts_aea -cost lpc+ZZ -giant_move                   \\
+                 -volreg_align_to MIN_OUTLIER                               \\
+                 -volreg_align_e2a                                          \\
+                 -volreg_post_vr_allin yes                                  \\
+                 -volreg_pvra_base_index MIN_OUTLIER                        \\
+                 # == surface analysis                                      \\
+                 -surf_anat $data_dir/SUMA/FT_SurfVol.nii                   \\
+                 -surf_spec $data_dir/SUMA/std.141.FT_?h.spec               \\
+                 # == blur size, censoring, other regression                \\
+                 -blur_size 6                                               \\
+                 -regress_censor_motion 0.2                                 \\
+                 -regress_censor_outliers 0.05                              \\
+                 -regress_motion_per_run                                    \\
+                 -regress_apply_mot_types demean deriv                      \\
+                 -html_review_style pythonic
+
 
     --------------------------------------------------
     -ask_me EXAMPLES:  ** NOTE: -ask_me is antiquated ** ~2~

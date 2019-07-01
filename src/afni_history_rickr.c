@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add complex Example 13; add use of @SSwarper outputs in Example 11",
+   NULL
+ } ,
+
  { 28, Jun, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add vr_base_dset uvar",
    NULL
