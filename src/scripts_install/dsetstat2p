@@ -174,9 +174,15 @@ if ( "$OK_STAT" == "1" ) then
     set finalp  = `echo "scale=9; ( $my_cdf[3] * $MULTFAC ) / 1.0" | bc`
 
     set check3 = `echo "$finalp < 0 || $finalp > 1" | bc -l`
+
     if ( $check3 ) then
-        echo "** ERROR! Tailed p-value ($finalp) is outside bounds of [0, 1]."
-        echo "   You can't have a p-value that large for that tailedness!"
+        if ( $NOQUIET ) then
+            echo "** ERROR: p-value ($finalp) is outside bounds of [0, 1]."
+            echo "   Check input stat, value, and/or brick selection again?"
+        else
+            echo -1
+        endif
+
         goto BAD_EXIT
     endif
 
