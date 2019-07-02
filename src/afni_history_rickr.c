@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  2, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "create X.stim.xmat.1D via 1d_tool.py -write_xstim, to keep labels",
+   NULL
+ } ,
+
  {  1, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add complex Example 13; add use of @SSwarper outputs in Example 11",
    NULL

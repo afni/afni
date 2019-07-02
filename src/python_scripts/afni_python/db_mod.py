@@ -5853,16 +5853,14 @@ def db_cmd_regress(proc, block):
     if opt and opt.parlist and not nopt:
         # get regressors of interest from X-matrix, rather than in python
         # (this requires check_date of 2 Nov 2010)
-        cmd = cmd +                                                           \
-               "# --------------------------------------------------------\n" \
-               "# compute sum of non-baseline regressors from the X-matrix\n" \
-               "# (use 1d_tool.py to get list of regressor colums)\n"      \
-               "set reg_cols = `1d_tool.py -infile %s -show_%s`\n"         \
-               '3dTstat -sum -prefix %s %s"[$reg_cols]"\n\n'               \
-               '# also, create a stimulus-only X-matrix, for easy review\n'\
-               '1d_tool.py -infile %s"[$reg_cols]" -write X.stim.xmat.1D\n\n' \
-                % (proc.xmat_nocen, "indices_interest", opt.parlist[0],
-                   proc.xmat_nocen, proc.xmat_nocen)
+        xstim = 'X.stim.xmat.1D'
+        cmd = cmd +                                                     \
+               "# --------------------------------------------------\n" \
+               "# extract non-baseline regressors from the X-matrix,\n" \
+               "# then compute their sum\n"                             \
+               '1d_tool.py -infile %s -write_xstim %s\n'                \
+               '3dTstat -sum -prefix %s %s\n\n'                         \
+               % (proc.xmat_nocen, xstim, opt.parlist[0], xstim)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)

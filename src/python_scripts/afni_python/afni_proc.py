@@ -649,12 +649,14 @@ g_history = """
     6.39 Jun  3, 2019: allow ricor in case of ME data
     6.40 Jun 18, 2019: no mask for TSNR on the surface
     6.41 Jun 19, 2019: fail on some blur option with surface analysis
+    6.42 Jul  2, 2019: apply 1d_tool.py -write_xstim for X.stim.xmat.1D
 """
 
-g_version = "version 6.41, June 19, 2019"
+g_version = "version 6.42, July 2, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
+      [ "27 Jun 2019",  "1d_tool.py -write_xstim" ],
       [ "10 May 2019",  "@radial_correlate -do_clean" ],
       [ "17 Jan 2019",  "1d_tool.py -show_df_info" ],
       [ "19 Nov 2018",  "apqc_make_tcsh.py" ],
