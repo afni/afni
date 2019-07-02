@@ -1,44 +1,45 @@
 #ifndef _RomanImperator_Header_
 #define _RomanImperator_Header_
+
+/**********************************************************************************/
+/* Adapted from https://en.wikipedia.org/wiki/List_of_Roman_emperors in late 2018 */
+/**********************************************************************************/
+
 #ifdef AFNI_VERSION_LABEL
-static char *RomanImperator[] = {      /* 175 of them, good thru 2062 or so */
-    "Augustus" , "Tiberius" , "Caligula" ,
-    "Claudius" , "Nero" , "Galba" ,
-    "Otho" , "Aulus Vitellius" , "Vespasian" ,
-    "Titus" , "Domitian" , "Nerva" ,
-    "Trajan" , "Hadrian" , "Antoninus Pius" ,
-    "Marcus Aurelius" , "Lucius Verus" , "Commodus" ,
-    "Publius Helvius Pertinax" , "Marcus Didius Severus Julianus" ,
-    "Septimius Severus" , "Caracalla" , "Publius Septimius Geta" ,
-    "Macrinus" , "Elagabalus" , "Severus Alexander" ,
-    "Maximinus" , "Gordian I" , "Gordian II" ,
-    "Pupienus Maximus" , "Balbinus" , "Gordian III" ,
-    "Philip" , "Decius" , "Hostilian" ,
-    "Gallus" , "Aemilian" , "Valerian" ,
-    "Gallienus" , "Claudius II Gothicus" , "Quintillus" ,
-    "Aurelian" , "Tacitus" , "Florian" ,
-    "Probus" , "Carus" , "Numerian" ,
-    "Carinus" , "Diocletian" , "Maximian" ,
-    "Constantius I" , "Galerius" , "Severus" ,
-    "Maxentius" , "Constantine I" , "Galerius Valerius Maximinus" ,
-    "Licinius" , "Constantine II" , "Constantius II" ,
-    "Constans I" , "Gallus Caesar" , "Julian" ,
-    "Jovian" , "Valentinian I" , "Valens" ,
-    "Gratian" , "Valentinian II" , "Theodosius I" ,
-    "Arcadius" , "Magnus Maximus" , "Honorius" ,
-    "Theodosius II" , "Constantius III" , "Valentinian III" ,
-    "Marcian" , "Petronius Maximus" , "Avitus" ,
-    "Majorian" , "Libius Severus" , "Anthemius" ,
-    "Olybrius" , "Glycerius" , "Julius Nepos" ,
-    "Romulus Augustulus" , "Leo I" , "Leo II" , "Zeno"
-    "Basiliscus" , "Anastasius I" , "Justin I" ,
-    "Justinian I the Great" , "Justin II" , "Tiberius II Constantine" ,
-    "Maurice" , "Phocas" , "Heraclius" ,
-    "Constantine III" , "Heraklonas" , "Constans II" ,
-    "Mezezius" , "Constantine IV" , "Justinian II the Slit-nosed" ,
-    "Leontios" , "Tiberios III" , "Philippikos Bardanes" ,
-    "Anastasios II" , "Theodosios III" , "Leo III the Isaurian" ,
-    "Constantine V Kopronymos" , "Artabasdus the Icon-lover" , "Constantine V Kopronymos" ,
+static char *RomanImperator[] = {      /* 175 of them, 4 per year, good thru 2062 or so */
+/*2018*/    "Augustus" ,
+/*2019*/    "Tiberius" , "Caligula" , "Claudius" , "Nero" ,
+/*2020*/    "Galba" , "Otho" , "Aulus Vitellius" , "Vespasian" ,
+/*2021*/    "Titus" , "Domitian" , "Nerva" , "Trajan" ,
+/*2022*/    "Hadrian" , "Antoninus Pius" , "Marcus Aurelius" , "Lucius Verus" ,
+/*2023*/    "Commodus" , "Publius Helvius Pertinax" , "Marcus Didius Severus Julianus" , "Septimius Severus" ,
+/*2024*/    "Caracalla" , "Publius Septimius Geta" , "Macrinus" , "Elagabalus" ,
+/*2025*/    "Severus Alexander" , "Maximinus" , "Gordian I" , "Gordian II" ,
+/*2026*/    "Pupienus Maximus" , "Balbinus" , "Gordian III" , "Philip the Arab" ,
+/*2027*/    "Decius" , "Hostilian" , "Gallus" , "Aemilian" ,
+/*2028*/    "Valerian" , "Gallienus" , "Claudius II Gothicus" , "Quintillus" ,
+/*2029*/    "Aurelian" , "Tacitus" , "Florian" , "Probus" ,
+/*2030*/    "Carus" , "Numerian" , "Carinus" , "Diocletian" ,
+/*2031*/    "Maximian" , "Constantius I" , "Galerius" , "Severus" ,
+/*2032*/    "Maxentius" , "Constantine I" , "Galerius Valerius Maximinus" , "Licinius" ,
+/*2033*/    "Constantine II" , "Constantius II" , "Constans I" , "Gallus Caesar" ,
+/*2034*/    "Julian the Apostate" , "Jovian" , "Valentinian I" , "Valens" ,
+/*2035*/    "Gratian" , "Valentinian II" , "Theodosius I" , "Arcadius" ,
+/*2036*/    "Magnus Maximus" , "Honorius" , "Theodosius II" , "Constantius III" ,
+/*2037*/    "Valentinian III" , "Marcian" , "Petronius Maximus" , "Avitus" ,
+/*2038*/    "Majorian" , "Libius Severus" , "Anthemius" , "Olybrius" ,
+/*2039*/    "Glycerius" , "Julius Nepos" , "Romulus Augustulus" , /* last Western Emperor */
+
+            "Leo I the Thracian" ,  /* list of Eastern Emperors starts here */
+
+/*2040*/    "Leo II" , "Zeno" , "Basiliscus" , "Anastasius I" ,
+/*2041*/    "Justin I" , "Justinian I" , "Justin II" , "Tiberius II Constantine" ,
+/*2042*/    "Maurice" , "Phocas" , "Heraclius" , "Constantine III" ,
+/*2043*/    "Heraklonas" , "Constans II" , "Mezezius" , "Constantine IV" ,
+/*2044*/    "Justinian II the Slit-nosed" , "Leontios" , "Tiberios III" , "Philippikos Bardanes" ,
+/*2045*/    "Anastasios II" , "Theodosios III" , "Leo III the Isaurian" , "Constantine V Kopronymos" ,
+
+    "Artabasdus the Icon-lover" , "Constantine V Kopronymos" ,
     "Leo IV the Khazar" , "Constantine VI the Blinded" , "Irene the Athenian" ,
     "Nikephoros I" , "Staurakios" , "Michael I Rangabe" ,
     "Leo V the Armenian" , "Michael II the Stammerer" , "Theophilos" ,
@@ -66,12 +67,20 @@ static char *RomanImperator[] = {      /* 175 of them, good thru 2062 or so */
 
 #define NUM_RomanImperator (sizeof(RomanImperator)/sizeof(char *))
 
+/*----------------------------------------------------------------------------*/
+/* * Gets the string for the Imperial name from the AFNI version
+      label, which is of the form AFNI_19.3.26 (e.g.).
+   * In this example, the subscript in the array above is computed
+      from the '19.3' part of the label, using the '1', the '9', and
+      the '3' ([5], [6], and [8] characters in the label string).
+*//*--------------------------------------------------------------------------*/
+
 #define AFNI_VERSION_RomanImperator                                   \
   RomanImperator[                                                     \
    (4*((AFNI_VERSION_LABEL[5]-'0')*10+(AFNI_VERSION_LABEL[6]-'0')-18) \
     +(AFNI_VERSION_LABEL[8]-'0'-3))%NUM_RomanImperator]
 
-#else
+#else  /*---------- the backup case ----------*/
 
 #define AFNI_VERSION_RomanImperator "\0"
 

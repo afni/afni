@@ -1903,8 +1903,13 @@ extern int selenium_close(void) ;
 void AFNI_sigfunc_alrm(int sig)
 {
    int nn ;
+
+#ifdef NGBY
+   /* this first part is to print out 1 or more goodbye messages */
+
    srand48((long)time(NULL)+(long)getpid()) ; /* reset random number generator */
-   nn = (lrand48()>>3) % NGBY ;
+   nn = (lrand48()>>3) % NGBY ;               /* first message index */
+
    if( !AFNI_yesenv("AFNI_NEVER_SAY_GOODBYE") ){
      if( nn < NGBY ){
 #undef  NDUN
@@ -1915,26 +1920,20 @@ void AFNI_sigfunc_alrm(int sig)
          printf("\n** AFNI %s: %s!  [%d/%d]\n\n" ,
                 dun[lrand48()%NDUN],gby[nn],nn+1,NGBY) ;
        } else {
-         int ss ;
-         if( -sig < NGBY ){
-           printf("-------------- %d random AFNI goodbye messages -----------------------------\n",-sig);
-           for( ss=-1 ; ss > sig ; ss-- ){
-             nn = (lrand48()>>3) % NGBY ;
-             printf( "%s!\n\n" , gby[nn] + ((gby[nn][0]=='\n') ? 1 : 0) ) ;
-           }
-         } else {
-           int dn = AFNI_find_relprime_random(NGBY) , kk ;
-           printf("-------------- All %d AFNI goodbye messages (random order) -----------------\n",NGBY);
-           for( kk=0,nn=(lrand48()>>3)%NGBY ; kk < NGBY ; kk++ ){
-             printf( "%s!\n\n" , gby[nn] + ((gby[nn][0]=='\n') ? 1 : 0) ) ;
-             nn = (nn+dn)%NGBY ;
-           }
+         int kk ;
+         int dn=AFNI_find_relprime_random(NGBY), ktop=(-sig < NGBY) ? -sig : NGBY ;
+         for( kk=0 ; kk < ktop ; kk++ ){
+           printf( "%s!\n\n" , gby[nn] + ((gby[nn][0]=='\n') ? 1 : 0) ) ;
+           nn = (nn+dn)%NGBY ;
          }
        }
      }
      /** MCHECK ; **/
    }
+#endif /* NGBY */
 
+   /* meltdown controller on exit? (disabled) */
+#if 0
    if( sig <= 0 && !NO_frivolities ){
      Three_D_View *im3d = AFNI_find_open_controller() ;
      char *eee = getenv("AFNI_SPLASH_MELT") ;
@@ -1945,10 +1944,12 @@ void AFNI_sigfunc_alrm(int sig)
        XMapRaised( XtDisplay(im3d->vwid->top_shell) ,
                    XtWindow(im3d->vwid->top_shell)   ) ; /* raise controller */
        AFNI_sleep(111);
-       /* MCW_melt_widget( im3d->vwid->top_form ) ; */
+       MCW_melt_widget( im3d->vwid->top_form ) ;
      }
      sig = 0 ;
    }
+#endif
+
    selenium_close(); /* close any selenium opened browser windows if open */
    exit(sig);
 }
@@ -1963,7 +1964,7 @@ void AFNI_sigfunc_quit(int sig)
   fprintf(stderr,
           "\n** AFNI received QUIT signal ==> exit in %u seconds! **\n",nsec) ;
   signal(SIGALRM,AFNI_sigfunc_alrm) ;  /* call the actual death dealer */
-  (void)alarm(nsec) ;                  /* in a while, that is */
+  (void)alarm(nsec) ;                  /* after a quick cigarette break */
   return ;
 }
 

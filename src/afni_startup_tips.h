@@ -876,7 +876,6 @@ static char *gby[] = {
      "They also serve, who only stand and process data"              ,
      "Farewell happy software, where joy forever dwells"             ,
      "He who destroys a good book, destroys reason itself"           ,
-     "Wild above rule or art, enormous bliss"                        ,
      "Yet from those flames no light, but rather darkness visible"   ,
      "Think of all the beauty around you, and be happy"              ,
      "Experience is a hard teacher, but fools will have no other"    ,
@@ -1058,7 +1057,6 @@ static char *gby[] = {
      "Borrow money from a pessimist; he won't expect it back"             ,
      "I used to be conceited, but now I'm perfect"                        ,
      "We never really grow up; we only learn how to act in public"        ,
-     "I didn't say it was your fault; I said I was blaming you"           ,
      "Money can't buy happiness, but it makes misery easier to live with" ,
 
      /* self referential */
@@ -1341,7 +1339,6 @@ static char *gby[] = {
      "A man who carries a cat by the tail learns something he can learn no other way" ,
      "Three things cannot long be hidden: the Sun, the Moon, and the Truth"           ,
      "The truth does not change, just because you don't want to hear it"              ,
-     "Everything we see is a perspective, not the truth"                              ,
      "The truth will set you free, but first it will make you miserable"              ,
      "We live in a world of illusion; the great task of life is to find reality"      ,
      "Better than a thousand hollow words is one word that brings peace"              ,
@@ -1467,7 +1464,7 @@ static char *gby[] = {
 
      "Remember --\n"
      "  Totally new concepts are very rare;\n"
-     "  Merging two old concepts into one fruitful idea is easier and still useful\n"         ,
+     "  Merging two old concepts into one fruitful idea is easier and still useful"           ,
 
      "Remember -- Don't light the fire while you are standing in the gasoline"                ,
      "Remember -- A small sample is representative only of itself"                            ,
@@ -1617,7 +1614,7 @@ static char *gby[] = {
      "      dissimulate the fact that, ultimately, life is very simple - it is\n"
      "      what it is, it is simply here without reason and rhyme!\n"
      "   * The ultimate, unfathomable mystery of life resides in its very simplicity,\n"
-     "      in the simple fact that there is life.\n" ,
+     "      in the simple fact that there is life" ,
 
      /* John 5:2-4 (KJV) */
 
@@ -1627,7 +1624,7 @@ static char *gby[] = {
      "  multitude of impotent folk, of blind, halt, withered, waiting for the\n"
      "  moving of the water. For an angel went down at a certain season into the\n"
      "  pool, and troubled the water: whosoever then first after the troubling\n"
-     "  of the water stepped in was made whole of whatsoever disease he had.\n" ,
+     "  of the water stepped in was made whole of whatsoever disease he had." ,
 
      /* From https://www.thesaurus.com/browse/wonderful */
 
@@ -1639,7 +1636,7 @@ static char *gby[] = {
      "    phenomenal     pleasant    pleasing     remarkable  sensational\n"
      "    superb         terrific    tremendous   wondrous    astounding\n"
      "    awe-inspiring  divine      dynamite     groovy      miraculous\n"
-     "    primo          staggering  supercalifragilisticexpialidocious\n"  ,
+     "    primo          staggering  supercalifragilisticexpialidocious"  ,
 
      /* from Babylon 5 */
 
@@ -1669,6 +1666,19 @@ static char *gby[] = {
      "  The wise man, pondering over both, distinguishes them;\n"
      "  The wise one chooses the good over the dear,\n"
      "  The fool, acquisitive and craving, chooses the dear"
+
+     /* 02 Jul 2019 */
+
+     "To sing the blues, you've got to live the blues"      ,
+     "Funny, but it seems I always wind up here with you"   ,
+     "Become yourself, because the past is just a goodbye"  ,
+     "To be great is to be misunderstood"                   ,
+
+     "If you can't enjoy analyzing a dataset over and over\n"
+     "   again, then there is no use in analyzing it at all"  ,
+
+     "I worry more about the blobs I can't see than those that I can see" ,
+     "I am not so brave that I am not disturbed by an unexpected blob in the cuneus"
 
 } ;
 
