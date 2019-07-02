@@ -32,7 +32,7 @@ help.MVM.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to 3dMVM ~1~
     AFNI Group Analysis Program with Multi-Variate Modeling Approach
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 4.0.0, Sept 5, 2018
+Version 4.0.1, Jul 2, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/sscc/gangc/MVM.html
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -66,7 +66,7 @@ Usage: ~1~
  571-588. 10.1016/j.neuroimage.2014.06.027
  https://afni.nimh.nih.gov/pub/dist/HBM2014/Chen_in_press.pdf
 
- For group analyis with effect estimates from multiple basis funcitons, cite: ~2~
+ For group analysis with effect estimates from multiple basis functions, cite: ~2~
 
  Chen, G., Saad, Z.S., Adleman, N.E., Leibenluft, E., Cox, R.W. (2015). 
  Detecting the subtle shape differences in hemodynamic responses at the
