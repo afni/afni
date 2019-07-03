@@ -189,8 +189,11 @@ class Afni1D:
       if not self.ready:
          print('** reduce_by_vec_list: Afni1D is not ready')
          return 1
-      if len(vlist) < 1: return 1
-      if not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1):
+      if len(vlist) == 0:
+         # allow creation of empty matrices, but possibly whine
+         if self.verb > 1:
+            print("** afni1D: requesting reduction to empty matrix")
+      elif not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1):
             return 1
 
       self.mat = [self.mat[i] for i in vlist]
@@ -2953,6 +2956,9 @@ class Afni1D:
       if self.nvec > 0: self.nt = len(mat[0])
       else:             self.nt = 0
       self.ready = 1
+
+      # last step, process comment lines
+      if not clines: return 0
 
       for line in clines:
          label, data = c1D_line2labelNdata(line)
