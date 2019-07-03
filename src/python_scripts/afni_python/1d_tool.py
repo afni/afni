@@ -1161,9 +1161,10 @@ g_history = """
    2.03 Dec 14, 2018 - include mask and params in -csim_show_clustsize output
    2.04 Jan 17, 2019 - added -show_df_info and -show_df_protect
    2.05 Jun 27, 2019 - added -write_with_header and -write_xstim
+   2.06 Jul  3, 2019 - allow writing of empty stim files
 """
 
-g_version = "1d_tool.py version 2.04, Jan 17, 2019"
+g_version = "1d_tool.py version 2.06, Jul 3, 2019"
 
 
 class A1DInterface:

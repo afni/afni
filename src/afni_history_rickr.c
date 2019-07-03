@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
+   "if no stim, create sum_baseline.1D, rather than sum_ideal.1D",
+   NULL
+ } ,
+
  {  3, Jul, 2019, RCR, "1d_tool.py", MICRO, TYPE_BUG_FIX,
    "allow writing of empty stim files ($status 0)",
    NULL

@@ -4923,6 +4923,12 @@ def db_mod_regress(block, proc, user_opts):
             proc.stims.append('stimuli/%s%s' % \
                 (pre, os.path.basename(fname)))
 
+    # note whether this seems to be task at all
+    if len(proc.stims) + len(proc.extra_stims) > 0:
+       proc.have_task_regs = 1
+    else:
+       proc.have_task_regs = 0
+
     apply_uopt_to_block('-regress_mot_as_ort', user_opts, block)
 
     # check for per-run regression of motion parameters
@@ -5851,16 +5857,25 @@ def db_cmd_regress(proc, block):
     nopt = block.opts.find_opt('-regress_no_ideal_sum')
     # opt should always be set, so let nopt override
     if opt and opt.parlist and not nopt:
-        # get regressors of interest from X-matrix, rather than in python
-        # (this requires check_date of 2 Nov 2010)
-        xstim = 'X.stim.xmat.1D'
-        cmd = cmd +                                                     \
-               "# --------------------------------------------------\n" \
-               "# extract non-baseline regressors from the X-matrix,\n" \
-               "# then compute their sum\n"                             \
-               '1d_tool.py -infile %s -write_xstim %s\n'                \
-               '3dTstat -sum -prefix %s %s\n\n'                         \
-               % (proc.xmat_nocen, xstim, opt.parlist[0], xstim)
+        # if no task regs, skip
+        if not proc.have_task_regs:
+           if proc.verb > 1: print("** no stim: skipping sum_ideal.1D")
+           cmd = cmd +                                                     \
+                  "# --------------------------------------------------\n" \
+                  "# compute sum of baseline (all) regressors\n"           \
+                  '3dTstat -sum -prefix sum_baseline.1D %s\n\n'            \
+                  % (proc.xmat_nocen)
+        else:
+           # get regressors of interest from X-matrix, rather than in python
+           # (this requires check_date of 2 Nov 2010)
+           xstim = 'X.stim.xmat.1D'
+           cmd = cmd +                                                     \
+                  "# --------------------------------------------------\n" \
+                  "# extract non-baseline regressors from the X-matrix,\n" \
+                  "# then compute their sum\n"                             \
+                  '1d_tool.py -infile %s -write_xstim %s\n'                \
+                  '3dTstat -sum -prefix %s %s\n\n'                         \
+                  % (proc.xmat_nocen, xstim, opt.parlist[0], xstim)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
