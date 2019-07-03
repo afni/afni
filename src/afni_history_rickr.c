@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jul, 2019, RCR, "3dvolreg", MICRO, TYPE_BUG_FIX,
+   "make 'second -zpad option' warning appropriate again",
+   NULL
+ } ,
+
  {  3, Jul, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
    "let X.stim.xmat.1D be empty for non-task case",
    NULL
