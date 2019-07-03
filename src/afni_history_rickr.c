@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  3, Jul, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_MODIFY,
+   "let X.stim.xmat.1D be empty for non-task case",
+   NULL
+ } ,
+
  {  3, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_MODIFY,
    "if no stim, create sum_baseline.1D, rather than sum_ideal.1D",
    NULL

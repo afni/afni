@@ -876,9 +876,10 @@ g_history = """
    1.13 Jun 25, 2019: allow TSNR on surface
    1.14 Jun 28, 2019: added vr_base_dset
    1.15 Jul  1, 2019: be picky about vr_base_dset: extras from aea.py
+   1.16 Jul  3, 2019: let X.stim.xmat.1D be empty for non-task case
 """
 
-g_version = "gen_ss_review_scripts.py version 1.15, July 1, 2019"
+g_version = "gen_ss_review_scripts.py version 1.16, July 3, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1398,8 +1399,9 @@ class MyInterface:
       # now try to set them (cvar and dset)
       if os.path.isfile(fname):
          self.uvars.set_var(label, fname)
-         
-      if self.cvars.verb > 2: print('-- setting %s = %s' % (label, fname))
+         if self.cvars.verb > 2: print('-- setting %s = %s' % (label, fname))
+      else:
+         if self.cvars.verb > 2: print('-- NOT setting %s' % (label))
 
       return 0  # success
 
@@ -2626,8 +2628,7 @@ class MyInterface:
         '\n'                                                                 \
         'set xstim = %s\n'                                                   \
         'if ( ! -f $xstim ) then\n'                                          \
-        '   set reg_cols = `1d_tool.py -infile $xmat -show_indices_interest`\n'\
-        '   1d_tool.py -infile $xmat"[$reg_cols]" -overwrite -write $xstim\n'  \
+        '   1d_tool.py -infile $xmat -verb 0 -write_xstim $xstim\n'          \
         'endif\n' % self.cvars.xstim
 
       self.text_basic += txt

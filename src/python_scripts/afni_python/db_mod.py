@@ -5858,14 +5858,7 @@ def db_cmd_regress(proc, block):
     # opt should always be set, so let nopt override
     if opt and opt.parlist and not nopt:
         # if no task regs, skip
-        if not proc.have_task_regs:
-           if proc.verb > 1: print("** no stim: skipping sum_ideal.1D")
-           cmd = cmd +                                                     \
-                  "# --------------------------------------------------\n" \
-                  "# compute sum of baseline (all) regressors\n"           \
-                  '3dTstat -sum -prefix sum_baseline.1D %s\n\n'            \
-                  % (proc.xmat_nocen)
-        else:
+        if proc.have_task_regs:
            # get regressors of interest from X-matrix, rather than in python
            # (this requires check_date of 2 Nov 2010)
            xstim = 'X.stim.xmat.1D'
@@ -5876,6 +5869,13 @@ def db_cmd_regress(proc, block):
                   '1d_tool.py -infile %s -write_xstim %s\n'                \
                   '3dTstat -sum -prefix %s %s\n\n'                         \
                   % (proc.xmat_nocen, xstim, opt.parlist[0], xstim)
+        else:
+           if proc.verb > 1: print("** no stim: skipping sum_ideal.1D")
+           cmd = cmd +                                                     \
+                  "# --------------------------------------------------\n" \
+                  "# compute sum of baseline (all) regressors\n"           \
+                  '3dTstat -sum -prefix sum_baseline.1D %s\n\n'            \
+                  % (proc.xmat_nocen)
 
     # check for blur estimates
     bcmd = db_cmd_blur_est(proc, block)
