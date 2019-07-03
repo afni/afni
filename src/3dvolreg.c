@@ -28,7 +28,8 @@ static MRI_IMAGE * VL_imbase = NULL ;
 static MRI_IMAGE * VL_imwt   = NULL ;
 static int         VL_wtinp  = 0 ;    /* 06 Jun 2002 */
 
-static int         VL_zpad   = 4 ;    /* 05 Feb 2001 */
+#define VOLREG_ZPAD_INIT 4     /* 3 Jul 2019 [rickr] */
+static int         VL_zpad   = VOLREG_ZPAD_INIT ;    /* 05 Feb 2001 */
 
 static int         VL_twopass= 0 ;    /* 11 Sep 2000 */
 static float       VL_twoblur= 2.0 ;
@@ -1932,7 +1933,7 @@ void VL_command_line(void)
       /** -zpad [05 Feb 2001] */
 
       if( strncmp(Argv[Iarg],"-zpad",5) == 0 ){     /* 05 Feb 2001 */
-         if( VL_zpad > 0 )
+         if( VL_zpad != VOLREG_ZPAD_INIT )
             fprintf(stderr,"++ WARNING: second -zpad option!\n") ;
          VL_zpad = (int) strtod( Argv[++Iarg] , NULL ) ;
          if( VL_zpad < 0 ){

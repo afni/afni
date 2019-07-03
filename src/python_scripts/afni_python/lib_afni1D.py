@@ -191,7 +191,7 @@ class Afni1D:
          return 1
       if len(vlist) == 0:
          # allow creation of empty matrices, but possibly whine
-         if self.verb > 0:
+         if self.verb > 1:
             print("** afni1D: reducing to empty matrix")
       elif not UTIL.is_valid_int_list(vlist, 0, self.nvec-1, whine=1):
             return 1
