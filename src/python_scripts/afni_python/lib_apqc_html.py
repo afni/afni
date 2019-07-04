@@ -14,8 +14,13 @@
 # ver : 1.5 || date: Feb 21, 2019
 # + [PT] adding comment to empty button sets it to "?", not "X"
 #
-ver = '2.21' ; date = 'May 17, 2019' 
+#ver = '2.21' ; date = 'May 17, 2019' 
 # + [PT] simplifying radcor behavior
+#
+ver = '2.3' ; date = 'July 3, 2019' 
+# + [PT] Colorbars standard widths
+# + [PT] QC block ID now in QC block titles
+# + [PT] added more help descriptions
 #
 #########################################################################
 
@@ -1202,7 +1207,10 @@ def wrap_block_title(x, vpad=0, addclass="", blockid='', padmarg=0):
     y+= ''' style="padding-top: {0}px; margin-top: -{0}px;"'''.format(padmarg)
     y+= """><pre """
     y+= ''' {} '''.format(addclass)
-    y+= """><center><b>"""+x+"""</b></center></pre></div>""" # width="80"
+    y+= """><center>["""+blockid+"""]<b> """
+    y+= """<u>"""+x+"""</u>"""
+    y+= ' '*(len(blockid)+3)       # balance blockid text
+    y+= """</b></center></pre></div>"""
     if vpad:
         y= """\n"""+y
         y+="""\n"""

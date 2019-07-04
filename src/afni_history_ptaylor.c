@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Expanded vstat QC block capabilities.",
+   "Other tweaks, QC block IDs now in titles.\n"
+},
+
 { 1, July , 2019 , PT , "dsetstat2p" , MICRO , TYPE_NEW_PROG,
    "Complement of p2dsetstat.",
    "Convenience tool for converting a dset's stat to a p-value.\n"

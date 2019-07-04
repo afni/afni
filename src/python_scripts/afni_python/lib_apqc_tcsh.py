@@ -67,6 +67,11 @@ ver = '2.8' ; date = 'June 28, 2019'
 # + [PT] better grayplotting, more informative stuff happening
 # + [PT] PBAR size is now in terms of char width-- preserve verticality. Duh.
 #
+ver = '2.9' ; date = 'July 3, 2019' 
+# + [PT] vorig block now starting to be used
+# + [PT] add in more stats to be viewed
+# + [PT] add in QC block ID to QC block titles
+#
 #########################################################################
 
 import sys
@@ -457,7 +462,13 @@ def make_apqc_top_vars(ssdict, fulllist):
     out = ''
     for x in fulllist:
         if ssdict.__contains__(x):
-            out+= 'set {} = {}\n'.format(x, ssdict[x])
+            if type(ssdict[x]) == list :
+                lll = ' '.join(ssdict[x])
+                out+= 'set {} = ( '.format(x)
+                out+= lll 
+                out+= ' )\n'
+            else:
+                out+= 'set {} = {}\n'.format(x, ssdict[x])
     out = commandize( out, cmdindent=0, 
                       ALIGNASSIGN=True, ALLEOL=False,
                       padpre=1, padpost=2 )
@@ -784,7 +795,7 @@ def apqc_mot_enorm( obase, qcb, qci, run_style, jpgsize,
         endif'''
         if has_lim : 
             STR_plot_title+= ''', with limit (cyan)'''
-            STR_json_text2+=  '''with limit'''
+            STR_json_text2+=  '''   with limit'''
             STR_CEN_pre+= '''\n set ytop = `echo "3 * ${mot_limit}" | bc`'''
         STR_plot_title+= ''' and combined censoring ({})'''.format( cen_color )
         STR_json_text2+= ''' and combined censoring'''
@@ -922,7 +933,7 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
         endif'''
         if has_lim_mot or has_lim_out : 
             STR_plot_title+= ''', with limit (cyan)'''
-            STR_json_text2+=  '''with limit'''
+            STR_json_text2+=  '''   with limit'''
             if has_lim_mot :
                 STR_CEN_pre+= '''\n set ytop_mot = `echo "3 * ${mot_limit}" | bc`'''
             if has_lim_out :
@@ -1017,8 +1028,6 @@ def apqc_mot_enormoutlr( obase, qcb, qci, run_style, jpgsize,
 # ---------------------------------------------------------------------
 # [PT: Dec 23, 2018] add in viewing censor dset, if present
 
-# !!! need to get stim file labels for each!
-
 # ['xmat_stim']
 def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize, 
                      has_cen_dset=False ):
@@ -1046,7 +1055,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
         ~~~~set Pcstr = "<1"
         endif'''
 
-    comm  = ''' view xmatrix (${xmat_stim}), made from (${xmat_uncensored})'''
+    comm  = ''' view xmatrix of regressors of interest (${xmat_stim})'''
 
     pre = '''
     set jpgsize = {} 
@@ -1056,7 +1065,7 @@ def apqc_regr_stims( obase, qcb, qci, run_style, jpgsize,
     @ imax = ${{nt_orig}} - 1
     set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
     set pats = "${{ssrev_ln[6-]}}"
-    set labels = `1d_tool.py -infile ${{xmat_uncensored}} -select_groups POS -show_labels -verb 0`
+    set labels = `1d_tool.py -verb 0 -infile ${{xmat_stim}} -show_labels`
     '''.format(jpgsize, opref)
 
     if run_style == 'basic' :
@@ -1449,6 +1458,9 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
 
     '''
 
+    ttext = '''"ulay: ${ulay_name} (anat)" ,, '''
+    ttext+= '''"olay: ${olay_name} (EPI edges)"'''
+
     jsontxt = '''
     cat << EOF >! ${{tjson}}
     itemtype    :: VOL
@@ -1456,9 +1468,10 @@ def apqc_ve2a_epi2anat( obase, qcb, qci, focusbox ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "ulay: ${{ulay_name}} (anat)",, "olay: ${{olay_name}} (EPI edges)"
+    text        :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                ttext )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -1524,6 +1537,11 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     '''.format( opref, focusbox )
 
+
+    ttext = '''"ulay: ${ulay_name} (template)" ,, '''
+    ttext+= '''"olay: ${olay_name} (anat edges)"'''
+
+
     jsontxt = '''
     cat << EOF >! ${{tjson}}
     itemtype    :: VOL
@@ -1531,9 +1549,10 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "ulay: ${{ulay_name}} (template)",, "olay: ${{olay_name}} (anat edges)"
+    text        :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                ttext )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -1587,21 +1606,24 @@ def apqc_va2t_anat2temp( obase, qcb, qci, focusbox ):
     lout = [comm, pre, cmd, jsontxt, jsontxt_cmd, jsontxt2, jsontxt2_cmd]
     return '\n\n'.join(lout)
 
+#-------------------------------------------------------------------------
 
+### [PT: July 2, 2019] this function now takes an object with lots of
+### details of olay and thresh stuff for plotting.  This is because we
+### have generalized the kind of stuff that can be plotted.
 # ['stats_dset', 'mask_dset', 'final_anat']
 # ['template'] # secondary consideration
-def apqc_vstat_fstat( obase, qcb, qci, 
+def apqc_vstat_stvol( obase, qcb, qci, 
                       ulay, focusbox,     # bc some flexibility in usage
-                      iolay, ithr, 
-                      olay_posonly=True ):
+                      vso, count=0,
+                      HAVE_MASK=False ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
-    perc_thr_thr  = 90                    # %ile for thresholding thr vol
-    perc_olay_top = 99                    # %ile for top of pbar for olay
+    pvalue_thr_thr  = 0.001
 
     # what will minval of pbar be? 0, or -max?
-    if olay_posonly :
+    if vso.olay_posonly :
         olay_minval_str = "-pbar_posonly"
         pbar_min        = "0"
     else:
@@ -1609,11 +1631,9 @@ def apqc_vstat_fstat( obase, qcb, qci,
         pbar_min        = "-${olay_topval}" # $olay_topval is defined below
 
     comm  = '''peruse statistical results: 
-    ||~~~{} %ile threshold of thr vol [{}]
-    ||~~~{} %ile topval for olay vol [{}] for pbar'''.format( perc_thr_thr,
-                                                              ithr,
-                                                              perc_olay_top,
-                                                              iolay )
+    || ~~~ thr vol [{}]
+    || ~~~ olay vol [{}] for pbar'''.format( vso.thr_index,
+                                             vso.olay_index )
 
     # NB: below, note the '.axi.json', because of how @chauffeur_afni
     # appends slice plane in the name of each output image
@@ -1623,6 +1643,7 @@ def apqc_vstat_fstat( obase, qcb, qci,
     set focus_box = {}
     set ulay_name = `3dinfo -prefix ${{ulay_dset}}`
     set olay_name = `3dinfo -prefix ${{stats_dset}}`
+    set avsp      = `3dinfo -av_space ${{stats_dset}}`
     set olaybrick = {}
     set olaylabel = `3dinfo -label ${{stats_dset}}"[${{olaybrick}}]"`
     set thrbrick = {}
@@ -1632,41 +1653,157 @@ def apqc_vstat_fstat( obase, qcb, qci,
     set tjson2  = _tmp2.txt
     set ojson2  = ${{odir_img}}/${{opref}}.sag.json
     set opbarrt = ${{odir_img}}/${{opref}}.pbar
-    '''.format( opref, ulay, focusbox, iolay, ithr )
+    set tcoef   = __tmp_coef_vol.nii
+    '''.format( opref, ulay, focusbox, vso.olay_index, vso.thr_index )
 
-    # threshold for stat dset, from %ile in mask
-    cmd0 = '''
-    set tt = `3dBrickStat 
-    -slow 
-    -percentile {0} 1 {0}
-    -mask "${{mask_dset}}" 
-    ${{stats_dset}}"[${{thrbrick}}]"`
-    '''.format( perc_thr_thr )
+    cmd0 = ''
+    cmd1 = ''
+    cmd2 = ''
+    cmd3 = ''
+    post = ''
 
-    cmd1 = '''
-    set thr_thresh = ${tt[2]}
-    '''
+    if vso.thr_mode == 'percentile' :
+        if HAVE_MASK :
 
-    # top value for colorbar of olay, from %ile in mask
-    cmd2 = '''
-    set pp = `3dBrickStat 
-    -slow 
-    -percentile {0} 1 {0}
-    -mask "${{mask_dset}}" 
-    ${{stats_dset}}"[${{olaybrick}}]"`
-    '''.format( perc_olay_top )
+            # %ile for thresholding
+            perc_olay_top = 99                 
+            perc_thr_thr  = 90                 
+            perc_olay_fov = " in mask"
 
-    cmd3 = '''
-    set olay_topval = ${{pp[2]}}
-    set olay_botval = {}
-    '''.format( pbar_min )
+            # threshold for stat dset, from %ile in mask
+            cmd0 = '''
+            set tt = `3dBrickStat 
+            -slow 
+            -percentile {0} 1 {0}
+            -mask "${{mask_dset}}" 
+            ${{stats_dset}}"[${{thrbrick}}]"`
+            '''.format( perc_thr_thr )
+
+            cmd1 = '''
+            set thr_thresh = ${tt[2]}
+            '''
+
+            # top value for colorbar of olay, from %ile in mask
+            cmd2 = '''
+            set pp = `3dBrickStat 
+            -slow 
+            -percentile {0} 1 {0}
+            -mask "${{mask_dset}}" 
+            ${{stats_dset}}"[${{olaybrick}}]"`
+            '''.format( perc_olay_top )
+
+        else:
+
+            # %ile for thresholding
+            perc_olay_top = 99                 
+            perc_thr_thr  = 95            
+            perc_olay_fov = " in full nonzero volume"
+
+            cmd0 = '''
+            set tt = `3dBrickStat 
+            -slow 
+            -non-zero
+            -percentile {0} 1 {0}
+            ${{stats_dset}}"[${{thrbrick}}]"`
+            '''.format( perc_thr_thr )
+
+            cmd1 = '''
+            set thr_thresh = ${tt[2]}
+            '''
+
+            # top value for colorbar of olay, from %ile in mask
+            cmd2 = '''
+            set pp = `3dBrickStat 
+            -slow 
+            -non-zero
+            -percentile {0} 1 {0}
+            ${{stats_dset}}"[${{olaybrick}}]"`
+            '''.format( perc_olay_top )
+
+        cmd3 = '''
+        set olay_topval = ${{pp[2]}}
+        set olay_botval = {}
+        '''.format( pbar_min )
+
+        pbar_comm_range = str(perc_olay_top)+'%ile' + perc_olay_fov
+        pbar_comm_thr   = str(perc_thr_thr)+'%ile' 
+        pbar_comm_thr  += perc_olay_fov + ', alpha+boxed on'
+
+    else:
+
+        cmd0 = '''
+        set thr_thresh = `p2dsetstat
+        -quiet
+        -inset ${{stats_dset}}"[${{thrlabel}}]"
+        -{}
+        -pval {}`
+        '''.format( vso.thr_sided, pvalue_thr_thr )
+
+        if HAVE_MASK :
+            pvalue_olay_perctop = 99
+            pvalue_olay_fov     = " in supratheshold vox in mask"
+
+            cmd1 = '''
+            3dcalc 
+            -a    "${stats_dset}[${olaylabel}]"
+            -b    "${stats_dset}[${thrlabel}]"
+            -c    ${mask_dset}
+            -expr "abs(a)*step(b-${thr_thresh})*step(c)"
+            -prefix ${tcoef}
+            '''
+
+            cmd2 = '''
+            set ppcoef = `3dBrickStat 
+            -slow 
+            -non-zero
+            -percentile {0} 1 {0}
+            ${{tcoef}}`
+            '''.format( pvalue_olay_perctop )
+
+        else:
+            pvalue_olay_perctop = 90
+            pvalue_olay_fov     = " in supratheshold vox in full volume"
+
+            cmd1 = '''
+            3dcalc 
+            -a    "${stats_dset}[${olaylabel}]"
+            -b    "${stats_dset}[${thrlabel}]"
+            -expr "abs(a)*step(b-${thr_thresh})"
+            -prefix ${tcoef}
+            '''
+
+            cmd2 = '''
+            set ppcoef = `3dBrickStat 
+            -slow 
+            -non-zero
+            -percentile {0} 1 {0}
+            ${{tcoef}}`
+            '''.format( pvalue_olay_perctop ) 
+
+
+        cmd3 = '''
+        set olay_topval = ${{ppcoef[2]}}
+        set olay_botval = {}
+        '''.format( pbar_min )
+
+        post = '''
+        \\rm ${tcoef}
+        '''
+
+        pbar_comm_range = str(pvalue_olay_perctop)+"%ile" 
+        pbar_comm_range+= pvalue_olay_fov
+        
+        pbar_comm_thr   = "{} p={}, {}".format( vso.thr_sided_txt, 
+                                                pvalue_thr_thr, 
+                                                "alpha+boxed on" )
+
 
     cmd4 = '''
     @chauffeur_afni    
     -ulay  ${{ulay_dset}}
     -box_focus_slices ${{focus_box}}
     -olay  ${{stats_dset}}  
-    -cbar Plasma 
+    -cbar {}
     {}
     -ulay_range 0% 120%  
     -func_range ${{olay_topval}}
@@ -1676,17 +1813,31 @@ def apqc_vstat_fstat( obase, qcb, qci,
     -set_subbricks -1 ${{olaybrick}} ${{thrbrick}}
     -opacity 9  
     -pbar_saveim   "${{opbarrt}}.jpg"
-    -pbar_comm_range "{}{}"
-    -pbar_comm_thr   "{}{}"
+    -pbar_comm_range "{}"
+    -pbar_comm_thr   "{}"
     -prefix        "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -montx 7 -monty 1  
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
-    '''.format( olay_minval_str,
-                perc_olay_top, '''%ile in mask''', 
-                perc_thr_thr,  '''%ile in mask, alpha+boxed on''' )
+    '''.format( vso.olay_pbar,
+                olay_minval_str, 
+                pbar_comm_range,
+                pbar_comm_thr )
+
+    ttext = ''
+    #if not(count) :
+    #    ttext+= '''"dset: ${olay_name}" ,, '''
+    #ttext+= '''"olay: [${olaybrick}] '${olaylabel}'" ,, '''
+    #ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
+
+    #ttext+= '''"olay: ${olay_name}${avsp}[${olaybrick}] '${olaylabel}'" ,, '''
+    #ttext+= '''" thr: ${olay_name}${avsp}[${thrbrick}] '${thrlabel}'"'''
+
+    ttext+= '''"olay: [${olaybrick}] '${olaylabel}' (in ${olay_name})" ,, '''
+    ttext+= '''" thr: [${thrbrick}] '${thrlabel}'"'''
+
 
     # As default, use :: and ,, as major and minor delimiters,
     # respectively, because those should be useful in general.  
@@ -1699,9 +1850,10 @@ def apqc_vstat_fstat( obase, qcb, qci,
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "olay: ${{olay_name}} (stat '${{olaylabel}}')",, "thr : ${{olay_name}} (stat '${{thrlabel}}')"
+    text        :: {}
     EOF
-    '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
+    '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
+                ttext )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -1755,6 +1907,8 @@ def apqc_vstat_fstat( obase, qcb, qci,
     cmd3  = commandize( cmd3, cmdindent=0, 
                         ALIGNASSIGN=True, ALLEOL=False )
     cmd4  = commandize( cmd4 )
+    post  = commandize( post, cmdindent=0, 
+                        ALIGNASSIGN=True, ALLEOL=False )
 
     # NB: for commandizing the *jsontxt commands, one NEEDS
     # 'cmdindent=0', bc 'EOF' cannot be indented to be detected
@@ -1764,7 +1918,7 @@ def apqc_vstat_fstat( obase, qcb, qci,
     jsontxt2 = commandize( jsontxt2, cmdindent=0, ALLEOL=False )
     jsontxt2_cmd  = commandize( jsontxt2_cmd, padpost=2 )
 
-    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, 
+    lout = [comm, pre, cmd0, cmd1, cmd2, cmd3, cmd4, post,
             pbarjsontxt_cmd,
             jsontxt, jsontxt_cmd, 
             jsontxt2, jsontxt2_cmd]
@@ -1953,7 +2107,7 @@ def apqc_regr_grayplot( obase, qcb, qci,
         \\rm ${tmp_img}
         '''
 
-        str_SUBTEXT+= ''' ,, " rows: ordered by similarity to principal comp '''
+        str_SUBTEXT+= ''' ,, " rows: ordered by similarity to top two principal comps '''
         str_SUBTEXT+='''in mask (${mask_name})"'''
     else:
         cmd3 = '''
@@ -2094,7 +2248,7 @@ def apqc_qsumm_ssrev( obase, qcb, qci ):
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text  ::  "Basic summary quantities from processing"
+    text        :: "Basic summary quantities from processing"
     EOF
     '''.format(qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1] )
 
@@ -2600,11 +2754,15 @@ def apqc_radcor_rcvol( obase, qcb, qci,
     chauff_params['thr_val']  = 0.4
     chauff_params['olay_top'] = 0.7
     chauff_params['cbar']     = "Reds_and_Blues_Inv"
-    
-    comm  = '''peruse radcor results: 
-    ||~~~{}'''.format('\n||~~~ '.join(all_olay) )
 
     for ii in range(Nolay):
+
+        comm = ''
+        if not(ii) :
+            comm  = '''peruse radcor results: 
+            || ~~~ {}'''.format('\n || ~~~ '.join(all_olay) )
+        
+
 
         chauff_params['ulay'] = all_ulay[ii]
         chauff_params['olay'] = all_olay[ii]
@@ -2822,6 +2980,244 @@ def apqc_Top_pagetop( opref, qcb, qci, task_name = '' ):
 
     lout = [comm, pre, jsontxt, jsontxt_cmd]
     return '\n\n'.join(lout)
+
+# -------------------------------------------------------------------------
+# -------------------------------------------------------------------------
+
+# for parsing stats_dset labels and setting up vstat testing
+class vstat_obj:
+
+    label      = ""                # what user enters
+    stats_dset = ""                # dset searched within
+    label_in_dset = False          # does the label exist in it meaningfully?
+    
+    olay_label = ""                # subbrick label/selector of stats_dset
+    olay_index = -1                # subbrick index selector of stats_dset
+    olay_type  = ""                # 'Coef', 'Tstat', 'Fstat'
+    olay_posonly = False           # For colorbar
+    olay_pbar  = ""                # Name of pbar, decided by posonly
+
+    thr_label  = ""                # subbrick label/selector of stats_dset
+    thr_index  = ""                # subbrick index selector of stats_dset
+    thr_type   = ""                # 'Tstat', 'Fstat'
+    thr_sided  = "2sided"          # '1sided', '2sided', 'bisided'
+    thr_sided_txt = "two-sided"    # 'one-sided', 'two-sided', 'bisided'
+    thr_mode   = "pvalue"          # 'percentile' or 'pvalue'
+
+    def set_label(self, ss):
+        self.label = ss
+
+    def set_stats_dset(self, ss):
+        self.stats_dset = ss
+
+    def found_label(self):
+        self.label_in_dset = True
+        
+    def set_olay_label(self, ss):
+        self.olay_label = ss
+
+    def set_olay_index(self, ii):
+        self.olay_index = int(ii)
+
+    def set_olay_type(self, ss):
+        self.olay_type = ss
+
+    def set_olay_posonly(self):
+        self.olay_posonly = True
+
+    def set_olay_pbar(self, ss):
+        self.olay_pbar = ss
+
+    def set_thr_label(self, ss):
+        self.thr_label = ss
+
+    def set_thr_index(self, ii):
+        self.thr_index = int(ii)
+
+    def set_thr_type(self, ss):
+        self.thr_type = ss
+
+    def set_thr_sided(self, ss):
+        self.thr_sided = ss
+        if ss == '1sided' :
+            self.thr_sided_txt = 'one-sided'
+        elif ss == '2sided' :
+            self.thr_sided_txt = 'two-sided'
+        elif ss == 'bisided' :
+            self.thr_sided_txt = 'bi-sided'
+        else :
+            print("*+ WARNING: unknown sidedness of testing: {}"
+                  "".format(ss))
+
+    def set_thr_mode(self, ss):
+        self.thr_mode = ss
+
+    ### semi-omnibus settings for olay/thr
+    ##  olay can be Coef or Fstat
+    #   thr can be Tstat or Fstat
+    def set_olay_all_coef(self, label, ind):
+        self.found_label()
+        self.set_olay_label(label)
+        self.set_olay_index(ind)
+        self.set_olay_type('Coef')
+        self.set_olay_pbar('Reds_and_Blues_Inv')
+
+    def set_olay_all_fstat(self, label, ind):
+        self.found_label()
+        self.set_olay_label(label)
+        self.set_olay_index(ind)
+        self.set_olay_type('Fstat')
+        self.set_olay_pbar('Plasma')
+        self.set_olay_posonly()
+
+    def set_thr_all_tstat(self, label, ind):
+        self.set_thr_label(label)
+        self.set_thr_index(ind)
+        self.set_thr_type('Tstat')
+        self.set_thr_sided("2sided")
+
+    def set_thr_all_fstat(self, label, ind):
+        self.set_thr_label(label)
+        self.set_thr_index(ind)
+        self.set_thr_type('Fstat')
+        self.set_thr_sided("1sided")
+        if self.thr_label == 'Full_Fstat' :
+            self.set_thr_mode("percentile")
+
+    def disp_olay_all(self):
+        print("label         : " + self.label)
+        print("stats_dset    : " + self.stats_dset)
+        print("label_in_dset : " + str(self.label_in_dset))
+
+        print("olay_label    : " + self.olay_label)
+        print("olay_index    : " + str(self.olay_index))
+        print("olay_type     : " + self.olay_type)
+        print("olay_posonly  : " + str(self.olay_posonly))
+        print("olay_pbar     : " + self.olay_pbar)
+                     
+    def disp_thr_all(self):
+        print("label         : " + self.label)
+        print("stats_dset    : " + self.stats_dset)
+        print("label_in_dset : " + str(self.label_in_dset))
+
+        print("thr_label     : " + self.thr_label)
+        print("thr_index     : " + str(self.thr_index))
+        print("thr_type      : " + self.thr_type )
+        print("thr_sided     : " + self.thr_sided)
+        print("thr_sided_txt : " + self.thr_sided_txt)
+        print("thr_mode      : " + self.thr_mode )
+
+# ---------------------------------------------------------------------
+
+def parse_stats_dset_labels( fname, lsearch = [] ) :
+    '''fname is a stats_dset.
+
+    lsearch is a list of user-specified stim or GLT labels (as well as
+    the default 'Full_Fstat' label) to find within the stats_dset labels.
+
+    OUTPUT: a list of vstat_obj objects that contain all necessary
+    information for the vstat-processing function here.
+
+    '''
+
+    cmd_get_labelstr = '''3dinfo -label {}'''.format(fname)
+
+    sint, so, se = ab.simple_shell_exec(cmd_get_labelstr, capture=1)
+    sos          = so.split('|')
+    llabels      = [x.strip() for x in sos]
+    Nlabels      = len(llabels)
+
+    cmd_get_nv   = '''3dinfo -nv {}'''.format(fname)
+
+    sint, so, se = ab.simple_shell_exec(cmd_get_nv, capture=1)
+    Nvols        = int(so.strip())
+
+    if Nlabels != Nvols :
+        print("** ERROR: Nlabels ({}) does not match Nvols ({})\n"
+              "   in stats file {}.\n"
+              "   Possible bad char (e.g., |) in str label?\n"
+              "".format( Nlabels, Nvols, fname))
+        sys.exit(5)
+
+    list_pre_found = []
+    list_objs = []
+
+    for pre in lsearch:
+        i = 0
+        while i < Nlabels :
+            x = llabels[i]
+            if x.find(pre)==0 :
+                # first one found will be for the olay
+                list_pre_found.append(pre)
+                vso = vstat_obj()
+                vso.set_label(pre)
+                vso.set_stats_dset(fname)
+                addtoi = 1
+
+                post = x[-5:]
+                if post == '_Coef' :
+                    vso.set_olay_all_coef(x, i)
+                    # and check for accompanying stat
+                    if i+1 < Nlabels :
+                        j = i+1
+                        y = llabels[j]
+                        if y.find(pre)==0 :
+                            addtoi+=1
+                            post = y[-5:]
+                            if post == 'Tstat' :
+                                vso.set_thr_all_tstat(y, j)
+                                if j+1 < Nlabels :
+                                    k = j+1
+                                    z = llabels[k]
+                                    if z.find(pre)==0 :
+                                        post = z[-5:]
+                                        if post == 'Fstat' :
+                                            # all we do is add to
+                                            # index-- ignore other steps
+                                            addtoi+=1
+                            elif post == 'Fstat' :
+                                vso.set_thr_all_fstat(y, j)
+                            else:
+                                print("ERROR: no stat brick to accompany"
+                                      "[{}]th volume {} in {}?"
+                                      "".format(i, x, fname))
+                                sys.exit(7)
+                elif post == 'Tstat' :
+                    vso.set_thr_all_tstat(x, i)
+                    if i+1 < Nlabels :
+                        j = i+1
+                        y = llabels[j]
+                        if y.find(pre)==0 :
+                            post = y[-5:]
+                            if post == 'Fstat' :
+                                # all we do is add to index-- ignore
+                                # other steps
+                                addtoi+=1
+                elif post == 'Fstat' :
+                    vso.set_olay_all_fstat(x, i)
+                    vso.set_thr_all_fstat(x, i)
+                else:
+                    print("ERROR: what unexpected volume is this, of unknown"
+                          " type?  [{}]th volume {} in {}?"
+                          "".format(i, x, fname))
+                    sys.exit(7)
+
+                #print("++ Found: {} in: {} and {}  ... addtoi= {}"
+                #      "".format(pre, vso.olay_label, vso.thr_label, addtoi))
+                list_objs.append(vso) 
+                
+                i+= addtoi # we accummulate how many to add
+            else :
+                i+= 1
+
+    for pre in lsearch:
+        if not(list_pre_found.__contains__(pre)) :
+            print("*+ WARNING: user-asked-for stim or GLT label '{}'\n"
+                  "            has not been found in the stats dset: {}"
+                  "".format(pre, fname))
+
+    return list_objs
+
 
 # =========================================================================
 # =========================================================================

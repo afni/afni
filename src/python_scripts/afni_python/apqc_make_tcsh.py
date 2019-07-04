@@ -86,16 +86,20 @@ auth = 'PA Taylor'
 #        don't output grayplot; this will later be revisited when
 #        surface things are considered more carefully (i.e., at all)
 #
-ver = '2.7' ; date = 'June 26, 2019' 
+#ver = '2.7' ; date = 'June 26, 2019' 
 # + [PT] elif for vstat: no anat or templ, use volreg as ulay; West
 #        Coast usage for S Torrisi.
+#
+ver = '2.9' ; date = 'July 3, 2019' 
+# + [PT] vorig block now starting to be used
+# + [PT] add in more stats to be viewed
+# + [PT] add in QC block ID to QC block titles
 #
 #########################################################################
 
 # !!! UPDATE TO HAVE THE no_scan STUFF INPUT!
 #  uvars to add in officially still:
 #    "anat_orig": "copy_af_anat_w_skull+orig.HEAD",
-#    "vr_base": "...."
 
 
 import sys
@@ -136,9 +140,7 @@ if __name__ == "__main__":
     str_FULL = ''
 
     # probably add some info about: afni ver, etc. here.
-    str_header = '''#!/bin/tcsh
-
-    '''
+    str_header = '''#!/bin/tcsh\n\n'''
 
     str_FULL+= str_header
 
@@ -337,44 +339,60 @@ if __name__ == "__main__":
 
     # QC block: "vstat"
     # item    : stats in vol: F-stat (def) and other stim/contrasts
+    DO_VSTAT        = 0
+    VSTAT_HAVE_MASK = 0
 
-    ldep    = ['stats_dset', 'mask_dset', 'final_anat']
-    ldep2   = ['template']                                # 2ary consideration
-    alt_ldep = ['stats_dset', 'mask_dset', 'vr_base_dset'] # elif to ldep
+    ldep     = ['stats_dset', 'final_anat']
+    ldep2    = ['template']                                # 2ary consid
+    alt_ldep = ['stats_dset', 'vr_base_dset']              # elif to ldep
+    ldep3    = ['user_stats']                              # 3ary consid
+    ldep4    = ['mask_dset']                               # 4ary consid
+
     if lat.check_dep(ap_ssdict, ldep) :
+        DO_VSTAT = 1
         ulay = '${final_anat}'
         if lat.check_dep(ap_ssdict, ldep2) :
             focusbox = '${templ_vol}'
         else:
             focusbox = '${final_anat}'
-
-        ban      = lat.bannerize('view some stats results')
-        obase    = 'qc_{:02d}'.format(idx)
-        # in this case, we also specify the indices of the ulay and
-        # thr volumes in the stats dset-- we intend that this will
-        # generalize to viewing not just the F-stat (the default)
-        cmd      = lat.apqc_vstat_fstat( obase, "vstat", "fstat", 
-                                         ulay, focusbox, 0, 0 )
-
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
-
     elif lat.check_dep(ap_ssdict, alt_ldep) :
+        DO_VSTAT = 1
         ulay     = '${vr_base_dset}'
         focusbox = 'AMASK_FOCUS_ULAY' # '${vr_base_dset}'
 
-        ban      = lat.bannerize('view some stats results')
-        obase    = 'qc_{:02d}'.format(idx)
-        # in this case, we also specify the indices of the ulay and
-        # thr volumes in the stats dset-- we intend that this will
-        # generalize to viewing not just the F-stat (the default)
-        cmd      = lat.apqc_vstat_fstat( obase, "vstat", "fstat", 
-                                         ulay, focusbox, 0, 0 )
+    if DO_VSTAT :
+        all_vstat = ["Full_Fstat"]
+        if lat.check_dep(ap_ssdict, ldep3) :
+            all_vstat.extend(ap_ssdict[ldep3[0]])
+        all_vstat_obj = lat.parse_stats_dset_labels( ap_ssdict['stats_dset'], 
+                                                     all_vstat )
+        Nobj = len(all_vstat_obj)
 
-        str_FULL+= ban
-        str_FULL+= cmd
-        idx     += 1
+        if lat.check_dep(ap_ssdict, ldep4) :
+            VSTAT_HAVE_MASK = 1
+
+        for ii in range(Nobj):
+
+            # the object to use, and a cleaner version of name
+            vso      = all_vstat_obj[ii]
+            vsname   = vso.olay_label.replace('#', '_')
+
+            #vso.disp_olay_all()
+            #vso.disp_thr_all()
+
+            ban   = lat.bannerize('view stats (+ eff est): ' + vsname)
+            obase = 'qc_{:02d}'.format(idx)
+            # in this case, we also specify the indices of the ulay
+            # and thr volumes in the stats dset-- we intend that this
+            # will generalize to viewing not just the F-stat (the
+            # default)
+            cmd      = lat.apqc_vstat_stvol( obase, "vstat", vsname, 
+                                             ulay, focusbox, vso, ii,
+                                             HAVE_MASK=VSTAT_HAVE_MASK )
+
+            str_FULL+= ban
+            str_FULL+= cmd
+            idx     += 1
 
     # --------------------------------------------------------------------
 
