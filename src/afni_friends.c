@@ -626,6 +626,7 @@ static mday holiday[] = {
    {SEP, 7,"Buddy Holly's birthday"                                  } ,
    {SEP, 7,"Luigi Galvani's birthday"                                } ,
    {SEP, 7,"Birthday of Emperor Saga (Japan)"                        } ,
+   {SEP, 7,"Celebrate Emperor Zhark Day!"                            } ,
    {SEP, 8,"Anniversary of Star Trek TV debut"                       } ,
    {SEP, 8,"Andorra National Festival"                               } ,
    {SEP, 9,"Bulgaria Liberation Day"                                 } ,
