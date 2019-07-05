@@ -2005,7 +2005,7 @@ STATUS("options done") ;
          mri_purge_get_tmpdir() , mri_purge_get_tsuf() ) ;
    } else if( nfile_slibase > 0 && nz > 1 ){
      INFO_message(
-       "If program runs out of memory, try re-running with -usetemp option");
+       "If program runs out of memory (or is 'killed'), try re-running with -usetemp option");
    }
 
    if( eglt_num == 0 && (Rglt_prefix != NULL || Oglt_prefix != NULL) ){
@@ -2120,11 +2120,13 @@ STATUS("options done") ;
    /*-- meanwhile, back at the masking ranch --*/
 
    if( mask != NULL ){     /* check -mask option for compatibility */
+
      if( gmask == NULL ) gmask = mask ;
      if( mask_nx != nx || mask_ny != ny || mask_nz != nz )
        ERROR_exit("-mask dataset grid doesn't match input dataset :-(") ;
 
    } else if( automask ){  /* create a mask from input dataset */
+
      mask = THD_automask( inset ) ;
      if( mask == NULL )
        ERROR_message("Can't create -automask from input dataset :-(") ;
@@ -2136,6 +2138,7 @@ STATUS("options done") ;
      if( gmask == NULL ) gmask = mask ;
 
    } else {                /* create a 'mask' for all voxels */
+
      if( verb )
        INFO_message("No mask ==> computing for all %d voxels",nvox) ;
      mask = (byte *)malloc(sizeof(byte)*nvox) ; nmask = nvox ;
@@ -2154,7 +2157,9 @@ STATUS("options done") ;
          INFO_message("FDR automask has %d voxels (out of %d = %.1f%%)",
                       mc, nvox, (100.0f*mc)/nvox ) ;
      }
+
    }
+
    mri_fdr_setmask(gmask) ;  /* 27 Mar 2009 */
 
    /**-------------------- process the matrix --------------------**/
@@ -2167,12 +2172,18 @@ STATUS("process matrix") ;
    ntime  = nelmat->vec_len ;  /* number of matrix rows */
    ddof   = ntime - nrego ;
    if( ddof < 1 )              /* should not happen! */
-     ERROR_exit("matrix has more columns than rows!") ;
+     ERROR_exit("matrix has more columns (%d) than rows (%d) :(",nrego,ntime) ;
    if( ntime < 9 )
-     ERROR_exit("matrix has %d rows, but minimum allowed is 9 :-(",ntime) ;
+     ERROR_exit("matrix has %d rows (time points), but minimum allowed is 9 :-(",ntime) ;
 
    cgl = NI_get_attribute( nelmat , "CommandLine" ) ;
    if( cgl != NULL ) commandline = strdup(cgl) ;
+
+   /* warning message if problem is big [05 Jul 2019] */
+
+   if( !usetemp && nfile_slibase == 0 && ntime > 6666 && nmask > 9999 )
+     INFO_message(
+       "If program runs out of memory (or is 'killed'), try re-running with -usetemp option");
 
    /*--- number of rows in the full matrix (without censoring) ---*/
 
