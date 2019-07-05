@@ -178,7 +178,7 @@
 // AFNI_MAX_1DSIZE          = 66666  // max size of .1D files to auto-read
 // AFNI_TITLE_LABEL2        = NO     // YES==use dset 'label2' field in titlebar
 // AFNI_EDGIZE_OVERLAY      = NO     // YES==show only edges of color olay blobs
-// AFNI_DONT_LOGFILE        = NO     // YES==don't log AFNI progs to ~/.afni.log
+   AFNI_DONT_LOGFILE        = YES    // NO==do log AFNI progs to ~/.afni.log
 // AFNI_WRITE_NIML          = NO     // YES==write .HEAD files in NIML format
 // AFNI_TTATLAS_CAUTION     = YES    // NO==disable warning message in 'wherami'
 // AFNI_RESCAN_AT_SWITCH    = YES    // YES=rescan directory for new datasets

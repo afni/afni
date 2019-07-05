@@ -44,23 +44,32 @@ qc_title["Top"]    = [ "Top of page for:&#10${subj}",
 
 qc_blocks          = coll.OrderedDict()
 qc_blocks["vorig"]  = [ "vols in orig space", 
-                        "Check: vols in orig space" ]
+                        "Check vols in original space" ]
+#                        "Check: vols in orig space" ]
 qc_blocks["ve2a" ]  = [ "vol alignment (EPI-anat)", 
-                        "Check: vol alignment (EPI-anat)" ]
+                        "Check vol alignment (EPI to anat)" ]
+#                        "Check: vol alignment (EPI-anat)" ]
 qc_blocks["va2t" ]  = [ "vol alignment (anat-template)", 
-                        "Check: vol alignment (anat-template)" ]
+                        "Check vol alignment (anat to template)" ]
+#                        "Check: vol alignment (anat-template)" ]
 qc_blocks["vstat"]  = [ "statistics vols", 
-                        "Check: statistics vols" ]
+                        "Check statistics vols (and effect estimates)" ]
+#                        "Check: statistics vols" ]
 qc_blocks["mot"  ]  = [ "motion and outliers", 
-                        "Check: motion and outliers" ] 
+                        "Check motion and outliers" ] 
+#                        "Check: motion and outliers" ] 
 qc_blocks["regr" ]  = [ "regressors", 
-                        "Check: regressors (combined and individual)" ]
+                        "Check regressors, DFs and residuals" ]
+#                        "Check: regressors (combined and individual)" ]
 qc_blocks["warns"]  = [ "all warnings from processing", 
-                        "Check: all warnings from processing" ]
+                        "Check all warnings from processing" ]
+#                        "Check: all warnings from processing" ]
 qc_blocks["radcor"] = [ "@radial_correlate vols", 
-                        "Check: extent of local correlation" ]
+                        "Check extent of local correlation" ]
+#                        "Check: extent of local correlation" ]
 qc_blocks["qsumm"]  = [ "summary quantities from @ss_review_basic", 
-                        "Check: summary quantities from @ss_review_basic" ]
+                        "Check summary quantities from @ss_review_basic" ]
+#                        "Check: summary quantities from @ss_review_basic" ]
 
 qc_link_final       = [ "FINAL", 
                        "overall subject rating" ] 
@@ -88,9 +97,23 @@ volumes.
 '''
 
 qcb_helps["vstat"]  = '''
-Volumetric images of (full) F-stat of an overall regression
-model. These images are only created for task data sets, i.e., where
-GLTs or stimuli are specified (so not for resting state data).
+Volumetric images of statistics results (and, where available, effect
+estimates).  These images are only created for task data sets, i.e.,
+where GLTs or stimuli are specified (so not for resting state data).
+
+By default, the (full) F-stat of an overall regression model is shown.
+Additionally, one can specify labels of stimuli or GLTs used in the
+afni_proc.py command, and statistical results will be shown.  For
+stimuli with effect estimates, the 'Coef' vales will be displayed as
+the olay colors (preferably with the 'scale' block having been used in
+afni_proc.py, producing meaningful units of BOLD % signal change in
+the 'Coef' volumes).
+
+Colorbar ranges and thresholds are chosen from either percentile
+values within the data set (preferably from within a WB mask,
+available when the 'mask' block was used in afni_proc.py) or from
+pre-set statistical levels (like p=0.001).  Each is case is described.
+
 '''
 
 qcb_helps["mot"  ]  = '''
@@ -116,7 +139,15 @@ combined stimulus plots are generated (with any censoring also shown).
 The degrees of freedom (DF) summary is also provided, so one can check
 if too many get used up during processing (careful with bandpassing!).
 
-And a grayplot of residuals (with motion/outliers/censoring) is provided.
+And a grayplot of residuals (with motion/outliers/censoring) is
+provided.  The '-pvorder' is used for output, placing the time series
+in decreasing order of similarity to the top two principal components
+of the (masked) time series data.  The colorbar max is set to 3.29,
+the value at which a standard normal distribution N(0,1) has a
+two-sided tail probability of 0.001.  The grayplot's top row contains
+a plot of the motion enorm and outlier frac across time, for reference
+with the grayplot series.
+
 '''
 
 qcb_helps["warns"]  = '''

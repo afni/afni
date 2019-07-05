@@ -27,9 +27,14 @@
 #ver = '1.7' ; date = 'May 17, 2019' 
 # + [PT] simplifying pbar behavior
 #
-ver = '1.8' ; date = 'May 22, 2019' 
+#ver = '1.8' ; date = 'May 22, 2019' 
 # + [PT] help updates
 # + [PT] warning level stuff
+#
+ver = '2.3' ; date = 'July 3, 2019' 
+# + [PT] Colorbars standard widths
+# + [PT] QC block ID now in QC block titles
+# + [PT] added more help descriptions
 #
 #########################################################################
 
