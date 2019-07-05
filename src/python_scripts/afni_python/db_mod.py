@@ -5997,20 +5997,17 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
             % (gu_mean, gcor_file, gcor_file)
 
     gcor_dset = 'corr_brain'
-    dp_dset = BASE.afni_name('rm.DP%s' % proc.view)
-    cmd += '# ---------------------------------------------------\n'     \
+    cmd += '# ---------------------------------------------------\n'    \
            "# compute correlation volume\n"                             \
            "# (per voxel: average correlation across masked brain)\n"   \
            "# (now just dot product with average unit time series)\n"   \
-           "3dcalc -a %s -b %s -expr 'a*b' -prefix %s\n"                \
-           "3dTstat -sum -prefix %s %s\n\n"                             \
-           % (uset.pv(), gu_mean, dp_dset.prefix, gcor_dset, dp_dset.pv())
+           "3dTcorr1D -dot -prefix %s %s %s\n\n"                        \
+           % (gcor_dset, uset.pv(), gu_mean)
 
     # compute extra correlation volumes (assuming EPI grid ROIs followers):
     #   3dcalc -a ROI -b full_mask -expr 'a*b' -prefix ROI.FM
     #   3dmaskave -quiet -mask ROI.FM rm.errts.unit+tlrc > mean.ROI.1D
-    #   3dcalc -a rm.errts.unit+tlrc -b mean.ROI.1D -expr 'a*b' -prefix rm.ROI
-    #   3dTstat -sum -prefix corr_ROI rm.ROI
+    #   3dTcorr1D -dot -prefix corr_ROI rm.errts.unit+tlrc mean.ROI.1D
     oname = '-regress_make_corr_vols'
     roilist, rv = block.opts.get_string_list(oname)
     if roilist:
@@ -6031,11 +6028,8 @@ def db_cmd_regress_gcor(proc, block, errts_pre):
                   % (mset.pv(), proc.mask_epi.pv(), mpre)
           rstr += "3dmaskave -q -mask %s%s %s > %s\n"           \
                   % (mpre, proc.view, uset.pv(), meants)
-          rstr += "3dcalc -a %s -b %s \\\n"                     \
-                  "       -expr 'a*b' -prefix rm.DP.%s\n"       \
-                  % (uset.pv(), meants, roi)
-          rstr += "3dTstat -sum -prefix %s rm.DP.%s%s\n\n"      \
-                  % (cvol, roi, proc.view)
+          rstr += "3dTcorr1D -dot -prefix %s %s %s\n\n"         \
+                  % (cvol, uset.pv(), meants)
 
        cmd += rstr
 

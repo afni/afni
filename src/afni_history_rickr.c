@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
+   "(useless) switch to 3dTcorr1D for dot product",
+   "Drops 2 commands down to 1 for computing corr_* volumes." 
+ } ,
+
  {  3, Jul, 2019, RCR, "3dvolreg", MICRO, TYPE_BUG_FIX,
    "make 'second -zpad option' warning appropriate again",
    NULL
