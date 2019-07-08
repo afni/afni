@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 8, July , 2019 , PT , "@djunct_make_script_and_rst.py" , MINOR , TYPE_GENERAL,
+   "Allow wildcard chars in IMAGE descrip; SUBSECTIONS added.",
+   "Minor tweaks for formatting help files.\n"
+},
+
 { 3, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Expanded vstat QC block capabilities.",
    "Other tweaks, QC block IDs now in titles.\n"

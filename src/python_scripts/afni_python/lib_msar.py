@@ -1,5 +1,5 @@
 
-import sys, os
+import sys, os, glob
 import lib_apqc_tcsh as lat
 import afni_base as ab
 
@@ -19,8 +19,14 @@ import afni_base as ab
 # + [PT] lots of tiny things updated/fixed/added.  Now in pretty good
 #        working order
 #
-ver = '1.6'; date = 'June 20, 2019'
+#ver = '1.6'; date = 'June 20, 2019'
 # + [PT] Fix imcaption part of TEXTBLOCK->IMAGE, as well as help file disp
+#
+ver = '1.7'; date = 'July 8, 2019'
+# + [PT] better generalization of -execute_script
+# + [PT] add in SUBSECTION
+# + [PT] allow wildcard chars in IMAGE names
+# + [PT] fix help output disp
 #
 ##########################################################################
 
@@ -32,6 +38,7 @@ ver = '1.6'; date = 'June 20, 2019'
 # is useful to have as filler.
 OTHER_MODES = [ 'TITLE',       # title of script/demo
                 'SECTION',     # can breakup demo into parts
+                'SUBSECTION',  # can breakup demo into subparts
                 'TEXTBLOCK',   # basic description, just for RST
                 'TEXTINTRO',   # special case of SECTION+TEXTBLOCK
                 'SHEBANG',     # should always be first line of code
@@ -54,6 +61,9 @@ field; other, returns empty string'''
 
     elif ss[0].__contains__("#:SECTION") :
         return 'SECTION'
+
+    elif ss[0].__contains__("#:SUBSECTION") :
+        return 'SUBSECTION'
 
     elif ss[0].__contains__('cat') and \
          x.__contains__('<<')  and \
@@ -113,7 +123,7 @@ def find_mode_and_span(W, lstart, prev_mode=''):
             # everything is code
             tspan = Nx
 
-    elif start_mode == 'SECTION' :
+    elif start_mode == 'SECTION' or start_mode == 'SUBSECTION' :
         tmode = start_mode
 
         # we have to count empty spaces after this as part of the
@@ -145,11 +155,13 @@ def find_mode_and_span(W, lstart, prev_mode=''):
         for jj in range(1, Nx):
             tt    = X[jj].split()
             if tt:
-                if tt[0] == tmode :
+                # [PT: July 8, 2019] Have to allow for single quotes
+                # to be around key word:  cat << 'KW'
+                if tt[0] == tmode or tt[0] == "'" + tmode + "'" :
                     tspan = jj+1 # bc ends with keyword
                     break
         if not(tspan) :
-            print('''** Parse error:  can't find end of "cat <<{kw}"\n'''
+            print('''** Parse error:  can't find end of "cat << {kw}"\n'''
                   '''   started at line {lnum}'''
                   '''   Need a "{kw}" somewhere.'''
                   ''.format(lnum=lstart, kw=tmode))
@@ -380,7 +392,19 @@ def add_in_textblock_image( X,
             if len(ss) > 1:
                 imcaption.append(' '.join(ss[1:]))
         elif lmode == 'IMAGES' :
-            imlist.append(ss)
+            # [PT: July 8, 2019] The structure in this 'elif' allows
+            # for the combination of wildcard chars in image names and
+            # the '-execute_script' functionality, which has created a
+            # need for two main passes through interpreting the RST:
+            # in the first main pass of the program, images might not
+            # be found, but in the second pass, they might/should.
+            minilist = []
+            for imstr in ss:
+                glimstr = glob.glob(imstr)
+                if glimstr :
+                    minilist.extend(glimstr)
+            if minilist :
+                imlist.append(minilist) 
         elif lmode == 'CAPTION' :
             if len(ss) > 1:
                 imcaption.append((' '.join(ss[1:])))
@@ -391,6 +415,14 @@ def add_in_textblock_image( X,
     for rr in imlist:
         if len(rr) > Ncol:
             Ncol = len(rr)
+
+    # [PT: July 8, 2019] If Ncol is 0, then that means no items were
+    # found-- likely/hopefully that is a case of using
+    # '-execute_script', and this being the first pass
+    if not(Ncol) :
+        #print("++ No images found on this pass.")
+        return trst
+
     allwid = str(100 // Ncol) + ' '
     
     # Now build table;  some formatting necessary
@@ -521,8 +553,14 @@ def add_in_code ( X,
 
 def add_in_section( X, 
                     tstart,
-                    tspan ):
-    '''X should just be a list of a single string, but may generalize...'''
+                    tspan,
+                    is_sub=False ):
+    '''X should just be a list of a single string, but may generalize...
+
+    Also now includes SUBSECTION; basically same as SECTION, but uses
+    '-' instead of '=' for the underline.  No change in indentation.
+
+    '''
 
     tscript = ''
     trst    = ''
@@ -531,11 +569,14 @@ def add_in_section( X,
     ss    = lline.split()
     text  = ' '.join(ss[1:])
     ltext = len(text)
-    
-    tscript+= lat.bannerize( text, fullwid=72 )
-    
+        
     trst   += text + "\n"
-    trst   += (ltext  + 2 ) * '-' 
+    if is_sub :
+        trst   += (ltext  + 2 ) * '-' 
+        tscript+= lat.bannerize( text, fullwid=72, padsymb='-' )
+    else:
+        trst   += (ltext  + 2 ) * '=' 
+        tscript+= lat.bannerize( text, fullwid=72, padsymb='=' )
 
     # might have empty lines/padding
     for ii in range(1, tspan):
@@ -595,7 +636,7 @@ TO_BE_THE_TITLE
 .. contents:: :local:
 
 Introduction
--------------
+============
 
 **Download script:** :download:`{script} <{spath}/{script}>`
 
@@ -647,12 +688,18 @@ TO_BE_THE_INTRO
             orst_txt   += trst 
             ii         += tspan
 
-        elif tmode == 'SECTION' :
-            # SECTIONs are one line of text, but can span several
-            # lines of whitespace
+        elif tmode == 'SECTION' or tmode == 'SUBSECTION' :
+
+            IS_SUB = False
+            if tmode == 'SUBSECTION' :
+                IS_SUB = True
+
+            # SECTIONs and SUBSECTIONs are one line of text, but can
+            # span several lines of whitespace
             tscript, trst = add_in_section( X,
                                             ii,
-                                            tspan )
+                                            tspan,
+                                            is_sub=IS_SUB )
             oscript_txt+= tscript
             orst_txt   += trst 
             ii         += tspan
@@ -925,7 +972,7 @@ def parse_MSAR_args(argv):
             sys.exit(0)
 
         elif argv[i] == "-help" or argv[i] == "-h":
-            print(help_string_apqc_1dplot)
+            print(help_string_MSAR)
             sys.exit(0)
 
         # ---------- req ---------------

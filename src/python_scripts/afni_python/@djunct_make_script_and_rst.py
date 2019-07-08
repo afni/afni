@@ -1,5 +1,13 @@
 #!/usr/bin/env python
 
+ver = '1.7'; date = 'July 8, 2019'
+# + [PT] better generalization of -execute_script
+# + [PT] add in SUBSECTION
+# + [PT] allow wildcard chars in IMAGE names
+# + [PT] fix help output disp
+#
+##########################################################################
+
 import sys 
 import os 
 
@@ -17,7 +25,7 @@ if __name__ == "__main__" :
     oscript_txt, orst_txt = \
                 lmsar.interpret_MSAR_list( text_list, iopts )
     
-    # --------- write output files ---------
+    # ------------------ write output files ------------------
 
     # Make dir to hold script/any images
     a, b, c = ab.simple_shell_exec("\mkdir -p {}".format(iopts.subdir))
@@ -36,8 +44,17 @@ if __name__ == "__main__" :
         a, b, c = ab.simple_shell_exec("tcsh -ef {}".format(iopts.oname_script))
         if not(a) :
             print("++ Success running script {}".format(iopts.oname_script))
+
+            # [PT: July 18, 2019] Have to redo this part, done above,
+            # so that the RST gets the real file names of things to
+            # copy, if globbing was involved
+
+            print("++ Regenerating RST, in case new files were made.")
+            oscript_txt, orst_txt = \
+                lmsar.interpret_MSAR_list( text_list, iopts )
         else:
             print("** Badness running script {}".format(iopts.oname_script))
+            sys.exit(8)
 
     # copy images over, if any exist
     if iopts.nmedia :

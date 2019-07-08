@@ -211,8 +211,11 @@
 #   + [PT] include pbar_fname as a key in save_pbar jpg
 #   + [PT] also, control pbar image output file name: jpg by default
 # 
-set version   = "5.52"; set rev_dat   = "July 1, 2019"
+#set version   = "5.52"; set rev_dat   = "July 1, 2019"
 #   + [PT] miniscule new option, '-pbar_for ..'
+# 
+set version   = "5.6"; set rev_dat   = "July 8, 2019"
+#   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
 # 
 # =====================================================================
 
@@ -313,7 +316,7 @@ set do_quit = "QUITT"            # quick-quit; not subject to change
 # tmp dir, in case under- and overlays are in separate dirs
 set tmp_code = `3dnewid -fun11`  # should be essentially unique hash
 set tmp_dir  = "__tmp_chauf_${tmp_code}"
-set DO_CLEAN = 0
+set DO_CLEAN = 1
 set my_clean = "-no_clean"
 set read_dir = ""
 set read_ulay = tmp_ulay.nii
@@ -739,6 +742,11 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
+
+    else if ( "$argv[$ac]" == "-no_clean" ) then
+        set DO_CLEAN = 0
+        set my_clean = "-no_clean" # for @djunct_4d_slices*
+
 
     # [PT: Oct 18, 2018] this is to get around having "null args"
     # entered, because some opts need to be wrapped in quotes because
@@ -2182,9 +2190,15 @@ COMMAND OPTIONS ~1~
 
 -pass              :does nothing (no, really).
 
--do_clean          :by default, the temporary directory of copying
-                    files and such is not removed;  using this option
-                    means that that working directory *is* removed.
+-no_clean          :by default, the temporary directory of copying
+                    files and such is now (as of July 8, 2018)
+                    removed; using this option means that that working
+                    directory should *not* be removed.
+
+-do_clean          :Use this option to remove the temporary directory
+                    of copied/intermediate files. (As of July 8, 2019,
+                    this is the new default behavior.  Thus, this opt
+                    is only here for backwards compatability).
 
 # ========================================================================
 

@@ -63,14 +63,17 @@ auth = 'PA Taylor'
 # + [PT] elif for vstat: no anat or templ, use volreg as ulay; West
 #        Coast usage for S Torrisi.
 #
-ver = '2.8' ; date = 'June 28, 2019' 
+#ver = '2.8' ; date = 'June 28, 2019' 
 # + [PT] better grayplotting, more informative stuff happening
 # + [PT] PBAR size is now in terms of char width-- preserve verticality. Duh.
 #
-ver = '2.9' ; date = 'July 3, 2019' 
+#ver = '2.9' ; date = 'July 3, 2019' 
 # + [PT] vorig block now starting to be used
 # + [PT] add in more stats to be viewed
 # + [PT] add in QC block ID to QC block titles
+#
+ver = '2.91' ; date = 'July 3, 2019' 
+# + [PT] bannerize now has 'padsymb=' kwarg
 #
 #########################################################################
 
@@ -125,13 +128,13 @@ def check_dep(D, lcheck):
 
 # ----------------------------------------------------------------------
 
-def bannerize( x, fullwid=76, indent=0, padpre=1, padpost=2):
+def bannerize( x, fullwid=76, indent=0, padpre=1, padpost=2, padsymb='='):
     '''Make the banner for each QC image block.  
 
 Inputs
 ------
     x : a string that is the message to put, and it gets wrapped with a
-        comment symbol and '='.
+        comment symbol and '=' (or what user specifies).
 
     fullwid : can be any number of width; default is 76 because there
         are 2 other characters put in: ' ' before/after the string.
@@ -159,9 +162,9 @@ Returns
     lban = freespace // 2
     rban = freespace - lban
         
-    out+= lban*"="
+    out+= lban * padsymb
     out+= ' '+x+' '
-    out+= rban*"="
+    out+= rban * padsymb
 
     if padpre:
         out = padpre*'\n'+out
