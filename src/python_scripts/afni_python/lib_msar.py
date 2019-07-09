@@ -22,11 +22,16 @@ import afni_base as ab
 #ver = '1.6'; date = 'June 20, 2019'
 # + [PT] Fix imcaption part of TEXTBLOCK->IMAGE, as well as help file disp
 #
-ver = '1.7'; date = 'July 8, 2019'
+#ver = '1.7'; date = 'July 8, 2019'
 # + [PT] better generalization of -execute_script
 # + [PT] add in SUBSECTION
 # + [PT] allow wildcard chars in IMAGE names
 # + [PT] fix help output disp
+#
+ver = '1.8'; date = 'July 9, 2019'
+# + [PT] now can have multiple MARK files input, and multiple script/reflinks
+#        ... but still creating a single RST file
+# + [PT] tarball also created, if >1 script
 #
 ##########################################################################
 
@@ -618,7 +623,7 @@ def create_text_title( X,
 
 # --------------------------------------------------------------------------
 
-def interpret_MSAR_list( X, iopts ):
+def interpret_MSAR_list( X, iopts, idx, DO_TOC=True ):
 
     N = len(X)
 
@@ -626,25 +631,39 @@ def interpret_MSAR_list( X, iopts ):
                           # orig code can be placed
     
     oscript_txt = ''
-    orst_txt    = ''
+    orst_txt    = '\n\n'
+
+    # Here and below, have to be careful with space
+
+    if iopts.reflink_list[idx] :
+        orst_txt+= '''.. _{}:'''.format(iopts.reflink_list[idx])
+        orst_txt+= '''\n\n'''
+
+    orst_txt+= '''TO_BE_THE_TITLE'''
+    orst_txt+= '''\n\n'''
+
+    if DO_TOC :
+        orst_txt+= '''.. contents:: :local:'''
+        orst_txt+= '''\n\n'''
+        orst_txt+= '''Introduction\n============'''
+        orst_txt+= '''\n\n'''
+
     
+    if iopts.tarball_name :
+        include_tarball = '**Download script tarball:** '
+        include_tarball+= ':download:`{tball} <{spath}/{tball}>`'.format(
+            tball=iopts.tarball_name, spath=iopts.subdir_rst)
+        orst_txt+= include_tarball
+        orst_txt+= '''\n\n'''
+
     # header for RST
-    orst_txt+= '''.. _{reflink}:
-
-TO_BE_THE_TITLE
-
-.. contents:: :local:
-
-Introduction
-============
-
+    orst_txt+= '''
 **Download script:** :download:`{script} <{spath}/{script}>`
 
 TO_BE_THE_INTRO
 
-
-'''.format(reflink=iopts.reflink, script=iopts.oname_script,
-           spath=iopts.subdir_rst)
+'''.format( script=iopts.oname_script_list[idx],
+            spath=iopts.subdir_rst )
 
     # header for RST
     oscript_txt+= '''TO_BE_THE_SHEBANG
@@ -748,10 +767,11 @@ TO_BE_THE_INTRO
             print(X[ii])
             sys.exit(2)
 
-    # this goes here on the off chance that no Intro is provided--
-    # replace the place holder with emptiness.
+    # this goes here on the off chance that either Intro or Title is
+    # not provided-- replace the place holder with emptiness.
     orst_txt    = orst_txt.replace( "TO_BE_THE_INTRO", '' )
-            
+    orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", '' )
+
     return oscript_txt, orst_txt
 
 # ----------------------------------------------------------------------
@@ -770,6 +790,30 @@ def lineup_eol( x, llen = 72 ) :
 
 # --------------------------------------------------------------------------
 
+def get_path_dirname( fff ):
+    '''Take in potential file name.
+
+    If not found, return ''.
+    
+    Otherwise, return relative path to there ('.' for local dir).
+    '''
+
+    fff_isfile = os.path.isfile( fff )
+
+    if fff_isfile :
+        fff_pathdir = os.path.dirname(fff)
+        if not(fff_pathdir) :
+            # even if found, current directory pathname is ''; change
+            # to this so that we can attach '/' to it later
+            fff_pathdir = '.' 
+    else:  
+        # complete, utter failure
+        fff_pathdir = ''
+
+    return fff_pathdir
+
+# ----------------------------------------------------------------------
+
 def read_text_to_list( fname ): 
 
     fff = open(fname, 'r')
@@ -786,15 +830,53 @@ def ARG_missing_arg(arg):
 
 # --------------------------------------------------------------------------
 
+class all_info_MSAR:
+
+    text_list        = []
+    oscript_txt_list = []
+    orst_txt_list    = []
+
+    ntext            = 0
+
+    def add_text(self, tt ):
+        self.text_list.append(tt)
+        self.ntext+= 1
+
+    def add_oscript_txt(self, tt ):
+        self.oscript_txt_list.append(tt)
+
+    def add_orst_txt(self, tt ):
+        self.orst_txt_list.append(tt)
+
+    # needed because of re-parsing with '-execute script'
+    def clear_oscript_txt(self):
+        self.oscript_txt_list = []
+
+    def clear_orst_txt(self):
+        self.orst_txt_list = []
+
+# --------------------------------------------------------------------------
+
+# at the moment, obj.infile_path_list is created, but it won't be
+# used-- we assume all scripts and all generated files are in the
+# present working directory.  In the future, that might be relaxed
+# since now we allow for multiple scripts in a single run.
+
 class init_opts_MSAR:
 
     script_type   = 'tcsh' # can generalize to other types later
     
     # req input
-    infile        = ""
-    prefix_rst    = ""    # can/should include path (a/b/FILE.rst)
-    oname_script  = ""    # should just be name of file (SCRIPT.tcsh)
-    reflink       = ""    # name of subdir in media/, and RST link name
+    prefix_rst         = ""    # can/should include path (a/b/FILE.rst)
+    prefix_rst_noext   = ""    # useful name, neither path nor ext
+    infile_list        = []
+    infile_path_list   = []    # keep track of where it came from, for exec_scr
+    oname_script_list  = []    # should just be name of file (SCRIPT.tcsh)
+    reflink_list       = []    # name of subdir in media/, and RST link name
+
+    ninfile            = 0
+    nscript            = 0
+    nreflink           = 0
 
     # opt input
     do_execute    = 0     # opt to run created script (e.g., to gen imgs)
@@ -802,9 +884,12 @@ class init_opts_MSAR:
     # made by finish_defs()
     outdir        = ""    # where everything will go
     meddir        = ""    # inside outdir, where media/ dir is
-    subdir        = ""    # inside meddir, where images/script will go
-    prefix_script = ""    # full name for outputting script
+    subdir        = ""    # inside meddir, where images/script/tarball will go
     subdir_rst    = ""    # local dir for RST path
+    prefix_script_list = []  # list of full names for outputting scripts
+
+    tarball_name  = ""        # for scripts, if >1
+    tarball_name_path = ""    # for scripts, if >1, name with path
 
     # made later during parsing, potentially
     list_media    = []    # list of images to copy into media/reflink/.
@@ -812,70 +897,124 @@ class init_opts_MSAR:
     
     # ----------- req -----------------
 
-    def set_infile(self, fff):
-        self.infile = fff
+    def set_prefix_rst(self, ppp):
+        # file name must in '.rst'; useful also to have value without
+        # ext, for other file names/paths
+        if ppp[-4:] == '.rst' :
+            self.prefix_rst       = ppp
+            self.prefix_rst_noext = os.path.basename(ppp)[:-4]
+        else:
+            print("+* WARNING (minor): You didn't have '.rst' on the "
+                  "'-prefix_rst ..' entry, so I am adding one for you.")
+            self.prefix_rst       = ppp + '.rst'
+            self.prefix_rst_noext = os.path.basename(ppp)
 
-    def set_prefix_rst(self, prefix):
-        self.prefix_rst = prefix
-        
-    def set_oname_script(self, oname):
-        self.oname_script = oname
-        
-    def set_reflink(self, reflink):
-        self.reflink = reflink
+    def add_prefix_script(self, ppp):
+        self.prefix_script_list.append( ppp )
+
+    def add_infile(self, fff):
+        path_fff = get_path_dirname( fff )
+        self.infile_list.append( fff )
+        self.infile_path_list.append( path_fff )
+        self.ninfile+= 1
+
+    def add_oname_script(self, oname):
+        self.oname_script_list.append( oname )
+        self.nscript+= 1
+
+    def add_reflink(self, reflink):
+        self.reflink_list.append( reflink )
+        self.nreflink+= 1
 
     # ----------- opt -----------------
     
     def set_execute(self):
         self.do_execute = 1 
 
+    # ------- complete some var defs/names --------
+
     def add_media(self, X):
         self.list_media.append( X )
         self.nmedia+= 1
         
-    # ------- complete some var defs/names --------
+    # needed because of re-running RST generation in case of
+    # '-execute_script'
+    def clear_media(self):
+        self.list_media = []
+        self.nmedia     = 0
 
     def finish_defs(self):
-        pp = os.path.dirname(self.prefix_rst)
-        if not(pp) :  
-            pp = "."  # bc this means "here"
+        pp = get_path_dirname(self.prefix_rst)
 
         # these are all potentially full/relative paths
         self.outdir = pp
         self.meddir = '/'.join([self.outdir, 'media'])
-        self.subdir = '/'.join([self.meddir, self.reflink])
-        self.prefix_script = '/'.join([self.subdir, self.oname_script])
+        self.subdir = '/'.join([self.meddir, self.prefix_rst_noext])
+        for i in range(self.nscript) :
+            ps = '/'.join([self.subdir, self.oname_script_list[i]])
+            self.add_prefix_script( ps )
         
         # just local/partial path within RST dir
-        self.subdir_rst = '/'.join(['media', self.reflink])
+        self.subdir_rst = '/'.join(['media', self.prefix_rst_noext])
+
+        # tarball, if necessary; will also go into self.subdir_rst
+        if self.ninfile > 1 :
+            self.tarball_name = self.prefix_rst_noext + '.tgz'
+            self.tarball_name_path = '{}/{}'.format( self.subdir, 
+                                                     self.tarball_name )
 
     # ---------- check ----------------
 
     def check_req(self):
         MISS = 0
-        if not(self.infile) :
-            print("** missing: infiles")
+        if not(self.ninfile) :
+            print("** ERROR: missing infile(s)")
             MISS+=1
             
         if self.prefix_rst == "" :
-            print("** missing: prefix_rst")
-            MISS+=1
-        elif self.prefix_rst[-4:] != '.rst' :
-            print("** '-prefix_rst ..' entry MUST end with '.rst'")
+            print("** ERROR: missing prefix_rst")
             MISS+=1
             
-        if self.reflink == "" :
-            print("** missing: reflink")
+        if not(self.nreflink) :
+            print("** ERROR: missing reflink(s)")
             MISS+=1
-        elif self.reflink[0] == "_" :
-            print("** don't start the reflink name with an underscore '_'!")
+        else:
+            for i in range(self.nreflink):
+                if self.reflink_list[i][0] == "_" :
+                    print("+* You can't start the reflink name with "
+                          "an underscore '_'.")
+                    print("   {} does NOT abide!".format(self.reflink_list[i]))
+                    MISS+=1
+
+        if not(self.nscript) :
+            print("** ERROR: missing prefix_script(s)")
+            MISS+=1
+        else:
+            for i in range(self.nscript):
+                if self.oname_script_list[i].__contains__("/") :
+                    print("** ERROR: don't include path in the " 
+                          "'-oname_script ..' entry.")
+                    print("   {} does NOT abide!"
+                          "".format(self.oname_script_list[i]))
+                    MISS+=1
+
+        if self.ninfile != self.nscript :
+            print("** ERROR: number of '-input ..' values must match "
+                  "the number of '-oname_script ..' values.")
             MISS+=1
 
-        if self.oname_script == "" :
-            print("** missing: prefix_script")
-            MISS+=1
-        elif self.oname_script.__contains__("/") :
-            print("** don't include path in the '-oname_script ..' entry")
+        if self.ninfile == self.nreflink :
+            pass
+        elif self.nreflink == 1 :
+            # in this case, pad upwards with blank ones, so indexing
+            # works later
+            for i in range(1, self.ninfile):
+                self.add_reflink( '' )
+        else: 
+            print("** ERROR: must have either just one '-reflink ..' value,\n"
+                  "   OR the number of '-reflink ..' values must match\n"
+                  "   the number of '-input ..' values (here, {})."
+                  "".format(self.ninfile) )
             MISS+=1
 
         return MISS
@@ -977,29 +1116,63 @@ def parse_MSAR_args(argv):
 
         # ---------- req ---------------
 
-        elif argv[i] == "-input":
-            if i >= Narg:
-                ARG_missing_arg(argv[i])
-            i+= 1
-            iopts.set_infile(argv[i])
-        
+        # only single RST file output
         elif argv[i] == "-prefix_rst":
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_prefix_rst(argv[i])
             
-        elif argv[i] == "-prefix_script":
+        elif argv[i] == "-input":
+            count = 0
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_oname_script(argv[i])
+            while i < Narg:
+                aaa = argv[i][0]
+                if aaa != "-" :
+                    iopts.add_infile(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
+
+        elif argv[i] == "-prefix_script":
+            count = 0
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            while i < Narg:
+                aaa = argv[i][0]
+                if aaa != "-" :
+                    iopts.add_oname_script(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
 
         elif argv[i] == "-reflink":
+            count = 0
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_reflink(argv[i])
+            while i < Narg:
+                aaa = argv[i][0]
+                if aaa != "-" :
+                    iopts.add_reflink(argv[i])
+                    count+=1
+                    i+=1
+                else:
+                    i-=1
+                    break
+            if not(count):
+                ARG_missing_arg(argv[i])
 
         # ---------- req ---------------
 
@@ -1015,7 +1188,7 @@ def parse_MSAR_args(argv):
 
                
     if iopts.check_req():
-        print("** ERROR with input arguments")
+        print("** ERROR with input arguments (see detailed whining above).")
         sys.exit(1)
 
     iopts.finish_defs()  # make some paths we need later

@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 9, July , 2019 , PT , "@djunct_make_script_and_rst.py" , MINOR , TYPE_GENERAL,
+   "Allow for multiple scripts to be executed, run and combined into 1 page.",
+   "Single script tarball, single RST, can have multiple scripts/reflinks.\n"
+},
+
 { 8, July , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
    "New default: '-do_clean' behavior on by default (clean up temp dir).",
    "New opt to not clean: -no_clean. -do_clean is fine to use, just boring.\n"
