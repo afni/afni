@@ -656,9 +656,14 @@ def interpret_MSAR_list( X, iopts, idx, DO_TOC=True ):
         orst_txt+= include_tarball
         orst_txt+= '''\n\n'''
 
+        all_script = ', '.join(iopts.oname_script_list)
+        orst_txt+= '''Open using:  ``tar -xf {}`` '''.format(iopts.tarball_name)
+        orst_txt+= '''to get the following scripts in your directory: '''
+        orst_txt+= '''{}.'''.format(all_script)
+        orst_txt+= '''\n\n'''
+
     # header for RST
-    orst_txt+= '''
-**Download script:** :download:`{script} <{spath}/{script}>`
+    orst_txt+= '''**Download script:** :download:`{script} <{spath}/{script}>`
 
 TO_BE_THE_INTRO
 
