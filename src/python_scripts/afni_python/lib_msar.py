@@ -702,8 +702,15 @@ def add_in_section( X,
 
 def create_text_title( X, 
                        tstart,
-                       tspan ):
-    '''X should just be a list of a single string, but may generalize...'''
+                       tspan,
+                       MAKE_SECTION=False):
+    '''X should just be a list of a single string, but may generalize...
+
+    The MAKE_SECTION switch is for when we have multiple scripts: the
+title still gets placed up above in the RST (and in the script), but
+it will be formatted as a section instead of as a title.  
+
+    '''
 
     tscript = ''
     trst    = ''
@@ -715,10 +722,15 @@ def create_text_title( X,
 
     tscript += '# '
     tscript += text + '\n'
-    
-    trst    += (ltext  + 2 ) * '*'  + "\n" 
-    trst    += text + "\n"
-    trst    += (ltext  + 2 ) * '*' 
+
+    if MAKE_SECTION :
+        trst    += text + "\n"
+        trst    += ltext * '=' 
+
+    else:
+        trst    += ltext * '*'  + "\n" 
+        trst    += text + "\n"
+        trst    += ltext * '*' 
 
     # might have empty lines/padding
     for ii in range(1, tspan):
@@ -842,7 +854,8 @@ TO_BE_THE_INTRO
             # NOTE the special output here
             tscript, trst = create_text_title( X,
                                                ii,
-                                               tspan )
+                                               tspan,
+                                               MAKE_SECTION=not(DO_TOC) )
             
             oscript_txt+= tscript
             orst_txt    = orst_txt.replace( "TO_BE_THE_TITLE", trst )
@@ -1057,7 +1070,9 @@ class init_opts_MSAR:
         self.nmedia     = 0
 
     def finish_defs(self):
-        pp = get_path_dirname(self.prefix_rst)
+
+        # use this function here, because this file won't exist yet!
+        pp = os.path.dirname(self.prefix_rst)
 
         # these are all potentially full/relative paths
         self.outdir = pp
