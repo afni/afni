@@ -6,10 +6,13 @@
 # + [PT] allow wildcard chars in IMAGE names
 # + [PT] fix help output disp
 #
-ver = '1.8'; date = 'July 9, 2019'
+#ver = '1.8'; date = 'July 9, 2019'
 # + [PT] now can have multiple MARK files input, and multiple script/reflinks
 #        ... but still creating a single RST file
 # + [PT] tarball also created, if >1 script
+#
+ver = '1.9'; date = 'July 10, 2019'
+# + [PT] can have text in the image tables now
 #
 ##########################################################################
 

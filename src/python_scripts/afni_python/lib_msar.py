@@ -28,10 +28,13 @@ import afni_base as ab
 # + [PT] allow wildcard chars in IMAGE names
 # + [PT] fix help output disp
 #
-ver = '1.8'; date = 'July 9, 2019'
+#ver = '1.8'; date = 'July 9, 2019'
 # + [PT] now can have multiple MARK files input, and multiple script/reflinks
 #        ... but still creating a single RST file
 # + [PT] tarball also created, if >1 script
+#
+ver = '1.9'; date = 'July 10, 2019'
+# + [PT] can have text in the image tables now
 #
 ##########################################################################
 
@@ -403,13 +406,11 @@ def add_in_textblock_image( X,
             # need for two main passes through interpreting the RST:
             # in the first main pass of the program, images might not
             # be found, but in the second pass, they might/should.
-            minilist = []
-            for imstr in ss:
-                glimstr = glob.glob(imstr)
-                if glimstr :
-                    minilist.extend(glimstr)
+            
+            minilist = parse_image_list( X[ii] ) 
             if minilist :
                 imlist.append(minilist) 
+
         elif lmode == 'CAPTION' :
             if len(ss) > 1:
                 imcaption.append((' '.join(ss[1:])))
@@ -468,16 +469,122 @@ def add_in_textblock_image( X,
             elif imlist[rr][cc] == 'NULL':
                 trst+= '   {} -\n'.format(symb)
             else:
-                # have a list of these to copy later
-                iopts.add_media( imlist[rr][cc] )
-                # calc basename for RST, bc img name might include path
-                img_bname = os.path.basename( imlist[rr][cc] )
-                trst+= '''   {} - .. image:: {}/{}
+                if imlist[rr][cc][:2] == '[[' :
+                    # if we have a string block, and ignore the [[ and
+                    # ]] symbols wrapping the text
+                    trst+= '''   {} - {}\n'''.format( symb, 
+                                                      imlist[rr][cc][2:-2])
+                else:
+                    # Image attaching mode: make a list of these to
+                    # copy later
+                    iopts.add_media( imlist[rr][cc] )
+                    # calc basename for RST, bc img name might include path
+                    img_bname = os.path.basename( imlist[rr][cc] )
+                    trst+= '''   {} - .. image:: {}/{}
           :width: 100%   
           :align: center\n'''.format( symb, iopts.subdir_rst,
                                       img_bname )
+                 
                 
     return trst
+
+# -----------------------------------------------------------------------
+
+def parse_image_list( uss ):
+    '''This function exists because we now allow for text to be placed
+    into the table, wrapped in [[ pairs o' square brackets ]].
+
+    Input
+    -----
+
+    uss : an unsplit string
+
+    Output
+    ------
+    
+    minilist : list of string of files found, as well as any [[text]] blocks
+
+    '''
+
+    minilist = []
+
+    N     = len (uss)
+    ii    = 0
+    smode = 'image'   # alternative is 'text'
+    s0    = 0
+    s1    = -1
+
+    while ii < N-1 :
+
+        if (uss[ii:ii+2] == '[[') :
+            if smode == 'image' :
+                smode = 'text'
+                s1 = ii 
+
+                # close out 'image' part of string, and get all images there
+                ss = uss[s0:s1].split()
+                #print(ss)
+                for imstr in ss:
+                    glimstr = glob.glob(imstr)
+                    if glimstr :
+                        minilist.extend(glimstr)
+
+                # reset s0
+                s0 = ii
+                ii+= 1
+
+            elif smode == 'text' :
+                point = ' '*(ii) + '^'
+                print("** ERROR: (char idx ={}) either nested [[s or forgotten "
+                      "]] in line:\n\t{}\n\t{}".format(ii, uss, point))
+                sys.exit(2)
+
+        elif uss[ii:ii+2] == ']]' :
+            if smode == 'text' :
+                smode = 'image'  # reset for next
+                s1 = ii+2
+                
+                # strip away leading whitespace, because spacing will
+                # matter in attaching the string into the text.
+                # removing the trailing whitespace, too, for no good
+                # reason.
+                clean_str = '[[' + uss[s0+2:s1-2].strip() + ']]'
+                minilist.extend([clean_str])
+
+                # reset s0
+                s0 = ii+2
+                ii+= 2
+                
+            elif smode == 'image' :
+                point = ' '*(ii) + '^'
+                print("** ERROR: (char idx={}) have a ]] without matched [[ "
+                      "in line:\n\t{}\n\t{}".format(ii, uss, point))
+                sys.exit(2)
+
+        else:
+            ii+=1
+
+    # and one last check at the end
+    if smode == 'image' :
+        s1 = ii 
+
+        # close out 'image' part of string, and get all images there
+        ss = uss[s0:s1].split()
+        #print(ss)
+        for imstr in ss:
+            glimstr = glob.glob(imstr)
+            if glimstr :
+                minilist.extend(glimstr)
+
+    elif smode == 'text' :
+        point = ' '*(ii) + '^'
+        print("** ERROR: (char idx={}) have a ]] without matched [[ "
+              "in line:\n\t{}\n\t{}".format(ii, uss, point))
+        sys.exit(2)
+
+
+
+    return minilist
 
 # -----------------------------------------------------------------------
 
@@ -648,8 +755,8 @@ def interpret_MSAR_list( X, iopts, idx, DO_TOC=True ):
         orst_txt+= '''Introduction\n============'''
         orst_txt+= '''\n\n'''
 
-    
-    if iopts.tarball_name :
+    # only put the tarball at the top by the TOC
+    if DO_TOC and iopts.tarball_name :
         include_tarball = '**Download script tarball:** '
         include_tarball+= ':download:`{tball} <{spath}/{tball}>`'.format(
             tball=iopts.tarball_name, spath=iopts.subdir_rst)
@@ -657,7 +764,8 @@ def interpret_MSAR_list( X, iopts, idx, DO_TOC=True ):
         orst_txt+= '''\n\n'''
 
         all_script = ', '.join(iopts.oname_script_list)
-        orst_txt+= '''Open using:  ``tar -xf {}`` '''.format(iopts.tarball_name)
+        orst_txt+= '''Open the tarball using '''
+        orst_txt+= '''``tar -xf {}`` '''.format(iopts.tarball_name)
         orst_txt+= '''to get the following scripts in your directory: '''
         orst_txt+= '''{}.'''.format(all_script)
         orst_txt+= '''\n\n'''
