@@ -790,7 +790,7 @@ TO_BE_THE_INTRO
 '''.format( script=iopts.oname_script_list[idx],
             spath=iopts.subdir_rst )
 
-    # header for RST
+    # header for script
     oscript_txt+= '''TO_BE_THE_SHEBANG
 '''
     
@@ -818,10 +818,10 @@ TO_BE_THE_INTRO
             # This silliness is because we may have to prepend the
             # shebang to a code block, and the hidden-code-block has
             # some prepending+indenting of its own.
-            add_shebang_rst = ''
+            add_shebang_rst    = ''
             if not(USED_A_CODE_BLOCK) :
-                add_shebang_rst = trst_sheb
-                USED_A_CODE_BLOCK = 1
+                add_shebang_rst    = trst_sheb
+                USED_A_CODE_BLOCK  = 1
                 
             tscript, trst = add_in_code( X,
                                          ii,
