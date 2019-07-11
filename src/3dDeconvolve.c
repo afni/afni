@@ -608,6 +608,8 @@ typedef struct {
 static int             ncoldat = 0 ;
 static column_metadata *coldat = NULL ;  /* global info about matrix columns */
 
+static char index_prefix = '#' ;  /* 11 Jun 2019 */
+
 #define COLUMN_LABEL(n) coldat[n].name
 
 #undef  USE_OLD_LABELS
@@ -4898,7 +4900,7 @@ for( ii=0 ; ii < nt ; ii++ ){
     for( it=0 ; it <= npol ; it++ ){
       cd.mask  = CM_BASELINE_MASK | CM_POLORT_MASK ;
       cd.group = -1 ;                            /* polort group = -1 */
-      sprintf(cd.name,"Run#%dPol#%d",is+1,it) ;
+      sprintf(cd.name,"Run%c%dPol%c%d",index_prefix,is+1,index_prefix,it) ;
       option_data->coldat[p1++] = cd ;
     }
   }
@@ -4924,7 +4926,7 @@ for( ii=0 ; ii < nt ; ii++ ){
     }
     for( it=0 ; it < nc ; it++ ){
       cd.mask  = mk ; cd.group = gp ;
-      sprintf(cd.name,"%-1.60s#%d",option_data->stim_label[is],it) ;
+      sprintf(cd.name,"%-1.60s%c%d",option_data->stim_label[is],index_prefix,it) ;
       DEBLANK(cd.name) ;
       option_data->coldat[p1++] = cd ;
     }
@@ -8419,7 +8421,7 @@ void write_bucket_data
 #ifdef USE_OLD_LABELS
         sprintf (brick_label, "%s LC[%d] coef", label, ilc);
 #else
-        sprintf (brick_label, "%s_GLT#%d_Coef", label, ilc);
+        sprintf (brick_label, "%s_GLT%c%d_Coef", label, EDIT_get_index_prefix() , ilc);
 #endif
         volume = glt_coef_vol[iglt][ilc];
         attach_sub_brick (new_dset, ibrick, volume, nxyz,
@@ -8434,7 +8436,7 @@ void write_bucket_data
 #ifdef USE_OLD_LABELS
             sprintf (brick_label, "%s LC[%d] t-st", label, ilc);
 #else
-            sprintf (brick_label, "%s_GLT#%d_Tstat", label, ilc);
+            sprintf (brick_label, "%s_GLT%c%d_Tstat", label, EDIT_get_index_prefix() , ilc);
 #endif
             volume = glt_tcoef_vol[iglt][ilc];
             attach_sub_brick (new_dset, ibrick, volume, nxyz,
@@ -9015,8 +9017,10 @@ int main
 #ifdef USING_MCW_MALLOC
    enable_mcw_malloc() ;
 #endif
-   mainENTRY(PROGRAM_NAME " main") ; AFNI_process_environ(NULL) ; machdep() ;
+  mainENTRY(PROGRAM_NAME " main") ; AFNI_process_environ(NULL) ; machdep() ;
   SET_message_file( PROGRAM_NAME ".err" ) ;
+
+  index_prefix = EDIT_get_index_prefix() ;
 
   commandline = tross_commandline( PROGRAM_NAME , argc , argv ) ;
 
@@ -10304,7 +10308,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 #ifdef USE_OLD_LABELS
        sprintf( brick_label , "%s LC[%d] coef" , glt_label[iglt], ilc ) ;
 #else
-       sprintf (brick_label, "%s_GLT#%d_Coef", glt_label[iglt], ilc);
+       sprintf (brick_label, "%s_GLT%c%d_Coef", glt_label[iglt], EDIT_get_index_prefix(), ilc);
 #endif
        volume = glt_coef_vol[iglt][ilc];
        attach_sub_brick( dset_buck, ivol, volume, nxyz,
@@ -10315,7 +10319,7 @@ void do_xrestore_stuff( int argc , char **argv , DC_options *option_data )
 #ifdef USE_OLD_LABELS
          sprintf( brick_label , "%s LC[%d] t-st" , glt_label[iglt], ilc ) ;
 #else
-         sprintf (brick_label, "%s_GLT#%d_Tstat", glt_label[iglt], ilc);
+         sprintf (brick_label, "%s_GLT%c%d_Tstat", glt_label[iglt], EDIT_get_index_prefix(),ilc);
 #endif
          volume = glt_tcoef_vol[iglt][ilc];
          attach_sub_brick( dset_buck, ivol, volume, nxyz,

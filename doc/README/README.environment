@@ -3982,6 +3982,25 @@ the default ETAC method(s) are enabled.
 ### Variables that Specifically Affect the Operation of 3dDeconvolve ###
 ########################################################################
 
+---------------------------
+Variable: AFNI_INDEX_PREFIX
+---------------------------
+3dDeconvolve and 3dREMLfit create statistics datasets that have sub-brick
+labels of the form 'NAME#0_Coef', where 'NAME' is the task name set up
+when running the program. This environment variable lets you replace
+'#' character with another character; for example (in tcsh):
+   setenv AFNI_INDEX_PREFIX _
+which will create labels of the form 'NAME_0_Coef' instead. The single
+character value you supply must be a printable character - not a space,
+not a control character, and not the '~' character (which is special).
+
+Please note that in the future, the default '#' may be replaced by
+some other character in the AFNI setup. When that happens, datasets
+created after that date will not be exactly compatible (as far as
+the sub-brick labels) with datasets created earlier. The purpose of this
+environment variable is to allow you to make these programs backward
+compatible, if necessary. [11 Jul 2019]
+
 -----------------------------------
 Variable: AFNI_3dDeconvolve_GOFORIT
 -----------------------------------

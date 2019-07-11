@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 11 , JUL , 2019 , RWC , "3dDeconvolve 3dREMLfit" , MICRO , TYPE_NEW_ENV ,
+   "AFNI_INDEX_PREFIX changes '#' in sub-brick labels" ,
+   NULL } ,
+
  { 19 , JUN , 2019 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "AFNI_PBAR_THREE mode didn't allow proper change of the panes" ,
    "Problem: code to put labels on the panes being invoked when it shouldn't\n"

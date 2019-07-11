@@ -47,6 +47,13 @@ void machdep()
 
    if( AFNI_yesenv("AFNI_USE_FGETS") ) afni_fgets_setskip(1) ; /* 21 Dec 2011 */
 
+   /* [11 Jul 2019] change the default prefix for sub-brick numeric labels? */
+
+   { unsigned char *eee = (unsigned char *)my_getenv("AFNI_INDEX_PREFIX") ;
+     if( eee != NULL && !isspace(*eee) && *eee > 32 && *eee < 126 )
+       EDIT_set_index_prefix(*eee) ;
+   }
+
    AFNI_do_nothing() ; /* 02 Oct 2012 */
    return ;
 }

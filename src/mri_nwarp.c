@@ -10759,6 +10759,8 @@ ENTRY("IW3D_warpomatic") ;
    ibbb = MAX(0,imin-xwid)    ; jbbb = MAX(0,jmin-ywid)    ; kbbb = MAX(0,kmin-zwid)    ;
    ittt = MIN(Hnx-1,imax+xwid); jttt = MIN(Hny-1,jmax+ywid); kttt = MIN(Hnz-1,kmax+zwid);
 
+   /* initial patch width at lev=0 == largest patch */
+
    xwid0 = ittt-ibbb+1 ; ywid0 = jttt-jbbb+1 ; zwid0 = kttt-kbbb+1 ;
 
    /* actual warp at lev=0 is over domain ibbb..ittt X jbbb..jttt X kbbb..kttt */
@@ -10897,11 +10899,25 @@ ENTRY("IW3D_warpomatic") ;
 
      if( ! HAVE_HGRID ){  /* the olden way */
        flev = powf(Hshrink,(float)lev) ;                 /* shrinkage fraction */
-#if 0
+
+       /* set the patch size to use at this level */
+
+       /* The old way: shrink from the full dataset grid size              */
+       /* The new way: shrink from the lev=0 grid size                     */
+       /* Old way causes trouble if there is a lot of zeropadding,         */
+       /*  which in turn can happen (in 3dQwarp.c) if the coordinate       */
+       /*  overlap between the source and base datasets is poor.           */
+       /* What happens is that the first few levs have such large patches  */
+       /*  that they accomplish nothing and take a LOT of CPU time.        */
+       /* With the new way, the patch sizes match the actual extent of the */
+       /*  base dataset, so useful work is done right away and             */
+       /*  lots of CPU time doesn't get burned doing useless cr*p.         */
+
+#if 0                         /* the old way, shrinking from full grid size :( */
        xwid = (Hnx+1)*flev ; if( xwid%2 == 0 ) xwid++ ;  /* patch sizes must be odd */
        ywid = (Hny+1)*flev ; if( ywid%2 == 0 ) ywid++ ;
        zwid = (Hnz+1)*flev ; if( zwid%2 == 0 ) zwid++ ;
-#else
+#else                        /* the new way, shrinking from lev=0 grid size :) */
        xwid = xwid0*flev ; if( xwid%2 == 0 ) xwid++ ;    /* 04 Jan 2019 */
        ywid = ywid0*flev ; if( ywid%2 == 0 ) ywid++ ;
        zwid = zwid0*flev ; if( zwid%2 == 0 ) zwid++ ;
@@ -11025,6 +11041,9 @@ ENTRY("IW3D_warpomatic") ;
       else if( nlevr > 1 ) BOXOPT ;
       for( isup=0 ; isup < nsup ; isup++ ){  /* working superhard? do this twice! */
         itnum++ ;
+       /** Loops over k=z, j=y, i=x directions, plopping down patches, and */
+       /** optimizing. Note that the last patch in each direction might    **/
+       /** be resized to make sure it doesn't go outside the bounding box. **/
        for( kdon=0,kbot=kbbb ; !kdon ; kbot += dkkk ){  /* loop over z direction of patches */
          ktop = kbot+zwid-1;  /* top edge of patch: maybe edit it down or up */
               if( ktop >= kttt )       { ktop = kttt; kbot = ktop+1-zwid; kdon=1; }
@@ -11039,7 +11058,7 @@ ENTRY("IW3D_warpomatic") ;
              else if( itop >= ittt-xwid/4 ){ itop = ittt; idon=1; }
              Hcostold = Hcost ;  /* the last cost we saw */
              /*** actually try to make things better ***/
-             iter = IW3D_improve_warp( zmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;
+   /******/  iter = IW3D_improve_warp( zmode  , ibot,itop , jbot,jtop , kbot,ktop ) ;  /******/
              if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
              if( Hcost < Hstopcost ){                  /* whoa? */
                if( Hverb == 1 ) fprintf(stderr,"\n") ;
@@ -12118,6 +12137,8 @@ ENTRY("IW3D_warpomatic_plusminus") ;
    xwid = (imax-imin)/8       ; ywid = (jmax-jmin)/8       ; zwid = (kmax-kmin)/8       ;
    ibbb = MAX(0,imin-xwid)    ; jbbb = MAX(0,jmin-ywid)    ; kbbb = MAX(0,kmin-zwid)    ;
    ittt = MIN(Hnx-1,imax+xwid); jttt = MIN(Hny-1,jmax+ywid); kttt = MIN(Hnz-1,kmax+zwid);
+
+   /* initial patch width at lev=0 == largest patch */
 
    xwid0 = ittt-ibbb+1 ; ywid0 = jttt-jbbb+1 ; zwid0 = kttt-kbbb+1 ;
 

@@ -269,3 +269,13 @@ ENTRY("EDIT_substscale_brick") ;
    EXRETURN ;
 }
 
+/*---------------------------------------------------------------------------*/
+static char EDIT_index_prefix = '#' ;
+void EDIT_set_index_prefix(char c){ EDIT_index_prefix = c ;
+#if 0
+  INFO_message("EDIT_set_index_prefix('%c') --> %c",c,EDIT_get_index_prefix() ) ;
+#endif
+   } /* 11 Jul 2019 */
+
+char EDIT_get_index_prefix(void)  { return EDIT_index_prefix ; } /* 11 Jul 2019 */
+/*---------------------------------------------------------------------------*/

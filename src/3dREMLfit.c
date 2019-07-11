@@ -365,12 +365,12 @@ ENTRY("create_GLT_index") ;
      for( ii=0 ; ii < nrow ; ii++ ){
        if( do_beta ){
          gin->beta_ind[ii] = iv++ ;
-         sprintf( lll , "%.32s#%d_Coef" , name , ii ) ;
+         sprintf( lll , "%.32s%c%d_Coef" , name , EDIT_get_index_prefix() , ii ) ;
          gin->beta_lab[ii] = strdup(lll) ;
        }
        if( do_ttst ){
          gin->ttst_ind[ii] = iv++ ;
-         sprintf( lll , "%.32s#%d_Tstat" , name , ii ) ;
+         sprintf( lll , "%.32s%c%d_Tstat" , name , EDIT_get_index_prefix() , ii ) ;
          gin->ttst_lab[ii] = strdup(lll) ;
        }
      }

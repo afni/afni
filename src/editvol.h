@@ -678,6 +678,12 @@ extern int cluster_alphaindex_64( int csize, int nz, float fw, float pv ) ;
 #define EDIT_BRICK_ADDKEY(ds,iv,str) \
      EDIT_dset_items( (ds), ADN_brick_keywords_append_one+(iv), (str), ADN_none )
 
+/*------------------------------------------------------------------*/
+/* Prefix for an indicial sub-label for a statistic volume */
+
+extern char EDIT_get_index_prefix(void) ;
+extern void EDIT_set_index_prefix(char c) ;
+
 #if 0
 /*------------------------------------------------------------------------*/
 /*! Change the orientation of a dataset */
