@@ -12351,6 +12351,15 @@ g_help_options = """
 
             See -mask_import for more details.
 
+        -mask_opts_automask ... : specify extra options for 3dAutomask
+
+                e.g. -mask_opts_automask -clfrac 0.2 -dilate 1
+
+            This allows one to add extra options to the 3dAutomask command used
+            to create a mask from the EPI data.
+
+            Please see '3dAutomask -help' for more information.
+
         -mask_rm_segsy Y/N  : choose whether to delete the Segsy directory
 
                 e.g. -mask_rm_segsy no
