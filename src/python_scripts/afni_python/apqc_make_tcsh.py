@@ -90,10 +90,14 @@ auth = 'PA Taylor'
 # + [PT] elif for vstat: no anat or templ, use volreg as ulay; West
 #        Coast usage for S Torrisi.
 #
-ver = '2.9' ; date = 'July 3, 2019' 
+#ver = '2.9' ; date = 'July 3, 2019' 
 # + [PT] vorig block now starting to be used
 # + [PT] add in more stats to be viewed
 # + [PT] add in QC block ID to QC block titles
+#
+ver = '2.95' ; date = 'July 16, 2019' 
+# + [PT] include obliquity in vorig QC block
+# + [PT] simplify radcor text; decrease repetition
 #
 #########################################################################
 
@@ -671,7 +675,7 @@ if __name__ == "__main__":
                                      'images: {}'.format(rcname))
             obase    = 'qc_{:02d}'.format(idx)
             cmd      = lat.apqc_radcor_rcvol( obase, "radcor", rcname,
-                                              rcdir )
+                                              rcdir, ith_run=ii )
 
             str_FULL+= ban
             str_FULL+= cmd

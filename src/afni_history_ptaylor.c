@@ -66,7 +66,12 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 10, July , 2019 , PT , "@djunct_make_script_and_rst.py" , MINOR , TYPE_GENERAL,
+{ 15, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
+   "Add in obliquity values in vorig QC block.",
+   "Also simplify text of radcorr block (fewer lines, less unnec repetition).\n"
+},
+
+{ 10, July , 2019 , PT , "@djunct_make_script_and_rst.py", MINOR , TYPE_GENERAL,
    "Can have text in the image tables now.",
    "Facilitates labelling, commenting, etc.\n"
 },
