@@ -9244,12 +9244,12 @@ g_help_notes = """
     ds000210 (main study directory)
     |        \\                \\
     sub-001  sub-002           derivatives
-    |                          |            \\               \\
-    anat                    AFNI_01_SSwarp  AFNI_02_rest    AFNI_03_cuedSGT
+   /                           |            \\               \\
+  --anat                    AFNI_01_SSwarp  AFNI_02_rest    AFNI_03_cuedSGT
        \\                    |               |        \\
        sub-001_T1w.nii.gz   sub-001         sub-001   sub-002  ...
-    |                        |               |
-    func                    WARP.nii        cmd.afni_proc
+                             |               |
+  --func                    WARP.nii        cmd.afni_proc
        \\                                    proc.sub-001
        sub-001_task-rest_run-01.nii.gz      output.proc.sub-001
        sub-001_task-cuedSGT_run-01.nii.gz   sub-001.results
