@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 17 , JUL , 2019 , RWC , "AFNI gui" , MINOR , TYPE_ENHANCE ,
+   "changes to make alpha and boxed (A and B) work with color panes" ,
+   "People from Wisconsin are trouble." } ,
+
  { 11 , JUL , 2019 , RWC , "3dDeconvolve 3dREMLfit" , MICRO , TYPE_NEW_ENV ,
    "AFNI_INDEX_PREFIX changes '#' in sub-brick labels" ,
    NULL } ,
