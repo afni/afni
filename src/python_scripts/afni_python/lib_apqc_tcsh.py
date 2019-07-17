@@ -1744,7 +1744,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
         if HAVE_MASK :
             pvalue_olay_perctop = 99
-            pvalue_olay_fov     = " in suprathreshold vox in mask"
+            pvalue_olay_fov     = " in suprathresh mask voxels"
 
             cmd1 = '''
             3dcalc 
@@ -1765,7 +1765,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
         else:
             pvalue_olay_perctop = 90
-            pvalue_olay_fov     = " in suprathreshold vox in full volume"
+            pvalue_olay_fov     = " in suprathresh volume voxels"
 
             cmd1 = '''
             3dcalc 
