@@ -31,10 +31,14 @@
 # + [PT] help updates
 # + [PT] warning level stuff
 #
-ver = '2.3' ; date = 'July 3, 2019' 
+#ver = '2.3' ; date = 'July 3, 2019' 
 # + [PT] Colorbars standard widths
 # + [PT] QC block ID now in QC block titles
 # + [PT] added more help descriptions
+#
+ver = '2.31' ; date = 'July 17, 2019' 
+# + [PT] tiny tweak in departurating message: guard against dreaded
+#        double slash
 #
 #########################################################################
 
@@ -261,8 +265,14 @@ if __name__ == "__main__":
     # output help html file; reuse same external CSS file
     lahh.write_help_html_file( ohelp, ocss ) 
 
+    # silly check, so no doubling of slash in path (not harmful, but
+    # annoyingly unaesthetic)
+    path_qcdir = iopts.qcdir
+    if path_qcdir[-1] == '/' :
+        path_qcdir = iopts.qcdir[:-1]
+
     print('\n++ Done! Wrote QC HTML.  To check, consider:\n\n'
-          '   afni_open -b {}/{}\n'.format(iopts.qcdir, ohtml))
+          '   afni_open -b {}/{}\n'.format(path_qcdir, ohtml))
     os.chdir(my_cwd)
 
     # exit, pursued by a bear
