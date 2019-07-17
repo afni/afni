@@ -672,8 +672,17 @@ ENTRY("THD_open_nifti") ;
          break ;
        }
 
+       /* not ready for 64-bits, cast nz as (int)     [17 Jul 2019 rickr] */
+       if( nim->nz >> 31 ) {
+          static int nnnz=0;
+          if( nnnz == 0 ) {
+             WARNING_message("have NIFTI nz > 2^31, chaos to ensue, enjoy ...");
+             nnnz = 1;
+          }
+       }
+
        EDIT_dset_items( dset ,
-                          ADN_nsl     , nim->nz       ,
+                          ADN_nsl     , (int)nim->nz  ,
                           ADN_zorg_sl , orgxyz.xyz[2] ,
                           ADN_dz_sl   , dxyz.xyz[2]   ,
                           ADN_toff_sl , toff          ,

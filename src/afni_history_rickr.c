@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Jul, 2019, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
+   "another fix for 32-64 bit NIFTI update for older xorg7 systems",
+   "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n" 
+   "Newer C libraries seem to handle the possibility of 8 bits better,\n"
+   "but we are reading as 4.  Thanks again to R Birn."
+ } ,
+
  { 17, Jul, 2019, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
    "fix inappropriate 'dimensions altered' warning on xorg7",
    "Warning: dimensions altered since AFNI extension was added\n"
