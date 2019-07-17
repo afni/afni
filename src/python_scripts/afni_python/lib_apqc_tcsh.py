@@ -72,12 +72,8 @@ auth = 'PA Taylor'
 # + [PT] add in more stats to be viewed
 # + [PT] add in QC block ID to QC block titles
 #
-#ver = '2.91' ; date = 'July 3, 2019' 
+ver = '2.91' ; date = 'July 3, 2019' 
 # + [PT] bannerize now has 'padsymb=' kwarg
-#
-ver = '2.95' ; date = 'July 16, 2019' 
-# + [PT] include obliquity in vorig QC block
-# + [PT] simplify radcor text; decrease repetition
 #
 #########################################################################
 
@@ -1301,7 +1297,6 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     set opref = {0}
     set ulay = "${{{1}}}"
     set ulay_name = `3dinfo -prefix ${{{1}}}`
-    set ulay_ob = `3dinfo -obliquity ${{{1}}}`
     set tjson  = _tmp.txt
     set ojson  = ${{odir_img}}/${{opref}}.axi.json
     set tjson2  = _tmp2.txt
@@ -1377,8 +1372,7 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
 
     osubtext2 = '''"{}:${{opref}}.pbar.json"'''.format(lahh.PBAR_FLAG)
     osubtext2+= ''' ,, '''
-    osubtext2+= '''"range: [${minmax[1]}, ${minmax[2]}]'''
-    osubtext2+= ''';  obliquity: ${ulay_ob}"'''
+    osubtext2+= '''"range: [${minmax[1]}, ${minmax[2]}]"'''
 
     jsontxt2 = '''
     cat << EOF >! ${{tjson2}}
@@ -1750,7 +1744,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
         if HAVE_MASK :
             pvalue_olay_perctop = 99
-            pvalue_olay_fov     = " in supratheshold vox in mask"
+            pvalue_olay_fov     = " in suprathreshold vox in mask"
 
             cmd1 = '''
             3dcalc 
@@ -1771,7 +1765,7 @@ def apqc_vstat_stvol( obase, qcb, qci,
 
         else:
             pvalue_olay_perctop = 90
-            pvalue_olay_fov     = " in supratheshold vox in full volume"
+            pvalue_olay_fov     = " in suprathreshold vox in full volume"
 
             cmd1 = '''
             3dcalc 
@@ -2737,7 +2731,7 @@ those might have been flipped.'''
 
 # look for radcor*/ dirs, and the goodies therein
 def apqc_radcor_rcvol( obase, qcb, qci,
-                       rcdir, ith_run=0 ):  
+                       rcdir):  
 
     # start of string to contain all tcsh cmds, bc we can have several
     # EPI runs per radcor dir
@@ -2808,7 +2802,6 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         -set_subbricks 0 0 0
         -opacity 9  
         -pbar_saveim   "${{opbarrt}}.jpg"
-        -pbar_comm_range "ulay is 0th vol of EPI"
         -pbar_comm_thr "alpha on"
         -prefix        "${{odir_img}}/${{opref}}"
         -save_ftype JPEG
@@ -2818,14 +2811,11 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         -do_clean
         '''.format( **chauff_params )
 
-        # only put text above image on the first set of radcor vols
-        # and on the first set
+        # only put text above image on first pass
         otext = ""
         if not(ii) :
-            otext = '''"@radial_correlate check for data dir: '''
-            otext+= '''{}"'''.format( rcdir )
-        if not(ith_run) and not(ii) :
-            otext+= ''' ,, '''
+            otext = '''"@radial_correlate check for: {}" ,, '''.format( rcdir )
+            otext+= '''"    ulay: vol[0] of each EPI run" ,, '''
             otext+= '''"   {}:${{opref}}.pbar.json"'''.format( lahh.PBAR_FLAG )
 
         # [PT: May 16, 2019] new format for flagging/getting PBAR info
