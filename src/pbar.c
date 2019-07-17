@@ -455,21 +455,16 @@ ENTRY("PBAR_add_bigmap") ;
 }
 
 /*-----------------------------------------------------------------------*/
+/* Refactored out of PBAR_make_bigmap [17 Jul 2019 RWC] */
 
-void PBAR_make_bigmap( char *name,
-                       int neq, float *val, rgbyte *col, MCW_DC *dc )
+void PBAR_fill_bigmap( int neq , float *val , rgbyte *col , rgbyte *map )
 {
    int ii,jj ;
    float fr,fg,top,bot,del,vv ;
-   rgbyte map[NPANE_BIGGEST] ;
 
-ENTRY("PBAR_make_bigmap") ;
+ENTRY("PBAR_fill_bigmap") ;
 
-   if( neq < 2 || val == NULL || col == NULL || dc == NULL ){
-     STATUS("bad inputs") ; EXRETURN ;
-   }
-
-   /* bubble sort val,col pairs */
+   /* bubble sort val,col pairs so largest is firstest */
 
    do{
     for( jj=ii=0 ; ii < neq-1 ; ii++ ){
@@ -501,6 +496,26 @@ ENTRY("PBAR_make_bigmap") ;
        map[ii].b = (byte)(fr*col[jj].b + fg*col[jj+1].b + 0.5f) ;
      }
    }
+
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
+
+void PBAR_make_bigmap( char *name,
+                       int neq, float *val, rgbyte *col, MCW_DC *dc )
+{
+   int ii,jj ;
+   float fr,fg,top,bot,del,vv ;
+   rgbyte map[NPANE_BIGGEST] ;
+
+ENTRY("PBAR_make_bigmap") ;
+
+   if( neq < 2 || val == NULL || col == NULL || dc == NULL ){
+     STATUS("bad inputs") ; EXRETURN ;
+   }
+
+   PBAR_fill_bigmap( neq , val , col , map ) ;
 
    PBAR_add_bigmap( name, map ) ; EXRETURN ;
 }

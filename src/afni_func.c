@@ -1754,6 +1754,51 @@ static void mri_edgize_outer( MRI_IMAGE *im )
 }
 
 /*-----------------------------------------------------------------------*/
+/* Convert a paned color bar to a continuous color scale,
+   for use with AFNI_newnewfunc_overlay [17 Jul 2019 - RWC]
+*//*---------------------------------------------------------------------*/
+
+void AFNI_panes_to_bigcolor( MCW_pbar *pbar , rgbyte *bigcolor )
+{
+   float *pval ;
+   int *ovind , npan ;
+   byte *r_ov , *g_ov , *b_ov ;
+   rgbyte *col ; float *val , eps; int neq,ii,jj,kk ;
+
+ENTRY("AFNI_panes_to_bigcolor") ;
+
+   if( pbar == NULL || bigcolor == NULL ) EXRETURN ;
+
+   pval  = pbar->pval ;            /* [i] = bot of panel #i, i=0..npan */
+   ovind = pbar->ov_index ;        /* [i] = color panel #i , i=0..npan-1 */
+   npan  = pbar->num_panes ;       /* number of panes (duh) */
+   r_ov  = pbar->dc->ovc->r_ov ;   /* [j] = R value of color #j */
+   g_ov  = pbar->dc->ovc->g_ov ;   /* [j] = G value of color #j */
+   b_ov  = pbar->dc->ovc->b_ov ;   /* [j] = B value of color #j */
+
+   eps = 2.0f * fabsf(pval[0]-pval[npan]) / (float)NPANE_BIG ;
+   neq = 2 * npan ;
+   col = (rgbyte *)malloc(sizeof(rgbyte)*neq) ;
+   val = (float * )malloc(sizeof(float) *neq) ;
+
+   jj = ovind[0] ; val[0] = pval[0] ;
+   col[0].r = r_ov[jj] ; col[0].g = g_ov[jj] ; col[0].b = b_ov[jj] ;
+   for( kk=ii=1 ; ii < npan ; ii++ ){
+     jj = ovind[ii-1] ; val[kk] = pval[ii]+eps ;
+     col[kk].r = r_ov[jj] ; col[kk].g = g_ov[jj] ; col[kk].b = b_ov[jj] ; kk++ ;
+     jj = ovind[ii] ; val[kk] = pval[ii]-eps ;
+     col[kk].r = r_ov[jj] ; col[kk].g = g_ov[jj] ; col[kk].b = b_ov[jj] ; kk++ ;
+   }
+   jj = ovind[npan-1] ; val[kk] = pval[npan] ;
+   col[kk].r = r_ov[jj] ; col[kk].g = g_ov[jj] ; col[kk].b = b_ov[jj] ;
+
+   PBAR_fill_bigmap( neq , val , col , bigcolor ) ;
+
+   free(val) ; free(col) ;
+   EXRETURN ;
+}
+
+/*-----------------------------------------------------------------------*/
 
 static int reject_zero = 0 ;
 
@@ -1781,7 +1826,9 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    Three_D_View *im3d ;
    MRI_IMAGE *im_thr , *im_fim , *im_ov , *im_noved=NULL ;
    short *ar_ov ;
-   short fim_ovc[NPANE_MAX+1] ;
+   short fim_ovc[NPANE_MAX+1] ;  /* for the 'old' discrete pane colorization */
+   float fim_thr[NPANE_MAX+1] ;
+   rgbyte pane_bigcolor[NPANE_BIGGEST] ;
    int npix , ii , lp , num_lp , ival ;
    float scale_factor , scale_thr ;
    MCW_pbar *pbar ;
@@ -1995,11 +2042,14 @@ ENTRY("AFNI_func_overlay") ;
 #define NFO_USE_BOXED   16
 #define NFO_POS_MASK   256
 
-   if( pbar->bigmode ){ /* "continuous" colorscale */
+#define ALWAYS_USE_BIGMODE 1  /* 17 Jul 2019 */
+
+   if( ALWAYS_USE_BIGMODE || pbar->bigmode ){ /* "continuous" colorscale */
 
      float thresh = get_3Dview_func_thresh(im3d,1) / scale_thr ;
      float thb=THBOT(thresh) , tht=THTOP(thresh) ; /* 08 Aug 2007 */
      int zbelow=0 , zabove=0 , flags ;
+     rgbyte *bigcol=NULL ;
 
 if( PRINT_TRACING && im_thr != NULL )
 { char str[256] ; float tmax ;
@@ -2016,11 +2066,17 @@ if( PRINT_TRACING && im_thr != NULL )
 
      /* Always use AFNI_newnewfunc_overlay() [05 Nov 2018] */
 
-     if( pbar->big30 ) reject_zero = VEDIT_good(im3d->vedset) ;
-     if( pbar->big31 ){                              /* Feb 2012 */
-       zbelow = !pbar->big32 ; zabove = !pbar->big30 ;
+     if( !pbar->bigmode ){
+       AFNI_panes_to_bigcolor( pbar , pane_bigcolor ) ;
+       bigcol = pane_bigcolor ;
      } else {
-       zbelow = (pbar->bigbot == 0.0f) ;
+       if( pbar->big30 ) reject_zero = VEDIT_good(im3d->vedset) ;
+       if( pbar->big31 ){                              /* Feb 2012 */
+         zbelow = !pbar->big32 ; zabove = !pbar->big30 ;
+       } else {
+         zbelow = (pbar->bigbot == 0.0f) ;
+       }
+       bigcol = pbar->bigcolor ;
      }
      flags = zbelow * NFO_ZBELOW_MASK + zabove * NFO_ZABOVE_MASK ;
 
@@ -2032,10 +2088,12 @@ if( PRINT_TRACING && im_thr != NULL )
                                       im_fim , im_noved ,
                                       scale_factor*pbar->bigbot ,
                                       scale_factor*pbar->bigtop ,
-                                      pbar->bigcolor , flags ,
+                                      bigcol , flags ,
                                       im3d->vinfo->thr_alpha_floor , im3d->dc ) ;
      goto CLEANUP ;
    }
+
+#if (ALWAYS_USE_BIGMODE == 0)  /* 17 Jul 2019 */
 
    /** create output image the old way (indexes into overlay colors) **/
 
@@ -2067,7 +2125,6 @@ if( PRINT_TRACING && im_thr != NULL )
 
       case MRI_short:{
          short *ar_fim = MRI_SHORT_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;  /* 13 Nov 1996: changed from short */
 
          for( lp=0 ; lp < num_lp ; lp++ )
            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
@@ -2090,7 +2147,7 @@ if( PRINT_TRACING && im_thr != NULL )
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                 ar_ov[ii] = fim_ovc[lp] ;
+               ar_ov[ii] = fim_ovc[lp] ;
              }
            }
          }
@@ -2099,7 +2156,6 @@ if( PRINT_TRACING && im_thr != NULL )
 
       case MRI_byte:{
          byte *ar_fim = MRI_BYTE_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;  /* 13 Nov 1996: changed from short */
 
          for( lp=0 ; lp < num_lp ; lp++ )
            fim_thr[lp] = (pbar->pval[lp+1] > 0.0) ? scale_factor*pbar->pval[lp+1]
@@ -2124,7 +2180,7 @@ if( PRINT_TRACING && im_thr != NULL )
                ar_ov[ii] = 0 ;
              } else {
                for( lp=0 ; lp < num_lp && ar_fim[ii] < fim_thr[lp] ; lp++ ) ; /*nada*/
-                 ar_ov[ii] = fim_ovc[lp] ;
+               ar_ov[ii] = fim_ovc[lp] ;
              }
            }
          }
@@ -2133,7 +2189,6 @@ if( PRINT_TRACING && im_thr != NULL )
 
       case MRI_float:{
          float *ar_fim = MRI_FLOAT_PTR(im_fim) ;
-         float fim_thr[NPANE_MAX] ;
 
          for( lp=0 ; lp < num_lp ; lp++ )
            fim_thr[lp] = scale_factor * pbar->pval[lp+1] ;
@@ -2207,6 +2262,8 @@ if( PRINT_TRACING && im_thr != NULL )
 
    for( ii=0 ; ii < npix ; ii++ ) if( ar_ov[ii] != 0 ) break ;
    if( ii == npix ) KILL_1MRI(im_ov) ;  /* no nonzero values --> no overlay */
+
+#endif /* ALWAYS_USE_BIGMODE */
 
    /** time to trot, Bwana **/
 
