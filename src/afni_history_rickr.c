@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Jul, 2019, RCR, "NIFTI", MICRO, TYPE_BUG_FIX,
+   "fix inappropriate 'dimensions altered' warning on xorg7",
+   "Warning: dimensions altered since AFNI extension was added\n"
+   "Use PRId64 for 64-bit int printing, works on old systems, too.\n"
+   "Thanks to R Birn for noting the problem."
+ } ,
+
  {  5, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_MODIFY,
    "(useless) switch to 3dTcorr1D for dot product",
    "Drops 2 commands down to 1 for computing corr_* volumes." 

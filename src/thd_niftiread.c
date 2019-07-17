@@ -761,14 +761,18 @@ ENTRY("THD_open_nifti") ;
                rhs = NI_get_attribute( nngr , "NIfTI_nums" ) ;    /* check if */
                if( rhs != NULL ){                       /* dataset dimensions */
                  char buf[128] ;                              /* were altered */
-                 sprintf(buf,"%ld,%ld,%ld,%ld,%ld,%d" ,        /* 12 May 2005 */
-                   nim->nx, nim->ny, nim->nz, nim->nt, nim->nu, nim->datatype );
+	         /* %ld fails on older systems            [17 Jul 2019 rickr] */
+                 sprintf(buf,"%" PRId64 ",%" PRId64 ",%" PRId64 ",%" PRId64
+			     ",%" PRId64 ",%d" ,        /* 12 May 2005 */
+			 nim->nx, nim->ny, nim->nz,
+			 nim->nt, nim->nu, nim->datatype );
                  if( strcmp(buf,rhs) != 0 ){
                    static int nnn=0 ;
                    if(nnn==0){fprintf(stderr,"\n"); nnn=1;}
                    fprintf(stderr,
                      "** WARNING: NIfTI file %s dimensions altered since "
                                  "AFNI extension was added\n",pathnew ) ;
+                   /* fprintf(stderr, "            buf=%s\n", buf); */
                  }
                }
                THD_dblkatr_from_niml( nngr , dset->dblk ); /* load attributes */
