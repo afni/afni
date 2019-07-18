@@ -877,9 +877,10 @@ g_history = """
    1.14 Jun 28, 2019: added vr_base_dset
    1.15 Jul  1, 2019: be picky about vr_base_dset: extras from aea.py
    1.16 Jul  3, 2019: let X.stim.xmat.1D be empty for non-task case
+   1.17 Jul 18, 2019: accept multi-echo data in find_tcat
 """
 
-g_version = "gen_ss_review_scripts.py version 1.16, July 3, 2019"
+g_version = "gen_ss_review_scripts.py version 1.17, July 18, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -1418,14 +1419,16 @@ class MyInterface:
 
       # get a list of file candidates
 
-      pref = 'pb00.'
-      suf  = '.r01.tcat+orig.HEAD'
-      glist = UTIL.glob_list_minus_pref_suf(pref, suf)
-
-      if len(glist) < 1:  # try again
-         pref = 'pb00_'
-         suf  = '_r01_tcat+orig.HEAD'
-         glist = UTIL.glob_list_minus_pref_suf(pref, suf)
+      # there are some combinations to look for, stop when something is found
+      for sep in ['.', '_']:        # separator
+         for estr in ['', 'e01']:   # echo possibility
+            if estr == '': ee = estr
+            else:          ee = '%s%s' % (sep, estr)
+            pref = 'pb00%s' % sep
+            suf  = '%sr01%s%stcat+orig.HEAD' % (sep, ee, sep)
+            glist = UTIL.glob_list_minus_pref_suf(pref, suf)
+            if len(glist) >= 1: break
+         if len(glist) >= 1: break
 
       if len(glist) < 1:
          print('** guess tcat: failed to determine subject ID from pb00 files')
@@ -1470,7 +1473,9 @@ class MyInterface:
          sid = prefix[5:posn-1]
 
       else:
-         if self.cvars.verb > 3: print('-- guessing subj from enorm...')
+         if self.cvars.verb > 3:
+            print('-- guessing subj from enorm...')
+            print("   since tcat_dset is '%s'" % self.dsets.val('tcat_dset'))
          gstr = 'motion_*_enorm.1D'
          glist = glob.glob(gstr)
          glen = len(glist)

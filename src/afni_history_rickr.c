@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Jul, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "look for multi-echo data in find_tcat",
+   NULL
+ } ,
+
  { 17, Jul, 2019, RCR, "NIFTI", MINOR, TYPE_BUG_FIX,
    "another fix for 32-64 bit NIFTI update for older xorg7 systems",
    "In thd_niftiread.c, cast nim->nz as int for EDIT_dset_items().\n" 
