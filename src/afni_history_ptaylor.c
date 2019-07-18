@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Hadn't merged in updated library functions, so apqc_make_tcsh.py crashed.",
+   "Updated library file in distribution now.\n"
+},
+
 { 17, July , 2019 , PT , "apqc_make_html.py" , MICRO , TYPE_GENERAL,
    "Minorest of changes to closing message.",
    "No more double slash.  Wow.\n"

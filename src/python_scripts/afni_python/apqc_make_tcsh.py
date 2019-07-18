@@ -95,9 +95,14 @@ auth = 'PA Taylor'
 # + [PT] add in more stats to be viewed
 # + [PT] add in QC block ID to QC block titles
 #
-ver = '2.95' ; date = 'July 16, 2019' 
+#ver = '2.95' ; date = 'July 16, 2019' 
 # + [PT] include obliquity in vorig QC block
 # + [PT] simplify radcor text; decrease repetition
+#
+ver = '3.0' ; date = 'July 18, 2019' 
+# + [PT] include obliquity in vorig QC block
+# + [PT] simplify radcor text; decrease repetition
+# + [PT] -> merge in changed opts for radcor
 #
 #########################################################################
 
