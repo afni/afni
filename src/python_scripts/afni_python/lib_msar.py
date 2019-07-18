@@ -33,8 +33,11 @@ import afni_base as ab
 #        ... but still creating a single RST file
 # + [PT] tarball also created, if >1 script
 #
-ver = '1.9'; date = 'July 10, 2019'
+#ver = '1.9'; date = 'July 10, 2019'
 # + [PT] can have text in the image tables now
+#
+ver = '1.91'; date = 'July 18, 2019'
+# + [PT] fix if '-prefix ..' dir is the present one
 #
 ##########################################################################
 
@@ -1073,6 +1076,8 @@ class init_opts_MSAR:
 
         # use this function here, because this file won't exist yet!
         pp = os.path.dirname(self.prefix_rst)
+        if not(pp) :
+            pp = '.' # the above returns '' for local dir-- not cool
 
         # these are all potentially full/relative paths
         self.outdir = pp

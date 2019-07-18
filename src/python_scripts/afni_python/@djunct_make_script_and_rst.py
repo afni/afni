@@ -11,8 +11,11 @@
 #        ... but still creating a single RST file
 # + [PT] tarball also created, if >1 script
 #
-ver = '1.9'; date = 'July 10, 2019'
+#ver = '1.9'; date = 'July 10, 2019'
 # + [PT] can have text in the image tables now
+#
+ver = '1.91'; date = 'July 18, 2019'
+# + [PT] fix if '-prefix ..' dir is the present one
 #
 ##########################################################################
 

@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 18, July , 2019 , PT , "@djunct_make_script_and_rst.py", MICRO , TYPE_BUG_FIX,
+   "Used to crash if output dir was PWD.",
+   "Now fixed.\n"
+},
+
 { 18, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Hadn't merged in updated library functions, so apqc_make_tcsh.py crashed.",
    "Updated library file in distribution now.\n"
