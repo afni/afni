@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jul, 2019, RCR, "nifti_tool", MINOR, TYPE_ENHANCE,
+   "add use of HDR/NIM_SLICE_TIMING_FIELDS for -field option",
+   "This allows -{disp,diff}_{hdr,nim} an easy specification of\n"
+   "fields related to slice timing."
+ } ,
+
  { 18, Jul, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "look for multi-echo data in find_tcat",
    NULL

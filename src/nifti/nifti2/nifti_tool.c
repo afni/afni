@@ -181,9 +181,12 @@ static const char * g_history[] =
   "2.06 04 Jan 2019 [rickr]\n",
   "   - add -mod_hdr2 option, to explicitly modify NIFTI-2 headers\n"
   "   - mod_hdr and swap_as_nifti fail on valid NIFTI-2 headers\n"
+  "2.07 19 Jul 2019 [rickr]\n",
+  "   - can apply '-field HDR_SLICE_TIMING_FIELDS' (or NIM_) for easy\n"
+  "     specification of field entries related to slice timing\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.06 (January 3, 2019)";
+static char g_version[] = "version 2.07 (July 19, 2019)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -209,11 +212,14 @@ field_s g_ana_fields [NT_ANA_NUM_FIELDS];     /* nifti_analyze75       */
 field_s g_nim1_fields[NT_NIM_NUM_FIELDS];     /* nifti_image fields    */
 field_s g_nim2_fields[NT_NIM_NUM_FIELDS];     /* nifti2_image fields   */
 
-/* slice timing hdr fields */
+/* slice timing hdr and nim fields */
 static const char * g_hdr_timing_fnames[NT_HDR_TIME_NFIELDS] = {
-     "slice_code", "slice_start", "slice_end", "slice_duration", "dim_info",
-     "dim", "pixdim", "xyzt_units" };
-str_list g_hdr_stiming_flist = { NT_HDR_TIME_NFIELDS, g_hdr_timing_fnames };
+     "slice_code", "slice_start", "slice_end", "slice_duration",
+     "dim_info", "dim", "pixdim", "xyzt_units" };
+static const char * g_nim_timing_fnames[NT_NIM_TIME_NFIELDS] = {
+     "slice_code", "slice_start", "slice_end", "slice_duration",
+     "slice_dim", "phase_dim", "freq_dim", 
+     "dim", "pixdim", "xyz_units", "time_units" };
 
 
 int main( int argc, char * argv[] )
@@ -499,12 +505,17 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-field");
-         /* allow HDR_S_TIMING FIELDS as a special case */
-         if( ! strcmp(argv[ac], "HDR_S_TIMING_FIELDS") ) {
+         /* allow HDR/NIM_S_TIMING FIELDS as special cases */
+         if( ! strcmp(argv[ac], "HDR_SLICE_TIMING_FIELDS") ) {
             for( count = 0; count < NT_HDR_TIME_NFIELDS; count++ )
                if( add_string(&opts->flist, g_hdr_timing_fnames[count]) )
                    return -1;
+         } else if( ! strcmp(argv[ac], "NIM_SLICE_TIMING_FIELDS") ) {
+            for( count = 0; count < NT_NIM_TIME_NFIELDS; count++ )
+               if( add_string(&opts->flist, g_nim_timing_fnames[count]) )
+                   return -1;
          } else {
+         /* otherwise, just add as a typical field */
             if( add_string(&opts->flist, argv[ac]) ) return -1; /* add field */
          }
       }
@@ -1099,7 +1110,10 @@ int use_full()
    printf(
    "      8. nifti_tool -disp_ana -infiles analyze.hdr\n"
    "      9. nifti_tool -disp_nim -infiles nifti.nii\n"
-   "      10. nifti_tool -disp_hdr -field HDR_S_TIMING_FIELDS -infiles e.nii\n"
+   "      10. nifti_tool -disp_hdr -field HDR_SLICE_TIMING_FIELDS \\\n"
+   "                     -infiles epi.nii\n"
+   "      11. nifti_tool -disp_hdr -field NIM_SLICE_TIMING_FIELDS \\\n"
+   "                     -infiles epi.nii\n"
    "\n");
    printf(
    "    D. create a new dataset from nothing:\n"
@@ -1365,8 +1379,10 @@ int use_full()
    "\n");
    printf(
    "       If no '-field' option is present, all fields will be displayed.\n"
-   "       Using '-field HDR_S_TIMING_FIELDS' will include fields related to\n"
-   "       slice timing.\n"
+   "       Using '-field HDR_SLICE_TIMING_FIELDS' will include header fields\n"
+   "       related to slice timing.\n"
+   "       Using '-field NIM_SLICE_TIMING_FIELDS' will include nifti_image\n"
+   "       fields related to slice timing.\n"
    "\n"
    "       e.g. to display the contents of all fields:\n"
    "       nifti_tool -disp_hdr -infiles dset0.nii\n"
@@ -1375,6 +1391,10 @@ int use_full()
    "       e.g. to display the contents of select fields:\n"
    "       nifti_tool -disp_hdr -field dim -infiles dset0.nii\n"
    "       nifti_tool -disp_hdr -field dim -field descrip -infiles dset0.nii\n"
+   "\n"
+   "       e.g. a special case to display slice timing fields:\n"
+   "       nifti_tool -disp_hdr -field HDR_SLICE_TIMING_FIELDS \n"
+   "                  -infiles dset0.nii\n"
    "\n");
    printf(
    "\n"
@@ -1398,6 +1418,10 @@ int use_full()
    "       This flag option works the same way as the '-disp_hdr' option,\n"
    "       except that the fields in question are from the nifti_image\n"
    "       structure.\n"
+   "\n"
+   "       e.g. a special case to display slice timing fields:\n"
+   "       nifti_tool -disp_nim -field NIM_SLICE_TIMING_FIELDS \n"
+   "                  -infiles dset0.nii\n"
    "\n");
    printf(
    "    -disp_ana          : display nifti_analyze75 fields for datasets\n"
@@ -1738,7 +1762,7 @@ int use_full()
    "\n"
    "       Special cases of FIELDNAME that translate to lists of fields:\n"
    "\n"
-   "          HDR_S_TIMING_FIELDS : fields related to slice timing\n"
+   "          HDR_SLICE_TIMING_FIELDS : fields related to slice timing\n"
    "\n"
    "             slice_code        : code for slice acquisition order\n"
    "             slice_start       : first slice applying to slice_code\n"
@@ -1750,6 +1774,21 @@ int use_full()
    "             xyzt_units        : time/space units for pixdim (3+3 bits)\n"
    "\n"
    "       See '-disp_hdr', above, for complete examples.\n"
+   "\n"
+   "          HDR_SLICE_TIMING_FIELDS : fields related to slice timing\n"
+   "\n"
+   "             slice_code        : code for slice acquisition order\n"
+   "             slice_start       : first slice applying to slice_code\n"
+   "             slice_end         : last slice applying to slice_code\n"
+   "             slice_duration    : time to acquire one slice\n"
+   "             slice_dim         : slice dimension (unset or in 1,2,3)\n"
+   "             phase_dim         : phase dimension (unset or in 1,2,3)\n"
+   "             freq_dim          : freq  dimension (unset or in 1,2,3)\n"
+   "             dim               : dimensions of data\n"
+   "             pixdim            : grid/dimension spacing (e.g. time)\n"
+   "             xyzt_units        : time/space units for pixdim (3+3 bits)\n"
+   "\n"
+   "       See '-disp_nim', above, for complete examples.\n"
    "\n"
    "       e.g. nifti_tool -field descrip\n"
    "       e.g. nifti_tool -field descrip -field dim\n"
