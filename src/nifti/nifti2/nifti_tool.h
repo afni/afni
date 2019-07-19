@@ -75,6 +75,7 @@ typedef struct{
 #define NT_HDR2_NUM_FIELDS 37       /* in the nifti_2_header struct     */
 #define NT_ANA_NUM_FIELDS  47       /* in the  nifti_analyze75 struct   */
 #define NT_NIM_NUM_FIELDS  63       /* in the nifti_image struct        */
+#define NT_HDR_TIME_NFIELDS 8       /* num slice timing fields in hdr   */
 #define NT_DT_STRING      -0xfff    /* some strange number to abuse...  */
 #define NT_DT_POINTER     -0xfef    /* some strange number to abuse...  */
 #define NT_DT_CHAR_PTR    -0xfee    /* another...                       */

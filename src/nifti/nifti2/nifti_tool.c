@@ -209,6 +209,13 @@ field_s g_ana_fields [NT_ANA_NUM_FIELDS];     /* nifti_analyze75       */
 field_s g_nim1_fields[NT_NIM_NUM_FIELDS];     /* nifti_image fields    */
 field_s g_nim2_fields[NT_NIM_NUM_FIELDS];     /* nifti2_image fields   */
 
+/* slice timing hdr fields */
+static const char * g_hdr_timing_fnames[NT_HDR_TIME_NFIELDS] = {
+     "slice_code", "slice_start", "slice_end", "slice_duration", "dim_info",
+     "dim", "pixdim", "xyzt_units" };
+str_list g_hdr_stiming_flist = { NT_HDR_TIME_NFIELDS, g_hdr_timing_fnames };
+
+
 int main( int argc, char * argv[] )
 {
    nt_opts opts;
@@ -285,7 +292,7 @@ int main( int argc, char * argv[] )
  *----------------------------------------------------------------------*/
 int process_opts( int argc, char * argv[], nt_opts * opts )
 {
-   int ac;
+   int ac, count;
 
    memset(opts, 0, sizeof(*opts));
 
@@ -492,11 +499,17 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
       {
          ac++;
          CHECK_NEXT_OPT(ac, argc, "-field");
-         if( add_string(&opts->flist, argv[ac]) ) return -1; /* add field */
+         /* allow HDR_S_TIMING FIELDS as a special case */
+         if( ! strcmp(argv[ac], "HDR_S_TIMING_FIELDS") ) {
+            for( count = 0; count < NT_HDR_TIME_NFIELDS; count++ )
+               if( add_string(&opts->flist, g_hdr_timing_fnames[count]) )
+                   return -1;
+         } else {
+            if( add_string(&opts->flist, argv[ac]) ) return -1; /* add field */
+         }
       }
       else if( ! strncmp(argv[ac], "-infiles", 3) )
       {
-         int count;
          /* for -infiles, get all next arguments until a '-' or done */
          ac++;
          for( count = 0; (ac < argc) && (argv[ac][0] != '-'); ac++, count++ )
@@ -1086,6 +1099,7 @@ int use_full()
    printf(
    "      8. nifti_tool -disp_ana -infiles analyze.hdr\n"
    "      9. nifti_tool -disp_nim -infiles nifti.nii\n"
+   "      10. nifti_tool -disp_hdr -field HDR_S_TIMING_FIELDS -infiles e.nii\n"
    "\n");
    printf(
    "    D. create a new dataset from nothing:\n"
@@ -1351,6 +1365,8 @@ int use_full()
    "\n");
    printf(
    "       If no '-field' option is present, all fields will be displayed.\n"
+   "       Using '-field HDR_S_TIMING_FIELDS' will include fields related to\n"
+   "       slice timing.\n"
    "\n"
    "       e.g. to display the contents of all fields:\n"
    "       nifti_tool -disp_hdr -infiles dset0.nii\n"
@@ -1719,6 +1735,19 @@ int use_full()
    "       This option is used to provide a field to display, modify or\n"
    "       compare.  This option can be used along with one of the action\n"
    "       options presented above.\n"
+   "\n"
+   "       Special cases of FIELDNAME that translate to lists of fields:\n"
+   "\n"
+   "          HDR_S_TIMING_FIELDS : fields related to slice timing\n"
+   "\n"
+   "             slice_code        : code for slice acquisition order\n"
+   "             slice_start       : first slice applying to slice_code\n"
+   "             slice_end         : last slice applying to slice_code\n"
+   "             slice_duration    : time to acquire one slice\n"
+   "             dim_info          : slice/phase/freq_dim (2+2+2 lower bits)\n"
+   "             dim               : dimensions of data\n"
+   "             pixdim            : grid/dimension spacing (e.g. time)\n"
+   "             xyzt_units        : time/space units for pixdim (3+3 bits)\n"
    "\n"
    "       See '-disp_hdr', above, for complete examples.\n"
    "\n"
