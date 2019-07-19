@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 19, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
+   "if template is multi-volume, get vol [0] for group_mask",
+   "Thanks to S Tumati for noting the problem."
+ } ,
+
  { 19, Jul, 2019, RCR, "nifti_tool", MINOR, TYPE_ENHANCE,
    "add use of HDR/NIM_SLICE_TIMING_FIELDS for -field option",
    "This allows -{disp,diff}_{hdr,nim} an easy specification of\n"

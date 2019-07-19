@@ -652,9 +652,10 @@ g_history = """
     6.42 Jul  2, 2019: apply 1d_tool.py -write_xstim for X.stim.xmat.1D
     6.43 Jul  3, 2019: if no stim, make sum_baseline.1D, not sum_ideal.1D
     6.44 Jul  5, 2019: (useless) switch to 3dTcorr1D for dot product
+    6.45 Jul 19, 2019: if template is multi-volume, get vol [0] for group_mask
 """
 
-g_version = "version 6.44, July 5, 2019"
+g_version = "version 6.45, July 19, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

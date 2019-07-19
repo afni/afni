@@ -4361,6 +4361,12 @@ def group_mask_command(proc, block):
         print("   (cannot create group mask)")
         return ''
 
+    # if more than 1 volume in template dset, use sub-brick selection
+    rv, nt, tr = UTIL.get_dset_reps_tr(proc.tlrc_base.input())
+    if rv: nt = 1
+    if nt > 1: volstr = "'[0]'"
+    else:      volstr = ""
+
     #--- tlrc base exists, now resample and make a mask of it
     proc.mask_group = proc.mask_epi.new('mask_group')
     cmd = "# ---- create group anatomy mask, %s ----\n"  \
@@ -4369,8 +4375,9 @@ def group_mask_command(proc, block):
 
     tanat = proc.mask_group.new('rm.resam.group') # temp resampled group dset
     cmd = cmd + "3dresample -master %s -prefix ./%s \\\n" \
-                "           -input %s\n\n"                \
-                % (proc.mask_epi.pv(), tanat.prefix, proc.tlrc_base.input())
+                "           -input %s%s\n\n"              \
+                % (proc.mask_epi.pv(), tanat.prefix,
+                   proc.tlrc_base.input(), volstr)
 
     # convert to a binary mask via 3dmask_tool, to fill in a bit
     cmd = cmd + "# convert to binary group mask; fill gaps and holes\n"     \
