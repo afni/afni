@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-# python 3 status: compatible
+# python3 status: compatible
 
 
 # initialize some main variables for use in other code

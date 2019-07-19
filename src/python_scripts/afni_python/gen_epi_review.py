@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 import sys, os
 import option_list, afni_util as UTIL, afni_base as BASE
 
