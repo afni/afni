@@ -2042,7 +2042,7 @@ ENTRY("AFNI_func_overlay") ;
 #define NFO_USE_BOXED   16
 #define NFO_POS_MASK   256
 
-#define ALWAYS_USE_BIGMODE 1  /* 17 Jul 2019 */
+#define ALWAYS_USE_BIGMODE 1  /* use the newnew function always [17 Jul 2019] */
 
    if( ALWAYS_USE_BIGMODE || pbar->bigmode ){ /* "continuous" colorscale */
 
@@ -2093,7 +2093,7 @@ if( PRINT_TRACING && im_thr != NULL )
      goto CLEANUP ;
    }
 
-#if (ALWAYS_USE_BIGMODE == 0)  /* 17 Jul 2019 */
+#if (ALWAYS_USE_BIGMODE == 0)  /* cast aside code from 1994 [17 Jul 2019] */
 
    /** create output image the old way (indexes into overlay colors) **/
 
