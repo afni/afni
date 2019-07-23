@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, July , 2019 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
+   "Allow PDFs to be output directly.",
+   "User just needs '.pdf' file extension on prefix.\n"
+},
+
 { 18, July , 2019 , PT , "@djunct_make_script_and_rst.py", MICRO , TYPE_BUG_FIX,
    "Used to crash if output dir was PWD.",
    "Now fixed.\n"

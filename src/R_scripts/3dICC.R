@@ -22,17 +22,17 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
    intro <- 
 '
           ================== Welcome to 3dICC ==================          
-    AFNI Group Analysis Program with Multi-Variate Modeling Approach
+          AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Jul 3, 2019
+Version 0.0.2, Jul 22, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
-SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
+SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Usage:
 ------ 
- Intraclass correlation measures the extent of consistency, agreement or
+ Intraclass correlation (ICC) measures the extent of consistency, agreement or
  reliability of an effect (e.g., BOLD respoonse) across two or more measures. 
  3dICC is a program that computes whole-brain voxel-wise ICC when each subject
  has two or more effect estimates (e.g., sessions, scanners, etc. ). All three
