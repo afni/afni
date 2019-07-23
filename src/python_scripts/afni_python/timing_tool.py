@@ -364,6 +364,45 @@ examples:
          timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -tr 2 -show_tr_stats
 
+   Example 19c. Convert non-standard formatted TSV timing files to AFNI.
+
+      The default column labels were assumed in the prior examples:
+         onset duration trial_type
+      in this example, RT is used for duration, and participant_response is
+      used for trial_type.  These TSV files are from the ds001205 dataset from
+      openneuro.org.
+
+      Output is just to an event list.
+
+         timing_tool.py -tsv_labels onset RT participant_response           \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.C.
+
+   Example 19d.  As 19c, but include "gain" and "loss" as amplitude modulators.
+
+         timing_tool.py -tsv_labels onset RT participant_response gain loss \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.D.
+
+   Example 19e.  As 19d, but specify the same columns with 0-based indices.
+
+         timing_tool.py -tsv_labels 0 4 5 2 3                               \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.E.
+
+   Example 19f.  If duration is n/a, specify backup column.
+
+      In some cases (e.g. as reaction_time), duration might have a value
+      of "n/a".  Specify an alternate column to use for duration when this
+      occurs.
+
+         timing_tool.py -tsv_labels onset reaction_time task            \\
+                        -tsv_def_dur_label duration                     \\
+                        -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
+                        -write_multi_timing timing.sub-001.F.
+
+      Consider "-multi_timing_to_event_list GE:ALL -" to view event list.
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -1070,6 +1109,32 @@ general options:
 
             Consider -timing_to_1D and -run_len.
 
+   -tsv_labels L1 L2 ...        : specify column labels to use for TSV files
+
+        e.g.     -tsv_labels onset RT response
+        e.g.     -tsv_labels onset RT response gain loss
+        e.g.     -tsv_labels 0 4 5 2 3
+        default: -tsv_labels onset duration trial_type
+
+        Use this option to specify columns to be used for:
+
+           stimulus onset time
+           stimulus duration
+           stimulus class
+           optionally: any amplitude modulators ...
+
+        TSV (tab separated value) event timing files typically have column
+        headers, including stimulus timing information such as event onset
+        time, duration, stimulus type, response time, etc.  Unless specified,
+        the default column headers that are processed are:
+
+            onset duration trial_type
+
+        But in some cases they do not exist, so the user must specify alternate
+        headers (or indices).
+
+        Columns can be specified by labels, or 0-based indices.
+
    -verb LEVEL                  : set the verbosity level
 
         e.g. -verb 3
@@ -1260,9 +1325,10 @@ g_history = """
    3.06 Feb 25, 2019 - added modulators to -multi_timing_to_event_list output
    3.07 Apr 22, 2019 - added -tsv_labels
    3.08 May 07, 2019 - added -timing_to_1D_warn_ok
+   3.09 Jul 23, 2019 - added help and examples -tsv_labels
 """
 
-g_version = "timing_tool.py version 3.08, May 7, 2019"
+g_version = "timing_tool.py version 3.09, Jul 23, 2019"
 
 
 

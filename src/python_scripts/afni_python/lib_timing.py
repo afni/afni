@@ -20,6 +20,7 @@ import afni_util as UTIL
 import lib_afni1D as LD
 
 g_marry_AM_methods = ['lin_run_fraq', 'lin_event_index']
+g_tsv_def_labels   = ['onset', 'duration', 'trial_type']
 
 # ----------------------------------------------------------------------
 # AfniTiming class - for stim times that are married with
@@ -1061,7 +1062,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
 
    # if nothing passed, set default labels
    if hlabels == None:
-      hlabels=['onset', 'duration', 'trial_type']
+      hlabels = g_tsv_def_labels
 
    h0 = []      # original header, once set
    cdict = {}   # dictionary of events per class type
@@ -1114,7 +1115,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
 
    return 0, tlist
 
-def parse_Ncol_tsv(fname, hlabels=['onset', 'duration', 'trial_type'], 
+def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels, 
                    def_dur_lab=None, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
