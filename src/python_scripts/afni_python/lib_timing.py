@@ -1041,7 +1041,8 @@ def float_list_string(vals, nchar=7, ndec=3, nspaces=2):
 
    return str
 
-def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
+def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, 
+                        show_only=0, verb=1):
    """Read a set of 3 column tsv (tab separated value) files
          - one file per run
          - each with a list of events for all classes
@@ -1056,6 +1057,8 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
          can be defined.
 
       Use the labels to set name and possibly fname fields.
+
+         show_only  : just show header details and return
    """
 
    tlist = []   # all AfniTiming instances to return
@@ -1069,15 +1072,17 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
                 #   - array of event lists, per run
    elist = []   # temporary variable, events for 1 run at a time
    for rind, fname in enumerate(flist):
+      if show_only: print("\nparsing TSV file : %s\n" % fname)
       nvals, header, elist = parse_Ncol_tsv(fname, hlabels=hlabels,
-                                            def_dur_lab=def_dur_lab, verb=verb)
+                     def_dur_lab=def_dur_lab, show_only=show_only, verb=verb)
+      if show_only: continue
       if nvals <= 0: return 1, tlist
 
       # store original header, else check for consistency
       if not h0:
          h0 = header
          if verb > 1: print('-- RM3CT: header = %s' % header)
-      elif h0 != header:
+      elif h0 != header and verb:
          print('** inconsistent column headers in 3 column tsv file %s' % fname)
          print('   orig:    %s' % ' '.join(h0))
          print('   current: %s' % ' '.join(header))
@@ -1103,6 +1108,9 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
          if verb > 4:
             print('++ RM3CT: append cdict[%s] with %s' % (cname, cevents))
 
+   # if just showing, we are done
+   if show_only: return 0, []
+
    # now convert to AfniTiming instances
    for cname in cdict.keys():
       mdata = cdict[cname]
@@ -1116,7 +1124,7 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None, verb=1):
    return 0, tlist
 
 def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels, 
-                   def_dur_lab=None, verb=1):
+                   def_dur_lab=None, show_only=0, verb=1):
    """Read one N column tsv (tab separated value) file, and return:
         - ncol: -1 on error, else >= 0
         - header list (length ncol)
@@ -1133,6 +1141,8 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
                    'missed' : add event as "missed_LABEL" class
                    LABEL    : alternate column label for missed events
 
+      show_only : show labels, then return
+
       An N column tsv file should have an optional header line,
       followed by rows of VAL VAL LABEL, separated by tabs.
    """
@@ -1140,6 +1150,9 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
    if len(lines) < 1:
       print("** failed parse_3col_tsv for '%s'" % fname)
       return -1, [], []
+
+   # if show_only, be verbose
+   if show_only and verb < 4: verb = 4
 
    # pare lines down to useful ones
    newlines = []
@@ -1157,9 +1170,10 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
 
       # require consistency
       if vlen != norig:
-         print('** line %d ncol=%d, mismatch with orig ncol %d' % \
-               (lind, vlen, norig))
-         print('** skipping bad line: %s' % line)
+         if verb:
+            print('** line %d ncol=%d, mismatch with orig ncol %d' % \
+                  (lind, vlen, norig))
+            print('** skipping bad line: %s' % line)
          continue
 
       newlines.append(vv)
@@ -1167,16 +1181,16 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
    lines = newlines
 
    if len(lines) < 1:
-      print("** parse_Ncol_tsv for '%s' is empty" % fname)
+      if verb: print("** parse_Ncol_tsv for '%s' is empty" % fname)
       return -1, [], []
    if norig < 3:
-      print("** parse_Ncol_tsv: bad ncols = %d in %s" % (norig, fname))
+      if verb: print("** parse_Ncol_tsv: bad ncols = %d in %s" % (norig,fname))
       return -1, [], []
 
    # decide on column extration indices, based on hlabels and lines[0:2]
    col_inds = tsv_hlabels_to_col_list(hlabels, lines, verb=verb)
    if len(col_inds) < 3:
-      print("** failed to make tsv column index list in %s" % fname)
+      if verb: print("** failed to make tsv column index list in %s" % fname)
       return -1, [], []
 
    # ----------------------------------------
@@ -1191,13 +1205,18 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
       # replace duration label with alt, and see if it works
       h_alt = hlabels[:]
       h_alt[1] = def_dur_lab
+      if verb > 1: print("\n-- processing for def_dur_label, %s" % def_dur_lab)
       cols_alt = tsv_hlabels_to_col_list(h_alt, lines, verb=verb)
-      if verb > 2: print("++ have cols_alt: %s" % cols_alt)
+      if verb > 2: print("++ have cols_alt: %s" \
+                         % UTIL.int_list_string(cols_alt,sepstr=', '))
       if len(cols_alt) < 3:
-         print("** could not find tsv column '%s' in %s" % (def_dur_lab,fname))
+         if verb:
+           print("** could not find tsv column '%s' in %s"%(def_dur_lab,fname))
          return -1, [], []
       col_dur_alt = cols_alt[1]
       
+   # if show_only, we are done
+   if show_only: return 0, [], []
 
    # ----------------------------------------
    # set header list, if a header exists
@@ -1242,8 +1261,10 @@ def parse_Ncol_tsv(fname, hlabels=g_tsv_def_labels,
          if len(ainds) > 0:
              amps = [float(line[aind]) for aind in ainds]
       except:
-         print('** bad line Ncol tsv file %s:\n   %s'%(fname, ' '.join(line)))
-         print("   dur_txt = '%s'" % dur_txt)
+         if verb:
+            print('** bad line Ncol tsv file %s:\n   %s' \
+                  % (fname, ' '.join(line)))
+            print("   dur_txt = '%s'" % dur_txt)
          return -1, [], []
 
       # append new event, possibly with a 'MISSED' label
@@ -1270,8 +1291,9 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
             else: fail
    """
 
+   line0 = linelists[0]
    nlabs = len(hlabs)
-   ncols = len(linelists[0])
+   ncols = len(line0)
 
    if nlabs < 3:
       if verb: print("** tsv hlabs has only %d entries: %s" % (nlabs, hlabs))
@@ -1285,6 +1307,21 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
       lints = [int(entry) for entry in hlabs]
    except:
       lints = []
+   have_label_ints = (len(lints) == len(hlabs))
+
+   if verb > 2:
+      print("-- TSV labels, wanted columns: %s" % ' '.join(hlabs))
+      print("   enumerated header cols:")
+      lfound = '(chosen) '
+      lmissing = ' ' * len(lfound)
+      for cind, label in enumerate(line0):
+         if have_label_ints and cind in lints:
+            lstr = lfound
+         elif label in hlabs:
+            lstr = lfound
+         else:
+            lstr = lmissing
+         print("      col %02d %s: %s" % (cind, lstr, label))
 
    # if they are integers, we are done
    if len(lints) >= 3:
@@ -1292,10 +1329,9 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
       return lints
 
 
-   # decide whether linelists[0] is text (count floats in line[0])
-   list0 = linelists[0]
+   # decide whether line0 is text (count floats in line[0])
    nfloat = ntext = 0
-   for entry in list0:
+   for entry in line0:
       try:
          fval = float(entry)
          nfloat += 1
@@ -1314,16 +1350,20 @@ def tsv_hlabels_to_col_list(hlabs, linelists, verb=1):
    # so we have text in the header, check whether all hlabs are found
    lints = []
    for label in hlabs:
-      if label in list0:
-         lints.append(list0.index(label))
+      if label in line0:
+         lints.append(line0.index(label))
+      elif verb > 0:
+         print("** missing chosen label '%s'" % label)
 
    # if we did not find them all, require same ncols or fail
    if len(lints) < nlabs:
       if nlabs == ncols:
-         if verb > 0: print("-- tsv has unexpected labels, assuming sequential")
+         if verb: print("-- tsv has unexpected labels, assuming sequential")
          return [i for i in range(nlabs)]
       else:
-         if verb > 0: print("** tsv has unexpected labels, failing")
+         if verb > 0:
+            print("** tsv file has unexpected labels, failing")
+            if verb < 3: print("   (consider -verb 3)")
          return []
        
    # all are found, yay!
@@ -1345,7 +1385,7 @@ def parse_3col_tsv(fname, verb=1):
    """
    lines = UTIL.read_text_file(fname, lines=1)
    if len(lines) < 1:
-      print("** failed parse_3col_tsv for '%s'" % fname)
+      print("** parse_3col_tsv: failed to read text file '%s'" % fname)
       return 1, [], []
 
    # pare lines down to useful ones
