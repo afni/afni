@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 25, July , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_NEW_PROG,
+   "Program to apply freq volume to EPI for B0 distortion correction.",
+   "An honor to translate this program from one by Vinai Roopchansingh!\n"
+},
+
 { 23, July , 2019 , PT , "1dplot.py" , MICRO , TYPE_GENERAL,
    "Allow PDFs to be output directly.",
    "User just needs '.pdf' file extension on prefix.\n"
