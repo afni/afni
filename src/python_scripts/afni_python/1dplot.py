@@ -15,11 +15,15 @@ author    = "PA Taylor (NIMH, NIH)"
 #   DISPLAY isn't detected, the set our own MPLBACKEND value, in order
 #   to avoid getting an interactive one like QtAgg that would crash.
 #
-version   = "1.4"; date  = "Mar 20, 2019"
+#version   = "1.4"; date  = "Mar 20, 2019"
 # + [RR] Test directly against MPLBACKEND rather than DISPLAY, so the
 #   default backend will be agg, unless the user specifies otherwise.
 #   DISPLAY is inherited, even if children shells no longer have access
 #   to it.
+#
+version   = "1.6"; date  = "July 23, 2019"
+# + [PT] can output PDF files directly
+#
 # =================================================================
 
 import sys

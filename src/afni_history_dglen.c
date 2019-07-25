@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 22, JUL, 2019, DRG, "@Install_D99_macaque,@Install_NIH_Marmoset", MINOR, TYPE_BUG_FIX,
+    "download script bugs",
+    "tar platform differences and filename updates"
+},    
 { 29, MAY, 2019, DRG, "@auto_tlrc", MINOR, TYPE_MODIFY,
     "auto_tlrc changes",
     "NIFTI in and out fixes, prefix option, 3dAllineate option\n"

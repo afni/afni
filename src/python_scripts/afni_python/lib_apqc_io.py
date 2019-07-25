@@ -23,11 +23,14 @@
 #   flag-- should be more stable for larger range of options; 
 # + [PT] have added '-yaxis ...' stuff to pythonic style
 #
-ver = '1.5' ; date = 'Jan 15, 2019' 
+#ver = '1.5' ; date = 'Jan 15, 2019' 
 # + [PT] add in new plotting functionality: when one has both boxplot
 #   on *and* censoring, data BC and AC.
 # + [PT] ... and have a new option to go back to just having only BC
 #   data, via '-bplot_view BC_ONLY'
+#
+ver = '1.6' ; date = 'July 23, 2019' 
+# + [PT] 1dplot.py can output PDF files now, too
 #
 #########################################################################
 
@@ -35,13 +38,14 @@ ver = '1.5' ; date = 'Jan 15, 2019'
 
 import sys, copy
 import lib_afni1D as LAD
+import lib_afni1D as LAD
 import afni_util  as au
 
 # -------------------------------------------------------------------
 
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
-ok_ftypes      = [ '.jpg', '.png', '.tif' ]
+ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf' ]
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
@@ -129,9 +133,11 @@ COMMAND OPTIONS ~1~
 
 -prefix  PP   :output filename or prefix; if no file extension for an
                image is included in 'PP', one will be added from a
-               list.  The kinds of image files you may output may be
-               limited by packages (or lack thereof) installed on your
-               computer.  Default output image type is {def_ext}
+               list.  At present, OK file types to output should include:
+                  {ok_ftypes}
+               ... but note that the kinds of image files you may output
+               may be limited by packages (or lack thereof) installed on
+               your own computer.   Default output image type is {def_ext}
 
 -boxplot_on   :a fun feature to show an small, additional boxplot
                adjacent to each time series.  The plot is a standard
@@ -347,7 +353,7 @@ EXAMPLES ~1~
     -prefix  mot_outlier_plot.png
 
 
-'''.format(**fill_in_help_vals)
+'''.format(**fill_in_help_vals, ok_ftypes=', '.join(ok_ftypes))
 
 
 

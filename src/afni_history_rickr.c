@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Jul, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
+   "add -show_tsv_label_details option",
+   NULL
+ } ,
+
+ { 23, Jul, 2019, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "add -tsv_labels option help and examples",
+   NULL
+ } ,
+
  { 19, Jul, 2019, RCR, "afni_proc.py", MICRO, TYPE_BUG_FIX,
    "if template is multi-volume, get vol [0] for group_mask",
    "Thanks to S Tumati for noting the problem."

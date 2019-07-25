@@ -34,9 +34,9 @@ if ($use_curl == 0) then
 else
    curl -O https://afni.nimh.nih.gov/pub/dist/atlases/marmoset/NIH_Marmoset/$demo_download.tgz
 endif
-tar --warning=no-unknown-keyword -xvzf $demo_download.tgz
+tar -xvzf $demo_download.tgz
 # change name to simpler one here
-mv $demo_download $demo
+mv NIH_Marmoset_dist $demo
 cd $demo
    echo "********************************************************"
    echo "Atlases, templates and atlas surfaces stored in ./$demo"

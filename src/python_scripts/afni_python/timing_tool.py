@@ -364,6 +364,52 @@ examples:
          timing_tool.py -multi_timing_3col_tsv sing_weather.run*.tsv \\
                         -tr 2 -show_tr_stats
 
+   Example 19c. Convert non-standard formatted TSV timing files to AFNI.
+
+      The default column labels were assumed in the prior examples:
+         onset duration trial_type
+      in this example, RT is used for duration, and participant_response is
+      used for trial_type.  These TSV files are from the ds001205 dataset from
+      openneuro.org.
+
+      Output is just to an event list.
+
+         timing_tool.py -tsv_labels onset RT participant_response           \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.C.
+
+   Example 19d.  As 19c, but include "gain" and "loss" as amplitude modulators.
+
+         timing_tool.py -tsv_labels onset RT participant_response gain loss \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.D.
+
+   Example 19e.  As 19d, but specify the same columns with 0-based indices.
+
+         timing_tool.py -tsv_labels 0 4 5 2 3                               \\
+                        -multi_timing_3col_tsv sub-001_task-MGT_run*.tsv    \\
+                        -write_multi_timing timing.sub-001.E.
+
+   Example 19f.  If duration is n/a, specify backup column.
+
+      In some cases (e.g. as reaction_time), duration might have a value
+      of "n/a".  Specify an alternate column to use for duration when this
+      occurs.
+
+         timing_tool.py -tsv_labels onset reaction_time task            \\
+                        -tsv_def_dur_label duration                     \\
+                        -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
+                        -write_multi_timing timing.sub-001.F.
+
+   Example 19g.  Just show the TSV label information
+
+         timing_tool.py -tsv_labels onset reaction_time task            \\
+                        -tsv_def_dur_label duration                     \\
+                        -multi_timing_3col_tsv s10517-pamenc_events.tsv \\
+                        -show_tsv_label_details
+
+      Consider "-multi_timing_to_event_list GE:ALL -" to view event list.
+
 --------------------------------------------------------------------------
 Notes:
 
@@ -718,6 +764,11 @@ action options (apply to single timing element, only):
 
             See '-warn_tr_stats' for more details.
 
+   -show_tsv_label_details      : display column label info for TSV files
+
+        Use this option to display label information for TSV files.  It should
+        be used in conjunction with -multi_timing_3col_tsv and related options.
+
    -warn_tr_stats               : display within-TR stats only for warnings
 
         This is akin to -show_tr_stats, but output is only displayed if there
@@ -1070,6 +1121,32 @@ general options:
 
             Consider -timing_to_1D and -run_len.
 
+   -tsv_labels L1 L2 ...        : specify column labels to use for TSV files
+
+        e.g.     -tsv_labels onset RT response
+        e.g.     -tsv_labels onset RT response gain loss
+        e.g.     -tsv_labels 0 4 5 2 3
+        default: -tsv_labels onset duration trial_type
+
+        Use this option to specify columns to be used for:
+
+           stimulus onset time
+           stimulus duration
+           stimulus class
+           optionally: any amplitude modulators ...
+
+        TSV (tab separated value) event timing files typically have column
+        headers, including stimulus timing information such as event onset
+        time, duration, stimulus type, response time, etc.  Unless specified,
+        the default column headers that are processed are:
+
+            onset duration trial_type
+
+        But in some cases they do not exist, so the user must specify alternate
+        headers (or indices).
+
+        Columns can be specified by labels, or 0-based indices.
+
    -verb LEVEL                  : set the verbosity level
 
         e.g. -verb 3
@@ -1260,9 +1337,11 @@ g_history = """
    3.06 Feb 25, 2019 - added modulators to -multi_timing_to_event_list output
    3.07 Apr 22, 2019 - added -tsv_labels
    3.08 May 07, 2019 - added -timing_to_1D_warn_ok
+   3.09 Jul 23, 2019 - added help and examples -tsv_labels
+   3.10 Jul 24, 2019 - added -show_tsv_label_details
 """
 
-g_version = "timing_tool.py version 3.08, May 7, 2019"
+g_version = "timing_tool.py version 3.10, Jul 24, 2019"
 
 
 
@@ -1295,6 +1374,7 @@ class ATInterface:
       self.stim_dur        = -1         # apply on read
       self.tsv_labels      = None       # labels to convert TSV to timing with
       self.tsv_def_dur_lab = None       # label for dur col if n/a
+      self.tsv_show_details= 0          # show the TSV label info
 
       # user options - multi var
       self.m_timing        = []
@@ -1426,7 +1506,8 @@ class ATInterface:
       if len(flist) < 1: return 0
 
       rv, timing_list = LT.read_multi_3col_tsv(flist, hlabels=self.tsv_labels,
-                             def_dur_lab=self.tsv_def_dur_lab, verb=self.verb)
+                             def_dur_lab=self.tsv_def_dur_lab,
+                             show_only=self.tsv_show_details, verb=self.verb)
       if rv: return 1
 
       self.m_timing = timing_list
@@ -1646,6 +1727,8 @@ class ATInterface:
                          helpstr='specify the lengths of each run (seconds)')
       self.valid_opts.add_opt('-show_tr_stats', 0, [], 
                          helpstr='show fractional TR stats timing files')
+      self.valid_opts.add_opt('-show_tsv_label_details', 0, [], 
+                         helpstr='show column labels from TSV file')
       self.valid_opts.add_opt('-warn_tr_stats', 0, [], 
                          helpstr='warn about bad fractional TR stats')
       self.valid_opts.add_opt('-tr', 1, [], 
@@ -1826,6 +1909,13 @@ class ATInterface:
       # like multi_timing, but from 3 column tsv files
       oind = uopts.find_opt_index('-multi_timing_3col_tsv')
       if oind >= 0:
+         # allow for just showing label info (but then no writing)
+         if uopts.find_opt('-show_tsv_label_details'):
+            self.tsv_show_details = 1
+            if uopts.find_opt('-write_multi_timing'):
+               print("** -show_tsv_label_details with -write_multi_timing" \
+                     " is not valid")
+               return 1
          val, err = uopts.get_string_list('-multi_timing_3col_tsv')
          if type(val) == type([]) and not err:
             if self.multi_timing_from_3col_tsv(val): return 1
@@ -2081,6 +2171,10 @@ class ATInterface:
                print("** '%s' requires -timing" % opt.name)
                return 1
             self.timing.show()
+
+         elif opt.name == '-show_tsv_label_details':
+            # already processed
+            pass
 
          # this is a write option
          elif opt.name == '-global_to_local':
