@@ -209,31 +209,31 @@ Running ~1~
 Examples ~1~
 
   # Ex 1:  With mask supplied, created earlier from magnitude image
-    epi_b0_correct.py                                \
-        -phase_echo_spacing  0.00031                 \
-        -distort_dir         AP                      \
-        -in_freq  sub-001_frequency.nii.gz           \
-        -in_mask  sub-001_magnitude_MASK.nii.gz      \
-        -in_epi   epiRest-sub-001.nii.gz             \
+    epi_b0_correct.py                                \\
+        -phase_echo_spacing  0.00031                 \\
+        -distort_dir         AP                      \\
+        -in_freq  sub-001_frequency.nii.gz           \\
+        -in_mask  sub-001_magnitude_MASK.nii.gz      \\
+        -in_epi   epiRest-sub-001.nii.gz             \\
         -prefix   b0_corr
 
   # Ex 2:  Input *magnitude* dset, from which to calculate mask
-    epi_b0_correct.py                                \
-        -phase_echo_spacing  0.00031                 \
-        -distort_dir         AP                      \
-        -in_freq  sub-001_frequency.nii.gz           \
-        -in_magn  sub-001_magnitude.nii.gz           \
-        -in_epi   epiRest-sub-001.nii.gz             \
+    epi_b0_correct.py                                \\
+        -phase_echo_spacing  0.00031                 \\
+        -distort_dir         AP                      \\
+        -in_freq  sub-001_frequency.nii.gz           \\
+        -in_magn  sub-001_magnitude.nii.gz           \\
+        -in_epi   epiRest-sub-001.nii.gz             \\
         -prefix   b0_corr
 
   # Ex 3: Input a JSON file (sidecar) accompanying the freq volume,
   #       and hope that it has all the necessary parameters/fields for
   #       this program. 
-    epi_b0_correct.py                                \
-        -in_freq_json  sub-001_frequency.json        \
-        -in_freq       sub-001_frequency.nii.gz      \
-        -in_magn       sub-001_magnitude.nii.gz      \
-        -in_epi        epiRest-sub-001.nii.gz        \
+    epi_b0_correct.py                                \\
+        -in_freq_json  sub-001_frequency.json        \\
+        -in_freq       sub-001_frequency.nii.gz      \\
+        -in_magn       sub-001_magnitude.nii.gz      \\
+        -in_epi        epiRest-sub-001.nii.gz        \\
         -prefix        b0_corr
 
 
