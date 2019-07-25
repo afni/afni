@@ -141,8 +141,10 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
    finterp = proc.vr_warp_fint
 
    if NL:
-      if base: mstr = ' -master %s' % base
-      else:    mstr = ''
+      if proc.vr_warp_mast is not None:
+         mstr = ' -master %s' % proc.vr_warp_mast.shortinput()
+      elif base: mstr = ' -master %s' % base
+      else:      mstr = ''
       if dim > 0: dimstr = ' -dxyz %g' % dim
       else:       dimstr = ''
 
@@ -160,31 +162,41 @@ def apply_catenated_warps(proc, warp_list, base='', source='', prefix='',
       clist.append('             -prefix %s\n' % prefix)
 
    else: # affine
-      if base: mstr = ' -base %s' % base
-      else:    mstr = ''
+      if base: bstr = ' -base %s' % base
+      else:    bstr = ''
       if dim > 0: dimstr = ' -mast_dxyz %g' % dim
       else:       dimstr = ''
 
       # final interpolation
-      if NN:        nstr = ' -final NN -quiet'
-      elif finterp: nstr = ' -final %s' % finterp
+      if NN:        nstr = '-final NN -quiet'
+      elif finterp: nstr = '-final %s' % finterp
       else:         nstr = ''
 
       if dimstr or nstr:
-         mastline = '            -mast_dxyz %g%s \\\n' % (dim, nstr)
+         mastline = '           '
+         if dimstr: mastline += (' -mast_dxyz %g' % dim)
+         if nstr:   mastline += (' %s' % nstr)
+         mastline += ' \\\n'
       else:
          mastline = ''
 
-      clist = ['3dAllineate%s\\\n'                   % mstr,
-               '            -input %s \\\n'          % source,
-               '            -1Dmatrix_apply %s \\\n' % wstr,
+      indent = ' ' * 12
+
+      clist = ['3dAllineate%s\\\n'         % bstr,
+               '%s-input %s \\\n'          % (indent, source),
+               '%s-1Dmatrix_apply %s \\\n' % (indent, wstr),
               ]
+
+      # if we have a volreg warp master, apply it
+      if proc.vr_warp_mast is not None:
+         mstr = '%s-master %s \\\n' % (indent, proc.vr_warp_mast.shortinput())
+         clist.append(mstr)
 
       # separate, since we cannot include empty lines
       if dimstr or nstr:
          clist.append(mastline)
 
-      clist.append('            -prefix %s\n'            % prefix)
+      clist.append('%s-prefix %s\n' % (indent, prefix))
 
    cmd = istr + istr.join(clist)
 
@@ -1972,12 +1984,44 @@ def db_mod_volreg(block, proc, user_opts):
         if bopt: bopt.parlist[0] = dxyz
         else: block.opts.add_opt('-volreg_warp_dxyz', 1, [dxyz], setpar=1)
 
+    # considerations for -volreg_warp_master :
+    #   - would be nice to also allow -volreg_warp_dxyz, but as that is an
+    #     isotropic voxels size, it should not be applied without user request
+    #     (i.e. be able to use -master without -dxyz)
+    #   - could simply require user to be sure it is appropriate
+    #     (for now, and account for issues as they arise)
+    #   - what if oblique? even allowed? can 3dAllin/NwA output be oblique?
+    #   - in volreg only case, there might not actually be a warp
+    #   
+    # capture any warp_master dset here, to get it with 3dcopy 
+    if vr_prep_for_warp_master(proc, user_opts): return 1
+
     # check on tsnr
     uopt = user_opts.find_opt('-volreg_compute_tsnr')
     bopt = block.opts.find_opt('-volreg_compute_tsnr')
     if uopt: bopt.parlist = uopt.parlist
 
     block.valid = 1
+
+def vr_prep_for_warp_master(proc, user_opts):
+    """check for -volreg_warp_master option and prep for processing"""
+
+    # if no such option, bail
+    oname = '-volreg_warp_master'
+    warp_master, rv = user_opts.get_string_opt(oname)
+    if warp_master is None or warp_master == '':
+       return 0
+
+    proc.vr_wmast_in = warp_master
+    view = UTIL.dset_view(warp_master)
+    if view == '':
+       print("** failed to get view from -volreg_warp_master, %s" % warp_master)
+       return 1
+    proc.vr_warp_mast = BASE.afni_name('vr_warp_master', view=view)
+    if proc.verb > 1:
+       print("-- have warp master dataset %s in view %s"%(warp_master, view))
+
+    return 0
 
 def db_cmd_volreg(proc, block):
     cmd = ''
@@ -2263,16 +2307,30 @@ def db_cmd_volreg(proc, block):
     # if warping to new grid, note dimensions
     dim = 0
     if doadwarp or dowarp or doe2a:
+        # if warping, we might want dxyz, master or both
+
+        # delta may need to be non-isotropic
+        proc.delta = [dim, dim, dim]
+
         opt = block.opts.find_opt('-volreg_warp_dxyz')
-        if opt: dim = opt.parlist[0]
+        if opt:
+           dim = opt.parlist[0]
+           proc.delta = [dim, dim, dim]
+        elif proc.vr_warp_mast is not None:
+            dims = UTIL.get_3dinfo_val_list(proc.vr_wmast_in, "d3", float)
+            if dims is None or len(dims) != 3:
+               print("** failed to get dimensions of -volreg_warp_master")
+               return
+            proc.delta = dims
         else:
             dim = UTIL.get_truncated_grid_dim(proc.dsets[0].rel_input())
             if dim <= 0:
                 print('** failed to get grid dim from %s' \
                       % proc.dsets[0].rel_input())
                 return
-        # store updated voxel dimensions
-        proc.delta = [dim, dim, dim]
+            proc.delta = [dim, dim, dim]
+        if proc.verb > 2: print("++ volreg: setting delta = %s" % proc.delta)
+
 
     # create EPI warp list, outer to inner
     epi_warps      = []
@@ -11991,7 +12049,7 @@ g_help_options = """
 
             Please see 'WARP TO TLRC NOTE' above, for additional details.
             See also -volreg_tlrc_adwarp, -volreg_warp_dxyz, -tlrc_anat,
-            -copy_anat.
+            -volreg_warp_master, -copy_anat.
 
         -volreg_warp_dxyz DXYZ  : grid dimensions for _align_e2a or _tlrc_warp
 
@@ -12027,6 +12085,10 @@ g_help_options = """
                 0.375  ...  0.4374 --> 0.375
                 ...
 
+            One can optionally supply -volreg_warp_master as well.
+
+            See also -volreg_warp_master.
+
         -volreg_warp_final_interp METHOD : set final interpolation method
 
                 e.g. -volreg_warp_final_interp wsinc5
@@ -12061,6 +12123,24 @@ g_help_options = """
 
             Please see '3dAllineate -help' for more details.
             Please see '3dNwarpApply -help' for more details.
+
+        -volreg_warp_master MASTER : master dataset for volreg warps
+
+                e.g. -volreg_warp_master my_fave_grid+orig
+                e.g. -volreg_warp_master my_fave_grid+tlrc
+                default: anatomical grid at truncated voxel size
+                         (if applicable)
+
+            This option allows the user to specify a dataset grid to warp
+            the registered EPI data onto.  The voxels need not be isotropic.
+
+            One can apply -volreg_warp_dxyz in conjunction, to specify the
+            master box, along with an isotropic voxel size.
+            
+            It is up to the user to be sure the MASTER grid is in a suitable
+            location for the results.
+
+            See also -volreg_warp_dxyz.
 
         -volreg_zpad N_SLICES   : specify number of slices for -zpad
 
