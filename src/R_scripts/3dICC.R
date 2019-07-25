@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Jul 22, 2019
+Version 0.0.3, Jul 24, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -237,10 +237,9 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-IF' = apl(n = 1, d = NA,  h = paste(
-   "-IF var_name: var_name is used to specify the column name that is designated for",
+   "-IF var_name: var_name is used to specify the last column name that is designated for",
    "        input files of effect estimate. The default (when this option is not invoked",
-   "        is 'InputFile', in which case the column header has to be exactly as 'InputFile'",
-   "        This input file for effect estimates has to be the last column.\n", sep = '\n'
+   "        is 'InputFile', in which case the column header has to be exactly as 'InputFile'.\n", sep = '\n'
                      ) ),
 
       '-tStat' = apl(n = 1, d = NA,  h = paste(
@@ -337,11 +336,12 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
    "         3) It is fine to have variables (or columns) in the table that are",
    "         not modeled in the analysis.\n",
    "         4) The context of the table can be saved as a separate file, e.g.,",
-   "         called table.txt. Do not forget to include a backslash at the end of",
-   "         each row. In the script specify the data with '-dataTable @table.txt'.",
-   "         This option is useful: (a) when there are many input files so that",
-   "         the program complains with an 'Arg list too long' error; (b) when",
-   "         you want to try different models with the same dataset.\n",
+   "         called table.txt. In the 3dICC script, specify the data with",
+   "         '-dataTable @table.txt'. Do NOT put any quotes around the square",
+   "         brackets for each sub-brick; Otherwise, the program cannot properly",
+   "         read the files. This option is useful: (a) when there are many input",
+   "         files so that the program complains with an 'Arg list too long' error;",
+   "         (b) when you want to try different models with the same dataset.\n",
              sep = '\n'
                      ) ),
 
@@ -398,8 +398,8 @@ read.ICC.opts.batch <- function (args=NULL, verb = 0) {
              mask   = lop$maskFN <- ops[[i]],
              jobs   = lop$nNodes <- ops[[i]],
 	     model  = lop$model  <- ops[[i]],
-             Subj   = lop$me     <- ops[[i]],
-	     IF     = lop$me     <- ops[[i]],
+             Subj   = lop$Subj     <- ops[[i]],
+	     IF     = lop$IF     <- ops[[i]],
 	     tStat  = lop$tStat  <- ops[[i]],
              qVars  = lop$qVars  <- ops[[i]],
              #vVars  = lop$vVars  <- ops[[i]],
@@ -680,11 +680,6 @@ cat('\nContingency tables of subject distributions among the categorical variabl
 cat('***** End of data structure information *****\n')   
 cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 
-
-# Assume the last column is input files
-#FileCol <- length(colnames(lop$dataStr))
-FileCol <- dim(lop$dataStr)[2]
-
 #Number of input files
 NoFile <- dim(lop$dataStr[1])[1]
 
@@ -694,7 +689,7 @@ NoFile <- dim(lop$dataStr[1])[1]
 cat('Reading input files now...\n\n')
 
 # Read in the 1st input file so that we have the dimension information
-inData <- read.AFNI(lop$dataStr[1, FileCol], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
+inData <- read.AFNI(lop$dataStr[1, lop$IF], verb=lop$verb, meth=lop$iometh, forcedset = TRUE)
 dimx <- inData$dim[1]
 dimy <- inData$dim[2]
 dimz <- inData$dim[3]
@@ -703,7 +698,7 @@ head <- inData
 
 
 # Read in all input files
-inData <- unlist(lapply(lapply(lop$dataStr[,FileCol], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
+inData <- unlist(lapply(lapply(lop$dataStr[,lop$IF], read.AFNI, verb=lop$verb, meth=lop$iometh, forcedset = TRUE), '[[', 1))
 tryCatch(dim(inData) <- c(dimx, dimy, dimz, NoFile), error=function(e)
    errex.AFNI(c("At least one of the input files has different dimensions!\n",
    "Run \"3dinfo -header_line -prefix -same_grid -n4 *.HEAD\" in the directory where\n",
@@ -890,7 +885,7 @@ options(contrasts = c("contr.sum", "contr.poly"))
          clusterEvalQ(cl, options(contrasts = c("contr.sum", "contr.poly")))
          for (kk in 1:dimz) {
             Stat[,,kk,] <- aperm(parApply(cl, inData[,,kk,], c(1,2), runLME, ModelForm=lop$model,
-	                dataframe=lop$dataStr, nBrk=lop$NoBrick, me=lop$ME, tag=0), c(2,3,1)) 
+	                dataframe=lop$dataStr, nBrk=lop$NoBrick, tag=0), c(2,3,1)) 
             cat("Z slice #", kk, "done: ", format(Sys.time(), "%D %H:%M:%OS3"), "\n")
          } 
          stopCluster(cl)
