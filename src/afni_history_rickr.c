@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add -volreg_warp_master, for controlling the output grid",
+   "Added for Y Miyawaki."
+ } ,
+
  { 24, Jul, 2019, RCR, "timing_tool.py", MINOR, TYPE_NEW_OPT,
    "add -show_tsv_label_details option",
    NULL

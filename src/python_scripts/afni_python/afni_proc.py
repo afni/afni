@@ -653,9 +653,10 @@ g_history = """
     6.43 Jul  3, 2019: if no stim, make sum_baseline.1D, not sum_ideal.1D
     6.44 Jul  5, 2019: (useless) switch to 3dTcorr1D for dot product
     6.45 Jul 19, 2019: if template is multi-volume, get vol [0] for group_mask
+    6.46 Jul 25, 2019: added -volreg_warp_master
 """
 
-g_version = "version 6.45, July 19, 2019"
+g_version = "version 6.46, July 25, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -854,6 +855,8 @@ class SubjProcSream:
         self.vr_ext_pre = 'vr_base_external' # copied volreg base prefix
         self.vr_int_name= ''            # other internal volreg dset name
         self.vr_base_dset = None        # afni_name for applied volreg base
+        self.vr_warp_mast = None        # local -volreg_warp_master dset
+        self.vr_wmast_in  = None        # input dset for warp_master
         self.vr_warp_fint = ''          # final interpolation for warped dsets
         self.vr_base_MO = 0             # using MIN_OUTLIER volume for VR base
         self.epi_final  = None          # vr_base_dset or warped version of it
@@ -1295,6 +1298,8 @@ class SubjProcSream:
                         helpstr='interpolation method used in volreg')
         self.valid_opts.add_opt('-volreg_warp_final_interp', 1, [],
                         helpstr='final interpolation used when apply warps')
+        self.valid_opts.add_opt('-volreg_warp_master', 1, [],
+                        helpstr='grid master applied to volreg warp')
         self.valid_opts.add_opt('-volreg_method', 1, [],
                         acplist=['3dvolreg','3dAllineate'],
                         helpstr='specify program for EPI volume registration')
@@ -2832,6 +2837,15 @@ class SubjProcSream:
             tstr = "# copy over the external volreg base\n"  \
                   "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.vr_ext_pre, self.vr_ext_base)
+            self.write_text(add_line_wrappers(tstr))
+            self.write_text("%s\n" % stat_inc)
+
+        # possibly copy over any volreg warp master
+        if self.vr_warp_mast != None:
+            tstr = "# copy volreg warp master dset as %s\n"  \
+                  "3dbucket -prefix %s/%s '%s'\n" %          \
+                  (self.vr_warp_mast.prefix, self.od_var,
+                   self.vr_warp_mast.prefix, self.vr_wmast_in)
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
