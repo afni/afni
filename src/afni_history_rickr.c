@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Jul, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
+   "add -make_backup and -echo",
+   "Suggested by J Rajendra."
+ } ,
+
  { 25, Jul, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add -volreg_warp_master, for controlling the output grid",
    "Added for Y Miyawaki."
