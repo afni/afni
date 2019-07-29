@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 16, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
+   "Fix incompatability with py2.",
+   "Sigh.\n"
+},
+
 { 25, July , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_NEW_PROG,
    "Program to apply freq volume to EPI for B0 distortion correction.",
    "An honor to translate this program from one by Vinai Roopchansingh!\n"

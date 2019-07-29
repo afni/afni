@@ -17,9 +17,12 @@
 # + [PT] expand 3dROIstats options
 # + [PT] write out *_cmds.tcsh file, recapitulate utilized param info at top
 #
-ver='1.4' ; date='July 25, 2019'
+#ver='1.4' ; date='July 25, 2019'
 # + [PT] change where scaling is applied-- now separate from 'polarity' issue
 # + [PT] updated help (included examples); put beta warning messages!
+#
+ver='1.41' ; date='July 26, 2019'
+# + [PT] update help; include JSON description
 #
 ###############################################################################
 
@@ -149,6 +152,36 @@ Running ~1~
                        that I have spent so much time calculating will be
                        applied
 
+{in_freq_json}  FJSON  : (opt) Several parameters about the frequency
+                       dset must be known for processing; these MIGHT
+                       be encoded in a JSON file accompanying the
+                       frequency dset.  If so, you can input the file
+                       and let The Program try to find+interpret them.
+                       At present, desirable keys/tags in the JSON
+                       (with the keyword args you would otherwise use
+                       when running this program) are:
+                         EffectiveEchoSpacing   (or use 'phase_echo_spacing')
+                         PhaseEncodingDirection (or use 'phase')
+
+{phase_dir}         DD : (req) direction (axis) of phase encoding, 
+                       e.g., AP, PA, RL, ...
+                       NB: the order matters, providing the PE direction
+                       (and not just PE axis); thus, 'AP' implies the 
+                       PE direction is A>>P, and 'PA' that it is P>>A, etc.
+
+{phase_echo_spacing} PES: (req) *effective* TE spacing of phase encoded
+                       volume, in units of 's'
+
+{phase_fov}       PFOV : (opt) field of view (FOV) of the frequency volume
+                       along the phase encode axis,  in units of 'mm';
+                       that is, the length of the dset along the PE axis
+
+{phase_scale}    DS : (opt) scale to apply to frequency volume, 
+                       for example to change units to match. 
+                       NB: a negative value would invert the warp (probably
+                       would not want that...?)
+                       (def: DS=1.0)
+
 {out_cmds}          OC : (opt) name of output script, recording commands that
                        were run during the processing (def: script is output
                        to file using entered prefix PP:  PP_script.tcsh).
@@ -160,25 +193,6 @@ Running ~1~
                        will be given automatic name, starting '{DEF_wdir_pref}' 
                        and ending with a random alphanumeric string, e.g.,
                        '{DEF_wdir_pref}_9huoXQ7c0AV'
-
-{phase_dir}      DD : (req) direction (axis) of phase encoding, 
-                       e.g., AP, PA, RL, ...
-                       NB: the order matters, providing the PE direction
-                       (and not just PE axis); thus, 'AP' implies the 
-                       PE direction is A>>P, and 'PA' that it is P>>A, etc.
-
-{phase_echo_spacing} PES: (req) *effective* TE spacing of phase encoded
-                        volume, in units of 's'
-
-{phase_fov}       PFOV : (opt) field of view (FOV) of the frequency volume
-                       along the phase encode axis,  in units of 'mm';
-                       that is, the length of the dset along the PE axis
-
-{phase_scale}    DS : (opt) scale to apply to frequency volume, 
-                       for example to change units to match. 
-                       NB: a negative value would invert the warp (probably
-                       would not want that...?)
-                       (def: DS=1.0)
 
 {blur_sigma}       BS : amount of blurring to apply to masked, phase encode
                        dset

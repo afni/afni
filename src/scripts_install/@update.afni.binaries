@@ -73,6 +73,7 @@ history for $prog :
                      and -show_system_progs
   3.8  15 Mar 2019 : comment that dotfile updates were done by @uab
   3.9  14 Jun 2019 : add -hostname and -distdir
+  3.10 26 Jul 2019 : add -make_backup and -echo
 
 -------------------------------------------------------------------------------
 EOF
@@ -104,7 +105,7 @@ set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
 set prog_list = ()              # update programs or entire package
 set tmp_dir = ".tmp.install"    # should start with '.'
-set make_backup = 1             # backup previous binaries
+set make_backup = 0             # backup previous binaries
 
 set sys_ok = 0                  # OK to update having system programs
 
@@ -164,6 +165,7 @@ while ( $ac <= $#argv )
         set defaults = 1
         set do_apsearch = 1
         set do_dotfiles = 1
+        set make_backup = 1
     else if ( "$argv[$ac]" == "-distdir" ) then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -176,6 +178,9 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-do_extras" ) then
         set do_apsearch = 1
         set do_dotfiles = 1
+        set make_backup = 1
+    else if ( "$argv[$ac]" == "-echo" ) then
+        set echo
     else if ( "$argv[$ac]" == "-help" ) then
         set help = 1
     else if ( "$argv[$ac]" == "-help_sys_progs" ) then
@@ -209,6 +214,18 @@ while ( $ac <= $#argv )
         if ( ! -f $local_package ) then
            echo "** missing -local_package file '$local_package'"
            exit 1
+        endif
+    else if ( "$argv[$ac]" == "-make_backup" ) then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-make_backup'"
+            exit 1
+        endif
+        set resp = `echo $argv[$ac] | cut -b1`
+        if ( $resp == 'N' || $resp == 'n' ) then
+           set make_backup = 0
+        else
+           set make_backup = 1
         endif
     else if ( "$argv[$ac]" == "-package" ) then
         @ ac ++
@@ -359,19 +376,18 @@ options:
     -defaults             : install current package into abin
     -d                    : (short for -defaults)
 
-        This would be the method to 'update the package that I
-        am currently using'.
+        This would be the method to 'update the package that I am currently
+        using'.
 
-        This option implies -do_dotfiles and -apsearch yes.
+        This option implies -do_dotfiles, -apsearch yes, and -make_backup yes.
 
-        The package would be decided by 'afni -ver' and the
-        directory would come from 'which afni'.  If either of
-        these is not appropriate, the package would be determined
-        by the OS (Linux or OSX allowed, 32 or 64-bits), and the
-        install dir would be ~/abin.
+        The package would be decided by 'afni -ver' and the directory would
+        come from 'which afni'.  If either of these is not appropriate, the
+        package would be determined by the OS (Linux or OSX allowed, 32 or
+        64-bits), and the install dir would be ~/abin.
 
-        If -bindir or -package cannot be determined, it must be
-        supplied by the user.
+        If -bindir or -package cannot be determined, it must be supplied by
+        the user.
 
         26 Sep 2012 : -update_apsearch is applied by default
                       (if installed afni is in PATH)
@@ -392,6 +408,19 @@ options:
 
            -apsearch yes
            -do_dotfiles
+           -make_backup yes
+
+    -echo                 : turn on shell command echo
+
+        This will be like running the script with "tcsh -x".
+
+    -make_backup yes/no   : make a backup of binaries before replacing
+
+           default: no
+                    (but it is 'yes' with -do_extras or -defaults)
+
+        Specify whether to make a backup of the current binaries.  Since the
+        default is currently yes, the likely use would be 'no'.
 
     -no_cert_verify       : do not verify the server CA certificate
 

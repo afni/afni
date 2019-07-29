@@ -17,9 +17,12 @@
 # + [PT] expand 3dROIstats options
 # + [PT] write out *_cmds.tcsh file, recapitulate utilized param info at top
 #
-ver='1.4' ; date='July 25, 2019'
+#ver='1.4' ; date='July 25, 2019'
 # + [PT] change where scaling is applied-- now separate from 'polarity' issue
 # + [PT] updated help (included examples); put beta warning messages!
+#
+ver='1.41' ; date='July 26, 2019'
+# + [PT] update help; include JSON description
 #
 ##########################################################################
 

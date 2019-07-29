@@ -29,8 +29,11 @@
 # + [PT] ... and have a new option to go back to just having only BC
 #   data, via '-bplot_view BC_ONLY'
 #
-ver = '1.6' ; date = 'July 23, 2019' 
+#ver = '1.6' ; date = 'July 23, 2019' 
 # + [PT] 1dplot.py can output PDF files now, too
+#
+ver = '1.61' ; date = 'July 26, 2019' 
+# + [PT] Fix py2 incompatability
 #
 #########################################################################
 
@@ -46,6 +49,7 @@ import afni_util  as au
 lvolreg        = [ 'roll\n(deg)', 'pitch\n(deg)', 'yaw\n(deg)', 
                    'dS\n(mm)',  'dL\n(mm)',  'dP\n(mm)' ]
 ok_ftypes      = [ '.jpg', '.png', '.tif', '.pdf' ]
+ok_ftypes_str  = ', '.join(ok_ftypes)
 
 # these exact names are used in the functions in lib_apqc_tcsh.py to
 # determine what kind of images get made
@@ -86,16 +90,17 @@ DEF_color_table = [
 
 # helpfile for the plotting prog
 
-fill_in_help_vals = {                                              \
-                      'def_dpi':DEF_dpi,                           \
-                      'def_ext':ok_ftypes[0],                      \
-                      'def_imwid':DEF_figsize[0],                  \
-                      'def_imhei':DEF_figsize[1],                  \
-                      'def_fontsz':DEF_fontsize,                   \
-                      'def_fontfam':DEF_fontfamily,                \
-                      'def_cen_RGB':DEF_censor_RGB,                \
-                      'def_col_bkdg':DEF_bkgd_color,               \
-                      'def_num_col':len(DEF_color_table)           \
+fill_in_help_vals = {                                              
+                      'def_dpi':DEF_dpi,                           
+                      'def_ext':ok_ftypes[0],                      
+                      'def_imwid':DEF_figsize[0],                  
+                      'def_imhei':DEF_figsize[1],                  
+                      'def_fontsz':DEF_fontsize,                   
+                      'def_fontfam':DEF_fontfamily,                
+                      'def_cen_RGB':DEF_censor_RGB,                
+                      'def_col_bkdg':DEF_bkgd_color,               
+                      'def_num_col':len(DEF_color_table),          
+                      'ok_ftypes_str':ok_ftypes_str,               
 }
 
 help_string_apqc_1dplot = '''
@@ -134,7 +139,7 @@ COMMAND OPTIONS ~1~
 -prefix  PP   :output filename or prefix; if no file extension for an
                image is included in 'PP', one will be added from a
                list.  At present, OK file types to output should include:
-                  {ok_ftypes}
+                  {ok_ftypes_str}
                ... but note that the kinds of image files you may output
                may be limited by packages (or lack thereof) installed on
                your own computer.   Default output image type is {def_ext}
@@ -353,7 +358,7 @@ EXAMPLES ~1~
     -prefix  mot_outlier_plot.png
 
 
-'''.format(**fill_in_help_vals, ok_ftypes=', '.join(ok_ftypes))
+'''.format(**fill_in_help_vals)
 
 
 
