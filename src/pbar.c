@@ -240,7 +240,8 @@ STATUS("init pval_save") ;
    for( i=0 ; i < NPANE_BIG ; i++ ) pbar->bigcolor[i] = bigmap[0][i] ;
    pbar->bigname = bigmap_name[0] ;
    pbar->bigxim  = NULL ;
-   pbar->bigbot  = -1.0f ; pbar->bigtop = 1.0f ; pbar->dont_alter_bigmax = 0 ;
+   pbar->dont_alter_bigmax = 0 ;
+   pbar->bigbot = pmin; pbar->bigtop = pmax; /* 29 Jul 2019 */
 
    pbar->bigmax  = PBAR_get_bigmax(pbar) ;                /* Feb 2012 */
    pbar->big30   = pbar->big32 = pbar->big31 = bigthree ;
@@ -457,7 +458,7 @@ ENTRY("PBAR_add_bigmap") ;
 /*-----------------------------------------------------------------------*/
 /* Refactored out of PBAR_make_bigmap [17 Jul 2019 RWC] */
 
-void PBAR_fill_bigmap( int neq , float *val , rgbyte *col , rgbyte *map )
+void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map, int npan )
 {
    int ii,jj ;
    float fr,fg,top,bot,del,vv ;
@@ -476,10 +477,12 @@ ENTRY("PBAR_fill_bigmap") ;
     }
    } while(jj) ;
 
-   top = val[0] ; bot = val[neq-1] ; if( bot >= top ) EXRETURN ;
-   del = (top-bot)/(NPANE_BIG-1) ;
+   if( npan < 16 ) npan = NPANE_BIG ;
 
-   for( jj=ii=0 ; ii < NPANE_BIG ; ii++ ){
+   top = val[0] ; bot = val[neq-1] ; if( bot >= top ) EXRETURN ;
+   del = (top-bot)/(npan-1) ;
+
+   for( jj=ii=0 ; ii < npan ; ii++ ){
      vv = top - ii*del ;
      for( ; jj < neq-1 ; jj++ )
        if( vv <= val[jj] && vv >= val[jj+1] ) break ; /* no break at end!*/
@@ -515,7 +518,7 @@ ENTRY("PBAR_make_bigmap") ;
      STATUS("bad inputs") ; EXRETURN ;
    }
 
-   PBAR_fill_bigmap( neq , val , col , map ) ;
+   PBAR_fill_bigmap( neq , val , col , map , 0 ) ;
 
    PBAR_add_bigmap( name, map ) ; EXRETURN ;
 }
@@ -1134,11 +1137,8 @@ static float PBAR_get_bigmax( MCW_pbar *pbar )
 void PBAR_set_bigmode( MCW_pbar *pbar, int bmode, float bot,float top )
 {
 ENTRY("PBAR_set_bigmode") ;
-   if( bmode && bot < top ){
+   if( bot < top ){
      pbar->bigbot = bot; pbar->bigtop = top;
-#if 0
-if(pbar->big31) INFO_message("set_bigmode: bot=%g top=%g",bot,top) ;
-#endif
    }
    pbar->bigmode   = bmode ;
    pbar->update_me = 1 ;
@@ -1646,6 +1646,7 @@ h1,yy,pbar->bigbot,ab,pbar->bigtop,at) ;
    sum  = 0 ;
    pmax = pbar->pval[0] ;
    pmin = pbar->pval[pbar->num_panes] ;
+   pbar->bigbot = pmin; pbar->bigtop = pmax; /* 29 Jul 2019 */
 
    for( i=0 ; i <= pbar->num_panes ; i++ ){
 
@@ -1744,6 +1745,7 @@ STATUS("use new_pval") ;
    }
    pmax = pval[0] ;
    pmin = pval[npane] ;
+   pbar->bigbot = pmin; pbar->bigtop = pmax; /* 29 Jul 2019 */
 
    /*--- make new panes or destroy old ones ---*/
 

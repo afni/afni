@@ -1758,7 +1758,9 @@ static void mri_edgize_outer( MRI_IMAGE *im )
    for use with AFNI_newnewfunc_overlay [17 Jul 2019 - RWC]
 *//*---------------------------------------------------------------------*/
 
-void AFNI_panes_to_bigcolor( MCW_pbar *pbar , rgbyte *bigcolor )
+#define NPANE_SUPERBIG 10001
+
+void AFNI_panes_to_bigcolor( MCW_pbar *pbar , rgbyte *bigcolor , int nbig )
 {
    float *pval ;
    int *ovind , npan ;
@@ -1769,6 +1771,9 @@ ENTRY("AFNI_panes_to_bigcolor") ;
 
    if( pbar == NULL || bigcolor == NULL ) EXRETURN ;
 
+        if( nbig < 16             ) nbig = NPANE_BIG ;
+   else if( nbig > NPANE_SUPERBIG ) nbig = NPANE_SUPERBIG ;
+
    pval  = pbar->pval ;            /* [i] = bot of panel #i, i=0..npan */
    ovind = pbar->ov_index ;        /* [i] = color panel #i , i=0..npan-1 */
    npan  = pbar->num_panes ;       /* number of panes (duh) */
@@ -1776,7 +1781,7 @@ ENTRY("AFNI_panes_to_bigcolor") ;
    g_ov  = pbar->dc->ovc->g_ov ;   /* [j] = G value of color #j */
    b_ov  = pbar->dc->ovc->b_ov ;   /* [j] = B value of color #j */
 
-   eps = 2.0f * fabsf(pval[0]-pval[npan]) / (float)NPANE_BIG ;
+   eps = 0.10f * fabsf(pval[0]-pval[npan]) / (float)nbig ;
    neq = 2 * npan ;
    col = (rgbyte *)malloc(sizeof(rgbyte)*neq) ;
    val = (float * )malloc(sizeof(float) *neq) ;
@@ -1792,7 +1797,7 @@ ENTRY("AFNI_panes_to_bigcolor") ;
    jj = ovind[npan-1] ; val[kk] = pval[npan] ;
    col[kk].r = r_ov[jj] ; col[kk].g = g_ov[jj] ; col[kk].b = b_ov[jj] ;
 
-   PBAR_fill_bigmap( neq , val , col , bigcolor ) ;
+   PBAR_fill_bigmap( neq , val , col , bigcolor , nbig ) ;
 
    free(val) ; free(col) ;
    EXRETURN ;
@@ -1828,8 +1833,8 @@ MRI_IMAGE * AFNI_func_overlay( int n , FD_brick *br_fim )
    short *ar_ov ;
    short fim_ovc[NPANE_MAX+1] ;  /* for the 'old' discrete pane colorization */
    float fim_thr[NPANE_MAX+1] ;
-   rgbyte pane_bigcolor[NPANE_BIGGEST] ;
-   int npix , ii , lp , num_lp , ival ;
+   rgbyte pane_bigcolor[NPANE_SUPERBIG] ;
+   int npix , ii , lp , num_lp , ival , nbig ;
    float scale_factor , scale_thr ;
    MCW_pbar *pbar ;
    int simult_thr , need_thr ;
@@ -2067,7 +2072,12 @@ if( PRINT_TRACING && im_thr != NULL )
      /* Always use AFNI_newnewfunc_overlay() [05 Nov 2018] */
 
      if( !pbar->bigmode ){
-       AFNI_panes_to_bigcolor( pbar , pane_bigcolor ) ;
+#if 1
+       nbig = NPANE_SUPERBIG ;
+#else
+       nbig = NPANE_BIG ;
+#endif
+       AFNI_panes_to_bigcolor( pbar , pane_bigcolor , nbig ) ;
        bigcol = pane_bigcolor ;
      } else {
        if( pbar->big30 ) reject_zero = VEDIT_good(im3d->vedset) ;
@@ -2076,7 +2086,7 @@ if( PRINT_TRACING && im_thr != NULL )
        } else {
          zbelow = (pbar->bigbot == 0.0f) ;
        }
-       bigcol = pbar->bigcolor ;
+       bigcol = pbar->bigcolor ; nbig = NPANE_BIG ;
      }
      flags = zbelow * NFO_ZBELOW_MASK + zabove * NFO_ZABOVE_MASK ;
 
@@ -2088,7 +2098,7 @@ if( PRINT_TRACING && im_thr != NULL )
                                       im_fim , im_noved ,
                                       scale_factor*pbar->bigbot ,
                                       scale_factor*pbar->bigtop ,
-                                      bigcol , flags ,
+                                      nbig , bigcol , flags ,
                                       im3d->vinfo->thr_alpha_floor , im3d->dc ) ;
      goto CLEANUP ;
    }
@@ -2279,7 +2289,7 @@ CLEANUP:
    RETURN(im_ov) ;
 }
 
-#if 0
+#if 0  /******************* OBSOLETE FUNCTION - do not compile ***********/
 /*-----------------------------------------------------------------------*/
 /*! Make a functional overlay the new way (30 Jan 2003):
     - im_thr = threshold image (may be NULL)
@@ -2379,7 +2389,7 @@ STATUS("thresholdization") ;
 
    RETURN(im_ov) ;
 }
-#endif
+#endif /***************** OBSOLETE FUNCTION ********************/
 
 /*-----------------------------------------------------------------------*/
 /* This function is only used to alpha fade the pbar image.
@@ -2430,12 +2440,14 @@ void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im )
 
 /*-----------------------------------------------------------------------*/
 /*! Make a functional overlay the new new way (08 Dec 2014):
-    - im_thr = threshold image (may be NULL)
-    - thbot  = pixels with values in im_thr in range (thbot..thtop)
-    - thtop  =  get translucent overlay values
-    - im_fim = image to make overlay from (may not be NULL)
-    - fimbot = pixel value to map to fimcolor[0]
-    - fimtop = pixel value to map to fimcolor[NPANE_BIG-1]
+    - im_thr   = threshold image (may be NULL)
+    - thbot    = pixels with values in im_thr in range (thbot..thtop)
+    - thtop    =  get translucent overlay values
+    - im_fim   = image to make overlay from (may not be NULL)
+    - fimbot   = pixel value to map to fimcolor[0]
+    - fimtop   = pixel value to map to fimcolor[nfimc-1]
+    - nfimc    = number of colors in the fimcolor array
+    - fimcolor = continuous color scale
  ** Changed Nov 2018 to allow a mixture of the volume edited
     FIM (im_fim) and the non-volume edited FIM (im_noved) to
     determine color and alpha.
@@ -2443,12 +2455,13 @@ void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im )
 
 MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop,
                                      MRI_IMAGE *im_fim , MRI_IMAGE *im_noved ,
-                                     float fimbot, float fimtop, rgbyte *fimcolor,
+                                     float fimbot, float fimtop,
+                                     int nfimc , rgbyte *fimcolor,
                                      int flags , float alpha_floor , MCW_DC *dc )
 {
    MRI_IMAGE *im_ov ;
    rgba *ovar ;
-   int ii , npix , jj ;
+   int ii , npix , jj , nfimc1 = nfimc-1 ;
    float fac , val , vval ;
    int dothr = (thbot < thtop) && (im_thr != NULL);  /* 08 Aug 2007 */
    int alcode=0 ;                                    /* 09 Dec 2014 */
@@ -2462,7 +2475,7 @@ MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *im_thr , float thbot,float thtop
 
 ENTRY("AFNI_newnewfunc_overlay") ;
 
-   if( im_fim == NULL || fimbot >= fimtop || fimcolor == NULL ) RETURN(NULL) ;
+   if( im_fim == NULL || fimbot >= fimtop || fimcolor == NULL || nfimc < 2 ) RETURN(NULL) ;
 
    /* create output image */
 
@@ -2470,9 +2483,8 @@ STATUS("create output image") ;
    im_ov = mri_new_conforming( im_fim , MRI_rgba ) ; /* zero filled */
    ovar  = MRI_RGBA_PTR(im_ov) ;      /* our job is to fill this up */
    npix  = im_ov->nvox ;
-   fac   = NPANE_BIG / (fimtop-fimbot) ; /* scale from data value to color index */
-
-   kf = (int)im_fim->kind ;  /* type of data in FIM */
+   fac   = nfimc / (fimtop-fimbot) ;  /* scale from data value to color index */
+   kf    = (int)im_fim->kind ;        /* type of data in FIM */
 
    /* pointer for FIM data */
 
@@ -2507,12 +2519,15 @@ STATUS("colorization") ;
      if( do_pos && vval <= 0.0f ) continue ;  /* 12 Dec 2014 */
 
      jj = (int)( fac*(fimtop-vval) ) ;
-     if( jj < 0 ) jj = 0 ; else if( jj > NPANE_BIG1 ) jj = NPANE_BIG1 ;
+#if 0
+     INFO_message("v=%f -> jj=%d  fimbot=%f fimtop=%f fac=%f nfimc=%d",vval,jj,fimbot,fimtop,fac,nfimc) ;
+#endif
+     if( jj < 0 ) jj = 0 ; else if( jj > nfimc1 ) jj = nfimc1 ;
      ovar[ii].r = fimcolor[jj].r ; /* colorize */
      ovar[ii].g = fimcolor[jj].g ;
      ovar[ii].b = fimcolor[jj].b ;
      ovar[ii].a = 255 ;            /* default is opaque */
-              /* but voxels skipped above are transparent */
+            /* but voxels skipped above are transparent */
    }
 
    /** now apply threshold, if any **/

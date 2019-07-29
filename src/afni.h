@@ -2211,7 +2211,7 @@ extern MRI_IMAGE * AFNI_newfunc_overlay( MRI_IMAGE *, float,float ,  /* 30 Jan 2
 
 extern MRI_IMAGE * AFNI_newnewfunc_overlay( MRI_IMAGE *, float,float ,  /* 08 Dec 2014 */
                                          MRI_IMAGE *, MRI_IMAGE *,
-                                         float,float, rgbyte *, int ,float,MCW_DC * ) ;
+                                         float,float, int,rgbyte *, int ,float,MCW_DC * ) ;
 
 extern void AFNI_alpha_fade_mri( Three_D_View *im3d , MRI_IMAGE *im ) ;
 

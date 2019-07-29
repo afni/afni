@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 29 , JUL , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
+   "Reduce colorization interpolation problem" ,
+   "When using discrete panes, conversion to 'continuous' colorscale causes\n"
+   "a problem right at the boundary. This change reduces this problem." } ,
+
  { 17 , JUL , 2019 , RWC , "AFNI gui" , MINOR , TYPE_ENHANCE ,
    "changes to make alpha and boxed (A and B) work with color panes" ,
    "People from Wisconsin are trouble." } ,

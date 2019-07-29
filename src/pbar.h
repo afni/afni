@@ -130,7 +130,7 @@ int PBAR_define_bigmap( char *cmd ) ;                       /* 07 Feb 2003 */
 void PBAR_flip( MCW_pbar * ) ;                              /* 07 Feb 2004 */
 int PBAR_get_bigmap_index ( char *bnam );                   /* 26 Feb 2010 ZSS */
 
-void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map ) ; /* 17 Jul 2019 */
+void PBAR_fill_bigmap( int neq, float *val, rgbyte *col, rgbyte *map, int npan ) ; /* 17 Jul 2019 */
 
 extern int AFNI_set_func_range_nval( XtPointer *vp_im3d, float val);
                                                             /* 15 Feb 2010 */
