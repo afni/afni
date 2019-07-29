@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 29, Jul, 2019, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
+   "format help output for sphinx conversion",
+   NULL
+ } ,
+
  { 26, Jul, 2019, RCR, "@update.afni.binaries", MINOR, TYPE_NEW_OPT,
    "add -make_backup and -echo",
    "Suggested by J Rajendra."
