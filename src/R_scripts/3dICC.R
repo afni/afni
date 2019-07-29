@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.3, Jul 24, 2019
+Version 0.0.4, Jul 29, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -720,7 +720,7 @@ if(!is.na(lop$tStat)) {
 if (!is.na(lop$maskFN)) {
    Mask <- read.AFNI(lop$maskFN, verb=lop$verb, meth=lop$iometh, forcedset = TRUE)$brk[,,,1]
    inData <- array(apply(inData, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
-   if(!is.na(lop$dataStr$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
+   if(!is.na(lop$tStat)) inDataV <- array(apply(inDataV, 4, function(x) x*(abs(Mask)>tolL)), dim=c(dimx,dimy,dimz,NoFile))
 }
   
 # voxel-wise covariate files
