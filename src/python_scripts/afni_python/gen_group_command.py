@@ -15,10 +15,16 @@ import lib_subjects as SUBJ
 
 g_help_string = """
 =============================================================================
-gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
-                          3dANOVA2, 3dANOVA3
-                        - generate generic commands
-                        - todo (maybe): 3dttest, GroupAna
+gen_group_command.py    - generate group analysis command scripts
+
+   purpose: ~1~
+
+   Quickly generate group analysis command scripts by parsing wildcard-based
+   lists of input datasets.
+
+       1. generate group commands: 3dttest++, 3dMEMA, 3dANOVA2, 3dANOVA3
+       2. generate generic commands
+       3. todo (maybe): 3dttest, GroupAna (or maybe not)
 
    This program is to assist in writing group commands.  The hardest part (or
    most tedious) is generally listing datasets and such, particularly including
@@ -59,9 +65,9 @@ gen_group_command.py    - generate group commands: 3dttest++, 3dMEMA,
                              -dsets group_results/OL*D
 
 ------------------------------------------
-examples (by program)
+examples (by program) ~1~
 
-   A. 3dttest++ (not 3dttest)
+   A. 3dttest++ (not 3dttest) ~2~
 
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
@@ -78,7 +84,9 @@ examples (by program)
             Note also that 3dttest uses sub-brick labels which should make
             this clear.
 
-      1. The most simple case, providing just the datasets.  The subject IDs
+      1. the most simple case, providing just the datasets ~3~
+
+         The most simple case, providing just the datasets.  The subject IDs
          will be extracted from the dataset names.  Since no sub-bricks are
          provided, the betas will default to sub-brick 0 and the test will be
          the mean compared with 0.
@@ -86,7 +94,9 @@ examples (by program)
             gen_group_command.py -command 3dttest++        \\
                                  -dsets REML*.HEAD
 
-      2. Specify the sub-bricks and set labels to compare Vrel vs. Arel.
+      2. specifying set labels and beta weights for a 2-sample t-test ~3~
+
+         Specify the sub-bricks and set labels to compare Vrel vs. Arel.
          Write the command to the file cmd.tt++.2.
 
             gen_group_command.py -command 3dttest++        \\
@@ -96,7 +106,7 @@ examples (by program)
                                  -set_labels Vrel Arel     \\
                                  -subs_betas 'Vrel#0_Coef' 'Arel#0_Coef'
 
-      3. Request a paired t-test and apply a mask.
+      3. request a paired t-test and apply a mask ~3~
 
             gen_group_command.py -command 3dttest++                         \\
                                  -write_script cmd.tt++.3                   \\
@@ -107,7 +117,9 @@ examples (by program)
                                  -options                                   \\
                                     -paired -mask mask+tlrc
 
-      4. Exclude voxels that are identically zero across more than 20% of the
+      4. include options specific to 3dttest++ (not gen_group_command.py) ~3~
+
+         Exclude voxels that are identically zero across more than 20% of the
          input datasets (presumably masked at the single subject level).
          Convert output directly to z, since the DOF will vary across space.
 
@@ -120,7 +132,9 @@ examples (by program)
                                  -options                                   \\
                                     -zskip 0.8 -toz
 
-      5. Use covariates to account for a sex difference.  We might encode
+      5. including covariates and related options ~3~
+
+         Use covariates to account for a sex difference.  We might encode
          females as 0 and males as 1 to get an intercept (main effect) that
          applies to females (if we do not do any centering).  However, we
          want a main effect for the average between males and females, and
@@ -140,7 +154,9 @@ examples (by program)
                                     -center NONE
 
 
-      6. Use -dset_index0_list to compare female subjects to males.
+      6. specify index lists to restrict applied subject datasets ~3~
+
+         Use -dset_index0_list to compare female subjects to males.
          Both subject types are in the same directory (10 subjects total).
          So the -dsets options will both specify the same list, which will
          then be paired down via -dset_index0_list to indicate only females
@@ -160,7 +176,9 @@ examples (by program)
                                  -subs_betas 'Vrel#0_Coef'
 
 
-      7. For BIDS, adjust subject IDs and get group lists from text files,
+      7. specify applied subjects via subject ID lists ~3~
+
+         For BIDS, adjust subject IDs and get group lists from text files,
          group1_subjects.txt and group2_subjects.txt.
 
             gen_group_command.py                                \\
@@ -179,7 +197,7 @@ examples (by program)
 
    --------------------
 
-   B. 3dMEMA
+   B. 3dMEMA ~2~
 
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
@@ -188,14 +206,18 @@ examples (by program)
             the first set.
 
 
-      1. The most simple case, providing just the datasets.  The subject IDs
+      1. most simple case, providing only datasets ~3~
+
+         The most simple case, providing just the datasets.  The subject IDs
          will be extracted from the dataset names.  Since no sub-bricks are
          provided, the betas will be 0 and t-stats will be 1.
 
             gen_group_command.py -command 3dMEMA           \\
                                  -dsets REML*.HEAD
 
-      2. This does not quite apply to AFNI_data6.  Assuming there are 2 group
+      2. getting separate groups via directories ~3~
+
+         This does not quite apply to AFNI_data6.  Assuming there are 2 group
          directories, write a 2-sample command.
 
             gen_group_command.py -command 3dMEMA           \\
@@ -203,7 +225,9 @@ examples (by program)
                                  -dsets groupA/REML*.HEAD  \\
                                  -dsets groupB/REML*.HEAD
 
-      3. Run 3dMEMA, but restrict the subjects to partial lists from within
+      3. restrict subject datasets via an index list ~3~
+
+         Run 3dMEMA, but restrict the subjects to partial lists from within
          an entire list.  This applies -dset_index0_list (or the sister
          -dset_index1_list).
 
@@ -234,7 +258,7 @@ examples (by program)
 
    --------------------
 
-   C. 3dANOVA2
+   C. 3dANOVA2 ~2~
 
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
@@ -244,14 +268,17 @@ examples (by program)
             no contrasts are given, the program will add 1 trivial one.
 
 
-      1. The most simple case, providing just the datasets and a list of
+      1. basic example, with datasets and volume indices ~3~
+
+         The most simple case, providing just the datasets and a list of
          sub-bricks.  
 
             gen_group_command.py -command 3dANOVA2         \\
                                  -dsets OLSQ*.HEAD         \\
                                  -subs_betas 0 1
 
-      2. Get more useful:
+      2. get more useful: ~3~
+
             - apply with a directory
             - specify a script name
             - specify a dataset prefix for the 3dANOVA2 command
@@ -268,7 +295,7 @@ examples (by program)
 
    --------------------
 
-   D. 3dANOVA3
+   D. 3dANOVA3 ~2~
 
       Note: these commands apply to the sample group data under
             AFNI_data6/group_results.
@@ -286,7 +313,7 @@ examples (by program)
             type 4: there should be one -dsets option and a -factors option
             type 5: there should be two -dsets options and no -factor
 
-      1. 3dANOVA3 -type 4
+      1. 3dANOVA3 -type 4 : simple ~3~
 
          This is a simple example of a 2-way factorial ANOVA (color by image
          type), across many subjects.  The colors are pink and blue, while the
@@ -309,7 +336,7 @@ examples (by program)
                  "blue_house#0_Coef" "blue_face#0_Coef" "blue_donut#0_Coef" \\
                -factors 2 3
 
-      2. 3dANOVA3 -type 4
+      2. 3dANOVA3 -type 4 : more useful ~3~
 
          Get more useful:
             - apply with an input data directory
@@ -329,7 +356,7 @@ examples (by program)
                  -adiff 1 2 pink_vs_blue                                    \\
                  -bcontr -0.5 -0.5 1.0 donut_vs_house_face
 
-      3. 3dANOVA3 -type 5
+      3. 3dANOVA3 -type 5 : simple, with 2 groups ~3~
 
          Here is a simple case, providing just 2 groups of datasets and a list
          of sub-bricks.  
@@ -339,7 +366,7 @@ examples (by program)
                                  -dsets REML*.HEAD         \\
                                  -subs_betas 0 1
 
-      4. 3dANOVA3 -type 5
+      4. 3dANOVA3 -type 5 : more detailed ~3~
 
          Get more useful:
             - apply with an input data directory
@@ -360,7 +387,7 @@ examples (by program)
 
    --------------------
 
-   E. generic/other programs
+   E. generic/other programs ~2~
 
       These commands apply to basically any program, as specified.  Options
       may be provided, along with 1 or 2 sets of data.  If provided, the
@@ -370,23 +397,27 @@ examples (by program)
       the dataset names are explicit.
 
 
-      1. perhaps a fairly useless example with 'ls', just for demonstration
+      1. very simple demonstration, for just an 'ls' command ~3~
+
+        Perhaps a fairly useless example with 'ls', just for demonstration.
 
         gen_group_command.py -command ls -dsets group_results/OL*D
 
-      2. using 3dTcat to collect a sub-brick from each subject
+      2. using 3dTcat to collect a sub-brick from each subject ~3~
 
         gen_group_command.py -command 3dTcat -subs_betas 'Arel#0_Coef' \\
                              -dsets group_results/OL*D
 
-      3. including 2 sets of subjects, with a different sub-brick per set
+      3. including 2 sets of subjects, with a different sub-brick per set ~3~
 
         gen_group_command.py -command 3dTcat -subs_betas 0 1 \\
                              -dsets group_results/OLSQ*D     \\
                              -dsets group_results/REML*D
 
-      4. 2 sets of subjects (in different directories, and with different
-         sub-brick selectors), along with:
+      4. 2 sets of subjects ~3~
+
+         Datasets in different directories, and with different sub-brick
+         selectors, along with:
 
             - a script name (to write the script to a text file)
             - a -prefix
@@ -402,14 +433,16 @@ examples (by program)
                              -dsets group_results/REML*D
 
 ------------------------------------------
-terminal options:
+command-line options: ~1~
+------------------------------------------
+terminal options: ~2~
 
    -help                     : show this help
    -hist                     : show module history
    -show_valid_opts          : list valid options
    -ver                      : show current version
 
-required parameters:
+required parameters: ~2~
 
    -command COMMAND_NAME     : resulting command, such as 3dttest++
 
@@ -428,7 +461,7 @@ required parameters:
 
         This option can be used multiple times, once per group.
 
-other options:
+other options: ~2~
 
    -dset_sid_list SID SID ...   : restrict -dsets datasets to this SID list
 
@@ -660,9 +693,10 @@ g_history = """
         - show subject counts
         - change max line len and whether data dir vars are used
         - no require on restricted subjects
+   1.3  Jul 30, 2019 - sphinx help update
 """
 
-g_version = "gen_group_command.py version 1.2 March 5, 2019"
+g_version = "gen_group_command.py version 1.3 July 30, 2019"
 
 
 class CmdInterface:

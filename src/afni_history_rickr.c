@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Jul, 2019, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
+   "format help output for sphinx conversion",
+   NULL
+ } ,
+
  { 29, Jul, 2019, RCR, "timing_tool.py", MICRO, TYPE_ENHANCE,
    "format help output for sphinx conversion",
    NULL
