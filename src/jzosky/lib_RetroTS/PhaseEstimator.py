@@ -19,7 +19,7 @@ __author__ = 'Joshua Zosky'
 
 from numpy import zeros, ones, nonzero, pi, argmin, sin, cos
 from numpy import size, arange, clip, histogram, r_, Inf, divide, append, delete, array
-from zscale import z_scale
+from .zscale import z_scale
 import matplotlib.pyplot as plt
 
 
@@ -180,7 +180,7 @@ def phase_base(amp_type, phasee):
         phasee['phase_slice_reg'][:, 3, i_slice] = cos(2 * phasee['phase_slice'][:,i_slice])
 
     if phasee['quiet'] == 0 and phasee['show_graphs'] == 1:
-        print '--> Calculated phase'
+        print('--> Calculated phase')
         plt.subplot(413)
         a = divide(divide(phasee['phase'], 2), pi)
         plt.plot(phasee['t'], divide(divide(phasee['phase'], 2), pi), 'm')

@@ -34,7 +34,7 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
              prefix='Output_File_Name',
              slice_offset=0,
              slice_major=1,
-             rvt_shifts=range(0, 21, 5),
+             rvt_shifts=list(range(0, 21, 5)),
              respiration_cutoff_frequency=3,
              cardiac_cutoff_frequency=3,
              interpolation_style='linear',
@@ -136,15 +136,15 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
             for i in f.readlines():
                 slice_file_list.append(int(i))
                 if len(slice_file_list) != main_info['number_of_slices']:
-                    print 'Could not read enough slice offsets from file'
-                    print 'File should have as many offsets as number_of_slices'
+                    print('Could not read enough slice offsets from file')
+                    print('File should have as many offsets as number_of_slices')
                     quit()
             main_info['slice_offset'] = slice_file_list
     if main_info['slice_order'][3] == '-' and slice_file_list == []:    # Check for a minus to indicate
                                                                         #  a reversed offset list
         main_info['slice_offset'].reverse()
     if main_info['quiet'] != 1:  # Show the slice timing (P.S. Printing is very time consuming in python)
-        print 'Slice timing:', main_info['slice_offset']
+        print(('Slice timing:', main_info['slice_offset']))
 
     # Create information copy for each type of signal
     respiration_info = dict(main_info)
@@ -163,14 +163,14 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
     if respiration_file:
         respiration_peak, error = peak_finder(respiration_info, respiration_file)
         if error:
-            print 'Died in PeakFinder'
+            print('Died in PeakFinder')
             return
     else:
         respiration_peak = {}
     if cardiac_file:
         cardiac_peak, error = peak_finder(cardiac_info, cardiac_file)
         if error:
-            print 'Died in PeakFinder'
+            print('Died in PeakFinder')
             return
     else:
         cardiac_peak = {}
@@ -182,13 +182,13 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
 
     # Get the phase
     if respiration_peak:
-        print 'Estimating phase for respiration_info'
+        print('Estimating phase for respiration_info')
         respiration_phased = phase_estimator(respiration_info['amp_phase'], respiration_info)
     else:
         respiration_phased = {}
     if cardiac_peak:
-        print 'Estimating phase for cardiac_info'
-        print cardiac_info['v']
+        print('Estimating phase for cardiac_info')
+        print((cardiac_info['v']))
         cardiac_phased = phase_estimator(cardiac_info['amp_phase'], cardiac_info)
     else:
         cardiac_phased = {}
@@ -197,8 +197,8 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
     cardiac_info.update(cardiac_phased)
 
     if respiration_phased:
-        print "Computing RVT from peaks"
-        print respiration_info['p_trace_r']
+        print("Computing RVT from peaks")
+        print((respiration_info['p_trace_r']))
         rvt = rvt_from_peakfinder(respiration_phased)
 
     respiration_info.update(rvt)
@@ -206,7 +206,7 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
     # Show some results
     if show_graphs:
         if respiration_info:
-            print 'Showing RVT Peaks for R\n'
+            print('Showing RVT Peaks for R\n')
             show_rvt_peak(respiration_info, 1)
 
     """
@@ -243,7 +243,7 @@ def retro_ts(respiration_file, cardiac_file, phys_fs, number_of_slices,
         n_e = size(cardiac_phased['phase_slice_reg'], 1)
 
     if main_info['cardiac_out'] == 0 and main_info['respiration_out'] == 0 and main_info['rvt_out'] == 0:
-        print 'Options cardiac_out, respiration_out, and RVT_out all 0.\nNo output required.\n'
+        print('Options cardiac_out, respiration_out, and RVT_out all 0.\nNo output required.\n')
         return
 
     temp_y_axis = main_info['number_of_slices'] * \
@@ -441,7 +441,7 @@ Output:
                 "-prefix": 'Output_File_Name',
                 "-slice_offset": 0,
                 "-slice_major": 1,
-                "-rvt_shifts": range(0, 21, 5),
+                "-rvt_shifts": list(range(0, 21, 5)),
                 "-respiration_cutoff_frequency": 3,
                 "-cardiac_cutoff_frequency": 3,
                 "-interpolation_style": 'linear',
@@ -457,9 +457,9 @@ Output:
                 "-legacy_transform": 0}
 
     if len(sys.argv) < 2:
-        print 'You need to provide parameters. If you need help, rerun the' \
+        print('You need to provide parameters. If you need help, rerun the' \
               'program using the "-help" argument:' \
-              '\n"python RetroTS.py -help"'
+              '\n"python RetroTS.py -help"')
         quit()
     else:
         opts = sys.argv[1:]
@@ -467,14 +467,14 @@ Output:
         for opt in opts:
             if opt in opt_dict:
                 if opt == '-help':
-                    print opt_dict[opt]
+                    print((opt_dict[opt]))
                     quit()
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
             else:
-                print "No such command '%s', try:" % opt
-                for key in opt_dict.keys():
-                    print "%s" % key
+                print(("No such command '%s', try:" % opt))
+                for key in list(opt_dict.keys()):
+                    print(("%s" % key))
                 quit()
             temp_opt = opt
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]

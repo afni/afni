@@ -19,7 +19,7 @@ __author__ = 'Joshua Zosky'
 
 from matplotlib.pyplot import figure, plot, subplot, text, xlabel, title, legend, grid, show
 from numpy import real, spacing, pi
-from zscale import z_scale
+from .zscale import z_scale
 
 def show_rvt_peak(r, fg):
     """

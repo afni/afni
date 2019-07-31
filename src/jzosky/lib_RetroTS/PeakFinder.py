@@ -56,7 +56,7 @@ def fftsegs(ww, po, nv):
         po = 0
         ww = nv
     elif nv < ww < 32:
-        print 'Error fftsegs: Bad value for window width of %d' % ww
+        print(('Error fftsegs: Bad value for window width of %d' % ww))
         return
     out = 0
     while out == 0:
@@ -118,7 +118,7 @@ def analytic_signal(vi, windwidth, percover, win):
 
         else:
             wind[0] = 1
-            wind[range(1, (nv + 1) / 2)] = 2
+            wind[list(range(1, (nv + 1) / 2))] = 2
         h = ifft(fv * wind)
     for i in range(len(h)):
         h[i] /= numpy.complex(num[i])
@@ -135,11 +135,11 @@ def remove_pn_duplicates(tp, vp, tn, vn, quiet):
         if (tp[i] != tp[i-1]) and (tn[i] != tn[i-1]) and (tp[i] - tp[i-1] > 0.3):
             j += 1
             if j == 127:
-                print 'stop'
+                print('stop')
             ok[j] = i
         else:
             if not quiet:
-                print 'Dropped peak at %s sec' % tp[i]
+                print(('Dropped peak at %s sec' % tp[i]))
     ok = ok[:j + 1]
     tp = tp[ok]
     vp = vp[ok]
@@ -157,7 +157,7 @@ def remove_duplicates(t, v, quiet):
             t[j] = t[i]
             v[j] = v[i]
         elif quiet == 0:
-            print 'Dropped peak at %s sec' % t[i]
+            print(('Dropped peak at %s sec' % t[i]))
     t = t[:j + 1]
     v = v[:j + 1]
     return t, v
@@ -174,7 +174,7 @@ def clean_resamp(v):
         elif i_nan[i] > i_good[-1]:
             v[i_nan[i]] = v[i_good[-1]]
         else:
-            print 'Error: Unexpected NaN case'
+            print('Error: Unexpected NaN case')
             v[i_nan[i]] = 0
     return v
 
@@ -352,7 +352,7 @@ def peak_finder(var_v, filename):
         tn_trace.append(tiz[i])
 
     if var_vector['quiet'] == 0:
-        print '--> Load signal\n--> Smooth signal\n--> Calculate analytic signal Z\n--> Find zero crossing of imag(Z)\n'
+        print('--> Load signal\n--> Smooth signal\n--> Calculate analytic signal Z\n--> Find zero crossing of imag(Z)\n')
         figure(1)
         subplot(211)
         plot(r['t'], real(r['x']), 'g')
@@ -397,7 +397,7 @@ def peak_finder(var_v, filename):
             r['iz'][i] = n0 + ixx - 1
             pkp[i] = xx
             if i == 100:
-                print 'pause'
+                print('pause')
         tizp = r['t'][r['iz']]
 
         ppp = nonzero(pol > 0)
@@ -412,20 +412,20 @@ def peak_finder(var_v, filename):
         if no_dups:
             # remove duplicates
             if var_vector['sep_dups']:
-                print 'YOU SHOULD NOT BE USING THIS.\n'
-                print ' left here for the record\n'
+                print('YOU SHOULD NOT BE USING THIS.\n')
+                print(' left here for the record\n')
                 [r['tp_trace'], r['p_trace']] = remove_duplicates(r['tp_trace'], r['p_trace'], var_vector['quiet'])
                 [r['tn_trace'], r['n_trace']] = remove_duplicates(r['tn_trace'], r['n_trace'], var_vector['quiet'])
             else:
                 r['tp_trace'], r['p_trace'], r['tn_trace'], r['n_trace'] = \
                     remove_pn_duplicates(r['tp_trace'], r['p_trace'], r['tn_trace'], r['n_trace'], var_vector['quiet'])
             if len(r['p_trace']) != len(r['n_trace']):
-                print 'Bad news in tennis shoes. I\'m outta here.\n'
+                print('Bad news in tennis shoes. I\'m outta here.\n')
                 e = True
                 return r, e
 
         if var_vector['quiet'] == 0:
-            print '--> Improved peak location\n--> Removed duplicates'
+            print('--> Improved peak location\n--> Removed duplicates')
             # style.use('ggplot')
             subplot(211)
             plot(r['tp_trace'], r['p_trace'], 'r+', r['tp_trace'], r['p_trace'], 'r')
@@ -443,12 +443,12 @@ def peak_finder(var_v, filename):
 
     # Calculate the period
     nptrc = len(r['tp_trace'])
-    print r['tp_trace']
+    print((r['tp_trace']))
     r['prd'] = r['tp_trace'][1:nptrc] - r['tp_trace'][0:nptrc-1]
     r['p_trace_mid_prd'] = (r['p_trace'][1:nptrc] + r['p_trace'][0:nptrc - 1]) / 2.0
     r['t_mid_prd'] = (r['tp_trace'][1:nptrc] + r['tp_trace'][0:nptrc - 1]) / 2.0
     if var_vector['quiet'] == 0:
-        print '--> Calculated the period (from beat to beat)\n'
+        print('--> Calculated the period (from beat to beat)\n')
         subplot(211)
         plot(r['t_mid_prd'], r['p_trace_mid_prd'], 'kx')
         for i in range(0, len(r['prd'])):

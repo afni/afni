@@ -36,7 +36,7 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     if type(x) != type(array):
         x = array(x)
     if upper_bound < lower_bound:
-        print'Error z_scale: Upper bound < Lower bound'
+        print('Error z_scale: Upper bound < Lower bound')
         return
     if perc:
         lower_clip = percentile(x, perc[0])

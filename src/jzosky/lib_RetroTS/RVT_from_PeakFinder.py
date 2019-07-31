@@ -23,27 +23,27 @@ from scipy.signal import firwin, lfilter
 from scipy.interpolate import interp1d
 # rcr: omit new style sub-library of pylab
 from pylab import plot, subplot, show, text, figure
-from zscale import z_scale
+from .zscale import z_scale
 
 
 def rvt_from_peakfinder(r):
     if r['demo']:
         quiet = 0
-        print "quiet = %s" % quiet
+        print("quiet = %s" % quiet)
     # Calculate RVT
     if len(r['p_trace']) != len(r['n_trace']):
         dd = abs(len(r['p_trace']) - len(r['n_trace']))
         if dd > 1:  # have not seen this yet, trap for it.
-            print 'Error RVT_from_PeakFinder:\n'            \
+            print('Error RVT_from_PeakFinder:\n'            \
                   '  Peak trace lengths differ by %d\n'     \
                   '  This is unusual, please upload data\n' \
-                  '  sample to afni.nimh.nih.gov' % dd
+                  '  sample to afni.nimh.nih.gov' % dd)
             # keyboard
             return
         else:  # just a difference of 1, happens sometimes, seems ok to discard one sample
-            print 'Notice RVT_from_PeakFinder:\n'       \
+            print('Notice RVT_from_PeakFinder:\n'       \
                   '   Peak trace lengths differ by %d\n'\
-                  '   Clipping longer trace.' % dd
+                  '   Clipping longer trace.' % dd)
             dm = min(len(r['p_trace']), len(r['n_trace']))
             if len(r['p_trace']) != dm: 
                r['p_trace'] = r['p_trace'][0:dm]
@@ -99,8 +99,8 @@ def rvt_from_peakfinder(r):
     for i in range(0, len(r['rvt_shifts'])):
         shf = r['rvt_shifts'][i]
         nsamp = int(round(shf * r['phys_fs']))
-        sind = add(range(0, len(r['t'])), nsamp)
-        print sind
+        sind = add(list(range(0, len(r['t']))), nsamp)
+        print(sind)
         sind[nonzero(sind < 0)] = 0
         sind[nonzero(sind > (len(r['t']) - 1))] = len(r['t']) - 1
         rvt_shf = interp1d(r['t'], r['rvtrs'][sind], r['interpolation_style'], bounds_error=True)
@@ -110,7 +110,7 @@ def rvt_from_peakfinder(r):
         r['rvtrs_slc'][:][i] = rvt_shf_y
 
     if r['quiet'] == 0 and r['show_graphs'] == 1:
-        print '--> Calculated RVT \n--> Created RVT regressors'
+        print('--> Calculated RVT \n--> Created RVT regressors')
         subplot(211)
         plot(r['t_mid_prd'], z_scale(r['rvt'], min(r['p_trace']), max(r['p_trace'])), 'k')
         if any(r['p_trace_r']):
