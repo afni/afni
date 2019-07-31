@@ -1,4 +1,4 @@
-__author__ = 'Joshua Zosky'
+__author__ = "Joshua Zosky"
 
 """
     Copyright 2015 Joshua Zosky
@@ -18,16 +18,19 @@ __author__ = 'Joshua Zosky'
 """
 
 import numpy
-#from scipy import *
-#from scipy.fftpack import fft
+
+# from scipy import *
+# from scipy.fftpack import fft
 from numpy import real
 from numpy.fft import fft, ifft
 from numpy import zeros, ones, nonzero
+
 # rcr: omit new style sub-library of pylab
 from pylab import plot, subplot, show, text, figure
 from scipy.signal import lfilter, firwin
 from scipy.interpolate import interp1d
 import glob
+
 """
 function [r, e] = PeakFinder(var_vector, Opt)
 In python, the above command looks like:
@@ -35,10 +38,11 @@ import PeakFinder as PF
 (r, e) = PF.peak_finder(var_vector, **opt)
 where opt is a dictionary with the parameters for the function
 """
-#numpy.set_printoptions(threshold='nan')
+# numpy.set_printoptions(threshold='nan')
 
 # for checking whether quotients are sufficiently close to integral
 g_epsilon = 0.00001
+
 
 def fftsegs(ww, po, nv):
     """
@@ -56,7 +60,7 @@ def fftsegs(ww, po, nv):
         po = 0
         ww = nv
     elif nv < ww < 32:
-        print(('Error fftsegs: Bad value for window width of %d' % ww))
+        print(("Error fftsegs: Bad value for window width of %d" % ww))
         return
     out = 0
     while out == 0:
@@ -74,14 +78,14 @@ def fftsegs(ww, po, nv):
             cnt += 1
             ib += jmp
         # If the last block is too small, spread the love
-        if ble[-1] - bli[-1] < (0.1 * ww): # Too small a last block, merge
-            ble[-2] = ble[-1]              # into previous
+        if ble[-1] - bli[-1] < (0.1 * ww):  # Too small a last block, merge
+            ble[-2] = ble[-1]  # into previous
             cnt -= 1
             del ble[-1]
             del bli[-1]
             out = 1
         elif ble[-1] - bli[-1] < (0.75 * ww):  # Too large to merge, spread it
-            ww = ww + numpy.floor((ble[-1] - bli[-1])/nblck)
+            ww = ww + numpy.floor((ble[-1] - bli[-1]) / nblck)
             out = 0
         else:  # Last block big enough, proceed
             out = 1
@@ -94,16 +98,19 @@ def fftsegs(ww, po, nv):
     num = zeros((nv, 1))
     cnt = 1
     while cnt <= len(ble):
-        num[bli[-1]:ble[-1]+1] = num[bli[-1]:ble[-1]+1] + ones((ble[-1] - bli[-1] + 1, 1))
+        num[bli[-1] : ble[-1] + 1] = num[bli[-1] : ble[-1] + 1] + ones(
+            (ble[-1] - bli[-1] + 1, 1)
+        )
         cnt += 1
     return bli, ble, num
 
+
 def analytic_signal(vi, windwidth, percover, win):
     nvi = len(vi)
-    #h = zeros(vi.shape)
+    # h = zeros(vi.shape)
     bli, ble, num = fftsegs(windwidth, percover, nvi)
     for ii in range(len(bli)):
-        v = vi[bli[ii]:ble[ii]+1]
+        v = vi[bli[ii] : ble[ii] + 1]
         nv = len(v)
         if win == 1:
             fv = fft(v * numpy.hamming(nv))
@@ -114,7 +121,7 @@ def analytic_signal(vi, windwidth, percover, win):
         if nv % 2 == 0:
             wind[0] = 1  # keep DC
             wind[(nv / 2)] = 1
-            wind[1:(nv / 2)] = 2  # double pos. freq
+            wind[1 : (nv / 2)] = 2  # double pos. freq
 
         else:
             wind[0] = 1
@@ -128,19 +135,19 @@ def analytic_signal(vi, windwidth, percover, win):
 def remove_pn_duplicates(tp, vp, tn, vn, quiet):
     ok = zeros((1, len(tp)), dtype=numpy.int32)
     ok = ok[0]
-    #ok[0] = 1
+    # ok[0] = 1
     j = 0
     for i in range(1, min(len(tp), len(tn))):
         #  0.3 is the minimum time before the next beat
-        if (tp[i] != tp[i-1]) and (tn[i] != tn[i-1]) and (tp[i] - tp[i-1] > 0.3):
+        if (tp[i] != tp[i - 1]) and (tn[i] != tn[i - 1]) and (tp[i] - tp[i - 1] > 0.3):
             j += 1
             if j == 127:
-                print('stop')
+                print("stop")
             ok[j] = i
         else:
             if not quiet:
-                print(('Dropped peak at %s sec' % tp[i]))
-    ok = ok[:j + 1]
+                print(("Dropped peak at %s sec" % tp[i]))
+    ok = ok[: j + 1]
     tp = tp[ok]
     vp = vp[ok]
     tn = tn[ok]
@@ -150,16 +157,16 @@ def remove_pn_duplicates(tp, vp, tn, vn, quiet):
 
 def remove_duplicates(t, v, quiet):
     j = 0
-    for i in range(1,len(t) + 1):
+    for i in range(1, len(t) + 1):
         #  0.3 is the minimum time before the next beat
         if t[i] != t[i - 1] and (t[i] - t[i - 1]) > 0.3:
             j += 1
             t[j] = t[i]
             v[j] = v[i]
         elif quiet == 0:
-            print(('Dropped peak at %s sec' % t[i]))
-    t = t[:j + 1]
-    v = v[:j + 1]
+            print(("Dropped peak at %s sec" % t[i]))
+    t = t[: j + 1]
+    v = v[: j + 1]
     return t, v
 
 
@@ -174,13 +181,13 @@ def clean_resamp(v):
         elif i_nan[i] > i_good[-1]:
             v[i_nan[i]] = v[i_good[-1]]
         else:
-            print('Error: Unexpected NaN case')
+            print("Error: Unexpected NaN case")
             v[i_nan[i]] = 0
     return v
 
 
 def peak_finder(var_v, filename):
-    ''',
+    """,
                 phys_fs=(1 / 0.025),
                 zero_phase_offset=0.5,
                 quiet=0,
@@ -193,7 +200,7 @@ def peak_finder(var_v, filename):
                 as_percover=0,
                 as_fftwin=0,
                 sep_dups=0):
-    '''
+    """
     """
     Example: PeakFinder('Resp*.1D') or PeakFinder(var_vector) where var_vector is a column vector.
     If var_vector is a matrix, each column is processed separately.
@@ -215,38 +222,44 @@ def peak_finder(var_v, filename):
     """
     # #clear all but var_vector (useful if I run this function as as script)
     # keep('var_vector', 'opt')
-    var_vector = dict(phys_fs=(1 / 0.025),
-                      zero_phase_offset=0.5,
-                      quiet=0,
-                      resample_fs=(1 / 0.025),
-                      frequency_cutoff=10,
-                      fir_order=80,
-                      interpolation_style='linear',
-                      demo=0,
-                      as_window_width=0,
-                      as_percover=0,
-                      as_fftwin=0,
-                      sep_dups=0)
+    var_vector = dict(
+        phys_fs=(1 / 0.025),
+        zero_phase_offset=0.5,
+        quiet=0,
+        resample_fs=(1 / 0.025),
+        frequency_cutoff=10,
+        fir_order=80,
+        interpolation_style="linear",
+        demo=0,
+        as_window_width=0,
+        as_percover=0,
+        as_fftwin=0,
+        sep_dups=0,
+    )
     var_vector.update(var_v)
     default_div = 1 / 0.025
-    if (var_vector['phys_fs'] != default_div) and (var_vector['resample_fs'] == default_div):
-        var_vector['resample_fs'] = var_vector['phys_fs']
-    if var_vector['demo']:
-        var_vector['quiet'] = 0
+    if (var_vector["phys_fs"] != default_div) and (
+        var_vector["resample_fs"] == default_div
+    ):
+        var_vector["resample_fs"] = var_vector["phys_fs"]
+    if var_vector["demo"]:
+        var_vector["quiet"] = 0
     else:
         pause = False  # pause off
     e = False  # default value for e
     r = {}
     # Some filtering
-    nyquist_filter = var_vector['phys_fs'] / 2.0
+    nyquist_filter = var_vector["phys_fs"] / 2.0
     # w[1] = 0.1/filter_nyquist  # Cut frequencies below 0.1Hz
     # w[2] = var_vector['frequency_cutoff']/filter_nyquist  # Upper cut off frequency normalized
     # b = signal.firwin(var_vector['fir_order'], w, 'bandpass')  # FIR filter of order 40
-    w = var_vector['frequency_cutoff'] / nyquist_filter
-    b = firwin(numtaps=(var_vector['fir_order'] + 1), cutoff=w, window='hamming')  # FIR filter of order 40
+    w = var_vector["frequency_cutoff"] / nyquist_filter
+    b = firwin(
+        numtaps=(var_vector["fir_order"] + 1), cutoff=w, window="hamming"
+    )  # FIR filter of order 40
     b = numpy.array(b)
     no_dups = 1  # Remove duplicates that might come up when improving peak location
-    '''
+    """
     if isinstance(var_vector, str):
         L = glob(var_vector)  # NEED TO CONVERT ZGLOBB INTO LIST MAKER OF FILE OBJECTS; I.E. type(L) == list
         nl = len(L)
@@ -261,63 +274,66 @@ def peak_finder(var_v, filename):
             print 'Error: No vectors\n', nl
             e = True
             return e
-    '''
-    nl = 1 #temporary, delete this line when above lines get fixed with glob
+    """
+    nl = 1  # temporary, delete this line when above lines get fixed with glob
     # del(r) # "Must clear it. Or next line fails" -- Probably unnecessary in Python
     r_list = []
     for i in range(nl):
-        r = {'v_name': filename,
-             't': [],
-             'x': [],
-             'iz': [],   # zero crossing (peak) locations
-             'p_trace': [],
-             'tp_trace': [],
-             'n_trace': [],
-             'tn_trace': [],
-             'prd': [],
-             't_mid_prd': [],
-             'p_trace_mid_prd': [],
-             'phase': [],
-             'rv': [],
-             'rvt': []
-             }
+        r = {
+            "v_name": filename,
+            "t": [],
+            "x": [],
+            "iz": [],  # zero crossing (peak) locations
+            "p_trace": [],
+            "tp_trace": [],
+            "n_trace": [],
+            "tn_trace": [],
+            "prd": [],
+            "t_mid_prd": [],
+            "p_trace_mid_prd": [],
+            "phase": [],
+            "rv": [],
+            "rvt": [],
+        }
         r_list.append(r)
-    '''
+    """
     for i_column in range(nl):
         if L and not os.path.isdir(L):
-            r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])'''
-    #with open(r['v_name'], "rb") as f:
-        #v = f.read()
-        #v = map(int, v)
+            r_list[i_column]['v_name'] = '%s%s' % (sys.path, L[i_column]['name'])"""
+    # with open(r['v_name'], "rb") as f:
+    # v = f.read()
+    # v = map(int, v)
     v = []
-    with open(r['v_name'], 'rb') as h:
+    with open(r["v_name"], "rb") as h:
         for line in h:
             v.append(float(line.strip()))
     v_np = numpy.asarray(v)
-        #else:
-            #r_list[i_column]['v_name'] = 'vector input col %d' % i_column
-            #v = var_vector[i_column]
+    # else:
+    # r_list[i_column]['v_name'] = 'vector input col %d' % i_column
+    # v = var_vector[i_column]
 
     window_width = 0.2  # Window for adjusting peak location in seconds
     # Remove the mean
     v_np_mean = numpy.mean(v_np)
     v_np = v_np - v_np_mean
-    r['v'] = v_np  # Store it for debugging (found it is used in phase estimator)
+    r["v"] = v_np  # Store it for debugging (found it is used in phase estimator)
     # Filter both ways to cancel phase shift
     v_np = lfilter(b, 1, v_np, axis=0)
     v_np = numpy.flipud(v_np)
     v_np = lfilter(b, 1, v_np)
     v_np = numpy.flipud(v_np)
     # Get the analytic signal
-    r['x'] = analytic_signal(v_np,
-                             var_vector['as_window_width'] * var_vector['phys_fs'],
-                             var_vector['as_percover'],
-                             var_vector['as_fftwin'])
+    r["x"] = analytic_signal(
+        v_np,
+        var_vector["as_window_width"] * var_vector["phys_fs"],
+        var_vector["as_percover"],
+        var_vector["as_fftwin"],
+    )
 
     # Using local version to illustrate, can use hilbert
     # Doing ffts over smaller windows can improve peak detection in the few instances that go undetected but
     # what value to use is not clear and there seems to be at times more errors introduced in the lower envelope.
-    nt = len(r['x'])
+    nt = len(r["x"])
 
     # force 't' to have the same length as 'x', rather than trusting
     # divisions (when it should come out evenly)  5 Jun, 2017 [rickr]
@@ -325,17 +341,17 @@ def peak_finder(var_v, filename):
     # r['t'] = numpy.arange(0.,
     #                       float(nt) / var_vector['phys_fs'],
     #                       (1. / var_vector['phys_fs']))  # # % FIX FIX FIX
-    fsi = 1./var_vector['phys_fs']
-    r['t'] = numpy.array([i*fsi for i in range(len(r['x']))])
+    fsi = 1.0 / var_vector["phys_fs"]
+    r["t"] = numpy.array([i * fsi for i in range(len(r["x"]))])
 
-    iz = nonzero((r['x'][0:nt-1].imag * r['x'][1:nt].imag) <= 0)
+    iz = nonzero((r["x"][0 : nt - 1].imag * r["x"][1:nt].imag) <= 0)
     iz = iz[0]
-    polall = -numpy.sign(r['x'][0:nt-1].imag - r['x'][1:nt].imag)
-    pk = (r['x'][iz]).real
+    polall = -numpy.sign(r["x"][0 : nt - 1].imag - r["x"][1:nt].imag)
+    pk = (r["x"][iz]).real
     pol = polall[iz]
     tiz = []
     for i in iz:
-        tiz.append(r['t'][i])
+        tiz.append(r["t"][i])
     ppp = nonzero(pol > 0)
     ppp = ppp[0]
     p_trace = []
@@ -351,36 +367,38 @@ def peak_finder(var_v, filename):
         n_trace.append(pk[i])
         tn_trace.append(tiz[i])
 
-    if var_vector['quiet'] == 0:
-        print('--> Load signal\n--> Smooth signal\n--> Calculate analytic signal Z\n--> Find zero crossing of imag(Z)\n')
+    if var_vector["quiet"] == 0:
+        print(
+            "--> Load signal\n--> Smooth signal\n--> Calculate analytic signal Z\n--> Find zero crossing of imag(Z)\n"
+        )
         figure(1)
         subplot(211)
-        plot(r['t'], real(r['x']), 'g')
+        plot(r["t"], real(r["x"]), "g")
         # plot (r_list[i_column].t, imag(r_list[i_column]['x']),'g')
-        plot(tp_trace, p_trace, 'ro')
-        plot(tn_trace, n_trace, 'bo')
+        plot(tp_trace, p_trace, "ro")
+        plot(tn_trace, n_trace, "bo")
         # plot (r_list[i_column].t, abs(r_list[i_column]['x']),'k')
-        subplot (413)
-        vn = real(r['x']) / (abs(r['x']) + numpy.spacing(1))
-        plot(r['t'], vn, 'g')
+        subplot(413)
+        vn = real(r["x"]) / (abs(r["x"]) + numpy.spacing(1))
+        plot(r["t"], vn, "g")
         ppp = nonzero(pol > 0)
         ppp = ppp[0]
         for i in ppp:
-            plot(tiz[i], vn[iz[i]], 'ro')
+            plot(tiz[i], vn[iz[i]], "ro")
         ppp = nonzero(pol < 0)
         ppp = ppp[0]
         for i in ppp:
-            plot(tiz[i], vn[iz[i]], 'bo')
-        if var_vector['demo']:
+            plot(tiz[i], vn[iz[i]], "bo")
+        if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
             pass
 
     # Some polishing
     if 1 == 1:
-        nww = numpy.ceil((window_width / 2) * var_vector['phys_fs'])
+        nww = numpy.ceil((window_width / 2) * var_vector["phys_fs"])
         pkp = pk
-        r['iz'] = iz
+        r["iz"] = iz
         for i in range(len(iz)):
             ###################### left off here, turns out there's a
             # difference in floating point precision in the calculation
@@ -389,113 +407,143 @@ def peak_finder(var_v, filename):
             # force these to ints    17 May 2017 [DNielson]
             n0 = int(max(2, iz[i] - nww))
             n1 = int(min(nt, iz[i] + nww))
-            temp = (r['x'][n0:n1 + 1]).real
+            temp = (r["x"][n0 : n1 + 1]).real
             if pol[i] > 0:
                 xx, ixx = numpy.max(temp, 0), numpy.argmax(temp, 0)
             else:
                 xx, ixx = numpy.min(temp, 0), numpy.argmin(temp, 0)
-            r['iz'][i] = n0 + ixx - 1
+            r["iz"][i] = n0 + ixx - 1
             pkp[i] = xx
             if i == 100:
-                print('pause')
-        tizp = r['t'][r['iz']]
+                print("pause")
+        tizp = r["t"][r["iz"]]
 
         ppp = nonzero(pol > 0)
         ppp = ppp[0]
-        r['p_trace'] = pkp[ppp]
-        r['tp_trace'] = tizp[ppp]
+        r["p_trace"] = pkp[ppp]
+        r["tp_trace"] = tizp[ppp]
         ppp = nonzero(pol < 0)
         ppp = ppp[0]
-        r['n_trace'] = pkp[ppp]
-        r['tn_trace'] = tizp[ppp]
+        r["n_trace"] = pkp[ppp]
+        r["tn_trace"] = tizp[ppp]
 
         if no_dups:
             # remove duplicates
-            if var_vector['sep_dups']:
-                print('YOU SHOULD NOT BE USING THIS.\n')
-                print(' left here for the record\n')
-                [r['tp_trace'], r['p_trace']] = remove_duplicates(r['tp_trace'], r['p_trace'], var_vector['quiet'])
-                [r['tn_trace'], r['n_trace']] = remove_duplicates(r['tn_trace'], r['n_trace'], var_vector['quiet'])
+            if var_vector["sep_dups"]:
+                print("YOU SHOULD NOT BE USING THIS.\n")
+                print(" left here for the record\n")
+                [r["tp_trace"], r["p_trace"]] = remove_duplicates(
+                    r["tp_trace"], r["p_trace"], var_vector["quiet"]
+                )
+                [r["tn_trace"], r["n_trace"]] = remove_duplicates(
+                    r["tn_trace"], r["n_trace"], var_vector["quiet"]
+                )
             else:
-                r['tp_trace'], r['p_trace'], r['tn_trace'], r['n_trace'] = \
-                    remove_pn_duplicates(r['tp_trace'], r['p_trace'], r['tn_trace'], r['n_trace'], var_vector['quiet'])
-            if len(r['p_trace']) != len(r['n_trace']):
-                print('Bad news in tennis shoes. I\'m outta here.\n')
+                r["tp_trace"], r["p_trace"], r["tn_trace"], r[
+                    "n_trace"
+                ] = remove_pn_duplicates(
+                    r["tp_trace"],
+                    r["p_trace"],
+                    r["tn_trace"],
+                    r["n_trace"],
+                    var_vector["quiet"],
+                )
+            if len(r["p_trace"]) != len(r["n_trace"]):
+                print("Bad news in tennis shoes. I'm outta here.\n")
                 e = True
                 return r, e
 
-        if var_vector['quiet'] == 0:
-            print('--> Improved peak location\n--> Removed duplicates')
+        if var_vector["quiet"] == 0:
+            print("--> Improved peak location\n--> Removed duplicates")
             # style.use('ggplot')
             subplot(211)
-            plot(r['tp_trace'], r['p_trace'], 'r+', r['tp_trace'], r['p_trace'], 'r')
-            plot(r['tn_trace'], r['n_trace'], 'b+', r['tn_trace'], r['n_trace'], 'b')
-            if var_vector['demo']:
+            plot(r["tp_trace"], r["p_trace"], "r+", r["tp_trace"], r["p_trace"], "r")
+            plot(r["tn_trace"], r["n_trace"], "b+", r["tn_trace"], r["n_trace"], "b")
+            if var_vector["demo"]:
                 # need to add a pause here - JZ
                 # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
                 pass
     else:
         tizp = tiz
-        r['iz'] = iz
+        r["iz"] = iz
         pkp = pk
-        r['p_trace'] = p_trace
-        r['n_trace'] = n_trace  # This seems like a mistake, the .m file's version is highly suspect
+        r["p_trace"] = p_trace
+        r[
+            "n_trace"
+        ] = (
+            n_trace
+        )  # This seems like a mistake, the .m file's version is highly suspect
 
     # Calculate the period
-    nptrc = len(r['tp_trace'])
-    print((r['tp_trace']))
-    r['prd'] = r['tp_trace'][1:nptrc] - r['tp_trace'][0:nptrc-1]
-    r['p_trace_mid_prd'] = (r['p_trace'][1:nptrc] + r['p_trace'][0:nptrc - 1]) / 2.0
-    r['t_mid_prd'] = (r['tp_trace'][1:nptrc] + r['tp_trace'][0:nptrc - 1]) / 2.0
-    if var_vector['quiet'] == 0:
-        print('--> Calculated the period (from beat to beat)\n')
+    nptrc = len(r["tp_trace"])
+    print((r["tp_trace"]))
+    r["prd"] = r["tp_trace"][1:nptrc] - r["tp_trace"][0 : nptrc - 1]
+    r["p_trace_mid_prd"] = (r["p_trace"][1:nptrc] + r["p_trace"][0 : nptrc - 1]) / 2.0
+    r["t_mid_prd"] = (r["tp_trace"][1:nptrc] + r["tp_trace"][0 : nptrc - 1]) / 2.0
+    if var_vector["quiet"] == 0:
+        print("--> Calculated the period (from beat to beat)\n")
         subplot(211)
-        plot(r['t_mid_prd'], r['p_trace_mid_prd'], 'kx')
-        for i in range(0, len(r['prd'])):
-            text(r['t_mid_prd'][i], r['p_trace_mid_prd'][i], ('%.2f' % r['prd'][i]))
-        if var_vector['demo']:
+        plot(r["t_mid_prd"], r["p_trace_mid_prd"], "kx")
+        for i in range(0, len(r["prd"])):
+            text(r["t_mid_prd"][i], r["p_trace_mid_prd"][i], ("%.2f" % r["prd"][i]))
+        if var_vector["demo"]:
             # need to add a pause here - JZ
             # uiwait(msgbox('Press button to resume', 'Pausing', 'modal'))
             pass
         show()
 
-    if var_vector['interpolation_style'] != '':
+    if var_vector["interpolation_style"] != "":
         # Interpolate to slice sampling time grid:
-        step_interval = 1. / var_vector['resample_fs']
-        #r['tR'] = numpy.arange(0, max(r['t']) + step_interval, step_interval)
+        step_interval = 1.0 / var_vector["resample_fs"]
+        # r['tR'] = numpy.arange(0, max(r['t']) + step_interval, step_interval)
 
         # allow for a ratio that is barely below an integer
         #                               5 Jun, 2017 [rickr]
-        step_size = int(max(r['t']) / step_interval + g_epsilon) + 1
-        r['tR'] = []
+        step_size = int(max(r["t"]) / step_interval + g_epsilon) + 1
+        r["tR"] = []
 
         for i in range(0, step_size):
-            r['tR'].append(i * step_interval)
-        '''
+            r["tR"].append(i * step_interval)
+        """
         with open('tR.csv', 'w') as f:
             for i in r['tR']:
                 f.write("%s\n" % i)
         # Squeeze these arrays down from an [x,y] shape to an [x,] shape in order to use interp1d
         r['tp_trace'] = r['tp_trace'].squeeze()
         r['p_trace'] = r['p_trace'].squeeze()
-        '''
-        r['p_trace_r'] = interp1d(r['tp_trace'], r['p_trace'], var_vector['interpolation_style'], bounds_error=False)
-        r['p_trace_r'] = r['p_trace_r'](r['tR'])
-        #r['tn_trace'] = r['tn_trace'].squeeze()
-        #r['n_trace'] = r['n_trace'].squeeze()
-        r['n_trace_r'] = interp1d(r['tn_trace'], r['n_trace'], var_vector['interpolation_style'], bounds_error=False)(r['tR'])
-        #r['t_mid_prd'] = r['t_mid_prd'].squeeze()
-        #r['prd'] = r['prd'].squeeze()
-        r['prdR'] = interp1d(r['t_mid_prd'], r['prd'], var_vector['interpolation_style'], bounds_error=False)(r['tR'])
+        """
+        r["p_trace_r"] = interp1d(
+            r["tp_trace"],
+            r["p_trace"],
+            var_vector["interpolation_style"],
+            bounds_error=False,
+        )
+        r["p_trace_r"] = r["p_trace_r"](r["tR"])
+        # r['tn_trace'] = r['tn_trace'].squeeze()
+        # r['n_trace'] = r['n_trace'].squeeze()
+        r["n_trace_r"] = interp1d(
+            r["tn_trace"],
+            r["n_trace"],
+            var_vector["interpolation_style"],
+            bounds_error=False,
+        )(r["tR"])
+        # r['t_mid_prd'] = r['t_mid_prd'].squeeze()
+        # r['prd'] = r['prd'].squeeze()
+        r["prdR"] = interp1d(
+            r["t_mid_prd"],
+            r["prd"],
+            var_vector["interpolation_style"],
+            bounds_error=False,
+        )(r["tR"])
         # You get NaN when tR exceeds original signal time, so set those
         # to the last interpolated value
-        r['p_trace_r'] = clean_resamp(r['p_trace_r'])
-        r['n_trace_r'] = clean_resamp(r['n_trace_r'])
-        r['prdR'] = clean_resamp(r['prdR'])
+        r["p_trace_r"] = clean_resamp(r["p_trace_r"])
+        r["n_trace_r"] = clean_resamp(r["n_trace_r"])
+        r["prdR"] = clean_resamp(r["prdR"])
 
-        #if (i_column != nl):
-            #input('Hit enter to proceed...','s')
-        #if var_vector['quiet'] == 0:
-            #plotsign2(1)
+        # if (i_column != nl):
+        # input('Hit enter to proceed...','s')
+        # if var_vector['quiet'] == 0:
+        # plotsign2(1)
 
     return r, e
