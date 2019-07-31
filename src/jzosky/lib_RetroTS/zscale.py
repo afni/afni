@@ -1,4 +1,4 @@
-__author__ = 'Joshua Zosky'
+__author__ = "Joshua Zosky"
 
 """
     Copyright 2015 Joshua Zosky
@@ -24,19 +24,19 @@ def z_scale(x, lower_bound, upper_bound, perc=[]):
     # ZSCALE (X,UB,LB)
     #
     # This function scales  X into Y such that
-    #	its maximum value is UB
-    #	and minimum value is LB
+    #   its maximum value is UB
+    #   and minimum value is LB
     # If perc is specified, then clipping is done
     # at the percentile range specified (e.g. [2, 98])
     # before scaling.
     # If X is all constants, it gets scaled to UB;
     #
-    #			Ziad, Oct 30 96 / modified March 18 97
+    #           Ziad, Oct 30 96 / modified March 18 97
 
     if type(x) != type(array):
         x = array(x)
     if upper_bound < lower_bound:
-        print('Error z_scale: Upper bound < Lower bound')
+        print("Error z_scale: Upper bound < Lower bound")
         return
     if perc:
         lower_clip = percentile(x, perc[0])
