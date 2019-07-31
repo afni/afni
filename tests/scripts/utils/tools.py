@@ -70,6 +70,7 @@ def remove_w_perms(dirname):
 
 def get_current_test_name():
     name_str = os.environ.get("PYTEST_CURRENT_TEST").split(":")[-1].split(" ")[0]
+    name_str = name_str.replace(".", "")
     return re.sub(r"[-\[\]\(\)\*]", "_", name_str).strip("_")
 
 
