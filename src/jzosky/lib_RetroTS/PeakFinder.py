@@ -120,12 +120,12 @@ def analytic_signal(vi, windwidth, percover, win):
         # zero negative frequencies, double positive frequencies
         if nv % 2 == 0:
             wind[0] = 1  # keep DC
-            wind[(nv / 2)] = 1
-            wind[1 : (nv / 2)] = 2  # double pos. freq
+            wind[(nv // 2)] = 1
+            wind[1 : (nv // 2)] = 2  # double pos. freq
 
         else:
             wind[0] = 1
-            wind[list(range(1, (nv + 1) / 2))] = 2
+            wind[list(range(1, (nv + 1) // 2))] = 2
         h = ifft(fv * wind)
     for i in range(len(h)):
         h[i] /= numpy.complex(num[i])
