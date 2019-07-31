@@ -27,6 +27,27 @@ from lib_RetroTS.RVT_from_PeakFinder import rvt_from_peakfinder
 from lib_RetroTS.Show_RVT_Peak import show_rvt_peak
 
 
+def setup_exceptionhook():
+    """
+    Overloads default sys.excepthook with our exceptionhook handler.
+    If interactive, our exceptionhook handler will invoke pdb.post_mortem;
+    if not interactive, then invokes default handler.
+    """
+
+    def _pdb_excepthook(type, value, tb):
+        if sys.stdin.isatty() and sys.stdout.isatty() and sys.stderr.isatty():
+            import traceback
+            import pdb
+
+            traceback.print_exception(type, value, tb)
+            # print()
+            pdb.post_mortem(tb)
+        else:
+            print("We cannot setup exception hook since not in interactive mode")
+
+    sys.excepthook = _pdb_excepthook
+
+
 def retro_ts(
     respiration_file,
     cardiac_file,
@@ -436,6 +457,8 @@ Input
             (default is 0)
     :param -show_graphs:
             (default is unset; set with any parameter to view)
+    :param -debug Drop into pdb upon an exception
+            (default is False)
     ============================================================================
     :param -slice_offset: Vector of slice acquisition time offsets in seconds.
             (default is equivalent of alt+z)
@@ -492,6 +515,7 @@ Output:
         "-fir_order": 40,
         "-quiet": 1,
         "-demo": 0,
+        "-debug": False,
         "-rvt_out": 1,
         "-cardiac_out": 1,
         "-respiration_out": 1,
@@ -516,6 +540,9 @@ Output:
                 if opt == "-help":
                     print((opt_dict[opt]))
                     quit()
+                elif opt == "-debug":
+                    setup_exceptionhook()
+
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
             else:
