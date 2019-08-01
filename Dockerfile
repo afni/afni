@@ -84,4 +84,9 @@ RUN \
     && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
 
 ENV PATH="$AFNI_ROOT/abin:$PATH"
+
+# set non interactive backend for matplotlib
+RUN mkdir -p /root/.config/matplotlib \
+    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
+
 WORKDIR "$AFNI_ROOT"
