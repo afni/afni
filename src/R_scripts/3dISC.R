@@ -41,9 +41,30 @@ Usage:
  the Relatedness among Correlations, Part II: Inter-Subject Correlation Group
  Analysis through Linear Mixed-Effects Modeling. Neuroimage 147:825-840.
 
- Input files for 3dISC can be in AFNI, NIfTI or surface (niml.dset) format.
- Currently it provides in the output the effect estimate (e.g., ISC value) and 
- the corresponding t-statistic at each voxel.
+ Input files for 3dISC are voxelwise correlation values from all subject pairs.
+ If there are two or more groups of subjects, ISCs across groups are also
+ required as input unless the data are analyzed for each group separately. 
+ Input files can be in AFNI, NIfTI or surface (niml.dset) format. In other words,
+ with totally n subjects, you should provide n(n-1)/2 input files (no duplicates
+ allowed). Currently 3dISC provides in the output the effect estimate (e.g., ISC
+ value) and the corresponding t-statistic at each voxel.
+
+ The LME platform allows for the incorporation of various types of explanatory
+ variables including categorical (between- and within-subject factors) and
+ quantitative variables (e.g., age, behavioral data). The downside of LME
+ modeling is that the burden of properly specifying the weights for each effect
+ (e.g., contrast) is unfortunately placed on the user's shoulder, and sorting
+ out the number and order of predictors (regressors) can be overwhelming
+ especially when there are more than two factor levels or when an interaction
+ effect is involved. So, familiarize yourself with the details of the two popular
+ factor coding strageties (dummy and deviation coding):
+ https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
+
+ I hope that the four exemplifying scripts below are good demonstrations. And I
+ may add more examples in the future if I could crowdsource more scenarios from
+ the users (including you the reader). In case you find one or two of them that
+ are similar to your data structure, use the example(s) as a template and then
+ build up your own script.
  
  In addition to R installtion, the following R packages need to be installed
  first before running 3dISC: "lme4" and "snow". To install these packages, 
@@ -106,10 +127,12 @@ Usage:
   ISC: G11, G22 and G12. By default each factor (categorical variable) is 
   internally quantified in the model using deviation coding with alphabetically
   the last level as the reference. Notice the semi-esoteric weights for those
-  comparisons with -gltCode. If dummy coding is preferred, check out the next
-  script below. The components within paratheses in the -model specifications
-  are R notations for random effects. Here is a good reference about factor 
-  coding strategies:
+  comparisons with -gltCode: the first weight corresponds to the intercept in 
+  the model, which is the average effect across all the factor levels (and
+  corresponds to the zero value of a quantitative variable if present). If dummy 
+  coding is preferred, check out the next script below. The components within 
+  paratheses in the -model specifications are R notations for random effects. 
+  Here is a good reference about factor coding strategies:
   https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
 -------------------------------------------------------------------------
@@ -139,8 +162,11 @@ Usage:
          ...
 
   The above script is equivalent to the one below. The only difference is that
-  We force 3dISC to adopt dummy coding by adding a zero in the -model
-  specification, which makes the weight coding much more intuitive.
+  we force 3dISC to adopt dummy coding by adding a zero in the -model
+  specification, which makes the weight coding much more intuitive. In this
+  particular case, the three weights are associated with the three
+  categories, G11, G12 and G22 (no intercept is assumed in the model as
+  requested with the zero (0) in the model specifications).
 
 -------------------------------------------------------------------------
     3dISC -prefix ISC2b -jobs 12                  \\
@@ -178,6 +204,7 @@ Usage:
 -------------------------------------------------------------------------
     3dISC -prefix ISC2c -jobs 12                       \\
           -model  'grp+(1|Subj1)+(1|Subj2)'            \\
+          -qVars   grp                                 \\
           -gltCode ave     '1 0'                       \\
           -gltCode G11vG22 '0 1'                       \\
           -gltCode G11     '1 0.5'                     \\
@@ -210,6 +237,7 @@ Usage:
 -------------------------------------------------------------------------
     3dISC -prefix ISC3 -jobs 12                       \\
           -model  'Age+(1|Subj1)+(1|Subj2)'           \\
+          -qVars   Age                                \\
           -gltCode ave     '1 0'                      \\
           -gltCode Age     '0 1'                      \\
           -dataTable                                  \\
@@ -239,6 +267,7 @@ Usage:
 -------------------------------------------------------------------------
     3dISC -prefix ISC2c -jobs 12                          \\
           -model  'Sex+Age+SA+(1|Subj1)+(1|Subj2)'        \\
+          -qVars  'Sex,Age,SA'                            \\
           -gltCode ave       '1   0  0  0'                \\
           -gltCode G11vG22   '0   1  0  0'                \\
           -gltCode G11       '1  0.5 0  0'                \\
@@ -249,9 +278,9 @@ Usage:
           -gltCode Age2      '0   0  1 -0.5'              \\
           -dataTable                                      \\
           Subj1 Subj2    Sex Age SA     InputFile         \\
-          s1     s2       1  2   2    s1_1+tlrc           \\
-          s1     s3       1  5   5    s1_1+tlrc           \\
-          s1     s4       1  -4 -4    s1_1+tlrc           \\
+          s1     s2       1  2   2    s1_2+tlrc           \\
+          s1     s3       1  5   5    s1_3+tlrc           \\
+          s1     s4       1  -4 -4    s1_4+tlrc           \\
           ...	                    
           s1     s25      0  -2  0    s1_25+tlr           \\
           s1     s26      0  -1  0    s1_26+tlr           \\
@@ -340,24 +369,17 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
    "        This input file for effect estimates has to be the last column.\n", sep = '\n'
                      ) ),
 
-#      '-tStat' = apl(n = 1, d = NA,  h = paste(
-#   "-tStat col_name: col_name is used to specify the column name that is designated as",
-#   "        as the t-statistic. The default (when this option is not invoked) is 'NA',",
-#   "        in which case no t-stat is provided as part of the input; otherwise declare",
-#   "        the t-stat column name with this option.\n", sep = '\n'
-#                     ) ),
-#
       '-model' = apl(n = 1, d = 1, h = paste(
    "-model FORMULA: Specify the model structure for all the variables. The",
    "         expression FORMULA with more than one variable has to be surrounded",
    "         within (single or double) quotes. Variable names in the formula",
    "         should be consistent with the ones used in the header of -dataTable.",
-   "         Suppose that each subject ('subj') has two sessions ('ses'), a model",
-   "         ISC(2,1) without any covariate is \"1+(1|ses)+(1|subj)\" while one",
-   "         for ISC(3,1) is \"1+ses+(1|subj)\". Each random-effects factor is",
+   "         In the ISC context the simplest model is \"1+(1|Subj1)+(1|Subj2)\"in",
+   "         while the random effect from each of the two subjects in a pair is",
+   "         symmetrically incorporated in the model. Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
-   "         confounding effects (quantitative or categorical variables) can be",
-   "         added as fixed effects without paratheses.\n", sep = '\n'
+   "         effects of intereste and confounding variables (quantitative or 
+   "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
              ) ),
 
        '-dbgArgs' = apl(n=0, h = paste(
@@ -1022,7 +1044,6 @@ if (lop$nNodes>1) {
     stopCluster(cl)
 }
 # runLME(inData[30,30,30,], lop$model, lop$dataStr, lop$gltM, intercept, nF, nS, 0)
-
 Top <- 100
 Stat[is.nan(Stat)] <- 0
 Stat[Stat > Top] <- Top  
@@ -1031,7 +1052,7 @@ Stat[Stat < (-Top)] <- -Top
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:nrow(lop$gltM)) statsym <- c(statsym, list(list(sb=ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=ii-1, typ="fitt", par=nS-1)))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
