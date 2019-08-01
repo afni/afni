@@ -53,7 +53,7 @@ Usage:
  variables including categorical (between- and within-subject factors) and
  quantitative variables (e.g., age, behavioral data). The downside of LME
  modeling is that the burden of properly specifying the weights for each effect
- (e.g., contrast) is unfortunately placed on the user's shoulder, and sorting
+ (e.g., contrast) is unfortunately placed on the user\'s shoulder, and sorting
  out the number and order of predictors (regressors) can be overwhelming
  especially when there are more than two factor levels or when an interaction
  effect is involved. So, familiarize yourself with the details of the two popular
@@ -378,7 +378,7 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
    "         while the random effect from each of the two subjects in a pair is",
    "         symmetrically incorporated in the model. Each random-effects factor is",
    "         specified within paratheses per formula convention in R. Any",
-   "         effects of intereste and confounding variables (quantitative or 
+   "         effects of intereste and confounding variables (quantitative or",
    "         categorical variables) can be added as fixed effects without paratheses.\n", sep = '\n'
              ) ),
 
