@@ -21,8 +21,12 @@
 # + [PT] change where scaling is applied-- now separate from 'polarity' issue
 # + [PT] updated help (included examples); put beta warning messages!
 #
-ver='1.41' ; date='July 26, 2019'
+#ver='1.41' ; date='July 26, 2019'
 # + [PT] update help; include JSON description
+#
+ver='1.5' ; date='July 31, 2019'
+# + [PT] rename several variables and opts, to undo my misunderstanding...
+# + [PT] EPI back to being required
 #
 ##########################################################################
 

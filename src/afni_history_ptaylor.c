@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 1, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
+   "Rename internal vars and opt names.",
+   "Improving internal notation-- still very much a beta program version.\n"
+},
+
 { 16, July , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_BUG_FIX,
    "Fix incompatability with py2.",
    "Sigh.\n"
