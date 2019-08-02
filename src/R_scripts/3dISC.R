@@ -23,7 +23,7 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.1, Aug 1, 2019
+Version 0.0.2, Aug 2, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -42,7 +42,8 @@ Usage:
  Analysis through Linear Mixed-Effects Modeling. Neuroimage 147:825-840.
 
  Input files for 3dISC are voxelwise correlation values from all subject pairs.
- If there are two or more groups of subjects, ISCs across groups are also
+ If they are not Fisher-transformed, use option -r2z in 3dISC to transform the
+ data. If there are two or more groups of subjects, ISCs across groups are also
  required as input unless the data are analyzed for each group separately. 
  Input files can be in AFNI, NIfTI or surface (niml.dset) format. In other words,
  with totally n subjects, you should provide n(n-1)/2 input files (no duplicates
@@ -51,18 +52,18 @@ Usage:
 
  The LME platform allows for the incorporation of various types of explanatory
  variables including categorical (between- and within-subject factors) and
- quantitative variables (e.g., age, behavioral data). The downside of LME
- modeling is that the burden of properly specifying the weights for each effect
- (e.g., contrast) is unfortunately placed on the user\'s shoulder, and sorting
- out the number and order of predictors (regressors) can be overwhelming
- especially when there are more than two factor levels or when an interaction
- effect is involved. So, familiarize yourself with the details of the two popular
- factor coding strageties (dummy and deviation coding):
+ quantitative variables (e.g., age, behavioral data). The burden of properly
+ specifying the weights for each effect (e.g., contrast) is unfortunately 
+ placed on the user\'s shoulder, and sorting out the number and order of 
+ predictors (regressors) can be overwhelming especially when there are more 
+ than two factor levels or when an interaction effect is involved. So, 
+ familiarize yourself with the details of the two popular factor coding 
+ strageties (dummy and deviation coding):
  https://stats.idre.ucla.edu/r/library/r-library-contrast-coding-systems-for-categorical-variables/
 
- I hope that the four exemplifying scripts below are good demonstrations. And I
- may add more examples in the future if I could crowdsource more scenarios from
- the users (including you the reader). In case you find one or two of them that
+ The four exemplifying scripts below are good demonstrations.More examples will
+ be added in the future if I could crowdsource more scenarios from the users
+ (including you the reader). In case you find one or two of them that
  are similar to your data structure, use the example(s) as a template and then
  build up your own script.
  
@@ -354,7 +355,7 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
                      ) ),
 
       '-Subj2' = apl(n = 1, d = NA,  h = paste(
-   "-Subj12var_name: var_name is used to specify the column name that is designated as",
+   "-Subj2 var_name: var_name is used to specify the column name that is designated as",
    "        as the first measuring entity variable (usually subject). This option,",
    "        combined with the another option '-Subj1', forms a pair of two subjects;",
    "        the order between the two subjects does not matter. The default (when",
@@ -398,8 +399,8 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
    "         very critical when other fixed effects are of interest.",
    "         2) Between-subjects covariates are generally acceptable.",
    "         However EXTREME caution should be taken when the groups",
-   "         differ significantly in the average value of the covariate.",
-   "         3) Within-subject covariates are better modeled with 3dISC.\n",
+   "         differ substantially in the average value of the covariate.",
+   "         \n",
              sep = '\n'
              ) ),
 	     
@@ -409,8 +410,8 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
 #   "         See details in -gltCode.\n", sep = '\n') ),
 #
      '-gltCode' = apl(n=c(1,1000), d=NA, h = paste(
-   "-gltCode k label weights: Specify the label and weights for the k-th effect",
-   "         of interest.\n", sep = '\n'
+   "-gltCode label weights: Specify the label and weights of interest. The",
+   "       weights should be surrounded with quotes. \n", sep = '\n'
                      ) ),
 
       '-r2z' = apl(n=0, h = paste(
@@ -418,15 +419,15 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
    "         (input files) if it is correlation value. Do not invoke the option",
    "         if the transformation has already been applied.\n", sep='\n')),
 
-      '-cVars' = apl(n=c(1,100), d=NA, h = paste(
-   "-cVars variable_list: Identify categorical (qualitive) variables (or",
-   "         factors) with this option. The list with more than one variable",
-   "         has to be separated with comma (,) without any other characters such",
-   "         as spaces and should be surrounded within (single or double) quotes.",
-   "         For example, -cVars \"sex,site\"\n",
-             sep = '\n'
-             ) ),
-
+#      '-cVars' = apl(n=c(1,100), d=NA, h = paste(
+#   "-cVars variable_list: Identify categorical (qualitive) variables (or",
+#   "         factors) with this option. The list with more than one variable",
+#   "         has to be separated with comma (,) without any other characters such",
+#   "         as spaces and should be surrounded within (single or double) quotes.",
+#   "         For example, -cVars \"sex,site\"\n",
+#             sep = '\n'
+#             ) ),
+#
 #      '-vVars' = apl(n=c(1,100), d=NA, h = paste(
 #   "-vVars variable_list: Identify voxel-wise covariates with this option.",
 #   "         Currently one voxel-wise covariate is allowed only, but this",
