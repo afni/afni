@@ -28,6 +28,12 @@ ver='1.5' ; date='July 31, 2019'
 # + [PT] rename several variables and opts, to undo my misunderstanding...
 # + [PT] EPI back to being required
 #
+ver='1.6' ; date='Aug 2, 2019'
+# + [PT] added in obliquity checks: should be able to deal with relative 
+#        obl diffs between EPI and freq dset (if they exist)
+# + [PT] final WARP dset will now be in EPI grid
+# + [PT] *still need to check on scaling&recentering of Siemens data*
+#
 ##########################################################################
 
 import sys, os
