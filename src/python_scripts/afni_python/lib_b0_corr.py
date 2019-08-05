@@ -24,9 +24,15 @@
 #ver='1.41' ; date='July 26, 2019'
 # + [PT] update help; include JSON description
 #
-ver='1.5' ; date='July 31, 2019'
+#ver='1.5' ; date='July 31, 2019'
 # + [PT] rename several variables and opts, to undo my misunderstanding...
 # + [PT] EPI back to being required
+#
+ver='1.6' ; date='Aug 2, 2019'
+# + [PT] added in obliquity checks: should be able to deal with relative 
+#        obl diffs between EPI and freq dset (if they exist)
+# + [PT] final WARP dset will now be in EPI grid
+# + [PT] *still need to check on scaling&recentering of Siemens data*
 #
 ###############################################################################
 
@@ -45,8 +51,9 @@ ddefs = {
     'DEF_npeels'     : 2,
     'DEF_nerode'     : 3,
     'DEF_bsigma'     : 9,  #blur to match the '--smooth3=9' opt in FSL's fugue
-    'DEF_freq_ctr_meth' : 'mode',
+    'DEF_meth_recenter_freq' : 'mode',
     'DEF_wdir_pref'  : '__work_B0_corr_',
+    'DEF_aff12_obl_epi_freq' : 'mat_obl_epi_freq.aff12.1D',
 }
 
 # See also 'A NOTE ON THE DIRECTIONALITY OF THE PHASE CORRECTION' below
@@ -71,7 +78,7 @@ all_opts = {
     'epi_pe_fov'         : '-epi_pe_fov',
     'epi_pe_dir'         : '-epi_pe_dir',
     'scale_freq'         : '-scale_freq', 
-    'method_to_ctr'      : '-method_to_ctr', 
+    'do_recenter_freq'   : '-do_recenter_freq', 
     'blur_sigma'         : '-blur_sigma',
     'automask_peels'     : '-automask_peels',
     'automask_erode'     : '-automask_erode', 
@@ -183,8 +190,9 @@ Running ~1~
 {scale_freq}       SF : (opt) scale to apply to frequency volume, 
                        for example to change units to match. 
                        NB: a negative value would invert the warp (probably
-                       would not want that...?)
-                       (def: SF=1.0)
+                       would not want that...?)  See the 'Notes ..' below
+                       for more information about scaling, esp. for particular
+                       vendors.  (def: SF=1.0)
 
 {out_cmds}         OC : (opt) name of output script, recording commands that
                        were run during the processing (def: script is output
@@ -202,11 +210,11 @@ Running ~1~
                        dset
                        (def: BS = {DEF_bsigma})
 
-{method_to_ctr}    MC : method for 3dROIstats to recenter the phase (=freq)
+{do_recenter_freq}    MC : method for 3dROIstats to recenter the phase (=freq)
                        volume within the brain mask.  If the value of
                        MC is 'NONE', then the phase dset will not be
                        recentered 
-                       (def: MC = {DEF_freq_ctr_meth})
+                       (def: MC = {DEF_meth_recenter_freq})
 
 {automask_peels}   AP : if automasking a magnitude image to create a
                        brain mask, AP is the 'peels' value of 3dAutomask
@@ -222,6 +230,35 @@ Running ~1~
                        '-hview' to open help in a separate text editor)
 {ver}                 : display program version number in terminal 
 {date}                : display date of program's last update in terminal 
+
+
+Notes ~1~
+
+Units of frequency/phase/fieldmap ~2~
+
+It is important to have your input phase/frequency volume contain the
+correct units for this program.  Here, we expect them to be in
+"radians/second" (rad/s).
+
+Re. Siemens fieldmaps
+---------------------
+  If your frequency map is one output by Siemens, then consider the
+  following (but doublecheck that it really applies to your darling
+  dataset!):
+
+  The standard range of fieldmap values in that case appears to be
+  [-4096, 4095], which comes from them dividing the measured phases by
+  2*PI and multiplying by 4096.  This means you should be able to get
+  back by scaling the fieldmap by 2*PI/4096 ~ 0.001534.  This could be
+  done with, say, a separate 3dcalc command to make a new freq dset; or,
+  you could provide this magic value to the present command with the
+  scaling option:  '{scale_freq} 0.001534'. !!! need to doublecheck this
+  scaling... !!!
+
+  ???Additionally, these phase/frequency maps are probably already
+  centered appropriately???
+
+  Worth repeating: be sure that this *really* applies to your data!
 
 
 Examples ~1~
@@ -442,11 +479,14 @@ class iopts_b0_corr:
         self.epi_pe_dir_nwarp_opp = 0        # opp of polarity, for 3dNwarpCat
         self.blur_sigma       = ddefs['DEF_bsigma']  # 'blurSigma'
         
-        self.diff_obl_epi_freq  = False    # check for obl diff
+        # about obliquity: first check for EPI-freq obl diff (doesn't
+        # really matter); then make a mat of any EPI-freq obl diff
+        self.is_same_obl_epi_freq  = False  
+        self.aff12_obl_epi_freq = ddefs['DEF_aff12_obl_epi_freq'] 
 
         # params, calc'ed during runtime
         self.freq_ctr      = 0.0           # (freqOut); for centering B0
-        self.freq_ctr_meth = ddefs['DEF_freq_ctr_meth'] # how to center B0
+        self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] # how to center B0
 
         # masking params
         self.npeels   = ddefs['DEF_npeels'] # param for mask_B0 (3dAutomask)
@@ -558,14 +598,14 @@ class iopts_b0_corr:
     def set_freq_ctr( self, dd ):
         self.freq_ctr = float(dd)
 
-    def set_freq_ctr_meth( self, dd ):
-        self.freq_ctr_meth = dd
+    def set_meth_recenter_freq( self, dd ):
+        self.meth_recenter_freq = dd
         
     def set_epi_json( self, dd ):
         self.epi_json = dd
 
-    def set_diff_obl_epi_freq( self, dd ):
-        self.diff_obl_epi_freq = bool(dd)
+    def set_is_same_obl_epi_freq( self, dd ):
+        self.is_same_obl_epi_freq = bool(dd)
 
     # ---------------------------------------------------------------------
 
@@ -670,12 +710,10 @@ here:
         com = BASE.shell_com(cmd, capture=1, save_hist=0)
         com.run()
         check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
-        self.set_diff_obl_epi_freq(int(com.so[0]))
-        # !!!!! working here... will check better way to see about obliquity diff
-        #print(self.diff_obl_epi_freq)
+        self.set_is_same_obl_epi_freq(int(com.so[0]))
 
-        sys.exit("DONE")
-
+        print("++ EPI and phase have same obliq?  {}"
+              "".format(self.is_same_obl_epi_freq) )
 
     # ---------- check ----------------
 
@@ -730,10 +768,10 @@ here:
             MISS+=1
 
         if (self.freq_info.datum == 'float') and \
-           (self.freq_ctr_meth == 'mode') :
+           (self.meth_recenter_freq == 'mode') :
             print("** ERROR: can't have freq dset datum type be 'float' "
                   "and then\n"
-                  "   use (default) 'mode' to recenter its values; see {method_to_ctr}\n"
+                  "   use (default) 'mode' to recenter its values; see {do_recenter_freq}\n"
                   "   for recentering in other ways (like median?)."
                   "".format(**all_opts))
             MISS+=1
@@ -861,12 +899,12 @@ here:
         # copied/made here.
         os.chdir(self.wdir)
 
-        if self.freq_ctr_meth != 'NONE' :
+        if self.meth_recenter_freq != 'NONE' :
             cmd = '''3dROIstats           \
             -quiet                        \
             -nomeanout                    \
             -mask {dset_mask_name}        \
-            -{freq_ctr_meth}              \
+            -{meth_recenter_freq}         \
             {dset_freq_name}
             '''.format( **self_vars )
 
@@ -912,11 +950,53 @@ here:
         check_for_shell_com_failure(self.comm, cmd )
 
         # -------------------------------------------------------------
+        # Calculate any difference in coordinate axes between
+        # freq/phase and EPI dsets.  That is, it is *possible* that
+        # they were acquired with different axes: one might have
+        # oblique axes and the other not, or they might have been
+        # acquired with different oblique axes.  The header
+        # information of each is used: 
+        # + IJK_TO_DICOM_REAL
+        #   - exists in all dset headers
+        #   - maps:  ijk --> scanner/cardinal axes
+        # + IJK_TO_DICOM
+        #   - exists in AFNI extensions (OK to rely on here, because
+        #     all dsets were AFNI-3dcalc'ed into working dir)
+        #   - maps:  ijk --> acquired/(possibly) oblique axes
+        # NOTE: this works even if the phase and EPI dsets have the
+        # same obliquity/acquisition axes. Thus, this step may not be
+        # necessary, but it also should do no harm.
 
-        # Self-warp field map to match EPI distortions
+        # Here, we go from EPI oblique coors to EPI ijk to EPI scanner
+        # coors (which are the same as freq dset scanner coors) to
+        # freq ijk to freq oblique
+        cmd = '''cat_matvec                     \
+        -ONELINE                                \
+        {dset_epi_name}::IJK_TO_DICOM -I        \
+        {dset_epi_name}::IJK_TO_DICOM_REAL      \
+        {dset_freq_name}::IJK_TO_DICOM_REAL -I  \
+        {dset_freq_name}::IJK_TO_DICOM          \
+        > {aff12_obl_epi_freq}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
+
+
+        # -------------------------------------------------------------
+        # Self-warp field map to match EPI distortions {warp_00} comes
+        # from {dset_int_01} (while not obvious/apparent here, it was
+        # defined to do so in object methods above) output here will
+        # be in the EPI coors+space-- that is, any relative obliquity
+        # diff gets accounted for here!
+        # Not using wsinc5 interpolation for the output here, to avoid
+        # ringing... have to consider that
         cmd = '''3dNwarpApply {overwrite} \
-        -echo_edu                     \
-        -warp   {warp_00}{dext}       \
+        -echo_edu                         \
+        -warp   "{aff12_obl_epi_freq} {warp_00}{dext}"  \
+        -master {dset_epi_name} \
+        -ainterp quintic \
         -prefix {dset_int_02}{dext}   \
         -source {dset_int_01}{dext}
         '''.format( **self_vars )
@@ -927,7 +1007,9 @@ here:
 
 
         # calculate the final warp and output it (so it can be
-        # concatenated later)
+        # concatenated later); {warp_01} comes from {dset_int_02}
+        # (while not obvious/apparent here, it was defined to do so in
+        # object methods above).
         cmd = '''3dNwarpCat  {overwrite} \
         -echo_edu                   \
         -warp1  {warp_01}{dext}     \
@@ -950,29 +1032,28 @@ here:
         check_for_shell_com_failure(self.comm, cmd )
 
 
-        if self.dset_epi :
-            # Now apply warped field map to fix EPI
-            cmd = '''3dNwarpApply  {overwrite}  \
-            -echo_edu                     \
-            -warp   {odset_warp}{dext}    \
-            -prefix {odset_epi}{dext}     \
-            -source {dset_epi_name}
-            '''.format( **self_vars )
+        # Now apply warped field map to fix EPI
+        cmd = '''3dNwarpApply  {overwrite}  \
+        -echo_edu                     \
+        -warp   {odset_warp}{dext}    \
+        -prefix {odset_epi}{dext}     \
+        -source {dset_epi_name}
+        '''.format( **self_vars )
 
-            self.comm = BASE.shell_com(cmd, capture=1)
-            self.comm.run()
-            check_for_shell_com_failure(self.comm, cmd )
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
 
 
-            # copy the EPI results up a directory
-            cmd = '''3dcopy {overwrite}  \
-            {odset_epi}{dext}            \
-            ../{odset_epi}{dext}
-            '''.format( **self_vars )
-            
-            self.comm = BASE.shell_com(cmd, capture=1)
-            self.comm.run()
-            check_for_shell_com_failure(self.comm, cmd )
+        # copy the EPI results up a directory
+        cmd = '''3dcopy {overwrite}  \
+        {odset_epi}{dext}            \
+        ../{odset_epi}{dext}
+        '''.format( **self_vars )
+        
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
 
 
         os.chdir(self.origdir)
@@ -1062,7 +1143,6 @@ here:
 # --------------------------------------------------------------------------
 
 def parse_args_b0_corr(full_argv):
-
     argv = full_argv[1:]
 
     Narg = len(argv)
@@ -1143,11 +1223,11 @@ def parse_args_b0_corr(full_argv):
             i+= 1
             iopts.set_phaseDistScale(argv[i])
 
-        elif argv[i] == "{method_to_ctr}".format(**all_opts) :
+        elif argv[i] == "{do_recenter_freq}".format(**all_opts) :
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_freq_ctr_meth(argv[i])
+            iopts.set_meth_recenter_freq(argv[i])
 
         elif argv[i] == "{out_cmds}".format(**all_opts) :
             if i >= Narg:
