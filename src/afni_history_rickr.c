@@ -54,7 +54,8 @@ afni_history_struct rickr_history[] = {
    "For macs: to allow R_io.so to load shared libraries needed by libmri,\n"
    "          set the search path to include the abin, flat_namespace and\n"
    "          R lib dir.\n"
-   "This might apply to linux with libmri.so, as well."
+   "This might apply to linux with libmri.so, as well.\n"
+   "Thanks to N Adleman, C Caballero and E Silson."
  } ,
 
  { 30, Jul, 2019, RCR, "gen_group_command.py", MICRO, TYPE_ENHANCE,
