@@ -24,6 +24,13 @@ else
    echo "${tname} not found in $pp or $pp/R_scripts or $afpath"
    echo ""
 endif
+
+# for macos: search abin and flat_namespace for shared objects
+if ( -d /opt/X11/lib/flat_namespace ) then
+   echo updating R_LD_LIBRARY_PATH ...
+   setenv R_LD_LIBRARY_PATH `R RHOME`/lib:${afpath}:/opt/X11/lib/flat_namespace
+endif
+
    
 if (0) then
    #This worked OK, except for the blasted -gSOMETHING problem 
