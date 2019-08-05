@@ -211,9 +211,10 @@ g_history = """
    1.02 Oct 11, 2018 - check for consistency between python and PyQt4 paths
    1.03 Oct 16, 2018 - if no AFNI prog errors, skip library linking warnings
    1.04 Oct 29, 2018 - check for .zshenv if zsh
+   1.05 Aug  5, 2019 - check for matplotlib.pyplot; use simpl_import_test
 """
 
-g_version = "afni_system_check.py version 1.04, October 29, 2018"
+g_version = "afni_system_check.py version 1.05, August 5, 2019"
 
 
 class CmdInterface:

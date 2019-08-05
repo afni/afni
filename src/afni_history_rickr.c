@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Aug, 2019, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
+   "check for matplotlib.pyplot",
+   NULL
+ } ,
+
  {  5, Aug, 2019, RCR, "3dMVM", MINOR, TYPE_MODIFY,
    "set R_LD_LIBRARY_PATH for all 3d* R-calling programs using $afpath on osx",
    "For macs: to allow R_io.so to load shared libraries needed by libmri,\n"

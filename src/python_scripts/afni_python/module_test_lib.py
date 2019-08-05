@@ -40,7 +40,8 @@
 # - fromlibs = { 'scipy': ['linalg', 'signal', 'stats'], 'fish': ['tuna'] }
 # - add to 
 
-import imp, sys
+import imp, os, sys
+IL = None
 
 # add 'R' if needed
 genlibs  = ['os', 'sys', 'string', 'glob', 'copy', 'gc', 'time', 'webbrowser']
@@ -220,6 +221,48 @@ def import_find_test_24(libname, details=1, verb=1):
 
    return mod
 """
+
+def load_module(mname, fp, pname, desc, verb=1):
+   mod = None
+   try: mod = imp.load_module(mname, fp, pname, desc)
+   except:
+      if verb>0: print("** failed to load module: %s" % mname)
+      mod = None  # be sure of return value
+   else:
+      if verb>1: print("++ module loaded: %s" % (mname))
+   finally:
+      if fp:
+         if verb>3: print("-- close file for module: %s" % mname)
+         fp.close()
+   return mod
+
+def simple_import_test(libname, details=1, verb=1):
+   # return loaded library or None (on failure)
+   # if libname has '.', partition and search subdirs
+
+   global IL
+   if IL is None:
+      try: import importlib as LLL
+      except:
+         print("** simple_import_test: failed to get importlib")
+         return None
+      IL = LLL
+
+   try:
+      mod = IL.import_module(libname)
+      if verb > 1:
+         print("++ module loaded: %s" % libname)
+   except:
+      print("** failed to load module %s" % libname)
+      return None
+
+   if details and verb > 1:
+      if hasattr(mod, '__file__'):
+         print("   module file : %s" % mod.__file__)
+      elif hasattr(mod, '__path__'):
+         print("   module path : %s" % mod.__path__)
+
+   return mod
 
 def test_import(libname, details=1, verb=1):
    """try to import a single library, specified as a string

@@ -1989,7 +1989,7 @@ def db_mod_volreg(block, proc, user_opts):
     #     isotropic voxels size, it should not be applied without user request
     #     (i.e. be able to use -master without -dxyz)
     #   - could simply require user to be sure it is appropriate
-    #     (for now, and account for issues as they arise)
+    #     (for now, and account for issues as they arise, e.g. check space)
     #   - what if oblique? even allowed? can 3dAllin/NwA output be oblique?
     #   - in volreg only case, there might not actually be a warp
     #   

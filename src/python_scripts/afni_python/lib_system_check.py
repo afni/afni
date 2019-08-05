@@ -777,7 +777,7 @@ class SysInfo:
 
    def show_python_lib_info(self, plibs, header=1, verb=2):
       if header: print(UTIL.section_divider('python libs', hchar='-'))
-      for lib in plibs: MT.test_import(lib, verb=verb)
+      for lib in plibs: MT.simple_import_test(lib, verb=verb)
       # explicitly note whether we have PyQt4
       if not MT.test_import('PyQt4', verb=0):
          self.have_pyqt4 = 1
@@ -1148,7 +1148,7 @@ class SysInfo:
 
       self.show_general_sys_info()
       self.show_general_afni_info()
-      self.show_python_lib_info(['PyQt4'], verb=3)
+      self.show_python_lib_info(['matplotlib.pyplot', 'PyQt4'], verb=3)
       self.show_path_vars()
       self.show_data_info()
       self.show_os_specific()
