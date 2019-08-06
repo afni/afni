@@ -41,6 +41,7 @@ class SysInfo:
       self.rc_file         = ''
 
       self.repo_prog       = '' # e.g. yum or brew
+      self.have_matplotlib = 0
       self.have_pyqt4      = 0
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
@@ -775,16 +776,24 @@ class SysInfo:
 
       return nfound
 
-   def show_python_lib_info(self, plibs, header=1, verb=2):
-      if header: print(UTIL.section_divider('python libs', hchar='-'))
-      for lib in plibs: MT.simple_import_test(lib, verb=verb)
-      # explicitly note whether we have PyQt4
-      if not MT.test_import('PyQt4', verb=0):
+   def test_python_lib_pyqt4(self, verb=2):
+      # actual lib test
+      libname = 'PyQt4'
+      rv = MT.simple_import_test(libname, verb=verb)
+
+      # if failure, no biggie for now
+      if rv:
+         print('-- %s is no longer needed for an AFNI bootcamp' % libname)
+         return 1
+
+      # it loads, but how about QtCore and QtGui
+      if not MT.test_import(libname, verb=0):
          self.have_pyqt4 = 1
 
-         # check for partial install
+         # but check for partial install
          cmd = 'from PyQt4 import QtCore, QtGui'
-         try: exec(cmd)
+         try:
+            exec(cmd)
          except:
             print('\n** have PyQt4, but cannot load QtCore, QtGui; error is:' \
                   '\n\n'                                                      \
@@ -794,10 +803,43 @@ class SysInfo:
             self.comments.append('check for partial install of PyQt4')
             self.have_pyqt4 = 0
 
-      else:
-         print('-- PyQt4 is no longer needed for an AFNI bootcamp')
+            return 1
 
+      return 0
+
+   def test_python_lib(self, pylib, mesg='', verb=2):
+      # actual lib test
+      rv = MT.simple_import_test(pylib, verb=verb)
+
+      if mesg : pmesg = mesg
+      else:     pmesg = 'not required, but is desirable'
+
+      # if failure, no biggie, but warn
+      if rv:
+         print('-- %s is %s' % (pylib, pmesg))
+         return 1
+
+      if pylib.startswith('matplotlib'):
+         self.have_matplotlib = 1
+
+      return 0
+
+   def show_python_lib_info(self, header=1):
+
+      # any extra libs to test beyone main ones
+      extralibs = ['matplotlib.pyplot']
+      verb = 3
+
+      if header: print(UTIL.section_divider('python libs', hchar='-'))
+
+      # itemize special libraries to test: PyQt4
+      self.test_python_lib_pyqt4(verb=verb)
       print('')
+
+      # then go after any others
+      for plib in extralibs:
+         self.test_python_lib(plib, verb=verb)
+         print('')
 
       pdirs = glob.glob('/sw/bin/python*')
       if len(pdirs) > 0: pdirs = [dd for dd in pdirs if dd.find('config')<0]
@@ -1148,7 +1190,7 @@ class SysInfo:
 
       self.show_general_sys_info()
       self.show_general_afni_info()
-      self.show_python_lib_info(['matplotlib.pyplot', 'PyQt4'], verb=3)
+      self.show_python_lib_info()
       self.show_path_vars()
       self.show_data_info()
       self.show_os_specific()

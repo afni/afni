@@ -236,9 +236,8 @@ def load_module(mname, fp, pname, desc, verb=1):
          fp.close()
    return mod
 
-def simple_import_test(libname, details=1, verb=1):
+def simple_import(libname, details=1, verb=1):
    # return loaded library or None (on failure)
-   # if libname has '.', partition and search subdirs
 
    global IL
    if IL is None:
@@ -263,6 +262,13 @@ def simple_import_test(libname, details=1, verb=1):
          print("   module path : %s" % mod.__path__)
 
    return mod
+
+def simple_import_test(libname, details=1, verb=1):
+   """test whether the library can be imported, return 0 on success
+   """
+   mod = simple_import(libname, details=details, verb=verb)
+   if mod is None: return 1  # failure
+   else:           return 0  # success
 
 def test_import(libname, details=1, verb=1):
    """try to import a single library, specified as a string
