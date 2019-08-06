@@ -211,7 +211,7 @@ afni_history_struct rickr_history[] = {
 
  { 12, Jun, 2019, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "better prep for shared build, and fix shared build of suma_gts_progs",
-   "Move mri_render.o out of libmri (corresponds with plug_render.so)."
+   "Move mri_render.o out of libmri (corresponds with plug_render.so).\n"
    "Still need to fix mpeg_encode."
  } ,
 
