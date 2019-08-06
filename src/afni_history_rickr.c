@@ -268,7 +268,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 16, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
+ { 16, May, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add uvars flip_check_dset and flip_guess",
    "Add 'flip guess' to review_basic output."
  } ,
@@ -279,7 +279,7 @@ afni_history_struct rickr_history[] = {
    "of tables, and the ability to convert them to json form."
  } ,
 
- { 15, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
+ { 15, May, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "add uvar have_radcor_dirs",
    NULL
  } ,
