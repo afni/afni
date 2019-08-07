@@ -1734,7 +1734,7 @@ class ATInterface:
                          helpstr='show ISI stats for load_multi_timing objs')
       self.valid_opts.add_opt('-multi_show_timing_ele', 0, [], 
                          helpstr='display info about the multi timing elements')
-      self.valid_opts.add_opt('-multi_stim_dur', -1, [], okdash=0,
+      self.valid_opts.add_opt('-multi_stim_dur', -1, [],
                          helpstr='provide stimulus durations for timing list')
       self.valid_opts.add_opt('-multi_timing_to_events', 1, [], 
                          helpstr='convert stim_times event file')
