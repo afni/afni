@@ -6004,7 +6004,7 @@ STATUS("making prog->rowcol") ;
       XtAddCallback( prog->hidden_melter_pb , XmNactivateCallback ,
                      AFNI_hidden_CB , im3d ) ;
       MCW_set_widget_bg( prog->hidden_melter_pb , "black" , 0 ) ;
-      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb88" ) ;
+      MCW_set_widget_fg( prog->hidden_melter_pb , "#ffbb33" ) ;
 
       /*----------*/
 
@@ -6020,7 +6020,7 @@ STATUS("making prog->rowcol") ;
         XtAddCallback( prog->hidden_sound_pb , XmNactivateCallback ,
                        AFNI_hidden_CB , im3d ) ;
         MCW_set_widget_bg( prog->hidden_sound_pb , "#330077" , 0 ) ;
-        MCW_set_widget_fg( prog->hidden_sound_pb , "#ffcc22" ) ;
+        MCW_set_widget_fg( prog->hidden_sound_pb , "#ffdd22" ) ;
 
       /*----------*/
 
@@ -6035,7 +6035,7 @@ STATUS("making prog->rowcol") ;
         XtAddCallback( prog->hidden_music_pb , XmNactivateCallback ,
                        AFNI_hidden_CB , im3d ) ;
         MCW_set_widget_bg( prog->hidden_music_pb , "#330077" , 0 ) ;
-        MCW_set_widget_fg( prog->hidden_music_pb , "#ffcc22" ) ;
+        MCW_set_widget_fg( prog->hidden_music_pb , "#ffee22" ) ;
 
       } else {
 

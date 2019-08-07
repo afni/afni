@@ -7913,11 +7913,18 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w != NULL && w == im3d->vwid->prog->hidden_music_pb ){ /* 07 Aug 2019 */
      if( GLOBAL_library.sound_player != NULL && GLOBAL_library.local_display ){
-#define NMUSIC 99
-        MRI_IMAGE *qim = jRandom1D(NMUSIC,2); float *qar = MRI_FLOAT_PTR(qim); int ii;
-        for( ii=0 ; ii < NMUSIC ; ii++ ) qar[ii] += 0.222f * qar[ii+NMUSIC] ;
-        mri_play_sound(qim,0) ; mri_free(qim) ;
-#undef NMUSIC
+        static int ncall=0 ;
+        int nmusic = (int)AFNI_numenv("AFNI_MUSIC_SIZE") ;
+        MRI_IMAGE *qim ; float *qar ; int ii ;
+             if( nmusic <     4 ) nmusic = 99 ;
+        else if( nmusic > 99999 ) nmusic = 99999 ;
+        qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);
+        for( ii=0 ; ii < nmusic ; ii++ ) qar[ii] += 0.222f * qar[ii+nmusic] ;
+        switch( ncall%3 ){
+          case 2: osfilt3_func( nmusic , 0.0,1.0 , qar ) ;  /* fall thru */
+          case 1: osfilt3_func( nmusic , 0.0,1.0 , qar+nmusic ) ; break ;
+        }
+        mri_play_sound(qim,0) ; mri_free(qim) ; ncall++ ;
      } else {
        WARNING_message("sound playing not available :(") ;
      }
