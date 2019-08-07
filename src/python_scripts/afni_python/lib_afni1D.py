@@ -2004,9 +2004,11 @@ class Afni1D:
             dp = -1     : use %f
       """
       ss = ' '*spaces
+      # add space for alignment to include a sign,0,.
+      dt = dp + 3
       for v, vec in enumerate(mat):
          for val in vec:
-            if dp > 0:    ps = "%.*f%s" % (dp, val, ss)
+            if dp > 0:    ps = "%*.*f%s" % (dt, dp, val, ss)
             elif dp == 0: ps = "%g%s" % (val, ss)
             else:         ps = "%f%s" % (val, ss)
             print(ps, end='')
