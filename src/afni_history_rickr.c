@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Aug, 2019, RCR, "rPkgsInstall", MINOR, TYPE_ENHANCE,
+   "more programs that need R_LD_LIBRARY_PATH",
+   "Full list: 1dRplot, 3dICC, 3dISC, 3dLME, 3dMEMA, 3dMEPFM, 3dMVM, 3dPFM,\n"
+   "           3dRprogDemo, 3dSignatures, ExamineXmat, MBA, RBA, rPkgsInstall."
+ } ,
+
  {  5, Aug, 2019, RCR, "afni_system_check.py", MINOR, TYPE_ENHANCE,
    "check for matplotlib.pyplot",
    NULL
@@ -211,7 +217,7 @@ afni_history_struct rickr_history[] = {
 
  { 12, Jun, 2019, RCR, "Makefile.INCLUDE", MINOR, TYPE_MODIFY,
    "better prep for shared build, and fix shared build of suma_gts_progs",
-   "Move mri_render.o out of libmri (corresponds with plug_render.so).\n"
+   "Move mri_render.o out of libmri (corresponds with plug_render.so)."
    "Still need to fix mpeg_encode."
  } ,
 
@@ -268,7 +274,7 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
- { 16, May, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+ { 16, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
    "add uvars flip_check_dset and flip_guess",
    "Add 'flip guess' to review_basic output."
  } ,
@@ -279,7 +285,7 @@ afni_history_struct rickr_history[] = {
    "of tables, and the ability to convert them to json form."
  } ,
 
- { 15, May, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+ { 15, May, 2019, RCR, "gen_ss_review_scripts", MINOR, TYPE_ENHANCE,
    "add uvar have_radcor_dirs",
    NULL
  } ,
