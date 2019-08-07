@@ -7897,20 +7897,37 @@ ENTRY("AFNI_hidden_CB") ;
 
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
      MCW_melt_widget( im3d->vwid->top_form ) ;
-     NI_sleep(111) ;
-     MCW_melt_widget( im3d->vwid->top_form ) ;
-     NI_sleep(111) ;
      if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
-       AFNI_startup_sound() ;
+       AFNI_startup_sound(3) ;
+     NI_sleep(111) ;
      MCW_set_widget_label(w,"Omega-13 is one use") ;
      SENSITIZE(w,0) ;
    }
 
-   else if( w == im3d->vwid->prog->hidden_sound_pb ){    /* 20 Aug 2018 */
+   else if( w != NULL && w == im3d->vwid->prog->hidden_sound_pb ){ /* 20 Aug 2018 */
      if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
-       AFNI_startup_sound() ;
+       AFNI_startup_sound(2) ;
      else
        WARNING_message("sound playing not available :(") ;
+   }
+
+   else if( w != NULL && w == im3d->vwid->prog->hidden_music_pb ){ /* 07 Aug 2019 */
+     if( GLOBAL_library.sound_player != NULL && GLOBAL_library.local_display ){
+        static int ncall=0 ;
+        int nmusic = (int)AFNI_numenv("AFNI_MUSIC_SIZE") ;
+        MRI_IMAGE *qim ; float *qar ; int ii ;
+             if( nmusic <     4 ) nmusic = 99 ;
+        else if( nmusic > 99999 ) nmusic = 99999 ;
+        qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);
+        for( ii=0 ; ii < nmusic ; ii++ ) qar[ii] += 0.222f * qar[ii+nmusic] ;
+        switch( ncall%3 ){
+          case 2: osfilt3_func( nmusic , 0.0,1.0 , qar ) ;  /* fall thru */
+          case 1: osfilt3_func( nmusic , 0.0,1.0 , qar+nmusic ) ; break ;
+        }
+        mri_play_sound(qim,0) ; mri_free(qim) ; ncall++ ;
+     } else {
+       WARNING_message("sound playing not available :(") ;
+     }
    }
 
    else if( w == im3d->vwid->prog->hidden_gamberi_pb ){

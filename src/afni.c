@@ -2642,7 +2642,7 @@ STATUS("call 0") ;
         if( check_string("-com",MAIN_argc,MAIN_argv) == 0 &&
             GLOBAL_library.local_display                  &&
             GLOBAL_library.have_sox                       &&
-            AFNI_yesenv("AFNI_STARTUP_SOUND")               ) AFNI_startup_sound() ;
+            AFNI_yesenv("AFNI_STARTUP_SOUND")               ) AFNI_startup_sound(1) ;
 #endif
 
       case 2:

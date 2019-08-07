@@ -15,6 +15,8 @@ static int found_pprog = -1 ;
 static char *pprog      = NULL ;
 static char *pprog_name = NULL ;
 
+static const int DEBUG = 0 ;
+
 char * get_sound_player(void)
 {
    if( found_pprog < 0 ){
@@ -34,6 +36,9 @@ char * get_sound_player(void)
 
      found_pprog = (pprog != NULL) ;
      if( found_pprog ) pprog_name = THD_trailname(pprog,0) ;
+
+     if( DEBUG )
+       INFO_message("get_sound_player: %s",(found_pprog)?pprog:"NULL") ;
    }
 
    return pprog ;
@@ -128,7 +133,7 @@ void kill_sound_players(void)
 {
   char cmd[1024] ;
   if( pprog_name != NULL ){
-    sprintf(cmd,"tcsh -c 'killall %s >& /dev/null' &",pprog_name) ;
+    sprintf(cmd,"tcsh -c 'killall %s >& /dev/null'",pprog_name) ;
     system(cmd) ;
   }
   return ;
@@ -180,11 +185,13 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
    sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
+   if( DEBUG ) INFO_message("temp sound filename = %s",fname) ;
    sound_write_au_16PCM( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
      strcat(extras," reverb 33") ;
-   sprintf(cmd,"tcsh -c '%s %s %s >& /dev/null' &",pprog,fname,extras) ;
+   sprintf(cmd,"tcsh -c '%s %s %s >& /dev/null'",pprog,fname,extras) ;
+   if( DEBUG ) ININFO_message("%s",cmd) ;
    system(cmd) ;
    sleep(1);
    unlink(fname) ;

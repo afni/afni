@@ -2380,15 +2380,20 @@ void AFNI_speak_setvoice( char *vvv ){ return; }
 
 /****************************************************************************/
 
-void AFNI_startup_sound(void)
+void AFNI_startup_sound(int nnn)
 {
 #ifndef NO_FRIVOLITIES
-  static int have_sox=-1 ;
+  static int have_sox=-1 ; int ii ;
 
   if( have_sox < 0 ) have_sox = ( THD_find_executable("sox") != NULL ) ;
   if( have_sox == 0 ) return ;
 
-  system("sox -n -d synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
+  for( ii=0 ; ii < nnn ; ii++ ){
+   if( ii%2 == 0 )
+     system("sox -n -d synth 0.5 pluck E3 pluck F3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
+   else
+     system("sox -n -d synth 0.5 pluck F3 pluck E3 gain -h -27 delay 0.2 0 fade t 0.05 &> /dev/null") ;
+  }
 #endif
   return ;
 }
