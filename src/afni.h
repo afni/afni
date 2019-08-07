@@ -964,6 +964,7 @@ typedef struct {
    Widget hidden_usdecl_pb  ;  /* 06 Jan 2011 */
    Widget hidden_melter_pb  ;  /* 18 Feb 2011 */
    Widget hidden_sound_pb   ;  /* 20 Aug 2018 */
+   Widget hidden_music_pb   ;  /* 07 Aug 2019 */
    Widget hidden_pvalue_pb  ;  /* 06 Mar 2014 */
    Widget hidden_papers_pb  ;  /* 02 May 2014 */
 

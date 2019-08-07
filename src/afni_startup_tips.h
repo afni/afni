@@ -1487,7 +1487,7 @@ static char *gby[] = {
      "\n  It is a truth universally acknowledged, that once you collect 30\n"
      "  subjects of FMRI data, you will be able to find SOMETHING publishable"                ,
 
-     "\n  The great thing about the human condition:\n"
+     "\n  One great thing about the human condition:\n"
      "  No matter how bad it is, it can always get worse"                                     ,
 
      "\n  When someone says: I'm going to simplify things.\n"

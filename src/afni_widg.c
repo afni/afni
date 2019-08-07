@@ -6008,18 +6008,40 @@ STATUS("making prog->rowcol") ;
 
       /*----------*/
 
-      prog->hidden_sound_pb =
-            XtVaCreateManagedWidget(
-               "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
-                  LABEL_ARG("Play startup sound") ,
-                  XmNmarginHeight , 0 ,
-                  XmNtraversalOn , True  ,
-                  XmNinitialResourcesPersistent , False ,
-               NULL ) ;
-      XtAddCallback( prog->hidden_sound_pb , XmNactivateCallback ,
-                     AFNI_hidden_CB , im3d ) ;
-      MCW_set_widget_bg( prog->hidden_sound_pb , "#330077" , 0 ) ;
-      MCW_set_widget_fg( prog->hidden_sound_pb , "#ffcc22" ) ;
+      if( GLOBAL_library.sound_player != NULL ){
+        prog->hidden_sound_pb =
+              XtVaCreateManagedWidget(
+                 "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                    LABEL_ARG("Play startup sound") ,
+                    XmNmarginHeight , 0 ,
+                    XmNtraversalOn , True  ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+        XtAddCallback( prog->hidden_sound_pb , XmNactivateCallback ,
+                       AFNI_hidden_CB , im3d ) ;
+        MCW_set_widget_bg( prog->hidden_sound_pb , "#330077" , 0 ) ;
+        MCW_set_widget_fg( prog->hidden_sound_pb , "#ffcc22" ) ;
+
+      /*----------*/
+
+        prog->hidden_music_pb =
+              XtVaCreateManagedWidget(
+                 "dialog" , xmPushButtonWidgetClass , prog->hidden_menu ,
+                    LABEL_ARG("Play random music") ,
+                    XmNmarginHeight , 0 ,
+                    XmNtraversalOn , True  ,
+                    XmNinitialResourcesPersistent , False ,
+                 NULL ) ;
+        XtAddCallback( prog->hidden_music_pb , XmNactivateCallback ,
+                       AFNI_hidden_CB , im3d ) ;
+        MCW_set_widget_bg( prog->hidden_music_pb , "#330077" , 0 ) ;
+        MCW_set_widget_fg( prog->hidden_music_pb , "#ffcc22" ) ;
+
+      } else {
+
+       prog->hidden_sound_pb = prog->hidden_music_pb = NULL ;
+
+      }
 
       /*----------*/
 
