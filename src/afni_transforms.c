@@ -128,9 +128,11 @@ void adpt_wt_mnXX( int num , double to,double dt, float *vec )
    static int nXX=0,nHH=0 ; static float *XX=NULL ;
    float *nv ; int ii,jj,kk , n1=num-1 ;
 
-   if( vec == NULL ){
-     nXX = num ; nHH = nXX/2 ;
-     XX  = (float *)malloc(sizeof(float)*nXX) ;
+   if( vec == NULL ){  /* setup call */
+     if( num > 0 && num != nXX ){
+       nXX = num ; nHH = nXX/2 ;
+       XX  = (float *)realloc((void *)XX,sizeof(float)*(2*nHH+1)) ;
+     }
      return ;
    }
 
