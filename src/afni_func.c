@@ -7919,11 +7919,12 @@ ENTRY("AFNI_hidden_CB") ;
              if( nmusic <     4 ) nmusic = 99 ;
         else if( nmusic > 99999 ) nmusic = 99999 ;
         qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);
+        if( nmusic < 99 )
+          osfilt3_func( 2*nmusic , 0.0,1.0 , qar ) ;
+        else
+          adpt_wt_mn9( 2*nmusic , 0.0,1.0 , qar ) ;
         for( ii=0 ; ii < nmusic ; ii++ ) qar[ii] += 0.222f * qar[ii+nmusic] ;
-        switch( ncall%3 ){
-          case 2: osfilt3_func( nmusic , 0.0,1.0 , qar ) ;  /* fall thru */
-          case 1: osfilt3_func( nmusic , 0.0,1.0 , qar+nmusic ) ; break ;
-        }
+        if( nmusic < 99 && ncall%2 ) osfilt3_func( 2*nmusic , 0.0,1.0 , qar ) ;
         mri_play_sound(qim,0) ; mri_free(qim) ; ncall++ ;
      } else {
        WARNING_message("sound playing not available :(") ;

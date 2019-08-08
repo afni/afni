@@ -174,9 +174,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
      return ;
    }
 
-   dt = (imin->nx <= 100) ? 0.20f
-       :(imin->nx <= 200) ? 0.15f
-       :                    0.10f ;
+   dt = (imin->nx <= 100) ? 0.20f : 0.14f + 6.0f/(float)imin->nx ;
    nsper = (int)rintf(DEFAULT_SRATE*dt) ;
 
    qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore , 0 ) ;
@@ -189,7 +187,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    sound_write_au_16PCM( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
    if( strcmp(pprog_name,"play") == 0 )
-     strcat(extras," reverb 33") ;
+     strcat(extras," reverb 44") ;
    sprintf(cmd,"tcsh -c '%s %s %s >& /dev/null'",pprog,fname,extras) ;
    if( DEBUG ) ININFO_message("%s",cmd) ;
    system(cmd) ;
