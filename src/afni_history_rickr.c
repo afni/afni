@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  8, Aug, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
+   "be more merciful in the case of timing overlap",
+   "    - ISI stats: allow and adjust for stim overlap\n"
+   "    - dur stats: show file/condition with stats\n"
+   "    - match output between python2 and python3"
+ } ,
+
  {  7, Aug, 2019, RCR, "rPkgsInstall", MINOR, TYPE_ENHANCE,
    "more programs that need R_LD_LIBRARY_PATH",
    "Full list: 1dRplot, 3dICC, 3dISC, 3dLME, 3dMEMA, 3dMEPFM, 3dMVM, 3dPFM,\n"

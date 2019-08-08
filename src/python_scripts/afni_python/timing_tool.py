@@ -1373,9 +1373,13 @@ g_history = """
    3.09 Jul 23, 2019 - added help and examples -tsv_labels
    3.10 Jul 24, 2019 - added -show_tsv_label_details
    3.11 Jul 29, 2019 - formatted -help for sphinx conversion
+   3.12 Aug  8, 2019 -
+        - ISI stats: allow and adjust for stim overlap
+        - dur stats: show file/condition with stats
+        - match output between python2 and python3
 """
 
-g_version = "timing_tool.py version 3.11, Jul 29, 2019"
+g_version = "timing_tool.py version 3.12, August 8, 2019"
 
 
 

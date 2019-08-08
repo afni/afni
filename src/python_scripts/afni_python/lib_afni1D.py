@@ -4467,7 +4467,10 @@ class AfniData(object):
    def show_duration_stats(self, per_run=0):
       """show min, mean, max, stdev for each column (unless col specified)"""
 
+      # if reasonable, show the file name
+      fname = ''
       if self.verb:
+         if self.fname: fname = "%s: " % self.fname
          form = "min = %g, mean = %g, max = %g, stdev = %g"
       else:
          form = "%g %g %g %g"
@@ -4481,10 +4484,10 @@ class AfniData(object):
          else:
             dlist.extend([event[2] for event in run])
 
-      # if per_run, we are finished
-      if per_run: return 0
-
-      print(form % UTIL.min_mean_max_stdev(dlist))
+      # maybe finish with across-run display
+      if not per_run:
+         fstr = form % UTIL.min_mean_max_stdev(dlist)
+         print('%s%s' % (fname, fstr))
 
       return 0
 

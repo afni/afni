@@ -799,15 +799,16 @@ class AfniTiming(LD.AfniData):
             if olap > 0.0001:
                # get rid of the overlap (note that itime < 0)
                n_olap += 1
+               # fix itime and stime
+               itime = 0
                stime -= olap
                tot_olap += olap
-               print("== adjusting for overlap of %g" % olap)
             stimes.append(stime)
             itimes.append(itime)
 
          if n_olap > 0:
-            print('** have %d notable overlaps in stim, total = %g s' \
-                  % (n_olap, tot_olap))
+            print('** run %d, adjusted for %d overlaps in stim, total = %g s' \
+                  % (rind, n_olap, tot_olap))
 
          # store results
          all_stim.append(stimes)
@@ -1110,7 +1111,9 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
 
       # partition elist per known class (should be complete, as all class
       # names were added to dict) - okay if empty
-      for cname in cdict.keys():
+      skeys = list(cdict.keys())
+      skeys.sort()
+      for cname in skeys:
          # there might be an amplitude
          if nvals > 3:
              cevents = [[e[0], e[3], e[1]] for e in elist if e[2] == cname]
@@ -1124,7 +1127,10 @@ def read_multi_3col_tsv(flist, hlabels=None, def_dur_lab=None,
    if show_only: return 0, []
 
    # now convert to AfniTiming instances
-   for cname in cdict.keys():
+   # (sorted, to provide consistency across timing patterns)
+   skeys = list(cdict.keys())
+   skeys.sort()
+   for cname in skeys:
       mdata = cdict[cname]
       timing = AfniTiming(mdata=cdict[cname])
       # init name and fname based on label, consider ability to change
