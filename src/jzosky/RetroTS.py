@@ -180,7 +180,7 @@ def retro_ts(
     if (
         main_info["quiet"] != 1
     ):  # Show the slice timing (P.S. Printing is very time consuming in python)
-        print(("Slice timing:", main_info["slice_offset"]))
+        print("Slice timing: %s" % main_info["slice_offset"])
 
     # Create information copy for each type of signal
     respiration_info = dict(main_info)
@@ -226,7 +226,7 @@ def retro_ts(
         respiration_phased = {}
     if cardiac_peak:
         print("Estimating phase for cardiac_info")
-        print((cardiac_info["v"]))
+        print(cardiac_info["v"])
         cardiac_phased = phase_estimator(cardiac_info["amp_phase"], cardiac_info)
     else:
         cardiac_phased = {}
@@ -236,7 +236,7 @@ def retro_ts(
 
     if respiration_phased:
         print("Computing RVT from peaks")
-        print((respiration_info["p_trace_r"]))
+        print(respiration_info["p_trace_r"])
         rvt = rvt_from_peakfinder(respiration_phased)
 
     respiration_info.update(rvt)
@@ -538,7 +538,7 @@ Output:
         for opt in opts:
             if opt in opt_dict:
                 if opt == "-help":
-                    print((opt_dict[opt]))
+                    print(opt_dict[opt])
                     quit()
                 elif opt == "-debug":
                     setup_exceptionhook()
@@ -546,9 +546,9 @@ Output:
             elif temp_opt in opt_dict:
                 opt_dict[temp_opt] = opt
             else:
-                print(("No such command '%s', try:" % opt))
+                print("No such command '%s', try:" % opt)
                 for key in list(opt_dict.keys()):
-                    print(("%s" % key))
+                    print("%s" % key)
                 quit()
             temp_opt = opt
     # change phys_fs and volume_tr to float     6 Mar 2017 [rickr]

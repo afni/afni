@@ -60,7 +60,7 @@ def fftsegs(ww, po, nv):
         po = 0
         ww = nv
     elif nv < ww < 32:
-        print(("Error fftsegs: Bad value for window width of %d" % ww))
+        print("Error fftsegs: Bad value for window width of %d" % ww)
         return
     out = 0
     while out == 0:
@@ -146,7 +146,7 @@ def remove_pn_duplicates(tp, vp, tn, vn, quiet):
             ok[j] = i
         else:
             if not quiet:
-                print(("Dropped peak at %s sec" % tp[i]))
+                print("Dropped peak at %s sec" % tp[i])
     ok = ok[: j + 1]
     tp = tp[ok]
     vp = vp[ok]
@@ -164,7 +164,7 @@ def remove_duplicates(t, v, quiet):
             t[j] = t[i]
             v[j] = v[i]
         elif quiet == 0:
-            print(("Dropped peak at %s sec" % t[i]))
+            print("Dropped peak at %s sec" % t[i])
     t = t[: j + 1]
     v = v[: j + 1]
     return t, v
@@ -476,7 +476,7 @@ def peak_finder(var_v, filename):
 
     # Calculate the period
     nptrc = len(r["tp_trace"])
-    print((r["tp_trace"]))
+    print(r["tp_trace"])
     r["prd"] = r["tp_trace"][1:nptrc] - r["tp_trace"][0 : nptrc - 1]
     r["p_trace_mid_prd"] = (r["p_trace"][1:nptrc] + r["p_trace"][0 : nptrc - 1]) / 2.0
     r["t_mid_prd"] = (r["tp_trace"][1:nptrc] + r["tp_trace"][0 : nptrc - 1]) / 2.0
