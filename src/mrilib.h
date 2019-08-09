@@ -2439,6 +2439,9 @@ extern MRI_IMAGE * mri_sound_1D_to_FM( MRI_IMAGE *imin,
 
 extern void kill_sound_players(void) ;
 
+extern void mri_sound_play_append( char *app ) ;  /* 09 Aug 2019 */
+extern void mri_play_sound_notify( int ) ;
+
 #define SOUND_WAVEFORM_SINE     1
 #define SOUND_WAVEFORM_SQUARE   2
 #define SOUND_WAVEFORM_TRIANGLE 3

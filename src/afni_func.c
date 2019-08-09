@@ -7898,17 +7898,20 @@ ENTRY("AFNI_hidden_CB") ;
    else if( w == im3d->vwid->prog->hidden_melter_pb ){   /* 18 Feb 2011 */
      MCW_melt_widget( im3d->vwid->top_form ) ;
      if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
-       AFNI_startup_sound(3) ;
+       AFNI_startup_sound(1) ;
      NI_sleep(111) ;
-     MCW_set_widget_label(w,"Omega-13 is one use") ;
-     SENSITIZE(w,0) ;
+     if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
+       AFNI_startup_sound(1) ;
+     MCW_set_widget_label(w,"Omega-13 is one use") ; SENSITIZE(w,0) ;
    }
 
    else if( w != NULL && w == im3d->vwid->prog->hidden_sound_pb ){ /* 20 Aug 2018 */
-     if( GLOBAL_library.have_sox && GLOBAL_library.local_display )
-       AFNI_startup_sound(2) ;
-     else
+     if( GLOBAL_library.have_sox && GLOBAL_library.local_display ){
+       AFNI_startup_sound(1) ;
+       AFNI_startup_sound(1) ;
+     } else {
        WARNING_message("sound playing not available :(") ;
+     }
    }
 
    else if( w != NULL && w == im3d->vwid->prog->hidden_music_pb ){ /* 07 Aug 2019 */
@@ -7918,14 +7921,20 @@ ENTRY("AFNI_hidden_CB") ;
         MRI_IMAGE *qim ; float *qar ; int ii ;
              if( nmusic <     4 ) nmusic = 99 ;
         else if( nmusic > 99999 ) nmusic = 99999 ;
-        qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);
-        if( nmusic < 99 )
-          osfilt3_func( 2*nmusic , 0.0,1.0 , qar ) ;
-        else
-          adpt_wt_mn9( 2*nmusic , 0.0,1.0 , qar ) ;
-        for( ii=0 ; ii < nmusic ; ii++ ) qar[ii] += 0.222f * qar[ii+nmusic] ;
-        if( nmusic < 99 && ncall%2 ) osfilt3_func( 2*nmusic , 0.0,1.0 , qar ) ;
-        mri_play_sound(qim,0) ; mri_free(qim) ; ncall++ ;
+        if( ncall == 0 )
+          ININFO_message("Computing random music notes - about %d seconds worth",(int)(nmusic*0.144)) ;
+        qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);        /* random */
+        if( nmusic < 99 ) osfilt3_func( 2*nmusic , 0.0,1.0 , qar ); /* smooth */
+        else              adpt_wt_mn9 ( 2*nmusic , 0.0,1.0 , qar );
+        for( ii=0 ; ii < nmusic ; ii++ )                         /* correlate */
+          qar[ii] += 0.222f * qar[ii+nmusic] ;
+        mri_sound_play_append( "reverb 99" ) ;          /* more fun, with sox */
+        if( ncall == 0 ) mri_play_sound_notify(1) ;    /* only the first time */
+        mri_play_sound(qim,0) ;                 /* let the music sound forth! */
+        mri_free(qim) ;                                       /* some cleanup */
+        mri_sound_play_append( NULL ) ;
+        mri_play_sound_notify(0) ;
+        ncall++ ;
      } else {
        WARNING_message("sound playing not available :(") ;
      }

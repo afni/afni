@@ -140,6 +140,19 @@ void kill_sound_players(void)
 }
 
 /*---------------------------------------------------------------------------*/
+
+static char *play_append = NULL ;
+void mri_sound_play_append( char *app )  /* 09 Aug 2019 */
+{
+   if( play_append != NULL ){ free(play_append) ; play_append = NULL ; }
+   if( app != NULL && *app != '\0' ) play_append = strdup(app) ;
+   return ;
+}
+
+static int play_notify = 0 ;
+void mri_play_sound_notify(int nn){ play_notify = nn ; return ; }
+
+/*---------------------------------------------------------------------------*/
 /* Play sound from a 1D image (up to 4 columns) */
 
 void mri_play_sound( MRI_IMAGE *imin , int ignore )
@@ -183,13 +196,19 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    pre = UNIQ_idcode_11() ;  /* make up name for sound file */
    sprintf(fname,"AFNI_SOUND_TEMP.%s.au",pre) ;
    unlink(fname) ;           /* remove sound file, in case it already exists */
-   if( DEBUG ) INFO_message("temp sound filename = %s",fname) ;
+   if( DEBUG ) ININFO_message("  temp sound filename = %s",fname) ;
+   if( play_notify )
+     ININFO_message("  writing temp sound file: %s",fname) ;
    sound_write_au_16PCM( fname, qim->nx, MRI_FLOAT_PTR(qim), DEFAULT_SRATE, 0.1f ) ;
    extras[0] = '\0' ;
-   if( strcmp(pprog_name,"play") == 0 )
-     strcat(extras," reverb 44") ;
+   if( strcmp(pprog_name,"play") == 0 ){
+     strcat(extras," reverb 44 ") ;
+     if( play_append != NULL ) strcat(extras,play_append) ;
+   }
    sprintf(cmd,"tcsh -c '%s %s %s >& /dev/null'",pprog,fname,extras) ;
    if( DEBUG ) ININFO_message("%s",cmd) ;
+   if( play_notify )
+     ININFO_message("  starting sound player: %s",cmd) ;
    system(cmd) ;
    sleep(1);
    unlink(fname) ;
