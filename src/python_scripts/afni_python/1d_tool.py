@@ -1162,9 +1162,10 @@ g_history = """
    2.04 Jan 17, 2019 - added -show_df_info and -show_df_protect
    2.05 Jun 27, 2019 - added -write_with_header and -write_xstim
    2.06 Jul  3, 2019 - allow writing of empty stim files
+   2.07 Aug  9, 2019 - tiny: make formatting more specific
 """
 
-g_version = "1d_tool.py version 2.06, Jul 3, 2019"
+g_version = "1d_tool.py version 2.07, August 9, 2019"
 
 
 class A1DInterface:

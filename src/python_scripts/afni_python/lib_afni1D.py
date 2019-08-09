@@ -845,7 +845,7 @@ class Afni1D:
       for ind in range(1,6):
          print('----------------- GCOR test %d --------------------' % ind)
          exec('val = self.gcor%d()' % ind)
-         exec('print("GCOR rv = %s" % val)')
+         exec('print("GCOR rv = %.10f" % val)')
 
    def show_gcor_doc_all(self):
       for ind in range(1,6):
@@ -934,7 +934,7 @@ class Afni1D:
 
       ss = self.get_ave_correlation_w_vec(self.get_mean_vec())
 
-      print("ave corr = %s, square = %s" % (ss, ss*ss))
+      print("ave corr = %.10f, square = %.10f" % (ss, ss*ss))
 
       return ss*ss
 
@@ -958,11 +958,11 @@ class Afni1D:
       l1 = UTIL.euclidean_norm(m1)
       c  = UTIL.correlation_p(m0, m1)
 
-      print("len(gmean) = %s, square = %s" % (l0, l0*l0))
-      print("len(gunit) = %s, square = %s" % (l1, l1*l1))
-      print("corr(gm, gu)            = %s" % (c))
-      print("corr(gm, gu)*len(gu)    = %s" % (c*l1))
-      print("squared                 = %s" % (c*c*l1*l1))
+      print("len(gmean) = %.10f, square = %.10f" % (l0, l0*l0))
+      print("len(gunit) = %.10f, square = %.10f" % (l1, l1*l1))
+      print("corr(gm, gu)               = %.10f" % (c))
+      print("corr(gm, gu)*len(gu)       = %.10f" % (c*l1))
+      print("squared                    = %.10f" % (c*c*l1*l1))
 
       return dd*dd/(l0*l0)
 
@@ -2628,7 +2628,8 @@ class Afni1D:
          if self.verb > 1:
             i = dlist[-1][1]
             j = dlist[-1][2]
-            print('++ max edisp %s between indices %d and %d' % (maxdiff, i, j))
+            print('++ max edisp %.10f between indices %d and %d' \
+                  % (maxdiff, i, j))
 
          del(dlist)
 
