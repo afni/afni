@@ -184,7 +184,7 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=1):
    """
    x0 = decay_guess(y_goal)
    fx = fn(x0)
-   if verb > 2: print('-- decay_solve x0 = %s, fx = %s' % (x0, fx))
+   if verb > 2: print('-- decay_solve x0 = %s, fx = %.10f' % (x0, fx))
 
    ind = 0
    while abs(fx - y_goal) > prec and ind < maxind:
@@ -193,11 +193,11 @@ def decay_solve(fn, y_goal, prec, maxind=100, verb=1):
          print('** apparent failure in decay_newton_step, x = %g' % x)
          return x0
       fx = fn(x)
-      if verb > 2: print('   x0 = %s, x = %s, fx = %s' % (x0, x, fx))
+      if verb > 2: print('   x0 = %.10f, x = %.10f, fx = %.10f' % (x0, x, fx))
       x0 = x
 
    if verb > 2:
-      print('++ solved: given y = %g, approx with e^-%g = %g' \
+      print('++ solved: given y = %.10f, approx with e^-%.10f = %.10f' \
             % (y_goal, x0, fx))
 
    return x0
@@ -262,7 +262,7 @@ def decay_show_PDF_times(L,N):
       print('%3s %0.6f  off=%0.6f, f=%0.6f, E(x)=%0.6f' % (ind, b, off, f, ex))
       sa += ex
       a = b
-   print('length L=%s, theor mean/L = %s, sa/N/L = %s' \
+   print('length L=%.10f, theor mean/L = %.10f, sa/N/L = %.10f' \
          % (L, decay_e3_Ex(0,L)/L, sa/N/L))
 
 def decay_get_PDF_times(L,N):
@@ -436,7 +436,7 @@ def decay_pdf_get_ranged_times(A, B, M, N, t_grid=0.001, verb=1):
    # note: F(L) = decay_e4_frac_L(L) = 1/L - 1/(e^L - 1)
    L = decay_solve(decay_e4_frac_L, m, t_grid/1000.0, verb=verb)
 
-   if verb > 1: print('-- decay: m = %s, L = %s' % (m, L))
+   if verb > 1: print('-- decay: m = %s, L = %.10f' % (m, L))
 
    # ----------------------------------------------------------------------
    # c. get N decay times from e^-x on [0,L] with mean m

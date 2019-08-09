@@ -1320,9 +1320,10 @@ g_history = """
          - fixed decay rest with non-zero min
          - block unlimited decay stim dur
     3.4  Nov  5, 2018: make some insufficient time failures more descriptive
+    3.5  Aug  9, 2019: format text output for better python consistency
 """
 
-g_version = "version 3.4 November 5, 2018"
+g_version = "version 3.5 August 9, 2019"
 
 g_todo = """
    - add -show_consec_stats option?
@@ -3897,7 +3898,7 @@ class RandTiming:
           return 1, []
 
        if self.verb > 3:
-          print("-- part rest: tot %s = min %s + remain %s" \
+          print("-- part rest: tot %.4f = min %.4f + remain %.4f" \
                 % (rtot, tot_min, remain))
 
        # now go back and track those with applied means (mean > min)
