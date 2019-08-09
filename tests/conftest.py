@@ -275,7 +275,9 @@ def save_output_to_repo():
     import pdb
 
     pdb.set_trace()
-    result = datalad.save(update_msg, str(get_base_comparison_dir_path()), on_failure="stop")
+    result = datalad.save(
+        update_msg, str(get_base_comparison_dir_path()), on_failure="stop"
+    )
 
     sample_test_output = get_test_data_path() / "sample_test_output"
     data_message = (
