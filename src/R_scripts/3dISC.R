@@ -23,14 +23,15 @@ help.ISC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
              ================== Welcome to 3dISC ==================          
        Program for Voxelwise Inter-Subject Correlation (ISC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.2, Aug 2, 2019
+Version 0.0.3, Aug 11, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Usage:
------- 
+Introduction
+------
+ 
  Intersubject correlation (ISC) measures the extent of BOLD response similarity
  or synchronization between two subjects who are scanned under the same
  experience such as movie watching, music learning, etc. The program performs
@@ -49,6 +50,10 @@ Usage:
  with totally n subjects, you should provide n(n-1)/2 input files (no duplicates
  allowed). Currently 3dISC provides in the output the effect estimate (e.g., ISC
  value) and the corresponding t-statistic at each voxel.
+
+ For data preprocessing, you may consider the steps discussed in Appendix B of
+ the above paper. 3dTcorrelate in AFNI can be utilized to compute the voxelwise
+ ISC of time series between any two subjects.
 
  The LME platform allows for the incorporation of various types of explanatory
  variables including categorical (between- and within-subject factors) and
@@ -317,11 +322,7 @@ read.ISC.opts.batch <- function (args=NULL, verb = 0) {
       '-prefix' = apl(n = 1, d = NA,  h = paste(
    "-prefix PREFIX: Output file name. For AFNI format, provide prefix only,",
    "         with no view+suffix needed. Filename for NIfTI format should have",
-   "         .nii attached, while file name for surface data is expected",
-   "         to end with .niml.dset. The sub-brick labeled with the '(Intercept)',",
-   "         if present, should be interpreted as the effect with each factor",
-   "         at the reference level (alphabetically the lowest level) for each",
-   "         factor and with each quantitative covariate at the center value.\n", sep = '\n'
+   "         .nii attached (otherwise the output would be saved in AFNI format).\n", sep = '\n'
       ) ),
 
 #      '-resid' = apl(n = 1, d = NA,  h = paste(
@@ -1053,7 +1054,7 @@ Stat[Stat < (-Top)] <- -Top
 brickNames <- c(rbind(lop$gltLabel, paste(lop$gltLabel, 't')))
 statsym <- NULL
 #if(lop$num_glt>0) for(ii in 1:lop$num_glt)
-for(ii in 1:(lop$NoBrick/2)) statsym <- c(statsym, list(list(sb=ii-1, typ="fitt", par=nS-1)))
+for(ii in 1:lop$NoBrick) statsym <- c(statsym, list(list(sb=ii-1, typ="fitt", par=nS-1)))
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], brickNames, defhead=head, idcode=newid.AFNI(),
    com_hist=lop$com_history, statsym=statsym, addFDR=1, type='MRI_short')
