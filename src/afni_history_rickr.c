@@ -49,9 +49,10 @@
 
 afni_history_struct rickr_history[] = {
 
- { 12, Aug, 2019, RCR, "make_stim_times.py", MICRO, TYPE_ENHANCE,
-   "and python_module_test.py: python3 compatible as of version 2.0",
-   NULL
+ { 12, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "python3 compatibility",
+   "Including: make_stim_times.py, python_module_test.py, lib_matplot.py,\n"
+   "           slow_surf_clustsim.py, lib_surf_clustsim.py, make_pq_script.py."
  } ,
 
  {  8, Aug, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,

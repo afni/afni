@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os
 
@@ -44,9 +46,10 @@ g_history = """
    0.0  Mar 18, 2009    - initial version
    0.1  Mar 19, 2009    - added -verbose_opts
    0.2  Apr 11, 2009    - removed -verbose_opts (see -optlist_ options)
+   0.3  Aug 12, 2019    - python3 compatible
 """
 
-g_version = "eg_main_chrono.py version 0.2, Apr 11, 2009"
+g_version = "eg_main_chrono.py version 0.3, August 12, 2019"
 
 
 class MyInterface:
@@ -101,11 +104,11 @@ class MyInterface:
 
       # if no arguments are given, apply -help
       if len(sys.argv) <= 1 or '-help' in sys.argv:
-         print g_help_string
+         print(g_help_string)
          return 0
 
       if '-hist' in sys.argv:
-         print g_history
+         print(g_history)
          return 0
 
       if '-show_valid_opts' in sys.argv:
@@ -113,7 +116,7 @@ class MyInterface:
          return 0
 
       if '-ver' in sys.argv:
-         print g_version
+         print(g_version)
          return 0
 
       # ============================================================
@@ -136,7 +139,7 @@ class MyInterface:
          # main options
          if opt.name == '-infile':
             if self.a1d != None:
-               print '** only 1 -infile option allowed'
+               print('** only 1 -infile option allowed')
                return 1
             val, err = uopts.get_string_opt('', opt=opt)
             if val != None and err: return 1
@@ -157,7 +160,9 @@ class MyInterface:
       if not self.ready_for_action(): return 1
 
       if self.verb > 1:
-         print '-- processing...'
+         print('-- processing...')
+
+      return 0
 
    def ready_for_action(self):
       """perform any final tests before execution"""
@@ -177,14 +182,14 @@ class MyInterface:
       return 0
 
    def test(self, verb=3):
-      print '------------------------ initial tests -----------------------'
+      print('------------------------ initial tests -----------------------')
       self.verb = verb
 
-      print '------------------------ reset files -----------------------'
+      print('------------------------ reset files -----------------------')
 
-      print '------------------------ should fail -----------------------'
+      print('------------------------ should fail -----------------------')
 
-      print '------------------------ more tests ------------------------'
+      print('------------------------ more tests ------------------------')
 
       return None
 

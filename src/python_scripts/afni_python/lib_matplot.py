@@ -1,16 +1,18 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, os
 
 # verify system libraries
 import module_test_lib
 g_testlibs = ['os', 'gc', 'numpy', 'wx', 'matplotlib']
 if module_test_lib.num_import_failures(g_testlibs,details=0):
-   print """
+   print("""
      -- for details, consider xmat_tool -test_libs
      -- also, many computations do not require the GUI
         (e.g. 'xmat_tool -load_xmat X.xmat.1D -show_cormat_warnings')
-   """
+   """)
    sys.exit(1)
 
 import numpy as N
@@ -64,12 +66,12 @@ def plot(data, title='', verb=1):
       amat = AM.AfniXmat(filename=data)
    else:
       mesg = "** plot: cannot convert %s to AfniXmat" % type(data)
-      if verb > 1: print mesg
+      if verb > 1: print(mesg)
       return 1, mesg
 
    if not isinstance(amat, AM.AfniXmat):
       mesg = "** plot: failed to convert %s to AfniXmat" % type(data)
-      if verb > 1: print mesg
+      if verb > 1: print(mesg)
       return 2, mesg
 
    # we have a valid AfniXmat, plot it
@@ -225,36 +227,36 @@ class CanvasFrame(wx.Frame):
       # first attempt is to look for simple array return
       try: posn = ax.get_position()
       except:
-         if self.verb > 1: print '** failed ax.get_position()'
+         if self.verb > 1: print('** failed ax.get_position()')
          return 1, None
 
       # have list, ready for some return
       if type(posn) == type([]):
          if len(posn) < 4:
             if self.verb > 1:
-               print '** get_position returns len %d list' % len(posn)
+               print('** get_position returns len %d list' % len(posn))
             return 1, None
-         if self.verb > 2: print '-- get_position returns list %s' % \
-                         UTIL.float_list_string(posn)
+         if self.verb > 2: print('-- get_position returns list %s' % \
+                         UTIL.float_list_string(posn))
          return 0, posn
 
       # no list, assume Bbox and expect get_points() to return 2x2 numpy array
       try: plist = posn.get_points()
       except:
-         if self.verb > 1: print '** failed posn.get_points()'
+         if self.verb > 1: print('** failed posn.get_points()')
          return 1, None
 
       if type(plist) != type(N.array([])):
-         if self.verb > 1: print '** posn.get_points() does not return N.array?'
+         if self.verb > 1: print('** posn.get_points() does not return N.array?')
          return 1, None
 
       try: pnlist = [plist[0][0], plist[0][1], plist[1][0], plist[1][1]]
       except:
-         if self.verb > 1: print '** bad plist shape %s' % plist.shape
+         if self.verb > 1: print('** bad plist shape %s' % plist.shape)
          return 1, None
 
-      if self.verb > 2: print '-- get_position returns Bbox list: %s' % \
-                        UTIL.float_list_string(pnlist)
+      if self.verb > 2: print('-- get_position returns Bbox list: %s' % \
+                        UTIL.float_list_string(pnlist))
 
       return 0, pnlist
 
@@ -262,11 +264,11 @@ class CanvasFrame(wx.Frame):
       """plot the given columns from a single AfniMatrix"""
 
       if not isinstance(amat, AM.AfniXmat):
-         print '** plot_MBC: instance is not AfniXmat'
+         print('** plot_MBC: instance is not AfniXmat')
          return
 
       if not cols:
-         if amat.verb > 1: print '-- plotting default of %d cols' % amat.ncols
+         if amat.verb > 1: print('-- plotting default of %d cols' % amat.ncols)
          cols = [i for i in range(amat.ncols)]
 
       ncols = len(cols)

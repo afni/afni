@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os, glob
 
@@ -46,9 +48,10 @@ g_history = """
    skeleton.py history:
 
    0.0  Jan 13, 2015 - initial version
+   0.1  Aug 12, 2019 - python3 compatible
 """
 
-g_version = "skeleton.py version 0.0, Jan 13, 2015"
+g_version = "skeleton.py version 0.1, Aug 12, 2019"
 
 
 class MyInterface:
@@ -101,11 +104,11 @@ class MyInterface:
 
       # if no arguments are given, do default processing
       if '-help' in argv or len(argv) < 2:
-         print g_help_string
+         print(g_help_string)
          return 1
 
       if '-hist' in argv:
-         print g_history
+         print(g_history)
          return 1
 
       if '-show_valid_opts' in argv:
@@ -113,7 +116,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print g_version
+         print(g_version)
          return 1
 
       # ============================================================
@@ -138,7 +141,7 @@ class MyInterface:
          elif opt.name == '-infiles':
             self.infiles, err = uopts.get_string_list('', opt=opt)
             if self.infiles == None or err:
-               print '** failed to read -infiles list'
+               print('** failed to read -infiles list')
                errs +=1
 
       # allow early and late error returns
@@ -148,7 +151,7 @@ class MyInterface:
       # apply any trailing logic
 
       if len(self.infiles) < 1:
-         print '** missing -infiles option'
+         print('** missing -infiles option')
          errs += 1
 
       if errs: return -1
@@ -159,14 +162,14 @@ class MyInterface:
       """main function to process input
       """
 
-      print '-- have %d files to process' % len(self.infiles)
+      print('-- have %d files to process' % len(self.infiles))
 
       errs = 0
       # check file existence first
       for ifile in self.infiles:
          if ifile in ['-', 'stdin']: pass
          elif not os.path.isfile(ifile):
-            print '** input file not found: %s' % ifile
+            print('** input file not found: %s' % ifile)
             errs += 1
       if errs: return 1
 
@@ -179,7 +182,7 @@ def main():
    rv = me.process_options()
    if rv > 0: return 0  # exit with success
    if rv < 0:           # exit with error status
-      print '** failed to process options...'
+      print('** failed to process options...')
       return 1
 
    if me.do_stuff(): return 1

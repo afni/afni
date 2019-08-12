@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # system libraries
 import sys, os
 
@@ -183,7 +185,7 @@ class MyInterface:
       argv = sys.argv
 
       if len(argv) == 0:        # non-gui out
-         print g_command_help
+         print(g_command_help)
          return 1
 
       # process any optlist_ options
@@ -194,11 +196,11 @@ class MyInterface:
 
       # if no arguments are given, apply -help
       if len(argv) <= 1 or '-help' in argv:
-         print g_command_help
+         print(g_command_help)
          return 1
 
       if '-hist' in argv:
-         print CLUST.g_history
+         print(CLUST.g_history)
          return 1
 
       if '-show_default_cvars' in argv:
@@ -214,7 +216,7 @@ class MyInterface:
          return 1
 
       if '-ver' in argv:
-         print CLUST.g_version
+         print(CLUST.g_version)
          return 1
 
       # ============================================================
@@ -263,7 +265,7 @@ class MyInterface:
             if val[0] == 'verb':
                try: self.verb = int(val[1])
                except:
-                  print "** failed to set 'verb' level"
+                  print("** failed to set 'verb' level")
                   errs += 1
                   continue
             # and set it from the form name = [value_list]
@@ -283,14 +285,14 @@ class MyInterface:
                continue
 
          else:
-            print '** unknown option %s' % opt.name
+            print('** unknown option %s' % opt.name)
             errs += 1
 
       if self.verb > 2:
-         print '-' * 75
+         print('-' * 75)
          self.uvars.show('post-init uvars', name=0)
          self.cvars.show('post-init cvars', name=0)
-         print '-' * 75
+         print('-' * 75)
 
       if errs:    return -1
       else:       return  0     # no error, and continue on return
@@ -299,7 +301,7 @@ class MyInterface:
 
       if not self.ready_for_action(): return 1
 
-      if self.verb > 1: print '-- processing...'
+      if self.verb > 1: print('-- processing...')
 
       uopts = self.user_opts
 
@@ -309,6 +311,8 @@ class MyInterface:
       if opt != None:
          val, err = uopts.get_string_opt('', opt=opt)
          if val != None and not err: self.save_script(val)
+
+      return 0
 
    def ready_for_action(self):
       """perform any final tests before execution"""
@@ -321,7 +325,7 @@ class MyInterface:
       """create script and print to terminal"""
 
       ctest, cmd = self.get_script()
-      print cmd
+      print(cmd)
 
    def save_script(self, fname):
 
@@ -329,7 +333,7 @@ class MyInterface:
       if cmd == '': return
 
       if ctest.write_script(fname):
-         print '** failed to write slow_surf_clustsim script to disk'
+         print('** failed to write slow_surf_clustsim script to disk')
 
    def get_script(self):
       """return the SurfClust object and script
@@ -341,23 +345,23 @@ class MyInterface:
       status, mesg = ctest.get_script()
 
       if status:        # only show errors
-         print '%s\nERRORS:\n\n%s\n' % (75*'*', mesg)
+         print('%s\nERRORS:\n\n%s\n' % (75*'*', mesg))
          cmd = ''
       else:
-         if wstr: print '%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-')
+         if wstr: print('%s\n**** Warnings:\n\n%s\n%s\n' % (75*'-',wstr,75*'-'))
          cmd = '### surf clust script:\n\n%s\n' % mesg
 
       return ctest, cmd
 
    def test(self, verb=3):
-      print '------------------------ initial tests -----------------------'
+      print('------------------------ initial tests -----------------------')
       self.verb = verb
 
-      print '------------------------ reset files -----------------------'
+      print('------------------------ reset files -----------------------')
 
-      print '------------------------ should fail -----------------------'
+      print('------------------------ should fail -----------------------')
 
-      print '------------------------ more tests ------------------------'
+      print('------------------------ more tests ------------------------')
 
       return None
 
