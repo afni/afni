@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 import sys, os
 
 import afni_base as B
@@ -33,28 +35,28 @@ helpstr =                                                               \
 narg = 0
 if len(sys.argv) != 5:
    if len(sys.argv) == 1 or '-help' in sys.argv:
-      print helpstr
+      print(helpstr)
       sys.exit(0)
    else:
-      print '\n   usage: %s dataset brick_index mask out.script\n' % prog
+      print('\n   usage: %s dataset brick_index mask out.script\n' % prog)
       sys.exit(1)
 narg += 1
 
 dset = B.afni_name(sys.argv[narg])
 if not dset.exist():
-   print '** dataset %s not found' % dset.rpv()
+   print('** dataset %s not found' % dset.rpv())
    sys.exit(1)
 narg += 1
 
 try: sub = int(sys.argv[narg])
 except:
-   print '** invalid sub-brick index %s' % sys.argv[narg]
+   print('** invalid sub-brick index %s' % sys.argv[narg])
    sys.exit(1)
 narg += 1
 
 mask = B.afni_name(sys.argv[narg])
 if not mask.exist():
-   print '** dataset %s not found' % mask.rpv()
+   print('** dataset %s not found' % mask.rpv())
    sys.exit(1)
 narg += 1
 
@@ -63,14 +65,14 @@ outfile = sys.argv[narg]
 
 dof = U.get_3d_statpar(dset.rpv(), sub, statcode='fitt')
 if dof < 0:
-   print '** failed to get statpar from %s[%d]' % (dset.rpv(), sub)
+   print('** failed to get statpar from %s[%d]' % (dset.rpv(), sub))
    if U.get_3d_statpar(dset.rpv(), sub, verb=0) >= 0:
-      print '   (statcode is not fitt?)'
+      print('   (statcode is not fitt?)')
    sys.exit(1)
 
-print '-- t-stat %s[%d] has %d dof' % (dset.rpv(), sub, dof)
-print '-- using mask dataset %s' % mask.rpv()
-print '-- writing output script to %s' % outfile
+print('-- t-stat %s[%d] has %d dof' % (dset.rpv(), sub, dof))
+print('-- using mask dataset %s' % mask.rpv())
+print('-- writing output script to %s' % outfile)
 
 
 ss = '#!/bin/tcsh -ef\n\n'                              \
@@ -131,6 +133,6 @@ ss += static_script
 # and write output
 U.write_text_to_file(outfile, ss)
 try:
-    os.chmod(outfile, 0755)
-except OSError, e:
-    print e
+    os.chmod(outfile, 0o755)
+except OSError as e:
+    print(e)
