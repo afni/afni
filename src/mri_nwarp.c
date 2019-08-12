@@ -367,6 +367,14 @@ static int Hverb = 1 ;
    However, for finding where a given point in the source dataset maps to in the
    base dataset, the 'inverse' warp is needed.
 
+   Another way of thinking about warps is to imagine the forward warp reaching
+   out and pulling the source back to the same location as the base dataset.
+   Don't think of it as pushing the source to the base! That is what the
+   inverse warp does, but since datasets live on a regular 3D grid, pushing
+   a source grid point to the base dataset will almost surely not end up on
+   a base dataset grid point, and so for most purposes 'pushing' isn't
+   desired.
+
 --------------- OpenMP code ---------------------------------------------------
 
    A large number of compute intensive functions use OpenMP to parallelize
