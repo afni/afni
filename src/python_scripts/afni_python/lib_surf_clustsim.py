@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 # general functions for use by uber_tool*.py
 
 import sys, os
@@ -38,9 +40,10 @@ g_history = """
         - added uvar surf_mask, to restrict on_surface to surface mask
         - handle NIFTI surf_vol
         - append command line to script
+    0.13 12 Aug, 2019: python3 compatible
 """
 
-g_version = '0.12 (August 19, 2016)'
+g_version = '0.13 (August 12, 2019)'
 
 # ----------------------------------------------------------------------
 # global values to apply as defaults
@@ -214,23 +217,23 @@ class SurfClust(object):
 
       if self.cvars.verb > 2:
          if self.cvars.val('on_surface') != 'yes':
-            print '-- set_dirs: top_dir         = %s\n' \
+            print('-- set_dirs: top_dir         = %s\n' \
                   '             short surf_vol  = %s\n' \
                   '             short spec_file = %s\n' \
                   '             short vol_mask  = %s\n' % (self.LV.top_dir,
-                     short_names[0][0], short_names[0][1], short_names[0][2])
+                     short_names[0][0], short_names[0][1], short_names[0][2]))
          else: # on surface
-            print '-- set_dirs: top_dir         = %s\n' \
+            print('-- set_dirs: top_dir         = %s\n' \
                   '             short surf_vol  = %s\n' \
                   '             short spec_file = %s\n' % (self.LV.top_dir,
-                     short_names[0][0], short_names[0][1])
+                     short_names[0][0], short_names[0][1]))
             if len(short_names[0]) > 2:
-                print '             short surf_mask = %s\n' % short_names[0][2]
+                print('             short surf_mask = %s\n' % short_names[0][2])
 
       # if top_dir isn't long enough, do not bother with it
       if self.LV.top_dir.count('/') < 2:
          self.LV.top_dir = ''
-         if self.cvars.verb > 2: print '   (top_dir not worth using...)'
+         if self.cvars.verb > 2: print('   (top_dir not worth using...)')
 
       return 0
 
@@ -368,8 +371,8 @@ class SurfClust(object):
    def script_keepblocks(self, indent=0):
 
       # are we using keepblocks and have something to delete?
-      if self.cvars.verb > 1: print '-- keepblocks: kb=%d, rmsets=%d)' \
-                              % (self.cvars.keepblocks, len(self.LV.rmsets))
+      if self.cvars.verb > 1: print('-- keepblocks: kb=%d, rmsets=%d)' \
+                              % (self.cvars.keepblocks, len(self.LV.rmsets)))
       if self.cvars.keepblocks <= 0 or len(self.LV.rmsets) == 0: return ''
 
       istr = ' '*indent
@@ -721,7 +724,7 @@ class SurfClust(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
 
       if os.path.isdir(self.uvars.results_dir):
-         print '-- nuking old results: %s' % self.uvars.results_dir
+         print('-- nuking old results: %s' % self.uvars.results_dir)
          os.system('rm -fr %s' % self.uvars.results_dir)
 
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
@@ -737,9 +740,9 @@ class SurfClust(object):
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
       if os.path.isfile(pfile):
          cmd = 'cp -f %s .orig.%s' % (pfile, pfile)
-         if self.cvars.verb > 1: print '++ exec: %s' % cmd
+         if self.cvars.verb > 1: print('++ exec: %s' % cmd)
          os.system(cmd)
-      elif self.cvars.verb > 1: print "** no proc '%s' to copy" % pfile
+      elif self.cvars.verb > 1: print("** no proc '%s' to copy" % pfile)
       self.LV.retdir = SUBJ.ret_from_proc_dir(self.LV.retdir)
       # ------------------------- done -------------------------
 
@@ -750,7 +753,7 @@ class SurfClust(object):
       """
 
       if not self.script:
-         print '** no alignment script to write out'
+         print('** no alignment script to write out')
          return 1
       if fname: name = fname
       else:
@@ -761,7 +764,7 @@ class SurfClust(object):
       self.rvars.file_proc = name # store which file we have written to
       self.rvars.output_proc = 'output.%s' % name # file for command output
 
-      if self.cvars.verb > 0: print '++ writing script to %s' % name
+      if self.cvars.verb > 0: print('++ writing script to %s' % name)
 
       # if requested, make an original copy
       self.LV.retdir = SUBJ.goto_proc_dir(self.cvars.proc_dir)
