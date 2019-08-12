@@ -24,15 +24,23 @@
 #ver='1.41' ; date='July 26, 2019'
 # + [PT] update help; include JSON description
 #
-ver='1.5' ; date='July 31, 2019'
+#ver='1.5' ; date='July 31, 2019'
 # + [PT] rename several variables and opts, to undo my misunderstanding...
 # + [PT] EPI back to being required
 #
-ver='1.6' ; date='Aug 2, 2019'
+#ver='1.6' ; date='Aug 2, 2019'
 # + [PT] added in obliquity checks: should be able to deal with relative 
 #        obl diffs between EPI and freq dset (if they exist)
 # + [PT] final WARP dset will now be in EPI grid
 # + [PT] *still need to check on scaling&recentering of Siemens data*
+#
+#ver='1.6' ; date='Aug 8, 2019'
+# + [PT] update/correct help about Siemens scaling, post-discussion-with-Vinai
+#
+ver='1.7' ; date='Aug 12, 2019'
+# + [PT] *really* correct help @ Siemens scaling
+# + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
+# + [PT] py23 compatability of help file-- single dictionary usage!
 #
 ##########################################################################
 
