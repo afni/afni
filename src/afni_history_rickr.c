@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Aug, 2019, RCR, "make_stim_times.py", MICRO, TYPE_ENHANCE,
+   "python3 compatible as of version 2.0",
+   NULL
+ } ,
+
  {  8, Aug, 2019, RCR, "timing_tool.py", MINOR, TYPE_ENHANCE,
    "be more merciful in the case of timing overlap",
    "    - ISI stats: allow and adjust for stim overlap\n"

@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: started
+
 import sys, os, string
 import option_list, afni_util
 import lib_textdata as TD
@@ -143,9 +145,10 @@ g_mst_history = """
     1.7  Aug 02, 2014: added -run_trs, if TRs vary across runs
     1.8  Feb 10, 2015: clarify need of both -nruns, -nt
     1.9  Feb 12, 2015: added -no_consec, to block consecutive events
+    2.0  Aug 12, 2019: python3 compatible
 """
 
-g_mst_version = "version 1.9, February 12, 2015"
+g_mst_version = "version 2.0, August 12, 2019"
 
 def get_opts():
     global g_help_string
@@ -188,11 +191,11 @@ def get_opts():
 
     # if argv has only the program name, or user requests help, show it
     if len(sys.argv) <= 1 or '-help' in sys.argv:
-        print g_help_string
+        print(g_help_string)
         return
 
     if '-hist' in sys.argv:                 # print history
-        print g_mst_history
+        print(g_mst_history)
         return
 
     if '-show_valid_opts' in sys.argv:      # show all valid options
@@ -200,7 +203,7 @@ def get_opts():
         return
 
     if '-ver' in sys.argv:                  # print version
-        print g_mst_version
+        print(g_mst_version)
         return
 
     opts = option_list.read_options(sys.argv, okopts)
@@ -216,7 +219,7 @@ def proc_mats(uopts):
     if opt:
         try: verb = int(opt.parlist[0])
         except:
-            print "** error: verb must be int, have '%s'" % opt.parlist[0]
+            print("** error: verb must be int, have '%s'" % opt.parlist[0])
             return
     else: verb = 0
 
@@ -233,11 +236,11 @@ def proc_mats(uopts):
        run_trs = val
        nruns = len(run_trs)
        if uopts.find_opt('-nruns') or uopts.find_opt('-nt'):
-          print '** please use either -run_trs or -nt/-nruns'
+          print('** please use either -run_trs or -nt/-nruns')
           return 1
     else:
        if not uopts.find_opt('-nruns') or not uopts.find_opt('-nt'):
-          print '** please use either -run_trs or both -nt and -nruns'
+          print('** please use either -run_trs or both -nt and -nruns')
           return 1
        opt    = uopts.find_opt('-nruns')
        nruns = int(opt.parlist[0])
@@ -245,7 +248,7 @@ def proc_mats(uopts):
        opt    = uopts.find_opt('-nt')
        try: nt = int(opt.parlist[0])
        except:
-           print "** error: -nt must be int, have '%s'" % opt.parlist[0]
+           print("** error: -nt must be int, have '%s'" % opt.parlist[0])
            return
        run_trs = [nt]*nruns
 
@@ -256,7 +259,7 @@ def proc_mats(uopts):
     if opt:
         try: offset = float(opt.parlist[0])
         except:
-            print "** error: offset must be float, have '%s'" % opt.parlist[0]
+            print("** error: offset must be float, have '%s'" % opt.parlist[0])
             return
 
     opt    = uopts.find_opt('-prefix')
@@ -265,7 +268,7 @@ def proc_mats(uopts):
     opt    = uopts.find_opt('-tr')
     try: tr = float(opt.parlist[0])
     except:
-        print "** error: TR must be float, have '%s'" % opt.parlist[0]
+        print("** error: TR must be float, have '%s'" % opt.parlist[0])
         return
 
     opt = uopts.find_opt('-labels')
@@ -274,32 +277,32 @@ def proc_mats(uopts):
     nlab = len(labels)
 
     # print some info
-    if verb: print "-- run_trs = %s, TR = %s, %d labels" \
-                   % (run_trs, str(tr), nlab)
+    if verb: print("-- run_trs = %s, TR = %s, %d labels" \
+                   % (run_trs, str(tr), nlab))
 
     # new option, -amplitudes (columns of amplitudes to Marry, not just 1s)
     use_amp = 0
     opt = uopts.find_opt('-amplitudes')
     if opt:
         use_amp = 1
-        if verb: print '-- using amplitudes to Marry with times...'
+        if verb: print('-- using amplitudes to Marry with times...')
     
     newfile_index = 1   # index over output files
     for fname in files:
         tmat = TD.read_1D_file(fname, verb=verb)
         if not tmat:
-            print "read_1D_file failed for file: %s" % fname
+            print("read_1D_file failed for file: %s" % fname)
             return
         mat = afni_util.transpose(tmat)
         del(tmat)
 
         if len(mat[0]) < ntotal:
-            print '** error: file %s has only %d entries (%d required)' % \
-                  (fname, len(mat[0]), ntotal)
+            print('** error: file %s has only %d entries (%d required)' % \
+                  (fname, len(mat[0]), ntotal))
             return
         elif len(mat[0]) > ntotal:
-            print '** warning: file %s has %d entries (expected only %d)' % \
-                  (fname, len(mat[0]), ntotal)
+            print('** warning: file %s has %d entries (expected only %d)' % \
+                  (fname, len(mat[0]), ntotal))
 
         for row in mat:
 
@@ -307,8 +310,8 @@ def proc_mats(uopts):
             if newfile_index <= nlab: label = ".%s" % labels[newfile_index-1]
             elif nlab == 0:           label = ""
             else:
-                print "** %d labels given, but we are on column %d..." % \
-                      (nlab, newfile_index)
+                print("** %d labels given, but we are on column %d..." % \
+                      (nlab, newfile_index))
                 label = ".label%d" % (newfile_index)
 
             newp = "%s.%02d%s" % (prefix,newfile_index,label)
@@ -340,8 +343,8 @@ def proc_mats(uopts):
                        # note whether anything has been blocked
                        if not first and not consec_ok:
                           if verb > 2:
-                             print '-- blocked consec: file %s, run %d, ind %d'\
-                                   % (newp, run, lcol)
+                             print('-- blocked consec: file %s, run %d, ind %d'\
+                                   % (newp, run, lcol))
                           blocked_consec = 1
 
                        # if consec is bad, only write on first occurance
@@ -367,8 +370,8 @@ def proc_mats(uopts):
             newfile_index += 1
 
             if verb and blocked_consec:
-               print '-- blocked consecutive events file %s, output %s' \
-                     % (fname, newp)
+               print('-- blocked consecutive events file %s, output %s' \
+                     % (fname, newp))
 
 def stim_in_run(values, non_zero):
     """search for any value==1, if non_zero, search for any non-zero
