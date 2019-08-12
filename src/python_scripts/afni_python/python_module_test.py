@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # ---------------------------------------------------------------------------
 # test python modules
 
@@ -86,9 +88,10 @@ g_history = """
          - removed R from basic test list
          - in base usage, set verb level to 2
     0.4  Apr 05, 2011: added PyQt4 to test list
+    0.5  Aug 12, 2019: python3 compatible
 """
 
-g_version = "version 0.4, April 5, 2011"
+g_version = "version 0.5, August 12, 2019"
 
 
 # main module for defining and processing use options
@@ -152,15 +155,15 @@ class ModuleTest:
 
       # cannot have len(argv) <= 1 here, but be consistent with other progs
       if len(sys.argv) <= 1 or '-help' in sys.argv:
-         print g_help_string
+         print(g_help_string)
          return 0
 
       if '-hist' in sys.argv:
-         print g_history
+         print(g_history)
          return 0
 
       if '-ver' in sys.argv:
-         print g_version
+         print(g_version)
          return 0
 
       if '-show_valid_opts' in sys.argv:
@@ -213,18 +216,18 @@ class ModuleTest:
             vstr = vlist[0]
          else:
             vstr = sys.version
-         print 'python version: %s' % vstr
+         print('python version: %s' % vstr)
 
       if self.show_platform:
          try:
             import platform
-            print 'platform: %s' % platform.platform()
-         except: print 'platform: ** module not found'
+            print('platform: %s' % platform.platform())
+         except: print('platform: ** module not found')
 
       if self.show_modtest:
          nfail = module_test_lib.num_import_failures(self.modlist,
                                      details=1,verb=self.verb)
-         print "\nnumber of python import failures = %d\n" % nfail
+         print("\nnumber of python import failures = %d\n" % nfail)
 
       return None
 
@@ -234,9 +237,9 @@ class ModuleTest:
 
 def process():
    if len(sys.argv) <= 1:       # default behavior, run general test
-      print ""
+      print("")
       nfail = module_test_lib.num_import_failures(verb=2)
-      print "\nnumber of python import failures = %d\n" % nfail
+      print("\nnumber of python import failures = %d\n" % nfail)
       return nfail
 
    # create elemnnt and initialize options

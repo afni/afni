@@ -50,7 +50,7 @@
 afni_history_struct rickr_history[] = {
 
  { 12, Aug, 2019, RCR, "make_stim_times.py", MICRO, TYPE_ENHANCE,
-   "python3 compatible as of version 2.0",
+   "and python_module_test.py: python3 compatible as of version 2.0",
    NULL
  } ,
 
