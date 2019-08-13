@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 
+# python3 status: compatible
+
 # coding=utf-8
 __author__ = "Joshua Zosky"
 

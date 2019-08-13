@@ -23,7 +23,7 @@ from scipy.signal import firwin, lfilter
 from scipy.interpolate import interp1d
 
 # rcr: omit new style sub-library of pylab
-from pylab import plot, subplot, show, text, figure
+from pylab import plot, subplot, show
 from .zscale import z_scale
 
 
@@ -116,8 +116,10 @@ def rvt_from_peakfinder(r):
             r["t"], r["rvtrs"][sind], r["interpolation_style"], bounds_error=True
         )
         rvt_shf_y = rvt_shf(r["time_series_time"])
-        subplot(111)
-        plot(r["time_series_time"], rvt_shf_y)
+        if r["quiet"] == 0 and r["show_graphs"] == 1:
+           # pacify matplotlib by passing a label (to get new instance)
+           subplot(111, label='plot #%d'%i)
+           plot(r["time_series_time"], rvt_shf_y)
         r["rvtrs_slc"][:][i] = rvt_shf_y
 
     if r["quiet"] == 0 and r["show_graphs"] == 1:

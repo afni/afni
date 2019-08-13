@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Aug, 2019, RCR, "RetroTS.py", MICRO, TYPE_GENERAL,
+   "RVT_from_PeakFinder.py: remove unused plot()",
+   NULL
+ } ,
+
  { 12, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "python3 compatibility",
    "Including: make_stim_times.py, python_module_test.py, lib_matplot.py,\n"
