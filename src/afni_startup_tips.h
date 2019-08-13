@@ -1015,9 +1015,7 @@ static char *gby[] = {
      "Are you indeed there, my skylark?"                             ,
      "Life is an experiment; please reject the dull hypothesis"      ,
      "Hard work pays off in the future, but laziness pays off now"   ,
-     "We learn from our mistakes -- I've learned a lot today"        ,
      "If a turtle loses its shell, is it naked or homeless?"         ,
-     "There is no mistake so great as being right ahead of time"     ,
      "We give you tools; You build things with them"                 ,
      "Do not take life too seriously. You won't get out of it alive" ,
      "For great justice. Move ZIG."                                  ,
@@ -1030,6 +1028,14 @@ static char *gby[] = {
      "It is never too late to be wise"                               ,
      "What one person can imagine, another can make real"            ,
      "Ask me no questions, and I'll tell you no lies"                ,
+
+     /* Mistakes? in AFNI? */
+
+     "We learn from our mistakes -- I've learned a lot today"                  ,
+     "There are lots of people who mistake their imagination for their memory" ,
+     "Experience is the name people give to their mistakes"                    ,
+     "There is no mistake so great as being right ahead of time"               , /* Wilde */
+     "I thought I was wrong, but I was only mistaken"                          , /* Vinai */
 
      /* bastardizations of Shakespeare */
 
@@ -1061,7 +1067,7 @@ static char *gby[] = {
 
      /* self referential */
 
-     "The 'Lead Standard' for neuroimaging since 1994"               ,
+     "The 'Lead Brick Standard' for neuroimaging since 1994"         ,
      "Shedding new light on the brain since 1994"                    ,
      "Brain-ology at the cutting edge since 1994"                    ,
      "Putting the 'wit' in 'twit' since 1994"                        ,
@@ -1175,7 +1181,6 @@ static char *gby[] = {
 
      "We are all in the gutter, but some of us are looking at the stars"        ,
      "Always forgive your enemies - nothing annoys them so much"                ,
-     "Experience is the name people give to their mistakes"                     ,
      "The truth is rarely pure and never simple"                                ,
      "Be yourself; everyone else is already taken"                              ,
      "I have simple tastes: I am easily satisfied with the best"                ,
@@ -1320,7 +1325,6 @@ static char *gby[] = {
      "The important things about a statistical model are what it does NOT include"    ,
      "You're going to like the way your brain activation maps look -- I guarantee it" ,
      "A p-value of 0.05 means the null hypothesis is 29% likely to be correct"        ,
-     "There are lots of people who mistake their imagination for their memory"        ,
      "I'm off to get some hot chocolate in Warszawa -- want to join me?"              ,
      "Money can't buy happiness -- but I'm willing to give it a fair chance"          ,
      "In ancient times, there were no statistics, so they just had to lie"            ,

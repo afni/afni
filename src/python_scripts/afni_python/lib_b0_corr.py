@@ -28,11 +28,19 @@
 # + [PT] rename several variables and opts, to undo my misunderstanding...
 # + [PT] EPI back to being required
 #
-ver='1.6' ; date='Aug 2, 2019'
+#ver='1.6' ; date='Aug 2, 2019'
 # + [PT] added in obliquity checks: should be able to deal with relative 
 #        obl diffs between EPI and freq dset (if they exist)
 # + [PT] final WARP dset will now be in EPI grid
 # + [PT] *still need to check on scaling&recentering of Siemens data*
+#
+#ver='1.6' ; date='Aug 8, 2019'
+# + [PT] update/correct help about Siemens scaling, post-discussion-with-Vinai
+#
+ver='1.7' ; date='Aug 12, 2019'
+# + [PT] *really* correct help @ Siemens scaling
+# + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
+# + [PT] py23 compatability of help file-- single dictionary usage!
 #
 ###############################################################################
 
@@ -92,207 +100,264 @@ all_opts = {
 
 # ----------------------------------------------------------------------------
 
+help_dict = {**all_opts, **ddefs}
+
 help_string_b0_corr = '''
 
-Purpose ~1~
+  PURPOSE ~1~
 
-This program performs B0 distortion correction along the phase encode
-(PE) direction, using an acquired frequency (phase) image.  It was
-initially written by Vinai Roopchansingh (NIMH, NIH).
+  This program performs B0 distortion correction along the phase encode
+  (PE) direction, using an acquired frequency (phase) image.  It was
+  initially written by Vinai Roopchansingh (NIMH, NIH).
 
-Ver  : {DEF_ver}
-Date : {DEF_date}
-
-
-Inputs ~1~
-
-+ frequency dset : (req) phase volume, which should be of similar spatial
-                   resolution/FOV of EPI dset to which it will be applied.
-                   Expected units are:  Hz (= rads/s).
-
-+ mask dset      : (req) binary mask of subject's brain
-     or
-+ magnitude dset : (req) volume in same space as frequency dset for
-                   automasking, to create brain mask
-
-+ EPI dset       : (req) EPI dset to which the B0 distortion correction
-                   is applied.
-
-+ PE parameters  : (req) a number of parameters related to the
-                   EPI vol are required to be input, such as its
-                   - PE direction
-                   - FOV length along the PE direction
-                   - effective TE
-                   Optional scaling can be applied to the freq dset
-                   (e.g., if units need to be adjusted appropriately).
-
-                   These parameters can be provided either
-                   individually, or by providing an accompanying JSON
-                   that might/should contain all necessary
-                   information.
+  Ver  : {DEF_ver}
+  Date : {DEF_date}
 
 
-Outputs ~1~
+  INPUTS ~1~
 
-+ WARP dset           : a file called PREFIX_WARP.nii.gz, containing the  
-                        warp along the phase encode axis (on the EPI dset's
-                        grid)
+  + frequency dset : (req) phase volume, which should be of similar
+                     spatial resolution/FOV of EPI dset to which it
+                     will be applied.  Expected units are: angular
+                     freq (= rad/s = 2*PI*Hz).  If your dataset is in
+                     different units, you can apply an appropriate
+                     scaling via the command line, as discussed in the
+                     'NOTES', below.
 
-+ script of commands  : a script of the commands used to generate the 
-                        WARP dset (and EPI)
+  + mask dset      : (req) binary mask of subject's brain
+       or
+  + magnitude dset : (req) volume in same space as frequency dset for
+                     automasking, to create brain mask
 
-+ EPI (un)warped dset : the EPI dset with the estimated distortion correction
-                        applied to it; hopefully unwarped
+  + EPI dset       : (req) EPI dset to which the B0 distortion correction
+                     is applied.
 
+  + PE parameters  : (req) a number of parameters related to the
+                     EPI vol are required to be input, such as its
+                     - PE direction
+                     - FOV length along the PE direction
+                     - effective TE
+                     Optional scaling can be applied to the freq dset
+                     (e.g., if units need to be adjusted appropriately).
 
-Running ~1~
-
-{prefix}           PP : (req) prefix of output files; can include path
-
-{in_freq}   DSET_FREQ : (req) phase dset (frequency volume).  Should be 
-                       of similar spatial resolution and FOV as EPI dset
-                       to which it will be applied;  also, must be scaled 
-                       appropriately, where the expected units are:  Hz.
-
-{in_mask}   DSET_MASK : (req) mask of brain volume
-     or
-{in_magn}   DSET_MAGN : (req) magnitude dset from which to estimate brain
-                       mask
-
-{in_epi}     DSET_EPI : (req) EPI dset to which the B0 distortion correction
-                       that I have spent so much time calculating will be
-                       applied
-
-{in_epi_json}  FJSON  : (opt) Several parameters about the EPI
-                       dset must be known for processing; these MIGHT
-                       be encoded in a JSON file accompanying the
-                       frequency dset.  If so, you can input the file
-                       and let The Program try to find+interpret them.
-                       At present, desirable keys/tags in the JSON
-                       (with the keyword args you would otherwise use
-                       when running this program) are:
-                         EffectiveEchoSpacing   (or use '{epi_pe_echo_sp}')
-                         PhaseEncodingDirection (or use '{epi_pe_dir}')
-
-{epi_pe_dir}       DD : (req) direction (axis) of phase encoding, 
-                       e.g., AP, PA, RL, ...
-                       NB: the order matters, providing the PE direction
-                       (and not just PE axis); thus, 'AP' implies the 
-                       PE direction is A>>P, and 'PA' that it is P>>A, etc.
-
-{epi_pe_echo_sp}   ES : (req) *effective* TE spacing of phase encoded
-                       volume, in units of 's'
-
-{epi_pe_fov}      FOV : (opt) field of view (FOV) of the frequency volume
-                       along the phase encode axis,  in units of 'mm';
-                       that is, the length of the dset along the PE axis
-
-{scale_freq}       SF : (opt) scale to apply to frequency volume, 
-                       for example to change units to match. 
-                       NB: a negative value would invert the warp (probably
-                       would not want that...?)  See the 'Notes ..' below
-                       for more information about scaling, esp. for particular
-                       vendors.  (def: SF=1.0)
-
-{out_cmds}         OC : (opt) name of output script, recording commands that
-                       were run during the processing (def: script is output
-                       to file using entered prefix PP:  PP_script.tcsh).
-                       If user uses this option, then 'OC' is treated
-                       as the full filename, including path
-
-{wdir_name}        WD : working directory name (no path, will be located in
-                       directory with output dsets);  if not provided,
-                       will be given automatic name, starting '{DEF_wdir_pref}' 
-                       and ending with a random alphanumeric string, e.g.,
-                       '{DEF_wdir_pref}_9huoXQ7c0AV'
-
-{blur_sigma}       BS : amount of blurring to apply to masked, phase encode
-                       dset
-                       (def: BS = {DEF_bsigma})
-
-{do_recenter_freq}    MC : method for 3dROIstats to recenter the phase (=freq)
-                       volume within the brain mask.  If the value of
-                       MC is 'NONE', then the phase dset will not be
-                       recentered 
-                       (def: MC = {DEF_meth_recenter_freq})
-
-{automask_peels}   AP : if automasking a magnitude image to create a
-                       brain mask, AP is the 'peels' value of 3dAutomask
-                       (def: AP = {DEF_npeels})
-
-{automask_erode}   AE : if automasking a magnitude image to create a
-                       brain mask, AE is the 'erode' value of 3dAutomask
-                       (def: AE = {DEF_nerode})
-
-{no_clean}            : don't remove the temporary directory of intermed files
-
-{help}                : display program help in terminal (consider
-                       '-hview' to open help in a separate text editor)
-{ver}                 : display program version number in terminal 
-{date}                : display date of program's last update in terminal 
+                     These parameters can be provided either
+                     individually, or by providing an accompanying JSON
+                     that might/should contain all necessary
+                     information.
 
 
-Notes ~1~
+  OUTPUTS ~1~
 
-Units of frequency/phase/fieldmap ~2~
+  + WARP dset           : a file called PREFIX_WARP.nii.gz, containing the  
+                          warp along the phase encode axis (on the EPI dset's
+                          grid)
 
-It is important to have your input phase/frequency volume contain the
-correct units for this program.  Here, we expect them to be in
-"radians/second" (rad/s).
+  + script of commands  : a script of the commands used to generate the 
+                          WARP dset (and EPI)
 
-Re. Siemens fieldmaps
----------------------
-  If your frequency map is one output by Siemens, then consider the
-  following (but doublecheck that it really applies to your darling
-  dataset!):
-
-  The standard range of fieldmap values in that case appears to be
-  [-4096, 4095], which comes from them dividing the measured phases by
-  2*PI and multiplying by 4096.  This means you should be able to get
-  back by scaling the fieldmap by 2*PI/4096 ~ 0.001534.  This could be
-  done with, say, a separate 3dcalc command to make a new freq dset; or,
-  you could provide this magic value to the present command with the
-  scaling option:  '{scale_freq} 0.001534'. !!! need to doublecheck this
-  scaling... !!!
-
-  ???Additionally, these phase/frequency maps are probably already
-  centered appropriately???
-
-  Worth repeating: be sure that this *really* applies to your data!
+  + EPI (un)warped dset : the EPI dset with the estimated distortion
+                          correction applied to it; hopefully unwarped
 
 
-Examples ~1~
+  RUNNING ~1~
 
-  # Ex 1:  With mask supplied, created earlier from magnitude image
-    epi_b0_correct.py                                \\
-        -epi_pe_echo_sp  0.00031                     \\
-        -distort_dir         AP                      \\
-        -in_freq  sub-001_frequency.nii.gz           \\
-        -in_mask  sub-001_magnitude_MASK.nii.gz      \\
-        -in_epi   epiRest-sub-001.nii.gz             \\
-        -prefix   b0_corr
+  {prefix}           PP : (req) prefix of output files; can include path
 
-  # Ex 2:  Input *magnitude* dset, from which to calculate mask
-    epi_b0_correct.py                                \\
-        -epi_pe_echo_sp  0.00031                     \\
-        -distort_dir         AP                      \\
-        -in_freq  sub-001_frequency.nii.gz           \\
-        -in_magn  sub-001_magnitude.nii.gz           \\
-        -in_epi   epiRest-sub-001.nii.gz             \\
-        -prefix   b0_corr
+  {in_freq}   DSET_FREQ : (req) phase dset (frequency volume).  Should be 
+                         of similar spatial resolution and FOV as EPI dset
+                         to which it will be applied;  also, must be scaled 
+                         appropriately, where the expected units are:  Hz.
 
-  # Ex 3: Input a JSON file (sidecar) accompanying the freq volume,
-  #       and hope that it has all the necessary parameters/fields for
-  #       this program. 
-    epi_b0_correct.py                                \\
-        -in_epi_json   sub-001_frequency.json        \\
-        -in_freq       sub-001_frequency.nii.gz      \\
-        -in_magn       sub-001_magnitude.nii.gz      \\
-        -in_epi        epiRest-sub-001.nii.gz        \\
-        -prefix        b0_corr
+  {in_mask}   DSET_MASK : (req) mask of brain volume
+       or
+  {in_magn}   DSET_MAGN : (req) magnitude dset from which to estimate brain
+                         mask
+
+  {in_epi}     DSET_EPI : (req) EPI dset to which the B0 distortion 
+                         correctionthat I have spent so much time calculating 
+                         will be applied
+
+  {in_epi_json}  FJSON  : (opt) Several parameters about the EPI
+                         dset must be known for processing; these MIGHT
+                         be encoded in a JSON file accompanying the
+                         frequency dset.  If so, you can input the file
+                         and let The Program try to find+interpret them.
+                         At present, desirable keys/tags in the JSON
+                         (with the keyword args you would otherwise use
+                         when running this program) are:
+                           EffectiveEchoSpacing   (or use '{epi_pe_echo_sp}')
+                           PhaseEncodingDirection (or use '{epi_pe_dir}')
+
+  {epi_pe_dir}       DD : (req) direction (axis) of phase encoding, 
+                         e.g., AP, PA, RL, ...
+                         NB: the order matters, providing the PE direction
+                         (and not just PE axis); thus, 'AP' implies the 
+                         PE direction is A>>P, and 'PA' that it is P>>A, etc.
+
+  {epi_pe_echo_sp}   ES : (req) *effective* TE spacing of phase encoded
+                         volume, in units of 's'
+
+  {epi_pe_fov}      FOV : (opt) field of view (FOV) of the
+                         frequency volume along the phase encode axis,
+                         in units of 'mm'; that is, the length of the
+                         dset along the PE axis
+
+  {scale_freq}       SF : (opt) scale to apply to frequency volume, 
+                         for example to change units to match. 
+                         NB: a negative value would invert the warp
+                         (probably would not want that...?)  See the
+                         'NOTES ..' below for more information about
+                         scaling, esp. for particular vendors.  (def:
+                         SF=1.0)
+
+  {out_cmds}         OC : (opt) name of output script, recording
+                         commands that were run during the processing
+                         (def: script is output to file using entered
+                         prefix PP: PP_script.tcsh).  If user uses
+                         this option, then 'OC' is treated as the full
+                         filename, including path
+
+  {wdir_name}        WD : working directory name (no path, will be located
+                         in directory with output dsets); if not
+                         provided, will be given automatic name,
+                         starting '{DEF_wdir_pref}' and ending with a
+                         random alphanumeric string, e.g.,
+                         '{DEF_wdir_pref}_9huoXQ7c0AV'
+
+  {blur_sigma}       BS : amount of blurring to apply to masked, phase 
+                         encode dset (def: BS = {DEF_bsigma})
+
+  {do_recenter_freq}  MC : method for 3dROIstats to recenter the phase
+                         (=freq) volume within the brain mask.  If the
+                         value of MC is 'NONE', then the phase dset
+                         will not be recentered
+                         (def: MC = {DEF_meth_recenter_freq})
+
+  {automask_peels}   AP : if automasking a magnitude image to create a
+                         brain mask, AP is the 'peels' value of 3dAutomask
+                         (def: AP = {DEF_npeels})
+
+  {automask_erode}   AE : if automasking a magnitude image to create a
+                         brain mask, AE is the 'erode' value of 3dAutomask
+                         (def: AE = {DEF_nerode})
+
+  {no_clean}            : don't remove the temporary directory of intermed 
+                          files
+
+  {help}                : display program help in terminal (consider
+                         '-hview' to open help in a separate text editor)
+  {ver}                 : display program version number in terminal 
+  {date}                : display date of program's last update in terminal 
 
 
-'''.format( **all_opts, **ddefs )
+  NOTES ~1~
+
+  Units of frequency/phase/fieldmap ~2~
+
+  It is important to have your input phase/frequency volume contain
+  the correct units for this program.  Here, we expect them to be in
+  units of angular frequency: "radians/second" (rad/s).
+
+  Re. fieldmaps in Hz
+  -------------------
+    If your frequency map has units of physical frequency, 'cycles per
+    second' (= Hz), then you just provide a command line argument to
+    internally scale your data to the appropriate angular frequency
+    unit we desire to use.
+
+    Physicists tell us that angular frequency 'w' is related to
+    physical frequency 'f' as follows:  
+       w = 2*PI*f
+         ~ 6.2831853 * f
+    Therefore, if you are *sure* that your frequency (phase) volume is
+    really in units of Hz, then you can use the following command line
+    argument to set things right for using it here: 
+       '{scale_freq} 0.311785' 
+
+    Not too painful!
+
+  Re. Siemens fieldmaps 
+  ---------------------
+    If your frequency map is one output by Siemens, then consider the
+    following (but doublecheck that it really applies to your darling
+    dataset!):
+
+    The standard range of fieldmap values in that case appears to be
+    either [-4096, 4095] or [0, 4095], depending on how your data were
+    converted.  You can check the range on your dset with, e.g.:
+      3dinfo -dmin -dmax FREQ_DSET
+    will will likely *approximately* match one of those ranges.
+
+    These ranges come from dividing the measured phases by 2*PI (one
+    full phase) and then multiplying by either 2*4096 or 4096,
+    respectively.  One could multiply by that inverse ratio, putting
+    the dataset into units of radians ('rad'); however, we ultimately
+    want the input frequency volume to be in units of angular
+    frequency: 'rad/s' ('2*PI*Hz').  Therefore, we also want to divide
+    by the EPI's echo time difference (which might be saved as
+    'EchoTimeDifference' in an EPI's JSON sidecar).  For example, the
+    standard value of this at 3T is about 2.46 ms (= 0.00246 s), but
+    check what it is in your own data!
+
+    *Therefore*, in many cases of Siemens 3T data, one should be able
+    to convert the scaled freq dset into the the desired units of ang
+    freq by scaling the fieldmap by 2*PI/(2*4096*0.00246) ~ 0.311785
+    or by 2*PI/(4096*0.00246) ~ 0.623569, respectively.  This could be
+    done using, say, 3dcalc to make a new freq dset; or, you could
+    provide this magic value to the present command with the scaling
+    option:
+         FREQ DSET ~RANGE     (potential) PROGRAM OPTION
+         ----------------     --------------------------
+         [-4096, 4095]     :  '{scale_freq} 0.311785' 
+         [0, 4095]         :  '{scale_freq} 0.623569'
+
+    It is worth repeating: be sure that these numbers *really* apply to
+    your data!
+
+
+  EXAMPLES ~1~
+
+    # Ex 1:  With mask supplied, created earlier from magnitude image
+      epi_b0_correct.py                                \\
+          -epi_pe_echo_sp  0.00031                     \\
+          -distort_dir     AP                          \\
+          -in_freq  sub-001_frequency.nii.gz           \\
+          -in_mask  sub-001_magnitude_MASK.nii.gz      \\
+          -in_epi   epiRest-sub-001.nii.gz             \\
+          -prefix   b0_corr
+
+    # Ex 2:  Input *magnitude* dset, from which to calculate mask
+      epi_b0_correct.py                                \\
+          -epi_pe_echo_sp  0.00031                     \\
+          -distort_dir     AP                          \\
+          -in_freq  sub-001_frequency.nii.gz           \\
+          -in_magn  sub-001_magnitude.nii.gz           \\
+          -in_epi   epiRest-sub-001.nii.gz             \\
+          -prefix   b0_corr
+
+    # Ex 3:  Same as above, but freq dset was in units of Hz (convert
+    #        to angular freq, scaling by 2*PI~6.283185)
+      epi_b0_correct.py                                \\
+          -epi_pe_echo_sp  0.00031                     \\
+          -distort_dir     AP                          \\
+          -scale_freq      6.283185                    \\
+          -in_freq  sub-001_frequency.nii.gz           \\
+          -in_magn  sub-001_magnitude.nii.gz           \\
+          -in_epi   epiRest-sub-001.nii.gz             \\
+          -prefix   b0_corr
+
+    # Ex 4: Input a JSON file (sidecar) accompanying the freq volume,
+    #       and hope that it has all the necessary parameters/fields for
+    #       this program. 
+      epi_b0_correct.py                                \\
+          -in_epi_json   sub-001_frequency.json        \\
+          -in_freq       sub-001_frequency.nii.gz      \\
+          -in_magn       sub-001_magnitude.nii.gz      \\
+          -in_epi        epiRest-sub-001.nii.gz        \\
+          -prefix        b0_corr
+
+
+'''.format( **help_dict )
 
 # ----------------------------------------------------------------------------
 # ----------------------------------------------------------------------------
@@ -919,12 +984,13 @@ here:
             self.set_freq_ctr( self.comm.so[0].strip() )
 
         # Recenter, scale (def=1.0), and convert units with effective
-        # echo spacing and length of PE axis.
+        # echo spacing and length of PE axis. 
+        # Freq dset units: ang freq (rad/s).
         cmd = '''3dcalc {overwrite}                              \
         -echo_edu                                                \
         -a      {dset_freq_name}                                 \
         -b      {dset_mask_name}                                 \
-        -expr   "(a-{freq_ctr})*({freq_scale})*{epi_pe_echo_sp}*{epi_pe_fov}*b" \
+        -expr   "(a-{freq_ctr})*({freq_scale}/6.2831853)*{epi_pe_echo_sp}*{epi_pe_fov}*b" \
         -datum  float                                            \
         -prefix {dset_int_00}{dext}
         '''.format( **self_vars )
