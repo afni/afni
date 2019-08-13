@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Aug, 2019, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "fix -VXXXX= for real operating systems",
+   NULL
+ } ,
+
  { 13, Aug, 2019, RCR, "RetroTS.py", MICRO, TYPE_GENERAL,
    "RVT_from_PeakFinder.py: remove unused plot()",
    NULL

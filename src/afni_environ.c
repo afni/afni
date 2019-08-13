@@ -375,9 +375,13 @@ int AFNI_prefilter_args( int *argc , char **argv )
      /*** -Vname to get environment variable ***/
 
      if( strncmp(argv[ii],"-V",2) == 0 && strchr(argv[ii],'=') != NULL ){
-       if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,argv[ii]) ;
-       fprintf(stdout,"%s\n",
-               (eee = my_getenv(argv[ii]+2)) ? eee:"") ; 
+       /* wipe out the '=', but let's not modify argv... 13 Aug 2019 [rickr] */
+       char *scpy = strdup(argv[ii]+2);
+       eee = strchr(scpy, '=');
+       *eee = '\0';
+
+       if( ttt ) fprintf(stderr,"++ argv[%d] does getenv %s\n",ii,scpy) ;
+       fprintf(stdout,"%s\n", (eee = my_getenv(scpy)) ? eee:"") ; 
         used[ii] = 1 ; exit(0) ;
      }
 
