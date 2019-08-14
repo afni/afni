@@ -50,7 +50,19 @@
 
 
 afni_history_struct dglen_history[] = {
-{ 22, JUL, 2019, DRG, "@Install_D99_macaque,@Install_NIH_Marmoset", MINOR, TYPE_BUG_FIX,
+{ 13, AUG, 2019, DRG, "@FindAfniDsetPath atlas name search", MINOR, TYPE_MODIFY,
+    "Search SUPP_ATLAS_DIR path and look for atlases by name",
+    "Search additional directory for extra atlases and by name\n"
+    "Can search for TT_Daemon (atlas name) or TTatlas+tlrc (atlas dataset)"
+},
+{ 13, AUG, 2019, DRG, "whereami atlas dataset", MINOR, TYPE_NEW_OPT,
+    "return dataset given atlas name(s)",
+    "Print atlas dataset for each input atlas\n"
+    "  whereami -atlas TT_Daemon -show_atlas_dset prints TTatlas+tlrc\n"
+    "  each -atlas atlasname prints the corresponding atlas dataset"
+},
+
+{ 22, JUL, 2019, DRG, "@Install_D99_macaque,NIH_Marmoset", MINOR, TYPE_BUG_FIX,
     "download script bugs",
     "tar platform differences and filename updates"
 },    
