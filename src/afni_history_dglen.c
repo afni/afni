@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 14, AUG, 2019, DRG, "@FindAfniDsetPath append_file", MINOR, TYPE_NEW_OPT,
+    "Append file name to path with -append_file option",
+    "Useful for atlas names to full dataset names and other scripting purposes"
+},
 { 13, AUG, 2019, DRG, "@FindAfniDsetPath atlas name search", MINOR, TYPE_MODIFY,
     "Search SUPP_ATLAS_DIR path and look for atlases by name",
     "Search additional directory for extra atlases and by name\n"

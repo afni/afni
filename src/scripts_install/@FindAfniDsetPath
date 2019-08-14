@@ -19,14 +19,22 @@
 
 # separate length check
 set retval = 0
-if ( $#argv != 1 ) then
+# default is to print only path and not file name
+set append_file = 0
+
+if ( $#argv > 2 ) then
    # bad usage sets error status        29 Dec 2015 [rickr]
    set retval = 1
    goto HELP
 endif
 if ( "$argv[1]" == "-help") goto HELP
+if ( "$argv[1]" == "-append_file") then
+   set append_file = 1
+   set ref_in = $2
+else
+   set ref_in = $1
+endif
 
-set ref_in = $1
 set dataset_path = './'
 
 # check if this dataset might be an atlas name  13 Aug 2019 [drg]
@@ -40,6 +48,9 @@ if ($storageguess  == "UNDEFINED") then
       set ref_in = $possibleatlas
    endif
 endif
+# get the file name now
+set ref_file = ` ParseName ${ref_in} | grep "FileName "|awk -F: '{print $2}'`
+
 # ------------------- search first with possible path -------------
 
 # if path to dset, test separately    31 Jul 2015 [rickr]
@@ -49,7 +60,11 @@ set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
     set result = `@CheckForAfniDset ${ref_in}`
     if ( "$result" == 2 || "$result" == 3 ) then
-        echo $dir
+        if($append_file == 0) then
+           echo $dir
+        else
+           echo ${dir}/${ref_file}
+        endif
         exit 0
     endif
 endif
@@ -101,7 +116,11 @@ foreach dir ( ${dataset_path} )
 
         # remove last character if "/"
         set out = `echo $dir | sed 's/\/$//'`
-        echo $out
+        if($append_file == 0) then
+           echo $out
+        else
+           echo ${out}/${ref_file}
+        endif
 
         exit 0
     endif
@@ -121,7 +140,11 @@ if ( "$ref_path" == "$wa" ) then
    exit 1
 endif
 if ( `@CheckForAfniDset ${ref_path}/${ref_in}` ) then
-    echo ${ref_path}
+    if($append_file == 0) then
+       echo $ref_path
+    else
+       echo ${ref_path}/${ref_file}
+    endif
     exit 0
 endif
 
@@ -137,8 +160,11 @@ Usage: `basename $0` <dsetname>
 Search AFNI_GLOBAL_SESSION, AFNI_SUPP_ATLAS_DIR, AFNI_ATLAS_PATH, 
 AFNI_PLUGINPATH and afni bin directory  (in that order) for named 
 dataset. If found, echo the first valid path discovered and return 
-zero status. If not found, return non-zero status.
+zero status. If not found, return non-zero status. If atlas name is
+given, then atlas dataset file name is found (and possibly printed with
+append_file option below
 
+   -append_file show the file appended too (even with atlas name)
    -help to get this message
 
 + [Oct 15, 2018] Updated to do a better job searching for NIFTIs and
