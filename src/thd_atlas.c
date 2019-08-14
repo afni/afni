@@ -1385,6 +1385,36 @@ void print_atlas_table(ATLAS_LIST *xal)
    INFO_message("--------------------------");
 }
 
+/* find dataset filename for an atlas in list of atlases */
+char * find_atlas_dset(ATLAS_LIST *xal, char *atlasname)
+{
+   int i;
+   ATLAS *xa;
+   
+   if(xal==NULL){
+      return(NULL);
+   }
+
+   // look through all the atlases
+   for(i=0;i<xal->natlases;i++) {
+      xa = xal->atlas+i;
+      // is this a match? 
+      if(strcmp(xa->name, atlasname)==0){
+         return(xa->dset_name);
+      }
+   }
+   return(NULL);
+}
+
+/* print the file name associated with an atlas */
+void print_atlas_dset(ATLAS_LIST *xal, char *atlasname)
+{
+   char *dsetname;
+
+   dsetname = find_atlas_dset(xal, atlasname);   
+   if(dsetname) printf("%s\n", dsetname);
+}
+
 
 /* print the comment for an atlas  - may span multiple lines with '\n' */
 void print_atlas_comment(ATLAS *xa)

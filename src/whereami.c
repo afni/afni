@@ -402,6 +402,8 @@ printf(
 " -show_spaces           : show all available template spaces\n"
 " -show_xforms           : show all available xforms\n"
 " -show_atlas_all        : show all the above\n"
+" -show_atlas_dset       : print dataset associated with each atlas\n"
+"                          can be used with -atlas option above"
 "\n"
 " -show_available_spaces srcspace : show spaces that are available from\n"
 "             the source space\n"
@@ -478,7 +480,7 @@ int main(int argc, char **argv)
    float *coord_list = NULL, rad;
    THD_3dim_dataset *space_dset = NULL, *atlas_dset = NULL;
    int read_niml_atlas = 0, show_atlas = 0, show_atlas_spaces = 0;
-   int show_atlas_templates = 0, show_atlas_xforms = 0;
+   int show_atlas_templates = 0, show_atlas_xforms = 0,show_atlas_dset=0;
    int show_xform_chain = 0, calc_xform_chain=0, show_avail_space=0;
    int show_atlas_point_lists = 0;
    int linkrbrain_output = 0;
@@ -706,6 +708,13 @@ int main(int argc, char **argv)
          
          if (strcmp(argv[iarg],"-show_atlas_code") == 0) {
             Show_Atlas_Code = 1;
+            ++iarg;
+            continue; 
+         }
+
+         if (strcmp(argv[iarg],"-show_atlas_dset") == 0) {
+            show_atlas_dset = 1;
+            read_niml_atlas = 1;
             ++iarg;
             continue; 
          }
@@ -1130,7 +1139,15 @@ int main(int argc, char **argv)
          print_all_xforms(get_G_xform_list());
       if(show_atlas_point_lists)
          print_point_lists(get_G_atlas_list());
-         
+      if(show_atlas_dset){
+         if (N_atlas_names != 0) {
+            atlas_alist = get_G_atlas_list();
+            /* check for missing atlases and stop in case of error */
+            for (k=0; k < N_atlas_names; ++k) {
+                print_atlas_dset(atlas_alist,atlas_names[k]);
+            }
+         }
+      }
       free_global_atlas_structs(); 
       exit(0);
    }

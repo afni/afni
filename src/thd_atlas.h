@@ -111,6 +111,8 @@ void print_template_list(ATLAS_TEMPLATE_LIST *xtl);
 void print_xform(ATLAS_XFORM *xf);
 void print_all_xforms(ATLAS_XFORM_LIST *xfl);
 void print_affine_xform_data(float *xfptr);
+void print_atlas_dset(ATLAS_LIST *xal, char *atlasname);
+char * find_atlas_dset(ATLAS_LIST *xal, char *atlasname);
 
 ATLAS_POINT *atlas_point_named(ATLAS_POINT_LIST *apl, char *name);
 char *atlas_point_long_name_named(ATLAS_POINT_LIST *apl, char *name);

@@ -13,6 +13,8 @@
 # [PT: Nov 25, 2018]
 # + Bug fix: dsets weren't being found in places specified by env vars
 #   like AFNI_GLOBAL_SESSION, etc.
+# [DRG: 13 Aug 2019]
+# + Added AFNI_SUPP_ATLAS_DIR to the list of environment paths.
 
 
 # separate length check
@@ -27,6 +29,11 @@ if ( "$argv[1]" == "-help") goto HELP
 set ref_in = $1
 set dataset_path = './'
 
+set possibleatlas = `whereami -atlas ${ref_in} -show_atlas_dset`
+if ($possibleatlas != "") then
+   echo whereami found this dataset base name $possibleatlas
+   set ref_in = $possibleatlas
+endif
 # ------------------- search first with possible path -------------
 
 # if path to dset, test separately    31 Jul 2015 [rickr]
@@ -45,6 +52,7 @@ endif
 
 # Make a list of the possible variables
 set list_of_vars = ( "AFNI_GLOBAL_SESSION" \
+                     "AFNI_SUPP_ATLAS_DIR" \
                      "AFNI_ATLAS_PATH"     \
                      "AFNI_PLUGINPATH" )
 
@@ -120,9 +128,10 @@ cat << EOF
 
 Usage: `basename $0` <dsetname>
 
-Search AFNI_GLOBAL_SESSION, AFNI_PLUGINPATH, and afni bin directory
-(in that order) for named dataset.  If found, echo the first valid path
-discovered and return zero status.  If not found, return non-zero status.
+Search AFNI_GLOBAL_SESSION, AFNI_SUPP_ATLAS_DIR, AFNI_ATLAS_PATH, 
+AFNI_PLUGINPATH and afni bin directory  (in that order) for named 
+dataset. If found, echo the first valid path discovered and return 
+zero status. If not found, return non-zero status.
 
    -help to get this message
 
