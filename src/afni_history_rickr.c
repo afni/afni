@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "build R_io.so with usable link to libmri.so",
+   "Modify Makefile.linux_fedora_28_shared and Makefile.INCLUDE to control\n"
+   "creation of Makevars via R_IO_MODIFY_LINUX."
+ } ,
+
  { 15, Aug, 2019, RCR, "afni-general", MINOR, TYPE_GENERAL,
    "add other_builds/OS_notes.linux_fedora_30.txt",
    "Works with Makefile.linux_fedora_28_shared."

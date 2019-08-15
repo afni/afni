@@ -3927,11 +3927,26 @@ toyR: toyR.c AFNI_embeddedRCall.o
 	$(CC) -o toyR toyR.o $(LFLAGS) \
          $(LLIBS) $(RccCOMlfl) AFNI_embeddedRCall.o
 
-####
-R_io.so:R_io.c $(LIBMRI_OBJ)
+#### R_io.so targets
+
+ifdef R_IO_MODIFY_LINUX
+R_MAKEVARS_DEP = R_Makevars_mod_linux
+else
+R_MAKEVARS_DEP = R_Makevars_default
+endif
+
+R_Makevars_default:
+	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;
+
+# could set ~/.R/Makevars, or work harder to get '$$ORIGIN' into local one
+R_Makevars_mod_linux:
+	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;            \
+	echo PKG_LIBS = $(LFLAGS) $(LLIBS) $(RLIB_CONVERT)      \
+          | sed s/.ORIGIN/\''$$$$ORIGIN'\'/ >> Makevars ;
+
+R_io.so: R_io.c $(LIBMRI_OBJ) $(R_MAKEVARS_DEP)
 	( if which R >/dev/null ; then \
-	echo PKG_CPPFLAGS = $(INFLAGS)  > Makevars ;\
-	echo PKG_LIBS =  $(LFLAGS) $(LLIBS) $(RLIB_CONVERT) >> Makevars ;\
 	R CMD SHLIB -o R_io.so R_io.c ; \
 	else echo WARNING: Cannot build R_io.so because R is not installed;\
 	fi ; )
