@@ -50,6 +50,11 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 15, AUG, 2019, DRG, "@animal_warper", MAJOR, TYPE_NEW_PROG,
+    "Warp data to template and atlas segmentation to subject",
+    "Tested for macaques.\n"
+    "Derived from macaque_align.csh and NMT_subject_align.csh"
+},
 { 14, AUG, 2019, DRG, "@FindAfniDsetPath append_file", MINOR, TYPE_NEW_OPT,
     "Append file name to path with -append_file option",
     "Useful for atlas names to full dataset names and other scripting purposes"
