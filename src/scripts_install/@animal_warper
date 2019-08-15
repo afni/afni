@@ -1,0 +1,517 @@
+#!/bin/tcsh
+# affine alignment of individual dataset to a template
+#  handcrafted for macaque alignment originally - D99 and NMT templates
+# usage example:
+#     @animal_warper  -input macaque1+orig \
+#	      -base ../NMT.nii.gz 				\
+#	      -atlas ${atlas_dir}/D99_atlas_1.2a_al2NMT.nii.gz
+# see help section at end for options
+# derived from macaque_align.csh and NMT_align.csh, scripts distributed
+#  with the D99 macaque and the NMT macaque template datasets and tools
+
+set progname = @animal_warper
+#***** update the version with each change
+set version = "1.00"
+
+# set atlas_dir = "../.."
+if ("$#" <  "2") then
+   goto HELP
+endif
+
+setenv AFNI_COMPRESSOR GZIP
+
+set dset = ""
+set base = ""
+set segset = ""
+set outdir = ""
+set cost = ""
+set maxlev = "11"
+set make_orig_surfaces = "1"
+
+# process user options
+set ac = 1
+while ($ac <= $#argv)
+    if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+        goto HELP
+    else if ("$argv[$ac]" == "-ver") then
+        echo $progname $version
+        exit 0
+    else if ("$argv[$ac]" == "-input") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-dset'"
+            exit 1
+        endif
+        set dset =  $argv[$ac]
+    else if ("$argv[$ac]" == "-base") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-base'"
+            exit 1
+        endif
+        set base =  $argv[$ac]
+    else if ("$argv[$ac]" == "-atlas") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-atlas'"
+            exit 1
+        endif
+        set segset =  $argv[$ac]
+    else if ("$argv[$ac]" == "-outdir") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-outdir'"
+            exit 1
+        endif
+        set outdir =  $argv[$ac]
+    else if ("$argv[$ac]" == "-cost") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-cost'"
+            exit 1
+        endif
+        set cost =  $argv[$ac]
+    else if ("$argv[$ac]" == "-maxlev") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-maxlev'"
+            exit 1
+        endif
+        set maxlev =  $argv[$ac]
+    else if ("$argv[$ac]" == "-no_orig_surfaces") then
+        set make_orig_surfaces = "0"
+    else
+        echo "** unknown option $argv[$ac]"
+        exit 1
+    endif        
+    @ ac ++
+end
+
+# check for basic necessities
+if ($dset == "") then
+    echo "No input dataset provided"
+    exit 1
+endif
+
+if ($base == "") then
+    echo "No base template dataset provided"
+    exit 1
+endif
+
+# put output in user specified name or default output directory
+#  relative to current directoy
+if ($outdir == "") then
+   set outdir = "./template_align"
+endif
+mkdir -p $outdir
+
+# set costs for alignment
+if ($cost == "") then
+   set cost = "lpa+ZZ"
+   set nlcost = ""
+else
+# nonlinear warps do not support +ZZ costs, so just use similar cost
+   set nlcost = `basename $cost "+ZZ"`
+endif
+
+# allow for base to be in a standard directory or specified
+#   expand @FindAfniDsetPath to allow for AFNI_SUPP_ATLAS_DIR
+# is there a path in the name of the dataset
+set basedir = `dirname $base`
+# is the dataset somewhere else or current directory
+set base = `@FindAfniDsetPath -append_file $base`
+#set basepath = `@FindAfniDsetPath $base`
+#if ($basepath == ".") then
+#   set basepath = `pwd`
+#   set base = "${basepath}/${base}"
+#else
+#   if ($basedir == ".") then
+#       set base = "${basepath}/${base}"
+#   endif
+#endif
+if ($segset != "") then
+   # is there a path in the name of the dataset
+   set segdir = `dirname $segset`
+   # is the dataset somewhere else or current directory
+   set segset = `@FindAfniDsetPath -append_file $segset`
+#   set segpath = `@FindAfniDsetPath $segset`
+#   if ($segpath == ".") then
+#      set segpath = `pwd`
+#      set segset = "${segpath}/${segset}"
+#   else
+#      if ($segdir == ".") then
+#         set segset = "${segpath}/${segset}"
+#      endif
+#   endif
+endif
+
+# set dset = $1
+# set base = $2
+#if ("$#" < "3") then
+#   set segset = ""
+#else
+#   set segset = $3
+#endif
+
+# get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
+set dsetprefix = `@GetAfniPrefix $dset`
+set dsetprefix = `@GetAfniPrefix $dset`
+echo $dsetprefix |grep '.gz$'
+if ($status == "0") then
+   set dsetext = ".gz"
+else
+   set dsetext = "" 
+endif
+set dsetprefix = `basename $dsetprefix .gz`
+set dsetprefix = `basename $dsetprefix .nii`
+
+# which afni view is used even if NIFTI dataset is used as base
+# usually +tlrc
+#set baseview = `3dinfo -av_space $base`
+
+# input datasets may not be +orig
+# so match input view equivalent even for NIFTI
+set origview = `3dinfo -av_space $dset`
+
+# if input dataset is NIFTI vs AFNI format
+set dset_nifti = `3dinfo -is_nifti $dset`
+
+# this fails for AFNI format, but that's okay!
+#3dcopy $dset $dsetprefix
+# get just the first occurrence if both +orig, +tlrc
+#set dset = ( $dsetprefix+*.HEAD )
+#set dset = $dset[1]
+
+# copy from AFNI format or from uncompressed data
+if (($outdir != ".") || ($dset_nifti != "1") || ($dsetext == "")) then
+   3dcopy $dset ${outdir}/${dsetprefix}.nii.gz
+endif
+
+if ($outdir != ".") then
+   3dcopy $base $outdir/
+   if ($segset != "") then
+      3dcopy $segset $outdir/
+   endif
+endif
+
+cd $outdir
+
+set dset = ${dsetprefix}.nii.gz
+set finalmaster = $dset
+
+set origdsetprefix = $dsetprefix
+
+if ($segset != "") then
+   #set segsetprefix = `@GetAfniPrefix $segset`
+   set segsetdir = `dirname $segset`
+   echo $segset |grep D99
+   if ($status == 0) then
+      set segname = D99atlas
+   else
+      set segname = atlas
+   endif
+endif
+# put the center of the dataset on top of the center of the template
+@Align_Centers -base $base -dset $dset
+
+# keep a copy of the inverse translation too
+# (should just be negation of translation column)
+cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
+
+set dset = ${dsetprefix}_shft.nii.gz
+set dsetprefix = ${dsetprefix}_shft
+
+# figure out short name for template to insert into output files
+echo $base |grep NMT
+if ($status == 0) then
+   set templatename = "NMT"
+else
+   echo $base |grep D99
+   if ($status == 0) then
+      set templatename = "D99"
+   else
+      set templatename = "template"
+   endif
+endif
+
+# goto apply_warps
+
+# do affine alignment with lpa cost
+# using dset as dset2 input and the base as dset1
+# (the base and source are treated differently
+# by align_epi_anats resampling and by 3dAllineate)
+align_epi_anat.py -dset2 $dset -dset1 $base -overwrite -dset2to1 \
+    -giant_move -suffix _al2std -dset1_strip None -dset2_strip None \
+    -cost $cost
+
+# convert the affine aligned output to NIFTI
+3dAFNItoNIFTI -prefix ${dsetprefix}_al2std.nii.gz ${dsetprefix}_al2std${origview}
+rm ${dsetprefix}_al2std${origview}.*
+
+## put affine aligned data on template grid
+# similar to al2std dataset but with exactly same grid as the template
+3dAllineate -1Dmatrix_apply ${dsetprefix}_al2std_mat.aff12.1D \
+    -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE         \
+    -source $dset -overwrite
+
+# affinely align to template
+#  (could let auto_warp.py hande this, but AUTO_CENTER option might be needed)
+# @auto_tlrc -base $base -input $dset -no_ss -init_xform AUTO_CENTER
+
+# !!! Now skipping cheap skullstripping !!!
+#   didn't work for macaques with very different size brains. V1 got cut off
+#   probably could work with dilated mask
+# "cheap" skullstripping with affine registered dataset
+#  the macaque brains are similar enough that the affine seems to be sufficient here
+#  for skullstripping
+# 3dcalc -a ${dsetprefix}_aff+tlrc. -b $base -expr 'a*step(b)'   \
+#    -prefix ${dsetprefix}_aff_ns -overwrite
+
+
+# nonlinear alignment of affine skullstripped dataset to template
+#  by default,the warp and the warped dataset are computed
+#  by using "-qw_opts ", one could save the inverse warp and do extra padding
+#  with -qw_opts '-iwarp -expad 30'
+# change qw_opts to remove max_lev 2 for final   ********************
+rm -rf awpy_${dsetprefix}
+
+# user set cost function
+if ($nlcost != "") then
+    set nlcostoption = "-$nlcost"
+else
+    # using default cost in 3dQwarp
+    set nlcostoption = ""
+endif
+
+# nonlinear warping via auto_warp script
+auto_warp.py -base $base -affine_input_xmat ID -qworkhard 0 2 \
+   -input ${dsetprefix}_aff.nii.gz -overwrite \
+   -output_dir awpy_${dsetprefix} -qw_opts -iwarp -maxlev $maxlev $nlcostoption
+
+
+apply_warps:
+# the awpy has the result dataset, copy the warped data, the warp, inverse warp
+# don't copy the warped dataset - combine the transformations instead below
+# cp awpy_${dsetprefix}/${dsetprefix}_aff.aw.nii ./${dsetprefix}_warp2std.nii
+cp awpy_${dsetprefix}/anat.un.qw_WARP.nii ${dsetprefix}_WARP.nii
+cp awpy_${dsetprefix}/anat.un.qw_WARPINV.nii ${dsetprefix}_WARPINV.nii
+
+# if the datasets are compressed, then copy those instead
+# note - not using the autowarped dataset, just the WARP
+#  see 3dNwarpApply just below
+# cp awpy_${dsetprefix}/${dsetprefix}_aff.aw.nii.gz ./${dsetprefix}_warp2std.nii.gz
+cp awpy_${dsetprefix}/anat.un.qw_WARP.nii.gz  ./${dsetprefix}_WARP.nii.gz
+cp awpy_${dsetprefix}/anat.un.qw_WARPINV.nii.gz ${dsetprefix}_WARPINV.nii.gz
+# compress these copies (if not already compressed)
+# gzip -f ${dsetprefix}_warp2std.nii ${dsetprefix}_WARP.nii
+gzip -f ${dsetprefix}_WARP.nii ${dsetprefix}_WARPINV.nii
+
+# combine nonlinear and affine warps for dataset warped to standard template space
+#   **** mod - DRG 07 Nov 2016
+3dNwarpApply -prefix ${origdsetprefix}_warp2std.nii.gz                      \
+   -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
+   -source $dset -master $base
+
+rm -rf awpy_${dsetprefix}
+
+# compute the inverse of the affine alignment transformation - all 12 numbers
+#cat_matvec ${dsetprefix}_al2std_mat.aff12.1D >! ${dsetprefix}_al2std_mat.aff12.1D
+cat_matvec -ONELINE ${dsetprefix}_al2std_mat.aff12.1D -I >! ${dsetprefix}_inv_al2std_mat.aff12.1D
+
+# combine shft and affine 1D files for composite linear transformation to template space
+# combining shift is dangerous! The transformation distance can be very large, and
+# 3dNwarpApply will create a high resolution space that will likely eat up large
+# amounts of memory
+# ****USE WITH CAUTION *******
+cat_matvec -ONELINE ${dsetprefix}.1D ${dsetprefix}_al2std_mat.aff12.1D > \
+     ${origdsetprefix}_composite_linear_to_template.1D
+#Now create the inverse composite warp from template to subject space
+cat_matvec -ONELINE ${dsetprefix}_inv.1D ${dsetprefix}_inv_al2std_mat.aff12.1D > \
+     ${origdsetprefix}_composite_linear_to_template_inv.1D
+
+
+# use concatenated affine and nonlinear warp to go back to shifted original space
+3dNwarpApply -overwrite -nwarp \
+      "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
+       -source $base -master ${dsetprefix}_aff.nii.gz \
+       -prefix ${templatename}_in_${origdsetprefix}.nii.gz
+
+# put back in non-shifted version (really native space) 
+@Align_Centers -base ${finalmaster} -dset  ${templatename}_in_${origdsetprefix}.nii.gz -no_cp
+
+
+ # warp segmentation from atlas back to the original macaque space
+ #  of the input dataset (compose overall warp when applying)
+ #  note - if transforming other datasets like the template
+ #    back to the same native space, it will be faster to compose
+ #    the warp separately with 3dNwarpCat or 3dNwarpCalc rather
+ #    than composing it for each 3dNwarpApply
+ if ($segset != "") then
+    # this only warps back to the affine warped space (~ in template space)  
+#    3dNwarpApply -ainterp NN -short -overwrite -nwarp \
+#       ${dsetprefix}_WARPINV.nii.gz  -overwrite \
+#       -source $segset -master ${dsetprefix}_aff.nii.gz \
+#       -prefix ${segname}_in_${origdsetprefix}_nl.nii.gz
+    # moves data to orig space - but introduces second interpolation
+    # on nearest neighbor ROI data, this can make for odd artifacts
+#    3dAllineate -source ${segname}_in_${origdsetprefix}_nl.nii.gz \
+#        -base ${origdsetprefix}.nii.gz \
+#    	-final NN \
+#        -1Dmatrix_apply ${origdsetprefix}_composite_linear_to_template_inv.1D \
+#        -prefix ${segname}_in_${origdsetprefix}.nii.gz
+    # deletes the segmentation in affine warped space 
+    rm ${segname}_in_${origdsetprefix}_nl.nii.gz
+
+    # use concatenated affine and nonlinear warp to go back to shifted original space
+    3dNwarpApply -ainterp NN -short -overwrite -nwarp \
+      "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
+       -source $segset -master ${dsetprefix}_aff.nii.gz \
+       -prefix ${segname}_in_${origdsetprefix}.nii.gz
+
+    # put back in non-shifted version (really native space) 
+    @Align_Centers -base ${finalmaster} -dset  ${segname}_in_${origdsetprefix}.nii.gz -no_cp
+
+    # change the datum type to byte to save space
+    # this step also gets removes the shift transform information in the header
+    # overwriting original dataset just created
+    3dcalc -a ${segname}_in_${origdsetprefix}.nii.gz -expr a -datum byte -nscale \
+       -overwrite -prefix ${segname}_in_${origdsetprefix}.nii.gz
+
+    # copy segmentation information from atlas to this native-space
+    #   segmentation dataset and mark to be shown with integer colormap
+    3drefit -cmap INT_CMAP ${segname}_in_${origdsetprefix}.nii.gz
+    3drefit -copytables $segset ${segname}_in_${origdsetprefix}.nii.gz
+    #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz ./${segname}_in_${origdsetprefix}.nii.gz
+
+    # create surfaces for all regions in atlas, but now in native space
+    if ($make_orig_surfaces == "1") then
+        rm -rf surfaces/        
+        mkdir surfaces
+        cd surfaces
+        IsoSurface -isorois+dsets -o native.gii \
+          -input ../${segname}_in_${origdsetprefix}.nii.gz -noxform \
+          -Tsmooth 0.1 100 -remesh 0.1
+        cd ..
+    endif
+
+ endif
+
+cp $base ./
+
+# get rid of temporary warped datasets
+rm __tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK* __tmp*_${dsetprefix}*.1D
+rm ${dsetprefix}.1D
+rm ${dsetprefix}_inv.1D
+rm *_al2std_mat.aff12.1D
+
+exit 0
+
+# notes
+
+# warp the transformed macaque back to its original space
+#  just as a quality control. The two datasets should be very similar
+#3dNwarpApply -overwrite -short -nwarp \
+#   "${dsetprefix}_inv.aff12.1D INV(${dsetprefix}_WARP.nii.gz)" \
+#   -source ${dsetprefix}_warp2std.nii.gz -master ${finalmaster}${origview} \
+#   -prefix ${dsetprefix}_iwarpback -overwrite
+
+
+# zeropad the warp if segmentation doesn't cover the brain and reapply the warp
+# 3dZeropad -S 50 -prefix ${dsetprefix}_zp_WARP.nii.gz ${dsetprefix}_WARP.nii.gz
+# 3dNwarpApply -interp NN \
+#   -nwarp "${dsetprefix}_inv.aff12.1D INV(${dsetprefix}_zp_WARP.nii.gz)" \
+#   -source $segset -master $dset -prefix ${dsetprefix}_seg_zp
+# 3drefit -cmap INT_CMAP ${dsetprefix}_seg_zp${origview}
+# 3drefit -copytables $segset ${dsetprefix}_seg_zp${origview}
+
+HELP:
+
+cat << SCRIPT_HELP_STRING
+Overview:
+Script to align a subject structural data to a template and invert
+the warps to compute the template and segmentation in the subject's
+original, native space.
+
+This program uses basic AFNI commands to compute affine and nonlinear
+alignments. At present, no skullstripping is done here because that
+doesn't typically work well for non-human subjects. The program works
+by first aligning centers of the subject to that of the template. Affine
+and nonlinear alignment follow. The inverse warp is computed to bring the
+template and atlas segmentation into the center-shifted grid. Finally,
+the grids are adjusted back to the original center. Surfaces are made
+for all the atlas regions.
+
+   usage example:
+    tcsh @animal_warper -input macaque1+orig \
+      -base ../NMT.nii.gz			  \
+      -atlas atlas_dir/D99_atlas_1.2a_al2NMT.nii.gz \
+      -outdir aligned_data
+   
+   Note only the input dset and template_dset are required. If no segmentation
+   is given, then only the alignment steps are performed.
+   Available options:
+    -input dset          Required input dataset to align to template
+    -base  base_dataset  Required template. Can be in a standard AFNI location
+                         or fully specified path
+    -atlas atlas_dataset Atlas can also be in a standard AFNI location 
+                         or fully specified
+    -outdir outputdir    Create new directory and do all processing there.
+                         Default is template_align
+    -cost xxx            Choose a cost function for affine and nonlinear
+                         alignment. The same or similar cost function will
+                         be used for both alignments. The cost functions
+                         are listed in the help for 3dAllineate and 3dQwarp.
+                         Cost functions, like lpa+ZZ for 3dAllineate, are
+                         not available in 3dQwarp, so the "+ZZ" part is
+                         removed, and lpa would be used in that case for
+                         3dQwarp's nonlinear warping cost function. The
+                         default cost function is lpa+ZZ for affine
+                         warping (via align_epi_anat.py and 3dAllineate)
+                         and a clipped Pearson correlation for nonlinear
+                         warping (via auto_warp.py and 3dQwarp)
+    -maxlev nn           maximum level for nonlinear warping. Determines
+                         neighborhood size that is searched. See 3dQwarp
+                         help for information on maxlev. Default is 11.
+                         Use smaller values for testing
+    -no_surfaces         Do not make surfaces for atlas regions in native
+                         space. Default is to create a surface directory
+                         with surfaces of each region in native space
+
+    @animal_warper provides multiple outputs to assist in registering your
+    anatomicals and associated MRI data to the template:
+
+    Subject scans registered to the template
+   	+ mydset_shft.nii.gz - dataset center aligned to the template center
+   	+ mydset_shft_al2std.nii.gz - dataset affine aligned to the template
+   	+ mydset_shft_aff.nii.gz - dataset affine aligned to the template
+                                   and on the template grid
+   	+ mydset_warp2std.nii.gz - dataset nonlinearly warped to the template
+
+    Registration datasets for alignment to template
+   	+ mydset_composite_linear_to_template.1D** - combined affine 
+                               transformations to the template
+   	+ mydset_shft_WARP.nii.gz - warp deformations to the template from
+                                nonlinear alignment only
+
+    Registration datasets for Template alignment to Subject
+   	+ mydset_composite_linear_to_template_inv.1D** - inverse of 
+                              mydset_composite_linear_to_template.1D
+   	+ mydset_shft_WARPINV.nii.gz - inverse of mydset_shft_WARP.nii.gz
+
+    Atlas aligned to Subject (Optional - only if atlas provided)
+   	+ seg_in_mydset.nii.gz - atlas segmentation aligned to native scan
+
+    Template aligned_to Subject
+    + template_in_mydset.nii.gz** - template (e.g. NMT,D99) aligned to native scan
+     
+    ***-NOTE: @animal_warper is part of the AFNI software package  ***
+    Here all occurrences of mydset in the output file names would be replaced
+       with the name of your dataset. For NMT and D99 templates, the output
+       will contain NMT or D99 instead of template
+
+This script is derived from macaque_align.csh and NMT_subject_align.csh,
+ scripts distributed with the D99 macaque and the NMT macaque template
+ datasets and tools
+SCRIPT_HELP_STRING
+
+   exit

@@ -1,0 +1,17 @@
+
+# Fedora 30 Linux setup, 14 Aug, 2019   R Reynolds
+
+# Steps to create a build machine.
+# (should work with Makefile.linux_fedora_28_shared)
+
+   sudo dnf install tcsh
+   sudo dnf upgrade
+   sudo dnf install pyqt4 motif-devel gsl-devel libXpm-devel python-devel R  \
+                    mesa-libGL-devel mesa-libGLw-devel mesa-libGLU-devel     \
+                    glib-devel glib2-devel libXi-devel netpbm-devel          \
+                    xorg-x11-fonts-misc
+   sudo dnf install netpbm-progs xorg-x11-server-Xvfb python2-matplotlib scipy
+
+   # extras
+   sudo dnf install gnome-tweak-tool python3-ipython aspell-en
+

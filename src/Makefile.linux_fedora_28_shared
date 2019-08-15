@@ -17,6 +17,9 @@ LGIFTI    = -lexpat
 # use shared libriaries (libmri.so)?
 MRI_SHARED = yes
 
+# use linux-style R_io.so building
+R_IO_MODIFY_LINUX = yes
+
 # ------------------------------
 # python from C
 IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
