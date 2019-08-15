@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 15, Aug, 2019, RCR, "afni-general", MINOR, TYPE_GENERAL,
+   "add other_builds/OS_notes.linux_fedora_30.txt",
+   "Works with Makefile.linux_fedora_28_shared."
+ } ,
+
  { 13, Aug, 2019, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "fix -VXXXX= for real operating systems",
    NULL
