@@ -37,10 +37,17 @@
 #ver='1.6' ; date='Aug 8, 2019'
 # + [PT] update/correct help about Siemens scaling, post-discussion-with-Vinai
 #
-ver='1.7' ; date='Aug 12, 2019'
+#ver='1.7' ; date='Aug 12, 2019'
 # + [PT] *really* correct help @ Siemens scaling
 # + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
 # + [PT] py23 compatability of help file-- single dictionary usage!
+#
+ver='2.0' ; date='Aug 15, 2019'
+# + [PT] new parameter scaling of freq dset from Vinai-- better params
+# + [PT] apply obliquity info to output
+# + [PT] fixed ocmds_fname, if opref contains path
+# + [PT] output a useful params file
+# + [PT] another py23 compatability fix
 #
 ##########################################################################
 
@@ -53,15 +60,12 @@ import lib_b0_corr as lb0
 
 if __name__ == "__main__" : 
 
-    print("\n +* This is a: BETA VERSION! \n")
-
     iopts = lb0.parse_args_b0_corr(sys.argv)
 
     print("\n++ ================== Start B0 correction ================== \n"
           "   Ver  : {DEF_ver}\n"
           "   Date : {DEF_date}\n"
           "".format( **lb0.ddefs ))
-
 
     # Make a mask from a magn dset, if need be
     did_copy_inps = iopts.copy_inps_to_wdir()
@@ -73,9 +77,20 @@ if __name__ == "__main__" :
     # Do the main work
     did_B0_corr = iopts.B0_corr()
 
+    iopts.write_params()
     iopts.write_history()
 
-    print("\n +* This is a: BETA VERSION! \n")
+    self_vars = vars( iopts ) 
+    print("\n------------")
+    print("++ epi_b0_correct.py finishes.")
+    print("++ Text of commands :  {ocmds_fname}"
+          "".format( **self_vars ))
+    print("++ Text of params   :  {opars_fname}"
+          "".format( **self_vars ))
+    print("++ WARP dset output :  {outdir}/{odset_warp}{dext}"
+          "".format( **self_vars ))
+    print("++ EPI dset output  :  {outdir}/{odset_epi}{dext}\n"
+          "".format( **self_vars ))
 
     sys.exit(0)
 

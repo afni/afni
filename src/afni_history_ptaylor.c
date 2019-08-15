@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 15, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "This program has been pretty fully revamped, and might be worth using now.",
+   "New scaling from Vinai, several updates/fixes/changes from last ver.\n"
+},
+
 { 1, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
    "Rename internal vars and opt names.",
    "Improving internal notation-- still very much a beta program version.\n"
