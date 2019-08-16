@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "(w/dglen) in THD_write_atr(), give file opening multiple opertunities",
+   "Done for K Knutson."
+ } ,
+
  { 15, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "build R_io.so with usable link to libmri.so",
    "Modify Makefile.linux_fedora_28_shared and Makefile.INCLUDE to control\n"

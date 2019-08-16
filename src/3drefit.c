@@ -2097,13 +2097,20 @@ fprintf(stderr,"\n") ; }
             if( strcmp(old_head, new_head) )
              ERROR_exit("Can't change view: would overwrite existing files!\n");
          } else {
-            rename( old_head , new_head ) ;
+            /* check whether this succeeds    [16 Aug 2019 rickr/dglen] */
+            if( rename( old_head , new_head ) )
+               ERROR_exit("3drefit: failed to rename %s to %s\n",
+                          old_head, new_head) ;
+
             { char * fff = COMPRESS_filename(old_brik) ;
               if( fff != NULL ){
                  char * ggg = malloc( sizeof(char) * (strlen(fff)+32) ) ;
                  strcpy(ggg,new_brik) ;
-                 if( brick_ccode >= 0 ) strcat(ggg,COMPRESS_suffix[brick_ccode]) ;
-                 rename( fff , ggg ) ;
+                 if( brick_ccode >= 0 )
+                    strcat(ggg,COMPRESS_suffix[brick_ccode]) ;
+                 if( rename( fff , ggg ) )
+                    ERROR_exit("3drefit: failed to rename %s to %s\n",fff,ggg);
+
                  free(fff) ; free(ggg) ;
               }
             }
