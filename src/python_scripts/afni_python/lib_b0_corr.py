@@ -49,6 +49,9 @@ ver='2.0' ; date='Aug 15, 2019'
 # + [PT] output a useful params file
 # + [PT] another py23 compatability fix
 #
+ver='2.1' ; date='Aug 16, 2019'
+# + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
+#
 ###############################################################################
 
 import sys, os
@@ -64,7 +67,7 @@ ddefs = {
     'DEF_ver'        : ver,
     'DEF_date'       : date,
     'DEF_npeels'     : 2,
-    'DEF_nerode'     : 3,
+    'DEF_nerode'     : 1,
     'DEF_bsigma'     : 9,  #blur to match the '--smooth3=9' opt in FSL's fugue
     'DEF_meth_recenter_freq' : 'mode',
     'DEF_wdir_pref'  : '__work_B0_corr_',
@@ -1380,7 +1383,7 @@ class iopts_b0_corr:
                                          self.freq_scale )
         if self.list_histog_int :
             ll = '  '.join(self.list_histog_int)
-            ss+= "{:30s} : {}\n".format( 'Freq warp in mask (20,20,100)', 
+            ss+= "{:30s} : {}\n".format( 'Warp (mm) in mask, 20-100 %ile', 
                                          ll )
         if ss :
             ss+= '\n'

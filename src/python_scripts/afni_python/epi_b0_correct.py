@@ -42,12 +42,15 @@
 # + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
 # + [PT] py23 compatability of help file-- single dictionary usage!
 #
-ver='2.0' ; date='Aug 15, 2019'
+#ver='2.0' ; date='Aug 15, 2019'
 # + [PT] new parameter scaling of freq dset from Vinai-- better params
 # + [PT] apply obliquity info to output
 # + [PT] fixed ocmds_fname, if opref contains path
 # + [PT] output a useful params file
 # + [PT] another py23 compatability fix
+#
+ver='2.1' ; date='Aug 16, 2019'
+# + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
 #
 ##########################################################################
 
