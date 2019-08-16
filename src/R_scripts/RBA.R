@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, June 26, 2019
+Version 0.0.5, Aug 16, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -121,6 +121,13 @@ Usage: ~1~
      P+ >= 0.90 or <= 0.10   - gray:     moderate evidence
      else                    - no color: little evidence
 
+ 7) WARNING: If the results are pretty homogenized across regions, it is an
+    indication that presumably partial pooling becomes full pooling. Most
+    likely the cross-region variability is so negligible that the model
+    renders the overall average as individual effects for all regions. When
+    this occurs, you may need much more data for the model to differentiate
+    the subtle effects.
+
  =========================
  
  Installation requirements: ~1~
@@ -160,7 +167,7 @@ Example 1 --- Simplest scenario. Values from regions are the input from
 
    The above script is equivalent to
 
-   RBA -prefix myWonderfulResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
+   RBA -prefix myResult -chains 4 -iterations 1000 -model 1 -EOI 'Intercept' \\
    -r2z -dataTable myData.txt  \\
 
    The 2nd version above is recommended because of its explicit specifications.
@@ -213,8 +220,8 @@ Example 3 --- one between-subjects factor (sex), one within-subject factor (two
    Subj   region   value sex  age   SA
    S1    DMNLAG    0.274  1  1.73  1.73
    S1    DMNLHC    0.443  1  1.73  1.73
-   S2    DMNRAG    0.455 -1 -0.52 -0.52
-   S2    DMNRHC    0.265 -1 -0.52 -0.52
+   S2    DMNRAG    0.455 -1 -0.52  0.52
+   S2    DMNRHC    0.265 -1 -0.52  0.52
    ...
 
    Notice
@@ -629,8 +636,14 @@ if(lop$r2z) lop$dataTable$Y <- fisher(lop$dataTable$Y)
 # standardization
 if(!is.na(lop$stdz)) {
    sl <- strsplit(lop$stdz, '\\,')[[1]]
-   for(ii in 1:length(sl)) if(is.numeric(lop$dataTable[[sl[ii]]])) 
-      lop$dataTable[[sl[ii]]] <- scale(lop$dataTable[[sl[ii]]], center = TRUE, scale = TRUE) else
+   for(ii in 1:length(sl)) if(is.numeric(lop$dataTable[[sl[ii]]])) {
+      lop$dataTable[[sl[ii]]] <- scale(lop$dataTable[[sl[ii]]], center = TRUE, scale = TRUE) 
+      #if(sl[[ii]] == 'Y') {
+      #   mmm <- mean(lop$dataTable[[sl[ii]]]) 
+      #   sss <- sd(lop$dataTable[[sl[ii]]])
+      #}
+      #lop$dataTable[[sl[ii]]] <- scale(lop$dataTable[[sl[ii]]], center = TRUE, scale = TRUE)
+   } else
    stop(sprintf('The column %s is categorical, not numerical! Why are you asking me to standardize it?', sl[ii]))
 }
 
@@ -649,11 +662,18 @@ ptm <- proc.time()
 if(lop$model==1) modelForm <- as.formula(paste('Y ~ 1 + (1|Subj) + (1|ROI)')) else
    modelForm <- as.formula(paste('Y~', lop$model, '+(1|Subj)+(', lop$model, '|ROI)'))
 
-if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
-      iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
-   fm <- brm(modelForm, data=lop$dataTable, 
-      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
-      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
+#if(lop$model==1) fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
+#      iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15)) else
+#   fm <- brm(modelForm, data=lop$dataTable, 
+#      prior=c(prior(normal(0, 1), class = "Intercept"), prior(normal(0, 0.5), class = "sd")),
+#      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+fm <- brm(modelForm, data=lop$dataTable, chains = lop$chains, 
+      iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
+
+#   fm <- brm(modelForm, data=lop$dataTable,
+#      prior=c(prior(normal(0, 1), class = "Intercept"), prior(gamma(2, 0.5), class = "sd")),
+#      chains = lop$chains, iter=lop$iterations, control = list(adapt_delta = 0.99, max_treedepth = 15))
 
 print(format(Sys.time(), "%D %H:%M:%OS3"))
 
@@ -687,7 +707,8 @@ cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 ns <- lop$iterations*lop$chains/2
 aa <- fixef(fm, summary = FALSE) # Population-Level Estimates
-bb <- ranef(fm, summary = FALSE) # Extract Group-Level (or random-effect) Estimates
+#bb <- lapply(ranef(fm, summary = FALSE), `*`, sss) # Extract Group-Level (or random-effect) Estimates
+bb <- ranef(fm, summary = FALSE)
 
 # compute P+
 cnt <- function(x, ns) return(sum(x>0)/ns)
@@ -817,7 +838,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
    
    oo <- apply(psa, 1, sumROI, ns, 4)
-   
+   oo <-lapply(oo, 'rownames<-', dimnames(bb$ROI)[[2]])
    cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:nl) {
       cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -832,6 +853,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
+      rownames(oo) <- dimnames(bb$ROI)[[2]]
       cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(any(!is.na(lop$PDP) == TRUE))  plotPDP(paste0(lvl[jj], '-', lvl[kk]), psa[jj,,] - psa[kk,,], nR, lop$PDP[1], lop$PDP[2], 8)
@@ -847,7 +869,7 @@ ll <- lapply(nn, `[`, 'coefficients')
 
 sumGLM <- function(ll, tm, nR, DF, nd) {
    th <- qt(c(0.025, 0.05, 0.5, 0.95, 0.975), DF)
-   rr <- matrix(, nrow = nR, ncol = 8, dimnames=list(levels(lop$dat$ROI), c('mean', 'SD', '2-sided-p', '2.5%', '5%', '50%', '95%', '97.5%')))
+   rr <- matrix(0, nrow = nR, ncol = 8, dimnames=list(levels(lop$dat$ROI), c('mean', 'SD', '2-sided-p', '2.5%', '5%', '50%', '95%', '97.5%')))
    rownames(rr) <- levels(lop$dat$ROI)
    if(tm == 'Intercept') tm <- '(Intercept)'
    for(ii in 1:nR) {
@@ -870,7 +892,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
-   cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+   cat(sprintf('===== Summary of region effects under GLM for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -878,33 +900,52 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
 
 # for factor
 if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
+   #ss <- do.call(rbind,lapply(lapply(nn, `[[`, 'coefficients'), `[`,2,,drop=FALSE))
    lvl <- levels(lop$dataTable[[lop$EOIc[ii]]])  # levels
    nl <- nlevels(lop$dataTable[[lop$EOIc[ii]]])  # number of levels: last level is the reference in deviation coding
-   ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
-   for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
-   ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
-   psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
+   ss <- vector("list", length = nl-1) 
    for(jj in 1:(nl-1)) {
-      psa[jj,,] <- ps[nl,,]  + ps[jj,,]
-      psa[nl,,] <- psa[nl,,] + ps[jj,,] 
+      ss[[jj]] <- do.call(rbind,lapply(lapply(nn, `[[`, 'coefficients'), `[`,2,,drop=FALSE))
+      rownames(ss[[jj]]) <- levels(lop$dat$ROI)
    }
-   psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   #ss[[nl]] <- sumGLM(ll, '(Intercept)', nR, nn[[ii]]$df, 4)
+   #ssa <- vector("list", length = nR)
+   #for(jj in 1:(nl-1)) {
+   #   ssa[[jj]] <- ss[[nl]]  + ss[[jj]]
+   #   ssa[[nl]] <- ssa[[nl]] + ss[[jj]] 
+   #}
+   #ssa[[nl]] <- ss[[nl]] - ssa[[nl]]  # reference level
+   #
+   #
+   #ps <- array(0, dim=c(nl, ns, nR)) # posterior samples
+   #for(jj in 1:(nl-1)) ps[jj,,] <- psROI(aa, bb, paste0(lop$EOIc[ii],jj))
+   #ps[nl,,] <- psROI(aa, bb, 'Intercept') # Intercept: averge effect 
+   #psa <- array(0, dim=c(nl, ns, nR)) # posterior samples adjusted
+   #for(jj in 1:(nl-1)) {
+   #   psa[jj,,] <- ps[nl,,]  + ps[jj,,]
+   #   psa[nl,,] <- psa[nl,,] + ps[jj,,] 
+   #}
+   #psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   #
+   #oo <- apply(psa, 1, sumROI, ns, 4)
    
-   oo <- apply(psa, 1, sumROI, ns, 4)
+   #cat(sprintf('===== Summary of region effects under GLM for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #for(jj in 1:nl) {
+   #   cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #   cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #}
    
-   cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   for(jj in 1:nl) {
-      cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects inder GLM for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   for(jj in 1:(nl-1)) {
+      cat(sprintf('----- level comparison: %i vs reference level', jj), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat(capture.output(ss[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   }
-   
-   cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
-      cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
-      cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
+   #   cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #   oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 4)
+   #   cat(capture.output(oo), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   #   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    }
 }
 ################
