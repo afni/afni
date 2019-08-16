@@ -414,7 +414,7 @@ matrix * create_gltsym( char *sym , int ncol )
 
 ENTRY("create_gltsym") ;
 
-   if( sym == NULL || ncol < 1 || nSymStim < 1 )
+   if( sym == NULL || ncol < 1 || nSymStim < 1 ) /* should not happen */
      ERROR_exit("Bad call to create_gltsym!") ;
 
    if( strncmp(sym,"SYM:",4) == 0 ){  /* read directly from sym string */
@@ -2715,7 +2715,7 @@ STATUS("make stim GLTs") ;
      if( cgl != NULL && do_glt ){
 STATUS("make GLTs from matrix file") ;
        ngl = (int)strtod(cgl,NULL) ;
-       if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
+       if( ngl <= 0 || ngl > 1000000 ) ERROR_exit("Nglt attribute in matrix = '%s' ??? :(",cgl) ;
 
        cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
        if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");

@@ -4699,7 +4699,7 @@ STATUS("zeropad weight dataset") ;
 
 #undef  CTHRESH
 #define CTHRESH 0.02f
-             if( verb > 1 ) ININFO_message("-- scanning for distances from #1") ;
+             if( verb > 1 ) ININFO_message("- scanning for distances from #1") ;
              for( ib=1 ; ib < tfdone ; ib++ ){
                pdist = param_dist( &stup , tfparm[0] , tfparm[ib] ) ;
                if( verb > 2 ) ININFO_message("--- dist(#%d,#1) = %.3g %s" ,

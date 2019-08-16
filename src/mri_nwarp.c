@@ -7006,6 +7006,17 @@ ENTRY("IW3D_read_catenated_warp") ;
        ERROR_message("Warp dataset '%s' can't be loaded into memory",csar->str[0]) ;
        NI_delete_str_array(csar) ; DSET_delete(oset) ; RETURN(NULL) ;
      }
+
+     /* implement extra padding [14 Aug 2019] */
+
+     if( CW_extra_pad > 0 ){
+       THD_3dim_dataset *QQ ;
+       QQ = THD_nwarp_extend( oset ,
+                              CW_extra_pad, CW_extra_pad, CW_extra_pad,
+                              CW_extra_pad, CW_extra_pad, CW_extra_pad ) ;
+       DSET_delete(oset) ; oset = QQ ;
+     }
+
      RETURN(oset) ;
    }
 
@@ -7857,8 +7868,8 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
                               the current patch (from the 'energy' fields)
          (4c) powell_newuoa_con() == Powell NEWUOA constrained optimizer
                                      which actually optimizes Hwarp by
-                                     playing with the coefficients of
-                                     the warp basis polynomials
+                                     playing with the coefficients of the
+                                     warp basis polynomials (cf. powell_int.c)
           (5) IW3D_scalar_costfun() == function being optimized
            (5a) Hwarp_apply() == computes patch warp Hwarp, composes it with
                                  current global warp Haawarp, and then applies
@@ -7887,7 +7898,7 @@ if( verb_nww > 1 && ii > 0 ) ININFO_message("Reduced catlist by %d steps",ii) ;
     to allow for that case -- but it has never been tested! (OK, once.)
 
     The INCOR_* functions are in thd_incorrelate.c (which is #include-d far
-    far above), and handle "incomplete correlation" calculations, where part
+    far above), and handles "incomplete correlation" calculations, where part
     of the data is fixed (the part outside the patch being optimized), and
     part is changing (the part inside the current patch).  For speed, the
     computations for the fixed part are only done once -- via INCOR_addto()
@@ -7957,6 +7968,11 @@ static float **bbbqar = NULL ;
 #undef  MEGA
 #define MEGA 1048576   /* 2^20 = definition of 'small' */
 
+#undef  GIGA
+#define GIGA (1000.0f*(float)MEGA) /* 1000 mega (float to avoid int overflow) */
+
+static float HmaxmemG = 1.0f ;    /* gigabytes allowed for basis func storage */
+
 /*--- local (small) warp over region we are optimizing ---*/
 
 static IndexWarp3D *Hwarp   = NULL ; /* Hermite patch increment = H(x) = 'patch warp' */
@@ -7980,6 +7996,8 @@ static int Hbasis_code  = 0 ;  /* quintic or cubic patches? */
 #define MRI_CUBIC_PLUS_1  301  /* 05 Nov 2015 -- extra basis function codes */
 #define MRI_CUBIC_PLUS_2  302                    /* for the BASIS5 methods  */
 #define MRI_CUBIC_PLUS_3  303
+
+                               /* Reduced rank basis funcs (from Guangzhou) */
 #define MRI_CUBIC_LITE    398  /* 06 Dec 2018 -- 12 instead of 24 */
 #define MRI_QUINTIC_LITE  399  /* 11 Dec 2018 -- 30 instead of 81 */
 
@@ -8249,7 +8267,7 @@ static INLINE float_pair HCwarp_eval_basis( float x )
    Function #5 is also orthogonal to x over [0..1].              [02 Nov 2015]
 *//*--------------------------------------------------------------------------*/
 
-#if 0  /* the basis3 and basis4 functions aren't actually needed */
+#if 0  /* basis3 and basis4 funcs aren't needed, since basis5 func exists */
 static INLINE float_triple HCwarp_eval_basis3( float x )
 {
    register float aa , bb ; float_triple ee ;
@@ -8284,9 +8302,12 @@ static INLINE float_quad HCwarp_eval_basis4( float x )
    }
    return ee ;
 }
-#endif
+#endif /* end of skipping _basis3 and _basis4 funcs */
 
 /*............................................................*/
+/* This func does the MRI_CUBIC_PLUS_3 (AKA cubc105) basis
+   functions, which also include the PLUS_1 and PLUS_2 funcs
+*//*..........................................................*/
 
 static INLINE float_quint HCwarp_eval_basis5( float x )
 {
@@ -8371,7 +8392,7 @@ static INLINE float_triple HQwarp_eval_basis( float x )
             ILEFT = -1   IRGHT = n      :: 0 at next grid point outside patch
    Note that all the basis functions are 0 when evaluated at x=-1 or +1.      */
 
-#define ILEFT    -0.5f        /* and these are the choices made by Zhark */
+#define ILEFT    (-0.5f)        /* and these are the choices made by Zhark */
 #define IRGHT(n) ((n)-0.5f)
 
 #define COMPUTE_CAB(n)                                                   \
@@ -8518,10 +8539,10 @@ ENTRY("HCwarp_setup_basis") ;
 
    /* 3D versions for small enough warp fields (will be faster) */
 
-   /** 8*MEGA times 8 arrays = 8*4*8 = 256 Megabytes of RAM **/
+   /** 4 bytes per float, times 8 arrays **/
 
-   nbbcxyz = nbcx * nbcy * nbcz ;  /* size of 3D patch */
-   if( nbbcxyz <= 8*MEGA ){        /* max size of 3D patch storage */
+   nbbcxyz = nbcx * nbcy * nbcz ;     /* array size of 3D patch */
+   if( sizeof(float)*8.0f*nbbcxyz/GIGA <= HmaxmemG ){ /* max size of 3D patch storage */
      int jj , kk , qq ;
      bbbcar = (float **)malloc(sizeof(float *)*8) ; nbbbcar = 8 ;
      for( ii=0 ; ii < 8 ; ii++ )
@@ -8883,10 +8904,10 @@ ENTRY("HQwarp_setup_basis") ;
 
    /* 3D versions? */
 
-   /** 2*MEGA times 27 arrays = 2*4*27 = 216 Megabytes of RAM **/
+   /** 4 bytes per float, times 27 arrays **/
 
-   nbbqxyz = nbqx * nbqy * nbqz ;
-   if( nbbqxyz <= 2*MEGA ){
+   nbbqxyz = nbqx * nbqy * nbqz ;      /* array size for 3D patch */
+   if( sizeof(float)*27.0f*nbbqxyz/GIGA <= HmaxmemG ){ /* max size of 3D patch storage */
      int jj , kk , qq ;
      bbbqar = (float **)malloc(sizeof(float *)*27) ;
      for( ii=0 ; ii < 27 ; ii++ )
@@ -8954,7 +8975,7 @@ ENTRY("HQwarp_setup_basis") ;
      which always use 3D basis arrays [05 Nov 2015] **/
 
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
-/* evaluate cubic warp the slower way (from 1D basis arrays) */
+/* evaluate full 3D cubic warp the slower way (from 1D basis arrays) */
 
 void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 {
@@ -8994,7 +9015,7 @@ void HCwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 }
 
 /*----------------------------------------------------------------------------*/
-/* evaluate cubic warp the faster way (from pre-computed 3D basis arrays) */
+/* evaluate full 3D cubic warp the faster way (from pre-computed 3D basis arrays) */
 
 void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
@@ -9026,8 +9047,8 @@ void HCwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 }
 
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
-/* evaluate cubic-- warp the slower way (from 1D basis arrays) */
-/* cubic-- = just the 000, 001, 010, and 100 products = 4*3 functions */
+/* evaluate lite (cubic12) 3D warp the slower way (from 1D basis arrays) */
+/* cubic12 = just the 000, 001, 010, and 100 products = 4*3 functions */
 
 void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 {
@@ -9041,7 +9062,7 @@ void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 
    ii = qq % nbcx ; kk = qq / nbcxy ; jj = (qq-kk*nbcxy) / nbcx ;
 
-   /* multiply 1D basis functions to get 3D basis functions (2x2x2=8 of them) */
+   /* multiply 1D basis functions to get 3D basis functions */
 
    b0zb0yb0x = bc0z[kk]*bc0y[jj]*bc0x[ii];
    b1zb0yb0x = bc1z[kk]*bc0y[jj]*bc0x[ii];
@@ -9063,8 +9084,8 @@ void HCwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 }
 
 /*----------------------------------------------------------------------------*/
-/* evaluate cubic-- warp the faster way (from pre-computed 3D basis arrays) */
-/* cubic-- = just the 000, 001, 010, and 100 products = 4*3 functions */
+/* evaluate lite (cubic12) 3D warp the faster way (using 3D basis arrays) */
+/* = just the 000, 001, 010, and 100 products = 4*3 functions */
 
 void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 {
@@ -9075,8 +9096,8 @@ void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
       be extracted; this method is faster, but obviously takes more memory */
 
    b0zb0yb0x = bbbcar[0][qq] ; b1zb0yb0x = bbbcar[1][qq] ;
-   b0zb1yb0x = bbbcar[2][qq] ; b0zb0yb1x = bbbcar[4][qq] ;
-
+   b0zb1yb0x = bbbcar[2][qq] ; b0zb0yb1x = bbbcar[4][qq] ;  /* NB [4] not [3] */
+                                           /* see calculation of bbbcar above */
    if( Hdox ) *xx = dxci *
                   (  b0zb0yb0x*Hxpar[0] + b1zb0yb0x*Hxpar[1]
                    + b0zb1yb0x*Hxpar[2] + b0zb0yb1x*Hxpar[3] ) ; else *xx = 0.0f ;
@@ -9090,7 +9111,7 @@ void HCwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 }
 
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
-/* evaluate quintic warp the slower way (from 1D basis arrays) */
+/* evaluate full 3D quintic warp the slower way (from 1D basis arrays) */
 
 void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 {
@@ -9156,16 +9177,16 @@ void HQwarp_eval_A( int qq , float *xx , float *yy , float *zz )
 }
 
 /*----------------------------------------------------------------------------*/
-/* evaluate quintic warp the faster way (from 3D basis arrays) */
+/* evaluate full 3D quintic warp the faster way (from 3D basis arrays) */
 
 void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 {
 
-#if 1
+#if 1   /* this code was faster (a little) */
    float t1,t2,t3 ; int jj ;
 
    t1 = t2 = t3 = 0.0f ;
-   for( jj=0 ; jj < 27 ; jj+=3 ){
+   for( jj=0 ; jj < 27 ; jj+=3 ){  /* unrolled by 3 */
      t1 += bbbqar[jj][qq]*Hxpar[jj] + bbbqar[jj+1][qq]*Hxpar[jj+1] + bbbqar[jj+2][qq]*Hxpar[jj+2] ;
      t2 += bbbqar[jj][qq]*Hypar[jj] + bbbqar[jj+1][qq]*Hypar[jj+1] + bbbqar[jj+2][qq]*Hypar[jj+2] ;
      t3 += bbbqar[jj][qq]*Hzpar[jj] + bbbqar[jj+1][qq]*Hzpar[jj+1] + bbbqar[jj+2][qq]*Hzpar[jj+2] ;
@@ -9226,7 +9247,7 @@ void HQwarp_eval_B( int qq , float *xx , float *yy , float *zz )
 }
 
 /*-----=====-----=====-----=====-----=====-----=====-----=====-----=====-----*/
-/* evaluate quintic warp lite the slower way (from 1D basis arrays) */
+/* evaluate lite 3D quintic warp the slower way (from 1D basis arrays) */
 /* This just uses 30 parameters = the set of basis
    functions whose tensor indexes add up to only 0, 1, or 2 */
 
@@ -9238,7 +9259,7 @@ void HQwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 
    ii = qq % nbqx; kk = qq / nbqxy; jj = (qq-kk*nbqxy) / nbqx; /* get 3D index */
 
-   /* multiply 3x3x3 1D basis functions to get the 27 3D basis functions */
+   /* multiply 3x3x3 1D basis functions to get the 10 3D basis functions */
 
    b0zb0yb0x = bq0z[kk]*bq0y[jj]*bq0x[ii]; b1zb0yb0x = bq1z[kk]*bq0y[jj]*bq0x[ii];
    b2zb0yb0x = bq2z[kk]*bq0y[jj]*bq0x[ii]; b0zb1yb0x = bq0z[kk]*bq1y[jj]*bq0x[ii];
@@ -9268,12 +9289,29 @@ void HQwarp_eval_AMM( int qq , float *xx , float *yy , float *zz )
 }
 
 /*----------------------------------------------------------------------------*/
-/* evaluate quintic warp lite the faster way (from 3D basis arrays) */
+/* evaluate lite 3D quintic warp the faster way (from 3D basis arrays) */
 
 void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 {
    float b0zb0yb0x,b1zb0yb0x, b2zb0yb0x,b0zb1yb0x, b1zb1yb0x,
          b0zb2yb0x,b0zb0yb1x, b1zb0yb1x,b0zb1yb1x, b0zb0yb2x ;
+
+    /**...................................................................
+      Note that the bbbqar[indexes] in the assignments that follow this
+      comment are not sequential, because we are only using elements
+      whose sum of basis funcs add up to 0, 1, or 2, and these are
+      the definitions of bbbqar from far above:
+           bbbqar[ 0][qq] = bq0z[kk]*bq0y[jj]*bq0x[ii];    0 0 0
+           bbbqar[ 1][qq] = bq1z[kk]*bq0y[jj]*bq0x[ii];    1 0 0
+           bbbqar[ 2][qq] = bq2z[kk]*bq0y[jj]*bq0x[ii];    2 0 0
+           bbbqar[ 3][qq] = bq0z[kk]*bq1y[jj]*bq0x[ii];    0 1 0
+           bbbqar[ 4][qq] = bq1z[kk]*bq1y[jj]*bq0x[ii];    1 1 0
+           bbbqar[ 6][qq] = bq0z[kk]*bq2y[jj]*bq0x[ii];    0 2 0
+           bbbqar[ 9][qq] = bq0z[kk]*bq0y[jj]*bq1x[ii];    0 0 1
+           bbbqar[10][qq] = bq1z[kk]*bq0y[jj]*bq1x[ii];    1 0 1
+           bbbqar[12][qq] = bq0z[kk]*bq1y[jj]*bq1x[ii];    0 1 1
+           bbbqar[18][qq] = bq0z[kk]*bq0y[jj]*bq2x[ii];    0 0 2
+    ......................................................................**/
 
    b0zb0yb0x = bbbqar[ 0][qq] ; b1zb0yb0x = bbbqar[ 1][qq] ; b2zb0yb0x = bbbqar[ 2][qq] ;
    b0zb1yb0x = bbbqar[ 3][qq] ; b1zb1yb0x = bbbqar[ 4][qq] ; b0zb2yb0x = bbbqar[ 6][qq] ;
@@ -9346,7 +9384,7 @@ void HQwarp_eval_BMM( int qq , float *xx , float *yy , float *zz )
 *//*--------------------------------------------------------------------------*/
 
 /*............................................................................*/
-/* evaluate BASIS5 warps the faster way (from 3D basis arrays) */
+/* evaluate BASIS5 3D warps the faster way (from 3D basis arrays) */
 
 void HCwarp_eval_B_basis345( int qin , float *xx , float *yy , float *zz )
 {
@@ -10814,11 +10852,13 @@ ENTRY("IW3D_warpomatic") ;
      /* step A = lite cubic */
      (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
      if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
+#if 0
      if( nlevr ){  /* maybe again? */
        BALLOPT ;
        (void)IW3D_improve_warp( MRI_CUBIC_LITE , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
      }
+#endif
      /* step B: heavy cubic */
      BALLOPT ;
      (void)IW3D_improve_warp( MRI_CUBIC , ibbb,ittt,jbbb,jttt,kbbb,kttt ) ;
@@ -10833,7 +10873,7 @@ ENTRY("IW3D_warpomatic") ;
        (void)IW3D_improve_warp( MRI_QUINTIC, ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if defined(ALLOW_BASIS5)
-       if( H5zero ){
+       if( H5zero ){  /* this is not usually of any value at all! */
          /* step E: superheavy cubic */
          BALLOPT ;
          (void)IW3D_improve_warp( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
@@ -12195,7 +12235,7 @@ ENTRY("IW3D_warpomatic_plusminus") ;
        (void)IW3D_improve_warp_plusminus( MRI_QUINTIC     , ibbb,ittt,jbbb,jttt,kbbb,kttt );
        if( Hquitting ) goto DoneDoneDone ;  /* signal to quit was sent */
 #if defined(ALLOW_BASIS5)
-       if( H5zero ){
+       if( H5zero ){  /* not usually useful and is very slow */
          BALLOPT ;
          (void)IW3D_improve_warp_plusminus( MRI_CUBIC_PLUS_3, ibbb,ittt,jbbb,jttt,kbbb,kttt );
          HCwarp_setup_basis345(0,0,0,0,0) ; /* cleanup */
