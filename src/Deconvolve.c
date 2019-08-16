@@ -118,6 +118,9 @@ static int demean_base     = 1 ;  /* 12 Aug 2004 */
 static matrix xfull ;    /* X matrix for init_indep_var_matrix() below */
 static int is_xfull=0 ;
 
+static matrix xfull_plus ;  /* X matrix with 0-1 augmentation [16 Aug 2019] */
+static int is_xfull_plus=0 ;
+
 /*---------------------------------------------------------------------------*/
 /*
    Initialize independent variable X matrix
@@ -164,6 +167,8 @@ ENTRY("init_indep_var_matrix") ;
   /*----- Initialize X matrix -----*/
 
   if( is_xfull ){ matrix_destroy(&xfull); is_xfull=0; }
+
+  if( is_xfull_plus ){ matrix_destroy(&xfull_plus); is_xfull_plus=0; }
 
 STATUS("create x matrix" ) ;
   matrix_initialize (&xfull);
@@ -286,13 +291,25 @@ STATUS("  remove baseline mean") ;
 
 
   /*----- Keep only those rows of the X matrix which correspond to
-          usable time points -----*/
+          usable time points (i.e., apply censoring here) -----*/
 
 STATUS("extract xgood matrix") ;
 
   matrix_extract_rows (xfull, N, good_list, xgood);
 
-  is_xfull = 1 ;  /* original X matrix saved in xfull */
+  is_xfull = 1 ;  /* original (uncensored) X matrix saved in xfull */
+
+  /* Augment full X matrix with 0-1 columns: censor via regression [16 Aug 2019] */
+
+  { int ii , nbad , *glist , *blist ;
+    glist = (int *)calloc(sizeof(int),nt) ; /* 0-1 list of good points */
+    blist = (int *)calloc(sizeof(int),nt) ; /* index list of bad points */
+    for( ii=0      ; ii < N  ; ii++ ){ glist[good_list[ii]] = 1 ;                }
+    for( nbad=ii=0 ; ii < nt ; ii++ ){ if( glist[ii] == 0 ) blist[nbad++] = ii ; }
+    matrix_augment_01_columns( xfull, nbad , blist , &xfull_plus ) ;
+    is_xfull_plus = 1 ;
+    free(blist) ; free(glist) ;
+  }
 
   RETURN (1);
 }
