@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.10, Jul 1, 2019
+Version 0.0.11, Aug 16, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -705,10 +705,28 @@ cat('++++++++++++++++++++++++++++++++++++++++++++++++++++\n\n')
 cat('\n***** Summary information of model results *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 
 #  Rhat checking #
-dd <- function(ll) any(ll[,'Rhat'] > 1.2)
-if(any(sapply(c(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars), rs$random), dd))) {
-   cat('\n***** Warning: convergence issue!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#dd <- function(ll) any(ll[,'Rhat'] > 1.1)
+#if(any(sapply(c(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars), rs$random), dd))) {
+#   cat('\n***** Warning: convergence issue!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   cat('Consider increasing the number of iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#}
+
+d1 <- function(ll, mm, nn) any(ll[,mm] > nn)
+# Rhat check
+if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars, rs$random$ROI, rs$random$Subj), d1, 'Rhat', 1.1))) {
+   cat('\n***** WARNING: convergence issue - Rhat > 1.1!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('Consider increasing the number of iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+}
+d2 <- function(ll, mm, nn) any(ll[,mm] < nn)
+# effective size check
+if(is.null(attr(rs$cor_pars, 'dimnames')[[1]])) {
+   if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, rs$random$ROI, rs$random$Subj), d2, 'Eff.Sample', 75))) {
+      cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+      cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   } 
+} else if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars, rs$random$ROI, rs$random$Subj), dd, 'Eff.Sample', 75))) {
+   cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 }
 
 cat(capture.output(rs), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
