@@ -43,12 +43,14 @@ ENTRY("THD_write_atr") ;
 
    header_file = fopen( dkptr->header_name , "w" ) ;
 
-   /* allow more chances for those with large file systems            */
-   /* on EDEADLK, nap and try again         [16 Aug 2019 rickr/dglen] */
-   if( header_file == NULL && errno == EDEADLK ){
+   /* allow more chances for those with large file systems */
+   /* nap and try again          [16 Aug 2019 rickr/dglen] */
+   if( header_file == NULL &&
+        (errno == EDEADLK || errno == EAGAIN || errno == EWOULDBLOCK ||
+         errno == EBUSY) ){
       int tries;
       for( tries = 5; tries > 0; tries-- ) {
-         fprintf(stderr,"** EDEADLK open failure for file %s, "
+         fprintf(stderr,"** E-xxx open failure for file %s, "
                         "will nap and try %d more times\n",
                         dkptr->header_name, tries);
          if( tries == 5 ) fprintf(stderr,"Kris K, is that you?\n");
