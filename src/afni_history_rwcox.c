@@ -44,6 +44,16 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 19 , AUG , 2019 , RWC , "3dTshift" , MICRO , TYPE_NEW_OPT ,
+   "-wsinc5 and -wsinc9 options" ,
+   "Interpolation in time introduces autocorrelation. This effect is not\n"
+   "appreciable for Fourier (FFT) interpolation, but is noticeable for the\n"
+   "polynomial methods. Plus/minus 5 and 9 weighted sinc interpolation\n"
+   "options were added to test if these would reduce this artifact. The\n"
+   "answer is that wsinc5 is better than heptic, but it is still visible;\n"
+   "wsinc9 pretty much eliminates it inside the brain, but it is visible in\n"
+   "the low-signal region outside the brain." } ,
+
  { 29 , JUL , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
    "Reduce colorization interpolation problem" ,
    "When using discrete panes, conversion to 'continuous' colorscale causes\n"

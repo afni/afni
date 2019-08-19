@@ -5565,6 +5565,11 @@ extern void lin_shift  ( int , float , float *) ;
 extern void cub_shift  ( int , float , float *) ;
 extern void quint_shift( int , float , float *) ;
 
+extern void wsinc5_shift( int , float , float *) ; /* Aug 2019 */
+extern void wsinc5_shift2( int , int , float , float *, float , float *) ;
+extern void wsinc9_shift( int , float , float *) ; /* Aug 2019 */
+extern void wsinc9_shift2( int , int , float , float *, float , float *) ;
+
 extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
 
 extern int THD_bandpass_vectors( int nlen, int nvec, float **vec, /* 30 Apr 2009 */

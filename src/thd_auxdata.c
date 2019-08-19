@@ -227,7 +227,7 @@ void THD_init_datablock_stataux( THD_datablock *dblk )
       myRwcFree( dblk->brick_stataux ) ;
    }
 
-   /* initialize to emptinesss */
+   /* initialize to emptinesssss, my precioussss  */
 
    dblk->brick_statcode = (int *)    RwcMalloc( sizeof(int)     * nvals ) ;
    dblk->brick_stataux  = (float **) RwcMalloc( sizeof(float *) * nvals ) ;
