@@ -30,7 +30,7 @@ static char helpstring[] =
   "that depends on the local 3x3 neighborhood of each pixel, where\n"
   "the expression is entered (a la 3dcalc) in the string field at\n"
   "the right of the form.  The variable names that may be used in\n"
-  "the expresssion are:\n"
+  "the expression are:\n"
   "                        r s t\n"
   "                        u v w\n"
   "                        x y z\n"

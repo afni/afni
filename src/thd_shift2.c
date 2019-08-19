@@ -3,7 +3,7 @@
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
-   
+
 #include "mrilib.h"
 
 /******************* Routines to shift two rows at a time ********************/
@@ -31,6 +31,9 @@ void SHIFT_set_method( int mode )
 
       case MRI_NN:      shifter = nn_shift2    ; break ;  /* experimental */
       case MRI_TSSHIFT: shifter = ts_shift2    ; break ;  /* Dec 1999 */
+
+      case MRI_WSINC5:  shifter = wsinc5_shift2 ; break ;  /* Aug 2019 */
+      case MRI_WSINC9:  shifter = wsinc9_shift2 ; break ;  /* Aug 2019 */
    }
    return ;
 }
@@ -185,7 +188,205 @@ static float * lcbuf = NULL ;
 
 #define SEPARATE_FINS
 
+/*===========================================================================*/
+
 /*---------------------------------------------------------------------------*/
+/* Shift 1 row with weighted sinc interpolation. [Aug 2019] */
+/*---------------------------------------------------------------------------*/
+
+#undef  PIF
+#define PIF 3.1415927f /* PI in float */
+
+/* sinc function = sin(PI*x)/(PI*x) [N.B.: x will always be >= 0] */
+
+#undef  sinc
+#define sinc(x) ( ((x)>0.01f) ? sinf(PIF*(x))/(PIF*(x))     \
+                              : 1.0f - 1.6449341f*(x)*(x) )
+
+/* M3(x) = minimum sidelobe 3 term window
+         = declines from 1 to 0 as x goes from 0 to 1 */
+
+#undef  M3
+#define M3(x) (0.4243801f+0.4973406f*cosf(PIF*(x))+0.0782793f*cosf(PIF*(x)*2.0f))
+
+/* interpolating function = weighted sinc, for x in [0..5] */
+
+#undef  wwsinc5
+#define wwsinc5(x) ( (x <= 5.0f) ? (sinc(x)*M3(0.19999f*(x))) : 0.0f )
+
+void wsinc5_shift( int n , float af , float *f )
+{
+   int   ii , ia , ix ;
+   float aa , xx ;
+   float wt_m4, wt_m3, wt_m2, wt_m1 , wt_00 , wt_p1, wt_p2, wt_p3, wt_p4, wt_p5 ;
+   int ibot,itop ;
+
+ENTRY("wsinc5_shift") ;
+
+   if( fabsf(af) < 0.0001f ) EXRETURN ; /* little or nothing to do */
+
+   af = -af ; ia = (int)af ; if( af < 0 ) ia-- ;
+   if( ia <= -n || ia >= n ){
+     for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+     EXRETURN ;
+   }
+
+   aa = af - ia ;                       /* between 0 and 1 */
+   xx = aa+4.0f ; wt_m4 = wwsinc5(xx) ; /* arg to wwsinc5 is always positive */
+   xx = aa+3.0f ; wt_m3 = wwsinc5(xx) ; /* and is distance from data point  */
+   xx = aa+2.0f ; wt_m2 = wwsinc5(xx) ; /* to 'aa'; e.g., for m3 = -3,     */
+   xx = aa+1.0f ; wt_m1 = wwsinc5(xx) ; /* distance is aa+3               */
+   xx = aa      ; wt_00 = wwsinc5(xx) ;
+   xx = 1.0f-aa ; wt_p1 = wwsinc5(xx) ;
+   xx = 2.0f-aa ; wt_p2 = wwsinc5(xx) ;
+   xx = 3.0f-aa ; wt_p3 = wwsinc5(xx) ;
+   xx = 4.0f-aa ; wt_p4 = wwsinc5(xx) ;
+   xx = 5.0f-aa ; wt_p5 = wwsinc5(xx) ;
+
+   if( n > nlcbuf ){
+      if( lcbuf != NULL ) free(lcbuf) ;
+      lcbuf  = (float *) malloc( sizeof(float) * n ) ;
+      nlcbuf = n ;
+   }
+
+   ibot = 5-ia ;   if( ibot < 0   ) ibot = 0 ;
+   itop = n-6-ia ; if( itop > n-1 ) itop = n-1 ;
+
+   for( ii=ibot ; ii <= itop ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m4 * f[ix-4] + wt_m3 * f[ix-3]
+                 + wt_m2 * f[ix-2] + wt_m1 * f[ix-1] + wt_00 * f[ix]
+                 + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] + wt_p3 * f[ix+3]
+                 + wt_p4 * f[ix+4] + wt_p5 * f[ix+5] ;
+   }
+
+   if( ibot > n ) ibot = n ;
+   for( ii=0 ; ii < ibot ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m4 * FINS(ix-4) + wt_m3 * FINS(ix-3)
+                 + wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
+                 + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) + wt_p3 * FINS(ix+3)
+                 + wt_p4 * FINS(ix+4) + wt_p5 * FINS(ix+5) ;
+   }
+
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
+   for( ii=itop+1 ; ii < n ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m4 * FINS(ix-4) + wt_m3 * FINS(ix-3)
+                 + wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
+                 + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) + wt_p3 * FINS(ix+3)
+                 + wt_p4 * FINS(ix+4) + wt_p5 * FINS(ix+5) ;
+   }
+
+   memcpy( f , lcbuf , sizeof(float)*n ) ;
+   EXRETURN ;
+}
+
+void wsinc5_shift2( int n, int nup, float af, float * f, float ag, float * g )
+{
+                   wsinc5_shift( n , af , f ) ;
+   if( g != NULL ) wsinc5_shift( n , ag , g ) ;
+   return ;
+}
+
+#undef  wwsinc9
+#define wwsinc9(x) ( (x <= 9.0f) ? (sinc(x)*M3(0.11111f*(x))) : 0.0f )
+
+void wsinc9_shift( int n , float af , float *f )
+{
+   int   ii , ia , ix ;
+   float aa , xx ;
+   float wt_m4, wt_m3, wt_m2, wt_m1 , wt_00 , wt_p1, wt_p2, wt_p3, wt_p4, wt_p5 ;
+   float wt_m5, wt_m6, wt_m7, wt_m8 , wt_p6, wt_p7, wt_p8, wt_p9 ;
+   int ibot,itop ;
+
+ENTRY("wsinc9_shift") ;
+
+   if( fabsf(af) < 0.0001f ) EXRETURN ; /* little or nothing to do */
+
+   af = -af ; ia = (int)af ; if( af < 0 ) ia-- ;
+   if( ia <= -n || ia >= n ){
+     for( ii=0 ; ii < n ; ii++ ) f[ii] = 0.0 ;
+     EXRETURN ;
+   }
+
+   aa = af - ia ;                       /* between 0 and 1 */
+   xx = aa+8.0f ; wt_m8 = wwsinc9(xx) ;
+   xx = aa+7.0f ; wt_m7 = wwsinc9(xx) ;
+   xx = aa+6.0f ; wt_m6 = wwsinc9(xx) ;
+   xx = aa+5.0f ; wt_m5 = wwsinc9(xx) ;
+   xx = aa+4.0f ; wt_m4 = wwsinc9(xx) ;
+   xx = aa+3.0f ; wt_m3 = wwsinc9(xx) ;
+   xx = aa+2.0f ; wt_m2 = wwsinc9(xx) ;
+   xx = aa+1.0f ; wt_m1 = wwsinc9(xx) ;
+   xx = aa      ; wt_00 = wwsinc9(xx) ;
+   xx = 1.0f-aa ; wt_p1 = wwsinc9(xx) ;
+   xx = 2.0f-aa ; wt_p2 = wwsinc9(xx) ;
+   xx = 3.0f-aa ; wt_p3 = wwsinc9(xx) ;
+   xx = 4.0f-aa ; wt_p4 = wwsinc9(xx) ;
+   xx = 5.0f-aa ; wt_p5 = wwsinc9(xx) ;
+   xx = 6.0f-aa ; wt_p6 = wwsinc9(xx) ;
+   xx = 7.0f-aa ; wt_p7 = wwsinc9(xx) ;
+   xx = 8.0f-aa ; wt_p8 = wwsinc9(xx) ;
+   xx = 9.0f-aa ; wt_p9 = wwsinc9(xx) ;
+
+   if( n > nlcbuf ){
+      if( lcbuf != NULL ) free(lcbuf) ;
+      lcbuf  = (float *) malloc( sizeof(float) * n ) ;
+      nlcbuf = n ;
+   }
+
+   ibot = 9-ia ;    if( ibot < 0   ) ibot = 0 ;
+   itop = n-10-ia ; if( itop > n-1 ) itop = n-1 ;
+
+   for( ii=ibot ; ii <= itop ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m8 * f[ix-8] + wt_m7 * f[ix-7]
+                 + wt_m6 * f[ix-6] + wt_m5 * f[ix-5]
+                 + wt_m4 * f[ix-4] + wt_m3 * f[ix-3]
+                 + wt_m2 * f[ix-2] + wt_m1 * f[ix-1] + wt_00 * f[ix]
+                 + wt_p1 * f[ix+1] + wt_p2 * f[ix+2] + wt_p3 * f[ix+3]
+                 + wt_p4 * f[ix+4] + wt_p5 * f[ix+5]
+                 + wt_p6 * f[ix+6] + wt_p7 * f[ix+7] + wt_p8 * f[ix+8]
+                 + wt_p9 * f[ix+9] ;
+   }
+
+   if( ibot > n ) ibot = n ;
+   for( ii=0 ; ii < ibot ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m8 * FINS(ix-8) + wt_m7 * FINS(ix-7)
+                 + wt_m6 * FINS(ix-6) + wt_m5 * FINS(ix-5)
+                 + wt_m4 * FINS(ix-4) + wt_m3 * FINS(ix-3)
+                 + wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
+                 + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) + wt_p3 * FINS(ix+3)
+                 + wt_p4 * FINS(ix+4) + wt_p5 * FINS(ix+5)
+                 + wt_p6 * FINS(ix+6) + wt_p7 * FINS(ix+7) + wt_p8 * FINS(ix+8)
+                 + wt_p9 * FINS(ix+9) ;
+   }
+
+   if( itop < 0 ) itop = -1 ; /* 15 Mar 2001 */
+   for( ii=itop+1 ; ii < n ; ii++ ){
+      ix = ii + ia ;
+      lcbuf[ii] =  wt_m8 * FINS(ix-8) + wt_m7 * FINS(ix-7)
+                 + wt_m6 * FINS(ix-6) + wt_m5 * FINS(ix-5)
+                 + wt_m4 * FINS(ix-4) + wt_m3 * FINS(ix-3)
+                 + wt_m2 * FINS(ix-2) + wt_m1 * FINS(ix-1) + wt_00 * FINS(ix)
+                 + wt_p1 * FINS(ix+1) + wt_p2 * FINS(ix+2) + wt_p3 * FINS(ix+3)
+                 + wt_p4 * FINS(ix+4) + wt_p5 * FINS(ix+5)
+                 + wt_p6 * FINS(ix+6) + wt_p7 * FINS(ix+7) + wt_p8 * FINS(ix+8)
+                 + wt_p9 * FINS(ix+9) ;
+   }
+
+   memcpy( f , lcbuf , sizeof(float)*n ) ;
+   EXRETURN ;
+}
+
+void wsinc9_shift2( int n, int nup, float af, float * f, float ag, float * g )
+{
+                   wsinc9_shift( n , af , f ) ;
+   if( g != NULL ) wsinc9_shift( n , ag , g ) ;
+   return ;
+}
 
 /*---------------------------------------------------------------------------
   Shift 1 row with with heptic Lagrange polynomial interpolation [Nov 1998].

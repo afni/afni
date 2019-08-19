@@ -1115,7 +1115,7 @@ int main( int argc , char *argv[] )
        "               of the brain as do T1-weighted datasets.  If you don't use\n"
        "               some option (like '-EPI') to suppress scaling in the slice-\n"
        "               direction, the EPI dataset is likely to stretch the slice\n"
-       "               thicknesss to better 'match' the T1-weighted brain coverage.\n"
+       "               thickness to better 'match' the T1-weighted brain coverage.\n"
 #if 0
        "       **N.B.: '-EPI' turns on '-warpfreeze -replacebase -replacemeth ls'.\n"
        "               To disable '-replacemeth ls', use '-replacemeth 0' after '-EPI'.\n"

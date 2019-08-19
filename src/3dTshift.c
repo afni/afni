@@ -16,20 +16,35 @@ void TS_syntax(char * str)
      ERROR_exit("%s",str) ; exit(1) ;
    }
 
-   printf("Usage: 3dTshift [options] dataset\n"
-          "Shifts voxel time series from the input dataset so that the separate\n"
-          "slices are aligned to the same temporal origin.  By default, uses the\n"
-          "slicewise shifting information in the dataset header (from the 'tpattern'\n"
-          "input to program to3d).\n"
+   printf("Usage: 3dTshift [options] dataset\n\n"
+          "* Shifts voxel time series from the input dataset so that the separate\n"
+          "  slices are aligned to the same temporal origin.  By default, uses the\n"
+          "  slicewise shifting information in the dataset header (from the 'tpattern'\n"
+          "  input to program to3d).\n"
           "\n"
           "Method:  detrend -> interpolate -> retrend (optionally)\n"
           "\n"
-          "The input dataset can have a sub-brick selector attached, as documented\n"
-          "in '3dcalc -help'.\n"
+          "* The input dataset can have a sub-brick selector attached, as documented\n"
+          "  in '3dcalc -help'.\n"
           "\n"
-          "The output dataset time series will be interpolated from the input to\n"
-          "the new temporal grid.  This may not be the best way to analyze your\n"
-          "data, but it can be convenient.\n"
+          "* The output dataset time series will be interpolated from the input to\n"
+          "  the new temporal grid.  This may not be the best way to analyze your\n"
+          "  data, but it can be convenient.\n"
+          "\n"
+          "* Slices where significant time interpolation happens will have more\n"
+          "  temporal autocorrelation introduced by the interpolation. The amount\n"
+          "  off extra correlation along the time axis depends on the type of\n"
+          "  interpolation used. Higher order interpolation will produce smaller\n"
+          "  such 'extra' correlation; in order, from lowest (most extra correlation)\n"
+          "  to highest (least extra correlation):\n"
+          "       -linear    -cubic     -quintic   -heptic\n"
+          "       -wsinc5    -wsinc9    -Fourier\n"
+          "* The last two methods do not add much correlation in time. However, they\n"
+          "   have the widest interplation 'footprint' and so the output data values\n"
+          "   will have contributions from data points further away in time.\n"
+          "* To properly account for these extra correlations, which vary in space,\n"
+          "   we advise you to analyze the time series using 3dREMLfit, which uses\n"
+          "   a voxel-dependent prewhitening (de-correlating) linear regression method.\n"
           "\n"
           "Warnings:\n"
           "* Please recall the phenomenon of 'aliasing': frequencies above 1/(2*TR) can't\n"
@@ -93,6 +108,8 @@ void TS_syntax(char * str)
           "  -cubic   = Use the cubic (3rd order) Lagrange polynomial interpolation.\n"
           "  -quintic = Use the quintic (5th order) Lagrange polynomial interpolation.\n"
           "  -heptic  = Use the heptic (7th order) Lagrange polynomial interpolation.\n"
+          "  -wsinc5  = Use weighted sinc interpolation - plus/minus 5 [Aug 2019].\n"
+          "  -wsinc9  = Use weighted sinc interpolation - plus/minus 9.\n"
           "\n"
           "  -tpattern ttt = use 'ttt' as the slice time pattern, rather\n"
           "                  than the pattern in the input dataset header;\n"
@@ -256,6 +273,16 @@ int main( int argc , char *argv[] )
 
       if( strncmp(argv[nopt],"-heptic",4) == 0 || strncmp(argv[nopt],"-Heptic",4) == 0 ){
          SHIFT_set_method( MRI_HEPTIC ) ;
+         nopt++ ; continue ;
+      }
+
+      if( strncasecmp(argv[nopt],"-wsinc5",7) == 0 ){  /* Aug 2019 */
+         SHIFT_set_method( MRI_WSINC5 ) ;
+         nopt++ ; continue ;
+      }
+
+      if( strncasecmp(argv[nopt],"-wsinc9",7) == 0 ){  /* Aug 2019 */
+         SHIFT_set_method( MRI_WSINC9 ) ;
          nopt++ ; continue ;
       }
 
