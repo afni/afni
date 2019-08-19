@@ -49,6 +49,15 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Aug, 2019, RCR, "3dDeconvolve_f", MINOR, TYPE_BUG_FIX,
+   "matrix_f.[ch]: dupe matrix_augment_01_columns from matrix.[ch]",
+   "When choosing between more local functions and those included in a\n"
+   "linked library, some systems seem to go all-or-nothing for one file\n"
+   "at a time.  So for 3dDeconvolve_f, matrix_f.c needs everything that\n"
+   "might come from matrix.c.  Otherwise we should have matrix_f.h rename\n"
+   "all of those functions, to avoid relying on compiler choices."
+ } ,
+
  { 16, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "(w/dglen) in THD_write_atr(), give file opening multiple opertunities",
    "Done for K Knutson."
