@@ -284,7 +284,7 @@ afobjs: afobj
 
 ### Make a few more things
 
-itall:all plugins install install_plugins
+itall:all plugins install install_plugins install_lib
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
@@ -2705,7 +2705,8 @@ belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 laconte_plugins: plug_3dsvm.$(SO)
 
 install_plugins: $(INSTALLDIR)
-	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) model*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/funstuff
 	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt $(INSTALLDIR)/funstuff
 	echo Plugins put in directory $(INSTALLDIR):

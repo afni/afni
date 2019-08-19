@@ -51,7 +51,9 @@ afni_history_struct rickr_history[] = {
 
  { 19, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "Makefile.INCLUDE: add libmri target, for build system",
-   "Let the make system decide whether it should be a shared lib."
+   "Let the make system decide whether it should be a shared lib.\n"
+   "Also, make install_plugins just plug*.so model*.so and have\n"
+   "itall target depend on install_lib."
  } ,
 
  { 19, Aug, 2019, RCR, "3dDeconvolve_f", MINOR, TYPE_BUG_FIX,
