@@ -49,7 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
- { 16, Aug, 2019, RCR, "3dDeconvolve_f", MINOR, TYPE_BUG_FIX,
+ { 19, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "Makefile.INCLUDE: add libmri target, for build system",
+   "Let the make system decide whether it should be a shared lib."
+ } ,
+
+ { 19, Aug, 2019, RCR, "3dDeconvolve_f", MINOR, TYPE_BUG_FIX,
    "matrix_f.[ch]: dupe matrix_augment_01_columns from matrix.[ch]",
    "When choosing between more local functions and those included in a\n"
    "linked library, some systems seem to go all-or-nothing for one file\n"

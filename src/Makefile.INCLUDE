@@ -2556,7 +2556,12 @@ mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
 mrilib_raw.c: mrilib_all.c
 	gcc -E $(INFLAGS) -Iniml -Igifti mrilib_all.c | uniq > mrilib_raw.c
 
+# ---------------------------------------------------------------------------
 # the library of libraries
+
+# Change the build system target from libmri.a to libmri, and let the
+# Makefile decide whether to use the shared library.
+libmri: $(LIBMRI_OBJ)
 
 libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
 	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
