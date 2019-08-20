@@ -684,15 +684,15 @@ int main( int argc , char *argv[] )
       "              of columns is the number of regressors.\n"
       "            * Advanced features, such as censoring, can only be implemented\n"
       "              by providing a true .xmat.1D file via the '-matrix' option.\n"
-      "            * However, censoring can still be applied (in a way) by including\n"
+      "           ** However, censoring can still be applied (in a way) by including\n"
       "              extra columns in the matrix. For example, to censor out time\n"
       "              point #47, a column that is 1 at time point #47 and zero at\n"
       "              all other time points can be used.\n"
       "             ++ Remember that AFNI counting starts at 0, so this column\n"
       "                would start with 47 0s, then a single 1, then the rest\n"
       "                of the entries would be 0s.\n"
-      "             ++ 3dDeconvolve option '-x1D_regcensored' will create a\n"
-      "                .xmat.1D file with the censoring indicated by 0-1 columns\n"
+      "             ++ 3dDeconvolve option '-x1D_regcensored' will create such a\n"
+      "                .xmat.1D file, with the censoring indicated by 0-1 columns\n"
       "                rather than by the combination of 'GoodList' and omitted\n"
       "                rows. That is, instead of shrinking the matrix (by rows)\n"
       "                it will expand the matrix (by columns).\n"
@@ -938,7 +938,22 @@ int main( int argc , char *argv[] )
       "------------------------------------------------------------------------\n"
       "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
       "------------------------------------------------------------------------\n"
-      " -Rvar  ppp  = dataset for REML variance parameters\n"
+      " -Rvar  ppp  = dataset for saving REML variance parameters\n"
+      "               * See the 'What is ARMA(1,1)' section, far below.\n"
+      "               * This dataset has 5 volumes:\n"
+      "                 [0] = 'a'       = ARMA parameter\n"
+      "                                 = decay rate of correlations with lag\n"
+      "                 [1] = 'b'       = ARMA parameter\n"
+      "                 [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
+      "                                 = correlation at lag=1\n"
+      "                                   correlation at lag=k is lam * a^(k-1) (k>0)\n"
+      "                 [3] = 'StDev'   = standard deviation of prewhitened\n"
+      "                                   residuals (used in computing statistics\n"
+      "                                   in '-Rbuck' and in GLTs)\n"
+      "                 [4] = '-LogLik' = negative of the REML log-likelihood\n"
+      "                                   function (see math notes)\n"
+      "               * The main purpose of this dataset is to check when weird\n"
+      "                   things happen in the calculations.\n"
       " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
       "                 [similar to the -cbucket output from 3dDeconvolve]\n"
       "               * This dataset will contain all the beta weights, for\n"
@@ -1296,9 +1311,12 @@ int main( int argc , char *argv[] )
       "\n"
       "* If you like linear algebra, see my scanned math notes about 3dREMLfit:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
+      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
+      "    https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
       "\n"
       "* I have been asked if 3dREMLfit prewhitens the design matrix as well as\n"
-      "    the data. The short answer is YES. The long answer follows:\n"
+      "    the data. The short answer to this somewhat uninformed question is YES.\n"
+      "    The long answer follows:\n"
       "\n"
       "* Mathematically, the GLSQ solution is expressed as\n"
       "    f = inv[ X' inv(R) X] X' inv(R) y\n"
@@ -1327,12 +1345,18 @@ int main( int argc , char *argv[] )
       "    estimate for f is not statistically consistent with the underlying model!\n"
       "    In other words, prewhitening only the data but not the matrix is WRONG.\n"
       "\n"
+      "* Someone asking the question above might actually be asking if the residuals\n"
+      "    are whitened. The answer is YES and NO. The output of -Rerrts is not\n"
+      "    whitened; in the above notation, -Rerrts gives y-Xf. The output of -Rwherr\n"
+      "    is whitened; -Rwherr gives S[y-Xf], which is the residual (eps) vector for\n"
+      "    the pre-whitened linear system Sf = SXf + eps.\n"
+      "\n"
       "* The estimation method for (a,b) is nonlinear; that is, these parameters\n"
       "    are NOT estimated by doing an initial OLSQ (or any other one-shot initial\n"
       "    calculation), then fitting (a,b) to the resulting residuals. Rather,\n"
       "    a number of different (a,b) values are tried out to find the parameter pair\n"
-      "    where the log-likelihood is optimized. To be precise, the function\n"
-      "    that is minimized (over the discrete a,b grid) is\n"
+      "    where the log-likelihood of the Gaussian model is optimized. To be precise,\n"
+      "    the function that is minimized in each voxel (over the discrete a,b grid) is\n"
       "      L(a,b) =  log(det(R(a,b))) + log(det(X' inv(R(a,b)) X))\n"
       "              + (n-m)log(y'P(a,b)y)   - log(det(X'X'))\n"
       "    where R(a,b) = ARMA(1,1) correlation matrix (symetric n X n)\n"
@@ -1350,6 +1374,7 @@ int main( int argc , char *argv[] )
       "\n"
       "* Again, see the notes below for more fun math and algorithmic details:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
+      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
       "\n"
       "----------------\n"
       "Other Commentary\n"
@@ -1372,6 +1397,8 @@ int main( int argc , char *argv[] )
       "* The '-matrix' file must be from 3dDeconvolve; besides the regression\n"
       "    matrix itself, the header contains the stimulus labels, the GLTs,\n"
       "    the censoring information, etc.\n"
+      "  ++ Although you can put in a 'raw' matrix using the '-matim' option,\n"
+      "     described earlier.\n"
       "\n"
       "* If you don't actually want the OLSQ results from 3dDeconvolve, you can\n"
       "    make that program stop after the X matrix file is written out by using\n"
@@ -1422,6 +1449,9 @@ int main( int argc , char *argv[] )
       "    Depending on the matrix and the options, you might expect CPU time\n"
       "    to be about 2..5 times that of the corresponding 3dDeconvolve run.\n"
       "    (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
+      "  ++ Nowadays [2019], computers are so much faster that the olden\n"
+      "     times that this 'slow' comment is probably pointless, except\n"
+      "     perhaps for very large datasets.\n"
       "\n"
       "---------------------------------------------------------------\n"
       "How 3dREMLfit handles all zero columns in the regression matrix\n"
@@ -1480,6 +1510,7 @@ int main( int argc , char *argv[] )
       "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
       "* Establish incontrovertibly the nature of quantum mechanical observation.\n"
       "* Create an iPad version of the AFNI software suite.\n"
+      "* Get people to stop asking me 'quick questions'!\n"
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, please see the contents of\n"
@@ -1769,7 +1800,7 @@ int main( int argc , char *argv[] )
        nelmat = NI_read_element_fromfile( argv[iarg] ) ; /* read NIML file */
        matname = argv[iarg];
        if( nelmat == NULL || nelmat->type != NI_ELEMENT_TYPE )
-         ERROR_exit("Can't process -matrix file '%s'!?",matname) ;
+         ERROR_exit("Can't open or process -matrix file '%s'!?",matname) ;
        iarg++ ; continue ;
      }
 
@@ -2203,7 +2234,7 @@ STATUS("process matrix") ;
    if( ntime < 9 )
      ERROR_exit("matrix has %d rows (time points), but minimum allowed is 9 :-(",ntime) ;
 
-   cgl = NI_get_attribute( nelmat , "CommandLine" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "CommandLine" ) ;
    if( cgl != NULL ) commandline = strdup(cgl) ;
 
    /* warning message if problem is big [05 Jul 2019] */
@@ -2214,7 +2245,7 @@ STATUS("process matrix") ;
 
    /*--- number of rows in the full matrix (without censoring) ---*/
 
-   cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "NRowFull" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'NRowFull' attribute!") ;
    nfull = (int)strtod(cgl,NULL) ;
    if( nvals != nfull )
@@ -2224,7 +2255,7 @@ STATUS("process matrix") ;
    /*--- the goodlist = mapping from matrix row index to time index
                         (which allows for possible time point censoring) ---*/
 
-   cgl = NI_get_attribute( nelmat , "GoodList" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "GoodList" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'GoodList' attribute!") ;
    giar = NI_decode_int_list( cgl , ";," ) ;
    if( giar == NULL || giar->num < ntime )
@@ -2235,7 +2266,7 @@ STATUS("process matrix") ;
 
    /*----- run starting points in time indexes -----*/
 
-   rst = NI_get_attribute( nelmat , "RunStart" ) ;
+   rst = NI_get_attribute_nocase( nelmat , "RunStart" ) ;
    if( rst != NULL ){
      NI_int_array *riar = NI_decode_int_list( rst , ";,") ;
      if( riar == NULL ) ERROR_exit("Matrix 'RunStart' badly formatted?") ;
@@ -2280,7 +2311,7 @@ STATUS("re-create matrix from NIML element") ;
 
    /*--------------- get column labels for the betas ---------------*/
 
-   cgl = NI_get_attribute( nelmat , "ColumnLabels" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "ColumnLabels" ) ;
    if( cgl == NULL ){
      WARNING_message("ColumnLabels attribute in matrix is missing!?") ;
    } else {
@@ -2574,27 +2605,27 @@ STATUS("process -slibase images") ;
 
    /***---------- extract stim information from matrix header ----------***/
 
-   cgl = NI_get_attribute( nelmat , "Nstim" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "Nstim" ) ;
    if( cgl != NULL ){
 
      stim_num = (int)strtod(cgl,NULL) ;
      if( stim_num <= 0 ) ERROR_exit("Nstim attribute in matrix is not positive!");
 
-     cgl = NI_get_attribute( nelmat , "StimBots" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimBots" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimBots' attribute!") ;
      giar = NI_decode_int_list( cgl , ";," ) ;
      if( giar == NULL || giar->num < stim_num )
        ERROR_exit("Matrix 'StimBots' badly formatted?!") ;
      stim_bot = giar->ar ;
 
-     cgl = NI_get_attribute( nelmat , "StimTops" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimTops" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimTops' attribute!") ;
      giar = NI_decode_int_list( cgl , ";," ) ;
      if( giar == NULL || giar->num < stim_num )
        ERROR_exit("Matrix 'StimTops' badly formatted?!") ;
      stim_top = giar->ar ;
 
-     cgl = NI_get_attribute( nelmat , "StimLabels" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimLabels" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimLabels' attribute!");
      gsar = NI_decode_string_list( cgl , ";" ) ;
      if( gsar == NULL || gsar->num < stim_num )
@@ -2733,7 +2764,7 @@ STATUS("make stim GLTs") ;
 
    /*------ extract other GLT information from matrix header ------*/
 
-   cgl = NI_get_attribute( nelmat , "Nglt" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "Nglt" ) ;
    if( do_stat && (cgl != NULL || eglt_num > 0) ){
      char lnam[32],*lll ; int nn,mm,ngl ; matrix *gm ; float *far ;
 
@@ -2744,7 +2775,7 @@ STATUS("make GLTs from matrix file") ;
        ngl = (int)strtod(cgl,NULL) ;
        if( ngl <= 0 || ngl > 1000000 ) ERROR_exit("Nglt attribute in matrix = '%s' ??? :(",cgl) ;
 
-       cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
+       cgl = NI_get_attribute_nocase( nelmat , "GltLabels" ) ;
        if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
        gsar = NI_decode_string_list( cgl , ";" ) ;
        if( gsar == NULL || gsar->num < ngl )
@@ -2752,7 +2783,7 @@ STATUS("make GLTs from matrix file") ;
 
        for( kk=0 ; kk < ngl ; kk++ ){
          sprintf(lnam,"GltMatrix_%06d",kk) ;
-         cgl = NI_get_attribute( nelmat , lnam ) ;
+         cgl = NI_get_attribute_nocase( nelmat , lnam ) ;
          if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
          gfar = NI_decode_float_list( cgl , "," ) ;
          if( gfar == NULL || gfar->num < 3 )

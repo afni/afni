@@ -289,6 +289,8 @@ void wsinc5_shift2( int n, int nup, float af, float * f, float ag, float * g )
    return ;
 }
 
+/*----------------------------------------------------------------------------*/
+
 #undef  wwsinc9
 #define wwsinc9(x) ( (x <= 9.0f) ? (sinc(x)*M3(0.11111f*(x))) : 0.0f )
 

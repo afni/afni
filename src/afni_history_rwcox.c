@@ -44,6 +44,14 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 20 , AUG , 2019 , RWC , "3dPval" , MICRO , TYPE_NEW_OPT ,
+   "Add -zscore option" ,
+   NULL } ,
+
+ { 20 , AUG , 2019 , RWC , "3dREMLfit" , MICRO , TYPE_ENHANCE ,
+   "Make attribute names in matrix file be insensitive to case" ,
+   NULL } ,
+
  { 19 , AUG , 2019 , RWC , "3dTshift" , MICRO , TYPE_NEW_OPT ,
    "-wsinc5 and -wsinc9 options" ,
    "Interpolation in time introduces autocorrelation. This effect is not\n"
