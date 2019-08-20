@@ -21,6 +21,7 @@
 #      labeling
 
 # [Aug 20, 2019] PT: indent properly, for readability
+# [Aug 20, 2019] PT: update help
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -80,25 +81,26 @@ L_INIT_VARS:
     set fsdsets = (thickness curv sulc) 
     set inflates = ()
     
-    set surf_attribs = (smoothwm      \
-         pial         \
-         inflated      \
-         occip.patch.3d      \
-         occip.patch.flat   \
-         occip.flat.patch.3d \
-         fusiform.patch.flat  \
-         full.patch.3d      \
-         full.patch.flat   \
-         full.flat.patch.3d \
-         full.flat   \
-         flat.patch      \
-         sphere         \
-         white          \
-         sphere.reg     \
-         rh.sphere.reg  \
-         lh.sphere.reg  \
-         pial-outer-smoothed     \
-         )
+    set surf_attribs = (            \
+            smoothwm                \
+            pial                    \
+            inflated                \
+            occip.patch.3d          \
+            occip.patch.flat        \
+            occip.flat.patch.3d     \
+            fusiform.patch.flat     \
+            full.patch.3d           \
+            full.patch.flat         \
+            full.flat.patch.3d      \
+            full.flat               \
+            flat.patch              \
+            sphere                  \
+            white                   \
+            sphere.reg              \
+            rh.sphere.reg           \
+            lh.sphere.reg           \
+            pial-outer-smoothed     \
+            )
 
 goto L_INIT_VARS_DONE
 
@@ -423,7 +425,9 @@ goto L_VERIFY_PROGRAMS_DONE
 
 ####################################################################
 # 1. set surf_dir and orig_dir - check cwd and parent
-# 2. create SUMA directory at the same level as surf_dir and store the results there
+# 2. create SUMA directory at the same level as surf_dir and store the
+#    results there
+
 
 L_SET_SURF_DIRS:
 
@@ -502,7 +506,12 @@ L_SET_SURF_DIRS:
     end
     
     set other_mgz = ()
-    set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aparc.a2009s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
+    set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg        \
+                             aparc.a2009s+aseg aseg.auto aseg       \
+                             brain.finalsurfs brain brainmask.auto  \
+                             brainmask norm nu nu_noneck lh.ribbon  \
+                             rh.ribbon wm.asegedit wm wm.seg )
+
     foreach candidate ($other_candidates)
         foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
             if ( -f $dcand$candidate.mgz ) then 
@@ -650,8 +659,9 @@ L_CONVERT_SURFACES:
             if ( $surf =~ *.white* ||     \
                  $surf =~ *.smoothwm* ||  \
                  $surf =~ *.pial*) then
-                # hmmm, identical commands suggest the second -ixmat_1D does not belong
-                # (currently left for future bickering)
+                # hmmm, identical commands suggest the second
+                # -ixmat_1D does not belong (currently left for future
+                # bickering)
                 ConvertSurface \
                         -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
                         -ixmat_1D xmatras.1D -overwrite -o $surf.gii
@@ -1277,201 +1287,233 @@ goto L_RENUMBER_ROIS_DONE
 
 L_HELP_END:
 
-echo ""
-echo "$prog_name - prepare for surface viewing in SUMA"
-echo ""
-echo "    This script goes through the following steps:"
-echo "      - verify existence of necessary programs "
-echo "        (afni, to3d, suma, mris_convert)"
-echo "      - determine the location of surface and COR files"
-echo "      - creation of ascii surface files via 'mris_convert'"
-echo "      - creation of left and right hemisphere SUMA spec files"
-echo "      - creation of an AFNI dataset from the COR files via 'to3d'"
-echo "      - creation of AFNI datasets from various .mgz volumes created"
-echo "        by FreeSurfer. The segmentation volumes with aseg in the "
-echo "        name are best viewed in AFNI with the FreeSurfer_Seg_255"
-echo "        colormap. See bottom of @SUMA_FSvolToBRIK -help for more"
-echo "        info." 
-echo "      - [new: Dec 30, 2016] new renumbered data sets output, to"
-echo "        replace old '*rank*' file data sets. Also new tissue maps"
-echo "        based on FS functions and labels. Collectively, these are"
-echo "        the '*REN*' dsets in the output directory."
-echo ""
-echo "      - all created files are stored in a new SUMA directory"
-echo ""
-echo "  Usage: $prog_name [options] -sid SUBJECT_ID"
-echo ""
-echo "  examples ('-NIFTI' is really useful-- see below!):"
-echo ""
-echo "    $prog_name -help"
-echo "    $prog_name -NIFTI -sid subject1"
-echo "    $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1"
-echo "    $prog_name -NIFTI -sid 3.14159265 -debug 1"
-echo ""
-echo "  options:"
-echo ""
-echo "    -help    : show this help information"
-echo ""
-echo "    -debug LEVEL    : print debug information along the way"
-echo "          e.g. -debug 1"
-echo "          the default level is 0, max is 2"
-echo ""
-echo "    -fspath PATH    : path to 'surf' and 'orig' directories"
-echo "          e.g. -fspath subject1/surface_info"
-echo "          the default PATH value is './', the current directory"
-echo ""
-echo "          This is generally the location of the 'surf' directory,"
-echo "          though having PATH end in surf is OK.  The mri/orig"
-echo "          directory should also be located here."
-echo ""
-echo "          Note: when this option is provided, all file/path"
-echo "          messages will be with respect to this directory."
-echo ""
-echo "    -use_mgz        : use MGZ volumes even if COR volumes are there"
-echo ""
-echo "    -neuro          : use neurological orientation"
-echo "          e.g. -neuro"
-echo "          the default is radiological orientation"
-echo ""
-echo "          In the default radiological orientation, the subject's"
-echo "          right is on the left side of the image.  In the"
-echo "          neurological orientation, left is really left."
-echo ""
-echo "        * This is not compatible with -NIFTI."
-echo ""
-echo "    -nocor: This option is no longer supported because it created"
-echo "            GIFTI surfaces with coordinates in RAI, rather than LPI"
-echo "            which is the GIFTI standard. While using RAI surfaces"
-echo "            within AFNI/SUMA is not problematic, the resultant GIFTI"
-echo "            surfaces do not port well to other software."
-echo "            The replacement option for -nocor is -GNIFTI but the"
-echo "            surfaces will have negated coordinates along the x and y"
-echo "            compared to those with -nocor."
-echo "            GIFTI surfaces produced with SUMA programs compiled before"
-echo "            August 1st 2013 will have their X and Y coordinates "
-echo "            negated and will no longer line up with the anatomy. "
-echo "            Correcting such surfaces can be done with ConvertSurface"
-echo "            with the following command:"
-echo "              ConvertSurface  -i lh.smoothwm.gii -o_gii lh.smoothwm \\"
-echo "                              -overwrite -xmat_1D NegXY"
-echo "            or for an entire SUMA directory:"
-echo "              cd SUMA"
-echo "              tcsh"
-echo '              foreach ss (*.gii)'
-echo '                 ConvertSurface  -i $ss -o_gii $ss \\'
-echo "                                 -overwrite -xmat_1D NegXY"
-echo "              end"
-echo ""            
-echo "    -GNIFTI/-GIFTI/-IFTI: same as -NIFTI"
-echo "    -NIFTI :Produce files in exchangeable formats. With this option"
-echo "           :COR volumes are no longer used and output volumes"
-echo "           :and surfaces are in alignment with the original "
-echo "           :volume used to create the surface. All volumes are"
-echo "            written out NIFTI format, and all surfaces are"
-echo "            in GIFTI format."
-echo ""
-echo "            This option is incompatible with -neuro or -use_mgz"
-echo ""
-echo "         ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI"
-echo "                  would distort standard mesh surfaces.  To evaluate"
-echo "                  effects of this, consider: MapIcosahedron -write_dist."
-echo ""
-echo "    NOTE for -NIFTI:"
-echo "        If you really care that the volumes in SUMA/ are in exact"
-echo "        register with the volume you passed to FreeSurfer, you "
-echo "        should be sure that the volume passed to FreeSurfer has "
-echo "        an even number of slices in all directions and a voxel"
-echo "        resolution of 1x1x1, otherwise the resultant volumes in"
-echo "        SUMA/ might be off by half a voxel or less in directions"
-echo "        with odd number of slices. The reason has to do (I think)"
-echo "        with FreeSurfer's resampling and volume centering approach."
-echo "        In either case, surfaces and volumes under SUMA/ will be in"
-echo "        proper register."
-echo "        For example, when creating a surface model of the TT_N27 brain"
-echo "        I padded the TT_N27+tlrc volume before submitting it to "
-echo "        FreeSurfer with the following command:"
-echo "           3dZeropad -L 1 -P 1 -S 1 -prefix anat.nii TT_N27+tlrc.HEAD"
-echo "        After zeropadding, anat.nii remains in perfect register with"
-echo "        TT_N27+tlrc by it has an even number of slices in all"
-echo "        directions: 3dinfo -n4  -d3 -prefix anat.nii"
-echo "          162  192  152   1    1.0     1.0     1.0     anat.nii"
-echo ""
-echo "    -inflate INF: Create modereately inflated surfaces using"
-echo "                  SurfSmooth. INF controls the amount of smoothness"
-echo "                  in the final image. It is the number of iterations"
-echo "                  in the command such as: "
-echo "             SurfSmooth  -i lh.white.asc    -met NN_geom \\"
-echo "                    -Niter 200  -o_gii  -surf_out lh.inf_200 \\"
-echo "                    -match_vol 0.01"
-echo "                  You can use multiple instances of -inflate to create"
-echo "                  inflations of various levels."
-echo "    -set_space  SPACE: Set the space flag of all volumes to"
-echo "            SPACE (orig, MNI, TLRC, MNIa). The default is "
-echo "            orig space."
-echo "            You should only use this option when the volume you"
-echo "            passed to FreeSurfer was not in 'orig' space."
-echo "            Use '3dinfo -space YOUR_DATASET' to find the space "
-echo "            of a certain dataset." 
-echo ""
-echo "    -sid SUBJECT_ID : required subject ID for file naming"
-echo ""
-echo "    -ld LD : Create standard mesh surfaces with mesh density"
-echo "             linear depth (see MapIcosahedron -help, option -ld)"
-echo "             set to LD. You can use multiple -ld options."
-echo "             By default the script will run ld values of 141 and"
-echo "             60."
-echo "    -ldpref LDpref: Supply what ends up being the -prefix option"
-echo "                    for MapIcosahedron. By default it is std.LD."
-echo "                    You need as many -ldpref as you have -ld"
-echo "    -no_ld: Do not run MapIcosahedron."
-echo ""
-echo "  Making use of FreeSurfer's -contrasurfreg output with MapIcosahedron:"
-echo "  This script will create SUMA versions of lh.rh.sphere.reg and "
-echo "  rh.lh.sphere.reg but in this current state, MapIcosahedron does"
-echo "  not attempt to use them for backward compatibility."
-echo "  Should you want to create standard mesh surfaces with node"
-echo "  index correspondence across the hemispheres you will need to run"
-echo "  MapIcosahedron manually in the output SUMA/ directory. \n"
-echo "  For example:"
-echo "      MapIcosahedron    -spec SUBJ_rh.spec -ld 60 \"
-echo "                        -dset_map rh.thickness.gii.dset \"
-echo "                        -dset_map rh.curv.gii.dset \"
-echo "                        -dset_map rh.sulc.gii.dset \"
-echo "                        -morph rh.lh.sphere.reg.gii \"
-echo "                        -prefix std.60.lhreg."
-echo "      This command is very similar to the one use to create the"
-echo "      default output spec file std.60.SUBJ_rh.spec (look at the "
-echo "      top of the spec file for a record of the command that created it),"
-echo "      except for the last two options -morph and -prefix."
-echo "      By using -morph rh.lh.sphere.reg.gii the resultant standard-mesh "
-echo "      right hemispheres (std.60.lhreg.rh.*.gii) will have node index "
-echo "      correspondence with std.60.lh.*.gii surfaces."
-echo "      To verify visually the correspondence, run the following:"
-echo "         count -column 0 36001 > std.60.lh.rh.nodeindex.1D.dset"
-echo '         suma -noniml -spec std.60.SUBJ_lh.spec &'
-echo '         suma -noniml -spec std.60.SUBJ_rh.spec &'
-echo '         suma -noniml -spec std.60.lhreg.SUBJ_rh.spec &'
-echo '       Then load std.60.lh.rh.nodeindex.1D.dset into each of the three'
-echo "       SUMA windows. Note how the color pattern (node indices) matches"
-echo "       between SUBJ_lh and lhreg.SUBJ_rh surfaces, "
-echo "       but NOT between SUBJ_lh and SUBJ_rh surfaces."
-echo ""
-echo "  notes:"
-echo ""
-echo "    0. More help may be found at:"
-echo "           https://afni.nimh.nih.gov/ssc/ziad/SUMA/SUMA_doc.htm"
-echo "    1. Surface file names should look like 'lh.smoothwm'."
-echo "    2. Patches of surfaces need the word patch in their name, in"
-echo "       order to use the correct option for 'mris_convert'."
-echo "    3. Flat surfaces must have .flat in their name."
-echo "    4. You can tailor the script to your needs. Just make sure you"
-echo "       rename it or risk having your modifications overwritten with"
-echo "       the next SUMA version you install."
-echo ""
-echo "     R. Reynolds (reynoldr@mail.nih.gov)"
-echo "     Z. Saad (saadz@mail.nih.gov)"
-echo "     M. Beauchamp (Michael.S.Beauchamp@uth.tmc.edu)"
-echo ""
+cat <<EOF
+
+OVERVIEW ~1~
+
+$prog_name - prepare for surface viewing in SUMA
+
+This script goes through the following steps:
+    + verify existence of necessary programs 
+      (afni, to3d, suma, mris_convert)
+    + determine the location of surface and COR files
+    + creation of ascii surface files via 'mris_convert'
+    + creation of left and right hemisphere SUMA spec files
+    + creation of an AFNI dataset from the COR files via 'to3d'
+    + creation of AFNI datasets from various .mgz volumes created
+      by FreeSurfer. The segmentation volumes with aseg in the 
+      name are best viewed in AFNI with the FreeSurfer_Seg_255
+      colormap. See bottom of @SUMA_FSvolToBRIK -help for more
+      info.
+    + renumbered data sets output, to replace old '*rank*' file data
+      sets. Also new tissue maps based on FS functions and
+      labels. Collectively, these are the '*REN*' dsets in the output
+      directory.
+
+    + all created files are stored in a new SUMA directory
+
+USAGE ~1~ 
+
+        $prog_name [options] -sid SUBJECT_ID
+
+  examples ('-NIFTI' is really useful-- see below!):
+
+        $prog_name -help
+        $prog_name -NIFTI -sid subject1
+        $prog_name -NIFTI -fspath subject1/surface_stuff -sid subject1
+        $prog_name -NIFTI -sid 3.14159265 -debug 1
+
+OPTIONS ~1~
+
+    -help    : show this help information
+
+    -debug LEVEL    : print debug information along the way
+          e.g. -debug 1
+          the default level is 0, max is 2
+
+    -fspath PATH    : path to 'surf' and 'orig' directories
+          e.g. -fspath subject1/surface_info
+          the default PATH value is './', the current directory
+
+          This is generally the location of the 'surf' directory,
+          though having PATH end in surf is OK.  The mri/orig
+          directory should also be located here.
+
+          Note: when this option is provided, all file/path
+          messages will be with respect to this directory.
+
+    -use_mgz        : use MGZ volumes even if COR volumes are there
+
+    -neuro          : use neurological orientation
+          e.g. -neuro
+          the default is radiological orientation
+
+          In the default radiological orientation, the subject's
+          right is on the left side of the image.  In the
+          neurological orientation, left is really left.
+
+        * This is not compatible with -NIFTI.
+
+    -nocor: This option is no longer supported because it created
+            GIFTI surfaces with coordinates in RAI, rather than LPI
+            which is the GIFTI standard. While using RAI surfaces
+            within AFNI/SUMA is not problematic, the resultant GIFTI
+            surfaces do not port well to other software.
+            The replacement option for -nocor is -GNIFTI but the
+            surfaces will have negated coordinates along the x and y
+            compared to those with -nocor.
+            GIFTI surfaces produced with SUMA programs compiled before
+            August 1st 2013 will have their X and Y coordinates 
+            negated and will no longer line up with the anatomy. 
+            Correcting such surfaces can be done with ConvertSurface
+            with the following command:
+
+                ConvertSurface                \
+                    -i lh.smoothwm.gii        \
+                    -o_gii lh.smoothwm        \
+                    -overwrite                \
+                    -xmat_1D NegXY
+
+            or for an entire SUMA directory:
+
+                cd SUMA
+                tcsh
+                foreach ss (*.gii)
+                    ConvertSurface            \
+                        -i \$ss                \
+                        -o_gii \$ss            \
+                        -overwrite            \
+                        -xmat_1D NegXY
+                end
+
+    -GNIFTI/-GIFTI/-IFTI: same as -NIFTI
+    -NIFTI :Produce files in exchangeable formats. With this option
+           :COR volumes are no longer used and output volumes
+           :and surfaces are in alignment with the original 
+           :volume used to create the surface. All volumes are
+            written out NIFTI format, and all surfaces are
+            in GIFTI format.
+
+            This option is incompatible with -neuro or -use_mgz
+
+         ** Note: from 22 Feb 2013 through 20 Mar 2017, use of -NIFTI
+                  would distort standard mesh surfaces.  To evaluate
+                  effects of this, consider: MapIcosahedron -write_dist.
+
+    NOTE for -NIFTI:
+        If you really care that the volumes in SUMA/ are in exact
+        register with the volume you passed to FreeSurfer, you 
+        should be sure that the volume passed to FreeSurfer has 
+        an even number of slices in all directions and a voxel
+        resolution of 1x1x1, otherwise the resultant volumes in
+        SUMA/ might be off by half a voxel or less in directions
+        with odd number of slices. The reason has to do (I think)
+        with FreeSurfer's resampling and volume centering approach.
+        In either case, surfaces and volumes under SUMA/ will be in
+        proper register.
+
+        For example, when creating a surface model of the TT_N27 brain
+        I padded the TT_N27+tlrc volume before submitting it to 
+        FreeSurfer with the following command:
+           3dZeropad -L 1 -P 1 -S 1 -prefix anat.nii TT_N27+tlrc.HEAD
+
+        After zeropadding, anat.nii remains in perfect register with
+        TT_N27+tlrc by it has an even number of slices in all
+        directions.  For example, running:
+            3dinfo -n4  -d3 -prefix anat.nii
+        produces:
+            162  192  152   1    1.0     1.0     1.0     anat.nii
+
+    -inflate INF: Create modereately inflated surfaces using
+                  SurfSmooth. INF controls the amount of smoothness
+                  in the final image. It is the number of iterations
+                  in the command such as: 
+                    SurfSmooth               \
+                        -i lh.white.asc      \
+                        -met NN_geom         \
+                        -Niter 200           \
+                        -o_gii               \
+                        -surf_out lh.inf_200 \
+                        -match_vol 0.01
+
+                  You can use multiple instances of -inflate to create
+                  inflations of various levels.
+    -set_space  SPACE: Set the space flag of all volumes to
+            SPACE (orig, MNI, TLRC, MNIa). The default is 
+            orig space.
+            You should only use this option when the volume you
+            passed to FreeSurfer was not in 'orig' space.
+            Use '3dinfo -space YOUR_DATASET' to find the space 
+            of a certain dataset.
+
+    -sid SUBJECT_ID : required subject ID for file naming
+
+    -ld LD : Create standard mesh surfaces with mesh density
+             linear depth (see MapIcosahedron -help, option -ld)
+             set to LD. You can use multiple -ld options.
+             By default the script will run ld values of 141 and
+             60.
+    -ldpref LDpref: Supply what ends up being the -prefix option
+                    for MapIcosahedron. By default it is std.LD.
+                    You need as many -ldpref as you have -ld
+    -no_ld: Do not run MapIcosahedron.
+
+NOTES ~1~
+
+  Making use of FreeSurfer's -contrasurfreg output with MapIcosahedron:
+  This script will create SUMA versions of lh.rh.sphere.reg and 
+  rh.lh.sphere.reg but in this current state, MapIcosahedron does
+  not attempt to use them for backward compatibility.
+  Should you want to create standard mesh surfaces with node
+  index correspondence across the hemispheres you will need to run
+  MapIcosahedron manually in the output SUMA/ directory. 
+
+  For example:
+        MapIcosahedron                        \
+            -spec SUBJ_rh.spec -ld 60         \
+            -dset_map rh.thickness.gii.dset   \
+            -dset_map rh.curv.gii.dset        \
+            -dset_map rh.sulc.gii.dset        \
+            -morph rh.lh.sphere.reg.gii       \
+            -prefix std.60.lhreg.
+
+  This command is very similar to the one use to create the default
+  output spec file std.60.SUBJ_rh.spec (look at the top of the spec
+  file for a record of the command that created it), except for the
+  last two options -morph and -prefix.  By using -morph
+  rh.lh.sphere.reg.gii the resultant standard-mesh right hemispheres
+  (std.60.lhreg.rh.*.gii) will have node index correspondence with
+  std.60.lh.*.gii surfaces.  To verify visually the correspondence,
+  run the following:
+
+     count -column 0 36001 > std.60.lh.rh.nodeindex.1D.dset
+     suma -noniml -spec std.60.SUBJ_lh.spec &
+     suma -noniml -spec std.60.SUBJ_rh.spec &
+     suma -noniml -spec std.60.lhreg.SUBJ_rh.spec &
+
+  Then load std.60.lh.rh.nodeindex.1D.dset into each of the three SUMA
+  windows. Note how the color pattern (node indices) matches between
+  SUBJ_lh and lhreg.SUBJ_rh surfaces, but NOT between SUBJ_lh and
+  SUBJ_rh surfaces.
+
+COMMENTS ~1~
+
+  0. More help may be found at:
+     https://afni.nimh.nih.gov/pub/dist/doc/htmldoc/SUMA/main_toc.html
+  1. Surface file names should look like 'lh.smoothwm'.
+  2. Patches of surfaces need the word patch in their name, in
+     order to use the correct option for 'mris_convert'.
+  3. Flat surfaces must have .flat in their name.
+  4. You can tailor the script to your needs. Just make sure you
+     rename it or risk having your modifications overwritten with
+     the next SUMA version you install.
+
+  Authors to pester:
+    R. Reynolds  (reynoldr@mail.nih.gov)
+    Z. Saad      (saadz@mail.nih.gov)
+    M. Beauchamp (michael.beauchamp@bcm.edu)
+
+EOF
 
     exit
 
