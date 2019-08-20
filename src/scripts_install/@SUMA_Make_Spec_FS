@@ -20,6 +20,8 @@
 #    + produce tissue maps based on hopefully good guesses of FS
 #      labeling
 
+# [Aug 20, 2019] PT: indent properly, for readability
+
 #----------------------------------------------------------------------
 goto L_INIT_VARS
      L_INIT_VARS_DONE:
@@ -107,12 +109,12 @@ goto L_INIT_VARS_DONE
 L_CHECK_USAGE:
 
     if ( $#argv == 0 ) then
-       # show help on no args   28 Feb 2017 [rickr]
+        # show help on no args   28 Feb 2017 [rickr]
 
-       # echo "usage: $prog_name [options] -sid SUBJECT_ID"
-       # echo "usage: $prog_name -help"
-       # set endstr = ""
-       goto L_HELP_END
+        # echo "usage: $prog_name [options] -sid SUBJECT_ID"
+        # echo "usage: $prog_name -help"
+        # set endstr = ""
+        goto L_HELP_END
     endif
 
 goto L_CHECK_USAGE_DONE
@@ -139,209 +141,209 @@ L_PARSE_COMMAND:
     set count    = 1
 
     while ( $count <= $args )
-      switch ( "$argv[$count]" )
+        switch ( "$argv[$count]" )
 
-       # ----------------------------------------------------------
-       # usage: -help
-       case "-h":
-       case "-help":
+            # ----------------------------------------------------------
+            # usage: -help
+            case "-h":
+            case "-help":
+            
+                goto L_HELP_END      # and don't ya' come back, neither
 
-          goto L_HELP_END      # and don't ya' come back, neither
+            breaksw
 
-       breaksw
+            # ----------------------------------------------------------
+            # usage: -sid SUBJECT_ID
+            case "-sid":
 
-       # ----------------------------------------------------------
-       # usage: -sid SUBJECT_ID
-       case "-sid":
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -sid SUBJECT_ID"
+                    goto L_BAD_END
+                endif
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -sid SUBJECT_ID"
-             goto L_BAD_END
-         endif
+                @ count ++
+                set subj_id  = $argv[$count]
 
-         @ count ++
-         set subj_id  = $argv[$count]
+            breaksw
 
-       breaksw
+            # ----------------------------------------------------------
+            # usage: -fspath FREESURFER_PATH
+            case "-fspath":
 
-       # ----------------------------------------------------------
-       # usage: -fspath FREESURFER_PATH
-       case "-fspath":
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -fspath FREESURFER_PATH"
+                    goto L_BAD_END
+                endif
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -fspath FREESURFER_PATH"
-             goto L_BAD_END
-         endif
+                @ count ++
+                set fs_dir  = $argv[$count]
 
-         @ count ++
-         set fs_dir  = $argv[$count]
+                if ( ! -d $fs_dir ) then
+                    set endstr = "failure: directory not found - '$fs_dir'"
+                    goto L_BAD_END
+                endif
 
-         if ( ! -d $fs_dir ) then
-             set endstr = "failure: directory not found - '$fs_dir'"
-             goto L_BAD_END
-         endif
+            breaksw
 
-       breaksw
+            # ----------------------------------------------------------
+            # usage : -neuro
+            case "-neuro":
 
-       # ----------------------------------------------------------
-       # usage : -neuro
-       case "-neuro":
+                # do not allow overlapping options    15 Jun 2017 [rickr]
+                if ( $neuro_ori != 0 ) then
+                    echo '** cannot use any -*IFTI options with -neuro'
+                    goto L_BAD_END
+                endif
 
-         # do not allow overlapping options    15 Jun 2017 [rickr]
-         if ( $neuro_ori != 0 ) then
-            echo '** cannot use any -*IFTI options with -neuro'
-            goto L_BAD_END
-         endif
+                set neuro_ori = 1
+            breaksw
 
-         set neuro_ori = 1
-       breaksw
+            # ----------------------------------------------------------
+            # usage : -nocor
+            case "-nocor":
+                set endstr = "Option -nocor obsolete. See -help for important details."
+                goto L_BAD_END
 
-       # ----------------------------------------------------------
-       # usage : -nocor
-       case "-nocor":
-         set endstr = "Option -nocor obsolete. See -help for important details."
-         goto L_BAD_END
-      
-         #set neuro_ori = -1
-         #set sfieldname = 'SurfaceName'
-         #set sex = 'gii'
-         #set stp = 'GIFTI'
-      
-       breaksw
+                #set neuro_ori = -1
+                #set sfieldname = 'SurfaceName'
+                #set sex = 'gii'
+                #set stp = 'GIFTI'
 
-       # ----------------------------------------------------------
-       # usage : -GNIFTI
-       case "-GNIFTI":
-       case "-NIFTI":
-       case "-GIFTI":
-       case "-IFTI":
+            breaksw
 
-         # do not allow overlapping options    15 Jun 2017 [rickr]
-         if ( $neuro_ori != 0 ) then
-            echo '** cannot use any -*IFTI options with -neuro'
-            goto L_BAD_END
-         endif
+            # ----------------------------------------------------------
+            # usage : -GNIFTI
+            case "-GNIFTI":
+            case "-NIFTI":
+            case "-GIFTI":
+            case "-IFTI":
 
-         set neuro_ori = -1
-         set sfieldname = 'SurfaceName'
-         set sex = 'gii'
-         set stp = 'GIFTI'
-         set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
-         
-       breaksw
+                # do not allow overlapping options    15 Jun 2017 [rickr]
+                if ( $neuro_ori != 0 ) then
+                    echo '** cannot use any -*IFTI options with -neuro'
+                    goto L_BAD_END
+                endif
 
-       # ----------------------------------------------------------
-       # usage : -set_space SPACE
-       case "-set_space":
+                set neuro_ori = -1
+                set sfieldname = 'SurfaceName'
+                set sex = 'gii'
+                set stp = 'GIFTI'
+                set USING_NIFTI = 1      # [PT: Feb,2017] really useful...
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -set_space SPACE"
-             goto L_BAD_END
-         endif
+            breaksw
 
-         @ count ++
-         set set_space  = $argv[$count]
+            # ----------------------------------------------------------
+            # usage : -set_space SPACE
+            case "-set_space":
 
-       breaksw
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -set_space SPACE"
+                    goto L_BAD_END
+                endif
 
-       # ----------------------------------------------------------
-       # usage : -neuro
-       case "-use_mgz":
+                @ count ++
+                set set_space  = $argv[$count]
 
-         set use_mgz = 1
+            breaksw
 
-       breaksw
+            # ----------------------------------------------------------
+            # usage : -neuro
+            case "-use_mgz":
 
-       # ----------------------------------------------------------
-       # usage : -debug DEBUG_LEVEL
-       case "-debug":
+                set use_mgz = 1
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -debug DEBUG_LEVEL"
-             goto L_BAD_END
-         endif
+            breaksw
 
-         @ count ++
-         set debug = $argv[$count]
+            # ----------------------------------------------------------
+            # usage : -debug DEBUG_LEVEL
+            case "-debug":
 
-         if ( "$debug" > 2 ) set debug = 2
-         if ( "$debug" < 0 ) set debug = 0
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -debug DEBUG_LEVEL"
+                    goto L_BAD_END
+                endif
 
-       breaksw
+                @ count ++
+                set debug = $argv[$count]
 
-       # ----------------------------------------------------------
-       # usage : -inflate VAL
-       case "-inflate":
+                if ( "$debug" > 2 ) set debug = 2
+                if ( "$debug" < 0 ) set debug = 0
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -inflate INF"
-             goto L_BAD_END
-         endif
+            breaksw
 
-         @ count ++
-          set ff = 0
-          foreach inf ($inflates)
-            if ($inf == "$argv[$count]") set ff = 1
-          end
-          if ($ff == 0) set inflates = ($inflates $argv[$count])
+            # ----------------------------------------------------------
+            # usage : -inflate VAL
+            case "-inflate":
 
-       breaksw
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -inflate INF"
+                    goto L_BAD_END
+                endif
+
+                @ count ++
+                set ff = 0
+                foreach inf ($inflates)
+                    if ($inf == "$argv[$count]") set ff = 1
+                end
+                if ($ff == 0) set inflates = ($inflates $argv[$count])
+
+            breaksw
 
 
-       # ----------------------------------------------------------
-       # usage : -ld VAL
-       case "-ld":
+            # ----------------------------------------------------------
+            # usage : -ld VAL
+            case "-ld":
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -ld LD"
-             goto L_BAD_END
-         endif
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -ld LD"
+                    goto L_BAD_END
+                endif
 
-         @ count ++
-         set ldu = ($ldu $argv[$count])
+                @ count ++
+                set ldu = ($ldu $argv[$count])
 
-       breaksw
+            breaksw
 
-       # ----------------------------------------------------------
-       # usage : -ldpref LDpref
-       case "-ldpref":
+            # ----------------------------------------------------------
+            # usage : -ldpref LDpref
+            case "-ldpref":
 
-         if ( $count >= $args ) then
-             set endstr = "arg usage: -ldpref LDpref"
-             goto L_BAD_END
-         endif
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -ldpref LDpref"
+                    goto L_BAD_END
+                endif
 
-         @ count ++
-         set ldpref = ($ldpref $argv[$count])
+                @ count ++
+                set ldpref = ($ldpref $argv[$count])
 
-       breaksw
+            breaksw
 
-       # ----------------------------------------------------------
-       # usage : -no_ld
-       case "-no_ld":
+            # ----------------------------------------------------------
+            # usage : -no_ld
+            case "-no_ld":
 
-         set ldlist = ()
+                set ldlist = ()
 
-       breaksw
+            breaksw
 
-      
-       # ----------------------------------------------------------
-       # bad argument
-       default:
 
-         set endstr = "invalid option: '$argv[$count]'"
-         apsearch -popt `basename $0` -word $argv[$count]
-         goto L_BAD_END
+            # ----------------------------------------------------------
+            # bad argument
+            default:
 
-       breaksw
-      endsw
+                set endstr = "invalid option: '$argv[$count]'"
+                apsearch -popt `basename $0` -word $argv[$count]
+                goto L_BAD_END
 
-      @ count ++
+            breaksw
+        endsw
+
+        @ count ++
     end
-
+    
     if ( $subj_id == "" ) then
-       set endstr = "missing required option: -sid"
-       goto L_BAD_END
+        set endstr = "missing required option: -sid"
+        goto L_BAD_END
     endif
 
     if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
@@ -350,22 +352,22 @@ L_PARSE_COMMAND:
     if ( $debug > 1 ) set echo
     if ( $#ldu ) set ldlist = ($ldu)
     if ($#ldpref == 0 && $#ldlist != 0) then
-       set ldpref = ()
-       foreach lldd ($ldlist)
-          set ldpref = ($ldpref std.$lldd.)
-       end
+        set ldpref = ()
+        foreach lldd ($ldlist)
+            set ldpref = ($ldpref std.$lldd.)
+        end
     endif
     if ($#ldpref != 0 && $#ldpref != $#ldlist) then
-      set endstr = "Not enough -ldpref options for $#ldlist values"  
-      goto L_BAD_END
+        set endstr = "Not enough -ldpref options for $#ldlist values"  
+        goto L_BAD_END
     endif
 
     set spec_files   = ({$subj_id}_lh.spec {$subj_id}_rh.spec )
     set afni_prefix  = ${subj_id}_SurfVol
     if ( $neuro_ori != -1 ) then
-       set afni_dataset = $afni_prefix+orig
+        set afni_dataset = $afni_prefix+orig
     else
-       set afni_dataset = $afni_prefix 
+        set afni_dataset = $afni_prefix 
     endif
     # set and go to the base directory
     cd $fs_dir
@@ -386,32 +388,32 @@ L_VERIFY_PROGRAMS:
     # check that programs are in the path
     foreach test_command ( afni to3d suma mris_convert )
 
-       (which $test_command) >& /dev/null
+        (which $test_command) >& /dev/null
 
-       if ( $status ) then
-          echo "program not found in path: $test_command"
-          @ failed_pgms ++
-       endif
+        if ( $status ) then
+            echo "program not found in path: $test_command"
+            @ failed_pgms ++
+        endif
     end
 
     if ( $failed_pgms ) then
-       set endstr = "$failed_pgms program(s) not found"
-       goto L_BAD_END
+        set endstr = "$failed_pgms program(s) not found"
+        goto L_BAD_END
     endif
 
     # check that a couple of commands actually work
     foreach test_command ( afni mris_convert )
-       $test_command --version >& /dev/null
+        $test_command --version >& /dev/null
 
-       if ( $status ) then
-          echo "program failure: $test_command"
-          @ failed_pgms ++
-       endif
+        if ( $status ) then
+            echo "program failure: $test_command"
+            @ failed_pgms ++
+        endif
     end
 
     if ( $failed_pgms ) then
-       set endstr = "$failed_pgms program(s) not working correctly"
-       goto L_BAD_END
+        set endstr = "$failed_pgms program(s) not working correctly"
+        goto L_BAD_END
     endif
 
     if ( $debug ) echo "-- all programs found"
@@ -428,45 +430,45 @@ L_SET_SURF_DIRS:
     # find surf directory
 
     if ( -d surf ) then
-   set surf_dir = ./surf
-   set label_dir = ./label
+        set surf_dir = ./surf
+        set label_dir = ./label
     else if ( $cwd:t == surf ) then
-   set surf_dir = .
-   set label_dir = ../label
+        set surf_dir = .
+        set label_dir = ../label
     else if ( -d ../surf ) then
-   set surf_dir = ../surf
-   set label_dir = ../label
+        set surf_dir = ../surf
+        set label_dir = ../label
     else
-   # this is a general failure case, even if we find one
-   set surf_dirs = ( `find . -maxdepth 4 -type d -name surf -print` )
+        # this is a general failure case, even if we find one
+        set surf_dirs = ( `find . -maxdepth 4 -type d -name surf -print` )
    
-   if ( $#surf_dirs == 0 ) then
-       echo "failure: cannot find directory 'surf' under '$fs_dir'"
-       echo "(subject to a maximum search depth of 4 subdirectories)"
+        if ( $#surf_dirs == 0 ) then
+            echo "failure: cannot find directory 'surf' under '$fs_dir'"
+            echo "(subject to a maximum search depth of 4 subdirectories)"
 
-       set endstr = ""
-   else if ( $#surf_dirs == 1 ) then
-       echo "surf directory found at '$surf_dirs[1]'"
-       set endstr = "consider running program from '$surf_dirs[1]:h'"
-   else
-       echo "multiple surf directories found:"
-       set count = 1
-       while ( $count <= $#surf_dirs )
-      echo "     $surf_dirs[$count]"
-      @ count ++
-       end
+            set endstr = ""
+        else if ( $#surf_dirs == 1 ) then
+            echo "surf directory found at '$surf_dirs[1]'"
+            set endstr = "consider running program from '$surf_dirs[1]:h'"
+        else
+            echo "multiple surf directories found:"
+            set count = 1
+            while ( $count <= $#surf_dirs )
+                echo "     $surf_dirs[$count]"
+                @ count ++
+            end
 
-       set endstr = ( "consider running program from one of the" \
-            "surf directories" )
-   endif
+            set endstr = ( "consider running program from one of the" \
+                           "surf directories" )
+        endif
 
-   goto L_BAD_END
+        goto L_BAD_END
     endif
 
     # verify surf dir permissions
     if ( ! -w $surf_dir ) then
-   set endstr = "failure: no write permissions for directory '$surf_dir'"
-   goto L_BAD_END
+        set endstr = "failure: no write permissions for directory '$surf_dir'"
+        goto L_BAD_END
     endif
 
     if ( $debug ) echo "-- using surf directory '$surf_dir'..."
@@ -474,56 +476,56 @@ L_SET_SURF_DIRS:
     # now check for orig dir
 
     set orig_dir = ""
-    foreach test_dir (  $surf_dir/orig      \
-         $surf_dir/mri/orig   \
-         orig         \
-         mri/orig      \
-         ../orig         \
-         ../mri/orig )
-   if ( -d $test_dir ) then
-       set orig_dir = $test_dir
-       break
-   endif
+    foreach test_dir (  $surf_dir/orig       \
+                        $surf_dir/mri/orig   \
+                        orig                 \
+                        mri/orig             \
+                        ../orig              \
+                        ../mri/orig )
+        if ( -d $test_dir ) then
+            set orig_dir = $test_dir
+            break
+        endif
     end
 
     set orig_mgz = ""
-    foreach test_mgz (  $surf_dir/orig.mgz      \
-         $surf_dir/mri/orig.mgz   \
-         orig.mgz         \
-         mri/orig.mgz      \
-         ../orig.mgz         \
-         ../mri/orig.mgz )
-   if ( -f $test_mgz ) then
-       set orig_mgz = $test_mgz
-       break
-   endif
+    foreach test_mgz (  $surf_dir/orig.mgz       \
+                        $surf_dir/mri/orig.mgz   \
+                        orig.mgz                 \
+                        mri/orig.mgz             \
+                        ../orig.mgz              \
+                        ../mri/orig.mgz )
+        if ( -f $test_mgz ) then
+            set orig_mgz = $test_mgz
+            break
+        endif
     end
     
-   set other_mgz = ()
-   set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aparc.a2009s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
-   foreach candidate ($other_candidates)
-      foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
-         if ( -f $dcand$candidate.mgz ) then 
-            set other_mgz = ($other_mgz $dcand$candidate.mgz)
-            break
-         endif
-      end
-   end
+    set other_mgz = ()
+    set other_candidates = ( T1 aparc+aseg aparc.a2005s+aseg aparc.a2009s+aseg aseg.auto aseg brain.finalsurfs brain brainmask.auto brainmask norm nu nu_noneck lh.ribbon rh.ribbon wm.asegedit wm wm.seg )
+    foreach candidate ($other_candidates)
+        foreach dcand ($surf_dir/ $surf_dir/mri/ ./ mri/ ../ ../mri/ )
+            if ( -f $dcand$candidate.mgz ) then 
+                set other_mgz = ($other_mgz $dcand$candidate.mgz)
+                break
+            endif
+        end
+    end
    
     if ( $orig_dir == "" && $orig_mgz == "") then
-   set endstr = "failure: cannot find directory 'orig' or file 'orig.mgz' under $fs_dir"
-   goto L_BAD_END
+        set endstr = "failure: cannot find directory 'orig' or file 'orig.mgz' under $fs_dir"
+        goto L_BAD_END
     endif
 
     if ( $orig_dir == "" ) then
-   set endstr = "failure: script expects an 'orig' directory even if it is empty."
-   goto L_BAD_END 
+        set endstr = "failure: script expects an 'orig' directory even if it is empty."
+        goto L_BAD_END 
     endif
     
     # verify orig dir permissions
     if ( ! -w $orig_dir ) then
-   set endstr = "failure: no write permissions for directory '$orig_dir'"
-   goto L_BAD_END
+        set endstr = "failure: no write permissions for directory '$orig_dir'"
+        goto L_BAD_END
     endif
 
     if ( $debug ) echo "-- using orig directory '$orig_dir'..."
@@ -533,14 +535,14 @@ L_SET_SURF_DIRS:
     set suma_dir = ./SUMA
 
     if ( -d $suma_dir ) then
-   if ( $debug ) echo "-- $suma_dir already exists, continuing..."
+        if ( $debug ) echo "-- $suma_dir already exists, continuing..."
     else
-   echo "++ creating directory '$suma_dir' for results..."
-   mkdir $suma_dir
-   if ( $status ) then
-       set endstr = "failure: cannot create directory '$suma_dir'"
-       goto L_BAD_END
-   endif
+        echo "++ creating directory '$suma_dir' for results..."
+        mkdir $suma_dir
+        if ( $status ) then
+            set endstr = "failure: cannot create directory '$suma_dir'"
+        goto L_BAD_END
+        endif
     endif
 
 goto L_SET_SURF_DIRS_DONE
@@ -553,31 +555,31 @@ L_CHECK_FOR_OVERWRITE:
 
     set test_failures = 0
 
-    foreach test_file (   $suma_dir/$spec_files[1]   \
-         $suma_dir/$spec_files[2]   \
-         $suma_dir/$afni_dataset.HEAD   \
-         $suma_dir/$afni_dataset.BRIK   \
-         $orig_dir/$afni_dataset.HEAD   \
-         $orig_dir/$afni_dataset.BRIK   \
-         $orig_dir/$afni_prefix'+orig.HEAD' \
-         $orig_dir/$afni_prefix'+orig.BRIK' \
-         $suma_dir/$afni_prefix'+orig.HEAD' \
-         $suma_dir/$afni_prefix'+orig.BRIK' \
-         $suma_dir/$afni_prefix'.nii' \
-         $suma_dir/$afni_prefix'.nii.gz')
-   if ( -f $test_file ) then
-       if ( $test_failures == 0 ) then
-      echo "failure: will not overwrite files: "
-      set test_failures = 1
-       endif
+    foreach test_file ( $suma_dir/$spec_files[1]           \
+                        $suma_dir/$spec_files[2]           \
+                        $suma_dir/$afni_dataset.HEAD       \
+                        $suma_dir/$afni_dataset.BRIK       \
+                        $orig_dir/$afni_dataset.HEAD       \
+                        $orig_dir/$afni_dataset.BRIK       \
+                        $orig_dir/$afni_prefix'+orig.HEAD' \
+                        $orig_dir/$afni_prefix'+orig.BRIK' \
+                        $suma_dir/$afni_prefix'+orig.HEAD' \
+                        $suma_dir/$afni_prefix'+orig.BRIK' \
+                        $suma_dir/$afni_prefix'.nii'       \
+                        $suma_dir/$afni_prefix'.nii.gz')
+        if ( -f $test_file ) then
+            if ( $test_failures == 0 ) then
+                echo "failure: will not overwrite files: "
+                set test_failures = 1
+            endif
 
-       echo "        '$test_file'"
-   endif
+            echo "        '$test_file'"
+        endif
     end
 
     if ( $test_failures ) then
         set endstr = "please remove these files if you want to rerun the script."
-   goto L_BAD_END
+        goto L_BAD_END
     endif
 
 goto L_CHECK_FOR_OVERWRITE_DONE
@@ -593,26 +595,26 @@ L_LOOK_FOR_SURF:
     set list_rh = "X"
 
     foreach attrib ( $surf_attribs )
-   if ( -f lh.$attrib ) set list_lh = ( $list_lh lh.$attrib )
-   if ( -f rh.$attrib ) set list_rh = ( $list_rh rh.$attrib )
+        if ( -f lh.$attrib ) set list_lh = ( $list_lh lh.$attrib )
+        if ( -f rh.$attrib ) set list_rh = ( $list_rh rh.$attrib )
     end
 
     set list_lh = ( $list_lh[2-] )   # now remove the leading "X"
     set list_rh = ( $list_rh[2-] )
 
     if ( $#list_lh == 0 && $#list_rh == 0 ) then
-   set endstr = "found no LH or RH surface files under '$surf_dir'"
-   goto L_BAD_END
+        set endstr = "found no LH or RH surface files under '$surf_dir'"
+        goto L_BAD_END
     endif
 
     if ( $#list_lh > 0 ) then
-   echo "-- found $#list_lh LH surfaces"
-   if ( $debug ) echo "    --" $list_lh
+        echo "-- found $#list_lh LH surfaces"
+        if ( $debug ) echo "    --" $list_lh
     endif
 
     if ( $#list_rh > 0 ) then
-   echo "-- found $#list_rh RH surfaces"
-   if ( $debug ) echo "    --" $list_rh
+        echo "-- found $#list_rh RH surfaces"
+        if ( $debug ) echo "    --" $list_rh
     endif
 
     cd $start_dir
@@ -627,155 +629,159 @@ L_CONVERT_SURFACES:
 
     cd $surf_dir
     foreach surf ( $list_lh $list_rh )
-   # run mris_convert and verify
-   if ( $surf =~ *patch* || $surf =~ *.flat) then
-       echo  "-- running 'mris_convert -p $surf $surf.asc'"
-       mris_convert -p $surf $surf.asc
-   else
-       echo "-- running 'mris_convert $surf $surf.asc'"
-       mris_convert $surf $surf.asc >& ___out
-       tail ___out ; \rm -f ___out
-   endif
+        # run mris_convert and verify
+        if ( $surf =~ *patch* || $surf =~ *.flat) then
+            echo  "-- running 'mris_convert -p $surf $surf.asc'"
+            mris_convert -p $surf $surf.asc
+        else
+            echo "-- running 'mris_convert $surf $surf.asc'"
+            mris_convert $surf $surf.asc >& ___out
+            tail ___out ; \rm -f ___out
+        endif
 
-   if ( $neuro_ori == -1 ) then
-      if ( ! -f xmatras.1D ) then
-         set c_ras = (`mri_info --cras --ras_good $start_dir/$orig_mgz`)
-         set minus = `ccalc "$c_ras[3]*-1"` 
-         echo 1 0 0 $c_ras[1] 0 1 0 $c_ras[2] 0 0 1 $minus > xmatras.1D
-      endif
-      #If using new conversion, change surfaces to gifti with proper
-      #coordinate shift.
-      if ( $surf =~ *.white* ||     \
-           $surf =~ *.smoothwm* ||  \
-           $surf =~ *.pial*) then
-        # hmmm, identical commands suggest the second -ixmat_1D does not belong
-        # (currently left for future bickering)
-        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
-      else
-        ConvertSurface -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                       -ixmat_1D xmatras.1D -overwrite -o $surf.gii
-      endif
-   endif
+        if ( $neuro_ori == -1 ) then
+            if ( ! -f xmatras.1D ) then
+                set c_ras = (`mri_info --cras --ras_good $start_dir/$orig_mgz`)
+                set minus = `ccalc "$c_ras[3]*-1"` 
+                echo 1 0 0 $c_ras[1] 0 1 0 $c_ras[2] 0 0 1 $minus > xmatras.1D
+            endif
+            #If using new conversion, change surfaces to gifti with proper
+            #coordinate shift.
+            if ( $surf =~ *.white* ||     \
+                 $surf =~ *.smoothwm* ||  \
+                 $surf =~ *.pial*) then
+                # hmmm, identical commands suggest the second -ixmat_1D does not belong
+                # (currently left for future bickering)
+                ConvertSurface \
+                        -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+            else
+                ConvertSurface \
+                        -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
+                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+            endif
+        endif
 
-   if ( ! -f $surf.${sex} ) then
-       echo "failure: could not create surface $surf.${sex}"
+        if ( ! -f $surf.${sex} ) then
+            echo "failure: could not create surface $surf.${sex}"
 
-       if ( ! -w . ) then
-      set endstr = "--> no write permissions in this directory"
-       else
-      set endstr = "--> is your FreeSurfer license installed?"
-       endif
+            if ( ! -w . ) then
+                set endstr = "--> no write permissions in this directory"
+            else
+                set endstr = "--> is your FreeSurfer license installed?"
+            endif
 
-       goto L_BAD_END
-   endif
+            goto L_BAD_END
+        endif
 
-   if ( $debug ) then
-       echo "++ $surf.${sex} created"
-       if ( -f $start_dir/$suma_dir/$surf.${sex} ) then
-      echo "++ overwriting '$suma_dir/$surf.${sex}'"
-       endif
-   endif
+        if ( $debug ) then
+            echo "++ $surf.${sex} created"
+            if ( -f $start_dir/$suma_dir/$surf.${sex} ) then
+                echo "++ overwriting '$suma_dir/$surf.${sex}'"
+            endif
+        endif
    
-   #tmp fix for rh.lh.sphere.reg.gii side 
-   if ( "$surf.${sex}" == rh.lh.sphere.reg.gii) then
-      echo "++ Fixing side for rh.lh.sphere.reg.gii"
-      sed 's:CortexLeft:CortexRight:' rh.lh.sphere.reg.gii > __tmpfix
-      if ($status) then
-         echo "** Failed to fix side for rh.lh.sphere.reg.gii"
-      else 
-         mv __tmpfix rh.lh.sphere.reg.gii
-      endif 
-   endif
+        #tmp fix for rh.lh.sphere.reg.gii side 
+        if ( "$surf.${sex}" == rh.lh.sphere.reg.gii) then
+            echo "++ Fixing side for rh.lh.sphere.reg.gii"
+            sed 's:CortexLeft:CortexRight:' rh.lh.sphere.reg.gii > __tmpfix
+            if ($status) then
+                echo "** Failed to fix side for rh.lh.sphere.reg.gii"
+            else 
+                mv __tmpfix rh.lh.sphere.reg.gii
+            endif 
+        endif
    
-   \mv -f $surf.${sex} $start_dir/$suma_dir   # how barbaric!
+        \mv -f $surf.${sex} $start_dir/$suma_dir   # how barbaric!
 
-   if ( $status ) then
-       set endstr = ( "failure: cannot write"   \
-            "'$suma_dir/$surf.${sex}'" )
-       goto L_BAD_END
-   endif
-    end
+        if ( $status ) then
+            set endstr = ( "failure: cannot write"   \
+                           "'$suma_dir/$surf.${sex}'" )
+            goto L_BAD_END
+        endif
+    end # foreach surf ...
 
     cd $start_dir
 
-   #and do the labels
-   if ( -d $label_dir) then
-      cd $label_dir
-      foreach hand ( lh rh )
-        if ( -f ${hand}.aparc.a2005s.annot ) then
-          FSread_annot   -input ${hand}.aparc.a2005s.annot \
-            -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.roi \
-            -dset    $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.niml.dset \
-            -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
-        endif
+    #and do the labels
+    if ( -d $label_dir) then
+        cd $label_dir
+        foreach hand ( lh rh )
+            if ( -f ${hand}.aparc.a2005s.annot ) then
+                FSread_annot   -input ${hand}.aparc.a2005s.annot \
+                    -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.roi \
+                    -dset    $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.niml.dset \
+                    -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
+            endif
      
-        if ( -f ${hand}.aparc.a2009s.annot ) then
-          FSread_annot   -input ${hand}.aparc.a2009s.annot \
-            -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.roi \
-            -dset    $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.niml.dset \
-            -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.cmap 
-        endif
+            if ( -f ${hand}.aparc.a2009s.annot ) then
+                FSread_annot   -input ${hand}.aparc.a2009s.annot \
+                    -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.roi \
+                    -dset    $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.niml.dset \
+                    -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.cmap 
+            endif
 
-        foreach pp (prob predict)
-           if ( -f ${hand}.v1.${pp}.label ) then
-              sed '1,2s/^/#/' ${hand}.v1.${pp}.label > ${hand}.v1.${pp}.label.1D
-              ConvertDset    -input ${hand}.v1.${pp}.label.1D'[$]' \
-                             -node_index_1D ${hand}.v1.${pp}.label.1D'[0]' \
-                             -o_niml \
-                             -prefix $start_dir/$suma_dir/${hand}.v1.${pp} 
-              \rm -f ${hand}.v1.${pp}.label.1D
-              cd $start_dir/$suma_dir/
-              3drefit -sublabel 0 v1_${pp} ${hand}.v1.${pp}.niml.dset
-              cd -
-           endif
-        end
+            foreach pp (prob predict)
+                if ( -f ${hand}.v1.${pp}.label ) then
+                    sed '1,2s/^/#/' ${hand}.v1.${pp}.label > ${hand}.v1.${pp}.label.1D
+                    ConvertDset   \
+                            -input ${hand}.v1.${pp}.label.1D'[$]' \
+                            -node_index_1D ${hand}.v1.${pp}.label.1D'[0]' \
+                            -o_niml \
+                            -prefix $start_dir/$suma_dir/${hand}.v1.${pp} 
+                    \rm -f ${hand}.v1.${pp}.label.1D
+                    cd $start_dir/$suma_dir/
+                    3drefit -sublabel 0 v1_${pp} ${hand}.v1.${pp}.niml.dset
+                    cd -
+                endif
+            end
      
-      end
-      cd $start_dir
-   endif
+        end
+        cd $start_dir
+    endif
    
-   #and the thickness data
-   cd $surf_dir
-   foreach hand ( lh rh )
-      foreach tp ($fsdsets)
-      if ( -f ${hand}.${tp} ) then
-         mris_convert -c ${hand}.${tp} ${hand}.white ${hand}.${tp}.gii
-         mv    ${hand}.${tp}.gii   \
-               $start_dir/$suma_dir/${hand}.${tp}.gii.dset
-      endif
-      end
-   end
-   cd $start_dir
+    #and the thickness data
+    cd $surf_dir
+    foreach hand ( lh rh )
+        foreach tp ($fsdsets)
+            if ( -f ${hand}.${tp} ) then
+                mris_convert -c ${hand}.${tp} ${hand}.white ${hand}.${tp}.gii
+                mv  ${hand}.${tp}.gii   \
+                    $start_dir/$suma_dir/${hand}.${tp}.gii.dset
+            endif
+        end
+    end
+    cd $start_dir
    
-   #and make semi inflated surfaces
-   cd $suma_dir
-   if ($#inflates > 0) then
-      foreach inf ($inflates)
-         set surf_attribs = ($surf_attribs inf_${inf})
-      end
-      foreach hand ( lh rh )
-         foreach inf ($inflates) 
-            if ( -f ${hand}.white.asc ) then
-               set iis = ${hand}.white.asc
-            else if ( -f ${hand}.white.gii ) then
-               set iis = ${hand}.white.gii
-            else
-               set endstr = ( "failure: Could not find white for inflation" )
-               goto L_BAD_END
-            endif
-            SurfSmooth  -i ${iis}    -met NN_geom \
-                        -Niter $inf  -o_gii   -surf_out ${hand}.inf_${inf} \
-                        -match_vol 0.01
-            if ( $hand == lh ) then
-               set list_lh = ($list_lh ${hand}.inf_${inf})
-            else
-               set list_rh = ($list_rh ${hand}.inf_${inf})
-            endif
-         end
-      end
-   endif
-   cd $start_dir
+    #and make semi inflated surfaces
+    cd $suma_dir
+    if ($#inflates > 0) then
+        foreach inf ($inflates)
+            set surf_attribs = ($surf_attribs inf_${inf})
+        end
+        foreach hand ( lh rh )
+            foreach inf ($inflates) 
+                if ( -f ${hand}.white.asc ) then
+                    set iis = ${hand}.white.asc
+                else if ( -f ${hand}.white.gii ) then
+                    set iis = ${hand}.white.gii
+                else
+                    set endstr = ( "failure: Could not find white for inflation" )
+                    goto L_BAD_END
+                endif
+                SurfSmooth  \
+                    -i ${iis}    -met NN_geom \
+                    -Niter $inf  -o_gii   -surf_out ${hand}.inf_${inf} \
+                    -match_vol 0.01
+                if ( $hand == lh ) then
+                    set list_lh = ($list_lh ${hand}.inf_${inf})
+                else
+                    set list_rh = ($list_rh ${hand}.inf_${inf})
+                endif
+            end
+        end
+    endif
+    cd $start_dir
    
 goto L_CONVERT_SURFACES_DONE
 
@@ -788,207 +794,206 @@ L_CREATE_SPEC:
     cd $suma_dir
 
     foreach hand ( lh rh )
-    if ( $hand == lh ) then
-       set list_cur = ( $list_lh )      # get a current list copy
-   else
-       set list_cur = ( $list_rh )
-   endif
+        if ( $hand == lh ) then
+            set list_cur = ( $list_lh )      # get a current list copy
+        else
+            set list_cur = ( $list_rh )
+        endif
 
-   set spec_file = {$subj_id}_$hand.spec
+        set spec_file = {$subj_id}_$hand.spec
 
-   if ( $debug ) echo "++ creating spec file '$spec_file'..."
+        if ( $debug ) echo "++ creating spec file '$spec_file'..."
 
-   (echo "# delimits comments" > $spec_file) >& /dev/null
+        (echo "# delimits comments" > $spec_file) >& /dev/null
 
-   if ( $status ) then
-       set endstr = ( "failure: no permissions to create spec file" \
-          "'$suma_dir/$spec_file'" )
-       goto L_BAD_END
-   endif
+        if ( $status ) then
+            set endstr = ( "failure: no permissions to create spec file" \
+            "'$suma_dir/$spec_file'" )
+            goto L_BAD_END
+        endif
 
-   # note user, date, machine, pwd, command line
-   echo ""                     >> $spec_file
-   echo "# Creation information:"            >> $spec_file
-   echo "#     user    : $user"            >> $spec_file
-   echo "#     date    : `date`"            >> $spec_file
-   echo "#     machine : `uname -n`"         >> $spec_file
-   echo "#     pwd     : $cwd"            >> $spec_file
-   echo "#     command : $prog_name $argv"         >> $spec_file
-   echo ""                     >> $spec_file
+        # note user, date, machine, pwd, command line
+        echo ""                     >> $spec_file
+        echo "# Creation information:"            >> $spec_file
+        echo "#     user    : $user"            >> $spec_file
+        echo "#     date    : `date`"            >> $spec_file
+        echo "#     machine : `uname -n`"         >> $spec_file
+        echo "#     pwd     : $cwd"            >> $spec_file
+        echo "#     command : $prog_name $argv"         >> $spec_file
+        echo ""                     >> $spec_file
    
-   # define the group
-   echo "# define the group"            >> $spec_file
-   echo "        Group = $subj_id"            >> $spec_file
-   echo ""                     >> $spec_file
+        # define the group
+        echo "# define the group"            >> $spec_file
+        echo "        Group = $subj_id"            >> $spec_file
+        echo ""                     >> $spec_file
 
-   # define the states
-   echo "# define various States"            >> $spec_file
-   foreach attrib ( $surf_attribs )
-       echo "        StateDef = $attrib"         >> $spec_file
-   end
-   echo ""                     >> $spec_file
+        # define the states
+        echo "# define various States"            >> $spec_file
+        foreach attrib ( $surf_attribs )
+            echo "        StateDef = $attrib"         >> $spec_file
+        end
+        echo ""                     >> $spec_file
 
-   foreach surf ( $list_cur )
-       set s_head = `echo $surf | cut -d. -f1`   # up to first '.'
-       set s_state = `echo $surf | cut -d. -f2-`   # after first '.'
-
-      set label_dset = ""      
-       # check for SAME mapping ref
-       if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
-      set map_ref = SAME
-         if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
-      set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
-         endif
-         if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
-      set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
-         endif
-       else
-      set map_ref = $s_head.smoothwm.${sex}
-       endif
+        foreach surf ( $list_cur )
+            set s_head = `echo $surf | cut -d. -f1`   # up to first '.'
+            set s_state = `echo $surf | cut -d. -f2-`   # after first '.'
+            
+            set label_dset = ""      
+            # check for SAME mapping ref
+            if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
+                set map_ref = SAME
+                if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+                endif
+                if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
+                endif
+            else
+                set map_ref = $s_head.smoothwm.${sex}
+            endif
        
-       # check for SAME mapping ref case for pial-outer
-       if ( "$surf.${sex}" == "$s_head.pial-outer-smoothed.${sex}" ) then
-      set map_ref = SAME
-       else
-      #abide by previous setting
-       endif
+            # check for SAME mapping ref case for pial-outer
+            if ( "$surf.${sex}" == "$s_head.pial-outer-smoothed.${sex}" ) then
+                set map_ref = SAME
+            else
+                #abide by previous setting
+            endif
        
-       # EmbedDimension is 2 for .flat surfaces, else 3
-       if ( $surf =~ *.flat* ) then
-      set embed_ref = 2
-       else
-      set embed_ref = 3
-       endif
+            # EmbedDimension is 2 for .flat surfaces, else 3
+            if ( $surf =~ *.flat* ) then
+                set embed_ref = 2
+            else
+                set embed_ref = 3
+            endif
 
-       # Anatomical flag
-       if ( $surf =~ *.white* ||\
-            $surf =~ *.smoothwm* ||\
-            $surf =~ *.pial*) then
-      set anatomical = Y
-       else
-      set anatomical = N
-       endif
+            # Anatomical flag
+            if ( $surf =~ *.white* ||\
+                 $surf =~ *.smoothwm* ||\
+                 $surf =~ *.pial*) then
+                set anatomical = Y
+            else
+                set anatomical = N
+            endif
        
-       echo "NewSurface"               >> $spec_file
-       echo "        SurfaceFormat = ASCII"      >> $spec_file
-       echo "        SurfaceType = ${stp}"      >> $spec_file
-       echo "        ${sfieldname} = $surf.${sex}"   >> $spec_file
-       echo "        LocalDomainParent = $map_ref"      >> $spec_file
-       echo "        SurfaceState = $s_state"      >> $spec_file
-       echo "        EmbedDimension = $embed_ref"      >> $spec_file
-       echo "        Anatomical = $anatomical" >> $spec_file
-         if ("$label_dset" != "") \
-       echo "        LabelDset = $label_dset" >> $spec_file
-       echo ""                  >> $spec_file
-   end
+            echo "NewSurface"               >> $spec_file
+            echo "        SurfaceFormat = ASCII"      >> $spec_file
+            echo "        SurfaceType = ${stp}"      >> $spec_file
+            echo "        ${sfieldname} = $surf.${sex}"   >> $spec_file
+            echo "        LocalDomainParent = $map_ref"      >> $spec_file
+            echo "        SurfaceState = $s_state"      >> $spec_file
+            echo "        EmbedDimension = $embed_ref"      >> $spec_file
+            echo "        Anatomical = $anatomical" >> $spec_file
+            if ("$label_dset" != "") \
+                echo "        LabelDset = $label_dset" >> $spec_file
+                echo ""                  >> $spec_file
+        end # foreach surf
 
-   echo "++ created spec file'$suma_dir/$spec_file'"
+        echo "++ created spec file'$suma_dir/$spec_file'"
     end    # foreach hand
 
-   # Create both.spec file
-   set spec_file = {$subj_id}_both.spec
+    # Create both.spec file
+    set spec_file = {$subj_id}_both.spec
 
-   if ( $debug ) echo "++ creating spec file '$spec_file'..."
+    if ( $debug ) echo "++ creating spec file '$spec_file'..."
 
-   (echo "# delimits comments" > $spec_file) >& /dev/null
+    (echo "# delimits comments" > $spec_file) >& /dev/null
 
-   if ( $status ) then
-       set endstr = ( "failure: no permissions to create spec file" \
-          "'$suma_dir/$spec_file'" )
-       goto L_BAD_END
-   endif
+    if ( $status ) then
+        set endstr = ( "failure: no permissions to create spec file" \
+                       "'$suma_dir/$spec_file'" )
+        goto L_BAD_END
+    endif
 
-   # note user, date, machine, pwd, command line
-   echo ""                     >> $spec_file
-   echo "# Creation information:"            >> $spec_file
-   echo "#     user    : $user"            >> $spec_file
-   echo "#     date    : `date`"            >> $spec_file
-   echo "#     machine : `uname -n`"         >> $spec_file
-   echo "#     pwd     : $cwd"            >> $spec_file
-   echo "#     command : $prog_name $argv"         >> $spec_file
-   echo ""                     >> $spec_file
+    # note user, date, machine, pwd, command line
+    echo ""                     >> $spec_file
+    echo "# Creation information:"            >> $spec_file
+    echo "#     user    : $user"            >> $spec_file
+    echo "#     date    : `date`"            >> $spec_file
+    echo "#     machine : `uname -n`"         >> $spec_file
+    echo "#     pwd     : $cwd"            >> $spec_file
+    echo "#     command : $prog_name $argv"         >> $spec_file
+    echo ""                     >> $spec_file
    
-   # define the group
-   echo "# define the group"            >> $spec_file
-   echo "        Group = $subj_id"            >> $spec_file
-   echo ""                     >> $spec_file
+    # define the group
+    echo "# define the group"            >> $spec_file
+    echo "        Group = $subj_id"            >> $spec_file
+    echo ""                     >> $spec_file
 
-   # define the states
-   echo "# define various States"            >> $spec_file
-   foreach attrib ( $surf_attribs )
-      if (  $attrib =~ *sphere*  || \
-            $attrib =~ *flat*    || \
-            $attrib =~ *infla*) then
-         echo "        StateDef = ${attrib}_lh"         >> $spec_file
-         echo "        StateDef = ${attrib}_rh"         >> $spec_file
-      else
-         echo "        StateDef = $attrib"         >> $spec_file
-      endif
-   end
-   echo ""                     >> $spec_file
-   foreach hand ( lh rh )
-   if ( $hand == lh ) then
-       set list_cur = ( $list_lh )      # get a current list copy
-   else
-       set list_cur = ( $list_rh )
-   endif
+    # define the states
+    echo "# define various States"            >> $spec_file
+    foreach attrib ( $surf_attribs )
+        if (  $attrib =~ *sphere*  || \
+              $attrib =~ *flat*    || \
+              $attrib =~ *infla*) then
+            echo "        StateDef = ${attrib}_lh"         >> $spec_file
+            echo "        StateDef = ${attrib}_rh"         >> $spec_file
+        else
+            echo "        StateDef = $attrib"         >> $spec_file
+        endif
+    end
+    echo ""                     >> $spec_file
+    foreach hand ( lh rh )
+        if ( $hand == lh ) then
+            set list_cur = ( $list_lh )      # get a current list copy
+        else
+            set list_cur = ( $list_rh )
+        endif
 
-   foreach surf ( $list_cur )
-       set s_head = `echo $surf | cut -d. -f1`   # up to first '.'
-       set s_state = `echo $surf | cut -d. -f2-`   # after first '.'
+        foreach surf ( $list_cur )
+            set s_head = `echo $surf | cut -d. -f1`   # up to first '.'
+            set s_state = `echo $surf | cut -d. -f2-` # after first '.'
        
-       if ( $s_state =~ *sphere* || \
-            $s_state =~ *flat*   || \
-            $s_state =~ *infla*) then
-         set s_state = "${s_state}_${hand}"
-       endif
+            if ( $s_state =~ *sphere* || \
+                 $s_state =~ *flat*   || \
+                 $s_state =~ *infla*) then
+                set s_state = "${s_state}_${hand}"
+            endif
        
-      set label_dset = ""
-       # check for SAME mapping ref
-       if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
-      set map_ref = SAME
-         if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
-      set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
-         endif
-         if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
-      set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
-         endif
-       else
-      set map_ref = $s_head.smoothwm.${sex}
-       endif
+            set label_dset = ""
+            # check for SAME mapping ref
+            if ( "$surf.${sex}" == "$s_head.smoothwm.${sex}" ) then
+                set map_ref = SAME
+                if ( -f ${hand}.aparc.a2005s.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.a2005s.annot.niml.dset
+                endif
+                if ( -f ${hand}.aparc.a2009s.annot.niml.dset ) then
+                    set label_dset = ${hand}.aparc.a2009s.annot.niml.dset
+                endif
+            else
+                set map_ref = $s_head.smoothwm.${sex}
+            endif
 
-       # EmbedDimension is 2 for .flat surfaces, else 3
-       if ( $surf =~ *.flat* ) then
-      set embed_ref = 2
-       else
-      set embed_ref = 3
-       endif
+            # EmbedDimension is 2 for .flat surfaces, else 3
+            if ( $surf =~ *.flat* ) then
+                set embed_ref = 2
+            else
+                set embed_ref = 3
+            endif
 
-       # Anatomical flag
-       if ( $surf =~ *.white* ||\
-            $surf =~ *.smoothwm* ||\
-            $surf =~ *.pial*) then
-      set anatomical = Y
-       else
-      set anatomical = N
-       endif
+            # Anatomical flag
+            if ( $surf =~ *.white* ||\
+                 $surf =~ *.smoothwm* ||\
+                 $surf =~ *.pial*) then
+                set anatomical = Y
+            else
+                set anatomical = N
+            endif
 
-       echo "NewSurface"               >> $spec_file
-       echo "        SurfaceFormat = ASCII"      >> $spec_file
-       echo "        SurfaceType = ${stp}"      >> $spec_file
-       echo "        ${sfieldname} = $surf.${sex}"   >> $spec_file
-       echo "        LocalDomainParent = $map_ref"      >> $spec_file
-       echo "        SurfaceState = $s_state"      >> $spec_file
-       echo "        EmbedDimension = $embed_ref"      >> $spec_file
-       echo "        Anatomical = $anatomical" >> $spec_file
-         if ("$label_dset" != "") \
-       echo "        LabelDset = $label_dset" >> $spec_file
-       echo ""                  >> $spec_file
-   end
-   end    # foreach hand
+            echo "NewSurface"                           >> $spec_file
+            echo "        SurfaceFormat = ASCII"        >> $spec_file
+            echo "        SurfaceType = ${stp}"         >> $spec_file
+            echo "        ${sfieldname} = $surf.${sex}" >> $spec_file
+            echo "        LocalDomainParent = $map_ref" >> $spec_file
+            echo "        SurfaceState = $s_state"      >> $spec_file
+            echo "        EmbedDimension = $embed_ref"  >> $spec_file
+            echo "        Anatomical = $anatomical"     >> $spec_file
+            if ("$label_dset" != "") \
+                echo "        LabelDset = $label_dset"  >> $spec_file
+                echo ""                                 >> $spec_file
+        end
+    end    # foreach hand
 
-   echo "++ created spec file'$suma_dir/$spec_file'"
-
+    echo "++ created spec file'$suma_dir/$spec_file'"
 
     cd $start_dir
 
@@ -1005,40 +1010,40 @@ L_CREATE_BRICK:
     set cor_files = ( `echo COR-???` ) >& /dev/null 
     
     if ( $status || $use_mgz == 1) then
-      if ($orig_mgz != "") then   
-         #Try the orig.mgz business
-         echo "No COR files, converting $orig_mgz ..."
-         cd $start_dir
-         mri_convert -ot cor $orig_mgz $orig_dir
-         cd $orig_dir
-      else 
-         if ($use_mgz == 0) then
-            set endstr = "failure: No COR files and no $orig.mgz"
-         else
-            set endstr = "failure: No mgz files"
-         endif
-         goto L_BAD_END
-      endif
+        if ($orig_mgz != "") then   
+            #Try the orig.mgz business
+            echo "No COR files, converting $orig_mgz ..."
+            cd $start_dir
+            mri_convert -ot cor $orig_mgz $orig_dir
+            cd $orig_dir
+        else 
+            if ($use_mgz == 0) then
+                set endstr = "failure: No COR files and no $orig.mgz"
+            else
+                set endstr = "failure: No mgz files"
+            endif
+            goto L_BAD_END
+        endif
     else
-      if ($orig_mgz != "" && $neuro_ori != -1) then  
-         echo ""
-         echo "Notice: Found COR files and $orig_mgz"
-         echo "******** Will use COR files."
-         echo ""
-      else if ($orig_mgz == "" && $neuro_ori == -1) then  
-         set endstr = "No orig_mgz found for -nocor option"
-         goto L_BAD_END
-      endif
+        if ($orig_mgz != "" && $neuro_ori != -1) then  
+            echo ""
+            echo "Notice: Found COR files and $orig_mgz"
+            echo "******** Will use COR files."
+            echo ""
+        else if ($orig_mgz == "" && $neuro_ori == -1) then  
+            set endstr = "No orig_mgz found for -nocor option"
+            goto L_BAD_END
+        endif
     endif
    
-   #check again
-   set cor_files = ( `echo COR-???` ) >& /dev/null 
+    #check again
+    set cor_files = ( `echo COR-???` ) >& /dev/null 
     if ( $status ) then
-   set endstr = "failure: did not find COR files under '$orig_dir'"
-   goto L_BAD_END
-    #else if ( $#cor_files != 256 ) then
-   #set endstr = "failure: 256 COR files required under '$orig_dir'"
-   #goto L_BAD_END
+        set endstr = "failure: did not find COR files under '$orig_dir'"
+        goto L_BAD_END
+        #else if ( $#cor_files != 256 ) then
+        #set endstr = "failure: 256 COR files required under '$orig_dir'"
+        #goto L_BAD_END
     endif
 
     # create BRIK with to3d
@@ -1047,133 +1052,140 @@ L_CREATE_BRICK:
     #out by A. Thomas. Good info found here:
     #www.wideman-one.com/gw/brain/fs/coords/fscoords.htm
     
-      #New block added for reading COR images that are no longer 
-      #256x256x256 / 1mm cubic voxels ZSS Oct 20 04
+    #New block added for reading COR images that are no longer 
+    #256x256x256 / 1mm cubic voxels ZSS Oct 20 04
       
-      set Sr = `grep -w imnr0 COR-.info`
-      set i0 = $Sr[$#Sr]
-      set Sr = `grep -w imnr1 COR-.info`
-      set i1 = $Sr[$#Sr]
-      set Sr = `grep -w fov COR-.info`
-      set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
-      set Sr = `grep -w x COR-.info | grep -v xform`
-      set nx = $Sr[$#Sr]
-      set Sr = `grep -w y COR-.info`
-      set ny = $Sr[$#Sr]
-      set Sr = `grep -w thick COR-.info`
-      set zthick = `ccalc -eval $Sr[$#Sr] \* 1000`
-      set Sr = `grep -w psiz COR-.info`
-      set psize = `ccalc -eval $Sr[$#Sr] \* 1000`
+    set Sr = `grep -w imnr0 COR-.info`
+    set i0 = $Sr[$#Sr]
+    set Sr = `grep -w imnr1 COR-.info`
+    set i1 = $Sr[$#Sr]
+    set Sr = `grep -w fov COR-.info`
+    set FOV = `ccalc -eval $Sr[$#Sr] \* 1000`
+    set Sr = `grep -w x COR-.info | grep -v xform`
+    set nx = $Sr[$#Sr]
+    set Sr = `grep -w y COR-.info`
+    set ny = $Sr[$#Sr]
+    set Sr = `grep -w thick COR-.info`
+    set zthick = `ccalc -eval $Sr[$#Sr] \* 1000`
+    set Sr = `grep -w psiz COR-.info`
+    set psize = `ccalc -eval $Sr[$#Sr] \* 1000`
 
-      set xSLAB0 = `ccalc -eval $nx \* $psize / 2`
-      set xSLAB1 = `ccalc -eval $xSLAB0 - $psize`
-      set ySLAB0 = `ccalc -eval $ny \* $psize / 2`
-      set ySLAB1 = `ccalc -eval $ySLAB0 - $psize`
-      set zSLAB0 = `ccalc -eval '('$i1 - $i0 + 1')' \* $zthick / 2`
-      set zSLAB1 = `ccalc -eval $zSLAB0 - $zthick`
+    set xSLAB0 = `ccalc -eval $nx \* $psize / 2`
+    set xSLAB1 = `ccalc -eval $xSLAB0 - $psize`
+    set ySLAB0 = `ccalc -eval $ny \* $psize / 2`
+    set ySLAB1 = `ccalc -eval $ySLAB0 - $psize`
+    set zSLAB0 = `ccalc -eval '('$i1 - $i0 + 1')' \* $zthick / 2`
+    set zSLAB1 = `ccalc -eval $zSLAB0 - $zthick`
 
     
     if ( $neuro_ori == 1 ) then
-      to3d -prefix $afni_prefix \
-               -xSLAB $xSLAB0'L'-$xSLAB1'R' \
-               -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-               -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
-      #to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
-      #  -zSLAB 128P-127A $cor_files
+        to3d \
+            -prefix $afni_prefix \
+            -xSLAB $xSLAB0'L'-$xSLAB1'R' \
+            -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+            -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+        #to3d -prefix $afni_prefix -xSLAB 127L-128R -ySLAB 128S-127I \
+        #  -zSLAB 128P-127A $cor_files
     else if ( $neuro_ori == 0 ) then
-      to3d -prefix $afni_prefix \
-               -xSLAB $xSLAB0'R'-$xSLAB1'L' \
-               -ySLAB $ySLAB0'S'-$ySLAB1'I' \
-               -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
-      #to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
-      #  -zSLAB 128P-127A $cor_files
+        to3d \
+            -prefix $afni_prefix \
+            -xSLAB $xSLAB0'R'-$xSLAB1'L' \
+            -ySLAB $ySLAB0'S'-$ySLAB1'I' \
+            -zSLAB $zSLAB0'P'-$zSLAB1'A' '3Db:0:0:'$nx':'$ny':1:COR-???'
+        #to3d -prefix $afni_prefix -xSLAB 128R-127L -ySLAB 128S-127I \
+        #  -zSLAB 128P-127A $cor_files
     else if ( $neuro_ori == -1 ) then
-      if ( "$orig_mgz" == '' ) then
-         set endstr = "Could not locate orig_mgz volume"
-         goto L_BAD_END
-      endif
-      mri_convert -ot nii $start_dir/$orig_mgz \
-                  $start_dir/$suma_dir/${orig_mgz:t:r}".nii"
+        if ( "$orig_mgz" == '' ) then
+            set endstr = "Could not locate orig_mgz volume"
+            goto L_BAD_END
+        endif
+        mri_convert -ot nii $start_dir/$orig_mgz \
+                $start_dir/$suma_dir/${orig_mgz:t:r}".nii"
     else 
-      set endstr = "Bad value for neuro_ori of $neuro_ori"
-      goto L_BAD_END
+        set endstr = "Bad value for neuro_ori of $neuro_ori"
+        goto L_BAD_END
     endif
 
     if ( $neuro_ori == -1 ) then
-       mv $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
+        mv \
+            $start_dir/$suma_dir/${orig_mgz:t:r}".nii"  \
             $start_dir/$suma_dir/$afni_dataset.nii
-       echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
+        echo "++ created AFNI file '$suma_dir/$afni_dataset.nii'"
     else
-       mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
+        mv $afni_dataset.HEAD $afni_dataset.BRIK* $start_dir/$suma_dir
 
-       echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
-       echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
+        echo "++ created AFNI file '$suma_dir/$afni_dataset.HEAD'"
+        echo "++ created AFNI file '$suma_dir/$afni_dataset.BRIK'"
     endif
 
     cd $start_dir
     
     if ($#other_mgz > 0) then
-#       cat /Applications/freesurfer/FreeSurferColorLUT.txt | grep -v "^#" | sed '/^[[:space:]]*$/d' > fslut.txt
-       # first unranked original datasets - reliably constant across subjects
-       @FS_roi_label -name ALL -labeltable $start_dir/$suma_dir/fs_table
-       if -e $start_dir/$suma_dir/fs_table.niml.lt then
-          echo "Made roi label table for AFNI - fs_table.niml.lt"
-       else
-          echo "ERROR: failed to make roi label table fs_table.niml.lt"
-       endif
+        #       cat /Applications/freesurfer/FreeSurferColorLUT.txt | grep -v "^#" | sed '/^[[:space:]]*$/d' > fslut.txt
+        # first unranked original datasets - reliably constant across subjects
+        @FS_roi_label -name ALL -labeltable $start_dir/$suma_dir/fs_table
+        if -e $start_dir/$suma_dir/fs_table.niml.lt then
+            echo "Made roi label table for AFNI - fs_table.niml.lt"
+        else
+            echo "ERROR: failed to make roi label table fs_table.niml.lt"
+        endif
 
-       #Do the other .mgz files
-       foreach other ($other_mgz)
-         #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
-         #rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info \
-         #                                                        >& /dev/null
-         mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
-         #Now shift the damned volumes to match the surface volumes
-         cd $start_dir/$suma_dir/
-         if ($neuro_ori != -1 ) then
-            @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
-         endif
-         if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
-              "${other:t:r}" == "aparc.a2009s+aseg" ||   \
-              "${other:t:r}" == "aseg" ||   \
-              "${other:t:r}" == "aparc+aseg" ) then
-            # put atlas labels into FreeSurfer segmentation datasets
-            # first use generic FS table that's the same for all datasets
-            if -e $start_dir/$suma_dir/fs_table.niml.lt then
-               3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
-                                  "${other:t:r}.nii"
-               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}.nii"
+        #Do the other .mgz files
+        foreach other ($other_mgz)
+            #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
+            #rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info \
+            #                                                        >& /dev/null
+            mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
+            #Now shift the damned volumes to match the surface volumes
+            cd $start_dir/$suma_dir/
+            if ($neuro_ori != -1 ) then
+                @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
             endif
+            if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
+                 "${other:t:r}" == "aparc.a2009s+aseg" ||   \
+                 "${other:t:r}" == "aseg" ||                \
+                 "${other:t:r}" == "aparc+aseg" ) then
+                # put atlas labels into FreeSurfer segmentation datasets
+                # first use generic FS table that's the same for all datasets
+                # [PT]  ??? Put parentheses here???
+                if -e $start_dir/$suma_dir/fs_table.niml.lt then
+                    3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
+                        "${other:t:r}.nii"
+                    @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}.nii"
+                endif
 
 
-            # now ranked datasets-removing empty indices - easier to color in AFNI
-            3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
-            if (0) then
-               # kill this block soon.
-               set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
-               mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+                # now ranked datasets-removing empty indices - easier to color in AFNI
+                3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
+                if (0) then
+                    # kill this block soon.
+                    set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
+                    mv ${kk}.rankmap.1D ${other:t:r}.rankmap.1D 
+                endif
+                @FS_roi_label                             \
+                    -name ALL                             \
+                    -rankmap ${other:t:r}_rank.rankmap.1D \
+                    -labeltable ${other:t:r}_rank         \
+                    > ${other:t:r}_rank.niml.lt.log
+                if ($status) then
+                    echo "Failed to make roi labels for $other"
+                else
+                    3drefit \
+                        -labeltable ${other:t:r}_rank.niml.lt \
+                        "${other:t:r}_rank.nii"
+                    @MakeLabelTable \
+                        -replace -atlasize_labeled_dset "${other:t:r}_rank.nii"
+                endif
             endif
-            @FS_roi_label  -name ALL \
-                           -rankmap ${other:t:r}_rank.rankmap.1D \
-                           -labeltable ${other:t:r}_rank \
-                              > ${other:t:r}_rank.niml.lt.log
-            if ($status) then
-               echo "Failed to make roi labels for $other"
-            else
-               3drefit -labeltable ${other:t:r}_rank.niml.lt \
-                                  "${other:t:r}_rank.nii"
-               @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}_rank.nii"
-            endif
-         endif
-         cd - 
-       end
+            cd - 
+        end
     endif
     
     #Change from orig space
     if ( ${set_space} != '') then
-      cd $start_dir/$suma_dir/
-      3drefit -space ${set_space} *.nii* *.HEAD
-      cd -
+        cd $start_dir/$suma_dir/
+        3drefit -space ${set_space} *.nii* *.HEAD
+        cd -
     endif
       
 goto L_CREATE_BRICK_DONE
@@ -1183,42 +1195,42 @@ goto L_CREATE_BRICK_DONE
 
 L_ICO:
 
-   if ($#ldlist < 1) goto L_ICO_DONE
+    if ($#ldlist < 1) goto L_ICO_DONE
    
-   echo ""
-   echo "------------------------------------------------------------------"
-   echo "Running MapIcosahedron for both hemispheres at ld values of $ldlist"
-   cd $start_dir/$suma_dir/
-   set ild = 0
-   foreach ld ($ldlist)
-      @ ild ++
-      set both = ()
-      foreach hem (lh rh)
-         set sp = {$subj_id}_${hem}.spec
-         set dm = ()
-         if ($#fsdsets > 0) then
-            foreach fsd ($fsdsets)
-               if ( -f ${hem}.${fsd}.gii.dset ) then
-                  set dm = ($dm "-dset_map" ${hem}.${fsd}.gii.dset)
-               endif
-            end
-         endif
-         if ( -f $sp) then
-            # possibly add -verb    19 Mar 2017 [rickr]
-            if ( $debug ) then
-               set vb = "-verb"
-            else
-               set vb = ""
+    echo ""
+    echo "------------------------------------------------------------------"
+    echo "Running MapIcosahedron for both hemispheres at ld values of $ldlist"
+    cd $start_dir/$suma_dir/
+    set ild = 0
+    foreach ld ($ldlist)
+        @ ild ++
+        set both = ()
+        foreach hem (lh rh)
+            set sp = {$subj_id}_${hem}.spec
+            set dm = ()
+            if ($#fsdsets > 0) then
+                foreach fsd ($fsdsets)
+                    if ( -f ${hem}.${fsd}.gii.dset ) then
+                        set dm = ($dm "-dset_map" ${hem}.${fsd}.gii.dset)
+                    endif
+                end
             endif
-            MapIcosahedron $vb -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
-            set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
-         endif
-      end
-      if ($#both == 2) then
-         inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
-      endif
-   end
-   cd -
+            if ( -f $sp) then
+                # possibly add -verb    19 Mar 2017 [rickr]
+                if ( $debug ) then
+                    set vb = "-verb"
+                else
+                    set vb = ""
+                endif
+                MapIcosahedron $vb -spec $sp -ld $ld $dm -prefix $ldpref[$ild] 
+                set both = ($both ${ldpref[$ild]}{$subj_id}_${hem}.spec)
+            endif
+        end # foreach hem
+        if ($#both == 2) then
+            inspec -LRmerge $both -prefix ${ldpref[$ild]}{$subj_id}_both.spec
+        endif
+    end # foreach ld
+    cd -
    
 goto L_ICO_DONE
 
@@ -1236,11 +1248,11 @@ L_TEST_SURF_VOL:
     echo "    cd $suma_dir"
     echo "    afni -niml &"
     if ( -f ${suma_dir}/${afni_dataset}.nii ) then
-      set ovol = ${afni_dataset}.nii
+        set ovol = ${afni_dataset}.nii
     else if ( -f ${suma_dir}/${afni_dataset}.nii.gz ) then
-      set ovol = ${afni_dataset}.nii.gz
+        set ovol = ${afni_dataset}.nii.gz
     else 
-      set ovol = $afni_dataset
+        set ovol = $afni_dataset
     endif
     echo "    suma -spec $spec_file -sv $ovol"
 
@@ -1496,8 +1508,8 @@ L_GOOD_END:
 
     echo ""
     if ( "$endstr" != "" ) then
-   echo "$endstr"
-   echo ""
+        echo "$endstr"
+        echo ""
     endif
 
     exit   # just to be consistent
