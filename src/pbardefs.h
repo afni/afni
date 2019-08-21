@@ -1,6 +1,50 @@
-#ifndef PBARDEFS_INCLUDED
-#define PBARDEFS_INCLUDED
+#ifndef __PBARDEFS_INCLUDED__
+#define __PBARDEFS_INCLUDED__
 
+/*******************************************************/
+/* There are 2 simple ways to make a colormap,
+   both of which are used in the header.
+   Look in pbar.c to see how the colormaps are
+   created in the AFNI GUI.
+
+    * N byte triples -> PBAR_define_bigmap()
+      Here, you define a char array, one giant
+      string, using spaces to delimit the N+1
+      sub-strings:
+        Name #rrggbb #rrggbb ... (N of these)
+      where the N #rrggbb values each have six
+      hex digits defining the colors. In this
+      usage, the number N of defining colors
+      is inferred from the number of sub-strings
+      in the big input string.
+      The CytoArch_ROI_i256 map is a sample.
+
+    * N float triples -> PBAR_define_bigmap_float()
+      Here, you define a float array, length 3*N,
+      which for each color contains the 3 RGB values
+      (range = 0..1), in the order
+        R0 G0 B0 R1 G1 B1 R2 G2 B2 ...
+      In this usage, the number N of defining colors
+      must be supplied explicitly, as is the colormap
+      name to be used in menus.
+      The googleturbo map is a sample; e.g., the
+      last color triple there is
+         0.47960, 0.01583, 0.01055
+      which is mostly Red. The number N and the name
+      are provided by
+        #define      googleturbo_num 256
+        static char *googleturbo_name = "GoogleTurbo" ;
+      which are passed to PBAR_define_bigmap_float().
+
+   Internally, a colormap is 256 colors long
+   (unless option '-XXXnpane' is provided on the AFNI
+   GUI command line.). Providing fewer colors will mean
+   that the extra colors are provided by interpolation
+   in the array of RGB values provided.
+
+   There are more complicated ways to make a colormap.
+   See pbar.c (at the risk of your sanity).
+*//*****************************************************/
 
 /* ZSS: New 256-color maps.
    Each new color map is added with
@@ -6224,5 +6268,4 @@ static char ROI_glasbey_2048_CMD[] = {
 "#7af8e9 "
 };
 
-
-#endif
+#endif /* __PBARDEFS_INCLUDED__ */
