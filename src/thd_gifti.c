@@ -810,6 +810,14 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
     cp = gifti_get_meta_value(&gim->meta, "filename");
     if( cp ) NI_set_attribute(ngr, "filename", cp);
 
+    /* DA-type processing follows, so handle any INDEX_LIST now
+
+       SPARSE_DATA and related attributes (e.g. COLMS_TYPE) should not
+       be affected by or include information pertaining to INDEX_LIST,
+       so any such DA well be removed from gim.
+    */
+    nsd_add_gifti_index_list(ngr, gim);
+
     /* add COLMS_LABS from "Name" MetaData values */
     cp = gifti_DA_meta_concat(gim, "Name", "none", ";");
     add_string_attribute(ngr, "COLMS_LABS", cp);
@@ -823,8 +831,6 @@ static NI_group * gifti_to_NSD(gifti_image * gim, int copy_data)
     if( cp ) add_string_attribute(ngr, "HISTORY_NOTE", cp);
 
     if( haslt ) gnsd_add_gifti_labeltable(ngr, gim); /* if LT, add it */
-
-    nsd_add_gifti_index_list(ngr, gim);
 
     gnsd_add_sparse_data(ngr, gim, copy_data);
 
@@ -1128,19 +1134,37 @@ static int has_negatives(void *data, long long nvals, int type)
     RETURN(0);
 }
 
-/* add an INDEX_LIST attribute element from the gifti_image */
+/* add an INDEX_LIST attribute element from the gifti_image
+ * side effect: remove that DA from gim->darray (numDA--)  21 Aug 2019 [rickr]
+*/
 static int nsd_add_gifti_index_list(NI_group * ngr, gifti_image * gim)
 {
     NI_element   * nel;
     giiDataArray * da;
     int          * node_list, * new_list = NULL;
-    int            c, length;
+    int            c, da_ind, length;
 
     ENTRY("nsd_add_gifti_index_list");
 
     if( !ngr || !gim || !gim->darray ) RETURN(1);
 
-    da = gifti_find_DA(gim, NIFTI_INTENT_NODE_INDEX, 0);
+    /* set da and da_ind (was gifti_find_DA(gim,NI,0)) */
+    da = NULL;
+    da_ind = -1;
+    for( c = 0; c < gim->numDA; c++ ) {
+        if( gim->darray[c]->intent == NIFTI_INTENT_NODE_INDEX ) {
+           da = gim->darray[c];
+           da_ind = c;
+        }
+    }
+
+    /* if found, remove da from gim->darray    21 Aug 2019 [rickr] */
+    if( da ) {
+       for( c = da_ind+1; c < gim->numDA; c++ )
+          gim->darray[c-1] = gim->darray[c];
+       gim->numDA--;
+    }
+    
     if( GP->verb > 2 )
         fprintf(stderr,"-- add_index_list: %s N_INTENT_NODE_INDEX\n",
                 da ? "found" : "did not find");
