@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 21 , AUG , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Google Turbo colormap" ,
+   NULL } ,
+
  { 20 , AUG , 2019 , RWC , "3dPval" , MICRO , TYPE_NEW_OPT ,
    "Add -zscore option" ,
    NULL } ,
