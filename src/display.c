@@ -14,6 +14,8 @@ MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
 
 int npane_big = 256 ;                  /* 06 May 2016 */
 
+#define USE_TURBO                      /* 22 Aug 2019 */
+
 /*------------------------------------------------------------------------
   Returns position of highest set bit in 'ul' as an integer (0-31),
   or returns -1 if no bit is set.
@@ -209,7 +211,11 @@ if(PRINT_TRACING){
    dc->height  = HeightOfScreen( dc->screen ) ;
 
    if( dc->visual_class == TrueColor ){   /* 23 Feb 2011 */
+#ifndef USE_TURBO
      if( ncol < 160 ) ncol = 160 ;
+#else
+     if( ncol < 256 ) ncol = 256 ;
+#endif
    }
 
    dc->ncol_im = ncol ;
@@ -540,7 +546,6 @@ rgbyte DC_spectrum_AJJ( double an , double gamm )
 }
 
 /*----------------------------------------------------------------------------*/
-#define USE_TURBO  /* 22 Aug 2019 */
 #ifdef USE_TURBO   /* https://ai.googleblog.com/2019/08/turbo-improved-rainbow-colormap-for.html */
 static byte const turbo_srgb_bytes[256][3] = {
    {48,18,59},{50,21,67},{51,24,74},{52,27,81},{53,30,88},{54,33,95},{55,36,102},{56,39,109},{57,42,115},
