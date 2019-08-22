@@ -9,6 +9,18 @@
 
 /*---------------------------------------------------------------------*/
 
+/* Help for retrying to open a file for writing.  If it seems busy, give
+   the system time before catastrophic failure.                         */
+#undef  LOCAL_MAX_LOCK_TRIES
+#define LOCAL_MAX_LOCK_TRIES    6
+static int has_locking_errno(void) {
+   return( errno == EDEADLK     ||
+           errno == EAGAIN      ||
+           errno == EWOULDBLOCK ||
+           errno == EBUSY );
+}
+
+
 Boolean THD_write_atr( THD_datablock *blk )
 {
    THD_diskptr *dkptr ;
@@ -45,20 +57,20 @@ ENTRY("THD_write_atr") ;
 
    /* allow more chances for those with large file systems */
    /* nap and try again          [16 Aug 2019 rickr/dglen] */
-   if( header_file == NULL &&
-        (errno == EDEADLK || errno == EAGAIN || errno == EWOULDBLOCK ||
-         errno == EBUSY) ){
+   if( header_file == NULL && has_locking_errno() ) {
       int tries, nap_time = 1;
-      for( tries = 5; tries > 0; tries-- ) {
+      for( tries = 0; tries < LOCAL_MAX_LOCK_TRIES; tries++ ) {
          nap_time *= 2; /* sleep 2^(n+1) s, i.e. up to 1 minute, total of 2 */
-         fprintf(stderr,"** E-xxx open failure for file %s, "
-                        "will nap and try %d more times\n",
-                        dkptr->header_name, tries);
-         if( tries == 5 ) fprintf(stderr,"Kris K, is that you?\n");
+         if( tries == 0 ) {
+            fprintf(stderr,"** E-xxx open failure for file %s, "
+                           "will nap and try %d more times\n",
+                           dkptr->header_name, LOCAL_MAX_LOCK_TRIES);
+            fprintf(stderr,"Kris K, is that you?\n");
+         }
          fprintf(stderr,"-- napping for %d s...\n", nap_time);
          NI_sleep(nap_time);   /* nap time! */
          header_file = fopen( dkptr->header_name , "w" ) ;
-         if( header_file || errno != EDEADLK )
+         if( header_file || ! has_locking_errno() )
             break;
       }
    }
