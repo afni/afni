@@ -2629,7 +2629,8 @@ libmri.so: mrilib.h                                                          \
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
-	$(RM) netcdf_attr.o
+	# uncomment to bounce between shared and not
+	# $(RM) netcdf_attr.o
 	$(MAKE) netcdf_attr.o CCMIN="${CCMIN} -fPIC"
 
 # same as .a, but build as a shared object
