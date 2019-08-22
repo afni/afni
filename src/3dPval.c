@@ -71,11 +71,11 @@ int main( int argc , char *argv[] )
      if( oim == NULL ){
        oim = iim     ; fprintf(stderr,"-") ;
      } else {
-       char *olab , nlab[32] ;
+       char *olab , nlab[128] ;
        mri_free(iim) ; fprintf(stderr,"+") ;
        olab = DSET_BRICK_LABEL(iset,kk) ;
-       if( doz ) sprintf(nlab,"%.16s_zscore",olab) ;
-       else      sprintf(nlab,"%.16s_pval",olab) ;
+       if( doz ) sprintf(nlab,"%.120s_zstat",olab) ;
+       else      sprintf(nlab,"%.120s_pval" ,olab) ;
        EDIT_BRICK_LABEL(oset,kk,nlab) ;
        if( doz ) EDIT_BRICK_TO_FIZT(oset,kk) ;
        else      EDIT_BRICK_TO_NOSTAT(oset,kk) ;
