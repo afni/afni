@@ -48,13 +48,15 @@ ENTRY("THD_write_atr") ;
    if( header_file == NULL &&
         (errno == EDEADLK || errno == EAGAIN || errno == EWOULDBLOCK ||
          errno == EBUSY) ){
-      int tries;
+      int tries, nap_time = 1;
       for( tries = 5; tries > 0; tries-- ) {
+         nap_time *= 2; /* sleep 2^(n+1) s, i.e. up to 1 minute, total of 2 */
          fprintf(stderr,"** E-xxx open failure for file %s, "
                         "will nap and try %d more times\n",
                         dkptr->header_name, tries);
          if( tries == 5 ) fprintf(stderr,"Kris K, is that you?\n");
-         NI_sleep(1);   /* nap time! */
+         fprintf(stderr,"-- napping for %d s...\n", nap_time);
+         NI_sleep(nap_time);   /* nap time! */
          header_file = fopen( dkptr->header_name , "w" ) ;
          if( header_file || errno != EDEADLK )
             break;

@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "THD_write_atr(): make the Kris K condition do more aggressive napping",
+   "More aggressive napping?!?\n"
+   "Sleep 5 times for 2^(n+1) seconds, up to ~1 min, for a total of ~2 min."
+ } ,
+
  { 22, Aug, 2019, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
    "(w/dglen) thd_gifti: remove INDEX_LIST DA from from list",
    "When converting a GIFTI dataset to NIML, any index list should be\n"
