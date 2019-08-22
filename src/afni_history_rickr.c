@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 22, Aug, 2019, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "(w/dglen) thd_gifti: remove INDEX_LIST DA from from list",
+   "When converting a GIFTI dataset to NIML, any index list should be\n"
+   "separated early, so as not to affect the SPARSE_DATA NIML element.\n"
+   "Thanks to T Holroyd for noting the problem."
+ } ,
+
  { 19, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "Makefile.INCLUDE: add libmri target, for build system",
    "Let the make system decide whether it should be a shared lib.\n"
