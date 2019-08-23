@@ -7919,16 +7919,17 @@ ENTRY("AFNI_hidden_CB") ;
         static int ncall=0 ;
         int nmusic = (int)AFNI_numenv("AFNI_MUSIC_SIZE") ;
         MRI_IMAGE *qim ; float *qar ; int ii ;
-             if( nmusic <     4 ) nmusic = 99 ;
+             if( nmusic <     4 ) nmusic = 321 ;
         else if( nmusic > 99999 ) nmusic = 99999 ;
         if( ncall == 0 )
-          ININFO_message("Computing random music notes - about %d seconds worth",(int)(nmusic*0.144)) ;
+          ININFO_message("Computing random music notes - about %d seconds worth",
+                         (int)(nmusic*0.095f)) ;
         qim = jRandom1D(nmusic,2); qar = MRI_FLOAT_PTR(qim);        /* random */
         if( nmusic < 99 ) osfilt3_func( 2*nmusic , 0.0,1.0 , qar ); /* smooth */
         else              adpt_wt_mn9 ( 2*nmusic , 0.0,1.0 , qar );
         for( ii=0 ; ii < nmusic ; ii++ )                         /* correlate */
           qar[ii] += 0.222f * qar[ii+nmusic] ;
-        mri_sound_play_append( "reverb 99 fade 0 0 1" );   /* sox only */
+        mri_sound_play_append( "reverb 99 fade 0 0 2" );   /* sox only */
         if( ncall == 0 ) mri_play_sound_notify(1) ;    /* only the first time */
         mri_play_sound_rate_fac( 1.2468f ) ;
         mri_play_sound(qim,0) ;                 /* let the music sound forth! */
