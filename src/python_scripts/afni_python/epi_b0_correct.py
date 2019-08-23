@@ -49,8 +49,12 @@
 # + [PT] output a useful params file
 # + [PT] another py23 compatability fix
 #
-ver='2.1' ; date='Aug 16, 2019'
+#ver='2.1' ; date='Aug 16, 2019'
 # + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
+#
+ver='2.2' ; date='Aug 23, 2019'
+# + [PT] fix examples (use correct/newer opt names)
+# + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
 #
 ##########################################################################
 
