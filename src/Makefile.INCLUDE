@@ -2709,7 +2709,7 @@ install_plugins: $(INSTALLDIR)
 	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	$(MV) model*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/funstuff
-	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt $(INSTALLDIR)/funstuff
+	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt faces/*.au $(INSTALLDIR)/funstuff
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately
 

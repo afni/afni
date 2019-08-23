@@ -7928,12 +7928,14 @@ ENTRY("AFNI_hidden_CB") ;
         else              adpt_wt_mn9 ( 2*nmusic , 0.0,1.0 , qar );
         for( ii=0 ; ii < nmusic ; ii++ )                         /* correlate */
           qar[ii] += 0.222f * qar[ii+nmusic] ;
-        mri_sound_play_append( "reverb 99" ) ;          /* more fun, with sox */
+        mri_sound_play_append( "reverb 99 fade 0 0 1" );   /* sox only */
         if( ncall == 0 ) mri_play_sound_notify(1) ;    /* only the first time */
+        mri_play_sound_rate_fac( 1.2468f ) ;
         mri_play_sound(qim,0) ;                 /* let the music sound forth! */
         mri_free(qim) ;                                       /* some cleanup */
         mri_sound_play_append( NULL ) ;
         mri_play_sound_notify(0) ;
+        mri_play_sound_rate_fac( 1.0f ) ;
         ncall++ ;
      } else {
        WARNING_message("sound playing not available :(") ;

@@ -2442,6 +2442,7 @@ extern void kill_sound_players(void) ;
 
 extern void mri_sound_play_append( char *app ) ;  /* 09 Aug 2019 */
 extern void mri_play_sound_notify( int ) ;
+extern void mri_play_sound_rate_fac( float fff ) ;     /* 23 Aug 2019 */
 
 #define SOUND_WAVEFORM_SINE     1
 #define SOUND_WAVEFORM_SQUARE   2
