@@ -6,7 +6,7 @@ git:
   submodules: false
 env:
  global:
-    - FLAVOR=linux_ubuntu_12_64
+    - FLAVOR=linux_ubuntu_16_64
 before_install:
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.$FLAVOR

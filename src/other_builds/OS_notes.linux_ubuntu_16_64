@@ -12,3 +12,8 @@ sudo apt-get install -y libglib2.0-dev libgsl-dev
 sudo apt-get install -y r-base m4
 sudo apt-get install -y python-qt4
 
+# add missing extern to GLwDrawA.h, otherwise suma would crash
+sudo mv /usr/include/GL/GLwDrawA.h /usr/include/GL/GLwDrawA.h.orig
+sudo sed 's/^GLAPI WidgetClass/extern GLAPI WidgetClass/' \
+         /usr/include/GL/GLwDrawA.h.orig > /usr/include/GL/GLwDrawA.h
+
