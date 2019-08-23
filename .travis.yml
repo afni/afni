@@ -10,11 +10,13 @@ env:
 before_install:
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.$FLAVOR
+    # deal with SQL empty runlevel error
+    - sudo update-rc.d mysql enable
     # install packages needed for testing
     - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
 install:
     - cd src
-    - cp other_builds/Makefile.$FLAVOR Makefile
+    - cp Makefile.$FLAVOR Makefile
     - make vastness
 script:
     # to gain access to built binaries, include path first

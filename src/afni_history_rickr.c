@@ -52,7 +52,8 @@ afni_history_struct rickr_history[] = {
  { 23, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "updates corresponding to Travis CI OS change: Ubuntu 14->16",
    "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system udpate,\n"
-   "and update the notes to include fix of GLwDrawA.h."
+   "and update the notes to include fix of GLwDrawA.h.\n"
+   "Also, seem to need to enable mysql."
  } ,
 
  { 22, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
