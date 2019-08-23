@@ -214,9 +214,12 @@
 #set version   = "5.52"; set rev_dat   = "July 1, 2019"
 #   + [PT] miniscule new option, '-pbar_for ..'
 # 
-set version   = "5.6"; set rev_dat   = "July 8, 2019"
+#set version   = "5.6"; set rev_dat   = "July 8, 2019"
 #   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
-# 
+#
+set version   = "5.7"; set rev_dat   = "Aug 23, 2019"
+#   + [PT] added new option to turn ulay into edges: '-edgy_ulay'
+#
 # =====================================================================
 
 # For more info about opts/fields, see:
@@ -305,6 +308,8 @@ set pord    = ( "sag"      "cor"     "axi"   )
 
 set subbb   = ( -1 -1 -1 )
 set refbox  = ""
+
+set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
 
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
@@ -739,6 +744,9 @@ while ( $ac <= $#argv )
         set ulay_nz = "-non-zero"
         set USER_ULAY_RANGE = 1
 
+    else if ( "$argv[$ac]" == "-edgy_ulay" ) then
+        set DO_EDGEIFY_ULAY = 1
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
@@ -873,6 +881,11 @@ if ( "$refbox" != "" ) then
     endif
 endif
 
+# [PT: Aug 23, 2019] Set this here, because we miiiight edgeify the
+# ulay; and just in case we do, we want the original ulay to be used
+# for refbox-ing; if neither of those situations is happening, this
+# should have no affect-- fine!
+set ulay_refbox = "${ulay}"
 
 # check blowup factor
 set check_list = ( `seq 1 1 4` )
@@ -914,6 +927,24 @@ if ( ! -e $read_dir ) then
     echo "++ Making temporary work directory to copy vis files: $read_dir"
     mkdir $read_dir
 endif
+
+# [PT: Aug 23, 2019] If the user wants to edge-ify the ulay, they can
+# do this here: basically, the input ulay gets turned into edges at
+# nearly the first step, and the newly created dset becomes 'the ulay'
+# for all intents and purposes (%values, etc.).  The only place where
+# it would matter to still use the original ulay (that I can see at
+# this moment), is with the AMASK*ULAY-- so we *do* remember its name
+# for that purpose.
+if ( ${DO_EDGEIFY_ULAY} ) then
+
+    3dedge3 \
+        -prefix ${read_dir}/ulay_edge.nii \
+        -input  ${ulay}
+
+    set ulay = ${read_dir}/ulay_edge.nii 
+
+endif
+
 
 # ------------------- cbar saving stuff
 if ( $SAVE_PBAR == 1 ) then
@@ -1415,13 +1446,15 @@ foreach rrr ( `seq 1 1 $Nreps` )  ### the BIG loop starts
         # ulay or olay as refbox
         if ( "$refbox" == "AMASK_FOCUS_ULAY" ) then
             # henceforth, the value of this variable is that of the
-            # newly made mask, and it behaves like normal refbox input
+            # newly made mask, and it behaves like normal refbox
+            # input; note that even if the ulay gets edge-ified, we
+            # still use the *original* input ulay here.
             set refbox = "${read_dir}/AMASK_FOCUS_ULAY.nii"
             3dAutomask                      \
                 -q                          \
                 -clfrac 0.2                 \
                 -prefix ${refbox}           \
-                "$ulay"
+                "${ulay_refbox}"
 
         else if ( "$refbox" == "AMASK_FOCUS_OLAY" ) then
 
@@ -1903,6 +1936,15 @@ COMMAND OPTIONS ~1~
                     results for the same UMIN and UMAX values.  (See
                     DR: SET_ULAY_RANGE) "Special Ulay Range" and
                     "Combining %ile values..." in NOTES, below.
+
+-edgy_ulay         :turn the ulay volume into edges (via 3dedge3).  All 
+                    other opt/values like the '-ulay_range*' will refer
+                    to this edge-ified version, *except* for the 
+                    '-box_focus_slices AMASK_FOCUS_ULAY' one, whereby
+                    the original ulay will still be automasked.
+                    If using this option, extensive testing has found
+                    that '-ulay_range_nz 0% 50%' or thereabouts might
+                    be a nice scale for the brightness.
 
 -globalrange  GR   :specify how lookup range for matching ulay values
                     is done (def: VOLUME);

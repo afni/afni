@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Aug , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt, '-edgy_ulay': can turn ulay into edge-ified version of itself.",
+   "Useful for showing alignments.\n"
+},
+
 { 23, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_BUG_FIX,
    "Fixed calculation when PE effective echo spacing is input.",
    "The conversion to BWPP was wrong; led to almost no distortion corr.\n"
