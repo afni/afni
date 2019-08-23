@@ -42,15 +42,19 @@
 # + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
 # + [PT] py23 compatability of help file-- single dictionary usage!
 #
-ver='2.0' ; date='Aug 15, 2019'
+#ver='2.0' ; date='Aug 15, 2019'
 # + [PT] new parameter scaling of freq dset from Vinai-- better params
 # + [PT] apply obliquity info to output
 # + [PT] fixed ocmds_fname, if opref contains path
 # + [PT] output a useful params file
 # + [PT] another py23 compatability fix
 #
-ver='2.1' ; date='Aug 16, 2019'
+#ver='2.1' ; date='Aug 16, 2019'
 # + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
+#
+ver='2.2' ; date='Aug 23, 2019'
+# + [PT] fix examples (use correct/newer opt names)
+# + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
 #
 ###############################################################################
 
@@ -361,7 +365,7 @@ help_string_b0_corr = '''
     # Ex 1:  With mask supplied, created earlier from magnitude image
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_mask  sub-001_magnitude_MASK.nii.gz      \\
           -in_epi   epiRest-sub-001.nii.gz             \\
@@ -370,7 +374,7 @@ help_string_b0_corr = '''
     # Ex 2:  Input *magnitude* dset, from which to calculate mask
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_magn  sub-001_magnitude.nii.gz           \\
           -in_epi   epiRest-sub-001.nii.gz             \\
@@ -380,7 +384,7 @@ help_string_b0_corr = '''
     #        to angular freq, scaling by 2*PI~6.283185)
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -scale_freq      6.283185                    \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_magn  sub-001_magnitude.nii.gz           \\
@@ -605,6 +609,7 @@ class iopts_b0_corr:
         self.epi_pe_echo_sp       = 0   # epiPhaseEncodeEchoSpacing
         self.epi_pe_bwpp          = 0   # BandwidthPerPixelPhaseEncode
         self.epi_pe_voxdim        = 0   # voxdim along PE (in mm)
+        self.epi_pe_matrlen       = 0   # matrix len along PE (count)
         self.epi_pe_dir           = ''  # distDirections: PE direction, e.g. AP
         self.epi_pe_dir_nwarp_pol = 0   # polarity for 3dNwarpCat notation
         self.epi_pe_dir_nwarp_opp = 0   # opp of polarity, for 3dNwarpCat
@@ -667,7 +672,10 @@ class iopts_b0_corr:
 
     def set_epi_pe_voxdim( self, cc ):
         self.epi_pe_voxdim = float(cc)
-        
+
+    def set_epi_pe_matrlen( self, cc ):
+        self.epi_pe_matrlen = float(cc)
+
     def set_epi_pe_bwpp( self, cc ):
         self.epi_pe_bwpp = float(cc)
 
@@ -763,11 +771,12 @@ class iopts_b0_corr:
             # ... and will whine horribly if THAT fails!
 
         PE_voxdim  = self.epi_info.ad3[ self.epi_pe_ind ]
-        #PE_matrdim = self.epi_info.n4[ self.epi_pe_ind ]
+        PE_matrlen = self.epi_info.n4[ self.epi_pe_ind ]
         #PE_length  = PE_voxdim * PE_matrdim
 
-        self.set_epi_pe_voxdim( PE_voxdim) 
-        
+        self.set_epi_pe_voxdim( PE_voxdim ) 
+        self.set_epi_pe_matrlen( PE_matrlen ) 
+
     # ---------------------------------------------------------------------
 
     def read_in_json(self):
@@ -909,10 +918,17 @@ class iopts_b0_corr:
 
         if not(self.epi_pe_bwpp):
             if self.epi_pe_echo_sp :
-                PEBWPP = 1.0/(self.epi_pe_echo_sp * self.epi_pe_voxdim)
+                # [PT: Aug 23, 2019] Fixed this equation
+                PEBWPP = 1.0/(self.epi_pe_echo_sp * self.epi_pe_matrlen)
                 self.set_epi_pe_bwpp( PEBWPP )
                 print("++ Using PE effective echo spacing to calc BWPP: {}"
                       "".format(self.epi_pe_bwpp))
+            else: 
+                print("** ERROR: Can't calculate bandwidth per pix?")
+                print("   How did this come about?")
+                print("   Not using '{epi_pe_bwpp}' or '{epi_pe_echo_sp}'?"
+                      "".format(**all_opts))
+                sys.exit(6)
 
 
     # ---------- check ----------------
@@ -937,7 +953,7 @@ class iopts_b0_corr:
                   "".format(**all_opts))
             MISS+=1
 
-        if not(self.epi_pe_bwpp) :
+        if not(self.epi_pe_bwpp) and not(self.epi_pe_echo_sp) :
             print("** ERROR: missing some necessary info to scale freq data;\n"
                   "   one of the following is necessary about the EPI :\n"
                   "   '{epi_pe_bwpp}', bandwidth per pix in PE dir\n"
