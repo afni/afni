@@ -284,7 +284,7 @@ afobjs: afobj
 
 ### Make a few more things
 
-itall:all plugins install install_plugins
+itall:all plugins install install_plugins install_lib
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
@@ -2556,7 +2556,12 @@ mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
 mrilib_raw.c: mrilib_all.c
 	gcc -E $(INFLAGS) -Iniml -Igifti mrilib_all.c | uniq > mrilib_raw.c
 
+# ---------------------------------------------------------------------------
 # the library of libraries
+
+# Change the build system target from libmri.a to libmri, and let the
+# Makefile decide whether to use the shared library.
+libmri: $(LIBMRI_OBJ)
 
 libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
 	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
@@ -2624,7 +2629,8 @@ libmri.so: mrilib.h                                                          \
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
-	$(RM) netcdf_attr.o
+	# uncomment to bounce between shared and not
+	# $(RM) netcdf_attr.o
 	$(MAKE) netcdf_attr.o CCMIN="${CCMIN} -fPIC"
 
 # same as .a, but build as a shared object
@@ -2700,9 +2706,10 @@ belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 laconte_plugins: plug_3dsvm.$(SO)
 
 install_plugins: $(INSTALLDIR)
-	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) model*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/funstuff
-	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt $(INSTALLDIR)/funstuff
+	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt faces/*.au $(INSTALLDIR)/funstuff
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately
 

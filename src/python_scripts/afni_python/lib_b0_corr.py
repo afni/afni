@@ -37,10 +37,24 @@
 #ver='1.6' ; date='Aug 8, 2019'
 # + [PT] update/correct help about Siemens scaling, post-discussion-with-Vinai
 #
-ver='1.7' ; date='Aug 12, 2019'
+#ver='1.7' ; date='Aug 12, 2019'
 # + [PT] *really* correct help @ Siemens scaling
 # + [PT] change internal scaling: *really* demand units of ang freq (rad/s)
 # + [PT] py23 compatability of help file-- single dictionary usage!
+#
+#ver='2.0' ; date='Aug 15, 2019'
+# + [PT] new parameter scaling of freq dset from Vinai-- better params
+# + [PT] apply obliquity info to output
+# + [PT] fixed ocmds_fname, if opref contains path
+# + [PT] output a useful params file
+# + [PT] another py23 compatability fix
+#
+#ver='2.1' ; date='Aug 16, 2019'
+# + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
+#
+ver='2.2' ; date='Aug 23, 2019'
+# + [PT] fix examples (use correct/newer opt names)
+# + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
 #
 ###############################################################################
 
@@ -57,7 +71,7 @@ ddefs = {
     'DEF_ver'        : ver,
     'DEF_date'       : date,
     'DEF_npeels'     : 2,
-    'DEF_nerode'     : 3,
+    'DEF_nerode'     : 1,
     'DEF_bsigma'     : 9,  #blur to match the '--smooth3=9' opt in FSL's fugue
     'DEF_meth_recenter_freq' : 'mode',
     'DEF_wdir_pref'  : '__work_B0_corr_',
@@ -76,14 +90,16 @@ IND_DICT = { 'i' : 0, 'j' : 1, 'k' : 2 }
 all_opts = {
     'prefix'             : '-prefix',
     'out_cmds'           : '-out_cmds',
+    'out_pars'           : '-out_pars',
     'in_freq'            : '-in_freq',
     'in_mask'            : '-in_mask',
     'in_magn'            : '-in_magn',
     'in_epi'             : '-in_epi',
     'in_epi_json'        : '-in_epi_json',
     'wdir_name'          : '-wdir_name',
+    'epi_pe_bwpp'        : '-epi_pe_bwpp',
+    'epi_pe_voxdim'      : '-epi_pe_voxdim',
     'epi_pe_echo_sp'     : '-epi_pe_echo_sp',
-    'epi_pe_fov'         : '-epi_pe_fov',
     'epi_pe_dir'         : '-epi_pe_dir',
     'scale_freq'         : '-scale_freq', 
     'do_recenter_freq'   : '-do_recenter_freq', 
@@ -100,7 +116,10 @@ all_opts = {
 
 # ----------------------------------------------------------------------------
 
-help_dict = {**all_opts, **ddefs}
+# this should make a single dict in py23; 
+# preferred {**all_opts, **ddefs} is only in py3
+help_dict = all_opts.copy()
+help_dict.update(ddefs)     
 
 help_string_b0_corr = '''
 
@@ -118,25 +137,24 @@ help_string_b0_corr = '''
 
   + frequency dset : (req) phase volume, which should be of similar
                      spatial resolution/FOV of EPI dset to which it
-                     will be applied.  Expected units are: angular
-                     freq (= rad/s = 2*PI*Hz).  If your dataset is in
-                     different units, you can apply an appropriate
-                     scaling via the command line, as discussed in the
-                     'NOTES', below.
-
-  + mask dset      : (req) binary mask of subject's brain
-       or
-  + magnitude dset : (req) volume in same space as frequency dset for
-                     automasking, to create brain mask
+                     will be applied. Expected units are: 
+                         angular freq = rad/s = 2*PI*Hz.
+                     If your dataset is in different units,
+                     you can apply an appropriate scaling via the
+                     command line, as discussed in the 'NOTES', below.
 
   + EPI dset       : (req) EPI dset to which the B0 distortion correction
                      is applied.
 
+  + mask dset      : (req) binary mask of subject's brain
+       OR
+  + magnitude dset : (req) volume in same space as frequency dset for
+                     automasking, to create brain mask
+
   + PE parameters  : (req) a number of parameters related to the
                      EPI vol are required to be input, such as its
-                     - PE direction
-                     - FOV length along the PE direction
-                     - effective TE
+                     - PE direction (AP, PA, RL, etc.)
+                     - bandwidth per pixel OR effective TE
                      Optional scaling can be applied to the freq dset
                      (e.g., if units need to be adjusted appropriately).
 
@@ -145,18 +163,27 @@ help_string_b0_corr = '''
                      that might/should contain all necessary
                      information.
 
+                     NB: If you input a parameter on the command line,
+                     it will take precedence over one found in the
+                     EPI's JSON, if you are also using that.  Thus, if
+                     you know the JSON has *wrong* information, you
+                     can selectively ignore that when running this
+                     program.
+
 
   OUTPUTS ~1~
 
   + WARP dset           : a file called PREFIX_WARP.nii.gz, containing the  
                           warp along the phase encode axis (on the EPI dset's
-                          grid)
+                          grid, with its obliquity info)
 
   + script of commands  : a script of the commands used to generate the 
                           WARP dset (and EPI)
 
   + EPI (un)warped dset : the EPI dset with the estimated distortion
-                          correction applied to it; hopefully unwarped
+                          correction applied to it (and obliquity info
+                          matching the original EPI's); hopefully it
+                          is unwarped...
 
 
   RUNNING ~1~
@@ -168,14 +195,14 @@ help_string_b0_corr = '''
                          to which it will be applied;  also, must be scaled 
                          appropriately, where the expected units are:  Hz.
 
+  {in_epi}     DSET_EPI : (req) EPI dset to which the B0 distortion 
+                         correction that I have spent so much time calculating 
+                         will be applied
+
   {in_mask}   DSET_MASK : (req) mask of brain volume
        or
   {in_magn}   DSET_MAGN : (req) magnitude dset from which to estimate brain
                          mask
-
-  {in_epi}     DSET_EPI : (req) EPI dset to which the B0 distortion 
-                         correctionthat I have spent so much time calculating 
-                         will be applied
 
   {in_epi_json}  FJSON  : (opt) Several parameters about the EPI
                          dset must be known for processing; these MIGHT
@@ -185,36 +212,54 @@ help_string_b0_corr = '''
                          At present, desirable keys/tags in the JSON
                          (with the keyword args you would otherwise use
                          when running this program) are:
-                           EffectiveEchoSpacing   (or use '{epi_pe_echo_sp}')
                            PhaseEncodingDirection (or use '{epi_pe_dir}')
+                         and then either of the following:
+                           BandwidthPerPixelPhaseEncode (or use '{epi_pe_bwpp}')
+                              OR
+                           EffectiveEchoSpacing   (or use '{epi_pe_echo_sp}')
 
   {epi_pe_dir}       DD : (req) direction (axis) of phase encoding, 
                          e.g., AP, PA, RL, ...
                          NB: the order matters, providing the PE direction
                          (and not just PE axis); thus, 'AP' implies the 
                          PE direction is A>>P, and 'PA' that it is P>>A, etc.
+                         (Can come from EPI's JSON; see '{in_epi_json}'.)
 
+  {epi_pe_bwpp}      BW : (req) bandwidth per pixel (in Hz) in the EPI
+                         dset along the phase encode direction.  
+                         (Can come from EPI's JSON; see '{in_epi_json}'.)
+      OR
   {epi_pe_echo_sp}   ES : (req) *effective* TE spacing of phase encoded
                          volume, in units of 's'
+                         (Can come from EPI's JSON; see '{in_epi_json}'.)
 
-  {epi_pe_fov}      FOV : (opt) field of view (FOV) of the
-                         frequency volume along the phase encode axis,
-                         in units of 'mm'; that is, the length of the
-                         dset along the PE axis
+  {epi_pe_voxdim}   FOV : (opt) voxel size along the EPI dset's phase
+                         encode axis, in units of 'mm'; should just be
+                         determined internally from the EPI dataset
 
   {scale_freq}       SF : (opt) scale to apply to frequency volume, 
                          for example to change units to match. 
                          NB: a negative value would invert the warp
                          (probably would not want that...?)  See the
                          'NOTES ..' below for more information about
-                         scaling, esp. for particular vendors.  (def:
-                         SF=1.0)
+                         scaling, esp. for particular vendors or known
+                         units, like physical frequency (Hz). (def: SF=1.0)
 
   {out_cmds}         OC : (opt) name of output script, recording
                          commands that were run during the processing
                          (def: script is output to file using entered
-                         prefix PP: PP_script.tcsh).  If user uses
+                         prefix PP: PP_cmds.tcsh).  If user uses
                          this option, then 'OC' is treated as the full
+                         filename, including path
+
+  {out_pars}         OP : (opt) name of output parameters, recording
+                         some relevant values that were input, found or 
+                         calculated during the processing; the file is 
+                         a colon-separated list that can be turned
+                         into a JSON with abids_json_tool.py, if desired.
+                         (def: pars are output to file using entered
+                         prefix PP: PP_pars.txt).  If user uses
+                         this option, then 'OP' is treated as the full
                          filename, including path
 
   {wdir_name}        WD : working directory name (no path, will be located
@@ -272,7 +317,7 @@ help_string_b0_corr = '''
     Therefore, if you are *sure* that your frequency (phase) volume is
     really in units of Hz, then you can use the following command line
     argument to set things right for using it here: 
-       '{scale_freq} 0.311785' 
+       '{scale_freq} 6.2831853' 
 
     Not too painful!
 
@@ -320,7 +365,7 @@ help_string_b0_corr = '''
     # Ex 1:  With mask supplied, created earlier from magnitude image
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_mask  sub-001_magnitude_MASK.nii.gz      \\
           -in_epi   epiRest-sub-001.nii.gz             \\
@@ -329,7 +374,7 @@ help_string_b0_corr = '''
     # Ex 2:  Input *magnitude* dset, from which to calculate mask
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_magn  sub-001_magnitude.nii.gz           \\
           -in_epi   epiRest-sub-001.nii.gz             \\
@@ -339,7 +384,7 @@ help_string_b0_corr = '''
     #        to angular freq, scaling by 2*PI~6.283185)
       epi_b0_correct.py                                \\
           -epi_pe_echo_sp  0.00031                     \\
-          -distort_dir     AP                          \\
+          -epi_pe_dir      AP                          \\
           -scale_freq      6.283185                    \\
           -in_freq  sub-001_frequency.nii.gz           \\
           -in_magn  sub-001_magnitude.nii.gz           \\
@@ -449,13 +494,15 @@ class dset_3dinfo:
         -datum                  \
         -is_oblique             \
         -obliquity              \
+        -dmin                   \
+        -dmax                   \
         {dset_name}
         '''.format( dset_name=fname )
         com = BASE.shell_com(cmd, capture=1, save_hist=0)
         com.run()
         check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
 
-        expected_vals = 12 # !have to add to this as more items are
+        expected_vals = 14 # !have to add to this as more items are
                            # added to save-- keeps a safe-check!
 
         ainfo = com.so[0].split()
@@ -479,7 +526,25 @@ class dset_3dinfo:
         self.datum        =     ainfo[9]
         self.is_oblique = bool(ainfo[10])
         self.obliquity = float(ainfo[11]) 
+        self.dmin   = intfloat(ainfo[12]) 
+        self.dmax   = intfloat(ainfo[13]) 
         # index of last ainfo[] element here should be: expected_vals - 1
+
+
+# -------------------------------------------------------------------------
+
+def intfloat(x, remove_pipes=True):
+
+    # this is to deal with an annoyance for dmin and dmax when a 4D
+    # dataset is entered.
+    if remove_pipes :
+        x = x.replace('|', '')
+
+    try:
+        out = int(x)
+    except:
+        out = float(x)
+    return out
 
 # -------------------------------------------------------------------------
 
@@ -507,6 +572,7 @@ class iopts_b0_corr:
 
         self.epi_json       = ''           # can be input to parse for params
         self.epi_jdict      = {}           # JSON file as dict
+        self.epi_jdict_pe_dir = ''         # for reporting, if used
 
         # path info, derived from I/O files
         self.origdir        = os.getcwd()  # where cmd is run from
@@ -517,6 +583,7 @@ class iopts_b0_corr:
         self.wdir_name      = ''           # (pathless) name of tmp wdir
         self.wdir           = ''           # (path-bearing) tmp workdir
         self.ocmds_fname    = ''           # output script of cmds
+        self.opars_fname    = ''           # output colon sep'ed file of pars
 
         self.odset_epi      = ''           # the warped EPI
         self.odset_warp     = ''           # the actual warp applied to EPI
@@ -531,19 +598,23 @@ class iopts_b0_corr:
         self.warp_00        = ''
         self.warp_01        = ''
 
+        self.list_histog_int = ''          # 3dBrickstat info of intermed warp
+
         # intermediate names for mask_B0(): 'mb' = 'mask B0'
         self.dset_int_mask_00 = 'mb_00_uni'
         self.dset_int_mask_01 = 'mb_01_mask'
 
         # params 
-        self.epi_pe_echo_sp  = 0        # epiPhaseEncodeEchoSpacing
-        self.epi_pe_fov      = 0        # epiPhaseFOV
-        self.freq_scale      = 1.0      # user can change units&sign
-        self.epi_pe_dir           = ''       # distDirections: PE direction
-        self.epi_pe_dir_nwarp_pol = 0        # polarity for 3dNwarpCat notation
-        self.epi_pe_dir_nwarp_opp = 0        # opp of polarity, for 3dNwarpCat
+        self.freq_scale           = 1.0 # user can change units&sign
+        self.epi_pe_echo_sp       = 0   # epiPhaseEncodeEchoSpacing
+        self.epi_pe_bwpp          = 0   # BandwidthPerPixelPhaseEncode
+        self.epi_pe_voxdim        = 0   # voxdim along PE (in mm)
+        self.epi_pe_matrlen       = 0   # matrix len along PE (count)
+        self.epi_pe_dir           = ''  # distDirections: PE direction, e.g. AP
+        self.epi_pe_dir_nwarp_pol = 0   # polarity for 3dNwarpCat notation
+        self.epi_pe_dir_nwarp_opp = 0   # opp of polarity, for 3dNwarpCat
         self.blur_sigma       = ddefs['DEF_bsigma']  # 'blurSigma'
-        
+
         # about obliquity: first check for EPI-freq obl diff (doesn't
         # really matter); then make a mat of any EPI-freq obl diff
         self.is_same_obl_epi_freq  = False  
@@ -551,7 +622,7 @@ class iopts_b0_corr:
 
         # params, calc'ed during runtime
         self.freq_ctr      = 0.0           # (freqOut); for centering B0
-        self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] # how to center B0
+        self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] # how to ctr B0
 
         # masking params
         self.npeels   = ddefs['DEF_npeels'] # param for mask_B0 (3dAutomask)
@@ -596,18 +667,24 @@ class iopts_b0_corr:
                    "".format(dd) )
             sys.exit(3)
 
-    def set_epiPhaseEncodeEchoSpacing( self, cc ):
+    def set_epi_pe_echo_sp( self, cc ):
         self.epi_pe_echo_sp = float(cc)
 
-    def set_epiPhaseFOV( self, cc ):
-        self.epi_pe_fov = float(cc)
-        
-    def set_phaseDistDirection( self, cc ):
+    def set_epi_pe_voxdim( self, cc ):
+        self.epi_pe_voxdim = float(cc)
+
+    def set_epi_pe_matrlen( self, cc ):
+        self.epi_pe_matrlen = float(cc)
+
+    def set_epi_pe_bwpp( self, cc ):
+        self.epi_pe_bwpp = float(cc)
+
+    def set_epi_pe_dir( self, cc ):
         self.epi_pe_dir = cc
         # set the polarity as well, needed for 3dNwarpCat
-        self.set_phaseDistDirectionPolarity( )
+        self.set_epi_pe_dir_polar( )
 
-    def set_phaseDistDirectionPolarity( self ):
+    def set_epi_pe_dir_polar( self ):
         # A NOTE ON THE DIRECTIONALITY OF THE PHASE CORRECTION: in
         # mri_nwarp.c, the special notation for warps (e.g.:
         # AP:1.0:DSET_NAME) treats opposite directions the same (i.e.,
@@ -630,6 +707,10 @@ class iopts_b0_corr:
 
     def set_phaseDistScale( self, cc ):
         self.freq_scale = float(cc)
+
+    def set_list_histog_int(self, cc ):
+        aa = cc.split()
+        self.list_histog_int = aa[1::2]
 
     def set_npeels( self, cc ):
         self.npeels = int(cc)
@@ -656,7 +737,10 @@ class iopts_b0_corr:
 
     def set_ocmds_fname( self, dd ):
         self.ocmds_fname = dd
-        
+
+    def set_opars_fname( self, dd ):
+        self.opars_fname = dd
+
     def set_full_cmd( self, dd ):
         self.full_cmd = dd
 
@@ -674,7 +758,7 @@ class iopts_b0_corr:
 
     # ---------------------------------------------------------------------
 
-    def set_epi_pe_fov_from_dset(self):
+    def set_epi_pe_voxdim_from_dset(self):
         # we have the 3dinfo info from the freq dset to use
         
         if self.epi_pe_ind < 0 :
@@ -687,11 +771,12 @@ class iopts_b0_corr:
             # ... and will whine horribly if THAT fails!
 
         PE_voxdim  = self.epi_info.ad3[ self.epi_pe_ind ]
-        PE_matrdim = self.epi_info.n4[ self.epi_pe_ind ]
-        PE_length  = PE_voxdim * PE_matrdim
+        PE_matrlen = self.epi_info.n4[ self.epi_pe_ind ]
+        #PE_length  = PE_voxdim * PE_matrdim
 
-        self.set_epiPhaseFOV( PE_length )
-        
+        self.set_epi_pe_voxdim( PE_voxdim ) 
+        self.set_epi_pe_matrlen( PE_matrlen ) 
+
     # ---------------------------------------------------------------------
 
     def read_in_json(self):
@@ -707,25 +792,37 @@ class iopts_b0_corr:
     # ------------
 
     def parse_epi_json(self):
-        '''Try to get necessary info from input JSON.  What we try to get from
-here:
-        + (effective) echo spacing
-        + PE direction.
+        '''Try to get necessary info from input JSON.  
+
+        What we try to get from here for freq scaling:
+        + BandwidthPerPixelPhaseEncode, OR
+        + effective echo spacing
+
+        What else we try to get, if necessary:
+        + EPI PE dir
+
+        In each case, the User's choice will take precedence (if they
+        have entered one).
 
         '''
 
         self.read_in_json()
 
-        if self.epi_jdict.__contains__('EffectiveEchoSpacing') :
-            PEES = self.epi_jdict['EffectiveEchoSpacing'] # e.g., 0.00031, ...
-            self.set_epiPhaseEncodeEchoSpacing( PEES )
-        else:
-            print("+* WARNING: {} file does not contain field: {}"
-            "".format(self.epi_json, 'EffectiveEchoSpacing'))
-        
-        if self.epi_jdict.__contains__('PhaseEncodingDirection') :
-            PED = self.epi_jdict['PhaseEncodingDirection'] # e.g., j, j-, ...
+        # --------- Get phase encode direction, if possible -------------
 
+        if self.epi_pe_dir :
+            print("++ Ignore json for PE dir; already have it: {}"
+                  "".format(self.epi_pe_dir))
+            # and set PE index, for later use
+            try:
+                self.epi_pe_ind = self.epi_info.orient.index(self.epi_pe_dir[0])
+            except:
+                self.epi_pe_ind = self.epi_info.orient.index(self.epi_pe_dir[1])
+            self.set_epi_pe_voxdim_from_dset()
+
+        elif self.epi_jdict.__contains__('PhaseEncodingDirection') :
+            PED = self.epi_jdict['PhaseEncodingDirection'] # e.g., j, j-, ...
+            self.epi_jdict_pe_dir = PED
             self.epi_pe_ind = IND_DICT[ PED[0] ] # {0|1|2}
 
             # get the orientation associated with this index
@@ -735,11 +832,43 @@ here:
             # invert it, if need be
             if PED[-1] == '-' :
                 phase = phase[::-1]
-            self.set_phaseDistDirection(phase)
+            self.set_epi_pe_dir(phase)
+            self.set_epi_pe_voxdim_from_dset()
+
+            print("++ Using json for PE dir: {}"
+                  "".format(self.epi_pe_dir))
+
         else:
             print("+* WARNING: {} file does not contain field: {}"
             "".format(self.epi_json, 'PhaseEncodingDirection'))
 
+
+        # ------ For 3dcalc calculation: convert freq to warp (mm) ------
+
+        # The first+only thing we would need for this calculation
+        if self.epi_pe_bwpp :
+            print("++ Ignore json for BWPP; already have it: {}"
+                  "".format(self.epi_pe_bwpp))
+        elif self.epi_jdict.__contains__('BandwidthPerPixelPhaseEncode') :
+            PEBWPP = self.epi_jdict['BandwidthPerPixelPhaseEncode'] # e.g., 36.44
+            self.set_epi_pe_bwpp( PEBWPP )
+            print("++ Using json for BWPP: {}"
+                  "".format(self.epi_pe_bwpp))
+        else:
+            if self.epi_jdict.__contains__('EffectiveEchoSpacing') :
+                PEES = self.epi_jdict['EffectiveEchoSpacing'] # e.g., 0.00031
+                self.set_epi_pe_echo_sp( PEES )
+
+                # do the calc later for BWPP
+                print("++ Will use json for BWPP, via EffectiveEchoSpacing: {}"
+                      "".format(self.epi_pe_echo_sp))
+
+            else:
+                print("+* WARNING: {} file does not contain field: {}"
+                "".format(self.epi_json, 'BandwidthPerPixelPhaseEncode'))
+                print("+* WARNING: {} file does not contain field: {}"
+                "".format(self.epi_json, 'EffectiveEchoSpacing'))
+        
 
     # ---------- fill in vals ----------------
 
@@ -755,16 +884,23 @@ here:
             self.wdir_name = ddefs['DEF_wdir_pref'] + afni_rand_newid()
         self.wdir   = self.outdir + '/' + self.wdir_name
 
-        self.warp_00 = ':'.join([ self.epi_pe_dir, str(self.epi_pe_dir_nwarp_pol), 
+        self.warp_00 = ':'.join([ self.epi_pe_dir, 
+                                  str(self.epi_pe_dir_nwarp_pol), 
                                   self.dset_int_01 ])
-        self.warp_01 = ':'.join([ self.epi_pe_dir, str(self.epi_pe_dir_nwarp_opp), 
+        self.warp_01 = ':'.join([ self.epi_pe_dir, 
+                                  str(self.epi_pe_dir_nwarp_opp), 
                                   self.dset_int_02 ])
 
         self.odset_epi  = self.prefix_name + '_EPI'
         self.odset_warp = self.prefix_name + '_WARP'
 
         if not(self.ocmds_fname) :
-            self.ocmds_fname = self.prefix_name + '_cmds.tcsh'
+            self.ocmds_fname = self.outdir + '/' 
+            self.ocmds_fname+= self.prefix_name + '_cmds.tcsh'
+
+        if not(self.opars_fname) :
+            self.opars_fname = self.outdir + '/' 
+            self.opars_fname+= self.prefix_name + '_pars.txt'
 
         # check relative obliquity diff bt EPI and freq dsets
         cmd = '''3dinfo         \
@@ -779,6 +915,21 @@ here:
 
         print("++ EPI and phase have same obliq?  {}"
               "".format(self.is_same_obl_epi_freq) )
+
+        if not(self.epi_pe_bwpp):
+            if self.epi_pe_echo_sp :
+                # [PT: Aug 23, 2019] Fixed this equation
+                PEBWPP = 1.0/(self.epi_pe_echo_sp * self.epi_pe_matrlen)
+                self.set_epi_pe_bwpp( PEBWPP )
+                print("++ Using PE effective echo spacing to calc BWPP: {}"
+                      "".format(self.epi_pe_bwpp))
+            else: 
+                print("** ERROR: Can't calculate bandwidth per pix?")
+                print("   How did this come about?")
+                print("   Not using '{epi_pe_bwpp}' or '{epi_pe_echo_sp}'?"
+                      "".format(**all_opts))
+                sys.exit(6)
+
 
     # ---------- check ----------------
 
@@ -802,15 +953,19 @@ here:
                   "".format(**all_opts))
             MISS+=1
 
-        if not(self.epi_pe_echo_sp) :
-            print("** ERROR: missing '{epi_pe_echo_sp}', effective echo "
-                  "spacing"
+        if not(self.epi_pe_bwpp) and not(self.epi_pe_echo_sp) :
+            print("** ERROR: missing some necessary info to scale freq data;\n"
+                  "   one of the following is necessary about the EPI :\n"
+                  "   '{epi_pe_bwpp}', bandwidth per pix in PE dir\n"
+                  "       -> e.g., 'BandwidthPerPixelPhaseEncode' in JSON\n"
+                  "   '{epi_pe_echo_sp}', effective echo spacing in PE dir\n"
+                  "       -> e.g., 'EffectiveEchoSpacing' in JSON.\n"
                   "".format(**all_opts))
             MISS+=1
 
-        if not(self.epi_pe_fov) :
-            print("** ERROR: missing '{epi_pe_fov}', 'phase FOV', i.e., the "
-                  "length along the phase axis"
+        if not(self.epi_pe_voxdim) :
+            print("** ERROR: missing '{epi_pe_voxdim}', the voxel dimension "
+                  "(in mm) along the EPI phase axis"
                   "".format(**all_opts))
             MISS+=1
 
@@ -820,10 +975,12 @@ here:
             MISS+=1
         else:
             if not(ORI_ALL.__contains__(self.epi_pe_dir)) :
-                print("** ERROR: value '{dd}' after '{epi_pe_dir}' is not \n"
+                print("** ERROR: value '{aa}' after '{bb}' is not \n"
                       "   allowed.  Must be one of:\n"
-                      "   {ori_all}"
-                      "".format(**all_opts), dd=self.epi_pe_dir, ori_all=ORI_ALL)
+                      "   {cc}"
+                      "".format(aa=self.epi_pe_dir, 
+                                bb=all_opts['epi_pe_dir'],
+                                cc=ORI_ALL))
                 MISS+=1
 
         if not(self.epi_pe_dir_nwarp_pol) :
@@ -836,11 +993,11 @@ here:
            (self.meth_recenter_freq == 'mode') :
             print("** ERROR: can't have freq dset datum type be 'float' "
                   "and then\n"
-                  "   use (default) 'mode' to recenter its values; see {do_recenter_freq}\n"
-                  "   for recentering in other ways (like median?)."
+                  "   use (def) 'mode' to recenter its values;\n"
+                  "   see {do_recenter_freq} for recentering in other ways \n"
+                  "   (like 'median'?)."
                   "".format(**all_opts))
             MISS+=1
-
 
         if not(self.prefix) :
             print("** ERROR: missing '{prefix}' info"
@@ -870,16 +1027,6 @@ here:
 
         print("\n++ -------------------- copy inputs -----------------------")
         print("   wdir: {wdir}\n".format( **self_vars ))
-
-        # "Just" a note for the output script, to be helpful
-        cmd = '''# These are the phase/freq vol parameters:
-#     PE echo spacing : {epi_pe_echo_sp}  (in s)
-#     PE FOV length   : {epi_pe_fov}  (in mm)
-#     PE direction    : {epi_pe_dir}
-#     PE nwarp pol    : {epi_pe_dir_nwarp_pol}
-#     PE scale factor : {freq_scale}
-        '''.format(**self_vars)
-        self.comm.history.append(cmd)
 
         # Make working directory, which is a subset out output dir, so
         # that will be created automatically, too.
@@ -940,7 +1087,7 @@ here:
         UNITS
         ------
         EPI PE echo spacing : sec
-        EPI FOV             : mm
+        EPI FOV or voxdim   : mm
 
         '''
 
@@ -983,6 +1130,7 @@ here:
             # Add this centering value into the obj
             self.set_freq_ctr( self.comm.so[0].strip() )
 
+
         # Recenter, scale (def=1.0), and convert units with effective
         # echo spacing and length of PE axis. 
         # Freq dset units: ang freq (rad/s).
@@ -990,7 +1138,7 @@ here:
         -echo_edu                                                \
         -a      {dset_freq_name}                                 \
         -b      {dset_mask_name}                                 \
-        -expr   "(a-{freq_ctr})*({freq_scale}/6.2831853)*{epi_pe_echo_sp}*{epi_pe_fov}*b" \
+        -expr   "({freq_scale}/6.2831853)*(a-{freq_ctr})/{epi_pe_bwpp}*{epi_pe_voxdim}*b" \
         -datum  float                                            \
         -prefix {dset_int_00}{dext}
         '''.format( **self_vars )
@@ -1014,6 +1162,22 @@ here:
         self.comm = BASE.shell_com(cmd, capture=1)
         self.comm.run()
         check_for_shell_com_failure(self.comm, cmd )
+
+        
+        # For informational purposes: to report in final params, a
+        # ~histograph of shift values
+        cmd = '''3dBrickStat              \
+        -mask {dset_mask_name}            \
+        -percentile 20 20 100             \
+        {dset_int_01}{dext}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
+
+        # Add this centering value into the obj
+        self.set_list_histog_int( self.comm.so[0] )
 
         # -------------------------------------------------------------
         # Calculate any difference in coordinate axes between
@@ -1072,6 +1236,18 @@ here:
         check_for_shell_com_failure(self.comm, cmd )
 
 
+        # ... and finish the job by applying obliquity in the new dset
+        cmd = '''3drefit                  \
+        -echo_edu                         \
+        -atrcopy {dset_epi_name} IJK_TO_DICOM_REAL \
+        {dset_int_02}{dext}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
+
+
         # calculate the final warp and output it (so it can be
         # concatenated later); {warp_01} comes from {dset_int_02}
         # (while not obvious/apparent here, it was defined to do so in
@@ -1080,6 +1256,18 @@ here:
         -echo_edu                   \
         -warp1  {warp_01}{dext}     \
         -prefix {odset_warp}{dext}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
+
+
+        # ... and finish the job by applying obliquity in the new dset
+        cmd = '''3drefit                  \
+        -echo_edu                         \
+        -atrcopy {dset_epi_name} IJK_TO_DICOM_REAL \
+        {odset_warp}{dext}
         '''.format( **self_vars )
 
         self.comm = BASE.shell_com(cmd, capture=1)
@@ -1104,6 +1292,18 @@ here:
         -warp   {odset_warp}{dext}    \
         -prefix {odset_epi}{dext}     \
         -source {dset_epi_name}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
+
+
+        # ... and finish the job by applying obliquity in the new dset
+        cmd = '''3drefit                  \
+        -echo_edu                         \
+        -atrcopy {dset_epi_name} IJK_TO_DICOM_REAL \
+        {odset_epi}{dext}
         '''.format( **self_vars )
 
         self.comm = BASE.shell_com(cmd, capture=1)
@@ -1183,6 +1383,66 @@ here:
 
         return 0
 
+# --------------------------------------------------------------------------
+
+    def write_params( self ) :
+
+        ss = ''
+
+        # freq dset info
+        if self.freq_info :
+            ss+= "{:30s} : {}  {}\n".format( 'Freq range (init)', 
+                                             self.freq_info.dmin,
+                                             self.freq_info.dmax )
+        if self.freq_scale :
+            ss+= "{:30s} : {}\n".format( 'Freq scale factor', 
+                                         self.freq_scale )
+        if self.list_histog_int :
+            ll = '  '.join(self.list_histog_int)
+            ss+= "{:30s} : {}\n".format( 'Warp (mm) in mask, 20-100 %ile', 
+                                         ll )
+        if ss :
+            ss+= '\n'
+
+        # epi dset info
+        if self.epi_info :
+            ss+= "{:30s} : {}  {}\n".format( 'EPI range (init)', 
+                                             self.epi_info.dmin,
+                                             self.epi_info.dmax )
+        if self.epi_pe_echo_sp :
+            ss+= "{:30s} : {}\n".format( 'EPI PE echo spacing (s)', 
+                                         self.epi_pe_echo_sp )
+        if self.epi_pe_bwpp :
+            ss+= "{:30s} : {}\n".format( 'EPI PE bandwidth per pix (Hz)', 
+                                         self.epi_pe_bwpp )
+        if self.epi_pe_voxdim :
+            ss+= "{:30s} : {}\n".format( 'EPI PE vox dim (mm)', 
+                                         self.epi_pe_voxdim )
+        if self.epi_pe_dir :
+            ss+= "{:30s} : {}\n".format( 'EPI PE direction', 
+                                         self.epi_pe_dir )
+        if self.epi_pe_dir_nwarp_pol :
+            ss+= "{:30s} : {}\n".format( 'EPI PE nwarp pol', 
+                                         self.epi_pe_dir_nwarp_pol )
+        if self.epi_jdict_pe_dir :
+            ss+= "{:30s} : {}\n".format( 'EPI PE dir from JSON', 
+                                         self.epi_jdict_pe_dir )
+            if self.epi_pe_ind :
+                ss+= "{:30s} : {}\n".format( 'EPI PE dir index',
+                                             self.epi_pe_ind )
+            if self.epi_info :
+                ss+= "{:30s} : {}\n".format( 'EPI orient', 
+                                             self.epi_info.orient )
+
+        f = open(self.opars_fname, 'w')
+        f.write(ss)
+        f.close()
+
+        print("++ Wrote params history: {}".format(self.opars_fname))
+
+
+
+# --------------------------------------------------------------------------
     def write_history( self ) :
         
         this_prog    = os.path.basename(self.full_cmd[0])
@@ -1255,6 +1515,8 @@ def parse_args_b0_corr(full_argv):
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
+            # this both reads in dset and gets useful specs/info on it
+            # via 3dinfo, which can be used subsequently
             iopts.set_dset( argv[i], dset_type=dt )
 
         # ---------- opt ---------------
@@ -1269,19 +1531,19 @@ def parse_args_b0_corr(full_argv):
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_epiPhaseEncodeEchoSpacing(argv[i])
+            iopts.set_epi_pe_echo_sp(argv[i])
 
-        elif argv[i] == "{epi_pe_fov}".format(**all_opts) :
+        elif argv[i] == "{epi_pe_voxdim}".format(**all_opts) :
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_epiPhaseFOV(argv[i])
+            iopts.set_epi_pe_voxdim(argv[i])
 
         elif argv[i] == "{epi_pe_dir}".format(**all_opts) :
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_phaseDistDirection(argv[i])
+            iopts.set_epi_pe_dir(argv[i])
 
         elif argv[i] == "{scale_freq}".format(**all_opts) :
             if i >= Narg:
@@ -1300,6 +1562,12 @@ def parse_args_b0_corr(full_argv):
                 ARG_missing_arg(argv[i])
             i+= 1
             iopts.set_ocmds_fname(argv[i])
+
+        elif argv[i] == "{out_pars}".format(**all_opts) :
+            if i >= Narg:
+                ARG_missing_arg(argv[i])
+            i+= 1
+            iopts.set_opars_fname(argv[i])
 
         elif argv[i] == "{blur_sigma}".format(**all_opts) :
             if i >= Narg:
@@ -1345,8 +1613,10 @@ def parse_args_b0_corr(full_argv):
     if iopts.epi_json :
         iopts.parse_epi_json()
 
-    if not(iopts.epi_pe_fov):
-        iopts.set_epi_pe_fov_from_dset()
+    # this is here, but it should really be done by the time
+    # iopts.parse_epi_json() has finished
+    if not(iopts.epi_pe_voxdim):
+        iopts.set_epi_pe_voxdim_from_dset()
 
     if iopts.check_req():
         print("   -------------------------------")

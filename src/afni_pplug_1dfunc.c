@@ -25,7 +25,7 @@ static char helpstring[] =
   "that depends on the local 9-wide neighborhood of each voxel, where\n"
   "the expression is entered (a la 3dcalc) in the string field at\n"
   "the right of the form.  The variable names that may be used in\n"
-  "the expresssion are:\n"
+  "the expression are:\n"
   "                        r s t u v w x y z\n"
   "\n"
   "where 'v' is the center voxel (remember 'v for voxel').  You may\n"

@@ -1,12 +1,12 @@
-#####################################
+## top ###################################
 ## 11/2017 Justin Rajendra
 ## FATCAT matrix plot
 ## UI
 
-#########################################################################
+## header #################
 header <- dashboardHeader(title='FATCAT Matrix Plot',titleWidth=300)
 
-#########################################################################
+## sidebar #################
 sidebar <- dashboardSidebar(width=300,sidebarMenu(
   
   ## style the text a bit to the right
@@ -14,15 +14,15 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
   tags$head(tags$style(".learn_link{margin-left:15px;}")),
   tags$head(tags$style(".badness{margin-left:15px;} .badness{color:red;}")),
   
-  #################################
+  ## main menu ###############################
   menuItem(
     "Main",tabName="stuff",icon=icon("cogs"),selected=TRUE,startExpanded=TRUE,
     
-    ## file and matrix selectors
+    ## file and matrix selectors #################
     selectInput('net_file','File:',file.list),
     selectInput('stat_sel','Stat:',NULL),
     
-    ## thresholding options
+    ## thresholding options #################
     radioButtons('tri_sel','Matrix:',inline=TRUE,c('Full','Upper','Lower')),
     fluidRow(
       column(width=4,checkboxInput('thresh_yn','Threshold')),
@@ -37,7 +37,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
                               numericInput('thresh_max','High Pass:',
                                            1,step=0.1))
                      ) ),
-    ## clustering
+    ## clustering #################
     selectInput('h_clust','Cluster linkage (before thresholding):',
                 c('none','complete','single','average','median',
                   'centroid','mcquitty')),
@@ -49,13 +49,13 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
                      htmlOutput('dist_link',class='learn_link')
     ),
     
-    ## histogram
+    ## histogram #################
     checkboxInput('hist_yn','Show histogram below',value=TRUE),
     conditionalPanel('input.hist_yn',
                      h5('Histogram is after all thresholding.',
                         class='learn_link')),br(),
     
-    ## download and warnings
+    ## download and warnings #################
     downloadButton('downloadLog','Download Log',class='d_button'),
     tags$head(tags$style(".d_button#downloadLog{margin-left: 12px;}
                          .d_button#downloadLog{color:black;}")),br(),
@@ -67,13 +67,13 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
     
   ), ## end files tab
   
-  #################################
+  ## ROI menu ###############################
   menuItem("ROIs",tabName="ROIs",icon=icon("code-fork"),
            selectInput('rois','Select ROIs:',multiple=TRUE,choices=NULL,
                        selected=NULL,selectize=TRUE),br()
   ),  ## end ROIs tab
   
-  #################################
+  ## color menu ###############################
   menuItem("Colors",tabName="colors",icon=icon("edit"),
            
            ## opt-in for min max colors
@@ -111,7 +111,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
               class='learn_link'),br()
   ),   ## end colors
   
-  #################################
+  ## heatmap menu ###############################
   menuItem("Heatmap PNG",tabName="png",icon=icon("file-image-o"),
            conditionalPanel(
              "input.col_thresh == 'Yes'",br(),
@@ -129,7 +129,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
            ),br()
   ),  ## end heatmap png tab
   
-  #################################
+  ## circos menu ###############################
   menuItem("Circos PNG",tabName="circos",icon=icon("times-circle-o"),
            conditionalPanel(
              "input.col_thresh == 'Yes'",br(),
@@ -156,7 +156,7 @@ sidebar <- dashboardSidebar(width=300,sidebarMenu(
 )   ## end sidebar menu
 )   ## end sidbar
 
-#########################################################################
+## main body #######################################################################
 body <-  dashboardBody(
   fluidRow(
     plotlyOutput('cor_heatmap_plot',height=700,width=700),
@@ -166,5 +166,5 @@ body <-  dashboardBody(
   )
 )   ## end dashboard body
 
-## run it
+## run it #################
 dashboardPage(header, sidebar, body)

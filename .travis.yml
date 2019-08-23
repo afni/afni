@@ -6,15 +6,18 @@ git:
   submodules: false
 env:
  global:
-    - FLAVOR=linux_ubuntu_12_64
+    - FLAVOR=linux_ubuntu_16_64
 before_install:
+    # make sure mysql is running
+    - sudo update-rc.d mysql enable
+    - sudo service mysql start
     # install build-dependencies as the doc says
     - sudo sh src/other_builds/OS_notes.$FLAVOR
     # install packages needed for testing
     - sudo apt-get install xvfb xauth libgl1-mesa-dri mesa-utils tcsh libjpeg-progs
 install:
     - cd src
-    - cp other_builds/Makefile.$FLAVOR Makefile
+    - cp Makefile.$FLAVOR Makefile
     - make vastness
 script:
     # to gain access to built binaries, include path first

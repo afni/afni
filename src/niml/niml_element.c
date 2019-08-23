@@ -1488,7 +1488,8 @@ void *NI_duplicate_group (void *vel, byte with_data)
     of the element!
 -------------------------------------------------------------------------*/
 
-char * NI_get_attribute( void *nini , char *attname )
+char * NI_get_attribute_generic( void *nini , char *attname ,
+                                 int (*STRcomp)(const char *, const char *) )
 {
    int nn , tt=NI_element_type(nini) ;
    static char *zorkon = "\0" ;
@@ -1501,7 +1502,7 @@ char * NI_get_attribute( void *nini , char *attname )
       NI_element *nel = (NI_element *) nini ;
 
       for( nn=0 ; nn < nel->attr_num ; nn++ )
-         if( strcmp(nel->attr_lhs[nn],attname) == 0 ) break ;
+         if( STRcomp(nel->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == nel->attr_num ) return NULL ;
 
@@ -1515,7 +1516,7 @@ char * NI_get_attribute( void *nini , char *attname )
       NI_group *ngr = (NI_group *) nini ;
 
       for( nn=0 ; nn < ngr->attr_num ; nn++ )
-         if( strcmp(ngr->attr_lhs[nn],attname) == 0 ) break ;
+         if( STRcomp(ngr->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == ngr->attr_num ) return NULL ;
 
@@ -1529,7 +1530,7 @@ char * NI_get_attribute( void *nini , char *attname )
       NI_procins *npi = (NI_procins *) nini ;
 
       for( nn=0 ; nn < npi->attr_num ; nn++ )
-        if( strcmp(npi->attr_lhs[nn],attname) == 0 ) break ;
+        if( STRcomp(npi->attr_lhs[nn],attname) == 0 ) break ;
 
       if( nn == npi->attr_num ) return NULL ;
 
@@ -1539,6 +1540,19 @@ char * NI_get_attribute( void *nini , char *attname )
    }
 
    return NULL ; /* should never be reached */
+}
+
+/*-----------------------------------------------------------------------*/
+/* This stuff added 20 Aug 2019 [RWC] */
+
+char * NI_get_attribute( void *nini , char *attname )
+{
+   return NI_get_attribute_generic( nini , attname, strcmp ) ;
+}
+
+char * NI_get_attribute_nocase( void *nini , char *attname )
+{
+   return NI_get_attribute_generic( nini , attname, strcasecmp ) ;
 }
 
 /*-----------------------------------------------------------------------*/

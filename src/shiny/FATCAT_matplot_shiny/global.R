@@ -1,9 +1,9 @@
-#####################################
+## top ###################################
 ## 11/2017 Justin Rajendra
 ## FATCAT matrix plot
 ## global
 
-## check for packages and load them
+## check for packages and load them #################
 pkgs <- c('shiny','shinydashboard','plotly','OmicCircos',
           'colourpicker','data.table','gplots','tools')
 for(pkg in pkgs){
@@ -16,8 +16,7 @@ for(pkg in pkgs){
  }
 }
 
-#####################################
-## get arguments and check if folder is there
+## get arguments and check if folder is there #################
 args <- commandArgs(TRUE)
 cor.path <- args[1]
 if(!dir.exists(cor.path)){
@@ -25,8 +24,7 @@ if(!dir.exists(cor.path)){
   quit(save="no")
 }
 
-#####################################
-## get file list and see if there are any good files
+## get file list and see if there are any good files #################
 
 ## FATCAT or Netcorr files
 file.list <- list_files_with_exts(cor.path,ext=c('grid','netcc'))
@@ -69,7 +67,6 @@ if(length(file.list) == 0){
 }
 names(file.list) <- basename(file.list)
 
-## read in stat descriptions for FATCAT and 3dnetcorr
+## read in stat descriptions for FATCAT and 3dnetcorr #################
 stat.df <- read.csv('stat_methods.csv',stringsAsFactors=FALSE)
-
 

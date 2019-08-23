@@ -184,6 +184,14 @@ void matrix_extract_rows (matrix a, int p, int * list, matrix * b);
 
 /*---------------------------------------------------------------------------*/
 /*
+  Add columns that are all 0 except for a single 1, as indicated.
+*/
+
+void matrix_augment_01_columns( matrix a, int nadd, int *addlist, matrix *b );
+
+
+/*---------------------------------------------------------------------------*/
+/*
   Create n x n identity matrix.
 */
 

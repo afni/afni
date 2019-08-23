@@ -152,6 +152,11 @@ void mri_sound_play_append( char *app )  /* 09 Aug 2019 */
 static int play_notify = 0 ;
 void mri_play_sound_notify(int nn){ play_notify = nn ; return ; }
 
+static float play_rate_fac = 1.0f ;
+void mri_play_sound_rate_fac( float fff ){
+  if( fff > 0.1f && fff <= 10.0f ) play_rate_fac = fff ;
+}
+
 /*---------------------------------------------------------------------------*/
 /* Play sound from a 1D image (up to 4 columns) */
 
@@ -188,6 +193,7 @@ void mri_play_sound( MRI_IMAGE *imin , int ignore )
    }
 
    dt = (imin->nx <= 100) ? 0.20f : 0.14f + 6.0f/(float)imin->nx ;
+   dt *= play_rate_fac ;
    nsper = (int)rintf(DEFAULT_SRATE*dt) ;
 
    qim = mri_sound_1D_to_notes( imin , DEFAULT_SRATE , nsper , 4 , ignore , 0 ) ;

@@ -66,6 +66,21 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_BUG_FIX,
+   "Fixed calculation when PE effective echo spacing is input.",
+   "The conversion to BWPP was wrong; led to almost no distortion corr.\n"
+},
+
+{ 20, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+   "Indent properly-- loops/conditions were too hard to follow.",
+   "Should have no change in output but facilitates code editing.\n"
+},
+
+{ 15, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "This program has been pretty fully revamped, and might be worth using now.",
+   "New scaling from Vinai, several updates/fixes/changes from last ver.\n"
+},
+
 { 1, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
    "Rename internal vars and opt names.",
    "Improving internal notation-- still very much a beta program version.\n"

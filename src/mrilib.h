@@ -655,6 +655,7 @@ static int MRI_mm ;
 
 #define MRI_VARP1    (71)   /* 24 Dec 2008 */
 #define MRI_WSINC5   (72)   /* 02 Jan 2009 */
+#define MRI_WSINC9   (79)   /* 19 Aug 2019 - for 1D shifting only */
 
 #define MRI_FOURIER_NOPAD (66)  /* 13 May 2003 */
 
@@ -2441,6 +2442,7 @@ extern void kill_sound_players(void) ;
 
 extern void mri_sound_play_append( char *app ) ;  /* 09 Aug 2019 */
 extern void mri_play_sound_notify( int ) ;
+extern void mri_play_sound_rate_fac( float fff ) ;     /* 23 Aug 2019 */
 
 #define SOUND_WAVEFORM_SINE     1
 #define SOUND_WAVEFORM_SQUARE   2

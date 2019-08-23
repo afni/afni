@@ -1,10 +1,9 @@
-#####################################
+## top ###################################
 ## 11/2017 Justin Rajendra
 ## FATCAT matrix plot
 ## Server
 
-###########################################################################
-## misc functions
+## misc functions #################
 
 ## get number of ROIs and matrices and the ROI labels
 mat_info_fun <- function(in.file){
@@ -20,16 +19,14 @@ mat_info_fun <- function(in.file){
   return(list(num.rois=num.rois,num.mat=num.mat,roi.lab=roi.lab))
 }   ## end mat_info_fun
 
-###########################################################################
-## code for server for input and output
+## code for server for input and output  #################
 shinyServer(function(input,output,session) {
   
   ## hide some warnings and quit app when browser/tab closes
   options(warn =-1)
   session$onSessionEnded(stopApp)
   
-  ############################################
-  ## get the rois and info
+  ## get the rois and info #################
   observe({
     
     ## see if it is a .grid or .netcc file
@@ -60,14 +57,16 @@ shinyServer(function(input,output,session) {
           stat.type <- as.character(scan(input$net_file,what='character',n=2,
                                          skip=start.line,nlines=1,
                                          quiet=TRUE)[2][1])
-          stat.list <- rbind(stat.list,stat.type[1])
+          stat.temp <- paste("#",stat.type)  ## add the # and space
+          stat.list <- rbind(stat.list,stat.temp[1])
           
           ## get the pretty name and add to name list
           name.temp <- ifelse(stat.type[1] %in% stat.df$label,
                               stat.df$description[stat.df$label == stat.type[1]],
                               stat.type[1])
-          stat.names <- rbind(stat.names,name.temp)
           
+          stat.names <- rbind(stat.names,name.temp)
+ 
           start.line <- 5 + (num.rois*i+1*i)
           incProgress(1/num.mat,detail=stat.type[[1]])
         }
@@ -80,8 +79,7 @@ shinyServer(function(input,output,session) {
     updateSelectInput(session,'rois',choices=roi.lab,selected=roi.lab)
   })   ## end observe for rois
   
-  ############################################
-  ## color min/max reset
+  ## color min/max reset #################
   observeEvent(input$col_thresh,{
     if(length(input$rois) > 1){
       if(input$col_thresh == 'No'){
@@ -92,8 +90,7 @@ shinyServer(function(input,output,session) {
     }
   })
   
-  ############################################
-  ## read matrices
+  ## read matrices #################
   mat_read <- reactive({
     if(length(input$rois) > 1){
       
@@ -118,6 +115,7 @@ shinyServer(function(input,output,session) {
         ## read in data (get rid of empty column?)
         net.mat <- as.matrix(fread(input$net_file,skip=input$stat_sel,
                                    nrows=num.rois,header=FALSE))
+        
         if(is.na(sum(net.mat[,ncol(net.mat)]))){
           net.mat <- net.mat[,1:ncol(net.mat)-1]
         }
@@ -136,8 +134,7 @@ shinyServer(function(input,output,session) {
     }
   })   ## end mat_read
   
-  ############################################
-  ## get the data reorganized with the clustering
+  ## get the data reorganized with the clustering #################
   heat_data <- reactive({
     
     if(length(input$rois) < 2){ stop('ERROR: select more than one ROI!') }
@@ -179,8 +176,7 @@ shinyServer(function(input,output,session) {
     return(hm2$carpet)
   })   ## end heat_data
   
-  ############################################
-  ## plot heat map
+  ## plot heat map #################
   output$cor_heatmap_plot <- renderPlotly({
     
     ## get data and make sure it is enough
@@ -241,8 +237,7 @@ shinyServer(function(input,output,session) {
            title=plot.title)
   })   ## end heat map
   
-  ############################################
-  ## download static version
+  ## download static version #################
   output$downloadPlot <- downloadHandler(
     filename = function(){
       paste0(basename(input$net_file),'_',input$stat_sel,'_heatmap.png')
@@ -273,8 +268,7 @@ shinyServer(function(input,output,session) {
       }
       stat.lab <- stat.df$description[stat.df$label == input$stat_sel]
       
-      ############################################
-      ## calculate first
+      ## calculate first #################
       if(input$h_clust != 'none'){
         if(input$dist_meth == "canberra" & min(net.mat,na.rm=TRUE) <= 0){
           showNotification("Canberra does not work with none positive values!",
@@ -305,8 +299,7 @@ shinyServer(function(input,output,session) {
       }
       if(input$zero_yn){  hm2$carpet[hm2$carpet == 0] <- NA }
       
-      ############################################
-      ## plot
+      ## plot static #################
       ## open graphics device (close any old ones just in case)
       graphics.off()
       png(file,width=20,height=20,units='in',res=input$static_dpi)
@@ -376,8 +369,7 @@ shinyServer(function(input,output,session) {
       dev.off()
     })   ## end static heatmap
   
-  ############################################
-  ## plot histogram
+  ## plot histogram #################
   output$cor_hist_plot <- renderPlotly({
     ## get data and make sure it is enough
     cor.in <- heat_data()
@@ -410,8 +402,7 @@ shinyServer(function(input,output,session) {
            margin=m)
   })   ## end histogram
   
-  ############################################
-  ## circos
+  ## circos #################
   output$downloadCircos <- downloadHandler(
     filename = function(){
       paste0(basename(input$net_file),'_',input$stat_sel,'_circos.png') 
@@ -523,8 +514,7 @@ shinyServer(function(input,output,session) {
       
     })   ## end circos
   
-  ############################################
-  ## log file download
+  ## log file download #################
   output$downloadLog <- downloadHandler(
     filename = function(){
       paste0(basename(input$net_file),'_',input$stat_sel,'_log.csv')
@@ -597,8 +587,7 @@ shinyServer(function(input,output,session) {
       close(datafile)
     })
   
-  ############################################
-  ## help links
+  ## help links #################
   output$hclust_link <- renderUI({
     tags$a(target='_blank',
            href='https://stat.ethz.ch/R-manual/R-devel/library/stats/html/hclust.html',

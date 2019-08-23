@@ -51,6 +51,9 @@
 afni_history_struct discoraj_history[] = {
 
  /* can copy to and change one of the examples here */
+ { 16 , AUG , 2019 , JKR , "FATCAT_matplot" , MICRO , TYPE_BUG_FIX ,
+   "Fix for FATCAT_matplot header reading."
+ } ,
  { 18 , MAY , 2018 , JKR , "abids_lib.py" , SUPER , TYPE_NEW_PROG ,
    "New library to handle data from json files. Useful for BIDS data."
  } ,

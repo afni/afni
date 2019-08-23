@@ -44,6 +44,33 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 22 , AUG , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
+   "After 25 years, replace image false color with Google Turbo!" ,
+   "Instead of AJJ's old color spectrum from FD, which had way too much\n"
+   "green." } ,
+
+ { 21 , AUG , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_ENHANCE ,
+   "Add Google Turbo colormap" ,
+   NULL } ,
+
+ { 20 , AUG , 2019 , RWC , "3dPval" , MICRO , TYPE_NEW_OPT ,
+   "Add -zscore option" ,
+   NULL } ,
+
+ { 20 , AUG , 2019 , RWC , "3dREMLfit" , MICRO , TYPE_ENHANCE ,
+   "Make attribute names in matrix file be insensitive to case" ,
+   NULL } ,
+
+ { 19 , AUG , 2019 , RWC , "3dTshift" , MICRO , TYPE_NEW_OPT ,
+   "-wsinc5 and -wsinc9 options" ,
+   "Interpolation in time introduces autocorrelation. This effect is not\n"
+   "appreciable for Fourier (FFT) interpolation, but is noticeable for the\n"
+   "polynomial methods. Plus/minus 5 and 9 weighted sinc interpolation\n"
+   "options were added to test if these would reduce this artifact. The\n"
+   "answer is that wsinc5 is better than heptic, but it is still visible;\n"
+   "wsinc9 pretty much eliminates it inside the brain, but it is visible in\n"
+   "the low-signal region outside the brain." } ,
+
  { 29 , JUL , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_BUG_FIX ,
    "Reduce colorization interpolation problem" ,
    "When using discrete panes, conversion to 'continuous' colorscale causes\n"
