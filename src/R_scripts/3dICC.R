@@ -24,7 +24,7 @@ help.ICC.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
           ================== Welcome to 3dICC ==================          
           AFNI Program for IntraClass Correlatin (ICC) Analysis
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.4, Jul 29, 2019
+Version 0.0.5, Aug 26, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - ATM
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892, USA
@@ -775,7 +775,7 @@ if(dimz==1) zinit <- 1 else zinit <- dimz%/%3
 
 ii <- xinit; jj <- yinit; kk <- zinit
 
-if(is.na(lop$tStat)) {
+if(is.na(lop$tStat)) { # no tStat input
    lop$model <- as.formula(paste('eff ~ ', lop$model))
    fm<-NULL  
    while(is.null(fm)) {
@@ -801,7 +801,7 @@ if(is.na(lop$tStat)) {
          errex.AFNI("Quitting due to model test failure...")
       }
    }
-} else {   
+} else {   # with tStat
    tm <- unlist(strsplit(lop$model, split="[+]"))
    fe <- tm[which(!grepl('[(]', tm))]
    re <- gsub("[()]", "", tm[which(grepl('[(]', tm))])
@@ -840,7 +840,8 @@ if(is.na(lop$tStat)) {
    }
 }
 
-
+dfD <- nrow(lop$dataStr) - nlevels(lop$dataStr$Subj) - nrow(coefficients(summary(fm))) + 1  # DFs for denominator
+dfN <- nlevels(lop$dataStr$Subj) - 1 # DFs for numerator
 lop$NoBrick <- 2 # ICC plus its F-stat
 
 print(sprintf("Start to compute %s slices along Z axis. You can monitor the progress", dimz))
@@ -907,7 +908,7 @@ Stat[Stat < (-Top)] <- -Top
 
    outLabel <- c("ICC", "ICC F")
    statsym <- NULL
-   statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(24,24))))
+   statsym <- c(statsym, list(list(sb=1,typ="fift", par=c(dfN,dfD))))
 
 
 write.AFNI(lop$outFN, Stat[,,,1:lop$NoBrick], outLabel, defhead=head, idcode=newid.AFNI(),
