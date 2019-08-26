@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for dyn.load error via 3dMVM",
+   NULL
+ } ,
+
  { 23, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "updates corresponding to Travis CI OS change: Ubuntu 14->16",
    "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system udpate,\n"
