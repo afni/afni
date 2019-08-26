@@ -220,9 +220,15 @@
 #set version   = "5.7"; set rev_dat   = "Aug 23, 2019"
 #   + [PT] added new option to turn ulay into edges: '-edgy_ulay'
 #
-set version   = "5.71"; set rev_dat   = "Aug 26, 2019"
+#set version   = "5.71"; set rev_dat   = "Aug 26, 2019"
 #   + [PT] can now include ulay range and comments directly in pbar txt file
 #   + [PT] added new option to comment on ulay with pbar: -ulay_comm
+#
+set version   = "5.72"; set rev_dat   = "Aug 26, 2019"
+#   + [PT] switch order of '-com ...' commands, to be more general;
+#          should NOT affect most behavior (only should be better now
+#          on systems where image viewers don't open automatically,
+#          e.g., biowulf)
 #
 # =====================================================================
 
@@ -1657,12 +1663,17 @@ echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
 echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
+     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
+            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
+            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
      -com "$com_pbar_str"                                             \\\
      -com "SET_SUBBRICKS   ${subbb}"                                  \\\
@@ -1673,9 +1684,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
      -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
      -com "SET_XHAIRS  ${crossh}"                                     \\\
-     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
-            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
-            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "$coor_type $coors"                                         \\\
      -com "SAVE_${ftype} ${ppord[$rrr]}image                          \\\
             ${odir}/${impref}.${pord[$rrr]}                           \\\
@@ -1686,10 +1694,15 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
         afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                  \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
+             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
+                    mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
+                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
              -com "$com_pbar_str"                                           \
              -com "SET_SUBBRICKS   ${subbb}"                                \
@@ -1700,9 +1713,6 @@ endif
              -com "SET_FUNC_BOXED  $olay_boxed"                             \
              -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
              -com "SET_XHAIRS  ${crossh}"                                   \
-             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
-                    mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
-                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "$coor_type $coors"                                       \
              -com "SAVE_${ftype} ${ppord[$rrr]}image                        \
                     ${odir}/${impref}.${pord[$rrr]}                         \
@@ -1758,12 +1768,23 @@ echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
 echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
+    -com "$OW sagittalimage opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
+           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
+    -com "$OW coronalimage  opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
+           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
+    -com "$OW axialimage    opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
+           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
     -com "$com_pbar_str"                                             \\\
     -com "SET_SUBBRICKS   ${subbb}"                                  \\\
@@ -1774,15 +1795,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
     -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
     -com "SET_XHAIRS  ${crossh}"                                     \\\
-    -com "$OW sagittalimage opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
-           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
-    -com "$OW coronalimage  opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
-           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
-    -com "$OW axialimage    opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
-           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "$coor_type $coors"                                         \\\
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
            blowup=${bufac}"                                          \\\
@@ -1796,10 +1808,15 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
     -com "$com_pbar_str"                                             \
     -com "SET_SUBBRICKS   ${subbb}"                                  \
@@ -1810,9 +1827,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
     -com "SET_FUNC_BOXED  $olay_boxed"                               \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
     -com "SET_XHAIRS  ${crossh}"                                     \
-    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
     -com "$coor_type $coors"                                         \
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
     -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
