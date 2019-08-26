@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 26 , AUG , 2019 , RWC , "mri_read_1D" , MICRO , TYPE_ENHANCE ,
+   "Modify to allow reading from a named pipe (FIFO)" ,
+   "You can't seek/rewind on a FIFO, so have to use special code - adapted\n"
+   "from the mri_read_1D_stdin function." } ,
+
  { 22 , AUG , 2019 , RWC , "AFNI GUI" , MICRO , TYPE_MODIFY ,
    "After 25 years, replace image false color with Google Turbo!" ,
    "Instead of AJJ's old color spectrum from FD, which had way too much\n"
