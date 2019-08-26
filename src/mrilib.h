@@ -964,6 +964,7 @@ extern MRI_IMAGE * mri_read_double_1D( char * ) ;
 extern MRI_IMAGE * mri_read_complex_1D( char * ) ;
 extern int mri_write_1D( char * , MRI_IMAGE * ) ;        /* 16 Nov 1999 */
 extern MRI_IMAGE * mri_read_1D_stdin(void) ;             /* 25 Jan 2008 */
+extern MRI_IMAGE * mri_read_1D_pipe (FILE *fp) ;         /* 26 Aug 2019 */
 extern MRI_IMAGE * mri_copy_1D_stdin(void) ;             /* 05 Mar 2010 */
 extern void        mri_clear_1D_stdin(void);
 extern char * mri_read_1D_headerlines( char * ) ;        /* 05 Dec 2010 */

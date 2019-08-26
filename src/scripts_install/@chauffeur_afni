@@ -217,8 +217,18 @@
 #set version   = "5.6"; set rev_dat   = "July 8, 2019"
 #   + [PT] make DO CLEAN the default (and add opt/switch -no_clean)
 #
-set version   = "5.7"; set rev_dat   = "Aug 23, 2019"
+#set version   = "5.7"; set rev_dat   = "Aug 23, 2019"
 #   + [PT] added new option to turn ulay into edges: '-edgy_ulay'
+#
+#set version   = "5.71"; set rev_dat   = "Aug 26, 2019"
+#   + [PT] can now include ulay range and comments directly in pbar txt file
+#   + [PT] added new option to comment on ulay with pbar: -ulay_comm
+#
+set version   = "5.72"; set rev_dat   = "Aug 26, 2019"
+#   + [PT] switch order of '-com ...' commands, to be more general;
+#          should NOT affect most behavior (only should be better now
+#          on systems where image viewers don't open automatically,
+#          e.g., biowulf)
 #
 # =====================================================================
 
@@ -287,6 +297,7 @@ set SAVE_PBAR    = 0             # [PT: Oct 21, 2018] flag for assorted stuff
 set pbar_comm  = ""            # [PT: May 8, 2019] pbar json output
 set vthr_comm  = ""            # [PT: May 8, 2019] pbar json output
 set pbar_for   = ""
+set ulay_comm  = ""
 
 set func_resam = "NN"            # def. no resample; opt: {NN|Li|Cu|Bk}
 
@@ -310,6 +321,8 @@ set subbb   = ( -1 -1 -1 )
 set refbox  = ""
 
 set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
+set umin = ''
+set umax = ''
 
 # for SET_FUNC_ALPHA and SET_FUNC_BOXED
 set olay_alpha      = "No"         # 
@@ -678,6 +691,12 @@ while ( $ac <= $#argv )
         if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
         @ ac += 1
         set vthr_comm = "$argv[$ac]"
+
+    # [PT: Aug 26, 2019] save reason for ulay range
+    else if ( "$argv[$ac]" == "-ulay_comm" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set ulay_comm = "$argv[$ac]"
 
     # AFNI_IMAGE_LABEL_MODE    = 1     // draw labels in UL of Image windows
     # AFNI_IMAGE_LABEL_SIZE    = 3     // size of labels in Image windows
@@ -1545,6 +1564,10 @@ pbar_top     :: "${frange}"
 pbar_comm    :: "${pbar_comm}"
 vthr         :: "${thrnew}"
 vthr_comm    :: "${vthr_comm}"
+ulay_bot     :: "${umin}"
+ulay_top     :: "${umax}"
+ulay_globran :: "${urange}"
+ulay_comm    :: "${ulay_comm}"
 ${pbar_for}
 EOF
 
@@ -1640,12 +1663,17 @@ echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
 echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
      -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
      -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
      -com "SEE_OVERLAY     ${see_olay}"                               \\\
+     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
+            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
+            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
      -com "$com_pbar_str"                                             \\\
      -com "SET_SUBBRICKS   ${subbb}"                                  \\\
@@ -1656,9 +1684,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                    \\\
      -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
      -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
      -com "SET_XHAIRS  ${crossh}"                                     \\\
-     -com "$OW ${ppord[$rrr]}image opacity=${opac}                    \\\
-            mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
-            crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
      -com "$coor_type $coors"                                         \\\
      -com "SAVE_${ftype} ${ppord[$rrr]}image                          \\\
             ${odir}/${impref}.${pord[$rrr]}                           \\\
@@ -1669,10 +1694,15 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
         afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                  \
              -com "SWITCH_UNDERLAY ${read_ulay}"                            \
              -com "SWITCH_OVERLAY  ${read_olay}"                            \
              -com "SEE_OVERLAY     ${see_olay}"                             \
+             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
+                    mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
+                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar" \
              -com "$com_pbar_str"                                           \
              -com "SET_SUBBRICKS   ${subbb}"                                \
@@ -1683,9 +1713,6 @@ endif
              -com "SET_FUNC_BOXED  $olay_boxed"                             \
              -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"             \
              -com "SET_XHAIRS  ${crossh}"                                   \
-             -com "$OW ${ppord[$rrr]}image opacity=${opac}                  \
-                    mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}         \
-                    crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
              -com "$coor_type $coors"                                       \
              -com "SAVE_${ftype} ${ppord[$rrr]}image                        \
                     ${odir}/${impref}.${pord[$rrr]}                         \
@@ -1741,12 +1768,23 @@ echo "set bufac        = "\""${bufac}"\"""  >> $oechocmd
 echo "set do_quit      = "\""${do_quit}"\"""  >> $oechocmd
 echo "set read_dir     = "\""${read_dir}"\"""  >> $oechocmd
 
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 echo '# the afni drive command itself' >> $oechocmd
 echo '\
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \\\
     -com "SWITCH_OVERLAY  ${read_olay}"                              \\\
     -com "SEE_OVERLAY     ${see_olay}"                               \\\
+    -com "$OW sagittalimage opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
+           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
+    -com "$OW coronalimage  opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
+           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
+    -com "$OW axialimage    opacity=${opac}                          \\\
+           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
+           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \\\
     -com "$com_pbar_str"                                             \\\
     -com "SET_SUBBRICKS   ${subbb}"                                  \\\
@@ -1757,15 +1795,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \\\
     -com "SET_FUNC_BOXED  $olay_boxed"                               \\\
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \\\
     -com "SET_XHAIRS  ${crossh}"                                     \\\
-    -com "$OW sagittalimage opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor}           \\\
-           crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \\\
-    -com "$OW coronalimage  opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor}           \\\
-           crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \\\
-    -com "$OW axialimage    opacity=${opac}                          \\\
-           mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor}           \\\
-           crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \\\
     -com "$coor_type $coors"                                         \\\
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag          \\\
            blowup=${bufac}"                                          \\\
@@ -1779,10 +1808,15 @@ endif
 
 # the command run with xvfb; same as above but different spacing; at
 # some point just run via the command script with xvfb
+# [PT: Aug 26, 2019] have OPEN_WINDOW be nearly the first thing done,
+# before values are calc'ed for ranges---thanks, RWC!
 afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
     -com "SWITCH_UNDERLAY ${read_ulay}"                              \
     -com "SWITCH_OVERLAY  ${read_olay}"                              \
     -com "SEE_OVERLAY     ${see_olay}"                               \
+    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
+    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
+    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
     -com "SET_PBAR_ALL    ${pbar_sign}${ncolors} $topval $my_cbar"   \
     -com "$com_pbar_str"                                             \
     -com "SET_SUBBRICKS   ${subbb}"                                  \
@@ -1793,9 +1827,6 @@ afni ${XXX_NPANE} -noplugins -no_detach  -echo_edu                   \
     -com "SET_FUNC_BOXED  $olay_boxed"                               \
     -com "SET_FUNC_RESAM  ${func_resam}.${func_resam}"               \
     -com "SET_XHAIRS  ${crossh}"                                     \
-    -com "$OW sagittalimage opacity=${opac} mont=${mx}x${my}:${gapord[1]}:${mgap}:${mcolor} crop=${scropx[1]}:${scropx[2]},${scropy[1]}:${scropy[2]}" \
-    -com "$OW coronalimage  opacity=${opac} mont=${mx}x${my}:${gapord[2]}:${mgap}:${mcolor} crop=${ccropx[1]}:${ccropx[2]},${ccropy[1]}:${ccropy[2]}" \
-    -com "$OW axialimage    opacity=${opac} mont=${mx}x${my}:${gapord[3]}:${mgap}:${mcolor} crop=${acropx[1]}:${acropx[2]},${acropy[1]}:${acropy[2]}" \
     -com "$coor_type $coors"                                         \
     -com "SAVE_${ftype} sagittalimage ${odir}/${impref}.sag blowup=${bufac}" \
     -com "SAVE_${ftype} coronalimage  ${odir}/${impref}.cor blowup=${bufac}" \
@@ -2034,6 +2065,13 @@ COMMAND OPTIONS ~1~
                     chosen.  For example, '99%ile in mask'.  This will
                     be output in the PBS.txt file (the value of the
                     key 'pbar_comm').  Use quotes around on command
+                    line.
+
+-ulay_comm  UC     :if using '-pbar_saveim ..', one can save a
+                    text/string comment on why the ulay range was 
+                    chosen.  For example, '0-25% in volume'. This will
+                    be output in the PBS.txt file (the value of the
+                    key 'ulay_comm').  Use quotes around on command
                     line.
 
 -pbar_comm_thr PBR :same as '-pbar_comm_range ..', but for storing a
