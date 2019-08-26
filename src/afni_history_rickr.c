@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "linux_fedora_28_shared: make libSUMA.so as a shared object",
+   "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 200 MB"
+ } ,
+
  { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check for dyn.load error via 3dMVM",
    NULL

@@ -53,8 +53,10 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
 
 ifdef MRI_SHARED
 LIBMRI_OBJ = libmri.so
+LIBSUMA_OBJ = libSUMA.so
 else
 LIBMRI_OBJ = libmri.a
+LIBSUMA_OBJ = libSUMA.a
 endif
 
 T3OBJS  = to3d.o
@@ -3589,21 +3591,22 @@ roopchansinghv_install:
 #############
 #SUMA
 
-libSUMA.a: $(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a libtracktools.a
+$(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a libtracktools.a
 	( cd SUMA ;	\
-	rm -f libSUMA.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) MarchingCubes.o libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	rm -f $(LIBSUMA_OBJ)	;\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) MarchingCubes.o $(LIBSUMA_OBJ) 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
-        'MAKE=$(MAKE)'     \
+	'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
-	$(CP) SUMA/libSUMA.a ./;	)
+	$(CP) SUMA/$(LIBSUMA_OBJ) ${INSTALLDIR}; \
+	$(CP) SUMA/$(LIBSUMA_OBJ) ./;	)
 
 libgts.a:
 	( cd SUMA ;	\
@@ -3657,7 +3660,7 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 
 ###
 #link executables but check for libraries first and create them if needed
-suma_exec:libGLws.a libSUMA.a libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
 	'INSTALLDIR=$(INSTALLDIR)' \
@@ -3704,7 +3707,8 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
-        'MAKE=$(MAKE)'     \
+	'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
@@ -3722,12 +3726,13 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
 
 suma_clean:
-	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a
+	$(RM) SUMA/$(LIBSUMA_OBJ) $(LIBSUMA_OBJ) SUMA/libGLws.a libGLws.a
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
@@ -3877,6 +3882,7 @@ suma_link:
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
