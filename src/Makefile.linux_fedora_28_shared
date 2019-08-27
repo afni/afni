@@ -94,7 +94,7 @@ EXPROGS = $(GSLPROGS)
 # link choices are made above
 
 LLIBS  = -lmri -lf2c $(XLIBS) -lXft -lXp -lXpm -lXext -lXmu -lSM -lICE -lX11 \
-         $(LDPYTHON) -lpng -ljpeg $(LZLIB) $(LGIFTI) -lm  -ldl -lc
+         $(LDPYTHON) -lpng $(LZLIB) $(LGIFTI) -lm  -ldl -lc
 
 # for static linking, as far as possible
 
