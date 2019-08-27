@@ -35,6 +35,9 @@ libf2c.a:$(ALLOBJ)
 	$(AR) q libf2c.a $(ALLOBJ)
 	$(RANLIB) libf2c.a
 
+libf2c.so:$(ALLOBJ)
+	$(CC) -shared -fPIC -o libf2c.so $(ALLOBJ)
+
 ######################################################################
 
 OBJECTS = Fmain.o init.o gram.o lex.o proc.o equiv.o data.o format.o \

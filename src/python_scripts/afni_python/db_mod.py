@@ -7247,7 +7247,7 @@ def db_cmd_regress_mot_types(proc, block):
 
     # note whether to use run lengths or number of runs for demean and deriv
     if proc.reps_vary :
-       ropt = '-set_run_lengths %s' % UTIL.int_list_string(proc.reps_all)
+       ropt = '-set_run_lengths $tr_counts'
     else: ropt = '-set_nruns %d' % proc.runs
 
     # handle 3 cases of motion parameters: 'basic', 'demean' and 'deriv'
@@ -7363,8 +7363,8 @@ def db_cmd_regress_censor_motion(proc, block):
 
     # make command string to create censor file
     if proc.reps_vary :     # use -set_run_lengths aot -set_nruns
-        cmd = cmd + '1d_tool.py -infile %s -set_run_lengths %s \\\n' \
-                    % (proc.mot_file, UTIL.int_list_string(proc.reps_all))
+        cmd = cmd + '1d_tool.py -infile %s -set_run_lengths $tr_counts \\\n' \
+                    % (proc.mot_file)
     else:
         cmd = cmd + '1d_tool.py -infile %s -set_nruns %d \\\n'       \
                     % (proc.mot_file, proc.runs)

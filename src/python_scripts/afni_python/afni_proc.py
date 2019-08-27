@@ -654,9 +654,10 @@ g_history = """
     6.44 Jul  5, 2019: (useless) switch to 3dTcorr1D for dot product
     6.45 Jul 19, 2019: if template is multi-volume, get vol [0] for group_mask
     6.46 Jul 25, 2019: added -volreg_warp_master
+    6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
 """
 
-g_version = "version 6.46, July 25, 2019"
+g_version = "version 6.47, August 27, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

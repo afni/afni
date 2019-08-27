@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 27, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "linux_fedora_28_shared: make libf2c.so as a shared object",
+   "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 202 MB\n"
+   "                -> (libf2c.so) 190 MB"
+ } ,
+
  { 26, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "linux_fedora_28_shared: make libSUMA.so as a shared object",
    "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 200 MB"
