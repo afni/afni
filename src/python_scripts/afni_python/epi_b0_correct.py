@@ -52,9 +52,13 @@
 #ver='2.1' ; date='Aug 16, 2019'
 # + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
 #
-ver='2.2' ; date='Aug 23, 2019'
+#ver='2.2' ; date='Aug 23, 2019'
 # + [PT] fix examples (use correct/newer opt names)
 # + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
+#
+ver='2.21' ; date='Aug 27, 2019'
+# + [PT] update help file and descriptions (param text, for example)
+# + [PT] add in more fields to param text output
 #
 ##########################################################################
 

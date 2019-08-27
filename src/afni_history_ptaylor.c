@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
+   "Added more fields to the output param text file.",
+   "Also added to the help file (including *about* the params text file).\n"
+},
+
 { 27, Aug , 2016 , PT , "3dSpaceTimeCorr" , MINOR , TYPE_NEW_OPT,
    "New opts: '-freeze* ..' that allow one to fix a location in dset A.",
    "Input for Zhihao Li.\n"
