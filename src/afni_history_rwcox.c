@@ -44,6 +44,10 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 27 , AUG , 2019 , RWC , "3dREMLfit" , MICRO , TYPE_ENHANCE ,
+   "Allow reading -matim matrix from a FIFO instead of a file" ,
+   "For some reason, NIML doesn't like treating a FIFO as a file: stream." } ,
+
  { 26 , AUG , 2019 , RWC , "mri_read_1D" , MICRO , TYPE_ENHANCE ,
    "Modify to allow reading from a named pipe (FIFO)" ,
    "You can't seek/rewind on a FIFO, so have to use special code - adapted\n"

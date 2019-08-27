@@ -25,6 +25,7 @@ extern "C" {
 
 extern int AFNI_process_environ( char * ) ;
 extern char * AFNI_suck_file( char * ) ;
+extern char * AFNI_suck_fifo( char * ) ;    /* 27 Aug 2019 */
 extern int AFNI_suck_file_len(void) ;       /* 27 Feb 2009 */
 extern char * my_getenv( char * ) ;
 extern void AFNI_mark_environ_done(void) ;  /* 16 Apr 2000 */

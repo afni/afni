@@ -574,6 +574,7 @@ extern char * NI_strdup( char * ) ;
 extern char * NI_strdup_len( char *, int ) ;
 extern int    NI_strlen( char * ) ;
 extern long   NI_filesize( char * ) ;
+extern int    NI_is_fifo( char * ) ;            /* 27 Aug 2019 */
 extern int    NI_clock_time(void) ;
 extern int    NI_byteorder(void) ;
 extern void   NI_swap2( int, void * ) ;
@@ -688,6 +689,7 @@ extern int NI_stream_setb64( NI_stream_type * , int ) ;   /* 20 Apr 2005 */
 
 extern int NI_stream_reopen( NI_stream_type *, char * ) ; /* 23 Aug 2002 */
 
+extern char * NI_suck_file( char * ) ;                    /* 27 Aug 2019 */
 extern void * NI_read_element ( NI_stream_type *, int ) ;
 extern int    NI_write_element( NI_stream_type *, void *, int ) ;
 extern int    NI_write_procins( NI_stream_type *, char * ) ; /* 17 Mar 2005 */

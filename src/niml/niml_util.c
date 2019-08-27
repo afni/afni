@@ -31,10 +31,21 @@ void NI_dpr( char *fmt , ... )      /* print debug stuff */
 long NI_filesize( char *pathname )
 {
    static struct stat buf ; int ii ;
-
    if( pathname == NULL ) return -1 ;
    ii = stat( pathname , &buf ) ; if( ii != 0 ) return -1 ;
    return buf.st_size ;
+}
+
+/*--------------------------------------------------------------------------*/
+/*! Is this a FIFO or not? [27 Aug 2019]
+----------------------------------------------------------------------------*/
+
+int NI_is_fifo( char *pathname )
+{
+   static struct stat buf ; int ii ;
+   if( pathname == NULL ) return 0 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
+   return (buf.st_mode & S_IFIFO) ;
 }
 
 /*-------------------------------------------------------------------*/
@@ -524,4 +535,40 @@ int NI_count_numbers( int nstr , char **str )
      }
    }
    return nnum ;
+}
+
+/*---------------------------------------------------------------------------*/
+/*! Read an entire text file into a string [27 Aug 2019] */
+/*---------------------------------------------------------------------------*/
+
+#undef  DBUF
+#define DBUF 8192       /* how many bytes per fifo read */
+
+#undef  MAXBUF
+#define MAXBUF 8388608  /* 8 Mbytes */
+
+char * NI_suck_file( char *fname )
+{
+   int fd , ii , nbuf ;
+   char *buf ;
+
+   if( fname == NULL || fname[0] == '\0' ) return NULL ;
+
+   fd = open( fname , O_RDONLY ) ; /* blocking reads */
+   if( fd < 0 ) return NULL ;
+
+   nbuf = 0 ;
+   buf  = (char *)malloc( sizeof(char) * (DBUF+4) ) ;
+
+   while( nbuf < MAXBUF ){
+     ii = read( fd , buf+nbuf , DBUF ) ;      /* try to read up to DBUF bytes */
+     if( ii <= 0 ) break ;                                     /* read failed */
+     nbuf += ii ;                        /* add in how many bytes we now have */
+     buf = (char *)realloc( buf, sizeof(char)*(nbuf+DBUF+4) ) ; /* resize buf */
+   }
+
+   close(fd) ;
+   buf = (char *)realloc( buf , sizeof(char)*(nbuf+4) ) ;
+   buf[nbuf] = '\0' ; /* terminate string */
+   return buf ;
 }

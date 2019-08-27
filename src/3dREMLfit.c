@@ -1823,10 +1823,19 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-matrix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        if( nelmat != NULL ) ERROR_exit("More than 1 -matrix option!?");
-       nelmat = NI_read_element_fromfile( argv[iarg] ) ; /* read NIML file */
        matname = argv[iarg];
+#if 1
+       nelmat = NI_read_element_fromfile( matname ) ; /* read NIML file */
+#else
+       { char *buf = AFNI_suck_file( matname ) ;
+         if( buf == NULL )
+           ERROR_exit("Cannot read any data from -matrix file '%s' :(",matname) ;
+         nelmat = NI_read_element_fromstring( buf ) ;
+         free(buf) ;
+       }
+#endif
        if( nelmat == NULL || nelmat->type != NI_ELEMENT_TYPE )
-         ERROR_exit("Cannot open or process -matrix file '%s'!?",matname) ;
+         ERROR_exit("Cannot parse/understand contents of -matrix file '%s' :(",matname) ;
        iarg++ ; continue ;
      }
 
