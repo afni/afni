@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 27, Aug , 2016 , PT , "3dSpaceTimeCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-freeze* ..' that allow one to fix a location in dset A.",
+   "Input for Zhihao Li.\n"
+},
+
 { 26, Aug , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
    "New opt, '-ulay_comm': provide comment on ulay vals in pbar json.",
    "Also, saving ulay min/max in pbar json is new behavior.\n"

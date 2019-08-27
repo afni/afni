@@ -2,7 +2,11 @@
    written by: PA Taylor
 
    Aug. 2016: v1.0, starting
-   
+
+   [PT: Aug 26,2019] v1.2, add in option for freezing one dset's map
+   at one location, whilst allowing the other to roam in the usual
+   fashion.  Options/functionality added for Zhihao Li.
+
 */
 
 #include <stdio.h>
@@ -11,6 +15,7 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
+#include <afni.h>
 #include <mrilib.h>    
 #include <3ddata.h>    
 #include "DoTrackit.h"
@@ -22,12 +27,12 @@ void usage_SpaceTimeCorr(int detail)
    printf(
 "\n"
 "  3dSpaceTimeCorr\n"
-"  v1.1 (PA Taylor, Aug. 2016)\n"
+"  v1.2 (PA Taylor, Aug. 2019)\n"
 "\n"
-"  This program is for calculating sometime *similar* to the (Pearson)\n"
+"  This program is for calculating something *similar* to the (Pearson)\n"
 "   correlation coefficient between corresponding voxels between two data\n"
 "   sets, which is what 3dTcorrelate does.  However, this is program \n"
-"   operatesdifferently. Here, two data sets are loaded in, and for each \n"
+"   operates differently. Here, two data sets are loaded in, and for each \n"
 "   voxel in the brain:\n"
 "      + for each data set, an ijk-th voxel is used as a seed to generate a\n"
 "        correlation map within a user-defined mask (e.g., whole brain,\n"
@@ -59,6 +64,8 @@ void usage_SpaceTimeCorr(int detail)
 "\n"
 "    3dSpaceTimeCorr -insetA FILEA -insetB FILEB -prefix PREFIX   \\\n"
 "                   {-mask MASK} {-out_Zcorr}  \n"
+"                   {-freeze_insetA_ijk II JJ KK} \n"
+"                   {-freeze_insetA_xyz XX YY ZZ} \n"
 "\n"
 "    where:\n"
 "\n"
@@ -73,6 +80,19 @@ void usage_SpaceTimeCorr(int detail)
 "\n"
 "  -out_Zcorr     :switch to output Fisher Z transform of spatial map\n"
 "                  correlation (default is Pearson r values).\n"
+"\n"
+"-freeze_insetA_ijk II JJ KK\n"
+"                 :instead of correlating the spatial correlation maps\n"
+"                  of A and B that have matching seed locations, with this\n"
+"                  option you can 'freeze' the seed voxel location in \n"
+"                  the input A dset, while the seed location in B moves\n"
+"                  throughout the volume or mask as normal.\n"
+"                  Here, one inputs three values, the ijk indices in\n"
+"                  the dataset. (See next opt for freezing at xyz location.)\n"
+"\n"
+"-freeze_insetA_xyz XX YY ZZ\n"
+"                 :same behavior as using '-freeze_insetA_ijk ..', but here\n"
+"                  one inputs the xyz (physical coordinate) indices.\n"
 "\n"
 "* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * *\n"
 "\n"
@@ -117,7 +137,16 @@ int main(int argc, char *argv[]) {
 
    int ZOUT = 0;
 
-   int myloc[3] = {0,0,0};
+   int myloc[3] = {0,0,0};        // general location, will move around
+
+   int myloc_A[3] = {0,0,0};      // for special case of 'freezing' loc in A
+   float myloc_xyz_A[3] = {0,0,0};
+   int DO_FREEZE_A = 0;           // 1 for ijk; 2 for xyz; 0 for not used
+   int FOUND_A = 0;
+
+   int coord_warn[1] = {0};       // for checking xyz->ijk being in FOV
+   THD_ivec3 ivec3_aaa;
+   THD_fvec3 fv;
 
    mainENTRY("3dSpaceTimeCorr"); machdep(); 
   
@@ -196,13 +225,38 @@ int main(int argc, char *argv[]) {
          iarg++ ; continue ;
       }
 
+      if( strcmp(argv[iarg],"-freeze_insetA_ijk") == 0 ){
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need 3 arguments after '-freeze_insetA_ijk'");
+
+         DO_FREEZE_A = 1;
+         myloc_A[0] = atoi(argv[iarg]);  iarg++ ;
+         myloc_A[1] = atoi(argv[iarg]);  iarg++ ;
+         myloc_A[2] = atoi(argv[iarg]);  
+			
+         iarg++ ; continue ;
+      }
+
+      if( strcmp(argv[iarg],"-freeze_insetA_xyz") == 0 ){
+         iarg++ ; if( iarg >= argc ) 
+                     ERROR_exit("Need 3 arguments after '-freeze_insetA_xyz'");
+
+         DO_FREEZE_A = 2;
+         myloc_xyz_A[0] = atof(argv[iarg]);  iarg++ ;
+         myloc_xyz_A[1] = atof(argv[iarg]);  iarg++ ;
+         myloc_xyz_A[2] = atof(argv[iarg]);  
+			
+         iarg++ ; continue ;
+      }
+
+
       ERROR_message("Bad option '%s'\n",argv[iarg]) ;
       suggest_best_prog_option(argv[0], argv[iarg]);
       exit(1);
    }
-
+   
 	INFO_message("Have read in options");
-
+   
    // TEST BASIC INPUT PROPERTIES
    if (iarg < 3) {
       ERROR_message("Too few options. Try -help for details.\n");
@@ -211,17 +265,62 @@ int main(int argc, char *argv[]) {
 	
    if( (!insetTIMEA) || (!insetTIMEB) )
       ERROR_exit("Need both insetA and insetB to be input!");
-
+   
    // check dataset fitting:
    i = CompareSetDims(insetTIMEA, insetTIMEB, 4);
-
+   
    if ( !MASK )
       WARNING_message("No mask input-- "
                       "will correlate across whole volume!\n");
    else
       i = CompareSetDims(insetTIMEA, MASK, 3); // don't check time dim
+   
+   // [PT: Aug 26, 2019] now allow for 'freezing' a dset...
+   if ( DO_FREEZE_A == 2 ) {
+      // First, check that XYZ stay within FOV
+      for ( i=1 ; i<3 ; i++ )
+         fv.xyz[i] = myloc_xyz_A[i];
 
-	INFO_message("Checked inputs.");
+      ivec3_aaa = THD_3dmm_to_3dind_warn(insetTIMEA,
+                                         fv, 
+                                         coord_warn);
+      if( coord_warn[0] )
+         ERROR_exit("%d of the xyz values for the 'frozen' coordinate in\n"
+                    "   dset A appear(s) to be outside the FOV.\n"
+                    "   These are the estimated ijk indices (check for one\n"
+                    "   floored at 0 or ceilinged at max dim ind: %d %d %d):\n"
+                    "   %d  %d  %d", coord_warn[0], 
+                    Dim[0]-1, Dim[1]-1, Dim[2]-1,
+                    ivec3_aaa.ijk[0], ivec3_aaa.ijk[1], ivec3_aaa.ijk[2]);
+      else
+         INFO_message("XYZ coordinates of 'frozen' point in dset A appear "
+                      "to be in FOV.");
+
+      // if user input xyz, get ijk for this dset
+      AFNI_xyz_to_ijk( insetTIMEA,
+         myloc_xyz_A[0], myloc_xyz_A[1], myloc_xyz_A[2],
+         &myloc_A[0], &myloc_A[1], &myloc_A[2] );
+      INFO_message("Converted xyz = %f, %f, %f\n"
+                   "       to ijk = %d, %d, %d.",
+                   myloc_xyz_A[0], myloc_xyz_A[1], myloc_xyz_A[2],
+                   myloc_A[0], myloc_A[1], myloc_A[2]);
+
+   } 
+   if ( DO_FREEZE_A ) {
+      // ... now, check any ijk (either directly entered or from xyz)
+      for ( i=1 ; i<3 ; i++ )
+         if( (myloc_A[i] < 0) || (myloc_A[i] >= Dim[i]) ) 
+            ERROR_exit("Dimension [%d] has illegal ijk value: %d.\n"
+                       "This is not in allow index values here: [%d, %d).",
+                       i, myloc_A[i], 0, Dim[i]);
+      INFO_message("IJK coordinates for 'freezing' dset A "
+                   "appear to be OK.");
+   }
+   INFO_message("XYZ: %f %f %f", myloc_xyz_A[0], myloc_xyz_A[1], 
+                myloc_xyz_A[2]);
+   INFO_message("IJK: %d %d %d", myloc_A[0], myloc_A[1], myloc_A[2]);
+
+   INFO_message("Checked inputs.");
 
 	
    // ****************************************************************
@@ -302,6 +401,41 @@ int main(int argc, char *argv[]) {
    INFO_message("Now the work begins!");
    t_start = time(NULL);
 
+   if ( DO_FREEZE_A ) {
+      // If we have a special location in A to use, make the mapA for
+      // it once, before everything else.
+      ctr = 0;
+      for( k=0 ; k<Dim[2] ; k++ ) 
+         for( j=0 ; j<Dim[1] ; j++ ) 
+            for( i=0 ; i<Dim[0] ; i++ ) {
+               if( (myloc_A[0] == i) && (myloc_A[1] == j) &&
+                   (myloc_A[2] == k) ) {
+                  if( !mskd[i][j][k] ) {
+                     ERROR_exit("Selected voxel for 'freezing' is "
+                                "outside the given mask");
+                  } else {
+                     mm = THD_extract_float_array(ctr,insetTIMEA,tsX);  
+                     mm = WB_corr_loop(
+                                       tsX,tsY,
+                                       insetTIMEA,
+                                       Dim,
+                                       mskd,
+                                       mapA,
+                                       myloc_A
+                                       );
+                     FOUND_A = 1;
+                     break; // and stop searching through
+                  }
+               }
+               ctr++;
+            }
+      if ( !FOUND_A ) 
+         ERROR_exit("Didn't find 'frozen' location in A??");
+
+      INFO_message("Set 'frozen' time series from dset A.");
+   }
+
+
    // go through once: define data vox
    ctr = 0;
    for( k=0 ; k<Dim[2] ; k++ ) 
@@ -313,15 +447,17 @@ int main(int argc, char *argv[]) {
                myloc[1]=j;
                myloc[2]=k;
 
-               mm = THD_extract_float_array(ctr,insetTIMEA,tsX);  
-               mm = WB_corr_loop(
-                                 tsX,tsY,
-                                 insetTIMEA,
-                                 Dim,
-                                 mskd,
-                                 mapA,
-                                 myloc
-                                 );
+               if ( !DO_FREEZE_A ) {
+                  mm = THD_extract_float_array(ctr,insetTIMEA,tsX);  
+                  mm = WB_corr_loop(
+                                    tsX,tsY,
+                                    insetTIMEA,
+                                    Dim,
+                                    mskd,
+                                    mapA,
+                                    myloc
+                                    );
+                  }
                
                mm = THD_extract_float_array(ctr,insetTIMEB,tsX);  
                mm = WB_corr_loop(
@@ -333,7 +469,7 @@ int main(int argc, char *argv[]) {
                                  myloc
                                  );
 
-               scorrAB[ctr] = THD_pearson_corr(Nmskdm1,mapA,mapB); 
+               scorrAB[ctr] = THD_pearson_corr(Nmskdm1, mapA, mapB); 
 
                nprog++;
                if (nprog % np == 0) {
