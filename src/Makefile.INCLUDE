@@ -2022,7 +2022,8 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 ### Sort of clean
 
 clean: clean_version
-	$(RM) `find . -name \*.o -print` mrilib_raw.h mrilib_all.c mrilib_raw.c
+	$(RM) `find . -name \*.o -print` niml.h mrilib_raw.h \
+              mrilib_all.c mrilib_raw.c
 
 cleann: clean_version
 	$(RM) `find . -name \*.o -print`
