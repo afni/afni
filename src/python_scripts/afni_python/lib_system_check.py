@@ -980,6 +980,10 @@ class SysInfo:
          self.comments.append('missing R packages (see rPkgsInstall)')
       print('')
 
+      status, cout = UTIL.exec_tcsh_command("R RHOME")
+      print('R RHOME : %s' % cout.strip())
+      print('')
+
       print('checking for $HOME files...')
       flist = ['.afnirc', '.sumarc', '.afni/help/all_progs.COMP']
       for ff in flist:

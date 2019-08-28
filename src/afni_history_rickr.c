@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "report 'R RHOME'",
+   NULL
+ } ,
+
  { 27, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
    "linux_fedora_28_shared: make libf2c.so as a shared object",
    "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 202 MB\n"
