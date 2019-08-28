@@ -1,3 +1,88 @@
+AFNI Digest, week of 2019/08/28.
+
+Contents:
+00) AFNI Bootcamp advert: at NIH campus, November 4-8, 2019.
+01) AFNI GUI: 'A' and 'B' buttons now work with discrete color panes.
+02) New program: 3dICC, for whole brain intraclass correlation.
+03) New program: 3dISC, for whole brain intersubj. corr. analysis.
+04) New program: RBA, for region-based analysis.
+05) Matrix-based analysis (MBA) paper accepted at Human Brain Mapping.
+06) Bye-bye Bootcamp-list: migrated to this Digest-list.
+
+
+00) AFNI Bootcamp advert: at NIH campus, November 4-8, 2019.
+Please note the dates of the next AFNI Bootcamp here in Bethesda.  The
+main session runs Nov. 4-8, and there is an optional/alternative DTI
+session on Nov. 8 (*note that it is Friday this time*). There is no
+registration fee for the Bootcamp, but attendees must pay all their
+own expenses (e.g., lodging, travel, food, fancy coffees). The
+registration page is here: 
+https://afni.nimh.nih.gov/bootcamp/ 
+along with preliminary schedules and logistic information.
+
+01) 'A' and 'B' buttons now work with discrete panes in color bar.
+The Alpha 'A' and Boxed 'B' modes previously added (week of
+2018/11/30) did not work when the color bar in Define Overlay was
+switched to the discrete panes display (done by choosing the number of
+panes with the '#' control just below the color bar). That oversight
+has now been fixed, due to the diligent perspicacity and persistence
+of some unnamed person from Wisconsin.
+   However. The patch works by converting (internally) the discrete
+panes to a 'continuous' colorscale. At the boundaries between the
+panes, color interpolation might occur, and so you might end up seeing
+some intermediate color that you did not order. This should be rare,
+but when many voxels are involved, it can happen.
+   Relatedly, when you zoom in on an image, the color overlay needs to
+be resampled to the higher resolution zoomed display. The standard way
+to do this is with a form of linear interpolation -- which will also
+introduce colors not in the discrete color panes. You can turn this
+artifact off by setting the AFNI_IMAGE_ZOOM_NN environment variable to
+YES. That change can be done in your ~/.afnirc file, or interactively
+in the AFNI GUI using the 'EditEnv' button (next to 'Underlay'). If
+you do change it interactively, you'll have to force a redraw of the
+image to see the effect -- for example, by left-clicking on the
+threshold slider thumb in the 'Define Overlay' control panel.
+
+02) New program: 3dICC, for voxelwise whole brain intraclass correlation.
+See:
+   https://afni.nimh.nih.gov/afni/community/board/read.php?1,161629
+
+03) New program: 3dISC, for whole brain intersubj. corr. analysis.
+See:
+   https://afni.nimh.nih.gov/afni/community/board/read.php?1,161898
+
+04) New program: RBA, for region-based analysis.
+The program is similar to the Python program BayesianGroupAna.py, but
+it is more actively maintained and updated. The modeling approach is
+elaborated in the following paper:
+Chen G, Xiao Y, Taylor PA, Riggins T, Geng F, Redcay E, 2019. Handling
+Multiplicity in Neuroimaging through Bayesian Lenses with Multilevel
+Modeling. Neuroinformatics. https://rdcu.be/bhhJp
+
+05) Matrix-based analysis (MBA) paper accepted at Human Brain Mapping.
+The paper provides the underlying mechanism for the program MBA:
+  https://onlinelibrary.wiley.com/doi/abs/10.1002/hbm.24686
+ 
+06) Bye-bye Bootcamp-list: migrated to this Digest-list
+Some of you might have received an email about this recently, but the
+old listserv for hearing about Bootcamps has been retired.  Members of
+it have been migrated to this Digest (welcome!).  Why?  Because there
+was a large overlap of functionality, and this Digest is much more
+informative.  
+   We strongly recommend that any AFNI user subscribe to the Digest in
+order to hear about updates, fixes, new programs, announcements, etc.
+
+---------------------------------------------------------------------
++ This Digest is not a comprehensive list of code updates.
++ Please direct comments or questions to the AFNI Message Board:
+  https://afni.nimh.nih.gov/afni/community/board/list.php?1
++ To unsubscribe or otherwise manage your Digest settings, click here:
+  https://list.nih.gov/cgi-bin/wa.exe?SUBED1=afni_digest&A=1
+---------------------------------------------------------------------
+
+========================================================================
+
+
 AFNI Digest, week of 2019/06/27.
 
 AFNI GUI edition
