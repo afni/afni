@@ -52,9 +52,13 @@
 #ver='2.1' ; date='Aug 16, 2019'
 # + [PT] change default number of erodes: 3 -> 1.  Vinai concurs!
 #
-ver='2.2' ; date='Aug 23, 2019'
+#ver='2.2' ; date='Aug 23, 2019'
 # + [PT] fix examples (use correct/newer opt names)
 # + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
+#
+ver='2.21' ; date='Aug 27, 2019'
+# + [PT] update help file and descriptions (param text, for example)
+# + [PT] add in more fields to param text output
 #
 ###############################################################################
 
@@ -173,12 +177,24 @@ help_string_b0_corr = '''
 
   OUTPUTS ~1~
 
-  + WARP dset           : a file called PREFIX_WARP.nii.gz, containing the  
-                          warp along the phase encode axis (on the EPI dset's
-                          grid, with its obliquity info)
+  + WARP dset           : a file called PREFIX_WARP.nii.gz, containing  
+                          the warp along the phase encode axis (on the 
+                          EPI dset's grid, with its obliquity info)
 
   + script of commands  : a script of the commands used to generate the 
                           WARP dset (and EPI)
+
+  + text file of params : a text file of parameters either input or
+                          derived from inputs and the dsets.  This is
+                          useful for verifying the consistency of
+                          analysis (i.e., as a sanity check).  Can be
+                          converted to a JSON, if needed.  Units are
+                          given for all; the 'Warp (mm) in mask,
+                          20-100 %ile' field might be the most cryptic
+                          entrant-- it is a histogram of values of the
+                          final warp field within the mask, at the
+                          20th, 40th, 60th, 80th and 100th %iles.
+                          Cryptic no more!
 
   + EPI (un)warped dset : the EPI dset with the estimated distortion
                           correction applied to it (and obliquity info
@@ -190,14 +206,15 @@ help_string_b0_corr = '''
 
   {prefix}           PP : (req) prefix of output files; can include path
 
-  {in_freq}   DSET_FREQ : (req) phase dset (frequency volume).  Should be 
-                         of similar spatial resolution and FOV as EPI dset
-                         to which it will be applied;  also, must be scaled 
-                         appropriately, where the expected units are:  Hz.
+  {in_freq}   DSET_FREQ : (req) phase dset (frequency volume).  Should
+                         be of similar spatial resolution and FOV as
+                         EPI dset to which it will be applie d; also,
+                         must be scaled appropriately, where the
+                         expected units are: Hz.
 
   {in_epi}     DSET_EPI : (req) EPI dset to which the B0 distortion 
-                         correction that I have spent so much time calculating 
-                         will be applied
+                         correction that I have spent so much time   
+                         calculating will be applied
 
   {in_mask}   DSET_MASK : (req) mask of brain volume
        or
@@ -674,7 +691,7 @@ class iopts_b0_corr:
         self.epi_pe_voxdim = float(cc)
 
     def set_epi_pe_matrlen( self, cc ):
-        self.epi_pe_matrlen = float(cc)
+        self.epi_pe_matrlen = cc # should always be int... int(cc)
 
     def set_epi_pe_bwpp( self, cc ):
         self.epi_pe_bwpp = float(cc)
@@ -1394,6 +1411,9 @@ class iopts_b0_corr:
             ss+= "{:30s} : {}  {}\n".format( 'Freq range (init)', 
                                              self.freq_info.dmin,
                                              self.freq_info.dmax )
+        if self.freq_info :
+            ss+= "{:30s} : {}\n".format( 'Freq obliquity (deg)', 
+                                             self.freq_info.obliquity )
         if self.freq_scale :
             ss+= "{:30s} : {}\n".format( 'Freq scale factor', 
                                          self.freq_scale )
@@ -1409,12 +1429,18 @@ class iopts_b0_corr:
             ss+= "{:30s} : {}  {}\n".format( 'EPI range (init)', 
                                              self.epi_info.dmin,
                                              self.epi_info.dmax )
+        if self.epi_info :
+            ss+= "{:30s} : {}\n".format( 'EPI obliquity (deg)', 
+                                             self.epi_info.obliquity )
         if self.epi_pe_echo_sp :
             ss+= "{:30s} : {}\n".format( 'EPI PE echo spacing (s)', 
                                          self.epi_pe_echo_sp )
         if self.epi_pe_bwpp :
             ss+= "{:30s} : {}\n".format( 'EPI PE bandwidth per pix (Hz)', 
                                          self.epi_pe_bwpp )
+        if self.epi_pe_matrlen :
+            ss+= "{:30s} : {}\n".format( 'EPI PE matrix len (nvox)', 
+                                         self.epi_pe_matrlen )
         if self.epi_pe_voxdim :
             ss+= "{:30s} : {}\n".format( 'EPI PE vox dim (mm)', 
                                          self.epi_pe_voxdim )
