@@ -1478,6 +1478,160 @@ def derivative(vector, in_place=0, direct=0):
 
     return vec
 
+def read_aff12_to_mat34(fname):
+    '''Read from a file 'fname' that contains an aff12 matrix, either in
+ONELINE or MATRIX (=3x4) style.
+
+    Output a 2D list of the matrix values (all floats), 3 rows of 4
+    cols.
+
+    '''
+
+    readin = read_text_file(fname)
+
+    # initialize the matrix
+    M      = [[0.0] * 4 for row in range(3)] 
+
+    if len(readin) == 3 :
+        # let's assume it is a MATRIX style aff12, and convert it to a
+        # single row, and then deal with it that way
+        readin = [' '.join(readin)]
+
+    if len(readin) == 1 :
+        listin = readin[0].split()
+        Nlist = len(listin)
+        if Nlist != 12 :
+            print("** ERROR: Input matrix had one line, but {} elements "
+                  "(expected 12).\n".format(Nlist))
+            sys.exit(3)
+        idx = 0
+        for i in range(3):
+            for j in range(4):
+                M[i][j] = float(listin[idx])
+                idx+=1 
+    else:
+        print("** ERROR: Input matrix has some problems! Doesn't look\n"
+              "   like an aff12.1D format\n")
+        sys.exit(3)
+
+    return M
+
+def matrix_multiply_2D(A, B, zero_dtype=''):
+    '''Perform matrix multiplication of 2D lists, A and B, which can be of
+arbitrary dimension (subject to Arow/Bcol matching).
+
+    Each input must have 2 indices.  So, the following are valid inputs:
+        x = [[1, 2, 3]]
+    while these are NOT valid:
+        x = [1, 2, 3] 
+
+    Output a new array of appropriate dims, which will also always
+    have 2 inds (unless one input had zero row or col; in this case,
+    return empty arr).  So, output might look like:
+       [[16], [10], [12]]
+       [[2]] 
+       []
+    etc.
+
+    The dtype of zeros used to initialize the matrix will be either:
+    + whatever the [0][0]th element of the A matrix is, or
+    + whatever is specified with 'zero_dtype' (which can be: bool,
+      int, float, complex, ...)
+    NB: any valid zero_dtype value will take precedence.
+
+    '''
+
+    # ------------ check dims/shapes ------------
+    NrowA = len(A)
+    if not(NrowA) :
+        print("** ERROR: No rows in matrix A\n")
+        sys.exit(4)
+    NcolA = len(A[0])
+    NrowB = len(B)
+    if not(NrowB) :
+        print("** ERROR: No rows in matrix B\n")
+        sys.exit(4)
+    NcolB = len(B[0])
+
+    # Zero row/col case: return empty 1D arr
+    if not(NcolA) or not(NcolB) or not(NrowA) or not(NrowB):
+        return []
+
+    if NcolA != NrowB :
+        print("** ERROR: Ncol in matrix A ({}) != Nrow in matrix B ({})."
+        "".format(NcolA, NrowB))
+        sys.exit(5)
+
+    # Allow for different types of matrices
+    ZZ = calc_zero_dtype(A[0][0], zero_dtype)
+
+    # Initialize output list of correct dimensions
+    C = [[ZZ] * NcolB for row in range(NrowA)] 
+
+    # Ye olde matrix multiplication, boolean style
+    if type(ZZ) == bool :
+        for i in range(NrowA):
+            for j in range(NcolB):
+                for k in range(NcolA):
+                    C[i][j] = C[i][j] or (A[i][k] and B[k][j])
+    else: 
+        # Ye olde matrix multiplication
+        for i in range(NrowA):
+            for j in range(NcolB):
+                for k in range(NcolA):
+                    C[i][j]+= A[i][k] * B[k][j]
+
+    return C
+
+def matrix_sum_abs_val_ele_row(A, zero_dtype='' ):
+    '''Input is a 2D list (matrix).
+
+    Output is a list of sums of the absolute values of elements in
+    rows (SAVERs!).
+
+    '''
+
+    N = len(A)
+    if not(N) :
+        return []
+    Ncol = len(A[0]) # if this doesn't exist, someone will be unhappy
+
+    # initialize for summation
+    ZZ  = calc_zero_dtype(A[0][0], zero_dtype)
+    out = [ZZ]*N
+
+    # sum abs vals across rows
+    if type(ZZ) == bool :
+        for i in range(N):
+            for j in range(len(A[i])) :
+                out[i] = out[i] or abs(A[i][j])
+    else:
+        for i in range(N):
+            for j in range(len(A[i])) :
+                out[i]+= abs(A[i][j])
+
+    return out
+
+def calc_zero_dtype(x, zero_dtype=''):
+    '''Calc an appropriate zero for initializing a list-matrix.
+
+    '''
+
+    # priority to an entered zero_dtype
+    if    zero_dtype == int     : return 0
+    elif  zero_dtype == float   : return 0.0
+    elif  zero_dtype == bool    : return False
+    elif  zero_dtype == complex : return 0j
+    elif  type(x)    == int     : return 0
+    elif  type(x)    == float   : return 0.0
+    elif  type(x)    == bool    : return False
+    elif  type(x)    == complex : return 0j
+    else:
+        print("+* Warning: unrecognized numeric type: {}"
+              "".format(type(x)))
+        print("   Initial matrix zeros will be type 'int'")
+        return 0
+
 def make_timing_string(data, nruns, tr, invert=0):
    """evaluating the data array as boolean (zero or non-zero), return
       non-zero entries in stim_times format

@@ -66,12 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 28, Aug , 2016 , PT , "lib_gershgorin.py" , MINOR , TYPE_NEW_PROG,
+   "Funcs to answer question: is this aff12 matrix very different from I?",
+   "Uses fun algebraic facts known to and shared by the inimitable RWC.\n"
+},
+
+{ 28, Aug , 2016 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+   "Matrix-y things: read_aff12_to_mat34(), matrix_multiply_2D().",
+   "And supplements: matrix_sum_abs_val_ele_row(), calc_zero_dtype().\n"
+},
+
 { 27, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
    "Added more fields to the output param text file.",
    "Also added to the help file (including *about* the params text file).\n"
 },
 
-{ 27, Aug , 2016 , PT , "3dSpaceTimeCorr" , MINOR , TYPE_NEW_OPT,
+{ 27, Aug , 2019 , PT , "3dSpaceTimeCorr" , MINOR , TYPE_NEW_OPT,
    "New opts: '-freeze* ..' that allow one to fix a location in dset A.",
    "Input for Zhihao Li.\n"
 },
@@ -91,7 +101,7 @@ afni_history_struct ptaylor_history[] = {
    "The conversion to BWPP was wrong; led to almost no distortion corr.\n"
 },
 
-{ 20, Dec , 2016 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+{ 20, Aug , 2019 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
    "Indent properly-- loops/conditions were too hard to follow.",
    "Should have no change in output but facilitates code editing.\n"
 },
