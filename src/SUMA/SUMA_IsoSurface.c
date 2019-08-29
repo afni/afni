@@ -414,8 +414,6 @@ SUMA_GENERIC_PROG_OPTIONS_STRUCT *SUMA_IsoSurface_ParseInput (char *argv[],
       }
    }
 
-fprintf(stderr,"== MaskMode %g, v0 %g, v1 %d\n",Opt->v0,Opt->v1,Opt->MaskMode);
-
    /* transfer some options to Opt from ps.  Clunky retrofitting */
    if (ps->o_N_surfnames) {
       Opt->out_prefix = SUMA_copy_string(ps->o_surfnames[0]);

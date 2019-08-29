@@ -66,6 +66,66 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Aug , 2019 , PT , "@auto_tlrc" , MAJOR , TYPE_GENERAL,
+   "RE-introducing the program '@auto_tlrc' to the distribution.",
+   "It had been mistakenly deleted somehow.\n"
+},
+
+{ 29, Aug , 2019 , PT , "lib_gershgorin.py" , MICRO , TYPE_GENERAL,
+   "Updated to change way aff12.1D files were read.",
+   "No change in calculated outputs.\n"
+},
+
+{ 29, Aug , 2019 , PT , "afni_util.py" , MICRO , TYPE_GENERAL,
+   "Remove function: read_aff12_to_mat34().",
+   "'Twas unnecessary.\n"
+},
+
+{ 28, Aug , 2019 , PT , "lib_gershgorin.py" , MINOR , TYPE_NEW_PROG,
+   "Funcs to answer question: is this aff12 matrix very different from I?",
+   "Uses fun algebraic facts known to and shared by the inimitable RWC.\n"
+},
+
+{ 28, Aug , 2019 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+   "Matrix-y things: read_aff12_to_mat34(), matrix_multiply_2D().",
+   "And supplements: matrix_sum_abs_val_ele_row(), calc_zero_dtype().\n"
+},
+
+{ 27, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
+   "Added more fields to the output param text file.",
+   "Also added to the help file (including *about* the params text file).\n"
+},
+
+{ 27, Aug , 2019 , PT , "3dSpaceTimeCorr" , MINOR , TYPE_NEW_OPT,
+   "New opts: '-freeze* ..' that allow one to fix a location in dset A.",
+   "Input for Zhihao Li.\n"
+},
+
+{ 26, Aug , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_NEW_OPT,
+   "New opt, '-ulay_comm': provide comment on ulay vals in pbar json.",
+   "Also, saving ulay min/max in pbar json is new behavior.\n"
+},
+
+{ 23, Aug , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opt, '-edgy_ulay': can turn ulay into edge-ified version of itself.",
+   "Useful for showing alignments.\n"
+},
+
+{ 23, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_BUG_FIX,
+   "Fixed calculation when PE effective echo spacing is input.",
+   "The conversion to BWPP was wrong; led to almost no distortion corr.\n"
+},
+
+{ 20, Aug , 2019 , PT , "@SUMA_Make_Spec_FS" , MICRO , TYPE_GENERAL,
+   "Indent properly-- loops/conditions were too hard to follow.",
+   "Should have no change in output but facilitates code editing.\n"
+},
+
+{ 15, Aug , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "This program has been pretty fully revamped, and might be worth using now.",
+   "New scaling from Vinai, several updates/fixes/changes from last ver.\n"
+},
+
 { 1, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_GENERAL,
    "Rename internal vars and opt names.",
    "Improving internal notation-- still very much a beta program version.\n"

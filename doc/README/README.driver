@@ -372,6 +372,12 @@ SET_ULAY_RANGE [c.]windowname bot top
     SET_ULAY_RANGE A.all        20 150
   The second example shows that you can use 'all' to change all the open
   image viewers (for a given controller) in one operation.
+  NOTE: Since the grayscale range for the underlay images is set separately
+        in each image viewer (unlike the overlay color range SET_FUNC_RANGE),
+        this command only applies to windows that are already open. If you
+        give SET_ULAY_RANGE and then OPEN_WINDOW in that order, the newly
+        opened window won't know anything about the underlay range you
+        set previously. If this is confusing -- I'm sorry.
 
 CLOSE_WINDOW [c.]windowname
   Closes a window from controller 'c'.  You can only close graph and image

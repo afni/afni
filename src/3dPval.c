@@ -4,6 +4,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *iset , *oset ;
    int iarg=1 , kk ;
+   int doz=0 ;            /* 20 Aug 2019 */
    char *prefix="Pval" ;
    MRI_IMAGE *iim , *oim ;
 
@@ -17,6 +18,7 @@ int main( int argc , char *argv[] )
       "\n"
       "Options:\n"
       "=======\n"
+      " -zscore     = Convert to a z-score instead\n"
       " -prefix p   = Prefix name for output file\n"
       "\n"
      ) ;
@@ -27,12 +29,17 @@ int main( int argc , char *argv[] )
 
    while( iarg < argc && argv[iarg][0] == '-' ){
 
+     if( strcasecmp(argv[iarg],"-zscore") == 0 || strcasecmp(argv[iarg],"-zstat") == 0 ){
+       doz++ ; iarg++ ; continue ;  /* 20 Aug 2019 */
+     }
+
      if( strcmp(argv[iarg],"-prefix") == 0 ){
        prefix = argv[++iarg] ;
        if( !THD_filename_ok(prefix) ) ERROR_exit("bad -prefix value") ;
        iarg++ ; continue ;
      }
 
+     WARNING_message("Skipping unknown option %s",argv[iarg]) ;
    }
 
    iset = THD_open_dataset( argv[iarg] ) ; CHECK_OPEN_ERROR(iset,argv[iarg]) ;
@@ -53,18 +60,25 @@ int main( int argc , char *argv[] )
        ERROR_exit("Can't get sub-brick %d of input dataset :-(",kk) ;
      DSET_unload_one(iset,kk) ;
 
-     oim = mri_to_pval( iim , DSET_BRICK_STATCODE(iset,kk) ,
-                              DSET_BRICK_STATAUX (iset,kk)  ) ;
+     if( doz ){
+       oim = mri_to_zscore( iim , DSET_BRICK_STATCODE(iset,kk) ,
+                                  DSET_BRICK_STATAUX (iset,kk)  ) ;
+     } else {
+       oim = mri_to_pval( iim , DSET_BRICK_STATCODE(iset,kk) ,
+                                DSET_BRICK_STATAUX (iset,kk)  ) ;
+     }
 
      if( oim == NULL ){
        oim = iim     ; fprintf(stderr,"-") ;
      } else {
-       char *olab , nlab[32] ;
+       char *olab , nlab[128] ;
        mri_free(iim) ; fprintf(stderr,"+") ;
        olab = DSET_BRICK_LABEL(iset,kk) ;
-       sprintf(nlab,"%.16s_pval",olab) ;
+       if( doz ) sprintf(nlab,"%.120s_zstat",olab) ;
+       else      sprintf(nlab,"%.120s_pval" ,olab) ;
        EDIT_BRICK_LABEL(oset,kk,nlab) ;
-       EDIT_BRICK_TO_NOSTAT(oset,kk) ;
+       if( doz ) EDIT_BRICK_TO_FIZT(oset,kk) ;
+       else      EDIT_BRICK_TO_NOSTAT(oset,kk) ;
      }
      EDIT_substitute_brick( oset , kk , MRI_float , MRI_FLOAT_PTR(oim) ) ;
      mri_clear_and_free(oim) ;

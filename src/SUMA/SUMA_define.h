@@ -142,7 +142,7 @@
                                  a .iv file */
 
 
-#define SUMA_MAX_N_SURFACE_SPEC 500/*!< Max # of surfs allowed in a spec file */
+#define SUMA_MAX_N_SURFACE_SPEC 1000/*!< Max # of surfs allowed in a spec file */
 #define SUMA_MAX_N_DO_SPEC 100
 
 #define SUMA_MEMTRACE_BLOCK 10000 /*!< Number of elements to allocate for when 

@@ -134,7 +134,20 @@ class unWarpWithBlipUpBlipDownEPI:
          print("!!! Output directory %s already exists !!!  Script ends now !!!" % outputDir)
 #         sys.exit (-1)
       else:
-         os.mkdir (outputDir, mode=0o755)
+         # using subprocess.call instead of os.mkdir to simplify among python versions
+         try:
+             subprocess.call(['mkdir', "-m", "755", outputDir],
+                               stdout=subprocess.PIPE)
+         except:
+             print("!!! Could not make output directory with mode setting!" % outputDir)
+             try:
+                 subprocess.call(['mkdir', outputDir],
+                               stdout=subprocess.PIPE)
+             except:
+                 print("!!! Could not make output directory even without mode setting!"
+                       % outputDir)
+
+#         os.mkdir (outputDir, mode=0o755)
 
       # Use subprocess.call instead of Popen to wait for this data set
       # to be finished copying before proceeding.
@@ -151,7 +164,7 @@ class unWarpWithBlipUpBlipDownEPI:
       # Copy the relevant data into the working directory
 
       if self.dataAnat != 'NONE':
-         subprocess.Popen (['3dcopy', self.dataAnat,
+         subprocess.call (['3dcopy', self.dataAnat,
                              outputDir + "/" + anatBaseName],
                              stdout=subprocess.PIPE)
 

@@ -610,7 +610,7 @@ static column_metadata *coldat = NULL ;  /* global info about matrix columns */
 
 static char index_prefix = '#' ;  /* 11 Jun 2019 */
 
-#define COLUMN_LABEL(n) coldat[n].name
+#define COLUMN_LABEL(n) ( ( (n) < ncoldat ) ? coldat[n].name : "unknown" )
 
 #undef  USE_OLD_LABELS
 
@@ -704,7 +704,8 @@ typedef struct DC_options
   char *xjpeg_filename; /* plot file for -xjpeg option [21 Jul 2004] */
   char *x1D_filename;   /* save filename for -x1D option [28 Mar 2006] */
   int nox1D ;           /* 20 Mar 2007 */
-  char *x1D_unc ;       /* 25 Jun 2007 */
+  char *x1D_unc ;       /* 25 Jun 2007 - uncensored matrix */
+  char *x1D_regcen ;    /* 16 Aug 2019 - censoring via regression */
   int x1D_stop ;        /* 28 Jun 2007 */
 
   int automask ;        /* flag to do automasking [15 Apr 2005] */
@@ -1914,6 +1915,9 @@ void display_help_menu(int detail)
     "[-nox1D]             Don't save X matrix [a very bad idea]             \n"
     "[-x1D_uncensored ff] Save X matrix to a .xmat.1D file, but WITHOUT     \n"
     "                     ANY CENSORING.  Might be useful in 3dSynthesize.  \n"
+    "[-x1D_regcensored f] Save X matrix to a .xmat.1D file with the         \n"
+    "                     censoring imposed by adding 0-1 columns instead   \n"
+    "                     excising the censored rows.                       \n"
     "[-x1D_stop]          Stop running after writing .xmat.1D files.        \n"
     "                     * Useful for testing, or if you are going to      \n"
     "                       run 3dREMLfit instead -- that is, you are just  \n"
@@ -2007,6 +2011,7 @@ void initialize_options
   option_data->xjpeg_filename = NULL ;  /* 21 Jul 2004 */
   option_data->x1D_filename   = NULL ;
   option_data->x1D_unc        = NULL ;
+  option_data->x1D_regcen     = NULL ;  /* 16 Aug 2019 */
   option_data->nox1D          = 0 ;
   option_data->x1D_stop       = 0 ;
 
@@ -2369,6 +2374,19 @@ void get_options
         strcpy (option_data->x1D_unc, argv[nopt]);
         if( strstr(option_data->x1D_unc,"1D") == NULL )
           strcat( option_data->x1D_unc , ".xmat.1D" ) ;
+        nopt++; continue;
+      }
+
+      /*-----   -x1D_regcen filename  ------*/
+      if (strncmp(argv[nopt], "-x1D_regcen",11) == 0)   /* 16 Aug 2019 */
+      {
+        nopt++;
+        if (nopt >= argc)  DC_error ("need argument after -x1D_regcensored ");
+        option_data->x1D_regcen = malloc (sizeof(char)*ALEN(nopt));
+        MTEST (option_data->x1D_regcen);
+        strcpy (option_data->x1D_regcen, argv[nopt]);
+        if( strstr(option_data->x1D_regcen,"1D") == NULL )
+          strcat( option_data->x1D_regcen , ".xmat.1D" ) ;
         nopt++; continue;
       }
 
@@ -4892,6 +4910,7 @@ for( ii=0 ; ii < nt ; ii++ ){
   /*----- Save info about each column, for later storage [06 Mar 2007] -----*/
 
   option_data->coldat = (column_metadata *)calloc(sizeof(column_metadata),p) ;
+  ncoldat = p ;        /* 16 Aug 2019 */
   nblk = *num_blocks ;
   npol = option_data->polort ;
 
@@ -6990,6 +7009,14 @@ ENTRY("calculate_results") ;
     if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
         strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
     ONED_matrix_save( xfull , option_data->x1D_unc , cd , xfull.rows,NULL , &xfull,
+                      num_blocks,block_list , NULL, (void *)STIMLABEL_stuff ) ;
+  }
+
+  if( is_xfull_plus && option_data->x1D_regcen != NULL ){ /* 16 Aug 2019 - full+ matrix? */
+    void *cd=(void *)coldat ; int *gl=good_list ;
+    if( AFNI_noenv("AFNI_3dDeconvolve_NIML") &&
+        strstr(option_data->x1D_filename,"niml") == NULL ) cd = NULL ;
+    ONED_matrix_save( xfull_plus , option_data->x1D_regcen , cd , xfull_plus.rows,NULL , &xfull_plus,
                       num_blocks,block_list , NULL, (void *)STIMLABEL_stuff ) ;
   }
 
@@ -9313,7 +9340,7 @@ void ONED_matrix_save( matrix X , char *fname , void *xd , int Ngl, int *gl,
      for( jj=0 ; jj < ny ; jj++ ){
        for( ii=0 ; ii < nx ; ii++ ) col[ii] = X.elts[ii][jj] ;
        NI_add_column( nel , NI_MTYPE , col ) ;
-       strcpy(lll,cd[jj].name) ;
+       strcpy( lll , (jj < ncoldat) ? cd[jj].name : "cens" ) ;
        for( ii=0 ; lll[ii] != '\0' ; ii++ ) if( isspace(lll[ii]) ) lll[ii]='_';
        if( jj < ny-1 ) strcat(lll," ; ") ;
        lab = THD_zzprintf( lab , "%s" , lll ) ;

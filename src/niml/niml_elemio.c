@@ -1446,6 +1446,16 @@ void * NI_read_element_fromfile( char *fname )
 
    if( fname == NULL || *fname == '\0' ) return NULL ;
 
+   if( NI_is_fifo(fname) ){               /* FIFO - only text element */
+     char *buf = NI_suck_file( fname ) ;             /* [27 Aug 2019] */
+     if( buf == NULL ) return NULL ;
+     nini = NI_read_element_fromstring( buf ) ;
+     free(buf) ;
+     return nini ;
+   }
+
+   /* regular file - could have a binary element */
+
    nsname = (char *)malloc(strlen(fname)+9) ;
    strcpy(nsname,"file:") ; strcat(nsname,fname) ;
    ns = NI_stream_open( nsname , "r" ) ; free((void *)nsname) ;
@@ -1473,6 +1483,7 @@ void * NI_read_element_fromstring( char *nstr )
    
    return (nini) ;
 }
+
 /*------------------------------------------------------------------------*/
 /*! Write one element to a string.  [Oct 2011 ZSS, based on Bob's]
 --------------------------------------------------------------------------*/

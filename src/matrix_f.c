@@ -61,6 +61,9 @@
   Mod:      Freed memory for an orphaned matrix in matrix_sqrt function
   Date:     26 Mar 2008 - drg
 
+  Mod:      Added matrix_augment_01_columns, to match matrix.c.
+  Date:     19 Aug 2019 - rickr
+
 */
 
 #include "mri_image.h"  /* moved here on 16 May 2005, for OS X Tiger */
@@ -471,6 +474,54 @@ void matrix_extract_rows (matrix a, int p, int * list, matrix * b)
   for (i = 0;  i < rows;  i++)
     for (j = 0;  j < cols;  j++)
       b->elts[i][j] = a.elts[list[i]][j];
+}
+
+/*---------------------------------------------------------------------------*/
+/*!
+  Add columns that are all 0 except for a single 1, as indicated. [16 Aug 2019]
+  For use in 3dDeconvolve experimentation [RWC]
+  Dupe from matrix.c. [19 Aug 2019 rickr].
+*/
+
+void matrix_augment_01_columns( matrix a, int nadd, int *addlist, matrix *b )
+{
+   int arows,brows , acols,bcols , i,j,k,aa ;
+
+   if( b == NULL ) return ;   /* bad input */
+
+   if( nadd <= 0 || addlist == NULL ){ /* nothing to do but copy input */
+     matrix_equate(a,b) ; return ;
+   }
+
+   /* check addlist for bad entries */
+
+   for( aa=0 ; aa < nadd ; aa++ ){
+     if( addlist[aa] < 0 || addlist[aa] >= a.rows ){
+       fprintf(stderr,"** ERROR: bad index in matrix_augment_01_columns\n") ;
+       return ;
+     }
+   }
+
+   arows = brows = a.rows ;
+   acols = a.cols ;
+   bcols = acols + nadd ;
+
+   matrix_create( brows , bcols , b ) ;
+
+   /* copy original part */
+
+   for( i=0 ; i < brows ; i++ )
+     for( j=0 ; j < acols ; j++ ) b->elts[i][j] = a.elts[i][j] ;
+
+   /* add new cols */
+
+   for( aa=0 ; aa < nadd ; aa++ ){
+     k = addlist[aa] ; j = acols+aa ;
+     for( i=0 ; i < brows ; i++ )
+       b->elts[i][j] = (i==k) ? 1.0 : 0.0 ;
+   }
+
+   return ;
 }
 
 

@@ -97,7 +97,12 @@ typedef struct {
 #define IAB(rc,a,b) ( (int)rint( ((a)-(rc)->abot) / (rc)->da )  \
      + (1+(rc)->na) * (int)rint( ((b)-(rc)->bbot) / (rc)->db ) )
 
-static MTYPE corcut = 0.0011 ;  /* 03 Nov 2009: changed from 0.0025 to 0.0011 */
+
+/** correlation cutoff to control bandwidth of matrix **/
+/** the value of corcut might be changed in 3dREMLfit **/
+
+#define CORCUT_default 0.0001          /* reduced to 0.0001 [22 Aug 2019] */
+static MTYPE corcut = CORCUT_default ;
 
 #undef  TAU
 #define TAU(i) ((tau==NULL) ? (i) : tau[i])

@@ -2980,7 +2980,6 @@ ENTRY("ISQ_make_bar") ;
    ny = seq->dc->ncol_im ;
    im = mri_new( 1 , ny , MRI_short ) ;
    ar = mri_data_pointer( im ) ;
-
    for( iy=0 ; iy < ny ; iy++ ) ar[iy] = ny-1-iy ;
 
    seq->given_xbar = mri_to_XImage( seq->dc , im ) ;

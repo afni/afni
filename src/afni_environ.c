@@ -17,6 +17,45 @@ extern int SUMA_IcoNums(int depth, byte bin, char what);
 static int nsuck = 0 ;
 int AFNI_suck_file_len(void){ return nsuck; }  /* 27 Feb 2009 */
 
+#undef  DBUF
+#define DBUF 8192       /* how many bytes per fifo read */
+
+#undef  MAXBUF
+#define MAXBUF 8388608  /* 8 Mbytes */
+
+/** read from a 'file' whose size cannot be predetermined [27 Aug 2019] **/
+
+char * AFNI_suck_fifo( char *fname )
+{
+   int fd , ii , nbuf ;
+   char *buf ;
+
+ENTRY("AFNI_suck_fifo") ;
+   nsuck = 0 ;
+   if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
+
+   fd = open( fname , O_RDONLY ) ; /* blocking reads */
+   if( fd < 0 ) RETURN(NULL) ;
+
+   nbuf = 0 ;
+   buf  = (char *)malloc( sizeof(char) * (DBUF+4) ) ;
+
+   while( nbuf < MAXBUF ){
+     ii = read( fd , buf+nbuf , DBUF ) ;      /* try to read up to DBUF bytes */
+     if( ii <= 0 ) break ;                                     /* read failed */
+     nbuf += ii ;                        /* add in how many bytes we now have */
+     buf = (char *)realloc( buf, sizeof(char)*(nbuf+DBUF+4) ) ; /* resize buf */
+   }
+
+   close(fd) ;
+   buf = (char *)realloc( buf , sizeof(char)*(nbuf+4) ) ;
+   buf[nbuf] = '\0' ; /* terminate string */
+   nsuck = nbuf ;
+   RETURN(buf) ;
+}
+
+/** read from a file whose size can be found out directly **/
+
 char * AFNI_suck_file( char *fname )
 {
    int len , fd , ii ;
@@ -25,6 +64,10 @@ char * AFNI_suck_file( char *fname )
 ENTRY("AFNI_suck_file") ;
    nsuck = 0 ;
    if( fname == NULL || fname[0] == '\0' ) RETURN(NULL);
+
+   if( THD_is_fifo(fname) ){
+     buf = AFNI_suck_fifo(fname) ; RETURN(buf) ;
+   }
 
    len = THD_filesize( fname ) ;
    if( len <= 0 ) RETURN(NULL) ;

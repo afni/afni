@@ -1200,6 +1200,7 @@ static char *gby[] = {
      "When a truth becomes a fact, it loses all intellectual value"             ,
      "I can resist anything but temptation"                                     ,
      "Only the shallow can know themselves"                                     ,
+     "Don't fall into temptation until I get back"                              ,
 
      "\n In this world there are only two tragedies:\n"
      "   One is not getting what one wants, and the other is getting it"        ,

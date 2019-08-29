@@ -4346,6 +4346,7 @@ extern THD_string_array * THD_get_all_filenames( char * ) ;
 extern THD_string_array * THD_extract_regular_files( THD_string_array * ) ;
 extern THD_string_array * THD_extract_directories( THD_string_array * ) ;
 extern int THD_is_file     ( char * ) ;
+extern int THD_is_fifo     ( char * ) ;  /* 27 Aug 2019 */
 extern int THD_is_symlink  ( char * ) ;  /* 03 Mar 1999 */
 extern int THD_is_directory( char * ) ;
 extern int THD_is_ondisk   ( char * ) ;  /* 19 Dec 2002 */
@@ -5564,6 +5565,11 @@ extern void nn_shift   ( int , float , float *) ;
 extern void lin_shift  ( int , float , float *) ;
 extern void cub_shift  ( int , float , float *) ;
 extern void quint_shift( int , float , float *) ;
+
+extern void wsinc5_shift( int , float , float *) ; /* Aug 2019 */
+extern void wsinc5_shift2( int , int , float , float *, float , float *) ;
+extern void wsinc9_shift( int , float , float *) ; /* Aug 2019 */
+extern void wsinc9_shift2( int , int , float , float *, float , float *) ;
 
 extern void THD_fftshift( THD_3dim_dataset *, float,float,float, int ) ;
 

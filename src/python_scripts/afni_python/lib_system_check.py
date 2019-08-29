@@ -917,10 +917,15 @@ class SysInfo:
       ind = '%8s' % ' '
       indn = '\n%8s' % ' '
       proglist = ['afni', 'suma', '3dSkullStrip', 'uber_subject.py',
-                   '3dAllineate', '3dRSFC', 'SurfMesh', '3dClustSim']
+                   '3dAllineate', '3dRSFC', 'SurfMesh', '3dClustSim', '3dMVM']
       fcount = 0
       for prog in proglist:
          st, so, se = BASE.shell_exec2('%s -help'%prog, capture=1)
+         # if 3dMVM, status will be 0 on failed library load (fix that, too)
+         if prog == '3dMVM' and not st:
+            mesg = ''.join(se)
+            if mesg.find('Error in dyn.load') >= 0:
+               st = 1
          if st:
             print('    %-20s : FAILURE' % prog)
             print(ind + indn.join(se))
@@ -973,6 +978,10 @@ class SysInfo:
          print('    %-20s : FAILURE' % cmd)
          print(ind + indn.join(se))
          self.comments.append('missing R packages (see rPkgsInstall)')
+      print('')
+
+      status, cout = UTIL.exec_tcsh_command("R RHOME")
+      print('R RHOME : %s' % cout.strip())
       print('')
 
       print('checking for $HOME files...')

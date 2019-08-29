@@ -160,7 +160,7 @@ int main( int argc , char *argv[] )
       exit(1);
    }
    if( argc < 2 ){
-      fprintf(stderr,"** ERROR: Too few options");
+      fprintf(stderr,"** ERROR: Too few options\n");
       exit(1);
    }
 

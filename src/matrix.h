@@ -172,6 +172,9 @@ void matrix_extract (matrix a, int p, int * list, matrix * b);
 
 #define matrix_extract_cols matrix_extract
 
+/* add some 0-1 columns [16 Aug 2019] */
+
+void matrix_augment_01_columns( matrix a, int nadd, int *addlist, matrix *b ) ;
 
 /*---------------------------------------------------------------------------*/
 /*

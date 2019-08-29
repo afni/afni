@@ -52,9 +52,13 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              parser.o pbar_color_defs.o afni_ports.o
 
 ifdef MRI_SHARED
-LIBMRI_OBJ = libmri.so
+LIBMRI_OBJ  = libmri.so
+LIBF2C_OBJ  = libf2c.so
+LIBSUMA_OBJ = libSUMA.so
 else
-LIBMRI_OBJ = libmri.a
+LIBMRI_OBJ  = libmri.a
+LIBF2C_OBJ  = libf2c.a
+LIBSUMA_OBJ = libSUMA.a
 endif
 
 T3OBJS  = to3d.o
@@ -278,13 +282,13 @@ all:$(LIBDL) $(LIBMRI_OBJ) libmrix.a libcoxplot.a libtracktools.a $(EXLIBS) \
 
 ### Make afni binaries
 
-afobj:$(AFOBJS) libf2c.a libcoxplot.a libmrix.a libjpeg.a libXmHTML.a $(EXLIBS)
+afobj:$(AFOBJS) $(LIBF2C_OBJ) libcoxplot.a libmrix.a libjpeg.a libXmHTML.a $(EXLIBS)
 
 afobjs: afobj
 
 ### Make a few more things
 
-itall:all plugins install install_plugins
+itall:all plugins install install_plugins install_lib
 
 $(INSTALLDIR):
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo Made directory $(INSTALLDIR); fi
@@ -363,7 +367,7 @@ programs_noplug:$(PROGRAMS_NOPLUG)
 
 programs_exe:$(PROGRAMS_EXE)
 
-libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a $(EXLIBS)
+libraries:$(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) $(EXLIBS)
 
 ### rules for individual programs
 
@@ -911,7 +915,7 @@ nsize:nsize.o
 	$(CC) -o 3dmerge 3dmerge.o parser.o parser_int.o \
                  $(LFLAGS) $(LLIBS)
 
-3dcalc:3dcalc.o parser.o parser_int.o
+3dcalc: $(LIBMRI_OBJ) 3dcalc.o parser.o parser_int.o
 	$(RM) $@
 	$(CC) -o 3dcalc 3dcalc.o parser.o parser_int.o \
               $(LFLAGS) $(LLIBS)
@@ -1304,7 +1308,7 @@ mri_nstats.o:mri_nstats.c
 QWARP    = 3dNwarpAdjust 3dNwarpApply 3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dQwarp
 QWARPOBJ = 3dNwarpAdjust.o 3dNwarpApply.o 3dNwarpCalc.o 3dNwarpCat.o 3dNwarpFuncs.o 3dNwarpXYZ.o 3dQwarp.o
 
-qwarp:    $(LIBMRI_OBJ) libf2c.a $(QWARP)
+qwarp:    $(LIBMRI_OBJ) $(LIBF2C_OBJ) $(QWARP)
 
 qwarpobj: $(QWARPOBJ)
 
@@ -2020,7 +2024,8 @@ testdsetio: SUMA/SUMA_TestDsetIO.c suma_datasets.o suma_algorithms.o suma_utils.
 ### Sort of clean
 
 clean: clean_version
-	$(RM) `find . -name \*.o -print` mrilib_raw.h mrilib_all.c mrilib_raw.c
+	$(RM) `find . -name \*.o -print` niml.h mrilib_raw.h \
+              mrilib_all.c mrilib_raw.c
 
 cleann: clean_version
 	$(RM) `find . -name \*.o -print`
@@ -2122,7 +2127,7 @@ install_noplug: $(INSTALLDIR)
 	$(CP) -r $(SHINY_DIR) $(INSTALLDIR)
 
 install_lib: $(LIBDIR)
-	$(CP) $(LIBMRI_OBJ) libmrix.a libf2c.a libcoxplot.a $(EXLIBS) $(LIBHEADERS) $(LIBDIR)
+	$(CP) $(LIBMRI_OBJ) libmrix.a $(LIBF2C_OBJ) libcoxplot.a $(EXLIBS) $(LIBHEADERS) $(LIBDIR)
 
 # CYGWIN: must put the .exe suffix on the "mv" command for some reason
 
@@ -2556,7 +2561,12 @@ mrilib_all.c: AFNI_version.h 3ddata.h mrilib.h
 mrilib_raw.c: mrilib_all.c
 	gcc -E $(INFLAGS) -Iniml -Igifti mrilib_all.c | uniq > mrilib_raw.c
 
+# ---------------------------------------------------------------------------
 # the library of libraries
+
+# Change the build system target from libmri.a to libmri, and let the
+# Makefile decide whether to use the shared library.
+libmri: $(LIBMRI_OBJ)
 
 libmri.a: niml.h mrilib.h Aomp.h 3ddata.h                      \
 	$(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS) thd_selenium.o         \
@@ -2591,7 +2601,7 @@ libmri.so.b: mrilib.h                                                        \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
-          libf2c.a libmrix.a libcoxplot.a $(EXLIBS)
+          $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so                                       \
                 -L. $(LZLIB) $(LGIFTI) -lf2c $(LEXLIBS) -lmrix -lcoxplot       \
@@ -2608,12 +2618,12 @@ libmri.so.b: mrilib.h                                                        \
 #
 # if MRI_SHARED, might not want 2 $(RM) netcdf_attr.o commands
 # (here and in shared_netcdf_attr)
-libmri.so: mrilib.h                                                          \
+libmri.so: niml.h mrilib.h                                                   \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
-          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
+          $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) 3ddata.h                   \
           Aomp.h shared_netcdf_attr thd_selenium_off.o                       \
-          libf2c.a libmrix.a libcoxplot.a $(EXLIBS)
+          $(LIBF2C_OBJ) libmrix.a libcoxplot.a $(EXLIBS)
 	$(RM) $@
 	$(CC) -shared -fPIC -o libmri.so                                     \
                 $(LFLAGS)                                                    \
@@ -2624,7 +2634,8 @@ libmri.so: mrilib.h                                                          \
 
 # remake netcdf objects with PIC
 shared_netcdf_attr:
-	$(RM) netcdf_attr.o
+	# uncomment to bounce between shared and not
+	# $(RM) netcdf_attr.o
 	$(MAKE) netcdf_attr.o CCMIN="${CCMIN} -fPIC"
 
 # same as .a, but build as a shared object
@@ -2700,9 +2711,10 @@ belmonte_plugins: plug_threshold.$(SO) plug_permtest.$(SO)
 laconte_plugins: plug_3dsvm.$(SO)
 
 install_plugins: $(INSTALLDIR)
-	$(MV) *.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) plug*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
+	$(MV) model*.$(PLUGIN_SUFFIX) $(INSTALLDIR)
 	mkdir -p $(INSTALLDIR)/funstuff
-	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt $(INSTALLDIR)/funstuff
+	$(CP) faces/face_*.jpg faces/splash_*.jpg poems/poem_*.txt faces/*.au $(INSTALLDIR)/funstuff
 	echo Plugins put in directory $(INSTALLDIR):
 	echo Do not forget to setenv AFNI_PLUGINPATH appropriately
 
@@ -2830,6 +2842,12 @@ libf2c.a:
 	  $(MAKE) libf2c.a clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
 	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
 	  $(MV) libf2c.a .. ; )
+
+libf2c.so:
+	( cd f2cdir ;                                                        \
+	  $(MAKE) libf2c.so clean 'RM=$(RM)' 'CC=$(CC)' 'AR=$(AR)'            \
+	        'RANLIB=$(RANLIB)' 'LDFLAGS=$(LDFLAGS)' 'IFLAGS=$(ISFLAGS)' ; \
+	  $(MV) libf2c.so .. ; )
 
 f2c.h:
 	$(CP) f2cdir/f2c.h ./
@@ -3172,7 +3190,7 @@ parser.c:
 
 ## expression parsing and evaluation functions
 
-parser.o:parser.c f2c.h libf2c.a
+parser.o:parser.c f2c.h $(LIBF2C_OBJ)
 	$(CCFAST) -c parser.c $(INFLAGS)
 
 ## programs that user parser.c functions
@@ -3582,21 +3600,22 @@ roopchansinghv_install:
 #############
 #SUMA
 
-libSUMA.a: $(LIBMRI_OBJ) libmrix.a libcoxplot.a libf2c.a libtracktools.a
+$(LIBSUMA_OBJ): $(LIBMRI_OBJ) libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools.a
 	( cd SUMA ;	\
-	rm -f libSUMA.a	;\
-	$(MAKE) -f $(SUMA_MAKEFILE_NAME) MarchingCubes.o libSUMA.a 'INSTALLDIR=$(INSTALLDIR)' \
+	rm -f $(LIBSUMA_OBJ)	;\
+	$(MAKE) -f $(SUMA_MAKEFILE_NAME) MarchingCubes.o $(LIBSUMA_OBJ) 'INSTALLDIR=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
 	'SUMA_INCLUDE_PATH=$(SUMA_INCLUDE_PATH)' \
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'RANLIB=$(RANLIB)' \
-        'MAKE=$(MAKE)'     \
+	'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'	\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;	\
 	if [ ! -d $(INSTALLDIR) ]; then $(MKDIR) -p $(INSTALLDIR); echo WARNING: directory $(INSTALLDIR) has been created. ; fi	;\
-	$(CP) SUMA/libSUMA.a ${INSTALLDIR}; \
-	$(CP) SUMA/libSUMA.a ./;	)
+	$(CP) SUMA/$(LIBSUMA_OBJ) ${INSTALLDIR}; \
+	$(CP) SUMA/$(LIBSUMA_OBJ) ./;	)
 
 libgts.a:
 	( cd SUMA ;	\
@@ -3650,7 +3669,7 @@ SUMA_MAKE_LIST = testGL $(SUMA_PROGS)
 
 ###
 #link executables but check for libraries first and create them if needed
-suma_exec:libGLws.a libSUMA.a libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_exec:libGLws.a $(LIBSUMA_OBJ) libtracktools.a $(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a $(LIBF2C_OBJ)
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) $(SUMA_MAKE_LIST) \
 	'INSTALLDIR=$(INSTALLDIR)' \
@@ -3687,7 +3706,7 @@ suma_gts_progs: libgts.a
 
 ###
 #run make all in SUMA directory, USE FOR DEVELOPMENT ONLY
-suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a
+suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a $(LIBF2C_OBJ)
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) all 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
@@ -3697,14 +3716,15 @@ suma_all:$(LIBMRI_OBJ) libtracktools.a xutil.o LiteClue.o parser.o parser_int.o 
 	'SUMA_BIN_ARCHIVE=$(SUMA_BIN_ARCHIVE)' \
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
-        'MAKE=$(MAKE)'     \
+	'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
 
 ###
 #run make anew in SUMA directory, USE FOR DEVELOPMENT ONLY
-suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a libf2c.a libtracktools.a
+suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libcoxplot.a $(LIBF2C_OBJ) libtracktools.a
 	( cd SUMA ;	\
 	$(MAKE) -f $(SUMA_MAKEFILE_NAME) anew 'INSTALLDIR=$(INSTALLDIR)' 'INSTALLDIR_SUMA=$(INSTALLDIR)' \
 	'SUMA_MDEFS=$(SUMA_MDEFS)' \
@@ -3715,12 +3735,13 @@ suma_anew:$(LIBMRI_OBJ) xutil.o LiteClue.o parser.o parser_int.o libmrix.a libco
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'		\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)
 
 suma_clean:
-	$(RM) SUMA/libSUMA.a libSUMA.a SUMA/libGLws.a libGLws.a
+	$(RM) SUMA/$(LIBSUMA_OBJ) $(LIBSUMA_OBJ) SUMA/libGLws.a libGLws.a
 	if [ -f SUMA/suma ]; then $(RM) SUMA/suma; fi;
 	if [ -f suma ]; then $(RM) suma; fi;
 	if [ -f SUMA/MakeColorMap ]; then $(RM) SUMA/MakeColorMap; fi;
@@ -3840,7 +3861,7 @@ suma_link:
 	( cd SUMA ;	\
 	tar -xf $(SUMA_BIN_ARCHIVE)	;\
 	touch *.a	;\
-	$(CP) $(LIBMRI_OBJ) libtractools.a libmrix.a libcoxplot.a libf2c.a ../ ;\
+	$(CP) $(LIBMRI_OBJ) libtractools.a libmrix.a libcoxplot.a $(LIBF2C_OBJ) ../ ;\
 	$(RM) suma MakeColorMap ROI2dataset 3dVol2Surf 3dSurf2Vol 	\
    SurfMeasures  SurfFWHM ScaleToMap MapIcosahedron CreateIcosahedron 	\
    CompareSurfaces ConvertSurface ConvertDset SurfClust IsoSurface 	\
@@ -3870,6 +3891,7 @@ suma_link:
 	'SUMA_GLIB_VER=$(SUMA_GLIB_VER)' \
 	'RANLIB=$(RANLIB)' \
         'MAKE=$(MAKE)'     \
+	'MRI_SHARED=$(MRI_SHARED)' \
 	'CC=$(CC)' 'RM=$(RM)' 'CEXTRA=$(CEXTRA)' 'MV=$(MV)' 'CP=$(CP)'\
 	'TAR=$(TAR)' 'MKDIR=$(MKDIR)';	\
 	cd ../	;)

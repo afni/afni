@@ -212,9 +212,12 @@ g_history = """
    1.03 Oct 16, 2018 - if no AFNI prog errors, skip library linking warnings
    1.04 Oct 29, 2018 - check for .zshenv if zsh
    1.05 Aug  6, 2019 - check for matplotlib.pyplot; use simpl_import_test
+   1.06 Aug 27, 2019
+        - added check for dyn.load error in R_io.so via 3dMVM
+        - show output of command "R RHOME"
 """
 
-g_version = "afni_system_check.py version 1.05, August 6, 2019"
+g_version = "afni_system_check.py version 1.06, August 27, 2019"
 
 
 class CmdInterface:

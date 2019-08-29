@@ -165,7 +165,7 @@ ENTRY("create_float_dataset") ;
       DSET_TOTALBYTES(nset) > MTHRESH         ){
     reml_setup_savfilnam( fnam ) ;
     *fp = fopen( *fnam , "w+b" ) ;
-    if( *fp == NULL ) ERROR_exit("3dREMLfit can't open -usetemp file %s",*fnam);
+    if( *fp == NULL ) ERROR_exit("3dREMLfit cannot open -usetemp file %s",*fnam);
     add_purge(*fnam) ;
   } else {
     for( kk=0 ; kk < nvol ; kk++ )
@@ -365,12 +365,12 @@ ENTRY("create_GLT_index") ;
      for( ii=0 ; ii < nrow ; ii++ ){
        if( do_beta ){
          gin->beta_ind[ii] = iv++ ;
-         sprintf( lll , "%.32s%c%d_Coef" , name , EDIT_get_index_prefix() , ii ) ;
+         sprintf( lll , "%.48s%c%d_Coef" , name , EDIT_get_index_prefix() , ii ) ;
          gin->beta_lab[ii] = strdup(lll) ;
        }
        if( do_ttst ){
          gin->ttst_ind[ii] = iv++ ;
-         sprintf( lll , "%.32s%c%d_Tstat" , name , EDIT_get_index_prefix() , ii ) ;
+         sprintf( lll , "%.48s%c%d_Tstat" , name , EDIT_get_index_prefix() , ii ) ;
          gin->ttst_lab[ii] = strdup(lll) ;
        }
      }
@@ -378,7 +378,7 @@ ENTRY("create_GLT_index") ;
 
    if( do_rtst ){                  /* 23 Oct 2008 */
      gin->rtst_ind = iv++ ;
-     sprintf( lll , "%.32s_R^2" , name ) ;
+     sprintf( lll , "%.48s_R^2" , name ) ;
      gin->rtst_lab = strdup(lll) ;
    } else {
      gin->rtst_ind = -1 ;
@@ -387,7 +387,7 @@ ENTRY("create_GLT_index") ;
 
    if( do_ftst ){
      gin->ftst_ind = iv++ ;
-     sprintf( lll , "%.32s_Fstat" , name ) ;
+     sprintf( lll , "%.48s_Fstat" , name ) ;
      gin->ftst_lab = strdup(lll) ;
    } else {
      gin->ftst_ind = -1 ;
@@ -414,7 +414,7 @@ matrix * create_gltsym( char *sym , int ncol )
 
 ENTRY("create_gltsym") ;
 
-   if( sym == NULL || ncol < 1 || nSymStim < 1 )
+   if( sym == NULL || ncol < 1 || nSymStim < 1 ) /* should not happen */
      ERROR_exit("Bad call to create_gltsym!") ;
 
    if( strncmp(sym,"SYM:",4) == 0 ){  /* read directly from sym string */
@@ -442,7 +442,7 @@ STATUS(buf) ;
 
      char buf[8192] , *cpt ;
      FILE *fp = fopen( sym , "r" ) ;
-     if( fp == NULL ) ERROR_exit("Can't open GLT matrix file '%.33s'",sym) ;
+     if( fp == NULL ) ERROR_exit("Cannot open GLT matrix file '%s'",sym) ;
      while(1){
        cpt = afni_fgets( buf , 8192 , fp ) ;   /* read next line */
        if( cpt == NULL ) break ;               /* end of input? */
@@ -457,7 +457,7 @@ STATUS(buf) ;
 
    }
 
-   if( nr == 0 ) ERROR_exit("Can't read GLT matrix from '%.33s'",sym) ;
+   if( nr == 0 ) ERROR_exit("Cannot read GLT matrix from '%s'",sym) ;
    cmat = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(cmat) ;
    array_to_matrix( nr , ncol , far , cmat ) ;
 
@@ -466,7 +466,7 @@ STATUS(buf) ;
 
    if( !AFNI_noenv("AFNI_GLTSYM_PRINT") ){
      printf("------------------------------------------------------------\n");
-     printf("GLT matrix from '%.33s':\n",sym) ;
+     printf("GLT matrix from '%s':\n",sym) ;
      if( str_echo != NULL ){ printf("%s",str_echo); free(str_echo); }
      matrix_print( *cmat ) ;
    }
@@ -476,7 +476,7 @@ STATUS(buf) ;
    for( ii=0 ; ii < nr ; ii++ ){
      for( jj=0 ; jj < ncol && cmat->elts[ii][jj] == 0.0 ; jj++ ) ; /*nada*/
      if( jj == ncol )
-       ERROR_message("Row #%d of GLT matrix '%.33s' is all zero!", ii+1 , sym ) ;
+       ERROR_message("Row #%d of GLT matrix '%s' is all zero!", ii+1 , sym ) ;
    }
 
    RETURN(cmat) ;
@@ -592,7 +592,7 @@ int main( int argc , char *argv[] )
 
    if( argc < 2 || strcasecmp(argv[1],"-help") == 0 ){
      printf(
-      "Usage: 3dREMLfit [options]\n"
+      "Usage: 3dREMLfit [options]  ~1\n"
       "\n"
       "   **** Generalized least squares time series fit, with REML   ****\n"
       "   **** estimation of the temporal auto-correlation structure. ****\n"
@@ -615,12 +615,19 @@ int main( int argc , char *argv[] )
       "  ++ Note that the 2-parameter ARMA(1,1) correlation model is hard-coded\n"
       "     into this program -- there is no way to use a more elaborate model,\n"
       "     such as the 5-parameter ARMA(3,2), in 3dREMLfit.\n"
+      "  ++ A 'real' REML optimization of the autocorrelation model is made,\n"
+      "     not simply an adjustment based on the residuals from a preliminary\n"
+      "     OLSQ regression.\n"
+      "  ++ See the section 'What is ARMA(1,1)' (far below) for more fun details.\n"
+      "  ++ And the section 'What is REML' (even farther below).\n"
       "\n"
       "* You MUST run 3dDeconvolve first to generate the input matrix\n"
       "    (.xmat.1D) file, which contains the hemodynamic regression\n"
       "    model, censoring and catenation information, the GLTs, etc.\n"
       "    See the output of '3dDeconvolve -help' for information on\n"
       "    using that program to setup the analysis.\n"
+      "  ++ However, you can input a 'naked' (non-3dDeconvolve) matrix\n"
+      "     file using the '-matim' option, if you know what you are doing.\n"
       "\n"
       "* If you don't want the 3dDeconvolve analysis to run, you can\n"
       "    prevent that by using 3dDeconvolve's '-x1D_stop' option.\n"
@@ -648,9 +655,15 @@ int main( int argc , char *argv[] )
       "    variance estimate should be more accurate (less biased).\n"
       "\n"
       "-------------------------------------------\n"
-      "Input Options (the first two are mandatory)\n"
+      "Input Options (the first two are mandatory)  ~1\n"
       "-------------------------------------------\n"
       " -input ddd  = Read time series dataset 'ddd'.\n"
+      "              * This is the dataset without censoring!\n"
+      "              * The '-matrix' file, on the other hand, encodes\n"
+      "                 which time points are to be censored, and the\n"
+      "                 matrix stored therein is already censored.\n"
+      "              * The doc below has a discussion of censoring in 3dREMLfit:\n"
+      " https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
       "\n"
       " -matrix mmm = Read the matrix 'mmm', which should have been\n"
       "                 output from 3dDeconvolve via the '-x1D' option.\n"
@@ -684,6 +697,24 @@ int main( int argc , char *argv[] )
       "              of columns is the number of regressors.\n"
       "            * Advanced features, such as censoring, can only be implemented\n"
       "              by providing a true .xmat.1D file via the '-matrix' option.\n"
+      "           ** However, censoring can still be applied (in a way) by including\n"
+      "              extra columns in the matrix. For example, to censor out time\n"
+      "              point #47, a column that is 1 at time point #47 and zero at\n"
+      "              all other time points can be used.\n"
+      "             ++ Remember that AFNI counting starts at 0, so this column\n"
+      "                would start with 47 0s, then a single 1, then the rest\n"
+      "                of the entries would be 0s.\n"
+      "             ++ 3dDeconvolve option '-x1D_regcensored' will create such a\n"
+      "                .xmat.1D file, with the censoring indicated by 0-1 columns\n"
+      "                rather than by the combination of 'GoodList' and omitted\n"
+      "                rows. That is, instead of shrinking the matrix (by rows)\n"
+      "                it will expand the matrix (by columns).\n"
+      "             ++ You can strip out the XML-ish header from the .xmat.1D\n"
+      "                file with a Unix command like this:\n"
+      "                  grep -v '^#' Fred.xmat.1D > Fred.rawmat.1D\n"
+      "             ++ In cases with lots of censoring, expanding the matrix\n"
+      "                by lots of columns will make 3dREMLfit run more slowly.\n"
+      "                For most situations, this slowdown will not be horrific.\n"
       "            * An advanced intelligence could reverse engineer the XML\n"
       "              format used by the .xmat.1D files, to fully activate all the\n"
       "              regression features of this software :-)\n"
@@ -710,11 +741,16 @@ int main( int argc , char *argv[] )
       "  * StimTops     = column indexes for ending of each stimulus's regressors\n"
       "  * StimLabels   = names for each stimulus\n"
       "  * CommandLine  = string of command used to create the file\n"
+      "See the doc below for a lengthier description of the matrix format:\n"
+      " https://docs.google.com/document/d/1zpujpZYuleB7HuIFjb2vC4sYXG5M97hJ655ceAj4vE0\n"
       " ----------------------------------------------------------------------------\n"
      ) ;
 
      printf(
       "\n"
+      "---------------\n"
+      "Masking options  ~1\n"
+      "---------------\n"
       " -mask MMM   = Read dataset 'MMM' as a mask for the input; voxels outside\n"
       "                 the mask will not be fit by the regression model.\n"
       " -automask   = If you don't know what this does by now, I'm not telling.\n"
@@ -738,7 +774,7 @@ int main( int argc , char *argv[] )
       "                  generated mask described just above is used for FDR.\n"
       "\n"
       "--------------------------------------------------------------------------\n"
-      "Options to Add Baseline (Null Hypothesis) Columns to the Regression Matrix\n"
+      "Options to Add Baseline (Null Hypothesis) Columns to the Regression Matrix  ~1\n"
       "--------------------------------------------------------------------------\n"
       " -addbase bb = You can add baseline model columns to the matrix with\n"
       "                 this option.  Each column in the .1D file 'bb' will\n"
@@ -918,9 +954,24 @@ int main( int argc , char *argv[] )
       "                 baseline columns (in which case, don't use '-nobout').\n"
       "\n"
       "------------------------------------------------------------------------\n"
-      "Output Options (at least one must be given; 'ppp' = dataset prefix name)\n"
+      "Output Options (at least one must be given; 'ppp' = dataset prefix name)  ~1\n"
       "------------------------------------------------------------------------\n"
-      " -Rvar  ppp  = dataset for REML variance parameters\n"
+      " -Rvar  ppp  = dataset for saving REML variance parameters\n"
+      "               * See the 'What is ARMA(1,1)' section, far below.\n"
+      "               * This dataset has 5 volumes:\n"
+      "                 [0] = 'a'       = ARMA parameter\n"
+      "                                 = decay rate of correlations with lag\n"
+      "                 [1] = 'b'       = ARMA parameter\n"
+      "                 [2] = 'lam'     = (b+a)(1+a*b)/(1+2*a*b+b*b)\n"
+      "                                 = correlation at lag=1\n"
+      "                                   correlation at lag=k is lam * a^(k-1) (k>0)\n"
+      "                 [3] = 'StDev'   = standard deviation of prewhitened\n"
+      "                                   residuals (used in computing statistics\n"
+      "                                   in '-Rbuck' and in GLTs)\n"
+      "                 [4] = '-LogLik' = negative of the REML log-likelihood\n"
+      "                                   function (see math notes)\n"
+      "               * The main purpose of this dataset is to check when weird\n"
+      "                   things happen in the calculations.\n"
       " -Rbeta ppp  = dataset for beta weights from the REML estimation\n"
       "                 [similar to the -cbucket output from 3dDeconvolve]\n"
       "               * This dataset will contain all the beta weights, for\n"
@@ -1042,7 +1093,7 @@ int main( int argc , char *argv[] )
       "each voxel, by pretending you used the option '-ABfile =0,0'.\n"
       "\n"
       "-------------------------------------------------------------------\n"
-      "The following options control the ARMA(1,1) parameter estimation\n"
+      "The following options control the ARMA(1,1) parameter estimation     ~1\n"
       "for each voxel time series; normally, you do not need these options\n"
       "-------------------------------------------------------------------\n"
       " -MAXa am   = Set max allowed AR a parameter to 'am' (default=0.8).\n"
@@ -1071,9 +1122,18 @@ int main( int argc , char *argv[] )
       "                   in each direction, '-Grid 5' means 64 divisions, etc.\n"
       "               * I see no reason why you would ever use a -Grid size\n"
       "                   greater than 5 (==> parameter resolution = 0.025).\n"
+      "               * In the future, '-Grid 5' might become the default, since\n"
+      "                   it is a little more accurate and computers are a lot\n"
+      "                   faster than in the days when I was hunting brontosauri.\n"
       "               * In my limited experiments, there was little appreciable\n"
       "                   difference in activation maps between '-Grid 3' and\n"
       "                   '-Grid 5', especially at the group analysis level.\n"
+      "                 ++ To be fair, skipping prewhitening by using OLSQ\n"
+      "                    (e.g., 3dDeconvolve) at the single subject level\n"
+      "                    has little effect on the group analysis UNLESS you\n"
+      "                    are going to use 3dMEMA, which relies on accurate\n"
+      "                    single subject t-statistics, which in turn requires\n"
+      "                    accurate temporal autocorrelation modeling.\n"
       "               * The program is somewhat slower as the -Grid size expands.\n"
       "                   And uses more memory, to hold various matrices for\n"
       "                   each (a,b) case.\n"
@@ -1155,7 +1215,7 @@ int main( int argc , char *argv[] )
       "                   pushes forward in the solution of the linear systems.\n"
       "\n"
       "---------------------\n"
-      "Miscellaneous Options\n"
+      "Miscellaneous Options  ~1\n"
       "---------------------\n"
       " -quiet = turn off most progress messages :(\n"
       " -verb  = turn on more progress messages  :)\n"
@@ -1168,7 +1228,7 @@ int main( int argc , char *argv[] )
       "==========================================================================\n"
       "\n"
       "------------------\n"
-      "What is ARMA(1,1)?\n"
+      "What is ARMA(1,1)?  ~1\n"
       "------------------\n"
       "* The correlation coefficient r(k) of noise samples k units apart in time,\n"
       "    for k >= 1, is given by r(k) = lam * a^(k-1)\n"
@@ -1213,12 +1273,13 @@ int main( int argc , char *argv[] )
       "    mixed together, as in 3dDeconvolve's '-bucket' output.\n"
       "\n"
       "-------------------------------------------------------------------\n"
-      "What is REML = REsidual (or REstricted) Maximum Likelihood, anyway?\n"
+      "What is REML = REsidual (or REstricted) Maximum Likelihood, anyway?  ~1\n"
       "-------------------------------------------------------------------\n"
       "* Ordinary Least SQuares (which assumes the noise correlation matrix is\n"
       "    the identity) is consistent for estimating regression parameters,\n"
-      "    but is not consistent for estimating the noise variance if the\n"
-      "    noise is significantly correlated in time ('serial correlation').\n"
+      "    but is NOT consistent for estimating the noise variance if the\n"
+      "    noise is significantly correlated in time - 'serial correlation'\n"
+      "    or 'temporal correlation'.\n"
       "\n"
       "* Maximum likelihood estimation (ML) of the regression parameters and\n"
       "    variance/correlation together is asymptotically consistent as the\n"
@@ -1228,30 +1289,30 @@ int main( int argc , char *argv[] )
       "\n"
       "* REML estimates the variance/correlation parameters in a space\n"
       "    of residuals -- the part of the data left after the model fit\n"
-      "    is subtracted.  The amusing/cunning part is that the model fit\n"
+      "    is subtracted. The amusing/cunning part is that the model fit\n"
       "    used to define the residuals is itself the generalized least\n"
       "    squares fit where the variance/correlation matrix is the one found\n"
-      "    by the REML fit itself.  This feature makes REML estimation nonlinear,\n"
+      "    by the REML fit itself. This feature makes REML estimation nonlinear,\n"
       "    and the REML equations are usually solved iteratively, to maximize\n"
-      "    the log-likelihood in the restricted space.  In this program, the\n"
+      "    the log-likelihood in the restricted space. In this program, the\n"
       "    REML function is instead simply optimized over a finite grid of\n"
-      "    the correlation matrix parameters a and b.  The matrices for each\n"
+      "    the correlation matrix parameters a and b. The matrices for each\n"
       "    (a,b) pair are pre-calculated in the setup phase, and then are\n"
-      "    re-used in the voxel loop.  The purpose of this grid-based method\n"
+      "    re-used in the voxel loop. The purpose of this grid-based method\n"
       "    is speed -- optimizing iteratively to a highly accurate (a,b)\n"
       "    estimation for each voxel would be very time consuming, and pretty\n"
-      "    pointless.  If you are concerned about the sensitivity of the\n"
+      "    pointless. If you are concerned about the sensitivity of the\n"
       "    results to the resolution of the (a,b) grid, you can use the\n"
       "    '-Grid 5' option to increase this resolution and see if your\n"
-      "    activation maps change significantly.  In test cases, the resulting\n"
+      "    activation maps change significantly. In test cases, the resulting\n"
       "    betas and statistics have not changed appreciably between '-Grid 3'\n"
       "    and '-Grid 5'; however, you might want to test this on your own data\n"
-      "    (just for fun).\n"
+      "    (just for fun, because who doesn't want more fun?).\n"
       "\n"
       "* REML estimates of the variance/correlation parameters are still\n"
       "    biased, but are generally significantly less biased than ML estimates.\n"
       "    Also, the regression parameters (betas) should be estimated somewhat\n"
-      "    more accurately (i.e., with smaller variance than OLSQ).  However,\n"
+      "    more accurately (i.e., with smaller variance than OLSQ). However,\n"
       "    this effect is generally small in FMRI data, and probably won't affect\n"
       "    your group results noticeably (if you don't carry parameter variance\n"
       "    estimates to the inter-subject analysis, as is done in 3dMEMA).\n"
@@ -1263,15 +1324,18 @@ int main( int argc , char *argv[] )
       "\n"
       "* In the case with b=0 (that is, AR(1) correlations), and if there are\n"
       "    no time gaps (no censoring, no run breaks), then it is possible to\n"
-      "    directly estimate the a parameter without using REML.  This program\n"
+      "    directly estimate the a parameter without using REML. This program\n"
       "    does not implement such a method (e.g., the Yule-Walker equation).\n"
-      "    The reason why should be obvious.\n"
+      "    The reasons why should be obvious.\n"
       "\n"
       "* If you like linear algebra, see my scanned math notes about 3dREMLfit:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
+      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
+      "    https://docs.google.com/document/d/1wYOqsYpovM44xn8axNFKaXsqTXHS1O0KJ-pj-rBalog\n"
       "\n"
       "* I have been asked if 3dREMLfit prewhitens the design matrix as well as\n"
-      "    the data. The short answer is YES. The long answer follows:\n"
+      "    the data. The short answer to this somewhat uninformed question is YES.\n"
+      "    The long answer follows:\n"
       "\n"
       "* Mathematically, the GLSQ solution is expressed as\n"
       "    f = inv[ X' inv(R) X] X' inv(R) y\n"
@@ -1300,12 +1364,18 @@ int main( int argc , char *argv[] )
       "    estimate for f is not statistically consistent with the underlying model!\n"
       "    In other words, prewhitening only the data but not the matrix is WRONG.\n"
       "\n"
+      "* Someone asking the question above might actually be asking if the residuals\n"
+      "    are whitened. The answer is YES and NO. The output of -Rerrts is not\n"
+      "    whitened; in the above notation, -Rerrts gives y-Xf = data - model fit.\n"
+      "    The output of -Rwherr is whitened; -Rwherr gives S[y-Xf], which is the\n"
+      "    residual (eps) vector for the pre-whitened linear system Sf = SXf + eps.\n"
+      "\n"
       "* The estimation method for (a,b) is nonlinear; that is, these parameters\n"
       "    are NOT estimated by doing an initial OLSQ (or any other one-shot initial\n"
       "    calculation), then fitting (a,b) to the resulting residuals. Rather,\n"
       "    a number of different (a,b) values are tried out to find the parameter pair\n"
-      "    where the log-likelihood is optimized. To be precise, the function\n"
-      "    that is minimized (over the discrete a,b grid) is\n"
+      "    where the log-likelihood of the Gaussian model is optimized. To be precise,\n"
+      "    the function that is minimized in each voxel (over the discrete a,b grid) is\n"
       "      L(a,b) =  log(det(R(a,b))) + log(det(X' inv(R(a,b)) X))\n"
       "              + (n-m)log(y'P(a,b)y)   - log(det(X'X'))\n"
       "    where R(a,b) = ARMA(1,1) correlation matrix (symetric n X n)\n"
@@ -1319,13 +1389,15 @@ int main( int argc , char *argv[] )
       "      independent of the data -- for ARMA(1,1), the a=b=0 white noise\n"
       "      model is penalized somewhat relative to the non-white noise cases.\n"
       "    The 3rd term uses the 2-norm of the prewhitened residuals.\n"
-      "    The 4th term depends only on X, and is not actually used herein.\n"
+      "    The 4th term depends only on X, and is not actually used herein, since\n"
+      "    we don't include a model for varying X as well as R.\n"
       "\n"
-      "* Again, see the notes below for more fun math and algorithmic details:\n"
+      "* See the math notes below for more fun algorithmic details:\n"
       "    https://afni.nimh.nih.gov/pub/dist/doc/misc/3dREMLfit/3dREMLfit_mathnotes.pdf\n"
+      "    https://drive.google.com/open?id=1tD51_w9_lfVWLLg-Pt0hl57wE81s_Imc\n"
       "\n"
       "----------------\n"
-      "Other Commentary\n"
+      "Other Commentary ~1\n"
       "----------------\n"
       "* Again: the ARMA(1,1) parameters 'a' (AR) and 'b' (MA) are estimated\n"
       "    only on a discrete grid, for the sake of CPU time.\n"
@@ -1345,6 +1417,8 @@ int main( int argc , char *argv[] )
       "* The '-matrix' file must be from 3dDeconvolve; besides the regression\n"
       "    matrix itself, the header contains the stimulus labels, the GLTs,\n"
       "    the censoring information, etc.\n"
+      "  ++ Although you can put in a 'raw' matrix using the '-matim' option,\n"
+      "     described earlier.\n"
       "\n"
       "* If you don't actually want the OLSQ results from 3dDeconvolve, you can\n"
       "    make that program stop after the X matrix file is written out by using\n"
@@ -1389,12 +1463,15 @@ int main( int argc , char *argv[] )
       "* Despite my best efforts, this program is somewhat slow.\n"
       "    Partly because it solves many linear systems for each voxel,\n"
       "    trying to find the 'best' ARMA(1,1) prewhitening matrix.\n"
-      "    However, a careful choice of algorithms for solving the linear\n"
-      "    systems (QR method, sparse matrix operations, etc.) and some\n"
-      "    other code optimizations should make running 3dREMLfit tolerable.\n"
-      "    Depending on the matrix and the options, you might expect CPU time\n"
-      "    to be about 2..5 times that of the corresponding 3dDeconvolve run.\n"
-      "    (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
+      "  ++ However, a careful choice of algorithms for solving the linear\n"
+      "     systems (QR method, sparse matrix operations, etc.) and some\n"
+      "     other code optimizations should make running 3dREMLfit tolerable.\n"
+      "  ++ Depending on the matrix and the options, you might expect CPU time\n"
+      "     to be about 2..4 times that of the corresponding 3dDeconvolve run.\n"
+      "     (Slower than that if you use '-slibase' and/or '-Grid 5', however.)\n"
+      "  ++ Nowadays [2019], computers are so much faster that the olden\n"
+      "     times that this 'slow' comment is probably pointless, except\n"
+      "     perhaps for very large datasets.\n"
       "\n"
       "---------------------------------------------------------------\n"
       "How 3dREMLfit handles all zero columns in the regression matrix\n"
@@ -1453,6 +1530,7 @@ int main( int argc , char *argv[] )
       "* Prevent Daniel Glen from referring to this program as 3dARMAgeddon.\n"
       "* Establish incontrovertibly the nature of quantum mechanical observation.\n"
       "* Create an iPad version of the AFNI software suite.\n"
+      "* Get people to stop asking me 'quick questions'!\n"
       "\n"
       "----------------------------------------------------------\n"
       "* For more information, please see the contents of\n"
@@ -1564,7 +1642,7 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-dsort") == 0 ){
        THD_3dim_dataset *dsim ;
-       if( ++iarg >= argc ) ERROR_exit("Need value after option '%s'",argv[iarg-1]) ;
+       if( ++iarg >= argc ) ERROR_exit("Need argument after option '%s'",argv[iarg-1]) ;
        if( dsortar == NULL ) INIT_3DARR(dsortar) ;
        dsim = THD_open_dataset(argv[iarg]) ; CHECK_OPEN_ERROR(dsim,argv[iarg]) ;
        ADDTO_3DARR(dsortar,dsim) ;
@@ -1578,7 +1656,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        do{
          im = mri_read_1D( argv[iarg] ) ;
-         if( im == NULL ) ERROR_exit("Can't read -addbase file '%.33s'",argv[iarg]) ;
+         if( im == NULL ) ERROR_exit("Cannot read -addbase file '%s'",argv[iarg]) ;
          if( imar_addbase == NULL ) INIT_IMARR(imar_addbase) ;
          mri_add_name( THD_trailname(argv[iarg],0) , im ) ;
          ADDTO_IMARR( imar_addbase , im ) ;
@@ -1596,7 +1674,7 @@ int main( int argc , char *argv[] )
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        do{
          im = mri_read_1D( argv[iarg] ) ;
-         if( im == NULL ) ERROR_exit("Can't read -slibase file '%.33s'",argv[iarg]) ;
+         if( im == NULL ) ERROR_exit("Cannot read -slibase file '%s'",argv[iarg]) ;
          /* if known, require slice-minor order of regressors 28 Jul 2009 [r] */
          label_order = niml_get_major_label_order(argv[iarg]);
          if( label_order != 2 ) {  /* not slice-minor order */
@@ -1632,7 +1710,7 @@ int main( int argc , char *argv[] )
        do{
          im = mri_read_1D( argv[iarg] ) ;
          if( im == NULL )
-            ERROR_exit("Can't read -slibase_sm file '%.33s'", argv[iarg]) ;
+            ERROR_exit("Cannot read -slibase_sm file '%s'", argv[iarg]) ;
          /* if known, require slice-major order of regressors 28 Jul 2009 [r] */
          label_order = niml_get_major_label_order(argv[iarg]);
          if( label_order != 1 ) {  /* not slice-major order */
@@ -1671,14 +1749,14 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-ABfile") == 0 ){
        if( abset != NULL || abfixed )
-         ERROR_exit("Can't have 2 '%s' options",argv[iarg]) ;
+         ERROR_exit("Cannot have 2 '%s' options",argv[iarg]) ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        if( argv[iarg][0] == '=' && strchr(argv[iarg],',') != NULL ){
          afix = bfix = -66.0f ;
          sscanf( argv[iarg] , "=%f,%f" , &afix , &bfix ) ;
          if( afix < -0.9f || afix > 0.9f ||
              bfix < -0.9f || bfix > 0.9f   )
-           ERROR_exit("%s %s has illegal fixed values of a and/or b!",
+           ERROR_exit("%s %s has illegal fixed values of a and/or b (outside range -0.9..0.9)!",
                       argv[iarg-1] , argv[iarg] ) ;
          abfixed = 1 ;
        } else {
@@ -1693,30 +1771,35 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-MAXrho") == 0 || strcasecmp(argv[iarg],"-MAXa") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        rhomax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( rhomax < 0.1 ){ rhomax = 0.1; WARNING_message("-MAXa re-set to 0.1"); }
-       else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9"); }
+            if( rhomax < 0.1 ){ rhomax = 0.1; WARNING_message("-MAXa re-set to 0.1 from %s",argv[iarg]); }
+       else if( rhomax > 0.9 ){ rhomax = 0.9; WARNING_message("-MAXa re-set to 0.9 from %s",argv[iarg]); }
        rm_set = rhomax ; iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-Grid") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        nlevab = (int)strtod(argv[iarg],NULL) ;
-            if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid reset to 3"); }
-       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid reset to 7"); }
+            if( nlevab < 3 ){ nlevab = 3; WARNING_message("-Grid re-set to 3 from %s",argv[iarg]); }
+       else if( nlevab > 7 ){ nlevab = 7; WARNING_message("-Grid re-set to 7 from %s",argv[iarg]); }
        iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-MAXb") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        bmax = (MTYPE)strtod(argv[iarg],NULL) ;
-            if( bmax < 0.1 ){ bmax = 0.1; WARNING_message("-MAXb re-set to 0.1"); }
-       else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9"); }
+            if( bmax < 0.1 ){ bmax = 0.1; WARNING_message("-MAXb re-set to 0.1 from %s",argv[iarg]); }
+       else if( bmax > 0.9 ){ bmax = 0.9; WARNING_message("-MAXb re-set to 0.9 from %s",argv[iarg]); }
        bm_set = bmax ; iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-NEGcor") == 0 ){
        REML_allow_negative_correlations(1) ; iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-POScor") == 0 ){
        REML_allow_negative_correlations(0) ; iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-Mfilt") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        mfilt_radius = (float)strtod(argv[iarg],NULL) ;
@@ -1726,11 +1809,12 @@ int main( int argc , char *argv[] )
        if( mfilt_radius < 0.0f ) mfilt_radius = -mfilt_radius ;
        iarg++ ; continue ;
      }
+
      if( strcasecmp(argv[iarg],"-CORcut") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        dx = (float)strtod(argv[iarg],NULL) ;
-       if( dx > 0.0f && dx <= 0.1f ) corcut = (MTYPE)dx ;
-       else WARNING_message("Illegal value after -CORcut -- ignoring it!") ;
+       if( dx > 0.0f && dx <= 0.01f ) corcut = (MTYPE)dx ;
+       else WARNING_message("Illegal value after -CORcut -- ignoring it (should be between 0 and 0.01)") ;
        iarg++ ; continue ;
      }
 
@@ -1739,10 +1823,19 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-matrix") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        if( nelmat != NULL ) ERROR_exit("More than 1 -matrix option!?");
-       nelmat = NI_read_element_fromfile( argv[iarg] ) ; /* read NIML file */
        matname = argv[iarg];
+#if 1
+       nelmat = NI_read_element_fromfile( matname ) ; /* read NIML file */
+#else
+       { char *buf = AFNI_suck_file( matname ) ;
+         if( buf == NULL )
+           ERROR_exit("Cannot read any data from -matrix file '%s' :(",matname) ;
+         nelmat = NI_read_element_fromstring( buf ) ;
+         free(buf) ;
+       }
+#endif
        if( nelmat == NULL || nelmat->type != NI_ELEMENT_TYPE )
-         ERROR_exit("Can't process -matrix file '%s'!?",matname) ;
+         ERROR_exit("Cannot parse/understand contents of -matrix file '%s' :(",matname) ;
        iarg++ ; continue ;
      }
 
@@ -1761,14 +1854,14 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-matim") == 0 ){
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        matim = mri_read_1D(argv[iarg]) ;
-       if( matim == NULL ) ERROR_exit("-matim fails to read file?!") ;
+       if( matim == NULL ) ERROR_exit("-matim fails to read file '%s'",argv[iarg]) ;
        iarg++ ; continue ;
      }
 
       /**==========   -input  ==========**/
 
      if( strcasecmp(argv[iarg],"-input") == 0 ){
-       if( inset != NULL  ) ERROR_exit("Can't have two -input options!?") ;
+       if( inset != NULL  ) ERROR_exit("Cannot have two -input options!?") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        inset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(inset,argv[iarg]) ;
@@ -1779,12 +1872,12 @@ int main( int argc , char *argv[] )
 
      if( strcasecmp(argv[iarg],"-STATmask") == 0 ||
          strcasecmp(argv[iarg],"-FDRmask")  == 0   ){
-       if( statmask != NULL ) ERROR_exit("can't use -STATmask twice") ;
+       if( statmask != NULL ) ERROR_exit("You cannot use -STATmask twice") ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '%s'",argv[iarg-1]) ;
        statmask_name = strdup(argv[iarg]) ;
        statmask = THD_create_mask_from_string(statmask_name) ;
        if( statmask == NULL ){
-         WARNING_message("-STATmask being ignored: can't use it") ;
+         WARNING_message("-STATmask being ignored: cannot use it") ;
          free(statmask_name) ; statmask_name = NULL ;
        }
        iarg++ ; continue ;
@@ -1795,13 +1888,13 @@ int main( int argc , char *argv[] )
      if( strcasecmp(argv[iarg],"-mask") == 0 ){
        THD_3dim_dataset *mset ;
        if( ++iarg >= argc ) ERROR_exit("Need argument after '-mask'") ;
-       if( mask != NULL || automask ) ERROR_exit("Can't have two mask inputs") ;
+       if( mask != NULL || automask ) ERROR_exit("Cannot have two mask inputs") ;
        mset = THD_open_dataset( argv[iarg] ) ;
        CHECK_OPEN_ERROR(mset,argv[iarg]) ;
        DSET_load(mset) ; CHECK_LOAD_ERROR(mset) ;
        mask_nx = DSET_NX(mset); mask_ny = DSET_NY(mset); mask_nz = DSET_NZ(mset);
        mask = THD_makemask( mset , 0 , 0.5f, 0.0f ) ; DSET_delete(mset) ;
-       if( mask == NULL ) ERROR_exit("Can't make mask from dataset '%.33s'",argv[iarg]) ;
+       if( mask == NULL ) ERROR_exit("Cannot make mask from dataset '%s'",argv[iarg]) ;
        nmask = THD_countmask( mask_nx*mask_ny*mask_nz , mask ) ;
        if( verb || nmask < 1 ) INFO_message("Number of voxels in mask = %d",nmask) ;
        if( nmask < 1 ) ERROR_exit("Mask is too small to process") ;
@@ -1809,7 +1902,7 @@ int main( int argc , char *argv[] )
      }
 
      if( strcasecmp(argv[iarg],"-automask") == 0 ){
-       if( mask != NULL ) ERROR_exit("Can't have -automask and -mask") ;
+       if( mask != NULL ) ERROR_exit("Cannot have -automask and -mask") ;
        automask = 1 ; iarg++ ; continue ;
      }
 
@@ -1861,7 +1954,7 @@ int main( int argc , char *argv[] )
 
      /**==========   bad users must be punished  ==========**/
 
-     ERROR_exit("Unknown option '%.33s'",argv[iarg]) ;
+     ERROR_exit("Unknown option '%s'",argv[iarg]) ;
    }
 
    /*------ The Ides of March 2010 ------*/
@@ -1911,7 +2004,7 @@ STATUS("options done") ;
        }
      }
      if( nbad > 0 )
-       ERROR_exit("Can't continue after -dsort mismatch error%s" , (nbad==1)?"\0":"s" ) ;
+       ERROR_exit("Cannot continue after -dsort mismatch error%s" , (nbad==1)?"\0":"s" ) ;
      num_dsort = dsortar->num ;
    }
 
@@ -1988,10 +2081,10 @@ STATUS("options done") ;
      /* convert str to nelmat */
 
      ns  = NI_stream_open( str , "r" ) ;
-     if( ns == (NI_stream)NULL ) ERROR_exit("Can't fabricate matrix!?") ;
+     if( ns == (NI_stream)NULL ) ERROR_exit("Cannot fabricate matrix!?") ;
      nelmat = NI_read_element( ns , 9 ) ;
      NI_stream_close(ns) ; free(str) ;
-     if( nelmat == NULL ) ERROR_exit("Can't fabricate matrix?!") ;
+     if( nelmat == NULL ) ERROR_exit("Cannot fabricate matrix?!") ; /* should not happen */
    }
 #endif
 
@@ -2045,12 +2138,12 @@ STATUS("options done") ;
      float abot,atop , bbot,btop ; ATR_float *atr ; MTYPE atm ;
 
      if( DSET_NX(abset) != nx || DSET_NY(abset) != ny || DSET_NZ(abset) != nz )
-       ERROR_exit("-input and -ABfile datasets don't match grid sizes!") ;
+       ERROR_exit("-input and -ABfile datasets don't match in grid sizes!") ;
      if( DSET_NVALS(abset) < 2 )
        ERROR_exit("-ABfile must have (at least) 2 sub-bricks!") ;
      else if( DSET_NVALS(abset) > 2 )
-       WARNING_message("-ABfile has %d sub-bricks: only using first 2" ,
-                       DSET_NVALS(abset) ) ;
+       INFO_message("-ABfile has %d sub-bricks: only using first 2" ,
+                    DSET_NVALS(abset) ) ;
      if( DSET_BRICK_TYPE(abset,0) != MRI_float ||
          DSET_BRICK_TYPE(abset,1) != MRI_float   )
        ERROR_exit("-ABfile sub-bricks are not stored as floats!?") ;
@@ -2129,7 +2222,7 @@ STATUS("options done") ;
 
      mask = THD_automask( inset ) ;
      if( mask == NULL )
-       ERROR_message("Can't create -automask from input dataset :-(") ;
+       ERROR_message("Cannot create -automask from input dataset :-(") ;
      nmask = THD_countmask( nvox , mask ) ;
      if( verb || nmask < 1 )
        INFO_message("Number of voxels in automask = %d (out of %d = %.1f%%)",
@@ -2176,7 +2269,7 @@ STATUS("process matrix") ;
    if( ntime < 9 )
      ERROR_exit("matrix has %d rows (time points), but minimum allowed is 9 :-(",ntime) ;
 
-   cgl = NI_get_attribute( nelmat , "CommandLine" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "CommandLine" ) ;
    if( cgl != NULL ) commandline = strdup(cgl) ;
 
    /* warning message if problem is big [05 Jul 2019] */
@@ -2187,35 +2280,35 @@ STATUS("process matrix") ;
 
    /*--- number of rows in the full matrix (without censoring) ---*/
 
-   cgl = NI_get_attribute( nelmat , "NRowFull" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "NRowFull" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'NRowFull' attribute!") ;
    nfull = (int)strtod(cgl,NULL) ;
    if( nvals != nfull )
-     ERROR_exit("-input dataset has %d time points, but matrix indicates %d",
+     ERROR_exit("-input dataset has %d time points, but matrix NRowFull indicates %d",
                 nvals , nfull ) ;
 
    /*--- the goodlist = mapping from matrix row index to time index
                         (which allows for possible time point censoring) ---*/
 
-   cgl = NI_get_attribute( nelmat , "GoodList" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "GoodList" ) ;
    if( cgl == NULL ) ERROR_exit("Matrix is missing 'GoodList' attribute!") ;
    giar = NI_decode_int_list( cgl , ";," ) ;
-   if( giar == NULL || giar->num < ntime )
-     ERROR_exit("Matrix 'GoodList' badly formatted?!") ;
+   if( giar == NULL )
+     ERROR_exit("Matrix 'GoodList' badly formatted") ;
    Ngoodlist = giar->num ; goodlist = giar->ar ;
    if( Ngoodlist != ntime )
-     ERROR_exit("Matrix 'GoodList' incorrect length?!") ;
+     ERROR_exit("Matrix 'GoodList' incorrect length: has %d but should be %d",Ngoodlist,ntime) ;
 
    /*----- run starting points in time indexes -----*/
 
-   rst = NI_get_attribute( nelmat , "RunStart" ) ;
+   rst = NI_get_attribute_nocase( nelmat , "RunStart" ) ;
    if( rst != NULL ){
      NI_int_array *riar = NI_decode_int_list( rst , ";,") ;
      if( riar == NULL ) ERROR_exit("Matrix 'RunStart' badly formatted?") ;
      Nruns = riar->num ; runs = riar->ar ;
    } else {
      if( verb )
-       INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run");
+       INFO_message("Matrix missing 'RunStart' attribute ==> assuming 1 run = no time discontinuities");
      Nruns = 1 ; runs = calloc(sizeof(int),1) ;
    }
 
@@ -2248,18 +2341,20 @@ STATUS("re-create matrix from NIML element") ;
        for( ii=0 ; ii < ntime ; ii++ ) X.elts[ii][jj] = (MTYPE)cd[ii] ;
      }
    } else {
-     ERROR_exit("Matrix file stored with illegal data type!?") ;
+     ERROR_exit("Matrix file stored with illegal data type (not float or double)!?") ;
    }
 
    /*--------------- get column labels for the betas ---------------*/
 
-   cgl = NI_get_attribute( nelmat , "ColumnLabels" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "ColumnLabels" ) ;
    if( cgl == NULL ){
      WARNING_message("ColumnLabels attribute in matrix is missing!?") ;
    } else {
      gsar = NI_decode_string_list( cgl , ";" ) ;
-     if( gsar == NULL || gsar->num < nrego )
+     if( gsar == NULL )
        ERROR_exit("ColumnLabels attribute in matrix is malformed!?") ;
+     if( gsar->num < nrego )
+       ERROR_exit("ColumnLabels attribute has only %d labels but matrix has %d columns",gsar->num,nrego) ;
      beta_lab = gsar->str ;
    }
 
@@ -2285,18 +2380,18 @@ STATUS("process -addbase images") ;
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
          mri_free(im) ; IMARR_SUBIM(imar_addbase,ii) = imb ;
          if( verb )
-           INFO_message("Censored -addbase file '%.33s' from %d down to %d rows" ,
+           INFO_message("Censored -addbase file '%s' from %d down to %d rows" ,
                         imb->name , nfull , ntime ) ;
          continue ;
        }
-       ERROR_message("-addbase file '%.33s' has %d rows, but matrix has %d !?" ,
+       ERROR_message("-addbase file '%s' has %d rows, but matrix has %d !?" ,
                      im->name , im->nx , ntime ) ;
        nbad++ ;
      }
 
      ddof = ntime - nrega ;
      if( ddof < 1 ){
-       ERROR_exit("matrix has more columns (%d) than rows (%d) after -addbase!" ,
+       ERROR_exit("matrix has more columns (%d) than rows (%d) after -addbase :(" ,
                   nrega , ntime ) ;
        nbad++ ;
      }
@@ -2311,8 +2406,8 @@ STATUS("process -addbase images") ;
        for( kk=nrego,ii=0 ; ii < IMARR_COUNT(imar_addbase) ; ii++ ){
          im = IMARR_SUBIM( imar_addbase , ii ) ;
          for( jj=0 ; jj < im->ny ; jj++ ){
-           if( im->ny > 1 ) sprintf(lll,"%.16s[%d]",im->name,jj) ;
-           else             sprintf(lll,"%.16s"    ,im->name   ) ;
+           if( im->ny > 1 ) sprintf(lll,"%.48s[%d]",im->name,jj) ;
+           else             sprintf(lll,"%.48s"    ,im->name   ) ;
            beta_lab[kk++] = NI_strdup(lll) ;
          }
        }
@@ -2364,7 +2459,7 @@ STATUS("process -addbase images") ;
        allz = (int *)realloc(allz,sizeof(int)*nallz) ;
      } else
        ERROR_exit(
-        "Can't continue with all zero column%s without -GOFORIT option!",
+        "Cannot continue with all zero column%s without -GOFORIT option!",
         (nbad==1) ? "\0" : "s" ) ;
    }
 
@@ -2393,7 +2488,7 @@ STATUS("process -slibase images") ;
        kk = im->ny % nsli ;  /* how many left over (should be zero) */
        if( kk != 0 ){
          ERROR_message(
-           "-slibase file '%.33s' has %d columns but dataset has %d slices",
+           "-slibase file '%s' has %d columns but dataset has %d slices",
            im->name , im->ny , nsli ) ;
          nbad++ ; continue ;
        }
@@ -2403,11 +2498,11 @@ STATUS("process -slibase images") ;
          MRI_IMAGE *imb = mri_subset_x2D( ntime , goodlist , im ) ;
          mri_free(im) ; IMARR_SUBIM(imar_slibase,ii) = imb ;
          if( verb )
-           INFO_message("Censored -slibase file '%.33s' from %d down to %d rows" ,
+           INFO_message("Censored -slibase file '%s' from %d down to %d rows" ,
                         imb->name , nfull , ntime ) ;
          continue ;
        }
-       ERROR_message("-slibase file '%.33s' has %d rows, but matrix has %d" ,
+       ERROR_message("-slibase file '%s' has %d rows, but matrix has %d" ,
                      im->name , im->nx , ntime ) ;
        nbad++ ;
      }
@@ -2480,7 +2575,7 @@ STATUS("process -slibase images") ;
 
            for( pp=0 ; pp < ntime && iar[pp]==0.0f ; pp++ ) ; /*nada*/
            if( pp == ntime ){
-             ERROR_message("-slibase file %.33s col #%d is all zero",im->name,ss) ;
+             ERROR_message("-slibase file %s col #%d is all zero",im->name,ss) ;
              nbad++ ;
            }
          } /* end of loop over cc = slice set */
@@ -2536,7 +2631,7 @@ STATUS("process -slibase images") ;
      }
      if( nbad > 0 ) {
        if( !goforit ){
-         ERROR_exit("Can't continue after matrix condition errors!\n"
+         ERROR_exit("Cannot continue after matrix condition errors!\n"
                     "** you might try -GOFORIT, but be careful! (cf. '-help')");
        }
 
@@ -2547,31 +2642,37 @@ STATUS("process -slibase images") ;
 
    /***---------- extract stim information from matrix header ----------***/
 
-   cgl = NI_get_attribute( nelmat , "Nstim" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "Nstim" ) ;
    if( cgl != NULL ){
 
      stim_num = (int)strtod(cgl,NULL) ;
      if( stim_num <= 0 ) ERROR_exit("Nstim attribute in matrix is not positive!");
 
-     cgl = NI_get_attribute( nelmat , "StimBots" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimBots" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimBots' attribute!") ;
      giar = NI_decode_int_list( cgl , ";," ) ;
-     if( giar == NULL || giar->num < stim_num )
+     if( giar == NULL )
        ERROR_exit("Matrix 'StimBots' badly formatted?!") ;
+     if( giar->num < stim_num )
+       ERROR_exit("Matrix 'StimBots' has only %d values but needs %d",giar->num,stim_num) ;
      stim_bot = giar->ar ;
 
-     cgl = NI_get_attribute( nelmat , "StimTops" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimTops" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimTops' attribute!") ;
      giar = NI_decode_int_list( cgl , ";," ) ;
-     if( giar == NULL || giar->num < stim_num )
+     if( giar == NULL )
        ERROR_exit("Matrix 'StimTops' badly formatted?!") ;
+     if( giar->num < stim_num )
+       ERROR_exit("Matrix 'StimTops' has only %d values but needs %d",giar->num,stim_num) ;
      stim_top = giar->ar ;
 
-     cgl = NI_get_attribute( nelmat , "StimLabels" ) ;
+     cgl = NI_get_attribute_nocase( nelmat , "StimLabels" ) ;
      if( cgl == NULL ) ERROR_exit("Matrix is missing 'StimLabels' attribute!");
      gsar = NI_decode_string_list( cgl , ";" ) ;
-     if( gsar == NULL || gsar->num < stim_num )
+     if( gsar == NULL )
        ERROR_exit("Matrix 'StimLabels' badly formatted?!") ;
+     if(  gsar->num < stim_num )
+       ERROR_exit("Matrix 'StimLabels' has only %d values but needs %d",giar->num,stim_num) ;
      stim_lab = gsar->str ;
 
      nSymStim = stim_num+2 ;
@@ -2685,7 +2786,7 @@ STATUS("make stim GLTs") ;
        for( ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
      }
      gm = create_subset_matrix( nrega , kk , set ) ;
-     if( gm == NULL ) ERROR_exit("Can't create G matrix for FullModel?!") ;
+     if( gm == NULL ) ERROR_exit("Cannot create G matrix for FullModel?!") ; /* should never happen */
      ADD_GLT( "Full" , gm ) ;
 
      allstim = (int *)malloc(sizeof(int)*kk) ; num_allstim = kk ;
@@ -2697,7 +2798,8 @@ STATUS("make stim GLTs") ;
      for( jj=0 ; jj < stim_num ; jj++ ){
        for( kk=0,ii=stim_bot[jj] ; ii <= stim_top[jj] ; ii++ ) set[kk++] = ii ;
        gm = create_subset_matrix( nrega , kk , set ) ;
-       if( gm == NULL ) ERROR_exit("Can't create G matrix for %.33s?!",stim_lab[jj]);
+       if( gm == NULL )
+         ERROR_exit("Cannot create G matrix for %s ?!",stim_lab[jj]); /* not sure if this is possible */
        ADD_GLT( stim_lab[jj] , gm ) ;
      }
 
@@ -2706,34 +2808,48 @@ STATUS("make stim GLTs") ;
 
    /*------ extract other GLT information from matrix header ------*/
 
-   cgl = NI_get_attribute( nelmat , "Nglt" ) ;
+   cgl = NI_get_attribute_nocase( nelmat , "Nglt" ) ;
    if( do_stat && (cgl != NULL || eglt_num > 0) ){
      char lnam[32],*lll ; int nn,mm,ngl ; matrix *gm ; float *far ;
 
      /*----- process GLTs from the matrix header -----*/
 
      if( cgl != NULL && do_glt ){
+       static char *glt_format[6] =
+                   { "GltMatrix_%06d" , "GltMatrix_%05d" , "GltMatrix_%04d" ,
+                     "GltMatrix_%03d" , "GltMatrix_%02d" , "GltMatrix_%d"    } ;
+       int dig ;
 STATUS("make GLTs from matrix file") ;
        ngl = (int)strtod(cgl,NULL) ;
-       if( ngl <= 0 ) ERROR_exit("Nglt attribute in matrix is not positive!");
+       if( ngl <= 0 || ngl > 1000000 )
+         ERROR_exit("Nglt attribute in matrix = '%s' ??? :(",cgl) ;
 
-       cgl = NI_get_attribute( nelmat , "GltLabels" ) ;
+       cgl = NI_get_attribute_nocase( nelmat , "GltLabels" ) ;
        if( cgl == NULL ) ERROR_exit("Matrix is missing 'GltLabels' attribute!");
        gsar = NI_decode_string_list( cgl , ";" ) ;
-       if( gsar == NULL || gsar->num < ngl )
+       if( gsar == NULL )
          ERROR_exit("Matrix 'GltLabels' badly formatted?!") ;
+       if( gsar->num < ngl )
+         ERROR_exit("Matrix 'GltLabels' has %d labels but should have %d",gsar->num,ngl) ;
 
        for( kk=0 ; kk < ngl ; kk++ ){
-         sprintf(lnam,"GltMatrix_%06d",kk) ;
-         cgl = NI_get_attribute( nelmat , lnam ) ;
+         for( cgl=NULL,dig=0 ; cgl==NULL && dig < 6 ; dig++ ){ /* diverse number */
+           sprintf(lnam,glt_format[dig],kk) ;                  /* of leading 0s */
+           cgl = NI_get_attribute_nocase( nelmat , lnam ) ;
+         }
          if( cgl == NULL ) ERROR_exit("Matrix is missing '%s' attribute!",lnam) ;
          gfar = NI_decode_float_list( cgl , "," ) ;
-         if( gfar == NULL || gfar->num < 3 )
+         if( gfar == NULL )
            ERROR_exit("Matrix attribute '%s' is badly formatted?!",lnam) ;
+         if( gfar->num < 3 )
+           ERROR_exit("Matrix attribute '%s' has only %d values?",lnam,gfar->num) ;
          far = gfar->ar ; nn = (int)far[0] ; mm = (int)far[1] ;
-         if( nn <= 0 ) ERROR_exit("GLT '%.33s' has %d rows?",lnam,nn) ;
+         if( nn <= 0 ) ERROR_exit("GLT '%s' has %d rows?",lnam,nn) ;
          if( mm != nrego )
-           ERROR_exit("GLT '%.33s' has %d columns (should be %d)?",lnam,mm,nrego) ;
+           ERROR_exit("GLT '%s' has %d columns (should be %d)?",lnam,mm,nrego) ;
+         if( gfar->num - 2 < nn*mm )
+           ERROR_exit("GLT '%s' has %d rows and %d columns, but only %d matrix entries?",
+                      lnam , nn , mm , gfar->num-2 ) ;
          gm = (matrix *)malloc(sizeof(matrix)) ; matrix_initialize(gm) ;
          matrix_create( nn, nrega, gm ) ;
          for( ii=0 ; ii < nn ; ii++ ){
@@ -2756,7 +2872,7 @@ STATUS("make GLTs from matrix file") ;
        else             nbad++ ;
      }
      if( nbad > 0 || SYM_expand_errcount() > 0 )
-       ERROR_exit("Can't continue after -gltsym errors!") ;
+       ERROR_exit("Cannot continue after -gltsym errors!") ;
 
    } /* end of GLT setup */
 
@@ -2833,7 +2949,7 @@ STATUS("make GLTs from matrix file") ;
      if( verb || nmask < 1 )
        ININFO_message("masked off %d voxel%s for being all zero; %d left in mask" ,
                       nbad , (nbad==1) ? "" : "s" , nmask ) ;
-     if( nmask < 1 ) ERROR_exit("Can't continue after mask shrinks to nothing!") ;
+     if( nmask < 1 ) ERROR_exit("Cannot continue after mask shrinks to nothing!") ;
    }
 
 #ifdef USE_OMP
@@ -2859,7 +2975,7 @@ STATUS("make GLTs from matrix file") ;
        }
        inset_mrv = THD_dset_to_vectim( inset , mask , 0 ) ;
        if( inset_mrv != NULL )  DSET_unload(inset) ;
-       else                   { ERROR_message("Can't create vector image!?"); virtu_mrv = 0; }
+       else                   { ERROR_message("Cannot create vector image!?"); virtu_mrv = 0; }
 
        if( inset_mrv != NULL )
          THD_check_vectim(inset_mrv,"3dREMLfit input data") ;
@@ -2868,7 +2984,7 @@ STATUS("make GLTs from matrix file") ;
          fname_mrv = mri_get_tempfilename("JUNK") ;
          ii = THD_vectim_data_tofile( inset_mrv , fname_mrv ) ;
          if( ii == 0 ){
-           ERROR_message("Can't write vector image to temp file %s",fname_mrv) ;
+           ERROR_message("Cannot write vector image to temp file %s",fname_mrv) ;
            virtu_mrv = 0 ; free(fname_mrv) ; fname_mrv = NULL ;
          } else {
            free(inset_mrv->fvec) ; inset_mrv->fvec = NULL ;
@@ -2900,7 +3016,7 @@ STATUS("make GLTs from matrix file") ;
            ININFO_message(" start setup for slice #%d",ss) ;
          rrcol = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
        }
-       if( rrcol == NULL ) ERROR_exit("REML setup fails at ss=%d?!",ss ) ;
+       if( rrcol == NULL ) ERROR_exit("REML setup fails at ss=%d?!",ss ) ; /* really bad */
        RCsli[ss] = rrcol ;
      }
 
@@ -2917,7 +3033,7 @@ STATUS("make GLTs from matrix file") ;
    } else {  /* just set up the first one (slice #0) */
 
      rrcol = REML_setup_all( Xsli[0] , tau , nlevab, rhomax,bmax ) ;
-     if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ;
+     if( rrcol == NULL ) ERROR_exit("REML setup fails?!" ) ; /* really bad */
      RCsli[0] = rrcol ;
 
      if( verb > 1 )
@@ -2970,7 +3086,7 @@ STATUS("make GLTs from matrix file") ;
        if( RCsli[ss] == NULL ){                     /* create this slice now? */
          if( verb > 1 && vstep ) fprintf(stderr,"+") ;
          RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-         if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
+         if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
        }
        kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
@@ -3029,7 +3145,7 @@ STATUS("make GLTs from matrix file") ;
    ws = (MTYPE *)malloc(sizeof(MTYPE)*nws) ;
    if( virtu_mrv ){
      mfp = fopen(fname_mrv,"r") ;
-     if( mfp == NULL ) ERROR_exit("can't re-open temp file %s",fname_mrv) ;
+     if( mfp == NULL ) ERROR_exit("cannot re-open temp file %s",fname_mrv) ;
    }
  }
    ithr = omp_get_thread_num() ;
@@ -3050,7 +3166,7 @@ STATUS("make GLTs from matrix file") ;
        for( ii=0 ; ii < ntime ; ii++ ) y.elts[ii] = (MTYPE)iv[goodlist[ii]] ;
        ss = vv / nsliper ;  /* slice index in Xsli and RCsli */
        if( RCsli[ss] == NULL )
-         ERROR_exit("NULL slice setup inside OpenMP loop!!!") ;
+         ERROR_exit("NULL slice setup inside OpenMP loop!!!") ; /* really bad */
        kbest = REML_find_best_case( &y , RCsli[ss] , nws,ws ) ;  /* the work */
        aar[vv] = RCsli[ss]->rs[kbest]->rho ;
        bar[vv] = RCsli[ss]->rs[kbest]->barm ;
@@ -3077,7 +3193,7 @@ STATUS("make GLTs from matrix file") ;
   } /* end OpenMP */
   AFNI_OMP_END ;
 #else
-  ERROR_exit("This code should never be executed!!!") ;
+  ERROR_exit("This code should never be executed!!!") ; /* really bad */
 #endif
     free(vvar) ;
 #ifdef REML_DEBUG
@@ -3136,7 +3252,7 @@ STATUS(" creating glt_ind") ;
        glt_ind[ii] = create_GLT_index( kk, glt_mat[ii]->rows ,
                                        1 , do_tstat ,
                                            do_fstat , do_rstat , glt_lab[ii] ) ;
-       if( glt_ind[ii] == NULL ) ERROR_exit("Can't create GLT_index[%d]!?",ii) ;
+       if( glt_ind[ii] == NULL ) ERROR_exit("Cannot create GLT_index[%d]!?",ii) ; /* really bad */
        kk = glt_ind[ii]->ivtop + 1 ;
      }
      nbuckt = glt_ind[glt_num-1]->ivtop + 1 ;  /* number of sub-bricks */
@@ -3279,7 +3395,7 @@ STATUS("setting up Rglt") ;
          DSET_load(dsortar->ar[dd]) ;
          dsortar_mrv[dd] = THD_dset_to_vectim( dsortar->ar[dd] , mask , 0 ) ;
          if( dsortar_mrv[dd] != NULL ) DSET_unload(dsortar->ar[dd]) ;
-         else                          ERROR_message("Can't create vector image from -dsort!?") ;
+         else                          ERROR_message("Cannot create vector image from -dsort!?") ;
 
          if( dsortar_mrv != NULL )
            THD_check_vectim(dsortar_mrv[dd],"3dREMLfit -dsort") ;
@@ -3416,7 +3532,7 @@ STATUS("setting up Rglt") ;
          if( RCsli[ss] == NULL ){              /* create this slice setup now */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
            RCsli[ss] = REML_setup_all( Xsli[ss] , tau , nlevab, rhomax,bmax ) ;
-           if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ;
+           if( RCsli[ss] == NULL ) ERROR_exit("REML setup fails for ss=%d",ss) ; /* really bad */
          } else if( RC_SAVED(RCsli[ss]) ){               /* restore from disk */
            if( verb > 1 && vstep ) fprintf(stderr,"+") ;
            reml_collection_restore( RCsli[ss] ) ;
@@ -3444,7 +3560,7 @@ STATUS("setting up Rglt") ;
 
          rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
          if( rsetp_dsort == NULL ){  /* should not happen */
-           ERROR_message("can't compute REML_setup_plus() at voxel %d",vv) ;
+           ERROR_message("cannot compute REML_setup_plus() at voxel %d",vv) ;
          }
          my_rset  = rsetp_dsort->rset ;
          my_Xmat  = rsetp_dsort->X ;
@@ -3875,7 +3991,7 @@ OLSQ_LOOPBACK_dsort_nods:  /* for the -nods option [27 Jul 2015] */
          /* glue dsort_Zmat to X, then do the REML setup via REML_setup_one */
          rsetp_dsort = REML_setup_plus( RCsli[ss]->X , dsort_Zmat , tau , aaa,bbb ) ;
          if( rsetp_dsort == NULL ){  /* should not happen */
-           ERROR_message("can't compute REML_setup_plus() at voxel %d",vv) ;
+           ERROR_message("cannot compute REML_setup_plus() at voxel %d",vv) ;
          }
          my_rset  = rsetp_dsort->rset ;
          my_Xmat  = rsetp_dsort->X ;

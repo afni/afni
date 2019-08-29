@@ -49,6 +49,68 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "report 'R RHOME'",
+   NULL
+ } ,
+
+ { 27, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "linux_fedora_28_shared: make libf2c.so as a shared object",
+   "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 202 MB\n"
+   "                -> (libf2c.so) 190 MB"
+ } ,
+
+ { 26, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "linux_fedora_28_shared: make libSUMA.so as a shared object",
+   "2.4 GB binaries -> (libmri.so) 600 MB -> (libSUMA.so) 200 MB"
+ } ,
+
+ { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check for dyn.load error via 3dMVM",
+   NULL
+ } ,
+
+ { 23, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "updates corresponding to Travis CI OS change: Ubuntu 14->16",
+   "Set .travis.yml to use OS_notes.linux_ubuntu_16_64 for system udpate,\n"
+   "and update the notes to include fix of GLwDrawA.h.\n"
+   "Also, seem to need to enable mysql."
+ } ,
+
+ { 22, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "THD_write_atr(): make the Kris K condition do more aggressive napping",
+   "More aggressive napping?!?\n"
+   "Sleep 6 times for 2^(n+1) seconds, up to ~1 min, for a total of ~2 min."
+ } ,
+
+ { 22, Aug, 2019, RCR, "afni-general", MINOR, TYPE_BUG_FIX,
+   "(w/dglen) thd_gifti: remove INDEX_LIST DA from from list",
+   "When converting a GIFTI dataset to NIML, any index list should be\n"
+   "separated early, so as not to affect the SPARSE_DATA NIML element.\n"
+   "Thanks to T Holroyd for noting the problem."
+ } ,
+
+ { 19, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "Makefile.INCLUDE: add libmri target, for build system",
+   "Let the make system decide whether it should be a shared lib.\n"
+   "Also, make install_plugins just plug*.so model*.so and have\n"
+   "itall target depend on install_lib."
+ } ,
+
+ { 19, Aug, 2019, RCR, "3dDeconvolve_f", MINOR, TYPE_BUG_FIX,
+   "matrix_f.[ch]: dupe matrix_augment_01_columns from matrix.[ch]",
+   "When choosing between more local functions and those included in a\n"
+   "linked library, some systems seem to go all-or-nothing for one file\n"
+   "at a time.  So for 3dDeconvolve_f, matrix_f.c needs everything that\n"
+   "might come from matrix.c.  Otherwise we should have matrix_f.h rename\n"
+   "all of those functions, to avoid relying on compiler choices."
+ } ,
+
+ { 16, Aug, 2019, RCR, "afni-general", MICRO, TYPE_ENHANCE,
+   "(w/dglen) in THD_write_atr(), give file opening multiple opertunities",
+   "Done for K Knutson."
+ } ,
+
  { 15, Aug, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
    "build R_io.so with usable link to libmri.so",
    "Modify Makefile.linux_fedora_28_shared and Makefile.INCLUDE to control\n"

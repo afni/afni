@@ -133,6 +133,18 @@ int THD_is_file( char *pathname )
    ii = (buf.st_mode & S_IFREG) != 0 ; return ii ;
 }
 
+/*-----------------------------------------------------------*/
+/*! Determine if this is a FIFO or not. [27 Aug 2019] */
+
+int THD_is_fifo( char *pathname )
+{
+   static struct stat buf ; int ii ;
+
+   if( pathname == NULL || *pathname == '\0' ) return 0 ;
+   ii = stat( pathname , &buf ) ; if( ii != 0 ) return 0 ;
+   ii = (buf.st_mode & S_IFIFO) != 0 ; return ii ;
+}
+
 /*------------------------------------------------------------*/
 /*! Determine if this is really a symbolic link or not. */
 
