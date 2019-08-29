@@ -6,10 +6,14 @@ ver='1.0' ; date='Aug 28, 2019'
 # + [PT] start date for this program.  Thanks, RWC for the math behind
 #        it!
 #
+ver='1.1' ; date='Aug 29, 2019'
+# + [PT] change way we read from file;  use pre-existing AFNI functions
+#
 ######################################################################
 
 import sys, copy
-import afni_util as UTIL
+import afni_util  as UTIL
+import lib_afni1D as LAD
 
 # -----------------------------------------------------------------------
 # -----------------------------------------------------------------------
@@ -25,9 +29,28 @@ def gershgoriny_dist_aff12_from_I_file( fname ):
 
     '''
 
-    M   = UTIL.read_aff12_to_mat34(fname)
-    out = gershorginy_dist_aff12_from_I( M )
+    # read in, and get into proper shape with a transposition
+    x = LAD.Afni1D( fname )
+    x.transpose()
 
+    if len(x.mat) == 3 and len(x.mat[0]) == 4 : 
+        # then we have a MATRIX-format aff12.1D param already, and we
+        # are all set to go
+        out = gershgoriny_dist_aff12_from_I( x.mat )
+
+    elif len(x.mat) == 1 and len(x.mat[0]) == 12 : 
+        # then we have a ONELINE-format aff12.1D param, and we have to
+        # reshape it
+        M = [[0.0] * 4 for row in range(3)] 
+        for i in range(3):
+            M[i][:] = x.mat[0][4*i:4*(i+1)]
+        out = gershgoriny_dist_aff12_from_I( M )
+    else:
+        print("** ERROR: Input matrix in {} has some problems! Doesn't look\n"
+              "   like an aff12.1D format (ONELINE, 1x12; MATRIX, 3x4)\n"
+              "".format(fname))
+        sys.exit(3)
+        
     return out
 
 # -----------------------------------------------------------------------

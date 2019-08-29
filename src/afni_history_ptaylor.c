@@ -66,12 +66,22 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
-{ 28, Aug , 2016 , PT , "lib_gershgorin.py" , MINOR , TYPE_NEW_PROG,
+{ 29, Aug , 2019 , PT , "lib_gershgorin.py" , MICRO , TYPE_GENERAL,
+   "Updated to change way aff12.1D files were read.",
+   "No change in calculated outputs.\n"
+},
+
+{ 29, Aug , 2019 , PT , "afni_util.py" , MICRO , TYPE_GENERAL,
+   "Remove function: read_aff12_to_mat34().",
+   "'Twas unnecessary.\n"
+},
+
+{ 28, Aug , 2019 , PT , "lib_gershgorin.py" , MINOR , TYPE_NEW_PROG,
    "Funcs to answer question: is this aff12 matrix very different from I?",
    "Uses fun algebraic facts known to and shared by the inimitable RWC.\n"
 },
 
-{ 28, Aug , 2016 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
+{ 28, Aug , 2019 , PT , "afni_util.py" , MINOR , TYPE_NEW_OPT,
    "Matrix-y things: read_aff12_to_mat34(), matrix_multiply_2D().",
    "And supplements: matrix_sum_abs_val_ele_row(), calc_zero_dtype().\n"
 },

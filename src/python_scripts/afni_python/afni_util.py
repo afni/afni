@@ -1478,44 +1478,6 @@ def derivative(vector, in_place=0, direct=0):
 
     return vec
 
-def read_aff12_to_mat34(fname):
-    '''Read from a file 'fname' that contains an aff12 matrix, either in
-ONELINE or MATRIX (=3x4) style.
-
-    Output a 2D list of the matrix values (all floats), 3 rows of 4
-    cols.
-
-    '''
-
-    readin = read_text_file(fname)
-
-    # initialize the matrix
-    M      = [[0.0] * 4 for row in range(3)] 
-
-    if len(readin) == 3 :
-        # let's assume it is a MATRIX style aff12, and convert it to a
-        # single row, and then deal with it that way
-        readin = [' '.join(readin)]
-
-    if len(readin) == 1 :
-        listin = readin[0].split()
-        Nlist = len(listin)
-        if Nlist != 12 :
-            print("** ERROR: Input matrix had one line, but {} elements "
-                  "(expected 12).\n".format(Nlist))
-            sys.exit(3)
-        idx = 0
-        for i in range(3):
-            for j in range(4):
-                M[i][j] = float(listin[idx])
-                idx+=1 
-    else:
-        print("** ERROR: Input matrix has some problems! Doesn't look\n"
-              "   like an aff12.1D format\n")
-        sys.exit(3)
-
-    return M
-
 def matrix_multiply_2D(A, B, zero_dtype=''):
     '''Perform matrix multiplication of 2D lists, A and B, which can be of
 arbitrary dimension (subject to Arow/Bcol matching).
