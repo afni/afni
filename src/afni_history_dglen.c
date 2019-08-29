@@ -50,6 +50,12 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 29, AUG, 2019, DRG, "@animal_warper", MINOR, TYPE_NEW_OPT,
+    "slew of options",
+    "ok_to_exist for restarts, template and segmentation output\n"
+    "prefixes, rigid/rigid_equiv/affine/all alignment,\n"
+    "follower data" 
+},
 { 15, AUG, 2019, DRG, "@animal_warper", MAJOR, TYPE_NEW_PROG,
     "Warp data to template and atlas segmentation to subject",
     "Tested for macaques.\n"

@@ -970,8 +970,11 @@ int main( int argc , char *argv[] )
 
       printf(
 "\n"
-" -cmass        = Use the center-of-mass calculation to bracket the shifts.\n"
+" -cmass        = Use the center-of-mass calculation to determin an initial shift\n"
 "                   [This option is OFF by default]\n"
+"                 can be given as cmass+a, cmass+xy, cmass+yz, cmass+xz\n"
+"                 where +a means to try determine automatically in which\n"
+"                 direction the data is partial by looking for a too large shift\n" 
 "                 If given in the form '-cmass+xy' (for example), means to\n"
 "                 do the CoM calculation in the x- and y-directions, but\n"
 "                 not the z-direction.\n"

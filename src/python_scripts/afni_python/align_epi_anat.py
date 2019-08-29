@@ -599,7 +599,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.59" # software version (update for changes)
+      self.align_version = "1.60" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -809,9 +809,20 @@ class RegWrap:
                         "deoblique, tshift, volreg and resample")
       # 3dAllineate cmass options
       self.valid_opts.add_opt('-cmass', 1, [], [], \
-              helpstr = "center of mass options for 3dAllineate\n" \
-                        "Valid options include cmass+a, cmass+xy, nocmass\n" )
-      
+        helpstr = "choose center of mass options for 3dAllineate\n"
+         "Center of mass shifts the center of the datasets to match\n"
+         "by computing the weighted centers of each.\n"
+         "For partial data, this may be too far in one direction\n"
+         "See 3dAllineate help for details\n"
+         "Valid options include cmass+a, cmass+xy, nocmass\n"
+         "nocmass = no center of mass shift - default\n" 
+         "cmass = center of mass shift - used with giant, ginormous_move\n"
+         "cmass+a = automatic center of mass for partial data\n"
+         "cmass+xy,xz,yz = automatic center of mass for partial\n"
+         "                 axial,coronal,sagittal\n"
+         "For partial data, it may be easier to select one\n"
+         " of the partial_... options above" )
+
       # talairach transformed anatomical parent dataset
       self.valid_opts.add_opt('-tlrc_apar', 1, [], \
          helpstr="If this is set, the results will include +tlrc\n"
@@ -2343,6 +2354,12 @@ class RegWrap:
           o.view = '+orig'           
       eview = "%s" % o.view
 #      o.view = '+orig'
+
+      # allow overwrite in AFNI commands
+      if (ps.rewrite) :
+         owrite = "-overwrite"
+      else:
+         owrite = ""
      
       if (not o.exist() or ps.rewrite or ps.dry_run()):
          o.delete(ps.oexec)
@@ -2379,9 +2396,9 @@ class RegWrap:
                         (ps.dset2_generic_name, ps.dset1_generic_name ))
          com = shell_com(  \
                "3dAllineate -base %s -1Dmatrix_apply %s " \
-               "-prefix %s%s -input %s  %s %s"   %  \
+               "-prefix %s%s -input %s  %s %s %s"   %  \
                ( a.input(), epi_mat, o.p(), o.out_prefix(), e.input(),\
-                 self.master_epi_option, alopt), ps.oexec)
+                 self.master_epi_option, alopt, owrite), ps.oexec)
          
          com.run()
          
@@ -2454,9 +2471,9 @@ class RegWrap:
 
                com = shell_com( \
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
-                 "-prefix %s -input %s -verb %s %s " % \
+                 "-prefix %s -input %s -verb %s %s %s" % \
                  ( ps.tlrc_apar.input(), epi_mat, atlrcpost.prefix,e.input(),\
-                   ps.master_tlrc_option, alopt), ps.oexec)
+                   ps.master_tlrc_option, alopt, owrite), ps.oexec)
 
             else:
                tlrc_orig_dset = afni_name("%s%s_post%s" % (o.p(), self.epi_afniformat.out_prefix(), suf))
@@ -2480,9 +2497,9 @@ class RegWrap:
 
                com = shell_com( \
                  "3dAllineate -base %s -1Dmatrix_apply %s " \
-                 "-prefix %s -input %s -verb %s %s" % \
+                 "-prefix %s -input %s -verb %s %s %s" % \
                  ( base_dset.input(), epi_mat, atlrcpost.input(), e.input(),\
-                   ps.master_tlrc_option, alopt), ps.oexec)
+                   ps.master_tlrc_option, alopt, owrite), ps.oexec)
 
             com.run()
 
