@@ -1,0 +1,1826 @@
+#!/bin/tcsh -f
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+
+# ---------------------------------------------------------------------------
+# @auto_tlrc depends on (at least) the following AFNI programs:
+#
+#    3dAttribute  3dBrickStat  3dNotes  3dSkullStrip  3dWarp  3dWarpDrive
+#    3dZeropad  3dcalc  3dcopy  3dinfo  3drefit  3drename  3dresample
+#    @AfniOrient2RAImap  @Center_Distance  @CheckForAfniDset @FindAfniDsetPath
+#    @FromRAI  @GetAfniOrient  @GetAfniPrefix  @GetAfniView  @VolCenter  
+#    @clip_volume  @global_parse  @parse_afni_name  afni  cat_matvec  ccalc
+# ---------------------------------------------------------------------------
+
+
+PARSE: 
+   #exit status
+   set estat = 0
+   
+   set Narg = $#
+   
+   set ok_notice = 0
+   set pd_default = 40
+   set cnt = 1
+   set tmppref = '__ats_tmp_'
+   set cropt = '-coarserot'
+   set inweight = 0     # use -weight INPUT_DATASET   30 Mar 2012 [rickr]
+   set RemoveSkull = 1
+   set KeepView = 0
+   set ref_in = ''
+   set anat_in = ''
+   set apar_mode = 0
+   set apar_copyWarpinfo = 0
+   set warp_orig_vol = 0;      
+   set KeepTmp = 0
+   set verb = 0
+   set pd = $pd_default
+   #set suf = "_at"
+   set suf = ""
+   set rmode = 'default'
+   set xform_type = 'affine_general'
+   set ss_opt = ''
+   set user_res = 0
+   set dxyz_list = ( 1 1 1 )
+   set clpbelow = ''
+   set maxite = ''
+   set accept_maxite = 0
+   set acpciate = 0
+   set npass = -twopass
+   set prexform = ""
+   set cen_opt = ""
+   set OneWarp = 0
+   set copy_base = ""
+   set out_space = ""
+   set delete_pre = 0
+   set over = 0
+   set OW = ' '
+   
+   if ("$1" == '') goto HELP
+
+   while ($cnt <= $Narg)
+      set donext = 1;
+      
+      if ($donext && "$argv[$cnt]" == "-help" || "$argv[$cnt]" == "-h") then
+         goto HELP
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-echo") then
+         set echo
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-overwrite") then
+         set over = 1
+         set OW = '-overwrite '
+         set donext = 0   
+      endif
+
+      if ($donext && "$argv[$cnt]" == "-onewarp") then
+         set OneWarp = 1
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-init_xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need xform file after -init_xform"
+            goto END
+         else
+            @ cnt ++
+            set prexform = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-xform") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -xform"
+            goto END
+         else
+            @ cnt ++
+            set xform_type = "$argv[$cnt]"
+            if (  "$xform_type" != "affine_general" && \
+                  "$xform_type" != "shift_rotate_scale" && \
+                  "$xform_type" != "auto" && \
+                  "$xform_type" != "shift_rotate") then
+               echo "-xform option $xform_type not allowed."
+               goto END
+            endif
+            if ("$xform_type" == "shift_rotate") then
+               echo ""
+               echo "Warning: ********************************"
+               echo "-xform option does not allow for scaling!"
+               echo "Proceeding with your wishes anyway ..."
+               echo ""
+            endif
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-clip_below") then
+         set pLoc = $cnt		
+		   if ($pLoc == $Narg) then
+				echo "Need Zmm after -clip_below"
+            goto END
+			else
+            @ cnt ++
+            set clpbelow = "$argv[$cnt]"
+            set donext = 0	
+         endif	
+      endif
+      if ($donext && "$argv[$cnt]" == "-rmode") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -rmode"
+            goto END
+         else
+            @ cnt ++
+            set rmode = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-maxite") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need string after -maxite"
+            goto END
+         else
+            @ cnt ++
+            set maxite = "-maxite $argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-dxyz") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dxyz"
+            goto END
+         else
+            @ cnt ++
+            set dxyz_list[1] = "$argv[$cnt]"
+            set dxyz_list[2] = "$argv[$cnt]"
+            set dxyz_list[3] = "$argv[$cnt]"
+            set user_res = 1
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-dx") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dx"
+            goto END
+         else
+            @ cnt ++
+            set dxyz_list[1] = "$argv[$cnt]"
+            set user_res = 1
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-dy") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dy"
+            goto END
+         else
+            @ cnt ++
+            set dxyz_list[2] = "$argv[$cnt]"
+            set user_res = 1
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-dz") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need voxel size after -dz"
+            goto END
+         else
+            @ cnt ++
+            set dxyz_list[3] = "$argv[$cnt]"
+            set user_res = 1
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-suffix") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need a string after -suffix"
+            goto END
+         else
+            @ cnt ++
+            set suf = "$argv[$cnt]"
+            if ("$suf" == "none" || "$suf" == "NONE" || "$suf" == "None") then
+               echo "Suffix not used."
+               set suf = ''
+            endif
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-base") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need template volume after -base"
+            goto END
+         else
+            @ cnt ++
+            set ref_in = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-base_copy") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need prefix volume after -base_copy"
+            goto END
+         else
+            @ cnt ++
+            set copy_base = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-base_list") then
+         set copy_base = "LIST"
+         set donext = 0   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-apar") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need transform volume after -apar"
+            goto END
+         else
+            @ cnt ++
+            set ref_in = "$argv[$cnt]"
+            set apar_mode = 1
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-copy_warp") then
+         set apar_copyWarpinfo = 1
+         set donext = 0		
+      endif
+      
+      if (  $donext && \
+            (  "$argv[$cnt]" == "-pad_base" || \
+               "$argv[$cnt]" == "-pad_input" ) ) then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need value after -pad_base (or -pad_input) "
+            goto END
+         else
+            @ cnt ++
+            set pd = "$argv[$cnt]"
+            if ($pd > 100 || $pd < 0) then
+               echo "Error: -base_pad should be between 0 and 100"
+               echo "I have $pd"
+               goto END
+            endif
+            set donext = 0   
+         endif   
+      endif
+      if ($donext && "$argv[$cnt]" == "-input") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need  volume after -input"
+            goto END
+         else
+            @ cnt ++
+            set anat_in = "$argv[$cnt]"
+            set donext = 0   
+         endif   
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-OK_maxite") then
+         set accept_maxite = 1
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-onepass") then
+         set npass = ''
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-twopass") then
+         set npass = '-twopass'
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-ncr") then
+         set cropt = ''
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-inweight") then
+         set inweight = 1		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-ok_notice") then
+         set ok_notice = 1;		
+         set donext = 0		
+      endif
+      if ($donext && "$argv[$cnt]" == "-no_ss") then
+         set RemoveSkull = 0;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-warp_orig_vol") then
+         set warp_orig_vol = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-keep_view") then
+         set KeepView = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-keep_tmp") then
+         set KeepTmp = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-rigid_equiv") then
+         set acpciate = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-clean") then
+         echo 'Cleanup...'
+         set Ret_Clean = END
+         goto CLEANUP      
+         set donext = 0      
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-no_pre") then
+         set delete_pre = 1
+         set donext = 0      
+      endif
+      
+      if ($donext && "$argv[$cnt]" == "-verb") then
+         set verb = 1;      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-no_avoid_eyes") then
+         set ss_opt = "$ss_opt -no_avoid_eyes";      
+         set donext = 0      
+      endif
+      if ($donext && "$argv[$cnt]" == "-out_space") then
+         set pLoc = $cnt      
+         if ($pLoc == $Narg) then
+            echo "Need name of space for output after -out_space"
+            echo "See whereami -show_spaces for some possibilities"
+            goto END
+         else
+            @ cnt ++
+            set out_space = "$argv[$cnt]"
+            set donext = 0  
+         endif   
+      endif
+      if ($donext == 1) then
+         echo "Error: Option or parameter '$argv[$cnt]' not understood"
+         apsearch -popt `basename $0` -word $argv[$cnt]
+         goto END
+      endif
+      @ cnt ++
+   end
+   
+   goto SET_REF_PATH
+   SET_REF_PATH_RETURN:
+   
+   if ("$anat_in" == "" || "$ref_in" == "") then
+      echo "Error: Need both -base and -input parameters"
+      goto END
+   endif
+   
+   #echo "Template/Apar path is: $ref_path"
+   
+   set prs_in = `@parse_afni_name "$anat_in"`
+   set anat_path = $prs_in[1]
+   
+   set isNIFTI = `3dinfo -is_nifti "$anat_in"`
+   set isTLRC = `3dinfo -av_space "$anat_in"`
+   if ("$isTLRC" == "+tlrc") then
+      echo ""
+      echo "Notice:"
+      echo "Input dataset is in +tlrc already, `basename $0` might fail."
+     echo "If the space of $anat_in is incorrectly set (check with next command)"
+      echo "   3dinfo -prefix -av_space $anat_in "
+      echo "you can reset it with something like:"
+      echo "   3drefit -space ORIG $anat_in "
+      echo "then remove all temp files, and try again."
+      echo ""
+   endif
+   set delete_this = ()
+   if ("$isNIFTI" == 1) then
+      set NIpref = `echo "$prs_in[2]" | sed 's/.nii.gz$//g' | sed 's/.nii$//g'`
+      set RNS = `3dnewid -hash NIpref`
+      echo "Copying NIFTI volume to $prs_in[1]/${NIpref}_${RNS}"
+      3dcopy -overwrite "$anat_in" $prs_in[1]/${NIpref}_${RNS}
+      set anat_in = ($prs_in[1]/${NIpref}_${RNS}+????.HEAD)
+      if ($#anat_in != 1) then
+         echo "Failed to copy NIFTI input ($anat_in)"
+         goto END
+      endif
+      set delete_this = ($delete_this $prs_in[1]/${NIpref}_${RNS}+????.HEAD  \
+                                      $prs_in[1]/${NIpref}_${RNS}+????.BRIK* ) 
+      set prs_in = `@parse_afni_name "$anat_in"`
+   else
+      set RNS = ''
+   endif 
+   
+   #Make a copy of anat_in if we are given sub-brick selectors
+   if ($#prs_in > 3) then
+      set anat_in2 = $prs_in[1]/$prs_in[2]"_$prs_in[4]"$prs_in[3]
+      echo "Copying sub-brick $prs_in[3] to $anat_in2"
+      3dcalc ${OW} -a "$anat_in" -expr "a" -prefix $anat_in2
+      if ( `@CheckForAfniDset ${anat_in2}` != 2 ) then
+         echo "Error: Anatomical dset copy ${anat_in2} not found."
+         goto END
+      endif 
+      set anat_in = $anat_in2
+      set prs_in = `@parse_afni_name "$anat_in"`
+   endif 
+   
+   set preWopt = ''
+   if ($prexform == "AUTO_CENTER_CM") then
+      set cen_opt = '-cm'
+      set prexform = "AUTO_CENTER"
+   else if ($prexform == "CENTER_CM") then
+      set cen_opt = '-cm'
+      set prexform = "CENTER"
+   endif
+   if ($prexform == "AUTO_CENTER" || $prexform == "CENTER" ) then
+      #Check for center differences and act on it
+      set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
+      set needcen = `ccalc -form int -eval "step($dist_cent - 40)"`
+      if ($needcen == 1 || $prexform == "CENTER") then
+         echo ""
+         echo "Performing center alignment with @Align_Centers"
+         echo ""
+         @Align_Centers -base ${ref_in} ${cen_opt} -1Dmat_only \
+                        -dset ${anat_in} 
+         set pp = `@GetAfniPrefix ${anat_in}`
+         set prexform = (`ls ${pp}_shft.1D`)
+         1dmatcalc "&read4x4Xform($prexform) &write(stdout:)" > ${pp}_44.1D
+         mv ${pp}_44.1D $prexform
+         3drename ${OW} ${pp}_shft ${tmppref}_${pp}_shft
+         if ( ! -f $prexform ) then
+            echo "Failed to create AUTO_CENTER xform"
+            goto BEND
+         endif
+         set preWopt = "-gridset ${tmppref}_${pp}_shft*.HEAD -NN "
+      else
+         echo "Center distance of $dist_cent mm no auto_center needed "
+         set prexform = ''
+      endif 
+   endif
+   
+   #Apply pre-transform if need be
+   set nopre_anat_in = $anat_in
+   if ($prexform != '') then
+      3dWarp   -overwrite -matvec_out2in $prexform \
+               -prefix pre.${prs_in[2]} $preWopt ${anat_in}
+      #This operation is the same as
+      #  cat_matvec $prexform -ONELINE > d1.$prexform
+      #  3dAllineate -1Dmatrix_apply d1.$prexform \
+      #            -prefix Horse2 struct+orig.
+      # The 3dAllineate is the way users should verify
+      # if their init_xform is good.
+      set anat_in = pre.${anat_in:t}
+      set prs_in = `@parse_afni_name "$anat_in"`
+   endif
+
+   #At the moment, must have . for anat_path
+   #It looks like 3drefit does not like an input dset with a path
+   if ( "$anat_path" != "." ) then
+      echo "Error: input dataset must be in the current directory"
+      echo "Current path for input dataset is $anat_path"
+      echo "Sorry."
+      goto END
+   endif
+   
+   #if in apar mode, no need for skull strippin 
+   if ($apar_mode == 1) then
+      set RemoveSkull = 0
+   endif
+   
+   #set default rmode
+   if ("$rmode" == "default") then
+      if ($apar_mode == 1) then
+         set rmode = "quintic"
+      else
+         set rmode = "linear"
+      endif
+   endif
+   
+   #figure out resample's mode, based on rmode
+   if ("$rmode" == "quintic") then
+      set resam = "Bk"
+   else if ("$rmode" == "cubic") then
+      set resam = "Cu"
+   else if ("$rmode" == "linear") then
+      set resam = "Li"
+   else if ("$rmode" == "NN") then
+      set resam = "NN"
+   else
+      echo "Error: Bad resampling option $rmode"
+      goto END
+   endif
+   
+   set anat_pref = `@GetAfniPrefix "${anat_in}"`
+   set anat_view = `@GetAfniView "${anat_in}"`
+   
+   if ($RemoveSkull == 1) then
+      set ns_pref = ${anat_pref}_ns
+   else
+      set ns_pref = ${anat_pref}
+   endif
+   #update tmppref IF YOU MUST! 
+   #  so that you can use multiple versions concurrently
+   #set tmppref = "${tmppref}__`@GetAfniPrefix ${anat_in}`" 
+   set rs_pref = ${tmppref}__rs_`@GetAfniPrefix "${anat_in}"`
+   set tt_pref = ${anat_pref}${suf}
+   
+   if ("$isNIFTI" == 1) then
+      if ($suf == '') set suf = '_at'
+      set out_pref = ${NIpref}${suf}
+      if ( -f ${out_pref}.nii && $over == 0) then
+         echo "ERROR: ${out_pref}.nii exists already"
+         goto BEND
+      endif
+   else
+      set out_pref = `@GetAfniPrefix "${nopre_anat_in}"`${suf}
+   endif
+    
+   set ref_pref_pad  = "${tmppref}_ref_`@GetAfniPrefix ${ref_in}`_${pd}pad"
+   set ref_view = `3dinfo -av_space ${ref_in}`
+   if (`3dinfo -is_nifti $ref_in` == 1) then
+      set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`"
+   else   
+      set ref_nopad = "${ref_path}/`@GetAfniPrefix ${ref_in}`${ref_view}"
+   endif
+   # use the template space for the transformed dataset
+   if ($out_space == "" ) then
+      set ref_space = `3dinfo -space ${ref_in}` 
+   else
+      set ref_space = $out_space
+   endif
+
+IN_CHECK:
+if ("$suf" == '' && $KeepView == 1) then
+   echo "Cannot use -keep_view and -suffix none"
+   goto BEND
+endif
+
+if ( `@CheckForAfniDset ${ref_in}` < 2 ) then
+   echo "Error: Template (or -apar) dset ${ref_in} not found."
+   goto BEND
+endif
+
+set ttt_pref = "`@GetAfniPrefix ${ref_in}`"
+if ("$ttt_pref" == "TT_avg152EPI") then
+   echo ""
+   echo "Error:"
+   echo "Template TT_avg152EPI+tlrc should no longer be used."
+   echo "For an equivalent template in MNI space use MNI_EPI+tlrc"
+   echo "For an equivalent template in TLRC space use TT_EPI+tlrc"
+   echo ""
+   set estat = 1
+   goto END
+endif
+
+if ("$ttt_pref" == "TT_avg152T1" || "$ttt_pref" == "TT_avg152EPI") then
+   if ("$ttt_pref" == "TT_avg152T1") then
+      set alternate = "MNI_avg152T1"
+   else
+      set alternate = "MNI_EPI"
+   endif
+   goto WARN_notice
+endif
+
+OK_notice:
+
+if ( `@CheckForAfniDset ${anat_in}` != 2 ) then
+   echo "Error: Anatomical dset ${anat_in} not found."
+   set estat = 1
+   goto END
+endif 
+
+if ($KeepView == 1) then
+   if ( `@CheckForAfniDset ${tt_pref}${anat_view}` != 0 && ${over} == 0) then
+      echo "Error: Output dset ${tt_pref}${anat_view} exists"
+      set estat = 1
+      goto END
+   endif
+   if ($acpciate == 1) then
+      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${anat_view}` != 0 \
+           && ${over} == 0) then
+         echo "Error: Output dset ${tt_pref}.Xat.rigid${anat_view} exists"
+         set estat = 1
+         goto END
+      endif
+   endif
+else
+   if ( `@CheckForAfniDset ${tt_pref}${ref_view}` != 0 \
+        && ${over} == 0 ) then
+      echo "Error: Output dset ${tt_pref}${ref_view} exists"
+      set estat = 1
+      goto END
+   endif
+   if ($acpciate == 1) then
+      if ( `@CheckForAfniDset ${tt_pref}.Xat.rigid${ref_view}` != 0  \
+            && ${over} == 0) then
+         echo "Error: Output dset ${tt_pref}.Xat.rigid${ref_view} exists"
+         set estat = 1
+         goto END
+      endif
+   endif
+endif
+
+if ($apar_mode == 1) then
+   goto APAR_MODE
+else
+   goto AUTO_TLRC_MODE
+endif
+
+
+#######################
+#Begin auto tlrc block
+#######################
+AUTO_TLRC_MODE:
+   #make sure only one sub-brick in input 
+   set nsb = `3dAttribute -name DATASET_RANK $anat_in`
+   if ($nsb[4] != "1") then
+      echo "Error: Only one sub-brick allowed as input in usage mode 1"
+      echo "       Input dataset has $nsb[4] sub-bricks. Use '[]' to "
+      echo "       choose one sub-brick."
+      echo ""
+      set estat = 1
+      goto END
+   endif
+
+   #Check for center differences and warn
+   set dist_cent = `@Center_Distance -dset ${ref_in} ${anat_in}`
+   if (`ccalc -form int -eval "step($dist_cent - 40)"`) then
+      echo ""
+      echo "*********** Warning *************"
+      echo "Dataset centers are $dist_cent mm"
+      echo "apart. If registration fails, or if"
+      echo "parts of the original anatomy gets"
+      echo "cropped, try adding option "
+      echo "   -init_xform AUTO_CENTER "
+      echo "to your @auto_tlrc command."
+      #echo "cropped, try recentering all the "
+      #echo "input data using this command:"
+      #echo "@Align_Centers -base ${ref_in} \\"
+      #echo "               -dset ${anat_in} \\"
+      #echo "               -child ${anat_path}/*.HEAD"
+      #echo ""
+      #echo "Then rerun `basename $0` using the _shft"
+      #echo "version of your datasets."
+      echo ""
+      echo "*********************************"
+      echo ""
+      # do not stop processing, the user has been warned  16 May 2012 [rickr]
+      #
+      # if (`ccalc -form int -eval "step($dist_cent - 80)"`) then
+      #    echo "Hit Enter to proceed."
+      #    set junk = $<
+      # endif
+   else
+      echo "Center distance of $dist_cent mm"   
+   endif 
+   
+   #cleanup in case cleanup was not done in last execution
+   set Ret_Clean = PAD
+   goto CLEANUP
+
+   PAD:
+   #Paddin the reference since tt vols are perrty tight
+   if ( `@CheckForAfniDset ${ref_pref_pad}${ref_view}` == 0 ) then
+      echo "Padding ..."
+      3dZeropad   -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd \
+                  -mm -prefix ./${ref_pref_pad} ${ref_in}
+      if ($status) then
+            echo "Failed to pad"
+            goto BEND  
+      endif            
+   endif
+
+   SS:
+   if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 || \
+        ($RemoveSkull == 1 && $over == 1) ) then
+      if ("$ss_opt" != "") then
+         echo "Skull Stripping (with options ${ss_opt})..."
+      else 
+         echo "Skull Stripping ..."
+      endif
+      3dSkullStrip   ${OW} -input ${anat_path}/${anat_pref}${anat_view} \
+                     -prefix ${ns_pref} ${ss_opt}
+      if ( `@CheckForAfniDset ${ns_pref}${anat_view}` != 2 ) then
+         echo "Error: Failed to create skull stripped brain"
+         set estat = 1
+         goto END
+      endif
+   else
+      if ($RemoveSkull == 1) then
+         echo "Notice:"
+         echo "Reusing skull stripped volume "
+         echo "   ${ns_pref}${anat_view} found on disk."
+         echo ""
+      endif
+   endif
+
+   CLIP_BELOW:
+   if ($clpbelow != '') then
+      \rm -rf ${ns_pref}_clpbel*.???? >& /dev/null
+      @clip_volume   -below $clpbelow \
+                     -input ${ns_pref}${anat_view} -prefix ${ns_pref}_clpbel
+      set ns_pref = ${ns_pref}_clpbel
+      if (`@CheckForAfniDset ${ns_pref}${anat_view}` != 2) then 
+			echo "Error: Failed to clip below $clpbelow mm"
+         set estat = 1
+         goto END
+		endif
+   endif
+      
+   RES:
+   #Resamplin
+   if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
+      echo "Resampling ..."
+      \rm -f ${tmppref}_resamp* >& /dev/null
+      #Use cubic for somoothness of result 
+      #  since it will be used in registration.
+      #But that causes edge artifacts from interpolation. 
+      #  Use a resampled mask to cleanup
+      3dresample ${OW} -rmode Cu -master ${ref_pref_pad}${ref_view} \
+                  -inset ${ns_pref}${anat_view} \
+                  -prefix ./${tmppref}_resamp_edge_art
+      if ($status) then
+            echo "Failed to resample"
+            goto BEND  
+      endif            
+      3dcalc   ${OW} -a "${ns_pref}${anat_view}" \
+               -expr "step(a)*10000" \
+               -prefix ./${tmppref}_resamp_step
+      3dresample  ${OW} -rmode Linear -master ${ref_pref_pad}${ref_view} \
+                  -inset ${tmppref}_resamp_step${anat_view} \
+                  -prefix ./${tmppref}_resamp_NN
+      3dcalc   ${OW} -a "${tmppref}_resamp_edge_art${ref_view}." \
+               -b "${tmppref}_resamp_NN${ref_view}." \
+               -expr "a*step(b-5000)" -prefix ./${tmppref}_resamp
+      if ( `@CheckForAfniDset ${tmppref}_resamp${ref_view}` != 2 ) then
+         echo "Error: Failed to create resampled volume"
+         set estat = 1
+         goto END
+      endif
+      #clip values to range of input
+      set range = `3dBrickStat -min -max ${ns_pref}${anat_view}`
+      set min = `ccalc -eval "$range[1] - 0.0001"`
+      set max = `ccalc -eval "$range[2] + 0.0001"`
+      echo "Clipping $min $max ..."
+      3dcalc   ${OW} -a ${tmppref}_resamp${ref_view} \
+               -expr "a*step(a-$min)*step($max-a) + $range[1]*step($range[1]-a) + $range[2]*step(a-$range[2])" \
+               -prefix ${rs_pref} 
+      if ( -f ${rs_pref}${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${rs_pref}${anat_view}.HEAD ${rs_pref}${anat_view}.BRIK* 
+      endif
+      3drefit -view ${anat_view} ${rs_pref}${ref_view}.HEAD
+      if ( -f ${tmppref}_resamp_NN${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_resamp_NN${anat_view}.HEAD \
+                ${tmppref}_resamp_NN${anat_view}.BRIK* 
+      endif
+      3drefit -view ${anat_view} ${tmppref}_resamp_NN${ref_view}.HEAD
+      if ( -f ${tmppref}_resamp_edge_art${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_resamp_edge_art${anat_view}.HEAD \
+                ${tmppref}_resamp_edge_art${anat_view}.BRIK* 
+      endif
+      3drefit -view ${anat_view} ${tmppref}_resamp_edge_art${ref_view}.HEAD
+      if ( $KeepTmp == 0) \rm -f ${tmppref}_resamp* >& /dev/null 
+      if ( `@CheckForAfniDset ${rs_pref}${anat_view}` != 2 ) then
+         echo "Error: Failed to change view of resampled volume"
+         set estat = 1
+         goto END
+      endif
+   endif
+
+   REG:
+   #Registration
+   echo "Registration ($rmode final interpolation) ..."
+   if ( $KeepTmp == 0) \rm -f ${tmppref}_reg* >& /dev/null 
+   set spopt = ''
+   if ($verb == 1) then
+      set spopt = "$spopt -verb"
+   endif
+   set spopt = "$spopt $cropt"
+   # maybe weight from input dataset (esp if coverage is not full)
+   if ($inweight == 1) then
+      set spopt = "$spopt -weight ${rs_pref}${anat_view}"
+   endif
+   
+   set pass = 1
+   set Converged = 0
+   while ($Converged == 0 && $pass < 3)
+      \rm -f ${ns_pref}_WarpDrive.log >& /dev/null
+      3dWarpDrive ${OW} ${maxite} ${spopt}  ${npass} \
+                  -${xform_type} -cubic  \
+                  -final ${rmode} -1Dmatrix_save ${ns_pref}.Xaff12.1D \
+                  -base ${ref_pref_pad}${ref_view} \
+                  -summ ${ns_pref}_WarpDrive.log \
+                  -prefix ./${tmppref}_reg_warpdriveout \
+                  -input ${rs_pref}${anat_view}
+      if ($status) then
+            echo "Bad exit status from 3dWarpDrive"
+            goto BEND  
+      endif            
+      if ( `@CheckForAfniDset ${tmppref}_reg_warpdriveout${anat_view}` != 2) then
+         echo "Error: Failed in 3dWarpDrive "
+         set estat = 1
+         goto END
+      endif
+      #check for convergence
+      # this one fails when there is a # in the name! 
+          #set res = "`cat ${ns_pref}_WarpDrive.log | grep 'RMS\[0\]'`"
+      # this should do it:
+         cat "${ns_pref}_WarpDrive.log" > ___cat.tmp
+         set res = "`grep 'RMS\[0\]' ___cat.tmp`"
+         \rm -f ___cat.tmp >& /dev/null 
+
+      echo "$res"
+      set rms_i = `echo "$res" | cut -d ' ' -f3`
+      echo $rms_i
+      set rms_f = `echo "$res" | cut -d ' ' -f4`
+      set rms_diff_pos = `ccalc -eval "step($rms_f - $rms_i)" | cut -d '.' -f1`
+      set rms_ratio = `ccalc -form int -eval "($rms_i - $rms_f) / $rms_i * 100"`
+      set rat = `echo "$res" | cut -d ' ' -f9` 
+      set niter = `echo "$rat" | cut -d '/' -f1`
+      set nitermax = `echo "$rat" | cut -d '/' -f2`
+      set Converged = 1
+      if ($rms_diff_pos) then
+         if ($pass == 1) then
+            if ("$xform_type" == "affine_general") then
+               echo ""
+               echo "Warning:*****************************"
+               echo "Registration did not converge, trying "
+               echo "registration without shearing."
+               echo ""
+               set xform_type = 'shift_rotate_scale'
+               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
+                        ${tmppref}_reg_warpdriveout_NoConvergence
+               set Converged = 0
+               set pass = 2
+            else 
+               echo ""
+               echo "Warning:**************************"
+               echo "Registration did not converge, not "
+               echo "much else to try automatically. "
+               echo "Check your results, the -help tips"
+               echo "and report persisting problems to "
+               echo "progam authors."
+               echo ""
+               echo "Script will stop ..."
+               echo ""
+               set pass = 3
+               set Converged = 0
+               goto END
+            endif
+         else 
+            if ($pass == 2) then
+               echo ""
+               echo "Warning:***************************"
+               echo "Registration did not converge, even "
+               echo "without shear operation."
+               echo "Check your results, the -help tips"
+               echo "and report persisting problems to "
+               echo "progam authors."
+               echo ""
+               echo "Script will stop ..."
+               echo ""
+               set pass = 3
+               set Converged = 0
+               goto END
+            endif
+         endif
+      else
+         #looks OK, but did we reach the limit?
+         if ($niter < $nitermax) then
+            echo ""
+            echo "Warping has converged."
+            echo ""
+         else
+            if ($pass == 1) then
+               echo ""
+               echo "Warping used up maximum iterations of $nitermax"
+               echo "Convergence might not have"
+               echo "been reached. "
+               echo "Doubling number of iterations"
+               echo ""
+               3drename ${OW} ${tmppref}_reg_warpdriveout${anat_view}   \
+                        ${tmppref}_reg_warpdriveout_maxed_iters
+               set ans = `ccalc -form int "2 * $nitermax"`
+               set maxite = "-maxite $ans"
+               set Converged = 0
+               set pass = 2
+            else
+               if ($rms_ratio > 30) then 
+                  echo ""
+                  echo "Warping used up maximum iterations even after "
+                  echo "doubling number of iterations to $nitermax."
+                  echo "However, convergence is possible, given an RMS"
+                  echo "improvement of $rms_ratio%"
+                  echo "Check results at the end"
+                  echo ""
+                  set pass = 3
+               else
+                  echo ""
+                  echo "Warping used up maximum iterations"
+                  echo "even after doubling number of iterations to $nitermax."
+                  echo "Convergence might not have been reached."
+                  echo ""
+                  echo "If you find the alignment poor, try"
+                  echo "rerunning the script with a transform"
+                  echo "type of fewer parameters (-xform) or by using "
+                  echo "an even higher number of iterations (-maxite)."
+                  echo "You can also choose to continue with the"
+                  echo "current result (dset: ${tmppref}_reg_warpdriveout${anat_view}"
+                  echo "by using the option: -OK_maxite"
+                  echo ""
+                  set pass = 3
+                  if ($accept_maxite == 1) then
+                     #doing nothing will proceed
+                     echo "Accepting result per user's choice."
+                     echo ""
+                  else
+                     echo "Script will stop ..."
+                     echo ""
+                     set Converged = 0
+                     goto END
+                  endif
+               endif   
+            endif
+         endif
+      endif
+   end
+   
+   
+   FINAL_XFORM:
+   set tt_prefpad = ${tmppref}__pad${pd}_${tt_pref}
+   if ($prexform != '') then
+      if (0) then
+         #That's in ONELINE format, 3dWarp does not like it
+         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.l2.1D
+      else
+         #another way to do the same
+         cat_matvec \
+           ${tmppref}_reg_warpdriveout${anat_view}::WARPDRIVE_MATVEC_FOR_000000 \
+                     > ${tt_prefpad}.Xat.l2.1D
+      endif
+      #Need to combine xforms
+      cat_matvec ${tt_prefpad}.Xat.l2.1D  ${prexform} \
+         > ${tt_prefpad}.Xat.1D 
+   else
+      #This is the same as ${ns_pref}.Xaff12.1D
+      if (0) then
+         #That's in ONELINE format, 3dWarp does not like it
+         cp ${ns_pref}.Xaff12.1D ${tt_prefpad}.Xat.1D
+      else
+         #another way to get the same
+         cat_matvec \
+           ${tmppref}_reg_warpdriveout${anat_view}::WARPDRIVE_MATVEC_FOR_000000 \
+                     > ${tt_prefpad}.Xat.1D
+      endif
+   endif
+   cp ${tt_prefpad}.Xat.1D ${out_pref}.Xat.1D
+   
+   if ("$isNIFTI" == 1) then
+      if ( -f ${ns_pref}_WarpDrive.log) \
+         mv ${ns_pref}_WarpDrive.log ${out_pref}.nii_WarpDrive.log
+      if ( -f ${ns_pref}.Xaff12.1D) \
+         mv ${ns_pref}.Xaff12.1D ${out_pref}.nii.Xaff12.1D
+   endif
+
+   OUTPUT_GRID:
+   if ($user_res) then
+      3dresample    -rmode Linear \
+                    -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
+                    -inset ${tmppref}_reg_warpdriveout${anat_view}   \
+                    -prefix ./${tmppref}_gridout  
+      if ($status) then
+            echo "Failed to resample"
+            goto BEND  
+      endif            
+   else
+      3dcopy ${tmppref}_reg_warpdriveout${anat_view} ${tmppref}_gridout  
+      if ($status) then
+            echo "Failed to copy"
+            goto BEND  
+      endif            
+   endif
+   
+   WARP_INPUT_BY_XFORM:
+   3dWarp  ${OW} -matvec_out2in ${out_pref}.Xat.1D \
+               -${rmode} -prefix ./${tt_prefpad} \
+               -gridset ${tmppref}_gridout${anat_view} \
+               ${nopre_anat_in}
+               
+   if ($warp_orig_vol == 0) then
+      set ttvolpref = ${tt_prefpad}
+      set mskvol =  ${rs_pref}${anat_view}
+      set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
+      set nomskpref = .skl
+      set RET_apply_mask = BMW
+      goto APPLY_MASK
+      BMW:
+      #copy fields
+         set FromVol = ${tt_prefpad}.skl${anat_view}
+         set ToVol = ${tt_prefpad}${anat_view}
+         set RET_copy_fields = BM
+         goto COPY_FIELDS
+         BM:       
+   endif
+   
+   if ( `@CheckForAfniDset ${tt_prefpad}${anat_view}` != 2 ) then
+      echo "Error: Failed to create tlrced brain"
+      set estat = 1
+      goto END
+   endif
+      
+
+   UNPAD:
+   #unPadding the anatomical 
+   echo "Unpadding ..."
+   set tt_prefupad = ${tmppref}__upad${pd}_${tt_pref}
+   3dZeropad   -I -$pd -S -$pd -A -$pd -P -$pd -L -$pd -R -$pd -mm \
+               -prefix ./${tt_prefupad} ${tt_prefpad}${anat_view}
+   #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+      set FromVol = ${tt_prefpad}${anat_view}
+      set ToVol = ${tt_prefupad}${anat_view}
+      set RET_copy_fields = UP
+      goto COPY_FIELDS
+      UP:       
+
+   # set the space of the output to match the template space
+   3drefit -space $ref_space ${tt_prefupad}${anat_view}
+
+   3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
+            -h "Dataset created via: `basename $0` $argv[*]"   \
+            ${tt_prefupad}${anat_view}
+   
+   if ($KeepView == 0) then
+      echo "Changing view of transformed anatomy"
+      if ( -f ${tt_prefupad}${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tt_prefupad}${ref_view}.HEAD ${tt_prefupad}${ref_view}.BRIK* 
+      endif
+      3drefit -view ${ref_view} ${tt_prefupad}${anat_view}.HEAD
+      if ("${ref_view}" == "+tlrc" && "${anat_view}" == "+orig") then
+         #Now add a 3drefit line to specify the warp parent
+         echo "Setting parent with 3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}"
+         3drefit -wset ${nopre_anat_in} ${tt_prefupad}${ref_view}
+      endif
+      #finally, rename the damned thing
+      if ("$isNIFTI" == 1) then
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${ref_view} 
+      else
+         3drename ${OW} ${tt_prefupad}${ref_view} ${out_pref}${ref_view}
+      endif
+   else
+      if ("$isNIFTI" == 1) then
+         3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii ${tt_prefupad}${anat_view} 
+      else
+         3drename ${OW} ${tt_prefupad}${anat_view} ${out_pref}${anat_view}
+      endif
+   endif
+   
+   
+   ACPCIATE:
+   if ($acpciate == 1) then
+      echo "Doing the MSB thing..."
+      #create a version witout scaling
+      cat_matvec  ${out_pref}${ref_view}::WARPDRIVE_MATVEC_FOR_000000 -P \
+                  > ${out_pref}.Xat.rigid.1D
+      3dWarp   ${OW} -matvec_out2in ${out_pref}.Xat.rigid.1D \
+               -gridset ${out_pref}${ref_view} \
+               -${rmode} -prefix ${out_pref}.Xat.rigid \
+               ${nopre_anat_in}
+      if ($warp_orig_vol == 0) then
+         set ttvolpref = ${out_pref}.Xat.rigid
+         set mskvol =  ${rs_pref}${anat_view}
+         set mskwrppar = ${tmppref}_reg_warpdriveout${anat_view}
+         set nomskpref = .skl
+         set RET_apply_mask = BMR
+         goto APPLY_MASK
+         BMR:
+      endif
+
+      # reset the space of the output to be ACPC
+      3drefit  -space "ACPC" ${out_pref}.Xat.rigid${anat_view}
+
+      3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
+               -h "Dataset created via: `basename $0` $argv[*]" \
+               ${out_pref}.Xat.rigid${anat_view}
+      if ($KeepView == 0) then
+         echo "Changing view of rigid_equiv anatomy"
+         if ( -f ${out_pref}.Xat.rigid${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+            \rm -f ${out_pref}.Xat.rigid${ref_view}.HEAD \
+                   ${out_pref}.Xat.rigid${ref_view}.BRIK*
+         endif
+         3drefit -view ${ref_view} ${out_pref}.Xat.rigid${anat_view}.HEAD
+         if ("$isNIFTI" == 1) then
+            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
+                     ${out_pref}.Xat.rigid${ref_view}.HEAD 
+            \rm -f ${out_pref}.Xat.rigid${ref_view}.*
+         endif
+      else
+         if ("$isNIFTI" == 1) then
+            3dAFNItoNIFTI ${OW} -prefix $NIpref.Xat.rigid.nii \
+                          ${out_pref}.Xat.rigid${anat_view}.HEAD 
+            \rm -f ${out_pref}.Xat.rigid${anat_view}.*
+         endif
+      endif      
+   endif
+   
+   goto WRAP_UP
+#######################
+#end of auto tlrc block
+#######################
+
+#######################
+#Begin apar block
+#######################
+APAR_MODE:
+   set tmp_out_pref = ${tmppref}${out_pref}
+   echo "Applying tlrc warp from ${ref_nopad} to ${ns_pref}${anat_view} ..."
+   if ( -f warp_tmp${anat_view}.HEAD) then
+      \rm -f warp_tmp${anat_view}.HEAD warp_tmp${anat_view}.BRIK*
+   endif
+   
+   echo "Padding the input data before warping"
+   3dZeropad   ${OW} -I $pd -S $pd -A $pd -P $pd -L $pd -R $pd -mm \
+               -prefix ./${tmppref}_ipad ${ns_pref}${anat_view}
+   if ($status) then
+         echo "Failed to pad"
+         goto BEND  
+   endif  
+   echo "Creating grid at (${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]})mm RAI resolution..."
+   3dresample  ${OW} -master ${ref_in} \
+               -dxyz ${dxyz_list[1]} ${dxyz_list[2]} ${dxyz_list[3]} \
+               -prefix ./${tmppref}_warp_grid \
+               -inset ${ref_in} \
+               -rmode Linear
+   if ($status) then
+         echo "Failed to resample"
+         goto BEND  
+   endif            
+   if ($OneWarp) then
+      echo "Direct warping per parent transform ($rmode interpolation) ..."
+      3dWarp  ${OW}  -matparent ${ref_nopad} \
+            -gridset ${tmppref}_warp_grid${ref_view} \
+            -prefix ./${tmp_out_pref} -${rmode} \
+            ${tmppref}_ipad${anat_view}
+      if ($status) then
+         echo "Failed to warp"
+         goto BEND  
+      endif
+   else
+      #Keep old way involving two interpolations for backward
+      #compatibility
+      echo "Warping per parent transform ($rmode interpolation) and resampling with $resam interpolation (use -onewarp for single interpolation) ..."
+      3dWarp ${OW} -matparent ${ref_nopad} \
+            -prefix ./${tmp_out_pref} -${rmode} \
+            ${tmppref}_ipad${anat_view}
+      #Change view of master or else 3dresample will force a change
+      
+      if (${ref_view} == '') then
+         set ref_view = `3dinfo -av_space ${ref_in}`
+      endif
+      if ( -f ${tmppref}_warp_grid${anat_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmppref}_warp_grid${anat_view}.HEAD \
+                ${tmppref}_warp_grid${anat_view}.BRIK*
+      endif
+      3drefit -view ${anat_view} ${tmppref}_warp_grid${ref_view}
+      3dresample  -master ${tmppref}_warp_grid${anat_view} \
+               -prefix ./${tmp_out_pref} -inset ${tmp_out_pref}${anat_view} \
+               -rmode ${resam}  -overwrite
+      if ($status) then
+         echo "Failed to resample"
+         goto BEND  
+      endif
+   endif
+   if ( `@CheckForAfniDset ${tmp_out_pref}${anat_view}` != 2) then
+      echo "Error: Failed to create tlrced dset"
+      set estat = 1
+      goto END
+   endif
+   
+   
+   
+   if ($apar_copyWarpinfo) then
+      #If the tlrc dset with warp info is not the first in the directory,
+      #then AFNI may not be able to find appropriate warp and parent info
+      #This stuff here should help. 
+      #David Perlman got into this trouble with:
+      # @auto_tlrc -base TT_avg152T1+tlrc -input T1High+orig \
+      #             -ok_notice -suffix _ns
+      # followed by
+      # @auto_tlrc -apar T1High_ns+tlrc -input T1High+orig -suffix NONE
+      #
+      #copy the WARPDRIVE_MATVEC_ fields to the zero unpadded dude
+         set FromVol = ${ref_nopad}
+         set ToVol = ${tmp_out_pref}${anat_view}
+         set RET_copy_fields = APCW
+         goto COPY_FIELDS
+         APCW:    
+      
+      3drefit -wpar ${ref_nopad} ${tmp_out_pref}${anat_view}
+   endif
+   
+   # reset the space of the output to match the template space
+   3drefit -space $ref_space ${tmp_out_pref}${anat_view}
+
+   3dNotes  -a "Dataset created via: `basename $0` $argv[*]" \
+            -h "Dataset created via: `basename $0` $argv[*]" \
+            ${tmp_out_pref}${anat_view}
+   
+   if ("$isNIFTI" == 1 && -f ${out_pref}.nii || -f ${out_pref}.nii.gz) then
+      echo "ERROR: Final output ${out_pref}.nii.gz is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
+            echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
+            goto BEND
+   endif
+   
+   if ($KeepView == 0) then
+      echo "Changing view of xformed volumes"
+      if ( -f ${tmp_out_pref}${ref_view}.HEAD && $over == 1 \
+            && "${anat_view}" != "${ref_view}") then
+         \rm -f ${tmp_out_pref}${ref_view}.HEAD \
+                ${tmp_out_pref}${ref_view}.BRIK*
+      endif
+      3drefit -view ${ref_view} ${tmp_out_pref}${anat_view}.HEAD
+      if ("$isNIFTI" == 1) then
+            3dAFNItoNIFTI ${OW} -prefix ${out_pref}.nii \
+                          ${tmp_out_pref}${ref_view} 
+      else
+         if ( `@CheckForAfniDset ${out_pref}${ref_view}` < 1 || \
+              $over == 1) then
+            3drename ${OW} ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}
+         else
+            echo "ERROR: Final output ${out_pref}${ref_view} is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${ref_view} ${out_pref}${ref_view}"
+            echo "Transformed dataset ${tmp_out_pref}${ref_view} not renamed"
+            goto BEND
+         endif
+      endif
+   else
+      if ("$isNIFTI" == 1) then
+         3dAFNItoNIFTI $OW -prefix ${out_pref}.nii ${tmp_out_pref}${anat_view}
+      else
+         if ( `@CheckForAfniDset ${out_pref}${anat_view}` < 1 || \
+              $over == 1) then
+            3drename ${OW} ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}
+         else
+            echo "ERROR: Final output ${out_pref}${anat_view} is already on disk"
+            echo "   Aborted command:"
+            echo "   3drename ${tmp_out_pref}${anat_view} ${out_pref}${anat_view}"
+            echo "Transformed dataset ${tmp_out_pref}${anat_view} not renamed"
+            goto BEND
+         endif
+      endif
+   endif
+   
+   if ( $KeepTmp == 0) \rm -f ${tmppref}*+????.???? >& /dev/null
+
+   goto WRAP_UP
+#######################
+#End of apar block
+#######################
+
+
+WRAP_UP:
+#this time, cleanup and goto END
+if ($KeepTmp != 1) then 
+   set Ret_Clean = END
+   echo "Cleanup ..."
+   #Don't move this IF into CLEANUP, it is only to
+   #be executed at exit.
+   if ($#delete_this) then
+      foreach ff ($delete_this)
+         if ( -f "$ff") \rm -f "$ff" >& /dev/null 
+      end
+   endif
+   if ("${RNS}" != '') then
+      set kl = (`\ls *_${RNS}+????.HEAD *_${RNS}_shft+????.HEAD`)
+      foreach kk ($kl)
+         set k = `echo $kk | sed "s/_${RNS}//"`
+         3drename ${OW} $kk $k
+      end
+      set kl = (`\ls *_${RNS}_shft.1D`)
+      foreach kk ($kl)
+         set k = `echo $kk | sed "s/_${RNS}//"`
+         mv $kk $k
+      end
+   endif
+   if ($delete_pre == 1) \rm -f pre.*+????.[HB]??? >& /dev/null
+   goto CLEANUP
+else
+   goto END
+endif
+
+
+goto END
+
+#ONLY SUB-ROUTINES BELOW
+
+CLEANUP:
+\rm -f ${tmppref}*ref*.????*     >& /dev/null
+\rm -f ${tmppref}*_reg*.????*     >& /dev/null
+\rm -f ${tmppref}*_resam*.????*   >& /dev/null
+\rm -f ${tmppref}*_rs*.????*      >& /dev/null
+\rm -f ${tmppref}*_pad*.????*     >& /dev/null
+\rm -f ${tmppref}_acpc*.????*     >& /dev/null
+\rm -f ${tmppref}*gridout*.????*  >& /dev/null
+\rm -f ${tmppref}*ipad*.????*  >& /dev/null
+\rm -f ${tmppref}_MP* >& /dev/null
+\rm -f ${tmppref}*upad*.????*  >& /dev/null
+\rm -f ${tmppref}*warp_grid*.????*  >& /dev/null
+\rm -f ${tmppref}*_shft*.????*  >& /dev/null
+goto $Ret_Clean
+
+SET_REF_PATH:
+set ref_path = $ref_in:h
+if ( "$ref_path" == "$ref_in" ) then
+   #echo "No Path specified ( $ref_path == $ref_in )" 
+   set ref_path = "."
+   if ($apar_mode == 1) then
+      goto END_REF_SEARCH
+   endif
+   #if not in apar mode, try to set the path
+   if ( `@CheckForAfniDset ${ref_in}` == 2  || -f ${ref_in}) then
+      if ($verb) echo "Template dset ${ref_in} found."
+      goto END_REF_SEARCH
+   endif
+   
+   set ref_path = `@FindAfniDsetPath $ref_in`
+   if ( "$ref_path" == '' ) then
+      set ref_path = "."
+      echo "Error: Template $ref_in could not be located"
+      set estat = 1
+      goto END
+   endif
+   #echo "try finding ref_in in new ref_path"
+   if ( `@CheckForAfniDset ${ref_path}/${ref_in}` < 2 ) then
+      echo "Error: Template dset ${ref_in} not found"
+      echo "   in afni's binaries directory"
+      set estat = 1
+      goto END
+   endif
+   if ($verb) echo "Using template from ${ref_path} ..."
+   set ref_in = ${ref_path}/${ref_in}
+else
+   # echo "Path specified (${ref_path}), stay out of this"
+
+   # still check for existing dataset    30 Jul 2015 [rickr]
+   if ( `@CheckForAfniDset ${ref_in}` < 2 ) then
+      echo "Error: template (or -apar) dset not found: ${ref_in}"
+      goto BEND
+   endif
+
+endif
+
+END_REF_SEARCH:
+if ($copy_base ==  "LIST" ) then
+   echo "$ref_in"
+   if ($anat_in == '' && $apar_mode == 0) goto END
+else if ($copy_base != "" ) then
+   3dcopy $ref_in $copy_base
+   if ($anat_in == '' && $apar_mode == 0) goto END
+endif
+#echo $copy_base
+
+
+goto SET_REF_PATH_RETURN
+
+HELP:
+   if (1) then
+echo "Usage 1: A script to transform an antomical dataset to align with"
+echo "         some standard space template."
+echo ""
+echo "   `basename $0` [options] <-base template> <-input anat>"
+echo "   Mandatory parameters:"
+echo "      -base template :  Reference anatomical volume"
+echo "                        Usually this volume is in some standard space like"
+echo "                        TLRC or MNI space and with afni dataset view of"
+echo "                        (+tlrc)."
+echo "                        Preferably, this reference volume should have had"
+echo "                        the skull removed but that is not mandatory."
+echo "                        AFNI's distribution contains several templates."
+echo '                        For a longer list, use "whereami -show_templates"'
+echo "          TT_N27+tlrc --> Single subject, skull stripped volume."
+echo "                       This volume is also known as "
+echo "                       N27_SurfVol_NoSkull+tlrc elsewhere in "
+echo "                       AFNI and SUMA land."
+echo "                       (www.loni.ucla.edu, www.bic.mni.mcgill.ca)"
+echo "                       This template has a full set of FreeSurfer"
+echo "                       (surfer.nmr.mgh.harvard.edu)"
+echo "                       surface models that can be used in SUMA. "
+echo "                       For details, see Talairach-related link:"
+echo "                       https://afni.nimh.nih.gov/afni/suma"
+echo "          TT_icbm452+tlrc --> Average volume of 452 normal brains."
+echo "                           Skull Stripped. (www.loni.ucla.edu)"
+echo "          TT_avg152T1+tlrc --> Average volume of 152 normal brains."
+echo "                           Skull Stripped.(www.bic.mni.mcgill.ca)"
+echo "          TT_EPI+tlrc --> EPI template from spm2, masked as TT_avg152T1"
+echo "                          TT_avg152 and TT_EPI volume sources are from"
+echo "                          SPM's distribution. (www.fil.ion.ucl.ac.uk/spm/)"
+echo ""
+echo "          If you do not specify a path for the template, the script"
+echo "          will attempt to locate the template AFNI's binaries directory."
+echo ""
+echo "          NOTE: These datasets have been slightly modified from"
+echo "                their original size to match the standard TLRC"
+echo "                dimensions (Jean Talairach and Pierre Tournoux"
+echo "                Co-Planar Stereotaxic Atlas of the Human Brain"
+echo "                Thieme Medical Publishers, New York, 1988). "
+echo "                That was done for internal consistency in AFNI."
+echo "                You may use the original form of these"
+echo "                volumes if you choose but your TLRC coordinates"
+echo "                will not be consistent with AFNI's TLRC database"
+echo "                (San Antonio Talairach Daemon database), for example."
+echo "      -input anat    :  Original anatomical volume (+orig)."
+echo "                        The skull is removed by this script"
+echo "                        unless instructed otherwise (-no_ss)."
+echo "   Optional parameters:"
+echo "      -no_ss         :  Do not strip skull of input data set"
+echo "                        (because skull has already been removed"
+echo "                        or because template still has the skull)"
+echo "      NOTE: The -no_ss option is not all that optional."
+echo "         Here is a table of when you should and should not use -no_ss"
+echo "   "
+echo "                        Template          Template"
+echo "                        WITH skull        WITHOUT skull"
+echo "         Dset."
+echo "         WITH skull      -no_ss            xxx "
+echo "         "
+echo "         WITHOUT skull   No Cigar          -no_ss"
+echo "         "
+echo "         Template means: Your template of choice"
+echo "         Dset. means: Your anatomical dataset"
+echo "         -no_ss means: Skull stripping should not be attempted on Dset"
+echo "         xxx means: Don't put anything, the script will strip Dset"
+echo "         No Cigar mean: Don't try that combination, it makes no sense."
+echo "               "
+echo "      -warp_orig_vol: Produce a TLRC version of the input volume, rather"
+echo "                      than a TLRC version of the skull-stripped input."
+echo "                      This option is useful if you want the skull to be "
+echo "                      preserved in the +tlrc output. "
+echo "                      The default is to produce the skull-stripped version"
+echo "                      of the input in +tlrc space."
+echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
+echo "                          space. Default is the resolution of the "
+echo "                          template. If you do not want your output"
+echo "                          voxels to be cubic, then use the "
+echo "                          -dx, -dy, -dz options below."
+echo "      -dx MX            : Size of voxel in the x direction"
+echo "                          (Right-Left). Default is 1mm."
+echo "      -dy MY            : Size of voxel in the y direction"
+echo "                          (Anterior-Posterior). Default is 1mm."
+echo "      -dz MZ            : Size of voxel in the z direction."
+echo "                          (Inferior-Superior). Default is 1mm."
+echo "      -pad_base  MM  :  Pad the base dset by MM mm in each directions."
+echo "                        That is needed to  make sure that datasets"
+echo "                        requiring wild rotations do not get cropped."
+echo "                        Default is MM = $pd_default."
+echo "                        If your output dataset is clipped, try increasing"
+echo "                        MM to `ccalc -eval $pd_default+10` or "
+echo "                              `ccalc -eval $pd_default+20`."
+echo "                        If that does not help, make sure"
+echo "                        that the skull-stripped volume has no clipping."
+echo "                        If it does, then the skull stripping needs to"
+echo "                        be corrected. Feel free to report such instances"
+echo "                        to the script's authors." 
+echo "      -keep_tmp      :  Keep temporary files."
+echo "      -clean         :  Clean all temp files, likely left from -keep_tmp"
+echo "                        option then exit."
+echo "      -xform  XFORM  : Transform to use for warping:"
+echo "                       Choose from affine_general or shift_rotate_scale"
+echo "                       Default is affine_general but the script will"
+echo "                       automatically try to use shift_rotate_scale "
+echo "                       if the alignment does not converge."
+echo "      -no_avoid_eyes : An option that gets passed to 3dSkullStrip."
+echo "                       Use it when parts of the frontal lobes get clipped"
+echo "                       See 3dSkullStrip -help for more details."
+echo "      -ncr           : 3dWarpDrive option -coarserot is now a default."
+echo "                       It will cause no harm, only good shall come of it."
+echo "                       -ncr is there however, should you choose NOT TO"
+echo "                       want coarserot used for some reason"
+echo "      -onepass       : Turns off -twopass option for 3dWarpDrive. This will"
+echo "                       speed up the registration but it might fail if the "
+echo "                       datasets are far apart.          "
+echo "      -twopass       : Opposite of -onepass, default."
+echo "      -maxite NITER  : Maximum number of iterations for 3dWarpDrive."
+echo "                       Note that the script will try to increase the "
+echo "                       number of iterations if needed. "
+echo "                       When the maximum number of iterations is reached"
+echo "                       without meeting the convergence criteria,"
+echo "                       the script will double the number of iterations"
+echo "                       and try again. If the second pass still fails,"
+echo "                       the script will stop unless the user specifies the"
+echo "                       -OK_maxite option."
+echo "      -OK_maxite     : See -maxite option."
+echo "      -inweight      : Apply -weight INPUT (in 3dWarpDrive)."
+echo "                       By default, 3dWarpDrive uses the BASE dataset to"
+echo "                       weight the alignment cost.  Use this option to"
+echo "                       weight via the INPUT dataset, instead."
+echo "                       This might be useful for partial coverage cases."
+echo "      -rigid_equiv   : Also output a the rigid-body version of the "
+echo "                       alignment. This would align the brain with"
+echo "                       TLRC axis without any distortion. Note that"
+echo "                       the resultant .Xrigid volume is NOT in TLRC"
+echo "                       space. Do not use this option if you do not"
+echo "                       know what to do with it!"
+echo "                       For more information on how the rigid-body"
+echo "                       equivalent transformation is obtained, see"
+echo "                       cat_matvec -help 's output for the -P option. "
+echo "      -init_xform XFORM0.1D: Apply affine transform in XFORM0.1D before"
+echo "                       beginning registration and then include XFORM0.1D"
+echo "                       in the final xform."
+echo "                       To verify that XFORM0.1D does what you think"
+echo "                       it should be doing, try:"
+echo "                 3dWarp    -matvec_out2in XFORM0.1D \\"
+echo "                           -prefix pre.anat anat+orig"
+echo "                       and verify that 'pre.anat+orig' is"
+echo "                       transformed by XFORM0.1D as you expected it to be."
+echo ""
+echo "                    XFORM0.1D can be obtained in a variety of ways. "
+echo "                    One of which involves extracting it from a transformed"
+echo "                    volume."
+echo "                    For example, say you want to perform an initial"
+echo "                    rotation that is equivalent to: "
+echo "                 3drotate -matvec_order RotMat.1D \\"
+echo "                          -prefix struct.r struct+orig "
+echo "                    The equivalent XFORM0.1D is obtained with:\n"
+echo "                 cat_matvec 'struct.r+orig::ROTATE_MATVEC_000000' -I \\"
+echo "                           > XFORM0.1D  "
+echo ""
+echo "                    See cat_matvec -help for more details on extracting"
+echo "                    appropriate affine transforms from dataset headers."
+echo ""
+echo "          Note: You can also use -init_xform AUTO_CENTER to automatically"
+echo "                run @Align_Centers if the centers are off by more than "
+echo "                40 mm. "
+echo "                AUTO_CENTER_CM would do the centering based on the"
+echo "                center of mass rather than the center of the volume grids."
+echo ""
+echo "                You can force centering with -init_xform CENTER"
+echo "                or with -init_xform CENTER_CM regardless of the center"
+echo "                distance between volumes"
+echo ""
+echo "      -no_pre: Delete temporary dataset created by -init_xform"
+echo ""  
+echo "      -out_space spacename: Set output to a particular space"
+echo "                       Usually, output space is determined by the space"
+echo "                       of the input template and does not need to set"
+echo "                       explicitly here"
+echo ""
+echo "      -overwrite: Overwrite existing output. "
+echo "                  With this option, 3dSkullstrip will get rerun even"
+echo "                  if skull stripped volume is found on disk, unless of"
+echo "                  course you use the -no_ss option."
+echo "                  This option has not been fully tested under the myriad"
+echo "                  combinations possible. So check closely the first"
+echo "                  time you use it, if use it you must" 
+echo ""                      
+echo "Note on the subject of transforms:"
+echo "   The script will output the final transform in a 1D file with the"
+echo "   extension Xat.1D, say THAT_NAME.1D"
+echo "   Call this transform Mt and let Xt and Xo be the 4x1 column vectors"
+echo "   coordinates of the same voxel in standard (t) and original (o)"
+echo "   space, respectively. The transform is such that Xo = Mt Xt "
+echo "   You can use this transform to manually warp a volume in orig"
+echo "   space to the standard space with:"
+echo ""
+echo "      3dWarp -matvec_out2in THAT_NAME.Xat.1D -prefix PPP SOME_VOL+orig."
+echo "      3drefit -view +tlrc PPP+orig"
+echo ""
+echo "   Example:"
+echo "   `basename $0` -base TT_N27+tlrc. -input SubjectHighRes+orig."
+echo "    (the output is named SubjectHighRes+TLRC, by default."
+echo "     See -suffix for more info.)"
+echo ""
+echo "Usage 2: A script to transform any dataset by the same TLRC "
+echo "         transform obtained with `basename $0` in Usage 1 mode"
+echo ""
+echo "         Note: You can now also use adwarp instead."
+echo ""
+echo "   `basename $0` [options] <-apar TLRC_parent> <-input DSET>"
+echo "   Mandatory parameters:"
+echo "      -apar TLRC_parent : An anatomical dataset in tlrc space"
+echo "                          created using Usage 1 of `basename $0`"
+echo "                          From the example for usage 1, TLRC_parent"
+echo "                          would be: SubjectHighRes+TLRC"
+echo "      -input DSET       : Dataset (typically EPI time series or"
+echo "                          statistical datset) to transform to"
+echo "                          tlrc space per the xform in TLRC_parent"
+echo "      -dxyz MM          : Cubic voxel size of output DSET in TLRC"
+echo "                          space Default MM is 1. If you do not"
+echo "                          want your output voxels to be cubic"
+echo "                          Then use the -dx, -dy, -dz options below."
+echo "      -dx MX            : Size of voxel in the x direction"
+echo "                          (Right-Left). Default is 1mm."
+echo "      -dy MY            : Size of voxel in the y direction"
+echo "                          (Anterior-Posterior). Default is 1mm."
+echo "      -dz MZ            : Size of voxel in the z direction."
+echo "                          (Inferior-Superior).Default is 1mm."
+echo "   Optional parameters:"
+echo "      -pad_input  MM    :  Pad the input DSET by MM mm in each direction."
+echo "                        That is needed to  make sure that datasets"
+echo "                        requiring wild rotations do not get cropped."
+echo "                        Default is MM = $pd_default."
+echo "                        If your output dataset is clipped, try increasing"
+echo "                        MM to `ccalc -eval $pd_default+10` or "
+echo "                              `ccalc -eval $pd_default+20`."
+echo "                        If that does not help, report the"
+echo "                        problem to the script's authors."
+echo "      -onewarp          : Create follower data with one interpolation"
+echo "                          step, instead of two. "
+echo "                          This option reduces blurring of the output data."
+echo "                          It is not used by default for backward"
+echo "                          compatibility."
+echo "" 
+echo "   Example:"
+echo "   `basename $0`  -apar SubjectHighRes+tlrc. \\"
+echo "                  -input Subject_EPI+orig. -dxyz 3"
+echo "    (the output is named Subject_EPI_at+TLRC, by default."
+echo ""
+echo "Common Optional parameters:"
+echo "   -rmode     MODE:  Resampling mode. Choose from:"
+echo "                     linear, cubic, NN or quintic ."
+echo "                     Default for 'Usage 1' is Linear."
+echo "               Notice: Prior to 07/2010 -help output incorrecly stated"
+echo "                     that rmode controlled interpolation in usage 1"
+echo "                     and that it was 'quintic' by default. "
+echo "                     In fact, until this version, rmode did not affect"
+echo "                     'Usage 1', and interpolation was linear"
+echo "                     Default for 'Usage 2' is quintic for 3dWarp,"
+echo "                      followed by Bk for the 3dresample step."
+echo "                     See option -onewarp for avoiding two interpolations"
+echo "   -suffix    SUF :  Name the output dataset by append SUF "
+echo "                     to the prefix of the input data for the output."
+echo "                     Default for SUF is NONE (see below)"
+echo "              NOTE:  You can now set SUF to 'none' or 'NONE' and enable"
+echo "                     afni's warp on demand features."
+echo "                     With NIFTI input volumes -suffix defaults to _at"
+echo "   -keep_view     :  Do not mark output dataset as +tlrc"
+echo "   -base_copy COPY_PREFIX: Copy base (template) dataset into COPY_PREFIX."
+echo "                           You can use ./ for COPY_PREFIX if you"
+echo "                           want the copy to have the same name as the"
+echo "                           template."
+echo "   -base_list     : List the full path of the base dataset"
+echo "   -verb          :  Yakiti yak yak" 
+echo ""
+echo ""
+echo "When you're down and troubled and you need a helping hand:"
+echo "   1- Oh my God! The brain is horribly distorted (by Jason Stein):"
+echo "      The probable cause is a failure of 3dWarpDrive to converge."
+echo "      In that case, rerun the script with the option "
+echo "      -xform shift_rotate_scale. That usually takes care of it."
+echo "      Update:"
+echo "      The script now has a mechanism for detecting cases "
+echo "      where convergence is not reached and it will automatically"
+echo "      change -xform to fix the problem. So you should see very "
+echo "      few such cases. If you do, check the skull stripping"
+echo "      step for major errors and if none are found send the"
+echo "      authors a copy of the command you used, the input and base"
+echo "      data and they'll look into it."
+echo "   2- Parts of the frontal cortex are clipped in the output:"
+echo "      That is likely caused by aggressive skull stripping."
+echo "      When that happens, use the -no_avoid_eyes option."
+echo "   3- Other parts of the brain are missing:"
+echo "      Examine the skull stripped version of the brain"
+echo "      If the source of the problem is with the stripping,"
+echo "      then you'll need to run 3dSkullStrip manually and "
+echo "      select the proper options for that dataset."
+echo "      Once you have a satisfactorily stripped brain, use that"
+echo "      version as input to @auto_tlrc along with the -no_ss option."
+echo "   4- Skull stripped dataset looks OK, but TLRC output is clipped."
+echo "      Increase the padding from the default value by little more "
+echo '      than the size of the clipping observed. (see -pad_* '
+echo "      options above)"
+echo "   5- The high-res anatomical ends up at a lower resolution: "
+echo "      That is because your template is at a lower resolution."
+echo "      To preserve (or control) the resolution of your input,"
+echo "      run @auto_tlrc in usage 2 mode and set the resolution"
+echo '      of the output with the -d* options.'
+echo "   6- I want the skulled anatomical, not just the stripped"
+echo "      anatomical in TLRC space:"
+echo "      Use @auto_tlrc in usage 2 mode."
+echo "   7- What if I want to warp EPI data directly into TLRC space?"
+echo "      If you have an EPI template in TLRC space you can use it"
+echo "      as the base in @auto_tlrc, usage 1 mode. You can use whatever"
+echo "      you want as a template. Just make sure you are warping"
+echo "      apples to oranges, not apples to bananas for example."
+echo "   8- Bad alignment still:"
+echo "      Check that the center of your input data set is not too"
+echo "      far off from that of the template. Centers (not origins)"
+echo "      of the templates we have are close to 0, 0, 0. If your"
+echo "      input dataset is 100s of mm off center then the alignment"
+echo "      will fail. "
+echo "      The easiest way around this is to add -init_xform AUTO_CENTER"
+echo "      to your command. If that still fails you can try to manually"
+echo "      shift all of the input data in your session by an equal amount"
+echo "      to get the centers closer to zero."
+echo "      For example, say the center of your subject's volumes"
+echo "      is around 100, 100, 100. To shift the centers close to 0, 0, 0 do:"
+echo "      3drefit -dxorigin -100 -dyorigin -100 -dzorigin -100 Data+orig"
+echo "      Then use @auto_tlrc on the shifted datasets."     
+echo "      Take care not to shift datasets from the same session by differing"
+echo "      amounts as they will no longer be in alignment." 
+echo ""
+@global_parse -gopts_help
+echo ""
+echo "Written by Ziad S. Saad (saadz@mail.nih.gov)"
+echo "                        SSCC/NIMH/NIH/DHHS"
+echo ""
+      goto END
+   endif
+
+WARN_notice:
+   #Check if templates are new
+   set info = `3dinfo -verb $ref_in`
+   set vvv = `echo "$info" | grep 'Dataset in' | grep 'coordinate space'`
+   if ("$vvv" == "") then
+      set vers_str = "Old version of TT_avg152 template found."
+echo ""
+echo "Error:"
+echo "It looks like your version of template $ref_nopad is old,"
+echo "and in MNI space."
+echo "Please download new corrected version of this template "
+echo "and of ${alternate}+tlrc "
+echo "to work with this version of `basename $0` ."
+echo "New template versions are available from https://afni.nimh.nih.gov/pub/dist/tgz" 
+echo ""
+      goto END
+   else
+      set vers_str = "Corrected version of TT_avg152 template found."
+      echo ""
+      echo $vers_str
+      echo ""
+      set ap = "`@FindAfniDsetPath ${alternate}+tlrc`"
+      if ("$ap" == "") then
+echo ""
+echo "${alternate}+tlrc not found. I recommend you download it in case you"
+echo "want to reuse the older (MNI space) version of $ttt_pref"
+echo "Old version is now available here: https://afni.nimh.nih.gov/pub/dist/tgz"
+echo ""
+      endif
+   endif
+   if ($ok_notice != 1) then
+echo ""
+echo "Warning:"
+echo "Because of the error in older versions of TT_avg152 template, this script"
+echo "requires that you use the flag -ok_notice to proceed."
+echo "Before proceeding, DO check the error message at:"
+echo "   https://afni.nimh.nih.gov/afni/MOTD/MOTD_2006_10_12.txt " 
+echo "To produce results using the old version of the template, "
+echo "use template ${alternate}+tlrc ."
+echo ""
+      goto END
+   else 
+      goto OK_notice
+   endif
+   
+COPY_FIELDS:
+   set fl = (  WARPDRIVE_INPUT_IDCODE        WARPDRIVE_INPUT_NAME \
+               WARPDRIVE_BASE_IDCODE         WARPDRIVE_MATVEC_FOR_000000   \
+               WARPDRIVE_MATVEC_FOR_000000   WARPDRIVE_MATVEC_INV_000000   )
+   foreach ff ($fl)
+      #Redirect to /dev/null to avoid FATAL ERROR alarm when some 
+      #attributes are not present.
+      3drefit  -atrcopy $FromVol \
+                $ff     $ToVol  >& /dev/null
+   end
+   goto $RET_copy_fields
+   
+APPLY_MASK:      
+   echo "Applying brain mask"
+   3dcalc   ${OW} -a "${mskvol}" -overwrite \
+            -expr "step(a)*10000" -prefix ./${tmppref}_reg_braintlrcstep
+   3dWarp   ${OW} -matparent ${mskwrppar} -overwrite \
+            -gridset ${ttvolpref}${anat_view}   \
+            -linear -prefix ./${tmppref}_reg_braintlrcmask \
+            ${tmppref}_reg_braintlrcstep${anat_view}    
+   3drename ${OW} ${ttvolpref}${anat_view} ${ttvolpref}${nomskpref}
+   3dcalc   ${OW} -a "${tmppref}_reg_braintlrcmask${anat_view}" \
+            -b "${ttvolpref}${nomskpref}${anat_view}" \
+            -expr "step(a-5000)*b" \
+            -prefix ./${ttvolpref}${anat_view}
+   goto $RET_apply_mask 
+
+goto END
+
+BEND:
+   set estat = 1
+   goto END
+   
+END:
+   exit $estat

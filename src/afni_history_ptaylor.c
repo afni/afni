@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 29, Aug , 2019 , PT , "@auto_tlrc" , MAJOR , TYPE_GENERAL,
+   "RE-introducing the program '@auto_tlrc' to the distribution.",
+   "It had been mistakenly deleted somehow.\n"
+},
+
 { 29, Aug , 2019 , PT , "lib_gershgorin.py" , MICRO , TYPE_GENERAL,
    "Updated to change way aff12.1D files were read.",
    "No change in calculated outputs.\n"
