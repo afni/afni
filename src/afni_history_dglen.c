@@ -50,6 +50,18 @@
 
 
 afni_history_struct dglen_history[] = {
+ 
+{ 30, AUG, 2019, DRG, "@animal_warper", MINOR, TYPE_NEW_OPT,
+    "more options+fixes",
+    "AFNI view reset for NIFTI\n"
+    "feature_size and supersize options for smaller animals"
+},
+
+{ 30, AUG, 2019, DRG, "align_epi_anat.py", MINOR, TYPE_NEW_OPT,
+    "supersize",
+    "supersize - larger range of scaling for smaller animals to template"
+},
+ 
 { 29, AUG, 2019, DRG, "@animal_warper", MINOR, TYPE_NEW_OPT,
     "slew of options",
     "ok_to_exist for restarts, template and segmentation output\n"

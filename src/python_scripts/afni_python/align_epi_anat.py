@@ -599,7 +599,7 @@ g_help_string = """
 ## BEGIN common functions across scripts (loosely of course)
 class RegWrap:
    def __init__(self, label):
-      self.align_version = "1.60" # software version (update for changes)
+      self.align_version = "1.61" # software version (update for changes)
       self.label = label
       self.valid_opts = None
       self.user_opts = None
@@ -632,7 +632,8 @@ class RegWrap:
       self.flip = 0        # don't test for left/right flipping
       self.flip_giant = 0  # don't necessarily use giant_move for L-R flipping test
       self.giant_move = 0  # don't use giant_move
-      
+      self.supersize = 0   # don't use supersize
+            
       # options for saving temporary datasets permanently
       self.save_Al_in = 0  # don't save 3dAllineate input files
       self.save_tsh = 0    # don't save tshifted epi
@@ -729,6 +730,10 @@ class RegWrap:
                        "cmass options and wide angles and shifts")
       self.valid_opts.add_opt('-ginormous_move', 0, [], \
                helpstr="Adds align_centers to giant_move")
+      self.valid_opts.add_opt('-supersize', 0, [], \
+               helpstr="Large scaling difference - up to 50%")
+
+
       self.valid_opts.add_opt('-rigid_body', 0, [], \
                helpstr="Do only rigid body alignment - shifts and rotates")
 
@@ -1400,6 +1405,12 @@ class RegWrap:
       if(opt3): # ginormous option
          ps.align_centers = 1
 
+      #supersize - allow for large scale changes
+      opt = self.user_opts.find_opt('-supersize')
+      if(opt):
+         ps.AlOpt =  \
+         "%s -maxscl 1.5" % ps.AlOpt
+       
       #giant_move?
       opt = self.user_opts.find_opt('-flip_giant')
       if(opt): ps.flip_giant = 1;
