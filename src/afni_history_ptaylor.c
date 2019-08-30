@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 30, Aug , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opts: -edge_enhance_ulay EE, -obliquify OBL.",
+   "Different way to enhance edges of ulay, and apply obliquity info.\n"
+},
+
 { 30, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_BUG_FIX,
    "Fix input opt to change blur size; was broken before, crashing prog.",
    "Thanks, L. Dowdle for finding!.\n"
