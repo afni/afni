@@ -56,9 +56,16 @@
 # + [PT] fix examples (use correct/newer opt names)
 # + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
 #
-ver='2.21' ; date='Aug 27, 2019'
+#ver='2.21' ; date='Aug 27, 2019'
 # + [PT] update help file and descriptions (param text, for example)
 # + [PT] add in more fields to param text output
+#
+#ver='2.22' ; date='Aug 29, 2019'
+# + [PT] update help file
+#
+ver='2.3' ; date='Aug 30, 2019'
+# + [PT] add this set_blur_sigma() method, which had been
+#        forgotten... Thanks, L. Dowdle!
 #
 ##########################################################################
 
