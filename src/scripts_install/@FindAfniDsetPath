@@ -16,23 +16,43 @@
 # [DRG: 13 Aug 2019]
 # + Added AFNI_SUPP_ATLAS_DIR to the list of environment paths.
 # + Added atlas name -> dataset file search via whereami
+# + append file name to output
+# [DRG: 31 Aug 2019]
+# + full_path option - include full path in output instead of .
+# + better option processing of argv
 
-# separate length check
 set retval = 0
 # default is to print only path and not file name
 set append_file = 0
+# if in current directory, default is to print ./
+set full_path = 0
 
-if ( $#argv > 2 ) then
+set ref_in = ""
+
+if ($#argv == 0) then
    # bad usage sets error status        29 Dec 2015 [rickr]
    set retval = 1
    goto HELP
 endif
-if ( "$argv[1]" == "-help") goto HELP
-if ( "$argv[1]" == "-append_file") then
-   set append_file = 1
-   set ref_in = $2
-else
-   set ref_in = $1
+
+# process user options
+set ac = 1
+while ($ac <= $#argv)
+    if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+        goto HELP
+    else if ( "$argv[$ac]" == "-append_file") then
+         set append_file = 1
+    else if ( "$argv[$ac]" == "-full_path") then
+         set full_path = 1
+    else 
+         set ref_in = $argv[$ac]
+    endif
+    @ ac ++
+end
+
+if ($ref_in == "") then
+   echo "No datasets on command line?"
+   exit 1
 endif
 
 set dataset_path = './'
@@ -59,6 +79,9 @@ set ref_file = ` ParseName ${ref_in} | grep "FileName "|awk -F: '{print $2}'`
 set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
     set result = `@CheckForAfniDset ${ref_in}`
+    if (($full_path == 1) && ($dir == ".")) then
+        set dir = `pwd`
+    endif
     if ( "$result" == 2 || "$result" == 3 ) then
         if($append_file == 0) then
            echo $dir
@@ -114,6 +137,9 @@ foreach dir ( ${dataset_path} )
     set result = `@CheckForAfniDset ${dir}/${ref_in}`
     if ( "$result" == 2 || "$result" == 3 ) then
 
+        if (($dir == "./") && ($full_path == 1)) then
+            set dir = `pwd`
+        endif
         # remove last character if "/"
         set out = `echo $dir | sed 's/\/$//'`
         if($append_file == 0) then
@@ -165,6 +191,7 @@ given, then atlas dataset file name is found (and possibly printed with
 append_file option below
 
    -append_file show the file appended too (even with atlas name)
+   -full_path print full path instead of '.'   
    -help to get this message
 
 + [Oct 15, 2018] Updated to do a better job searching for NIFTIs and

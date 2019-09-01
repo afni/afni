@@ -116,41 +116,59 @@ while ($ac <= $#argv)
         while ($ac <= $#argv)
             # go until an option starting with a hyphen appears
             set poss_dset = `echo $argv[$ac] | grep -- "^-"`
-            # starts with a hyphen - next option
-            if ($poss_dset == $argv[$ac]) then
-               @ ac --
-               continue
+            # if the next argument starts with a hyphen
+            # then the grep gives back the same argument
+            # that means we're on to the next option
+            # instead of a dataset
+            if ("$argv[$ac]" == "$poss_dset") then
+               @ ac --               
+               break
             # not a hyphen leading option, should be dataset 
             else
+               set tempfollow = $argv[$ac] 
+               # is the dataset somewhere else or current directory
+               set tempfollow = `@FindAfniDsetPath -append_file -full_path $tempfollow`
                # add the dataset to the template follower list
-               template_followers = ($template_followers $argv[$ac])
+               set template_followers = ($template_followers $tempfollow)
             endif
             @ ac ++ 
         end
-        if ( $template_followers == "" ) then
-            echo "** missing dataset for option '-template_followers'"
+        if ( "$#template_followers" == "0" ) then
+            echo "** missing dataset for option template_followers"
             exit 1
         endif
+#        @ ac --
+
+    else if (3 == 1) then
+       echo never here    
     else if ("$argv[$ac]" == "-seg_followers") then
         @ ac ++
         while ($ac <= $#argv)
             # go until an option starting with a hyphen appears
             set poss_dset = `echo $argv[$ac] | grep -- "^-"`
-            # starts with a hyphen - next option
-            if ($poss_dset == $argv[$ac]) then
+            # if the next argument starts with a hyphen
+            # then the grep gives back the same argument
+            # that means we're on to the next option
+            # instead of a dataset
+            if ("$argv[$ac]" == "$poss_dset") then
                @ ac --
-               continue
+               break
             # not a hyphen leading option, should be dataset 
             else
+               set segfollow = $argv[$ac] 
+               # is the dataset somewhere else or current directory
+               set segfollow = `@FindAfniDsetPath -append_file -full_path $segfollow`
                # add the dataset to the segmentation follower list
-               seg_followers = ($seg_followers $argv[$ac])
+               set seg_followers = ($seg_followers $segfollow)
             endif
             @ ac ++ 
         end
-        if ( $seg_followers == "" ) then
+        if ( $#seg_followers == 0 ) then
             echo "** missing dataset for option '-seg_followers'"
             exit 1
         endif
+#        @ ac --        
+
     else if ("$argv[$ac]" == "-feature_size") then
         @ ac ++
         if ( $ac > $#argv ) then
@@ -167,6 +185,7 @@ while ($ac <= $#argv)
     endif        
     @ ac ++
 end
+
 
 # check for basic necessities
 if ($dset == "") then
@@ -535,7 +554,7 @@ foreach temple_dset ($template_followers)
    else 
       3dNwarpApply -overwrite -short -nwarp \
             "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
-             -source $temple_dset -master ${dsetprefix}_aff.nii.gz \
+             -source $temple_dset -master ${dsetprefix}.nii.gz \
              -prefix ${temple_prefix}_in_${origdsetprefix}.nii.gz
       
       # put back in non-shifted version (really native space) 
@@ -575,9 +594,9 @@ end
        if ($segm_dset == $segset) then
           set seg_prefix = $segname
        else
-          set seg_prefix = `@GetAfniPrefix $temple_dset`
-          set seg_prefix = `basename $temple_prefix .gz`
-          set seg_prefix = `basename $temple_prefix .nii`
+          set seg_prefix = `@GetAfniPrefix $segm_dset`
+          set seg_prefix = `basename $seg_prefix .gz`
+          set seg_prefix = `basename $seg_prefix .nii`
        endif
        
        if (($ok_to_exist == "1") && (-f  ${seg_prefix}_in_${origdsetprefix}.nii.gz)) then
@@ -588,7 +607,7 @@ end
            # use concatenated affine and nonlinear warp to go back to shifted original space
            3dNwarpApply -ainterp NN -short -overwrite -nwarp \
              "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
-              -source $segm_dset -master ${dsetprefix}_aff.nii.gz \
+              -source $segm_dset -master ${dsetprefix}.nii.gz \
               -prefix ${seg_prefix}_in_${origdsetprefix}.nii.gz
        
            # put back in non-shifted version (really native space) 

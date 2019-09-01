@@ -50,6 +50,14 @@
 
 
 afni_history_struct dglen_history[] = {
+
+{ 31, AUG, 2019, DRG, "@FindAfniDsetPath", MICRO, TYPE_NEW_OPT,
+    "full_path option - full path for current path"
+},
+  
+{ 31, AUG, 2019, DRG, "@animal_warper", MICRO, TYPE_BUG_FIX,
+    "follower fixes"
+},
  
 { 30, AUG, 2019, DRG, "@animal_warper", MINOR, TYPE_NEW_OPT,
     "more options+fixes",
