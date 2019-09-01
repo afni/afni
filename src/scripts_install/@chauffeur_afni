@@ -5,6 +5,9 @@
 
 # update fatcats for ulays, as well!
 
+# !!!! add in obliquity resampling!!
+
+
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # -----------------------------------------------------------------
@@ -224,11 +227,23 @@
 #   + [PT] can now include ulay range and comments directly in pbar txt file
 #   + [PT] added new option to comment on ulay with pbar: -ulay_comm
 #
-set version   = "5.72"; set rev_dat   = "Aug 26, 2019"
+#set version   = "5.72"; set rev_dat   = "Aug 26, 2019"
 #   + [PT] switch order of '-com ...' commands, to be more general;
 #          should NOT affect most behavior (only should be better now
 #          on systems where image viewers don't open automatically,
 #          e.g., biowulf)
+#
+#set version   = "5.8"; set rev_dat   = "Aug 29, 2019"
+#   + [PT] allow obliquity information to be applied, in one of three
+#          ways:
+#            + send both ulay and olay to scanner coords
+#            + send ulay to olay oblique coords
+#            + send olay to ulay oblique coords
+#
+set version   = "5.9"; set rev_dat   = "Aug 30, 2019"
+#   + [PT] finish obliquity cases, and include refbox considerations
+#   + [PT] add '-edge_enhance_ulay EE' opt, to enhance edges of ulay
+#          with 3dedge3 info-- nice idea, D. Glen!
 #
 # =====================================================================
 
@@ -319,8 +334,13 @@ set pord    = ( "sag"      "cor"     "axi"   )
 
 set subbb   = ( -1 -1 -1 )
 set refbox  = ""
+set REFBOX_IS_DSET = -1          # -1=no refbox; 0=AMASK* ; 1=sep dset added
+
+set USE_ANY_OBLIQUITY = ''       # use obliquity info; has keywords
 
 set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
+set EDGE_ENHANCE_FAC = ''         # for enhancing edges, by a factor, in ulay
+
 set umin = ''
 set umax = ''
 
@@ -766,6 +786,29 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-edgy_ulay" ) then
         set DO_EDGEIFY_ULAY = 1
 
+    else if ( "$argv[$ac]" == "-edge_enhance_ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set DO_EDGEIFY_ULAY  = 1
+        set EDGE_ENHANCE_FAC = "$argv[$ac]"
+
+    # [PT: Aug 29, 2019] use any obliquity info, in one of a few
+    # possible ways: apply obl of ulay and olay (both to scanner
+    # coords);  send the ulay to olay;  send olay to ulay.
+    else if ( "$argv[$ac]" == "-obliquify" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set USE_ANY_OBLIQUITY = "$argv[$ac]"
+        if ( "${USE_ANY_OBLIQUITY}" != "ALL"  && \
+             "${USE_ANY_OBLIQUITY}" != "o2u"  && \
+             "${USE_ANY_OBLIQUITY}" != "of2u" && \
+             "${USE_ANY_OBLIQUITY}" != "u2o"  && \
+             "${USE_ANY_OBLIQUITY}" != "uf2o" ) then
+             echo "** ERROR: bad keyword after -obliquify: ${USE_ANY_OBLIQUITY}"
+             echo "   Must be one of: ALL, o2u, of2u, u2o, uf2o"
+            goto BAD_EXIT
+         endif
+
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
         set my_clean = "-pass" # for @djunct_4d_slices*
@@ -882,6 +925,9 @@ if ( "$refbox" != "" ) then
          ("$refbox" != "AMASK_FOCUS_OLAY") ) then
         # in this scenario, the user must have entered in some dset
         # from which to make the refbox: check it exists.
+
+        set REFBOX_IS_DSET = 1    # actual sep dset entered
+
         set check = `3dinfo -prefix "$refbox"`
         if ( "$check" == "NO-DSET" ) then
             echo "** ERROR: can't find focus refbox file:  ${refbox}"
@@ -897,6 +943,8 @@ if ( "$refbox" != "" ) then
             echo "+* NB: focus box vol has >1 slice, so we select [0]th."
             set refbox = "${refbox}[0]"
         endif
+    else
+        set REFBOX_IS_DSET = 0    # no sep dset entered; use ulay|olay
     endif
 endif
 
@@ -904,6 +952,7 @@ endif
 # ulay; and just in case we do, we want the original ulay to be used
 # for refbox-ing; if neither of those situations is happening, this
 # should have no affect-- fine!
+# ---> will have to be updated if applying obliquity
 set ulay_refbox = "${ulay}"
 
 # check blowup factor
@@ -947,6 +996,91 @@ if ( ! -e $read_dir ) then
     mkdir $read_dir
 endif
 
+# !!!!!!!!!!!!!!!!!!! think about how to resample???
+
+# [PT: Aug 29, 2019] Can apply obliquity info
+if ( "${USE_ANY_OBLIQUITY}" == "ALL" ) then
+    # apply all obliquities of input --> send to scanner coords
+    echo "++ Apply obliquity to: ALL"
+    3dWarp \
+        -deoblique                        \
+        -prefix ${read_dir}/ulay_deob.nii \
+        "${ulay}"
+    set ulay =  ${read_dir}/ulay_deob.nii 
+
+    if ( "${olay}" != "" ) then
+        3dWarp \
+            -deoblique                        \
+            -prefix ${read_dir}/olay_deob.nii \
+            "${olay}"
+        set olay =  ${read_dir}/olay_deob.nii 
+    endif
+
+    if ( "${REFBOX_IS_DSET}" == 1 ) then
+        # in case sep refbox is entered
+        echo "++ and apply obliquity to focus box"
+        3dWarp \
+            -deoblique                            \
+            -prefix ${read_dir}/focusbox_deob.nii \
+            "${refbox}"
+        set refbox =  ${read_dir}/focusbox_deob.nii 
+    endif
+
+else if ( "${USE_ANY_OBLIQUITY}" == "u2o"  || \
+          "${USE_ANY_OBLIQUITY}" == "uf2o"  ) then
+    # send ulay to olay oblique coords
+    echo "++ Apply obliquity to: send ulay to olay"
+
+    if ( "${olay}" == "" ) then
+        echo "** ERROR: can't obliquify ulay to olay, bc there is no olay."
+        goto BAD_EXIT
+    endif
+
+    3dWarp                                 \
+        -card2oblique "${olay}"            \
+        -prefix ${read_dir}/ulay_obl2o.nii \
+        "${ulay}"
+    set ulay =  ${read_dir}/ulay_obl2o.nii 
+
+    if ( "${REFBOX_IS_DSET}" == 1 ) then
+        # in case sep refbox is entered
+        echo "++ and apply obliquity to send focus box to olay"
+        3dWarp \
+            -card2oblique "${olay}"                \
+            -prefix ${read_dir}/focusbox_obl2o.nii \
+            "${refbox}"
+        set refbox =  ${read_dir}/focusbox_obl2o.nii 
+    endif
+
+else if ( "${USE_ANY_OBLIQUITY}" == "o2u" || \
+          "${USE_ANY_OBLIQUITY}" == "of2u"  ) then
+    # send olay to ulay oblique coords
+    echo "++ Apply obliquity to: send olay to ulay"
+
+    if ( "${olay}" == "" ) then
+        echo "** ERROR: can't obliquify olay to ulay, bc there is no olay."
+        goto BAD_EXIT
+    endif
+
+    3dWarp                                 \
+        -card2oblique "${ulay}"            \
+        -prefix ${read_dir}/olay_obl2u.nii \
+        "${olay}"
+    set olay =  ${read_dir}/olay_obl2u.nii 
+
+    if ( "${REFBOX_IS_DSET}" == 1 ) then
+        # in case sep refbox is entered
+        echo "++ and apply obliquity to send focus box to ulay"
+        3dWarp \
+            -card2oblique "${ulay}"                 \
+            -prefix ${read_dir}/focusbox_obl2u.nii  \
+            "${refbox}"
+        set refbox =  ${read_dir}/focusbox_obl2u.nii 
+    endif
+
+endif
+
+
 # [PT: Aug 23, 2019] If the user wants to edge-ify the ulay, they can
 # do this here: basically, the input ulay gets turned into edges at
 # nearly the first step, and the newly created dset becomes 'the ulay'
@@ -954,13 +1088,26 @@ endif
 # it would matter to still use the original ulay (that I can see at
 # this moment), is with the AMASK*ULAY-- so we *do* remember its name
 # for that purpose.
+# [PT: Aug 30, 2019] Now, a more Glenian bit of functionality has been
+# added, too: one can enhance edges in the ulay: multiple locations there
+# by a factor to make them stick out when viewing (*enhancing* the edges).
 if ( ${DO_EDGEIFY_ULAY} ) then
-
+    echo "++ Edgeifying"
     3dedge3 \
         -prefix ${read_dir}/ulay_edge.nii \
         -input  ${ulay}
 
-    set ulay = ${read_dir}/ulay_edge.nii 
+    if ( "${EDGE_ENHANCE_FAC}" != "" ) then
+        echo "++ Enhancing ulay edges"
+        3dcalc \
+            -a "${ulay}"                              \
+            -b ${read_dir}/ulay_edge.nii              \
+            -expr "a*(1+step(b)*${EDGE_ENHANCE_FAC})" \
+            -prefix ${read_dir}/ulay_edge_enh.nii
+        set ulay  = ${read_dir}/ulay_edge_enh.nii
+    else
+        set ulay  = ${read_dir}/ulay_edge.nii 
+    endif
 
 endif
 
@@ -1977,6 +2124,16 @@ COMMAND OPTIONS ~1~
                     that '-ulay_range_nz 0% 50%' or thereabouts might
                     be a nice scale for the brightness.
 
+-edge_enhance_ulay EE
+                   :a related (but different) way to enhance edges of
+                    the ulay than '-edgy_ulay': first, calculate
+                    edges, yes, but then use those to scale up the
+                    values in the ulay set *at* edge locations.  The
+                    ulay set value at edges will be multiplied by
+                    '1+EE' (one plus the edge enhancement factor).  A
+                    good value to try using is probably EE=0.5 (and
+                    yes, you always need to provide that EE value).
+
 -globalrange  GR   :specify how lookup range for matching ulay values
                     is done (def: VOLUME);
                     (see ENV: AFNI_IMAGE_GLOBALRANGE)
@@ -2002,6 +2159,24 @@ COMMAND OPTIONS ~1~
 -func_range_perc FRP :same as above option, but this is a percentile
                    among *all* voxel values, not just those with
                    non-zero values.
+
+-obliquify  OBL    :the ulay and/or the olay may have been acquired
+                    with oblique coordinate axes; by default, the
+                    viewer shows these data sets in each of their
+                    oblique coordinates. You can choose to apply the
+                    obliquity information to show the data in
+                    different coords, though, via the value of OBL:
+                      "ALL" : apply the obliquity of all entered
+                              dsets (via '3dWarp -deoblique ...')
+                              to show each in scanner coords
+                      "o2u" : send the olay to the ulay's oblique
+                              coords
+                      "of2u": send the olay and any focus_box to the 
+                              ulay's oblique coords
+                      "u2o" : send the ulay to the olay's oblique
+                              coords
+                      "uf2o": send the ulay and any focus_box to the 
+                              olay's oblique coords
 
 -func_resam  RES   :set the resampling mode for dsets; valid values
                     are:   NN  Li  Cu  Bk

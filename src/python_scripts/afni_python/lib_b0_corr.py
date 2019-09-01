@@ -56,9 +56,16 @@
 # + [PT] fix examples (use correct/newer opt names)
 # + [PT] fix 'eff echo sp' -> 'bwpp' calculation ('matr len', not 'vox dim')
 #
-ver='2.21' ; date='Aug 27, 2019'
+#ver='2.21' ; date='Aug 27, 2019'
 # + [PT] update help file and descriptions (param text, for example)
 # + [PT] add in more fields to param text output
+#
+#ver='2.22' ; date='Aug 29, 2019'
+# + [PT] update help file
+#
+ver='2.3' ; date='Aug 30, 2019'
+# + [PT] add this set_blur_sigma() method, which had been
+#        forgotten... Thanks, L. Dowdle!
 #
 ###############################################################################
 
@@ -111,6 +118,7 @@ all_opts = {
     'automask_peels'     : '-automask_peels',
     'automask_erode'     : '-automask_erode', 
     'no_clean'           : '-no_clean',
+    'no_qc_image'        : '-no_qc_image',
     'overwrite'          : '-overwrite',
     'ver'                : '-ver',
     'date'               : '-date',
@@ -142,7 +150,7 @@ help_string_b0_corr = '''
   + frequency dset : (req) phase volume, which should be of similar
                      spatial resolution/FOV of EPI dset to which it
                      will be applied. Expected units are: 
-                         angular freq = rad/s = 2*PI*Hz.
+                         angular freq = rad/s = 2*PI*(freq in Hz).
                      If your dataset is in different units,
                      you can apply an appropriate scaling via the
                      command line, as discussed in the 'NOTES', below.
@@ -306,6 +314,8 @@ help_string_b0_corr = '''
   {no_clean}            : don't remove the temporary directory of intermed 
                           files
 
+  {no_qc_image}         : don't make pretty QC images
+
   {help}                : display program help in terminal (consider
                          '-hview' to open help in a separate text editor)
   {ver}                 : display program version number in terminal 
@@ -320,8 +330,8 @@ help_string_b0_corr = '''
   the correct units for this program.  Here, we expect them to be in
   units of angular frequency: "radians/second" (rad/s).
 
-  Re. fieldmaps in Hz
-  -------------------
+  Re. fieldmaps in Hz   ~3~
+
     If your frequency map has units of physical frequency, 'cycles per
     second' (= Hz), then you just provide a command line argument to
     internally scale your data to the appropriate angular frequency
@@ -329,7 +339,7 @@ help_string_b0_corr = '''
 
     Physicists tell us that angular frequency 'w' is related to
     physical frequency 'f' as follows:  
-       w = 2*PI*f
+       w = 2 * PI * f
          ~ 6.2831853 * f
     Therefore, if you are *sure* that your frequency (phase) volume is
     really in units of Hz, then you can use the following command line
@@ -338,8 +348,8 @@ help_string_b0_corr = '''
 
     Not too painful!
 
-  Re. Siemens fieldmaps 
-  ---------------------
+  Re. Siemens fieldmaps   ~3~
+
     If your frequency map is one output by Siemens, then consider the
     following (but doublecheck that it really applies to your darling
     dataset!):
@@ -630,7 +640,7 @@ class iopts_b0_corr:
         self.epi_pe_dir           = ''  # distDirections: PE direction, e.g. AP
         self.epi_pe_dir_nwarp_pol = 0   # polarity for 3dNwarpCat notation
         self.epi_pe_dir_nwarp_opp = 0   # opp of polarity, for 3dNwarpCat
-        self.blur_sigma       = ddefs['DEF_bsigma']  # 'blurSigma'
+        self.blur_sigma           = ddefs['DEF_bsigma']  # 'blurSigma'
 
         # about obliquity: first check for EPI-freq obl diff (doesn't
         # really matter); then make a mat of any EPI-freq obl diff
@@ -645,6 +655,7 @@ class iopts_b0_corr:
         self.npeels   = ddefs['DEF_npeels'] # param for mask_B0 (3dAutomask)
         self.nerode   = ddefs['DEF_nerode'] # param for mask_B0 (3dAutomask)
 
+        self.do_qc_image    = True         # make nice QC image
         self.do_clean       = True         # clean up intermed dir or not
         self.overwrite      = ''           # pass along overwrite flag (or not)
 
@@ -735,12 +746,20 @@ class iopts_b0_corr:
     def set_nerode( self, cc ):
         self.nerode = int(cc)
 
+    # [PT: Aug 30, 2019] add this func (had forgotten-- Thanks,
+    # L. Dowdle!]
+    def set_blur_sigma( self, cc ):
+        self.blur_sigma = float(cc)
+
     def set_prefix( self, ppp ):
         self.prefix = ppp
         self.prefix_name = BASE.parse_afni_name(ppp)['prefix']
 
     def set_clean( self, ll ):
         self.do_clean = ll
+
+    def set_qc_image( self, ll ):
+        self.do_qc_image = ll
 
     def set_overwrite( self, ll ):
         # 'll' is just true or false here
@@ -1338,6 +1357,32 @@ class iopts_b0_corr:
         self.comm.run()
         check_for_shell_com_failure(self.comm, cmd )
 
+        # [PT: Aug 27, 2019] Come back to this.
+        if self.do_qc_image and 0:
+            if self.dset_magn_name :
+                # final (unWARPed) EPI on edgy anat/magn
+                cmd = '''@chauffeur_afni  \
+                -ulay "{dset_magn_name}"    \
+                -edgy_ulay                  \
+                -ulay_range_nz 0% 30%       \
+                -set_subbricks 0 0 0        \
+                -olay {odset_epi}{dext}     \
+                -box_focus_slices AMASK_FOCUS_OLAY \
+                -func_range_perc_nz 95      \
+                -cbar Viridis               \
+                -pbar_posonly               \
+                -pbar_saveim ../IMAGE       \
+                -pbar_comm_range '95%ile of nonzero vox' \
+                -prefix      ../IMAGE       \
+                -opacity 4                  \
+                -montx 5 -monty 3           \
+                -set_xhairs OFF             \
+                -label_mode 1 -label_size 3 
+                '''.format( **self_vars )
+
+                self.comm = BASE.shell_com(cmd, capture=1)
+                self.comm.run()
+                check_for_shell_com_failure(self.comm, cmd )
 
         os.chdir(self.origdir)
         print("\n++ Done with B0_corr.\n")
@@ -1417,6 +1462,9 @@ class iopts_b0_corr:
         if self.freq_scale :
             ss+= "{:30s} : {}\n".format( 'Freq scale factor', 
                                          self.freq_scale )
+        if self.blur_sigma :
+            ss+= "{:30s} : {}\n".format( 'Freq blur sigma (mm)', 
+                                         self.blur_sigma )
         if self.list_histog_int :
             ll = '  '.join(self.list_histog_int)
             ss+= "{:30s} : {}\n".format( 'Warp (mm) in mask, 20-100 %ile', 
@@ -1599,7 +1647,7 @@ def parse_args_b0_corr(full_argv):
             if i >= Narg:
                 ARG_missing_arg(argv[i])
             i+= 1
-            iopts.set_blurSigma(argv[i])
+            iopts.set_blur_sigma(argv[i])
 
         elif argv[i] == "{automask_peels}".format(**all_opts) :
             if i >= Narg:
@@ -1621,6 +1669,9 @@ def parse_args_b0_corr(full_argv):
 
         elif argv[i] == "{no_clean}".format(**all_opts) :
             iopts.set_clean(False)
+
+        elif argv[i] == "{no_qc_image}".format(**all_opts) :
+            iopts.set_qc_image(False)
 
         elif argv[i] == "{overwrite}".format(**all_opts) :
             iopts.set_overwrite(True)
