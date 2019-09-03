@@ -697,6 +697,7 @@ static char *gby[] = {
      "Au revoir, Ciao, Ma'alsalam, Hasta luego, Czesc, and Zai jian" ,
      "Don't cry -- a farewell is necessary before we can meet again" ,
      "We part, but only to meet again"                               ,
+     "Our borrowed quest: Begin in delight, end in wisdom"           ,
      "How lucky I am to have someone that makes saying goodbye hard" ,
      "Goodbyes are not forever"                                      ,
      "Dearest friends, alas, must part"                              ,
