@@ -1671,7 +1671,7 @@ static char *gby[] = {
      "\n  The good and the dear approach the man,\n"
      "  The wise man, pondering over both, distinguishes them;\n"
      "  The wise one chooses the good over the dear,\n"
-     "  The fool, acquisitive and craving, chooses the dear"
+     "  The fool, acquisitive and craving, chooses the dear" ,
 
      /* 02 Jul 2019 */
 
