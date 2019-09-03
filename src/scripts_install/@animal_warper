@@ -121,7 +121,7 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-               @ ac --               
+#               @ ac --               
                break
             # not a hyphen leading option, should be dataset 
             else
@@ -137,10 +137,7 @@ while ($ac <= $#argv)
             echo "** missing dataset for option template_followers"
             exit 1
         endif
-#        @ ac --
-
-    else if (3 == 1) then
-       echo never here    
+        @ ac --
     else if ("$argv[$ac]" == "-seg_followers") then
         @ ac ++
         while ($ac <= $#argv)
@@ -151,7 +148,7 @@ while ($ac <= $#argv)
             # that means we're on to the next option
             # instead of a dataset
             if ("$argv[$ac]" == "$poss_dset") then
-               @ ac --
+#               @ ac --
                break
             # not a hyphen leading option, should be dataset 
             else
@@ -167,7 +164,7 @@ while ($ac <= $#argv)
             echo "** missing dataset for option '-seg_followers'"
             exit 1
         endif
-#        @ ac --        
+        @ ac --        
 
     else if ("$argv[$ac]" == "-feature_size") then
         @ ac ++
@@ -701,7 +698,7 @@ end
 
 
 # get rid of temporary warped datasets
-rm __tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK* __tmp*_${dsetprefix}*.1D
+rm -f "__tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK* __tmp*_${dsetprefix}*.1D"
 
 exit 0
 
