@@ -395,6 +395,24 @@ L_VERIFY_PROGRAMS:
         if ( $status ) then
             echo "program not found in path: $test_command"
             @ failed_pgms ++
+            continue
+        endif
+
+        # $test_command was found, but maybe additional checks are warrented
+
+        if ( $test_command == mris_convert ) then
+            # Unfortunately, all -help variants seem to set $status,
+            # so parse the actual text, looking for 'surface'.
+            set nl = `$test_command --help |& grep surface | wc -l`
+            if ( "$nl" == 0 ) then
+                echo "** apparent failure to run $test_command"
+                echo "   $test_command --help starts with:"
+                echo ""
+                $test_command --help |& head -n 10
+                echo ""
+                @ failed_pgms ++
+                continue                # in case more checks are added
+            endif
         endif
     end
 

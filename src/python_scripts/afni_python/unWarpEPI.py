@@ -461,8 +461,9 @@ def main():
    """Will return an instance of the option list"""
 
    usage = "%prog [options]"
+   # remove "or B0 field map", as it was not implemented here
    description = ("Routine to unwarp EPI data set using another "
-                  "data set with opposite polarity or B0 field map" )
+                  "data set with opposite polarity" )
    usage =       ("  %prog -f run1+orig'[0..5]' -r blip_down+orig -d 'run1,run2' -a anat+orig -s unwarp_folder" )
    epilog =      ("For questions, suggestions, information, please contact Vinai Roopchansingh, Daniel Glen")
 
