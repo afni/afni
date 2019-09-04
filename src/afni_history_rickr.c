@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  4, Sep, 2019, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
+   "check for valid 'mris_convert --help' output",
+   NULL
+ } ,
+
  { 26, Aug, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "report 'R RHOME'",
    NULL
