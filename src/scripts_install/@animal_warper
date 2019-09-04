@@ -1,4 +1,11 @@
 #!/bin/tcsh
+
+# Things to do: 
+# ++ output text guide to files?
+# ++ unifized copy of the anatomical in orig space?  for alignment
+#    and/or vis?
+
+
 # affine alignment of individual dataset to a template
 #  handcrafted for macaque alignment originally - D99 and NMT templates
 # usage example:
@@ -11,7 +18,18 @@
 
 set progname = @animal_warper
 #***** update the version with each change
-set version = "1.00"
+#set version = "1.00"
+#
+set version = "1.02" ; set date = "Sep 3, 2019"
+# [PT] Adding in @chauffeur_afni commands for visualization
+#    + snapshots commented out
+#    + cp -> \cp, etc.
+#
+set version = "1.1" ; set date = "Sep 3, 2019"
+# [PT] Make a "no skull" version of the orig dset
+#    + another QC image: skull stripped area
+#
+# --------------------------------------------------------------------
 
 # set atlas_dir = "../.."
 if ("$#" <  "2") then
@@ -204,7 +222,7 @@ endif
 if (($ok_to_exist == 1) && (-f ${outdir})) then
     echo "reusing ${outdir}"
 else
-   mkdir -p $outdir
+   \mkdir -p $outdir
 endif
 
 # set costs for alignment
@@ -395,7 +413,7 @@ else
    set baseview = `3dinfo -av_space $base` 
    # convert the affine aligned output to NIFTI
    3dAFNItoNIFTI -prefix ${dsetprefix}_al2std.nii.gz ${dsetprefix}_al2std${baseview}
-   rm ${dsetprefix}_al2std${baseview}.*
+   \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
 if ($align_type == rigid_equiv) then
@@ -416,7 +434,7 @@ else
 endif
 
 # if nonlinear alignment is not requested, then exit
-if ($align_type != "all") then
+if ( $align_type != "all" ) then
    echo "Finished aligning with only $align_type alignment"
    if ($align_type == "rigid") then
       echo "This alignment method requires restarting the alignment"
@@ -447,7 +465,7 @@ endif
 #  by using "-qw_opts ", one could save the inverse warp and do extra padding
 #  with -qw_opts '-iwarp -expad 30'
 # change qw_opts to remove max_lev 2 for final   ********************
-rm -rf awpy_${dsetprefix}
+\rm -rf awpy_${dsetprefix}
 
 # user set cost function
 if ($nlcost != "") then
@@ -465,25 +483,22 @@ else
       -input ${dsetprefix}_aff.nii.gz -overwrite \
       -output_dir awpy_${dsetprefix} -qw_opts -iwarp -maxlev $maxlev $nlcostoption
    
-   
-   apply_warps:
    # the awpy has the result dataset, copy the warped data, the warp, inverse warp
    # don't copy the warped dataset - combine the transformations instead below
    # cp awpy_${dsetprefix}/${dsetprefix}_aff.aw.nii ./${dsetprefix}_warp2std.nii
-   cp awpy_${dsetprefix}/anat.*.qw_WARP.nii ${dsetprefix}_WARP.nii
-   cp awpy_${dsetprefix}/anat.*.qw_WARPINV.nii ${dsetprefix}_WARPINV.nii
-  
-   # if the datasets are compressed, then copy those instead
-   # note - not using the autowarped dataset, just the WARP
-   #  see 3dNwarpApply just below
-   # cp awpy_${dsetprefix}/${dsetprefix}_aff.aw.nii.gz ./${dsetprefix}_warp2std.nii.gz
-   cp awpy_${dsetprefix}/anat.*.qw_WARP.nii.gz  ./${dsetprefix}_WARP.nii.gz
-   cp awpy_${dsetprefix}/anat.*.qw_WARPINV.nii.gz ${dsetprefix}_WARPINV.nii.gz
-   # compress these copies (if not already compressed)
-   # gzip -f ${dsetprefix}_warp2std.nii ${dsetprefix}_WARP.nii
-   gzip -f ${dsetprefix}_WARP.nii ${dsetprefix}_WARPINV.nii
+
+   3dcopy -overwrite \
+        awpy_${dsetprefix}/anat.*.qw_WARP.nii* \
+        ${dsetprefix}_WARP.nii.gz
+
+   3dcopy -overwrite \
+        awpy_${dsetprefix}/anat.*.qw_WARPINV.nii* \
+        ${dsetprefix}_WARPINV.nii.gz
+
 endif
-  
+
+#apply_warps:
+
 if (($ok_to_exist == "1") && (-f ${origdsetprefix}_warp2std.nii.gz)) then
    echo "reusing nonlinear transformed dataset"
 else 
@@ -492,11 +507,34 @@ else
    3dNwarpApply -prefix ${origdsetprefix}_warp2std.nii.gz                      \
       -nwarp "${dsetprefix}_WARP.nii.gz ${dsetprefix}_al2std_mat.aff12.1D" \
       -source $dset -master $base
-   @snapshot_volreg ${origdsetprefix}_warp2std.nii.gz $base snap_dt_${origdsetprefix}
-   @snapshot_volreg $base ${origdsetprefix}_warp2std.nii.gz snap_td_${origdsetprefix}
+   #@snapshot_volreg ${origdsetprefix}_warp2std.nii.gz $base snap_dt_${origdsetprefix}
+   #@snapshot_volreg $base ${origdsetprefix}_warp2std.nii.gz snap_td_${origdsetprefix}
 
-   
-#   rm -rf awpy_${dsetprefix}
+   # Image   : [ulay] edges of warped template; [olay] orig dset
+   set ulay  = "$base"
+   set olay  = "${origdsetprefix}_warp2std.nii.gz"
+   set opref = qc_00_e_temp_with_wrpd_inp
+
+   @chauffeur_afni                            \
+       -ulay "${ulay}"                        \
+       -edgy_ulay                             \
+       -ulay_range_nz 0% 30%                  \
+       -set_subbricks 0 0 0                   \
+       -olay "${olay}"                        \
+       -box_focus_slices AMASK_FOCUS_OLAY     \
+       -cbar Spectrum:red_to_blue             \
+       -func_range_perc_nz 95                 \
+       -montgap 1                             \
+       -montcolor 'black'                     \
+       -pbar_posonly                          \
+       -pbar_saveim ${opref}                  \
+       -prefix      ${opref}                  \
+       -opacity 4                             \
+       -montx 5 -monty 3                      \
+       -set_xhairs OFF                        \
+       -label_mode 1 -label_size 3 
+
+#   \rm -rf awpy_${dsetprefix}
 endif
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
@@ -521,11 +559,12 @@ if (($ok_to_exist == "1") && (-f  ${templatename}_in_${origdsetprefix}.nii.gz)) 
 else 
    3dNwarpApply -overwrite -nwarp \
          "${dsetprefix}_inv_al2std_mat.aff12.1D ${dsetprefix}_WARPINV.nii.gz)" \
-          -source $base -master ${dsetprefix}_aff.nii.gz \
+          -source $base -master ${dsetprefix}.nii.gz                           \
           -prefix ${templatename}_in_${origdsetprefix}.nii.gz
    
    # put back in non-shifted version (really native space) 
    @Align_Centers -base ${finalmaster} -dset  ${templatename}_in_${origdsetprefix}.nii.gz -no_cp
+
    # put back into the view of the original dataset to make it viewable in AFNI
 #   gunzip -f ${templatename}_in_${origdsetprefix}.nii.gz
 #   nifti_tool -mod_hdr -mod_field sform_code $origsform_code \
@@ -534,11 +573,83 @@ else
 #   gzip -f ${templatename}_in_${origdsetprefix}.nii
    3drefit -space $origspace  ${templatename}_in_${origdsetprefix}.nii.gz 
 
-   @snapshot_volreg ${origdsetprefix}.nii.gz ${templatename}_in_${origdsetprefix}.nii.gz  \
-                    snap_dtorig_${origdsetprefix}
-   @snapshot_volreg ${templatename}_in_${origdsetprefix}.nii.gz ${origdsetprefix}.nii.gz  \
-                    snap_tdorig_${origdsetprefix}
+   #@snapshot_volreg ${origdsetprefix}.nii.gz ${templatename}_in_${origdsetprefix}.nii.gz  \
+   #                 snap_dtorig_${origdsetprefix}
+   #@snapshot_volreg ${templatename}_in_${origdsetprefix}.nii.gz ${origdsetprefix}.nii.gz  \
+   #                 snap_tdorig_${origdsetprefix}
+
+   # Image   : [ulay] edges of warped template; [olay] orig dset
+   set ulay  = "${templatename}_in_${origdsetprefix}.nii.gz"
+   set olay  = "${origdsetprefix}.nii.gz"
+   set opref = qc_01_e_wrpd_temp_with_orig
+
+   @chauffeur_afni                            \
+       -ulay "${ulay}"                        \
+       -edgy_ulay                             \
+       -ulay_range_nz 0% 30%                  \
+       -set_subbricks 0 0 0                   \
+       -olay "${olay}"                        \
+       -box_focus_slices AMASK_FOCUS_OLAY     \
+       -cbar Spectrum:red_to_blue             \
+       -func_range_perc_nz 95                 \
+       -montgap 1                             \
+       -montcolor 'black'                     \
+       -pbar_posonly                          \
+       -pbar_saveim ${opref}                  \
+       -prefix      ${opref}                  \
+       -opacity 4                             \
+       -montx 5 -monty 3                      \
+       -set_xhairs OFF                        \
+       -label_mode 1 -label_size 3 
+
 endif
+
+if (($ok_to_exist == "1") && (-f  ${origdsetprefix}_ns.nii.gz)) then
+   echo "reusing masked original dset"
+else 
+   3dcalc \
+      -a ${templatename}_in_${origdsetprefix}.nii.gz   \
+      -b ${origdsetprefix}.nii.gz                      \
+      -expr 'step(a)*b'                                \
+      -prefix __tmp_orig_mskd.nii                      \
+      -overwrite 
+
+   3dmask_tool                                \
+      -dilate_inputs -2 3                     \
+      -inputs __tmp_orig_mskd.nii             \
+      -prefix ${origdsetprefix}_ns.nii.gz     \
+      -overwrite
+
+   3dcalc \
+      -a ${origdsetprefix}_ns.nii.gz                   \
+      -expr 'step(a)'                                  \
+      -prefix __tmp_mask.nii                           \
+      -overwrite 
+    
+   # Image   : [ulay] edges of warped template; [olay] orig dset
+   set ulay  = "${origdsetprefix}.nii.gz"
+   set olay  = __tmp_mask.nii
+   set opref = qc_02_orig_with_mask
+
+   @chauffeur_afni                            \
+       -ulay "${ulay}"                        \
+       -ulay_range_nz 0% 98%                  \
+       -set_subbricks 0 0 0                   \
+       -olay "${olay}"                        \
+       -box_focus_slices "${olay}"            \
+       -cbar Spectrum:yellow_to_red           \
+       -montgap 1                             \
+       -montcolor 'black'                     \
+       -pbar_posonly                          \
+       -pbar_saveim ${opref}                  \
+       -prefix      ${opref}                  \
+       -opacity 3                             \
+       -montx 5 -monty 3                      \
+       -set_xhairs OFF                        \
+       -label_mode 1 -label_size 3 
+
+endif
+
 
 # process any template followers the same way
 foreach temple_dset ($template_followers)
@@ -599,7 +710,7 @@ end
        if (($ok_to_exist == "1") && (-f  ${seg_prefix}_in_${origdsetprefix}.nii.gz)) then
           echo "reusing segmentation transformed to native space dataset"
        else 
-          rm ${seg_prefix}_in_${origdsetprefix}.nii.gz
+          \rm ${seg_prefix}_in_${origdsetprefix}.nii.gz
    
            # use concatenated affine and nonlinear warp to go back to shifted original space
            3dNwarpApply -ainterp NN -short -overwrite -nwarp \
@@ -629,10 +740,32 @@ end
            3drefit -cmap INT_CMAP -space $origspace ${seg_prefix}_in_${origdsetprefix}.nii.gz
            3drefit -copytables $segm_dset ${seg_prefix}_in_${origdsetprefix}.nii.gz
 
-           @snapshot_volreg ${origdsetprefix}.nii.gz ${seg_prefix}_in_${origdsetprefix}.nii.gz  \
-                    snap_ds_orig_${seg_prefix}
-           @snapshot_volreg ${seg_prefix}_in_${origdsetprefix}.nii.gz ${origdsetprefix}.nii.gz  \
-                    snap_sd_orig_${seg_prefix}
+           #@snapshot_volreg ${origdsetprefix}.nii.gz ${seg_prefix}_in_${origdsetprefix}.nii.gz  \
+           #         snap_ds_orig_${seg_prefix}
+           #@snapshot_volreg ${seg_prefix}_in_${origdsetprefix}.nii.gz ${origdsetprefix}.nii.gz  \
+           #         snap_sd_orig_${seg_prefix}
+
+           # Image   : [ulay] edge enhanced orig dset; [olay] atlas warped to orig space
+           set ulay  = "${origdsetprefix}.nii.gz"
+           set olay  = "${seg_prefix}_in_${origdsetprefix}.nii.gz"
+           set opref = qc_03_ee_orig_with_wrpd_atlas
+                    
+           @chauffeur_afni                             \
+                -ulay "${ulay}"                        \
+                -edge_enhance_ulay 0.5                 \
+                -set_subbricks 0 0 0                   \
+                -olay "${olay}"                        \
+                -box_focus_slices AMASK_FOCUS_ULAY     \
+                -montgap 1                             \
+                -montcolor 'black'                     \
+                -cbar ROI_i256                         \
+                -pbar_posonly                          \
+                -pbar_saveim "${opref}"                \
+                -prefix      "${opref}"                \
+                -opacity 4                             \
+                -montx 5 -monty 3                      \
+                -set_xhairs OFF                        \
+                -label_mode 1 -label_size 3 
 
            #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz ./${segname}_in_${origdsetprefix}.nii.gz
        endif
@@ -675,16 +808,16 @@ end
           echo "reusing template in native space surface dataset"
        else 
           IsoSurface -isorange $basethresh $basemax -overwrite \
-          -input  ${templatename}_in_${origdsetprefix}_aniso_clust.nii.gz \
-          -o  ${templatename}_in_${origdsetprefix}.gii -overwrite -noxform -Tsmooth 0.1 20
+            -input  ${templatename}_in_${origdsetprefix}_aniso_clust.nii.gz \
+            -o  ${templatename}_in_${origdsetprefix}.gii -overwrite -noxform -Tsmooth 0.1 20
        endif
 
 #       if (($ok_to_exist == "1") && (-f  surfaces/native*.gii )) then
 #          echo "reusing segmentation surfaces in native space"
 #       else 
            if (-f ${segname}_in_${origdsetprefix}.nii.gz) then
-              rm -rf surfaces/        
-              mkdir surfaces
+              \rm -rf surfaces/        
+              \mkdir surfaces
               cd surfaces
               IsoSurface -isorois+dsets -o native.gii \
                 -input ../${segname}_in_${origdsetprefix}.nii.gz -noxform \
@@ -698,8 +831,8 @@ end
 
 
 # get rid of temporary warped datasets
-rm -f "__tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK* __tmp*_${dsetprefix}*.1D"
-
+\rm -f "__tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK* __tmp*_${dsetprefix}*.1D"
+\rm -f __tmp_orig_mskd.nii __tmp_mask.nii
 exit 0
 
 # notes
