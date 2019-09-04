@@ -19,9 +19,12 @@
 #    + replaces functionality of 'rank' data sets
 #    + produce tissue maps based on hopefully good guesses of FS
 #      labeling
-
-# [Aug 20, 2019] PT: indent properly, for readability
-# [Aug 20, 2019] PT: update help
+# [Aug 20, 2019] PT : indent properly, for readability
+# [Aug 20, 2019] PT : update help
+# [Sep 4,  2019] RCR: check for valid 'mris_convert --help' output
+# [Sep 4,  2019] PT : add in new opt: '-extra_fs_dsets ..'
+#    + so more $fsdsets can be created with surfs (for F. Lalonde)
+#
 
 #----------------------------------------------------------------------
 goto L_INIT_VARS
@@ -78,7 +81,7 @@ L_INIT_VARS:
     set debug     = 0
     set ldlist = (141 60)
     #set fsdsets = (thickness.gii.dset)
-    set fsdsets = (thickness curv sulc) 
+    #set fsdsets = (thickness curv sulc $fsdsets_extra ) 
     set inflates = ()
     
     set surf_attribs = (            \
@@ -141,6 +144,7 @@ L_PARSE_COMMAND:
     set set_space = ''
     set args     = $#argv
     set count    = 1
+    set fsdsets_extra  = ( )
 
     while ( $count <= $args )
         switch ( "$argv[$count]" )
@@ -203,7 +207,8 @@ L_PARSE_COMMAND:
             # ----------------------------------------------------------
             # usage : -nocor
             case "-nocor":
-                set endstr = "Option -nocor obsolete. See -help for important details."
+                set endstr = "Option -nocor obsolete. "
+                set endstr = "$endstr See -help for important details."
                 goto L_BAD_END
 
                 #set neuro_ori = -1
@@ -293,6 +298,38 @@ L_PARSE_COMMAND:
 
 
             # ----------------------------------------------------------
+            # usage : -extra_fs_dsets AA BB CC ...
+            case "-extra_fs_dsets":
+
+                if ( $count >= $args ) then
+                    set endstr = "arg usage: -extra_fs_dsets AA BB CC ..."
+                    goto L_BAD_END
+                endif
+
+                @ i0   = $count + 1    # $i0 will always lead $count by one
+                set c0 = ""
+                while ( ( $i0 <= $#argv ) && ( "$c0" != "-" ) )
+                    set fsdsets_extra = ( $fsdsets_extra "$argv[$i0]" )
+
+                    @ i0 ++
+                    @ count ++ 
+                    if ( $i0 <= $#argv ) then
+                        # get first char of next arg, to be check in while()
+                        set c0 = `echo $argv[$i0] \
+                                        | awk '{print substr($0,1,1)}'`
+                    endif
+                end
+
+                if ( $#fsdsets_extra == 0 ) then
+                    echo "** ERROR: need at least one dset after $argv[$count]"
+                    goto BAD_EXIT
+                else
+                    echo "++ User has listed $#fsdsets_extra 'extra' FS dsets"
+                endif
+
+            breaksw
+
+            # ----------------------------------------------------------
             # usage : -ld VAL
             case "-ld":
 
@@ -348,6 +385,11 @@ L_PARSE_COMMAND:
         goto L_BAD_END
     endif
 
+
+    # [PT: Sep 4, 2019] Put this array definition here, to allow users
+    # to input other dsets from surf/ dir
+    set fsdsets = (thickness curv sulc $fsdsets_extra ) 
+
     if ($#inflates == 0 && $neuro_ori == -1) set inflates = ($inflates 200) 
 
     if ( $debug ) echo "-- usage okay"
@@ -398,7 +440,7 @@ L_VERIFY_PROGRAMS:
             continue
         endif
 
-        # $test_command was found, but maybe additional checks are warrented
+        # $test_command was found, but maybe additional checks are warranted
 
         if ( $test_command == mris_convert ) then
             # Unfortunately, all -help variants seem to set $status,
@@ -680,13 +722,15 @@ L_CONVERT_SURFACES:
                 # hmmm, identical commands suggest the second
                 # -ixmat_1D does not belong (currently left for future
                 # bickering)
-                ConvertSurface \
-                        -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+                ConvertSurface                                   \
+                    -sv $start_dir/$suma_dir/$afni_dataset.nii   \
+                    -i $surf.asc                                 \
+                    -ixmat_1D xmatras.1D -overwrite -o $surf.gii
             else
-                ConvertSurface \
-                        -sv $start_dir/$suma_dir/$afni_dataset.nii -i $surf.asc \
-                        -ixmat_1D xmatras.1D -overwrite -o $surf.gii
+                ConvertSurface                                   \
+                    -sv $start_dir/$suma_dir/$afni_dataset.nii   \
+                    -i $surf.asc                                 \
+                    -ixmat_1D xmatras.1D -overwrite -o $surf.gii
             endif
         endif
 
@@ -736,26 +780,29 @@ L_CONVERT_SURFACES:
         cd $label_dir
         foreach hand ( lh rh )
             if ( -f ${hand}.aparc.a2005s.annot ) then
-                FSread_annot   -input ${hand}.aparc.a2005s.annot \
-                    -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.roi \
-                    -dset    $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.niml.dset \
-                    -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2005s.annot.1D.cmap 
+                set ddd = $start_dir/$suma_dir
+                FSread_annot   -input ${hand}.aparc.a2005s.annot       \
+                    -roi_1D  $ddd/${hand}.aparc.a2005s.annot.1D.roi    \
+                    -dset    $ddd/${hand}.aparc.a2005s.annot.niml.dset \
+                    -cmap_1D $ddd/${hand}.aparc.a2005s.annot.1D.cmap 
             endif
      
             if ( -f ${hand}.aparc.a2009s.annot ) then
-                FSread_annot   -input ${hand}.aparc.a2009s.annot \
-                    -roi_1D  $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.roi \
-                    -dset    $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.niml.dset \
-                    -cmap_1D $start_dir/$suma_dir/${hand}.aparc.a2009s.annot.1D.cmap 
+                set ddd = $start_dir/$suma_dir
+                FSread_annot   -input ${hand}.aparc.a2009s.annot       \
+                    -roi_1D  $ddd/${hand}.aparc.a2009s.annot.1D.roi    \
+                    -dset    $ddd/${hand}.aparc.a2009s.annot.niml.dset \
+                    -cmap_1D $ddd/${hand}.aparc.a2009s.annot.1D.cmap 
             endif
 
             foreach pp (prob predict)
                 if ( -f ${hand}.v1.${pp}.label ) then
-                    sed '1,2s/^/#/' ${hand}.v1.${pp}.label > ${hand}.v1.${pp}.label.1D
-                    ConvertDset   \
-                            -input ${hand}.v1.${pp}.label.1D'[$]' \
+                    sed '1,2s/^/#/' ${hand}.v1.${pp}.label                \
+                        > ${hand}.v1.${pp}.label.1D
+                    ConvertDset                                           \
+                            -input ${hand}.v1.${pp}.label.1D'[$]'         \
                             -node_index_1D ${hand}.v1.${pp}.label.1D'[0]' \
-                            -o_niml \
+                            -o_niml                                       \
                             -prefix $start_dir/$suma_dir/${hand}.v1.${pp} 
                     \rm -f ${hand}.v1.${pp}.label.1D
                     cd $start_dir/$suma_dir/
@@ -773,6 +820,7 @@ L_CONVERT_SURFACES:
     foreach hand ( lh rh )
         foreach tp ($fsdsets)
             if ( -f ${hand}.${tp} ) then
+                echo "++ Converting surf dsets:  ${hand}.${tp}"
                 mris_convert -c ${hand}.${tp} ${hand}.white ${hand}.${tp}.gii
                 mv  ${hand}.${tp}.gii   \
                     $start_dir/$suma_dir/${hand}.${tp}.gii.dset
@@ -794,7 +842,7 @@ L_CONVERT_SURFACES:
                 else if ( -f ${hand}.white.gii ) then
                     set iis = ${hand}.white.gii
                 else
-                    set endstr = ( "failure: Could not find white for inflation" )
+                    set endstr = ( "failure: Did not find white for inflation" )
                     goto L_BAD_END
                 endif
                 SurfSmooth  \
@@ -1034,7 +1082,8 @@ goto L_CREATE_SPEC_DONE
 L_CREATE_BRICK:
 
     cd $orig_dir
-    # verify existence of 256 COR files, Checking for 256 is now obsolete ZSS Oct 14 04
+    # verify existence of 256 COR files, Checking for 256 is now
+    # obsolete ZSS Oct 14 04
     set cor_files = ( `echo COR-???` ) >& /dev/null 
     
     if ( $status || $use_mgz == 1) then
@@ -1162,12 +1211,15 @@ L_CREATE_BRICK:
         foreach other ($other_mgz)
             #@SUMA_FSvolToBRIK $other $start_dir/$suma_dir/$other:t:r
             #rm -f $start_dir/$suma_dir/COR-??? $start_dir/$suma_dir/COR-.info \
-            #                                                        >& /dev/null
+            #                                                     >& /dev/null
             mri_convert -ot nii $other $start_dir/$suma_dir/${other:t:r}".nii"
             #Now shift the damned volumes to match the surface volumes
             cd $start_dir/$suma_dir/
             if ($neuro_ori != -1 ) then
-                @Align_Centers -base $afni_dataset -dset ${other:t:r}".nii" -no_cp
+                @Align_Centers                \
+                    -base $afni_dataset       \
+                    -dset ${other:t:r}".nii"  \
+                    -no_cp
             endif
             if ( "${other:t:r}" == "aparc.a2005s+aseg" ||   \
                  "${other:t:r}" == "aparc.a2009s+aseg" ||   \
@@ -1179,12 +1231,15 @@ L_CREATE_BRICK:
                 if -e $start_dir/$suma_dir/fs_table.niml.lt then
                     3drefit -labeltable $start_dir/$suma_dir/fs_table.niml.lt \
                         "${other:t:r}.nii"
-                    @MakeLabelTable -replace -atlasize_labeled_dset "${other:t:r}.nii"
+                    @MakeLabelTable -replace                      \
+                        -atlasize_labeled_dset "${other:t:r}.nii"
                 endif
 
 
-                # now ranked datasets-removing empty indices - easier to color in AFNI
-                3dmerge -1rank -prefix "${other:t:r}_rank.nii" ${other:t:r}".nii"
+                # now ranked datasets-removing empty indices - easier
+                # to color in AFNI
+                3dmerge -1rank -prefix "${other:t:r}_rank.nii" \
+                    ${other:t:r}".nii"
                 if (0) then
                     # kill this block soon.
                     set kk = `echo ${other:t:r} | cut -f 1 -d '+'`
@@ -1202,7 +1257,8 @@ L_CREATE_BRICK:
                         -labeltable ${other:t:r}_rank.niml.lt \
                         "${other:t:r}_rank.nii"
                     @MakeLabelTable \
-                        -replace -atlasize_labeled_dset "${other:t:r}_rank.nii"
+                        -replace    \
+                        -atlasize_labeled_dset "${other:t:r}_rank.nii"
                 endif
             endif
             cd - 
@@ -1360,6 +1416,17 @@ OPTIONS ~1~
           Note: when this option is provided, all file/path
           messages will be with respect to this directory.
 
+    -extra_fs_dsets AA BB CC ...
+                    : FS calculates many types of data on the surface,
+          listed in their surf/ output directory.  By default, this
+          program brings the following ones into the SUMA surface realm:
+                thickness   curv   sulc
+          which get turned into 'std.141.{l,r}h.curv.niml.dset' and
+          '{l,r}h.curv.gii.dset' files, for example.
+          This option allows the user to list *other* dsets to include,
+          as well.  Ones that users have selected are, for example:
+                volume   area   area.pial   curv.pial
+
     -use_mgz        : use MGZ volumes even if COR volumes are there
 
     -neuro          : use neurological orientation
@@ -1405,6 +1472,7 @@ OPTIONS ~1~
                 end
 
     -GNIFTI/-GIFTI/-IFTI: same as -NIFTI
+
     -NIFTI :Produce files in exchangeable formats. With this option
            :COR volumes are no longer used and output volumes
            :and surfaces are in alignment with the original 
@@ -1557,7 +1625,7 @@ L_GOOD_END:
         echo "\n\n"
         echo "WARNING!"
         echo "  You didn't use the '-NIFTI' or '-GIFTI' or similarly-named"
-        echo "  option flag!  Are you *sure* you didn't want to?  Learning about"
+        echo "  option flag! Are you *sure* you didn't want to?  Learning about"
         echo "  this option changed my life-- it might just change yours, too."
         echo "  Please read the helpfile entry for '-NIFTI' if you don't know"
         echo "  what I'm talking about here."

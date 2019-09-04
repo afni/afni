@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, Sep , 2019 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
+   "New opt:  '-extra_fs_dsets ..', to translate more FS-created surf/ dsets.",
+   "Allow more FS surf dsets to be brought into SUMA. For F. Lalonde.\n"
+},
+
 { 3, Sep , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
    "New QC imaging with @chauffeur_afni; mask created, too.",
    "And a few minor changes under the hood, worked out with DRG.\n"
