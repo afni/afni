@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Sep , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "New QC imaging with @chauffeur_afni; mask created, too.",
+   "And a few minor changes under the hood, worked out with DRG.\n"
+},
+
 { 30, Aug , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opts: -edge_enhance_ulay EE, -obliquify OBL.",
    "Different way to enhance edges of ulay, and apply obliquity info.\n"
