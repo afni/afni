@@ -5,9 +5,6 @@
 
 # update fatcats for ulays, as well!
 
-# !!!! add in obliquity resampling!!
-
-
 @global_parse `basename $0` "$*" ; if ($status) exit 0
 
 # -----------------------------------------------------------------
@@ -240,10 +237,14 @@
 #            + send ulay to olay oblique coords
 #            + send olay to ulay oblique coords
 #
-set version   = "5.9"; set rev_dat   = "Aug 30, 2019"
+#set version   = "5.9"; set rev_dat   = "Aug 30, 2019"
 #   + [PT] finish obliquity cases, and include refbox considerations
 #   + [PT] add '-edge_enhance_ulay EE' opt, to enhance edges of ulay
 #          with 3dedge3 info-- nice idea, D. Glen!
+#
+set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
+#   + [PT] add in resampling opts for obliquity transform
+#
 #
 # =====================================================================
 
@@ -337,6 +338,9 @@ set refbox  = ""
 set REFBOX_IS_DSET = -1          # -1=no refbox; 0=AMASK* ; 1=sep dset added
 
 set USE_ANY_OBLIQUITY = ''       # use obliquity info; has keywords
+set obl_resam_ulay    = wsinc5   # ulay: def resampling method for obl
+set obl_resam_olay    = wsinc5   # olay: def resampling method for obl
+set obl_resam_refbox  = wsinc5   # focus box: def resampling method for obl
 
 set DO_EDGEIFY_ULAY = 0           # can turn ulay into edges
 set EDGE_ENHANCE_FAC = ''         # for enhancing edges, by a factor, in ulay
@@ -801,13 +805,31 @@ while ( $ac <= $#argv )
         set USE_ANY_OBLIQUITY = "$argv[$ac]"
         if ( "${USE_ANY_OBLIQUITY}" != "ALL"  && \
              "${USE_ANY_OBLIQUITY}" != "o2u"  && \
-             "${USE_ANY_OBLIQUITY}" != "of2u" && \
+             "${USE_ANY_OBLIQUITY}" != "ob2u" && \
              "${USE_ANY_OBLIQUITY}" != "u2o"  && \
-             "${USE_ANY_OBLIQUITY}" != "uf2o" ) then
+             "${USE_ANY_OBLIQUITY}" != "ub2o" ) then
              echo "** ERROR: bad keyword after -obliquify: ${USE_ANY_OBLIQUITY}"
-             echo "   Must be one of: ALL, o2u, of2u, u2o, uf2o"
+             echo "   Must be one of: ALL, o2u, ob2u, u2o, ub2o"
             goto BAD_EXIT
          endif
+
+    # [PT: Sep 4, 2019] control resampling of obl transforms
+    else if ( "$argv[$ac]" == "-obl_resam_ulay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set obl_resam_ulay = "$argv[$ac]"
+
+    # [PT: Sep 4, 2019] control resampling of obl transforms
+    else if ( "$argv[$ac]" == "-obl_resam_olay" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set obl_resam_olay = "$argv[$ac]"
+
+    # [PT: Sep 4, 2019] control resampling of obl transforms
+    else if ( "$argv[$ac]" == "-obl_resam_box" ) then
+        if ( $ac >= $#argv ) goto FAIL_MISSING_ARG
+        @ ac += 1
+        set obl_resam_refbox = "$argv[$ac]"
 
     else if ( "$argv[$ac]" == "-do_clean" ) then
         set DO_CLEAN = 1
@@ -816,7 +838,6 @@ while ( $ac <= $#argv )
     else if ( "$argv[$ac]" == "-no_clean" ) then
         set DO_CLEAN = 0
         set my_clean = "-no_clean" # for @djunct_4d_slices*
-
 
     # [PT: Oct 18, 2018] this is to get around having "null args"
     # entered, because some opts need to be wrapped in quotes because
@@ -996,14 +1017,13 @@ if ( ! -e $read_dir ) then
     mkdir $read_dir
 endif
 
-# !!!!!!!!!!!!!!!!!!! think about how to resample???
-
 # [PT: Aug 29, 2019] Can apply obliquity info
 if ( "${USE_ANY_OBLIQUITY}" == "ALL" ) then
     # apply all obliquities of input --> send to scanner coords
     echo "++ Apply obliquity to: ALL"
     3dWarp \
         -deoblique                        \
+        -${obl_resam_ulay}                \
         -prefix ${read_dir}/ulay_deob.nii \
         "${ulay}"
     set ulay =  ${read_dir}/ulay_deob.nii 
@@ -1011,6 +1031,7 @@ if ( "${USE_ANY_OBLIQUITY}" == "ALL" ) then
     if ( "${olay}" != "" ) then
         3dWarp \
             -deoblique                        \
+            -${obl_resam_olay}                \
             -prefix ${read_dir}/olay_deob.nii \
             "${olay}"
         set olay =  ${read_dir}/olay_deob.nii 
@@ -1018,16 +1039,17 @@ if ( "${USE_ANY_OBLIQUITY}" == "ALL" ) then
 
     if ( "${REFBOX_IS_DSET}" == 1 ) then
         # in case sep refbox is entered
-        echo "++ and apply obliquity to focus box"
+        echo "++ and apply obliquity to box_focus"
         3dWarp \
             -deoblique                            \
+            -${obl_resam_refbox}                  \
             -prefix ${read_dir}/focusbox_deob.nii \
             "${refbox}"
         set refbox =  ${read_dir}/focusbox_deob.nii 
     endif
 
 else if ( "${USE_ANY_OBLIQUITY}" == "u2o"  || \
-          "${USE_ANY_OBLIQUITY}" == "uf2o"  ) then
+          "${USE_ANY_OBLIQUITY}" == "ub2o"  ) then
     # send ulay to olay oblique coords
     echo "++ Apply obliquity to: send ulay to olay"
 
@@ -1038,22 +1060,24 @@ else if ( "${USE_ANY_OBLIQUITY}" == "u2o"  || \
 
     3dWarp                                 \
         -card2oblique "${olay}"            \
+        -${obl_resam_ulay}                 \
         -prefix ${read_dir}/ulay_obl2o.nii \
         "${ulay}"
     set ulay =  ${read_dir}/ulay_obl2o.nii 
 
     if ( "${REFBOX_IS_DSET}" == 1 ) then
         # in case sep refbox is entered
-        echo "++ and apply obliquity to send focus box to olay"
+        echo "++ and apply obliquity to send box_focus to olay"
         3dWarp \
             -card2oblique "${olay}"                \
+            -${obl_resam_olay}                     \
             -prefix ${read_dir}/focusbox_obl2o.nii \
             "${refbox}"
         set refbox =  ${read_dir}/focusbox_obl2o.nii 
     endif
 
 else if ( "${USE_ANY_OBLIQUITY}" == "o2u" || \
-          "${USE_ANY_OBLIQUITY}" == "of2u"  ) then
+          "${USE_ANY_OBLIQUITY}" == "ob2u"  ) then
     # send olay to ulay oblique coords
     echo "++ Apply obliquity to: send olay to ulay"
 
@@ -1064,15 +1088,17 @@ else if ( "${USE_ANY_OBLIQUITY}" == "o2u" || \
 
     3dWarp                                 \
         -card2oblique "${ulay}"            \
+        -${obl_resam_olay}                 \
         -prefix ${read_dir}/olay_obl2u.nii \
         "${olay}"
     set olay =  ${read_dir}/olay_obl2u.nii 
 
     if ( "${REFBOX_IS_DSET}" == 1 ) then
         # in case sep refbox is entered
-        echo "++ and apply obliquity to send focus box to ulay"
+        echo "++ and apply obliquity to send box_focus to ulay"
         3dWarp \
             -card2oblique "${ulay}"                 \
+            -${obl_resam_refbox}                    \
             -prefix ${read_dir}/focusbox_obl2u.nii  \
             "${refbox}"
         set refbox =  ${read_dir}/focusbox_obl2u.nii 
@@ -2171,12 +2197,25 @@ COMMAND OPTIONS ~1~
                               to show each in scanner coords
                       "o2u" : send the olay to the ulay's oblique
                               coords
-                      "of2u": send the olay and any focus_box to the 
+                      "ob2u": send the olay and any box_focus to the 
                               ulay's oblique coords
                       "u2o" : send the ulay to the olay's oblique
                               coords
-                      "uf2o": send the ulay and any focus_box to the 
+                      "ub2o": send the ulay and any box_focus to the 
                               olay's oblique coords
+
+-obl_resam_ulay OIU :if using '-obliquity ..', then you might want to
+                    specify the method of resampling/interpolation for
+                    the dset being re-gridded; this option specifies
+                    that method for the ulay (see below for other
+                    dsets).  Any valid transform opt for 3dWarp is
+                    allowed: cubic, NN, etc.  (def: OIU = wsinc5)
+
+-obl_resam_olay OIO :same as for '-obl_interp_ulay ..', but for the
+                    olay dset (def: OIO = wsinc5)
+
+-obl_resam_box  OIB :same as for '-obl_interp_ulay ..', but for the
+                    '-box_focus_slices ..' dset (def: OIB = wsinc5)
 
 -func_resam  RES   :set the resampling mode for dsets; valid values
                     are:   NN  Li  Cu  Bk
@@ -2364,6 +2403,10 @@ COMMAND OPTIONS ~1~
                     perfect, but provide some useful focus while
                     hopefully not cutting off regions that should
                     still be included.
+                    NB: if your olay dset is a mask and you want to use
+                    it for this box-focusing, then make REF be the name
+                    of the file itself, not AMASK_FOCUS_OLAY, because
+                    automasking a mask does weird things.
 
 -montx  MX         :in creating a montage, the number of image panels in
                     a row, i.e., the number of columns (def: 3); the
