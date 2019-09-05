@@ -928,7 +928,7 @@ static void STATS_tsfunc( double tzero, double tdelta ,
    if( do_tdiff ){
      float tsm , tss ;
      ts_dif = (float*)calloc(npts, sizeof(float)) ;
-	  for( ii=1 ; ii < npts ; ii++ ) ts_dif[ii-1] = ts[ii]-ts[ii-1] ;
+     for( ii=1 ; ii < npts ; ii++ ) ts_dif[ii-1] = ts[ii]-ts[ii-1] ;
      get_linear_trend( npts-1 , ts_dif , &tsm , &tss ) ;
      ts_mean = (double)tsm ; ts_slope = (double)tss ;
      npts-- ; ts = ts_dif ;
