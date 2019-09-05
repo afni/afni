@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  5, Sep, 2019, RCR, "SurfMeasures", MICRO, TYPE_MODIFY,
+   "retab and fix indentations",
+   NULL
+ } ,
+
  {  4, Sep, 2019, RCR, "@SUMA_Make_Spec_FS", MICRO, TYPE_ENHANCE,
    "check for valid 'mris_convert --help' output",
    NULL
