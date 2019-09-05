@@ -25,8 +25,8 @@ if ( 1 ) then
                 `find discoraj -type f` `find shiny -type f -name '*.R'`                \
                 python_scripts/afni_python/*.py R_scripts/*.R                           \
                 ../tests/scripts/*.py ../tests/scripts/utils/*.py                       \
-                parser*.c powell_int.c dicom_hdr.c cat_matvec.c plugout*.c file_tool.c  \
-                rtfeedme.c DTIStudioFibertoSegments.c im*.c                               )
+                parser*.c powell_int.c dicom_hdr.c cat_matvec.c plugout*.c              \
+                rtfeedme.c DTIStudioFibertoSegments.c im*.c niml*.c                       )
 else
 # for quicker testing
   set flist = ( afni.c imseq.c suma_datasets.c )
@@ -76,7 +76,7 @@ foreach uuu ( $blist1 )
   set bsum = ( $bsum 0 )
 end
 
-# grep command option to remove known authors, to count unknowns
+# grep command option to remove known authors, for counting unknowns
 
 set gunk = ( -v -i )
 foreach uuu ( $alist $blist1 $blist2 )
