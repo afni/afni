@@ -7,7 +7,7 @@
 ## -- RWCox -- Sep 2019
 
 # set list of source files to query
-# stuff from outside sources (e.g., eispack) is not included here
+# stuff from outside sources (e.g., eispack, sonnets.h) is not included here
 
 if ( 1 ) then
   set flist = ( af*.[ch] mri*.[ch] thd*.[ch] cs*.[ch] 3d*.[ch] edt*.[ch] suma*.[ch]     \
@@ -17,7 +17,8 @@ if ( 1 ) then
                 rickr/*.[ch] ptaylor/*.[ch] gifti/*.[ch] svm/*.[ch]                     \
                 `git ls-tree --name-only -r master | grep scripts_install`              \
                 `find discoraj -type f` `find shiny -type f -name '*.R'`                \
-                python_scripts/afni_python/*.py R_scripts/*.R                             )
+                python_scripts/afni_python/*.py R_scripts/*.R                           \
+                ../tests/scripts/*.py ../tests/scripts/utils/*.py                         )
 else
 # for quicker testing
   set flist = ( afni.c imseq.c )
@@ -33,14 +34,14 @@ endif
 # list of authors needing only one alias (not case sensitive)
 
 set alist = ( Cox Craddock discoraj Froehlich Gang        \
-              Gaudes Glen Hammett Kaczmarzyk              \
+              Gaudes Glen Hammett Kaczmarzyk LeeJ3        \
               Laconte Lisinski Clark Johnson Julia        \
-              Molfese Oosterhof Rick Schwabacher Warren     )
+              Molfese Oosterhof Rick Schwabacher Warren Markello )
 
 # list of authors needing two aliases (i.e., troublemakers)
 
-set blist1 = ( Nielson      Saad Taylor  )
-set blist2 = ( shotgunosine ziad mrneont )
+set blist1 = ( Nielson      Saad Taylor  afniHQ )
+set blist2 = ( shotgunosine ziad mrneont Ubuntu )
 
 # tsum = total sum of lines
 set tsum = 0
@@ -90,12 +91,12 @@ foreach fff ( $glist )
 
  # loop over the alist and grep out count for each one
   foreach qq ( $aqq )
-    set aa = `grep -i $alist[$qq] gsum.junk.txt | wc -l` ; @ asum[$qq] += $aa
+    set aa = `grep -i "$alist[$qq]" gsum.junk.txt | wc -l` ; @ asum[$qq] += $aa
   end
 
  # loop over the blist, and get their counts
   foreach qq ( $bqq )
-    set aa = `grep -i -e $blist1[$qq] -e $blist2[$qq] gsum.junk.txt | wc -l` ; @ bsum[$qq] += $aa
+    set aa = `grep -i -e "$blist1[$qq]" -e "$blist2[$qq]" gsum.junk.txt | wc -l` ; @ bsum[$qq] += $aa
   end
 
  # accumulate the lines with unknown authors
@@ -108,7 +109,7 @@ end
 
 # cleanup after loop over files
 
-printf " ... total line count = %d \n" $tsum
+printf "... total line count = %d \n" $tsum
 \rm -f gsum.junk.txt
 touch gsum.junk.txt
 
@@ -121,14 +122,14 @@ set aa = `wc -l < gsum.unk.txt` ; @ unksum = $aa
 foreach qq ( $aqq )
   if ( $asum[$qq] > 0 ) then
     set perc  = `ccalc "100*$asum[$qq]/$tsum"`
-    printf " %12s  %6s  %5.2f%%\n" $alist[$qq] $asum[$qq] $perc >> gsum.junk.txt
+    printf " %12s  %6s  %5.2f%%\n" "$alist[$qq]" $asum[$qq] $perc >> gsum.junk.txt
   endif
 end
 
 foreach qq ( $bqq )
   if ( $bsum[$qq] > 0 ) then
     set perc  = `ccalc "100*$bsum[$qq]/$tsum"`
-    printf " %12s  %6s  %5.2f%%\n" $blist1[$qq] $bsum[$qq] $perc >> gsum.junk.txt
+    printf " %12s  %6s  %5.2f%%\n" "$blist1[$qq]" $bsum[$qq] $perc >> gsum.junk.txt
   endif
 end
 
