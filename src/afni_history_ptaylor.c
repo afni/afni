@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 4, Sep , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
+   "New opts: -obl_resam_ulay OIU, -obl_resam_Olay OIO, -obl_resam_box OIB.",
+   "Control resampling of dsets (ulay, olay, focus box) when applying obl.\n"
+},
+
 { 4, Sep , 2019 , PT , "@SUMA_Make_Spec_FS" , MINOR , TYPE_NEW_OPT,
    "New opt:  '-extra_fs_dsets ..', to translate more FS-created surf/ dsets.",
    "Allow more FS surf dsets to be brought into SUMA. For F. Lalonde.\n"
