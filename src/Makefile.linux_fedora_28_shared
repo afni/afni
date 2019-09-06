@@ -6,6 +6,7 @@
 #    - make libSUMA.so, and possibly other libs
 
 SYSTEM_NAME = linux_fedora_28_shared
+SYSTEM_TYPE = Linux
 
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
@@ -15,7 +16,7 @@ LGIFTI    = -lexpat
 
 # -----------------------------------
 # use shared libriaries (libmri.so)?
-MRI_SHARED = yes
+MRI_SHARED = $(SYSTEM_TYPE)
 
 # use linux-style R_io.so building
 R_IO_MODIFY_LINUX = yes
