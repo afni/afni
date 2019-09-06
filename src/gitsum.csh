@@ -15,7 +15,8 @@
 # set list of source files to query
 # stuff from outside sources (e.g., eispack, sonnets.h) is not included here
 
-if ( 1 ) then
+if ( 0 ) then
+# most things
   set qlist = ( `git ls-tree --name-only -r HEAD | grep -v /`               \
                 `git ls-tree --name-only -r HEAD | grep svm/`               \
                 `git ls-tree --name-only -r HEAD | grep gifti/`             \
@@ -34,34 +35,39 @@ if ( 1 ) then
                 `git ls-tree --name-only -r HEAD | grep nifti/`             \
                 `git ls-tree --name-only -r HEAD | grep scripts_src/`       \
                 `git ls-tree --name-only -r HEAD ../tests`                     )
+else if ( 1 ) then
+# everything
+  set qlist = ( `git ls-tree --name-only -r HEAD ..` )
 else
 # for quicker testing
   set qlist = ( afni.c imseq.c suma_datasets.c pbar*.[ch] )
 endif
 
-# make sure list doesn't have duplicates
+# make sure list doesn't have duplicates or other undesired files
 
 set flist = ( `echo $qlist | xargs -n1 echo | grep -v -i -e '\.jpg' -e '\.png' -e '\.html' | sort | uniq` )
 echo "File count = $#flist"
 
 # run the Count Lines Of Code script, if present (this is fast)
 
-which cloc-1.64.pl >& /dev/null
-if ( $status == 0 ) then
-  cloc-1.64.pl --quiet $flist
-endif
+# which cloc-1.64.pl >& /dev/null
+# if ( $status == 0 ) then
+#   cloc-1.64.pl --quiet $flist
+#   echo
+# endif
 
 # list of authors needing only one alias (not case sensitive)
-# anyone whose alias has spaces in it is out of luck
+# - anyone whose alias has spaces in it is out of luck
 
-set alist = ( Cox Craddock discoraj Froehlich Gang        \
-              Gaudes Glen Hammett Kaczmarzyk LeeJ3        \
-              Laconte Lisinski Clark Johnson Julia        \
-              Molfese Oosterhof Rick Schwabacher          \
-              Vincent Warren Markello Halchenko             )
+set alist = ( Cox Craddock discoraj Froehlich Gang  \
+              Gaudes Glen Hammett Kaczmarzyk LeeJ3  \
+              Laconte Lisinski Clark Johnson Julia  \
+              Molfese Oosterhof Rick Schwabacher    \
+              Vincent Warren Markello Halchenko     \
+              Vovk Zosky Torres                        )
 
 # list of authors needing two aliases (i.e., troublemakers)
-# anyone who has three aliases is out of luck
+# - anyone who has three aliases is out of luck
 
 set blist1 = ( Nielson      Saad Taylor  afniHQ )
 set blist2 = ( shotgunosine ziad mrneont Ubuntu )
@@ -101,9 +107,10 @@ touch gitsum.unknown.txt
 
 # loop over source files, plus README documents
 
-printf "\nblaming "
+printf "start blaming "
 
-set glist = ( $flist ../doc/README/README.* )
+# set glist = ( $flist ../doc/README/README.* )
+set glist = ( $flist )
 foreach fff ( $glist )
 
  # skip directories or non-existing files or non-ASCII files
@@ -114,20 +121,20 @@ foreach fff ( $glist )
  # get the list of blamees for this file (grep out blank lines)
   git blame $fff | grep -v '[0-9]) $' > gitsum.junk.txt
 
- # count lines in this file
+ # count total lines in this file, sum them up
   set aa = `wc -l < gitsum.junk.txt` ; @ tsum += $aa
 
- # loop over the alist and grep out count for each author
+ # loop over the alist and grep out count for each author, sum it up
   foreach qq ( $aqq )
     set aa = `grep -i -e "$alist[$qq]" gitsum.junk.txt | wc -l` ; @ asum[$qq] += $aa
   end
 
- # loop over the blist and get their counts
+ # loop over the blist and get their counts, sum them up
   foreach qq ( $bqq )
     set aa = `grep -i -e "$blist1[$qq]" -e "$blist2[$qq]" gitsum.junk.txt | wc -l` ; @ bsum[$qq] += $aa
   end
 
- # accumulate the lines with unknown authors into a separate file
+ # save all the lines with unknown authors into a separate file
   grep $gunk gitsum.junk.txt >> gitsum.unknown.txt
 
  # print a progress pacifier
@@ -150,27 +157,27 @@ set aa = `wc -l < gitsum.unknown.txt` ; @ unksum = $aa
 foreach qq ( $aqq )
   if ( $asum[$qq] > 0 ) then
     set perc  = `ccalc "100*$asum[$qq]/$tsum"`
-    printf " %12s  %6s  %5.2f%%\n" "$alist[$qq]" $asum[$qq] $perc >> gitsum.junk.txt
+    printf " %12s  %7s  %6.2f%%\n" "$alist[$qq]" $asum[$qq] $perc >> gitsum.junk.txt
   endif
 end
 
 foreach qq ( $bqq )
   if ( $bsum[$qq] > 0 ) then
     set perc  = `ccalc "100*$bsum[$qq]/$tsum"`
-    printf " %12s  %6s  %5.2f%%\n" "$blist1[$qq]" $bsum[$qq] $perc >> gitsum.junk.txt
+    printf " %12s  %7s  %6.2f%%\n" "$blist1[$qq]" $bsum[$qq] $perc >> gitsum.junk.txt
   endif
 end
 
 if ( $unksum > 0 ) then
   set perc  = `ccalc "100*$unksum/$tsum"`
-  printf " %12s  %6s  %5.2f%%\n" Unknown $unksum $perc >> gitsum.junk.txt
+  printf " %12s  %7s  %6.2f%%\n" Unknown $unksum $perc >> gitsum.junk.txt
 endif
 
 # Put header lines into the final report
 
-echo   " Contributor   Lines   %-age"              > gitsum.out.txt
-echo   " ------------  ------  ------"            >> gitsum.out.txt
-printf " %12s  %6s  %5.2f%%\n" Everyone $tsum 100 >> gitsum.out.txt
+echo   " Contributor    Lines    %-age"              > gitsum.out.txt
+echo   " ------------  -------  -------"            >> gitsum.out.txt
+printf " %12s  %7s  %6.2f%%\n" Everyone $tsum 100 >> gitsum.out.txt
 
 # sort output lines by second column, put in final report
 
