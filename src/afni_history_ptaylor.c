@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 6, Sep , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Put QC images into subdir called QC; output mask.",
+   "Few other tiny changes/reorganizations internally.\n"
+},
+
 { 4, Sep , 2019 , PT , "@chauffeur_afni" , MINOR , TYPE_NEW_OPT,
    "New opts: -obl_resam_ulay OIU, -obl_resam_Olay OIO, -obl_resam_box OIB.",
    "Control resampling of dsets (ulay, olay, focus box) when applying obl.\n"
