@@ -11440,6 +11440,7 @@ g_help_options = """
 
         -tshift_interp METHOD   : specify the interpolation method for tshift
 
+                e.g. -tshift_interp -wsinc9
                 e.g. -tshift_interp -Fourier
                 e.g. -tshift_interp -cubic
                 default -quintic
