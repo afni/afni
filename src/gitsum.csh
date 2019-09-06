@@ -36,8 +36,12 @@ if ( 0 ) then
                 `git ls-tree --name-only -r HEAD | grep scripts_src/`       \
                 `git ls-tree --name-only -r HEAD ../tests`                     )
 else if ( 1 ) then
-# everything
-  set qlist = ( `git ls-tree --name-only -r HEAD ..` )
+# everything minus the excludes (which aren't by anyone in SSCC)
+  set flist = ( `git ls-tree --name-only -r HEAD ..` )
+  set exclude = ( -v -e qhulldir/ -e jpeg-6b/ -e mpeg_encodedir/ -e faces/ -e eispack/   \
+                     -e f2cdir/ -e matlab/ -e volpack/ -e maple/ -e poems/ -e gifsicledir/ -e XmHTML/ )
+  set qlist = ( `echo $flist | xargs -n1 echo | grep $exclude` )
+  unset flist
 else
 # for quicker testing
   set qlist = ( afni.c imseq.c suma_datasets.c pbar*.[ch] )
@@ -64,7 +68,7 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
               Laconte Lisinski Clark Johnson Julia  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
-              Vovk Zosky Torres                        )
+              Vovk Zosky Torres Schmidt                )
 
 # list of authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
@@ -109,16 +113,14 @@ touch gitsum.unknown.txt
 
 printf "start blaming "
 
-# set glist = ( $flist ../doc/README/README.* )
-set glist = ( $flist )
-foreach fff ( $glist )
+foreach fff ( $flist )
 
  # skip directories or non-existing files or non-ASCII files
   if ( ! -f $fff || -z $fff ) continue
   set aa = `file --mime $fff | grep ascii | wc -l`
   if( $aa == 0 ) continue
 
- # get the list of blamees for this file (grep out blank lines)
+ # get and save the list of blamees for this file (grep out blank lines)
   git blame $fff | grep -v '[0-9]) $' > gitsum.junk.txt
 
  # count total lines in this file, sum them up
@@ -138,7 +140,7 @@ foreach fff ( $glist )
   grep $gunk gitsum.junk.txt >> gitsum.unknown.txt
 
  # print a progress pacifier
-  @ nn ++ ; if( $nn % 20 == 0 ) printf "%d/%d " $nn $#glist
+  @ nn ++ ; if( $nn % 20 == 0 ) printf "%d/%d " $nn $#flist
 
 end
 
