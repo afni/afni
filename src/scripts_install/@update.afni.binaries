@@ -74,6 +74,7 @@ history for $prog :
   3.8  15 Mar 2019 : comment that dotfile updates were done by @uab
   3.9  14 Jun 2019 : add -hostname and -distdir
   3.10 26 Jul 2019 : add -make_backup and -echo
+  3.11  6 Sep 2019 : if afni -ver fails, fall back to AFNI_version.txt
 
 -------------------------------------------------------------------------------
 EOF
@@ -82,7 +83,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.9, June 14, 2019"
+set aub_version = "3.11, September 6, 2019"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -616,8 +617,14 @@ if ( $package == "" ) then
    if ( $cur_afni != "" ) then
       set package = `afni -ver | \grep binary | awk '{print $3}' | sed 's/://g'`
       if ( $status || "$package" == "" ) then
+          set vfile = AFNI_version.txt
           echo "** failed setting package from 'afni -ver'"
-          exit 1
+          echo "   checking $vfile instead..."
+          set package = `column_cat -line 2 $cur_afni/$vfile`
+          if ( $status || ! -f $vfile || "$package" == "" ) then
+             echo "** failed setting package from '$vfile', failing"
+             exit 1
+          endif
       endif
    else
       # pick package based on OS (sysname is set above)
