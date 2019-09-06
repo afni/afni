@@ -16,21 +16,33 @@
 # stuff from outside sources (e.g., eispack, sonnets.h) is not included here
 
 if ( 1 ) then
-  set flist = ( af*.[ch] mri*.[ch] thd*.[ch] cs*.[ch] 3d*.[ch] edt*.[ch] suma*.[ch]     \
-                plug*.c niml/niml*.[ch] coxplot/*.[ch] SUMA/*.[ch] 1d*.[ch] model*.c    \
-                display.[ch] imseq.[ch] bbox.[ch] xim.[ch] xutil.[ch] xutil_webber.[ch] \
-                nifti_statlib.[ch] `find nifti -name '*.[ch]'`                          \
-                rickr/*.[ch] ptaylor/*.[ch] gifti/*.[ch] svm/*.[ch]                     \
-                `git ls-tree --name-only -r master | grep scripts_install`              \
-                `find discoraj -type f` `find shiny -type f -name '*.R'`                \
-                python_scripts/afni_python/*.py R_scripts/*.R                           \
-                ../tests/scripts/*.py ../tests/scripts/utils/*.py                       \
-                parser*.c powell_int.c dicom_hdr.c cat_matvec.c plugout*.c              \
-                rtfeedme.c DTIStudioFibertoSegments.c im*.c niml*.c                       )
+  set qlist = ( `git ls-tree --name-only -r HEAD | grep -v /`               \
+                `git ls-tree --name-only -r HEAD | grep svm/`               \
+                `git ls-tree --name-only -r HEAD | grep gifti/`             \
+                `git ls-tree --name-only -r HEAD | grep rickr/`             \
+                `git ls-tree --name-only -r HEAD | grep scripts_install/`   \
+                `git ls-tree --name-only -r HEAD | grep ptaylor/`           \
+                `git ls-tree --name-only -r HEAD | grep discoraj/`          \
+                `git ls-tree --name-only -r HEAD | grep shiny/`             \
+                `git ls-tree --name-only -r HEAD | grep python_scripts/`    \
+                `git ls-tree --name-only -r HEAD | grep R_scripts/`         \
+                `git ls-tree --name-only -r HEAD | grep tests/`             \
+                `git ls-tree --name-only -r HEAD | grep pkundu/`            \
+                `git ls-tree --name-only -r HEAD | grep coxplot/`           \
+                `git ls-tree --name-only -r HEAD | grep niml/`              \
+                `git ls-tree --name-only -r HEAD | grep SUMA/`              \
+                `git ls-tree --name-only -r HEAD | grep nifti/`             \
+                `git ls-tree --name-only -r HEAD | grep scripts_src/`       \
+                `git ls-tree --name-only -r HEAD ../tests`                     )
 else
 # for quicker testing
-  set flist = ( afni.c imseq.c suma_datasets.c )
+  set qlist = ( afni.c imseq.c suma_datasets.c pbar*.[ch] )
 endif
+
+# make sure list doesn't have duplicates
+
+set flist = ( `echo $qlist | xargs -n1 echo | grep -v -i -e '\.jpg' -e '\.png' -e '\.html' | sort | uniq` )
+echo "File count = $#flist"
 
 # run the Count Lines Of Code script, if present (this is fast)
 
@@ -46,7 +58,7 @@ set alist = ( Cox Craddock discoraj Froehlich Gang        \
               Gaudes Glen Hammett Kaczmarzyk LeeJ3        \
               Laconte Lisinski Clark Johnson Julia        \
               Molfese Oosterhof Rick Schwabacher          \
-              Vincent Warren Markello                       )
+              Vincent Warren Markello Halchenko             )
 
 # list of authors needing two aliases (i.e., troublemakers)
 # anyone who has three aliases is out of luck
@@ -93,6 +105,11 @@ printf "\nblaming "
 
 set glist = ( $flist ../doc/README/README.* )
 foreach fff ( $glist )
+
+ # skip directories or non-existing files or non-ASCII files
+  if ( ! -f $fff || -z $fff ) continue
+  set aa = `file --mime $fff | grep ascii | wc -l`
+  if( $aa == 0 ) continue
 
  # get the list of blamees for this file (grep out blank lines)
   git blame $fff | grep -v '[0-9]) $' > gitsum.junk.txt
@@ -151,8 +168,9 @@ endif
 
 # Put header lines into the final report
 
-echo " Contributor   Lines   %-age"    > gitsum.out.txt
-echo " ------------  ------  ------"  >> gitsum.out.txt
+echo   " Contributor   Lines   %-age"              > gitsum.out.txt
+echo   " ------------  ------  ------"            >> gitsum.out.txt
+printf " %12s  %6s  %5.2f%%\n" Everyone $tsum 100 >> gitsum.out.txt
 
 # sort output lines by second column, put in final report
 
