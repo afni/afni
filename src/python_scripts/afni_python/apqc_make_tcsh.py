@@ -99,10 +99,15 @@ auth = 'PA Taylor'
 # + [PT] include obliquity in vorig QC block
 # + [PT] simplify radcor text; decrease repetition
 #
-ver = '3.0' ; date = 'July 18, 2019' 
+#ver = '3.0' ; date = 'July 18, 2019' 
 # + [PT] include obliquity in vorig QC block
 # + [PT] simplify radcor text; decrease repetition
 # + [PT] -> merge in changed opts for radcor
+#
+ver = '3.1' ; date = 'Sep 6, 2019' 
+# [PT] put a montgap (1 line, black) into QC montages: sep imgs a bit
+#    + put in censoring to the 1dplot.py command when showing VR6 -
+#      also known as the 'Molfese approach'
 #
 #########################################################################
 
@@ -483,12 +488,15 @@ if __name__ == "__main__":
     # item    : motion (VR6)
 
     # [PT: Nov 1, 2018] update list in ldep var-- much shorter now
+    # [PT: Sep 6, 2019] now also include censor bars, if available
     ldep = ['motion_dset', 'nt_orig']  
     if lat.check_dep(ap_ssdict, ldep) :
-        ban      = lat.bannerize(' volreg motion pars')
+        HAS_censor_dset = lat.check_dep(ap_ssdict, ['censor_dset'])
+        ban      = lat.bannerize(' volreg motion pars, and censoring')
         obase    = 'qc_{:02d}'.format(idx)
         cmd      = lat.apqc_mot_VR6( obase, "mot", "VR6", RUN_STYLE, 
-                                     1600 )
+                                     1600,
+                                     has_cen_dset=HAS_censor_dset )
 
         str_FULL+= ban
         str_FULL+= cmd
