@@ -75,10 +75,15 @@ auth = 'PA Taylor'
 #ver = '2.91' ; date = 'July 3, 2019' 
 # + [PT] bannerize now has 'padsymb=' kwarg
 #
-ver = '3.0' ; date = 'July 18, 2019' 
+#ver = '3.0' ; date = 'July 18, 2019' 
 # + [PT] include obliquity in vorig QC block
 # + [PT] simplify radcor text; decrease repetition
 # + [PT] -> merge in changed opts for radcor
+#
+ver = '3.1' ; date = 'Sep 6, 2019' 
+# [PT] put a montgap (1 line, black) into QC montages: sep imgs a bit
+#    + put in censoring to the 1dplot.py command when showing VR6 -
+#      also known as the 'Molfese approach'
 #
 #########################################################################
 
@@ -550,11 +555,39 @@ endif
 # ========================== 1D files/plots ==============================
 
 # ['motion_dset', 'nt_orig']
-def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize ):
+# Now also check about: ['censor_dset']
+def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize,
+                  has_cen_dset=False ):
 
     opref = '_'.join([obase, qcb, qci]) # full name
 
     comm  = ''' review plots: 3dvolreg motion regressors'''
+
+    if run_style == 'basic' :
+        cen_color = 'green'
+    elif run_style == 'pythonic' :
+        cen_color = 'red'
+
+    STR_CEN_pre    = '''set cstr = "(no censoring applied)"'''
+    STR_plot_title = '''Estimated motion parameters (volreg)'''
+    STR_json_text  = '''6 volume registration motion parameters (in ${motion_dset})'''
+    STR_json_text2  = ''             # stuff to go on second line
+    STR_json_subt  = ''
+    if has_cen_dset : 
+        STR_json_subt+= '''censored vols (${Pcstr}%): ${cstr}'''
+        STR_CEN_pre = '''set cstr = `1d_tool.py -show_trs_censored encoded -infile ${censor_dset}`
+        set Ncstr = `1d_tool.py -verb 0 -show_censor_count -infile ${censor_dset}`
+        set Pcstr = `echo "scale=0; ${Ncstr} * 100 / ${nt_orig}" | bc`
+        if ( `echo "${Ncstr} > 0" | bc` && "${Pcstr}" == "0" ) then
+        ~~~~set Pcstr = "<1"
+        endif'''
+
+        STR_plot_title+= ''', with combined censoring ({} bars)'''.format( cen_color )
+        STR_json_text2+= '''with combined censoring'''
+
+    if STR_json_text2:
+        STR_json_text+= ' ,, ' + STR_json_text2
+
 
     pre = '''
     set jpgsize = {} 
@@ -564,23 +597,35 @@ def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize ):
     @ imax = ${{nt_orig}} - 1
     set ssrev_ln = `grep "num TRs per run" ${{ss_review_dset}} | grep -v "("`
     set pats = "${{ssrev_ln[6-]}}"
-    '''.format(jpgsize, opref)
-    
-    STR_plot_title = '''Estimated motion parameters (volreg)'''
-    STR_json_text  = '''6 volume registration motion parameters (in ${motion_dset})'''
+    {}
+    '''.format(jpgsize, opref, STR_CEN_pre)
+
 
     if run_style == 'basic' :
+
+        STR_CEN_cmd = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_RGB green 
+                             -censor   ${censor_dset}'''
+
         cmd = '''
         1dplot                                                     
         -sepscl 
         -volreg 
+        {}
         -xlabel   "vol"
         -title    "{}"
         -jpgs     ${{jpgsize}} "${{odir_img}}/${{opref}}" 
         "${{motion_dset}}" 
-        '''.format( STR_plot_title )
+        '''.format( STR_CEN_cmd, STR_plot_title )
 
     elif run_style == 'pythonic' :
+
+        # extra uvars may or may not be used
+        STR_CEN_cmd  = ''
+        if has_cen_dset : 
+            STR_CEN_cmd+= '''-censor_files ${censor_dset}'''
+
         cmd = '''
         1dplot.py                                                     
         -sepscl 
@@ -589,10 +634,11 @@ def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize ):
         -reverse_order 
         -infiles  "${{motion_dset}}"
         -ylabels   VOLREG
+        {}
         -xlabel   "vol index"
         -title    "{}"
         -prefix   "${{odir_img}}/${{opref}}.jpg" 
-        '''.format( STR_plot_title )
+        '''.format(STR_CEN_cmd, STR_plot_title )
 
     # text shown above image in the final HTML
     jsontxt = '''
@@ -603,9 +649,10 @@ def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize ):
     blockid_hov :: {}
     title       :: {}
     text        :: "{}"
+    subtext     :: "{}"
     EOF
     '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],
-                STR_json_text )
+                STR_json_text, STR_json_subt  )
 
     jsontxt_cmd = '''
     abids_json_tool.py   
@@ -1349,6 +1396,8 @@ def apqc_vorig_all( obase, qcb, qci, olay_posonly=True, ulay_name='' ):
     -blowup 4
     -opacity 9  
     -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
@@ -1828,6 +1877,8 @@ def apqc_vstat_stvol( obase, qcb, qci,
     -prefix        "${{odir_img}}/${{opref}}"
     -save_ftype JPEG
     -montx 7 -monty 1  
+    -montgap 1 
+    -montcolor 'black'
     -set_xhairs OFF 
     -label_mode 1 -label_size 3  
     -do_clean
@@ -2814,6 +2865,8 @@ def apqc_radcor_rcvol( obase, qcb, qci,
         -prefix        "${{odir_img}}/${{opref}}"
         -save_ftype JPEG
         -montx 7 -monty 1  
+        -montgap 1 
+        -montcolor 'black'
         -set_xhairs OFF 
         -label_mode 1 -label_size 3  
         -do_clean

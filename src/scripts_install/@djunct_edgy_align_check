@@ -24,9 +24,13 @@
 #set version   = "0.6";  set rev_dat   = "Nov 5, 2018"
 #   + keep up with new alpha/boxed parameters for driving afni
 #
-set version   = "1.0";  set rev_dat   = "Jan 30, 2019"
+#set version   = "1.0";  set rev_dat   = "Jan 30, 2019"
 #   + [PT] add in the montgap and montcolor opts (useful for macaque
 #          data!)
+#
+set version   = "1.0";  set rev_dat   = "Sep 6, 2019"
+#   + [PT] now setting def montgap to 1, in conjunction with making
+#          similar change in APQC images
 #
 # ----------------------------------------------------------------
 
@@ -60,7 +64,7 @@ set tpref          = "__tmp"
 set olayE          = ${tpref}_olayE.nii.gz
 
 set Nx             = 7                   # num of mont wins, b/c Ny=1
-set mgap           = 0                   # gapsize (in px) bt montage slices
+set mgap           = 1                   # gapsize (in px) bt montage slices
 set mcolor         = 'black'             # color of montage gap
 
 set refbox_add     = ( "-pass" "-pass" )

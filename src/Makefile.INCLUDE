@@ -51,15 +51,32 @@ SOMEAFOBJS = parser_int.o afni_warp.o afni_slice_byte.o afni_slice_short.o \
              afni_slice_float.o afni_slice_complex.o afni_slice_rgbyte.o   \
              parser.o pbar_color_defs.o afni_ports.o
 
-ifdef MRI_SHARED
+# ----------------------------------------------------------------------
+# in the shared case, let objects differ among systems
+# (older make systems do not support "else ifeq")
+
+ifeq ($(MRI_SHARED), Linux)
 LIBMRI_OBJ  = libmri.so
 LIBF2C_OBJ  = libf2c.so
 LIBSUMA_OBJ = libSUMA.so
+
 else
+ifeq ($(MRI_SHARED), Darwin)
+LIBMRI_OBJ  = libmri.so
+LIBF2C_OBJ  = libf2c.a
+LIBSUMA_OBJ = libSUMA.so
+
+else
+# default to static
 LIBMRI_OBJ  = libmri.a
 LIBF2C_OBJ  = libf2c.a
 LIBSUMA_OBJ = libSUMA.a
+
 endif
+endif
+
+# ----------------------------------------------------------------------
+
 
 T3OBJS  = to3d.o
 
@@ -2594,9 +2611,19 @@ vol2surf.o:vol2surf.h
 ###################################################################
 # shared objects (go into the shared_lib directory)
 
-# same as .a, but build as a shared object
-# to apply, make this target libmri.so and the below libmri.so.x, say
-libmri.so.b: mrilib.h                                                        \
+# default to using Linux
+ifeq ($(MRI_SHARED), Darwin)
+LIBMRI_DEP = LIBMRI_MACOS
+else
+LIBMRI_DEP = LIBMRI_LINUX
+endif
+
+
+# alter this based on the OS
+libmri.so: $(LIBMRI_DEP)
+
+# same as .a, but build as a shared object for OS X
+LIBMRI_MACOS: mrilib.h                                                       \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) niml.h 3ddata.h            \
@@ -2618,7 +2645,7 @@ libmri.so.b: mrilib.h                                                        \
 #
 # if MRI_SHARED, might not want 2 $(RM) netcdf_attr.o commands
 # (here and in shared_netcdf_attr)
-libmri.so: niml.h mrilib.h                                                   \
+LIBMRI_LINUX: niml.h mrilib.h                                                \
           $(NIML_OBJS) $(MRI_OBJS) $(THD_OBJS)                               \
           $(EDT_OBJS)  $(CS_OBJS)  $(EIS_OBJS) $(NETCDF_OBJS)                \
           $(SUMA_OBJS) $(MISC_OBJS) $(SOMEAFOBJS) 3ddata.h                   \

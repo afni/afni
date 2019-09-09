@@ -9032,6 +9032,7 @@ g_help_examples = """
                  -echo_times 11 22.72 34.44                                 \\
                  -combine_method OC                                         \\
                  -tcat_remove_first_trs 2                                   \\
+                 -tshift_interp -wsinc9                                     \\
                  -mask_epi_anat yes                                         \\
                  # == RETROICOR per run                                     \\
                  -ricor_regs_nfirst 2                                       \\
@@ -9043,6 +9044,7 @@ g_help_examples = """
                  -volreg_align_e2a                                          \\
                  -volreg_post_vr_allin yes                                  \\
                  -volreg_pvra_base_index MIN_OUTLIER                        \\
+                 -volreg_warp_final_interp wsinc5                           \\
                  # == surface analysis                                      \\
                  -surf_anat $data_dir/SUMA/FT_SurfVol.nii                   \\
                  -surf_spec $data_dir/SUMA/std.141.FT_?h.spec               \\
@@ -11440,6 +11442,7 @@ g_help_options = """
 
         -tshift_interp METHOD   : specify the interpolation method for tshift
 
+                e.g. -tshift_interp -wsinc9
                 e.g. -tshift_interp -Fourier
                 e.g. -tshift_interp -cubic
                 default -quintic
