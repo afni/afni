@@ -17,6 +17,7 @@
 
 if ( 0 ) then
 # most things
+  echo "Finding files"
   set qlist = ( `git ls-tree --name-only -r HEAD | grep -v /`               \
                 `git ls-tree --name-only -r HEAD | grep svm/`               \
                 `git ls-tree --name-only -r HEAD | grep gifti/`             \
@@ -37,6 +38,7 @@ if ( 0 ) then
                 `git ls-tree --name-only -r HEAD ../tests`                     )
 else if ( 1 ) then
 # everything minus the excludes (which aren't by anyone in SSCC)
+  echo "Finding files"
   set flist = ( `git ls-tree --name-only -r HEAD ..` )
   set exclude = ( -v -e qhulldir/ -e jpeg-6b/ -e mpeg_encodedir/ -e faces/ -e eispack/   \
                      -e f2cdir/ -e matlab/ -e volpack/ -e maple/ -e poems/ -e gifsicledir/ -e XmHTML/ )
@@ -49,7 +51,10 @@ endif
 
 # make sure list doesn't have duplicates or other undesired files
 
-set flist = ( `echo $qlist | xargs -n1 echo | grep -v -i -e '\.jpg' -e '\.png' -e '\.html' | sort | uniq` )
+set flist = ( `echo $qlist | xargs -n1 echo |                                       \
+              grep -v -i -e '\.jpg' -e '\.jpeg' -e '\.png' -e '\.html' -e '\.pdf' | \
+              sort | uniq` )
+
 echo "File count = $#flist"
 
 # run the Count Lines Of Code script, if present (this is fast)
@@ -64,7 +69,7 @@ echo "File count = $#flist"
 # - anyone whose alias has spaces in it is out of luck
 
 set alist = ( Cox Craddock discoraj Froehlich Gang  \
-              Gaudes Glen Hammett Kaczmarzyk LeeJ3  \
+              Gaudes Glen Hammett Kaczmarzyk Lee    \
               Laconte Lisinski Clark Johnson Julia  \
               Molfese Oosterhof Rick Schwabacher    \
               Vincent Warren Markello Halchenko     \
@@ -73,8 +78,8 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
 # list of authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
 
-set blist1 = ( Nielson      Saad Taylor  afniHQ )
-set blist2 = ( shotgunosine ziad mrneont Ubuntu )
+set blist1 = ( Nielson      Saad Taylor  afniHQ Vinai )
+set blist2 = ( shotgunosine ziad mrneont Ubuntu V..R  )
 
 # tsum = total sum of lines thus far
 set tsum = 0

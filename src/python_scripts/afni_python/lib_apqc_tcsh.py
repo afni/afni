@@ -85,6 +85,9 @@ ver = '3.1' ; date = 'Sep 6, 2019'
 #    + put in censoring to the 1dplot.py command when showing VR6 -
 #      also known as the 'Molfese approach'
 #
+ver = '3.11' ; date = 'Sep 9, 2019' 
+# [PT] spacing fix in VR6 with censoring
+#
 #########################################################################
 
 import sys
@@ -648,7 +651,7 @@ def apqc_mot_VR6( obase, qcb, qci, run_style, jpgsize,
     blockid     :: {}
     blockid_hov :: {}
     title       :: {}
-    text        :: "{}"
+    text        :: {}
     subtext     :: "{}"
     EOF
     '''.format( qci, qcb, lahh.qc_blocks[qcb][0], lahh.qc_blocks[qcb][1],

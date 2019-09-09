@@ -104,10 +104,13 @@ auth = 'PA Taylor'
 # + [PT] simplify radcor text; decrease repetition
 # + [PT] -> merge in changed opts for radcor
 #
-ver = '3.1' ; date = 'Sep 6, 2019' 
+#ver = '3.1' ; date = 'Sep 6, 2019' 
 # [PT] put a montgap (1 line, black) into QC montages: sep imgs a bit
 #    + put in censoring to the 1dplot.py command when showing VR6 -
 #      also known as the 'Molfese approach'
+#
+ver = '3.11' ; date = 'Sep 9, 2019' 
+# [PT] spacing fix in VR6 with censoring
 #
 #########################################################################
 
