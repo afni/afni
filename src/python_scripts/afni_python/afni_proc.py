@@ -655,9 +655,10 @@ g_history = """
     6.45 Jul 19, 2019: if template is multi-volume, get vol [0] for group_mask
     6.46 Jul 25, 2019: added -volreg_warp_master
     6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
+    6.48 Sep  9, 2019: added control for -NEW25
 """
 
-g_version = "version 6.47, August 27, 2019"
+g_version = "version 6.48, September 9, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1202,8 +1203,8 @@ class SubjProcSream:
         self.valid_opts.add_opt('-despike_opts_3dDes', -1, [],
                         helpstr='additional options directly for 3dDespike')
         self.valid_opts.add_opt('-despike_new', 1, [],
-                        acplist=['yes','no'],
-                        helpstr="(yes/no) run 3dDespike with -NEW method")
+                        acplist=g_despike_new_opts,
+                        helpstr="(yes/no/...) run 3dDespike with -NEW method")
 
         self.valid_opts.add_opt('-ricor_datum', 1, [],
                         acplist=['short', 'float'],

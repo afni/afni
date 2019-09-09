@@ -40,6 +40,12 @@ g_oc_methods = [
     'tedana_OC_tedort'  # ts_OC.nii, and ortvecs from tedana
     ]
 
+g_despike_new_opts = [
+    'yes',              # apply as default -NEW option
+    'no',               # add no option
+    '-NEW',             # add -NEW
+    '-NEW25'            # add -NEW25
+    ]
 
 WARP_EPI_TLRC_ADWARP    = 1
 WARP_EPI_TLRC_WARP      = 2
@@ -1194,7 +1200,7 @@ def db_cmd_despike(proc, block):
 
     # maybe the user wants to mask here (to speed this step up)
     #
-    # was applied as -despike_opts_mask, fixed by D Plunkett  15 Nov 2017 [rickr]
+    # was applied as -despike_opts_mask, fixed by D Plunkett 15 Nov 2017 [rickr]
     mstr = ' -nomask'
     if block.opts.find_opt('-despike_mask'):
        # require -mask_apply epi
@@ -1207,9 +1213,7 @@ def db_cmd_despike(proc, block):
           return
        mstr = ''
 
-    # default to 3dDespike -NEW for now
-    if block.opts.have_no_opt('-despike_new'): newstr = ''
-    else:                                      newstr = ' -NEW'
+    newstr = get_despike_new_opt_str(block, oname='-despike_new')
 
     # write commands
     cmd = cmd + '# %s\n'                            \
@@ -1231,6 +1235,29 @@ def db_cmd_despike(proc, block):
     cmd += '\n'
 
     return cmd
+
+def get_despike_new_opt_str(block, oname='-despike_new'):
+    """return any appropriate 3dDespike option, like -NEW or -NEW25"""
+    newstr = ''
+
+    ntype, err = block.opts.get_string_opt(oname, default='-NEW')
+    if err: return newstr
+
+    if ntype not in g_despike_new_opts:
+       print("** %s parameter %s not in {%s}" \
+             % (oname, ntype, ','.join(g_despike_new_opts)))
+       return newstr
+
+    if ntype == 'no':
+       newstr = ''
+    elif ntype == 'yes':
+       # default
+       newstr = ' -NEW'
+    else:
+       # take what we are given
+       newstr = ' %s' % ntype
+
+    return newstr
 
 # --------------- ricor: retroicor ---------------
 
@@ -11284,21 +11311,25 @@ g_help_options = """
             Please see '3dDespike -help' and '3dAutomask -help' for more
             information.
 
-        -despike_new yes/no     : set whether to use new version of 3dDespike
+        -despike_new yes/no/... : set whether to use new version of 3dDespike
 
                 e.g. -despike_new no
+                e.g. -despike_new -NEW25
                 default: yes
+
+            Valid parameters: yes, no, -NEW, -NEW25
+
+            Use this option to control whether to use one of the new versions.
 
             There is a '-NEW' option/method in 3dDespike which runs a faster
             method than the previous L1-norm method (Nov 2013).  The results
             are similar but not identical (different fits).  The difference in
             speed is more dramatic for long time series (> 500 time points).
 
-            Use this option to control whether to use the new version.
+            The -NEW25 option is meant to be more aggressive in despiking.
 
             Sep 2016: in 3dDespike, -NEW is now the default if the input is
-                      longer than 500 time points.  In such a case -despike_new
-                      has no effect.
+                      longer than 500 time points.
 
             See also env var AFNI_3dDespike_NEW and '3dDespike -help' for more
             information.
