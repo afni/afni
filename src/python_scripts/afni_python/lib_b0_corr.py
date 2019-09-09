@@ -63,9 +63,12 @@
 #ver='2.22' ; date='Aug 29, 2019'
 # + [PT] update help file
 #
-ver='2.3' ; date='Aug 30, 2019'
+#ver='2.3' ; date='Aug 30, 2019'
 # + [PT] add this set_blur_sigma() method, which had been
 #        forgotten... Thanks, L. Dowdle!
+#
+ver='2.31' ; date='Sept 9, 2019'
+# + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
 #
 ###############################################################################
 
@@ -232,7 +235,7 @@ help_string_b0_corr = '''
   {in_epi_json}  FJSON  : (opt) Several parameters about the EPI
                          dset must be known for processing; these MIGHT
                          be encoded in a JSON file accompanying the
-                         frequency dset.  If so, you can input the file
+                         EPI dset.  If so, you can input the file
                          and let The Program try to find+interpret them.
                          At present, desirable keys/tags in the JSON
                          (with the keyword args you would otherwise use
@@ -366,10 +369,12 @@ help_string_b0_corr = '''
     the dataset into units of radians ('rad'); however, we ultimately
     want the input frequency volume to be in units of angular
     frequency: 'rad/s' ('2*PI*Hz').  Therefore, we also want to divide
-    by the EPI's echo time difference (which might be saved as
-    'EchoTimeDifference' in an EPI's JSON sidecar).  For example, the
-    standard value of this at 3T is about 2.46 ms (= 0.00246 s), but
-    check what it is in your own data!
+    by the frequency dset's echo time difference; this could be
+    calculated from 'EchoTime1' and 'EchoTime2' in the freq dset's
+    JSON sidecar (or possibly provided directly as
+    'EchoTimeDifference' there).  For example, the standard value of
+    this at 3T is about 2.46 ms (= 0.00246 s), but check what it is in
+    your own data!
 
     *Therefore*, in many cases of Siemens 3T data, one should be able
     to convert the scaled freq dset into the the desired units of ang
