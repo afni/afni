@@ -58,28 +58,28 @@ while ( $ac <= $#argv )
       @ ac += 1
       set corr_mask = $argv[$ac]
       if ( "$corr_mask" != 'yes' && "$corr_mask" != 'no' ) then
-         echo "** -corr_mask requies either 'yes' or 'no'"
+         echo "** -corr_mask requires either 'yes' or 'no'"
          exit 1
       endif
    else if ( "$argv[$ac]" == "-do_clean" ) then
       @ ac += 1
       set do_clean = $argv[$ac]
       if ( "$do_clean" != 'yes' && "$do_clean" != 'no' ) then
-         echo "** -do_clean requies either 'yes' or 'no'"
+         echo "** -do_clean requires either 'yes' or 'no'"
          exit 1
       endif
    else if ( "$argv[$ac]" == "-do_clust" ) then
       @ ac += 1
       set do_clust = $argv[$ac]
       if ( "$do_clust" != 'yes' && "$do_clust" != 'no' ) then
-         echo "** -do_clust requies either 'yes' or 'no'"
+         echo "** -do_clust requires either 'yes' or 'no'"
          exit 1
       endif
    else if ( "$argv[$ac]" == "-do_corr" ) then
       @ ac += 1
       set do_corr = $argv[$ac]
       if ( "$do_corr" != 'yes' && "$do_corr" != 'no' ) then
-         echo "** -do_corr requies either 'yes' or 'no'"
+         echo "** -do_corr requires either 'yes' or 'no'"
          exit 1
       endif
    else if ( "$argv[$ac]" == "-frac_limit" ) then
@@ -111,7 +111,7 @@ while ( $ac <= $#argv )
       @ ac += 1
       set use_3dmerge = $argv[$ac]
       if ( "$use_3dmerge" != 'yes' && "$use_3dmerge" != 'no' ) then
-         echo "** -use_3dmerge requies either 'yes' or 'no'"
+         echo "** -use_3dmerge requires either 'yes' or 'no'"
          exit 1
       endif
       # use a mask with 3dLocalstat
