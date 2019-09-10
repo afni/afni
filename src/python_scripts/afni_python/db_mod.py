@@ -300,6 +300,9 @@ def db_cmd_tcat(proc, block):
 
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
                     (proc.od_var, pre_form, dset.rel_input(), flist[run], final)
+
+        proc.track_copied_file(dset.rel_input(), pre_form, 'tcat')
+
       if proc.have_me: cmd += '\n'
 
     proc.reps   -= first+rmlast # update reps to account for removed TRs
