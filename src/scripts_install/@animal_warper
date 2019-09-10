@@ -2,9 +2,6 @@
 
 # Things to do: 
 # ++ output text guide to files?
-# ++ unifized copy of the anatomical in orig space?  for alignment
-#    and/or vis?
-
 
 # affine alignment of individual dataset to a template
 #  handcrafted for macaque alignment originally - D99 and NMT templates
@@ -17,6 +14,7 @@
 #  with the D99 macaque and the NMT macaque template datasets and tools
 
 set progname = @animal_warper
+
 #***** update the version with each change
 #set version = "1.00"
 #
@@ -37,11 +35,14 @@ set progname = @animal_warper
 # [PT] QC order rearranged a bit; change names; more useful focus (foci)
 #    + QC to sep dir, called QC
 #
-set version = "1.4" ; set date = "Sep 6, 2019"
+#set version = "1.4" ; set date = "Sep 6, 2019"
 # [PT] output dset that is wrpd2std, and skullstrip it with template
 #      -> this is what would be useful to pass to AP
 #
+set version = "1.5" ; set date = "Sep 10, 2019"
 # [PT] unifize skullstripped template in standard template space
+#    + describe QC images in help file, for reference
+#    + remove __tmp* dset-- hadn't noticed COMPRESSOR was ON
 #
 # --------------------------------------------------------------------
 
@@ -640,14 +641,14 @@ else
       -a ${templatename}_in_${origdsetprefix}.nii.gz   \
       -b ${origdsetprefix}.nii.gz                      \
       -expr 'step(a)*b'                                \
-      -prefix __tmp_orig_mskd.nii                      \
+      -prefix __tmp_orig_mskd.nii.gz                   \
       -overwrite 
 
    # smoothify mask with in/out dilations; slightly pad: this is our
    # new anat mask.
    3dmask_tool                                \
       -dilate_inputs -2 3                     \
-      -inputs __tmp_orig_mskd.nii             \
+      -inputs __tmp_orig_mskd.nii.gz          \
       -prefix ${origdsetprefix}_mask.nii.gz   \
       -overwrite
 
@@ -707,7 +708,7 @@ else
        -label_mode 1 -label_size 3 
 
    # clean up a bit
-   \rm -f __tmp_orig_mskd.nii 
+   \rm -f __tmp_orig_mskd.nii.gz 
 
 endif
 
@@ -1073,6 +1074,39 @@ Comments ~1~
     Here all occurrences of mydset in the output file names would be replaced
        with the name of your dataset. For NMT and D99 templates, the output
        will contain NMT or D99 instead of template
+
+
+QC images ~1~
+
+The following quality control (QC) images are automatically generated
+during processing, to help with speedy checking of processing.  In
+each case, there are three sets of montages (one for sag, cor and axi
+views) and a copy of the colorbar used (same prefix as file name,
+*.jpg).  Additionally, there is also a *.txt file of ranges of values
+related to the ulay and olay, which might be useful for QC or
+figure-generation.
+
+Inside the output directory is a subdirectory called QC/ that contains
+the following semi-cryptically named files:
+
+  qc_00_e_temp+wrpd_inp.* 
+    [ulay] edges of the template (in template space)
+    [olay] warped input dset
+
+  qc_01_e_wrpd_temp+orig_inp.*
+    [ulay] edges of the template (warped to orig space)
+    [olay] original input dset 
+
+  qc_02_orig_inp+mask.*
+    [ulay] original input dset (in orig space)
+    [olay] estimated mask, showing skullstripping
+
+  qc_03_ee_orig_inp+wrpd_atlas.*
+    [ulay] 'edge enhanced' original input dset (in orig space)
+    [olay] warped atlas dset
+
+
+References ~1~
 
 This script is derived from macaque_align.csh and NMT_subject_align.csh,
  scripts distributed with the D99 macaque and the NMT macaque template
