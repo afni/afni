@@ -36,10 +36,12 @@ set progname = @animal_warper
 #set version = "1.3" ; set date = "Sep 6, 2019"
 # [PT] QC order rearranged a bit; change names; more useful focus (foci)
 #    + QC to sep dir, called QC
+#
 set version = "1.4" ; set date = "Sep 6, 2019"
 # [PT] output dset that is wrpd2std, and skullstrip it with template
 #      -> this is what would be useful to pass to AP
 #
+# [PT] unifize skullstripped template in standard template space
 #
 # --------------------------------------------------------------------
 
@@ -520,7 +522,7 @@ endif
 
 if ( ($ok_to_exist == "1") &&                  \
      (-f ${origdsetprefix}_warp2std.nii.gz) && \
-     (-f ${origdsetprefix}_warp2std_ns.nii.gz) ) then
+     (-f ${origdsetprefix}_warp2std_nsu.nii.gz) ) then
    echo "reusing nonlinear transformed dataset"
 else 
    # combine nonlinear and affine warps for dataset warped to standard
@@ -530,18 +532,27 @@ else
       -source $dset -master $base  -overwrite
 
    # make masked version of orig dset in template space, using the template
-   # itself: this will be passed along to AP to be ulay at times
+   # itself.
    3dcalc -overwrite                               \
       -a "${origdsetprefix}_warp2std.nii.gz"       \
       -b "$base"                                   \
       -expr 'a*step(b)'                            \
       -prefix ${origdsetprefix}_warp2std_ns.nii.gz
 
+   # nicer version for viewing in template space: this will be passed
+   # along to AP to be ulay at times
+   echo "unifizing anatomical dset in template space"
+   3dUnifize                                        \
+      -overwrite                                    \
+      -input  ${origdsetprefix}_warp2std_ns.nii.gz  \
+      -prefix ${origdsetprefix}_warp2std_nsu.nii.gz
+
    # ... and put a note in its history, so that
    # gen_ss_review_scripts.py knows the name of the template
+   set tbase = `basename $base`
    3dNotes \
-      -h "auto_warp.py aligned this dset to standard space: -base $base" \
-      ${origdsetprefix}_warp2std_ns.nii.gz
+      -h "auto_warp.py aligned this dset to standard space: -base $tbase" \
+      ${origdsetprefix}_warp2std_nsu.nii.gz
 
 
    # Image   : [ulay] edges of template; [olay] orig dset, warped to template

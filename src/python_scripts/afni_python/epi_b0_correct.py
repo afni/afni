@@ -67,8 +67,11 @@
 # + [PT] add this set_blur_sigma() method, which had been
 #        forgotten... Thanks, L. Dowdle!
 #
-ver='2.31' ; date='Sept 9, 2019'
+#ver='2.31' ; date='Sept 9, 2019'
 # + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
+#
+ver='2.32' ; date='Sept 10, 2019'
+# + [PT] "hview"ify---thanks, RCR!
 #
 ##########################################################################
 
