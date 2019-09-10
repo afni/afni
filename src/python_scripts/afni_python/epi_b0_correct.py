@@ -63,9 +63,12 @@
 #ver='2.22' ; date='Aug 29, 2019'
 # + [PT] update help file
 #
-ver='2.3' ; date='Aug 30, 2019'
+#ver='2.3' ; date='Aug 30, 2019'
 # + [PT] add this set_blur_sigma() method, which had been
 #        forgotten... Thanks, L. Dowdle!
+#
+ver='2.31' ; date='Sept 9, 2019'
+# + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
 #
 ##########################################################################
 

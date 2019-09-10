@@ -301,6 +301,35 @@ def write_data_as_json(data, fname='stdout', indent=3, sort=1, newline=1,
 
    return 0
 
+def read_json_file(fname='stdin'):
+   try:    import json
+   except: return {}
+   textdata = read_text_file(fname, lines=0)
+   return json.loads(textdata)
+
+def print_dict(pdict, fields=[], nindent=0, jstr=' ', verb=1):
+   istr = ' '*nindent
+   nfields = len(fields)
+   for kk in pdict.keys():
+      if nfields > 0 and kk not in fields:
+         continue
+      val = pdict[kk]
+      if type(val) == dict:
+         if verb: print('%s%s :' % (istr, kk))
+         # recur
+         print_dict(val, nindent=(nindent+3), verb=verb)
+      elif type(val) == list:
+         lstr = jstr.join('%s' % v for v in val)
+         if verb: print('%s%s : %s' % (istr, kk, lstr))
+         else:    print(lstr)
+      else:
+         if verb: print('%s%s : %s' % (istr, kk, val))
+         else:    print(val)
+
+def print_json_dict(fname='stdin', fields=[], verb=1):
+   jdata = read_json_file(fname)
+   print_dict(jdata, fields=fields, verb=verb)
+
 def read_AFNI_version_file(vdir='', vfile='AFNI_version.txt', delim=', '):
    """read AFNI_version.txt from vdir (else executable_dir)
       return comma-delimited form

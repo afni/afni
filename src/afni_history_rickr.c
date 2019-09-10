@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  9, Sep, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "add control for 3dDespike -NEW25",
+   "Requested by aparekh on the Message Board."
+ } ,
+
  {  5, Sep, 2019, RCR, "SurfMeasures", MICRO, TYPE_MODIFY,
    "retab and fix indentations",
    NULL
