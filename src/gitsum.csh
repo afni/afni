@@ -2,9 +2,9 @@
 
 #################################################################################
 ## This script counts up who is to 'blame' for lines of code/text in the AFNI
-## files. It runs for a long time (30+ minutes), running 'git blame' over
+## files. It runs for a long time (50+ minutes), running 'git blame' over
 ## 1000+ files, and grepping out counts from each one for over a dozen
-## co-conspirators.
+## co-conspirators. (It is the 'git blame' part that is the slowest.)
 ## Output files:
 ##  gitsum.out.txt    = author line counts (also cat-ed to stdout)
 ##  gitsum.unkown.txt = lines that had unknown authors (for further research)
@@ -77,17 +77,18 @@ set alist = ( Cox Craddock discoraj Froehlich Gang  \
 
 # list of authors needing two aliases (i.e., troublemakers)
 # - anyone who has three aliases is out of luck
+# - Trickery for Vinai: his username is 'V. R', and the blank is trouble
 
 set blist1 = ( Nielson      Saad Taylor  afniHQ Vinai )
 set blist2 = ( shotgunosine ziad mrneont Ubuntu V..R  )
 
-# tsum = total sum of lines thus far
+# tsum = total sum of lines counted thus far
 set tsum = 0
 
 # nn = number of files processed thus far
 set nn   = 0
 
-# setup counts for the alist
+# setup count array asum for the alist
 set anum = $#alist
 set aqq  = ( `count -dig 1 1 $anum` )
 set asum = ( )
@@ -95,7 +96,7 @@ foreach uuu ( $alist )
   set asum = ( $asum 0 )
 end
 
-# setup counts for the blist
+# setup count array bsum for the blist
 set bnum = $#blist1
 set bqq  = ( `count -dig 1 1 $bnum` )
 set bsum = ( )
@@ -103,7 +104,7 @@ foreach uuu ( $blist1 )
   set bsum = ( $bsum 0 )
 end
 
-# grep command option to remove known authors, for counting unknowns
+# setup grep command options to remove known authors, for counting unknowns
 
 set gunk = ( -v -i )
 foreach uuu ( $alist $blist1 $blist2 )
@@ -158,6 +159,9 @@ touch gitsum.junk.txt
 # count total number of unknown lines now
 
 set aa = `wc -l < gitsum.unknown.txt` ; @ unksum = $aa
+if ( $unksum == 0 ) then
+  printf "... no Unknown lines found!\n"
+endif
 
 # format lines for the final report into a temp file
 
@@ -182,15 +186,15 @@ endif
 
 # Put header lines into the final report
 
-echo   " Contributor    Lines    %-age"              > gitsum.out.txt
-echo   " ------------  -------  -------"            >> gitsum.out.txt
+echo   " Contributor    Lines    %-age"            > gitsum.out.txt
+echo   " ------------  -------  -------"          >> gitsum.out.txt
 printf " %12s  %7s  %6.2f%%\n" Everyone $tsum 100 >> gitsum.out.txt
 
 # sort output lines by second column, put in final report
 
 sort -n -r --key=2 gitsum.junk.txt      >> gitsum.out.txt
 
-# let the user see the results
+# let the user see the results, as well as having saved them
 
 echo
 cat gitsum.out.txt
