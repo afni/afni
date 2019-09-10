@@ -269,7 +269,7 @@ PARSE:
             set anat_in = "$argv[$cnt]"
             set in_name = `@parse_afni_name "$anat_in"`
             if ($#in_name == 2) then
-               set in_name = ($in_name `3dinfo -view "$anat_in"`)
+               set in_name = ($in_name `3dinfo -av_space "$anat_in"`)
             endif
             set donext = 0	
          endif	
