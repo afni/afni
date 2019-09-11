@@ -3832,80 +3832,19 @@ class SubjProcSream:
             (bind, s, self.subj_label, hstr, s, estr, s, blabel, vstr)
 
 class TrackedFlist:
-    """class for sorting/printing list of tracked files"""
+    """class for sorting/printing list of tracked files (VarsObject's)"""
     def __init__(self, subj_id='Steve'):
        self.tfiles = []
        self.subj_id = subj_id
 
-    def add(oldname, newname, desc, ftype='unknown'):
-       self.tfiles.append(TrackedFile(oldname, newname, desc, ftype=ftype))
-
-    def add_many(oldnames, desc, ftype='unknown'):
-       """like add, but take a list and assume no directory"""
-       for oname in oldnames:
-          nname = os.path.basename(oname)
-          self.tfiles.append(TrackedFile(oname, nname, desc, ftype=ftype))
-
-    def sort(self, sublist=[]):
-       """either sort in place, or sort the passed list of instances"""
-       # x.sort(key=operator.attrgetter('score'))
-       # sorted(x, lambda x: x.score))
-       pass
-
-    def show(self, order='sort', desc='', ftype=''):
-       """display the list of tracked files
-
-          order     : sort or not (so order added)
-          desc      : if set, only show such files
-          ftype     : if set, only show such files
+    def add(self, oldname, newname, desc, ftype='unknown'):
+       """to track external files that are copied in, e.g.,
+             oldname, newname, desc, ftype
+               - desc might be like 'epi', 'anat', 'epi base', 'anat follower'
+               - ftype should be in {'dset', '1D', 'text', 'unknown'}
+             if newname == '', use trail of oldname
        """
-
-       # dupe list (usually needed, and makes life easier for sorting)
-
-       if desc != 'ALL' and desc != '':
-          showlist = [tf for tf in self.tfiles if tf.desc==desc]
-       elif ftype != 'ALL' and ftype != '':
-          showlist = [tf for tf in self.tfiles if tf.ftype==ftype]
-       else:
-          showlist = self.tfiles[:]
-
-       if len(showlist) == 0:
-          return
-
-       if order == 'sort':
-          self.sort(showlist)
-
-       sp0 = max(len(tf.desc) for tf in showlist)
-       sp1 = max(len(tf.ftype) for tf in showlist)
-       sp2 = max(len(tf.newname) for tf in showlist)
-
-       h0 = '-'*sp0
-       h1 = '-'*sp1
-       h2 = '-'*sp2
-       h3 = '-'*sp2 # same as prev
-       sform = "%-*s  %-*s  %-*s  %s"
-       print(sform % (sp0, "desc", sp1, "ftype",
-                      sp2, "copied_name", "orig_name"))
-       print(sform % (sp0, h0, sp1, h1, sp2, h2, h3))
-       for tf in showlist:
-          print(sform % (sp0, tf.desc, sp1, tf.ftype, sp2, tf.newname,
-                                                           tf.oldname))
-       print()
-
-       del(showlist)
-
-
-class TrackedFile:
-    """to track external files that are copied in, e.g.,
-          oldname, newname, desc, ftype
-            - desc might be like 'epi', 'anat', 'epi base', 'anat follower'
-            - ftype should be in {'dset', '1D', 'text', 'unknown'}
-
-          if newname == '', use trail of oldname
-
-          store with desc first, for sorting
-    """
-    def __init__(self, oldname, newname, desc, ftype='unknown'):
+       vo = VO.VarsObject()
 
        # make sure ftype is valid
        if ftype not in ['dset', '1D', 'text', 'unknown']:
@@ -3917,17 +3856,80 @@ class TrackedFile:
        if newname == '':
           newname = os.path.basename(oldname)
 
-       self.desc    = desc
-       self.ftype   = ftype
-       self.oldname = oldname
-       self.newname = newname
+       vo.desc     = desc
+       vo.ftype    = ftype
+       vo.oldname  = oldname
+       vo.newname  = newname
+       vo.nos_oldn = ''
+       vo.nos_newn = ''
 
        # replace any $subj/${subj} strings with actual subject ID
        nn = oldname.replace('$subj', self.subj_id)
-       self.old_subj = nn.replace('${subj}', self.subj_id)
+       vo.nos_oldn = nn.replace('${subj}', self.subj_id)
 
        nn = newname.replace('$subj', self.subj_id)
-       self.new_subj = nn.replace('${subj}', self.subj_id)
+       vo.nos_newn = nn.replace('${subj}', self.subj_id)
+
+       self.tfiles.append(vo)
+
+    def add_many(oldnames, desc, ftype='unknown'):
+       """like add, but take a list and assume no directory"""
+       for oname in oldnames:
+          nname = os.path.basename(oname)
+          self.add(oname, nname, desc, ftype=ftype)
+
+    def sort(self, sublist=[]):
+       """either sort in place, or sort the passed list of instances"""
+       # x.sort(key=operator.attrgetter('score'))
+       # sorted(x, lambda x: x.score))
+       pass
+
+    def show(self, order='sort', rfield='desc', rval=''):
+       """display the list of tracked files
+
+          order       : sort or not (so order added)
+          rfield/rval : if both set, only show files where tfiles.rfield=rval
+       """
+
+       # dupe list (usually needed, and makes life easier for sorting)
+
+       if rfield != '' and rval != '' and rval != 'ALL':
+          showlist = [tf for tf in self.tfiles if tf.val(rfield)==rval]
+       else:
+          showlist = self.tfiles[:]
+
+       if len(showlist) == 0:
+          return
+
+       if order == 'sort':
+          self.sort(showlist)
+
+       dfields = ['desc', 'ftype', 'newname']
+       nfields = len(dfields)
+
+       sizelist = []
+       dashlist = []
+       for field in dfields:
+          size = max([len(tf.val(field)) for tf in showlist])
+          # include the field name
+          if len(field) > size:
+             size = len(field)
+          sizelist.append(size)
+          dashlist.append('-'*size)
+
+       hdrlist = ['%-*s' % (sizelist[i], dfields[i]) for i in range(nfields)]
+
+       print('%s' % '  '.join(hdrlist))
+       print('%s' % '  '.join(dashlist))
+       for tf in showlist:
+          plist = ['%-*s' % (sizelist[i], tf.val(dfields[i])) \
+                   for i in range(nfields)]
+          print('%s' % '  '.join(plist))
+
+       print()
+
+       del(showlist)
+
 
 class ProcessBlock:
     def __init__(self, label, proc):
@@ -3997,7 +3999,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
     # possibly display list of tracked files
     if proc.show_tfiles or proc.verb > 0:
-       proc.show_tracked_files(order='sort', desc=proc.show_tfiles)
+       proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
 
     return 0, proc
 
