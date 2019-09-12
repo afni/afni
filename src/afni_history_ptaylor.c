@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 12, Sep , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "Output QC directory of images now, as well. Useful for quick QC.",
+   "Later, will add some checks for obl, to not smooth unnec.\n"
+},
+
+{ 12, Sep , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Use 'mkdir -p' with odir now.",
+   "Simplifies scripts using it.\n"
+},
+
 { 10, Sep , 2019 , PT , "epi_b0_correct.py" , MICRO , TYPE_GENERAL,
    "Fix help descriptions (thanks L. Dowdle for fixes).",
    "Also add '-hview' capability.\n"
