@@ -301,11 +301,11 @@ def db_cmd_tcat(proc, block):
         cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
                     (proc.od_var, pre_form, dset.rel_input(), flist[run], final)
 
-        proc.tlist.add(dset.rel_input(), pre_form, 'tcat')
+        proc.tlist.add(dset.rel_input(), pre_form, 'tcat', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
-    proc.reps   -= first+rmlast # update reps to account for removed TRs
+    proc.reps -= first+rmlast   # update reps to account for removed TRs
     if proc.verb > 0:
        print("-- %s: reps is now %d" % (block.label, proc.reps))
        if proc.have_me:

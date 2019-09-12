@@ -656,9 +656,10 @@ g_history = """
     6.46 Jul 25, 2019: added -volreg_warp_master
     6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
     6.48 Sep  9, 2019: added control for -NEW25
+    6.49 Sep 12, 2019: added file tracking and -show_tracked_files option
 """
 
-g_version = "version 6.48, September 9, 2019"
+g_version = "version 6.49, September 12, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -2849,7 +2850,7 @@ class SubjProcSream:
             # further use should assume AFNI format
             self.anat.to_afni(new_view=dset_view(self.anat.rel_input()))
             # track with original format, possibly changing to AFNI
-            self.tlist.add(oanat, self.anat.shortinput(), 'anat')
+            self.tlist.add(oanat, self.anat.shortinput(), 'anat', ftype='dset')
             self.tlrcanat.to_afni()
             self.anat_final = self.anat
 
@@ -2858,7 +2859,8 @@ class SubjProcSream:
             tstr = "# copy over the external volreg base\n"  \
                   "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.vr_ext_pre, self.vr_ext_base)
-            self.tlist.add(self.vr_ext_base, self.vr_ext_pre, 'volreg_base')
+            self.tlist.add(self.vr_ext_base, self.vr_ext_pre, 'volreg_base',
+                           ftype='dset')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -2869,7 +2871,7 @@ class SubjProcSream:
                   (self.vr_warp_mast.prefix, self.od_var,
                    self.vr_warp_mast.prefix, self.vr_wmast_in)
             self.tlist.add(self.vr_wmast_in, self.vr_warp_mast.prefix,
-                                   'warp_master')
+                                   'warp_master', ftype='dset')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -2878,7 +2880,8 @@ class SubjProcSream:
             tstr = "# copy over the external align_epi_anat.py EPI volume\n" \
                   "3dbucket -prefix %s/%s '%s'\n" %         \
                   (self.od_var, self.align_epre, self.align_ebase)
-            self.tlist.add(self.align_ebase, self.align_epre, 'epi_align_base')
+            self.tlist.add(self.align_ebase, self.align_epre,
+                           'epi_align_base', ftype='dset')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -2887,7 +2890,7 @@ class SubjProcSream:
             tstr = '# copy external motion file into results dir\n' \
                   'cp %s %s\n' %                                   \
                       (' '.join(quotize_list(opt.parlist,'')),self.od_var)
-            self.tlist.add_many(opt.parlist, 'motion')
+            self.tlist.add_many(opt.parlist, 'motion', ftype='1D')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -2896,7 +2899,7 @@ class SubjProcSream:
             fname = opt.parlist[0]
             tstr = '# copy external censor file into results dir\n' \
                   'cp %s %s\n' % (fname,self.od_var)
-            self.tlist.add(fname, '', 'censor')
+            self.tlist.add(fname, '', 'censor', ftype='1D')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
             self.censor_file = os.path.basename(fname)
@@ -2914,7 +2917,7 @@ class SubjProcSream:
               af.cname = af.cpname
               if af.cname.view == '': af.cname.new_view(self.view)
               self.tlist.add(af.aname.rel_input(), af.cname.shortinput(),
-                             'anat_follower')
+                             'anat_follower', ftype='dset')
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
 
@@ -2933,7 +2936,7 @@ class SubjProcSream:
               print("** no -mask_import label set for '%s' to copy" % label)
               return 1
            tstr += '3dcopy %s %s/%s\n' % (dset, self.od_var, aname.prefix)
-           self.tlist.add(dset, aname.shortinput(), 'mask_import')
+           self.tlist.add(dset, aname.shortinput(), 'mask_import', ftype='dset')
         if tstr:
            self.write_text(add_line_wrappers(tstr+'\n'))
 
@@ -2941,23 +2944,33 @@ class SubjProcSream:
         if len(self.nlw_priors) == 3:
            tstr = '# copy external -tlrc_NL_warped_dsets datasets\n'
 
-           # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           # copy anat, setting its file type to AFNI
            an = self.nlw_priors[0]
            tstr += '3dcopy %s %s/%s\n'%(an.rel_input(), self.od_var, an.prefix)
            anorig = an.rel_input()
 
            # if priors[0].type == NIFTI, convert to AFNI   9 Apr 2015
+           # (priors[0] is anat in standard space)
            if self.nlw_priors[0].type == 'NIFTI':
               an = self.nlw_priors[0]
               an = afni_name('%s+tlrc' % an.prefix)
               self.nlw_priors[0] = an
 
-           self.tlist.add(anorig, an.shortinput(), 'NL_warp')
+           self.tlist.add(anorig, an.shortinput(), 'NL_warp', ftype='dset')
 
-           for an in self.nlw_priors[1:]:
-              tstr += '3dcopy %s %s/%s\n' % \
-                      (an.rel_input(), self.od_var, an.out_prefix())
-              self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp')
+           # break this up one by one, just for tlist.add ftype distinction...
+           # get aff12.1D file
+           an = self.nlw_priors[1]
+           tstr += '3dcopy %s %s/%s\n' % \
+                   (an.rel_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp', ftype='1D')
+
+           # get WARP.nii
+           an = self.nlw_priors[2]
+           tstr += '3dcopy %s %s/%s\n' % \
+                   (an.rel_input(), self.od_var, an.out_prefix())
+           self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp',
+                          ftype='dset')
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -2976,7 +2989,7 @@ class SubjProcSream:
                   (self.od_var, self.blip_dset_for.prefix,
                   self.blip_in_for.rel_input(sel=1))
            self.tlist.add(self.blip_in_for.rel_input(),
-                          self.blip_dset_for.shortinput(), 'blip_fwd')
+                self.blip_dset_for.shortinput(), 'blip_fwd', ftype='dset')
            bstr += tstr
 
         if isinstance(self.blip_in_rev, afni_name):
@@ -2992,7 +3005,7 @@ class SubjProcSream:
                   self.blip_in_rev.rel_input(sel=1))
            bstr += tstr
            self.tlist.add(self.blip_in_rev.rel_input(),
-                          self.blip_dset_rev.shortinput(), 'blip_rev')
+                self.blip_dset_rev.shortinput(), 'blip_rev', ftype='dset')
 
         if isinstance(self.blip_in_med, afni_name):
            if self.blip_in_med.prefix == 'NONE':
@@ -3004,7 +3017,7 @@ class SubjProcSream:
                      (self.blip_in_med.rel_input(), self.od_var,
                      self.blip_dset_med.prefix)
               self.tlist.add(self.blip_in_med.rel_input(),
-                             self.blip_dset_med.shortinput(), 'blip_med')
+                   self.blip_dset_med.shortinput(), 'blip_med', ftype='dset')
            bstr += tstr
 
         if isinstance(self.blip_in_warp, afni_name):
@@ -3014,7 +3027,7 @@ class SubjProcSream:
                   (self.blip_in_warp.rel_input(), self.od_var,
                   self.blip_dset_warp.prefix)
            self.tlist.add(self.blip_in_warp.rel_input(),
-                          self.blip_dset_warp.shortinput(), 'blip_warp')
+                self.blip_dset_warp.shortinput(), 'blip_warp', ftype='dset')
            bstr += tstr
 
         if bstr != '':
@@ -3035,7 +3048,7 @@ class SubjProcSream:
         # copy ricor_regs last to possibly match 3dTcat TR removal
         if len(self.ricor_regs) > 0:
             tstr = copy_ricor_regs_str(self)
-            self.tlist.add_many(self.ricor_regs, 'ricor_regs')
+            self.tlist.add_many(self.ricor_regs, 'ricor_regs', ftype='1D')
             self.write_text(add_line_wrappers(tstr))
             self.write_text("%s\n" % stat_inc)
 
@@ -3837,12 +3850,13 @@ class TrackedFlist:
        self.tfiles = []
        self.subj_id = subj_id
 
-    def add(self, oldname, newname, desc, ftype='unknown'):
+    def add(self, oldname, newname, desc, ftype='unknown', pre=''):
        """to track external files that are copied in, e.g.,
              oldname, newname, desc, ftype
                - desc might be like 'epi', 'anat', 'epi base', 'anat follower'
                - ftype should be in {'dset', '1D', 'text', 'unknown'}
              if newname == '', use trail of oldname
+             if pre, apply to newname
        """
        vo = VO.VarsObject()
 
@@ -3855,6 +3869,8 @@ class TrackedFlist:
        # possibly init newname to old without path
        if newname == '':
           newname = os.path.basename(oldname)
+       # possibly add any output prefix
+       if pre: newname = pre+newname
 
        vo.desc     = desc
        vo.ftype    = ftype
@@ -3872,19 +3888,30 @@ class TrackedFlist:
 
        self.tfiles.append(vo)
 
-    def add_many(oldnames, desc, ftype='unknown'):
+    def add_many(self, oldnames, desc, ftype='unknown', pre=''):
        """like add, but take a list and assume no directory"""
        for oname in oldnames:
           nname = os.path.basename(oname)
-          self.add(oname, nname, desc, ftype=ftype)
+          self.add(oname, nname, desc, ftype=ftype, pre=pre)
 
-    def sort(self, sublist=[]):
+    def sort(self, sublist=[], keys=['desc']):
        """either sort in place, or sort the passed list of instances"""
-       # x.sort(key=operator.attrgetter('score'))
-       # sorted(x, lambda x: x.score))
-       pass
+       if sublist: slist = sublist
+       else:       slist = self.tfiles
 
-    def show(self, order='sort', rfield='desc', rval=''):
+       if len(sublist) == 0:
+          return []
+
+       for key in keys:
+          if not sublist[0].valid(key):
+             print("** invalid TrackFile sort key, %s" % key)
+             return
+
+       VO.g_sort_keys = keys
+       sublist.sort()
+       return(sublist)
+
+    def show(self, order='sort', rfield='desc', rval='', dfields=[]):
        """display the list of tracked files
 
           order       : sort or not (so order added)
@@ -3902,9 +3929,10 @@ class TrackedFlist:
           return
 
        if order == 'sort':
-          self.sort(showlist)
+          showlist = self.sort(showlist)
 
-       dfields = ['desc', 'ftype', 'newname']
+       if len(dfields) == 0:
+          dfields = ['desc', 'ftype', 'newname']
        nfields = len(dfields)
 
        sizelist = []
@@ -3998,7 +4026,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        return rv, None
 
     # possibly display list of tracked files
-    if proc.show_tfiles or proc.verb > 0:
+    if proc.show_tfiles or proc.verb > 2:
        proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
 
     return 0, proc
