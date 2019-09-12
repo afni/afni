@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 10, Sep , 2019 , PT , "epi_b0_correct.py" , MICRO , TYPE_GENERAL,
+   "Fix help descriptions (thanks L. Dowdle for fixes).",
+   "Also add '-hview' capability.\n"
+},
+
+{ 10, Sep , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Unifize output in standard space.",
+   "Better for visualization in afni_proc.py QC.\n"
+},
+
 { 6, Sep , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Two minor changes: montages now separated by 1 gap line.",
    "... and show censor bars in VR6 plots, if censoring.\n"
@@ -108,7 +118,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 30, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_BUG_FIX,
    "Fix input opt to change blur size; was broken before, crashing prog.",
-   "Thanks, L. Dowdle for finding!.\n"
+   "Thanks, L. Dowdle for finding!\n"
 },
 
 { 29, Aug , 2019 , PT , "@auto_tlrc" , MAJOR , TYPE_GENERAL,

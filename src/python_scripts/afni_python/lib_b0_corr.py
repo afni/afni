@@ -67,8 +67,11 @@
 # + [PT] add this set_blur_sigma() method, which had been
 #        forgotten... Thanks, L. Dowdle!
 #
-ver='2.31' ; date='Sept 9, 2019'
+#ver='2.31' ; date='Sept 9, 2019'
 # + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
+#
+ver='2.32' ; date='Sept 10, 2019'
+# + [PT] "hview"ify---thanks, RCR!
 #
 ###############################################################################
 
@@ -127,6 +130,7 @@ all_opts = {
     'date'               : '-date',
     'h'                  : '-h',
     'help'               : '-help',
+    'hview'              : '-hview',
 }
 
 # ----------------------------------------------------------------------------
@@ -137,7 +141,6 @@ help_dict = all_opts.copy()
 help_dict.update(ddefs)     
 
 help_string_b0_corr = '''
-
   PURPOSE ~1~
 
   This program performs B0 distortion correction along the phase encode
@@ -666,9 +669,10 @@ class iopts_b0_corr:
 
         # This is here basically to just initialize the 'comm' obj
         cmd = 'pwd'
-        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm = BASE.shell_com( cmd, capture=1 )
         self.comm.run()
-        check_for_shell_com_failure(self.comm, cmd )
+        check_for_shell_com_failure( self.comm, cmd,
+                                     disp_so=False, disp_se=False )
 
 
     # -------------- methods to populate -----------------
@@ -1574,6 +1578,12 @@ def parse_args_b0_corr(full_argv):
         elif argv[i] == "{help}".format(**all_opts) or \
              argv[i] == "{h}".format(**all_opts) :
             print(help_string_b0_corr)
+            sys.exit(0)
+
+        elif argv[i] == "{hview}".format(**all_opts) :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            BASE.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------
