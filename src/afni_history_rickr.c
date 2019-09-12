@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 12, Sep, 2019, RCR, "afni_proc.py", MICRO, TYPE_NEW_OPT,
+   "add file tracking and -show_tracked_files option",
+   "In preparation for shifting evil for P Taylor and D Glen."
+ } ,
+
  {  9, Sep, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
    "add control for 3dDespike -NEW25",
    "Requested by aparekh on the Message Board."
