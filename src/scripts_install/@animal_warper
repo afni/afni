@@ -1,8 +1,5 @@
 #!/bin/tcsh 
 
-# Things to do: 
-# ++ output text guide to files?
-
 # affine alignment of individual dataset to a template
 #  handcrafted for macaque alignment originally - D99 and NMT templates
 # usage example:
@@ -39,14 +36,17 @@ set progname = @animal_warper
 # [PT] output dset that is wrpd2std, and skullstrip it with template
 #      -> this is what would be useful to pass to AP
 #
-set version = "1.5" ; set date = "Sep 10, 2019"
+#set version = "1.5" ; set date = "Sep 10, 2019"
 # [PT] unifize skullstripped template in standard template space
 #    + describe QC images in help file, for reference
 #    + remove __tmp* dset-- hadn't noticed COMPRESSOR was ON
 #
 # --------------------------------------------------------------------
+set version = "1.6" ; set date = "Sep 11, 2019"
+# [DRG] remove temporary datasets with option to keep temporary datasets
+#     + identify important output
+#     + some help updates
 
-# set atlas_dir = "../.."
 if ("$#" <  "2") then
    goto HELP
 endif
@@ -68,6 +68,8 @@ set seg_followers = ()
 set feature_option = ""
 set feature_size = ""
 set supersize = ""
+set keep_temp = ""
+set animalouts = "animalouts.txt"
 
 # process user options
 set ac = 1
@@ -211,6 +213,8 @@ while ($ac <= $#argv)
         set feature_option =  "-feature size $feature_size"
     else if ("$argv[$ac]" == "-supersize") then
         set supersize = "-supersize"
+    else if ("$argv[$ac]" == "-keep_temp") then
+        set keep_temp = "1"
     else
         echo "** unknown option $argv[$ac]"
         exit 1
@@ -256,38 +260,13 @@ endif
 set basedir = `dirname $base`
 # is the dataset somewhere else or current directory
 set base = `@FindAfniDsetPath -append_file $base`
-#set basepath = `@FindAfniDsetPath $base`
-#if ($basepath == ".") then
-#   set basepath = `pwd`
-#   set base = "${basepath}/${base}"
-#else
-#   if ($basedir == ".") then
-#       set base = "${basepath}/${base}"
-#   endif
-#endif
+
 if ($segset != "") then
    # is there a path in the name of the dataset
    set segdir = `dirname $segset`
    # is the dataset somewhere else or current directory
    set segset = `@FindAfniDsetPath -append_file $segset`
-#   set segpath = `@FindAfniDsetPath $segset`
-#   if ($segpath == ".") then
-#      set segpath = `pwd`
-#      set segset = "${segpath}/${segset}"
-#   else
-#      if ($segdir == ".") then
-#         set segset = "${segpath}/${segset}"
-#      endif
-#   endif
 endif
-
-# set dset = $1
-# set base = $2
-#if ("$#" < "3") then
-#   set segset = ""
-#else
-#   set segset = $3
-#endif
 
 # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
 set dsetprefix = `@GetAfniPrefix $dset`
@@ -312,12 +291,6 @@ set origspace = `3dinfo -space $dset`
 
 # if input dataset is NIFTI vs AFNI format
 set dset_nifti = `3dinfo -is_nifti $dset`
-
-# this fails for AFNI format, but that's okay!
-#3dcopy $dset $dsetprefix
-# get just the first occurrence if both +orig, +tlrc
-#set dset = ( $dsetprefix+*.HEAD )
-#set dset = $dset[1]
 
 # copy from AFNI format or from uncompressed data
 if (($outdir != ".") || ($dset_nifti != "1") || ($dsetext == "")) then
@@ -350,11 +323,12 @@ set dset = ${dsetprefix}.nii.gz
 set finalmaster = $dset
 
 set origdsetprefix = $dsetprefix
-# get sform and qform codes for original dataset (NIFTI applicable only)
-#set origsform_code = `nifti_tool -disp_hdr -infiles $dset| grep sform_code`
-#set origsform_code = $origsform_code[4]
-#set origqform_code = `nifti_tool -disp_hdr -infiles $dset| grep qform_code`
-#set origqform_code = $origqform_code[4]
+
+# set up output text file with file descriptions
+echo "This file contains the list of outputs from the @animal_warper script" > $animalouts
+echo "Input dataset: $dset" >> $animalouts
+echo "Atlas/segmentation: $segset" >> $animalouts
+
 
 # figure out short name for template to insert into output files
 if ($templatename == "") then
@@ -406,6 +380,8 @@ cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
 
 set dset = ${dsetprefix}_shft.nii.gz
 set dsetprefix = ${dsetprefix}_shft
+
+echo "Center shifted data: $dset" >> $animalouts
  
 # goto apply_warps
 
@@ -433,10 +409,16 @@ else
    \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
+echo "affine transformation matrix: ${dsetprefix}_al2std_mat.aff12.1D" \
+     >> $animalouts
+echo "affine transformed dataset: ${dsetprefix}_al2std.nii.gz" \
+     >> $animalouts
+
 if ($align_type == rigid_equiv) then
     cat_matvec ${dsetprefix}_al2std_mat.aff12.1D -P \
         > ${dsetprefix}_al2std_mat_rigid.aff12.1D
     set affmat = ${dsetprefix}_al2std_mat_rigid.aff12.1D
+    echo "rigid equiv transformation matrix: $affmat" >> $animalouts
 else
     set affmat = ${dsetprefix}_al2std_mat.aff12.1D
 endif
@@ -446,10 +428,12 @@ endif
 if (($ok_to_exist == "1") && (-f ${dsetprefix}_aff.nii.gz)) then
    echo "reusing affine transformed dataset"
 else 
-   3dAllineate -1Dmatrix_apply $affmat                                   \
-        -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE        \
+   3dAllineate -1Dmatrix_apply $affmat                                 \
+        -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE      \
         -source $dset -overwrite
 endif
+echo "affine transformed dataset on grid of template: ${dsetprefix}_aff.nii.gz" \
+     >> $animalouts
 
 # if nonlinear alignment is not requested, then exit
 if ( $align_type != "all" ) then
@@ -461,6 +445,13 @@ if ( $align_type != "all" ) then
       echo "You may restart for other types of alignment with"
       echo "a different align_type and -ok_to_exist"
    endif
+   echo "list of outputs (this file): $animalouts" >> $animalouts
+   echo "script called with: $argv" >> $animalouts
+
+   echo "Highlights of the output:"
+   # show list of outputs
+   cat $animalouts
+  
    exit 0
 endif
 
@@ -515,6 +506,11 @@ else
         ${dsetprefix}_WARPINV.nii.gz
 
 endif
+
+echo "nonlinear warp transformation to template: ${dsetprefix}_WARP.nii.gz"  \
+     >> $animalouts
+echo "nonlinear warp transformation to template: ${dsetprefix}_WARPINV.nii.gz" \
+     >> $animalouts
 
 #apply_warps:
 
@@ -582,8 +578,15 @@ else
        -set_xhairs OFF                        \
        -label_mode 1 -label_size 3 
 
-#   \rm -rf awpy_${dsetprefix}
 endif
+
+echo "nonlinear warp to template: ${origdsetprefix}_warp2std.nii.gz" \
+       >> $animalouts
+echo "nonlinear warp to template skullstripped: ${origdsetprefix}_warp2std_ns.nii.gz" \
+      >> $animalouts
+echo "nonlinear warp to template skullstripped and unifized: ${origdsetprefix}_warp2std_nsu.nii.gz" \
+      >> $animalouts
+echo "QC directory (see index.html there): QC/" >> $animalouts
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
@@ -739,6 +742,7 @@ foreach temple_dset ($template_followers)
       #gzip -f ${temple_prefix}_in_${origdsetprefix}.nii
       3drefit -space $origspace ${temple_prefix}_in_${origdsetprefix}.nii.gz
   endif
+  echo "template in native space: ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
 end
 
  # warp segmentation from atlas back to the original macaque space
@@ -840,6 +844,8 @@ end
            #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz \
            #     ./${segname}_in_${origdsetprefix}.nii.gz
        endif
+       echo "atlas/segmentation in native space: ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
+            >> $animalouts
     end 
     
           
@@ -892,6 +898,8 @@ end
             -o  ${templatename}_in_${origdsetprefix}.gii -overwrite \
             -noxform -Tsmooth 0.01 6 
        endif
+       echo "surface of template in native space: ${templatename}_in_${origdsetprefix}.gii" \
+            >> $animalouts
 
 #       if (($ok_to_exist == "1") && (-f  surfaces/native*.gii )) then
 #          echo "reusing segmentation surfaces in native space"
@@ -906,15 +914,28 @@ end
               cd ..
            endif
 #       endif
+       echo "individual surfaces of atlas/segmentation in native space: ./surfaces" \
+            >> $animalouts
     endif
 
  endif
 
 
 # get rid of temporary warped datasets
-\rm -f "__tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK*"
-\rm -f "__tmp*_${dsetprefix}*.1D"
+if($keep_temp != "1") then
+   \rm -rf "awpy_${dsetprefix}/"
+   \rm -f "__tmp*_${dsetprefix}*.HEAD __tmp*_${dsetprefix}*.BRIK*"
+   \rm -f "__tmp*_${dsetprefix}*.nii*"
+   \rm -f "__tmp*_${dsetprefix}*.1D"
+   \rm -f "${templatename}_in_${origdsetprefix}_aniso*.nii.gz"
+endif
 
+echo "list of outputs (this file): $animalouts" >> $animalouts
+
+echo "Highlights of the output:"
+# show to user now
+cat $animalouts
+  
 exit 0
 
 # notes
@@ -946,18 +967,18 @@ warps to compute the template and segmentation in the subject's
 original, native space.
 
 This program uses basic AFNI commands to compute affine and nonlinear
-alignments. At present, no skullstripping is done here because that
-doesn't typically work well for non-human subjects. The program works
-by first aligning centers of the subject to that of the
-template. Affine and nonlinear alignment follow. The inverse warp is
-computed to bring the template and atlas segmentation into the
-center-shifted grid. Finally, the grids are adjusted back to the
-original center. Surfaces are made for all the atlas regions.
+alignments. The program works by first aligning centers of the subject
+to that of the template. Affine and nonlinear alignment follow. The 
+inverse warp is computed to bring the template and atlas segmentation
+into the center-shifted grid. Skullstripping is provided by masking 
+with the template. Finally, the grids are adjusted back to the
+original center. Surfaces are made for all the atlas regions and for
+a transformed copy of the template dataset.
 
 Usage Example ~1~
 
-    tcsh @animal_warper -input macaque1+orig \
-      -base ../NMT.nii.gz			  \
+    tcsh @animal_warper -input macaque1+orig        \
+      -base ../NMT.nii.gz                           \
       -atlas atlas_dir/D99_atlas_1.2a_al2NMT.nii.gz \
       -outdir aligned_data
    
@@ -969,9 +990,12 @@ Options ~1~
     -input dset         :required input dataset to align to template
 
     -base  base_dataset :required template. Can be in a standard AFNI 
-                         location or fully specified path
+                         location or fully specified path. 
+                         Note, if the template has no skull, then a
+                         masked (skullstripped) version of the input
+                         is produced in the output
 
-   -atlas atlas_dataset :atlas can also be in a standard AFNI location 
+    -atlas atlas_dataset :atlas can also be in a standard AFNI location 
                          or fully specified
 
     -outdir outputdir   :create new directory and do all processing there.
@@ -1036,6 +1060,9 @@ Options ~1~
     -supersize          :allow for up to 50% size difference between subject
                          and template
 
+    -keep_temp          :keep temporary files including awpy directory and 
+                         other intermediate datasets
+
     -ok_to_exist        :reuse and do not overwrite existing datasets.
                          This option is used for faster restarts or with
                          limited alignment options 
@@ -1069,6 +1096,10 @@ Comments ~1~
     Template aligned_to Subject
     + template_in_mydset.nii.gz** - template (e.g. NMT,D99) aligned 
       to native scan
+
+    Text description of output
+    + animal_outs.txt - list of important datasets and transforms in
+                        output directory
      
     ***-NOTE: @animal_warper is part of the AFNI software package  ***
     Here all occurrences of mydset in the output file names would be replaced
