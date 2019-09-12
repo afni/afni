@@ -14,6 +14,7 @@ if __name__ == '__main__':
 # atomic (type within nested list) and simple types for VarsObject
 g_valid_atomic_types = [int, float, str, list]
 g_simple_types = [int, float, str]
+g_sort_keys = []
 
 class VarsObject(object):
    """a general class for holding variables, essentially treated as a
@@ -21,6 +22,18 @@ class VarsObject(object):
 
    def __init__(self, name='noname'):
       self.name = name
+
+   def __lt__(self, other):
+      """for sorting, calling function can set global g_sort_keys[], e.g.
+            VO.g_sort_keys = sort_keys
+            obj_list.sort()
+      """
+      for key in g_sort_keys:
+         if self.val(key) != other.val(key):
+            return self.val(key) < other.val(key)
+      # hope default of False is original order preserving...
+      # (or should we just write a compare_key function?)
+      return False
 
    def set_var(self, name, newval):
       """if the value has changed (or is not a simple type), update it
