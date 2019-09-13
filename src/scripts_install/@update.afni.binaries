@@ -1331,7 +1331,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
             if ( $bstatus ) then
                echo 'export PATH=$PATH:'$abin                    >> $brcfile
             endif
-            if ( $pstatus ) then
+            if ( $fstatus ) then
                echo 'export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:'$flatdir \
                                                                  >> $brcfile
             endif
