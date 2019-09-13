@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, Sep , 2019 , PT , "3dWarp" , MINOR , TYPE_NEW_OPT,
+   "New opt: -disp_obl_xform_only.",
+   "Better way to get transform between obl coords than cat_matvec trickery.\n"
+},
+
 { 12, Sep , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
    "Output QC directory of images now, as well. Useful for quick QC.",
    "Later, will add some checks for obl, to not smooth unnec.\n"
