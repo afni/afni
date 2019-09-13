@@ -365,6 +365,9 @@ class SysInfo:
    def show_spec_osx(self):
       """look for fink, macports, homebrew, PyQt4"""
 
+      # first check on XQuartz (and Xcode?)
+      self.check_for_progs(['XQuartz'], show_missing=1)
+
       # check for repositories
       nfound = self.check_for_progs(['fink', 'brew', 'port'], repos=1)
       if nfound == 0:
@@ -738,6 +741,12 @@ class SysInfo:
             print('%-20s : %s' % ('', self.afni_label))
             continue
 
+         # XQuartz/X11?
+         elif prog in ['XQuartz', 'X11']:
+            s, v = self.get_prog_version(prog)
+            print('%-20s : %s' % ('%s version'%prog, v))
+            continue
+
          # and python - add a comment if they are using version 3 (no continue)
          #            - do not 'continue'
          elif prog == 'python':
@@ -1078,6 +1087,27 @@ class SysInfo:
          if s: return 1, se[0]
          else: return 1, so[0]
 
+      elif prog in ['XQuartz', 'X11']:
+         droot = '/Applications/Utilities'
+         pname = '%s.app' % prog
+         app   = '%s/%s' % (droot, pname)
+         dstr  = ''
+
+         # get version string
+         vstr = self.get_kmdi_version(app)
+
+         # on failure, check the other app
+         if vstr == '':
+            if prog == 'XQuartz': pname = 'X11.app'
+            else:                 pname = 'XQuartz.app'
+            dstr  = '(%s) ' % pname
+            app = '%s/%s' % (droot, pname)
+            vstr = self.get_kmdi_version(app)
+            # clear on failure
+            if vstr == '': dstr = ''
+
+         return 1, (dstr+vstr)
+
       elif prog in ['dnf', 'yum', 'apt-get', 'brew', 'port', 'fink', 'R']:
          cmd = '%s --version' % prog
          s, so, se = UTIL.limited_shell_exec(cmd, nlines=1)
@@ -1088,6 +1118,34 @@ class SysInfo:
          print('** no version method for prog : %s' % prog)
          return -1, ''
 
+   def get_kmdi_version(self, path, verb=1):
+      """for the given program, run: mdls -name kMDItemVersion
+
+         return found version string, or an empty one on failure
+      """
+
+      cmd = 'mdls -name kMDItemVersion %s' % path
+      s, soe = UTIL.exec_tcsh_command(cmd, lines=1)
+
+      # return on failure
+      if len(soe) == 0: return ''
+
+      rstr = soe[0]
+      rposn = rstr.find('kMDItemVersion')
+      if rposn < 0: return ''
+      
+      rlist = rstr[rposn:].split()
+      if verb > 1: print("-- kmdi_v: list is %s" % rlist)
+      
+      if len(rlist) < 3: return ''
+      if rlist[0] != 'kMDItemVersion' or rlist[1] != '=':
+         return ''
+
+      # found something, remove any quotes, tabs and spaces, and return
+      rstr = rlist[2].strip('\'" \t')
+
+      return rstr
+   
    def get_cpu_count(self):
        """
        Number of virtual or physical CPUs on this system, i.e. user/real as
