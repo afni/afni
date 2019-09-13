@@ -215,9 +215,10 @@ g_history = """
    1.06 Aug 27, 2019
         - added check for dyn.load error in R_io.so via 3dMVM
         - show output of command "R RHOME"
+   1.07 Sep 13, 2019 - report XQuartz/X11 version
 """
 
-g_version = "afni_system_check.py version 1.06, August 27, 2019"
+g_version = "afni_system_check.py version 1.07, September 13, 2019"
 
 
 class CmdInterface:
