@@ -3,6 +3,13 @@
      ***  14 Apr 2003 - RWCox.                                   ***
 --------------------------------------------------------------------------*/
 
+/*
+
+  [PT: Sep 9, 2019] add in opt: -disp_obl_xform_only
+                    + output transform between oblique coords.
+
+*/
+
 #include "mrilib.h"
 
 /*--------------------------------------------------------------------------*/
@@ -66,6 +73,9 @@ int main( int argc , char * argv[] )
    float     *matflar=NULL ;
 #endif
 
+   int DISP_OBL_XFORM_ONLY = 0 ;  // [PT: Sep 13, 2019] for getting oblique
+                            // transform matrix most easily
+
    /*-- help? --*/
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
@@ -126,7 +136,8 @@ int main( int argc , char * argv[] )
             "                input to 3dWarp should overlay properly with\n"
             "                the input to 3dWarpDrive that generated the\n"
             "                -matparent dataset).\n\n"
-  "  -card2oblique obl_dset or \n"
+  "  -card2oblique   obl_dset \n"
+  "       or \n"
   "  -oblique_parent obl_dset = Read in the oblique transformation matrix\n"
   "     from an oblique dataset and make cardinal dataset oblique to match.\n"
   "  -deoblique or\n"
@@ -135,13 +146,25 @@ int main( int argc , char * argv[] )
   "     output as specified with the -newgrid or -gridset options\n"
   "     or a new grid will be assigned based on the minimum voxel spacing\n"
   "    ** N.B.: EPI time series data should be time shifted with 3dTshift before"
-  "                rotating the volumes to a cardinal direction\n\n"
+  "                rotating the volumes to a cardinal direction\n"
+  "\n"
+  "  -disp_obl_xform_only = (new opt) just display the obliquity transform\n"
+  "                         matrix that would be applied to make the output\n"
+  "                         dset;  very useful for moving between oblique\n"
+  "                         coords, such as with '-oblique_parent ..' or\n"
+  "                         '-deoblique'.  The result can be dumped into a\n"
+  "                         text file, e.g.:\n" 
+  "                              > textfile.aff12.1D\n"
+  "                         No dataset is created or changed.\n"
+  "\n"
   "Sample usages:\n"
   " 3dWarpDrive -affine_general -base d1+orig -prefix d2WW -twopass"
     " -input d2+orig\n"
   " 3dWarp -matparent d2WW+orig -prefix epi2WW epi2+orig\n\n"
   " 3dWarp -card2oblique oblique_epi+orig -prefix oblique_anat card_anat+orig\n"
   " 3dWarp -oblique2card -prefix card_epi_tshift -newgrid 3.5 epi_tshift+orig\n"
+  " 3dWarp -card2oblique oblique_epi.nii -disp_obl_transf_only epi_tshift+orig\\\n"
+  "        > mat_obl_transform.aff12.1D\n"
   "\n"
   "Example of warping +tlrc results back to +orig space of some subject\n"
   "(get xform matrix, apply it, tell dataset it is not in orig space):\n"
@@ -151,51 +174,51 @@ int main( int argc , char * argv[] )
   "           -gridset subj1_epi+orig -cubic group_data+tlrc\n"
   "    3drefit -view orig group_warped+tlrc\n"
 #if 0
-            "\n"
-            "  -matfile mname  = Read in the file 'mname', which consists\n"
-            "                     of 12 ASCII-formatted numbers per line.\n"
-            "                     The i-th input line defines a 3x4 matrix\n"
-            "                     which is used to transform the i-th\n"
-            "                     sub-brick of the input dataset.\n"
+  "\n"
+  "  -matfile mname  = Read in the file 'mname', which consists\n"
+  "                     of 12 ASCII-formatted numbers per line.\n"
+  "                     The i-th input line defines a 3x4 matrix\n"
+  "                     which is used to transform the i-th\n"
+  "                     sub-brick of the input dataset.\n"
 #endif
-            "\n"
-            "-----------------------\n"
-            "Other Transform Options:\n"
-            "-----------------------\n"
-            "  -linear     }\n"
-            "  -cubic      } = Chooses spatial interpolation method.\n"
-            "  -NN         } =   [default = linear]\n"
-            "  -quintic    }\n"
-            "  -wsinc5     }\n"
-            "\n"
-            "  -fsl_matvec   = Indicates that the matrix file 'mmm' uses FSL\n"
-            "                    ordered coordinates ('LPI').  For use with\n"
-            "                    matrix files from FSL and SPM.\n"
-            "\n"
-            "  -newgrid ddd  = Tells program to compute new dataset on a\n"
-            "                    new 3D grid, with spacing of 'ddd' mmm.\n"
-            "                  * If this option is given, then the new\n"
-            "                    3D region of space covered by the grid\n"
-            "                    is computed by warping the 8 corners of\n"
-            "                    the input dataset, then laying down a\n"
-            "                    regular grid with spacing 'ddd'.\n"
-            "                  * If this option is NOT given, then the\n"
-            "                    new dataset is computed on the old\n"
-            "                    dataset's grid.\n"
-            "\n"
-            "  -gridset ggg  = Tells program to compute new dataset on the\n"
-            "                    same grid as dataset 'ggg'.\n"
-            "\n"
-            "  -zpad N       = Tells program to pad input dataset with 'N'\n"
-            "                    planes of zeros on all sides before doing\n"
-            "                    transformation.\n"
-            "---------------------\n"
-            "Miscellaneous Options:\n"
-            "---------------------\n"
-            "  -verb         = Print out some information along the way.\n"
-            "  -prefix ppp   = Sets the prefix of the output dataset.\n"
-            "\n"
-           ) ;
+  "\n"
+  "-----------------------\n"
+  "Other Transform Options:\n"
+  "-----------------------\n"
+  "  -linear     }\n"
+  "  -cubic      } = Chooses spatial interpolation method.\n"
+  "  -NN         } =   [default = linear]\n"
+  "  -quintic    }\n"
+  "  -wsinc5     }\n"
+  "\n"
+  "  -fsl_matvec   = Indicates that the matrix file 'mmm' uses FSL\n"
+  "                    ordered coordinates ('LPI').  For use with\n"
+  "                    matrix files from FSL and SPM.\n"
+  "\n"
+  "  -newgrid ddd  = Tells program to compute new dataset on a\n"
+  "                    new 3D grid, with spacing of 'ddd' mmm.\n"
+  "                  * If this option is given, then the new\n"
+  "                    3D region of space covered by the grid\n"
+  "                    is computed by warping the 8 corners of\n"
+  "                    the input dataset, then laying down a\n"
+  "                    regular grid with spacing 'ddd'.\n"
+  "                  * If this option is NOT given, then the\n"
+  "                    new dataset is computed on the old\n"
+  "                    dataset's grid.\n"
+  "\n"
+  "  -gridset ggg  = Tells program to compute new dataset on the\n"
+  "                    same grid as dataset 'ggg'.\n"
+  "\n"
+  "  -zpad N       = Tells program to pad input dataset with 'N'\n"
+  "                    planes of zeros on all sides before doing\n"
+  "                    transformation.\n"
+  "---------------------\n"
+  "Miscellaneous Options:\n"
+  "---------------------\n"
+  "  -verb         = Print out some information along the way.\n"
+  "  -prefix ppp   = Sets the prefix of the output dataset.\n"
+  "\n"
+  ) ;
      PRINT_COMPILE_DATE ; exit(0) ;
    }
 
@@ -466,12 +489,19 @@ int main( int argc , char * argv[] )
         oblique_flag = 1; matdefined = 1; nopt++ ; continue ;
      }
 
+     // [PT: Sep 13, 2019] show transform and exit
+     if((strncmp(argv[nopt],"-disp_obl_xform_only",20) == 0 )){
+        DISP_OBL_XFORM_ONLY = 1; nopt++ ; continue ;
+     }
+
      /*-----*/
 
      ERROR_message("Unknown option %s\n",argv[nopt]) ;
      suggest_best_prog_option(argv[0], argv[nopt]);
      exit(1);
    } /* end of loop over options */
+
+   // ===============================================================
 
    /*-- check to see if we have a warp specified --*/
 
@@ -637,8 +667,12 @@ DUMP_MAT44("Twcombined", Tw);
       }
 
       /* show overall oblique/deoblique transformation */
-      if(verb && oblique_flag)
-         DUMP_MAT44("Obliquity Transformation :", Tw);
+      if(oblique_flag)
+         if(DISP_OBL_XFORM_ONLY || oblique_flag )
+            DUMP_MAT44("Obliquity Transformation :", Tw);
+      
+      if( DISP_OBL_XFORM_ONLY )
+         exit(0);
 
       LOAD_MAT  ( dicom_in2out.mm, matar[0],matar[1],matar[2],
                                    matar[4],matar[5],matar[6],
