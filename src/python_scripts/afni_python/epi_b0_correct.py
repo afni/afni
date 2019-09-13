@@ -70,8 +70,16 @@
 #ver='2.31' ; date='Sept 9, 2019'
 # + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
 #
-ver='2.32' ; date='Sept 10, 2019'
+#ver='2.32' ; date='Sept 10, 2019'
 # + [PT] "hview"ify---thanks, RCR!
+#
+#ver='2.4' ; date='Sept 10, 2019'
+# + [PT] now output mask from mask_B0() into the main odir, if that
+#   func gets used;  useful for scripting+qc
+#
+ver='2.5' ; date='Sept 12, 2019'
+# + [PT] QC images output:
+#        + images use magn vol as ulay, if entered; otherwise, ulay is EPIs
 #
 ##########################################################################
 

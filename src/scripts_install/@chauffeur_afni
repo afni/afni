@@ -242,9 +242,15 @@
 #   + [PT] add '-edge_enhance_ulay EE' opt, to enhance edges of ulay
 #          with 3dedge3 info-- nice idea, D. Glen!
 #
-set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
+#set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
 #   + [PT] add in resampling opts for obliquity transform
 #
+#set version   = "5.91"; set rev_dat   = "Sep 4, 2019"
+#   + [PT] add in resampling opts for obliquity transform
+#
+set version   = "5.92"; set rev_dat   = "Sep 12, 2019"
+#   + [PT] now use "\mkdir -p .." with $odir, so it will generate path
+#          to it, if necessary --- simplifies usage in scripts
 #
 # =====================================================================
 
@@ -1010,11 +1016,14 @@ endif
 
 # -------------------- make temp working dir
 
+# [PT: Sept 12, 2019] if output dir doesn't exist, make it
+\mkdir -p "${odir}"
+
 # in so many cases we need a tmp working directory
 set read_dir = "$odir/$tmp_dir"
 if ( ! -e $read_dir ) then
     echo "++ Making temporary work directory to copy vis files: $read_dir"
-    mkdir $read_dir
+    \mkdir -p $read_dir
 endif
 
 # [PT: Aug 29, 2019] Can apply obliquity info
