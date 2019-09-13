@@ -1141,10 +1141,8 @@ class SysInfo:
       if rlist[0] != 'kMDItemVersion' or rlist[1] != '=':
          return ''
 
-      # found something, remove any quotes and return
-      rstr = rlist[2].strip()
-      rstr = rstr.replace('"','')
-      rstr = rstr.replace("'","")
+      # found something, remove any quotes, tabs and spaces, and return
+      rstr = rlist[2].strip('\'" \t')
 
       return rstr
    
