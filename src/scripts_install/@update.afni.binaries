@@ -1303,6 +1303,15 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
       # and .bash_profile, but only if it exists (unless on a mac, sigh)
       # (same for .profile, since many now use sh)
       foreach brcfile ( ~/.bash_profile ~/.profile )
+         # if might already be sourcing .bashrc, skip
+         if ( -f $brcfile ) then
+            \grep '\.bashrc' $brcfile >& /dev/null
+            if ( ! $status ) then
+               echo "-- seem be be sourcing .bashrc from $brcfile"
+               continue
+            endif
+         endif
+
          if ( -f $brcfile ) then
             # do we need abin in PATH?
             \grep $abin:t $brcfile >& /dev/null
