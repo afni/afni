@@ -1638,7 +1638,7 @@ class SubjProcSream:
         self.od_var = '$output_dir'
 
         # create empty file tracking list
-        self.tlist = TrackedFlist(subj_id=self.subj_id)
+        self.tlist = TrackedFlist(subj_id=self.subj_id, proc=self)
 
         if self.verb > 1: show_args_as_command(self.argv, "executing command:")
         if self.verb > 4: show_args_as_command(sys.argv, "system command:")
@@ -2965,12 +2965,12 @@ class SubjProcSream:
                    (an.rel_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp', ftype='1D')
 
-           # get WARP.nii
+           # get WARP.nii (specify tlrc view, since they stay nifti)
            an = self.nlw_priors[2]
            tstr += '3dcopy %s %s/%s\n' % \
                    (an.rel_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp',
-                          ftype='dset')
+                          ftype='dset', view='+tlrc')
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -3846,17 +3846,19 @@ class SubjProcSream:
 
 class TrackedFlist:
     """class for sorting/printing list of tracked files (VarsObject's)"""
-    def __init__(self, subj_id='Steve'):
+    def __init__(self, subj_id='Steve', proc=None):
+       self.proc = proc
        self.tfiles = []
        self.subj_id = subj_id
 
-    def add(self, oldname, newname, desc, ftype='unknown', pre=''):
+    def add(self, oldname, newname, desc, ftype='unknown', pre='', view=''):
        """to track external files that are copied in, e.g.,
              oldname, newname, desc, ftype
                - desc might be like 'epi', 'anat', 'epi base', 'anat follower'
                - ftype should be in {'dset', '1D', 'text', 'unknown'}
              if newname == '', use trail of oldname
              if pre, apply to newname
+             if view and dset, override any dset view
        """
        vo = VO.VarsObject()
 
@@ -3878,6 +3880,38 @@ class TrackedFlist:
        vo.newname  = newname
        vo.nos_oldn = ''
        vo.nos_newn = ''
+
+       vo.an_n     = None
+       vo.view     = ''
+       vo.shortinput = ''
+
+       # prepare to track dsets
+       if vo.ftype == 'dset':
+          # make afni_name for any dset
+          vo.an_n = afni_name(vo.newname)
+
+          # track view, to be sure
+          if view:           vo.view = view
+          elif vo.an_n.view: vo.view = vo.an_n.view
+          else:              vo.view = self.proc.view
+
+          # and use the newly created view as a backup for the afni_name
+          if vo.an_n.type == 'BRIK' and vo.an_n.view == '':
+             vo.an_n.view = vo.view
+
+          vo.shortinput = vo.an_n.shortinput()
+
+          # some old name tests...
+          vo.an_o = afni_name(vo.oldname)
+          if vo.an_o:
+             vo.inview = dset_view(vo.an_o.rel_input())
+             if vo.inview != vo.view:
+                if vo.inview == 'NO-DSET':
+                   istr = ' (iset = %s)' % vo.an_o.rel_input()
+                else:
+                   istr = ''
+                print("** view change: %s -> %s: %s%s" % \
+                      (vo.inview, vo.view, vo.an_o.shortinput(), istr))
 
        # replace any $subj/${subj} strings with actual subject ID
        nn = oldname.replace('$subj', self.subj_id)
@@ -3910,6 +3944,14 @@ class TrackedFlist:
        VO.g_sort_keys = keys
        sublist.sort()
        return(sublist)
+
+    def show_vo(self, mesg=''):
+       """show via lib_vars_object
+       """
+       if mesg: print(mesg)
+       for tfile in self.tfiles:
+          tfile.show()
+       print()
 
     def show(self, order='sort', rfield='desc', rval='', dfields=[]):
        """display the list of tracked files
@@ -4026,8 +4068,12 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        return rv, None
 
     # possibly display list of tracked files
-    if proc.show_tfiles or proc.verb > 2:
-       proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
+    if proc.show_tfiles or proc.verb > 0:
+       # proc.tlist.show_vo()
+       # proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
+       proc.tlist.show(order='sort', rfield='ftype', rval='dset',
+          dfields = ['ftype', 'shortinput'])
+          # dfields = ['desc', 'ftype', 'view', 'newname'])
 
     return 0, proc
 
