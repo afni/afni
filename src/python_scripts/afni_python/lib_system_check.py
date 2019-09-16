@@ -850,16 +850,21 @@ class SysInfo:
          self.test_python_lib(plib, verb=verb)
          print('')
 
-      pdirs = glob.glob('/sw/bin/python*')
-      if len(pdirs) > 0: pdirs = [dd for dd in pdirs if dd.find('config')<0]
-      if len(pdirs) > 0:
-         print('python binaries under /sw/bin:')
-         for pdir in pdirs:
-            if os.path.islink(pdir):
-               rstr = ' (sym link to %s)' % os.path.realpath(pdir)
-            else: rstr = ''
-            print('    %-20s%s' % (pdir, rstr))
-         print('')
+      for rootdir in ['/sw/bin', '/usr/local/bin']:
+         # hard to avoid related files, so search for expected names
+         pdirs = glob.glob('%s/python' % rootdir)
+         p1dirs = glob.glob('%s/python[0-9]' % rootdir)
+         p2dirs = glob.glob('%s/python[0-9].[0-9]' % rootdir)
+         pdirs.extend(p1dirs)
+         pdirs.extend(p2dirs)
+         if len(pdirs) > 0:
+            print('-- python binaries under %s:' % rootdir)
+            for pdir in pdirs:
+               if os.path.islink(pdir):
+                  rstr = ' (sym link to %s)' % os.path.realpath(pdir)
+               else: rstr = ''
+               print('    %-20s%s' % (pdir, rstr))
+            print('')
 
    def show_path_vars(self, header=1):
       print(UTIL.section_divider('env vars', hchar='-'))

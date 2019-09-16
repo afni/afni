@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Sep, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
+   "check on /usr/local/bin/python* files, as is done with /sw/bin",
+   NULL
+ } ,
+
  { 13, Sep, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "report XQuartz version",
    "As suggested by P Taylor."
