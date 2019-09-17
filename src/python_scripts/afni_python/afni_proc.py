@@ -3874,44 +3874,61 @@ class TrackedFlist:
        # possibly add any output prefix
        if pre: newname = pre+newname
 
-       vo.desc     = desc
-       vo.ftype    = ftype
+       # init with passed params
        vo.oldname  = oldname
        vo.newname  = newname
+       vo.desc     = desc
+       vo.ftype    = ftype
+       vo.pre      = pre
+       vo.view     = view
+
        vo.nos_oldn = ''
        vo.nos_newn = ''
 
-       vo.an_n     = None
-       vo.view     = ''
-       vo.shortinput = ''
+       # ----- prepare to track dsets -----
+       vo.in_an      = None
+       vo.out_an     = None
+       vo.in_view    = ''
+       vo.out_view   = ''
+       vo.short_in   = ''
+       vo.short_out  = ''
 
-       # prepare to track dsets
        if vo.ftype == 'dset':
           # make afni_name for any dset
-          vo.an_n = afni_name(vo.newname)
+          vo.in_an  = afni_name(vo.oldname)
+          vo.out_an = afni_name(vo.newname)
+          vo.short_in = vo.in_an.shortinput()
+          vo.short_out = vo.out_an.shortinput()
 
-          # track view, to be sure
-          if view:           vo.view = view
-          elif vo.an_n.view: vo.view = vo.an_n.view
-          else:              vo.view = self.proc.view
+          # set and check input view
+          vo.in_view = dset_view(vo.in_an.rel_input())
+          if vo.in_view not in ['+orig', '+tlrc']:
+             print("** missing view in input %s" % vo.in_an.rel_input())
+             if 
+
+          # track output view, based on passed or input
+          if view:
+             vo.out_view = view
+          elif vo.in_view in ['+orig', '+tlrc']:
+             vo.out_view = vo.in_view
+          else:
+             vo.out_view = self.proc.view
 
           # and use the newly created view as a backup for the afni_name
-          if vo.an_n.type == 'BRIK' and vo.an_n.view == '':
-             vo.an_n.view = vo.view
+          # if vo.in_an.type == 'BRIK' and vo.in_an.view == '':
+          #    vo.in_an.view = vo.view
 
-          vo.shortinput = vo.an_n.shortinput()
 
           # some old name tests...
-          vo.an_o = afni_name(vo.oldname)
-          if vo.an_o:
-             vo.inview = dset_view(vo.an_o.rel_input())
-             if vo.inview != vo.view:
-                if vo.inview == 'NO-DSET':
-                   istr = ' (iset = %s)' % vo.an_o.rel_input()
-                else:
-                   istr = ''
-                print("** view change: %s -> %s: %s%s" % \
-                      (vo.inview, vo.view, vo.an_o.shortinput(), istr))
+          if vo.in_view != vo.out_view:
+             if vo.in_view == 'NO-DSET':
+                istr = ' (iset = %s)' % vo.out_an.rel_input()
+             else:
+                istr = ''
+             print("** view change: %s -> %s: %s%s" % \
+                   (vo.in_view, vo.out_view, vo.out_an.shortinput(), istr))
+
+       # ----- done tracking dsets -----
 
        # replace any $subj/${subj} strings with actual subject ID
        nn = oldname.replace('$subj', self.subj_id)
@@ -4072,7 +4089,7 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        # proc.tlist.show_vo()
        # proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
        proc.tlist.show(order='sort', rfield='ftype', rval='dset',
-          dfields = ['ftype', 'shortinput'])
+          dfields = ['ftype', 'short_in'])
           # dfields = ['desc', 'ftype', 'view', 'newname'])
 
     return 0, proc
