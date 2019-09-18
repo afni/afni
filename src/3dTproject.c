@@ -663,7 +663,7 @@ STATUS("making list of keepers") ;
    keep = (int *)malloc( sizeof(int) * ntkeep ) ;
    for( qq=jj=0 ; jj < nt ; jj++ ) if( tp->censar[jj] != 0.0f ) keep[qq++] = jj ;
 
-   (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+   MCW_MALLOC_status ;
 
    INFO_message("Setting up regressors") ;
 
@@ -734,7 +734,7 @@ fprintf(stderr,"\n") ;
 #endif
      }
 
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
 
      if( nort_fixed >= nt ){
        ERROR_message(
@@ -884,7 +884,7 @@ STATUS("loading polort vectors") ;
            opp[jj] = Plegendre( fac*(jj-bla[tt])-1.0 , pp ) ;
        }
      }
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
    }
 
    /*-- load cosine/sine (stopbands) part of ort_fixed_unc --*/
@@ -910,7 +910,7 @@ STATUSi("sin qort",qort) ;
      }
      free(fmask) ; free(nf) ; free(df) ;
      fmask = NULL ; nf = NULL ; df = NULL ;
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
    }
 
    /*-- load ortar part of ort_fixed_unc --*/
@@ -927,7 +927,7 @@ STATUS("loading ortar") ;
          vector_demean( nt , opp ) ;
        }
      }
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
    }
 
    /*---- censor ort_fixed_unc into ort_fixed ----*/
@@ -955,7 +955,7 @@ STATUS("censoring orts") ;
      if( nort_fixed == 0 )
        ERROR_exit("Censoring results in no nonzero fixed orts!") ;
      free(ort_fixed_unc) ; ort_fixed_unc = NULL ;
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
    }
 
    if( TPR_verb > 1 && nort_fixed > 0 ){
@@ -983,7 +983,7 @@ STATUS("pseudo-inverse of fixed orts") ;
        sprintf(fname,"%s.ort_psinv.1D",tp->prefix) ;
        mri_write_1D(fname,qim) ; mri_clear_and_free(qim) ;
      }
-     (void)mcw_malloc_status("3dTproject.c",__LINE__) ;
+     MCW_MALLOC_status ;
    } else {
      ort_fixed_psinv = NULL ;
    }
