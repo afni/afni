@@ -2,6 +2,7 @@
 #include <rsfc.h>
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_sort.h>
+#include <gsl/gsl_sort_vector.h>
 #include <gsl/gsl_permutation.h>
 #include <gsl/gsl_matrix.h>
 #include <gsl/gsl_blas.h>
