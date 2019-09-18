@@ -23,6 +23,9 @@ static char *DTI_PLUS_LABS[N_DTI_PLUS] = {"P1", "P2", "P3", "P4"};
 static char *DTI_XTRA_LABS[N_DTI_XTRA] = {"XF"};
 
 // ------------------- for DTI globbing -------------------------------
+int glob_for_DTI_vec( char *infix,
+                      THD_3dim_dataset **insetVECS,
+                      int hardi_pref_len);
 
 int glob_for_DTI_trac( char *infix,
                        THD_3dim_dataset **insetPARS,
