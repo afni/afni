@@ -67,8 +67,19 @@
 # + [PT] add this set_blur_sigma() method, which had been
 #        forgotten... Thanks, L. Dowdle!
 #
-ver='2.31' ; date='Sept 9, 2019'
+#ver='2.31' ; date='Sept 9, 2019'
 # + [PT] Fixed help file descripts-- thanks again, L. Dowdle.
+#
+#ver='2.32' ; date='Sept 10, 2019'
+# + [PT] "hview"ify---thanks, RCR!
+#
+#ver='2.4' ; date='Sept 10, 2019'
+# + [PT] now output mask from mask_B0() into the main odir, if that
+#   func gets used;  useful for scripting+qc
+#
+ver='2.5' ; date='Sept 12, 2019'
+# + [PT] QC images output:
+#        + images use magn vol as ulay, if entered; otherwise, ulay is EPIs
 #
 ###############################################################################
 
@@ -127,6 +138,7 @@ all_opts = {
     'date'               : '-date',
     'h'                  : '-h',
     'help'               : '-help',
+    'hview'              : '-hview',
 }
 
 # ----------------------------------------------------------------------------
@@ -137,7 +149,6 @@ help_dict = all_opts.copy()
 help_dict.update(ddefs)     
 
 help_string_b0_corr = '''
-
   PURPOSE ~1~
 
   This program performs B0 distortion correction along the phase encode
@@ -164,7 +175,8 @@ help_string_b0_corr = '''
   + mask dset      : (req) binary mask of subject's brain
        OR
   + magnitude dset : (req) volume in same space as frequency dset for
-                     automasking, to create brain mask
+                     automasking, to create brain mask; also useful for
+                     QC imaging (even if a mask is input separately)
 
   + PE parameters  : (req) a number of parameters related to the
                      EPI vol are required to be input, such as its
@@ -212,6 +224,14 @@ help_string_b0_corr = '''
                           matching the original EPI's); hopefully it
                           is unwarped...
 
+  + QC image dir        : a directory called PREFIX_QC/, containing
+                          some (hopefully) useful QC images of both the
+                          corrected and uncorrected EPI on the magn dset, 
+                          as well as the mask on the magn dset.  All images
+                          are shown in the coordinates of the EPI, whether
+                          the EPI is in oblique or scanner coordinates (the
+                          other dsets will have been transformed or "sent"
+                          to those coords). 
 
   RUNNING ~1~
 
@@ -230,7 +250,9 @@ help_string_b0_corr = '''
   {in_mask}   DSET_MASK : (req) mask of brain volume
        or
   {in_magn}   DSET_MAGN : (req) magnitude dset from which to estimate brain
-                         mask
+                         mask;  it can be useful to enter a magn dset even
+                         if a mask is input, in order to use it as a 
+                         reference underlay in the QC image directory
 
   {in_epi_json}  FJSON  : (opt) Several parameters about the EPI
                          dset must be known for processing; these MIGHT
@@ -654,11 +676,22 @@ class iopts_b0_corr:
 
         # params, calc'ed during runtime
         self.freq_ctr      = 0.0           # (freqOut); for centering B0
-        self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] # how to ctr B0
+        self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] #how to ctr B0
 
         # masking params
         self.npeels   = ddefs['DEF_npeels'] # param for mask_B0 (3dAutomask)
         self.nerode   = ddefs['DEF_nerode'] # param for mask_B0 (3dAutomask)
+
+        # auto QC stuff
+        self.outdir_qc = ''
+        # Names if there is a magn vol included
+        self.qc_img_00 = 'qc_00_ee_magn+MASK'   # u: EE magn; o: wrpd epi (outp)
+        self.qc_img_01 = 'qc_01_ee_magn+in_epi' # u: EE magn; o: orig epi (inp)
+        self.qc_img_02 = 'qc_02_ee_magn+EPI'    # u: EE magn; o: wrpd epi (outp)
+        # Names if there is NO magn vol included
+        self.qc_img_11 = 'qc_11_in_epi' # u: orig epi (inp)
+        self.qc_img_12 = 'qc_12_EPI'    # u: wrpd epi (outp)
+
 
         self.do_qc_image    = True         # make nice QC image
         self.do_clean       = True         # clean up intermed dir or not
@@ -666,9 +699,10 @@ class iopts_b0_corr:
 
         # This is here basically to just initialize the 'comm' obj
         cmd = 'pwd'
-        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm = BASE.shell_com( cmd, capture=1 )
         self.comm.run()
-        check_for_shell_com_failure(self.comm, cmd )
+        check_for_shell_com_failure( self.comm, cmd,
+                                     disp_so=False, disp_se=False )
 
 
     # -------------- methods to populate -----------------
@@ -891,7 +925,7 @@ class iopts_b0_corr:
             print("++ Ignore json for BWPP; already have it: {}"
                   "".format(self.epi_pe_bwpp))
         elif self.epi_jdict.__contains__('BandwidthPerPixelPhaseEncode') :
-            PEBWPP = self.epi_jdict['BandwidthPerPixelPhaseEncode'] # e.g., 36.44
+            PEBWPP = self.epi_jdict['BandwidthPerPixelPhaseEncode'] #e.g., 36.44
             self.set_epi_pe_bwpp( PEBWPP )
             print("++ Using json for BWPP: {}"
                   "".format(self.epi_pe_bwpp))
@@ -934,6 +968,9 @@ class iopts_b0_corr:
 
         self.odset_epi  = self.prefix_name + '_EPI'
         self.odset_warp = self.prefix_name + '_WARP'
+        self.odset_mask = self.prefix_name + '_MASK' # add in, to reuse/comp
+
+        self.outdir_qc  = self.prefix_name + '_QC'   # hold QC outputs
 
         if not(self.ocmds_fname) :
             self.ocmds_fname = self.outdir + '/' 
@@ -1362,23 +1399,26 @@ class iopts_b0_corr:
         self.comm.run()
         check_for_shell_com_failure(self.comm, cmd )
 
-        # [PT: Aug 27, 2019] Come back to this.
-        if self.do_qc_image and 0:
+        # [PT: Sep 12, 2019] Come back to this: add conditions about
+        # the obliquify-- basically, edit @chauffeur_afni to decide
+        # whether doing anything to obliquity is necessary.
+        if self.do_qc_image : 
             if self.dset_magn_name :
-                # final (unWARPed) EPI on edgy anat/magn
+
+                # --00-- mask on edge-enhanced anat/magn
                 cmd = '''@chauffeur_afni  \
                 -ulay "{dset_magn_name}"    \
-                -edgy_ulay                  \
-                -ulay_range_nz 0% 30%       \
+                -edge_enhance_ulay 0.5      \
+                -ulay_range_nz 0% 95%       \
                 -set_subbricks 0 0 0        \
-                -olay {odset_epi}{dext}     \
-                -box_focus_slices AMASK_FOCUS_OLAY \
+                -obliquify u2o              \
+                -olay {dset_mask_name}      \
                 -func_range_perc_nz 95      \
-                -cbar Viridis               \
+                -cbar RedBlueGreen          \
                 -pbar_posonly               \
-                -pbar_saveim ../IMAGE       \
+                -pbar_saveim ../{outdir_qc}/{qc_img_00}  \
                 -pbar_comm_range '95%ile of nonzero vox' \
-                -prefix      ../IMAGE       \
+                -prefix      ../{outdir_qc}/{qc_img_00}  \
                 -opacity 4                  \
                 -montx 5 -monty 3           \
                 -set_xhairs OFF             \
@@ -1389,6 +1429,86 @@ class iopts_b0_corr:
                 self.comm.run()
                 check_for_shell_com_failure(self.comm, cmd )
 
+                # --01-- input (orig) EPI on edge-enhanced anat/magn
+                cmd = '''@chauffeur_afni  \
+                -ulay "{dset_magn_name}"    \
+                -edge_enhance_ulay 0.5      \
+                -ulay_range_nz 0% 95%       \
+                -set_subbricks 0 0 0        \
+                -obliquify u2o             \
+                -olay {dset_epi_name}       \
+                -func_range_perc_nz 95      \
+                -cbar GoogleTurbo                        \
+                -pbar_posonly               \
+                -pbar_saveim ../{outdir_qc}/{qc_img_01}  \
+                -pbar_comm_range '95%ile of nonzero vox' \
+                -prefix      ../{outdir_qc}/{qc_img_01}  \
+                -opacity 4                  \
+                -montx 5 -monty 3           \
+                -set_xhairs OFF             \
+                -label_mode 1 -label_size 3 
+                '''.format( **self_vars )
+
+                self.comm = BASE.shell_com(cmd, capture=1)
+                self.comm.run()
+                check_for_shell_com_failure(self.comm, cmd )
+
+                # --02-- final (unWARPed) EPI on edge-enhanced anat/magn
+                cmd = '''@chauffeur_afni  \
+                -ulay "{dset_magn_name}"    \
+                -edge_enhance_ulay 0.5      \
+                -ulay_range_nz 0% 95%       \
+                -set_subbricks 0 0 0        \
+                -obliquify u2o             \
+                -olay {odset_epi}{dext}     \
+                -func_range_perc_nz 95      \
+                -cbar GoogleTurbo                        \
+                -pbar_posonly               \
+                -pbar_saveim ../{outdir_qc}/{qc_img_02}  \
+                -pbar_comm_range '95%ile of nonzero vox' \
+                -prefix      ../{outdir_qc}/{qc_img_02}  \
+                -opacity 4                  \
+                -montx 5 -monty 3           \
+                -set_xhairs OFF             \
+                -label_mode 1 -label_size 3 
+                '''.format( **self_vars )
+
+                self.comm = BASE.shell_com(cmd, capture=1)
+                self.comm.run()
+                check_for_shell_com_failure(self.comm, cmd )
+
+            else: # no magn dset input!
+
+                # --11-- input (orig) EPI as ulay
+                cmd = '''@chauffeur_afni  \
+                -ulay "{dset_epi_name}"     \
+                -ulay_range_nz 0% 95%       \
+                -set_subbricks 0 0 0        \
+                -prefix      ../{outdir_qc}/{qc_img_11}  \
+                -montx 5 -monty 3           \
+                -set_xhairs OFF             \
+                -label_mode 1 -label_size 3 
+                '''.format( **self_vars )
+
+                self.comm = BASE.shell_com(cmd, capture=1)
+                self.comm.run()
+                check_for_shell_com_failure(self.comm, cmd )
+
+                # --12-- final (unWARPed) EPI as ulay
+                cmd = '''@chauffeur_afni  \
+                -ulay "{odset_epi}{dext}"     \
+                -ulay_range_nz 0% 95%       \
+                -set_subbricks 0 0 0        \
+                -prefix      ../{outdir_qc}/{qc_img_12}  \
+                -montx 5 -monty 3           \
+                -set_xhairs OFF             \
+                -label_mode 1 -label_size 3 
+                '''.format( **self_vars )
+
+                self.comm = BASE.shell_com(cmd, capture=1)
+                self.comm.run()
+                check_for_shell_com_failure(self.comm, cmd )
+                
         os.chdir(self.origdir)
         print("\n++ Done with B0_corr.\n")
 
@@ -1444,6 +1564,15 @@ class iopts_b0_corr:
         omask = '''{wdir}/{dset_int_mask_01}{dext}'''.format(**self_vars)
         self.set_dset( omask, 'mask' )
 
+        # copy the EPI results up a directory
+        cmd = '''3dcopy {overwrite}  \
+        {dset_int_mask_01}{dext}     \
+        ../{odset_mask}{dext}
+        '''.format( **self_vars )
+        
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
 
         os.chdir(self.origdir)
         print("\n++ Done with making mask for B0.\n")
@@ -1574,6 +1703,12 @@ def parse_args_b0_corr(full_argv):
         elif argv[i] == "{help}".format(**all_opts) or \
              argv[i] == "{h}".format(**all_opts) :
             print(help_string_b0_corr)
+            sys.exit(0)
+
+        elif argv[i] == "{hview}".format(**all_opts) :
+            prog = os.path.basename(full_argv[0])
+            cmd = 'apsearch -view_prog_help {}'.format( prog )
+            BASE.simple_shell_exec(cmd)
             sys.exit(0)
 
         # ---------- req ---------------

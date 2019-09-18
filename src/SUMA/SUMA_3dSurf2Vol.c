@@ -3073,6 +3073,7 @@ ENTRY("usage");
             "          nzmedian: median, but ignoring any zero values\n"
             "\n"
             "          mode   : apply the most common value per voxel\n"
+            "                   (minimum mode, if they are not unique)\n"
             "                   (appropriate where surf ROIs overlap)\n"
             "\n"
             "          nzmode : mode, but ignoring any zero values\n"

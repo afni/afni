@@ -75,6 +75,7 @@ history for $prog :
   3.9  14 Jun 2019 : add -hostname and -distdir
   3.10 26 Jul 2019 : add -make_backup and -echo
   3.11  6 Sep 2019 : if afni -ver fails, fall back to AFNI_version.txt
+  3.12 13 Sep 2019 : set DYLD_LIBRARY_PATH on mac
 
 -------------------------------------------------------------------------------
 EOF
@@ -83,7 +84,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.11, September 6, 2019"
+set aub_version = "3.12, September 13, 2019"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
@@ -102,6 +103,7 @@ set obsolete_list = (                                           \
 
 # initialize options to 'unset'
 set abin = ""
+set flatdir = /opt/X11/lib/flat_namespace
 set package = ""
 set local_package = ""          # existing .tgz package to use (no download)
 set prog_list = ()              # update programs or entire package
@@ -1232,6 +1234,7 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          touch $rcfile
       endif
 
+      # tcsh: set path
       \grep $abin:t $rcfile >& /dev/null
       if ( $status ) then
          # finally, update .csrhc and our current path
@@ -1242,6 +1245,19 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          echo 'set path = ( $path ' $abin ' ) '            >> $rcfile
          set path = ( $path $abin )
          rehash
+      endif
+
+      # tcsh: set DYLD_LIBRARY_PATH on macs
+      if ( $sysname == Darwin ) then
+         \grep $flatdir $rcfile >& /dev/null
+         if ( $status ) then
+            # finally, update .csrhc and our current path
+            echo "++ setting DYLD_LIBRARY_PATH in $rcfile ..."
+            # newline, in case they are missing one?
+            echo ''                                           >> $rcfile
+            echo '# auto-inserted by @update.afni.binaries :' >> $rcfile
+            echo "setenv DYLD_LIBRARY_PATH $flatdir"          >> $rcfile
+         endif
       endif
 
       # if cur_afni_does not point to abin, reset it
@@ -1269,18 +1285,64 @@ if ( $do_dotfiles && -d $abin && $?USER ) then
          echo 'export PATH=$PATH:'$abin                    >> $brcfile
       endif
 
+      # bash: set DYLD_LIBRARY_PATH on macs (.bashrc)
+      if ( $sysname == Darwin ) then
+         \grep $flatdir $brcfile >& /dev/null
+         if ( $status ) then
+            # finally, update .csrhc and our current path
+            echo "++ setting DYLD_LIBRARY_PATH in $brcfile ..."
+            # newline, in case they are missing one?
+            echo ''                                           >> $brcfile
+            echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+            echo 'export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:'$flatdir \
+                                                              >> $brcfile
+         endif
+      endif
+
       # ---------------------------
       # and .bash_profile, but only if it exists (unless on a mac, sigh)
       # (same for .profile, since many now use sh)
       foreach brcfile ( ~/.bash_profile ~/.profile )
+         # if might already be sourcing .bashrc, skip
          if ( -f $brcfile ) then
+            \grep '\.bashrc' $brcfile >& /dev/null
+            if ( ! $status ) then
+               echo "-- seem be be sourcing .bashrc from $brcfile"
+               continue
+            endif
+         endif
+
+         if ( -f $brcfile ) then
+            # do we need abin in PATH?
             \grep $abin:t $brcfile >& /dev/null
-            if ( $status ) then
-               # $abin not found, so append to file
+            set bstatus = $status
+            if ( $bstatus ) then
                echo "++ adding $abin to PATH in $brcfile ..."
+            endif
+
+            # do we need flat_namespace in DYLD_LIBRARY_PATH?
+            set fstatus = 0
+            if ( $sysname == Darwin ) then
+               \grep $flatdir $brcfile >& /dev/null
+               set fstatus = $status
+               if ( $fstatus ) then
+                  echo "++ setting DYLD_LIBRARY_PATH in $brcfile ..."
+               endif
+            endif
+
+            # in either case, add header
+            if ( $bstatus || $fstatus ) then
                echo ''                                           >> $brcfile
                echo '# auto-inserted by @update.afni.binaries :' >> $brcfile
+            endif
+
+            # then add path and/or flat
+            if ( $bstatus ) then
                echo 'export PATH=$PATH:'$abin                    >> $brcfile
+            endif
+            if ( $fstatus ) then
+               echo 'export DYLD_LIBRARY_PATH=${DYLD_LIBRARY_PATH}:'$flatdir \
+                                                                 >> $brcfile
             endif
          else if ( $sysname == Darwin ) then
             echo "++ will source .bashrc from newly created $brcfile"
@@ -1306,6 +1368,7 @@ if ( $do_apsearch && $cur_afni == $abin && $#prog_list == 0 ) then
 
       cat << EOF >> $rcfile
 
+# set up tab completion for AFNI programs
 if ( -f \$HOME/.afni/help/all_progs.COMP ) then
    source \$HOME/.afni/help/all_progs.COMP
 endif
@@ -1315,11 +1378,13 @@ EOF
 
    set brcfile = ~/.bashrc
    \grep all_progs.COMP.bash $brcfile >& /dev/null
-   if ( $status && -f $brcfile ) then
+   set pstatus = $status
+   if ( -f $brcfile && $pstatus ) then
       echo "++ adding source of all_progs.COMP.bash to $brcfile"
 
       cat << EOF >> $brcfile
 
+# set up tab completion for AFNI programs
 if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
 then
    . \$HOME/.afni/help/all_progs.COMP.bash ]
@@ -1327,18 +1392,36 @@ fi
 
 EOF
 
+   set brcfile = ~/.bash_profile
+   \grep all_progs.COMP.bash $brcfile >& /dev/null
+   set pstatus = $status
+   \grep '\.bashrc' $brcfile >& /dev/null
+   set bstatus = $status
+
+   if ( -f $brcfile && $pstatus && $bstatus ) then
+      echo "++ adding source of all_progs.COMP.bash to $brcfile"
+
+      cat << EOF >> $brcfile
+
+# set up tab completion for AFNI programs
+if [ -f \$HOME/.afni/help/all_progs.COMP.bash ]
+then
+   . \$HOME/.afni/help/all_progs.COMP.bash ]
+fi
+
+EOF
 
    endif
 
 endif
 
 # maybe they need to set the DYLD_F_L_P
-if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
-   echo ""
-   echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
-   echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
-   echo ""
-endif
+# if ( $package == macosx_10.7_Intel_64 && $#prog_list > 0 ) then
+#    echo ""
+#    echo "-- remember to set the DYLD_FALLBACK_LIBRARY_PATH, e.g."
+#    echo "   setenv DYLD_FALLBACK_LIBRARY_PATH $abin"
+#    echo ""
+# endif
 
 # finally remove any leftovers
 cd ..

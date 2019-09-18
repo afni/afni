@@ -51,6 +51,10 @@
 
 afni_history_struct dglen_history[] = {
 
+{ 31, AUG, 2019, DRG, "@animal_warper", MICRO, TYPE_NEW_OPT,
+    "-keep_temp to keep temporary files and awpy directory"
+},
+
 { 31, AUG, 2019, DRG, "@FindAfniDsetPath", MICRO, TYPE_NEW_OPT,
     "full_path option - full path for current path"
 },

@@ -66,6 +66,31 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 13, Sep , 2019 , PT , "3dWarp" , MINOR , TYPE_NEW_OPT,
+   "New opt: -disp_obl_xform_only.",
+   "Better way to get transform between obl coords than cat_matvec trickery.\n"
+},
+
+{ 12, Sep , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "Output QC directory of images now, as well. Useful for quick QC.",
+   "Later, will add some checks for obl, to not smooth unnec.\n"
+},
+
+{ 12, Sep , 2019 , PT , "@chauffeur_afni" , MICRO , TYPE_GENERAL,
+   "Use 'mkdir -p' with odir now.",
+   "Simplifies scripts using it.\n"
+},
+
+{ 10, Sep , 2019 , PT , "epi_b0_correct.py" , MICRO , TYPE_GENERAL,
+   "Fix help descriptions (thanks L. Dowdle for fixes).",
+   "Also add '-hview' capability.\n"
+},
+
+{ 10, Sep , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Unifize output in standard space.",
+   "Better for visualization in afni_proc.py QC.\n"
+},
+
 { 6, Sep , 2019 , PT , "apqc_make_tcsh.py" , MINOR , TYPE_GENERAL,
    "Two minor changes: montages now separated by 1 gap line.",
    "... and show censor bars in VR6 plots, if censoring.\n"
@@ -108,7 +133,7 @@ afni_history_struct ptaylor_history[] = {
 
 { 30, Aug , 2019 , PT , "epi_b0_correct.py" , MINOR , TYPE_BUG_FIX,
    "Fix input opt to change blur size; was broken before, crashing prog.",
-   "Thanks, L. Dowdle for finding!.\n"
+   "Thanks, L. Dowdle for finding!\n"
 },
 
 { 29, Aug , 2019 , PT , "@auto_tlrc" , MAJOR , TYPE_GENERAL,
