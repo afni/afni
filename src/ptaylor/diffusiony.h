@@ -91,6 +91,7 @@ int DT_TORTOISEtoAFNI(float **D,
 int GradConv_GmatA_from_Gsign( float *matr, float *grad );
 // assumes I/O has unit or zero mag!
 int GradConv_Gsign_from_GmatA( float *grad, float *matr ); 
+int GradConv_BmatA_from_Bsign( float *matr, float *grad );
 
 int Basic_Grads_to_B7( float **bseven,
                         MRI_IMAGE *flim,
