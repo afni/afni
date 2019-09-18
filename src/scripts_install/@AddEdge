@@ -283,7 +283,10 @@ endif
 #Get a nice cropping box
 3dAutobox   -input "3dcalc( -a tmp_avg+orig -b $epi -expr ((a+b)/2.0) )" \
             -noclust -overwrite -prefix tmp_box+orig
-
+if ( $status ) then
+   echo "Error: 3dAutobox step failed"
+   goto BEND
+endif
 
 EPI_EDGES:
 #Get epi edges
@@ -890,3 +893,7 @@ endif
 
 
 END:
+exit 0
+
+BEND:
+exit 1
