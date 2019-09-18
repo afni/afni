@@ -3935,13 +3935,9 @@ class TrackedFlist:
 
 
           # some old name tests...
-          if self.verb > 1 and (vo.in_view != vo.out_view):
-             if vo.in_view == 'NO-DSET':
-                istr = ' (iset = %s)' % vo.out_an.rel_input()
-             else:
-                istr = ''
-             print("** view change: %s -> %s: %s%s" % \
-                   (vo.in_view, vo.out_view, vo.out_an.shortinput(), istr))
+          if self.verb > 0 and (vo.in_view != vo.out_view):
+             print("** in/out view change: %s -> %s: %s" % \
+                   (vo.in_view, vo.out_view, vo.out_an.shortinput()))
 
        # ----- done tracking dsets -----
 
