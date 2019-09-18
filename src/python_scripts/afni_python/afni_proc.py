@@ -656,10 +656,10 @@ g_history = """
     6.46 Jul 25, 2019: added -volreg_warp_master
     6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
     6.48 Sep  9, 2019: added control for -NEW25
-    6.49 Sep 12, 2019: added file tracking and -show_tracked_files option
+    6.49 Sep 18, 2019: added file tracking and -show_tracked_files option
 """
 
-g_version = "version 6.49, September 12, 2019"
+g_version = "version 6.49, September 18, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1638,7 +1638,7 @@ class SubjProcSream:
         self.od_var = '$output_dir'
 
         # create empty file tracking list
-        self.tlist = TrackedFlist(subj_id=self.subj_id, proc=self)
+        self.tlist = TrackedFlist(self, subj_id=self.subj_id)
 
         if self.verb > 1: show_args_as_command(self.argv, "executing command:")
         if self.verb > 4: show_args_as_command(sys.argv, "system command:")
@@ -3846,10 +3846,12 @@ class SubjProcSream:
 
 class TrackedFlist:
     """class for sorting/printing list of tracked files (VarsObject's)"""
-    def __init__(self, subj_id='Steve', proc=None):
-       self.proc = proc
+    def __init__(self, proc, subj_id='Steve'):
        self.tfiles = []
        self.subj_id = subj_id
+
+       self.proc = proc
+       self.verb = proc.verb
 
     def add(self, oldname, newname, desc, ftype='unknown', pre='', view=''):
        """to track external files that are copied in, e.g.,
@@ -3903,8 +3905,13 @@ class TrackedFlist:
           # set and check input view
           vo.in_view = dset_view(vo.in_an.rel_input())
           if vo.in_view not in ['+orig', '+tlrc']:
-             print("** missing view in input %s" % vo.in_an.rel_input())
-             if 
+             # do we fail?
+             if not vo.in_an.exist():
+                print("** cannot evaluate view of missing input: %s" \
+                      % vo.in_an.rel_input())
+             else:
+                print("** bad view %s for input %s" \
+                      % (vo.in_view, vo.in_an.rel_input()))
 
           # track output view, based on passed or input
           if view:
@@ -3920,7 +3927,7 @@ class TrackedFlist:
 
 
           # some old name tests...
-          if vo.in_view != vo.out_view:
+          if self.verb > 1 and (vo.in_view != vo.out_view):
              if vo.in_view == 'NO-DSET':
                 istr = ' (iset = %s)' % vo.out_an.rel_input()
              else:
@@ -4085,12 +4092,19 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
        return rv, None
 
     # possibly display list of tracked files
-    if proc.show_tfiles or proc.verb > 0:
+    if proc.show_tfiles or proc.verb > 2:
        # proc.tlist.show_vo()
-       # proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
-       proc.tlist.show(order='sort', rfield='ftype', rval='dset',
-          dfields = ['ftype', 'short_in'])
-          # dfields = ['desc', 'ftype', 'view', 'newname'])
+       rfield = ''  # in verbose mode, show all files
+       rval = ''
+       dfields = ['desc', 'ftype', 'out_view', 'newname']
+
+       # else, user has requested something to show
+       if proc.show_tfiles:
+          rfield = 'desc'
+          rval = proc.show_tfiles
+
+       proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
+                       # dfields = ['ftype', 'short_in'])
 
     return 0, proc
 
