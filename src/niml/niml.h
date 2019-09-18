@@ -610,6 +610,8 @@ extern void   NI_kill_attribute( void *, char * ) ;
 extern void   NI_set_attribute( void *, char *, char * ) ;
 extern char * NI_get_attribute( void *, char * ) ;
 extern char * NI_get_attribute_nocase( void *, char * ) ;           /* 20 Aug 2019 */
+extern void NI_set_dimen( NI_element *nel , int rank , int *nd );
+extern void NI_set_axes( NI_element *nel , char **ax );
 extern void NI_insert_value( NI_element *, int,int, void * );       /* 03 Apr 2003 */
 extern void NI_insert_column_stride( NI_element *nel, int typ, void *arr, int stride, int icol );
 extern void NI_add_column_stride( NI_element *, int, void *, int ); /* 29 May 2003 */
