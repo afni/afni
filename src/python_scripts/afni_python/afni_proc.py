@@ -656,7 +656,9 @@ g_history = """
     6.46 Jul 25, 2019: added -volreg_warp_master
     6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
     6.48 Sep  9, 2019: added control for -NEW25
-    6.49 Sep 18, 2019: added file tracking and -show_tracked_files option
+    6.49 Sep 18, 2019:
+       - added file tracking and -show_tracked_files option
+       - if -html_review_style pythonic, check for matplotlib
 """
 
 g_version = "version 6.49, September 18, 2019"
@@ -3080,6 +3082,12 @@ class SubjProcSream:
            htmlstr = ''
            if self.html_rev_style in g_html_review_styles:
               htmlstr = '\n' + self.run_html_review(istr='    ')
+              # warn user if pythonic does not seem valid
+              if self.html_rev_style == 'pythonic':
+                 import module_test_lib as MT
+                 rv = MT.simple_import_test('matplotlib.pyplot', verb=self.verb)
+                 if rv: print("** warning: -html_review_style pythonic: "\
+                              "missing matplotlib library")
                 
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \

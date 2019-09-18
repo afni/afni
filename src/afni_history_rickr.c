@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 18, Sep, 2019, RCR, "afni_proc.py", MICRO, TYPE_ENHANCE,
+   "if -html_review_style pythonic, check for matplotlib",
+   NULL
+ } ,
+
  { 16, Sep, 2019, RCR, "afni_system_check.py", MICRO, TYPE_ENHANCE,
    "check on /usr/local/bin/python* files, as is done with /sw/bin",
    NULL
