@@ -59,11 +59,12 @@ echo "File count = $#flist"
 
 # run the Count Lines Of Code script, if present (this is fast)
 
-# which cloc-1.64.pl >& /dev/null
-# if ( $status == 0 ) then
-#   cloc-1.64.pl --quiet $flist
-#   echo
-# endif
+which cloc-1.64.pl >& /dev/null
+if ( $status == 0 ) then
+  cloc-1.64.pl --quiet $flist
+  sleep 1
+  echo
+endif
 
 # list of authors needing only one alias (not case sensitive)
 # - anyone whose alias has spaces in it is out of luck
