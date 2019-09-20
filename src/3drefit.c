@@ -9,6 +9,8 @@
 static ATR_float *Update_float_atr(char *aname, char *fvstring);
 static ATR_int *Update_int_atr(char *aname, char *ivstring);
 
+extern void Obliquity_to_coords(THD_3dim_dataset *);
+
 void Syntax(int detail)
 {
    int ii ;
