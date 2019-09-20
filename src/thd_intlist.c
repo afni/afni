@@ -7,6 +7,7 @@
 #include "mrilib.h"
 
 extern int *z_rand_order(int bot, int top, long int seed);
+int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str);
 
 static int allow_negative = 0 ;
 
@@ -872,8 +873,7 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
       }
    /* handle ,-delimited list of integers/labels */
    } else if ( cptr ) {
-      if( thd_get_labeltable_intlist(dset, rptr, &dset->dblk->master_csv,
-                                                 &dset->dblk->master_ncsv) )
+      if( thd_get_labeltable_intlist(dset, rptr) )
          return 1;
       return 0;
    /* handle single value/label */
