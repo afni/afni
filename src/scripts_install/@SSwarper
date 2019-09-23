@@ -71,6 +71,8 @@ setenv AFNI_COMPRESSOR    NONE
 
 if ( $?SLURM_CPUS_PER_TASK ) then
  setenv OMP_NUM_THREADS $SLURM_CPUS_PER_TASK
+else if ( $?NSLOTS ) then
+ setenv OMP_NUM_THREADS $NSLOTS
 endif
 
 # ===================================================================
