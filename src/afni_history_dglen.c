@@ -51,6 +51,11 @@
 
 afni_history_struct dglen_history[] = {
 
+{ 31, AUG, 2019, DRG, "@animal_warper,@FindAfniDsetPath", MICRO, TYPE_BUG_FIX,
+    "better full_path option for paths with ../",
+    " More use in animal_warper for templates and atlases"
+},
+
 { 31, AUG, 2019, DRG, "@animal_warper", MICRO, TYPE_NEW_OPT,
     "-keep_temp to keep temporary files and awpy directory"
 },
