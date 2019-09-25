@@ -3435,6 +3435,7 @@ int act_mod_nims( nt_opts * opts )
    for( filec = 0; filec < opts->infiles.len; filec++ )
    {
       nim = nt_image_read(opts, opts->infiles.list[filec], 1); /* with data */
+      if( !nim ) return 1;
 
       if( g_debug > 1 )
          fprintf(stderr,"-d modifying %d fields from '%s' image\n",
@@ -3547,6 +3548,10 @@ int modify_all_fields( void * basep, nt_opts * opts, field_s * fields, int flen)
    if( opts->flist.len != opts->vlist.len ){
       fprintf(stderr,"** have %d fields but %d new values\n",
               opts->flist.len, opts->vlist.len);
+      return 1;
+   }
+   if( basep == NULL ) {
+      fprintf(stderr,"** modify_all_fields: have NULL basep\n");
       return 1;
    }
 
