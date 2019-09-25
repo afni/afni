@@ -76,7 +76,7 @@ history for $prog :
   3.10 26 Jul 2019 : add -make_backup and -echo
   3.11  6 Sep 2019 : if afni -ver fails, fall back to AFNI_version.txt
   3.12 13 Sep 2019 : set DYLD_LIBRARY_PATH on mac
-  3.13 23 Sep 2019 : missed endif
+  3.13 24 Sep 2019 : missed endif, extra ]
 
 -------------------------------------------------------------------------------
 EOF
@@ -85,7 +85,7 @@ POST_HIST:
 # end history section
 # ----------------------------------------------------------------------
 
-set aub_version = "3.13, September 23, 2019"
+set aub_version = "3.13, September 24, 2019"
 
 # make a growing list of obsolete packages, particularly in case the user
 # tries to upgrade one of them and fails (at "no update needed")
