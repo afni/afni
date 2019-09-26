@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 26, Sep, 2019, RCR, "NIFTI", MICRO, TYPE_MODIFY,
+   "nifti_read_ascii_image no longer closes fp or free's fname",
+   NULL
+ } ,
+
  { 23, Sep, 2019, RCR, "@update.afni.binaries", MICRO, TYPE_BUG_FIX,
    "missed endif",
    "Thanks to A Winkler for noting the problem."

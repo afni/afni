@@ -338,9 +338,11 @@ static char const * const gni_history[] =
   "1.43 07 Jul 2010 [rickr]: fixed znzR/W to again return nmembers\n",
   "1.44 19 Jul 2013 [rickr]: ITK compatibility updates from H Johnson\n",
   "1.45 10 May 2019 [rickr]: added NIFTI_ECODE_QUANTIPHYSE\n",
+  "1.46 26 Sep 2019 [rickr]:\n"
+  "   - nifti_read_ascii_image no longer closes fp or free's fname\n",
   "----------------------------------------------------------------------\n"
 };
-static const char gni_version[] = "nifti library version 1.45 (10 May, 2019)";
+static const char gni_version[] = "nifti library version 1.46 (26 Sep, 2019)";
 
 /*! global nifti options structure - init with defaults */
 static nifti_global_options g_opts = {
@@ -4218,8 +4220,12 @@ nifti_image *nifti_image_read( const char *hname , int read_data )
       free(hfile);
       return NULL;
    }
-   else if ( rv == 1 )  /* process special file type */
-      return nifti_read_ascii_image( fp, hfile, filesize, read_data );
+   else if ( rv == 1 ){ /* process special file type */
+      nim = nifti_read_ascii_image( fp, hfile, filesize, read_data );
+      znzclose(fp);
+      free(hfile);
+      return nim;
+   }
 
    /* else, just process normally */
 
@@ -4326,7 +4332,7 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
    if( nifti_is_gzfile(fname) ){
      LNI_FERR(lfunc,"compression not supported for file type NIFTI_FTYPE_ASCII",
               fname);
-     free(fname);  znzclose(fp);  return NULL;
+     return NULL;
    }
    slen = flen;  /* slen will be our buffer length */
 
@@ -4337,13 +4343,13 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
    sbuf = (char *)calloc(sizeof(char),slen+1) ;
    if( !sbuf ){
       fprintf(stderr,"** %s: failed to alloc %d bytes for sbuf",lfunc,65530);
-      free(fname);  znzclose(fp);  return NULL;
+      return NULL;
    }
    znzread( sbuf , 1 , slen , fp ) ;
    nim = nifti_image_from_ascii( sbuf, &txt_size ) ; free( sbuf ) ;
    if( nim == NULL ){
       LNI_FERR(lfunc,"failed nifti_image_from_ascii()",fname);
-      free(fname);  znzclose(fp);  return NULL;
+      return NULL;
    }
    nim->nifti_type = NIFTI_FTYPE_ASCII ;
 
@@ -4354,9 +4360,6 @@ nifti_image * nifti_read_ascii_image(znzFile fp, char *fname, int flen,
       znzseek(fp, txt_size, SEEK_SET);
       (void) nifti_read_extensions(nim, fp, remain);
    }
-
-   free(fname);
-   znzclose( fp ) ;
 
    nim->iname_offset = -1 ;  /* check from the end of the file */
 
