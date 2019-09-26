@@ -44,10 +44,13 @@ set progname = @animal_warper
 #    + remove __tmp* dset-- hadn't noticed COMPRESSOR was ON
 #
 # --------------------------------------------------------------------
-set version = "1.6" ; set date = "Sep 11, 2019"
+#set version = "1.6" ; set date = "Sep 11, 2019"
 # [DRG] remove temporary datasets with option to keep temporary datasets
 #     + identify important output
 #     + some help updates
+set version = "1.7" ; set date = "Sep 24, 2019"
+# [DRG] fullpath for input datasets determined even if specified as ., .., ~
+
 
 if ("$#" <  "2") then
    goto HELP
@@ -259,15 +262,15 @@ endif
 # allow for base to be in a standard directory or specified
 #   expand @FindAfniDsetPath to allow for AFNI_SUPP_ATLAS_DIR
 # is there a path in the name of the dataset
-set basedir = `dirname $base`
+#set basedir = `dirname $base`
 # is the dataset somewhere else or current directory
-set base = `@FindAfniDsetPath -append_file $base`
+set base = `@FindAfniDsetPath -full_path -append_file $base`
 
 if ($segset != "") then
    # is there a path in the name of the dataset
-   set segdir = `dirname $segset`
+#   set segdir = `dirname $segset`
    # is the dataset somewhere else or current directory
-   set segset = `@FindAfniDsetPath -append_file $segset`
+   set segset = `@FindAfniDsetPath -full_path -append_file $segset`
 endif
 
 # get the non-NIFTI name out, dset+ , dset.nii, dset.nii.gz all -> 'dset'
