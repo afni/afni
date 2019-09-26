@@ -2483,7 +2483,7 @@ size_t nifti_get_volsize(const nifti_image *nim)
 int nifti_fileexists(const char* fname)
 {
    znzFile fp;
-   fp = znzopen( fname , "rb" , 1 ) ;
+   fp = znzopen( fname , "rb" , nifti_is_gzfile(fname) ) ;
    if( !znz_isnull(fp) )  { znzclose(fp);  return 1; }
    return 0; /* fp is NULL */
 }

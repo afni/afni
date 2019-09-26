@@ -6,6 +6,7 @@
 
 #include "mrilib.h"
 
+
 int Syntax(TFORM targ, int detail)
 {
    sphinx_printf(targ,"\n"
@@ -53,7 +54,9 @@ int Syntax(TFORM targ, int detail)
 "               Angles of 0 (or close) are for cardinal orientations\n"
 "   -prefix: Return the prefix\n"
 "   -prefix_noext: Return the prefix without extensions\n"
-"   -n[i|j|k]: Return the number of voxels in i, j, k dimensions\n"
+"   -ni: Return the number of voxels in i dimension\n"
+"   -nj: Return the number of voxels in j dimension\n"
+"   -nk: Return the number of voxels in k dimension\n"
 "   -nijk: Return ni*nj*nk\n"
 "   -nv: Return number of points in time or the number of sub-bricks\n"
 "   -nt: same as -nv\n"

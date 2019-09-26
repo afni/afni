@@ -656,10 +656,12 @@ g_history = """
     6.46 Jul 25, 2019: added -volreg_warp_master
     6.47 Aug 27, 2019: use $tr_counts for motion regressors and such
     6.48 Sep  9, 2019: added control for -NEW25
-    6.49 Sep 12, 2019: added file tracking and -show_tracked_files option
+    6.49 Sep 18, 2019:
+       - added file tracking and -show_tracked_files option
+       - if -html_review_style pythonic, check for matplotlib
 """
 
-g_version = "version 6.49, September 12, 2019"
+g_version = "version 6.49, September 18, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1638,7 +1640,7 @@ class SubjProcSream:
         self.od_var = '$output_dir'
 
         # create empty file tracking list
-        self.tlist = TrackedFlist(subj_id=self.subj_id)
+        self.tlist = TrackedFlist(self, subj_id=self.subj_id)
 
         if self.verb > 1: show_args_as_command(self.argv, "executing command:")
         if self.verb > 4: show_args_as_command(sys.argv, "system command:")
@@ -2965,12 +2967,12 @@ class SubjProcSream:
                    (an.rel_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp', ftype='1D')
 
-           # get WARP.nii
+           # get WARP.nii (specify tlrc view, since they stay nifti)
            an = self.nlw_priors[2]
            tstr += '3dcopy %s %s/%s\n' % \
                    (an.rel_input(), self.od_var, an.out_prefix())
            self.tlist.add(an.rel_input(), an.shortinput(),'NL_warp',
-                          ftype='dset')
+                          ftype='dset', view='+tlrc')
 
            self.write_text(add_line_wrappers(tstr))
            self.write_text("%s\n" % stat_inc)
@@ -3080,6 +3082,12 @@ class SubjProcSream:
            htmlstr = ''
            if self.html_rev_style in g_html_review_styles:
               htmlstr = '\n' + self.run_html_review(istr='    ')
+              # warn user if pythonic does not seem valid
+              if self.html_rev_style == 'pythonic':
+                 import module_test_lib as MT
+                 rv = MT.simple_import_test('matplotlib.pyplot', verb=self.verb)
+                 if rv: print("** warning: -html_review_style pythonic: "\
+                              "missing matplotlib library")
                 
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
@@ -3846,17 +3854,21 @@ class SubjProcSream:
 
 class TrackedFlist:
     """class for sorting/printing list of tracked files (VarsObject's)"""
-    def __init__(self, subj_id='Steve'):
+    def __init__(self, proc, subj_id='Steve'):
        self.tfiles = []
        self.subj_id = subj_id
 
-    def add(self, oldname, newname, desc, ftype='unknown', pre=''):
+       self.proc = proc
+       self.verb = proc.verb
+
+    def add(self, oldname, newname, desc, ftype='unknown', pre='', view=''):
        """to track external files that are copied in, e.g.,
              oldname, newname, desc, ftype
                - desc might be like 'epi', 'anat', 'epi base', 'anat follower'
                - ftype should be in {'dset', '1D', 'text', 'unknown'}
              if newname == '', use trail of oldname
              if pre, apply to newname
+             if view and dset, override any dset view
        """
        vo = VO.VarsObject()
 
@@ -3872,12 +3884,62 @@ class TrackedFlist:
        # possibly add any output prefix
        if pre: newname = pre+newname
 
-       vo.desc     = desc
-       vo.ftype    = ftype
+       # init with passed params
        vo.oldname  = oldname
        vo.newname  = newname
+       vo.desc     = desc
+       vo.ftype    = ftype
+       vo.pre      = pre
+       vo.view     = view
+
        vo.nos_oldn = ''
        vo.nos_newn = ''
+
+       # ----- prepare to track dsets -----
+       vo.in_an      = None
+       vo.out_an     = None
+       vo.in_view    = ''
+       vo.out_view   = ''
+       vo.short_in   = ''
+       vo.short_out  = ''
+
+       if vo.ftype == 'dset':
+          # make afni_name for any dset
+          vo.in_an  = afni_name(vo.oldname)
+          vo.out_an = afni_name(vo.newname)
+          vo.short_in = vo.in_an.shortinput()
+          vo.short_out = vo.out_an.shortinput()
+
+          # set and check input view
+          vo.in_view = dset_view(vo.in_an.rel_input())
+          if vo.in_view not in ['+orig', '+tlrc']:
+             # do we fail?
+             if not vo.in_an.exist():
+                print("** cannot evaluate view of missing input: %s" \
+                      % vo.in_an.rel_input())
+             else:
+                print("** bad view %s for input %s" \
+                      % (vo.in_view, vo.in_an.rel_input()))
+
+          # track output view, based on passed or input
+          if view:
+             vo.out_view = view
+          elif vo.in_view in ['+orig', '+tlrc']:
+             vo.out_view = vo.in_view
+          else:
+             vo.out_view = self.proc.view
+
+          # and use the newly created view as a backup for the afni_name
+          # if vo.in_an.type == 'BRIK' and vo.in_an.view == '':
+          #    vo.in_an.view = vo.view
+
+
+          # some old name tests...
+          if self.verb > 0 and (vo.in_view != vo.out_view):
+             print("** in/out view change: %s -> %s: %s" % \
+                   (vo.in_view, vo.out_view, vo.out_an.shortinput()))
+
+       # ----- done tracking dsets -----
 
        # replace any $subj/${subj} strings with actual subject ID
        nn = oldname.replace('$subj', self.subj_id)
@@ -3910,6 +3972,14 @@ class TrackedFlist:
        VO.g_sort_keys = keys
        sublist.sort()
        return(sublist)
+
+    def show_vo(self, mesg=''):
+       """show via lib_vars_object
+       """
+       if mesg: print(mesg)
+       for tfile in self.tfiles:
+          tfile.show()
+       print()
 
     def show(self, order='sort', rfield='desc', rval='', dfields=[]):
        """display the list of tracked files
@@ -4027,7 +4097,18 @@ def make_proc(do_reg_nocensor=0, do_reg_ppi=0):
 
     # possibly display list of tracked files
     if proc.show_tfiles or proc.verb > 2:
-       proc.tlist.show(order='sort', rfield='desc', rval=proc.show_tfiles)
+       # proc.tlist.show_vo()
+       rfield = ''  # in verbose mode, show all files
+       rval = ''
+       dfields = ['desc', 'ftype', 'out_view', 'newname']
+
+       # else, user has requested something to show
+       if proc.show_tfiles:
+          rfield = 'desc'
+          rval = proc.show_tfiles
+
+       proc.tlist.show(order='sort', rfield=rfield, rval=rval, dfields=dfields)
+                       # dfields = ['ftype', 'short_in'])
 
     return 0, proc
 

@@ -20,6 +20,8 @@
 # [DRG: 31 Aug 2019]
 # + full_path option - include full path in output instead of .
 # + better option processing of argv
+# [DRG: 24 Sep 2019]
+# + full_path - really full path even for directories like ../
 
 set retval = 0
 # default is to print only path and not file name
@@ -79,8 +81,12 @@ set ref_file = ` ParseName ${ref_in} | grep "FileName "|awk -F: '{print $2}'`
 set dir = "$ref_in:h"
 if ( "$dir" != "$ref_in" ) then
     set result = `@CheckForAfniDset ${ref_in}`
-    if (($full_path == 1) && ($dir == ".")) then
-        set dir = `pwd`
+    if ($full_path == 1) then
+       if ($dir == ".") then
+          set dir = `pwd`
+       else
+          cd $dir ; set dir = `pwd` ; cd -
+       endif 
     endif
     if ( "$result" == 2 || "$result" == 3 ) then
         if($append_file == 0) then
@@ -137,8 +143,12 @@ foreach dir ( ${dataset_path} )
     set result = `@CheckForAfniDset ${dir}/${ref_in}`
     if ( "$result" == 2 || "$result" == 3 ) then
 
-        if (($dir == "./") && ($full_path == 1)) then
-            set dir = `pwd`
+        if ($full_path == 1) then
+            if ($dir == "./") then
+               set dir = `pwd`
+            else 
+               cd $dir ; set dir = `pwd` ; cd -
+            endif 
         endif
         # remove last character if "/"
         set out = `echo $dir | sed 's/\/$//'`
