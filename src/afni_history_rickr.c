@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 30, Sep, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "added test scripts under commands, along with cmake versions for build",
+   NULL
+ } ,
+
  { 26, Sep, 2019, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "nifti_read_ascii_image no longer closes fp or free's fname",
    NULL
