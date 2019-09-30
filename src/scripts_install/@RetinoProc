@@ -728,19 +728,22 @@ EXAMINE_RESULTS:
    if ( -f $DemoVFR) then
       set prm = "Press OK to see VFR result"
       set demo_set = $DemoVFR
-      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+#      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" 
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set" \
                >> @ShowResult
    endif   
    if (-f $DemoEcc) then
       set prm = "Press OK to see Eccentricity result"
       set demo_set = $DemoEcc
-      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+#      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n"
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set" \
                >> @ShowResult
    endif
    if (-f $DemoPol) then
       set prm = "Press OK to see Polar angle result"
       set demo_set = $DemoPol
-      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" \
+#      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set -com surf_cont -view_surf_cont n" 
+      echo "DriveSuma -com  pause $prm -com surf_cont -view_surf_cont y -com surf_cont -load_dset $demo_set" \
                >> @ShowResult
    endif
    if (! -f $DemoVFR && ! -f $DemoEcc && ! -f $DemoPol) then
