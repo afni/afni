@@ -77,9 +77,19 @@
 # + [PT] now output mask from mask_B0() into the main odir, if that
 #   func gets used;  useful for scripting+qc
 #
-ver='2.5' ; date='Sept 12, 2019'
+#ver='2.5' ; date='Sept 12, 2019'
 # + [PT] QC images output:
 #        + images use magn vol as ulay, if entered; otherwise, ulay is EPIs
+#
+#ver='2.6' ; date='Sept 25, 2019'
+# + [PT] major change: update/reverse polarity
+#      + that is, the direction of (un)warping will be opposite for a given
+#        PE direction
+# + [PT] add in '-in_anat ..' opt, for maybe nicer QC (load in anat to be ulay) 
+# + [PT] add in '-qc_box_focus_ulay' opt, for maybe nicer QC (focus on ulay)
+#
+ver='2.61' ; date='Oct 2, 2019'
+# + [PT] 3dmask_tool now to do dilate/erosion
 #
 ###############################################################################
 
@@ -95,17 +105,27 @@ import lib_msar  as lmsar
 ddefs = {
     'DEF_ver'        : ver,
     'DEF_date'       : date,
-    'DEF_npeels'     : 2,
-    'DEF_nerode'     : 1,
+    'DEF_dilate_str' : '-2 1',
     'DEF_bsigma'     : 9,  #blur to match the '--smooth3=9' opt in FSL's fugue
     'DEF_meth_recenter_freq' : 'mode',
     'DEF_wdir_pref'  : '__work_B0_corr_',
     'DEF_aff12_obl_epi_freq' : 'mat_obl_epi_freq.aff12.1D',
+    'DEF_qc_img_00' : 'qc_00_ee_magn+mask',   # u: EE magn; o: wrpd epi (outp)
+    'DEF_qc_img_01' : 'qc_01_ee_magn+iepi',   # u: EE magn; o: orig epi (inp)
+    'DEF_qc_img_02' : 'qc_02_ee_magn+oepi',   # u: EE magn; o: wrpd epi (outp)
+    'DEF_qc_img_11' : 'qc_11_iepi',           # [no imagn] u: orig epi (inp)
+    'DEF_qc_img_12' : 'qc_12_oepi',           # [no imagn] u: wrpd epi (outp)
 }
 
-# See also 'A NOTE ON THE DIRECTIONALITY OF THE PHASE CORRECTION' below
-ORI_POS = ['RL', 'AP', 'IS']
-ORI_NEG = ['LR', 'PA', 'SI']
+# For these lists, see also 'A NOTE ON THE DIRECTIONALITY OF THE PHASE
+# CORRECTION' below.
+# [PT: Sep 24, 2019] ORIG_NEG and ORIG_POS switched, because all files
+# with JSONs seemed to have "backwards" encoding, otherwise; this
+# basically switches the polarity of applying the warps, or people who
+# had to make a negative scaling or redefine their PE direction should
+# *not* have to do this anymore.
+ORI_NEG = ['RL', 'AP', 'IS']
+ORI_POS = ['LR', 'PA', 'SI']
 ORI_ALL = ORI_POS + ORI_NEG
 
 IND_DICT = { 'i' : 0, 'j' : 1, 'k' : 2 }
@@ -119,6 +139,7 @@ all_opts = {
     'in_freq'            : '-in_freq',
     'in_mask'            : '-in_mask',
     'in_magn'            : '-in_magn',
+    'in_anat'            : '-in_anat',
     'in_epi'             : '-in_epi',
     'in_epi_json'        : '-in_epi_json',
     'wdir_name'          : '-wdir_name',
@@ -129,10 +150,10 @@ all_opts = {
     'scale_freq'         : '-scale_freq', 
     'do_recenter_freq'   : '-do_recenter_freq', 
     'blur_sigma'         : '-blur_sigma',
-    'automask_peels'     : '-automask_peels',
-    'automask_erode'     : '-automask_erode', 
+    'mask_dilate'        : '-mask_dilate',
     'no_clean'           : '-no_clean',
     'no_qc_image'        : '-no_qc_image',
+    'qc_box_focus_ulay'  : '-qc_box_focus_ulay', # for @chauffeur_afni
     'overwrite'          : '-overwrite',
     'ver'                : '-ver',
     'date'               : '-date',
@@ -140,6 +161,8 @@ all_opts = {
     'help'               : '-help',
     'hview'              : '-hview',
 }
+
+all_opts_vals = list(all_opts.values())
 
 # ----------------------------------------------------------------------------
 
@@ -254,6 +277,13 @@ help_string_b0_corr = '''
                          if a mask is input, in order to use it as a 
                          reference underlay in the QC image directory
 
+  {in_anat}   DSET_ANAT : (opt) if input, this dset will be used to make
+                         the underlay for the automatically generated
+                         QC images; if this dset is not provided, then
+                         the DSET_MAGN will be used (and if that is
+                         not provided, then the QC images will just
+                         have the given EPI(s) as ulay-only)
+
   {in_epi_json}  FJSON  : (opt) Several parameters about the EPI
                          dset must be known for processing; these MIGHT
                          be encoded in a JSON file accompanying the
@@ -323,23 +353,54 @@ help_string_b0_corr = '''
                          encode dset (def: BS = {DEF_bsigma})
 
   {do_recenter_freq}  MC : method for 3dROIstats to recenter the phase
-                         (=freq) volume within the brain mask.  If the
-                         value of MC is 'NONE', then the phase dset
-                         will not be recentered
-                         (def: MC = {DEF_meth_recenter_freq})
+                         (=freq) volume within the brain mask.  
+                         If the value of MC is 'NONE', then the phase
+                         dset will not be recentered.
+                         If the value of MC is some number (e.g.,
+                         60.704), then the phase dset will be
+                         recentered by this specific value (must be in
+                         units of the original, input phase dset).
 
-  {automask_peels}   AP : if automasking a magnitude image to create a
-                         brain mask, AP is the 'peels' value of 3dAutomask
-                         (def: AP = {DEF_npeels})
+                         If you want to recenter by the mean value,
+                         then the value of MC should be "MEAN" (all
+                         capital letters): this is because 3dROIstats
+                         doesn't take a "-mean" option (it is actually
+                         the default there), so one is entering a flag
+                         to be interpreted, not a literal opt name.
+                         (def: MC = {DEF_meth_recenter_freq}; NB: this
+                         method can't be used if the input dset type
+                         is float, at which point the program will
+                         exit and whine at the user to choose another
+                         method, such as 'MEAN')
 
-  {automask_erode}   AE : if automasking a magnitude image to create a
-                         brain mask, AE is the 'erode' value of 3dAutomask
-                         (def: AE = {DEF_nerode})
+  {mask_dilate} MD1 MD2 ... 
+                       : if automasking a magnitude image to create a
+                         brain mask, one can provide 3dmask_tool-style
+                         erosion and dilation parameters for the mask.
+                         NB: this ONLY applies if masking a magn image,
+                         not if you have just put in a mask (you can
+                         dilate that separately with 3dmask_tool).
+                         Typically, one might input two values here, with
+                         MD1 being negative (to erode) and MD2 being 
+                         positive (to dilate).
+                         (def: MD* = {DEF_dilate_str})
 
   {no_clean}            : don't remove the temporary directory of intermed 
                           files
 
-  {no_qc_image}         : don't make pretty QC images
+  {qc_box_focus_ulay}   : an option about the QC image output-- this will
+                        have @chauffeur_afni use the option+value:
+                           '-box_focus_slices AMASK_FOCUS_ULAY'
+                        which focuses the montage slices views on an
+                        automask of the ulay dset involved (typically the
+                        magn or anat dset; might not be desirable if 
+                        neither is used, because then the ulay will be
+                        either uncorrected and corrected EPIs, which will
+                        have slightly different automasks and therefore
+                        slightly different slices might be shown, making
+                        comparisons more difficult)
+
+  {no_qc_image}         : don't make pretty QC images (why not??)
 
   {help}                : display program help in terminal (consider
                          '-hview' to open help in a separate text editor)
@@ -413,6 +474,30 @@ help_string_b0_corr = '''
     It is worth repeating: be sure that these numbers *really* apply to
     your data!
 
+  Output QC images ~2~
+
+    QC images are automatically generated and put into a subdirectory
+    called PREFIX_QC/.  Images are provided as montages in each of the
+    axi, sag and cor planes; data are shown in the EPI coords (oblique
+    if the EPI were oblique).  The QC sets have the following simple
+    names (NB: if one inputs an anat vol via '-anat ..', then the
+    'anat' replaces 'magn' in the following lists-- even in the QC
+    image filenames):
+    
+      Names if there is a magn vol included
+      -------------------------------------
+      {DEF_qc_img_00} = ulay: edge-enhanced magn
+                           olay: mask dset
+      {DEF_qc_img_01} = ulay: edge-enhanced magn
+                           olay: input EPI[0] (uncorr) 
+      {DEF_qc_img_02} = ulay: edge-enhanced magn
+                           olay: output EPI[0] (corr) 
+
+      Names if there is NOT a magn vol included
+      -----------------------------------------
+      {DEF_qc_img_11} = ulay: input EPI[0] (uncorr) 
+      {DEF_qc_img_12} = ulay: output EPI[0] (corr) 
+
 
   EXAMPLES ~1~
 
@@ -453,6 +538,18 @@ help_string_b0_corr = '''
           -in_freq       sub-001_frequency.nii.gz      \\
           -in_magn       sub-001_magnitude.nii.gz      \\
           -in_epi        epiRest-sub-001.nii.gz        \\
+          -prefix        b0_corr
+
+    # Ex 5: Same as Ex 4, but include the anatomical as an underlay
+    #       in the QC imaging, and have the snapshot program focus just
+    #       on an automask region of that anat volume
+      epi_b0_correct.py                                \\
+          -in_epi_json   sub-001_frequency.json        \\
+          -in_freq       sub-001_frequency.nii.gz      \\
+          -in_magn       sub-001_magnitude.nii.gz      \\
+          -in_epi        epiRest-sub-001.nii.gz        \\
+          -in_anat       sub-001_run-02_T1w+orig.HEAD  \\
+          -qc_box_focus_ulay                           \\
           -prefix        b0_corr
 
 
@@ -503,7 +600,6 @@ def check_for_shell_exec_failure( status, so, se, cmd,
             if jump_home_on_exit :
                 os.chdir( jump_home_on_exit )
             sys.exit(22)
-    
     else:
         if disp_so :
             print(so)
@@ -609,15 +705,20 @@ class iopts_b0_corr:
 
         self.full_cmd       = ''           # existential...
 
+        self.code_ver       = ddefs['DEF_ver']
+        self.afni_ver       = ''
+
         self.dset_freq      = ''           # freqOrig
         self.dset_freq_name = ''           # ... with no path
         self.dset_epi       = ''           # epiRest-{eachSubSes}{defaultExt}
         self.dset_epi_name  = ''           # ... with no path
 
-        self.dset_magn      = ''           # magOrig
-        self.dset_magn_name = ''           #  ... with no path
         self.dset_mask      = ''           # maskOrig
         self.dset_mask_name = ''           #  ... with no path
+        self.dset_magn      = ''           # magOrig
+        self.dset_magn_name = ''           #  ... with no path
+        self.dset_anat      = ''           # anat vol, just for QC
+        self.dset_anat_name = ''           #  ... with no path
 
         self.freq_info      = False        # will be an obj of 3dinfo
         self.epi_info       = False        # will be an obj of 3dinfo
@@ -625,6 +726,7 @@ class iopts_b0_corr:
         self.epi_pe_ind     = -1           # index of PE direction {0|1|2}
 
         self.epi_json       = ''           # can be input to parse for params
+        self.epi_json_name  = ''           # ... with no path
         self.epi_jdict      = {}           # JSON file as dict
         self.epi_jdict_pe_dir = ''         # for reporting, if used
 
@@ -657,6 +759,7 @@ class iopts_b0_corr:
         # intermediate names for mask_B0(): 'mb' = 'mask B0'
         self.dset_int_mask_00 = 'mb_00_uni'
         self.dset_int_mask_01 = 'mb_01_mask'
+        self.dset_int_mask_02 = 'mb_02_dil8'
 
         # params 
         self.freq_scale           = 1.0 # user can change units&sign
@@ -677,20 +780,22 @@ class iopts_b0_corr:
         # params, calc'ed during runtime
         self.freq_ctr      = 0.0           # (freqOut); for centering B0
         self.meth_recenter_freq = ddefs['DEF_meth_recenter_freq'] #how to ctr B0
+        self.user_recenter_freq = 0        # in case user enters val
 
         # masking params
-        self.npeels   = ddefs['DEF_npeels'] # param for mask_B0 (3dAutomask)
-        self.nerode   = ddefs['DEF_nerode'] # param for mask_B0 (3dAutomask)
+        self.dilate_str = ''              # later, if empty, put in DEF vals
 
         # auto QC stuff
         self.outdir_qc = ''
+        self.qc_ulay   = ''                 # will be anat, magn or empty
+        self.qc_box_focus = '-pass'         # by default, do nothing
         # Names if there is a magn vol included
-        self.qc_img_00 = 'qc_00_ee_magn+MASK'   # u: EE magn; o: wrpd epi (outp)
-        self.qc_img_01 = 'qc_01_ee_magn+in_epi' # u: EE magn; o: orig epi (inp)
-        self.qc_img_02 = 'qc_02_ee_magn+EPI'    # u: EE magn; o: wrpd epi (outp)
+        self.qc_img_00 = ddefs['DEF_qc_img_00'] # u: EE magn; o: wrpd epi (outp)
+        self.qc_img_01 = ddefs['DEF_qc_img_01'] # u: EE magn; o: orig epi (inp)
+        self.qc_img_02 = ddefs['DEF_qc_img_02'] # u: EE magn; o: wrpd epi (outp)
         # Names if there is NO magn vol included
-        self.qc_img_11 = 'qc_11_in_epi' # u: orig epi (inp)
-        self.qc_img_12 = 'qc_12_EPI'    # u: wrpd epi (outp)
+        self.qc_img_11 = ddefs['DEF_qc_img_11'] # u: orig epi (inp)
+        self.qc_img_12 = ddefs['DEF_qc_img_12'] # u: wrpd epi (outp)
 
 
         self.do_qc_image    = True         # make nice QC image
@@ -726,9 +831,15 @@ class iopts_b0_corr:
         elif dset_type == 'magn' :
             self.dset_magn      = dd
             self.dset_magn_name = dd_name
+
         elif dset_type == 'mask' :
             self.dset_mask      = dd
             self.dset_mask_name = dd_name
+
+        elif dset_type == 'anat' :
+            self.dset_anat      = dd
+            self.dset_anat_name = dd_name
+
         else: 
             print( "** ERROR: don't know what type of input {} is"
                    "".format(dd) )
@@ -756,10 +867,12 @@ class iopts_b0_corr:
         # mri_nwarp.c, the special notation for warps (e.g.:
         # AP:1.0:DSET_NAME) treats opposite directions the same (i.e.,
         # invoking AP and PA yield similar results); the second
-        # parameter differentiates directionality (AKA polarity).
-        # Moreover, I think those were made with RAI in mind, so
-        # AP:1.0 translates to 'A>>P', AP:-1.0 to 'P>>A', RL:1.0 to
-        # 'R>>L', etc.  Therefore, we set the polarity here, 
+        # parameter differentiates directionality (AKA polarity).  The
+        # polarity that goes with a given orientation (whether '1.0'
+        # goes with AP or PA, for example) is encoded in the ORIG_NEG
+        # and ORIG_POS lists at the top of the code.  This now (Sept
+        # 24, 2019) seems to match with JSON data sets and with what
+        # people also describe as their PE directions.
 
         if ORI_POS.__contains__( self.epi_pe_dir ) :
             self.epi_pe_dir_nwarp_pol =  1.0
@@ -779,11 +892,9 @@ class iopts_b0_corr:
         aa = cc.split()
         self.list_histog_int = aa[1::2]
 
-    def set_npeels( self, cc ):
-        self.npeels = int(cc)
-
-    def set_nerode( self, cc ):
-        self.nerode = int(cc)
+    def add_dilate_str( self, cc ):
+        # will lead to extra space out front, but who cares?
+        self.dilate_str+= ' ' + cc
 
     # [PT: Aug 30, 2019] add this func (had forgotten-- Thanks,
     # L. Dowdle!]
@@ -799,6 +910,9 @@ class iopts_b0_corr:
 
     def set_qc_image( self, ll ):
         self.do_qc_image = ll
+
+    def set_qc_box_focus_ulay( self ):
+        self.qc_box_focus = '-box_focus_slices AMASK_FOCUS_ULAY'
 
     def set_overwrite( self, ll ):
         # 'll' is just true or false here
@@ -823,13 +937,33 @@ class iopts_b0_corr:
         self.freq_ctr = float(dd)
 
     def set_meth_recenter_freq( self, dd ):
-        self.meth_recenter_freq = dd
+        try:               # see if user input a value directly
+            aa = float(dd) # will cause error if dd is not a number
+            self.meth_recenter_freq = 'user_value'
+            self.set_freq_ctr( dd )
+        except:            # otherwise, it should be a 3dROIstats opt name
+            self.meth_recenter_freq = dd
         
     def set_epi_json( self, dd ):
         self.epi_json = dd
+        dd_split = dd.split('/')
+        self.epi_json_name = dd_split[-1]
 
     def set_is_same_obl_epi_freq( self, dd ):
         self.is_same_obl_epi_freq = bool(dd)
+
+    def set_afni_ver( self, full_ver_info ):
+        ver_list = full_ver_info.split()
+        indV     = ver_list.index('(Version')
+
+        ver_str  = ver_list[indV+1]
+        ver_str += ' (' + ' '.join(ver_list[:3]) + ')'
+
+        # refine+shorten
+        aa = ver_str.replace(':', '')
+        bb = aa.replace('Precompiled', 'Precomp')
+        cc = bb.replace('binary', 'bin')
+        self.afni_ver = cc
 
     # ---------------------------------------------------------------------
 
@@ -949,6 +1083,13 @@ class iopts_b0_corr:
 
     def finish_defs(self):
 
+        # get some basic versions that matter
+        cmd = '''afni -ver'''
+        com = BASE.shell_com(cmd, capture=1, save_hist=0)
+        com.run()
+        check_for_shell_com_failure(com, cmd, disp_so=False, disp_se=False )
+        self.set_afni_ver(com.so[0])
+
         # use this function here, because this file won't exist yet!
         pp = os.path.dirname(self.prefix)
         if not(pp) :
@@ -966,6 +1107,11 @@ class iopts_b0_corr:
                                   str(self.epi_pe_dir_nwarp_opp), 
                                   self.dset_int_02 ])
 
+        # finalize any dilation: make string version of it, to insert
+        # into 3dmask_tool command
+        if not(self.dilate_str) :
+            self.dilate_str = ddefs['DEF_dilate_str']
+
         self.odset_epi  = self.prefix_name + '_EPI'
         self.odset_warp = self.prefix_name + '_WARP'
         self.odset_mask = self.prefix_name + '_MASK' # add in, to reuse/comp
@@ -979,6 +1125,18 @@ class iopts_b0_corr:
         if not(self.opars_fname) :
             self.opars_fname = self.outdir + '/' 
             self.opars_fname+= self.prefix_name + '_pars.txt'
+
+        # triage of choices for QC ulay vol; if neither of these
+        # happens, then will just be EPI vols as ulay
+        if self.dset_anat_name :
+            self.qc_ulay = self.dset_anat_name
+            self.qc_img_00.replace('mask+', 'anat+')
+            self.qc_img_01.replace('mask+', 'anat+')
+            self.qc_img_02.replace('mask+', 'anat+')
+        elif self.dset_magn_name :
+            self.qc_ulay = self.dset_magn_name
+        else:
+            print("+* No magn or anat vol input: QC imgs will have EPI as ulay")
 
         # check relative obliquity diff bt EPI and freq dsets
         cmd = '''3dinfo         \
@@ -1144,6 +1302,16 @@ class iopts_b0_corr:
             status, so, se = BASE.simple_shell_exec(cmd, capture=1)
             check_for_shell_exec_failure(status, so, se, cmd )
 
+        if self.dset_anat :
+            cmd = '''3dcalc {overwrite}         \
+            -echo_edu                  \
+            -a {dset_anat}             \
+            -expr 'a'                  \
+            -prefix {wdir}/{dset_anat_name}
+            '''.format( **self_vars )
+            status, so, se = BASE.simple_shell_exec(cmd, capture=1)
+            check_for_shell_exec_failure(status, so, se, cmd )
+
         if self.dset_mask :
             cmd = '''3dcalc {overwrite}         \
             -echo_edu                  \
@@ -1189,14 +1357,31 @@ class iopts_b0_corr:
         # copied/made here.
         os.chdir(self.wdir)
 
-        if self.meth_recenter_freq != 'NONE' :
-            cmd = '''3dROIstats           \
-            -quiet                        \
-            -nomeanout                    \
-            -mask {dset_mask_name}        \
-            -{meth_recenter_freq}         \
-            {dset_freq_name}
-            '''.format( **self_vars )
+        if self.meth_recenter_freq == 'user_value' :
+            # value has already been stored, just brag to user
+            print("++ Using user value for freq recentering: {}"
+                  "".format(self.freq_ctr))
+
+        elif self.meth_recenter_freq == 'NONE' :
+            print("++ There will be no recentering, at user's behest.")
+
+        else:
+            if self.meth_recenter_freq == 'MEAN' :
+                # because there is no "-mean" opt, it is just default
+                # and would need to be turned off
+                cmd = '''3dROIstats           \
+                -quiet                        \
+                -mask {dset_mask_name}        \
+                {dset_freq_name}
+                '''.format( **self_vars )
+            else:
+                cmd = '''3dROIstats           \
+                -quiet                        \
+                -nomeanout                    \
+                -mask {dset_mask_name}        \
+                -{meth_recenter_freq}         \
+                {dset_freq_name}
+                '''.format( **self_vars )
 
             # Find the mode of the frequency distribution in the brain and
             # subtract this value from the field map. This is from potential
@@ -1216,7 +1401,7 @@ class iopts_b0_corr:
         -echo_edu                                                \
         -a      {dset_freq_name}                                 \
         -b      {dset_mask_name}                                 \
-        -expr   "({freq_scale}/6.2831853)*(a-{freq_ctr})/{epi_pe_bwpp}*{epi_pe_voxdim}*b" \
+        -expr   "({freq_scale}/6.2831853)*(a-({freq_ctr}))/{epi_pe_bwpp}*{epi_pe_voxdim}*b" \
         -datum  float                                            \
         -prefix {dset_int_00}{dext}
         '''.format( **self_vars )
@@ -1403,13 +1588,14 @@ class iopts_b0_corr:
         # the obliquify-- basically, edit @chauffeur_afni to decide
         # whether doing anything to obliquity is necessary.
         if self.do_qc_image : 
-            if self.dset_magn_name :
+            if self.qc_ulay :
 
                 # --00-- mask on edge-enhanced anat/magn
                 cmd = '''@chauffeur_afni  \
-                -ulay "{dset_magn_name}"    \
+                -ulay "{qc_ulay}"    \
                 -edge_enhance_ulay 0.5      \
                 -ulay_range_nz 0% 95%       \
+                {qc_box_focus}              \
                 -set_subbricks 0 0 0        \
                 -obliquify u2o              \
                 -olay {dset_mask_name}      \
@@ -1431,9 +1617,10 @@ class iopts_b0_corr:
 
                 # --01-- input (orig) EPI on edge-enhanced anat/magn
                 cmd = '''@chauffeur_afni  \
-                -ulay "{dset_magn_name}"    \
+                -ulay "{qc_ulay}"    \
                 -edge_enhance_ulay 0.5      \
                 -ulay_range_nz 0% 95%       \
+                {qc_box_focus}              \
                 -set_subbricks 0 0 0        \
                 -obliquify u2o             \
                 -olay {dset_epi_name}       \
@@ -1455,9 +1642,10 @@ class iopts_b0_corr:
 
                 # --02-- final (unWARPed) EPI on edge-enhanced anat/magn
                 cmd = '''@chauffeur_afni  \
-                -ulay "{dset_magn_name}"    \
+                -ulay "{qc_ulay}"    \
                 -edge_enhance_ulay 0.5      \
                 -ulay_range_nz 0% 95%       \
+                {qc_box_focus}              \
                 -set_subbricks 0 0 0        \
                 -obliquify u2o             \
                 -olay {odset_epi}{dext}     \
@@ -1477,12 +1665,13 @@ class iopts_b0_corr:
                 self.comm.run()
                 check_for_shell_com_failure(self.comm, cmd )
 
-            else: # no magn dset input!
+            else: # no magn|anat dset input!
 
                 # --11-- input (orig) EPI as ulay
                 cmd = '''@chauffeur_afni  \
                 -ulay "{dset_epi_name}"     \
                 -ulay_range_nz 0% 95%       \
+                {qc_box_focus}              \
                 -set_subbricks 0 0 0        \
                 -prefix      ../{outdir_qc}/{qc_img_11}  \
                 -montx 5 -monty 3           \
@@ -1498,6 +1687,7 @@ class iopts_b0_corr:
                 cmd = '''@chauffeur_afni  \
                 -ulay "{odset_epi}{dext}"     \
                 -ulay_range_nz 0% 95%       \
+                {qc_box_focus}              \
                 -set_subbricks 0 0 0        \
                 -prefix      ../{outdir_qc}/{qc_img_12}  \
                 -montx 5 -monty 3           \
@@ -1546,11 +1736,12 @@ class iopts_b0_corr:
         check_for_shell_com_failure(self.comm, cmd )
 
 
+        # [PT: Oct 2, 2019] Have moved out specifying peels&erodes
+        # from here-- just let 3dmask_tool do this, as it is more
+        # reliable
         cmd = '''3dAutomask {overwrite}    \
         -echo_edu                          \
         -prefix {dset_int_mask_01}{dext}   \
-        -erode  {nerode}                   \
-        -peels  {npeels}                   \
         {dset_int_mask_00}{dext}
         '''.format( **self_vars )
 
@@ -1558,15 +1749,27 @@ class iopts_b0_corr:
         self.comm.run()
         check_for_shell_com_failure(self.comm, cmd )
 
+        # [PT: Oct 2, 2019] Add in 3dmask_tool here to allow separate
+        # dilations/erosions
+        cmd = '''3dmask_tool {overwrite}         \
+        -echo_edu                                \
+        -dilate_inputs {dilate_str}              \
+        -prefix        {dset_int_mask_02}{dext}  \
+        -inputs        {dset_int_mask_01}{dext}
+        '''.format( **self_vars )
+
+        self.comm = BASE.shell_com(cmd, capture=1)
+        self.comm.run()
+        check_for_shell_com_failure(self.comm, cmd )
 
         # Save and store output name, with path to wdir (even though
         # we will hop back to wdir later)
-        omask = '''{wdir}/{dset_int_mask_01}{dext}'''.format(**self_vars)
+        omask = '''{wdir}/{dset_int_mask_02}{dext}'''.format(**self_vars)
         self.set_dset( omask, 'mask' )
 
-        # copy the EPI results up a directory
+        # copy the mask results up a directory
         cmd = '''3dcopy {overwrite}  \
-        {dset_int_mask_01}{dext}     \
+        {dset_int_mask_02}{dext}     \
         ../{odset_mask}{dext}
         '''.format( **self_vars )
         
@@ -1585,14 +1788,51 @@ class iopts_b0_corr:
 
         ss = ''
 
+        if self.afni_ver :
+            ss+= "{:30s} : {}\n".format( 'AFNI ver', 
+                                             self.afni_ver )
+        if self.code_ver :
+            ss+= "{:30s} : {}\n".format( 'epi_b0_correct.py ver', 
+                                             self.code_ver )
+        if ss :
+            ss+= '\n'
+
+        if self.dset_freq_name :
+            ss+= "{:30s} : {}\n".format( 'Freq dset name', 
+                                             self.dset_freq_name )
+        if self.dset_mask_name :
+            ss+= "{:30s} : {}\n".format( 'Mask dset name', 
+                                             self.dset_mask_name )
+        if self.dset_magn_name :
+            ss+= "{:30s} : {}\n".format( 'Magn dset name', 
+                                             self.dset_magn_name )
+        if self.dset_anat_name :
+            ss+= "{:30s} : {}\n".format( 'Anat dset name (QC only)', 
+                                             self.dset_anat_name )
+        if self.dset_epi_name :
+            ss+= "{:30s} : {}\n".format( 'EPI dset name', 
+                                             self.dset_epi_name )
+        if self.epi_json_name :
+            ss+= "{:30s} : {}\n".format( 'EPI JSON name', 
+                                             self.epi_json_name )
+
+        if ss :
+            ss+= '\n'
+
         # freq dset info
         if self.freq_info :
             ss+= "{:30s} : {}  {}\n".format( 'Freq range (init)', 
                                              self.freq_info.dmin,
                                              self.freq_info.dmax )
-        if self.freq_info :
             ss+= "{:30s} : {}\n".format( 'Freq obliquity (deg)', 
                                              self.freq_info.obliquity )
+        if self.meth_recenter_freq :
+            ss+= "{:30s} : {}\n".format( 'Freq recenter method', 
+                                         self.meth_recenter_freq )
+        if self.freq_ctr :
+            ss+= "{:30s} : {}\n".format( 'Freq recenter value', 
+                                         self.freq_ctr )
+
         if self.freq_scale :
             ss+= "{:30s} : {}\n".format( 'Freq scale factor', 
                                          self.freq_scale )
@@ -1611,9 +1851,10 @@ class iopts_b0_corr:
             ss+= "{:30s} : {}  {}\n".format( 'EPI range (init)', 
                                              self.epi_info.dmin,
                                              self.epi_info.dmax )
-        if self.epi_info :
             ss+= "{:30s} : {}\n".format( 'EPI obliquity (deg)', 
                                              self.epi_info.obliquity )
+            ss+= "{:30s} : {}\n".format( 'EPI orient', 
+                                         self.epi_info.orient )
         if self.epi_pe_echo_sp :
             ss+= "{:30s} : {}\n".format( 'EPI PE echo spacing (s)', 
                                          self.epi_pe_echo_sp )
@@ -1630,7 +1871,7 @@ class iopts_b0_corr:
             ss+= "{:30s} : {}\n".format( 'EPI PE direction', 
                                          self.epi_pe_dir )
         if self.epi_pe_dir_nwarp_pol :
-            ss+= "{:30s} : {}\n".format( 'EPI PE nwarp pol', 
+            ss+= "{:30s} : {}\n".format( 'EPI PE nwarp pol (internal)', 
                                          self.epi_pe_dir_nwarp_pol )
         if self.epi_jdict_pe_dir :
             ss+= "{:30s} : {}\n".format( 'EPI PE dir from JSON', 
@@ -1638,9 +1879,6 @@ class iopts_b0_corr:
             if self.epi_pe_ind :
                 ss+= "{:30s} : {}\n".format( 'EPI PE dir index',
                                              self.epi_pe_ind )
-            if self.epi_info :
-                ss+= "{:30s} : {}\n".format( 'EPI orient', 
-                                             self.epi_info.orient )
 
         f = open(self.opars_fname, 'w')
         f.write(ss)
@@ -1724,6 +1962,7 @@ def parse_args_b0_corr(full_argv):
         elif argv[i] == "{in_freq}".format(**all_opts) or \
              argv[i] == "{in_mask}".format(**all_opts) or \
              argv[i] == "{in_magn}".format(**all_opts) or \
+             argv[i] == "{in_anat}".format(**all_opts) or \
              argv[i] == "{in_epi}".format(**all_opts) :
             dt = argv[i][4:]
             if i >= Narg:
@@ -1789,17 +2028,18 @@ def parse_args_b0_corr(full_argv):
             i+= 1
             iopts.set_blur_sigma(argv[i])
 
-        elif argv[i] == "{automask_peels}".format(**all_opts) :
+            
+        # [PT: Oct 2, 2019] way to input erode/dilations now
+        elif argv[i] == "{mask_dilate}".format(**all_opts) :
             if i >= Narg:
                 ARG_missing_arg(argv[i])
-            i+= 1
-            iopts.set_npeels(argv[i])
 
-        elif argv[i] == "{automask_erode}".format(**all_opts) :
-            if i >= Narg:
-                ARG_missing_arg(argv[i])
-            i+= 1
-            iopts.set_nerode(argv[i])
+            while i+1 < Narg:
+                if not(all_opts_vals.__contains__(argv[i+1])) :
+                    iopts.add_dilate_str(argv[i+1])
+                    i+= 1
+                else:
+                    break
 
         elif argv[i] == "{wdir_name}".format(**all_opts) :
             if i >= Narg:
@@ -1812,6 +2052,9 @@ def parse_args_b0_corr(full_argv):
 
         elif argv[i] == "{no_qc_image}".format(**all_opts) :
             iopts.set_qc_image(False)
+
+        elif argv[i] == "{qc_box_focus_ulay}".format(**all_opts) :
+            iopts.set_qc_box_focus_ulay()
 
         elif argv[i] == "{overwrite}".format(**all_opts) :
             iopts.set_overwrite(True)

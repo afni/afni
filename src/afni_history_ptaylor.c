@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Oct , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "The naming convention of PE dist dir has been reversed; mask opts changed.",
+   "PE dist dir should match with JSONs better; 3dmask_tool does masking now.\n"
+},
+
 { 2, Oct , 2019 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_GENERAL,
    "Output more specific information about finding unexpected negative values.",
    "Tell user the [row, col] of potentially bad values, for easier QC.\n"

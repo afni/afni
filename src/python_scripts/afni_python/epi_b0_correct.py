@@ -77,9 +77,19 @@
 # + [PT] now output mask from mask_B0() into the main odir, if that
 #   func gets used;  useful for scripting+qc
 #
-ver='2.5' ; date='Sept 12, 2019'
+#ver='2.5' ; date='Sept 12, 2019'
 # + [PT] QC images output:
 #        + images use magn vol as ulay, if entered; otherwise, ulay is EPIs
+#
+#ver='2.6' ; date='Sept 25, 2019'
+# + [PT] major change: update/reverse polarity
+#      + that is, the direction of (un)warping will be opposite for a given
+#        PE direction
+# + [PT] add in '-in_anat ..' opt, for maybe nicer QC (load in anat to be ulay) 
+# + [PT] add in '-qc_box_focus_ulay' opt, for maybe nicer QC (focus on ulay)
+#
+ver='2.61' ; date='Oct 2, 2019'
+# + [PT] 3dmask_tool now to do dilate/erosion
 #
 ##########################################################################
 
@@ -117,11 +127,16 @@ if __name__ == "__main__" :
     print("++ epi_b0_correct.py finishes.")
     print("++ Text of commands :  {ocmds_fname}"
           "".format( **self_vars ))
-    print("++ Text of params   :  {opars_fname}"
+    print("++ Text of params   :  {opars_fname}\n"
+          "".format( **self_vars ))
+    if iopts.do_qc_image :
+        print("++ QC images        :  {outdir}/{outdir_qc}/*.png\n"
+              "".format( **self_vars ))
+    print("++ MASK dset output :  {outdir}/{odset_mask}{dext}"
           "".format( **self_vars ))
     print("++ WARP dset output :  {outdir}/{odset_warp}{dext}"
           "".format( **self_vars ))
-    print("++ EPI dset output  :  {outdir}/{odset_epi}{dext}\n"
+    print("++ EPI  dset output :  {outdir}/{odset_epi}{dext}\n"
           "".format( **self_vars ))
 
     sys.exit(0)
