@@ -749,9 +749,11 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -input ");
-       *input_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* *input_filename = malloc (sizeof(char) * MAX_NAME_LENGTH); */
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       *input_filename = nifti_strdup(argv[nopt]);
        MTEST (*input_filename);
-       strcpy (*input_filename, argv[nopt]);
+       /* strcpy (*input_filename, argv[nopt]); */
        /* open input dataset - was THD_open_one_dataset, allow sub-bricks */
        *dset_time = THD_open_dataset (*input_filename);
        if ((*dset_time) == NULL)
@@ -864,9 +866,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -time ");
-       *tfilename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *tfilename = nifti_strdup(argv[nopt]);
        MTEST (*tfilename);
-       strcpy (*tfilename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1075,9 +1077,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -freg ");
-       *freg_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *freg_filename = nifti_strdup(argv[nopt]);
        MTEST (*freg_filename);
-       strcpy (*freg_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1088,9 +1090,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -frsqr ");
-       *frsqr_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *frsqr_filename = nifti_strdup(argv[nopt]);
        MTEST (*frsqr_filename);
-       strcpy (*frsqr_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1101,9 +1103,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -fsmax ");
-       *fsmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *fsmax_filename = nifti_strdup(argv[nopt]);
        MTEST (*fsmax_filename);
-       strcpy (*fsmax_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1114,9 +1116,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -ftmax ");
-       *ftmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *ftmax_filename = nifti_strdup(argv[nopt]);
        MTEST (*ftmax_filename);
-       strcpy (*ftmax_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1127,9 +1129,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -fpmax ");
-       *fpmax_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths */
+       *fpmax_filename = nifti_strdup(argv[nopt]);
        MTEST (*fpmax_filename);
-       strcpy (*fpmax_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1140,9 +1142,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -farea ");
-       *farea_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       *farea_filename = nifti_strdup(argv[nopt]);
        MTEST (*farea_filename);
-       strcpy (*farea_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1153,9 +1155,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -fparea ");
-       *fparea_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       *fparea_filename = nifti_strdup(argv[nopt]);
        MTEST (*fparea_filename);
-       strcpy (*fparea_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1172,9 +1174,9 @@ void get_options
        index = ival;
        nopt++;
 
-       (*fscoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       (*fscoef_filename)[index] = nifti_strdup(argv[nopt]);
        MTEST ((*fscoef_filename)[index]);
-       strcpy ((*fscoef_filename)[index], argv[nopt]);
 
        nopt++;
        continue;
@@ -1192,9 +1194,9 @@ void get_options
        index = ival;
        nopt++;
 
-       (*fncoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       (*fncoef_filename)[index] = nifti_strdup(argv[nopt]);
        MTEST ((*fncoef_filename)[index]);
-       strcpy ((*fncoef_filename)[index], argv[nopt]);
 
        nopt++;
        continue;
@@ -1212,9 +1214,9 @@ void get_options
        index = ival;
        nopt++;
 
-       (*tscoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       (*tscoef_filename)[index] = nifti_strdup(argv[nopt]);
        MTEST ((*tscoef_filename)[index]);
-       strcpy ((*tscoef_filename)[index], argv[nopt]);
 
        calc_tstats = 1;
 
@@ -1234,9 +1236,9 @@ void get_options
        index = ival;
        nopt++;
 
-       (*tncoef_filename)[index] = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       (*tncoef_filename)[index] = nifti_strdup(argv[nopt]);
        MTEST ((*tncoef_filename)[index]);
-       strcpy ((*tncoef_filename)[index], argv[nopt]);
 
        calc_tstats = 1;
 
@@ -1255,10 +1257,9 @@ void get_options
          NLfit_error ("illegal argument after -bucket ");
        nopt++;
 
-       option_data->bucket_filename =
-         malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       option_data->bucket_filename = nifti_strdup(argv[nopt]);
        MTEST (option_data->bucket_filename);
-       strcpy (option_data->bucket_filename, argv[nopt]);
 
        /*----- set number of sub-bricks in the bucket -----*/
        if (ival == 0)
@@ -1279,7 +1280,7 @@ void get_options
            option_data->brick_type[ibrick] = -1;
            option_data->brick_coef[ibrick] = -1;
            option_data->brick_label[ibrick] =
-          malloc (sizeof(char) * MAX_NAME_LENGTH);
+             malloc (sizeof(char) * MAX_NAME_LENGTH);
            MTEST (option_data->brick_label[ibrick]);
          }
 
@@ -1520,9 +1521,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -sfit ");
-       *sfit_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       *sfit_filename = nifti_strdup(argv[nopt]);
        MTEST (*sfit_filename);
-       strcpy (*sfit_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -1533,9 +1534,9 @@ void get_options
      {
        nopt++;
        if (nopt >= argc)  NLfit_error ("need argument after -snfit ");
-       *snfit_filename = malloc (sizeof(char) * MAX_NAME_LENGTH);
+       /* do not depend on input name lengths    [2 Oct 2019 rickr] */
+       *snfit_filename = nifti_strdup(argv[nopt]);
        MTEST (*snfit_filename);
-       strcpy (*snfit_filename, argv[nopt]);
        nopt++;
        continue;
      }
@@ -2742,7 +2743,7 @@ void write_bucket_data
   /*----- initialize local variables -----*/
   nbricks = option_data->numbricks;
   output_prefix = option_data->bucket_filename;
-  output_session = (char *) malloc (sizeof(char) * MAX_NAME_LENGTH);
+  output_session = (char *) malloc (sizeof(char) * THD_MAX_NAME);
   strcpy (output_session, "./");
   dimension = p + q;
 
