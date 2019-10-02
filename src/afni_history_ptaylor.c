@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 2, Oct , 2019 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_GENERAL,
+   "Output more specific information about finding unexpected negative values.",
+   "Tell user the [row, col] of potentially bad values, for easier QC.\n"
+},
+
 { 13, Sep , 2019 , PT , "3dWarp" , MINOR , TYPE_NEW_OPT,
    "New opt: -disp_obl_xform_only.",
    "Better way to get transform between obl coords than cat_matvec trickery.\n"
