@@ -88,8 +88,14 @@
 # + [PT] add in '-in_anat ..' opt, for maybe nicer QC (load in anat to be ulay) 
 # + [PT] add in '-qc_box_focus_ulay' opt, for maybe nicer QC (focus on ulay)
 #
-ver='2.61' ; date='Oct 2, 2019'
+#ver='2.61' ; date='Oct 2, 2019'
 # + [PT] 3dmask_tool now to do dilate/erosion
+#
+ver='2.62' ; date='Oct 2, 2019'
+# + [PT] Move to use '3dWarp ...' rather than 'cat_matvec ...' for
+#        changing between EPI-freq dsets, which might have relative
+#        obliquity difference; should be minisculy better for rounding
+#        error considerations
 #
 ###############################################################################
 
@@ -1443,39 +1449,18 @@ class iopts_b0_corr:
         self.set_list_histog_int( self.comm.so[0] )
 
         # -------------------------------------------------------------
-        # Calculate any difference in coordinate axes between
-        # freq/phase and EPI dsets.  That is, it is *possible* that
-        # they were acquired with different axes: one might have
-        # oblique axes and the other not, or they might have been
-        # acquired with different oblique axes.  The header
-        # information of each is used: 
-        # + IJK_TO_DICOM_REAL
-        #   - exists in all dset headers
-        #   - maps:  ijk --> scanner/cardinal axes
-        # + IJK_TO_DICOM
-        #   - exists in AFNI extensions (OK to rely on here, because
-        #     all dsets were AFNI-3dcalc'ed into working dir)
-        #   - maps:  ijk --> acquired/(possibly) oblique axes
-        # NOTE: this works even if the phase and EPI dsets have the
-        # same obliquity/acquisition axes. Thus, this step may not be
-        # necessary, but it also should do no harm.
-
-        # Here, we go from EPI oblique coors to EPI ijk to EPI scanner
-        # coors (which are the same as freq dset scanner coors) to
-        # freq ijk to freq oblique
-        cmd = '''cat_matvec                     \
-        -ONELINE                                \
-        {dset_epi_name}::IJK_TO_DICOM -I        \
-        {dset_epi_name}::IJK_TO_DICOM_REAL      \
-        {dset_freq_name}::IJK_TO_DICOM_REAL -I  \
-        {dset_freq_name}::IJK_TO_DICOM          \
+        # Here, we calculate the affine matrix to go from EPI acq
+        # coors (may be oblique) to freq acq coors (may be oblique).
+        cmd = '''3dWarp                         \
+        -oblique_parent {dset_freq_name}        \
+        -disp_obl_xform_only                    \
+        {dset_epi_name}                         \
         > {aff12_obl_epi_freq}
         '''.format( **self_vars )
 
         self.comm = BASE.shell_com(cmd, capture=1)
         self.comm.run()
         check_for_shell_com_failure(self.comm, cmd )
-
 
         # -------------------------------------------------------------
         # Self-warp field map to match EPI distortions {warp_00} comes

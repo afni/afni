@@ -88,8 +88,14 @@
 # + [PT] add in '-in_anat ..' opt, for maybe nicer QC (load in anat to be ulay) 
 # + [PT] add in '-qc_box_focus_ulay' opt, for maybe nicer QC (focus on ulay)
 #
-ver='2.61' ; date='Oct 2, 2019'
+#ver='2.61' ; date='Oct 2, 2019'
 # + [PT] 3dmask_tool now to do dilate/erosion
+#
+ver='2.62' ; date='Oct 2, 2019'
+# + [PT] Move to use '3dWarp ...' rather than 'cat_matvec ...' for
+#        changing between EPI-freq dsets, which might have relative
+#        obliquity difference; should be minisculy better for rounding
+#        error considerations
 #
 ##########################################################################
 

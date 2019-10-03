@@ -1461,6 +1461,26 @@ def max_dim_1D(filename):
     if rows >= cols: return rows
     else:            return cols
 
+def is_matrix_square( mat, full_check=False ):
+    """return {0|1} about matrix being square"""
+
+    if not(mat) or len(mat)==0 : return 0
+
+    rows = len(mat)
+
+    # can do complete check, or just [0]th ele check
+    N = 1
+    if full_check :
+        N = rows
+    
+    for i in range(N):
+        if len(mat[i]) != rows :
+            return 0
+
+    # have we survived to here? then -> square.
+    return 1
+
+
 def transpose(matrix):
     """transpose a 2D matrix, returning the new one"""
     if matrix is None: return []
