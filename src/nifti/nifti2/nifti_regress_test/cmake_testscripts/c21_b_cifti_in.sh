@@ -140,3 +140,12 @@ else
 echo === good: diff_hdr2 showed a difference
 fi
 
+echo "============== swap hdr as NIFTI (failes for N-2, but still debug)"
+if $NT -swap_as_nifti -debug 3 -infiles ${infile} -prefix ${prefix}.05.swap.nii
+then
+echo === swap_as_nifti incorrectly succeeded
+exit 1
+else
+echo === good: swap_as_nifti whines for NIFTI-2 hdr as NIFTI-1
+fi
+

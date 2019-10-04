@@ -85,14 +85,39 @@ echo "=== good: diff_nim 6 showed a diff"
 fi
 
 
-# try swapping
-if $NT -swap_as_nifti -debug 3 -infiles $tfile11 -prefix $prefix.12.swap.nii
+# try swapping (as nifti, analzye, old)
+# nifti
+if $NT -swap_as_nifti -debug 3 -infiles $tfile11 \
+       -prefix $prefix.12.a.swap.nii
 then
-echo "=== swap_as_nifti 7 succeeded"
+echo "=== swap_as_nifti 7.a succeeded"
 else
-echo === swap_as_nifti 7 failed
+echo === swap_as_nifti 7.a failed
 exit 1
 fi
+
+# try swapping (as nifti, analzye, old)
+# analyze
+if $NT -swap_as_analyze -debug 3 -infiles $tfile11 \
+       -prefix $prefix.12.b.swap.ana.nii
+then
+echo "=== swap_as_nifti 7.b succeeded"
+else
+echo === swap_as_nifti 7.b failed
+exit 1
+fi
+
+# try swapping (as nifti, analzye, old)
+# old (AND ... make nifti_tool hunt for the input file)
+if $NT -swap_as_old -debug 3 -infiles $prefix.12.b.swap.ana \
+       -prefix $prefix.13.c.swap.old.nii
+then
+echo "=== swap_as_nifti 7.c succeeded"
+else
+echo === swap_as_nifti 7.c failed
+exit 1
+fi
+
 
 
 # collapse third dimension, writing as ascii
