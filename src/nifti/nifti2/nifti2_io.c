@@ -9101,6 +9101,7 @@ int64_t nifti_read_subregion_image( nifti_image * nim,
     }
   }
   }
+  znzclose(fp);
   return bytes;
 }
 
