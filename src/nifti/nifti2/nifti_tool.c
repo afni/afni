@@ -184,9 +184,13 @@ static const char * g_history[] =
   "2.07 19 Jul 2019 [rickr]\n",
   "   - can apply '-field HDR_SLICE_TIMING_FIELDS' (or NIM_) for easy\n"
   "     specification of field entries related to slice timing\n"
+  "2.08  3 Oct 2019 [rickr]\n",
+  "   - added option -run_misc_tests for functionality testing\n"
+  "   - added many corresponding tests\n"
+  "   - added some matrix manipulation macros\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.07 (July 19, 2019)";
+static char g_version[] = "version 2.08 (October 3, 2019)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -280,6 +284,10 @@ int main( int argc, char * argv[] )
    if( opts.diff_hdr1 && ((rv = act_diff_hdr1s(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.diff_hdr2 && ((rv = act_diff_hdr2s(&opts)) != 0) ) FREE_RETURN(rv);
    if( opts.diff_nim  && ((rv = act_diff_nims(&opts))  != 0) ) FREE_RETURN(rv);
+
+   /* run tests */
+   if( opts.run_misc_tests && ((rv = act_run_misc_tests(&opts)) != 0) )
+        FREE_RETURN(rv);
 
    /* last action type is display */
    if( opts.disp_exts && ((rv = act_disp_exts(&opts)) != 0) ) FREE_RETURN(rv);
@@ -602,6 +610,8 @@ int process_opts( int argc, char * argv[], nt_opts * opts )
          }
          opts->rm_exts = 1;
       }
+      else if( ! strcmp(argv[ac], "-run_misc_tests") )
+         opts->run_misc_tests = 1;
       else if( ! strncmp(argv[ac], "-strip_extras", 6) )
          opts->strip = 1;
       else if( ! strcmp(argv[ac], "-swap_as_analyze") )
@@ -668,6 +678,7 @@ int verify_opts( nt_opts * opts, char * prog )
    ac += (opts->swap_hdr  || opts->swap_ana  || opts->swap_old ) ? 1 : 0;
    ac +=  opts->add_exts;
    ac +=  opts->rm_exts;
+   ac +=  opts->run_misc_tests;
    ac += (opts->strip                                          ) ? 1 : 0;
    ac += (opts->cbl                                            ) ? 1 : 0;
    ac += (opts->cci                                            ) ? 1 : 0;
@@ -1994,6 +2005,7 @@ int disp_nt_opts( const char *mesg, nt_opts * opts)
                   "   disp_ana, disp_exts  = %d, %d\n"
                   "   disp_cext            = %d\n"
                   "   add_exts, rm_exts    = %d, %d\n"
+                  "   run_misc_tests       = %d\n"
                   "   mod_hdr,  mod_hdr2   = %d, %d\n"
                   "   mod_nim              = %d\n"
                   "   swap_hdr, swap_ana   = %d, %d\n"
@@ -2007,7 +2019,7 @@ int disp_nt_opts( const char *mesg, nt_opts * opts)
             opts->diff_hdr, opts->diff_nim,
             opts->disp_hdr1, opts->disp_hdr2, opts->disp_hdr, opts->disp_nim,
             opts->disp_ana, opts->disp_exts, opts->disp_cext,
-            opts->add_exts, opts->rm_exts,
+            opts->add_exts, opts->rm_exts, opts->run_misc_tests,
             opts->mod_hdr, opts->mod_hdr2, opts->mod_nim,
             opts->swap_hdr, opts->swap_ana, opts->swap_old,
             opts->cbl, opts->cci,
@@ -3328,12 +3340,19 @@ int act_swap_hdrs( nt_opts * opts )
                                                     opts->new_dim);
       if( !nhdr ) return 1;
 
-      /* but if this is a valid NIFTI-2 header, fail */
+      /* but if this is a valid NIFTI-2 header, fail (not ready for NIFTI-2) */
       if( ! nifti_hdr1_looks_good(nhdr) ) {
          nifti_2_header * n2hdr;
          int              n2ver=2;
          n2hdr = nt_read_header(fname, &n2ver, NULL, 0, 0, 0);
          if( nifti_hdr2_looks_good(n2hdr) ) {
+            /* if in debug mode, swap and display before failing */
+            if( g_debug > 1 ) {
+                swap_nifti_header(n2hdr, 2);
+                disp_field("\nswapped NIFTI-2 header:\n",
+                           g_hdr2_fields, n2hdr, NT_HDR2_NUM_FIELDS, 1);
+            }
+
             if( g_debug > 0 )
                fprintf(stderr,"** refusing to swap NIFTI-2 header "
                               "as NIFTI-1 in %s\n", fname);
@@ -4975,6 +4994,236 @@ static int num_volumes(nifti_image * nim)
    return nvols;
 }
 
+
+/*----------------------------------------------------------------------
+ * run various tests
+ *----------------------------------------------------------------------*/
+int act_run_misc_tests( nt_opts * opts )
+{
+   nifti_image * nim;
+   const char  * fname;
+   char          mesg[32], *mptr;
+   int           ec, fc;
+
+   if( g_debug > 1 )
+      fprintf(stderr,"-d running misc. tests for %d files...\n",
+              opts->infiles.len);
+
+   for( fc = 0; fc < opts->infiles.len; fc++ )
+   {
+      fname = opts->infiles.list[fc];
+      if( g_debug > 1 ) {
+         fprintf(stderr,"-- testing file %s, type = %d\n",
+                 fname, is_nifti_file(fname));
+      }
+
+      nim = nt_image_read(opts, fname, 0);
+      if( !nim ) return 1;  /* errors are printed from library */
+
+      /* actually run the tests */
+      nt_run_misc_nim_tests(nim);
+
+      nifti_image_free(nim);
+   }
+
+   return 0;
+}
+
+/*----------------------------------------------------------------------
+ * run some tests:
+ *
+ *    - dmat44 -> mat44 -> dmat44
+ *    - inv(inv([d]mat44)) == I? (check maxabs[i(i(m))-M-I] close to 0)
+ *    - [d]mat->quatern->mat
+ *    - display orientation given [d]mat44
+ *----------------------------------------------------------------------*/
+int nt_run_misc_nim_tests(nifti_image * nim)
+{
+   nifti_image * nim_copy;
+   nifti_dmat44  dmat, dmat2, I;
+   nifti_dmat33  d33, d33_2, I33;
+   char          mesg[80] = "";
+   int           ival;
+
+   if( !nim ) {
+      fprintf(stderr,"** nt_run_misc_nim_tests: nim == NULL\n");
+      return 1;
+   }
+
+   fflush(stderr);      /* clear any old text before stdout */
+   if( g_debug )
+      printf("------------------------------------------------------------\n"
+             "testing : %s\n\n", nim->fname);
+   sprintf(mesg, "= qform_code = %d\n", nim->qform_code);
+   nifti_disp_matrix_orient(mesg, nim->qto_xyz);
+   sprintf(mesg, "= sform_code = %d\n", nim->sform_code);
+   nifti_disp_matrix_orient(mesg, nim->sto_xyz);
+
+   /* actually display the sform */
+   printf("= sform: ");
+   disp_raw_data((char *)(nim->sto_xyz.m), DT_FLOAT64, 16, ' ', 1);
+
+   /* tests inverses */
+   dmat = nifti_dmat44_inverse(nim->sto_xyz);
+   dmat2 = nifti_dmat44_mul(dmat, nim->sto_xyz);
+   printf("= max_fabs(sform) = %lf\n", dmat44_max_fabs(dmat2));
+
+   /* compare dmat2 with I */
+   NT_MAT44_SET_TO_IDENTITY(I);
+   /* dmat = dmat2 - I */
+   NT_MAT44_SUBTRACT(dmat, dmat2, I);
+   printf("= max_fabs(Sinv*S - I) = %lf\n", dmat44_max_fabs(dmat));
+
+   /* do a similar comparison with 3x3 */
+   NT_MAT44_TO_MAT33(nim->sto_xyz, d33_2);
+   d33 = nifti_dmat33_inverse(d33_2);
+   d33_2 = nifti_dmat33_mul(d33, d33_2);
+   NT_MAT33_SET_TO_IDENTITY(I33);
+   /* d33 = d33_2 - I33 */
+   NT_MAT33_SUBTRACT(d33, d33_2, I33);
+   NT_MAT33_TO_MAT44(d33, dmat);
+   /* but do not fill as identity */
+   dmat.m[3][3] = 0;
+   printf("= max_fabs(S33inv*S33 - I) = %lf\n", dmat44_max_fabs(dmat));
+
+   nt_test_dmat44_quatern(nim);
+
+   nim_copy = nifti_copy_nim_info(nim);
+   ival = diff_nims(nim, nim_copy, 1);
+   printf("= diff in nim copy (hopefully 0): %d\n", ival);
+
+   /* test nifti_read_subregion_image() - just get one voxel */
+   {
+      int64_t start_ind[] = {0,0,0,0,0,0,0};
+      int64_t size[]      = {2,1,1,1,1,1,1};
+      int64_t rval;
+      float * dptr=NULL;
+      rval = nifti_read_subregion_image(nim, start_ind, size, (void**)&dptr);
+      printf("== subregion: rv=%" PRId64 ", dptr=%p, data=", rval, dptr);
+      if( dptr ) disp_raw_data((char *)dptr, nim->datatype, 1, ' ', 1);
+      if( dptr ) free(dptr);
+   }
+
+   /* test expansion of ints, as 32-bits, not usually used */
+   { 
+      int        * ilist = NULL;
+      const char * istr = "7,4,2..5,11..$";
+      ilist = nifti_get_intlist(15, istr);
+      printf("= ilist = %p, %d\n", ilist, ilist?ilist[0]:-1);
+      if( ilist ) free(ilist);
+   }
+
+   return 0;
+}
+
+static int nt_test_dmat44_quatern(nifti_image * nim)
+{
+   nifti_dmat44 dmat, dmat2;
+   mat44        mat, mat0, mat2, I;
+   double       qb, qc, qd, qx, qy, qz;
+   double       dx, dy, dz, qfac;
+
+   float        fb, fc, fd, fx, fy, fz;
+   float        x, y, z, fac;
+   
+   fputc('\n', stdout);
+   /* and the orthogonalized form */
+   printf("= sform vs. orthog sform:\n");
+   dmat = nim->sto_xyz;
+   dmat = nifti_make_orthog_dmat44(
+                dmat.m[0][0], dmat.m[0][1], dmat.m[0][2],
+                dmat.m[1][0], dmat.m[1][1], dmat.m[1][2],
+                dmat.m[2][0], dmat.m[2][1], dmat.m[2][2]);
+   disp_raw_data((char *)(nim->sto_xyz.m), DT_FLOAT64, 16, ' ', 1);
+   disp_raw_data(dmat.m, DT_FLOAT64, 16, ' ', 1);
+
+   /* go to quatern and back */
+   nifti_dmat44_to_quatern(nim->sto_xyz,
+        &qb, &qc, &qd, &qx, &qy, &qz, &dx, &dy, &dz, &qfac);
+   dmat = nifti_quatern_to_dmat44(qb, qc, qd, qx, qy, qz, dx, dy, dz, qfac);
+   /* did this invert? */
+   NT_MAT44_SUBTRACT(dmat2, nim->sto_xyz, dmat);
+   printf("= max_fabs(s->quatern->s') = %lf\n", dmat44_max_fabs(dmat2));
+
+
+   /* try for float mat44 */
+   nifti_dmat44_to_mat44(&nim->sto_xyz, &mat0);
+   nifti_mat44_to_quatern(mat0,
+        &fb, &fc, &fd, &fx, &fy, &fz, &x, &y, &z, &fac);
+   mat = nifti_quatern_to_mat44(fb, fc, fd, fx, fy, fz, x, y, z, fac);
+   NT_MAT44_SUBTRACT(mat2, mat0, mat);
+   printf("= max_fabs_m44(s->quatern->s') = %f\n", mat44_max_fabs(mat2));
+
+   /* inverse check */
+   mat2 = nifti_mat44_inverse(mat);
+   mat0 = nifti_mat44_mul(mat, mat2);
+   NT_MAT44_SET_TO_IDENTITY(I);
+   NT_MAT44_SUBTRACT(mat, mat0, I);
+
+   /* use mat44 for orientation */
+   mat = nifti_quatern_to_mat44(fb, fc, fd, fx, fy, fz, x, y, z, fac);
+   nt_disp_mat44_orient("= mat44 orient:\n", mat);
+   mat = nifti_make_orthog_mat44(
+                mat.m[0][0], mat.m[0][1], mat.m[0][2],
+                mat.m[1][0], mat.m[1][1], mat.m[1][2],
+                mat.m[2][0], mat.m[2][1], mat.m[2][2]);
+   nt_disp_mat44_orient("= mat44 orthog orient:\n", mat);
+
+   /* compare orthogonalization */
+   printf("= qform vs. orthog mat44 form:\n");
+   disp_raw_data((char *)(nim->qto_xyz.m), DT_FLOAT64, 16, ' ', 1);
+   disp_raw_data(mat.m, DT_FLOAT32, 16, ' ', 1);
+
+   return 0;
+}
+
+
+static int nt_disp_mat44_orient(const char * mesg, mat44 mat)
+{
+   int i, j, k;
+
+   if ( mesg ) fputs( mesg, stdout );
+
+   nifti_mat44_to_orientation( mat, &i,&j,&k );
+   if ( i <= 0 || j <= 0 || k <= 0 ) {
+      printf("** bad orient\n");
+      return -1;
+   }
+
+   /* so we have good codes */
+   printf("  i orientation = '%s'\n"
+          "  j orientation = '%s'\n"
+          "  k orientation = '%s'\n",
+          nifti_orientation_string(i),
+          nifti_orientation_string(j),
+          nifti_orientation_string(k) );
+   return 0;
+}
+
+
+/* return max abs of the matrix values */
+static double dmat44_max_fabs(nifti_dmat44 m)
+{
+   double max = 0.0;
+   int    i,j;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         if( fabs(m.m[i][j]) > max )
+            max = fabs(m.m[i][j]);
+   return max;
+}
+
+/* return max abs of the matrix values */
+static double mat44_max_fabs(mat44 m)
+{
+   float max = 0.0;
+   int    i,j;
+   for( i=0; i<4; i++ )
+      for( j=0; j<4; j++ )
+         if( fabs(m.m[i][j]) > max )
+            max = fabs(m.m[i][j]);
+   return max;
+}
 
 /*----------------------------------------------------------------------
  * create a new dataset using sub-brick selection

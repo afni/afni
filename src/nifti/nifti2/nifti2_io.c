@@ -396,11 +396,12 @@ static char const * const gni2_history[] =
   "   - nifti_set_iname_offset() now takes nifti_ver, to adjust for size\n",
   "2.09 10 May, 2019 [rickr]: added NIFTI_ECODE_QUANTIPHYSE\n"
   "2.10 26 Sep, 2019 [rickr]: nifti_read_ascii_image no longer closes fp\n",
+  "2.11  3 Oct, 2019 [rickr]: added nifti_[d]mat33_mul\n",
   "----------------------------------------------------------------------\n"
 };
 
 static const char gni_version[]
-        = "nifti-2 library version 2.10 (26 Sep, 2019)";
+        = "nifti-2 library version 2.11 (3 Oct, 2019)";
 
 /*! global nifti options structure - init with defaults */
 /*  see 'option accessor functions'                     */
@@ -2458,6 +2459,36 @@ mat33 nifti_mat33_mul( mat33 A , mat33 B )  /* multiply 2 3x3 matrices */
    return C ;
 }
 
+/*----------------------------------------------------------------------*/
+/*! multiply 2 4x4 matrices
+*//*--------------------------------------------------------------------*/
+nifti_dmat44 nifti_dmat44_mul( nifti_dmat44 A , nifti_dmat44 B )
+{
+   nifti_dmat44 C ; int i,j,k ;
+   for( i=0 ; i < 4 ; i++ )
+      for( j=0 ; j < 4 ; j++ ) {
+         C.m[i][j] = 0.0;
+         for( k=0; k < 4; k++ )
+            C.m[i][j] += A.m[i][k] * B.m[k][j];
+      }
+   return C ;
+}
+
+/*----------------------------------------------------------------------*/
+/*! multiply 2 4x4 matrices
+*//*--------------------------------------------------------------------*/
+mat44 nifti_mat44_mul( mat44 A , mat44 B )
+{
+   mat44 C ; int i,j,k ;
+   for( i=0 ; i < 4 ; i++ )
+      for( j=0 ; j < 4 ; j++ ) {
+         C.m[i][j] = 0.0;
+         for( k=0; k < 4; k++ )
+            C.m[i][j] += A.m[i][k] * B.m[k][j];
+      }
+   return C ;
+}
+
 /*---------------------------------------------------------------------------*/
 /*! polar decomposition of a 3x3 matrix
 
@@ -3081,6 +3112,9 @@ void nifti_swap_Nbytes( int64_t n , int siz , void *ar )  /* subsuming case */
 *//*---------------------------------------------------------------------- */
 void swap_nifti_header( void * hdr , int ni_ver )
 {
+   if( g_opts.debug > 1 )
+      fprintf(stderr,"++ swapping NIFTI header via ni_ver %d\n", ni_ver);
+
    if     ( ni_ver == 0 ) nifti_swap_as_analyze((nifti_analyze75 *)hdr);
    else if( ni_ver == 1 ) nifti_swap_as_nifti1((nifti_1_header *)hdr);
    else if( ni_ver == 2 ) nifti_swap_as_nifti2((nifti_2_header *)hdr);
