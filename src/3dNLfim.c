@@ -2548,7 +2548,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
   void  * vdif;                       /* 1st sub-brick data pointer */
   int func_type;                      /* afni data set type */
   float top, func_scale_short;        /* parameters for scaling data */
-  char label[80];                     /* label for output file history */
+  char label[THD_MAX_NAME];           /* label for output file history */
   int nbad;                           /* number of bad voxels in volume */
 
   /*----- read input dataset -----*/
@@ -2565,7 +2565,7 @@ void write_afni_data (char * input_filename, int nxyz, char * filename,
 
   /*----- Record history of dataset -----*/
   tross_Copy_History( dset , new_dset ) ;
-  sprintf (label, "Output prefix: %s", filename);
+  snprintf (label, THD_MAX_NAME, "Output prefix: %s", filename);
   if( commandline != NULL )
      tross_multi_Append_History( new_dset , commandline,label,NULL ) ;
   else
@@ -2736,7 +2736,7 @@ void write_bucket_data
   int ierror;               /* number of errors in editing data */
   float *volume=NULL;       /* volume of floating point data */
   int dimension;            /* dimension of full model = p + q */
-  char label[80];           /* label for output file history */
+  char label[THD_MAX_NAME]; /* label for output file history */
   void * imptr;             /* pointer to volume in correct datum type to actually write out*/
   int nbad;                 /* number of bad floating point values in volume */
 
@@ -2770,7 +2770,7 @@ void write_bucket_data
   tross_Copy_History( old_dset , new_dset ) ;
   if( commandline != NULL )
      tross_Append_History( new_dset , commandline ) ;
-  sprintf (label, "Output prefix: %s", output_prefix);
+  snprintf (label, THD_MAX_NAME, "Output prefix: %s", output_prefix);
   tross_Append_History ( new_dset, label);
 
 
@@ -2937,7 +2937,7 @@ void write_3dtime
   float ** far = NULL;      /* far[ib] points to data for sub-brick #ib */
   float * fbuf;             /* float buffer */
   float * volume;           /* pointer to volume of data */
-  char label[80];           /* label for output file history */
+  char label[THD_MAX_NAME]; /* label for output file history */
   int nbad;                 /* number of voxels in volume with bad floating point values */
 
   /*----- Initialize local variables -----*/
@@ -2965,7 +2965,7 @@ void write_3dtime
   tross_Copy_History( dset , new_dset ) ;
   if( commandline != NULL )
      tross_Append_History( new_dset , commandline ) ;
-  sprintf (label, "Output prefix: %s", output_filename);
+  snprintf (label, THD_MAX_NAME, "Output prefix: %s", output_filename);
   tross_Append_History ( new_dset, label);
 
 

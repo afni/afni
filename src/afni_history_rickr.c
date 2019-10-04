@@ -49,7 +49,7 @@
 
 afni_history_struct rickr_history[] = {
 
- {  2, Oct, 2019, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
+ {  4, Oct, 2019, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
    "allow for longer input and output file names",
    "Names were malloc'd with MAX_NAME_LENGTH; use nifti_strdup, instead.\n"
    "Thanks to S Wardle for bringing this to light."
