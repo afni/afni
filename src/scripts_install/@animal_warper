@@ -14,7 +14,8 @@
 
 set progname = @animal_warper
 
-#***** update the version with each change
+# --------------------- version history with changes -----------------------
+#
 #set version = "1.00"
 #
 #set version = "1.02" ; set date = "Sep 3, 2019"
@@ -43,14 +44,21 @@ set progname = @animal_warper
 #    + describe QC images in help file, for reference
 #    + remove __tmp* dset-- hadn't noticed COMPRESSOR was ON
 #
-# --------------------------------------------------------------------
 #set version = "1.6" ; set date = "Sep 11, 2019"
 # [DRG] remove temporary datasets with option to keep temporary datasets
 #     + identify important output
 #     + some help updates
-set version = "1.7" ; set date = "Sep 24, 2019"
+#
+#set version = "1.7" ; set date = "Sep 24, 2019"
 # [DRG] fullpath for input datasets determined even if specified as ., .., ~
-
+#
+set version = "1.71" ; set date = "Oct 3, 2019"
+# [PT] Adjust 3dNotes to include @animal_warper name
+#    + this goes with adjusting gen_ss_review_table.py so it recognizes
+#      and reads in the template name
+#    + make animalouts almost lined up?
+#
+# --------------------------------------------------------------------
 
 if ("$#" <  "2") then
    goto HELP
@@ -330,9 +338,12 @@ set finalmaster = $dset
 set origdsetprefix = $dsetprefix
 
 # set up output text file with file descriptions
-echo "This file contains the list of outputs from the @animal_warper script" > $animalouts
-echo "Input dataset: $dset" >> $animalouts
-echo "Atlas/segmentation: $segset" >> $animalouts
+echo "# List of outputs from the @animal_warper script" > $animalouts
+echo "Input dset                   : $dset" >> $animalouts
+echo "Atlas/segmentation dset      : $segset" >> $animalouts
+#echo "This file contains the list of outputs from the @animal_warper script" > $animalouts
+#echo "Input dataset: $dset" >> $animalouts
+#echo "Atlas/segmentation: $segset" >> $animalouts
 
 
 # figure out short name for template to insert into output files
@@ -386,8 +397,9 @@ cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
 set dset = ${dsetprefix}_shft.nii.gz
 set dsetprefix = ${dsetprefix}_shft
 
-echo "Center shifted data: $dset" >> $animalouts
- 
+echo "Input dset, center-shifted   : $dset" >> $animalouts
+#echo "Center shifted data : $dset" >> $animalouts
+
 # goto apply_warps
 
 if ($align_type == "rigid") then
@@ -414,16 +426,21 @@ else
    \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
-echo "affine transformation matrix: ${dsetprefix}_al2std_mat.aff12.1D" \
+echo "affine xform matrix          : ${dsetprefix}_al2std_mat.aff12.1D" \
      >> $animalouts
-echo "affine transformed dataset: ${dsetprefix}_al2std.nii.gz" \
+echo "affine xformed dset          : ${dsetprefix}_al2std.nii.gz" \
      >> $animalouts
+#echo "affine transformation matrix: ${dsetprefix}_al2std_mat.aff12.1D" \
+#     >> $animalouts
+#echo "affine transformed dataset: ${dsetprefix}_al2std.nii.gz" \
+#     >> $animalouts
 
 if ($align_type == rigid_equiv) then
     cat_matvec ${dsetprefix}_al2std_mat.aff12.1D -P \
         > ${dsetprefix}_al2std_mat_rigid.aff12.1D
     set affmat = ${dsetprefix}_al2std_mat_rigid.aff12.1D
-    echo "rigid equiv transformation matrix: $affmat" >> $animalouts
+echo "rigid equiv xform matrix     : $affmat" >> $animalouts
+    #echo "rigid equiv transformation matrix: $affmat" >> $animalouts
 else
     set affmat = ${dsetprefix}_al2std_mat.aff12.1D
 endif
@@ -437,8 +454,10 @@ else
         -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE      \
         -source $dset -overwrite
 endif
-echo "affine transformed dataset on grid of template: ${dsetprefix}_aff.nii.gz" \
+echo "affine xformed dset (templ grid) : ${dsetprefix}_aff.nii.gz" \
      >> $animalouts
+#echo "affine transformed dataset on grid of template: ${dsetprefix}_aff.nii.gz" \
+#     >> $animalouts
 
 # if nonlinear alignment is not requested, then exit
 if ( $align_type != "all" ) then
@@ -450,8 +469,10 @@ if ( $align_type != "all" ) then
       echo "You may restart for other types of alignment with"
       echo "a different align_type and -ok_to_exist"
    endif
-   echo "list of outputs (this file): $animalouts" >> $animalouts
-   echo "script called with: $argv" >> $animalouts
+    echo "list of outputs (this file)  : $animalouts" >> $animalouts
+    echo "arg list for cmd             : $argv"       >> $animalouts
+#   echo "list of outputs (this file): $animalouts" >> $animalouts
+#   echo "script called with: $argv" >> $animalouts
 
    echo "Highlights of the output:"
    # show list of outputs
@@ -512,10 +533,14 @@ else
 
 endif
 
-echo "nonlinear warp transformation to template: ${dsetprefix}_WARP.nii.gz"  \
+echo "nonlinear warp to templ      : ${dsetprefix}_WARP.nii.gz"  \
      >> $animalouts
-echo "nonlinear warp transformation to template: ${dsetprefix}_WARPINV.nii.gz" \
+echo "nonlinear inv-warp from templ : ${dsetprefix}_WARPINV.nii.gz" \
      >> $animalouts
+#echo "nonlinear warp transformation to template: ${dsetprefix}_WARP.nii.gz"  \
+#     >> $animalouts
+#echo "nonlinear inverse-warp transformation to template: ${dsetprefix}_WARPINV.nii.gz" \
+#     >> $animalouts
 
 #apply_warps:
 
@@ -553,7 +578,7 @@ else
    # gen_ss_review_scripts.py knows the name of the template
    set tbase = `basename $base`
    3dNotes \
-      -h "auto_warp.py aligned this dset to standard space: -base $tbase" \
+      -h "@animal_warper aligned this dset to standard space: -base $base" \
       ${origdsetprefix}_warp2std_nsu.nii.gz
 
 
@@ -585,13 +610,22 @@ else
 
 endif
 
-echo "nonlinear warp to template: ${origdsetprefix}_warp2std.nii.gz" \
+# maybe change names? these sound like warp dsets, but they are
+# actually dsets that *have* been warped
+echo "Dset, NL-warped to templ     : ${origdsetprefix}_warp2std.nii.gz" \
        >> $animalouts
-echo "nonlinear warp to template skullstripped: ${origdsetprefix}_warp2std_ns.nii.gz" \
+echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz" \
       >> $animalouts
-echo "nonlinear warp to template skullstripped and unifized: ${origdsetprefix}_warp2std_nsu.nii.gz" \
+echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
       >> $animalouts
-echo "QC directory (see index.html there): QC/" >> $animalouts
+echo "QC directory of images       : QC/" >> $animalouts # there is no index.html here
+#echo "nonlinear warp to template: ${origdsetprefix}_warp2std.nii.gz" \
+#       >> $animalouts
+#echo "nonlinear warp to template skullstripped: ${origdsetprefix}_warp2std_ns.nii.gz" \
+#      >> $animalouts
+#echo "nonlinear warp to template skullstripped and unifized: ${origdsetprefix}_warp2std_nsu.nii.gz" \
+#      >> $animalouts
+#echo "QC directory of images: QC/" >> $animalouts
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
@@ -747,7 +781,8 @@ foreach temple_dset ($template_followers)
       #gzip -f ${temple_prefix}_in_${origdsetprefix}.nii
       3drefit -space $origspace ${temple_prefix}_in_${origdsetprefix}.nii.gz
   endif
-  echo "template in native space: ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
+    echo "Templ, NL-warped to native sp : ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
+#  echo "template in native space: ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
 end
 
  # warp segmentation from atlas back to the original macaque space
@@ -849,7 +884,7 @@ end
            #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz \
            #     ./${segname}_in_${origdsetprefix}.nii.gz
        endif
-       echo "atlas/segmentation in native space: ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
+    echo "atlas/segmentation in native space : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
             >> $animalouts
     end 
     
@@ -903,7 +938,7 @@ end
             -o  ${templatename}_in_${origdsetprefix}.gii -overwrite \
             -noxform -Tsmooth 0.01 6 
        endif
-       echo "surface of template in native space: ${templatename}_in_${origdsetprefix}.gii" \
+       echo "Surface of template in native space : ${templatename}_in_${origdsetprefix}.gii" \
             >> $animalouts
 
 #       if (($ok_to_exist == "1") && (-f  surfaces/native*.gii )) then
@@ -935,7 +970,8 @@ if($keep_temp != "1") then
    \rm -f "${templatename}_in_${origdsetprefix}_aniso*.nii.gz"
 endif
 
-echo "list of outputs (this file): $animalouts" >> $animalouts
+echo "List of outputs (this file)  : $animalouts" >> $animalouts
+#echo "list of outputs (this file): $animalouts" >> $animalouts
 
 echo "Highlights of the output:"
 # show to user now
