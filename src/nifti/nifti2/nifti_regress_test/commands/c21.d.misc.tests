@@ -1,0 +1,11 @@
+
+# ------------------------------------------------------------
+# misc tests, start with oblique EPI
+
+set infile2 = e4.60005.nii.gz
+
+
+# run some misc tests
+nifti_tool -run_misc_tests -debug 2 -infile $infile2
+
+

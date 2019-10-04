@@ -35,7 +35,7 @@ nifti_tool -diff_nim -infiles $infile $tfile01
 
 
 # use volume index select, which requires sorting and selecting
-nifti_tool -copy_brick_list -infiles $infile'[2,3,3,3,1]'       \
+nifti_tool -copy_brick_list -infiles $infile'[2,3,3,3,1..3(2)]' \
            -debug 3                                             \
            -prefix $prefix.03.nii
 
@@ -50,4 +50,6 @@ nifti_tool -diff_nim -infiles $infile $tfile02
 # differ in slice_code? (hdr)
 nifti_tool -diff_hdr2 -infiles $infile $tfile02
 
+# try swapping
+nifti_tool -swap_as_nifti -debug 3 -infiles $infile -prefix $prefix.05.swap.nii
 

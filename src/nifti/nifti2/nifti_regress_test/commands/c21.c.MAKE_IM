@@ -26,7 +26,11 @@ nifti_tool -diff_nim -debug 3 -infiles $tfile11 $tfile12
 
 # try swapping
 nifti_tool -swap_as_nifti -debug 3 -infiles $tfile11 \
-           -prefix $prefix.12.swap.nii
+           -prefix $prefix.12.a.swap.nii
+nifti_tool -swap_as_analyze -debug 3 -infiles $tfile11 \
+           -prefix $prefix.12.b.swap.ana.nii
+nifti_tool -swap_as_old -debug 3 -infiles $prefix.12.b.swap.ana \
+           -prefix $prefix.13.c.swap.old.nii
 
 # collapse third dimension
 nifti_tool -debug 3 -infiles $tfile12                            \
