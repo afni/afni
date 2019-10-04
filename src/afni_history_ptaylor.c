@@ -66,6 +66,26 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 3, Oct , 2019 , PT , "lib_gershgorin.py" , MINOR , TYPE_GENERAL,
+   "Just divvied up the behavior of the functions better.",
+   "Also have a general, NxN case .\n"
+},
+
+{ 3, Oct , 2019 , PT , "afni_util.py" , MICRO , TYPE_NEW_OPT,
+   "Fancy new function to calculate if a list-matrix is square.",
+   "ps: not that fancy.\n"
+},
+
+{ 3, Oct , 2019 , PT , "epi_b0_correct.py" , MICRO , TYPE_GENERAL,
+   "Calculate oblique transform differently; use 3dWarp instead of cat_matvec.",
+   "Probably negligible practical change.\n"
+},
+
+{ 2, Oct , 2019 , PT , "epi_b0_correct.py" , MAJOR , TYPE_GENERAL,
+   "The naming convention of PE dist dir has been reversed; mask opts changed.",
+   "PE dist dir should match with JSONs better; 3dmask_tool does masking now.\n"
+},
+
 { 2, Oct , 2019 , PT , "1dDW_Grad_o_Mat++" , MINOR , TYPE_GENERAL,
    "Output more specific information about finding unexpected negative values.",
    "Tell user the [row, col] of potentially bad values, for easier QC.\n"
