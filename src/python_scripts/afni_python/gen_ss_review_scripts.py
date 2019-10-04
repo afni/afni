@@ -2,6 +2,9 @@
 
 # python3 status: compatible
 
+# [PT: Oct 4, 2019] add @animal_warper to list of programs for getting
+#                   template name
+
 # system libraries
 import sys, os, glob
 
@@ -1856,6 +1859,9 @@ class MyInterface:
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
       if warp_cmd == '':
          prog = '@auto_tlrc'
+         warp_cmd = UTIL.get_last_history_command(afinal, prog)
+      if warp_cmd == '':
+         prog = '@animal_warper'
          warp_cmd = UTIL.get_last_history_command(afinal, prog)
 
       if warp_cmd == '': return 1
