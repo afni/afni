@@ -24,11 +24,13 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_SHARED_LIBS ON)
 
 ### Require out-of-source builds
-file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
-if(EXISTS "${LOC_PATH}")
-    message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
-endif()
+# file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
+# if(EXISTS "${LOC_PATH}")
+#     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
+# endif()
 
+# Set policies
+cmake_policy(SET CMP0048 NEW)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING") # XXX not in default cflags
@@ -42,10 +44,10 @@ endif()
 macro(get_afni_rpath)
   ## Needed for correct linking when installing.
   ## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
-  get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
-  get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
-  get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
-  get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
+  # get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
+  # get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
+  # get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
+  # get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
   if(TARGET_TYPE MATCHES "LIBRARY")
     set(INSTALL_PATH ${AFNI_INSTALL_LIBRARY_DIR})
   else()  
@@ -53,18 +55,20 @@ macro(get_afni_rpath)
   endif()
   # Prepare RPATH
   file(RELATIVE_PATH _rel_afni ${INSTALL_PATH} ${AFNI_INSTALL_LIBRARY_DIR})
-  file(RELATIVE_PATH _rel_nifti ${INSTALL_PATH} ${_nifti_libraries})
-  file(RELATIVE_PATH _rel_gifti ${INSTALL_PATH} ${_gifti_libraries})
+  # file(RELATIVE_PATH _rel_nifti ${INSTALL_PATH} ${_nifti_libraries})
+  # file(RELATIVE_PATH _rel_gifti ${INSTALL_PATH} ${_gifti_libraries})
   if(APPLE)
     set(message_RPATH 
       "@loader_path/${_rel_afni}"
-      "@loader_path/${_rel_nifti}"
-      "@loader_path/${_rel_gifti}")
+      # "@loader_path/${_rel_nifti}"
+      # "@loader_path/${_rel_gifti}"
+      )
   else()
     set(message_RPATH 
       "\$ORIGIN/${_rel_afni}"
-      "\$ORIGIN/${_rel_nifti}"
-      "\$ORIGIN/${_rel_gifti}")
+      # "\$ORIGIN/${_rel_nifti}"
+      # "\$ORIGIN/${_rel_gifti}"
+      )
   endif()
   # file(TO_NATIVE_PATH "${_rpath}" message_RPATH)
 endmacro()
@@ -88,6 +92,15 @@ macro(add_afni_target_properties target)
   set_target_properties(${target} PROPERTIES
     MACOSX_RPATH ON
     )
+
+  if (CONDA_BUILD)
+    set_target_properties(${target} PROPERTIES
+      INSTALL_RPATH "${message_RPATH}"
+      )
+  endif()
+    # INSTALL_RPATH_USE_LINK_PATH ON
+    # SKIP_BUILD_RPATH OFF
+    # BUILD_WITH_INSTALL_RPATH OFF
 endmacro()
 
 
@@ -104,6 +117,11 @@ set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR}/bin)
 set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
 endif()
 
+if (CONDA_BUILD)
+  get_filename_component(AFNI_INSTALL_LIBRARY_DIR ${AFNI_INSTALL_LIBRARY_DIR} DIRECTORY)
+  get_filename_component(AFNI_INSTALL_INCLUDE_DIR ${AFNI_INSTALL_INCLUDE_DIR} DIRECTORY)
+  message("The library: " ${AFNI_INSTALL_LIBRARY_DIR})
+endif()
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
 include(CPack)
@@ -132,61 +150,10 @@ endmacro()
 
 # a prefix can be used to avoid collisions with pre-existsing installations of
 # the nifti libraries
-set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "Set the nifti package prefix")
-# The prefix can be prepended to the exported targets in the cases where
-# projects use target names with the prefixes in them for example
-# AFNI_NIFTI::AFNI_nifti2 instead of NIFTI::nifti2
-set(INCLUDE_PREFIX_IN_EXPORT OFF)
+set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "Nifti package prefix for afni project.")
+
 set(NIFTI_LIBRARY_PROPERTIES ${AFNI_LIBRARY_PROPERTIES} CACHE STRING "Set the nifti library properties to match AFNI" FORCE)
-find_package(${NIFTI_PACKAGE_PREFIX}NIFTI 3 QUIET)
-if (NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}")
-  include(FetchContent)
-  FetchContent_Declare( nifti_clib
-          # GIT_REPOSITORY https://github.com/NIFTI-Imaging/nifti_clib
-          GIT_REPOSITORY /afni/nifti_clib
-          # GIT_REPOSITORY https://github.com/leej3/nifti_clib.git
-          # GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
-          GIT_TAG        v3.0.8 # or git <HASH> or git <branch>
-          )
-  FetchContent_GetProperties(nifti_clib)
-  if(NOT nifti_clib_POPULATED)
-      set(FETCHCONTENT_QUIET OFF)
-      message(STATUS "Downloading nifti_clib from github ... please wait")
-      FetchContent_Populate( nifti_clib )
-      message(STATUS "download complete.")
-      add_subdirectory(${nifti_clib_SOURCE_DIR} ${nifti_clib_BINARY_DIR})
-  endif()
-endif()
-if((NOT nifti_clib_POPULATED) AND (NOT "${${NIFTI_PACKAGE_PREFIX}NIFTI_FOUND}"))
-  message(FATAL_ERROR "Nifti dependency retrieval failed")
-endif()
-
-
-# Find or fetch gifti_clib
-
-# a prefix can be used to avoid collisions with pre-existsing installations of
-# the nifti libraries. The same prefix will be used for gifti The prefix can
-# be prepended to the exported targets in the cases where projects use target
-# names with the prefixes in them. The nifti setting applies to gifti too
-find_package(${NIFTI_PACKAGE_PREFIX}GIFTI 0 QUIET)
-if (NOT "${${NIFTI_PACKAGE_PREFIX}GIFTI_FOUND}")
-  include(FetchContent)
-  FetchContent_Declare( gifti_clib
-          # GIT_REPOSITORY https://github.com/NIFTI-Imaging/gifti_clib
-          GIT_REPOSITORY https://github.com/leej3/gifti_clib.git
-          # GIT_TAG        v3.0.0 # or git <HASH> or git <branch>
-          GIT_TAG        v0.0.11 # or git <HASH> or git <branch>
-          )
-  FetchContent_GetProperties(gifti_clib)
-  if(NOT gifti_clib_POPULATED)
-      set(FETCHCONTENT_QUIET OFF)
-      message(STATUS "Downloading gifti_clib from github ... please wait")
-      FetchContent_Populate( gifti_clib )
-      message(STATUS "download complete.")
-      add_subdirectory(${gifti_clib_SOURCE_DIR} ${gifti_clib_BINARY_DIR})
-  endif()
-endif()
-
+include(get_nifti_and_gifti_targets)
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
 configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h" @ONLY)
 
@@ -213,7 +180,10 @@ quotize("${CMAKE_CURRENT_SOURCE_DIR}/afni_papers.txt" afni_papers)
 
 
 # Tests 
-enable_testing()
+option(ENABLE_TESTS "Enable tests" OFF)
+if (${ENABLE_TESTS})
+    enable_testing()
+endif()
 set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 if(EXISTS ${DOC_DIR})
 add_subdirectory(tests)

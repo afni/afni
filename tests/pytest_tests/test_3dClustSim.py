@@ -19,7 +19,7 @@ def test_3dClustSim():
 
     # Grab diff path for OMP_NO
     # This is expected to be identicle
-    dr = diff_parser('%s/test_dirs/3dClustSim/OMP_NO_diff.out')
+    dr = diff_parser('%s/test_dirs/3dClustSim/OMP_NO_diff.out'% wd)
     assert (not dr)
 
     # Grab diff path for OMP_YES

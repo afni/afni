@@ -13,6 +13,7 @@ target_include_directories(libheaders
   $<TARGET_PROPERTY:AFNI::converted_from_fortran,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:coxplot,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+  # $<TARGET_PROPERTY:GIFTI::giftiio,INTERFACE_INCLUDE_DIRECTORIES>
   ${X11_INCLUDE_DIR}
   )
 
@@ -242,7 +243,7 @@ target_include_directories(3dretroicor PUBLIC $<TARGET_PROPERTY:NIFTI::nifti2,IN
 target_include_directories(mri 
   PUBLIC ${3DEDGE_INCLUDE_DIRS} 
   $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:GIFTI::giftiio,INTERFACE_INCLUDE_DIRECTORIES>
+  # $<TARGET_PROPERTY:GIFTI::giftiio,INTERFACE_INCLUDE_DIRECTORIES>
    )
 
 target_include_directories(parser PUBLIC $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES> )
@@ -270,7 +271,7 @@ target_link_libraries(afni_open PUBLIC mri)
 target_link_libraries(aiv PUBLIC mrix NIFTI::nifti2)
 # target_include_directories(aiv $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>)
 
-target_link_libraries(mri PUBLIC netcdf m GIFTI::giftiio 3DEdge volpack
+target_link_libraries(mri PUBLIC netcdf m 3DEdge volpack
    AFNI::XmHTML AFNI::coxplot audio  AFNI::eispack ${X11_Xt_LIB} NIFTI::nifti2 NIFTI::nifticdf)
 
 target_link_libraries(to3d PUBLIC mrix NIFTI::nifti2 ${MOTIF_LIBRARIES})
@@ -331,6 +332,13 @@ if(MRIX_BROKEN)
 else()
   set(installable_targets ${ALL_PROGRAMS} mri mrix)
 endif()
+
+# remove some programs that should not be here
+foreach(other_project_target gifti_tool giftiio gifti_test nifti_tool niftiio)
+message("Removing ${other_project_target} because it is not built by this project")
+list(REMOVE_ITEM installable_targets ${other_project_target})
+endforeach()
+
 foreach(program ${installable_targets})
   if(TARGET ${program})
     list(APPEND PROGRAMS_BUILT ${program})
@@ -342,8 +350,6 @@ endforeach()
 # message("progs_built:'${PROGRAMS_BUILT}'")
 message("programs not yet built:'${NOT_BUILT}'")
 
-# remove some programs that should not be here
-list(REMOVE_ITEM PROGRAMS_BUILT gifti_tool)
 message("programs  built:'${PROGRAMS_BUILT}'")
 install(TARGETS ${PROGRAMS_BUILT}
        RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}

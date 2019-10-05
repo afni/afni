@@ -72,25 +72,29 @@ RUN \
             pandas; \
     fi 
 
-RUN wget https://repo.continuum.io/miniconda/Miniconda3-4.5.11-Linux-x86_64.sh && \
-    bash Miniconda3-4.5.11-Linux-x86_64.sh -b -p /usr/local/miniconda && \
-    rm Miniconda3-4.5.11-Linux-x86_64.sh; conda config --add channels conda-forge
+ENV CONDA_DIR="/opt/miniconda-latest" \
+    PATH="/opt/miniconda-latest/bin:$PATH"
+RUN export PATH="/opt/miniconda-latest/bin:$PATH" \
+    && echo "Downloading Miniconda installer ..." \
+    && conda_installer="/tmp/miniconda.sh" \
+    && curl -fsSL --retry 5 -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash "$conda_installer" -b -p /opt/miniconda-latest \
+    && rm -f "$conda_installer" \
+    && conda update -yq -nbase conda \
+    && conda config --system --prepend channels conda-forge \
+    && conda config --system --set auto_update_conda false \
+    && conda config --system --set show_channel_urls true \
+    && sync && conda clean --all && sync \
+    && conda create -y -q --name neuro \
+    && conda install -y -q --name neuro \
+           "conda-build" \
+    && sync && conda clean --all && sync
 
-ENV PATH="/usr/local/miniconda/bin:$PATH" \
-    CPATH="/usr/local/miniconda/include/:$CPATH" \
+
+ENV CPATH="/usr/local/miniconda/include/:$CPATH" \
     LANG="C.UTF-8" \
     LC_ALL="C.UTF-8" \
     PYTHONNOUSERSITE=1
-# conda install -c conda-forge awscli 
-RUN conda install conda-build
-
-RUN mkdir /gbuild;cd /gbuild \
-&& git clone https://github.com/leej3/gifti_clib.git /gifti_src\
-&& cd /gifti_src \
-&& git checkout v0.0.11 \
-&& cd /gbuild \
-&& cmake -GNinja -DBUILD_SHARED_LIBS:BOOL=ON /gifti_src \
-&& ninja install
 
 ENV AFNI_ROOT=/afni
 # Copy AFNI source code. This can invalidate the build cache.
