@@ -7,7 +7,7 @@ SYSTEM_NAME = linux_ubuntu_16_64
 # CPROF = -pg -g
 USE_ZLIB = -DHAVE_ZLIB
 LZLIB    = -lz
-USE_GIFTI = -DHAVE_GIFTI
+#USE_GIFTI = -DHAVE_GIFTI
 LGIFTI    = -lexpat  #/usr/lib64/libexpat.a
 
 # default to having these off

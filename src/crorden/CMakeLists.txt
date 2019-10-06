@@ -1,0 +1,1 @@
+add_subdirectory(dcm2niix_console)

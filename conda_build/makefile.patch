@@ -1,0 +1,83 @@
+--- src/Makefile.linux_centos_7_64	2018-07-31 20:49:30.000000000 +0000
++++ src/Makefile.linux_centos_7_64.new	2018-08-09 22:34:02.056917884 +0000
+@@ -2,7 +2,7 @@
+ # This Makefile was written for the Linux OS, Fedora 19.
+ # It was originally based off linux_openmp_64.
+ 
+-SYSTEM_NAME = linux_centos_7_64
++SYSTEM_NAME = linux_centos_6_64
+ 
+ # CPROF = -pg -g
+ USE_ZLIB = -DHAVE_ZLIB
+@@ -12,7 +12,7 @@
+ 
+ # ------------------------------
+ # python from C
+-IPYTHON  = -DSELENIUM_READY -I/usr/include/python2.7
++IPYTHON  = -DSELENIUM_READY -I$(PREFIX)/include/python2.7
+ LDPYTHON = -lpython2.7
+ 
+ # ----------------------------------------------------------------------
+@@ -24,7 +24,7 @@
+ CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
+ CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF) -DDONT_USE_XTDESTROY
+ 
+-CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
++CC     = $(GCC) -L$(PREFIX)/lib -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
+ CCVOL  = $(CC)
+ CCFAST = $(CC)
+ CCOLD  = $(CC)
+@@ -34,18 +34,18 @@
+ # Your mileage may vary.
+ 
+ OMPFLAG = -fopenmp -DUSE_OMP
+-CCMIN  = /usr/bin/gcc -m64 -fPIC $(CPROF)
++CCMIN  = $(GCC) -m64 -fPIC $(CPROF)
+ CCD    = $(CC) $(CCDEBS)
+ 
+-IFLAGS = -I. -I/usr/include
+-LFLAGS = -L. -L/usr/lib64
++IFLAGS = -I. -I$(PREFIX)/include
++LFLAGS = -L. -L$(PREFIX)/lib
+ 
+-CCSVD  = /usr/bin/gcc -O0 -m64 -fPIC
++CCSVD  = $(GCC) -O0 -m64 -fPIC
+ 
+ PLUGIN_SUFFIX = so
+ PLUGIN_LFLAGS = -shared -fPIC
+ PLUGIN_CC     = $(CC)
+-PLFLAGS       = -rdynamic -L. -L/usr/lib64
++PLFLAGS       = -rdynamic -L. -L$(PREFIX)/lib
+ 
+ SHOWOFF = -DSHOWOFF=$(SYSTEM_NAME)
+ 
+@@ -54,7 +54,7 @@
+ TAR    = /bin/tar
+ MKDIR  = /bin/mkdir
+ GZIP   = /bin/gzip
+-LD     = /usr/bin/gcc $(CPROF)
++LD     = $(GCC) $(CPROF)
+ 
+ RM = /bin/rm -f
+ MV = /bin/mv -f
+@@ -62,7 +62,7 @@
+ 
+ LINT = /usr/bin/lint -a -b -u -v -x $(IFLAGS) $(CCDEFS)
+ 
+-INSTALLDIR = ./$(SYSTEM_NAME)
++INSTALLDIR = $(PREFIX)/bin
+ LIBDIR = $(INSTALLDIR)
+ 
+ #INSTALL_PREREQ = suma
+@@ -104,9 +104,8 @@
+ GLw_LIB = -lGLw
+ 
+ SUMA_INCLUDE_PATH = $(IFLAGS) -I.. -I../niml -Igts/src 		\
+-    -I/usr/lib64/glib-2.0/include -I/usr/lib64/glib/include	\
+-    -I/usr/include/glib-2.0 -I/usr/include/glib-1.2
+-SUMA_LINK_PATH = -L.. $(LFLAGS)
++    -I$(PREFIX)/include/glib-2.0 -I$(PREFIX)/lib/glib-2.0/include
++SUMA_LINK_PATH = -L.. $(LFLAGS) -Wl,-L/usr/lib64
+ #use -lGLw if you have libGLw.a or libGLw.so* or 
+ #  -lMesaGLw if you have Mesa's version (libMesaGLw*) of libGLw
+ SUMA_LINK_LIB = $(GLw_LIB) -lGLU -lGL $(LLIBS)

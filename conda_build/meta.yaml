@@ -1,0 +1,119 @@
+{% set name = "afni" %}
+# {% set version = "18.2.06" %}
+# {% set sha256 = "dee033d8435740e844308415f73ce674c60f53ed42a52085bd706b05f2218042" %}
+
+package:
+  name: {{ name }}
+  version: {{ GIT_DESCRIBE_TAG or '99.99.99'}}
+
+source:
+  git_url: ..
+  rev: {{ GIT_DESCRIBE_TAG  or "HEAD"}}
+
+  # url:  https://github.com/{{ name }}/{{ name }}/archive/AFNI_{{ version }}.tar.gz
+  # sha256: {{ sha256 }}
+  # patches:
+  #   - makefile.patch
+  #   - suma_makefile.patch
+
+build:
+  number: 2
+  # skip: True # [osx]
+  # skip: True # [py3k]
+
+requirements:
+
+  host:
+    - {{ compiler('c') }}
+    - cmake >=3.13
+    - ninja
+    - {{ cdt('mesa-libglw-devel') }}
+    - {{ cdt('mesa-libgl-devel') }}
+    - python
+    - libpng 1.6*
+    - jpeg
+    - zlib
+    - openssl
+    - openmp
+    - freetype
+    - mesa
+    - libglu
+    - xorg-libx11
+    - xorg-libxt
+    - xorg-libxext
+    - xorg-libxmu
+    - xorg-libxpm
+    - xorg-libxi
+    - xorg-libxft
+    - xorg-libxcb
+    - expat
+    - gsl
+    - openmotif
+    - openmotif-dev
+    - glib 2.56*
+    - r
+    - r-rmpi
+    - r-afex
+    - r-phia
+    - r-snow
+    - r-nlme
+    - r-lme4
+    - r-paran
+    - r-psych
+    - r-brms
+    - nifti_clib
+    - gifti_clib
+    - libnetcdf
+
+  run:
+    - python
+    - libpng 1.6*
+    - jpeg
+    - zlib
+    - openssl
+    - openmp
+    - freetype
+    - mesa
+    - libglu
+    - xorg-libx11
+    - xorg-libxt
+    - xorg-libxext
+    - xorg-libxmu
+    - xorg-libxpm
+    - xorg-libxi
+    - xorg-libxft
+    - xorg-libxcb
+    - expat
+    - gsl
+    - openmotif
+    - glib 2.56*
+    - r
+    - r-rmpi
+    - r-afex
+    - r-phia
+    - r-snow
+    - r-nlme
+    - r-lme4
+    - r-paran
+    - r-psych
+    - r-brms
+    - nifti_clib
+    - gifti_clib
+    - libnetcdf  
+    - tcsh  
+
+test:
+  commands:
+    - afni --help
+
+about:
+  home: https://afni.nimh.nih.gov/afni
+  summary: "AFNI is a suite of programs for looking at and analyzing 3D brain images."
+  license: GPL-2.0
+  license_family: GPL
+  license_file: doc/README/README.copyright
+  dev_url: https://github.com/afni/afni
+
+extra:
+  container:
+    extended-base: True

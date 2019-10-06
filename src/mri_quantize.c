@@ -28,7 +28,7 @@ int main( int argc , char * argv[] )
 
 #define MAXCOL 32767
 
-void qsort_int( int , int * , int ) ;
+static void qsort_int_mask( int , int * , int ) ;
 
 MRI_IMAGE * mri_quantize( int newcolors , MRI_IMAGE * im )
 {
@@ -55,7 +55,7 @@ MRI_IMAGE * mri_quantize( int newcolors , MRI_IMAGE * im )
 
    /** sort copy, count unique colors **/
 
-   qsort_int( im->nvox , intar , RGB_MASK ) ;
+   qsort_int_mask( im->nvox , intar , RGB_MASK ) ;
    ncol = 1 ;
    for( ii=1 ; ii < im->nvox ; ii++ )
       if( intar[ii] != intar[ii-1] ) ncol++ ;
@@ -77,7 +77,7 @@ fprintf(stderr,"%d colors in input image\n",ncol) ;
                                  inar[3*ii+1] & mask , inar[3*ii+2] & mask ) ;
 #endif
 
-      qsort_int( im->nvox , intar , RGB_MASK ) ;
+      qsort_int_mask( im->nvox , intar , RGB_MASK ) ;
       ncol = 1 ;
       for( ii=1 ; ii < im->nvox ; ii++ )
          if( intar[ii] != intar[ii-1] ) ncol++ ;
@@ -213,7 +213,7 @@ static void qsrec_int( int n , int * ar , int cutoff , int smask )
 
 /* quick_sort :  sort an array partially recursively, and partially insertion */
 
-void qsort_int( int n , int * a , int smask )
+static void qsort_int_mask( int n , int * a , int smask )
 {
    qsrec_int( n , a , QS_CUTOFF , smask ) ;
    isort_int( n , a , smask ) ;

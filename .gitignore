@@ -2,11 +2,6 @@
 CVS
 .DS_Store
 ___*
-*.o
-*.so
-*.dylib
-*.a
-*.dSYM
 *junk*
 *.swp
 .*.swp

@@ -1,40 +1,22 @@
-include(FindEXPAT)
+find_package(ZLIB REQUIRED)
+find_package(EXPAT REQUIRED)
 
-set(NIFTI_CIFTILIB_NAME ${NIFTI_PACKAGE_PREFIX}cifti)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DHAVE_ZLIB")
 
-add_library(${NIFTI_CIFTILIB_NAME} afni_xml.c afni_xml_io.c )
-target_link_libraries( ${NIFTI_CIFTILIB_NAME} PUBLIC EXPAT::EXPAT ${NIFTI_PACKAGE_PREFIX}nifti2)
-target_include_directories(${NIFTI_CIFTILIB_NAME} PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
-        $<INSTALL_INTERFACE:${NIFTI_INSTALL_INCLUDE_DIR}>
-        )
+include_directories(
+	${CMAKE_CURRENT_SOURCE_DIR}
 
-if(NIFTI_BUILD_APPLICATIONS)
-  add_executable(${NIFTI_PACKAGE_PREFIX}afni_xml_tool afni_xml_tool.c)
-  target_link_libraries(${NIFTI_PACKAGE_PREFIX}afni_xml_tool PUBLIC ${NIFTI_CIFTILIB_NAME})
-  add_executable(${NIFTI_PACKAGE_PREFIX}cifti_tool cifti_tool.c)
-  target_link_libraries(${NIFTI_PACKAGE_PREFIX}cifti_tool PUBLIC ${NIFTI_CIFTILIB_NAME})
+	${ZLIB_INCLUDE_DIRS}
+	${EXPAT_INCLUDE_DIRS}
 
-  set(CIFTI_APPS ${NIFTI_PACKAGE_PREFIX}afni_xml_tool ${NIFTI_PACKAGE_PREFIX}cifti_tool)
-endif()
-# Set lib version when buildung shared libs.
-if(BUILD_SHARED_LIBS)
-    set_target_properties(${NIFTI_CIFTILIB_NAME} PROPERTIES ${NIFTI_LIBRARY_PROPERTIES})
-endif()
+	${NIFTI_INCLUDE_DIRS}
+)
 
-if(NOT NIFTI_INSTALL_NO_LIBRARIES)
-    install(TARGETS ${NIFTI_CIFTILIB_NAME} ${CIFTI_APPS}
-            EXPORT NIFTITargets
-            RUNTIME DESTINATION ${NIFTI_INSTALL_RUNTIME_DIR} COMPONENT RuntimeLibraries
-            LIBRARY DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT RuntimeLibraries
-            ARCHIVE DESTINATION ${NIFTI_INSTALL_LIBRARY_DIR} COMPONENT Development
-            INCLUDES DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-            )
-endif()
+set(LLIBS ${ZLIB_LIBRARIES})
+add_library(OBJS OBJECT afni_xml.c afni_xml_io.c)
 
-if(NOT NIFTI_INSTALL_NO_DEVELOPMENT)
-    file(GLOB __files "${CMAKE_CURRENT_SOURCE_DIR}/*.h")
-    install(FILES ${__files}
-            DESTINATION ${NIFTI_INSTALL_INCLUDE_DIR}
-            COMPONENT Development)
-endif()
+add_executable(afni_xml_tool afni_xml_tool.c $<TARGET_OBJECTS:OBJS>)
+target_link_libraries(afni_xml_tool niftiio ${EXPAT_LIBRARIES} ${LLIBS})
+
+add_executable(cifti_tool $<TARGET_OBJECTS:OBJS> cifti_tool.c)
+target_link_libraries(cifti_tool niftiio znz ${EXPAT_LIBRARIES} ${LLIBS})
