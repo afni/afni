@@ -52,15 +52,26 @@ set progname = @animal_warper
 #set version = "1.7" ; set date = "Sep 24, 2019"
 # [DRG] fullpath for input datasets determined even if specified as ., .., ~
 #
-set version = "1.71" ; set date = "Oct 3, 2019"
+#set version = "1.71" ; set date = "Oct 3, 2019"
 # [PT] Adjust 3dNotes to include @animal_warper name
 #    + this goes with adjusting gen_ss_review_table.py so it recognizes
 #      and reads in the template name
-#    + make animalouts almost lined up?
+#    + make $animal_outs almost lined up?
+#
+set version = "1.72" ; set date = "Oct 7, 2019"
+# [PT] $animal_outs descriptors more consistent
+#    + add in prog version numbers to animal_outs scripts
+#    + goes with change in afni.c to have simpler AFNI version 
+#      number/package
+#    + help now exits with 0
 #
 # --------------------------------------------------------------------
+# --------------------------------------------------------------------
 
-if ("$#" <  "2") then
+
+# [PT: Oct 7, 2019] changed condition from ("$#" < "2"), so that args
+# get parsed and we can still get at script version number
+if ("$#" <  "1") then
    goto HELP
 endif
 
@@ -82,7 +93,7 @@ set feature_option = ""
 set feature_size = ""
 set supersize = ""
 set keep_temp = ""
-set animalouts = "animalouts.txt"
+set animal_outs = "animal_outs.txt"
 
 # process user options
 set ac = 1
@@ -90,7 +101,7 @@ while ($ac <= $#argv)
     if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
         goto HELP
     else if ("$argv[$ac]" == "-ver") then
-        echo $progname $version
+        echo $version
         exit 0
     else if ("$argv[$ac]" == "-input") then
         @ ac ++
@@ -337,14 +348,20 @@ set finalmaster = $dset
 
 set origdsetprefix = $dsetprefix
 
-# set up output text file with file descriptions
-echo "# List of outputs from the @animal_warper script" > $animalouts
-echo "Input dset                   : $dset" >> $animalouts
-echo "Atlas/segmentation dset      : $segset" >> $animalouts
-#echo "This file contains the list of outputs from the @animal_warper script" > $animalouts
-#echo "Input dataset: $dset" >> $animalouts
-#echo "Atlas/segmentation: $segset" >> $animalouts
+set afni_pack = `afni -package`
+set afni_vnum = `afni -vnum`
+set tbase     = `basename $base`
 
+# set up output text file with file descriptions
+echo "# List of inputs and outputs from @animal_warper" > ${animal_outs}
+echo "AFNI package                 : $afni_pack"       >> ${animal_outs}
+echo "AFNI version number          : $afni_vnum"       >> ${animal_outs}
+echo "@animal_warper ver           : $version"         >> ${animal_outs}
+echo ""                                                >> ${animal_outs}
+echo "Input dset (orig)            : $dset"            >> ${animal_outs}
+echo "Template dset (templ)        : $tbase"           >> ${animal_outs}
+echo "Atlas/seg dset               : $segset"          >> ${animal_outs}
+echo ""                                                >> ${animal_outs}
 
 # figure out short name for template to insert into output files
 if ($templatename == "") then
@@ -397,8 +414,7 @@ cat_matvec ${dsetprefix}_shft.1D -I > ${dsetprefix}_shft_inv.1D
 set dset = ${dsetprefix}_shft.nii.gz
 set dsetprefix = ${dsetprefix}_shft
 
-echo "Input dset, center-shifted   : $dset" >> $animalouts
-#echo "Center shifted data : $dset" >> $animalouts
+echo "Dset, center-shifted to templ : $dset" >> ${animal_outs}
 
 # goto apply_warps
 
@@ -426,21 +442,16 @@ else
    \rm ${dsetprefix}_al2std${baseview}.*
 endif
 
-echo "affine xform matrix          : ${dsetprefix}_al2std_mat.aff12.1D" \
-     >> $animalouts
-echo "affine xformed dset          : ${dsetprefix}_al2std.nii.gz" \
-     >> $animalouts
-#echo "affine transformation matrix: ${dsetprefix}_al2std_mat.aff12.1D" \
-#     >> $animalouts
-#echo "affine transformed dataset: ${dsetprefix}_al2std.nii.gz" \
-#     >> $animalouts
+echo "Matrix, affine xform         : ${dsetprefix}_al2std_mat.aff12.1D" \
+     >> ${animal_outs}
+echo "Dset, aff-xformed to templ (orig res) : ${dsetprefix}_al2std.nii.gz" \
+     >> ${animal_outs}
 
 if ($align_type == rigid_equiv) then
     cat_matvec ${dsetprefix}_al2std_mat.aff12.1D -P \
         > ${dsetprefix}_al2std_mat_rigid.aff12.1D
     set affmat = ${dsetprefix}_al2std_mat_rigid.aff12.1D
-echo "rigid equiv xform matrix     : $affmat" >> $animalouts
-    #echo "rigid equiv transformation matrix: $affmat" >> $animalouts
+    echo "Matrix, rigid equiv xform    : $affmat" >> ${animal_outs}
 else
     set affmat = ${dsetprefix}_al2std_mat.aff12.1D
 endif
@@ -454,10 +465,8 @@ else
         -prefix ${dsetprefix}_aff.nii.gz -base $base -master BASE      \
         -source $dset -overwrite
 endif
-echo "affine xformed dset (templ grid) : ${dsetprefix}_aff.nii.gz" \
-     >> $animalouts
-#echo "affine transformed dataset on grid of template: ${dsetprefix}_aff.nii.gz" \
-#     >> $animalouts
+echo "Dset, aff-xformed to templ   : ${dsetprefix}_aff.nii.gz" \
+     >> ${animal_outs}
 
 # if nonlinear alignment is not requested, then exit
 if ( $align_type != "all" ) then
@@ -469,16 +478,8 @@ if ( $align_type != "all" ) then
       echo "You may restart for other types of alignment with"
       echo "a different align_type and -ok_to_exist"
    endif
-    echo "list of outputs (this file)  : $animalouts" >> $animalouts
-    echo "arg list for cmd             : $argv"       >> $animalouts
-#   echo "list of outputs (this file): $animalouts" >> $animalouts
-#   echo "script called with: $argv" >> $animalouts
+      goto FINISH_OUTS
 
-   echo "Highlights of the output:"
-   # show list of outputs
-   cat $animalouts
-  
-   exit 0
 endif
 
 # affinely align to template
@@ -533,14 +534,10 @@ else
 
 endif
 
-echo "nonlinear warp to templ      : ${dsetprefix}_WARP.nii.gz"  \
-     >> $animalouts
-echo "nonlinear inv-warp from templ : ${dsetprefix}_WARPINV.nii.gz" \
-     >> $animalouts
-#echo "nonlinear warp transformation to template: ${dsetprefix}_WARP.nii.gz"  \
-#     >> $animalouts
-#echo "nonlinear inverse-warp transformation to template: ${dsetprefix}_WARPINV.nii.gz" \
-#     >> $animalouts
+echo "NL warp to templ             : ${dsetprefix}_WARP.nii.gz"    \
+     >> ${animal_outs}
+echo "NL inv-warp from templ       : ${dsetprefix}_WARPINV.nii.gz" \
+     >> ${animal_outs}
 
 #apply_warps:
 
@@ -613,19 +610,12 @@ endif
 # maybe change names? these sound like warp dsets, but they are
 # actually dsets that *have* been warped
 echo "Dset, NL-warped to templ     : ${origdsetprefix}_warp2std.nii.gz" \
-       >> $animalouts
+       >> ${animal_outs}
 echo "Dset, NL-warped to templ (no skull) : ${origdsetprefix}_warp2std_ns.nii.gz" \
-      >> $animalouts
+      >> ${animal_outs}
 echo "Dset, NL-warped to templ (no skull, uni) : ${origdsetprefix}_warp2std_nsu.nii.gz" \
-      >> $animalouts
-echo "QC directory of images       : QC/" >> $animalouts # there is no index.html here
-#echo "nonlinear warp to template: ${origdsetprefix}_warp2std.nii.gz" \
-#       >> $animalouts
-#echo "nonlinear warp to template skullstripped: ${origdsetprefix}_warp2std_ns.nii.gz" \
-#      >> $animalouts
-#echo "nonlinear warp to template skullstripped and unifized: ${origdsetprefix}_warp2std_nsu.nii.gz" \
-#      >> $animalouts
-#echo "QC directory of images: QC/" >> $animalouts
+      >> ${animal_outs}
+echo "QC directory of images       : QC/" >> ${animal_outs} 
 
 # compute the inverse of the affine alignment transformation - all 12 numbers
 #cat_matvec ${dsetprefix}_al2std_mat.aff12.1D \
@@ -781,8 +771,8 @@ foreach temple_dset ($template_followers)
       #gzip -f ${temple_prefix}_in_${origdsetprefix}.nii
       3drefit -space $origspace ${temple_prefix}_in_${origdsetprefix}.nii.gz
   endif
-    echo "Templ, NL-warped to native sp : ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
-#  echo "template in native space: ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> $animalouts
+    echo "Templ, NL-warped to orig : ${temple_prefix}_in_${origdsetprefix}.nii.gz" >> ${animal_outs}
+
 end
 
  # warp segmentation from atlas back to the original macaque space
@@ -884,8 +874,8 @@ end
            #mv ${segsetdir}/${segname}_in_${origdsetprefix}.nii.gz \
            #     ./${segname}_in_${origdsetprefix}.nii.gz
        endif
-    echo "atlas/segmentation in native space : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
-            >> $animalouts
+    echo "Atlas/seg, NL-warped to orig : ${seg_prefix}_in_${origdsetprefix}.nii.gz"\
+            >> ${animal_outs}
     end 
     
           
@@ -938,8 +928,8 @@ end
             -o  ${templatename}_in_${origdsetprefix}.gii -overwrite \
             -noxform -Tsmooth 0.01 6 
        endif
-       echo "Surface of template in native space : ${templatename}_in_${origdsetprefix}.gii" \
-            >> $animalouts
+          echo "Templ surf in orig           : ${templatename}_in_${origdsetprefix}.gii" \
+            >> ${animal_outs}
 
 #       if (($ok_to_exist == "1") && (-f  surfaces/native*.gii )) then
 #          echo "reusing segmentation surfaces in native space"
@@ -954,8 +944,8 @@ end
               cd ..
            endif
 #       endif
-       echo "individual surfaces of atlas/segmentation in native space: ./surfaces" \
-            >> $animalouts
+            echo "Atlas/seg surfs in orig      : ./surfaces" \
+                >> ${animal_outs}
     endif
 
  endif
@@ -970,14 +960,10 @@ if($keep_temp != "1") then
    \rm -f "${templatename}_in_${origdsetprefix}_aniso*.nii.gz"
 endif
 
-echo "List of outputs (this file)  : $animalouts" >> $animalouts
-#echo "list of outputs (this file): $animalouts" >> $animalouts
+# finish outputs and exit gracefully: normal exit for default proc
+goto FINISH_OUTS
 
-echo "Highlights of the output:"
-# show to user now
-cat $animalouts
-  
-exit 0
+# -------------------------------------------
 
 # notes
 
@@ -1185,4 +1171,18 @@ This script is derived from macaque_align.csh and NMT_subject_align.csh,
  datasets and tools
 SCRIPT_HELP_STRING
 
-   exit
+   exit 0
+
+# ---------------------------------------
+
+FINISH_OUTS:
+
+echo "List of outputs (this file)  : ${animal_outs}" >> ${animal_outs}
+echo ""                                              >> ${animal_outs}
+echo "# Command  :  $argv"                           >> ${animal_outs}
+
+echo "Highlights of the output:"
+# show list of outputs
+cat ${animal_outs}
+  
+exit 0
