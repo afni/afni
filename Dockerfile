@@ -37,56 +37,41 @@ RUN apt-get update -y -qq \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Install some dependencies for python 3 (including testing dependencies)
-RUN curl -fsSL https://bootstrap.pypa.io/get-pip.py | python3 - --no-cache-dir \
-    # Add some dependencies for testing and coverage calculation
-    && pip3 install --no-cache-dir \
-            codecov \
-            pytest \
-            pytest-cov \
-            numpy \
-            pandas \
-            nibabel \
-            datalad \
-            pytest-parallel \
-            autopep8 \
-            black \
-            pdbpp
+
+ENV CONDA_DIR="/opt/miniconda-latest" \
+    PATH="/opt/miniconda-latest/bin:$PATH"
+RUN export PATH="/opt/miniconda-latest/bin:$PATH" \
+    && echo "Downloading Miniconda installer ..." \
+    && conda_installer="/tmp/miniconda.sh" \
+    && curl -fsSL --retry 5 -o "$conda_installer" https://repo.continuum.io/miniconda/Miniconda3-latest-Linux-x86_64.sh \
+    && bash "$conda_installer" -b -p /opt/miniconda-latest \
+    && rm -f "$conda_installer" \
+    && conda update -yq -nbase conda \
+    && conda config --system --prepend channels conda-forge \
+    && conda config --system --set auto_update_conda false \
+    && conda config --system --set show_channel_urls true \
+    && sync && conda clean --all && sync \
+    && conda create -y -q --name neuro \
+    && sync && conda clean --all && sync
+
+
+ENV PATH="/opt/miniconda-latest/envs/neuro/bin:$PATH"
+RUN conda install -y -q --name neuro \
+           "conda-build" \
+           "cmake" \
+           "jpeg" \
+           "libnetcdf" \
+           "ninja" \
+    && sync && conda clean --all && sync
+
 
 # Copy AFNI source code. This can invalidate the build cache.
 ARG AFNI_ROOT=/opt/afni
 COPY [".", "$AFNI_ROOT/"]
 
-ARG AFNI_MAKEFILE_SUFFIX=linux_ubuntu_16_64
-ARG AFNI_WITH_COVERAGE="0"
 
-WORKDIR "$AFNI_ROOT/src"
-RUN \
-    if [ "$AFNI_WITH_COVERAGE" != "0" ]; then \
-      echo "Adding testing and coverage components" \
-      && sed -i 's/# CPROF = /CPROF =  -coverage /' Makefile.$AFNI_MAKEFILE_SUFFIX ;\
-      fi \
-    && make -f  Makefile.$AFNI_MAKEFILE_SUFFIX afni_src.tgz \
-    && mv afni_src.tgz .. \
-    && cd .. \
-    \
-    # Empty the src directory, and replace with the contents of afni_src.tgz
-    && rm -rf src/ && mkdir src \
-    && tar -xzf afni_src.tgz -C $AFNI_ROOT/src --strip-components=1 \
-    && rm afni_src.tgz \
-    \
-    # Build AFNI.
-    && cd src \
-    && cp Makefile.$AFNI_MAKEFILE_SUFFIX Makefile \
-    # Clean in case there are some stray object files
-    && make cleanest \
-    && make itall  | tee /build_log.txt \
-    && mv $AFNI_MAKEFILE_SUFFIX $AFNI_ROOT/abin
+RUN  mkdir -p /build
+WORKDIR /build
 
-ENV PATH="$AFNI_ROOT/abin:$PATH"
-
-# set non interactive backend for matplotlib
-RUN mkdir -p /root/.config/matplotlib \
-    && echo "backend: Agg" > /root/.config/matplotlib/matplotlibrc
-
-WORKDIR "$AFNI_ROOT"
+# RUN  cmake -GNinja $AFNI_ROOT
+# RUN ninja install
