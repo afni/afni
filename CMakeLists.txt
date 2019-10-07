@@ -15,8 +15,12 @@ project(AFNI
         VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "A package for the analysis of functional neuroimaging.")
 string(TIMESTAMP BUILD_DATE "%m %d %Y")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h" @ONLY)
 
+set(AFNI_VERSION_HEADER "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h")
+file(WRITE ${AFNI_VERSION_HEADER} "\
+#define AFNI_VERSION_LABEL    \"AFNI_${GIT_REPO_VERSION}\"
+#define AFNI_VERSION_PLATFORM \"${CMAKE_SYSTEM_NAME}_cmake\" \
+")
 
 ################################################################################
 # Set build variables and include modules

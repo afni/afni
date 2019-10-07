@@ -1,3 +1,5 @@
+set_source_files_properties(afni.c afni_version.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF")
+
 add_executable(afni afni.c afni_cluster.c afni_driver.c afni_environ.c
 afni_filer.c afni_fimfunc.c afni_fimmer.c afni_friends.c afni_func.c
 afni_graph.c afni_lock.c afni_logger.c afni_niml.c afni_pcor.c afni_plugin.c

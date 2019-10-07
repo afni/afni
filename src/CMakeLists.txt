@@ -1,11 +1,12 @@
 add_library(libheaders INTERFACE)
+set_source_files_properties(debugtrace.h PROPERTIES COMPILE_DEFINITIONS "SHOWOFF")
 target_sources(libheaders INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/3ddata.h ${CMAKE_CURRENT_SOURCE_DIR}/AFNI_label.h ${CMAKE_CURRENT_SOURCE_DIR}/Amalloc.h ${CMAKE_CURRENT_SOURCE_DIR}/afni_environ.h ${CMAKE_CURRENT_SOURCE_DIR}/afni_suma.h
   ${CMAKE_CURRENT_SOURCE_DIR}/afni_warp.h ${CMAKE_CURRENT_SOURCE_DIR}/cs.h ${CMAKE_CURRENT_SOURCE_DIR}/cs_qsort_small.h ${CMAKE_CURRENT_SOURCE_DIR}/cs_sort_template.h
   ${CMAKE_CURRENT_SOURCE_DIR}/debugtrace.h ${CMAKE_CURRENT_SOURCE_DIR}/editvol.h ${CMAKE_CURRENT_SOURCE_DIR}/eispack.h ${CMAKE_CURRENT_SOURCE_DIR}/killer.h ${CMAKE_CURRENT_SOURCE_DIR}/list_struct.h ${CMAKE_CURRENT_SOURCE_DIR}/machdep.h
   ${CMAKE_CURRENT_SOURCE_DIR}/mcw_glob.h ${CMAKE_CURRENT_SOURCE_DIR}/mcw_malloc.h ${CMAKE_CURRENT_SOURCE_DIR}/mri_dicom_stuff.h ${CMAKE_CURRENT_SOURCE_DIR}/mri_warpfield.h ${CMAKE_CURRENT_SOURCE_DIR}/mrilib.h
   ${CMAKE_CURRENT_SOURCE_DIR}/multivector.h  ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
   ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_CA_EZ.h ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h ${CMAKE_CURRENT_SOURCE_DIR}/vol2surf.h
-  ${CMAKE_CURRENT_SOURCE_DIR}/xutil.h ${CMAKE_CURRENT_BINARY_DIR}/AFNI_version.h ${CMAKE_CURRENT_SOURCE_DIR}/r_new_resam_dset.h ${CMAKE_CURRENT_SOURCE_DIR}/r_idisp.h ${CMAKE_CURRENT_SOURCE_DIR}/ge4_header.h)
+  ${CMAKE_CURRENT_SOURCE_DIR}/xutil.h ${AFNI_VERSION_HEADER} ${CMAKE_CURRENT_SOURCE_DIR}/r_new_resam_dset.h ${CMAKE_CURRENT_SOURCE_DIR}/r_idisp.h ${CMAKE_CURRENT_SOURCE_DIR}/ge4_header.h)
 target_include_directories(libheaders 
   INTERFACE
   ${CMAKE_CURRENT_SOURCE_DIR} 
@@ -105,7 +106,7 @@ foreach(target Xphace afni_open aiv)
   target_include_directories(${target} PUBLIC $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>)
 endforeach(target)
 
-
+set_source_files_properties(thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF")
 set_os_flags(thd_filestuff.c)
 set_os_flags(machdep.c)
 set(SOMEAFOBJS afni_warp.c pbar_color_defs.c afni_ports.c)
