@@ -1,36 +1,27 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+################################################################################
+# Set policies
+cmake_policy(SET CMP0048 NEW)
 
-execute_process(COMMAND git "describe" "--tags"
-  OUTPUT_VARIABLE GIT_REPO_VERSION_UNCLEANED
-  WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
-  ERROR_QUIET)
-string(REGEX MATCH "[0-9]+\\.[0-9]+\\.[0-9]+(\\.[0-9]+(\\.g[0-9a-f]+)?)?"
- GIT_REPO_VERSION  "${GIT_REPO_VERSION_UNCLEANED}")
+################################################################################
+# Set module path and import some macros
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(get_git_repo_version)
+include(get_build_macros_and_functions)
 
-if (GIT_REPO_VERSION STREQUAL "")
-  if (DEFINED ENV{GIT_DESCRIBE_TAG})
-    message("TAG:" ENV{GIT_DESCRIBE_TAG})
-    set(GIT_REPO_VERSION ENV{GIT_DESCRIBE_TAG})
-  else()
-    set(GIT_REPO_VERSION "99.99.99")
-  endif()
-endif()
-
+################################################################################
+# Project info
 project(AFNI
         VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "A package for the analysis of functional neuroimaging.")
+string(TIMESTAMP BUILD_DATE "%m %d %Y")
+configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h" @ONLY)
 
+
+################################################################################
+# Set build variables and include modules
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_SHARED_LIBS ON)
-
-### Require out-of-source builds
-# file(TO_CMAKE_PATH "${PROJECT_BINARY_DIR}/CMakeLists.txt" LOC_PATH)
-# if(EXISTS "${LOC_PATH}")
-#     message(FATAL_ERROR "You cannot build in a source directory (or any directory with a CMakeLists.txt file). Please make a build subdirectory. Feel free to remove CMakeCache.txt and CMakeFiles.")
-# endif()
-
-# Set policies
-cmake_policy(SET CMP0048 NEW)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING") # XXX not in default cflags
@@ -39,70 +30,6 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
 endif()
-
-
-macro(get_afni_rpath)
-  ## Needed for correct linking when installing.
-  ## see https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
-  # get_property(_nifti TARGET NIFTI::niftiio PROPERTY LOCATION)
-  # get_filename_component(_nifti_libraries ${_nifti} DIRECTORY)
-  # get_property(_gifti TARGET GIFTI::giftiio PROPERTY LOCATION)
-  # get_filename_component(_gifti_libraries ${_gifti} DIRECTORY)
-  if(TARGET_TYPE MATCHES "LIBRARY")
-    set(INSTALL_PATH ${AFNI_INSTALL_LIBRARY_DIR})
-  else()  
-    set(INSTALL_PATH ${AFNI_INSTALL_RUNTIME_DIR})
-  endif()
-  # Prepare RPATH
-  file(RELATIVE_PATH _rel_afni ${INSTALL_PATH} ${AFNI_INSTALL_LIBRARY_DIR})
-  # file(RELATIVE_PATH _rel_nifti ${INSTALL_PATH} ${_nifti_libraries})
-  # file(RELATIVE_PATH _rel_gifti ${INSTALL_PATH} ${_gifti_libraries})
-  if(APPLE)
-    set(message_RPATH 
-      "@loader_path/${_rel_afni}"
-      # "@loader_path/${_rel_nifti}"
-      # "@loader_path/${_rel_gifti}"
-      )
-  else()
-    set(message_RPATH 
-      "\$ORIGIN/${_rel_afni}"
-      # "\$ORIGIN/${_rel_nifti}"
-      # "\$ORIGIN/${_rel_gifti}"
-      )
-  endif()
-  # file(TO_NATIVE_PATH "${_rpath}" message_RPATH)
-endmacro()
-
-macro(add_afni_target_properties target)
-  # this macro sets some default properties for targets in this project
-  get_afni_rpath()
-  # define installation prefix
-  get_target_property(TARGET_TYPE ${target} TYPE)
-  # Set the target properties
-  # Currently this includes setting up post-install linking
-
-  if(NOT DEFINED ENV{CONDA_BUILD})
-    set_target_properties(${target} PROPERTIES
-      SKIP_BUILD_RPATH OFF
-      BUILD_WITH_INSTALL_RPATH OFF
-      INSTALL_RPATH "${message_RPATH}"
-      INSTALL_RPATH_USE_LINK_PATH ON
-      )
-  endif()
-  set_target_properties(${target} PROPERTIES
-    MACOSX_RPATH ON
-    )
-
-  if (CONDA_BUILD)
-    set_target_properties(${target} PROPERTIES
-      INSTALL_RPATH "${message_RPATH}"
-      )
-  endif()
-    # INSTALL_RPATH_USE_LINK_PATH ON
-    # SKIP_BUILD_RPATH OFF
-    # BUILD_WITH_INSTALL_RPATH OFF
-endmacro()
-
 
 set(INSTALL_TO_ABIN 0)
 if(${INSTALL_TO_ABIN})
@@ -122,7 +49,7 @@ if (CONDA_BUILD)
   get_filename_component(AFNI_INSTALL_INCLUDE_DIR ${AFNI_INSTALL_INCLUDE_DIR} DIRECTORY)
   message("The library: " ${AFNI_INSTALL_LIBRARY_DIR})
 endif()
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+
 
 include(CPack)
 include(CMakePackageConfigHelpers)
@@ -130,44 +57,16 @@ include(FindX11)
 include(FindMotif)
 include(FindNetCDF)
 
-macro(set_os_flags src_file)
-    # sets os specific compile definintions for source files. This is currently
-  # superfluous because debugging without these global flags set has not been
-  # done
-  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
-    set_source_files_properties(${src_file} PROPERTIES COMPILE_DEFINITIONS "LINUX;LINUX2")
-  elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
-    remove_definitions("-DLINUX")
-    set_source_files_properties(${src_file} PROPERTIES COMPILE_DEFINITIONS "LINUX;DARWIN")
-    message(STATUS "Configuring on/for macOS")
-  elseif(CMAKE_SYSTEM_NAME STREQUAL "Windows")
-    message(FATAL_ERROR "Windows is not supported for this build")
-  else()
-    message(STATUS "Configuring on/for ${CMAKE_SYSTEM_NAME}. Not sure if this will work...")
-  endif()
-endmacro()
 # Find or fetch nifti_clib
-
 # a prefix can be used to avoid collisions with pre-existsing installations of
 # the nifti libraries
 set(NIFTI_PACKAGE_PREFIX "" CACHE STRING "Nifti package prefix for afni project.")
-
 set(NIFTI_LIBRARY_PROPERTIES ${AFNI_LIBRARY_PROPERTIES} CACHE STRING "Set the nifti library properties to match AFNI" FORCE)
 include(get_nifti_and_gifti_targets)
-string(TIMESTAMP BUILD_DATE "%m %d %Y")
-configure_file(${CMAKE_CURRENT_SOURCE_DIR}/src/AFNI_version.h.in "${CMAKE_CURRENT_BINARY_DIR}/src/AFNI_version.h" @ONLY)
-
-# Add the source code to build
-add_subdirectory(src)
 
 
+################################################################################
 # Docs, licence, and README
-function(quotize input basename)
-  set(output "${basename}.h")
-  add_custom_command(OUTPUT "${output}"
-    COMMAND quotize "${basename}" < "${input}" > "${output}"
-    MAIN_DEPENDENCY quotize)
-endfunction(quotize)
 set(DOC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doc)
 if(EXISTS ${DOC_DIR})
 quotize("${DOC_DIR}/README/README.copyright" license)
@@ -177,8 +76,10 @@ add_subdirectory(doc)
 endif()
 quotize("${CMAKE_CURRENT_SOURCE_DIR}/afni_papers.txt" afni_papers)
 
-
-
+################################################################################
+# Add the source code to build
+add_subdirectory(src)
+################################################################################
 # Tests 
 option(ENABLE_TESTS "Enable tests" OFF)
 if (${ENABLE_TESTS})
@@ -188,15 +89,6 @@ set(TESTS_DIR ${CMAKE_CURRENT_SOURCE_DIR}/tests)
 if(EXISTS ${DOC_DIR})
 add_subdirectory(tests)
 endif()
-
-add_test(3dAllineate python3 ${TESTS_DIR}/pytest_tests/test_3dAllineate.py)
-add_test(3dSkullStrip python3 ${TESTS_DIR}/pytest_tests/test_3dSkullStrip.py)
-add_test(help_messages python3 ${TESTS_DIR}/pytest_tests/test_help_messages.py)
-add_test(3dClustSim python3 ${TESTS_DIR}/pytest_tests/test_3dClustSim.py)
-add_test(3dttest python3 ${TESTS_DIR}/pytest_tests/test_3dttest++.py)
-# add_test(afni_proc python3 ${TESTS_DIR}/pytest_tests/test_afni_proc.py)
-
-
 
 ################################################################################
 # Using clang-tidy:
@@ -239,11 +131,6 @@ endif()
 #     message(FATAL_ERROR "The submodules were not downloaded! GIT_SUBMODULE was turned off or failed. Please update submodules and try again.")
 # endif()
 
-# Check cmake version
-if(${CMAKE_VERSION} VERSION_LESS 3.12)
-    cmake_policy(VERSION ${CMAKE_MAJOR_VERSION}.${CMAKE_MINOR_VERSION})
-endif()
-
 
 # Write out package version information
 write_basic_package_version_file(
@@ -251,22 +138,5 @@ write_basic_package_version_file(
     VERSION ${PROJECT_VERSION}
     COMPATIBILITY AnyNewerVersion
     )
-
-
-# Read in the line containing the version
-# file(STRINGS "${CMAKE_CURRENT_SOURCE_DIR}/include/My/Version.hpp"
-#     VERSION_STRING REGEX ${VERSION_REGEX})
-
-# # Pick out just the version
-# string(REGEX REPLACE ${VERSION_REGEX} "\\1" VERSION_STRING "${VERSION_STRING}")
-
-# Automatically getting PROJECT_VERSION_MAJOR, My_VERSION_MAJOR, etc.
-# project(My LANGUAGES CXX VERSION ${VERSION_STRING})
-
-include(GNUInstallDirs OPTIONAL RESULT_VARIABLE GNUInstallDirs_FOUND)
-if(NOT GNUInstallDirs_FOUND)
-  # TODO add windows paths
-endif(NOT GNUInstallDirs_FOUND)
-
 
 
