@@ -32,7 +32,7 @@ add_library(f2cdir ${OBJ} ${MISC} ${POW} ${CX} ${DCX} ${REAL} ${DBL}
  ${INT} ${HALF} ${CMP} ${EFL} ${CHAR} ${F90BIT})
 
 target_include_directories(f2cdir PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
-set_target_properties(f2cdir PROPERTIES PUBLIC_HEADER f2cdir.h)
+set_target_properties(f2cdir PROPERTIES PUBLIC_HEADER f2c.h)
 add_afni_target_properties(f2cdir)
 target_link_libraries(f2cdir NIFTI::nifticdf)
 install(TARGETS f2cdir
