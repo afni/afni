@@ -5,6 +5,11 @@ niml_md5.c niml_private.h niml_registry.c niml_rowtype.c niml_stat.c
 niml_stream.c niml_struct.c niml_sucker.c niml_url.c niml_util.c niml_uuid.c
 niml_vector.c)
 
-set_target_properties(niml PROPERTIES PUBLIC_HEADER ../niml.h )
+set_target_properties(niml PROPERTIES PUBLIC_HEADER niml.h )
+target_include_directories(niml INTERFACE 
+  $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
+  $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR})
+add_afni_target_properties(niml)
+
 target_link_libraries(niml libheaders) 
 add_library(AFNI::niml ALIAS niml)
