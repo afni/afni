@@ -106,6 +106,8 @@ int pic_i;
 char gif_file_name[BIGSTRING];
 int screen_was_last;
 
+void big_Usage(void);
+int GIF_Get_Short(FILE *fp, FILE *fout, int first_time);
 
 void TheEnd()
 {
@@ -799,7 +801,7 @@ if(debug_flag>1) fprintf(stderr,"Couldn't parse offset values.\n");
 exit(0);
 }
 
-big_Usage()
+void big_Usage(void)
 {
    printf("\n"
      "whirlgif is a quick program that reads a series of GIF files, and produces\n"
