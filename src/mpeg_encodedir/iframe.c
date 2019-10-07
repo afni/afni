@@ -250,6 +250,8 @@ void AllocDctBlocks _ANSI_ARGS_((void ));
 int SetFCodeHelper _ANSI_ARGS_((int sr));
 void CalcDistortion _ANSI_ARGS_((MpegFrame *current, int y, int x));
 
+extern void Mpost_UnQuantZigBlockLaplace _ANSI_ARGS_((FlatBlock in, Block out, int qscale, boolean iblock));
+
 int
   SetFCodeHelper(SR)
 int SR;
