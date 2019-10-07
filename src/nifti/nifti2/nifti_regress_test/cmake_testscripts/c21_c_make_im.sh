@@ -32,6 +32,16 @@ fi
 # store result for future use
 tfile11=$prefix.10.nii
 
+# modify slice_start and slice_duration
+if $NT -mod_hdr -mod_field slice_start 3 -mod_field slice_duration 0.04 \
+       -infiles $tfile11 -overwrite
+then
+echo "=== mod_hdr 1 slice_dur succeeded"
+else
+echo === mod_hdr 1 slice_dur failed
+exit 1
+fi
+
 
 # create ASCII based image as alternate
 if $NT -mod_nim -mod_field descrip 'try ASCII' \
@@ -66,14 +76,85 @@ echo === add_comment_ext 4 failed
 exit 1
 fi
 
-if $NT -disp_exts -infiles $tfile12
+
+# ------------------------------------------------------------
+# many tests for part 5
+if $NT -rm_ext 1 -infiles $tfile12 -debug 3 -overwrite
 then
-echo "=== disp_exts 5 succeeded"
+echo "=== rm_ext 5.0 succeeded"
 else
-echo === disp_exts 5 failed
+echo === rm_ext 5.0 failed
 exit 1
 fi
 
+# test adding an extension from a file
+cat > $prefix.my_extension.txt << EOF
+here is some formatted
+  extension, added via some stupid text file
+EOF
+
+if $NT -add_afni_ext "file:$prefix.my_extension.txt" \
+       -infiles $tfile12 -prefix $prefix.11.b.nii.gz
+then
+echo "=== add_afni_ext 5.1 succeeded"
+else
+echo === add_afni_ext 5.1 failed
+exit 1
+fi
+
+# and compare
+if $NT -diff_hdr1 -infiles $tfile11 $prefix.11.b.nii.gz
+then
+echo === diff_hdr1 5.2 failed
+exit 1
+else
+echo "=== good: diff_hdr1 5.2 showed a diff"
+fi
+
+# display the new exts
+if $NT -disp_exts -infiles $prefix.11.b.nii.gz
+then
+echo "=== diff_exts 5.3 succeeded"
+else
+echo === diff_exts 5.3 failed
+exit 1
+fi
+
+if $NT -check_nim -infiles $prefix.11.b.nii.gz
+then
+echo "=== check_nim 5.4 succeeded"
+else
+echo === check_nim 5.4 failed
+exit 1
+fi
+
+if $NT -disp_hdr1 -infiles $prefix.11.b.nii.gz -field descrip
+then
+echo "=== disp_hdr1 descrip 5.5 succeeded"
+else
+echo === disp_hdr1 descrip 5.5 failed
+exit 1
+fi
+
+if $NT -disp_ana  -infiles $prefix.11.b.nii.gz
+then
+echo "=== disp_ana 5.6 succeeded"
+else
+echo === disp_ana 5.6 failed
+exit 1
+fi
+
+if $NT -strip_extras -infiles $tfile12 -debug 3 -overwrite
+then
+echo "=== strip_extras 5.7 succeeded"
+else
+echo === strip_extras 5.7 failed
+exit 1
+fi
+
+
+# end part 5
+# ------------------------------------------------------------
 
 # and compare (as nim, we are not allowed to diff different hdr types)
 if $NT -diff_nim -debug 3 -infiles $tfile11 $tfile12

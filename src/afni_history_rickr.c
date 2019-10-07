@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Oct, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "probably the last set of test updates for now",
+   NULL
+ } ,
+
  {  4, Oct, 2019, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
    "allow for longer input and output file names",
    "Names were malloc'd with MAX_NAME_LENGTH; use nifti_strdup, instead.\n"
