@@ -11,6 +11,20 @@
 
          
 
+int is_archive_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!strcmp(FN->Ext,".tar")) {
+      a = 1; 
+   } else if (!strcmp(FN->Ext,".tgz")){ 
+      a = 1|2; /* With compression flag? 
+                  Not sure if we should handle this here
+                  Could have an is_compressed query separately...*/
+   }
+   return(a);
+}
+
 int is_archive(char *name)
 {
    int a;
@@ -24,16 +38,12 @@ int is_archive(char *name)
    return(a);
 }
 
-int is_archive_pn(SUMA_PARSED_NAME *FN)
+int is_pdf_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
-   if (!strcmp(FN->Ext,".tar")) {
+   if (!strcmp(FN->Ext,".pdf")) {
       a = 1; 
-   } else if (!strcmp(FN->Ext,".tgz")){ 
-      a = 1|2; /* With compression flag? 
-                  Not sure if we should handle this here
-                  Could have an is_compressed query separately...*/
    }
    return(a);
 }
@@ -51,11 +61,11 @@ int is_pdf(char *name)
    return(a);
 }
 
-int is_pdf_pn(SUMA_PARSED_NAME *FN)
+int is_image_pn(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
-   if (!strcmp(FN->Ext,".pdf")) {
+   if (!strcmp(FN->Ext,".jpg")) {
       a = 1; 
    }
    return(a);
@@ -74,17 +84,18 @@ int is_image(char *name)
    return(a);
 }
 
-int is_image_pn(SUMA_PARSED_NAME *FN)
+int is_url_pn(SUMA_PARSED_NAME *FN) 
 {
    int a = 0;
    if (!FN) return(0);
-   if (!strcmp(FN->Ext,".jpg")) {
-      a = 1; 
-   }
-   return(a);
+   if (FN->OnDisk) return(0); /* should not be on disk */
+   if (strstr(FN->NameAsParsed,"http:")==FN->NameAsParsed) return(1);
+   if (strstr(FN->NameAsParsed,"file:")==FN->NameAsParsed) return(1);
+   if (strstr(FN->NameAsParsed,"afni.nimh.nih.gov")==FN->NameAsParsed) return(1);
+   return(0);
 }
 
-int is_url(char *name) 
+int is_url(char *name)
 {
    int a;
    SUMA_PARSED_NAME *pn;
@@ -97,18 +108,7 @@ int is_url(char *name)
    return(a);
 }
 
-int is_url_pn(SUMA_PARSED_NAME *FN) 
-{
-   int a = 0;
-   if (!FN) return(0);
-   if (FN->OnDisk) return(0); /* should not be on disk */
-   if (strstr(FN->NameAsParsed,"http:")==FN->NameAsParsed) return(1);
-   if (strstr(FN->NameAsParsed,"file:")==FN->NameAsParsed) return(1);
-   if (strstr(FN->NameAsParsed,"afni.nimh.nih.gov")==FN->NameAsParsed) return(1);
-   return(0);
-}
-
-int is_local_html(SUMA_PARSED_NAME *FN) 
+int is_local_html(SUMA_PARSED_NAME *FN)
 {
    int a = 0;
    if (!FN) return(0);
@@ -117,7 +117,18 @@ int is_local_html(SUMA_PARSED_NAME *FN)
    return(0);
 }
 
-int is_xmat(char *name) 
+int is_xmat_pn(SUMA_PARSED_NAME *FN)
+{
+   int a = 0;
+   if (!FN) return(0);
+   if (!FN->OnDisk) return(0); /* should be on disk */
+   if (!strcmp(FN->Ext,".xmat")) {
+      a = 1; 
+   }
+   return(a);
+}
+
+int is_xmat(char *name)
 {
    int a;
    SUMA_PARSED_NAME *pn;
@@ -127,17 +138,6 @@ int is_xmat(char *name)
    }
    a = is_xmat_pn(pn);
    SUMA_Free_Parsed_Name (pn);
-   return(a);
-}
-
-int is_xmat_pn(SUMA_PARSED_NAME *FN) 
-{
-   int a = 0;
-   if (!FN) return(0);
-   if (!FN->OnDisk) return(0); /* should be on disk */
-   if (!strcmp(FN->Ext,".xmat")) {
-      a = 1; 
-   }
    return(a);
 }
 
@@ -177,6 +177,23 @@ int ao_with_downloader(char *fname, byte back)
    
    snprintf(cmd,1023*sizeof(char),"%s %s %c", 
             downloader, fname, back ? '&' : ' ');
+   s = system(cmd);
+   return(s);
+}
+
+int ao_with_pdf_viewer(char *fname)
+{
+   char cmd[1024];
+   static char *pdfviewer=NULL;
+   int s;
+
+   if (!pdfviewer && !(pdfviewer=GetAfniPDFViewer())) {
+      ERROR_message("No pdf viewer");
+      return(-1);
+   }
+   if (!fname) return(-2);
+
+   snprintf(cmd,1023*sizeof(char),"%s %s &", pdfviewer, fname);
    s = system(cmd);
    return(s);
 }
@@ -245,23 +262,6 @@ int ao_with_readme(char *fname)
    return(s);
 }
 
-int ao_with_pdf_viewer(char *fname)
-{
-   char cmd[1024];
-   static char *pdfviewer=NULL;
-   int s;
-   
-   if (!pdfviewer && !(pdfviewer=GetAfniPDFViewer())) {
-      ERROR_message("No pdf viewer");
-      return(-1);
-   }
-   if (!fname) return(-2);
-   
-   snprintf(cmd,1023*sizeof(char),"%s %s &", pdfviewer, fname);
-   s = system(cmd);
-   return(s);
-}
-                           
 int ao_with_image_viewer(char *fname)
 {
    char cmd[1024];
@@ -314,24 +314,6 @@ int ao_with_ExamineXmat(char *fname)
    return(s);
 }
 
-int ao_with_suma(char *name)
-{
-   char cmd[1024];
-   int a;
-   SUMA_PARSED_NAME *pn;
-   
-   if (!name) return(-2);
-   if (!(pn = SUMA_ParseFname (name,NULL))) {
-      return(-3);
-   }
-   
-   a = ao_with_suma_pn(pn);
-   SUMA_Free_Parsed_Name (pn);
-   
-   return(a);
-}
-
-
 int ao_with_suma_pn(SUMA_PARSED_NAME *FN) 
 {
    int a = 0, s;
@@ -363,6 +345,23 @@ int ao_with_suma_pn(SUMA_PARSED_NAME *FN)
    }
    
    return(s); 
+}
+
+int ao_with_suma(char *name)
+{
+   char cmd[1024];
+   int a;
+   SUMA_PARSED_NAME *pn;
+
+   if (!name) return(-2);
+   if (!(pn = SUMA_ParseFname (name,NULL))) {
+      return(-3);
+   }
+
+   a = ao_with_suma_pn(pn);
+   SUMA_Free_Parsed_Name (pn);
+
+   return(a);
 }
 
 /*----------------------------------------------------------------------------*/
