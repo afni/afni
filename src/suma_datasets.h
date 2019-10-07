@@ -1693,6 +1693,7 @@ byte SUMA_isGraphDset(SUMA_DSET *dset);
 byte SUMA_isGraphDsetNgr(NI_group *ngr);
 byte SUMA_isTractDset(SUMA_DSET *dset);
 byte SUMA_isTractDsetNgr(NI_group *ngr);
+byte SUMA_isMD_Dset(SUMA_DSET *dset);
 byte SUMA_isCIFTIDset(SUMA_DSET *dset);
 byte SUMA_isCIFTIDsetNgr(NI_group *ngr);
 SUMA_Boolean SUMA_Add_Dset_Aux(SUMA_DSET *dset);
