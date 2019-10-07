@@ -1,5 +1,5 @@
 # currently not included: test-hyster-pnm.c test-edges-pnm.c test-edges.c
-add_library(3DEdge 3dedge.c convert.c iopnm.c recline.c
+add_library(3DEdge convert.c iopnm.c recline.c
      connexe.c extrema.c recbuffer.c
  zcross.c )
 set_target_properties(3DEdge PROPERTIES
