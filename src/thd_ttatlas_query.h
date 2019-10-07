@@ -341,6 +341,7 @@ int ends_with(char *name, char *quote, int debl);
 APPROX_STR_DIFF_WEIGHTS *init_str_diff_weights(APPROX_STR_DIFF_WEIGHTS *Dwi);
 float best_approx_str_match(char **words, int N_words, char *str, byte ci,
                            APPROX_STR_DIFF_WEIGHTS *Dwi);
+void test_approx_str_match(void);
 char **approx_str_sort(char **words, int N_words, char *str, byte ci, 
                        float **sorted_score, byte word_split,
                        APPROX_STR_DIFF_WEIGHTS *Dwi,
