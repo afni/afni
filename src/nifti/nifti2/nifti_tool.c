@@ -184,13 +184,14 @@ static const char * g_history[] =
   "2.07 19 Jul 2019 [rickr]\n",
   "   - can apply '-field HDR_SLICE_TIMING_FIELDS' (or NIM_) for easy\n"
   "     specification of field entries related to slice timing\n"
-  "2.08  4 Oct 2019 [rickr]\n",
+  "2.08  5 Oct 2019 [rickr]\n",
   "   - added option -run_misc_tests for functionality testing\n"
   "   - added many corresponding tests\n"
   "   - added some matrix manipulation macros\n"
+  "   - warn on type, and block print buffer overflow\n"
   "----------------------------------------------------------------------\n"
 };
-static char g_version[] = "version 2.08 (October 4, 2019)";
+static char g_version[] = "version 2.08 (October 5, 2019)";
 static int  g_debug = 1;
 
 #define _NIFTI_TOOL_C_
@@ -2532,10 +2533,14 @@ int act_diff_hdr1s( nt_opts * opts )
    nhdr0 = nt_read_header(opts->infiles.list[0], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
+   if( ! nifti_hdr1_looks_good(nhdr0) )
+      fprintf(stderr,"** invalid NIFTI-1 hdr: %s\n", opts->infiles.list[0]);
 
    nhdr1 = nt_read_header(opts->infiles.list[1], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
+   if( ! nifti_hdr1_looks_good(nhdr1) )
+      fprintf(stderr,"** invalid NIFTI-1 hdr: %s\n", opts->infiles.list[1]);
 
    if( g_debug > 1 )
       fprintf(stderr,"\n-d nifti_1_header diffs between '%s' and '%s'...\n",
@@ -2587,10 +2592,14 @@ int act_diff_hdr2s( nt_opts * opts )
    nhdr0 = nt_read_header(opts->infiles.list[0], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
+   if( ! nifti_hdr2_looks_good(nhdr0) )
+      fprintf(stderr,"** invalid NIFTI-2 hdr: %s\n", opts->infiles.list[0]);
 
    nhdr1 = nt_read_header(opts->infiles.list[1], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
+   if( ! nifti_hdr2_looks_good(nhdr1) )
+      fprintf(stderr,"** invalid NIFTI-2 hdr: %s\n", opts->infiles.list[1]);
 
    if( g_debug > 1 )
       fprintf(stderr,"\n-d nifti_2_header diffs between '%s' and '%s'...\n",
@@ -3754,7 +3763,7 @@ int modify_field(void * basep, field_s * field, const char * data)
                   return 1;
                }
                /* otherwise, we're good */
-               ((float *)((char *)basep + field->offset))[fc] = f64;
+               ((double *)((char *)basep + field->offset))[fc] = f64;
                if( g_debug > 1 )
                   fprintf(stderr,"+d setting posn %d of '%s' to %f\n",
                           fc, field->name, f64);
@@ -4901,10 +4910,11 @@ int act_disp_ci( nt_opts * opts )
 }
 
 
+#define NT_LOC_MAX_FLOAT_BUF 32
 int disp_raw_data( void * data, int type, int nvals, char space, int newline )
 {
-   char * dp, fbuf[32];
-   int    c, size;
+   char * dp, fbuf[NT_LOC_MAX_FLOAT_BUF];
+   int    c, size, nchar;
 
    nifti_datatype_sizes( type, &size, NULL );   /* get nbyper */
 
@@ -4935,16 +4945,28 @@ int disp_raw_data( void * data, int type, int nvals, char space, int newline )
                break;
          case DT_FLOAT32:
          {
-               sprintf(fbuf,"%f", *(float *)dp);
-               clear_float_zeros(fbuf);
-               printf("%s", fbuf);
+               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%f",
+                                *(float *)dp);
+               /* if it is a large number for some reason, print as is */
+               if( nchar >= NT_LOC_MAX_FLOAT_BUF ) {
+                  printf("%f", *(float *)dp);
+               } else {
+                  clear_float_zeros(fbuf);
+                  printf("%s", fbuf);
+               }
                break;
          }
          case DT_FLOAT64:
          {
-               sprintf(fbuf,"%f", *(double *)dp);
-               clear_float_zeros(fbuf);
-               printf("%s", fbuf);
+               nchar = snprintf(fbuf, NT_LOC_MAX_FLOAT_BUF, "%lf",
+                                *(double *)dp);
+               /* if it is a large number for some reason, print as is */
+               if( nchar >= NT_LOC_MAX_FLOAT_BUF ) {
+                  printf("%lf", *(double *)dp);
+               } else {
+                  clear_float_zeros(fbuf);
+                  printf("%s", fbuf);
+               }
                break;
          }
          default:
