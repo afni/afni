@@ -2534,13 +2534,15 @@ int act_diff_hdr1s( nt_opts * opts )
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
    if( ! nifti_hdr1_looks_good(nhdr0) )
-      fprintf(stderr,"** invalid NIFTI-1 hdr: %s\n", opts->infiles.list[0]);
+      fprintf(stderr,"** warning: invalid NIFTI-1 hdr: %s\n",
+              opts->infiles.list[0]);
 
    nhdr1 = nt_read_header(opts->infiles.list[1], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
    if( ! nifti_hdr1_looks_good(nhdr1) )
-      fprintf(stderr,"** invalid NIFTI-1 hdr: %s\n", opts->infiles.list[1]);
+      fprintf(stderr,"** warning: invalid NIFTI-1 hdr: %s\n",
+              opts->infiles.list[1]);
 
    if( g_debug > 1 )
       fprintf(stderr,"\n-d nifti_1_header diffs between '%s' and '%s'...\n",
@@ -2593,13 +2595,13 @@ int act_diff_hdr2s( nt_opts * opts )
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr0 ) return 1;  /* errors have been printed */
    if( ! nifti_hdr2_looks_good(nhdr0) )
-      fprintf(stderr,"** invalid NIFTI-2 hdr: %s\n", opts->infiles.list[0]);
+      fprintf(stderr,"** warning invalid NIFTI-2 hdr: %s\n", opts->infiles.list[0]);
 
    nhdr1 = nt_read_header(opts->infiles.list[1], &nv, NULL, 0,
                           opts->new_datatype, opts->new_dim);
    if( ! nhdr1 ){ free(nhdr0); return 1; }
    if( ! nifti_hdr2_looks_good(nhdr1) )
-      fprintf(stderr,"** invalid NIFTI-2 hdr: %s\n", opts->infiles.list[1]);
+      fprintf(stderr,"** warning invalid NIFTI-2 hdr: %s\n", opts->infiles.list[1]);
 
    if( g_debug > 1 )
       fprintf(stderr,"\n-d nifti_2_header diffs between '%s' and '%s'...\n",
