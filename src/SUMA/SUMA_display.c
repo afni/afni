@@ -1,7 +1,9 @@
 #include "SUMA_suma.h"
 #include "coxplot.h"
 #include "SUMA_plot.h"
- 
+
+extern int selenium_close(void) ;
+
 /*! Parts of the code in this file are based on code from the motif programming manual.
     This fact is mentioned at relevant spots in the code but the complete copyright 
     notice is only copied here for brevity:

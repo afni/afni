@@ -8,6 +8,7 @@
    
 #include "SUMA_suma.h"
 #include "../afni.h"
+#include <string.h>
 
 /* CODE */
 #ifdef SUMA_DISASTER

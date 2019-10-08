@@ -20,6 +20,9 @@
 /* Header FILES */
    
 #include "SUMA_suma.h"
+
+extern int selenium_close(void) ;
+
 static FILE *sumaout = NULL;             /* no default output stream */
 static int SUMA_drive_set_outstream(char *outfile);
 static FILE *SUMA_drive_get_outstream(void);
