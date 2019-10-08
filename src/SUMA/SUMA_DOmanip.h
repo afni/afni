@@ -89,6 +89,7 @@ SUMA_SurfaceObject *SUMA_FindSOp_inDOv_from_N_Node(
                         int check_unique, int return_parent,
                         SUMA_DO *dov, int N_dov);
 SUMA_Boolean  SUMA_is_ID_4_SO(char *idcode, SUMA_SurfaceObject **SOp);
+SUMA_MaskDO * SUMA_findShadowMDOp_inDOv(SUMA_DO *dov, int N_dov, int *dov_id);
 char *SUMA_find_SOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_VOLabel_from_idcode (char *idcode, SUMA_DO *dov, int N_dov);
 char *SUMA_find_SOidcode_from_label (char *label, SUMA_DO *dov, int N_dov);
