@@ -9,7 +9,7 @@ set_target_properties(niml PROPERTIES PUBLIC_HEADER niml.h )
 target_include_directories(niml INTERFACE 
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR})
+target_link_libraries(niml libheaders) 
 add_afni_target_properties(niml)
 
-target_link_libraries(niml libheaders) 
 add_library(AFNI::niml ALIAS niml)

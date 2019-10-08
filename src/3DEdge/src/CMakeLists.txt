@@ -10,8 +10,8 @@ target_include_directories(3DEdge
     ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE 
     $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>)
+target_link_libraries(3DEdge PRIVATE NIFTI::nifti2 NIFTI::nifticdf)
  
-target_link_libraries(3DEdge NIFTI::nifti2 NIFTI::nifticdf)
 install(TARGETS 3DEdge
        EXPORT AFNITargets
        RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}

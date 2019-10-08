@@ -11,14 +11,17 @@ zzlinx.c zzliny.c zzlogx.c zzlogy.c zzperi.c zzphph.c zzphys.c
 
 add_library(coxplot ${COXPLOT_SRCS})
 target_include_directories(coxplot 
-  PRIVATE ${MOTIF_INCLUDE_DIR} 
-  PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
-  $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>)
+  PRIVATE 
+    ${MOTIF_INCLUDE_DIR} 
+    $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
+  PUBLIC 
+    ${CMAKE_CURRENT_SOURCE_DIR}
+  )
 set_target_properties(coxplot PROPERTIES
 	PUBLIC_HEADER "coxplot.h;../machdep.h"
 )
+target_link_libraries(coxplot PRIVATE m AFNI::f2cdir ${MOTIF_LIBRARIES} ${X11_LIBRARIES} libheaders)
 add_afni_target_properties(coxplot)
-target_link_libraries(coxplot m AFNI::f2cdir ${MOTIF_LIBRARIES} ${X11_LIBRARIES} libheaders)
 
 
 install(TARGETS coxplot

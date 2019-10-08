@@ -28,8 +28,8 @@ target_include_directories(XmHTML
   ${X11_INCLUDE_DIR}
   $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}>
   $<INSTALL_INTERFACE:${AFNI_INSTALL_INCLUDE_DIR})
-
-target_link_libraries(XmHTML ${X11_Xpm_LIB} JPEG::JPEG)
+target_link_libraries(XmHTML PRIVATE ${X11_Xpm_LIB} JPEG::JPEG)
+add_afni_target_properties(XmHTML)
 
 
 # TODO: need to install include to XmHTML

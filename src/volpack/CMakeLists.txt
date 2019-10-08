@@ -7,6 +7,7 @@ vp_file.c vp_linalg.c vp_octree.c vp_opts.c vp_renderA.c vp_renderB.c
 vp_renderC.c vp_renderR.c vp_resample.c vp_rle.c vp_shade.c vp_transpose.c
 vp_util.c vp_view.c vp_warp.c vp_warpA101N.c vp_warpA110N.c vp_warpA111N.c
 vp_warpA301N.c vp_warpA330N.c vp_warpA330R.c vp_warpA331N.c vp_warpA331R.c)
+add_afni_target_properties(volpack)
 
 install(TARGETS volpack
   EXPORT AFNITargets

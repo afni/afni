@@ -26,6 +26,10 @@ file(WRITE ${AFNI_VERSION_HEADER} "\
 # Set build variables and include modules
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_SHARED_LIBS ON)
+OPTION(AFNI_BUILD_CORELIBS_ONLY
+       "Only build core libraries, no SUMA, plugins or programs"
+       OFF)
+OPTION(INSTALL_TO_ABIN "If OFF, installs to default gnu directories" OFF)
 
 set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG")
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING") # XXX not in default cflags
@@ -34,8 +38,11 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 elseif(CMAKE_SYSTEM_NAME STREQUAL "Darwin")
   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
 endif()
+SET(AFNI_INSTALL_ATLAS_DIR "atlases" CACHE PATH
+    "Directory to install atlases (and related information) into")
+SET(AFNI_INSTALL_PICS_DIR "funstuff" CACHE PATH
+    "Directory to install images into")
 
-set(INSTALL_TO_ABIN 0)
 if(${INSTALL_TO_ABIN})
   set(BASE_INSTALL_DIR $ENV{HOME}/abin)
   set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib)
@@ -43,9 +50,9 @@ if(${INSTALL_TO_ABIN})
   set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
 else()
 set(BASE_INSTALL_DIR ${CMAKE_INSTALL_PREFIX})
-set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib)
-set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR}/bin)
-set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include)
+set(AFNI_INSTALL_LIBRARY_DIR ${BASE_INSTALL_DIR}/lib CACHE PATH "")
+set(AFNI_INSTALL_RUNTIME_DIR ${BASE_INSTALL_DIR}/bin CACHE PATH "")
+set(AFNI_INSTALL_INCLUDE_DIR ${BASE_INSTALL_DIR}/include CACHE PATH "")
 endif()
 
 if (CONDA_BUILD)
@@ -60,7 +67,7 @@ include(CMakePackageConfigHelpers)
 include(FindX11)
 include(FindMotif)
 include(FindNetCDF)
-
+message(netcdf, ${NETCDF_LIBRARIES})
 # Find or fetch nifti_clib
 # a prefix can be used to avoid collisions with pre-existsing installations of
 # the nifti libraries
