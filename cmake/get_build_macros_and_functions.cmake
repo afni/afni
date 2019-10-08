@@ -59,8 +59,8 @@ endmacro()
 
 macro(add_afni_target_properties target)
   # this macro sets some default properties for targets in this project
-  get_afni_rpath()
   get_target_property(TARGET_TYPE ${target} TYPE)
+  get_afni_rpath()
 
   # Set the target properties
   if(NOT DEFINED ENV{CONDA_BUILD})
