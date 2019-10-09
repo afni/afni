@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.11, Aug 16, 2019
+Version 0.0.12, Oct 7, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -404,6 +404,12 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
    "        (when this option is not invoked) is 'ROI2'.\n", sep = '\n'
                      ) ),
 
+     '-ROIlist' = apl(n=1, d=NA, h = paste(
+   "-ROIlist file: List all the regions in a text file with one column in an order", 
+   "         preferred in the the output. When the option is not invoked, the region",
+   "         list may not be in a preferred order.\n", sep = '\n'
+                     ) ),
+
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
    "-dataTable TABLE: List the data structure in a table of long format (cf. wide",
    "         format) in R with a header as the first line. \n",
@@ -468,6 +474,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$MD      <- FALSE # for missing data 
       lop$r2z     <- FALSE # Fisher transformation
       lop$verb    <- 0
+      lop$ROIlist <- NA
 
    #Get user's input
    for (i in 1:length(ops)) {
@@ -488,11 +495,13 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              Subj   = lop$Subj   <- ops[[i]],
              ROI1   = lop$ROI1   <- ops[[i]],
              ROI2   = lop$ROI2   <- ops[[i]],
+             ROIlist= lop$ROIlist   <- ops[[i]],
              help    = help.MBA.opts(params, adieu=TRUE),
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
              r2z     = lop$r2z     <- TRUE,
              dataTable  = lop$dataTable <- read.table(ops[[i]], header=T),
+             #ROIlist    = lop$ROIlist   <- read.table(ops[[i]], header=F),
              )
    }
 
@@ -580,6 +589,10 @@ names(lop$dataTable)[names(lop$dataTable)==lop$Subj] <- 'Subj'
 names(lop$dataTable)[names(lop$dataTable)==lop$Y] <- 'Y'
 names(lop$dataTable)[names(lop$dataTable)==lop$ROI1] <- 'ROI1'
 names(lop$dataTable)[names(lop$dataTable)==lop$ROI2] <- 'ROI2'
+if(!is.na(lop$ROIlist)) {
+   lop$ROI <- read.table(lop$ROIlist, header=F)
+   names(lop$ROI) <- 'order'
+}
 
 # make sure ROI1, ROI2 and Subj are treated as factors
 if(!is.factor(lop$dataTable$ROI1)) lop$dataTable$ROI1 <- as.factor(lop$dataTable$ROI1)
@@ -600,6 +613,12 @@ if(length(terms) > 1) {
 
 # number of ROIs
 nR <- length(union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2)))
+if(!is.na(lop$ROIlist)) {
+   lop$ROI$order <- as.character(lop$ROI$order)
+   if(!setequal(lop$ROI$order, union(levels(lop$dataTable$ROI1), levels(lop$dataTable$ROI2)))) 
+   errex.AFNI(paste("The ROIs listed under option -ROIlist do not fully match those specified in the data table!"))
+   # change the factor levels to characters
+}
 
 cat('===== Summary of variable information =====', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat(sprintf('Total number of ROIs: %i', nR), 
@@ -719,15 +738,15 @@ if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars,
 }
 d2 <- function(ll, mm, nn) any(ll[,mm] < nn)
 # effective size check
-if(is.null(attr(rs$cor_pars, 'dimnames')[[1]])) {
-   if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, rs$random$ROI, rs$random$Subj), d2, 'Eff.Sample', 75))) {
-      cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   } 
-} else if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars, rs$random$ROI, rs$random$Subj), dd, 'Eff.Sample', 75))) {
-   cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-}
+#if(is.null(attr(rs$cor_pars, 'dimnames')[[1]])) {
+#   if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, rs$random$ROI, rs$random$Subj), d2, 'Eff.Sample', 75))) {
+#      cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#      cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   } 
+#} else if(any(sapply(list(fixed=rs$fixed, spec_pars=rs$spec_pars, cor_pars=rs$cor_pars, rs$random$ROI, rs$random$Subj), dd, 'Eff.Sample', 75))) {
+#   cat('\n***** WARNING: effective size too small!!! *****\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#   cat('Consider increasing the number of chains or iterations for Markov chains!\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+#}
 
 cat(capture.output(rs), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
 cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)   
@@ -876,7 +895,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   mPlot(xx, lop$EOIq[ii])
+   if(is.na(lop$ROIlist)) mPlot(xx, lop$EOIq[ii]) else mPlot(xx[lop$ROI$order, lop$ROI$order,], lop$EOIq[ii])
 }
 
 # for contrasts among quantitative variables
@@ -887,7 +906,8 @@ if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-   mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii]))
+   if(is.na(lop$ROIlist)) mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii])) else
+      mPlot(xx[lop$ROI$order, lop$ROI$order,], paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii]))
 }
 
 # for factor
@@ -917,7 +937,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) 
+      if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) else
+         mPlot(oo[lop$ROI$order, lop$ROI$order,], paste0(lop$EOIc[ii], '_', lvl[jj]))
    }
    
    cat(sprintf('===== Summary of region pair effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -928,7 +949,8 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       prnt(95, 1, res(bb, oo, 0.05),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025), lop$outFN, 'region pairs')
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
-      mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) 
+      if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) else
+        mPlot(oo[lop$ROI$order, lop$ROI$order,], paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk]))
    }
 }
 
