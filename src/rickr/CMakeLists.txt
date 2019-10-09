@@ -13,7 +13,7 @@ add_executable(column_cat column_cat.c)
 #	PUBLIC ${RICKR_INCLUDE_DIRS}
 #)
 
-target_link_libraries(file_tool PUBLIC m NIFTI::nifti2)
+target_link_libraries(file_tool PUBLIC NIFTI::nifti2 m)
 #target_link_libraries(Imon m)
 
 

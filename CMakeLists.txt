@@ -11,6 +11,17 @@ include(get_build_macros_and_functions)
 
 ################################################################################
 # Project info
+if (CMAKE_GENERATOR MATCHES "Ninja")
+    file(
+        WRITE "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake" 
+            "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_C \"\${CMAKE_DEPFILE_FLAGS_C}\")\n"
+            "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_CXX \"\${CMAKE_DEPFILE_FLAGS_CXX}\")\n"
+    )
+    set(CMAKE_USER_MAKE_RULES_OVERRIDE "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake" CACHE INTERNAL "")
+endif()
+
+
+
 project(AFNI
         VERSION ${GIT_REPO_VERSION}
         DESCRIPTION "A package for the analysis of functional neuroimaging.")
@@ -28,6 +39,9 @@ set(CMAKE_POSITION_INDEPENDENT_CODE ON)
 set(BUILD_SHARED_LIBS ON)
 OPTION(AFNI_BUILD_CORELIBS_ONLY
        "Only build core libraries, no SUMA, plugins or programs"
+       OFF)
+OPTION(BUILD_BINARIES
+       "Build a large portion of the C executables"
        OFF)
 OPTION(INSTALL_TO_ABIN "If OFF, installs to default gnu directories" OFF)
 

@@ -2,6 +2,14 @@ add_library(plug_drealtime plug_realtime.c)
 add_library(plug_maxima plug_maxima.c maxima.c)
 add_library(plug_retroicor plug_retroicor.c retroicor.c)
 
+foreach(target plug_drealtime plug_maxima plug_retroicor)
+target_include_directories(${target}
+  PRIVATE 
+    $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
+    $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+    )
+endforeach()
 
 set_os_flags(plug_threshold.c)
 set_os_flags(plug_maskcalc.c)
@@ -27,14 +35,24 @@ foreach(target model_beta model_constant model_conv_PRF model_conv_PRF_6
     plug_wavelets plug_zeropad
 )
   add_library(${target} ${target}.c)
-  target_link_libraries(${target} PUBLIC mri)
+  target_link_libraries(${target} PRIVATE mri)
+  target_include_directories(${target}
+        PRIVATE 
+            $<TARGET_PROPERTY:NIFTI::niftiio,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 endforeach(target)
 
 foreach(target Xphace afni_open aiv)
   add_library(${target} ${target}.c)
-  target_include_directories(${target} PUBLIC $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>)
+  target_include_directories(${target} 
+      PRIVATE 
+        $<TARGET_PROPERTY:nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+    )
 endforeach(target)
 
-target_link_libraries(Xphace PUBLIC mrix NIFTI::nifti2)
-target_link_libraries(afni_open PUBLIC mri)
-target_link_libraries(aiv PUBLIC mrix NIFTI::nifti2)
+target_link_libraries(Xphace PRIVATE  NIFTI::nifti2 mrix)
+target_link_libraries(afni_open PRIVATE mri)
+target_link_libraries(aiv PRIVATE mrix NIFTI::nifti2)

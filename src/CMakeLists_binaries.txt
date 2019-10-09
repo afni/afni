@@ -41,13 +41,14 @@ foreach(target 1dAstrip 1dBandpass 1dBport 1dCorrelate 1dFlagMotion 1dMarry
     uniq_images unu warping_test whereami whirlgif
 )
   add_executable(${target} ${target}.c)
-  target_link_libraries(${target} PUBLIC mrix)
+  target_include_directories(${target} PRIVATE NIFTI::nifti2)
+  target_link_libraries(${target} PRIVATE mri NIFTI::nifti2)
 endforeach(target)
 
 foreach(i "" 2 3)
   set(target 3dANOVA${i}) 
   add_executable(${target} ${target}.c 3dANOVA.lib)
-  target_link_libraries(${target} PUBLIC mrix)
+  target_link_libraries(${target} PRIVATE mrix)
 endforeach(i)
 
 foreach(target 1dNLfit 1deval 1dmatcalc 3dDeconvolve 3dDetrend 3dTstat 3dcalc
@@ -55,9 +56,9 @@ foreach(target 1dNLfit 1deval 1dmatcalc 3dDeconvolve 3dDetrend 3dTstat 3dcalc
     ccalc waver
 )
   add_executable(${target} ${target}.c $<TARGET_OBJECTS:parser>)
-  target_link_libraries(${target} PUBLIC mrix)
+  target_link_libraries(${target} PRIVATE mrix)
 endforeach(target)
-target_link_libraries(3dproject PUBLIC AFNI::volpack)
+target_link_libraries(3dproject PRIVATE AFNI::volpack)
 
 
 add_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
@@ -84,36 +85,28 @@ add_executable(3dretroicor 3dretroicor.c retroicor.c)
 
 set_source_files_properties(3dDeconvolve_f PROPERTIES COMPILE_DEFINITIONS "FLOATIZE")
 
-### target_include_directories(afni_warp PUBLIC)
-##target_include_directories(3dDeconvolve PUBLIC)
-##target_include_directories(3dDeconvolve_f PUBLIC)
-##target_include_directories(3dMSE PUBLIC)
-target_include_directories(3dretroicor PUBLIC $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>)
+target_include_directories(3dretroicor PRIVATE $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>)
 
-target_include_directories(to3d PUBLIC ${MOTIF_INCLUDE_DIR} )
-target_include_directories(1dplot PUBLIC  ${XT_INCLUDE_DIR} ${X11_INCLUDE_DIRS} )
+target_include_directories(to3d PRIVATE ${MOTIF_INCLUDE_DIR} )
+target_include_directories(1dplot PRIVATE  ${XT_INCLUDE_DIR} ${X11_INCLUDE_DIRS} )
 
 foreach(target 3dfim 3dTfitter FD2 fim2 imreg gwarp 3danisosmooth 3dmaxima
        3dAllineate 3dECM 3dMSE 1dSEM 
-        plug_drealtime plug_maxima plug_retroicor
 )
 
-   target_link_libraries(${target} PUBLIC mrix NIFTI::nifticdf)
+   target_link_libraries(${target} PRIVATE mrix NIFTI::nifticdf)
 endforeach(target)
-target_link_libraries(3dretroicor PUBLIC mrix AFNI::coxplot AFNI::f2cdir)
-target_link_libraries(3dNLfim PUBLIC mrix ${CMAKE_DL_LIBS})
+target_link_libraries(3dretroicor PRIVATE mrix AFNI::coxplot AFNI::f2cdir)
+target_link_libraries(3dNLfim PRIVATE mrix ${CMAKE_DL_LIBS})
 
-target_link_libraries(parser PUBLIC AFNI::coxplot libheaders NIFTI::nifti2)
-target_link_libraries(1dgrayplot PUBLIC mri AFNI::coxplot ${X11_Xt_LIB})
-target_link_libraries(1dplot PUBLIC mrix AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB} ${X11_LIBRARIES})
-target_link_libraries(3dDeconvolve PUBLIC mri AFNI::coxplot)
-target_link_libraries(3dDeconvolve_f PUBLIC mri AFNI::coxplot)
-target_link_libraries(3dDeconvolve_n PUBLIC mri AFNI::coxplot)
 
-target_link_libraries(to3d PUBLIC mrix NIFTI::nifti2 ${MOTIF_LIBRARIES})
+target_link_libraries(1dgrayplot PRIVATE mri AFNI::coxplot ${X11_Xt_LIB})
+target_link_libraries(1dplot PRIVATE mrix AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB} ${X11_LIBRARIES})
+target_link_libraries(3dDeconvolve PRIVATE mri AFNI::coxplot)
+target_link_libraries(3dDeconvolve_f PRIVATE mri AFNI::coxplot)
+target_link_libraries(3dDeconvolve_n PRIVATE mri AFNI::coxplot)
 
-# target_link_libraries(3dedge3 PUBLIC mri)
-
+target_link_libraries(to3d PRIVATE mrix NIFTI::nifti2 ${MOTIF_LIBRARIES})
 
 # link remaining executables from rickr
 add_executable(Dimon rickr/Dimon.c rickr/realtime.c)
@@ -122,11 +115,10 @@ add_executable(3dresample rickr/3dresample.c)
 target_include_directories(3dresample PRIVATE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>  $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES> )
 target_link_libraries(3dresample mri libheaders audio AFNI::eispack)
 
-target_link_libraries(Dimon1 PUBLIC mri)
-target_link_libraries(Dimon PUBLIC mri)
+target_link_libraries(Dimon1 PRIVATE mri)
+target_link_libraries(Dimon PRIVATE mri)
 
 
 add_executable(3dTSgen 3dTSgen.c)
-## target_include_directories(3dTSgen# PUBLIC)
 target_link_libraries(3dTSgen mri  AFNI::coxplot NIFTI::nifti2 ${CMAKE_DL_LIBS})
 

@@ -10,11 +10,14 @@ afni_sumafunc.c afni_transforms.c afni_ttren.c afni_vedit.c afni_version.c
 afni_vol2surf.c afni_warp.c afni_whelp.c afni_widg.c pbar.c mcw_graf.c
 $<TARGET_OBJECTS:parser> $<TARGET_OBJECTS:afsliceobjs>)
 target_include_directories(afni
-  PUBLIC
+  PRIVATE
    $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-  $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES> 
-  )
-target_link_libraries(afni PUBLIC mrix AFNI::coxplot  libheaders ${X11_Xt_LIB} ${CMAKE_DL_LIBS})
+   $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES> 
+      )
+    target_link_libraries(afni 
+    PRIVATE 
+      ${CMAKE_DL_LIBS} AFNI::mrix ${X11_LIBRARIES} ${X11_Xt_LIB} mri coxplot ${MOTIF_LIBRARIES} AFNI::f2cdir ${NETCDF_LIBRARIES_C} NIFTI::nifti2 libheaders m
+        )
 
 
-# target_include_directories(SUMA PUBLIC  ${3DEDGE_INCLUDE_DIRS})
+    # target_include_directories(SUMA PUBLIC  ${3DEDGE_INCLUDE_DIRS})

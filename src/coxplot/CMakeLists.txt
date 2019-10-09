@@ -14,13 +14,14 @@ target_include_directories(coxplot
   PRIVATE 
     ${MOTIF_INCLUDE_DIR} 
     $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
-  PUBLIC 
     ${CMAKE_CURRENT_SOURCE_DIR}
   )
 set_target_properties(coxplot PROPERTIES
 	PUBLIC_HEADER "coxplot.h;../machdep.h"
 )
-target_link_libraries(coxplot PRIVATE m AFNI::f2cdir ${MOTIF_LIBRARIES} ${X11_LIBRARIES} libheaders)
+target_link_libraries(coxplot 
+  PRIVATE ${MOTIF_LIBRARIES}  ${X11_LIBRARIES} libheaders AFNI::f2cdir m
+  )
 add_afni_target_properties(coxplot)
 
 
