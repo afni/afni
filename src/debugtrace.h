@@ -221,7 +221,7 @@ void DBG_sigfunc(int sig)   /** signal handler for fatal errors **/
        fprintf(dfp,"** [[Precompiled binary " SHSTRING ": " __DATE__ "]]\n") ;
 #endif
        fprintf(dfp,"** Program Crash **\n") ;
-       if( mcw_malloc_enabled() && getenv("AFNI_CRASH_MALLDUMP") != NULL )
+       if( MCW_MALLOC_enabled && getenv("AFNI_CRASH_MALLDUMP") != NULL )
          mcw_malloc_dump_fp(dfp) ; /* 23 Apr 2015 */
        fclose(dfp) ;
        fprintf(stderr,"** Crash log is appended to file %s\n",fname) ;
@@ -349,7 +349,7 @@ extern void clock_time_atexit(void) ;
 #define STATUSp(str,p)                                                              \
   do{ char qss[2048] ;                                                              \
       sprintf(qss,"%s ptr=%p",(str),(p)) ;                                          \
-      if( mcw_malloc_enabled() )                                                    \
+      if( MCW_MALLOC_enabled )                                                    \
         strcat(qss, mcw_malloc_OK(p) ? "  OK" : "  not OK") ;                       \
       if( TRACK_TRACING ){                                                          \
         char sbuf[2048] ;                                                           \

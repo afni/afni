@@ -48,6 +48,8 @@
 #define WRITE_BUF \
    do{ fwrite(fbuf,sizeof(float),nbuf,stdout); fflush(stdout); } while(0)
 
+extern long long THD_filesize( char * pathname );
+
 int main( int argc , char * argv[] )
 {
    int iarg=1 , ii , typ ;

@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include "siemens_vision.h"
+#include "mrilib.h"
 
 static void byteswap8 (double *x) {
   char *p1,*p2; double d; int i;
