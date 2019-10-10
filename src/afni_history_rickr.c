@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "search for niml.dset errts datasets",
+   NULL
+ } ,
+
  { 10, Oct, 2019, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
    "in NIML case, exist should check ppv file directly",
    NULL
