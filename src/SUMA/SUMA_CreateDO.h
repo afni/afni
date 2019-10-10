@@ -498,7 +498,7 @@ char *SUMA_iDO_state(int i);
 char *SUMA_DO_state(SUMA_DO *DO);
 char *SUMA_iDO_group(int i);
 char *SUMA_DO_group(SUMA_DO *DO);
-int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado)
+int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado);
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
 int  SUMA_is_iDO_AnatCorrect(int dov_id);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
