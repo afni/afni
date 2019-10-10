@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.12, Oct 7, 2019
+Version 0.0.13, Oct 10, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -406,8 +406,14 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
 
      '-ROIlist' = apl(n=1, d=NA, h = paste(
    "-ROIlist file: List all the regions in a text file with one column in an order", 
-   "         preferred in the the output. When the option is not invoked, the region",
-   "         list may not be in a preferred order.\n", sep = '\n'
+   "         preferred in the the plots. When the option is not invoked, the region",
+   "         order in the plots may not be in a preferred order.\n", sep = '\n'
+                     ) ),
+
+     '-fullRes' = apl(n=0, d=NA, h = paste(
+   "-fullRes: Use the option to indicate that a full set of results is shown in the",
+   "         the report. When option is not invoked (default), only those region pairs",
+   "         whose effect reaches at least 90% quantile are shown. \n", sep = '\n'
                      ) ),
 
      '-dataTable' = apl(n=c(1, 1000000), d=NA, h = paste(
@@ -475,6 +481,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$r2z     <- FALSE # Fisher transformation
       lop$verb    <- 0
       lop$ROIlist <- NA
+      lop$fullRes <- NA
 
    #Get user's input
    for (i in 1:length(ops)) {
@@ -500,6 +507,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
              dbgArgs = lop$dbgArgs <- TRUE,
              MD      = lop$MD      <- TRUE,
              r2z     = lop$r2z     <- TRUE,
+             fullRes = lop$fullRes <- TRUE,
              dataTable  = lop$dataTable <- read.table(ops[[i]], header=T),
              #ROIlist    = lop$ROIlist   <- read.table(ops[[i]], header=F),
              )
@@ -891,9 +899,11 @@ mPlot <- function(xx, fn) {
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
    xx <- vv(ww(aa, bb, lop$EOIq[ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s =====', lop$EOIq[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(lop$fullRes) prnt(50, 1, res(bb, xx, 0.5, 3), lop$outFN, 'region pairs') else {
    prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
+   }
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(is.na(lop$ROIlist)) mPlot(xx, lop$EOIq[ii]) else mPlot(xx[lop$ROI$order, lop$ROI$order,], lop$EOIq[ii])
 }
@@ -902,9 +912,11 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
    xx <- vv(ww(aa, bb, lop$qContrL[2*ii-1], nR)-ww(aa, bb, lop$qContrL[2*ii], nR), ns, nR)   
    cat(sprintf('===== Summary of region pair effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   if(lop$fullRes) prnt(50, 1, res(bb, xx, 0.5, 3), lop$outFN, 'region pairs') else {
    prnt(90, 1, res(bb, xx, 0.1, 3), lop$outFN, 'region pairs')
    prnt(95, 1, res(bb, xx, 0.05, 3), lop$outFN, 'region pairs')
    prnt(95, 2, res(bb, xx, 0.025, 3), lop$outFN, 'region pairs')
+   }
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    if(is.na(lop$ROIlist)) mPlot(xx, paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii])) else
       mPlot(xx[lop$ROI$order, lop$ROI$order,], paste0(lop$qContrL[2*ii-1], 'vs', lop$qContrL[2*ii]))
@@ -933,9 +945,11 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    for(jj in 1:nl) {
       cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       oo <- vv(psa[jj,,,], ns, nR)
+      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5, 3),  lop$outFN, 'region pairs') else {
       prnt(90, 1, res(bb, oo, 0.1, 3),  lop$outFN, 'region pairs')
       prnt(95, 1, res(bb, oo, 0.05, 3),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025, 3), lop$outFN, 'region pairs')
+      }
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj])) else
          mPlot(oo[lop$ROI$order, lop$ROI$order,], paste0(lop$EOIc[ii], '_', lvl[jj]))
@@ -945,9 +959,11 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       oo <- vv(psa[jj,,,] - psa[kk,,,], ns, nR)
+      if(lop$fullRes) prnt(50, 1, res(bb, oo, 0.5),   lop$outFN, 'region pairs') else {
       prnt(90, 1, res(bb, oo, 0.1),   lop$outFN, 'region pairs')
       prnt(95, 1, res(bb, oo, 0.05),  lop$outFN, 'region pairs')
       prnt(95, 2, res(bb, oo, 0.025), lop$outFN, 'region pairs')
+      }
       cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       if(is.na(lop$ROIlist)) mPlot(oo, paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk])) else
         mPlot(oo[lop$ROI$order, lop$ROI$order,], paste0(lop$EOIc[ii], '_', lvl[jj], 'vs', lvl[kk]))
