@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2019, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "in NIML case, exist should check ppv file directly",
+   NULL
+ } ,
+
+ {  9, Oct, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "checked and merged 30 commit PR from pn2200",
+   "This is mostly to resolve compiler warnings."
+ } ,
+
  {  7, Oct, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
    "probably the last set of test updates for now",
    NULL

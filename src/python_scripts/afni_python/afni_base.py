@@ -232,7 +232,9 @@ class afni_name(object):
             return 1
          else: return 0
       elif (self.type == 'NIML'):
-         if (     os.path.isfile("%s.niml.dset" % locppv) \
+         # ppv leads down to pve for non-BRIK
+         if (     os.path.isfile(locppv) or               \
+                  os.path.isfile("%s.niml.dset" % locppv) \
             ):
             return 1
          else: return 0
