@@ -1407,6 +1407,7 @@ static char *gby[] = {
      "Someday I'll tell you of the Giant Rat of Sumatra, a tale for which the world is not prepared"    ,
      "People have to learn to live with newly-discovered facts; if they don't, they die of them"        ,
      "It is the pardonable vanity of lonely people everywhere to assume that they have no counterparts" ,
+     "Your results may be mathematical nonsense ... but is undoubtedly neuroscience at its best"        ,
 
      "If you torture the data long enough, it will confess to anything"                 ,
      "To purify the earth, one should purify the heart first"                           ,
@@ -1684,7 +1685,21 @@ static char *gby[] = {
      "   again, then there is no use in analyzing it at all"  ,
 
      "I worry more about the blobs I can't see than those that I can see" ,
-     "I am not so brave that I am not disturbed by an unexpected blob in the cuneus"
+     "I am not so brave that I am not disturbed by an unexpected blob in the cuneus" ,
+
+     /* 10 Oct 2019 - TS Eliot */
+
+     "The only wisdom we have is the wisdom of humility"                               ,
+     "Only those who will risk going too far can possibly find out how far one can go" ,
+
+     "The end of all our exploring will be to arrive where we started\n"
+     "   and know the place for the first time"                                        ,
+
+     "What we call the beginning is often the end;\n"
+     "   To make an end is to make a beginning;\n"
+     "   The end is where we start from"                                               ,
+
+     "Half the harm done in the world is due to people who want to feel important"
 
 } ;
 
