@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -niml_hdr, to write full NIML header(s) to stdout",
+   NULL
+ } ,
+
  { 10, Oct, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
    "search for niml.dset errts datasets",
    NULL

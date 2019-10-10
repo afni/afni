@@ -4889,9 +4889,11 @@ extern int THD_write_minc( char *, THD_3dim_dataset * , int) ; /* 11 Apr 2002 */
 extern void THD_write_1D( char *, char *, THD_3dim_dataset *); /* 04 Mar 2003 */
 extern void THD_write_3D( char *, char *, THD_3dim_dataset *); /* 21 Mar 2003 */
 extern Boolean THD_write_niml( THD_3dim_dataset *, int);
+extern Boolean THD_write_niml_to_stream( THD_3dim_dataset *, char *, int);
 extern Boolean THD_write_gifti( THD_3dim_dataset *, int, int);
 
 extern int  write_niml_file( char *, NI_group *);      /* 12 Jun 2006 [rickr] */
+extern int  write_niml_stream( char *, NI_group *);    /* 10 Oct 2019 [rickr] */
 
 extern void THD_reconcile_parents( THD_sessionlist * ) ;
 extern THD_slist_find THD_dset_in_sessionlist( int,void *, THD_sessionlist *, int ) ;
