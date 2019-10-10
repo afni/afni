@@ -1,0 +1,61 @@
+
+# tests based on a single CIFTI input
+
+set infile = Conte69.parcellations_VGD11b.32k_fs_LR.dlabel.nii
+set prefix = out.c21.b
+
+# --------------------------------------------------
+# display basic nifti info stuff from existing dset
+
+nifti_tool -disp_hdr  -infiles $infile -debug 3
+nifti_tool -disp_nim  -infiles $infile -debug 5
+nifti_tool -disp_hdr2 -infiles $infile -debug 3
+
+# allow failure?
+nifti_tool -disp_hdr1 -infiles $infile
+nifti_tool -disp_cext -infiles $infile
+
+# display some data
+nifti_tool -infiles $infile -disp_ci 0 0 0 0 -1 23456 0
+
+
+
+# --------------------------------------------------
+# modify an existing dset and compare
+
+# modify an image field
+nifti_tool -mod_hdr2 -mod_field slice_start 3 -mod_field slice_duration 0.04 \
+        -infiles $infile -prefix $prefix.01.a.nii
+nifti_tool -debug 2 -infiles $prefix.01.a.nii -prefix $prefix.01.b.nia \
+           -mod_nim -mod_field qform_code 2 -mod_field sform_code 2
+
+# collapse 6th (last) dim of CIFTI input, compress output to test znz
+nifti_tool -cci 0 0 0 0 -1 17 0 -infiles $prefix.01.a.nii \
+           -debug 3 -prefix $prefix.02.nii.gz
+set tfile01 = $prefix.02.nii.gz
+
+# look for subsequent dimension changes (these vary in NIFTI types 2 vs 1)
+nifti_tool -diff_hdr2 -infiles $infile $tfile01
+nifti_tool -diff_nim -infiles $infile $tfile01
+
+
+# use volume index select, which requires sorting and selecting
+nifti_tool -copy_brick_list -infiles $infile'[2,3,3,3,1..3(2)]' \
+           -debug 3                                             \
+           -prefix $prefix.03.nii
+
+# test CAPS file extension
+nifti_tool -mod_hdr2 -mod_field slice_code 2 -infiles $infile   \
+           -prefix $prefix.04.NII
+set tfile02 = $prefix.04.NII
+
+# differ in slice_code? (nim)
+nifti_tool -diff_nim -infiles $infile $tfile02
+
+# differ in slice_code? (hdr)
+nifti_tool -diff_hdr  -infiles $infile $tfile02
+nifti_tool -diff_hdr2 -infiles $infile $tfile02
+
+# try swapping
+nifti_tool -swap_as_nifti -debug 3 -infiles $infile -prefix $prefix.05.swap.nii
+

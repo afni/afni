@@ -1,0 +1,25 @@
+
+# print simple info and terminate
+
+echo "------ version, NIFTI version, with zlib ------"
+nifti_tool -ver
+nifti_tool -nifti_ver
+nifti_tool -with_zlib
+
+
+echo "------ history (NT), NIFTI history ------"
+nifti_tool -hist
+nifti_tool -nifti_hist
+
+
+echo "------ help, datatypes, hdr, nim ------"
+nifti_tool -help
+nifti_tool -help_datatypes
+nifti_tool -help_datatypes D
+nifti_tool -help_datatypes N
+nifti_tool -help_datatypes T
+nifti_tool -help_hdr1
+nifti_tool -help_hdr2
+nifti_tool -help_ana
+nifti_tool -help_nim
+

@@ -3,6 +3,7 @@
 #include "mayo_analyze.h"
 
 void ShowHdr(char *, struct dsr *);
+void swap_hdr(struct dsr *pntr);
 void swap_long(void *);
 void swap_short(void *);
 
@@ -146,7 +147,7 @@ void ShowHdr(char *fileName, struct dsr *hdr)
 
 }
 
-swap_hdr(struct dsr *pntr)
+void swap_hdr(struct dsr *pntr)
 {
        swap_long(&pntr->hk.sizeof_hdr) ;
        swap_long(&pntr->hk.extents) ;

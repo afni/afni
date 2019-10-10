@@ -49,6 +49,22 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  7, Oct, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "probably the last set of test updates for now",
+   NULL
+ } ,
+
+ {  4, Oct, 2019, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
+   "allow for longer input and output file names",
+   "Names were malloc'd with MAX_NAME_LENGTH; use nifti_strdup, instead.\n"
+   "Thanks to S Wardle for bringing this to light."
+ } ,
+
+ { 30, Sep, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "added test scripts under commands, along with cmake versions for build",
+   NULL
+ } ,
+
  { 26, Sep, 2019, RCR, "NIFTI", MICRO, TYPE_MODIFY,
    "nifti_read_ascii_image no longer closes fp or free's fname",
    NULL

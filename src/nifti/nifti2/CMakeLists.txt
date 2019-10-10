@@ -72,7 +72,10 @@ if(NIFTI_BUILD_TESTING AND NIFTI_BUILD_APPLICATIONS)
         add_test( NAME nifti_dts_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/dts_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
         add_test( NAME nifti_mod_hdr2_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/mod_header_2_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
         set_tests_properties( nifti_dts_test PROPERTIES DEPENDS nifti_bricks_test)
-
+        add_test( NAME nifti_c21_a_info_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_a_info_test.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
+        add_test( NAME nifti_c21_b_cifti_in_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_b_cifti_in.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
+        add_test( NAME nifti_c21_c_make_im_test COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_c_make_im.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/CiftiLib_data )
+        add_test( NAME nifti_c21_d_misc_tests COMMAND sh ${NIFTI_TEST_SCRIPT_DIR}/c21_d_misc_tests.sh $<TARGET_FILE:${NIFTI_PACKAGE_PREFIX}nifti_tool> ${fetch_testing_data_SOURCE_DIR}/nifti_regress_data )
 
     endif()
 endif()

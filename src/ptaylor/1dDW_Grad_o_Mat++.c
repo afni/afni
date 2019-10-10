@@ -16,6 +16,9 @@
     values: push on through those tiny negs; they get replaced with 0s.
     new opt name: -check_abs_min VVV
 
+  Oct 2, 2019:
+  + more specific pointing to negative diagonal matrix elements
+
 */
 
 
@@ -41,6 +44,8 @@
 // max number of bvecs total is 1111 from this lazy method
 #define MAXGRADS (12006) 
 #define MINBVAL ( 0.000001 )   // prevent dividing by zero
+
+#define PROG_VER ( 2.2 )
 
 // assumes I/O has unit or zero mag!
 int GradConv_Gsign_from_GmatA( float *grad, float *matr ); 
@@ -320,6 +325,8 @@ int main(int argc, char *argv[])
 
 	mainENTRY("1dDW_Grad_o_Mat++"); machdep();
     
+   INFO_message("Program version: %.1f", PROG_VER);
+
    if (argc == 1) { usage_1dDW_Grad_o_Mat(1); exit(0); }
 
    iarg = 1;
@@ -636,6 +643,8 @@ int main(int argc, char *argv[])
          for( j=1; j<4 ; j++ ) 
             if( INP_MAT[i][j] < 0. ) {
                CHECK++;
+               WARNING_message("Unexpected negative value in [row, col]: [%d, %d]",
+                               i, j+1); // 'j+1' bc this mat has b-val in [0]th ele
                // [PT: Sep 20, 2017] New patchability
                if( fabs(INP_MAT[i][j]) < check_min ) {
                   CHECK_OK++;
@@ -679,6 +688,8 @@ int main(int argc, char *argv[])
          for( j=1; j<4 ; j++ ) 
             if( INP_MAT[i][j] < 0. ) {
                CHECK++;
+               WARNING_message("Unexpected negative value in [row, col]: [%d, %d]",
+                               i, j+1); // 'j+1' bc this mat has b-val in [0]th ele
                // [PT: Sep 20, 2017] New patchability
                if( fabs(INP_MAT[i][j]) < check_min ) {
                   CHECK_OK++;

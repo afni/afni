@@ -1524,6 +1524,12 @@ static char *gby[] = {
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
+     // Galois 
+     "Apres cela, il y aura, j'espere, des gens qui\n"
+     "  trouveront leur profit a dechiffrer tout ce gachis."                                  ,
+     "Later there will be, I hope, some people who\n"
+     "  will find it to their advantage to decipher all this mess."                           ,
+
      "\n  May the following be true for you:\n"
      "   'Work is about a search for daily meaning as well as daily bread,\n"
      "    for recognition as well as cash, for astonishment rather than torpor;\n"

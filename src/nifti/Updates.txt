@@ -130,5 +130,6 @@ Updated in version 3.0.0 Sep, 2019
     - JL/HJ: created new automated testing system under cmake
     - JL/HJ/RR: added more tests
     - PT/DRG: added xform code NIFTI_XFORM_TEMPLATE_OTHER
+    - RR added c21 test scripts
     
 

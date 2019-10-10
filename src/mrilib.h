@@ -1176,6 +1176,7 @@ extern double * startup_lsqfit( int , float * , int , float *ref[] ) ;
 extern float * delayed_lsqfit( int , float * , int , float *ref[] , double * ) ;
 
 extern void mri_polyfit_verb( int ) ;
+extern void mri_polyfit_set_basis( char *str );
 extern MRI_IMAGE * mri_polyfit( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
 extern MRI_IMAGE * mri_polyfit_byslice( MRI_IMAGE *, int, MRI_IMARR *, byte *, float, int ) ;
 
@@ -1201,6 +1202,8 @@ extern void mri_flatfilter_usedxyz  ( int i ) ;
 void mri_Set_KO_catwrap(void);
 void mri_Set_OK_catwrap(void);
 void mri_Set_OK_catrandwrap(void);
+void mri_Set_OK_WrapZero(byte vv);
+void mri_Set_KO_WrapZero(void);
 extern MRI_IMAGE * mri_cat2D( int,int,int,void *,MRI_IMARR *) ;
 extern MRI_IMARR * mri_uncat2D( int , int , MRI_IMAGE * im ) ; /* 09 May 2000 */
 

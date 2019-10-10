@@ -9681,8 +9681,8 @@ g_help_notes = """
                 series into 13 slice-based regressors.  RetroTS.m requires the
                 signal processing toolkit for MATLAB.
 
-                RetroTS.py is a conversion of RetroTS.m to python by J Zosky,
-                which depends on scipy.  See "RetroTS.py -help" for details.
+              * RetroTS.py is a conversion of RetroTS.m to python by J Zosky.
+                It depends on scipy.  See "RetroTS.py -help" for details.
 
         step 1: analyze with afni_proc.py
 
@@ -10306,10 +10306,11 @@ g_help_notes = """
     RETROICOR NOTE: ~2~
 
     ** Cardiac and respiratory regressors must be created from an external
-       source, such as the RetroTS.m matlab program written by Z Saad.  The
-       input to that would be the 2+ signals.  The output would be a single
-       file per run, containing 13 or more regressors for each slice.  That
-       set of output files would be applied here in afni_proc.py.
+       source, such as the RetroTS.py program written by Z Saad, and converted
+       to python by J Zosky.  The input to that would be the 2+ signals.  The
+       output would be a single file per run, containing 13 or more regressors
+       for each slice.  That set of output files would be applied here in
+       afni_proc.py.
 
     Removal of cardiac and respiratory regressors can be done using the 'ricor'
     processing block.  By default, this would be done after 'despike', but
@@ -11426,8 +11427,8 @@ g_help_options = """
             regressors per slice, then there should be 5 files input, each with
             351 (=27*13) columns.
 
-            This format is based on the output of RetroTS.m, included in the
-            AFNI distribution (as part of the matlab package), by Z Saad.
+            This format is based on the output of RetroTS.py, included in the
+            AFNI distribution.
 
         -ricor_regs_nfirst NFIRST       : ignore the first regressor timepoints
 

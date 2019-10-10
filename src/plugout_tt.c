@@ -57,6 +57,7 @@
 
 #include "thd_iochan.h"
 #include "niml.h"
+#include "afni_environ.h"
 
 /***** Global variable determining on which system AFNI runs.  *****/
 /***** [default is the current system, can be changed by user] *****/

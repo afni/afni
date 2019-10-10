@@ -19,6 +19,7 @@ typedef struct{
    int      diff_hdr,   diff_hdr1, diff_hdr2, diff_nim;
    int      disp_hdr1,  disp_hdr2, disp_hdr,  disp_nim,  disp_ana;
    int      disp_exts,  add_exts,  rm_exts,   disp_cext;
+   int      run_misc_tests;
    int      mod_hdr,    mod_hdr2,  mod_nim;
    int      swap_hdr,   swap_ana,  swap_old;
 
@@ -105,6 +106,83 @@ typedef struct {
 
 #define NT_MAKE_IM_NAME "MAKE_IM"
 
+/* ================================================================= */
+/* matrix operations                                                 */
+/* (macros allow them to apply to either mat44 or dmat44)            */ 
+
+/* fill MAT44 with MAT33 fields, then pad with 0.0 and a 1.0 at 3,3  */
+#define NT_MAT33_TO_MAT44(m33, m44) do {                 \
+   m44.m[0][0] = m33.m[0][0]; m44.m[0][1] = m33.m[0][1]; \
+   m44.m[0][2] = m33.m[0][2];                            \
+   m44.m[1][0] = m33.m[1][0]; m44.m[1][1] = m33.m[1][1]; \
+   m44.m[1][2] = m33.m[1][2];                            \
+   m44.m[2][0] = m33.m[2][0]; m44.m[2][1] = m33.m[2][1]; \
+   m44.m[2][2] = m33.m[2][2];                            \
+   /* and fill out the 4x4 mat */                        \
+   m44.m[0][3] = m44.m[1][3] = m44.m[2][3] = 0.0;        \
+   m44.m[3][0] = m44.m[3][1] = m44.m[3][2] = 0.0;        \
+   m44.m[3][3] = 1.0;                                    \
+   } while(0)
+
+/* fill MAT33 with initial subset of MAT44 fields */
+#define NT_MAT44_TO_MAT33(m44, m33) do {                 \
+   m33.m[0][0] = m44.m[0][0]; m33.m[0][1] = m44.m[0][1]; \
+   m33.m[0][2] = m44.m[0][2];                            \
+   m33.m[1][0] = m44.m[1][0]; m33.m[1][1] = m44.m[1][1]; \
+   m33.m[1][2] = m44.m[1][2];                            \
+   m33.m[2][0] = m44.m[2][0]; m33.m[2][1] = m44.m[2][1]; \
+   m33.m[2][2] = m44.m[2][2];                            \
+   } while(0)
+
+/* subtract 2 mat44 matrices */
+#define NT_MAT44_SUBTRACT(mout, min0, min1) do {        \
+   mout.m[0][0] = min0.m[0][0] - min1.m[0][0];          \
+   mout.m[0][1] = min0.m[0][1] - min1.m[0][1];          \
+   mout.m[0][2] = min0.m[0][2] - min1.m[0][2];          \
+   mout.m[0][3] = min0.m[0][3] - min1.m[0][3];          \
+   mout.m[1][0] = min0.m[1][0] - min1.m[1][0];          \
+   mout.m[1][1] = min0.m[1][1] - min1.m[1][1];          \
+   mout.m[1][2] = min0.m[1][2] - min1.m[1][2];          \
+   mout.m[1][3] = min0.m[1][3] - min1.m[1][3];          \
+   mout.m[2][0] = min0.m[2][0] - min1.m[2][0];          \
+   mout.m[2][1] = min0.m[2][1] - min1.m[2][1];          \
+   mout.m[2][2] = min0.m[2][2] - min1.m[2][2];          \
+   mout.m[2][3] = min0.m[2][3] - min1.m[2][3];          \
+   mout.m[3][0] = min0.m[3][0] - min1.m[3][0];          \
+   mout.m[3][1] = min0.m[3][1] - min1.m[3][1];          \
+   mout.m[3][2] = min0.m[3][2] - min1.m[3][2];          \
+   mout.m[3][3] = min0.m[3][3] - min1.m[3][3];          \
+   } while(0)
+
+/* subtract 2 mat33 matrices */
+#define NT_MAT33_SUBTRACT(mout, min0, min1) do {        \
+   mout.m[0][0] = min0.m[0][0] - min1.m[0][0];          \
+   mout.m[0][1] = min0.m[0][1] - min1.m[0][1];          \
+   mout.m[0][2] = min0.m[0][2] - min1.m[0][2];          \
+   mout.m[1][0] = min0.m[1][0] - min1.m[1][0];          \
+   mout.m[1][1] = min0.m[1][1] - min1.m[1][1];          \
+   mout.m[1][2] = min0.m[1][2] - min1.m[1][2];          \
+   mout.m[2][0] = min0.m[2][0] - min1.m[2][0];          \
+   mout.m[2][1] = min0.m[2][1] - min1.m[2][1];          \
+   mout.m[2][2] = min0.m[2][2] - min1.m[2][2];          \
+   } while(0)
+
+/* fill with identity matrix */
+#define NT_MAT44_SET_TO_IDENTITY(M) do {                                \
+   M.m[0][0] = 1.0; M.m[0][1] = 0.0; M.m[0][2] = 0.0; M.m[0][3] = 0.0;  \
+   M.m[1][0] = 0.0; M.m[1][1] = 1.0; M.m[1][2] = 0.0; M.m[1][3] = 0.0;  \
+   M.m[2][0] = 0.0; M.m[2][1] = 0.0; M.m[2][2] = 1.0; M.m[2][3] = 0.0;  \
+   M.m[3][0] = 0.0; M.m[3][1] = 0.0; M.m[3][2] = 0.0; M.m[3][3] = 1.0;  \
+   } while(0)
+
+#define NT_MAT33_SET_TO_IDENTITY(M) do {                                \
+   M.m[0][0] = 1.0; M.m[0][1] = 0.0; M.m[0][2] = 0.0;                   \
+   M.m[1][0] = 0.0; M.m[1][1] = 1.0; M.m[1][2] = 0.0;                   \
+   M.m[2][0] = 0.0; M.m[2][1] = 0.0; M.m[2][2] = 1.0;                   \
+   } while(0)
+
+
+
 /*----------------------------------------------------------------------*/
 /*-----  prototypes  ---------------------------------------------------*/
 /*----------------------------------------------------------------------*/
@@ -130,6 +208,7 @@ int    act_mod_hdr2s  ( nt_opts * opts );
 int    act_mod_nims   ( nt_opts * opts );
 int    act_swap_hdrs  ( nt_opts * opts );
 int    act_rm_ext     ( nt_opts * opts );
+int    act_run_misc_tests( nt_opts * opts );
 int    act_strip      ( nt_opts * opts );  /* strip extras from datasets */
 
 
@@ -175,12 +254,22 @@ int verify_opts      (nt_opts * opts, char * prog);
 int write_hdr_to_file (nifti_1_header * nhdr, const char * fname);
 int write_hdr2_to_file(nifti_2_header * nhdr, const char * fname);
 
+
 /* wrappers for nifti reading functions (allow MAKE_IM) */
 nifti_image    * nt_image_read (nt_opts * opts, const char * fname, int doread);
 nifti_image    * nt_read_bricks(nt_opts * opts, char * fname, int len,
                                 int64_t * list, nifti_brick_list * NBL);
 void * nt_read_header(const char * fname, int * nver, int * swapped, int check,
                       int new_datatype, int64_t new_dim[8]);
+
+
+/* misc functions */
+int           nt_run_misc_nim_tests (nifti_image * nim);
+static int    nt_disp_mat44_orient(const char * mesg, mat44 mat);
+static int    nt_test_dmat44_quatern(nifti_image * nim);
+static double dmat44_max_fabs(nifti_dmat44 m);
+static double mat44_max_fabs(mat44 m);
+
 
 
 

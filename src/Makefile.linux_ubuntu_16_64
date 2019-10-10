@@ -16,7 +16,7 @@ LGIFTI    = -lexpat  #/usr/lib64/libexpat.a
 # L_USE_ACML = /opt/acml3.1.0/gnu64/lib/libacml.a
 
 CCDEBS = -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG
-CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE $(CPROF)
+CEXTRA = -Wcomment -Wformat -DUSE_TRACING -DHAVE_XDBE -D_GNU_SOURCE $(CPROF)
 
 CC     = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)
 CCVOL  = /usr/bin/gcc -O2 -m64 -fPIC -DREAD_WRITE_64 -DLINUX2 $(CEXTRA)

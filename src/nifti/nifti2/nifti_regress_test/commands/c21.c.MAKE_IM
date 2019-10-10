@@ -1,0 +1,60 @@
+
+# tests based on a newly create image (via nifti_tool)
+
+set prefix = out.c21.c
+
+# create a new image, and note outfile for other commands
+nifti_tool -mod_hdr -mod_field descrip 'dataset with mods'      \
+        -new_dim 3 10 20 30 0 0 0 0                             \
+        -infiles MAKE_IM -prefix $prefix.10.nii
+set tfile11 = $prefix.10.nii
+nifti_tool -mod_hdr -mod_field slice_start 3 -mod_field slice_duration 0.04 \
+        -infiles $tfile11 -overwrite
+
+# create ASCII based image as alternate
+nifti_tool -mod_nim -mod_field descrip 'try ASCII'              \
+        -infiles $tfile11 -prefix $prefix.11.nia -debug 3
+set tfile12 = $prefix.11.nia
+
+# add some extensions, then display them
+nifti_tool -add_ext 6 'adding extension type 6 (comment)' \
+        -infiles $tfile12 -overwrite
+nifti_tool -add_comment_ext 'and now for a formal comment' \
+        -infiles $tfile12 -overwrite
+
+
+nifti_tool -rm_ext 1 -infiles $tfile12 -debug 3 -overwrite
+
+# ... and add an extension from a file
+cat > $prefix.my_extension.txt << EOF
+here is some formatted
+  extension, added via some stupid text file
+EOF
+nifti_tool -add_afni_ext "file:$prefix.my_extension.txt" \
+           -infiles $tfile12 -prefix $prefix.11.b.nii.gz
+nifti_tool -diff_hdr1 -infiles $tfile11 $prefix.11.b.nii.gz
+
+
+
+nifti_tool -disp_exts -infiles $prefix.11.b.nii.gz
+nifti_tool -check_nim -infiles $prefix.11.b.nii.gz
+nifti_tool -disp_hdr1 -infiles $prefix.11.b.nii.gz -field descrip
+nifti_tool -disp_ana  -infiles $prefix.11.b.nii.gz
+nifti_tool -strip_extras -infiles $tfile12 -debug 3 -overwrite
+
+
+# and compare (as nim, we are not allowed to diff different hdr types)
+nifti_tool -diff_nim -debug 3 -infiles $tfile11 $tfile12
+
+# try swapping
+nifti_tool -swap_as_nifti -debug 3 -infiles $tfile11 \
+           -prefix $prefix.12.a.swap.nii
+nifti_tool -swap_as_analyze -debug 3 -infiles $tfile11 \
+           -prefix $prefix.12.b.swap.ana.nii
+nifti_tool -swap_as_old -debug 3 -infiles $prefix.12.b.swap.ana \
+           -prefix $prefix.13.c.swap.old.nii
+
+# collapse third dimension
+nifti_tool -debug 3 -infiles $tfile12                            \
+           -cci -1 -1 17 0 0 0 0 -prefix $prefix.13.nia
+
