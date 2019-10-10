@@ -468,7 +468,7 @@ void show_AFNI_version(void)
 void show_AFNI_package(void)
 {
 #ifdef SHSTRING
-   printf(SHSTRING);
+   printf(SHSTRING "\n");
 #else
    printf( "Compiled: " __DATE__ );
 #endif
@@ -476,7 +476,7 @@ void show_AFNI_package(void)
 
 void show_AFNI_vnum(void)
 {
-   printf(AVERZHN);
+   printf(AVERZHN "\n");
 }
 
 /********************************************************************

@@ -1,5 +1,3 @@
-########## can maybe be a useful template for starting py progs
-
 #
 #
 #
@@ -127,7 +125,7 @@ def check_for_shell_exec_failure( status, so, se, cmd,
 # ==========================================================================
 
 # read in inputs for this program, and store info in this obj
-class iopts_check_obl_diffs:
+class iopts_this_prog:
 
     def __init__(self):
 
@@ -207,17 +205,17 @@ class iopts_check_obl_diffs:
 # --------------------------------------------------------------------------
 # --------------------------------------------------------------------------
 
-def parse_args_check_obl_diffs(full_argv):
+def parse_args_this_prog(full_argv):
 
     argv = full_argv[1:]
     Narg = len(argv)
 
     if not(Narg):
-        print(help_string_check_obl_diffs)
+        print(help_string_this_prog)
         sys.exit(0)
     
     # initialize objs
-    iopts  = iopts_check_obl_diffs()
+    iopts  = iopts_this_prog()
 
     iopts.set_full_cmd(full_argv)
 
