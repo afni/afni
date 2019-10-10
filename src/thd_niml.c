@@ -441,6 +441,37 @@ ENTRY("write_niml_file");
     RETURN(0);
 }
 
+/*! write NIML data to a stream
+ *  (same as write_niml_file, but do not convert file to a stream)
+ *                                             [10 Oct 2019 rickr] */
+int write_niml_stream( char * stream, NI_group * ngr )
+{
+    NI_stream   ns;
+
+ENTRY("write_niml_stream");
+
+    if( !stream || !ngr ){
+        fprintf(stderr,"** write_niml_stream: empty parameters\n");
+        RETURN(1);
+    }
+
+    ns = NI_stream_open(stream, "w");
+
+    if( !ns ){
+        fprintf(stderr,"** cannot open NIML stream '%s'\n", stream);
+        RETURN(1);
+    }
+
+    if( NI_write_element( ns, ngr, NI_TEXT_MODE ) <= 0 ){
+        fprintf(stderr,"** failed to write NIML output stream '%s'\n", stream);
+        RETURN(1);
+    }
+
+    NI_stream_close(ns); /* close the stream */
+
+    RETURN(0);
+}
+
 
 /*! Write out a NIML dataset (3D, NIML, NI_SURF_DSET).
     Return True or False, based on success.
@@ -508,6 +539,77 @@ ENTRY("THD_write_niml");
             RETURN(False);
             break;
     }
+
+    RETURN(True);
+}
+
+/*! Write a NIML heaer (3D, NIML, NI_SURF_DSET) to a text stream
+    if by_smode: allow for this to vary based on storage mode
+                 (which will generally require adding some code...)
+    Return True or False, based on success.     [10 Oct 2019 rickr]
+*/
+Boolean THD_write_niml_to_stream( THD_3dim_dataset * dset, char * stream,
+                                  int by_smode )
+{
+    NI_group * ngr;
+    char     * prefix;
+    char     * func = "THD_write_niml_to_stream";
+    int        smode, rv;
+
+ENTRY("THD_write_niml_to_stream");
+
+    set_ni_globs_from_env();
+
+    if( ! ISVALID_DSET(dset) || ! stream ) {
+        fprintf(stderr,"-d %s: invaliad dset %d or stream %s\n",
+                func, ISVALID_DSET(dset), stream);
+        RETURN(False);
+    }
+
+    prefix = DSET_PREFIX(dset);
+    if( !prefix )
+        prefix = "PIZZA_314159";
+
+    if( by_smode )
+       smode = storage_mode_from_filename(prefix);
+    else
+       smode = STORAGE_BY_NIML;
+    
+    if( gni.debug )
+        fprintf(stderr,"-d THD_write_niml_to_stream: %s, smode %d\n",
+                stream, smode);
+        
+    switch(smode)
+    {
+        case STORAGE_BY_NI_SURF_DSET:
+            ngr = THD_dset_to_ni_surf_dset(dset, 0);
+            if( !ngr ) {
+                fprintf(stderr,"** failed dset to ni_SD on '%s'\n",prefix);
+                RETURN(False);
+            }
+            break;
+
+        case STORAGE_BY_NIML:
+        default:
+            ngr = THD_nimlize_dsetatr(dset);
+            if( !ngr ){
+                fprintf(stderr,"** failed dset to niml on '%s'\n",prefix);
+                RETURN(False);
+            }
+            break;
+     }
+
+     NI_rename_group(ngr, "AFNI_dataset");
+     NI_set_attribute(ngr, "self_prefix", prefix);
+
+     /* and write to the NI_stream */
+     rv = write_niml_stream(stream, ngr);
+
+     NI_free_element(ngr); /* either way */
+     if( rv ){
+         fprintf(stderr,"** write niml stream failed for '%s'\n", stream);
+         RETURN(False);
+     }
 
     RETURN(True);
 }
