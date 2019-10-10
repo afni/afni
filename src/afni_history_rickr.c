@@ -49,6 +49,31 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 10, Oct, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
+   "add -niml_hdr, to write full NIML header(s) to stdout",
+   NULL
+ } ,
+
+ { 10, Oct, 2019, RCR, "gen_ss_review_scripts.py", MICRO, TYPE_BUG_FIX,
+   "search for niml.dset errts datasets",
+   NULL
+ } ,
+
+ { 10, Oct, 2019, RCR, "afni_base.py", MICRO, TYPE_BUG_FIX,
+   "in NIML case, exist should check ppv file directly",
+   NULL
+ } ,
+
+ {  9, Oct, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "checked and merged 30 commit PR from pn2200",
+   "This is mostly to resolve compiler warnings."
+ } ,
+
+ {  7, Oct, 2019, RCR, "NIFTI", MINOR, TYPE_ENHANCE,
+   "probably the last set of test updates for now",
+   NULL
+ } ,
+
  {  4, Oct, 2019, RCR, "3dNLfim", MICRO, TYPE_BUG_FIX,
    "allow for longer input and output file names",
    "Names were malloc'd with MAX_NAME_LENGTH; use nifti_strdup, instead.\n"

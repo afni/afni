@@ -20,6 +20,7 @@
  */
 
 #include <extrema.h>
+#include <convert.h>
 
 static int _VERBOSE_ = 0;
 

@@ -184,7 +184,7 @@ int main( int argc , char *argv[] )
       ns = NI_stream_open( strm, "r" ) ;
       if( ns == NULL ){
          fprintf(stderr,"*** niccc: NI_stream_open fails for %s\n", strm) ; 
-         if (THD_is_file(strm)) {
+         if (NI_is_file(strm)) {
             fprintf(stderr,
                "  It looks like %s is a file.\n"
                "  Make sure you use option -f before it\n",

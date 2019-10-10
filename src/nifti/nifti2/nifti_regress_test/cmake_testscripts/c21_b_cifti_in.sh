@@ -36,6 +36,14 @@ echo === disp_nim failed
 exit 1
 fi
 
+if $NT -disp_hdr2 -infiles ${infile} -debug 3
+then
+echo "=== disp_hdr2 succeeded"
+else
+echo === disp_hdr2 failed
+exit 1
+fi
+
 # allow failure?
 if $NT -disp_hdr1 -infiles ${infile}
 then
@@ -66,8 +74,18 @@ fi
 # --------------------------------------------------
 # modify an existing dset and compare
 
+echo "============== modify an hdr2 field"
+if $NT -mod_hdr2 -mod_field slice_start 3 -mod_field slice_duration 0.04 \
+       -infiles ${infile} -prefix ${prefix}.01.a.nii
+then
+echo === mod_hdr2 mod_nim succeeded
+else
+echo === mod_hdr2 mod_nim failed
+exit 1
+fi
+
 echo "============== modify an image field"
-if $NT -debug 2 -infiles ${infile} -prefix ${prefix}.01.nia \
+if $NT -debug 2 -infiles ${prefix}.01.a.nii -prefix ${prefix}.01.b.nia \
               -mod_nim -mod_field qform_code 2 -mod_field sform_code 2
 then
 echo === mod_nim succeeded
@@ -77,7 +95,7 @@ exit 1
 fi
 
 echo "============== collapse 6th (last) dim of CIFTI input, compress output to test znz"
-if $NT -cci 0 0 0 0 -1 17 0 -infiles ${infile} \
+if $NT -cci 0 0 0 0 -1 17 0 -infiles ${prefix}.01.a.nii \
               -debug 3 -prefix ${prefix}.02.nii.gz
 then
 echo === cci succeeded
@@ -89,7 +107,16 @@ fi
 # store result for other commands
 tfile01=${prefix}.02.nii.gz
 
-echo "============== look for subsequent dimension changes"
+echo "============== look for subsequent dimension changes (NIFTI types vary)"
+if $NT -diff_hdr2 -infiles ${infile} ${tfile01}
+then
+echo === diff_hdr2 incorrectly succeeded
+exit 1
+else
+echo === good: diff_hdr2 showed a difference
+fi
+
+echo "============== look for subsequent dim changes (NIFTI types vary)"
 if $NT -diff_nim -infiles ${infile} ${tfile01}
 then
 echo === diff_nim incorrectly succeeded
@@ -132,6 +159,15 @@ echo === good: second diff_nim showed a difference
 fi
 
 echo "============== differ in slice_code? (hdr)"
+if $NT -diff_hdr -infiles ${infile} ${tfile02}
+then
+echo === diff_hdr incorrectly succeeded
+exit 1
+else
+echo === good: diff_hdr showed a difference
+fi
+
+echo "============== differ in slice_code? (hdr2)"
 if $NT -diff_hdr2 -infiles ${infile} ${tfile02}
 then
 echo === diff_hdr2 incorrectly succeeded

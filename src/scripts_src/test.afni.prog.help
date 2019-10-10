@@ -24,6 +24,7 @@ endif
 
 set ac = 1
 while ( $ac <= $#argv )
+  set oshort = `echo $argv[$ac] | cut -b 1-4`
   if ( "$argv[$ac]" == "-help" ) then
     echo ""
     echo "$progname           - run -help on AFNI programs"
@@ -42,10 +43,10 @@ while ( $ac <= $#argv )
     echo ""
 
     exit
-  else if ( "$argv[$ac]" == "-bin_dir" ) then
+  else if ( "$oshort" == "-bin" ) then
     @ ac += 1
     set bin_dir = $argv[$ac]
-  else if ( "$argv[$ac]" == "-src_dir" ) then
+  else if ( "$oshort" == "-src" ) then
     @ ac += 1
     set src_dir = $argv[$ac]
   else
@@ -60,6 +61,19 @@ echo "-- running programs out of binary directory $bin_dir"
 echo "-- using source code from $src_dir"
 echo "-- writing help output under $out_dir"
 echo ""
+
+# ======================================================================
+# perform any useful checks
+if ( ! -d $bin_dir ) then
+   echo "** missing -bin_dir: $bin_dir"
+   exit 1
+endif
+
+if ( ! -d $src_dir ) then
+   echo "** missing -src_dir: $src_dir"
+   exit 1
+endif
+
 
 # ======================================================================
 # get a program list

@@ -1,7 +1,7 @@
 #ifndef _SIEMENS_VISION_HEADER_
 #define _SIEMENS_VISION_HEADER_
 
-#define u_int unsigned int
+typedef unsigned int u_int ;
 #define SIEMENS_HEADERSIZE 6144
 
 struct Siemens_vision_header {

@@ -52,6 +52,8 @@ extern "C" {
 #undef  mcw_strdup
 #define mcw_strdup  strdup
 
+extern void   mcw_malloc_dump_fp(FILE *fp) ;
+
 /*---------------------------------------------------------------------------*/
 #else
 

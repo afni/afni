@@ -68,11 +68,13 @@
 
 #include "mri_image.h"  /* moved here on 16 May 2005, for OS X Tiger */
 extern MRI_IMAGE *mri_read_1D(char *) ;
+extern void mri_free( MRI_IMAGE *im ) ;
 
 #include <math.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include "matrix_f.h"
+#include "cs.h"
 
 /*---------------------------------------------------------------------*/
 /** Vectorization macros:

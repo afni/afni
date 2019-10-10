@@ -2181,6 +2181,9 @@ class MyInterface:
          gstr = 'errts*.HEAD'
          glist = glob.glob(gstr)
       if len(glist) == 0:
+         gstr = 'errts*.niml.dset'
+         glist = glob.glob(gstr)
+      if len(glist) == 0:
          print('** failed to find errts dset, continuing...')
          return 0 # failure is not terminal
       if len(glist) > 1:

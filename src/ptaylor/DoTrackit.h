@@ -86,7 +86,7 @@ int HARDI_Perturb( int *Dim, int ***mskd, int ***INDEX, int ***INDEX2,
 int Two_DOF_Rot( float *X, float *Y, 
                  double POL, double AZIM, float rot[3][3] );
 
-int WritebasicProbFiles( int N_nets, int Ndata, int Nvox, 
+int WriteBasicProbFiles( int N_nets, int Ndata, int Nvox,
                          char *prefix, THD_3dim_dataset *insetFA,
                          int *TV_switch, char *voxel_order, int *NROI,
                          int ***NETROI, int ***mskd, int ***INDEX2, int *Dim,

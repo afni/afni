@@ -8,6 +8,7 @@
 
 #include "afni.h"
 #include "afni_plugout.h"
+#include "mcw_malloc.h"
 extern char **Atlas_Names_List(ATLAS_LIST *atl);
 
 static THD_3dim_dataset *atlas_ovdset = NULL;
@@ -7255,9 +7256,9 @@ STATUS("got func info") ;
 
    else if( w == im3d->vwid->dmode->misc_purge_pb ){
      long long mb , ma ;
-     mb = mcw_malloc_total() ;
+     mb = MCW_MALLOC_total ;
      AFNI_purge_dsets( 1 ) ;
-     ma = mcw_malloc_total() ;
+     ma = MCW_MALLOC_total ;
      if( mb > 0 && ma > 0 )
        INFO_message("Purge: before=%s  after=%s  diff=%s",
                     commaized_integer_string(mb) ,

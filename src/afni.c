@@ -463,6 +463,21 @@ void show_AFNI_version(void)
 #endif
 }
 
+// [PT: Oct 7, 2019] functions to plot just the basic info, without
+// sep parsing needs: version number and package num
+void show_AFNI_package(void)
+{
+#ifdef SHSTRING
+   printf(SHSTRING "\n");
+#else
+   printf( "Compiled: " __DATE__ );
+#endif
+}
+
+void show_AFNI_vnum(void)
+{
+   printf(AVERZHN "\n");
+}
 
 /********************************************************************
    Print out some help information and then quit quit quit
@@ -831,6 +846,11 @@ void AFNI_syntax(void)
      "   -julian      Print out the current Julian date and exit.\n"
      "   -ver         Print the current AFNI version and compile date, then exit.\n"
      "                Useful to check how up-to-date you are (or aren't).\n"
+     "   -vnum        Print just the current AFNI version number (i.e.,\n"
+     "                AFNI_A.B.C), then exit.\n"
+     "   -package     Print just the current AFNI package (i.e., \n"
+     "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
+     "                then exit.\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -2032,6 +2052,17 @@ int main( int argc , char *argv[] )
       show_AFNI_version() ;
       dienow++ ;
    }
+
+   if( check_string("-vnum" , argc, argv) ) {
+      show_AFNI_vnum();
+      dienow++ ;
+   }
+
+   if( check_string("-package" , argc, argv) ) {
+      show_AFNI_package();
+      dienow++ ;
+   }
+
 
    /** MOTD output **/
 

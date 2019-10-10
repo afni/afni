@@ -20,7 +20,7 @@ int Syntax(TFORM targ, int detail)
 ":SPX:"
 "\n.. note::\n\n   This could be anything. Just for the demo.\n\n"
 ":SPX:"
-"Alternative Usage (without either of the above options): ~1~\n"
+"Alternative Usage 1 (without either of the above options): ~1~\n"
 "  3dinfo -label2index label dataset\n"
 "  * Prints to stdout the index corresponding to the sub-brick with\n"
 "    the name label, or a blank line if label not found.\n"
@@ -31,7 +31,11 @@ int Syntax(TFORM targ, int detail)
 "      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...:LR:\n"
 "  * Added per the request and efforts of Colm Connolly.\n"
 "\n"
-"Alternate Alternative Usage: ~1~\n"
+"Alternate Usage 2: ~1~\n"
+"  3dinfo -niml_hdr dataset [dataset ...]\n"
+"  Outputs the full NIML header to stdout.\n"
+"\n"
+"Alternate Usage 3: ~1~\n"
 "  3dinfo <OPTION> [OPTION ..] dataset [dataset ...]\n"
 "  Outputs a specific piece of information depending on OPTION.\n"
 "\n"
@@ -298,13 +302,14 @@ int main( int argc , char *argv[] )
    THD_3dim_dataset *dset=NULL;
    int iarg , verbose = -1 ;
    char *outbuf, *stmp=NULL;
-   char *labelName = NULL;
+   char *classic_labelName = NULL;
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
    char *atrdelim = {"\t"}, *form=NULL;
    INFO_FIELDS sing[512];
    int iis=0, N_sing = 0, isb=0, withhead = 0, itmp=0;
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
+   int classic_niml_hdr = 0;    /* show niml header */
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    char *tempstr = NULL;
    int extinit = 0;
@@ -333,8 +338,12 @@ int main( int argc , char *argv[] )
         iarg++;
         if (iarg >= argc)
            ERROR_exit( "3dinfo needs an argument after -label2number\n");
-        labelName = malloc(sizeof(char) * 2048);
-        strcpy(labelName, argv[iarg]);
+        classic_labelName = malloc(sizeof(char) * 2048);
+        strcpy(classic_labelName, argv[iarg]);
+        iarg++; continue;
+      }
+      else if( strcmp(argv[iarg],"-niml_hdr") == 0) {
+        classic_niml_hdr = 1;  /* show niml header in classic case */
         iarg++; continue;
       }
       else if( strcasecmp(argv[iarg],"-sb_delim") == 0) {
@@ -674,7 +683,27 @@ int main( int argc , char *argv[] )
         }
         switch (sing[iis]) {
          case CLASSIC:
-            if (labelName == NULL )  /*** get and output info ***/
+            /* check for multiple cases under classic unbrella (make
+               new cases if this continues)      [10 Oct 2019 rickr] */
+            if (classic_labelName != NULL )  /*** get and output label ***/
+            {
+             int nval_per = dset->dblk->nvals;
+             int foundLabel = 0;
+             int ival=0;
+
+             for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
+             {
+               if (strcmp(DSET_BRICK_LAB(dset,ival), classic_labelName) == 0)
+               {
+                 printf("%d\n", ival); foundLabel = 1;
+               }
+             } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
+             if (!foundLabel) printf("\n");
+             free(classic_labelName);
+            } else if ( classic_niml_hdr ) {
+              if( ! THD_write_niml_to_stream(dset, "stdout:", 0) )
+                ERROR_exit("Can't write NIML for dataset %s",argv[iarg]) ;
+            } else   /*** real CLASSIC: get and output general info ***/
             {
              outbuf = THD_dataset_info( dset , verbose ) ;
              if( outbuf != NULL ){
@@ -685,24 +714,8 @@ int main( int argc , char *argv[] )
                ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
              }
             }
-            else   /*** get and output label ***/
-            {
-             int nval_per = dset->dblk->nvals;
-             int foundLabel = 0;
-             int ival=0;
-
-             for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-             {
-               if (strcmp(DSET_BRICK_LAB(dset,ival), labelName) == 0)
-               {
-                 printf("%d\n", ival); foundLabel = 1;
-               }
-             } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-             if (!foundLabel) printf("\n");
-            }
 
             THD_delete_3dim_dataset( dset , False ) ;
-            free(labelName);
             break;
          case DSET_EXISTS:
             fprintf(stdout, "%d", dset ? 1:0);

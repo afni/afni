@@ -66,6 +66,16 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 7, Oct , 2019 , PT , "afni" , MICRO , TYPE_NEW_OPT,
+   "Simpler opts for package and version number.",
+   "For scriptability.\n"
+},
+
+{ 7, Oct , 2019 , PT , "@animal_warper" , MINOR , TYPE_GENERAL,
+   "Change text of animal_outs.txt.",
+   "Minor 'under the hood' changes, too.\n"
+},
+
 { 3, Oct , 2019 , PT , "lib_gershgorin.py" , MINOR , TYPE_GENERAL,
    "Just divvied up the behavior of the functions better.",
    "Also have a general, NxN case .\n"
