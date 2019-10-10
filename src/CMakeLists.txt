@@ -26,6 +26,8 @@ target_include_directories(libheaders
   $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
   $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+  ${X11_Xt_INCLUDE_PATH}
+  ${MOTIF_INCLUDE_DIR}
   )
 
 set_source_files_properties(gifti_choice.c PROPERTIES COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB")
@@ -92,8 +94,10 @@ target_include_directories(mri
     ${3DEDGE_INCLUDE_DIRS} 
     $<TARGET_PROPERTY:coxplot,INTERFACE_INCLUDE_DIRECTORIES>
    )
+
+target_compile_options(mri PRIVATE "-DREPLACE_XT" )
 target_link_libraries(mri 
-  PRIVATE  coxplot   audio XmHTML volpack 3DEdge eispack ${X11_Xt_LIB} ${NETCDF_LIBRARIES_C} NIFTI::nifticdf NIFTI::nifti2 m )
+  PRIVATE  coxplot   audio XmHTML volpack 3DEdge eispack ${NETCDF_LIBRARIES_C} NIFTI::nifticdf NIFTI::nifti2 m )
 add_afni_target_properties(mri)
 
 
@@ -124,7 +128,7 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   add_subdirectory(svm)
   add_subdirectory(rickr)
 
-  set(MRIX_OBJS display.c imseq.c bbox.c xim.c xutil.c xutil_webber.c LiteClue.c)
+  set(MRIX_OBJS display.c imseq.c bbox.c xim.c xutil.c xutil_webber.c LiteClue.c coxplot/plot_motif.c coxplot/plot_ts.c)
   add_library(mrix ${MRIX_OBJS})
   add_afni_target_properties(mrix)
   set_target_properties(mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h")
@@ -144,7 +148,7 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   include(CMakeLists_apps.txt)
   
   # Install many other binaries
-  if (BUILD_BINARIES)
+  if (${BUILD_BINARIES})
   message(FATAL_ERROR "Not currently supported")
   # include(CMakeLists_binaries.txt)
   endif()

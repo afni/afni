@@ -8,7 +8,6 @@
 #  define offsetof(st, m) ((size_t)&(((st *)0)->m))
 # endif
 
-#undef  REPLACE_XT
 #ifdef  REPLACE_XT           /* this is the finesse */
 
 typedef   void*           RwcPointer ;
@@ -18,7 +17,7 @@ typedef   void*           RwcPointer ;
 # define  RwcRealloc      realloc
 # define  RwcMalloc       malloc
 # define  RwcNew(t)       ((t *)calloc(1,sizeof(t)))
-# define  RwcNewString(s) (strcpy(malloc(1+strlen(s)),str))
+# define  RwcNewString(s) (strcpy(malloc(1+strlen(s)),s))
 
 #else                        /* this is the crudesse */
 
