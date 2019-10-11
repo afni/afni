@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 11, Oct, 2019, RCR, "afni-general", MINOR, TYPE_ENHANCE,
+   "checked and merged another 17 commit PR from pn2200",
+   "This is mostly to resolve missing prototypes."
+ } ,
+
  { 10, Oct, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "add -niml_hdr, to write full NIML header(s) to stdout",
    NULL
