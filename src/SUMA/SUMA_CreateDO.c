@@ -7723,6 +7723,28 @@ char *SUMA_DO_state(SUMA_DO *DO)
 }
 
 /*! Is a displayable object anatomically correct? 
+   \sa SUMA_isDO_AnatCorrect
+*/
+int  SUMA_is_iDO_AnatCorrect(int dov_id)
+{
+   static char FuncName[]={"SUMA_is_iDO_AnatCorrect"};   
+   SUMA_ENTRY;
+   if (dov_id < 0 || dov_id>=SUMAg_N_DOv) {
+      SUMA_S_Errv("Bad do_id %d, not in [%d %d[ returning 0\n",
+                  dov_id, 0, SUMAg_N_DOv);
+      SUMA_RETURN(0);
+   }
+   SUMA_RETURN(SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id])));
+}
+
+int SUMA_isDO_AnatCorrect(SUMA_DO *DO) 
+{
+   static char FuncName[]={"SUMA_isDO_AnatCorrect"};   
+   if (!DO) return(0);
+   return(SUMA_ADO_is_AnatCorrect((SUMA_ALL_DO*)DO->OP));
+}
+
+/*! Is a displayable object anatomically correct? 
    \sa SUMA_is_iDO_AnatCorrect
 */
 int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado)
@@ -7755,27 +7777,6 @@ int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado)
    SUMA_RETURN(0);
 }   
 
-/*! Is a displayable object anatomically correct?
-   \sa SUMA_isDO_AnatCorrect
-*/
-int  SUMA_is_iDO_AnatCorrect(int dov_id)
-{
-   static char FuncName[]={"SUMA_is_iDO_AnatCorrect"};
-   SUMA_ENTRY;
-   if (dov_id < 0 || dov_id>=SUMAg_N_DOv) {
-      SUMA_S_Errv("Bad do_id %d, not in [%d %d[ returning 0\n",
-                  dov_id, 0, SUMAg_N_DOv);
-      SUMA_RETURN(0);
-   }
-   SUMA_RETURN(SUMA_isDO_AnatCorrect(&(SUMAg_DOv[dov_id])));
-}
-
-int SUMA_isDO_AnatCorrect(SUMA_DO *DO)
-{
-   static char FuncName[]={"SUMA_isDO_AnatCorrect"};
-   if (!DO) return(0);
-   return(SUMA_ADO_is_AnatCorrect((SUMA_ALL_DO*)DO->OP));
-}
 
 SUMA_Boolean SUMA_isGLDO_AnatCorrect(SUMA_GraphLinkDO *GLDO)
 {
