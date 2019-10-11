@@ -6,7 +6,7 @@
  * R Reynolds   2014
  */
 
-#if defined(LINUX)
+#if defined(__linux__)
 # include <malloc.h>
 #endif
 

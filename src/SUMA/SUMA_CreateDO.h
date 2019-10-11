@@ -287,6 +287,8 @@ void SUMA_Free_SphereMarker (SUMA_SphereMarker *SM);
 SUMA_SphereMarker* SUMA_Alloc_SphereMarker (void);
 SUMA_Boolean SUMA_DrawFaceSetMarker (SUMA_FaceSetMarker* FM, 
                                      SUMA_SurfaceViewer *sv);
+SUMA_Boolean SUMA_ScreenPlane_WorldSpace(SUMA_SurfaceViewer *sv, float *cen,
+                                         float *PlEq);
 SUMA_FaceSetMarker* SUMA_Alloc_FaceSetMarker (void);
 void SUMA_Free_FaceSetMarker (SUMA_FaceSetMarker* FM);
 int SUMA_NodeMask_to_FaceMask(SUMA_SurfaceObject *SO, byte *nodemask,
@@ -496,6 +498,7 @@ char *SUMA_iDO_state(int i);
 char *SUMA_DO_state(SUMA_DO *DO);
 char *SUMA_iDO_group(int i);
 char *SUMA_DO_group(SUMA_DO *DO);
+int SUMA_ADO_is_AnatCorrect(SUMA_ALL_DO *ado);
 int SUMA_isDO_AnatCorrect(SUMA_DO *DO);
 int  SUMA_is_iDO_AnatCorrect(int dov_id);
 SUMA_Boolean SUMA_DrawSphereDO (SUMA_SphereDO *SDO, SUMA_SurfaceViewer *sv);
