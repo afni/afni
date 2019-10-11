@@ -14,6 +14,7 @@
 #include "../niml/niml_private.h"
 #include "xutil.h"
 #include "../suma_suma.h"
+#include "SUMA_suma.h"
 
 
 /* This function is essentially sambowry's eval() as posted on 

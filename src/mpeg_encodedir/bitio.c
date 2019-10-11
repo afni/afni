@@ -92,6 +92,8 @@
  *==============*/
 
 #include <assert.h>
+#include <time.h>
+#include <unistd.h>
 #include "all.h"
 #include "byteorder.h"
 #include "bitio.h"

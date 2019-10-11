@@ -24,6 +24,7 @@ void SUMA_Free_Widget_Help(void *data);
 void SUMA_suggest_GUI_Name_Match(char *wname, int nmx, DList *dl);
 SUMA_Boolean SUMA_is_Documented_Widget(char *wname);
 char *SUMA_get_DocumentedWidgets(void);
+char *SUMA_set_DocumentedWidgets(char **s);
 void SUMA_free_DocumentedWidgets(void); 
 
 #endif

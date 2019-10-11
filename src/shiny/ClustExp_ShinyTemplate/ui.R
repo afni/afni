@@ -1,12 +1,13 @@
-#####################################
+## top ###################################
 ## 09/2017 Justin Rajendra
 ## Cluster Explorer
 ## UI
 
-#########################################################################
+## ui top #######################################################################
 header <- dashboardHeader(title=paste("Cluster Explorer"),titleWidth=275)
 sidebar <- dashboardSidebar(width=275,sidebarMenu(
 
+  ## clusters tab ##############################################
   menuItem("Clusters",tabName="clusters",icon=icon("area-chart"),
            selected=TRUE,startExpanded=TRUE,
 
@@ -33,7 +34,8 @@ sidebar <- dashboardSidebar(width=275,sidebarMenu(
 
            ## plot options
            radioButtons('split_bs_ws','Factor by:',c(NA),inline=TRUE),
-           radioButtons('box_scatter','Plot type:',c('Box','Interaction'),
+           radioButtons('box_scatter','Plot type:',
+                        c('Box','Interaction','Scatter'),
                         inline=TRUE),
 
            ## scatter only
@@ -45,6 +47,7 @@ sidebar <- dashboardSidebar(width=275,sidebarMenu(
 
 
   ),   ## end clusters tab
+  ## plot settings tab #########################################
   menuItem("Plot Settings",tabName="settings",icon=icon("gears"),
            selected=FALSE,startExpanded=FALSE,
 
@@ -90,7 +93,7 @@ sidebar <- dashboardSidebar(width=275,sidebarMenu(
 )   ## end side bar menu
 )   ## end sidbar
 
-#########################################################################
+## body #######################################################################
 body <-  dashboardBody(
   tabsetPanel(
     tabPanel('Main',icon=icon("beer"),br(),
@@ -103,20 +106,20 @@ body <-  dashboardBody(
              ),br(),
              fluidRow(
                h4("Descriptive Statistics for Cluster",align='center'),
-               column(width=12,dataTableOutput('clust_stat_desc'))
+               column(width=12,tableOutput('clust_stat_desc'))
              )
     ),   ## end main panel
-    #################################
+    ## data table ###############################
     tabPanel('Data Table',icon=icon("table"),br(),
              fluidRow(column(width=12,br(),
-                             dataTableOutput('data_table'),br()) )
+                             tableOutput('data_table'),br()) )
     ),   ## end full data table panel
-    #################################
+    ## data summary ###############################
     tabPanel('Data Summary',icon=icon("calculator"),br(),
              fluidRow(column(width=12,br(),
                              verbatimTextOutput('summary_table'),br()) )
     ),   ## end data table summary panel
-    #################################
+    ## inputs ###############################
     tabPanel('Inputs',icon=icon("inbox"),br(),
              fluidRow(column(width=12,br(),
                              tableOutput('stat_info_table'),br()) )
@@ -124,5 +127,5 @@ body <-  dashboardBody(
   )   ## end tabset panel
 )   ## end dashboard body
 
-## run it
+## run it #########################
 dashboardPage(header, sidebar, body)

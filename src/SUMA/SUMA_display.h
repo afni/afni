@@ -646,6 +646,7 @@ void SUMA_WidgetResize (Widget New, int width, int height);
 void SUMA_LoadVisualState(char *fname, void *csvp);
 int SUMA_ApplyVisualState(NI_element *nel, SUMA_SurfaceViewer *csv);
 void SUMA_SaveVisualState(char *fname, void *csvp);
+void SUMA_LoadMaskDO (char *s, void *csvp);
 void SUMA_LoadSegDO (char *s, void *csvp);
 SUMA_Boolean SUMA_LoadVolDO (char *fname, 
                         SUMA_DO_CoordUnits coord_type, SUMA_VolumeObject **VOp,
