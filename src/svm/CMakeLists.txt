@@ -13,7 +13,7 @@ target_include_directories(3dsvm
 #     $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>
 #     )
 
-target_link_libraries(3dsvm PRIVATE mri mrix libheaders m)
+target_link_libraries(3dsvm PRIVATE  mrix mri libheaders m)
 target_link_libraries(plug_3dsvm PRIVATE mrix mri AFNI::coxplot libheaders)
 
 install(TARGETS 3dsvm plug_3dsvm

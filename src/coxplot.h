@@ -8,8 +8,8 @@
 ******************************************************************************/
 
 /*---------------- Header for in-memory adaptation of PLOTPAK ---------------*/
-
-#include <X11/Intrinsic.h>
+// x programs should be built in libmrix
+#include <X11/Intrinsic.h> 
 #include <string.h>
 #include <stdio.h>
 #include <math.h>

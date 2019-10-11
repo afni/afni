@@ -1,3 +1,4 @@
+add_subdirectory(rickr)
 add_subdirectory(coxplot)
 add_subdirectory(f2cdir)
 add_subdirectory(niml)
@@ -74,7 +75,7 @@ set_os_flags(thd_filestuff.c)
 set_os_flags(machdep.c)
 set(SOMEAFOBJS afni_warp.c pbar_color_defs.c afni_ports.c)
 set(MISC_OBJS afni_suma.c vol2surf.c list_struct.c nifti_statlib.c matrix.c gifti_choice.c misc_math.c)
-set(SUMA_OBJS  suma_afni_surface.c suma_algorithms.c suma_datasets.c suma_help.c suma_niml.c suma_string_manip.c suma_utils.c)
+set(SUMA_OBJS  suma_afni_surface.c suma_algorithms.c suma_datasets.c suma_niml.c suma_string_manip.c suma_utils.c)
 set(CS_OBJS cs_addto_args.c cs_fgets.c cs_gamfit.c cs_laguerre.c cs_misc.c cs_playsound.c cs_pv.c cs_qhull.c cs_qmed.c cs_sort_d.c cs_sort_di.c cs_sort_dv.c cs_sort_ff.c cs_sort_fi.c cs_sort_fv.c cs_sort_ii.c cs_sort_iv.c cs_sort_str.c cs_symeig.c multivector.c afni_environ.c cl2.c machdep.c afni_logger.c cl1.c powell_int.c powell_newuoa.c rhdd.c zfun.c svdlib.c )
 set(EDT_OBJS  edt_addbrick.c edt_blur.c edt_buildmask.c edt_calcmask.c edt_checkargv.c edt_clust.c edt_clust2.c edt_clustalpha.c edt_clustarr.c edt_coerce.c edt_dsetitems.c edt_emptycopy.c edt_filtervol.c edt_floatize.c edt_fullcopy.c edt_geomcon.c edt_help.c edt_onedset.c edt_scl2max.c edt_sortmask.c edt_substbrick.c edt_volamax.c edt_volpad.c edt_wodcopy.c edt_zscore.c)
 set(THD_OBJS thd_1Ddset.c thd_1Dtodset.c thd_3Ddset.c thd_Tcorr1D.c thd_analyzeread.c thd_atlas.c thd_atr.c thd_automask.c thd_autonudge.c thd_auxdata.c thd_avts.c thd_bandpass.c thd_brainormalize.c thd_bstats.c thd_center.c thd_checkidc.c thd_cliplevel.c thd_compress.c thd_conformist.c thd_coords.c thd_correlate.c thd_countb.c thd_ctfread.c thd_delete.c thd_despike_L1.c thd_detrend.c thd_dset_nbhd.c thd_dset_to_grayplot.c thd_dset_to_vectim.c thd_dsetatr.c thd_dsetdblk.c thd_dsetinsess.c thd_dsetinslist.c thd_dsetrow.c thd_dsetto1D.c thd_dsetto3D.c thd_dumdset.c thd_editdaxes.c thd_entropy16.c thd_fdbrick.c thd_fdrcurve.c thd_fdto1D.c thd_fdto2D.c thd_fetchdset.c thd_filestuff.c thd_fitter.c thd_floatscan.c thd_forcemalloc.c thd_get1D.c thd_getorient.c thd_getpathprogs.c thd_http.c thd_idcode.c thd_incorrelate.c thd_info.c thd_initalldir.c thd_initdblk.c thd_initdkptr.c thd_initprefix.c thd_initsess.c thd_instacorr.c thd_intlist.c thd_iochan.c thd_lasso.c thd_linecount.c thd_loaddblk.c thd_logafni.c thd_makefbuc.c thd_makefim.c thd_makefith.c thd_makemask.c thd_manydset.c thd_mastery.c thd_matdaxes.c thd_mattor.c thd_mean_dset.c thd_median.c thd_mincread.c thd_mincwrite.c thd_mismatch.c thd_mnicoords.c thd_mpegread.c thd_newprefix.c thd_niftiread.c thd_niftiwrite.c thd_niml.c thd_nimlatr.c thd_notes.c thd_opendset.c thd_openimage.c thd_opentcat.c thd_orient.c thd_outlier_count.c thd_purgedblk.c thd_read_vecmat.c thd_reconpar.c thd_remove_allzero.c thd_rot3d.c thd_rot3d_byte.c thd_rotangles.c thd_rowfillin.c thd_sarr.c thd_satcheck.c thd_selenium.c thd_shear3d.c thd_shift2.c thd_statpval.c thd_strfunc.c thd_svdblur.c thd_table.c thd_timeof.c thd_tmask.c thd_trusthost.c thd_tshift.c thd_ttatlas_query.c thd_ttest.c thd_vcheck.c thd_warp_tables.c thd_warps.c thd_winsor.c thd_writeatr.c thd_writedblk.c thd_writedset.c thd_zblock.c thd_zeropad.c thd_zfillin.c afni_vedit.c ktaub.c bilinear_warp3D.c)
@@ -124,28 +125,11 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   # XXX remove jpeg-6b
   add_subdirectory(crorden)
   add_subdirectory(qhulldir)
-  add_subdirectory(svm)
-  add_subdirectory(rickr)
-  add_subdirectory(XmHTML)
-
-  set(MRIX_OBJS display.c imseq.c bbox.c xim.c xutil.c xutil_webber.c LiteClue.c coxplot/plot_motif.c coxplot/plot_ts.c)
-  add_library(mrix ${MRIX_OBJS})
-  add_afni_target_properties(mrix)
-  set_target_properties(mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h")
-  target_include_directories(mrix PUBLIC $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES> )
-  target_link_libraries(mrix PRIVATE mri AFNI::coxplot  ${MOTIF_LIBRARIES} AFNI::XmHTML ${X11_LIBRARIES}  libheaders)
-  add_afni_target_properties(mrix)
-  add_library(AFNI::mrix ALIAS mrix)
-
+ 
   ## Install scripts
   add_subdirectory(scripts_install)
 
   ################# Plugins
-  # Add_plugin targets
-  include(CMakeLists_plugins.txt)
-
-  ############ Apps
-  include(CMakeLists_apps.txt)
   
   # Install many other binaries
   if (${BUILD_BINARIES})
@@ -154,7 +138,25 @@ if(NOT AFNI_BUILD_CORELIBS_ONLY)
   endif()
 endif()
 
+if(BUILD_X_PROGS)
+  add_subdirectory(svm)
+  add_subdirectory(XmHTML)
 
+  set(MRIX_OBJS display.c imseq.c bbox.c xim.c xutil.c xutil_webber.c LiteClue.c coxplot/plot_motif.c coxplot/plot_ts.c coxplot/plot_x11.c coxplot/plot_strip.c suma_help.c)
+  add_library(mrix ${MRIX_OBJS})
+  add_afni_target_properties(mrix)
+  set_target_properties(mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h")
+  target_include_directories(mrix PUBLIC $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES> )
+  target_link_libraries(mrix PRIVATE mri AFNI::coxplot  ${MOTIF_LIBRARIES} AFNI::XmHTML ${X11_LIBRARIES}  libheaders)
+  add_afni_target_properties(mrix)
+  add_library(AFNI::mrix ALIAS mrix)
+
+  # Add_plugin targets
+  include(CMakeLists_plugins.txt)
+
+  ############ Apps
+  include(CMakeLists_apps.txt)
+endif()
 
 # Install makefile programs that are built by this project.
 execute_process(
