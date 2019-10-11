@@ -15,8 +15,8 @@ shinyServer(function(input,output,session) {
     stopApp
   })
 
-  ############################################
-  ## change the cluster list
+
+  ## change the cluster list ##############################
   observe({
     if(input$mean_peak == 'Mean'){
       updateSelectInput(session,"clusters",choices=clust.cm.list)
@@ -25,8 +25,7 @@ shinyServer(function(input,output,session) {
     }
   })   ## end update cluster list
 
-  ############################################
-  ## change the color list
+  ## change the color list ##############################
   observe({
     if(SI.df$test == 'Ttest'){
       col.list <-  c('Red/Blue'='RedBlue','Dark2','Set1','Set2','Set3',
@@ -35,8 +34,7 @@ shinyServer(function(input,output,session) {
     }
   })   ## end update color list
 
-  ############################################
-  ## set the slider range
+  ## set the slider range ##############################
   observe({
     if(input$mean_peak == 'Mean'){
       val.range <- range(mean.df$value,na.rm=TRUE)
@@ -51,8 +49,7 @@ shinyServer(function(input,output,session) {
                       value=set.range)
   })   ## end update cluster list
 
-  ###########################################
-  # change the coordinate location of selected cluster
+  ## change the coordinate location of selected cluster #############
   observeEvent(input$clusters,{
 
     ## xyz for drive afni and data and name
@@ -74,7 +71,7 @@ shinyServer(function(input,output,session) {
 
   })   ## end go to cluster
 
-  ###########################################
+  ## cluster plot ##############################
   clustPlot <- reactive({
     clust.in <- clustData()
     if(exists("clust.in")){
@@ -89,7 +86,7 @@ shinyServer(function(input,output,session) {
     }
   })   ## end clust_plot
 
-  ###########################################
+  ## cluster stats ##############################
   clustStat <- reactive({
     clust.in <- clustData()
     stat_fun(clust.in[["clust.df"]],prefix,p_val,SI.df$test,SI.df$paired,
@@ -98,7 +95,7 @@ shinyServer(function(input,output,session) {
              input$orig_stat,input$split_bs_ws,input$box_scatter)
   })   ## end clustStat
 
-  ###########################################
+  ## cluster descriptive ##############################
   clustDesc <- reactive({
     clust.in <- clustData()
     stat_desc(clust.in[["clust.df"]],prefix,p_val,SI.df$test,
@@ -108,8 +105,7 @@ shinyServer(function(input,output,session) {
               input$OverPlot,input$col_pal,input$marker_size)
   })   ## end clustStat
 
-  ############################################
-  ## load the selected cluster data
+  ## load the selected cluster data ##############################
   clustData <- reactive({
 
     ## make sure something is selected
@@ -139,8 +135,7 @@ shinyServer(function(input,output,session) {
     }   ## end input$clusters check
   })   ## end clustData reactive
 
-  ############################################
-  ## outputs
+  ## outputs ##############################
 
   DT.options <- list(paging=FALSE,info=FALSE,searching=FALSE)
   DT.options2 <- list(paging=TRUE,info=FALSE,searching=FALSE,scrollX=TRUE,
@@ -148,10 +143,11 @@ shinyServer(function(input,output,session) {
 
   output$clust_plot_orig <- renderPlotly({clustPlot()})
   output$clust_stat_orig <- reactivePrint(function(){clustStat()})
-  output$clust_stat_desc <- renderDataTable({clustDesc()},options=DT.options)
+  # output$clust_stat_desc <- renderDataTable({clustDesc()},options=DT.options)
+  output$clust_stat_desc <- renderTable({clustDesc()})
   output$stat_info_table <- renderTable({t(SI.df)},rownames=TRUE,colnames=FALSE)
 
-  output$data_table <- renderDataTable(options=DT.options2,{
+  output$data_table <- renderTable({
     clust.in <- clustData()
     return(clust.in[["clust.df"]])
   })
@@ -161,8 +157,7 @@ shinyServer(function(input,output,session) {
     summary(clust.df)
   })
 
-  ############################################
-  ## make or update some UI
+  ## make or update some UI #########################################
   output$qVars_input <- renderUI({
     if(!is.na(qVars)){
       selectInput('qVars_sel','Quantitative variable:',qVars)
