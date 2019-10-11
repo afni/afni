@@ -43,11 +43,11 @@ extern VOID f_exit();
 
 #ifdef KR_headers
 extern VOID f_init(), sig_die();
-extern int MAIN__();
+// extern int MAIN__();
 #define Int /* int */
 #else
 extern void f_init(void), sig_die(char*, int);
-extern int MAIN__(void);
+// extern int MAIN__(void);
 #define Int int
 #endif
 
@@ -91,45 +91,48 @@ sig_die("Trace trap", 1);
 int xargc;
 char **xargv;
 
-#ifdef KR_headers
-main(argc, argv) int argc; char **argv;
-#else
-main(int argc, char **argv)
-#endif
-{
-xargc = argc;
-xargv = argv;
-signal(SIGFPE, sigfdie);	/* ignore underflow, enable overflow */
-#ifdef SIGIOT
-signal(SIGIOT, sigidie);
-#endif
-#ifdef SIGTRAP
-signal(SIGTRAP, sigtrdie);
-#endif
-#ifdef SIGQUIT
-if(signal(SIGQUIT,sigqdie) == SIG_IGN)
-	signal(SIGQUIT, SIG_IGN);
-#endif
-if(signal(SIGINT, sigindie) == SIG_IGN)
-	signal(SIGINT, SIG_IGN);
-signal(SIGTERM,sigtdie);
+// No executable is built so no main function is needed. Other functions
+// defined in this file are required to build the library from this directory
+// though
+// #ifdef KR_headers
+// main(argc, argv) int argc; char **argv;
+// #else
+// main(int argc, char **argv)
+// #endif
+// {
+// xargc = argc;
+// xargv = argv;
+// signal(SIGFPE, sigfdie);	/* ignore underflow, enable overflow */
+// #ifdef SIGIOT
+// signal(SIGIOT, sigidie);
+// #endif
+// #ifdef SIGTRAP
+// signal(SIGTRAP, sigtrdie);
+// #endif
+// #ifdef SIGQUIT
+// if(signal(SIGQUIT,sigqdie) == SIG_IGN)
+// 	signal(SIGQUIT, SIG_IGN);
+// #endif
+// if(signal(SIGINT, sigindie) == SIG_IGN)
+// 	signal(SIGINT, SIG_IGN);
+// signal(SIGTERM,sigtdie);
 
-#ifdef pdp11
-	ldfps(01200); /* detect overflow as an exception */
-#endif
+// #ifdef pdp11
+// 	ldfps(01200); /* detect overflow as an exception */
+// #endif
 
-f_init();
-#ifndef NO_ONEXIT
-ONEXIT(f_exit);
-#endif
-MAIN__();
-#ifdef NO_ONEXIT
-f_exit();
-#endif
-exit(0);	/* exit(0) rather than return(0) to bypass Cray bug */
-return 0;	/* For compilers that complain of missing return values; */
-		/* others will complain that this is unreachable code. */
-}
+// f_init();
+// #ifndef NO_ONEXIT
+// ONEXIT(f_exit);
+// #endif
+// MAIN__();
+// #ifdef NO_ONEXIT
+// f_exit();
+// #endif
+// exit(0);	/* exit(0) rather than return(0) to bypass Cray bug */
+// return 0;	/* For compilers that complain of missing return values; */
+// 		/* others will complain that this is unreachable code. */
+// }
 #ifdef __cplusplus
 	}
 #endif
