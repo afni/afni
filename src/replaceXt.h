@@ -8,6 +8,9 @@
 #  define offsetof(st, m) ((size_t)&(((st *)0)->m))
 # endif
 
+/*---- If REPLACE_XT is defined as a compile flag X11 memory allocation is
+     swapped out for C's malloc. This allows libmri.so to be compiled and
+     linked without X11 as a dependency ---*/
 #ifdef  REPLACE_XT           /* this is the finesse */
 
 typedef   void*           RwcPointer ;
