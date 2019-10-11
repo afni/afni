@@ -97,7 +97,7 @@ target_include_directories(mri
 
 target_compile_options(mri PRIVATE "-DREPLACE_XT" )
 target_link_libraries(mri 
-  PRIVATE  coxplot   audio XmHTML volpack 3DEdge eispack ${NETCDF_LIBRARIES_C} NIFTI::nifticdf NIFTI::nifti2 m )
+  PRIVATE  coxplot   audio volpack 3DEdge eispack ${NETCDF_LIBRARIES_C} NIFTI::nifticdf NIFTI::nifti2 m )
 add_afni_target_properties(mri)
 
 
