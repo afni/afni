@@ -6,6 +6,8 @@
 
 #include "mrilib.h"
 
+int print_classic_label2index(THD_3dim_dataset * dset, char * labelname);
+int print_classic_info       (THD_3dim_dataset * dset, char * dname, int verb);
 
 int Syntax(TFORM targ, int detail)
 {
@@ -20,24 +22,43 @@ int Syntax(TFORM targ, int detail)
 ":SPX:"
 "\n.. note::\n\n   This could be anything. Just for the demo.\n\n"
 ":SPX:"
+"----------------------------------------------------------------------\n"
 "Alternative Usage 1 (without either of the above options): ~1~\n"
-"  3dinfo -label2index label dataset\n"
-"  * Prints to stdout the index corresponding to the sub-brick with\n"
-"    the name label, or a blank line if label not found.\n"
-"  * If this option is used, then the ONLY output is this sub-brick index.\n"
-"    This is intended to be used in a script, as in this tcsh fragment:LIT:\n"
-"      set face = `3dinfo -label2index Face#0 AA_Decon+orig`\n"
-"      set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
-"      3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...:LR:\n"
-"  * Added per the request and efforts of Colm Connolly.\n"
+"   Output a large block of text per dataset.  This has multiple options:\n"
 "\n"
+"   -label2index label dataset  : output index corresponding to label ~2~\n"
+"\n"
+"        example: 3dinfo -label2index aud#0_Coef stats.FT+tlrc\n"
+"\n"
+"        Prints to stdout the index corresponding to the sub-brick with\n"
+"           the name label, or a blank line if label not found.\n"
+"        The ONLY output is this sub-brick index.\n"
+"        This is intended for used in a script, as in this tcsh fragment:LIT:\n"
+"           set face = `3dinfo -label2index Face#0 AA_Decon+orig`\n"
+"           set hous = `3dinfo -label2index House#0 AA_Decon+orig`\n"
+"           3dcalc -a AA_Decon+orig\"[$face]\" -b AA_Decon+orig\"[$hous]\" ...:LR:\n"
+"      * Added per the request and efforts of Colm Connolly.\n"
+"\n"
+"   -niml_hdr dataset           : output entire NIML-formatted header ~2~\n"
+"\n"
+"        example: 3dinfo -niml_hdr stats.FT+tlrc\n"
+"\n"
+"        Prints to stdout the NIML-formatted equivalent of the .HEAD file.\n"
+"\n"
+"   -subbrick_info dataset      : output only sub-brick part of info ~2~\n"
+"\n"
+"        example: 3dinfo -subbrick_info stats.FT+tlrc\n"
+"\n"
+"        Prints to stdout only the part of the full '3dinfo -VERB. output\n"
+"        that includes sub-brick info.  The first such line might look like:\n"
+"\n"
+"           -- At sub-brick #0 'Full_Fstat' datum type is float:  0 to 971.2\n"
+"\n"
+"----------------------------------------------------------------------\n"
 "Alternate Usage 2: ~1~\n"
-"  3dinfo -niml_hdr dataset [dataset ...]\n"
-"  Outputs the full NIML header to stdout.\n"
-"\n"
-"Alternate Usage 3: ~1~\n"
 "  3dinfo <OPTION> [OPTION ..] dataset [dataset ...]\n"
 "  Outputs a specific piece of information depending on OPTION.\n"
+"  This can form a table of outputs per dataset.\n"
 "\n"
 "  ==============================================================\n"
 "  Options producing one value (string) ~2~\n"
@@ -301,7 +322,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL;
    int iarg , verbose = -1 ;
-   char *outbuf, *stmp=NULL;
+   char *stmp=NULL;
    char *classic_labelName = NULL;
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
@@ -309,7 +330,8 @@ int main( int argc , char *argv[] )
    INFO_FIELDS sing[512];
    int iis=0, N_sing = 0, isb=0, withhead = 0, itmp=0;
    int ip=0, needpair = 0, namelen=0, monog_pairs = 0;
-   int classic_niml_hdr = 0;    /* show niml header */
+   int classic_niml_hdr = 0;    /* classic: show niml header */
+   int classic_subb_info = 0;   /* classic: show sub-brick info */
    THD_3dim_dataset *tttdset=NULL, *dsetp=NULL;
    char *tempstr = NULL;
    int extinit = 0;
@@ -333,6 +355,7 @@ int main( int argc , char *argv[] )
             withhead = 1; iarg++; continue; }
       else if( strcasecmp(argv[iarg],"-monog_pairs") == 0 ){
             monog_pairs = 1; iarg++; continue; }
+      /* long-format classic options */
       else if ( strncmp(argv[iarg],"-label2",7) == 0 )
       {
         iarg++;
@@ -346,6 +369,11 @@ int main( int argc , char *argv[] )
         classic_niml_hdr = 1;  /* show niml header in classic case */
         iarg++; continue;
       }
+      else if( strcmp(argv[iarg],"-subbrick_info") == 0) {
+        classic_subb_info = 1;  /* show sub-brick part of info */
+        iarg++; continue;
+      }
+      /* end: long-format classic options */
       else if( strcasecmp(argv[iarg],"-sb_delim") == 0) {
          iarg++;
          if (iarg >= argc)
@@ -685,34 +713,25 @@ int main( int argc , char *argv[] )
          case CLASSIC:
             /* check for multiple cases under classic unbrella (make
                new cases if this continues)      [10 Oct 2019 rickr] */
-            if (classic_labelName != NULL )  /*** get and output label ***/
-            {
-             int nval_per = dset->dblk->nvals;
-             int foundLabel = 0;
-             int ival=0;
 
-             for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-             {
-               if (strcmp(DSET_BRICK_LAB(dset,ival), classic_labelName) == 0)
-               {
-                 printf("%d\n", ival); foundLabel = 1;
-               }
-             } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-             if (!foundLabel) printf("\n");
-             free(classic_labelName);
+            if (classic_labelName != NULL ) { /*** get and output label ***/
+               print_classic_label2index(dset, classic_labelName);
             } else if ( classic_niml_hdr ) {
-              if( ! THD_write_niml_to_stream(dset, "stdout:", 0) )
-                ERROR_exit("Can't write NIML for dataset %s",argv[iarg]) ;
-            } else   /*** real CLASSIC: get and output general info ***/
-            {
-             outbuf = THD_dataset_info( dset , verbose ) ;
-             if( outbuf != NULL ){
-               printf("\n") ;
-               puts(outbuf) ;
-               free(outbuf) ; outbuf = NULL ;
-             } else {
-               ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
-             }
+               if( ! THD_write_niml_to_stream(dset, "stdout:", 0) )
+                  ERROR_exit("Can't write NIML for dataset %s",argv[iarg]) ;
+            } else if ( classic_subb_info ) {
+               tempstr = THD_dset_subbrick_info(dset, 0);
+               if( tempstr ) {
+                  fputs(tempstr, stdout);
+                  free(tempstr);
+                  tempstr = NULL;
+               } else {
+                  ERROR_exit("failed subbrick_info for dset %s",argv[iarg]) ;
+               }
+                
+            } else { /*** real CLASSIC: get and output general info ***/
+               if( print_classic_info(dset, argv[iarg], verbose) )
+                  exit(1);
             }
 
             THD_delete_3dim_dataset( dset , False ) ;
@@ -1095,5 +1114,52 @@ int main( int argc , char *argv[] )
       }
    }
 
+   if( classic_labelName ) free(classic_labelName);
+
    exit(0) ;
 }
+
+/* try to print the index of the specified label */
+int print_classic_label2index(THD_3dim_dataset * dset, char * labelname)
+{
+   int nval_per;
+   int foundLabel = 0;
+   int ival=0;
+
+   ENTRY("print_classic_labels");
+
+   if( ! dset || ! labelname ) {
+      ERROR_message("classic label2index: missing dset or label");
+      RETURN(1);
+   }
+
+   nval_per = DSET_NVALS(dset);
+
+   for (ival=0 ; ival < nval_per && !foundLabel; ival++ ) {
+      if (strcmp(DSET_BRICK_LAB(dset,ival), labelname) == 0) {
+         printf("%d\n", ival); foundLabel = 1;
+      }
+   }
+   if (!foundLabel) printf("\n");
+
+   RETURN(0);
+}
+
+/* try to print the index of the specified label */
+int print_classic_info(THD_3dim_dataset * dset, char * dname, int verb)
+{
+   char * outbuf;
+   ENTRY("print_classic_info");
+
+   outbuf = THD_dataset_info( dset , verb ) ;
+   if( outbuf != NULL ){
+      printf("\n") ;
+      puts(outbuf) ;
+      free(outbuf) ; outbuf = NULL ;
+      RETURN(0);
+   } else {
+      ERROR_message("Can't get info for dataset %s", dname);
+      RETURN(1);
+   }
+}
+

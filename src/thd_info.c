@@ -289,10 +289,6 @@ float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2  ;
    float tf;
-   char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop ;
-   static char *RR="[R]" , *LL="[L]" ,
-               *PP="[P]" , *AA="[A]" ,
-               *SS="[S]" , *II="[I]" , *ZZ="   " ;
 
    ENTRY("THD_dset_extent") ;
 
@@ -310,9 +306,6 @@ float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
    if( fv1.xyz[0] > fv2.xyz[0] ) FSWAP( fv1.xyz[0] , fv2.xyz[0] ) ;
    if( fv1.xyz[1] > fv2.xyz[1] ) FSWAP( fv1.xyz[1] , fv2.xyz[1] ) ;
    if( fv1.xyz[2] > fv2.xyz[2] ) FSWAP( fv1.xyz[2] , fv2.xyz[2] ) ;
-
-   XLAB(xlbot,fv1.xyz[0]) ; YLAB(ylbot,fv1.xyz[1]) ; ZLAB(zlbot,fv1.xyz[2]) ;
-   XLAB(xltop,fv2.xyz[0]) ; YLAB(yltop,fv2.xyz[1]) ; ZLAB(zltop,fv2.xyz[2]) ;
 
    if (RL_AP_IS) {
     RL_AP_IS[0] = fv1.xyz[0];
@@ -350,7 +343,7 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
-   int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
+   int ival , ntimes , nval_per , n1,n2,n3 , kv;
    float tf, angle=0.0;
    long long tb ;
 
@@ -358,8 +351,8 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
                *PP="[P]" , *AA="[A]" ,
                *SS="[S]" , *II="[I]" , *ZZ="   " ;
    char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
-   char str[1024], soblq[1024] ;
-   int nstr , obliquity;
+   char soblq[1024] ;
+   int obliquity;
 
    char *outbuf = NULL ;  /* output buffer */
 
@@ -592,64 +585,10 @@ ENTRY("THD_dataset_info") ;
 #endif
 
    /* print out stuff for each sub-brick */
+   cpt = THD_dset_subbrick_info(dset, nval_per);
+   outbuf = THD_zzprintf(outbuf, "%s", cpt);
+   free(cpt);
 
-   for( ival=0 ; ival < nval_per ; ival++ ){
-
-     STATUS("ival a") ;
-
-      sprintf( str ,
-               "  -- At sub-brick #%d '%s' datum type is %s" ,
-               ival , DSET_BRICK_LAB(dset,ival) ,
-               MRI_TYPE_name[DSET_BRICK_TYPE(dset,ival)] ) ;
-      nstr = strlen(str) ;
-
-      tf = DSET_BRICK_FACTOR(dset,ival) ;
-
-      if( ISVALID_STATISTIC(dset->stats) ){
-
-         if( tf != 0.0 ){
-            sprintf( str+nstr ,
-                                ":%13.6g to %13.6g [internal]\n"
-                    "%*s[*%13.6g] %13.6g to %13.6g [scaled]\n" ,
-                    dset->stats->bstat[ival].min/tf ,
-                    dset->stats->bstat[ival].max/tf ,
-                    nstr-16," " , tf ,
-                    dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
-          } else {
-            sprintf( str+nstr , ":%13.6g to %13.6g\n" ,
-                    dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
-          }
-      } else if( tf != 0.0 ){
-         sprintf( str+nstr , " [*%g]\n",tf) ;
-      } else {
-         sprintf( str+nstr , "\n") ;
-      }
-     STATUS("ival b") ;
-      outbuf = THD_zzprintf(outbuf,"%s",str) ;
-
-      /** 30 Nov 1997: print sub-brick stat params **/
-
-      kv = DSET_BRICK_STATCODE(dset,ival) ;
-      if( FUNC_IS_STAT(kv) ){
-     STATUS("ival c") ;
-         outbuf = THD_zzprintf(outbuf,"     statcode = %s",FUNC_prefixstr[kv] ) ;
-         npar = FUNC_need_stat_aux[kv] ;
-         if( npar > 0 ){
-            outbuf = THD_zzprintf(outbuf,";  statpar =") ;
-            for( kv=0 ; kv < npar ; kv++ )
-               outbuf = THD_zzprintf(outbuf," %g",DSET_BRICK_STATPAR(dset,ival,kv)) ;
-         }
-         outbuf = THD_zzprintf(outbuf,"\n") ;
-     STATUS("ival d") ;
-      }
-
-      cpt = DSET_BRICK_KEYWORDS(dset,ival) ;
-      if( cpt != NULL && cpt[0] != '\0' ){
-        outbuf = THD_zzprintf(outbuf,"     keywords = %.66s\n",cpt) ;
-      }
-
-     STATUS("ival z") ;
-   }
    if( verbose < 0 && nval_per < dset->dblk->nvals )  /* 21 Sep 2007 */
      outbuf = THD_zzprintf(outbuf,
                 "** For info on all %d sub-bricks, use '3dinfo -verb' **\n",
@@ -707,3 +646,82 @@ ENTRY("THD_dataset_info") ;
 
    RETURN(outbuf) ;
 }
+
+
+/* return a malloc'd buffer of sub-brick info */
+char * THD_dset_subbrick_info( THD_3dim_dataset *dset , int nvols )
+{
+   char   str[1024];
+   char * outbuf = NULL;        /* returned malloc'd buffer */
+   char * cpt;
+   float  tf;
+   int    ival, nstr, kv, npar;
+
+   ENTRY("THD_dset_subbrick_info");
+   if( !dset ) RETURN(NULL);
+
+   if( nvols <= 0 ) nvols = DSET_NVALS(dset);
+
+   /* print out stuff for each sub-brick */
+
+   for( ival=0 ; ival < nvols ; ival++ ){
+
+     STATUS("ival a") ;
+
+      sprintf( str ,
+               "  -- At sub-brick #%d '%s' datum type is %s" ,
+               ival , DSET_BRICK_LAB(dset,ival) ,
+               MRI_TYPE_name[DSET_BRICK_TYPE(dset,ival)] ) ;
+      nstr = strlen(str) ;
+
+      tf = DSET_BRICK_FACTOR(dset,ival) ;
+
+      if( ISVALID_STATISTIC(dset->stats) ){
+
+         if( tf != 0.0 ){
+            sprintf( str+nstr ,
+                                ":%13.6g to %13.6g [internal]\n"
+                    "%*s[*%13.6g] %13.6g to %13.6g [scaled]\n" ,
+                    dset->stats->bstat[ival].min/tf ,
+                    dset->stats->bstat[ival].max/tf ,
+                    nstr-16," " , tf ,
+                    dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
+          } else {
+            sprintf( str+nstr , ":%13.6g to %13.6g\n" ,
+                    dset->stats->bstat[ival].min , dset->stats->bstat[ival].max ) ;
+          }
+      } else if( tf != 0.0 ){
+         sprintf( str+nstr , " [*%g]\n",tf) ;
+      } else {
+         sprintf( str+nstr , "\n") ;
+      }
+     STATUS("ival b") ;
+      outbuf = THD_zzprintf(outbuf,"%s",str) ;
+
+      /** 30 Nov 1997: print sub-brick stat params **/
+
+      kv = DSET_BRICK_STATCODE(dset,ival) ;
+      if( FUNC_IS_STAT(kv) ){
+     STATUS("ival c") ;
+         outbuf = THD_zzprintf(outbuf,"     statcode = %s",FUNC_prefixstr[kv] ) ;
+         npar = FUNC_need_stat_aux[kv] ;
+         if( npar > 0 ){
+            outbuf = THD_zzprintf(outbuf,";  statpar =") ;
+            for( kv=0 ; kv < npar ; kv++ )
+               outbuf = THD_zzprintf(outbuf," %g",DSET_BRICK_STATPAR(dset,ival,kv)) ;
+         }
+         outbuf = THD_zzprintf(outbuf,"\n") ;
+     STATUS("ival d") ;
+      }
+
+      cpt = DSET_BRICK_KEYWORDS(dset,ival) ;
+      if( cpt != NULL && cpt[0] != '\0' ){
+        outbuf = THD_zzprintf(outbuf,"     keywords = %.66s\n",cpt) ;
+      }
+
+     STATUS("ival z") ;
+   }
+
+   RETURN(outbuf);
+}
+
