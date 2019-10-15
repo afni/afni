@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 15 , OCT , 2019 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
+   "-bysub fix" ,
+   "Methods 1 and 2 can conflict, and the choice is arbitrarily made to\n"
+   "favor Method 1 when the input matches both situations." } ,
+
  { 27 , AUG , 2019 , RWC , "3dREMLfit" , MICRO , TYPE_ENHANCE ,
    "Allow reading -matim matrix from a FIFO instead of a file" ,
    "For some reason, NIML doesn't like treating a FIFO as a file: stream." } ,
