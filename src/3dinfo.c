@@ -6,6 +6,8 @@
 
 #include "mrilib.h"
 
+int print_classic_label2index(THD_3dim_dataset * dset, char * labelname);
+int print_classic_info       (THD_3dim_dataset * dset, char * dname, int verb);
 
 int Syntax(TFORM targ, int detail)
 {
@@ -301,7 +303,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset=NULL;
    int iarg , verbose = -1 ;
-   char *outbuf, *stmp=NULL;
+   char *stmp=NULL;
    char *classic_labelName = NULL;
    char *sbdelim = {"|"};
    char *NAflag = {"NA"};
@@ -685,34 +687,15 @@ int main( int argc , char *argv[] )
          case CLASSIC:
             /* check for multiple cases under classic unbrella (make
                new cases if this continues)      [10 Oct 2019 rickr] */
-            if (classic_labelName != NULL )  /*** get and output label ***/
-            {
-             int nval_per = dset->dblk->nvals;
-             int foundLabel = 0;
-             int ival=0;
 
-             for (ival=0 ; ival < nval_per && !foundLabel; ival++ )
-             {
-               if (strcmp(DSET_BRICK_LAB(dset,ival), classic_labelName) == 0)
-               {
-                 printf("%d\n", ival); foundLabel = 1;
-               }
-             } /* end of for (ival=0 ; ival < nval_per ; ival++ ) */
-             if (!foundLabel) printf("\n");
-             free(classic_labelName);
+            if (classic_labelName != NULL ) { /*** get and output label ***/
+               print_classic_label2index(dset, classic_labelName);
             } else if ( classic_niml_hdr ) {
-              if( ! THD_write_niml_to_stream(dset, "stdout:", 0) )
-                ERROR_exit("Can't write NIML for dataset %s",argv[iarg]) ;
-            } else   /*** real CLASSIC: get and output general info ***/
-            {
-             outbuf = THD_dataset_info( dset , verbose ) ;
-             if( outbuf != NULL ){
-               printf("\n") ;
-               puts(outbuf) ;
-               free(outbuf) ; outbuf = NULL ;
-             } else {
-               ERROR_exit("Can't get info for dataset %s",argv[iarg]) ;
-             }
+               if( ! THD_write_niml_to_stream(dset, "stdout:", 0) )
+                  ERROR_exit("Can't write NIML for dataset %s",argv[iarg]) ;
+            } else { /*** real CLASSIC: get and output general info ***/
+               if( print_classic_info(dset, argv[iarg], verbose) )
+                  exit(1);
             }
 
             THD_delete_3dim_dataset( dset , False ) ;
@@ -1095,5 +1078,52 @@ int main( int argc , char *argv[] )
       }
    }
 
+   if( classic_labelName ) free(classic_labelName);
+
    exit(0) ;
 }
+
+/* try to print the index of the specified label */
+int print_classic_label2index(THD_3dim_dataset * dset, char * labelname)
+{
+   int nval_per;
+   int foundLabel = 0;
+   int ival=0;
+
+   ENTRY("print_classic_labels");
+
+   if( ! dset || ! labelname ) {
+      ERROR_message("classic label2index: missing dset or label");
+      RETURN(1);
+   }
+
+   nval_per = DSET_NVALS(dset);
+
+   for (ival=0 ; ival < nval_per && !foundLabel; ival++ ) {
+      if (strcmp(DSET_BRICK_LAB(dset,ival), labelname) == 0) {
+         printf("%d\n", ival); foundLabel = 1;
+      }
+   }
+   if (!foundLabel) printf("\n");
+
+   RETURN(0);
+}
+
+/* try to print the index of the specified label */
+int print_classic_info(THD_3dim_dataset * dset, char * dname, int verb)
+{
+   char * outbuf;
+   ENTRY("print_classic_info");
+
+   outbuf = THD_dataset_info( dset , verb ) ;
+   if( outbuf != NULL ){
+      printf("\n") ;
+      puts(outbuf) ;
+      free(outbuf) ; outbuf = NULL ;
+      RETURN(0);
+   } else {
+      ERROR_message("Can't get info for dataset %s", dname);
+      RETURN(1);
+   }
+}
+
