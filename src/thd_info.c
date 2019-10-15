@@ -289,10 +289,6 @@ float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2  ;
    float tf;
-   char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop ;
-   static char *RR="[R]" , *LL="[L]" ,
-               *PP="[P]" , *AA="[A]" ,
-               *SS="[S]" , *II="[I]" , *ZZ="   " ;
 
    ENTRY("THD_dset_extent") ;
 
@@ -310,9 +306,6 @@ float THD_dset_extent(THD_3dim_dataset *dset, char ret, float *RL_AP_IS)
    if( fv1.xyz[0] > fv2.xyz[0] ) FSWAP( fv1.xyz[0] , fv2.xyz[0] ) ;
    if( fv1.xyz[1] > fv2.xyz[1] ) FSWAP( fv1.xyz[1] , fv2.xyz[1] ) ;
    if( fv1.xyz[2] > fv2.xyz[2] ) FSWAP( fv1.xyz[2] , fv2.xyz[2] ) ;
-
-   XLAB(xlbot,fv1.xyz[0]) ; YLAB(ylbot,fv1.xyz[1]) ; ZLAB(zlbot,fv1.xyz[2]) ;
-   XLAB(xltop,fv2.xyz[0]) ; YLAB(yltop,fv2.xyz[1]) ; ZLAB(zltop,fv2.xyz[2]) ;
 
    if (RL_AP_IS) {
     RL_AP_IS[0] = fv1.xyz[0];
@@ -350,7 +343,7 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
 {
    THD_dataxes      *daxes ;
    THD_fvec3 fv1 , fv2 , fv3 ;
-   int ival , ntimes , nval_per , n1,n2,n3 , kv,npar ;
+   int ival , ntimes , nval_per , n1,n2,n3 , kv;
    float tf, angle=0.0;
    long long tb ;
 
@@ -358,8 +351,8 @@ char * THD_dataset_info( THD_3dim_dataset *dset , int verbose )
                *PP="[P]" , *AA="[A]" ,
                *SS="[S]" , *II="[I]" , *ZZ="   " ;
    char *xlbot , *xltop , *ylbot , *yltop , *zlbot , *zltop , *cpt ;
-   char str[1024], soblq[1024] ;
-   int nstr , obliquity;
+   char soblq[1024] ;
+   int obliquity;
 
    char *outbuf = NULL ;  /* output buffer */
 
