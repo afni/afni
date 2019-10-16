@@ -54,6 +54,11 @@ afni_history_struct rickr_history[] = {
    NULL
  } ,
 
+ { 16, Oct, 2019, RCR, "3dFFT", MICRO, TYPE_ENHANCE,
+   "process entire time series, rather than just the first volume",
+   "Done for A Khojandi."
+ } ,
+
  { 16, Oct, 2019, RCR, "TwotoComplex", MICRO, TYPE_ENHANCE,
    "process entire time series, rather than just first volume(s)",
    "Done to further the quest of A Khojandi for world domination."
