@@ -323,7 +323,7 @@ examples: ~1~
       has passed before the event time.
 
          timing_tool.py -timing stim_times.txt -run_len 300     \\
-                        -marry_AM lin_run_fraw -write_timing stim_mod.txt
+                        -marry_AM lin_run_fraq -write_timing stim_mod.txt
 
    Example 16.  use end times to imply event durations ~2~
 
