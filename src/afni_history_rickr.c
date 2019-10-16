@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2019, RCR, "@auto_tlrc", MINOR, TYPE_ENHANCE,
+   "re-insert updates from 2019.05.29, plus updates for -init_xform",
+   NULL
+ } ,
+
  { 16, Oct, 2019, RCR, "TwotoComplex", MICRO, TYPE_ENHANCE,
    "process entire time series, rather than just first volume(s)",
    "Done to further the quest of A Khojandi for world domination."
