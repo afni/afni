@@ -7,7 +7,9 @@ int main( int argc , char * argv[] )
    float      fac1=0.0, fac2=0.0;
    char *prefix = "cmplx" ;
    byte *mask=NULL ; float *rr,*gg ; complex *cmx ;
-   int iarg=1 , dofim=0 , ii,nvox , mode=0 ;
+   int iarg=1 , dofim=0 , ii,i2,nvox , mode=0 ;
+   int ivol, nvol ;  /* 16 Oct 2019 rickr */
+   int ninput ;      /* have 1 or 2 datasets as input */
 
    if( argc < 2 || strcmp(argv[1],"-help") == 0 ){
       printf("Usage #1: 3dTwotoComplex [options] dataset\n"
@@ -94,13 +96,21 @@ int main( int argc , char * argv[] )
 
      OPENIT(dset1,argv[iarg]) ;
 
-     if( DSET_NVALS(dset1) < 2 )
-       ERROR_exit("Dataset %s needs at least 2 sub-bricks!\n",argv[iarg]);
+     nvol = DSET_NVALS(dset1) ;
+     if( (nvol % 2) || nvol < 2 )
+       ERROR_exit("Dataset %s needs an even number (>0) of sub-bricks!\n",
+                  argv[iarg]);
+     nvol /= 2; /* convert to the number of output volumes */
+
      if( !GOOD_TYPE( DSET_BRICK_TYPE(dset1,0) ) ||
          !GOOD_TYPE( DSET_BRICK_TYPE(dset1,1) )   )
        ERROR_exit("ILLEGAL dataset type in %s\n",argv[iarg]);
-     dbr1 = DSET_BRICK(dset1,0) ; fac1 = DSET_BRICK_FACTOR(dset1,0) ;
-     dbr2 = DSET_BRICK(dset1,1) ; fac2 = DSET_BRICK_FACTOR(dset1,1) ;
+
+     /* use dset2 in any case, to generalize in loop */
+     dset2 = dset1 ;
+
+     /* only 1 input */
+     ninput = 1 ;
 
    } else if( iarg+1 < argc ){  /* two datasets */
 
@@ -112,31 +122,28 @@ int main( int argc , char * argv[] )
      if( !GOOD_TYPE( DSET_BRICK_TYPE(dset2,0) ) )
        ERROR_exit("ILLEGAL dataset type in %s\n",argv[iarg+1]);
 
-     dbr1 = DSET_BRICK(dset1,0) ; fac1 = DSET_BRICK_FACTOR(dset1,0) ;
-     dbr2 = DSET_BRICK(dset2,0) ; fac2 = DSET_BRICK_FACTOR(dset2,0) ;
+     nvol = DSET_NVALS(dset1) ;
+     if( nvol != DSET_NVALS(dset2) )
+       ERROR_exit("Datasets must have the same number of volumes");
 
-     if( dbr1->nx != dbr2->nx ) ERROR_exit("Dataset x-axes don't match!\n") ;
-     if( dbr1->ny != dbr2->ny ) ERROR_exit("Dataset y-axes don't match!\n") ;
-     if( dbr1->nz != dbr2->nz ) ERROR_exit("Dataset z-axes don't match!\n") ;
+     if( ! EQUIV_GRIDS(dset1, dset2) )
+        ERROR_exit("Dataset grids do not match\n") ;
 
      if( iarg+1 < argc-1 )
        WARNING_message("extra arguments on command line: %s ...\n",
                        argv[iarg+2] ) ;
 
+     /* have 2 inputs */
+     ninput = 2 ;
    } else {                     /* this is bad */
-
      ERROR_exit("Need either 1 or 2 datasets on command line!?\n");
    }
 
    /* make a mask, if any */
 
    if( mset != NULL ){
-     if( dbr1->nx != DSET_NX(mset) )
-       ERROR_exit("Mask and dataset x-axes don't match!\n");
-     if( dbr1->ny != DSET_NY(mset) )
-       ERROR_exit("Mask and dataset y-axes don't match!\n");
-     if( dbr1->nz != DSET_NZ(mset) )
-       ERROR_exit("Mask and dataset z-axes don't match!\n");
+     if( ! EQUIV_GRIDS_NXYZ(dset1, mset) )
+       ERROR_exit("Mask and dataset nx/y/z don't match!\n");
      mask = THD_makemask( mset , 0 , 1.0,0.0 ) ;
      if( mask == NULL )
        ERROR_exit("Can't make mask!\n");
@@ -145,40 +152,11 @@ int main( int argc , char * argv[] )
 
    /* convert input sub-bricks to floats */
 
-   nvox = dbr1->nvox ;
+   nvox = DSET_NVOX(dset1) ;
 
-   rr   = (float *) calloc(sizeof(float),nvox) ;
-   if( fac1 == 0.0 ) fac1 = 1.0 ;
-   EDIT_coerce_scale_type( nvox , fac1 ,
-                           dbr1->kind , mri_data_pointer(dbr1) ,
-                           MRI_float  , rr                      ) ;
-
-   DSET_unload(dset1) ;
-
-   gg   = (float *) calloc(sizeof(float),nvox) ;
-   if( fac2 == 0.0 ) fac2 = 1.0 ;
-   EDIT_coerce_scale_type( nvox , fac2 ,
-                           dbr2->kind , mri_data_pointer(dbr2) ,
-                           MRI_float  , gg                      ) ;
-
-   if( dset2 != NULL ) DSET_unload(dset2) ;
-
-   /* merge inputs to output */
-
-   cmx = (complex *) calloc(sizeof(complex),nvox) ;
-
-#define T2C(a,b) \
-  (mode==0) ? CMPLX((a),(b)) : CMPLX((a)*cos(b),(a)*sin(b))
-
-   if( mask != NULL ){
-     for( ii=0 ; ii < nvox ; ii++ )
-       if( mask[ii] ) cmx[ii] = T2C(rr[ii],gg[ii]) ;
-   } else {
-     for( ii=0 ; ii < nvox ; ii++ )
-       cmx[ii] = T2C(rr[ii],gg[ii]) ;
-   }
-
-   free(mask) ; free(rr) ; free(gg) ;
+   /* allocate computational memory */
+   rr  = (float *) calloc(sizeof(float),nvox) ;
+   gg  = (float *) calloc(sizeof(float),nvox) ;
 
    /* make output dataset */
 
@@ -186,12 +164,63 @@ int main( int argc , char * argv[] )
    EDIT_dset_items( oset ,
                      ADN_prefix   , prefix      ,
                      ADN_datum_all, MRI_complex ,
-                     ADN_nvals    , 1           ,
-                     ADN_ntt      , 0           ,
+                     ADN_ntt      , nvol        ,
                      ADN_type     , (dofim) ? HEAD_FUNC_TYPE : HEAD_ANAT_TYPE,
                      ADN_func_type, (dofim) ? FUNC_FIM_TYPE  : ANAT_SPGR_TYPE,
                     ADN_none ) ;
-   EDIT_substitute_brick( oset , 0 , MRI_complex , cmx ) ;
+
+   for( ivol=0; ivol < nvol; ivol++ ) {
+
+      /* choose input indices, and note that if ninput==1, dset2==dset1 */
+      if( ninput == 2 ) {
+         ii = ivol;
+         i2 = ivol;
+      } else {
+         ii = 2*ivol;
+         i2 = ii + 1;
+      }
+
+      /* set each data block and scale factor */
+      dbr1 = DSET_BRICK(dset1,ii) ; fac1 = DSET_BRICK_FACTOR(dset1,ii) ;
+      dbr2 = DSET_BRICK(dset2,i2) ; fac2 = DSET_BRICK_FACTOR(dset2,i2) ;
+
+      /* explicitly clear memory, though it shouldn't really matter */
+      memset(rr, '\0', nvox*sizeof(float));
+      memset(gg, '\0', nvox*sizeof(float));
+
+      /* convert to float */
+      if( fac1 == 0.0 ) fac1 = 1.0 ;
+      EDIT_coerce_scale_type( nvox , fac1 ,
+                              DSET_BRICK_TYPE(dset1,ii), mri_data_pointer(dbr1),
+                              MRI_float  , rr                      ) ;
+
+      if( fac2 == 0.0 ) fac2 = 1.0 ;
+      EDIT_coerce_scale_type( nvox , fac2 ,
+                              DSET_BRICK_TYPE(dset2,i2), mri_data_pointer(dbr2),
+                              MRI_float  , gg                      ) ;
+
+      /* allocate space for the new volume, to be attached to new dset */
+      cmx = (complex *) calloc(sizeof(complex),nvox) ;
+
+#define T2C(a,b) \
+  (mode==0) ? CMPLX((a),(b)) : CMPLX((a)*cos(b),(a)*sin(b))
+
+      /* merge inputs to output */
+      if( mask != NULL ){
+        for( ii=0 ; ii < nvox ; ii++ )
+          if( mask[ii] ) cmx[ii] = T2C(rr[ii],gg[ii]) ;
+      } else {
+        for( ii=0 ; ii < nvox ; ii++ )
+          cmx[ii] = T2C(rr[ii],gg[ii]) ;
+      }
+
+      EDIT_substitute_brick( oset , ivol , MRI_complex , cmx ) ;
+   }
+
+   /* fly, be free! */
+   DSET_unload(dset1) ;
+   if( ninput == 2 ) DSET_unload(dset2) ;
+   free(mask) ; free(rr) ; free(gg) ;
 
    /* make history */
 
@@ -200,5 +229,7 @@ int main( int argc , char * argv[] )
 
    DSET_write( oset ) ;
    WROTE_DSET( oset ) ;
+   DSET_unload( oset ) ;
+
    exit(0) ;
 }

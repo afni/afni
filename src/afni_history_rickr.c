@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2019, RCR, "TwotoComplex", MICRO, TYPE_ENHANCE,
+   "process entire time series, rather than just first volume(s)",
+   "Done to further the quest of A Khojandi for world domination."
+ } ,
+
  { 15, Oct, 2019, RCR, "3dinfo", MINOR, TYPE_NEW_OPT,
    "add -subbrick_info, to write only 'At sub-brick #N' info to stdout",
    NULL
