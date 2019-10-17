@@ -34,14 +34,14 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
    int ibot,itop,istep , nused , nuni;
    long int seed=0;
    char *cpt ;
-   
+
    *nret = -1;
    if (!str || !strstr(str,"count ") || strlen (str) < 8) {
       fprintf(stderr, "NULL input or string does not have 'count '"
                       " or at least 2 values are not present after 'count '\n");
       return (NULL);
    }
-   
+
    /* move past count */
    slen = strlen(str) ;
    ipos = strlen("count ");
@@ -53,7 +53,7 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
       nused = (cpt-(str+ipos)) ;
       ipos += nused ;
    }
-   
+
    /* get first value */
    while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
    if( ISEND(str[ipos]) ) return NULL ;         /* bad */
@@ -92,7 +92,7 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
    }
    nused = (cpt-(str+ipos)) ;
    ipos += nused ;
-   
+
    shuffle = 0;
    step = 0;
    while( isspace(str[ipos]) ) ipos++ ;   /* skip blanks */
@@ -108,31 +108,31 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
                      "** No qualifiers allowed for step, other than 'S'. "
                      "Have %c.\n", str[ipos]);
             return NULL ;
-         }       
+         }
       }
       if( !ISEND(str[ipos]) ) {
-         step = strtol( str+ipos , &cpt , 10 ) ;   
+         step = strtol( str+ipos , &cpt , 10 ) ;
       }
    }
    nused = (cpt-(str+ipos)) ;
    ipos += nused ;
-   
+
    if (step < 0) {
       fprintf(stderr,"** step must be > 0. Have %d.\n", step);
       return NULL ;
    }
-   
-   /* 
-      fprintf(stderr,"Have count parameters: %d to %d with 
+
+   /*
+      fprintf(stderr,"Have count parameters: %d to %d with
       step %d and shuffle = %d; seed = %ld\n", ibot, itop, step, shuffle, seed);
    */
-      
+
    if (itop < ibot) {nuni = ibot - itop + 1;}
-   else { nuni = itop - ibot + 1; } 
-   
+   else { nuni = itop - ibot + 1; }
+
    if (shuffle) {
       subv = z_rand_order(ibot, itop, seed);
-      if (step > 0) { 
+      if (step > 0) {
          *nret = step;
       } else {
          *nret = nuni;
@@ -148,22 +148,22 @@ int * get_count_intlist_eng ( char *str, int *nret, int maxval, int ok_neg )
          else step *= 1;
       }
       itmp = 0;
-      if (itop < ibot) 
+      if (itop < ibot)
          for (ii=ibot; ii>=itop;ii=ii+step) { subv[itmp] = ii; ++itmp; }
       else for (ii=ibot; ii<=itop;ii=ii+step) { subv[itmp] = ii; ++itmp; }
       *nret = itmp;
    }
-   
-   /* fprintf(stderr,"Have %d ints: %d to %d with step %d 
+
+   /* fprintf(stderr,"Have %d ints: %d to %d with step %d
       and shuffle = %d\n", *nret, ibot, itop, step, shuffle); */
    ret = (int *)malloc(sizeof(int)*(*nret+1));
    ret[0] = *nret;
    for (ii=1; ii<=ret[0]; ++ii) ret[ii] = subv[(ii-1)%(nuni)];
-   
+
    free(subv); subv = ret;
-   
+
    /* for (ii=0; ii<=ret[0]; ++ii) fprintf(stderr,"%d: %d\n", ii, subv[ii]); */
-   
+
    return(subv);
 }
 
@@ -180,16 +180,16 @@ int * get_1dcat_intlist_eng ( char *sin , int *nret, int maxval, int ok_neg )
    float *far=NULL;
    char *str = NULL;
    int op = 0;
-   
+
    *nret = -1;
    if (!sin || !strstr(sin,"1dcat ") || strlen (sin) < 8) {
       fprintf(stderr, "NULL input or string does not have '1dcat '"
                       " or a 1D filename not present after '1dcat '\n");
       return (NULL);
    }
-   
+
    str = strdup(sin);
-   
+
    /* move past count */
    slen = strlen(str) ;
    ipos = strlen("1dcat ");
@@ -205,13 +205,13 @@ int * get_1dcat_intlist_eng ( char *sin , int *nret, int maxval, int ok_neg )
       ERROR_message("Can't read 1D file '%s'", str+ipos) ;
       free(str); str=NULL;
       return(NULL);
-   } 
+   }
 
    /* return the indices */
    far = MRI_FLOAT_PTR(aim);
    *nret = aim->nx*aim->ny;
    ret = (int *)malloc(sizeof(int)*(*nret+1));
-   
+
    ret[0] = *nret;
    for (ii=0; ii<*nret; ++ii) {
       ret[ii+1] = (int)far[ii];
@@ -224,20 +224,20 @@ int * get_1dcat_intlist_eng ( char *sin , int *nret, int maxval, int ok_neg )
          mri_free(aim); aim = NULL; far=NULL;
          free(str); str=NULL;
          free(ret); ret=NULL;
-         return(NULL); 
+         return(NULL);
       }
    }
-   
+
    mri_free(aim); aim = NULL; far=NULL;
-   
+
    #if 0
       fprintf(stderr,"ZSS: Selecting %d values from '%s':\n", *nret, str+ipos);
-      for (ii=1; ii<=*nret; ++ii) { 
+      for (ii=1; ii<=*nret; ++ii) {
          fprintf(stderr,"%d,",ret[ii]);
       }
       fprintf(stderr,"\n");
    #endif
-   
+
    free(str); str=NULL;
    return(ret);
 }
@@ -264,12 +264,12 @@ int * get_1dcat_intlist_eng ( char *sin , int *nret, int maxval, int ok_neg )
      - Example:  "[2,7..4,3..9(2)]" decodes to the list
          2 7 6 5 4 3 5 7 9
      - entries should be in the range 0..nvals-1
-     
+
      See also MCW_get_thd_intlist, or MCW_get_labels_intlist,
      which allow the use of sub-brick labels for selection.
-     
+
      Do not update this function anymore, update MCW_get_labels_intlist
-     instead.       
+     instead.
                                                       ZSS Dec 09
 -------------------------------------------------------------------*/
 
@@ -282,7 +282,9 @@ int * MCW_get_intlist( int nvals , char *str )
 
    /* Best to call new function to avoid redundancy  ZSS Dec 09 */
    return(MCW_get_labels_intlist( NULL, nvals, str ));
-   
+
+#if 0  /* obsoleted code */
+
    /* Meaningless input? */
    if( nvals < 1 ) return NULL ;
 
@@ -300,9 +302,10 @@ int * MCW_get_intlist( int nvals , char *str )
 
    /* do we have a count string in there ZSS ? */
    if (strstr(str,"count ")) {
+      free(subv) ;
       return(get_count_intlist ( str, &ii, nvals-1));
    }
-     
+
    /*** loop through each sub-selector until end of input ***/
    slen = strlen(str) ;
    while( ipos < slen && !ISEND(str[ipos]) ){
@@ -428,13 +431,15 @@ int * MCW_get_intlist( int nvals , char *str )
 
    if( subv[0] == 0 ){ free(subv); subv = NULL; }
    return subv ;
+
+#endif  /* obsoleted code */
 }
 
 /*
    Check if lbl is one of the labels .
-   
+
    lbl : Selector string. To specify labels with space
-         characters ' ' in the name, replace space with 
+         characters ' ' in the name, replace space with
          the '_' character.
          On the first pass, the function will match the
          string as is, but if nothing is found, a second
@@ -446,8 +451,8 @@ int * MCW_get_intlist( int nvals , char *str )
          -1 if no match
    returns nused, the number of characters used up in lbl
            0 if no labels were found.
-           
-            ZSS Dec 09         
+
+            ZSS Dec 09
 */
 int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
 {
@@ -458,16 +463,16 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
 
    *isb = -1;
    if (!labels || N_labels < 1) return(0);
-   
+
    sbuf2[499] = '\0';
-      
+
    /*
       fprintf(stderr,"ZSS: lbln >%s<\n"
                      "      lbl >%s<\n"
                      "     nused %d\n"
                      , lbln, lbl, nused);
    */
-      
+
    repeat = 0;
    do {
       for (ii=0; ii<N_labels; ++ii) {
@@ -480,14 +485,14 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
                if (sbuf2[jj] == ' ') {
                   sbuf2[jj]='_'; check = 1; /* RickR tip */
                }
-            }   
+            }
          } else {
             check = 1;
             slbl = labels[ii];
          }
          nused = strlen(slbl);
          /*
-            fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n", 
+            fprintf(stderr,"ZSS: (rep %d) Checking against >%s< \n",
                            repeat, slbl);
          */
          /* note match and keep looking for longer one (tokens might be easier
@@ -507,17 +512,17 @@ int is_in_labels(char *lbl, char **labels, int N_labels, int *isb)
 
       repeat = !repeat;
    } while (repeat);
-   
+
    return(0);
 }
 
 /*
    Return the sub-brick indices referenced in str
    This is a new version of MCW_get_intlist, which allows
-   the use of sub-brick labels 
-   
+   the use of sub-brick labels
+
    See is_in_labels for details.
-   
+
       ZSS Dec 09
 */
 int * MCW_get_thd_intlist( THD_3dim_dataset *dset , char *str )
@@ -525,8 +530,8 @@ int * MCW_get_thd_intlist( THD_3dim_dataset *dset , char *str )
    /* test for brick_lab is not needed, and breaks sub-brick selection
       of NIfTI datasets                             6 Jan 2009 [rickr]
 
-      return( (dset && dset->dblk && dset->dblk->brick_lab) ? 
-               MCW_get_labels_intlist (dset->dblk->brick_lab, 
+      return( (dset && dset->dblk && dset->dblk->brick_lab) ?
+               MCW_get_labels_intlist (dset->dblk->brick_lab,
                                        DSET_NVALS(dset), str) : NULL );
    */
 
@@ -536,21 +541,21 @@ int * MCW_get_thd_intlist( THD_3dim_dataset *dset , char *str )
 }
 
 /*
-   A slightly modified version of MCW_get_intlist, which 
+   A slightly modified version of MCW_get_intlist, which
    can scan for label matching instead of just numbers.
-   If labels == NULL, then it functions just like 
+   If labels == NULL, then it functions just like
    MCW_get_intlist
-   
+
                               ZSS Dec 09
-*/  
+*/
 int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
-{   
+{
    int *subv = NULL ;
    int ii , ipos , nout , slen ;
    int ibot,itop,istep , nused ;
    char *cpt ;
    static int show_labs = -1;
-      
+
    /* Meaningless input? */
    if( nvals < 1 ) return NULL ;
 
@@ -570,13 +575,15 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
 
    /* do we have a 1dcat string in there ZSS ? */
    if (strstr(str,"1dcat ")) {
+      free(subv) ;
       return(get_1dcat_intlist ( str, &ii, nvals-1 ));
    }
    /* do we have a count string in there ZSS ? */
    if (strstr(str,"count ")) {
+      free(subv) ;
       return(get_count_intlist ( str, &ii, nvals-1 ));
    }
-     
+
    /*** loop through each sub-selector until end of input ***/
    slen = strlen(str) ;
    while( ipos < slen && !ISEND(str[ipos]) ){
@@ -587,7 +594,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
 
       if( str[ipos] == '$' ){  /* special case */
          ibot = nvals-1 ; ipos++ ;
-      } else if ( !labels || 
+      } else if ( !labels ||
                   !(nused = is_in_labels(str+ipos, labels, nvals, &ibot))){
                                                       /* decode integer */
          ibot = strtol( str+ipos , &cpt , 10 ) ;
@@ -647,7 +654,7 @@ int * MCW_get_labels_intlist (char **labels, int nvals, char *str)
       if( str[ipos] == '$' ){  /* special case */
          itop = nvals-1 ; ipos++ ;
       } else if ( !labels ||
-                  !(nused = is_in_labels(str+ipos,labels, nvals, &itop))){  
+                  !(nused = is_in_labels(str+ipos,labels, nvals, &itop))){
                                                       /* decode integer */
          itop = strtol( str+ipos , &cpt , 10 ) ;
          if( itop < 0 && !allow_negative ){
@@ -738,7 +745,7 @@ int MCW_get_angle_range(THD_3dim_dataset * dset, char * instr, float * bot,
    char * tptr;         /* temp pointer */
    int    rlen, scount;
    float  fbot, ftop;   /* read values */
-   double dval;         
+   double dval;
 
    /* missing input */
    if ( !dset || !instr || !bot || !top ) {
@@ -813,7 +820,7 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
    char * dptr, * cptr; /* dot dot (..) and comma pointers */
    int    rlen, scount;
    float  fbot, ftop;   /* read values */
-   double dval;         
+   double dval;
 
    /* missing input */
    if ( !dset || !instr ) {
@@ -862,7 +869,7 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
          dset->dblk->master_top = ftop;
          return 0;  /* success */
       } else { /* go after labels */
-         if( AFNI_get_dset_label_val(dset, &dval, rptr) ) 
+         if( AFNI_get_dset_label_val(dset, &dval, rptr) )
             return 1; /* failure */
          fbot = dval;
          if( AFNI_get_dset_label_val(dset, &dval, dptr+2) )
@@ -904,7 +911,7 @@ int thd_check_angle_selector(THD_3dim_dataset * dset, char * instr)
  * return 0 on success, else error
  */
 int thd_get_labeltable_intlist(THD_3dim_dataset * dset, char *str)
-{   
+{
    static int   show_labs = -1;
    int_list     ilist, llist;    /* maintain list in int_list struct */
    char       * workstr, * next, * cpt;

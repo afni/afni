@@ -8,11 +8,11 @@ r.ver <- R.Version()
 
 if(r.ver$minor >= 6){
 
-  if (!requireNamespace("BiocManager", quietly = TRUE))
-    install.packages("BiocManager")
+  if (!requireNamespace("BiocManager",quietly=TRUE))
+    install.packages("BiocManager",repos="https://cloud.r-project.org")
   
   ## The following initializes usage of Bioc devel
-  BiocManager::install(version='devel')
+  BiocManager::install(version='devel',ask=FALSE)
   BiocManager::install("OmicCircos")
   
 } else {
