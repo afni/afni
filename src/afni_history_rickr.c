@@ -49,10 +49,14 @@
 
 afni_history_struct rickr_history[] = {
 
- { 16, Oct, 2019, RCR, "3dTcorr1D", MICRO, TYPE_BUG_FIX,
-   "forget use of strcasestr, which might be too non-standard",
-   "This should resolve issues with reading .tsv and .csv files under linux.\n"
-   "Thanks to nimzodisaster (MB) for noting the problem."
+ { 17, Oct, 2019, RCR, "3dTcorr1D", MICRO, TYPE_BUG_FIX,
+   "strcasestr fix subsumed by adding _GNU_SOURCE to make",
+   "Undo removal of strcasestr."
+ } ,
+
+ { 17, Oct, 2019, RCR, "Makefile.*", MICRO, TYPE_BUG_FIX,
+   "for strcasestr, we need to define _GNU_SOURCE",
+   NULL
  } ,
 
  { 16, Oct, 2019, RCR, "@auto_tlrc", MINOR, TYPE_ENHANCE,
