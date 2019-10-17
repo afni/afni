@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 17, Oct , 2019 , PT , "afni" , MICRO , TYPE_NEW_OPT,
+   "Display AFNI Tips in the terminal, via new opt: -show_tips.",
+   "Will be used+parsed for the HTML RST docs.\n"
+},
+
 { 7, Oct , 2019 , PT , "afni" , MICRO , TYPE_NEW_OPT,
    "Simpler opts for package and version number.",
    "For scriptability.\n"

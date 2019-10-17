@@ -43,6 +43,7 @@
 #include "afni.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
+#include "readme_afnigui.h"
 
 /*------------------------------------------------------*/
 /* if the compiler wants to 'show off' the name of this
@@ -479,6 +480,20 @@ void show_AFNI_vnum(void)
    printf(AVERZHN "\n");
 }
 
+// [PT: Oct 17, 2019] useful to be able to get the 'readme_afnigui.h'
+// info at the command line (ambitions to parse it for the HTML RST
+// pages).  This is called via the -show_tips option.
+void show_AFNI_readme_gui(void)
+{
+   int ii;
+   
+   for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
+     printf( " %s" , readme_afnigui[ii] ) ;
+   }
+
+}
+
+
 /********************************************************************
    Print out some help information and then quit quit quit
 *********************************************************************/
@@ -897,6 +912,11 @@ void AFNI_syntax(void)
      "   -package     Print just the current AFNI package (i.e., \n"
      "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
      "                then exit.\n"
+     "   -show_tips   Print the tips for the GUI, such as key presses\n"
+     "                and other useful advice.  This is the same file that\n"
+     "                would be displayed with the 'AFNI Tips' button in the\n"
+     "                GUI controller.  Exit after display.\n"
+     "\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
      "      can be controlled by appropriate X11 resources.  See the\n"
@@ -2116,6 +2136,10 @@ int main( int argc , char *argv[] )
       dienow++ ;
    }
 
+   if( check_string("-readme_gui" , argc, argv) ) {
+      show_AFNI_readme_gui();
+      dienow++ ;
+   }
 
    /** MOTD output **/
 
