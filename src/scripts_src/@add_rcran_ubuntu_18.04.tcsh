@@ -1,5 +1,49 @@
 #!/bin/tcsh
 
+set ver = '2.0'
+# [PT: Oct 17, 2019] 
+# + include check for pre-existing R
+# + now, if R exists, user will need to provide an option to continue
+#
+# ==========================================================================
+
+set push_on = $1
+
+echo ""
+echo "++ Start modern R installer"
+echo "++ Installer ver = ${ver}\n"
+
+set HAVE_R   = `which R`
+set STATUS_R = $status
+
+if ( $STATUS_R ) then
+    echo "++ No pre-existing R found.  Will continue on here."
+    echo ""
+else
+    set MY_R = `R --version`
+    echo "+* Warning! Existing R version detected:"
+    echo ""
+    echo "       ${MY_R[1-4]}"
+    echo ""
+
+    if ( "${push_on}" == "-overwrite" ) then
+        echo "++ ... User electing to carry on, overwriting earlier R version."
+        echo ""
+    else
+        echo "---------------------------------------------------------------"
+        echo "** If you still want to carry on with this installation,"
+        echo "   you MUST use the following option with this command:"
+        echo "       -overwrite"
+        echo "   If you have any questions, please ask on the AFNI Message"
+        echo "   Board."
+        echo "---------------------------------------------------------------"
+        echo ""
+        exit 1
+    endif
+endif
+
+# ------------------------------
+
 # Check your ubuntu system name for its codename (e.g., 'trusty',
 # 'utopic', 'vivid', 'wily') with the following command: 
 set ubuntu_code = `awk -F= '/CODENAME/ {print $2}' /etc/lsb-release`
