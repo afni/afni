@@ -3225,6 +3225,26 @@ void AFNI_print_startup_tip(int qq) /* 03 Jan 2018 */
    return ;
 }
 
+/*-------------------------------------------------------------------------
+  This function is called periodically to do unimportant stuff [Oct 2019]
+---------------------------------------------------------------------------*/
+
+void AFNI_periodic_timeout_CB( XtPointer client_data , XtIntervalId *id )
+{
+   int qq ; Three_D_View *qq3d ;
+
+ENTRY("AFNI_periodic_timeout_CB") ;
+
+   /* turn off the 'working' pictures and reset to normal cursor */
+
+   SHOW_AFNI_READY ;
+
+   /* restart timer */
+
+   (void) XtAppAddTimeOut( MAIN_app, 9999, AFNI_periodic_timeout_CB, MAIN_im3d ) ;
+   EXRETURN ;
+}
+
 /*----------------------------------------------------------------------
   This function is called about 1 s after AFNI startup is completed.
   It's original purpose was to make sure that the help window was
@@ -3508,6 +3528,10 @@ INFO_message("AFNI controller xroot=%d yroot=%d",(int)xroot,(int)yroot) ;
    /*--- and AWAY WE GO (how sweet it is!) ---*/
 
    MPROBE ;                       /* check mcw_malloc() for integrity */
+
+   /*--- Start period timeout [17 Oct 2019] ---*/
+
+   (void) XtAppAddTimeOut( MAIN_app, 9999, AFNI_periodic_timeout_CB, MAIN_im3d ) ;
    EXRETURN ;
 }
 

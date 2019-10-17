@@ -1421,6 +1421,9 @@ static char *gby[] = {
      "The brain is a world with unexplored continents and unknown territories" ,
      "Science is built on the ruins of theories thought to be indestructible"  ,
 
+     "Many are stubborn in pursuit of the path they have chosen; few in pursuit of the goal" ,
+     "Idleness is the beginning of all psychology - is psychology is a vice?"                ,
+
      /* Grateful Dead (mostly) */
 
      "Once in a while you get shown the light in the strangest of places, if you look at it right"      ,
