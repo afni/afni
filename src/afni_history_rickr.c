@@ -49,6 +49,12 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 16, Oct, 2019, RCR, "3dTcorr1D", MICRO, TYPE_BUG_FIX,
+   "forget use of strcasestr, which might be too non-standard",
+   "This should resolve issues with reading .tsv and .csv files under linux.\n"
+   "Thanks to nimzodisaster (MB) for noting the problem."
+ } ,
+
  { 16, Oct, 2019, RCR, "@auto_tlrc", MINOR, TYPE_ENHANCE,
    "re-insert updates from 2019.05.29, plus updates for -init_xform",
    NULL

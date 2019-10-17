@@ -3000,7 +3000,11 @@ ENTRY("mri_read_1D") ;
 
    /*-- 14 Sep 2018: read a TSV file? --*/
 
-   cpt = strcasestr(fname,".tsv") ;
+   /* check two cases, strcasestr isn't so standard  [16 Oct 2019 rickr] */
+   /* cpt = strcasestr(fname,".tsv") ; */
+   cpt = strstr(fname,".tsv") ;
+   if( ! cpt ) cpt = strstr(fname,".TSV") ;
+
    if( cpt != NULL && ( cpt[4] == '\0' || cpt[4] == '[' ) ){
      NI_element *nel ;
      nel = THD_read_tsv(fname) ;            /* cf. thd_table.c */
@@ -3013,7 +3017,10 @@ ENTRY("mri_read_1D") ;
 
    /*-- 15 Apr 2019: read CSV? --*/
 
-   cpt = strcasestr(fname,".csv") ;
+   /* check two cases, strcasestr isn't so standard  [16 Oct 2019 rickr] */
+   cpt = strstr(fname,".csv") ;
+   if( ! cpt ) cpt = strstr(fname,".CSV") ;
+
    if( cpt != NULL && ( cpt[4] == '\0' || cpt[4] == '[' ) ){
      NI_element *nel ;
      nel = THD_read_csv(fname) ;            /* cf. thd_table.c */
