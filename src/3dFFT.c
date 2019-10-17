@@ -12,6 +12,7 @@ int main( int argc , char *argv[] )
 {
    THD_3dim_dataset *dset_in=NULL , *dset_out ;
    int Lxx=-1 , Lyy=-1 , Lzz=-1 , Mode=FFT_ABS , Sign=-1 , do_alt=0 ;
+   int ivol,nvol ;
    char *prefix = "FFTout" ;
    int iarg ;
    MRI_IMAGE *inim , *outim ; float fac ; int nx,ny,nz ;
@@ -65,9 +66,9 @@ int main( int argc , char *argv[] )
        "\n"
        "Notes\n"
        "=====\n"
+#if 0
        " * In the present avatar, only 1 sub-brick will be processed.\n"
        "\n"
-#if 0
        " * The program can only do FFT lengths that are factorable\n"
        "    into a product of powers of 2, 3, and 5, and are even.\n"
        "   + The largest power of 3 that is allowed is 3^3 = 27.\n"
@@ -202,9 +203,6 @@ int main( int argc , char *argv[] )
 
    nx = DSET_NX(dset_in) ; ny = DSET_NY(dset_in) ; nz = DSET_NZ(dset_in) ;
 
-   if( DSET_NVALS(dset_in) > 1 )
-     WARNING_message("only 3dFFT-ing sub-brick #0 of input dataset") ;
-
    /* establish actual FFT lengths now (0 ==> no FFT) */
 
    if( nx == 1 ) Lxx = 0 ;  /* can't FFT if dataset is shrimpy! */
@@ -226,54 +224,57 @@ int main( int argc , char *argv[] )
    /* extract sub-brick #0 */
 
    DSET_load(dset_in) ; CHECK_LOAD_ERROR(dset_in) ;
+   nvol = DSET_NVALS( dset_in ) ;
 
-   inim = mri_to_complex( DSET_BRICK(dset_in,0) ) ; /* convert input to complex */
-   fac  = DSET_BRICK_FACTOR(dset_in,0) ;
-   if( fac > 0.0f && fac != 1.0f ){                 /* scale it if needed */
-     int ii , nvox = nx*ny*nz ; complex *car = MRI_COMPLEX_PTR(inim) ;
-     for( ii=0 ; ii < nvox ; ii++ ){ car[ii].r *= fac ; car[ii].i *= fac ; }
-   }
+   dset_out = EDIT_empty_copy( dset_in ) ;
+   LOAD_IVEC3( iv , Lxx, Lyy, Lzz ) ;
+   EDIT_dset_items( dset_out ,
+                      ADN_prefix , prefix ,
+                      ADN_nxyz   , iv ,  /* change dimensions, possibly */
+                    ADN_none ) ;
 
-   DSET_unload(dset_in) ;  /* input data is all copied now */
+   for( ivol=0; ivol < nvol; ivol++ ) {
+      inim = mri_to_complex( DSET_BRICK(dset_in,ivol) ) ; /* convert input to complex */
+      fac  = DSET_BRICK_FACTOR(dset_in,ivol) ;
+      if( fac > 0.0f && fac != 1.0f ){                 /* scale it if needed */
+        int ii , nvox = nx*ny*nz ; complex *car = MRI_COMPLEX_PTR(inim) ;
+        for( ii=0 ; ii < nvox ; ii++ ){ car[ii].r *= fac ; car[ii].i *= fac ; }
+      }
 
-   /* FFT to get output image */
+      /* FFT to get output image */
 
-   csfft_scale_inverse(1) ;  /* scale by 1/N for inverse FFTs */
+      csfft_scale_inverse(1) ;  /* scale by 1/N for inverse FFTs */
 
-   outim = mri_fft_3D( Sign , inim , Lxx,Lyy,Lzz , do_alt ) ;
+      outim = mri_fft_3D( Sign , inim , Lxx,Lyy,Lzz , do_alt ) ;
 
-   mri_free(inim) ;
+      mri_free(inim) ;
 
-   /* post-process output? */
+      /* post-process output? */
 
-   switch( Mode ){
-     case FFT_ABS:{
-       MRI_IMAGE *qim = mri_complex_abs(outim) ;
-       mri_free(outim) ; outim = qim ;
-     }
-     break ;
+      switch( Mode ){
+        case FFT_ABS:{
+          MRI_IMAGE *qim = mri_complex_abs(outim) ;
+          mri_free(outim) ; outim = qim ;
+        }
+        break ;
 
-     case FFT_PHASE:{
-       MRI_IMAGE *qim = mri_complex_phase(outim) ;
-       mri_free(outim) ; outim = qim ;
-     }
-     break ;
+        case FFT_PHASE:{
+          MRI_IMAGE *qim = mri_complex_phase(outim) ;
+          mri_free(outim) ; outim = qim ;
+        }
+        break ;
+      }
+
+      EDIT_BRICK_FACTOR( dset_out , ivol , 0.0 ) ;
+      EDIT_substitute_brick( dset_out , ivol , outim->kind , mri_data_pointer(outim) ) ;
    }
 
    /* create and write output dataset */
 
-   dset_out = EDIT_empty_copy( dset_in ) ;
+   DSET_unload(dset_in) ;  /* input data is all copied now */
+
    tross_Copy_History( dset_in , dset_out ) ;
    tross_Make_History( "3dFFT" , argc,argv , dset_out ) ;
-   LOAD_IVEC3( iv , outim->nx , outim->ny , outim->nz ) ;
-   EDIT_dset_items( dset_out ,
-                      ADN_prefix , prefix ,
-                      ADN_nvals  , 1 ,
-                      ADN_ntt    , 0 ,
-                      ADN_nxyz   , iv ,  /* change dimensions, possibly */
-                    ADN_none ) ;
-   EDIT_BRICK_FACTOR( dset_out , 0 , 0.0 ) ;
-   EDIT_substitute_brick( dset_out , 0 , outim->kind , mri_data_pointer(outim) ) ;
    DSET_write(dset_out) ; WROTE_DSET(dset_out) ; DSET_unload(dset_out) ;
 
    exit(0) ;
