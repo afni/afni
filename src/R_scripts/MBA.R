@@ -29,7 +29,7 @@ help.MBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to MBA ~1~
     Matrix-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.13, Oct 10, 2019
+Version 0.0.14, Oct 17, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -481,7 +481,7 @@ read.MBA.opts.batch <- function (args=NULL, verb = 0) {
       lop$r2z     <- FALSE # Fisher transformation
       lop$verb    <- 0
       lop$ROIlist <- NA
-      lop$fullRes <- NA
+      lop$fullRes <- FALSE
 
    #Get user's input
    for (i in 1:length(ops)) {
