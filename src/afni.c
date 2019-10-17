@@ -912,6 +912,7 @@ void AFNI_syntax(void)
      "   -package     Print just the current AFNI package (i.e., \n"
      "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
      "                then exit.\n"
+     "\n"
      "   -show_tips   Print the tips for the GUI, such as key presses\n"
      "                and other useful advice.  This is the same file that\n"
      "                would be displayed with the 'AFNI Tips' button in the\n"
