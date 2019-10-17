@@ -1442,6 +1442,11 @@ static char *gby[] = {
      "If the thunder don't get you, then the lightning will"                                            ,
      "Only you and me at the edge of an endless sea"                                                    ,
      "Trouble ahead, trouble behind, and you know that notion, just crossed my mind"                    ,
+     "It's better to wear seaweed socks than stick a melon in your brother's ear"                       ,
+     "There is a road, no simple highway, between the dawn and the dark of night"                       ,
+     "Such a long, long time to be gone, and a short time to be here"                                   ,
+     "Don't shake the tree when the fruit ain't ripe"                                                   ,
+     "Crippled but free, I was blind all the time I was learning to see"                                ,
 
      /* Multi-line quotes */
      "\n  A journey of a thousand miles begins with a single stride,\n"
@@ -1524,7 +1529,7 @@ static char *gby[] = {
      "\n  To be stupid, selfish, and have good health are three requirements\n"
      "  for happiness; though if stupidity is lacking, all is lost"                           ,
 
-     // Galois 
+     // Galois
      "Apres cela, il y aura, j'espere, des gens qui\n"
      "  trouveront leur profit a dechiffrer tout ce gachis."                                  ,
      "Later there will be, I hope, some people who\n"
