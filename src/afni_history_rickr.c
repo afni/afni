@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 17, Oct, 2019, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
+   "improve descriptions of some option errors to the user",
+   NULL
+ } ,
+
  { 17, Oct, 2019, RCR, "3dTcorr1D", MICRO, TYPE_BUG_FIX,
    "strcasestr fix subsumed by adding _GNU_SOURCE to make",
    "Undo removal of strcasestr."

@@ -226,7 +226,7 @@ void display_help_menu(int detail)
 void get_options (int argc, char ** argv, anova_options * option_data)
 {
   int nopt = 1;                  /* input option argument counter */
-  int ival;                      /* integer input */
+  int ival, rv;                  /* integer input and return val */
   int i, j, k;                   /* factor level counter */
   int nijk;                      /* number of data files in cell i */
   float fval;                    /* float input */
@@ -365,8 +365,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt >= argc)  ANOVA_error ("need argument after -voxel ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if (ival <= 0)
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if (rv < 1 || ival <= 0)
 	    ANOVA_error ("illegal argument after -voxel ");
 	  option_data->nvoxel = ival;
 	  nopt++;
@@ -379,8 +379,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt >= argc)  ANOVA_error ("need argument after -levels ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > MAX_LEVELS))
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if (rv < 1 || (ival <= 0) || (ival > MAX_LEVELS))
 	    ANOVA_error ("illegal argument after -levels ");
 	  option_data->a = ival;
 	  nopt++;
@@ -393,8 +393,8 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	{
 	  nopt++;
 	  if (nopt+1 >= argc)  ANOVA_error ("need 2 arguments after -dset ");
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > option_data->a))
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if ((rv < 1) || (ival <= 0) || (ival > option_data->a))
 	    ANOVA_error ("illegal argument after -dset ");
 	
 	  option_data->na[ival-1] += 1;
@@ -449,9 +449,11 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (option_data->num_ameans > MAX_MEANS)
 	    ANOVA_error ("too many factor level mean estimates");
 	
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > option_data->a))
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if ((rv < 1) || (ival <= 0) || (ival > option_data->a)) {
+            fprintf(stderr,"** bad opt #%d: %s\n", nopt, argv[nopt]);
 	    ANOVA_error ("illegal argument after -mean ");
+          }
 	  option_data->ameans[option_data->num_ameans-1] = ival - 1;
 	  nopt++;
 	
@@ -473,15 +475,19 @@ void get_options (int argc, char ** argv, anova_options * option_data)
 	  if (option_data->num_adiffs > MAX_DIFFS)
 	    ANOVA_error ("too many factor level differences");
 	
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > option_data->a))
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if ((rv == 0) || (ival <= 0) || (ival > option_data->a)) {
+            fprintf(stderr,"** bad opt #%d: %s\n", nopt, argv[nopt]);
 	    ANOVA_error ("illegal argument after -diff ");
+          }
 	  option_data->adiffs[option_data->num_adiffs-1][0] = ival - 1;
 	  nopt++;
 	
-	  sscanf (argv[nopt], "%d", &ival);
-	  if ((ival <= 0) || (ival > option_data->a))
+	  rv = sscanf (argv[nopt], "%d", &ival);
+	  if ((rv == 0) || (ival <= 0) || (ival > option_data->a)) {
+            fprintf(stderr,"** bad opt #%d: %s\n", nopt, argv[nopt]);
 	    ANOVA_error ("illegal argument after -diff ");
+          }
 	  option_data->adiffs[option_data->num_adiffs-1][1] = ival - 1;
 	  nopt++;
 	
@@ -558,10 +564,19 @@ void get_options (int argc, char ** argv, anova_options * option_data)
    }
 
       /*----- unknown command -----*/
-      sprintf (message,"Unrecognized command line option: %s\n", argv[nopt]);
-      ERROR_message (message);
+      {
+      int bbot=nopt-3, btop=nopt+3, ib;
+      if( bbot < 0 ) bbot = 0;
+      if( btop >= argc ) btop = argc-1;
+      ERROR_message ("Unrecognized command line option #%d: %s\n",
+                     nopt, argv[nopt]);
+      fprintf(stderr,"** bad opt part of:");
+      for( ib=bbot; ib<= btop; ib++ )
+         fprintf(stderr," %s", argv[ib]);
+      fputc('\n', stderr);
       suggest_best_prog_option(argv[0], argv[nopt]);
       exit(1);
+      }
     }
 
   if (argc < 2)  {
