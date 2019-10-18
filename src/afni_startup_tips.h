@@ -1585,6 +1585,15 @@ static char *gby[] = {
      " what you see is all that you will ever be. And then you accept it.\n"
      " Or you stop looking in mirrors" ,
 
+     "\n     Everyone knows that dragons don't exist. But while this\n"
+     "     simplistic formulation may satisfy the layman, it does not\n"
+     "     suffice for the scientific mind... The brilliant Cerebron,\n"
+     "     attacking the problem analytically, discovered three distinct\n"
+     "     kinds of dragon: the mythical, the chimerical, and the purely\n"
+     "     hypothetical. They were all, one might say, nonexistent, but each\n"
+     "     non-existed in an entirely different way.\n"
+
+
      "\n  Next time you are afraid to share your ideas, remember that someone\n"
      "  once said in a meeting 'Let's make a film with a tornado full of sharks'" ,
 
