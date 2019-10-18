@@ -1,0 +1,197 @@
+  add_executable(1dSEM 1dSEM.c sqrmat.c matrix.c)
+  set_target_properties(1dSEM PROPERTIES PUBLIC_HEADER "matrix.h")
+  target_link_libraries(1dSEM AFNI::mri m)
+
+foreach(target 
+    1dApar2mat 
+    1dAstrip 1dBandpass 1dBport 1dCorrelate 1dFlagMotion 1dMarry
+    1dTsort 1dUpsample 1dcat 1ddot 1dfft 1dgenARMA11 1dnorm 1dsum
+    1dsvd 1dtranspose 24swap 2dImReg 2perm 2swap 3dABoverlap
+    3dAFNIto3D 3dAFNItoANALYZE 3dAFNItoMINC 3dAFNItoNIFTI
+    3dAFNItoNIML 3dAFNItoRaw 3dANALYZEtoAFNI 3dAcost 3dAnatNudge
+    3dAnhist 3dAttribute 3dAutoTcorrelate 3dAutobox 3dAutomask
+    3dBandpass 3dBlurInMask 3dBlurToFWHM 3dBrickStat 3dCM
+    3dClipLevel 3dClustCount 3dClustSim 3dConformist 3dConvolve
+    3dCountSpikes 3dDFT 3dDTeig 3dDTtoDWI 3dDWItoDT
+    3dDegreeCentrality  3dEmpty 3dEntropy 3dErrtsCormat
+    3dExtractGroupInCorr 3dExtrema 3dFDR 3dFFT 3dFWHM 3dFWHMx
+    3dFourier 3dFriedman 3dGetrow 3dGroupInCorr 3dIntracranial
+    3dInvFMRI 3dKruskalWallis 3dLFCD 3dLRflip 3dLSS 3dLocalACF
+    3dLocalBistat 3dLocalHistog 3dLocalPV 3dLocalSVD 3dLocalstat
+    3dMINCtoAFNI 3dMannWhitney 3dMean 3dMedianFilter 3dMultiThresh
+       3dNormalityTest 3dNotes 3dNwarpAdjust 3dNwarpApply
+    3dNwarpCalc 3dNwarpCat 3dNwarpFuncs 3dNwarpXYZ 3dOverlap
+    3dPeriodogram 3dPolyfit 3dPval 3dREMLfit 3dROIstats
+    3dRank 3dRankizer 3dRetinoPhase 3dRowFillin
+    3dSetupGroupInCorr 3dSharpen 3dSpatNorm 3dStatClust 3dSynthesize
+       3dTRfix 3dTagalign 3dTcat 3dTcorr1D 3dTcorrMap
+    3dTcorrelate 3dTfilter 3dThreetoRGB 3dTnorm 3dToutcount
+    3dToyProg 3dTproject 3dTqual 3dTshift 3dTsmooth 3dTsort
+    3dTsplit4D 3dTwotoComplex 3dUndump 3dUnifize 3dUniformize
+    3dUpsample 3dWarp 3dWarpDrive 3dWavelets 3dWilcoxon 3dWinsor
+    3dXClustSim 3dXYZcat 3dZcat 3dZcutup 3dZeropad 3dZregrid
+    3daxialize 3dbuc2fim 3dbucket 3dcopy 3ddelay 3ddot 3ddup 3dfim+
+    3dnewid 3dnoise 3dnvals 3dpc 3drefit 3drename 3drotate
+    3dsvm_linpredict 3dtoXdataset 3dttest++ 3dvolreg 4swap
+    DTIStudioFibertoSegments FIRdesign GLTsymtest Ifile RSFgen
+    Vecwarp abut adwarp afni_vcheck apsearch bitvec byteorder
+    cat_matvec cdf count dicom_hdr dicom_hinfo dicom_to_raw ent16
+    epsim exx fdrval fftest float_scan from3d ftosh ge_header
+    help_format ibinom im2niml images_equal imand imaver imcalc
+    imcat imcutup imdump immask imrotate imstack imstat imupsam
+    mayo_analyze mritopgm mycat myget nicat niccc nidset nimel
+    niml_feedme nimltest nsize plugout_drive plugout_ijk plugout_tt
+    plugout_tta quotize rmz rotcom rtfeedme sfim siemens_vision
+    sqwave stimband strblast test_powell testcox tfim uncomment
+    uniq_images unu warping_test whereami whirlgif
+)
+  add_executable(${target} ${target}.c)
+  target_include_directories(${target} PRIVATE NIFTI::nifti2)
+  target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 m)
+endforeach(target)
+
+add_executable(3dDespike 3dDespike.c)
+target_include_directories(3dDespike PRIVATE NIFTI::nifti2)
+target_link_libraries(3dDespike PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
+
+add_executable(AlphaSim AlphaSim.c)
+target_include_directories(AlphaSim PRIVATE NIFTI::nifti2)
+target_link_libraries(AlphaSim PRIVATE AFNI::mri NIFTI::nifticdf m)
+
+add_executable(3dRegAna 3dRegAna.c)
+target_include_directories(3dRegAna PRIVATE NIFTI::nifti2)
+target_link_libraries(3dRegAna PRIVATE AFNI::mri NIFTI::nifticdf m)
+
+add_executable(3dQwarp 3dQwarp.c)
+target_include_directories(3dQwarp PRIVATE NIFTI::nifti2)
+target_link_libraries(3dQwarp PRIVATE AFNI::mri AFNI::3DEdge NIFTI::nifti2 m)
+
+foreach(i "" 2 3)
+  set(target 3dANOVA${i}) 
+  add_executable(${target} ${target}.c 3dANOVA.lib)
+  target_link_libraries(${target} PRIVATE AFNI::mri m)
+endforeach(i)
+
+add_executable(3dmerge 3dmerge.c)
+target_link_libraries(3dmerge PRIVATE AFNI::mri m)
+
+foreach(target 1dNLfit 1deval 1dmatcalc 3dDetrend 3dTstat 3dcalc
+    3dclust  3dhistog 3dmaskdump 3dmatcalc 3dproject
+    ccalc waver
+)
+  add_executable(${target} ${target}.c )
+  target_link_libraries(${target} PRIVATE AFNI::mri m)
+endforeach(target)
+target_link_libraries(3dproject PRIVATE AFNI::volpack)
+
+add_executable(3dTfitter 3dTfitter.c thd_fitter.c thd_lasso.c)
+add_executable(3dfim 3dfim.c ts.c "${CMAKE_CURRENT_BINARY_DIR}/configured_pcor/afni_pcor_float.c")
+
+add_executable(fim2 fim2.c ts.c $<TARGET_OBJECTS:pcor>)
+
+add_executable(3danisosmooth 3danisosmooth.c DWIstructtensor.c)
+target_link_libraries(3danisosmooth AFNI::mri m)
+
+add_executable(gwarp mri_gwarp.c)
+add_executable(3dmaxima 3dmaxima.c maxima.c)
+
+add_executable(3dMSE 3dMSE.c sparse_array.c)
+target_link_libraries(3dMSE AFNI::mri m)
+
+add_executable(3dttest 3dttest.c)
+target_link_libraries(3dttest AFNI::mri m)
+
+
+add_executable(3dretroicor 3dretroicor.c retroicor.c)
+target_link_libraries(3dretroicor PRIVATE AFNI::mri m)
+# add_executable(3dedge3 3dedge3.c)
+
+foreach(target 3dfim 3dTfitter fim2  gwarp 3dmaxima
+          
+)
+   target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
+endforeach(target)
+
+# link remaining executables from rickr
+add_executable(Dimon rickr/Dimon.c rickr/realtime.c)
+add_executable(Dimon1 rickr/Dimon1.c rickr/realtime1.c)
+add_executable(3dresample rickr/3dresample.c)
+target_link_libraries(Dimon1 PRIVATE AFNI::mri NIFTI::niftiio)
+target_link_libraries(Dimon PRIVATE AFNI::mri NIFTI::nifti2)
+
+target_include_directories(3dresample PRIVATE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>  $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES> )
+target_link_libraries(3dresample AFNI::mri libheaders AFNI::audio AFNI::eispack)
+
+
+if(BUILD_X_PROGS)
+  add_executable(FD2 FD2.c ts.c mcw.c overfim.c $<TARGET_OBJECTS:pcorsh> csfft_AJ.c)
+  add_executable(imreg imreg.c $<TARGET_OBJECTS:pcor>)
+  add_executable(1dplot 1dplot.c display.c)
+  target_include_directories(1dplot PRIVATE  AFNI::mri )
+  target_link_libraries(1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB} ${X11_LIBRARIES})
+
+add_executable(1dgrayplot 1dgrayplot.c)
+target_include_directories(
+    1dgrayplot 
+    PRIVATE 
+        $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
+        $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+        )
+target_link_libraries(1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB})
+
+add_executable(3dAllineate 3dAllineate.c mri_genalign.c mri_genalign_util.c thd_correlate.c)
+  foreach(target  FD2 imreg 3dAllineate 
+  )
+     target_link_libraries(${target} PRIVATE AFNI::mrix ${X11_LIBRARIES} NIFTI::nifti2 NIFTI::nifticdf)
+  endforeach(target)
+endif()
+
+
+
+# 1dDW_Grad_o_Mat; 1dDW_Grad_o_Mat++; 1dsound; 3dAmpToRSFC;
+# 3dBRAIN_VOYAGERtoAFNI; 3dBrainSync; 3dCRUISEtoAFNI; 3dClusterize;
+# 3dDTtoNoisyDWI; 3dDWUncert; 3dDeconvolve; 3dDeconvolve_f; 3dECM; 3dEigsToDT;
+# 3dExchange; 3dGenFeatureDist; 3dGenPriors; 3dGrayplot; 3dHist; 3dLombScargle;
+# 3dMaskToASCII; 3dMatch; 3dNLfim; 3dNetCorr; 3dPVmap; 3dProbTrackID;
+# 3dROIMaker; 3dRSFC; 3dReHo; 3dSeg; 3dSkullStrip; 3dSliceNDice;
+# 3dSpaceTimeCorr; 3dSurf2Vol; 3dSurfMask; 3dTORTOISEtoHere; 3dTSgen; 3dTrackID;
+# 3dTto1D; 3dVecRGB_to_HSL; 3dVol2Surf; 3dZipperZapper; 3ddot_beta; 3dedge3;
+# 3dfractionize; 3dinfill; 3dkmeans; 3dmaskSVD; 3dmask_tool; 3dmaskave;
+# 3dmatmult; AnalyzeTrace; BrainSkin; CompareSurfaces; ConvertDset;
+# ConvertSurface; ConvexHull; CreateIcosahedron; DriveSuma; FSread_annot;
+# HalloSuma; InstaTract; IsoSurface; MakeColorMap; MapIcosahedron; ParseName;
+# ROI2dataset; ROIgrow; SUMA_glxdino; SUMA_paperplane; SUMA_pixmap2eps;
+# SampBias; ScaleToMap; SpharmDeco; SpharmReco; Surf2VolCoord; SurfClust;
+# SurfDist; SurfDsetInfo; SurfExtrema; SurfFWHM; SurfInfo; SurfMeasures;
+# SurfMesh; SurfPatch; SurfQual; SurfRetinoMap; SurfSmooth; SurfToSurf;
+# SurfaceMetrics; Xphace; afni; afni_check_omp; afni_history; afni_open; aiv;
+# cifti_tool; cjpeg; dcm2niix_afni; djpeg; get_afni_model_PRF;
+# get_afni_model_PRF_6; get_afni_model_PRF_6_BAD; inspec; map_TrackID;
+# mpeg_encode; nifti1_tool; niprobe; prompt_popup; prompt_user; qdelaunay;
+# quickspec; suma; to3d
+
+# cyclic dependency:
+# add_executable(3dTSgen 3dTSgen.c NLfit.c NLfit_model.c)
+# target_include_directories(3dTSgen 
+# PRIVATE 
+# ${CMAKE_CURRENT_SOURCE_DIR})
+# set_target_properties(3dTSgen PROPERTIES PUBLIC_HEADER "NLfit.h;NLfit_model.h")
+# target_link_libraries(3dTSgen AFNI::mri)
+
+# add_executable(3dNLfim 3dNLfim.c)
+# target_link_libraries(3dNLfim PRIVATE AFNI::mrix ${CMAKE_DL_LIBS})
+
+
+# lots of stuff failing for this....
+# add_executable(to3d to3d.c)
+# target_link_libraries(to3d PRIVATE AFNI::mrix AFNI::mri)
+
+# set_source_files_properties(3dDeconvolve_f PROPERTIES COMPILE_DEFINITIONS "FLOATIZE")
+# add_executable(3dDeconvolve 3dDeconvolve.c $<TARGET_OBJECTS:parser>)
+# add_executable(3dDeconvolve_f 3dDeconvolve.c $<TARGET_OBJECTS:parser>)
+# target_link_libraries(3dDeconvolve PRIVATE AFNI::mri m)
+# target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri m)
+# TODO? check whether to make the following an alias
+# add_executable(3dDeconvolve_n 3dDeconvolve.c $<TARGET_OBJECTS:parser>)
+# target_link_libraries(3dDeconvolve_n PRIVATE AFNI::mri m)
