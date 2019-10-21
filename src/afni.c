@@ -482,7 +482,7 @@ void show_AFNI_vnum(void)
 
 // [PT: Oct 17, 2019] useful to be able to get the 'readme_afnigui.h'
 // info at the command line (ambitions to parse it for the HTML RST
-// pages).  This is called via the -show_tips option.
+// pages).  This is called via the -tips option.
 void show_AFNI_readme_gui(void)
 {
    int ii;
@@ -913,7 +913,7 @@ void AFNI_syntax(void)
      "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
      "                then exit.\n"
      "\n"
-     "   -show_tips   Print the tips for the GUI, such as key presses\n"
+     "   -tips        Print the tips for the GUI, such as key presses\n"
      "                and other useful advice.  This is the same file that\n"
      "                would be displayed with the 'AFNI Tips' button in the\n"
      "                GUI controller.  Exit after display.\n"
@@ -2137,7 +2137,7 @@ int main( int argc , char *argv[] )
       dienow++ ;
    }
 
-   if( check_string("-readme_gui" , argc, argv) ) {
+   if( check_string("-tips" , argc, argv) ) {
       show_AFNI_readme_gui();
       dienow++ ;
    }
