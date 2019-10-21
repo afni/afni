@@ -489,7 +489,7 @@ void show_AFNI_readme_gui(void)
    int ii;
    
    for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
-     printf( " %s" , readme_afnigui[ii] ) ;
+     printf( "%s" , readme_afnigui[ii] ) ;
    }
 }
 
@@ -501,7 +501,7 @@ void show_AFNI_readme_env(void)
    int ii;
    
    for( ii=0 ; readme_env[ii] != NULL ; ii++ ){
-     printf( " %s" , readme_env[ii] ) ;
+     printf( "%s" , readme_env[ii] ) ;
    }
 }
 
