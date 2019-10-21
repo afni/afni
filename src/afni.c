@@ -482,7 +482,7 @@ void show_AFNI_vnum(void)
 
 // [PT: Oct 17, 2019] useful to be able to get the 'readme_afnigui.h'
 // info at the command line (ambitions to parse it for the HTML RST
-// pages).  This is called via the -tips option.
+// pages).  This is called via the -show_tips option.
 void show_AFNI_readme_gui(void)
 {
    int ii;
@@ -890,7 +890,10 @@ void AFNI_syntax(void)
      "\n"
      "   -no_detach   Do not detach from the terminal.\n"
      "\n"
-     "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
+     "   -get_processed_env       Show applied AFNI/NIFTI env varables.\n"
+     "   -get_processed_env_afni  alternate: show env varables\n"
+     "   -get_running_env         Show env vars after up and running.\n"
+     "                            (includes locally set vars)\n"
      "\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
      "\n"
@@ -913,7 +916,7 @@ void AFNI_syntax(void)
      "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
      "                then exit.\n"
      "\n"
-     "   -tips        Print the tips for the GUI, such as key presses\n"
+     "   -show_tips   Print the tips for the GUI, such as key presses\n"
      "                and other useful advice.  This is the same file that\n"
      "                would be displayed with the 'AFNI Tips' button in the\n"
      "                GUI controller.  Exit after display.\n"
@@ -2137,7 +2140,7 @@ int main( int argc , char *argv[] )
       dienow++ ;
    }
 
-   if( check_string("-tips" , argc, argv) ) {
+   if( check_string("-readme_gui" , argc, argv) ) {
       show_AFNI_readme_gui();
       dienow++ ;
    }
@@ -2551,6 +2554,14 @@ int main( int argc , char *argv[] )
    } else {
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
+
+   /* check the FULLY processed environment, now that local env vars
+    * have been set                              [21 Oct 2019 rickr] */
+   if( check_string("-get_running_env",argc,argv) ) {
+     system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
+     exit(0);
+   }
+
 
    /*-- 30 Apr 2015: some messages about obsolete environment variables --*/
 

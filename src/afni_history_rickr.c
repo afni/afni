@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 21, Oct, 2019, RCR, "afni", MICRO, TYPE_NEW_OPT,
+   "add -get_running_env, to show env including locally set vars",
+   NULL
+ } ,
+
  { 17, Oct, 2019, RCR, "3dANOVA", MICRO, TYPE_ENHANCE,
    "improve descriptions of some option errors to the user",
    NULL
