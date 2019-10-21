@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 21, Oct , 2019 , PT , "afni" , MICRO , TYPE_NEW_OPT,
+   "Display AFNI environment vars in the terminal, via new opt: -env.",
+   "Makes good bedtime reading.\n"
+},
+
 { 21, Oct , 2019 , PT , "afni" , MICRO , TYPE_BUG_FIX,
    "Had named an option differently than help file stated; now renaming.",
    "To show 'AFNI Tips', opt named: -tips.\n"

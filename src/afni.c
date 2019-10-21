@@ -4,7 +4,7 @@
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*   Look on my works, Ye Mighty, and despair!                                */
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
-
+ 
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -43,7 +43,8 @@
 #include "afni.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
-#include "readme_afnigui.h"
+#include "readme_afnigui.h" 
+#include "readme_env.h"
 
 /*------------------------------------------------------*/
 /* if the compiler wants to 'show off' the name of this
@@ -482,7 +483,7 @@ void show_AFNI_vnum(void)
 
 // [PT: Oct 17, 2019] useful to be able to get the 'readme_afnigui.h'
 // info at the command line (ambitions to parse it for the HTML RST
-// pages).  This is called via the -show_tips option.
+// pages).  This is called via the -tips option.
 void show_AFNI_readme_gui(void)
 {
    int ii;
@@ -490,9 +491,19 @@ void show_AFNI_readme_gui(void)
    for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
      printf( " %s" , readme_afnigui[ii] ) ;
    }
-
 }
 
+// [PT: Oct 21, 2019] useful to be able to get the 'readme_env.h' info
+// at commandline; also for HTML RST parsing.  This is called via the
+// -env option.
+void show_AFNI_readme_env(void)
+{
+   int ii;
+   
+   for( ii=0 ; readme_env[ii] != NULL ; ii++ ){
+     printf( " %s" , readme_env[ii] ) ;
+   }
+}
 
 /********************************************************************
    Print out some help information and then quit quit quit
@@ -890,10 +901,7 @@ void AFNI_syntax(void)
      "\n"
      "   -no_detach   Do not detach from the terminal.\n"
      "\n"
-     "   -get_processed_env       Show applied AFNI/NIFTI env varables.\n"
-     "   -get_processed_env_afni  alternate: show env varables\n"
-     "   -get_running_env         Show env vars after up and running.\n"
-     "                            (includes locally set vars)\n"
+     "   -get_processed_env   Show applied AFNI/NIFTI environment varables.\n"
      "\n"
      "   -global_opts Show options that are global to all AFNI programs.\n"
      "\n"
@@ -916,10 +924,15 @@ void AFNI_syntax(void)
      "                linux_ubuntu_12_64, macos_10.12_local, etc.),\n"
      "                then exit.\n"
      "\n"
-     "   -show_tips   Print the tips for the GUI, such as key presses\n"
+     "   -tips        Print the tips for the GUI, such as key presses\n"
      "                and other useful advice.  This is the same file that\n"
      "                would be displayed with the 'AFNI Tips' button in the\n"
      "                GUI controller.  Exit after display.\n"
+     "\n"
+     "   -env         Print the environment variables for AFNI, which a user\n"
+     "                might set in their ~/.afnirc file (wait, you *do*\n"
+     "                have one on your computer, right??).\n"
+     "                Exit after display.\n"
      "\n"
      "\n"
      "N.B.: Many of these options, as well as the initial color set up,\n"
@@ -2140,8 +2153,13 @@ int main( int argc , char *argv[] )
       dienow++ ;
    }
 
-   if( check_string("-readme_gui" , argc, argv) ) {
+   if( check_string("-tips" , argc, argv) ) {
       show_AFNI_readme_gui();
+      dienow++ ;
+   }
+
+   if( check_string("-env" , argc, argv) ) {
+      show_AFNI_readme_env();
       dienow++ ;
    }
 
@@ -2554,14 +2572,6 @@ int main( int argc , char *argv[] )
    } else {
      AFNI_mark_environ_done() ;                           /* 16 Apr 2000 */
    }
-
-   /* check the FULLY processed environment, now that local env vars
-    * have been set                              [21 Oct 2019 rickr] */
-   if( check_string("-get_running_env",argc,argv) ) {
-     system("env | grep -e '^AFNI' -e '^NIFTI' | sort");
-     exit(0);
-   }
-
 
    /*-- 30 Apr 2015: some messages about obsolete environment variables --*/
 
