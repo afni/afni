@@ -745,7 +745,7 @@ void mcw_free( void *fred , char *fnam , int lnum )
 char * mcw_XtMalloc( Cardinal n , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *)malloc_track(n,fnam,lnum) ;
-   else               return (char *)XtMalloc(n) ;
+   else               return (char *)RwcMalloc(n) ;
 }
 
 /*-----------------------------------------------------------------
@@ -762,7 +762,7 @@ char * mcw_XtRealloc( char *p, Cardinal n , char *fnam , int lnum )
    if( use_tracking && (ip=shift_tracker(p)) != NULL )
       return (char*)realloc_track( ip , n , fnam,lnum ) ;
    else
-      return (char*)XtRealloc( p , n ) ;
+      return (char*)RwcRealloc( p , n ) ;
 }
 
 /*----------------------------------------------------------------
@@ -783,7 +783,7 @@ void mcw_XtFree( char *p )
         STATUS(buf) ;
       }
 #endif
-     XtFree(p) ;
+     RwcFree(p) ;
    }
 }
 
@@ -794,5 +794,5 @@ void mcw_XtFree( char *p )
 char * mcw_XtCalloc( Cardinal n , Cardinal m , char *fnam , int lnum )
 {
    if( use_tracking ) return (char *) calloc_track( n , m , fnam,lnum ) ;
-   else               return XtCalloc( n , m ) ;
+   else               return RwcCalloc( n , m ) ;
 }
