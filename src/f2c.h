@@ -18,9 +18,7 @@ typedef short int shortint;
 typedef float real;
 typedef double doublereal;
 typedef struct { real r, i; } complex;
-#ifndef _SUNPERF_COMPLEX
 typedef struct { doublereal r, i; } doublecomplex;
-#endif
 typedef long int logical;
 typedef short int shortlogical;
 typedef char logical1;

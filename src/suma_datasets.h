@@ -54,7 +54,7 @@
    }  \
 }
 #else
-#define SUMA_DUMP_TRACE(x) /* nada */
+#define SUMA_DUMP_TRACE(...) /* nada */
 #define SUMA_EDUMP_TRACE( ... ) /* nada */
 #endif
 #define SUMA_T_Err SUMA_EDUMP_TRACE

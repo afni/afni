@@ -43,11 +43,11 @@ extern VOID f_exit();
 
 #ifdef KR_headers
 extern VOID f_init(), sig_die();
-extern int MAIN__();
+/* extern int MAIN__(); */
 #define Int /* int */
 #else
 extern void f_init(void), sig_die(char*, int);
-extern int MAIN__(void);
+/* extern int MAIN__(void); */
 #define Int int
 #endif
 
@@ -91,6 +91,11 @@ sig_die("Trace trap", 1);
 int xargc;
 char **xargv;
 
+#if 0
+/*No executable is built so no main function is needed. Other functions
+defined in this file are required to build the library from this directory
+though
+*/
 #ifdef KR_headers
 main(argc, argv) int argc; char **argv;
 #else
@@ -130,6 +135,8 @@ exit(0);	/* exit(0) rather than return(0) to bypass Cray bug */
 return 0;	/* For compilers that complain of missing return values; */
 		/* others will complain that this is unreachable code. */
 }
+#endif
+
 #ifdef __cplusplus
 	}
 #endif

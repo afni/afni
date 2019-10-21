@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <stdint.h>
 
+/* Use mrix for X dependent programs */
 #ifdef __BUILDING_QUICKLOOK_PLUGIN__
   #include "IntrinsicQuickLook.h"
 #else
