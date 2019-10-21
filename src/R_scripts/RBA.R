@@ -29,7 +29,7 @@ help.RBA.opts <- function (params, alpha = TRUE, itspace='   ', adieu=FALSE) {
                       Welcome to RBA ~1~
     Region-Based Analysis Program through Bayesian Multilevel Modeling 
 #+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-Version 0.0.7, Oct 17, 2019
+Version 0.0.9, Oct 21, 2019
 Author: Gang Chen (gangchen@mail.nih.gov)
 Website - https://afni.nimh.nih.gov/gangchen_homepage
 SSCC/NIMH, National Institutes of Health, Bethesda MD 20892
@@ -832,7 +832,7 @@ plotPDP <- function(fn, ps, nR, nr, nc, w=8) {
 
 # for Intercept and quantitative variables
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
-   cat(sprintf('===== Summary of region effects for %s =====', lop$EOIq[ii]), 
+   cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    ps0 <- psROI(aa, bb, lop$EOIq[ii])
    gg <- sumROI(ps0, ns, 8)
@@ -843,7 +843,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
-   cat(sprintf('===== Summary of region effects for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+   cat(sprintf('===== Summary of region effects for %s vs %s (RBA results) =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    ps0 <- psROI(aa, bb, lop$qContrL[2*ii-1]) - psROI(aa, bb, lop$qContrL[2*ii])
    gg <- sumROI(ps0, ns, 8)
@@ -865,10 +865,11 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
       psa[nl,,] <- psa[nl,,] + ps[jj,,] 
    }
    psa[nl,,] <- ps[nl,,] - psa[nl,,]  # reference level
+   dimnames(psa) <- list(NULL, NULL, dimnames(bb$ROI)[[2]]) # add ROI names for plotting
    
    oo <- apply(psa, 1, sumROI, ns, 8)
    oo <-lapply(oo, 'rownames<-', dimnames(bb$ROI)[[2]])
-   cat(sprintf('===== Summary of region effects for %s =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects for %s (RBA results) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:nl) {
       cat(sprintf('----- %s level: %s', lop$EOIc[ii], lvl[jj]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat(capture.output(oo[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -876,9 +877,9 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    }
 
    if(any(!is.na(lop$PDP) == TRUE)) for(jj in 1:nl)
-      plotPDP(lop$EOIc[ii], psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
+      plotPDP(paste0(lop$EOIc[ii], '_', lvl[jj]), psa[jj,,], nR, lop$PDP[1], lop$PDP[2], 8)
    
-   cat(sprintf('===== Summary of region effects for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects for %s comparisons (RBA results) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) for(kk in (jj+1):nl) {
       cat(sprintf('----- level comparison: %s vs %s', lvl[jj], lvl[kk]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       oo <- sumROI(psa[jj,,] - psa[kk,,], ns, 8)
@@ -913,7 +914,7 @@ sumGLM <- function(ll, tm, nR, DF, nd) {
 
 # for Intercept and quantitative variables
 if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
-   cat(sprintf('===== Summary of region effects under GLM for %s: no adjustment for multiplicity =====', lop$EOIq[ii]), 
+   cat(sprintf('===== Summary of region effects under GLM for %s (for reference only): no adjustment for multiplicity =====', lop$EOIq[ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    gg <- sumGLM(ll, lop$EOIq[ii], nR, nn[[ii]]$df, 8)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -922,7 +923,7 @@ if(any(!is.na(lop$EOIq) == TRUE)) for(ii in 1:length(lop$EOIq)) {
 
 # for contrasts among quantitative variables
 if(any(!is.na(lop$qContr) == TRUE)) for(ii in 1:(length(lop$qContrL)/2)) {
-   cat(sprintf('===== Summary of region effects under GLM for %s vs %s =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
+   cat(sprintf('===== Summary of region effects under GLM for %s vs %s (for reference only) =====', lop$qContrL[2*ii-1], lop$qContrL[2*ii]), 
       file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat(capture.output(gg), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
@@ -966,7 +967,7 @@ if(any(!is.na(lop$EOIc) == TRUE)) for(ii in 1:length(lop$EOIc)) {
    #   cat('\n', file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    #}
    
-   cat(sprintf('===== Summary of region effects inder GLM for %s comparisons =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
+   cat(sprintf('===== Summary of region effects inder GLM for %s comparisons (for reference only) =====', lop$EOIc[ii]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
    for(jj in 1:(nl-1)) {
       cat(sprintf('----- level comparison: %i vs reference level', jj), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
       cat(capture.output(ss[[jj]]), file = paste0(lop$outFN, '.txt'), sep = '\n', append=TRUE)
