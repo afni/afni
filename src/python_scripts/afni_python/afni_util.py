@@ -3233,7 +3233,7 @@ def search_path_dirs(word, mtype=0, casematch=1):
                           else, 'word' letters can be either case
    """
    try:
-      plist = os.environ['PATH'].split(':')
+      plist = os.environ['PATH'].split(os.pathsep)
    except:
       print('** search_path_dirs: no PATH var')
       return 1, []
@@ -3261,6 +3261,27 @@ def search_path_dirs(word, mtype=0, casematch=1):
    rlist = [os.path.realpath(pfile) for pfile in rlist]
 
    return 0, get_unique_sublist(rlist)
+
+def which(pname):
+   """like unix which command: return the first 'pname' in PATH
+      (this is a simplified version of search_path_dirs())
+
+      return a simple string, empty on error
+   """
+   try:
+      plist = os.environ['PATH'].split(os.pathsep)
+   except:
+      print('** which_prog: no PATH var')
+      return ''
+
+   for pdir in plist:
+      # accept pname having a path
+      search = os.path.join(pdir, pname)
+      if os.path.isfile(search) and os.access(search, os.X_OK):
+         return search
+
+   return ''
+   
 
 def num_found_in_path(word, mtype=0, casematch=1):
    """a simple wrapper to print search_path_dirs results
