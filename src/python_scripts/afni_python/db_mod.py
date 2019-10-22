@@ -12637,6 +12637,17 @@ g_help_options = """
 
             See also -combine_method.
 
+        -combine_tedort_reject_midk yes/no : reject midk components
+
+                e.g. -combine_tedort_reject_midk no
+                default: yes (matching original method)
+
+            Is may not be clear whether the midk (mid-Kappa) components are
+            good ones or bad.  If one is not so sure, it might make sense not
+            to project them out.  To refrain from projecting them out, use
+            this option with 'no' (the default is 'yes' to match the original
+            method).
+
         -scale_max_val MAX      : specify the maximum value for scaled data
 
                 e.g. -scale_max_val 1000
