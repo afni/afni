@@ -11,20 +11,20 @@ Tip #1:
 
 (1) To use AFNI, you must have some data stored in a format that the program
     understands.
-  (a) The major formats for which AFNI is programmed are:
+   (a) The major formats for which AFNI is programmed are:
        ++ AFNI formatted datasets, in .HEAD and .BRIK pairs of files;
        ++ NIfTI-1 formatted datasets, in .nii or .nii.gz files.
-  (b) When you start AFNI, any datasets in the current directory will be ready
-      for viewing.  If there are no datasets to read, AFNI will pop up a
-      message.  At this point, you can do one of 2 things:
+   (b) When you start AFNI, any datasets in the current directory will be ready
+       for viewing.  If there are no datasets to read, AFNI will pop up a
+       message.  At this point, you can do one of 2 things:
        ++ Quit AFNI, change directory ('cd') to a directory with some datasets,
           and restart the program (this is what I always do); or,
        ++ Use the 'DataDir Read' button in the second column of the main AFNI
           controller to navigate to a directory with some datasets.
-      When there is no data, AFNI creates a 'dummy' dataset for you to look at,
-      if you want to play with the image viewers.
-  (c) To open an image viewer, click on one of the 'Image' buttons in the left
-      column of the main AFNI controller.
+       When there is no data, AFNI creates a 'dummy' dataset for you to look
+       at, if you want to play with the image viewers.
+   (c) To open an image viewer, click on one of the 'Image' buttons in the left
+       column of the main AFNI controller.
        ++ Left-click in the image to move the crosshairs around.
        ++ Click or click-drag in the slider below the image to change slice.
        ++ The controls to the right of the image let you adjust the image
@@ -32,45 +32,46 @@ Tip #1:
        ++ The controls to the bottom of the image let you carry out various
           operations on the image, such as saving to JPEG format, and making
           a montage (array) of slice images.
-  (d) If a dataset has more than one 3D volume in it (usually that means it
-      has a time axis, like an FMRI EPI dataset), then you can use the 'Graph'
-      buttons to view an array of graphs of the voxel data time series.
+   (d) If a dataset has more than one 3D volume in it (usually that means it
+       has a time axis, like an FMRI EPI dataset), then you can use the 'Graph'
+       buttons to view an array of graphs of the voxel data time series.
        ++ The crosshairs in the image viewer that corresponds to the graph
           viewer change to a small box to indicate which voxels are the source
           of the data in the graph array.
-  (e) The viewpoint of multiple image and graph viewers (the focus voxel at the
-      crosshairs) is always locked together -- Left-click in one image to move
-      the crosshairs, and all other open image and graph viewers will jump, too.
+   (e) The viewpoint of multiple image and graph viewers (the focus voxel at
+       the crosshairs) is always locked together -- Left-click in one image 
+       to move the crosshairs, and all other open image and graph viewers 
+       will jump, too.
        ++ Moving the time index in a graph viewer (by clicking in the central
           sub-graph, or by using the 'Index' control in the main AFNI window)
           will cause all the image and graph viewers to display at the new
           time index.
-  (f) At any moment, you can have one underlay dataset (grayscale) and one
-      overlay dataset (color).  To choose which datasets are visible, use
-      the 'UnderLay' and 'OverLay' button in the second column of the AFNI
-      controller.
+   (f) At any moment, you can have one underlay dataset (grayscale) and one
+       overlay dataset (color).  To choose which datasets are visible, use
+       the 'UnderLay' and 'OverLay' button in the second column of the AFNI
+       controller.
        ++ To control whether the color overlay is visible, click on the 
           'See OverLay' toggle button.
        ++ To manage how the numbers in the overlay dataset are converted into
           colors, click on 'Define OverLay' to open up a new control panel.
        ++ The active underlay and overlay dataset names are shown in the title
           bar of the AFNI controller window.
-  (g) Don't be afraid of the software!  The popup hints will help.  The button
-      'BHelp' will give you longer help about individual buttons -- click on
-      the BHelp button, then click on any AFNI button to get a small text box
-      with more help than the simple popup hints.
-  (h) Sample datasets and all the AFNI course materials are in the big file
-      CD.tgz (more than 1 Gbyte) at
-         https://afni.nimh.nih.gov/pub/dist/edu/data
-      And don't forget the AFNI message board at
-         https://afni.nimh.nih.gov/afni/community/board
+   (g) Don't be afraid of the software!  The popup hints will help.  The button
+       'BHelp' will give you longer help about individual buttons -- click on
+       the BHelp button, then click on any AFNI button to get a small text box
+       with more help than the simple popup hints.
+   (h) Sample datasets and all the AFNI course materials are in the big file
+       CD.tgz (more than 1 Gbyte) at
+          https://afni.nimh.nih.gov/pub/dist/edu/data
+       And don't forget the AFNI message board at
+          https://afni.nimh.nih.gov/afni/community/board
 --------------------------------------------------------------------------------
              ***** Cursor Shapes and Right-Click Popup Menus *****
 
 (2) On most systems, the X11 cursor used in AFNI is an orange arrow pointing
     at about '10:30' on the clock face.  However, the arrow becomes yellow
     and points more steeply, to about '11:00', when it is over a location that
-    has a hidden Right-Click popup menu.  Some of these are
+    has a hidden Right-Click popup menu.  Some of these are:
    (a) Over the logo square just to the right of the 'done' button in an
        AFNI controller.
    (b) Over the labels at the top of the threshold slider and color bar in
@@ -131,12 +132,12 @@ Tip #1:
        close the splash screen window again via the usual X11 controls on
        the window border, or by left-clicking again in the logo square.
 --------------------------------------------------------------------------------
-               ***** Keyboard Shorcuts: Image Viewer Window *****
+               ***** Keyboard Shortcuts: Image Viewer Window *****
 
 (4) The AFNI image viewer has many keyboard shortcuts.  Help for these can be
     found by using 'BHelp' and then clicking on the image sub-window itself.
-    The shortcuts are used by putting the mouse cursor over the image sub-window
-    and pressing the keyboard key.
+    The shortcuts are used by putting the mouse cursor over the image 
+    sub-window and pressing the keyboard key.
       a = fix window aspect ratio        (= Left-click in intensity bar)
       c = enter cropping mode            (= clicking the 'crop' button)
       D = open Disp control panel        (= clicking the 'Disp' button)
@@ -178,7 +179,7 @@ Tip #1:
      F5 = Meltdown!
      F6 and higher are not (yet) defined.
 --------------------------------------------------------------------------------
-               ***** Keyboard Shorcuts: Graph Viewer Window *****
+               ***** Keyboard Shortcuts: Graph Viewer Window *****
 
 (5) The AFNI graph viewer also has many keyboard shortcuts.
       a = autoscale the graphs (this one time)
