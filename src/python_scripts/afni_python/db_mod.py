@@ -37,8 +37,11 @@ g_oc_methods = [
     'OC_tedort',        # OC,        and ortvecs from tedana
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
-    'tedana_OC_tedort'  # ts_OC.nii, and ortvecs from tedana
+    'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
+    'm_tedana'          # tedana from MEICA group:
+                        #    https://github.com/ME-ICA/tedana/
     ]
+g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
 g_despike_new_opts = [
     'yes',              # apply as default -NEW option
@@ -3133,18 +3136,38 @@ def db_cmd_combine(proc, block):
    ocmeth, rv = block.opts.get_string_opt('-combine_method', default='OC')
    if rv: return
 
-   # write commands
-   cmd =  '# %s\n'                                 \
-          '# combine multi-echo data, per run\n\n' \
-          % block_header('combine')
-
    # probably not reachable, but at least for clarity...
    if ocmeth not in g_oc_methods:
       print("OC method %s not in list of valid methods:\n   %s" \
             % (ocmeth, ', '.join(g_oc_methods)))
       return
 
-   if ocmeth == 'mean':
+   # check use of tedana.py vs. tedana from MEICA group
+   ted_meth = which_tedana_method(ocmeth)
+   if ted_meth < 0: return
+
+   # do we want to use the MEICA group's tedana version?
+   if ted_meth == 2:
+      mcstr = ' (tedana from MEICA group)'
+   elif ted_meth == 1:
+      mcstr = ' (tedana.py)'
+   else:
+      mcstr = ''
+
+   # check that masking seems reasonable
+   if ted_meth > 0:
+      if not have_tedana_mask(proc, block, ocmeth):
+         return
+
+   # write commands
+   cmd =  '# %s\n'                                            \
+          '# combine multi-echo data per run, using %s%s\n\n' \
+          % (block_header('combine'), ocmeth, mcstr)
+
+   # handle any MEICA tedana methods separately
+   if ted_meth == 2:
+      ccmd = cmd_combine_m_tedana(proc, block, ocmeth)
+   elif ocmeth == 'mean':
       ccmd = cmd_combine_mean(proc, block)
    elif ocmeth[0:2] == 'OC':
       ccmd = cmd_combine_OC(proc, block, ocmeth)
@@ -3168,6 +3191,166 @@ def db_cmd_combine(proc, block):
 
    return cmd
 
+def have_tedana_mask(proc, block, method):
+   # make sure a mask block precedes this one
+   bo = proc.find_block_order('mask', block.label)
+   if bo == -2 or proc.mask == None:
+      print("** a mask is required for tedana")
+      return 0
+   if bo != -1:
+      print("** processing block 'mask' should precede 'combine'\n"
+            "   when running tedana (MEICA)")
+      return 0
+
+   if proc.mask != proc.mask_epi_anat:
+      print('** consider option: "-mask_epi_anat yes"')
+
+   return 1
+
+def which_tedana_method(ocmeth):
+   """There are a few ways to apply tedana now, see if we can distinguish.
+
+      return 0: none
+             1: tedana.py (via tedana_wrapper.py)
+             2: tedana    (from MEICA group)
+            -1: error
+
+      Note whether tedana (i.e. MEICA group's version) is directly in PATH.
+      Do we care if tedana.py is in the PATH?
+   """
+
+   # if 'ted' is not part of ocmeth, then tedana is not relevant
+   if ocmeth.find('ted') < 0:
+      return 0
+
+   # does the user want to use MEICA tedana?
+   want_mted = (ocmeth.find('m_ted') >= 0)
+
+   # is 'tedana' in PATH?
+   which_mted = UTIL.which('tedana')
+   have_mted = (which_mted != '')
+
+   # requesting MEICA tedana but not having it (should this be fatal?)
+   # (note: being fatal would complicate my own testing)
+   if want_mted and not have_mted:
+      print("** WARNING: no MEICA tedana in path, but requesting it")
+
+   # if it exists, we do not HAVE to use it
+   if have_mted and not want_mted:
+      print("** warning: have MEICA tedana in path, but not requesting it")
+      print("   MEICA tedana is at: %s" % which_mted)
+
+   # now just return whether we use the new or old tedana
+   if want_mted:
+      print("-- will use tedana from MEICA group")
+      return 2
+   else:
+      print("-- will use tedana.py")
+      return 1
+
+def cmd_combine_m_tedana(proc, block, method='m_tedana'):
+   """combine all echoes using the MEICA group's tedana
+
+      method must currently be one of the following
+         m_tedana         : default - run tedana_wrapper.py, collect output
+
+      get orts
+   """
+
+   if not proc.use_me:
+      print("** creating combine block, but no ME?")
+      return
+
+   if len(proc.echo_times) == 0:
+      print("** option -echo_times is required for %s combine method" % method)
+      return
+
+   # ----------------------------------------------------------------------
+   # decide what to do
+   #    - what output to copy, if any (and a corresponding comment)
+   #    - whether to grab the ortvec
+   ready = 0    # flag what still needs to be done
+   if method == 'm_tedana':
+      ready = 1
+      getorts = 0
+      dataout = 'dn_ts_OC.nii'
+      mstr = '# (get MEICA tedana final result, %s)\n\n' % dataout
+   elif method == 'm_tedana_OC':
+      ready = 1
+      getorts = 0
+      dataout = 'ts_OC.nii'
+      mstr = '# (get MEICA tedana OC result, %s)\n\n' % dataout
+   elif method == 'm_tedana_OC_tedort':
+      # rcr - todo, need ort vec
+      getorts = 1
+      dataout = 'ts_OC.nii'
+      mstr = '# (get MEICA tedana OC result, %s, plus -ortvec)\n\n' \
+             % dataout
+   elif method == 'getorts':
+      getorts = 1
+      dataout = ''
+      mstr = '# (get MEICA tedana -ortvec results)\n\n'
+   else:
+      print("** invalid tedana combine method, %s" % method)
+      return
+
+   # rcr - todo: remove after cases are done
+   if not ready: return
+
+   oindent = ' '*6
+
+   # gather any extra tedana options
+   exopts = []
+   oname = '-combine_opts_tedana'
+   if block.opts.find_opt(oname):
+      olist, rv = block.opts.get_string_list(oname)
+      if rv: return
+      if len(olist) > 0:
+         exopts.extend(olist)
+      else:
+         print("** found -combine_opts_tedana without any options")
+         return
+
+   # input prefix has $run fixed, but uses a wildcard for echoes
+   # output prefix has $run fixed, but no echo var
+   # 
+   cur_prefix = proc.prefix_form_run(block, eind=-9)
+   prev_prefix = proc.prev_prefix_form_run(block, view=1, eind=-2)
+   exoptstr = ''.join(exopts)
+
+   # actually run tedana
+   # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
+   #             consider --png
+   cmd =                                                                    \
+       '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
+       '%s'                                                          \
+       '# first run tedana commands, to see if they all succeed\n'   \
+       'foreach run ( $runs )\n'                                     \
+       '   tedana -d %s \\\n'                                        \
+       '          -e $echo_times \\\n'                               \
+       '          --mask %s  \\\n'                                   \
+       '%s'                                                          \
+       '          --out-dir tedana_r$run\n'                          \
+       'end\n\n'                                                     \
+       % (method, mstr, prev_prefix, proc.mask.rel_input(head=1), exoptstr)
+
+
+   # ----------------------------------------------------------------------
+   # only copy the results back out if dataout is set
+   if dataout != '':
+      cmd += '# now get the tedana results\n'   \
+             'foreach run ( $runs )\n'          \
+             '   # copy result back here\n'     \
+             '   3dcopy tedana_r$run/%s %s\n'   \
+             'end\n\n'                          \
+             % (dataout, cur_prefix)
+
+   # ----------------------------------------------------------------------
+   # finally, grab the orts, if desired
+   # if getorts:
+   # rcr - todo
+
+   return cmd
 
 def cmd_combine_tedana(proc, block, method='tedana'):
    """combine all echoes using the tedana.py wrapper, tedana_wrapper.py
@@ -3217,19 +3400,6 @@ def cmd_combine_tedana(proc, block, method='tedana'):
    else:
       print("** invalid tedana combine method, %s" % method)
       return
-
-   # make sure a mask block precedes us
-   bo = proc.find_block_order('mask', block.label)
-   if bo == -2 or proc.mask == None:
-      print("** a mask is required for tedana")
-      return
-   if bo != -1:
-      print("** processing block 'mask' should precede 'combine'\n"
-            "   when running tedana (MEICA)")
-      return
-
-   if proc.mask != proc.mask_epi_anat:
-      print('** consider option: "-mask_epi_anat yes"')
 
    oindent = ' '*6
 
@@ -8107,8 +8277,8 @@ g_help_string = """
             TIMING FILE NOTE, MASKING NOTE,
             ANAT/EPI ALIGNMENT CASES NOTE, ANAT/EPI ALIGNMENT CORRECTIONS NOTE,
             WARP TO TLRC NOTE,
-            RETROICOR NOTE, RUNS OF DIFFERENT LENGTHS NOTE,
-            SCRIPT EXECUTION NOTE
+            RETROICOR NOTE, MULTI ECHO NOTE,
+            RUNS OF DIFFERENT LENGTHS NOTE, SCRIPT EXECUTION NOTE
         OPTIONS                 : desriptions of all program options
             informational       : options to get quick info and quit
             general execution   : options not specific to a processing block
@@ -10307,8 +10477,8 @@ g_help_notes = """
 
     ** Cardiac and respiratory regressors must be created from an external
        source, such as the RetroTS.py program written by Z Saad, and converted
-       to python by J Zosky.  The input to that would be the 2+ signals.  The
-       output would be a single file per run, containing 13 or more regressors
+       to python by J Zosky.  The input to that should be the 2+ signals.  The
+       output should be a single file per run, containing 13 or more regressors
        for each slice.  That set of output files would be applied here in
        afni_proc.py.
 
@@ -10364,6 +10534,26 @@ g_help_notes = """
             -ricor_regress_method across-runs
             -ricor_regs_nfirst 3
 
+    --------------------------------------------------
+    MULTI ECHO NOTE: ~2~
+
+        rcr - todo
+
+    In the case of multi-echo data, there are many things to consider.
+    -combine method
+    -mask_epi_anat yes
+    -blocks ... mask combine ...
+
+        see TEDANA NOTE
+    --------------------------------------------------
+    TEDANA NOTE: ~2~
+
+    This deserves its own section.
+    -tshift_interp -wsinc9
+    -mask_epi_anat yes
+    -volreg_warp_final_interp wsinc5
+
+        see MULTI ECHO NOTE
     --------------------------------------------------
     RUNS OF DIFFERENT LENGTHS NOTE: ~2~
 
@@ -12647,6 +12837,17 @@ g_help_options = """
             to project them out.  To refrain from projecting them out, use
             this option with 'no' (the default is 'yes' to match the original
             method).
+
+        -combine_tedana_save_all yes/no : save all ted wrapper preproc files
+
+                e.g. -combine_tedana_save_all yes
+                default: no (save only 3dZcat stacked dataset)
+
+            Use the option to save all of the preprocessing files created by
+            tedana_wrapper.py (when calling tedana.py).  The default is to save
+            only the 3dZcat stacked dataset, which is then passed to tedana.py.
+
+            Please see 'tedana_wrapper.py -help' for details.
 
         -scale_max_val MAX      : specify the maximum value for scaled data
 
