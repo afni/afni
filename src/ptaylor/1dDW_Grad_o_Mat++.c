@@ -37,8 +37,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
+#include "mrilib.h"    
+#include "3ddata.h"    
 #include "matrix.h"
 
 // max number of bvecs total is 1111 from this lazy method

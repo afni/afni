@@ -1,5 +1,5 @@
 #include <afni.h>
-#include <rsfc.h>
+#include "rsfc.h"
 #include <gsl/gsl_vector.h>
 #include <gsl/gsl_sort.h>
 #include <gsl/gsl_sort_vector.h>

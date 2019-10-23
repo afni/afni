@@ -12,15 +12,15 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include "mrilib.h"     
+#include "3ddata.h"     
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
 #include <gsl/gsl_rng.h>
 #include <gsl/gsl_randist.h>
 #include "DoTrackit.h"
-#include <diffusiony.h>
+#include "diffusiony.h"
 
 #define N_dti_vals (3) 
 #define N_dti_vecs (3) 

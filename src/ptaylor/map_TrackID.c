@@ -23,10 +23,10 @@
 #include <gsl/gsl_blas.h>
 #include <gsl/gsl_rng.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-#include <TrackIO.h>
-#include <DoTrackit.h>
+#include "mrilib.h"    
+#include "3ddata.h"    
+#include "TrackIO.h"
+#include "DoTrackit.h"
 
 // shifts to REF coors; need to shift once more to get to TrkVis-type
 // units using ORIG of REF

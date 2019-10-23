@@ -1,0 +1,63 @@
+add_executable(
+  mpeg_encode
+  bframe.c
+  bitio.c
+  block.c
+  bsearch.c
+  combine.c
+  frame.c
+  frametype.c
+  fsize.c
+  huff.c
+  iframe.c
+  jrevdct.c
+  libpnmrw.c
+  main.c
+  mfwddct.c
+  mheaders.c
+  mpeg.c
+  nojpeg.c
+  opts.c
+  parallel.c
+  param.c
+  pframe.c
+  postdct.c
+  psearch.c
+  rate.c
+  readframe.c
+  rgbtoycc.c
+  specifics.c
+  subsample.c
+)
+target_include_directories(mpeg_encode PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/headers)
+set_target_properties(
+  mpeg_encode
+  PROPERTIES PRIVATE_HEADER
+             all.h
+             combine.h
+             fsize.h
+             libpnmrw.h
+             mtypes.h
+             param.h
+             readframe.h
+             ansi.h
+             dct.h
+             general.h
+             mheaders.h
+             opts.h
+             postdct.h
+             rgbtoycc.h
+             bitio.h
+             frame.h
+             huff.h
+             mpeg.h
+             prototypes.h
+             search.h
+             byteorder.h
+             frames.h
+             jpeg.h
+             mproto.h
+             parallel.h
+             rate.h
+             specifics.h
+)

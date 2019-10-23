@@ -118,8 +118,8 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>
-#include <3ddata.h>
+#include "mrilib.h"
+#include "3ddata.h"
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 #include "Fat_Labels.h"

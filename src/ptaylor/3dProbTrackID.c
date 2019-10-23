@@ -12,8 +12,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include "mrilib.h"     
+#include "3ddata.h"     
 
 void usage_ProbTrackID(int detail) 
 {	

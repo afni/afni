@@ -47,10 +47,10 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
+#include "mrilib.h"    
+#include "rsfc.h"    
 #include <gsl/gsl_rng.h>
-#include <3ddata.h>    
+#include "3ddata.h"    
 #include "DoTrackit.h"
 #include "Fat_Labels.h"
 #include <gsl/gsl_statistics_double.h>

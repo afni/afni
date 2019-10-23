@@ -69,11 +69,11 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
-#include <3ddata.h>    
+#include "mrilib.h"    
+#include "rsfc.h"    
+#include "3ddata.h"    
 #include <gsl/gsl_rng.h>
-#include <Fat_Labels.h>
+#include "Fat_Labels.h"
 #include "DoTrackit.h"
 #include "roiing.h"
 

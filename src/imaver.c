@@ -4,7 +4,7 @@
    License, Version 2.  See the file README.Copyright for details.
 ******************************************************************************/
    
-#include <mrilib.h>
+#include "mrilib.h"
 #include <string.h>
 
 #ifndef MAX
