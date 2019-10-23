@@ -4,7 +4,7 @@
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
 /*   Look on my works, Ye Mighty, and despair!                                */
 /*-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+-+*/
- 
+
 /*****************************************************************************
    Major portions of this software are copyrighted by the Medical College
    of Wisconsin, 1994-2000, and are released under the Gnu General Public
@@ -43,7 +43,7 @@
 #include "afni.h"
 #include <X11/keysym.h>  /* 20 Feb 2003 */
 #include "afni_plugout.h"
-#include "readme_afnigui.h" 
+#include "readme_afnigui.h"
 #include "readme_env.h"
 
 /*------------------------------------------------------*/
@@ -487,7 +487,7 @@ void show_AFNI_vnum(void)
 void show_AFNI_readme_gui(void)
 {
    int ii;
-   
+
    for( ii=0 ; readme_afnigui[ii] != NULL ; ii++ ){
      printf( "%s" , readme_afnigui[ii] ) ;
    }
@@ -499,7 +499,7 @@ void show_AFNI_readme_gui(void)
 void show_AFNI_readme_env(void)
 {
    int ii;
-   
+
    for( ii=0 ; readme_env[ii] != NULL ; ii++ ){
      printf( "%s" , readme_env[ii] ) ;
    }
@@ -2834,7 +2834,9 @@ STATUS("call 12") ;
 
         AFNI_read_inputs( MAIN_argc , MAIN_argv ) ;
 
-        if( GLOBAL_library.have_dummy_dataset && MAIN_im3d->type == AFNI_3DDATA_VIEW ){
+        if( GLOBAL_library.have_dummy_dataset   &&
+            MAIN_im3d->type == AFNI_3DDATA_VIEW    ){
+
           XtSetSensitive( MAIN_im3d->vwid->prog->clone_pb , False ) ;
           MAIN_im3d->dummied = 1 ;  /* 27 Jan 2004 */
           MCW_set_widget_bg( MAIN_im3d->vwid->view->sess_lab ,
@@ -6238,7 +6240,7 @@ ENTRY("AFNI_read_inputs") ;
       int num_dsets=0 ;       /* 04 Jan 2000 */
       THD_session *gss=NULL ; /* 11 May 2002: global session */
       THD_session *dss=NULL ; /* 28 Aug 2003: session for command-line datasets */
-      THD_3dim_dataset *temp_dset; /* 16 Jul 2010 place holder dummy datasets*/
+      THD_3dim_dataset *temp_dset=NULL; /* 16 Jul 2010: place holder dummy datasets */
 
       THD_session *css=NULL ; /* 02 Jun 2016: catenated sessions */
       int       do_css=GLOBAL_argopt.cat_sess ;
@@ -6544,17 +6546,43 @@ END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
          }
       }
 
-      /** if nothing read at all, make up a dummy **/
+      /** if nothing read yet, try some canonical files [22 Oct 2019] **/
+
+      if( GLOBAL_library.sslist->num_sess <= 0 ){
+      }
+
+      /**** if nothing read at all, make up something ****/
 
       GLOBAL_library.have_dummy_dataset = 0 ;
 
       if( GLOBAL_library.sslist->num_sess <= 0 ){
+#define NCANON 3  /* added 22 Oct 2019 */
+         static char *cds[NCANON] = { "MNI152_2009_template_SSW.nii.gz" ,
+                                      "MNI_N27.nii.gz" ,
+                                      "TT_N27_SSW.nii.gz" } ;
+
+         char *aaa = THD_find_executable( "afni" ) ;
          char *snam = dlist->ar[0] ; /* 10 Mar 2002 */
-         char *cpt ;
+         char *cpt ; int found_canon=0 ;
+
+         temp_dset = NULL ;               /* this will be the made up dataset */
+
+         if( aaa != NULL && *aaa != '\0' ){  /* try to find canonical dataset */
+           char *ddd ; int lll , ccc ;      /* from afni executable directory */
+           lll = strlen(aaa) ;
+           ddd = malloc(sizeof(char)*(lll+64)) ;
+           strcpy(ddd,aaa) ;
+           for( ccc=0 ; ccc < NCANON ; ccc++ ){
+             strcpy( ddd+(lll-4) , cds[ccc] ) ;   /* cut off the last 4 chars */
+             temp_dset = THD_open_dataset( ddd ) ;
+             if( temp_dset != NULL ) break ;
+           }
+           found_canon = (temp_dset != NULL) ;   /* found a canonical dataset */
+         }
 
          if( !THD_is_directory(snam) ) snam = "./" ;
 
-         REPORT_PROGRESS("\n** No datasets or sessions input -- Dummy dataset created.") ;
+         REPORT_PROGRESS("\n** No datasets found -- making up something **") ;
 
          /** manufacture a minimal session **/
 
@@ -6566,27 +6594,31 @@ END_OF_ID_LOOP:  /* for the bad news above [01 Feb 2018] */
          MCW_strncpy( new_ss->lastname, snam, THD_MAX_NAME ); /* is first argv dir */
          GLOBAL_library.sslist->num_sess   = 1 ;
          GLOBAL_library.sslist->ssar[0]    = new_ss ;
-         GLOBAL_library.have_dummy_dataset = 1 ;
 
-         /** manufacture a minimal dataset [cf. thd_dumdset.c] **/
+         /** if nothing yet, make up  a minimal dataset [cf. thd_dumdset.c] **/
 
          new_ss->num_dsset = 1 ;
          GLOBAL_argopt.only_images = 0 ;  /* 24 Feb 2017 */
 
-         cpt = getenv("AFNI_DUMMY_DATASET") ;
+         cpt = getenv("AFNI_DUMMY_DATASET") ; /* specify type of dummy dset */
 
-         if( cpt != NULL &&
+         if( temp_dset == NULL && cpt != NULL &&
              ( strcasecmp(cpt,"RWCOX")==0 || strcasecmp(cpt,"OLD")==0 ) ){
            temp_dset = THD_dummy_RWCOX();
            SET_SESSION_DSET(temp_dset,new_ss, 0, 0); /* the olden way */
+           GLOBAL_library.have_dummy_dataset = 1 ;
 
-         } else {
+         } else if( temp_dset == NULL ){
            temp_dset = THD_dummy_N27();
-           SET_SESSION_DSET(temp_dset,new_ss, 0, 0); /* 12 Feb 2010 */
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 0);   /* 12 Feb 2010 */
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 2);
+           GLOBAL_library.have_dummy_dataset = 1 ;
+         } else {              /* use canonical dataset [22 Oct 2019] */
+           SET_SESSION_DSET(temp_dset,new_ss, 0, 0);
            SET_SESSION_DSET(temp_dset,new_ss, 0, 2);
          }
 
-         DSET_lock(temp_dset) ; /* lock into memory */
+         if( !found_canon ) DSET_lock(temp_dset) ; /* lock into memory */
          PARENTIZE( temp_dset , NULL ) ;
 
       } else {  /* 04 Jan 2000: show total number of datasets */

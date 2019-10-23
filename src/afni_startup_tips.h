@@ -1202,6 +1202,7 @@ static char *gby[] = {
      "I can resist anything but temptation"                                     ,
      "Only the shallow can know themselves"                                     ,
      "Don't fall into temptation until I get back"                              ,
+     "If you aren't gone too long, I will wait for you forever"                 ,
 
      "\n In this world there are only two tragedies:\n"
      "   One is not getting what one wants, and the other is getting it"        ,
