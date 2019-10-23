@@ -709,6 +709,8 @@ More detailed changes, starting May, 2018.
 
 g_todo_str = """todo:
   - ME:
+     - handle MEICA tedana methods
+        - m_tedana, m_tedana_OC, m_tedana_OC_tedort
      - detrend (project others?) execute across runs
         - then break either data or regressors across runs
      - motion params?  censoring?
