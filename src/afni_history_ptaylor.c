@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 22, Oct , 2019 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
+   "Adjusted help file.",
+   "Had given wrong name for opt.\n"
+},
+
 { 21, Oct , 2019 , PT , "afni" , MICRO , TYPE_NEW_OPT,
    "Display AFNI environment vars in the terminal, via new opt: -env.",
    "Makes good bedtime reading.\n"

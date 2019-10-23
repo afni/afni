@@ -326,7 +326,7 @@ COMMAND OPTIONS ~1~
 -prefix
 -box_focus_slices
 -montgap
--montcol
+-montcolor
 -no_clean
 
 EOF
