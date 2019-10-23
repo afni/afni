@@ -80,6 +80,7 @@ typedef struct {
 
       int only_images ;       /* 24 Feb 2017 */
       int left_is_posterior ; /* 27 Mar 2017 */
+
 } AF_options ;
 
 #ifdef MAIN

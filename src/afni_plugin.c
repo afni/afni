@@ -4214,7 +4214,7 @@ ENTRY("PLUGIN_seq_send_CB") ;
 #ifndef NO_FRIVOLITIES
       case isqCR_buttonpress:{
          XButtonEvent *xev = (XButtonEvent *) cbs->event ;
-#define NBIRN 10
+#define NBIRN 11
          static int nold=0 ;
          static char *birn[NBIRN] = {
            " \n** Don't DO That! **\n "                        ,
@@ -4261,7 +4261,11 @@ ENTRY("PLUGIN_seq_send_CB") ;
            " All valiant dust that builds on dust,\n"
            " And, guarding, calls not Thee to guard,\n"
            " For frantic boast and foolish word -\n"
-           " The Mercy on Thy People, Lord!\n"
+           " The Mercy on Thy People, Lord!\n"           ,
+
+           "*\n"
+           " That's all there is, there ain't no more \n"
+           "*"
          } ;
 
 #define NKLING 5
@@ -4286,6 +4290,7 @@ ENTRY("PLUGIN_seq_send_CB") ;
             " I should kill you where you stand!\n"
          } ;
 
+         /* button 1 = Birn strings */
          if( xev == NULL || xev->button == Button1 ){
            if( !NO_frivolities && nold < NBIRN ){
              if( strstr(birn[nold],"Rasmus") != NULL )
@@ -4296,6 +4301,7 @@ ENTRY("PLUGIN_seq_send_CB") ;
              PLUTO_beep() ;
              if( nold == NBIRN ){ AFNI_speak("Stop it",0); nold++; }
            }
+         /* button 3 = Klingon strings */
          } else if( xev->button == Button3 ){
            if( !NO_frivolities && nkl < NKLING ){
              MCW_popup_message( seq->wimage , kling[nkl++] , MCW_QUICK_KILL ) ;

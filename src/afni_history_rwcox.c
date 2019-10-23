@@ -44,6 +44,15 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 23 , OCT , 2019 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
+   "Change dummy dataset creation" ,
+   "If NO data is read into afni, then it creates a dummy dataset, since\n"
+   "there must be at least one dataset available for the GUI to function.\n"
+   "This change makes afni search for some canonical datasets to use in\n"
+   "place of the dummy dataset, which will now only be created when one of\n"
+   "these datasets is not found. The search is done in the path directory\n"
+   "where the afni binary is found (often the user's abin)." } ,
+
  { 15 , OCT , 2019 , RWC , "afni GUI" , MICRO , TYPE_BUG_FIX ,
    "-bysub fix" ,
    "Methods 1 and 2 can conflict, and the choice is arbitrarily made to\n"
