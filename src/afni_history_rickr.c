@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 23, Oct, 2019, RCR, "3dZeropad", MICRO, TYPE_NEW_OPT,
+   "add -pad2evens: add needed planes to make each dimension even",
+   NULL
+ } ,
+
  { 21, Oct, 2019, RCR, "afni", MICRO, TYPE_NEW_OPT,
    "add -get_running_env, to show env including locally set vars",
    NULL
