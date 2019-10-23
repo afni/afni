@@ -18,6 +18,9 @@ void usage_3dZeropad(int detail)
  " -AP b = symmetrically to make the resulting volume have\n"
  " -IS c = 'a', 'b', and 'c' slices in the respective directions.\n"
  "\n"
+ " -pad2evens = add 0 or 1 plane in each of the R/A/S directions,\n"
+ "              giving each axis an even number of slices\n"
+ "\n"
  " -mm   = pad counts 'n' are in mm instead of slices:\n"
  "         * each 'n' is an integer\n"
  "         * at least 'n' mm of slices will be added/removed:\n"
@@ -69,6 +72,7 @@ int main( int argc , char * argv[] )
    THD_3dim_dataset *inset , *outset ;
    int add_I=0 , add_S=0 , add_A=0 , add_P=0 , add_L=0 , add_R=0 ;
    int RLsiz=0, APsiz=0, ISsiz=0 ; /* 23 Mar 2004 */
+   int add_any=0 , pad2evens=0;    /* 23 Oct 2019 [rickr] */
    char * prefix="zeropad" ;
 
    int add_z=0 ;   /* 07 Feb 2001 */
@@ -172,6 +176,13 @@ int main( int argc , char * argv[] )
          iarg++ ; continue ;
       }
 
+      /*- -pad2evens -*/
+
+      if( strcmp(argv[iarg],"-pad2evens") == 0 ){
+         pad2evens = 1 ;
+         iarg++ ; continue ;
+      }
+
       /*- -prefix -*/
 
       if( strcmp(argv[iarg],"-prefix") == 0 ){
@@ -218,13 +229,15 @@ int main( int argc , char * argv[] )
    
    /*- check to see if the user asked for something, anything -*/
 
-   if( mset == NULL ){
-    if( add_I==0 && add_S==0 && add_P==0 &&
-        add_A==0 && add_L==0 && add_R==0 && add_z==0 &&
-        RLsiz==0 && APsiz==0 && ISsiz==0               ){
+   add_any =  add_I || add_S || add_P || add_A || add_L || add_R
+                    || add_z || RLsiz || APsiz || ISsiz ;
 
+   /* pad2evens should be used alone */
+   if( pad2evens && (add_any || mset) )
+      ERROR_exit("Cannot combine -pad2evens with other padding or master") ;
+
+   if( mset == NULL && add_any == 0 && pad2evens == 0 ) {
       fprintf(stderr,"++ 3dZeropad: All inputs are zero? Making a copy!\n") ;
-    }
    }
 
    /* check for conflicts [23 Mar 2004] */
@@ -262,6 +275,21 @@ int main( int argc , char * argv[] )
       fprintf(stderr,"** 3dZeropad: Can't use partial datasets!\n"); exit(1);
    }
 #endif
+
+   /*-- if pad2evens, decide on padding        [23 Oct 2019 rickr] --*/
+   /* do not worry about nx,ny,nz, focus on RL/AP,IS                 */
+   if( pad2evens ) {
+      THD_dataxes * iax = inset->daxes ;
+      int           ndr, nda, ndi ;
+      ndr = DAXES_NUM(iax,ORI_R2L_TYPE) ;
+      nda = DAXES_NUM(iax,ORI_A2P_TYPE) ;
+      ndi = DAXES_NUM(iax,ORI_I2S_TYPE) ;
+      add_R = ndr % 2 ; /* add 1 if odd */
+      add_A = nda % 2 ;
+      add_I = ndi % 2 ;
+      INFO_message("pad2evens: applying -R %d -A %d -I %d\n",
+                   add_R, add_A, add_I);
+   }
 
    /*-- 14 May 2002: use master dataset now? --*/
 
