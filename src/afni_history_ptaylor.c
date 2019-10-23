@@ -66,6 +66,11 @@
 afni_history_struct ptaylor_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+{ 23, Oct , 2019 , PT , "check_dset_for_fs.py" , MAJOR , TYPE_NEW_PROG,
+   "Script to check properties of a dset, see if suitable for FS's recon-all.",
+   "The check criteria have been built over time, empirically.\n"
+},
+
 { 22, Oct , 2019 , PT , "@djunct_edgy_align_check" , MICRO , TYPE_GENERAL,
    "Adjusted help file.",
    "Had given wrong name for opt.\n"
