@@ -663,6 +663,7 @@ g_history = """
        - supports running tedana from MEICA group
          https://github.com/ME-ICA/tedana
        - added combine methods m_tedana, m_tedana_OC
+       - allow -mask_epi_anat if -anat_has_skull no
 """
 
 g_version = "version 7.00, October 24, 2019"

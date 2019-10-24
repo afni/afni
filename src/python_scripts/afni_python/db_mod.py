@@ -4346,10 +4346,22 @@ def db_cmd_mask(proc, block):
     proc.mask_epi.created = 1  # so this mask 'exists' now
 
     # if possible make a subject anat mask, resampled to EPI
-    if proc.warp_epi:
+    if proc.warp_epi or not proc.anat_has_skull:
         mc = anat_mask_command(proc, block)
         if mc == None: return
         cmd = cmd + mc
+
+    # warn users if -mask_epi_anat will not be applied
+    if block.opts.have_yes_opt('-mask_epi_anat') and not proc.mask_epi_anat:
+       print("** cannot apply -mask_epi_anat")
+       if not proc.mask_epi:
+          print("   (missing EPI mask)")
+       if not proc.mask_anat:
+          if proc.anat_has_skull:
+             print("   (anat still has skull)")
+          else:
+             print("   (missing anat mask)")
+       return
 
     # if possible make a group anat mask, resampled to EPI
     if proc.warp_epi & WARP_EPI_TLRC_WARP:
@@ -4656,7 +4668,9 @@ def group_mask_command(proc, block):
 #    - if e2a, apply from anat_ss (intermediate anat)
 # return None on failure
 def anat_mask_command(proc, block):
-    if not proc.warp_epi: return ''
+    # if the EPI is being warped (based on the anat), or the anat
+    # has no skull to begin with, we are good to go
+    if not proc.warp_epi and proc.anat_has_skull: return ''
 
     # adwarp: we cannot rely on skull-stripped anat, so just return
     if proc.warp_epi & WARP_EPI_TLRC_ADWARP: return ''
@@ -4678,9 +4692,9 @@ def anat_mask_command(proc, block):
         ss = 'aligned'
     # no longer invert e2a matrix to get ss anat, since the current
     # anat will already be stripped
-    else: # should not happen
-        print('** anat_mask_command: invalid warp_epi = %d' % proc.warp_epi)
-        return None
+    else: # no warp, so anat has no skull; use orig anat
+        anat = proc.anat
+        ss = 'orig'
     cmd = cmd + "#      (resampled from %s anat)\n" % ss
     tanat = anat.new('rm.resam.anat')   # temporary resampled anat dset
 
