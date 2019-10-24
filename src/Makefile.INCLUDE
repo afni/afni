@@ -2183,7 +2183,7 @@ afni_setup.o:afni.h afni_setup.h pbar.h
 
 3dclust.o:3ddata.h
 3dmerge.o:3ddata.h
-pbar.o:pbar.h machdep.h
+pbar.o:pbar.h machdep.h pbardefs.h pbardefs_float.h
 bbox.o:bbox.h xutil.h coxplot.h
 xutil.o:xutil.h
 imseq.o:imseq.h display.h bbox.h xutil.h mrilib.h

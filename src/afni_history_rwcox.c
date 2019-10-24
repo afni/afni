@@ -44,6 +44,12 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 24 , OCT , 2019 , RWC , "AFNI gui" , MINOR , TYPE_NEW_ENV ,
+   "AFNI_IMAGE_COLORSCALE defines colorbar for image viewer window" ,
+   "Formerly fixed, now user can specify the color scale to use here from\n"
+   "one of these: magma viridis plasma googleturbo\n"
+   "Also, I restored the 'g' (gamma) button affect on this color scale." } ,
+
  { 23 , OCT , 2019 , RWC , "afni GUI" , MICRO , TYPE_MODIFY ,
    "Change dummy dataset creation" ,
    "If NO data is read into afni, then it creates a dummy dataset, since\n"

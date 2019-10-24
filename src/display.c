@@ -14,7 +14,29 @@ MCW_DC *first_dc = NULL ;              /* 26 Jun 2003 */
 
 int npane_big = 256 ;                  /* 06 May 2016 */
 
-#define USE_TURBO                      /* 22 Aug 2019 */
+/*--------------------------------------------------------------------------*/
+#undef  USE_TURBO                      /* 22 Aug 2019 - made obsolete below */
+#define USE_PBARDEFS                   /* 24 Oct 2019 */
+
+#ifdef  USE_PBARDEFS
+
+# undef USE_TURBO
+# include "pbardefs_float.h"
+
+# define NPBARF 4
+static char *pbarfname[NPBARF] = { magma_name, plasma_name, viridis_name, googleturbo_name } ;
+static float  *pbarfar[NPBARF] = { magma_data, plasma_data, viridis_data, googleturbo_data } ;
+
+#endif
+
+/* use 256 colors for the colorbar? */
+
+#if defined(USE_TURBO) || defined(USE_PBARDEFS)
+# define USE_256
+#else
+# undef  USE_256
+#endif
+/*------------------------------------------------------------------------*/
 
 /*------------------------------------------------------------------------
   Returns position of highest set bit in 'ul' as an integer (0-31),
@@ -184,7 +206,7 @@ if(PRINT_TRACING){
 
      } else {                            /* should never occur! */
         dc->visual_info  = NULL ;
-        dc->visual_class = PseudoColor ; /* we hope */
+        dc->visual_class = PseudoColor ; /* we hope this still works [probably not] */
      }
    }
 
@@ -211,7 +233,7 @@ if(PRINT_TRACING){
    dc->height  = HeightOfScreen( dc->screen ) ;
 
    if( dc->visual_class == TrueColor ){   /* 23 Feb 2011 */
-#ifndef USE_TURBO
+#ifndef USE_256
      if( ncol < 160 ) ncol = 160 ;
 #else
      if( ncol < 256 ) ncol = 256 ;
@@ -589,21 +611,22 @@ static byte const turbo_srgb_bytes[256][3] = {
 void DC_init_im_col( MCW_DC *dc )
 {
    int i, r=0, g=0, b=0, nc ;
-#ifdef USE_TURBO
+#ifdef USE_256
    int kt ; float tfac ;
 #else
-   double da, an, c, s, sb, cb, ak, ab , a1,a2 , gamm ;
+   double da, an, c, s, sb, cb, ak, ab , a1,a2 ;
 #endif
+   double gamm ;
 
    nc   = dc->ncol_im ;
-#ifdef USE_TURBO
+   gamm = dc->gamma ;
+
+#ifdef USE_256
    tfac = 255.4f / (float)(nc-1) ;
-#else
+#else  /* AJJ's old color circle */
    a1 = 0.0   ;
    a2 = AFNI_numenv("AFNI_IMAGE_COLORANGLE") ;  /* 08 Nov 2011 */
    if( a2 < 90.0 || a2 > 360.0 ) a2 = 240.0 ;   /* set range   */
-
-   gamm = dc->gamma ;
 
    ak = 105.; s  = 150.; c  = s/60.;
    ab = 65.;  sb = 190.; cb = s/60.;
@@ -618,7 +641,29 @@ void DC_init_im_col( MCW_DC *dc )
      r  = turbo_srgb_bytes[kt][0] ;
      g  = turbo_srgb_bytes[kt][1] ;
      b  = turbo_srgb_bytes[kt][2] ;
-#else
+#elif defined(USE_PBARDEFS)          /* 24 Oct 2019 */
+     { static int mypbar = -1 ;
+       static float *mypbarf = NULL ;
+       if( mypbar < 0 ){
+         char *eee = getenv("AFNI_IMAGE_COLORSCALE") ;
+         if( eee == NULL || *eee == '\0' ){
+           mypbar = NPBARF-1 ;
+         } else {
+           int qq ;
+           for( qq=0 ; qq < NPBARF ; qq++ ){
+             if( strcasecmp(eee,pbarfname[qq]) == 0 ) break ;
+           }
+           if( qq == NPBARF ) qq-- ;
+           mypbar = qq ;
+         }
+         mypbarf = pbarfar[mypbar] ;
+       }
+       kt = (int)rint(tfac*i) ; if( kt < 0 ) kt=0; else if( kt > 255 ) kt=255 ;
+       r  = (int)(255.4f*mypow(mypbarf[3*kt+0],gamm/1.5)) ;
+       g  = (int)(255.4f*mypow(mypbarf[3*kt+1],gamm/1.5)) ;
+       b  = (int)(255.4f*mypow(mypbarf[3*kt+2],gamm/1.5)) ;
+     }
+#else  /* the olden AJJ way, from program FD */
      an += da; an = fmod(an,360.);
 
      if((an >= 0) && (an < 120.)) {
@@ -635,6 +680,7 @@ void DC_init_im_col( MCW_DC *dc )
           b = 255.*mypow((ak + MIN(s,(360. - an)*c))/255., gamm) +.5;
      }
 #endif
+
      dc->xcol_im[i].red   = BYTE_TO_INTEN(r) ;
      dc->xcol_im[i].green = BYTE_TO_INTEN(g) ;
      dc->xcol_im[i].blue  = BYTE_TO_INTEN(b) ;
