@@ -24,6 +24,8 @@
 
 #include "mrilib.h"
 
+#include "afni_environ.h"
+
 /*** Macros ***/
 
 #ifndef MAX

@@ -3436,7 +3436,7 @@ direction, so the visible part of the image appears to move to the
 right. (Mutatis mutandum for the other directions, of course.)
 
 -------------------------------
-Variable: AFNI_IMAGE_COLORANGLE (editable)
+Variable: AFNI_IMAGE_COLORANGLE (editable) ** OBSOLETE **/
 -------------------------------
 This value, a number between 90 and 360 (inclusive) describes the
 amount of the AJJ color circle used by the 'Colr' button in an
@@ -3446,6 +3446,25 @@ from top to bottom -- an effect that is obvious if you use the 'r'
 arrow buttons (on the right of the image viewer) to rotate the
 color circle. The default value of 240 is purely for historical
 reasons, dating back to the old FD program from Medieval Times.
+
+-------------------------------
+Variable: AFNI_IMAGE_COLORSCALE
+-------------------------------
+This variable defines the color scale used by the 'Colr' button
+at the top right of the AFNI image viwer window. At this time
+[Oct 2019], the following four color scales can be used for
+this purpose:
+   magma  plasma  viridis  googleturbo
+If you do not define AFNI_IMAGE_COLORSCALE, or you define it
+to something besides one of these names (case insensitive),
+then 'googleturbo' is used.
+  https://ai.googleblog.com/2019/08/turbo-improved-rainbow-colormap-for.html
+As of this change, the color scale can be modified by using the
+'g' (gamma) arrow buttons on the right edge of the image viewer.
+   Note that there is no way to change this image viewer color scale
+   interactively to another color scale, unlike in the 'Define Overlay'
+   control panel. The only way to change out this color scale is to
+   exit AFNI, change this environment variable, and restart the program.
 
 --------------------------------------
 Variable: AFNI_IMAGE_SCROLLWHEEL_TMASK
