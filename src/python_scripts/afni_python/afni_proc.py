@@ -659,9 +659,13 @@ g_history = """
     6.49 Sep 18, 2019:
        - added file tracking and -show_tracked_files option
        - if -html_review_style pythonic, check for matplotlib
+    7.00 Oct 24, 2019:
+       - supports running tedana from MEICA group
+         https://github.com/ME-ICA/tedana
+       - added combine methods m_tedana, m_tedana_OC
 """
 
-g_version = "version 6.49, September 18, 2019"
+g_version = "version 7.00, October 24, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \

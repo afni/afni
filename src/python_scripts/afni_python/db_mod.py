@@ -38,8 +38,9 @@ g_oc_methods = [
     'tedana',           # dn_ts_OC.nii           from tedana
     'tedana_OC',        # ts_OC.nii              from tedana
     'tedana_OC_tedort', # ts_OC.nii, and ortvecs from tedana
-    'm_tedana'          # tedana from MEICA group:
+    'm_tedana',         # tedana from MEICA group: dn_ts_OC.nii
                         #    https://github.com/ME-ICA/tedana/
+    'm_tedana_OC'       # ts_OC.nii              from m_tedana
     ]
 g_m_tedana_site = 'https://github.com/ME-ICA/tedana'
 
@@ -3321,6 +3322,7 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
    # actually run tedana
    # rcr - todo: consider tracking --tedpca, with default of kundu-stabalize
    #             consider --png
+   # note: tedana will mask if we don't, so always specify one
    cmd =                                                                    \
        '# ----- method %s : generate tedana (MEICA group) results  -----\n' \
        '%s'                                                          \

@@ -49,6 +49,13 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 24, Oct, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
+   "add combine methods m_tedana, m_tedana_OC",
+   "Can run tedana from MEICA group:\n"
+   "   https://github.com/ME-ICA/tedana\n"
+   "   https://tedana.readthedocs.io"
+ } ,
+
  { 23, Oct, 2019, RCR, "3dZeropad", MICRO, TYPE_NEW_OPT,
    "add -pad2evens: add needed planes to make each dimension even",
    NULL
