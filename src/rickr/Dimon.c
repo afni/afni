@@ -4756,11 +4756,21 @@ printf(
 "          -GERT_Reco -gert_to3d_prefix run3 -gert_nz 42\n"
 "\n"
 "  B2. Deal with Philips data (names are not sorted, and image numbers\n"
-"      are in slice-major order).  Sort by acq time, then inst num.\n"
-"      See -sort_by_acq_time in help output for details.\n"
+"      are in slice-major order).\n"
 "\n"
-"    %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
-"          -use_last_elem -use_slice_loc -dicom_org -sort_by_acq_time\n"
+"      a. Sort by acq time, then inst num.\n"
+"         See -sort_by_acq_time in help output for details.\n"
+"\n"
+"         %s -infile_pattern 'data/*.dcm' -GERT_Reco -quit \\\n"
+"               -use_last_elem -use_slice_loc -dicom_org -sort_by_acq_time\n"
+"\n"
+"      b. If the acquisition time is not appropriate, the slice vs time\n"
+"         (zt) ordering can be reversed.\n"
+"         Save ordering details for review (in DET* text files).\n"
+"\n"
+"         %s -infile_pattern 'data/IM_*'                    \\\n"
+"               -gert_create_dataset -use_last_elem -dicom_org \\\n"
+"               -order_as_zt save_det DET\n"
 "\n"
 "  B3. Simple examples for NIH scanners (GE or Siemens).\n"
 "\n"
@@ -4940,7 +4950,7 @@ printf(
 "  ---------------------------------------------------------------\n",
 prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog, prog, prog,
-prog, prog, prog, prog, prog, prog, prog,
+prog, prog, prog, prog, prog, prog, prog, prog,
 prog, prog, prog, prog, prog, prog, prog, prog );
 
 printf(
