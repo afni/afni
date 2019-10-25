@@ -611,19 +611,30 @@ static byte const turbo_srgb_bytes[256][3] = {
 void DC_init_im_col( MCW_DC *dc )
 {
    int i, r=0, g=0, b=0, nc ;
+   double gamm ;
+
 #ifdef USE_256
    int kt ; float tfac ;
 #else
    double da, an, c, s, sb, cb, ak, ab , a1,a2 ;
 #endif
-   double gamm ;
+
+#ifdef USE_PBARDEFS          /* 24 Oct 2019 */
+   static int mypbar = -1 ;
+   static float *mypbarf = NULL ;
+#endif
+
+#ifdef USE_PBARDEFS
+   mypbar = -1 ; mypbarf = NULL ; /* reset the color pbar to use */
+#endif
+   if( dc == NULL ) return ;
 
    nc   = dc->ncol_im ;
    gamm = dc->gamma ;
 
-#ifdef USE_256
+#ifdef USE_256 /* setup for getting colors directly from a table */
    tfac = 255.4f / (float)(nc-1) ;
-#else  /* AJJ's old color circle */
+#else  /* setup for calculating AJJ's old color circle (from FD) */
    a1 = 0.0   ;
    a2 = AFNI_numenv("AFNI_IMAGE_COLORANGLE") ;  /* 08 Nov 2011 */
    if( a2 < 90.0 || a2 > 360.0 ) a2 = 240.0 ;   /* set range   */
@@ -636,33 +647,30 @@ void DC_init_im_col( MCW_DC *dc )
 
    for( i=0 ; i < nc ; i++ ){
 
-#ifdef USE_TURBO
+#ifdef USE_TURBO        /* directly use Google Turbo */
      kt = (int)rint(tfac*i) ; if( kt < 0 ) kt=0; else if( kt > 255 ) kt=255 ;
      r  = turbo_srgb_bytes[kt][0] ;
      g  = turbo_srgb_bytes[kt][1] ;
      b  = turbo_srgb_bytes[kt][2] ;
 #elif defined(USE_PBARDEFS)          /* 24 Oct 2019 */
-     { static int mypbar = -1 ;
-       static float *mypbarf = NULL ;
-       if( mypbar < 0 ){
-         char *eee = getenv("AFNI_IMAGE_COLORSCALE") ;
-         if( eee == NULL || *eee == '\0' ){
-           mypbar = NPBARF-1 ;
-         } else {
-           int qq ;
-           for( qq=0 ; qq < NPBARF ; qq++ ){
-             if( strcasecmp(eee,pbarfname[qq]) == 0 ) break ;
-           }
-           if( qq == NPBARF ) qq-- ;
-           mypbar = qq ;
+     if( mypbar < 0 ){
+       char *eee = getenv("AFNI_IMAGE_COLORSCALE") ; /* figure out which */
+       if( eee == NULL || *eee == '\0' ){           /* colorscale to use */
+         mypbar = NPBARF-1 ;
+       } else {
+         int qq ;
+         for( qq=0 ; qq < NPBARF ; qq++ ){
+           if( strcasecmp(eee,pbarfname[qq]) == 0 ) break ;
          }
-         mypbarf = pbarfar[mypbar] ;
+         if( qq == NPBARF ) qq-- ;
+         mypbar = qq ;
        }
-       kt = (int)rint(tfac*i) ; if( kt < 0 ) kt=0; else if( kt > 255 ) kt=255 ;
-       r  = (int)(255.4f*mypow(mypbarf[3*kt+0],gamm/1.5)) ;
-       g  = (int)(255.4f*mypow(mypbarf[3*kt+1],gamm/1.5)) ;
-       b  = (int)(255.4f*mypow(mypbarf[3*kt+2],gamm/1.5)) ;
+       mypbarf = pbarfar[mypbar] ;
      }
+     kt = (int)rint(tfac*i) ; if( kt < 0 ) kt=0; else if( kt > 255 ) kt=255 ;
+     r  = (int)(255.4f*mypow(mypbarf[3*kt+0],gamm/1.555)) ;
+     g  = (int)(255.4f*mypow(mypbarf[3*kt+1],gamm/1.555)) ;
+     b  = (int)(255.4f*mypow(mypbarf[3*kt+2],gamm/1.555)) ;
 #else  /* the olden AJJ way, from program FD */
      an += da; an = fmod(an,360.);
 

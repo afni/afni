@@ -1031,6 +1031,39 @@ ENTRY("AFNI_drive_open_window") ;
         }
         ccc = cpt+1 ;  /* scan from here for the next keypress= option */
         ms += 100 ;
+      }
+
+      /* butpress [25 Oct 2019] */
+
+      ccc = cmd ;   /* allow multiple butpress= options */
+      while(1){
+#define NBPRESS 3
+        static char *bpress_name[NBPRESS] = { "Colr" , "Swap" , "Norm" } ;
+        static int bpress_code[NBPRESS]   = { isqDR_pressbut_Colr ,
+                                              isqDR_pressbut_Swap ,
+                                              isqDR_pressbut_Norm  } ;
+
+        cpt = strstr(ccc,"butpress=") ;
+        if( cpt == NULL ) cpt = strstr(ccc,"butpress:") ;
+        if( cpt != NULL ){
+          int qq ;
+          
+          cpt += 9 ;                           /* skip "butpress=" */
+          if( *cpt == '\'' || *cpt == '\"' ) cpt++ ; /* skip quote */
+
+          for( qq=0 ; qq < NBPRESS ; qq++ ){   /* find button name */
+            if( strncasecmp(cpt,bpress_name[qq],strlen(bpress_name[qq])) == 0 ){
+              drive_MCW_imseq( im3d->s123 , bpress_code[qq] , NULL ) ;
+              break ;
+            }
+          }
+          if( qq == NBPRESS )
+            WARNING_message("unknown image viewer button: '%s'",cpt-9) ;
+        } else {
+          break ;  /* break out of this while(1) loop */
+        }
+        ccc = cpt+1 ;  /* scan from here for the next butpress= option */
+        ms += 100 ;
       } ;
 
       if( ms > 0 ){ NI_sleep(ms) ; ms = 0 ; }
@@ -2755,6 +2788,14 @@ int AFNI_drive_setenv( char *cmd )
 
    else if( strcmp(nam,"AFNI_LEFT_IS_POSTERIOR") == 0 ){
      GLOBAL_argopt.left_is_posterior = YESSISH(val) ;
+   }
+
+   /*-- reset the Colr scale in image viewers? --*/
+
+   else if( strcmp(nam,"AFNI_IMAGE_COLORSCALE") == 0 ){  /* 25 Oct 2019 */
+     DC_init_im_col(NULL) ;     /* probably does nothing useful */
+     DC_palette_restore( GLOBAL_library.dc , 0.0 ) ;
+     PLUTO_force_redisplay() ;
    }
 
    return(0) ;

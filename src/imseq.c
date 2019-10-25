@@ -7682,6 +7682,10 @@ ENTRY("ISQ_but_cnorm_CB") ;
 
 *    isqDR_allowmerger     (ignored) allows the 3,4,5,6 'merger' buttons
 
+*    isqDR_pressbut_Colr   (ignored) presses the 'Colr' button
+*    isqDR_pressbut_Swap   (ignored) presses the 'Swap' button
+*    isqDR_pressbut_Norm   (ignored) presses the 'Norm' button
+
 The Boolean return value is True for success, False for failure.
 -------------------------------------------------------------------------*/
 
@@ -7703,11 +7707,24 @@ ENTRY("drive_MCW_imseq") ;
       }
       break ;
 
-      /*--------- allowmerger [25 Aug 2014] ----------*/
+      /*--------- pressbut_Colr [25 Oct 2019] ----------*/
 
-      case isqDR_allowmerger:{
-        seq->allowmerger = 1 ;
-        RETURN( True ) ;
+      case isqDR_pressbut_Colr:{
+        ISQ_but_color_CB( NULL , (XtPointer)seq , NULL ) ;
+      }
+      break ;
+
+      /*--------- pressbut_Swap [25 Oct 2019] ----------*/
+
+      case isqDR_pressbut_Swap:{
+        ISQ_but_cswap_CB( NULL , (XtPointer)seq , NULL ) ;
+      }
+      break ;
+
+      /*--------- pressbut_Norm [25 Oct 2019] ----------*/
+
+      case isqDR_pressbut_Norm:{
+        ISQ_but_cnorm_CB( NULL , (XtPointer)seq , NULL ) ;
       }
       break ;
 
@@ -7725,22 +7742,6 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
 #endif
         ALLOW_CLIPPING( seq , zz ) ;
         if( tc == NULL ) ISQ_redisplay( seq , -1 , isqDR_display ) ;
-        RETURN( True ) ;
-      }
-      break ;
-
-      /*--------- set display range [04 Nov 2003] ----------*/
-
-      case isqDR_setrange:{
-        float *rng = (float *)drive_data ;
-        if( rng == NULL ){
-          seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0f ;
-        } else {
-          seq->rng_bot = rng[0] ; seq->rng_top = rng[1] ; seq->rng_ztop = 0.0 ;
-          seq->rng_extern = 1 ;
-        }
-        if( rng == NULL || rng[2] == 0.0f )
-          ISQ_redisplay( seq , -1 , isqDR_display ) ;
         RETURN( True ) ;
       }
       break ;
@@ -7770,6 +7771,30 @@ printf("set top_clip=%g  redo_clip=%d zz=%d\n",seq->top_clip,seq->redo_clip,zz);
          int dd = PTOI(drive_data) ;
          seq->ignore_redraws = dd ;
          RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- allowmerger [25 Aug 2014] ----------*/
+
+      case isqDR_allowmerger:{
+        seq->allowmerger = 1 ;
+        RETURN( True ) ;
+      }
+      break ;
+
+      /*--------- set display range [04 Nov 2003] ----------*/
+
+      case isqDR_setrange:{
+        float *rng = (float *)drive_data ;
+        if( rng == NULL ){
+          seq->rng_bot = seq->rng_top = seq->rng_ztop = 0.0f ;
+        } else {
+          seq->rng_bot = rng[0] ; seq->rng_top = rng[1] ; seq->rng_ztop = 0.0 ;
+          seq->rng_extern = 1 ;
+        }
+        if( rng == NULL || rng[2] == 0.0f )
+          ISQ_redisplay( seq , -1 , isqDR_display ) ;
+        RETURN( True ) ;
       }
       break ;
 
