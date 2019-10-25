@@ -3093,8 +3093,14 @@ class SubjProcSream:
               if self.html_rev_style == 'pythonic':
                  import module_test_lib as MT
                  rv = MT.simple_import_test('matplotlib.pyplot', verb=self.verb)
-                 if rv: print("** warning: -html_review_style pythonic: "\
-                              "missing matplotlib library")
+                 if rv: print("** warning: -html_review_style pythonic:" \
+                              " missing matplotlib library")
+              # or if they could use it, and are not
+              else:
+                 import module_test_lib as MT
+                 rv = MT.simple_import_test('matplotlib.pyplot', verb=0)
+                 if rv == 0:
+                    print("+- consider use of: -html_review_style pythonic")
                 
            ss = '# if the basic subject review script is here, run it\n' \
                 '# (want this to be the last text output)\n'             \
