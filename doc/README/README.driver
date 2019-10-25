@@ -347,6 +347,17 @@ OPEN_WINDOW [c.]windowname [options]
                       * You can also set this string via environment
                         variable AFNI_IMAGE_LABEL_STRING.
 
+    butpress=name    -> This option lets you simulate a button press
+                        for one of the following buttons in an image
+                        viewer window:  Colr  Swap  Norm
+                        Button presses (and key presses) are executed
+                        in the order given on the command line; for
+                        example,
+                           butpress=Colr butpress=Swap
+                        and
+                           butpress=Swap butpress=Colr
+                        will have different results.
+
   For graph windows, other options available are:
     matrix=number     -> use 'number' sub-graphs (<= 21)
     pinnum=number     -> pin the graph length to 'number' time points

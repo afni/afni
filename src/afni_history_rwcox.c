@@ -44,6 +44,11 @@
 afni_history_struct rwcox_history[] = {
 /*=====BELOW THIS LINE=====*/
 
+ { 25 , OCT , 2019 , RWC , "afni GUI driver" , MINOR , TYPE_ENHANCE ,
+   "butpress commands to image viewer" ,
+   "butpress=Colr or Swap or Norm to simulate button presses\n"
+   "For Paul." } ,
+
  { 24 , OCT , 2019 , RWC , "AFNI gui" , MINOR , TYPE_NEW_ENV ,
    "AFNI_IMAGE_COLORSCALE defines colorbar for image viewer window" ,
    "Formerly fixed, now user can specify the color scale to use here from\n"

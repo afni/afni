@@ -696,6 +696,10 @@ extern MCW_imseq * open_MCW_imseq( MCW_DC * , get_ptr , XtPointer ) ;
 #define isqDR_ignore_redraws  521
 #define isqDR_keypress        522  /* 18 Feb 2005 */
 
+#define isqDR_pressbut_Colr   533  /* 25 Oct 2019 */
+#define isqDR_pressbut_Swap   534
+#define isqDR_pressbut_Norm   535
+
 #define BUTTON2_OPENPOLY        0
 #define BUTTON2_CLOSEDPOLY      1
 #define BUTTON2_POINTS          2
