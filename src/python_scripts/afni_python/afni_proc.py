@@ -664,9 +664,10 @@ g_history = """
          https://github.com/ME-ICA/tedana
        - added combine methods m_tedana, m_tedana_OC
        - allow -mask_epi_anat if -anat_has_skull no
+    7.01 Oct 25, 2019: allow for selectors on -dset* options
 """
 
-g_version = "version 7.00, October 24, 2019"
+g_version = "version 7.01, October 25, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
@@ -1845,6 +1846,7 @@ class SubjProcSream:
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
               aname = afni_name(dset)
+              aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
               if self.test_dsets and not aname.exist():
                  print("** missing run %d dataset: %s"%(rind+1, dset))
@@ -1923,10 +1925,11 @@ class SubjProcSream:
                                      for eind in range(necho) ]
            dme = rlist
 
-        # now check for existence
-        if self.test_dsets:
-           for eind, elist in enumerate(dme):
-              for rind, dset in enumerate(elist):
+        # set selector quote and possibly check for existence
+        for eind, elist in enumerate(dme):
+           for rind, dset in enumerate(elist):
+              dset.selquote = "'" # allow for $ in selector (default??)
+              if self.test_dsets:
                  if not dset.exist():
                     print('** missing run %d echo %d dataset: %s' \
                           % (rind+1, eind+1, dset.rpv()))
@@ -2426,7 +2429,7 @@ class SubjProcSream:
 
         # updated by 'tcat' opteration (and -remove_trs option)
         # (use rpve to include NIfTI, etc.)
-        dset = self.dsets[0].rpve()
+        dset = self.dsets[0].rpve(sel=1)
 
         err, self.reps, self.tr = get_dset_reps_tr(dset, verb=self.verb)
         if err: return 1   # check for failure
@@ -2435,7 +2438,7 @@ class SubjProcSream:
         self.reps_all = []
         self.reps_vary = 0
         for dr in self.dsets:
-            err, reps, tr = get_dset_reps_tr(dr.rpve(), verb=self.verb)
+            err, reps, tr = get_dset_reps_tr(dr.rpve(sel=1), verb=self.verb)
             if err: return 1
             self.reps_all.append(reps)
             if reps != self.reps: self.reps_vary = 1
@@ -2447,7 +2450,8 @@ class SubjProcSream:
         if self.have_me:
            for eind, esets in enumerate(self.dsets_me):
                for rind, dset in enumerate(esets):
-                  err, reps, tr = get_dset_reps_tr(dset.rpve(), verb=self.verb)
+                  err, reps, tr = get_dset_reps_tr(dset.rpve(sel=1),
+                                                   verb=self.verb)
                   if err: return 1
                   if reps != self.reps_all[rind]:
                      print("run %d reps vary between echo 1 and echo %d" \

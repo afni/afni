@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 25, Oct, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "allow selectors on -dset* options (cannot mix with removal options)",
+   "Requested by E Finn."
+ } ,
+
  { 24, Oct, 2019, RCR, "afni_proc.py", MINOR, TYPE_NEW_OPT,
    "add combine methods m_tedana, m_tedana_OC",
    "Can run tedana from MEICA group:\n"

@@ -255,20 +255,20 @@ def db_cmd_tcat(proc, block):
 
     if len(flist) != proc.runs:
        print('** error: -tcat_remove_first_trs takes either 1 value or nruns')
-       return 1, ''
+       return
 
     # maybe the user updated our warning limit
     val, err = block.opts.get_type_opt(float, '-tcat_preSS_warn_limit')
-    if err: return 1, ''
+    if err: return
     if val != None:
        if val < 0.0 or val > 1.0:
           print('** -tcat_preSS_warn_limit: limit %s outside [0,1.0]' % val)
-          return 1, ''
+          return
        proc.out_ss_lim = val
 
     # remove the last TRs?  set rmlast
     val, err = proc.user_opts.get_type_opt(int, '-tcat_remove_last_trs')
-    if err: return 1, ''
+    if err: return
     if val == None: rmlast = 0
     else: rmlast = val
 
@@ -294,7 +294,7 @@ def db_cmd_tcat(proc, block):
             if reps-rmlast-1 < 0:
                 print('** run %d: have %d reps, cannot remove %d!' \
                       % (run+1, reps, rmlast))
-                return 1, ''
+                return
         # ME: set output name
         if proc.have_me: pre_form = proc.prefix_form(block,run+1,eind=(eind+1))
         else:            pre_form = proc.prefix_form(block,run+1)
@@ -302,10 +302,21 @@ def db_cmd_tcat(proc, block):
         if proc.have_me: dset = proc.dsets_me[eind][run]
         else:            dset = proc.dsets[run]
 
-        cmd = cmd + "3dTcat -prefix %s/%s %s'[%d..%s]'\n" %              \
-                    (proc.od_var, pre_form, dset.rel_input(), flist[run], final)
+        # check if input has selectors; look for happy case before error
+        if dset.selectors() == '':
+           selstr = "'[%d..%s]'" % (flist[run], final)
+        else:
+           # okay only if not removing any at beginning or end
+           if flist[run] == 0 and final == '$':
+               selstr = dset.selectors()
+           else:
+               print("** cannot use selectors when removing first or last TRs")
+               return
 
-        proc.tlist.add(dset.rel_input(), pre_form, 'tcat', ftype='dset')
+        cmd = cmd + "3dTcat -prefix %s/%s %s%s\n" \
+                    % (proc.od_var, pre_form, dset.rel_input(), selstr)
+
+        proc.tlist.add(dset.rel_input(sel=1), pre_form, 'tcat', ftype='dset')
 
       if proc.have_me: cmd += '\n'
 
@@ -337,7 +348,7 @@ def db_cmd_tcat(proc, block):
 
     if proc.blip_in_rev != None and proc.blip_in_for == None:
        rv, tcmd = tcat_make_blip_in_for(proc, block)
-       if rv: return 1, ''
+       if rv: return
        if tcmd != '': cmd += tcmd
 
     return cmd
@@ -2494,7 +2505,7 @@ def db_cmd_volreg(proc, block):
 
         indent = '    '
         wcmd = '\n%s# apply catenated xform: %s\n' % (indent, cstr)
-        # rcr - remove:
+        # rcr - remove?
         if dowarp and proc.nlw_aff_mat:
            wcmd += '%s# then apply non-linear standard-space warp\n' % indent
 
@@ -4969,7 +4980,7 @@ def add_ROI_PC_followers(proc, block):
 
        # rcr - allow for align or nothing
        if proc.user_opts.find_opt('-volreg_tlrc_adwarp'):
-          print('** rcr - allow regress_ROI_* warp via adwarp')
+          print('** rcr - allow regress_ROI_* warp via adwarp?')
           return 1
 
     return 0
@@ -5020,8 +5031,8 @@ def db_mod_regress(block, proc, user_opts):
     bopt = block.opts.find_opt('-regress_basis')
     if uopt and bopt:
         bopt.parlist[0] = uopt.parlist[0]
-        # rcr - may have many basis functions, if any have unknown response
-        #       curve, set iresp prefix for them
+        # may have many basis functions, if any have unknown response
+        #    curve, set iresp prefix for them
         # add iresp output for any unknown response curves
         if not UTIL.basis_has_known_response(bopt.parlist[0], warn=1):
             if not user_opts.find_opt('-regress_iresp_prefix'):
