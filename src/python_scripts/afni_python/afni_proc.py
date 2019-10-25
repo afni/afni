@@ -831,6 +831,7 @@ class SubjProcSream:
 
         self.blocks     = []            # list of ProcessBlock elements
         self.dsets      = []            # list of afni_name elements
+        self.have_sels  = 0             # do the inputs have selectors
 
         self.check_rdir = 'yes'         # check for existence of results dir
         self.stims_orig = []            # orig list of stim files to apply
@@ -1846,6 +1847,7 @@ class SubjProcSream:
            self.dsets = []
            for rind, dset in enumerate(o0.parlist):
               aname = afni_name(dset)
+              if aname.selectors() != '': self.have_sels = 1
               aname.selquote = "'" # allow for $ in selector (default??)
               self.dsets.append(aname)
               if self.test_dsets and not aname.exist():
@@ -1928,6 +1930,7 @@ class SubjProcSream:
         # set selector quote and possibly check for existence
         for eind, elist in enumerate(dme):
            for rind, dset in enumerate(elist):
+              if dset.selectors() != '': self.have_sels = 1
               dset.selquote = "'" # allow for $ in selector (default??)
               if self.test_dsets:
                  if not dset.exist():

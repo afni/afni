@@ -272,10 +272,14 @@ def db_cmd_tcat(proc, block):
     if val == None: rmlast = 0
     else: rmlast = val
 
+    if proc.have_sels: selstr = "while applying volume selectors"
+    else:              selstr = "while removing the first %d TRs" % first
+       
+
     cmd = cmd + "# %s\n"                                                \
                 "# apply 3dTcat to copy input dsets to results dir,\n"  \
-                "# while removing the first %d TRs\n"                   \
-                % (block_header('auto block: tcat'), first)
+                "# %s\n"                                                \
+                % (block_header('auto block: tcat'), selstr)
 
     # we might need to process multiple echoes
     for eind in range(proc.num_echo):
