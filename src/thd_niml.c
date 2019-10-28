@@ -479,21 +479,22 @@ ENTRY("write_niml_stream");
 Boolean THD_write_niml( THD_3dim_dataset * dset, int write_data )
 {
     NI_group * ngr;
-    char     * prefix;
+    char     * prefix, * outfile;
     int        smode, rv;
 ENTRY("THD_write_niml");
 
     set_ni_globs_from_env();
-    prefix   = DSET_PREFIX(dset);
+    prefix = DSET_PREFIX(dset);
+    outfile = DSET_HEADNAME(dset);
 
-    if( !prefix ) {
-        if(gni.debug) fprintf(stderr,"** THD_write_niml: no dset prefix\n");
+    if( !outfile ) {
+        if(gni.debug) fprintf(stderr,"** THD_write_niml: no dset headname\n");
         RETURN(False);
     }
 
-    smode = storage_mode_from_filename(prefix);
+    smode = storage_mode_from_filename(outfile);
     if( gni.debug )
-        fprintf(stderr,"-d THD_write_niml: file %s, smode %d\n", prefix, smode);
+        fprintf(stderr,"-d THD_write_niml: file %s, smode %d\n",outfile,smode);
         
     switch(smode)
     {
@@ -505,15 +506,15 @@ ENTRY("THD_write_niml");
             if( write_data ) ngr = THD_dataset_to_niml(dset);
             else             ngr = THD_nimlize_dsetatr(dset);
             if( !ngr ){
-                fprintf(stderr,"** failed dset to niml on '%s'\n",prefix);
+                fprintf(stderr,"** failed dset to niml on '%s'\n", outfile);
                 RETURN(False);
             }
             NI_rename_group(ngr, "AFNI_dataset");
             NI_set_attribute(ngr, "self_prefix", prefix);
-            rv = write_niml_file(prefix, ngr);
+            rv = write_niml_file(outfile, ngr);
             NI_free_element(ngr); /* either way */
             if( rv ){
-                fprintf(stderr,"** write_niml_file failed for '%s'\n",prefix);
+                fprintf(stderr,"** write_niml_file failed for '%s'\n",outfile);
                 RETURN(False);
             }
             break;
@@ -522,20 +523,20 @@ ENTRY("THD_write_niml");
             ngr = THD_dset_to_ni_surf_dset(dset, write_data);
             if( !ngr )
             {
-                fprintf(stderr,"** failed dset to ni_SD on '%s'\n",prefix);
+                fprintf(stderr,"** failed dset to ni_SD on '%s'\n",outfile);
                 RETURN(False);
             }
-            rv = write_niml_file(prefix, ngr);
+            rv = write_niml_file(outfile, ngr);
             NI_free_element(ngr); /* either way */
             if( rv ){
-                fprintf(stderr,"** write_niml_file failed for '%s'\n",prefix);
+                fprintf(stderr,"** write_niml_file failed for '%s'\n",outfile);
                 RETURN(False);
             }
             break;
 
         default:
             fprintf(stderr,"** invalid storage mode %d to write '%s'\n",
-                    smode, prefix);
+                    smode, outfile);
             RETURN(False);
             break;
     }

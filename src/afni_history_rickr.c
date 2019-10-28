@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 28, Oct, 2019, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
+   "fix THD_write_niml to apply directory to output file",
+   "Thanks to pmlauro on Message Board, for pointing out the problem."
+ } ,
+
  { 25, Oct, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "allow selectors on -dset* options (cannot mix with removal options)",
    "Requested by E Finn."
