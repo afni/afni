@@ -3,6 +3,7 @@
 
 set(SCRIPT_PERMISSIONS "OWNER_READ;OWNER_EXECUTE;WORLD_EXECUTE;WORLD_READ")
 
+# tcsh scripts
 install(
   DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
@@ -10,6 +11,12 @@ install(
   PATTERN "*" PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
+# A stray tcsh file
+install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/../Audio/@sound_to_header.csh
+        DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+)
+
+# R scripts
 install(
   DIRECTORY ../R_scripts/
   DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
@@ -17,12 +24,13 @@ install(
   PATTERN "*R" PERMISSIONS ${SCRIPT_PERMISSIONS}
 )
 
-install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py
+# RetroTS python files
+install(PROGRAMS ../pkundu/meica.py ../jzosky/RetroTS.py 
         DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
 )
-
-install(PROGRAMS ${CMAKE_CURRENT_SOURCE_DIR}/../Audio/@sound_to_header.csh
-        DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+install(
+  DIRECTORY ../jzosky/lib_RetroTS
+  DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
 )
 
 # The following should be replaced by a pip install with console entrypoints:

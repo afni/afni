@@ -41,7 +41,9 @@ target_sources(
 )
 target_include_directories(
   libheaders
-  INTERFACE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+  INTERFACE 
+            $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::3DEdge,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
             $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
@@ -51,7 +53,7 @@ target_include_directories(
             ${MOTIF_INCLUDE_DIR}
             ${X11_INCLUDE_DIR}
 )
-
+target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
 set_source_files_properties(
   gifti_choice.c PROPERTIES COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB"
 )
@@ -177,7 +179,10 @@ add_library(
   svdlib.c
   zfun.c
 )
-target_link_libraries(cs_objs libheaders AFNI::audio)
+target_link_libraries(cs_objs 
+  PUBLIC libheaders
+  PRIVATE AFNI::audio
+  )
 
 add_library(
   edt_objs OBJECT
@@ -341,7 +346,9 @@ add_library(
   thd_zeropad.c
   thd_zfillin.c
 )
-target_link_libraries(thd_objs libheaders)
+target_link_libraries(thd_objs 
+PUBLIC libheaders
+PRIVATE coxplot)
 
 add_library(
   mri_objs OBJECT
@@ -462,7 +469,6 @@ add_library(
   mri_zeropad.c
   rcmat.c
 )
-target_compile_options(mri_objs PRIVATE "-DREPLACE_XT")
 target_link_libraries(mri_objs PRIVATE libheaders)
 
 add_library(mri "")
@@ -484,24 +490,17 @@ target_sources(
   rickr/r_misc.c
   rickr/r_new_resam_dset.c
 )
-target_include_directories(
-  mri
-  PUBLIC # libheaders
-         $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>
-         # $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-         $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
-  PRIVATE ${3DEDGE_INCLUDE_DIRS}
-          $<TARGET_PROPERTY:coxplot,INTERFACE_INCLUDE_DIRECTORIES>
-)
 
 target_link_libraries(
   mri
-  PRIVATE AFNI::coxplot
+  PUBLIC  m 
+          libheaders
+          AFNI::coxplot
+  PRIVATE 
           ${NETCDF_LIBRARIES_C}
           AFNI::3DEdge
           AFNI::eispack
           AFNI::volpack
-          m
           NIFTI::nifti2
           NIFTI::nifticdf
 )

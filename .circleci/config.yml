@@ -1,25 +1,213 @@
+  
 version: 2
 jobs:
-  build:
-    machine: true
+  cmake_build:
+    docker:
+      - image: docker:18.01.0-ce-git
+    working_directory: /tmp/src/afni
     steps:
       - checkout
-      - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} --build-arg AFNI_WITH_COVERAGE=1 .
+      - setup_remote_docker
       - run:
+          name: Fetch latest release image
+          no_output_timeout: 10m
+          command: |
+            docker pull afni/afni_cmake_build:latest
+      - run:
+          name: Build image
+          no_output_timeout: 30m
+          command: |
+            THISVERSION=$(cat src/AFNI_version_base.txt)
+            echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
+            docker build \
+              -f .docker/cmake_build.dockerfile \
+              --cache-from=afni/afni_cmake_build \
+              --rm=false \
+              --tag afni/afni_cmake_build:latest \
+              --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
+      # - run:
+      #     name: Verify executable can be run
+      #     command: docker run --rm -it afni/afni_cmake_build:latest bash -c 'afni --help'
+      # - run:
+      #     name: Check version
+      #     command: |
+      #       THISVERSION=$( git describe )
+      #       THISVERSION="${CIRCLE_TAG:-$THISVERSION}"
+      #       DOCKERVERSION=$(docker run --rm -it afni/afni_cmake_build:latest bash -c 'afni --version' \
+      #                      | tail -n 1 | sed -e 's/.*fit/fit/' -e 's/[\r\n]//g')
+      #       echo "$THISVERSION"
+      #       echo "$DOCKERVERSION"
+            # test "$DOCKERVERSION" = "afni v$THISVERSION"
+      - run:
+          name: Docker save
+          no_output_timeout: 40m
+          command: |
+            mkdir -p /tmp/cache
+            docker save afni/afni_cmake_build:latest \
+            | pigz -2 -p 3 > /tmp/cache/docker.tar.gz
+      - persist_to_workspace:
+          root: /tmp
+          paths:
+            - src/afni
+      - save_cache:
+          key: docker-v0-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
+          paths:
+            - /tmp/cache/docker.tar.gz
+  
+  cache_test_data:
+      docker:
+        - image: markiewicz/datalad:0.0.1
+      working_directory: /tmp
+      steps:
+        - restore_cache:
+            keys:
+              - afni-ci_test_data-v0-{{ .Branch }}-
+              
+        - run:
+            name: Set git ID
+            command: |
+              git config --global user.name 'AFNI CircleCI User'
+              git config --global user.email 'johnleenimh+circlecigitconfig@gmail.com'
+        - checkout
+        - run:
+            name: Install data
+            command: |
+            if [ ! -f /tmp/afni_ci_test_data ]; then
+              datalad install -r https://github.com/afni/afni_ci_test_data.git
+            fi
+        - save_cache:
+           key: afni-ci_test_data-v0-{{ .Branch }}-{{ .BuildNum }}
+           paths:
+              - /tmp/afni_ci_test_data
+
+
+  test_ds003:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/src/fitlins
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          keys:
+            - docker-v0-{{ .Branch }}-{{ .Revision }}
+      - restore_cache:
+          keys:
+            - ds003-v0-{{ .Branch }}-
+            - ds003-v0-master-
+            - ds003-v0-
+      - run:
+          name: Install coverage and codecov
+          command: |
+              pyenv install 3.6.3
+              pyenv local 3.6.3
+              python -m pip install -U coverage codecov
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            docker info
+            set +o pipefail
+            if [ -f /tmp/cache/docker.tar.gz ]; then
+              sudo apt update && sudo apt -y install pigz
+              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
+              docker images
+            fi
+      - run:
+          name: Run FitLins
           no_output_timeout: 2h
           command: |
-            ci_env=`bash <(curl -s https://codecov.io/env)`
-            docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
-
+            mkdir -p /tmp/ds003/work /tmp/ds003/derivatives
+            chmod 777 /tmp/ds003/work /tmp/ds003/derivatives
+            export CONDA_PREFIX=/opt/miniconda-latest/envs/neuro
+            docker run --rm -it -v /tmp/data/ds003_fmriprep:/data:ro \
+                -v /tmp/ds003/derivatives:/out \
+                -v /tmp/ds003/work:/scratch \
+                -v /tmp/data/ds003_models:/models \
+                -e COVERAGE_FILE=/scratch/.coverage \
+                --entrypoint="/neurodocker/startup.sh" \
+                poldracklab/fitlins:latest \
+                coverage run \
+                --rcfile /src/fitlins/docker/multiproc.coveragerc \
+                $CONDA_PREFIX/bin/fitlins /data/sourcedata /out dataset \
+                -d /data -m /models/model-001_smdl.json -w /scratch \
+                --participant-label 01 02 03 --space MNI152NLin2009cAsym \
+                --n-cpus 2
       - run:
+          name: Combine coverage and submit
           command: |
-            set +o pipefail
-            if [ $DOCKER_USER == 'afni' ]
-            then
-              docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} .
-              docker tag afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni_dev:latest
-              docker push afni/afni_dev
-              docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
-              docker push afni/afni
+              pyenv local 3.6.3
+              python -m coverage combine \
+                --rcfile /tmp/src/fitlins/docker/multiproc.coveragerc \
+                /tmp/ds003/work/.coverage.*
+              sed -i -e 's/.opt.miniconda-latest.envs.neuro.lib.python3.6.site-packages/\/tmp\/src\/fitlins/g' .coverage
+              python -m coverage xml
+              python -m codecov --file coverage.xml --flags ds003 -e CIRCLE_JOB
+      - store_artifacts:
+          path: /tmp/ds003
+
+  deploy_docker:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/src/afni
+    steps:
+      - restore_cache:
+          keys:
+            - docker-v0-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              docker info
+              set +o pipefail
+              if [ -f /tmp/cache/docker.tar.gz ]; then
+                zcat /tmp/cache/docker.tar.gz | docker load
+                docker images
+              fi
             fi
+      - run:
+          name: Deploy to Docker Hub
+          no_output_timeout: 40m
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker push afni/afni_cmake_build:latest
+              docker tag afni/afni_cmake_build afni/afni_cmake_build:$CIRCLE_TAG
+              docker push afni/afni_cmake_build:$CIRCLE_TAG
+            fi
+
+
+workflows:
+  version: 2
+  afni_tests:
+    jobs:
+      - cmake_build:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      - cache_test_data:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      - test_build:
+          requires:
+            - cmake_build
+            - cache_test_data
+          filters:
+            tags:
+              only: /.*/
+      - deploy_docker:
+          requires:
+            - test_build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/

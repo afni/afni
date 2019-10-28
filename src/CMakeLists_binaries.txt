@@ -1,3 +1,6 @@
+# The targets are roughly organized as follows:
+# Somewhat unique compilations that need additional details about includes or compile definitions
+
 add_executable(1dSEM 1dSEM.c matrix.c sqrmat.c)
 set_target_properties(1dSEM PROPERTIES PUBLIC_HEADER "matrix.h")
 target_link_libraries(1dSEM AFNI::mri m)
@@ -47,7 +50,6 @@ foreach(
   3dCM
   3dClipLevel
   3dClustCount
-  3dClustSim
   3dConformist
   3dConvolve
   3dCountSpikes
@@ -244,6 +246,15 @@ foreach(
   target_link_libraries(${target} PRIVATE AFNI::mri NIFTI::nifti2 m)
 endforeach(target)
 
+
+add_executable(  3dClustSim 3dClustSim.c)
+target_include_directories(  3dClustSim PRIVATE NIFTI::nifti2)
+target_link_libraries(  3dClustSim PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
+if(USE_OMP)
+target_compile_definitions(3dClustSim PRIVATE USE_OMP)
+target_link_libraries(3dClustSim PRIVATE OpenMP::OpenMP_C)
+endif()
+
 add_executable(3dDespike 3dDespike.c)
 target_include_directories(3dDespike PRIVATE NIFTI::nifti2)
 target_link_libraries(3dDespike PRIVATE AFNI::mri NIFTI::nifti2 NIFTI::nifticdf m)
@@ -286,6 +297,7 @@ foreach(
   waver
 )
   add_executable(${target} ${target}.c)
+  target_compile_definitions(${target} PRIVATE "REPLACE_XT")
   target_link_libraries(${target} PRIVATE AFNI::mri m)
 endforeach(target)
 target_link_libraries(3dproject PRIVATE AFNI::volpack)
@@ -329,36 +341,7 @@ target_include_directories(
 )
 target_link_libraries(3dresample AFNI::mri libheaders AFNI::audio AFNI::eispack)
 
-if(BUILD_X_DEPENDENT_GUI_PROGS)
-  add_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
-  add_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
-  add_executable(1dplot 1dplot.c display.c)
-  target_include_directories(1dplot PRIVATE AFNI::mri)
-  target_link_libraries(
-    1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB}
-                   ${X11_LIBRARIES}
-  )
 
-  add_executable(1dgrayplot 1dgrayplot.c)
-  target_include_directories(
-    1dgrayplot
-    PRIVATE $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
-            $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
-  )
-  target_link_libraries(
-    1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB}
-  )
-
-  add_executable(
-    3dAllineate 3dAllineate.c mri_genalign.c mri_genalign_util.c thd_correlate.c
-  )
-  foreach(target FD2 imreg 3dAllineate)
-    target_link_libraries(
-      ${target} PRIVATE AFNI::mrix ${X11_LIBRARIES} NIFTI::nifti2 NIFTI::nifticdf
-    )
-  endforeach(target)
-endif()
 
 add_executable(3dBrainSync 3dBrainSync.c)
 target_link_libraries(3dBrainSync mri libheaders)
@@ -435,18 +418,12 @@ set_target_properties(
 )
 target_link_libraries(get_afni_model_PRF_6_BAD AFNI::mri)
 
+# 3dTSgem won't be built
 # add_executable(3dTSgen 3dTSgen.c) set_target_properties( 3dTSgen PROPERTIES
 # PRIVATE_HEADER "NLfit.h;NLfit_model.h;NLfit.c;NLfit_model.c" )
 # target_link_libraries(3dTSgen AFNI::mri)
 
-add_executable(3dNLfim 3dNLfim.c)
-target_link_libraries(3dNLfim PRIVATE AFNI::mrix NIFTI::nifti2 ${CMAKE_DL_LIBS})
 
-add_executable(to3d to3d.c)
-target_link_libraries(
-  to3d PRIVATE AFNI::mrix ${MOTIF_LIBRARIES} ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
-               NIFTI::nifti2
-)
 
 add_executable(3dDeconvolve $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_link_libraries(3dDeconvolve PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir m)
@@ -454,3 +431,50 @@ target_link_libraries(3dDeconvolve PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir 
 add_executable(3dDeconvolve_f $<TARGET_OBJECTS:parser> 3dDeconvolve.c)
 target_compile_definitions(3dDeconvolve_f PRIVATE "FLOATIZE")
 target_link_libraries(3dDeconvolve_f PRIVATE AFNI::mri AFNI::coxplot AFNI::f2cdir m)
+
+
+if(BUILD_X_DEPENDENT_GUI_PROGS)
+  add_executable(FD2 $<TARGET_OBJECTS:pcorsh> csfft_AJ.c FD2.c mcw.c overfim.c ts.c)
+  add_executable(imreg $<TARGET_OBJECTS:pcor> imreg.c)
+  add_executable(1dplot 1dplot.c display.c)
+  target_include_directories(1dplot PRIVATE AFNI::mri)
+  target_link_libraries(
+    1dplot PRIVATE AFNI::mrix AFNI::coxplot AFNI::eispack NIFTI::nifti2 ${X11_Xt_LIB}
+                   ${X11_LIBRARIES}
+  )
+
+  add_executable(1dgrayplot 1dgrayplot.c)
+  target_include_directories(
+    1dgrayplot
+    PRIVATE $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+  )
+  target_link_libraries(
+    1dgrayplot PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot ${X11_Xt_LIB}
+  )
+
+  add_executable(3dAllineate 3dAllineate.c )
+  if(USE_OMP)
+    target_compile_definitions(3dAllineate PRIVATE USE_OMP)
+    target_link_libraries(3dAllineate PRIVATE OpenMP::OpenMP_C)
+  endif()
+  target_link_libraries(3dAllineate PRIVATE mri NIFTI::nifti2)
+
+  foreach(target FD2 imreg)
+    target_link_libraries(
+      ${target} PRIVATE AFNI::mrix ${X11_LIBRARIES} NIFTI::nifti2 NIFTI::nifticdf
+    )
+  endforeach(target)
+
+  add_executable(3dNLfim 3dNLfim.c)
+  target_link_libraries(3dNLfim PRIVATE AFNI::mrix NIFTI::nifti2 ${CMAKE_DL_LIBS})
+
+  add_executable(to3d to3d.c)
+  target_link_libraries(
+    to3d PRIVATE AFNI::mrix ${MOTIF_LIBRARIES} ${X11_Xt_LIB} ${X11_LIBRARIES} AFNI::mri
+                 NIFTI::nifti2
+  )
+
+
+endif()

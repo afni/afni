@@ -29,35 +29,7 @@ add_executable(
   specifics.c
   subsample.c
 )
-target_include_directories(mpeg_encode PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/headers)
-set_target_properties(
-  mpeg_encode
-  PROPERTIES PRIVATE_HEADER
-             all.h
-             combine.h
-             fsize.h
-             libpnmrw.h
-             mtypes.h
-             param.h
-             readframe.h
-             ansi.h
-             dct.h
-             general.h
-             mheaders.h
-             opts.h
-             postdct.h
-             rgbtoycc.h
-             bitio.h
-             frame.h
-             huff.h
-             mpeg.h
-             prototypes.h
-             search.h
-             byteorder.h
-             frames.h
-             jpeg.h
-             mproto.h
-             parallel.h
-             rate.h
-             specifics.h
+target_include_directories(
+  mpeg_encode PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/headers>
 )
+target_link_libraries(mpeg_encode m)

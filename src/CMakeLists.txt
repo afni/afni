@@ -68,21 +68,6 @@ endif()
 set(PROGRAMS_BUILT ${PROGRAM_BUILT})
 assemble_target_list(PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
 
-# ##### Install remaining project targets
-install(
-  TARGETS ${PROGRAMS_BUILT}
-          mri
-          rio
-          coxplot
-          track_tools
-          f2cdir
-          eispack
-          segtools
-  RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
-  LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
-  PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
-)
 
 # # First, make an install targets file (very similar to the one you made in the build
 # directory): install(EXPORT AFNITargets FILE AFNITargets.cmake NAMESPACE AFNI::

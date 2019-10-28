@@ -80,12 +80,12 @@ foreach(
   plug_wavelets
   plug_zeropad
 )
-  add_library(${target} ${target}.c $<TARGET_OBJECTS:afni_all_objects>)
-  target_compile_options(${target} PRIVATE "-DREPLACE_XT")
+  add_library(${target} ${target}.c)
   target_link_libraries(
     ${target}
     PRIVATE AFNI::mrix
             AFNI::mri
+            afni_all_objects
             AFNI::coxplot
             AFNI::XmHTML
             AFNI::f2cdir
@@ -104,25 +104,33 @@ foreach(
   )
 endforeach(target)
 
-add_library(plug_drealtime plug_realtime.c)
-target_link_libraries(plug_drealtime AFNI::mri)
-# add_library(plug_maxima maxima.c plug_maxima.c) add_library(plug_retroicor
-# plug_retroicor.c retroicor.c)
+# add_library(plug_drealtime plug_realtime.c)
+# target_link_libraries(plug_drealtime AFNI::mri)
 
-# foreach(target plug_drealtime plug_maxima plug_retroicor) target_include_directories(
+# add_library(plug_maxima maxima.c plug_maxima.c)
+
+# add_library(plug_retroicor plug_retroicor.c retroicor.c)
+
+# foreach(target plug_drealtime plug_maxima plug_retroicor) 
+#   target_include_directories(
 # ${target} PRIVATE $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES>
 # $<TARGET_PROPERTY:NIFTI::nifticdf,INTERFACE_INCLUDE_DIRECTORIES>
-# $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES> ) endforeach()
+# $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES> ) 
+# endforeach()
 
-# add_library(plug_3dsvm 3dsvm_common.c svm_common.c svm_learn.c svm_hideo.c
-# plug_3dsvm.c) target_include_directories( plug_3dsvm PRIVATE
-# $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES> ) target_link_libraries(
+# add_library(plug_3dsvm svm/3dsvm_common.c svm/svm_learn.c svm/svm_hideo.c
+# svm/plug_3dsvm.c) 
+# target_include_directories( plug_3dsvm PRIVATE
+# $<TARGET_PROPERTY:libheaders,INTERFACE_INCLUDE_DIRECTORIES> ) 
+# target_link_libraries(
 # plug_3dsvm PRIVATE AFNI::mrix AFNI::mri AFNI::coxplot libheaders )
 
-# foreach(target plug_scatplot plug_nlfit afni_open Xphace aiv) add_library(${target}
-# ${target}.c) target_include_directories( ${target} PRIVATE
+# foreach(target plug_scatplot plug_nlfit afni_open)
+# add_library(${target} ${target}.c)
+# target_include_directories( ${target} PRIVATE
 # $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
-# $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES> ) endforeach(target)
+# $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES> )
+# endforeach(target)
 
 # target_link_libraries(aiv PRIVATE AFNI::mrix  AFNI::mri ${X11_Xt_LIB} NIFTI::nifti2)
 # target_link_libraries( Xphace PRIVATE AFNI::mrix AFNI::mri ${MOTIF_LIBRARIES}

@@ -16,7 +16,9 @@ add_library(
   rsfc
   TrackIO
 )
-target_link_libraries(track_tools AFNI::mri AFNI::3DEdge NIFTI::nifti2 GSL::gsl)
+target_link_libraries(track_tools 
+  PUBLIC AFNI::mri 
+  PRIVATE AFNI::3DEdge NIFTI::nifti2 GSL::gsl)
 add_afni_target_properties(track_tools)
 add_library(AFNI::track_tools ALIAS track_tools)
 
@@ -26,28 +28,34 @@ foreach(
   1dDW_Grad_o_Mat++
   3dAmpToRSFC
   3ddot_beta
-  3dDTtoNoisyDWI
   3dLombScargle
-  3dMatch
-  3dNetCorr
   3dReHo
   3dROIMaker
-  3dRSFC
   3dSpaceTimeCorr
   3dTORTOISEtoHere
-  3dTrackID
   3dVecRGB_to_HSL
-  map_TrackID
 )
   add_executable(${target} ${target}.c)
   target_link_libraries(${target} track_tools)
 endforeach(target)
 
-find_package(OpenMP REQUIRED)
+foreach(
+  target
+  3dDTtoNoisyDWI
+  3dMatch
+  3dNetCorr
+  3dRSFC
+  3dTrackID
+  map_TrackID
+)
+  add_executable(${target} ${target}.c)
+  target_link_libraries(${target} track_tools GSL::gsl)
+endforeach(target)
+
+
 if(OPENMP_FOUND)
   foreach(target 3dEigsToDT 3dDWUncert)
     add_executable(${target} ${target}.c)
-    target_link_libraries(${target} track_tools OpenMP::OpenMP_C)
+    target_link_libraries(${target} track_tools GSL::gsl OpenMP::OpenMP_C)
   endforeach(target)
-  set(PTAYLOR_EXECUTABLES ${PTAYLOR_EXECUTABLES_OMP} ${PTAYLOR_EXECUTABLES})
 endif()

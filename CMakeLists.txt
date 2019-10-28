@@ -1,24 +1,15 @@
 cmake_minimum_required(VERSION 3.11 FATAL_ERROR)
+
 # ##### Set policies
 cmake_policy(SET CMP0048 NEW)
+
 # ##### Set module path and import some macros
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH}" "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(get_git_repo_version)
 include(get_build_macros_and_functions)
 include(CMakeDependentOption)
-# ##### Project info
-if(CMAKE_GENERATOR MATCHES "Ninja")
-  file(
-    WRITE "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake"
-    "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_C \"\${CMAKE_DEPFILE_FLAGS_C}\")\n"
-    "STRING(REPLACE \"-MD\" \"-MMD\" CMAKE_DEPFILE_FLAGS_CXX \"\${CMAKE_DEPFILE_FLAGS_CXX}\")\n"
-  )
-  set(CMAKE_USER_MAKE_RULES_OVERRIDE
-      "${CMAKE_BINARY_DIR}/GNUMakeRulesOverwrite.cmake"
-      CACHE INTERNAL ""
-  )
-endif()
 
+# ##### Project info
 project(
   AFNI
   VERSION ${GIT_REPO_VERSION}
@@ -60,16 +51,16 @@ cmake_dependent_option(
 )
 option(SHOW_UNBUILT_PROGS "Display missing progs during config" OFF)
 mark_as_advanced(SHOW_UNBUILT_PROGS)
-option(USE_OpenMP "Use OpenMP to enamble <omp.h>" ON)
-set(CMAKE_C_FLAGS_DEBUG
-    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
-)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING") # XXX not in default cflags
-if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX2")
-elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
-  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
-endif()
+option(USE_OMP "Use OpenMP to enamble <omp.h>" ON)
+# set(CMAKE_C_FLAGS_DEBUG
+#     "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
+# )
+# set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING") # XXX not in default cflags
+# if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX2")
+# elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+#   set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
+# endif()
 
 set(ALTERNATIVE_INSTALL_ROOT
     ""
@@ -83,10 +74,9 @@ set_if_not_defined(INSTALL_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set_if_not_defined(AFNI_INSTALL_LIBRARY_DIR "${INSTALL_PREFIX}/lib")
 set_if_not_defined(AFNI_INSTALL_RUNTIME_DIR "${INSTALL_PREFIX}/bin")
 set_if_not_defined(AFNI_INSTALL_INCLUDE_DIR "${INSTALL_PREFIX}/include")
-message(${INSTALL_PREFIX})
-message(${AFNI_INSTALL_RUNTIME_DIR})
 
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/src)
 if(CONDA_BUILD)
   get_filename_component(AFNI_INSTALL_LIBRARY_DIR ${AFNI_INSTALL_LIBRARY_DIR} DIRECTORY)
   get_filename_component(AFNI_INSTALL_INCLUDE_DIR ${AFNI_INSTALL_INCLUDE_DIR} DIRECTORY)
@@ -95,20 +85,20 @@ endif()
 # Other possible directories to set
 set(AFNI_INSTALL_ATLAS_DIR "${INSTALL_PREFIX}/atlases")
 set(AFNI_INSTALL_PICS_DIR "${INSTALL_PREFIX}/funstuff")
-# ##### Dependencies
-include(CPack)
-include(CMakePackageConfigHelpers)
-find_package(OpenMP REQUIRED)
-include(FindMotif)
-include(FindNetCDF)
-include(FindX11)
-include(FindStandardMathLibrary)
-include(FindLibR)
-include(BuildType)
 
-# Find or fetch nifti_clib a prefix can be used to avoid collisions with pre-existing
-# installations of the nifti libraries
-include(get_nifti_and_gifti_targets)
+# ##### Dependencies
+include(afni_project_dependencies)
+
+# Other details of dependencies and configuration
+set(CMAKE_C_FLAGS_DEBUG
+    "${CMAKE_C_FLAGS_DEBUG} -DAFNI_DEBUG -DIMSEQ_DEBUG -DDISPLAY_DEBUG -DTHD_DEBUG"
+)
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DUSE_TRACING -DHAVE_ZLIB") # XXX not in default cflags
+if("${CMAKE_SYSTEM_NAME}" STREQUAL "Linux")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX2")
+elseif("${CMAKE_SYSTEM_NAME}" STREQUAL "Darwin")
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -DREAD_WRITE_64 -DLINUX -DDARWIN")
+endif()
 
 # ##### Docs, licence, and README
 set(DOC_DIR ${CMAKE_CURRENT_SOURCE_DIR}/doc)
@@ -122,6 +112,7 @@ quotize("${CMAKE_CURRENT_SOURCE_DIR}/afni_papers.txt" afni_papers)
 
 # ##### Add the source code to build
 add_subdirectory(src)
+
 # ##### Tests
 option(ENABLE_TESTS "Enable tests" OFF)
 if(${ENABLE_TESTS})
@@ -152,3 +143,38 @@ if(NOT TARGET uninstall)
                       ${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake
   )
 endif()
+
+
+# Setup for tests. Things like, clear some cache dirs, and check the tests
+# from the source tree are symlinked into the build tree.
+add_custom_target(
+  test_setup
+  COMMAND 
+  ${CMAKE_COMMAND} 
+  -D TESTS_PATH=${CMAKE_CURRENT_SOURCE_DIR}/tests
+  -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/setup_for_tests.cmake
+  )
+
+
+# Define PATH modification required for within build tree tests execution
+set(BUILD_BINARIES ${CMAKE_CURRENT_BINARY_DIR}/src)
+set(T_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/scripts_install)
+set(P_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/python_scripts/afni_python)
+set(R_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/R_scripts)
+set(J_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/jzosky)
+set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
+set(BUILD_PATH_EXTENSION "${BUILD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
+set(PATH_FOR_TESTING "${BUILD_PATH_EXTENSION}:$ENV{PATH}")
+
+# Create test target for running tests within the build tree
+add_custom_target(
+  pytest
+  DEPENDS test_setup
+  WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/afni_tests"
+  COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
+  COMMAND echo Running tests with modified path to use build binaries and scripts in the source tree...
+  COMMAND echo Prepending ${BUILD_PATH_EXTENSION}
+  COMMAND echo When using 'ninja test' one can define "ARGS" to pass additional arguments to pytest...
+  COMMAND ${CMAKE_COMMAND} -E env PATH=${PATH_FOR_TESTING}  ${Python_EXECUTABLE} -B -m pytest $$ARGS
+  USES_TERMINAL
+)

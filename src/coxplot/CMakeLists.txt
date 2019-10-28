@@ -50,10 +50,10 @@ add_library(
 )
 
 target_include_directories(
-  coxplot
+  coxplot PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}
   PRIVATE ${MOTIF_INCLUDE_DIR}
           $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
-          ${CMAKE_CURRENT_SOURCE_DIR}
+          
 )
 set_target_properties(coxplot PROPERTIES PUBLIC_HEADER "coxplot.h")
 target_link_libraries(coxplot PRIVATE libheaders AFNI::f2cdir m)

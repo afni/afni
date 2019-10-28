@@ -1,8 +1,10 @@
 import pytest
 from .utils import tools
 
-data_paths = {"anat": "mini_data/anat_3mm.nii.gz",
-              "anatrpi": "mini_data/anat_3mm_RPI.nii.gz"}
+data_paths = {
+    "anat": "mini_data/anat_3mm.nii.gz",
+    "anatrpi": "mini_data/anat_3mm_RPI.nii.gz",
+}
 
 
 @pytest.mark.veryslow

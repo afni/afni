@@ -30,8 +30,8 @@ function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   endforeach()
 
   if(SHOW_UNBUILT_PROGS)
-    message("programs not yet built:'${NOT_BUILT}'")
-    message("programs  built:'${PROGRAMS_BUILT}'")
+    message("programs not built: '${NOT_BUILT}'")
+    message("programs built: '${PROGRAMS_BUILT}'")
   endif()
 endfunction()
 
@@ -121,6 +121,15 @@ macro(add_afni_target_properties target)
   if(CONDA_BUILD)
     set_target_properties(${target} PROPERTIES INSTALL_RPATH "${afni_target_RPATH}")
   endif()
+
+  install(
+  TARGETS ${target}
+  RUNTIME DESTINATION ${AFNI_INSTALL_RUNTIME_DIR}
+  LIBRARY DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+  ARCHIVE DESTINATION ${AFNI_INSTALL_LIBRARY_DIR}
+  PUBLIC_HEADER DESTINATION ${AFNI_INSTALL_INCLUDE_DIR}
+)
+
   # INSTALL_RPATH_USE_LINK_PATH ON SKIP_BUILD_RPATH OFF BUILD_WITH_INSTALL_RPATH OFF
 endmacro()
 
