@@ -665,9 +665,10 @@ g_history = """
        - added combine methods m_tedana, m_tedana_OC
        - allow -mask_epi_anat if -anat_has_skull no
     7.01 Oct 25, 2019: allow for selectors on -dset* options
+    7.02 Oct 30, 2019: 3dcopy tedana results using current view
 """
 
-g_version = "version 7.01, October 25, 2019"
+g_version = "version 7.02, October 30, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
