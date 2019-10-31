@@ -1468,7 +1468,7 @@ class MyInterface:
          if prefix[0:4] != 'pb00':
             print('** SID: odd tcat dset prefix, %s' % prefix)
             return 1
-         posn = prefix.find('r01')
+         posn = prefix.rfind('r01')
          if posn < 7: # so at least 1 char for $subj
             print('** SID: odd tcat dset name, %s' % prefix)
             return 1
