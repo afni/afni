@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Nov, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "process out.mask_at_corr.txt, the anat/template Dice coefficient",
+   "Requested by P Hamilton."
+ } ,
+
  {  1, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
    "create out.mask_at_corr.txt, the anat/template Dice coefficient",
    "Requested by P Hamilton."
