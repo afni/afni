@@ -707,15 +707,26 @@ Suppose the -prefix is 'sub007' (because you scanned Bond, JamesBond?).
 Then the outputs from this script will be"
 
   anatDO.sub007.nii       = deobliqued version of original dataset;
-                            (*only if* using '-deoblique' opt)
-  anatU.sub007.nii        = intensity uniform-ized original dataset;
-                            (or, if '-unifize_off' used, a copy of orig dset)
+                            (*only if* using '-deoblique' opt);
+  anatU.sub007.nii        = intensity uniform-ized original dataset
+                            (or, if '-unifize_off' used, a copy of orig dset);
   anatUA.sub007.nii       = anisotropically smoothed version of the above
                             (or, if '-aniso_off' used, a copy of anatU.*.nii)
-  anatS.sub007.nii        = first pass skull-stripped original dataset;
+  anatS.sub007.nii        = first pass skull-stripped original dataset
                             (or, if '-init_skullstr_off' used, a copy of
-                            anatUA.*.nii)
+                            anatUA.*.nii);
   anatSS.sub007.nii       = second pass skull-stripped original dataset;
+                            * note that anatS and anatSS are 'original'
+                              in the sense that they are aligned with
+                              the input dataset - however, they have been
+                              unifized and weakly smoothed: they are
+                              stripped versions of anatUA; if you want
+                              a skull-stripped copy of the input with
+                              no other processing, use a command like
+                                3dcalc -a INPUTDATASET        \
+                                       -b anatSS.sub007.nii   \
+                                       -expr 'a*step(b)'      \
+                                       -prefix anatSSorig.sub007.nii
   anatQQ.sub007.nii       = skull-stripped dataset nonlinearly warped to
                             the base template space;
   anatQQ.sub007.aff12.1D  = affine matrix to transform original dataset
