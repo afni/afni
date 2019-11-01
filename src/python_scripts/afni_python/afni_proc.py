@@ -666,9 +666,10 @@ g_history = """
        - allow -mask_epi_anat if -anat_has_skull no
     7.01 Oct 25, 2019: allow for selectors on -dset* options
     7.02 Oct 30, 2019: 3dcopy tedana results using current view
+    7.03 Nov  1, 2019: create out.mask_at_corr.txt
 """
 
-g_version = "version 7.02, October 30, 2019"
+g_version = "version 7.03, October 30, 2019"
 
 # version of AFNI required for script execution
 g_requires_afni = [ \
