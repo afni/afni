@@ -6,13 +6,8 @@ data_paths = {"anat": "mini_data/anat_3mm.nii.gz",
 
 
 @pytest.mark.veryslow
-@pytest.mark.parametrize(
-    "dset_name",
-    [
-        "anat",
-        "anatrpi",
-    ],
-)
+@pytest.mark.parametrize("dset_name", ["anat", "anatrpi"])
+@pytest.mark.xfail
 def test_3dSkullStrip_basic(data, dset_name):
     ifile = getattr(data, dset_name)
     ofile = data.outdir / "out_ss.nii.gz"

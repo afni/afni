@@ -50,10 +50,10 @@ def get_lines(filename, ignore_patterns):
     with open(filename) as f:
         lines = [line.rstrip("\n \\") for line in f.readlines()]
         lines = [
-            line
+            line.strip()
             for line in lines
             if not any(pat in line for pat in ignore_patterns)
-            and not line.replace(" ", "")
+            and not line.replace(" ", "") is ""
         ]
         return lines
 
@@ -175,7 +175,7 @@ def update_sample_output(
                 {savedir}/
             """
     cmd = " ".join(cmd.format(**locals()).split())
-    proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
+    proc = subprocess.check_call(cmd, shell=True, cwd=data.rootdir)
 
 
 def run_cmd(
@@ -269,7 +269,7 @@ def run_cmd(
         "workdir": workdir,
         "cmd": cmd,
         "add_env_vars": add_env_vars,
-        "rootdir": pytest.config.rootdir,
+        "rootdir": data.rootdir,
     }
     command_info.update(attr.asdict(data))
 
@@ -376,6 +376,7 @@ def set_default_kwargs_log_as_required(kwargs_log):
                 [os.environ.get("USER")]
                 + [
                     "AFNI version=",
+                    "Version",
                     "Clock time now",
                     "clock time",
                     "elapsed time",
@@ -413,7 +414,7 @@ class OutputDiffer:
         merge_error_with_output: bool = False,
         workdir: Union[str or Path] = None,
         python_interpreter: str = "python3",
-        ignore_file_patterns: List = [],
+        ignore_file_patterns: List = ["_stdout"],
         text_file_patterns: List = [],
         kwargs_1d: Dict = {},
         kwargs_log: Dict = {},
@@ -435,13 +436,8 @@ class OutputDiffer:
         self.executed = False
 
         # Tune output saving behavior
-        self.create_sample_output = create_sample_output or pytest.config.getoption(
-            "--create_sample_output"
-        )
-        self.save_sample_output = save_sample_output or pytest.config.getoption(
-            "--save_sample_output"
-        )
-
+        self.create_sample_output = create_sample_output or data.create_sample_output
+        self.save_sample_output = save_sample_output or data.save_sample_output
         # Tune the output comparison
         self.require_sample_output = (
             self.create_sample_output or self.save_sample_output

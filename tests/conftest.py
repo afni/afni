@@ -42,55 +42,76 @@ def pytest_generate_tests(metafunc):
 
 
 @pytest.fixture(scope="session")
-def output_dir():
-    return get_output_dir()
+def output_dir(pytestconfig):
+    return get_output_dir(pytestconfig)
 
 
-def get_output_dir():
-    user_choice = pytest.config.getoption("--overwrite_outdir")
+def get_output_dir(config_obj):
+    user_choice = config_obj.getoption("--overwrite_outdir")
+    rootdir = Path(config_obj.rootdir)
     if user_choice:
         outdir = Path(user_choice)
     else:
-        outdir = get_test_rootdir() / "output_of_tests" / ("output_" + CURRENT_TIME)
+        outdir = rootdir / "output_of_tests" / ("output_" + CURRENT_TIME)
     return outdir
 
 
-def get_test_data_path():
-    return get_test_rootdir() / "afni_ci_test_data"
+@pytest.fixture(scope="session")
+def test_data_path(pytestconfig):
+    return get_test_data_path(pytestconfig)
 
 
-def get_test_rootdir():
-    rootdir = Path(pytest.config.rootdir)
-    if Path.cwd() != "tests":
-        os.chdir(rootdir)
-    return rootdir
+def get_test_data_path(config_obj):
+    return Path(config_obj.rootdir) / "afni_ci_test_data"
 
 
-def get_test_comparison_dir_path(mod: Union[str or Path]):
+# def get_test_rootdir():
+#     rootdir = Path(pytestconfig.rootdir)
+#     if Path.cwd() != "tests":
+#         os.chdir(rootdir)
+#     return rootdir
+
+
+@pytest.fixture(scope="session")
+def test_comparison_dir_path(pytestconfig):
+    return get_test_data_path(pytestconfig)
+
+
+def get_test_comparison_dir_path(base_comparison_dir_path, mod: Union[str or Path]):
     """Get full path full comparison directory for a specific test
     """
-    return get_base_comparison_dir_path() / mod.name / get_current_test_name()
+    return base_comparison_dir_path / mod.name / get_current_test_name()
 
 
-def get_base_comparison_dir_path():
+@pytest.fixture(scope="session")
+def base_comparison_dir_path(pytestconfig):
+    return get_base_comparison_dir_path(pytestconfig)
+
+
+def get_base_comparison_dir_path(config_obj):
     """If the user does not provide a comparison directory a default in the
     test data directory is used. The user can specify a directory containing
     the output of a previous test run or the "sample" output that is created
     by a previous test run when the "--create_sample_output" flag was provided.
     """
-    comparison_dir = pytest.config.getoption("--diff_with_outdir") or (
-        get_test_data_path() / "sample_test_output"
-    )
-    comparison_dir = Path(comparison_dir).absolute()
-    return comparison_dir
+    comparison_dir = config_obj.getoption("--diff_with_outdir")
+    if comparison_dir is not None:
+        return Path(comparison_dir).absolute()
+    else:
+        return get_test_data_path(config_obj) / "sample_test_output"
 
 
-def get_tests_data_dir():
+@pytest.fixture(scope="session")
+def test_data_dir(pytestconfig):
+    return get_test_data_path(pytestconfig)
+
+
+def get_tests_data_dir(config_obj):
     """Get the path to the test data directory. If the test data directory
     does not exist or is not populated, install with datalad.
     """
     # Define hard-coded paths for now
-    tests_data_dir = get_test_data_path()
+    tests_data_dir = get_test_data_path(config_obj)
     race_error_msg = (
         "A failed attempt and datalad download occurred. Running the "
         "tests sequentially once may help "
@@ -115,7 +136,7 @@ def get_tests_data_dir():
 
 
 @pytest.fixture(scope="function")
-def data(request, output_dir):
+def data(pytestconfig, request, output_dir, base_comparison_dir_path):
     """A function-scoped test fixture used for AFNI's testing. The fixture
     sets up output directories as required and provides the named tuple "data"
     to the calling function. The data object contains some fields convenient
@@ -132,7 +153,7 @@ def data(request, output_dir):
         collections.NameTuple: A data object for conveniently handling the specification
     """
     test_name = get_current_test_name()
-    tests_data_dir = get_tests_data_dir()
+    tests_data_dir = get_tests_data_dir(pytestconfig)
 
     # Set module specific values:
     try:
@@ -154,7 +175,9 @@ def data(request, output_dir):
     }
 
     # Get the comparison directory and check if it needs to be downloaded
-    comparison_dir = get_test_comparison_dir_path(module_outdir)
+    comparison_dir = get_test_comparison_dir_path(
+        base_comparison_dir_path, module_outdir
+    )
 
     # Define output for calling module and get data as required:
     out_dict.update(
@@ -164,10 +187,13 @@ def data(request, output_dir):
             "sampdir": sampdir,
             "logdir": test_logdir,
             "comparison_dir": comparison_dir,
-            "base_comparison_dir": get_base_comparison_dir_path(),
+            "base_comparison_dir": base_comparison_dir_path,
             "base_outdir": output_dir,
             "tests_data_dir": tests_data_dir,
             "test_name": test_name,
+            "rootdir": pytestconfig.rootdir,
+            "create_sample_output": pytestconfig.getoption("--create_sample_output"),
+            "save_sample_output": pytestconfig.getoption("--save_sample_output"),
         }
     )
 
@@ -267,17 +293,14 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_slow)
 
 
-def save_output_to_repo():
+def save_output_to_repo(config_obj):
+    base_comparison_dir_path = get_base_comparison_dir_path(config_obj)
 
     update_msg = "Update data with test run on {d}".format(
         d=datetime.datetime.today().strftime("%Y-%m-%d")
     )
-    import pdb
 
-    pdb.set_trace()
-    result = datalad.save(
-        update_msg, str(get_base_comparison_dir_path()), on_failure="stop"
-    )
+    result = datalad.save(update_msg, str(base_comparison_dir_path), on_failure="stop")
 
     sample_test_output = get_test_data_path() / "sample_test_output"
     data_message = (
@@ -289,20 +312,17 @@ def save_output_to_repo():
 
 
 def pytest_sessionfinish(session, exitstatus):
-    try:
-        output_directory = get_output_dir().absolute()
-        print("\nTest output is written to: ", output_directory)
-    except AttributeError:
-        pass
+    output_dir = get_output_dir(session.config)
+    print("\nTest output is written to: ", output_dir)
 
-    if pytest.config.getoption("--create_sample_output") and not bool(exitstatus):
+    if session.config.getoption("--create_sample_output") and not bool(exitstatus):
         print(
             "\n Sample output is written to:",
-            tools.convert_to_sample_dir_path(get_output_dir()),
+            tools.convert_to_sample_dir_path(output_dir),
         )
 
     # When configured to save output and test session was successful...
-    saving_desired = pytest.config.getoption("--save_sample_output")
+    saving_desired = session.config.getoption("--save_sample_output")
     if saving_desired and not bool(exitstatus):
         save_output_to_repo()
     elif saving_desired:
