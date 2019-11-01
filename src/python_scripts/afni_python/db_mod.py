@@ -3358,9 +3358,9 @@ def cmd_combine_m_tedana(proc, block, method='m_tedana'):
       cmd += '# now get the tedana results\n'   \
              'foreach run ( $runs )\n'          \
              '   # copy result back here\n'     \
-             '   3dcopy tedana_r$run/%s %s\n'   \
+             '   3dcopy tedana_r$run/%s %s%s\n' \
              'end\n\n'                          \
-             % (dataout, cur_prefix)
+             % (dataout, cur_prefix, proc.view)
 
    # ----------------------------------------------------------------------
    # finally, grab the orts, if desired
