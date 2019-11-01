@@ -175,7 +175,7 @@ def update_sample_output(
                 {savedir}/
             """
     cmd = " ".join(cmd.format(**locals()).split())
-    proc = subprocess.check_call(cmd, shell=True, cwd=pytest.config.rootdir)
+    proc = subprocess.check_call(cmd, shell=True, cwd=data.rootdir)
 
 
 def run_cmd(
@@ -269,7 +269,7 @@ def run_cmd(
         "workdir": workdir,
         "cmd": cmd,
         "add_env_vars": add_env_vars,
-        "rootdir": pytest.config.rootdir,
+        "rootdir": data.rootdir,
     }
     command_info.update(attr.asdict(data))
 
@@ -435,13 +435,8 @@ class OutputDiffer:
         self.executed = False
 
         # Tune output saving behavior
-        self.create_sample_output = create_sample_output or pytest.config.getoption(
-            "--create_sample_output"
-        )
-        self.save_sample_output = save_sample_output or pytest.config.getoption(
-            "--save_sample_output"
-        )
-
+        self.create_sample_output = create_sample_output or data.create_sample_output
+        self.save_sample_output = save_sample_output or data.save_sample_output
         # Tune the output comparison
         self.require_sample_output = (
             self.create_sample_output or self.save_sample_output
