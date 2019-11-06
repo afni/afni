@@ -163,8 +163,9 @@ set(P_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/python_scripts/afni_python)
 set(R_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/R_scripts)
 set(J_SCRIPTS ${CMAKE_CURRENT_SOURCE_DIR}/src/jzosky)
 set(J_SCRIPTS "${J_SCRIPTS}:${J_SCRIPTS}/lib_RetroTS")
-set(BUILD_PATH_EXTENSION "${BUILD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
-set(PATH_FOR_TESTING "${BUILD_PATH_EXTENSION}:$ENV{PATH}")
+set(TESTING_PATHS "${BUILD_BINARIES}:${T_SCRIPTS}:${P_SCRIPTS}:${R_SCRIPTS}:${J_SCRIPTS}")
+set(PATH_FOR_TESTING "${TESTING_PATHS}:$ENV{PATH}")
+file(WRITE ${CMAKE_BINARY_DIR}/TESTING_PATHS.txt ${TESTING_PATHS})
 
 # Create test target for running tests within the build tree
 add_custom_target(
@@ -173,8 +174,9 @@ add_custom_target(
   WORKING_DIRECTORY "${CMAKE_BINARY_DIR}/afni_tests"
   COMMAND ${CMAKE_COMMAND} --build ${CMAKE_BINARY_DIR}
   COMMAND echo Running tests with modified path to use build binaries and scripts in the source tree...
-  COMMAND echo Prepending ${BUILD_PATH_EXTENSION}
+  COMMAND echo Prepending ${TESTING_PATHS}
   COMMAND echo When using 'ninja test' one can define "ARGS" to pass additional arguments to pytest...
   COMMAND ${CMAKE_COMMAND} -E env PATH=${PATH_FOR_TESTING}  ${Python_EXECUTABLE} -B -m pytest $$ARGS
   USES_TERMINAL
 )
+

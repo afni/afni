@@ -1,12 +1,32 @@
   
 version: 2
 jobs:
+              
+  cache_src_and_data_repo:
+    docker:
+      - image: markiewicz/datalad:0.0.1
+    working_directory: /tmp/src/afni
+    steps:
+      - checkout
+      - run:
+          command: |
+            datalad install -r tests/afni_ci_test_data
+      - persist_to_workspace:
+          root: /tmp
+          paths:  
+            - src/afni
+  
   cmake_build:
     docker:
       - image: docker:18.01.0-ce-git
     working_directory: /tmp/src/afni
     steps:
-      - checkout
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install parallel gzip and Python 3
+          command: |
+            apk add --no-cache pigz python3
       - setup_remote_docker
       - run:
           name: Fetch latest release image
@@ -27,19 +47,6 @@ jobs:
               --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
               --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
               --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
-      # - run:
-      #     name: Verify executable can be run
-      #     command: docker run --rm -it afni/afni_cmake_build:latest bash -c 'afni --help'
-      # - run:
-      #     name: Check version
-      #     command: |
-      #       THISVERSION=$( git describe )
-      #       THISVERSION="${CIRCLE_TAG:-$THISVERSION}"
-      #       DOCKERVERSION=$(docker run --rm -it afni/afni_cmake_build:latest bash -c 'afni --version' \
-      #                      | tail -n 1 | sed -e 's/.*fit/fit/' -e 's/[\r\n]//g')
-      #       echo "$THISVERSION"
-      #       echo "$DOCKERVERSION"
-            # test "$DOCKERVERSION" = "afni v$THISVERSION"
       - run:
           name: Docker save
           no_output_timeout: 40m
@@ -47,57 +54,22 @@ jobs:
             mkdir -p /tmp/cache
             docker save afni/afni_cmake_build:latest \
             | pigz -2 -p 3 > /tmp/cache/docker.tar.gz
-      - persist_to_workspace:
-          root: /tmp
-          paths:
-            - src/afni
       - save_cache:
           key: docker-v0-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
           paths:
             - /tmp/cache/docker.tar.gz
-  
-  cache_test_data:
-      docker:
-        - image: markiewicz/datalad:0.0.1
-      working_directory: /tmp
-      steps:
-        - restore_cache:
-            keys:
-              - afni-ci_test_data-v0-{{ .Branch }}-
-              
-        - run:
-            name: Set git ID
-            command: |
-              git config --global user.name 'AFNI CircleCI User'
-              git config --global user.email 'johnleenimh+circlecigitconfig@gmail.com'
-        - checkout
-        - run:
-            name: Install data
-            command: |
-            if [ ! -f /tmp/afni_ci_test_data ]; then
-              datalad install -r https://github.com/afni/afni_ci_test_data.git
-            fi
-        - save_cache:
-           key: afni-ci_test_data-v0-{{ .Branch }}-{{ .BuildNum }}
-           paths:
-              - /tmp/afni_ci_test_data
 
 
-  test_ds003:
+  test_cmake_build:
     machine:
       image: circleci/classic:201711-01
-    working_directory: /tmp/src/fitlins
+    working_directory: /tmp/src/afni
     steps:
       - attach_workspace:
           at: /tmp
       - restore_cache:
           keys:
             - docker-v0-{{ .Branch }}-{{ .Revision }}
-      - restore_cache:
-          keys:
-            - ds003-v0-{{ .Branch }}-
-            - ds003-v0-master-
-            - ds003-v0-
       - run:
           name: Install coverage and codecov
           command: |
@@ -116,42 +88,21 @@ jobs:
               docker images
             fi
       - run:
-          name: Run FitLins
+          name: Run tests
           no_output_timeout: 2h
           command: |
-            mkdir -p /tmp/ds003/work /tmp/ds003/derivatives
-            chmod 777 /tmp/ds003/work /tmp/ds003/derivatives
-            export CONDA_PREFIX=/opt/miniconda-latest/envs/neuro
-            docker run --rm -it -v /tmp/data/ds003_fmriprep:/data:ro \
-                -v /tmp/ds003/derivatives:/out \
-                -v /tmp/ds003/work:/scratch \
-                -v /tmp/data/ds003_models:/models \
-                -e COVERAGE_FILE=/scratch/.coverage \
-                --entrypoint="/neurodocker/startup.sh" \
-                poldracklab/fitlins:latest \
-                coverage run \
-                --rcfile /src/fitlins/docker/multiproc.coveragerc \
-                $CONDA_PREFIX/bin/fitlins /data/sourcedata /out dataset \
-                -d /data -m /models/model-001_smdl.json -w /scratch \
-                --participant-label 01 02 03 --space MNI152NLin2009cAsym \
-                --n-cpus 2
-      - run:
-          name: Combine coverage and submit
-          command: |
-              pyenv local 3.6.3
-              python -m coverage combine \
-                --rcfile /tmp/src/fitlins/docker/multiproc.coveragerc \
-                /tmp/ds003/work/.coverage.*
-              sed -i -e 's/.opt.miniconda-latest.envs.neuro.lib.python3.6.site-packages/\/tmp\/src\/fitlins/g' .coverage
-              python -m coverage xml
-              python -m codecov --file coverage.xml --flags ds003 -e CIRCLE_JOB
-      - store_artifacts:
-          path: /tmp/ds003
+            mkdir -p /tmp/src /tmp/out
+            chmod 777 /tmp/src /tmp/out
+            docker run --rm -it \
+                -v /tmp/src/afni:/opt/afni \
+                afni/afni_cmake_build \
+                bash -c 'bash /opt/afni/tests/run_tests_cmake.sh'
 
-  deploy_docker:
+          
+  deploy_docker_cmake:
     machine:
-      image: circleci/classic:201711-01
-    working_directory: /tmp/src/afni
+        image: circleci/classic:201711-01
+    working_directory: /tmp
     steps:
       - restore_cache:
           keys:
@@ -184,28 +135,30 @@ workflows:
   version: 2
   afni_tests:
     jobs:
+      - cache_src_and_data_repo:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
       - cmake_build:
+          requires:
+            - cache_src_and_data_repo
           filters:
             branches:
               ignore: /doc\/.*/
             tags:
               only: /.*/
-      - cache_test_data:
-          filters:
-            branches:
-              ignore: /doc\/.*/
-            tags:
-              only: /.*/
-      - test_build:
+      - test_cmake_build:
           requires:
             - cmake_build
-            - cache_test_data
+            - cache_src_and_data_repo
           filters:
             tags:
               only: /.*/
-      - deploy_docker:
+      - deploy_docker_cmake:
           requires:
-            - test_build
+            - test_cmake_build
           filters:
             branches:
               ignore: /.*/
