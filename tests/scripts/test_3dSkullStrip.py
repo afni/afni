@@ -1,5 +1,6 @@
 import pytest
 from .utils import tools
+import shutil
 
 data_paths = {"anat": "mini_data/anat_3mm.nii.gz",
               "anatrpi": "mini_data/anat_3mm_RPI.nii.gz"}
@@ -12,6 +13,9 @@ data_paths = {"anat": "mini_data/anat_3mm.nii.gz",
         "anat",
         "anatrpi",
     ],
+)
+@pytest.mark.skipif(
+    not shutil.which("3dSkullStrip"), reason="No 3dSkullStrip available"
 )
 def test_3dSkullStrip_basic(data, dset_name):
     ifile = getattr(data, dset_name)

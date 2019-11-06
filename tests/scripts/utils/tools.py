@@ -50,10 +50,10 @@ def get_lines(filename, ignore_patterns):
     with open(filename) as f:
         lines = [line.rstrip("\n \\") for line in f.readlines()]
         lines = [
-            line
+            line.strip()
             for line in lines
             if not any(pat in line for pat in ignore_patterns)
-            and not line.replace(" ", "")
+            and not line.replace(" ", "") is ""
         ]
         return lines
 
@@ -376,6 +376,7 @@ def set_default_kwargs_log_as_required(kwargs_log):
                 [os.environ.get("USER")]
                 + [
                     "AFNI version=",
+                    "Version",
                     "Clock time now",
                     "clock time",
                     "elapsed time",
@@ -413,7 +414,7 @@ class OutputDiffer:
         merge_error_with_output: bool = False,
         workdir: Union[str or Path] = None,
         python_interpreter: str = "python3",
-        ignore_file_patterns: List = [],
+        ignore_file_patterns: List = ["_stdout"],
         text_file_patterns: List = [],
         kwargs_1d: Dict = {},
         kwargs_log: Dict = {},

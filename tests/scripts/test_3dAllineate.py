@@ -4,6 +4,8 @@ from .utils import tools
 
 # check for omp compilation
 OMP = is_omp("3dAllineate")
+if not OMP:
+    raise ValueError("Build should be using Open MP")
 
 
 # Define Data
@@ -16,9 +18,11 @@ data_paths = {
 
 # TESTS:
 @pytest.mark.slow
-# @pytest.mark.skip(
-#     reason="Not sure how to handle difference in output between osx and linux."
-# )
+@pytest.mark.skip(
+    "reason=The comparison of to affines should use the expected "
+    "distance of movement for a point drawn from a 3D cloud. "
+    )
+
 def test_3dAllineate_basic(data, python_interpreter):
     outname = "aligned"
     if OMP:

@@ -8,7 +8,7 @@ data_paths = {"epi": "AFNI_data6/afni/epi_r1+orig.HEAD"}
 @pytest.mark.slow
 @pytest.mark.parametrize("add_env_vars", [({}), ({"OMP_NUM_THREADS": "2"})])
 def test_3dTproject_basic(data, add_env_vars):
-    kwargs_log = {"append_to_ignored": ["clock time"]}
+    kwargs_log = {"append_to_ignored": ["clock time", "OpenMP"]}
     kwargs_scans = {"data_kwargs": {"atol": 0.0001}}
 
     outfile = data.outdir / "out.nii.gz"
