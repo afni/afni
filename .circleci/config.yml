@@ -75,7 +75,6 @@ jobs:
           command: |
               pyenv install 3.6.3
               pyenv local 3.6.3
-              python -m pip install -U coverage codecov
       - run:
           name: Load Docker image layer cache
           no_output_timeout: 30m
@@ -101,7 +100,7 @@ jobs:
           
   deploy_docker_cmake:
     machine:
-        image: circleci/classic:201711-01
+      image: circleci/classic:201711-01
     working_directory: /tmp
     steps:
       - restore_cache:
