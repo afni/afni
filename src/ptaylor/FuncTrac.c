@@ -1,7 +1,5 @@
-
-
-#include <afni.h> 
-#include <FuncTrac.h>
+#include "afni.h" 
+#include "FuncTrac.h"
 
 
 

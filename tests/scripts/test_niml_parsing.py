@@ -3,9 +3,14 @@ import nibabel as nb
 from pathlib import Path
 import subprocess as sp
 from .utils.misc import try_to_import_afni_module
-import random
 
 nml = try_to_import_afni_module("niml_parsing")
+scans_dir = Path("AFNI_data6/afni")
+
+data_paths = {
+    "head_files": [x for x in scans_dir.glob("*.HEAD") if x.is_file()],
+    "atlas_niml": "mini_data/AFNI_atlas_spaces.niml",
+}
 
 
 def get_afni_niml(fname):
@@ -43,32 +48,22 @@ def test_etree_to_dict():
     }
 
 
-def test_atlas_niml_parsing():
-    atlas_niml = nml.read_atlas_niml(
-        "afni_ci_test_data/mini_data/AFNI_atlas_spaces.niml"
-    )
+def test_atlas_niml_parsing(data):
+    atlas_niml = nml.read_atlas_niml(data.atlas_niml)
     parsed_atlas_niml = nml.parse_dset_niml_json(
         nml.etree_to_json(ET.fromstring(atlas_niml))
     )
 
 
-def test_afni_extension_parsing_in_head_converted():
-
-    heads = [
-        x for x in Path("afni_ci_test_data/AFNI_data6").glob("**/*.HEAD") if x.is_file()
-    ]
-    heads = random.sample(heads, 10)
-
-    for fname in (x for x in heads if x.exists()):
+def test_afni_extension_parsing_in_head_converted(data):
+    for fname in (x for x in data.head_files if x.exists()):
         fname = str(fname)
 
-        sp.run(f"3dcopy {fname} -overwrite test.nii.gz", shell=True)
+        sp.check_output(f"3dcopy {fname} -overwrite test.nii.gz", shell=True)
 
         extension_niml = get_afni_niml("test.nii.gz")
 
         parsed_nii_niml = nml.convert_afni_extension_niml(extension_niml)
-
-    Path("test.nii.gz").unlink()
 
 
 # # Parse a nifti extension niml

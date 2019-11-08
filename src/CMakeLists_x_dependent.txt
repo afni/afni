@@ -1,0 +1,104 @@
+# ##### Build X dependent programs...
+
+add_subdirectory(svm)
+add_subdirectory(XmHTML)
+
+add_library(
+  mrix
+  bbox.c
+  coxplot/plot_motif.c
+  coxplot/plot_strip.c
+  coxplot/plot_ts.c
+  coxplot/plot_x11.c
+  display.c
+  imseq.c
+  LiteClue.c
+  suma_help.c
+  xim.c
+  xutil.c
+  xutil_webber.c
+)
+add_afni_target_properties(mrix)
+set_target_properties(
+  mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h"
+)
+target_include_directories(
+  mrix PUBLIC $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES>
+)
+target_link_libraries(
+  mrix
+  PUBLIC AFNI::mri
+  PRIVATE AFNI::coxplot AFNI::XmHTML ${X11_LIBRARIES} ${MOTIF_LIBRARIES} ${X11_Xt_LIB}
+          libheaders
+)
+add_afni_target_properties(mrix)
+add_library(AFNI::mrix ALIAS mrix)
+
+set_source_files_properties(
+  afni.c afni_version.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
+)
+
+add_library(
+  afni_all_objects OBJECT
+  $<TARGET_OBJECTS:afsliceobjs>
+  $<TARGET_OBJECTS:parser>
+  afni.c
+  afni_cluster.c
+  afni_driver.c
+  afni_environ.c
+  afni_filer.c
+  afni_fimfunc.c
+  afni_fimmer.c
+  afni_friends.c
+  afni_func.c
+  afni_graph.c
+  afni_lock.c
+  afni_logger.c
+  afni_niml.c
+  afni_pcor.c
+  afni_plugin.c
+  afni_plugout.c
+  afni_ports.c
+  afni_pplug_1dfunc.c
+  afni_pplug_2dfunc.c
+  afni_pplug_env.c
+  afni_pplug_instacalc.c
+  afni_pplug_instacorr.c
+  afni_pplug_tstat.c
+  afni_receive.c
+  afni_setup.c
+  afni_splash.c
+  afni_suma.c
+  afni_sumafunc.c
+  afni_transforms.c
+  afni_ttren.c
+  afni_vedit.c
+  afni_version.c
+  afni_vol2surf.c
+  afni_warp.c
+  afni_whelp.c
+  afni_widg.c
+  mcw_graf.c
+  pbar.c
+)
+target_link_libraries(afni_all_objects PUBLIC libheaders coxplot)
+
+
+add_executable(afni $<TARGET_OBJECTS:afni_all_objects>)
+
+target_link_libraries(
+  afni
+  PRIVATE ${CMAKE_DL_LIBS}
+          afni_all_objects
+          AFNI::mrix
+          ${X11_LIBRARIES}
+          ${X11_Xt_LIB}
+          AFNI::mri
+          AFNI::coxplot
+          ${MOTIF_LIBRARIES}
+          AFNI::f2cdir
+          ${NETCDF_LIBRARIES_C}
+          NIFTI::nifti2
+          libheaders
+          m
+)

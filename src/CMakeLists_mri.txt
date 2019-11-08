@@ -1,0 +1,508 @@
+add_library(libheaders INTERFACE)
+set_source_files_properties(debugtrace.h PROPERTIES COMPILE_DEFINITIONS "SHOWOFF")
+target_sources(
+  libheaders
+  INTERFACE
+  ${AFNI_VERSION_HEADER}
+  ${CMAKE_CURRENT_SOURCE_DIR}/3ddata.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/afni.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/afni_environ.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/AFNI_label.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/afni_suma.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/afni_warp.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/Amalloc.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/cs.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/cs_qsort_small.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/cs_sort_template.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/debugtrace.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/editvol.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/eispack.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/ge4_header.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/killer.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/list_struct.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/machdep.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/mcw_glob.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/mcw_malloc.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/mri_dicom_stuff.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/mri_warpfield.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/mrilib.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/multivector.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/rickr/r_idisp.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/rickr/r_new_resam_dset.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/tagset.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_atlas.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_compress.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_iochan.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_maker.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_CA_EZ.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/thd_ttatlas_query.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/vecmat.h
+  ${CMAKE_CURRENT_SOURCE_DIR}/vol2surf.h
+)
+target_include_directories(
+  libheaders
+  INTERFACE 
+            $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::3DEdge,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::f2cdir,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+            $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+            ${CMAKE_CURRENT_BINARY_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}
+            ${CMAKE_CURRENT_SOURCE_DIR}/rickr
+            ${MOTIF_INCLUDE_DIR}
+            ${X11_INCLUDE_DIR}
+)
+target_compile_definitions(libheaders INTERFACE "REPLACE_XT")
+set_source_files_properties(
+  gifti_choice.c PROPERTIES COMPILE_DEFINITIONS "LINK_AGAINST_GIFTI_LIB"
+)
+
+# Generate various afni_slice files and store them in the build tree and object library
+add_library(afsliceobjs OBJECT "")
+foreach(
+  type
+  byte
+  complex
+  float
+  int
+  rgba
+  rgbyte
+  short
+)
+  set(output_file
+      "${CMAKE_CURRENT_BINARY_DIR}/afni_slice_configured/afni_slice_${type}.c"
+  )
+  configure_file(afni_slice.c "${output_file}" COPYONLY)
+  set_source_files_properties(
+    "${output_file}" PROPERTIES COMPILE_DEFINITIONS "DTYPE=${type}"
+  )
+  target_sources(afsliceobjs PUBLIC "${output_file}")
+endforeach(type)
+target_link_libraries(afsliceobjs PRIVATE libheaders)
+
+# Generate various pcor files and store them in the build tree and as object library
+add_library(pcor_objs OBJECT "")
+set(PCOR_DIR ${CMAKE_CURRENT_BINARY_DIR}/configured_pcor)
+configure_file(pcor.h "${PCOR_DIR}/pcor.h" COPYONLY)
+target_include_directories(
+  pcor_objs
+  PRIVATE $<TARGET_PROPERTY:AFNI::coxplot,INTERFACE_INCLUDE_DIRECTORIES>
+          $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+          $<TARGET_PROPERTY:NIFTI::nifti2,INTERFACE_INCLUDE_DIRECTORIES>
+          ${CMAKE_CURRENT_SOURCE_DIR}
+          ${PCOR_DIR}
+)
+
+foreach(type byte float short)
+  set(output_file "${CMAKE_CURRENT_BINARY_DIR}/configured_pcor/afni_pcor_${type}.c")
+  configure_file(afni_pcor_update.c "${output_file}" COPYONLY)
+  set_source_files_properties(
+    "${output_file}" PROPERTIES COMPILE_DEFINITIONS "DTYPE=${type}"
+  )
+  target_sources(pcor_objs PUBLIC "${output_file}")
+endforeach(type)
+
+function(configure_pcor lib_name definitions)
+  set(output_file "${CMAKE_CURRENT_BINARY_DIR}/configured_pcor/${lib_name}.c")
+  configure_file(pcor.c "${output_file}" COPYONLY)
+  set_source_files_properties(
+    "${output_file}" PROPERTIES COMPILE_DEFINITIONS "${definitions}"
+  )
+  add_library(${lib_name} OBJECT "${output_file}")
+endfunction(configure_pcor)
+configure_pcor(pcor "REF_FLOAT_SINGLE")
+configure_pcor(pcorsh "REF_FLOAT_SINGLE;VOX_SHORT")
+
+add_library(parser OBJECT parser.c parser_int.c)
+target_include_directories(
+  parser PRIVATE $<TARGET_PROPERTY:AFNI::niml,INTERFACE_INCLUDE_DIRECTORIES>
+)
+# target_link_libraries(parser PRIVATE  AFNI::f2cdir)
+
+set_source_files_properties(
+  thd_notes.c thd_vcheck.c PROPERTIES COMPILE_DEFINITIONS "SHOWOFF"
+)
+set_os_flags(thd_filestuff.c)
+set_os_flags(machdep.c)
+add_library(someafobjs OBJECT afni_warp.c pbar_color_defs.c afni_ports.c)
+target_link_libraries(someafobjs libheaders)
+add_library(
+  misc_objs OBJECT
+  afni_suma.c
+  gifti_choice.c
+  list_struct.c
+  matrix.c
+  misc_math.c
+  nifti_statlib.c
+  vol2surf.c
+)
+target_link_libraries(misc_objs libheaders)
+
+add_library(
+  suma_objs OBJECT suma_afni_surface.c suma_algorithms.c suma_datasets.c suma_niml.c
+                   suma_string_manip.c suma_utils.c
+)
+
+target_link_libraries(suma_objs libheaders)
+
+add_library(
+  cs_objs OBJECT
+  afni_environ.c
+  afni_logger.c
+  cl1.c
+  cl2.c
+  cs_addto_args.c
+  cs_fgets.c
+  cs_gamfit.c
+  cs_laguerre.c
+  cs_misc.c
+  cs_playsound.c
+  cs_pv.c
+  cs_qhull.c
+  cs_qmed.c
+  cs_sort_d.c
+  cs_sort_di.c
+  cs_sort_dv.c
+  cs_sort_ff.c
+  cs_sort_fi.c
+  cs_sort_fv.c
+  cs_sort_ii.c
+  cs_sort_iv.c
+  cs_sort_str.c
+  cs_symeig.c
+  machdep.c
+  multivector.c
+  powell_int.c
+  powell_newuoa.c
+  rhdd.c
+  svdlib.c
+  zfun.c
+)
+target_link_libraries(cs_objs 
+  PUBLIC libheaders
+  PRIVATE AFNI::audio
+  )
+
+add_library(
+  edt_objs OBJECT
+  edt_addbrick.c
+  edt_blur.c
+  edt_buildmask.c
+  edt_calcmask.c
+  edt_checkargv.c
+  edt_clust.c
+  edt_clust2.c
+  edt_clustalpha.c
+  edt_clustarr.c
+  edt_coerce.c
+  edt_dsetitems.c
+  edt_emptycopy.c
+  edt_filtervol.c
+  edt_floatize.c
+  edt_fullcopy.c
+  edt_geomcon.c
+  edt_help.c
+  edt_onedset.c
+  edt_scl2max.c
+  edt_sortmask.c
+  edt_substbrick.c
+  edt_volamax.c
+  edt_volpad.c
+  edt_wodcopy.c
+  edt_zscore.c
+)
+target_link_libraries(edt_objs libheaders)
+
+add_library(
+  thd_objs OBJECT
+  afni_vedit.c
+  bilinear_warp3D.c
+  ktaub.c
+  thd_1Ddset.c
+  thd_1Dtodset.c
+  thd_3Ddset.c
+  thd_analyzeread.c
+  thd_atlas.c
+  thd_atr.c
+  thd_automask.c
+  thd_autonudge.c
+  thd_auxdata.c
+  thd_avts.c
+  thd_bandpass.c
+  thd_brainormalize.c
+  thd_bstats.c
+  thd_center.c
+  thd_checkidc.c
+  thd_cliplevel.c
+  thd_compress.c
+  thd_conformist.c
+  thd_coords.c
+  thd_correlate.c
+  thd_countb.c
+  thd_ctfread.c
+  thd_delete.c
+  thd_despike_L1.c
+  thd_detrend.c
+  thd_dset_nbhd.c
+  thd_dset_to_grayplot.c
+  thd_dset_to_vectim.c
+  thd_dsetatr.c
+  thd_dsetdblk.c
+  thd_dsetinsess.c
+  thd_dsetinslist.c
+  thd_dsetrow.c
+  thd_dsetto1D.c
+  thd_dsetto3D.c
+  thd_dumdset.c
+  thd_editdaxes.c
+  thd_entropy16.c
+  thd_fdbrick.c
+  thd_fdrcurve.c
+  thd_fdto1D.c
+  thd_fdto2D.c
+  thd_fetchdset.c
+  thd_filestuff.c
+  thd_fitter.c
+  thd_floatscan.c
+  thd_forcemalloc.c
+  thd_get1D.c
+  thd_getorient.c
+  thd_getpathprogs.c
+  thd_http.c
+  thd_idcode.c
+  thd_incorrelate.c
+  thd_info.c
+  thd_initalldir.c
+  thd_initdblk.c
+  thd_initdkptr.c
+  thd_initprefix.c
+  thd_initsess.c
+  thd_instacorr.c
+  thd_intlist.c
+  thd_iochan.c
+  thd_lasso.c
+  thd_linecount.c
+  thd_loaddblk.c
+  thd_logafni.c
+  thd_makefbuc.c
+  thd_makefim.c
+  thd_makefith.c
+  thd_makemask.c
+  thd_manydset.c
+  thd_mastery.c
+  thd_matdaxes.c
+  thd_mattor.c
+  thd_mean_dset.c
+  thd_median.c
+  thd_mincread.c
+  thd_mincwrite.c
+  thd_mismatch.c
+  thd_mnicoords.c
+  thd_mpegread.c
+  thd_newprefix.c
+  thd_niftiread.c
+  thd_niftiwrite.c
+  thd_niml.c
+  thd_nimlatr.c
+  thd_notes.c
+  thd_opendset.c
+  thd_openimage.c
+  thd_opentcat.c
+  thd_orient.c
+  thd_outlier_count.c
+  thd_purgedblk.c
+  thd_read_vecmat.c
+  thd_reconpar.c
+  thd_remove_allzero.c
+  thd_rot3d.c
+  thd_rot3d_byte.c
+  thd_rotangles.c
+  thd_rowfillin.c
+  thd_sarr.c
+  thd_satcheck.c
+  thd_selenium.c
+  thd_shear3d.c
+  thd_shift2.c
+  thd_statpval.c
+  thd_strfunc.c
+  thd_svdblur.c
+  thd_table.c
+  thd_Tcorr1D.c
+  thd_timeof.c
+  thd_tmask.c
+  thd_trusthost.c
+  thd_tshift.c
+  thd_ttatlas_query.c
+  thd_ttest.c
+  thd_vcheck.c
+  thd_warp_tables.c
+  thd_warps.c
+  thd_winsor.c
+  thd_writeatr.c
+  thd_writedblk.c
+  thd_writedset.c
+  thd_zblock.c
+  thd_zeropad.c
+  thd_zfillin.c
+)
+target_link_libraries(thd_objs 
+PUBLIC libheaders
+PRIVATE coxplot)
+
+add_library(
+  mri_objs OBJECT
+  cox_render.c
+  csfft.c
+  debugtrace.c
+  dmat44.c
+  ge4_header.c
+  mcw_glob.c
+  mcw_malloc.c
+  mri_2dalign.c
+  mri_3dalign.c
+  mri_add_name.c
+  mri_aff2d.c
+  mri_align.c
+  mri_allzero.c
+  mri_blur3d.c
+  mri_blur3d_variable.c
+  mri_bport.c
+  mri_cat2D.c
+  mri_catvol.c
+  mri_cfft.c
+  mri_check.c
+  mri_clusterize.c
+  mri_colorsetup.c
+  mri_complex_arith.c
+  mri_copy.c
+  mri_counter.c
+  mri_coxplot.c
+  mri_cut.c
+  mri_dicom_hdr.c
+  mri_dicom_stuff.c
+  mri_drawing.c
+  mri_dup.c
+  mri_edit.c
+  mri_entropy16.c
+  mri_equal.c
+  mri_extract.c
+  mri_fdrize.c
+  mri_fft_complex.c
+  mri_filt_fft.c
+  mri_flip3D.c
+  mri_flippo.c
+  mri_float_func.c
+  mri_floatvec.c
+  mri_free.c
+  mri_fromstring.c
+  mri_fwhm.c
+  mri_genalign.c
+  mri_genalign_util.c
+  mri_genARMA11.c
+  mri_get_cmass.c
+  mri_histobyte.c
+  mri_histog.c
+  mri_histoshort.c
+  mri_intedge.c
+  mri_isgray.c
+  mri_lsqfit.c
+  mri_matrix.c
+  mri_max.c
+  mri_medianfilter.c
+  mri_metrics.c
+  mri_nbistats.c
+  mri_new.c
+  mri_nsize.c
+  mri_nstats.c
+  mri_nwarp.c
+  mri_order.c
+  mri_overlay.c
+  mri_pcvector.c
+  mri_percents.c
+  mri_polyfit.c
+  mri_purger.c
+  mri_radial_random_field.c
+  mri_rbfinterp.c
+  mri_read.c
+  mri_read_dicom.c
+  mri_read_mpeg.c
+  mri_read_stuff.c
+  mri_render.c
+  mri_rgba_compose.c
+  mri_rota.c
+  mri_scale.c
+  mri_scaled_diff.c
+  mri_scalize.c
+  mri_sharpen3D.c
+  mri_sharpness.c
+  mri_shift2D.c
+  mri_shifter.c
+  mri_sobel.c
+  mri_sort.c
+  mri_stat_seq.c
+  mri_stats.c
+  mri_subset.c
+  mri_swapbytes.c
+  mri_symbolize.c
+  mri_thresh.c
+  mri_threshX.c
+  mri_to_byte.c
+  mri_to_complex.c
+  mri_to_float.c
+  mri_to_fvect.c
+  mri_to_imarr.c
+  mri_to_mri.c
+  mri_to_pval.c
+  mri_to_rgb.c
+  mri_to_rgba.c
+  mri_to_short.c
+  mri_transpose.c
+  mri_uncat2D.c
+  mri_warp.c
+  mri_warp3D.c
+  mri_warp3D_align.c
+  mri_warpfield.c
+  mri_write.c
+  mri_write_analyze.c
+  mri_write_angif.c
+  mri_zeropad.c
+  rcmat.c
+)
+target_link_libraries(mri_objs PRIVATE libheaders)
+
+add_library(mri "")
+target_sources(
+  mri
+  PRIVATE
+  $<TARGET_OBJECTS:AFNI::niml>
+  $<TARGET_OBJECTS:afsliceobjs>
+  $<TARGET_OBJECTS:cs_objs>
+  $<TARGET_OBJECTS:edt_objs>
+  $<TARGET_OBJECTS:misc_objs>
+  $<TARGET_OBJECTS:mri_objs>
+  $<TARGET_OBJECTS:parser>
+  $<TARGET_OBJECTS:pcor_objs>
+  $<TARGET_OBJECTS:someafobjs>
+  $<TARGET_OBJECTS:suma_objs>
+  $<TARGET_OBJECTS:thd_objs>
+  rickr/r_idisp.c
+  rickr/r_misc.c
+  rickr/r_new_resam_dset.c
+)
+
+target_link_libraries(
+  mri
+  PUBLIC  m 
+          libheaders
+          AFNI::coxplot
+  PRIVATE 
+          ${NETCDF_LIBRARIES_C}
+          AFNI::3DEdge
+          AFNI::eispack
+          AFNI::volpack
+          NIFTI::nifti2
+          NIFTI::nifticdf
+)
+add_afni_target_properties(mri)
+add_library(AFNI::mri ALIAS mri)

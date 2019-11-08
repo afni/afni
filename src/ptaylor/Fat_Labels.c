@@ -4,9 +4,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-#include <TrackIO.h>
+#include "mrilib.h"    
+#include "3ddata.h"    
+#include "TrackIO.h"
 #include "Fat_Labels.h"
 
 

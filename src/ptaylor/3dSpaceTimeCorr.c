@@ -16,8 +16,8 @@
 #include <time.h>
 #include <debugtrace.h>
 #include <afni.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
+#include "mrilib.h"    
+#include "3ddata.h"    
 #include "DoTrackit.h"
 #include "checks_and_balances.h"
 #include "rsfc.h"

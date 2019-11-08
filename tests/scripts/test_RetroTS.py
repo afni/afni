@@ -14,7 +14,7 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
 
     kwargs_log = {"append_to_ignored": ["Clock time", "but max simulated alpha="]}
 
-    outfile_prefix = data.outdir / "clust_sim_out"
+    out_prefix = data.outdir / f"reg.01.a.{vol_tr}"
     cmd = """
     RetroTS.py
         -c {data.ECG_epiRTslt_scan_4}
@@ -22,7 +22,7 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
         -v {vol_tr}
         -p 50
         -n 30
-        -prefix reg.01.a.{vol_tr}
+        -prefix {out_prefix}
     """
 
     cmd = " ".join(cmd.format(**locals()).split())
@@ -32,7 +32,7 @@ def test_RetroTS_basic(data, vol_tr, python_interpreter):
         data,
         cmd,
         python_interpreter=python_interpreter,
-        # kwargs_1d={"all_close_kwargs": {"rtol": 0.15}},
+        kwargs_1d={"all_close_kwargs": {"rtol": 0.15}},
         # kwargs_log=kwargs_log,
         # add_env_vars=add_env_vars,
     )

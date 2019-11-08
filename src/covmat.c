@@ -19,7 +19,7 @@
 
 /****************************************************************************/
 
-#include <mrilib.h>
+#include "mrilib.h"
 #include <string.h>
 
 #define NMAX 1050   /* maximum length of time series of images */

@@ -3,12 +3,12 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>     // AFNIadd
-#include <3ddata.h>     // AFNIadd
-#include <TrackIO.h>
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
-#include <DoTrackit.h>
+#include "mrilib.h"     // AFNIadd
+#include "3ddata.h"     // AFNIadd
+#include "TrackIO.h"
+#include "DoTrackit.h"
 
 
 
