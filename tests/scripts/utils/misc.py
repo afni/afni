@@ -12,12 +12,13 @@ import pytest
 
 def run_x_prog(cmd):
     import subprocess as sp
+
     res = sp.run(
         "scripts/utils/xvfb-driver -- " + cmd,
         shell=True,
         stdout=sp.PIPE,
-        stderr=sp.STDOUT
-        )
+        stderr=sp.STDOUT,
+    )
     return res.stdout.decode("utf")
 
 
