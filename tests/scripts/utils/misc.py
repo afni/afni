@@ -10,6 +10,17 @@ import datalad
 import pytest
 
 
+def run_x_prog(cmd):
+    import subprocess as sp
+    res = sp.run(
+        "tests/scripts/utils/xvfb-driver -- " + cmd,
+        shell=True,
+        stdout=sp.PIPE,
+        stderr=sp.STDOUT
+        )
+    return res.stdout.decode("utf")
+
+
 def is_omp(toolname):
 
     OMP = "is compiled using OpenMP" in run(
