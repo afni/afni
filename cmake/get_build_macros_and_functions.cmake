@@ -1,3 +1,14 @@
+macro(optional_bundle name)
+  string(TOUPPER ${name} upper)
+
+  option(USE_SYSTEM_${upper} "use system ${name} instead of bundled")
+  if(USE_SYSTEM_${upper})
+    find_package(${name} REQUIRED)
+  else(USE_SYSTEM_${upper})
+    add_subdirectory(${name})
+  endif(USE_SYSTEM_${upper})
+endmacro(optional_bundle)
+
 function(assemble_target_list PROGRAMS_BUILT SHOW_UNBUILT_PROGS)
   # ##### Read list of makefile programs that are built by this project.
   execute_process(
