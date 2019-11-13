@@ -16,15 +16,15 @@
 #include <unistd.h>
 #include <time.h>
 #include <debugtrace.h>
-#include <mrilib.h>     
-#include <3ddata.h>     
+#include "mrilib.h"     
+#include "3ddata.h"     
 #include "editvol.h"
 #include "thd.h"
 #include "suma_suma.h"
 #include <gsl/gsl_randist.h>
 #include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
-#include <diffusiony.h>
+#include "diffusiony.h"
 
 
 

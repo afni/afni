@@ -23,8 +23,4 @@ script:
     # to gain access to built binaries, include path first
     # (otherwise the wrong `count` binary may be used in the tests)
     - export PATH=$PWD/$FLAVOR:$PATH
-    - mkdir ../testing; cd ../testing # from here will run tests
-    - cmake -DAFNI_BUILD_TESTS:BOOL=ON ..
-    - ctest --verbose
-    # Smoke tests for some additional commands
-    - 3dinfo
+

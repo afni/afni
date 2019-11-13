@@ -49,6 +49,16 @@
 
 afni_history_struct rickr_history[] = {
 
+ {  1, Nov, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
+   "process out.mask_at_corr.txt, the anat/template Dice coefficient",
+   "Requested by P Hamilton."
+ } ,
+
+ {  1, Nov, 2019, RCR, "afni_proc.py", MINOR, TYPE_ENHANCE,
+   "create out.mask_at_corr.txt, the anat/template Dice coefficient",
+   "Requested by P Hamilton."
+ } ,
+
  { 28, Oct, 2019, RCR, "afni-general", MICRO, TYPE_BUG_FIX,
    "fix THD_write_niml to apply directory to output file",
    "Thanks to pmlauro on Message Board, for pointing out the problem."

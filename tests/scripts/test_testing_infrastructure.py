@@ -106,6 +106,9 @@ def get_mock_data(tmp_path_factory, mock_data_orig):
             if "/" in v:
                 data[k] = Path(v)
 
+        data["create_sample_output"] = False
+        data["save_sample_output"] = False
+
         for k in cmd_exe_vals:
             data.pop(k, None)
 

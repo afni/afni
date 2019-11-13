@@ -9,9 +9,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <3ddata.h>    
-//#include <rsfc.h>    
+#include "mrilib.h"    
+#include "3ddata.h"    
+//#include "rsfc.h"    
 //#include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 #include "basic_boring.h"

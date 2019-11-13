@@ -4672,6 +4672,14 @@ def group_mask_command(proc, block):
                 "            -prefix %s\n\n"                                \
                 % (tanat.pv(), proc.mask_group.prefix)
 
+
+    if proc.mask_anat:
+       rcmd = "# note Dice coefficient of anat and template masks\n" \
+              "3ddot -dodice %s %s \\\n"                             \
+              "      |& tee out.mask_at_dice.txt\n\n"                \
+              % (proc.mask_anat.pv(), proc.mask_group.pv())
+       cmd = cmd + rcmd
+
     proc.mask_group.created = 1  # so this mask 'exists' now
 
     return cmd
@@ -9749,6 +9757,11 @@ g_help_notes = """
 
               This contains general output from 3dOverlap, for evaluating the
               overlap between the anatomical and EPI brain masks.
+
+           out.mask_at_dice.txt
+
+              This contains the Dice coefficient evaluating the overlap
+              between the anatomical and template brain masks.
 
         *  out.pre_ss_warn.txt
 

@@ -23,8 +23,8 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>
-#include <3ddata.h>
+#include "mrilib.h"
+#include "3ddata.h"
 #include "LS_funcs.h"
 #include "DoTrackit.h"
 

@@ -27,9 +27,9 @@
 #include <math.h>
 #include <unistd.h>
 #include <debugtrace.h>
-#include <mrilib.h>    
-#include <rsfc.h>    
-#include <3ddata.h>    
+#include "mrilib.h"    
+#include "rsfc.h"    
+#include "3ddata.h"    
 #include <gsl/gsl_rng.h>
 #include "DoTrackit.h"
 

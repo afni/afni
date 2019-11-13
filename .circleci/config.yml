@@ -1,25 +1,218 @@
+  
 version: 2
 jobs:
-  build:
-    machine: true
+              
+  cache_src_and_data_repo:
+    docker:
+      - image: markiewicz/datalad:0.0.1
+    working_directory: /tmp/src/afni
     steps:
       - checkout
-      - run: docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} --build-arg AFNI_WITH_COVERAGE=1 .
+      - run:
+          command: |
+            datalad install -r tests/afni_ci_test_data
+      - persist_to_workspace:
+          root: /tmp
+          paths:  
+            - src/afni
+  
+  build_and_test_makebuild:
+    machine: true
+    working_directory: /tmp/src/afni
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Build using standard AFNI build system
+          command: |
+            docker build -t afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6}  \
+            --build-arg AFNI_WITH_COVERAGE=1                                    \
+            -f .docker/make_build.dockerfile                                    \
+            .
       - run:
           no_output_timeout: 2h
+          name: Run tests with coverage on standard AFNI build 
           command: |
             ci_env=`bash <(curl -s https://codecov.io/env)`
             docker run $ci_env afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} bash -c 'bash /opt/afni/tests/run_tests.sh'
 
       - run:
+          name: AFNI account should upload successful builds
           command: |
             set +o pipefail
             if [ $DOCKER_USER == 'afni' ]
             then
               docker login -u $DOCKER_USER -p $DOCKER_PASS
-              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} .
               docker tag afni/afni_dev:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni_dev:latest
               docker push afni/afni_dev
+              # Build and push an image without coverage:
+              docker build -t afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} .
               docker tag afni/afni:$CIRCLE_BUILD_NUM-${CIRCLE_SHA1:0:6} afni/afni:latest
               docker push afni/afni
             fi
+
+
+  cmake_build:
+    docker:
+      - image: docker:18.01.0-ce-git
+    working_directory: /tmp/src/afni
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - run:
+          name: Install parallel gzip and Python 3
+          command: |
+            apk add --no-cache pigz python3
+      - setup_remote_docker
+      - run:
+          name: Fetch latest release image
+          no_output_timeout: 10m
+          command: |
+            docker pull afni/afni_cmake_build:latest
+      - run:
+          name: Build image
+          no_output_timeout: 30m
+          command: |
+            THISVERSION=$(cat src/AFNI_version_base.txt)
+            echo "Building version ${CIRCLE_TAG:-$THISVERSION}"
+            docker build \
+              -f .docker/cmake_build.dockerfile \
+              --cache-from=afni/afni_cmake_build \
+              --rm=false \
+              --tag afni/afni_cmake_build:latest \
+              --build-arg BUILD_DATE="$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+              --build-arg VCS_REF="$(git rev-parse --short HEAD)" \
+              --build-arg VERSION="${CIRCLE_TAG:-$THISVERSION}" .
+      - run:
+          name: Docker save
+          no_output_timeout: 40m
+          command: |
+            mkdir -p /tmp/cache
+            docker save afni/afni_cmake_build:latest \
+            | pigz -2 -p 3 > /tmp/cache/docker.tar.gz
+      - save_cache:
+          key: docker-v0-{{ .Branch }}-{{ .Revision }}-{{ epoch }}
+          paths:
+            - /tmp/cache/docker.tar.gz
+
+
+  test_cmake_build:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp/src/afni
+    steps:
+      - attach_workspace:
+          at: /tmp
+      - restore_cache:
+          keys:
+            - docker-v0-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Install coverage and codecov
+          command: |
+              pyenv install 3.6.3
+              pyenv local 3.6.3
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            docker info
+            set +o pipefail
+            if [ -f /tmp/cache/docker.tar.gz ]; then
+              sudo apt update && sudo apt -y install pigz
+              pigz -d --stdout /tmp/cache/docker.tar.gz | docker load
+              docker images
+            fi
+      - run:
+          name: Run tests
+          no_output_timeout: 2h
+          command: |
+            mkdir -p /tmp/src /tmp/out
+            chmod 777 /tmp/src /tmp/out
+            docker run --rm -it \
+                -v /tmp/src/afni:/opt/afni \
+                afni/afni_cmake_build \
+                bash -c 'bash /opt/afni/tests/run_tests_cmake.sh'
+
+          
+  deploy_docker_cmake:
+    machine:
+      image: circleci/classic:201711-01
+    working_directory: /tmp
+    steps:
+      - restore_cache:
+          keys:
+            - docker-v0-{{ .Branch }}-{{ .Revision }}
+      - run:
+          name: Load Docker image layer cache
+          no_output_timeout: 30m
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              docker info
+              set +o pipefail
+              if [ -f /tmp/cache/docker.tar.gz ]; then
+                zcat /tmp/cache/docker.tar.gz | docker load
+                docker images
+              fi
+            fi
+      - run:
+          name: Deploy to Docker Hub
+          no_output_timeout: 40m
+          command: |
+            if [ $DOCKER_USER == 'afni' ]; then
+              docker login -u $DOCKER_USER -p $DOCKER_PASS
+              docker push afni/afni_cmake_build:latest
+              docker tag afni/afni_cmake_build afni/afni_cmake_build:$CIRCLE_TAG
+              docker push afni/afni_cmake_build:$CIRCLE_TAG
+            fi
+
+
+workflows:
+  version: 2
+  afni_tests:
+    jobs:
+      - cache_src_and_data_repo:
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      - cmake_build:
+          requires:
+            - cache_src_and_data_repo
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      - test_cmake_build:
+          requires:
+            - cmake_build
+            - cache_src_and_data_repo
+          filters:
+            tags:
+              only: /.*/
+      - deploy_docker_cmake:
+          requires:
+            - test_cmake_build
+          filters:
+            branches:
+              ignore: /.*/
+            tags:
+              only: /.*/
+      - build_and_test_makebuild:
+          requires:
+            - cache_src_and_data_repo
+          filters:
+            branches:
+              ignore: /doc\/.*/
+            tags:
+              only: /.*/
+      # not yet implemented
+      # - deploy_docker_makebuild:
+      #     requires:
+      #       - build_and_test_makebuild
+      #     filters:
+      #       branches:
+      #         ignore: /.*/
+      #       tags:
+      #         only: /.*/

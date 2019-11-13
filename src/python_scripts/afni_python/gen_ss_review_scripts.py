@@ -331,6 +331,12 @@ def update_field_help():
      ['This is the Sorenson-Dice coefficient (twice intersection over sum of',
       'regions) between the anat mask (mask_anat) and EPI mask (full_mask).',
       'A low value (closer to 0 than 1, say) might flag alignment failure.'])
+   add_field_help('anat/templ mask Dice coef',
+                  'Dice coef(mask_anat, mask_group)',
+     ['This is the Sorenson-Dice coefficient (twice intersection over sum of',
+      'regions) between the anat mask (mask_anat) and template mask',
+      '(mask_group).',
+      'A low value (closer to 0 than 1, say) might flag alignment failure.'])
    add_field_help('maximum F-stat (masked)', 'max F from stats dataset',
      ['This is the maximum F-stat from the final stats dataset, restricted',
       'to the full_mask.'])
@@ -636,6 +642,15 @@ if ( -f $mask_corr_dset ) then
 endif
 """
 
+g_basic_anat_templ_dice_str = """
+# ------------------------------------------------------------
+# get anat/template mask Dice coefficient
+if ( -f $mask_anat_templ_corr_dset ) then
+    set val = `cat $mask_anat_templ_corr_dset`
+    echo "anat/templ mask Dice coef : $val"
+endif
+"""
+
 g_basic_fstat_str = """
 # ------------------------------------------------------------
 # note maximum F-stat
@@ -881,9 +896,10 @@ g_history = """
    1.15 Jul  1, 2019: be picky about vr_base_dset: extras from aea.py
    1.16 Jul  3, 2019: let X.stim.xmat.1D be empty for non-task case
    1.17 Jul 18, 2019: accept multi-echo data in find_tcat
+   1.18 Nov  1, 2019: track mask_anat_templ_corr_dset
 """
 
-g_version = "gen_ss_review_scripts.py version 1.17, July 18, 2019"
+g_version = "gen_ss_review_scripts.py version 1.18, November 1, 2019"
 
 g_todo_str = """
    - add @epi_review execution as a run-time choice (in the 'drive' script)?
@@ -2237,15 +2253,21 @@ class MyInterface:
       # check if already set
       if self.uvar_already_set('mask_corr_dset'): return 0
 
+      # anat/EPI mask overlap dset
       gstr = 'out.mask_ae_corr.txt'
       if not os.path.isfile(gstr):
          gstr = 'out.mask_ae_dice.txt'
 
       if os.path.isfile(gstr):
          self.uvars.mask_corr_dset = gstr
-         return 0
 
-      # otherwise, failure
+      # anat/template mask overlap dset
+      gstr = 'out.mask_at_corr.txt'
+      if not os.path.isfile(gstr):
+         gstr = 'out.mask_at_dice.txt'
+
+      if os.path.isfile(gstr):
+         self.uvars.mask_anat_templ_corr_dset = gstr
 
       return 0
 
@@ -2597,6 +2619,9 @@ class MyInterface:
          else:
             self.text_basic += g_basic_mask_corr_str
 
+      if self.uvars.is_not_empty('mask_anat_templ_corr_dset'):
+         self.text_basic += g_basic_anat_templ_dice_str
+
       # maybe use mask for max F-stat
       if self.uvars.is_not_empty('mask_dset'):
          self.text_basic += g_basic_fstat_mask_str
@@ -2717,6 +2742,10 @@ class MyInterface:
          txt += form % (var, self.uvars.val(var))
 
       var = 'mask_corr_dset'
+      if self.uvars.is_not_empty(var):
+         txt += form % (var, self.uvars.val(var))
+
+      var = 'mask_anat_templ_corr_dset'
       if self.uvars.is_not_empty(var):
          txt += form % (var, self.uvars.val(var))
 
