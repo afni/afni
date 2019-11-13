@@ -1699,7 +1699,8 @@ class MyInterface:
       elif self.dsets.is_not_empty('stats_dset'):
          view = self.dsets.stats_dset.view
       else:
-         print('** no stats_dset to get final_view from')
+         if self.cvars.verb > 1:
+            print('** no stats_dset to get final_view from, trying others...')
          view = ''
 
       if len(view) != 5: # maybe surface, go after volreg explicitly for now
@@ -1709,6 +1710,17 @@ class MyInterface:
             vv = "+tlrc"
             glist = glob.glob('pb0*%s?r0*volreg%s.HEAD'%(self.uvars.subj, vv))
          if len(glist) > 0: view = vv
+
+      # otherwise, go after any pb*.HEAD files, and check the last one
+      if len(view) != 5:
+         glist = glob.glob('pb*.HEAD')
+         if len(glist) > 0:
+            # try to get the view from the last pb* files
+            glist.sort()
+            epi = BASE.afni_name(glist[-1])
+            view = epi.view
+            if self.cvars.verb > 1:
+               print("++ found view in generic pb dsets")
 
       if len(view) != 5:
          print("** could not find view in stats or volreg dsets")
@@ -1721,20 +1733,16 @@ class MyInterface:
                % self.uvars.final_view)
 
       # do a basic test of the subject ID and view
-      gform = 'pb*%s?r0*volreg+%s.HEAD' \
+      gform = 'pb*%s?r01+%s.HEAD' \
               % (self.uvars.subj, self.uvars.final_view)
       glist = glob.glob(gform)
-      if len(glist) == 0:
-         # try a more general form
-         gform = 'pb*r*1*volreg+%s.HEAD' % self.uvars.final_view
-         glist = glob.glob(gform)
 
       if len(glist) == 0:
          if self.cvars.verb > 0:
             print('** warning: failed to test sid/view with dset check on %s' \
                   % gform)
       elif self.cvars.verb > 2:
-         print('-- found volreg dset in view: %s' % glist[0])
+         print('-- found dset for sid and view: %s' % glist[0])
 
       return 0
 

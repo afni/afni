@@ -43,6 +43,7 @@ class SysInfo:
       self.repo_prog       = '' # e.g. yum or brew
       self.have_matplotlib = 0
       self.have_pyqt4      = 0
+      self.warn_pyqt       = 0  # should we add PyQt(4?) message to 'comments'
       self.ok_openmp       = 0  # does 3dAllineate work, for example?
 
    def get_afni_dir(self):
@@ -351,6 +352,11 @@ class SysInfo:
 
       # add PyQt4 comment, if missing
       if not self.have_pyqt4:
+         # if no check requested, do not mention PyQt4 in self.comments list
+         if not self.warn_pyqt:
+            return
+
+         # but if we want to comment on PyQt4 ...
          repo = self.repo_prog
          package = ''
          if repo in ['yum', 'dnf']: package = 'PyQt4'
@@ -387,7 +393,8 @@ class SysInfo:
             gdir = glist[-1]
             ghead = os.path.dirname(gdir)
             print('++ found PyQt4 under %s' % ghead)
-            self.comments.append('consider adding %s to PYTHONPATH' % ghead)
+            if self.warn_pyqt:
+               self.comments.append('consider adding %s to PYTHONPATH' % ghead)
             # if fink, see whether that python exists
             if ghead.startswith('/sw'):
                ppath = '/sw/bin/python'
@@ -397,8 +404,9 @@ class SysInfo:
                      ls = '   sudo ln -s %s %s' % (ppath+'2.7', ppath)
                      print('** seem to be using fink python2.7 but need python')
                      print('   consider:%s' % ls)
-                     self.comments.append(cs)
-                     self.comments.append(ls)
+                     if self.warn_pyqt:
+                        self.comments.append(cs)
+                        self.comments.append(ls)
 
             # warn user if PyQt4 does not match python
             cs = ''
@@ -412,7 +420,8 @@ class SysInfo:
                        self.python_prog
             if cs:
                print("** warning: %s" % cs)
-               self.comments.append(cs)
+               if self.warn_pyqt:
+                  self.comments.append(cs)
                
          elif self.repo_prog == 'fink':
             fcmd = 'sudo fink install pyqt4-mac-py27'
