@@ -1,0 +1,296 @@
+#!/bin/tcsh
+# input dataset of list of names
+# first last institution
+
+@global_parse `basename $0` "$*" ; if ($status) exit 0
+
+set progname = @suma_acknowledge
+
+# --------------------- version history with changes -----------------------
+#
+#set version = "1.00"
+#
+
+if ("$#" <  "2") then
+   goto HELP
+endif
+
+setenv AFNI_COMPRESSOR GZIP
+
+# defaults for everything for this demo
+set ref_names = boot_names.txt
+set surf = "ld5"
+set subico = "ld3"
+set demo_name = "AFNI_Bootcamp"
+set surf = std.60.lh.pial.gii
+
+# scale offset nodes relative to the initial icosahedron
+set offset_scale = 10
+# group nodes placed directly on surface coordinates unless scaled away
+set scale_factor = 1.0
+
+set center = "MEANXYZ"
+
+# process user options
+set ac = 1
+while ($ac <= $#argv)
+    if ("$argv[$ac]" == "-help" || "$argv[$ac]" == "-h") then
+        goto HELP
+    else if ("$argv[$ac]" == "-ver") then
+        echo $progname $version
+        exit 0
+    else if ("$argv[$ac]" == "-input") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-input'"
+            exit 1
+        endif
+        set ref_name =  $argv[$ac]
+    else if ("$argv[$ac]" == "-surf") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-surf'"
+            exit 1
+        endif
+        set surf =  $argv[$ac]
+    else if ("$argv[$ac]" == "-subsurf") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-subsurf'"
+            exit 1
+        endif
+        set subico =  $argv[$ac]
+    else if ("$argv[$ac]" == "-prefix") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-prefix'"
+            exit 1
+        endif
+        set demo_name =  $argv[$ac]
+    else if ("$argv[$ac]" == "-scalefactor") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-scalefactor'"
+            exit 1
+        endif
+        set scale_factor =  $argv[$ac]
+    else if ("$argv[$ac]" == "-reducefactor") then
+        @ ac ++
+        if ( $ac > $#argv ) then
+            echo "** missing parameter for option '-reducefactor'"
+            exit 1
+        endif
+        set offset_scale =  $argv[$ac]
+    else    else
+        echo "** unknown option $argv[$ac]"
+        exit 1
+    endif        
+    @ ac ++
+end
+
+
+
+# calculate coordinates for nodes on icosahedrons
+# std icosahedron number of nodes
+# 1 12
+# 2 42
+# 3 92
+# 4 162
+# 5 252
+# 6 362
+# one for the institutions
+
+SurfaceMetrics -overwrite -i $surf -coords
+set std_coords = ${surf}.coord.1D.dset
+
+# Or -- use a brain pial surface and divide it up by nodes
+#set std_coords = std.60.lh.pial.gii.coord.1D.dset
+
+# relative offsets for individuals on reduced icosahedron
+SurfaceMetrics -overwrite -i $subico -coords
+
+set substd_coords = ${subico}.coord.1D.dset
+
+# count number of individuals
+set npeople = `wc -l ${ref_names}`
+
+# count the number of institutions (groups)
+set ngroups = `cat ${ref_names} | awk '{print $3}' | uniq|wc -l`
+
+rm contributor_index.txt
+rm contributor_edgelist.1D
+rm all1.1D
+rm ROI_coords.1D
+
+set group_base = 0
+set oldinstitute = ""
+set collab_index = 1
+set group_base = 0
+set group = 0
+
+# make table of roi# name based on name of contributors
+set roi_i = 0
+
+# get nrows from icosahedron coordinates
+set nrows = `1dcat $std_coords |wc -l`
+set inst_step = `ccalc -int -expr "$nrows/$ngroups"`
+
+# which center to use
+if ("$center" == "ZERO") then
+   set center_xyz = (0 0 0 0)
+else
+   set center_xyz = `3dTstat -mean -prefix - $std_coords` 
+endif
+
+# process each name in the file
+foreach conti (`count 1 $npeople[1]`)
+   # lines look 
+   ## first last Institute Institute#
+   #    Robert Cox     AFNI 0
+   set contributor = `head -$conti $ref_names  |tail -1`
+   # make ROI# name table
+   # I LABEL GID
+
+   # handle group/institution first   
+   # first group is special - put at center
+   if ($group == 0) then
+      set basenode_xyz = ( $center_xyz ) 
+   # all other groups, place around surface at regular intervals
+   else
+      set grouprow = `ccalc -int -expr "${group}*${inst_step}"`
+      set basenode_xyz = `1dcat $std_coords"{$grouprow}"` 
+   endif
+   
+   # get institute
+   # see if first time for this institute
+   set institute = $contributor[3]
+   if ($institute != $oldinstitute) then
+      if ($roi_i != 0) then 
+          # new group
+          @ group ++
+          
+          # get row of coordinates from surface coordinate list
+          set grouprow = `ccalc -int -expr "${group}*${inst_step}"`
+	      set basenode_xyz = `1dcat $std_coords"{$grouprow}"`        
+      endif
+      
+      # new institute - make institute node
+      set oldinstitute = $institute
+      # no offset for institutes 
+      set offset_xyz = ( 0 0 0 0 )
+      set node_x = `ccalc "$scale_factor * ($basenode_xyz[2])"`
+      set node_y = `ccalc "$scale_factor * ($basenode_xyz[3])"`
+      set node_z = `ccalc "$scale_factor * ($basenode_xyz[4])"`
+
+      # put the group/institute into the list of ROIs with coords
+      echo $institute $node_x $node_y $node_z  >> ROI_coords.1D      
+
+      # relative index of first person from that institution
+      set collab_index = 1
+      
+      # identify current graph node by index, name and group number
+      echo $roi_i $institute $group >> contributor_index.txt
+
+      # edge for institute to core institute
+      echo 1 0 $roi_i >> contributor_edgelist.1D
+      # reverse connection to make easier to use here
+      echo 1 $roi_i 0 >> contributor_edgelist.1D
+      echo 1 >> all1.1D
+      echo 1 >> all1.1D
+
+      # link institute to an index
+      set group_base = $roi_i
+      @ roi_i ++ 
+   else
+      # next person from that institute
+      @ collab_index ++
+   endif
+
+   set name = "${contributor[1]}_${contributor[2]}"
+   echo $roi_i $name $group >> contributor_index.txt
+
+   set offset_xyz =  `1dcat $substd_coords"{$collab_index}"`
+
+   set node_x = `ccalc "$scale_factor * ($basenode_xyz[2] + \
+                    ($offset_xyz[2] / $offset_scale))"`
+   set node_y = `ccalc "$scale_factor * ($basenode_xyz[3] + \
+                    ($offset_xyz[3] / $offset_scale))"`
+   set node_z = `ccalc "$scale_factor * ($basenode_xyz[4] + \
+                    ($offset_xyz[4] / $offset_scale))"`
+
+   echo $name $node_x $node_y $node_z  >> ROI_coords.1D
+
+   # build connections (edges) and connection strengths
+   # make "edge" connection between this contributor and core
+   echo 1 $group_base $roi_i >> contributor_edgelist.1D
+   echo 1 $roi_i $group_base >> contributor_edgelist.1D
+   # make a column of 1's too (equal strength contributions)
+   echo 1 >> all1.1D
+   echo 1 >> all1.1D
+   @ roi_i ++ 
+end
+
+
+# convert the connection-coordinate info to a niml graph dataset
+# all1.1D is the connection strength column - all 1's here
+# contributor_index.txt is roi# name group#
+# contributor_edgelist.1D is edge roi1 roi2,
+#   corresponding to connection strength
+#   from all1.1D
+# ROI_coords.1D[1,2,3] - RAI coordinates of rois
+#    in contributor_index.txt 
+            
+ConvertDset -overwrite -o_niml_asc \
+            -i all1.1D -prefix ${demo_name}  \
+            -add_node_index \
+            -graph_named_nodelist_txt contributor_index.txt \
+                      ROI_coords.1D'[1,2,3]' \
+            -graphize \
+            -graph_edgelist_1D contributor_edgelist.1D            
+
+echo  "  suma -onestate -i $surf \\
+     -gdset ${demo_name}.niml.dset &"
+
+exit 0
+
+HELP:
+
+cat << SCRIPT_HELP_STRING
+
+Overview ~1~
+
+Demo script to create a graph dataset to show names of individuals
+and group, potentially useful for acknowledgements in a talk. 
+The first group is placed at the center of the graph in
+real xyz coordinates, and all other groups are connected to it.
+The group nodes are placed at regular intervals on an input surface.
+
+Each group, including the first group, can have many members.
+Each member is connected to their group with a smaller surface,
+typically with a small icosahedron.
+
+Usage Example ~1~
+
+    tcsh @suma_acknowledge -input bootcamp_list.txt \
+        -surf    std.60.lh.pial.gii \
+        -prefix  AFNI_BOOTCAMP
+
+Options ~1~
+
+    -input dset         :required input text file with format
+                         for each line of the input
+                           first last groupname
+    -surf mysurf        :required surface to place nodes
+    -prefix demo_name   :output prefix for graph dataset
+    
+Optional Options ~1~
+    -center ZERO        :put center coord at x,y,z=0,0,0
+                         otherwise, uses average xyz in surface
+    -subsurf surf2      :surface for surrounding members of group
+                         (use ld2,ld4,ld5,ld6,.... default is ld5) 
+    -scalefactor   s.ss :scale xyz for group nodes (default is 1.0)
+    -reducefactor  s.ss :scale xyz offsets for member nodes (xyz/r)
+                         default is 10
+     
+SCRIPT_HELP_STRING
+exit

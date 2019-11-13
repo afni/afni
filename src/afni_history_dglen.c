@@ -50,6 +50,16 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 12, NOV, 2019, DRG, "@measure_erosion_thick", MINOR, TYPE_MODIFY,
+    "Center for deepest voxel closest to Center of Mass",
+    "Made in CodeConvergence with Chris Rorden and Meghan Robinson"
+},
+
+{ 11, NOV, 2019, DRG, "@suma_acknowledge", MINOR, TYPE_NEW_PROG,
+    "Make simple graphs of collaborations and classes",
+    "Made for AFNI bootcamps using SUMA graph datasets\n"
+    "This may be useful for acknowledgement for general use"
+},
 
 { 31, AUG, 2019, DRG, "@animal_warper,@FindAfniDsetPath", MICRO, TYPE_BUG_FIX,
     "better full_path option for paths with ../",
