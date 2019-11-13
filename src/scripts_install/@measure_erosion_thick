@@ -246,9 +246,12 @@ if ($surfset != "") then
 endif
 
 cd $thickdir
+set maskset = maskset_rs.nii.gz
+
+# goto CENTERS
 
 # get rid of any previous results if directory already exists
-rm -f __tt_*_erode_*
+\rm -f __tt_*_erode_*
 
 set maskset = maskset.nii.gz
 # if there are multiple values in the mask dataset
@@ -340,7 +343,7 @@ rm -rf erosion_depth_vox.nii.gz erosion_depth.nii.gz erosion_thick.nii.gz erosio
 # xxxxxxxx - 4
 # 1->1.5v, 2->3.5v, 3->5.5v, 4-> 7.5
 3dcalc -a erosion_depth_vox.nii.gz -expr "step(a)*max((2*a-0.5)*$voxsize, $voxsize)" \
-  -overwrite -prefix erosion_depth.nii.gz
+  -overwrite -prefix erosion_depth.nii.gz -datum float
 
 # Convert depth to thickness by putting balls down (same as in ball and box method)
 
@@ -393,10 +396,56 @@ if($surfset != "") then
      -output erosion_thick_smooth.niml.dset -overwrite
 endif
 
+CENTERS:
+# find center
+# first center of mass of original dataset
+set CM = `3dCM -mask $maskset $maskset`
+# maximum erosion level
+set maxdepth = `3dBrickStat	-max -slow erosion_depth.nii.gz`
+# calculate distance for maximum depth voxels from CM map
+3dcalc -RAI -a erosion_depth.nii.gz -datum float -overwrite \
+    -expr "within(a,$maxdepth-0.01,$maxdepth+0.01)*(sqrt(($CM[1]-x)^2 + ($CM[2]-y)^2 + \
+    ($CM[3]-z)^2) + 0.0001)"  \
+    -prefix  max_erosion_distance.nii.gz
+# smallest distance in deepest erosion level
+set closest_erosion = `3dBrickStat	-min -slow \
+     -mask max_erosion_distance.nii.gz max_erosion_distance.nii.gz`
+# *** Erosion Center - get xyz of closest erosion point
+# allow some tolerance to get the distance
+set lowval = `ccalc "$closest_erosion - 0.0001"`
+set highval = `ccalc "$closest_erosion + 0.0001"`
+# get xyz value
+set erosioncm_xyz = `3dmaskdump -xyz -noijk \
+   -mask max_erosion_distance.nii.gz \
+   -mrange $lowval $highval max_erosion_distance.nii.gz| head -1`
+
+echo "CM::$CM" > erosion_stats.txt
+echo "ErosionCM::${erosioncm_xyz[1-3]}" >> erosion_stats.txt
+echo "Erosion_dist_to_CM::$closest_erosion" >> erosion_stats.txt
+
+# make a dataset to show the centers
+# make temporary RAI file
+3dresample -orient RAI -prefix __tt_mask_RAI.nii.gz -input $maskset
+# put centers 
+echo $CM 1 > centers.txt
+echo ${erosioncm_xyz[1-3]} 2 >> centers.txt
+
+# get voxel size of mask
+set voxsize = `@GetAfniRes -min $maskset`
+# set a sphere size to put the voxel down
+set srad = `ccalc "8*$voxsize"`
+
+# make volume with volumetric spheres
+3dUndump -srad $srad -xyz -master __tt_mask_RAI.nii.gz -datum byte \
+    -prefix __tt_spheres_coords.nii.gz -overwrite centers.txt
+3dAutobox -noclust -prefix spheres_coords.nii.gz -overwrite __tt_spheres_coords.nii.gz
+3drefit -cmap INT_CMAP spheres_coords.nii.gz
+ 
 # unless the user is a hoarder, trash the intermediate files
 if ("$keep_temp_files" != "keep") then
 # cleanup all the erosion iterations and the voxel level erosions
-   rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec
+   \rm -f __tt_* erosion_depth_vox.nii.gz sphere_centers*.1D *.smrec
+   \rm -f __tt_mask_RAI.nii.gz __tt_spheres_coords.nii.gz
 endif
 
 echo "#\!/bin/tcsh" > @show_thick
