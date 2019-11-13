@@ -254,7 +254,7 @@ ENTRY("mri_bi_clusterize") ;
 
 /*---------------------------------------------------------------------*/
 
-mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl )
+mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl, int icent_flag )
 {
    mri_cluster_detail cld ;
    float xcm,ycm,zcm , xpk,ypk,zpk , vpk,vvv,vsum ;
@@ -269,6 +269,8 @@ ENTRY("mri_clusterize_detailize") ;
    cld.nvox   = cl->num_pt ;
    cld.volume = cl->num_pt ;
    xcm = ycm = zcm = 0.0f ; xpk = ypk = zpk = vpk = 0.0f ;
+   xmi = ymi = zmi = 0.0f ;
+
    for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
      vvv = fabsf(cl->mag[ii]) ; vsum += vvv ;
      xcm += vvv*cl->i[ii] ; ycm += vvv*cl->j[ii] ; zcm += vvv*cl->k[ii] ;
@@ -280,22 +282,28 @@ ENTRY("mri_clusterize_detailize") ;
      cld.xcm = xcm / vsum; cld.ycm = ycm / vsum; cld.zcm = zcm / vsum;
    }
    cld.xpk = xpk; cld.ypk = ypk; cld.zpk = zpk;
+   
+   /* return early if icent not needed - avoid slow process below*/
+   if(!icent_flag){
+       cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
+       RETURN(cld);
+   } 
 
    /* find internal center [08 May 2019] */
-
    if( vsum > 0.0f ){
      wbest = 1.e+37f ; xmi=ymi=zmi = 0.0f ;
      for( kk=0 ; kk < cl->num_pt ; kk++ ){
        xqq = cl->i[kk] ; yqq = cl->j[kk] ; zqq = cl->k[kk] ;
        for( vsum=ii=0 ; ii < cl->num_pt ; ii++ ){
-         vvv = fabsf(cl->mag[ii]) ; vsum += vvv ;
-         vsum += vvv * sqrtf( SQR(xqq-cl->i[ii])
-                             +SQR(yqq-cl->j[ii])+SQR(zqq-cl->k[ii]) ) ;
+		 /* removed weighting by overlay magnitude value - DRG,MER,13 Nov 2019 */ 
+         vsum +=  sqrtf( SQR(xqq - cl->i[ii])
+                        +SQR(yqq - cl->j[ii])
+                        +SQR(zqq - cl->k[ii]) ) ;
        }
        if( vsum < wbest ){ wbest = vsum; xmi = xqq; ymi = yqq; zmi = zqq; }
      }
-     cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
    }
+   cld.xmi = xmi ; cld.ymi = ymi ; cld.zmi = zmi ;
 
    RETURN(cld) ;
 }

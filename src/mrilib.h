@@ -1674,7 +1674,7 @@ extern MRI_IMAGE * mri_clusterize( float,float, MRI_IMAGE * ,
                                    float,float, MRI_IMAGE * , int , byte * );
 extern char * mri_clusterize_report(void) ;
 extern MCW_cluster_array * mri_clusterize_array(int clear) ;
-extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl ) ;
+extern mri_cluster_detail mri_clusterize_detailize( MCW_cluster *cl, int icent);
 
 extern MRI_IMAGE * mri_bi_clusterize( float rmm , float vmul , MRI_IMAGE *bim ,
                                       float thb , float tht  , MRI_IMAGE *tim ,

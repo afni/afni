@@ -50,6 +50,10 @@
 
 
 afni_history_struct dglen_history[] = {
+{ 13, NOV, 2019, DRG, "AFNI Clusterize", MINOR, TYPE_BUG_FIX,
+    "ICent error",
+    "Couple bugs in ICent location computation - thx to Meghan Robinson"
+},
 { 12, NOV, 2019, DRG, "@measure_erosion_thick", MINOR, TYPE_MODIFY,
     "Center for deepest voxel closest to Center of Mass",
     "Made in CodeConvergence with Chris Rorden and Meghan Robinson"
