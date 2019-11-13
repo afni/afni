@@ -22,7 +22,7 @@ check_header_has_been_created("${AFNI_VERSION_HEADER}" "${GIT_REPO_VERSION}")
 
 set(CMAKE_LINK_WHAT_YOU_USE $<$<CXX_COMPILER_ID:GNU>:ON>)
 set(CMAKE_POSITION_INDEPENDENT_CODE ON)
-set(BUILD_SHARED_LIBS ON)
+option(BUILD_SHARED_LIBS "Toggle building shared libraries" ON)
 
 option(AFNI_BUILD_CORELIBS_ONLY
        "Only build core libraries, no SUMA, plugins or programs" OFF
