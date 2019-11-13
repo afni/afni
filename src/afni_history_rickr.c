@@ -49,6 +49,11 @@
 
 afni_history_struct rickr_history[] = {
 
+ { 13, Nov, 2019, RCR, "afni_system_check.py", MICRO, TYPE_MODIFY,
+   "omit any final PyQt4 warnings unless asked for",
+   "Done to appease the mighty P Taylor."
+ } ,
+
  {  1, Nov, 2019, RCR, "gen_ss_review_scripts.py", MINOR, TYPE_ENHANCE,
    "process out.mask_at_corr.txt, the anat/template Dice coefficient",
    "Requested by P Hamilton."

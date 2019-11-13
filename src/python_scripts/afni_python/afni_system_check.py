@@ -217,9 +217,10 @@ g_history = """
         - show output of command "R RHOME"
    1.07 Sep 13, 2019 - report XQuartz/X11 version
    1.08 Sep 16, 2019 - check /usr/local/bin/python files, along with /sw/bin
+   1.09 Nov 13, 2019 - unless asked for, omit any final mention of PyQt4
 """
 
-g_version = "afni_system_check.py version 1.08, September 16, 2019"
+g_version = "afni_system_check.py version 1.09, November 13, 2019"
 
 
 class CmdInterface:
