@@ -8,4 +8,3 @@ def test_afni_gui():
     res = misc.run_x_prog(cmd)
     assert "Fatal Signal 11" not in res
     assert "FATAL ERROR" not in res
-    assert "AFNI is detached from terminal" in res
