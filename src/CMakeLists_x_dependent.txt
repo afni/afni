@@ -1,7 +1,7 @@
 # ##### Build X dependent programs...
 
 add_subdirectory(svm)
-add_subdirectory(XmHTML)
+optional_bundle(XmHTML)
 
 add_library(
   mrix
@@ -22,13 +22,10 @@ add_afni_target_properties(mrix)
 set_target_properties(
   mrix PROPERTIES PUBLIC_HEADER "imseq.h;display.h;xim.h;bbox.h;xutil.h"
 )
-target_include_directories(
-  mrix PUBLIC $<TARGET_PROPERTY:AFNI::XmHTML,INTERFACE_INCLUDE_DIRECTORIES>
-)
 target_link_libraries(
   mrix
   PUBLIC AFNI::mri
-  PRIVATE AFNI::coxplot AFNI::XmHTML ${X11_LIBRARIES} ${MOTIF_LIBRARIES} ${X11_Xt_LIB}
+  PRIVATE AFNI::coxplot XMHTML ${X11_LIBRARIES} ${MOTIF_LIBRARIES} ${X11_Xt_LIB}
           libheaders
 )
 add_afni_target_properties(mrix)

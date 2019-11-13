@@ -87,7 +87,7 @@ foreach(
             AFNI::mri
             afni_all_objects
             AFNI::coxplot
-            AFNI::XmHTML
+            XMHTML
             AFNI::f2cdir
             ${X11_LIBRARIES}
             ${MOTIF_LIBRARIES}
