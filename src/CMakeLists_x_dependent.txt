@@ -91,11 +91,11 @@ target_link_libraries(
   PRIVATE ${CMAKE_DL_LIBS}
           afni_all_objects
           AFNI::mrix
-          ${X11_LIBRARIES}
+          ${MOTIF_LIBRARIES}
           ${X11_Xt_LIB}
+          ${X11_LIBRARIES}
           AFNI::mri
           AFNI::coxplot
-          ${MOTIF_LIBRARIES}
           AFNI::f2cdir
           ${NETCDF_LIBRARIES_C}
           NIFTI::nifti2
